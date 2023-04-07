@@ -6638,13 +6638,11 @@ abstract class AiBase {
 			var done = myPlayer.gotoObj(target);
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto container ${name} $done distance: $distance');
 
-			if (shouldDebugSay()) {
-				if (done) myPlayer.say('Goto ${name} for remove!'); else {
-					myPlayer.say('Cannot Goto ${name} for remove!');
-					removeFromContainerTarget = null;
-					expectedContainer = null;
-					return false;
-				}
+			if (done) if (shouldDebugSay()) myPlayer.say('Goto ${name} for remove!'); else {
+				if (shouldDebugSay()) myPlayer.say('Cannot Goto ${name} for remove!');
+				removeFromContainerTarget = null;
+				expectedContainer = null;
+				return false;
 			}
 
 			return true;
