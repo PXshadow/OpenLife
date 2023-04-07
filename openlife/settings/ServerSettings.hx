@@ -2866,6 +2866,8 @@ class ServerSettings {
 		// Hungry Domestic Calf 1462 --> otherwise AI will wait untill calf dies to get Mutton
 		var trans = transtions.getTransition(-1, 1462);
 		trans.aiShouldIgnore = true;
+		var trans = transtions.getTransition(-1, 1462, false, true);
+		trans.aiShouldIgnore = true;
 
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		// var trans = transtions.getTransition(1247, 4110);
