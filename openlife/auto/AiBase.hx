@@ -1861,7 +1861,7 @@ abstract class AiBase {
 
 		if (doHarvestWheat(1, 4)) return true;
 
-		if (doPlantWheat(5, 20)) return true;
+		if (doPlantWheat(5, 30)) return true;
 
 		/*if (this.profession['BASICFARMER'] < 6) {
 			// let some wheat stay for seeds and so that it looks nice
