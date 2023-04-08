@@ -1453,13 +1453,15 @@ abstract class AiBase {
 			if (shortCraft(258, 575, distance)) return true;
 		}
 
-		if (count > 5) {
-			// Knife 560 + Shorn Domestic Sheep 576
-			if (shortCraft(560, 576, distance)) return true;
+		/* No Need to kill manually. Since killing is allowed if there are plenty sheeps
+			if (count > 5) {
+				// Knife 560 + Shorn Domestic Sheep 576
+				if (shortCraft(560, 576, distance)) return true;
 
-			// Knife 560 + Domestic Sheep 575
-			if (shortCraft(560, 575, distance)) return true;
-		}
+				// Knife 560 + Domestic Sheep 575
+				if (shortCraft(560, 575, distance)) return true;
+			}
+		 */
 
 		// Dead Cow 1900
 		if (shortCraft(560, 1900, distance)) return true;
@@ -1467,8 +1469,8 @@ abstract class AiBase {
 		// Domestic Cow 1458
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1458, 30);
 		if (count > 5) {
-			var cow = AiHelper.GetClosestObjectById(myPlayer, 1458, 30);
-			if (cow != null) cow = AiHelper.GetClosestObjectById(myPlayer, 1458, cow, 30);
+			var cow = AiHelper.GetClosestObjectToHome(myPlayer, 1458, 30);
+			if (cow != null) cow = AiHelper.GetClosestObjectToHome(myPlayer, 1458, 30, cow);
 			// Knife 560 + Domestic Cow 1458
 			if (cow != null && shortCraftOnTarget(560, cow)) return true;
 			// Mango Leaf 1878 + Domestic Cow 1458 (in case there is no Knife)
@@ -4918,6 +4920,27 @@ abstract class AiBase {
 			}
 
 			return false;
+		}
+
+		// Dont kill the closest Sheep / Cow
+
+		// Knife 560 // War Sword 3047 // Mango Leaf 1878
+		var deadlyIds = [560, 3047, 1878];
+		// Domestic Sheep 575 // Shorn Domestic Sheep 576 // Domestic Cow 1458
+		var useSecondClose = [575, 576, 1458];
+
+		if (deadlyIds.contains(itemToCraft.transActor.parentId)
+			&& itemToCraft.transTarget != null
+			&& useSecondClose.contains(itemToCraft.transTarget.parentId)) {
+			trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} use second closest1 ${itemToCraft.transTarget.name} ${itemToCraft.transTarget.id} held: ${player.heldObject.name}');
+			// var obj = itemToCraft.transitionsByObjectId[itemToCraft.transTarget.parentId];
+			var newTarget = AiHelper.GetClosestObjectToHome(myPlayer, itemToCraft.transTarget.parentId, 30);
+
+			if (newTarget != null) {
+				newTarget = AiHelper.GetClosestObjectToHome(myPlayer, itemToCraft.transTarget.parentId, 30, newTarget);
+				if (newTarget != null) itemToCraft.transTarget = newTarget;
+				trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} use second closest ${itemToCraft.transTarget.name} ${itemToCraft.transTarget.id} held: ${player.heldObject.name}');
+			}
 		}
 
 		// if(player.heldObject.parentId == itemToCraft.transActor.parentId)

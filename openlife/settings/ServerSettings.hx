@@ -3191,7 +3191,7 @@ class ServerSettings {
 
 		// Knife 560 + Domestic Cow 1458
 		LimitTransitionIfMinNotReached(560, 1458, 1458, 3); // Allow to kill Cow if more than 3
-		//  War Sword 3047 + Domestic Cow 1458
+		// War Sword 3047 + Domestic Cow 1458
 		LimitTransitionIfMinNotReached(3047, 1458, 1458, 3); // Allow to kill Cow if more than 3
 		// Mango Leaf 1878 + Domestic Cow 1458
 		LimitTransitionIfMinNotReached(1878, 1458, 1458, 2); // Allow to kill Cow if more than 2
