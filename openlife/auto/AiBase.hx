@@ -2205,9 +2205,10 @@ abstract class AiBase {
 		// Firing Adobe Kiln 282
 		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer);
 		// Firing Forge 304
-		var forgeOnFire = kiln != null ? null : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 304, 20, null, myPlayer);
+		// var forgeOnFire = kiln != null ? null : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 304, 20, null, myPlayer);
 
-		if (kiln != null || forgeOnFire != null) {
+		// if (kiln != null || forgeOnFire != null) {
+		if (kiln != null) {
 			this.profession['POTTER'] = 10;
 			if (doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 		}
@@ -2233,12 +2234,12 @@ abstract class AiBase {
 
 		if (kiln == null) return false;
 
-		var countBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 40); //  Clay Bowl 235
-		var countPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 236, 40); //  Clay Plate 236
-		var maxtBowls = ObjectData.getObjectData(235).aiCraftMax; // Clay Bowl 235
-		var maxtPlates = ObjectData.getObjectData(236).aiCraftMax; // Clay Plate 236
+		var countBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 30); //  Clay Bowl 235
+		var countPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 236, 30); //  Clay Plate 236
+		var maxBowls = ObjectData.getObjectData(235).aiCraftMax; // Clay Bowl 235
+		var maxPlates = ObjectData.getObjectData(236).aiCraftMax; // Clay Plate 236
 
-		if (countBowl >= maxtBowls && countPlate >= maxtPlates && (countWetBowl + countWetPlate < 3)) {
+		if (countBowl >= maxBowls && countPlate >= maxPlates && (countWetBowl + countWetPlate < 3)) {
 			this.profession['POTTER'] = 0;
 			return false;
 		}
@@ -2248,11 +2249,11 @@ abstract class AiBase {
 		countBowl += countWetBowl;
 		countPlate += countWetPlate;
 
-		var neededBols = countBowl > maxtBowls ? 0 : maxtBowls - countBowl;
-		var neededPlates = countPlate > maxtPlates ? 0 : maxtPlates - countPlate;
+		var neededBowls = countBowl > maxBowls ? 0 : maxBowls - countBowl;
+		var neededPlates = countPlate > maxPlates ? 0 : maxPlates - countPlate;
 		var neededClay = 0;
 
-		neededClay += neededBols;
+		neededClay += neededBowls;
 		neededClay += neededPlates;
 		if (neededClay > 6) neededClay = 6;
 
@@ -2271,8 +2272,8 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: neededClay: $neededClay WetBowl: ${countWetBowl} WetPlate: $countWetPlate ');
 
-		if (shortCraft(33, 126)) return true; // Stone 33, Clay 126 --> Wet Clay Bowl 233
-		if (countBowl > countPlate && shortCraft(33, 233)) return true; // Stone 33, Wet Clay Bowl 233 --> Wet Clay Plate 234
+		if (neededPlates > 0 && countBowl > countPlate && shortCraft(33, 233)) return true; // Stone 33, Wet Clay Bowl 233 --> Wet Clay Plate 234
+		if (neededBowls + neededPlates > 0 && shortCraft(33, 126)) return true; // Stone 33, Clay 126 --> Wet Clay Bowl 233
 
 		this.profession['POTTER'] = 10;
 		if (doPotteryOnFire(countWetBowl, countWetPlate)) return true;
@@ -2282,15 +2283,40 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function doPotteryOnFire(countWetBowl:Int, countWetPlate:Int):Bool {
-		if (shouldDebugSay()) myPlayer.say('make bowl $countWetBowl');
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make bowl $countWetBowl');
+	private function doPotteryOnFire(countWetBowl:Int = -1, countWetPlate:Int = -1):Bool {
+		var home = myPlayer.home;
+		if (countWetBowl < 0){
+			countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15, false); // Wet Clay Bowl 233
+			countWetBowl += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 284, 15, false); // Wet Bowl in Wooden Tongs
+		}
+		if (countWetPlate < 0){
+			countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15, false); // Wet Clay Plate 234
+			countWetPlate += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 240, 15, false); // Wet Plate in Wooden Tongs
+		}
 
-		if (countWetBowl > 0 && craftItem(283)) return true; // Wooden Tongs with Fired Bowl
+		var countBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 30); //  Clay Bowl 235
+		var maxBowls = ObjectData.getObjectData(235).aiCraftMax; // Clay Bowl 235
 
-		if (shouldDebugSay()) myPlayer.say('make Plate $countWetPlate');
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make Plate $countWetPlate');
-		if (countWetPlate > 0 && craftItem(241)) return true; // Fired Plate in Wooden Tongs
+		// if (shouldDebugSay())
+		myPlayer.say('make bowl $countBowl from $maxBowls');
+		// if (ServerSettings.DebugAi)
+		trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make bowl $countBowl from $maxBowls');
+
+		if (countWetBowl > 0 && countBowl < maxBowls && craftItem(283)) return true; // Wooden Tongs with Fired Bowl
+
+		var countPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 236, 30); //  Clay Plate 236
+		var maxPlates = ObjectData.getObjectData(236).aiCraftMax; // Clay Plate 236
+
+		// if (shouldDebugSay())
+		myPlayer.say('make Plate $countPlate from ${maxPlates}');
+		// if (ServerSettings.DebugAi)
+		trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make Plate $countPlate from ${maxPlates}');
+		if (countWetPlate > 0 && countPlate < maxPlates && craftItem(241)) return true; // Fired Plate in Wooden Tongs
+
+		// TODO make other potter stuff
+
+		// Adobe 127 // Firing Adobe Kiln 282
+		if (shortCraft(127, 282)) return true;
 
 		return false;
 	}
@@ -2767,6 +2793,11 @@ abstract class AiBase {
 
 		if (forge == null) return false;
 
+		// Firing Adobe Kiln 282
+		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer);
+
+		if (kiln != null && doPotteryOnFire()) return true; // make ready bowls / plates
+
 		// Cold Iron Bloom on Flat Rock 312
 		if (shortCraft(239, 312, 20, false)) return true;
 
@@ -2805,7 +2836,7 @@ abstract class AiBase {
 				// Big Charcoal Pile 300
 				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 300, 20);
 				// Basket of Charcoal 298
-				if (count < 1 && craftItem(298)) return true;
+				// if (count < 1 && craftItem(298)) return true;
 
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Unforged Sealed Steel Crucible count done: ${count}');
 				if (countCrucible < 3 && GetCraftAndDropItemsCloseToObj(forge, 319, 3, 10)) return true;
