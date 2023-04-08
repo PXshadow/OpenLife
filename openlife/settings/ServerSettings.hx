@@ -335,7 +335,7 @@ class ServerSettings {
 	public static var WeaponDamageFactor:Float = 1;
 	public static var WoundDamageFactor:Float = 1;
 	public static var CursedDamageFactor:Float = 2;
-	public static var TargetWoundedDamageFactor:Float = 0.5;
+	public static var TargetWoundedDamageFactor:Float = 0.2;
 	public static var AllyConsideredClose:Int = 5;
 	public static var WoundHealingTimeFactor:Float = 2;
 	public static var AllyStrenghTooLowForPickup:Float = 0; // 0.8
