@@ -3869,6 +3869,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		damage *= protectionFactor;
 		damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;
 
+		var maxFoodStore = targetPlayer.calculateNotReducedFoodStoreMax();
+		if (damage > maxFoodStore + 1) damage = maxFoodStore + 1;
+
 		if (doesRealDamage) targetPlayer.hits += damage;
 		targetPlayer.exhaustion += damage;
 		targetPlayer.food_store_max = targetPlayer.calculateFoodStoreMax();
@@ -3910,7 +3913,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var woundFactor = fromObj.objectData.woundFactor;
 		// 764 Rattle Snake --> Shoes protect
 		if (fromObj.parentId == 764 && targetPlayer.hasBothShoes()) woundFactor /= 1.5;
-		var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() * woundFactor;
+		// normaly you get a wound if lost halve hitpoints // Snake make more often a wound
+		var doWound = targetPlayer.food_store_max < maxFoodStore * woundFactor;
 
 		if (doesRealDamage == false) doWound = true; // TODO give a random chance
 		if (doWound && targetPlayer.isWounded() == false) longWeaponCoolDown = true;
