@@ -4941,14 +4941,19 @@ abstract class AiBase {
 		if (deadlyIds.contains(itemToCraft.transActor.parentId)
 			&& itemToCraft.transTarget != null
 			&& useSecondClose.contains(itemToCraft.transTarget.parentId)) {
-			trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} use second closest1 ${itemToCraft.transTarget.name} ${itemToCraft.transTarget.id} held: ${player.heldObject.name}');
-			// var obj = itemToCraft.transitionsByObjectId[itemToCraft.transTarget.parentId];
+			// var dist = AiHelper.CalculateQuadDistanceToObject(myPlayer, itemToCraft.transTarget);
+			// trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} use second closest1 ${itemToCraft.transTarget.name} ${itemToCraft.transTarget.id} dist: ${dist} held: ${player.heldObject.name}');
 			var newTarget = AiHelper.GetClosestObjectToHome(myPlayer, itemToCraft.transTarget.parentId, 30);
 
 			if (newTarget != null) {
+				// var dist = AiHelper.CalculateQuadDistanceToObject(myPlayer, newTarget);
+				// trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} use second closest2 ${itemToCraft.transTarget.name} ${itemToCraft.transTarget.id} dist: ${dist} held: ${player.heldObject.name}');
 				newTarget = AiHelper.GetClosestObjectToHome(myPlayer, itemToCraft.transTarget.parentId, 30, newTarget);
 				if (newTarget != null) itemToCraft.transTarget = newTarget;
-				trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} use second closest ${itemToCraft.transTarget.name} ${itemToCraft.transTarget.id} held: ${player.heldObject.name}');
+				if (newTarget != null) {
+					// var dist = AiHelper.CalculateQuadDistanceToObject(myPlayer, newTarget);
+					// trace('AAI: ${myPlayer.name + myPlayer.id} craft actor ${itemToCraft.transActor.name} use second closest3 ${itemToCraft.transTarget.name} ${itemToCraft.transTarget.id} dist: ${dist} held: ${player.heldObject.name}');
+				}
 			}
 		}
 
