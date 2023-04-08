@@ -2285,11 +2285,11 @@ abstract class AiBase {
 
 	private function doPotteryOnFire(countWetBowl:Int = -1, countWetPlate:Int = -1):Bool {
 		var home = myPlayer.home;
-		if (countWetBowl < 0){
+		if (countWetBowl < 0) {
 			countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15, false); // Wet Clay Bowl 233
 			countWetBowl += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 284, 15, false); // Wet Bowl in Wooden Tongs
 		}
-		if (countWetPlate < 0){
+		if (countWetPlate < 0) {
 			countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15, false); // Wet Clay Plate 234
 			countWetPlate += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 240, 15, false); // Wet Plate in Wooden Tongs
 		}
@@ -4006,6 +4006,12 @@ abstract class AiBase {
 		if (myPlayer.heldObject == myPlayer.hiddenWound) return false; // you cannot drop a smal wound
 
 		var pileId = heldObject.objectData.getPileObjId();
+
+		// dont drop on pile if got from pile
+		if (pileId == itemToCraft.lastTargetId) {
+			// trace('Ignore transition since it undos last: ${trans.getDesciption()}');
+			pileId = -1;
+		}
 
 		// drop on ground to process
 		// 225 Wheat Sheaf // 1113 Ear of Corn  // 292 Basket // 233 Wet Clay Bowl
