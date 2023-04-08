@@ -151,7 +151,7 @@ class Biome {
 			case DESERT: [764]; // Rattle Snake
 			case JUNGLE: [2156]; // Mosquito Swarm
 			case GREY: [418]; // Wolf
-			case SNOW: [418]; // Wolf
+			case SNOW: [1323]; // Wild Boar
 			default: [];
 		}
 	}

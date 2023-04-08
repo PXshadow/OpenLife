@@ -5498,6 +5498,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return temperature;
 	}
 
+	// This function considers also the close heat object, seasonal influence, player clothing and if player loves the biome
+	// Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
+	private static function calculateFullTemperature(player:GlobalPlayerInstance, tx:Int, ty:Int):Float {
+		return -1;
+	}
+
 	// Heat is the player's warmth between 0 and 1, where 0 is coldest, 1 is hottest, and 0.5 is ideal.
 	private static function calculateTemperature(player:GlobalPlayerInstance, tx:Int, ty:Int):Float {
 		var maxBiomeDistance = 10;
