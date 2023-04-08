@@ -4104,8 +4104,15 @@ abstract class AiBase {
 		}
 
 		if (dropNearOvenItemIds.contains(heldId) || pies.contains(heldId) || rawPies.contains(heldId)) {
-			target = myPlayer.home; // drop near home which is normaly the oven
-			dropCloseToPlayer = false;
+			var count = 0;
+			// dont drop at home if there are too many already
+			if (heldId == 235) { // Clay Bowl 235
+				count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 235, 20);
+			}
+			if (count < 5) {
+				target = myPlayer.home; // drop near home which is normaly the oven
+				dropCloseToPlayer = false;
+			}
 		}
 
 		if (dropNearForgeItemIds.contains(heldId)) {
