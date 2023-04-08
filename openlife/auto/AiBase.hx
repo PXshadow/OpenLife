@@ -448,11 +448,11 @@ abstract class AiBase {
 		// Firing Adobe Kiln 282
 		var hotkiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 282, 10);
 		// Firing Forge 304
-		if (hotkiln != null) hotkiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 304, 10, null, myPlayer);
-		if (hotkiln != null || this.profession['POTTER'] >= 10) Macro.exception(if (doPottery(3)) return);
+		// if (hotkiln != null) hotkiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 304, 10, null, myPlayer);
+		if (hotkiln != null || this.profession['POTTER'] >= 10) Macro.exception(if (doPottery(2)) return);
 
 		Macro.exception(if (fillBerryBowlIfNeeded(true)) return);
-		Macro.exception(if (doHunting(1)) return);
+		Macro.exception(if (Math.floor(myPlayer.age / 5) % 3 == 0 && doHunting(1)) return);
 
 		var heldObjId = myPlayer.heldObject.parentId;
 
@@ -1973,7 +1973,7 @@ abstract class AiBase {
 
 	private function doPlantWheat(minPlanted:Int, maxPlanted:Int) {
 		var home = myPlayer.home;
-		var searchDistance = 40;
+		var searchDistance = 30;
 
 		// let some wheat stay for seeds and so that it looks nice
 		var countPlantedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 242, searchDistance); // Ripe Wheat
@@ -2611,10 +2611,10 @@ abstract class AiBase {
 		this.profession['BAKER'] = 3; // TODO set to 2 once in a while to check for bread stuff???
 
 		// Baker needs Wheat
-		if (this.isHungry == false) {
+		if (this.myPlayer.food_store > 2) {
 			if (doHarvestWheat(1, 4)) return true;
 
-			if (doPlantWheat(1, 5)) return true;
+			if (doPlantWheat(2, 8)) return true;
 		}
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
@@ -4219,6 +4219,8 @@ abstract class AiBase {
 
 				if (shouldDebugSay()) myPlayer.say('Cannot Goto home!');
 			}
+
+			if (quadDistance > quadMaxDistanceToHome) dropCloseToPlayer = true;
 		}
 
 		if (dropCloseToPlayer) {
@@ -6171,7 +6173,9 @@ abstract class AiBase {
 
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} goto drop: $done target: ${dropTarget.name} ${dropTarget.tx},${dropTarget.ty} distance: $distance');
-			if (done == false) dropTarget = null;
+			if (done == false) {
+				dropTarget = null;
+			}
 
 			return true;
 		}
