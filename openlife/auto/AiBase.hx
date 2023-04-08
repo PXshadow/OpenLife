@@ -1825,8 +1825,9 @@ abstract class AiBase {
 
 		if (ServerSettings.DebugAi) trace('AAI: 2 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']}');
 
-		var countDryCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 40); // Dried Ear of Corn 1115
-		var countShuckedCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1114, 40); // Shucked Ear of Corn 1114
+		var countDryCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 30); // Dried Ear of Corn 1115
+		countDryCorn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1113, 30); // Ear of Corn 1113
+		var countShuckedCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1114, 30); // Shucked Ear of Corn 1114
 
 		if (countDryCorn < 5 && shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
 		if (countShuckedCorn < 2 && shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
@@ -3116,8 +3117,8 @@ abstract class AiBase {
 
 		var isHoldingSharpStone = myPlayer.heldObject.parentId == 34; // 34 Sharp Stone
 
-		if (shortCraft(0, 1112, maxDistance)) return true; // 0 + Corn Plant --> Ear of Corn
-		if (shortCraft(34, 1113, maxDistance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
+		// if (shortCraft(0, 1112, maxDistance)) return true; // 0 + Corn Plant --> Ear of Corn
+		// if (shortCraft(34, 1113, maxDistance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 		// if(craftItem(1114)) return true; // Shucked Ear of Corn
 
 		var obj = AiHelper.GetClosestObjectById(myPlayer, 36, null, maxDistance); // Seeding Wild Carrot
