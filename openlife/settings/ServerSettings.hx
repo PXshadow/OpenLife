@@ -3098,6 +3098,12 @@ class ServerSettings {
 		LimitTransitionIfMaxReached(559, 69, 500); // Steel Blade 559 + Short Shaft 69 // Knife 560
 		LimitTransitionIfMaxReached(69, 559, 500); // Short Shaft 69 + Steel Blade 559  // Knife 560
 
+		LimitTransitionIfMaxReached(124, 124, 292, 5); // Reed Bundle 124 + Reed Bundle 124 // Basket 292
+		LimitTransitionIfMaxReached(58, 124, 292, 5); // Thread 58 + Reed Bundle 124 // Basket 292
+		LimitTransitionIfMaxReached(58, 123, 292, 5); // Thread 58 + Harvested Tule 123 // Basket 292
+		LimitTransitionIfMaxReached(139, 227, 292, 5); // Skewer 139 + Straw 227 // Basket 292
+		LimitTransitionIfMaxReached(852, 227, 292, 5); // Weak Skewer 852 + Straw 227 // Basket 292
+
 		LimitObject(1121, 1122); // Limit Popcorn 1121 // Popping Corn 1122
 
 		LimitObject(502, 500); // Shovel 502 // Steel Shovel Head 500
@@ -3133,6 +3139,12 @@ class ServerSettings {
 
 		var trans = TransitionImporter.GetTransition(actorId, targetId);
 		trans.igmoreIfMinIsNotReachedObjectId = id;
+		var trans = TransitionImporter.GetTransition(actorId, targetId, true);
+		if (trans != null) trans.igmoreIfMinIsNotReachedObjectId = id;
+		var trans = TransitionImporter.GetTransition(actorId, targetId, false, true);
+		if (trans != null) trans.igmoreIfMinIsNotReachedObjectId = id;
+		var trans = TransitionImporter.GetTransition(actorId, targetId, true, true);
+		if (trans != null) trans.igmoreIfMinIsNotReachedObjectId = id;
 	}
 
 	private static function LimitObject(id:Int, limitNewActorId:Int, max:Int = 1) {
