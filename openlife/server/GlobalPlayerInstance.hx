@@ -3909,7 +3909,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		var woundFactor = fromObj.objectData.woundFactor;
 		// 764 Rattle Snake --> Shoes protect
-		if (fromObj.parentId == 764 && targetPlayer.hasBothShoes()) woundFactor /= 2;
+		if (fromObj.parentId == 764 && targetPlayer.hasBothShoes()) woundFactor /= 1.5;
 		var doWound = targetPlayer.food_store_max < targetPlayer.calculateNotReducedFoodStoreMax() * woundFactor;
 
 		if (doesRealDamage == false) doWound = true; // TODO give a random chance
