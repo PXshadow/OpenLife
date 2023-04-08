@@ -2600,17 +2600,17 @@ abstract class AiBase {
 		var countMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 30); // Cooked Mutton 570
 		var countRawMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 30); // Raw Mutton 569
 
-		var extraPies = countPies % 6;
+		var extraPies = countPies % 4;
+
+		/* if (extraPies == 0) {
+			if (countMutton + countRawMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
+		}*/
 
 		if (extraPies == 0) {
-			if (countMutton + countRawMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
-		}
-
-		if (extraPies == 2) {
 			if (countMuttonPies < 2 && craftItem(802)) return true; // Raw Mutton Pie 802
 		}
 
-		if (extraPies == 4) {
+		if (extraPies == 2) {
 			if (countCarrotPies < 2 && craftItem(268)) return true; // Raw Carrot Pie
 		}
 
@@ -2631,6 +2631,8 @@ abstract class AiBase {
 
 		// Bowl of Soaking Beans 1180
 		if (craftItem(1180)) return true;
+
+		if (countMutton + countRawMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
