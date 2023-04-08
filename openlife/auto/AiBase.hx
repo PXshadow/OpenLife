@@ -816,12 +816,12 @@ abstract class AiBase {
 		if (cleanUp()) return true;
 
 		// take care that there is at least some basic farming
-		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 399, 30); // Wet Planted Carrots
-		if (closeObj == null) if (craftItem(399)) return true; // Wet Planted Carrots
+		// var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 399, 30); // Wet Planted Carrots
+		// if (closeObj == null) if (craftItem(399)) return true; // Wet Planted Carrots
 
-		var corn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
-		corn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
-		if (corn < 3) if (craftItem(1110)) return true; // Wet Planted Corn Seed
+		// var corn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
+		// corn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
+		// if (corn < 3) if (craftItem(1110)) return true; // Wet Planted Corn Seed
 
 		// more kindling
 		if (this.profession['firekeeper'] < 3 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
@@ -1499,6 +1499,9 @@ abstract class AiBase {
 		// if(doPrepareSoil()) return true;
 
 		if (doPrepareRows()) return true;
+
+		var carrots = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 402, 30); // Carrot 402
+		if (carrots > 10) return false;
 
 		if (doWateringOn(396, 3)) return true; // Dry Planted Carrots 396
 
@@ -2706,9 +2709,12 @@ abstract class AiBase {
 
 	private function doWatering(maxPeople:Int = 1):Bool {
 		if (hasOrBecomeProfession('WaterBringer', maxPeople) == false) return false;
+		var home = myPlayer.home;
 
 		// TODO use a general water rework to water all dry stuff
-		if (doWateringOn(396)) return true; //  Dry Planted Carrots 396
+		var carrots = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 402, 30); // Carrot 402
+
+		if (carrots < 10 && doWateringOn(396)) return true; //  Dry Planted Carrots 396
 		if (doWateringOn(228)) return true; //  Dry Planted Wheat 228
 		if (doWateringOn(1109)) return true; //  Dry Planted Corn Seed 1109
 		if (doWateringOn(2829)) return true; //  Dry Planted Tomato Seed 2829
