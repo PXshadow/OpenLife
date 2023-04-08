@@ -1090,16 +1090,16 @@ class ServerSettings {
 		ObjectData.getObjectData(2172).speedMult = 0.9; // Hand Cart with Tires
 
 		// nerve food
-		ObjectData.getObjectData(768).foodValue = 6; // Cactus Fruit 768 // origional 8
-		ObjectData.getObjectData(2143).foodValue = 6; // banana // origional 7
-		ObjectData.getObjectData(31).foodValue = 3; // Gooseberry // origional 3
-		ObjectData.getObjectData(253).foodValue = 3; // BOWL OF GOOSEBERRIES 253 // origional 3
-		ObjectData.getObjectData(2855).foodValue = 5; // Onion // origional 5
-		ObjectData.getObjectData(808).foodValue = 4; // Wild Onion // origional 4
-		ObjectData.getObjectData(807).foodValue = 5; // Burdock Rootl 7
-		ObjectData.getObjectData(40).foodValue = 5; // Wild Carrot // origional 5
-		ObjectData.getObjectData(402).foodValue = 5; // Carrot // origional 5
-		ObjectData.getObjectData(4252).foodValue = 4; // WILD GARLIC 4252 // origional 4
+		ObjectData.getObjectData(768).foodValue = 4; // Cactus Fruit 768 // origional 8
+		ObjectData.getObjectData(2143).foodValue = 4; // banana // origional 7
+		ObjectData.getObjectData(31).foodValue = 2; // Gooseberry // origional 3
+		ObjectData.getObjectData(253).foodValue = 2; // BOWL OF GOOSEBERRIES 253 // origional 3
+		ObjectData.getObjectData(2855).foodValue = 3; // Onion // origional 5
+		ObjectData.getObjectData(808).foodValue = 2; // Wild Onion // origional 4
+		ObjectData.getObjectData(807).foodValue = 3; // Burdock Rootl 7
+		ObjectData.getObjectData(40).foodValue = 4; // Wild Carrot // origional 5
+		ObjectData.getObjectData(402).foodValue = 4; // Carrot // origional 5
+		ObjectData.getObjectData(4252).foodValue = 2; // WILD GARLIC 4252 // origional 4
 		// ObjectData.getObjectData(837).foodValue = 1; // PSILOCYBE MUSHROOM 837 // origional 1
 
 		// boost hunted / cooked food
