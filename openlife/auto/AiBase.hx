@@ -2592,15 +2592,16 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
-		var countCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 40); // Cooked Carrot Pie 273
-		var countBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 40); // Cooked Berry Pie 272
-		var countMuttonPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 803, 40); // Cooked Mutton Pie 803
-		var countMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 40); // Cooked Mutton 570
+		var countCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 30); // Cooked Carrot Pie 273
+		var countBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30); // Cooked Berry Pie 272
+		var countMuttonPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 803, 30); // Cooked Mutton Pie 803
+		var countMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 30); // Cooked Mutton 570
+		var countRawMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 30); // Raw Mutton 569
 
 		var extraPies = countPies % 6;
 
 		if (extraPies == 0) {
-			if (countMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
+			if (countMutton + countRawMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
 		}
 
 		if (extraPies == 2) {
