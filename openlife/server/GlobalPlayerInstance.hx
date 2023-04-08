@@ -3846,8 +3846,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		var biome = WorldMap.world.getBiomeId(targetPlayer.tx, targetPlayer.ty);
 		var lovesThisBiome = targetPlayer.biomeLoveFactor(biome);
-		if (lovesThisBiome < -1) lovesThisBiome = -1;
-		var biomeDamageFactor = 2 / (2 + lovesThisBiome); // between 0.5 and 2
+		if (lovesThisBiome < -0.5) lovesThisBiome = -0.5;
+		var biomeDamageFactor = 10 / (10 + lovesThisBiome); // between 0.83 and 1.25
 
 		var doesRealDamage = fromObj.parentId != 2156; // 2156 Mosquito Swarm;
 		var lovesJungle = targetPlayer.biomeLoveFactor(BiomeTag.JUNGLE);
