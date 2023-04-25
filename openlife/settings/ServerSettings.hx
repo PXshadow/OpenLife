@@ -2247,10 +2247,10 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		var trans = transtions.getTransition(-1, 2180); // longer clothing decay Rabbit Fur Hat with Feather
-		trans.autoDecaySeconds = -24; // 5
+		trans.autoDecaySeconds = -240; // -5
 
 		var trans = transtions.getTransition(-1, 712); // Sealskin Coat
-		trans.autoDecaySeconds = -24; // 5
+		trans.autoDecaySeconds = -24; // -5
 
 		// give more time
 		var trans = transtions.getTransition(-1, 304); // Firing Forge 304
