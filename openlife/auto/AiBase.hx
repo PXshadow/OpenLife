@@ -2801,10 +2801,13 @@ abstract class AiBase {
 
 		if (forge == null) return false;
 
-		// Firing Adobe Kiln 282
-		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer);
+		// Firing Forge 304
+		if (forge.parentId != 304) {
+			// Firing Adobe Kiln 282
+			var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer);
 
-		if (kiln != null && doPotteryOnFire()) return true; // make ready bowls / plates
+			if (kiln != null && doPotteryOnFire()) return true; // make ready bowls / plates
+		}
 
 		// Cold Iron Bloom on Flat Rock 312
 		if (shortCraft(239, 312, 20, false)) return true;
