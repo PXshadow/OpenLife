@@ -2498,7 +2498,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (isSuperMeh) foodValue = playerFrom.heldObject.objectData.foodValue / 2;
 
 		if (isSuperMeh && playerTo.food_store > 5) {
-			trace('Supermeh food can only be eaten if starving to death: foodValue: $foodValue original food value: ${playerFrom.heldObject.objectData.foodValue} food_store: ${playerTo.food_store}');
+			trace('Supermeh food can only be eaten if starving to death: foodValue: $foodValue original food value: ${playerFrom.heldObject.objectData.foodValue} food_store: ${playerTo.food_store} Feeding: ${playerFrom != playerTo}');
 			if (playerTo == playerFrom) {
 				playerTo.doEmote(Emote.ill);
 				playerTo.say('I need better food!', true);
@@ -5213,7 +5213,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (originalFoodValue <= 0) return false;
 
-		if (isObjSuperMeh(objData) && food_store > 2) return false;
+		if (isObjSuperMeh(objData) && food_store > 4) return false;
 
 		return this.food_store_max - this.food_store >= Math.ceil(originalFoodValue / 4);
 	}
