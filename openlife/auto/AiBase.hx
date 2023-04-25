@@ -2791,9 +2791,10 @@ abstract class AiBase {
 
 	private function doSmithing(maxPeople:Int = 1):Bool {
 		var home = myPlayer.home;
+		var heldObject = myPlayer.heldObject;
 
 		// Basket of Charcoal 298 + Forge 303
-		if (myPlayer.heldObject.parentId == 298 && shortCraft(298, 303, 30, false)) return true;
+		if (heldObject.parentId == 298 && shortCraft(298, 303, 30, false)) return true;
 
 		if (hasOrBecomeProfession('SMITH', maxPeople) == false) return false;
 
@@ -2801,8 +2802,8 @@ abstract class AiBase {
 
 		if (forge == null) return false;
 
-		// Firing Forge 304
-		if (forge.parentId != 304) {
+		// Firing Forge 304 // Stone 33 // Smithing Hammer 441
+		if (forge.parentId != 304 && heldObject.parentId != 33 && heldObject.parentId != 441) {
 			// Firing Adobe Kiln 282
 			var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer);
 
