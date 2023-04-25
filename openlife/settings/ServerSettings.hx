@@ -1711,7 +1711,7 @@ class ServerSettings {
 			}
 
 			if (trans.autoDecaySeconds == -168) {
-				trans.autoDecaySeconds = -2; // use chance 20%: 10 uses / 120 min 0.08 Bowls per min
+				trans.autoDecaySeconds = -24; // use chance 20%: 10 uses / 120 min 0.08 Bowls per min
 
 				// trans.traceTransition("PatchTransitions: ", true);
 			}
@@ -1727,7 +1727,7 @@ class ServerSettings {
 			if (trans.autoDecaySeconds == 2160) {
 				// 2160 =  36 min // 0.91 bowls per min
 				// 720 = 12 min // use chance 3%: 33 uses / 12 min = 2.7 bowls per min
-				trans.autoDecaySeconds = 720;
+				trans.autoDecaySeconds = 2160; // 720
 				// trans.traceTransition("PatchTransitions: ", true);
 			}
 		}
@@ -2278,7 +2278,7 @@ class ServerSettings {
 		trans.autoDecaySeconds = 20;
 
 		var trans = transtions.getTransition(-1, 861); // Old Hand Cart
-		trans.autoDecaySeconds = -12;
+		trans.autoDecaySeconds = -12; // original: -0.5
 
 		var trans = transtions.getTransition(-1, 1281); // Cooked Omelette
 		trans.autoDecaySeconds = 20;
