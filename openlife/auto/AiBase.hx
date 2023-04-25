@@ -2823,14 +2823,15 @@ abstract class AiBase {
 		// Steel Ingot on Flat Rock 335
 		if (shortCraft(0, 335, 20, false)) return true;
 
-		if (this.profession['SMITH'] < 4) {
+		if (this.profession['SMITH'] < 3) {
 			// TODO fix make space for them otherwise it might try again and again
 			// Flat Rock 291
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 291, 10);
 			if (count < 2 && GetCraftAndDropItemsCloseToObj(forge, 291, 2, 5)) return true;
 
-			// Stone 33
+			// Stone 33 // Smithing Hammer 441
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 33, 10);
+			if (heldObject.parentId == 33 || heldObject.parentId == 441) count += 1;
 			if (count < 1 && GetCraftAndDropItemsCloseToObj(forge, 33, 1, 5)) return true;
 		}
 
