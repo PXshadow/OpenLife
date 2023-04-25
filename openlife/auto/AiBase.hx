@@ -3847,11 +3847,11 @@ abstract class AiBase {
 				foodTarget = null;
 				return;
 		}*/
-
-		if (foodTarget != null && myPlayer.canEatObj(foodTarget.objectData) == false) {
+		// this does not check if foodTarget is taken through a use
+		/*if (foodTarget != null && myPlayer.canEatObj(foodTarget.objectData) == false) {
 			trace('WARNING: found food that cant be eaten: ${foodTarget.name}');
 			foodTarget = null;
-		}
+		}*/
 
 		if (shouldDebugSay()) {
 			if (foodTarget == null) myPlayer.say('No food found...'); else
