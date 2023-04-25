@@ -6415,6 +6415,8 @@ abstract class AiBase {
 		var objectData = obj.objectData;
 		// Pile of Mouflon Hides 3918
 		if (objectData.parentId == 3918) objectData = ObjectData.getObjectData(564); // Mouflon Hide 564
+		// Pile of Sheep Skins 3919
+		if (objectData.parentId == 3919) objectData = ObjectData.getObjectData(593); // Sheep Skin 593
 
 		var slot = objectData.getClothingSlot();
 
