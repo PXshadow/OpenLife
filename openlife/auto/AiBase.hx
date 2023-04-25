@@ -4519,6 +4519,11 @@ abstract class AiBase {
 		var usePile = pile != null && obj == null;
 		if (usePile) obj = pile;
 		if (obj == null && hasPile) obj = myPlayer.GetClosestObjectById(objId, null, maxSearchDistance, minDistance);
+		if (obj == null && hasPile) {
+			// search for more far away piles
+			obj = myPlayer.GetClosestObjectById(pileId, null, maxSearchDistance, minDistance);
+			usePile = obj != null;
+		}
 
 		if (obj == null && craft == false) return false;
 
