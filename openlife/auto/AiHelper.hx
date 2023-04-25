@@ -335,6 +335,10 @@ class AiHelper {
 		return false;
 	}
 
+	// TODO autogenerate
+	// Pile of Mouflon Hides 3918 // Pile of Sheep Skins 3919
+	public static var clothsWithPilesIds = [3918, 3919];
+
 	public static function GetCloseClothings(playerInterface:PlayerInterface, searchDistance:Int = 8):Array<ObjectHelper> {
 		// var RAD = ServerSettings.AiMaxSearchRadius
 		// if(objDataToSearch != null) trace('GetClosestObject: ${objDataToSearch.name} dis: $searchDistance ignoreObj: ${ignoreObj != null}');
@@ -356,7 +360,7 @@ class AiHelper {
 
 				// compare parent, because of dummy objects for obj with numberOfuses > 1 may have different IDs
 				// Pile of Mouflon Hides 3918
-				if (objData.clothing.charAt(0) != "n" || objData.parentId == 3918) {
+				if (objData.clothing.charAt(0) != "n" || clothsWithPilesIds.contains(objData.parentId)) {
 					var obj = world.getObjectHelper(tx, ty);
 					clothings.push(obj);
 				}
