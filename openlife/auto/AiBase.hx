@@ -819,6 +819,8 @@ abstract class AiBase {
 		// var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 399, 30); // Wet Planted Carrots
 		// if (closeObj == null) if (craftItem(399)) return true; // Wet Planted Carrots
 
+		Macro.exception(if (doCarrotFarming(2)) return true);
+
 		// var corn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
 		// corn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
 		// if (corn < 3) if (craftItem(1110)) return true; // Wet Planted Corn Seed
@@ -1833,8 +1835,8 @@ abstract class AiBase {
 		countDryCorn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1113, 30); // Ear of Corn 1113
 		var countShuckedCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1114, 30); // Shucked Ear of Corn 1114
 
-		if (countDryCorn < 5 && shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
 		if (countShuckedCorn < 2 && shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
+		if (countDryCorn < 5 && shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
 
 		// 1: Prepare Soil
 		// TODO max use transition on soil pile does not work yet
@@ -3025,7 +3027,7 @@ abstract class AiBase {
 		// TODO other dry planted
 
 		// stuff can be in more then once to increase chance
-		// reoved: 1110
+		// removed: 1110
 		// var advancedPlants = [228, 396, 1110, 217, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
 		// var advancedPlants = [228, 1110, 1161, 228, 1110, 2851, 228, 4225, 2829, 1110, 2852, 228, 4263, 228, 228, 1142, 228, 1110];
 		var advancedPlants = [1145, 1161, 2851, 1145, 4225, 2829, 1145, 2852, 4263, 1145];
