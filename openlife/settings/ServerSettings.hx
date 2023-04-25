@@ -2252,6 +2252,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(-1, 712); // Sealskin Coat
 		trans.autoDecaySeconds = -240; // -5
 
+		var trans = transtions.getTransition(-1, 2181); // Straw Hat with Feather
+		trans.autoDecaySeconds = -240; // -5
+
 		// give more time
 		var trans = transtions.getTransition(-1, 304); // Firing Forge 304
 		trans.autoDecaySeconds = 40; // normal 30
