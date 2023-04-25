@@ -270,6 +270,7 @@ class ServerSettings {
 	public static var ObjDecayFactorForClothing:Float = 2;
 	public static var ObjDecayFactorPerTechLevel:Float = 10; // 20 // for example a knife with 58 steps with a tech level of 20 holds round about 4 times longer
 	public static var WoolClothDecayTime:Int = -24 * 30; // one month
+	public static var RabbitFurClothDecayTime:Int = -24 * 2; // vanilla: -5
 
 	public static var DecayFactorInDeepWater:Float = 5;
 	public static var DecayFactorInMountain:Float = 3;
@@ -2333,6 +2334,19 @@ class ServerSettings {
 
 			// trace('Wool: ${objData.name} decaytime: ${trans.autoDecaySeconds}');
 			trans.autoDecaySeconds = ServerSettings.WoolClothDecayTime; // -5
+		}
+
+		for (objData in ObjectData.importedObjectData) {
+			if (objData.description.contains('Rabbit Fur') == false) continue;
+
+			var trans = TransitionImporter.GetTransition(-1, objData.parentId); // TIME + Wool???
+			if (trans == null) continue;
+			if (trans.autoDecaySeconds != -5) continue;
+
+			// trace('Rabbit Fur: ${objData.name}');
+
+			// trace('Wool: ${objData.name} decaytime: ${trans.autoDecaySeconds}');
+			trans.autoDecaySeconds = ServerSettings.RabbitFurClothDecayTime;
 		}
 
 		var trans = TransitionImporter.GetTransition(-1, 866); // TIME + Rag Loincloth
