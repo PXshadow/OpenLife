@@ -3066,6 +3066,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return isObjYum(food.objectData);
 	}
 
+	public function isObjIdYum(objId:Int):Bool {
+		var objData = ObjectData.getObjectData(objId);
+		if (objData == null) return false;
+		return isObjYum(objData);
+	}
+
 	public function isObjYum(foodObjData:ObjectData):Bool {
 		if (foodObjData.dummyParent != null) foodObjData = foodObjData.dummyParent;
 

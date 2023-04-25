@@ -71,6 +71,7 @@ interface PlayerInterface {
 
 	public function isHoldingYum():Bool;
 	public function isYum(food:ObjectHelper):Bool;
+	public function isObjIdYum(id:Int):Bool;
 	public function isMeh(food:ObjectHelper):Bool;
 	public function isSuperMeh(food:ObjectHelper):Bool;
 	public function isObjSuperMeh(foodObjData:ObjectData):Bool;

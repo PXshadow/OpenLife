@@ -1832,11 +1832,11 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi) trace('AAI: 2 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']}');
 
 		var countDryCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 30); // Dried Ear of Corn 1115
-		countDryCorn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1113, 30); // Ear of Corn 1113
+		var countEarOfCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1113, 30); // Ear of Corn 1113
 		var countShuckedCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1114, 30); // Shucked Ear of Corn 1114
 
-		if (countShuckedCorn < 2 && shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
-		if (countDryCorn < 5 && shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
+		if (countDryCorn + countShuckedCorn < 5 && shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
+		if (countEarOfCorn < 4 && shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
 
 		// 1: Prepare Soil
 		// TODO max use transition on soil pile does not work yet
@@ -6226,6 +6226,8 @@ abstract class AiBase {
 	}
 
 	private function isConsideringMakingFood():Bool {
+		var home = myPlayer.home;
+
 		// if (shouldDebugSay()) myPlayer.say('$lastProfession  ${countProfession(lastProfession)}');
 		if (shouldDebugProfession()) {
 			var text = createProfessionText();
@@ -6274,6 +6276,21 @@ abstract class AiBase {
 		if (myPlayer.isMoving()) return true;
 
 		Macro.exception(if (shortCraft(0, 400, 10)) return true); // pull out the carrots
+
+		// Shucked Ear of Corn 1114
+		if (myPlayer.isObjIdYum(1114)) {
+			// var countDryCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 30); // Dried Ear of Corn 1115
+			var countCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1113, 30); // Ear of Corn 1113
+			var countShuckedCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1114, 30); // Shucked Ear of Corn 1114
+
+			if (countCorn < 1) this.taskState['EearOfCornMaker'] = 1;
+			if (countCorn > 2) this.taskState['EearOfCornMaker'] = 0;
+
+			if (this.taskState['EearOfCornMaker'] > 0 && shortCraft(0, 1112, 30)) return true; // 0 + Corn Plant --> Ear of Corn
+
+			// Shucked Ear of Corn 1114
+			if (countCorn > 0 && countShuckedCorn < 2 && craftItem(1114)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
+		}
 
 		// TODO consider raw pies, but first optimise counting
 
