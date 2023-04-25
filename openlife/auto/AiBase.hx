@@ -2165,7 +2165,7 @@ abstract class AiBase {
 			trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: wanted actor: ${actorData.name} + target: ${target.name} held: ${myPlayer.heldObject.name}');
 
 		if (actorId == 0) return dropHeldObject();
-		return GetOrCraftItem(actorId, craftActorIfNeeded);
+		return GetOrCraftItem(actorId, craftActorIfNeeded, target);
 	}
 
 	private function GetKiln() {
@@ -4514,15 +4514,24 @@ abstract class AiBase {
 		return GetOrCraftItem(objId, false);
 	}
 
-	private function GetOrCraftItem(objId:Int, craft:Bool = true, minDistance:Int = 0):Bool {
+	private function GetOrCraftItem(objId:Int, craft:Bool = true, minDistance:Int = 0, target:ObjectHelper = null):Bool {
 		if (myPlayer.isMoving()) return true;
 		var objdata = ObjectData.getObjectData(objId);
 		var pileId = objdata.getPileObjId();
 		var hasPile = pileId > 0;
 		var maxSearchDistance = 40;
 		var searchDistance:Int = hasPile ? 5 : maxSearchDistance;
-		var obj = myPlayer.GetClosestObjectById(objId, null, searchDistance, minDistance);
-		var pile = hasPile ? myPlayer.GetClosestObjectById(pileId, null, searchDistance, minDistance) : null;
+		var obj = null;
+		var pile = null;
+
+		// first search close to target. For example to not bring too many stones at home
+		if (target != null) {
+			obj = AiHelper.GetClosestObjectToTarget(myPlayer, target, objId, 10, minDistance);
+			pile = hasPile ? AiHelper.GetClosestObjectToTarget(myPlayer, target, pileId, 10, minDistance) : null;
+		}
+
+		if (obj == null) obj = myPlayer.GetClosestObjectById(objId, null, searchDistance, minDistance);
+		if (pile == null) pile = hasPile ? myPlayer.GetClosestObjectById(pileId, null, searchDistance, minDistance) : null;
 
 		var usePile = pile != null && obj == null;
 		if (usePile) obj = pile;
