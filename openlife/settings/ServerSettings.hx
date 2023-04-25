@@ -638,6 +638,8 @@ class ServerSettings {
 		ObjectData.getObjectData(1155).decayFactor = 2; // Split Potato Sprouts 1155
 		ObjectData.getObjectData(204).decayFactor = 10; // Two Rabbit Furs 204
 		ObjectData.getObjectData(204).decaysToObj = 183; // Rabbit Furs
+		ObjectData.getObjectData(4063).decayFactor = 5; // Pile of Yew Branches 4063
+		ObjectData.getObjectData(4063).decaysToObj = 132; // Pile of Yew Branches 4063 ==> Yew Branch 132
 		ObjectData.getObjectData(1121).decayFactor = 2; // Popcorn 1121
 		ObjectData.getObjectData(1121).decaysToObj = 235; // Clay Bowl
 
