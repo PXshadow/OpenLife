@@ -2320,8 +2320,10 @@ abstract class AiBase {
 
 		// TODO make other potter stuff
 
+		var countCoal = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 300, 30); //  Big Charcoal Pile 300
+
 		// Adobe 127 // Firing Adobe Kiln 282
-		if (shortCraft(127, 282)) return true;
+		if (countCoal < 5 && shortCraft(127, 282)) return true;
 
 		return false;
 	}
