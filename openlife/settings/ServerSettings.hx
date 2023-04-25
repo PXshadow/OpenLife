@@ -2250,7 +2250,7 @@ class ServerSettings {
 		trans.autoDecaySeconds = -240; // -5
 
 		var trans = transtions.getTransition(-1, 712); // Sealskin Coat
-		trans.autoDecaySeconds = -24; // -5
+		trans.autoDecaySeconds = -240; // -5
 
 		// give more time
 		var trans = transtions.getTransition(-1, 304); // Firing Forge 304
