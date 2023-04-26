@@ -588,9 +588,17 @@ class AiHelper {
 	}
 
 	public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true, checkIfDangerous = true, ?infos:haxe.PosInfos):Bool {
+		// TODO stop going to target if too far???
 		if (ServerSettings.DebugAi) {
+			var ai = player.getAi();
 			var distance = CalculateQuadDistanceToObject(player, obj);
-			trace('AAI: ${player.name + player.id} gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} ${infos.methodName}');
+			if (ai.lastGotoObj == obj && ai.lastGotoObjDistance < distance)
+				trace('WARNING: AAI: ${player.name + player.id} gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} old-d:${ai.lastGotoObjDistance} ${infos.methodName}');
+			else
+				trace('AAI: ${player.name + player.id} gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} ${infos.methodName}');
+
+			ai.lastGotoObjDistance = distance;
+			ai.lastGotoObj = obj;
 		}
 
 		return gotoAdv(player, obj.tx, obj.ty, move, checkIfDangerous, infos);
@@ -736,6 +744,7 @@ class AiHelper {
 		var player = playerInterface.getPlayerInstance();
 		var ai = playerInterface.getAi();
 		var tryMoveNearestTileFirst = ai == null ? false : ai.tryMoveNearestTileFirst;
+		ai.path = null;
 
 		// var goal:Pos;
 		// var dest:Pos;
@@ -826,7 +835,9 @@ class AiHelper {
 
 		var map = new MapCollision(AiHelper.CreateCollisionChunk(playerInterface, considerAnimal));
 		// pathing
-		var path = new Pathfinder(cast map);
+		// var pathOld = new Pathfinder(cast map);
+		// var pathsOld:Array<Coordinate> = null;
+		var newPathfinder:PathfinderNew = null;
 		var paths:Array<Coordinate> = null;
 		// move the end cords
 		var tweakX:Int = 0;
@@ -873,10 +884,10 @@ class AiHelper {
 
 			// trace('${player.name + player.p_id} goto: end $end');
 
-			// paths = path.createPath(start, end, MANHATTAN, true);
+			// pathsOld = pathOld.createPath(start, end, MANHATTAN, true);
 			// PathfinderNew.TryDifferentPaths(start, end, map);
 
-			var newPathfinder = new PathfinderNew(map);
+			newPathfinder = new PathfinderNew(map);
 			paths = newPathfinder.CreatePath(start, end);
 
 			if (paths != null) break;
@@ -893,19 +904,27 @@ class AiHelper {
 			return false;
 		}
 
-		/*for(path in paths)
-			{
-				trace(path);
-		}*/
-
-		var data:Array<Pos> = [];
-		paths.shift();
 		var tx:Int = start.x;
 		var ty:Int = start.y;
 
+		var data:Array<Pos> = [];
+		paths.shift();
 		for (path in paths) {
 			data.push(new Pos(path.x - tx, path.y - ty));
 		}
+
+		/*var dataOld:Array<Pos> = [];
+			if (pathsOld != null) {
+				pathsOld.shift();
+				for (path in pathsOld) {
+					dataOld.push(new Pos(path.x - tx, path.y - ty));
+				}
+		}*/
+
+		if (data.length > 10 && player.p_id == 534970 && newPathfinder != null) newPathfinder.WriteMapToFile();
+
+		if (ServerSettings.DebugAi) trace('${player.name + player.p_id} GOTO done new: $px $py L: ${data.length} $data');
+		// if (ServerSettings.DebugAi) trace('${player.name + player.p_id} GOTO done old: $px $py L: ${dataOld.length} $dataOld');
 
 		// check if stuck
 		if (data.length > 0 && ai.lastX == -data[data.length - 1].x && ai.lastY == -data[data.length - 1].y) {
@@ -919,8 +938,8 @@ class AiHelper {
 		var ai = playerInterface.getAi();
 		var globalPlayer = cast(player, GlobalPlayerInstance);
 		if (move) playerInterface.move(globalPlayer.moveHelper.guessX(), globalPlayer.moveHelper.guessY(), ai.seqNum++, data);
-
-		// trace('${player.name + player.p_id} GOTO done $px $py');
+		if (move) ai.path = data;
+		// if (ServerSettings.DebugAi) trace('${player.name + player.p_id} GOTO done $px $py $data');
 
 		return true;
 	}

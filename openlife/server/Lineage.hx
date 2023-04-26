@@ -144,7 +144,7 @@ class Lineage {
 			for (lineage in lineages)
 				count++;
 
-			trace('WriteLineages: canBeDeleted: 0 / Not yet implemented saved: $count');
+			trace('WriteLineages: canBeDeleted: NotYetImplemented saved: $count');
 		}
 
 		writer.writeInt32(dataVersion);

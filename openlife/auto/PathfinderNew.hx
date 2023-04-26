@@ -1,5 +1,7 @@
 package openlife.auto;
 
+import openlife.settings.ServerSettings;
+import sys.io.File;
 import haxe.ds.Vector;
 import openlife.auto.Pathfinder.Coordinate;
 import openlife.data.map.MapData.MapCollision;
@@ -18,6 +20,10 @@ class PathfinderNew {
 	var timeOut:Float = 100; // timeout in ms
 
 	var continueFrom:Coordinate = null;
+
+	public var currentMap:Vector<Float> = null;
+
+	var dest:Coordinate = null; // destination
 
 	public function new(newMap:MapCollision) {
 		this.map = newMap;
@@ -77,8 +83,31 @@ class PathfinderNew {
 		}
 	}
 
+	public function WriteMapToFile() {
+		var dir = './${ServerSettings.SaveDirectory}/';
+		var path = dir + 'paths.txt';
+		var writer = File.append(path, false);
+		// var writer = File.write(path, false);
+
+		writer.writeString('Destination: ${dest.x},${dest.y}\n');
+		for (y in 0...width) {
+			var line = '';
+			for (x in 0...width) {
+				if (x > 0) line += ',';
+				line += '${currentMap[Index(x, y)]}';
+				// if (currentMap[Index(x, y)] < 0) trace('NewCreatePath: NEGATIVE $x,$y ${currentMap[Index(x, y)]}');
+				if (dest.x == x && dest.y == y) line += 'D';
+			}
+
+			writer.writeString('$line\n');
+		}
+		writer.writeString('\n');
+		writer.close();
+	}
+
 	public function CreatePath(start:Coordinate, dest:Coordinate):Array<Coordinate> {
-		var currentMap = new Vector<Float>(width * width);
+		this.dest = dest;
+		currentMap = new Vector<Float>(width * width);
 
 		// trace('NewCreatePath: ${start.x},${start.y} --> ${dest.x},${dest.y}');
 		var done = CreateDirectPath(start, dest, currentMap);
@@ -115,6 +144,7 @@ class PathfinderNew {
 
 		CreateDirectPath(dest, start, currentMap, -1);
 
+		// TODO brute force is currently only one direction, therefore add other directions
 		// brute force
 		for (i in 0...width) {
 			// if(done) break;
@@ -150,19 +180,26 @@ class PathfinderNew {
 								return crossing;
 							}
 
-							// if(currentLength == 0) continue;
-							if (length > 0 && currentLength > 0) continue;
-							if (length < 0 && currentLength < 0) continue;
+							var xlength = px == 0 || py == 0 ? 1 : 1.4;
+							var newlength = length > 0 ? length + xlength : length - xlength;
+
 							if (map.isWalkable(x + px, y + py) == false) continue;
 
-							var xlength = px == 0 || py == 0 ? 1 : 1.4;
+							// if(currentLength == 0) continue;
+							// if (length > 0 && currentLength > 0) continue;
+							// if (length < 0 && currentLength < 0) continue;
+							if (length > 0 && currentLength != 0 && currentLength <= newlength) continue;
+							if (length < 0 && currentLength != 0 && currentLength >= newlength) continue;
+
 							// trace('NewCreatePath: force: i: $i $x,$y / $px,$py $xlength $length');
 							// trace('NewCreatePath: force: i: $i $x,$y / $px,$py $length');
 
 							if (length > 0) change = true; else
 								changeFromDest = true;
 
-							currentMap[Index(x + px, y + py)] = length > 0 ? length + xlength : length - xlength;
+							// if (length < 0) trace('NewCreatePath: force: NEGATIVE i: $i $x,$y / $px,$py $length');
+
+							currentMap[Index(x + px, y + py)] = newlength;
 
 							/*if(x + px == dest.x && y + py == dest.y){
 								done = true;

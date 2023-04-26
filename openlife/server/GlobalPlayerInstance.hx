@@ -951,8 +951,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				return 0;
 		});
 
-		for (p in players)
-			trace('${p.name} PRESTIGE: ${p.lineagePrestige}');
+		// for (p in players) trace('${p.name} PRESTIGE: ${p.lineagePrestige}');
 
 		var neededPrestige = CalculateNeededPrestige(players, 0.4);
 		medianPrestige = Math.max(neededPrestige, ServerSettings.MinHealthPerYear * 30); // is needed for calculating health
