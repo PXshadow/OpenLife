@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.data.Pos;
 import openlife.server.Biome.BiomeTag;
 import haxe.ds.Map;
 import haxe.Exception;
@@ -107,6 +108,9 @@ abstract class AiBase {
 
 	public var lastX = 0; // for debugging stuck path
 	public var lastY = 0; // for debugging stuck path
+	public var path:Array<Pos> = null; // for debugging stuck path
+	public var lastGotoObjDistance:Float = -1;
+	public var lastGotoObj:ObjectHelper = null;
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -368,7 +372,7 @@ abstract class AiBase {
 
 			// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: d: $distance ${useTarget.name} isMoving: ${myPlayer.isMoving()}');
 
-			if (distance < closeUseQuadDistance) {
+			if (distance < 25) {
 				// if(shouldDebugSay()) myPlayer.say('Close Use: true! d: $distance ${useTarget.name}');
 				// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Close Use: d: $distance ${useTarget.name} ${useTarget.tx} ${useTarget.ty} isMoving: ${myPlayer.isMoving()}');
 
@@ -407,6 +411,8 @@ abstract class AiBase {
 
 		Macro.exception(if (handleDeath()) return);
 		Macro.exception(if (isEating()) return);
+		// should be below isUsingItem since a use can be used to drop an hold item on a pile to pickup a baby
+		Macro.exception(if (isFeedingChild()) return);
 		Macro.exception(if (switchCloths()) return);
 
 		if (playerToFollow != null && autoStopFollow == false) {
@@ -422,8 +428,6 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: isEating ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
-		// should be below isUsingItem since a use can be used to drop an hold item on a pile to pickup a baby
-		Macro.exception(if (isFeedingChild()) return);
 		Macro.exception(if (isConsideringMakingFood()) return);
 		Macro.exception(if (isPickingupFood()) return);
 		Macro.exception(if (this.profession['SMITH'] < 1 && isFeedingPlayerInNeed()) return);
@@ -4023,6 +4027,9 @@ abstract class AiBase {
 		var heldObject = myPlayer.heldObject;
 		var heldId = heldObject.parentId;
 
+		// for example stop drop pickup if picking up child
+		if (maxDistanceToHome < 1) this.dropTarget = null; // TODO: consider distance to target cancles drop to pickup other stuff
+
 		if (heldObjId == 0) return false;
 		if (myPlayer.heldObject.isWound()) return false;
 		if (myPlayer.heldObject == myPlayer.hiddenWound) return false; // you cannot drop a smal wound
@@ -6208,7 +6215,7 @@ abstract class AiBase {
 			// }
 
 			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} goto drop: $done target: ${dropTarget.name} ${dropTarget.tx},${dropTarget.ty} distance: $distance');
+				trace('AAI: ${myPlayer.name + myPlayer.id} goto drop: $done target: ${dropTarget.name} ${dropTarget.tx},${dropTarget.ty} distance: $distance ${path}');
 			if (done == false) {
 				dropTarget = null;
 			}
