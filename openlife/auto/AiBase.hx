@@ -4068,8 +4068,8 @@ abstract class AiBase {
 			if (shortCraft(1137, 848, 15)) return true;
 		}
 
-		// Stone Hoe 850
-		if (heldObjId == 850 && myPlayer.food_store > 3) {
+		// Stone Hoe 850 // if maxDistanceToHome is low dont do other stuff since its important to drop
+		if (heldObjId == 850 && myPlayer.food_store > 3 && maxDistanceToHome > 5) {
 			// Stone Hoe 850 + Shallow Tilled Row 1136 --> Deep Tilled Row 213
 			if (shortCraft(850, 1136, 15)) return true;
 			// Stone Hoe 850 + Fertile Soil 1138
@@ -6192,7 +6192,7 @@ abstract class AiBase {
 		}
 
 		// In case of a drop as object switch, consider drop held object
-		if (considerDropHeldObject(dropTarget)) return true;
+		// TODO ??? if (considerDropHeldObject(dropTarget)) return true;
 		if (dropTarget == null) return false; // considerDropHeldObject may have cleared drop target
 
 		if (myPlayer.isMoving()) return true;
