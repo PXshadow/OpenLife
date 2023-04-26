@@ -207,6 +207,13 @@ class ObjectHelper {
 	public static function InitObjectHelpersAfterRead() {
 		for (obj in WorldMap.world.objectHelpers) {
 			if (obj == null) continue;
+			if (obj.id == 0) continue;
+
+			var creatorLinage = obj.getLinage();
+			if (creatorLinage != null) {
+				// trace('${obj.name} Owner: ${creatorLinage.name}');
+				creatorLinage.ownsObject = true; // mark to not delete
+			}
 
 			if (obj.isGrave()) {
 				for (id in obj.ownersByPlayerAccount) {
@@ -214,20 +221,30 @@ class ObjectHelper {
 					if (account == null) continue;
 
 					account.graves.push(obj);
+					var creatorLinage = obj.getLinage();
+
+					if (creatorLinage != null) {
+						// trace('${obj.name} Owner: ${account.email} ${creatorLinage.name}');
+						// TODO mark all owners of all objects not only graves
+						creatorLinage.ownsObject = true; // mark to not delete
+					} else
+						trace('WARNING: ${obj.name} Owner: ${account.email}');
 				}
 			} else if (obj.isOwned()) {
-				// TODO Will only work once players are saved
 				for (id in obj.livingOwners) {
+					// trace('${obj.name} Owner: ${id}');
+
 					var player = GlobalPlayerInstance.AllPlayers[id];
 					if (player == null) {
+						trace('WARNING: ${obj.name} Owner: ${id} not found');
 						obj.livingOwners.remove(id);
-						continue; // TODO warning
+						continue;
 					}
 
 					if (player.deleted) obj.removeOwner(player);
 					player.owning.push(obj);
 
-					trace('Owner: ${player.name}');
+					// trace('${obj.name} Owner: ${player.name}');
 				}
 			}
 		}

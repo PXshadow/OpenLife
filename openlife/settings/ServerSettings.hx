@@ -50,6 +50,7 @@ class ServerSettings {
 	public static var saveToDisk = true;
 	public static var SavePlayers = true;
 	public static var LoadPlayers = true;
+	public static var LineageDeleteAgeFactor:Float = 2; // keep lineage for age * x days --> one died with 60 will be deleted after 120 days
 
 	// Mutex
 	public static var UseOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads

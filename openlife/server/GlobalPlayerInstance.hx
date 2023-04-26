@@ -479,6 +479,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			connection.serverAi = new ServerAi(obj); // use AI untill player logs in
 
 			obj.lineage = Lineage.GetLineage(id);
+			if (obj.lineage != null) obj.lineage.alive = true;
+			// if (obj.lineage != null) loadedPlayers[id] = obj;
 			loadedPlayers[id] = obj;
 			playersToLoad[id] = new Map<String, Int>();
 

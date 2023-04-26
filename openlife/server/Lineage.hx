@@ -65,26 +65,94 @@ class Lineage {
 
 	public var prestigeClass:PrestigeClass = PrestigeClass.Commoner;
 
+	public var ownsObject:Bool = false; // indicates if this linage owns a object on the map. If not it might be deleted
+	public var alive:Bool = false; // indicates if still alive. If not it might be deleted. Up to now its only set on server restart
+	public var delete = false; // mark if linage can be deleted on server restart
+
 	public static function WriteNewLineages(path:String) {
 		WriteLineages(path, NewLineages);
 	}
 
 	public static function WriteAllLineages(path:String) {
-		WriteLineages(path, AllLineages);
+		WriteLineages(path, AllLineages, true);
 	}
 
-	public static function WriteLineages(path:String, lineages:Map<Int, Lineage>) {
+	// TODO alive and ownsObject is current set only on server start.
+	public function canBeDeleted():Bool {
+		if (alive) return false;
+		if (this.ownsObject) return false; // dont delete if this linage owns still an object on the map like a grave
+
+		var deathSince = this.getDeadSince();
+		var trueAge = this.trueAge;
+		var delete = deathSince > trueAge * 60 * 24 * ServerSettings.LineageDeleteAgeFactor;
+
+		// trace('canBeDeleted: ${delete} ${name} ${po_id} deathReason: ${deathReason} deathSince: ${Math.ceil(deathSince / (60 * 24))} age: ${Math.ceil(trueAge)}');
+
+		return delete;
+	}
+
+	private function setDelete(shouldDelete:Bool) {
+		var lineage = this;
+
+		if (this.delete && shouldDelete == false) {
+			this.delete = shouldDelete;
+
+			lineage.eveLineage.setDelete(false);
+			var mother = lineage.getMotherLineage();
+			if (mother != null) mother.setDelete(false);
+			var father = lineage.getFatherLineage();
+			if (father != null) father.setDelete(false);
+		}
+		this.delete = shouldDelete;
+	}
+
+	// TODO archive important deleted lineages
+	public static function WriteLineages(path:String, lineages:Map<Int, Lineage>, deleteOld = false) {
 		var count = 0;
 		var dataVersion = 1;
 		var writer = File.write(path, true);
 
-		for (lineage in lineages)
-			count++;
+		if (deleteOld) {
+			var countNotDelete = 0;
+			var countDelete = 0;
+
+			for (lineage in lineages) {
+				lineage.delete = lineage.canBeDeleted();
+
+				// if (lineage.canBeDeleted) countDelete++; else
+				//	countNotDelete++;
+			}
+
+			// save Eve lineages --> important for family name
+			for (lineage in lineages) {
+				if (lineage.delete == false) {
+					lineage.eveLineage.setDelete(false);
+					var mother = lineage.getMotherLineage();
+					if (mother != null) mother.setDelete(false);
+					var father = lineage.getFatherLineage();
+					if (father != null) father.setDelete(false);
+				}
+			}
+
+			for (lineage in lineages) {
+				if (lineage.delete) countDelete++; else
+					countNotDelete++;
+			}
+			count = countNotDelete;
+			trace('WriteLineages: canBeDeleted: $countDelete saved: $countNotDelete');
+		} else {
+			for (lineage in lineages)
+				count++;
+
+			trace('WriteLineages: canBeDeleted: 0 / Not yet implemented saved: $count');
+		}
 
 		writer.writeInt32(dataVersion);
 		writer.writeInt32(count);
 
 		for (lineage in lineages) {
+			if (deleteOld && lineage.delete) continue;
+
 			writer.writeInt32(lineage.myId);
 			writer.writeInt32(lineage.accountId);
 
@@ -114,7 +182,7 @@ class Lineage {
 		if (ServerSettings.DebugWrite) trace('wrote $count Lineages...');
 	}
 
-	public static function ReadAndSaveAllLineages(pathAll:String, pathNew:String) {
+	public static function ReadAllLineages(pathAll:String, pathNew:String) {
 		if (FileSystem.exists(pathAll)) {
 			trace('Lineage: exists: $pathAll');
 			var pathBackup = pathAll + '.bak';
@@ -136,7 +204,7 @@ class Lineage {
 		for (lineage in newLineages)
 			AllLineages[lineage.myId] = lineage;
 
-		WriteAllLineages(pathAll);
+		// WriteAllLineages(pathAll);
 	}
 
 	public static function ReadAndSetLineages(path:String):Map<Int, Lineage> {

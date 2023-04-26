@@ -869,19 +869,21 @@ class WorldMap {
 
 		// Lineage.ReadAndSetLineages(dir + "Lineages" + saveDataNumber + ".bin");
 
-		Lineage.ReadAndSaveAllLineages(dir + "LineagesAll.bin", dir + "Lineages" + saveDataNumber + ".bin");
+		Lineage.ReadAllLineages(dir + "LineagesAll.bin", dir + "Lineages" + saveDataNumber + ".bin");
 
 		if (ServerSettings.LoadPlayers) GlobalPlayerInstance.ReadPlayers(dir + "Players" + saveDataNumber + ".bin");
 
 		fixObjectIds('read');
 
+		ObjectHelper.InitObjectHelpersAfterRead(); // should be called before writing lineages, otherwise lineages with objects on the map might be deleted
+
+		Lineage.WriteAllLineages(dir + "LineagesAll.bin");
+
+		Lineage.WriteLineageStatistics();
+
 		this.originalObjectsCount = countObjects(this.originalObjects);
 
 		this.currentObjectsCount = countObjects(this.objects);
-
-		ObjectHelper.InitObjectHelpersAfterRead();
-
-		Lineage.WriteLineageStatistics();
 
 		return true;
 	}
