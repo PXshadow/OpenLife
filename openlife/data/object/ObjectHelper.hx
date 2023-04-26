@@ -67,6 +67,9 @@ class ObjectHelper {
 
 		for (obj in objHelpersToWrite) {
 			if (obj == null) continue;
+			// if (obj.id < 1>) continue;
+			// if (obj.id < 1) trace('WriteMapObjHelpers: delete: ${obj.isHelperToBeDeleted()} numberOfUses: ${obj.numberOfUses} objectData.numUses: ${obj.objectData.numUses}');
+			// if (obj.id < 1) trace('WriteMapObjHelpers: delete: ${obj.isHelperToBeDeleted()} containedObjects: ${obj.containedObjects.length} groundObject: ${obj.groundObject != null}');
 			count++;
 			WriteToFile(obj, writer);
 		}
@@ -531,13 +534,13 @@ class ObjectHelper {
 	public function isHelperToBeDeleted():Bool {
 		var helper = this;
 		// TODO why not use dummy instead? So no need for helper?
-		var toDelete = (helper.numberOfUses == helper.objectData.numUses || helper.numberOfUses < 1);
+		var toDelete = (helper.numberOfUses == helper.objectData.numUses || helper.numberOfUses < 1 || helper.id < 1);
 		// TODO maybe dont use a helper for time transitions?
 		toDelete = toDelete && helper.timeToChange == 0 && helper.containedObjects.length == 0 && helper.groundObject == null;
 		// toDelete = toDelete && helper.livingOwners.length < 1;
 		toDelete = toDelete && helper.isOwned() == false && helper.isFollowerOwned() == false && helper.isGrave() == false;
 
-		toDelete = toDelete && (helper.hits <= 0 || helper.id <= 0);
+		toDelete = toDelete && (helper.hits <= 0 || helper.id < 1);
 
 		return toDelete;
 	}
