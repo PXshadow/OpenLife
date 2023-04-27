@@ -2308,20 +2308,16 @@ abstract class AiBase {
 		var countBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 30); //  Clay Bowl 235
 		var maxBowls = ObjectData.getObjectData(235).aiCraftMax; // Clay Bowl 235
 
-		// if (shouldDebugSay())
-		myPlayer.say('make bowl $countBowl from $maxBowls');
-		// if (ServerSettings.DebugAi)
-		trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make bowl $countBowl from $maxBowls');
+		if (shouldDebugSay()) myPlayer.say('make bowl $countBowl from $maxBowls');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make bowl $countBowl from $maxBowls');
 
 		if (countWetBowl > 0 && countBowl < maxBowls && craftItem(283)) return true; // Wooden Tongs with Fired Bowl
 
 		var countPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 236, 30); //  Clay Plate 236
 		var maxPlates = ObjectData.getObjectData(236).aiCraftMax; // Clay Plate 236
 
-		// if (shouldDebugSay())
-		myPlayer.say('make Plate $countPlate from ${maxPlates}');
-		// if (ServerSettings.DebugAi)
-		trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make Plate $countPlate from ${maxPlates}');
+		if (shouldDebugSay()) myPlayer.say('make Plate $countPlate from ${maxPlates}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make Plate $countPlate from ${maxPlates}');
 		if (countWetPlate > 0 && countPlate < maxPlates && craftItem(241)) return true; // Fired Plate in Wooden Tongs
 
 		// TODO make other potter stuff
