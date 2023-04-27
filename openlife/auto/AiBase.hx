@@ -2378,7 +2378,9 @@ abstract class AiBase {
 			if (shouldDebugSay()) myPlayer.say('Drop basket near clay deposit $done');
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: done: $done goto ClayDeposit: held: ${heldObject.name} d: $distanceToClayDeposit');
-			return done;
+
+			// return done;
+			return true; // since a new clay pit can be tried // FiX: Ai trying to pickup stone since its next and than again Basket to gather clay
 		}
 
 		var basket = null;
