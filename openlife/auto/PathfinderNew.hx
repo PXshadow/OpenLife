@@ -25,6 +25,12 @@ class PathfinderNew {
 
 	var dest:Coordinate = null; // destination
 
+	var changed = false; // used to indicate that the algorithm could still find a new tile
+	var changedFromDest = false; // used to indicate that the algorithm could still find a new tile from destination path
+
+	// for debuging
+	public var usedBruteForceIterations = 0;
+
 	public function new(newMap:MapCollision) {
 		this.map = newMap;
 		this.radius = newMap.radius;
@@ -106,6 +112,7 @@ class PathfinderNew {
 	}
 
 	public function CreatePath(start:Coordinate, dest:Coordinate):Array<Coordinate> {
+		this.usedBruteForceIterations = 0;
 		this.dest = dest;
 		currentMap = new Vector<Float>(width * width);
 
@@ -114,7 +121,8 @@ class PathfinderNew {
 
 		if (done) return CreatePathFromMap(start, dest, currentMap);
 
-		var crossing = CreatePathBruteForce(start, dest, currentMap);
+		var crossing = CreatePathBruteForceInCircle(start, dest, currentMap);
+		// var crossing = CreatePathBruteForce(start, dest, currentMap);
 
 		if (crossing != null) AddPathFromCrossing(crossing, dest, currentMap);
 
@@ -125,6 +133,99 @@ class PathfinderNew {
 
 	private function Index(x:Int, y:Int):Int {
 		return x + y * width;
+	}
+
+	private function CreatePathBruteForceInCircle(start:Coordinate, dest:Coordinate, currentMap:Vector<Float>) {
+		var startTime = Sys.time();
+		var crossing:Coordinate = null;
+
+		CreateDirectPath(dest, start, currentMap, -1);
+
+		this.changedFromDest = true;
+		this.changed = true;
+
+		// brute force
+		for (i in 0...width) {
+			if (this.changed == false) break;
+			if (this.changedFromDest == false) break;
+
+			this.changedFromDest = false;
+			this.changed = false;
+
+			var time = (Sys.time() - startTime) * 1000;
+			if (time > timeOut) break;
+
+			this.usedBruteForceIterations = i + 1;
+
+			// start with circle in the middle
+			var radius = Math.ceil(width / 2);
+			for (rad in 0...radius) {
+				var y = rad + start.y;
+				for (xx in -rad...rad + 1) {
+					var crossing = makePathOneTile(xx + start.x, y);
+					if (crossing != null) return crossing;
+				}
+				var y = -rad + start.y;
+				for (xx in -rad...rad + 1) {
+					var crossing = makePathOneTile(xx + start.x, y);
+					if (crossing != null) return crossing;
+				}
+				var x = rad + start.x;
+				for (yy in -rad + 1...rad) {
+					var crossing = makePathOneTile(x, yy + start.y);
+					if (crossing != null) return crossing;
+				}
+				var x = -rad + start.x;
+				for (yy in -rad + 1...rad) {
+					var crossing = makePathOneTile(x, yy + start.y);
+					if (crossing != null) return crossing;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	private function makePathOneTile(x:Int, y:Int):Coordinate {
+		// trace('makePathOneTile: $x, $y');
+
+		var length = currentMap[Index(x, y)];
+		if (length == 0) return null;
+
+		for (py in -1...2) {
+			for (px in -1...2) {
+				if (px == 0 && py == 0) continue;
+				if (x + px < 0) continue;
+				if (y + py < 0) continue;
+				if (x + px >= width) continue;
+				if (y + py >= width) continue;
+
+				var currentLength = currentMap[Index(x + px, y + py)];
+
+				if ((length > 0 && currentLength < 0) || (length < 0 && currentLength > 0)) {
+					// trace('NewCreatePath: Force: dest: ${dest.x},${dest.y} crossed path: ${x + px},${y + py} length: $length lengthCurrent: ${currentLength} time: $time');
+					return currentLength > 0 ? new Coordinate(x + px, y + py) : new Coordinate(x, y);
+				}
+
+				var xlength = px == 0 || py == 0 ? 1 : 1.4;
+				var newlength = length > 0 ? length + xlength : length - xlength;
+
+				if (map.isWalkable(x + px, y + py) == false) continue;
+
+				if (length > 0 && currentLength != 0 && currentLength <= newlength) continue;
+				if (length < 0 && currentLength != 0 && currentLength >= newlength) continue;
+
+				// trace('NewCreatePath: force: i: $i $x,$y / $px,$py $xlength $length');
+				// trace('NewCreatePath: force: i: $i $x,$y / $px,$py $length');
+
+				if (length > 0) this.changed = true; else
+					this.changedFromDest = true;
+
+				currentMap[Index(x + px, y + py)] = newlength;
+			}
+		}
+
+		return null;
 	}
 
 	private function CreatePathBruteForce(start:Coordinate, dest:Coordinate, currentMap:Vector<Float>) {
@@ -138,8 +239,6 @@ class PathfinderNew {
 		var change = true;
 		var changeFromDest = true;
 		var done = false;
-		var ii = 0;
-
 		var crossing:Coordinate = null;
 
 		CreateDirectPath(dest, start, currentMap, -1);
@@ -157,7 +256,8 @@ class PathfinderNew {
 			var time = (Sys.time() - startTime) * 1000;
 			if (time > timeOut) break;
 
-			ii = i;
+			this.usedBruteForceIterations = i + 1;
+
 			for (y in 0...width) {
 				for (x in 0...width) {
 					var length = currentMap[Index(x, y)];
@@ -213,10 +313,8 @@ class PathfinderNew {
 
 		var length = currentMap[Index(dest.x, dest.y)];
 		var time = Math.round((Sys.time() - startTime) * 1000);
-
 		// trace('NewCreatePath: force: done: $done i: $ii ${dest.x},${dest.y} l: $length t: ${time}');
 		// trace('NewCreatePath: force: i: $ii ${dest.x},${dest.y} l: $length t: ${time} cFrom: $change cTo: $changeFromDest');
-
 		return null;
 	}
 

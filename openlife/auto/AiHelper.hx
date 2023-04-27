@@ -834,11 +834,14 @@ class AiHelper {
 		// trace('Goto: $px $py');
 
 		var map = new MapCollision(AiHelper.CreateCollisionChunk(playerInterface, considerAnimal));
+
 		// pathing
-		// var pathOld = new Pathfinder(cast map);
-		// var pathsOld:Array<Coordinate> = null;
+		var pathOld = new Pathfinder(cast map);
+		var pathsOld:Array<Coordinate> = null;
+
 		var newPathfinder:PathfinderNew = null;
 		var paths:Array<Coordinate> = null;
+
 		// move the end cords
 		var tweakX:Int = 0;
 		var tweakY:Int = 0;
@@ -884,7 +887,7 @@ class AiHelper {
 
 			// trace('${player.name + player.p_id} goto: end $end');
 
-			// pathsOld = pathOld.createPath(start, end, MANHATTAN, true);
+			pathsOld = pathOld.createPath(start, end, MANHATTAN, true);
 			// PathfinderNew.TryDifferentPaths(start, end, map);
 
 			newPathfinder = new PathfinderNew(map);
@@ -901,6 +904,7 @@ class AiHelper {
 
 			// if (onError != null) onError("can not generate path");
 			// trace('AAI: ${player.p_id} CAN NOT GENERATE PATH');
+			if (pathsOld != null) trace('${player.name + player.p_id} GOTO: WARNING! new path method could not find a path while old could');
 			return false;
 		}
 
@@ -913,18 +917,21 @@ class AiHelper {
 			data.push(new Pos(path.x - tx, path.y - ty));
 		}
 
-		/*var dataOld:Array<Pos> = [];
-			if (pathsOld != null) {
-				pathsOld.shift();
-				for (path in pathsOld) {
-					dataOld.push(new Pos(path.x - tx, path.y - ty));
-				}
-		}*/
+		var dataOld:Array<Pos> = [];
+		if (pathsOld != null) {
+			pathsOld.shift();
+			for (path in pathsOld) {
+				dataOld.push(new Pos(path.x - tx, path.y - ty));
+			}
+		}
 
-		if (data.length > 10 && player.p_id == 534970 && newPathfinder != null) newPathfinder.WriteMapToFile();
+		if (newPathfinder.usedBruteForceIterations > 0) {
+			// && player.p_id == 534970
+			if (data.length > 10 && newPathfinder != null) newPathfinder.WriteMapToFile();
 
-		if (ServerSettings.DebugAi) trace('${player.name + player.p_id} GOTO done new: $px $py L: ${data.length} $data');
-		// if (ServerSettings.DebugAi) trace('${player.name + player.p_id} GOTO done old: $px $py L: ${dataOld.length} $dataOld');
+			if (data.length > 10 && ServerSettings.DebugAi) trace('${player.name + player.p_id} GOTO: done new: $px $py L: ${data.length} $data');
+			if (data.length > 10 && ServerSettings.DebugAi) trace('${player.name + player.p_id} GOTO: done old: $px $py L: ${dataOld.length} $dataOld');
+		}
 
 		// check if stuck
 		if (data.length > 0 && ai.lastX == -data[data.length - 1].x && ai.lastY == -data[data.length - 1].y) {
