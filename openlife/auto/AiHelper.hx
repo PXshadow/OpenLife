@@ -848,6 +848,7 @@ class AiHelper {
 		var quadDistX = px * px;
 		var quadDistY = py * py;
 		var distYIsBigger = quadDistX < quadDistY;
+		var end = null;
 
 		for (i in 0...5) {
 			var ii = i;
@@ -883,7 +884,7 @@ class AiHelper {
 			if (playerInterface.isBlocked(px + player.tx + tweakX, py + player.ty + tweakY)) continue;
 			if (ai != null && ai.isObjectNotReachable(px + player.tx + tweakX, py + player.ty + tweakY)) continue;
 
-			var end = new Coordinate(px + RAD + tweakX, py + RAD + tweakY);
+			end = new Coordinate(px + RAD + tweakX, py + RAD + tweakY);
 
 			// trace('${player.name + player.p_id} goto: end $end');
 
@@ -927,10 +928,12 @@ class AiHelper {
 
 		if (newPathfinder.usedBruteForceIterations > 0) {
 			// && player.p_id == 534970
-			if (data.length > 10 && newPathfinder != null) newPathfinder.WriteMapToFile();
+			if (data.length > 10) newPathfinder.WriteMapToFile(data, dataOld);
 
-			if (data.length > 10 && ServerSettings.DebugAi) trace('${player.name + player.p_id} GOTO: done new: $px $py L: ${data.length} $data');
-			if (data.length > 10 && ServerSettings.DebugAi) trace('${player.name + player.p_id} GOTO: done old: $px $py L: ${dataOld.length} $dataOld');
+			if (data.length > 10 && ServerSettings.DebugAi)
+				trace('${player.name + player.p_id} GOTO: done new: ${end.x} ${end.y} L: ${data.length} $data Iterations: ${newPathfinder.usedBruteForceIterations}');
+			if (data.length > 10 && ServerSettings.DebugAi)
+				trace('${player.name + player.p_id} GOTO: done old: ${end.x} ${end.y} L: ${dataOld.length} $dataOld');
 		}
 
 		// check if stuck

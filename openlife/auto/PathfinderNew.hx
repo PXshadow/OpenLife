@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.data.Pos;
 import openlife.settings.ServerSettings;
 import sys.io.File;
 import haxe.ds.Vector;
@@ -89,7 +90,7 @@ class PathfinderNew {
 		}
 	}
 
-	public function WriteMapToFile() {
+	public function WriteMapToFile(pathNew:Array<Pos> = null, pathOld:Array<Pos> = null) {
 		var dir = './${ServerSettings.SaveDirectory}/';
 		var path = dir + 'paths.txt';
 		var writer = File.append(path, false);
@@ -100,9 +101,20 @@ class PathfinderNew {
 			var line = '';
 			for (x in 0...width) {
 				if (x > 0) line += ',';
-				line += '${currentMap[Index(x, y)]}';
+				line += '\t${currentMap[Index(x, y)]}';
 				// if (currentMap[Index(x, y)] < 0) trace('NewCreatePath: NEGATIVE $x,$y ${currentMap[Index(x, y)]}');
 				if (dest.x == x && dest.y == y) line += 'D';
+
+				if (pathNew != null) {
+					for (pos in pathNew) {
+						if (pos.x + 32 == x && pos.y + 32 == y) line += '/PN';
+					}
+				}
+				if (pathOld != null) {
+					for (pos in pathOld) {
+						if (pos.x + 32 == x && pos.y + 32 == y) line += '/PO';
+					}
+				}
 			}
 
 			writer.writeString('$line\n');
@@ -160,27 +172,36 @@ class PathfinderNew {
 			// start with circle in the middle
 			var radius = Math.ceil(width / 2);
 			for (rad in 0...radius) {
-				var y = rad + start.y;
-				for (xx in -rad...rad + 1) {
-					var crossing = makePathOneTile(xx + start.x, y);
-					if (crossing != null) return crossing;
-				}
-				var y = -rad + start.y;
-				for (xx in -rad...rad + 1) {
-					var crossing = makePathOneTile(xx + start.x, y);
-					if (crossing != null) return crossing;
-				}
-				var x = rad + start.x;
-				for (yy in -rad + 1...rad) {
-					var crossing = makePathOneTile(x, yy + start.y);
-					if (crossing != null) return crossing;
-				}
-				var x = -rad + start.x;
-				for (yy in -rad + 1...rad) {
-					var crossing = makePathOneTile(x, yy + start.y);
-					if (crossing != null) return crossing;
-				}
+				var crossing = makePathInCircle(start, rad);
+				if (crossing != null) return crossing;
+				var crossing = makePathInCircle(dest, rad);
+				if (crossing != null) return crossing;
 			}
+		}
+
+		return null;
+	}
+
+	private function makePathInCircle(start:Coordinate, rad:Int):Coordinate {
+		var y = rad + start.y;
+		for (xx in -rad...rad + 1) {
+			var crossing = makePathOneTile(xx + start.x, y);
+			if (crossing != null) return crossing;
+		}
+		var y = -rad + start.y;
+		for (xx in -rad...rad + 1) {
+			var crossing = makePathOneTile(xx + start.x, y);
+			if (crossing != null) return crossing;
+		}
+		var x = rad + start.x;
+		for (yy in -rad + 1...rad) {
+			var crossing = makePathOneTile(x, yy + start.y);
+			if (crossing != null) return crossing;
+		}
+		var x = -rad + start.x;
+		for (yy in -rad + 1...rad) {
+			var crossing = makePathOneTile(x, yy + start.y);
+			if (crossing != null) return crossing;
 		}
 
 		return null;
