@@ -929,7 +929,7 @@ class AiHelper {
 
 		if (newPathfinder.usedBruteForceIterations > 0) {
 			// && player.p_id == 534970
-			if (data.length > 10) newPathfinder.WriteMapToFile(data, dataOld);
+			if (data.length > 10 && ServerSettings.DebugWritePathToFile) newPathfinder.WriteMapToFile(data, dataOld);
 
 			if (data.length > 10 && ServerSettings.DebugAi)
 				trace('${player.name + player.p_id} GOTO: done new: ${end.x} ${end.y} L: ${data.length} $data Iterations: ${newPathfinder.usedBruteForceIterations}');
