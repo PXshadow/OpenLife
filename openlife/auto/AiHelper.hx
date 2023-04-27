@@ -836,7 +836,8 @@ class AiHelper {
 		var map = new MapCollision(AiHelper.CreateCollisionChunk(playerInterface, considerAnimal));
 
 		// pathing
-		var pathOld = new Pathfinder(cast map);
+		var debugCreateOldPath = ServerSettings.DebugCreateOldPath;
+		var pathOld = debugCreateOldPath ? new Pathfinder(cast map) : null;
 		var pathsOld:Array<Coordinate> = null;
 
 		var newPathfinder:PathfinderNew = null;
@@ -888,7 +889,7 @@ class AiHelper {
 
 			// trace('${player.name + player.p_id} goto: end $end');
 
-			pathsOld = pathOld.createPath(start, end, MANHATTAN, true);
+			pathsOld = pathOld != null ? pathOld.createPath(start, end, MANHATTAN, true) : null;
 			// PathfinderNew.TryDifferentPaths(start, end, map);
 
 			newPathfinder = new PathfinderNew(map);
@@ -932,7 +933,7 @@ class AiHelper {
 
 			if (data.length > 10 && ServerSettings.DebugAi)
 				trace('${player.name + player.p_id} GOTO: done new: ${end.x} ${end.y} L: ${data.length} $data Iterations: ${newPathfinder.usedBruteForceIterations}');
-			if (data.length > 10 && ServerSettings.DebugAi)
+			if (data.length > 10 && ServerSettings.DebugAi && debugCreateOldPath)
 				trace('${player.name + player.p_id} GOTO: done old: ${end.x} ${end.y} L: ${dataOld.length} $dataOld');
 		}
 
