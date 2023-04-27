@@ -3959,10 +3959,13 @@ abstract class AiBase {
 	// Bowl of Gooseberries 253 // Knife 560 // Bowl of Dough 252
 	// Baked Bread 1470 // Sliced Bread 1471 // Omelette 1285
 	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900 // Cooked Goose 518
-	var dropNearOvenItemIds = [235, 1603, 236, 1602, 560, 252, 1470, 1471, 1285, 253, 502, 900, 518];
+	// Bowl of Carrot 547 // Bowl of Mashed Carrot 548
+	var dropNearOvenItemIds = [235, 1603, 236, 1602, 560, 252, 1470, 1471, 1285, 253, 502, 900, 518, 547, 548];
 
 	// Stone 33 // Sharp Stone 34 // Banana Peel 2144
-	var dropAtCurrentPosition = [33, 34, 2144];
+	// This should not brought far away through switching so better drop for now:
+	// Bowl of Water 382 // Full Water Pouch 210
+	var dropAtCurrentPosition = [33, 34, 2144, 382, 210];
 
 	// Iron Ore in Wooden Tongs 289 // Iron Ore 290 // Wooden Tongs cool steel ingot 327 // Steel Ingot
 	// Unforged Sealed Steel Crucible 319 // Unforged Steel Crucible in Wooden Tongs 320 // Smithing Hammer 441
@@ -5155,7 +5158,7 @@ abstract class AiBase {
 			return true;
 		}
 
-		var isHoldingObject = myPlayer.isHoldingObject();
+		// var isHoldingObject = myPlayer.isHoldingObject();
 
 		// usemight drop item so not neededanymore ???
 		/*if(pile != null)){
@@ -6193,7 +6196,7 @@ abstract class AiBase {
 			return false;
 		}
 
-		// In case of a drop as object switch, consider drop held object
+		// In case of a drop as object switch, consider drop held object // like switching an held bowl with an object that is far away even if the bowl should stay close to home
 		// TODO ??? if (considerDropHeldObject(dropTarget)) return true;
 		if (dropTarget == null) return false; // considerDropHeldObject may have cleared drop target
 
