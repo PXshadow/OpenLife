@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.server.MoveHelper;
 import openlife.data.Pos;
 import openlife.settings.ServerSettings;
 import sys.io.File;
@@ -95,8 +96,11 @@ class PathfinderNew {
 		var path = dir + 'paths.txt';
 		var writer = File.append(path, false);
 		// var writer = File.write(path, false);
+		var lengthNew = MoveHelper.CalculateFullLength(pathNew);
+		var lengthOld = MoveHelper.CalculateFullLength(pathOld);
 
-		writer.writeString('Destination: ${dest.x},${dest.y}\n');
+		writer.writeString('Destination: ${dest.x},${dest.y} LN: ${lengthNew} LO: ${lengthOld}\n');
+
 		for (y in 0...width) {
 			var line = '';
 			for (x in 0...width) {
@@ -104,15 +108,16 @@ class PathfinderNew {
 				line += '\t${currentMap[Index(x, y)]}';
 				// if (currentMap[Index(x, y)] < 0) trace('NewCreatePath: NEGATIVE $x,$y ${currentMap[Index(x, y)]}');
 				if (dest.x == x && dest.y == y) line += 'D';
+				if (map.isWalkable(x, y) == false) line += 'X';
 
 				if (pathNew != null) {
 					for (pos in pathNew) {
-						if (pos.x + 32 == x && pos.y + 32 == y) line += '/PN';
+						if (pos.x + 32 == x && pos.y + 32 == y) line += '/P';
 					}
 				}
 				if (pathOld != null) {
 					for (pos in pathOld) {
-						if (pos.x + 32 == x && pos.y + 32 == y) line += '/PO';
+						if (pos.x + 32 == x && pos.y + 32 == y) line += '/O';
 					}
 				}
 			}
@@ -488,10 +493,16 @@ class PathfinderNew {
 
 		var nextX = dest.x;
 		var nextY = dest.y;
+		var currentX = -9999999;
+		var currentY = -9999999;
 
 		for (i in 0...maxLength) {
-			var currentX = nextX;
-			var currentY = nextY;
+			// check if path proceeded // TODO find out why sometimes a crossing is found if there is none
+			if (currentX == nextX && currentY == nextY) break;
+
+			currentX = nextX;
+			currentY = nextY;
+
 			var length = currentMap[Index(currentX, currentY)];
 
 			reversePath.push(new Coordinate(currentX - dest.x, currentY - dest.y));

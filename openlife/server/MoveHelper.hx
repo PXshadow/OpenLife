@@ -678,7 +678,23 @@ class MoveHelper {
 		return string.substr(1);
 	}
 
-	static private function calculateLength(lastPos:Pos, pos:Pos):Float {
+	static public function CalculateFullLength(path:Array<Pos>):Float {
+		var length = 0.0;
+		var posNext = null;
+
+		if (path == null) return -1;
+
+		for (pos in path) {
+			if (posNext == null) {
+				posNext = pos;
+				continue;
+			}
+			length += calculateLength(pos, posNext);
+		}
+		return length;
+	}
+
+	static public function calculateLength(lastPos:Pos, pos:Pos):Float {
 		// diagonal steps are longer
 		if (lastPos.x != pos.x && lastPos.y != pos.y) {
 			// diags are square root of 2 in length
