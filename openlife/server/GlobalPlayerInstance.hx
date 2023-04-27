@@ -1146,7 +1146,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	// TODO spawn noobs more likely to and as noble
 	// TODO consider past families of player
 	private function spawnAsChild():Bool {
-		trace('birth: Spawn As Child: ${this.p_id} ${this.account.email}');
+		// trace('birth: Spawn As Child: ${this.p_id} ${this.account.email}');
 
 		var mother = GetFittestMother(this);
 		if (mother == null) return false;
@@ -1467,7 +1467,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (countLittleKids >= ServerSettings.LittleKidsPerMother) fitness = -1000;
 
-		trace('${parent.name + parent.id} MotherChildFitness: $fitness littlekids: $countLittleKids');
+		// trace('${parent.name + parent.id} MotherChildFitness: $fitness littlekids: $countLittleKids');
 		return fitness;
 	}
 
