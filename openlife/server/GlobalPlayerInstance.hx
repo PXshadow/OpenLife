@@ -2494,12 +2494,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		foodValue -= countEaten;
 		var isFoodYum = countEaten < ServerSettings.YumBonus; // playerFrom.isHoldingYum();
 
-		var isSuperMeh = foodValue < playerFrom.heldObject.objectData.foodValue / 2;
+		// var isSuperMeh = foodValue < heldObjData.foodValue / 2;
+		var isSuperMeh = playerTo.isSuperMeh(playerFrom.heldObject);
 
-		if (isSuperMeh) foodValue = playerFrom.heldObject.objectData.foodValue / 2;
+		if (isSuperMeh) foodValue = heldObjData.foodValue / 2;
 
-		if (isSuperMeh && playerTo.food_store > 5) {
-			trace('Supermeh food can only be eaten if starving to death: foodValue: $foodValue original food value: ${playerFrom.heldObject.objectData.foodValue} food_store: ${playerTo.food_store} Feeding: ${playerFrom != playerTo}');
+		// if (isSuperMeh && playerTo.food_store > 5) {
+		if (isSuperMeh) {
+			var canEat = playerTo.canEat(playerFrom.heldObject);
+
+			trace('${playerTo.name + playerTo.id} Supermeh food can only be eaten if starving to death: canEat: ${canEat} isSuperMeh: ${isSuperMeh} foodValue: $foodValue original food value: ${playerFrom.heldObject.objectData.foodValue} food_store: ${Math.ceil(playerTo.food_store / 10) * 10} Feeding: ${playerFrom != playerTo}');
+
 			if (playerTo == playerFrom) {
 				playerTo.doEmote(Emote.ill);
 				playerTo.say('I need better food!', true);

@@ -6264,6 +6264,7 @@ abstract class AiBase {
 			if (quadDistance < 900) return false;
 		}
 
+		// Dont try to make Food if too far from home
 		var quadDistanceToHome = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 		if (quadDistanceToHome > 900) return false;
 
@@ -6476,6 +6477,10 @@ abstract class AiBase {
 		if (myPlayer.canEat(myPlayer.heldObject) == false) return false;
 		if (isHungry == false && myPlayer.isHoldingYum() == false) return false;
 
+		/*if (myPlayer.isSuperMeh(heldObject)) {
+			trace('AAI: ${myPlayer.name + myPlayer.id} Eat SuperMeh: held: ${heldObject.name} food: ${myPlayer.food_store}');
+		}*/
+
 		// Bowl of Gooseberries 253 // Dont mess with the Gooseberries in bowl if not hungry
 		if (isHungry == false && heldObject.parentId == 253 && heldObject.numberOfUses >= heldObject.objectData.numUses) return false;
 
@@ -6494,7 +6499,7 @@ abstract class AiBase {
 		myPlayer.self(); // eat
 
 		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} Eat: held: ${myPlayer.heldObject.description}  newNumberOfUses: ${myPlayer.heldObject.numberOfUses} oldNumberOfUses: $oldNumberOfUses emptyFood: ${myPlayer.food_store_max - myPlayer.food_store}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} Eat: held: ${heldObject.name}  newNumberOfUses: ${heldObject.numberOfUses} oldNumberOfUses: $oldNumberOfUses emptyFood: ${myPlayer.food_store_max - myPlayer.food_store}');
 
 		this.didNotReachFood = 0;
 		foodTarget = null;
