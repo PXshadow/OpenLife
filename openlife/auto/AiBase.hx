@@ -53,6 +53,7 @@ abstract class AiBase {
 
 	public var useTarget:ObjectHelper = null;
 	public var useActor:ObjectHelper = null; // to check if the right actor is in the hand
+	public var expectedUseTarget:ObjectData = null; // to check if target is the same (time may have changed it)
 
 	var dropIsAUse:Bool = false;
 
@@ -240,8 +241,7 @@ abstract class AiBase {
 	public function resetTargets() {
 		escapeTarget = null;
 		foodTarget = null;
-		useTarget = null;
-		useActor = null;
+		CancleUse();
 		itemToCraft.transActor = null;
 		itemToCraft.transTarget = null;
 	}
@@ -254,8 +254,7 @@ abstract class AiBase {
 
 		dropTarget = null;
 		foodTarget = null;
-		useTarget = null;
-		useActor = null;
+		CancleUse();
 
 		itemToCraftId = -1;
 		itemToCraft = new IntemToCraft();
@@ -1109,6 +1108,7 @@ abstract class AiBase {
 		if (this.isObjectWithHostilePath(target.tx, target.ty)) return false;
 
 		this.useTarget = target;
+		this.expectedUseTarget = target.objectData;
 		this.useActor = new ObjectHelper(null, myPlayer.heldObject.parentId);
 		this.useActor.tx = target.tx;
 		this.useActor.ty = target.ty;
@@ -4317,6 +4317,7 @@ abstract class AiBase {
 			this.dropTarget = null;
 			this.useTarget = newDropTarget;
 			this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
+			this.expectedUseTarget = this.useTarget.objectData;
 		}
 
 		// if(itemToCraft.transTarget.parentId == myPlayer.heldObject.parentId)
@@ -4511,10 +4512,8 @@ abstract class AiBase {
 
 	private function PickupObj(obj:ObjectHelper):Bool {
 		if (obj.isPermanent()) return false;
-		this.dropIsAUse = false;
 		this.dropTarget = obj;
-		this.useTarget = null;
-		this.useActor = null;
+		CancleUse();
 		return true;
 	}
 
@@ -4565,11 +4564,11 @@ abstract class AiBase {
 			this.dropTarget = null;
 			this.useTarget = obj;
 			this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
+			this.expectedUseTarget = this.useTarget.objectData;
 		} else {
 			this.dropIsAUse = false;
 			this.dropTarget = obj;
-			this.useTarget = null;
-			this.useActor = null;
+			CancleUse();
 		}
 
 		return true;
@@ -4912,8 +4911,7 @@ abstract class AiBase {
 			addObjectWithHostilePath(useTarget);
 			addObjectWithHostilePath(foodTarget);
 			addObjectWithHostilePath(escapeTarget);
-			useTarget = null;
-			useActor = null;
+			CancleUse();
 			foodTarget = null;
 			itemToCraft.transActor = null;
 			itemToCraft.transTarget = null;
@@ -4950,6 +4948,7 @@ abstract class AiBase {
 			itemToCraft.transActor = null; // actor is allready in the hand
 			var target = AiHelper.GetClosestObject(myPlayer, itemToCraft.transTarget.objectData);
 			useTarget = target != null ? target : itemToCraft.transTarget; // since other search radius might be bigger
+			expectedUseTarget = useTarget != null ? useTarget.objectData : null;
 
 			// check if some one meanwhile changed use target
 			if (myPlayer.isStillExpectedItem(useTarget)) return true;
@@ -5057,6 +5056,7 @@ abstract class AiBase {
 
 			useTarget = itemToCraft.transTarget;
 			useActor = itemToCraft.transActor;
+			expectedUseTarget = useTarget != null ? useTarget.objectData : null;
 			itemToCraft.transActor = null; // actor is allready in the hand
 
 			return true;
@@ -5145,6 +5145,7 @@ abstract class AiBase {
 
 			useActor = new ObjectHelper(null, 0);
 			useTarget = pile;
+			expectedUseTarget = useTarget != null ? useTarget.objectData : null;
 		}
 
 		var isHoldingObject = myPlayer.isHoldingObject();
@@ -6187,6 +6188,7 @@ abstract class AiBase {
 			dropIsAUse = true;
 			useTarget = dropTarget;
 			useActor = new ObjectHelper(null, 0);
+			expectedUseTarget = useTarget != null ? useTarget.objectData : null;
 			dropTarget = null;
 
 			return false;
@@ -6432,6 +6434,7 @@ abstract class AiBase {
 
 					this.useActor = new ObjectHelper(null, 0);
 					this.useTarget = obj;
+					this.expectedUseTarget = this.useTarget != null ? this.useTarget.objectData : null;
 					return true;
 				}
 
@@ -6525,16 +6528,30 @@ abstract class AiBase {
 		return isHungry;
 	}
 
+	private function CancleUse() {
+		this.useTarget = null;
+		this.useActor = null;
+		this.expectedUseTarget = null;
+		this.dropIsAUse = false;
+	}
+
 	private function isUsingItem():Bool {
 		if (useTarget == null) return false;
 
 		var heldObject = myPlayer.heldObject;
 		var isHoldingObject = myPlayer.isHoldingObject();
 
+		// check if target changed meanwhile like Fire --> Hot Coals
+		if (expectedUseTarget != null && useTarget.parentId != expectedUseTarget.parentId) {
+			// if (ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} Use target changed! ${useTarget.name} expected: ${expectedUseTarget.name}');
+			CancleUse();
+			return false;
+		}
+
 		if (myPlayer.isStillExpectedItem(useTarget) == false) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use target changed meanwhile! ${useTarget.name}');
-			useTarget = null;
-			useActor = null;
+			CancleUse();
 			return false;
 		}
 
@@ -6546,8 +6563,7 @@ abstract class AiBase {
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name}');
 
-				useTarget = null;
-				useActor = null;
+				CancleUse();
 				// dropTarget = itemToCraft.transActor;
 
 				dropHeldObject();
@@ -6648,9 +6664,7 @@ abstract class AiBase {
 		if (done) {
 			// check if the use was part of a drop to put for example stone on a pile of stones
 			if (dropIsAUse) {
-				dropIsAUse = false;
-				useTarget = null;
-				useActor = null;
+				CancleUse();
 
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} done: drop as a use!');
 				/*if(foodTarget == null){
@@ -6698,21 +6712,20 @@ abstract class AiBase {
 			var heat = Math.round(myPlayer.heat * 100) / 100;
 			var target = myPlayer.getWorld().getObjectHelper(useTarget.tx, useTarget.ty);
 			var age = myPlayer.age;
+			var expectedUseTargetName = expectedUseTarget == null ? 'NOTSET!!!' : expectedUseTarget.name;
 
-			// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use failed! Ignore: ${useTarget.name} ${useTarget.tx} ${useTarget.ty} ');
+			// if (ServerSettings.DebugAi)
 			if (age > 3)
-				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use failed! held: ${heldObject.name} expected: ${useActor.name} Ignore: ${target.name} expected: ${useTarget.name}  foodStore: ${foodStore} heat: ${heat}');
+				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use failed! held: ${heldObject.name} expected: ${useActor.name} Ignore: ${target.name} expected: ${expectedUseTargetName}  foodStore: ${foodStore} heat: ${heat}');
 
 			// TODO check why use is failed... for now add to ignore list
 			// TODO dont use on contained objects if result cannot contain (ignore in crafting search)
 			// TODO check if failed because of hungry work
 
 			var oldUseTarget = useTarget;
-			useTarget = null;
-			useActor = null;
+			CancleUse();
 			itemToCraft.transActor = null;
 			itemToCraft.transTarget = null;
-			dropIsAUse = false;
 
 			// TODO check in advance
 			if (myPlayer.useFailedReason == 'Too hot!') {
@@ -6727,9 +6740,7 @@ abstract class AiBase {
 				this.addObjectWithHostilePath(oldUseTarget);
 		}
 
-		useTarget = null;
-		useActor = null;
-		dropIsAUse = false;
+		CancleUse();
 
 		return true;
 	}
