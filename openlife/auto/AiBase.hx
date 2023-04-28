@@ -4649,8 +4649,10 @@ abstract class AiBase {
 		if (this.feedingPlayerTarget == null) return false;
 
 		var targetPlayer = this.feedingPlayerTarget;
+		var quadDist = AiHelper.CalculateDistanceToPlayer(myPlayer,targetPlayer);
+		var fullPercent = quadDist > 10 ? 0.4 : 0.8; // if close feed full 
 
-		if (targetPlayer.food_store > targetPlayer.food_store_max * 0.4) {
+		if (targetPlayer.food_store > targetPlayer.food_store_max * fullPercent) {
 			this.feedingPlayerTarget = null;
 			return false;
 		}
