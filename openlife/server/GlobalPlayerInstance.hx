@@ -2499,11 +2499,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (isSuperMeh) foodValue = heldObjData.foodValue / 2;
 
-		// if (isSuperMeh && playerTo.food_store > 5) {
-		if (isSuperMeh) {
+		if (isSuperMeh && playerTo.food_store > 5) {
 			var canEat = playerTo.canEat(playerFrom.heldObject);
 
-			trace('${playerTo.name + playerTo.id} Supermeh food can only be eaten if starving to death: canEat: ${canEat} isSuperMeh: ${isSuperMeh} foodValue: $foodValue original food value: ${playerFrom.heldObject.objectData.foodValue} food_store: ${Math.ceil(playerTo.food_store / 10) * 10} Feeding: ${playerFrom != playerTo}');
+			trace('${playerTo.name + playerTo.id} Supermeh food can only be eaten if starving to death: canEat: ${canEat} isSuperMeh: ${isSuperMeh} foodValue: $foodValue original food value: ${heldObjData.foodValue} food_store: ${Math.ceil(playerTo.food_store / 10) * 10} Feeding: ${playerFrom != playerTo}');
 
 			if (playerTo == playerFrom) {
 				playerTo.doEmote(Emote.ill);
@@ -3382,7 +3381,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			bestPlayer.account.coinsInherited -= bestPlayer.isCloseRelative(player) ? tmpCoins / 2 : tmpCoins;
 			bestPlayer.connection.sendGlobalMessage('You inherited $tmpCoins coins from ${player.name} because of your past actions!');
 
-			trace('COINS: You inherited $tmpCoins coins from ${player.name} because of your past actions!');
+			// trace('COINS: You inherited $tmpCoins coins from ${player.name} because of your past actions!');
 		}
 
 		// distribute coins to children // TODO what to do if no kids?
@@ -3398,7 +3397,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			c.coins += tmpCoins;
 
 			if (tmpCoins >= 1) bestPlayer.connection.sendGlobalMessage('You inherited ${Math.floor(tmpCoins)} coins from ${player.name}!');
-			trace('COINS: You inherited ${Math.floor(tmpCoins)} coins from ${player.name}!');
+			// trace('COINS: You inherited ${Math.floor(tmpCoins)} coins from ${player.name}!');
 		}
 	}
 
