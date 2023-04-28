@@ -4655,33 +4655,6 @@ abstract class AiBase {
 			return false;
 		}
 
-		if (hasOrBecomeProfession('FoodServer', 1) == false) return false;
-
-		if (myPlayer.heldObject.objectData.foodValue < 1
-			|| myPlayer.heldObject.id == 837) // dont feed 837 ==> Psilocybe Mushroom to others
-		{
-			foodTarget = AiHelper.SearchBestFood(targetPlayer, myPlayer);
-			if (foodTarget == null) {
-				this.feedingPlayerTarget = null;
-				return false;
-			}
-
-			var objData = foodTarget.objectData;
-			objData = objData.foodFromTarget == null ? objData : objData.foodFromTarget;
-
-			if (targetPlayer.canFeedToMeObj(objData) == false) {
-				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING cannot feed2 ${targetPlayer.name} ${objData.name} foodvalue: ${objData.foodValue} foodpipes: ${Math.round(targetPlayer.food_store / 10) * 10} foodspace: ${Math.round((targetPlayer.food_store_max - targetPlayer.food_store) * 10) / 10}');
-				this.feedingPlayerTarget = null;
-				foodTarget = null;
-				return false;
-			} else {
-				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} can feed2 ${targetPlayer.name} ${foodTarget.name} foodvalue: ${foodTarget.objectData.foodValue} foodpipes: ${Math.round(targetPlayer.food_store / 10) * 10} foodspace: ${Math.round((targetPlayer.food_store_max - targetPlayer.food_store) * 10) / 10}');
-			}
-
-			return true;
-		}
-
 		if (targetPlayer.isDeleted()) {
 			this.feedingPlayerTarget = null;
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} since is dead!');
@@ -4692,6 +4665,36 @@ abstract class AiBase {
 			this.feedingPlayerTarget = null;
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} since held by other player!');
 			return false;
+		}
+
+		if (hasOrBecomeProfession('FoodServer', 1) == false) return false;
+
+		if (myPlayer.heldObject.objectData.foodValue < 1
+			|| myPlayer.heldObject.id == 837) // dont feed 837 ==> Psilocybe Mushroom to others
+		{
+			// SearchBestFood can return also an none eatable object if it is picked up with a USE
+			foodTarget = AiHelper.SearchBestFood(targetPlayer, myPlayer);
+			if (foodTarget == null) {
+				this.feedingPlayerTarget = null;
+				return false;
+			}
+
+			/*
+				var objData = foodTarget.objectData;
+				objData = objData.foodFromTarget == null ? objData : objData.foodFromTarget;
+
+
+				if (targetPlayer.canFeedToMeObj(objData) == false) {
+					trace('AAI: ${myPlayer.name + myPlayer.id} WARNING cannot feed2 ${targetPlayer.name} ${objData.name} foodvalue: ${objData.foodValue} foodpipes: ${Math.round(targetPlayer.food_store / 10) * 10} foodspace: ${Math.round((targetPlayer.food_store_max - targetPlayer.food_store) * 10) / 10}');
+					this.feedingPlayerTarget = null;
+					foodTarget = null;
+					return false;
+				} else {
+					if (ServerSettings.DebugAi)
+						trace('AAI: ${myPlayer.name + myPlayer.id} can feed2 ${targetPlayer.name} ${foodTarget.name} foodvalue: ${foodTarget.objectData.foodValue} foodpipes: ${Math.round(targetPlayer.food_store / 10) * 10} foodspace: ${Math.round((targetPlayer.food_store_max - targetPlayer.food_store) * 10) / 10}');
+			}*/
+
+			return true;
 		}
 
 		if (targetPlayer.canFeedToMe(myPlayer.heldObject) == false) {
@@ -5025,7 +5028,7 @@ abstract class AiBase {
 				itemToCraft.transTarget = closestWaterSource;
 
 				// if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} Use closest water source! Actor ${itemToCraft.transActor.name} oldTargetName: ${oldTargetName} --> target ${itemToCraft.transTarget.name} held: ${player.heldObject.name}');
+				// trace('AAI: ${myPlayer.name + myPlayer.id} Use closest water source! Actor ${itemToCraft.transActor.name} oldTargetName: ${oldTargetName} --> target ${itemToCraft.transTarget.name} held: ${player.heldObject.name}');
 			}
 		}
 
