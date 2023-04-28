@@ -6697,9 +6697,11 @@ abstract class AiBase {
 			var foodStore = Math.round(myPlayer.food_store * 10) / 10;
 			var heat = Math.round(myPlayer.heat * 100) / 100;
 			var target = myPlayer.getWorld().getObjectHelper(useTarget.tx, useTarget.ty);
+			var age = myPlayer.age;
 
 			// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use failed! Ignore: ${useTarget.name} ${useTarget.tx} ${useTarget.ty} ');
-			trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use failed! held: ${heldObject.name} expected: ${useActor.name} Ignore: ${target.name} expected: ${useTarget.name}  foodStore: ${foodStore} heat: ${heat}');
+			if (age > 3)
+				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use failed! held: ${heldObject.name} expected: ${useActor.name} Ignore: ${target.name} expected: ${useTarget.name}  foodStore: ${foodStore} heat: ${heat}');
 
 			// TODO check why use is failed... for now add to ignore list
 			// TODO dont use on contained objects if result cannot contain (ignore in crafting search)
@@ -6721,8 +6723,8 @@ abstract class AiBase {
 				isHungry = true;
 				return true;
 			}
-			// this.addObjectWithHostilePath(oldUseTarget);
-			this.addNotReachableObject(oldUseTarget);
+			if (age > 3) this.addNotReachableObject(oldUseTarget); else
+				this.addObjectWithHostilePath(oldUseTarget);
 		}
 
 		useTarget = null;
