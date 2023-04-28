@@ -3119,6 +3119,25 @@ class ServerSettings {
 
 		// var trans = TransitionImporter.GetTransition(283, -1); // Wooden Tongs with Fired Bowl
 		// trace('DEBUG!!!: ${trans.getDesciption()}');
+		InitWaterSourceIds();
+	}
+
+	public static var WaterSourceIds:Array<Int> = [];
+
+	private static function InitWaterSourceIds() {
+		// Bowl of Water 382 // Clay Bowl 235
+		var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
+		for (trans in transByTarget) {
+			if (trans.targetID < 1) continue; // like TIME
+			if (trans.actorID != 235) continue;
+			if (WaterSourceIds.contains(trans.targetID)) continue;
+			// trace('InitWaterSourceIds: ' + trans.getDescription(false));
+			var name = ObjectData.getObjectData(trans.targetID).name;
+
+			trace('InitWaterSourceIds: ' + name);
+
+			WaterSourceIds.push(trans.targetID);
+		}
 	}
 
 	// TODO currently objects could be counted twice in crafting if current pos and home is searched

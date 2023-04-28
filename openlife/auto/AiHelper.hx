@@ -207,6 +207,47 @@ class AiHelper {
 		return closestObject != null ? closestObject : closestBadPlace;
 	}
 
+	public static function GetClosestObjectToPositionByIds(baseX:Int, baseY:Int, objIdsToSearch:Array<Int>, searchDistance:Int = 40,
+			ignoreObj:ObjectHelper = null, player:PlayerInterface = null, minDistance:Int = 0, ignoreHostile = true):ObjectHelper {
+		var world = WorldMap.world;
+		var ai = player == null ? null : player.getAi();
+		var ignoreFullPiles = ai == null ? false : ai.ignoreFullPiles;
+		var closestObject = null;
+		var bestDistance = 0.0;
+		var quadMinDistance = minDistance * minDistance;
+
+		for (ty in baseY - searchDistance...baseY + searchDistance) {
+			for (tx in baseX - searchDistance...baseX + searchDistance) {
+				var objData = world.getObjectDataAtPosition(tx, ty);
+				var parentId = objData.parentId;
+
+				if (objIdsToSearch.contains(parentId) == false) continue;
+
+				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
+
+				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
+				if (ai != null && ignoreHostile && ai.isObjectWithHostilePath(tx, ty)) continue;
+
+				// search not full pile, for example to drop an item on a pile
+				if (ignoreFullPiles && objData.numUses > 1) {
+					var obj = world.getObjectHelper(tx, ty);
+					if (obj.numberOfUses >= objData.numUses) continue;
+				}
+
+				var quadDistance = AiHelper.CalculateQuadDistanceHelper(tx, ty, baseX, baseY);
+
+				if (quadDistance < quadMinDistance) continue; // for example used to not pickup kindling close to fire to bring this kindling then to fire
+
+				if (closestObject != null && quadDistance > bestDistance) continue;
+
+				bestDistance = quadDistance;
+				closestObject = world.getObjectHelper(tx, ty);
+			}
+		}
+
+		return closestObject;
+	}
+
 	// searchDistance old: 16
 	public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData, searchDistance:Int = 40,
 			ignoreObj:ObjectHelper = null, findClosestHeat:Bool = false, ownedByPlayer:Bool = false):ObjectHelper {

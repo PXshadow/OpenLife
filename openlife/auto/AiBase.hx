@@ -5010,6 +5010,25 @@ abstract class AiBase {
 			return false;
 		}
 
+		// TODO better fix directly in the crafting alg by considering distances
+		// get water from best water source // FIX: AI running to Pond instead next Well
+		var waterSourceIds = ServerSettings.WaterSourceIds;
+		var actorId = itemToCraft.transActor.parentId;
+
+		// Clay Bowl 235 // Empty Water Pouch 209
+		if ((actorId == 235 || actorId == 209) && waterSourceIds.contains(itemToCraft.transTarget.parentId)) {
+			var closestWaterSource = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, waterSourceIds, myPlayer);
+			// trace('AAI: ${myPlayer.name + myPlayer.id} Use closest water source!!!');
+
+			if (closestWaterSource != null) {
+				var oldTargetName = itemToCraft.transTarget.name;
+				itemToCraft.transTarget = closestWaterSource;
+
+				// if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} Use closest water source! Actor ${itemToCraft.transActor.name} oldTargetName: ${oldTargetName} --> target ${itemToCraft.transTarget.name} held: ${player.heldObject.name}');
+			}
+		}
+
 		// Dont kill the closest Sheep / Cow
 
 		// Knife 560 // War Sword 3047 // Mango Leaf 1878
