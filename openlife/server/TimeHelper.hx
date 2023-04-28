@@ -2200,7 +2200,7 @@ class TimeHelper {
 		}
 		// else target.hits += damage / 50;
 
-		trace('TryAnimaEscape: ${target.hits} damage: ${damage} random: $random > escape factor: $animalEscapeFactor');
+		if (ServerSettings.debug) trace('TryAnimaEscape: ${target.hits} damage: ${damage} random: $random > escape factor: $animalEscapeFactor');
 
 		// attacker.say('Hits ${Math.round(target.hits)}', true);
 
@@ -2219,7 +2219,7 @@ class TimeHelper {
 		doTimeTransition(target);
 
 		var escaped = tmpTimeToChange != target.timeToChange;
-		trace('TryAnimaEscape: $escaped');
+		if (ServerSettings.debug) trace('TryAnimaEscape: $escaped');
 		if (escaped == false) return false;
 
 		attacker.say('Hits ${Math.round(target.hits)}', true);
