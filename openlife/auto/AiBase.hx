@@ -3882,8 +3882,7 @@ abstract class AiBase {
 
 			if (quiver != null) {
 				myPlayer.self(0, 0, 5);
-				// if(ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} DROP: put bow on quiver!');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} DROP: put bow on quiver!');
 				return true;
 			}
 		}
@@ -3897,8 +3896,7 @@ abstract class AiBase {
 
 			if (quiver != null && quiver.canAddToQuiver()) {
 				myPlayer.self(0, 0, 5);
-				// if(ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} DROP: put Bow with Arrow on quiver!');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} DROP: put Bow with Arrow on quiver!');
 				return true;
 			}
 		}
@@ -3916,8 +3914,7 @@ abstract class AiBase {
 
 			if (quiver != null && quiver.canAddToQuiver()) {
 				myPlayer.self(0, 0, 5);
-				// if(ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} DROP: put Arrow in quiver!');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} DROP: put Arrow in quiver!');
 				return true;
 			}
 		}
