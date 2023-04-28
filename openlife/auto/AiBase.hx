@@ -6545,10 +6545,13 @@ abstract class AiBase {
 
 		// check if target changed meanwhile like Fire --> Hot Coals
 		if (expectedUseTarget != null && useTarget.parentId != expectedUseTarget.parentId) {
-			// if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} Use target changed! ${useTarget.name} expected: ${expectedUseTarget.name}');
-			CancleUse();
-			return false;
+			// Allow: Milkweed 50 // Flowering Milkweed 51 // Fruiting Milkweed 52
+			if (useTarget.parentId != 50 && useTarget.parentId != 51 && useTarget.parentId != 52) {
+				// if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} Use target changed! ${useTarget.name} expected: ${expectedUseTarget.name}');
+				CancleUse();
+				return false;
+			}
 		}
 
 		if (myPlayer.isStillExpectedItem(useTarget) == false) {
