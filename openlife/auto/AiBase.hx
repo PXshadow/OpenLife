@@ -428,10 +428,10 @@ abstract class AiBase {
 			trace('AI TIME WARNING: isEating ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		Macro.exception(if (isConsideringMakingFood()) return);
+		Macro.exception(if (isUsingItem()) return); // isPickingupFood can have a use as drop!
 		Macro.exception(if (isPickingupFood()) return);
 		Macro.exception(if (this.profession['SMITH'] < 1 && isFeedingPlayerInNeed()) return);
 		Macro.exception(if (isStayingCloseToChild()) return);
-		Macro.exception(if (isUsingItem()) return);
 		Macro.exception(if (isRemovingFromContainer()) return);
 		Macro.exception(if (killAnimal(animal)) return);
 		Macro.exception(if (isMovingToPlayer(autoStopFollow ? 10 : 5)) return); // if ordered to follow stay closer otherwise give some space to work
@@ -4649,8 +4649,8 @@ abstract class AiBase {
 		if (this.feedingPlayerTarget == null) return false;
 
 		var targetPlayer = this.feedingPlayerTarget;
-		var quadDist = AiHelper.CalculateDistanceToPlayer(myPlayer,targetPlayer);
-		var fullPercent = quadDist > 10 ? 0.4 : 0.8; // if close feed full 
+		var quadDist = AiHelper.CalculateDistanceToPlayer(myPlayer, targetPlayer);
+		var fullPercent = quadDist > 10 ? 0.4 : 0.8; // if close feed full
 
 		if (targetPlayer.food_store > targetPlayer.food_store_max * fullPercent) {
 			this.feedingPlayerTarget = null;
