@@ -2105,6 +2105,21 @@ class ServerSettings {
 		trans.hungryWorkCost = 3;
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
+		// Bowl of Gooseberries 253 + Carrot Pile 2742
+		var trans = transtions.getTransition(253, 2742);
+		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
+
+		var trans = transtions.getTransition(253, 2742, false, true);
+		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
+
+		// Bowl of Gooseberries 253 + Pile of Wild Carrots 3978
+		var trans = transtions.getTransition(253, 3978);
+		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
+
+		// Bowl of Gooseberries 253 + Pile of Wild Carrots 3978
+		var trans = transtions.getTransition(253, 3978, false, true);
+		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
+
 		// Bowl of Soil + Fertile Soil Pile 1101
 		var trans = transtions.getTransition(1137, 1101);
 		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?

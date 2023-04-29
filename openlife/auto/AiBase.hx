@@ -6846,7 +6846,7 @@ abstract class AiBase {
 
 			// if (ServerSettings.DebugAi)
 			if (age > 3)
-				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use failed! held: ${heldObject.name} expected: ${useActor.name} Ignore: ${target.name} expected: ${expectedUseTargetName}  foodStore: ${foodStore} heat: ${heat}');
+				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use failed! held: ${heldObject.name} expected: ${useActor.name} uses: ${useActor.numberOfUses} Ignore: ${target.name} expected: ${expectedUseTargetName}  foodStore: ${foodStore} heat: ${heat}');
 
 			// TODO check why use is failed... for now add to ignore list
 			// TODO dont use on contained objects if result cannot contain (ignore in crafting search)
