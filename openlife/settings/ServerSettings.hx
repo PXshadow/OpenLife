@@ -1853,6 +1853,21 @@ class ServerSettings {
 		trans.autoDecaySeconds = -48;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Steel Mining Pick 684 + Bear Cave 650 --> Steel Mining Pick 684 + Huge Charcoal Pile 4102
+		trans = new TransitionData(684, 650, 684, 4102);
+		// trans.aiShouldIgnore = true;
+		trans.alternativeTransitionOutcome.push(300); // Big Charcoal Pile 300
+		trans.hungryWorkCost = 10;
+		transtions.addTransition("PatchTransitions: ", trans);
+
+		// Steel Mining Pick 684 + Bear Cave 650 --> Broken Steel Tool 858+ Huge Charcoal Pile 4102
+		trans = new TransitionData(684, 650, 858, 4102);
+		// trans.aiShouldIgnore = true;
+		trans.lastUseActor = true;
+		trans.alternativeTransitionOutcome.push(300); // Big Charcoal Pile 300
+		trans.hungryWorkCost = 10;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// let get berrys back!
 		trans = new TransitionData(-1, 30, 0, 30); // Wild Gooseberry Bush
 		trans.reverseUseTarget = true;

@@ -74,21 +74,26 @@ Quality of Life Changes:
 - you can pick berriers directly with a bowl
 - you can pick up dry beans with a bowl
 - soaked dry beans can be cooked with a hot oven
-- kids can carry one item and pick berries
+- kids can carry one item (with max one use) and pick berries
 - you can do smithing on a table
 - escape time for rubber horse cart 7--> 20 sec / and moves 4 --> 2
 - escape time for horse cart 7--> 15 sec / and moves 4 --> 2
 - you can use a Stone Hoe to dig in bones
 - you can unsharp a sharp stone on Big Hard Rock
+- you can use flint to undo stone hoes and hatches
+- you can eat while on a horse (dont know yet if this is a good idea...)
+- wearing two shoes give extra speed
+- you can use a Steel Mining Pick to get coal out of a Bear Cave (Hungry Work)
+
+Better fire Handling:
 - you can use Straw on Ashes to start a fire again
 - you can use Smithing Hammer plus Stakes to make a Ember Leaf for making a fire
 - you can use Ember Leaf on Straw to start a fire
 - you can burn rag cloths in fire to make fast fire
 - you can burn a Basket of Coals on a fire to make a Large Slow Fire
 - you can burn straw in a fire to make a flash fire
-- you can use flint to undo stone hoes and hatches
-- you can eat while on a horse (dont know yet if this is a good idea...)
-- wearing two shoes give extra speed
+
+Water Handling:
 - wells fill up at least 3 times faster. Better wells always refill faster then primitive wells
 - better wells need less hungry work per water gained / using lakes is worst. 
 

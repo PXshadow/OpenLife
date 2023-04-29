@@ -945,7 +945,7 @@ abstract class AiBase {
 			// Big Charcoal Pile 300
 			var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 300, 30);
 
-			// FBasket of Charcoal 298
+			// Basket of Charcoal 298
 			if (count > 6 && shortCraftOnTarget(298, firePlace)) return true;
 
 			// Butt Log 345
