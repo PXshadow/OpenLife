@@ -3152,6 +3152,7 @@ class ServerSettings {
 	}
 
 	public static var WaterSourceIds:Array<Int> = [];
+	public static var BucketWaterSourceIds:Array<Int> = [];
 
 	private static function InitWaterSourceIds() {
 		// Bowl of Water 382 // Clay Bowl 235
@@ -3163,7 +3164,23 @@ class ServerSettings {
 			// trace('InitWaterSourceIds: ' + trans.getDescription(false));
 			var name = ObjectData.getObjectData(trans.targetID).name;
 
-			trace('InitWaterSourceIds: ' + name);
+			// trace('InitWaterSourceIds: ' + name);
+
+			WaterSourceIds.push(trans.targetID);
+		}
+
+		// Full Bucket of Water 660
+		var transByTarget = TransitionImporter.GetTransitionByNewActor(660);
+		for (trans in transByTarget) {
+			if (trans.targetID < 1) continue; // like TIME
+			if (trans.actorID != 659) continue; // Empty Bucket 659
+			if (trans.actorID != 659) continue;
+
+			if (WaterSourceIds.contains(trans.targetID)) continue;
+			// trace('InitWaterSourceIds: ' + trans.getDescription(false));
+			var name = ObjectData.getObjectData(trans.targetID).name;
+
+			// trace('InitWaterSourceIds: ' + name);
 
 			WaterSourceIds.push(trans.targetID);
 		}

@@ -5042,6 +5042,7 @@ abstract class AiBase {
 
 		var actorId = itemToCraft.transActor.parentId;
 		var targetId = itemToCraft.transTarget.parentId;
+		var heldId = myPlayer.heldObject.parentId;
 
 		// TODO better fix directly in the crafting alg by considering time transitions better
 		// FIX: starting fire if no kindling is close
@@ -5056,11 +5057,37 @@ abstract class AiBase {
 		// TODO better fix directly in the crafting alg by considering distances
 		// get water from best water source // FIX: AI running to Pond instead next Well
 		var waterSourceIds = ServerSettings.WaterSourceIds;
+		var bucketWaterSourceIds = ServerSettings.BucketWaterSourceIds;
 
 		// Clay Bowl 235 // Empty Water Pouch 209
 		if ((actorId == 235 || actorId == 209) && waterSourceIds.contains(itemToCraft.transTarget.parentId)) {
+			// TODO use steam and oil wells
+
+			// check if water can be tacken from a well with a bucket
+			// Full Bucket of Water 660 // Partial Bucket of Water 1099
+			if (heldId == 660 || heldId == 1099) return dropHeldObject(0);
+
+			var closestWaterBucket = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, [660, 1099], myPlayer);
+			if (closestWaterBucket == null) {
+				// trace('AAI: ${myPlayer.name + myPlayer.id} Try get water with a bucket');
+
+				// Tank of Water - less full 3168 // Empty Bucket 659
+				if (shortCraft(3168, 659, 30)) return true;
+
+				// Tank of Water - 3167 // Empty Bucket 659
+				if (shortCraft(3167, 659, 30)) return true;
+				// if(craftItem(660)) return true;
+
+				var closestBucketWaterSource = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, bucketWaterSourceIds, myPlayer);
+
+				if (closestBucketWaterSource != null) {
+					// Empty Bucket 659
+					if (shortCraftOnTarget(659, closestBucketWaterSource, 30)) return true;
+				}
+			}
+
 			var closestWaterSource = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, waterSourceIds, myPlayer);
-			// trace('AAI: ${myPlayer.name + myPlayer.id} Use closest water source!!!');
+			// trace('AAI: ${myPlayer.name + myPlayer.id} Use closest water source');
 
 			if (closestWaterSource != null) {
 				var oldTargetName = itemToCraft.transTarget.name;
