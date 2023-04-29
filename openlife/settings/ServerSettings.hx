@@ -2494,6 +2494,10 @@ class ServerSettings {
 		trans.reverseUseTarget = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Drop Spindle 579 + Small Ball of Yarn 581 --> Drop Spindle 579 + Rope 59
+		var trans = new TransitionData(579, 581, 579, 59);
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// Smithing Hammer 441 + Stakes 107 -->  Smithing Hammer + Ember Leaf 77
 		var trans = new TransitionData(441, 107, 441, 77);
 		transtions.addTransition("PatchTransitions: ", trans);
