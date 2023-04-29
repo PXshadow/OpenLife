@@ -980,9 +980,10 @@ class AiHelper {
 		}
 
 		// check if stuck
-		if (data.length > 0 && ai.lastX == -data[data.length - 1].x && ai.lastY == -data[data.length - 1].y) {
+		/*if (data.length > 0 && ai.lastX == -data[data.length - 1].x && ai.lastY == -data[data.length - 1].y) {
 			trace('${player.name + player.p_id} ${ai.lastProfession} GOTO Stuck? $px $py $data');
-		}
+		}*/
+
 		if (data.length > 0) {
 			ai.lastX = data[data.length - 1].x;
 			ai.lastY = data[data.length - 1].y;

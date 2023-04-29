@@ -2761,7 +2761,7 @@ abstract class AiBase {
 
 		if (waterTarget == null) return false;
 
-		trace('doWatering2: ${waterTarget.name}');
+		// trace('doWatering2: ${waterTarget.name}');
 
 		if (doWateringOn(waterTarget.parentId)) return true;
 
