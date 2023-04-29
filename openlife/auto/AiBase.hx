@@ -5040,10 +5040,22 @@ abstract class AiBase {
 			return false;
 		}
 
+		var actorId = itemToCraft.transActor.parentId;
+		var targetId = itemToCraft.transTarget.parentId;
+
+		// TODO better fix directly in the crafting alg by considering time transitions better
+		// FIX: starting fire if no kindling is close
+		// Fire Bow Drill 74 + Long Straight Shaft 67 --> Ember Shaft 75
+		if (actorId == 74 && targetId == 67) {
+			// Kindling 72
+			if (GetCraftAndDropItemsCloseToObj(itemToCraft.transTarget, 72, 2)) return true;
+			// Juniper Tinder 61
+			if (GetCraftAndDropItemsCloseToObj(itemToCraft.transTarget, 61, 1)) return true;
+		}
+
 		// TODO better fix directly in the crafting alg by considering distances
 		// get water from best water source // FIX: AI running to Pond instead next Well
 		var waterSourceIds = ServerSettings.WaterSourceIds;
-		var actorId = itemToCraft.transActor.parentId;
 
 		// Clay Bowl 235 // Empty Water Pouch 209
 		if ((actorId == 235 || actorId == 209) && waterSourceIds.contains(itemToCraft.transTarget.parentId)) {

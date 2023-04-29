@@ -99,11 +99,13 @@ Water Handling:
 
 Not yet implemented:
 - AI combat
-- advaned stuff like rails, pipes, plows
+- Property system with locks
+- Ai territory / property
 - reading / writing
 - twinning
-- ally gates
-- better in door temperature calculation
+- ally gates / auto open spring doors
+- in door temperature calculation
+- advanced stuff like rails, pipes, plows, cars
 - see more in TODO below
 
 How to setup the server you can find in the bottom!
