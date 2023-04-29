@@ -445,6 +445,7 @@ class AiHelper {
 		var count = 0;
 
 		if (objId == 233) countPiles = false; // Wet Clay Bowl 233 --> otherwise Wet Clay Crock is counted, too
+		if (objId == 300) pileObjId = 4102; // // Big Charcoal Pile 300 --> Huge Charcoal Pile 4102
 
 		for (tty in ty - radius...ty + radius) {
 			for (ttx in tx - radius...tx + radius) {

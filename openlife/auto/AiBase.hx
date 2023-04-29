@@ -942,7 +942,6 @@ abstract class AiBase {
 
 		// Fire 82
 		if (objId == 82) {
-			// TODO count also Huge Charcoal Pile 4102
 			// Big Charcoal Pile 300
 			var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 300, 30);
 
