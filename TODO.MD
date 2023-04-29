@@ -80,6 +80,7 @@ Quality of Life Changes:
 - escape time for horse cart 7--> 15 sec / and moves 4 --> 2
 - you can use a Stone Hoe to dig in bones
 - you can unsharp a sharp stone on Big Hard Rock
+- you can use Straw on Ashes to start a fire again
 - you can burn rag cloths in fire to make fast fire
 - you can use flint to undo stone hoes and hatches
 - you can eat while on a horse (dont know yet if this is a good idea...)
