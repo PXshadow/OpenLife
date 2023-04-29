@@ -84,7 +84,7 @@ Quality of Life Changes:
 - you can use Smithing Hammer plus Stakes to make a Ember Leaf for making a fire
 - you can use Ember Leaf on Straw to start a fire
 - you can burn rag cloths in fire to make fast fire
-- you can burn coals in a fire to make a large slow fire
+- you can burn a Basket of Coals on a fire to make a Large Slow Fire
 - you can burn straw in a fire to make a flash fire
 - you can use flint to undo stone hoes and hatches
 - you can eat while on a horse (dont know yet if this is a good idea...)

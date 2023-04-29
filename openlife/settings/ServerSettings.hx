@@ -2493,10 +2493,12 @@ class ServerSettings {
 
 		// Straw 227 + Fire 82 --> 0 + Flash Fire 3029
 		var trans = new TransitionData(227, 82, 0, 3029);
+		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		// Basket of Charcoal 298 + Fire 82 --> 0 + Large Slow Fire
+		// Basket of Charcoal 298 + Fire 82 --> 0 + Large Slow Fire 346
 		var trans = new TransitionData(298, 82, 0, 346);
+		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// TODo needs client change

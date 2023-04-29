@@ -859,6 +859,7 @@ abstract class AiBase {
 	private function isHandlingFire(maxProfession = 1):Bool {
 		var firePlace = myPlayer.firePlace;
 		var heldId = myPlayer.heldObject.parentId;
+		var home = myPlayer.home;
 
 		firePlace = AiHelper.GetCloseFire(myPlayer);
 		myPlayer.firePlace = firePlace;
@@ -911,6 +912,12 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} Checking Fire: ${firePlace.name} objAtPlace: ${objAtPlace.name} ${myPlayer.firePlace.tx},${myPlayer.firePlace.ty}');
 
+		// renew fire with Straw // might work without need of extra instruct
+		/*if (objId == 86) {
+			// Straw 227 + Ashes 86 --> 0 + Smoldering Tinder
+			if (shortCraftOnTarget(227, firePlace)) return true;
+		}*/
+
 		// 85 Hot Coals // 72 Kindling
 		if (objId == 85) {
 			// TODO consider time to change
@@ -933,20 +940,39 @@ abstract class AiBase {
 			}
 		}
 
-		// 82 Fire // 72 Kindling // 344 Firewood
+		// Fire 82
 		if (objId == 82) {
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Get Wood or Kindling ==> Fire!');
+			// TODO count also Huge Charcoal Pile 4102
+			// Big Charcoal Pile 300
+			var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 300, 30);
 
-			if (heldId == 72 || heldId == 344) {
-				if (ServerSettings.DebugAiSay) myPlayer.say('Use On Fire');
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Or Wood Use On ==> Fire');
-				return useHeldObjOnTarget(firePlace);
-			} else {
-				if (shouldDebugSay()) myPlayer.say('Get Wood For Fire');
-				var done = GetOrCraftItem(344);
-				if (done) return true; else
-					return GetOrCraftItem(72);
-			}
+			// FBasket of Charcoal 298
+			if (count > 6 && shortCraftOnTarget(298, firePlace)) return true;
+
+			// Butt Log 345
+			var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 345, 30);
+
+			// Butt Log 345
+			if (count > 6 && shortCraftOnTarget(345, firePlace)) return true;
+
+			// Firewood 344
+			if (shortCraftOnTarget(344, firePlace)) return true;
+
+			// Kindling 72
+			if (shortCraftOnTarget(72, firePlace)) return true;
+
+			/*if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Get Wood or Kindling ==> Fire!');
+
+				if (heldId == 72 || heldId == 344) {
+					if (ServerSettings.DebugAiSay) myPlayer.say('Use On Fire');
+					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fire: Has Kindling Or Wood Use On ==> Fire');
+					return useHeldObjOnTarget(firePlace);
+				} else {
+					if (shouldDebugSay()) myPlayer.say('Get Wood For Fire');
+					var done = GetOrCraftItem(344);
+					if (done) return true; else
+						return GetOrCraftItem(72);
+			}*/
 		}
 
 		myPlayer.firePlace = null;
