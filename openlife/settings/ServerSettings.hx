@@ -2495,6 +2495,10 @@ class ServerSettings {
 		var trans = new TransitionData(227, 82, 0, 3029);
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Basket of Charcoal 298 + Fire 82 --> 0 + Large Slow Fire
+		var trans = new TransitionData(298, 82, 0, 346);
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// TODo needs client change
 		// var trans = new TransitionData(298, 317, 298, 316); // 298 Basket of Charcoal + 317 Crucible with Iron --> 298 +  316 Crucible with Iron and Charcoal
 		// transtions.addTransition("PatchTransitions: ", trans);
