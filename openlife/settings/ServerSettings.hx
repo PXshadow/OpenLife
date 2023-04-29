@@ -3153,6 +3153,7 @@ class ServerSettings {
 		// var trans = TransitionImporter.GetTransition(283, -1); // Wooden Tongs with Fired Bowl
 		// trace('DEBUG!!!: ${trans.getDesciption()}');
 		InitWaterSourceIds();
+		InitWateringTargets();
 	}
 
 	public static var WaterSourceIds:Array<Int> = [];
@@ -3180,13 +3181,34 @@ class ServerSettings {
 			if (trans.actorID != 659) continue; // Empty Bucket 659
 			if (trans.actorID != 659) continue;
 
-			if (WaterSourceIds.contains(trans.targetID)) continue;
+			if (BucketWaterSourceIds.contains(trans.targetID)) continue;
 			// trace('InitWaterSourceIds: ' + trans.getDescription(false));
 			var name = ObjectData.getObjectData(trans.targetID).name;
 
 			// trace('InitWaterSourceIds: ' + name);
 
-			WaterSourceIds.push(trans.targetID);
+			BucketWaterSourceIds.push(trans.targetID);
+		}
+	}
+
+	public static var WateringTargetsIds:Array<Int> = [];
+	// Full Water Pouch 210 // Full Water Pouch Pile 4094 // Adobe 127 // Bowl of Water 382
+	// Full Bucket of Water 660 // Partial Bucket of Water 1099
+	public static var IgnoreToWaterNewTargets:Array<Int> = [210, 4094, 127, 382, 660, 1099];
+
+	private static function InitWateringTargets() {
+		// Full Water Pouch 210
+		var transByTarget = TransitionImporter.GetTransitionByActor(210);
+		for (trans in transByTarget) {
+			if (trans.targetID < 1) continue; // like TIME
+			if (IgnoreToWaterNewTargets.contains(trans.newTargetID)) continue;
+			if (WateringTargetsIds.contains(trans.targetID)) continue;
+			// trace('InitWateringTargets: ' + trans.getDescription(false));
+			var name = ObjectData.getObjectData(trans.targetID).name;
+
+			// trace('InitWateringTargets: ' + name);
+
+			WateringTargetsIds.push(trans.targetID);
 		}
 	}
 

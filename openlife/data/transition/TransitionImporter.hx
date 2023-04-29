@@ -414,7 +414,7 @@ class TransitionImporter {
 	}
 
 	public static function GetTransitionByActor(actorId:Int):Array<TransitionData> {
-		return transitionImporter.getTransitionByNewActor(actorId);
+		return transitionImporter.getTransitionByActor(actorId);
 	}
 
 	public function getTransitionByActor(actorId:Int):Array<TransitionData> {
