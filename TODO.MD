@@ -81,7 +81,10 @@ Quality of Life Changes:
 - you can use a Stone Hoe to dig in bones
 - you can unsharp a sharp stone on Big Hard Rock
 - you can use Straw on Ashes to start a fire again
+- you can use Smithing Hammer plus Stakes to make a Ember Leaf for making a fire
+- you can use Ember Leaf on Straw to start a fire
 - you can burn rag cloths in fire to make fast fire
+- you can burn straw in a fire to make a flash fire
 - you can use flint to undo stone hoes and hatches
 - you can eat while on a horse (dont know yet if this is a good idea...)
 - wearing two shoes give extra speed

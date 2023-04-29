@@ -2479,7 +2479,7 @@ class ServerSettings {
 		trans.reverseUseTarget = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		// Smithing Hammer 441 + Stakes 107 --> Ember Leaf 77
+		// Smithing Hammer 441 + Stakes 107 -->  Smithing Hammer + Ember Leaf 77
 		var trans = new TransitionData(441, 107, 441, 77);
 		transtions.addTransition("PatchTransitions: ", trans);
 
