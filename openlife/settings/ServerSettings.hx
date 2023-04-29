@@ -2930,6 +2930,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(-1, 1462, false, true);
 		trans.aiShouldIgnore = true;
 
+		// Wooden Tongs 239 + Hot Forged Steel Crucible 321
+		var trans = transtions.getTransition(239, 321);
+		trans.aiShouldIgnore = true;
+
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		// var trans = transtions.getTransition(1247, 4110);
 		// trans.aiShouldIgnore = true;
@@ -3192,6 +3196,7 @@ class ServerSettings {
 	}
 
 	public static var WateringTargetsIds:Array<Int> = [];
+	public static var WateringTargetsIdsWithoutCarrots:Array<Int> = [];
 	// Full Water Pouch 210 // Full Water Pouch Pile 4094 // Adobe 127 // Bowl of Water 382
 	// Full Bucket of Water 660 // Partial Bucket of Water 1099
 	public static var IgnoreToWaterNewTargets:Array<Int> = [210, 4094, 127, 382, 660, 1099];
@@ -3209,6 +3214,9 @@ class ServerSettings {
 			// trace('InitWateringTargets: ' + name);
 
 			WateringTargetsIds.push(trans.targetID);
+
+			// Dry Planted Carrots 396
+			if (trans.newTargetID != 396) WateringTargetsIdsWithoutCarrots.push(trans.targetID);
 		}
 	}
 
