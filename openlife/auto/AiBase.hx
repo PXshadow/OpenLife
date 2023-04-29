@@ -2743,20 +2743,45 @@ abstract class AiBase {
 		if (hasOrBecomeProfession('WaterBringer', maxPeople) == false) return false;
 		var home = myPlayer.home;
 
-		// TODO use a general water rework to water all dry stuff
-		var carrots = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 402, 30); // Carrot 402
+		// trace('doWatering:');
 
-		if (carrots < 10 && doWateringOn(396)) return true; //  Dry Planted Carrots 396
-		if (doWateringOn(228)) return true; //  Dry Planted Wheat 228
-		if (doWateringOn(1109)) return true; //  Dry Planted Corn Seed 1109
-		if (doWateringOn(2829)) return true; //  Dry Planted Tomato Seed 2829
-		if (doWateringOn(4225)) return true; //  Dry Planted Cucumber Seeds 4225
-		if (doWateringOn(393)) return true; //  Dry Domestic Gooseberry Bush 393
-		if (doWateringOn(216)) return true; //  Dry Planted Gooseberry Seed 216
-		if (doWateringOn(2856)) return true; //  Dry Planted Onion 2856
-		if (doWateringOn(2851)) return true; //  Dry Planted Onions 2851
-		if (doWateringOn(1161)) return true; //  Dry Planted Beans 1161
-		if (doWateringOn(1145)) return true; //  Dry Planted Potatoes 1145
+		var waterTarget = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, ServerSettings.WateringTargetsIds, myPlayer);
+
+		if (waterTarget == null) return false;
+
+		// trace('doWatering: ${waterTarget.name}');
+
+		// Dry Planted Carrots 396
+		if (waterTarget.parentId == 396) {
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 402, 30); // Carrot 402
+			if (count >= 10) {
+				waterTarget = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, ServerSettings.WateringTargetsIdsWithoutCarrots, myPlayer);
+			}
+		}
+
+		if (waterTarget == null) return false;
+
+		trace('doWatering2: ${waterTarget.name}');
+
+		if (doWateringOn(waterTarget.parentId)) return true;
+
+		/*
+			// TODO use a general water rework to water all dry stuff
+			var carrots = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 402, 30); // Carrot 402
+
+			if (carrots < 10 && doWateringOn(396)) return true; // Dry Planted Carrots 396
+			if (doWateringOn(228)) return true; // Dry Planted Wheat 228
+			if (doWateringOn(1109)) return true; // ry Planted Corn Seed 1109
+			if (doWateringOn(2829)) return true; // Dry Planted Tomato Seed 2829
+			if (doWateringOn(4225)) return true; // Dry Planted Cucumber Seeds 4225
+			if (doWateringOn(393)) return true; // Dry Domestic Gooseberry Bush 393
+			if (doWateringOn(216)) return true; // Dry Planted Gooseberry Seed 216
+			if (doWateringOn(2856)) return true; // Dry Planted Onion 2856
+			if (doWateringOn(2851)) return true; // Dry Planted Onions 2851
+			if (doWateringOn(1161)) return true; // Dry Planted Beans 1161
+			if (doWateringOn(1145)) return true; // Dry Planted Potatoes 1145
+
+		 */
 
 		// if(shortCraft(210, 396)) return true; // Full Water Pouch + Dry Planted Carrots
 		// if(shortCraft(382, 396)) return true; // Bowl of Water + Planted Carrots
@@ -5049,9 +5074,11 @@ abstract class AiBase {
 		// Fire Bow Drill 74 + Long Straight Shaft 67 --> Ember Shaft 75
 		if (actorId == 74 && targetId == 67) {
 			// Kindling 72
-			if (GetCraftAndDropItemsCloseToObj(itemToCraft.transTarget, 72, 2)) return true;
+			if (GetCraftAndDropItemsCloseToObj(itemToCraft.transTarget, 72, 1)) return true;
+			if (itemToCraft.transTarget == null) return false;
 			// Juniper Tinder 61
 			if (GetCraftAndDropItemsCloseToObj(itemToCraft.transTarget, 61, 1)) return true;
+			if (itemToCraft.transTarget == null) return false;
 		}
 
 		// TODO better fix directly in the crafting alg by considering distances
@@ -5062,6 +5089,7 @@ abstract class AiBase {
 		// Clay Bowl 235 // Empty Water Pouch 209
 		if ((actorId == 235 || actorId == 209) && waterSourceIds.contains(itemToCraft.transTarget.parentId)) {
 			// TODO use steam and oil wells
+			var oldTargetName = itemToCraft.transTarget.name;
 
 			// check if water can be tacken from a well with a bucket
 			// Full Bucket of Water 660 // Partial Bucket of Water 1099
@@ -5090,11 +5118,20 @@ abstract class AiBase {
 			// trace('AAI: ${myPlayer.name + myPlayer.id} Use closest water source');
 
 			if (closestWaterSource != null) {
-				var oldTargetName = itemToCraft.transTarget.name;
 				itemToCraft.transTarget = closestWaterSource;
 
 				// if (ServerSettings.DebugAi)
 				// trace('AAI: ${myPlayer.name + myPlayer.id} Use closest water source! Actor ${itemToCraft.transActor.name} oldTargetName: ${oldTargetName} --> target ${itemToCraft.transTarget.name} held: ${player.heldObject.name}');
+			}
+
+			if (itemToCraft.transTarget == null) {
+				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use closest water source! transTarget == NULL');
+				return false;
+			}
+
+			if (itemToCraft.transActor == null) {
+				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use closest water source! transActor == NULL');
+				return false;
 			}
 		}
 
