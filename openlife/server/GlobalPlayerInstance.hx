@@ -2991,6 +2991,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		trace('tryTranstionOnClothing: ${trans.getDescription()}');
 
+		// check if result is a clothing
+		var newTarget = ObjectData.getObjectData(trans.newTargetID);
+		var clothingSlotOld = clothing.objectData.getClothingSlot();
+		var clothingSlotNew = newTarget.getClothingSlot();
+
+		if (clothingSlotOld != clothingSlotNew) {
+			// Pile of Sheep Skins 3919 --> Allow as Easter Egg for Jinbali
+			if (newTarget.parentId == 3919) {
+				this.say('Praise Jinbali!');
+			} else {
+				trace('tryTranstionOnClothing: result must have same clothing slot! clothingSlotOld: ${clothingSlotOld} clothingSlotNew: ${clothingSlotNew}');
+				return false;
+			}
+		}
+
 		if (clothing.objectData.numUses > 1
 			&& trans.reverseUseTarget
 			&& clothing.numberOfUses >= clothing.objectData.numUses) return false;
