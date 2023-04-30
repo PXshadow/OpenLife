@@ -2532,6 +2532,9 @@ abstract class AiBase {
 		if(craftItem(277)) return true; // Cooked Rabbit Carrot Pie
 		if(craftItem(278)) return true; // Cooked Berry Carrot Rabbit Pie
 	 */
+	// Raw Berry Pie 265
+	// Raw Mutton Pie 802
+	// Raw Carrot Pie 268
 	private static var pies = [272, 803, 273, 274, 275, 276, 277, 278];
 	private static var rawPies = [265, 802, 268, 270, 266, 271, 269, 267];
 
@@ -2542,9 +2545,9 @@ abstract class AiBase {
 		var maxDoughInBowl = knife == null ? 0 : 1;
 
 		// Sliced Bread 1471
-		var countBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 20);
+		var countSlicedBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 20);
 		// Leavened Dough on Clay Plate 1468
-		countBread += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
+		var countBread = countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
 
 		if (countBread > 2) maxDoughInBowl = 0;
 
@@ -2649,7 +2652,7 @@ abstract class AiBase {
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		// 560 Knife
-		if (this.profession['BAKER'] < 3) {
+		if (countSlicedBread < 3 && this.profession['BAKER'] < 3) {
 			if (knife != null) {
 				// 1470 Baked Bread
 				if (shortCraft(560, 1470, 20, false)) return true;
@@ -2707,9 +2710,12 @@ abstract class AiBase {
 		for (i in 0...pies.length) {
 			var index = (nextPie + i) % pies.length;
 
-			if (rawPies[index] == 802 && countMuttonPies > 1) continue; // Raw Mutton Pie 802
-			if (rawPies[index] == 569 && countBerryPies > 1) continue;
-			if (rawPies[index] == 268 && countCarrotPies > 1) continue;
+			// if (rawPies[index] == 802 && countMuttonPies > 1) continue; // Raw Mutton Pie 802
+			// if (rawPies[index] == 265 && countBerryPies > 1) continue; // Raw Berry Pie 265
+			// if (rawPies[index] == 268 && countCarrotPies > 1) continue; // Raw Carrot Pie 268
+
+			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, pies[index], 30);
+			if (count > 1) continue;
 
 			lastPie = index;
 			if (craftItem(rawPies[index])) return true;
