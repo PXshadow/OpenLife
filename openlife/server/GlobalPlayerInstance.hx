@@ -1,6 +1,5 @@
 package openlife.server;
 
-import haxe.ds.HashMap;
 import haxe.Exception;
 import haxe.ds.Vector;
 import openlife.auto.AiBase;
@@ -86,8 +85,37 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public static var AllPlayers = new Map<Int, GlobalPlayerInstance>();
 
 	public static function AddPlayer(player:GlobalPlayerInstance) {
-		AllPlayers[player.p_id] = player;
+		AcquireMutex();
+
+		// make it thread save
+		var tmpAllPlayers = new Map<Int, GlobalPlayerInstance>();
+
+		for (p in AllPlayers)
+			tmpAllPlayers[p.p_id] = p;
+
+		tmpAllPlayers[player.p_id] = player;
+
+		AllPlayers = tmpAllPlayers;
+
 		Lineage.AddLineage(player.p_id, player.lineage);
+
+		ReleaseMutex();
+	}
+
+	public static function RemovePlayer(player:GlobalPlayerInstance) {
+		AcquireMutex();
+
+		// make it thread save
+		var tmpAllPlayers = new Map<Int, GlobalPlayerInstance>();
+
+		for (p in AllPlayers)
+			tmpAllPlayers[p.p_id] = p;
+
+		tmpAllPlayers.remove(player.p_id);
+
+		AllPlayers = tmpAllPlayers;
+
+		ReleaseMutex();
 	}
 
 	public static var medianPrestige:Float = ServerSettings.MinHealthPerYear * 30; // for 30 years
@@ -226,7 +254,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.lastAttackedPlayer = null;
 		this.lastPlayerAttackedMe = null;
 
-		AllPlayers.remove(this.p_id);
+		RemovePlayer(this);
 	}
 
 	private static function GetName(objId:Int):String {
