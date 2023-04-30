@@ -108,10 +108,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// make it thread save
 		var tmpAllPlayers = new Map<Int, GlobalPlayerInstance>();
 
-		for (p in AllPlayers)
+		for (p in AllPlayers) {
+			if (p.p_id == player.p_id) continue;
 			tmpAllPlayers[p.p_id] = p;
+		}
 
-		tmpAllPlayers.remove(player.p_id);
+		// tmpAllPlayers.remove(player.p_id);
 
 		AllPlayers = tmpAllPlayers;
 

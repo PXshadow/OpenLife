@@ -697,18 +697,25 @@ class WorldMap {
 
 		this.mutex.release();
 		Sys.sleep(sleepTime);
-		this.mutex.acquire();
 
+		GlobalPlayerInstance.AcquireMutex();
 		// Lineage.WriteAllLineages(dir + "Lineages" + tmpDataNumber + ".bin");
 		Lineage.WriteNewLineages(dir + "Lineages" + tmpDataNumber + ".bin");
 		if (ServerSettings.SavePlayers) GlobalPlayerInstance.WriteAllPlayers(dir + "Players" + tmpDataNumber + ".bin");
+		GlobalPlayerInstance.ReleaseMutex();
 
+		this.mutex.acquire();
 		writeIndexFile(dir + "lastDataNumber" + tmpDataNumber + ".txt", tmpDataNumber);
 		writeIndexFile(dir + "lastDataNumber.txt", tmpDataNumber);
 
-		writeFoodStatistics(dir + "FoodStats" + tmpDataNumber + ".txt");
-
 		saveDataNumber++;
+		this.mutex.release();
+
+		Sys.sleep(sleepTime);
+
+		this.mutex.acquire();
+		writeFoodStatistics(dir + "FoodStats" + tmpDataNumber + ".txt");
+		this.mutex.release();
 
 		var time = Math.round((Sys.time() - time) * 1000);
 
@@ -716,6 +723,10 @@ class WorldMap {
 			trace('Write to disk: saveDataNumber: $tmpDataNumber Time: $time backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');
 
 		if (ServerSettings.TraceCountObjectsToDisk) {
+			Sys.sleep(sleepTime);
+
+			this.mutex.acquire();
+
 			// trace('count objects time: ${Sys.time() - time}');
 			var path = dir + 'ObjectCounts${tmpDataNumber}.txt';
 			var writer = File.write(path, false);
@@ -726,6 +737,7 @@ class WorldMap {
 			}
 
 			writer.close();
+			this.mutex.release();
 		}
 	}
 
