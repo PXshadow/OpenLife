@@ -3272,7 +3272,7 @@ class ServerSettings {
 		// LimitObjectByTarget(297, 226, 1); // Threshed Wheat 297 // Threshed Wheat (with straw) 226
 		LimitObjectByTarget(4070, 242, 2); // Pile of Threshed Wheat 4070 // Ripe Wheat 242
 
-		LimitObjectByTarget(1115, 1112, 5); // Dried Ear of Corn 1115 // Corn Plant Corn Plant 1112
+		// LimitObjectByTarget(1115, 1112, 5); // Dried Ear of Corn 1115 // Corn Plant 1112
 	}
 
 	private static function LimitTransitionIfMaxReached(actorId:Int, targetId:Int, id:Int, max:Int = 1) {

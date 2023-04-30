@@ -1893,7 +1893,7 @@ abstract class AiBase {
 
 		if (doHarvestWheat(1, 4)) return true;
 
-		if (doPlantWheat(5, 30)) return true;
+		if (doPlantWheat(5, 5)) return true;
 
 		/*if (this.profession['BASICFARMER'] < 6) {
 			// let some wheat stay for seeds and so that it looks nice
@@ -1922,15 +1922,21 @@ abstract class AiBase {
 			this.profession['BASICFARMER'] = 6;
 		}*/
 
-		if (this.profession['BASICFARMER'] < 7) {
-			if (doPrepareRows()) return true;
+		if (doPrepareRows()) return true;
 
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1109, 40); // Dry Planted Corn Seed
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
-			if (count < 5) if (craftItem(1109)) return true; // Dry Planted Corn Seed
-			this.profession['BASICFARMER'] = 7;
-		}
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
+		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1109, 40); // Dry Planted Corn Seed
+		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1111, 40); // Corn Sprout 1111
+		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
+
+		if (count < 1) this.taskState['PlantCorn'] = 1;
+		if (count > 5) this.taskState['PlantCorn'] = 0;
+
+		trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
+
+		if (this.taskState['PlantCorn'] > 0 && craftItem(1109)) return true; // Dry Planted Corn Seed 1109
+
+		trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming2: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
 
 		// var closeObj = AiHelper.GetClosestObjectById(myPlayer, 2831); // Wet Planted Tomato Seed
 		// if(closeObj == null) if(craftItem(2831)) return true; // Wet Planted Tomato Seed
@@ -1940,6 +1946,8 @@ abstract class AiBase {
 
 		if (doComposting()) return true;
 		if (doWatering(3)) return true;
+
+		if (doPlantWheat(5, 10)) return true;
 
 		this.profession['BASICFARMER'] = 1;
 
@@ -1952,6 +1960,8 @@ abstract class AiBase {
 		// if(closeObj != null) if(craftItem(1136)) return true; // Shallow Tilled Row
 
 		// if(myPlayer.age < 15 && makeFireWood()) return true;
+
+		if (doPlantWheat(5, 20)) return true;
 
 		if (myPlayer.age < 20 && makeSharpieFood()) return true;
 
