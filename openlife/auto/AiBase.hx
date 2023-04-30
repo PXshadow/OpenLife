@@ -2549,10 +2549,16 @@ abstract class AiBase {
 		// Leavened Dough on Clay Plate 1468
 		var countBread = countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
 
-		if (countBread > 2) maxDoughInBowl = 0;
+		if (countBread > 1) maxDoughInBowl = 0;
 
 		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
 		if (heldObject.parentId == 252 && heldObject.numberOfUses > maxDoughInBowl && shortCraft(252, 236)) return true;
+
+		// Use up all the Dough if there is enough bread // Bowl of Dough 252
+		var countDough = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 252, 20);
+		if (heldObject.parentId == 252) countDough += 1;
+		// Raw Pie Crust 264
+		if (countDough > 0 && maxDoughInBowl == 0 && craftItem(264)) return true;
 
 		if (hasOrBecomeProfession('BAKER', maxPeople) == false) return false;
 		var startTime = Sys.time();
