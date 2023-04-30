@@ -1372,6 +1372,12 @@ class ServerSettings {
 
 		ObjectData.getObjectData(1605).numSlots = 0; // Stack of Baskets // TODO allow stacking of filled baskets
 
+		// A symbol of kingship! Increases prestige from followers if worn.
+		// Wolf Crown 695 // Leaf Crown with Leaf 700 // Carrot Crown 693
+		ObjectData.getObjectData(695).extraPrestigeFactor = 0.2;
+		ObjectData.getObjectData(700).extraPrestigeFactor = 0.2;
+		ObjectData.getObjectData(693).extraPrestigeFactor = 0.2;
+
 		// ObjectData.getObjectData(279).winterDecayFactor = 2; // Empty Wild Gooseberry Bush
 		// ObjectData.getObjectData(279).springRegrowFactor = 0.5; // Empty Wild Gooseberry Bush
 		// ObjectData.getObjectData(279).countsOrGrowsAs = 30; // Empty Wild Gooseberry Bush

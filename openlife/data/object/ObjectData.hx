@@ -499,6 +499,8 @@ class ObjectData extends LineReader {
 	**/
 	public var parentId(get, null):Int;
 
+	public var extraPrestigeFactor = 0.0; // For example if special cloth increase the prestige for followers
+
 	public function get_parentId() {
 		var objectData = this;
 

@@ -2189,10 +2189,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		GlobalPlayerInstance.ReleaseMutex();
 	}
 
-	public function move(x:Int, y:Int, seq:Int, moves:Array<Pos>) {
-		MoveHelper.move(this, x, y, seq, moves);
-	}
-
 	private function doSelf(x:Int, y:Int, clothingSlot:Int):Bool {
 		if (ServerSettings.DebugPlayer) trace('${this.name}${this.id} doSelf: held: ${this.o_id[0]} ${heldObject.name} clothingSlot: $clothingSlot');
 
@@ -2263,6 +2259,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.storedWater += originalWater / 2;
 
 		return true;
+	}
+
+	public function move(x:Int, y:Int, seq:Int, moves:Array<Pos>) {
+		MoveHelper.move(this, x, y, seq, moves);
 	}
 
 	// UBABY x y i id#
@@ -2935,6 +2935,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (playerFrom.heldObject.parentId != 0 && tmpClothingSlot != objClothingSlot) return false; // dont allow switch backpack with shoe
 
 		var tmpObj = playerTo.clothingObjects[clothingSlot];
+		var clothingId = playerFrom.heldObject.parentId;
+
 		playerTo.clothingObjects[clothingSlot] = playerFrom.heldObject;
 		playerFrom.setHeldObject(tmpObj);
 
@@ -2955,6 +2957,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			Connection.SendUpdateToAllClosePlayers(playerFrom);
 		}
+
+		// Wolf Crown 695 // Leaf Crown with Leaf 700 // Carrot Crown 693
+		if (clothingId == 695) playerTo.say('I am almighty Wolf King!', true);
+		if (clothingId == 700) playerTo.say('I am King of the Forests!', true);
+		if (clothingId == 693) playerTo.say('I am King of the Carrots!', true);
 
 		// this.action = 0;
 
@@ -5122,14 +5129,26 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		for (ii in 0...4) {
 			if (this.exiledByPlayers.exists(leader.p_id)) return; // is exiled
 
-			leader.yum_multiplier += tmpCount;
-			leader.prestigeFromFollowers += tmpCount;
-			leader.coins += tmpCount;
+			var factor = 1 + calculateCClothingPrestigeFactor();
+
+			// if (factor > 1) trace('clothingPrestigeFactor: ${factor}');
+
+			leader.yum_multiplier += tmpCount * factor;
+			leader.prestigeFromFollowers += tmpCount * factor;
+			leader.coins += tmpCount * factor;
 
 			if (leader.followPlayer == null) return;
 
 			leader = leader.followPlayer;
 		}
+	}
+
+	public function calculateCClothingPrestigeFactor() {
+		var clothingPrestigeFactor = 0.0;
+		for (clothing in this.clothingObjects) {
+			clothingPrestigeFactor += clothing.objectData.extraPrestigeFactor;
+		}
+		return clothingPrestigeFactor;
 	}
 
 	public function isWounded():Bool {
