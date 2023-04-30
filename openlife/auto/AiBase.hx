@@ -797,11 +797,11 @@ abstract class AiBase {
 		var home = myPlayer.home;
 		// get basic kindling
 		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 72, 15); // Kindling 72
-		if (count < 3) this.profession['firekeeper'] = 1;
-		if (count < 5) this.profession['firekeeper'] = 2;
+		if (count < 3) this.taskState['kindling'] = 1;
+		if (count > 5) this.taskState['kindling'] = 0;
 
 		// Kindling 72
-		if (this.profession['firekeeper'] < 2 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
+		if (this.taskState['kindling'] > 0 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
 		this.profession['firekeeper'] = 2;
 
 		Macro.exception(if (doWatering(1)) return true);
@@ -829,8 +829,8 @@ abstract class AiBase {
 		// if (corn < 3) if (craftItem(1110)) return true; // Wet Planted Corn Seed
 
 		// more kindling
-		if (this.profession['firekeeper'] < 3 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
-		this.profession['firekeeper'] = 3;
+		// if (this.profession['firekeeper'] < 3 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
+		// this.profession['firekeeper'] = 3;
 
 		return false;
 	}
@@ -5074,10 +5074,10 @@ abstract class AiBase {
 		// Fire Bow Drill 74 + Long Straight Shaft 67 --> Ember Shaft 75
 		if (actorId == 74 && targetId == 67) {
 			// Kindling 72
-			if (GetCraftAndDropItemsCloseToObj(itemToCraft.transTarget, 72, 1)) return true;
+			if (GetCraftAndDropItemsCloseToObj(itemToCraft.transTarget, 72, 1, 10)) return true;
 			if (itemToCraft.transTarget == null) return false;
 			// Juniper Tinder 61
-			if (GetCraftAndDropItemsCloseToObj(itemToCraft.transTarget, 61, 1)) return true;
+			if (GetCraftAndDropItemsCloseToObj(itemToCraft.transTarget, 61, 1, 10)) return true;
 			if (itemToCraft.transTarget == null) return false;
 		}
 
