@@ -780,30 +780,30 @@ class Connection {
 	}
 
 	/*
-			MX
-			x y new_floor_id new_id p_id
-			#
+		MX
+		x y new_floor_id new_id p_id
+		#
 
-			Or 
+		Or 
 
-			MX
-			x y new_floor_id new_id p_id old_x old_y speed
-			#
+		MX
+		x y new_floor_id new_id p_id old_x old_y speed
+		#
 
-			Grid position of changes, and new floor id and object id that position must 
-			change to.
-			p_id is the player that was responsible for the change (in the case of an 
-			object drop only), or -1 if change was not player triggered.  p_id < -1 means
-			that the change was triggered by player -(p_id), but that the object
-			wasn't dropped (transform triggered by a player action).
+		Grid position of changes, and new floor id and object id that position must 
+		change to.
+		p_id is the player that was responsible for the change (in the case of an 
+		object drop only), or -1 if change was not player triggered.  p_id < -1 means
+		that the change was triggered by player -(p_id), but that the object
+		wasn't dropped (transform triggered by a player action).
 
-			Note that if cell contains other stuff (for a container object), new_id
-			is in the CONTAINER OBJECT FORMAT described above.
+		Note that if cell contains other stuff (for a container object), new_id
+		is in the CONTAINER OBJECT FORMAT described above.
 
 
-			Optionally, a line can contain old_x, old_y, and speed.
-			This indicates that the object came from the old coordinates and is moving
-			with a given speed.
+		Optionally, a line can contain old_x, old_y, and speed.
+		This indicates that the object came from the old coordinates and is moving
+		with a given speed.
 	 */
 	public function sendMapUpdate(x:Int, y:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, isPlayerAction:Bool = true) {
 		if (serverAi != null) return;
@@ -1043,6 +1043,8 @@ class Connection {
 	}
 
 	public function sendLeader() {
+		GlobalPlayerInstance.AcquireMutex();
+
 		var player = this.player;
 		var leader = player.getTopLeader();
 
@@ -1051,6 +1053,8 @@ class Connection {
 		// trace('LEADER: ${player.id}-->${leader.id} deleted: ${leader.isDeleted()}');
 		// send(PLAYER_UPDATE, [leader.toRelativeData(player)], false);
 		this.sendMapLocation(leader, "LEADER", "leader");
+
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	/**
@@ -1062,6 +1066,8 @@ class Connection {
 		Provides owner list for position x y
 	**/
 	public function sendOwners(x:Int, y:Int) {
+		WorldMap.world.mutex.acquire;
+
 		var tx = player.gx + x;
 		var ty = player.gy + y;
 		var message = '$x $y';
@@ -1081,6 +1087,7 @@ class Connection {
 		// trace('OWNERS: $message');
 
 		this.send(ClientTag.OWNER_LIST, [message], false);
+		WorldMap.world.mutex.release;
 	}
 
 	/**
@@ -1134,6 +1141,8 @@ class Connection {
 		Same semantics for eve= tag at end as for LN message.
 	**/
 	public function sendGraveInfo(x:Int, y:Int) {
+		GlobalPlayerInstance.AcquireMutex();
+
 		var tx = player.gx + x;
 		var ty = player.gy + y;
 		var grave = WorldMap.world.getObjectHelper(tx, ty);
@@ -1146,6 +1155,7 @@ class Connection {
 		trace('GRAVE: $message');
 
 		send(GRAVE_OLD, [message]);
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	/*
