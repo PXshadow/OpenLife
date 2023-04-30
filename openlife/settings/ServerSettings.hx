@@ -3228,8 +3228,8 @@ class ServerSettings {
 	public static var WateringTargetsIds:Array<Int> = [];
 	public static var WateringTargetsIdsWithoutCarrots:Array<Int> = [];
 	// Full Water Pouch 210 // Full Water Pouch Pile 4094 // Adobe 127 // Bowl of Water 382
-	// Full Bucket of Water 660 // Partial Bucket of Water 1099
-	public static var IgnoreToWaterNewTargets:Array<Int> = [210, 4094, 127, 382, 660, 1099];
+	// Full Bucket of Water 660 // Partial Bucket of Water 1099 // Bowl of Wheat 245
+	public static var IgnoreToWaterNewTargets:Array<Int> = [210, 4094, 127, 382, 660, 1099, 245];
 
 	private static function InitWateringTargets() {
 		// Full Water Pouch 210
