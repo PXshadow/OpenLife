@@ -2353,6 +2353,15 @@ class ServerSettings {
 			trans.aiShouldIgnore = true;
 		}
 
+		// Broken Steel Tool no wood 862
+		var transByActor = TransitionImporter.GetTransitionByNewActor(862);
+		for (trans in transByActor) {
+			var objData = ObjectData.getObjectData(trans.actorID);
+			// trace('Broken Steel Tool: ${objData.name}');
+			objData.decaysToObj = 862; // Broken Steel Tool no wood 862
+			trans.aiShouldIgnore = true;
+		}
+
 		var transByTarget = TransitionImporter.GetTransitionByTarget(3076);
 		for (trans in transByTarget) {
 			// Leaf 62
