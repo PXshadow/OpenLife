@@ -1932,11 +1932,25 @@ abstract class AiBase {
 		if (count < 1) this.taskState['PlantCorn'] = 1;
 		if (count > 5) this.taskState['PlantCorn'] = 0;
 
-		trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
+		// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
 
 		if (this.taskState['PlantCorn'] > 0 && craftItem(1109)) return true; // Dry Planted Corn Seed 1109
 
-		trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming2: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 214, 40); // Dry Planted Milkweed Seed 214
+		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 215, 40); // Wet Planted Milkweed Seed 215
+		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 218, 40); // Milkweed Sprout 218
+		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 50, 40); // Milkweed 50
+		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 51, 40); // Flowering  Milkweed 51
+		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 52, 40); // Fruiting Milkweed 52
+
+		if (count < 1) this.taskState['PlantMilkweed'] = 1;
+		if (count > 5) this.taskState['PlantMilkweed'] = 0;
+
+		// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: PlantMilkweed: ${taskState['PlantMilkweed']} planted: ${count}');
+
+		if (this.taskState['PlantMilkweed'] > 0 && craftItem(214)) return true; // Dry Planted Milkweed Seed 214
+
+		// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming2: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
 
 		// var closeObj = AiHelper.GetClosestObjectById(myPlayer, 2831); // Wet Planted Tomato Seed
 		// if(closeObj == null) if(craftItem(2831)) return true; // Wet Planted Tomato Seed
