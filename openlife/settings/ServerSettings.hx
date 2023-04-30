@@ -2545,8 +2545,8 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		// Basket of Charcoal 298 + Fire 82 --> 0 + Large Slow Fire 346
-		var trans = new TransitionData(298, 82, 0, 346);
+		// Basket of Charcoal 298 + Fire 82 --> Basket + Large Slow Fire 346
+		var trans = new TransitionData(298, 82, 292, 346);
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
