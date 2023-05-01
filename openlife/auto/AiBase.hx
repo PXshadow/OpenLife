@@ -1357,9 +1357,14 @@ abstract class AiBase {
 			// TODO calculate direct heat at location
 			if (myPlayer.heat < 0.5 && myPlayer.lastTemperature < 0.55 && tmpLastTemperature > myPlayer.heat) {
 				// if (shouldDebugSay()) myPlayer.say('Could not warm!');
+
 				myPlayer.say('Could not warm!');
 
+				// Large Fast Fire 83 --> Make fast fire to warm
+				if (myPlayer.firePlace != null && myPlayer.firePlace.parentId != 83 && craftItem(83)) return true;
+
 				myPlayer.warmPlace = null; // this place does not help
+
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} does not help: $text player heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
 				return false; // this place does not help
