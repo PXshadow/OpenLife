@@ -254,6 +254,7 @@ class ServerSettings {
 	public static var ChanceThatAnimalsCanPassBlockingBiome:Float = 0.03;
 	public static var chancePreferredBiome:Float = 0.8; // Chance that the animal ignors the chosen target if its not from his original biome
 	public static var AnimalDeadlyDistanceFactor:Float = 0.5; // How close a animal must be to make a hit
+	public static var DomesticAnimalMoveUseChance:Float = 0.2;
 
 	// for animal offsprings
 	public static var ChanceForOffspring:Float = 0.00005; // 0.00005;// 0.0005 // For each movement there is X chance to generate an offspring.
@@ -1352,14 +1353,14 @@ class ServerSettings {
 		ObjectData.getObjectData(3862).decaysToObj = 434; // Dung Box ==> Wooden Box
 		// ObjectData.getObjectData(3862).groundOnly = true; // Dung Box
 
-		ObjectData.getObjectData(542).useChance = 0.1; // Domestic Lamb
-		ObjectData.getObjectData(604).useChance = 0.1; // Hungry Domestic Lamb
-		ObjectData.getObjectData(602).useChance = 0.1; // Fed Domestic Lamb 602
-		ObjectData.getObjectData(4213).useChance = 0.1; // Fed Domestic Sheep
+		ObjectData.getObjectData(542).useChance = DomesticAnimalMoveUseChance; // Domestic Lamb
+		ObjectData.getObjectData(604).useChance = DomesticAnimalMoveUseChance; // Hungry Domestic Lamb
+		ObjectData.getObjectData(602).useChance = DomesticAnimalMoveUseChance; // Fed Domestic Lamb 602
+		ObjectData.getObjectData(4213).useChance = DomesticAnimalMoveUseChance; // Fed Domestic Sheep
 
-		ObjectData.getObjectData(1459).useChance = 0.1; // Domestic Calf 1459
-		ObjectData.getObjectData(1462).useChance = 0.1; // Hungry Domestic Calf
-		ObjectData.getObjectData(1485).useChance = 0.1; // Fed Domestic Calf
+		ObjectData.getObjectData(1459).useChance = DomesticAnimalMoveUseChance; // Domestic Calf 1459
+		ObjectData.getObjectData(1462).useChance = DomesticAnimalMoveUseChance; // Hungry Domestic Calf
+		ObjectData.getObjectData(1485).useChance = DomesticAnimalMoveUseChance; // Fed Domestic Calf
 
 		for (objData in ObjectData.importedObjectData) {
 			if (objData.description.contains('Sports Car')) {
