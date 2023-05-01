@@ -1916,7 +1916,7 @@ class ServerSettings {
 		trans.autoDecaySeconds = -4;
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		trans = new TransitionData(-1, 577, 578, 576); // Shorn Domestic Sheep 577 --> Fleece 578 + Shorn Domestic Sheep 576
+		trans = new TransitionData(-1, 577, 576, 578); // Shorn Domestic Sheep 577 --> Fleece 578 + Shorn Domestic Sheep 576
 		trans.autoDecaySeconds = 10;
 		transtions.addTransition("PatchTransitions: ", trans);
 
@@ -2605,6 +2605,13 @@ class ServerSettings {
 
 		var trans = transtions.getTransition(560, 4213); // Knife + Fed Domestic Sheep 4213
 		trans.aiShouldIgnore = true;
+
+		var trans = transtions.getTransition(568, 4213); // Shears 568 + Fed Domestic Sheep 4213
+		trans.aiShouldIgnore = true;
+
+		// no last use actor?
+		// var trans = transtions.getTransition(568, 4213, true); // Shears 568 + Fed Domestic Sheep 4213
+		// trans.aiShouldIgnore = true;
 
 		// var trans = transtions.getTransition(560, 576); // Knife + Shorn Domestic Sheep
 		// trans.aiShouldIgnore = true;
