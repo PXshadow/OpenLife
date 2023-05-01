@@ -2026,6 +2026,9 @@ class TimeHelper {
 			// FIX: 544 Domestic Mouflon with Lamb + -1  ==> 545 Domestic Lamb + 541 Domestic Mouflon
 			var timeAlternaiveTransition = isLastMove ? TransitionImporter.GetTransition(animal.id, -1, true, false) : null;
 
+			// FIX: Allow Shorn Domestic Sheep 577 --> Fleece 578 + Shorn Domestic Sheep 576
+			if (timeAlternaiveTransition == null && timeTransition.newActorID > 0) timeAlternaiveTransition = timeTransition;
+
 			animal.id = timeAlternaiveTransition != null ? timeAlternaiveTransition.newTargetID : timeTransition.newTargetID;
 			if (isLastMove) {
 				animal.numberOfUses = animal.objectData.numUses;
