@@ -1473,7 +1473,7 @@ abstract class AiBase {
 			countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 624, distance);
 
 			// Composting Compost Pile 625
-			if (countCompost < 5 && craftItem(790)) return true;
+			if (countCompost < 3 && craftItem(790)) return true;
 
 			// TODO pile dung
 			// Shovel of Dung 900
