@@ -2958,9 +2958,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			Connection.SendUpdateToAllClosePlayers(playerFrom);
 		}
 
-		// Wolf Crown 695 // Leaf Crown with Leaf 700 // Carrot Crown 693
+		// Wolf Crown 695 // Leaf Crown with Leaf 694 // Carrot Crown 693
 		if (clothingId == 695) playerTo.say('I am almighty Wolf King!', true);
-		if (clothingId == 700) playerTo.say('I am King of the Forests!', true);
+		if (clothingId == 694) playerTo.say('I am King of the Forests!', true);
 		if (clothingId == 693) playerTo.say('I am King of the Carrots!', true);
 
 		// this.action = 0;
