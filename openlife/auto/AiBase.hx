@@ -2721,6 +2721,8 @@ abstract class AiBase {
 			// if (rawPies[index] == 268 && countCarrotPies > 1) continue; // Raw Carrot Pie 268
 
 			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, pies[index], 30);
+			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, rawPies[index], 30);
+
 			if (count > 1) continue;
 
 			lastPie = index;
