@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import haxe.Exception;
 import haxe.ds.Vector;
 import openlife.auto.Pathfinder.Coordinate;
 import openlife.client.ClientTag;
@@ -107,9 +108,23 @@ class AiHelper {
 	// Flat Rock 291 (only if needed for forge)
 	static var dontDropCloseHomeIds = [356, 336, 1137, 227, 225, 850, 190, 160, 132, 183, 132, 291];
 
+	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null,
+			player:PlayerInterface = null, searchContained:Array<Int> = null, minDistance:Int = 0):ObjectHelper {
+		var result = null;
+
+		WorldMap.world.mutex.acquire();
+		Macro.exception(result = GetClosestObjectToPositionHelper(baseX, baseY, objIdToSearch, searchDistance, ignoreObj, player, searchContained,
+			minDistance));
+		WorldMap.world.mutex.release();
+
+		// TODO: check if exception happened throw new Exception('Error GetClosestObjectToPosition');
+
+		return result;
+	}
+
 	// objIdToSearch = -10 if searching non permanent
 	// minDistance = -1 allows to be dropped close to oven even if it normaly should not (flat rock for forge)
-	public static function GetClosestObjectToPosition(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null,
+	private static function GetClosestObjectToPositionHelper(baseX:Int, baseY:Int, objIdToSearch:Int, searchDistance:Int = 40, ignoreObj:ObjectHelper = null,
 			player:PlayerInterface = null, searchContained:Array<Int> = null, minDistance:Int = 0):ObjectHelper {
 		var world = WorldMap.world;
 		var ai = player == null ? null : player.getAi();
@@ -209,6 +224,20 @@ class AiHelper {
 
 	public static function GetClosestObjectToPositionByIds(baseX:Int, baseY:Int, objIdsToSearch:Array<Int>, searchDistance:Int = 40,
 			ignoreObj:ObjectHelper = null, player:PlayerInterface = null, minDistance:Int = 0, ignoreHostile = true):ObjectHelper {
+		var result = null;
+
+		WorldMap.world.mutex.acquire();
+		Macro.exception(result = GetClosestObjectToPositionByIdsHelper(baseX, baseY, objIdsToSearch, searchDistance, ignoreObj, player, minDistance,
+			ignoreHostile));
+		WorldMap.world.mutex.release();
+
+		// TODO: check if exception happened throw new Exception('Error GetClosestObjectToPosition');
+
+		return result;
+	}
+
+	private static function GetClosestObjectToPositionByIdsHelper(baseX:Int, baseY:Int, objIdsToSearch:Array<Int>, searchDistance:Int = 40,
+			ignoreObj:ObjectHelper = null, player:PlayerInterface = null, minDistance:Int = 0, ignoreHostile = true):ObjectHelper {
 		var world = WorldMap.world;
 		var ai = player == null ? null : player.getAi();
 		var ignoreFullPiles = ai == null ? false : ai.ignoreFullPiles;
@@ -248,8 +277,21 @@ class AiHelper {
 		return closestObject;
 	}
 
-	// searchDistance old: 16
 	public static function GetClosestObject(playerInterface:PlayerInterface, objDataToSearch:ObjectData, searchDistance:Int = 40,
+			ignoreObj:ObjectHelper = null, findClosestHeat:Bool = false, ownedByPlayer:Bool = false):ObjectHelper {
+		var result = null;
+
+		WorldMap.world.mutex.acquire();
+		Macro.exception(result = GetClosestObjectHelper(playerInterface, objDataToSearch, searchDistance, ignoreObj, findClosestHeat, ownedByPlayer));
+		WorldMap.world.mutex.release();
+
+		// TODO: check if exception happened throw new Exception('Error GetClosestObjectToPosition');
+
+		return result;
+	}
+
+	// searchDistance old: 16
+	private static function GetClosestObjectHelper(playerInterface:PlayerInterface, objDataToSearch:ObjectData, searchDistance:Int = 40,
 			ignoreObj:ObjectHelper = null, findClosestHeat:Bool = false, ownedByPlayer:Bool = false):ObjectHelper {
 		// var RAD = ServerSettings.AiMaxSearchRadius
 		// if(objDataToSearch != null) trace('GetClosestObject: ${objDataToSearch.name} dis: $searchDistance ignoreObj: ${ignoreObj != null}');
@@ -381,6 +423,18 @@ class AiHelper {
 	public static var clothsWithPilesIds = [3918, 3919];
 
 	public static function GetCloseClothings(playerInterface:PlayerInterface, searchDistance:Int = 8):Array<ObjectHelper> {
+		var result = null;
+
+		WorldMap.world.mutex.acquire();
+		Macro.exception(result = GetCloseClothingsHelper(playerInterface, searchDistance));
+		WorldMap.world.mutex.release();
+
+		// TODO: check if exception happened throw new Exception('Error GetClosestObjectToPosition');
+
+		return result;
+	}
+
+	private static function GetCloseClothingsHelper(playerInterface:PlayerInterface, searchDistance:Int = 8):Array<ObjectHelper> {
 		// var RAD = ServerSettings.AiMaxSearchRadius
 		// if(objDataToSearch != null) trace('GetClosestObject: ${objDataToSearch.name} dis: $searchDistance ignoreObj: ${ignoreObj != null}');
 
@@ -439,6 +493,18 @@ class AiHelper {
 	}
 
 	public static function CountCloseObjects(player:PlayerInterface, tx:Int, ty:Int, objId:Int, radius:Int = 10, countPiles:Bool = true) {
+		var count = -1;
+
+		WorldMap.world.mutex.acquire();
+		Macro.exception(count = CountCloseObjectsHelper(player, tx, ty, objId, radius, countPiles));
+		WorldMap.world.mutex.release();
+
+		if (count < 0) throw new Exception('Error CountCloseObjects');
+
+		return count;
+	}
+
+	private static function CountCloseObjectsHelper(player:PlayerInterface, tx:Int, ty:Int, objId:Int, radius:Int = 10, countPiles:Bool = true) {
 		var world = player.getWorld();
 		var objdataToSearch = ObjectData.getObjectData(objId);
 		var pileObjId = objdataToSearch.getPileObjId();
@@ -607,6 +673,18 @@ class AiHelper {
 	}
 
 	public static function IsDangerous(player:PlayerInterface, object:ObjectHelper, radius:Int = 4):Bool {
+		var result = false;
+
+		WorldMap.world.mutex.acquire();
+		Macro.exception(result = IsDangerousHelper(player, object, radius));
+		WorldMap.world.mutex.release();
+
+		// TODO throw exception if failed
+
+		return result;
+	}
+
+	private static function IsDangerousHelper(player:PlayerInterface, object:ObjectHelper, radius:Int = 4):Bool {
 		var ai = player.getAi();
 		var baseX = object.tx;
 		var baseY = object.ty;
@@ -697,7 +775,7 @@ class AiHelper {
 		return Goto(playerInterface, x, y, considerAnimal, false);
 	}
 
-	public static function NewGoto(x:Int, y:Int, playerInterface:PlayerInterface, considerAnimal:Bool = true, move:Bool = true):Bool {
+	/*public static function NewGoto(x:Int, y:Int, playerInterface:PlayerInterface, considerAnimal:Bool = true, move:Bool = true):Bool {
 		var player = playerInterface.getPlayerInstance();
 		var ai = playerInterface.getAi();
 		var radius = 16;
@@ -761,7 +839,8 @@ class AiHelper {
 
 		/*for(path in paths){
 			trace(path);
-		}*/
+	}*/
+	/*
 
 		var data:Array<Pos> = [];
 		paths.shift();
@@ -779,8 +858,7 @@ class AiHelper {
 		// trace('GOTO done $debugtext $px $py');
 
 		return true;
-	}
-
+	}*/
 	// TODO goto uses global coordinates
 	public static function Goto(playerInterface:PlayerInterface, x:Int, y:Int, considerAnimal:Bool = true, move:Bool = true):Bool {
 		var player = playerInterface.getPlayerInstance();
@@ -874,8 +952,11 @@ class AiHelper {
 		var start = new Coordinate(RAD, RAD);
 
 		// trace('Goto: $px $py');
+		var chunk = AiHelper.CreateCollisionChunk(playerInterface, considerAnimal);
 
-		var map = new MapCollision(AiHelper.CreateCollisionChunk(playerInterface, considerAnimal));
+		if (chunk == null) throw new Exception('GOTO: ERROR: Could not generate map!');
+
+		var map = new MapCollision(chunk);
 
 		// pathing
 		var debugCreateOldPath = ServerSettings.DebugCreateOldPath;
@@ -1245,6 +1326,18 @@ class AiHelper {
 	}
 
 	public static function GetCloseDeadlyAnimal(player:PlayerInterface, searchDistance:Int = 6, display:Bool = false):ObjectHelper {
+		var result = null;
+
+		WorldMap.world.mutex.acquire();
+		Macro.exception(result = GetCloseDeadlyAnimalHelper(player, searchDistance, display));
+		WorldMap.world.mutex.release();
+
+		// TODo throw exception if failed
+
+		return result;
+	}
+
+	private static function GetCloseDeadlyAnimalHelper(player:PlayerInterface, searchDistance:Int = 6, display:Bool = false):ObjectHelper {
 		// AiHelper.GetClosestObject
 		var world = WorldMap.world;
 		var playerInst = player.getPlayerInstance();

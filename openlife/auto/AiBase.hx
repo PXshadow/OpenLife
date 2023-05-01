@@ -130,7 +130,7 @@ abstract class AiBase {
 			var aiCount = Connection.getAis().length;
 
 			if (AiBase.tick % 20 != 0 && aiCount < ServerSettings.NumberOfAis) {
-				var ai = ServerAi.createNewServerAiWithNewPlayer();
+				Macro.exception(var ai = ServerAi.createNewServerAiWithNewPlayer());
 				// ai.player.delete(); // delete, so that they wont all spawn at same time
 			}
 
@@ -152,7 +152,7 @@ abstract class AiBase {
 			lastTick = tick;
 
 			// block foodtarget // droptarget // usetarget of all Ais that are moving
-			CalculateBlockedByAi();
+			Macro.exception(CalculateBlockedByAi());
 
 			for (ai in Connection.getAis()) {
 				if (ai.player.deleted) Macro.exception(ai.doRebirth(timePassedInSeconds));
