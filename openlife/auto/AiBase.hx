@@ -4104,6 +4104,7 @@ abstract class AiBase {
 	// TODO consider to not drop stuff close to home if super far away or starving
 	// allowAllPiles --> some stuff like clay baskets and so on is normally not piled. Set true if it should be allowed to be piled.
 	// target is the target where heldObj shoudld be dropped close to
+	// set maxDistanceToHome to lower than 5 to drop close to player at once
 	public function dropHeldObject(maxDistanceToHome:Float = 40, allowAllPiles:Bool = false, target:ObjectHelper = null, ?infos:haxe.PosInfos):Bool {
 		if (target == null) target = myPlayer.home;
 
@@ -4150,9 +4151,9 @@ abstract class AiBase {
 		if (storeInQuiver()) return true;
 
 		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
-		if (heldObjId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236, 5, false)) return true;
+		if (heldObjId == 252 && heldObject.numberOfUses > 1 && maxDistanceToHome > 5 && shortCraft(252, 236, 5, false)) return true;
 
-		if (heldObjId == 1137) { // Bowl of Soil 1137
+		if (heldObjId == 1137 && maxDistanceToHome > 5) { // Bowl of Soil 1137
 			// Bowl of Soil 1137 + Dying Gooseberry Bush 389
 			if (shortCraft(1137, 389, 15)) return true;
 			// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
@@ -4168,7 +4169,7 @@ abstract class AiBase {
 		}
 
 		// Steel Hoe 857
-		if (heldObjId == 857 && myPlayer.food_store > 2) {
+		if (heldObjId == 857 && myPlayer.food_store > 2 && maxDistanceToHome > 5) {
 			// Steel Hoe 857 + Shallow Tilled Row 1136 --> Deep Tilled Row 213
 			if (shortCraft(857, 1136, 15, false)) return true;
 			// Steel Hoe 857 + Fertile Soil 1138
@@ -4177,7 +4178,7 @@ abstract class AiBase {
 
 		// Bowl of Dry Beans 1176 // Dry Bean Pod 1160
 		// Bowl of Gooseberries 253 // Gooseberry 31
-		if (heldObjId == 1160 || heldObjId == 31) {
+		if (heldObjId == 1160 || heldObjId == 31 && maxDistanceToHome > 5) {
 			var bowlId = heldObjId == 1160 ? 1176 : 253;
 			var closeBowl = AiHelper.GetClosestObjectById(myPlayer, bowlId, 30);
 			if (closeBowl != null && closeBowl.numberOfUses < closeBowl.objectData.numUses) return useHeldObjOnTarget(closeBowl);
@@ -4188,7 +4189,7 @@ abstract class AiBase {
 		}
 
 		// Basket of Bones 356
-		if (heldObjId == 356) {
+		if (heldObjId == 356 && maxDistanceToHome > 5) {
 			var graveyard = GetGraveyard();
 			if (graveyard != null) {
 				target = graveyard;
@@ -4197,7 +4198,7 @@ abstract class AiBase {
 		}
 
 		// Clay 126 ==> drop close to kiln if close, otherwise drop in basket
-		if (heldObjId == 126) {
+		if (heldObjId == 126 && maxDistanceToHome > 5) {
 			var kiln = GetKiln();
 			if (kiln != null) {
 				dropCloseToPlayer = false;
@@ -4221,7 +4222,7 @@ abstract class AiBase {
 		}
 
 		// Flat Rock 291 // Stone 33
-		if (heldId == 291 || heldId == 33) {
+		if ((heldId == 291 || heldId == 33) && maxDistanceToHome > 5) {
 			var forge = GetForge();
 			var maxItems = heldId == 291 ? 3 : 1;
 			// TODO solve that flat stones wont pile up if piles are not counted
@@ -4242,7 +4243,7 @@ abstract class AiBase {
 		}
 
 		// Basket 292, Clay 126 ==> drop close to kiln
-		if (heldId == 292 && heldObject.contains([126])) {
+		if (heldId == 292 && heldObject.contains([126]) && maxDistanceToHome > 5) {
 			pileId = 0;
 			var kiln = GetKiln();
 			if (kiln != null) {
@@ -4260,7 +4261,7 @@ abstract class AiBase {
 			}
 		}
 
-		if (dropNearOvenItemIds.contains(heldId) || pies.contains(heldId) || rawPies.contains(heldId)) {
+		if ((dropNearOvenItemIds.contains(heldId) || pies.contains(heldId) || rawPies.contains(heldId)) && maxDistanceToHome > 5) {
 			var count = 0;
 			// dont drop at home if there are too many already
 			if (heldId == 235) { // Clay Bowl 235
@@ -4272,7 +4273,7 @@ abstract class AiBase {
 			}
 		}
 
-		if (dropNearForgeItemIds.contains(heldId)) {
+		if (dropNearForgeItemIds.contains(heldId) && maxDistanceToHome > 5) {
 			var forge = GetForge();
 			if (forge != null) {
 				target = forge;
@@ -4282,7 +4283,7 @@ abstract class AiBase {
 
 		// TODO what is if super far away from oven?
 		// Clay Plate 236 ==> make sure that are not piled plates near oven
-		if (heldId == 236) {
+		if (heldId == 236 && maxDistanceToHome > 5) {
 			var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, heldId, 10, false);
 			// pile if more then 5
 			if (count < 5) {
@@ -4302,13 +4303,13 @@ abstract class AiBase {
 		}
 
 		// drop at fire. For exmple kindling, wood...
-		if (dropNearFireItemIds.contains(heldObjId)) {
+		if (dropNearFireItemIds.contains(heldObjId) && maxDistanceToHome > 5) {
 			if (myPlayer.firePlace != null) dropTarget = myPlayer.firePlace;
 			dropCloseToPlayer = false;
 		}
 
 		// Basket of Soil 336 --> drop close to well
-		if (heldId == 336) {
+		if (heldId == 336 && maxDistanceToHome > 5) {
 			var newTarget = getCloseWell();
 			if (newTarget == null) newTarget = myPlayer.home;
 			// if(well != null) target = myPlayer.GetClosestObjectToTarget(well, 0, 30);
