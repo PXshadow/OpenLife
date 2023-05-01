@@ -5233,12 +5233,14 @@ abstract class AiBase {
 		if (itemToCraft.transActor.id == -1) {
 			var secondsUntillChange = itemToCraft.transTarget.timeUntillChange();
 
-			if (secondsUntillChange < 10) {
+			// Dont wait for animals
+			if (itemToCraft.transTarget.isAnimal() == false && secondsUntillChange < 5) {
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is TIME target ${itemToCraft.transTarget.name} ');
 				this.time += secondsUntillChange / 4;
 				// TODO wait some time, or better get next obj
+				myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
 
-				if (shouldDebugSay()) myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
+				// if (shouldDebugSay()) myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
 				itemToCraft.transActor = null;
 				return true;
 			}
