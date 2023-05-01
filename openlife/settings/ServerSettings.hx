@@ -1358,6 +1358,7 @@ class ServerSettings {
 		ObjectData.getObjectData(604).useChance = DomesticAnimalMoveUseChance; // Hungry Domestic Lamb
 		ObjectData.getObjectData(602).useChance = DomesticAnimalMoveUseChance; // Fed Domestic Lamb 602
 		ObjectData.getObjectData(4213).useChance = FedDomesticAnimalMoveUseChance; // Fed Domestic Sheep
+		ObjectData.getObjectData(600).useChance = DomesticAnimalMoveUseChance; // Domestic Sheep with Lamb
 
 		ObjectData.getObjectData(1459).useChance = DomesticAnimalMoveUseChance; // Domestic Calf 1459
 		ObjectData.getObjectData(1462).useChance = DomesticAnimalMoveUseChance; // Hungry Domestic Calf
