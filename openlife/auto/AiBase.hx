@@ -4230,7 +4230,7 @@ abstract class AiBase {
 			// var countPiles = true;
 
 			if (forge != null) {
-				dropCloseToPlayer = false;
+				// dropCloseToPlayer = false;
 				var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, heldId, 3, countPiles);
 
 				if (count < maxItems) {
