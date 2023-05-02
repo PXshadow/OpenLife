@@ -437,9 +437,9 @@ class ObjectHelper {
 	}
 
 	public function getCreator():GlobalPlayerInstance {
-		GlobalPlayerInstance.AcquireMutex();
+		// GlobalPlayerInstance.AcquireMutex();
 		var returnValue = GlobalPlayerInstance.AllPlayers[this.livingOwners[0]];
-		GlobalPlayerInstance.ReleaseMutex();
+		// GlobalPlayerInstance.ReleaseMutex();
 		return returnValue;
 	}
 

@@ -74,12 +74,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public static function AcquireMutex() {
 		if (ServerSettings.UseOneSingleMutex) WorldMap.world.mutex.acquire(); else
-			GlobalPlayerInstance.AcquireMutex();
+			AllPlayerMutex.acquire();
 	}
 
 	public static function ReleaseMutex() {
 		if (ServerSettings.UseOneSingleMutex) WorldMap.world.mutex.release(); else
-			GlobalPlayerInstance.ReleaseMutex();
+			AllPlayerMutex.release();
 	}
 
 	public static var AllPlayers = new Map<Int, GlobalPlayerInstance>();
@@ -5202,7 +5202,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function getClosePlayer(maxDistance:Float = 1.5, hostile:Bool = true, hasWeapon = true):GlobalPlayerInstance {
-		GlobalPlayerInstance.AcquireMutex();
+		// GlobalPlayerInstance.AcquireMutex();
 
 		for (p in AllPlayers) {
 			if (p.deleted) continue;
@@ -5213,7 +5213,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return p;
 		}
 
-		GlobalPlayerInstance.ReleaseMutex();
+		// GlobalPlayerInstance.ReleaseMutex();
 
 		return null;
 	}
