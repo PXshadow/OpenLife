@@ -591,7 +591,10 @@ abstract class AiBase {
 		itemToCraftId = cravingId;
 		// 31 Gooseberry // 1121 Popcorn
 		if (itemToCraftId == 31 || itemToCraftId == 1121) itemToCraftId = -1;
-		Macro.exception(if (cravingId > 0) if (craftItem(itemToCraftId)) return);
+		Macro.exception(if (cravingId > 0) {
+			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, itemToCraftId, 40);
+			if (count < 2 && craftItem(itemToCraftId)) return;
+		});
 
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
