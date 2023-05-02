@@ -2563,10 +2563,10 @@ abstract class AiBase {
 		if (heldObject.parentId == 252 && heldObject.numberOfUses > maxDoughInBowl && shortCraft(252, 236)) return true;
 
 		// Use up all the Dough if there is enough bread // Bowl of Dough 252
-		var countDough = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 252, 20);
-		if (heldObject.parentId == 252) countDough += 1;
+		// var countDough = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 252, 20);
+		// if (heldObject.parentId == 252) countDough += 1;
 		// Raw Pie Crust 264
-		if (countDough > 0 && maxDoughInBowl == 0 && craftItem(264)) return true;
+		// if (countDough > 0 && maxDoughInBowl == 0 && craftItem(264)) return true;
 
 		if (hasOrBecomeProfession('BAKER', maxPeople) == false) return false;
 		var startTime = Sys.time();
