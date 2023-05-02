@@ -2695,6 +2695,7 @@ abstract class AiBase {
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		var countCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 30); // Cooked Carrot Pie 273
+		countCarrotPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 268, 30); // Raw Carrot Pie 268
 		var countBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30); // Cooked Berry Pie 272
 		var countMuttonPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 803, 30); // Cooked Mutton Pie 803
 		var countMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 30); // Cooked Mutton 570
