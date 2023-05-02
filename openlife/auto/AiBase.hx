@@ -2694,9 +2694,16 @@ abstract class AiBase {
 			if (doPlantWheat(2, 8)) return true;
 		}
 
+		// Raw Potato 1147
+		var countPotatos = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1147, 20);
+		// Baked Potato 1148
+		countPotatos += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1148, 20);
+
+		// 0 + Dug Potatoes 4144
+		if (countPotatos < 5 && shortCraft(0, 4144, 30)) return true;
+
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
-
 		var countCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 30); // Cooked Carrot Pie 273
 		countCarrotPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 268, 30); // Raw Carrot Pie 268
 		var countBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30); // Cooked Berry Pie 272
@@ -2709,43 +2716,32 @@ abstract class AiBase {
 		/* if (extraPies == 0) {
 			if (countMutton + countRawMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
 		}*/
-
 		if (extraPies == 0) {
 			if (countMuttonPies < 2 && craftItem(802)) return true; // Raw Mutton Pie 802
 		}
-
 		if (extraPies == 2) {
 			if (countCarrotPies < 2 && craftItem(268)) return true; // Raw Carrot Pie
 		}
-
 		// if(extraPies == 4){
 		//	if(countBerryPies < 2 && craftItem(265)) return true; // Raw Berry Pie
 		// }
-
 		for (i in 0...pies.length) {
 			var index = (nextPie + i) % pies.length;
 
 			// if (rawPies[index] == 802 && countMuttonPies > 1) continue; // Raw Mutton Pie 802
 			// if (rawPies[index] == 265 && countBerryPies > 1) continue; // Raw Berry Pie 265
 			// if (rawPies[index] == 268 && countCarrotPies > 1) continue; // Raw Carrot Pie 268
-
 			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, pies[index], 30);
 			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, rawPies[index], 30);
-
 			if (count > 1) continue;
-
 			lastPie = index;
 			if (craftItem(rawPies[index])) return true;
 		}
-
 		// Bowl of Soaking Beans 1180
 		if (craftItem(1180)) return true;
-
 		if (countMutton + countRawMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
-
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
-
 		// check if there is something to fire oven
 		/*if(hotOven == null){
 			for(i in 0... pies.length){
@@ -2754,9 +2750,7 @@ abstract class AiBase {
 				if(shortCraft(rawPies[index], pies[index])) return true;
 			}
 		}*/
-
 		this.profession['BAKER'] = 0;
-
 		return false;
 	}
 
@@ -7182,8 +7176,7 @@ abstract class AiBase {
 		} 
 		
 		if(itemToCraft.transActor != null) trace('ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
-}*/
-/*
+}*/ /*
 	abstract class AiBase
 	{
 	public var seqNum = 1;
