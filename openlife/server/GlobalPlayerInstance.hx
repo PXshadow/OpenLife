@@ -5202,6 +5202,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function getClosePlayer(maxDistance:Float = 1.5, hostile:Bool = true, hasWeapon = true):GlobalPlayerInstance {
+		GlobalPlayerInstance.AcquireMutex();
+
 		for (p in AllPlayers) {
 			if (p.deleted) continue;
 			if (p.isCloseToPlayerUseExact(this, maxDistance) == false) continue;
@@ -5210,6 +5212,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			return p;
 		}
+
+		GlobalPlayerInstance.ReleaseMutex();
 
 		return null;
 	}

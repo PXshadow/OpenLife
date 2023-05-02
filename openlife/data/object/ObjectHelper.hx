@@ -437,7 +437,10 @@ class ObjectHelper {
 	}
 
 	public function getCreator():GlobalPlayerInstance {
-		return GlobalPlayerInstance.AllPlayers[this.livingOwners[0]];
+		GlobalPlayerInstance.AcquireMutex();
+		var returnValue = GlobalPlayerInstance.AllPlayers[this.livingOwners[0]];
+		GlobalPlayerInstance.ReleaseMutex();
+		return returnValue;
 	}
 
 	public function getLinage():Lineage {
