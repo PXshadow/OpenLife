@@ -1348,7 +1348,7 @@ abstract class AiBase {
 				return true;
 			}
 
-			if (myPlayer.heat > 0.5 && myPlayer.lastTemperature > 0.45 && tmpLastTemperature < myPlayer.heat) {
+			if (myPlayer.heat > 0.5 && myPlayer.lastTemperature > 0.45 && tmpLastTemperature <= myPlayer.heat) {
 				// if (shouldDebugSay()) myPlayer.say('Could not cool!');
 				myPlayer.say('Could not cool!');
 				if (ServerSettings.DebugAi)
@@ -1358,7 +1358,7 @@ abstract class AiBase {
 			}
 
 			// TODO calculate direct heat at location
-			if (myPlayer.heat < 0.5 && myPlayer.lastTemperature < 0.55 && tmpLastTemperature > myPlayer.heat) {
+			if (myPlayer.heat < 0.5 && myPlayer.lastTemperature < 0.55 && tmpLastTemperature >= myPlayer.heat) {
 				// if (shouldDebugSay()) myPlayer.say('Could not warm!');
 
 				myPlayer.say('Could not warm!');
