@@ -409,7 +409,7 @@ class Lineage {
 	public var eve(get, null):GlobalPlayerInstance;
 
 	public function get_eve() {
-		return GlobalPlayerInstance.AllPlayers[myEveId];
+		return GlobalPlayerInstance.AllPlayerMap[myEveId];
 	}
 
 	public var eveLineage(get, null):Lineage;
@@ -421,7 +421,7 @@ class Lineage {
 	public var mother(get, set):GlobalPlayerInstance;
 
 	public function get_mother() {
-		return GlobalPlayerInstance.AllPlayers[motherId];
+		return GlobalPlayerInstance.AllPlayerMap[motherId];
 	}
 
 	public function set_mother(newMother:GlobalPlayerInstance) {
@@ -432,7 +432,7 @@ class Lineage {
 	public var father(get, set):GlobalPlayerInstance;
 
 	public function get_father() {
-		return GlobalPlayerInstance.AllPlayers[fatherId];
+		return GlobalPlayerInstance.AllPlayerMap[fatherId];
 	}
 
 	public function set_father(newFather:GlobalPlayerInstance) {

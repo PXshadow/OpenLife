@@ -82,19 +82,26 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			AllPlayerMutex.release();
 	}
 
-	public static var AllPlayers = new Map<Int, GlobalPlayerInstance>();
+	public static var AllPlayerMap = new Map<Int, GlobalPlayerInstance>();
+	// since using AllPlayers crashes the server all the time see if it works with an array
+	public static var AllPlayers = new Array<GlobalPlayerInstance>();
 
 	public static function AddPlayer(player:GlobalPlayerInstance) {
 		AcquireMutex();
 
 		// make it thread save
-		var tmpAllPlayers = new Map<Int, GlobalPlayerInstance>();
+		var tmpAllPlayerMap = new Map<Int, GlobalPlayerInstance>();
+		var tmpAllPlayers = new Array<GlobalPlayerInstance>();
 
-		for (p in AllPlayers)
-			tmpAllPlayers[p.p_id] = p;
+		for (p in AllPlayers) {
+			tmpAllPlayerMap[p.p_id] = p;
+			tmpAllPlayers.push(p);
+		}
 
-		tmpAllPlayers[player.p_id] = player;
+		tmpAllPlayerMap[player.p_id] = player;
+		tmpAllPlayers.push(player);
 
+		AllPlayerMap = tmpAllPlayerMap;
 		AllPlayers = tmpAllPlayers;
 
 		Lineage.AddLineage(player.p_id, player.lineage);
@@ -105,16 +112,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public static function RemovePlayer(player:GlobalPlayerInstance) {
 		AcquireMutex();
 
-		// make it thread save
-		var tmpAllPlayers = new Map<Int, GlobalPlayerInstance>();
+		var tmpAllPlayerMap = new Map<Int, GlobalPlayerInstance>();
+		var tmpAllPlayers = new Array<GlobalPlayerInstance>();
 
 		for (p in AllPlayers) {
 			if (p.p_id == player.p_id) continue;
-			tmpAllPlayers[p.p_id] = p;
+			tmpAllPlayerMap[p.p_id] = p;
+			tmpAllPlayers.push(p);
 		}
 
 		// tmpAllPlayers.remove(player.p_id);
 
+		AllPlayerMap = tmpAllPlayerMap;
 		AllPlayers = tmpAllPlayers;
 
 		ReleaseMutex();
@@ -267,7 +276,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		WritePlayers(path, AllPlayers);
 	}
 
-	public static function WritePlayers(path:String, players:Map<Int, GlobalPlayerInstance>) {
+	public static function WritePlayers(path:String, players:Array<GlobalPlayerInstance>) {
 		var count = 0;
 		var dataVersion = 1;
 		var writer = File.write(path, true);
@@ -478,7 +487,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	private static function GetPlayerFromId(playerId:Int):GlobalPlayerInstance {
 		if (playerId == -100) return null;
-		return AllPlayers[playerId];
+		return AllPlayerMap[playerId];
 	}
 
 	public static function ReadPlayers(path:String):Map<Int, GlobalPlayerInstance> {
@@ -487,6 +496,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var dataVersion = reader.readInt32();
 		var count = reader.readInt32();
 		var loadedPlayers = new Map<Int, GlobalPlayerInstance>();
+		var tmpAllPlayers = new Array<GlobalPlayerInstance>();
 		var playersToLoad = new Map<Int, Map<String, Int>>();
 		var accountsWithPlayer = new Map<Int, GlobalPlayerInstance>();
 		var exiledPlayersToLoad = new Map<Int, Array<Int>>();
@@ -512,6 +522,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (obj.lineage != null) obj.lineage.alive = true;
 			// if (obj.lineage != null) loadedPlayers[id] = obj;
 			loadedPlayers[id] = obj;
+			tmpAllPlayers.push(obj);
 			playersToLoad[id] = new Map<String, Int>();
 
 			// read Playerinstance variables
@@ -760,7 +771,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		reader.close();
 
-		AllPlayers = loadedPlayers;
+		AllPlayerMap = loadedPlayers;
+		AllPlayers = tmpAllPlayers;
 
 		for (obj in loadedPlayers) {
 			obj.myMother = GetPlayerFromId(playersToLoad[obj.p_id]["myMother"]); // 2
@@ -777,7 +789,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			var exiled = exiledPlayersToLoad[obj.p_id];
 			for (id in exiled) {
-				obj.exiledByPlayers[id] = AllPlayers[id];
+				obj.exiledByPlayers[id] = AllPlayerMap[id];
 				trace('read exiled Players ${obj.name} --> Exiled by: ${obj.exiledByPlayers[id].name}');
 			}
 

@@ -332,7 +332,7 @@ class PlayerInstance {
 
 		// TODO currently AutoFollowAi supports only one connection
 		if (ServerSettings.AutoFollowAi) {
-			var player = GlobalPlayerInstance.AllPlayers[p_id];
+			var player = GlobalPlayerInstance.AllPlayerMap[p_id];
 			var isHuman = player != null && player.isHuman();
 
 			if (isHuman) {

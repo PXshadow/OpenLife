@@ -384,6 +384,7 @@ class TransitionImporter {
 
 		// if(objDataActor.id != -1 && objDataTarget.id != -1) trace('getTransition: ${objDataActor.id} + ${objDataTarget.id} lastUseTarget: $lastUseTarget maxUseTarget: $maxUseTarget');
 
+		// TODO why Access violation?
 		var transitionMap = getTransitionMap(lastUseActor, lastUseTarget, maxUseTarget);
 
 		var transitionsByTargetId = transitionMap[objDataActor.id];

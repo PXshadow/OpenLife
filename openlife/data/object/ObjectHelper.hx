@@ -237,7 +237,7 @@ class ObjectHelper {
 				for (id in obj.livingOwners) {
 					// trace('${obj.name} Owner: ${id}');
 
-					var player = GlobalPlayerInstance.AllPlayers[id];
+					var player = GlobalPlayerInstance.AllPlayerMap[id];
 					if (player == null) {
 						trace('WARNING: ${obj.name} Owner: ${id} not found');
 						obj.livingOwners.remove(id);
@@ -438,7 +438,7 @@ class ObjectHelper {
 
 	public function getCreator():GlobalPlayerInstance {
 		// GlobalPlayerInstance.AcquireMutex();
-		var returnValue = GlobalPlayerInstance.AllPlayers[this.livingOwners[0]];
+		var returnValue = GlobalPlayerInstance.AllPlayerMap[this.livingOwners[0]];
 		// GlobalPlayerInstance.ReleaseMutex();
 		return returnValue;
 	}
