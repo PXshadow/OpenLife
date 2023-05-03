@@ -2708,6 +2708,7 @@ abstract class AiBase {
 		countCarrotPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 268, 30); // Raw Carrot Pie 268
 		var countBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30); // Cooked Berry Pie 272
 		var countMuttonPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 803, 30); // Cooked Mutton Pie 803
+		countMuttonPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 20); // Raw Mutton 569
 		var countMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 30); // Cooked Mutton 570
 		var countRawMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 30); // Raw Mutton 569
 
