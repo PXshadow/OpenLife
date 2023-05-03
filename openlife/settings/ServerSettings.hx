@@ -210,7 +210,7 @@ class ServerSettings {
 	public static var FoodStoreMaxReductionWhileStarvingToDeath = 5; // (5) reduces food store max with factor XX for each food below 0
 
 	// TODO /LEADER crashes if client does not get player update
-	public static var SendMoveEveryXTicks = -1; // default 90 // set negative to deactive. if MaxDistanceToBeConsideredAsClose it might be deactivated
+	public static var SendMoveEveryXTicks = 90; // -1 // default 90 // set negative to deactive. if MaxDistanceToBeConsideredAsClose it might be deactivated
 	public static var MaxDistanceToBeConsideredAsClose = 2000000; // 20; // only close players are updated with PU Movement
 	public static var MaxDistanceToBeConsideredAsCoseForMovement = 30; // 20; // only close players are updated with PU Movement
 	public static var MaxDistanceToBeConsideredAsCloseForMapChanges = 10; // for MX
