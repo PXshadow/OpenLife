@@ -3308,6 +3308,9 @@ class ServerSettings {
 		LimitObjectByTarget(4070, 242, 2); // Pile of Threshed Wheat 4070 // Ripe Wheat 242
 
 		// LimitObjectByTarget(1115, 1112, 5); // Dried Ear of Corn 1115 // Corn Plant 1112
+
+		// Stone 33 + Bowl of Wheat 245 / Bowl of Dough 252
+		LimitTransitionIfMaxReached(33, 245, 252);
 	}
 
 	private static function LimitTransitionIfMaxReached(actorId:Int, targetId:Int, id:Int, max:Int = 1) {
