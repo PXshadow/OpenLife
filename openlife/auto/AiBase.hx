@@ -1468,20 +1468,20 @@ abstract class AiBase {
 		if (shortCraft(1247, 1489, distance)) return true;
 
 		// Count all the Sheep Dung 899
-		var countDung = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 899, distance);
-		if (countDung > 0) {
-			// Composting Compost Pile 790
-			var countCompost = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 790, distance);
-			// Composted Soil 624
-			countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 624, distance);
+		// var countDung = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 899, distance);
+		// if (countDung > 0) {
+		// Composting Compost Pile 790
+		var countCompost = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 790, distance);
+		// Composted Soil 624
+		countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 624, distance);
 
-			// Composting Compost Pile 625
-			if (countCompost < 3 && craftItem(790)) return true;
+		// Composting Compost Pile 625
+		if (countCompost < 3 && craftItem(790)) return true;
 
-			// TODO pile dung
-			// Shovel of Dung 900
-			// return GetOrCraftItem(900);
-		}
+		// TODO pile dung
+		// Shovel of Dung 900
+		// return GetOrCraftItem(900);
+		// }
 
 		if (doComposting()) return true;
 
