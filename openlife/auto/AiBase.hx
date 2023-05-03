@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.server.Server;
 import openlife.data.Pos;
 import openlife.server.Biome.BiomeTag;
 import haxe.ds.Map;
@@ -122,6 +123,8 @@ abstract class AiBase {
 		var averageSleepTime:Float = 0;
 
 		while (true) {
+			if (ServerSettings.UseOneGlobalMutex) Server.Acquire();
+
 			AiBase.tick = Std.int(AiBase.tick + 1);
 
 			var timeSinceStart:Float = Sys.time() - TimeHelper.serverStartingTime;
@@ -160,7 +163,13 @@ abstract class AiBase {
 				RemoveBlockedByAi(ai);
 				Macro.exception(ai.doTimeStuff(timePassedInSeconds));
 				AddToBlockedByAi(ai);
+
+				if (ServerSettings.UseOneGlobalMutex) Server.Release();
+				if (ServerSettings.UseOneGlobalMutex) Sys.sleep(0.001);
+				if (ServerSettings.UseOneGlobalMutex) Server.Acquire();
 			}
+
+			if (ServerSettings.UseOneGlobalMutex) Server.Release();
 
 			if (timeSinceStartCountedFromTicks > timeSinceStart) {
 				var sleepTime = timeSinceStartCountedFromTicks - timeSinceStart;

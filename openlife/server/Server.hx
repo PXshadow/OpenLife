@@ -1,5 +1,6 @@
 package openlife.server;
 
+import sys.thread.Mutex;
 import openlife.auto.Ai;
 import openlife.auto.PlayerInterface;
 import openlife.data.transition.TransitionImporter;
@@ -34,6 +35,16 @@ class Server {
 	public var map:WorldMap; // THE WORLD
 
 	public var playerIndex:Int = 2; // used for giving new IDs to players // better start with 2 since -1 has other use in MX update
+
+	private static var mutex:Mutex = new Mutex();
+
+	public static function Acquire() {
+		mutex.acquire();
+	}
+
+	public static function Release() {
+		mutex.release();
+	}
 
 	public static function main() {
 		Sys.println("Starting OpenLife Server" #if debug + " in debug mode" #end);
@@ -123,11 +134,11 @@ class Server {
 			if (s.length > 0) input.push(s);
 		}
 
-		if (ServerSettings.UseOneGlobalMutex) WorldMap.world.mutex.acquire();
+		if (ServerSettings.UseOneGlobalMutex) Server.Acquire();
 
 		Macro.exception(message(connection, tag, input, string));
 
-		if (ServerSettings.UseOneGlobalMutex) WorldMap.world.mutex.release();
+		if (ServerSettings.UseOneGlobalMutex) Server.Release();
 	}
 
 	/**

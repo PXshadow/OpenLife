@@ -75,7 +75,7 @@ class TimeHelper {
 		AiBase.StartAiThread();
 
 		while (true) {
-			if (ServerSettings.UseOneGlobalMutex) WorldMap.world.mutex.acquire();
+			if (ServerSettings.UseOneGlobalMutex) Server.Acquire();
 
 			TimeHelper.tick = Std.int(TimeHelper.tick + 1);
 
@@ -105,7 +105,7 @@ class TimeHelper {
 
 			timeSinceStart = Sys.time() - TimeHelper.serverStartingTime;
 
-			if (ServerSettings.UseOneGlobalMutex) WorldMap.world.mutex.release();
+			if (ServerSettings.UseOneGlobalMutex) Server.Release();
 
 			if (timeSinceStartCountedFromTicks > timeSinceStart) {
 				var sleepTime = timeSinceStartCountedFromTicks - timeSinceStart;
