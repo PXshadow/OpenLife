@@ -142,6 +142,7 @@ abstract class AiBase {
 				AiBase.tick = Std.int(AiBase.tick + 1);
 				skipedTicks++;
 			}
+
 			if (AiBase.tick % 200 == 0) {
 				averageSleepTime = Math.ceil(averageSleepTime / 200 * 1000) / 1000;
 				// trace('AIs: ${Connection.getAis().length} Tick: ${Ai.tick} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime');
@@ -161,7 +162,9 @@ abstract class AiBase {
 				if (ai.player.deleted) Macro.exception(ai.doRebirth(timePassedInSeconds));
 				if (ai.player.deleted) continue;
 				RemoveBlockedByAi(ai);
+				if (ServerSettings.UseExperimentalMutex) GlobalPlayerInstance.AcquireMutex();
 				Macro.exception(ai.doTimeStuff(timePassedInSeconds));
+				if (ServerSettings.UseExperimentalMutex) GlobalPlayerInstance.ReleaseMutex();
 				AddToBlockedByAi(ai);
 
 				if (ServerSettings.UseOneGlobalMutex) Server.Release();
@@ -5091,7 +5094,9 @@ abstract class AiBase {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} new item to craft: ${itemToCraft.itemToCraft.description}!');
 		}
 
-		searchBestObjectForCrafting(itemToCraft);
+		if (ServerSettings.UseExperimentalMutex) GlobalPlayerInstance.ReleaseMutex();
+		Macro.exception(searchBestObjectForCrafting(itemToCraft));
+		if (ServerSettings.UseExperimentalMutex) GlobalPlayerInstance.AcquireMutex();
 
 		// set position where to craft the object
 		if (itemToCraft.startLocation == null && itemToCraft.transTarget != null) {

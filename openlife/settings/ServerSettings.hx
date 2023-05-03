@@ -57,9 +57,10 @@ class ServerSettings {
 	public static var LineageDeleteAgeFactor:Float = 1.5; // keep lineage for age * x days --> one died with 60 will be deleted after 90 days
 
 	// Mutex
-	public static var UseOneGlobalMutex = true; // if you want to try out if there a problems with mutexes / different threads
+	public static var UseOneGlobalMutex = false; // if you want to try out if there a problems with mutexes / different threads
 	public static var UseOneSingleMutex = true; // might get stuck if set true
 	public static var UseBlockingSockets = false;
+	public static var UseExperimentalMutex = true; // try out a new way of using mutexes
 
 	// DEBUG: used to trace connection.send commands
 	public static var TraceSendPlayerActions = false; //  only trace player actions // ignores MX from animal, FX and PU from food / age

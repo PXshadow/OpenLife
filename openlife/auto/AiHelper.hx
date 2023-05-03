@@ -860,7 +860,16 @@ class AiHelper {
 		return true;
 	}*/
 	// TODO goto uses global coordinates
+
 	public static function Goto(playerInterface:PlayerInterface, x:Int, y:Int, considerAnimal:Bool = true, move:Bool = true):Bool {
+		var result = false;
+		if (ServerSettings.UseExperimentalMutex) GlobalPlayerInstance.ReleaseMutex();
+		Macro.exception(result = GotoHelper(playerInterface, x, y, considerAnimal, move));
+		if (ServerSettings.UseExperimentalMutex) GlobalPlayerInstance.AcquireMutex();
+		return result;
+	}
+
+	public static function GotoHelper(playerInterface:PlayerInterface, x:Int, y:Int, considerAnimal:Bool = true, move:Bool = true):Bool {
 		var player = playerInterface.getPlayerInstance();
 		var ai = playerInterface.getAi();
 		var tryMoveNearestTileFirst = ai == null ? false : ai.tryMoveNearestTileFirst;
