@@ -2935,6 +2935,10 @@ class ServerSettings {
 		var trans = transtions.getTransition(467, 550);
 		trans.aiShouldIgnore = true;
 
+		// Mallet 467 + Fence 549 +verticalFence
+		var trans = transtions.getTransition(467, 549);
+		trans.aiShouldIgnore = true;
+
 		// Steel Adze 462 + Wall Slot Shelf 3242
 		var trans = transtions.getTransition(462, 3242);
 		trans.aiShouldIgnore = true;
