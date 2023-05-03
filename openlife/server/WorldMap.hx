@@ -25,6 +25,8 @@ import openlife.server.Biome;
 class WorldMap {
 	public var mutex = new Mutex();
 
+	private static var locked = false;
+
 	var objects:Vector<Array<Int>>;
 	var originalObjects:Vector<Array<Int>>;
 	var hiddenObjects:Vector<Array<Int>>;
