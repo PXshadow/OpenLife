@@ -1041,9 +1041,9 @@ class TimeHelper {
 				objHelper.TransformToDummy();
 				WorldMap.world.setObjectHelper(x, y, objHelper);
 
-				WorldMap.world.mutex.release();
-
 				Connection.SendMapUpdateToAllClosePlayers(x, y);
+
+				WorldMap.world.mutex.release();
 
 				return;
 			}
@@ -1085,9 +1085,10 @@ class TimeHelper {
 
 				WorldMap.world.mutex.acquire();
 				Macro.exception(IncreaseNumberOfUses(objHelper));
-				WorldMap.world.mutex.release();
 
 				Connection.SendMapUpdateToAllClosePlayers(x, y);
+
+				WorldMap.world.mutex.release();
 
 				return;
 			}
@@ -1719,11 +1720,14 @@ class TimeHelper {
 
 		Macro.exception(sendUpdate = doTimeTransitionHelper(helper));
 
-		WorldMap.world.mutex.release();
-
-		if (sendUpdate == false) return false;
+		if (sendUpdate == false) {
+			WorldMap.world.mutex.release();
+			return false;
+		}
 
 		Connection.SendMapUpdateToAllClosePlayers(helper.tx, helper.ty);
+
+		WorldMap.world.mutex.release();
 
 		return true;
 	}
