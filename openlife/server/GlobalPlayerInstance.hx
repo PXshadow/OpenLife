@@ -4283,6 +4283,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		GlobalPlayerInstance.ReleaseMutex();
 
+		i
 		return done;
 	}
 
