@@ -71,15 +71,26 @@ using openlife.server.MoveHelper;
 @:rtti
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface {
 	public static var AllPlayerMutex = new Mutex();
+	private static var Locked = false;
 
 	public static function AcquireMutex() {
-		if (ServerSettings.UseOneSingleMutex) WorldMap.world.mutex.acquire(); else
+		if (ServerSettings.UseOneSingleMutex) {
+			return WorldMap.AcquireMutex();
+		} else {
 			AllPlayerMutex.acquire();
+			var tmpLocked = Locked;
+			Locked = true;
+			return tmpLocked;
+		}
 	}
 
 	public static function ReleaseMutex() {
-		if (ServerSettings.UseOneSingleMutex) WorldMap.world.mutex.release(); else
+		if (ServerSettings.UseOneSingleMutex) {
+			WorldMap.ReleaseMutex();
+		} else {
 			AllPlayerMutex.release();
+			Locked = false;
+		}
 	}
 
 	public static var AllPlayerMap = new Map<Int, GlobalPlayerInstance>();
