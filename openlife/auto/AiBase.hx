@@ -5930,6 +5930,8 @@ abstract class AiBase {
 				trans.aiShouldIgnore = true;
 		}*/
 
+		if (ServerSettings.DebugAi) trace('AI: debug craft: 1');
+
 		while (objectsToSearch.length > 0) {
 			if (count > 30000) break;
 
@@ -5965,6 +5967,7 @@ abstract class AiBase {
 			if (itemToCraft.transTarget != null && itemToCraft.transTarget.name == null)
 				descTarget += itemToCraft.transTarget == null ? '' : ' ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}';
 		 */
+		if (ServerSettings.DebugAi) trace('AI: debug craft: 2');
 
 		if (ServerSettings.DebugAiCrafting)
 			trace('AI: ${itemToCraft.ai.myPlayer.name + itemToCraft.ai.myPlayer.id} craft: FOUND $count ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
@@ -6162,6 +6165,8 @@ abstract class AiBase {
 			var trans = TransitionImporter.GetTrans(actorObj, targetObj);
 			var desc = trans == null ? '${itemToCraft.transActor.name} + ${itemToCraft.transTarget.name} Trans Not found!' : trans.getDescription();
 			var objToCraft = ObjectData.getObjectData(objToCraftId);
+
+			if (ServerSettings.DebugAi) trace('AI: debug craft: 3');
 
 			CalculateSteps(itemToCraft);
 
