@@ -27,6 +27,20 @@ class WorldMap {
 
 	private static var locked = false;
 
+	public static function AcquireMutex() {
+		WorldMap.world.mutex.acquire();
+		// trace('AcquireMutex: ${locked}');
+		var tmpLocked = locked;
+		locked = true;
+		return tmpLocked;
+	}
+
+	public static function ReleaseMutex() {
+		// trace('ReleaseMutex: ${locked}');
+		locked = false;
+		WorldMap.world.mutex.release();
+	}
+
 	var objects:Vector<Array<Int>>;
 	var originalObjects:Vector<Array<Int>>;
 	var hiddenObjects:Vector<Array<Int>>;
