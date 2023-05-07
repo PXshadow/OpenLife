@@ -403,25 +403,37 @@ class Lineage {
 	public var account(get, null):PlayerAccount;
 
 	public function get_account() {
-		return PlayerAccount.AllPlayerAccountsById[accountId];
+		GlobalPlayerInstance.AcquireMutex();
+		var value = PlayerAccount.AllPlayerAccountsById[accountId];
+		GlobalPlayerInstance.ReleaseMutex();
+		return value;
 	}
 
 	public var eve(get, null):GlobalPlayerInstance;
 
 	public function get_eve() {
-		return GlobalPlayerInstance.AllPlayerMap[myEveId];
+		GlobalPlayerInstance.AcquireMutex();
+		var value = GlobalPlayerInstance.AllPlayerMap[myEveId];
+		GlobalPlayerInstance.ReleaseMutex();
+		return value;
 	}
 
 	public var eveLineage(get, null):Lineage;
 
 	public function get_eveLineage() {
-		return AllLineages[myEveId];
+		GlobalPlayerInstance.AcquireMutex();
+		var value = AllLineages[myEveId];
+		GlobalPlayerInstance.ReleaseMutex();
+		return value;
 	}
 
 	public var mother(get, set):GlobalPlayerInstance;
 
 	public function get_mother() {
-		return GlobalPlayerInstance.AllPlayerMap[motherId];
+		GlobalPlayerInstance.AcquireMutex();
+		var value = GlobalPlayerInstance.AllPlayerMap[motherId];
+		GlobalPlayerInstance.ReleaseMutex();
+		return value;
 	}
 
 	public function set_mother(newMother:GlobalPlayerInstance) {
@@ -432,7 +444,10 @@ class Lineage {
 	public var father(get, set):GlobalPlayerInstance;
 
 	public function get_father() {
-		return GlobalPlayerInstance.AllPlayerMap[fatherId];
+		GlobalPlayerInstance.AcquireMutex();
+		var value = GlobalPlayerInstance.AllPlayerMap[fatherId];
+		GlobalPlayerInstance.ReleaseMutex();
+		return value;
 	}
 
 	public function set_father(newFather:GlobalPlayerInstance) {
@@ -441,11 +456,17 @@ class Lineage {
 	}
 
 	public function getMotherLineage():Lineage {
-		return AllLineages[motherId];
+		GlobalPlayerInstance.AcquireMutex();
+		var value = AllLineages[motherId];
+		GlobalPlayerInstance.ReleaseMutex();
+		return value;
 	}
 
 	public function getFatherLineage():Lineage {
-		return AllLineages[fatherId];
+		GlobalPlayerInstance.AcquireMutex();
+		var value = AllLineages[fatherId];
+		GlobalPlayerInstance.ReleaseMutex();
+		return value;
 	}
 
 	public var familyName(get, null):String;
