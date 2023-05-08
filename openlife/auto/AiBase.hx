@@ -338,6 +338,7 @@ abstract class AiBase {
 		itemToCraft.searchCurrentPosition = true;
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 		ignoreFullPiles = false;
+		calledCraftItem = false;
 
 		if (wasIdle > 0) wasIdle -= ServerSettings.AiReactionTime / 10;
 		// keep only last profession
@@ -5043,9 +5044,11 @@ abstract class AiBase {
 		return true;
 	}
 
+	private var calledCraftItem = false; // to not call craftItem recursive // FIX endless loop if filling bucket with water
+
 	// TODO consider backpack / contained objects
 	// currently considers heldobject, close objects and objects close to home
-	private function craftItem(objId:Int, count:Int = 1, ignoreHighTech:Bool = false):Bool {
+	private function craftItem(objId:Int, count:Int = 1):Bool {
 		itemToCraft.ai = this;
 
 		// To save time, craft only if this item crafting did not fail resently
@@ -5164,7 +5167,11 @@ abstract class AiBase {
 			if (heldId == 660 || heldId == 1099) return dropHeldObject(0);
 
 			var closestWaterBucket = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, [660, 1099], myPlayer);
-			if (closestWaterBucket == null) {
+
+			// Dont call recursive
+			if (calledCraftItem == false && closestWaterBucket == null) {
+				calledCraftItem = true; // to not call recursive // FIX endless loop --> server crash
+
 				// trace('AAI: ${myPlayer.name + myPlayer.id} Try get water with a bucket');
 
 				// Tank of Water - less full 3168 // Empty Bucket 659
@@ -5180,6 +5187,8 @@ abstract class AiBase {
 					// Empty Bucket 659
 					if (shortCraftOnTarget(659, closestBucketWaterSource, 30)) return true;
 				}
+
+				calledCraftItem = false;
 			}
 
 			var closestWaterSource = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, waterSourceIds, myPlayer);
@@ -6169,6 +6178,8 @@ abstract class AiBase {
 			if (ServerSettings.DebugAi) trace('AI: debug craft: 3');
 
 			CalculateSteps(itemToCraft);
+
+			if (ServerSettings.DebugAi) trace('AI: debug craft: 4');
 
 			// if(ServerSettings.DebugAi) trace('Ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
 			// if(ServerSettings.DebugAi) trace('Ai: craft DONE: ${objToCraft.name} dist: $dist steps: ${steps} $desc');
