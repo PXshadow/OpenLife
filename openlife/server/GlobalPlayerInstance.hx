@@ -4414,10 +4414,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return true;
 		}
 		if (text.contains('!COIN')) {
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return true;
-			}
+			if (checkIfNotAllowed(player)) return true;
 
 			player.coins += 20;
 			player.say('Got More coins', true);
@@ -4433,12 +4430,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say(trans.getDescription(), true);
 			return true;
 		} else if (text.indexOf('!HIT H') != -1) {
-			trace('!HIT HELD');
+			if (checkIfNotAllowed(player)) return true;
 
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return false;
-			}
+			trace('!HIT HELD');
 
 			if (player.heldPlayer == null) return false;
 
@@ -4449,12 +4443,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if (text.indexOf('!HIT') != -1) {
-			trace('!HIT');
+			if (checkIfNotAllowed(player)) return true;
 
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return false;
-			}
+			trace('!HIT');
 
 			// Wolf 418
 			// var from = new ObjectHelper(null,418);
@@ -4476,10 +4467,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			Connection.SendUpdateToAllClosePlayers(player);
 		} else if (text.indexOf('!HEAL') != -1) {
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return false;
-			}
+			if (checkIfNotAllowed(player)) return true;
 
 			player.hits -= 10;
 			if (player.hits < 0) player.hits = 0;
@@ -4513,10 +4501,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				}
 		}*/ else if (text.indexOf('!CREATEALL') != -1) {
 			if (ServerSettings.AllowDebugObjectCreation) {
-				if (canUseServerCommands == false) {
-					player.say('not allowed!', true);
-					return true;
-				}
+				if (checkIfNotAllowed(player)) return true;
 
 				Server.server.map.generateExtraDebugStuff(player.tx, player.ty);
 			} else {
@@ -4524,10 +4509,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				return true;
 			}
 		} else if (text.indexOf('!CREATE') != -1 || text.startsWith('!C ')) { // "create xxx" with xxx = id
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return true;
-			}
+			if (checkIfNotAllowed(player)) return true;
 
 			var id = findObjectByCommand(text);
 			var objData = ObjectData.getObjectData(id);
@@ -4549,7 +4531,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say('!CLOSED!', true);
 			player.connection.close();
 			return true;
-		} else if (text == '!DB') {
+		} else if (text == '!DBM') {
 			player.say('isMoving ${player.isMoving()}', true);
 			return true;
 		} else if (text == '!DBL') {
@@ -4567,60 +4549,36 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say('BIOME $biomeId', true);
 			return true;
 		} else if (text.indexOf('!SNOW') != -1) {
+			if (checkIfNotAllowed(player)) return true;
 			player.say('SNOW', true);
-
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return true;
-			}
 
 			WorldMap.world.setBiomeId(player.tx, player.ty, BiomeTag.SNOW);
 			player.connection.sendMapChunk(player.x, player.y);
 			return true;
 		} else if (text.indexOf('!YUM') != -1) {
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return true;
-			}
-
+			if (checkIfNotAllowed(player)) return true;
 			player.food_store += 10;
 			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!MEH') != -1) {
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return false;
-			}
+			if (checkIfNotAllowed(player)) return true;
 			player.food_store -= 5;
 			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!AGE') != -1 || text == '!') {
-			/*if(canUseServerCommands == false){
-				if(text != '!') player.say('not allowed!', true);
-				return true;
-			}*/
+			// f (checkIfNotAllowed(player)) return true;
 
 			player.age += 5;
 			player.trueAge += 5;
 			Connection.SendUpdateToAllClosePlayers(player);
 			// player.sendFoodUpdate(false);
 		} else if (text.indexOf('!UAGE') != -1) {
-			if (canUseServerCommands == false) {
-				if (text != '!') player.say('not allowed!', true);
-				return true;
-			}
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return true;
-			}
+			if (checkIfNotAllowed(player)) return true;
 
 			player.age -= 5;
 			player.trueAge -= 5;
 			Connection.SendUpdateToAllClosePlayers(player);
 			// player.sendFoodUpdate(false);
 		} else if (text.indexOf('!KILLLEADER') != -1) {
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return true;
-			}
+			if (checkIfNotAllowed(player)) return true;
 
 			var leader = player.getTopLeader();
 			if (leader != null && leader != player) {
@@ -4629,10 +4587,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 			return true;
 		} else if (text.indexOf('!KILLOBJ') != -1) {
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return true;
-			}
+			if (checkIfNotAllowed(player)) return true;
 
 			WorldMap.world.setObjectId(player.tx, player.ty, [0]);
 			WorldMap.world.setObjectId(player.tx, player.ty + 1, [0]);
@@ -4643,6 +4598,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.connection.sendMapChunk(player.x, player.y);
 			return true;
 		} else if (text.indexOf('!JAIP') != -1) {
+			if (checkIfNotAllowed(player)) return true;
+
 			var ais = Connection.getLivingAis();
 
 			if (ais.length > 0) {
@@ -4660,13 +4617,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				player.connection.sendMapChunk(player.x, player.y);
 			}
 			return true;
-		} else if (text.startsWith('!JAIH')) {
+		} else if (text.startsWith('!TAIH')) {
+			if (checkIfNotAllowed(player)) return true;
 			var ais = Connection.getLivingAis();
 			var locations = [for (ai in ais) ai.ai.myPlayer.home];
-			teleport(player, locations, 1, 'No ai home found!');
+			teleport(player, locations, 0, 'No ai home found!');
 			return true;
-		} else if (text == '!JHOME') {
-			if (HasEnoughCoinsForTeleport(player) == false) return true;
+		} else if (text == '!THOME') {
+			if (checkIfNotAllowed(player)) return true;
+
+			// if (HasEnoughCoinsForTeleport(player) == false) return true;
 
 			player.x = WorldMap.world.transformX(player, player.home.tx);
 			player.y = WorldMap.world.transformY(player, player.home.ty);
@@ -4677,8 +4637,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			player.connection.sendMapChunk(player.x, player.y);
 
-			PayTeleportCost(player);
-		} else if (text.indexOf('!JHUMAN') != -1 || text == '!JH') {
+			// PayTeleportCost(player);
+		} else if (text.indexOf('!HUMAN') != -1 || text == '!THU') {
 			var tmpLivingHumans = Connection.getLivingHumans();
 			if (tmpLivingHumans.length < 2) {
 				player.say('There is only me in this world!', true);
@@ -4710,40 +4670,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			PayTeleportCost(player);
 
 			return true;
-		} else if (text.indexOf('!JROAD') != -1 || text == '!JR') {
-			// if (HasEnoughCoinsForTeleport(player) == false) return true;
-
+		} else if (text.indexOf('!ROAD') != -1 || text == '!TR') {
+			if (checkIfNotAllowed(player)) return true;
 			var locations = [for (obj in WorldMap.world.roads) obj];
-			// clear roads, so that old ones go away
-			// WorldMap.world.roads = new Map<Int, ObjectHelper>();
-
-			teleport(player, locations, 1, 'No roads found!');
-
-			/*if (roads.length > 0) {
-				var road = roads[WorldMap.calculateRandomInt(roads.length - 1)];
-				player.x = WorldMap.world.transformX(player, road.tx);
-				player.y = WorldMap.world.transformY(player, road.ty);
-
-				player.forced = true;
-				Connection.SendUpdateToAllClosePlayers(player);
-				player.forced = false;
-
-				player.connection.sendMapChunk(player.x, player.y);
-
-				PayTeleportCost(player);
-
-				return true;
-			}*/
-
+			teleport(player, locations, 0, 'No roads found!');
 			return true;
-		} else if (text.indexOf('!JV') != -1 || text.indexOf('!JOVEN') != -1) {
+		} else if (text == '!TV' || text.indexOf('!VILLAGE') != -1) {
+			if (checkIfNotAllowed(player)) return true;
+
 			var locations = [for (obj in WorldMap.world.ovens) obj];
 			// TODO clear not valid ovens
 			// WorldMap.world.ovens = new Map<Int, ObjectHelper>();
-			teleport(player, locations, 1, 'No villages with an oven found!');
+			teleport(player, locations, 0, 'No villages with an oven found!');
 
 			return true;
-		} else if (text.indexOf('!TG') != -1 || text.indexOf('!JG') != -1 || text.indexOf('!JGRAVE') != -1 || text.indexOf('!TGRAVE') != -1) {
+		} else if (text == '!TG' || text.indexOf('!GRAVE') != -1) {
 			// var graves = [for (obj in WorldMap.world.cursedGraves) obj];
 			var tmpGraves = player.account.graves;
 			var locations = [];
@@ -4771,10 +4712,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			 */
 
 			return true;
-		} else if (text.indexOf('!JCAG') != -1 || text.indexOf('!JACGRAVE') != -1) {
+		} else if (text == '!TCG' || text.indexOf('!CURSEDGRAVE') != -1) {
+			if (checkIfNotAllowed(player)) return true;
+
 			var locations = [for (obj in WorldMap.world.cursedGraves) obj];
 
-			teleport(player, locations, 1, 'No graves found!');
+			teleport(player, locations, 0, 'No graves found!');
 
 			/*if (graves.length > 0) {
 				var grave = graves[WorldMap.calculateRandomInt(graves.length - 1)];
@@ -4803,25 +4746,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say('send names done!', true);
 			return true;
 		} else if (text.indexOf('!DEBUG TRANS') != -1 || text.indexOf('!D T') != -1) {
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return false;
-			}
+			if (checkIfNotAllowed(player)) return true;
 			TimeHelper.ReadServerSettings = false; // otherwise they will be loaded from file again
 			ServerSettings.DebugTransitionHelper = ServerSettings.DebugTransitionHelper ? false : true;
 			player.say('debug TRANS: ${ServerSettings.DebugTransitionHelper}', true);
 			return true;
 		} else if (text.indexOf('!DEBUG AI') != -1) {
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return false;
-			}
+			if (checkIfNotAllowed(player)) return true;
 			TimeHelper.ReadServerSettings = false; // otherwise they will be loaded from file again
 			ServerSettings.DebugAi = ServerSettings.DebugAi ? false : true;
 			player.say('debug ai: ${ServerSettings.DebugAi}', true);
 			return true;
 		} else if (text.indexOf('!TP') != -1) {
-			if (HasEnoughCoinsForTeleport(player) == false) return true;
+			if (checkIfNotAllowed(player)) return true;
+			// if (HasEnoughCoinsForTeleport(player) == false) return true;
 			player.x = 470 - player.gx; // 470 // 2
 			player.y = 120 - player.gy; // 380 //40
 			player.forced = true;
@@ -4829,13 +4767,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.forced = false;
 			player.connection.sendMapChunk(player.x, player.y);
 			// player.say('Teleport', true);
-			PayTeleportCost(player);
+			// PayTeleportCost(player);
 			return true;
 		} else if (text.indexOf('!SPEED') != -1) {
-			if (canUseServerCommands == false) {
-				player.say('not allowed!', true);
-				return true;
-			}
+			if (checkIfNotAllowed(player)) return true;
+
 			if (ServerSettings.SpeedFactor < 2) ServerSettings.SpeedFactor = 10; else
 				ServerSettings.SpeedFactor = 1;
 			player.say('Changed Speed!', true);
@@ -4878,6 +4814,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return true;
 		}
 
+		return false;
+	}
+
+	private static function checkIfNotAllowed(player:GlobalPlayerInstance) {
+		var canUseServerCommands = player.account.canUseServerCommands;
+
+		if (canUseServerCommands == false) {
+			player.say('not allowed!', true);
+			return true;
+		}
 		return false;
 	}
 
