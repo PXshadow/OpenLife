@@ -3311,7 +3311,7 @@ class ServerSettings {
 		// LimitObjectByTarget(1115, 1112, 5); // Dried Ear of Corn 1115 // Corn Plant 1112
 
 		// Stone 33 + Bowl of Wheat 245 / Raw Pie Crust 264 / Bowl of Dough 252
-		// LimitTransitionIfMaxReached(33, 245, 264);
+		LimitTransitionIfMaxReached(33, 245, 264);
 	}
 
 	private static function LimitTransitionIfMaxReached(actorId:Int, targetId:Int, id:Int, max:Int = 1) {
@@ -3319,13 +3319,13 @@ class ServerSettings {
 		objData.aiCraftMax = max;
 
 		var trans = TransitionImporter.GetTransition(actorId, targetId);
-		trans.igmoreIfMinIsNotReachedObjectId = id;
+		trans.ignoreIfMaxIsReachedObjectId = id;
 		var trans = TransitionImporter.GetTransition(actorId, targetId, true);
-		if (trans != null) trans.igmoreIfMinIsNotReachedObjectId = id;
+		if (trans != null) trans.ignoreIfMaxIsReachedObjectId = id;
 		var trans = TransitionImporter.GetTransition(actorId, targetId, false, true);
-		if (trans != null) trans.igmoreIfMinIsNotReachedObjectId = id;
+		if (trans != null) trans.ignoreIfMaxIsReachedObjectId = id;
 		var trans = TransitionImporter.GetTransition(actorId, targetId, true, true);
-		if (trans != null) trans.igmoreIfMinIsNotReachedObjectId = id;
+		if (trans != null) trans.ignoreIfMaxIsReachedObjectId = id;
 	}
 
 	private static function LimitObject(id:Int, limitNewActorId:Int, max:Int = 1) {
