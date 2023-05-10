@@ -2576,10 +2576,14 @@ abstract class AiBase {
 		if (heldObject.parentId == 252 && heldObject.numberOfUses > maxDoughInBowl && shortCraft(252, 236)) return true;
 
 		// Use up all the Dough if there is enough bread // Bowl of Dough 252
-		// var countDough = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 252, 20);
-		// if (heldObject.parentId == 252) countDough += 1;
+		var countDough = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 252, 20);
 		// Raw Pie Crust 264
-		// if (countDough > 0 && maxDoughInBowl == 0 && craftItem(264)) return true;
+		var countPieCrust = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 264, 30);
+
+		if (heldObject.parentId == 252) countDough += 1;
+
+		// Raw Pie Crust 264
+		if (countDough > 0 && countPieCrust < 4 && maxDoughInBowl == 0 && craftItem(264)) return true;
 
 		if (hasOrBecomeProfession('BAKER', maxPeople) == false) return false;
 		var startTime = Sys.time();
@@ -4085,13 +4089,27 @@ abstract class AiBase {
 		var heldObjId = myPlayer.heldObject.parentId;
 		var heldObject = myPlayer.heldObject;
 		var dropTarget = myPlayer.home;
+		var home = myPlayer.home;
 
 		if (heldObjId < 1 || dropTarget == gotoTarget) return false;
 		if (heldObjId == 2144) return dropHeldObject(); // 2144 Banana Peel
 		if (heldObjId == 34) return dropHeldObject(); // 34 Sharp Stone
 
 		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
-		if (heldObjId == 252 && heldObject.numberOfUses > 1 && shortCraft(252, 236, 10, false)) return true;
+		if (heldObjId == 252) {
+			var knife = myPlayer.heldObject.parentId == 560 ? myPlayer.heldObject : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 560, 30, null,
+				myPlayer);
+			var maxDoughInBowl = knife == null ? 0 : 1;
+
+			// Sliced Bread 1471
+			var countSlicedBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 20);
+			// Leavened Dough on Clay Plate 1468
+			var countBread = countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
+
+			if (countBread > 1) maxDoughInBowl = 0;
+
+			if (heldObject.numberOfUses > maxDoughInBowl && shortCraft(252, 236, 10, false)) return true;
+		}
 
 		// Skewered Rabbit 185 + Hot Coals 85
 		if (heldObjId == 185 && shortCraft(185, 85, 10, false)) return true;
