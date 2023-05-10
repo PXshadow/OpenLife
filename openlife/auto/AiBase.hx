@@ -5188,7 +5188,7 @@ abstract class AiBase {
 					if (shortCraftOnTarget(659, closestBucketWaterSource, 30)) return true;
 				}
 
-				calledCraftItem = false;
+				calledCraftItem = false; // is set also false each doTime()
 			}
 
 			var closestWaterSource = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, waterSourceIds, myPlayer);
@@ -5939,7 +5939,7 @@ abstract class AiBase {
 				trans.aiShouldIgnore = true;
 		}*/
 
-		if (ServerSettings.DebugAi) trace('AI: debug craft: 1');
+		// if (ServerSettings.DebugAi) trace('AI: debug craft: 1');
 
 		while (objectsToSearch.length > 0) {
 			if (count > 30000) break;
@@ -5976,7 +5976,7 @@ abstract class AiBase {
 			if (itemToCraft.transTarget != null && itemToCraft.transTarget.name == null)
 				descTarget += itemToCraft.transTarget == null ? '' : ' ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description}';
 		 */
-		if (ServerSettings.DebugAi) trace('AI: debug craft: 2');
+		// if (ServerSettings.DebugAi) trace('AI: debug craft: 2');
 
 		if (ServerSettings.DebugAiCrafting)
 			trace('AI: ${itemToCraft.ai.myPlayer.name + itemToCraft.ai.myPlayer.id} craft: FOUND $count ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius} dist: ${itemToCraft.bestDistance} ${obj.name} --> $descActor + $descTarget');
@@ -6175,11 +6175,11 @@ abstract class AiBase {
 			var desc = trans == null ? '${itemToCraft.transActor.name} + ${itemToCraft.transTarget.name} Trans Not found!' : trans.getDescription();
 			var objToCraft = ObjectData.getObjectData(objToCraftId);
 
-			if (ServerSettings.DebugAi) trace('AI: debug craft: 3');
+			// if (ServerSettings.DebugAi) trace('AI: debug craft: 3');
 
 			CalculateSteps(itemToCraft);
 
-			if (ServerSettings.DebugAi) trace('AI: debug craft: 4');
+			// if (ServerSettings.DebugAi) trace('AI: debug craft: 4');
 
 			// if(ServerSettings.DebugAi) trace('Ai: craft: steps: $bestSteps Distance: $bestDistance bestActor: ${itemToCraft.transActor.description} / target: ${itemToCraft.transTarget.id} ${itemToCraft.transTarget.description} ' + bestTrans.getDesciption());
 			// if(ServerSettings.DebugAi) trace('Ai: craft DONE: ${objToCraft.name} dist: $dist steps: ${steps} $desc');
