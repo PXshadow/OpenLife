@@ -4641,7 +4641,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.connection.sendMapChunk(player.x, player.y);
 
 			// PayTeleportCost(player);
-		} else if (text.indexOf('!HUMAN') != -1 || text == '!THU') {
+		} else if (text.indexOf('!THUMAN') != -1 || text == '!THU') {
 			var tmpLivingHumans = Connection.getLivingHumans();
 			if (tmpLivingHumans.length < 2) {
 				player.say('There is only me in this world!', true);
@@ -4813,6 +4813,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			var count = AiHelper.CountCloseObjects(player, player.home.tx, player.home.ty, id, 30);
 			player.say('Count ${objData.name}: $count', true);
+
+			return true;
+		} else if (text == '!H' || text.indexOf('!HUMAN ') != -1) {
+			var closeHuman = player.getClosePlayer(-1, false, false, true);
+			if (closeHuman == null || closeHuman == player) {
+				player.say('There is only me in this world!', true);
+				return true;
+			}
+			player.connection.sendMapLocation(closeHuman, "HUMAN", "follower");
+			// leader.connection.sendMapLocation(leader, 'FOLLOWER', 'follower');
+			// this.sendMapLocation(closeHuman, "LEADER", "leader");
 
 			return true;
 		} else if (text == '!L' || text.indexOf('!LEADER ') != -1) {
@@ -5178,12 +5189,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return this.connection.playerAccount;
 	}
 
-	public function getClosePlayer(maxDistance:Float = 1.5, hostile:Bool = true, hasWeapon = true):GlobalPlayerInstance {
+	public function getClosePlayer(maxDistance:Float = 1.5, hostile:Bool = false, hasWeapon = false, onlyHuman = false):GlobalPlayerInstance {
 		// GlobalPlayerInstance.AcquireMutex();
 
 		for (p in AllPlayers) {
 			if (p.deleted) continue;
-			if (p.isCloseToPlayerUseExact(this, maxDistance) == false) continue;
+			if (maxDistance > 0 && p.isCloseToPlayerUseExact(this, maxDistance) == false) continue;
+			if (onlyHuman && p.isAi()) continue;
 			if (hostile && p.isFriendly(this)) continue;
 			if (hasWeapon && p.isHoldingWeapon() == false) continue;
 

@@ -239,7 +239,7 @@ class MoveHelper {
 			// p.doEmote(Emote.biomeRelief);
 		}
 
-		if (p.getClosePlayer() != null && p.angryTime < 0) {
+		if (p.getClosePlayer(1.5, true, true) != null && p.angryTime < 0) {
 			// trace('SPEED HOSTLE NEAR');
 			speed *= ServerSettings.CloseEnemyWithWeaponSpeedFactor;
 		}
