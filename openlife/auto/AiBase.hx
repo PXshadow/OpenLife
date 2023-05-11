@@ -3186,6 +3186,19 @@ abstract class AiBase {
 				}
 			}
 
+			// Dry Planted Garlic 4262 // Wet Planted Garlic 4263
+			if (toPlant == 4262 || toPlant == 4263) {
+				// Dry Planted Garlic 4262
+				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4262, 30);
+				// Mature Garlic 4265
+				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4265, 30);
+
+				if (count > 2) {
+					toPlant += 1;
+					continue;
+				}
+			}
+
 			// Dry Planted Tomato Seed 2829
 			if (toPlant == 2829) {
 				// Tomato Plant 2834
