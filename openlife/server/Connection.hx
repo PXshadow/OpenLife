@@ -1044,7 +1044,11 @@ class Connection {
 
 	public function sendLeader() {
 		GlobalPlayerInstance.AcquireMutex();
+		Macro.exception(sendLeaderHelper());
+		GlobalPlayerInstance.ReleaseMutex();
+	}
 
+	private function sendLeaderHelper() {
 		var player = this.player;
 		var leader = player.getTopLeader();
 
@@ -1053,8 +1057,6 @@ class Connection {
 		// trace('LEADER: ${player.id}-->${leader.id} deleted: ${leader.isDeleted()}');
 		// send(PLAYER_UPDATE, [leader.toRelativeData(player)], false);
 		this.sendMapLocation(leader, "LEADER", "leader");
-
-		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	/**
