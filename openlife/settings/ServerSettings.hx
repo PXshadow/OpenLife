@@ -3312,6 +3312,9 @@ class ServerSettings {
 
 		// Stone 33 + Bowl of Wheat 245 / Raw Pie Crust 264 / Bowl of Dough 252
 		LimitTransitionIfMaxReached(33, 245, 264);
+
+		// Clay Bow 235 + Partial Bucket of Water 1099 / Bowl of Water 382
+		LimitTransitionIfMaxReached(235, 1099, 382, 3);
 	}
 
 	private static function LimitTransitionIfMaxReached(actorId:Int, targetId:Int, id:Int, max:Int = 1) {
