@@ -4642,13 +4642,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			// PayTeleportCost(player);
 		} else if (text.indexOf('!THUMAN') != -1 || text == '!THU') {
+			if (checkIfNotAllowed(player)) return true;
+
 			var tmpLivingHumans = Connection.getLivingHumans();
 			if (tmpLivingHumans.length < 2) {
 				player.say('There is only me in this world!', true);
 				return true;
 			}
 
-			if (HasEnoughCoinsForTeleport(player) == false) return true;
+			// if (HasEnoughCoinsForTeleport(player) == false) return true;
 
 			var livingHumans = [];
 
@@ -4670,7 +4672,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			player.connection.sendMapChunk(player.x, player.y);
 
-			PayTeleportCost(player);
+			// PayTeleportCost(player);
 
 			return true;
 		} else if (text.indexOf('!ROAD') != -1 || text == '!TR') {
