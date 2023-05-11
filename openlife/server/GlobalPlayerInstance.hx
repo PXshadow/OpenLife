@@ -4895,7 +4895,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		player.connection.sendMapChunk(player.x, player.y);
 
-		PayTeleportCost(player);
+		if (coinCost > 0) PayTeleportCost(player);
 	}
 
 	private static function HasEnoughCoinsForTeleport(player:GlobalPlayerInstance):Bool {
