@@ -1938,6 +1938,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 
 			if (player == this.followPlayer) {
+				this.say('I FOLLOW ALLREADY ${player.name}', true);
 				this.connection.sendGlobalMessage('You follow allready ${player.name}!');
 				return false;
 			}
@@ -2001,7 +2002,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			this.doEmote(Emote.happy);
 
-			return true;
+			this.say('I FOLLOW SOON ${player.name}', true);
+
+			return false;
 		}
 
 		if (message.startsWith('ORDER, ')) {
