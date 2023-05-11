@@ -1059,6 +1059,17 @@ class Connection {
 		this.sendMapLocation(leader, "LEADER", "leader");
 	}
 
+	public function sendDirectLeader() {
+		var player = this.player;
+		var leader = this.player.followPlayer;
+
+		if (leader == null) leader == player;
+
+		// trace('LEADER: ${player.id}-->${leader.id} deleted: ${leader.isDeleted()}');
+		// send(PLAYER_UPDATE, [leader.toRelativeData(player)], false);
+		this.sendMapLocation(leader, "LEADER", "leader");
+	}
+
 	/**
 		(OW)
 		OW

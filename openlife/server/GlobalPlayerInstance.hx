@@ -4812,8 +4812,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.say('Count ${objData.name}: $count', true);
 
 			return true;
+		} else if (text == '!L' || text.indexOf('!LEADER ') != -1) {
+			player.connection.sendLeader();
+			return true;
+		} else if (text == '!DL' || text.indexOf('!DLEADER ') != -1) {
+			player.connection.sendDirectLeader();
+			return true;
 		}
-
 		return false;
 	}
 
