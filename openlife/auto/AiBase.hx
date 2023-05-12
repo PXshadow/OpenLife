@@ -6052,7 +6052,8 @@ abstract class AiBase {
 			}
 
 			// ignore transition if not more than min of object // like getting Rope from Bows
-			if (trans.igmoreIfMinIsNotReachedObjectId > 0) {
+			// For now limit to searchRadius of 40 since only close objects should be counted --> help sheeps to survive
+			if (trans.igmoreIfMinIsNotReachedObjectId > 0 && itemToCraft.searchRadius < 40) {
 				var minObj = transitionsByObjectId[trans.igmoreIfMinIsNotReachedObjectId];
 				var objData = ObjectData.getObjectData(trans.igmoreIfMinIsNotReachedObjectId);
 
