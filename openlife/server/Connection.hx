@@ -56,12 +56,19 @@ class Connection {
 		if the previous life is over.
 	**/
 	public function login(client_tag:String, email:String, password_hash:String, account_key_hash:String) {
-		// A normal login is treated same as a reconnect
-		// TODO twins
-
 		trace('login: ${account_key_hash}');
 
 		GlobalPlayerInstance.AcquireMutex();
+		Macro.exception(loginHelper(client_tag, email, password_hash, account_key_hash));
+		GlobalPlayerInstance.ReleaseMutex();
+	}
+
+	public function loginHelper(client_tag:String, email:String, password_hash:String, account_key_hash:String) {
+		trace('login2: ${account_key_hash}');
+		// A normal login is treated same as a reconnect
+		// TODO twins
+
+		// GlobalPlayerInstance.AcquireMutex();
 
 		this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
 		this.player = GlobalPlayerInstance.CreateNewHumanPlayer(this);
@@ -77,11 +84,19 @@ class Connection {
 
 		this.sendGlobalMessage('EATING YUMMY FOOD AND HAVING MANY KIDS WILL INCREASE YOUR PRESTIGE!');
 
-		GlobalPlayerInstance.ReleaseMutex();
+		// GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	public function rlogin(client_tag:String, email:String, password_hash:String, account_key_hash:String) {
+		trace('rlogin: ${account_key_hash}');
 		GlobalPlayerInstance.AcquireMutex();
+		Macro.exception(rloginHelper(client_tag, email, password_hash, account_key_hash));
+		GlobalPlayerInstance.ReleaseMutex();
+	}
+
+	public function rloginHelper(client_tag:String, email:String, password_hash:String, account_key_hash:String) {
+		trace('rlogin2: ${account_key_hash}');
+		// GlobalPlayerInstance.AcquireMutex();
 
 		this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
 		var lastLivingPlayer = playerAccount.getLastLivingPlayer();
@@ -112,12 +127,12 @@ class Connection {
 
 			trace('reconnect to ${player.p_id} ${player.name}');
 
-			GlobalPlayerInstance.ReleaseMutex();
+			// GlobalPlayerInstance.ReleaseMutex();
 
 			return;
 		}
 
-		GlobalPlayerInstance.ReleaseMutex();
+		// GlobalPlayerInstance.ReleaseMutex();
 
 		login(client_tag, email, password_hash, account_key_hash);
 	}
