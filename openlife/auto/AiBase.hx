@@ -5174,13 +5174,16 @@ abstract class AiBase {
 		// TODO better fix directly in the crafting alg by considering time transitions better
 		// FIX: starting fire if no kindling is close
 		// Fire Bow Drill 74 + Long Straight Shaft 67 --> Ember Shaft 75
-		if (actorId == 74 && targetId == 67) {
+		if (calledCraftItem == false && actorId == 74 && targetId == 67) {
+			var tmpCalledCraftItem = calledCraftItem;
+			calledCraftItem = true;
 			// Kindling 72
 			if (GetCraftAndDropItemsCloseToObj(itemToCraft.transTarget, 72, 1, 10)) return true;
 			if (itemToCraft.transTarget == null) return false;
 			// Juniper Tinder 61
 			if (GetCraftAndDropItemsCloseToObj(itemToCraft.transTarget, 61, 1, 10)) return true;
 			if (itemToCraft.transTarget == null) return false;
+			calledCraftItem = tmpCalledCraftItem;
 		}
 
 		// TODO better fix directly in the crafting alg by considering distances
