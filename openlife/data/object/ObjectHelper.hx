@@ -138,7 +138,10 @@ class ObjectHelper {
 			WorldMap.WriteInt32Array(writer, [-100]);
 			return;
 		}
-		WorldMap.WriteInt32Array(writer, obj.toArray());
+
+		// save objects with parent ID, so that dummies can be fixed on data update to a new version
+		// the new dummy ID is calculated with number of uses
+		WorldMap.WriteInt32Array(writer, obj.toArray(true));
 		WorldMap.WriteInt32Array(writer, obj.livingOwners);
 		WorldMap.WriteInt32Array(writer, obj.ownersByPlayerAccount);
 
@@ -292,26 +295,28 @@ class ObjectHelper {
 		return helper;
 	}
 
-	public function toArray():Array<Int> {
-		return writeObjectHelper([]);
+	public function toArray(useParentId = false):Array<Int> {
+		return writeObjectHelper([], false, useParentId);
 	}
 
-	private function writeObjectHelper(ids:Array<Int>, isInSubcontainer:Bool = false):Array<Int> {
+	private function writeObjectHelper(ids:Array<Int>, isInSubcontainer:Bool = false, useParentId = false):Array<Int> {
 		var first = (ids.length == 0);
 
 		// trace('write: id:${this.objectData.id} ids:$ids isInSubcontainer: $isInSubcontainer');
 
+		var objId = useParentId ? this.parentId : this.objectData.id;
+
 		// negative values are used for subcontained items
 		if (isInSubcontainer) {
-			ids.push(this.objectData.id * (-1));
+			ids.push(objId * (-1));
 			return ids;
 		}
 
-		ids.push(this.objectData.id);
+		ids.push(objId);
 
 		for (item in containedObjects) {
-			if (first) item.writeObjectHelper(ids); else
-				item.writeObjectHelper(ids, true);
+			if (first) item.writeObjectHelper(ids, false, useParentId); else
+				item.writeObjectHelper(ids, true, useParentId);
 		}
 
 		return ids;
@@ -536,7 +541,10 @@ class ObjectHelper {
 
 	public function isHelperToBeDeleted():Bool {
 		var helper = this;
-		// TODO why not use dummy instead? So no need for helper?
+
+		// Currently dummy objects for objects with more than numberOfUses get just the first unsed IDs
+		// Therfore currently dummy object IDs change with each Data update that adds IDs
+		// Therefore save object if number of uses is below original number of uses, so that dummy objects can be fixed are stored on data update
 		var toDelete = (helper.numberOfUses == helper.objectData.numUses || helper.numberOfUses < 1 || helper.id < 1);
 		// TODO maybe dont use a helper for time transitions?
 		toDelete = toDelete && helper.timeToChange == 0 && helper.containedObjects.length == 0 && helper.groundObject == null;
