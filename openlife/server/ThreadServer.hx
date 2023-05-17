@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.macros.Macro;
 import haxe.io.Eof;
 import openlife.settings.ServerSettings;
 #if (target.threaded)
@@ -61,12 +62,12 @@ class ThreadServer {
 					} else
 						trace('WARNING: EXEPTION: ' + e);
 
-					connection.close();
+					Macro.exception(connection.close());
 
 					break;
 				} else {
 					if (Timer.stamp() - ka > 20) {
-						connection.close();
+						Macro.exception(connection.close());
 					}
 				}
 			}
