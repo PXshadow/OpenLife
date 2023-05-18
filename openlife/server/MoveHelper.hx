@@ -366,8 +366,8 @@ class MoveHelper {
 			Connection.SendUpdateToAllClosePlayers(p);
 			if (p.isAi()) p.forced = false;
 
-			// Force Frame so that there is no delay???
-			p.connection.send(FRAME, null, false, true);
+			// Force Frame so that there is no delay??? Seems crash HETUW client
+			// p.connection.send(FRAME, null, false, true);
 
 			if (p.connection.serverAi != null) p.connection.serverAi.ai.finishedMovement();
 
