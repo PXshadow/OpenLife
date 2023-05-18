@@ -47,7 +47,7 @@ class ThreadServer {
 
 		while (connection.running) {
 			try {
-				Sys.sleep(0.1);
+				Sys.sleep(ServerSettings.PlayerResponseSleepTime);
 
 				message = socket.input.readUntil("#".code);
 

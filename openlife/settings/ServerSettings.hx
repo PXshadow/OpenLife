@@ -74,6 +74,9 @@ class ServerSettings {
 	public static var traceTransitionByNewTargetId = 9991099; // set to object id which you want to debug
 	public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
+	// Timing
+	public static var PlayerResponseSleepTime:Float = 0.05; // secs between each player command
+
 	// score
 	public static var BirthPrestigeFactor:Float = 0.4; // TODO set 0.2 if fathers are implemented // on birth your starting prestige is factor X * total prestige
 	public static var AncestorPrestigeFactor:Float = 0.2; // if one dies the ancestors get factor X prestige of the dead
