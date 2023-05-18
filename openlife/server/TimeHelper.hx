@@ -1243,6 +1243,8 @@ class TimeHelper {
 
 				if (objId == 0 && floorId == 0 && season == Spring) DoRespawnFromOriginal(x, y, timePassedInYears);
 
+				if (season == Spring) DoSpringStuff(x, y, timePassedInYears);
+
 				if (floorId != 0) DecayFloor(x, y, timePassedInYears);
 
 				if (objId != 0) DecayObject(x, y, timePassedInYears);
@@ -1421,7 +1423,6 @@ class TimeHelper {
 		decayChance *= techFactor;
 
 		// if(objData.carftingSteps > 1) trace('${objData.name} steps: ${objData.carftingSteps} techFactor: ${Math.round(techFactor*100)}% decayFactor: ${Math.round(objData.decayFactor*100)}%');
-
 		if (world.currentObjectsCount[countAs] < world.originalObjectsCount[countAs] * 0.8) return; // dont decay natural stuff if there are too few
 
 		var objectHelper = world.getObjectHelper(x, y, true);
@@ -1520,6 +1521,42 @@ class TimeHelper {
 				obj.numberOfUses = numUses; // not sure if needed
 				obj.TransformToDummy();
 				world.setObjectHelper(tx, ty, obj);
+			}
+		}
+	}
+
+	public static function DoSpringStuff(tx:Int, ty:Int, passedTimeInYears:Float) {
+		var world = WorldMap.world;
+		var objData = world.getObjectDataAtPosition(tx, ty);
+		// var origObj = world.getOriginalObjectId(tx, ty);
+		// trace('Hungry Grizzly Bear: ${world.currentObjectsCount[631]} Bear Cave: ${world.originalObjectsCount[630]}');
+		// trace('Hungry Grizzly Bear!');
+		/*if (objData.parentId == 631) {
+			var obj = world.getObjectHelper(tx, ty);
+			obj.id = 630;
+			world.setObjectHelper(tx, ty, obj);
+		}*/
+		// if (passedTimeInYears < 0.01) passedTimeInYears = 0.1;
+
+		// Bear Cave 630 --> Bear Cave awake 648
+		if (objData.parentId == 630) {
+			// trace('Hungry Grizzly Bear:1 ${world.currentObjectsCount[631]} Bear Cave: ${world.originalObjectsCount[630]}');
+			// trace('Hungry Grizzly Bear: ${world.currentObjectsCount[631]} Bear Cave: ${world.originalObjectsCount[630]}');
+
+			// Hungry Grizzly Bear 631
+			// var countAs = objData.countsOrGrowsAs > 0 ? objData.countsOrGrowsAs : objData.parentId;
+			if (world.currentObjectsCount[631] < world.originalObjectsCount[630] * 0.1) {
+				// trace('Hungry Grizzly Bear: rand: ${world.randomFloat()} years: ${passedTimeInYears * 5}');
+
+				if (world.randomFloat() < passedTimeInYears / 2) {
+					world.currentObjectsCount[631] += 1;
+
+					trace('Hungry Grizzly Bear: NEW! ${world.currentObjectsCount[631]} Bear Cave: ${world.originalObjectsCount[630]}');
+
+					var obj = world.getObjectHelper(tx, ty);
+					obj.id = 648;
+					world.setObjectHelper(tx, ty, obj);
+				}
 			}
 		}
 	}
