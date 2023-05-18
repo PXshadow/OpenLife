@@ -1928,6 +1928,10 @@ class ServerSettings {
 		trans.autoDecaySeconds = -12;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		trans = new TransitionData(-1, 4265, 0, 848); // Mature Garlic 4265--> Hardened Row
+		trans.autoDecaySeconds = -12;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		trans = new TransitionData(-1, 577, 578, 576); // Shorn Domestic Sheep 577 --> Fleece 578 + Shorn Domestic Sheep 576
 		trans.autoDecaySeconds = 2;
 		trans.move = 1;
