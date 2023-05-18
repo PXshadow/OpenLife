@@ -1923,6 +1923,7 @@ class ServerSettings {
 		trans.autoDecaySeconds = -4;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// TODO remove once Garlic is gone
 		trans = new TransitionData(-1, 4255, 0, 848); // Mature Garlic --> Hardened Row
 		trans.autoDecaySeconds = -12;
 		transtions.addTransition("PatchTransitions: ", trans);

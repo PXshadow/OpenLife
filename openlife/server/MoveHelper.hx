@@ -366,6 +366,9 @@ class MoveHelper {
 			Connection.SendUpdateToAllClosePlayers(p);
 			if (p.isAi()) p.forced = false;
 
+			// Force Frame so that there is no delay???
+			p.connection.send(FRAME, null, false, true);
+
 			if (p.connection.serverAi != null) p.connection.serverAi.ai.finishedMovement();
 
 			// if(ServerSettings.DebugSayPlayerPosition && p.isHuman()) p.say('${p.tx} ${p.ty}');
