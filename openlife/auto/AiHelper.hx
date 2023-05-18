@@ -1079,6 +1079,12 @@ class AiHelper {
 			ai.lastY = data[data.length - 1].y;
 		}
 
+		if (data.length < 0) {
+			trace('WARNING!!! No Path!');
+			if (ServerSettings.debug) throw new Exception('No Path!');
+			return false;
+		}
+
 		var ai = playerInterface.getAi();
 		var globalPlayer = cast(player, GlobalPlayerInstance);
 		if (move) playerInterface.move(globalPlayer.moveHelper.guessX(), globalPlayer.moveHelper.guessY(), ai.seqNum++, data);
