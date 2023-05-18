@@ -1981,8 +1981,17 @@ class TimeHelper {
 			var chasingAnimals = [420, 1438, 632, 635, 637];
 			// trace('Deadly: ${animal.name}');
 
-			if (animal.hits > 0 || TimeHelper.Season == Winter || chasingAnimals.contains(animal.parentId)) {
-				var player = GlobalPlayerInstance.GetClosestPlayerAt(animal.tx, animal.ty, 20);
+			// Rattle Snake 764
+			var chaseDistance = animal.parentId == 764 ? 5 : 20;
+			var lovedSeason = animal.parentId == 764 ? Summer : Winter;
+			var rightSeason = TimeHelper.Season == lovedSeason;
+
+			// Wild Boar 1323 // Wild Boar with Piglet 1328 // Bison 1435 // Bison with Calf 1436
+			var animalsDontChase = [1323, 1328, 1435, 1436];
+			if (animalsDontChase.contains(animal.parentId)) rightSeason = false;
+
+			if (animal.hits > 0 || rightSeason || chasingAnimals.contains(animal.parentId)) {
+				var player = GlobalPlayerInstance.GetClosestPlayerAt(animal.tx, animal.ty, chaseDistance);
 				if (player != null) {
 					// trace('Deadly: ${animal.name} target: ${player.name}');
 					animal.target = worldmap.getObjectHelper(player.tx, player.ty);
