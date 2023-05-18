@@ -602,8 +602,8 @@ abstract class AiBase {
 
 		var cravingId = myPlayer.getCraving();
 		itemToCraftId = cravingId;
-		// 31 Gooseberry // 1121 Popcorn
-		if (itemToCraftId == 31 || itemToCraftId == 1121) itemToCraftId = -1;
+		// 31 Gooseberry // 1121 Popcorn // Sliced Bread 1471
+		if (itemToCraftId == 31 || itemToCraftId == 1121 || itemToCraftId == 1471) itemToCraftId = -1;
 		Macro.exception(if (cravingId > 0) {
 			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, itemToCraftId, 40);
 			if (count < 2 && craftItem(itemToCraftId)) return;
@@ -2638,7 +2638,7 @@ abstract class AiBase {
 			}
 
 			// Raw Bread Loaf 1469
-			if (shortCraftOnTarget(1469, hotOven, false)) return true;
+			if (countSlicedBread < 3 && shortCraftOnTarget(1469, hotOven, false)) return true;
 			// Raw Mutton 569
 			if (shortCraftOnTarget(569, hotOven, false)) return true;
 			// Raw Potato 1147
@@ -2683,22 +2683,23 @@ abstract class AiBase {
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		// 560 Knife
-		if (countSlicedBread < 3 && this.profession['BAKER'] < 3) {
-			if (knife != null) {
-				// 1470 Baked Bread
-				if (shortCraft(560, 1470, 20, false)) return true;
+		if (knife != null && this.profession['BAKER'] < 3) {
+			// Knife + Mango on a Plate 1879--> Mango Slices 1880
+			if (shortCraft(560, 1879, 20, false)) return true;
+
+			// Mango Slices 1880
+			var countMango = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1880, 20);
+			if (countMango < 1 && craftItem(1879)) return true; // Mango on a Plate 1879
+
+			// 1470 Baked Bread
+			if (shortCraft(560, 1470, 20, false)) return true;
+
+			if (countSlicedBread < 2) {
 				// 560 Knife // 1468 Leavened Dough on Clay Plate
 				if (shortCraft(560, 1468, 20, false)) return true;
 
 				// 1466 Bowl of Leavened Dough // 236 Clay Plate
 				if (countBread < 3 && shortCraft(1466, 236, 20, false)) return true;
-
-				// Knife + Mango on a Plate 1879--> Mango Slices 1880
-				if (shortCraft(560, 1879, 20, false)) return true;
-
-				// Mango Slices 1880
-				var countMango = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1880, 20);
-				if (countMango < 1 && craftItem(1879)) return true; // Mango on a Plate 1879
 			}
 		}
 
