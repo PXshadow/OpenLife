@@ -1950,6 +1950,11 @@ class TimeHelper {
 					// trace('Deadly: ${animal.name} target: ${player.name}');
 					animal.target = worldmap.getObjectHelper(player.tx, player.ty);
 					gotoTarget = true;
+
+					// Alert close animal
+					var closeAnimal = AiHelper.GetClosestObjectToPosition(animal.tx, animal.ty, animal.parentId, 20, animal);
+					if (closeAnimal != null && closeAnimal.hits <= 0) closeAnimal.hits = 0.1;
+					// if (closeAnimal != null) trace('Deadly: Alert: ${closeAnimal.name} hits: ${closeAnimal.hits}');
 				}
 			}
 		}
