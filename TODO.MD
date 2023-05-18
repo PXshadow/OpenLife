@@ -5,21 +5,28 @@ To play, just use any normal OHOL client and put in the custom server IP! No new
 Summary: 
 - the server is written from scratch in Haxe and is in early BETA, so expect some bugs / feel welcome to report them
 - there is winter as main new challange and where there is winter there is spring to grow back nature!
-- Wolfs are double strong in winter!
-- Temperature can and will kill you! Jump in a river to cool down, use fire or cloths to warm up or escape into a desert!
+- Wolfs and other deadly animals are double strong in winter!
+- Temperature can and will kill you!
+- Jump drink some water or jump in a river to cool down!
+- Use fire or cloths to warm up or escape into a desert!
 
 AI:
-- AI NPCs can hunt, nurse, eat, feed and craft clothing quite well. It goes for YUM and cravings and feeds you also your YUM and cravings. The AI might cook basic stuff and do very basic farming if helped by player.
 - Currently the Ai does not use containers, so use Baskets and Tables to save stuff you dont want the Ai to touch
+- Currently Ai wont open doors so use them for now to lock out AI
+- AI NPCs can hunt, nurse, eat, feed and craft clothing quite well. It goes for YUM and cravings and feeds you your YUM and cravings.
+- The AI can bake and cook some basic stuff 
+- The Ai can do some basic farming
+- AI can do pottery and basic smithing
 - By saying "STOP" or "DROP You can order the AI to stop or drop what it helds.
 - By saying "COME" the Ai will follow you for some time or untill you say "STOP"
-- By saying "HOME" you can set the closest oven as their new Home and closest fire as new home fire
+- By saying "HOME" you can set the closest oven as their new Home
 - By saying "MAKE xxx"  you can instruct the ai to make stuff with xxx is the item name
- The AI might or might not manage to craft the item. In theory it knows the hole crafting tree, but there might be bugs or needed stuff might not be close enough. 
+ The AI might or might not manage to craft the item. In theory it knows the hole crafting tree, but there might be bugs or needed stuff might not be close enough. Some stuff like making bowls if there are too many might be forbidden for AI.
 
 Combat:
-- combat is allowed but might give some prestige mali like attacking children. relatives or allies...
+- combat is allowed but might give some prestige mali like attacking children, relatives or allies...
 - combat is more skill based / the more close you hit where the playere is the more damage you do
+- combat is affected by many other paramters like how healthy you are (max food pipes), if you are in the right biome, if you have clothing...
 
 Map with rivers mountains and oceans:
 - the server uses a limited hand made map which can be changed using a picture
@@ -28,13 +35,13 @@ Map with rivers mountains and oceans:
 - all natural stuff can re-spawn (TODO except natural springs and tary spots)
 --> So having a lucky spot of one thing keeps it lucky also in the future
 - all can decay and be reborn! (TODO except wells and oil stuff)
-- Ancient stuff will decay very very slow (TODO)
+- Ancient stuff will decay very very slow
 
 Boats:
 - cars are now boats (TODO need new boat graphics for cars)
 
 Reconnection:
-- A normal restart / update takes like 15 seconds
+- A normal restart / update takes like 30 seconds
 - All playerdata is saved, so after server restart you can reconnect.
 - The Ai takes over your payer untill you reconnect
 
@@ -44,12 +51,16 @@ Fathers:
 Curses based on graves:
 - curse system is now based on graves
 - you incarnate more likely to your grave with a grave stone
-- you incarnate less likely to your grave without grave stone
-- you are cursed (lower speed / halve damage) if going close to your grave without grave stone
+- you incarnate less likely to your grave without a grave stone
+- you are cursed if going close to your grave without grave stone
+- You can curse a grave additionaly by adding a sharp stone
+- Cursed players have lower speed, make less damage, receive more damage
+- Cursed players have a black writing
 
 Different Classes:
 - there are three different classes: Serf / Commoner / Noble depending on your prestige score
 - you are more likely born to the same class
+- Each class has damage boni with different weapons / Sword for noble
 
 Prestige System:
 - yum chain is now your prestiege (score) / health and influcences movement speed, hitpoints and aging
@@ -57,7 +68,7 @@ Prestige System:
 
 Hitpoints / Exhaustion:
 - Your max food storage pipes (bootom left) is also now your hitpoints / stamina
-- If you are injured or Exhausted you loose Max Food Store pipes. Exhaustion will recover faster then hits.
+- If you are injured or Exhausted you loose Max Food Store pipes. Exhaustion will recover faster than hits.
 
 Reworked Yum and Craving System:
 - new craving system that shows you what has full YUM boni
@@ -96,7 +107,7 @@ Better fire Handling:
 - you can burn straw in a fire to make a flash fire
 
 Water Handling:
-- wells fill up at least 3 times faster. Better wells always refill faster then primitive wells
+- Better wells always refill faster then primitive wells
 - better wells need less hungry work per water gained / using lakes is worst. 
 
 Not yet implemented:
@@ -141,8 +152,8 @@ MAP:
 - no expert waystones
 
 Adam / Eve:
-// - adam / Eve do 50% less damage
-// - adam / Eve receive 50% less damage (also from animals)
+Deactivated: - adam / Eve do 50% less damage
+Deactivated: - adam / Eve receive 50% less damage (also from animals)
 
 Family Temperature:
 Your Skin Color affects the temperature you like:
@@ -204,10 +215,11 @@ Graves / Curses
 - since graves are more important you can use Stone Hoe to make graves
 - you incarnate more likely to your grave with a grave stone
 - you incarnate less likely close to your grave without grave stone
-- you are cursed (lower speed / halve damage) if going close to your grave without grave stone
-- you cannot interact with your own grave 
+- you are cursed (lower speed / make halve damage / receive more damage) if going close to your grave without grave stone
+- you cannot interact with your own grave (except on low population server)
 - for each Sharp Stone a grave needs much longer to decay (+8 hours) / This can be used to let cursed graves exist much longer
 - If allowed in the settings you can teleport to your own grave with a grave stone by saying "!TG" or "!TGRAVE"
+- Teleporting to your Grave costs some points
 
 Heat / Temperature:
 - bad temperature reduces speed (you get get an heat / cold animation warning you)
@@ -296,7 +308,7 @@ Wounds
 - wounds do damage / exhaustion with time 
 - with smal wounds you can still do stuff, but you will still get damage and less speed
 
-Objects:
+Objects: (Needs to be updated)
 - cooked Rabbit Food Value: 10 --> 20
 - turkey Slice on Plate Food Value: 17 --> 20
 - omelette Food Value: 12 --> 15
@@ -305,8 +317,9 @@ Objects:
 - compost has less uses to make soil more rare, since water is more plenty: Soil (Wheat, Berry, Dung) + water ==> 4 Soil  
 
 Ownership:
-- normal Gates are now inherited by a follower with the highest score or if none by the one the dead was following
-- if none was there to inherit the gate the first finder will own the gate
+- normal Gates are now inherited by a follower with the highest score
+- if there was no follower the one the former owner was following inherits it
+- if none was there to inherit the gate the first who finds the gate will own the it
 
 Transitions:
 - you can harvest Berries directly with a bowl
@@ -364,9 +377,13 @@ Food - Cravings:
 
 Animals:
 - biome animals wont most of the time attack you if you are in your biome... unless you make them angry...
-- knife and Sword does damage to attacking animals and might kill them (TODO allow to attack wolfs etc with knife / sword)
+- Knife and Sword does damage to attacking animals and might kill them
+- you can use Knife and Sword to attack animals (please test)
 - animals can multiply and die
 - animals can leave their biome, but prefare to stay in own biome
+- Sheep and other domestic animal try stay close to Green biome
+- In Winter Animals (Or Summer in case of Snakes) will attack close people
+- Attecked or injured animals will attack close people
 - stuff like trees and rabit holes wont block animal movement // TODO also for player / needs client support
 - horses are the ultimative devourers you can eat anything from horse!
 - animals have more hit points so a shot / hit may or may not kill them
@@ -382,7 +399,8 @@ Yellow fever:
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no gurantee!
-- animals grouping and hunting in winter / snakes in summer
+- basic Ai combat
+- animals grouping / animal bosses
 - better property system locks / for dors / chests / fortification
 - better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate)
 - special stuff like hercules / snake master / super fast ager 
@@ -395,44 +413,44 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no gurantee!
 
 High priority:
-- AI: max / min limit of objects directly in crafting
-- AI: cache couted objects and objects for crafting
-- AI allow commando only to (ally?) followers or mother / father
-- AI fight
-- AI eating from containers (needed also for player YUM display)
-- AI storing pies in containers 
-- AI using of (baskets) backpack
-
-- Let wolfs eat sheeps / cows
-
-- FIX segmentation fault crash with Ai crafting (missing mutexes?)
-- FIX segmentation fault crash with dodamage (missing mutexes?)
-- FIX? /leader Client crash (if leader or anybody? is out of range??) 
-==> as workaround all player data is send always ==> does still not work
-- FIX: PICKUP / DROP CHILD fix display bug. maybe set origion or action right?
-
-- SAVE season / save animal loved biome spot 
-- SAVE secret for player / allow ! Aging only if secret is known
-- SAVE save more stats for player, like best play, different eve runs, number of played, last loged in, amount of time played
-
-- FIX clearing up old lineage data / make storing lineage data more efficient
-
+- LOGIN Player Limit
 - BIOME let stuff dropped in water drift back to land
 - WINTER snow banks / melting if snow
 
-Middle priority:
-- Account Authentication
-- AI build oven / klin / forge on the good location
-- AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread 
-- AI if waiting for time transition check if the next step can be prepared
-- Heating for building / Biome temperature changes
+- AI fight
+- AI allow commando only to (ally?) followers or mother / father
+- AI cache couted objects and objects for crafting
+- AI feeding water to heated players
+- AI healing other players
+- AI eating from containers (needed also for player YUM display)
+- AI storing pies in containers 
+- AI using of backpack (baskets) / for example kindling, potato, pies to eat / water
+
 - WRITING / READING
+- POPERTY Swing doors
+- POPERTY locks / locked chests
+- POPERTY Ally Gates
+- POPERTY wall + stone + hungry work
 
-- GATES Swing doors
-- GATES locks / locked chests
-- GATES Ally Gates
+- Animal Let Bears go in cave before winter 
+- Animal Let wolfs / bears eat sheeps / cows
+- Animal Let pigs eat food
 
-- FORTIFICATION wall + stone + hungry work
+- AI: FIX pathing bug
+- FIX? /leader Client crash (if leader or anybody? is out of range??) 
+==> For now you can use insteads !LEADER (!L) or !DL for direct leader (first you follow)
+==> as workaround all player data is send always ==> does still not work
+
+- SAVE secret for player / allow ! Aging only if secret is known
+- FIX clearing up old lineage data --> needs a fix if player is still alive or if anythign is updated later on from the linage like family Name
+
+Middle priority:
+- TEMPERATURE indoor temperature calculation 
+- Account Authentication (Maybe a system based on IP limits plus higher prio for players with higher score)
+- AI build oven / klin / forge on a good location
+- AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread 
+- AI if waiting for time transition check if the next step can be prepared --> fire for now is manually optimized in craftItem
+- Heating for building / Biome temperature changes
 
 - AI using containers 
 - AI help building roads / repair roads
@@ -445,8 +463,12 @@ Middle priority:
 - TIME allow foloors to decay if walled by anicent walls? or generall alow floor decay?
 - ??? TIME decay all clothing
 
+- FIX PICKUP / DROP CHILD fix display bug. maybe set origion or action right?
 - FIX Needle and Thread --> Bone Needle (How does this on earth work???)
 - FIX light wounds are not light wounds anymore after reconnect / server restart?
+
+- SAVE season / save animal loved biome spot 
+- SAVE save more stats for player, like best play, different eve runs, number of played, last loged in, amount of time played
 
 - DISPLAY give hints for crafting
 
@@ -458,8 +480,6 @@ Middle priority:
 
 - ALLY test: change ally color if leader changes 
 - ALLY give some time after beeing exiled
-
-- BIRTH consider deadly animals
 
 - MAP use bigger map (Europe?) / create tool to auto create map
 
@@ -476,15 +496,11 @@ Middle priority:
 
 - ANIMAL animal movement on top of items --> Fix bug so that item apear again if animal interacted with 
 - ANIMAl eating sheep / wolf meat transitions 
-- ANIMAl chasing players
-- ANIMAl more Winter attacks (wolfes go for graves)
-- ANIMAl snakes in sommer
+- ANIMAl snakes hide in winter and come back in sommer
 - ANIMAL leaders
 - ANIMAL advanced player like animals
 
-- SCORE give prestige boni for clothing / crown
-
-- TEMPERATURE indoor temperature calculation 
+- SCORE give prestige boni for clothing (currently you get for crowns)
 
 - AI guards 
 
