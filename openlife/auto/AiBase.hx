@@ -813,9 +813,13 @@ abstract class AiBase {
 		var home = myPlayer.home;
 		// get basic kindling
 		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 72, 15); // Kindling 72
-		if (count < 3) this.taskState['kindling'] = 1;
-		if (count > 5) this.taskState['kindling'] = 0;
+		if (count < 1) this.taskState['kindling'] = 1;
+		if (count > 4) this.taskState['kindling'] = 0;
 
+		if (this.taskState['kindling'] > 0) {
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doCriticalStuff: get kindling: ${count}');
+			myPlayer.say('Get Kindling ${count} from 5');
+		}
 		// Kindling 72
 		if (this.taskState['kindling'] > 0 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
 		this.profession['firekeeper'] = 2;
@@ -2235,8 +2239,8 @@ abstract class AiBase {
 		var actorData = ObjectData.getObjectData(actorId);
 
 		// if (shouldDebugSay()) myPlayer.say('get ${actorData.name} to craft target: ${target.name}');
-		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: wanted actor: ${actorData.name} + target: ${target.name} held: ${myPlayer.heldObject.name}');
+		// if (ServerSettings.DebugAi)
+		//	trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: wanted actor: ${actorData.name} + target: ${target.name} held: ${myPlayer.heldObject.name}');
 
 		if (actorId == 0) return dropHeldObject();
 		return GetOrCraftItem(actorId, craftActorIfNeeded, target);
@@ -5144,7 +5148,7 @@ abstract class AiBase {
 			// itemToCraft.transitionsByObjectId = myPlayer.SearchTransitions(objId, ignoreHighTech);
 			// if(ServerSettings.DebugAi) trace('AI: craft: FINISHED transitions1 ms: ${Math.round((Sys.time() - startTime) * 1000)}');
 
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} new item to craft: ${itemToCraft.itemToCraft.description}!');
+			if (ServerSettings.DebugAiCrafting) trace('AAI: ${myPlayer.name + myPlayer.id} new item to craft: ${itemToCraft.itemToCraft.description}!');
 		}
 
 		if (ServerSettings.UseExperimentalMutex) GlobalPlayerInstance.ReleaseMutex();
@@ -5172,8 +5176,8 @@ abstract class AiBase {
 		}
 
 		if (itemToCraft.transActor == null) {
-			if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} craft: FAILED ${itemToCraft.itemToCraft.description} did not find any item in search radius for crafting!');
+			// if (ServerSettings.DebugAi)
+			//	trace('AAI: ${myPlayer.name + myPlayer.id} craft: FAILED ${itemToCraft.itemToCraft.description} did not find any item in search radius for crafting!');
 
 			failedCraftings[objId] = TimeHelper.tick;
 			// TODO give some help to find the needed Items
@@ -6974,8 +6978,10 @@ abstract class AiBase {
 						trace('AAI: ${myPlayer.name + myPlayer.id} raw pie done: ${itemToCraft.itemToCraft.name} countPies: $countPies lastPie: $lastPie');
 				}
 
+				var expectedUseTargetName = expectedUseTarget == null ? 'NOTSET!!!' : expectedUseTarget.name;
+
 				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} done: ${useActorName} + ${useTarget.name} ==> ${itemToCraft.itemToCraft.name} trans: ${itemToCraft.countTransitionsDone} finished: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
+					trace('AAI: ${myPlayer.name + myPlayer.id} done: ${useActorName} + ${useTarget.name} expected: ${expectedUseTargetName} ==> ${itemToCraft.itemToCraft.name} trans: ${itemToCraft.countTransitionsDone} finished: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
 			}
 		} else {
 			var foodStore = Math.round(myPlayer.food_store * 10) / 10;

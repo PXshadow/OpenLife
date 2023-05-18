@@ -3215,6 +3215,20 @@ class ServerSettings {
 
 		// var trans = TransitionImporter.GetTransition(283, -1); // Wooden Tongs with Fired Bowl
 		// trace('DEBUG!!!: ${trans.getDesciption()}');
+
+		// var trans = TransitionImporter.GetTransition(0, 31); // EMPTY + GOOSEBERRY 31
+		// trace('DEBUG!!!: ${trans.getDescription()}');
+
+		// Watered Wild Gooseberry Bush 3946
+		/*var transByTarget = TransitionImporter.GetTransitionByNewTarget(3946);
+			for (trans in transByTarget) {
+				// Skewer 139 // Weak Skewer 852
+				// if(trans.actorID != 139 && trans.actorID != 852) continue;
+
+				trace('DEBUG!!: ' + trans.getDescription());
+				// trans.aiShouldIgnore = true;
+		}*/
+
 		InitWaterSourceIds();
 		InitWateringTargets();
 	}
