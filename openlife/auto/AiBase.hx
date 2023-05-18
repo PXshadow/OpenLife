@@ -2583,7 +2583,7 @@ abstract class AiBase {
 		if (heldObject.parentId == 252) countDough += 1;
 
 		// Raw Pie Crust 264
-		if (countDough > 0 && countPieCrust < 4 && maxDoughInBowl == 0 && craftItem(264)) return true;
+		if (countDough > 0 && countPieCrust < 5 && maxDoughInBowl == 0 && craftItem(264)) return true;
 
 		if (hasOrBecomeProfession('BAKER', maxPeople) == false) return false;
 		var startTime = Sys.time();
@@ -4099,8 +4099,8 @@ abstract class AiBase {
 	var dropNearForgeItemIds = [289, 290, 327, 326, 319, 320, 441, 568, 311];
 
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
-		var heldObjId = myPlayer.heldObject.parentId;
 		var heldObject = myPlayer.heldObject;
+		var heldObjId = heldObject.parentId;
 		var dropTarget = myPlayer.home;
 		var home = myPlayer.home;
 
@@ -4108,21 +4108,8 @@ abstract class AiBase {
 		if (heldObjId == 2144) return dropHeldObject(); // 2144 Banana Peel
 		if (heldObjId == 34) return dropHeldObject(); // 34 Sharp Stone
 
-		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
-		if (heldObjId == 252) {
-			var knife = myPlayer.heldObject.parentId == 560 ? myPlayer.heldObject : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 560, 30, null,
-				myPlayer);
-			var maxDoughInBowl = knife == null ? 0 : 1;
-
-			// Sliced Bread 1471
-			var countSlicedBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 20);
-			// Leavened Dough on Clay Plate 1468
-			var countBread = countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
-
-			if (countBread > 1) maxDoughInBowl = 0;
-
-			if (heldObject.numberOfUses > maxDoughInBowl && shortCraft(252, 236, 10, false)) return true;
-		}
+		// Bowl of Dough 252 --> keep last use for making bread otherwise use up
+		if (UseUpDough()) return true;
 
 		// Skewered Rabbit 185 + Hot Coals 85
 		if (heldObjId == 185 && shortCraft(185, 85, 10, false)) return true;
@@ -4153,6 +4140,33 @@ abstract class AiBase {
 		if (quadDistanceFromHomeToTarget + 25 < quadDistanceToHome) return false;
 
 		return dropHeldObject();
+	}
+
+	// Bowl of Dough 252 --> keep last use for making bread otherwise use up
+	private function UseUpDough() {
+		var heldObject = myPlayer.heldObject;
+		var heldObjId = heldObject.parentId;
+		var home = myPlayer.home;
+
+		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
+		if (heldObjId != 252) return false;
+		if (useTarget != null && useTarget.parentId == 236) return false; // Allow use on Plate, since otherwise Ai might get stuck
+
+		var knife = myPlayer.heldObject.parentId == 560 ? myPlayer.heldObject : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 560, 30, null, myPlayer);
+		var maxDoughInBowl = knife == null ? 0 : 1;
+
+		// Sliced Bread 1471
+		var countSlicedBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 20);
+		// Leavened Dough on Clay Plate 1468
+		var countBread = countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
+		// Bowl of Leavened Dough 1466
+		countBread += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1466, 20);
+
+		if (countBread > 1) maxDoughInBowl = 0;
+
+		if (heldObject.numberOfUses > maxDoughInBowl && shortCraft(252, 236, 10, false)) return true;
+
+		return false;
 	}
 
 	// TODO consider to not drop stuff close to home if super far away or starving
@@ -4204,14 +4218,15 @@ abstract class AiBase {
 
 		if (storeInQuiver()) return true;
 
-		// Bowl of Dough 252 + Clay Plate 236 // keep last use for making bread
-		if (heldObjId == 252 && heldObject.numberOfUses > 1 && maxDistanceToHome > 5 && shortCraft(252, 236, 5, false)) return true;
+		// Bowl of Dough 252 --> keep last use for making bread otherwise use up
+		if (maxDistanceToHome > 5 && UseUpDough()) return true;
+		// if (heldObjId == 252 && heldObject.numberOfUses > 1 && && shortCraft(252, 236, 5, false)) return true;
 
 		if (heldObjId == 1137 && maxDistanceToHome > 5) { // Bowl of Soil 1137
 			// Bowl of Soil 1137 + Dying Gooseberry Bush 389
-			if (shortCraft(1137, 389, 15)) return true;
+			if (shortCraft(1137, 389, 15, false)) return true;
 			// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
-			if (shortCraft(1137, 848, 15)) return true;
+			if (shortCraft(1137, 848, 15, false)) return true;
 		}
 
 		// Stone Hoe 850 // if maxDistanceToHome is low dont do other stuff since its important to drop
