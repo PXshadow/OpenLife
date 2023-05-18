@@ -2421,6 +2421,40 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return bestPlayer;
 	}
 
+	public static function GetClosestPlayerAt(tx:Int, ty:Int, maxDistance:Int, onlyHuman:Bool = false):GlobalPlayerInstance {
+		// TODO limit max distance for ai
+
+		var player:GlobalPlayerInstance = null;
+		var quadMaxDistance = maxDistance * maxDistance;
+		var bestDistance:Float = quadMaxDistance;
+
+		for (c in Connection.getConnections()) {
+			if (c.player.deleted) continue;
+
+			var tmpQuadDistance = c.player.calculateExactQuadDistance(tx, ty);
+			// var tmpQuadDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
+
+			if (tmpQuadDistance > bestDistance) continue;
+			bestDistance = tmpQuadDistance;
+			player = c.player;
+		}
+
+		if (onlyHuman) return player;
+
+		for (ai in Connection.getAis()) {
+			if (ai.player.deleted) continue;
+
+			var tmpQuadDistance = ai.player.calculateExactQuadDistance(tx, ty);
+			// var tmpDistance = (pX - x) * (pX - x) + (pY - y) * (pY - y);
+
+			if (tmpQuadDistance > bestDistance) continue;
+			bestDistance = tmpQuadDistance;
+			player = ai.player;
+		}
+
+		return player;
+	}
+
 	public function getClosestPlayer(maxDistance:Int, onlyHuman:Bool = false):GlobalPlayerInstance {
 		// TODO limit max distance for ai
 

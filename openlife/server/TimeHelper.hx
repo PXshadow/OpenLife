@@ -1929,11 +1929,28 @@ class TimeHelper {
 		}
 
 		// choose targets
+		var gotoTarget = TimeHelper.Season == Winter || currentbiome == BiomeTag.SNOW;
+
 		// 418 Wolf // 631 Hungry Grizzly Bear
-		if (animal.parentId == 418 || animal.parentId == 631) {
+		if (gotoTarget && (animal.parentId == 418 || animal.parentId == 631)) {
 			if (animal.target == null) animal.target = GetClosestBoneGrave(animal); else {
 				var objData = WorldMap.world.getObjectDataAtPosition(animal.target.tx, animal.target.ty);
 				if (objData.isBoneGrave() == false) animal.target = GetClosestBoneGrave(animal);
+			}
+		}
+
+		if (animal.isDeadlyAnimal()) {
+			// Shot Wolf 420 // Shot Bison 1438 // Shot Grizzly Bear 632
+			var chasingAnimals = [420, 1438, 632, 635, 637];
+			// trace('Deadly: ${animal.name}');
+
+			if (animal.hits > 0 || TimeHelper.Season == Winter || chasingAnimals.contains(animal.parentId)) {
+				var player = GlobalPlayerInstance.GetClosestPlayerAt(animal.tx, animal.ty, 20);
+				if (player != null) {
+					// trace('Deadly: ${animal.name} target: ${player.name}');
+					animal.target = worldmap.getObjectHelper(player.tx, player.ty);
+					gotoTarget = true;
+				}
 			}
 		}
 
@@ -1979,7 +1996,7 @@ class TimeHelper {
 			if (target.id != 0 && i < maxIterations / 2) continue; // prefer to go on empty tiles
 
 			// if (target.id != 0) trace('MOVE target: ${target.name}');
-			var gotoTarget = TimeHelper.Season == Winter || currentbiome == BiomeTag.SNOW;
+
 			var gotoLovedBiome = gotoTarget == false
 				&& lovesCurrentBiome == false
 				&& isPreferredBiome == false
