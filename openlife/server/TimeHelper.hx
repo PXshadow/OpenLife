@@ -1930,7 +1930,7 @@ class TimeHelper {
 
 		// choose targets
 		// 418 Wolf // 631 Hungry Grizzly Bear
-		if (animal.id == 418 || animal.id == 631) {
+		if (animal.parentId == 418 || animal.parentId == 631) {
 			if (animal.target == null) animal.target = GetClosestBoneGrave(animal); else {
 				var objData = WorldMap.world.getObjectDataAtPosition(animal.target.tx, animal.target.ty);
 				if (objData.isBoneGrave() == false) animal.target = GetClosestBoneGrave(animal);
@@ -2025,10 +2025,10 @@ class TimeHelper {
 			}
 
 			var isLastMove = animal.isLastUse();
-			if (isLastMove) timeTransition = TransitionImporter.GetTransition(-1, animal.id, false, true);
+			if (isLastMove) timeTransition = TransitionImporter.GetTransition(-1, animal.parentId, false, true);
 
 			// FIX: 544 Domestic Mouflon with Lamb + -1  ==> 545 Domestic Lamb + 541 Domestic Mouflon
-			var timeAlternaiveTransition = isLastMove ? TransitionImporter.GetTransition(animal.id, -1, true, false) : null;
+			var timeAlternaiveTransition = isLastMove ? TransitionImporter.GetTransition(animal.parentId, -1, true, false) : null;
 
 			// FIX: Allow Shorn Domestic Sheep 577 --> Fleece 578 + Shorn Domestic Sheep 576
 			if (timeAlternaiveTransition == null && timeTransition.newActorID > 0) timeAlternaiveTransition = timeTransition;
@@ -2041,12 +2041,12 @@ class TimeHelper {
 
 			var rabbitInWrongPlace = false;
 			// 3568 Fleeing Rabbit dest# groundOnly // 3566 Fleeing Rabbit
-			if (animal.id == 3568 && targetBiome != YELLOW && targetBiome != GREEN) {
+			if (animal.parentId == 3568 && targetBiome != YELLOW && targetBiome != GREEN) {
 				animal.id = 3566; // dont go in the ground
 				rabbitInWrongPlace = true;
 			}
 
-			if (animal.id == 3568 && (currentOriginalbiome == YELLOW || currentOriginalbiome == GREEN)) {
+			if (animal.parentId == 3568 && (currentOriginalbiome == YELLOW || currentOriginalbiome == GREEN)) {
 				rabbitInWrongPlace = false;
 			}
 
@@ -2157,7 +2157,7 @@ class TimeHelper {
 			Connection.SendAnimalMoveUpdateToAllClosePlayers(fromTx, fromTy, toTx, toTy, oldTileObject, newTileObject, speed);
 
 			// if(tmpGroundObject == null) tmpGroundObject = new ObjectHelper(null, 0);
-			// if(tmpGroundObject.id != 0) trace('ANIMALMOVE: $oldTileObject ${tmpGroundObject.name} ${tmpGroundObject.id} ==> $newTileObject ${animal.name} ${animal.id}');
+			// if(tmpGroundObject.id != 0) trace('ANIMALMOVE: $oldTileObject ${tmpGroundObject.name} ${tmpGroundObject.id} ==> $newTileObject ${animal.name} ${animal.parentId}');
 
 			// trace('ANIMALMOVE: true $i');
 
@@ -2355,7 +2355,7 @@ class TimeHelper {
 
 		if (target.objectData.blocksAnimal) return false;
 
-		if (animal.id == 3566) { // 3566 Fleeing Rabbit
+		if (animal.parentId == 3566) { // 3566 Fleeing Rabbit
 			if (target.id != 0) return false;
 
 			var floorId = WorldMap.world.getFloorId(target.tx, target.ty);
