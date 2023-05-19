@@ -1407,13 +1407,14 @@ class AiHelper {
 		var bestPlayer = null;
 		var bestDist:Float = searchDistance * searchDistance;
 
-		if (player.angryTime > 4) return null;
+		// if (player.angryTime > 4) return null;
+		// TODO consider ally that can soon attack player
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
 			if (p.deleted) continue;
-			if (p.isHoldingWeapon() == false) continue;
+			if (p.isHoldingWeapon() == false && p.angryTime > 4) continue;
 			if (p.isFriendly(player)) continue;
-			if (p.angryTime > 4) continue;
+			// if (p.angryTime > 4) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p);
 

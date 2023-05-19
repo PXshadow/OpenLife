@@ -370,9 +370,13 @@ abstract class AiBase {
 		var startTime = Sys.time();
 
 		var animal = AiHelper.GetCloseDeadlyAnimal(myPlayer);
-		var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer);
+		var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer, 30);
+
+		// if (deadlyPlayer != null && deadlyPlayer.angryTime > 4) deadlyPlayer = null;
+		// if (deadlyPlayer != null) trace('attackPlayer: deadlyPlayer: ${deadlyPlayer.name}');
 
 		Macro.exception(if (didNotReachFood < 5) if (escape(animal, deadlyPlayer)) return);
+		deadlyPlayer = null; // TDO allow again after fixing combat
 		// Macro.exception(if (didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat());
 		Macro.exception(checkIsHungryAndEat());
 
@@ -421,11 +425,11 @@ abstract class AiBase {
 			return;
 		}); // do nothing than looking for player
 
-		Macro.exception(if (handleDeath()) return);
+		Macro.exception(if (deadlyPlayer == null && handleDeath()) return);
 		Macro.exception(if (isEating()) return);
 		// should be below isUsingItem since a use can be used to drop an hold item on a pile to pickup a baby
 		Macro.exception(if (isFeedingChild()) return);
-		Macro.exception(if (switchCloths()) return);
+		Macro.exception(if (deadlyPlayer == null && switchCloths()) return);
 
 		if (playerToFollow != null && autoStopFollow == false) {
 			var time = TimeHelper.CalculateTimeSinceTicksInSec(timeStartedToFolow);
@@ -440,12 +444,13 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: isEating ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
-		Macro.exception(if (isConsideringMakingFood()) return);
+		Macro.exception(if (deadlyPlayer == null && isConsideringMakingFood()) return);
 		Macro.exception(if (isUsingItem()) return); // isPickingupFood can have a use as drop!
 		Macro.exception(if (isPickingupFood()) return);
-		Macro.exception(if (this.profession['SMITH'] < 1 && isFeedingPlayerInNeed()) return);
-		Macro.exception(if (isStayingCloseToChild()) return);
+		Macro.exception(if (deadlyPlayer == null && this.profession['SMITH'] < 1 && isFeedingPlayerInNeed()) return);
+		Macro.exception(if (deadlyPlayer == null && isStayingCloseToChild()) return);
 		Macro.exception(if (isRemovingFromContainer()) return);
+		Macro.exception(if (attackPlayer(deadlyPlayer)) return);
 		Macro.exception(if (killAnimal(animal)) return);
 		Macro.exception(if (isMovingToPlayer(autoStopFollow ? 10 : 5)) return); // if ordered to follow stay closer otherwise give some space to work
 
@@ -4550,6 +4555,90 @@ abstract class AiBase {
 		return false;
 	}
 
+	// if (myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false;
+	private function attackPlayer(targetPlayer:GlobalPlayerInstance):Bool {
+		if (targetPlayer == null) return false;
+		if (myPlayer.food_store < -2) return false;
+		if (myPlayer.isWounded()) return false;
+
+		// if (foodTarget != null) return false;
+		var objData = ObjectData.getObjectData(152); // Bow and Arrow
+
+		if (myPlayer.age < objData.minPickupAge) return false;
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} attackPlayer: ${targetPlayer.name}');
+
+		// 151 Yew Bow
+		if (myPlayer.heldObject.id == 151) {
+			// Arrow Quiver
+			var quiver = myPlayer.getClothingById(3948);
+
+			if (quiver != null) {
+				myPlayer.self(0, 0, 5);
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} get Arrow from Quiver!');
+				return true;
+			}
+		}
+		if (myPlayer.heldObject.id == 0) {
+			// Arrow Quiver with Bow
+			var quiver = myPlayer.getClothingById(4151);
+
+			if (quiver != null) {
+				myPlayer.self(0, 0, 5);
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} get Bow from Quiver!');
+				return true;
+			}
+		}
+		// Arrow
+		if (myPlayer.heldObject.id == 148) {
+			// 4149 Empty Arrow Quiver with Bow
+			var quiver = myPlayer.getClothingById(4149);
+
+			// Arrow Quiver with Bow
+			if (quiver == null) quiver = myPlayer.getClothingById(4151);
+			if (quiver != null && quiver.canAddToQuiver()) {
+				myPlayer.self(0, 0, 5);
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} put Arrow in Quiver!');
+				return true;
+			}
+		}
+		if (myPlayer.heldObject.parentId != objData.id) {
+			// 4149 Empty Arrow Quiver with Bow
+			var quiver = myPlayer.getClothingById(4149);
+
+			// Arrow Quiver with Bow
+			if (quiver == null) quiver = myPlayer.getClothingById(4151);
+			if (quiver == null) return GetOrCraftItem(152); // Bow and Arrow
+			else
+				return GetOrCraftItem(148); // Arrow
+		}
+
+		var distance = myPlayer.CalculateDistanceToPlayer(targetPlayer);
+		var range = objData.useDistance;
+
+		if (distance > range * range || (range > 1.9 && distance < 1.5)) // check if too far or too close
+		{
+			var targetXY = new ObjectHelper(null, 0);
+
+			targetXY.tx = targetPlayer.tx > myPlayer.tx ? targetPlayer.tx - range + 1 : targetPlayer.tx + range - 1;
+			targetXY.ty = targetPlayer.ty > myPlayer.ty ? targetPlayer.ty - range + 1 : targetPlayer.ty + range - 1;
+			var done = myPlayer.gotoObj(targetXY);
+
+			if (done) didNotReachAnimalTarget = 0; else {
+				// didNotReachAnimalTarget++;
+				// if (didNotReachAnimalTarget >= 5) animalTarget = null;
+			}
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} attackPlayer $distance goto player ${done}');
+			return done;
+		}
+
+		// TODO give a chance to not make a perfect hit
+		var done = myPlayer.kill(targetPlayer.tx - myPlayer.gx, targetPlayer.ty - myPlayer.gy, targetPlayer.id);
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} attackPlayer: done: $done kill ${targetPlayer.name}');
+		didNotReachFood = 0;
+		return true;
+	}
+
 	private function killAnimal(animal:ObjectHelper):Bool {
 		if (animal == null && animalTarget == null) {
 			var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(timeLookedForDeadlyAnimalAtHome);
@@ -5002,6 +5091,8 @@ abstract class AiBase {
 	private function escape(animal:ObjectHelper, deadlyPlayer:GlobalPlayerInstance) {
 		var startTime = Sys.time();
 
+		// only escape from players that are going in attack mode
+		if (deadlyPlayer != null && deadlyPlayer.angryTime > 4) deadlyPlayer = null;
 		if (animal == null && deadlyPlayer == null) return false;
 		if (myPlayer.food_store < -1) return false;
 		// if(myPlayer == null) throw new Exception('WARNING! PLAYER IS NULL!!!');
@@ -5015,6 +5106,9 @@ abstract class AiBase {
 		var escapeDist = 3;
 		var distAnimal = animal == null ? 99999999 : AiHelper.CalculateQuadDistanceToObject(myPlayer, animal);
 		var distPlayer = deadlyPlayer == null ? 99999999 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
+		if (distPlayer > 64 && animal == null) return false; // escape only if at max 8 tiles away
+		if (distPlayer > 64) distPlayer = 99999999; // escape only if at max 8 tiles away
+
 		var escapePlayer = deadlyPlayer != null && distAnimal > distPlayer;
 		if (ServerSettings.DebugAi) trace('escape: distAnimal: ${distAnimal} distPlayer: ${distPlayer}');
 		var description = escapePlayer ? deadlyPlayer.name : animal.description;

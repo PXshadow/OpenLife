@@ -25,6 +25,7 @@ interface PlayerInterface {
 	public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int):Bool; // UBABY
 	public function doBaby(x:Int, y:Int, playerId:Int):Bool;
 	public function jump():Bool;
+	public function kill(x:Int, y:Int, playerId:Int):Bool; // playerId = -1 if no specific player is slected
 
 	// variables
 	public var id(get, null):Int;
