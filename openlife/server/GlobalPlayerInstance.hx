@@ -3752,7 +3752,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public function killHelper(x:Int, y:Int, playerId:Int):Bool // playerId = -1 if no specific player is slected
 	{
 		// TODO stop movement if hit
-		// TODO block movement if not ally (with weapon?)
+		// TODO block movement if not ally (with weapon?) --> currently movement is slowed down if close to enemy with weapon
 
 		var targetPlayer = getPlayerAt(this.gx + x, this.gy + y, playerId);
 		var name = targetPlayer == null ? 'not found!' : ${targetPlayer.name};
@@ -3760,17 +3760,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (targetPlayer == null) {
 			this.connection.send(PLAYER_UPDATE, [this.toData()]);
-
 			trace('kill: playerId: $playerId was not found!');
-
 			return false;
 		}
 
 		if (targetPlayer.deleted) {
 			this.connection.send(PLAYER_UPDATE, [this.toData()]);
-
 			trace('kill: playerId: $playerId is allready dead!');
-
 			return false;
 		}
 
@@ -3779,12 +3775,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.killMode = true;
 
 		Connection.SendEmoteToAll(targetPlayer, Emote.shock);
+		// TODO exile attacker by allied players from target
 
 		this.exhaustion += ServerSettings.CombatExhaustionCostPerAttack;
 		targetPlayer.lastPlayerAttackedMe = this;
 
 		// if player is not angry and none is in kill mode make angry first before attack is possible
-		//
 		// if(targetPlayer.angryTime > 0 && targetPlayer.killMode == false)
 		if (this.angryTime > 0 || targetPlayer.angryTime > 0) {
 			this.connection.send(PLAYER_UPDATE, [this.toData()]);
@@ -3836,6 +3832,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (lastAttackedPlayer != targetPlayer) {
 				this.connection.send(PLAYER_UPDATE, [this.toData()]);
 				this.connection.sendGlobalMessage('${targetPlayer.name} is your ally! Attack again to exile!');
+				this.say('Its my ally!', true);
 
 				lastAttackedPlayer = targetPlayer;
 
@@ -3849,6 +3846,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		targetPlayer.angryTime = -ServerSettings.CombatAngryTimeBeforeAttack; // make hit player angry, so that he can attack back
+		this.angryTime = -ServerSettings.CombatAngryTimeBeforeAttack; // make attacker more angry
 
 		var damage = targetPlayer.doDamage(this.heldObject, this, distanceFactor, quadDistance);
 
