@@ -3976,7 +3976,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (attacker != null) {
 			if (targetPlayer.isAlly(attacker)) allyFactor = 0.5; else {
 				targetPlayer.makeAllCloseAllyAngryAt(attacker);
-				allyFactor = attacker.calculateEnemyVsAllyStrengthFactor();
+				allyFactor = attacker.calculateEnemyVsAllyStrengthFactor(targetPlayer);
 				allyFactor = allyFactor > 1.2 ? 1.2 : allyFactor;
 			}
 
@@ -4197,9 +4197,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return true;
 	}
 
-	public function calculateEnemyVsAllyStrengthFactor():Float {
-		var allyStrength = 0.0;
-		var enemyStrength = 0.0;
+	public function calculateEnemyVsAllyStrengthFactor(targetPlayer:GlobalPlayerInstance = null):Float {
+		var allyStrength = 10.0;
+		var enemyStrength = 10.0;
 
 		for (p in AllPlayers) {
 			if (p.deleted) continue;
@@ -4207,8 +4207,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			var strength = p.isHoldingWeapon() ? 2 * p.food_store_max : p.food_store_max;
 
-			if (p.isFriendly(this)) allyStrength += strength; else
-				enemyStrength += strength;
+			if (p.isFriendly(this)) allyStrength += strength; else {
+				if (targetPlayer == null || p.isFriendly(targetPlayer)) enemyStrength += strength;
+			}
 		}
 
 		var factor = (allyStrength + allyStrength) / (enemyStrength + allyStrength);
