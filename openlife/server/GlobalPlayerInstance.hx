@@ -3777,7 +3777,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.killMode = true;
 
 		Connection.SendEmoteToAll(targetPlayer, Emote.shock);
-		// TODO exile attacker by allied players from target
 
 		this.exhaustion += ServerSettings.CombatExhaustionCostPerAttack;
 		targetPlayer.lastPlayerAttackedMe = this;
@@ -3853,6 +3852,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				return false;
 			} else {
 				// if(targetPlayer.getTopLeader() == this) this.exile(targetPlayer);
+				// TODO Check if leader is close and can see the attack
+				var leader = targetPlayer.getTopLeader();
+				if (leader != null && leader != this) leader.exile(this, false);
 				this.exile(targetPlayer, false);
 			}
 		}
@@ -3875,7 +3877,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (targetPlayer.isHoldingWeapon() == false) {
 			// TODO count as ally if exile happened not long ago ???
-			// TODO auto exile if seen by leader ???
 			if (targetPlayer.trueAge < ServerSettings.MinAgeToEat) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForChild;
 

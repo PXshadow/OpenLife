@@ -193,6 +193,7 @@ Combat / Attacking
 - you get angry / terrified 5 seconds after attacking / being attacked
 - you can attack an ally who is holding a weapon without any mali so you can duell
 - In case you hit your ally you make halve damage
+- In case you attack an ally without any weapon your Top Leader will auto exile you
 - The more / less strenght (max food pipes) you have the more / less damage you do 
 - clothing insulation reduces damage up to 66%;
 - you have reduced speed if close to enemy with weapon
