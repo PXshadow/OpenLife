@@ -215,6 +215,7 @@ Attacking prestige cost:
 - If you looose prestige like this, others may attack you without them loosing prestige
 - Nobles / Commoners loose halve reputation for attacking lower born
 - if you attack people with low reputation you gain reputation
+- per year you regain 10 lost reputation
 - all the presige and reputation damage is propotional to done damage
 
 Graves / Curses

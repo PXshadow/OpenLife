@@ -377,6 +377,12 @@ class TimeHelper {
 			if (player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack) player.angryTime += timePassedInSeconds;
 		}
 
+		// if (player.lostCombatPrestige != 0) trace('${player.name + player.id} lostCombatPrestige: ${player.lostCombatPrestige}');
+
+		if (player.angryTime >= 0 && player.lostCombatPrestige > 0) {
+			player.lostCombatPrestige -= (ServerSettings.CombatReputationRestorePerYear * timePassedInSeconds) / 60;
+		}
+
 		// if last attacker is far away set null
 		if (player.lastPlayerAttackedMe != null) {
 			var quadDist = AiHelper.CalculateDistanceToPlayer(player, player.lastPlayerAttackedMe);

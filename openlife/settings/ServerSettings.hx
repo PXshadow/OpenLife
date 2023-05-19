@@ -337,6 +337,7 @@ class ServerSettings {
 	// combat
 	public static var CombatAngryTimeBeforeAttack:Float = 5;
 	public static var CombatAngryTimeMinimum:Float = -60;
+	public static var CombatReputationRestorePerYear:Float = 10;
 	public static var CombatExhaustionCostPerAttack:Float = 0.1;
 	public static var MaleDamageFactor:Float = 1.2;
 	public static var WeaponCoolDownFactor:Float = 0.5; // 0.05;
