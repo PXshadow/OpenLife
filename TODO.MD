@@ -212,6 +212,9 @@ Attacking prestige cost:
 - you will loose prestige for attacking a women without weapon
 - you will loose even more prestige for attacking an ally without weapon
 - you will loose even more prestige for attacking a child without weapon
+- If you looose prestige like this, others may attack you without them loosing prestige
+- if you attack people with low reputation you gain reputation
+- all the presige and reputation damage is propotional to done damage
 
 Graves / Curses
 - instead player curses, curses work now through graves without a grave stone

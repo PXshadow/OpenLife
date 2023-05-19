@@ -253,7 +253,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var locationSaysPositions = new Array<Point>(); // no need to be saved
 
 	public var home = new ObjectHelper(null, 0); // position player considers home
-	public var storedInt = new Map<String, Int>(); // to store variables not saved yet
+	public var storedInt = new Map<String, Int>(); // to store variables // not saved yet
+	public var lostCombatPrestige:Float = 0; // like damage dealt to people without weapon if not justified // used to check if person should be attacked // not saved yet
 	public var timeLastTemperatureCalculation:Float = 0;
 
 	public var useFailedReason = 'NA';
@@ -3874,8 +3875,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			Connection.SendDyingToAll(targetPlayer); */
 
 		var prestigeCost:Float = 0;
+		var attackWasLegit = damage < 2 * targetPlayer.lostCombatPrestige;
 
-		if (targetPlayer.isHoldingWeapon() == false) {
+		if (attackWasLegit) {
+			this.lostCombatPrestige -= damage;
+			targetPlayer.lostCombatPrestige -= damage / 2;
+		}
+
+		if (targetPlayer.isHoldingWeapon() == false && attackWasLegit == false) {
+			this.lostCombatPrestige += damage;
+
 			// TODO count as ally if exile happened not long ago ???
 			if (targetPlayer.trueAge < ServerSettings.MinAgeToEat) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForChild;
@@ -3883,6 +3892,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				prestigeCost = Math.ceil(prestigeCost);
 
 				this.addHealthAndPrestige(-prestigeCost, false);
+				this.lostCombatPrestige += prestigeCost;
 
 				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking a child ${targetPlayer.name}!');
 			} else if (targetPlayer.isAlly(this)) {
@@ -3891,6 +3901,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				prestigeCost = Math.ceil(prestigeCost);
 
 				this.addHealthAndPrestige(-prestigeCost, false);
+				this.lostCombatPrestige += prestigeCost;
 
 				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking ally ${targetPlayer.name}!');
 			} else if (isCloseRelative(targetPlayer)) {
@@ -3899,6 +3910,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				prestigeCost = Math.ceil(prestigeCost);
 
 				this.addHealthAndPrestige(-prestigeCost, false);
+				this.lostCombatPrestige += prestigeCost;
 
 				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking close relative ${targetPlayer.name}!');
 			} else if (targetPlayer.isFemale()) {
@@ -3907,6 +3919,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				prestigeCost = Math.ceil(prestigeCost);
 
 				this.addHealthAndPrestige(-prestigeCost, false);
+				this.lostCombatPrestige += prestigeCost;
 
 				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking a women without weapon ${targetPlayer.name}!');
 			}
