@@ -3883,7 +3883,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if (targetPlayer.isHoldingWeapon() == false && attackWasLegit == false) {
-			this.lostCombatPrestige += damage;
+			var attackerPrestigeClass:Int = this.lineage.prestigeClass;
+			var targetPrestigeClass:Int = targetPlayer.lineage.prestigeClass;
+			var isHigherPrestigeClass = targetPrestigeClass < attackerPrestigeClass;
+
+			if (isHigherPrestigeClass) this.lostCombatPrestige += damage * 0.5; else
+				this.lostCombatPrestige += damage;
 
 			// TODO count as ally if exile happened not long ago ???
 			if (targetPlayer.trueAge < ServerSettings.MinAgeToEat) {
