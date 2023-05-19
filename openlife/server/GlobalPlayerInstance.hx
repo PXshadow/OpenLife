@@ -3782,10 +3782,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// if player is not angry and none is in kill mode make angry first before attack is possible
 		// if(targetPlayer.angryTime > 0 && targetPlayer.killMode == false)
-		if (this.angryTime > 0 || targetPlayer.angryTime > 0) {
+		// if (this.angryTime > 0 || targetPlayer.angryTime > 0) {
+
+		// You can attack an angry / terrified player or one that is holding a weapon
+		// This should give some time before you can attack if you hold no weapon
+		// if (targetPlayer.angryTime > 0 && targetPlayer.isHoldingWeapon() == false) {
+
+		// You can attack if you or the target are angry / terrified enough
+		if (this.angryTime > 0 && targetPlayer.angryTime > 0) {
 			this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
-			var tmpAngry = Math.max(this.angryTime, targetPlayer.angryTime);
+			// var tmpAngry = Math.max(this.angryTime, targetPlayer.angryTime);
+			var tmpAngry = Math.min(this.angryTime, targetPlayer.angryTime);
 
 			tmpAngry = Math.ceil(tmpAngry);
 

@@ -189,7 +189,7 @@ Ally
 - stregth of players with weapons are counted twice
 
 Combat / Attacking
-- you can attack anybody if you are angry and if the target is terrified or angry
+- you can attack if you or the target are angry / terrified enough
 - you get angry / terrified 5 seconds after attacking / being attacked
 - The more / less strenght (max food pipes) you have the more / less damage you do 
 - clothing insulation reduces damage up to 66%;
