@@ -368,9 +368,11 @@ class TimeHelper {
 
 		// var moreAngry = player.isHoldingWeapon() || (player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon());
 		var moreAngry = player.killMode || (player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon());
+		var minAngryTime = ServerSettings.CombatAngryTimeMinimum;
 
 		if (moreAngry) {
-			if (player.angryTime > -ServerSettings.CombatAngryTimeBeforeAttack) player.angryTime -= timePassedInSeconds;
+			if (player.angryTime > minAngryTime) player.angryTime -= timePassedInSeconds; else
+				player.angryTime = minAngryTime;
 		} else {
 			if (player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack) player.angryTime += timePassedInSeconds;
 		}
