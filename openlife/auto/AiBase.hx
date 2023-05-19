@@ -659,16 +659,24 @@ abstract class AiBase {
 		}
 	}
 
-	private function GetCraftAndDropItemsCloseToObj(target:ObjectHelper, whichObjId:Int, maxCount = 1, dist = 5, craft = true):Bool {
+	private function GetCraftAndDropItemsCloseToObj(target:ObjectHelper, whichObjId:Int, maxCount = 1, dist = 8, craft = true):Bool {
+		var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, whichObjId, dist);
+		if (count >= maxCount) return true;
+
 		if (myPlayer.heldObject.parentId == whichObjId) {
 			var quadDist = myPlayer.CalculateQuadDistanceToObject(target);
-			if (quadDist > dist * dist) return myPlayer.gotoObj(target);
+			if (quadDist > 1.5) return myPlayer.gotoObj(target);
 			dropHeldObject(0);
 			return true;
 		}
 
-		var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, whichObjId, dist);
-		if (count < maxCount && GetOrCraftItem(whichObjId, craft, dist)) return true;
+		var obj = AiHelper.GetClosestObjectToTarget(myPlayer, target, whichObjId, null, 30, dist);
+		if (obj != null) {
+			PickupObj(obj);
+			return true;
+		}
+		// TODO GetOrCraftItem searches from the current position which might not be close to the target, therfore objects close to the target might not be blocked which can end up in a loop getting and dropping like Kindling for fire
+		// if (count < maxCount && GetOrCraftItem(whichObjId, craft, dist, target)) return true;
 		return false;
 	}
 
@@ -839,9 +847,9 @@ abstract class AiBase {
 
 		if (placeFloorUnder(GetForge())) return true;
 
-		if (makeFireFood(1)) return true;
-
 		if (cleanUp()) return true;
+
+		if (makeFireFood(1)) return true;
 
 		// take care that there is at least some basic farming
 		// var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 399, 30); // Wet Planted Carrots
