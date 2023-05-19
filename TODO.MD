@@ -191,6 +191,8 @@ Ally
 Combat / Attacking
 - you can attack if you or the target are angry / terrified enough
 - you get angry / terrified 5 seconds after attacking / being attacked
+- you can attack an ally who is holding a weapon without any mali so you can duell
+- In case you hit your ally you make halve damage
 - The more / less strenght (max food pipes) you have the more / less damage you do 
 - clothing insulation reduces damage up to 66%;
 - you have reduced speed if close to enemy with weapon

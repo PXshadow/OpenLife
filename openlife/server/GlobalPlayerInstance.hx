@@ -3219,6 +3219,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function isHoldingWeapon():Bool {
+		// deadly distance is also > 0 for bloody weapons so they are considered weapons
+		// if (heldObject.objectData.isBloody) return true;
 		return heldObject.objectData.isWeapon();
 	}
 
@@ -3836,7 +3838,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return false;
 		}
 
-		if (targetPlayer.isAlly(this)) {
+		// Allow to attack ally who is holding a weapon without any mali so they can duell
+		// In case you hit your ally you make halve damage
+		if (targetPlayer.isAlly(this) && targetPlayer.isHoldingWeapon() == false) {
 			if (lastAttackedPlayer != targetPlayer) {
 				this.connection.send(PLAYER_UPDATE, [this.toData()]);
 				this.connection.sendGlobalMessage('${targetPlayer.name} is your ally! Attack again to exile!');
