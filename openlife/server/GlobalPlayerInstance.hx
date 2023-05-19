@@ -3878,7 +3878,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var attackWasLegit = damage < 2 * targetPlayer.lostCombatPrestige;
 
 		if (attackWasLegit) {
-			this.lostCombatPrestige -= damage;
+			this.lostCombatPrestige -= damage / 2;
 			targetPlayer.lostCombatPrestige -= damage / 2;
 		}
 
