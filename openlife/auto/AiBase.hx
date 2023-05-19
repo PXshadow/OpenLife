@@ -376,7 +376,7 @@ abstract class AiBase {
 		// if (deadlyPlayer != null) trace('attackPlayer: deadlyPlayer: ${deadlyPlayer.name}');
 
 		Macro.exception(if (didNotReachFood < 5) if (escape(animal, deadlyPlayer)) return);
-		deadlyPlayer = null; // TDO allow again after fixing combat
+		// deadlyPlayer = null; // TODO allow again after fixing combat
 		// Macro.exception(if (didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat());
 		Macro.exception(checkIsHungryAndEat());
 
@@ -397,7 +397,7 @@ abstract class AiBase {
 		}
 
 		// check if manual waiting time is set. For example received a STOP command
-		if (waitingTime > 1) {
+		if (deadlyPlayer == null && waitingTime > 1) {
 			time += 1;
 			waitingTime -= 1;
 			if (waitingTime < 0) waitingTime = 0;

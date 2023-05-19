@@ -1412,7 +1412,7 @@ class AiHelper {
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
 			if (p.deleted) continue;
-			if (p.isHoldingWeapon() == false && p.angryTime > 4) continue;
+			if (p.isHoldingWeapon() == false && p.lostCombatPrestige < 4) continue;
 			if (p.isFriendly(player)) continue;
 			// if (p.angryTime > 4) continue;
 
