@@ -3953,6 +3953,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (ServerSettings.DebugCombat) trace('COMBAT: protection: $protection protectionFactor: $protectionFactor');
 
 		var allyFactor = 1.0;
+		var currentStrengthFactor = 1.0;
 
 		if (attacker != null) {
 			if (targetPlayer.isAlly(attacker)) allyFactor = 0.5; else {
@@ -3964,8 +3965,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			var isRightClassForWeapon = attacker.isRightClassForWeapon();
 			if (ServerSettings.DebugCombat) trace('COMBAT: isRightClassForWeapon: $isRightClassForWeapon');
 
+			currentStrengthFactor = attacker.food_store_max / ServerSettings.GrownUpFoodStoreMax;
+
 			damage *= attacker.isMale() ? ServerSettings.MaleDamageFactor : 1;
-			damage *= attacker.food_store_max / ServerSettings.GrownUpFoodStoreMax;
+			damage *= currentStrengthFactor;
 			damage *= allyFactor;
 			damage *= distanceFactor;
 			damage *= isRightClassForWeapon ? 1.2 : 1;
@@ -3974,7 +3977,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			damage *= attacker.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
 
 			if (ServerSettings.DebugCombat)
-				trace('COMBAT: HIT weaponDamage: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance');
+				trace('COMBAT: HIT weaponDamage1: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance attacker cursed: ${attacker.isCursed}');
 		}
 
 		var isRightClassForWeapon = targetPlayer.isRightClassForWeapon();
@@ -3995,8 +3998,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (doesRealDamage == false) yellowfeverCount += 0.02;
 
 		var weaponDamageProtectionFactor = targetPlayer.heldObject.objectData.damageProtectionFactor;
+		weaponDamageProtectionFactor = isRightClassForWeapon ? Math.pow(weaponDamageProtectionFactor, 2) : weaponDamageProtectionFactor;
 
-		if (doesRealDamage) damage *= isRightClassForWeapon ? Math.pow(weaponDamageProtectionFactor, 2) : weaponDamageProtectionFactor; else
+		if (doesRealDamage) damage *= weaponDamageProtectionFactor; else
 			damage *= moskitoDamageFactor;
 
 		damage *= biomeDamageFactor;
@@ -4014,7 +4018,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		targetPlayer.sendFoodUpdate(false);
 		if (doesRealDamage) Connection.SendDyingToAll(targetPlayer); // he is not actually dying but wounded
 
-		if (ServerSettings.DebugCombat) trace('COMBAT: HIT objDamage: $orgDamage damage: $damage moskitoDamageFactor: $moskitoDamageFactor');
+		if (ServerSettings.DebugCombat) {
+			if (doesRealDamage)
+				trace('COMBAT: HIT weaponDamage2: $orgDamage damage: $damage isWounded: ${targetPlayer.isWounded()} clothProtection: $protectionFactor  weaponProtection: $weaponDamageProtectionFactor biomeFactor: ${biomeDamageFactor} allyFactor: $allyFactor distanceFactor: $distanceFactor currentStrengthFactor: $currentStrengthFactor');
+			else
+				trace('COMBAT: HIT weaponDamage2: $orgDamage damage: $damage moskitoDamageFactor: $moskitoDamageFactor');
+		}
+
 		if (doesRealDamage) trace('Real Damage!');
 
 		if (targetPlayer.woundedBy == 0 || doesRealDamage) targetPlayer.woundedBy = fromObj.id;
@@ -4186,7 +4196,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var factor = (allyStrength + allyStrength) / (enemyStrength + allyStrength);
 
 		// if(ServerSettings.DebugCombat)
-		trace('ALLY STRENGTH: ${allyStrength} vs enemy: ${enemyStrength} factor: $factor');
+		trace('Combat: ALLY STRENGTH: ${allyStrength} vs enemy: ${enemyStrength} factor: $factor');
 
 		return factor;
 	}
