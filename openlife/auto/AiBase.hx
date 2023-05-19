@@ -663,10 +663,13 @@ abstract class AiBase {
 		var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, whichObjId, dist);
 		if (count >= maxCount) return true;
 
+		// Kindling 72
+		// if (whichObjId == 72) trace('${myPlayer.name} Get Kindling ${count}');
+
 		if (myPlayer.heldObject.parentId == whichObjId) {
 			var quadDist = myPlayer.CalculateQuadDistanceToObject(target);
 			if (quadDist > 1.5) return myPlayer.gotoObj(target);
-			dropHeldObject(0);
+			dropHeldObject(5, target);
 			return true;
 		}
 
@@ -675,9 +678,11 @@ abstract class AiBase {
 			PickupObj(obj);
 			return true;
 		}
+		// if (whichObjId == 72) trace('${myPlayer.name} Get Kindling ${count} NO KINDLING found!');
+
 		// TODO GetOrCraftItem searches from the current position which might not be close to the target, therfore objects close to the target might not be blocked which can end up in a loop getting and dropping like Kindling for fire
 		// if (count < maxCount && GetOrCraftItem(whichObjId, craft, dist, target)) return true;
-		return false;
+		return craftItem(whichObjId);
 	}
 
 	private function isCuttingWood(maxPeople = 1):Bool {
@@ -826,12 +831,12 @@ abstract class AiBase {
 		var home = myPlayer.home;
 		// get basic kindling
 		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 72, 15); // Kindling 72
-		if (count < 1) this.taskState['kindling'] = 1;
+		if (count < 2) this.taskState['kindling'] = 1;
 		if (count > 4) this.taskState['kindling'] = 0;
 
 		if (this.taskState['kindling'] > 0) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doCriticalStuff: get kindling: ${count}');
-			myPlayer.say('Get Kindling ${count} from 5');
+			if (shouldDebugSay()) myPlayer.say('Get Kindling ${count} from 5');
 		}
 		// Kindling 72
 		if (this.taskState['kindling'] > 0 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
