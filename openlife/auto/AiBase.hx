@@ -4569,6 +4569,8 @@ abstract class AiBase {
 		if (myPlayer.food_store < -2) return false;
 		if (myPlayer.isWounded()) return false;
 
+		var heldObject = myPlayer.heldObject;
+
 		// if (foodTarget != null) return false;
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
 
@@ -4621,12 +4623,21 @@ abstract class AiBase {
 				return GetOrCraftItem(148); // Arrow
 		}
 
-		var distance = myPlayer.CalculateDistanceToPlayer(targetPlayer);
-		var range = objData.useDistance;
+		// FIX: combat uses exact distance calculation
+		// var distance = myPlayer.CalculateDistanceToPlayer(targetPlayer);
+		// var distance = myPlayer.CalculateDistanc(targetPlayer);
+		var player = cast(myPlayer, GlobalPlayerInstance);
+		var distance = player.calculateExactQuadDistanceToPlayer(targetPlayer);
+		var deadlyDistance = heldObject.objectData.deadlyDistance;
+		var range = deadlyDistance;
+		// var range = objData.useDistance;
 
-		if (distance > range * range || (range > 1.9 && distance < 1.5)) // check if too far or too close
+		trace('AI: ${targetPlayer.name} Kill: deadlyDistance: ${range} exactQuadDistance: ${distance}');
+
+		if (distance > (range * range) + 0.1 || (range > 1.9 && distance < 1.5)) // check if too far or too close
 		{
 			var targetXY = new ObjectHelper(null, 0);
+			var range = Math.floor(range);
 
 			targetXY.tx = targetPlayer.tx > myPlayer.tx ? targetPlayer.tx - range + 1 : targetPlayer.tx + range - 1;
 			targetXY.ty = targetPlayer.ty > myPlayer.ty ? targetPlayer.ty - range + 1 : targetPlayer.ty + range - 1;

@@ -83,6 +83,11 @@ class MoveHelper {
 		return calculateExactQuadDistance(targetTx, targetTy) <= distance * distance;
 	}
 
+	public function calculateExactQuadDistanceToPlayer(targetPlayer:GlobalPlayerInstance):Float {
+		var target = targetPlayer.moveHelper;
+		return calculateExactQuadDistance(target.exactTx, target.exactTy);
+	}
+
 	public function calculateExactQuadDistance(targetTx:Float, targetTy:Float):Float {
 		var rx = WorldMap.world.transformFloatX(player, targetTx);
 		var ry = WorldMap.world.transformFloatY(player, targetTy);

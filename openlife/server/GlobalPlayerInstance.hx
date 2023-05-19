@@ -1679,6 +1679,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return this.moveHelper.calculateExactQuadDistance(targetTx, targetTy);
 	}
 
+	public function calculateExactQuadDistanceToPlayer(target:GlobalPlayerInstance):Float {
+		return this.moveHelper.calculateExactQuadDistanceToPlayer(target);
+	}
+
 	public function getPackpack():ObjectHelper {
 		return this.clothingObjects[5];
 	}
@@ -3819,11 +3823,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		Connection.SendEmoteToAll(this, Emote.murderFace);
 
-		if (isCloseToPlayerUseExact(targetPlayer, deadlyDistance) == false) {
+		var exactQuadDistance = this.calculateExactQuadDistanceToPlayer(targetPlayer);
+
+		trace('Kill: ${targetPlayer.name} deadlyDistance: ${deadlyDistance} exactQuadDistance: ${exactQuadDistance}');
+
+		// if (isCloseToPlayerUseExact(targetPlayer, deadlyDistance) == false) {
+		if (exactQuadDistance > (deadlyDistance * deadlyDistance) + 0.1) {
 			this.connection.send(PLAYER_UPDATE, [this.toData()]);
-
-			trace('kill: playerId: $playerId is too far away! deadlyDistance: $deadlyDistance');
-
+			trace('kill: playerId: $playerId is too far away! deadlyDistance: $deadlyDistance exactQuadDistance: $exactQuadDistance');
 			return false;
 		}
 
@@ -3832,12 +3839,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (distanceFactor < 0.3) {
 			this.connection.send(PLAYER_UPDATE, [this.toData()]);
-
 			trace('kill: playerId: $playerId is in range but target x,y is too far away! quadDistance: $quadDistance');
-
 			return false;
 		}
-
 		// Allow to attack ally who is holding a weapon without any mali so they can duell
 		// In case you hit your ally you make halve damage
 		if (targetPlayer.isAlly(this) && targetPlayer.isHoldingWeapon() == false) {
@@ -3845,16 +3849,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				this.connection.send(PLAYER_UPDATE, [this.toData()]);
 				this.connection.sendGlobalMessage('${targetPlayer.name} is your ally! Attack again to exile!');
 				this.say('Its my ally!', true);
-
 				lastAttackedPlayer = targetPlayer;
-
 				trace('kill: playerId: $playerId is an ally!');
-
 				return false;
 			} else {
 				// if(targetPlayer.getTopLeader() == this) this.exile(targetPlayer);
 				// TODO Check if leader is close and can see the attack
 				var leader = targetPlayer.getTopLeader();
+
 				if (leader != null && leader != this) leader.exile(this, false);
 				this.exile(targetPlayer, false);
 			}
@@ -3863,7 +3865,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// make participants more angry // max angry is checked in TimeHelper
 		targetPlayer.angryTime -= ServerSettings.CombatAngryTimeBeforeAttack; // make hit player angry / terrified
 		this.angryTime -= ServerSettings.CombatAngryTimeBeforeAttack; // make attacker more angry
-
 		var damage = targetPlayer.doDamage(this.heldObject, this, distanceFactor, quadDistance);
 
 		/*this.setHeldObjectOriginNotValid(); // no animation
@@ -3881,57 +3882,40 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			this.lostCombatPrestige -= damage / 2;
 			targetPlayer.lostCombatPrestige -= damage / 2;
 		}
-
 		if (targetPlayer.isHoldingWeapon() == false && attackWasLegit == false) {
 			var attackerPrestigeClass:Int = this.lineage.prestigeClass;
 			var targetPrestigeClass:Int = targetPlayer.lineage.prestigeClass;
 			var isHigherPrestigeClass = targetPrestigeClass < attackerPrestigeClass;
-
 			if (isHigherPrestigeClass) this.lostCombatPrestige += damage * 0.5; else
 				this.lostCombatPrestige += damage;
-
 			// TODO count as ally if exile happened not long ago ???
 			if (targetPlayer.trueAge < ServerSettings.MinAgeToEat) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForChild;
-
 				prestigeCost = Math.ceil(prestigeCost);
-
 				this.addHealthAndPrestige(-prestigeCost, false);
 				this.lostCombatPrestige += prestigeCost;
-
 				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking a child ${targetPlayer.name}!');
 			} else if (targetPlayer.isAlly(this)) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForAlly;
-
 				prestigeCost = Math.ceil(prestigeCost);
-
 				this.addHealthAndPrestige(-prestigeCost, false);
 				this.lostCombatPrestige += prestigeCost;
-
 				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking ally ${targetPlayer.name}!');
 			} else if (isCloseRelative(targetPlayer)) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForCloseRelatives;
-
 				prestigeCost = Math.ceil(prestigeCost);
-
 				this.addHealthAndPrestige(-prestigeCost, false);
 				this.lostCombatPrestige += prestigeCost;
-
 				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking close relative ${targetPlayer.name}!');
 			} else if (targetPlayer.isFemale()) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForWomenWithoutWeapon;
-
 				prestigeCost = Math.ceil(prestigeCost);
-
 				this.addHealthAndPrestige(-prestigeCost, false);
 				this.lostCombatPrestige += prestigeCost;
-
 				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking a women without weapon ${targetPlayer.name}!');
 			}
 		}
-
 		// trace('Wound: damage: $damage prestigeCost: $prestigeCost');
-
 		return true;
 	}
 
