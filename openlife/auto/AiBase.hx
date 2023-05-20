@@ -2590,7 +2590,17 @@ abstract class AiBase {
 		// Sliced Bread 1471
 		var countSlicedBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 20);
 		// Leavened Dough on Clay Plate 1468
-		var countBread = countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
+		var countBread =  AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
+
+		var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, home);
+		
+		// If far away from home count also stuff at current position
+		if(quadDistanceToHome > 90){
+			countSlicedBread += countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1471, 20);
+			countBread += countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1468, 20);
+		}
+
+		countBread += countSlicedBread;
 
 		if (countBread > 1) maxDoughInBowl = 0;
 
