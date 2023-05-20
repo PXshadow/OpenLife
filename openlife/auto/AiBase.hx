@@ -2826,9 +2826,9 @@ abstract class AiBase {
 		}*/
 
 		// Bowl of Tomato Seeds 2828
-		var countTomatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2828, 60);
+		var countTomatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2828, 30);
 		// Bowl of Tomato Seed Pulp 2825
-		countTomatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2825, 60);
+		countTomatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2825, 30);
 		if (countTomatoSeeds < 1) {
 			if (craftItem(2828)) return true; // Bowl of Tomato Seeds 2828
 		}
