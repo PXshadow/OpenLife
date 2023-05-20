@@ -1918,11 +1918,11 @@ class ServerSettings {
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1466, 0, 235); // Bowl of Leavened Dough --> Clay Bowl 235
-		trans.autoDecaySeconds = -4;
+		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1468, 0, 236); // Leavened Dough on Clay Plate 1468 --> Clay Plate 236
-		trans.autoDecaySeconds = -4;
+		trans.autoDecaySeconds = -1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
 		// TODO remove once Garlic is gone
