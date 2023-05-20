@@ -4597,7 +4597,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		} else if (text == '!DBL') {
 			player.connection.sendToMeAllFollowings();
 			var leader = player.getTopLeader();
-			var leaderText = leader == null ? 'NULL' : 'deleted ${leader.isDeleted()}';
+			var leaderText = leader == null ? 'NULL' : '${leader.name} deleted ${leader.isDeleted()}';
 			player.say('leader $leaderText', true);
 			return true;
 		} else if (text.indexOf('!OBIOME') != -1) {

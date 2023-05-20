@@ -248,6 +248,8 @@ class TimeHelper {
 	private static function DisplayStuff(player:GlobalPlayerInstance) {
 		if (player.isHuman() == false) return;
 		player.connection.sendMapChunkIfNeeded(); // to update seasonal biomes
+		player.connection.sendToMeAllFollowings(); // TODO check why following is not updated right seems to work after relogin
+
 		if (player.account.displayClosePlayers) DisplayClosePlayers(player);
 		if (player.age < 3) return;
 
