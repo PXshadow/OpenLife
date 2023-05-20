@@ -210,10 +210,13 @@ abstract class AiBase {
 		RemoveTargetBlockedByAi(ai.ai.useTarget);
 	}
 
+	// make thread safe, since can interact with player say
 	private static function RemoveTargetBlockedByAi(obj:ObjectHelper) {
 		if (obj == null) return;
 		var index = WorldMap.world.index(obj.tx, obj.ty);
+		GlobalPlayerInstance.AcquireMutex();
 		blockedByAI.remove(index);
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	// Fire 82 // Large Fast Fire 83 // Hot Coals 85 // Large Slow Fire 346 // Flash Fire 3029
@@ -4908,7 +4911,14 @@ abstract class AiBase {
 			return done; */
 	}
 
+	// make thread save, since reacting to player say command could mess with blocked objects
 	private function cleanupBlockedObjects() {
+		GlobalPlayerInstance.AcquireMutex();
+		Macro.exception(cleanupBlockedObjectsHelper());
+		GlobalPlayerInstance.ReleaseMutex();
+	}
+
+	private function cleanupBlockedObjectsHelper() {
 		for (key in notReachableObjects.keys()) {
 			var time = notReachableObjects[key];
 			time -= ServerSettings.AiReactionTime;
@@ -7246,9 +7256,16 @@ abstract class AiBase {
 		addHostilePath(obj.tx, obj.ty);
 	}
 
-	public function addHostilePath(tx:Int, ty:Int) {
+	// make thread sabve, since it could be used while reactin to say
+	public function addHostilePath(tx:Int, ty:Int, time:Float = 20) {
+		GlobalPlayerInstance.AcquireMutex();
+		Macro.exception(addHostilePathHelper(tx, ty, time));
+		GlobalPlayerInstance.ReleaseMutex();
+	} 
+
+	private function addHostilePathHelper(tx:Int, ty:Int, time:Float = 20) {
 		var index = WorldMap.world.index(tx, ty);
-		objectsWithHostilePath[index] = 20; // block for 20 sec
+		objectsWithHostilePath[index] = time; // block for 20 sec
 	}
 
 	public function isObjectWithHostilePath(tx:Int, ty:Int):Bool {
@@ -7261,17 +7278,22 @@ abstract class AiBase {
 
 	static public function AddObjBlockedByAi(obj:ObjectHelper, time:Float = 1) {
 		var index = WorldMap.world.index(obj.tx, obj.ty);
+		GlobalPlayerInstance.AcquireMutex();
 		blockedByAI[index] = time;
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	public function addNotReachableObject(obj:ObjectHelper, time:Float = 90) {
 		addNotReachable(obj.tx, obj.ty, time);
 	}
 
+	// make thread sabve, since it could be used while reactin to say
 	public function addNotReachable(tx:Int, ty:Int, time:Float = 90) {
 		var index = WorldMap.world.index(tx, ty);
 		// if(notReachableObjects.exists(index)) return;
+		GlobalPlayerInstance.AcquireMutex();
 		notReachableObjects[index] = time; // block for 90 sec
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	public function isObjectNotReachable(tx:Int, ty:Int):Bool {
