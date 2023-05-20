@@ -1748,9 +1748,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	**/
 	public function say(text:String, toSelf:Bool = false) {
 		GlobalPlayerInstance.AcquireMutex();
-
 		Macro.exception(sayHelper(text, toSelf));
-
 		GlobalPlayerInstance.ReleaseMutex();
 	}
 

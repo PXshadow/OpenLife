@@ -3844,6 +3844,12 @@ abstract class AiBase {
 	}
 
 	public function say(player:PlayerInterface, curse:Bool, text:String) {
+		GlobalPlayerInstance.AcquireMutex();
+		Macro.exception(sayHelper(player, curse, text));
+		GlobalPlayerInstance.ReleaseMutex();
+	}
+
+	private function sayHelper(player:PlayerInterface, curse:Bool, text:String) {
 		if (myPlayer.id == player.id) return;
 		if (player.isAi()) return;
 
