@@ -3902,7 +3902,7 @@ abstract class AiBase {
 			var home = WorldMap.world.getObjectHelper(myPlayer.home.tx, myPlayer.home.ty);
 			myPlayer.say('${home.name}');
 		}
-		if (text.contains("FOLLOW ME") || text.startsWith("FOLLOW!") || text.startsWith("COME!")) {
+		if (text.startsWith("FOLLOW ME!") || text.startsWith("FOLLOW!") || text.startsWith("COME!")) {
 			autoStopFollow = false; // otherwise if old enough ai would stop follow
 			timeStartedToFolow = TimeHelper.tick;
 			playerToFollow = player;
