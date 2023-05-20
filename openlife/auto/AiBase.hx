@@ -2590,12 +2590,12 @@ abstract class AiBase {
 		// Sliced Bread 1471
 		var countSlicedBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 20);
 		// Leavened Dough on Clay Plate 1468
-		var countBread =  AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
+		var countBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
 
 		var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, home);
-		
+
 		// If far away from home count also stuff at current position
-		if(quadDistanceToHome > 90){
+		if (quadDistanceToHome > 90) {
 			countSlicedBread += countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1471, 20);
 			countBread += countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1468, 20);
 		}
@@ -2734,7 +2734,9 @@ abstract class AiBase {
 				if (shortCraft(560, 1468, 20, false)) return true;
 
 				// 1466 Bowl of Leavened Dough // 236 Clay Plate
-				if (countBread < 3 && shortCraft(1466, 236, 20, false)) return true;
+				// if (countBread < 3 && shortCraft(1466, 236, 20, false)) return true;
+				// 1468 Leavened Dough on Clay Plate
+				if (countBread < 2 && craftItem(1468)) return true; // Use craftItem so that it can be limited
 			}
 		}
 
