@@ -1412,11 +1412,13 @@ class AiHelper {
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
 			if (p.deleted) continue;
-			if (p.isHoldingWeapon() == false && p.lostCombatPrestige < 4) continue;
-			if (p.isFriendly(player)) continue;
+			// if (p.isHoldingWeapon() == false && p.lostCombatPrestige < 4) continue;
 			// if (p.angryTime > 4) continue;
 			// TODO this is less agro but would allow to shoot first on a agro AI
-			// if (p.heldObject.isBloody() == false && p.lostCombatPrestige < 4 && (p.isHoldingWeapon() == false || (p.angryTime > 4 && player.angryTime > 4))) continue;
+			if (p.heldObject.isBloody() == false
+				&& p.lostCombatPrestige < 4
+				&& (p.isHoldingWeapon() == false || (p.angryTime > 4 && player.angryTime > 4))) continue;
+			if (p.isFriendly(player)) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p);
 
