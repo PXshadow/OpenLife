@@ -664,7 +664,7 @@ abstract class AiBase {
 
 	private function GetCraftAndDropItemsCloseToObj(target:ObjectHelper, whichObjId:Int, maxCount = 1, dist = 8, craft = true):Bool {
 		var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, whichObjId, dist);
-		if (count >= maxCount) return true;
+		if (count >= maxCount) return false;
 
 		// Kindling 72
 		// if (whichObjId == 72) trace('${myPlayer.name} Get Kindling ${count}');
@@ -7261,7 +7261,7 @@ abstract class AiBase {
 		GlobalPlayerInstance.AcquireMutex();
 		Macro.exception(addHostilePathHelper(tx, ty, time));
 		GlobalPlayerInstance.ReleaseMutex();
-	} 
+	}
 
 	private function addHostilePathHelper(tx:Int, ty:Int, time:Float = 20) {
 		var index = WorldMap.world.index(tx, ty);
