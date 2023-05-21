@@ -3341,7 +3341,7 @@ class ServerSettings {
 		LimitObjectByNewTarget(402, 396, 10); // Limit Carrot 402 // Dry Planted Carrots 396
 
 		// Bowl of Tomato Seeds 2828
-		LimitObjectByNewTarget(2828, 2828, 1);
+		LimitObjectByNewTarget(2828, 2828, 2);
 
 		// LimitObjectByTarget(297, 226, 1); // Threshed Wheat 297 // Threshed Wheat (with straw) 226
 		LimitObjectByTarget(4070, 242, 2); // Pile of Threshed Wheat 4070 // Ripe Wheat 242
