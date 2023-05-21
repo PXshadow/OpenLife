@@ -5262,6 +5262,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		for (p in AllPlayers) {
 			if (p.deleted) continue;
+			if (p.p_id == this.p_id) continue;
 			if (maxDistance > 0 && p.isCloseToPlayerUseExact(this, maxDistance) == false) continue;
 			if (onlyHuman && p.isAi()) continue;
 			if (hostile && p.isFriendly(this)) continue;
