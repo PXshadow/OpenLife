@@ -115,6 +115,7 @@ class ServerSettings {
 	public static var CursedGraveTime:Float = 12; // 12 // hours a cursed grave continues to exist per curse token
 
 	// PlayerInstance
+	public static var MaxPlayers = 100; // AI plus Humans
 	public static var MaxPlayersBeforeStartingAsChild = 0; // -1
 	public static var MaxPlayersBeforeActivatingGraveCurse = 2;
 	public static var MaxPlayersBeforeForbidTouchGrave = 2;
@@ -2645,8 +2646,8 @@ class ServerSettings {
 		// var trans = transtions.getTransition(560, 576); // Knife + Shorn Domestic Sheep
 		// trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(152, 531); // Bow and Arrow + Mouflon
-		trans.aiShouldIgnore = true;
+		// var trans = transtions.getTransition(152, 531); // Bow and Arrow + Mouflon
+		// trans.aiShouldIgnore = true;
 
 		var trans = transtions.getTransition(560, 541); // Knife + Domestic Mouflon
 		trans.aiShouldIgnore = true;
@@ -3408,6 +3409,8 @@ class ServerSettings {
 		// Knife 560 + Yew Bow 151
 		LimitTransitionIfMinNotReached(560, 151, 151, 3); // Allow to destroy Bows if more than 3
 
+		// Bow and Arrow 152 + Mouflon 531
+		LimitTransitionIfMinNotReached(152, 531, 531, 3); // Allow to kill Mouflon if needed are reached
 		// Knife 560 +  Domestic Sheep 575
 		LimitTransitionIfMinNotReached(560, 575, 575, 3); // Allow to kill Sheep if more than 3
 		// Knife 560 +  Shorn Domestic Sheep 576
@@ -3421,12 +3424,18 @@ class ServerSettings {
 		LimitTransitionIfMinNotReached(1878, 1458, 1458, 2); // Allow to kill Cow if more than 2
 	}
 
-	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 1) {
+	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 3) {
 		var objData = ObjectData.getObjectData(id);
 		objData.aiCraftMin = min;
 
 		var trans = TransitionImporter.GetTransition(actorId, targetId);
 		trans.igmoreIfMinIsNotReachedObjectId = id;
+		var trans = TransitionImporter.GetTransition(actorId, targetId, true, false);
+		if (trans != null) trans.igmoreIfMinIsNotReachedObjectId = id;
+		var trans = TransitionImporter.GetTransition(actorId, targetId, false, true);
+		if (trans != null) trans.igmoreIfMinIsNotReachedObjectId = id;
+		var trans = TransitionImporter.GetTransition(actorId, targetId, true, true);
+		if (trans != null) trans.igmoreIfMinIsNotReachedObjectId = id;
 	}
 }
 /**Actor Category: 1641 @ Deadly Wolf
