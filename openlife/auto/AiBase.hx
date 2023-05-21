@@ -476,7 +476,8 @@ abstract class AiBase {
 		if (hotkiln != null || this.profession['POTTER'] >= 10) Macro.exception(if (doPottery(2)) return);
 
 		Macro.exception(if (fillBerryBowlIfNeeded(true)) return);
-		Macro.exception(if (Math.floor(myPlayer.age / 5) % 3 == 0 && doHunting(1)) return);
+		// Macro.exception(if (Math.floor(myPlayer.age / 5) % 2 == 0 && doHunting(1)) return);
+		Macro.exception(if (doHunting(1)) return);
 
 		var heldObjId = myPlayer.heldObject.parentId;
 
