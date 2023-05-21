@@ -550,12 +550,12 @@ class TimeHelper {
 
 		// if (player.isHoldingChildInBreastFeedingAgeAndCanFeed() && player.isSuperHot() == false && player.isSuperCold() == false) {
 		if (player.isHoldingChildInBreastFeedingAgeAndCanFeed()) {
-			player.heldPlayer.doEmote(Emote.happy);
-			return;
+			// player.heldPlayer.doEmote(Emote.happy);
+			// return;
 		}
 
-		if (player.isSuperHot()) player.doEmote(Emote.heatStroke, -2);
-		if (player.isSuperCold()) player.doEmote(Emote.pneumonia, -2);
+		if (player.isSuperHot()) player.doEmote(Emote.heatStroke); //-2
+		if (player.isSuperCold()) player.doEmote(Emote.pneumonia); //-2
 		// else if(playerHeat > 0.6) player.doEmote(Emote.dehydration);
 
 		if (player.mother != null) {

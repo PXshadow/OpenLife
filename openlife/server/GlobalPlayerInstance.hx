@@ -4329,6 +4329,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			targetPlayer.followPlayer = this; // consider this player as mother
 		}
 
+		if (this.isHoldingChildInBreastFeedingAgeAndCanFeed()) {
+			this.heldPlayer.doEmote(Emote.happy);
+		}
+
 		return true;
 	}
 
