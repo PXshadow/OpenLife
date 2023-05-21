@@ -2178,6 +2178,11 @@ class ServerSettings {
 		trans.targetNumberOfUses = 2; // give only two meat
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Give Bears some meat
+		var trans = transtions.getTransition(0, 657); // Skinned Bear with hide
+		trans.newTargetID = 1340; // Butchered Pig 1340
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		var trans = transtions.getTransition(0, 709); // 709 Skinned Seal with fur
 		trans.newTargetID = 1340; // 1340 Butchered Pig
 		transtions.addTransition("PatchTransitions: ", trans);

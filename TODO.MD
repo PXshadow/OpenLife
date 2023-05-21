@@ -102,6 +102,7 @@ Quality of Life Changes:
 - you can use a Steel Mining Pick to get coal out of a Bear Cave (Hungry Work)
 - you can use a Drop Spindle on a Small Ball of Yarn to get a Rope 
 - Sheep take longer to grow but also take longer to starve. So you have more time to feed!
+- Wolfs and Bears give meat
 
 Better fire Handling:
 - you can use Straw on Ashes to start a fire again
