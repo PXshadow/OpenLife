@@ -746,7 +746,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (obj.lineage == null) {
 				trace('read ${i + 1} No Lineage found: ${obj.p_id}');
 			} else {
-				trace('read ${i + 1} Players... ${obj.name} account: ${obj.account.id} ${obj.account.email}');
+				trace('read ${i + 1} Players... ${obj.name} id: ${obj.p_id} account: ${obj.account.id} ${obj.account.email}');
 				accountsWithPlayer[obj.account.id] = obj;
 			}
 		}
@@ -801,8 +801,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			var exiled = exiledPlayersToLoad[obj.p_id];
 			for (id in exiled) {
-				obj.exiledByPlayers[id] = AllPlayerMap[id];
-				trace('read exiled Players ${obj.name} --> Exiled by: ${obj.exiledByPlayers[id].name}');
+				var player = AllPlayerMap[id];
+				if (player == null) trace('Exiled by player was not found!!! Maybe dead? ${id}');
+				if (player != null) {
+					obj.exiledByPlayers[id] = player;
+					trace('read exiled Players ${obj.name} --> Exiled by: ${obj.exiledByPlayers[id].name}');
+				}
 			}
 
 			if (obj.hiddenWound != null && obj.hiddenWound.id == obj.heldObject.id) obj.hiddenWound = obj.heldObject;
