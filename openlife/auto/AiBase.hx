@@ -146,7 +146,7 @@ abstract class AiBase {
 			if (AiBase.tick % 200 == 0) {
 				averageSleepTime = Math.ceil(averageSleepTime / 200 * 1000) / 1000;
 				// trace('AIs: ${Connection.getAis().length} Tick: ${Ai.tick} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime');
-				trace('\nAIs: ${Connection.getAis().length} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime ');
+				trace('\nAIs: ${Connection.CountAis()} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime ');
 				averageSleepTime = 0;
 				skipedTicks = 0;
 			}
@@ -6227,8 +6227,10 @@ abstract class AiBase {
 			}
 
 			// ignore transition if not more than min of object // like getting Rope from Bows
-			// For now limit to searchRadius of 40 since only close objects should be counted --> help sheeps to survive
-			if (trans.igmoreIfMinIsNotReachedObjectId > 0 && itemToCraft.searchRadius < 40) {
+			if (trans.igmoreIfMinIsNotReachedObjectId > 0) {
+				// For now only allow for searchRadius below 40 since only close objects should be counted --> help sheeps to survive... hopefully...
+				if (itemToCraft.searchRadius >= 40) continue;
+
 				var minObj = transitionsByObjectId[trans.igmoreIfMinIsNotReachedObjectId];
 				var objData = ObjectData.getObjectData(trans.igmoreIfMinIsNotReachedObjectId);
 
@@ -6393,7 +6395,6 @@ abstract class AiBase {
 
 			return true;
 		}
-
 		return found;
 	}
 
