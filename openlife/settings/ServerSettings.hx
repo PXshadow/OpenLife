@@ -3343,6 +3343,9 @@ class ServerSettings {
 		// Bowl of Tomato Seeds 2828
 		LimitObjectByNewTarget(2828, 2828, 2);
 
+		// Ripe Cucumber Plant 4232 // Dry Planted Cucumber Seeds 4225
+		LimitObjectByNewTarget(4232, 4225, 5);
+
 		// LimitObjectByTarget(297, 226, 1); // Threshed Wheat 297 // Threshed Wheat (with straw) 226
 		LimitObjectByTarget(4070, 242, 2); // Pile of Threshed Wheat 4070 // Ripe Wheat 242
 
