@@ -2582,8 +2582,8 @@ abstract class AiBase {
 	// Raw Berry Pie 265
 	// Raw Mutton Pie 802
 	// Raw Carrot Pie 268
-	private static var pies = [272, 803, 273, 274, 275, 276, 277, 278];
-	private static var rawPies = [265, 802, 268, 270, 266, 271, 269, 267];
+	public static var pies = [272, 803, 273, 274, 275, 276, 277, 278];
+	public static var rawPies = [265, 802, 268, 270, 266, 271, 269, 267];
 
 	private function doBaking(maxPeople:Int = 2):Bool {
 		var heldObject = myPlayer.heldObject;

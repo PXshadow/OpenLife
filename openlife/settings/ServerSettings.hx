@@ -1,5 +1,6 @@
 package openlife.settings;
 
+import openlife.auto.AiBase;
 import haxe.Exception;
 import openlife.data.object.ObjectData;
 import openlife.data.transition.TransitionData;
@@ -3359,6 +3360,9 @@ class ServerSettings {
 
 		// Clay Bow 235 + Partial Bucket of Water 1099 / Bowl of Water 382
 		LimitTransitionIfMaxReached(235, 1099, 382, 3);
+
+		for (i in 0...AiBase.rawPies.length)
+			LimitObjectByNewTarget(AiBase.pies[i], AiBase.rawPies[i], 2);
 	}
 
 	private static function LimitTransitionIfMaxReached(actorId:Int, targetId:Int, id:Int, max:Int = 1) {
