@@ -264,12 +264,12 @@ class TimeHelper {
 		player.displaySeason = timeSinceLastHint > maxTimeSinceLastHint;
 
 		if (player.displaySeason && player.isSuperHot() && nearDeath) {
-			player.say('the heat is killing me! Need to drink!', true);
+			player.say('Need to drink water!', true);
 			return;
 		}
 
 		if (player.displaySeason && player.isSuperCold() && nearDeath) {
-			player.say('the cold is killing me! Need a fire!', true);
+			player.say('Need a fire!', true);
 			return;
 		}
 
@@ -548,13 +548,15 @@ class TimeHelper {
 			}
 		}
 
+		// if (player.isHoldingChildInBreastFeedingAgeAndCanFeed() && player.isSuperHot() == false && player.isSuperCold() == false) {
+		if (player.isHoldingChildInBreastFeedingAgeAndCanFeed()) {
+			player.heldPlayer.doEmote(Emote.happy);
+			return;
+		}
+
 		if (player.isSuperHot()) player.doEmote(Emote.heatStroke);
 		if (player.isSuperCold()) player.doEmote(Emote.pneumonia);
 		// else if(playerHeat > 0.6) player.doEmote(Emote.dehydration);
-
-		if (player.isHoldingChildInBreastFeedingAgeAndCanFeed()) {
-			player.heldPlayer.doEmote(Emote.happy);
-		}
 
 		if (player.mother != null) {
 			// if(this.isAi() == false) this.connection.sendMapLocation(this.mother,'MOTHER', 'mother');
