@@ -554,8 +554,8 @@ class TimeHelper {
 			return;
 		}
 
-		if (player.isSuperHot()) player.doEmote(Emote.heatStroke);
-		if (player.isSuperCold()) player.doEmote(Emote.pneumonia);
+		if (player.isSuperHot()) player.doEmote(Emote.heatStroke, -2);
+		if (player.isSuperCold()) player.doEmote(Emote.pneumonia, -2);
 		// else if(playerHeat > 0.6) player.doEmote(Emote.dehydration);
 
 		if (player.mother != null) {

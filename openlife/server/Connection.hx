@@ -887,7 +887,7 @@ class Connection {
 		// update only close players
 		if (toConnection.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) return;
 
-		if (seconds < 3) toConnection.send(PLAYER_EMOT, ['${fromPlayer.p_id} $id']); else
+		if (seconds < -2) toConnection.send(PLAYER_EMOT, ['${fromPlayer.p_id} $id']); else
 			toConnection.send(PLAYER_EMOT, ['${fromPlayer.p_id} $id $seconds']);
 
 		toConnection.send(FRAME);
