@@ -30,6 +30,7 @@ interface PlayerInterface {
 	// variables
 	public var id(get, null):Int;
 	public var name(get, null):String;
+	public var familyName(get, null):String;
 	public var account(get, null):PlayerAccount;
 	public var x(default, default):Int;
 	public var y(default, default):Int;
