@@ -4009,7 +4009,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		damage *= targetPlayer.isWounded() ? ServerSettings.TargetWoundedDamageFactor : 1;
 
 		var maxFoodStore = targetPlayer.calculateNotReducedFoodStoreMax();
-		// Limit damage per to halve food store so that player gets normally a wound before complete death
+		// Limit damage per hit to halve players max hits so that player gets normally a wound before complete death
 		if (damage > maxFoodStore / 2 + 1) damage = maxFoodStore / 2 + 1;
 
 		if (doesRealDamage) targetPlayer.hits += damage;

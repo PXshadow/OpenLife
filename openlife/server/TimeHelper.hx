@@ -89,7 +89,7 @@ class TimeHelper {
 			}
 			if (TimeHelper.tick % 200 == 0) {
 				averageSleepTime = Math.ceil(averageSleepTime / 200 * 1000) / 1000;
-				trace('\nHum: ${Connection.getConnections().length} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime ');
+				trace('\nHum: ${Connection.CountHumans()} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime ');
 				// trace('Connections: ${Connection.getConnections().length} Tick: ${TimeHelper.tick} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime ');
 				averageSleepTime = 0;
 				skipedTicks = 0;

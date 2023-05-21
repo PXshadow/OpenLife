@@ -49,6 +49,14 @@ class Connection {
 		return this.sock == null;
 	}
 
+	public static function CountHumans() {
+		return Connection.getConnections().length;
+	}
+
+	public static function CountAis() {
+		return Connection.getAis().length;
+	}
+
 	/**
 		LOGIN client_tag email password_hash account_key_hash tutorial_number twin_code_hash twin_count#
 		NOTE:  The command LOGIN can be replaced with RLOGIN if the client is
@@ -64,11 +72,26 @@ class Connection {
 	}
 
 	public function loginHelper(client_tag:String, email:String, password_hash:String, account_key_hash:String) {
-		trace('login2: ${account_key_hash}');
 		// A normal login is treated same as a reconnect
 		// TODO twins
+		// TODO limit Ais if server is full
+		// TODO give players with higher score priority if server is full
+		// TODO consider last time played and length af last life if serer is full
+		// TODO consider blocking mass spaming from one IP
 
-		// GlobalPlayerInstance.AcquireMutex();
+		var countHumans = CountHumans();
+		var countAi = CountAis();
+		var countPlayers = countHumans + countAi;
+		var maxPlayer = ServerSettings.MaxPlayers;
+
+		if (countPlayers > maxPlayer) {
+			trace('login: ${account_key_hash} REJECTED! countHumans: $countHumans countAi: ${countAi} maxPlayer: ${maxPlayer}');
+			send(REJECTED);
+			sock.close();
+			return;
+		}
+
+		trace('login2: ${account_key_hash}');
 
 		this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
 		this.player = GlobalPlayerInstance.CreateNewHumanPlayer(this);
