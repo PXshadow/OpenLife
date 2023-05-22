@@ -1,5 +1,6 @@
 package openlife.server;
 
+import haxe.macro.Expr.Catch;
 import haxe.io.Float32Array;
 import format.png.Reader;
 import haxe.Exception;
@@ -722,6 +723,7 @@ class WorldMap {
 
 		this.mutex.acquire();
 		writeIndexFile(dir + "lastDataNumber" + tmpDataNumber + ".txt", tmpDataNumber);
+		writeIndexFile(dir + "lastDataNumber.bak", tmpDataNumber); // just in case server was shut down while saving index file
 		writeIndexFile(dir + "lastDataNumber.txt", tmpDataNumber);
 
 		saveDataNumber++;
@@ -810,6 +812,8 @@ class WorldMap {
 		// trace('PlayerAccount.AccountIdIndex: ${PlayerAccount.AccountIdIndex}');
 
 		reader.close();
+
+		return true;
 	}
 
 	private function fixObjectIds(desc:String) {
@@ -872,47 +876,50 @@ class WorldMap {
 
 		if (sys.FileSystem.exists(dir + "lastDataNumber.txt") == false) {
 			trace('Init file: ${dir + "lastDataNumber.txt"} could not be found!');
-			return false;
+
+			if (sys.FileSystem.exists(dir + "lastDataNumber.bak") == false) {
+				trace('Init file: ${dir + "lastDataNumber.bak"} could not be found!');
+				return false;
+			}
 		}
 
-		readIndexFileAndInitVariables(dir + "lastDataNumber.txt");
+		var done = false;
+
+		// Macro.exception(done = readIndexFileAndInitVariables(dir + "lastDataNumber.txt"));
+		// catch exception also in debug mode, since backup might work!
+		try {
+			done = readIndexFileAndInitVariables(dir + "lastDataNumber.txt");
+		} catch (e) {}
+
+		if (done == false) {
+			trace('Init file: ${dir + "lastDataNumber.txt"} could not be read! Try read backup!');
+			done = readIndexFileAndInitVariables(dir + "lastDataNumber.bak");
+
+			if (done == false) {
+				var text = 'WARNING: Init file: ${dir + "lastDataNumber.bak"} could not be read!';
+				trace(text);
+				throw new Exception(text);
+			}
+		}
 
 		trace('saveDataNumber: $saveDataNumber backupDataNumber: $backupDataNumber tick: ${TimeHelper.tick}');
-
 		this.originalBiomes = readMapBiomes(dir + ServerSettings.OriginalBiomesFileName + ".bin");
-
 		this.originalObjects = readMapObjects(dir + ServerSettings.OriginalObjectsFileName + ".bin");
-
 		this.biomes = readMapBiomes(dir + ServerSettings.CurrentBiomesFileName + saveDataNumber + ".bin");
-
 		this.floors = readMapFloors(dir + ServerSettings.CurrentFloorsFileName + saveDataNumber + ".bin");
-
 		this.objects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName + saveDataNumber + ".bin");
-
 		this.hiddenObjects = readMapObjects(dir + ServerSettings.CurrentObjectsFileName + "Hidden" + saveDataNumber + ".bin");
-
 		ObjectHelper.ReadMapObjHelpers(dir + ServerSettings.CurrentObjHelpersFileName + saveDataNumber + ".bin");
-
 		Macro.exception(PlayerAccount.ReadPlayerAccounts(dir + "PlayerAccounts" + saveDataNumber + ".bin"));
-
 		// Lineage.ReadAndSetLineages(dir + "Lineages" + saveDataNumber + ".bin");
-
 		Lineage.ReadAllLineages(dir + "LineagesAll.bin", dir + "Lineages" + saveDataNumber + ".bin");
-
 		if (ServerSettings.LoadPlayers) GlobalPlayerInstance.ReadPlayers(dir + "Players" + saveDataNumber + ".bin");
-
 		fixObjectIds('read');
-
 		ObjectHelper.InitObjectHelpersAfterRead(); // should be called before writing lineages, otherwise lineages with objects on the map might be deleted
-
 		Lineage.WriteAllLineages(dir + "LineagesAll.bin");
-
 		Lineage.WriteLineageStatistics();
-
 		this.originalObjectsCount = countObjects(this.originalObjects);
-
 		this.currentObjectsCount = countObjects(this.objects);
-
 		return true;
 	}
 

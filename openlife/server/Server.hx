@@ -89,15 +89,16 @@ class Server {
 
 		var dir = './${ServerSettings.SaveDirectory}/';
 		var saveExists = sys.FileSystem.exists(dir + "lastDataNumber.txt");
+		if (saveExists == false) saveExists = sys.FileSystem.exists(dir + "lastDataNumber.bak");
 
 		if (ServerSettings.GenerateMapNew || saveExists == false) {
-			if (saveExists == false) trace('Save ${dir + "lastDataNumber.txt"} could not be found! Generate new Map!');
+			if (saveExists == false) trace('Save ${dir + "lastDataNumber.txt and .bak"} could not be found! Generate new Map!');
 			map.generate();
 			map.writeToDisk();
 		} else {
 			this.canStart = map.readFromDisk();
 			if (this.canStart == false) {
-				trace('could not load Save! Please fix save or delete lastDataNumber.txt to generate a new Map!');
+				trace('could not load Save! Please fix save or delete lastDataNumber.txt and .bak to generate a new Map!');
 				return;
 				// map.generate();
 				// map.writeToDisk();
