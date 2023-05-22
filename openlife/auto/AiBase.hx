@@ -2732,7 +2732,7 @@ abstract class AiBase {
 
 			if (countSlicedBread < 2) {
 				// if (shouldDebugSay())
-				myPlayer.say('$countSlicedBread sliced bread!');
+				if(shouldDebugSay()) myPlayer.say('$countSlicedBread sliced bread!');
 
 				// 560 Knife // 1468 Leavened Dough on Clay Plate
 				if (shortCraft(560, 1468, 20, false)) return true;
@@ -5478,7 +5478,7 @@ abstract class AiBase {
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is TIME target ${itemToCraft.transTarget.name} ');
 				this.time += secondsUntillChange / 4;
 				// TODO wait some time, or better get next obj
-				myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
+				if (shouldDebugSay()) myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
 
 				// if (shouldDebugSay()) myPlayer.say('Wait for ${itemToCraft.transTarget.name}...');
 				itemToCraft.transActor = null;
