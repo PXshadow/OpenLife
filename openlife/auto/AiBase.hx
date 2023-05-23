@@ -3910,6 +3910,7 @@ abstract class AiBase {
 			myPlayer.jump();
 		}
 		if (text.startsWith("MOVE!")) {
+			if (checkIfYouAreAllied(player) == false) return;
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.say("YES CAPTAIN");
 		}
@@ -3930,6 +3931,7 @@ abstract class AiBase {
 			autoStopFollow = true;
 			myPlayer.say("STOPED");
 		} else if (text.startsWith("STOP") || text.startsWith("WAIT")) {
+			if (checkIfYouAreAllied(player) == false) return;
 			playerToFollow = null;
 			autoStopFollow = true;
 			// myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
@@ -3939,6 +3941,7 @@ abstract class AiBase {
 			myPlayer.say("STOPING");
 			// myPlayer.age -= 1;
 		} else if (text.startsWith("DROP")) {
+			if (checkIfYouAreAllied(player) == false) return;
 			// myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.Goto(myPlayer.x, myPlayer.y);
 			dropHeldObject(0);
@@ -3979,6 +3982,8 @@ abstract class AiBase {
 				myPlayer.say("YES CAPTAIN");
 		}*/
 		if (text.startsWith("MAKE") || text.startsWith("CRAFT")) {
+			if (checkIfYouAreAllied(player) == false) return;
+
 			var id = GlobalPlayerInstance.findObjectByCommand(text);
 
 			if (id > 0) {
@@ -4015,6 +4020,18 @@ abstract class AiBase {
 				myPlayer.say('${prof}');
 			}
 		}
+	}
+
+	public function checkIfYouAreAllied(player:GlobalPlayerInstance) {
+		var aiPlayer = cast(myPlayer, GlobalPlayerInstance);
+
+		if (aiPlayer.isFriendly(player)) return true;
+
+		myPlayer.say('I AM NOT YOUR ALLY!');
+		myPlayer.doEmote(Emote.angry);
+
+		return false;
+		// this.connection.sendGlobalMessage('${player.name} FOLLOWS ME ALREADY!');
 	}
 
 	public function checkIfShouldDoCommand(player:GlobalPlayerInstance) {
