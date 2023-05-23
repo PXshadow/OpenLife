@@ -1903,6 +1903,89 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return null;
 	}
 
+	private function processFollowCommand(name:String) {
+		var player = NamingHelper.GetPlayerByName(this, name);
+
+		if (player == null || player == this) {
+			this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
+			return;
+		}
+
+		var exileLeader = this.isExiledByAnyLeader(player);
+
+		if (exileLeader != null) {
+			this.connection.sendGlobalMessage('${exileLeader.name} has exiled you already!');
+			return;
+		}
+
+		if (player == this.followPlayer) {
+			this.say('I FOLLOW ALLREADY ${player.name}', true);
+			this.connection.sendGlobalMessage('You follow allready ${player.name}!');
+			return;
+		}
+
+		var tmpFollow = this.followPlayer;
+		this.followPlayer = player;
+		var leader = this.getTopLeader();
+
+		// TODO allow other leader through follow?
+		if (leader == null) {
+			// trace('FOLLOW: CIRCULAR FOLLOW --> NO CHANGE');
+			this.followPlayer = tmpFollow;
+
+			this.connection.sendGlobalMessage('${player.name} is following you or one of your allies!');
+
+			return;
+		}
+
+		this.followPlayer = tmpFollow;
+
+		if (leader.newFollower != null) {
+			var time = Math.ceil(leader.newFollowerTime);
+
+			if (leader.newFollower == this) this.connection.sendGlobalMessage('Leader ${leader.name} will accept you in ${time} seconds...'); else
+				this.connection.sendGlobalMessage('Top leader ${leader.name} is considering some one else. Try in ${time} seconds...');
+
+			return;
+		}
+
+		if (player.newFollower != null) {
+			var time = Math.ceil(player.newFollowerTime);
+
+			this.connection.sendGlobalMessage('${player.name} is considering some one else. Try in ${time} seconds...');
+
+			return;
+		}
+
+		leader.newFollower = this;
+		leader.newFollowerFor = player;
+		leader.newFollowerTime = ServerSettings.TimeConfirmNewFollower;
+
+		// since new leader might not be the top leader
+		player.newFollower = this;
+		player.newFollowerFor = player;
+		player.newFollowerTime = ServerSettings.TimeConfirmNewFollower;
+
+		this.connection.sendGlobalMessage('In ${leader.newFollowerTime} seconds you follow ${player.name}_${player.familyName}');
+
+		// Connection.SendFollowingToAll(this);
+
+		// inform leader
+		leader.connection.sendMapLocation(leader, 'FOLLOWER', 'follower');
+		leader.connection.sendGlobalMessage('YOU_HAVE_A_NEW_FOLLOWER:_${this.name}_${this.familyName}');
+		leader.doEmote(Emote.hubba);
+
+		if (leader != player) {
+			player.connection.sendMapLocation(player, 'FOLLOWER', 'follower');
+			player.connection.sendGlobalMessage('YOU_HAVE_A_NEW_FOLLOWER:_${this.name}_${this.familyName}');
+			player.doEmote(Emote.hubba);
+		}
+
+		this.doEmote(Emote.happy);
+
+		this.say('I FOLLOW SOON ${player.name}', true);
+	}
+
 	private function doCommands(message:String):Bool {
 		var name = NamingHelper.GetName(message);
 
@@ -1931,88 +2014,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				return true;
 			}
 
-			var player = NamingHelper.GetPlayerByName(this, name);
-
-			if (player == null || player == this) {
-				this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
-				return false;
-			}
-
-			var exileLeader = this.isExiledByAnyLeader(player);
-
-			if (exileLeader != null) {
-				this.connection.sendGlobalMessage('${exileLeader.name} has exiled you already!');
-				return false;
-			}
-
-			if (player == this.followPlayer) {
-				this.say('I FOLLOW ALLREADY ${player.name}', true);
-				this.connection.sendGlobalMessage('You follow allready ${player.name}!');
-				return false;
-			}
-
-			var tmpFollow = this.followPlayer;
-			this.followPlayer = player;
-			var leader = this.getTopLeader();
-
-			// TODO allow other leader through follow?
-			if (leader == null) {
-				// trace('FOLLOW: CIRCULAR FOLLOW --> NO CHANGE');
-				this.followPlayer = tmpFollow;
-
-				this.connection.sendGlobalMessage('${player.name} is following you or one of your allies!');
-
-				return false;
-			}
-
-			this.followPlayer = tmpFollow;
-
-			if (leader.newFollower != null) {
-				var time = Math.ceil(leader.newFollowerTime);
-
-				if (leader.newFollower == this) this.connection.sendGlobalMessage('Leader ${leader.name} will accept you in ${time} seconds...'); else
-					this.connection.sendGlobalMessage('Top leader ${leader.name} is considering some one else. Try in ${time} seconds...');
-
-				return false;
-			}
-
-			if (player.newFollower != null) {
-				var time = Math.ceil(player.newFollowerTime);
-
-				this.connection.sendGlobalMessage('${player.name} is considering some one else. Try in ${time} seconds...');
-
-				return false;
-			}
-
-			leader.newFollower = this;
-			leader.newFollowerFor = player;
-			leader.newFollowerTime = ServerSettings.TimeConfirmNewFollower;
-
-			// since new leader might not be the top leader
-			player.newFollower = this;
-			player.newFollowerFor = player;
-			player.newFollowerTime = ServerSettings.TimeConfirmNewFollower;
-
-			this.connection.sendGlobalMessage('In ${leader.newFollowerTime} seconds you follow ${player.name}_${player.familyName}');
-
-			// Connection.SendFollowingToAll(this);
-
-			// inform leader
-			leader.connection.sendMapLocation(leader, 'FOLLOWER', 'follower');
-			leader.connection.sendGlobalMessage('YOU_HAVE_A_NEW_FOLLOWER:_${this.name}_${this.familyName}');
-			leader.doEmote(Emote.hubba);
-
-			if (leader != player) {
-				player.connection.sendMapLocation(player, 'FOLLOWER', 'follower');
-				player.connection.sendGlobalMessage('YOU_HAVE_A_NEW_FOLLOWER:_${this.name}_${this.familyName}');
-				player.doEmote(Emote.hubba);
-			}
-
-			this.doEmote(Emote.happy);
-
-			this.say('I FOLLOW SOON ${player.name}', true);
-
+			processFollowCommand(name);
 			return false;
+		}
+
+		if (message.startsWith("I HIRE")) {
+			// this.say('I HIRED');
 		}
 
 		if (message.startsWith('ORDER, ')) {

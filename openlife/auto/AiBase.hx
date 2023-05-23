@@ -3881,6 +3881,9 @@ abstract class AiBase {
 		if (text.contains("HOLA") || text.contains("HELLO") || text == "HI") {
 			myPlayer.say('HOLA ${player.name}');
 		}
+		if (text.startsWith("NAME?")) {
+			myPlayer.say('${myPlayer.name} ${myPlayer.familyName}');
+		}
 		if (text.contains("ARE YOU AI") || text.contains("ARE YOU AN AI") || text == "AI?" || text == "AI") {
 			var rand = WorldMap.world.randomInt(8);
 
@@ -3911,9 +3914,6 @@ abstract class AiBase {
 		if (text.startsWith("NHOME!")) {
 			var home = WorldMap.world.getObjectHelper(myPlayer.home.tx, myPlayer.home.ty);
 			myPlayer.say('${home.name}');
-		}
-		if (text.startsWith("NAME?")) {
-			myPlayer.say('${myPlayer.name} ${myPlayer.familyName}');
 		}
 		if (text.startsWith("FOLLOW ME!") || text.startsWith("FOLLOW!") || text.startsWith("COME")) {
 			autoStopFollow = false; // otherwise if old enough ai would stop follow
