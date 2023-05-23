@@ -4039,13 +4039,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (targetPlayer.food_store_max < 0) {
 			longWeaponCoolDown = true;
 
-			if (attacker != null && targetPlayer.coins > 0) {
-				var coins = Math.floor(targetPlayer.coins * 0.8);
-				attacker.coins += coins;
-				targetPlayer.coins = 0;
-
-				if (coins > 0) attacker.connection.sendGlobalMessage('You gained ${coins} from ${targetPlayer.name}!');
-			}
+			takeCoins(attacker, targetPlayer);
 
 			targetPlayer.doDeath('reason_killed_${targetPlayer.woundedBy}');
 		}
@@ -4086,6 +4080,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				targetPlayer.setHeldObject(newWound);
 				targetPlayer.setHeldObjectOriginNotValid(); // no animation
 				Connection.SendUpdateToAllClosePlayers(targetPlayer);
+
+				takeCoins(attacker, targetPlayer);
 			} else {
 				// in case of moskito check if target gets some yellow fever
 				if (0.2 * Math.pow(moskitoDamageFactor, 2) > WorldMap.calculateRandomFloat()) {
@@ -4162,6 +4158,24 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
 		return damage;
+	}
+
+	private function takeCoins(attacker:GlobalPlayerInstance, targetPlayer:GlobalPlayerInstance) {
+		var coins = Math.floor(targetPlayer.coins * 0.8);
+
+		if (attacker == null) return;
+		if (coins < 1) return;
+
+		attacker.coins += coins;
+		targetPlayer.coins = 0;
+
+		if (coins == 1) {
+			// attacker.connection.sendGlobalMessage('You gained ${coins} coin from ${targetPlayer.name}!');
+			attacker.say('Got ${coins} coin!', true);
+		} else {
+			// attacker.connection.sendGlobalMessage('You gained ${coins} coins from ${targetPlayer.name}!');
+			attacker.say('Got ${coins} coins!', true);
+		}
 	}
 
 	public function makeWeaponBloodyIfNeeded(target:ObjectHelper):Bool {
