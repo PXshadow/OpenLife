@@ -1549,6 +1549,7 @@ class ServerSettings {
 
 		var trans = transtions.getTransition(-1, 653); // Hungry Grizzly Bear attacking
 		trans.autoDecaySeconds = 3;
+		// trace('Hungry Grizzly: ${trans.move}');
 		var trans = transtions.getTransition(-1, 654); // Shot Grizzly Bear 1 attacking
 		trans.autoDecaySeconds = 3;
 		var trans = transtions.getTransition(-1, 655); // Shot Grizzly Bear 2 attacking
@@ -2434,6 +2435,9 @@ class ServerSettings {
 			// trace('Wool: ${objData.name} decaytime: ${trans.autoDecaySeconds}');
 			trans.autoDecaySeconds = ServerSettings.RabbitFurClothDecayTime;
 		}
+
+		var trans = TransitionImporter.GetTransition(-1, 766); // TIME + Snake Skin Boot
+		trans.autoDecaySeconds = -24 * 10; // -5
 
 		var trans = TransitionImporter.GetTransition(-1, 866); // TIME + Rag Loincloth
 		trans.autoDecaySeconds = -2; // -0.5
