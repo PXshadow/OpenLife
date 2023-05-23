@@ -11,7 +11,7 @@ Summary:
 - Use fire or cloths to warm up or escape into a desert!
 
 NEW Commans:
-- say "COINS?" --> guess what it does! 
+- say "COINS?" --> guess what it does! But no it wont do it in silence! 
 - say "SEASON?" OR "?SEASON" displays current season
 
 AI:

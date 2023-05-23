@@ -1792,9 +1792,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if (StringTools.contains(text, 'COINS?')) {
-			var coins = Math.floor(this.coins);			
-			if(coins == 1) text = 'I HAVE ONE COIN!';
-			else text = 'I HAVE ${coins} COINS!';
+			var coins = Math.floor(this.coins);
+			if (coins == 1) text = 'I HAVE ONE COIN!'; else
+				text = 'I HAVE ${coins} COINS!';
 			// toSelf = true;
 		}
 
@@ -2035,6 +2035,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (player.followPlayer == this) {
 			this.say('${player.name} FOLLOWS ME ALREADY', true);
+			// this.connection.sendGlobalMessage('${player.name} FOLLOWS ME ALREADY!');
+			return;
+		}
+
+		var leader = player.getTopLeader(this);
+		if (leader == this) {
+			this.say('${player.name} IS ALREADY ONE OF MY FOLLOWERS', true);
 			// this.connection.sendGlobalMessage('${player.name} FOLLOWS ME ALREADY!');
 			return;
 		}
