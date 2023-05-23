@@ -1453,8 +1453,8 @@ class ServerSettings {
 		// TODO allow damage with bloody weapon / needs support from client?
 		ObjectData.getObjectData(560).damage = 5; // Knife
 		ObjectData.getObjectData(3047).damage = 6; // War Sword // damage per sec = 3
-		ObjectData.getObjectData(152).damage = 8; // Bow and Arrow  //
-		ObjectData.getObjectData(1624).damage = 10; // Bow and Arrow with Note  //
+		ObjectData.getObjectData(152).damage = 9; // Bow and Arrow
+		ObjectData.getObjectData(1624).damage = 12; // Bow and Arrow with Note
 
 		var trans = transtions.getTransition(-1, 750); // Bloody Knife
 		trans.autoDecaySeconds = 3; // 15
