@@ -554,6 +554,10 @@ class TimeHelper {
 			// return;
 		}
 
+		var passedTime = CalculateTimeSinceTicksInSec(player.lastTimeEmoteSend);
+		if (passedTime < 9) return;
+		player.lastTimeEmoteSend = TimeHelper.tick;
+
 		if (player.isSuperHot()) player.doEmote(Emote.heatStroke); //-2
 		if (player.isSuperCold()) player.doEmote(Emote.pneumonia); //-2
 		// else if(playerHeat > 0.6) player.doEmote(Emote.dehydration);
