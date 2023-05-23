@@ -1791,6 +1791,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// toSelf = true;
 		}
 
+		if (StringTools.contains(text, 'COINS?')) {
+			var coins = Math.floor(this.coins);			
+			if(coins == 1) text = 'I HAVE ONE COIN!';
+			else text = 'I HAVE ${coins} COINS!';
+			// toSelf = true;
+		}
+
 		if (StringTools.contains(text, '?SEASON TEMP') || text == '?ST') {
 			var seasonImpact = TimeHelper.SeasonTemperatureImpact;
 			if (seasonImpact > 0) seasonImpact *= ServerSettings.HotSeasonTemperatureFactor;

@@ -10,6 +10,10 @@ Summary:
 - Jump drink some water or jump in a river to cool down!
 - Use fire or cloths to warm up or escape into a desert!
 
+NEW Commans:
+- say "COINS?" --> guess what it does! 
+- say "SEASON?" OR "?SEASON" displays current season
+
 AI:
 - Currently the Ai does not use containers, so use Baskets and Tables to save stuff you dont want the Ai to touch
 - Currently Ai wont open doors so use them for now to lock out AI
