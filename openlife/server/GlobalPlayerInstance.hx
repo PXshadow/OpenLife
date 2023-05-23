@@ -1904,6 +1904,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	private function processFollowCommand(name:String) {
+		if (name == "ME") {
+			// TODO check if follower color changes to new color or if needed to be send again
+
+			this.followPlayer = null;
+
+			this.connection.sendGlobalMessage('YOU_FOLLOW_NOW_NO_ONE!');
+
+			Connection.SendFollowingToAll(this);
+
+			this.say('I FOLLOW ME!');
+			this.doEmote(Emote.happy);
+
+			return;
+		}
+
 		var player = NamingHelper.GetPlayerByName(this, name);
 
 		if (player == null || player == this) {
@@ -1986,6 +2001,73 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.say('I FOLLOW SOON ${player.name}', true);
 	}
 
+	private function processHireCommand(name:String) {
+		var neededCoins = ServerSettings.HireCost;
+		var missing = Math.ceil(neededCoins - this.coins);
+
+		// TODO higher coins for higher classes
+		// TODO higher coins if you have a bad reputation
+
+		if (missing > 0) {
+			if (missing == 1) this.say('NEED one more coin!', true); else
+				this.say('NEED ${missing} more coins!', true);
+			this.doEmote(Emote.sad);
+			return;
+		}
+
+		var player = NamingHelper.GetPlayerByName(this, name);
+		if (player == null || player == this) {
+			this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
+			return;
+		}
+
+		if (player.isHuman()) {
+			this.say('Its a human!', true);
+			this.doEmote(Emote.sad);
+			return;
+		}
+
+		var exileLeader = this.isExiledByAnyLeader(player);
+
+		if (exileLeader != null) {
+			this.connection.sendGlobalMessage('${exileLeader.name} has exiled you already!');
+			this.say('${exileLeader.name} EXILED ME ALREADY!', true);
+			return;
+		}
+		if (player.followPlayer == this) {
+			this.say('${player.name} FOLLOWS ME ALREADY', true);
+			this.connection.sendGlobalMessage('${player.name} FOLLOWS ME ALREADY!');
+			return;
+		}
+		// TODO check if player to hire is hostile
+		// TODO check if player to hire is too young
+		// TODO check if player to hire is hired already
+		// TODO check if player to hire is angry
+		// TODO check if player to hire has higher class
+
+		var tmpFollow = player.followPlayer;
+		player.followPlayer = this;
+		var leader = this.getTopLeader();
+
+		// TODO allow other leader through follow?
+		// TODO allow to hire one of your leaders
+		if (leader == null) {
+			player.followPlayer = tmpFollow;
+			// trace('FOLLOW: CIRCULAR FOLLOW --> NO CHANGE');
+			this.connection.sendGlobalMessage('you are following ${player.name} or one of his allies!');
+			return;
+		}
+
+		Connection.SendFollowingToAll(player);
+		this.coins -= neededCoins;
+		player.coins += neededCoins;
+
+		player.doEmote(Emote.happy);
+		this.doEmote(Emote.happy);
+		this.say('I hire ${player.name} for $neededCoins coins!', true);
+		player.say('${this.name} hired me!', true);
+	}
+
 	private function doCommands(message:String):Bool {
 		var name = NamingHelper.GetName(message);
 
@@ -2000,26 +2082,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if (message.startsWith('I FOLLOW ')) {
-			if (name == "ME") {
-				// TODO check if follower color changes to new color or if needed to be send again
-
-				this.followPlayer = null;
-
-				this.connection.sendGlobalMessage('YOU_FOLLOW_NOW_NO_ONE!');
-
-				Connection.SendFollowingToAll(this);
-
-				this.doEmote(Emote.happy);
-
-				return true;
-			}
-
 			processFollowCommand(name);
 			return false;
 		}
 
 		if (message.startsWith("I HIRE")) {
-			// this.say('I HIRED');
+			processHireCommand(name);
+			return false;
 		}
 
 		if (message.startsWith('ORDER, ')) {
