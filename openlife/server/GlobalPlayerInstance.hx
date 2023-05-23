@@ -153,6 +153,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	// make sure to set these null is player is deleted so that garbage collector can clean up
 	public var followPlayer:GlobalPlayerInstance;
+	public var hiredByPlayer:GlobalPlayerInstance; // not saved yet
 	public var heldPlayer:GlobalPlayerInstance;
 	public var heldByPlayer:GlobalPlayerInstance;
 
@@ -2002,19 +2003,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	private function processHireCommand(name:String) {
-		var neededCoins = ServerSettings.HireCost;
-		var missing = Math.ceil(neededCoins - this.coins);
-
-		// TODO higher coins for higher classes
-		// TODO higher coins if you have a bad reputation
-
-		if (missing > 0) {
-			if (missing == 1) this.say('NEED one more coin!', true); else
-				this.say('NEED ${missing} more coins!', true);
-			this.doEmote(Emote.sad);
-			return;
-		}
-
 		var player = NamingHelper.GetPlayerByName(this, name);
 		if (player == null || player == this) {
 			this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
@@ -2027,23 +2015,72 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return;
 		}
 
-		var exileLeader = this.isExiledByAnyLeader(player);
+		if (player.hiredByPlayer == this) {
+			this.say('${player.name} IS HIRED BT ME ALREADY', true);
+			return;
+		}
 
+		if (player.hiredByPlayer != null && player.hiredByPlayer.isDeleted() == false) {
+			this.say('${player.name} IS HIRED BY ${player.hiredByPlayer.name}!', true);
+			player.say('I AM HIRED ALREADY BY ${player.hiredByPlayer.name}!');
+			return;
+		}
+
+		if (player.followPlayer == this) {
+			this.say('${player.name} FOLLOWS ME ALREADY', true);
+			// this.connection.sendGlobalMessage('${player.name} FOLLOWS ME ALREADY!');
+			return;
+		}
+
+		var exileLeader = this.isExiledByAnyLeader(player);
 		if (exileLeader != null) {
 			this.connection.sendGlobalMessage('${exileLeader.name} has exiled you already!');
 			this.say('${exileLeader.name} EXILED ME ALREADY!', true);
 			return;
 		}
-		if (player.followPlayer == this) {
-			this.say('${player.name} FOLLOWS ME ALREADY', true);
-			this.connection.sendGlobalMessage('${player.name} FOLLOWS ME ALREADY!');
+
+		if (player.angryTime < 2) {
+			this.say('${player.name} IS TOO ANGRY', true);
 			return;
 		}
-		// TODO check if player to hire is hostile
-		// TODO check if player to hire is too young
-		// TODO check if player to hire is hired already
-		// TODO check if player to hire is angry
-		// TODO check if player to hire has higher class
+
+		if (player.age < 10) {
+			this.say('${player.name} IS JUNGER THAN 10', true);
+			return;
+		}
+
+		if (player.age > 40) {
+			this.say('${player.name} IS OLDER THAN 40', true);
+			return;
+		}
+
+		var playerClass:Int = player.lineage.prestigeClass;
+		var thisClass:Int = this.lineage.prestigeClass;
+		if (thisClass < playerClass) {
+			if (player.lineage.prestigeClass == Noble) player.say('I AM A NOBLE! YOU ARE FAR BELOW ME!');
+			if (player.lineage.prestigeClass == Commoner) player.say('I A< A COMMONER! YOU ARE A SERF!');
+
+			player.doEmote(Emote.angry);
+			this.doEmote(Emote.homesick);
+			return;
+		}
+
+		// TODO consider follower count for price
+		var neededCoins = ServerSettings.HireCost;
+		if (player.lineage.prestigeClass == Noble) neededCoins *= 3;
+		if (player.lineage.prestigeClass == Commoner) neededCoins *= 2;
+		if (player.isFriendly(this) == false && player.getColor() != this.getColor()) neededCoins *= 2;
+		var combatPrestigeImppact = Math.ceil(this.lostCombatPrestige / 10);
+		neededCoins = Math.max(neededCoins, neededCoins + combatPrestigeImppact);
+		var missing = Math.ceil(neededCoins - this.coins);
+
+		if (missing > 0) {
+			if (missing == 1) this.say('NEED one more coin!', true); else
+				this.say('NEED ${missing} more coins!', true);
+			this.doEmote(Emote.sad);
+			player.say('YOU ARE TOO POOR!');
+			return;
+		}
 
 		var tmpFollow = player.followPlayer;
 		player.followPlayer = this;
@@ -2054,18 +2091,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (leader == null) {
 			player.followPlayer = tmpFollow;
 			// trace('FOLLOW: CIRCULAR FOLLOW --> NO CHANGE');
-			this.connection.sendGlobalMessage('you are following ${player.name} or one of his allies!');
+			this.say('I am following ${player.name} or one of his followers', true);
+			this.connection.sendGlobalMessage('you are following ${player.name} or one of his followers!');
 			return;
 		}
 
+		player.hiredByPlayer = this;
 		Connection.SendFollowingToAll(player);
+
 		this.coins -= neededCoins;
 		player.coins += neededCoins;
+		if (combatPrestigeImppact > 0) this.lostCombatPrestige -= combatPrestigeImppact; // regain some combat prestige if you pay people off
 
 		player.doEmote(Emote.happy);
 		this.doEmote(Emote.happy);
 		this.say('I hire ${player.name} for $neededCoins coins!', true);
-		player.say('${this.name} hired me!', true);
+		player.say('${this.name} hired me!');
 	}
 
 	private function doCommands(message:String):Bool {
