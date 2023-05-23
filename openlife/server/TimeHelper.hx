@@ -697,13 +697,16 @@ class TimeHelper {
 		var tmpFoodStoreMax = Math.ceil(player.food_store_max);
 		var originalFoodDecay = timePassedInSeconds * player.foodUsePerSecond; // depends on temperature
 		var playerIsStarvingOrHasBadHeat = player.food_store < 0 || player.isSuperCold() || player.isSuperHot();
-		var doHealing = playerIsStarvingOrHasBadHeat == false && player.isWounded() == false && player.hasYellowFever() == false;
+		var doHealing = playerIsStarvingOrHasBadHeat == false
+			&& player.isWounded() == false
+			&& player.hasYellowFever() == false
+			&& player.angryTime > 0;
 		var foodDecay = originalFoodDecay;
 		var healing = timePassedInSeconds * ServerSettings.HealingPerSecond;
 		// var healing = 1.5 * timePassedInSeconds * ServerSettings.FoodUsePerSecond - originalFoodDecay;
 
 		// healing is between 0.5 and 2 of food decay depending on temperature
-		if (healing < timePassedInSeconds * ServerSettings.FoodUsePerSecond / 2) healing = timePassedInSeconds * ServerSettings.FoodUsePerSecond / 2;
+		// if (healing < timePassedInSeconds * ServerSettings.FoodUsePerSecond / 2) healing = timePassedInSeconds * ServerSettings.FoodUsePerSecond / 2;
 		// if(tick % 20 == 0) trace('${player.id} heat: ${player.heat} faktor: ${healing / originalFoodDecay} healing: $healing foodDecay: $originalFoodDecay');
 
 		if (player.age < ServerSettings.GrownUpAge && player.food_store > 0) foodDecay *= ServerSettings.FoodUseChildFaktor;
