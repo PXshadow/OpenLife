@@ -1090,6 +1090,10 @@ class ServerSettings {
 		ObjectData.getObjectData(764).mapChance *= 5; // more snakes needs the world!
 		ObjectData.getObjectData(764).permanent = 0; // Rattle Snake
 
+		// Snake Skin Boot
+		ObjectData.getObjectData(766).rValue = 1;
+		// trace('Snake Skin Boot: ${ObjectData.getObjectData(766).getInsulation()} rv: ${ObjectData.getObjectData(766).rValue}');
+
 		ObjectData.getObjectData(411).speedMult = SemiHeavyItemSpeed; // Fertile Soil Reduced carring speed
 		ObjectData.getObjectData(345).speedMult = SemiHeavyItemSpeed; // Butt Log
 		ObjectData.getObjectData(126).speedMult = SemiHeavyItemSpeed; // Clay
