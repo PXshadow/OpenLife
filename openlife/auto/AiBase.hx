@@ -3854,6 +3854,8 @@ abstract class AiBase {
 	}
 
 	private function sayHelper(player:PlayerInterface, curse:Bool, text:String) {
+		var player = cast(player, GlobalPlayerInstance);
+
 		if (myPlayer.id == player.id) return;
 		if (player.isAi()) return;
 
@@ -3916,6 +3918,8 @@ abstract class AiBase {
 			myPlayer.say('${home.name}');
 		}
 		if (text.startsWith("FOLLOW ME!") || text.startsWith("FOLLOW!") || text.startsWith("COME")) {
+			if (checkIfShouldDoCommand(player) == false) return;
+
 			autoStopFollow = false; // otherwise if old enough ai would stop follow
 			timeStartedToFolow = TimeHelper.tick;
 			playerToFollow = player;
@@ -3942,6 +3946,8 @@ abstract class AiBase {
 			myPlayer.say("DROPING");
 		}
 		if (text.contains("GO HOME")) {
+			if (checkIfShouldDoCommand(player) == false) return;
+
 			var quadDistance = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 			if (quadDistance < 3) {
 				myPlayer.say("I AM HOME!");
@@ -3953,6 +3959,8 @@ abstract class AiBase {
 				myPlayer.say("I CANNOT GO HOME!");
 			this.time += 6;
 		} else if (text.startsWith("HOME!")) {
+			if (checkIfShouldDoCommand(player) == false) return;
+
 			var newHome = AiHelper.SearchNewHome(myPlayer);
 
 			if (newHome != null) {
@@ -3996,6 +4004,8 @@ abstract class AiBase {
 			var text = createProfessionText();
 			myPlayer.say('${text}');
 		} else if (text.endsWith("!")) {
+			if (checkIfShouldDoCommand(player) == false) return;
+
 			var tmp = text.split("!");
 			var prof = tmp.length == 0 ? '' : tmp[0];
 			if (prof == 'FARMER') prof = 'BASICFARMER';
@@ -4005,6 +4015,19 @@ abstract class AiBase {
 				myPlayer.say('${prof}');
 			}
 		}
+	}
+
+	public function checkIfShouldDoCommand(player:GlobalPlayerInstance) {
+		var aiPlayer = cast(myPlayer, GlobalPlayerInstance);
+
+		if (aiPlayer.isFollowerFrom(player)) return true;
+		if (aiPlayer.isCloseRelative(player)) return true;
+
+		myPlayer.say('I AM NOT YOUR FOLLOWER!');
+		myPlayer.doEmote(Emote.angry);
+
+		return false;
+		// this.connection.sendGlobalMessage('${player.name} FOLLOWS ME ALREADY!');
 	}
 
 	public function createProfessionText() {

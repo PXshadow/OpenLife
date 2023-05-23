@@ -5394,6 +5394,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return false;
 	}
 
+	public function isFollowerFrom(player:GlobalPlayerInstance) {
+		var leader = this.getTopLeader(player);
+		return leader == player;
+	}
+
 	public function isMyGrave(obj:ObjectHelper):Bool {
 		for (grave in account.graves) {
 			if (grave == obj) return true;

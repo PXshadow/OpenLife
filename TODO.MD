@@ -23,11 +23,13 @@ AI:
 - AI can do pottery and basic smithing
 - The Ai can defend against attackers and will attack not allied onces if you attack them
 - By saying "STOP" or "DROP You can order the AI to stop or drop what it helds
-- By saying "COME" the Ai will follow you for some time or untill you say "STOP"
-- By saying "HOME" you can set the closest oven as their new Home
 - By saying "MAKE xxx"  you can instruct the ai to make stuff with xxx is the item name
 - By saying "NAME?" AI says it name
 - By saying "PROF?" AI says its current profession
+
+Commands for followers or close relatives:
+- By saying "COME" the Ai will follow you for some time or untill you say "STOP"
+- By saying "HOME" you can set the closest oven as their new Home
 - By starting the command with "ALL" the commands will reach all close AI
 
  The AI might or might not manage to craft the item. In theory it knows the hole crafting tree, but there might be bugs or needed stuff might not be close enough. Some stuff like making bowls if there are too many might be forbidden for AI.
