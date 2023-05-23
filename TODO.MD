@@ -304,6 +304,7 @@ Coins / Currency:
 - You take 8 out of 10 coins if you manage to wound some one
 - you can hire AIs with coins with say: "I HIRE YOU"
 - the hire costs depends on the class of the one you want to hire and your combat reputation
+- If you are a close relative hiring costs are lower
 - If you arnt allied and dont have the same color the hire cost might be higher
 - If you have bad reputation hiring costs more but restores some of your lost reputation
 - leaders get 1/5 prestiege / coins their followers get

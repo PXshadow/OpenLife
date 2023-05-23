@@ -2084,8 +2084,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (player.lineage.prestigeClass == Noble) neededCoins *= 3;
 		if (player.lineage.prestigeClass == Commoner) neededCoins *= 2;
 		if (player.isFriendly(this) == false && player.getColor() != this.getColor()) neededCoins *= 2;
+		if (player.isCloseRelative(this)) neededCoins = Math.ceil(neededCoins / 2);
+
 		var combatPrestigeImppact = Math.ceil(this.lostCombatPrestige / 10);
-		neededCoins = Math.max(neededCoins, neededCoins + combatPrestigeImppact);
+		neededCoins = Math.max(ServerSettings.HireCost, neededCoins + combatPrestigeImppact);
 		var missing = Math.ceil(neededCoins - this.coins);
 
 		if (missing > 0) {
