@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.server.Biome.BiomeTag;
 import haxe.display.Display.Package;
 import openlife.data.Pos;
 import openlife.data.object.ObjectData;
@@ -108,6 +109,7 @@ class MoveHelper {
 		var floorSpeed = floorObjData.speedMult;
 		var hasBothShoes = p.hasBothShoes();
 		var isOnBoat = p.heldObject.objectData.isBoat;
+		var isInPAssableRiver = map.getBiomeId(tx, ty) == BiomeTag.PASSABLERIVER;
 
 		if (ServerSettings.AutoFollowAi && p.isHuman()) return 2 * speed;
 		if (ServerSettings.DebugSpeed) trace('speed: hasBothShoes: $hasBothShoes');
@@ -232,7 +234,8 @@ class MoveHelper {
 		var biomeLoveFactor = p.biomeLoveFactor();
 		if (biomeLoveFactor < 0 && p.inWrongBiome == false) {
 			p.inWrongBiome = true;
-			p.doEmote(Emote.homesick);
+			if (isInPAssableRiver && p.isSuperHot()) p.doEmote(Emote.happy); else if (p.isSuperHot() == false && p.isSuperCold() == false)
+				p.doEmote(Emote.homesick);
 		} else if (biomeLoveFactor >= 0 && p.inWrongBiome) {
 			p.inWrongBiome = false;
 			// p.doEmote(Emote.biomeRelief);
