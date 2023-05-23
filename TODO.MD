@@ -120,7 +120,12 @@ Better fire Handling:
 
 Water Handling:
 - Better wells always refill faster then primitive wells
-- better wells need less hungry work per water gained / using lakes is worst. 
+- better wells need less hungry work per water gained / using lakes is worst
+
+And the best on the end Better Snake Stuff!
+- Sandal: increased decay time from 5h to 30 days
+- Snake Skin Boot: Increase decay time from 5h to 10 days
+- Double insulation from Snake Skin Boot
 
 Not yet implemented:
 - AI combat
