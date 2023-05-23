@@ -2443,6 +2443,9 @@ class ServerSettings {
 		var trans = TransitionImporter.GetTransition(-1, 766); // TIME + Snake Skin Boot
 		trans.autoDecaySeconds = -24 * 10; // -5
 
+		var trans = TransitionImporter.GetTransition(-1, 2887); // TIME + Sandal
+		trans.autoDecaySeconds = -24 * 30; // -5
+
 		var trans = TransitionImporter.GetTransition(-1, 866); // TIME + Rag Loincloth
 		trans.autoDecaySeconds = -2; // -0.5
 
