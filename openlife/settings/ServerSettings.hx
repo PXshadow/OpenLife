@@ -1142,6 +1142,9 @@ class ServerSettings {
 		ObjectData.getObjectData(624).numUses = 7; // default 7 Composted Soil Uses: 3 Soil (Wheat, Berry, Dung) + water ==> 4 Soil
 		// ObjectData.getObjectData(411).useChance = 0.5; // Fertile Soil Pit 9 uses --> 18
 
+		// Dry Compost Pile 623
+		ObjectData.getObjectData(623).groundOnly = true;
+
 		// TODO let rows decay from time to time to increase soil need.
 
 		ObjectData.getObjectData(532).countsOrGrowsAs = 531; // 532 Mouflon with Lamb --> Mouflon
