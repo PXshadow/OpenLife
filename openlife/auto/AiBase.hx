@@ -4189,6 +4189,9 @@ abstract class AiBase {
 	// Shears 568 // Cold Iron Bloom in Wooden Tongs 311
 	var dropNearForgeItemIds = [289, 290, 327, 326, 319, 320, 441, 568, 311];
 
+	// Basket of Soil 336 // Straw
+	var dropNearWellItemIds = [336, 227];
+
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
 		var heldObject = myPlayer.heldObject;
 		var heldObjId = heldObject.parentId;
@@ -4468,8 +4471,8 @@ abstract class AiBase {
 			dropCloseToPlayer = false;
 		}
 
-		// Basket of Soil 336 --> drop close to well
-		if (heldId == 336 && maxDistanceToHome > 5) {
+		// drop close to well like Basket of Soil 336 // Straw
+		if (dropNearWellItemIds.contains(heldObjId) && maxDistanceToHome > 5) {
 			var newTarget = getCloseWell();
 			if (newTarget == null) newTarget = myPlayer.home;
 			// if(well != null) target = myPlayer.GetClosestObjectToTarget(well, 0, 30);
