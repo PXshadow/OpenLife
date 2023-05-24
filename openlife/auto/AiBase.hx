@@ -672,7 +672,7 @@ abstract class AiBase {
 
 		if (myPlayer.heldObject.parentId == whichObjId) {
 			var quadDist = myPlayer.CalculateQuadDistanceToObject(target);
-			if (quadDist > 1.5) return myPlayer.gotoObj(target);
+			if (quadDist > 5) return myPlayer.gotoObj(target);
 			dropHeldObject(5, target);
 			return true;
 		}
@@ -4189,7 +4189,7 @@ abstract class AiBase {
 	// Shears 568 // Cold Iron Bloom in Wooden Tongs 311
 	var dropNearForgeItemIds = [289, 290, 327, 326, 319, 320, 441, 568, 311];
 
-	// Basket of Soil 336 // Straw
+	// Basket of Soil 336 // Straw 227
 	var dropNearWellItemIds = [336, 227];
 
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
