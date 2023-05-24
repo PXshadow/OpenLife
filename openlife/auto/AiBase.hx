@@ -3247,7 +3247,21 @@ abstract class AiBase {
 				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2834, 30);
 				// Fruiting Tomato Plant 2835
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2835, 30);
+				// Dry Planted Tomato Seed 2829
+				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2829, 30);
 				if (count > 8) {
+					toPlant += 1;
+					continue;
+				}
+			}
+
+			// Dry Planted Onions 2851
+			if (toPlant == 2851) {
+				// Ripe Onions Ripe 2854
+				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2854, 30);
+				// Dry Planted Onions 2851
+				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2851, 30);
+				if (count > 6) {
 					toPlant += 1;
 					continue;
 				}
@@ -3294,11 +3308,11 @@ abstract class AiBase {
 
 		if (makeFireFood(2)) return true;
 
-		if (craftItem(59)) return true; // Rope
+		// if (craftItem(59)) return true; // Rope
 		// if(craftItem(58)) return true; // Thread
 
-		if (craftItem(808)) return true; // Wild Onion
-		if (craftItem(4252)) return true; // Wild Garlic
+		// if (craftItem(808)) return true; // Wild Onion
+		// if (craftItem(4252)) return true; // Wild Garlic
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} nothing to make!');
 
