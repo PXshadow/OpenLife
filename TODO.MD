@@ -128,7 +128,6 @@ And the best on the end Better Snake Stuff!
 - Double insulation from Snake Skin Boot
 
 Not yet implemented:
-- AI combat
 - Property system with locks
 - Ai territory / property
 - reading / writing
@@ -229,10 +228,12 @@ Attacking prestige cost:
 - you will loose prestige for attacking a women without weapon
 - you will loose even more prestige for attacking an ally without weapon
 - you will loose even more prestige for attacking a child without weapon
-- If you looose prestige like this, others may attack you without them loosing prestige
-- Nobles / Commoners loose halve reputation for attacking lower born
-- if you attack people with low reputation you gain reputation
-- per year you regain 10 lost reputation
+- if you attack someone who is not holdign no weapon or has a bad reputation you loose reputation
+- If you have a bad reputation others may attack you without them loosing prestige
+- Attacking some one who has a bad reputation increases your reputation
+- Nobles / Commoners loose only halve as much reputation for attacking lower born
+- per year you regain some lost reputation
+- The lower your reputation is the more you need to pay to hire people
 - all the presige and reputation damage is propotional to done damage
 
 Graves / Curses
@@ -429,9 +430,9 @@ Yellow fever:
 - you can feed lovely mushrooms to other if they have fever
 
 TODO Features: 
-more up in the list means more likely to be implemented first but no gurantee!
-- basic Ai combat
-- animals grouping / animal bosses
+more up in the list means more likely to be implemented first but no guarantee!
+- animals grouping / animal bosses / wolf ilness
+- illnesses (can spread dependign on health, more food use no eating)
 - better property system locks / for dors / chests / fortification
 - better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate)
 - special stuff like hercules / snake master / super fast ager 
@@ -441,15 +442,12 @@ more up in the list means more likely to be implemented first but no gurantee!
 - princess / princess
 
 TODO Missing:
-more up in the list means more likely to be implemented first but no gurantee!
+more up in the list means more likely to be implemented first but no guarantee!
 
 High priority:
-- LOGIN Player Limit
-- BIOME let stuff dropped in water drift back to land
-- WINTER snow banks / melting if snow
-
-- AI fight
-- AI allow commando only to (ally?) followers or mother / father
+- AI take up weapon instead of fleeing
+- AI use Knife / Sword for combat
+- AI dont run back if fleeing / mark target tile hostile
 - AI cache couted objects and objects for crafting
 - AI feeding water to heated players
 - AI healing other players
@@ -457,25 +455,41 @@ High priority:
 - AI storing pies in containers 
 - AI using of backpack (baskets) / for example kindling, potato, pies to eat / water
 
+- SAVE Check if coin inheritance is stored in account
+- BIOME let stuff dropped in water drift back to land
+- WINTER snow banks / melting if snow
+
+- FOOD nerving raw foods like carrots
+- FOOD handicap / reduce gained pipes per eaten food
+- FOOD make ginger love food carrot pie instead of carrot after generation 3
+- FOOD auto balance food pipes globally if eaten too much
+
 - WRITING / READING
+- SAVE secret for player / allow ! Aging only if secret is known
 - POPERTY Swing doors
 - POPERTY locks / locked chests
 - POPERTY Ally Gates
 - POPERTY wall + stone + hungry work
 
+- Animal hide rabbit / sanakes in snow
 - Animal Let Bears go in cave before winter 
 - Animal Let wolfs / bears eat sheeps / cows
 - Animal Let pigs eat food
+- Animal let pigs grow back faster
+- Animal let pigs hide in swamp
+- Animal let wolfs hide behind trees
 
 - AI: FIX pathing bug
 - FIX? /leader Client crash (if leader or anybody? is out of range??) 
 ==> For now you can use insteads !LEADER (!L) or !DL for direct leader (first you follow)
 ==> as workaround all player data is send always ==> does still not work
 
-- SAVE secret for player / allow ! Aging only if secret is known
 - FIX clearing up old lineage data --> needs a fix if player is still alive or if anythign is updated later on from the linage like family Name
 
 Middle priority:
+- Give Escape Snake bite Boni for Snake Boots / Sandlas
+- Give sandlas high heat protection / implement custom cloth heat protection
+- ALLow building bridges only with 4 stone walls close, except stone bridge
 - TEMPERATURE indoor temperature calculation 
 - Account Authentication (Maybe a system based on IP limits plus higher prio for players with higher score)
 - AI build oven / klin / forge on a good location
@@ -487,7 +501,7 @@ Middle priority:
 - AI help building roads / repair roads
 - AI better pathing towards home
 
-- TIME time transitions for objects in container that are in containers
+- TIME time transitions for objects in container that are in containers (test if implemented)
 - TIME decay stuff in containers??? --> baskets decays now
 - TIME decay for wells
 - TIME decay colored walls
