@@ -445,16 +445,37 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no guarantee!
 
 High priority:
+Combat:
 - AI take up weapon instead of fleeing
 - AI use Knife / Sword for combat
+- AI dont engage in combat if cursed and opponent is not cursed
 - AI dont run back if fleeing / mark target tile hostile
+
+Reputation:
+- AI dont dig in not allied people with bad reputation
+
+Commands:
+- AI add new command STAY CLOSE
+- AI add new command BRING
+- AI add new command craft --> constanly tries to craft untill 5 are reached
+
+Follow:
+- AI auto change leader if in new home
+- AI auto set home from direct leader or change leader if want stay in same home
+
+Crafting:
 - AI cache couted objects and objects for crafting
+
+Healing / Feeding:
 - AI feeding water to heated players
 - AI healing other players
+
+Cointainer:
 - AI eating from containers (needed also for player YUM display)
 - AI storing pies in containers 
 - AI using of backpack (baskets) / for example kindling, potato, pies to eat / water
 
+Not Ai stuff:
 - SAVE Check if coin inheritance is stored in account
 - BIOME let stuff dropped in water drift back to land
 - WINTER snow banks / melting if snow

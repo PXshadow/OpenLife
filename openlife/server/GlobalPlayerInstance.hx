@@ -4110,8 +4110,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			damage *= allyFactor;
 			damage *= distanceFactor;
 			damage *= isRightClassForWeapon ? 1.2 : 1;
-			damage *= targetPlayer.isCursed ? ServerSettings.CursedDamageFactor : 1;
-			damage *= attacker.isCursed ? 1 / ServerSettings.CursedDamageFactor : 1;
+			damage *= targetPlayer.isCursed ? ServerSettings.CursedReceiveDamageFactor : 1;
+			damage *= attacker.isCursed ? ServerSettings.CursedMakeDamageFactor : 1;
 			damage *= attacker.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
 
 			if (ServerSettings.DebugCombat)
