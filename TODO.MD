@@ -228,7 +228,7 @@ Attacking prestige cost:
 - you will loose prestige for attacking a women without weapon
 - you will loose even more prestige for attacking an ally without weapon
 - you will loose even more prestige for attacking a child without weapon
-- if you attack someone who is not holdign no weapon or has a bad reputation you loose reputation
+- if you attack someone who is not holding no weapon or has no a bad reputation you loose reputation
 - If you have a bad reputation others may attack you without them loosing prestige
 - Attacking some one who has a bad reputation increases your reputation
 - Nobles / Commoners loose only halve as much reputation for attacking lower born

@@ -1121,8 +1121,8 @@ class ServerSettings {
 		ObjectData.getObjectData(2855).foodValue = 3; // Onion // origional 5
 		ObjectData.getObjectData(808).foodValue = 2; // Wild Onion // origional 4
 		ObjectData.getObjectData(807).foodValue = 3; // Burdock Rootl 7
-		ObjectData.getObjectData(40).foodValue = 4; // Wild Carrot // origional 5
-		ObjectData.getObjectData(402).foodValue = 4; // Carrot // origional 5
+		ObjectData.getObjectData(40).foodValue = 3; // Wild Carrot // origional 5
+		ObjectData.getObjectData(402).foodValue = 3; // Carrot // origional 5
 		ObjectData.getObjectData(4252).foodValue = 2; // WILD GARLIC 4252 // origional 4
 		// ObjectData.getObjectData(837).foodValue = 1; // PSILOCYBE MUSHROOM 837 // origional 1
 
