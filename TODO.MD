@@ -446,6 +446,7 @@ more up in the list means more likely to be implemented first but no guarantee!
 
 High priority:
 Combat:
+- AI Higher cost the more you already have currently hired
 - AI take up weapon instead of fleeing
 - AI use Knife / Sword for combat
 - AI dont engage in combat if cursed and opponent is not cursed

@@ -89,6 +89,8 @@ class ThreadServer {
 				}
 			}
 		}
+
+		trace("end connection");
 	}
 
 	private function error(message:String) {}
