@@ -320,6 +320,8 @@ class MoveHelper {
 
 				TimeHelper.MakeAnimalsRunAway(p);
 
+				OpenDoors(p);
+
 				if (p.getAi() != null) p.getAi().movedOneTile = true;
 
 				moveHelper.sendChunkIfNeeded();
@@ -387,6 +389,24 @@ class MoveHelper {
 				trace('Move Done: ${p.name}${p.p_id} ${p.tx} ${p.ty} timeLeft: ${Math.round(timeLeft * 10) / 10} tiles left: ${Math.round(totalMoved * 10) / 10} Done SeqNum: ${p.done_moving_seqNum}');
 
 			// if(ServerSettings.DebugMoveHelper) trace('Move: ${p.p_id} ${p.name} ${p.tx} ${p.ty} Done SeqNum: ${p.done_moving_seqNum}');
+		}
+	}
+
+	static public function OpenDoors(p:GlobalPlayerInstance) {
+		var obj = WorldMap.world.getObjectHelper(p.tx, p.ty);
+
+		// Springy Wooden Door - Installed 2757 --> Springy Open Wooden Door - installed 2758
+		if (obj.parentId == 2757) {
+			obj.id = 2758;
+			WorldMap.world.setObjectHelper(p.tx, p.ty, obj);
+			Connection.SendMapUpdateToAllClosePlayers(p.tx, p.ty);
+		}
+
+		// Springy Wooden Door - Installed - vert 2759 --> Springy Open Wooden Door - installed - vert 2760
+		if (obj.parentId == 2759) {
+			obj.id = 2760;
+			WorldMap.world.setObjectHelper(p.tx, p.ty, obj);
+			Connection.SendMapUpdateToAllClosePlayers(p.tx, p.ty);
 		}
 	}
 

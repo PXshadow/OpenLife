@@ -132,7 +132,7 @@ Not yet implemented:
 - Ai territory / property
 - reading / writing
 - twinning
-- ally gates / auto open spring doors
+- ally gates / ally spring doors
 - in door temperature calculation
 - advanced stuff like rails, pipes, plows, cars
 - see more in TODO below
