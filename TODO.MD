@@ -477,12 +477,10 @@ Cointainer:
 - AI using of backpack (baskets) / for example kindling, potato, pies to eat / water
 
 Not Ai stuff:
-- SAVE Check if coin inheritance is stored in account
 - BIOME let stuff dropped in water drift back to land
 - WINTER snow banks / melting if snow
 
 - FOOD nerving raw foods like carrots
-- FOOD handicap / reduce gained pipes per eaten food
 - FOOD make ginger love food carrot pie instead of carrot after generation 3
 - FOOD auto balance food pipes globally if eaten too much
 

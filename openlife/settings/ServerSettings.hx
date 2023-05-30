@@ -176,6 +176,7 @@ class ServerSettings {
 	public static var ExhaustionHealingFactor:Float = 2;
 	public static var ExhaustionHealingForMaleFaktor:Float = 1.2;
 
+	public static var FoodFactor:Float = 0.8; // reduces gained food value
 	public static var FoodReductionPerEating:Float = 1;
 	public static var FoodReductionFaktorForEatingMeh:Float = 0.2;
 	public static var MaxAge = 60;

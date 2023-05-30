@@ -2814,6 +2814,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		**/
 		// this.o_transition_source_id = -1;
 
+		// Reduce Food value depending on difficulty Settings
+		foodValue = foodValue * ServerSettings.FoodFactor;
+
 		playerTo.addFood(foodValue);
 
 		playerTo.move_speed = MoveHelper.calculateSpeed(playerTo, playerTo.tx, playerTo.ty);
