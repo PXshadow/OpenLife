@@ -3352,6 +3352,7 @@ class ServerSettings {
 
 		LimitObject(213, 1136, 10); // Deep Tilled Row 213 // Shallow Tilled Row 1136
 
+		LimitObjectByNewTarget(2835, 2829, 9); // Fruiting Tomato Plant // Dry Planted Tomato Seed
 		// LimitObjectByNewTarget(623, 623, 3); // Dry Compost Pile 623
 		LimitObjectByNewTarget(624, 623, 3); // Composted Soil 624 // Dry Compost Pile 623
 		LimitObjectByNewTarget(625, 625, 3); // Wet Compost Pile 625
