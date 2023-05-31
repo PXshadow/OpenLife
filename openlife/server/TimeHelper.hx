@@ -1039,7 +1039,7 @@ class TimeHelper {
 		if (biomeId == PASSABLERIVER) timepassed *= 0.2;
 		if (biomeId == OCEAN) timepassed *= 0.5;
 		if (biomeId == RIVER) timepassed *= 1.5;
-		trace('Water:1 ${objData.name} biomeId: ${biomeId} floorId: ${floorId} rand: ${rand} timepassed: ${timepassed}');
+		// trace('Water:1 ${objData.name} biomeId: ${biomeId} floorId: ${floorId} rand: ${rand} timepassed: ${timepassed}');
 
 		if (rand > timepassed) return;
 
@@ -1047,7 +1047,7 @@ class TimeHelper {
 		var ttx = tx + world.randomInt(2) - 1;
 		var tty = ty + world.randomInt(2) - 1;
 
-		trace('Water:2 ${objData.name} biomeId: ${biomeId} floorId: ${floorId} rand: ${rand} --> ${world.getObjectHelper(ttx, tty).name}');
+		// trace('Water:2 ${objData.name} biomeId: ${biomeId} floorId: ${floorId} rand: ${rand} --> ${world.getObjectHelper(ttx, tty).name}');
 
 		var objId = world.getObjectId(ttx, tty);
 		if (objId[0] > 0) return;
@@ -1060,7 +1060,7 @@ class TimeHelper {
 
 		Connection.SendAnimalMoveUpdateToAllClosePlayers(tx, ty, ttx, tty, ground, obj.toArray(), 1);
 
-		trace('Water:3 ${objData.name} biomeId: ${biomeId} floorId: ${floorId} rand: ${rand} --> ${world.getObjectHelper(ttx, tty).name}');
+		// trace('Water:3 ${objData.name} biomeId: ${biomeId} floorId: ${floorId} rand: ${rand} --> ${world.getObjectHelper(ttx, tty).name}');
 	}
 
 	private static function DoSecondTimeOutcome(tx:Int, ty:Int, objId, timepassed:Float) {
