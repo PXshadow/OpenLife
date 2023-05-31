@@ -485,7 +485,6 @@ Cointainer:
 Not Ai stuff:
 - FIX stuck mutex
 
-- HIRE: hire age 40-->50
 - PRESTIGE higher cost attacking kids
 - PRESTIGE higher cost attacking elder
 

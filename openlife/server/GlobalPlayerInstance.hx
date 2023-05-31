@@ -2081,8 +2081,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return;
 		}
 
-		if (player.age > 40) {
-			this.say('${player.name} IS OLDER THAN 40', true);
+		if (player.age > 50) {
+			this.say('${player.name} IS OLDER THAN 50', true);
 			return;
 		}
 
