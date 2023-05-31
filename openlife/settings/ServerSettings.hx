@@ -340,6 +340,7 @@ class ServerSettings {
 	public static var TimeConfirmNewFollower:Float = 15; // a new follower is confirmed after X seconds
 
 	// combat
+	public static var MinAiAgeForCombat = 8;
 	public static var CombatAngryTimeBeforeAttack:Float = 5;
 	public static var CombatAngryTimeMinimum:Float = -60;
 	public static var CombatReputationRestorePerYear:Float = 2;

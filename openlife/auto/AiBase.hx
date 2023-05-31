@@ -4652,6 +4652,39 @@ abstract class AiBase {
 		return false;
 	}
 
+	private function hasWeaponClose(bow = true) {
+		var heldObject = myPlayer.heldObject;
+		var heldId = heldObject.parentId;
+
+		if (myPlayer.isWounded()) return false;
+		if (myPlayer.age < ServerSettings.MinAiAgeForCombat) return false;
+		if (heldObject.isBloody()) return false;
+
+		if (bow) {
+			// Bow and Arrow 152
+			if (heldId == 152) return true;
+			var weapon = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 152, 20);
+			if (weapon != null) return true;
+
+			// Yew Bow 151 // Arrow Quiver 3948
+			if (heldId == 151 && myPlayer.getClothingById(3948) != null) return true;
+			if (heldId == 151) {
+				// Arrow 148
+				var arrow = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 148, 20);
+				if (arrow != null) return true;
+			}
+
+			// Arrow Quiver with Bow 4151
+			if (myPlayer.getClothingById(4151) != null) return true;
+		}
+
+		return false;
+	}
+
+	private function getWeapon() {
+		return false;
+	}
+
 	// if (myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false;
 	private function attackPlayer(targetPlayer:GlobalPlayerInstance):Bool {
 		if (targetPlayer == null) return false;
@@ -4663,12 +4696,13 @@ abstract class AiBase {
 		// if (foodTarget != null) return false;
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
 
-		if (myPlayer.age < objData.minPickupAge) return false;
+		// if (myPlayer.age < objData.minPickupAge) return false;
+		if (myPlayer.age < ServerSettings.MinAiAgeForCombat) return false;
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} attackPlayer: ${targetPlayer.name}');
 
 		// 151 Yew Bow
-		if (myPlayer.heldObject.id == 151) {
+		if (myPlayer.heldObject.parentId == 151) {
 			// Arrow Quiver
 			var quiver = myPlayer.getClothingById(3948);
 
@@ -4678,6 +4712,7 @@ abstract class AiBase {
 				return true;
 			}
 		}
+
 		if (myPlayer.heldObject.id == 0) {
 			// Arrow Quiver with Bow
 			var quiver = myPlayer.getClothingById(4151);
@@ -4688,7 +4723,8 @@ abstract class AiBase {
 				return true;
 			}
 		}
-		// Arrow
+
+		// Arrow 148
 		if (myPlayer.heldObject.id == 148) {
 			// 4149 Empty Arrow Quiver with Bow
 			var quiver = myPlayer.getClothingById(4149);
@@ -4701,6 +4737,7 @@ abstract class AiBase {
 				return true;
 			}
 		}
+
 		if (myPlayer.heldObject.parentId != objData.id) {
 			// 4149 Empty Arrow Quiver with Bow
 			var quiver = myPlayer.getClothingById(4149);
@@ -5225,6 +5262,9 @@ abstract class AiBase {
 		if (distPlayer > 64) distPlayer = 99999999; // escape only if at max 8 tiles away
 
 		var escapePlayer = deadlyPlayer != null && distAnimal > distPlayer;
+
+		if (hasWeaponClose()) return false;
+
 		if (ServerSettings.DebugAi) trace('escape: distAnimal: ${distAnimal} distPlayer: ${distPlayer}');
 		var description = escapePlayer ? deadlyPlayer.name : animal.description;
 		var escapeTx = escapePlayer ? deadlyPlayer.tx : animal.tx;
