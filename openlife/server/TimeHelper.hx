@@ -928,6 +928,8 @@ class TimeHelper {
 
 				DoSecondTimeOutcome(x, y, obj[0], TimePassedToDoAllTimeSteps);
 
+				DoItemInWaterMovement(x, y, obj[0], TimePassedToDoAllTimeSteps);
+
 				var biome = worldMap.getBiomeId(x, y);
 
 				// TODO move in long time processing
@@ -1017,6 +1019,48 @@ class TimeHelper {
 				// trace('testObj: $testObj obj: $obj ${helper.tx},${helper.ty} i:$i index:${index(helper.tx, helper.ty)}');
 			}
 		}
+	}
+
+	private static function DoItemInWaterMovement(tx:Int, ty:Int, objId, timepassed:Float) {
+		var world = WorldMap.world;
+		var objData = ObjectData.getObjectData(objId);
+		if (objData.dummyParent != null) objData = objData.dummyParent;
+
+		if (objData.isPermanent()) return;
+		var biomeId = world.getBiomeId(tx, ty);
+
+		if (biomeId != PASSABLERIVER && biomeId != OCEAN && biomeId != RIVER) return;
+
+		var floorId = world.getFloorId(tx, ty);
+		if (floorId > 0) return;
+
+		var rand = world.randomFloat();
+		timepassed *= Math.pow(objData.speedMult, 3);
+		if (biomeId == PASSABLERIVER) timepassed *= 0.2;
+		if (biomeId == OCEAN) timepassed *= 0.5;
+		if (biomeId == RIVER) timepassed *= 1.5;
+		trace('Water:1 ${objData.name} biomeId: ${biomeId} floorId: ${floorId} rand: ${rand} timepassed: ${timepassed}');
+
+		if (rand > timepassed) return;
+
+		var obj = world.getObjectHelper(tx, ty);
+		var ttx = tx + world.randomInt(2) - 1;
+		var tty = ty + world.randomInt(2) - 1;
+
+		trace('Water:2 ${objData.name} biomeId: ${biomeId} floorId: ${floorId} rand: ${rand} --> ${world.getObjectHelper(ttx, tty).name}');
+
+		var objId = world.getObjectId(ttx, tty);
+		if (objId[0] > 0) return;
+
+		world.setObjectHelper(ttx, tty, obj);
+		world.setObjectHelper(tx, ty, obj.groundObject);
+
+		var ground = obj.groundObject == null ? [0] : obj.groundObject.toArray();
+		obj.groundObject = null;
+
+		Connection.SendAnimalMoveUpdateToAllClosePlayers(tx, ty, ttx, tty, ground, obj.toArray(), 1);
+
+		trace('Water:3 ${objData.name} biomeId: ${biomeId} floorId: ${floorId} rand: ${rand} --> ${world.getObjectHelper(ttx, tty).name}');
 	}
 
 	private static function DoSecondTimeOutcome(tx:Int, ty:Int, objId, timepassed:Float) {
