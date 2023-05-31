@@ -4052,6 +4052,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				this.addHealthAndPrestige(-prestigeCost, false);
 				this.lostCombatPrestige += prestigeCost;
 				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking a child ${targetPlayer.name}!');
+			} else if (targetPlayer.trueAge > 50) {
+				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForElderly;
+				prestigeCost = Math.ceil(prestigeCost);
+				this.addHealthAndPrestige(-prestigeCost, false);
+				this.lostCombatPrestige += prestigeCost;
+				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking elder ${targetPlayer.name}!');
 			} else if (targetPlayer.isAlly(this)) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForAlly;
 				prestigeCost = Math.ceil(prestigeCost);

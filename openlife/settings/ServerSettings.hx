@@ -361,7 +361,8 @@ class ServerSettings {
 	public static var AllyStrenghTooLowForPickup:Float = 0; // 0.8
 	public static var PrestigeCostPerDamageForAlly:Float = 1; // 0. 5 // For damaging ally
 	public static var PrestigeCostPerDamageForChild:Float = 5; // 2
-	public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.5; // 0.25// For damaging children, mother, father, brother sister
+	public static var PrestigeCostPerDamageForElderly:Float = 1; // for attacking elderly
+	public static var PrestigeCostPerDamageForCloseRelatives:Float = 0.5; // 0.25// For attacking children, mother, father, brother sister
 	public static var PrestigeCostPerDamageForWomenWithoutWeapon:Float = 0.5; // 0.25
 
 	// AI
