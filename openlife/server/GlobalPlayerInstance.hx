@@ -2147,6 +2147,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	private function countHiredPeople() {
 		var count = 0;
 		for (p in AllPlayers) {
+			if (p.deleted) continue;
+			if (p.age > 55) continue;
 			if (p.hiredByPlayer == this) count++;
 		}
 		return count;
