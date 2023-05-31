@@ -484,7 +484,6 @@ Cointainer:
 
 Not Ai stuff:
 - FIX stuck mutex
-- REDUCE AGE LIMIT
 
 - HIRE: hire age 40-->50
 - PRESTIGE higher cost attacking kids

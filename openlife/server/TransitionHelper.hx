@@ -276,15 +276,15 @@ class TransitionHelper {
 		var pickupAge = this.tileObjectData.minPickupAge - ServerSettings.ReduceAgeNeededToPickupObjects;
 		var neededAge = Math.ceil(pickupAge - player.age);
 
-		if (this.target.numberOfUses > 1 && player.age < this.tileObjectData.minPickupAge) {
-			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Not old enough to pickup stuff with more than one use!');
-			return false;
-		}
-
 		if (neededAge > 0) {
 			player.say('I am $neededAge years too young', true);
 			if (ServerSettings.DebugTransitionHelper)
 				trace('DROP: ${player.name + player.id} TOO young to pickup: target.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
+			return false;
+		}
+
+		if (this.target.numberOfUses > 1 && player.age < this.tileObjectData.minPickupAge) {
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Not old enough to pickup stuff with more than one use!');
 			return false;
 		}
 
@@ -479,11 +479,21 @@ class TransitionHelper {
 
 		if (this.checkIfNotMovingAndCloseEnough() == false) return false;
 
-		if (this.tileObjectData.minPickupAge > player.age + ServerSettings.ReduceAgeNeededToPickupObjects) {
+		var pickupAge = this.tileObjectData.minPickupAge - ServerSettings.ReduceAgeNeededToPickupObjects;
+		var neededAge = Math.ceil(pickupAge - player.age);
+
+		if (neededAge > 0) {
+			player.say('I am $neededAge years too young', true);
 			if (ServerSettings.DebugTransitionHelper)
 				trace('TRANS: ${player.name + player.id} USE: Too low age to use: target.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
 			return false;
 		}
+
+		/*if (this.tileObjectData.minPickupAge > player.age + ServerSettings.ReduceAgeNeededToPickupObjects) {
+			if (ServerSettings.DebugTransitionHelper)
+				trace('TRANS: ${player.name + player.id} USE: Too low age to use: target.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
+			return false;
+		}*/
 
 		var deadlyDistance = player.heldObject.objectData.deadlyDistance;
 
