@@ -22,7 +22,7 @@ class ServerSettings {
 	public static var AllowDebugObjectCreation = false; // allow debug objects creation with '!CREATEALL' and generates dubug object on start
 	public static var DebugSend = false;
 	public static var DebugIncomingCommands = false;
-	public static var DebugTransitionHelper = true;
+	public static var DebugTransitionHelper = false;
 	public static var DebugMoveHelper = false;
 	public static var DebugSpeed = false; // MovementHelper
 	public static var DebugEating = false;
@@ -369,7 +369,7 @@ class ServerSettings {
 	public static var NumberOfAiPx:Int = 0;
 	public static var AiReactionTime:Float = 0.5; // 0.5; // 0.5;
 	public static var TimeToAiRebirthPerYear:Float = 10; // X seconds per not lived year = 60 - death age
-	public static var AiTotalScoreFactor:Float = 0.5;
+	public static var AiTotalScoreFactor:Float = 0.6;
 	public static var AiTimeToWaitIfCraftingFailed:Float = 15; // if item failed to craft dont craft for X seconds
 	public static var AiMaxSearchRadius:Int = 60;
 	public static var AiMaxSearchIncrement:Int = 30; // 16

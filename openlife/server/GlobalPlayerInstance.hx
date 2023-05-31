@@ -1798,6 +1798,24 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// toSelf = true;
 		}
 
+		if (StringTools.startsWith(text, '?SCORE') || StringTools.startsWith(text, 'SCORE?')) {
+			var score = Math.floor(this.account.totalScore);
+			text = 'MY SCORE IS ${score} PRESTIGE!';
+			toSelf = true;
+		}
+
+		if (StringTools.startsWith(text, '?MSCORE') || StringTools.startsWith(text, 'MSCORE?')) {
+			var score = Math.floor(this.account.maleScore);
+			text = 'MY MALE SCORE IS ${score} PRESTIGE!';
+			toSelf = true;
+		}
+
+		if (StringTools.startsWith(text, '?FSCORE') || StringTools.startsWith(text, 'FSCORE?')) {
+			var score = Math.floor(this.account.femaleScore);
+			text = 'MY FEMALE SCORE IS ${score} PRESTIGE!';
+			toSelf = true;
+		}
+
 		if (StringTools.contains(text, '?SEASON TEMP') || text == '?ST') {
 			var seasonImpact = TimeHelper.SeasonTemperatureImpact;
 			if (seasonImpact > 0) seasonImpact *= ServerSettings.HotSeasonTemperatureFactor;

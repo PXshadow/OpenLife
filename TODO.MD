@@ -13,6 +13,9 @@ Summary:
 NEW Commans:
 - say "COINS?" --> guess what it does! But no it wont do it in silence! 
 - say "SEASON?" OR "?SEASON" displays current season
+- say "?SCORE" to get current account score / prestige (MSCORE + FSCORE) / 2
+- say "?MSCORE" to get current account male score / prestige
+- say "?FSCORE" to get current account female score / prestige
 
 AI:
 - Currently the Ai does not use containers, so use Baskets and Tables to save stuff you dont want the Ai to touch
@@ -445,8 +448,9 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no guarantee!
 
 High priority:
-Combat:
 - AI Limit Carrots
+
+Combat:
 - AI Higher cost the more you already have currently hired
 - AI take up weapon instead of fleeing
 - AI use Knife / Sword for combat
@@ -480,7 +484,6 @@ Cointainer:
 
 Not Ai stuff:
 - FIX stuck mutex
-- FIX Table plus stone
 - REDUCE AGE LIMIT
 
 - HIRE: hire age 40-->50
