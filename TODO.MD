@@ -488,7 +488,6 @@ Not Ai stuff:
 
 - MASKS: Extra damage
 
-- HINT For Exhaustion
 - CRAVING dont change if fed
 - CRAVING reduced more count if eaten?
 - CRAVING only change if eaten YUM?

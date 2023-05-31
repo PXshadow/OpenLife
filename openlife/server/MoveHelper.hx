@@ -595,7 +595,10 @@ class MoveHelper {
 			// This a client could use to jump.
 			// Therefore exhaustion and jumpedTiles is used to limit client jumps / "cheeting"
 			p.exhaustion += quadDist * ServerSettings.ExhaustionOnJump;
-			p.jumpedTiles += p.exhaustion < p.food_store_max / 2 ? quadDist / 2 : quadDist;
+			var isExhausted = p.exhaustion > p.food_store_max / 2;
+			p.jumpedTiles += isExhausted ? quadDist : quadDist / 2;
+
+			if (isExhausted) p.say('I am too exhausted!', true);
 
 			positionChanged = true;
 
