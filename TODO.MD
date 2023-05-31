@@ -490,7 +490,9 @@ Not Ai stuff:
 - CRAVING reduced more count if eaten?
 - CRAVING only change if eaten YUM?
 
-- BIOME let stuff dropped in water drift back to land
+- BIOME let desert spread
+- BIOME let water spread
+- BIOME let snow spread also in Jungle / Desert
 - WINTER snow banks / melting if snow
 
 - FOOD nerving raw foods like carrots
@@ -523,6 +525,7 @@ Middle priority:
 - Give Escape Snake bite Boni for Snake Boots / Sandlas
 - Give sandlas high heat protection / implement custom cloth heat protection
 - ALLow building bridges only with 4 stone walls close, except stone bridge
+- BIOME better water drift meechanics
 - TEMPERATURE indoor temperature calculation 
 - Account Authentication (Maybe a system based on IP limits plus higher prio for players with higher score)
 - AI build oven / klin / forge on a good location
