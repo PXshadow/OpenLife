@@ -1237,6 +1237,8 @@ class ServerSettings {
 
 		// ObjectData.getObjectData(1378).permanent = 0; // Sterile Wool Pad
 
+		ObjectData.getObjectData(1618).permanent = 0; // Written Paper &written 1618
+
 		ObjectData.getObjectData(3047).prestigeClass = PrestigeClass.Noble; // War Sword
 
 		ObjectData.getObjectData(560).deadlyDistance = 1.5; // Knife

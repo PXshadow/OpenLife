@@ -10,7 +10,7 @@ Summary:
 - Jump drink some water or jump in a river to cool down!
 - Use fire or cloths to warm up or escape into a desert!
 
-NEW Commans:
+NEW Commands:
 - say "COINS?" --> guess what it does! But no it wont do it in silence! 
 - say "SEASON?" OR "?SEASON" displays current season
 - say "?SCORE" to get current account score / prestige (MSCORE + FSCORE) / 2
@@ -503,7 +503,6 @@ Not Ai stuff:
 - FOOD auto balance food pipes globally if eaten too much
 
 - WRITING / READING
-- make written not permanent
 - SAVE secret for player / allow ! Aging only if secret is known
 - POPERTY Swing doors
 - POPERTY locks / locked chests
