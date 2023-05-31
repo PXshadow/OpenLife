@@ -678,9 +678,9 @@ class TransitionHelper {
 			&& target.objectData.allowFloorPlacement
 			&& target.objectData.groundOnly == false) {
 			// Floor Stakes 486
-			transition = TransitionImporter.GetTransition(this.player.heldObject.id, 486);
-			if (transition != null) {
-				var objData = ObjectData.getObjectData(transition.newTargetID);
+			var floorTransition = TransitionImporter.GetTransition(this.player.heldObject.id, 486);
+			if (floorTransition != null) {
+				var objData = ObjectData.getObjectData(floorTransition.newTargetID);
 
 				// only allow to place another floor on existing floor if floor was target or if it is Pine Floor 3290
 				if (objData.floor && this.floorId != 0 && (this.floorId != 3290 || objData.id == 3290)) {
@@ -691,7 +691,7 @@ class TransitionHelper {
 
 				if (objData.floor) {
 					this.player.setHeldObject(null);
-					this.newFloorId = transition.newTargetID;
+					this.newFloorId = floorTransition.newTargetID;
 					this.doTransition = true;
 					this.doAction = true;
 					return true;

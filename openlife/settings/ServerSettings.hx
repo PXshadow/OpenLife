@@ -22,7 +22,7 @@ class ServerSettings {
 	public static var AllowDebugObjectCreation = false; // allow debug objects creation with '!CREATEALL' and generates dubug object on start
 	public static var DebugSend = false;
 	public static var DebugIncomingCommands = false;
-	public static var DebugTransitionHelper = false;
+	public static var DebugTransitionHelper = true;
 	public static var DebugMoveHelper = false;
 	public static var DebugSpeed = false; // MovementHelper
 	public static var DebugEating = false;
@@ -3249,6 +3249,18 @@ class ServerSettings {
 		// trace('DEBUG!!!: ${trans.getDesciption()}');
 
 		// var trans = TransitionImporter.GetTransition(0, 31); // EMPTY + GOOSEBERRY 31
+		// trace('DEBUG!!!: ${trans.getDescription()}');
+
+		/*var transByTarget = TransitionImporter.GetTransitionByTarget(3371);
+			for (trans in transByTarget) {
+				// Skewer 139 // Weak Skewer 852
+				// if(trans.actorID != 139 && trans.actorID != 852) continue;
+
+				trace('DEBUG!!: ' + trans.getDescription());
+				// trans.aiShouldIgnore = true;
+		}*/
+
+		// var trans = TransitionImporter.GetTransition(33, 3371); // Stone 33 + Table 3371
 		// trace('DEBUG!!!: ${trans.getDescription()}');
 
 		// Watered Wild Gooseberry Bush 3946

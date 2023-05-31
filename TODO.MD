@@ -446,6 +446,7 @@ more up in the list means more likely to be implemented first but no guarantee!
 
 High priority:
 Combat:
+- AI Limit Carrots
 - AI Higher cost the more you already have currently hired
 - AI take up weapon instead of fleeing
 - AI use Knife / Sword for combat
@@ -457,6 +458,7 @@ Reputation:
 
 Commands:
 - AI add new command STAY CLOSE
+- AI hire cost command
 - AI add new command BRING
 - AI add new command craft --> constanly tries to craft untill 5 are reached
 
@@ -477,6 +479,19 @@ Cointainer:
 - AI using of backpack (baskets) / for example kindling, potato, pies to eat / water
 
 Not Ai stuff:
+- FIX stuck mutex
+- FIX Table plus stone
+- REDUCE AGE LIMIT
+
+- HIRE: hire age 40-->50
+- PRESTIGE higher cost attacking kids
+- PRESTIGE higher cost attacking elder
+
+- HINT For Exhaustion
+- CRAVING dont change if fed
+- CRAVING reduced more count if eaten?
+- CRAVING only change if eaten YUM?
+
 - BIOME let stuff dropped in water drift back to land
 - WINTER snow banks / melting if snow
 
@@ -485,6 +500,7 @@ Not Ai stuff:
 - FOOD auto balance food pipes globally if eaten too much
 
 - WRITING / READING
+- make written not permanent
 - SAVE secret for player / allow ! Aging only if secret is known
 - POPERTY Swing doors
 - POPERTY locks / locked chests
