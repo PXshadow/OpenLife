@@ -922,6 +922,11 @@ class Connection {
 		player.forced = false;
 	}
 
+	public function sendPlayerUpdateAndFrame(forcePosition:Bool = false) {
+		sendPlayerUpdate(forcePosition);
+		send(FRAME);
+	}
+
 	private static var lastSend:String = "";
 
 	public function send(tag:ClientTag, data:Array<String> = null, isPlayerAction:Bool = true, force:Bool = false) {
@@ -1193,7 +1198,11 @@ class Connection {
 	**/
 	public function sendGraveInfo(x:Int, y:Int) {
 		GlobalPlayerInstance.AcquireMutex();
+		Macro.exception(sendGraveInfoHelper(x, y));
+		GlobalPlayerInstance.ReleaseMutex();
+	}
 
+	public function sendGraveInfoHelper(x:Int, y:Int) {
 		var tx = player.gx + x;
 		var ty = player.gy + y;
 		var grave = WorldMap.world.getObjectHelper(tx, ty);
@@ -1206,7 +1215,6 @@ class Connection {
 		trace('GRAVE: $message');
 
 		send(GRAVE_OLD, [message]);
-		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	/*

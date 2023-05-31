@@ -449,6 +449,7 @@ more up in the list means more likely to be implemented first but no guarantee!
 
 High priority:
 - AI Limit Carrots
+- AI SWORD: get angry if one has one and is not noble
 
 Combat:
 - AI Higher cost the more you already have currently hired
@@ -483,10 +484,9 @@ Cointainer:
 - AI using of backpack (baskets) / for example kindling, potato, pies to eat / water
 
 Not Ai stuff:
-- FIX stuck mutex
+- FIX stuck mutex / Test if fixed???
 
-- PRESTIGE higher cost attacking kids
-- PRESTIGE higher cost attacking elder
+- MASKS: Extra damage
 
 - HINT For Exhaustion
 - CRAVING dont change if fed

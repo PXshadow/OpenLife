@@ -60,7 +60,7 @@ class TransitionHelper {
 			if(isGrave) trace('${player.name} Before: Owner: ${name} id: ${creatorId} from ${player.heldObject.name}');
 		 */
 
-		// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} doCommand try to acquire map mutex');
+		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} doCommand try to acquire map mutex');
 		Server.server.map.mutex.acquire();
 		// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} doCommand try to acquire player mutex');
 		if (ServerSettings.UseOneSingleMutex == false) GlobalPlayerInstance.AcquireMutex();
@@ -71,14 +71,16 @@ class TransitionHelper {
 		if (done == false) {
 			// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} WARNING: ' + e);
 			// send PU so that player wont get stuck
-			player.connection.send(PLAYER_UPDATE, [player.toData()]);
-			player.connection.send(FRAME);
+			// player.connection.send(PLAYER_UPDATE, [player.toData()]);
+			// player.connection.send(FRAME);
+			Macro.exception(player.connection.sendPlayerUpdateAndFrame());
 		}
 
 		// if(ServerSettings.DebugTransitionHelper) trace("release player mutex");
 		if (ServerSettings.UseOneSingleMutex == false) GlobalPlayerInstance.ReleaseMutex();
-		// if(ServerSettings.DebugTransitionHelper) trace("release map mutex");
+		if (ServerSettings.DebugTransitionHelper) trace("release map mutex");
 		Server.server.map.mutex.release();
+		if (ServerSettings.DebugTransitionHelper) trace("release map mutex done");
 
 		var timepassed = (Sys.time() - startTime) * 1000;
 		if (timepassed > 100) trace('${player.name + player.id} doCommand: tag: ${tag} ${Math.round(timepassed)}ms');
@@ -191,6 +193,8 @@ class TransitionHelper {
 				return false;
 			}
 		}
+
+		// trace('tag: ${player.name} ${tag} ${player.heldObject.name}');
 
 		switch (tag) {
 			case USE:
@@ -1285,7 +1289,7 @@ class TransitionHelper {
 		REMV is special case of removing an object from a container.
 		 i specifies the index of the container item to remove, or -1 to
 		 remove top of stack. */
-	public function remove(index:Int):Bool {
+	private function remove(index:Int):Bool {
 		if (removeObj(this.player, target, index)) {
 			this.doAction = true;
 			this.pickUpObject = true;
@@ -1295,7 +1299,7 @@ class TransitionHelper {
 		return false;
 	}
 
-	public function removeObj(player:GlobalPlayerInstance, container:ObjectHelper, index:Int):Bool {
+	private function removeObj(player:GlobalPlayerInstance, container:ObjectHelper, index:Int):Bool {
 		if (ServerSettings.DebugTransitionHelper) trace("remove index " + index);
 
 		// player.say('remove: ${this.target.numberOfUses} AGE ${player.age} from ${this.tileObjectData.minPickupAge}', true);
