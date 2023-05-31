@@ -452,14 +452,12 @@ High priority:
 - AI SWORD: get angry if one has one and is not noble
 
 Combat:
-- AI Higher cost the more you already have currently hired
-- AI take up weapon instead of fleeing
 - AI use Knife / Sword for combat
 - AI dont engage in combat if cursed and opponent is not cursed
 - AI dont run back if fleeing / mark target tile hostile
 
 Reputation:
-- AI dont dig in not allied people with bad reputation
+- AI dont dig in bones from not allied people with bad reputation
 
 Commands:
 - AI add new command STAY CLOSE

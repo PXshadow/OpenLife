@@ -2103,6 +2103,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (player.lineage.prestigeClass == Commoner) neededCoins *= 2;
 		if (player.isFriendly(this) == false && player.getColor() != this.getColor()) neededCoins *= 2;
 		if (player.isCloseRelative(this)) neededCoins = Math.ceil(neededCoins / 2);
+		neededCoins += countHiredPeople() * ServerSettings.HireCostIncreasePerPerson;
 
 		var combatPrestigeImppact = Math.ceil(this.lostCombatPrestige / 10);
 		neededCoins = Math.max(ServerSettings.HireCost, neededCoins + combatPrestigeImppact);
@@ -2141,6 +2142,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.doEmote(Emote.happy);
 		this.say('I hire ${player.name} for $neededCoins coins!', true);
 		player.say('${this.name} hired me!');
+	}
+
+	private function countHiredPeople() {
+		var count = 0;
+		for (p in AllPlayers) {
+			if (p.hiredByPlayer == this) count++;
+		}
+		return count;
 	}
 
 	private function doCommands(message:String):Bool {

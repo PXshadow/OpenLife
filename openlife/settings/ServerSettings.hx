@@ -257,6 +257,7 @@ class ServerSettings {
 
 	public static var TeleportCost:Float = 1; // 10
 	public static var HireCost:Float = 5;
+	public static var HireCostIncreasePerPerson:Float = 5;
 
 	// for animal movement
 	public static var ChanceThatAnimalsCanPassBlockingBiome:Float = 0.03;
