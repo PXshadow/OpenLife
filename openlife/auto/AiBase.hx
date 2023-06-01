@@ -323,6 +323,8 @@ abstract class AiBase {
 
 	// do time stuff here is called from TimeHelper
 	public function doTimeStuff(timePassedInSeconds:Float) {
+		var movedOneTileTmp = movedOneTile;
+
 		time -= timePassedInSeconds;
 
 		if (movedOneTile) {
@@ -348,6 +350,8 @@ abstract class AiBase {
 		if (wasIdle > 0) wasIdle -= reactionTime / 10;
 		// TODO use exact time
 		cleanupBlockedObjects(reactionTime);
+
+		if (movedOneTileTmp == false && myPlayer.isMoving()) return;
 
 		itemToCraft.searchCurrentPosition = true;
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
