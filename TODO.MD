@@ -483,7 +483,6 @@ Cointainer:
 
 Not Ai stuff:
 - FIX stuck mutex / Test if fixed???
-- reduce Ai reaction time if angry
 - dont let bones decay on floor
 - exile if you wound an ally and close by
 - attack exiled

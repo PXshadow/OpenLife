@@ -925,7 +925,7 @@ class ServerSettings {
 
 		ObjectData.getObjectData(2365).decaysToObj = 2243; // 2395 Crude Car with Empty Tank --> 2365 Diesel Engine
 
-		ObjectData.getObjectData(4144).useChance = 0.5; // old 1 // Dug Potatoes 4144
+		ObjectData.getObjectData(4144).useChance = 0.8; // old 1 // Dug Potatoes 4144
 
 		ObjectData.getObjectData(237).allowFloorPlacement = true; // Adobe Oven 237
 		ObjectData.getObjectData(247).allowFloorPlacement = true; // Wood-filled Adobe Oven 247
