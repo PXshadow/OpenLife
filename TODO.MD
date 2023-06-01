@@ -505,8 +505,6 @@ Not Ai stuff:
 
 - MASKS: Extra damage
 
-- CRAVING reduced more count if eaten?
-
 - BIOME let desert spread
 - BIOME let water spread
 - BIOME let snow spread also in Jungle / Desert

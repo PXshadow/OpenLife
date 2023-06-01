@@ -2789,7 +2789,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			var countEaten = playerTo.hasEatenMap[heldObjData.id];
 
 			if (countEaten < 0) {
-				foodEaten = Math.max(1, Math.floor(-countEaten / 2)); // eat more if it its a craving
+				foodEaten = Math.max(1, Math.ceil(-countEaten / 2)); // eat more if it its a craving
 				playerTo.hasEatenMap[heldObjData.id] += foodEaten;
 				// if (foodEaten > 1) foodEaten = 1 + (foodEaten - 1) / 2;
 				if (foodEaten > 10) foodEaten = 10;
