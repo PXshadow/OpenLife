@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.server.Lineage;
 import haxe.ds.Vector;
 import openlife.data.Pos;
 import openlife.data.object.ObjectData;
@@ -31,6 +32,7 @@ interface PlayerInterface {
 	public var id(get, null):Int;
 	public var name(get, null):String;
 	public var familyName(get, null):String;
+	public var lineage(get, null):Lineage;
 	public var account(get, null):PlayerAccount;
 	public var x(default, default):Int;
 	public var y(default, default):Int;

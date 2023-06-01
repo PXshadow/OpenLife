@@ -19,6 +19,7 @@ import openlife.server.ServerAi;
 import openlife.server.TimeHelper;
 import openlife.server.WorldMap;
 import openlife.settings.ServerSettings;
+import openlife.server.Lineage.PrestigeClass;
 import sys.thread.Thread;
 
 using StringTools;
@@ -337,19 +338,26 @@ abstract class AiBase {
 		// if(didNotReachFood > 0) didNotReachFood -= timePassedInSeconds * 0.02;
 		if (time > 1) time = 1; // wait max 10 sec
 		if (time > 0) return;
-		time += ServerSettings.AiReactionTime; // 0.5; // minimum AI reacting time
+
+		var reactionTime = ServerSettings.AiReactionTime; // minimum AI reacting time
+		if (myPlayer.lineage.prestigeClass == PrestigeClass.Serf) reactionTime = ServerSettings.AiReactionTimeSerf;
+		if (myPlayer.lineage.isNobleOrMore()) reactionTime = ServerSettings.AiReactionTimeNoble;
+
+		time += reactionTime;
+		if (wasIdle > 0) wasIdle -= reactionTime / 10;
+		// TODO use exact time
+		cleanupBlockedObjects(reactionTime);
+
 		itemToCraft.searchCurrentPosition = true;
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 		ignoreFullPiles = false;
 		calledCraftItem = false;
 
-		if (wasIdle > 0) wasIdle -= ServerSettings.AiReactionTime / 10;
 		// keep only last profession
 		cleanUpProfessions();
 
 		// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} account:  ${myPlayer.account.id}');
 
-		cleanupBlockedObjects();
 		this.tryMoveNearestTileFirst = true;
 
 		if (ServerSettings.AutoFollowAi && myPlayer.isHuman()) {
@@ -5012,16 +5020,16 @@ abstract class AiBase {
 	}
 
 	// make thread save, since reacting to player say command could mess with blocked objects
-	private function cleanupBlockedObjects() {
+	private function cleanupBlockedObjects(timePassed:Float) {
 		GlobalPlayerInstance.AcquireMutex();
-		Macro.exception(cleanupBlockedObjectsHelper());
+		Macro.exception(cleanupBlockedObjectsHelper(timePassed));
 		GlobalPlayerInstance.ReleaseMutex();
 	}
 
-	private function cleanupBlockedObjectsHelper() {
+	private function cleanupBlockedObjectsHelper(timePassed:Float) {
 		for (key in notReachableObjects.keys()) {
 			var time = notReachableObjects[key];
-			time -= ServerSettings.AiReactionTime;
+			time -= timePassed;
 
 			if (time <= 0) {
 				notReachableObjects.remove(key);
@@ -5036,7 +5044,7 @@ abstract class AiBase {
 
 		for (key in objectsWithHostilePath.keys()) {
 			var time = objectsWithHostilePath[key];
-			time -= ServerSettings.AiReactionTime;
+			time -= timePassed;
 
 			if (time <= 0) {
 				objectsWithHostilePath.remove(key);

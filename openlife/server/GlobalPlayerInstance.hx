@@ -146,7 +146,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public static var lastHumanEveOrAdam:GlobalPlayerInstance;
 	public static var LastLeaderBadgeColor:Int = 0;
 
-	public var lineage:Lineage;
+	public var myLineage:Lineage;
+
+	public var lineage(get, null):Lineage;
+
+	public function get_lineage() {
+		return this.myLineage;
+	}
 
 	private var myMother:GlobalPlayerInstance;
 	private var myFather:GlobalPlayerInstance;
@@ -532,7 +538,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			var obj = new GlobalPlayerInstance(connection, id);
 			connection.serverAi = new ServerAi(obj); // use AI untill player logs in
 
-			obj.lineage = Lineage.GetLineage(id);
+			obj.myLineage = Lineage.GetLineage(id);
 			if (obj.lineage != null) obj.lineage.alive = true;
 			// if (obj.lineage != null) loadedPlayers[id] = obj;
 			loadedPlayers[id] = obj;
@@ -915,7 +921,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.po_id = ObjectData.personObjectData[WorldMap.calculateRandomInt(ObjectData.personObjectData.length - 1)].id;
 		this.heldObject = ObjectHelper.readObjectHelper(this, [0]);
 		this.age_r = ServerSettings.AgeingSecondsPerYear;
-		this.lineage = new Lineage(this);
+		this.myLineage = new Lineage(this);
 
 		this.lineage.prestigeClass = calculatePrestigeClass();
 

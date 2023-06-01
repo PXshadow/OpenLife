@@ -522,4 +522,8 @@ class Lineage {
 
 		return null;
 	}
+
+	public function isNobleOrMore() {
+		return cast(prestigeClass, Int) >= cast(PrestigeClass.Noble, Int);
+	}
 }
