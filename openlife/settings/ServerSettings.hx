@@ -3470,6 +3470,10 @@ class ServerSettings {
 		LimitTransitionIfMinNotReached(3047, 1458, 1458, 4); // Allow to kill Cow if enough
 		// Mango Leaf 1878 + Domestic Cow 1458
 		LimitTransitionIfMinNotReached(1878, 1458, 1458, 2); // Allow to kill Cow if enough
+
+		// TODO: taking water is still possible / limit lastuse
+		// Bow and Arrow 152 // Canada Goose Pond 141
+		LimitTransitionIfMinNotReached(152, 141, 141, 2);
 	}
 
 	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 3) {

@@ -498,7 +498,7 @@ Generel:
 - migrate if no food
 - dont migrate too if exiled / migrade away if not strong enough
 - ally up in new town
-- Ai kill less goose
+- Ai dont take last water from goose
 - let sons follow with 80% their father if aged
 - let daughters follow with 20% their father if aged
 - dont allow build permanent stuff in deep water / mountain if not on floor except floor or floor stakes 
