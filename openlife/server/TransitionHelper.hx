@@ -127,6 +127,7 @@ class TransitionHelper {
 		// Tarr Monument
 		if (helper.target.parentId == 3112) {
 			player.say('Praise Jinbaili!');
+			player.lineage.prestige += 5;
 		}
 
 		// var text = 'TRANS: ${player.name + player.id} tag: $tag ${player.heldObject.name} + ${helper.target.name} ${helper.target.toArray()}';
