@@ -769,8 +769,9 @@ class TimeHelper {
 		// trace('Exhaustion: $tmpexhaustion ==> ${player.exhaustion} pID: ${player.p_id} biomeLoveFactor: $biomeLoveFactor');
 
 		// do healing but increase food use
-		// if (player.hits > 0) {
-		if (healing > 0 && player.hits > 0 && playerIsStarvingOrHasBadHeat == false && player.isWounded() == false) {
+
+		// if (healing > 0 && player.hits > 0 && playerIsStarvingOrHasBadHeat == false && player.isWounded() == false) {
+		if (doHealing && healing > 0 && player.hits > 0) {
 			// var healingFaktor = doHealing ? 1.0 : 0.0;
 			// var foodDecayFaktor = doHealing ? 2 : 1;
 

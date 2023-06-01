@@ -484,7 +484,6 @@ Cointainer:
 Not Ai stuff:
 - FIX stuck mutex / Test if fixed???
 - reduce Ai reaction time if angry, especially if noble
-- CHeck healing if angry (should not heal if angry)
 - Less anger if attacked
 - dont let bones decay on floor
 - exile if you wound an ally and close by
