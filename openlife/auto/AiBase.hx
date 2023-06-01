@@ -6982,6 +6982,9 @@ abstract class AiBase {
 		// Pile of Sheep Skins 3919
 		if (objectData.parentId == 3919) objectData = ObjectData.getObjectData(593); // Sheep Skin 593
 
+		// Backpack 198 // TODO allow for Noble and maybe Serfs
+		if (objectData.parentId == 198) return false;
+
 		var slot = objectData.getClothingSlot();
 
 		if (slot < 0) return false;
