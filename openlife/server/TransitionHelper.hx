@@ -136,8 +136,6 @@ class TransitionHelper {
 			}
 		}
 
-		trace('');
-
 		// store coins // Open Wooden Chest 986
 		if (tag == USE && isHeldEmpty && targetId == 986 && player.coins > 10 && helper.target.coins < 1 && player.age > 5) {
 			var coins = Math.min(100, Math.floor(player.coins));
