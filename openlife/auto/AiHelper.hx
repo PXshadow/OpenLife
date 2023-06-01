@@ -1421,6 +1421,7 @@ class AiHelper {
 			if (p.isFriendly(player)) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p);
+			if (p.lostCombatPrestige > 1) dist /= (15 + p.lostCombatPrestige) / 10;
 
 			if (dist > bestDist) continue;
 
