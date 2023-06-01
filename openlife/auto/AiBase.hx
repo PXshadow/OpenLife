@@ -342,6 +342,7 @@ abstract class AiBase {
 		var reactionTime = ServerSettings.AiReactionTime; // minimum AI reacting time
 		if (myPlayer.lineage.prestigeClass == PrestigeClass.Serf) reactionTime = ServerSettings.AiReactionTimeSerf;
 		if (myPlayer.lineage.isNobleOrMore()) reactionTime = ServerSettings.AiReactionTimeNoble;
+		if (myPlayer.isAngryOrTerrified()) reactionTime *= ServerSettings.AiReactionTimeFactorIfAngry;
 
 		time += reactionTime;
 		if (wasIdle > 0) wasIdle -= reactionTime / 10;

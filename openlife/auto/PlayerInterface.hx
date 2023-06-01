@@ -67,6 +67,7 @@ interface PlayerInterface {
 	public function isWounded():Bool;
 	public function isHoldingObject():Bool;
 	public function isHoldingWeapon():Bool;
+	public function isAngryOrTerrified():Bool;
 	public function isBlocked(tx:Int, ty:Int):Bool;
 	public function isEveOrAdam():Bool;
 	public function isIll():Bool;

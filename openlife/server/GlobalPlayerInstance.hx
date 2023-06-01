@@ -5966,23 +5966,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public function isHoldingObject():Bool {
 		return heldObject.id != 0 && heldObject != hiddenWound;
 	}
-} // TODO Arcurus>> add birth logic - suggestion:
-// select mother or Admam / Eve
-// if no mother 50% born as Adam 50 % born as Eve
-// First companion of Adam is Eve, of Eve it is Adam
+
+	public function isAngryOrTerrified():Bool {
+		return this.angryTime < 1;
+	}
+}
+
+// TODO Arcurus>> add birth logic - suggestion:
 // TODO Arcurus>> "curses" function through dead bodies that are not properly burried
 // bone pile an normal grave blocks 200 Tiles nearby
 // bone pile dos not decay
 // grave with at least a grave stone block for 15 min
 // additional if you are blocked, you are shown "cursed" to others of you go near
 // for "cursed" your name is consantly shown in "cursed" color
-// "cursed" lowers your speed to 80% and pickup of Age 3 items (you can still use if you have one)
-// "cursed" hinders you to engage with your own dead body
-// if you are blocked everywhere you may be born as "lowborn"
 // TODO Arcurus>> birth logic if you are not blocked
 // mothers on horses / cars cannot have children
-// mothers who where not close to a male in last 9 months cannot have a child
-// mother must be at least 14 and max 40
 // X2 times chance for each grave with at least a gravestone nearby (100 Tiles)
 // X1/2 chance for each living child a mother has
 // X (score this life) / (average this live score of living players) (score is connected to YUM plus extra)
