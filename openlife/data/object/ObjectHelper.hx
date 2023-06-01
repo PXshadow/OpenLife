@@ -14,9 +14,15 @@ import sys.io.File;
 import sys.io.FileInput;
 import sys.io.FileOutput;
 
+@:enum abstract ObjectDataSaveIds(Int) from Int to Int {
+	public var HITS = 1;
+	public var COINS = 2;
+	public var TEXT = 3;
+}
+
 class ObjectHelper {
-	public static var dataVersionNumberForRead = 5;
-	public static var dataVersionNumberForWrite = 5;
+	public static var dataVersionNumberForRead = 6;
+	public static var dataVersionNumberForWrite = 6;
 
 	public var objectData:ObjectData;
 	public var numberOfUses = 0;
@@ -38,13 +44,15 @@ class ObjectHelper {
 	// to store contained objects in case object is a container
 	public var containedObjects:Array<ObjectHelper> = [];
 
-	public var hits:Float = 0; // not saved yet
-	public var failedMoves:Float = 0; // not saved yet
+	public var hits:Float = 0;
+	public var coins:Float = 0;
+	public var text:String = '';
 
 	// public var isLovedSet = false; // not saved TODO save
 	public var lovedTx:Int = 0; // not saved TODO save
 	public var lovedTy:Int = 0; // not saved TODO saved
 
+	public var failedMoves:Float = 0; // not saved yet
 	public var target:ObjectHelper = null; // // not saved TODO saved
 
 	public static function WriteMapObjHelpers(path:String, objHelpersToWrite:Vector<ObjectHelper>) {
@@ -93,6 +101,8 @@ class ObjectHelper {
 		var world = WorldMap.world;
 
 		world.objectHelpers = newObjects;
+
+		trace('ReadMapObjHelpers: Data version is: $dataVersion expected data version is: $expectedDataVersion');
 
 		if (dataVersion != expectedDataVersion)
 			throw new Exception('ReadMapObjHelpers: Data version is: $dataVersion expected data version is: $expectedDataVersion');
@@ -151,6 +161,22 @@ class ObjectHelper {
 		writer.writeDouble(obj.creationTimeInTicks);
 		writer.writeFloat(obj.timeToChange);
 
+		// write custom variables
+		var count = 0;
+		if (obj.hits != 0) count++;
+		if (obj.coins != 0) count++;
+		if (obj.text != '') count++;
+
+		writer.writeInt16(count);
+		if (obj.hits != 0) writer.writeInt16(HITS);
+		if (obj.hits != 0) writer.writeFloat(obj.hits);
+		if (obj.coins != 0) writer.writeInt16(COINS);
+		if (obj.coins != 0) writer.writeFloat(obj.coins);
+		if (obj.text != '') writer.writeInt16(TEXT);
+		if (obj.text != '') writer.writeInt16(obj.text.length);
+		if (obj.text != '') writer.writeString(obj.text);
+
+		// write contained objects
 		writer.writeByte(obj.containedObjects.length);
 
 		for (containedObj in obj.containedObjects) {
@@ -181,6 +207,30 @@ class ObjectHelper {
 		newObject.creationTimeInTicks = reader.readDouble();
 		newObject.timeToChange = reader.readFloat();
 
+		// read custom variables
+		if (dataVersion >= 6) {
+			var count = reader.readInt16();
+			for (i in 0...count) {
+				var dataId = reader.readInt16();
+				switch (dataId) {
+					case HITS:
+						newObject.hits = reader.readFloat();
+						trace('ReadFromFile: Hits: ${newObject.hits}');
+					case COINS:
+						newObject.coins = reader.readFloat();
+						trace('ReadFromFile: Coins: ${newObject.coins}');
+					case TEXT:
+						var lenght = reader.readInt16();
+						newObject.text = reader.readString(lenght);
+						trace('ReadFromFile: Text: ${newObject.text}');
+					default:
+						trace('ERROR: DataId: ${dataId} is unknown!');
+						throw new Exception('DataId: ${dataId} is unknown!');
+				}
+			}
+		}
+
+		// read contained objects
 		if (dataVersion >= 5) {
 			/*var count = 0;
 				for(containedObj in newObject.containedObjects){
