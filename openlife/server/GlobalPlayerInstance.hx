@@ -4031,9 +4031,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		// make participants more angry // max angry is checked in TimeHelper
-		targetPlayer.angryTime -= ServerSettings.CombatAngryTimeBeforeAttack; // make hit player angry / terrified
-		this.angryTime -= ServerSettings.CombatAngryTimeBeforeAttack; // make attacker more angry
 		var damage = targetPlayer.doDamage(this.heldObject, this, distanceFactor, quadDistance);
+
+		targetPlayer.angryTime -= damage; // make hit player angry / terrified
+		this.angryTime -= damage; // make attacker more angry
 
 		/*this.setHeldObjectOriginNotValid(); // no animation
 			targetPlayer.setHeldObjectOriginNotValid(); // no animation
