@@ -483,6 +483,28 @@ Cointainer:
 
 Not Ai stuff:
 - FIX stuck mutex / Test if fixed???
+- reduce Ai reaction time if angry, especially if noble
+- CHeck healing if angry (should not heal if angry)
+- Less anger if attacked
+- dont let bones decay on floor
+- exile if you wound an ally and close by
+- attack exiled
+- dont allow hiring if seen exiled
+- !ally --> count allyies
+- fix extra carrots / exttra poatatos
+- add !topscore command
+- add !topcoins command
+- add !prestige command --> lists gained prestige
+- reduce regorw of wild food
+- let buffalos heal with one arroy
+- get angry if stealing stuff
+- get angry if dropping snakes in none desert
+- migrate if no food
+- dont migrate too if exiled / migrade away if not strong enough
+- ally up in new town
+- Ai kill less goose
+- let sons follow with 80% their father if aged
+- let daughters follow with 20% their father if aged
 
 - MASKS: Extra damage
 

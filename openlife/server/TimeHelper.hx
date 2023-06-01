@@ -750,11 +750,15 @@ class TimeHelper {
 
 		// take damage if temperature is too hot or cold
 		var damage:Float = 0;
-		if (player.isSuperHot()) damage = player.heat > 0.95 ? 2 * originalFoodDecay : originalFoodDecay; else if (player.isSuperCold())
-			damage = player.heat < 0.05 ? 2 * originalFoodDecay : originalFoodDecay;
 
-		player.hits += damage * ServerSettings.TemperatureHitsDamageFactor;
-		player.exhaustion += damage * ServerSettings.TemperatureExhaustionDamageFactor;
+		// give some time for BB to survive first year FIX: BB instand death in hard winter born outside
+		if (player.age > 1) {
+			if (player.isSuperHot()) damage = player.heat > 0.95 ? 2 * originalFoodDecay : originalFoodDecay; else if (player.isSuperCold())
+				damage = player.heat < 0.05 ? 2 * originalFoodDecay : originalFoodDecay;
+
+			player.hits += damage * ServerSettings.TemperatureHitsDamageFactor;
+			player.exhaustion += damage * ServerSettings.TemperatureExhaustionDamageFactor;
+		}
 
 		// do Biome exhaustion
 		// var tmpexhaustion = player.exhaustion;
