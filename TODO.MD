@@ -481,14 +481,14 @@ Cointainer:
 - AI storing pies in containers 
 - AI using of backpack (baskets) / for example kindling, potato, pies to eat / water
 
-Not Ai stuff:
+Generel:
 - FIX stuck mutex / Test if fixed???
 - dont let bones decay on floor
 - exile if you wound an ally and close by
 - attack exiled
 - dont allow hiring if seen exiled
 - !ally --> count allyies
-- fix extra carrots / exttra poatatos
+- fix extra carrots
 - add !topscore command
 - add !topcoins command
 - add !prestige command --> lists gained prestige

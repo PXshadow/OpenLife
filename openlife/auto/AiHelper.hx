@@ -1472,6 +1472,7 @@ class AiHelper {
 			var isAlly = p.isAlly(globalplayer);
 
 			if (isAlly == false && p.angryTime < ServerSettings.CombatAngryTimeBeforeAttack / 2) continue;
+			if (isAlly == false && p.lostCombatPrestige > 4) continue;
 			if (p.isCloseRelative(globalplayer) == false
 				|| player.getFollowPlayer() == p) hungry = hungry / 2 - 0.25; // prefer close relative
 			if (isAlly == false) hungry = hungry / 2 - 0.2; // prefer ally
