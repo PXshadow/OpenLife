@@ -1810,6 +1810,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			toSelf = true;
 		}
 
+		if (StringTools.startsWith(text, '?R')
+			|| StringTools.startsWith(text, '?REPUTATION')
+			|| StringTools.startsWith(text, 'REPUTATION?')) {
+			var score = Math.floor(this.lostCombatPrestige);
+			text = score > 0 ? 'MY REPUTATION IS NEGATIVE ${score}' : 'MY REPUTATION IS ${- score}';
+			toSelf = true;
+		}
+
 		if (StringTools.startsWith(text, '?MSCORE') || StringTools.startsWith(text, 'MSCORE?')) {
 			var score = Math.floor(this.account.maleScore);
 			text = 'MY MALE SCORE IS ${score} PRESTIGE!';

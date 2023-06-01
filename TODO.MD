@@ -501,6 +501,7 @@ Generel:
 - Ai kill less goose
 - let sons follow with 80% their father if aged
 - let daughters follow with 20% their father if aged
+- dont allow build permanent stuff in deep water / mountain if not on floor except floor or floor stakes 
 
 - MASKS: Extra damage
 
