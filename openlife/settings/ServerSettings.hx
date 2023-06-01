@@ -3033,6 +3033,24 @@ class ServerSettings {
 		var trans = transtions.getTransition(239, 321);
 		trans.aiShouldIgnore = true;
 
+		// TODO not sure if only limiting last use works
+		// TODO Canada Goose Pond with Egg
+		// Clay Bowl + Canada Goose Pond 141
+		var trans = transtions.getTransition(235, 141, false, true);
+		trans.aiShouldIgnore = true;
+
+		// Empty Water Pouch 209 + Canada Goose Pond 141
+		var trans = transtions.getTransition(209, 141, false, true);
+		trans.aiShouldIgnore = true;
+
+		// Clay Bowl + Canada Goose Pond - Swimming 142
+		var trans = transtions.getTransition(235, 142, false, true);
+		trans.aiShouldIgnore = true;
+
+		// Empty Water Pouch 209 + Canada Goose Pond 142
+		var trans = transtions.getTransition(209, 142, false, true);
+		trans.aiShouldIgnore = true;
+
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		// var trans = transtions.getTransition(1247, 4110);
 		// trans.aiShouldIgnore = true;
