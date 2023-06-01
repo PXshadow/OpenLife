@@ -324,6 +324,7 @@ Coins / Currency:
 - if you kill some one you get 80% of his coins
 - on death you will inherit your coins to same family or ally according to their past actions
 - if still some coins are left your kids will inherit your coins
+- you can store up to 100 coins in a wooden chest / just open and close
 
 Seasons / Winter is comming:
 - there are winter / summer / spring / autoumn. 

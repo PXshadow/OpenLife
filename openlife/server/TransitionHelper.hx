@@ -103,6 +103,9 @@ class TransitionHelper {
 
 	public static function doCommandHelper(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0):Bool {
 		var helper = new TransitionHelper(player, x, y);
+		var heldId = player.heldObject.parentId;
+		var targetId = helper.target.parentId;
+		var isHeldEmpty = heldId == 0 || player.heldObject == player.hiddenWound;
 
 		if ((player.o_id[0] < 0) || player.heldPlayer != null) {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} cannot do use since holding a player! ${player.o_id[0]}');
@@ -116,8 +119,8 @@ class TransitionHelper {
 		var targetConteinedLength = helper.target.containedObjects.length;
 		if (tag == USE
 			&& (heldConteinedLength > 0 || targetConteinedLength > 0)
-			&& player.heldObject.id == 292
-			&& (helper.target.parentId == 292 || helper.target.parentId == 1605)) {
+			&& heldId == 292
+			&& (targetId == 292 || targetId == 1605)) {
 			// TODO implement hidden containers so that cointainers can be put on top of containers
 			var text = 'TRANS: ${player.name + player.id} ${player.heldObject.name} + ${helper.target.name} ${helper.target.toArray()} NOT SUPPORTET YET!';
 			trace(text); // 5792
@@ -131,6 +134,25 @@ class TransitionHelper {
 				player.lineage.prestige += 5;
 				player.praisedJinbali = true;
 			}
+		}
+
+		trace('');
+
+		// store coins // Open Wooden Chest 986
+		if (tag == USE && isHeldEmpty && targetId == 986 && player.coins > 10 && helper.target.coins < 1 && player.age > 5) {
+			var coins = Math.min(100, Math.floor(player.coins));
+			player.coins -= coins;
+			helper.target.coins += coins;
+			if (helper.target.hits < 1) helper.target.hits = 1; // make sure object is saved
+			player.say('Stored ${coins} Coins!', true);
+		}
+
+		// get coins // Closed Wooden Chest 987
+		if (tag == USE && isHeldEmpty && targetId == 987 && helper.target.coins > 0 && player.age > 5) {
+			var coins = helper.target.coins;
+			player.coins += coins;
+			helper.target.coins = 0;
+			player.say('Got ${coins} Coins!', true);
 		}
 
 		// var text = 'TRANS: ${player.name + player.id} tag: $tag ${player.heldObject.name} + ${helper.target.name} ${helper.target.toArray()}';
