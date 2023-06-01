@@ -171,6 +171,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public var forceStopOnNextTile = false; // not saved // Ai sets this to change only movement if reached next tile
 	public var lastTimeEmoteSend:Float = 0;
+	public var praisedJinbali = false;
 
 	public function getFollowPlayer() {
 		return followPlayer;

@@ -127,32 +127,30 @@ class TransitionHelper {
 		// Tarr Monument
 		if (helper.target.parentId == 3112) {
 			player.say('Praise Jinbaili!');
-			player.lineage.prestige += 5;
+			if (player.praisedJinbali == false) {
+				player.lineage.prestige += 5;
+				player.praisedJinbali = true;
+			}
 		}
 
 		// var text = 'TRANS: ${player.name + player.id} tag: $tag ${player.heldObject.name} + ${helper.target.name} ${helper.target.toArray()}';
 		// trace(text);
-
 		// if(player.heldObject.isPermanent() || player.heldObject.isNeverDrop())
 		if (player.heldObject.isNeverDrop()) {
 			// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id}'HeldObject is permanent ${player.heldObject.isPermanent()} or cannot be dropped! ${player.heldObject.isNeverDrop()}');
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} HeldObject cannot be dropped!');
 			helper.sendUpdateToClient();
-
 			var time = player.heldObject.timeToChange - TimeHelper.CalculateTimeSinceTicksInSec(player.heldObject.creationTimeInTicks);
-			time = Math.ceil(time);
 
+			time = Math.ceil(time);
 			if (time <= 0 && player.heldObject.isBloody()) {
 				// fix to get stuck with blody weapon
 				player.heldObject.timeToChange = 3;
 				trace('WARNING isNeverDrop NO TIME SET!!!');
 			}
-
 			if (time > 4 && time <= 60) player.say('${Math.ceil(time)} seconds...', true);
-
 			return false;
 		}
-
 		if (player.heldObject.isWound()) {
 			// you can still do things with a hiddenwound
 			if (player.heldObject == player.hiddenWound) {
@@ -162,20 +160,20 @@ class TransitionHelper {
 				if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} HeldObject is a wound!');
 				helper.sendUpdateToClient();
 				var time = player.heldObject.timeToChange - TimeHelper.CalculateTimeSinceTicksInSec(player.heldObject.creationTimeInTicks);
+
 				if (time > 0) player.say('${Math.ceil(time)} seconds...', true);
 				return false;
 			}
 		}
-
 		if (player.killMode) {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} kill mode deactivated try again!');
 			helper.sendUpdateToClient();
 			player.killMode = false;
 			return false;
 		}
-
 		if (ServerSettings.AllyStrenghTooLowForPickup > 0) {
 			var allyStrengh = player.calculateEnemyVsAllyStrengthFactor();
+
 			if (allyStrengh < ServerSettings.AllyStrenghTooLowForPickup && helper.target.id != 0) // allow if target is empty
 			{
 				player.say('Too many hostile people...', true);
@@ -183,20 +181,16 @@ class TransitionHelper {
 				return false;
 			}
 		}
-
 		// dont allow to touch own grave if there are enough humans
 		if (player.isMyGrave(helper.target)) {
 			var countHumans = Connection.getConnections().length;
-
 			if (countHumans >= ServerSettings.MaxPlayersBeforeForbidTouchGrave) {
 				player.say('Its my grave...', true);
 				helper.sendUpdateToClient();
 				return false;
 			}
 		}
-
 		// trace('tag: ${player.name} ${tag} ${player.heldObject.name}');
-
 		switch (tag) {
 			case USE:
 				helper.use(target, index);
@@ -206,9 +200,7 @@ class TransitionHelper {
 				helper.remove(index);
 			default:
 		}
-
 		helper.sendUpdateToClient();
-
 		return helper.doAction;
 	}
 
