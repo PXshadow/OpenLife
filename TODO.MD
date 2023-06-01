@@ -16,6 +16,7 @@ NEW Commands:
 - say "?SCORE" to get current account score / prestige (MSCORE + FSCORE) / 2
 - say "?MSCORE" to get current account male score / prestige
 - say "?FSCORE" to get current account female score / prestige
+- say ?R or ?REPUTATION or REPUTATION? to get current combat reputation
 
 AI:
 - Currently the Ai does not use containers, so use Baskets and Tables to save stuff you dont want the Ai to touch
@@ -210,6 +211,7 @@ Ally
 Combat / Attacking
 - you can attack if you or the target are angry / terrified enough
 - you get angry / terrified 5 seconds after attacking / being attacked
+- Double Anger reduction in Passable River / Double in Desert
 - you can attack an ally who is holding a weapon without any mali so you can duell
 - In case you hit your ally you make halve damage
 - In case you attack an ally without any weapon your Top Leader will auto exile you

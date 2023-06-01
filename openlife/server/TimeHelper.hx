@@ -376,7 +376,11 @@ class TimeHelper {
 			if (player.angryTime > minAngryTime) player.angryTime -= timePassedInSeconds; else
 				player.angryTime = minAngryTime;
 		} else {
-			if (player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack) player.angryTime += timePassedInSeconds;
+			var biomeId = WorldMap.world.getBiomeId(player.tx, player.ty);
+			var biomeFactor:Float = biomeId == PASSABLERIVER ? 2 : 1;
+			biomeFactor = biomeId == DESERT ? 0.5 : biomeFactor;
+
+			if (player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack) player.angryTime += timePassedInSeconds * biomeFactor;
 		}
 
 		// if (player.lostCombatPrestige != 0) trace('${player.name + player.id} lostCombatPrestige: ${player.lostCombatPrestige}');
