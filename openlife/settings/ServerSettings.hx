@@ -333,8 +333,8 @@ class ServerSettings {
 	public static var WinterWildFoodDecayChance:Float = 1.5; // 1.5; // per Season
 	public static var SpringWildFoodRegrowChance:Float = 1; // per Season // use spring and summer
 	public static var GrowBackPlantsIncreaseIfLowPopulation:Float = 2;
-	public static var GrowBackOriginalPlantsFactor:Float = 0.05; // 0.05; // 0.4 // 0.1 // regrow from original plants per season
-	public static var GrowNewPlantsFromExistingFactor:Float = 0.1; // 0.2 // offsprings per season per plant
+	public static var GrowBackOriginalPlantsFactor:Float = 0.02; // 0.05; // 0.05; // 0.4 // 0.1 // regrow from original plants per season
+	public static var GrowNewPlantsFromExistingFactor:Float = 0.05; // 0.1; // 0.2 // offsprings per season per plant
 
 	// public static var WinterFildWoodDecayChance = 0.2;
 	// Ally

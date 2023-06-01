@@ -492,7 +492,6 @@ Not Ai stuff:
 - add !topscore command
 - add !topcoins command
 - add !prestige command --> lists gained prestige
-- reduce regorw of wild food
 - let buffalos heal with one arroy
 - get angry if stealing stuff
 - get angry if dropping snakes in none desert
