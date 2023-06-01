@@ -202,7 +202,7 @@ class ServerSettings {
 	// Yellow Fever
 	public static var ExhaustionYellowFeverPerSec = 0.1;
 	public static var AllowEatingOrFeedingIfIll = false; // for example if you have yellow fever some one needs to feed you if false
-	public static var ResistanceAginstFeverForEatingMushrooms:Float = 0.2;
+	public static var ResistanceAgainstFeverForEatingMushrooms:Float = 0.2;
 
 	// health
 	public static var MinHealthPerYear = 1; // expected health per year for normal health

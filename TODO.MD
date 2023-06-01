@@ -505,9 +505,7 @@ Not Ai stuff:
 
 - MASKS: Extra damage
 
-- CRAVING dont change if fed
 - CRAVING reduced more count if eaten?
-- CRAVING only change if eaten YUM?
 
 - BIOME let desert spread
 - BIOME let water spread

@@ -2801,7 +2801,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				if (ServerSettings.DebugEating) trace('No Craving: foodEaten: $foodEaten countEaten: $countEaten --> ${playerTo.hasEatenMap[heldObjData.id]}');
 			}
 
-			playerTo.doIncreaseFoodValue(heldObjData.id, foodEaten);
+			var dontChangeCraving = playerFrom != playerTo || isFoodYum == false;
+			playerTo.doIncreaseFoodValue(heldObjData.id, foodEaten, dontChangeCraving);
 			// playerTo.say('FC ${playerTo.hasEatenMap[heldObjData.id]}');
 		}
 
@@ -2826,8 +2827,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// eating lovely mushrooms give protection against fever
 		if (heldObjData.isDrugs()) {
-			playerTo.yellowfeverCount += ServerSettings.ResistanceAginstFeverForEatingMushrooms;
-			if (playerTo.fever != null) playerTo.fever.timeToChange *= 1 - ServerSettings.ResistanceAginstFeverForEatingMushrooms;
+			playerTo.yellowfeverCount += ServerSettings.ResistanceAgainstFeverForEatingMushrooms;
+			if (playerTo.fever != null) playerTo.fever.timeToChange *= 1 - ServerSettings.ResistanceAgainstFeverForEatingMushrooms;
 		}
 
 		if (ServerSettings.DebugEating) trace('YUM: ${heldObjData.description} foodValue: $foodValue countEaten: $countEaten');
@@ -2974,7 +2975,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		Tells player about which food they're currently craving, and how much their
 		YUM multiplier will increase when they eat it.
 	 */
-	private function doIncreaseFoodValue(eatenFoodId:Int, amountEaten:Float) {
+	private function doIncreaseFoodValue(eatenFoodId:Int, amountEaten:Float, dontChangeCraving:Bool) {
 		// trace('${this.name} IncreaseFoodValue: ${eatenFoodId}');
 
 		if (hasEatenMap[eatenFoodId] > 0) cravings.remove(eatenFoodId);
@@ -3013,7 +3014,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// if(newHasEatenCount >= 0) cravings.remove(eatenFoodId);
 		// if(cravingHasEatenCount >= 0) cravings.remove(currentlyCraving);
 
-		if (cravingHasEatenCount < 0 && currentlyCraving != 0 && currentlyCraving == eatenFoodId) {
+		if (cravingHasEatenCount < 0 && currentlyCraving != 0 && (dontChangeCraving || currentlyCraving == eatenFoodId)) {
 			if (ServerSettings.DebugEating) trace('${this.name} IncreaseFoodValue: craving: currentlyCraving: $currentlyCraving ${- cravingHasEatenCount}');
 
 			this.connection.send(ClientTag.CRAVING, ['${currentlyCraving} ${- cravingHasEatenCount}']);
@@ -3030,7 +3031,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				currentlyCraving = 0;
 
 				// chose random new craving
-				// TODO sort cravinglist by how difficult they are
 
 				var index = 0;
 				var foundNewCraving = false;
