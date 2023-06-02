@@ -4225,8 +4225,8 @@ abstract class AiBase {
 
 	// Stone 33 // Sharp Stone 34 // Banana Peel 2144
 	// This should not brought far away through switching so better drop for now:
-	// Bowl of Water 382 // Full Water Pouch 210
-	var dropAtCurrentPosition = [33, 34, 2144, 382, 210];
+	// Bowl of Water 382 // Full Water Pouch 210 // Bowl of Soil 1137
+	var dropAtCurrentPosition = [33, 34, 2144, 382, 210, 1137];
 
 	// Iron Ore in Wooden Tongs 289 // Iron Ore 290 // Wooden Tongs cool steel ingot 327 // Steel Ingot
 	// Unforged Sealed Steel Crucible 319 // Unforged Steel Crucible in Wooden Tongs 320 // Smithing Hammer 441
@@ -4365,6 +4365,8 @@ abstract class AiBase {
 			if (shortCraft(1137, 389, 15, false)) return true;
 			// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
 			if (shortCraft(1137, 848, 15, false)) return true;
+
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} DROP: ${myPlayer.heldObject.name} no bush or hard row found?');
 		}
 
 		// Stone Hoe 850 // if maxDistanceToHome is low dont do other stuff since its important to drop

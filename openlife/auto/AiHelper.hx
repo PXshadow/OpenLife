@@ -709,17 +709,17 @@ class AiHelper {
 
 	public static function gotoObj(player:PlayerInterface, obj:ObjectHelper, move:Bool = true, checkIfDangerous = true, ?infos:haxe.PosInfos):Bool {
 		// TODO stop going to target if too far???
-		if (ServerSettings.DebugAi) {
-			var ai = player.getAi();
-			var distance = CalculateQuadDistanceToObject(player, obj);
-			if (ai.lastGotoObj == obj && ai.lastGotoObjDistance < distance)
-				trace('AAI: ${player.name + player.id} WARNING: GOAL MOR FAR AWAY! gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} old-d:${ai.lastGotoObjDistance} ${infos.methodName}');
-			else
-				trace('AAI: ${player.name + player.id} gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} ${infos.methodName}');
 
-			ai.lastGotoObjDistance = distance;
-			ai.lastGotoObj = obj;
-		}
+		var ai = player.getAi();
+		var distance = CalculateQuadDistanceToObject(player, obj);
+		if (ai.lastGotoObj == obj && ai.lastGotoObjDistance <= distance && distance > 100) {
+			trace('AAI: ${player.name + player.id} WARNING: GOAL MOR FAR AWAY! gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} old-d:${ai.lastGotoObjDistance} ${infos.methodName}');
+			ai.addObjectWithHostilePath(obj);
+		} else if (ServerSettings.DebugAi)
+			trace('AAI: ${player.name + player.id} gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} ${infos.methodName}');
+
+		ai.lastGotoObjDistance = distance;
+		ai.lastGotoObj = obj;
 
 		return gotoAdv(player, obj.tx, obj.ty, move, checkIfDangerous, infos);
 	}
