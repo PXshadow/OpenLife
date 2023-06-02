@@ -7003,6 +7003,11 @@ abstract class AiBase {
 		// Pile of Sheep Skins 3919
 		if (objectData.parentId == 3919) objectData = ObjectData.getObjectData(593); // Sheep Skin 593
 
+		// Reserve better clothings for Commoners or Nobles
+		if (objectData.extraPrestigeFactor > 0.5 && myPlayer.lineage.prestigeClass == Serf) return false;
+		// Reserve better clothings like Crown for Nobles
+		if (objectData.extraPrestigeFactor > 0.1 && myPlayer.lineage.prestigeClass != Noble) return false;
+
 		// Backpack 198 // TODO allow for Noble and maybe Serfs
 		if (objectData.parentId == 198) return false;
 
