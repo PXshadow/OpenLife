@@ -536,7 +536,7 @@ abstract class AiBase {
 		Macro.exception(if (craftHighPriorityClothing()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		// medium priorty tasks
-		if (myPlayer.age > 20) Macro.exception(if (craftMediumPriorityClothing()) return);
+		if (myPlayer.age > 10) Macro.exception(if (craftMediumPriorityClothing()) return);
 
 		itemToCraft.searchCurrentPosition = false;
 
@@ -1623,7 +1623,7 @@ abstract class AiBase {
 		var distance = 30;
 
 		// Shovel of Dung 900 + Wet Compost Pile 625
-		if (shortCraft(900, 625, distance)) return true;
+		if (shortCraft(900, 625, distance, false)) return true;
 
 		// Basket of Soil
 		if (shortCraftOnGround(336)) return true;
@@ -1633,9 +1633,11 @@ abstract class AiBase {
 		// Fertile Soil 1138
 		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1138, 30);
 
-		if (count < 1) this.taskState['SoilMaker'] = 1;
+		if (count < 2) this.taskState['SoilMaker'] = 1;
 
-		if (count > 4) this.taskState['SoilMaker'] = 0;
+		if (count > 5) this.taskState['SoilMaker'] = 0;
+
+		if (shouldDebugSay()) myPlayer.say('$count soil');
 
 		if (this.taskState['SoilMaker'] == 0 && count > 0) return false;
 
@@ -1741,7 +1743,7 @@ abstract class AiBase {
 		// Deep Tilled Row 213
 		if (this.taskState['RowMaker'] < 3) {
 			if (deepRows < 10) {
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']} deepRows: $deepRows ');
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} RowMaker: deepRows: $deepRows ');
 
 				// Steel Hoe 857 + Shallow Tilled Row 1136 --> Deep Tilled Row 213
 				if (shortCraft(857, 1136, 30, false)) return true;
@@ -1753,7 +1755,7 @@ abstract class AiBase {
 				if (countHardRows > 0 && countBowls > 0) {
 					// consider putting soil on hard row
 					this.taskState['RowMaker'] = 1;
-					return true;
+					if (shortCraft(1137, 848, 30)) return true;
 				}
 
 				// Steel Hoe 857 + Fertile Soil 1138
