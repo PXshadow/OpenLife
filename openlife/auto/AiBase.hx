@@ -3526,7 +3526,7 @@ abstract class AiBase {
 
 	private function makePopcornIfNeeded():Bool {
 		// TODO since AI makes currently mess with Popcorn return
-		// return false;
+		return false;
 
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn!1');
 		// do nothing if there is Popcorn
@@ -3545,7 +3545,7 @@ abstract class AiBase {
 
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn!3');
 
-		return craftItem(1121); // Popcorn
+		return craftItem(1122); // Popcorn
 	}
 
 	private function makeFireFood(maxPeople:Int = 1):Bool {

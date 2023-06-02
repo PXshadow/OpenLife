@@ -491,7 +491,14 @@ Cointainer:
 - AI using of backpack (baskets) / for example kindling, potato, pies to eat / water
 
 Generel:
-- FIX stuck mutex / Test if fixed???
+- FIX stuck mutex / Test if fixed??? seems to work up to now
+- FIX wrong death messages / stuck on death
+- FIX teleporting Ai especially if you drop BB
+- FIX AI droping stuff outside of the village
+- FIX exile only from leader if you attack ally and if leader is close
+- FIX Ai makign tables
+- FIX set home if touching oven
+
 - dont let bones decay on floor
 - exile if you wound an ally and close by
 - attack exiled
