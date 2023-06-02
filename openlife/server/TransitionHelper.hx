@@ -136,8 +136,11 @@ class TransitionHelper {
 			}
 		}
 
-		// store coins // Open Wooden Chest 986
-		if (tag == USE && isHeldEmpty && targetId == 986 && player.coins > 10 && helper.target.coins < 1 && player.age > 5) {
+		// store coins
+		// 0 + Open Wooden Chest 986
+		// 0 + Unlocked Wooden Chest 989
+		var closeChest = (isHeldEmpty && targetId == 986) || (isHeldEmpty && targetId == 989);
+		if (tag == USE && closeChest && player.coins > 10 && helper.target.coins < 1 && player.age > 5) {
 			var coins = Math.min(100, Math.floor(player.coins));
 			player.coins -= coins;
 			helper.target.coins += coins;
@@ -145,8 +148,14 @@ class TransitionHelper {
 			player.say('Stored ${coins} Coins!', true);
 		}
 
-		// get coins // Closed Wooden Chest 987
-		if (tag == USE && isHeldEmpty && targetId == 987 && helper.target.coins > 0 && player.age > 5) {
+		// get coins
+		// TODO check if right key
+		// TODO allow open if same account without key
+		// 0 + Closed Wooden Chest 987
+		// Key 917 + Locked Wooden Chest 988
+		var opemChest = (isHeldEmpty && targetId == 987) || (heldId == 917 && targetId == 988);
+
+		if (tag == USE && opemChest && helper.target.coins > 0 && player.age > 5) {
 			var coins = helper.target.coins;
 			player.coins += coins;
 			helper.target.coins = 0;
