@@ -7003,8 +7003,10 @@ abstract class AiBase {
 		// Pile of Sheep Skins 3919
 		if (objectData.parentId == 3919) objectData = ObjectData.getObjectData(593); // Sheep Skin 593
 
+		// if (objectData.extraPrestigeFactor > 0.01) trace('shouldSwitchCloth: ${objectData.name} Noble: ${myPlayer.lineage.prestigeClass == Noble}');
+
 		// Reserve better clothings for Commoners or Nobles
-		if (objectData.extraPrestigeFactor > 0.5 && myPlayer.lineage.prestigeClass == Serf) return false;
+		if (objectData.extraPrestigeFactor > 0.05 && myPlayer.lineage.prestigeClass == Serf) return false;
 		// Reserve better clothings like Crown for Nobles
 		if (objectData.extraPrestigeFactor > 0.1 && myPlayer.lineage.prestigeClass != Noble) return false;
 
@@ -7015,12 +7017,14 @@ abstract class AiBase {
 
 		if (slot < 0) return false;
 
-		var switchCloths = myPlayer.clothingObjects[slot].id == 0;
+		var wornCloth = myPlayer.clothingObjects[slot];
+		var switchCloths = wornCloth.id == 0;
 		var isRag = objectData.name.contains('RAG ');
 
 		// in case of shoes either one can be needed
 		if (slot == 2) switchCloths = switchCloths || myPlayer.clothingObjects[3].id == 0;
-		if (isRag == false && myPlayer.clothingObjects[slot].name.contains('RAG ')) switchCloths = true;
+		if (isRag == false && wornCloth.name.contains('RAG ')) switchCloths = true;
+		if (objectData.extraPrestigeFactor > wornCloth.objectData.extraPrestigeFactor) switchCloths = true;
 
 		return switchCloths;
 	}
