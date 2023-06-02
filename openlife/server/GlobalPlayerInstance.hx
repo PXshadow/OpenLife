@@ -5976,6 +5976,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return heldObject.id != 0 && heldObject != hiddenWound;
 	}
 
+	public function isHeldEmpty():Bool {
+		return isHoldingObject() == false;
+	}
+
 	public function isAngryOrTerrified():Bool {
 		return this.angryTime < 1;
 	}

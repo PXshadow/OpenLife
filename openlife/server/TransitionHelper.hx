@@ -105,7 +105,7 @@ class TransitionHelper {
 		var helper = new TransitionHelper(player, x, y);
 		var heldId = player.heldObject.parentId;
 		var targetId = helper.target.parentId;
-		var isHeldEmpty = heldId == 0 || player.heldObject == player.hiddenWound;
+		var isHeldEmpty = player.isHeldEmpty();
 
 		if ((player.o_id[0] < 0) || player.heldPlayer != null) {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} cannot do use since holding a player! ${player.o_id[0]}');
@@ -733,6 +733,35 @@ class TransitionHelper {
 					this.doAction = true;
 					return true;
 				}
+			}
+		}
+
+		// property: set owner
+		if (transition != null) {
+			// Lock and Key 912 // Lock and Key -removed 1000
+			var heldId = this.handObjectData.parentId;
+			if ((heldId == 912 || heldId == 1000) && this.target.parentId != 0) {
+				this.target.hits = 1;
+				this.target.setNewOwnerAndClearOld(this.player);
+				this.player.say('Its mine now!', true);
+			}
+		}
+
+		// property: allow to open locked stuff without key if it is the owner
+		if (transition == null && player.isHeldEmpty()) {
+			// Key 917
+			var keyTransition = TransitionImporter.GetTransition(917, this.target.parentId);
+			var owner = this.target.getOwnerAccount();
+
+			trace('property: owner: ${owner != null} found: ${keyTransition != null}');
+
+			if (keyTransition != null && owner != null && this.player.account.id == owner.id) {
+				this.target.id = TransformTarget(keyTransition.newTargetID); // consider if there is an random outcome
+				this.doTransition = true;
+				this.doAction = true;
+
+				this.player.say('Its mine!', true);
+				return true;
 			}
 		}
 

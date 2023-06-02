@@ -132,7 +132,6 @@ And the best on the end Better Snake Stuff!
 - Double insulation from Snake Skin Boot
 
 Not yet implemented:
-- Property system with locks
 - Ai territory / property
 - reading / writing
 - twinning
@@ -359,6 +358,12 @@ Ownership:
 - if there was no follower the one the former owner was following inherits it
 - if none was there to inherit the gate the first who finds the gate will own the it
 
+Property:
+- Wooden Doors / Chests can be locked with lock and key
+- All Keys can open any lock / TODO limit keys
+- Owners of a locked item can open it without a key also in next life
+- Coins can be stored in chests
+
 Transitions:
 - you can harvest Berries directly with a bowl
 - tule Stumps grow back after one hour 
@@ -439,7 +444,7 @@ TODO Features:
 more up in the list means more likely to be implemented first but no guarantee!
 - animals grouping / animal bosses / wolf ilness
 - illnesses (can spread dependign on health, more food use no eating)
-- better property system locks / for dors / chests / fortification
+- better property / fortification
 - better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate)
 - special stuff like hercules / snake master / super fast ager 
 - job boni
@@ -519,10 +524,9 @@ Generel:
 
 - WRITING / READING
 - SAVE secret for player / allow ! Aging only if secret is known
-- POPERTY Swing doors
-- POPERTY locks / locked chests
+- POPERTY allow open lock only with fitting key
 - POPERTY Ally Gates
-- POPERTY wall + stone + hungry work
+- POPERTY foritfication wall + stone + hungry work
 
 - Animal hide rabbit / sanakes in snow
 - Animal Let Bears go in cave before winter 

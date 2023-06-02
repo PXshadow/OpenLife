@@ -648,6 +648,13 @@ class ObjectHelper {
 		return livingOwners.contains(playerId);
 	}
 
+	public function setNewOwnerAndClearOld(player:GlobalPlayerInstance) {
+		livingOwners = new Array<Int>();
+		livingOwners.push(player.p_id);
+		ownersByPlayerAccount = new Array<Int>();
+		ownersByPlayerAccount.push(player.account.id);
+	}
+
 	public function addOwner(player:GlobalPlayerInstance) {
 		if (isOwnedByPlayer(player)) return;
 
