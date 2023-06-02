@@ -937,6 +937,10 @@ class ServerSettings {
 		ObjectData.getObjectData(434).allowFloorPlacement = true; // Wooden Box 434
 		ObjectData.getObjectData(3065).allowFloorPlacement = true; // Wooden Slot Box 3065
 
+		// set property stuff
+		ObjectData.getObjectData(987).blocksRemove = true; // Closed Wooden Chest 987
+		ObjectData.getObjectData(988).blocksRemove = true; // Locked Wooden Chest 988
+
 		// set hungry work
 		// TODO use tool hungry work factor
 		/*

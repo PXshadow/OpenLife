@@ -374,6 +374,7 @@ class TransitionHelper {
 		// TODO change container check
 		// if ((objectData.numSlots == 0 || MapData.numSlots(this.tileObject) >= objectData.numSlots)) return false;
 		if (containerObjData.numSlots == 0) return false;
+		if (containerObjData.blocksRemove) return false;
 
 		var amountOfContainedObjects = container.containedObjects.length;
 
@@ -1328,6 +1329,7 @@ class TransitionHelper {
 
 		// do nothing if tile Object is empty
 		if (container.id == 0) return false;
+		if (container.objectData.blocksRemove) return false;
 
 		// this.player.say('remove ${this.target.name} ${this.target.numberOfUses}');
 

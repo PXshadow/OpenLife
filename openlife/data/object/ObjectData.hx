@@ -501,6 +501,8 @@ class ObjectData extends LineReader {
 
 	public var extraPrestigeFactor = 0.0; // For example if special cloth increase the prestige for followers
 
+	public var blocksRemove = false; // If items cant be removed like from a closed chest
+
 	public function get_parentId() {
 		var objectData = this;
 
