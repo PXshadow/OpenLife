@@ -2006,7 +2006,6 @@ class TimeHelper {
 		with a given speed.
 	 */
 	private static function doAnimalMovement(animal:ObjectHelper, timeTransition:TransitionData):Bool {
-		// TODO chasing
 		// TODO fleeing
 		// TODO Offspring only if with child
 		// TODO eating meat / killing sheep

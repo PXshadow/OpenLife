@@ -3717,7 +3717,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.followPlayer.connection.sendGlobalMessage('You inherited a new property!');
 		}
 
-		// TODO what is if there is no new owner left
+		// if there is no new owner left the property can be claimed by moving close
 	}
 
 	public static function ChooseNewLeader(deadLeader:GlobalPlayerInstance):GlobalPlayerInstance {
