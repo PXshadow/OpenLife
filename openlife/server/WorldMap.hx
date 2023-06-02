@@ -543,6 +543,12 @@ class WorldMap {
 		floors[index(x, y)] = floor;
 	}
 
+	public function getFloorObjData(x:Int, y:Int):ObjectData {
+		var floorId = getFloorId(x, y);
+		var objData = ObjectData.getObjectData(floorId);
+		return objData;
+	}
+
 	public function index(x:Int, y:Int):Int {
 		// Dont know why yet, but y seems to be right if -1
 		y -= 1;

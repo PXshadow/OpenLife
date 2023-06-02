@@ -4140,9 +4140,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		var damage = (orgDamage / 2) + (orgDamage * WorldMap.calculateRandomFloat());
 
-		var protection = targetPlayer.calculateClothingInsulation();
+		var floor = WorldMap.world.getFloorObjData(targetPlayer.tx, targetPlayer.ty);
+		var floorInsulation = floor.getInsulation();
+		var protection = targetPlayer.calculateClothingInsulation() + floorInsulation;
 		var protectionFactor = 1 / (protection + 1); // from 1 to 1 / 3;
-		if (ServerSettings.DebugCombat) trace('COMBAT: protection: $protection protectionFactor: $protectionFactor');
+		if (ServerSettings.DebugCombat) trace('COMBAT: protection: $protection protectionFactor: $protectionFactor floorInsulation: $floorInsulation');
 
 		var allyFactor = 1.0;
 		var currentStrengthFactor = 1.0;
