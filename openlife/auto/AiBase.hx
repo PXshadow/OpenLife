@@ -556,16 +556,21 @@ abstract class AiBase {
 			Macro.exception(if (doSmithing(100)) return);
 		} else if (assignedProfession == 'POTTER') {
 			Macro.exception(if (doPottery(100)) return);
+		} else if (assignedProfession == 'FIREKEEPER') {
+			Macro.exception(if (isHandlingFire(100)) return);
+		} else if (assignedProfession == 'CLOTHMAKER') {
+			Macro.exception(if (craftHighPriorityClothing()) return);
+			Macro.exception(if (craftMediumPriorityClothing(100)) return);
+			Macro.exception(if (craftLowPriorityClothing(100)) return);
+		} else if (assignedProfession == 'FIREFOODMAKER') {
+			Macro.exception(if (makeFireFood(100)) return);
 		}
 
-		// this.profession['firekeeper'] = 1;
 		/*this.profession['Lumberjack'] = 1;
 			this.profession['WaterBringer'] = 1;
 			this.profession['FoodServer'] = 1;
 			this.profession['gravekeeper'] = 1;
 			this.profession['Hunter'] = 1;
-			this.profession['ClothMaker'] = 1;
-			this.profession['FireFoodMaker'] = 1;
 			//this.profession['BowlFiller'] = 1;
 		 */
 
@@ -654,7 +659,7 @@ abstract class AiBase {
 		wasIdle += 1;
 
 		// before do nothing try all professions
-		// this.profession['firekeeper'] = 1;
+		// this.profession['FIREKEEPER'] = 1;
 		/*this.profession['Lumberjack'] = 1;
 			this.profession['WaterBringer'] = 1;
 			this.profession['BASICFARMER'] = 1;
@@ -665,8 +670,8 @@ abstract class AiBase {
 			this.profession['POTTER'] = 1;
 			this.profession['gravekeeper'] = 1;
 			this.profession['Hunter'] = 1;
-			this.profession['ClothMaker'] = 1;
-			this.profession['FireFoodMaker'] = 1;
+			this.profession['CLOTHMAKER'] = 1;
+			this.profession['FIREFOODMAKER'] = 1;
 			//this.profession['BowlFiller'] = 1;
 			this.profession['SMITH'] = 1; */
 
@@ -857,7 +862,7 @@ abstract class AiBase {
 		}
 		// Kindling 72
 		if (this.taskState['kindling'] > 0 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
-		this.profession['firekeeper'] = 2;
+		this.profession['FIREKEEPER'] = 2;
 
 		Macro.exception(if (doWatering(1)) return true);
 
@@ -884,8 +889,8 @@ abstract class AiBase {
 		// if (corn < 3) if (craftItem(1110)) return true; // Wet Planted Corn Seed
 
 		// more kindling
-		// if (this.profession['firekeeper'] < 3 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
-		// this.profession['firekeeper'] = 3;
+		// if (this.profession['FIREKEEPER'] < 3 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
+		// this.profession['FIREKEEPER'] = 3;
 
 		return false;
 	}
@@ -928,7 +933,7 @@ abstract class AiBase {
 		if (hotOven != null) Macro.exception(if (doBaking(3)) return true);
 
 		if (firePlace == null) {
-			var bestAiForFire = getBestAiForObjByProfession('firekeeper', myPlayer.home);
+			var bestAiForFire = getBestAiForObjByProfession('FIREKEEPER', myPlayer.home);
 			if (bestAiForFire != null && bestAiForFire.myPlayer.id == myPlayer.id) {
 				// make shafts and try not to borrow them // 67 Long Straight Shaft
 				var shaft = AiHelper.GetClosestObjectToPosition(myPlayer.home.tx, myPlayer.home.ty, 67, 20);
@@ -951,7 +956,7 @@ abstract class AiBase {
 
 		// 83 Large Fast Fire // 346 Large Slow Fire // 3029 Flash Fire
 		if (objId == 83 || objId == 346 || objId == 3029) {
-			if (hasOrBecomeProfession('firekeeper', maxProfession) == false) return false;
+			if (hasOrBecomeProfession('FIREKEEPER', maxProfession) == false) return false;
 
 			// itemToCraft.maxSearchRadius = 30; // craft only close
 			Macro.exception(if (doCriticalStuff()) return true);
@@ -960,8 +965,8 @@ abstract class AiBase {
 			return false;
 		}
 
-		var isUrgent = objId == 85 && hasOrBecomeProfession('firekeeper', 3); // 85 Hot Coals
-		var bestAiForFire = isUrgent ? this : getBestAiForObjByProfession('firekeeper', myPlayer.firePlace);
+		var isUrgent = objId == 85 && hasOrBecomeProfession('FIREKEEPER', 3); // 85 Hot Coals
+		var bestAiForFire = isUrgent ? this : getBestAiForObjByProfession('FIREKEEPER', myPlayer.firePlace);
 		if (bestAiForFire == null || bestAiForFire.myPlayer.id != myPlayer.id) return false;
 
 		if (ServerSettings.DebugAi)
@@ -3514,7 +3519,7 @@ abstract class AiBase {
 
 	private function makePopcornIfNeeded():Bool {
 		// TODO since AI makes currently mess with Popcorn return
-		return false;
+		// return false;
 
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn!1');
 		// do nothing if there is Popcorn
@@ -3537,9 +3542,13 @@ abstract class AiBase {
 	}
 
 	private function makeFireFood(maxPeople:Int = 1):Bool {
-		if (hasOrBecomeProfession('FireFoodMaker', maxPeople) == false) return false;
+		if (hasOrBecomeProfession('FIREFOODMAKER', maxPeople) == false) return false;
 
+		myPlayer.firePlace = AiHelper.GetCloseFire(myPlayer);
 		var firePlace = myPlayer.firePlace;
+
+		// if (shouldDebugSay()) myPlayer.say('makeFireFood!');
+		// myPlayer.say('makeFireFood!');
 
 		if (shortCraftOnGround(186)) return true; // Cooked Rabbit --> unskew the Cooked Rabbits
 
@@ -3578,6 +3587,11 @@ abstract class AiBase {
 		// Fire 82
 		if (firePlace == null) return craftItem(82);
 
+		// Flint Chip 135 // Dead Grizzly Bear 643
+		if (shortCraft(135, 643)) return true;
+		// 0 + Skinned Bear 657
+		if (shortCraft(0, 657)) return true;
+
 		Macro.exception(if (makePopcornIfNeeded()) return true);
 
 		// 0 + Cool Flat Rock 1284 --> Ashes
@@ -3592,7 +3606,9 @@ abstract class AiBase {
 		var countRawFireFood = countRawRabbit;
 
 		// Raw Mutton 569
-		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 25);
+		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 30);
+		// Raw Pork 1342
+		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1342, 30);
 
 		var neededRaw = isHungry ? 1 : 4;
 
@@ -3602,12 +3618,16 @@ abstract class AiBase {
 			if (fire == null) return craftItem(82);
 		}
 
+		// myPlayer.say('FireFood! fire: ${firePlace != null}');
+
 		// Raw Mutton 569
 		if (craftItem(569)) return true;
+		// Raw Pork 1342
+		if (craftItem(1342)) return true;
 		// Skinned Rabbit 181
 		// if(craftItem(181)) return true;
 
-		this.profession['FireFoodMaker'] = 0;
+		this.profession['FIREFOODMAKER'] = 0;
 		return false;
 	}
 
@@ -3635,11 +3655,11 @@ abstract class AiBase {
 			if (key == lastProfession) continue;
 			if (key == 'FoodServer') continue;
 			if (key == 'BowlFiller') continue;
-			if (key == 'firekeeper') continue;
+			if (key == 'FIREKEEPER') continue;
 			if (key == 'gravekeeper') continue;
 			if (lastProfession == 'FoodServer') continue;
 			if (lastProfession == 'BowlFiller') continue;
-			if (lastProfession == 'firekeeper') continue;
+			if (lastProfession == 'FIREKEEPER') continue;
 			if (lastProfession == 'gravekeeper') continue;
 
 			profession[key] = 0;
@@ -3686,8 +3706,8 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function craftMediumPriorityClothing():Bool {
-		if (hasOrBecomeProfession('ClothMaker', 1) == false) return false;
+	private function craftMediumPriorityClothing(maxProf:Int = 2):Bool {
+		if (hasOrBecomeProfession('CLOTHMAKER', maxProf) == false) return false;
 
 		// trace('craftMediumPriorityClothing');
 
@@ -3777,13 +3797,13 @@ abstract class AiBase {
 			if (count < 1 && craftItem(202)) return true;
 		}
 
-		this.profession['ClothMaker'] = 0;
+		this.profession['CLOTHMAKER'] = 0;
 
 		return false;
 	}
 
-	private function craftLowPriorityClothing():Bool {
-		if (hasOrBecomeProfession('ClothMaker', 1) == false) return false;
+	private function craftLowPriorityClothing(maxProf:Int = 1):Bool {
+		if (hasOrBecomeProfession('CLOTHMAKER', maxProf) == false) return false;
 
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
 		var color = myPlayer.getColor();
@@ -3810,7 +3830,7 @@ abstract class AiBase {
 		// 199 Rabbit Fur Hat
 		if (isWhiteOrGinger && craftClothIfNeeded(199)) return true;
 
-		this.profession['ClothMaker'] = 0;
+		this.profession['CLOTHMAKER'] = 0;
 
 		return false;
 	}
@@ -4087,14 +4107,7 @@ abstract class AiBase {
 	}
 
 	public static var professions = [
-		'SOILMAKER',
-		'ROWMAKER',
-		'BASICFARMER',
-		'ADVANCEDFARMER',
-		'SHEPHERD',
-		'BAKER',
-		'POTTER',
-		'SMITH'
+		'SOILMAKER', 'ROWMAKER', 'BASICFARMER', 'ADVANCEDFARMER', 'SHEPHERD', 'BAKER', 'POTTER', 'FIREKEEPER', 'CLOTHMAKER', 'FIREFOODMAKER', 'SMITH'
 	];
 
 	public function searchFoodAndEat() {

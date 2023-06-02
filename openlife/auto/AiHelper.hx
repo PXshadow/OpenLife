@@ -1617,7 +1617,7 @@ class AiHelper {
 			if(firePlace == null) firePlace = AiHelper.GetClosestObjectById(player, 85, null, 30); // 85 Hot Coals
 			return firePlace;
 	}*/
-	public static function GetCloseFire(player:PlayerInterface, maxdist = 15):ObjectHelper {
+	public static function GetCloseFire(player:PlayerInterface, maxdist = 20):ObjectHelper {
 		// AI: consider first large fast fire for heating purpose as home fire
 		var firePlace = AiHelper.GetClosestObjectToHome(player, 83, maxdist); // 83 Large Fast Fire
 		if (firePlace == null) firePlace = AiHelper.GetClosestObjectToHome(player, 346, maxdist); // 346 Large Slow Fire
