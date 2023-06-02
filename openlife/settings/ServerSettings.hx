@@ -1967,6 +1967,11 @@ class ServerSettings {
 		trans.move = 1;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		trans = new TransitionData(-1, 4194, 1262, 1256); // Domestic Goose with Egg 4194 --> Cold Goose Egg 1262 + Domestic Goose 1256
+		trans.autoDecaySeconds = 10;
+		trans.move = 1;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		// trans = new TransitionData(-1, 577, 576, 578); // Shorn Domestic Sheep 577 --> Fleece 578 + Shorn Domestic Sheep 576
 		// trans.autoDecaySeconds = 2;
 		// trans.lastUseTarget = true;
