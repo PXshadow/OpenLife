@@ -1560,6 +1560,13 @@ abstract class AiBase {
 			}
 		 */
 
+		// Cold Goose Egg 1262
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1262, 40);
+		if (count < 5) {
+			// Bowl with Corn Kernels 1247 + Domestic Goose 1256
+			if (shortCraft(1247, 1256, distance)) return true;
+		}
+
 		// Dead Cow 1900
 		if (shortCraft(560, 1900, distance)) return true;
 
