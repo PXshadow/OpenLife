@@ -2216,6 +2216,10 @@ class ServerSettings {
 		trans.newTargetID = 1340; // Butchered Pig 1340
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		// Give Dead Bison some meat
+		var trans = new TransitionData(560, 1446, 560, 1340); // Knife + Dead Bison 1446 --> Knife + Butchered Pig 1340
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		var trans = transtions.getTransition(0, 709); // 709 Skinned Seal with fur
 		trans.newTargetID = 1340; // 1340 Butchered Pig
 		transtions.addTransition("PatchTransitions: ", trans);
