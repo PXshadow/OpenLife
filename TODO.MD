@@ -112,7 +112,7 @@ Quality of Life Changes:
 - you can use a Steel Mining Pick to get coal out of a Bear Cave (Hungry Work)
 - you can use a Drop Spindle on a Small Ball of Yarn to get a Rope 
 - Sheep take longer to grow but also take longer to starve. So you have more time to feed!
-- Wolfs and Bears give meat
+- Wolfs, Bison and Bears give meat
 
 Better fire Handling:
 - you can use Straw on Ashes to start a fire again
@@ -492,12 +492,19 @@ Cointainer:
 
 Generel:
 - FIX stuck mutex / Test if fixed??? seems to work up to now
+- FIX AI loot grave while fresh
 - FIX wrong death messages / stuck on death
 - FIX teleporting Ai especially if you drop BB
 - FIX AI droping stuff outside of the village
 - FIX exile only from leader if you attack ally and if leader is close
 - FIX Ai makign tables
 - FIX set home if touching oven
+- FIX trekkieA: issues with objects disappearing from backpack, dont swap items quickly or you might lose it
+limestone was weird, if you use hetuw. you can crtl+q to swap items in bp. if you have more than one item swapping them can destroy objects
+- FIX trekkieA: hired ai wont change homes, even when luring into range. just tend to walk back to where i found them 
+- FIX trekkieA: visual bug when filling bowl of berries on bush, only see 5 berries instead of 6 - berry thing goes away after moving a tile
+- FIX trekkieA: when either sheep or squito (not sure) stand on top of hand cart. it gets stuck in forever motion. constant squeak
+- FIX player objects like wounds and cloths / stuff in backpack??? dont seem to be updated if data version changes
 
 - dont let bones decay on floor
 - exile if you wound an ally and close by
