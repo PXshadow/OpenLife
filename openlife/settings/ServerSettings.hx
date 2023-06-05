@@ -3439,6 +3439,8 @@ class ServerSettings {
 		// Ripe Cucumber Plant 4232 // Dry Planted Cucumber Seeds 4225
 		LimitObjectByNewTarget(4232, 4225, 5);
 
+		LimitObjectByNewTarget(391, 216, 20); // // Domestic Gooseberry Bush 391 // Dry Planted Gooseberry Seed 216
+
 		LimitObjectByNewTarget(242, 228, 30); // Dry Planted Wheat 228 // Ripe Wheat 242
 
 		// LimitObjectByTarget(297, 226, 1); // Threshed Wheat 297 // Threshed Wheat (with straw) 226

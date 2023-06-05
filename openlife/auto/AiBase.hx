@@ -1914,8 +1914,12 @@ abstract class AiBase {
 
 		// Plant Berry Bushes if needed
 
-		// Domestic Gooseberry Bush
+		// Domestic Gooseberry Bush 391
 		var countBushes = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 391, distance);
+		// Dry Domestic Gooseberry Bush 393
+		countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 393, distance);
+		// Empty Domestic Gooseberry Bush 1135
+		countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1135, distance);
 		// Vigorous Domestic Gooseberry Bush 1134
 		countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1134, distance);
 		// Gooseberry Sprout
