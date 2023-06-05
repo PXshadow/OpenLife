@@ -882,15 +882,20 @@ abstract class AiBase {
 		if (this.taskState['kindling'] > 0 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
 		this.profession['FIREKEEPER'] = 2;
 
-		Macro.exception(if (doWatering(1)) return true);
-
-		if (doPottery(1)) return true;
+		// Bowl of Soil 1137 + Dying Gooseberry Bush 389
+		if (shortCraft(1137, 389, 30)) return true;
+		// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
+		if (shortCraft(1137, 392, 30)) return true;
 
 		if (placeFloorUnder(myPlayer.home)) return true;
 
 		if (placeFloorUnder(GetKiln())) return true;
 
 		if (placeFloorUnder(GetForge())) return true;
+
+		Macro.exception(if (doWatering(1)) return true);
+
+		if (doPottery(1)) return true;
 
 		if (cleanUp()) return true;
 
@@ -1855,6 +1860,11 @@ abstract class AiBase {
 
 		// if(doPrepareSoil()) return true;
 
+		// Bowl of Soil 1137 + Dying Gooseberry Bush 389
+		if (shortCraft(1137, 389, 30)) return true;
+		// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
+		if (shortCraft(1137, 392, 30)) return true;
+
 		if (doPrepareRows()) return true;
 
 		if (doWateringOn(216, 3)) return true; // Dry Planted Gooseberry Seed 216
@@ -1908,11 +1918,6 @@ abstract class AiBase {
 		var maxBushes = profession['BASICFARMER'] < 7 ? 3 : 9;
 
 		if (countBushes >= maxBushes) return false;
-
-		// Bowl of Soil 1137 + Dying Gooseberry Bush 389
-		if (shortCraft(1137, 389, 30)) return true;
-		// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
-		if (shortCraft(1137, 392, 30)) return true;
 
 		// Wet Planted Gooseberry Seed 217
 		// Dry Planted Gooseberry Seed 216
