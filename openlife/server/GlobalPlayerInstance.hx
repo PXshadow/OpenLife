@@ -4040,7 +4040,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				// TODO Check if leader is close and can see the attack
 				var leader = targetPlayer.getTopLeader();
 
-				if (leader != null && leader != this) leader.exile(this, false);
+				if (leader != null && leader != this) {
+					var dist = AiHelper.CalculateDistanceToPlayer(this, leader);
+					if (dist < 90) leader.exile(this, false);
+				}
 				this.exile(targetPlayer, false);
 			}
 		}
