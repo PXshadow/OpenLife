@@ -882,6 +882,7 @@ abstract class AiBase {
 		if (this.taskState['kindling'] > 0 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
 		this.profession['FIREKEEPER'] = 2;
 
+		var distance = 30;
 		// Domestic Gooseberry Bush 391
 		var countBushes = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 391, distance);
 		// Dry Domestic Gooseberry Bush 393
