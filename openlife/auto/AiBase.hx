@@ -115,6 +115,7 @@ abstract class AiBase {
 	public var lastGotoObjDistance:Float = -1;
 	public var lastGotoObj:ObjectHelper = null;
 	public var isNiceBaby = false;
+	public var timeReactedLastCommand = 0.0;
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -3975,29 +3976,67 @@ abstract class AiBase {
 		}*/
 
 		if (text.contains("HOLA") || text.contains("HELLO") || text == "HI") {
-			myPlayer.say('HOLA ${player.name}');
+			var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeReactedLastCommand);
+			if (timePassedInSeconds > 4 || timeReactedLastCommand < 1) {
+				if (player.isHoldingWeapon()) {
+					myPlayer.say('PUT DOWN YOUR WEAPON FIRST!');
+				} else if (myPlayer.isAngryOrTerrified()) {
+					myPlayer.say('DONT MAKE ME ANGRY!');
+				} else if (player.isAngryOrTerrified()) {
+					myPlayer.say('YOU LOOK ANGRY!');
+				} else {
+					myPlayer.Goto(myPlayer.x, myPlayer.y);
+					myPlayer.say('HOLA ${player.name}');
+					timeReactedLastCommand = TimeHelper.tick;
+					waitingTime += 2;
+				}
+			} else {
+				// myPlayer.say('TIME!');
+			}
 		}
 		if (text.startsWith("NAME?")) {
-			myPlayer.say('${myPlayer.name} ${myPlayer.familyName}');
-		}
-		if (text.contains("ARE YOU AI") || text.contains("ARE YOU AN AI") || text == "AI?" || text == "AI") {
-			var rand = WorldMap.world.randomInt(8);
-
-			if (rand == 0) {
-				myPlayer.say('Im not a stupid AI!');
-			} else if (rand == 1) {
-				myPlayer.say('Im an AI!');
-			} else if (rand == 2) {
-				myPlayer.say('No');
-			} else if (rand == 3) {
-				myPlayer.say('Sure');
-			} else if (rand == 4) {
-				myPlayer.say('yes i am');
-			} else if (rand == 5) {
-				myPlayer.say('Yes, And you?');
-			} else if (rand == 6) {
-				myPlayer.say('Why should I?');
+			var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeReactedLastCommand);
+			if (timePassedInSeconds > 4 || timeReactedLastCommand < 1) {
+				if (myPlayer.isAngryOrTerrified()) {
+					myPlayer.say('GRRR!');
+				} else if (player.isHoldingWeapon()) {
+					myPlayer.say('PUT DOWN YOUR WEAPON FIRST!');
+				} else if (player.isAngryOrTerrified()) {
+					myPlayer.say('I DONT TRUST YOU!');
+				} else if (myPlayer.isAngryOrTerrified()) myPlayer.say('GRRR!'); else {
+					myPlayer.Goto(myPlayer.x, myPlayer.y);
+					myPlayer.say('${myPlayer.name} ${myPlayer.familyName}');
+					timeReactedLastCommand = TimeHelper.tick;
+					waitingTime += 2;
+				}
 			}
+		}
+
+		if (text.contains("ARE YOU AI") || text.contains("ARE YOU AN AI") || text == "AI?" || text == "AI") {
+			var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeReactedLastCommand);
+			if (timePassedInSeconds > 4 || timeReactedLastCommand < 1) {
+				timeReactedLastCommand = TimeHelper.tick;
+
+				var rand = WorldMap.world.randomInt(8);
+				if (rand == 0) {
+					myPlayer.say('Im not a stupid AI!');
+				} else if (rand == 1) {
+					myPlayer.say('Im an AI!');
+				} else if (rand == 2) {
+					myPlayer.say('No');
+				} else if (rand == 3) {
+					myPlayer.say('Sure');
+				} else if (rand == 4) {
+					myPlayer.say('yes i am');
+				} else if (rand == 5) {
+					myPlayer.say('Yes, And you?');
+				} else if (rand == 6) {
+					myPlayer.say('Why should I?');
+				}
+			}
+		}
+		if (text.startsWith("NICE?")) {
+			// if(isNiceBaby) myPlayer.say("JUMP");
 		}
 		if (text == "JUMP!") {
 			myPlayer.say("JUMP");
@@ -4010,11 +4049,11 @@ abstract class AiBase {
 		}
 		if (text.startsWith("NHOME!")) {
 			var home = WorldMap.world.getObjectHelper(myPlayer.home.tx, myPlayer.home.ty);
+
 			myPlayer.say('${home.name}');
 		}
 		if (text.startsWith("FOLLOW ME!") || text.startsWith("FOLLOW!") || text.startsWith("COME")) {
 			if (checkIfShouldDoCommand(player) == false) return;
-
 			autoStopFollow = false; // otherwise if old enough ai would stop follow
 			timeStartedToFolow = TimeHelper.tick;
 			playerToFollow = player;
@@ -4044,29 +4083,25 @@ abstract class AiBase {
 		}
 		if (text.contains("GO HOME")) {
 			if (checkIfShouldDoCommand(player) == false) return;
-
 			var quadDistance = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
+
 			if (quadDistance < 3) {
 				myPlayer.say("I AM HOME!");
 				this.time += 5;
 				return;
 			}
-
 			if (isMovingToHome()) myPlayer.say("GOING HOME!"); else
 				myPlayer.say("I CANNOT GO HOME!");
 			this.time += 6;
 		} else if (text.startsWith("HOME!")) {
 			if (checkIfShouldDoCommand(player) == false) return;
-
 			var newHome = AiHelper.SearchNewHome(myPlayer);
 
 			if (newHome != null) {
 				if (myPlayer.home.tx != newHome.tx || myPlayer.home.ty != newHome.ty) myPlayer.say('Have a new home! ${newHome.name}'); else
 					myPlayer.say('No mew home! ${newHome.name}');
-
 				myPlayer.home = newHome;
 			}
-
 			myPlayer.firePlace = AiHelper.GetCloseFire(myPlayer);
 		}
 		/*if (text.contains("EAT!"))
@@ -4077,7 +4112,6 @@ abstract class AiBase {
 		}*/
 		if (text.startsWith("MAKE") || text.startsWith("CRAFT")) {
 			if (checkIfYouAreAllied(player) == false) return;
-
 			var id = GlobalPlayerInstance.findObjectByCommand(text);
 
 			if (id > 0) {
@@ -4101,10 +4135,10 @@ abstract class AiBase {
 			myPlayer.say('PROF OFF');
 		} else if (text.startsWith("PROFESSION?") || text.startsWith("PROF?")) {
 			var text = createProfessionText();
+
 			myPlayer.say('${text}');
 		} else if (text.endsWith("!")) {
 			if (checkIfShouldDoCommand(player) == false) return;
-
 			var tmp = text.split("!");
 			var prof = tmp.length == 0 ? '' : tmp[0];
 			if (prof == 'FARMER') prof = 'BASICFARMER';
