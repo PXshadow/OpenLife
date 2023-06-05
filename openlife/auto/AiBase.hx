@@ -6766,7 +6766,15 @@ abstract class AiBase {
 			return false;
 		}
 
+		var heldId = myPlayer.heldObject.parentId;
 		var dropTargetId = dropTarget.parentId;
+
+		var distance = myPlayer.CalculateQuadDistanceToObject(dropTarget);
+
+		// AI dont switch held obj with ground object to not drop stuff too far away // TODO test
+		if (heldId != 0 && distance > 25) {
+			if (dropHeldObject(5)) return false;
+		}
 
 		// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop target: ${dropTarget.name} held: ${myPlayer.heldObject.name} isMoving: ${myPlayer.isMoving()}');
 
@@ -6793,7 +6801,6 @@ abstract class AiBase {
 		// If picking up a container like Basket make sure not to drop stuff in the container
 		if (dropTarget.objectData.numSlots > 0 && dropHeldObject()) return true;
 
-		var distance = myPlayer.CalculateQuadDistanceToObject(dropTarget);
 		// var myPlayer = myPlayer.getPlayerInstance();
 
 		if (distance > 1) {
