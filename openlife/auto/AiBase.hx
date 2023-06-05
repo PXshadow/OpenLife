@@ -1039,18 +1039,19 @@ abstract class AiBase {
 		if (objId == 82) {
 			// Big Charcoal Pile 300
 			var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 300, 30);
-
+			if (heldId == 298) count += 1;
 			// Basket of Charcoal 298
-			if (count > 6 && shortCraftOnTarget(298, firePlace)) return true;
-
-			// Butt Log 345
-			var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 345, 30);
-
-			// Butt Log 345
-			if (count > 6 && shortCraftOnTarget(345, firePlace)) return true;
+			if (count > 10 && shortCraftOnTarget(298, firePlace)) return true;
 
 			// Firewood 344
 			if (shortCraftOnTarget(344, firePlace)) return true;
+
+			// Butt Log 345
+			var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 345, 30);
+			// Chopped Tree 339
+			count += AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 339, 30);
+			if (heldId == 345) count += 1;
+			if (count > 10 && shortCraftOnTarget(345, firePlace)) return true;
 
 			// Kindling 72
 			if (shortCraftOnTarget(72, firePlace)) return true;
