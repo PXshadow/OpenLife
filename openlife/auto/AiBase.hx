@@ -4036,7 +4036,8 @@ abstract class AiBase {
 			}
 		}
 		if (text.startsWith("NICE?")) {
-			// if(isNiceBaby) myPlayer.say("JUMP");
+			if (isNiceBaby) myPlayer.say("YES!"); else
+				myPlayer.say("GRR!");
 		}
 		if (text == "JUMP!") {
 			myPlayer.say("JUMP");
