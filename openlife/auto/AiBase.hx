@@ -114,6 +114,7 @@ abstract class AiBase {
 	public var path:Array<Pos> = null; // for debugging stuck path
 	public var lastGotoObjDistance:Float = -1;
 	public var lastGotoObj:ObjectHelper = null;
+	public var isNiceBaby = false;
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -282,6 +283,11 @@ abstract class AiBase {
 		children = new Array<PlayerInterface>();
 		failedCraftings = new Map<Int, Float>();
 		isCaringForFire = false;
+
+		var rand = WorldMap.world.randomFloat();
+		isNiceBaby = rand > 0.1;
+		if (myPlayer.lineage.prestigeClass == PrestigeClass.Commoner) isNiceBaby = rand > 0.4;
+		if (myPlayer.lineage.prestigeClass == PrestigeClass.Noble) isNiceBaby = rand > 0.8;
 		// addTask(837); //Psilocybe Mushroom
 		// addTask(134); //Flint Arrowhead
 		// addTask(82); // Fire
@@ -433,8 +439,20 @@ abstract class AiBase {
 			return;
 		}); // go close to mother and wait for mother to feed
 		Macro.exception(if (isChildAndHasMother()) {
-			if (isMovingToPlayer(4)) return;
+			var tiles = isNiceBaby ? 2 : 4;
+			if (isMovingToPlayer(tiles)) return;
 			Macro.exception(if (handleTemperature()) return);
+
+			if (isNiceBaby) {
+				var heldId = myPlayer.heldObject.parentId;
+				// Knife 560 // War Sword 3047
+				if (myPlayer.lineage.prestigeClass == PrestigeClass.Noble && heldId != 560 && heldId != 3047) {
+					if (GetItem(3047)) return;
+					if (GetItem(560)) return;
+				}
+				this.time += 2;
+				return;
+			}
 		});
 		Macro.exception(if (myPlayer.isWounded() || myPlayer.hasYellowFever()) {
 			isMovingToPlayer(2);
