@@ -456,6 +456,38 @@ more up in the list means more likely to be implemented first but no guarantee!
 TODO Missing:
 more up in the list means more likely to be implemented first but no guarantee!
 
+
+List off stuff that Ai drops in the wild and might need a fix:
+many single bowls
+many bowl stacks in wild, seen an ai fuckin come down to stack one
+SOOO many knifes
+unforged crucible
+good few tongs, not as much as knifes
+hatchets
+adze
+drop spindle
+couple of skewered rabits
+few axes
+bows
+hoes
+mutton
+firewood (singluar placed around)
+snare
+firebow drill
+cut rabbit fur
+rabbit fur
+snake skin
+bowl with corn kernles
+wet bowl in tongs
+many iron ore
+iron ore in tongs
+pick
+shears
+bowls of flour
+i found a couple or more than a couple of all of em
+*also a wooden disk
+and uh charcoal
+
 High priority:
 - AI Limit Carrots
 - AI SWORD: get angry if one has one and is not noble

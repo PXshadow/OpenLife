@@ -2099,7 +2099,9 @@ class ServerSettings {
 		trans = new TransitionData(1176, 213, 1176, 1161);
 		transtions.addTransition("PatchTransitions: ", trans);
 
-		trans = new TransitionData(1176, 213, 1176, 1161);
+		// Bowl of Dry Beans 1176 + Deep Tilled Row 213 --> Clay Bowl 235 + Dry Planted Beans 1161
+		trans = new TransitionData(1176, 213, 235, 1161);
+		trans.lastUseActor = true;
 		transtions.addTransition("PatchTransitions: ", trans, true);
 
 		// Bowl of Soaking Beans 1180 + Hot Adobe Oven 250 ==> Bowl of Cooked Beans 1292
