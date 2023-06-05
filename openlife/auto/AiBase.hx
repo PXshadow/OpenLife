@@ -6808,11 +6808,14 @@ abstract class AiBase {
 
 		// AI dont switch held obj with ground object to not drop stuff too far away // TODO test
 		if (heldId != 0 && dropTargetId != 0 && distance > 25) {
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} TOO FAR AWAY! dist: $distance');
 			if (dropHeldObject(5)) return false;
 		}
 
 		// myPlayer.getFollowPlayer()
 		if (dropTargetId != 0 && distance > 50 && playerToFollow != null && isHungry == false) {
+			if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} FOLLOW PLAYER / DROP TOO FAR AWAY! dist: $distance');
 			if (dropHeldObject(5)) return false;
 		}
 
