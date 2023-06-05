@@ -6772,7 +6772,12 @@ abstract class AiBase {
 		var distance = myPlayer.CalculateQuadDistanceToObject(dropTarget);
 
 		// AI dont switch held obj with ground object to not drop stuff too far away // TODO test
-		if (heldId != 0 && distance > 25) {
+		if (heldId != 0 && dropTargetId != 0 && distance > 25) {
+			if (dropHeldObject(5)) return false;
+		}
+
+		// myPlayer.getFollowPlayer()
+		if (dropTargetId != 0 && distance > 50 && playerToFollow != null && isHungry == false) {
 			if (dropHeldObject(5)) return false;
 		}
 

@@ -2147,6 +2147,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		player.hiredByPlayer = this;
+		player.home = this.home;
+
 		Connection.SendFollowingToAll(player);
 
 		this.coins -= neededCoins;
