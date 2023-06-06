@@ -3559,6 +3559,11 @@ class ServerSettings {
 		// TODO: taking water is still possible / limit lastuse
 		// Bow and Arrow 152 // Canada Goose Pond 141
 		LimitTransitionIfMinNotReached(152, 141, 141, 2);
+
+		// Crucible with Charcoal 318 // Charcoal 302
+		LimitTransitionIfMinNotReached(318, 302, 318, 8);
+		// Crucible with Charcoal 318 // Small Charcoal Pile
+		LimitTransitionIfMinNotReached(318, 301, 318, 8);
 	}
 
 	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 3) {
