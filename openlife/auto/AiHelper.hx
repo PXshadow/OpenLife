@@ -716,6 +716,7 @@ class AiHelper {
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${player.name + player.id} WARNING: GOAL MOR FAR AWAY! gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} old-d:${ai.lastGotoObjDistance} ${infos.methodName}');
 			ai.addObjectWithHostilePath(obj);
+			return false;
 		} else if (ServerSettings.DebugAi)
 			trace('AAI: ${player.name + player.id} gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} ${infos.methodName}');
 

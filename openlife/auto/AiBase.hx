@@ -2351,7 +2351,7 @@ abstract class AiBase {
 
 		// if (shouldDebugSay()) myPlayer.say('get ${actorData.name} to craft target: ${target.name}');
 		// if (ServerSettings.DebugAi)
-		//	trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: wanted actor: ${actorData.name} + target: ${target.name} held: ${myPlayer.heldObject.name}');
+		// trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: wanted actor: ${actorData.name} + target: ${target.name} held: ${myPlayer.heldObject.name}');
 
 		if (actorId == 0) return dropHeldObject();
 		return GetOrCraftItem(actorId, craftActorIfNeeded, target);
