@@ -368,11 +368,14 @@ Ownership:
 - if none was there to inherit the gate the first who finds the gate will own the it
 
 Property:
+- Coins can be stored in chests
 - Wooden Doors / Chests can be locked with lock and key
 - There is only a one in 10000 chance that an key can open another lock 
 - Owners of a locked item can open it without a key also in their next lifes
 - You can lockpick with a 5% success and 10% fail chance
-- Coins can be stored in chests
+- Lockpicking costs 1 coin and 3 exhaustion per try
+- Lockpicking cost 50% less exhaustion for female
+- Lockpicking fails only 8% for female
 
 Transitions:
 - you can harvest Berries directly with a bowl

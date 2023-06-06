@@ -276,6 +276,11 @@ class TransitionHelper {
 		var exhaustionCost = ServerSettings.LockpickExhaustionCost;
 		var coinCost = ServerSettings.LockpickCoinCost;
 
+		if (player.isFemale()) {
+			exhaustionCost *= 0.5;
+			failChance *= 0.8;
+		}
+
 		if (player.coins < coinCost) {
 			player.say('Need more coins');
 			return false;
