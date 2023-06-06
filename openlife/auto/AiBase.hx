@@ -577,7 +577,7 @@ abstract class AiBase {
 			Macro.exception(if (doPottery(100)) return);
 		} else if (assignedProfession == 'FIREKEEPER') {
 			Macro.exception(if (isHandlingFire(100)) return);
-		} else if (assignedProfession == 'CLOTHMAKER') {
+		} else if (assignedProfession == 'TAILOR') {
 			Macro.exception(if (craftHighPriorityClothing()) return);
 			Macro.exception(if (craftMediumPriorityClothing(100)) return);
 			Macro.exception(if (craftLowPriorityClothing(100)) return);
@@ -689,7 +689,7 @@ abstract class AiBase {
 			this.profession['POTTER'] = 1;
 			this.profession['gravekeeper'] = 1;
 			this.profession['Hunter'] = 1;
-			this.profession['CLOTHMAKER'] = 1;
+			this.profession['TAILOR'] = 1;
 			this.profession['FIREFOODMAKER'] = 1;
 			//this.profession['BowlFiller'] = 1;
 			this.profession['SMITH'] = 1; */
@@ -3755,7 +3755,7 @@ abstract class AiBase {
 	}
 
 	private function craftMediumPriorityClothing(maxProf:Int = 2):Bool {
-		if (hasOrBecomeProfession('CLOTHMAKER', maxProf) == false) return false;
+		if (hasOrBecomeProfession('TAILOR', maxProf) == false) return false;
 
 		// trace('craftMediumPriorityClothing');
 
@@ -3845,13 +3845,13 @@ abstract class AiBase {
 			if (count < 1 && craftItem(202)) return true;
 		}
 
-		this.profession['CLOTHMAKER'] = 0;
+		this.profession['TAILOR'] = 0;
 
 		return false;
 	}
 
 	private function craftLowPriorityClothing(maxProf:Int = 1):Bool {
-		if (hasOrBecomeProfession('CLOTHMAKER', maxProf) == false) return false;
+		if (hasOrBecomeProfession('TAILOR', maxProf) == false) return false;
 
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
 		var color = myPlayer.getColor();
@@ -3878,7 +3878,7 @@ abstract class AiBase {
 		// 199 Rabbit Fur Hat
 		if (isWhiteOrGinger && craftClothIfNeeded(199)) return true;
 
-		this.profession['CLOTHMAKER'] = 0;
+		this.profession['TAILOR'] = 0;
 
 		return false;
 	}
@@ -4189,7 +4189,7 @@ abstract class AiBase {
 	}
 
 	public static var professions = [
-		'SOILMAKER', 'ROWMAKER', 'BASICFARMER', 'ADVANCEDFARMER', 'SHEPHERD', 'BAKER', 'POTTER', 'FIREKEEPER', 'CLOTHMAKER', 'FIREFOODMAKER', 'SMITH'
+		'SOILMAKER', 'ROWMAKER', 'BASICFARMER', 'ADVANCEDFARMER', 'SHEPHERD', 'BAKER', 'POTTER', 'FIREKEEPER', 'TAILOR', 'FIREFOODMAKER', 'SMITH'
 	];
 
 	public function searchFoodAndEat() {
