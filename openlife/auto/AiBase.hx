@@ -116,6 +116,7 @@ abstract class AiBase {
 	public var lastGotoObj:ObjectHelper = null;
 	public var isNiceBaby = false;
 	public var timeReactedLastCommand = 0.0;
+	public var lastGrave:ObjectHelper = null;
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -1280,11 +1281,16 @@ abstract class AiBase {
 
 		// myPlayer.say('check for graves!');
 
+		// Old Grave 89 // Grave 88 // Bone Pile 357
+		var graveIdsToDigIn = [88, 89, 357];
 		var heldId = myPlayer.heldObject.parentId;
-		var grave = AiHelper.GetClosestObjectById(myPlayer, 357, null, 20); // Bone Pile
-		if (grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 88, null, 10); // 88 Grave
-		if (grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 89, null, 20); // 89 Old Grave
+		if (lastGrave != null && graveIdsToDigIn.contains(lastGrave.parentId) == false) lastGrave = null;
+		var grave = lastGrave != null ? lastGrave : AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, graveIdsToDigIn, 20, myPlayer);
+		// var grave = lastGrave != null ? lastGrave : AiHelper.GetClosestObjectById(myPlayer, 357, null, 20); // Bone Pile
+		// if (grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 88, null, 20); // 88 Grave
+		// if (grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 89, null, 20); // 89 Old Grave
 		if (grave == null) return false;
+		lastGrave = grave;
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: found! ${grave.tx},${grave.ty}');
 
@@ -1368,6 +1374,7 @@ abstract class AiBase {
 		this.profession['GRAVEKEEPER'] = 1;
 
 		Macro.exception(if (isRemovingFromContainer()) return true);
+		Macro.exception(if (isUsingItem()) return true);
 
 		var rand = WorldMap.calculateRandomFloat();
 		if (rand < 0.05) myPlayer.say('Good bye!'); else if (rand < 0.1) myPlayer.say('Jasonius is calling me. Take care!');
