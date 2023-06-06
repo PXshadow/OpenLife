@@ -372,9 +372,10 @@ class MoveHelper {
 
 			SetHeldPlayerPositionToSame(p);
 
-			if (p.isAi()) p.forced = true; // TODO no foce needed if movement is fixed
+			p.forced = false;
+			// if (p.isAi()) p.forced = true; // TODO no foce needed if movement is fixed
 			Connection.SendUpdateToAllClosePlayers(p);
-			if (p.isAi()) p.forced = false;
+			// if (p.isAi()) p.forced = false;
 
 			// Force Frame so that there is no delay??? Seems crash HETUW client
 			// p.connection.send(FRAME, null, false, true);
@@ -630,7 +631,8 @@ class MoveHelper {
 
 		moveHelper.sendChunkIfNeeded();
 
-		p.forced = p.isAi(); // false
+		// p.forced = p.isAi(); // false
+		p.forced = false;
 
 		p.responsible_id = -1;
 
