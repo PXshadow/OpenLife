@@ -250,6 +250,10 @@ class ServerSettings {
 	public static var HungryWorkHeat:Float = 0.002; // 0.005; // per food used
 	public static var HungryWorkToolCostFactor:Float = 0;
 
+	// property
+	public static var LockpickSucessChance:Float = 5; // in %
+	public static var LockpickFailChance:Float = 10;
+
 	// first the chance for success would be - then 10% then 20% usw ... 10 hits 100%
 	public static var AlternativeOutcomePercentIncreasePerHit:Float = 10; // for example used for extra wood for trees or stone form iron mining
 	// once succeeded in cutting the tree / mining the hits is ruced by 5
@@ -567,6 +571,9 @@ class ServerSettings {
 				// trace('Decays to: ${obj.name}');
 				obj.decaysToObj = 862; // 862 Broken Steel Tool no wood // 858 Broken Steel Tool
 			}
+
+			ObjectData.getObjectData(917).decaysToObj = 862; // Key 917 --> roken Steel Tool no wood 862
+			ObjectData.getObjectData(1003).decaysToObj = 862; // Lock Removal Key 1003 --> roken Steel Tool no wood 862
 
 			// this might be override for some down below
 			if (obj.description.indexOf("Well") != -1

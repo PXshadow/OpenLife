@@ -141,7 +141,7 @@ class TransitionHelper {
 		// var useKey = (heldId == 917 && targetId == 988);
 		var heldObject = player.heldObject;
 		var targetObj = helper.target;
-		var isLocked = (heldId == 917 && targetObj.objectData.description.contains('Locked'));
+		var isLocked = targetObj.objectData.description.contains('Locked');
 
 		// Key 917
 		if (tag == USE && heldId == 917 && isLocked) {
@@ -167,8 +167,10 @@ class TransitionHelper {
 		// Lock Removal Key 1003
 		if (tag == USE && heldId == 1003 && isLocked) {
 			if (heldObject.externId != targetObj.externId) {
-				player.say('KEY DOES NOT FIT!', true);
-				return false;
+				if (LockPick(player, heldObject, targetObj) == false) {
+					// player.say('KEY DOES NOT FIT!', true);
+					return false;
+				}
 			}
 		}
 
@@ -266,6 +268,25 @@ class TransitionHelper {
 		}
 		helper.sendUpdateToClient();
 		return helper.doAction;
+	}
+
+	private static function LockPick(player:GlobalPlayerInstance, key:ObjectHelper, target:ObjectHelper) {
+		var sucessChance = ServerSettings.LockpickSucessChance;
+		var failChance = ServerSettings.LockpickFailChance;
+
+		var rand = WorldMap.calculateRandomFloat() * 100;
+		if (rand < sucessChance) {
+			player.say('I got it!');
+			return true;
+		}
+		if (rand > 100 - failChance) {
+			player.say('Damn it broke!');
+			player.transformHeldObject(key.objectData.decaysToObj);
+			return false;
+		}
+
+		player.say('Failed!', true);
+		return false;
 	}
 
 	public function new(player:GlobalPlayerInstance, x:Int, y:Int) {

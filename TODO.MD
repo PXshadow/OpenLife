@@ -140,7 +140,7 @@ And the best on the end Better Snake Stuff!
 - Double insulation from Snake Skin Boot
 
 Not yet implemented:
-- Ai territory / property
+- Ai territory
 - reading / writing
 - twinning
 - ally gates / ally spring doors
@@ -369,8 +369,9 @@ Ownership:
 
 Property:
 - Wooden Doors / Chests can be locked with lock and key
-- All Keys can open any lock / TODO limit keys
-- Owners of a locked item can open it without a key also in next life
+- There is only a one in 10000 chance that an key can open another lock 
+- Owners of a locked item can open it without a key also in their next lifes
+- You can lockpick with a 5% success and 10% fail chance
 - Coins can be stored in chests
 
 Transitions:
