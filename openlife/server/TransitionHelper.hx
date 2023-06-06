@@ -273,6 +273,21 @@ class TransitionHelper {
 	private static function LockPick(player:GlobalPlayerInstance, key:ObjectHelper, target:ObjectHelper) {
 		var sucessChance = ServerSettings.LockpickSucessChance;
 		var failChance = ServerSettings.LockpickFailChance;
+		var exhaustionCost = ServerSettings.LockpickExhaustionCost;
+		var coinCost = ServerSettings.LockpickCoinCost;
+
+		if (player.coins < coinCost) {
+			player.say('Need more coins');
+			return false;
+		}
+
+		if (player.exhaustion > player.food_store_max / 2) {
+			player.say('I am too exhausted!');
+			return false;
+		}
+
+		player.coins -= coinCost;
+		player.exhaustion += exhaustionCost;
 
 		var rand = WorldMap.calculateRandomFloat() * 100;
 		if (rand < sucessChance) {

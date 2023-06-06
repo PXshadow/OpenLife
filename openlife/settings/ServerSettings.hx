@@ -253,6 +253,8 @@ class ServerSettings {
 	// property
 	public static var LockpickSucessChance:Float = 5; // in %
 	public static var LockpickFailChance:Float = 10;
+	public static var LockpickExhaustionCost:Float = 3;
+	public static var LockpickCoinCost:Float = 1;
 
 	// first the chance for success would be - then 10% then 20% usw ... 10 hits 100%
 	public static var AlternativeOutcomePercentIncreasePerHit:Float = 10; // for example used for extra wood for trees or stone form iron mining
