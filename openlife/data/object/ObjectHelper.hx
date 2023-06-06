@@ -18,6 +18,7 @@ import sys.io.FileOutput;
 	public var HITS = 1;
 	public var COINS = 2;
 	public var TEXT = 3;
+	public var EXTERNID = 4;
 }
 
 class ObjectHelper {
@@ -47,6 +48,7 @@ class ObjectHelper {
 	public var hits:Float = 0;
 	public var coins:Float = 0;
 	public var text:String = '';
+	public var externId:Int = 0; // For example for lock / key
 
 	// public var isLovedSet = false; // not saved TODO save
 	public var lovedTx:Int = 0; // not saved TODO save
@@ -166,6 +168,7 @@ class ObjectHelper {
 		if (obj.hits != 0) count++;
 		if (obj.coins != 0) count++;
 		if (obj.text != '') count++;
+		if (obj.externId != 0) count++;
 
 		writer.writeInt16(count);
 		if (obj.hits != 0) writer.writeInt16(HITS);
@@ -175,6 +178,8 @@ class ObjectHelper {
 		if (obj.text != '') writer.writeInt16(TEXT);
 		if (obj.text != '') writer.writeInt16(obj.text.length);
 		if (obj.text != '') writer.writeString(obj.text);
+		if (obj.externId != 0) writer.writeInt16(EXTERNID);
+		if (obj.externId != 0) writer.writeInt32(obj.externId);
 
 		// write contained objects
 		writer.writeByte(obj.containedObjects.length);
@@ -223,6 +228,9 @@ class ObjectHelper {
 						var lenght = reader.readInt16();
 						newObject.text = reader.readString(lenght);
 						trace('ReadFromFile: Text: ${newObject.text}');
+					case EXTERNID:
+						newObject.externId = reader.readInt32();
+						trace('ReadFromFile: externId: ${newObject.externId}');
 					default:
 						trace('ERROR: DataId: ${dataId} is unknown!');
 						throw new Exception('DataId: ${dataId} is unknown!');
@@ -601,7 +609,7 @@ class ObjectHelper {
 		// toDelete = toDelete && helper.livingOwners.length < 1;
 		toDelete = toDelete && helper.isOwned() == false && helper.isFollowerOwned() == false && helper.isGrave() == false;
 
-		toDelete = toDelete && (helper.hits <= 0 || helper.id < 1) && helper.coins <= 0;
+		toDelete = toDelete && (helper.hits <= 0 || helper.id < 1) && helper.coins <= 0 && externId == 0 && text == '';
 
 		return toDelete;
 	}

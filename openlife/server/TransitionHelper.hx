@@ -136,6 +136,33 @@ class TransitionHelper {
 			}
 		}
 
+		// property stuff:
+		// Key 917 + Locked Wooden Chest 988 // Locked
+		// var useKey = (heldId == 917 && targetId == 988);
+		var heldObject = player.heldObject;
+		var targetObj = helper.target;
+		var useKey = (heldId == 917 && targetObj.objectData.description.contains('Locked'));
+
+		if (tag == USE && useKey) {
+			if (heldObject.externId == 0 && targetObj.externId == 0) {
+				var newKeyId = WorldMap.world.randomInt(10000);
+				heldObject.externId = newKeyId;
+				targetObj.externId = newKeyId;
+				// player.say('NEW KEY ID: $newKeyId FOR ${targetObj.name}!', true);
+				// player.say('NEW KEY ID: $newKeyId FOR ${targetObj.name}!', true);
+				player.say('NEW KEY FOR ${targetObj.name}!', true);
+			} else if (heldObject.externId != 0 && targetObj.externId == 0) {
+				targetObj.externId = heldObject.externId;
+				// player.say('USE KEY ID: ${heldObject.externId} FOR ${targetObj.name}!', true);
+				player.say('USE KEY FOR ${targetObj.name}!!', true);
+			} else if (heldObject.externId != targetObj.externId) {
+				// player.say('KEY DOES NOT FIT! KEY ID: ${heldObject.externId} FOR ${targetObj.name} ID: ${targetObj.externId}', true);
+				player.say('KEY DOES NOT FIT!', true);
+				// TODO lockpick
+				return false;
+			}
+		}
+
 		// store coins
 		// 0 + Open Wooden Chest 986
 		// 0 + Unlocked Wooden Chest 989
