@@ -3074,7 +3074,7 @@ abstract class AiBase {
 
 			// Stone 33 // Smithing Hammer 441
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 33, 10);
-			if (heldObject.parentId == 33 || heldObject.parentId == 441) count += 1;
+			if (heldId == 33 || heldId == 441) count += 1;
 			if (count < 1 && GetCraftAndDropItemsCloseToObj(forge, 33, 1, 5)) return true;
 		}
 
@@ -3082,10 +3082,13 @@ abstract class AiBase {
 
 		// Steel Ingot 326
 		var countSteel = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 326, 20);
+		if (heldId == 326) countSteel += 1;
 		// Unforged Sealed Steel Crucible 319
 		var countCrucible = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 319, 20);
+		if (heldId == 319) countCrucible += 1;
 		// Forged Steel Crucible 322
 		var countForgedCrucible = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 322, 20);
+		if (heldId == 322) countForgedCrucible += 1;
 
 		if (countSteel < 1 || countForgedCrucible > 0) {
 			// Cool Steel Crucible in Wooden Tongs 324
@@ -3134,6 +3137,8 @@ abstract class AiBase {
 		// Wrought Iron 314
 		if (this.profession['SMITH'] < 3) {
 			var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 314, 20);
+			if (heldId == 314) count += 1;
+
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Wrought Iron count: ${count}');
 			if (count < 5) {
 				// Iron Ore 290
