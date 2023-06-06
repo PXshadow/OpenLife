@@ -577,6 +577,16 @@ abstract class AiBase {
 			Macro.exception(if (doPottery(100)) return);
 		} else if (assignedProfession == 'FIREKEEPER') {
 			Macro.exception(if (isHandlingFire(100)) return);
+		} else if (assignedProfession == 'LUMBERJACK') {
+			Macro.exception(if (isCuttingWood(100)) return);
+		} else if (assignedProfession == 'WATERBRINGER') {
+			Macro.exception(if (doWatering(100)) return);
+		} else if (assignedProfession == 'FOODSERVER') {
+			Macro.exception(if (isFeedingPlayerInNeed(100)) return);
+		} else if (assignedProfession == 'GRAVEKEEPER') {
+			Macro.exception(if (isHandlingGraves(100)) return);
+		} else if (assignedProfession == 'HUNTER') {
+			Macro.exception(if (doHunting(100)) return);
 		} else if (assignedProfession == 'TAILOR') {
 			Macro.exception(if (craftHighPriorityClothing()) return);
 			Macro.exception(if (craftMediumPriorityClothing(100)) return);
@@ -585,13 +595,7 @@ abstract class AiBase {
 			Macro.exception(if (makeFireFood(100)) return);
 		}
 
-		/*this.profession['Lumberjack'] = 1;
-			this.profession['WaterBringer'] = 1;
-			this.profession['FoodServer'] = 1;
-			this.profession['gravekeeper'] = 1;
-			this.profession['Hunter'] = 1;
-			//this.profession['BowlFiller'] = 1;
-		 */
+		// this.profession['BowlFiller'] = 1;
 
 		// if(this.profession['BAKER'] > 0) Macro.exception(if (doBaking()) return);
 		// if(this.profession['POTTER'] > 0) Macro.exception(if (doPottery()) return);
@@ -600,7 +604,7 @@ abstract class AiBase {
 
 		// if(this.profession['SMITH'] > 0) Macro.exception(if (doSmithing()) return);
 		if (this.lastProfession == 'SMITH') Macro.exception(if (doSmithing()) return);
-		// if(this.profession['WaterBringer'] > 0) Macro.exception(if (doWatering()) return);
+		// if(this.profession['WATERBRINGER'] > 0) Macro.exception(if (doWatering()) return);
 		// if(this.profession['BASICFARMER'] > 0) Macro.exception(if (doBasicFarming()) return);
 		// if(this.profession['SHEPHERD'] > 0) Macro.exception(if (ADVANCEDFARMER()) return);
 
@@ -679,16 +683,16 @@ abstract class AiBase {
 
 		// before do nothing try all professions
 		// this.profession['FIREKEEPER'] = 1;
-		/*this.profession['Lumberjack'] = 1;
-			this.profession['WaterBringer'] = 1;
+		/*this.profession['LUMBERJACK'] = 1;
+			this.profession['WATERBRINGER'] = 1;
 			this.profession['BASICFARMER'] = 1;
 			this.profession['ADVANCEDFARMER'] = 1;	
 			this.profession['SHEPHERD'] = 1;	
 			this.profession['BAKER'] = 1;
-			this.profession['FoodServer'] = 1;
+			this.profession['FOODSERVER'] = 1;
 			this.profession['POTTER'] = 1;
-			this.profession['gravekeeper'] = 1;
-			this.profession['Hunter'] = 1;
+			this.profession['GRAVEKEEPER'] = 1;
+			this.profession['HUNTER'] = 1;
 			this.profession['TAILOR'] = 1;
 			this.profession['FIREFOODMAKER'] = 1;
 			//this.profession['BowlFiller'] = 1;
@@ -729,21 +733,21 @@ abstract class AiBase {
 	private function isCuttingWood(maxPeople = 1):Bool {
 		if (myPlayer.firePlace == null) return false;
 
-		if (hasOrBecomeProfession('Lumberjack', maxPeople) == false) return false;
+		if (hasOrBecomeProfession('LUMBERJACK', maxPeople) == false) return false;
 
 		// Firewood 344
 		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 344, 15); // Firewood 344
-		if (count < 2) this.profession['Lumberjack'] = 1;
+		if (count < 2) this.profession['LUMBERJACK'] = 1;
 
 		// Firewood 344
-		if (this.profession['Lumberjack'] < 2 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 344, 10)) return true;
-		this.profession['Lumberjack'] = 2;
+		if (this.profession['LUMBERJACK'] < 2 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 344, 10)) return true;
+		this.profession['LUMBERJACK'] = 2;
 
 		// Butt Log 345
 		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 345, 15);
-		if (count < 2) this.profession['Lumberjack'] = 2;
-		if (this.profession['Lumberjack'] < 3 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.home, 345, 5)) return true;
-		this.profession['Lumberjack'] = 3;
+		if (count < 2) this.profession['LUMBERJACK'] = 2;
+		if (this.profession['LUMBERJACK'] < 3 && count < 5 && GetCraftAndDropItemsCloseToObj(myPlayer.home, 345, 5)) return true;
+		this.profession['LUMBERJACK'] = 3;
 
 		if (cleanUp()) return true;
 
@@ -1143,7 +1147,7 @@ abstract class AiBase {
 
 			if (p.deleted) continue;
 			if (p.age < ServerSettings.MinAgeToEat) continue;
-			if (p.age > ServerSettings.MaxAge - 2 && profession != 'gravekeeper') continue;
+			if (p.age > ServerSettings.MaxAge - 2 && profession != 'GRAVEKEEPER') continue;
 			if (p.isWounded()) continue;
 			if (p.food_store < 0) continue;
 			if (p.home.tx != myPlayer.home.tx || p.home.ty != myPlayer.home.ty) continue;
@@ -1170,7 +1174,7 @@ abstract class AiBase {
 
 			if (p.deleted) continue;
 			if (p.age < ServerSettings.MinAgeToEat) continue;
-			if (p.age > ServerSettings.MaxAge - 2 && profession != 'gravekeeper') continue;
+			if (p.age > ServerSettings.MaxAge - 2 && profession != 'GRAVEKEEPER') continue;
 			if (p.isWounded()) continue;
 			if (p.food_store < 2) continue;
 			if (p.home.tx != myPlayer.home.tx || p.home.ty != myPlayer.home.ty) continue;
@@ -1251,13 +1255,13 @@ abstract class AiBase {
 		return true;
 	}
 
-	private function isHandlingGraves():Bool {
+	private function isHandlingGraves(maxPlayer:Int = 1):Bool {
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: check1!');
 
 		if (myPlayer.heldObject.parentId == 356) return dropHeldObject(); // Basket of Bones 356
 
 		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['grave']);
-		var isGravekeeper = this.profession['gravekeeper'] > 0;
+		var isGravekeeper = this.profession['GRAVEKEEPER'] > 0;
 		if (passedTime < 10 && isGravekeeper == false) return false;
 		lastCheckedTimes['grave'] = TimeHelper.tick;
 
@@ -1299,12 +1303,12 @@ abstract class AiBase {
 			return removeItemFromContainer(grave);
 		}
 
-		if (this.myPlayer.age < 50 && this.profession['gravekeeper'] < 1) {
-			var bestPlayer = getBestAiForObjByProfession('gravekeeper', grave);
+		if (this.myPlayer.age < 50 && this.profession['GRAVEKEEPER'] < 1) {
+			var bestPlayer = getBestAiForObjByProfession('GRAVEKEEPER', grave);
 			if (bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
 		}
 
-		this.profession['gravekeeper'] = 1;
+		this.profession['GRAVEKEEPER'] = 1;
 
 		// pickup bones
 		var floorId = WorldMap.world.getFloorId(grave.tx, grave.ty);
@@ -1353,7 +1357,7 @@ abstract class AiBase {
 		if (myPlayer.age < ageToGoHome) return false;
 
 		this.profession = new Map<String, Float>(); // clear all professions
-		this.profession['gravekeeper'] = 1;
+		this.profession['GRAVEKEEPER'] = 1;
 
 		Macro.exception(if (isRemovingFromContainer()) return true);
 
@@ -2909,7 +2913,7 @@ abstract class AiBase {
 	}
 
 	private function doWatering(maxPeople:Int = 1):Bool {
-		if (hasOrBecomeProfession('WaterBringer', maxPeople) == false) return false;
+		if (hasOrBecomeProfession('WATERBRINGER', maxPeople) == false) return false;
 		var home = myPlayer.home;
 
 		// trace('doWatering:');
@@ -2984,7 +2988,7 @@ abstract class AiBase {
 		// if(craftItem(2831)) return true; // Wet Planted Tomato Seed
 		// if(craftItem(4226)) return true; // Wet Planted Cucumber Seeds
 
-		this.profession['WaterBringer'] = 0;
+		this.profession['WATERBRINGER'] = 0;
 
 		return false;
 	}
@@ -3701,14 +3705,14 @@ abstract class AiBase {
 		for (key in profession.keys()) {
 			// keep old profession
 			if (key == lastProfession) continue;
-			if (key == 'FoodServer') continue;
+			if (key == 'FOODSERVER') continue;
 			if (key == 'BowlFiller') continue;
 			if (key == 'FIREKEEPER') continue;
-			if (key == 'gravekeeper') continue;
-			if (lastProfession == 'FoodServer') continue;
+			if (key == 'GRAVEKEEPER') continue;
+			if (lastProfession == 'FOODSERVER') continue;
 			if (lastProfession == 'BowlFiller') continue;
 			if (lastProfession == 'FIREKEEPER') continue;
-			if (lastProfession == 'gravekeeper') continue;
+			if (lastProfession == 'GRAVEKEEPER') continue;
 
 			profession[key] = 0;
 
@@ -4189,7 +4193,8 @@ abstract class AiBase {
 	}
 
 	public static var professions = [
-		'SOILMAKER', 'ROWMAKER', 'BASICFARMER', 'ADVANCEDFARMER', 'SHEPHERD', 'BAKER', 'POTTER', 'FIREKEEPER', 'TAILOR', 'FIREFOODMAKER', 'SMITH'
+		'SOILMAKER', 'ROWMAKER', 'BASICFARMER', 'ADVANCEDFARMER', 'SHEPHERD', 'BAKER', 'POTTER', 'FIREKEEPER', 'TAILOR', 'FIREFOODMAKER', 'LUMBERJACK',
+		'WATERBRINGER', 'FOODSERVER', 'GRAVEKEEPER', 'HUNTER', 'SMITH'
 	];
 
 	public function searchFoodAndEat() {
@@ -4730,7 +4735,7 @@ abstract class AiBase {
 	private function doHunting(maxPeople:Int = 1):Bool {
 		var home = myPlayer.home;
 
-		if (hasOrBecomeProfession('Hunter', maxPeople) == false) return false;
+		if (hasOrBecomeProfession('HUNTER', maxPeople) == false) return false;
 
 		// Domestic Sheep 575
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 30);
@@ -4911,10 +4916,10 @@ abstract class AiBase {
 				if (quiver == null) quiver = myPlayer.getClothingById(874); // 874 Empty Arrow Quiver
 				if (quiver == null) quiver = myPlayer.getClothingById(4149); // 4149 Empty Arrow Quiver with Bow
 
-				profession['Hunter'] = quiver == null ? 0 : 1;
+				profession['HUNTER'] = quiver == null ? 0 : 1;
 				return false;
 			} else {
-				if (hasOrBecomeProfession('Hunter') == false) return false;
+				if (hasOrBecomeProfession('HUNTER') == false) return false;
 			}
 		}
 
@@ -5162,12 +5167,12 @@ abstract class AiBase {
 		}
 	}
 
-	private function isFeedingPlayerInNeed() {
+	private function isFeedingPlayerInNeed(maxPlayer:Int = 1) {
 		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
 		if (myPlayer.food_store < 2) return false;
 
 		if (this.feedingPlayerTarget == null) {
-			profession['FoodServer'] = 0;
+			profession['FOODSERVER'] = 0;
 			this.feedingPlayerTarget = AiHelper.GetCloseStarvingPlayer(myPlayer);
 		}
 		if (this.feedingPlayerTarget == null) return false;
@@ -5193,7 +5198,7 @@ abstract class AiBase {
 			return false;
 		}
 
-		if (hasOrBecomeProfession('FoodServer', 1) == false) return false;
+		if (hasOrBecomeProfession('FOODSERVER', maxPlayer) == false) return false;
 
 		if (myPlayer.heldObject.objectData.foodValue < 1
 			|| myPlayer.heldObject.id == 837) // dont feed 837 ==> Psilocybe Mushroom to others
@@ -6893,7 +6898,7 @@ abstract class AiBase {
 
 		// TODO reset SMITH here?
 		this.profession['SMITH'] = 0;
-		if (this.lastProfession != 'FoodServer') this.lastProfession = 'Eating';
+		if (this.lastProfession != 'FOODSERVER') this.lastProfession = 'Eating';
 
 		var quadDistance = -1.0;
 

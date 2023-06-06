@@ -31,6 +31,13 @@ AI:
 - By saying "NAME?" AI says it name
 - By saying "PROF?" AI says its current profession
 
+You can assign jobs to AI with say JOB! or JOB!! to assign jobs to all close AI. Assigned jobs have very high priority (executed after MAKE commands). 
+Jobs are: 
+'SOILMAKER', 'ROWMAKER', 'BASICFARMER', 'ADVANCEDFARMER', 'SHEPHERD', 'BAKER', 'POTTER', 'FIREKEEPER', 'TAILOR', 'FIREFOODMAKER', 'LUMBERJACK','WATERBRINGER', 'FOODSERVER', 'GRAVEKEEPER', 'HUNTER', 'SMITH'
+
+FARMER is shortcut for BASICFARMER
+As example FARMER! (closest AI) or FARMER!! (all near AI)
+
 Commands for followers or close relatives:
 - By saying "COME" the Ai will follow you for some time or untill you say "STOP"
 - By saying "HOME" you can set the closest oven as their new Home
