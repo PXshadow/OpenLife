@@ -63,6 +63,8 @@ class NamingHelper {
 
 		var nameFromText = GetName(text);
 
+		if (nameFromText == 'NOT') return text;
+
 		if (nameFromText.length < 2) return text;
 
 		// var r = ~/^[a-z]+$/i; // only letters
