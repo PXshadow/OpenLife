@@ -7319,17 +7319,13 @@ abstract class AiBase {
 					myPlayer.say('Cannot Goto ${name} for use!');
 			}
 
-			/*
-				if(done == false)
-				{
-					if(ServerSettings.DebugAi) trace('AI: GOTO useItem failed! Ignore ${useTarget.tx} ${useTarget.ty} '); 
-					this.addNotReachableObject(useTarget);
-					useTarget = null;
-					itemToCraft.transActor = null;
-					itemToCraft.transTarget = null;
-			}*/
+			if (done == false) {
+				if (ServerSettings.DebugAi) trace('AI: GOTO useItem ${name} failed!');
+				// this.addNotReachableObject(useTarget);
+				CancleUse();
+			}
 
-			return true;
+			return done;
 		}
 
 		var heldPlayer = myPlayer.getHeldPlayer();
