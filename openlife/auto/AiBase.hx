@@ -1290,12 +1290,14 @@ abstract class AiBase {
 		// if (grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 88, null, 20); // 88 Grave
 		// if (grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 89, null, 20); // 89 Old Grave
 		if (grave == null) return false;
-		lastGrave = grave;
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: found! ${grave.tx},${grave.ty}');
 
+		lastGrave = null; // in case it is not reachable
 		if (this.isObjectNotReachable(grave.tx, grave.ty)) return false;
 		if (this.isObjectWithHostilePath(grave.tx, grave.ty)) return false;
+
+		lastGrave = grave;
 
 		// myPlayer.say('graves found!');
 
@@ -7481,7 +7483,9 @@ abstract class AiBase {
 			var done = myPlayer.gotoObj(target);
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto container ${name} $done distance: $distance');
 
-			if (done) if (shouldDebugSay()) myPlayer.say('Goto ${name} for remove!'); else {
+			if (done) {
+				if (shouldDebugSay()) myPlayer.say('Goto ${name} for remove!');
+			} else {
 				if (shouldDebugSay()) myPlayer.say('Cannot Goto ${name} for remove!');
 				removeFromContainerTarget = null;
 				expectedContainer = null;
