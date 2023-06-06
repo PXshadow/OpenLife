@@ -25,6 +25,8 @@ import sys.io.File;
 import sys.io.FileInput;
 import sys.io.FileOutput;
 
+using StringTools;
+
 @:enum abstract PersonColor(Int) from Int to Int {
 	public var Black = 1;
 	public var Brown = 3;
@@ -1407,7 +1409,7 @@ class ObjectData extends LineReader {
 	}
 
 	public function isClothing() {
-		return this.clothing != "n";
+		return this.clothing.startsWith('n') == false;
 	}
 
 	public function isWall() {

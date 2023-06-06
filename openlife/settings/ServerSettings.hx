@@ -1360,6 +1360,9 @@ class ServerSettings {
 		ObjectData.getObjectData(1851).blocksDomesticAnimal = true; // Fence Gate
 		ObjectData.getObjectData(1851).blocksAnimal = true; // Fence Gate
 		ObjectData.getObjectData(1851).groundOnly = true; // Fence Gate
+		ObjectData.getObjectData(1851).rValue = 0.01;
+
+		ObjectData.getObjectData(558).rValue = 0.01; // Open Fence Gate
 
 		// Springy Wooden Door 2762 Horizontal
 		ObjectData.getObjectData(2762).decaysToObj = 878; // Open Wooden Door Horizontal
@@ -1380,14 +1383,17 @@ class ServerSettings {
 		ObjectData.getObjectData(550).decayFactor = ObjDecayFactorOnFloor; // Fence
 		ObjectData.getObjectData(550).decaysToObj = 556; // Fence  ==> Fence Kit
 		ObjectData.getObjectData(550).groundOnly = true; // Fence
+		ObjectData.getObjectData(550).rValue = 0.01;
 
 		ObjectData.getObjectData(549).decayFactor = ObjDecayFactorOnFloor; // Fence + verticalFence
 		ObjectData.getObjectData(549).decaysToObj = 556; //  Fence + verticalFence  ==> Fence Kit
 		ObjectData.getObjectData(549).groundOnly = true; // Fence + verticalFence
+		ObjectData.getObjectData(549).rValue = 0.01;
 
 		ObjectData.getObjectData(551).decayFactor = ObjDecayFactorOnFloor; // Fence +cornerFence
 		ObjectData.getObjectData(551).decaysToObj = 556; // Fence +cornerFence ==> Fence Kit
 		ObjectData.getObjectData(551).groundOnly = true; // Fence +cornerFence
+		ObjectData.getObjectData(551).rValue = 0.01;
 
 		ObjectData.getObjectData(556).blocksDomesticAnimal = true; // Fence Kit
 

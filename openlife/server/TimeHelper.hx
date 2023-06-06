@@ -1375,8 +1375,11 @@ class TimeHelper {
 	private static function AlignWalls(tx:Int, ty:Int) {
 		var world = WorldMap.world;
 		var objData = world.getObjectDataAtPosition(tx, ty);
+		// if (objData.rValue > 0) trace('AlignWalls1: ${objData.name} rValue: ${objData.rValue}');
+		// if (objData.name.indexOf('WALL') != -1) trace('AlignWalls1: ${objData.name} rValue: ${objData.rValue} cloth: ${objData.isClothing()}');
 
 		if (objData.isWall() == false) return;
+		trace('AlignWalls2: ${objData.name} cloth: ${objData.clothing}');
 
 		// 885 Stone Wall (corner)
 		// 886 Stone Wall (vertical)
@@ -1402,12 +1405,17 @@ class TimeHelper {
 		// 3267 Snow Wall (vertical)
 		// 3268 Snow Wall (horizontal)
 
+		// 551 Fence (corner)
+		// 549 Fence (vertical)
+		// 550 Fence (horizontal)
+
 		AlignWall(tx, ty, objData, [154, 156, 155]); // Adobe Wall
 		AlignWall(tx, ty, objData, [1883, 1884, 1885]); // Plaster Wall
 		AlignWall(tx, ty, objData, [111, 113, 112]); // Pine Wall
 		AlignWall(tx, ty, objData, [3266, 3267, 3268]); // Snow Wall
 		AlignWall(tx, ty, objData, [885, 886, 887]); // Stone Wall
 		AlignWall(tx, ty, objData, [895, 897, 896]); // Ancient Stone Wall
+		AlignWall(tx, ty, objData, [551, 549, 550]); // Fence
 
 		// TODO different colors // walls with containers
 	}

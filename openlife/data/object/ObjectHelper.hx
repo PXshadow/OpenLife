@@ -763,32 +763,35 @@ class ObjectHelper {
 		var obj = world.getObjectDataAtPosition(tx, ty);
 		var stength:Float = obj.isWall() ? 2 : 0;
 
+		// Fence (obj.rValue < 0.1) is a Wall for auto align, but not for Wall Strength
+		// TODO maybe make wall strength insulation dependend
+
 		var obj = world.getObjectDataAtPosition(tx + 1, ty);
-		stength += obj.isWall() ? 2 : 0;
+		stength += obj.isWall() && obj.rValue > 0.1 ? 2 : 0;
 		var obj = world.getObjectDataAtPosition(tx - 1, ty);
-		stength += obj.isWall() ? 2 : 0;
+		stength += obj.isWall() && obj.rValue > 0.1 ? 2 : 0;
 		var obj = world.getObjectDataAtPosition(tx, ty + 1);
-		stength += obj.isWall() ? 2 : 0;
+		stength += obj.isWall() && obj.rValue > 0.1 ? 2 : 0;
 		var obj = world.getObjectDataAtPosition(tx, ty - 1);
-		stength += obj.isWall() ? 2 : 0;
+		stength += obj.isWall() && obj.rValue > 0.1 ? 2 : 0;
 
 		var obj = world.getObjectDataAtPosition(tx + 2, ty);
-		stength += obj.isWall() ? 2 : 0;
+		stength += obj.isWall() && obj.rValue > 0.1 ? 2 : 0;
 		var obj = world.getObjectDataAtPosition(tx - 2, ty);
-		stength += obj.isWall() ? 2 : 0;
+		stength += obj.isWall() && obj.rValue > 0.1 ? 2 : 0;
 		var obj = world.getObjectDataAtPosition(tx, ty + 2);
-		stength += obj.isWall() ? 2 : 0;
+		stength += obj.isWall() && obj.rValue > 0.1 ? 2 : 0;
 		var obj = world.getObjectDataAtPosition(tx, ty - 2);
-		stength += obj.isWall() ? 2 : 0;
+		stength += obj.isWall() && obj.rValue > 0.1 ? 2 : 0;
 
 		var obj = world.getObjectDataAtPosition(tx + 3, ty);
-		stength += obj.isWall() ? 1 : 0;
+		stength += obj.isWall() && obj.rValue > 0.1 ? 1 : 0;
 		var obj = world.getObjectDataAtPosition(tx - 3, ty);
-		stength += obj.isWall() ? 1 : 0;
+		stength += obj.isWall() && obj.rValue > 0.1 ? 1 : 0;
 		var obj = world.getObjectDataAtPosition(tx, ty + 3);
-		stength += obj.isWall() ? 1 : 0;
+		stength += obj.isWall() && obj.rValue > 0.1 ? 1 : 0;
 		var obj = world.getObjectDataAtPosition(tx, ty - 3);
-		stength += obj.isWall() ? 1 : 0;
+		stength += obj.isWall() && obj.rValue > 0.1 ? 1 : 0;
 
 		return stength;
 	}
