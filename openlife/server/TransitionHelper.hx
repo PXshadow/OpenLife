@@ -141,9 +141,10 @@ class TransitionHelper {
 		// var useKey = (heldId == 917 && targetId == 988);
 		var heldObject = player.heldObject;
 		var targetObj = helper.target;
-		var useKey = (heldId == 917 && targetObj.objectData.description.contains('Locked'));
+		var isLocked = (heldId == 917 && targetObj.objectData.description.contains('Locked'));
 
-		if (tag == USE && useKey) {
+		// Key 917
+		if (tag == USE && heldId == 917 && isLocked) {
 			if (heldObject.externId == 0 && targetObj.externId == 0) {
 				var newKeyId = WorldMap.world.randomInt(10000);
 				heldObject.externId = newKeyId;
@@ -159,6 +160,14 @@ class TransitionHelper {
 				// player.say('KEY DOES NOT FIT! KEY ID: ${heldObject.externId} FOR ${targetObj.name} ID: ${targetObj.externId}', true);
 				player.say('KEY DOES NOT FIT!', true);
 				// TODO lockpick
+				return false;
+			}
+		}
+
+		// Lock Removal Key 1003
+		if (tag == USE && heldId == 1003 && isLocked) {
+			if (heldObject.externId != targetObj.externId) {
+				player.say('KEY DOES NOT FIT!', true);
 				return false;
 			}
 		}
