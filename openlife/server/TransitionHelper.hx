@@ -185,8 +185,7 @@ class TransitionHelper {
 		}
 
 		// get coins
-		// TODO check if right key
-		// TODO allow open if same account without key
+		// TODO provide coins if same account without key
 		// 0 + Closed Wooden Chest 987
 		// Key 917 + Locked Wooden Chest 988
 		var opemChest = (isHeldEmpty && targetId == 987) || (heldId == 917 && targetId == 988);
@@ -700,6 +699,7 @@ class TransitionHelper {
 	}
 
 	public function doTransitionIfPossibleHelper(containerSlotSize:Float = -1, onPlayer:Bool = false):Bool {
+		var heldObject = this.player.heldObject;
 		var lastUseActor = false;
 
 		// Hot Adobe Oven 250 ==> set to new home for player and his followers if it is not already
@@ -779,6 +779,10 @@ class TransitionHelper {
 			if ((heldId == 912 || heldId == 1000) && this.target.parentId != 0) {
 				this.target.hits = 1;
 				this.target.setNewOwnerAndClearOld(this.player);
+
+				if (heldObject.externId == 0) heldObject.externId = WorldMap.world.randomInt(10000);
+				this.target.externId = heldObject.externId;
+
 				this.player.say('Its mine now!', true);
 			}
 		}
