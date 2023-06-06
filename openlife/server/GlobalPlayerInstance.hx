@@ -1,5 +1,6 @@
 package openlife.server;
 
+import haxe.display.Position.Location;
 import haxe.Exception;
 import haxe.ds.Vector;
 import openlife.auto.AiBase;
@@ -4982,6 +4983,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				trace('Grave: ${g.name} ${g.isGraveWithGraveStone()}');
 				if (g.isGraveWithGraveStone() == false) continue;
 				locations.push(g);
+			}
+
+			if (HasEnoughCoinsForTeleport(player) == false) return true;
+
+			if (locations.length < 1) {
+				player.say('No graves with a gravestone found!', true);
+				return true;
+			}
+
+			if (player.isHoldingObject()) {
+				player.say('You need to drop everything first!', true);
+				return true;
+			}
+
+			for (obj in player.clothingObjects) {
+				if (obj.parentId != 0) {
+					player.say('You need to be naked first!', true);
+					return true;
+				}
 			}
 
 			teleport(player, locations, 1, 'No graves with a gravestone found!');
