@@ -887,9 +887,16 @@ abstract class AiBase {
 		if (this.taskState['kindling'] > 0 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
 		this.profession['FIREKEEPER'] = 2;
 
+		if (placeFloorUnder(myPlayer.home)) return true;
+
+		if (placeFloorUnder(GetKiln())) return true;
+
+		if (placeFloorUnder(GetForge())) return true;
+
 		var distance = 30;
 		// Domestic Gooseberry Bush 391
 		var countBushes = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 391, distance);
+		var countBerryBushes = countBushes;
 		// Dry Domestic Gooseberry Bush 393
 		countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 393, distance);
 		// Empty Domestic Gooseberry Bush 1135
@@ -897,18 +904,19 @@ abstract class AiBase {
 		// Vigorous Domestic Gooseberry Bush 1134
 		countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1134, distance);
 
+		if (countBerryBushes > 1) {
+			// // Raw Berry Pie 265 // Cooked Berry Pie 272
+			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 30);
+			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30);
+			if (count < 2 && craftItem(265)) return true;
+		}
+
 		if (countBushes < 20) {
 			// Bowl of Soil 1137 + Dying Gooseberry Bush 389
 			if (shortCraft(1137, 389, 30)) return true;
 			// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
 			if (shortCraft(1137, 392, 30)) return true;
 		}
-
-		if (placeFloorUnder(myPlayer.home)) return true;
-
-		if (placeFloorUnder(GetKiln())) return true;
-
-		if (placeFloorUnder(GetForge())) return true;
 
 		Macro.exception(if (doWatering(1)) return true);
 
