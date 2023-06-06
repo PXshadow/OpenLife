@@ -530,6 +530,11 @@ class ServerSettings {
 				trace('floorHugging: ${obj.name}');
 			}*/
 
+			if (obj.description.contains('Wall') || obj.description.contains('Door')) {
+				obj.allowFloorPlacement = true;
+				// trace('allowFloorPlacement: ${obj.name}');
+			}
+
 			if (obj.description.contains('groundOnly')) {
 				obj.groundOnly = true;
 				// trace('groundOnly: ${obj.name}');
