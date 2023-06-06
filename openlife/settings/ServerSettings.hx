@@ -852,9 +852,6 @@ class ServerSettings {
 		ObjectData.getObjectData(877).decaysToObj = 470; // Wooden Door (vertical) ==> Boards
 		ObjectData.getObjectData(879).decaysToObj = 470; // Open Wooden Door (vertical) ==> Boards
 		ObjectData.getObjectData(879).rValue = 0.2; // Open Wooden Door (vertical)
-		ObjectData.getObjectData(2757).rValue = 0.95; // Springy Wooden Door
-		ObjectData.getObjectData(2757).decaysToObj = 876; // Springy Wooden Door ==> Wooden Door
-		ObjectData.getObjectData(2757).blocksAnimal = true; // Springy Wooden Door
 
 		// set stone wall decay
 		ObjectData.getObjectData(885).decayFactor = 0.2; //  Stone Wall+cornerStone
@@ -1369,15 +1366,26 @@ class ServerSettings {
 
 		ObjectData.getObjectData(558).rValue = 0.01; // Open Fence Gate
 
-		// Springy Wooden Door 2762 Horizontal
+		// Springy Wooden Door 2762 - not installed
 		ObjectData.getObjectData(2762).decaysToObj = 878; // Open Wooden Door Horizontal
-		ObjectData.getObjectData(2762).blocksDomesticAnimal = true;
-		ObjectData.getObjectData(2762).blocksAnimal = true;
+		// ObjectData.getObjectData(2762).blocksDomesticAnimal = true;
+		// ObjectData.getObjectData(2762).blocksAnimal = true;
+
+		// Horizontal
+		ObjectData.getObjectData(2757).rValue = 0.95; // Springy Wooden Door
+		ObjectData.getObjectData(2757).decaysToObj = 876; // Springy Wooden Door ==> Wooden Door
+		ObjectData.getObjectData(2757).blocksAnimal = true; // Springy Wooden Door
+
+		ObjectData.getObjectData(2758).rValue = 0.2; // Springy Open Wooden Door
+		ObjectData.getObjectData(2758).decaysToObj = 876; // Springy Open Wooden Door ==> Wooden Door
 
 		// Springy Wooden Door 2759 Vertical
 		ObjectData.getObjectData(2759).decaysToObj = 879; // Open Wooden Door Vertical
 		ObjectData.getObjectData(2759).blocksDomesticAnimal = true;
 		ObjectData.getObjectData(2759).blocksAnimal = true;
+
+		ObjectData.getObjectData(2760).rValue = 0.2; // Springy Open Wooden Door
+		ObjectData.getObjectData(2760).decaysToObj = 879; // Springy Open Wooden Door ==> Open Wooden Door Vertical
 
 		// Hitched Wild Horse 772
 		ObjectData.getObjectData(772).rValue = 0.01;
