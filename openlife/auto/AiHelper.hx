@@ -713,7 +713,8 @@ class AiHelper {
 		var ai = player.getAi();
 		var distance = CalculateQuadDistanceToObject(player, obj);
 		if (ai.lastGotoObj == obj && ai.lastGotoObjDistance <= distance && distance > 100) {
-			trace('AAI: ${player.name + player.id} WARNING: GOAL MOR FAR AWAY! gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} old-d:${ai.lastGotoObjDistance} ${infos.methodName}');
+			if (ServerSettings.DebugAi)
+				trace('AAI: ${player.name + player.id} WARNING: GOAL MOR FAR AWAY! gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} old-d:${ai.lastGotoObjDistance} ${infos.methodName}');
 			ai.addObjectWithHostilePath(obj);
 		} else if (ServerSettings.DebugAi)
 			trace('AAI: ${player.name + player.id} gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} ${infos.methodName}');
