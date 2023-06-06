@@ -6817,15 +6817,17 @@ abstract class AiBase {
 
 		// AI dont switch held obj with ground object to not drop stuff too far away // TODO test
 		if (heldId != 0 && dropTargetId != 0 && distance > 25) {
+			if (shouldDebugSay()) myPlayer.say('Drop ${myPlayer.heldObject.name} TOO FAR AWAY! dist: $distance');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} TOO FAR AWAY! dist: $distance');
-			if (dropHeldObject(5)) return false;
+			return (dropHeldObject(5));
 		}
 
 		// myPlayer.getFollowPlayer()
-		if (dropTargetId != 0 && distance > 50 && playerToFollow != null && isHungry == false) {
+		if (dropTargetId != 0 && distance > 100 && playerToFollow != null && isHungry == false) {
+			if (shouldDebugSay()) myPlayer.say('Drop ${myPlayer.heldObject.name} FOLLOW PLAYER / DROP TOO FAR AWAY! dist: : $distance');
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} FOLLOW PLAYER / DROP TOO FAR AWAY! dist: $distance');
-			if (dropHeldObject(5)) return false;
+			return (dropHeldObject(5));
 		}
 
 		// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop target: ${dropTarget.name} held: ${myPlayer.heldObject.name} isMoving: ${myPlayer.isMoving()}');
