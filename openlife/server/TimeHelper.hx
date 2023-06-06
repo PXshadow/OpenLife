@@ -1379,7 +1379,7 @@ class TimeHelper {
 		// if (objData.name.indexOf('WALL') != -1) trace('AlignWalls1: ${objData.name} rValue: ${objData.rValue} cloth: ${objData.isClothing()}');
 
 		if (objData.isWall() == false) return;
-		trace('AlignWalls2: ${objData.name} cloth: ${objData.clothing}');
+		// trace('AlignWalls2: ${objData.name} cloth: ${objData.clothing}');
 
 		// 885 Stone Wall (corner)
 		// 886 Stone Wall (vertical)
