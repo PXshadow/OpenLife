@@ -2189,6 +2189,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			var target = NamingHelper.GetPlayerByNameWithMessage(this, name);
 			return this.redeem(target);
 		}
+		// Dont do anything: I FOLLOW MY FATHER
+		if (message.startsWith('I FOLLOW MY')) return true;
 
 		if (message.startsWith('I FOLLOW ')) {
 			processFollowCommand(name);

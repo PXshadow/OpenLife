@@ -659,6 +659,24 @@ class TimeHelper {
 				player.connection.sendGlobalMessage(text4);
 			}
 
+			if (Std.int(player.trueAge) == 5) {
+				var father = player.father;
+				if (player.isMale() && player.followPlayer == player.mother && father != null && father.isDeleted() == false) {
+					var rand = WorldMap.world.randomFloat();
+					if (rand > 0.4) {
+						player.followPlayer = player.father;
+
+						player.say('I FOLLOW MY FATHER!');
+						father.say('MY SON ${player.name} FOLLOWS ME NOW!', true);
+
+						player.connection.sendMapLocation(father, 'LEADER', 'leader');
+						father.connection.sendMapLocation(player, 'FOLLOWER', 'follower');
+						father.doEmote(Emote.hubba);
+						player.doEmote(Emote.happy);
+					}
+				}
+			}
+
 			if (Std.int(player.age) == 58) {
 				// trace('Player: ${player.name + player.p_id} death is near!');
 
