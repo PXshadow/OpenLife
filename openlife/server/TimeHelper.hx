@@ -661,13 +661,15 @@ class TimeHelper {
 
 			if (Std.int(player.trueAge) == 5) {
 				var father = player.father;
-				if (player.isMale() && player.followPlayer == player.mother && father != null && father.isDeleted() == false) {
+				if (player.followPlayer == player.mother && father != null && father.isDeleted() == false) {
 					var rand = WorldMap.world.randomFloat();
-					if (rand > 0.4) {
+					var chance = player.isMale() ? 0.4 : 0.8;
+					if (rand > chance) {
 						player.followPlayer = player.father;
+						var text = player.isMale() ? 'SON' : 'DAUGHTER';
 
 						player.say('I FOLLOW MY FATHER!');
-						father.say('MY SON ${player.name} FOLLOWS ME NOW!', true);
+						father.say('MY $text ${player.name} FOLLOWS ME NOW!', true);
 
 						player.connection.sendMapLocation(father, 'LEADER', 'leader');
 						father.connection.sendMapLocation(player, 'FOLLOWER', 'follower');
