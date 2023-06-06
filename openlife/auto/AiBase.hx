@@ -904,18 +904,18 @@ abstract class AiBase {
 		// Vigorous Domestic Gooseberry Bush 1134
 		countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1134, distance);
 
+		if (countBushes < 30) {
+			// Bowl of Soil 1137 + Dying Gooseberry Bush 389
+			if (shortCraft(1137, 389, 30)) return true;
+			// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
+			if (shortCraft(1137, 392, 30)) return true;
+		}
+
 		if (countBerryBushes > 1) {
 			// // Raw Berry Pie 265 // Cooked Berry Pie 272
 			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 30);
 			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30);
 			if (count < 2 && craftItem(265)) return true;
-		}
-
-		if (countBushes < 20) {
-			// Bowl of Soil 1137 + Dying Gooseberry Bush 389
-			if (shortCraft(1137, 389, 30)) return true;
-			// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
-			if (shortCraft(1137, 392, 30)) return true;
 		}
 
 		Macro.exception(if (doWatering(1)) return true);
