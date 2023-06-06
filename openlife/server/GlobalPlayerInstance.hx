@@ -4852,7 +4852,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.food_store -= 5;
 			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!AGE') != -1 || text == '!') {
-			if (checkIfNotAllowed(player)) return true;
+			if (checkIfNotAllowed(player, text != '!')) return true;
 
 			player.age += 5;
 			player.trueAge += 5;
@@ -5150,11 +5150,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return false;
 	}
 
-	private static function checkIfNotAllowed(player:GlobalPlayerInstance) {
+	private static function checkIfNotAllowed(player:GlobalPlayerInstance, sayError = true) {
 		var canUseServerCommands = player.account.canUseServerCommands;
 
 		if (canUseServerCommands == false) {
-			player.say('not allowed!', true);
+			if (sayError) player.say('not allowed!', true);
 			return true;
 		}
 		return false;
