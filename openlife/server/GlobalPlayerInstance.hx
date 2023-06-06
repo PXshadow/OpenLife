@@ -1788,6 +1788,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			toSelf = true;
 		}
 
+		if (StringTools.contains(text, '?AGE')) {
+			text = '${Math.floor(this.age)} YEARS!';
+			toSelf = true;
+		}
+
 		if (StringTools.contains(text, '?SEASON')) {
 			text = TimeHelper.SeasonText.toUpperCase();
 			toSelf = true;

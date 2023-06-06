@@ -13,6 +13,7 @@ Summary:
 NEW Commands:
 - say "COINS?" --> guess what it does! But no it wont do it in silence! 
 - say "SEASON?" OR "?SEASON" displays current season
+- say "?AGE" to get your age
 - say "?SCORE" to get current account score / prestige (MSCORE + FSCORE) / 2
 - say "?MSCORE" to get current account male score / prestige
 - say "?FSCORE" to get current account female score / prestige
