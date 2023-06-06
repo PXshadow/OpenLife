@@ -1374,11 +1374,21 @@ class ServerSettings {
 		ObjectData.getObjectData(2759).blocksDomesticAnimal = true;
 		ObjectData.getObjectData(2759).blocksAnimal = true;
 
-		// ObjectData.getObjectData(2762).blocksAnimal = true;
+		// Hitched Wild Horse 772
+		ObjectData.getObjectData(772).rValue = 0.01;
+		// Hitched Tame Horse 773
+		ObjectData.getObjectData(773).rValue = 0.01;
+		// Hitched Riding Horse
+		ObjectData.getObjectData(774).rValue = 0.01;
+		// Hitched Horse-Drawn Cart 779
+		ObjectData.getObjectData(779).rValue = 0.01;
+		// Hitched Horse-Drawn Tire Cart 3159
+		ObjectData.getObjectData(3159).rValue = 0.01;
 
 		ObjectData.getObjectData(4154).decayFactor = ObjDecayFactorOnFloor; // Hitching Post
 		ObjectData.getObjectData(4154).decaysToObj = 556; // Hitching Post  ==> Fence Kit
 		ObjectData.getObjectData(4154).groundOnly = true; // Hitching Post
+		ObjectData.getObjectData(4154).rValue = 0.01; // Hitching Post
 
 		ObjectData.getObjectData(550).decayFactor = ObjDecayFactorOnFloor; // Fence
 		ObjectData.getObjectData(550).decaysToObj = 556; // Fence  ==> Fence Kit
