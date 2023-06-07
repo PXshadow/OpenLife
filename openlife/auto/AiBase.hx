@@ -527,13 +527,14 @@ abstract class AiBase {
 		Macro.exception(if (isHandlingFire()) return);
 
 		itemToCraft.searchCurrentPosition = true;
+		Macro.exception(if (isMakingSeeds()) return);
 		Macro.exception(if (shortCraft(0, 400, 10)) return); // pull out the carrots
 		Macro.exception(if (shortCraft(139, 2832, 10)) return); // Skewer + Tomato Sprout
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (handleTemperature()) return);
 		Macro.exception(if (makeSharpieFood(5)) return);
 		Macro.exception(if (isHandlingGraves()) return);
-		Macro.exception(if (isMakingSeeds()) return);
+
 		// if(craftItem(283)) return;
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
@@ -1227,7 +1228,8 @@ abstract class AiBase {
 		this.hasCornSeeds = seeds != null;
 
 		var seeds = AiHelper.GetClosestObjectById(myPlayer, 401, null, 30); // Seeding Carrots
-		if (seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 2745, 30); // Bowl of Carrot Seeds
+		// if (seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 2745, 30); // Bowl of Carrot Seeds
+		if (seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 2745, 30); // Bowl of Carrot Seeds
 
 		this.hasCarrotSeeds = seeds != null;
 
@@ -6959,6 +6961,7 @@ abstract class AiBase {
 
 		if (myPlayer.isMoving()) return true;
 
+		Macro.exception(if (isMakingSeeds()) return true); // Count carrots
 		Macro.exception(if (shortCraft(0, 400, 10)) return true); // pull out the carrots
 
 		// Shucked Ear of Corn 1114
