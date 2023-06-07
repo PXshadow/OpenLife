@@ -1863,6 +1863,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			toSelf = true;
 		}
 
+		if (StringTools.startsWith(text, '?POWER')) {
+			var power = Math.floor(this.countLeadershipPower());
+			text = 'MY POWER IS ${power}!';
+			toSelf = true;
+		}
+
+		if (StringTools.startsWith(text, '?HPOWER')) {
+			var bestPlayer = GetMostPowerful(player.home.tx, player.home.ty);
+			var power = Math.floor(bestPlayer.countLeadershipPower());
+			text = 'MOST POWERFU IS ${bestPlayer.name} ${power} POWER!';
+			toSelf = true;
+		}
+
 		if (toSelf) {
 			text = '?{$text}?';
 			this.connection.send(PLAYER_SAYS, ['$id/$curse $text']);
@@ -6008,6 +6021,39 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// if(obj.parentId == 3948 || obj.parentId == 874) trace('TryAnimaEscape: Used Quiver $animalEscapeFactor');
 		}
 		return null;
+	}
+
+	public function countLeadershipPower() {
+		var power = this.food_store_max * (this.prestige + this.coins);
+		if (this.lineage.prestigeClass == Noble) power *= 2;
+		if (this.lineage.prestigeClass == Serf) power /= 2;
+		power /= 100;
+		return power;
+	}
+
+	public static function GetMostPowerful(tx:Int, ty:Int) {
+		var bestPower = -1.0;
+		var bestPlayer = null;
+
+		for (p in AllPlayers) {
+			if (p.isDeleted()) continue;
+			if (p.home == null) continue;
+			if (p.home.tx != tx) continue;
+			if (p.home.ty != ty) continue;
+
+			var power = p.countLeadershipPower();
+
+			trace('GetMostPowerful: ${p.name} power: ${power} prestige: ${p.prestige} coins: ${p.coins}');
+
+			if (bestPlayer != null && power < bestPower) continue;
+
+			trace('GetMostPowerful: BEST ${p.name} power: ${power} prestige: ${p.prestige} coins: ${p.coins}');
+
+			bestPower = power;
+			bestPlayer = p;
+		}
+
+		return bestPlayer;
 	}
 
 	public function isHoldingObject():Bool {
