@@ -99,7 +99,8 @@ class ServerSettings {
 
 	// coins
 	public static var InheritCoinsFactor:Float = 0.8; // on death X coins are inherited
-	public static var MinPrestiegeFromCoinDecayPerYear:Float = 5;
+	public static var CoinsOnWoundingFactor:Float = 0.2; // If you manage to wound somebody
+	public static var MinPrestiegeFromCoinDecayPerYear:Float = 10; // 5
 
 	// birth
 	public static var NewChildExhaustionForMother = 0;

@@ -4365,13 +4365,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	private function takeCoins(attacker:GlobalPlayerInstance, targetPlayer:GlobalPlayerInstance) {
-		var coins = Math.floor(targetPlayer.coins * 0.8);
+		var factor = ServerSettings.CoinsOnWoundingFactor;
+		var targetCoins = Math.floor(targetPlayer.coins);
+		var coins = Math.floor(targetPlayer.coins * factor) + 1;
 
+		if (coins > targetCoins) coins = targetCoins;
 		if (attacker == null) return;
 		if (coins < 1) return;
 
 		attacker.coins += coins;
-		targetPlayer.coins = 0;
+		targetPlayer.coins -= coins;
 
 		if (coins == 1) {
 			// attacker.connection.sendGlobalMessage('You gained ${coins} coin from ${targetPlayer.name}!');
