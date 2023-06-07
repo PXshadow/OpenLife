@@ -2952,6 +2952,9 @@ class ServerSettings {
 		var trans = transtions.getTransition(1620, 382); // Wood Shavings 1620 + Bowl of Water 382
 		trans.aiShouldIgnore = true;
 
+		var trans = transtions.getTransition(239, 309); // Wooden Tongs 239 + Hot Iron Bloom on Flat Rock 309
+		trans.aiShouldIgnore = true;
+
 		// protect smithing TODO allow for smithing or manually instruct
 		// var trans = transtions.getTransition(0, 322); // 0 + Forged Steel Crucible
 		// trans.aiShouldIgnore = true;
