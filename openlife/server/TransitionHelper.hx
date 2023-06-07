@@ -990,7 +990,8 @@ class TransitionHelper {
 				return false;
 			}*/
 
-			var excessExhaustion = Math.ceil(player.exhaustion - (player.food_store_max + 1));
+			// var excessExhaustion = Math.ceil(player.exhaustion - (player.food_store_max + 1));
+			var excessExhaustion = Math.ceil(player.exhaustion - (player.food_store_max / 2));
 			if (excessExhaustion > 0) {
 				var message = 'Too exhausted! $excessExhaustion';
 				player.say(message, true);
@@ -1044,12 +1045,13 @@ class TransitionHelper {
 			if (rand < 1) {
 				target.hits += 1;
 				// rand += target.hits / 20;
-				player.say('Try again! Hits ${Math.round(target.hits)} Uses: ${Math.round(target.numberOfUses)}', true);
+				player.say('Try again! Hits ${Math.round(target.hits)} Uses: ${Math.round(target.numberOfUses)} exhaustion: ${Math.round(player.exhaustion)}',
+					true);
 				var rand = WorldMap.calculateRandomInt(alternativeTransitionOutcome.length - 1);
 
 				// TODO use piles
 				var outcomeId = alternativeTransitionOutcome[rand];
-				WorldMap.PlaceObjectById(tx, ty, outcomeId);
+				if (outcomeId > 0) WorldMap.PlaceObjectById(tx, ty, outcomeId);
 
 				this.doTransition = true;
 				this.doAction = true;
