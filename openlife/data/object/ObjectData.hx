@@ -121,6 +121,8 @@ class ObjectData extends LineReader {
 	public var groundOnly = false;
 
 	public var unreleased = false;
+	public var fortificationObjId = -1; // Set Id of ObjectData this can be fortified with
+	public var fortificationValue:Float = 10; // Reduces hits with this amount
 
 	// saved
 

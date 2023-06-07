@@ -690,12 +690,15 @@ class ServerSettings {
 
 		ObjectData.getObjectData(895).decayFactor = 0.02; // Ancient Stone Wall (corner)
 		ObjectData.getObjectData(895).decaysToObj = 1853; // Ancient Stone Wall ==> Cut Stones
+		ObjectData.getObjectData(895).fortificationObjId = 881; // Cut Stones 881
 
 		ObjectData.getObjectData(896).decayFactor = 0.02; // Ancient Stone Wall (horizontal)
 		ObjectData.getObjectData(896).decaysToObj = 1853; // Ancient Stone Wall ==> Cut Stones
+		ObjectData.getObjectData(896).fortificationObjId = 881; // Cut Stones 881
 
 		ObjectData.getObjectData(897).decayFactor = 0.02; // Ancient Stone Wall (vertical)
 		ObjectData.getObjectData(897).decaysToObj = 1853; // Ancient Stone FloWallor ==> Cut Stones
+		ObjectData.getObjectData(897).fortificationObjId = 881; // Cut Stones 881
 
 		// decay for mango trees
 		ObjectData.getObjectData(1875).decayFactor = 0.1; // Fruiting Domestic Mango Tree
@@ -857,10 +860,15 @@ class ServerSettings {
 		// set stone wall decay
 		ObjectData.getObjectData(885).decayFactor = 0.2; //  Stone Wall+cornerStone
 		ObjectData.getObjectData(885).decaysToObj = 1853; //  Stone Wall+cornerStone ==> Cut Stones
+		ObjectData.getObjectData(885).fortificationObjId = 881; // Cut Stones 881
+
 		ObjectData.getObjectData(886).decayFactor = 0.2; //  Stone Wall+verticalStone
 		ObjectData.getObjectData(886).decaysToObj = 1853; //  Stone Wall+verticalStone  ==> Cut Stones
+		ObjectData.getObjectData(886).fortificationObjId = 881; // Cut Stones 881
+
 		ObjectData.getObjectData(887).decayFactor = 0.2; //  Stone Wall+horizontalStone
 		ObjectData.getObjectData(887).decaysToObj = 1853; //  Stone Wall+horizontalStone  ==> Cut Stones
+		ObjectData.getObjectData(887).fortificationObjId = 881; // Cut Stones 881
 		// trace('isPermanent ${ObjectData.getObjectData(155).isPermanent()}');
 
 		// TODO split up decay of walled containers in box and wall

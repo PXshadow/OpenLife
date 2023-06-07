@@ -609,7 +609,7 @@ class ObjectHelper {
 		// toDelete = toDelete && helper.livingOwners.length < 1;
 		toDelete = toDelete && helper.isOwned() == false && helper.isFollowerOwned() == false && helper.isGrave() == false;
 
-		toDelete = toDelete && (helper.hits <= 0 || helper.id < 1) && helper.coins <= 0 && externId == 0 && text == '';
+		toDelete = toDelete && (helper.hits == 0 || helper.id < 1) && helper.coins <= 0 && externId == 0 && text == '';
 
 		return toDelete;
 	}

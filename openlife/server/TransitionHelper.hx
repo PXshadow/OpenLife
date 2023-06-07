@@ -104,6 +104,8 @@ class TransitionHelper {
 	public static function doCommandHelper(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0):Bool {
 		var helper = new TransitionHelper(player, x, y);
 		var heldId = player.heldObject.parentId;
+		var heldObject = player.heldObject;
+		var targetObj = helper.target;
 		var targetId = helper.target.parentId;
 		var isHeldEmpty = player.isHeldEmpty();
 
@@ -137,10 +139,20 @@ class TransitionHelper {
 		}
 
 		// property stuff:
+
+		// fortify
+		if (heldId == targetObj.objectData.fortificationObjId) {
+			targetObj.hits -= heldObject.objectData.fortificationValue;
+			player.setHeldObject(null);
+			helper.sendUpdateToClient();
+
+			trace('Fortification: ${- Math.ceil(targetObj.hits)}');
+			player.say('Fortification: ${- Math.ceil(targetObj.hits)}', true);
+			return false;
+		}
+
 		// Key 917 + Locked Wooden Chest 988 // Locked
 		// var useKey = (heldId == 917 && targetId == 988);
-		var heldObject = player.heldObject;
-		var targetObj = helper.target;
 		var isLocked = targetObj.objectData.description.contains('Locked');
 
 		// Key 917
