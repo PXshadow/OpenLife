@@ -153,6 +153,7 @@ class TransitionHelper {
 
 			player.coins -= cost;
 			targetObj.hits -= fortificationValue;
+			targetObj.countObj += 1; // Count Fortification material
 
 			player.setHeldObject(null);
 			helper.sendUpdateToClient();
@@ -1070,11 +1071,23 @@ class TransitionHelper {
 				// rand += target.hits / 20;
 				player.say('Try again! Hits ${Math.round(target.hits)} Uses: ${Math.round(target.numberOfUses)} exhaustion: ${Math.round(player.exhaustion)}',
 					true);
-				var rand = WorldMap.calculateRandomInt(alternativeTransitionOutcome.length - 1);
 
-				// TODO use piles
-				var outcomeId = alternativeTransitionOutcome[rand];
-				if (outcomeId > 0) WorldMap.PlaceObjectById(tx, ty, outcomeId);
+				// drop fortification material
+				var fortificationObjId = target.objectData.fortificationObjId;
+				if (target.countObj > 0 && fortificationObjId > 0) {
+					var fortificationMaterial = ObjectData.getObjectData(fortificationObjId);
+					var dropChance = 0.8 / (fortificationMaterial.fortificationValue);
+					var rand = WorldMap.calculateRandomFloat();
+					if (rand < dropChance) {
+						target.countObj -= 1;
+						WorldMap.PlaceObjectById(tx, ty, fortificationObjId);
+					}
+				} else {
+					var rand = WorldMap.calculateRandomInt(alternativeTransitionOutcome.length - 1);
+					// TODO use piles
+					var outcomeId = alternativeTransitionOutcome[rand];
+					if (outcomeId > 0) WorldMap.PlaceObjectById(tx, ty, outcomeId);
+				}
 
 				this.doTransition = true;
 				this.doAction = true;
@@ -1095,7 +1108,6 @@ class TransitionHelper {
 		// 0 + 1422 = 778 + 0 // isHorsePickupTrans: true // Empty + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + Empty
 		// 0 + 779 = 778 + 4154 // isHorsePickupTrans: true // Empty + Hitched Horse-Drawn Cart# +causeAutoOrientH -->  Horse-Drawn Cart + Hitching Post
 		// 0 + 3963 = 33 + 1096 // Transition for Well Site should not be affected by this
-
 		// var isHorseDropTrans = (transition.targetID == -1 && transition.newActorID == 0) && target.isPermanent() == false;
 		// TODO change
 		var isHorseDropTrans = transition.newActorID == 0 && player.heldObject.containedObjects.length > 0;
@@ -1105,18 +1117,15 @@ class TransitionHelper {
 
 		// 292 Basket should be empty
 		if (this.player.heldObject.parentId == 292 && this.player.heldObject.containedObjects.length > 0) return false;
-
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} isHorseDropTrans: $isHorseDropTrans isPickupOrDrop: $isPickupOrDrop target.isPermanent: ${target.isPermanent()} targetRemains: ${transition.targetRemains}');
-
 		if (isPickupOrDrop || isHorseDropTrans) {
 			if (ServerSettings.DebugTransitionHelper)
 				trace('TRANS: ${player.name + player.id} switch held object with tile object / This should be for transitions with horses, especially horse carts that can otherwise loose items');
-
 			var tmpHeldObject = player.heldObject;
+
 			player.setHeldObject(this.target);
 			this.target = tmpHeldObject;
-
 			// reset creation time, so that horses wont esape instantly
 			this.target.creationTimeInTicks = TimeHelper.tick;
 			// this.pickUpObject = true;
@@ -1127,7 +1136,6 @@ class TransitionHelper {
 				if (ServerSettings.DebugTransitionHelper)
 					trace('TRANS: ${player.name + player.id} New actor can only contain ${newActorObjectData.numSlots} but old actor had ${player.heldObject.containedObjects.length} contained objects!'
 					+ player.heldObject.toString());
-
 				if (player.heldObject.id == 0) {
 					// TODO solve
 					player.heldObject.containedObjects = [];
@@ -1135,17 +1143,15 @@ class TransitionHelper {
 				} else
 					return false;
 			}
-
 			if (target.containedObjects.length > newTargetObjectData.numSlots) {
 				if (ServerSettings.DebugTransitionHelper)
 					trace('TRANS: ${player.name + player.id} New target can only contain ${newTargetObjectData.numSlots} but old target had ${target.containedObjects.length} contained objects!');
-
 				return false;
 			}
 		}
-
 		// check if biome locked or blocked
 		var biome = WorldMap.worldGetBiomeId(tx, ty);
+
 		if (newTargetObjectData.description.contains('+biomeReq4') && biome != 4) {
 			player.say('needs snow biome', true);
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} needs ice biome!');
@@ -1159,15 +1165,14 @@ class TransitionHelper {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} is blocked by ice!');
 			return false;
 		}
-
 		// take care to pile baskets // 292 Basket // 1605 Stack of Baskets
 		// if(handObjectData.id == 292 && this.target.id == 292){
 		if ((player.heldObject.parentId == 292 && player.heldObject.containedObjects.length > 0)
 			&& (this.target.id == 292 || this.target.id == 1605)) {
 			// TODO implement hidden containers so that cointainers can be put on top of containers
 			var text = 'TRANS: ${player.name + player.id} ${player.heldObject.name} + ${this.target.name} ${this.target.toArray()} NOT SUPPORTET YET!';
-			trace(text);
 
+			trace(text);
 			throw new Exception(text);
 			/*var baseTarget = this.target;
 
@@ -1180,30 +1185,23 @@ class TransitionHelper {
 			// this.target.id = TransformTarget(transition.newTargetID); // make a pile of baskets
 			// this.target.containedObjects.push(baseTarget);
 			// this.target.containedObjects.push(player.heldObject);
-
 			// player.setHeldObject(null);
 		}
-
 		// if(transition.actorID != transition.newActorID) this.pickUpObject = true; // TODO does error for bow animation but may be needed for other animations?
-
 		if (newTargetObjectData.unreleased) {
 			this.player.say('${newTargetObjectData.name} is not for this world!', true);
 			return false;
 		}
-
 		// Arrow and Bow + Arrow Quiver = false;
 		// Arrow and Bow + Empty Arrow Quiver = true;
 		// Arrow + Empty Arrow Quiver = true;
 		var resetNumberOfUses = this.target.objectData.isClothing() == false || this.target.objectData.numUses < 2;
-
 		// do now the magic transformation
 		player.transformHeldObject(transition.newActorID);
 		this.target.id = TransformTarget(transition.newTargetID); // consider if there is an random outcome
-
 		// reset creation / last change time
 		player.heldObject.creationTimeInTicks = TimeHelper.tick;
 		this.target.creationTimeInTicks = TimeHelper.tick; // TODO dont reset if id did not change? For example hot oven
-
 		if (newTargetObjectData.floor) {
 			// if (targetIsFloor == false) this.target.id = 0;
 			this.target.id = 0;
@@ -1211,34 +1209,25 @@ class TransitionHelper {
 		} else {
 			if (targetIsFloor) this.newFloorId = 0;
 		}
-
 		// take care of special transition if heldobj is floor like Huge Snowball + Ice Hole
 		if (newActorObjectData.floor) {
 			this.player.setHeldObject(null);
 			this.newFloorId = transition.newActorID;
 		}
-
 		// transition source object id (or -1) if held object is result of a transition
 		// if(transition.newActorID != this.handObject[0]) this.newTransitionSource = -1;
 		// this.newTransitionSource = transition.targetID; // TODO ???
-
 		// TODO move to SetObjectHelper
 		this.target.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(this.target);
-
 		DoChangeNumberOfUsesOnActor(this.player, transition);
-
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} NewTileObject: ${newTargetObjectData.description} ${this.target.id} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
-
 		// target did not change if it is same dummy
 		DoChangeNumberOfUsesOnTarget(this.target, transition, player, ServerSettings.DebugTransitionHelper, resetNumberOfUses);
-
 		ObjectHelper.DoOwnerShip(this.target, this.player);
-
 		// if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
 		this.doTransition = true;
 		this.doAction = true;
-
 		return true;
 	}
 

@@ -18,7 +18,8 @@ import sys.io.FileOutput;
 	public var HITS = 1;
 	public var COINS = 2;
 	public var TEXT = 3;
-	public var EXTERNID = 4;
+	public var EXTERNID = 4; // For example used for key ID
+	public var COUNTOBJ = 5; // For example count foritification material
 }
 
 class ObjectHelper {
@@ -49,6 +50,7 @@ class ObjectHelper {
 	public var coins:Float = 0;
 	public var text:String = '';
 	public var externId:Int = 0; // For example for lock / key
+	public var countObj:Float = 0; // For example count foritification material
 
 	// public var isLovedSet = false; // not saved TODO save
 	public var lovedTx:Int = 0; // not saved TODO save
@@ -169,6 +171,7 @@ class ObjectHelper {
 		if (obj.coins != 0) count++;
 		if (obj.text != '') count++;
 		if (obj.externId != 0) count++;
+		if (obj.countObj != 0) count++;
 
 		writer.writeInt16(count);
 		if (obj.hits != 0) writer.writeInt16(HITS);
@@ -180,6 +183,8 @@ class ObjectHelper {
 		if (obj.text != '') writer.writeString(obj.text);
 		if (obj.externId != 0) writer.writeInt16(EXTERNID);
 		if (obj.externId != 0) writer.writeInt32(obj.externId);
+		if (obj.countObj != 0) writer.writeInt16(COUNTOBJ);
+		if (obj.countObj != 0) writer.writeFloat(obj.countObj);
 
 		// write contained objects
 		writer.writeByte(obj.containedObjects.length);
@@ -231,6 +236,9 @@ class ObjectHelper {
 					case EXTERNID:
 						newObject.externId = reader.readInt32();
 						trace('ReadFromFile: externId: ${newObject.externId}');
+					case COUNTOBJ:
+						newObject.countObj = reader.readFloat();
+						trace('ReadFromFile: countObj: ${newObject.countObj}');
 					default:
 						trace('ERROR: DataId: ${dataId} is unknown!');
 						throw new Exception('DataId: ${dataId} is unknown!');
