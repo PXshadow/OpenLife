@@ -142,12 +142,23 @@ class TransitionHelper {
 
 		// fortify
 		if (heldId == targetObj.objectData.fortificationObjId) {
-			targetObj.hits -= heldObject.objectData.fortificationValue;
+			var fortificationValue = heldObject.objectData.fortificationValue;
+			var cost = Math.floor(fortificationValue * ServerSettings.FortificationCosePerHit);
+			var missing = Math.ceil(cost - player.coins);
+
+			if (missing > 0) {
+				player.say('Need $missing more coins!');
+				return false;
+			}
+
+			player.coins -= cost;
+			targetObj.hits -= fortificationValue;
+
 			player.setHeldObject(null);
 			helper.sendUpdateToClient();
 
 			trace('Fortification: ${- Math.ceil(targetObj.hits)}');
-			player.say('Fortification: ${- Math.ceil(targetObj.hits)}', true);
+			player.say('Cost $cost coins! NEW Fortification: ${- Math.ceil(targetObj.hits)}', true);
 			return false;
 		}
 
