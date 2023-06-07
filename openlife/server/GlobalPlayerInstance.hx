@@ -1872,7 +1872,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (StringTools.startsWith(text, '?HPOWER')) {
 			var bestPlayer = GetMostPowerful(player.home.tx, player.home.ty);
 			var power = Math.floor(bestPlayer.countLeadershipPower());
-			text = 'MOST POWERFU IS ${bestPlayer.name} ${power} POWER!';
+			text = 'MOST POWERFUL IS ${bestPlayer.name} ${power} POWER!';
 			toSelf = true;
 		}
 
@@ -2075,7 +2075,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if (player.hiredByPlayer == this) {
-			this.say('${player.name} IS HIRED BT ME ALREADY', true);
+			this.say('${player.name} IS HIRED BY ME ALREADY', true);
 			return;
 		}
 
@@ -4868,7 +4868,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.food_store -= 5;
 			player.sendFoodUpdate(false);
 		} else if (text.indexOf('!AGE') != -1 || text == '!') {
-			// if (checkIfNotAllowed(player, text != '!')) return true;
+			if (checkIfNotAllowed(player, text != '!')) return true;
 
 			player.age += 5;
 			player.trueAge += 5;

@@ -116,6 +116,8 @@ abstract class AiBase {
 	public var lastGotoObj:ObjectHelper = null;
 	public var isNiceBaby = false;
 	public var timeReactedLastCommand = 0.0;
+	public var timeLastLeaderCheck = 0.0;
+
 	public var lastGrave:ObjectHelper = null;
 
 	public static function StartAiThread() {
@@ -495,6 +497,7 @@ abstract class AiBase {
 		if (myPlayer.isMoving()) return;
 
 		Macro.exception(if (searchNewHomeIfNeeded()) return);
+		Macro.exception(allyUp());
 
 		// High priortiy takes
 		itemToCraft.searchCurrentPosition = false;
@@ -6780,6 +6783,51 @@ abstract class AiBase {
 		}
 
 		return false;
+	}
+
+	private function allyUp() {
+		var home = myPlayer.home;
+		var player = cast(myPlayer, GlobalPlayerInstance);
+		var followPlayer = player.followPlayer;
+
+		var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeLastLeaderCheck);
+		if (timePassedInSeconds < 10) return;
+		timeLastLeaderCheck = TimeHelper.tick;
+
+		if (home == null) return;
+
+		if (player.hiredByPlayer != null) return;
+		if (player.age < 10) return;
+		if (followPlayer != null && followPlayer.home.tx == myPlayer.home.tx && followPlayer.home.ty == myPlayer.home.ty) return;
+
+		// trace('AAI: ${myPlayer.name + myPlayer.id} allyUp:1 ');
+
+		if (followPlayer != null && followPlayer.isCloseRelative(player)) return;
+		// trace('AAI: ${myPlayer.name + myPlayer.id} allyUp:2 ');
+
+		var bestPlayer = GlobalPlayerInstance.GetMostPowerful(myPlayer.home.tx, myPlayer.home.ty);
+		if (bestPlayer == null) return;
+		// trace('AAI: ${myPlayer.name + myPlayer.id} allyUp:3 ');
+		var power = Math.floor(bestPlayer.countLeadershipPower()); // TODO consider ally strength // CCOnsider relatives // consider family // consider color
+		var dist = AiHelper.CalculateDistanceToPlayer(player, bestPlayer);
+		if (dist > 900) return;
+		// trace('AAI: ${myPlayer.name + myPlayer.id} allyUp:4 ');
+		if (bestPlayer == myPlayer) return;
+		if (bestPlayer.newFollower != null) return; // Leader is considering some one already
+		if (bestPlayer.isAlly(player)) return;
+
+		var text = 'MOST POWERFUL IS ${bestPlayer.name} ${power} POWER!';
+
+		if (followPlayer == null) {
+			myPlayer.say('I FOLLOW ${bestPlayer.name} ');
+			trace('AAI: ${myPlayer.name + myPlayer.id} allyUp: ' + text);
+			return;
+		}
+
+		// trace('AAI: ${myPlayer.name + myPlayer.id} allyUp:5 ');
+
+		myPlayer.say('I FOLLOW ${bestPlayer.name} ');
+		trace('AAI: ${myPlayer.name + myPlayer.id} allyUp: leader wrong town!' + text);
 	}
 
 	private function isMovingToPlayer(maxDistance = 3, followHuman:Bool = true):Bool {
