@@ -370,7 +370,8 @@ Ownership:
 Property:
 - Coins can be stored in chests
 - Wooden Doors / Chests can be locked with lock and key
-- There is only a one in 10000 chance that an key can open another lock 
+- There is only a one in 10000 chance that an key can open another lock
+- You can use the same Key for All locks, just place it in mutliple open locks
 - Owners of a locked item can open it without a key also in their next lifes
 - You can lockpick with a 5% success and 10% fail chance
 - Lockpicking costs 1 coin and 3 exhaustion per try

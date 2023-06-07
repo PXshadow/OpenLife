@@ -198,6 +198,13 @@ class TransitionHelper {
 			}
 		}
 
+		// Key 917 // Lock Blank 904 //  Lock 4058
+		if (tag == USE && heldId == 917 && (targetId == 904 || targetId == 4058)) {
+			targetObj.externId = heldObject.externId;
+			// player.say('LOCK HAS NOW THE SAME KEY! ${targetObj.externId}!', true);
+			player.say('LOCK HAS NOW THE SAME KEY!', true);
+		}
+
 		// store coins
 		// 0 + Open Wooden Chest 986
 		// 0 + Unlocked Wooden Chest 989
