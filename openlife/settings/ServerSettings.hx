@@ -2194,16 +2194,19 @@ class ServerSettings {
 		// Steel Mining Pick 684 + Ancient Stone Wall H 896 ==> Stone Wall
 		trans = new TransitionData(684, 896, 684, 887);
 		trans.hungryWorkCost = 10;
+		trans.alternativeTransitionOutcome.push(0);
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// Steel Mining Pick 684 + Ancient Stone Wall C 896 ==> Stone Wall
 		trans = new TransitionData(684, 895, 684, 885);
 		trans.hungryWorkCost = 10;
+		trans.alternativeTransitionOutcome.push(0);
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// Steel Mining Pick 684 + Ancient Stone Wall V 897 ==> Stone Wall
 		trans = new TransitionData(684, 897, 684, 886);
 		trans.hungryWorkCost = 10;
+		trans.alternativeTransitionOutcome.push(0);
 		transtions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// most important allow kill moskitos
@@ -2288,7 +2291,11 @@ class ServerSettings {
 
 		var trans = transtions.getTransition(502, 408); // shovel 502 + Empty Clay Pit 408
 		trans.alternativeTransitionOutcome.push(126); // Clay 126
-		trans.hungryWorkCost = 5;
+		trans.hungryWorkCost = ServerSettings.HungryWorkCost;
+
+		var trans = transtions.getTransition(502, 408); // shovel 502 + Empty Clay Pit 408
+		trans.alternativeTransitionOutcome.push(126); // Clay 126
+		trans.hungryWorkCost = ServerSettings.HungryWorkCost;
 
 		// Allow to make kindling out of Skewers
 		var trans = new TransitionData(334, 852, 334, 72); // Steel Axe + Weak Skewer --> Kindling
@@ -2326,6 +2333,13 @@ class ServerSettings {
 		// ObjectData.getObjectData(100).alternativeTransitionOutcome.push(344); // White Pine Tree with Needles --> Fire Wood
 
 		ObjectData.getObjectData(3146).hungryWork = ServerSettings.HungryWorkCost; // Chopped Softwood Tree
+
+		// Cut Stones 1853
+		ObjectData.getObjectData(1853).hungryWork = ServerSettings.HungryWorkCost;
+		ObjectData.getObjectData(1853).alternativeTransitionOutcome.push(33); // Stone
+		ObjectData.getObjectData(1853).alternativeTransitionOutcome.push(0); // Stone
+		ObjectData.getObjectData(1853).alternativeTransitionOutcome.push(0); // Stone
+
 		// ObjectData.getObjectData(99).hungryWork = ServerSettings.HungryWorkCost; // White Pine Tree
 		// ObjectData.getObjectData(100).hungryWork = ServerSettings.HungryWorkCost; // White Pine Tree with Needles
 
