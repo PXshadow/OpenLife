@@ -174,7 +174,7 @@ class ServerSettings {
 	public static var FoodUsePerSecond = 0.10;
 	public static var HealingPerSecond = 0.10;
 	public static var WoundHealingFactor:Float = 1;
-	public static var ExhaustionHealingFactor:Float = 2;
+	public static var ExhaustionHealingFactor:Float = 1.5; //
 	public static var ExhaustionHealingForMaleFaktor:Float = 1.2;
 
 	public static var FoodFactor:Float = 0.8; // reduces gained food value

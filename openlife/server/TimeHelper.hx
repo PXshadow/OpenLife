@@ -790,7 +790,8 @@ class TimeHelper {
 		if (biomeLoveFactor > 1) biomeLoveFactor = 1;
 		// if(biomeLoveFactor < 0) player.exhaustion -= originalFoodDecay * biomeLoveFactor / 2; // gain exhaustion in wrong biome
 		if (biomeLoveFactor > 0 && player.exhaustion > -player.food_store_max) player.exhaustion -= healing * 0.5 * biomeLoveFactor;
-		// trace('Exhaustion: $tmpexhaustion ==> ${player.exhaustion} pID: ${player.p_id} biomeLoveFactor: $biomeLoveFactor');
+		// if (player.exhaustion > -player.food_store_max)
+		//	trace('${player.name} Exhaustion: $tmpexhaustion ==> ${player.exhaustion} pID: ${player.p_id} biomeLoveFactor: $biomeLoveFactor');
 
 		// do healing but increase food use
 
