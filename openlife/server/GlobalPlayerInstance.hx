@@ -1863,6 +1863,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			toSelf = true;
 		}
 
+		if (StringTools.startsWith(text, '?ALLY')) {
+			var count = this.CountAndDisplayAlly();
+			text = 'ALLIES ${count}!';
+			toSelf = true;
+		}
+
 		if (StringTools.startsWith(text, '?POWER')) {
 			var power = Math.floor(this.countLeadershipPower());
 			text = 'MY POWER IS ${power}!';
@@ -6054,6 +6060,33 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		return bestPlayer;
+	}
+
+	public function CountAndDisplayAlly(display = true) {
+		var count = 0;
+		var bestDist = -1.0;
+		var bestPlayer = null;
+
+		for (p in AllPlayers) {
+			if (p.isDeleted()) continue;
+			if (p == this) continue;
+			if (p.isAlly(this) == false) continue;
+			if (display) this.connection.send(PLAYER_SAYS, ['${p.id}/0 +${p.name}+']);
+			// if (display) c.send(PLAYER_SAYS, ['${p.id}/$curse $text']);
+
+			count++;
+
+			var dist = AiHelper.CalculateDistanceToPlayer(p, this);
+			if (bestPlayer != null && dist > bestDist) continue;
+
+			bestDist = dist;
+			bestPlayer = p;
+		}
+
+		if (display && bestPlayer != null) this.connection.sendMapLocation(bestPlayer, 'ALLY', 'follower');
+		if (display) this.connection.send(FRAME);
+
+		return count;
 	}
 
 	public function isHoldingObject():Bool {
