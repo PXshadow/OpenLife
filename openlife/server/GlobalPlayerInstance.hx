@@ -1951,7 +1951,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	private function processFollowCommand(name:String) {
-		if (name == "ME") {
+		if (name == "ME" || name == "MYSELF") {
 			// TODO check if follower color changes to new color or if needed to be send again
 
 			this.followPlayer = null;
