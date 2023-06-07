@@ -607,6 +607,7 @@ limestone was weird, if you use hetuw. you can crtl+q to swap items in bp. if yo
 ==> For now you can use insteads !LEADER (!L) or !DL for direct leader (first you follow)
 ==> as workaround all player data is send always ==> does still not work
 
+
 - FIX clearing up old lineage data --> needs a fix if player is still alive or if anythign is updated later on from the linage like family Name
 
 Middle priority:
