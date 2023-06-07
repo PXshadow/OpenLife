@@ -377,6 +377,12 @@ Property:
 - Lockpicking cost 50% less exhaustion for female
 - Lockpicking fails only 8% for female
 
+Fortification:
+- Removeing (Ancient) Stone Wall is now hungry work
+- (Ancient) Stone Walls cam be fortified with Cut Stone 
+- Removing Fortification is Extreme Hungry Work
+- Fortification cost 10 Coins for (Ancient) Stone Wall
+
 Transitions:
 - you can harvest Berries directly with a bowl
 - tule Stumps grow back after one hour 
@@ -457,7 +463,7 @@ TODO Features:
 more up in the list means more likely to be implemented first but no guarantee!
 - animals grouping / animal bosses / wolf ilness
 - illnesses (can spread dependign on health, more food use no eating)
-- better property / fortification
+- better property / fortification for other clay walls / oven / kiln / forge / graves 
 - better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate)
 - special stuff like hercules / snake master / super fast ager 
 - job boni
@@ -582,10 +588,9 @@ limestone was weird, if you use hetuw. you can crtl+q to swap items in bp. if yo
 - FOOD auto balance food pipes globally if eaten too much
 
 - WRITING / READING
-- SAVE secret for player / allow ! Aging only if secret is known
-- POPERTY allow open lock only with fitting key
+- SAVE secret for player
 - POPERTY Ally Gates
-- POPERTY foritfication wall + stone + hungry work
+- POPERTY Done for Stone Wall / other foritfication missing + stone + hungry work
 
 - Animal hide rabbit / sanakes in snow
 - Animal Let Bears go in cave before winter 
