@@ -6847,9 +6847,9 @@ abstract class AiBase {
 		}
 
 		// myPlayer.getFollowPlayer()
-		if (dropTargetId != 0 && distance > 100 && playerToFollow != null && isHungry == false) {
+		if (dropTargetId != 0 && distance > 400 && playerToFollow != null && isHungry == false) {
 			// if (shouldDebugSay()) myPlayer.say('Drop ${myPlayer.heldObject.name} FOLLOW PLAYER / DROP TOO FAR AWAY! dist: : $distance');
-			myPlayer.say('${playerToFollow.name} IM COMMING!');
+			// myPlayer.say('${playerToFollow.name} IM COMMING!');
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} FOLLOW PLAYER / DROP TOO FAR AWAY! dist: $distance');
 			return (dropHeldObject(5));
