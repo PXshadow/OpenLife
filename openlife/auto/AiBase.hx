@@ -484,12 +484,22 @@ abstract class AiBase {
 
 		Macro.exception(if (deadlyPlayer == null && isConsideringMakingFood()) return);
 		Macro.exception(if (isUsingItem()) return); // isPickingupFood can have a use as drop!
-		Macro.exception(if (isPickingupFood()) return);
-		Macro.exception(if (deadlyPlayer == null && this.profession['SMITH'] < 1 && isFeedingPlayerInNeed()) return);
-		Macro.exception(if (deadlyPlayer == null && isStayingCloseToChild()) return);
 		Macro.exception(if (isRemovingFromContainer()) return);
-		Macro.exception(if (attackPlayer(deadlyPlayer)) return);
-		Macro.exception(if (killAnimal(animal)) return);
+		Macro.exception(if (isPickingupFood()) return);
+
+		var superbadTemp = (myPlayer.heat < 0.1 || myPlayer.heat > 0.9) && myPlayer.hits > 2;
+		var dist = deadlyPlayer == null ? 10000 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
+		if (dist > 9000) dist = animal == null ? 10000 : AiHelper.CalculateQuadDistanceToObject(myPlayer, animal);
+
+		var doStuff = superbadTemp == false;
+		if (dist < 100) doStuff = true; // better take care of attacker
+
+		if (isHandlingTemperature && dist > 100) Macro.exception(if (handleTemperature()) return);
+
+		Macro.exception(if (doStuff && attackPlayer(deadlyPlayer)) return);
+		Macro.exception(if (doStuff && isStayingCloseToChild()) return);
+		Macro.exception(if (doStuff && killAnimal(animal)) return);
+		Macro.exception(if (doStuff && this.profession['SMITH'] < 1 && isFeedingPlayerInNeed()) return);
 		Macro.exception(if (isMovingToPlayer(autoStopFollow ? 10 : 5)) return); // if ordered to follow stay closer otherwise give some space to work
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
