@@ -1394,6 +1394,7 @@ class ServerSettings {
 
 		ObjectData.getObjectData(2758).rValue = 0.2; // Springy Open Wooden Door
 		ObjectData.getObjectData(2758).decaysToObj = 876; // Springy Open Wooden Door ==> Wooden Door
+		ObjectData.getObjectData(2758).blocksAnimal = true;
 
 		// Springy Wooden Door 2759 Vertical
 		ObjectData.getObjectData(2759).decaysToObj = 879; // Open Wooden Door Vertical
@@ -1402,6 +1403,7 @@ class ServerSettings {
 
 		ObjectData.getObjectData(2760).rValue = 0.2; // Springy Open Wooden Door
 		ObjectData.getObjectData(2760).decaysToObj = 879; // Springy Open Wooden Door ==> Open Wooden Door Vertical
+		ObjectData.getObjectData(2760).blocksAnimal = true;
 
 		// Hitched Wild Horse 772
 		ObjectData.getObjectData(772).rValue = 0.01;
