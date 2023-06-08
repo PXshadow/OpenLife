@@ -131,10 +131,42 @@ class TransitionHelper {
 
 		// Tarr Monument
 		if (helper.target.parentId == 3112) {
-			player.say('Praise Jinbaili!');
-			if (player.praisedJinbali == false) {
-				player.lineage.prestige += 5;
-				player.praisedJinbali = true;
+			if (player.darkNosaj > 0) {
+				Connection.SendCurseToAll(player, 0, '_');
+				player.say('Jasoniah is the one true god!');
+
+				player.darkNosaj = 0;
+				player.yum_multiplier += 90;
+				player.lostCombatPrestige -= 90;
+				if (player.lostCombatPrestige < 0) player.lostCombatPrestige = 0;
+				player.sendFoodUpdate();
+			} else {
+				player.say('Praise Jinbaili!');
+				if (player.praisedJinbali == false) {
+					player.yum_multiplier += 5;
+					player.praisedJinbali = true;
+					player.sendFoodUpdate();
+				}
+			}
+		}
+
+		// Dark Nosaj 2466
+		if (heldId == 0 && helper.target.parentId == 2466) {
+			if (player.praisedJinbali) {
+				player.praisedJinbali = false;
+				player.yum_multiplier -= 5;
+				player.hits += 10;
+				player.say('AAAAAAAAAAAAAAAAAAAAaaaa!!!');
+				player.sendFoodUpdate();
+			} else {
+				Connection.SendCurseToAll(player, 1, 'DARK_MINION');
+				player.say('All hail dark nosaj');
+				if (player.darkNosaj < 1) {
+					player.darkNosaj = 1;
+					player.yum_multiplier -= 100;
+					player.lostCombatPrestige += 100;
+					player.sendFoodUpdate();
+				}
 			}
 		}
 

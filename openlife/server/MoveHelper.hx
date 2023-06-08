@@ -213,7 +213,7 @@ class MoveHelper {
 
 			if (allowGraveCurse) {
 				if (p.isCursed == false) {
-					Connection.SendCurseToAll(p); // TODO test
+					Connection.SendCurseToAll(p);
 					p.say('My bones are near im cursed...', true);
 					p.doEmote(Emote.sad);
 					// p.connection.sendGlobalMessage('Since you are near your old bones you are cursed!');

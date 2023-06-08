@@ -173,6 +173,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var forceStopOnNextTile = false; // not saved // Ai sets this to change only movement if reached next tile
 	public var lastTimeEmoteSend:Float = 0;
 	public var praisedJinbali = false;
+	public var darkNosaj = 0.0; // not saved
 
 	public function getFollowPlayer() {
 		return followPlayer;
@@ -4203,6 +4204,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			damage *= targetPlayer.isCursed ? ServerSettings.CursedReceiveDamageFactor : 1;
 			damage *= attacker.isCursed ? ServerSettings.CursedMakeDamageFactor : 1;
 			damage *= attacker.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
+			damage *= attacker.darkNosaj > 0 ? 1.2 : 1;
 
 			if (ServerSettings.DebugCombat)
 				trace('COMBAT: HIT weaponDamage1: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance attacker cursed: ${attacker.isCursed}');
@@ -4385,12 +4387,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	private function takeCoins(attacker:GlobalPlayerInstance, targetPlayer:GlobalPlayerInstance) {
+		if (attacker == null) return;
+
 		var factor = ServerSettings.CoinsOnWoundingFactor;
+		if (attacker.darkNosaj > 0) factor += 0.2;
+		if (factor > 1) factor = 1;
+
 		var targetCoins = Math.floor(targetPlayer.coins);
 		var coins = Math.floor(targetPlayer.coins * factor) + 1;
 
 		if (coins > targetCoins) coins = targetCoins;
-		if (attacker == null) return;
+
 		if (coins < 1) return;
 
 		attacker.coins += coins;
@@ -5380,6 +5387,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function addHealthAndPrestige(count:Float, isFood:Bool = true) {
+		if (this.darkNosaj > 0) return;
+
 		this.yum_multiplier += count;
 		if (isFood) this.prestigeFromEating += count;
 

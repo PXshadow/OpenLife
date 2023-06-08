@@ -1241,9 +1241,12 @@ class Connection {
 		List of player ids that are cursed, and their curse level
 		word is optional, which is a persistent name tag for this person.
 	**/
-	public static function SendCurseToAll(player:GlobalPlayerInstance, level:Int = 1) {
+	public static function SendCurseToAll(player:GlobalPlayerInstance, level:Int = 1, word:String = null) {
 		for (c in connections) {
-			c.send(CURSED, ['${player.p_id} $level']);
+			if (word != null) {
+				c.send(CURSED, ['${player.p_id} $level $word']);
+			} else
+				c.send(CURSED, ['${player.p_id} $level']);
 		}
 	}
 

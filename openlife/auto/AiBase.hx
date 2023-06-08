@@ -1404,7 +1404,7 @@ abstract class AiBase {
 		Macro.exception(if (isUsingItem()) return true);
 
 		var rand = WorldMap.calculateRandomFloat();
-		if (rand < 0.05) myPlayer.say('Good bye!'); else if (rand < 0.1) myPlayer.say('Jasonius is calling me. Take care!');
+		if (rand < 0.05) myPlayer.say('Good bye!'); else if (rand < 0.1) myPlayer.say('Jasoniah is calling me. Take care!');
 
 		if (myPlayer.isMoving()) return true;
 

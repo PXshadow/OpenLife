@@ -175,9 +175,9 @@ class TimeHelper {
 		var tmpSeasonTemperatureImpact:Float = 0;
 
 		// make eternal ice age
-		Season = Seasons.Winter;
-		SeasonHardness = 2;
-		passedSeasonTime = 0;
+		// Season = Seasons.Winter;
+		// SeasonHardness = 2;
+		// passedSeasonTime = 0;
 
 		tmpSeasonTemperatureImpact = ServerSettings.AverageSeasonTemperatureImpact * SeasonHardness;
 
@@ -390,7 +390,7 @@ class TimeHelper {
 
 		// if (player.lostCombatPrestige != 0) trace('${player.name + player.id} lostCombatPrestige: ${player.lostCombatPrestige}');
 
-		if (player.angryTime >= 0 && player.lostCombatPrestige > 0) {
+		if (player.angryTime >= 0 && player.lostCombatPrestige > 0 && player.darkNosaj < 1) {
 			player.lostCombatPrestige -= (ServerSettings.CombatReputationRestorePerYear * timePassedInSeconds) / 60;
 		}
 
