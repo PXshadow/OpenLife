@@ -5384,7 +5384,10 @@ abstract class AiBase {
 		}
 
 		// FIX: dont stay with your kid in the cold
-		if (heldPlayer != null) return handleTemperature();
+		if (heldPlayer != null) {
+			handleTemperature();
+			return true;
+		}
 
 		var child = AiHelper.GetCloseHungryChild(myPlayer);
 		if (child == null) return false;
