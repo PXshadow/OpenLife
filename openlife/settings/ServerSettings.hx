@@ -3624,6 +3624,18 @@ class ServerSettings {
 		LimitTransitionIfMinNotReached(318, 302, 318, 8);
 		// Crucible with Charcoal 318 // Small Charcoal Pile
 		LimitTransitionIfMinNotReached(318, 301, 318, 8);
+
+		// Steel Axe 334 // Maple Tree - Branch 63
+		LimitTransitionIfMinNotReached(334, 63, 63, 20);
+
+		// Steel Axe 334 // Maple Tree 48
+		LimitTransitionIfMinNotReached(334, 48, 48, 10);
+
+		// Steel Axe 334 // Yew Tree - Branch 153
+		LimitTransitionIfMinNotReached(334, 153, 153, 10);
+
+		// Steel Axe 334 // Yew Tree - 153
+		LimitTransitionIfMinNotReached(334, 406, 406, 5);
 	}
 
 	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 3) {
