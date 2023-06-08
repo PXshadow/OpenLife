@@ -899,28 +899,31 @@ abstract class AiBase {
 		if (placeFloorUnder(GetForge())) return true;
 
 		var distance = 30;
-		// Domestic Gooseberry Bush 391
-		var countBushes = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 391, distance);
-		var countBerryBushes = countBushes;
-		// Dry Domestic Gooseberry Bush 393
-		countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 393, distance);
-		// Empty Domestic Gooseberry Bush 1135
-		countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1135, distance);
-		// Vigorous Domestic Gooseberry Bush 1134
-		countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1134, distance);
 
-		if (countBushes < 30) {
-			// Bowl of Soil 1137 + Dying Gooseberry Bush 389
-			if (shortCraft(1137, 389, 30)) return true;
-			// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
-			if (shortCraft(1137, 392, 30)) return true;
-		}
+		if ((Math.round(myPlayer.age / 5)) % 2 == 0) {
+			// Domestic Gooseberry Bush 391
+			var countBushes = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 391, distance);
+			var countBerryBushes = countBushes;
+			// Dry Domestic Gooseberry Bush 393
+			countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 393, distance);
+			// Empty Domestic Gooseberry Bush 1135
+			countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1135, distance);
+			// Vigorous Domestic Gooseberry Bush 1134
+			countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1134, distance);
 
-		if (countBerryBushes > 1) {
-			// // Raw Berry Pie 265 // Cooked Berry Pie 272
-			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 30);
-			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30);
-			if (count < 2 && craftItem(265)) return true;
+			if (countBushes < 30) {
+				// Bowl of Soil 1137 + Dying Gooseberry Bush 389
+				if (shortCraft(1137, 389, 30)) return true;
+				// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
+				if (shortCraft(1137, 392, 30)) return true;
+			}
+
+			if (countBerryBushes > 1) {
+				// // Raw Berry Pie 265 // Cooked Berry Pie 272
+				var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 30);
+				count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30);
+				if (count < 2 && craftItem(265)) return true;
+			}
 		}
 
 		Macro.exception(if (doWatering(1)) return true);
