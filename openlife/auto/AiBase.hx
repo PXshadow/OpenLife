@@ -1436,7 +1436,7 @@ abstract class AiBase {
 		this.lastTemperature = myPlayer.heat;
 
 		// Large Fast Fire 83
-		if (heat < 0.3 && this.itemToCraftId == 83) return craftItem(83);
+		if (this.itemToCraftId == 83) return craftItem(83);
 
 		if (needCooling) {
 			// consider drinking
@@ -1505,8 +1505,11 @@ abstract class AiBase {
 
 				myPlayer.say('Could not warm!');
 
-				// Large Fast Fire 83 --> Make fast fire to warm
-				if (myPlayer.firePlace != null && myPlayer.firePlace.parentId != 83 && craftItem(83)) return true;
+				if (myPlayer.age > 5) {
+					// Large Fast Fire 83 --> Make fast fire to warm
+					if (myPlayer.firePlace != null && myPlayer.firePlace.parentId != 83 && craftItem(83)) return true;
+					if (isHandlingFire(3)) return true;
+				}
 
 				myPlayer.warmPlace = null; // this place does not help
 
