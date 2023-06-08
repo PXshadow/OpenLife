@@ -3174,6 +3174,14 @@ class ServerSettings {
 		var trans = transitions.getTransition(209, 142, false, true);
 		trans.aiShouldIgnore = true;
 
+		// Marked Grave 1012
+		var trans = transitions.getTransition(0, 1012);
+		trans.aiShouldIgnore = true;
+
+		// Buried Grave with Dug Stone 1849
+		var trans = transitions.getTransition(0, 1849);
+		trans.aiShouldIgnore = true;
+
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		// var trans = transitions.getTransition(1247, 4110);
 		// trans.aiShouldIgnore = true;
