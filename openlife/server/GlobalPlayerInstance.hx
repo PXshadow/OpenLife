@@ -3302,7 +3302,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		clothing.id = trans.newTargetID;
 		TransitionHelper.DoChangeNumberOfUsesOnTarget(clothing, trans, this, false, resetNumberOfUses);
 		clothing.TransformToDummy(); // TODO call if ID is set?
-		this.transformHeldObject(trans.newActorID);
+		this.transformHeldObject(trans.newActorID, trans.noUseActor);
 
 		// this.say('${clothing.numberOfUses}');
 
@@ -3586,14 +3586,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.held_yum = isHoldingYum();
 	}
 
-	public function transformHeldObject(id:Int) {
+	public function transformHeldObject(id:Int, noUseActor = true) {
 		var toObjData = ObjectData.getObjectData(id);
 		if (toObjData.dummyParent != null) toObjData = toObjData.dummyParent;
 
 		var fromObjData = heldObject.objectData;
 		if (fromObjData.dummyParent != null) fromObjData = fromObjData.dummyParent;
 
-		if (toObjData.id != fromObjData.id) {
+		// FIX: Shovel + Dung: Dont change numberOfUses
+		if (noUseActor == false && toObjData.id != fromObjData.id) {
 			heldObject.numberOfUses = 1;
 			// TODO set to max numberOfUses??? heldObject.numberOfUses = heldObject.objectData
 			if (ServerSettings.DebugTransitionHelper) trace('transformHeldObject: ${fromObjData.id} --> ${toObjData.id} / numberOfUses set to 1');

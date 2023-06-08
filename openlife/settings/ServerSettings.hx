@@ -1501,28 +1501,35 @@ class ServerSettings {
 		// trace('Trace: ${obj.name} heat: ${obj.heatValue}');
 	}
 
-	public static function PatchTransitions(transtions:TransitionImporter) {
+	public static function PatchTransitions(transitions:TransitionImporter) {
+		/*for (trans in transitions.transitions) {
+			var actorObjdata = ObjectData.getObjectData(trans.actorID);
+			var targetObjdata = ObjectData.getObjectData(trans.targetID);
+			if (actorObjdata.numUses > 1 && trans.noUseActor) trace('noUseActor: ' + trans.getDescription());
+			if (targetObjdata.numUses > 1 && trans.noUseTarget) trace('noUseTarget: ' + trans.getDescription());
+		}*/
+
 		// TODO set through transions
 		ObjectData.getObjectData(30).lastUseObject = 279; // Wild Gooseberry Bush ==> Empty Wild Gooseberry Bush
 		ObjectData.getObjectData(279).undoLastUseObject = 30; // Empty Wild Gooseberry Bush ==> Wild Gooseberry Bush
 
-		var trans = transtions.getTransition(-1, 761); // Barrel Cactus 761
+		var trans = transitions.getTransition(-1, 761); // Barrel Cactus 761
 		trans.autoDecaySeconds = 600; // default: 5 * 60 = 300
 
-		var trans = transtions.getTransition(-1, 282); // Firing Adobe Kiln
+		var trans = transitions.getTransition(-1, 282); // Firing Adobe Kiln
 		trans.autoDecaySeconds = 40; // default: 30
 
-		var trans = transtions.getTransition(-1, 885); // Stone Wall (Corner) ==> Ancient
+		var trans = transitions.getTransition(-1, 885); // Stone Wall (Corner) ==> Ancient
 		trans.autoDecaySeconds = -24 * 10; // default: -10
-		var trans = transtions.getTransition(-1, 886); // Stone Wall (vertical) ==> Ancient
+		var trans = transitions.getTransition(-1, 886); // Stone Wall (vertical) ==> Ancient
 		trans.autoDecaySeconds = -24 * 10; // default: -10
-		var trans = transtions.getTransition(-1, 887); // Stone Wall (horizontal) ==> Ancient
+		var trans = transitions.getTransition(-1, 887); // Stone Wall (horizontal) ==> Ancient
 		trans.autoDecaySeconds = -24 * 10; // default: -10
-		var trans = transtions.getTransition(-1, 884); // Stone Floor ==> Ancient
+		var trans = transitions.getTransition(-1, 884); // Stone Floor ==> Ancient
 		trans.autoDecaySeconds = -24 * 10; // default: -10 // TODO implement time for floors
 
 		// var trans = new TransitionData(96, 237, 0, 3290); // Pine Needles 96 + Adobe Oven 237  ==> Pine Floor 3290
-		// transtions.addTransition("PatchTransitions: ", trans);
+		// transitions.addTransition("PatchTransitions: ", trans);
 
 		// lower age for weapons since kids so or so make less damage since they have less health pipes
 		ObjectData.getObjectData(151).minPickupAge = 10; // 12   // War Sword
@@ -1535,27 +1542,27 @@ class ServerSettings {
 		ObjectData.getObjectData(152).damage = 9; // Bow and Arrow
 		ObjectData.getObjectData(1624).damage = 12; // Bow and Arrow with Note
 
-		var trans = transtions.getTransition(-1, 750); // Bloody Knife
+		var trans = transitions.getTransition(-1, 750); // Bloody Knife
 		trans.autoDecaySeconds = 3; // 15
 
-		var trans = transtions.getTransition(-1, 3048); // Bloody War Sword
+		var trans = transitions.getTransition(-1, 3048); // Bloody War Sword
 		trans.autoDecaySeconds = 2; // 10
 
-		var trans = transtions.getTransition(-1, 749); // Bloody Yew Bow
+		var trans = transitions.getTransition(-1, 749); // Bloody Yew Bow
 		trans.autoDecaySeconds = 6; // 30
 
 		// Make reapir fences more easy:
 		// Mallet 467 + Fence Kit 556 -->  Mallet 467 + Fence 550
 		var trans = new TransitionData(467, 556, 467, 550);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Knife transitions for close combat
 		var trans = new TransitionData(560, 418, 750, 422); // Knife + Wolf ==> Bloody Knife + Dead Wolf
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 		var trans = new TransitionData(560, 1323, 750, 1332); // Knife + Wild Boar ==> Bloody Knife +  Dead Boar
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 		var trans = new TransitionData(560, 1328, 750, 1331); // Knife + Wild Boar with Piglet ==> Bloody Knife + Shot Boar with Piglet
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// TODO add graphics for dead cow
 		// Knife + Domestic Cow ==> Bloody Knife + Butchered Sheep 587
@@ -1563,167 +1570,167 @@ class ServerSettings {
 		// Knife + Domestic Cow ==> Knife + Dead Cow 1900
 		var trans = new TransitionData(560, 1458, 750, 1900);
 		// trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Domestic Calf 1459 ==> Knife + Dead Domestic Calf 1487
 		var trans = new TransitionData(560, 1459, 750, 1487);
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Hungry Domestic Calf 1462 ==> Knife + Dead Domestic Calf 1487
 		var trans = new TransitionData(560, 1462, 750, 1487);
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Dead Cow 1900 ==> Knife + Butchered Sheep 587
 		var trans = new TransitionData(560, 1900, 560, 587);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Dead Domestic Calf 1487 ==> Knife + Butchered Sheep 587
 		var trans = new TransitionData(560, 1487, 560, 587);
 		trans.targetNumberOfUses = 2; // give only two meat
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Sword transitions for close combat
 		var trans = new TransitionData(3047, 418, 3048, 422); // War Sword + Wolf ==> Bloody War Sword + Dead Wolf
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 		var trans = new TransitionData(3047, 1323, 3048, 1332); // War Sword + Wild Boar ==> Bloody War Sword +  Dead Boar
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 		var trans = new TransitionData(3047, 1328, 3048, 1331); // War Sword + Wild Boar with Piglet ==> Bloody War Sword + Shot Boar with Piglet
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// TODO add graphics for dead cow
 		// War Sword + Domestic Cow ==> Bloody War Sword + Butchered Sheep 587
 		var trans = new TransitionData(3047, 1458, 3048, 587);
 		// trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = TransitionImporter.GetTransition(152, 0); // Bow and Arrow + 0
 		trans.newActorID = 151; // Yew Bow instead of Yew Bow just shot
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
-		var trans = transtions.getTransition(-1, 400); // Carrot Row
+		var trans = transitions.getTransition(-1, 400); // Carrot Row
 		trans.autoDecaySeconds = 10 * 60; // 5 * 60
 
 		// FIX bug that this bow cannot be used with quiver
 		trans = new TransitionData(-1, 493, 0, 151); // Yew Bow just shot --> Yew Bow
 		trans.autoDecaySeconds = 2;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
-		var trans = transtions.getTransition(-1, 427); // Attacking Wolf
+		var trans = transitions.getTransition(-1, 427); // Attacking Wolf
 		trans.autoDecaySeconds = 3;
 		trans.move = 5;
-		var trans = transtions.getTransition(-1, 428); // Attacking Shot Wolf
+		var trans = transitions.getTransition(-1, 428); // Attacking Shot Wolf
 		trans.autoDecaySeconds = 3;
 		trans.move = 2;
 
-		var trans = transtions.getTransition(-1, 1385); // Attacking Rattle Snake
+		var trans = transitions.getTransition(-1, 1385); // Attacking Rattle Snake
 		trans.autoDecaySeconds = 3;
 
-		var trans = transtions.getTransition(-1, 1333); // Attacking Wild Boar
+		var trans = transitions.getTransition(-1, 1333); // Attacking Wild Boar
 		trans.autoDecaySeconds = 3;
-		var trans = transtions.getTransition(-1, 1334); // Attacking Wild Boar with Piglet
+		var trans = transitions.getTransition(-1, 1334); // Attacking Wild Boar with Piglet
 		trans.autoDecaySeconds = 3;
 
-		var trans = transtions.getTransition(-1, 653); // Hungry Grizzly Bear attacking
+		var trans = transitions.getTransition(-1, 653); // Hungry Grizzly Bear attacking
 		trans.autoDecaySeconds = 3;
 		// trace('Hungry Grizzly: ${trans.move}');
-		var trans = transtions.getTransition(-1, 654); // Shot Grizzly Bear 1 attacking
+		var trans = transitions.getTransition(-1, 654); // Shot Grizzly Bear 1 attacking
 		trans.autoDecaySeconds = 3;
-		var trans = transtions.getTransition(-1, 655); // Shot Grizzly Bear 2 attacking
+		var trans = transitions.getTransition(-1, 655); // Shot Grizzly Bear 2 attacking
 		trans.autoDecaySeconds = 3;
-		var trans = transtions.getTransition(-1, 637); // Shot Grizzly Bear 3 attacking
+		var trans = transitions.getTransition(-1, 637); // Shot Grizzly Bear 3 attacking
 		trans.autoDecaySeconds = 3;
 
 		// wounds decay differenctly on ground vs on player
 		ObjectData.getObjectData(797).alternativeTimeOutcome = 1380; // Stable Knife Wound --> Clean Knife Wound // on player
 		trans = new TransitionData(-1, 797, 0, 0); // Stable Knife Wound --> Empty // on ground
 		trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 		trans = new TransitionData(-1, 1380, 0, 0); // Clean Knife Wound --> 0
 		trans.autoDecaySeconds = 90 * WoundHealingTimeFactor;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		ObjectData.getObjectData(1363).alternativeTimeOutcome = 1381; // Bite Wound --> Clean Bite Wound
 		trans = new TransitionData(-1, 1363, 0, 0); //  Bite Wound --> Empty
 		trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 		trans = new TransitionData(-1, 1381, 0, 0); // Clean Bite Wound --> 0
 		trans.autoDecaySeconds = 90 * WoundHealingTimeFactor;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		ObjectData.getObjectData(1377).alternativeTimeOutcome = 1384; // Snake Bite -->  Clean Snake Bite
 		trans = new TransitionData(-1, 1377, 0, 0); //  Snake Bite --> Empty
 		trans.autoDecaySeconds = 20 * WoundHealingTimeFactor;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 		trans = new TransitionData(-1, 1384, 0, 0); //  Clean Snake Bite --> 0
 		trans.autoDecaySeconds = 600 * WoundHealingTimeFactor;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		ObjectData.getObjectData(1366).alternativeTimeOutcome = 1383; // Hog Cut --> Clean Hog Cut
 		trans = new TransitionData(-1, 1364, 0, 0); // Hog Cut --> Empty
 		trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 		trans = new TransitionData(-1, 1383, 0, 0); // Clean Hog Cut --> 0
 		trans.autoDecaySeconds = 90 * WoundHealingTimeFactor;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		ObjectData.getObjectData(1366).alternativeTimeOutcome = 1382; // Empty Arrow Wound --> Clean Arrow Wound
 		trans = new TransitionData(-1, 1366, 0, 0); // Empty Arrow Wound --> Empty
 		trans.autoDecaySeconds = 30 * WoundHealingTimeFactor;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 		trans = new TransitionData(-1, 1382, 0, 0); // Clean Arrow Wound --> 0
 		trans.autoDecaySeconds = 90 * WoundHealingTimeFactor;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// [1367] Extracted Arrowhead Wound
 		trans = new TransitionData(-1, 1367, 0, 0); // Extracted Arrowhead Wound --> 0
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
-		trans = transtions.getTransition(0, 798);
+		trans = transitions.getTransition(0, 798);
 		ObjectData.getObjectData(798).alternativeTimeOutcome = trans.newTargetID; // Arrow Wound --> Embedded Arrowhead Wound
 		trans.newTargetID = 1367; // Arrow Wound --> Extracted Arrowhead Wound
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
-		trans = transtions.getTransition(0, 1367);
+		trans = transitions.getTransition(0, 1367);
 		ObjectData.getObjectData(1367).alternativeTimeOutcome = trans.newTargetID; // Extracted Arrowhead Wound --> Gushing Empty Arrow Wound
 		trans.newTargetID = 1366; // Extracted Arrowhead Wound --> Empty Arrow Wound
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// More decay transitions
 		trans = new TransitionData(-1, 798, 0, 1365); // 798 Arrow Wound --> 1365 Embedded Arrowhead Wound
 		trans.autoDecaySeconds = -2;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1365, 0, 0); // 1365 Embedded Arrowhead Wound --> 0
 		trans.autoDecaySeconds = -2;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 421, 0, 422); // 421 Dead Wolf with Arrow --> 422 Dead Wolf
 		trans.autoDecaySeconds = -12;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 565, 0, 566); // 565 Butchered Mouflon --> TODO 566 Mouflon Bones
 		trans.autoDecaySeconds = -2;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 422, 0, 566); // 422 Dead Wolf --> TODO 566 Mouflon Bones
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 423, 0, 566); // 423 Skinned Wolf --> TODO 566 Mouflon Bones
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1340, 0, 1343); // 1340 Butchered Pig --> Pig Bones
 		trans.autoDecaySeconds = -2;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Clear Bison
 		/*trans = new TransitionData(-1, 1438, 0, 1435); // Shot Bison --> Bison
 			trans.autoDecaySeconds = -2;
-			transtions.addTransition("PatchTransitions: ", trans);
+			transitions.addTransition("PatchTransitions: ", trans);
 		 */
 
 		ObjectData.getObjectData(1438).secondTimeOutcome = 1435; // Shot Bison --> Bison
@@ -1731,7 +1738,7 @@ class ServerSettings {
 
 		/*trans = new TransitionData(-1, 1440, 0, 1436); // Shot Bison with Calf --> Bison with Calf
 			trans.autoDecaySeconds = -2;
-			transtions.addTransition("PatchTransitions: ", trans);
+			transitions.addTransition("PatchTransitions: ", trans);
 		 */
 
 		ObjectData.getObjectData(1440).secondTimeOutcome = 1436; // Shot Bison --> Bison
@@ -1740,66 +1747,66 @@ class ServerSettings {
 		// dead bison already exists
 		trans = new TransitionData(-1, 1442, 0, 1444); // Dead Bison arrow 2 --> Dead Bison arrow 1
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1444, 0, 1446); // Dead Bison arrow 1 --> Dead Bison
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1444, 0, 1446); // Dead Bison arrow 1 --> Dead Bison
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1441, 0, 1443); // Dead Bison with Calf arrow 2  --> Dead Bison with Calf arrow 1
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1443, 0, 1445); // Dead Bison with Calf arrow 1  --> Dead Bison with Calf
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1445, 0, 1437); // Dead Bison with Calf  --> Bison Calf
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Clear dead Turkey
 		trans = new TransitionData(-1, 2176, 0, 2177); // Shot Turkey with Arrow  --> Shot Turkey
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 2177, 0, 0); // Shot Turkey --> 0
 		trans.autoDecaySeconds = -2;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 2179, 0, 0); // Shot Turkey no feathers --> 0
 		trans.autoDecaySeconds = -2;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Clear up Boar
 		trans = new TransitionData(-1, 1331, 0, 1335); // Shot Boar with Piglet --> Fleeing Wild Piglet
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1330, 0, 1332); // Shot Boar --> Dead Boar
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1332, 0, 1343); // Dead Boar --> Pig Bones
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Mouflon
 		trans = new TransitionData(-1, 562, 0, 566); // Skinned Mouflon --> Mouflon Bones
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
-		trans = transtions.getTransition(-1, 1343); // Pig Bones
+		trans = transitions.getTransition(-1, 1343); // Pig Bones
 		trans.autoDecaySeconds = -4; // default -2
 
-		trans = transtions.getTransition(-1, 891); // 891 Cracking Adobe Wall
+		trans = transitions.getTransition(-1, 891); // 891 Cracking Adobe Wall
 		trans.autoDecaySeconds = -24; // default -0.5
 
-		trans = transtions.getTransition(-1, 155); // Adobe Wall
+		trans = transitions.getTransition(-1, 155); // Adobe Wall
 		trans.autoDecaySeconds = -24; // default -10
 
 		for (trans in TransitionImporter.transitionImporter.transitions) {
@@ -1817,7 +1824,7 @@ class ServerSettings {
 				// trans.traceTransition("PatchTransitions: ", true);
 
 				trans.actorID = 0;
-				transtions.addTransition("PatchTransitions: ", trans);
+				transitions.addTransition("PatchTransitions: ", trans);
 				trans.traceTransition("PatchTransitions: ");
 			}
 
@@ -1846,49 +1853,49 @@ class ServerSettings {
 		// Fix pickup transitions
 
 		// Escaped Horse-Drawn Cart just released
-		trans = transtions.getTransition(0, 1422);
+		trans = transitions.getTransition(0, 1422);
 		trans.isPickupOrDrop = true;
 		// Escaped Horse-Drawn Cart
-		trans = transtions.getTransition(0, 780);
+		trans = transitions.getTransition(0, 780);
 		trans.isPickupOrDrop = true;
 		// Hitched Horse-Drawn Cart
-		trans = transtions.getTransition(0, 779);
+		trans = transitions.getTransition(0, 779);
 		trans.isPickupOrDrop = true;
 		// Escaped Horse-Drawn Tire Cart released
-		trans = transtions.getTransition(0, 3161);
+		trans = transitions.getTransition(0, 3161);
 		trans.isPickupOrDrop = true;
 		// Escaped Horse-Drawn Tire Cart
-		trans = transtions.getTransition(0, 3157);
+		trans = transitions.getTransition(0, 3157);
 		trans.isPickupOrDrop = true;
 		// Hitched Horse-Drawn Tire Cart
-		trans = transtions.getTransition(0, 3159);
+		trans = transitions.getTransition(0, 3159);
 		trans.isPickupOrDrop = true;
 
 		// Graves
-		trans = transtions.getTransition(292, 87); // Basket + Fresh Grave
+		trans = transitions.getTransition(292, 87); // Basket + Fresh Grave
 		trans.isPickupOrDrop = true;
-		trans = transtions.getTransition(292, 88); // Basket + Grave
+		trans = transitions.getTransition(292, 88); // Basket + Grave
 		trans.isPickupOrDrop = true;
-		trans = transtions.getTransition(292, 89); // Basket + Old Grave
+		trans = transitions.getTransition(292, 89); // Basket + Old Grave
 		trans.isPickupOrDrop = true;
-		trans = transtions.getTransition(292, 357); // Basket + Bone Pile
+		trans = transitions.getTransition(292, 357); // Basket + Bone Pile
 		trans.isPickupOrDrop = true;
 
-		trans = transtions.getTransition(356, -1); // Basket of Bones + 0
+		trans = transitions.getTransition(356, -1); // Basket of Bones + 0
 		trans.isPickupOrDrop = true;
 
 		// Original: Riding Horse: 770 + -1 = 0 + 1421
 		trans = new TransitionData(770, 0, 0, 1421);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// TODO this should function somehow with categories???
 		// original transition makes cart loose rubber if putting down horse cart
 		// Original: 3158 + -1 = 0 + 1422 // Horse-Drawn Tire Cart + ???  -->  Empty + Escaped Horse-Drawn Cart --> must be: 3158 + -1 = 0 + 3161
-		trans = transtions.getTransition(3158, -1); // Horse-Drawn Tire Cart
+		trans = transitions.getTransition(3158, -1); // Horse-Drawn Tire Cart
 		trans.newTargetID = 3161;
 		trans.traceTransition("PatchTransitions: ");
 
-		// trans = transtions.getTransition(3158, 550); // Horse-Drawn Tire Cart
+		// trans = transitions.getTransition(3158, 550); // Horse-Drawn Tire Cart
 		// trans.newTargetID = 3161;
 		// trace('trans: ${trans.getDesciption()}');
 
@@ -1896,45 +1903,45 @@ class ServerSettings {
 
 		// Original:  0 + 3161 = 778 + 0 //Empty + Escaped Horse-Drawn Tire Cart# just released -->  Horse-Drawn Cart + Empty
 		// comes from pattern:  <0> + <1422> = <778> + <0> / EMPTY + Escaped Horse-Drawn Cart# just released -->  Horse-Drawn Cart + EMPTY
-		trans = transtions.getTransition(0, 3161);
+		trans = transitions.getTransition(0, 3161);
 		trans.newActorID = 3158; // Horse-Drawn Tire Cart
 		trans.traceTransition("PatchTransitions: ");
 
-		trans = transtions.getTransition(-1, 3161); // Escaped Horse-Drawn Tire Cart just released
+		trans = transitions.getTransition(-1, 3161); // Escaped Horse-Drawn Tire Cart just released
 		trans.newTargetID = 3157; // Escaped Horse-Drawn Tire Cart
 		trans.autoDecaySeconds = 20; // default 7
 		trans.traceTransition("PatchTransitions: ");
 
-		trans = transtions.getTransition(-1, 3157); // Escaped Horse-Drawn Tire Cart
+		trans = transitions.getTransition(-1, 3157); // Escaped Horse-Drawn Tire Cart
 		trans.move = 2; // default 4
 
-		trans = transtions.getTransition(0, 3157);
+		trans = transitions.getTransition(0, 3157);
 		trans.newActorID = 3158; // Horse-Drawn Tire Cart
 		trans.traceTransition("PatchTransitions: ");
 
 		// let Tule Stumps (122) grow back
-		trans = transtions.getTransition(-1, 122);
+		trans = transitions.getTransition(-1, 122);
 		trans.newTargetID = 121; // 121 = Tule Reeds
 		trans.autoDecaySeconds = -6;
 		trans.traceTransition("PatchTransitions: ");
 
 		// Escaped Horse-Drawn Cart just released
-		trans = transtions.getTransition(-1, 1422);
+		trans = transitions.getTransition(-1, 1422);
 		trans.autoDecaySeconds = 15; // 7
 
 		// Escaped Horse-Drawn Cart
-		trans = transtions.getTransition(-1, 780);
+		trans = transitions.getTransition(-1, 780);
 		trans.move = 2; // default 4
 
 		// Escaped Horse-Drawn Tire Cart just released??????
-		// trans = transtions.getTransition(-1, 1361);
+		// trans = transitions.getTransition(-1, 1361);
 		// trans.autoDecaySeconds = 30;  // 7
 
-		trans = transtions.getTransition(3158, 4154); // Horse-Drawn Tire Cart + Hitching Post
+		trans = transitions.getTransition(3158, 4154); // Horse-Drawn Tire Cart + Hitching Post
 		trans.newTargetID = 3159; // Hitched Horse-Drawn Tire Cart
 		// trace('DEBUG!!!: ${trans.getDesciption()}');
 
-		trans = transtions.getTransition(3158, 550); // Horse-Drawn Tire Cart + Fence
+		trans = transitions.getTransition(3158, 550); // Horse-Drawn Tire Cart + Fence
 		trans.newTargetID = 3159; // Hitched Horse-Drawn Tire Cart
 		// trace('DEBUG!!!: ${trans.getDesciption()}');
 
@@ -1942,28 +1949,28 @@ class ServerSettings {
 		// 1261 Canada Goose Pond with Egg // TODO let egg come back
 
 		// change decay time for grave 88 = Grave
-		// trans = transtions.getTransition(-1, 88);
+		// trans = transitions.getTransition(-1, 88);
 		// trans.autoDecaySeconds = 10;
 		// trans.traceTransition("PatchTransitions: ");
 
 		// should be fixed now with the rest of the -2 transitions
 		//-2 + 141 = 0 + 143 // some how we have -2 transactions like hand + ghoose pond = ghoose pond with feathers
-		// trans = transtions.getTransition(-2, 141);
+		// trans = transitions.getTransition(-2, 141);
 		// trans.actorID = 0;
-		// transtions.addTransition("PatchTransitions: ", trans);
+		// transitions.addTransition("PatchTransitions: ", trans);
 		// trans.traceTransition("PatchTransitions: ");
 
 		// new bears needs the world
 		trans = new TransitionData(-1, 650, 0, 630); // Bear Cave Empty --> Bear Cave
 		trans.autoDecaySeconds = -48;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Steel Mining Pick 684 + Bear Cave 650 --> Steel Mining Pick 684 + Huge Charcoal Pile 4102
 		trans = new TransitionData(684, 650, 684, 4102);
 		// trans.aiShouldIgnore = true;
 		trans.alternativeTransitionOutcome.push(300); // Big Charcoal Pile 300
 		trans.hungryWorkCost = 10;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Steel Mining Pick 684 + Bear Cave 650 --> Broken Steel Tool 858+ Huge Charcoal Pile 4102
 		trans = new TransitionData(684, 650, 858, 4102);
@@ -1971,358 +1978,358 @@ class ServerSettings {
 		trans.lastUseActor = true;
 		trans.alternativeTransitionOutcome.push(300); // Big Charcoal Pile 300
 		trans.hungryWorkCost = 10;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// let get berrys back!
 		trans = new TransitionData(-1, 30, 0, 30); // Wild Gooseberry Bush
 		trans.reverseUseTarget = true;
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 279, 0, 30); // Empty Wild Gooseberry Bush --> // Wild Gooseberry Bush
 		trans.reverseUseTarget = true;
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// lets get banana back!
 		trans = new TransitionData(-1, 2142, 0, 2142); // Banana Plant
 		trans.reverseUseTarget = true;
 		trans.autoDecaySeconds = -3;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 2145, 0, 2142); // Empty Banana Plant --> Banana Plant
 		trans.reverseUseTarget = true;
 		trans.autoDecaySeconds = -3;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 227, 0, 0); // Straw 227
 		trans.autoDecaySeconds = -4;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1115, 0, 0); // Dried Ear of Corn 1115
 		trans.autoDecaySeconds = -4;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 3180, 0, 291); // Flat Rock with Rabbit Bait 3180 --> Flat Rock 291
 		trans.autoDecaySeconds = -4;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1466, 0, 235); // Bowl of Leavened Dough --> Clay Bowl 235
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 1468, 0, 236); // Leavened Dough on Clay Plate 1468 --> Clay Plate 236
 		trans.autoDecaySeconds = -1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// TODO remove once Garlic is gone
 		trans = new TransitionData(-1, 4255, 0, 848); // Mature Garlic --> Hardened Row
 		trans.autoDecaySeconds = -12;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 4265, 0, 848); // Mature Garlic 4265--> Hardened Row
 		trans.autoDecaySeconds = -12;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 577, 578, 576); // Shorn Domestic Sheep 577 --> Fleece 578 + Shorn Domestic Sheep 576
 		trans.autoDecaySeconds = 2;
 		trans.move = 1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(-1, 4194, 1262, 1256); // Domestic Goose with Egg 4194 --> Cold Goose Egg 1262 + Domestic Goose 1256
 		trans.autoDecaySeconds = 10;
 		trans.move = 1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// trans = new TransitionData(-1, 577, 576, 578); // Shorn Domestic Sheep 577 --> Fleece 578 + Shorn Domestic Sheep 576
 		// trans.autoDecaySeconds = 2;
 		// trans.lastUseTarget = true;
-		// transtions.addTransition("PatchTransitions: ", trans);
+		// transitions.addTransition("PatchTransitions: ", trans);
 
 		// get some sharpie back
 		trans = new TransitionData(135, 850, 135, 34); // Flint Chip + Stone Hoe --> Flint Chip + Sharp Stone
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(135, 71, 135, 34); // Flint Chip + Stone Hatchet --> Flint Chip + Sharp Stone
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// get some ropes back
 		trans = new TransitionData(34, 850, 34, 92); // Sharp Stone + Stone Hoe --> Sharp Stone + Tied Long Shaft
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(850, 850, 850, 92); // Stone Hoe + Stone Hoe --> Stone Hoe + Tied Long Shaft
 		trans.aiShouldIgnore = true;
 		trans.tool = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(850, 235, 850, 126); // Stone Hoe  + Clay Bowl --> Stone Hoe + Clay
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(850, 236, 850, 126); // Stone Hoe  + Clay Plate --> Stone Hoe + Clay
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(850, 292, 850, 124); // Stone Hoe  + Basket 292 --> Stone Hoe + Reed Bundle 124
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(0, 92, 59, 67); // 0 + Tied Long Shaft --> Rope + Long Straight Shaft
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// trans = new TransitionData(135, 71, 135, 70); // Flint Chip + Stone Hatchet --> Flint Chip + Tied Short Shaft
 		trans = new TransitionData(34, 71, 34, 70); // Sharp Stone + Stone Hatchet --> Sharp Stone + Tied Short Shaft
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(866, 82, 0, 83); // Rag Loincloth + Fire --> 0 + Large Fast Fire
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(865, 82, 0, 83); // Rag Shirt + Fire --> 0 + Large Fast Fire
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(864, 82, 0, 83); // Rag Hat + Fire --> 0 + Large Fast Fire
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(869, 82, 0, 83); // Rag Shoe + Fire --> 0 + Large Fast Fire
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(34, 32, 33, 32); // Sharp Stone + Big Hard Rock --> Stone + Big Hard Rock
 		trans.hungryWorkCost = 1;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Wild Gooseberry Bush
 
 		// Bowl of Gooseberries + Wild Gooseberry Bush --> Bowl of Gooseberries(+1) + Wild Gooseberry Bush
 		trans = new TransitionData(253, 30, 253, 30);
 		trans.reverseUseActor = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Clay Bowl + Wild Gooseberry Bush --> Bowl of Gooseberries + Wild Gooseberry Bush
 		trans = new TransitionData(235, 30, 253, 30);
 		trans.reverseUseActor = true; // otherwise new bowl will be full with berries
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Bowl of Gooseberries + Wild Gooseberry Bush (Last) --> Bowl of Gooseberries(+1) + Empty Wild Gooseberry Bush
 		trans = new TransitionData(253, 30, 253, 279);
 		trans.reverseUseActor = true;
-		transtions.addTransition("PatchTransitions: ", trans, false, true);
+		transitions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Clay Bowl + Wild Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Wild Gooseberry Bush
 		trans = new TransitionData(235, 30, 253, 279);
 		trans.reverseUseActor = true;
-		transtions.addTransition("PatchTransitions: ", trans, false, true);
+		transitions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Domestic Gooseberry Bush
 
 		// Bowl of Gooseberries + Domestic Gooseberry Bush --> Bowl of Gooseberries(+1) + Domestic Gooseberry Bush
 		trans = new TransitionData(253, 391, 253, 391);
 		trans.reverseUseActor = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Clay Bowl + Domestic Gooseberry Bush --> Bowl of Gooseberries + Domestic Gooseberry Bush
 		trans = new TransitionData(235, 391, 253, 391);
 		trans.reverseUseActor = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Bowl of Gooseberries + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries(+1) + Empty Domestic Wild Gooseberry Bush
 		trans = new TransitionData(253, 391, 253, 1135);
 		trans.reverseUseActor = true;
-		transtions.addTransition("PatchTransitions: ", trans, false, true);
+		transitions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Clay Bowl 235 + Domestic Gooseberry Bush (Last) --> Bowl of Gooseberries + Empty Domestic Gooseberry  Bush
 		trans = new TransitionData(235, 391, 253, 1135);
 		trans.reverseUseActor = true;
-		transtions.addTransition("PatchTransitions: ", trans, false, true);
+		transitions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Fill up Bowl of Dry Beans
 		// Bowl of Dry Beans 1176 + Dry Bean Plants 1172
 		trans = new TransitionData(1176, 1172, 1176, 1172);
 		trans.reverseUseActor = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Bowl of Dry Beans 1176 + Dry Bean Plants 1172 --> Bowl of Dry Beans 1176 + Hardened Row 848
 		trans = new TransitionData(1176, 1172, 1176, 848);
 		trans.reverseUseActor = true;
-		transtions.addTransition("PatchTransitions: ", trans, false, true);
+		transitions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Clay Bowl 235 + Dry Bean Plants 1172
 		trans = new TransitionData(235, 1172, 1176, 1172);
 		trans.reverseUseActor = true;
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Clay Bowl 235 + Dry Bean Plants 1172 --> Bowl of Dry Beans 1176 + Hardened Row 848
 		trans = new TransitionData(235, 1172, 1176, 848);
 		trans.reverseUseActor = true;
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans, false, true);
+		transitions.addTransition("PatchTransitions: ", trans, false, true);
 
 		// Bowl of Dry Beans 1176 + Deep Tilled Row 213 --> Dry Planted Beans 1161
 		trans = new TransitionData(1176, 213, 1176, 1161);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Bowl of Dry Beans 1176 + Deep Tilled Row 213 --> Clay Bowl 235 + Dry Planted Beans 1161
 		trans = new TransitionData(1176, 213, 235, 1161);
 		trans.lastUseActor = true;
-		transtions.addTransition("PatchTransitions: ", trans, true);
+		transitions.addTransition("PatchTransitions: ", trans, true);
 
 		// Bowl of Soaking Beans 1180 + Hot Adobe Oven 250 ==> Bowl of Cooked Beans 1292
 		trans = new TransitionData(1180, 250, 1292, 250);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Fishing Pole without Hook + Bone Needle --> Fishing Pole + 0
 		trans = new TransitionData(2092, 191, 2091, 0);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// 0 + Fishing Pole with Old Boot --> Old Boot + Fishing Pole
 		trans = new TransitionData(0, 2098, 2099, 2091);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// 0 + Diesel Mining Pick without Bit --> Diesel Engine + Collapsed Iron Mine
 		trans = new TransitionData(0, 3130, 2365, 945);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// 0 + Ready Diesel Mining Pick --> Steel Chisel + Diesel Mining Pick without Bit
 		trans = new TransitionData(0, 3129, 455, 3130);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// 0 + Dry Diesel Water Pump --> Diesel Engine + Unpowered Pump Head
 		trans = new TransitionData(0, 2388, 2365, 3964);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// hungry work transitions
-		var trans = transtions.getTransition(502, 122); // Shovel + Tule Stumps ==> Adobe
+		var trans = transitions.getTransition(502, 122); // Shovel + Tule Stumps ==> Adobe
 		trans.hungryWorkCost = 5;
-		var trans = transtions.getTransition(0, 125); // 0 + Clay Deposit ==> Clay
+		var trans = transitions.getTransition(0, 125); // 0 + Clay Deposit ==> Clay
 		trans.hungryWorkCost = 3;
-		var trans = transtions.getTransition(0, 409); // 0 + Clay Pit ==> Clay
+		var trans = transitions.getTransition(0, 409); // 0 + Clay Pit ==> Clay
 		trans.hungryWorkCost = 3;
-		var trans = transtions.getTransition(502, 32); // Shovel + Big Hard Rock ==> Dug Big Hard Rock
+		var trans = transitions.getTransition(502, 32); // Shovel + Big Hard Rock ==> Dug Big Hard Rock
 		trans.hungryWorkCost = 10;
-		var trans = transtions.getTransition(291, 486); // Flat Rock + Floor Stakes ==> Stone Road
+		var trans = transitions.getTransition(291, 486); // Flat Rock + Floor Stakes ==> Stone Road
 		trans.hungryWorkCost = 5;
-		var trans = transtions.getTransition(684, 1596); // Steel Mining Pick + Stone Road ==> Flat Rock
+		var trans = transitions.getTransition(684, 1596); // Steel Mining Pick + Stone Road ==> Flat Rock
 		trans.hungryWorkCost = 5;
-		// var trans = transtions.getTransition(33, 32); // Stone + Big Hard Rock ==> Sharp Stone
+		// var trans = transitions.getTransition(33, 32); // Stone + Big Hard Rock ==> Sharp Stone
 		// trans.hungryWorkCost = 5;
 
 		// Steel Mining Pick 684 + Ancient Stone Wall H 896 ==> Stone Wall
 		trans = new TransitionData(684, 896, 684, 887);
 		trans.hungryWorkCost = 10;
 		trans.alternativeTransitionOutcome.push(0);
-		transtions.addTransition("PatchTransitions: ", trans, false, false);
+		transitions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// Steel Mining Pick 684 + Ancient Stone Wall C 896 ==> Stone Wall
 		trans = new TransitionData(684, 895, 684, 885);
 		trans.hungryWorkCost = 10;
 		trans.alternativeTransitionOutcome.push(0);
-		transtions.addTransition("PatchTransitions: ", trans, false, false);
+		transitions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// Steel Mining Pick 684 + Ancient Stone Wall V 897 ==> Stone Wall
 		trans = new TransitionData(684, 897, 684, 886);
 		trans.hungryWorkCost = 10;
 		trans.alternativeTransitionOutcome.push(0);
-		transtions.addTransition("PatchTransitions: ", trans, false, false);
+		transitions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// most important allow kill moskitos
 		// Firebrand + Mosquito Swarm --> 0 + Ashes
 		trans = new TransitionData(248, 2156, 0, 86);
 		trans.hungryWorkCost = 3;
-		transtions.addTransition("PatchTransitions: ", trans, false, false);
+		transitions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// Firebrand + Mosquito Swarm just bit --> 0 + Ashes
 		trans = new TransitionData(248, 2157, 0, 86);
 		trans.hungryWorkCost = 3;
-		transtions.addTransition("PatchTransitions: ", trans, false, false);
+		transitions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// Bowl of Gooseberries 253 + Carrot Pile 2742
-		var trans = transtions.getTransition(253, 2742);
+		var trans = transitions.getTransition(253, 2742);
 		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
 
-		var trans = transtions.getTransition(253, 2742, false, true);
-		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
-
-		// Bowl of Gooseberries 253 + Pile of Wild Carrots 3978
-		var trans = transtions.getTransition(253, 3978);
+		var trans = transitions.getTransition(253, 2742, false, true);
 		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
 
 		// Bowl of Gooseberries 253 + Pile of Wild Carrots 3978
-		var trans = transtions.getTransition(253, 3978, false, true);
+		var trans = transitions.getTransition(253, 3978);
+		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
+
+		// Bowl of Gooseberries 253 + Pile of Wild Carrots 3978
+		var trans = transitions.getTransition(253, 3978, false, true);
 		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
 
 		// Bowl of Soil + Fertile Soil Pile 1101
-		var trans = transtions.getTransition(1137, 1101);
+		var trans = transitions.getTransition(1137, 1101);
 		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
 
-		var trans = transtions.getTransition(1137, 1101, false, true);
+		var trans = transitions.getTransition(1137, 1101, false, true);
 		trans.targetMinUseFraction = 0;
 
 		// Clay Bowl 235 + Fertile Soil Pile 1101
-		var trans = transtions.getTransition(235, 1101);
+		var trans = transitions.getTransition(235, 1101);
 		trans.targetMinUseFraction = 0; // TODO how could it work in vanilla?
 
-		var trans = transtions.getTransition(235, 1101, false, true);
+		var trans = transitions.getTransition(235, 1101, false, true);
 		trans.targetMinUseFraction = 0;
 
 		// Bowl of Soil + Hardened Row --> Shallow Tilled Row
-		var trans = transtions.getTransition(1137, 848);
+		var trans = transitions.getTransition(1137, 848);
 		trans.hungryWorkCost = -5; // dont let is cost hungry work
 
 		// Mallet + Dug Big Rock with Chisel -- Split Big Rock
-		var trans = transtions.getTransition(467, 508);
+		var trans = transitions.getTransition(467, 508);
 		trans.hungryWorkCost = 10;
 
 		// give wolfs some meat // TODO change crafting maps
-		var trans = transtions.getTransition(0, 423); // 423 Skinned Wolf
+		var trans = transitions.getTransition(0, 423); // 423 Skinned Wolf
 		trans.newTargetID = 565; // 565 Butchered Mouflon
 		trans.targetNumberOfUses = 2; // give only two meat
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Give Bears some meat
-		var trans = transtions.getTransition(0, 657); // Skinned Bear with hide
+		var trans = transitions.getTransition(0, 657); // Skinned Bear with hide
 		trans.newTargetID = 1340; // Butchered Pig 1340
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Give Dead Bison some meat
 		var trans = new TransitionData(560, 1446, 560, 1340); // Knife + Dead Bison 1446 --> Knife + Butchered Pig 1340
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
-		var trans = transtions.getTransition(0, 709); // 709 Skinned Seal with fur
+		var trans = transitions.getTransition(0, 709); // 709 Skinned Seal with fur
 		trans.newTargetID = 1340; // 1340 Butchered Pig
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// give bison some meat // TODO change crafting maps
-		var trans = transtions.getTransition(0, 1444); // Dead Bison
+		var trans = transitions.getTransition(0, 1444); // Dead Bison
 		trans.newTargetID = 565; // 565 Butchered Mouflon
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// allow to cook mutton on coals
 		trans = new TransitionData(569, 85, 570, 85); // 569 Raw Mutton + 85 Hot Coals --> 570 Cooked Mutton + 85 Hot Coals
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// patch alternativeTransitionOutcomes // TODO use prob categories instead
-		var trans = transtions.getTransition(502, 338); // shovel 502 + Stump
+		var trans = transitions.getTransition(502, 338); // shovel 502 + Stump
 		trans.alternativeTransitionOutcome.push(72); // Kindling
 
-		var trans = transtions.getTransition(502, 408); // shovel 502 + Empty Clay Pit 408
+		var trans = transitions.getTransition(502, 408); // shovel 502 + Empty Clay Pit 408
 		trans.alternativeTransitionOutcome.push(126); // Clay 126
 		trans.hungryWorkCost = ServerSettings.HungryWorkCost;
 
-		var trans = transtions.getTransition(502, 408); // shovel 502 + Empty Clay Pit 408
+		var trans = transitions.getTransition(502, 408); // shovel 502 + Empty Clay Pit 408
 		trans.alternativeTransitionOutcome.push(126); // Clay 126
 		trans.hungryWorkCost = ServerSettings.HungryWorkCost;
 
 		// Allow to make kindling out of Skewers
 		var trans = new TransitionData(334, 852, 334, 72); // Steel Axe + Weak Skewer --> Kindling
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 		var trans = new TransitionData(71, 852, 71, 72); // Stone Hatchet + Weak Skewer --> Kindling
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		ObjectData.getObjectData(342).alternativeTransitionOutcome.push(344); // Chopped Tree Big Log--> Fire Wood
 		ObjectData.getObjectData(340).alternativeTransitionOutcome.push(344); // Chopped Tree --> Fire Wood
@@ -2399,23 +2406,23 @@ class ServerSettings {
 
 		var trans = new TransitionData(850, 357, 850, 1011); // Stone Hoe + Bone Pile --> Stone Hoe + Buried Grave
 		trans.tool = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(850, 87, 850, 1011); // Stone Hoe + Fresh Grave --> Stone Hoe + Buried Grave
 		trans.tool = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(850, 88, 850, 1011); // Stone Hoe + Grave --> Stone Hoe + Buried Grave
 		trans.tool = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(850, 89, 850, 1011); // Stone Hoe + Old Grave --> Stone Hoe + Buried Grave
 		trans.tool = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// allow more options to kill animals
 		var trans = new TransitionData(152, 427, 151, 420); // Bow and Arrow + Attacking Wolf --> Yew Bow + Shot Wolf
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// FIX bucket transition // TODO why is this one missing?
 		// <394> + <1099> = <394> + <660> --> <394> + <1099> = <394> + <1099> // make bucket not full
@@ -2425,62 +2432,62 @@ class ServerSettings {
 
 		// pond animations
 		/*
-			var trans = transtions.getTransition(-1, 141); // Canada Goose Pond
+			var trans = transitions.getTransition(-1, 141); // Canada Goose Pond
 			trans.newTargetID = 142; // Canada Goose Pond swimming
 			trans.autoDecaySeconds = 5;
-			transtions.addTransition("PatchTransitions: ", trans);
+			transitions.addTransition("PatchTransitions: ", trans);
 		 */
 
-		var trans = transtions.getTransition(-1, 142); // Canada Goose Pond swimming
+		var trans = transitions.getTransition(-1, 142); // Canada Goose Pond swimming
 		trans.newTargetID = 141; // Canada Goose Pond
 		trans.autoDecaySeconds = 20;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
-		var trans = transtions.getTransition(-1, 2180); // longer clothing decay Rabbit Fur Hat with Feather
+		var trans = transitions.getTransition(-1, 2180); // longer clothing decay Rabbit Fur Hat with Feather
 		trans.autoDecaySeconds = -240; // -5
 
-		var trans = transtions.getTransition(-1, 712); // Sealskin Coat
+		var trans = transitions.getTransition(-1, 712); // Sealskin Coat
 		trans.autoDecaySeconds = -240; // -5
 
-		var trans = transtions.getTransition(-1, 2181); // Straw Hat with Feather
+		var trans = transitions.getTransition(-1, 2181); // Straw Hat with Feather
 		trans.autoDecaySeconds = -240; // -5
 
 		// Mouflon Hide 564 --> vanilla: 10h
-		// var trans = transtions.getTransition(-1, 593); // Sheep Skin 593
+		// var trans = transitions.getTransition(-1, 593); // Sheep Skin 593
 		// trans.autoDecaySeconds = -240; // -5
 
 		// give more time
-		var trans = transtions.getTransition(-1, 304); // Firing Forge 304
+		var trans = transitions.getTransition(-1, 304); // Firing Forge 304
 		trans.autoDecaySeconds = 40; // normal 30
 
-		var trans = transtions.getTransition(-1, 61); // Juniper Tinder
+		var trans = transitions.getTransition(-1, 61); // Juniper Tinder
 		trans.autoDecaySeconds = 5 * 60;
 
-		var trans = transtions.getTransition(-1, 62); // Leaf
+		var trans = transitions.getTransition(-1, 62); // Leaf
 		trans.autoDecaySeconds = 5 * 60; // normal 2 * 60
 
-		var trans = transtions.getTransition(-1, 75); // Ember Shaft
+		var trans = transitions.getTransition(-1, 75); // Ember Shaft
 		trans.autoDecaySeconds = 20;
 
-		var trans = transtions.getTransition(-1, 248); // Firebrand
+		var trans = transitions.getTransition(-1, 248); // Firebrand
 		trans.autoDecaySeconds = 1.5 * 60;
 
-		var trans = transtions.getTransition(-1, 80); // Burning Tinder
+		var trans = transitions.getTransition(-1, 80); // Burning Tinder
 		trans.autoDecaySeconds = 15;
 
-		var trans = transtions.getTransition(-1, 249); // Burning Adobe Oven
+		var trans = transitions.getTransition(-1, 249); // Burning Adobe Oven
 		trans.autoDecaySeconds = 25;
 
-		var trans = transtions.getTransition(-1, 1281); // Cooked Omelette
+		var trans = transitions.getTransition(-1, 1281); // Cooked Omelette
 		trans.autoDecaySeconds = 20;
 
-		var trans = transtions.getTransition(-1, 861); // Old Hand Cart
+		var trans = transitions.getTransition(-1, 861); // Old Hand Cart
 		trans.autoDecaySeconds = -12; // original: -0.5
 
-		var trans = transtions.getTransition(-1, 1281); // Cooked Omelette
+		var trans = transitions.getTransition(-1, 1281); // Cooked Omelette
 		trans.autoDecaySeconds = 20;
 
-		var trans = transtions.getTransition(-1, 846); // Broken Hand Cart
+		var trans = transitions.getTransition(-1, 846); // Broken Hand Cart
 		trans.autoDecaySeconds = -2;
 
 		var trans = TransitionImporter.GetTransition(-1, 330); // TIME + Hot Steel Ingot on Flat Rock
@@ -2496,7 +2503,7 @@ class ServerSettings {
 
 		var trans = new TransitionData(-1, 1284, 0, 291); // TIME + Cool Flat Rock --> 0 + Flat Rock
 		trans.autoDecaySeconds = -2;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Broken Steel Tool 858
 		var transByActor = TransitionImporter.GetTransitionByNewActor(858);
@@ -2612,10 +2619,10 @@ class ServerSettings {
 		trans.autoDecaySeconds = -1; // 10min
 
 		var trans = new TransitionData(462, 846, 462, 67); // Steel Adze + Broken Hand Cart ==> Steel Adze + Long Straight Shaft
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(0, 3425, 3425, 0); // Domestic Cow on Rope + 0 = Domestic Cow on Rope * 0
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Set Max Use Target tranistions // uses now Min use fraction like vanilla
 		/*var trans = TransitionImporter.GetTransition(253, 40); // Bowl of Gooseberries + Wild Carrot
@@ -2638,75 +2645,75 @@ class ServerSettings {
 		var trans = TransitionImporter.GetTransition(-1, 601, false, true);
 		// trace('Fed Mouflon Lamb: ${trans.newTargetID}');
 		trans.newTargetID = 575; // Domestic Sheep 575
-		transtions.addTransition("PatchTransitions: ", trans); // TODO remove Fed Mouflon Lamb to Mouflon from transition Map
+		transitions.addTransition("PatchTransitions: ", trans); // TODO remove Fed Mouflon Lamb to Mouflon from transition Map
 
 		// new smithing transitions
 		var trans = new TransitionData(1603, 235, 1603, 0); // Stack of Clay Bowls + Clay Bowl --> Stack of Clay Bowls +  0
 		trans.reverseUseActor = true;
 		trans.tool = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(1602, 316, 1602,
 			319); // Stack of Clay Plates + Crucible with Iron and Charcoal --> Stack of Clay Plates +  Unforged Sealed Steel Crucible
 		trans.tool = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(1602, 316, 236,
 			319); // Stack of Clay Plates + Crucible with Iron and Charcoal --> Clay Plate +  Unforged Sealed Steel Crucible
 		trans.lastUseActor = true;
 		trans.tool = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(236, 322, 1602, 325); // Clay Plate + Forged Steel Crucible --> CStack of Clay Plates + Crucible with Steel
 		trans.reverseUseActor = true;
 		trans.tool = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(1602, 322, 1602, 325); // Stack of Clay Plates + Forged Steel Crucible --> CStack of Clay Plates + Crucible with Steel
 		trans.reverseUseActor = true;
 		trans.tool = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(1602, 236, 1602, 0); // Stack of Clay Plates + Clay Plate --> CStack of Clay Plates + 0
 		trans.reverseUseActor = true;
 		trans.tool = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Butter Knife 1467 + Clay Bowl 235 --> Knife 560 + Bowl of Butter 1465
 		var trans = new TransitionData(1467, 235, 560, 1465);
 		trans.aiShouldIgnore = true;
 		trans.reverseUseTarget = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Drop Spindle 579 + Small Ball of Yarn 581 --> Drop Spindle 579 + Rope 59
 		var trans = new TransitionData(579, 581, 579, 59);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Smithing Hammer 441 + Stakes 107 -->  Smithing Hammer + Ember Leaf 77
 		var trans = new TransitionData(441, 107, 441, 77);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Ember Leaf 77 + Straw 227 --> 0 + Smoldering Tinder
 		var trans = new TransitionData(77, 227, 0, 78);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Straw 227 + Ashes 86 --> 0 + Smoldering Tinder
 		var trans = new TransitionData(227, 86, 0, 78);
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Straw 227 + Fire 82 --> 0 + Flash Fire 3029
 		var trans = new TransitionData(227, 82, 0, 3029);
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Basket of Charcoal 298 + Fire 82 --> Basket + Large Slow Fire 346
 		var trans = new TransitionData(298, 82, 292, 346);
 		trans.aiShouldIgnore = true;
-		transtions.addTransition("PatchTransitions: ", trans);
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		// TODo needs client change
 		// var trans = new TransitionData(298, 317, 298, 316); // 298 Basket of Charcoal + 317 Crucible with Iron --> 298 +  316 Crucible with Iron and Charcoal
-		// transtions.addTransition("PatchTransitions: ", trans);
+		// transitions.addTransition("PatchTransitions: ", trans);
 
 		// TODO dont know why this was 2240 Newcomen Hammer instead?
 		var trans = TransitionImporter.GetTransition(59, 2245); // Rope + Newcomen Engine without Rope
@@ -2717,171 +2724,171 @@ class ServerSettings {
 
 		LimitTransitionsIfTooFewOfObject(); // like Destroying Bows
 
-		// var trans = transtions.getTransition(560, 614); // Knife + Fed Shorn Domestic Sheep 614
+		// var trans = transitions.getTransition(560, 614); // Knife + Fed Shorn Domestic Sheep 614
 		// trans.aiShouldIgnore = true;
 
 		// Ai should ignore
 		// TODO fix Ai craftig if Ai needs two threads for a rope it puts one thread in a bowl and gets it out again
 		// this breals making a light pulb for a radio
-		var trans = transtions.getTransition(58, 235); // Thread + Clay Bowl
+		var trans = transitions.getTransition(58, 235); // Thread + Clay Bowl
 		trans.aiShouldIgnore = true;
 
 		// dont deconstruct tools
-		var trans = transtions.getTransition(135, 74); // Flint Chip + Fire Bow Drill
+		var trans = transitions.getTransition(135, 74); // Flint Chip + Fire Bow Drill
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(560, 74); // Knife + Fire Bow Drill
+		var trans = transitions.getTransition(560, 74); // Knife + Fire Bow Drill
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(461, 3371); // Bow Saw + Table
+		var trans = transitions.getTransition(461, 3371); // Bow Saw + Table
 		trans.aiShouldIgnore = true;
 
 		// Forbid some transition to make Kindling
-		var trans = transtions.getTransition(71, 67); // Stone Hatchet + Long Straight Shaft
+		var trans = transitions.getTransition(71, 67); // Stone Hatchet + Long Straight Shaft
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(334, 67); // Steel Axe + Long Straight Shaft
+		var trans = transitions.getTransition(334, 67); // Steel Axe + Long Straight Shaft
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(334, 2142); // Steel Axe + Banana Plant
+		var trans = transitions.getTransition(334, 2142); // Steel Axe + Banana Plant
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(334, 2145); // Steel Axe + Empty Banana Plant
+		var trans = transitions.getTransition(334, 2145); // Steel Axe + Empty Banana Plant
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(334, 239); // Steel Axe + Wooden Tongs
+		var trans = transitions.getTransition(334, 239); // Steel Axe + Wooden Tongs
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(71, 239); // Stone Hatchet + Wooden Tongs
+		var trans = transitions.getTransition(71, 239); // Stone Hatchet + Wooden Tongs
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(334, 583); // Steel Axe + Knitting Needles
+		var trans = transitions.getTransition(334, 583); // Steel Axe + Knitting Needles
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(71, 583); // Stone Hatchet + Knitting Needles
+		var trans = transitions.getTransition(71, 583); // Stone Hatchet + Knitting Needles
 		trans.aiShouldIgnore = true;
 
-		// var trans = transtions.getTransition(560, 575); // Knife + Domestic Sheep
+		// var trans = transitions.getTransition(560, 575); // Knife + Domestic Sheep
 		// trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(560, 4213); // Knife + Fed Domestic Sheep 4213
+		var trans = transitions.getTransition(560, 4213); // Knife + Fed Domestic Sheep 4213
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(568, 4213); // Shears 568 + Fed Domestic Sheep 4213
+		var trans = transitions.getTransition(568, 4213); // Shears 568 + Fed Domestic Sheep 4213
 		trans.aiShouldIgnore = true;
 
 		// no last use actor?
-		// var trans = transtions.getTransition(568, 4213, true); // Shears 568 + Fed Domestic Sheep 4213
+		// var trans = transitions.getTransition(568, 4213, true); // Shears 568 + Fed Domestic Sheep 4213
 		// trans.aiShouldIgnore = true;
 
-		// var trans = transtions.getTransition(560, 576); // Knife + Shorn Domestic Sheep
+		// var trans = transitions.getTransition(560, 576); // Knife + Shorn Domestic Sheep
 		// trans.aiShouldIgnore = true;
 
-		// var trans = transtions.getTransition(152, 531); // Bow and Arrow + Mouflon
+		// var trans = transitions.getTransition(152, 531); // Bow and Arrow + Mouflon
 		// trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(560, 541); // Knife + Domestic Mouflon
+		var trans = transitions.getTransition(560, 541); // Knife + Domestic Mouflon
 		trans.aiShouldIgnore = true;
 
-		// var trans = transtions.getTransition(560, 151); // Knife + Yew Bow 151
+		// var trans = transitions.getTransition(560, 151); // Knife + Yew Bow 151
 		// trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(560, 708); // Knife + Clubbed Seal 708
+		var trans = transitions.getTransition(560, 708); // Knife + Clubbed Seal 708
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(560, 242); // Knife + Ripe Wheat 242
+		var trans = transitions.getTransition(560, 242); // Knife + Ripe Wheat 242
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(560, 121); // Knife + Tule Reeds
+		var trans = transitions.getTransition(560, 121); // Knife + Tule Reeds
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(560, 2765); // Knife + Sugarcane 2765
+		var trans = transitions.getTransition(560, 2765); // Knife + Sugarcane 2765
 		trans.aiShouldIgnore = true;
 
 		// TODO might be good to save some hungry work?
-		// var trans = transtions.getTransition(560, 136); // Knife + Sapling 136
+		// var trans = transitions.getTransition(560, 136); // Knife + Sapling 136
 		// trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(2365, 3966); // 2365 Diesel Engine + 3966 Empty Scrap Box
+		var trans = transitions.getTransition(2365, 3966); // 2365 Diesel Engine + 3966 Empty Scrap Box
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(345, 82); // Butt Log + Fire
+		var trans = transitions.getTransition(345, 82); // Butt Log + Fire
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(345, 83); // Butt Log + Large Fast Fire
+		var trans = transitions.getTransition(345, 83); // Butt Log + Large Fast Fire
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(345, 3029); // Butt Log + Flash Fire
+		var trans = transitions.getTransition(345, 3029); // Butt Log + Flash Fire
 		trans.aiShouldIgnore = true;
 
-		// var trans = transtions.getTransition(135, 151); // Flint Chip + Yew Bow
+		// var trans = transitions.getTransition(135, 151); // Flint Chip + Yew Bow
 		// trans.aiShouldIgnore = true;
 
 		// allow shovel again if it is better then sharp stone
-		var trans = transtions.getTransition(502, 36); // Shovel + Seeding Wild Carrot
+		var trans = transitions.getTransition(502, 36); // Shovel + Seeding Wild Carrot
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(502, 404); // Shovel + Wild Carrot
+		var trans = transitions.getTransition(502, 404); // Shovel + Wild Carrot
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(502, 804); // Shovel + Burdock
+		var trans = transitions.getTransition(502, 804); // Shovel + Burdock
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(67, 3065); // Long Straight Shaft + Wooden Slot Box
+		var trans = transitions.getTransition(67, 3065); // Long Straight Shaft + Wooden Slot Box
 		trans.aiShouldIgnore = true; // this would give a thread Ai wants
 
-		var trans = transtions.getTransition(0, 2244); // 0 + Newcomen Engine without Shaft
+		var trans = transitions.getTransition(0, 2244); // 0 + Newcomen Engine without Shaft
 		trans.aiShouldIgnore = true; // Ai would kill for a rope
 
-		var trans = transtions.getTransition(33, 127); // Stone + Adobe = 231 Adobe Oven Base
+		var trans = transitions.getTransition(33, 127); // Stone + Adobe = 231 Adobe Oven Base
 		if (AIAllowBuildOven == false) trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(127, 237); // Adobe + Adobe Oven = 238 Adobe Kiln
+		var trans = transitions.getTransition(127, 237); // Adobe + Adobe Oven = 238 Adobe Kiln
 		if (AIAllowBuilKiln == false) trans.aiShouldIgnore = true;
 
 		// Stop spread of Dough to get a bowl // TODO allow again for tortilla
-		var trans = transtions.getTransition(252, 291); // Bowl of Dough + Flat Rock
+		var trans = transitions.getTransition(252, 291); // Bowl of Dough + Flat Rock
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(252, 291, true); // Bowl of Dough + Flat Rock
+		var trans = transitions.getTransition(252, 291, true); // Bowl of Dough + Flat Rock
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 1471); // 0 + Sliced Bread
+		var trans = transitions.getTransition(0, 1471); // 0 + Sliced Bread
 		trans.aiShouldIgnore = true; // they make a mess to get the plate
 
-		var trans = transtions.getTransition(0, 1471, false, true); // 0 + Sliced Bread
+		var trans = transitions.getTransition(0, 1471, false, true); // 0 + Sliced Bread
 		trans.aiShouldIgnore = true; // they make a mess to get the plate
 
 		// forbid burning stuff
-		var trans = transtions.getTransition(516, 82); // Skewered Goose + Fire
+		var trans = transitions.getTransition(516, 82); // Skewered Goose + Fire
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(516, 83); // Skewered Goose + Large Fast Fire
+		var trans = transitions.getTransition(516, 83); // Skewered Goose + Large Fast Fire
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(516, 346); // Skewered Goose + Large Slow Fire
+		var trans = transitions.getTransition(516, 346); // Skewered Goose + Large Slow Fire
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(516, 3029); // Skewered Goose + Flash Fire
+		var trans = transitions.getTransition(516, 3029); // Skewered Goose + Flash Fire
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(185, 82); // Skewered Rabbit + Fire
+		var trans = transitions.getTransition(185, 82); // Skewered Rabbit + Fire
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(185, 83); // Skewered Rabbit + Large Fast Fire
+		var trans = transitions.getTransition(185, 83); // Skewered Rabbit + Large Fast Fire
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(185, 346); // Skewered Rabbit + Large Slow Fire
+		var trans = transitions.getTransition(185, 346); // Skewered Rabbit + Large Slow Fire
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(185, 3029); // Skewered Rabbit + Flash Fire
+		var trans = transitions.getTransition(185, 3029); // Skewered Rabbit + Flash Fire
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(107, 279); // Stakes + Empty Wild Gooseberry Bush
+		var trans = transitions.getTransition(107, 279); // Stakes + Empty Wild Gooseberry Bush
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(71, 107); // Stone Hatchet + Stakes
+		var trans = transitions.getTransition(71, 107); // Stone Hatchet + Stakes
 		trans.aiShouldIgnore = true;
 
-		// var trans = transtions.getTransition(71, 107, true); // Stone Hatchet + Stakes
+		// var trans = transitions.getTransition(71, 107, true); // Stone Hatchet + Stakes
 		// trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(334, 107); // Steel Axe + Stakes
+		var trans = transitions.getTransition(334, 107); // Steel Axe + Stakes
 		trans.aiShouldIgnore = true;
 
-		// var trans = transtions.getTransition(334, 107, true); // Steel Axet + Stakes
+		// var trans = transitions.getTransition(334, 107, true); // Steel Axet + Stakes
 		// trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(107, 392); // Stakes + Languishing Domestic Gooseberry Bush
+		var trans = transitions.getTransition(107, 392); // Stakes + Languishing Domestic Gooseberry Bush
 		trans.aiShouldIgnore = true;
 
 		var trans = TransitionImporter.GetTransition(502, 389); // Shovel + Dying Gooseberry Bush 389
@@ -2891,291 +2898,291 @@ class ServerSettings {
 		// var trans = TransitionImporter.GetTransition(502, 389, true); // Shovel + Dying Gooseberry Bush 389
 		// trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(139, 1136); // Skewer + Shallow Tilled Row
+		var trans = transitions.getTransition(139, 1136); // Skewer + Shallow Tilled Row
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(852, 1136); // Weak Skewer + Shallow Tilled Row
+		var trans = transitions.getTransition(852, 1136); // Weak Skewer + Shallow Tilled Row
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(139, 1138); // Skewer + Fertile Soil
+		var trans = transitions.getTransition(139, 1138); // Skewer + Fertile Soil
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(852, 1138); // Weak Skewer + Fertile Soil
+		var trans = transitions.getTransition(852, 1138); // Weak Skewer + Fertile Soil
 		trans.aiShouldIgnore = true;
 
 		// Forbid plowing of Soil Pile
-		var trans = transtions.getTransition(139, 1101); // Skewer + Fertile Soil Pile
+		var trans = transitions.getTransition(139, 1101); // Skewer + Fertile Soil Pile
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(852, 1101); // Weak Skewer + Fertile Soil Pile
+		var trans = transitions.getTransition(852, 1101); // Weak Skewer + Fertile Soil Pile
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(850, 1101); // Stone Hoe + Fertile Soil Pile
+		var trans = transitions.getTransition(850, 1101); // Stone Hoe + Fertile Soil Pile
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(857, 1101); // Steel Hoe + Fertile Soil Pile
+		var trans = transitions.getTransition(857, 1101); // Steel Hoe + Fertile Soil Pile
 		trans.aiShouldIgnore = true;
 
 		// stop picking up same soil again with basket
-		var trans = transtions.getTransition(292, 1101); // Basket 292 + Fertile Soil Pile 1101
+		var trans = transitions.getTransition(292, 1101); // Basket 292 + Fertile Soil Pile 1101
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 253); // 0 + Bowl of Gooseberries
+		var trans = transitions.getTransition(0, 253); // 0 + Bowl of Gooseberries
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 253, false, true); // 0 + Bowl of Gooseberries
+		var trans = transitions.getTransition(0, 253, false, true); // 0 + Bowl of Gooseberries
 		trans.aiShouldIgnore = true;
 
 		// let the kindling in the oven
-		var trans = transtions.getTransition(0, 247); // 0 + Wood-filled Adobe Oven
+		var trans = transitions.getTransition(0, 247); // 0 + Wood-filled Adobe Oven
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 281); // 0 + Wood-filled Adobe Kiln
+		var trans = transitions.getTransition(0, 281); // 0 + Wood-filled Adobe Kiln
 		trans.aiShouldIgnore = true;
 
 		// AI tries to empty popcorn to get a bowl
-		var trans = transtions.getTransition(192, 1121); // Needle and Thread + Popcorn
+		var trans = transitions.getTransition(192, 1121); // Needle and Thread + Popcorn
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(192, 1121, false, true); // Needle and Thread + Popcorn
+		var trans = transitions.getTransition(192, 1121, false, true); // Needle and Thread + Popcorn
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(334, 3308); // Steel Axe + Marked Pine Wall (corner)
+		var trans = transitions.getTransition(334, 3308); // Steel Axe + Marked Pine Wall (corner)
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(334, 3309); // Steel Axe + Marked Pine Wall (vertical)
+		var trans = transitions.getTransition(334, 3309); // Steel Axe + Marked Pine Wall (vertical)
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(334, 3310); // Steel Axe + Marked Pine Wall (horizontal)
+		var trans = transitions.getTransition(334, 3310); // Steel Axe + Marked Pine Wall (horizontal)
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(334, 1876); // Steel Axe + Languishing Domestic Mango Tree
+		var trans = transitions.getTransition(334, 1876); // Steel Axe + Languishing Domestic Mango Tree
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(334, 1922); // Steel Axe + Dry Fertile Domestic Mango Tree
+		var trans = transitions.getTransition(334, 1922); // Steel Axe + Dry Fertile Domestic Mango Tree
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(334, 1923); // Steel Axe + Wet Fertile Domestic Mango Tree
+		var trans = transitions.getTransition(334, 1923); // Steel Axe + Wet Fertile Domestic Mango Tree
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(334, 344); // Steel Axe + Firewood 344
+		var trans = transitions.getTransition(334, 344); // Steel Axe + Firewood 344
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(71, 344); // Stone Hatchet + Firewood 344
+		var trans = transitions.getTransition(71, 344); // Stone Hatchet + Firewood 344
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(152, 0); // Bow and Arrow + 0
+		var trans = transitions.getTransition(152, 0); // Bow and Arrow + 0
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 2268); // 0 + Bore Mechanism
+		var trans = transitions.getTransition(0, 2268); // 0 + Bore Mechanism
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(288, 238); // Bellows 288 + Adobe Kiln 238
+		var trans = transitions.getTransition(288, 238); // Bellows 288 + Adobe Kiln 238
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(288, 299); // Bellows 288 + Adobe Kiln with Charcoal 299
+		var trans = transitions.getTransition(288, 299); // Bellows 288 + Adobe Kiln with Charcoal 299
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 303); // 0 + Forge = Adobe Kiln
+		var trans = transitions.getTransition(0, 303); // 0 + Forge = Adobe Kiln
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(292, 305); // Basket 292 + Forge with Charcoal 305
+		var trans = transitions.getTransition(292, 305); // Basket 292 + Forge with Charcoal 305
 		trans.aiShouldIgnore = true;
 
 		// AI wants to get rid of water to get empty bowls
-		var trans = transtions.getTransition(1620, 382); // Wood Shavings 1620 + Bowl of Water 382
+		var trans = transitions.getTransition(1620, 382); // Wood Shavings 1620 + Bowl of Water 382
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(239, 309); // Wooden Tongs 239 + Hot Iron Bloom on Flat Rock 309
+		var trans = transitions.getTransition(239, 309); // Wooden Tongs 239 + Hot Iron Bloom on Flat Rock 309
 		trans.aiShouldIgnore = true;
 
 		// protect smithing TODO allow for smithing or manually instruct
-		// var trans = transtions.getTransition(0, 322); // 0 + Forged Steel Crucible
+		// var trans = transitions.getTransition(0, 322); // 0 + Forged Steel Crucible
 		// trans.aiShouldIgnore = true;
 
-		// var trans = transtions.getTransition(0, 325); // 0 + Crucible with Steel
+		// var trans = transitions.getTransition(0, 325); // 0 + Crucible with Steel
 		// trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 316); // 0 + Crucible with Iron and Charcoal
+		var trans = transitions.getTransition(0, 316); // 0 + Crucible with Iron and Charcoal
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 318); // 0 + Crucible with Charcoal
+		var trans = transitions.getTransition(0, 318); // 0 + Crucible with Charcoal
 		trans.aiShouldIgnore = true;
 
 		// AI might use to empty bowl
-		var trans = transtions.getTransition(33, 318); // Stone + Crucible with Charcoal
+		var trans = transitions.getTransition(33, 318); // Stone + Crucible with Charcoal
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 675); // 0 + Bowl of Limestone 675
+		var trans = transitions.getTransition(0, 675); // 0 + Bowl of Limestone 675
 		trans.aiShouldIgnore = true;
 
 		// dont destroy knifes to get the material
-		var trans = transtions.getTransition(441, 560); // Smithing Hammer 441 + Knife 560
+		var trans = transitions.getTransition(441, 560); // Smithing Hammer 441 + Knife 560
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 185); // 0 + Skewered Rabbit 185
+		var trans = transitions.getTransition(0, 185); // 0 + Skewered Rabbit 185
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 547); // 0 + Bowl of Carrot 547
+		var trans = transitions.getTransition(0, 547); // 0 + Bowl of Carrot 547
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 254); // 0 + Bowl of Rabbit 254
+		var trans = transitions.getTransition(0, 254); // 0 + Bowl of Rabbit 254
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(0, 1247); // 0 + Bowl with Corn Kernels
+		var trans = transitions.getTransition(0, 1247); // 0 + Bowl with Corn Kernels
 		trans.aiShouldIgnore = true;
 
-		var trans = transtions.getTransition(502, 32); // Shovel 502 + Big Hard Rock 32
+		var trans = transitions.getTransition(502, 32); // Shovel 502 + Big Hard Rock 32
 		trans.alternativeTransitionOutcome.push(33); // Stone
 		trans.aiShouldIgnore = true;
 
-		// var trans = transtions.getTransition(441, 560, true); // Smithing Hammer 441 + Knife 560
+		// var trans = transitions.getTransition(441, 560, true); // Smithing Hammer 441 + Knife 560
 		// trans.aiShouldIgnore = true;
 
 		// currently creates a loop since ai keeps adding and removing thread
-		var trans = transtions.getTransition(0, 2090); // 0 + Bound Deck of Cards 2090
+		var trans = transitions.getTransition(0, 2090); // 0 + Bound Deck of Cards 2090
 		trans.aiShouldIgnore = true;
 
 		// Oiled File Blank with Chisel 465
-		var trans = transtions.getTransition(0, 465); // 0 + Bound Deck of Cards 465
+		var trans = transitions.getTransition(0, 465); // 0 + Bound Deck of Cards 465
 		trans.aiShouldIgnore = true;
 
 		// Mallet 467 + Fence Gate 1851 ==> Fence with Dislodged Shaft 1852
-		var trans = transtions.getTransition(467, 1851);
+		var trans = transitions.getTransition(467, 1851);
 		trans.aiShouldIgnore = true;
 
 		// Bowl of Dry Beans 1176
-		var trans = transtions.getTransition(0, 1176);
+		var trans = transitions.getTransition(0, 1176);
 		trans.aiShouldIgnore = true;
 
 		// Bowl of Dry Beans 1176
-		var trans = transtions.getTransition(0, 1176, false, true);
+		var trans = transitions.getTransition(0, 1176, false, true);
 		trans.aiShouldIgnore = true;
 
 		// Dry Bean Plants 1172
-		var trans = transtions.getTransition(0, 1172);
+		var trans = transitions.getTransition(0, 1172);
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(0, 1172, false, true);
+		var trans = transitions.getTransition(0, 1172, false, true);
 		trans.aiShouldIgnore = true;
 
 		// Dry Bean Pod 1160 + Clay Bowl 235
-		var trans = transtions.getTransition(1160, 235);
+		var trans = transitions.getTransition(1160, 235);
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(1160, 235, false, true);
+		var trans = transitions.getTransition(1160, 235, false, true);
 		trans.aiShouldIgnore = true;
 
 		// Bowl of Dough 252 + Table
-		var trans = transtions.getTransition(252, 3371);
+		var trans = transitions.getTransition(252, 3371);
 		trans.aiShouldIgnore = true;
 
 		// Bowl of Soil 1137 + Fertile Soil Pile 1101
-		// var trans = transtions.getTransition(1137, 1101);
+		// var trans = transitions.getTransition(1137, 1101);
 		// trans.aiShouldIgnore = true;
 
 		// Bowl of Soil 1137 + Fertile Soil 1138
-		// var trans = transtions.getTransition(1137, 1138);
+		// var trans = transitions.getTransition(1137, 1138);
 		// trans.aiShouldIgnore = true;
 
 		// 0 + Bowl of Raw Pork 1354
-		var trans = transtions.getTransition(0, 1354);
+		var trans = transitions.getTransition(0, 1354);
 		trans.aiShouldIgnore = true;
 
 		// Shredded Cabbage 1222 + Straw 227 --> Compost
-		var trans = transtions.getTransition(1222, 227);
+		var trans = transitions.getTransition(1222, 227);
 		trans.aiShouldIgnore = true;
 
 		// Shovel 502 + Barrel Cactus 761
-		var trans = transtions.getTransition(502, 761);
+		var trans = transitions.getTransition(502, 761);
 		trans.aiShouldIgnore = true;
 
 		// Mallet 467 + Fence 550
-		var trans = transtions.getTransition(467, 550);
+		var trans = transitions.getTransition(467, 550);
 		trans.aiShouldIgnore = true;
 
 		// Mallet 467 + Fence 549 +verticalFence
-		var trans = transtions.getTransition(467, 549);
+		var trans = transitions.getTransition(467, 549);
 		trans.aiShouldIgnore = true;
 
 		// Steel Adze 462 + Wall Slot Shelf 3242
-		var trans = transtions.getTransition(462, 3242);
+		var trans = transitions.getTransition(462, 3242);
 		trans.aiShouldIgnore = true;
 
 		// TODO fix reverse use transitions if full
 		// Butter Knife 1467 + Bowl of Butter 1465 // TODO also lastuse
-		// var trans = transtions.getTransition(1467, 1465);
+		// var trans = transitions.getTransition(1467, 1465);
 		// trans.aiShouldIgnore = true;
 
 		// Knife 560 // Bowl of Butter 1465
-		var trans = transtions.getTransition(560, 1465);
+		var trans = transitions.getTransition(560, 1465);
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(560, 1465, false, true);
+		var trans = transitions.getTransition(560, 1465, false, true);
 		trans.aiShouldIgnore = true;
 
 		// Mango Leaf 1878 + Domestic Cow // Since dead cow gives now meat Ai does all it can to kill them
-		// var trans = transtions.getTransition(1878, 1458);
+		// var trans = transitions.getTransition(1878, 1458);
 		// trans.aiShouldIgnore = true;
 
 		// 0 + Potato in Water 1152
-		var trans = transtions.getTransition(0, 1152);
+		var trans = transitions.getTransition(0, 1152);
 		trans.aiShouldIgnore = true;
 
 		// 0 + Bowl of Mutton 4056
-		var trans = transtions.getTransition(0, 4056);
+		var trans = transitions.getTransition(0, 4056);
 		trans.aiShouldIgnore = true;
 
 		// 0 + Bowl of Wheat 245
-		var trans = transtions.getTransition(0, 245);
+		var trans = transitions.getTransition(0, 245);
 		trans.aiShouldIgnore = true;
 
 		// 0 + Plow Kit 4379 // creats cyle to get second steel blade for crafting sheers
-		var trans = transtions.getTransition(0, 4379);
+		var trans = transitions.getTransition(0, 4379);
 		trans.aiShouldIgnore = true;
 
 		// Hungry Domestic Calf 1462 --> otherwise AI will wait untill calf dies to get Mutton
-		var trans = transtions.getTransition(-1, 1462);
+		var trans = transitions.getTransition(-1, 1462);
 		trans.aiShouldIgnore = true;
-		var trans = transtions.getTransition(-1, 1462, false, true);
+		var trans = transitions.getTransition(-1, 1462, false, true);
 		trans.aiShouldIgnore = true;
 
 		// Wooden Tongs 239 + Hot Forged Steel Crucible 321
-		var trans = transtions.getTransition(239, 321);
+		var trans = transitions.getTransition(239, 321);
 		trans.aiShouldIgnore = true;
 
 		// TODO not sure if only limiting last use works
 		// TODO Canada Goose Pond with Egg
 		// Clay Bowl + Canada Goose Pond 141
-		var trans = transtions.getTransition(235, 141, false, true);
+		var trans = transitions.getTransition(235, 141, false, true);
 		trans.aiShouldIgnore = true;
 
 		// Empty Water Pouch 209 + Canada Goose Pond 141
-		var trans = transtions.getTransition(209, 141, false, true);
+		var trans = transitions.getTransition(209, 141, false, true);
 		trans.aiShouldIgnore = true;
 
 		// Clay Bowl + Canada Goose Pond - Swimming 142
-		var trans = transtions.getTransition(235, 142, false, true);
+		var trans = transitions.getTransition(235, 142, false, true);
 		trans.aiShouldIgnore = true;
 
 		// Empty Water Pouch 209 + Canada Goose Pond 142
-		var trans = transtions.getTransition(209, 142, false, true);
+		var trans = transitions.getTransition(209, 142, false, true);
 		trans.aiShouldIgnore = true;
 
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
-		// var trans = transtions.getTransition(1247, 4110);
+		// var trans = transitions.getTransition(1247, 4110);
 		// trans.aiShouldIgnore = true;
 
 		// Bowl with Corn Kernels 1247 + Empty Bucket 659 (untill circular crafting is fixed)
-		// var trans = transtions.getTransition(1247, 659);
+		// var trans = transitions.getTransition(1247, 659);
 		// trans.aiShouldIgnore = true;
 
 		// TODO Bowl with Corn Kernels // forbid cirtular crafting --> tries to get empty bowl by putting Kernels in
 
 		// Clay Bowl 235 // Shallow Well 662 // Bowl of Water 382
-		// var trans = transtions.getTransition(235, 662);
+		// var trans = transitions.getTransition(235, 662);
 		// trace('Bowl of Water: ' + trans.getDesciption());
 		// trans.aiShouldIgnore = true;
 
 		// lime
-		// var trans = transtions.getTransition(677, 661); // Bowl of Plaster 677  + Stone Pile 661
+		// var trans = transitions.getTransition(677, 661); // Bowl of Plaster 677  + Stone Pile 661
 		// trans.aiShouldIgnore = true;
 
 		// Bowl of Plaster 677
@@ -3303,16 +3310,16 @@ class ServerSettings {
 				trans.aiShouldIgnore = true; 
 		}*/
 
-		// var trans = transtions.getTransition(235, -1); // 235 Clay Bowl
+		// var trans = transitions.getTransition(235, -1); // 235 Clay Bowl
 		// trace('DEBUG: ${trans.getDesciption()}');
 
-		// var trans = transtions.getTransition(253, -1); // Bowl of Gooseberries
+		// var trans = transitions.getTransition(253, -1); // Bowl of Gooseberries
 		// trace('DEBUG!!: ${trans.getDesciption()}');
 
 		// for debug random outcome transitions
-		/*var trans = transtions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 
+		/*var trans = transitions.getTransition(-1, 1195); // TIME + Blooming Squash Plant 
 			trans.autoDecaySeconds = 2;
-			transtions.addTransition("PatchTransitions: ", trans);
+			transitions.addTransition("PatchTransitions: ", trans);
 		 */
 
 		var trans = TransitionImporter.GetTransition(235, 662); // Clay Bowl + Shallow Well

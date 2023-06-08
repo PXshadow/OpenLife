@@ -1204,7 +1204,7 @@ class TransitionHelper {
 		// Arrow + Empty Arrow Quiver = true;
 		var resetNumberOfUses = this.target.objectData.isClothing() == false || this.target.objectData.numUses < 2;
 		// do now the magic transformation
-		player.transformHeldObject(transition.newActorID);
+		player.transformHeldObject(transition.newActorID, transition.noUseActor);
 		this.target.id = TransformTarget(transition.newTargetID); // consider if there is an random outcome
 		// reset creation / last change time
 		player.heldObject.creationTimeInTicks = TimeHelper.tick;
@@ -1226,11 +1226,12 @@ class TransitionHelper {
 		// this.newTransitionSource = transition.targetID; // TODO ???
 		// TODO move to SetObjectHelper
 		this.target.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(this.target);
-		DoChangeNumberOfUsesOnActor(this.player, transition);
+		if (transition.noUseActor == false) DoChangeNumberOfUsesOnActor(this.player, transition);
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} NewTileObject: ${newTargetObjectData.description} ${this.target.id} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
 		// target did not change if it is same dummy
-		DoChangeNumberOfUsesOnTarget(this.target, transition, player, ServerSettings.DebugTransitionHelper, resetNumberOfUses);
+		if (transition.noUseTarget == false) DoChangeNumberOfUsesOnTarget(this.target, transition, player, ServerSettings.DebugTransitionHelper,
+			resetNumberOfUses);
 		ObjectHelper.DoOwnerShip(this.target, this.player);
 		// if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
 		this.doTransition = true;
@@ -1264,7 +1265,7 @@ class TransitionHelper {
 		return targetId;
 	}
 
-	// used for transitions and for eating food like bana or bowl of stew // or in actor time transitions like just made opcorn or fries
+	// used for transitions and for eating food like banana or bowl of stew // or in actor time transitions like just made popcorn or fries
 
 	public static function DoChangeNumberOfUsesOnActor(player:GlobalPlayerInstance, transition:TransitionData):Bool {
 		return DoChangeNumberOfUsesOnActorManual(player, transition.actorID != transition.newActorID, transition.reverseUseActor, transition.targetID);
