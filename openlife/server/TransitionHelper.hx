@@ -1241,6 +1241,10 @@ class TransitionHelper {
 		// target did not change if it is same dummy
 		if (transition.noUseTarget == false) DoChangeNumberOfUsesOnTarget(this.target, transition, player, ServerSettings.DebugTransitionHelper,
 			resetNumberOfUses);
+
+		this.player.heldObject.TransformToDummy();
+		this.player.setHeldObject(this.player.heldObject); // TO Fix wrong number of uses display
+
 		ObjectHelper.DoOwnerShip(this.target, this.player);
 		// if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
 		this.doTransition = true;
