@@ -113,9 +113,11 @@ Quality of Life Changes:
 - you can do smithing on a table
 - escape time for rubber horse cart 7--> 20 sec / and moves 4 --> 2
 - escape time for horse cart 7--> 15 sec / and moves 4 --> 2
+- you can use a Stone Hoe on a Clay Plate / Bowl to make Clay out of it
+- you can use a Stone Hoe on a Basket to get a Reed Bundle
 - you can use a Stone Hoe to dig in bones
-- you can unsharp a sharp stone on Big Hard Rock
 - you can use flint to undo stone hoes and hatches
+- you can unsharp a sharp stone on Big Hard Rock
 - you can eat while on a horse (dont know yet if this is a good idea...)
 - wearing two shoes give extra speed
 - you can use a Steel Mining Pick to get coal out of a Bear Cave (Hungry Work)
@@ -509,7 +511,7 @@ i found a couple or more than a couple of all of em
 and uh charcoal
 
 High priority:
-- AI Limit Carrots
+- AI not close kiln if clay stuff is to make / check in craftitem for transition
 - AI SWORD: get angry if one has one and is not noble
 
 Combat:
@@ -543,7 +545,8 @@ Cointainer:
 - AI using of backpack (baskets) / for example kindling, potato, pies to eat / water
 
 Generel:
-- FIX stuck mutex / Test if fixed??? seems to work up to now
+- dont use up shovel fast. no use for dung
+- Stone hoe plus basket
 - FIX AI loot grave while fresh
 - FIX wrong death messages / stuck on death
 - FIX teleporting Ai especially if you drop BB

@@ -2062,6 +2062,10 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 		transtions.addTransition("PatchTransitions: ", trans);
 
+		trans = new TransitionData(850, 292, 850, 124); // Stone Hoe  + Basket 292 --> Stone Hoe + Reed Bundle 124
+		trans.aiShouldIgnore = true;
+		transtions.addTransition("PatchTransitions: ", trans);
+
 		trans = new TransitionData(0, 92, 59, 67); // 0 + Tied Long Shaft --> Rope + Long Straight Shaft
 		transtions.addTransition("PatchTransitions: ", trans);
 
