@@ -1075,8 +1075,8 @@ class TransitionHelper {
 			if (rand < 1) {
 				target.hits += 1;
 				// rand += target.hits / 20;
-				player.say('Try again! Hits ${Math.round(target.hits)} Uses: ${Math.round(target.numberOfUses)} exhaustion: ${Math.round(player.exhaustion)}',
-					true);
+				// player.say('Try again! Hits ${Math.round(target.hits)} Uses: ${Math.round(target.numberOfUses)} exhaustion: ${Math.round(player.exhaustion)}', true);
+				player.say('Try again! Hits ${Math.round(target.hits)}', true);
 
 				// drop fortification material
 				var fortificationObjId = target.objectData.fortificationObjId;
