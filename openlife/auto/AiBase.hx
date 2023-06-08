@@ -119,6 +119,7 @@ abstract class AiBase {
 	public var timeLastLeaderCheck = 0.0;
 
 	public var lastGrave:ObjectHelper = null;
+	public var triedDropCount = 0;
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -4491,7 +4492,7 @@ abstract class AiBase {
 		else if (heldObjId == 57) dropOnStart = false; // 57 Milkweed Stalk
 		else if (heldObjId == 3180) dropOnStart = false; // 3180 Flat Rock with Rabbit Bait
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} DROP: ${myPlayer.heldObject.name} to ${infos.methodName}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} DROP: ${heldObject.name} to ${infos.methodName} maxDist: ${maxDistanceToHome}');
 
 		if (storeInQuiver()) return true;
 
@@ -6911,7 +6912,7 @@ abstract class AiBase {
 	// returns true if in process of dropping item
 	private function isDropingItem():Bool {
 		// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held: ${myPlayer.heldObject.name}');
-
+		if (myPlayer.isMoving() || dropTarget == null) triedDropCount = 0;
 		if (dropTarget == null) return false;
 		if (myPlayer.isStillExpectedItem(dropTarget) == false) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} dropTarget changed meanwhile! ${dropTarget.name}');
@@ -6919,16 +6920,28 @@ abstract class AiBase {
 			return false;
 		}
 
-		var heldId = myPlayer.heldObject.parentId;
+		var dropDistance = triedDropCount > 5 ? 0 : 5;
+		triedDropCount += 1;
+
+		var heldId = myPlayer.isHeldEmpty() ? 0 : myPlayer.heldObject.parentId;
 		var dropTargetId = dropTarget.parentId;
 
 		var distance = myPlayer.CalculateQuadDistanceToObject(dropTarget);
+
+		// TODO support dropping in a container
+		// If picking up a container like Basket make sure not to drop stuff in the container
+		if (heldId != 0 && dropTarget.objectData.numSlots > 0) {
+			if (shouldDebugSay()) myPlayer.say('Drop ${myPlayer.heldObject.name} Drop for container ${dropTarget.name}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} for container ${dropTarget.name}');
+			return dropHeldObject(dropDistance);
+		}
 
 		// AI dont switch held obj with ground object to not drop stuff too far away // TODO test
 		if (heldId != 0 && dropTargetId != 0 && distance > 25) {
 			if (shouldDebugSay()) myPlayer.say('Drop ${myPlayer.heldObject.name} TOO FAR AWAY! dist: $distance');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} TOO FAR AWAY! dist: $distance');
-			return (dropHeldObject(5));
+
+			return dropHeldObject(dropDistance);
 		}
 
 		// myPlayer.getFollowPlayer()
@@ -6937,7 +6950,7 @@ abstract class AiBase {
 			// myPlayer.say('${playerToFollow.name} IM COMMING!');
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} FOLLOW PLAYER / DROP TOO FAR AWAY! dist: $distance');
-			return (dropHeldObject(5));
+			return dropHeldObject(dropDistance);
 		}
 
 		// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop target: ${dropTarget.name} held: ${myPlayer.heldObject.name} isMoving: ${myPlayer.isMoving()}');
@@ -6960,12 +6973,6 @@ abstract class AiBase {
 		if (dropTarget == null) return false; // considerDropHeldObject may have cleared drop target
 
 		if (myPlayer.isMoving()) return true;
-
-		// TODO support dropping in a container
-		// If picking up a container like Basket make sure not to drop stuff in the container
-		if (dropTarget.objectData.numSlots > 0 && dropHeldObject()) return true;
-
-		// var myPlayer = myPlayer.getPlayerInstance();
 
 		if (distance > 1) {
 			var done = false;

@@ -74,6 +74,7 @@ interface PlayerInterface {
 	public function isAnimalDeadlyForMe(animal:ObjectHelper, checkIfAnimal:Bool = true):Bool;
 	public function isAnimalNotDeadlyForMe(animal:ObjectHelper, checkIfAnimal:Bool = true):Bool;
 
+	public function isHeldEmpty():Bool;
 	public function isHoldingYum():Bool;
 	public function isYum(food:ObjectHelper):Bool;
 	public function isObjIdYum(id:Int):Bool;
