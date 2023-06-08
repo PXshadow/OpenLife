@@ -891,8 +891,8 @@ abstract class AiBase {
 		var home = myPlayer.home;
 		// get basic kindling
 		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 72, 15); // Kindling 72
-		if (count < 2) this.taskState['kindling'] = 1;
-		if (count > 4) this.taskState['kindling'] = 0;
+		if (count < 3) this.taskState['kindling'] = 1;
+		if (count > 6) this.taskState['kindling'] = 0;
 
 		if (this.taskState['kindling'] > 0) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doCriticalStuff: get kindling: ${count}');
@@ -1068,6 +1068,12 @@ abstract class AiBase {
 
 		// Fire 82
 		if (objId == 82) {
+			// Make Fast fire in Winter
+			if (TimeHelper.Season == Winter) {
+				// Kindling 72
+				if (shortCraftOnTarget(72, firePlace)) return true;
+			}
+
 			// Big Charcoal Pile 300
 			var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 300, 30);
 			if (heldId == 298) count += 1;

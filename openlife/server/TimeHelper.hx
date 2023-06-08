@@ -174,6 +174,11 @@ class TimeHelper {
 		var timeToNextSeasonInSec = TimeToNextSeasonInYears * 60;
 		var tmpSeasonTemperatureImpact:Float = 0;
 
+		// make eternal ice age
+		Season = Seasons.Winter;
+		SeasonHardness = 2;
+		passedSeasonTime = 0;
+
 		tmpSeasonTemperatureImpact = ServerSettings.AverageSeasonTemperatureImpact * SeasonHardness;
 
 		if (Season == Seasons.Spring || Season == Seasons.Autumn) tmpSeasonTemperatureImpact *= 0.25;
