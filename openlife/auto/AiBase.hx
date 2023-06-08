@@ -2366,6 +2366,10 @@ abstract class AiBase {
 		var targetId = target.parentId;
 		var heldId = myPlayer.heldObject.parentId;
 
+		// FIX: AI stuck with trying put Soil on Hardened Row in Snow Biome
+		// Bowl of Soil 1137 + Hardened Row 848
+		if (actorId == 1137 && target.parentId == 848) return false;
+
 		// dont use carrots if seed is needed // 400 Carrot Row
 		if (targetId == 400 && hasCarrotSeeds == false && target.numberOfUses < 3) return false;
 
