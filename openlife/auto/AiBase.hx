@@ -5083,14 +5083,16 @@ abstract class AiBase {
 			pile = hasPile ? AiHelper.GetClosestObjectToTarget(myPlayer, target, pileId, 10, minDistance) : null;
 		}
 
+		// search close
 		if (obj == null) obj = myPlayer.GetClosestObjectById(objId, null, searchDistance, minDistance);
 		if (pile == null) pile = hasPile ? myPlayer.GetClosestObjectById(pileId, null, searchDistance, minDistance) : null;
 
 		var usePile = pile != null && obj == null;
 		if (usePile) obj = pile;
-		if (obj == null && hasPile) obj = myPlayer.GetClosestObjectById(objId, null, maxSearchDistance, minDistance);
+
+		// search more far away
+		if (obj == null) obj = myPlayer.GetClosestObjectById(objId, null, maxSearchDistance, minDistance);
 		if (obj == null && hasPile) {
-			// search for more far away piles
 			obj = myPlayer.GetClosestObjectById(pileId, null, maxSearchDistance, minDistance);
 			usePile = obj != null;
 		}
