@@ -513,7 +513,7 @@ abstract class AiBase {
 
 		Macro.exception(if (fillBerryBowlIfNeeded(true)) return);
 		// Macro.exception(if (Math.floor(myPlayer.age / 5) % 2 == 0 && doHunting(1)) return);
-		Macro.exception(if (doHunting(1)) return);
+		Macro.exception(if (doFeedLambsAndCalfs(1)) return);
 
 		var heldObjId = myPlayer.heldObject.parentId;
 
@@ -591,7 +591,7 @@ abstract class AiBase {
 		} else if (assignedProfession == 'GRAVEKEEPER') {
 			Macro.exception(if (isHandlingGraves(100)) return);
 		} else if (assignedProfession == 'HUNTER') {
-			Macro.exception(if (doHunting(100)) return);
+			// Macro.exception(if (doHunting(100)) return);
 		} else if (assignedProfession == 'TAILOR') {
 			Macro.exception(if (craftHighPriorityClothing()) return);
 			Macro.exception(if (craftMediumPriorityClothing(100)) return);
@@ -4762,10 +4762,11 @@ abstract class AiBase {
 			this.craftingTasks.unshift(taskId);
 	}
 
-	private function doHunting(maxPeople:Int = 1):Bool {
+	// Feed Lambs
+	private function doFeedLambsAndCalfs(maxPeople:Int = 1):Bool {
 		var home = myPlayer.home;
 
-		if (hasOrBecomeProfession('HUNTER', maxPeople) == false) return false;
+		if (hasOrBecomeProfession('SHEPHERD', maxPeople) == false) return false;
 
 		// Domestic Sheep 575
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 30);
