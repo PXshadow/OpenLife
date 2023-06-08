@@ -3073,6 +3073,12 @@ class ServerSettings {
 
 		// Bowl of Dough 252 + Table
 		var trans = transitions.getTransition(252, 3371);
+		trans.switchNumberOfUses = true;
+		trans.aiShouldIgnore = true;
+
+		// Clay Bowl 235 + Table with Wheat Dough 4086
+		var trans = transitions.getTransition(235, 4086);
+		trans.switchNumberOfUses = true;
 		trans.aiShouldIgnore = true;
 
 		// Bowl of Soil 1137 + Fertile Soil Pile 1101

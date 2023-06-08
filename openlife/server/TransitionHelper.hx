@@ -609,7 +609,6 @@ class TransitionHelper {
 		}
 
 		// TODO intentional use with index, see description above
-		// TODO noUseActor / noUseTarget
 
 		if (this.checkIfNotMovingAndCloseEnough() == false) return false;
 
@@ -1203,9 +1202,19 @@ class TransitionHelper {
 		// Arrow and Bow + Empty Arrow Quiver = true;
 		// Arrow + Empty Arrow Quiver = true;
 		var resetNumberOfUses = this.target.objectData.isClothing() == false || this.target.objectData.numUses < 2;
+		var tmpActorNumberOfuses = heldObject.numberOfUses;
+		var tmpTargetNumberOfuses = this.target.numberOfUses;
+
 		// do now the magic transformation
 		player.transformHeldObject(transition.newActorID, transition.noUseActor);
 		this.target.id = TransformTarget(transition.newTargetID); // consider if there is an random outcome
+
+		// FIX: Like putting / picking dough on / from table
+		if (transition.switchNumberOfUses) {
+			heldObject.numberOfUses = tmpTargetNumberOfuses;
+			this.target.numberOfUses = tmpActorNumberOfuses;
+		}
+
 		// reset creation / last change time
 		player.heldObject.creationTimeInTicks = TimeHelper.tick;
 		this.target.creationTimeInTicks = TimeHelper.tick; // TODO dont reset if id did not change? For example hot oven
