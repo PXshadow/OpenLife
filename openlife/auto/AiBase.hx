@@ -1429,6 +1429,9 @@ abstract class AiBase {
 		var tmpLastTemperature = lastTemperature;
 		this.lastTemperature = myPlayer.heat;
 
+		// Large Fast Fire 83
+		if (heat < 0.3 && this.itemToCraftId == 83) return craftItem(83);
+
 		if (needCooling) {
 			// consider drinking
 			if (heat > 0.7) {
