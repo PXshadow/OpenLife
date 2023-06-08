@@ -545,14 +545,12 @@ Cointainer:
 - AI using of backpack (baskets) / for example kindling, potato, pies to eat / water
 
 Generel:
-- dont use up shovel fast. no use for dung
-- Stone hoe plus basket
 - FIX AI loot grave while fresh
 - FIX wrong death messages / stuck on death
 - FIX teleporting Ai especially if you drop BB
-- FIX AI droping stuff outside of the village
-- FIX exile only from leader if you attack ally and if leader is close
-- FIX Ai makign tables
+- FIX AI droping stuff outside of the village Fixed???
+- FIX exile only from leader if you are no noble and have no bad reputation 
+- FIX Ai dont make tables
 - FIX set home if touching oven
 - FIX trekkieA: issues with objects disappearing from backpack, dont swap items quickly or you might lose it
 limestone was weird, if you use hetuw. you can crtl+q to swap items in bp. if you have more than one item swapping them can destroy objects
@@ -561,6 +559,7 @@ limestone was weird, if you use hetuw. you can crtl+q to swap items in bp. if yo
 - FIX trekkieA: when either sheep or squito (not sure) stand on top of hand cart. it gets stuck in forever motion. constant squeak
 - FIX player objects like wounds and cloths / stuff in backpack??? dont seem to be updated if data version changes
 
+- switch leader position if 20% more leader power
 - dont let bones decay on floor
 - exile if you wound an ally and close by
 - attack exiled

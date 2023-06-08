@@ -532,11 +532,11 @@ abstract class AiBase {
 		itemToCraft.searchCurrentPosition = true;
 		Macro.exception(if (isMakingSeeds()) return);
 		Macro.exception(if (shortCraft(0, 400, 10)) return); // pull out the carrots
-		Macro.exception(if (shortCraft(139, 2832, 10)) return); // Skewer + Tomato Sprout
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (handleTemperature()) return);
 		Macro.exception(if (makeSharpieFood(5)) return);
 		Macro.exception(if (isHandlingGraves()) return);
+		Macro.exception(if (shortCraft(139, 2832, 20)) return); // Skewer + Tomato Sprout
 
 		// if(craftItem(283)) return;
 
@@ -4770,11 +4770,7 @@ abstract class AiBase {
 		// Domestic Sheep 575
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 30);
 		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 575, 30);
-		if (count < 1 && craftItem(575)) return true; // Domestic Sheep 575
-
-		// Domestic Sheep 575
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 30);
-		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 575, 30);
+		// if (count < 1 && craftItem(575)) return true; // Domestic Sheep 575
 
 		if (count < 10) {
 			// Bowl of Gooseberries and Carrot 258 + Hungry Mouflon Lamb 603
@@ -4782,6 +4778,18 @@ abstract class AiBase {
 
 			// Bowl of Gooseberries and Carrot 258 + Mouflon Lamb 542
 			if (shortCraft(258, 542, 30)) return true;
+		}
+
+		// Domestic Cow 1458
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1458, 30);
+		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1458, 30);
+
+		if (count < 10) {
+			// Bowl with Corn Kernels 1247 + Hungry Domestic Calf 1462
+			if (shortCraft(1247, 1462, 20)) return true;
+
+			// Bowl with Corn Kernels 1247 + Domestic Calf 1459
+			if (shortCraft(1247, 1459, 30)) return true;
 		}
 
 		/*// Domestic Sheep 575
