@@ -410,7 +410,8 @@ class TimeHelper {
 					player.newFollower.followPlayer = player.newFollowerFor;
 					Connection.SendFollowingToAll(player.newFollower);
 
-					player.newFollower.connection.sendGlobalMessage('You follow now ${player.newFollowerFor.name} ${player.newFollowerFor.familyName}');
+					player.newFollower.say('I follow now ${player.name} ${player.familyName}', true);
+					player.newFollower.connection.sendGlobalMessage('You follow now ${player.name} ${player.familyName}');
 
 					// player.newFollower.say('now I follow ${player.newFollowerFor.name}');
 
@@ -672,6 +673,8 @@ class TimeHelper {
 					if (rand > chance) {
 						player.followPlayer = player.father;
 						var text = player.isMale() ? 'SON' : 'DAUGHTER';
+
+						Connection.SendFollowingToAll(player);
 
 						player.say('I FOLLOW MY FATHER!');
 						father.say('MY $text ${player.name} FOLLOWS ME NOW!', true);

@@ -1892,7 +1892,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return;
 		}
 
-		if (StringTools.startsWith(text, '!')) {
+		if (StringTools.startsWith(text, '!') || StringTools.startsWith(text, '?')) {
 			if (ServerSettings.AllowDebugCommmands) if (DoDebugCommands(player, text)) return;
 		}
 
@@ -1980,6 +1980,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			this.connection.sendGlobalMessage('YOU_FOLLOW_NOW_NO_ONE!');
 
+			// let players stay with old leader? At least inform them
 			Connection.SendFollowingToAll(this);
 
 			this.say('I FOLLOW ME!');
@@ -3774,13 +3775,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		for (p in AllPlayers) // Find best leader
 		{
+			if (p.deleted) continue;
 			if (p == deadLeader) continue;
 
-			if (p.getTopLeader(deadLeader) != deadLeader) continue;
+			// if (p.getTopLeader(deadLeader) != deadLeader) continue;
+			if (p.followPlayer != deadLeader) continue;
 
 			count++;
 
-			var score = p.account.totalScore;
+			// var score = p.account.totalScore;
+			var score = p.countLeadershipPower();
 
 			if (score < bestLeaderScore) continue;
 
@@ -3790,46 +3794,67 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (bestLeader == null) return null;
 
-		trace('New best leader: ${bestLeader.p_id} ${bestLeader.name} Score: $bestLeaderScore');
+		// deadLeader.followPlayer = bestLeader;
+		bestLeader.followPlayer = deadLeader.followPlayer;
+
+		trace('New leader: ${bestLeader.name}${bestLeader.p_id} Power: $bestLeaderScore');
 
 		// make new leader follow the leader the dead leader followed
 		bestLeader.followPlayer = deadLeader.followPlayer;
+
+		Connection.SendFollowingToAll(bestLeader);
 
 		// Set new leader
 		for (p in AllPlayers) {
 			if (p.followPlayer != deadLeader) continue;
 
+			if (bestLeader.exiledByPlayers.exists(p.p_id)) {
+				trace('New leader: ${bestLeader.name}${bestLeader.p_id} is exiled by ${p.name}');
+				continue;
+			}
+
+			if (p.exiledByPlayers.exists(bestLeader.p_id)) {
+				trace('New leader: ${bestLeader.name}${bestLeader.p_id} has exiled ${p.name}');
+				continue;
+			}
+
 			p.followPlayer = bestLeader;
+
+			Connection.SendFollowingToAll(p);
 		}
 
-		// Let new leader exile same players
-		for (p in AllPlayers) {
+		// Let new leader exile same players // New leader new luck?
+		/*for (p in AllPlayers) {
 			if (p.exiledByPlayers.exists(deadLeader.p_id) == false) continue;
 
 			p.exiledByPlayers[bestLeader.p_id] = bestLeader;
 
 			Connection.SendExileToAll(bestLeader, p);
-		}
+		}*/
+
+		count -= 1; // not counting new leader;
+
+		var isKing = count > 4 && bestLeader.followPlayer == null;
+		var text = isKing ? 'King' : 'Leader';
+		if (isKing && count > 14) text = 'Emperor';
 
 		// inform followers about new leader
 		for (p in AllPlayers) {
 			if (p != bestLeader) continue;
 			if (p.getTopLeader(bestLeader) != bestLeader) continue;
 
-			if (count >= 5) {
-				p.connection.sendGlobalMessage('The old King ${deadLeader.name} died. Long live the new king ${bestLeader.name}!');
-			} else {
-				p.connection.sendGlobalMessage('The old leader ${deadLeader.name} died. Long live the new leader ${bestLeader.name}!');
-			}
+			p.say('My new $text is ${bestLeader.name} ${bestLeader.familyName}!', true);
+			p.connection.sendGlobalMessage('The old $text ${deadLeader.name} died. Long live the new $text ${bestLeader.name}!');
+			p.connection.sendMapLocation(bestLeader, "LEADER", "leader");
 		}
 
 		if (count >= 5) {
-			bestLeader.connection.sendGlobalMessage('Your King ${deadLeader.name} died. You are the new King of $count people. Long live the King!');
+			bestLeader.say('${deadLeader.name} ${deadLeader.familyName} died! Im the new $text!', true);
+			bestLeader.connection.sendGlobalMessage('Your $text ${deadLeader.name} died. You are the new $text of $count people. Long live the $text!');
 		} else if (count > 0) {
-			bestLeader.connection.sendGlobalMessage('Your leader ${deadLeader.name} died. You are the new leader of $count people. Be it worthy!');
+			bestLeader.say('${deadLeader.name} ${deadLeader.familyName} died! Im the new $text!', true);
+			bestLeader.connection.sendGlobalMessage('Your $text ${deadLeader.name} died. You are the new $text of $count people. Be it worthy!');
 		}
-
-		deadLeader.followPlayer = bestLeader;
 
 		return bestLeader;
 	}
@@ -4915,7 +4940,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			var leader = player.getTopLeader();
 			if (leader != null && leader != player) {
 				leader.hits += 50;
-				player.say('kill leader ${leader.name}', true);
+				leader.food_store -= 50;
+				leader.age += 60;
+				// player.say('kill leader ${leader.name}', true);
+			}
+			return true;
+		} else if (text.indexOf('!KILLDLEADER') != -1) {
+			if (checkIfNotAllowed(player)) return true;
+
+			var leader = player.followPlayer;
+			if (leader != null && leader != player) {
+				leader.hits += 50;
+				leader.food_store -= 50;
+				leader.age += 60;
+				// player.say('kill leader ${leader.name}', true);
 			}
 			return true;
 		} else if (text.indexOf('!KILLOBJ') != -1) {
@@ -5185,10 +5223,34 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			return true;
 		} else if (text == '!L' || text.indexOf('!LEADER ') != -1) {
-			player.connection.sendLeader();
+			var leader = player.getTopLeader();
+			if (leader == null) player.say('No leader!', true);
+			if (leader != null) {
+				player.say('${leader.name} ${leader.familyName} Power: ${Math.ceil(leader.countLeadershipPower())}', true);
+				player.connection.sendLeader();
+			}
+			return true;
+		} else if (text == '?L' || text.indexOf('?LEADER ') != -1) {
+			var leader = player.getTopLeader();
+			if (leader == null) player.say('No leader!', true);
+			if (leader != null) {
+				player.say('${leader.name} ${leader.familyName} Power: ${Math.ceil(leader.countLeadershipPower())}', true);
+			}
 			return true;
 		} else if (text == '!DL' || text.indexOf('!DLEADER ') != -1) {
-			player.connection.sendDirectLeader();
+			var leader = player.followPlayer;
+			if (leader == null) player.say('No leader!', true);
+			if (leader != null) {
+				player.say('${leader.name} ${leader.familyName} Power: ${Math.ceil(leader.countLeadershipPower())}', true);
+				player.connection.sendDirectLeader();
+			}
+			return true;
+		} else if (text == '?DL' || text.indexOf('?DLEADER ') != -1) {
+			var leader = player.followPlayer;
+			if (leader == null) player.say('No leader!', true);
+			if (leader != null) {
+				player.say('${leader.name} ${leader.familyName} Power: ${Math.ceil(leader.countLeadershipPower())}', true);
+			}
 			return true;
 		}
 		return false;
