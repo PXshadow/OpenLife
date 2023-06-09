@@ -410,8 +410,9 @@ SPEED:
 Food - YUM:
 - YUM chain is used as prestige and health
 - eating YUM / Cravings increases Health / Prestige, while eating MEH reduces it
-(YUM +1 CARAVING: +2 (or more) MEH: -0.5 SUPERMEH: -1)
+(YUM +1 CARAVING: +2 (or more) MEH: -0.5 SUPERMEH: -2)
 - a Food is SUPERMEH if it has only halve of the food value. Eating SUPERMEH reduces health fast
+- Eating Supermeh provides +1 Food, but reduces Health  / you trade short term survival for shorter life span.
 - if you hold any food the closest most YUM food / craving for you is displayed (TODO consider containers)
 - only eatable food is displayed. So if you are not hungry no food is displayed 
 - you can only eat if you have space for at least 1/3 the food value, not counting YUM or food reduction 

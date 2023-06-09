@@ -174,6 +174,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var lastTimeEmoteSend:Float = 0;
 	public var praisedJinbali = false;
 	public var darkNosaj = 0.0; // not saved
+	public var blockActorForAi:ObjectHelper = null; // not saved
+	public var blockTargetForAi:ObjectHelper = null; // not saved
 
 	public function getFollowPlayer() {
 		return followPlayer;
@@ -2892,6 +2894,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// Reduce Food value depending on difficulty Settings
 		foodValue = foodValue * ServerSettings.FoodFactor;
+
+		// trade health for little bit more food
+		if (isSuperMeh) {
+			foodValue += 1;
+			if (playerTo.prestige > 0) playerTo.prestige -= 1; else
+				playerTo.hits += 1;
+		}
 
 		playerTo.addFood(foodValue);
 

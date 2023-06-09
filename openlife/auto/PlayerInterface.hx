@@ -53,6 +53,9 @@ interface PlayerInterface {
 	public var home(default, default):ObjectHelper;
 	public var forceStopOnNextTile(default, default):Bool;
 
+	public var blockActorForAi(default, default):ObjectHelper;
+	public var blockTargetForAi(default, default):ObjectHelper;
+
 	public var clothingObjects(default, default):Vector<ObjectHelper>;
 
 	public var useFailedReason(default, default):String;
