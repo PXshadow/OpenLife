@@ -83,7 +83,7 @@ class ServerSettings {
 	public static var AncestorPrestigeFactor:Float = 0.2; // if one dies the ancestors get factor X prestige of the dead
 	public static var ScoreFactor:Float = 0.2; // new score influences total score with factor X.
 	public static var OldGraveDecayMali:Float = 20; // prestige mali if bones decay without beeing proper burried
-	public static var CursedGraveMali:Float = 2; // prestige mali if bones decay without beeing proper burried
+	public static var CursedGraveMali:Float = 2; // TODO no need
 
 	// Display
 	public static var DisplayScoreOn:Bool = true; // only end of life
@@ -115,12 +115,12 @@ class ServerSettings {
 	public static var GraveBlockingDistance = 40; // cannot incrante close to blocking graves like bone pile
 	public static var CloseGraveSpeedMali:Float = 0.9; // speed maili if close to blocking grave like bone pile
 	public static var CursedGraveTime:Float = 12; // 12 // hours a cursed grave continues to exist per curse token
+	public static var MaxPlayersBeforeActivatingGraveCurse = 0; // 2
+	public static var MaxPlayersBeforeForbidTouchGrave = 9999; // 2
 
 	// PlayerInstance
 	public static var MaxPlayers = 100; // AI plus Humans
 	public static var MaxPlayersBeforeStartingAsChild = 0; // -1
-	public static var MaxPlayersBeforeActivatingGraveCurse = 2;
-	public static var MaxPlayersBeforeForbidTouchGrave = 2;
 	public static var StartingFamilyName = "SNOW";
 	public static var StartingName = "SPOON";
 	public static var AgeingSecondsPerYear = 60; // 60
