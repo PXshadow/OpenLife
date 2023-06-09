@@ -213,7 +213,9 @@ Classes:
 - nobles receive 20% less damage if using a sword
 - AI: The lower the class (Serf/Commoner/Noble) of the AI the slower it is and the less food it needs
 
-Ally
+Leadership
+- You overtake your leader if you are more 20% more powerful (100% if leader is not your family)!
+- Your power is your prestige plus coins and if you are grown up enough (max food pipes)
 - leader has now 15 seconds time to exile you before you follow him
 - the more your close (5 Tiles) ally stregth is vs enemy streght the more damage you do
 - stregth of players with weapons are counted twice

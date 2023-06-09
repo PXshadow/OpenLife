@@ -3840,7 +3840,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// inform followers about new leader
 		for (p in AllPlayers) {
-			if (p != bestLeader) continue;
+			if (p == bestLeader) continue;
 			if (p.getTopLeader(bestLeader) != bestLeader) continue;
 
 			p.say('My new $text is ${bestLeader.name} ${bestLeader.familyName}!', true);

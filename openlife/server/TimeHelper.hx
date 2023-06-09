@@ -243,6 +243,8 @@ class TimeHelper {
 
 		if (TimeHelper.tick % 30 == 0) Macro.exception(UpdateEmotes(player));
 
+		if (TimeHelper.tick % 40 == 0) Macro.exception(DoLeadership(player));
+
 		if (TimeHelper.tick % 50 == 0) Macro.exception(DisplayStuff(player));
 
 		player.connection.send(FRAME, null, false, true);
@@ -441,6 +443,42 @@ class TimeHelper {
 				player.sendFoodUpdate(false);
 				player.connection.send(FRAME, null, false);
 			}
+		}
+	}
+
+	private static function DoLeadership(player:GlobalPlayerInstance) {
+		if (player.followPlayer == null) return;
+		var leader = player.followPlayer;
+
+		var leaderPower = leader.countLeadershipPower();
+		var myPower = player.countLeadershipPower();
+		var isMyFamily = leader.lineage.eve == player.lineage.eve;
+		var factor = isMyFamily ? 1.2 : 2;
+
+		if (myPower > leaderPower * factor) {
+			trace('Leader change: ${player.name} myPower: ${myPower} ${leader.name} leaderPower: ${leaderPower} isMyFamily: ${isMyFamily}');
+
+			player.followPlayer = leader.followPlayer;
+			leader.followPlayer = player;
+
+			Connection.SendFollowingToAll(player);
+			Connection.SendFollowingToAll(leader);
+
+			player.say('I am more powerful then ${leader.name} ${leader.familyName}!', true);
+
+			// var text = isKing ? 'King' : 'Leader';
+			var text = 'Leader';
+
+			for (p in GlobalPlayerInstance.AllPlayers) {
+				if (p == player) continue;
+				if (p.getTopLeader(player) != player) continue;
+
+				p.say('My new $text is ${player.name} ${player.familyName}!', true);
+				p.connection.sendGlobalMessage('Long live the new $text ${player.name} ${player.familyName}!');
+				// p.connection.sendMapLocation(bestLeader, "LEADER", "leader");
+			}
+
+			// player.connection.sendGlobalMessage('You follow now ${player.name} ${player.familyName}');
 		}
 	}
 
