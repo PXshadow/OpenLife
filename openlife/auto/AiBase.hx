@@ -1250,9 +1250,9 @@ abstract class AiBase {
 
 		this.hasCornSeeds = seeds != null;
 
-		var seeds = AiHelper.GetClosestObjectById(myPlayer, 401, null, 30); // Seeding Carrots
+		var seeds = AiHelper.GetClosestObjectById(myPlayer, 401, null, 10); // Seeding Carrots 401
 		// if (seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 2745, 30); // Bowl of Carrot Seeds
-		if (seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 2745, 30); // Bowl of Carrot Seeds
+		if (seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 2745, 10); // Bowl of Carrot Seeds
 
 		this.hasCarrotSeeds = seeds != null;
 

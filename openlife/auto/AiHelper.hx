@@ -173,6 +173,12 @@ class AiHelper {
 					if (obj.numberOfUses >= objData.numUses) continue;
 				}
 
+				// dont use carrots if seed is needed // 400 Carrot Row
+				if (ai != null && parentId == 400 && ai.hasCarrotSeeds == false) {
+					var obj = world.getObjectHelper(tx, ty);
+					if (obj.numberOfUses < 3) continue;
+				}
+
 				if (searchNotFlooredPlace) {
 					var floorId = world.getFloorId(tx, ty);
 					if (floorId > 0) continue;
@@ -573,19 +579,27 @@ class AiHelper {
 
 				if (objData.id == 0) continue;
 				if (objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
+
+				var parentId = objData.parentId;
 				// if (feedOther && objData.id == 837) continue; // dont feed Psilocybe Mushroom to others
 				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
 
 				// dont eat Cooked Goose if there is only one since needed for crafting knife
-				if (objData.parentId == 518 && gooseFound == false) {
+				if (parentId == 518 && gooseFound == false) {
 					gooseFound = true;
 					continue;
 				}
 
 				// Carrot 402 // Carrot Pile 2742 ==> Leep some carrots for pies
-				if (objData.parentId == 402 || objData.parentId == 2742) {
+				if (parentId == 402 || parentId == 2742) {
 					if (countCarrots < 0) countCarrots = CountCloseObjects(player, player.tx, player.ty, 402, 30);
 					if (countCarrots < 4) continue;
+				}
+
+				// dont use carrots if seed is needed // 400 Carrot Row
+				if (ai != null && parentId == 400 && ai.hasCarrotSeeds == false) {
+					var obj = world.getObjectHelper(tx, ty);
+					if (obj.numberOfUses < 3) continue;
 				}
 
 				// var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
