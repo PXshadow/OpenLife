@@ -400,6 +400,7 @@ class Connection {
 		If leader is -1, that person follows no one
 		Leader color index specifies leader's badge color from a fixed color list */
 	public function sendFollowing(player:GlobalPlayerInstance) {
+		return;
 		var leader = player.getTopLeader();
 		// var leaderId = leader == null ? -1 : leader.p_id; // TODO not sure if client wants top leader or next leader
 		var leaderId = player.followPlayer == null ? -1 : player.followPlayer.p_id;
