@@ -315,10 +315,11 @@ Exhaustion:
 World:
 - paradise is back! Wild Berries and Bana come finaly back with time 
 - objects respawn near original objects with a small chance
-- objects except ancient, well, Iron Mine, Oil Pumps decay with a small chance
-- decay chance is 10X reduced if on floor and 10X increeased if food
+- objects well Oil Pumps decay with a small chance
+//- decay chance is 10X reduced if on floor and 10X increeased if food
+- decay chance is halved if on Pine Dloor or Road and 10X increeased if food
 - dacay chance is reduced for permanent stuff
-- dacay chance is increased for stuff in water
+- dacay chance is increased for stuff in water mountain, swamp or Jungle
 - Ovens Forges and some other objects have custom decay transitions (to Adobe Rubble)
 - TODO iron and steel piles currently dont decay
 
