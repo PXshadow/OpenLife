@@ -5466,8 +5466,8 @@ abstract class AiBase {
 		// if (ServerSettings.DebugAi) trace('escape: animal: ${animal != null} deadlyPlayer: ${deadlyPlayer != null}');
 		// hunt this animal
 		if (animal != null && animal.isKillableByBow()) animalTarget = animal;
-		// go for hunting
-		if (myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false;
+		// go for hunting // FIX: require a minimum age for Hunting otherwise BB with Knife runs in Bison
+		if (myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false && myPlayer.age > 8) return false;
 
 		var player = myPlayer.getPlayerInstance();
 		var escapeDist = 3;
