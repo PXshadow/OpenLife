@@ -816,10 +816,10 @@ class ServerSettings {
 		ObjectData.getObjectData(884).decayFactor = 0.1; // 884 Stone Floor
 		ObjectData.getObjectData(884).decaysToObj = 881; // 884 Stone Floor ==> 881 Cut Stones
 
-		ObjectData.getObjectData(888).decayFactor = 0.5; // 888 Bear Skin Rug
+		ObjectData.getObjectData(888).decayFactor = 1; // 888 Bear Skin Rug
 		ObjectData.getObjectData(888).decaysToObj = 884; // 888 Bear Skin Rug ==> Stone Floor
 
-		ObjectData.getObjectData(3290).decayFactor = 2; // 3290 Pine Floor
+		ObjectData.getObjectData(3290).decayFactor = 0.1; // 3290 Pine Floor
 
 		// set
 		ObjectData.getObjectData(115).decayFactor = 2; // Pine Door (horizontal)
