@@ -2375,7 +2375,10 @@ abstract class AiBase {
 
 		// FIX: AI stuck with trying put Soil on Hardened Row in Snow Biome
 		// Bowl of Soil 1137 + Hardened Row 848
-		if (actorId == 1137 && target.parentId == 848) return false;
+		if (actorId == 1137 && target.parentId == 848) {
+			var biomeId = WorldMap.world.getBiomeId(target.tx, target.ty);
+			if (biomeId == SNOW || biomeId == BiomeTag.OCEAN) return false;
+		}
 
 		// dont use carrots if seed is needed // 400 Carrot Row
 		if (targetId == 400 && hasCarrotSeeds == false && target.numberOfUses < 3) return false;
