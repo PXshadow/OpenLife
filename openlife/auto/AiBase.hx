@@ -2380,6 +2380,12 @@ abstract class AiBase {
 			if (biomeId == SNOW || biomeId == BiomeTag.OCEAN) return false;
 		}
 
+		// Stone Hoe 850 + Fertile Soil 1138 // Steel Hoe 857
+		if ((actorId == 850 || actorId == 857) && target.parentId == 1138) {
+			var biomeId = WorldMap.world.getBiomeId(target.tx, target.ty);
+			if (biomeId == SNOW || biomeId == BiomeTag.OCEAN) return false;
+		}
+
 		// dont use carrots if seed is needed // 400 Carrot Row
 		if (targetId == 400 && hasCarrotSeeds == false && target.numberOfUses < 3) return false;
 
@@ -5985,6 +5991,8 @@ abstract class AiBase {
 				if (objData.id == 0) continue;
 				if (objData.dummyParent != null) objData = objData.dummyParent; // use parent objectdata
 
+				var parentId = objData.parentId;
+
 				// Ignore container with stuff inside
 				// TODO consider contained objects
 				if (objData.numSlots > 0) {
@@ -5997,7 +6005,7 @@ abstract class AiBase {
 
 				// TODO for all biome locked stuff
 				// Fertile Soil 1138 // Hardened Row 848
-				if (objData.parentId == 1138 || objData.parentId == 848) {
+				if (parentId == 1138 || parentId == 848) {
 					var biomeId = world.getBiomeId(tx, ty);
 					if (biomeId == BiomeTag.SNOW || biomeId == BiomeTag.OCEAN) continue;
 				}
@@ -7156,7 +7164,6 @@ abstract class AiBase {
 		// check if food is still eatable. Maybe some one eat it
 		if (myPlayer.isEatableCheckAgain(foodTarget) == false) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} ${foodTarget.description} ${foodTarget.id} food changed meanwhile!');
-
 			foodTarget = null;
 			return true;
 		}
@@ -7165,9 +7172,16 @@ abstract class AiBase {
 		var isHoldingObject = myPlayer.isHoldingObject();
 
 		// no matter if drop (switch) or use consider droppingheldObject before move
-		if (isHoldingObject && considerDropHeldObject(foodTarget)) {
+		/*if (isHoldingObject && considerDropHeldObject(foodTarget)) {
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} isPickingupFood: isUse: $isUse drop ${myPlayer.heldObject.name} since close to home or target less far away');
+			return true;
+		}*/
+
+		// TODO maybe not drop weapons?
+		if (isHoldingObject && dropHeldObject(10)) {
+			if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} isPickingupFood: isUse: $isUse drop ${myPlayer.heldObject.name} before move');
 			return true;
 		}
 
