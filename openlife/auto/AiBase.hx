@@ -204,17 +204,23 @@ abstract class AiBase {
 		if (ai.player.deleted) return;
 		if (ai.player.age < 3) return;
 		if (ai.player.isWounded()) return;
-		if (ai.player.isMoving() == false) return;
+		// if (ai.player.isMoving() == false) return;
 
+		if (AddTargetBlockedByAi(ai.ai.myPlayer.blockActorForAi)) return;
+		if (AddTargetBlockedByAi(ai.ai.myPlayer.blockTargetForAi, ai.ai.myPlayer.blockActorForAi)) return;
 		if (AddTargetBlockedByAi(ai.ai.foodTarget)) return;
 		if (AddTargetBlockedByAi(ai.ai.dropTarget)) return;
 		if (AddTargetBlockedByAi(ai.ai.useTarget, ai.ai.myPlayer.heldObject)) return;
+		if (AddTargetBlockedByAi(ai.ai.removeFromContainerTarget)) return;
 	}
 
 	private static function RemoveBlockedByAi(ai:ServerAi) {
+		RemoveTargetBlockedByAi(ai.ai.myPlayer.blockActorForAi);
+		RemoveTargetBlockedByAi(ai.ai.myPlayer.blockTargetForAi);
 		RemoveTargetBlockedByAi(ai.ai.foodTarget);
 		RemoveTargetBlockedByAi(ai.ai.dropTarget);
 		RemoveTargetBlockedByAi(ai.ai.useTarget);
+		RemoveTargetBlockedByAi(ai.ai.removeFromContainerTarget);
 	}
 
 	// make thread safe, since can interact with player say
@@ -514,7 +520,7 @@ abstract class AiBase {
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = 30;
 
-		if (this.profession['SMITH'] >= 0) Macro.exception(if (doSmithing()) return);
+		if (this.lastProfession == 'SMITH') Macro.exception(if (doSmithing()) return);
 
 		// Firing Adobe Kiln 282
 		var hotkiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 282, 10);
@@ -533,7 +539,7 @@ abstract class AiBase {
 		// 560 Knife // 1468 Leavened Dough on Clay Plate
 		if (heldObjId == 560 && shortCraft(560, 1468, 10, false)) return;
 
-		if (this.profession['BAKER'] > 1) Macro.exception(if (doBaking()) return);
+		// if (this.profession['BAKER'] > 1) Macro.exception(if (doBaking()) return);
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 
 		// if(doWateringOn(396)) return; // Dry Planted Carrots 396
@@ -575,6 +581,7 @@ abstract class AiBase {
 
 		itemToCraft.searchCurrentPosition = false;
 
+		// || lastProfession == 'ROWMAKER'
 		if (assignedProfession == 'ROWMAKER') {
 			Macro.exception(if (doPrepareRows(100)) return);
 		} else if (assignedProfession == 'SOILMAKER') {
@@ -1837,7 +1844,7 @@ abstract class AiBase {
 		if (heldObject.parentId == 235) countBowls += 1;
 
 		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} RowMaker: ${taskState['RowMaker']} Till Rows? countRows: $countRows countBowls: $countBowls');
+			trace('AAI: ${myPlayer.name + myPlayer.id} RowMaker: ${taskState['RowMaker']} Till Rows? countRows: $countRows deepRows: ${deepRows} countBowls: $countBowls');
 
 		if (deepRows < 5) this.taskState['RowMaker'] = 1;
 
@@ -2375,8 +2382,13 @@ abstract class AiBase {
 
 		if (maxNewActor > 0) {
 			var trans = TransitionImporter.GetTransition(actorId, target.parentId);
-			var countActor = trans == null ? 0 : AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, trans.newActorID, 30);
-			if (heldId == actorId) countActor += 1;
+			var countActor = 0;
+			if (trans != null) {
+				var newActorID = trans.newActorID;
+				// TODO decide if to count object at home and if count on current position
+				countActor = AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, newActorID, 30);
+				if (heldId == newActorID) countActor += 1;
+			}
 			if (countActor >= maxNewActor) return false;
 		}
 
@@ -2388,8 +2400,16 @@ abstract class AiBase {
 		// if (ServerSettings.DebugAi)
 		// trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: wanted actor: ${actorData.name} + target: ${target.name} held: ${myPlayer.heldObject.name}');
 
-		if (actorId == 0) return dropHeldObject();
-		return GetOrCraftItem(actorId, craftActorIfNeeded, target);
+		if (actorId == 0) {
+			if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: DROP! wanted actor: ${actorData.name} + target: ${target.name} held: ${myPlayer.heldObject.name}');
+			return dropHeldObject();
+		}
+
+		var done = GetOrCraftItem(actorId, craftActorIfNeeded, target);
+		if (done && ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} shortCraft: wanted actor: ${actorData.name} + target: ${target.name} held: ${myPlayer.heldObject.name}');
+		return done;
 	}
 
 	private function GetKiln() {
@@ -2804,13 +2824,14 @@ abstract class AiBase {
 			// Raw Potato 1147
 			if (shortCraftOnTarget(1147, hotOven, false)) return true;
 			// Bowl of Soaking Beans 1180
-			if (shortCraftOnTarget(1180, hotOven)) return true;
+			if (shortCraftOnTarget(1180, hotOven, false)) return true;
 		}
 
 		if (handleMilk()) return true;
 
+		// FIX: AI gets stuck picking up Bowl
 		// Clay Bow 235 + Three Sisters Stew 1249
-		if (shortCraft(235, 1249, 20, 1)) return true;
+		// if (shortCraft(235, 1249, 20, 1)) return true;
 
 		// Clay Bow 235 + Open Fermented Sauerkraut 1241
 		if (shortCraft(235, 1241, 20, 1)) return true;
@@ -2871,7 +2892,8 @@ abstract class AiBase {
 		this.profession['BAKER'] = 3; // TODO set to 2 once in a while to check for bread stuff???
 
 		// Baker needs Wheat
-		if (this.myPlayer.food_store > 2) {
+		// if (this.myPlayer.food_store > 2) {
+		if (this.isHungry == false) {
 			if (doHarvestWheat(1, 4)) return true;
 
 			if (doPlantWheat(2, 8)) return true;
@@ -4381,6 +4403,7 @@ abstract class AiBase {
 	var dropNearWellItemIds = [336, 227];
 
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
+		// return false;
 		var heldObject = myPlayer.heldObject;
 		var heldObjId = heldObject.parentId;
 		var dropTarget = myPlayer.home;
@@ -5106,7 +5129,7 @@ abstract class AiBase {
 		return GetOrCraftItem(objId, false);
 	}
 
-	private function GetOrCraftItem(objId:Int, craft:Bool = true, minDistance:Int = 0, target:ObjectHelper = null):Bool {
+	private function GetOrCraftItem(objId:Int, craft:Bool = true, minDistance:Int = 0, target:ObjectHelper = null, ?infos:haxe.PosInfos):Bool {
 		if (myPlayer.isMoving()) return true;
 		var objdata = ObjectData.getObjectData(objId);
 		var pileId = objdata.getPileObjId();
@@ -5140,7 +5163,7 @@ abstract class AiBase {
 
 		if (obj == null) return craftItem(objId);
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: found ${obj.name} pile: $usePile');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GetOrCraftItem: found ${obj.name} pile: $usePile from: ${infos.methodName}');
 
 		// If picking up from a pile or a container like Basket make sure that hand is empty
 		// TODO consider drop after movement
@@ -5828,6 +5851,7 @@ abstract class AiBase {
 				trace('AAI: ${myPlayer.name + myPlayer.id} craft goto actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
 			if (shouldDebugSay()) myPlayer.say('Goto actor ' + itemToCraft.transActor.name);
 
+			// Is this needed?
 			if (dropTarget != null) {
 				// if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} craft: first drop held before goto actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
@@ -5845,6 +5869,11 @@ abstract class AiBase {
 		}
 
 		var isHoldingObject = myPlayer.isHoldingObject();
+
+		// save droptarget from other Ai if first held object is dropped to pickup actor
+		// myPlayer.blockActorForAi = useActor;
+		// myPlayer.blockTargetForAi = useTarget;
+
 		if (isHoldingObject && considerDropHeldObject(itemToCraft.transTarget)) {
 			var itemName = itemToCraft.transActor == null ? 'WARNING NULL' : itemToCraft.transActor.name;
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop ${myPlayer.heldObject.name} to pickup ${itemName}');
@@ -6940,6 +6969,9 @@ abstract class AiBase {
 		if (heldId != 0 && dropTarget.objectData.numSlots > 0) {
 			if (shouldDebugSay()) myPlayer.say('Drop ${myPlayer.heldObject.name} Drop for container ${dropTarget.name}');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} for container ${dropTarget.name}');
+			// save droptarget from other Ai if first held object is dropped to pickup actor
+			myPlayer.blockActorForAi = dropTarget;
+			myPlayer.blockTargetForAi = useTarget;
 			return dropHeldObject(dropDistance);
 		}
 
@@ -6948,8 +6980,18 @@ abstract class AiBase {
 			if (shouldDebugSay()) myPlayer.say('Drop ${myPlayer.heldObject.name} TOO FAR AWAY! dist: $distance');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} TOO FAR AWAY! dist: $distance');
 
+			// save droptarget from other Ai if first held object is dropped to pickup actor
+			myPlayer.blockActorForAi = dropTarget;
+			myPlayer.blockTargetForAi = useTarget;
+
 			return dropHeldObject(dropDistance);
 		}
+
+		// TODO reset somehwere else, since otherwise this might be blocked too long
+		myPlayer.blockActorForAi = null;
+		myPlayer.blockTargetForAi = null;
+
+		// TODO go only for floored target or fire if kid or mother with kids and winter
 
 		// myPlayer.getFollowPlayer()
 		if (dropTargetId != 0 && distance > 400 && playerToFollow != null && isHungry == false) {
@@ -7017,14 +7059,16 @@ abstract class AiBase {
 			var text = createProfessionText();
 			myPlayer.say('$text ${countProfession(lastProfession)}');
 		}
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} profession: $lastProfession count: ${countProfession(lastProfession)}');
+		if (ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} profession: $lastProfession count: ${countProfession(lastProfession)}');
 
 		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
 		if (isHungry == false && foodTarget == null) return false;
 
 		// TODO reset SMITH here?
 		this.profession['SMITH'] = 0;
-		if (this.lastProfession != 'FOODSERVER') this.lastProfession = 'Eating';
+		// TODO try out if it is better or not to keep profession while eating
+		// if (this.lastProfession != 'FOODSERVER') this.lastProfession = 'Eating';
 
 		var quadDistance = -1.0;
 
@@ -7041,6 +7085,8 @@ abstract class AiBase {
 		// Dont try to make Food if too far from home
 		var quadDistanceToHome = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 		if (quadDistanceToHome > 900) return false;
+
+		Macro.exception(if (isMakingSeeds()) return true); // Count carrots // do before searching foood to not pull out carrots needed for seeds
 
 		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['considerFood']);
 		if (passedTime > 15) {
@@ -7060,8 +7106,10 @@ abstract class AiBase {
 
 		if (myPlayer.isMoving()) return true;
 
-		Macro.exception(if (isMakingSeeds()) return true); // Count carrots
 		Macro.exception(if (shortCraft(0, 400, 10)) return true); // pull out the carrots
+
+		// Clay Bow 235 + Three Sisters Stew 1249
+		if (shortCraft(235, 1249, 20, 1)) return true;
 
 		// Shucked Ear of Corn 1114
 		if (myPlayer.isObjIdYum(1114)) {
@@ -7349,6 +7397,10 @@ abstract class AiBase {
 			CancleUse();
 			return false;
 		}
+
+		// TODO save droptarget from other Ai if first held object is dropped to pickup actor
+		// myPlayer.blockActorForAi = useActor;
+		// myPlayer.blockTargetForAi = useTarget;
 
 		// only allow to go on with use if right actor is in the hand, or if actor will be empty
 		if (heldObject.parentId != useActor.parentId) {
