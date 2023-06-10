@@ -1878,11 +1878,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			toSelf = true;
 		}
 
+		if (StringTools.startsWith(text, 'POWER?')) {
+			var power = Math.floor(this.countLeadershipPower());
+			text = 'MY POWER IS ${power}!';
+		}
+
 		if (StringTools.startsWith(text, '?HPOWER')) {
 			var bestPlayer = GetMostPowerful(player.home.tx, player.home.ty);
 			var power = Math.floor(bestPlayer.countLeadershipPower());
 			text = 'MOST POWERFUL IS ${bestPlayer.name} ${power} POWER!';
 			toSelf = true;
+		}
+
+		if (StringTools.startsWith(text, 'HPOWER?')) {
+			var bestPlayer = GetMostPowerful(player.home.tx, player.home.ty);
+			var power = Math.floor(bestPlayer.countLeadershipPower());
+			text = 'MOST POWERFUL IS ${bestPlayer.name} ${power} POWER!';
 		}
 
 		if (toSelf) {
@@ -6116,10 +6127,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function countLeadershipPower() {
-		var power = this.food_store_max * (this.prestige + this.coins);
+		// var power = this.food_store_max * (this.prestige + this.coins);
+		var power = this.prestige + this.coins;
 		if (this.lineage.prestigeClass == Noble) power *= 2;
 		if (this.lineage.prestigeClass == Serf) power /= 2;
-		power /= 100;
+		power /= 10;
 		return power;
 	}
 

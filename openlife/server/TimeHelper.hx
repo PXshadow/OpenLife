@@ -1523,7 +1523,9 @@ class TimeHelper {
 		// 11% for a floor souranded by 4 Walls (0%)
 		// 50% for a floor souranded by 1 floor
 		// 33% for a floor souranded by 1 Wall
+
 		// 14% for a floor souranded by 4 Floor and 1 Wall (0%)
+		// TODO allow some floor decay inside
 		var strengthFactor = totalStrength > 5 ? 0 : 1 / totalStrength;
 		decayChance *= strengthFactor;
 
