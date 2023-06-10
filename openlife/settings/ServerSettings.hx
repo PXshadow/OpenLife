@@ -678,14 +678,16 @@ class ServerSettings {
 		ObjectData.getObjectData(858).decaysToObj = 862; // Broken Steel Tool 858 ==> Broken Steel Tool no wood 862
 
 		// try too decay stuff faster that creates some mess
-		ObjectData.getObjectData(292).decayFactor = 2; // Basket 292
-		ObjectData.getObjectData(1155).decayFactor = 2; // Split Potato Sprouts 1155
-		ObjectData.getObjectData(204).decayFactor = 10; // Two Rabbit Furs 204
-		ObjectData.getObjectData(204).decaysToObj = 183; // Rabbit Furs
-		ObjectData.getObjectData(4063).decayFactor = 5; // Pile of Yew Branches 4063
+		// TODO set decay for containers
+		// ObjectData.getObjectData(292).decayFactor = 2; // Basket 292
+		ObjectData.getObjectData(292).decaysToObj = 227; // Basket 292 -- Straw 227
+		// ObjectData.getObjectData(1155).decayFactor = 2; // Split Potato Sprouts 1155
+		// ObjectData.getObjectData(204).decayFactor = 10; // Two Rabbit Furs 204
+		ObjectData.getObjectData(204).decaysToObj = 183; // Two Rabbit Furs 204 --> Rabbit Furs
+		// ObjectData.getObjectData(4063).decayFactor = 5; // Pile of Yew Branches 4063
 		ObjectData.getObjectData(4063).decaysToObj = 132; // Pile of Yew Branches 4063 ==> Yew Branch 132
-		ObjectData.getObjectData(1121).decayFactor = 2; // Popcorn 1121
-		ObjectData.getObjectData(1121).decaysToObj = 235; // Clay Bowl
+		// ObjectData.getObjectData(1121).decayFactor = 2; // Popcorn 1121
+		ObjectData.getObjectData(1121).decaysToObj = 235; //  Popcorn 1121 --> Clay Bowl
 
 		// set decay for ancient
 		ObjectData.getObjectData(898).decayFactor = 0.02; // Ancient Stone Floor

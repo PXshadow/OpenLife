@@ -1576,11 +1576,19 @@ class TimeHelper {
 
 		var objectHelper = world.getObjectHelper(x, y, true);
 		var containsSomething = objectHelper != null && objectHelper.containedObjects.length > 0;
+		var floorDecayFactor = floorId > 0 ? 0.0 : 1.0;
+
+		// Pine Floor 3290
+		if (floorId == 3290) floorDecayFactor = 0.5;
+		// Stone Road 1596
+		if (floorId == 1596) floorDecayFactor = 0.5;
 
 		// if (containsSomething && (floorId > 0 || objId != 292)) return; // TODO 292 Basket ==> Allow all containers
-		if (floorId > 0
-			&& (objData.isWall() == false
-				|| (containsSomething && objData.decaysToObj < 1))) return; // TODO Decay Allow containers in colored walls
+		// Dont decay stuff on Floor except walls
+		if (floorDecayFactor < 0.01 && objData.isWall() == false) return;
+		if (floorDecayFactor < 0.01 && containsSomething && objData.decaysToObj < 1) return;
+		// if (floorId > 0 && (objData.isWall() == false || (containsSomething && objData.decaysToObj < 1))) return; // TODO Decay Allow containers in colored walls
+		// TODO Check all container decay / Decay Allow containers in colored walls
 		if (objData.isWall()) decayChance *= ServerSettings.ObjDecayFactorForWalls;
 
 		// only allow object with time transition to decay if there is no custom decay set // 161 Rabbit to unstuck them from the corner
@@ -1589,6 +1597,7 @@ class TimeHelper {
 
 		// var objData = ObjectData.getObjectData(objId);
 
+		if (objData.isWall() == false) decayChance *= floorDecayFactor;
 		decayChance *= biomeDecayFactor;
 
 		if (objData.isNoBoneGrave()) decayChance *= 0.01;

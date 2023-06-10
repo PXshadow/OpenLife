@@ -810,6 +810,8 @@ class ObjectHelper {
 		// trace('Decay ${obj.name} ${obj.floor}');
 		var stength:Float = objId > 0 ? 1 : 0;
 
+		// TODO give different floor strength? 0.1 for Road and Pine? 2 for Stone?
+
 		var objId = world.getFloorId(tx + 1, ty);
 		stength += objId > 0 ? 1 : 0;
 		var objId = world.getFloorId(tx - 1, ty);
