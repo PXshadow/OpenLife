@@ -2769,8 +2769,9 @@ class ServerSettings {
 		var trans = transitions.getTransition(560, 4213); // Knife + Fed Domestic Sheep 4213
 		trans.aiShouldIgnore = true;
 
-		var trans = transitions.getTransition(568, 4213); // Shears 568 + Fed Domestic Sheep 4213
-		trans.aiShouldIgnore = true;
+		// Is deleted now
+		// var trans = transitions.getTransition(568, 4213); // Shears 568 + Fed Domestic Sheep 4213
+		// trans.aiShouldIgnore = true;
 
 		// no last use actor?
 		// var trans = transitions.getTransition(568, 4213, true); // Shears 568 + Fed Domestic Sheep 4213
