@@ -1259,7 +1259,7 @@ class ServerSettings {
 
 		// Domestic Gooseberry Bush
 		// ObjectData.getObjectData(391).winterDecayFactor = 1; // Domestic Gooseberry Bush
-		ObjectData.getObjectData(391).springRegrowFactor = 0.2; // Domestic Gooseberry Bush
+		// ObjectData.getObjectData(391).springRegrowFactor = 0.2; // Domestic Gooseberry Bush
 		ObjectData.getObjectData(1135).springRegrowFactor = 0.2; // Empty Domestic Gooseberry Bush
 
 		ObjectData.getObjectData(750).speedMult = 0.75; // Bloody Knife
@@ -3540,7 +3540,7 @@ class ServerSettings {
 		// Ripe Cucumber Plant 4232 // Dry Planted Cucumber Seeds 4225
 		LimitObjectByNewTarget(4232, 4225, 5);
 
-		LimitObjectByNewTarget(391, 216, 20); // // Domestic Gooseberry Bush 391 // Dry Planted Gooseberry Seed 216
+		LimitObjectByNewTarget(391, 216, 10); // // Domestic Gooseberry Bush 391 // Dry Planted Gooseberry Seed 216
 
 		LimitObjectByNewTarget(242, 228, 30); // Dry Planted Wheat 228 // Ripe Wheat 242
 
