@@ -409,15 +409,19 @@ class TimeHelper {
 				var notExiled = exileLeader == null;
 
 				if (notExiled && player.newFollower.followPlayer != player.newFollowerFor) {
-					player.newFollower.followPlayer = player.newFollowerFor;
-					Connection.SendFollowingToAll(player.newFollower);
+					// player.newFollowerFor since also top leader got informed so player might be top leader
+					var done = player.newFollower.setFollowPlayer(player.newFollowerFor);
 
-					player.newFollower.say('I follow now ${player.name} ${player.familyName}', true);
-					player.newFollower.connection.sendGlobalMessage('You follow now ${player.name} ${player.familyName}');
+					if (done) {
+						Connection.SendFollowingToAll(player.newFollower);
 
-					// player.newFollower.say('now I follow ${player.newFollowerFor.name}');
+						player.newFollower.say('I follow now ${player.name} ${player.familyName}', true);
+						player.newFollower.connection.sendGlobalMessage('You follow now ${player.name} ${player.familyName}');
 
-					// player.say('He follows now ${player.newFollowerFor.name}');
+						// player.newFollower.say('now I follow ${player.newFollowerFor.name}');
+
+						// player.say('He follows now ${player.newFollowerFor.name}');
+					}
 				}
 
 				player.newFollowerFor.newFollower = null;
@@ -734,18 +738,21 @@ class TimeHelper {
 					var rand = WorldMap.world.randomFloat();
 					var chance = player.isMale() ? 0.4 : 0.8;
 					if (rand > chance) {
-						player.followPlayer = player.father;
-						var text = player.isMale() ? 'SON' : 'DAUGHTER';
+						var done = player.setFollowPlayer(player.father);
 
-						Connection.SendFollowingToAll(player);
+						if (done) {
+							var text = player.isMale() ? 'SON' : 'DAUGHTER';
 
-						player.say('I FOLLOW MY FATHER!');
-						father.say('MY $text ${player.name} FOLLOWS ME NOW!', true);
+							Connection.SendFollowingToAll(player);
 
-						player.connection.sendMapLocation(father, 'LEADER', 'leader');
-						father.connection.sendMapLocation(player, 'FOLLOWER', 'follower');
-						father.doEmote(Emote.hubba);
-						player.doEmote(Emote.happy);
+							player.say('I FOLLOW MY FATHER!');
+							father.say('MY $text ${player.name} FOLLOWS ME NOW!', true);
+
+							player.connection.sendMapLocation(father, 'LEADER', 'leader');
+							father.connection.sendMapLocation(player, 'FOLLOWER', 'follower');
+							father.doEmote(Emote.hubba);
+							player.doEmote(Emote.happy);
+						}
 					}
 				}
 			}

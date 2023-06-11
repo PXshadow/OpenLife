@@ -2216,14 +2216,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return;
 		}
 
-		var tmpFollow = player.followPlayer;
-		player.followPlayer = this;
-		var leader = this.getTopLeader();
+		// var tmpFollow = player.followPlayer;
+		// player.followPlayer = this;
+		// var leader = this.getTopLeader();
+
+		var done = player.setFollowPlayer(this);
 
 		// TODO allow other leader through follow?
 		// TODO allow to hire one of your leaders
-		if (leader == null) {
-			player.followPlayer = tmpFollow;
+		if (done == false) {
+			// player.followPlayer = tmpFollow;
 			// trace('FOLLOW: CIRCULAR FOLLOW --> NO CHANGE');
 			this.say('I am following ${player.name} or one of his followers', true);
 			this.connection.sendGlobalMessage('you are following ${player.name} or one of his followers!');
@@ -4678,7 +4680,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var followPlayer = targetPlayer.followPlayer;
 
 		if (followPlayer == null || (followPlayer.isFertile() == false && this.isFertile())) {
-			targetPlayer.followPlayer = this; // consider this player as mother
+			targetPlayer.setFollowPlayer(this); // consider this player as mother
 		}
 
 		if (this.isHoldingChildInBreastFeedingAgeAndCanFeed()) {
@@ -6282,6 +6284,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function isAngryOrTerrified():Bool {
 		return this.angryTime < 1;
+	}
+
+	public function setFollowPlayer(playerToFollow:GlobalPlayerInstance) {
+		var tmpFollow = this.followPlayer;
+		this.followPlayer = playerToFollow;
+		var leader = this.getTopLeader();
+
+		if (leader != null) return true;
+
+		this.followPlayer = tmpFollow;
+		return false;
 	}
 }
 
