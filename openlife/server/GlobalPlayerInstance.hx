@@ -2260,16 +2260,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	private function doCommands(message:String):Bool {
 		var name = NamingHelper.GetName(message);
-		var target = NamingHelper.GetPlayerByNameWithMessage(this, name);
 
 		// if (target != null) message = StringTools.replace(message, ' YOU', ' ${target.name}');
 
 		if (message.startsWith('I EXILE ') || message.startsWith('I BANN ')) {
+			var target = NamingHelper.GetPlayerByNameWithMessage(this, name);
 			this.exile(target);
 			return true;
 		}
 
 		if (message.startsWith('I REDEEM ')) {
+			var target = NamingHelper.GetPlayerByNameWithMessage(this, name);
 			return this.redeem(target);
 		}
 		// Dont do anything: I FOLLOW MY FATHER
@@ -2301,6 +2302,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if (message.startsWith('I GIVE ')) {
+			var target = NamingHelper.GetPlayerByNameWithMessage(this, name);
 			if (target == null || target == this) {
 				this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
 				return false;
@@ -2340,6 +2342,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (message.contains('OWNES THIS') || message.contains('OWN THIS')) {
 			// trace('Owner: ${name}');
+			var target = NamingHelper.GetPlayerByNameWithMessage(this, name);
 
 			if (target == null || target == this) {
 				this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
