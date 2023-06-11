@@ -4149,9 +4149,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// In case you hit your ally you make halve damage
 		if (targetPlayer.isAlly(this) && targetPlayer.isHoldingWeapon() == false) {
 			if (lastAttackedPlayer != targetPlayer) {
+				var isMyFollower = targetPlayer.isFollowerFrom(this);
+
 				this.connection.send(PLAYER_UPDATE, [this.toData()]);
-				this.connection.sendGlobalMessage('${targetPlayer.name} is your ally! Attack again to exile!');
-				this.say('Its my ally!', true);
+
+				if (isMyFollower) this.connection.sendGlobalMessage('${targetPlayer.name} is your follower! Attack again to exile!'); else
+					this.connection.sendGlobalMessage('${targetPlayer.name} is your ally!');
+
+				if (isMyFollower) this.say('Its my ally!', true); else
+					this.say('Its my follower!', true);
+
 				lastAttackedPlayer = targetPlayer;
 				trace('kill: playerId: $playerId is an ally!');
 				return false;
