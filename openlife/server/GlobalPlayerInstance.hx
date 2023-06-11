@@ -2367,15 +2367,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		for (p in GlobalPlayerInstance.AllPlayers) {
 			if (p == myPlayer) continue;
 			if (p.isHuman()) continue;
-			if(p.followPlayer != myPlayer) continue;
-			//if (p.getTopLeader(myPlayer) != myPlayer && p.followPlayer != myPlayer) continue;
+			if (p.followPlayer != myPlayer) continue;
+			// if (p.getTopLeader(myPlayer) != myPlayer && p.followPlayer != myPlayer) continue;
 
 			p.home = newHome;
 
 			// if (p.isHuman()) p.say('My leader ${myPlayer.name} chose a new home!', true); else
 			p.say('My leader ${myPlayer.name} chose a new home!');
 
-			trace('Follower new home ${p.home}: ${p.name}');
+			// trace('Follower new home ${p.home}: ${p.name}');
 		}
 
 		GlobalPlayerInstance.ReleaseMutex();

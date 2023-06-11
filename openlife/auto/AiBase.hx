@@ -929,7 +929,7 @@ abstract class AiBase {
 			// Vigorous Domestic Gooseberry Bush 1134
 			countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1134, distance);
 
-			if (countBushes < 30) {
+			if (countBushes < 20) {
 				// Bowl of Soil 1137 + Dying Gooseberry Bush 389
 				if (shortCraft(1137, 389, 30)) return true;
 				// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
