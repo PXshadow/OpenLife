@@ -2364,15 +2364,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		GlobalPlayerInstance.AcquireMutex(); // TODO make ALLPlayers thread save
 
-		// TODO does not yet set home for not direct follower if not top leader
 		for (p in GlobalPlayerInstance.AllPlayers) {
 			if (p == myPlayer) continue;
-			if (p.getTopLeader(myPlayer) != myPlayer && p.followPlayer != myPlayer) continue;
+			if (p.isHuman()) continue;
+			if(p.followPlayer != myPlayer) continue;
+			//if (p.getTopLeader(myPlayer) != myPlayer && p.followPlayer != myPlayer) continue;
 
 			p.home = newHome;
 
-			if (p.isHuman()) p.say('My leader ${myPlayer.name} chose a new home!', true); else
-				p.say('My leader ${myPlayer.name} chose a new home!');
+			// if (p.isHuman()) p.say('My leader ${myPlayer.name} chose a new home!', true); else
+			p.say('My leader ${myPlayer.name} chose a new home!');
 
 			trace('Follower new home ${p.home}: ${p.name}');
 		}
