@@ -3387,9 +3387,14 @@ abstract class AiBase {
 		// Dry Planted Cucumber Seeds 4225
 		// Dry Planted Beans 1161
 		// Dry Planted Potatoes 1145
+
 		// Dry Planted Pepper Seed 2839
 		// Wet Planted Pepper Seed 2840
 		// Pepper Plant 2842
+
+		// Dry Planted Squash Seeds 1192
+		// Wet Planted Squash Seeds 1190
+		// Ripe Squash Plant 1196
 
 		// TODO other dry planted
 
@@ -3397,7 +3402,7 @@ abstract class AiBase {
 		// removed: 1110
 		// var advancedPlants = [228, 396, 1110, 217, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
 		// var advancedPlants = [228, 1110, 1161, 228, 1110, 2851, 228, 4225, 2829, 1110, 2852, 228, 4263, 228, 228, 1142, 228, 1110];
-		var advancedPlants = [1145, 1161, 2839, 2851, 1145, 4225, 2829, 1145, 2852, 1145];
+		var advancedPlants = [1145, 1161, 2839, 2851, 1145, 4225, 2829, 1192, 1145, 2852, 1145];
 		var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
 
 		toPlant = toPlant > 0 ? toPlant : rand;
@@ -3445,12 +3450,27 @@ abstract class AiBase {
 
 			// Dry Planted Pepper Seed 2839
 			if (toPlant == 2839) {
-				// Dry Planted Garlic 4262
-				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4262, 30);
+				// Dry Planted Pepper Seed 2839
+				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2839, 30);
 				// Wet Planted Pepper Seed 2840
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2840, 30);
 				// Pepper Plant 2842
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2842, 30);
+
+				if (count > 3) {
+					toPlant += 1;
+					continue;
+				}
+			}
+
+			// Dry Planted Squash Seeds 1192
+			if (toPlant == 2839) {
+				// Dry Planted Squash Seeds 2839
+				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2839, 30);
+				// Wet Planted Squash Seeds 1190
+				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1190, 30);
+				// Ripe Squash Plant 1196
+				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1196, 30);
 
 				if (count > 3) {
 					toPlant += 1;
