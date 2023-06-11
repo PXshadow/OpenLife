@@ -3846,13 +3846,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (bestLeader == null) return null;
 
-		// deadLeader.followPlayer = bestLeader;
-		bestLeader.followPlayer = deadLeader.followPlayer;
-
 		trace('New leader: ${bestLeader.name}${bestLeader.p_id} Power: $bestLeaderScore');
 
 		// make new leader follow the leader the dead leader followed
 		bestLeader.followPlayer = deadLeader.followPlayer;
+		deadLeader.followPlayer = null;
 
 		Connection.SendFollowingToAll(bestLeader);
 
