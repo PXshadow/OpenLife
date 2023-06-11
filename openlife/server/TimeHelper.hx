@@ -455,7 +455,7 @@ class TimeHelper {
 		var isMyFamily = leader.lineage.eve == player.lineage.eve;
 		var factor = isMyFamily ? 1.2 : 2;
 
-		if (myPower > leaderPower * factor) {
+		if (player.age > 6 && myPower > leaderPower * factor) {
 			trace('Leader change: ${player.name} myPower: ${myPower} ${leader.name} leaderPower: ${leaderPower} isMyFamily: ${isMyFamily}');
 
 			player.followPlayer = leader.followPlayer;
