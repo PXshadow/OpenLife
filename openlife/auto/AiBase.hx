@@ -1840,6 +1840,9 @@ abstract class AiBase {
 				this.taskState['RowMaker'] = 2;
 		}
 
+		// Dont do hungry row work if hungry
+		if (this.isHungry) return false;
+
 		var countBowls = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 30); //  Clay Bowl 235
 		if (heldObject.parentId == 235) countBowls += 1;
 
@@ -2902,11 +2905,10 @@ abstract class AiBase {
 
 		// Baker needs Wheat
 		// if (this.myPlayer.food_store > 2) {
-		if (this.isHungry == false) {
-			if (doHarvestWheat(1, 4)) return true;
+		// if (this.isHungry == false) {
+		if (doHarvestWheat(1, 4)) return true;
 
-			if (doPlantWheat(2, 8)) return true;
-		}
+		if (doPlantWheat(2, 8)) return true;
 
 		// Raw Potato 1147
 		var countPotatos = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1147, 20);
