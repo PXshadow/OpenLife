@@ -1937,14 +1937,27 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		target.exiledByPlayers[this.p_id] = this;
 
 		this.connection.sendGlobalMessage('YOU_EXILED:_${target.name}_${target.familyName}');
-		if (leader != target.getTopLeader())
+		if (leader != target.getTopLeader()) {
 			target.connection.sendGlobalMessage('YOU_HAVE_BEEN_EXILED_BY:_${this.name}_${this.familyName} YOU CAN BE LEGALLY KILLED!');
+			target.say('I AM EXILED!');
+		}
 
 		Connection.SendExileToAll(this, target);
 
 		this.doEmote(Emote.angry);
 
 		return true;
+	}
+
+	public static function ExileIfClose(target:GlobalPlayerInstance, ally:GlobalPlayerInstance) {
+		for (p in AllPlayers) {
+			if (p.isAlly(ally) == false) continue;
+
+			var quadDist = p.calculateExactQuadDistanceToPlayer(target);
+			if (quadDist > ServerSettings.MaxDistanceToAutoExileAttacker) continue;
+
+			p.exile(target, false);
+		}
 	}
 
 	public function redeem(target:GlobalPlayerInstance):Bool {
@@ -2215,7 +2228,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	private function doCommands(message:String):Bool {
 		var name = NamingHelper.GetName(message);
 
-		if (message.startsWith('I EXILE ')) {
+		if (message.startsWith('I EXILE ') || message.startsWith('I BANN ')) {
 			var target = NamingHelper.GetPlayerByNameWithMessage(this, name);
 			return this.exile(target);
 		}
@@ -2397,7 +2410,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// trace('getTopLeader1 ${lastLeader.name} --> ${leader.name}');
 			if (this.exiledByPlayers.exists(leader.p_id)) return lastLeader; // is exiled by leader
 			// trace('getTopLeader2 ${lastLeader.name} --> ${leader.name} ' + leader.exiledByPlayers);
-			if (leader.exiledByPlayers.exists(this.p_id)) return lastLeader; // player exiled leader // still ally in this case???
+			if (leader.exiledByPlayers.exists(this.p_id)) return lastLeader; // player exiled leader
 			// trace('getTopLeader3 ${lastLeader.name} --> ${leader.name}');
 			if (leader.followPlayer == null) return leader;
 
@@ -4121,15 +4134,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			} else {
 				// if(targetPlayer.getTopLeader() == this) this.exile(targetPlayer);
 				// TODO Check if leader is close and can see the attack
-				var leader = targetPlayer.getTopLeader();
 
-				if (leader != null && leader != this) {
-					var dist = AiHelper.CalculateDistanceToPlayer(this, leader);
-					if (dist < 90) leader.exile(this, false);
-				}
+				/*var leader = targetPlayer.getTopLeader();
+
+					if (leader != null && leader != this) {
+						var dist = AiHelper.CalculateDistanceToPlayer(this, leader);
+						if (dist < 90) leader.exile(this, false);
+				}*/
+
 				this.exile(targetPlayer, false);
 			}
 		}
+
+		// Exile attacker if seen by close by ally of attacker // target also exiles attacker
+		ExileIfClose(this, targetPlayer);
 
 		// make participants more angry // max angry is checked in TimeHelper
 		var damage = targetPlayer.doDamage(this.heldObject, this, distanceFactor, quadDistance);

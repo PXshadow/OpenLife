@@ -224,6 +224,7 @@ class ServerSettings {
 	public static var MaxDistanceToBeConsideredAsCloseForMapChanges = 10; // for MX
 	public static var MaxDistanceToBeConsideredAsCloseForSay = 20; // if a player says something
 	public static var MaxDistanceToBeConsideredAsCloseForSayAi = 20; // if a player says something
+	public static var MaxDistanceToAutoExileAttacker = 15; // Exile attacker if seen by close by ally of attacker
 
 	// for movement
 	public static var GotoTimeOut:Int = 250;
