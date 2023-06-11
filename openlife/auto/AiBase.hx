@@ -578,7 +578,7 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		// medium priorty tasks
 		var rightAge = myPlayer.age > 10 && Math.floor((myPlayer.age + 2) / 6) % 2 == 0;
-		if (rightAge) Macro.exception(if (craftMediumPriorityClothing()) return);
+		if (rightAge) Macro.exception(if (craftMediumPriorityClothing(2)) return);
 
 		itemToCraft.searchCurrentPosition = false;
 
@@ -1319,8 +1319,8 @@ abstract class AiBase {
 
 		// myPlayer.say('check for graves!');
 
-		// Old Grave 89 // Grave 88 // Bone Pile 357
-		var graveIdsToDigIn = [88, 89, 357];
+		// Fresh Grave 97 // Old Grave 89 // Grave 88 // Bone Pile 357
+		var graveIdsToDigIn = [87, 88, 89, 357];
 		var heldId = myPlayer.heldObject.parentId;
 		if (lastGrave != null && graveIdsToDigIn.contains(lastGrave.parentId) == false) lastGrave = null;
 		var grave = lastGrave != null ? lastGrave : AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, graveIdsToDigIn, 20, myPlayer);
