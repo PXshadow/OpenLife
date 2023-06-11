@@ -1566,11 +1566,11 @@ abstract class AiBase {
 
 		if (countButter + countSkimMilk > 0) {
 			// Clay Bowl 235 + Full Bucket of Milk 1478
-			if (shortCraft(235, 1478, 30)) return true;
+			if (shortCraft(235, 1478, 30, 1)) return true;
 		}
 
 		// Clay Bowl 235 + Bucket of Separated Milk 1480
-		if (shortCraft(235, 1480, 30)) return true;
+		if (shortCraft(235, 1480, 30, 1)) return true;
 
 		// Skewer 139 + Bowl of Whipped Cream 3374
 		if (shortCraft(139, 3374, 30)) return true;
@@ -7133,6 +7133,12 @@ abstract class AiBase {
 
 		// Clay Bow 235 + Three Sisters Stew 1249
 		if (shortCraft(235, 1249, 20, 1)) return true;
+
+		// Clay Bowl 235 + Partial Bucket of Skim Milk 1483
+		if (shortCraft(235, 1483, 30, 1)) return true;
+
+		// Clay Bowl 235 + Full Bucket of Skim Milk 2124
+		if (shortCraft(235, 2124, 30, 1)) return true;
 
 		// Shucked Ear of Corn 1114
 		if (myPlayer.isObjIdYum(1114)) {
