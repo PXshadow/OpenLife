@@ -1592,7 +1592,7 @@ class ObjectData extends LineReader {
 		if (objId == 3196) return true; // Basket of Defaced Bones
 
 		if (objId == 752) return true; // Murder Grave
-		if (objId == 1011) return true; // Buried Grave
+		// if (objId == 1011) return true; // Buried Grave
 
 		return false;
 	}
