@@ -949,6 +949,8 @@ abstract class AiBase {
 
 		Macro.exception(if (doWatering(1)) return true);
 
+		if (doBaking(1)) return true;
+
 		if (doPottery(1)) return true;
 
 		if (cleanUp()) return true;
@@ -1193,6 +1195,7 @@ abstract class AiBase {
 			if (p.age > ServerSettings.MaxAge - 2 && profession != 'GRAVEKEEPER') continue;
 			if (p.isWounded()) continue;
 			if (p.food_store < 0) continue;
+			if (ai.playerToFollow != null) continue;
 			if (p.home.tx != myPlayer.home.tx || p.home.ty != myPlayer.home.ty) continue;
 
 			// var hasProfession = ai.profession[profession] > 0;
