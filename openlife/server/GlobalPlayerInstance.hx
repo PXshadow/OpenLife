@@ -1881,29 +1881,31 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (StringTools.startsWith(text, 'ALLY?')) {
 			var count = this.CountAndDisplayAlly();
-			text = 'ALLIES ${count}!';
+			text = 'ALLIES ${count}';
 		}
 
 		if (StringTools.startsWith(text, '?FOLLOWER') || text == '?F') {
+			if (text == '?F') player.connection.sendToMeAllFollowings(true);
+
 			var count = this.CountAndDisplayFollower();
-			text = 'FOLLOWER ${count}!';
+			text = 'FOLLOWER ${count}';
 			toSelf = true;
 		}
 
 		if (StringTools.startsWith(text, 'FOLLOWER?')) {
 			var count = this.CountAndDisplayFollower();
-			text = 'FOLLOWER ${count}!';
+			text = 'FOLLOWER ${count}';
 		}
 
 		if (StringTools.startsWith(text, '?POWER')) {
 			var power = Math.floor(this.countLeadershipPower());
-			text = 'MY POWER IS ${power}!';
+			text = 'MY POWER IS ${power}';
 			toSelf = true;
 		}
 
 		if (StringTools.startsWith(text, 'POWER?')) {
 			var power = Math.floor(this.countLeadershipPower());
-			text = 'MY POWER IS ${power}!';
+			text = 'MY POWER IS ${power}';
 		}
 
 		if (StringTools.startsWith(text, '?HPOWER')) {

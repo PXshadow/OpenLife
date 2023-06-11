@@ -399,8 +399,9 @@ class Connection {
 		Provides list of people following other people.
 		If leader is -1, that person follows no one
 		Leader color index specifies leader's badge color from a fixed color list */
-	public function sendFollowing(player:GlobalPlayerInstance) {
-		return;
+	public function sendFollowing(player:GlobalPlayerInstance, sendInfo = false) {
+		if (sendInfo == false) return;
+
 		var leader = player.getTopLeader();
 		// var leaderId = leader == null ? -1 : leader.p_id; // TODO not sure if client wants top leader or next leader
 		var leaderId = player.followPlayer == null ? -1 : player.followPlayer.p_id;
@@ -416,13 +417,13 @@ class Connection {
 		}
 	}
 
-	public function sendToMeAllFollowings() {
+	public function sendToMeAllFollowings(sendInfo = false) {
 		for (c in Connection.getConnections()) {
-			sendFollowing(c.player);
+			sendFollowing(c.player, sendInfo);
 		}
 
 		for (c in ais) {
-			sendFollowing(c.player);
+			sendFollowing(c.player, sendInfo);
 		}
 	}
 
