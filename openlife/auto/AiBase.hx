@@ -4839,6 +4839,9 @@ abstract class AiBase {
 
 		if (hasOrBecomeProfession('SHEPHERD', maxPeople) == false) return false;
 
+		// Empty Bucket 659 + Milk Cow 1489
+		if (shortCraft(1247, 1489, 30)) return true;
+
 		// Domestic Sheep 575
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 30);
 		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 575, 30);
