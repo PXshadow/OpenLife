@@ -1515,8 +1515,8 @@ abstract class AiBase {
 
 				if (myPlayer.age > 5) {
 					// Large Fast Fire 83 --> Make fast fire to warm
-					if (myPlayer.firePlace != null && myPlayer.firePlace.parentId != 83 && craftItem(83)) return true;
-					if (isHandlingFire(3)) return true;
+					//if (myPlayer.firePlace != null && myPlayer.firePlace.parentId != 83 && craftItem(83)) return true;
+					if (isHandlingFire(2)) return true;
 				}
 
 				myPlayer.warmPlace = null; // this place does not help
