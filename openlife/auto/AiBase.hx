@@ -206,8 +206,8 @@ abstract class AiBase {
 		if (ai.player.isWounded()) return;
 		// if (ai.player.isMoving() == false) return;
 
-		if (AddTargetBlockedByAi(ai.ai.myPlayer.blockActorForAi)) return;
-		if (AddTargetBlockedByAi(ai.ai.myPlayer.blockTargetForAi, ai.ai.myPlayer.blockActorForAi)) return;
+		// if (AddTargetBlockedByAi(ai.ai.myPlayer.blockActorForAi)) return;
+		// if (AddTargetBlockedByAi(ai.ai.myPlayer.blockTargetForAi, ai.ai.myPlayer.blockActorForAi)) return;
 		if (AddTargetBlockedByAi(ai.ai.foodTarget)) return;
 		if (AddTargetBlockedByAi(ai.ai.dropTarget)) return;
 		if (AddTargetBlockedByAi(ai.ai.useTarget, ai.ai.myPlayer.heldObject)) return;
@@ -215,8 +215,8 @@ abstract class AiBase {
 	}
 
 	private static function RemoveBlockedByAi(ai:ServerAi) {
-		RemoveTargetBlockedByAi(ai.ai.myPlayer.blockActorForAi);
-		RemoveTargetBlockedByAi(ai.ai.myPlayer.blockTargetForAi);
+		// RemoveTargetBlockedByAi(ai.ai.myPlayer.blockActorForAi);
+		// RemoveTargetBlockedByAi(ai.ai.myPlayer.blockTargetForAi);
 		RemoveTargetBlockedByAi(ai.ai.foodTarget);
 		RemoveTargetBlockedByAi(ai.ai.dropTarget);
 		RemoveTargetBlockedByAi(ai.ai.useTarget);
@@ -2749,6 +2749,7 @@ abstract class AiBase {
 
 	private function doBaking(maxPeople:Int = 2):Bool {
 		var heldObject = myPlayer.heldObject;
+		var heldId = heldObject.parentId;
 		var home = myPlayer.home;
 		var knife = myPlayer.heldObject.parentId == 560 ? myPlayer.heldObject : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 560, 30, null, myPlayer);
 		var maxDoughInBowl = knife == null ? 0 : 1;
@@ -2926,6 +2927,8 @@ abstract class AiBase {
 
 		// Ripe Wheat 242
 		var countWheat = AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 242, 30);
+		// Dry Planted Wheat 228
+		countWheat += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 228, 30);
 		// Threshed Wheat 226
 		countWheat += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 226, 30);
 		// Threshed Wheat - removed Straw 297
@@ -2934,8 +2937,14 @@ abstract class AiBase {
 		countWheat += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 4070, 30);
 
 		myPlayer.say('countWheat: ${countWheat}');
+
+		// Bowl of Wheat 245 // Deep Tilled Row 213
+		if (countWheat < 10 && heldId == 245 && shortCraft(245, 213, 15, false)) return true;
+
 		// Limit making pies if no wheat is left. If least what is collected in a bowl they should stop now, so there should be wheat for planting
-		if (countWheat > 0) {
+		if (countWheat < 1) {
+			if (craftItem(228)) return true; // Dry Planted Wheat 228
+		} else {
 			if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 				trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 			var countCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 30); // Cooked Carrot Pie 273
@@ -2978,6 +2987,8 @@ abstract class AiBase {
 
 		// Bowl of Soaking Beans 1180
 		if (craftItem(1180)) return true;
+
+		if (doPlantWheat(2, 8)) return true;
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
@@ -4553,7 +4564,8 @@ abstract class AiBase {
 		if (storeInQuiver()) return true;
 
 		// Bowl of Dough 252 --> keep last use for making bread otherwise use up
-		if (maxDistanceToHome > 5 && UseUpDough()) return true;
+		// if (maxDistanceToHome > 5 && UseUpDough()) return true;
+		if (UseUpDough()) return true;
 		// if (heldObjId == 252 && heldObject.numberOfUses > 1 && && shortCraft(252, 236, 5, false)) return true;
 
 		if (heldObjId == 1137 && maxDistanceToHome > 5) { // Bowl of Soil 1137
@@ -4705,6 +4717,17 @@ abstract class AiBase {
 					return true;
 				}
 			}
+		}
+
+		// Bowl of Wheat 245
+		// if (heldId == 245 && maxDistanceToHome > 5) {
+		if (heldId == 245) {
+			// Ripe Wheat 242
+			var countWheat = AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 242, 20);
+			// Dry Planted Wheat 228
+			countWheat += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 228, 20, false);
+			// Bowl of Wheat 245 // Deep Tilled Row 213
+			if (countWheat < 10 && shortCraft(245, 213, 20, false)) return true;
 		}
 
 		// drop at fire. For exmple kindling, wood...
@@ -6990,7 +7013,7 @@ abstract class AiBase {
 			return false;
 		}
 
-		var dropDistance = triedDropCount > 5 ? 0 : 5;
+		var dropDistance = triedDropCount > 5 ? 0 : 10;
 		triedDropCount += 1;
 
 		var heldId = myPlayer.isHeldEmpty() ? 0 : myPlayer.heldObject.parentId;
