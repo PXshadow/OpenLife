@@ -1515,7 +1515,7 @@ abstract class AiBase {
 
 				if (myPlayer.age > 5) {
 					// Large Fast Fire 83 --> Make fast fire to warm
-					//if (myPlayer.firePlace != null && myPlayer.firePlace.parentId != 83 && craftItem(83)) return true;
+					// if (myPlayer.firePlace != null && myPlayer.firePlace.parentId != 83 && craftItem(83)) return true;
 					if (isHandlingFire(2)) return true;
 				}
 
@@ -7074,7 +7074,7 @@ abstract class AiBase {
 		// TODO reset SMITH here?
 		this.profession['SMITH'] = 0;
 		// TODO try out if it is better or not to keep profession while eating
-		// if (this.lastProfession != 'FOODSERVER') this.lastProfession = 'Eating';
+		if (this.lastProfession != 'FOODSERVER') this.lastProfession = 'Eating';
 
 		var quadDistance = -1.0;
 
