@@ -218,7 +218,8 @@ Leadership
 - Your power is your prestige plus coins and if you are grown up enough (max food pipes)
 - leader has now 15 seconds time to exile you before you follow him
 - An attacker is exiled by all  close by ally of attacker (15 tiles)
-- You pass Exiles to direct Leader or Top Leader if close (5 tiles) to leader and if you are double powerful than exiled
+- You pass Exiles to direct Leader or Top Leader if close (5 tiles) to leader and if you are double powerful than exiled in case its an ally of the leader
+- You can attack your own follower without having the risk to being exiled yourself since you auto exile him first
 
 - the more your close (5 Tiles) ally stregth is vs enemy streght the more damage you do
 - stregth of players with weapons are counted twice
