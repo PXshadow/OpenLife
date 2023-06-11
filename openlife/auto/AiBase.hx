@@ -577,7 +577,8 @@ abstract class AiBase {
 		Macro.exception(if (craftHighPriorityClothing()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		// medium priorty tasks
-		if (myPlayer.age > 10) Macro.exception(if (craftMediumPriorityClothing()) return);
+		var rightAge = myPlayer.age > 10 && Math.floor((myPlayer.age + 2) / 6) % 2 == 0;
+		if (rightAge) Macro.exception(if (craftMediumPriorityClothing()) return);
 
 		itemToCraft.searchCurrentPosition = false;
 
@@ -586,6 +587,8 @@ abstract class AiBase {
 			Macro.exception(if (doPrepareRows(100)) return);
 		} else if (assignedProfession == 'SOILMAKER') {
 			Macro.exception(if (doPrepareSoil(100)) return);
+		} else if (assignedProfession == 'CARROTFARMER') {
+			Macro.exception(if (doCarrotFarming(100)) return);
 		} else if (assignedProfession == 'BASICFARMER') {
 			Macro.exception(if (doBasicFarming(100)) return);
 		} else if (assignedProfession == 'ADVANCEDFARMER') {
@@ -1692,7 +1695,7 @@ abstract class AiBase {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
 
-		if (hasOrBecomeProfession('CarrotFarmer', maxProfession) == false) return false;
+		if (hasOrBecomeProfession('CARROTFARMER', maxProfession) == false) return false;
 
 		if (shortCraft(0, 400, 30)) return true; // pull out the carrots
 
@@ -1724,7 +1727,7 @@ abstract class AiBase {
 		// if (counRawtCarrotPies < 3 && craftItem(268)) return true; // Raw Carrot Pie
 		// else
 		//	return doBaking(2);
-		// this.profession['CarrotFarmer'] = 0;
+		// this.profession['CARROTFARMER'] = 0;
 		return false;
 	}
 
@@ -1959,7 +1962,7 @@ abstract class AiBase {
 
 		// if (counRawtBerryPies < 3 && craftItem(265)) return true; // Raw Berry Pie
 		// else this.lastProfession = 'BAKER';
-		// this.profession['CarrotFarmer'] = 0;
+		// this.profession['CARROTFARMER'] = 0;
 
 		if (doComposting()) return true;
 
@@ -2911,7 +2914,7 @@ abstract class AiBase {
 		// if (this.isHungry == false) {
 		if (doHarvestWheat(1, 4)) return true;
 
-		if (doPlantWheat(2, 8)) return true;
+		// if (doPlantWheat(2, 4)) return true;
 
 		// Raw Potato 1147
 		var countPotatos = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1147, 20);
@@ -2930,6 +2933,7 @@ abstract class AiBase {
 		// Pile of Threshed Wheat 4070
 		countWheat += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 4070, 30);
 
+		myPlayer.say('countWheat: ${countWheat}');
 		// Limit making pies if no wheat is left. If least what is collected in a bowl they should stop now, so there should be wheat for planting
 		if (countWheat > 0) {
 			if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
@@ -4254,6 +4258,7 @@ abstract class AiBase {
 			var tmp = text.split("!");
 			var prof = tmp.length == 0 ? '' : tmp[0];
 			if (prof == 'FARMER') prof = 'BASICFARMER';
+			if (prof == 'CARROT') prof = 'CARROTFARMER';
 			if (prof == 'NONE') assignedProfession = null;
 			if (professions.contains(prof)) {
 				assignedProfession = prof;
@@ -4297,7 +4302,7 @@ abstract class AiBase {
 
 	public static var professions = [
 		'SOILMAKER', 'ROWMAKER', 'BASICFARMER', 'ADVANCEDFARMER', 'SHEPHERD', 'BAKER', 'POTTER', 'FIREKEEPER', 'TAILOR', 'FIREFOODMAKER', 'LUMBERJACK',
-		'WATERBRINGER', 'FOODSERVER', 'GRAVEKEEPER', 'HUNTER', 'SMITH'
+		'WATERBRINGER', 'FOODSERVER', 'GRAVEKEEPER', 'HUNTER', 'SMITH', 'CARROTFARMER'
 	];
 
 	public function searchFoodAndEat() {
