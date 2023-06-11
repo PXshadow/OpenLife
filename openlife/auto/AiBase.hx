@@ -3387,6 +3387,9 @@ abstract class AiBase {
 		// Dry Planted Cucumber Seeds 4225
 		// Dry Planted Beans 1161
 		// Dry Planted Potatoes 1145
+		// Dry Planted Pepper Seed 2839
+		// Wet Planted Pepper Seed 2840
+		// Pepper Plant 2842
 
 		// TODO other dry planted
 
@@ -3394,7 +3397,7 @@ abstract class AiBase {
 		// removed: 1110
 		// var advancedPlants = [228, 396, 1110, 217, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
 		// var advancedPlants = [228, 1110, 1161, 228, 1110, 2851, 228, 4225, 2829, 1110, 2852, 228, 4263, 228, 228, 1142, 228, 1110];
-		var advancedPlants = [1145, 1161, 2851, 1145, 4225, 2829, 1145, 2852, 1145];
+		var advancedPlants = [1145, 1161, 2839, 2851, 1145, 4225, 2829, 1145, 2852, 1145];
 		var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
 
 		toPlant = toPlant > 0 ? toPlant : rand;
@@ -3435,6 +3438,21 @@ abstract class AiBase {
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4265, 30);
 
 				if (count > 2) {
+					toPlant += 1;
+					continue;
+				}
+			}
+
+			// Dry Planted Pepper Seed 2839
+			if (toPlant == 2839) {
+				// Dry Planted Garlic 4262
+				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4262, 30);
+				// Wet Planted Pepper Seed 2840
+				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2840, 30);
+				// Pepper Plant 2842
+				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2842, 30);
+
+				if (count > 3) {
 					toPlant += 1;
 					continue;
 				}
@@ -4574,7 +4592,9 @@ abstract class AiBase {
 		if (UseUpDough()) return true;
 		// if (heldObjId == 252 && heldObject.numberOfUses > 1 && && shortCraft(252, 236, 5, false)) return true;
 
-		if (heldObjId == 1137 && maxDistanceToHome > 5) { // Bowl of Soil 1137
+		// Bowl of Soil 1137
+		// if (heldObjId == 1137 && maxDistanceToHome > 5) {
+		if (heldObjId == 1137) {
 			// Bowl of Soil 1137 + Dying Gooseberry Bush 389
 			if (shortCraft(1137, 389, 15, false)) return true;
 			// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
