@@ -1616,7 +1616,7 @@ class ObjectData extends LineReader {
 
 	public function isWeapon():Bool {
 		// consider Yew Bow 151 as weapon too
-		if (this.id == 151) return true;
+		// if (this.id == 151) return true;
 		return deadlyDistance > 0;
 	}
 
