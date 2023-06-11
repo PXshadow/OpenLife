@@ -182,6 +182,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var darkNosaj = 0.0; // not saved
 	public var blockActorForAi:ObjectHelper = null; // not saved
 	public var blockTargetForAi:ObjectHelper = null; // not saved
+	public var allowShowHuman = true; // not saved
 
 	public function getFollowPlayer() {
 		return followPlayer;
@@ -4180,6 +4181,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// Exile attacker if seen by close by ally of attacker // target also exiles attacker
 		ExileIfClose(this, targetPlayer);
 
+		if (targetPlayer.isHuman()) this.allowShowHuman = false;
+
 		// make participants more angry // max angry is checked in TimeHelper
 		var damage = targetPlayer.doDamage(this.heldObject, this, distanceFactor, quadDistance);
 
@@ -5273,6 +5276,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			return true;
 		} else if (text == '!H' || text.indexOf('!HUMAN ') != -1) {
+			if (player.allowShowHuman == false) {
+				player.say('I attacked humans!', true);
+				return true;
+			}
+
 			var closeHuman = player.getClosePlayer(-1, false, false, true);
 			if (closeHuman == null || closeHuman == player) {
 				player.say('There is only me in this world!', true);
