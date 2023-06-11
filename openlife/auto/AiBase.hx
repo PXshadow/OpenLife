@@ -540,6 +540,8 @@ abstract class AiBase {
 		if (heldObjId == 560 && shortCraft(560, 1468, 10, false)) return;
 
 		// if (this.profession['BAKER'] > 1) Macro.exception(if (doBaking()) return);
+		if (this.lastProfession == 'BAKER') Macro.exception(if (doBaking()) return);
+
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 
 		// if(doWateringOn(396)) return; // Dry Planted Carrots 396
@@ -1266,7 +1268,11 @@ abstract class AiBase {
 		// if (seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 2745, 30); // Bowl of Carrot Seeds
 		if (seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 2745, 10); // Bowl of Carrot Seeds
 
-		this.hasCarrotSeeds = seeds != null;
+		var seedsAtHome = AiHelper.GetClosestObjectToHome(myPlayer, 401, 20); // Seeding Carrots 401
+		// if (seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 2745, 30); // Bowl of Carrot Seeds
+		if (seedsAtHome == null) seedsAtHome = AiHelper.GetClosestObjectToHome(myPlayer, 2745, 20); // Bowl of Carrot Seeds
+
+		this.hasCarrotSeeds = seeds != null && seedsAtHome != null;
 
 		// TODO make seeds
 		return false;
@@ -1604,6 +1610,8 @@ abstract class AiBase {
 
 		// if(craftItem(1113)) return true; // Ear of Corn
 		if (hasOrBecomeProfession('SHEPHERD', maxProfession) == false) return false;
+
+		Macro.exception(if (fillBerryBowlIfNeeded()) return true);
 
 		// Domestic Sheep 575
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 40);
@@ -3698,15 +3706,7 @@ abstract class AiBase {
 
 		if (onlyFillHeldBowl) return false;
 
-		if (hasOrBecomeProfession('BAKER', maxPeople) == false) return false;
-
-		// Fill up the Bowl // 235 Clay Bowl
-		if (heldObj.parentId == 235) {
-			if (shouldDebugSay()) myPlayer.say('Fill Bowl on Bush');
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Bush!');
-
-			return useHeldObjOnTarget(closeBush);
-		}
+		if (hasOrBecomeProfession('BOWLFILLER', maxPeople) == false) return false;
 
 		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
 		if (closeBerryBowl == null) AiHelper.GetClosestObjectToHome(myPlayer, 253); // Bowl of Gooseberries
@@ -3726,6 +3726,14 @@ abstract class AiBase {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Pickup Berry Bowl to Fill!');
 
 			return true;
+		}
+
+		// Fill up the Bowl // 235 Clay Bowl
+		if (heldObj.parentId == 235) {
+			if (shouldDebugSay()) myPlayer.say('Fill Bowl on Bush');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Bush!');
+
+			return useHeldObjOnTarget(closeBush);
 		}
 
 		return GetItem(235); // Clay Bowl
@@ -4470,13 +4478,15 @@ abstract class AiBase {
 	// Bowl of Gooseberries 253 // Knife 560 // Bowl of Dough 252
 	// Baked Bread 1470 // Sliced Bread 1471 // Omelette 1285
 	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900 // Cooked Goose 518
-	// Bowl of Carrot 547 // Bowl of Mashed Carrot 548
-	var dropNearOvenItemIds = [235, 1603, 236, 1602, 560, 252, 1470, 1471, 1285, 253, 502, 900, 518, 547, 548];
+	// Bowl of Carrot 547 // Bowl of Mashed Carrot 548 // Bowl of Minced Mutton 4057
+	var dropNearOvenItemIds = [
+		235, 1603, 236, 1602, 560, 252, 1470, 1471, 1285, 253, 502, 900, 518, 547, 548, 4057
+	];
 
 	// Stone 33 // Sharp Stone 34 // Banana Peel 2144
 	// This should not brought far away through switching so better drop for now:
 	// Bowl of Water 382 // Full Water Pouch 210 // Bowl of Soil 1137
-	var dropAtCurrentPosition = [33, 34, 2144, 382, 210, 1137];
+	var dropAtCurrentPosition = [33, 34, 2144, 382, 210];
 
 	// Iron Ore in Wooden Tongs 289 // Iron Ore 290 // Wooden Tongs cool steel ingot 327 // Steel Ingot
 	// Unforged Sealed Steel Crucible 319 // Unforged Steel Crucible in Wooden Tongs 320 // Smithing Hammer 441
@@ -4918,6 +4928,8 @@ abstract class AiBase {
 
 		// Empty Bucket 659 + Milk Cow 1489
 		if (shortCraft(1247, 1489, 30)) return true;
+
+		Macro.exception(if (fillBerryBowlIfNeeded(2)) return true);
 
 		// Domestic Sheep 575
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 30);
