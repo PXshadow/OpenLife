@@ -641,7 +641,6 @@ abstract class AiBase {
 		Macro.exception(if (doWatering(1)) return);
 		Macro.exception(if (doCarrotFarming(1)) return);
 		Macro.exception(if (cleanUpBowls(253)) return); // Bowl of Gooseberries 253
-		Macro.exception(if (fillBerryBowlIfNeeded()) return);
 		Macro.exception(if (doBaking(1)) return);
 		Macro.exception(if (doBasicFarming(1)) return);
 		Macro.exception(if (doPottery(1)) return);
@@ -2787,6 +2786,8 @@ abstract class AiBase {
 		// Raw Pie Crust 264
 		if (countDough > 0 && countPieCrust < 5 && maxDoughInBowl == 0 && craftItem(264)) return true;
 
+		Macro.exception(if (fillBerryBowlIfNeeded()) return true);
+
 		if (hasOrBecomeProfession('BAKER', maxPeople) == false) return false;
 		var startTime = Sys.time();
 
@@ -3636,7 +3637,7 @@ abstract class AiBase {
 		return shortCraftOnTarget(0, closeBowl);
 	}
 
-	private function fillBerryBowlIfNeeded(onlyFillHeldBowl:Bool = false):Bool {
+	private function fillBerryBowlIfNeeded(onlyFillHeldBowl:Bool = false, maxPeople = 1):Bool {
 		var heldObj = myPlayer.heldObject;
 		var distance = onlyFillHeldBowl ? 15 : 30;
 
@@ -3659,6 +3660,16 @@ abstract class AiBase {
 
 		if (onlyFillHeldBowl) return false;
 
+		if (hasOrBecomeProfession('BAKER', maxPeople) == false) return false;
+
+		// Fill up the Bowl // 235 Clay Bowl
+		if (heldObj.parentId == 235) {
+			if (shouldDebugSay()) myPlayer.say('Fill Bowl on Bush');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Bush!');
+
+			return useHeldObjOnTarget(closeBush);
+		}
+
 		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
 		if (closeBerryBowl == null) AiHelper.GetClosestObjectToHome(myPlayer, 253); // Bowl of Gooseberries
 
@@ -3666,8 +3677,8 @@ abstract class AiBase {
 		if (closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses) return false;
 
 		var target = closeBerryBowl != null ? closeBerryBowl : myPlayer.home;
-		var bestPlayer = getBestAiForObjByProfession('BowlFiller', target);
-		if (bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
+		// var bestPlayer = getBestAiForObjByProfession('BOWFILLER', target);
+		// if (bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
 
 		if (closeBerryBowl != null) {
 			this.dropTarget = closeBerryBowl; // pick it up to fill
@@ -3677,14 +3688,6 @@ abstract class AiBase {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Pickup Berry Bowl to Fill!');
 
 			return true;
-		}
-
-		// Fill up the Bowl // 235 Clay Bowl
-		if (heldObj.parentId == 235) {
-			if (shouldDebugSay()) myPlayer.say('Fill Bowl on Bush');
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Fill Bowl on Bush!');
-
-			return useHeldObjOnTarget(closeBush);
 		}
 
 		return GetItem(235); // Clay Bowl
