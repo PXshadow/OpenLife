@@ -2499,7 +2499,7 @@ class ServerSettings {
 		trans.autoDecaySeconds = 20;
 
 		var trans = TransitionImporter.GetTransition(-1, 252); // TIME + Bowl of Dough
-		trans.autoDecaySeconds = 60;
+		trans.autoDecaySeconds = 120;
 
 		// var trans = TransitionImporter.GetTransition(-1, 1135); // TIME + Empty Domestic Gooseberry Bush
 		// trans.autoDecaySeconds = 60  * 10;
@@ -3551,7 +3551,7 @@ class ServerSettings {
 		// LimitObjectByTarget(1115, 1112, 5); // Dried Ear of Corn 1115 // Corn Plant 1112
 
 		// Stone 33 + Bowl of Wheat 245 / Raw Pie Crust 264 / Bowl of Dough 252
-		LimitTransitionIfMaxReached(33, 245, 264);
+		LimitTransitionIfMaxReached(33, 245, 264, 6);
 
 		// 1466 Bowl of Leavened Dough // 236 Clay Plate // Sliced Bread 1471
 		LimitTransitionIfMaxReached(1466, 236, 1471, 2);
