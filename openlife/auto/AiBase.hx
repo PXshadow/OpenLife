@@ -1516,6 +1516,13 @@ abstract class AiBase {
 				if (myPlayer.age > 5) {
 					// Large Fast Fire 83 --> Make fast fire to warm
 					// if (myPlayer.firePlace != null && myPlayer.firePlace.parentId != 83 && craftItem(83)) return true;
+
+					// Fire 82 // Hot Coals 85
+					if (myPlayer.firePlace != null
+						&& (myPlayer.firePlace.parentId == 82 || myPlayer.firePlace.parentId == 85)) { // Kindling 72
+						if (shortCraftOnTarget(72, myPlayer.firePlace, false)) return true;
+					}
+
 					if (isHandlingFire(2)) return true;
 				}
 
@@ -1536,14 +1543,10 @@ abstract class AiBase {
 		if (goodPlace != myPlayer.firePlace) this.tryMoveNearestTileFirst = false;
 		var done = myPlayer.gotoObj(goodPlace);
 		this.tryMoveNearestTileFirst = true;
-
 		if (quadDistance < 2) this.time += 4; // if you cannot reach dont try running there too often
-
 		if (shouldDebugSay()) myPlayer.say('going to $text');
-
 		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} do: $text player heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} dist: $quadDistance goto: $done');
-
 		return done;
 	}
 
