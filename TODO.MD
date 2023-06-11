@@ -217,6 +217,9 @@ Leadership
 - You overtake your leader if you are more 20% more powerful (100% if leader is not your family)!
 - Your power is your prestige plus coins and if you are grown up enough (max food pipes)
 - leader has now 15 seconds time to exile you before you follow him
+- An attacker is exiled by all  close by ally of attacker (15 tiles)
+- You pass Exiles to direct Leader or Top Leader if close (5 tiles) to leader and if you are double powerful than exiled
+
 - the more your close (5 Tiles) ally stregth is vs enemy streght the more damage you do
 - stregth of players with weapons are counted twice
 

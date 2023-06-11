@@ -450,8 +450,11 @@ class TimeHelper {
 		if (player.followPlayer == null) return;
 		var leader = player.followPlayer;
 
-		var leaderPower = leader.countLeadershipPower();
+		passExileToLeader(player, leader);
+		passExileToLeader(player, player.getTopLeader());
+
 		var myPower = player.countLeadershipPower();
+		var leaderPower = leader.countLeadershipPower();
 		var isMyFamily = leader.lineage.eve == player.lineage.eve;
 		var factor = isMyFamily ? 1.2 : 2;
 
@@ -479,6 +482,28 @@ class TimeHelper {
 			}
 
 			// player.connection.sendGlobalMessage('You follow now ${player.name} ${player.familyName}');
+		}
+	}
+
+	private static function passExileToLeader(player:GlobalPlayerInstance, leader:GlobalPlayerInstance) {
+		if (leader == null) return;
+
+		var dist = player.calculateExactQuadDistanceToPlayer(leader);
+		// if (dist < ServerSettings.MaxDistanceToAutoExileAttacker) {
+		if (dist < 5) {
+			for (p in GlobalPlayerInstance.AllPlayers) {
+				if (p.isExiledBy(player) == false) continue;
+				if (p.isExiledBy(leader)) continue;
+
+				trace('EXILE: ${player.name} power: ${player.power} ${p.name} power: ${p.power}');
+				// Only exile ally if player pwoer is heigher
+				if (p.isAlly(leader) && p.power * 2 > player.power) continue;
+
+				trace('EXILE: leader: ${leader.name} ${player.name} power: ${player.power} ${p.name} power: ${p.power}');
+
+				leader.say('I EXILE ${p.name} BECAUSE I TRUST ${player.name}');
+				break;
+			}
 		}
 	}
 

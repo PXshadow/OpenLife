@@ -155,6 +155,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return this.myLineage;
 	}
 
+	public var power(get, null):Float;
+
+	public function get_power() {
+		return this.countLeadershipPower();
+	}
+
 	private var myMother:GlobalPlayerInstance;
 	private var myFather:GlobalPlayerInstance;
 
@@ -1925,10 +1931,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function exile(target:GlobalPlayerInstance, messageIfAllreadyExiled:Bool = true):Bool {
-		if (target == null) return false;
+		if (target == null) {
+			this.say('No target found to exile!', true);
+			return false;
+		}
 
 		if (target.exiledByPlayers.exists(this.p_id)) {
-			if (messageIfAllreadyExiled) this.connection.sendGlobalMessage('${target.name} is allready exiled');
+			if (messageIfAllreadyExiled) {
+				this.say('${target.name} is allready exiled!', true);
+				this.connection.sendGlobalMessage('${target.name} is allready exiled!');
+			}
 			return false;
 		}
 
@@ -2227,14 +2239,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	private function doCommands(message:String):Bool {
 		var name = NamingHelper.GetName(message);
+		var target = NamingHelper.GetPlayerByNameWithMessage(this, name);
+
+		// if (target != null) message = StringTools.replace(message, ' YOU', ' ${target.name}');
 
 		if (message.startsWith('I EXILE ') || message.startsWith('I BANN ')) {
-			var target = NamingHelper.GetPlayerByNameWithMessage(this, name);
-			return this.exile(target);
+			this.exile(target);
+			return true;
 		}
 
 		if (message.startsWith('I REDEEM ')) {
-			var target = NamingHelper.GetPlayerByNameWithMessage(this, name);
 			return this.redeem(target);
 		}
 		// Dont do anything: I FOLLOW MY FATHER
@@ -2266,8 +2280,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if (message.startsWith('I GIVE ')) {
-			var target = NamingHelper.GetPlayerByName(this, name);
-
 			if (target == null || target == this) {
 				this.connection.sendGlobalMessage('No one found close enough with the name ${name}!');
 				return false;
@@ -2306,10 +2318,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if (message.contains('OWNES THIS') || message.contains('OWN THIS')) {
-			name = NamingHelper.GetName(message, true);
-
-			var target = NamingHelper.GetPlayerByName(this, name);
-
 			// trace('Owner: ${name}');
 
 			if (target == null || target == this) {
