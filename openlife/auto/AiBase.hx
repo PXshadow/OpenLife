@@ -546,6 +546,11 @@ abstract class AiBase {
 
 		// if(doWateringOn(396)) return; // Dry Planted Carrots 396
 
+		// Bowl of Gooseberries and Carrot 258 + Hungry Domestic Lamb 604
+		if (shortCraft(258, 604, 10)) return;
+		// Bowl with Corn Kernels 1247 + Hungry Domestic Calf 1462
+		if (shortCraft(1247, 1462, 10)) return;
+
 		Macro.exception(if (isHandlingFire()) return);
 
 		itemToCraft.searchCurrentPosition = false; // true
@@ -941,12 +946,12 @@ abstract class AiBase {
 		myPlayer.firePlace = firePlace;
 
 		// Hot Coals 85 ==> make fire food
-		var coals = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 85, 10);
-		if (coals != null) Macro.exception(if (makeFireFood(-3)) return true);
+		var coals = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 85, 8);
+		if (coals != null) Macro.exception(if (makeFireFood(2)) return true);
 
 		// Hot Adobe Oven 250
-		var hotOven = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 250, 10);
-		if (hotOven != null) Macro.exception(if (doBaking(-3)) return true);
+		var hotOven = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 250, 8);
+		if (hotOven != null) Macro.exception(if (doBaking(2)) return true);
 
 		// Firing Adobe Kiln 282 //
 		// var kiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 282, 10);
@@ -1250,17 +1255,17 @@ abstract class AiBase {
 
 	private function isHandlingGraves(maxPlayer:Int = 1):Bool {
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: check1!');
-		var searchDistance = this.lastProfession == 'GRAVEKEEPER' && this.myPlayer.age < 50 && this.myPlayer.age > 59 ? 10 : 30;
+		var isGravekeeper = lastProfession == 'GRAVEKEEPER';
+		var searchDistance = isGravekeeper && this.myPlayer.age < 50 && this.myPlayer.age > 59 ? 10 : 30;
 
 		// Basket of Bones 356
 		if (myPlayer.heldObject.parentId == 356) return dropHeldObject();
 		// Basket 292 // reset lastgrave to consider if it is moved
 		// if (myPlayer.heldObject.parentId == 292) lastGrave = null;
 
-		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['grave']);
-		var isGravekeeper = this.profession['GRAVEKEEPER'] > 0;
-		if (passedTime < 10 && isGravekeeper == false) return false;
-		lastCheckedTimes['grave'] = TimeHelper.tick;
+		// var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['grave']);
+		// if (passedTime < 10 && isGravekeeper == false) return false;
+		// lastCheckedTimes['grave'] = TimeHelper.tick;
 
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: check2!');
 
@@ -1305,13 +1310,15 @@ abstract class AiBase {
 
 		// if (hasOrBecomeProfession('GRAVEKEEPER', maxPlayer) == false) return false;
 
-		if (this.myPlayer.age < 50 && this.profession['GRAVEKEEPER'] < 1) {
+		if (this.lastProfession != 'GRAVEKEEPER' && this.myPlayer.age < 50) {
 			var bestPlayer = getBestAiForObjByProfession('GRAVEKEEPER', grave);
-			if (bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
+			if (bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) {
+				return false;
+			}
 		}
 
 		this.profession['GRAVEKEEPER'] = 1;
-		this.lastProfession = 'GRAVEKEEPER';
+		if (myPlayer.age > 50) this.lastProfession = 'GRAVEKEEPER';
 
 		// Basket of Bones 356
 		if (shortCraft(0, 356, searchDistance)) return true;
@@ -1383,11 +1390,12 @@ abstract class AiBase {
 	}
 
 	private function handleDeath():Bool {
-		var ageToGoHome = ServerSettings.MaxAge - 1.5;
+		var ageToGoHome = ServerSettings.MaxAge - 2;
 		if (myPlayer.age < ageToGoHome) return false;
 
 		this.profession = new Map<String, Float>(); // clear all professions
 		this.profession['GRAVEKEEPER'] = 1;
+		this.lastProfession = 'GRAVEKEEPER';
 
 		Macro.exception(if (isRemovingFromContainer()) return true);
 		Macro.exception(if (isUsingItem()) return true);
@@ -1727,13 +1735,13 @@ abstract class AiBase {
 		if (shortCraftOnGround(336)) return true;
 
 		// Fertile Soil Pile 1101
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1101, 30);
+		var count = 2 * AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1101, 30);
 		// Fertile Soil 1138
 		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1138, 30);
 
-		if (count < 2) this.taskState['SoilMaker'] = 1;
+		if (count < 4) this.taskState['SoilMaker'] = 1;
 
-		if (count > 5) this.taskState['SoilMaker'] = 0;
+		if (count > 9) this.taskState['SoilMaker'] = 0;
 
 		if (shouldDebugSay()) myPlayer.say('$count soil');
 
@@ -2329,11 +2337,14 @@ abstract class AiBase {
 		// TODO consider more wells
 		// TODO consider closest
 
+		var wellIs = [663, 662];
+		var well = AiHelper.GetClosestObjectToPositionByIds(myPlayer.home.tx, myPlayer.home.ty, wellIs, myPlayer);
+
 		// Deep Well 663
-		var well = myPlayer.GetClosestObjectById(663, 30);
+		// var well = myPlayer.GetClosestObjectByIds(663, 30);
 
 		// Shallow Well 662
-		if (well == null) well = myPlayer.GetClosestObjectById(662, 30);
+		// if (well == null) well = myPlayer.GetClosestObjectById(662, 30);
 
 		return well;
 	}
@@ -2348,8 +2359,9 @@ abstract class AiBase {
 			// Basket of Soil 336 --> drop close to well
 			if (heldId == 336) {
 				var newTarget = getCloseWell();
+				var minDist = newTarget == null ? 5 : 0;
 				if (newTarget == null) newTarget = myPlayer.home;
-				if (newTarget != null) target = myPlayer.GetClosestObjectToTarget(newTarget, 0, 30);
+				if (newTarget != null) target = myPlayer.GetClosestObjectToTarget(newTarget, minDist, 30);
 			}
 
 			if (target == null) target = myPlayer.GetClosestObjectById(0, 30);
@@ -2926,7 +2938,7 @@ abstract class AiBase {
 		// Pile of Threshed Wheat 4070
 		countWheat += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 4070, 30);
 
-		myPlayer.say('countWheat: ${countWheat}');
+		// myPlayer.say('countWheat: ${countWheat}');
 
 		// Bowl of Wheat 245 // Deep Tilled Row 213
 		if (countWheat < 10 && heldId == 245 && shortCraft(245, 213, 15, false)) return true;
@@ -3877,8 +3889,8 @@ abstract class AiBase {
 	// I nthis case lastProfession should not be assigned
 	private function hasOrBecomeProfession(profession:String, max:Int = 1):Bool {
 		// var hasProfession = this.profession[profession] > 0;
-		var hasProfession = lastProfession == profession || assignedProfession == profession;
-		var highPriority = max > 0;
+		var hasProfession = lastProfession == profession;
+		var highPriority = max < 0;
 
 		if (highPriority) return true; // do job but dont assign profession
 
@@ -3895,6 +3907,7 @@ abstract class AiBase {
 		if (count >= max + wasIdle) return false;
 		this.profession[profession] = 1;
 		this.lastProfession = profession;
+		// trace('new profession: ${profession}');
 		return true;
 	}
 
@@ -7295,8 +7308,10 @@ abstract class AiBase {
 			var text = createProfessionText();
 			myPlayer.say('$text ${countProfession(lastProfession)}');
 		}
+
+		var foodName = foodTarget == null ? 'none' : foodTarget.name;
 		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} profession: $lastProfession count: ${countProfession(lastProfession)} food: ${myPlayer.food_store}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} profession: $lastProfession count: ${countProfession(lastProfession)} food: ${myPlayer.food_store} isHungry: ${isHungry} food: ${foodName}');
 
 		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
 		if (isHungry == false && foodTarget == null) return false;
