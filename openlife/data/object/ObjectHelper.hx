@@ -225,22 +225,22 @@ class ObjectHelper {
 				switch (dataId) {
 					case HITS:
 						newObject.hits = reader.readFloat();
-						trace('ReadFromFile: Hits: ${newObject.hits}');
+					// trace('ReadFromFile: Hits: ${newObject.hits}');
 					case COINS:
 						newObject.coins = reader.readFloat();
-						trace('ReadFromFile: Coins: ${newObject.coins}');
+					// trace('ReadFromFile: Coins: ${newObject.coins}');
 					case TEXT:
 						var lenght = reader.readInt16();
 						newObject.text = reader.readString(lenght);
-						trace('ReadFromFile: Text: ${newObject.text}');
+					// trace('ReadFromFile: Text: ${newObject.text}');
 					case EXTERNID:
 						newObject.externId = reader.readInt32();
-						trace('ReadFromFile: externId: ${newObject.externId}');
+					// trace('ReadFromFile: externId: ${newObject.externId}');
 					case COUNTOBJ:
 						newObject.countObj = reader.readFloat();
-						trace('ReadFromFile: countObj: ${newObject.countObj}');
+					// trace('ReadFromFile: countObj: ${newObject.countObj}');
 					default:
-						trace('ERROR: DataId: ${dataId} is unknown!');
+						// trace('ERROR: DataId: ${dataId} is unknown!');
 						throw new Exception('DataId: ${dataId} is unknown!');
 				}
 			}

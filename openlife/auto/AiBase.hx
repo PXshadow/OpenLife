@@ -1309,8 +1309,10 @@ abstract class AiBase {
 
 	private function isHandlingGraves(maxPlayer:Int = 1):Bool {
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: check1!');
+		var searchDistance = this.lastProfession == 'GRAVEKEEPER' && this.myPlayer.age < 50 && this.myPlayer.age > 59 ? 10 : 30;
 
-		if (myPlayer.heldObject.parentId == 356) return dropHeldObject(); // Basket of Bones 356
+		// Basket of Bones 356
+		if (myPlayer.heldObject.parentId == 356) return dropHeldObject();
 
 		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['grave']);
 		var isGravekeeper = this.profession['GRAVEKEEPER'] > 0;
@@ -1319,22 +1321,18 @@ abstract class AiBase {
 
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: check2!');
 
-		// Basket of Bones 356
-		if (shortCraft(0, 356, 20)) return true;
-
 		// myPlayer.say('check for graves!');
 
 		// Fresh Grave 97 // Old Grave 89 // Grave 88 // Bone Pile 357
 		var graveIdsToDigIn = [87, 88, 89, 357];
 		var heldId = myPlayer.heldObject.parentId;
 		if (lastGrave != null && graveIdsToDigIn.contains(lastGrave.parentId) == false) lastGrave = null;
-		var grave = lastGrave != null ? lastGrave : AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, graveIdsToDigIn, 20, myPlayer);
-		// var grave = lastGrave != null ? lastGrave : AiHelper.GetClosestObjectById(myPlayer, 357, null, 20); // Bone Pile
-		// if (grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 88, null, 20); // 88 Grave
-		// if (grave == null) grave = AiHelper.GetClosestObjectById(myPlayer, 89, null, 20); // 89 Old Grave
+		var grave = lastGrave != null ? lastGrave : AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, graveIdsToDigIn, searchDistance,
+			myPlayer);
+
 		if (grave == null) return false;
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: found! ${grave.tx},${grave.ty}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: ${grave.name} found! ${grave.tx},${grave.ty}');
 
 		lastGrave = null; // in case it is not reachable
 		if (this.isObjectNotReachable(grave.tx, grave.ty)) return false;
@@ -1352,7 +1350,7 @@ abstract class AiBase {
 		}
 
 		if (grave.containedObjects.length > 0) {
-			if (dropHeldObject(0)) {
+			if (dropHeldObject(10)) {
 				if (shouldDebugSay()) myPlayer.say('drop for remove from grave');
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: drop heldobj for remove');
 				return true;
@@ -1362,22 +1360,49 @@ abstract class AiBase {
 			return removeItemFromContainer(grave);
 		}
 
+		// if (hasOrBecomeProfession('GRAVEKEEPER', maxPlayer) == false) return false;
+
 		if (this.myPlayer.age < 50 && this.profession['GRAVEKEEPER'] < 1) {
 			var bestPlayer = getBestAiForObjByProfession('GRAVEKEEPER', grave);
 			if (bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
 		}
 
 		this.profession['GRAVEKEEPER'] = 1;
+		this.lastProfession = 'GRAVEKEEPER';
+
+		// Basket of Bones 356
+		if (shortCraft(0, 356, searchDistance)) return true;
+
+		var grave = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, graveIdsToDigIn, searchDistance, myPlayer);
+		if (grave == null) return false;
 
 		// pickup bones
 		var floorId = WorldMap.world.getFloorId(grave.tx, grave.ty);
-		if (floorId < 1) {
+		var pickup = floorId > 0;
+		if (pickup == false) {
 			// move bones if too close to home
 			var quadDist = AiHelper.CalculateQuadDistanceBetweenObjects(myPlayer, myPlayer.home, grave);
-			if (quadDist < 25) floorId = 1;
+			if (quadDist < 30) {
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: pickup since too close to home');
+				pickup = true;
+			}
 		}
 
-		if (floorId > 0) {
+		if (pickup == false) {
+			var graveyard = GetGraveyard();
+			if (graveyard != null) {
+				var quadDist = AiHelper.CalculateQuadDistanceToObject(myPlayer, graveyard);
+				// Bone Pile 357 --> be less likely to move already moved bones
+				var quadPickupDist = grave.parentId == 357 ? 100 : 25;
+				if (quadDist > quadPickupDist && quadDist < 1600) {
+					if (ServerSettings.DebugAi)
+						trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: pickup to move to graveyard: dist: ${quadDist} quadPickupDist: ${quadPickupDist}');
+					pickup = true;
+				}
+			}
+		}
+
+		if (pickup) {
 			if (heldId == 292) { // Basket
 				if (shouldDebugSay()) myPlayer.say('use basket on bones');
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: use basket on bones');
@@ -7095,8 +7120,9 @@ abstract class AiBase {
 
 		// AI dont switch held obj with ground object to not drop stuff too far away // TODO test
 		if (heldId != 0 && dropTargetId != 0 && distance > 25) {
-			if (shouldDebugSay()) myPlayer.say('Drop ${myPlayer.heldObject.name} TOO FAR AWAY! dist: $distance');
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} TOO FAR AWAY! dist: $distance');
+			if (shouldDebugSay()) myPlayer.say('Drop ${myPlayer.heldObject.name} target ${dropTarget.name} TOO FAR AWAY! dist: $distance');
+			if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} target: ${dropTarget.name} TOO FAR AWAY! dist: $distance');
 
 			// save droptarget from other Ai if first held object is dropped to pickup actor
 			myPlayer.blockActorForAi = dropTarget;
@@ -7596,7 +7622,7 @@ abstract class AiBase {
 		if (distance > 1) {
 			var name = useTarget.name;
 			var done = myPlayer.gotoObj(useTarget);
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} goto useItem ${name} $done');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} held: ${heldObject.name} goto useItem ${name} $done');
 
 			if (shouldDebugSay()) {
 				if (done) myPlayer.say('Goto ${name} for use!'); else
@@ -7604,7 +7630,7 @@ abstract class AiBase {
 			}
 
 			if (done == false) {
-				if (ServerSettings.DebugAi) trace('AI: GOTO useItem ${name} failed!');
+				if (ServerSettings.DebugAi) trace('AI: held: ${heldObject.name} GOTO useItem ${name} failed!');
 				// this.addNotReachableObject(useTarget);
 				CancleUse();
 			}

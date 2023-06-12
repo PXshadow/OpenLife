@@ -769,7 +769,8 @@ class AiHelper {
 
 		// ai.time += passedTime / 1000;
 
-		if (ServerSettings.DebugAiGoto) trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime dist: $dist');
+		if (ServerSettings.DebugAi)
+			trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime dist: $dist blockedByAnimal: ${blockedByAnimal}');
 		// trace('AI: ${player.id} ${player.name} GOTO failed! Ignore ${tx} ${ty} passedTime: $passedTime');
 
 		if (ai == null) {
