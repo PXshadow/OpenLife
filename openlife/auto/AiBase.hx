@@ -1398,7 +1398,11 @@ abstract class AiBase {
 		}
 
 		if (shouldDebugSay()) myPlayer.say('get shovel for grave');
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get hoe');
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get shovel');
+		if (GetItem(502, 10)) return true; // 502 = Shovel
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get stone hoe');
 
 		// 850 Stone Hoe
 		var quadDist = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
@@ -1406,9 +1410,7 @@ abstract class AiBase {
 		// 850 Stone Hoe
 		if (quadDist < 900) if (GetOrCraftItem(850)) return true; else if (GetItem(850)) return true;
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get shovel');
-
-		return GetItem(502); // 502 = Shovel
+		return false;
 	}
 
 	private function handleDeath():Bool {
@@ -5238,16 +5240,17 @@ abstract class AiBase {
 		return true;
 	}
 
-	private function GetItem(objId:Int):Bool {
-		return GetOrCraftItem(objId, false);
+	private function GetItem(objId:Int, maxSearchDistance:Int = 40):Bool {
+		return GetOrCraftItem(objId, false, 0, maxSearchDistance);
 	}
 
-	private function GetOrCraftItem(objId:Int, craft:Bool = true, minDistance:Int = 0, target:ObjectHelper = null, ?infos:haxe.PosInfos):Bool {
+	private function GetOrCraftItem(objId:Int, craft:Bool = true, minDistance:Int = 0, maxSearchDistance:Int = 40, target:ObjectHelper = null,
+			?infos:haxe.PosInfos):Bool {
 		if (myPlayer.isMoving()) return true;
 		var objdata = ObjectData.getObjectData(objId);
 		var pileId = objdata.getPileObjId();
 		var hasPile = pileId > 0;
-		var maxSearchDistance = 40;
+		// var maxSearchDistance = 40;
 		var searchDistance:Int = hasPile ? 5 : maxSearchDistance;
 		var obj = null;
 		var pile = null;
