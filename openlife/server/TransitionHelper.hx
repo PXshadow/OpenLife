@@ -237,12 +237,14 @@ class TransitionHelper {
 			player.say('LOCK HAS NOW THE SAME KEY!', true);
 		}
 
+		var MaxCoinsPerChest = ServerSettings.MaxCoinsPerChest;
+
 		// store coins
 		// 0 + Open Wooden Chest 986
 		// 0 + Unlocked Wooden Chest 989
 		var closeChest = (isHeldEmpty && targetId == 986) || (isHeldEmpty && targetId == 989);
 		if (tag == USE && closeChest && player.coins > 10 && helper.target.coins < 1 && player.age > 5) {
-			var coins = Math.min(100, Math.floor(player.coins));
+			var coins = Math.min(MaxCoinsPerChest, Math.floor(player.coins));
 			player.coins -= coins;
 			helper.target.coins += coins;
 			if (helper.target.hits < 1) helper.target.hits = 1; // make sure object is saved
