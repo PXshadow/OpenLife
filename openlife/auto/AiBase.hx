@@ -585,29 +585,29 @@ abstract class AiBase {
 		itemToCraft.searchCurrentPosition = false;
 
 		// || lastProfession == 'ROWMAKER'
-		if (assignedProfession == 'ROWMAKER') {
+		if (assignedProfession == 'ROWMAKER' || lastProfession == 'ROWMAKER') {
 			Macro.exception(if (doPrepareRows(100)) return);
-		} else if (assignedProfession == 'SOILMAKER') {
+		} else if (assignedProfession == 'SOILMAKER' || lastProfession == 'SOILMAKER') {
 			Macro.exception(if (doPrepareSoil(100)) return);
-		} else if (assignedProfession == 'CARROTFARMER') {
+		} else if (assignedProfession == 'CARROTFARMER' || lastProfession == 'CARROTFARMER') {
 			Macro.exception(if (doCarrotFarming(100)) return);
-		} else if (assignedProfession == 'BASICFARMER') {
+		} else if (assignedProfession == 'BASICFARMER' || lastProfession == 'BASICFARMER') {
 			Macro.exception(if (doBasicFarming(100)) return);
-		} else if (assignedProfession == 'ADVANCEDFARMER') {
+		} else if (assignedProfession == 'ADVANCEDFARMER' || lastProfession == 'ADVANCEDFARMER') {
 			Macro.exception(if (doAdvancedFarming(100)) return);
-		} else if (assignedProfession == 'SHEPHERD') {
+		} else if (assignedProfession == 'SHEPHERD' || lastProfession == 'SHEPHERD') {
 			Macro.exception(if (isSheepHerding(100)) return);
-		} else if (assignedProfession == 'BAKER') {
+		} else if (assignedProfession == 'BAKER' || lastProfession == 'BAKER') {
 			Macro.exception(if (doBaking(100)) return);
-		} else if (assignedProfession == 'SMITH') {
+		} else if (assignedProfession == 'SMITH' || lastProfession == 'SMITH') {
 			Macro.exception(if (doSmithing(100)) return);
-		} else if (assignedProfession == 'POTTER') {
+		} else if (assignedProfession == 'POTTER' || lastProfession == 'POTTER') {
 			Macro.exception(if (doPottery(100)) return);
 		} else if (assignedProfession == 'FIREKEEPER') {
 			Macro.exception(if (isHandlingFire(100)) return);
 		} else if (assignedProfession == 'LUMBERJACK') {
 			Macro.exception(if (isCuttingWood(100)) return);
-		} else if (assignedProfession == 'WATERBRINGER') {
+		} else if (assignedProfession == 'WATERBRINGER' || lastProfession == 'WATERBRINGER') {
 			Macro.exception(if (doWatering(100)) return);
 		} else if (assignedProfession == 'FOODSERVER') {
 			Macro.exception(if (isFeedingPlayerInNeed(100)) return);
