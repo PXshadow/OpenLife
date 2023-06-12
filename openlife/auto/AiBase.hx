@@ -549,7 +549,9 @@ abstract class AiBase {
 
 		Macro.exception(if (isHandlingFire()) return);
 
-		itemToCraft.searchCurrentPosition = true;
+		itemToCraft.searchCurrentPosition = false; // true
+		itemToCraft.maxSearchRadius = 30;
+
 		Macro.exception(if (isMakingSeeds()) return);
 		Macro.exception(if (shortCraft(0, 400, 10)) return); // pull out the carrots
 		Macro.exception(if (isPickingupCloths()) return);
@@ -584,6 +586,7 @@ abstract class AiBase {
 		if (rightAge) Macro.exception(if (craftMediumPriorityClothing(2)) return);
 
 		itemToCraft.searchCurrentPosition = false;
+		itemToCraft.maxSearchRadius = 30; // old null
 
 		// || lastProfession == 'ROWMAKER'
 		if (assignedProfession == 'ROWMAKER' || lastProfession == 'ROWMAKER') {
@@ -1319,7 +1322,7 @@ abstract class AiBase {
 		if (pickup == false) {
 			var graveyard = GetGraveyard();
 			if (graveyard != null) {
-				var quadDist = AiHelper.CalculateQuadDistanceToObject(myPlayer, graveyard);
+				var quadDist = AiHelper.CalculateQuadDistanceBetweenObjects(myPlayer, grave, graveyard);
 				// Bone Pile 357 --> be less likely to move already moved bones
 				var quadPickupDist = grave.parentId == 357 ? 100 : 25;
 				if (quadDist > quadPickupDist && quadDist < 1600) {
@@ -1802,6 +1805,10 @@ abstract class AiBase {
 				trace('AAI: ${myPlayer.name + myPlayer.id} RowMaker: ${taskState['RowMaker']} deepRows: $deepRows countRows: $countRows');
 
 			if (countRows < 9) {
+				// FIX: try to make rows close to home first
+				// Shallow Tilled Row 1136
+				if (craftItem(1136, 20, true)) return true;
+
 				// TODO there seems to be a bug with maxuse transitions on pile of soil
 				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
 				// if(heldObject.parentId == 1137 && shortCraft(1137, 848, 30)) return true;
@@ -1809,7 +1816,8 @@ abstract class AiBase {
 				// if(shortCraft(235, 1101, 30)) return true;
 				//  Clay Bowl 235 + Fertile Soil 1138 --> Bowl of Soil 1137
 				// if(shortCraft(235, 1138, 30)) return true;
-				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
+
+				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row 1136
 				if (shortCraft(1137, 848, 30)) return true;
 			} else
 				this.taskState['RowMaker'] = 2;
@@ -5741,7 +5749,28 @@ abstract class AiBase {
 
 	// TODO consider backpack / contained objects
 	// currently considers heldobject, close objects and objects close to home
-	private function craftItem(objId:Int, count:Int = 1):Bool {
+
+	private function craftItem(objId:Int, maxDistance = -1, onlyHome = false):Bool {
+		var tmpMaxSearchRadius = itemToCraft.maxSearchRadius;
+		var tmpSearchCurrentPosition = itemToCraft.searchCurrentPosition;
+
+		if (maxDistance > 0) itemToCraft.maxSearchRadius = maxDistance;
+		if (onlyHome) itemToCraft.searchCurrentPosition = false;
+
+		var done = false;
+		Macro.exception(done = craftItemHelper(objId, maxDistance, onlyHome));
+		// done = craftItemHelper(objId, maxDistance, onlyHome);
+
+		itemToCraft.maxSearchRadius = tmpMaxSearchRadius;
+		itemToCraft.searchCurrentPosition = tmpSearchCurrentPosition;
+		return done;
+	}
+
+	private function craftItemHelper(objId:Int, maxDistance = -1, onlyHome = false):Bool {
+		// private function craftItem(objId:Int, maxDistance = -1, onlyHome = false) {
+		var count = 1;
+		// if (maxDistance < 0) maxDistance = ServerSettings.AiMaxSearchRadius;
+
 		itemToCraft.ai = this;
 
 		// To save time, craft only if this item crafting did not fail resently
@@ -5774,6 +5803,7 @@ abstract class AiBase {
 
 			itemToCraft.startLocation = null;
 			itemToCraft.itemToCraft = ObjectData.getObjectData(objId);
+			// itemToCraft.maxSearchRadius = maxDistance;
 			itemToCraft.count = count;
 			itemToCraft.countDone = 0;
 			itemToCraft.countTransitionsDone = 0;
@@ -5906,6 +5936,11 @@ abstract class AiBase {
 				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use closest water source! transActor == NULL');
 				return false;
 			}
+		}
+
+		if (itemToCraft.transActor == null) {
+			trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: transActor == NULL');
+			return false;
 		}
 
 		// Dont kill the closest Sheep / Cow
@@ -6086,6 +6121,7 @@ abstract class AiBase {
 
 		while (radius < itemToCraft.maxSearchRadius) {
 			radius += ServerSettings.AiMaxSearchIncrement;
+			if (radius > itemToCraft.maxSearchRadius) radius = itemToCraft.maxSearchRadius;
 			itemToCraft.searchRadius = radius;
 
 			// if(ServerSettings.DebugAi) trace('AI: ${myPlayer.name + myPlayer.id} craft: search radius: $radius');
@@ -6110,7 +6146,7 @@ abstract class AiBase {
 			// if(myPlayer.firePlace != null) addObjectsForCrafting(myPlayer.firePlace.tx, myPlayer.firePlace.ty, radius, transitionsByObjectId);
 
 			if (ServerSettings.DebugAi)
-				trace('AI: craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
+				trace('AI: ${myPlayer.name}${myPlayer.id} craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
 
 			/*itemToCraft.clearTransitionsByObjectId();
 				addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId, false);
@@ -6136,7 +6172,7 @@ abstract class AiBase {
 				searchBestTransitionTopDown(itemToCraft);
 
 			if (ServerSettings.DebugAi)
-				trace('AI: craft: FINISHED transitions ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
+				trace('AI:  ${myPlayer.name}${myPlayer.id} craft: FINISHED transitions ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
 
 			this.time += Sys.time() - startTime;
 
@@ -7241,7 +7277,7 @@ abstract class AiBase {
 			myPlayer.say('$text ${countProfession(lastProfession)}');
 		}
 		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} profession: $lastProfession count: ${countProfession(lastProfession)}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} profession: $lastProfession count: ${countProfession(lastProfession)} food: ${myPlayer.food_store}');
 
 		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
 		if (isHungry == false && foodTarget == null) return false;
