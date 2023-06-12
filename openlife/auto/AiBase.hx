@@ -598,6 +598,8 @@ abstract class AiBase {
 			Macro.exception(if (doAdvancedFarming(100)) return);
 		} else if (assignedProfession == 'SHEPHERD' || lastProfession == 'SHEPHERD') {
 			Macro.exception(if (isSheepHerding(100)) return);
+		} else if (assignedProfession == 'COLLECTOR' || lastProfession == 'COLLECTOR') {
+			Macro.exception(if (isCollecting(100)) return);
 		} else if (assignedProfession == 'BAKER' || lastProfession == 'BAKER') {
 			Macro.exception(if (doBaking(100)) return);
 		} else if (assignedProfession == 'SMITH' || lastProfession == 'SMITH') {
@@ -642,6 +644,7 @@ abstract class AiBase {
 
 		itemToCraft.maxSearchRadius = 30;
 
+		Macro.exception(if (isCollecting(1)) return);
 		Macro.exception(if (doWatering(1)) return);
 		Macro.exception(if (doCarrotFarming(1)) return);
 		Macro.exception(if (cleanUpBowls(253)) return); // Bowl of Gooseberries 253
@@ -898,82 +901,6 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function doCriticalStuff() {
-		var home = myPlayer.home;
-		// get basic kindling
-		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.firePlace.tx, myPlayer.firePlace.ty, 72, 15); // Kindling 72
-		if (count < 3) this.taskState['kindling'] = 1;
-		if (count > 6) this.taskState['kindling'] = 0;
-
-		if (this.taskState['kindling'] > 0) {
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doCriticalStuff: get kindling: ${count}');
-			if (shouldDebugSay()) myPlayer.say('Get Kindling ${count} from 5');
-		}
-		// Kindling 72
-		if (this.taskState['kindling'] > 0 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
-		this.profession['FIREKEEPER'] = 2;
-
-		if (placeFloorUnder(myPlayer.home)) return true;
-
-		if (placeFloorUnder(GetKiln())) return true;
-
-		if (placeFloorUnder(GetForge())) return true;
-
-		var distance = 30;
-
-		if ((Math.round(myPlayer.age / 5)) % 2 == 0) {
-			// Domestic Gooseberry Bush 391
-			var countBushes = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 391, distance);
-			var countBerryBushes = countBushes;
-			// Dry Domestic Gooseberry Bush 393
-			countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 393, distance);
-			// Empty Domestic Gooseberry Bush 1135
-			countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1135, distance);
-			// Vigorous Domestic Gooseberry Bush 1134
-			countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1134, distance);
-
-			if (countBushes < 20) {
-				// Bowl of Soil 1137 + Dying Gooseberry Bush 389
-				if (shortCraft(1137, 389, 30)) return true;
-				// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
-				if (shortCraft(1137, 392, 30)) return true;
-			}
-
-			/*if (countBerryBushes > 1) {
-				// // Raw Berry Pie 265 // Cooked Berry Pie 272
-				var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 30);
-				count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30);
-				if (count < 2 && craftItem(265)) return true;
-			}*/
-		}
-
-		Macro.exception(if (doWatering(1)) return true);
-
-		if (doBaking(1)) return true;
-
-		if (doPottery(1)) return true;
-
-		if (cleanUp()) return true;
-
-		if (makeFireFood(1)) return true;
-
-		// take care that there is at least some basic farming
-		// var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 399, 30); // Wet Planted Carrots
-		// if (closeObj == null) if (craftItem(399)) return true; // Wet Planted Carrots
-
-		Macro.exception(if (doCarrotFarming(2)) return true);
-
-		// var corn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
-		// corn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
-		// if (corn < 3) if (craftItem(1110)) return true; // Wet Planted Corn Seed
-
-		// more kindling
-		// if (this.profession['FIREKEEPER'] < 3 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
-		// this.profession['FIREKEEPER'] = 3;
-
-		return false;
-	}
-
 	private function placeFloorUnder(obj:ObjectHelper) {
 		if (obj == null) return false;
 		var world = WorldMap.world;
@@ -1035,10 +962,10 @@ abstract class AiBase {
 
 		// 83 Large Fast Fire // 346 Large Slow Fire // 3029 Flash Fire
 		if (objId == 83 || objId == 346 || objId == 3029) {
-			if (hasOrBecomeProfession('FIREKEEPER', maxProfession) == false) return false;
+			// if (hasOrBecomeProfession('FIREKEEPER', maxProfession) == false) return false;
 
 			// itemToCraft.maxSearchRadius = 30; // craft only close
-			Macro.exception(if (doCriticalStuff()) return true);
+			// Macro.exception(if (doCriticalStuff()) return true);
 			// itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 
 			return false;
@@ -1312,6 +1239,8 @@ abstract class AiBase {
 
 		// Basket of Bones 356
 		if (myPlayer.heldObject.parentId == 356) return dropHeldObject();
+		// Basket 292 // reset lastgrave to consider if it is moved
+		// if (myPlayer.heldObject.parentId == 292) lastGrave = null;
 
 		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['grave']);
 		var isGravekeeper = this.profession['GRAVEKEEPER'] > 0;
@@ -1402,7 +1331,8 @@ abstract class AiBase {
 		}
 
 		if (pickup) {
-			if (heldId == 292) { // Basket
+			// Basket 292
+			if (heldId == 292) {
 				if (shouldDebugSay()) myPlayer.say('use basket on bones');
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: use basket on bones');
 				if (myPlayer.heldObject.containedObjects.length > 0) return dropHeldObject();
@@ -1764,6 +1694,9 @@ abstract class AiBase {
 		// else
 		//	return doBaking(2);
 		// this.profession['CARROTFARMER'] = 0;
+
+		if (cleanUp()) return true;
+
 		return false;
 	}
 
@@ -3039,6 +2972,9 @@ abstract class AiBase {
 			}
 		}*/
 		this.profession['BAKER'] = 0;
+
+		if (cleanUp()) return true;
+
 		return false;
 	}
 
@@ -4347,7 +4283,9 @@ abstract class AiBase {
 			var tmp = text.split("!");
 			var prof = tmp.length == 0 ? '' : tmp[0];
 			if (prof == 'FARMER') prof = 'BASICFARMER';
+			if (prof == 'WHEAT') prof = 'BASICFARMER';
 			if (prof == 'CARROT') prof = 'CARROTFARMER';
+			if (prof == 'COLLECT') prof = 'COLLECTOR';
 			if (prof == 'NONE') assignedProfession = null;
 			if (professions.contains(prof)) {
 				assignedProfession = prof;
@@ -4391,7 +4329,7 @@ abstract class AiBase {
 
 	public static var professions = [
 		'SOILMAKER', 'ROWMAKER', 'BASICFARMER', 'ADVANCEDFARMER', 'SHEPHERD', 'BAKER', 'POTTER', 'FIREKEEPER', 'TAILOR', 'FIREFOODMAKER', 'LUMBERJACK',
-		'WATERBRINGER', 'FOODSERVER', 'GRAVEKEEPER', 'HUNTER', 'SMITH', 'CARROTFARMER'
+		'WATERBRINGER', 'FOODSERVER', 'GRAVEKEEPER', 'HUNTER', 'SMITH', 'CARROTFARMER', 'COLLECTOR'
 	];
 
 	public function searchFoodAndEat() {
@@ -5256,6 +5194,95 @@ abstract class AiBase {
 			// Try kill some Mosquito // Firebrand + Mosquito Swarm just bit --> 0 + Ashes
 			if (shortCraft(248, 2157, 20)) return true;
 		}
+
+		return false;
+	}
+
+	private function isCollecting(maxPeople = 1) {
+		if (hasOrBecomeProfession('COLLECTOR', maxPeople) == false) return false;
+
+		var quadDistanceToHome = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
+		if (quadDistanceToHome < 900) {}
+
+		Macro.exception(if (doCriticalStuff()) return true);
+
+		return false;
+	}
+
+	private function doCriticalStuff() {
+		var home = myPlayer.home;
+		var firePlace = myPlayer.firePlace == null ? myPlayer.home : myPlayer.firePlace;
+
+		// get basic kindling
+		var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 72, 15); // Kindling 72
+		if (count < 3) this.taskState['kindling'] = 1;
+		if (count > 4) this.taskState['kindling'] = 0;
+
+		if (this.taskState['kindling'] > 0) {
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doCriticalStuff: get kindling: ${count}');
+			if (shouldDebugSay()) myPlayer.say('Get Kindling ${count} from 5');
+		}
+		// Kindling 72
+		if (this.taskState['kindling'] > 0 && GetCraftAndDropItemsCloseToObj(firePlace, 72, 10)) return true;
+		// this.profession['FIREKEEPER'] = 2;
+
+		if (placeFloorUnder(myPlayer.home)) return true;
+
+		if (placeFloorUnder(GetKiln())) return true;
+
+		if (placeFloorUnder(GetForge())) return true;
+
+		var distance = 20;
+
+		if ((Math.round(myPlayer.age / 5)) % 2 == 0) {
+			// Domestic Gooseberry Bush 391
+			var countBushes = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 391, distance);
+			var countBerryBushes = countBushes;
+			// Dry Domestic Gooseberry Bush 393
+			countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 393, distance);
+			// Empty Domestic Gooseberry Bush 1135
+			countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1135, distance);
+			// Vigorous Domestic Gooseberry Bush 1134
+			countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1134, distance);
+
+			if (countBushes < 20) {
+				// Bowl of Soil 1137 + Dying Gooseberry Bush 389
+				if (shortCraft(1137, 389, 30)) return true;
+				// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
+				if (shortCraft(1137, 392, 30)) return true;
+			}
+
+			/*if (countBerryBushes > 1) {
+				// // Raw Berry Pie 265 // Cooked Berry Pie 272
+				var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 30);
+				count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30);
+				if (count < 2 && craftItem(265)) return true;
+			}*/
+		}
+
+		Macro.exception(if (doWatering(1)) return true);
+
+		if (doBaking(1)) return true;
+
+		if (doPottery(1)) return true;
+
+		if (cleanUp()) return true;
+
+		if (makeFireFood(1)) return true;
+
+		// take care that there is at least some basic farming
+		// var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 399, 30); // Wet Planted Carrots
+		// if (closeObj == null) if (craftItem(399)) return true; // Wet Planted Carrots
+
+		Macro.exception(if (doCarrotFarming(2)) return true);
+
+		// var corn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
+		// corn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
+		// if (corn < 3) if (craftItem(1110)) return true; // Wet Planted Corn Seed
+
+		// more kindling
+		// if (this.profession['FIREKEEPER'] < 3 && count < 10 && GetCraftAndDropItemsCloseToObj(myPlayer.firePlace, 72, 10)) return true;
+		// this.profession['FIREKEEPER'] = 3;
 
 		return false;
 	}
