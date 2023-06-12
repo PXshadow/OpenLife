@@ -531,6 +531,7 @@ abstract class AiBase {
 		Macro.exception(if (fillBerryBowlIfNeeded(true)) return);
 		// Macro.exception(if (Math.floor(myPlayer.age / 5) % 2 == 0 && doHunting(1)) return);
 		Macro.exception(if (doFeedLambsAndCalfs(1)) return);
+		Macro.exception(if (doStuff && isHunting()) return);
 
 		var heldObjId = myPlayer.heldObject.parentId;
 
@@ -614,6 +615,7 @@ abstract class AiBase {
 		} else if (assignedProfession == 'GRAVEKEEPER') {
 			Macro.exception(if (isHandlingGraves(100)) return);
 		} else if (assignedProfession == 'HUNTER') {
+			Macro.exception(if (isHunting(100)) return);
 			// Macro.exception(if (doHunting(100)) return);
 		} else if (assignedProfession == 'TAILOR') {
 			Macro.exception(if (craftHighPriorityClothing()) return);
@@ -844,9 +846,6 @@ abstract class AiBase {
 				return PickupObj(closeObj);
 			}
 		}
-
-		// Try kill some Mosquito // Firebrand + Mosquito Swarm just bit --> 0 + Ashes
-		if (shortCraft(248, 2157, 30)) return true;
 
 		// Long Straight Shaft 67
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 67, 10);
@@ -1332,7 +1331,7 @@ abstract class AiBase {
 
 		if (grave == null) return false;
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: ${grave.name} found! ${grave.tx},${grave.ty}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} ${lastProfession} GRAVE: ${grave.name} found! ${grave.tx},${grave.ty}');
 
 		lastGrave = null; // in case it is not reachable
 		if (this.isObjectNotReachable(grave.tx, grave.ty)) return false;
@@ -5248,6 +5247,17 @@ abstract class AiBase {
 		didNotReachFood = 0;
 
 		return true;
+	}
+
+	private function isHunting(maxPeople = 1) {
+		if (hasOrBecomeProfession('HUNTER', maxPeople) == false) return false;
+		var quadDistanceToHome = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
+		if (quadDistanceToHome < 900) {
+			// Try kill some Mosquito // Firebrand + Mosquito Swarm just bit --> 0 + Ashes
+			if (shortCraft(248, 2157, 20)) return true;
+		}
+
+		return false;
 	}
 
 	private function PickupItem(objId:Int):Bool {
