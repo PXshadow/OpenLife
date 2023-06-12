@@ -254,6 +254,7 @@ class ServerSettings {
 
 	// property
 	public static var MaxCoinsPerChest:Int = 200;
+	public static var MaxCoinsPerPouch:Int = 50;
 	public static var LockpickSucessChance:Float = 5; // in %
 	public static var LockpickFailChance:Float = 10;
 	public static var LockpickExhaustionCost:Float = 3;

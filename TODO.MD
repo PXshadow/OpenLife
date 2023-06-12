@@ -379,7 +379,9 @@ Ownership:
 - if none was there to inherit the gate the first who finds the gate will own the it
 
 Property:
-- Coins can be stored in chests
+- Coins can be stored in (locked) chests (200) and Empty Water Pouch (50)
+- Just close the chest to store and open to get them (need a key for locked chest)
+- To store 50 coins in a Empty Water Pouch put the Pouch in a chest. If you pick it up from ground you will get them back
 - Wooden Doors / Chests can be locked with lock and key
 - There is only a one in 10000 chance that an key can open another lock
 - You can use the same Key for All locks, just place it in mutliple open locks

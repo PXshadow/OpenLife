@@ -237,13 +237,12 @@ class TransitionHelper {
 			player.say('LOCK HAS NOW THE SAME KEY!', true);
 		}
 
-		var MaxCoinsPerChest = ServerSettings.MaxCoinsPerChest;
-
 		// store coins
 		// 0 + Open Wooden Chest 986
 		// 0 + Unlocked Wooden Chest 989
 		var closeChest = (isHeldEmpty && targetId == 986) || (isHeldEmpty && targetId == 989);
 		if (tag == USE && closeChest && player.coins > 10 && helper.target.coins < 1 && player.age > 5) {
+			var MaxCoinsPerChest = ServerSettings.MaxCoinsPerChest;
 			var coins = Math.min(MaxCoinsPerChest, Math.floor(player.coins));
 			player.coins -= coins;
 			helper.target.coins += coins;
@@ -251,17 +250,39 @@ class TransitionHelper {
 			player.say('Stored ${coins} Coins!', true);
 		}
 
+		// Empty Water Pouch 209
+		// Open Wooden Chest 986
+		// Unlocked Wooden Chest 989
+		var isOpenChest = targetId == 986 || targetId == 989;
+		if (isOpenChest && player.coins >= 50 && heldId == 209 && heldObject.coins < 1 && player.age > 5) {
+			var MaxCoinsPerPouch = ServerSettings.MaxCoinsPerPouch;
+			var coins = Math.min(MaxCoinsPerPouch, Math.floor(player.coins));
+			player.coins -= coins;
+			heldObject.coins += coins;
+			if (heldObject.hits < 1) heldObject.hits = 1; // make sure object is saved
+			player.say('Stored ${coins} Coins in you Pouch!', true);
+		}
+
 		// get coins
 		// TODO provide coins if same account without key
 		// 0 + Closed Wooden Chest 987
 		// Key 917 + Locked Wooden Chest 988
-		var opemChest = (isHeldEmpty && targetId == 987) || (heldId == 917 && targetId == 988);
-
-		if (tag == USE && opemChest && helper.target.coins > 0 && player.age > 5) {
+		var openChest = (isHeldEmpty && targetId == 987) || (heldId == 917 && targetId == 988);
+		if (tag == USE && openChest && helper.target.coins > 0 && player.age > 5) {
 			var coins = helper.target.coins;
 			player.coins += coins;
 			helper.target.coins = 0;
 			player.say('Got ${coins} Coins!', true);
+		}
+
+		if (helper.target.coins > 0) trace('${helper.target.name} coins: ${helper.target.coins} tag: ${tag}');
+
+		// Empty Water Pouch 209
+		if (tag == USE && targetId == 209 && helper.target.coins > 0 && player.age > 5) {
+			var coins = helper.target.coins;
+			player.coins += coins;
+			helper.target.coins = 0;
+			player.say('Got ${coins} Coins from Pouch!', true);
 		}
 
 		// var text = 'TRANS: ${player.name + player.id} tag: $tag ${player.heldObject.name} + ${helper.target.name} ${helper.target.toArray()}';
