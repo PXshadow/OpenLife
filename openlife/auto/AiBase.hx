@@ -371,7 +371,9 @@ abstract class AiBase {
 		if (movedOneTileTmp == false && myPlayer.isMoving()) return;
 
 		itemToCraft.searchCurrentPosition = true;
-		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
+		itemToCraft.searchCurrentPosition = false;
+		// itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
+		itemToCraft.maxSearchRadius = 30;
 		ignoreFullPiles = false;
 		calledCraftItem = false;
 
@@ -526,12 +528,10 @@ abstract class AiBase {
 		var hotkiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 282, 10);
 		// Firing Forge 304
 		// if (hotkiln != null) hotkiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 304, 10, null, myPlayer);
-		if (hotkiln != null || this.profession['POTTER'] >= 10) Macro.exception(if (doPottery(2)) return);
+		if (hotkiln != null || this.profession['POTTER'] >= 10) Macro.exception(if (doPottery(-2)) return);
 
 		Macro.exception(if (fillBerryBowlIfNeeded(true)) return);
 		// Macro.exception(if (Math.floor(myPlayer.age / 5) % 2 == 0 && doHunting(1)) return);
-		Macro.exception(if (doFeedLambsAndCalfs(1)) return);
-		Macro.exception(if (doStuff && isHunting()) return);
 
 		var heldObjId = myPlayer.heldObject.parentId;
 
@@ -540,10 +540,9 @@ abstract class AiBase {
 		// 560 Knife // 1468 Leavened Dough on Clay Plate
 		if (heldObjId == 560 && shortCraft(560, 1468, 10, false)) return;
 
-		// if (this.profession['BAKER'] > 1) Macro.exception(if (doBaking()) return);
-		if (this.lastProfession == 'BAKER') Macro.exception(if (doBaking()) return);
+		// if (this.lastProfession == 'BAKER') Macro.exception(if (doBaking()) return);
 
-		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
+		// itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 
 		// if(doWateringOn(396)) return; // Dry Planted Carrots 396
 
@@ -556,6 +555,8 @@ abstract class AiBase {
 		Macro.exception(if (shortCraft(0, 400, 10)) return); // pull out the carrots
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (handleTemperature()) return);
+		Macro.exception(if (doFeedLambsAndCalfs(1)) return);
+		Macro.exception(if (doStuff && isHunting()) return);
 		Macro.exception(if (makeSharpieFood(5)) return);
 		Macro.exception(if (isHandlingGraves()) return);
 		Macro.exception(if (shortCraft(139, 2832, 20)) return); // Skewer + Tomato Sprout
@@ -578,6 +579,10 @@ abstract class AiBase {
 				craftingTasks.push(itemToCraftId);
 			}
 		}
+
+		itemToCraft.searchCurrentPosition = false; // true
+		itemToCraft.maxSearchRadius = 60;
+
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if (craftHighPriorityClothing()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
@@ -647,9 +652,10 @@ abstract class AiBase {
 
 		itemToCraft.maxSearchRadius = 30;
 
+		Macro.exception(if (doCarrotFarming(1)) return);
+		Macro.exception(if (isSheepHerding(1)) return);
 		Macro.exception(if (isCollecting(1)) return);
 		Macro.exception(if (doWatering(1)) return);
-		Macro.exception(if (doCarrotFarming(1)) return);
 		Macro.exception(if (cleanUpBowls(253)) return); // Bowl of Gooseberries 253
 		Macro.exception(if (doBaking(1)) return);
 		Macro.exception(if (doBasicFarming(1)) return);
@@ -694,6 +700,7 @@ abstract class AiBase {
 			if (count < 2 && craftItem(itemToCraftId)) return;
 		});
 
+		// TODO better let one bring the stuff to town
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 
@@ -935,11 +942,16 @@ abstract class AiBase {
 
 		// Hot Coals 85 ==> make fire food
 		var coals = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 85, 10);
-		if (coals != null) Macro.exception(if (makeFireFood(3)) return true);
+		if (coals != null) Macro.exception(if (makeFireFood(-3)) return true);
 
 		// Hot Adobe Oven 250
 		var hotOven = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 250, 10);
-		if (hotOven != null) Macro.exception(if (doBaking(3)) return true);
+		if (hotOven != null) Macro.exception(if (doBaking(-3)) return true);
+
+		// Firing Adobe Kiln 282 //
+		// var kiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 282, 10);
+		// if (kiln != null) Macro.exception(if (doPottery(-3)) return true);
+		// if (doPotteryOnFire(countWetBowl, countWetPlate)) return true;
 
 		if (firePlace == null) {
 			var bestAiForFire = getBestAiForObjByProfession('FIREKEEPER', myPlayer.home);
@@ -1570,8 +1582,6 @@ abstract class AiBase {
 		// if(craftItem(1113)) return true; // Ear of Corn
 		if (hasOrBecomeProfession('SHEPHERD', maxProfession) == false) return false;
 
-		Macro.exception(if (fillBerryBowlIfNeeded()) return true);
-
 		// Domestic Sheep 575
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 40);
 
@@ -1654,6 +1664,8 @@ abstract class AiBase {
 			// Bowl with Corn Kernels 1247 + Domestic Cow 1458
 			if (shortCraft(1247, 1458, distance)) return true;
 		}
+
+		Macro.exception(if (fillBerryBowlIfNeeded()) return true);
 
 		this.profession['SHEPHERD'] = 0;
 
@@ -1744,9 +1756,9 @@ abstract class AiBase {
 		var home = myPlayer.home;
 
 		// Composting Compost Pile 790
-		var countCompost = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 790, 60);
+		var countCompost = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 790, 30);
 		// Composted Soil 624
-		countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 624, 60);
+		countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 624, 30);
 
 		if (countCompost < 1) this.taskState['Composting'] = 1;
 
@@ -1758,10 +1770,11 @@ abstract class AiBase {
 		if (craftItem(790)) return true;
 
 		// Wet Compost Pile 625
-		countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 625, 60);
+		countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 625, 30);
+		countCompost += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 625, 30);
 
 		// Wet Compost Pile 625
-		if (countCompost < 3 && craftItem(625)) return true;
+		if (countCompost < 4 && craftItem(625)) return true;
 
 		return false;
 	}
@@ -2424,7 +2437,7 @@ abstract class AiBase {
 		return kiln;
 	}
 
-	private function doPottery(maxPeople:Int = 2):Bool {
+	private function doPottery(maxPeople:Int = 1):Bool {
 		var home = myPlayer.home;
 
 		if (hasOrBecomeProfession('POTTER', maxPeople) == false) return false;
@@ -2761,8 +2774,6 @@ abstract class AiBase {
 		// Raw Pie Crust 264
 		if (countDough > 0 && countPieCrust < 5 && maxDoughInBowl == 0 && craftItem(264)) return true;
 
-		Macro.exception(if (fillBerryBowlIfNeeded()) return true);
-
 		if (hasOrBecomeProfession('BAKER', maxPeople) == false) return false;
 		var startTime = Sys.time();
 
@@ -2980,6 +2991,8 @@ abstract class AiBase {
 			}
 		}*/
 		this.profession['BAKER'] = 0;
+
+		Macro.exception(if (fillBerryBowlIfNeeded()) return true);
 
 		if (cleanUp()) return true;
 
@@ -3860,14 +3873,21 @@ abstract class AiBase {
 		}
 	}
 
+	// if max is negative it implicates hight priority tasks like a hot oven / hot coals or hungy baking
+	// I nthis case lastProfession should not be assigned
 	private function hasOrBecomeProfession(profession:String, max:Int = 1):Bool {
 		// var hasProfession = this.profession[profession] > 0;
-		var hasProfession = lastProfession == profession;
+		var hasProfession = lastProfession == profession || assignedProfession == profession;
+		var highPriority = max > 0;
+
+		if (highPriority) return true; // do job but dont assign profession
 
 		if (hasProfession) {
 			this.lastProfession = profession;
 			return true;
 		}
+
+		if (max < 0) max *= -1;
 
 		var count = countProfession(profession);
 		if (profession == 'SMITH' && count > 0) return false; // max one SMITH
@@ -7359,8 +7379,8 @@ abstract class AiBase {
 
 		if (countRawRabbit > 0 && makeFireFood(1)) return true;
 
+		if (doBaking(1)) return true;
 		if (fillUpBerryBowl()) return true; // needed for baking
-		if (doBaking(2)) return true;
 		// if(cleanUpBowls(1176)) return true; // Bowl of Dry Beans 1176
 		// if(fillBeanBowlIfNeeded(false)) return true; // dry beans
 		if (countRawRabbit < 1 && makeFireFood(1)) return true;
