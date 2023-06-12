@@ -4449,12 +4449,11 @@ abstract class AiBase {
 	// Clay Bowl 235 // Stack of Clay Bowls 1603 // Clay Plate 236 // Stack of Clay Plates 1602
 	// Bowl of Gooseberries 253 // Knife 560 // Bowl of Dough 252
 	// Baked Bread 1470 // Sliced Bread 1471 // Omelette 1285
-	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900 // Cooked Goose 518
+	// Cooked Goose 518
 	// Bowl of Carrot 547 // Bowl of Mashed Carrot 548 // Bowl of Minced Mutton 4057
-	var dropNearOvenItemIds = [
-		235, 1603, 236, 1602, 560, 252, 1470, 1471, 1285, 253, 502, 900, 518, 547, 548, 4057
-	];
+	var dropNearOvenItemIds = [235, 1603, 236, 1602, 560, 252, 1470, 1471, 1285, 253, 518, 547, 548, 4057];
 
+	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900
 	// Stone 33 // Sharp Stone 34 // Banana Peel 2144
 	// This should not brought far away through switching so better drop for now:
 	// Bowl of Water 382 // Full Water Pouch 210 // Bowl of Soil 1137
