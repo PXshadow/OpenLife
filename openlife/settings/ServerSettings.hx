@@ -1520,6 +1520,17 @@ class ServerSettings {
 		ObjectData.getObjectData(30).lastUseObject = 279; // Wild Gooseberry Bush ==> Empty Wild Gooseberry Bush
 		ObjectData.getObjectData(279).undoLastUseObject = 30; // Empty Wild Gooseberry Bush ==> Wild Gooseberry Bush
 
+		// Hungry Grizzly Bear attacking 653
+		// Shot Grizzly Bear 1 632
+		// Shot Grizzly Bear 2 635
+		// Shot Grizzly Bear 3 637
+
+		// var trans = transitions.getTransition(-1, 628); // Grizzly Bear 628
+		// trans.autoDecaySeconds = 3; // default: 3
+
+		var trans = transitions.getTransition(-1, 631); // Hungry Grizzly Bear 631
+		trans.autoDecaySeconds = 2.5; // default: 3
+
 		var trans = transitions.getTransition(-1, 761); // Barrel Cactus 761
 		trans.autoDecaySeconds = 600; // default: 5 * 60 = 300
 
