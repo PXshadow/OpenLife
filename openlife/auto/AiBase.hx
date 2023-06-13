@@ -5299,6 +5299,9 @@ abstract class AiBase {
 
 		if (animalTarget == null) return false;
 
+		var distance = myPlayer.CalculateQuadDistanceToObject(animalTarget);
+		if (distance > 400) return false;
+
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: ${animalTarget.description}');
 
 		// 151 Yew Bow
