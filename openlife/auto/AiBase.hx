@@ -2883,7 +2883,7 @@ abstract class AiBase {
 
 	private function doBaking(maxPeople:Int = 1):Bool {
 		var tmpMaxSearchRadius = itemToCraft.maxSearchRadius;
-		itemToCraft.maxSearchRadius = 20;
+		itemToCraft.maxSearchRadius = 30;
 		var done = doBakingHelper(maxPeople);
 		itemToCraft.maxSearchRadius = tmpMaxSearchRadius;
 
@@ -3074,7 +3074,7 @@ abstract class AiBase {
 		// 0 + Dug Potatoes 4144
 		if (countPotatos < 5 && shortCraft(0, 4144, 20)) return true;
 
-		if (doWateringHelper(1, 15)) return true;
+		// if (doWateringHelper(1, 15)) return true;
 
 		// Ripe Wheat 242
 		var countWheat = AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 242, 30);
