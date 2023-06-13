@@ -194,6 +194,17 @@ abstract class AiBase {
 	private static function CalculateBlockedByAi() {
 		blockedByAI = new Map<Int, Float>();
 
+		for (player in GlobalPlayerInstance.AllPlayers) {
+			if (player.deleted) continue;
+			if (player.blockTargetForAi == null) continue;
+
+			var timePassedInSeconds = CalculateTimeSinceTicksInSec(player.blockTargetTimee);
+			trace('blocked for AI: ${player.blockTargetForAi.name} ${timePassedInSeconds}');
+			if (timePassedInSeconds > 20) continue;
+
+			AddTargetBlockedByAi(player.blockTargetForAi);
+		}
+
 		for (ai in Connection.getAis()) {
 			if (ai.player.deleted) continue;
 			AddToBlockedByAi(ai);

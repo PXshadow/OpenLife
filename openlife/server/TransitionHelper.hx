@@ -353,6 +353,22 @@ class TransitionHelper {
 			default:
 		}
 		helper.sendUpdateToClient();
+
+		// block last target for Ai for some time if no weapon, cloth or food or permanent
+		var block = player.isHuman();
+		var blockTarget = WorldMap.world.getObjectHelper(helper.target.tx, helper.target.ty);
+
+		if (blockTarget.parentId == 0) block = false;
+		// Smithing Hammer 441
+		if (blockTarget.objectData.isPermanent() && heldId != 441) block = false;
+		if (blockTarget.objectData.isWeapon()) block = false;
+		if (blockTarget.objectData.foodValue > 0) block = false;
+		if (blockTarget.objectData.isClothing()) block = false;
+
+		if (block) {
+			player.blockTargetForAi = blockTarget;
+			player.blockTargetTimee = TimeHelper.tick;
+		}
 		return helper.doAction;
 	}
 
