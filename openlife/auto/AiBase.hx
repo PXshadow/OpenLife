@@ -1310,6 +1310,8 @@ abstract class AiBase {
 
 		// if (hasOrBecomeProfession('GRAVEKEEPER', maxPlayer) == false) return false;
 
+		if (isHungry) return false; // Only take care of bones if not hungry
+
 		if (this.lastProfession != 'GRAVEKEEPER' && this.myPlayer.age < 50) {
 			var bestPlayer = getBestAiForObjByProfession('GRAVEKEEPER', grave);
 			if (bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) {
@@ -7470,6 +7472,8 @@ abstract class AiBase {
 
 		Macro.exception(if (isUsingItem()) return true);
 		Macro.exception(if (isRemovingFromContainer()) return true);
+
+		Macro.exception(if (isHandlingGraves()) return true);
 
 		if (myPlayer.isMoving()) return true;
 
