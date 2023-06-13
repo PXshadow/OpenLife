@@ -2961,6 +2961,15 @@ abstract class AiBase {
 			var countMuttonPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 803, 30); // Cooked Mutton Pie 803
 			countMuttonPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 20); // Raw Mutton 569
 
+			// Wild Gooseberry Bush 30
+			var countBerry = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 30, 15);
+			// Domestic Gooseberry Bush 391
+			countBerry += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 391, 15);
+			// Bowl of Gooseberries 253
+			countBerry += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 253, 15);
+			// Bowl of Gooseberries and Carrot
+			countBerry += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 258, 15);
+
 			var extraPies = countPies % 4;
 
 			/* if (extraPies == 0) {
@@ -2977,6 +2986,9 @@ abstract class AiBase {
 			// }
 			for (i in 0...pies.length) {
 				var index = (nextPie + i) % pies.length;
+
+				// Raw Berry Pie 265
+				if (rawPies[index] == 265 && countBerry < 2) continue;
 
 				// if (rawPies[index] == 802 && countMuttonPies > 1) continue; // Raw Mutton Pie 802
 				// if (rawPies[index] == 265 && countBerryPies > 1) continue; // Raw Berry Pie 265
