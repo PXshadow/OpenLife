@@ -670,10 +670,10 @@ abstract class AiBase {
 
 		itemToCraft.maxSearchRadius = 30;
 
+		Macro.exception(if (doWatering(1)) return);
 		Macro.exception(if (doCarrotFarming(1)) return);
 		Macro.exception(if (isSheepHerding(1)) return);
 		Macro.exception(if (isCollecting(1)) return);
-		Macro.exception(if (doWatering(1)) return);
 		Macro.exception(if (cleanUpBowls(253)) return); // Bowl of Gooseberries 253
 		Macro.exception(if (doBaking(1)) return);
 		Macro.exception(if (doBasicFarming(1)) return);
@@ -2573,6 +2573,15 @@ abstract class AiBase {
 	}
 
 	private function doPottery(maxPeople:Int = 1):Bool {
+		var tmpMaxSearchRadius = itemToCraft.maxSearchRadius;
+		itemToCraft.maxSearchRadius = 60;
+		var done = doPotteryHelper(maxPeople);
+		itemToCraft.maxSearchRadius = tmpMaxSearchRadius;
+
+		return done;
+	}
+
+	private function doPotteryHelper(maxPeople:Int = 1):Bool {
 		var home = myPlayer.home;
 
 		if (hasOrBecomeProfession('POTTER', maxPeople) == false) return false;
@@ -2873,8 +2882,6 @@ abstract class AiBase {
 	public static var rawPies = [265, 802, 268, 270, 266, 271, 269, 267];
 
 	private function doBaking(maxPeople:Int = 1):Bool {
-		if (hasOrBecomeProfession('COLLECTOR', maxPeople) == false) return false;
-
 		var tmpMaxSearchRadius = itemToCraft.maxSearchRadius;
 		itemToCraft.maxSearchRadius = 20;
 		var done = doBakingHelper(maxPeople);
