@@ -3072,7 +3072,9 @@ abstract class AiBase {
 		countPotatos += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1148, 20);
 
 		// 0 + Dug Potatoes 4144
-		if (countPotatos < 5 && shortCraft(0, 4144, 30)) return true;
+		if (countPotatos < 5 && shortCraft(0, 4144, 20)) return true;
+
+		if (doWateringHelper(1, 15)) return true;
 
 		// Ripe Wheat 242
 		var countWheat = AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 242, 30);
@@ -3196,13 +3198,17 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function doWatering(maxPeople:Int = 1):Bool {
+	private function doWatering(maxPeople:Int = 1, distance = 30):Bool {
 		if (hasOrBecomeProfession('WATERBRINGER', maxPeople) == false) return false;
+		return doWateringHelper();
+	}
+
+	private function doWateringHelper(maxPeople:Int = 1, distance = 30):Bool {
 		var home = myPlayer.home;
 
 		// trace('doWatering:');
 
-		var waterTarget = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, ServerSettings.WateringTargetsIds, myPlayer);
+		var waterTarget = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, ServerSettings.WateringTargetsIds, distance, myPlayer);
 
 		if (waterTarget == null) return false;
 
@@ -3212,7 +3218,8 @@ abstract class AiBase {
 		if (waterTarget.parentId == 396) {
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 402, 30); // Carrot 402
 			if (count >= 20) {
-				waterTarget = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, ServerSettings.WateringTargetsIdsWithoutCarrots, myPlayer);
+				waterTarget = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, ServerSettings.WateringTargetsIdsWithoutCarrots, distance,
+					myPlayer);
 			}
 		}
 
@@ -7597,6 +7604,9 @@ abstract class AiBase {
 		// Clay Bowl 235 + Full Bucket of Skim Milk 2124
 		if (shortCraft(235, 2124, 30, 1)) return true;
 
+		// Clay Bow 235 + Open Fermented Sauerkraut 1241
+		if (shortCraft(235, 1241, 20, 1)) return true;
+
 		// Shucked Ear of Corn 1114
 		if (myPlayer.isObjIdYum(1114)) {
 			// var countDryCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 30); // Dried Ear of Corn 1115
@@ -7624,6 +7634,9 @@ abstract class AiBase {
 		if (countRawRabbit > 0 && makeFireFood(1)) return true;
 
 		if (doBaking(1)) return true;
+
+		if (doWatering(1)) return true;
+
 		if (fillUpBerryBowl()) return true; // needed for baking
 		// if(cleanUpBowls(1176)) return true; // Bowl of Dry Beans 1176
 		// if(fillBeanBowlIfNeeded(false)) return true; // dry beans
