@@ -199,7 +199,7 @@ abstract class AiBase {
 			if (player.blockTargetForAi == null) continue;
 
 			var timePassedInSeconds = CalculateTimeSinceTicksInSec(player.blockTargetTimee);
-			trace('blocked for AI: ${player.blockTargetForAi.name} ${timePassedInSeconds}');
+			// trace('blocked for AI: ${player.blockTargetForAi.name} ${timePassedInSeconds}');
 			if (timePassedInSeconds > 20) continue;
 
 			AddTargetBlockedByAi(player.blockTargetForAi);
