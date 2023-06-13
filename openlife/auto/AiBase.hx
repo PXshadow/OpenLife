@@ -2872,7 +2872,18 @@ abstract class AiBase {
 	public static var pies = [272, 803, 273, 274, 275, 276, 277, 278];
 	public static var rawPies = [265, 802, 268, 270, 266, 271, 269, 267];
 
-	private function doBaking(maxPeople:Int = 2):Bool {
+	private function doBaking(maxPeople:Int = 1):Bool {
+		if (hasOrBecomeProfession('COLLECTOR', maxPeople) == false) return false;
+
+		var tmpMaxSearchRadius = itemToCraft.maxSearchRadius;
+		itemToCraft.maxSearchRadius = 20;
+		var done = doBakingHelper(maxPeople);
+		itemToCraft.maxSearchRadius = tmpMaxSearchRadius;
+
+		return done;
+	}
+
+	private function doBakingHelper(maxPeople:Int = 2):Bool {
 		var heldObject = myPlayer.heldObject;
 		var heldId = heldObject.parentId;
 		var home = myPlayer.home;
@@ -3821,7 +3832,7 @@ abstract class AiBase {
 
 	private function fillBerryBowlIfNeeded(onlyFillHeldBowl:Bool = false, maxPeople = 1):Bool {
 		var heldObj = myPlayer.heldObject;
-		var distance = onlyFillHeldBowl ? 15 : 30;
+		var distance = onlyFillHeldBowl ? 15 : 20;
 
 		// 253 Bowl of Gooseberries
 		if (heldObj.parentId == 253 && heldObj.numberOfUses >= heldObj.objectData.numUses) return false;
@@ -3844,8 +3855,8 @@ abstract class AiBase {
 
 		if (hasOrBecomeProfession('BOWLFILLER', maxPeople) == false) return false;
 
-		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253); // Bowl of Gooseberries
-		if (closeBerryBowl == null) AiHelper.GetClosestObjectToHome(myPlayer, 253); // Bowl of Gooseberries
+		var closeBerryBowl = AiHelper.GetClosestObjectById(myPlayer, 253, 20); // Bowl of Gooseberries
+		if (closeBerryBowl == null) AiHelper.GetClosestObjectToHome(myPlayer, 20); // Bowl of Gooseberries
 
 		// do nothing if there is a full Bowl of Gooseberries
 		if (closeBerryBowl != null && closeBerryBowl.numberOfUses >= closeBerryBowl.objectData.numUses) return false;
@@ -5088,7 +5099,7 @@ abstract class AiBase {
 		// Empty Bucket 659 + Milk Cow 1489
 		if (shortCraft(1247, 1489, 30)) return true;
 
-		Macro.exception(if (fillBerryBowlIfNeeded(2)) return true);
+		// Macro.exception(if (fillBerryBowlIfNeeded(1)) return true);
 
 		// Domestic Sheep 575
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 30);
@@ -5712,9 +5723,10 @@ abstract class AiBase {
 
 		if (hasOrBecomeProfession('FOODSERVER', maxPlayer) == false) return false;
 
+		// dont feed 837 ==> Psilocybe Mushroom to others
 		if (myPlayer.heldObject.objectData.foodValue < 1
-			|| myPlayer.heldObject.id == 837) // dont feed 837 ==> Psilocybe Mushroom to others
-		{
+			|| myPlayer.heldObject.id == 837
+			|| targetPlayer.canFeedToMe(myPlayer.heldObject) == false) {
 			// SearchBestFood can return also an none eatable object if it is picked up with a USE
 			foodTarget = AiHelper.SearchBestFood(targetPlayer, myPlayer);
 			if (foodTarget == null) {
@@ -5740,7 +5752,7 @@ abstract class AiBase {
 			return true;
 		}
 
-		if (targetPlayer.canFeedToMe(myPlayer.heldObject) == false) {
+		/*if (targetPlayer.canFeedToMe(myPlayer.heldObject) == false) {
 			this.feedingPlayerTarget = null;
 			// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name}');
 			trace('AAI: ${myPlayer.name + myPlayer.id} cannot feed ${targetPlayer.name} ${myPlayer.heldObject.name} foodvalue: ${myPlayer.heldObject.objectData.foodValue} foodpipes: ${Math.round(targetPlayer.food_store / 10) * 10} foodspace: ${Math.round((targetPlayer.food_store_max - targetPlayer.food_store) * 10) / 10}');
@@ -5748,7 +5760,7 @@ abstract class AiBase {
 			// if not dropped it can be stuck in a cyle try to feed BOWL OF GOOSEBERRIES again and again
 			this.dropHeldObject(5); // since food might be too big or too bad to feed
 			return true; // false
-		}
+		}*/
 
 		var distance = myPlayer.CalculateDistanceToPlayer(targetPlayer);
 
