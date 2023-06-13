@@ -1431,10 +1431,20 @@ class AiHelper {
 			if (p.deleted) continue;
 			// if (p.isHoldingWeapon() == false && p.lostCombatPrestige < 4) continue;
 			// if (p.angryTime > 4) continue;
+			var dangerous = false;
+
+			// consider dangerous if exiled and close to my home
+			if (p.isExiledByAnyLeaderFrom(player)) {
+				var quadDistanceToHome = CalculateQuadDistanceToObject(p, player.home);
+				if (quadDistanceToHome < 1600) dangerous = true;
+			}
+
+			if (p.heldObject.isBloody()) dangerous = true;
+			if (p.lostCombatPrestige > 4) dangerous = true;
 			// TODO this is less agro but would allow to shoot first on a agro AI
-			if (p.heldObject.isBloody() == false
-				&& p.lostCombatPrestige < 4
-				&& (p.isHoldingWeapon() == false || (p.angryTime > 4 && player.angryTime > 4))) continue;
+			if (p.isHoldingWeapon() && (p.angryTime < 4 || player.angryTime < 4)) dangerous = true;
+			// if (p.isHoldingWeapon() == false || (p.angryTime > 4 && player.angryTime > 4))) continue;
+			if (dangerous == false) continue;
 			if (p.isFriendly(player)) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p);

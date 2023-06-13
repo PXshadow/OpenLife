@@ -405,7 +405,7 @@ class TimeHelper {
 		// add new follower
 		if (player.newFollowerTime > 0) player.newFollowerTime -= timePassedInSeconds; else {
 			if (player.newFollower != null) {
-				var exileLeader = player.newFollower.isExiledByAnyLeader(player);
+				var exileLeader = player.newFollower.getLeaderWhoExiled(player);
 				var notExiled = exileLeader == null;
 
 				if (notExiled && player.newFollower.followPlayer != player.newFollowerFor) {

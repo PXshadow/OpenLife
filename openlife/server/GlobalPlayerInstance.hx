@@ -2017,20 +2017,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return true;
 	}
 
-	public function isExiledBy(player:GlobalPlayerInstance):Bool {
-		return this.exiledByPlayers.exists(player.p_id);
-	}
-
-	public function isExiledByAnyLeader(player:GlobalPlayerInstance):GlobalPlayerInstance {
-		if (this.isExiledBy(player)) return player;
-
-		var topLeader = player.getTopLeader();
-
-		if (this.isExiledBy(topLeader)) return topLeader;
-
-		return null;
-	}
-
 	private function processFollowCommand(name:String) {
 		if (name == "ME" || name == "MYSELF") {
 			// TODO check if follower color changes to new color or if needed to be send again
@@ -2055,9 +2041,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return;
 		}
 
-		var exileLeader = this.isExiledByAnyLeader(player);
+		var exileLeader = this.getLeaderWhoExiled(player);
 
 		if (exileLeader != null) {
+			this.say('I AM EXILED BY ${exileLeader.name}', true);
 			this.connection.sendGlobalMessage('${exileLeader.name} has exiled you already!');
 			return;
 		}
@@ -2167,7 +2154,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return;
 		}
 
-		var exileLeader = this.isExiledByAnyLeader(player);
+		var exileLeader = this.getLeaderWhoExiled(player);
 		if (exileLeader != null) {
 			this.connection.sendGlobalMessage('${exileLeader.name} has exiled you already!');
 			this.say('${exileLeader.name} EXILED ME ALREADY!', true);
@@ -2451,6 +2438,51 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (leader.followPlayer == null) return leader;
 
 			if (stopWithPlayer != null && leader.id == stopWithPlayer.id) return leader;
+
+			lastLeader = leader;
+			leader = leader.followPlayer;
+		}
+
+		return null;
+	}
+
+	public function isExiledBy(player:GlobalPlayerInstance):Bool {
+		return this.exiledByPlayers.exists(player.p_id);
+	}
+
+	public function isExiledByAnyLeaderFrom(player:GlobalPlayerInstance):Bool {
+		var leader = getLeaderWhoExiled(player);
+		return leader != null;
+	}
+
+	/*public function isExiledByAnyLeader(player:GlobalPlayerInstance):GlobalPlayerInstance {
+		if (this.isExiledBy(player)) return player;
+
+		var topLeader = player.getTopLeader();
+
+		if (this.isExiledBy(topLeader)) return topLeader;
+
+		return null;
+	}*/
+	public function getLeaderWhoExiled(player:GlobalPlayerInstance):GlobalPlayerInstance {
+		// trace('getTopLeader0 ${this.name}');
+		if (this.isExiledBy(player)) return player;
+
+		if (this.followPlayer == null) return null;
+
+		var lastLeader = this;
+		var leader = this.followPlayer;
+
+		for (ii in 0...10) {
+			if (leader.isDeleted()) return lastLeader; // TODO check why no new leader was chosen
+			// trace('getTopLeader1 ${lastLeader.name} --> ${leader.name}');
+			if (this.exiledByPlayers.exists(leader.p_id)) return lastLeader; // is exiled by leader
+			// trace('getTopLeader2 ${lastLeader.name} --> ${leader.name} ' + leader.exiledByPlayers);
+			if (leader.exiledByPlayers.exists(this.p_id)) return lastLeader; // player exiled leader
+			// trace('getTopLeader3 ${lastLeader.name} --> ${leader.name}');
+			if (leader.followPlayer == null) return null;
+
+			if (this.isExiledBy(leader)) return leader;
 
 			lastLeader = leader;
 			leader = leader.followPlayer;
@@ -4164,10 +4196,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
 				if (isMyFollower) this.connection.sendGlobalMessage('${targetPlayer.name} is your follower! Attack again to exile!'); else
-					this.connection.sendGlobalMessage('${targetPlayer.name} is your ally!');
+					this.connection.sendGlobalMessage('${targetPlayer.name} is your ally be careful!');
 
-				if (isMyFollower) this.say('Its my ally!', true); else
-					this.say('Its my follower!', true);
+				if (isMyFollower) this.say('Its my follower!', true); else
+					this.say('Its my allyr!', true);
 
 				lastAttackedPlayer = targetPlayer;
 				trace('kill: playerId: $playerId is an ally!');
