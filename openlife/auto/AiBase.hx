@@ -1828,10 +1828,6 @@ abstract class AiBase {
 				trace('AAI: ${myPlayer.name + myPlayer.id} RowMaker: ${taskState['RowMaker']} deepRows: $deepRows countRows: $countRows');
 
 			if (countRows < 9) {
-				// FIX: try to make rows close to home first
-				// Shallow Tilled Row 1136
-				if (craftItem(1136, 20, true)) return true;
-
 				// TODO there seems to be a bug with maxuse transitions on pile of soil
 				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
 				// if(heldObject.parentId == 1137 && shortCraft(1137, 848, 30)) return true;
@@ -1840,8 +1836,22 @@ abstract class AiBase {
 				//  Clay Bowl 235 + Fertile Soil 1138 --> Bowl of Soil 1137
 				// if(shortCraft(235, 1138, 30)) return true;
 
+				var newTarget = getCloseWell();
+				var minDist = newTarget == null ? 5 : 0;
+				if (newTarget == null) newTarget = myPlayer.home;
+				//  Hardened Row 848
+				var target = myPlayer.GetClosestObjectToTarget(newTarget, 848, null, 20, minDist);
+
 				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row 1136
-				if (shortCraft(1137, 848, 30)) return true;
+				if (shortCraftOnTarget(1137, target)) return true;
+
+				// FIX: try to make rows close to home first
+				// Shallow Tilled Row 1136
+				if (craftItem(1136, 20, true)) return true;
+
+				// TODO maybe better make closest
+				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row 1136
+				// if (shortCraft(1137, 848, 30)) return true;
 			} else
 				this.taskState['RowMaker'] = 2;
 		}
@@ -2404,7 +2414,7 @@ abstract class AiBase {
 				var newTarget = getCloseWell();
 				var minDist = newTarget == null ? 5 : 0;
 				if (newTarget == null) newTarget = myPlayer.home;
-				if (newTarget != null) target = myPlayer.GetClosestObjectToTarget(newTarget, minDist, 30);
+				if (newTarget != null) target = myPlayer.GetClosestObjectToTarget(newTarget, 0, null, 20, minDist);
 			}
 
 			if (target == null) target = myPlayer.GetClosestObjectById(0, 30);
@@ -4861,7 +4871,6 @@ abstract class AiBase {
 		if (dropNearWellItemIds.contains(heldObjId) && maxDistanceToHome > 5) {
 			var newTarget = getCloseWell();
 			if (newTarget == null) newTarget = myPlayer.home;
-			// if(well != null) target = myPlayer.GetClosestObjectToTarget(well, 0, 30);
 			if (newTarget != null) target = newTarget;
 			dropCloseToPlayer = false;
 		}
