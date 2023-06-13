@@ -4555,7 +4555,7 @@ abstract class AiBase {
 	// Baked Bread 1470 // Sliced Bread 1471 // Omelette 1285
 	// Cooked Goose 518
 	// Bowl of Carrot 547 // Bowl of Mashed Carrot 548 // Bowl of Minced Mutton 4057
-	var dropNearOvenItemIds = [235, 1603, 236, 1602, 252, 1470, 1471, 1285, 253, 518, 547, 548, 4057];
+	var dropNearOvenItemIds = [235, 1603, 236, 1602, 252, 1470, 1471, 1285, 253, 518, 547, 548, 4057, 502];
 
 	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900 // Knife 560
 	// Stone 33 // Sharp Stone 34 // Banana Peel 2144
@@ -4810,14 +4810,20 @@ abstract class AiBase {
 		}
 
 		if ((dropNearOvenItemIds.contains(heldId) || pies.contains(heldId) || rawPies.contains(heldId)) && maxDistanceToHome > 5) {
+			target = myPlayer.home;
+			dropCloseToPlayer = false;
+
 			var count = 0;
 			// dont drop at home if there are too many already
 			if (heldId == 235) { // Clay Bowl 235
 				count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 235, 20);
 			}
-			if (count < 5) {
-				target = myPlayer.home; // drop near home which is normaly the oven
-				dropCloseToPlayer = false;
+			if (count >= 5) dropCloseToPlayer = true;
+
+			// Shovel 502
+			if (heldId == 502) {
+				var quadDistance = myPlayer.CalculateQuadDistanceToObject(target);
+				if (quadDistance <= 225) dropCloseToPlayer = true;
 			}
 		}
 
@@ -7540,7 +7546,8 @@ abstract class AiBase {
 		}*/
 
 		// TODO maybe not drop weapons?
-		if (isHoldingObject && dropHeldObject(10)) {
+		var dropDist = myPlayer.food_store < 0.5 ? 5 : 10;
+		if (isHoldingObject && dropHeldObject(dropDist)) {
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} isPickingupFood: isUse: $isUse drop ${myPlayer.heldObject.name} before move');
 			return true;
