@@ -598,6 +598,8 @@ abstract class AiBase {
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = 30; // old null
 
+		// Macro.exception(if (doPrepareRows(1)) return);
+
 		// || lastProfession == 'ROWMAKER'
 		if (assignedProfession == 'ROWMAKER' || lastProfession == 'ROWMAKER') {
 			Macro.exception(if (doPrepareRows(100)) return);
@@ -1653,9 +1655,11 @@ abstract class AiBase {
 
 		if (doPlantCorn(1, 5)) return true;
 
+		var countCorn = countCorn();
+
 		// Cold Goose Egg 1262
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1262, 40);
-		if (count < 5) {
+		if (count < 5 && countCorn > 1) {
 			// Bowl with Corn Kernels 1247 + Domestic Goose 1256
 			if (shortCraft(1247, 1256, distance)) return true;
 		}
@@ -1674,7 +1678,7 @@ abstract class AiBase {
 			if (cow != null && shortCraftOnTarget(1878, cow)) return true;
 		} else {
 			// Bowl with Corn Kernels 1247 + Domestic Cow 1458
-			if (shortCraft(1247, 1458, distance)) return true;
+			if (countCorn > 3 && shortCraft(1247, 1458, distance)) return true;
 		}
 
 		Macro.exception(if (fillBerryBowlIfNeeded()) return true);
@@ -1682,6 +1686,30 @@ abstract class AiBase {
 		this.profession['SHEPHERD'] = 0;
 
 		return false;
+	}
+
+	private function countCorn() {
+		var home = myPlayer.home;
+		var heldId = myPlayer.heldObject.parentId;
+
+		// Dried Ear of Corn 1115
+		var countCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 20);
+		if (heldId == 1115) countCorn += 1;
+
+		// Bowl with Corn Cob 1120
+		countCorn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1120, 20);
+		if (heldId == 1120) countCorn += 1;
+
+		// Bowl with Corn Kernels 1247
+		countCorn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1247, 20);
+		if (heldId == 1247) countCorn += 1;
+
+		// Dumped Corn Kernels 4106
+		countCorn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4106, 20);
+		// Corn Kernel Pile 4107
+		countCorn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4107, 20);
+
+		return countCorn;
 	}
 
 	private function doCarrotFarming(maxProfession = 1) {
@@ -1730,6 +1758,7 @@ abstract class AiBase {
 	private function doPrepareSoil(maxProfession = 2) {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
+		var heldId = heldObject.parentId;
 		var distance = 30;
 
 		// Shovel of Dung 900 + Wet Compost Pile 625
@@ -1739,27 +1768,51 @@ abstract class AiBase {
 		if (shortCraftOnGround(336)) return true;
 
 		// Fertile Soil Pile 1101
-		var count = 2 * AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1101, 30);
+		var count = 2 * AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1101, 20);
 		// Fertile Soil 1138
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1138, 30);
+		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1138, 20);
 
-		if (count < 4) this.taskState['SoilMaker'] = 1;
+		trace('doPrepareSoil: count: ${count}');
 
-		if (count > 9) this.taskState['SoilMaker'] = 0;
+		if (count <= 4) this.taskState['SoilMaker'] = 1;
+
+		if (count >= 20) this.taskState['SoilMaker'] = 0;
 
 		if (shouldDebugSay()) myPlayer.say('$count soil');
 
-		if (this.taskState['SoilMaker'] == 0 && count > 0) return false;
+		if (this.taskState['SoilMaker'] < 1) return false;
+
+		// trace('doPrepareSoil:2 count: ${count}');
 
 		if (hasOrBecomeProfession('SOILMAKER', maxProfession) == false) return false;
 
 		// if(heldObject.parentId == 336) this.profession['BASICFARMER'] = 1; // need more soil
 
-		if (shouldDebugSay()) myPlayer.say('Farmer: soil: $count');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']} soil: $count');
 
+		// Basket 292
+		if (heldId == 292) {
+			// Basket of Soil 336 // TODO directly in crafting
+			var transitions = TransitionImporter.GetTransitionByNewActor(336);
+			var targetIds = [];
+
+			for (trans in transitions) {
+				if (trans.actorID != heldId) continue;
+				if (trans.aiShouldIgnore) continue;
+
+				targetIds.push(trans.targetID);
+			}
+
+			var target = AiHelper.GetClosestObjectToPositionByIds(myPlayer.home.tx, myPlayer.home.ty, targetIds, myPlayer);
+			var targetName = target != null ? target.name : 'None';
+
+			// trace('doPrepareSoil: target: ${targetName}');
+
+			if (shortCraftOnTarget(292, target)) return true;
+		}
+
 		// var max = this.profession['BASICFARMER'] < 2 ? 3 : 1;
-		if (craftItem(336)) return true; // Basket of Soil
+		if (craftItem(336)) return true;
 
 		return false;
 	}
@@ -2271,7 +2324,7 @@ abstract class AiBase {
 		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1111, 40); // Corn Sprout 1111
 		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
 
-		var countCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 20); // Dried Ear of Corn 1115
+		var countCorn = countCorn();
 		count += Math.round(countCorn / 4);
 
 		// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
@@ -4811,6 +4864,12 @@ abstract class AiBase {
 			}
 		}
 
+		// Shovel of Dung 900
+		if (heldId == 900 && maxDistanceToHome > 5) {
+			// Shovel of Dung 900 + Wet Compost Pile 625
+			if (shortCraft(900, 625, 20, false)) return true;
+		}
+
 		if ((dropNearOvenItemIds.contains(heldId) || pies.contains(heldId) || rawPies.contains(heldId)) && maxDistanceToHome > 5) {
 			target = myPlayer.home;
 			dropCloseToPlayer = false;
@@ -6012,6 +6071,11 @@ abstract class AiBase {
 		var actorId = itemToCraft.transActor.parentId;
 		var targetId = itemToCraft.transTarget.parentId;
 		var heldId = myPlayer.heldObject.parentId;
+		// var trans = TransitionImporter.GetTransition(actorId, targetId);
+		// var newtargetId = trans != null ? trans.newTargetId : -10;
+
+		// TODO consider if there is a closer target that can have same result // FIX filing basket with closest soil
+		// var transitions = TransitionImporter.GetTransitionByNewTargt(newtargetId);
 
 		// TODO better fix directly in the crafting alg by considering time transitions better
 		// FIX: starting fire if no kindling is close
