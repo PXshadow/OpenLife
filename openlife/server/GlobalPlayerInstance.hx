@@ -2991,7 +2991,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// trade health for little bit more food
 		if (isSuperMeh) {
-			foodValue += 1;
+			foodValue += 2;
+			playerTo.age += 0.2;
 
 			if (playerTo.prestige > 0) playerTo.prestige -= 1; else {
 				playerTo.hits += 1;
