@@ -565,6 +565,7 @@ class AiHelper {
 		var starvingFactor:Float = isStarving ? 4 : 16;
 		var gooseFound = false;
 		var countCarrots = -1;
+		var countCorn = -1;
 
 		if (player.food_store < 0.5) starvingFactor = 2;
 		if (player.food_store < -1) starvingFactor = 1.5;
@@ -592,8 +593,18 @@ class AiHelper {
 
 				// Carrot 402 // Carrot Pile 2742 ==> Leep some carrots for pies
 				if (parentId == 402 || parentId == 2742) {
-					if (countCarrots < 0) countCarrots = CountCloseObjects(player, player.tx, player.ty, 402, 30);
+					if (countCarrots < 0) countCarrots = CountCloseObjects(player, player.tx, player.ty, 402, 20);
 					if (countCarrots < 4) continue;
+				}
+
+				// Shucked Ear of Corn 1114 // Pile of Shucked Corn 3901
+				if (parentId == 1114 && parentId == 3901) {
+					if (countCorn < 0) {
+						countCorn = CountCloseObjects(player, player.tx, player.ty, 1114, 20);
+						// Dried Ear of Corn 1115
+						countCorn += CountCloseObjects(player, player.tx, player.ty, 1115, 20);
+					}
+					if (countCorn < 2) continue;
 				}
 
 				// dont use carrots if seed is needed // 400 Carrot Row
