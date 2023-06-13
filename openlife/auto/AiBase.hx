@@ -577,6 +577,9 @@ abstract class AiBase {
 			Macro.exception(if (craftItem(itemToCraftId)) return);
 		}
 
+		itemToCraft.searchCurrentPosition = false; // true
+		itemToCraft.maxSearchRadius = 60;
+
 		if (craftingTasks.length > 0) {
 			for (i in 0...craftingTasks.length) {
 				itemToCraftId = craftingTasks.shift();
@@ -584,9 +587,6 @@ abstract class AiBase {
 				craftingTasks.push(itemToCraftId);
 			}
 		}
-
-		itemToCraft.searchCurrentPosition = false; // true
-		itemToCraft.maxSearchRadius = 60;
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		Macro.exception(if (craftHighPriorityClothing()) return);
@@ -1893,7 +1893,7 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function doPlantCarrots(maxProfession = 2) {
+	private function doPlantCarrots(min = 5, max = 40) {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
 		var distance = 30;
@@ -1912,16 +1912,16 @@ abstract class AiBase {
 
 		// Carrot 402
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 402, 30);
-		count += 2 * countPlantedCarrots;
+		count += 4 * countPlantedCarrots;
 
-		if (count > 10) {
-			this.taskState['CarrotPlanter'] = 1;
+		if (count >= max) {
+			this.taskState['CarrotPlanter'] = 0;
 			return false;
 		}
 
-		if (count < 5) this.taskState['CarrotPlanter'] = 0;
+		if (count <= min) this.taskState['CarrotPlanter'] = 1;
 
-		if (this.taskState['CarrotPlanter'] > 0) return false;
+		if (this.taskState['CarrotPlanter'] < 1) return false;
 
 		if (shouldDebugSay()) myPlayer.say('BASICFARMER: Planeted Carrots: $countPlantedCarrots');
 		if (ServerSettings.DebugAi)
@@ -2912,6 +2912,12 @@ abstract class AiBase {
 
 		this.profession['BAKER'] = 3; // TODO set to 2 once in a while to check for bread stuff???
 
+		// Baker needs Carrots!
+		if (doPlantCarrots(2, 10)) return true;
+
+		// Kindling 72
+		if (makeOrCollect(72, 0, 5)) return true;
+
 		// Baker needs Wheat
 		// if (this.myPlayer.food_store > 2) {
 		// if (this.isHungry == false) {
@@ -3052,7 +3058,7 @@ abstract class AiBase {
 		// Dry Planted Carrots 396
 		if (waterTarget.parentId == 396) {
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 402, 30); // Carrot 402
-			if (count >= 10) {
+			if (count >= 20) {
 				waterTarget = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, ServerSettings.WateringTargetsIdsWithoutCarrots, myPlayer);
 			}
 		}
@@ -5241,11 +5247,49 @@ abstract class AiBase {
 	private function isCollecting(maxPeople = 1) {
 		if (hasOrBecomeProfession('COLLECTOR', maxPeople) == false) return false;
 
+		var tmpMaxSearchRadius = itemToCraft.maxSearchRadius;
+		itemToCraft.maxSearchRadius = 60;
+		var done = isCollectingHelper();
+		itemToCraft.maxSearchRadius = tmpMaxSearchRadius;
+
+		return done;
+	}
+
+	private function isCollectingHelper() {
 		var quadDistanceToHome = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 		if (quadDistanceToHome < 900) {}
 
+		// Kindling 72
+		if (makeOrCollect(72, 2, 10)) return true;
+
+		// Raw Mutton 569
+		if (makeOrCollect(569, 1, 5)) return true;
+
+		// Raw Pork 1342
+		if (makeOrCollect(1342, 1, 5)) return true;
+
+		// Rope 59
+		if (makeOrCollect(59, 0, 3)) return true;
+
 		Macro.exception(if (doCriticalStuff()) return true);
 
+		return false;
+	}
+
+	private function makeOrCollect(id:Int, min:Int = 2, max:Int = 5, target:ObjectHelper = null) {
+		if (target == null) target = myPlayer.home;
+
+		var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, id, 15);
+		if (count <= min) this.taskState['$id'] = 1;
+		if (count >= max) this.taskState['$id'] = 0;
+
+		if (this.taskState['$id'] > 0) {
+			var objData = ObjectData.getObjectData(id);
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doCriticalStuff: get ${objData.name}: ${count}');
+			if (shouldDebugSay()) myPlayer.say('Get ${objData.name} ${count} from ${max}');
+		}
+
+		if (this.taskState['$id'] > 0 && GetCraftAndDropItemsCloseToObj(target, id, 10)) return true;
 		return false;
 	}
 
@@ -5254,16 +5298,18 @@ abstract class AiBase {
 		var firePlace = myPlayer.firePlace == null ? myPlayer.home : myPlayer.firePlace;
 
 		// get basic kindling
-		var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 72, 15); // Kindling 72
-		if (count < 3) this.taskState['kindling'] = 1;
-		if (count > 4) this.taskState['kindling'] = 0;
+		/*var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 72, 15); // Kindling 72
+			if (count < 3) this.taskState['kindling'] = 1;
+			if (count > 4) this.taskState['kindling'] = 0;
 
-		if (this.taskState['kindling'] > 0) {
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doCriticalStuff: get kindling: ${count}');
-			if (shouldDebugSay()) myPlayer.say('Get Kindling ${count} from 5');
-		}
-		// Kindling 72
-		if (this.taskState['kindling'] > 0 && GetCraftAndDropItemsCloseToObj(firePlace, 72, 10)) return true;
+			if (this.taskState['kindling'] > 0) {
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doCriticalStuff: get kindling: ${count}');
+				if (shouldDebugSay()) myPlayer.say('Get Kindling ${count} from 5');
+			}
+			// Kindling 72
+			if (this.taskState['kindling'] > 0 && GetCraftAndDropItemsCloseToObj(firePlace, 72, 10)) return true;
+		 */
+
 		// this.profession['FIREKEEPER'] = 2;
 
 		if (placeFloorUnder(myPlayer.home)) return true;
