@@ -1194,7 +1194,7 @@ abstract class AiBase {
 			var quadDist = p.CalculateQuadDistanceToObject(obj);
 
 			// avoid that ai changes if looking for wood or making fire
-			if (hasProfession == false) quadDist += 400;
+			if (hasProfession == false) quadDist += 100;
 
 			if (bestAi != null && quadDist >= bestQuadDist) continue;
 
@@ -1378,7 +1378,7 @@ abstract class AiBase {
 			if (shouldDebugSay()) myPlayer.say('get basket for bones');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: get or craft basket');
 
-			return GetOrCraftItem(292); // Basket
+			return GetOrCraftItem(292, 0, 30, grave); // Basket
 		}
 
 		// 850 Stone Hoe // 502 = Shovel
@@ -1391,7 +1391,7 @@ abstract class AiBase {
 		if (shouldDebugSay()) myPlayer.say('get shovel for grave');
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get shovel');
-		if (GetItem(502, 10)) return true; // 502 = Shovel
+		if (GetItem(502, 10, grave)) return true; // 502 = Shovel
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: try to get stone hoe');
 
@@ -1399,7 +1399,7 @@ abstract class AiBase {
 		var quadDist = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 
 		// 850 Stone Hoe
-		if (quadDist < 900) if (GetOrCraftItem(850)) return true; else if (GetItem(850)) return true;
+		if (quadDist < 900) if (GetOrCraftItem(850, 0, 30, grave)) return true; else if (GetItem(850, 30, grave)) return true;
 
 		return false;
 	}
@@ -5570,8 +5570,8 @@ abstract class AiBase {
 		return true;
 	}
 
-	private function GetItem(objId:Int, maxSearchDistance:Int = 40):Bool {
-		return GetOrCraftItem(objId, false, 0, maxSearchDistance);
+	private function GetItem(objId:Int, maxSearchDistance:Int = 40, target:ObjectHelper = null):Bool {
+		return GetOrCraftItem(objId, false, 0, maxSearchDistance, target);
 	}
 
 	private function GetOrCraftItem(objId:Int, craft:Bool = true, minDistance:Int = 0, maxSearchDistance:Int = 40, target:ObjectHelper = null,
