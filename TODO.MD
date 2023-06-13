@@ -396,6 +396,7 @@ Fortification:
 - (Ancient) Stone Walls cam be fortified with Cut Stone 
 - Removing Fortification is Extreme Hungry Work
 - Fortification cost 10 Coins for (Ancient) Stone Wall
+- Oven and Kiln can be fortified with Stone and Springy Doors with Boards
 
 Transitions:
 - you can harvest Berries directly with a bowl

@@ -708,6 +708,17 @@ class ServerSettings {
 		ObjectData.getObjectData(897).decaysToObj = 1853; // Ancient Stone FloWallor ==> Cut Stones
 		ObjectData.getObjectData(897).fortificationObjId = 881; // Cut Stones 881
 
+		ObjectData.getObjectData(127).fortificationValue = 5; // Adobe 127
+		ObjectData.getObjectData(33).fortificationValue = 1; // Stone 33
+
+		ObjectData.getObjectData(237).fortificationObjId = 33; // Adobe Oven 237 --> Adobe 127
+		ObjectData.getObjectData(238).fortificationObjId = 33; // Adobe Kiln 238 --> Adobe 127
+
+		ObjectData.getObjectData(470).fortificationValue = 5; //  Boards 470
+
+		ObjectData.getObjectData(2757).fortificationObjId = 470; // Springy Wooden Door - horizontal 2757 --> Boards 470
+		ObjectData.getObjectData(2759).fortificationObjId = 470; // Springy Wooden Door - vertical 2759 --> Boards 470
+
 		// decay for mango trees
 		ObjectData.getObjectData(1875).decayFactor = 0.1; // Fruiting Domestic Mango Tree
 		ObjectData.getObjectData(1875).decaysToObj = 1876; // Fruiting Domestic Mango Tree --> Languishing Domestic Mango Tree
@@ -992,8 +1003,8 @@ class ServerSettings {
 		ObjectData.getObjectData(1020).hungryWork = 2; // Snow Bank
 		ObjectData.getObjectData(138).hungryWork = 2; // Cut Sapling Skewer
 		ObjectData.getObjectData(3961).hungryWork = 5; // Iron Vein
-		ObjectData.getObjectData(496).hungryWork = 5; // Dug Stump
-		ObjectData.getObjectData(1011).hungryWork = 5; // Buried Grave
+		ObjectData.getObjectData(496).hungryWork = 4; // Dug Stump
+		ObjectData.getObjectData(1011).hungryWork = 3; // Buried Grave
 		// ObjectData.getObjectData(357).hungryWork = 5; // Bone Pile // Dont set!!!
 
 		ObjectData.getObjectData(213).hungryWork = 3; // Deep Tilled Row
@@ -2250,6 +2261,18 @@ class ServerSettings {
 		// Steel Mining Pick 684 + Ancient Stone Wall V 897 ==> Stone Wall
 		trans = new TransitionData(684, 897, 684, 886);
 		trans.hungryWorkCost = 10;
+		trans.alternativeTransitionOutcome.push(0);
+		transitions.addTransition("PatchTransitions: ", trans, false, false);
+
+		// Steel Adze 462 + Springy Wooden Door - horizontal 2757
+		var trans = transitions.getTransition(462, 2757);
+		trans.hungryWorkCost = 5;
+		trans.alternativeTransitionOutcome.push(0);
+		transitions.addTransition("PatchTransitions: ", trans, false, false);
+
+		// Steel Adze 462 + Springy Wooden Door - vertical 2759
+		var trans = transitions.getTransition(462, 2759);
+		trans.hungryWorkCost = 5;
 		trans.alternativeTransitionOutcome.push(0);
 		transitions.addTransition("PatchTransitions: ", trans, false, false);
 

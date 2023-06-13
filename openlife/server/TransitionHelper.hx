@@ -189,6 +189,7 @@ class TransitionHelper {
 
 			player.setHeldObject(null);
 			helper.sendUpdateToClient();
+			WorldMap.world.setObjectHelper(helper.tx, helper.ty, targetObj);
 
 			trace('Fortification: ${- Math.ceil(targetObj.hits)}');
 			player.say('Cost $cost coins! NEW Fortification: ${- Math.ceil(targetObj.hits)}', true);
@@ -362,6 +363,7 @@ class TransitionHelper {
 		// Smithing Hammer 441
 		if (blockTarget.objectData.isPermanent() && heldId != 441) block = false;
 		if (blockTarget.objectData.isWeapon()) block = false;
+		if (blockTarget.objectData.isAnimal()) block = false;
 		if (blockTarget.objectData.foodValue > 0) block = false;
 		if (blockTarget.objectData.isClothing()) block = false;
 
@@ -1076,6 +1078,10 @@ class TransitionHelper {
 		var hungryWorkTemperature = transition.hungryWorkTemperature;
 		if (hungryWorkTemperature < 0) hungryWorkTemperature = hungryWorkCost * ServerSettings.HungryWorkHeat;
 
+		var isFortified = hungryWorkCost > 0 && target.hits < -0.1;
+		// remove fortification is always hungry work
+		// if (hungryWorkCost <= 0 && target.hits < 0.1) hungryWorkCost = ServerSettings.HungryWorkCost;
+
 		if (hungryWorkCost > 0) {
 			// player.say('cost ${hungryWorkCost}', true);
 
@@ -1134,7 +1140,7 @@ class TransitionHelper {
 
 		// player.say('id ${target.id} h: ${target.objectData.hungryWork}');
 
-		if (alternativeTransitionOutcome.length > 0) {
+		if (alternativeTransitionOutcome.length > 0 || isFortified) {
 			// TODO reduce tool
 
 			var rand = WorldMap.calculateRandomFloat();
@@ -1147,7 +1153,8 @@ class TransitionHelper {
 				target.hits += 1;
 				// rand += target.hits / 20;
 				// player.say('Try again! Hits ${Math.round(target.hits)} Uses: ${Math.round(target.numberOfUses)} exhaustion: ${Math.round(player.exhaustion)}', true);
-				player.say('Try again! Hits ${Math.round(target.hits)}', true);
+				if (isFortified) player.say('Try again! Fortification: ${- Math.round(target.hits)}', true); else
+					player.say('Try again! Hits ${Math.round(target.hits)}', true);
 
 				// drop fortification material
 				var fortificationObjId = target.objectData.fortificationObjId;
@@ -1160,10 +1167,12 @@ class TransitionHelper {
 						WorldMap.PlaceObjectById(tx, ty, fortificationObjId);
 					}
 				} else {
-					var rand = WorldMap.calculateRandomInt(alternativeTransitionOutcome.length - 1);
-					// TODO use piles
-					var outcomeId = alternativeTransitionOutcome[rand];
-					if (outcomeId > 0) WorldMap.PlaceObjectById(tx, ty, outcomeId);
+					if (alternativeTransitionOutcome.length > 0) {
+						var rand = WorldMap.calculateRandomInt(alternativeTransitionOutcome.length - 1);
+						// TODO use piles
+						var outcomeId = alternativeTransitionOutcome[rand];
+						if (outcomeId > 0) WorldMap.PlaceObjectById(tx, ty, outcomeId);
+					}
 				}
 
 				this.doTransition = true;

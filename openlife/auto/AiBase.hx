@@ -194,7 +194,7 @@ abstract class AiBase {
 	private static function CalculateBlockedByAi() {
 		blockedByAI = new Map<Int, Float>();
 
-		for (player in GlobalPlayerInstance.AllPlayers) {
+		for (player in Connection.getLivingHumans()) {
 			if (player.deleted) continue;
 			if (player.blockTargetForAi == null) continue;
 
@@ -2980,7 +2980,7 @@ abstract class AiBase {
 		// Clay Bow 235 + Open Fermented Sauerkraut 1241
 		if (shortCraft(235, 1241, 20, 1)) return true;
 
-		if (makeSeatsAndCleanUp()) return true;
+		if (isHungry == false && makeSeatsAndCleanUp()) return true;
 
 		if (hotOven == null && fireOven == null) {
 			// Adobe Oven 237
@@ -3039,7 +3039,7 @@ abstract class AiBase {
 		if (doPlantCarrots(2, 10)) return true;
 
 		// Kindling 72
-		if (makeOrCollect(72, 0, 5)) return true;
+		if (isHungry == false && makeOrCollect(72, 0, 5)) return true;
 
 		// Baker needs Wheat
 		// if (this.myPlayer.food_store > 2) {
@@ -3147,7 +3147,7 @@ abstract class AiBase {
 
 		Macro.exception(if (fillBerryBowlIfNeeded()) return true);
 
-		if (cleanUp()) return true;
+		if (isHungry == false && cleanUp()) return true;
 
 		return false;
 	}
