@@ -138,10 +138,10 @@ class MoveHelper {
 		// DO speed held objects
 		var speedModHeldObj = p.heldObject.objectData.speedMult;
 
-		if (fullPathHasRoad == false && biomeSpeed < 0.999 && speedModHeldObj > 1) // horses and cars are bad in bad biome
-		{
+		// horses and cars are bad in bad biome
+		if (fullPathHasRoad == false && biomeSpeed < 0.999 && speedModHeldObj > 1) {
 			if (speedModHeldObj > 2.50) speedModHeldObj = 0.9; // super speedy stuff like cars
-			else if (speedModHeldObj > 1.8) speedModHeldObj = 1; // for example horse
+			else if (speedModHeldObj > 1.8) speedModHeldObj = 1.2; // for example Riding Horse 770 200%
 			else if (speedModHeldObj > 1.2) speedModHeldObj = 0.9; // for example horse cart
 
 			if (ServerSettings.DebugSpeed)
