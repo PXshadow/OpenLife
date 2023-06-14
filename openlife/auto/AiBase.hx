@@ -3476,6 +3476,7 @@ abstract class AiBase {
 		// Steel Chisel 455
 		if (this.profession['SMITH'] < 9) {
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 455, 30);
+			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 455, 30);
 			if (heldId == 455) count += 1;
 			if (count < 1 && craftItem(455)) return true;
 			this.profession['SMITH'] = 9;
@@ -3483,6 +3484,7 @@ abstract class AiBase {
 
 		// Steel File 458
 		var countFile = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 458, 30);
+		countFile += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 458, 30);
 		if (heldId == 458) countFile += 1;
 
 		// Steel File Blank 457
