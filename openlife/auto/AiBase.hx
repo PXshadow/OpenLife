@@ -7884,6 +7884,8 @@ abstract class AiBase {
 	private function isUsingItem():Bool {
 		if (useTarget == null) return false;
 
+		// trace('AAI: ${myPlayer.name + myPlayer.id} Use target ${useTarget.name}');
+
 		var heldObject = myPlayer.heldObject;
 		var isHoldingObject = myPlayer.isHoldingObject();
 
@@ -7911,7 +7913,11 @@ abstract class AiBase {
 		// only allow to go on with use if right actor is in the hand, or if actor will be empty
 		if (heldObject.parentId != useActor.parentId) {
 			if (useActor.parentId == 0) {
-				if (isHoldingObject && considerDropHeldObject(useTarget)) return true;
+				if (isHoldingObject && considerDropHeldObject(useTarget)) {
+					if (ServerSettings.DebugAi)
+						trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name} drop held!');
+					return true;
+				}
 			} else {
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name}');
@@ -7931,17 +7937,33 @@ abstract class AiBase {
 		// make sure that actor (Bowl of Gooseberries) is full
 		if (myPlayer.heldObject.parentId == 253 && heldObject.numberOfUses < heldObject.objectData.numUses) {
 			// TODO better check if(transition.tool == false && transition.reverseUseActor == false)
-			// check if target is bush to allow still use to fill up 391 Domestic Gooseberry Bush
-			if (useTarget.parentId != 30 && useTarget.parentId != 391) return fillBerryBowlIfNeeded(true);
-		}
+			if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} Use: Fill ${myPlayer.heldObject.name} numberOfUses: ${heldObject.numberOfUses}!');
 
+			// check if target is bush to allow still use to fill up 391 Domestic Gooseberry Bush
+			if (useTarget.parentId != 30 && useTarget.parentId != 391) {
+				if (fillBerryBowlIfNeeded(true)) return true;
+				if (ServerSettings.DebugAi)
+					trace('AAI: ${myPlayer.name + myPlayer.id} Use: Could not Fill ${myPlayer.heldObject.name} numberOfUses: ${heldObject.numberOfUses}!');
+				dropHeldObject();
+				return true;
+			}
+		}
 		// Bowl of Dry Beans 1176
 		if (myPlayer.heldObject.parentId == 1176 && heldObject.numberOfUses < heldObject.objectData.numUses) {
-			// check if target is bean plant to allow still use to fill up
-			// Dry Bean Plants 1172
-			if (useTarget.parentId != 1172) return fillBeanBowlIfNeeded(false); // fill dry beans
-		}
+			if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} Use: Fill ${myPlayer.heldObject.name} numberOfUses: ${heldObject.numberOfUses}!');
 
+			// check if target is bean plant to allow still use to fill up
+			// Dry Bean Plants 1172 // fill dry beans
+			if (useTarget.parentId != 1172) {
+				if (fillBeanBowlIfNeeded(false)) return true;
+				if (ServerSettings.DebugAi)
+					trace('AAI: ${myPlayer.name + myPlayer.id} Use: Could not Fill ${myPlayer.heldObject.name} numberOfUses: ${heldObject.numberOfUses}!');
+				dropHeldObject();
+				return true;
+			}
+		}
 		/*if(transition.tool == false && transition.reverseUseActor == false){
 			var numUses = player.heldObject.objectData.numUses;
 			var heldUses = player.heldObject.numberOfUses;
@@ -7957,53 +7979,45 @@ abstract class AiBase {
 		}*/
 
 		if (myPlayer.isMoving()) return true;
-
 		// TODO crafting does not yet consider if old enough to use a bow
 		// 152 Bow and Arrow
 		if (myPlayer.heldObject.id == 152 && useTarget.isAnimal()) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Use: kill animal ${useTarget.description}');
 			Macro.exception(if (killAnimal(useTarget)) return true);
 		}
-
 		var distance = myPlayer.CalculateQuadDistanceToObject(useTarget);
+
 		if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} Use: distance: $distance ${useTarget.description} ${useTarget.tx} ${useTarget.ty}');
-
 		if (distance > 1) {
 			var name = useTarget.name;
 			var done = myPlayer.gotoObj(useTarget);
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} held: ${heldObject.name} goto useItem ${name} $done');
 
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} held: ${heldObject.name} goto useItem ${name} $done');
 			if (shouldDebugSay()) {
 				if (done) myPlayer.say('Goto ${name} for use!'); else
 					myPlayer.say('Cannot Goto ${name} for use!');
 			}
-
 			if (done == false) {
 				if (ServerSettings.DebugAi) trace('AI: held: ${heldObject.name} GOTO useItem ${name} failed!');
 				// this.addNotReachableObject(useTarget);
 				CancleUse();
 			}
-
 			return done;
 		}
-
 		var heldPlayer = myPlayer.getHeldPlayer();
 		if (heldPlayer != null) {
 			var done = myPlayer.dropPlayer(myPlayer.x, myPlayer.y);
 
 			if (ServerSettings.DebugAi || done == false) trace('AAI: ${myPlayer.name + myPlayer.id} child drop for using ${heldPlayer.name} $done');
-
 			return true;
 		}
-
 		// Drop object to pickup actor
 		if (isHoldingObject && useActor.id == 0) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: drop obj to to have empty hand');
 			dropHeldObject(0);
 			return true;
 		}
-
 		var useActorName = myPlayer.heldObject.name;
 		var useActorId = myPlayer.heldObject.id;
 		var useTargetId = useTarget.id;
@@ -8014,7 +8028,6 @@ abstract class AiBase {
 			// check if the use was part of a drop to put for example stone on a pile of stones
 			if (dropIsAUse) {
 				CancleUse();
-
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} done: drop as a use!');
 				/*if(foodTarget == null){
 						useTarget = itemToCraft.transTarget;
@@ -8024,7 +8037,6 @@ abstract class AiBase {
 						useTarget = null;
 						useActor = null;
 				}*/
-
 				return true;
 			} else {
 				var taregtObjectId = myPlayer.getWorld().getObjectId(useTarget.tx, useTarget.ty)[0];
@@ -8035,7 +8047,6 @@ abstract class AiBase {
 				itemToCraft.lastTargetId = useTargetId;
 				itemToCraft.lastNewActorId = myPlayer.heldObject.id;
 				itemToCraft.lastNewTargetId = taregtObjectId;
-
 				// if object to create is held by player or is on ground, then cound as done
 				if (myPlayer.heldObject.parentId == itemToCraft.itemToCraft.parentId
 					|| taregtObjectId == itemToCraft.itemToCraft.parentId) {
@@ -8044,7 +8055,6 @@ abstract class AiBase {
 						&& itemToCraft.itemToCraft.name == itemToCraftName) myPlayer.say('Finished $itemToCraftName');
 					itemToCraftName = null; // is set if human gave order to craft
 				}
-
 				// in case its a pie, make next pie
 				if (rawPies.contains(taregtObjectId)) {
 					countPies += 1;
@@ -8052,7 +8062,6 @@ abstract class AiBase {
 					if (ServerSettings.DebugAi)
 						trace('AAI: ${myPlayer.name + myPlayer.id} raw pie done: ${itemToCraft.itemToCraft.name} countPies: $countPies lastPie: $lastPie');
 				}
-
 				var expectedUseTargetName = expectedUseTarget == null ? 'NOTSET!!!' : expectedUseTarget.name;
 
 				if (ServerSettings.DebugAi)
@@ -8068,16 +8077,13 @@ abstract class AiBase {
 			// if (ServerSettings.DebugAi)
 			if (age > 3)
 				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use failed! held: ${heldObject.name} expected: ${useActor.name} uses: ${useActor.numberOfUses} Ignore: ${target.name} expected: ${expectedUseTargetName}  foodStore: ${foodStore} heat: ${heat}');
-
 			// TODO check why use is failed... for now add to ignore list
 			// TODO dont use on contained objects if result cannot contain (ignore in crafting search)
 			// TODO check if failed because of hungry work
-
 			var oldUseTarget = useTarget;
 			CancleUse();
 			itemToCraft.transActor = null;
 			itemToCraft.transTarget = null;
-
 			// TODO check in advance
 			if (myPlayer.useFailedReason == 'Too hot!') {
 				isHandlingTemperature = true;
@@ -8090,9 +8096,7 @@ abstract class AiBase {
 			if (age > 3) this.addNotReachableObject(oldUseTarget); else
 				this.addObjectWithHostilePath(oldUseTarget);
 		}
-
 		CancleUse();
-
 		return true;
 	}
 
