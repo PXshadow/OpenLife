@@ -4655,9 +4655,9 @@ abstract class AiBase {
 	// Baked Bread 1470 // Sliced Bread 1471 // Omelette 1285
 	// Cooked Goose 518
 	// Bowl of Carrot 547 // Bowl of Mashed Carrot 548 // Bowl of Minced Mutton 4057
-	// Raw Mutton 569 // Bowl of Raw Pork 1354
+	// Raw Mutton 569 // Bowl of Raw Pork 1354 // Bowl of Wheat 245
 	var dropNearOvenItemIds = [
-		235, 1603, 236, 1602, 252, 1470, 1471, 1285, 253, 518, 547, 548, 4057, 502, 569, 1354
+		235, 1603, 236, 1602, 252, 1470, 1471, 1285, 253, 518, 547, 548, 4057, 502, 569, 1354, 245
 	];
 
 	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900 // Knife 560
@@ -4918,6 +4918,17 @@ abstract class AiBase {
 			if (shortCraft(900, 625, 20, false)) return true;
 		}
 
+		// Bowl of Wheat 245
+		// if (heldId == 245 && maxDistanceToHome > 5) {
+		if (heldId == 245) {
+			// Ripe Wheat 242
+			var countWheat = AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 242, 20);
+			// Dry Planted Wheat 228
+			countWheat += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 228, 20, false);
+			// Bowl of Wheat 245 // Deep Tilled Row 213
+			if (countWheat < 10 && shortCraft(245, 213, 20, false)) return true;
+		}
+
 		if ((dropNearOvenItemIds.contains(heldId) || pies.contains(heldId) || rawPies.contains(heldId)) && maxDistanceToHome > 5) {
 			target = myPlayer.home;
 			dropCloseToPlayer = false;
@@ -4963,17 +4974,6 @@ abstract class AiBase {
 					return true;
 				}
 			}
-		}
-
-		// Bowl of Wheat 245
-		// if (heldId == 245 && maxDistanceToHome > 5) {
-		if (heldId == 245) {
-			// Ripe Wheat 242
-			var countWheat = AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 242, 20);
-			// Dry Planted Wheat 228
-			countWheat += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 228, 20, false);
-			// Bowl of Wheat 245 // Deep Tilled Row 213
-			if (countWheat < 10 && shortCraft(245, 213, 20, false)) return true;
 		}
 
 		// drop at fire. For exmple kindling, wood...

@@ -595,7 +595,8 @@ class MoveHelper {
 			// Since vanilla client handels move strangely the server accepts one position further even if not fully reached there
 			// This a client could use to jump.
 			// Therefore exhaustion and jumpedTiles is used to limit client jumps / "cheeting"
-			p.exhaustion += quadDist * ServerSettings.ExhaustionOnJump;
+			// TODO allow for AI?
+			if (p.isHuman()) p.exhaustion += quadDist * ServerSettings.ExhaustionOnJump;
 			var isExhausted = p.exhaustion > p.food_store_max / 2;
 			p.jumpedTiles += isExhausted ? quadDist : quadDist / 2;
 
