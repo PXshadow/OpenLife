@@ -6147,6 +6147,24 @@ abstract class AiBase {
 			if (count < 1) return false;
 		}
 
+		// Dont allow to pickup Bowl of Dry Beans if bowl cant be filled
+		// Bowl of Dry Beans 1176 // Dry Bean Plants 1172
+		var targetsToFillIds = [1172];
+		var noTTargetToFilling = targetsToFillIds.contains(targetId) == false;
+
+		if (heldId != 1176 && actorId == 1176 && actor.isFull() == false && noTTargetToFilling) {
+			var count = 0;
+			for (id in targetsToFillIds) {
+				if (itemToCraft.transitionsByObjectId[id] == null) continue;
+				count += itemToCraft.transitionsByObjectId[id].count;
+			}
+
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: Yargets to fill ${actor.name} ${count}');
+			if (shouldDebugSay()) myPlayer.say('Yargets to fill ${actor.name} ${count}');
+
+			if (count < 1) return false;
+		}
+
 		// var trans = TransitionImporter.GetTransition(actorId, targetId);
 		// var newtargetId = trans != null ? trans.newTargetId : -10;
 
@@ -6548,7 +6566,7 @@ abstract class AiBase {
 				// Ignore not full Bowl of Gooseberries 253 otherwise it might get stuck in making a pie
 				// if (obj.parentId == 253 && obj.numberOfUses < objData.numUses) continue;
 				// Ignore not full Bowl of Dry Beans 1176 otherwise it might get stuck in making cooked beans
-				if (obj.parentId == 1176 && obj.numberOfUses < objData.numUses) continue;
+				// if (obj.parentId == 1176 && obj.numberOfUses < objData.numUses) continue;
 
 				// Dont eat if no corn seeds // 1114 Shucked Ear of Corn
 				// if (obj.parentId == 1114 && this.hasCornSeeds == false) continue;
@@ -7655,16 +7673,16 @@ abstract class AiBase {
 		countRawRabbit += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 185, 25);
 		if (myPlayer.heldObject.parentId == 185) countRawRabbit += 1;
 
-		if (countRawRabbit > 0 && makeFireFood(1)) return true;
+		if (countRawRabbit > 1 && makeFireFood(1)) return true;
 
 		if (doBaking(1)) return true;
 
 		if (doWatering(1)) return true;
 
-		if (fillUpBerryBowl()) return true; // needed for baking
+		// if (fillUpBerryBowl()) return true; // needed for baking
 		// if(cleanUpBowls(1176)) return true; // Bowl of Dry Beans 1176
 		// if(fillBeanBowlIfNeeded(false)) return true; // dry beans
-		if (countRawRabbit < 1 && makeFireFood(1)) return true;
+		if (countRawRabbit <= 1 && makeFireFood(1)) return true;
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} makefood! failed! d-home: ${quadDistanceToHome}');
 
