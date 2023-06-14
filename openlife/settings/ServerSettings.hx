@@ -1962,6 +1962,14 @@ class ServerSettings {
 		trans = transitions.getTransition(-1, 780);
 		trans.move = 2; // default 4
 
+		// Escaped Riding Horse just released 1421
+		trans = transitions.getTransition(-1, 1421);
+		trans.autoDecaySeconds = 20; // 7
+
+		// Escaped Riding Horse 775
+		trans = transitions.getTransition(-1, 775);
+		trans.move = 3; // default 4
+
 		// Escaped Horse-Drawn Tire Cart just released??????
 		// trans = transitions.getTransition(-1, 1361);
 		// trans.autoDecaySeconds = 30;  // 7
