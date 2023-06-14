@@ -851,4 +851,8 @@ class ObjectHelper {
 	public function index() {
 		return WorldMap.world.index(this.tx, this.ty);
 	}
+
+	public function isFull() {
+		return numberOfUses >= objectData.numUses;
+	}
 }

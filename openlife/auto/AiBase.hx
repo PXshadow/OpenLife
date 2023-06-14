@@ -672,10 +672,10 @@ abstract class AiBase {
 
 		Macro.exception(if (doWatering(1)) return);
 		Macro.exception(if (doCarrotFarming(1)) return);
+		Macro.exception(if (doBaking(1)) return);
 		Macro.exception(if (isSheepHerding(1)) return);
 		Macro.exception(if (isCollecting(1)) return);
-		Macro.exception(if (cleanUpBowls(253)) return); // Bowl of Gooseberries 253
-		Macro.exception(if (doBaking(1)) return);
+		// Macro.exception(if (cleanUpBowls(253)) return); // Bowl of Gooseberries 253
 		Macro.exception(if (doBasicFarming(1)) return);
 		Macro.exception(if (doPottery(1)) return);
 		Macro.exception(if (fillBeanBowlIfNeeded()) return); // green beans
@@ -3846,6 +3846,8 @@ abstract class AiBase {
 		return shortCraftOnTarget(0, closeBowl);
 	}
 
+	static var berryBushesIds = [30, 391];
+
 	private function fillBerryBowlIfNeeded(onlyFillHeldBowl:Bool = false, maxPeople = 1):Bool {
 		var heldObj = myPlayer.heldObject;
 		var distance = onlyFillHeldBowl ? 15 : 20;
@@ -3854,8 +3856,8 @@ abstract class AiBase {
 		if (heldObj.parentId == 253 && heldObj.numberOfUses >= heldObj.objectData.numUses) return false;
 
 		// 30 Wild Gooseberry Bush // 391 Domestic Gooseberry Bush
-		var bushesIds = [30, 391];
-		var closeBush = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, bushesIds, distance, myPlayer);
+
+		var closeBush = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, berryBushesIds, distance, myPlayer);
 
 		if (closeBush == null) return false;
 
@@ -3868,6 +3870,7 @@ abstract class AiBase {
 		}
 
 		if (onlyFillHeldBowl) return false;
+		return false; // TODO for now dont fill bowls without a reason
 
 		if (hasOrBecomeProfession('BOWLFILLER', maxPeople) == false) return false;
 
@@ -6122,9 +6125,28 @@ abstract class AiBase {
 			return false;
 		}
 
+		var actor = itemToCraft.transActor;
 		var actorId = itemToCraft.transActor.parentId;
 		var targetId = itemToCraft.transTarget.parentId;
 		var heldId = myPlayer.heldObject.parentId;
+
+		// Dont allow to pickup berrry bowl if bowl cant be filled
+		// Bowl of Gooseberries 253
+		var targetIsNoBush = berryBushesIds.contains(targetId) == false;
+
+		if (heldId != 253 && actorId == 253 && actor.isFull() == false && targetIsNoBush) {
+			var count = 0;
+			for (id in berryBushesIds) {
+				if (itemToCraft.transitionsByObjectId[id] == null) continue;
+				count += itemToCraft.transitionsByObjectId[id].count;
+			}
+
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: Bushed to fill Bowl of Gooseberries: ${count}');
+			if (shouldDebugSay()) myPlayer.say('Bushed to fill Bowl of Gooseberries: ${count}');
+
+			if (count < 1) return false;
+		}
+
 		// var trans = TransitionImporter.GetTransition(actorId, targetId);
 		// var newtargetId = trans != null ? trans.newTargetId : -10;
 
@@ -6524,7 +6546,7 @@ abstract class AiBase {
 				// dont use carrots if seed is needed // 400 Carrot Row
 				if (obj.parentId == 400 && hasCarrotSeeds == false && obj.numberOfUses < 3) continue;
 				// Ignore not full Bowl of Gooseberries 253 otherwise it might get stuck in making a pie
-				if (obj.parentId == 253 && obj.numberOfUses < objData.numUses) continue;
+				// if (obj.parentId == 253 && obj.numberOfUses < objData.numUses) continue;
 				// Ignore not full Bowl of Dry Beans 1176 otherwise it might get stuck in making cooked beans
 				if (obj.parentId == 1176 && obj.numberOfUses < objData.numUses) continue;
 
