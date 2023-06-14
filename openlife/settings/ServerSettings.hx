@@ -2554,6 +2554,11 @@ class ServerSettings {
 		trans.autoDecaySeconds = -2;
 		transitions.addTransition("PatchTransitions: ", trans);
 
+		// Straw 227 + Rope 59 = 0 + Reed Skirt 128
+		var trans = new TransitionData(227, 59, 0, 128);
+		trans.autoDecaySeconds = -2;
+		transitions.addTransition("PatchTransitions: ", trans);
+
 		// Broken Steel Tool 858
 		var transByActor = TransitionImporter.GetTransitionByNewActor(858);
 		for (trans in transByActor) {
