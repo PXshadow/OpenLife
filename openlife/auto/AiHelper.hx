@@ -597,6 +597,12 @@ class AiHelper {
 					if (countCarrots < 4) continue;
 				}
 
+				// Carrot Row 400 // dont eat up carrots that are needed for seeds
+				if (parentId == 400) {
+					var obj = world.getObjectHelper(tx, ty);
+					if (obj.numberOfUses < 2) continue;
+				}
+
 				// Shucked Ear of Corn 1114 // Pile of Shucked Corn 3901
 				if (parentId == 1114 && parentId == 3901) {
 					if (countCorn < 0) {
