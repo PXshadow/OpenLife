@@ -1787,7 +1787,7 @@ abstract class AiBase {
 		// Fertile Soil 1138
 		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1138, 20);
 
-		trace('doPrepareSoil: count: ${count}');
+		// trace('doPrepareSoil: count: ${count}');
 
 		if (count <= 4) this.taskState['SoilMaker'] = 1;
 
@@ -3189,8 +3189,10 @@ abstract class AiBase {
 
 		// Bowl of Tomato Seeds 2828
 		var countTomatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2828, 30);
+		countTomatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 2828, 30);
+		if (myPlayer.heldObject.parentId == 2828) countTomatoSeeds += 1;
 		// Bowl of Tomato Seed Pulp 2825
-		countTomatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 2825, 30);
+		// countTomatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 2825, 30);
 		if (countTomatoSeeds < 1) {
 			if (craftItem(2828)) return true; // Bowl of Tomato Seeds 2828
 		}
@@ -3914,9 +3916,14 @@ abstract class AiBase {
 		// var closePopcorn = AiHelper.GetClosestObjectToHome(myPlayer, 1121); // Popcorn
 		// if (closePopcorn != null) return false;
 
+		if (hasCornSeeds == false) return false;
+
 		// Popcorn 1121
 		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1121, 40);
 		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1121, 40);
+		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1122, 30);
+		if (myPlayer.heldObject.parentId == 1121) count += 1;
+
 		if (count > 0) return false;
 
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn!2');
