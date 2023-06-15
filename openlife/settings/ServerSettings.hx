@@ -1590,13 +1590,16 @@ class ServerSettings {
 		var trans = transitions.getTransition(-1, 749); // Bloody Yew Bow
 		trans.autoDecaySeconds = 6; // 30
 
+		var trans = transitions.getTransition(560, 180); // Knife 560 + Dead Rabbit 180
+		trans.aiShouldIgnore = true;
+
 		// Make reapir fences more easy:
 		// Mallet 467 + Fence Kit 556 -->  Mallet 467 + Fence 550
 		var trans = new TransitionData(467, 556, 467, 550);
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Knife transitions for close combat
-		var trans = new TransitionData(560, 418, 750, 422); // Knife + Wolf ==> Bloody Knife + Dead Wolf
+		var trans = new TransitionData(560, 418, 750, 422); // Knife 560 + Wolf ==> Bloody Knife + Dead Wolf
 		transitions.addTransition("PatchTransitions: ", trans);
 		var trans = new TransitionData(560, 1323, 750, 1332); // Knife + Wild Boar ==> Bloody Knife +  Dead Boar
 		transitions.addTransition("PatchTransitions: ", trans);
@@ -3366,6 +3369,22 @@ class ServerSettings {
 			trans.aiShouldIgnore = true;
 		}
 
+		// Bowl of Water 382 +  Bowl of Tomato Seeds = Clay Bowl 235 + Bowl of Water 382
+		var trans = new TransitionData(382, 2828, 235, 382);
+		trans.aiShouldIgnore = true;
+		transitions.addTransition("PatchTransitions: ", trans);
+
+		// Full Water Pouch+ 210 + Bowl of Tomato Seeds 2828 = Empty Water Pouch 209 + Bowl of Water 382
+		var trans = new TransitionData(210, 2828, 209, 382);
+		trans.aiShouldIgnore = true;
+		transitions.addTransition("PatchTransitions: ", trans);
+
+		/*var transByTarget = TransitionImporter.GetTransitionByTarget(2828); // Bowl of Tomato Seeds
+			for (trans in transByTarget) {
+				trace('Bowl of Tomato Seeds: ' + trans.getDescription(true));
+				trans.aiShouldIgnore = true;
+		}*/
+
 		// Shallow Well 662 // Bowl of Water 382
 		/*var transByTarget = TransitionImporter.GetTransitionByNewActor(382);
 			for(trans in transByTarget){
@@ -3625,7 +3644,7 @@ class ServerSettings {
 		// LimitObjectByNewTarget(402, 396, 10); // Limit Carrot 402 // Dry Planted Carrots 396
 
 		// Bowl of Tomato Seeds 2828
-		LimitObjectByNewTarget(2828, 2828, 2);
+		LimitObjectByNewTarget(2828, 2828, 1);
 
 		// Ripe Cucumber Plant 4232 // Dry Planted Cucumber Seeds 4225
 		LimitObjectByNewTarget(4232, 4225, 5);
