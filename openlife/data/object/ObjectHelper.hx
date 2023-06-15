@@ -514,6 +514,13 @@ class ObjectHelper {
 		return returnValue;
 	}
 
+	public function getOwner():GlobalPlayerInstance {
+		// GlobalPlayerInstance.AcquireMutex();
+		var returnValue = GlobalPlayerInstance.AllPlayerMap[this.livingOwners[0]];
+		// GlobalPlayerInstance.ReleaseMutex();
+		return returnValue;
+	}
+
 	public function getLinage():Lineage {
 		return Lineage.GetLineage(this.livingOwners[0]);
 	}

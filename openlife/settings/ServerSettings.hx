@@ -708,13 +708,15 @@ class ServerSettings {
 		ObjectData.getObjectData(897).decaysToObj = 1853; // Ancient Stone FloWallor ==> Cut Stones
 		ObjectData.getObjectData(897).fortificationObjId = 881; // Cut Stones 881
 
-		ObjectData.getObjectData(127).fortificationValue = 5; // Adobe 127
 		ObjectData.getObjectData(33).fortificationValue = 1; // Stone 33
+		ObjectData.getObjectData(67).fortificationValue = 2; // Long Straight Shaft 67
+		ObjectData.getObjectData(127).fortificationValue = 5; // Adobe 127
+		ObjectData.getObjectData(470).fortificationValue = 5; //  Boards 470
 
 		ObjectData.getObjectData(237).fortificationObjId = 33; // Adobe Oven 237 --> Adobe 127
 		ObjectData.getObjectData(238).fortificationObjId = 33; // Adobe Kiln 238 --> Adobe 127
 
-		ObjectData.getObjectData(470).fortificationValue = 5; //  Boards 470
+		ObjectData.getObjectData(2962).fortificationObjId = 67; // Property Gate 2962 --> Long Straight Shaft 67
 
 		ObjectData.getObjectData(2757).fortificationObjId = 470; // Springy Wooden Door - horizontal 2757 --> Boards 470
 		ObjectData.getObjectData(2759).fortificationObjId = 470; // Springy Wooden Door - vertical 2759 --> Boards 470
@@ -3395,6 +3397,26 @@ class ServerSettings {
 		trace('DEBUG: ${trans.getDescription()}');
 		if (trans.newActorID != 382) { // Bowl of Water 382
 			throw new Exception('New actor should be: Bowl of Water 382');
+		}
+
+		// Property Gate 296
+		var transitions = TransitionImporter.GetTransitionByTarget(2962);
+		for (trans in transitions) {
+			trans.aiShouldIgnore = true;
+			if (trans.actorID == 0) continue;
+
+			trans.hungryWorkCost = 0.1; // allow only for owner
+
+			// Skewer 139
+			if (trans.actorID == 139) continue; // allow for owner
+
+			// Weak Skewer 852
+			if (trans.actorID == 852) continue; // allow for owner
+
+			trans.hungryWorkCost = 5;
+			trans.alternativeTransitionOutcome.push(0);
+
+			trace('Property Gate: ' + trans.getDescription(false));
 		}
 
 		/*// Bowl of Water 382

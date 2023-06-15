@@ -397,6 +397,9 @@ Fortification:
 - Removing Fortification is Extreme Hungry Work
 - Fortification cost 10 Coins for (Ancient) Stone Wall
 - Oven and Kiln can be fortified with Stone and Springy Doors with Boards
+- Property Gates can be removed with hungry work if no owner
+- Property Gates can be fortified with Long Straight Shaft
+- It costs halve hungry work for owner to remove fortification (like for Property Gates)
 
 Transitions:
 - you can harvest Berries directly with a bowl

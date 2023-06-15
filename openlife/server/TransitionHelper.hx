@@ -851,13 +851,6 @@ class TransitionHelper {
 			player.setNewNome(target);
 		}
 
-		if (target.objectData.isOwned) {
-			if (target.isOwnedBy(player.p_id) == false) {
-				if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Player is not owner of ${target.description}!');
-				return false;
-			}
-		}
-
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} handObjectData.numUses: ${handObjectData.numUses} heldObject.numberOfUses: ${this.player.heldObject.numberOfUses} ${handObjectData.description}');
 
@@ -1082,12 +1075,31 @@ class TransitionHelper {
 		// remove fortification is always hungry work
 		// if (hungryWorkCost <= 0 && target.hits < 0.1) hungryWorkCost = ServerSettings.HungryWorkCost;
 
+		var allowForOwner = false; // like making an ally gate
+
+		if (target.objectData.isOwned) {
+			var owner = target.getOwner();
+			var isOwned = target.isOwnedBy(player.p_id) || owner == null || owner.isDeleted();
+
+			if (isOwned) {
+				if (hungryWorkCost < 1) allowForOwner = true;
+				// make it easier for player to remove
+				hungryWorkCost *= 0.5;
+				if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Player is not owner of ${target.description}!');
+			} else {
+				if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Player is not owner of ${target.description}!');
+				if (hungryWorkCost < 1) {
+					player.say('The owner is ${owner.name}', true);
+					return false;
+				}
+			}
+		}
+
 		if (hungryWorkCost > 0) {
 			// player.say('cost ${hungryWorkCost}', true);
-
 			var missingFood = Math.ceil(hungryWorkCost / 2 - player.food_store);
-			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} hungry Work cost: $hungryWorkCost missingFood: ${missingFood}');
 
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} hungry Work cost: $hungryWorkCost missingFood: ${missingFood}');
 			// TODO for now dont test for too hot untill getting water does not create heat, otherwise could not get water for cooling.
 			/*if(hungryWorkTemperature > 0 && player.isSuperHot()){
 				var message = 'Too hot!';
@@ -1096,66 +1108,55 @@ class TransitionHelper {
 				player.useFailedReason = message;
 				return false;
 			}*/
-
 			// var excessExhaustion = Math.ceil(player.exhaustion - (player.food_store_max + 1));
 			var excessExhaustion = Math.ceil(player.exhaustion - (player.food_store_max / 2));
 			if (excessExhaustion > 0) {
 				var message = 'Too exhausted! $excessExhaustion';
+
 				player.say(message, true);
 				player.doEmote(Emote.homesick);
 				player.useFailedReason = message;
 				return false;
 			}
-
 			if (missingFood > 0) {
 				// var message = 'Its hungry work! Need ${missingFood} more food!';
 				// player.connection.sendGlobalMessage(message);
 				var message = 'Need ${missingFood} more food!';
+
 				player.say(message, true);
 				player.doEmote(Emote.homesick);
 				player.useFailedReason = message;
-
 				return false;
 			}
-
 			player.heat += hungryWorkTemperature;
 			if (player.heat > 1) player.heat = 1;
-
 			hungryWorkCost /= 2; // half for exhaustion
-
 			player.addFood(-hungryWorkCost);
 			player.exhaustion += hungryWorkCost;
 			player.doEmote(Emote.biomeRelief);
-
 			player.sendFoodUpdate();
-
 			// var message = '$playerHeat $foodDrainTime 0';
 			// player.connection.send(HEAT_CHANGE, [message], false);
 		}
-
 		// always use alternativeTransitionOutcome from transition if there. Second use from newTargetObjectData
 		var alternativeTransitionOutcome = transition.alternativeTransitionOutcome.length > 0 ? transition.alternativeTransitionOutcome : newTargetObjectData.alternativeTransitionOutcome;
+
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} TEST: ${newTargetObjectData.name} ${newTargetObjectData.id}  ${newTargetObjectData.alternativeTransitionOutcome}');
-
 		// player.say('id ${target.id} h: ${target.objectData.hungryWork}');
-
-		if (alternativeTransitionOutcome.length > 0 || isFortified) {
+		if (allowForOwner == false && (alternativeTransitionOutcome.length > 0 || isFortified)) {
 			// TODO reduce tool
-
 			var rand = WorldMap.calculateRandomFloat();
-			rand += target.hits / ServerSettings.AlternativeOutcomePercentIncreasePerHit;
 
+			rand += target.hits / ServerSettings.AlternativeOutcomePercentIncreasePerHit;
 			// trace('TRANS: ${player.name + player.id} TEST: ${newTargetObjectData.name} ${newTargetObjectData.id} hits: ${target.hits} rand: ${${rand}}');
 			// player.say('${Math.floor(rand * 10) / 10}');
-
 			if (rand < 1) {
 				target.hits += 1;
 				// rand += target.hits / 20;
 				// player.say('Try again! Hits ${Math.round(target.hits)} Uses: ${Math.round(target.numberOfUses)} exhaustion: ${Math.round(player.exhaustion)}', true);
 				if (isFortified) player.say('Try again! Fortification: ${- Math.round(target.hits)}', true); else
 					player.say('Try again! Hits ${Math.round(target.hits)}', true);
-
 				// drop fortification material
 				var fortificationObjId = target.objectData.fortificationObjId;
 				if (target.countObj > 0 && fortificationObjId > 0) {
@@ -1171,21 +1172,17 @@ class TransitionHelper {
 						var rand = WorldMap.calculateRandomInt(alternativeTransitionOutcome.length - 1);
 						// TODO use piles
 						var outcomeId = alternativeTransitionOutcome[rand];
+
 						if (outcomeId > 0) WorldMap.PlaceObjectById(tx, ty, outcomeId);
 					}
 				}
-
 				this.doTransition = true;
 				this.doAction = true;
-
 				if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Place alternativeTransitionOutcome!');
-
 				return true;
 			}
-
 			target.hits -= ServerSettings.AlternativeOutcomeHitsDecreaseOnSucess;
 		}
-
 		// if it is a transition that picks up an object like 0 + 1422 = 778 + 0  (horse with cart) then switch the hole tile object to the hand object
 		// TODO this may make trouble
 		// 770 + -1 = 0 + 1421  Riding Horse + ? = 0 + Escaped Riding Horse
@@ -1284,17 +1281,14 @@ class TransitionHelper {
 		var resetNumberOfUses = this.target.objectData.isClothing() == false || this.target.objectData.numUses < 2;
 		var tmpActorNumberOfuses = heldObject.numberOfUses;
 		var tmpTargetNumberOfuses = this.target.numberOfUses;
-
 		// do now the magic transformation
 		player.transformHeldObject(transition.newActorID, transition.noUseActor);
 		this.target.id = TransformTarget(transition.newTargetID); // consider if there is an random outcome
-
 		// FIX: Like putting / picking dough on / from table
 		if (transition.switchNumberOfUses) {
 			heldObject.numberOfUses = tmpTargetNumberOfuses;
 			this.target.numberOfUses = tmpActorNumberOfuses;
 		}
-
 		// reset creation / last change time
 		player.heldObject.creationTimeInTicks = TimeHelper.tick;
 		this.target.creationTimeInTicks = TimeHelper.tick; // TODO dont reset if id did not change? For example hot oven
@@ -1321,10 +1315,8 @@ class TransitionHelper {
 		// target did not change if it is same dummy
 		if (transition.noUseTarget == false) DoChangeNumberOfUsesOnTarget(this.target, transition, player, ServerSettings.DebugTransitionHelper,
 			resetNumberOfUses);
-
 		this.player.heldObject.TransformToDummy();
 		this.player.setHeldObject(this.player.heldObject); // TO Fix wrong number of uses display
-
 		ObjectHelper.DoOwnerShip(this.target, this.player);
 		// if a transition is done, the MX (MAPUPDATE) needs to send a negative palyer id to indicate that its not a drop
 		this.doTransition = true;

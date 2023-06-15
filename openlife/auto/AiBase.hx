@@ -4405,7 +4405,7 @@ abstract class AiBase {
 
 			myPlayer.say('${home.name}');
 		}
-		if (text.startsWith("FOLLOW ME!") || text.startsWith("FOLLOW!") || text.startsWith("COME")) {
+		if (text.startsWith("FOLLOW ME!") || text.startsWith("FOLLOW") || text.startsWith("COME")) {
 			if (checkIfShouldDoCommand(player) == false) return;
 			autoStopFollow = false; // otherwise if old enough ai would stop follow
 			timeStartedToFolow = TimeHelper.tick;
