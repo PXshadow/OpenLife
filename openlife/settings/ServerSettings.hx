@@ -3407,6 +3407,15 @@ class ServerSettings {
 			throw new Exception('New actor should be: Bowl of Water 382');
 		}
 
+		// Steel Mining Pick 684 +  Gold Vein 680
+		var trans = TransitionImporter.GetTransition(684, 680);
+		trans.hungryWorkCost = 10;
+		trans.alternativeTransitionOutcome.push(0);
+		trans.alternativeTransitionOutcome.push(0);
+		trans.alternativeTransitionOutcome.push(33); // Stone 33
+		trans.alternativeTransitionOutcome.push(291); // Flat Rock 291
+		trans.alternativeTransitionOutcome.push(681); // Gold Flakes 681
+
 		// Property Gate 296
 		var transitions = TransitionImporter.GetTransitionByTarget(2962);
 		for (trans in transitions) {
