@@ -3409,9 +3409,10 @@ class ServerSettings {
 
 		// Steel Mining Pick 684 +  Gold Vein 680
 		var trans = TransitionImporter.GetTransition(684, 680);
+		trans.coinCost = 20;
 		trans.hungryWorkCost = 10;
 		trans.alternativeTransitionOutcome.push(0);
-		trans.alternativeTransitionOutcome.push(0);
+		trans.alternativeTransitionOutcome.push(33);
 		trans.alternativeTransitionOutcome.push(33); // Stone 33
 		trans.alternativeTransitionOutcome.push(291); // Flat Rock 291
 		trans.alternativeTransitionOutcome.push(681); // Gold Flakes 681

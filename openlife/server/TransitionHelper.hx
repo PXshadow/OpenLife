@@ -1063,6 +1063,13 @@ class TransitionHelper {
 		// check if it is hungry work like cutting down a tree, using a tool or mining
 		var biome = WorldMap.worldGetBiomeId(tx, ty);
 
+		var missingCoins = Math.ceil(transition.coinCost - player.coins);
+
+		if (missingCoins > 0) {
+			player.say('Missing ${missingCoins} coins!', true);
+			return false;
+		}
+
 		// var hungryWorkCost = Math.max(parentActorObjectData.hungryWork, newParentTargetObjectData.hungryWork);
 		var hungryWorkCost = parentActorObjectData.hungryWork + newParentTargetObjectData.hungryWork;
 		hungryWorkCost += transition.hungryWorkCost;
@@ -1144,6 +1151,9 @@ class TransitionHelper {
 			// var message = '$playerHeat $foodDrainTime 0';
 			// player.connection.send(HEAT_CHANGE, [message], false);
 		}
+
+		player.coins -= transition.coinCost;
+
 		// always use alternativeTransitionOutcome from transition if there. Second use from newTargetObjectData
 		var alternativeTransitionOutcome = transition.alternativeTransitionOutcome.length > 0 ? transition.alternativeTransitionOutcome : newTargetObjectData.alternativeTransitionOutcome;
 
