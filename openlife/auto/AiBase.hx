@@ -3909,7 +3909,7 @@ abstract class AiBase {
 
 	private function makePopcornIfNeeded():Bool {
 		// TODO since AI makes currently mess with Popcorn return
-		return false;
+		// return false;
 
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn!1');
 		// do nothing if there is Popcorn
@@ -3921,8 +3921,13 @@ abstract class AiBase {
 		// Popcorn 1121
 		var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1121, 40);
 		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1121, 40);
-		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1122, 30);
 		if (myPlayer.heldObject.parentId == 1121) count += 1;
+
+		// Popping Corn 1122
+		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1122, 30);
+		if (myPlayer.heldObject.parentId == 1122) count += 1;
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn! ${count}');
 
 		if (count > 0) return false;
 
@@ -3931,9 +3936,9 @@ abstract class AiBase {
 		var bestPlayer = getBestAiForObjByProfession('BowlFiller', myPlayer.home);
 		if (bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
 
-		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn!3');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn! ${count}');
 
-		return craftItem(1122); // Popcorn
+		return craftItem(1122); // Popping Corn 1122
 	}
 
 	private function makeFireFood(maxPeople:Int = 1):Bool {
@@ -7670,6 +7675,8 @@ abstract class AiBase {
 			// Shucked Ear of Corn 1114
 			if (countCorn > 0 && countShuckedCorn < 2 && craftItem(1114)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 		}
+
+		Macro.exception(if (makePopcornIfNeeded()) return true);
 
 		// TODO consider raw pies, but first optimise counting
 
