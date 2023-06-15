@@ -1072,6 +1072,12 @@ class TransitionHelper {
 		if (hungryWorkTemperature < 0) hungryWorkTemperature = hungryWorkCost * ServerSettings.HungryWorkHeat;
 
 		var isFortified = hungryWorkCost > 0 && target.hits < -0.1;
+
+		// dont make Loosing Fence cost something except if fortified
+		if (newParentTargetObjectData.description.contains('Loose') && isFortified == false) hungryWorkCost = 0;
+
+		// trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} isFortified: ${isFortified} ${hungryWorkCost}');
+
 		// remove fortification is always hungry work
 		// if (hungryWorkCost <= 0 && target.hits < 0.1) hungryWorkCost = ServerSettings.HungryWorkCost;
 
@@ -1168,7 +1174,7 @@ class TransitionHelper {
 						WorldMap.PlaceObjectById(tx, ty, fortificationObjId);
 					}
 				} else {
-					if (alternativeTransitionOutcome.length > 0) {
+					if (alternativeTransitionOutcome.length > 0 && fortificationObjId < 1) {
 						var rand = WorldMap.calculateRandomInt(alternativeTransitionOutcome.length - 1);
 						// TODO use piles
 						var outcomeId = alternativeTransitionOutcome[rand];

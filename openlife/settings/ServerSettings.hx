@@ -718,6 +718,14 @@ class ServerSettings {
 
 		ObjectData.getObjectData(2962).fortificationObjId = 67; // Property Gate 2962 --> Long Straight Shaft 67
 
+		ObjectData.getObjectData(550).fortificationObjId = 67; // Fence - horizontal 550  --> Long Straight Shaft 67
+		ObjectData.getObjectData(549).fortificationObjId = 67; // Fence - vertical 549  --> Long Straight Shaft 67
+		ObjectData.getObjectData(551).fortificationObjId = 67; // Fence - corner 551  --> Long Straight Shaft 67
+
+		ObjectData.getObjectData(1845).hungryWork = 5; // Loose Fence - horizontal 1845
+		ObjectData.getObjectData(1846).hungryWork = 5; // Loose Fence  - vertical 1846
+		ObjectData.getObjectData(1847).hungryWork = 5; // Loose Fence - corner 1847
+
 		ObjectData.getObjectData(2757).fortificationObjId = 470; // Springy Wooden Door - horizontal 2757 --> Boards 470
 		ObjectData.getObjectData(2759).fortificationObjId = 470; // Springy Wooden Door - vertical 2759 --> Boards 470
 
