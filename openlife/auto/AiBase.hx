@@ -575,6 +575,7 @@ abstract class AiBase {
 		Macro.exception(if (doStuff && isHunting()) return);
 		Macro.exception(if (makeSharpieFood(5)) return);
 		Macro.exception(if (isHandlingGraves()) return);
+		Macro.exception(if (fillBucketIfNeeded()) return);
 		// Macro.exception(if (shortCraft(852, 2832, 20, false)) return); // Weak Skewer + Tomato Sprout
 		Macro.exception(if (shortCraft(139, 2832, 20)) return); // Skewer + Tomato Sprout
 
@@ -609,8 +610,6 @@ abstract class AiBase {
 
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = 30; // old null
-
-		Macro.exception(if (fillBucketIfNeeded()) return);
 
 		// Macro.exception(if (doPrepareRows(1)) return);
 
