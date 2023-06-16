@@ -575,6 +575,7 @@ abstract class AiBase {
 		Macro.exception(if (doStuff && isHunting()) return);
 		Macro.exception(if (makeSharpieFood(5)) return);
 		Macro.exception(if (isHandlingGraves()) return);
+		// Macro.exception(if (shortCraft(852, 2832, 20, false)) return); // Weak Skewer + Tomato Sprout
 		Macro.exception(if (shortCraft(139, 2832, 20)) return); // Skewer + Tomato Sprout
 
 		// if(craftItem(283)) return;
@@ -608,6 +609,8 @@ abstract class AiBase {
 
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = 30; // old null
+
+		Macro.exception(if (fillBucketIfNeeded()) return);
 
 		// Macro.exception(if (doPrepareRows(1)) return);
 
@@ -2507,6 +2510,9 @@ abstract class AiBase {
 		var targetId = target.parentId;
 		var heldId = myPlayer.heldObject.parentId;
 
+		// Skewer 139 --> Weak Skewer 852 FIX: making new Skewer if there are tons of Week ones
+		if (actorId == 139 && shortCraftOnTarget(852, target, false, maxNewActor)) return true;
+
 		// FIX: AI stuck with trying put Soil on Hardened Row in Snow Biome
 		// Bowl of Soil 1137 + Hardened Row 848
 		if (actorId == 1137 && target.parentId == 848) {
@@ -3196,6 +3202,39 @@ abstract class AiBase {
 		if (countTomatoSeeds < 1) {
 			if (craftItem(2828)) return true; // Bowl of Tomato Seeds 2828
 		}
+
+		return false;
+	}
+
+	private function fillBucketIfNeeded(maxPeople = 1) {
+		if (hasOrBecomeProfession('WATERBRINGER', maxPeople) == false) return false;
+
+		var heldId = myPlayer.heldObject.parentId;
+
+		// check if water can be tacken from a well with a bucket
+		// Full Bucket of Water 660 // Partial Bucket of Water 1099
+		if (heldId == 660 || heldId == 1099) return dropHeldObject(0);
+
+		var closestWaterBucket = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, [660, 1099], myPlayer);
+
+		// Dont call recursive
+		if (closestWaterBucket != null) return false;
+
+		// trace('AAI: ${myPlayer.name + myPlayer.id} Try get water with a bucket');
+
+		// Tank of Water - less full 3168 // Empty Bucket 659
+		if (shortCraft(3168, 659, 20)) return true;
+
+		// Tank of Water - 3167 // Empty Bucket 659
+		if (shortCraft(3167, 659, 20)) return true;
+		// if(craftItem(660)) return true;
+
+		var bucketWaterSourceIds = ServerSettings.BucketWaterSourceIds;
+		var closestBucketWaterSource = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, bucketWaterSourceIds, 30, myPlayer);
+
+		if (closestBucketWaterSource == null) return false;
+		// Empty Bucket 659
+		if (shortCraftOnTarget(659, closestBucketWaterSource, false, 1)) return true;
 
 		return false;
 	}
@@ -6216,32 +6255,32 @@ abstract class AiBase {
 
 			// check if water can be tacken from a well with a bucket
 			// Full Bucket of Water 660 // Partial Bucket of Water 1099
-			if (heldId == 660 || heldId == 1099) return dropHeldObject(0);
+			/*if (heldId == 660 || heldId == 1099) return dropHeldObject(0);
 
-			var closestWaterBucket = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, [660, 1099], myPlayer);
+				var closestWaterBucket = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, [660, 1099], myPlayer);
 
-			// Dont call recursive
-			if (calledCraftItem == false && closestWaterBucket == null) {
-				calledCraftItem = true; // to not call recursive // FIX endless loop --> server crash
+				// Dont call recursive
+				if (calledCraftItem == false && closestWaterBucket == null) {
+					calledCraftItem = true; // to not call recursive // FIX endless loop --> server crash
 
-				// trace('AAI: ${myPlayer.name + myPlayer.id} Try get water with a bucket');
+					// trace('AAI: ${myPlayer.name + myPlayer.id} Try get water with a bucket');
 
-				// Tank of Water - less full 3168 // Empty Bucket 659
-				if (shortCraft(3168, 659, 30)) return true;
+					// Tank of Water - less full 3168 // Empty Bucket 659
+					if (shortCraft(3168, 659, 30)) return true;
 
-				// Tank of Water - 3167 // Empty Bucket 659
-				if (shortCraft(3167, 659, 30)) return true;
-				// if(craftItem(660)) return true;
+					// Tank of Water - 3167 // Empty Bucket 659
+					if (shortCraft(3167, 659, 30)) return true;
+					// if(craftItem(660)) return true;
 
-				var closestBucketWaterSource = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, bucketWaterSourceIds, myPlayer);
+					var closestBucketWaterSource = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, bucketWaterSourceIds, myPlayer);
 
-				if (closestBucketWaterSource != null) {
-					// Empty Bucket 659
-					if (shortCraftOnTarget(659, closestBucketWaterSource, 30)) return true;
-				}
+					if (closestBucketWaterSource != null) {
+						// Empty Bucket 659
+						if (shortCraftOnTarget(659, closestBucketWaterSource, 30)) return true;
+					}
 
-				calledCraftItem = false; // is set also false each doTime()
-			}
+					calledCraftItem = false; // is set also false each doTime()
+			}*/
 
 			var closestWaterSource = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, waterSourceIds, myPlayer);
 			// trace('AAI: ${myPlayer.name + myPlayer.id} Use closest water source');
