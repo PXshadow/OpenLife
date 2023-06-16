@@ -770,6 +770,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			} else {
 				trace('read ${i + 1} Players... ${obj.name} id: ${obj.p_id} account: ${obj.account.id} ${obj.account.email}');
 				accountsWithPlayer[obj.account.id] = obj;
+				Lineage.AddLineage(obj.p_id, obj.lineage); // Add Lineage to NewLineages so that new lineage data will be saved
 			}
 		}
 		/*}
