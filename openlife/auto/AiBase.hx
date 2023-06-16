@@ -3644,6 +3644,12 @@ abstract class AiBase {
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1190, 30);
 				// Ripe Squash Plant 1196
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1196, 30);
+				// Crock with Squash 1243
+				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1243, 30);
+				// Plate of Squash Chunks 1202
+				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1202, 30);
+				// Plate of Squash Chunks with Seeds 1201
+				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1201, 30);
 
 				if (count > 3) {
 					toPlant += 1;
