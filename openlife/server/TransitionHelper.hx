@@ -103,6 +103,7 @@ class TransitionHelper {
 
 	public static function doCommandHelper(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0):Bool {
 		var helper = new TransitionHelper(player, x, y);
+		var target = helper.target;
 		var heldId = player.heldObject.parentId;
 		var heldObject = player.heldObject;
 		var targetObj = helper.target;
@@ -127,6 +128,13 @@ class TransitionHelper {
 			var text = 'TRANS: ${player.name + player.id} ${player.heldObject.name} + ${helper.target.name} ${helper.target.toArray()} NOT SUPPORTET YET!';
 			trace(text); // 5792
 			return false;
+		}
+
+		// clear written
+		// // Rubber Ball 2170 + Paper with Charcoal Writing 1615 --> Rubber Ball 2170 + Blank Paper 1619
+		if (heldId == 2170 && target.parentId == 1615) {
+			target.text = '';
+			target.hits = 0;
 		}
 
 		// Tarr Monument
@@ -346,7 +354,7 @@ class TransitionHelper {
 		// trace('tag: ${player.name} ${tag} ${player.heldObject.name}');
 		switch (tag) {
 			case USE:
-				helper.use(target, index);
+				helper.use(targetId, index);
 			case DROP:
 				helper.drop(index);
 			case REMV:
@@ -355,10 +363,12 @@ class TransitionHelper {
 		}
 		helper.sendUpdateToClient();
 
+		var target = helper.target;
 		var heldObject = player.heldObject;
 		var heldId = player.heldObject.parentId;
 		var isCursed = player.isCursed ? 1 : 0;
 
+		// reading
 		if (heldObject.text.length > 0) {
 			player.connection.send(PLAYER_SAYS, ['${player.p_id}/$isCursed ${heldObject.text}}']);
 			player.connection.send(FRAME);
@@ -366,7 +376,7 @@ class TransitionHelper {
 
 		// block last target for Ai for some time if no weapon, cloth or food or permanent
 		var block = player.isHuman();
-		var blockTarget = WorldMap.world.getObjectHelper(helper.target.tx, helper.target.ty);
+		var blockTarget = WorldMap.world.getObjectHelper(target.tx, target.ty);
 
 		if (blockTarget.parentId == 0) block = false;
 		// Smithing Hammer 441

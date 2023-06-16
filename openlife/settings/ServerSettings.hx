@@ -1917,6 +1917,11 @@ class ServerSettings {
 		trans = transitions.getTransition(1618, -1);
 		trans.isPickupOrDrop = true;
 
+		// Rubber Ball 2170 + Paper with Charcoal Writing 1615
+		trans = transitions.getTransition(2170, 1615);
+		trans.noUseActor = true;
+		// trace('clearing: ' + trans.getDescription(true));
+
 		// Graves
 		trans = transitions.getTransition(292, 87); // Basket + Fresh Grave
 		trans.isPickupOrDrop = true;
