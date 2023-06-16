@@ -1785,8 +1785,25 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var player = this;
 		var curse = 0;
 		var id = player.p_id;
+		var heldObject = player.heldObject;
+		var heldId = player.heldObject.parentId;
 
 		text = text.toUpperCase();
+
+		// Blank Paper with Charcoal 1616 // Written Paper 1618
+		if (heldId == 1616 || heldId == 1618) {
+			trace('Writing: $text');
+			heldObject.text += text;
+			heldObject.hits = 1; // mark so that object is saved
+
+			if (heldObject.text.length > 100) heldObject.text = heldObject.text.substr(0, 100);
+			// Written Paper 1621 // Paper with Charcoal Writing 1615
+			heldObject.timeToChange = 2;
+			player.transformHeldObject(1621);
+			Connection.SendUpdateToAllClosePlayers(player);
+
+			trace('Writing: ${heldObject.text}');
+		}
 
 		if (StringTools.contains(text, '!MSG') || StringTools.contains(text, '!TEA')) {
 			toSelf = true;

@@ -1913,6 +1913,10 @@ class ServerSettings {
 		trans = transitions.getTransition(0, 3159);
 		trans.isPickupOrDrop = true;
 
+		// Written Paper 1618
+		trans = transitions.getTransition(1618, -1);
+		trans.isPickupOrDrop = true;
+
 		// Graves
 		trans = transitions.getTransition(292, 87); // Basket + Fresh Grave
 		trans.isPickupOrDrop = true;

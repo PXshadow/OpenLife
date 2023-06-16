@@ -355,6 +355,15 @@ class TransitionHelper {
 		}
 		helper.sendUpdateToClient();
 
+		var heldObject = player.heldObject;
+		var heldId = player.heldObject.parentId;
+		var isCursed = player.isCursed ? 1 : 0;
+
+		if (heldObject.text.length > 0) {
+			player.connection.send(PLAYER_SAYS, ['${player.p_id}/$isCursed ${heldObject.text}}']);
+			player.connection.send(FRAME);
+		}
+
 		// block last target for Ai for some time if no weapon, cloth or food or permanent
 		var block = player.isHuman();
 		var blockTarget = WorldMap.world.getObjectHelper(helper.target.tx, helper.target.ty);
