@@ -1999,24 +1999,43 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function redeem(target:GlobalPlayerInstance):Bool {
 		if (target == null) return false;
+		var done = false;
+
+		for (player in target.exiledByPlayers) {
+			// var player = AllPlayers[id];
+			if (player == null) continue;
+			if (player != this && player.isFollowerFrom(this) == false) continue;
+
+			done = true;
+			target.exiledByPlayers.remove(player.p_id);
+			if (player != this) player.connection.sendGlobalMessage('MY LEADER_${this.name}YOU_REDEEMED:_${target.name}_${target.familyName}');
+		}
 
 		// TODO target may be exiled by a sub leader, in case so redeem him also?
-		if (target.exiledByPlayers.exists(target.p_id) == false) {
+		/*if (target.exiledByPlayers.exists(target.p_id) == false) {
+			this.connection.sendGlobalMessage('Cannot redeem ${target.name} if not exiled first!');
+			return false;
+		}*/
+
+		if (done == false) {
+			this.say('Need to Exile ${target.name} first!', true);
 			this.connection.sendGlobalMessage('Cannot redeem ${target.name} if not exiled first!');
 			return false;
 		}
 
-		target.exiledByPlayers.remove(target.p_id);
+		// target.exiledByPlayers.remove(target.p_id);
 
 		Connection.SendFullExileListToAll(target);
 
-		this.connection.sendGlobalMessage('YOU_REDEEM:_${target.name}_${target.familyName}');
-		target.connection.sendGlobalMessage('YOU_HAVE_BEEN_REDEEMED_BY:_${this.name}_${this.familyName}');
+		this.connection.sendGlobalMessage('YOU_REDEEMED:_${target.name}_${target.familyName}');
+		if (this.isAlly(target)) target.connection.sendGlobalMessage('YOU_HAVE_BEEN_REDEEMED_BY:_${this.name}_${this.familyName}');
 
 		this.doEmote(Emote.happy);
-		target.doEmote(Emote.happy);
+		if (this.isAlly(target)) target.doEmote(Emote.happy);
+		this.say('I REDDEM ${target.name}_${target.familyName}');
+		if (this.isAlly(target)) this.say('I AM REDEEMED ${target.name}_${target.familyName}');
 
-		return true;
+		return false;
 	}
 
 	private function processFollowCommand(name:String) {
