@@ -560,7 +560,7 @@ abstract class AiBase {
 		// Bowl of Gooseberries and Carrot 258 + Hungry Domestic Lamb 604
 		if (shortCraft(258, 604, 10)) return;
 		// Bowl with Corn Kernels 1247 + Hungry Domestic Calf 1462
-		if (shortCraft(1247, 1462, 10)) return;
+		if (hasCornSeeds && shortCraft(1247, 1462, 10)) return;
 
 		Macro.exception(if (isHandlingFire()) return);
 
@@ -1623,10 +1623,10 @@ abstract class AiBase {
 
 		// Feed and milk the Cows
 		// Bowl with Corn Kernels 1247 + Hungry Domestic Calf 1462
-		if (shortCraft(1247, 1462, distance)) return true;
+		if (hasCornSeeds && shortCraft(1247, 1462, distance)) return true;
 
 		// Bowl with Corn Kernels 1247 + Domestic Calf 1459
-		if (shortCraft(1247, 1459, distance)) return true;
+		if (hasCornSeeds && shortCraft(1247, 1459, distance)) return true;
 
 		// Empty Bucket 659 + Milk Cow 1489
 		if (shortCraft(1247, 1489, distance)) return true;
@@ -1679,7 +1679,7 @@ abstract class AiBase {
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1262, 40);
 		if (count < 5 && countCorn > 1) {
 			// Bowl with Corn Kernels 1247 + Domestic Goose 1256
-			if (shortCraft(1247, 1256, distance)) return true;
+			if (hasCornSeeds && shortCraft(1247, 1256, distance)) return true;
 		}
 
 		// Dead Cow 1900
@@ -1696,7 +1696,7 @@ abstract class AiBase {
 			if (cow != null && shortCraftOnTarget(1878, cow)) return true;
 		} else {
 			// Bowl with Corn Kernels 1247 + Domestic Cow 1458
-			if (countCorn > 3 && shortCraft(1247, 1458, distance)) return true;
+			if (countCorn > 3 && hasCornSeeds && shortCraft(1247, 1458, distance)) return true;
 		}
 
 		Macro.exception(if (fillBerryBowlIfNeeded()) return true);
@@ -5196,10 +5196,10 @@ abstract class AiBase {
 
 		if (count < 10) {
 			// Bowl with Corn Kernels 1247 + Hungry Domestic Calf 1462
-			if (shortCraft(1247, 1462, 20)) return true;
+			if (hasCornSeeds && shortCraft(1247, 1462, 20)) return true;
 
 			// Bowl with Corn Kernels 1247 + Domestic Calf 1459
-			if (shortCraft(1247, 1459, 30)) return true;
+			if (hasCornSeeds && shortCraft(1247, 1459, 30)) return true;
 		}
 
 		/*// Domestic Sheep 575
