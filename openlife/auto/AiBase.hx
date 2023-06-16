@@ -3981,7 +3981,7 @@ abstract class AiBase {
 		var bestPlayer = getBestAiForObjByProfession('BowlFiller', myPlayer.home);
 		if (bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) return false;
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn! ${count}');
+		// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft popcorn! ${count}');
 
 		return craftItem(1122); // Popping Corn 1122
 	}

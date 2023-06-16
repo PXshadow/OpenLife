@@ -64,6 +64,8 @@ class NamingHelper {
 		var nameFromText = GetName(text);
 
 		if (nameFromText == 'NOT') return text;
+		if (nameFromText == 'HIRED') return text;
+		if (nameFromText == 'KING') return text;
 
 		if (nameFromText.length < 2) return text;
 

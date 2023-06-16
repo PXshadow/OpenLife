@@ -232,7 +232,7 @@ class Lineage {
 				lineage.accountId = reader.readInt32();
 
 				lineage.name = reader.readLine();
-				lineage.familyName = reader.readLine();
+				lineage.myFamilyName = reader.readLine();
 
 				lineage.po_id = reader.readInt32();
 				lineage.birthTime = reader.readDouble();
@@ -252,6 +252,10 @@ class Lineage {
 				lineage.prestigeClass = reader.readInt8();
 
 				loadedLineages[lineage.myId] = lineage;
+
+				// trace('$i read Lineage: ${lineage.myId} FamilyName: ${lineage.myFamilyName} ${lineage.accountId}');
+
+				// if (lineage.myFamilyName.contains('XX')) trace('read Lineage: ${lineage.myId} FamilyName: ${lineage.myFamilyName} ${lineage.accountId}');
 
 				// if (lineage.account == null) trace('WARNING: read Lineage: ${lineage.myId} ${lineage.name} ${lineage.accountId}');
 				// trace('read Lineage: ${lineage.myId} ${lineage.name} ${lineage.accountId}');
@@ -477,7 +481,12 @@ class Lineage {
 
 	// TODO support own family name with ditance X from last and prestiege Y
 	public function setFamilyName(newName:String) {
-		// trace('setFamilyName: $familyName ==> $newName');
+		// FIX: Add to new Lineages so that new name is saved
+		NewLineages[this.eveLineage.myId] = this.eveLineage;
+		// AllLineages[lineage.myId] = lineage;
+
+		trace('setFamilyName: eve id: ${eveLineage.myId} $familyName ==> $newName');
+
 		return this.eveLineage.myFamilyName = newName;
 	}
 
