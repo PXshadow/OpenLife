@@ -2162,6 +2162,10 @@ abstract class AiBase {
 
 		if (doPlantWheat(1, 5)) return true;
 
+		// Dry Planted Tomato Seed 2829
+		// Tomato Plant 2834 // Fruiting Tomato Plant 2835
+		if (doPlant(1, 5, 2829,[2834, 2835])) return true;
+
 		/*if (this.profession['BASICFARMER'] < 6) {
 			// let some wheat stay for seeds and so that it looks nice
 			var countRipeWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 242, 40); // Ripe Wheat
@@ -2332,14 +2336,47 @@ abstract class AiBase {
 		return false;
 	}
 
+	private function doPlant(minPlanted:Int, maxPlanted:Int, toPlantId:Int, toCountIds:Array<Int>) {
+		var home = myPlayer.home;
+		var searchDistance = 30;
+
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, toPlantId, searchDistance);
+		for (id in toCountIds) {
+			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1109, searchDistance); // Dry Planted Corn Seed
+		}
+
+		// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
+
+		if (count >= maxPlanted) {
+			this.taskState['CornPlanter'] = 0;
+			return false;
+		}
+
+		if (count < minPlanted) {
+			this.taskState['CornPlanter'] = 1;
+		}
+
+		if (this.taskState['CornPlanter'] < 1) return false;
+
+		if (doWateringOn(toPlantId, 3)) return true;
+
+		if (doPrepareRows()) return true;
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPlant: ${toPlantId} Count $count ');
+
+		if (craftItem(toPlantId)) return true;
+
+		return false;
+	}
+
 	private function doPlantCorn(minPlanted:Int, maxPlanted:Int) {
 		var home = myPlayer.home;
 		var searchDistance = 30;
 
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1109, 40); // Dry Planted Corn Seed
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1111, 40); // Corn Sprout 1111
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
+		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, searchDistance); // Wet Planted Corn Seed 1110
+		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1109, searchDistance); // Dry Planted Corn Seed
+		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1111, searchDistance); // Corn Sprout 1111
+		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, searchDistance); // Corn Plant 1112
 
 		var countCorn = countCorn();
 		count += Math.round(countCorn / 4);
