@@ -1814,8 +1814,8 @@ class TimeHelper {
 					}
 				}
 
-				// 33 Stone // 34 Sharp Stone // 135 Flint Chip // 850 Stone Hoe // 848 Hardened Row
-				if ((objData.parentId == 33 || objData.parentId == 34 || objData.parentId == 135 || objData.parentId == 850 || objData.parentId == 848)) {
+				// 33 Stone // 34 Sharp Stone // 135 Flint Chip  // 848 Hardened Row (removed: // 850 Stone Hoe)
+				if ((objData.parentId == 33 || objData.parentId == 34 || objData.parentId == 135 || objData.parentId == 848)) {
 					var rand = world.randomFloat();
 					if (WorldMap.world.currentObjectsCount[objData.parentId] < WorldMap.world.originalObjectsCount[objData.parentId] * 0.8) rand = 1;
 

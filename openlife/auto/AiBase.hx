@@ -3591,13 +3591,23 @@ abstract class AiBase {
 			this.profession['SMITH'] = 7;
 		}
 
-		// Shears 568
+		// Steel Hoe 857
 		if (this.profession['SMITH'] < 7.1) {
+			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 857, 30);
+			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 857, 30);
+
+			if (heldId == 857) count += 1;
+			if (count < 1 && craftItem(857)) return true;
+			this.profession['SMITH'] = 7.1;
+		}
+
+		// Shears 568
+		if (this.profession['SMITH'] < 7.5) {
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 568, 30);
 			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 568, 30);
 			if (heldId == 568) count += 1;
 			if (count < 1 && craftItem(568)) return true;
-			this.profession['SMITH'] = 7.1;
+			this.profession['SMITH'] = 7.5;
 		}
 
 		// Steel Axe 334
