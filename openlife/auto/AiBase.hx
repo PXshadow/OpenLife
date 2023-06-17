@@ -3549,7 +3549,7 @@ abstract class AiBase {
 				// Iron Ore 290
 				if (this.profession['SMITH'] < 2) {
 					var count = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 290, 20);
-					if (count < 5 && craftItem(290)) return true;
+					if (count < 5 && craftItem(290, 60)) return true;
 					this.profession['SMITH'] = 2;
 				}
 				// Wrought Iron 314
