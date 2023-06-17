@@ -145,7 +145,7 @@ And the best on the end Better Snake Stuff!
 
 Not yet implemented:
 - Ai territory
-- reading / writing
+- maps
 - twinning
 - ally gates / ally spring doors
 - in door temperature calculation
@@ -714,6 +714,9 @@ Low priority stuff:
 - LANGUAGE implement different languages
 - tatoo
 - photo
+
+Will not be:
+Apocalyse, but there is some thing else
 
 PX TODO
 ====

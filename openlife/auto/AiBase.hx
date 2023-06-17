@@ -3180,8 +3180,8 @@ abstract class AiBase {
 	private function makeSeatsAndCleanUp() {
 		if (this.isHungry) return false;
 
-		Macro.exception(if (cleanUpBowls(253)) return true); // Bowl of Gooseberries 253
-		Macro.exception(if (cleanUpBowls(1176)) return true); // Bowl of Dry Beans 1176
+		// Macro.exception(if (cleanUpBowls(253)) return true); // Bowl of Gooseberries 253
+		// Macro.exception(if (cleanUpBowls(1176)) return true); // Bowl of Dry Beans 1176
 
 		// Split Potato Sprouts 1155
 		/*var countPotatoSeeds = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1155, 30);

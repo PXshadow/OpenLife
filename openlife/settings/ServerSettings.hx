@@ -2795,11 +2795,6 @@ class ServerSettings {
 		var trans = TransitionImporter.GetTransition(59, 2245); // Rope + Newcomen Engine without Rope
 		trans.newTargetID = 2244; // Newcomen Engine without Shaft;
 
-		// limit certain Transitions if there is too much of an item
-		LimitTransitionsIfTooMuchOfObject(); // like making more Bowls
-
-		LimitTransitionsIfTooFewOfObject(); // like Destroying Bows
-
 		// var trans = transitions.getTransition(560, 614); // Knife + Fed Shorn Domestic Sheep 614
 		// trans.aiShouldIgnore = true;
 
@@ -3380,12 +3375,12 @@ class ServerSettings {
 
 		// Bowl of Water 382 +  Bowl of Tomato Seeds = Clay Bowl 235 + Bowl of Water 382
 		var trans = new TransitionData(382, 2828, 235, 382);
-		trans.aiShouldIgnore = true;
+		// trans.aiShouldIgnore = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Full Water Pouch+ 210 + Bowl of Tomato Seeds 2828 = Empty Water Pouch 209 + Bowl of Water 382
 		var trans = new TransitionData(210, 2828, 209, 382);
-		trans.aiShouldIgnore = true;
+		// trans.aiShouldIgnore = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		/*var transByTarget = TransitionImporter.GetTransitionByTarget(2828); // Bowl of Tomato Seeds
@@ -3553,6 +3548,11 @@ class ServerSettings {
 
 		InitWaterSourceIds();
 		InitWateringTargets();
+
+		// limit certain Transitions if there is too much of an item
+		LimitTransitionsIfTooMuchOfObject(); // like making more Bowls
+
+		LimitTransitionsIfTooFewOfObject(); // like Destroying Bows
 	}
 
 	public static var WaterSourceIds:Array<Int> = [];
@@ -3652,8 +3652,8 @@ class ServerSettings {
 		// LimitObjectByNewTarget(402, 399, 10); // Limit Carrot 402 // Wet Planted Carrots 399
 		// LimitObjectByNewTarget(402, 396, 10); // Limit Carrot 402 // Dry Planted Carrots 396
 
-		// Bowl of Tomato Seeds 2828
-		LimitObjectByNewTarget(2828, 2828, 1);
+		// Bowl of Tomato Seeds 2828 // Bowl of Tomato Seed Pulp 2825
+		LimitObjectByNewTarget(2828, 2825, 1);
 
 		// Ripe Cucumber Plant 4232 // Dry Planted Cucumber Seeds 4225
 		LimitObjectByNewTarget(4232, 4225, 5);
@@ -3765,6 +3765,12 @@ class ServerSettings {
 
 		// Steel Axe 334 // Yew Tree - 153
 		LimitTransitionIfMinNotReached(334, 406, 406, 5);
+
+		// Bowl of Water 382 +  Bowl of Tomato Seeds 2828 = Clay Bowl 235 + Bowl of Water 382
+		LimitTransitionIfMinNotReached(382, 2828, 2828, 2);
+
+		// Full Water Pouch+ 210 + Bowl of Tomato Seeds 2828 = Empty Water Pouch 209 + Bowl of Water 382
+		LimitTransitionIfMinNotReached(210, 2828, 2828, 2);
 	}
 
 	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 3) {
