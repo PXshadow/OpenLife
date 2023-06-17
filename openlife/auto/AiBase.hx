@@ -1867,6 +1867,7 @@ abstract class AiBase {
 	private function doPrepareRows(maxProfession = 2) {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
+		var heldId = heldObject.parentId;
 		var distance = 30;
 
 		if (doPrepareSoil()) return true;
@@ -1880,6 +1881,8 @@ abstract class AiBase {
 		if (shortCraft(139, 2832, distance)) return true; // Skewer + Tomato Sprout
 		if (shortCraft(139, 4228, distance)) return true; // Skewer + Cucumber Sprout
 		if (shortCraft(0, 2837, distance)) return true; // 0 + Hardened Row with Stake
+
+		if (heldId == 1137 && shortCraft(1137, 1143, 30)) return true; // Bowl of Soil 1137 + Potato Plants 1143
 
 		// Deep Tilled Row 213
 		var deepRows = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 213, 30);
@@ -2168,6 +2171,21 @@ abstract class AiBase {
 		// Dry Planted Tomato Seed 2829
 		// Tomato Plant 2834 // Fruiting Tomato Plant 2835
 		if (doPlant(2, 5, 2829, [2834, 2835])) return true;
+
+		// Dry Planted Beans 1161
+		// Wet Planted Beans 1162 // Green Bean Plants 1173 // Dry Bean Plants 1172
+		if (doPlant(2, 4, 1161, [1162, 1173, 1172])) return true;
+
+		// Dry Planted Cucumber Seeds 4225
+		// Wet Planted Cucumber Seeds 4226 // Cucumber Sprout 4228 // Ripe Cucumber Plant 4232
+		if (doPlant(2, 4, 4225, [4226, 4228, 4232])) return true;
+
+		if (shortCraft(1137, 1143, 30)) return true; // Bowl of Soil 1137 + Potato Plants 1143
+		if (shortCraft(502, 1146, 30)) return true; // Shovel + Mature Potato Plants 1146
+
+		// Dry Planted Potatoes 1145
+		// Wet Planted Potatoes 1142 // Potato Plants 1143 // Mounded Potato Plants 1144 // Mature Potato Plants 1146
+		if (doPlant(2, 5, 1145, [1142, 1143, 1144, 1146])) return true;
 
 		/*if (this.profession['BASICFARMER'] < 6) {
 			// let some wheat stay for seeds and so that it looks nice
