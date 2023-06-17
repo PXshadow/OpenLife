@@ -3750,6 +3750,7 @@ abstract class AiBase {
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1199, 30);
 				// Ripe Squash Plant 1196
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1196, 30);
+				count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1196, 30);
 				// Crock with Squash 1243
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1243, 30);
 				// Plate of Squash Chunks 1202
@@ -7798,6 +7799,8 @@ abstract class AiBase {
 		}
 
 		Macro.exception(if (makePopcornIfNeeded()) return true);
+
+		Macro.exception(if (makeSharpieFood(20)) return true);
 
 		// TODO consider raw pies, but first optimise counting
 
