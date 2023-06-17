@@ -566,6 +566,7 @@ abstract class AiBase {
 		if (hasCornSeeds && shortCraft(1247, 1462, 10)) return;
 
 		Macro.exception(if (isHandlingFire()) return);
+		Macro.exception(if (isCollecting(1)) return);
 
 		itemToCraft.searchCurrentPosition = false; // true
 		itemToCraft.maxSearchRadius = 30;
@@ -2180,6 +2181,14 @@ abstract class AiBase {
 		// Tomato Plant 2834 // Fruiting Tomato Plant 2835
 		if (doPlant(2, 5, 2829, [2834, 2835])) return true;
 
+		// Dry Planted Milkweed Seed 214
+		// Wet Planted Milkweed Seed 215
+		// Milkweed Sprout 218
+		// Milkweed 50
+		// Flowering  Milkweed 51
+		// Fruiting Milkweed 52
+		if (doPlant(2, 5, 214, [215, 218, 50, 51, 52])) return true;
+
 		// Dry Planted Beans 1161
 		// Wet Planted Beans 1162 // Green Bean Plants 1173 // Dry Bean Plants 1172
 		if (doPlant(2, 4, 1161, [1162, 1173, 1172])) return true;
@@ -2236,19 +2245,20 @@ abstract class AiBase {
 
 		if (this.taskState['PlantCorn'] > 0 && craftItem(1109)) return true; // Dry Planted Corn Seed 1109
 
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 214, 40); // Dry Planted Milkweed Seed 214
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 215, 40); // Wet Planted Milkweed Seed 215
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 218, 40); // Milkweed Sprout 218
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 50, 40); // Milkweed 50
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 51, 40); // Flowering  Milkweed 51
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 52, 40); // Fruiting Milkweed 52
+		/*var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 214, 30); // Dry Planted Milkweed Seed 214
+			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 215, 30); // Wet Planted Milkweed Seed 215
+			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 218, 30); // Milkweed Sprout 218
+			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 50, 30); // Milkweed 50
+			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 51, 30); // Flowering  Milkweed 51
+			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 52, 30); // Fruiting Milkweed 52
 
-		if (count < 1) this.taskState['PlantMilkweed'] = 1;
-		if (count > 5) this.taskState['PlantMilkweed'] = 0;
+			if (count < 1) this.taskState['PlantMilkweed'] = 1;
+			if (count > 5) this.taskState['PlantMilkweed'] = 0;
 
-		// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: PlantMilkweed: ${taskState['PlantMilkweed']} planted: ${count}');
+			// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: PlantMilkweed: ${taskState['PlantMilkweed']} planted: ${count}');
 
-		if (this.taskState['PlantMilkweed'] > 0 && craftItem(214)) return true; // Dry Planted Milkweed Seed 214
+			if (this.taskState['PlantMilkweed'] > 0 && craftItem(214)) return true; // Dry Planted Milkweed Seed 214
+		 */
 
 		// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming2: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
 
@@ -5619,7 +5629,15 @@ abstract class AiBase {
 		if (quadDistanceToHome < 900) {}
 
 		// Kindling 72
-		if (makeOrCollect(72, 2, 10)) return true;
+		if (makeOrCollect(72, 2, 5)) return true;
+
+		Macro.exception(if (doWatering(1)) return true);
+
+		if (keepBushesAlive()) return true;
+
+		Macro.exception(if (doCriticalStuff()) return true);
+
+		// todo / dont steel from other towns
 
 		// Raw Mutton 569
 		if (makeOrCollect(569, 1, 5)) return true;
@@ -5628,9 +5646,10 @@ abstract class AiBase {
 		if (makeOrCollect(1342, 1, 5)) return true;
 
 		// Rope 59
-		if (makeOrCollect(59, 0, 3)) return true;
+		if (makeOrCollect(59, 1, 3)) return true;
 
-		Macro.exception(if (doCriticalStuff()) return true);
+		// Kindling 72
+		if (makeOrCollect(72, 6, 10)) return true;
 
 		return false;
 	}
@@ -5710,21 +5729,23 @@ abstract class AiBase {
 
 		if ((Math.round(myPlayer.age / 5)) % 2 == 0 && keepBushesAlive()) return true;
 
-		Macro.exception(if (doWatering(1)) return true);
+		// Macro.exception(if (doWatering(1)) return true);
+
+		if (cleanUp()) return true;
+
+		if (doBasicFarming(1)) return true;
+
+		if (makeFireFood(1)) return true;
 
 		if (doBaking(1)) return true;
 
 		if (doPottery(1)) return true;
 
-		if (cleanUp()) return true;
-
-		if (makeFireFood(1)) return true;
-
 		// take care that there is at least some basic farming
 		// var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 399, 30); // Wet Planted Carrots
 		// if (closeObj == null) if (craftItem(399)) return true; // Wet Planted Carrots
 
-		Macro.exception(if (doCarrotFarming(2)) return true);
+		Macro.exception(if (doCarrotFarming(1)) return true);
 
 		// var corn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
 		// corn += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
