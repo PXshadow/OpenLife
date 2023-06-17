@@ -5635,6 +5635,8 @@ abstract class AiBase {
 
 		if (keepBushesAlive()) return true;
 
+		if (myPlayer.age > 40 && doSmithing(1)) return true;
+
 		Macro.exception(if (doCriticalStuff()) return true);
 
 		// todo / dont steel from other towns
