@@ -3749,6 +3749,7 @@ abstract class AiBase {
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1190, 30);
 				// Hubbard Squash 1199
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1199, 30);
+				count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1199, 30);
 				// Ripe Squash Plant 1196
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1196, 30);
 				count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1196, 30);
