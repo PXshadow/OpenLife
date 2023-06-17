@@ -542,6 +542,8 @@ abstract class AiBase {
 		if (hotkiln != null || this.profession['POTTER'] >= 10) Macro.exception(if (doPottery(-2)) return);
 
 		Macro.exception(if (fillBerryBowlIfNeeded(true)) return);
+		Macro.exception(if (fillBeanBowlIfNeeded(true, true)) return); // green beans
+		Macro.exception(if (fillBeanBowlIfNeeded(false, true)) return); // dry beans
 		// Macro.exception(if (Math.floor(myPlayer.age / 5) % 2 == 0 && doHunting(1)) return);
 
 		var heldObjId = myPlayer.heldObject.parentId;
@@ -681,8 +683,8 @@ abstract class AiBase {
 		Macro.exception(if (doBasicFarming(1)) return);
 		Macro.exception(if (doPottery(1)) return);
 		Macro.exception(if (fillBeanBowlIfNeeded()) return); // green beans
-		Macro.exception(if (cleanUpBowls(1176)) return); // Bowl of Dry Beans 1176
-		Macro.exception(if (fillBeanBowlIfNeeded(false)) return); // dry beans
+		// Macro.exception(if (cleanUpBowls(1176)) return); // Bowl of Dry Beans 1176
+		// Macro.exception(if (fillBeanBowlIfNeeded(false)) return); // dry beans
 
 		// Macro.exception(if(doBasicFarming(1)) return);
 
@@ -1670,7 +1672,7 @@ abstract class AiBase {
 			}
 		 */
 
-		if (doPlantCorn(1, 5)) return true;
+		if (doPlantCorn(2, 5)) return true;
 
 		var countCorn = countCorn();
 
@@ -2158,13 +2160,13 @@ abstract class AiBase {
 
 		if (doHarvestWheat(1, 4)) return true;
 
-		if (doPlantCorn(1, 5)) return true;
+		if (doPlantCorn(2, 5)) return true;
 
-		if (doPlantWheat(1, 5)) return true;
+		if (doPlantWheat(2, 5)) return true;
 
 		// Dry Planted Tomato Seed 2829
 		// Tomato Plant 2834 // Fruiting Tomato Plant 2835
-		if (doPlant(1, 5, 2829, [2834, 2835])) return true;
+		if (doPlant(2, 5, 2829, [2834, 2835])) return true;
 
 		/*if (this.profession['BASICFARMER'] < 6) {
 			// let some wheat stay for seeds and so that it looks nice
@@ -3883,7 +3885,7 @@ abstract class AiBase {
 		return useHeldObjOnTarget(closeBush);
 	}*/
 	// Bowl of Green Beans 1175
-	private function fillBeanBowlIfNeeded(greenBeans:Bool = true):Bool {
+	private function fillBeanBowlIfNeeded(greenBeans:Bool = true, onlyFillHeld = false):Bool {
 		var heldObj = myPlayer.heldObject;
 		// Bowl of Green Beans 1175 // Bowl of Dry Beans 1176
 		var beanBowlId = greenBeans ? 1175 : 1176;
@@ -3905,6 +3907,8 @@ abstract class AiBase {
 
 			return useHeldObjOnTarget(closeBeans);
 		}
+
+		if (onlyFillHeld) return false;
 
 		// do nothing if there is a full Bowl of Green Beans 1175
 		if (closeBowl != null && closeBowl.numberOfUses >= closeBowl.objectData.numUses) return false;
