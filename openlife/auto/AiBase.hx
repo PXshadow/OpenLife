@@ -1953,7 +1953,11 @@ abstract class AiBase {
 				// Steel Hoe 857 + Shallow Tilled Row 1136 --> Deep Tilled Row 213
 				if (shortCraft(857, 1136, 30, false)) return true;
 				// Stone Hoe 850 + Shallow Tilled Row 1136 --> Deep Tilled Row 213
+				// FIX: might not be able to make a stone hoe if search radius is too small
+				var tmpMaxSearchRadius = itemToCraft.maxSearchRadius = 60;
+				itemToCraft.maxSearchRadius = 60;
 				if (shortCraft(850, 1136, 30)) return true;
+				itemToCraft.maxSearchRadius = tmpMaxSearchRadius;
 
 				// Hardened Row 848
 				var countHardRows = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 848, 30);
@@ -1967,6 +1971,8 @@ abstract class AiBase {
 				if (shortCraft(857, 1138, 30, false)) return true;
 				// Stone Hoe 850 + Fertile Soil 1138
 				if (shortCraft(850, 1138, 30)) return true;
+
+				// if (craftItem(1136, 20, true)) return true;
 			} else
 				this.taskState['RowMaker'] = 3;
 		}
