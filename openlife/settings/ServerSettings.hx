@@ -1472,8 +1472,8 @@ class ServerSettings {
 		ObjectData.getObjectData(3862).decaysToObj = 434; // Dung Box ==> Wooden Box
 		// ObjectData.getObjectData(3862).groundOnly = true; // Dung Box
 
-		ObjectData.getObjectData(542).useChance = DomesticAnimalMoveUseChance; // Domestic Lamb
-		ObjectData.getObjectData(604).useChance = DomesticAnimalMoveUseChance; // Hungry Domestic Lamb
+		ObjectData.getObjectData(542).useChance = 0.1; // Domestic Lamb
+		ObjectData.getObjectData(604).useChance = 0.1; // Hungry Domestic Lamb
 		ObjectData.getObjectData(602).useChance = DomesticAnimalMoveUseChance; // Fed Domestic Lamb 602
 		ObjectData.getObjectData(4213).useChance = FedDomesticAnimalMoveUseChance; // Fed Domestic Sheep
 		ObjectData.getObjectData(600).useChance = FedDomesticAnimalMoveUseChance; // Domestic Sheep with Lamb
