@@ -2164,7 +2164,7 @@ abstract class AiBase {
 
 		// Dry Planted Tomato Seed 2829
 		// Tomato Plant 2834 // Fruiting Tomato Plant 2835
-		if (doPlant(1, 5, 2829,[2834, 2835])) return true;
+		if (doPlant(1, 5, 2829, [2834, 2835])) return true;
 
 		/*if (this.profession['BASICFARMER'] < 6) {
 			// let some wheat stay for seeds and so that it looks nice
@@ -4232,8 +4232,6 @@ abstract class AiBase {
 	}
 
 	private function craftMediumPriorityClothing(maxProf:Int = 2):Bool {
-		if (hasOrBecomeProfession('TAILOR', maxProf) == false) return false;
-
 		// trace('craftMediumPriorityClothing');
 
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
@@ -4246,6 +4244,8 @@ abstract class AiBase {
 			if (craftClothIfNeeded(874)) return true;
 			if (fillUpQuiver()) return true;
 		}
+
+		if (hasOrBecomeProfession('TAILOR', maxProf) == false) return false;
 
 		// Check that there are enough Water Pouches left
 		// Empty Water Pouch 209
