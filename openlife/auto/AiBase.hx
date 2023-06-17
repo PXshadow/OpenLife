@@ -3149,7 +3149,7 @@ abstract class AiBase {
 		if (craftItem(1180)) return true;
 
 		// Raw Stew Pot 1246 // Crock with Squash 1243
-		if (craftItem(1246)) return true;
+		if (hasCarrotSeeds && craftItem(1243)) return true;
 
 		if (doPlantWheat(2, 8)) return true;
 
@@ -4135,7 +4135,7 @@ abstract class AiBase {
 		// myPlayer.say('FireFood! fire: ${firePlace != null}');
 
 		// Raw Stew Pot 1246
-		if (craftItem(1246)) return true;
+		if (hasCarrotSeeds && craftItem(1246)) return true;
 
 		// Raw Mutton 569
 		if (craftItem(569)) return true;
