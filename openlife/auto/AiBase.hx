@@ -2935,8 +2935,6 @@ abstract class AiBase {
 		if (hasOrBecomeProfession('BAKER', maxPeople) == false) return false;
 		var startTime = Sys.time();
 
-		var nextPie = lastPie > -1 ? lastPie : WorldMap.world.randomInt(pies.length - 1);
-
 		// 250 Hot Adobe Oven
 		var hotOven = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 250, 20, null, myPlayer);
 		var fireOven = null;
@@ -2974,6 +2972,8 @@ abstract class AiBase {
 			if (craftItem(249)) return true; // Burning Adobe Oven
 			return false;
 		}
+
+		var nextPie = lastPie > -1 ? lastPie : WorldMap.world.randomInt(pies.length - 1);
 
 		if (hotOven != null) {
 			this.profession['BAKER'] = 2;
@@ -3100,54 +3100,7 @@ abstract class AiBase {
 		// Limit making pies if no wheat is left. If least what is collected in a bowl they should stop now, so there should be wheat for planting
 		if (countWheat < 1) {
 			if (craftItem(228)) return true; // Dry Planted Wheat 228
-		} else {
-			if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
-				trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
-			var countCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 30); // Cooked Carrot Pie 273
-			countCarrotPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 268, 30); // Raw Carrot Pie 268
-			// var countBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30); // Cooked Berry Pie 272
-			var countMuttonPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 803, 30); // Cooked Mutton Pie 803
-			countMuttonPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 20); // Raw Mutton 569
-
-			// Wild Gooseberry Bush 30
-			var countBerry = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 30, 15);
-			// Domestic Gooseberry Bush 391
-			countBerry += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 391, 15);
-			// Bowl of Gooseberries 253
-			countBerry += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 253, 15);
-			// Bowl of Gooseberries and Carrot
-			countBerry += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 258, 15);
-
-			var extraPies = countPies % 4;
-
-			/* if (extraPies == 0) {
-				if (countMutton + countRawMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
-			}*/
-			if (extraPies == 0) {
-				if (countMuttonPies < 2 && craftItem(802)) return true; // Raw Mutton Pie 802
-			}
-			if (extraPies == 2) {
-				if (countCarrotPies < 2 && craftItem(268)) return true; // Raw Carrot Pie
-			}
-			// if(extraPies == 4){
-			//	if(countBerryPies < 2 && craftItem(265)) return true; // Raw Berry Pie
-			// }
-			for (i in 0...pies.length) {
-				var index = (nextPie + i) % pies.length;
-
-				// Raw Berry Pie 265
-				if (rawPies[index] == 265 && countBerry < 2) continue;
-
-				// if (rawPies[index] == 802 && countMuttonPies > 1) continue; // Raw Mutton Pie 802
-				// if (rawPies[index] == 265 && countBerryPies > 1) continue; // Raw Berry Pie 265
-				// if (rawPies[index] == 268 && countCarrotPies > 1) continue; // Raw Carrot Pie 268
-				var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, pies[index], 30);
-				count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, rawPies[index], 30);
-				if (count > 1) continue;
-				lastPie = index;
-				if (craftItem(rawPies[index])) return true;
-			}
-		}
+		} else if (makeRawPies()) return true;
 
 		var countMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 30); // Cooked Mutton 570
 		var countRawMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 30); // Raw Mutton 569
@@ -3178,6 +3131,73 @@ abstract class AiBase {
 		Macro.exception(if (fillBerryBowlIfNeeded()) return true);
 
 		if (isHungry == false && cleanUp()) return true;
+
+		return false;
+	}
+
+	private function makeRawPies(min = 1, max = 5) {
+		var home = myPlayer.home;
+		var cookedPies = 0;
+		for (id in pies) {
+			cookedPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, id, 10);
+		}
+
+		if (cookedPies >= max) {
+			this.taskState['makeRawPies'] = 0;
+			return false;
+		}
+
+		if (cookedPies < min) this.taskState['makeRawPies'] = 1;
+
+		if (this.taskState['makeRawPies'] < 1) return false;
+
+		var countCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 30); // Cooked Carrot Pie 273
+		countCarrotPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 268, 30); // Raw Carrot Pie 268
+		// var countBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30); // Cooked Berry Pie 272
+		var countMuttonPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 803, 30); // Cooked Mutton Pie 803
+		countMuttonPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 20); // Raw Mutton 569
+
+		// Wild Gooseberry Bush 30
+		var countBerry = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 30, 15);
+		// Domestic Gooseberry Bush 391
+		countBerry += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 391, 15);
+		// Bowl of Gooseberries 253
+		countBerry += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 253, 15);
+		// Bowl of Gooseberries and Carrot
+		countBerry += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 258, 15);
+
+		var extraPies = countPies % 4;
+
+		/* if (extraPies == 0) {
+			if (countMutton + countRawMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
+		}*/
+		if (extraPies == 0) {
+			if (countMuttonPies < 2 && craftItem(802)) return true; // Raw Mutton Pie 802
+		}
+		if (extraPies == 2) {
+			if (countCarrotPies < 2 && craftItem(268)) return true; // Raw Carrot Pie
+		}
+		// if(extraPies == 4){
+		//	if(countBerryPies < 2 && craftItem(265)) return true; // Raw Berry Pie
+		// }
+
+		var nextPie = lastPie > -1 ? lastPie : WorldMap.world.randomInt(pies.length - 1);
+
+		for (i in 0...pies.length) {
+			var index = (nextPie + i) % pies.length;
+
+			// Raw Berry Pie 265
+			if (rawPies[index] == 265 && countBerry < 2) continue;
+
+			// if (rawPies[index] == 802 && countMuttonPies > 1) continue; // Raw Mutton Pie 802
+			// if (rawPies[index] == 265 && countBerryPies > 1) continue; // Raw Berry Pie 265
+			// if (rawPies[index] == 268 && countCarrotPies > 1) continue; // Raw Carrot Pie 268
+			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, pies[index], 30);
+			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, rawPies[index], 30);
+			if (count > 1) continue;
+			lastPie = index;
+			if (craftItem(rawPies[index])) return true;
+		}
 
 		return false;
 	}
