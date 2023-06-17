@@ -624,6 +624,8 @@ class ServerSettings {
 		ObjectData.getObjectData(0).containable = true; // Empty
 
 		ObjectData.getObjectData(356).containSize = 2; // Basket of Bones
+
+		ObjectData.getObjectData(356).containSize = 2; // Basket of Bones
 		ObjectData.getObjectData(356).containable = true; // Basket of Bones
 
 		ObjectData.getObjectData(2188).containSize = 2; // Drum Sticks on Plate
@@ -1003,7 +1005,9 @@ class ServerSettings {
 		// trace('useChance: ${ObjectData.getObjectData(502).useChance}');
 		ObjectData.getObjectData(502).useChance = 0.05; // 0.1 // Shovel 502
 
-		ObjectData.getObjectData(857).hungryWork = -2; // Steel Hoe
+		// Steel Hoe 857
+		ObjectData.getObjectData(857).hungryWork = -2;
+		ObjectData.getObjectData(857).useChance = 0.05; // vanilla: 8%
 
 		ObjectData.getObjectData(1849).hungryWork = 5; // Buried Grave with Dug Stone
 
