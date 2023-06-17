@@ -1872,6 +1872,8 @@ abstract class AiBase {
 
 		if (doPrepareSoil()) return true;
 
+		if (keepBushesAlive()) return true;
+
 		// if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} RowMaker1: ${taskState['RowMaker']}');
 
 		if (hasOrBecomeProfession('ROWMAKER', maxProfession) == false) return false;
