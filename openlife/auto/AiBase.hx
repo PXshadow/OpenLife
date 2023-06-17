@@ -3483,6 +3483,9 @@ abstract class AiBase {
 		// Steel Ingot on Flat Rock 335
 		if (shortCraft(0, 335, 20, false)) return true;
 
+		// Steel File Blank on Flat Rock 335
+		if (shortCraft(0, 450, 20, false)) return true;
+
 		if (this.profession['SMITH'] < 3) {
 			// TODO fix make space for them otherwise it might try again and again
 			// Flat Rock 291
