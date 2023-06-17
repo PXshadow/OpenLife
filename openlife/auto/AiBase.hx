@@ -3559,6 +3559,9 @@ abstract class AiBase {
 		// Shovel 502
 		if (this.profession['SMITH'] < 7) {
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 502, 30);
+			// Shovel of Dung 900
+			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 900, 30);
+
 			if (heldId == 502) count += 1;
 			if (count < 1 && craftItem(502)) return true;
 			this.profession['SMITH'] = 7;
@@ -3567,6 +3570,7 @@ abstract class AiBase {
 		// Shears 568
 		if (this.profession['SMITH'] < 7.1) {
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 568, 30);
+			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 568, 30);
 			if (heldId == 568) count += 1;
 			if (count < 1 && craftItem(568)) return true;
 			this.profession['SMITH'] = 7.1;
@@ -3575,6 +3579,7 @@ abstract class AiBase {
 		// Steel Axe 334
 		if (this.profession['SMITH'] < 8) {
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 334, 60);
+			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 334, 60);
 			if (heldId == 334) count += 1;
 			if (count < 1 && craftItem(334)) return true;
 			this.profession['SMITH'] = 8;
