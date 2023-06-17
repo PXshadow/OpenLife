@@ -3153,8 +3153,13 @@ abstract class AiBase {
 		var countRawMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 30); // Raw Mutton 569
 		if (countMutton + countRawMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
 
+		// TODO plant beans
+
 		// Bowl of Soaking Beans 1180
 		if (craftItem(1180)) return true;
+
+		// Raw Stew Pot 1246 // Crock with Squash 1243
+		if (craftItem(1246)) return true;
 
 		if (doPlantWheat(2, 8)) return true;
 
@@ -3177,7 +3182,7 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function makeSeatsAndCleanUp() {
+	private function makeSeatsAndCleanUp(maxPeople = 1) {
 		if (this.isHungry) return false;
 
 		// Macro.exception(if (cleanUpBowls(253)) return true); // Bowl of Gooseberries 253
@@ -3198,9 +3203,11 @@ abstract class AiBase {
 		if (myPlayer.heldObject.parentId == 2828) countTomatoSeeds += 1;
 		// Bowl of Tomato Seed Pulp 2825
 		// countTomatoSeeds += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 2825, 30);
-		if (countTomatoSeeds < 1) {
-			if (craftItem(2828)) return true; // Bowl of Tomato Seeds 2828
-		}
+		if (countTomatoSeeds > 0) return false;
+
+		if (hasOrBecomeProfession('BOWLFILLER', maxPeople) == false) return false;
+
+		if (craftItem(2828)) return true; // Bowl of Tomato Seeds 2828
 
 		return false;
 	}
@@ -3680,6 +3687,8 @@ abstract class AiBase {
 				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2839, 30);
 				// Wet Planted Squash Seeds 1190
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1190, 30);
+				// Hubbard Squash 1199
+				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1199, 30);
 				// Ripe Squash Plant 1196
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1196, 30);
 				// Crock with Squash 1243
@@ -3795,7 +3804,7 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function fillUpBerryBowl() {
+	/*private function fillUpBerryBowl() {
 		var heldObj = myPlayer.heldObject;
 
 		// Fill up the Bowl // 253 Bowl of Gooseberries
@@ -3815,8 +3824,7 @@ abstract class AiBase {
 		if (closeBush == null) return false;
 
 		return useHeldObjOnTarget(closeBush);
-	}
-
+	}*/
 	// Bowl of Green Beans 1175
 	private function fillBeanBowlIfNeeded(greenBeans:Bool = true):Bool {
 		var heldObj = myPlayer.heldObject;
@@ -4026,6 +4034,9 @@ abstract class AiBase {
 
 			// Kindling 72
 			if (hotCoals == firePlace && shortCraftOnTarget(72, hotCoals)) return true;
+
+			// Raw Stew Pot 1246
+			if (hotCoals != firePlace && shortCraftOnTarget(1246, hotCoals, false)) return true;
 		}
 
 		// Fire 82
@@ -4053,6 +4064,8 @@ abstract class AiBase {
 		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 30);
 		// Raw Pork 1342
 		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1342, 30);
+		// Raw Stew Pot 1246
+		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1246, 30);
 
 		var neededRaw = isHungry ? 1 : 4;
 
@@ -4063,6 +4076,9 @@ abstract class AiBase {
 		}
 
 		// myPlayer.say('FireFood! fire: ${firePlace != null}');
+
+		// Raw Stew Pot 1246
+		if (craftItem(1246)) return true;
 
 		// Raw Mutton 569
 		if (craftItem(569)) return true;

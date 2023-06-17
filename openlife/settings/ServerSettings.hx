@@ -3662,6 +3662,9 @@ class ServerSettings {
 
 		LimitObjectByNewTarget(242, 228, 30); // Dry Planted Wheat 228 // Ripe Wheat 242
 
+		// Raw Stew Pot 1246
+		LimitObjectByNewTarget(1246, 1246, 2); // Dry Planted Wheat 228 // Ripe Wheat 242
+
 		// LimitObjectByTarget(297, 226, 1); // Threshed Wheat 297 // Threshed Wheat (with straw) 226
 		// LimitObjectByTarget(4070, 242, 2); // Pile of Threshed Wheat 4070 // Ripe Wheat 242
 
