@@ -120,6 +120,7 @@ abstract class AiBase {
 
 	public var lastGrave:ObjectHelper = null;
 	public var triedDropCount = 0;
+	public var lastActorId = -1;
 
 	public static function StartAiThread() {
 		Thread.create(RunAi);
@@ -3966,7 +3967,7 @@ abstract class AiBase {
 
 	private function fillBerryBowlIfNeeded(onlyFillHeldBowl:Bool = false, maxPeople = 1):Bool {
 		var heldObj = myPlayer.heldObject;
-		var distance = onlyFillHeldBowl ? 15 : 20;
+		var distance = onlyFillHeldBowl ? 20 : 30;
 
 		// 253 Bowl of Gooseberries
 		if (heldObj.parentId == 253 && heldObj.numberOfUses >= heldObj.objectData.numUses) return false;
@@ -6163,6 +6164,9 @@ abstract class AiBase {
 
 		itemToCraft.maxSearchRadius = tmpMaxSearchRadius;
 		itemToCraft.searchCurrentPosition = tmpSearchCurrentPosition;
+
+		if (done) lastActorId = -1;
+		if (done && itemToCraft.transActor != null) lastActorId = itemToCraft.transActor.parentId;
 		return done;
 	}
 
@@ -6269,13 +6273,19 @@ abstract class AiBase {
 		var targetIsNoBush = berryBushesIds.contains(targetId) == false;
 
 		if (heldId != 253 && actorId == 253 && actor.isFull() == false && targetIsNoBush) {
+			if (actorId == lastActorId) {
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} same lastActorId! Dont pickup Bowl of Gooseberries again!');
+				return false;
+			}
+
 			var count = 0;
 			for (id in berryBushesIds) {
 				if (itemToCraft.transitionsByObjectId[id] == null) continue;
 				count += itemToCraft.transitionsByObjectId[id].count;
 			}
 
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: Bushed to fill Bowl of Gooseberries: ${count}');
+			if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} craft: Bushed to fill Bowl of Gooseberries: ${count} lastActorId: ${lastActorId}');
 			if (shouldDebugSay()) myPlayer.say('Bushed to fill Bowl of Gooseberries: ${count}');
 
 			if (count < 1) return false;
@@ -6287,6 +6297,11 @@ abstract class AiBase {
 		var noTTargetToFilling = targetsToFillIds.contains(targetId) == false;
 
 		if (heldId != 1176 && actorId == 1176 && actor.isFull() == false && noTTargetToFilling) {
+			if (actorId == lastActorId) {
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} same lastActorId! Dont pickup Bowl of Dry Beans again!');
+				return false;
+			}
+
 			var count = 0;
 			for (id in targetsToFillIds) {
 				if (itemToCraft.transitionsByObjectId[id] == null) continue;
@@ -8126,7 +8141,7 @@ abstract class AiBase {
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} Use: Could not Fill ${myPlayer.heldObject.name} numberOfUses: ${heldObject.numberOfUses}!');
 				dropHeldObject();
-				return true;
+				return false;
 			}
 		}
 		// Bowl of Dry Beans 1176
