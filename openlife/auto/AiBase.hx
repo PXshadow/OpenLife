@@ -382,12 +382,15 @@ abstract class AiBase {
 
 		if (movedOneTileTmp == false && myPlayer.isMoving()) return;
 
-		itemToCraft.searchCurrentPosition = true;
+		// itemToCraft.searchCurrentPosition = true;
 		itemToCraft.searchCurrentPosition = false;
 		// itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 		itemToCraft.maxSearchRadius = 30;
 		ignoreFullPiles = false;
 		calledCraftItem = false;
+
+		// TODO only clean after move?
+		itemToCraft.clearAllCheachedObjects();
 
 		// keep only last profession
 		cleanUpProfessions();
@@ -609,6 +612,7 @@ abstract class AiBase {
 		Macro.exception(if (craftHighPriorityClothing()) return);
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		// medium priorty tasks
+		// TODO itemToCraft.searchCurrentPosition should be true? since wont pickup arrows at current pos
 		var rightAge = myPlayer.age > 10 && Math.floor((myPlayer.age + 2) / 6) % 2 == 0;
 		if (rightAge) Macro.exception(if (craftMediumPriorityClothing(2)) return);
 
@@ -6637,7 +6641,6 @@ abstract class AiBase {
 		if (itemToCraft.maxSearchRadius < 1) itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 
 		var objToCraftId = itemToCraft.itemToCraft.parentId;
-		var transitionsByObjectId = itemToCraft.transitionsByObjectId;
 
 		var player = myPlayer.getPlayerInstance();
 		var baseX = player.tx;
@@ -6650,34 +6653,25 @@ abstract class AiBase {
 			itemToCraft.searchRadius = radius;
 
 			// if(ServerSettings.DebugAi) trace('AI: ${myPlayer.name + myPlayer.id} craft: search radius: $radius');
-
-			// reset objects so that it can be filled again
-			itemToCraft.clearTransitionsByObjectId();
-
-			// check if held object can be used to craft item
-			var trans = transitionsByObjectId[player.heldObject.parentId];
-
-			if (trans != null) {
-				trans.count += 1;
-				trans.closestObject = player.heldObject;
-				trans.closestObjectDistance = 0;
-				trans.closestObjectPlayerIndex = 0; // held in hand
+			// TODO cache itemToCraft.searchCurrentPosition
+			var cachedObjectList = itemToCraft.cachedObjectLists[radius];
+			if (cachedObjectList == null) {
+				cachedObjectList = new Map<Int, TransitionForObject>();
+				itemToCraft.cachedObjectLists[radius] = cachedObjectList;
 			}
+			itemToCraft.transitionsByObjectId = cachedObjectList;
 
-			var startTime = Sys.time();
-			// add objects at home
-			addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId, true, false);
-			if (itemToCraft.searchCurrentPosition) addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId, false, false);
-			// if(myPlayer.firePlace != null) addObjectsForCrafting(myPlayer.firePlace.tx, myPlayer.firePlace.ty, radius, transitionsByObjectId);
-
-			if (ServerSettings.DebugAi)
-				trace('AI: ${myPlayer.name}${myPlayer.id} craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
+			var objectZero = cachedObjectList[0];
+			var isCleared = objectZero == null || objectZero.count < 0;
+			if (isCleared) addAllObjectsForCraftig(cachedObjectList, radius);
+			// else trace('AI: ${myPlayer.name}${myPlayer.id} craft: FINISHED objects use Cached radius: ${itemToCraft.searchRadius}');
 
 			/*itemToCraft.clearTransitionsByObjectId();
 				addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId, false);
 				if(itemToCraft.searchCurrentPosition) addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId, false);
 				if(ServerSettings.DebugAi) trace('AI: craft: FINISHED objects2 ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
 			 */
+
 			var test = false;
 			if (test) {
 				var startTime = Sys.time();
@@ -6705,6 +6699,35 @@ abstract class AiBase {
 		}
 
 		return itemToCraft;
+	}
+
+	private function addAllObjectsForCraftig(transitionsByObjectId:Map<Int, TransitionForObject>, radius:Int) {
+		var player = myPlayer.getPlayerInstance();
+		var baseX = player.tx;
+		var baseY = player.ty;
+
+		// reset objects so that it can be filled again
+		itemToCraft.clearTransitionsByObjectId();
+
+		// check if held object can be used to craft item
+		var trans = transitionsByObjectId[player.heldObject.parentId];
+
+		if (trans != null) {
+			trans.count += 1;
+			trans.closestObject = player.heldObject;
+			trans.closestObjectDistance = 0;
+			trans.closestObjectPlayerIndex = 0; // held in hand
+		}
+
+		var startTime = Sys.time();
+		// add objects at home
+		addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId, true, false);
+		// TODO if (itemToCraft.searchCurrentPosition) addObjectsForCrafting(baseX, baseY, radius, transitionsByObjectId, false, false);
+
+		// if(myPlayer.firePlace != null) addObjectsForCrafting(myPlayer.firePlace.tx, myPlayer.firePlace.ty, radius, transitionsByObjectId);
+
+		if (ServerSettings.DebugAi)
+			trace('AI: ${myPlayer.name}${myPlayer.id} craft: FINISHED objects ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
 	}
 
 	// TODO count objects at current pos only if search radius does not overlap with home, otherwise objects may be counted twice

@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import haxe.ds.HashMap;
 import haxe.Exception;
 import haxe.ds.Vector;
 import openlife.auto.Pathfinder.Coordinate;
@@ -1747,21 +1748,32 @@ class IntemToCraft {
 	public var lastNewActorId = -1;
 	public var lastNewTargetId = -1;
 
+	public var cachedObjectLists = new Map<Int, Map<Int, TransitionForObject>>();
+
 	public function new() {
 		itemToCraft = ObjectData.getObjectData(0);
 	}
 
+	public function clearAllCheachedObjects() {
+		for (cachedObjectList in cachedObjectLists) {
+			clearTransitionsByObject(cachedObjectList);
+		}
+	}
+
 	public function clearTransitionsByObjectId() {
 		// reset objects so that it can be filled again
-		for (trans in transitionsByObjectId) {
+		clearTransitionsByObject(transitionsByObjectId);
+	}
+
+	private function clearTransitionsByObject(objcectsToClear:Map<Int, TransitionForObject>) {
+		for (trans in objcectsToClear) {
 			trans.count = 0;
+			if (trans.objId == 0) trans.count = -1; // mark as cleared
 			trans.closestObject = null;
 			trans.closestObjectDistance = -1;
 			trans.closestObjectPlayerIndex = -1;
-
 			trans.secondObject = null;
 			trans.closestObjectDistance = -1;
-
 			trans.craftActor = null;
 			trans.craftTarget = null;
 			trans.isDone = false;
