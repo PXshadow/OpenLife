@@ -2193,9 +2193,7 @@ abstract class AiBase {
 		// Fruiting Milkweed 52
 		if (doPlant(2, 5, 214, [215, 218, 50, 51, 52])) return true;
 
-		// Dry Planted Beans 1161
-		// Wet Planted Beans 1162 // Green Bean Plants 1173 // Dry Bean Plants 1172
-		if (doPlant(2, 4, 1161, [1162, 1173, 1172])) return true;
+		if (doPlantBeans(2, 4)) return true;
 
 		// Dry Planted Cucumber Seeds 4225
 		// Wet Planted Cucumber Seeds 4226 // Cucumber Sprout 4228 // Ripe Cucumber Plant 4232
@@ -2377,6 +2375,12 @@ abstract class AiBase {
 		if (craftItem(228)) return true; // Dry Planted Wheat 228
 
 		return false;
+	}
+
+	private function doPlantBeans(minPlanted:Int, maxPlanted:Int) {
+		// Dry Planted Beans 1161
+		// Wet Planted Beans 1162 // Green Bean Plants 1173 // Dry Bean Plants 1172
+		return doPlant(2, 4, 1161, [1162, 1173, 1172]);
 	}
 
 	private function doPlant(minPlanted:Int, maxPlanted:Int, toPlantId:Int, toCountIds:Array<Int>) {
@@ -3026,17 +3030,15 @@ abstract class AiBase {
 			fireOven = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 249, 20, null, myPlayer);
 
 			if (fireOven == null) {
-				for (id in rawPies) {
-					countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, id, 25);
-				}
+				countRawPies += countCurrentObjects(rawPies); // old dist 20
 				// Raw Potato 1147
-				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1147, 20);
+				countRawPies += countCurrentObject(1147); // old dist 20
 				// Raw Bread Loaf 1469
-				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1469, 20);
+				countRawPies += countCurrentObject(1469); // old dist 20
 				// Raw Mutton 569
-				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 20);
+				countRawPies += countCurrentObject(569); // old dist 20
 				// Bowl of Soaking Beans 1180
-				countRawPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1180, 20);
+				countRawPies += countCurrentObject(1180); // old dist 20
 
 				if (shouldDebugSay()) myPlayer.say('$countRawPies raw stuff to bake!');
 			}
@@ -3142,7 +3144,7 @@ abstract class AiBase {
 		if (doPlantCarrots(2, 10)) return true;
 
 		// Kindling 72
-		if (isHungry == false && makeOrCollect(72, 0, 5)) return true;
+		if (isHungry == false && makeOrCollect(72, 1, 5)) return true;
 
 		// Baker needs Wheat
 		// if (this.myPlayer.food_store > 2) {
@@ -3151,27 +3153,15 @@ abstract class AiBase {
 
 		// if (doPlantWheat(2, 4)) return true;
 
-		// Raw Potato 1147
-		var countPotatos = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1147, 20);
-		// Baked Potato 1148
-		countPotatos += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1148, 20);
+		// Raw Potato 1147 // Baked Potato 1148
+		var countPotatos = countCurrentObjects([1147, 1148]); // old dist 20
 
 		// 0 + Dug Potatoes 4144
 		if (countPotatos < 5 && shortCraft(0, 4144, 20)) return true;
 
-		// if (doWateringHelper(1, 15)) return true;
-
-		// Ripe Wheat 242
-		var countWheat = AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 242, 30);
-		// Dry Planted Wheat 228
-		countWheat += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 228, 30);
-		// Threshed Wheat 226
-		countWheat += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 226, 30);
-		// Threshed Wheat - removed Straw 297
-		countWheat += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 297, 30);
-		// Pile of Threshed Wheat 4070
-		countWheat += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 4070, 30);
-
+		// Ripe Wheat 242 // // Dry Planted Wheat 228 // Threshed Wheat 226
+		// Threshed Wheat - removed Straw 297 // Pile of Threshed Wheat 4070
+		var countWheat = countCurrentObjects([242, 228, 226, 297, 4070]);
 		// myPlayer.say('countWheat: ${countWheat}');
 
 		// Bowl of Wheat 245 // Deep Tilled Row 213
@@ -3182,33 +3172,25 @@ abstract class AiBase {
 			if (craftItem(228)) return true; // Dry Planted Wheat 228
 		} else if (makeRawPies()) return true;
 
-		var countMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 30); // Cooked Mutton 570
-		var countRawMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 30); // Raw Mutton 569
-		if (countMutton + countRawMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
+		// Cooked Mutton 570 // Raw Mutton 569
+		var countMutton = countCurrentObjects([570, 569]);
+		if (countMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
 
-		// TODO plant beans
+		if (doPlantWheat(2, 5)) return true;
+
+		if (doPlantBeans(2, 4)) return true;
 
 		// Bowl of Soaking Beans 1180
 		if (craftItem(1180)) return true;
 
-		// Raw Stew Pot 1246 // Crock with Squash 1243
-		if (hasCarrotSeeds && craftItem(1243)) return true;
+		// Raw Stew Pot 1246 // ???Crock with Squash 1243
+		if (hasCornSeeds && craftItem(1246)) return true;
 
-		if (doPlantWheat(2, 8)) return true;
-
-		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
-			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
-		// check if there is something to fire oven
-		/*if(hotOven == null){
-			for(i in 0... pies.length){
-				var index = (nextPie + i) % pies.length;
-				lastPie = index;
-				if(shortCraft(rawPies[index], pies[index])) return true;
-			}
-		}*/
 		this.profession['BAKER'] = 0;
 
 		Macro.exception(if (fillBerryBowlIfNeeded()) return true);
+
+		// if (doWateringHelper(1, 15)) return true;
 
 		if (isHungry == false && cleanUp()) return true;
 
@@ -3219,7 +3201,8 @@ abstract class AiBase {
 		var home = myPlayer.home;
 		var cookedPies = 0;
 		for (id in pies) {
-			cookedPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, id, 10);
+			// cookedPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, id, 10);
+			cookedPies += countCurrentObject(id); // old dist = 10
 		}
 
 		if (cookedPies >= max) {
@@ -3231,35 +3214,19 @@ abstract class AiBase {
 
 		if (this.taskState['makeRawPies'] < 1) return false;
 
-		var countCarrotPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 273, 30); // Cooked Carrot Pie 273
-		countCarrotPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 268, 30); // Raw Carrot Pie 268
+		// Cooked Carrot Pie 273 // Raw Carrot Pie 268
+		var countCarrotPies = countCurrentObjects([273, 268]);
+		// Cooked Mutton Pie 803 // Raw Mutton Pie 802
+		var countMuttonPies = countCurrentObjects([803, 802]);
 		// var countBerryPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30); // Cooked Berry Pie 272
-		var countMuttonPies = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 803, 30); // Cooked Mutton Pie 803
-		countMuttonPies += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 20); // Raw Mutton 569
 
-		// Wild Gooseberry Bush 30
-		var countBerry = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 30, 15);
-		// Domestic Gooseberry Bush 391
-		countBerry += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 391, 15);
-		// Bowl of Gooseberries 253
-		countBerry += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 253, 15);
-		// Bowl of Gooseberries and Carrot
-		countBerry += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 258, 15);
-
+		// Wild Gooseberry Bush 30 // Domestic Gooseberry Bush 391 // Bowl of Gooseberries 253 // Bowl of Gooseberries and Carrot 258
+		var countBerry = countCurrentObjects([30, 391, 253, 258]); // old dist = 15
 		var extraPies = countPies % 4;
 
-		/* if (extraPies == 0) {
-			if (countMutton + countRawMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
-		}*/
-		if (extraPies == 0) {
-			if (countMuttonPies < 2 && craftItem(802)) return true; // Raw Mutton Pie 802
-		}
-		if (extraPies == 2) {
-			if (countCarrotPies < 2 && craftItem(268)) return true; // Raw Carrot Pie
-		}
-		// if(extraPies == 4){
-		//	if(countBerryPies < 2 && craftItem(265)) return true; // Raw Berry Pie
-		// }
+		if (extraPies == 0 && countMuttonPies < 2 && craftItem(802)) return true; // Raw Mutton Pie 802
+		if (extraPies == 2 && countCarrotPies < 2 && craftItem(268)) return true; // Raw Carrot Pie
+		// if(extraPies == 4 && (countBerryPies < 2 && craftItem(265)) return true; // Raw Berry Pie
 
 		var nextPie = lastPie > -1 ? lastPie : WorldMap.world.randomInt(pies.length - 1);
 
@@ -3272,14 +3239,33 @@ abstract class AiBase {
 			// if (rawPies[index] == 802 && countMuttonPies > 1) continue; // Raw Mutton Pie 802
 			// if (rawPies[index] == 265 && countBerryPies > 1) continue; // Raw Berry Pie 265
 			// if (rawPies[index] == 268 && countCarrotPies > 1) continue; // Raw Carrot Pie 268
-			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, pies[index], 30);
-			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, rawPies[index], 30);
+			var count = countCurrentObjects([pies[index], rawPies[index]]);
 			if (count > 1) continue;
 			lastPie = index;
 			if (craftItem(rawPies[index])) return true;
 		}
 
 		return false;
+	}
+
+	private function countCurrentObjects(objIds:Array<Int>) {
+		var count = 0;
+		for (objId in objIds)
+			count += countCurrentObject(objId);
+		return count;
+	}
+
+	private function countCurrentObject(objId:Int) {
+		// var count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, objId, 10);
+		var count = myPlayer.heldObject.parentId == objId ? 1 : 0;
+
+		intitObjectsForCraftig();
+
+		var cachedObjectList = itemToCraft.transitionsByObjectId;
+		var object = cachedObjectList[objId];
+		if (object == null) return count;
+		// trace('countCurrentObject: ${objId} ${object.count}');
+		return count += object.count;
 	}
 
 	private function makeSeatsAndCleanUp(maxPeople = 1) {
@@ -3748,16 +3734,11 @@ abstract class AiBase {
 			var index = (nextPlant + i) % advancedPlants.length;
 			var toPlant = advancedPlants[index];
 
-			// Dry Planted Beans 1161
-			// Wet Planted Beans
-			// TODO count also what is planted
+			// Dry Planted Beans 1161 // Wet Planted Beans 1162
 			if (toPlant == 1161 || toPlant == 1162) {
-				// Dry Bean Plants 1172
-				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1172, 30);
-				if (count > 3) {
-					toPlant += 1;
-					continue;
-				}
+				if (doPlantBeans(2, 4)) return true;
+				toPlant += 1;
+				continue;
 			}
 
 			// Dry Planted Potatoes 1145
@@ -6653,18 +6634,7 @@ abstract class AiBase {
 			itemToCraft.searchRadius = radius;
 
 			// if(ServerSettings.DebugAi) trace('AI: ${myPlayer.name + myPlayer.id} craft: search radius: $radius');
-			// TODO cache itemToCraft.searchCurrentPosition
-			var cachedObjectList = itemToCraft.cachedObjectLists[radius];
-			if (cachedObjectList == null) {
-				cachedObjectList = new Map<Int, TransitionForObject>();
-				itemToCraft.cachedObjectLists[radius] = cachedObjectList;
-			}
-			itemToCraft.transitionsByObjectId = cachedObjectList;
-
-			var objectZero = cachedObjectList[0];
-			var isCleared = objectZero == null || objectZero.count < 0;
-			if (isCleared) addAllObjectsForCraftig(cachedObjectList, radius);
-			// else trace('AI: ${myPlayer.name}${myPlayer.id} craft: FINISHED objects use Cached radius: ${itemToCraft.searchRadius}');
+			intitObjectsForCraftig();
 
 			/*itemToCraft.clearTransitionsByObjectId();
 				addObjectsForCrafting(myPlayer.home.tx, myPlayer.home.ty, radius, transitionsByObjectId, false);
@@ -6699,6 +6669,23 @@ abstract class AiBase {
 		}
 
 		return itemToCraft;
+	}
+
+	private function intitObjectsForCraftig() {
+		var radius = itemToCraft.searchRadius;
+
+		// TODO cache itemToCraft.searchCurrentPosition
+		var cachedObjectList = itemToCraft.cachedObjectLists[radius];
+		if (cachedObjectList == null) {
+			cachedObjectList = new Map<Int, TransitionForObject>();
+			itemToCraft.cachedObjectLists[radius] = cachedObjectList;
+		}
+		itemToCraft.transitionsByObjectId = cachedObjectList;
+
+		var objectZero = cachedObjectList[0];
+		var isCleared = objectZero == null || objectZero.count < 0;
+		if (isCleared) addAllObjectsForCraftig(cachedObjectList, radius);
+		// else trace('AI: ${myPlayer.name}${myPlayer.id} craft: FINISHED objects use Cached radius: ${itemToCraft.searchRadius}');
 	}
 
 	private function addAllObjectsForCraftig(transitionsByObjectId:Map<Int, TransitionForObject>, radius:Int) {
