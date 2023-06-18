@@ -1221,27 +1221,18 @@ abstract class AiBase {
 	}
 
 	public function isMakingSeeds() {
-		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['seeds']);
-		if (passedTime < 15) return false;
-		lastCheckedTimes['seeds'] = TimeHelper.tick;
+		// var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['seeds']);
+		// if (passedTime < 15) return false;
+		// lastCheckedTimes['seeds'] = TimeHelper.tick;
 
-		// TODO optimize count / search do only once for all
-		var seeds = AiHelper.GetClosestObjectById(myPlayer, 1115, null, 30); // Dried Ear of Corn
-		if (seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 1247, 30); // Bowl with Corn Kernels
-		if (seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 4106, 30); // Dumped Corn Kernels 4106
-		if (seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 4107, 30); // Corn Kernel Pile 4107
+		// Dried Ear of Corn 1115 // Bowl with Corn Kernels 1247
+		// Dumped Corn Kernels 4106 // Corn Kernel Pile 4107
+		var cornCount = countCurrentObjects([1115, 1247, 4106, 4107]);
+		this.hasCornSeeds = cornCount > 2;
 
-		this.hasCornSeeds = seeds != null;
-
-		var seeds = AiHelper.GetClosestObjectById(myPlayer, 401, null, 10); // Seeding Carrots 401
-		// if (seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 2745, 30); // Bowl of Carrot Seeds
-		if (seeds == null) seeds = AiHelper.GetClosestObjectById(myPlayer, 2745, 10); // Bowl of Carrot Seeds
-
-		var seedsAtHome = AiHelper.GetClosestObjectToHome(myPlayer, 401, 20); // Seeding Carrots 401
-		// if (seeds == null) seeds = AiHelper.GetClosestObjectToHome(myPlayer, 2745, 30); // Bowl of Carrot Seeds
-		if (seedsAtHome == null) seedsAtHome = AiHelper.GetClosestObjectToHome(myPlayer, 2745, 20); // Bowl of Carrot Seeds
-
-		this.hasCarrotSeeds = seeds != null && seedsAtHome != null;
+		// Seeding Carrots 401 // Bowl of Carrot Seeds 2745
+		var carrotSeedsCount = countCurrentObjects([401, 2745]);
+		this.hasCarrotSeeds = carrotSeedsCount > 0;
 
 		// TODO make seeds
 		return false;
@@ -4034,7 +4025,7 @@ abstract class AiBase {
 		// myPlayer.say('FireFood! fire: ${firePlace != null}');
 
 		// Raw Stew Pot 1246
-		if (hasCarrotSeeds && craftItem(1246)) return true;
+		if (hasCornSeeds && craftItem(1246)) return true;
 
 		// Raw Mutton 569
 		if (craftItem(569)) return true;
