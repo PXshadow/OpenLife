@@ -2258,19 +2258,19 @@ abstract class AiBase {
 	private function doPlantWheat(minPlanted:Int, maxPlanted:Int) {
 		// Dry Planted Wheat 228
 		// Ripe Wheat 242 // Wet Planted Wheat 229 // Wheat Sprouts 230 // Unripe Wheat 243
-		return doPlant(2, 4, 228, [242, 229, 230, 243]);
+		return doPlant(minPlanted, maxPlanted, 228, [242, 229, 230, 243]);
 	}
 
 	private function doPlantBeans(minPlanted:Int, maxPlanted:Int) {
 		// Dry Planted Beans 1161
 		// Wet Planted Beans 1162 // Green Bean Plants 1173 // Dry Bean Plants 1172
-		return doPlant(2, 4, 1161, [1162, 1173, 1172]);
+		return doPlant(minPlanted, maxPlanted, 1161, [1162, 1173, 1172]);
 	}
 
 	private function doPlantCorn(minPlanted:Int, maxPlanted:Int) {
 		// Dry Planted Corn Seed 1109
 		// Wet Planted Corn Seed 1110 // Corn Sprout 1111 // Corn Plant 1112
-		return doPlant(2, 4, 1109, [1110, 1111, 1112]);
+		return doPlant(minPlanted, maxPlanted, 1109, [1110, 1111, 1112]);
 	}
 
 	private function doPlant(minPlanted:Int, maxPlanted:Int, toPlantId:Int, toCountIds:Array<Int>) {
@@ -3785,6 +3785,9 @@ abstract class AiBase {
 		var beanPlantId = greenBeans ? 1173 : 1172;
 
 		if (heldObj.parentId == beanBowlId && heldObj.numberOfUses >= heldObj.objectData.numUses) return false;
+
+		var countDryBeans = countCurrentObjects([1176, 1172]);
+		if (greenBeans && countDryBeans < 1) return false;
 
 		// Green Bean Plants 1173
 		var closeBeans = AiHelper.GetClosestObjectById(myPlayer, beanPlantId);
