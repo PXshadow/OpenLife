@@ -2135,12 +2135,7 @@ abstract class AiBase {
 
 		if (ServerSettings.DebugAi) trace('AAI: 2 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']}');
 
-		var countDryCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 30); // Dried Ear of Corn 1115
-		var countEarOfCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1113, 30); // Ear of Corn 1113
-		var countShuckedCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1114, 30); // Shucked Ear of Corn 1114
-
-		if (countDryCorn + countShuckedCorn < 5 && shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
-		if (countEarOfCorn < 4 && shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
+		if (doHarvestCorn()) return true;
 
 		if (ServerSettings.DebugAi) trace('AAI: 6 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']}');
 
@@ -2203,19 +2198,45 @@ abstract class AiBase {
 		return false;
 	}
 
+	private function doHarvestCorn(minHarvest:Int = 3, maxHarvest:Int = 10) {
+		var countDryCorn = countCurrentObject(1115); // Dried Ear of Corn 1115
+		var countEarOfCorn = countCurrentObject(1113); // Ear of Corn 1113
+		var countShuckedCorn = countCurrentObject(1114); // Shucked Ear of Corn 1114
+
+		if (countDryCorn + countShuckedCorn >= maxHarvest) {
+			this.taskState['doHarvestCorn'] = 0;
+			return false;
+		}
+
+		if (countDryCorn + countShuckedCorn < minHarvest) this.taskState['doHarvestCorn'] = 1;
+
+		if (this.taskState['doHarvestCorn'] > 0) return false;
+
+		// 0 + Corn Plant 1112 --> Ear of Corn
+		if (this.taskState['doHarvestCorn'] < 2 && countEarOfCorn < 4 && shortCraft(0, 1112, 30)) return true;
+		this.taskState['doHarvestCorn'] = 2;
+
+		// Sharp Stone + Ear of Corn --> Shucked Ear of Corn
+		if (shortCraft(34, 1113, 30)) return true;
+		this.taskState['doHarvestCorn'] = 1;
+		if (this.taskState['doHarvestCorn'] < 2 && countEarOfCorn < 4 && shortCraft(0, 1112, 30)) return true;
+
+		return false;
+	}
+
 	private function doHarvestWheat(minHarvest:Int, maxHarvest:Int) {
 		var home = myPlayer.home;
 		var searchDistance = 30;
 
-		var threshedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 226, searchDistance); // Threshed Wheat 226
-		threshedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 4069, searchDistance); // Threshed Wheat (on ground) 4069
+		// Threshed Wheat 226 // Threshed Wheat (on ground) 4069
+		var threshedWheat = countCurrentObjects([226, 4069]);
 
+		// Harvested Wheat 224 // Wheat Sheaf 225
 		var allHarvestedWheat = threshedWheat;
-		allHarvestedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 224, searchDistance); // Harvested Wheat 224
-		allHarvestedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 225, searchDistance); // Wheat Sheaf 225
+		allHarvestedWheat += countCurrentObjects([224, 225]);
 
 		// let some wheat stay for seeds and so that it looks nice
-		var countPlantedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 242, searchDistance); // Ripe Wheat 242
+		var countPlantedWheat = countCurrentObject(242); // Ripe Wheat 242
 		// countPlantedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 228, searchDistance); // Dry Planted Wheat 228
 		// countPlantedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 229, searchDistance); // Wet Planted Wheat 229
 
@@ -2224,22 +2245,20 @@ abstract class AiBase {
 			return false;
 		}
 
-		if (threshedWheat < minHarvest) {
-			this.taskState['WheatHarvester'] = 0;
-		}
+		if (threshedWheat < minHarvest) this.taskState['WheatHarvester'] = 0;
 
 		if (this.taskState['WheatHarvester'] > 0) return false;
 
 		if (countPlantedWheat > 0 && allHarvestedWheat < maxHarvest) {
-			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 242, searchDistance); // Ripe Wheat 242
-			if (closeObj != null && craftItem(224)) return true; // Harvested Wheat
+			var count = countCurrentObject(242); // Ripe Wheat 242
+			if (count > 0 && craftItem(224)) return true; // Harvested Wheat
 		}
 
-		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 224, searchDistance); // Harvested Wheat
-		if (closeObj != null && craftItem(225)) return true; // Wheat Sheaf
+		var count = countCurrentObject(224); // Harvested Wheat 224
+		if (count > 0 && craftItem(225)) return true; // Wheat Sheaf
 
-		var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 225, searchDistance); // Wheat Sheaf
-		if (closeObj != null && craftItem(226)) return true; // Threshed Wheat
+		var count = countCurrentObject(225); // Wheat Sheaf 225
+		if (count > 0 && craftItem(226)) return true; // Threshed Wheat
 
 		this.taskState['WheatHarvester'] = 1;
 
