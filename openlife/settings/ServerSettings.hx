@@ -381,7 +381,7 @@ class ServerSettings {
 	public static var PrestigeCostPerDamageForWomenWithoutWeapon:Float = 0.5; // 0.25
 
 	// AI
-	public static var NumberOfAis:Int = 40;
+	public static var NumberOfAis:Int = 45;
 	public static var NumberOfAiPx:Int = 0;
 	public static var AiReactionTime:Float = 0.5; // 0.5; // 0.5; // Commoner
 	public static var AiReactionTimeSerf:Float = 0.7;
