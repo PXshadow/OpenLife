@@ -3629,10 +3629,10 @@ abstract class AiBase {
 				}
 			}
 
-			// Dry Planted Squash Seeds 1192
-			if (toPlant == 2839) {
-				// Dry Planted Squash Seeds 2839
-				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2839, 30);
+			// Dry Planted Squash Seeds 1192 // Wet Planted Squash Seeds 1190
+			if (toPlant == 1192 || toPlant == 1190) {
+				// Dry Planted Squash Seeds 1192
+				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1192, 30);
 				// Wet Planted Squash Seeds 1190
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1190, 30);
 				// Hubbard Squash 1199
