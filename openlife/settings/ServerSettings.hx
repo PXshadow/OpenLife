@@ -2081,6 +2081,14 @@ class ServerSettings {
 		trans.autoDecaySeconds = -1;
 		transitions.addTransition("PatchTransitions: ", trans);
 
+		trans = new TransitionData(-1, 1201, 0, 236); // Plate of Squash Chunks with Seeds 1201 --> Clay Plate 236
+		trans.autoDecaySeconds = -1;
+		transitions.addTransition("PatchTransitions: ", trans);
+
+		trans = new TransitionData(-1, 1202, 0, 236); // Plate of Squash Chunks 1202 --> Clay Plate 236
+		trans.autoDecaySeconds = -1;
+		transitions.addTransition("PatchTransitions: ", trans);
+
 		trans = new TransitionData(-1, 1468, 0, 236); // Leavened Dough on Clay Plate 1468 --> Clay Plate 236
 		trans.autoDecaySeconds = -1;
 		transitions.addTransition("PatchTransitions: ", trans);

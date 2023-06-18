@@ -3046,7 +3046,7 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function makeRawPies(min = 1, max = 5) {
+	private function makeRawPies(min = 2, max = 5) {
 		var home = myPlayer.home;
 		var cookedPies = 0;
 		for (id in pies) {
@@ -3421,6 +3421,7 @@ abstract class AiBase {
 		if (this.profession['SMITH'] < 5) {
 			// Smithing Hammer
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 441, 30);
+			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 441, 30);
 			if (heldId == 441) count += 1;
 			if (count < 1 && craftItem(441)) return true;
 			this.profession['SMITH'] = 5;
