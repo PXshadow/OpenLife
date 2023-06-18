@@ -2151,28 +2151,6 @@ abstract class AiBase {
 		if (countDryCorn + countShuckedCorn < 5 && shortCraft(34, 1113, distance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 		if (countEarOfCorn < 4 && shortCraft(0, 1112, distance)) return true; // 0 + Corn Plant --> Ear of Corn
 
-		// 1: Prepare Soil
-		// TODO max use transition on soil pile does not work yet
-		// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row
-		// if(shortCraft(1137, 848, 30, false)) return true;
-		// trace('Fertile Soil Pile!');
-
-		// if(doPrepareSoil()) return true;
-
-		// if(doPlantCarrots()) return true;
-
-		// if (ServerSettings.DebugAi) trace('AAI: 3 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']} soil: $count');
-
-		// 3: Prepare Deep Tilled Rows
-		/*if(this.profession['BASICFARMER'] < 4){
-			if (shouldDebugSay()) myPlayer.say('BASICFARMER: Prepare Deep Tilled Rows');
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']} Prepare Deep Tilled Rows');			
-			if(shortCraft(850, 1136, 30)) return true; // Stone Hoe + Shallow Tilled Row --> Deep Tilled Row
-			this.profession['BASICFARMER'] = 4;
-		}*/
-
-		// if (ServerSettings.DebugAi) trace('AAI: 5 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']} deepRows: $deepRows');
-
 		if (ServerSettings.DebugAi) trace('AAI: 6 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']}');
 
 		if (doHarvestWheat(1, 4)) return true;
@@ -2206,90 +2184,22 @@ abstract class AiBase {
 		// Wet Planted Potatoes 1142 // Potato Plants 1143 // Mounded Potato Plants 1144 // Mature Potato Plants 1146
 		if (doPlant(2, 5, 1145, [1142, 1143, 1144, 1146])) return true;
 
-		/*if (this.profession['BASICFARMER'] < 6) {
-			// let some wheat stay for seeds and so that it looks nice
-			var countRipeWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 242, 40); // Ripe Wheat
-			var allHarvestedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 226, 40); // Threshed Wheat 226
-			allHarvestedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 224, 40); // Harvested Wheat 224
-			allHarvestedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 225, 40); // Wheat Sheaf 225
-
-			if (countRipeWheat > 1 && allHarvestedWheat < 5) if (craftItem(224)) return true; // Harvested Wheat
-
-			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 224, 40); // Harvested Wheat
-			if (closeObj != null) if (craftItem(225)) return true; // Wheat Sheaf
-
-			var closeObj = AiHelper.GetClosestObjectToHome(myPlayer, 225, 40); // Wheat Sheaf
-			if (closeObj != null) if (craftItem(226)) return true; // Threshed Wheat
-
-			var countDryPlantedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 228, 40); // Dry Planted Wheat 228
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 229, 40); // Wet Planted Wheat 229
-			count += countDryPlantedWheat;
-			count += countRipeWheat;
-			// count += countThreshedWheat;
-
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']} count Planted Wheat: $count ');
-
-			if (count < 20) if (craftItem(228)) return true; // Dry Planted Wheat 228
-			this.profession['BASICFARMER'] = 6;
-		}*/
-
-		if (doPrepareRows()) return true;
-
-		/*var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, 40); // Wet Planted Corn Seed 1110
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1109, 40); // Dry Planted Corn Seed
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1111, 40); // Corn Sprout 1111
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, 40); // Corn Plant 1112
-
-			if (count < 1) this.taskState['PlantCorn'] = 1;
-			if (count > 5) this.taskState['PlantCorn'] = 0; */
-
-		// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
-
-		if (this.taskState['PlantCorn'] > 0 && craftItem(1109)) return true; // Dry Planted Corn Seed 1109
-
-		/*var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 214, 30); // Dry Planted Milkweed Seed 214
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 215, 30); // Wet Planted Milkweed Seed 215
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 218, 30); // Milkweed Sprout 218
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 50, 30); // Milkweed 50
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 51, 30); // Flowering  Milkweed 51
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 52, 30); // Fruiting Milkweed 52
-
-			if (count < 1) this.taskState['PlantMilkweed'] = 1;
-			if (count > 5) this.taskState['PlantMilkweed'] = 0;
-
-			// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: PlantMilkweed: ${taskState['PlantMilkweed']} planted: ${count}');
-
-			if (this.taskState['PlantMilkweed'] > 0 && craftItem(214)) return true; // Dry Planted Milkweed Seed 214
-		 */
-
-		// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming2: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
-
-		// var closeObj = AiHelper.GetClosestObjectById(myPlayer, 2831); // Wet Planted Tomato Seed
-		// if(closeObj == null) if(craftItem(2831)) return true; // Wet Planted Tomato Seed
-
-		// var closeObj = AiHelper.GetClosestObjectById(myPlayer, 242, null, 20); // Ripe Wheat
-		// if(closeObj != null) if(craftItem(224)) return true; // Harvested Wheat
-
 		if (doComposting()) return true;
 		if (doWatering(3)) return true;
 
-		if (doPlantWheat(5, 10)) return true;
-		if (doPlantCorn(5, 10)) return true;
+		if (doPlantWheat(6, 10)) return true;
+		if (doPlantCorn(6, 10)) return true;
 
 		this.profession['BASICFARMER'] = 1;
 
-		Macro.exception(if (isSheepHerding(2)) return true);
+		Macro.exception(if (isSheepHerding(1)) return true);
 
 		// check if there is a Tilled Row already before creating a new one
-		var deepRow = AiHelper.GetClosestObjectToHome(myPlayer, 213, 20); // Deep Tilled Row
-		if (deepRow == null) if (shortCraft(850, 1138, 30)) return true; // Stone Hoe + Fertile Soil --> Shallow Tilled Row
-		// if(deepRow == null) closeObj = AiHelper.GetClosestObjectById(myPlayer, 1138, null, 20); // Fertile Soil
-		// if(closeObj != null) if(craftItem(1136)) return true; // Shallow Tilled Row
+		// var deepRow = AiHelper.GetClosestObjectToHome(myPlayer, 213, 20); // Deep Tilled Row
+		// if (deepRow == null) if (shortCraft(850, 1138, 30)) return true; // Stone Hoe + Fertile Soil --> Shallow Tilled Row
 
-		// if(myPlayer.age < 15 && makeFireWood()) return true;
-
-		if (doPlantWheat(10, 20)) return true;
-		if (doPlantCorn(10, 15)) return true;
+		if (doPlantWheat(11, 20)) return true;
+		if (doPlantCorn(11, 20)) return true;
 
 		if (myPlayer.age < 20 && makeSharpieFood()) return true;
 
@@ -2346,35 +2256,9 @@ abstract class AiBase {
 	}
 
 	private function doPlantWheat(minPlanted:Int, maxPlanted:Int) {
-		var home = myPlayer.home;
-		var searchDistance = 30;
-
-		// let some wheat stay for seeds and so that it looks nice
-		var countPlantedWheat = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 242, searchDistance); // Ripe Wheat
-		countPlantedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 228, searchDistance); // Dry Planted Wheat 228
-		countPlantedWheat += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 229, searchDistance); // Wet Planted Wheat 229
-
-		if (countPlantedWheat >= maxPlanted) {
-			this.taskState['WheatPlanter'] = 1;
-			return false;
-		}
-
-		if (countPlantedWheat < minPlanted) {
-			this.taskState['WheatPlanter'] = 0;
-		}
-
-		if (this.taskState['WheatPlanter'] > 0) return false;
-
 		// Dry Planted Wheat 228
-		if (doWateringOn(228, 3)) return true;
-
-		if (doPrepareRows()) return true;
-
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: Count Planted Wheat: $countPlantedWheat ');
-
-		if (craftItem(228)) return true; // Dry Planted Wheat 228
-
-		return false;
+		// Ripe Wheat 242 // Wet Planted Wheat 229 // Wheat Sprouts 230 // Unripe Wheat 243
+		return doPlant(2, 4, 228, [242, 229, 230, 243]);
 	}
 
 	private function doPlantBeans(minPlanted:Int, maxPlanted:Int) {
@@ -2383,14 +2267,18 @@ abstract class AiBase {
 		return doPlant(2, 4, 1161, [1162, 1173, 1172]);
 	}
 
+	private function doPlantCorn(minPlanted:Int, maxPlanted:Int) {
+		// Dry Planted Corn Seed 1109
+		// Wet Planted Corn Seed 1110 // Corn Sprout 1111 // Corn Plant 1112
+		return doPlant(2, 4, 1109, [1110, 1111, 1112]);
+	}
+
 	private function doPlant(minPlanted:Int, maxPlanted:Int, toPlantId:Int, toCountIds:Array<Int>) {
 		var home = myPlayer.home;
 		var searchDistance = 30;
 
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, toPlantId, searchDistance);
-		for (id in toCountIds) {
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1109, searchDistance); // Dry Planted Corn Seed
-		}
+		var count = countCurrentObject(toPlantId);
+		count += countCurrentObjects(toCountIds);
 
 		// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
 
@@ -2399,9 +2287,7 @@ abstract class AiBase {
 			return false;
 		}
 
-		if (count < minPlanted) {
-			this.taskState['CornPlanter'] = 1;
-		}
+		if (count < minPlanted) this.taskState['CornPlanter'] = 1;
 
 		if (this.taskState['CornPlanter'] < 1) return false;
 
@@ -2412,43 +2298,6 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPlant: ${toPlantId} Count $count ');
 
 		if (craftItem(toPlantId)) return true;
-
-		return false;
-	}
-
-	private function doPlantCorn(minPlanted:Int, maxPlanted:Int) {
-		var home = myPlayer.home;
-		var searchDistance = 30;
-
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1110, searchDistance); // Wet Planted Corn Seed 1110
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1109, searchDistance); // Dry Planted Corn Seed
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1111, searchDistance); // Corn Sprout 1111
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1112, searchDistance); // Corn Plant 1112
-
-		var countCorn = countCorn();
-		count += Math.round(countCorn / 4);
-
-		// trace('AAI: ${myPlayer.name + myPlayer.id} doBasicFarming: PlantCorn: ${taskState['PlantCorn']} planted corn: ${count}');
-
-		if (count >= maxPlanted) {
-			this.taskState['CornPlanter'] = 0;
-			return false;
-		}
-
-		if (count < minPlanted) {
-			this.taskState['CornPlanter'] = 1;
-		}
-
-		if (this.taskState['CornPlanter'] < 1) return false;
-
-		// Dry Planted Corn Seed 1109
-		if (doWateringOn(1109, 3)) return true;
-
-		if (doPrepareRows()) return true;
-
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPlantCorn: Count $count ');
-
-		if (craftItem(1109)) return true; // Dry Planted Corn Seed 1109
 
 		return false;
 	}
