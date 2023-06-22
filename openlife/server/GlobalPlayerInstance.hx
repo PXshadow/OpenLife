@@ -5417,6 +5417,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return false;
 	}
 
+	/*
+		(VU)
+		VU
+		x y
+		#
+		Example:
+		VU
+		301 14
+		#
+	 */
 	private static function teleport(player:GlobalPlayerInstance, locations:Array<ObjectHelper>, coinCost:Int, notFoundtext:String) {
 		if (locations.length < 1) {
 			player.say(notFoundtext, true);
@@ -5458,9 +5468,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (player.isBlocked(player.tx, player.ty)) MoveHelper.JumpToNonBlocked(player);
 		if (player.isBlocked(player.tx, player.ty)) return;
 
-		player.forced = true;
-		Connection.SendUpdateToAllClosePlayers(player);
-		player.forced = false;
+		player.connection.send(VOG_UPDATE, ['${player.x} ${player.y}']);
+
+		// player.forced = true;
+		// Connection.SendUpdateToAllClosePlayers(player);
+		// player.forced = false;
 
 		player.connection.sendMapChunk(player.x, player.y);
 
