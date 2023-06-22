@@ -4806,8 +4806,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return false;
 		}
 
-		heldPlayer.x = x + player.gx - heldPlayer.gx;
-		heldPlayer.y = y + player.gy - heldPlayer.gy;
+		// heldPlayer.x = x + player.gx - heldPlayer.gx;
+		// heldPlayer.y = y + player.gy - heldPlayer.gy;
+		heldPlayer.x = WorldMap.world.transformX(heldPlayer, player.tx);
+		heldPlayer.y = WorldMap.world.transformY(heldPlayer, player.ty);
 		heldPlayer.moveHelper.exactTx = heldPlayer.tx;
 		heldPlayer.moveHelper.exactTy = heldPlayer.ty;
 
