@@ -1783,10 +1783,10 @@ class ServerSettings {
 		 */
 
 		ObjectData.getObjectData(1438).secondTimeOutcome = 1435; // Shot Bison --> Bison
-		ObjectData.getObjectData(1438).secondTimeOutcomeTimeToChange = 5 * 60;
+		ObjectData.getObjectData(1438).secondTimeOutcomeTimeToChange = 30 * 60;
 
 		ObjectData.getObjectData(1440).secondTimeOutcome = 1436; // Shot Bison with Calf --> Bison
-		ObjectData.getObjectData(1440).secondTimeOutcomeTimeToChange = 5 * 60;
+		ObjectData.getObjectData(1440).secondTimeOutcomeTimeToChange = 30 * 60;
 
 		// dead bison already exists
 		trans = new TransitionData(-1, 1442, 0, 1444); // Dead Bison arrow 2 --> Dead Bison arrow 1
