@@ -482,8 +482,8 @@ TODO Features:
 more up in the list means more likely to be implemented first but no guarantee!
 - animals grouping / animal bosses / wolf ilness
 - illnesses (can spread dependign on health, more food use no eating)
-- better property / fortification for other clay walls / oven / kiln / forge / graves 
-- better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate)
+- better property / fortification for other clay walls / forge / graves 
+- better fences / allow to climb over fences, but get wounded / make destroyable if not protected by close gate
 - special stuff like hercules / snake master / super fast ager 
 - job boni
 - horses that follow owner / horse ownership
@@ -493,40 +493,8 @@ more up in the list means more likely to be implemented first but no guarantee!
 TODO Missing:
 more up in the list means more likely to be implemented first but no guarantee!
 
-
-List off stuff that Ai drops in the wild and might need a fix:
-many single bowls
-many bowl stacks in wild, seen an ai fuckin come down to stack one
-SOOO many knifes
-unforged crucible
-good few tongs, not as much as knifes
-hatchets
-adze
-drop spindle
-couple of skewered rabits
-few axes
-bows
-hoes
-mutton
-firewood (singluar placed around)
-snare
-firebow drill
-cut rabbit fur
-rabbit fur
-snake skin
-bowl with corn kernles
-wet bowl in tongs
-many iron ore
-iron ore in tongs
-pick
-shears
-bowls of flour
-i found a couple or more than a couple of all of em
-*also a wooden disk
-and uh charcoal
-
 High priority:
-- AI not close kiln if clay stuff is to make / check in craftitem for transition
+- AI not close kiln with adobe if clay stuff is to make / check in craftitem for transition
 - AI SWORD: get angry if one has one and is not noble
 
 Combat:
@@ -538,7 +506,6 @@ Reputation:
 - AI dont dig in bones from not allied people with bad reputation
 
 Commands:
-- AI add new command STAY CLOSE
 - AI hire cost command
 - AI add new command BRING
 - AI add new command craft --> constanly tries to craft untill 5 are reached
@@ -560,39 +527,26 @@ Cointainer:
 - AI using of backpack (baskets) / for example kindling, potato, pies to eat / water
 
 Generel:
-- FIX AI loot grave while fresh
+- FIX AI dig in graves
 - FIX wrong death messages / stuck on death
 - FIX teleporting Ai especially if you drop BB
-- FIX AI droping stuff outside of the village Fixed???
-- FIX exile only from leader if you are no noble and have no bad reputation 
 - FIX Ai dont make tables
 - FIX set home if touching oven
 - FIX trekkieA: issues with objects disappearing from backpack, dont swap items quickly or you might lose it
 limestone was weird, if you use hetuw. you can crtl+q to swap items in bp. if you have more than one item swapping them can destroy objects
-- FIX trekkieA: hired ai wont change homes, even when luring into range. just tend to walk back to where i found them 
-- FIX trekkieA: visual bug when filling bowl of berries on bush, only see 5 berries instead of 6 - berry thing goes away after moving a tile
 - FIX trekkieA: when either sheep or squito (not sure) stand on top of hand cart. it gets stuck in forever motion. constant squeak
 - FIX player objects like wounds and cloths / stuff in backpack??? dont seem to be updated if data version changes
 
-- switch leader position if 20% more leader power
-- dont let bones decay on floor
-- exile if you wound an ally and close by
-- attack exiled
 - dont allow hiring if seen exiled
-- !ally --> count allyies
 - fix extra carrots
 - add !topscore command
 - add !topcoins command
 - add !prestige command --> lists gained prestige
-- let buffalos heal with one arroy
 - get angry if stealing stuff
 - get angry if dropping snakes in none desert
 - migrate if no food
 - dont migrate too if exiled / migrade away if not strong enough
-- ally up in new town
 - Ai dont take last water from goose
-- let sons follow with 80% their father if aged
-- let daughters follow with 20% their father if aged
 - dont allow build permanent stuff in deep water / mountain if not on floor except floor or floor stakes 
 
 - MASKS: Extra damage
@@ -606,10 +560,9 @@ limestone was weird, if you use hetuw. you can crtl+q to swap items in bp. if yo
 - FOOD make ginger love food carrot pie instead of carrot after generation 3
 - FOOD auto balance food pipes globally if eaten too much
 
-- WRITING / READING
 - SAVE secret for player
 - POPERTY Ally Gates
-- POPERTY Done for Stone Wall / other foritfication missing + stone + hungry work
+- POPERTY more foritfications like grave / plastered wall / stone + hungry work
 
 - Animal hide rabbit / sanakes in snow
 - Animal Let Bears go in cave before winter 
@@ -619,13 +572,8 @@ limestone was weird, if you use hetuw. you can crtl+q to swap items in bp. if yo
 - Animal let pigs hide in swamp
 - Animal let wolfs hide behind trees
 
+- AI: FIX walking through blocked stuff
 - AI: FIX pathing bug
-- FIX? /leader Client crash (if leader or anybody? is out of range??) 
-==> For now you can use insteads !LEADER (!L) or !DL for direct leader (first you follow)
-==> as workaround all player data is send always ==> does still not work
-
-
-- FIX clearing up old lineage data --> needs a fix if player is still alive or if anythign is updated later on from the linage like family Name
 
 Middle priority:
 - Give Escape Snake bite Boni for Snake Boots / Sandlas

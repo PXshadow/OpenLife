@@ -177,7 +177,7 @@ class ServerSettings {
 	public static var ExhaustionHealingFactor:Float = 1.5; //
 	public static var ExhaustionHealingForMaleFaktor:Float = 1.2;
 
-	public static var FoodFactor:Float = 0.8; // reduces gained food value
+	public static var FoodFactor:Float = 1; // 0.8 // reduces gained food value
 	public static var FoodReductionPerEating:Float = 1;
 	public static var FoodReductionFaktorForEatingMeh:Float = 0.2;
 	public static var MaxAge = 60;
@@ -187,8 +187,8 @@ class ServerSettings {
 	public static var OldAgeFoodStoreMax = 10;
 	public static var DeathWithFoodStoreMax:Float = -0.1; // Death through starvation if food store max reaches below XX
 	public static var FoodUseChildFaktor:Float = 1; // children need X times food if below GrownUpAge
-	public static var YumBonus = 3; // old 5 // First time eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
-	public static var MaxHasEatenForNextGeneration:Float = 2; // 2; // used in InheritEatenFoodCounts --> if food should still be yum at least one set one lower them YumBonus
+	public static var YumBonus = 5; // old 5 // First time eaten you get XX yum boni, reduced one per eating. Food ist not yum after eating XX
+	public static var MaxHasEatenForNextGeneration:Float = 4; // 2; // used in InheritEatenFoodCounts --> if food should still be yum at least one set one lower them YumBonus
 	public static var HasEatenReductionForNextGeneration:Float = 1; // 0.2 // used in InheritEatenFoodCounts
 	public static var YumFoodRestore = 0.8; // XX pipes are restored from a random eaten food. Zero are restored if random food is the current eaten food
 	public static var LovedFoodRestore:Float = 0.1; // restore also some loved food like bana for brown
@@ -1785,12 +1785,7 @@ class ServerSettings {
 		ObjectData.getObjectData(1438).secondTimeOutcome = 1435; // Shot Bison --> Bison
 		ObjectData.getObjectData(1438).secondTimeOutcomeTimeToChange = 5 * 60;
 
-		/*trans = new TransitionData(-1, 1440, 0, 1436); // Shot Bison with Calf --> Bison with Calf
-			trans.autoDecaySeconds = -2;
-			transitions.addTransition("PatchTransitions: ", trans);
-		 */
-
-		ObjectData.getObjectData(1440).secondTimeOutcome = 1436; // Shot Bison --> Bison
+		ObjectData.getObjectData(1440).secondTimeOutcome = 1436; // Shot Bison with Calf --> Bison
 		ObjectData.getObjectData(1440).secondTimeOutcomeTimeToChange = 5 * 60;
 
 		// dead bison already exists
