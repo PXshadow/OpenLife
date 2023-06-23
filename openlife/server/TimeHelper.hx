@@ -2231,7 +2231,7 @@ class TimeHelper {
 			if (isPreferredBiome == false && i < 5 && worldmap.randomFloat() <= chancePreferredBiome) continue;
 
 			// limit movement if blocked
-			target = calculateNonBlockedTarget(animal, fromTx, fromTy, target);
+			target = CalculateNonBlockedTarget(animal, fromTx, fromTy, target);
 			if (target == null) continue; // movement was fully bocked, search another target
 			if (target.id != 0 && i < maxIterations / 2) continue; // prefer to go on empty tiles
 
@@ -2535,7 +2535,7 @@ class TimeHelper {
 		}
 	}
 
-	private static function calculateNonBlockedTarget(animal:ObjectHelper, fromX:Int, fromY:Int, toTarget:ObjectHelper):ObjectHelper {
+	public static function CalculateNonBlockedTarget(animal:ObjectHelper, fromX:Int, fromY:Int, toTarget:ObjectHelper):ObjectHelper {
 		var tx = toTarget.tx;
 		var ty = toTarget.ty;
 		var tmpX = fromX;

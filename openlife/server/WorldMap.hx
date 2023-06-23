@@ -1378,12 +1378,14 @@ class WorldMap {
 		return true;
 	}
 
-	public static function PlaceObject(tx:Int, ty:Int, objectToPlace:ObjectHelper, allowReplaceObject:Bool = false):Bool {
+	public static function PlaceObject(tx:Int, ty:Int, objectToPlace:ObjectHelper, allowReplaceObject:Bool = false, considerWalls = false):Bool {
 		// should not be on ground Horse-Drawn Cart 778 // Horse-Drawn Tire Cart 3158
 		TransformObject(objectToPlace);
 
 		var originalObjectToPlace = objectToPlace;
 
+		objectToPlace.tx = tx;
+		objectToPlace.ty = ty;
 		objectToPlace = TryPlaceObject(tx, ty, objectToPlace, allowReplaceObject);
 
 		if (objectToPlace == null) return true;
@@ -1399,7 +1401,7 @@ class WorldMap {
 			var tmpX = tx + world.randomInt(distance * 2) - distance;
 			var tmpY = ty + world.randomInt(distance * 2) - distance;
 
-			objectToPlace = TryPlaceObject(tmpX, tmpY, objectToPlace, allowReplaceObject);
+			objectToPlace = TryPlaceObject(tmpX, tmpY, objectToPlace, allowReplaceObject, considerWalls);
 
 			if (objectToPlace == null) return true;
 		}
@@ -1407,8 +1409,16 @@ class WorldMap {
 		return false;
 	}
 
-	private static function TryPlaceObject(x:Int, y:Int, objectToPlace:ObjectHelper, allowReplaceObject:Bool):ObjectHelper {
+	private static function TryPlaceObject(x:Int, y:Int, objectToPlace:ObjectHelper, allowReplaceObject:Bool, considerWalls = false):ObjectHelper {
 		if (WorldMap.isBiomeBlocking(x, y)) return objectToPlace;
+
+		var obj = world.getObjectHelper(x, y);
+
+		// check if path is free
+		if (considerWalls) obj = TimeHelper.CalculateNonBlockedTarget(objectToPlace, objectToPlace.tx, objectToPlace.ty, obj);
+		if (obj == null) return objectToPlace;
+		x = obj.tx;
+		y = obj.ty;
 
 		var world = Server.server.map;
 		var objId = world.getObjectId(x, y);
@@ -1425,8 +1435,6 @@ class WorldMap {
 
 			return null;
 		}
-
-		var obj = world.getObjectHelper(x, y);
 
 		// FIX: for now allow only graves to be used as cpmtaomers, otherwise stuff might end up in baskets
 		if (objectToPlace.isGrave() && obj.canBePlacedIn(objectToPlace)) {

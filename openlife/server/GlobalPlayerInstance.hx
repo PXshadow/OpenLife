@@ -4029,7 +4029,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (this.heldObject.isContainable()) {
 				grave.containedObjects.push(this.heldObject);
 			} else {
-				WorldMap.PlaceObject(this.tx, this.ty, this.heldObject, true); // TODO test for example with death on horse
+				WorldMap.PlaceObject(this.tx, this.ty, this.heldObject, true, true); // TODO test for example with death on horse
 			}
 
 			this.setHeldObject(null);
@@ -4042,7 +4042,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			grave.containedObjects.push(obj);
 		}
 
-		if (WorldMap.PlaceObject(this.tx, this.ty, grave, true) == false) trace('WARNING: could not place any grave for player: ${this.p_id}');
+		if (WorldMap.PlaceObject(this.tx, this.ty, grave, true, true) == false) trace('WARNING: could not place any grave for player: ${this.p_id}');
 
 		Connection.SendGraveInfoToAll(grave);
 
