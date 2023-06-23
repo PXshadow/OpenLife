@@ -3648,13 +3648,13 @@ class ServerSettings {
 
 		LimitObject(236, 241, 5); // Limit Clay Plate 236 // Fired Plate in Wooden Tongs 241
 
-		LimitObject(183, 180, 10); // Rabbit Fur 183 // Dead Rabbit 180
+		LimitObject(183, 180, 20); // Rabbit Fur 183 // Dead Rabbit 180
 
-		LimitObject(132, 132, 10); // Yew Branch 132
+		LimitObject(132, 132, 20); // Yew Branch 132
 
-		LimitObject(64, 64, 10); // Straight Branch
+		LimitObject(64, 64, 120); // Straight Branch
 
-		LimitObject(213, 1136, 10); // Deep Tilled Row 213 // Shallow Tilled Row 1136
+		LimitObject(213, 1136, 20); // Deep Tilled Row 213 // Shallow Tilled Row 1136
 
 		LimitObjectByNewTarget(2835, 2829, 9); // Fruiting Tomato Plant // Dry Planted Tomato Seed
 		// LimitObjectByNewTarget(623, 623, 3); // Dry Compost Pile 623
