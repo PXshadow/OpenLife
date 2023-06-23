@@ -1258,6 +1258,13 @@ abstract class AiBase {
 		return count > 1;
 	}
 
+	// Hot Pepper 2844
+	// Fruiting Pepper Plant 2843 // Pepper Seed 2808
+	public function hasPepperSeeds() {
+		var count = countCurrentObjects([2844, 2843, 2808]);
+		return count > 1;
+	}
+
 	// isCaringForFire
 
 	private function useHeldObjOnTarget(target:ObjectHelper):Bool {
@@ -2183,6 +2190,8 @@ abstract class AiBase {
 		// Wet Planted Cucumber Seeds 4226 // Cucumber Sprout 4228 // Ripe Cucumber Plant 4232
 		if (doPlant(2, 4, 4225, [4226, 4228, 4232])) return true;
 
+		if (doPlantPepper(2, 5)) return true;
+
 		if (shortCraft(1137, 1143, 30)) return true; // Bowl of Soil 1137 + Potato Plants 1143
 		if (shortCraft(502, 1146, 30)) return true; // Shovel + Mature Potato Plants 1146
 
@@ -2283,6 +2292,12 @@ abstract class AiBase {
 		this.taskState['WheatHarvester'] = 1;
 
 		return false;
+	}
+
+	private function doPlantPepper(minPlanted:Int, maxPlanted:Int) {
+		// Dry Planted Pepper Seed 2839
+		// Wet Planted Pepper Seed 2840 // Pepper Plant 2842
+		return doPlant(minPlanted, maxPlanted, 2839, [2840, 2842]);
 	}
 
 	private function doPlantWheat(minPlanted:Int, maxPlanted:Int) {
@@ -8031,6 +8046,8 @@ abstract class AiBase {
 
 	private function isEating():Bool {
 		var heldObject = myPlayer.heldObject;
+		var heldId = heldObject.parentId;
+
 		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
 		if (myPlayer.canEat(myPlayer.heldObject) == false) return false;
 		if (isHungry == false && myPlayer.isHoldingYum() == false) return false;
@@ -8043,11 +8060,14 @@ abstract class AiBase {
 		if (isHungry == false && heldObject.parentId == 253 && heldObject.numberOfUses >= heldObject.objectData.numUses) return false;
 
 		// dont eat Cooked Goose if there is only one since needed for crafting knife
-		if (myPlayer.heldObject.parentId == 518) {
+		if (heldId == 518) {
 			var home = myPlayer.home;
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 518, 20);
 			if (count < 1) return false;
 		}
+
+		// dont eat last pepper // Hot Pepper 2844
+		if (heldId == 2844 && hasPepperSeeds() == false) return false;
 
 		// var heldObjectIsEatable = myPlayer.heldObject.objectData.foodValue > 0;
 		// if(heldObjectIsEatable == false) return false;
