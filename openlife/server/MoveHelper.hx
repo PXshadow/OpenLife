@@ -300,6 +300,13 @@ class MoveHelper {
 			// check if moved one step
 			if (moved >= length) {
 				move = moveHelper.newMoves.shift();
+
+				if (p.isBlocked(p.tx + move.x, p.ty + move.y)) {
+					trace('${p.name}${p.id} WARNING! tile is blocked!');
+					CancleMovement(p);
+					return;
+				}
+
 				p.x += move.x;
 				p.y += move.y;
 

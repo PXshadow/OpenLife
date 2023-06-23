@@ -218,13 +218,18 @@ class PathfinderNew {
 		var length = currentMap[Index(x, y)];
 		if (length == 0) return null;
 
+		if (map.isWalkable(x, y) == false) return null;
+
 		for (py in -1...2) {
 			for (px in -1...2) {
 				if (px == 0 && py == 0) continue;
 				if (x + px < 0) continue;
 				if (y + py < 0) continue;
-				if (x + px >= width) continue;
-				if (y + py >= width) continue;
+				// if (x + px >= width) continue;
+				// if (y + py >= width) continue;
+				// FIX: allowed AI to pass over blocked biome if width and not width -1 os used
+				if (x + px >= width - 1) continue;
+				if (y + py >= width - 1) continue;
 
 				var currentLength = currentMap[Index(x + px, y + py)];
 
@@ -474,6 +479,9 @@ class PathfinderNew {
 					if (currentY + py < 0) continue;
 					if (currentX + px >= width) continue;
 					if (currentY + py >= width) continue;
+					// TODO not sure if width or width -1 should be used
+					// if (currentX + px >= width - 1) continue;
+					// if (currentY + py >= width - 1) continue;
 
 					length = currentMap[Index(currentX + px, currentY + py)];
 
