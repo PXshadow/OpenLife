@@ -1252,6 +1252,12 @@ abstract class AiBase {
 		return false;
 	}
 
+	private function hasBeanSeeds() {
+		// Bowl of Dry Beans 1176 // Dry Bean Plants 1172
+		var count = countCurrentObjects([1176, 1172]);
+		return count > 1;
+	}
+
 	// isCaringForFire
 
 	private function useHeldObjOnTarget(target:ObjectHelper):Bool {
@@ -3061,7 +3067,7 @@ abstract class AiBase {
 		if (doPlantBeans(2, 4)) return true;
 
 		// Bowl of Soaking Beans 1180
-		if (craftItem(1180)) return true;
+		if (hasBeanSeeds() && craftItem(1180, 3)) return true;
 
 		// Raw Stew Pot 1246 // ???Crock with Squash 1243
 		if (hasCornSeeds && craftItem(1246)) return true;
@@ -4019,7 +4025,7 @@ abstract class AiBase {
 			if (shortCraftOnTarget(1354, hotCoals)) return true;
 
 			// Bowl of Soaking Beans 1180
-			if (shortCraftOnTarget(1180, hotCoals)) return true;
+			if (shortCraftOnTarget(1180, hotCoals, false)) return true;
 
 			// Kindling 72
 			if (hotCoals == firePlace && shortCraftOnTarget(72, hotCoals)) return true;
@@ -4073,6 +4079,8 @@ abstract class AiBase {
 		if (craftItem(569)) return true;
 		// Raw Pork 1342
 		if (craftItem(1342)) return true;
+		// Bowl of Soaking Beans 1180
+		if (hasBeanSeeds() && craftItem(1180, 3)) return true;
 		// Skinned Rabbit 181
 		// if(craftItem(181)) return true;
 
