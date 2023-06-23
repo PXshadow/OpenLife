@@ -5541,8 +5541,8 @@ abstract class AiBase {
 		// Raw Pork 1342
 		if (makeOrCollect(1342, 1, 5)) return true;
 
-		// Rope 59
-		if (makeOrCollect(59, 1, 3)) return true;
+		// Thread 58 // Rope 59
+		if (makeOrCollect(58, 1, 3)) return true;
 
 		// Kindling 72
 		if (makeOrCollect(72, 6, 10)) return true;
