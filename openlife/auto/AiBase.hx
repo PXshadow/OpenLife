@@ -385,7 +385,7 @@ abstract class AiBase {
 		// itemToCraft.searchCurrentPosition = true;
 		itemToCraft.searchCurrentPosition = false;
 		// itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
-		itemToCraft.maxSearchRadius = 30;
+		itemToCraft.maxSearchRadius = 60; // 30
 		ignoreFullPiles = false;
 		calledCraftItem = false;
 
@@ -491,7 +491,7 @@ abstract class AiBase {
 		Macro.exception(if (isEating()) return);
 		// should be below isUsingItem since a use can be used to drop an hold item on a pile to pickup a baby
 		Macro.exception(if (isFeedingChild()) return);
-		Macro.exception(if (deadlyPlayer == null && switchCloths()) return);
+		Macro.exception(if (switchCloths()) return);
 
 		if (playerToFollow != null && autoStopFollow == false) {
 			var time = TimeHelper.CalculateTimeSinceTicksInSec(timeStartedToFolow);
@@ -552,6 +552,7 @@ abstract class AiBase {
 
 		var heldObjId = myPlayer.heldObject.parentId;
 
+		Macro.exception(if (isHandlingFire()) return);
 		if (doKnifeStuff()) return;
 
 		// if (this.lastProfession == 'BAKER') Macro.exception(if (doBaking()) return);
@@ -561,12 +562,9 @@ abstract class AiBase {
 		// if(doWateringOn(396)) return; // Dry Planted Carrots 396
 
 		// Bowl of Gooseberries and Carrot 258 + Hungry Domestic Lamb 604
-		if (shortCraft(258, 604, 10)) return;
+		// if (shortCraft(258, 604, 10)) return;
 		// Bowl with Corn Kernels 1247 + Hungry Domestic Calf 1462
-		if (hasCornSeeds && shortCraft(1247, 1462, 10)) return;
-
-		Macro.exception(if (isHandlingFire()) return);
-		Macro.exception(if (isCollecting(1)) return);
+		// if (hasCornSeeds && shortCraft(1247, 1462, 10)) return;
 
 		itemToCraft.searchCurrentPosition = false; // true
 		itemToCraft.maxSearchRadius = 30;
@@ -612,6 +610,8 @@ abstract class AiBase {
 		// var rightAge = myPlayer.age > 10 && Math.floor((myPlayer.age + 2) / 6) % 2 == 0;
 		var rightAge = myPlayer.age > 10;
 		if (rightAge) Macro.exception(if (craftMediumPriorityClothing(1)) return);
+
+		Macro.exception(if (isCollecting(1)) return);
 
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = 30; // old null
@@ -5400,7 +5400,7 @@ abstract class AiBase {
 	private function killAnimal(animal:ObjectHelper):Bool {
 		if (animal == null && animalTarget == null) {
 			var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(timeLookedForDeadlyAnimalAtHome);
-			if (passedTime > 20) {
+			if (passedTime > 10) {
 				// trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: look for wolf at home');
 				timeLookedForDeadlyAnimalAtHome = TimeHelper.tick;
 				this.animalTarget = AiHelper.GetClosestObjectToPosition(myPlayer.home.tx, myPlayer.home.ty, 418, 20); // Wolf
@@ -7817,7 +7817,12 @@ abstract class AiBase {
 		Macro.exception(if (isUsingItem()) return true);
 		Macro.exception(if (isRemovingFromContainer()) return true);
 
+		// TODO rework priorities combine with not hungry prios
 		Macro.exception(if (isHandlingGraves()) return true);
+		Macro.exception(if (isPickingupCloths()) return true);
+		Macro.exception(if (isHandlingFire()) return true);
+		// Macro.exception(if (attackPlayer(deadlyPlayer)) return true);
+		// Macro.exception(if (killAnimal(animal)) return true);
 
 		if (myPlayer.isMoving()) return true;
 
