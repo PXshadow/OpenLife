@@ -2843,21 +2843,22 @@ abstract class AiBase {
 		var heldObject = myPlayer.heldObject;
 		var heldId = heldObject.parentId;
 		var home = myPlayer.home;
-		var knife = myPlayer.heldObject.parentId == 560 ? myPlayer.heldObject : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 560, 30, null, myPlayer);
-		var maxDoughInBowl = knife == null ? 0 : 1;
+		var hasKnife = countCurrentObject(560) > 0;
+		var maxDoughInBowl = hasKnife ? 1 : 0;
 
 		// Sliced Bread 1471
-		var countSlicedBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1471, 20);
+		var countSlicedBread = countCurrentObject(1471);
 		// Leavened Dough on Clay Plate 1468
-		var countBread = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1468, 20);
+		var countBread = countCurrentObject(1468);
 
-		var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, home);
+		/*
+			var quadDistanceToHome = AiHelper.CalculateQuadDistanceToObject(myPlayer, home);
 
-		// If far away from home count also stuff at current position
-		if (quadDistanceToHome > 90) {
-			countSlicedBread += countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1471, 20);
-			countBread += countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1468, 20);
-		}
+			// If far away from home count also stuff at current position
+			if (quadDistanceToHome > 90) {
+				countSlicedBread += countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1471, 20);
+				countBread += countSlicedBread + AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1468, 20);
+		}*/
 
 		countBread += countSlicedBread;
 
@@ -2867,11 +2868,9 @@ abstract class AiBase {
 		if (heldObject.parentId == 252 && heldObject.numberOfUses > maxDoughInBowl && shortCraft(252, 236)) return true;
 
 		// Use up all the Dough if there is enough bread // Bowl of Dough 252
-		var countDough = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 252, 20);
+		var countDough = countCurrentObject(252);
 		// Raw Pie Crust 264
-		var countPieCrust = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 264, 30);
-
-		if (heldObject.parentId == 252) countDough += 1;
+		var countPieCrust = countCurrentObject(264);
 
 		// Raw Pie Crust 264
 		if (countDough > 0 && countPieCrust < 5 && maxDoughInBowl == 0 && craftItem(264)) return true;
@@ -2904,7 +2903,7 @@ abstract class AiBase {
 			}
 		}
 
-		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 30); // Clay Plate
+		var countPlates = countCurrentObject(236); // Clay Plate
 		var hasClosePlate = countPlates > 0;
 
 		var neededRaw = isHungry ? 1 : 4;
@@ -2972,14 +2971,9 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
-		// 560 Knife
-		if (knife != null && this.profession['BAKER'] < 3) {
-			// Knife + Mango on a Plate 1879--> Mango Slices 1880
-			if (shortCraft(560, 1879, 20, false)) return true;
-
-			// Mango Slices 1880
-			var countMango = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1880, 20);
-			if (countMango < 1 && craftItem(1879)) return true; // Mango on a Plate 1879
+		if (hasKnife && this.profession['BAKER'] < 3) {
+			// Chopped Tomato on Plate 2861
+			if (craftItemMax(2861)) return true;
 
 			// 1470 Baked Bread
 			if (shortCraft(560, 1470, 20, false)) return true;
@@ -2996,6 +2990,18 @@ abstract class AiBase {
 				// 1468 Leavened Dough on Clay Plate
 				if (countBread < 2 && craftItem(1468)) return true; // Use craftItem so that it can be limited
 			}
+
+			// Mango Slices 1880
+			if (craftItemMax(1880)) return true;
+
+			/*
+				// Knife + Mango on a Plate 1879--> Mango Slices 1880
+				if (shortCraft(560, 1879, 20, false)) return true;
+
+				// Mango Slices 1880
+				var countMango = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1880, 20);
+				if (countMango < 1 && craftItem(1879)) return true; // Mango on a Plate 1879
+			 */
 		}
 
 		this.profession['BAKER'] = 3; // TODO set to 2 once in a while to check for bread stuff???
@@ -6067,9 +6073,13 @@ abstract class AiBase {
 
 	private var calledCraftItem = false; // to not call craftItem recursive // FIX endless loop if filling bucket with water
 
+	private function craftItemMax(objId:Int, max = 1) {
+		var count = countCurrentObject(objId);
+		return count < max && craftItem(objId);
+	}
+
 	// TODO consider backpack / contained objects
 	// currently considers heldobject, close objects and objects close to home
-
 	private function craftItem(objId:Int, maxDistance = -1, onlyHome = false):Bool {
 		var tmpMaxSearchRadius = itemToCraft.maxSearchRadius;
 		var tmpSearchCurrentPosition = itemToCraft.searchCurrentPosition;
