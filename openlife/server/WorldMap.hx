@@ -1401,6 +1401,8 @@ class WorldMap {
 			var tmpX = tx + world.randomInt(distance * 2) - distance;
 			var tmpY = ty + world.randomInt(distance * 2) - distance;
 
+			if (i > 5000) considerWalls = false; // allow to ignore walls / blocking biomes if hard to place
+
 			objectToPlace = TryPlaceObject(tmpX, tmpY, objectToPlace, allowReplaceObject, considerWalls);
 
 			if (objectToPlace == null) return true;
