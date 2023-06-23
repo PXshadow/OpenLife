@@ -576,11 +576,10 @@ abstract class AiBase {
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (handleTemperature()) return);
 		Macro.exception(if (doFeedLambsAndCalfs(1)) return);
-		Macro.exception(if (doStuff && isHunting()) return);
+		Macro.exception(if (doStuff && myPlayer.age > 20 && isHunting()) return);
 		Macro.exception(if (makeSharpieFood(5)) return);
 		Macro.exception(if (isHandlingGraves()) return);
 		Macro.exception(if (fillBucketIfNeeded()) return);
-		// Macro.exception(if (shortCraft(852, 2832, 20, false)) return); // Weak Skewer + Tomato Sprout
 		Macro.exception(if (shortCraft(139, 2832, 20)) return); // Skewer + Tomato Sprout
 
 		// if(craftItem(283)) return;
@@ -610,8 +609,9 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100) trace('AI TIME WARNING: ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 		// medium priorty tasks
 		// TODO itemToCraft.searchCurrentPosition should be true? since wont pickup arrows at current pos
-		var rightAge = myPlayer.age > 10 && Math.floor((myPlayer.age + 2) / 6) % 2 == 0;
-		if (rightAge) Macro.exception(if (craftMediumPriorityClothing(2)) return);
+		// var rightAge = myPlayer.age > 10 && Math.floor((myPlayer.age + 2) / 6) % 2 == 0;
+		var rightAge = myPlayer.age > 10;
+		if (rightAge) Macro.exception(if (craftMediumPriorityClothing(1)) return);
 
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = 30; // old null
@@ -4171,7 +4171,7 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function craftMediumPriorityClothing(maxProf:Int = 2):Bool {
+	private function craftMediumPriorityClothing(maxProf:Int = 1):Bool {
 		// trace('craftMediumPriorityClothing');
 
 		var objData = ObjectData.getObjectData(152); // Bow and Arrow
@@ -4179,11 +4179,7 @@ abstract class AiBase {
 		var color = myPlayer.getColor();
 		var isWhiteOrGinger = (color == Ginger || color == White);
 
-		if (isOldEnoughForBow) {
-			// Hunting gear 874 Empty Arrow Quiver
-			if (craftClothIfNeeded(874)) return true;
-			if (fillUpQuiver()) return true;
-		}
+		if (isOldEnoughForBow && fillUpQuiver()) return true;
 
 		if (hasOrBecomeProfession('TAILOR', maxProf) == false) return false;
 
@@ -4301,7 +4297,23 @@ abstract class AiBase {
 	}
 
 	private function fillUpQuiver():Bool {
+		var tmpMaxSearchRadius = itemToCraft.maxSearchRadius;
+		var count = countProfession('TAILOR');
+
+		itemToCraft.maxSearchRadius = count < 1 || lastProfession == 'TAILOR' ? 60 : 20;
+		if (myPlayer.age < 20) itemToCraft.maxSearchRadius = 20;
+		var done = fillUpQuiverHelper();
+		itemToCraft.maxSearchRadius = tmpMaxSearchRadius;
+
+		return done;
+	}
+
+	private function fillUpQuiverHelper():Bool {
 		var heldId = myPlayer.heldObject.parentId;
+
+		// Hunting gear 874 Empty Arrow Quiver
+		if (craftClothIfNeeded(874)) return true;
+
 		// Empty Arrow Quiver
 		var quiver = myPlayer.getClothingById(874);
 		// Arrow Quiver
@@ -5487,7 +5499,7 @@ abstract class AiBase {
 	private function isHunting(maxPeople = 1) {
 		if (hasOrBecomeProfession('HUNTER', maxPeople) == false) return false;
 		var quadDistanceToHome = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
-		if (quadDistanceToHome < 900) {
+		if (quadDistanceToHome < 400) {
 			// Try kill some Mosquito // Firebrand + Mosquito Swarm just bit --> 0 + Ashes
 			if (shortCraft(248, 2157, 20)) return true;
 		}
