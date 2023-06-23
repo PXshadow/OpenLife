@@ -552,10 +552,7 @@ abstract class AiBase {
 
 		var heldObjId = myPlayer.heldObject.parentId;
 
-		// 1470 Baked Bread
-		if (heldObjId == 560 && shortCraft(560, 1470, 10, false)) return;
-		// 560 Knife // 1468 Leavened Dough on Clay Plate
-		if (heldObjId == 560 && shortCraft(560, 1468, 10, false)) return;
+		if (doKnifeStuff()) return;
 
 		// if (this.lastProfession == 'BAKER') Macro.exception(if (doBaking()) return);
 
@@ -772,6 +769,23 @@ abstract class AiBase {
 			var rand = WorldMap.calculateRandomFloat();
 			if (rand < 0.05) myPlayer.say('say make xxx to give me some work!'); else if (rand < 0.2) myPlayer.say('nothing to do...');
 		}
+	}
+
+	private function doKnifeStuff() {
+		var dist = 20;
+		var heldObjId = myPlayer.heldObject.parentId;
+
+		if (heldObjId != 560) return false; // 560 Knife
+
+		// Baked Bread 1470
+		if (heldObjId == 560 && shortCraft(560, 1470, dist, false)) return true;
+		// Knife 560 // Leavened Dough on Clay Plate 1468
+		if (heldObjId == 560 && shortCraft(560, 1468, dist, false)) return true;
+		// Dead Wolf 422
+		if (heldObjId == 560 && shortCraft(560, 422, dist, false)) return true;
+		// Dead Grizzly Bear 643
+		if (heldObjId == 560 && shortCraft(560, 643, dist, false)) return true;
+		return false;
 	}
 
 	private function GetCraftAndDropItemsCloseToObj(target:ObjectHelper, whichObjId:Int, maxCount = 1, dist = 8, craft = true):Bool {
@@ -2843,7 +2857,7 @@ abstract class AiBase {
 		var heldObject = myPlayer.heldObject;
 		var heldId = heldObject.parentId;
 		var home = myPlayer.home;
-		var hasKnife = countCurrentObject(560) > 0;
+		var hasKnife = countCurrentObject(560) > 0; // Knife 560
 		var maxDoughInBowl = hasKnife ? 1 : 0;
 
 		// Sliced Bread 1471
@@ -7739,6 +7753,7 @@ abstract class AiBase {
 		if (myPlayer.isMoving()) return true;
 
 		Macro.exception(if (shortCraft(0, 400, 10)) return true); // pull out the carrots
+		if (doKnifeStuff()) return true;
 
 		// Clay Bow 235 + Three Sisters Stew 1249
 		if (shortCraft(235, 1249, 20, 1)) return true;
