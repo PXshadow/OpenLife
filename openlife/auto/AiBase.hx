@@ -7762,14 +7762,18 @@ abstract class AiBase {
 			quadDistance = myPlayer.CalculateQuadDistanceToObject(foodTarget);
 
 			if (myPlayer.isMeh(foodTarget)) quadDistance *= 4;
-			if (myPlayer.isSuperMeh(foodTarget)) quadDistance *= 8;
+			if (myPlayer.isSuperMeh(foodTarget)) quadDistance *= 4;
 
+			if (quadDistance < 900) trace('AAI: ${myPlayer.name + myPlayer.id} food is near: quadDistance: ${quadDistance}');
 			if (quadDistance < 900) return false;
 		}
 
 		// Dont try to make Food if too far from home
 		var quadDistanceToHome = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
-		if (quadDistanceToHome > 900) return false;
+		if (quadDistanceToHome > quadDistance)
+			trace('AAI: ${myPlayer.name + myPlayer.id} too far away from home to consider make food! quadDistanceToHome: ${quadDistanceToHome} to food: ${quadDistance}');
+		if (quadDistanceToHome > quadDistance) return false;
+		// if (quadDistanceToHome > 900) return false;
 
 		Macro.exception(if (isMakingSeeds()) return true); // Count carrots // do before searching foood to not pull out carrots needed for seeds
 
