@@ -3379,6 +3379,9 @@ abstract class AiBase {
 		// Steel File Blank on Flat Rock 335
 		if (shortCraft(0, 450, 20, false)) return true;
 
+		// Steel Chisel on Flat Rock 451
+		if (shortCraft(0, 451, 20, false)) return true;
+
 		if (this.profession['SMITH'] < 3) {
 			// TODO fix make space for them otherwise it might try again and again
 			// Flat Rock 291
@@ -3521,18 +3524,16 @@ abstract class AiBase {
 
 		// Steel Axe 334
 		if (this.profession['SMITH'] < 8) {
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 334, 60);
-			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 334, 60);
-			if (heldId == 334) count += 1;
+			var count = countCurrentObject(334);
+			// count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 334, 60);
 			if (count < 1 && craftItem(334)) return true;
 			this.profession['SMITH'] = 8;
 		}
 
 		// Steel Chisel 455
 		if (this.profession['SMITH'] < 9) {
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 455, 30);
-			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 455, 30);
-			if (heldId == 455) count += 1;
+			var count = countCurrentObject(455);
+			// count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 455, 30);
 			if (count < 1 && craftItem(455)) return true;
 			this.profession['SMITH'] = 9;
 		}
@@ -6462,7 +6463,7 @@ abstract class AiBase {
 			var secondsUntillChange = itemToCraft.transTarget.timeUntillChange();
 
 			// Dont wait for animals
-			if (itemToCraft.transTarget.isAnimal() == false && secondsUntillChange < 5) {
+			if (itemToCraft.transTarget.isAnimal() == false && secondsUntillChange < 10) {
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft Actor is TIME target ${itemToCraft.transTarget.name} ');
 				this.time += secondsUntillChange / 4;
 				// TODO wait some time, or better get next obj
