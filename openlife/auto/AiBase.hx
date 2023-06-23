@@ -6219,6 +6219,27 @@ abstract class AiBase {
 		var targetId = itemToCraft.transTarget.parentId;
 		var heldId = myPlayer.heldObject.parentId;
 
+		// Dont place Rabbit Bait or other not belonging stuff on Flat Rock near Forge
+		// Flat Rock 291
+		// Hot Iron Bloom in Wooden Tongs 308 // Hot Wrought Iron in Wooden Tongs 2217
+		// Hot steel Ingot in Wooden Tongs 329 // Hot Steel Blade in Wooden Tongs 1525
+		// Hot Rod in Wooden Tongs 2293
+		var allowedOnFlatRockIds = [308, 2217, 329, 1525, 2293];
+		if (targetId == 291 && allowedOnFlatRockIds.contains(actorId) == false) {
+			var forge = GetForge();
+			if (forge != null) {
+				// Get Flat Rock at least 5 Tiles away from Forge
+				var newTarget = AiHelper.GetClosestObjectToTarget(myPlayer, forge, objId, 291, 5);
+				if (newTarget == null) {
+					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} no Flat Rock found that was not close to Forge!');
+					return false;
+				}
+				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} new Flat Rock found that was not close to Forge!');
+				itemToCraft.transTarget = newTarget;
+				targetId = itemToCraft.transTarget.parentId;
+			}
+		}
+
 		// Dont allow to pickup berrry bowl if bowl cant be filled
 		// Bowl of Gooseberries 253
 		var targetIsNoBush = berryBushesIds.contains(targetId) == false;
@@ -6259,7 +6280,7 @@ abstract class AiBase {
 				count += itemToCraft.transitionsByObjectId[id].count;
 			}
 
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: Yargets to fill ${actor.name} ${count}');
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} craft: targets to fill ${actor.name} ${count}');
 			if (shouldDebugSay()) myPlayer.say('Yargets to fill ${actor.name} ${count}');
 
 			if (count < 1) return false;
