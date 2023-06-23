@@ -463,7 +463,8 @@ class TimeHelper {
 		var factor = isMyFamily ? 1.2 : 2;
 
 		if (player.age > 6 && myPower > leaderPower * factor) {
-			trace('Leader change: ${player.name} myPower: ${myPower} ${leader.name} leaderPower: ${leaderPower} isMyFamily: ${isMyFamily}');
+			if (ServerSettings.debug)
+				trace('Leader change: ${player.name} myPower: ${myPower} ${leader.name} leaderPower: ${leaderPower} isMyFamily: ${isMyFamily}');
 
 			player.followPlayer = leader.followPlayer;
 			leader.followPlayer = player;

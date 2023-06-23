@@ -7787,13 +7787,13 @@ abstract class AiBase {
 			if (myPlayer.isMeh(foodTarget)) quadDistance *= 4;
 			if (myPlayer.isSuperMeh(foodTarget)) quadDistance *= 4;
 
-			if (quadDistance < 900) trace('AAI: ${myPlayer.name + myPlayer.id} food is near: quadDistance: ${quadDistance}');
+			if (quadDistance < 900 && ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} food is near: quadDistance: ${quadDistance}');
 			if (quadDistance < 900) return false;
 		}
 
 		// Dont try to make Food if too far from home
 		var quadDistanceToHome = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
-		if (quadDistanceToHome > quadDistance)
+		if (quadDistanceToHome > quadDistance && ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} too far away from home to consider make food! quadDistanceToHome: ${quadDistanceToHome} to food: ${quadDistance}');
 		if (quadDistanceToHome > quadDistance) return false;
 		// if (quadDistanceToHome > 900) return false;
