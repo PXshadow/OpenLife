@@ -682,13 +682,13 @@ abstract class AiBase {
 
 		Macro.exception(if (doWatering(1)) return);
 		Macro.exception(if (doCarrotFarming(1)) return);
-		Macro.exception(if (doBaking(1)) return);
-		Macro.exception(if (isSheepHerding(1)) return);
-		Macro.exception(if (isCollecting(1)) return);
-		// Macro.exception(if (cleanUpBowls(253)) return); // Bowl of Gooseberries 253
-		Macro.exception(if (doBasicFarming(1)) return);
-		Macro.exception(if (doPottery(1)) return);
+		// Macro.exception(if (doBaking(1)) return);
+		// Macro.exception(if (doPottery(1)) return);
+		// Macro.exception(if (isSheepHerding(1)) return);
+		// Macro.exception(if (doBasicFarming(1)) return);
+
 		Macro.exception(if (fillBeanBowlIfNeeded()) return); // green beans
+		// Macro.exception(if (cleanUpBowls(253)) return); // Bowl of Gooseberries 253
 		// Macro.exception(if (cleanUpBowls(1176)) return); // Bowl of Dry Beans 1176
 		// Macro.exception(if (fillBeanBowlIfNeeded(false)) return); // dry beans
 
@@ -698,11 +698,11 @@ abstract class AiBase {
 
 		for (i in 0...5) {
 			jobByAge = (jobByAge + i) % 5;
-			if (jobByAge == 0) Macro.exception(if (doWatering()) return); else if (jobByAge == 1) Macro.exception(if (doBasicFarming()) return); else
+			if (jobByAge == 0) Macro.exception(if (doBerryFarming()) return); else if (jobByAge == 1) Macro.exception(if (doBasicFarming()) return); else
 				if (jobByAge == 2) Macro.exception(if (doBaking()) return); else if (jobByAge == 3) Macro.exception(if (doPottery()) return); else
 					if (jobByAge == 4) Macro.exception(if (isSheepHerding()) return);
 		}
-		Macro.exception(if (doBerryFarming()) return);
+		// Macro.exception(if (doBerryFarming()) return);
 
 		itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
 
@@ -2522,7 +2522,7 @@ abstract class AiBase {
 
 	private function doPottery(maxPeople:Int = 1):Bool {
 		var tmpMaxSearchRadius = itemToCraft.maxSearchRadius;
-		itemToCraft.maxSearchRadius = 60;
+		itemToCraft.maxSearchRadius = 30;
 		var done = doPotteryHelper(maxPeople);
 		itemToCraft.maxSearchRadius = tmpMaxSearchRadius;
 
@@ -2537,31 +2537,16 @@ abstract class AiBase {
 
 		if (shortCraftOnGround(283)) return true; // Wooden Tongs with Fired Bowl
 		if (shortCraftOnGround(241)) return true; // Fired Plate in Wooden Tongs
-		// Basket of Charcoal 29
-		var countCharcoalBasket = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 298, 20);
+
+		// Basket of Charcoal 298
+		var countCharcoalBasket = countCurrentObject(298);
 		if (countCharcoalBasket > 2 && shortCraftOnGround(298)) return true;
-
-		// if(shortCraftOnGround(284)) return true; // Wet Bowl in Wooden Tongs
-		// if(shortCraftOnGround(240)) return true; // Wet Plate in Wooden Tongs
-
-		var countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15, false); // Wet Clay Bowl 233
-		var countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15, false); // Wet Clay Plate 234
-
-		countWetBowl += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 284, 15, false); // Wet Bowl in Wooden Tongs
-		countWetPlate += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 240, 15, false); // Wet Plate in Wooden Tongs
-
-		if (myPlayer.heldObject.parentId == 284) countWetBowl += 1; // Wet Bowl in Wooden Tongs
-		if (myPlayer.heldObject.parentId == 240) countWetPlate += 1; // Wet Plate in Wooden Tongs
 
 		// Firing Adobe Kiln 282
 		var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer);
-		// Firing Forge 304
-		// var forgeOnFire = kiln != null ? null : AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 304, 20, null, myPlayer);
-
-		// if (kiln != null || forgeOnFire != null) {
 		if (kiln != null) {
 			this.profession['POTTER'] = 10;
-			if (doPotteryOnFire(countWetBowl, countWetPlate)) return true;
+			if (doPotteryOnFire()) return true;
 		}
 
 		if (shortCraft(0, 294)) return true; // unseal Sealed Adobe Kiln 294 ==> Adobe Kiln with Charcoal
@@ -2574,10 +2559,19 @@ abstract class AiBase {
 		// Sealed Adobe Kiln 294
 		// if(kiln == null) kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 294, 20, null, myPlayer);
 
-		if (this.profession['POTTER'] < 2 && countWetBowl + countWetPlate < 4) {
+		// Wet Clay Bowl 233 // Wet Bowl in Wooden Tongs 284
+		var countWetBowl = countCurrentObjects([233, 284]);
+		// Wet Clay Plate 234 // Wet Plate in Wooden Tongs 240
+		var countWetPlate = countCurrentObjects([234, 240]);
+		// Wet Clay Crock 1216 // Wet Crock in Wooden Tongs 1218
+		var countWetCrock = countCurrentObjects([1216, 1218]);
+		// Clay 126
+		var clay = countCurrentObject(126);
+		clay += countWetBowl + countWetPlate;
+
+		if (this.profession['POTTER'] < 2 && clay < 4) {
 			itemToCraft.maxSearchRadius = ServerSettings.AiMaxSearchRadius;
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 126, 20); // Clay 126
-			if (count < 5 && gatherClay(kiln)) return true; // home is used if there is no kiln
+			if (gatherClay(kiln)) return true; // home is used if there is no kiln
 			itemToCraft.maxSearchRadius = 30;
 		}
 
@@ -2585,12 +2579,13 @@ abstract class AiBase {
 
 		if (kiln == null) return false;
 
-		var countBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 30); //  Clay Bowl 235
-		var countPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 236, 30); //  Clay Plate 236
+		var countBowl = countCurrentObject(235); //  Clay Bowl 235
+		var countPlate = countCurrentObject(236); //  Clay Plate 236
 		var maxBowls = ObjectData.getObjectData(235).aiCraftMax; // Clay Bowl 235
 		var maxPlates = ObjectData.getObjectData(236).aiCraftMax; // Clay Plate 236
 
-		if (countBowl >= maxBowls && countPlate >= maxPlates && (countWetBowl + countWetPlate < 3)) {
+		// if (countBowl >= maxBowls && countPlate >= maxPlates && (countWetBowl + countWetPlate < 3)) {
+		if (countBowl >= maxBowls && countPlate >= maxPlates) {
 			this.profession['POTTER'] = 0;
 			return false;
 		}
@@ -2627,42 +2622,48 @@ abstract class AiBase {
 		if (neededBowls + neededPlates > 0 && shortCraft(33, 126)) return true; // Stone 33, Clay 126 --> Wet Clay Bowl 233
 
 		this.profession['POTTER'] = 10;
-		if (doPotteryOnFire(countWetBowl, countWetPlate)) return true;
+		if (doPotteryOnFire()) return true;
 
 		this.profession['POTTER'] = 0;
 
 		return false;
 	}
 
-	private function doPotteryOnFire(countWetBowl:Int = -1, countWetPlate:Int = -1):Bool {
+	private function doPotteryOnFire():Bool {
 		var home = myPlayer.home;
-		if (countWetBowl < 0) {
-			countWetBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 233, 15, false); // Wet Clay Bowl 233
-			countWetBowl += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 284, 15, false); // Wet Bowl in Wooden Tongs
-		}
-		if (countWetPlate < 0) {
-			countWetPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 234, 15, false); // Wet Clay Plate 234
-			countWetPlate += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 240, 15, false); // Wet Plate in Wooden Tongs
-		}
+		// Wet Clay Bowl 233 // Wet Bowl in Wooden Tongs 284
+		var countWetBowl = countCurrentObjects([233, 284]);
+		// Wet Clay Plate 234 // Wet Plate in Wooden Tongs 240
+		var countWetPlate = countCurrentObjects([234, 240]);
+		// Wet Clay Crock 1216 // Wet Crock in Wooden Tongs 1218
+		var countWetCrock = countCurrentObjects([1216, 1218]);
 
-		var countBowl = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 235, 30); //  Clay Bowl 235
+		var countBowl = countCurrentObject(235); //  Clay Bowl 235
 		var maxBowls = ObjectData.getObjectData(235).aiCraftMax; // Clay Bowl 235
 
 		if (shouldDebugSay()) myPlayer.say('make bowl $countBowl from $maxBowls');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make bowl $countBowl from $maxBowls');
 
-		if (countWetBowl > 0 && countBowl < maxBowls && craftItem(283)) return true; // Wooden Tongs with Fired Bowl
+		// Wooden Tongs with Fired Bowl 283
+		if (countWetBowl > 0 && countBowl < maxBowls && craftItem(283)) return true;
 
-		var countPlate = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 236, 30); //  Clay Plate 236
+		var countPlate = countCurrentObject(236); // Clay Plate 236
 		var maxPlates = ObjectData.getObjectData(236).aiCraftMax; // Clay Plate 236
 
 		if (shouldDebugSay()) myPlayer.say('make Plate $countPlate from ${maxPlates}');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make Plate $countPlate from ${maxPlates}');
 		if (countWetPlate > 0 && countPlate < maxPlates && craftItem(241)) return true; // Fired Plate in Wooden Tongs
 
+		var countCrock = countCurrentObject(1217); // Clay Crock 1217
+		var maxCrock = ObjectData.getObjectData(1217).aiCraftMax; // Clay Crock 1217
+
+		if (shouldDebugSay()) myPlayer.say('make Crock $countCrock from ${maxCrock}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make Crock $countCrock from ${maxCrock}');
+		if (countWetCrock > 0 && countCrock < maxCrock && craftItem(1219)) return true; // Wooden Tongs with Fired Crock 1219
+
 		// TODO make other potter stuff
 
-		var countCoal = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 300, 30); //  Big Charcoal Pile 300
+		var countCoal = countCurrentObject(300); //  Big Charcoal Pile 300
 
 		// Adobe 127 // Firing Adobe Kiln 282
 		if (countCoal < 5 && shortCraft(127, 282)) return true;
@@ -2966,7 +2967,7 @@ abstract class AiBase {
 		var countRawPieCrust = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 264, 30);
 
 		// if(hasClosePlate == false) return craftItem(236); // Clay Plate
-		if (hasClosePlate == false && countRawPieCrust < 1) return doPottery(2);
+		if (hasClosePlate == false && countRawPieCrust < 1) return doPottery(1);
 
 		if (ServerSettings.DebugAi && (Sys.time() - startTime) * 1000 > 100)
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
@@ -3050,6 +3051,8 @@ abstract class AiBase {
 		Macro.exception(if (fillBerryBowlIfNeeded()) return true);
 
 		// if (doWateringHelper(1, 15)) return true;
+
+		if (doPottery(1)) return true;
 
 		if (isHungry == false && cleanUp()) return true;
 
@@ -3318,9 +3321,9 @@ abstract class AiBase {
 		// Firing Forge 304 // Stone 33 // Smithing Hammer 441
 		if (forge.parentId != 304 && heldObject.parentId != 33 && heldObject.parentId != 441) {
 			// Firing Adobe Kiln 282
-			var kiln = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 282, 20, null, myPlayer);
+			var countFirekiln = countCurrentObject(282);
 
-			if (kiln != null && doPotteryOnFire()) return true; // make ready bowls / plates
+			if (countFirekiln > 0 && doPotteryOnFire()) return true; // make ready bowls / plates
 		}
 
 		// Cold Iron Bloom on Flat Rock 312

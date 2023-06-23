@@ -1597,6 +1597,9 @@ class ServerSettings {
 		var trans = transitions.getTransition(560, 180); // Knife 560 + Dead Rabbit 180
 		trans.aiShouldIgnore = true;
 
+		var trans = transitions.getTransition(127, 282); // Adobe 127 + Firing Adobe Kiln 282
+		trans.aiShouldIgnore = true; // only do manual
+
 		// Make reapir fences more easy:
 		// Mallet 467 + Fence Kit 556 -->  Mallet 467 + Fence 550
 		var trans = new TransitionData(467, 556, 467, 550);
