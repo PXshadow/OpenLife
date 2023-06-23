@@ -1,7 +1,6 @@
 package openlife.server;
 
 import openlife.server.Biome.BiomeTag;
-import haxe.display.Display.Package;
 import openlife.data.Pos;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
@@ -328,7 +327,7 @@ class MoveHelper {
 
 				if (p.forceStopOnNextTile) {
 					p.forceStopOnNextTile = false;
-					CancleMovement(p);
+					CancleMovement(p, false);
 					return;
 				}
 
@@ -496,9 +495,14 @@ class MoveHelper {
 		}
 
 		if (seq > 0) player.done_moving_seqNum = seq;
+
+		player.connection.send(VOG_UPDATE, ['${player.x} ${player.y}']);
+		player.connection.sendMapChunk(player.x, player.y);
 		player.forced = true;
 		player.connection.send(PLAYER_UPDATE, [player.toData()]);
 		player.forced = false;
+		player.connection.send(FRAME, null, false, true);
+
 		if (player.isHuman()) {
 			player.moveHelper.waitForForce = true;
 			player.moveHelper.timeLastForce = TimeHelper.tick;
@@ -513,12 +517,12 @@ class MoveHelper {
 		// sometimes client dpes not respond to a force, therefore after waited one second allow movements again and hope that client is synced
 		if (p.moveHelper.waitForForce) {
 			var passedTimeSinceForce = TimeHelper.CalculateTimeSinceTicksInSec(p.moveHelper.timeLastForce);
-			if (passedTimeSinceForce < 1) {
+			if (passedTimeSinceForce < 2) {
 				trace('${p.name + p.id}: MMove ignored since waiting for force!!');
-				p.done_moving_seqNum = seq;
-				p.responsible_id = -1;
-				p.connection.send(PLAYER_UPDATE, [p.toData()]);
-				p.connection.send(FRAME, null, false);
+				// p.done_moving_seqNum = seq;
+				// p.responsible_id = -1;
+				// p.connection.send(PLAYER_UPDATE, [p.toData()]);
+				// p.connection.send(FRAME, null, false);
 				return;
 			} else {
 				p.moveHelper.waitForForce = false;
@@ -547,19 +551,30 @@ class MoveHelper {
 		if (p.y <= -height) p.y += height;
 
 		if (tmpX != p.x || tmpY != p.y) {
-			trace('${p.name + p.id} MMOVED one time around the world! $tmpX,$tmpY ==> ${p.x},${p.y}');
+			trace('${p.name} MMOVE: one time around the world! $tmpX,$tmpY ==> ${p.x},${p.y}');
 
-			p.moveHelper.tx = p.tx;
-			p.moveHelper.ty = p.ty;
-			p.moveHelper.exactTx = p.tx;
-			p.moveHelper.exactTy = p.ty;
-			p.done_moving_seqNum = seq;
-			p.responsible_id = -1;
-			p.forced = true;
-			p.connection.send(PLAYER_UPDATE, [p.toData()]);
-			p.forced = false;
+			// p.x = WorldMap.world.transformX(p, p.tx);
+			// p.y = WorldMap.world.transformY(p, p.ty);
 
-			p.connection.sendMapChunk(p.x, p.y);
+			/*p.moveHelper.tx = p.tx;
+				p.moveHelper.ty = p.ty;
+				p.moveHelper.exactTx = p.tx;
+				p.moveHelper.exactTy = p.ty;
+				p.done_moving_seqNum = seq;
+				p.responsible_id = -1;
+			 */
+
+			CancleMovement(p, seq, true);
+
+			/*p.connection.send(VOG_UPDATE, ['${p.x} ${p.y}']);
+				p.forced = true;
+				// p.connection.send(PLAYER_UPDATE, [p.toData()]);
+				Connection.SendUpdateToAllClosePlayers(p);
+				p.forced = false;
+				p.connection.sendMapChunk(p.x, p.y);
+				p.connection.send(FRAME, null, false, true); 
+			 */
+
 			return;
 		}
 
@@ -574,7 +589,7 @@ class MoveHelper {
 
 		if (p.isBlocked(tx, ty) || quadDist > ServerSettings.MaxMovementQuadJumpDistanceBeforeForce) {
 			trace('${p.name} MMOVE: FORCE!! Movement cancled since blocked or Client uses too different x,y: quadDist: $quadDist exact: ${Math.ceil((p.moveHelper.exactTx - p.gx) * 10) / 10},${Math.ceil((p.moveHelper.exactTy - p.gy) * 10) / 10} Server ${p.x},${p.y} <--> Client ${x},${y} floor: $floorId');
-			CancleMovement(p, seq);
+			CancleMovement(p, seq, quadDist > 25);
 			return;
 		}
 
@@ -585,7 +600,7 @@ class MoveHelper {
 			if (Math.ceil(p.jumpedTiles) >= ServerSettings.MaxJumpsPerTenSec) {
 				if (ServerSettings.DebugMoveHelper)
 					trace('${p.name} MMOVE: JUMP: FORCE!! Movement cancled since too exhausted ${Math.ceil(p.exhaustion)} or jumped: ${Math.ceil(p.jumpedTiles * 10) / 10} to often: quadDist: $quadDist Server ${p.x},${p.y} --> Client ${x},${y}');
-				CancleMovement(p, seq);
+				CancleMovement(p, seq, quadDist > 25);
 				return;
 			}
 
@@ -616,7 +631,7 @@ class MoveHelper {
 		var newMovements = calculateNewMovements(p, moves);
 		if (newMovements.moves.length < 1) {
 			if (ServerSettings.DebugMoveHelper) trace('${p.name} MMOVE: FORCE!! Move cancled since no new movements!');
-			CancleMovement(p, seq);
+			CancleMovement(p, seq, true);
 			return;
 		}
 
@@ -672,13 +687,17 @@ class MoveHelper {
 		if (lastMove != null) p.connection.sendMapChunk(p.x + lastMove.x, p.y + lastMove.y);
 	}
 
-	public static function CancleMovement(p:GlobalPlayerInstance, seq:Int = -1) {
+	public static function CancleMovement(p:GlobalPlayerInstance, seq:Int = -1, useTeleport = true) {
+		// useTeleport = true;
 		if (seq < 0) seq = p.done_moving_seqNum;
 
 		if (p.isHuman()) {
 			p.moveHelper.waitForForce = true; // ignore all moves untill client sends a force
 			p.moveHelper.timeLastForce = TimeHelper.tick;
 		}
+
+		// p.x = WorldMap.world.transformX(p, p.tx);
+		// p.y = WorldMap.world.transformY(p, p.ty);
 
 		p.moveHelper.exactTx = p.tx;
 		p.moveHelper.exactTy = p.ty;
@@ -687,9 +706,14 @@ class MoveHelper {
 		p.moveHelper.newMoves = null;
 		p.moveHelper.newMovements = null;
 		p.responsible_id = -1;
+
+		if (useTeleport) p.connection.send(VOG_UPDATE, ['${p.x} ${p.y}']);
+		p.connection.sendMapChunk(p.x, p.y);
+
 		p.forced = true;
 		Connection.SendUpdateToAllClosePlayers(p);
 		p.forced = false;
+		p.connection.send(FRAME, null, false, true);
 	}
 
 	public function generateRelativeMoveUpdateString(forPlayer:GlobalPlayerInstance):String {

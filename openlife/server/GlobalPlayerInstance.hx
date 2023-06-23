@@ -4806,10 +4806,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return false;
 		}
 
-		// heldPlayer.x = x + player.gx - heldPlayer.gx;
-		// heldPlayer.y = y + player.gy - heldPlayer.gy;
-		heldPlayer.x = WorldMap.world.transformX(heldPlayer, player.tx);
-		heldPlayer.y = WorldMap.world.transformY(heldPlayer, player.ty);
+		heldPlayer.x = x + player.gx - heldPlayer.gx;
+		heldPlayer.y = y + player.gy - heldPlayer.gy;
+		heldPlayer.x = WorldMap.world.transformX(heldPlayer, heldPlayer.tx);
+		heldPlayer.y = WorldMap.world.transformY(heldPlayer, heldPlayer.ty);
 		heldPlayer.moveHelper.exactTx = heldPlayer.tx;
 		heldPlayer.moveHelper.exactTy = heldPlayer.ty;
 
@@ -5304,6 +5304,23 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			ServerSettings.DebugAi = ServerSettings.DebugAi ? false : true;
 			player.say('debug ai: ${ServerSettings.DebugAi}', true);
 			return true;
+		} else if (text.indexOf('!TTT') != -1) {
+			if (checkIfNotAllowed(player)) return true;
+
+			player.x = 490;
+
+			player.x = WorldMap.world.transformX(player, player.tx);
+			player.y = WorldMap.world.transformY(player, player.ty);
+
+			player.connection.send(VOG_UPDATE, ['${player.x} ${player.y}']);
+			player.connection.sendMapChunk(player.x, player.y);
+			player.forced = true;
+			Connection.SendUpdateToAllClosePlayers(player);
+			player.forced = false;
+			// player.connection.sendMapChunk(player.x, player.y);
+			player.connection.send(FRAME, null, false, true);
+
+			return true;
 		} else if (text.indexOf('!TP') != -1) {
 			if (checkIfNotAllowed(player)) return true;
 			// if (HasEnoughCoinsForTeleport(player) == false) return true;
@@ -5472,11 +5489,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		player.connection.send(VOG_UPDATE, ['${player.x} ${player.y}']);
 
-		// player.forced = true;
-		// Connection.SendUpdateToAllClosePlayers(player);
-		// player.forced = false;
-
 		player.connection.sendMapChunk(player.x, player.y);
+		player.forced = true;
+		Connection.SendUpdateToAllClosePlayers(player);
+		player.forced = false;
+
+		player.connection.send(FRAME, null, false, true);
 
 		if (coinCost > 0) PayTeleportCost(player);
 	}

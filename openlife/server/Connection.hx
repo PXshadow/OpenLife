@@ -277,8 +277,12 @@ class Connection {
 				// var targetX = player.tx - c.player.gx;
 				// var targetY = player.ty - c.player.gy;
 				var player = c.player;
+				// FIX: if player == playerToSend use player.x --> to avoid move jumps on edge of world
+				// var targetX = player == playerToSend ? player.x : WorldMap.world.transformX(player, playerToSend.tx);
+				// var targetY = player == playerToSend ? player.y : WorldMap.world.transformY(player, playerToSend.ty);
 				var targetX = WorldMap.world.transformX(player, playerToSend.tx);
 				var targetY = WorldMap.world.transformY(player, playerToSend.ty);
+
 				// var topLeader = player.getTopLeader();
 
 				// update only close players except if player is deleted (death)
