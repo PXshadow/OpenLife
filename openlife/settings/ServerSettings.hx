@@ -1600,6 +1600,9 @@ class ServerSettings {
 		var trans = transitions.getTransition(127, 282); // Adobe 127 + Firing Adobe Kiln 282
 		trans.aiShouldIgnore = true; // only do manual
 
+		var trans = transitions.getTransition(236, 2836); // Clay Plate 236 + Tomato 2836
+		trans.aiShouldIgnore = true; // only do manual // dont loose the clay plates near tomatos
+
 		// Make reapir fences more easy:
 		// Mallet 467 + Fence Kit 556 -->  Mallet 467 + Fence 550
 		var trans = new TransitionData(467, 556, 467, 550);
