@@ -3067,10 +3067,10 @@ abstract class AiBase {
 		if (doPlantBeans(2, 4)) return true;
 
 		// Bowl of Soaking Beans 1180
-		if (hasBeanSeeds() && craftItem(1180, 3)) return true;
+		if (hasBeanSeeds() && craftItemMax(1180, 2)) return true;
 
 		// Raw Stew Pot 1246 // ???Crock with Squash 1243
-		if (hasCornSeeds && craftItem(1246)) return true;
+		if (hasCornSeeds && craftItemMax(1246, 2)) return true;
 
 		this.profession['BAKER'] = 0;
 
@@ -4072,15 +4072,15 @@ abstract class AiBase {
 
 		// myPlayer.say('FireFood! fire: ${firePlace != null}');
 
-		// Raw Stew Pot 1246
-		if (hasCornSeeds && craftItem(1246)) return true;
+		// Raw Stew Pot 1246 // ???Crock with Squash 1243
+		if (hasCornSeeds && craftItemMax(1246, 2)) return true;
 
 		// Raw Mutton 569
 		if (craftItem(569)) return true;
 		// Raw Pork 1342
 		if (craftItem(1342)) return true;
 		// Bowl of Soaking Beans 1180
-		if (hasBeanSeeds() && craftItem(1180, 3)) return true;
+		if (hasBeanSeeds() && craftItemMax(1180, 2)) return true;
 		// Skinned Rabbit 181
 		// if(craftItem(181)) return true;
 
