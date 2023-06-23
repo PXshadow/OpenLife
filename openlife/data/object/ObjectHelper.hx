@@ -849,6 +849,7 @@ class ObjectHelper {
 
 	public function canBePlacedIn(container:ObjectHelper):Bool {
 		if (this.objectData.containable == false) return false;
+		if (this.objectData.permanent > 0) return false;
 		if (container.containedObjects.length >= container.objectData.numSlots) return false;
 		if (this.objectData.containSize > container.objectData.slotSize) return false;
 

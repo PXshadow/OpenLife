@@ -5104,6 +5104,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				// player.say('kill leader ${leader.name}', true);
 			}
 			return true;
+		} else if (text.startsWith('!KILL')) {
+			if (checkIfNotAllowed(player)) return true;
+
+			var toKill = player.getClosePlayer(5);
+			if (toKill != null && toKill != player) {
+				toKill.hits += 50;
+				toKill.food_store -= 50;
+				toKill.age += 60;
+				// player.say('kill leader ${leader.name}', true);
+			}
+			return true;
 		} else if (text.indexOf('!KILLOBJ') != -1) {
 			if (checkIfNotAllowed(player)) return true;
 

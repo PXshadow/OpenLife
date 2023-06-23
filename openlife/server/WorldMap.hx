@@ -1428,19 +1428,18 @@ class WorldMap {
 
 		var obj = world.getObjectHelper(x, y);
 
-		/*if(obj.canBePlacedIn(objectToPlace)){
+		// FIX: for now allow only graves to be used as cpmtaomers, otherwise stuff might end up in baskets
+		if (objectToPlace.isGrave() && obj.canBePlacedIn(objectToPlace)) {
+			objectToPlace.containedObjects.push(obj);
 
-				objectToPlace.containedObjects.push(obj);
+			world.setObjectHelper(x, y, objectToPlace);
 
-				world.setObjectHelper(x, y, objectToPlace);
+			Connection.SendMapUpdateToAllClosePlayers(x, y);
 
-				Connection.SendMapUpdateToAllClosePlayers(x, y);
+			trace('TryPlaceObject Placed ${obj.name} in container ${objectToPlace.name}');
 
-				trace('TryPlaceObject Done in container ${objectToPlace.description}');
-
-				return null;
-			}
-		 */
+			return null;
+		}
 
 		if (allowReplaceObject && obj.isPermanent() == false) {
 			world.setObjectHelper(x, y, objectToPlace);
