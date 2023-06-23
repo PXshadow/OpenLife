@@ -4354,7 +4354,15 @@ abstract class AiBase {
 		}
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} get Arrow for Quiver!');
 
-		return GetOrCraftItem(148); // Arrow
+		if (GetOrCraftItem(148)) return true; // Arrow 148
+
+		if (craftItemMax(147, 2)) return true; // Featherless Arrow 147
+
+		if (craftItemMax(140, 2)) return true; // Tied Skewer 140
+
+		if (craftItemMax(149, 2)) return true; // Headless Arrow 149
+
+		return false;
 	}
 
 	private function craftClothIfNeeded(clothId:Int):Bool {
