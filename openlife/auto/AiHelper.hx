@@ -620,6 +620,14 @@ class AiHelper {
 					if (obj.numberOfUses < 3) continue;
 				}
 
+				// dont eat last pepper // Hot Pepper 2844
+				if (ai != null && parentId == 2844 && ai.hasPepperSeeds() == false) continue;
+				// dont eat last pepper // Fruiting Pepper Plant 2843
+				if (ai != null && parentId == 2843 && ai.hasPepperSeeds() == false) {
+					var obj = world.getObjectHelper(tx, ty);
+					if (obj.numberOfUses < 2) continue;
+				}
+
 				// var distance = calculateDistance(baseX, baseY, obj.tx, obj.ty);
 				// trace('search food $tx, $ty: foodvalue: ${objData.foodValue} bestdistance: $bestDistance distance: $distance ${obj.description}');
 
