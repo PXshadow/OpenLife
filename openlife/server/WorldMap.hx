@@ -87,6 +87,7 @@ class WorldMap {
 	public var eatenFoodsYumBoni = new Map<Int, Float>();
 	public var eatenFoodsMeh = new Map<Int, Float>();
 	public var eatenFoodsMehMali = new Map<Int, Float>();
+	public var eatenFoodPercentage = new Map<Int, Float>();
 
 	// public var eatenFoodsSuperMeh = new Map<Int, Float>();
 
@@ -781,6 +782,7 @@ class WorldMap {
 			var foodValueYumBoni = Math.round(eatenFoodsYumBoni[foodId] * 1) / 1;
 			var foodValueMehMali = Math.round(eatenFoodsMehMali[foodId] * 1) / 1;
 			var percent = Math.round(eatenFoodValues[foodId] / total * 100) / 1;
+			eatenFoodPercentage[foodId] = percent;
 
 			writer.writeString('${percent}% pipes: ${foodValue} ${foodData.name}[${foodData.id}] yum: ${foodValueYum} meh: ${foodValueMeh} boni: ${foodValueYumBoni} mali: ${foodValueMehMali}\n');
 		}

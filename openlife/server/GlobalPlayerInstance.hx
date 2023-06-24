@@ -3028,6 +3028,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// Reduce Food value depending on difficulty Settings
 		foodValue = foodValue * ServerSettings.FoodFactor;
 
+		// increase food value if not eaten much
+		var foodPercentage = WorldMap.world.eatenFoodPercentage[heldObjData.parentId];
+		if (foodPercentage < 1) {
+			foodValue *= ServerSettings.FoodFactorEatenLessThanOnePercent;
+		} else if (foodPercentage < 5) foodValue *= ServerSettings.FoodFactorEatenLessThanFivePercent;
+
 		// trade health for little bit more food
 		if (isSuperMeh) {
 			foodValue += 1;
