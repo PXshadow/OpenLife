@@ -47,6 +47,9 @@ abstract class AiBase {
 	var animalTarget:ObjectHelper = null;
 	var escapeTarget:ObjectHelper = null;
 
+	var deadlyAnimal:ObjectHelper = null;
+	var deadlyPlayer:GlobalPlayerInstance = null;
+
 	public var foodTarget:ObjectHelper = null;
 	public var dropTarget:ObjectHelper = null;
 
@@ -419,13 +422,13 @@ abstract class AiBase {
 		// myPlayer.say('1');
 		var startTime = Sys.time();
 
-		var animal = AiHelper.GetCloseDeadlyAnimal(myPlayer);
-		var deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer, 30);
+		this.deadlyAnimal = AiHelper.GetCloseDeadlyAnimal(myPlayer);
+		this.deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer, 30);
 
 		// if (deadlyPlayer != null && deadlyPlayer.angryTime > 4) deadlyPlayer = null;
 		// if (deadlyPlayer != null) trace('attackPlayer: deadlyPlayer: ${deadlyPlayer.name}');
 
-		Macro.exception(if (didNotReachFood < 5) if (escape(animal, deadlyPlayer)) return);
+		Macro.exception(if (didNotReachFood < 5) if (escape(deadlyAnimal, deadlyPlayer)) return);
 		// deadlyPlayer = null; // TODO allow again after fixing combat
 		// Macro.exception(if (didNotReachFood < 5 || myPlayer.food_store < 1) checkIsHungryAndEat());
 		Macro.exception(checkIsHungryAndEat());
@@ -511,9 +514,10 @@ abstract class AiBase {
 		Macro.exception(if (isRemovingFromContainer()) return);
 		Macro.exception(if (isPickingupFood()) return);
 
-		var superbadTemp = (myPlayer.heat < 0.1 || myPlayer.heat > 0.9) && myPlayer.hits > 2;
+		// var superbadTemp = (myPlayer.heat < 0.1 || myPlayer.heat > 0.9) && myPlayer.hits > 2;
+		var superbadTemp = myPlayer.heat < 0.1 || myPlayer.heat > 0.9;
 		var dist = deadlyPlayer == null ? 10000 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
-		if (dist > 9000) dist = animal == null ? 10000 : AiHelper.CalculateQuadDistanceToObject(myPlayer, animal);
+		if (dist > 9000) dist = deadlyAnimal == null ? 10000 : AiHelper.CalculateQuadDistanceToObject(myPlayer, deadlyAnimal);
 
 		var doStuff = superbadTemp == false;
 		if (dist < 100) doStuff = true; // better take care of attacker
@@ -522,7 +526,7 @@ abstract class AiBase {
 
 		Macro.exception(if (doStuff && attackPlayer(deadlyPlayer)) return);
 		Macro.exception(if (doStuff && isStayingCloseToChild()) return);
-		Macro.exception(if (doStuff && killAnimal(animal)) return);
+		Macro.exception(if (doStuff && killAnimal(deadlyAnimal)) return);
 		Macro.exception(if (doStuff && this.profession['SMITH'] < 1 && isFeedingPlayerInNeed()) return);
 		Macro.exception(if (isMovingToPlayer(autoStopFollow ? 10 : 5)) return); // if ordered to follow stay closer otherwise give some space to work
 
@@ -7818,12 +7822,22 @@ abstract class AiBase {
 		Macro.exception(if (isRemovingFromContainer()) return true);
 
 		// TODO rework priorities combine with not hungry prios
+		var superbadTemp = myPlayer.heat < 0.1 || myPlayer.heat > 0.9;
+		var dist = deadlyPlayer == null ? 10000 : AiHelper.CalculateDistanceToPlayer(myPlayer, deadlyPlayer);
+		if (dist > 9000) dist = deadlyAnimal == null ? 10000 : AiHelper.CalculateQuadDistanceToObject(myPlayer, deadlyAnimal);
+
+		var doStuff = superbadTemp == false;
+		if (dist < 100) doStuff = true; // better take care of attacker
+		if (dist > 400) doStuff = false; // be less agressive if short on food
+		if (quadDistanceToHome > 900) doStuff = false; // be less agressive if far from home
+
+		Macro.exception(if (doStuff && attackPlayer(this.deadlyPlayer)) return true);
+		Macro.exception(if (doStuff && killAnimal(this.deadlyAnimal)) return true);
+
 		Macro.exception(if (isHandlingGraves()) return true);
 		Macro.exception(if (isPickingupCloths()) return true);
 		Macro.exception(if (isHandlingFire()) return true);
 		Macro.exception(if (makeSharpieFood(5)) return true);
-		// Macro.exception(if (attackPlayer(deadlyPlayer)) return true);
-		// Macro.exception(if (killAnimal(animal)) return true);
 
 		if (myPlayer.isMoving()) return true;
 
