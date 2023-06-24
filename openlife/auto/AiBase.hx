@@ -7821,6 +7821,7 @@ abstract class AiBase {
 		Macro.exception(if (isHandlingGraves()) return true);
 		Macro.exception(if (isPickingupCloths()) return true);
 		Macro.exception(if (isHandlingFire()) return true);
+		Macro.exception(if (makeSharpieFood(5)) return true);
 		// Macro.exception(if (attackPlayer(deadlyPlayer)) return true);
 		// Macro.exception(if (killAnimal(animal)) return true);
 
