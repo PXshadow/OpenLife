@@ -2180,9 +2180,7 @@ abstract class AiBase {
 
 		if (doPlantWheat(2, 5)) return true;
 
-		// Dry Planted Tomato Seed 2829
-		// Tomato Plant 2834 // Fruiting Tomato Plant 2835
-		if (doPlant(2, 5, 2829, [2834, 2835])) return true;
+		if (doPlantTomato(2, 5)) return true;
 
 		if (doPlantMilkWeed(2, 5)) return true;
 
@@ -2318,6 +2316,18 @@ abstract class AiBase {
 		// Dry Planted Corn Seed 1109
 		// Wet Planted Corn Seed 1110 // Corn Sprout 1111 // Corn Plant 1112
 		return doPlant(minPlanted, maxPlanted, 1109, [1110, 1111, 1112]);
+	}
+
+	private function doPlantPotatos(minPlanted:Int, maxPlanted:Int) {
+		// Dry Planted Potatoes 1145
+		// Wet Planted Potatoes 1142 // Potato Plants 1143 // Mounded Potato Plants 1144 // Mature Potato Plants 1146
+		return doPlant(minPlanted, maxPlanted, 1145, [1142, 1143, 1144, 1146]);
+	}
+
+	private function doPlantTomato(minPlanted:Int, maxPlanted:Int) {
+		// Dry Planted Tomato Seed 2829
+		// Tomato Plant 2834 // Fruiting Tomato Plant 2835
+		return doPlant(minPlanted, maxPlanted, 2829, [2834, 2835]);
 	}
 
 	private function doPlantMilkWeed(minPlanted:Int, maxPlanted:Int) {
@@ -3641,6 +3651,7 @@ abstract class AiBase {
 		// removed: 1110
 		// var advancedPlants = [228, 396, 1110, 217, 1162, 228, 396, 1110, 2851, 228, 4225, 396, 2829, 1110, 2852, 228, 396, 4263, 228, 396, 396, 228, 1142, 228, 1110, 228];
 		// var advancedPlants = [228, 1110, 1161, 228, 1110, 2851, 228, 4225, 2829, 1110, 2852, 228, 4263, 228, 228, 1142, 228, 1110];
+		// var advancedPlants = [1145, 1161, 2839, 2851, 1145, 4225, 2829, 1192, 1145, 2852, 1145];
 		var advancedPlants = [1145, 1161, 2839, 2851, 1145, 4225, 2829, 1192, 1145, 2852, 1145];
 		var rand = WorldMap.world.randomInt(advancedPlants.length - 1);
 
@@ -3661,12 +3672,9 @@ abstract class AiBase {
 			// Dry Planted Potatoes 1145
 			// Wet Planted Potatoes 1142
 			if (toPlant == 1145 || toPlant == 1142) {
-				// Mature Potato Plants 1146
-				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1146, 30);
-				if (count > 3) {
-					toPlant += 1;
-					continue;
-				}
+				if (doPlantPotatos(2, 8)) return true;
+				toPlant += 1;
+				continue;
 			}
 
 			// Dry Planted Garlic 4262 // Wet Planted Garlic 4263
@@ -3684,17 +3692,9 @@ abstract class AiBase {
 
 			// Dry Planted Pepper Seed 2839
 			if (toPlant == 2839) {
-				// Dry Planted Pepper Seed 2839
-				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2839, 30);
-				// Wet Planted Pepper Seed 2840
-				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2840, 30);
-				// Pepper Plant 2842
-				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2842, 30);
-
-				if (count > 3) {
-					toPlant += 1;
-					continue;
-				}
+				if (doPlantPepper(2, 5)) return true;
+				toPlant += 1;
+				continue;
 			}
 
 			// Dry Planted Squash Seeds 1192 // Wet Planted Squash Seeds 1190
@@ -3705,10 +3705,8 @@ abstract class AiBase {
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1190, 30);
 				// Hubbard Squash 1199
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1199, 30);
-				count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1199, 30);
 				// Ripe Squash Plant 1196
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1196, 30);
-				count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1196, 30);
 				// Crock with Squash 1243
 				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1243, 30);
 				// Plate of Squash Chunks 1202
@@ -3724,16 +3722,9 @@ abstract class AiBase {
 
 			// Dry Planted Tomato Seed 2829
 			if (toPlant == 2829) {
-				// Tomato Plant 2834
-				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2834, 30);
-				// Fruiting Tomato Plant 2835
-				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2835, 30);
-				// Dry Planted Tomato Seed 2829
-				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2829, 30);
-				if (count > 8) {
-					toPlant += 1;
-					continue;
-				}
+				if (doPlantTomato(1, 8)) return true;
+				toPlant += 1;
+				continue;
 			}
 
 			// Dry Planted Onions 2851
