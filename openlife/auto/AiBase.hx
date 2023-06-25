@@ -3813,13 +3813,16 @@ abstract class AiBase {
 		// if (shortCraft(34, 1113, maxDistance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 		// if(craftItem(1114)) return true; // Shucked Ear of Corn
 
-		// var obj = AiHelper.GetClosestObjectById(myPlayer, 36, null, maxDistance); // Seeding Wild Carrot
-		var obj = getClosestObjectById(36, maxDistance); // Seeding Wild Carrot
+		var obj;
+		if (maxDistance <= 10) obj = AiHelper.GetClosestObjectById(myPlayer, 36, null, maxDistance); // Seeding Wild Carrot
+		else
+			obj = getClosestObjectById(36, maxDistance); // Seeding Wild Carrot
 		if (obj != null && isHoldingSharpStone == false) return GetOrCraftItem(34);
 		if (obj != null && craftItem(39)) return true; // Dug Wild Carrot // 40 Wild Carrot
 
-		// var obj = AiHelper.GetClosestObjectById(myPlayer, 804, null, maxDistance); // Burdock
-		var obj = getClosestObjectById(804, maxDistance); // Burdock
+		if (maxDistance <= 10) obj = AiHelper.GetClosestObjectById(myPlayer, 804, null, maxDistance); // Burdock
+		else
+			obj = getClosestObjectById(804, maxDistance); // Burdock
 		if (obj != null && isHoldingSharpStone == false) return GetOrCraftItem(34);
 		if (obj != null && craftItem(806)) return true; // Dug Burdock
 
@@ -5735,17 +5738,30 @@ abstract class AiBase {
 		}
 
 		// search close
-		if (obj == null) obj = myPlayer.GetClosestObjectById(objId, null, searchDistance, minDistance);
-		if (pile == null) pile = hasPile ? myPlayer.GetClosestObjectById(pileId, null, searchDistance, minDistance) : null;
+		if (minDistance > 0) {
+			if (obj == null) obj = myPlayer.GetClosestObjectById(objId, null, searchDistance, minDistance);
+			if (pile == null) pile = hasPile ? myPlayer.GetClosestObjectById(pileId, null, searchDistance, minDistance) : null;
+		} else {
+			if (obj == null) obj = getClosestObjectById(objId, searchDistance);
+			if (pile == null) pile = hasPile ? getClosestObjectById(pileId, searchDistance) : null;
+		}
 
 		var usePile = pile != null && obj == null;
 		if (usePile) obj = pile;
 
 		// search more far away
-		if (obj == null) obj = myPlayer.GetClosestObjectById(objId, null, maxSearchDistance, minDistance);
-		if (obj == null && hasPile) {
-			obj = myPlayer.GetClosestObjectById(pileId, null, maxSearchDistance, minDistance);
-			usePile = obj != null;
+		if (minDistance > 0) {
+			if (obj == null) obj = myPlayer.GetClosestObjectById(objId, null, maxSearchDistance, minDistance);
+			if (obj == null && hasPile) {
+				obj = myPlayer.GetClosestObjectById(pileId, null, maxSearchDistance, minDistance);
+				usePile = obj != null;
+			}
+		} else {
+			if (obj == null) obj = getClosestObjectById(objId, maxSearchDistance);
+			if (obj == null && hasPile) {
+				obj = getClosestObjectById(pileId, maxSearchDistance);
+				usePile = obj != null;
+			}
 		}
 
 		if (obj == null && craft == false) return false;
@@ -6669,19 +6685,27 @@ abstract class AiBase {
 
 	private function intitObjectsForCraftig() {
 		var radius = itemToCraft.searchRadius;
+		if (radius < 15) {
+			radius = 15;
+			itemToCraft.searchRadius = 15;
+		}
 
 		// TODO cache itemToCraft.searchCurrentPosition
 		var cachedObjectList = itemToCraft.cachedObjectLists[radius];
 		if (cachedObjectList == null) {
 			cachedObjectList = new Map<Int, TransitionForObject>();
 			itemToCraft.cachedObjectLists[radius] = cachedObjectList;
+			cachedObjectList[0] = new TransitionForObject(0, 0, 0, null);
+			cachedObjectList[0].count = -1;
+			// trace('AI: ${myPlayer.name}${myPlayer.id} craft: tick: ${TimeHelper.tick} NEW LIST radius: ${itemToCraft.searchRadius}');
 		}
 		itemToCraft.transitionsByObjectId = cachedObjectList;
 
 		var objectZero = cachedObjectList[0];
 		var isCleared = objectZero == null || objectZero.count < 0;
 		if (isCleared) addAllObjectsForCraftig(cachedObjectList, radius);
-		// else trace('AI: ${myPlayer.name}${myPlayer.id} craft: FINISHED objects use Cached radius: ${itemToCraft.searchRadius}');
+		// trace('AI: ${myPlayer.name}${myPlayer.id} craft: tick: ${TimeHelper.tick} FINISHED objects use Cached radius: ${itemToCraft.searchRadius}');
+		// if (isCleared) trace('AI: ${myPlayer.name}${myPlayer.id} craft: tick: ${TimeHelper.tick} FINISHED objects NO CACHE radius: ${itemToCraft.searchRadius}');
 	}
 
 	private function addAllObjectsForCraftig(transitionsByObjectId:Map<Int, TransitionForObject>, radius:Int) {
@@ -6691,6 +6715,8 @@ abstract class AiBase {
 
 		// reset objects so that it can be filled again
 		itemToCraft.clearTransitionsByObjectId();
+
+		transitionsByObjectId[0].count = 0;
 
 		// check if held object can be used to craft item
 		var trans = transitionsByObjectId[player.heldObject.parentId];
