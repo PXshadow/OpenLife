@@ -3203,6 +3203,10 @@ abstract class AiBase {
 		if (objectList == null) return null;
 
 		var object = objectList.closestObject;
+		if (objId == 0) {
+			// TODO solve / depending on hold obj a floored or not floored place is searched
+			object = AiHelper.GetClosestObjectById(myPlayer, objId, 30);
+		}
 		if (object == null) return null;
 
 		if (object == null) return null;
