@@ -1779,7 +1779,11 @@ abstract class AiBase {
 
 		if (doWateringOn(396, 3)) return true; // Dry Planted Carrots 396
 
-		if (doPlantCarrots()) return true;
+		if (doPlantCarrots(2, 5)) return true;
+
+		if (doPlantMilkWeed(2, 5)) return true;
+
+		if (doPlantCarrots(6, 40)) return true;
 
 		// if(doWatering(2)) return true;
 		if (doWateringOn(396)) return true; // Dry Planted Carrots 396
@@ -2018,7 +2022,7 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function doPlantCarrots(min = 5, max = 40) {
+	private function doPlantCarrots(min, max) {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
 		var distance = 30;
@@ -2180,13 +2184,7 @@ abstract class AiBase {
 		// Tomato Plant 2834 // Fruiting Tomato Plant 2835
 		if (doPlant(2, 5, 2829, [2834, 2835])) return true;
 
-		// Dry Planted Milkweed Seed 214
-		// Wet Planted Milkweed Seed 215
-		// Milkweed Sprout 218
-		// Milkweed 50
-		// Flowering  Milkweed 51
-		// Fruiting Milkweed 52
-		if (doPlant(2, 5, 214, [215, 218, 50, 51, 52])) return true;
+		if (doPlantMilkWeed(2, 5)) return true;
 
 		if (doPlantBeans(2, 4)) return true;
 
@@ -2320,6 +2318,16 @@ abstract class AiBase {
 		// Dry Planted Corn Seed 1109
 		// Wet Planted Corn Seed 1110 // Corn Sprout 1111 // Corn Plant 1112
 		return doPlant(minPlanted, maxPlanted, 1109, [1110, 1111, 1112]);
+	}
+
+	private function doPlantMilkWeed(minPlanted:Int, maxPlanted:Int) {
+		// Dry Planted Milkweed Seed 214
+		// Wet Planted Milkweed Seed 215
+		// Milkweed Sprout 218
+		// Milkweed 50
+		// Flowering  Milkweed 51
+		// Fruiting Milkweed 52
+		return doPlant(minPlanted, maxPlanted, 214, [215, 218, 50, 51, 52]);
 	}
 
 	private function doPlant(minPlanted:Int, maxPlanted:Int, toPlantId:Int, toCountIds:Array<Int>) {
