@@ -6271,7 +6271,7 @@ abstract class AiBase {
 				var quadDist = AiHelper.CalculateQuadDistanceToObject(myPlayer, forge);
 				if (quadDist < 10) {
 					// Get Flat Rock at least 5 Tiles away from Forge
-					var newTarget = AiHelper.GetClosestObjectToTarget(myPlayer, forge, objId, 291, 3);
+					var newTarget = AiHelper.GetClosestObjectToTarget(myPlayer, forge, 291, 30, 3);
 					if (newTarget == null) {
 						if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} no Flat Rock found that was not close to Forge!');
 						return false;
@@ -6279,6 +6279,26 @@ abstract class AiBase {
 					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} new Flat Rock found that was not close to Forge!');
 					itemToCraft.transTarget = newTarget;
 					targetId = itemToCraft.transTarget.parentId;
+				}
+			}
+		}
+
+		// Dont pickup Bowls close to forge since needed for forge
+		// Clay Bowl 235
+		// TODO also for target
+		if (actorId == 235) {
+			var forge = GetForge();
+			if (forge != null) {
+				var quadDist = AiHelper.CalculateQuadDistanceToObject(myPlayer, forge);
+				if (quadDist < 10) {
+					// Get Flat Rock at least 5 Tiles away from Forge
+					var newActor = AiHelper.GetClosestObjectToTarget(myPlayer, forge, 235, 30, 3);
+					if (newActor == null) {
+						if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} no Clay Bowl found that was not close to Forge!');
+						return false;
+					}
+					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} new Clay Bowl found that was not close to Forge!');
+					itemToCraft.transActor = newActor;
 				}
 			}
 		}
