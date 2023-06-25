@@ -386,9 +386,11 @@ class TransitionHelper {
 		if (blockTarget.objectData.foodValue > 0) block = false;
 		if (blockTarget.objectData.isClothing()) block = false;
 
+		// if (player.isHuman()) trace('block: $block ${blockTarget.name} heldId: ${heldId}');
+
 		if (block) {
 			player.blockTargetForAi = blockTarget;
-			player.blockTargetTimee = TimeHelper.tick;
+			player.blockTargetTime = TimeHelper.tick;
 		}
 		return helper.doAction;
 	}

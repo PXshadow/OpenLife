@@ -202,7 +202,7 @@ abstract class AiBase {
 			if (player.deleted) continue;
 			if (player.blockTargetForAi == null) continue;
 
-			var timePassedInSeconds = CalculateTimeSinceTicksInSec(player.blockTargetTimee);
+			var timePassedInSeconds = CalculateTimeSinceTicksInSec(player.blockTargetTime);
 			// trace('blocked for AI: ${player.blockTargetForAi.name} ${timePassedInSeconds}');
 			if (timePassedInSeconds > 20) continue;
 
@@ -268,6 +268,7 @@ abstract class AiBase {
 			if (trans != null && target.parentId == trans.newTargetID) return false;
 		}
 		// if(DontBlockByAi.contains(target.parentId)) return true;
+		// trace('blocked for AI: ${target.name}');
 		AddObjBlockedByAi(target);
 		return true;
 	}
@@ -3418,15 +3419,13 @@ abstract class AiBase {
 
 		// TODO use forge as count target, but first fix that stuff is dropped close to forge
 
+		// TODO use distance of 15
 		// Steel Ingot 326
-		var countSteel = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 326, 20);
-		if (heldId == 326) countSteel += 1;
+		var countSteel = countCurrentObject(326);
 		// Unforged Sealed Steel Crucible 319
-		var countCrucible = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 319, 20);
-		if (heldId == 319) countCrucible += 1;
+		var countCrucible = countCurrentObject(319);
 		// Forged Steel Crucible 322
-		var countForgedCrucible = AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 322, 20);
-		if (heldId == 322) countForgedCrucible += 1;
+		var countForgedCrucible = countCurrentObject(322);
 
 		if (countSteel < 1 || countForgedCrucible > 0) {
 			// Cool Steel Crucible in Wooden Tongs 324
@@ -3435,7 +3434,7 @@ abstract class AiBase {
 			// Unforged Sealed Steel Crucible 319
 			if (this.profession['SMITH'] < 3.5 && countForgedCrucible < 1) {
 				// Big Charcoal Pile 300
-				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 300, 20);
+				var count = countCurrentObject(300);
 				// Basket of Charcoal 298
 				// if (count < 1 && craftItem(298)) return true;
 
@@ -3499,36 +3498,32 @@ abstract class AiBase {
 
 		if (this.profession['SMITH'] < 5) {
 			// Smithing Hammer
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 441, 30);
-			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 441, 30);
-			if (heldId == 441) count += 1;
+			var count = countCurrentObject(441);
+			// count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 441, 30);
 			if (count < 1 && craftItem(441)) return true;
 			this.profession['SMITH'] = 5;
 		}
 
 		if (this.profession['SMITH'] < 6) {
 			// Steel Mining Pick 684
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 684, 50);
-			if (heldId == 684) count += 1;
+			var count = countCurrentObject(684);
 			if (count < 1 && craftItem(684)) return true;
 			this.profession['SMITH'] = 6;
 		}
 
 		// Shovel 502
 		if (this.profession['SMITH'] < 7) {
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 502, 30);
+			var count = countCurrentObject(502);
 			// Shovel of Dung 900
-			count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 900, 30);
-
-			if (heldId == 502) count += 1;
+			count += countCurrentObject(900);
 			if (count < 1 && craftItem(502)) return true;
 			this.profession['SMITH'] = 7;
 		}
 
 		// Steel Hoe 857
 		if (this.profession['SMITH'] < 7.1) {
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 857, 30);
-			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 857, 30);
+			var count = countCurrentObject(857);
+			// count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 857, 30);
 
 			if (heldId == 857) count += 1;
 			if (count < 1 && craftItem(857)) return true;
@@ -3537,9 +3532,8 @@ abstract class AiBase {
 
 		// Shears 568
 		if (this.profession['SMITH'] < 7.5) {
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 568, 30);
-			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 568, 30);
-			if (heldId == 568) count += 1;
+			var count = countCurrentObject(568);
+			// count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 568, 30);
 			if (count < 1 && craftItem(568)) return true;
 			this.profession['SMITH'] = 7.5;
 		}
@@ -3561,14 +3555,13 @@ abstract class AiBase {
 		}
 
 		// Steel File 458
-		var countFile = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 458, 30);
-		countFile += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 458, 30);
+		var countFile = countCurrentObject(458);
+		// countFile += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 458, 30);
 		if (heldId == 458) countFile += 1;
 
 		// Steel File Blank 457
 		if (this.profession['SMITH'] < 10) {
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 457, 30);
-			if (heldId == 457) count += 1;
+			var count = countCurrentObject(457);
 			if (count + countFile < 1 && craftItem(457)) return true;
 			this.profession['SMITH'] = 10;
 		}
@@ -3581,15 +3574,13 @@ abstract class AiBase {
 
 		// Steel Blade Blank 459
 		if (this.profession['SMITH'] < 12) {
-			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 459, 30);
-			if (heldId == 459) count += 1;
+			var count = countCurrentObject(459);
 			if (count < 1 && craftItem(459)) return true;
 			this.profession['SMITH'] = 12;
 		}
 
 		// Knife 560
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 560, 30);
-		if (heldId == 560) count += 1;
+		var count = countCurrentObject(560);
 		if (count < 1 && craftItem(560)) return true;
 
 		this.profession['SMITH'] = 0;
@@ -8493,7 +8484,7 @@ abstract class AiBase {
 		return notReachable;
 	}
 
-	static public function AddObjBlockedByAi(obj:ObjectHelper, time:Float = 1) {
+	static public function AddObjBlockedByAi(obj:ObjectHelper, time:Float = 5) {
 		var index = WorldMap.world.index(obj.tx, obj.ty);
 		GlobalPlayerInstance.AcquireMutex();
 		blockedByAI[index] = time;

@@ -182,7 +182,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var blockActorForAi:ObjectHelper = null; // not saved
 	public var blockTargetForAi:ObjectHelper = null; // not saved
 
-	public var blockTargetTimee = 0.0; // not saved
+	public var blockTargetTime = 0.0; // not saved
 
 	public var allowShowHuman = true; // not saved
 
