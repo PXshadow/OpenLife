@@ -4763,10 +4763,11 @@ abstract class AiBase {
 	// Bowl of Gooseberries 253 // Bowl of Dough 252
 	// Baked Bread 1470 // Sliced Bread 1471 // Omelette 1285
 	// Cooked Goose 518
-	// Bowl of Carrot 547 // Bowl of Mashed Carrot 548 // Bowl of Minced Mutton 4057
+	// Bowl of Carrot 547 // Bowl of Mashed Carrot 548 // Bowl of Mashed Berries and Carrot 260
+	// Bowl of Minced Mutton 4057
 	// Raw Mutton 569 // Bowl of Raw Pork 1354 // Bowl of Wheat 245
 	var dropNearOvenItemIds = [
-		235, 1603, 236, 1602, 252, 1470, 1471, 1285, 253, 518, 547, 548, 4057, 502, 569, 1354, 245
+		235, 1603, 236, 1602, 252, 1470, 1471, 1285, 253, 518, 547, 548, 260, 4057, 502, 569, 1354, 245
 	];
 
 	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900 // Knife 560
