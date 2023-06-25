@@ -5045,9 +5045,18 @@ abstract class AiBase {
 			var count = 0;
 			// dont drop at home if there are too many already
 			if (heldId == 235) { // Clay Bowl 235
-				count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 235, 20);
+				count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 235, 15);
 			}
-			if (count >= 5) dropCloseToPlayer = true;
+			if (count >= 3) {
+				var forge = GetForge();
+				count = forge == null ? 100 : AiHelper.CountCloseObjects(myPlayer, forge.tx, forge.ty, 235, 15);
+				if (count < 3) {
+					// Drop near forge and dont pile
+					target = forge;
+					pileId = 0;
+				}
+			}
+			if (count >= 3) dropCloseToPlayer = true;
 
 			// Shovel 502
 			if (heldId == 502) {
@@ -6270,7 +6279,6 @@ abstract class AiBase {
 			if (forge != null) {
 				var quadDist = AiHelper.CalculateQuadDistanceToObject(myPlayer, forge);
 				if (quadDist < 10) {
-					// Get Flat Rock at least 5 Tiles away from Forge
 					var newTarget = AiHelper.GetClosestObjectToTarget(myPlayer, forge, 291, 30, 3);
 					if (newTarget == null) {
 						if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} no Flat Rock found that was not close to Forge!');
@@ -6291,7 +6299,6 @@ abstract class AiBase {
 			if (forge != null) {
 				var quadDist = AiHelper.CalculateQuadDistanceToObject(myPlayer, forge);
 				if (quadDist < 10) {
-					// Get Flat Rock at least 5 Tiles away from Forge
 					var newActor = AiHelper.GetClosestObjectToTarget(myPlayer, forge, 235, 30, 3);
 					if (newActor == null) {
 						if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} no Clay Bowl found that was not close to Forge!');
