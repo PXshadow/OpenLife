@@ -3666,7 +3666,7 @@ class ServerSettings {
 
 		LimitObject(570, 570, 5); // Cooked Mutton 570
 
-		LimitObject(235, 283, 5); // Limit Clay Bowl 235 // Wooden Tongs with Fired Bowl 283
+		LimitObject(235, 283, 10); // Limit Clay Bowl 235 // Wooden Tongs with Fired Bowl 283
 
 		LimitObject(236, 241, 5); // Limit Clay Plate 236 // Fired Plate in Wooden Tongs 241
 
@@ -3804,10 +3804,10 @@ class ServerSettings {
 		LimitTransitionIfMinNotReached(334, 406, 406, 5);
 
 		// Bowl of Water 382 +  Bowl of Tomato Seeds 2828 = Clay Bowl 235 + Bowl of Water 382
-		LimitTransitionIfMinNotReached(382, 2828, 2828, 2);
+		LimitTransitionIfMinNotReached(382, 2828, 2828, 3);
 
 		// Full Water Pouch+ 210 + Bowl of Tomato Seeds 2828 = Empty Water Pouch 209 + Bowl of Water 382
-		LimitTransitionIfMinNotReached(210, 2828, 2828, 2);
+		LimitTransitionIfMinNotReached(210, 2828, 2828, 3);
 	}
 
 	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 3) {
