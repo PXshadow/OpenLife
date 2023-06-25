@@ -5562,11 +5562,16 @@ abstract class AiBase {
 		// Kindling 72
 		if (makeOrCollect(72, 2, 5)) return true;
 
-		Macro.exception(if (doWatering(1)) return true);
-
 		if (keepBushesAlive()) return true;
 
 		if (myPlayer.age > 40 && doSmithing(1)) return true;
+
+		// Collect Rabbits needed for cloths
+		// Dead Rabbit 180 // Rabbit Fur 183
+		var count = countCurrentObject(183);
+		if (count < 5 && makeOrCollect(180, 1, 3)) return true;
+
+		Macro.exception(if (doWatering(1)) return true);
 
 		Macro.exception(if (doCriticalStuff()) return true);
 
