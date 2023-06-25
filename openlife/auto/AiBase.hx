@@ -5239,8 +5239,8 @@ abstract class AiBase {
 		// Macro.exception(if (fillBerryBowlIfNeeded(1)) return true);
 
 		// Domestic Sheep 575
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 30);
-		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 575, 30);
+		var count = countCurrentObject(575);
+		// count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 575, 30);
 		// if (count < 1 && craftItem(575)) return true; // Domestic Sheep 575
 
 		if (count < 10) {
@@ -5252,8 +5252,8 @@ abstract class AiBase {
 		}
 
 		// Domestic Cow 1458
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1458, 30);
-		count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1458, 30);
+		var count = countCurrentObject(1458);
+		// count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1458, 30);
 
 		if (count < 10) {
 			// Bowl with Corn Kernels 1247 + Hungry Domestic Calf 1462
@@ -5614,14 +5614,10 @@ abstract class AiBase {
 		var distance = 20;
 
 		// Domestic Gooseberry Bush 391
-		var countBushes = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 391, distance);
-		var countBerryBushes = countBushes;
 		// Dry Domestic Gooseberry Bush 393
-		countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 393, distance);
-		// Empty Domestic Gooseberry Bush 1135
-		countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1135, distance);
 		// Vigorous Domestic Gooseberry Bush 1134
-		countBushes += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1134, distance);
+		// Empty Domestic Gooseberry Bush 1135
+		var countBushes = countCurrentObjects([391, 393, 1134, 1135]);
 
 		if (countBushes < 20) {
 			// Bowl of Soil 1137 + Dying Gooseberry Bush 389
@@ -5629,13 +5625,6 @@ abstract class AiBase {
 			// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
 			if (shortCraft(1137, 392, 30)) return true;
 		}
-
-		/*if (countBerryBushes > 1) {
-			// // Raw Berry Pie 265 // Cooked Berry Pie 272
-			var count = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 265, 30);
-			count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 272, 30);
-			if (count < 2 && craftItem(265)) return true;
-		}*/
 
 		return false;
 	}
