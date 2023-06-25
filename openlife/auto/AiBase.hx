@@ -2490,7 +2490,7 @@ abstract class AiBase {
 				if (newTarget != null) target = myPlayer.GetClosestObjectToTarget(newTarget, 0, null, 20, minDist);
 			}
 
-			if (target == null) target = myPlayer.GetClosestObjectById(0, 30);
+			if (target == null) target = getClosestObjectById(0, 30);
 
 			return useHeldObjOnTarget(target);
 		}
@@ -2499,7 +2499,8 @@ abstract class AiBase {
 
 	// does not craft if there is allread maxActor
 	private function shortCraft(actorId:Int, targetId:Int, distance:Int = 20, craftActorIfNeeded = true, maxNewActor = -1):Bool {
-		var target = AiHelper.GetClosestObjectById(myPlayer, targetId, null, distance);
+		// var target = AiHelper.GetClosestObjectById(myPlayer, targetId, null, distance);
+		var target = getClosestObjectById(targetId, distance);
 		return shortCraftOnTarget(actorId, target, craftActorIfNeeded, maxNewActor);
 	}
 
@@ -3194,6 +3195,25 @@ abstract class AiBase {
 		return count += object.count;
 	}
 
+	private function getClosestObjectById(objId:Int, distance = 30) {
+		intitObjectsForCraftig();
+
+		var cachedObjectList = itemToCraft.transitionsByObjectId;
+		var objectList = cachedObjectList[objId];
+		if (objectList == null) return null;
+
+		var object = objectList.closestObject;
+		if (object == null) return null;
+
+		if (object == null) return null;
+
+		var quadDist = AiHelper.CalculateQuadDistanceToObject(myPlayer, object);
+		if (quadDist > distance * distance) return null;
+
+		// trace('getClosestObjectById: ${objId} ${object.name}');
+		return object;
+	}
+
 	private function makeSeatsAndCleanUp(maxPeople = 1) {
 		if (this.isHungry) return false;
 
@@ -3793,11 +3813,13 @@ abstract class AiBase {
 		// if (shortCraft(34, 1113, maxDistance)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 		// if(craftItem(1114)) return true; // Shucked Ear of Corn
 
-		var obj = AiHelper.GetClosestObjectById(myPlayer, 36, null, maxDistance); // Seeding Wild Carrot
+		// var obj = AiHelper.GetClosestObjectById(myPlayer, 36, null, maxDistance); // Seeding Wild Carrot
+		var obj = getClosestObjectById(36, maxDistance); // Seeding Wild Carrot
 		if (obj != null && isHoldingSharpStone == false) return GetOrCraftItem(34);
 		if (obj != null && craftItem(39)) return true; // Dug Wild Carrot // 40 Wild Carrot
 
-		var obj = AiHelper.GetClosestObjectById(myPlayer, 804, null, maxDistance); // Burdock
+		// var obj = AiHelper.GetClosestObjectById(myPlayer, 804, null, maxDistance); // Burdock
+		var obj = getClosestObjectById(804, maxDistance); // Burdock
 		if (obj != null && isHoldingSharpStone == false) return GetOrCraftItem(34);
 		if (obj != null && craftItem(806)) return true; // Dug Burdock
 
