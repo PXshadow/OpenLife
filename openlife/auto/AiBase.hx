@@ -6534,12 +6534,12 @@ abstract class AiBase {
 			if (shouldDebugSay()) myPlayer.say('Goto actor ' + itemToCraft.transActor.name);
 
 			// Is this needed?
-			if (dropTarget != null) {
+			/*if (dropTarget != null) {
 				// if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} craft: first drop held before goto actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
 				return true;
-			} else
-				dropTarget = itemToCraft.transActor;
+			} else*/
+			dropTarget = itemToCraft.transActor;
 		} else {
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} craft goto piled actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
