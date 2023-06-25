@@ -3107,7 +3107,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		foodEaten *= 0.45;
 		hasEatenMap[foodId] += foodEaten;
-		trace('reduceFoodValue: foodEaten: ${foodEaten} ${objData.name}');
+		// trace('reduceFoodValue: foodEaten: ${foodEaten} ${objData.name}');
 		reduceFoodValue(reducesLongingForId, foodEaten);
 	}
 

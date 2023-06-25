@@ -6268,15 +6268,18 @@ abstract class AiBase {
 		if (targetId == 291 && allowedOnFlatRockIds.contains(actorId) == false) {
 			var forge = GetForge();
 			if (forge != null) {
-				// Get Flat Rock at least 5 Tiles away from Forge
-				var newTarget = AiHelper.GetClosestObjectToTarget(myPlayer, forge, objId, 291, 5);
-				if (newTarget == null) {
-					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} no Flat Rock found that was not close to Forge!');
-					return false;
+				var quadDist = AiHelper.CalculateQuadDistanceToObject(myPlayer, forge);
+				if (quadDist < 10) {
+					// Get Flat Rock at least 5 Tiles away from Forge
+					var newTarget = AiHelper.GetClosestObjectToTarget(myPlayer, forge, objId, 291, 3);
+					if (newTarget == null) {
+						if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} no Flat Rock found that was not close to Forge!');
+						return false;
+					}
+					if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} new Flat Rock found that was not close to Forge!');
+					itemToCraft.transTarget = newTarget;
+					targetId = itemToCraft.transTarget.parentId;
 				}
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} new Flat Rock found that was not close to Forge!');
-				itemToCraft.transTarget = newTarget;
-				targetId = itemToCraft.transTarget.parentId;
 			}
 		}
 
