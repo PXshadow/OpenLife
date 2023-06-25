@@ -1186,6 +1186,16 @@ class ServerSettings {
 		ObjectData.getObjectData(861).speedMult = 0.85; // // Old Hand Cart
 		ObjectData.getObjectData(2172).speedMult = 0.9; // Hand Cart with Tires
 
+		ObjectData.getObjectData(253).reducesLongingFor = 31; // BOWL OF GOOSEBERRIES 253 -->  Gooseberry 31
+		ObjectData.getObjectData(272).reducesLongingFor = 253; // Cooked Berry Pie 272 --> BOWL OF GOOSEBERRIES 253
+
+		ObjectData.getObjectData(402).reducesLongingFor = 40; // Carrot 402 -->  Wild Carrot 40
+		ObjectData.getObjectData(273).reducesLongingFor = 402; // Cooked Carrot Pie 273 --> Carrot 402
+
+		ObjectData.getObjectData(2855).reducesLongingFor = 808; // Onion 2855 -->  Wild Onion 808
+
+		ObjectData.getObjectData(2861).reducesLongingFor = 2836; // Chopped Tomato on Plate --> Tomato 2836
+
 		// nerve food
 		ObjectData.getObjectData(768).foodValue = 4; // Cactus Fruit 768 // origional 8
 		ObjectData.getObjectData(2143).foodValue = 5; // banana // origional 7

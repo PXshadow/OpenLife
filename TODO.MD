@@ -102,6 +102,18 @@ Reworked Yum and Craving System:
 - Cravings and YUM is inherited from grandparents (or parents if there are none)
 - More details to YUM / Craving see below
 
+Auto Balance Food Value Server wide:
+- If a food is eaten less than 1% it has double food value
+- If a food is eaten less than 5% it has 50% more food value
+- If a food is eaten more than 8% it has 20% less food value
+- If a food is eaten more than 10% it has 50% less food value
+
+High quality food reduces longing for bad quality food:
+- For example eating a Cooked Berry Pie reduces:
+--> longing for Cooked Berry Pie by 0.45
+--> longing for Bowl of Berries by around 0.2
+--> longing for Berries by around 0.09
+
 New in game Currency:
 - there is a new in game currency see more about below (Coins)
 --> I give you XXCVIIII ==> gives 129 coins C = 100 / X = 10 / V = 5 / I = 1 (order does not matter)

@@ -2965,14 +2965,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			if (countEaten < 0) {
 				foodEaten = Math.max(1, Math.ceil(-countEaten / 2)); // eat more if it its a craving
-				playerTo.hasEatenMap[heldObjData.id] += foodEaten;
+				// playerTo.hasEatenMap[heldObjData.id] += foodEaten;
+				playerTo.reduceFoodValue(heldObjData.id, foodEaten);
 				// if (foodEaten > 1) foodEaten = 1 + (foodEaten - 1) / 2;
 				if (foodEaten > 10) foodEaten = 10;
 
 				if (ServerSettings.DebugEating) trace('Craving: foodEaten: $foodEaten countEaten: $countEaten --> ${playerTo.hasEatenMap[heldObjData.id]}');
 			} else {
 				if (isFoodYum == false) foodEaten *= ServerSettings.FoodReductionFaktorForEatingMeh;
-				playerTo.hasEatenMap[heldObjData.id] += foodEaten;
+				// playerTo.hasEatenMap[heldObjData.id] += foodEaten;
+				playerTo.reduceFoodValue(heldObjData.id, foodEaten);
 				if (ServerSettings.DebugEating) trace('No Craving: foodEaten: $foodEaten countEaten: $countEaten --> ${playerTo.hasEatenMap[heldObjData.id]}');
 			}
 
@@ -3091,6 +3093,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			playerTo.doEmote(Emote.sad);
 
 		return true;
+	}
+
+	private function reduceFoodValue(foodId:Int, foodEaten:Float) {
+		var objData = ObjectData.getObjectData(foodId);
+		var reducesLongingForId = objData.reducesLongingFor;
+
+		if (reducesLongingForId < 1) {
+			hasEatenMap[foodId] += foodEaten;
+			return;
+		}
+		// like eating a Berry Pie reduces longing for Bowl of Berries
+
+		foodEaten *= 0.45;
+		hasEatenMap[foodId] += foodEaten;
+		trace('reduceFoodValue: foodEaten: ${foodEaten} ${objData.name}');
+		reduceFoodValue(reducesLongingForId, foodEaten);
 	}
 
 	/**
