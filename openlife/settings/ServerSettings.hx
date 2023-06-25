@@ -178,6 +178,8 @@ class ServerSettings {
 	public static var ExhaustionHealingForMaleFaktor:Float = 1.2;
 
 	public static var FoodFactor:Float = 1; // 0.8 // reduces gained food value
+	public static var FoodFactorEatenMoreThanEightPercent:Float = 0.8;
+	public static var FoodFactorEatenMoreThanTenPercent:Float = 0.5;
 	public static var FoodFactorEatenLessThanFivePercent:Float = 1.5;
 	public static var FoodFactorEatenLessThanOnePercent:Float = 2;
 	public static var FoodReductionPerEating:Float = 1;

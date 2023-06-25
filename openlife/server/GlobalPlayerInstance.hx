@@ -3032,7 +3032,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var foodPercentage = WorldMap.world.eatenFoodPercentage[heldObjData.parentId];
 		if (foodPercentage < 1) {
 			foodValue *= ServerSettings.FoodFactorEatenLessThanOnePercent;
-		} else if (foodPercentage < 5) foodValue *= ServerSettings.FoodFactorEatenLessThanFivePercent;
+		} else if (foodPercentage < 5) {
+			foodValue *= ServerSettings.FoodFactorEatenLessThanFivePercent;
+		} else if (foodPercentage >= 8) {
+			foodValue *= ServerSettings.FoodFactorEatenMoreThanEightPercent;
+		} else if (foodPercentage >= 10) {
+			foodValue *= ServerSettings.FoodFactorEatenMoreThanTenPercent;
+		}
 
 		// trade health for little bit more food
 		if (isSuperMeh) {
