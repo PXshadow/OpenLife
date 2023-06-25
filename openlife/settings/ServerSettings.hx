@@ -2292,21 +2292,28 @@ class ServerSettings {
 		// trans.hungryWorkCost = 5;
 
 		// Steel Mining Pick 684 + Ancient Stone Wall H 896 ==> Stone Wall
-		trans = new TransitionData(684, 896, 684, 887);
+		// trans = new TransitionData(684, 896, 684, 887);
+		var trans = transitions.getTransition(684, 896);
 		trans.hungryWorkCost = 10;
 		trans.alternativeTransitionOutcome.push(0);
 		transitions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// Steel Mining Pick 684 + Ancient Stone Wall C 896 ==> Stone Wall
-		trans = new TransitionData(684, 895, 684, 885);
+		// trans = new TransitionData(684, 895, 684, 885);
+		var trans = transitions.getTransition(684, 895);
 		trans.hungryWorkCost = 10;
 		trans.alternativeTransitionOutcome.push(0);
 		transitions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// Steel Mining Pick 684 + Ancient Stone Wall V 897 ==> Stone Wall
-		trans = new TransitionData(684, 897, 684, 886);
+		// trans = new TransitionData(684, 897, 684, 886);
+		var trans = transitions.getTransition(684, 897);
 		trans.hungryWorkCost = 10;
 		trans.alternativeTransitionOutcome.push(0);
+		transitions.addTransition("PatchTransitions: ", trans, false, false);
+
+		// Short Shaft 69 + Fence 549 - vertical--> 0 + Fence Gate 4143
+		trans = new TransitionData(69, 549, 0, 4143);
 		transitions.addTransition("PatchTransitions: ", trans, false, false);
 
 		// Steel Adze 462 + Springy Wooden Door - horizontal 2757
