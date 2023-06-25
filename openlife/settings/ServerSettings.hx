@@ -2153,10 +2153,12 @@ class ServerSettings {
 
 		trans = new TransitionData(850, 235, 850, 126); // Stone Hoe  + Clay Bowl --> Stone Hoe + Clay
 		trans.aiShouldIgnore = true;
+		trans.noUseActor = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(850, 236, 850, 126); // Stone Hoe  + Clay Plate --> Stone Hoe + Clay
 		trans.aiShouldIgnore = true;
+		trans.noUseActor = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(850, 292, 850, 124); // Stone Hoe  + Basket 292 --> Stone Hoe + Reed Bundle 124
