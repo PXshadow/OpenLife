@@ -1459,7 +1459,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var childIsHuman = child.isHuman();
 		var fatherIsHuman = p.isHuman();
 		var quadDist = AiHelper.CalculateDistanceToPlayer(p, mother);
-		var founderId = p.lineage.eve.id;
+		var founderId = p.lineage.myEveId;
 
 		if (p.deleted) return -1000;
 		if (p.isFemale()) return -1000;
@@ -1497,7 +1497,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var childIsHuman = child.isAi() == false;
 		var motherIsHuman = p.isAi() == false;
 		var maxExhaustion = childIsHuman == motherIsHuman ? 10 : 5;
-		var founderId = p.lineage.eve.id;
+		var founderId = p.lineage.myEveId;
 
 		if (p.deleted) return -1000;
 		if (p.isFertile() == false) return -1000;
@@ -6339,7 +6339,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	public function countLeadershipPower() {
 		// var power = this.food_store_max * (this.prestige + this.coins);
-		var power = this.prestige + this.coins;
+		var founderId = lineage.myEveId;
+		var familyPrestige = account.familyPrestige[founderId];
+		var familyPrestigeLeaderFamily = followPlayer == null ? 0 : account.familyPrestige[followPlayer.lineage.myEveId];
+		var power = (this.prestige + this.coins) * (10 + familyPrestige + familyPrestigeLeaderFamily);
 		if (this.lineage.prestigeClass == Noble) power *= 2;
 		if (this.lineage.prestigeClass == Serf) power /= 2;
 		power /= 10;

@@ -177,7 +177,7 @@ class PlayerAccount {
 		account.maleScore = Math.round(account.maleScore * 100) / 100;
 
 		// do family score
-		var founderId = player.lineage.eve.id;
+		var founderId = player.lineage.myEveId;
 		var oldFamilyPrestige:Float = account.familyPrestige[founderId];
 		account.familyPrestige[founderId] = oldFamilyPrestige * (1 - factor) + score * factor;
 
