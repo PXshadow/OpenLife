@@ -4130,11 +4130,16 @@ abstract class AiBase {
 		if (hasCornSeeds && craftItemMax(1246, 2)) return true;
 
 		// Raw Mutton 569
-		if (craftItem(569)) return true;
-		// Raw Pork 1342
-		if (craftItem(1342)) return true;
-		// Bowl of Soaking Beans 1180
-		if (hasBeanSeeds() && craftItemMax(1180, 2)) return true;
+		var countMutton = countCurrentObjects([570, 569]);
+		if (countMutton < 2 && craftItem(569)) return true; // Raw Mutton 569
+
+		// Raw Pork 1342 // Bowl of Carnitas 1355
+		var countPorkFood = countCurrentObjects([1342, 1355]);
+		if (countPorkFood < 2 && craftItem(1342)) return true;
+
+		// Bowl of Soaking Beans 1180 // Bowl of Cooked Beans 1292
+		var countBeanFood = countCurrentObjects([1180, 1292]);
+		if (countBeanFood < 2 && hasBeanSeeds() && craftItemMax(1180, 2)) return true;
 		// Skinned Rabbit 181
 		// if(craftItem(181)) return true;
 
