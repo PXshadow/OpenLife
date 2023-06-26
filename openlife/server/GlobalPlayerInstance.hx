@@ -3030,7 +3030,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// Reduce Food value depending on difficulty Settings
 		foodValue = foodValue * ServerSettings.FoodFactor;
 
-		// increase food value if not eaten much
+		// increase food value depending on how much world wide eaten
 		var foodFactor = WorldMap.world.getFoodFactor(heldObjData.parentId);
 		foodValue *= foodFactor;
 

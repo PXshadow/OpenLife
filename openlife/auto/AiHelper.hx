@@ -653,6 +653,10 @@ class AiHelper {
 				var isSuperMeh = foodValue < originalFoodValue / 2; // can eat if food_store < 0
 				// trace('search food: best $bestDistance dist $distance ${obj.description}');
 
+				// increase food value depending on how much world wide eaten
+				var foodFactor = WorldMap.world.getFoodFactor(foodId);
+				foodValue *= foodFactor;
+
 				if (isYum) foodValue *= starvingFactor;
 				if (isSuperMeh) foodValue = originalFoodValue / starvingFactor;
 				if (isSuperMeh && player.food_store > 3) foodValue = 0;
