@@ -2179,11 +2179,11 @@ abstract class AiBase {
 
 		if (doPlantCorn(2, 5)) return true;
 
+		if (doPlantMilkWeed(2, 7)) return true;
+
 		if (doPlantWheat(2, 5)) return true;
 
 		if (doPlantTomato(2, 5)) return true;
-
-		if (doPlantMilkWeed(2, 5)) return true;
 
 		if (doPlantBeans(2, 4)) return true;
 
