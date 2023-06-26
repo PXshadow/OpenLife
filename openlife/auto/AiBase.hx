@@ -223,6 +223,10 @@ abstract class AiBase {
 
 		// if (AddTargetBlockedByAi(ai.ai.myPlayer.blockActorForAi)) return;
 		// if (AddTargetBlockedByAi(ai.ai.myPlayer.blockTargetForAi, ai.ai.myPlayer.blockActorForAi)) return;
+		var timePassedInSeconds = CalculateTimeSinceTicksInSec(ai.player.blockTargetTime);
+		// if (ai.player.blockTargetForAi != null) trace('blocked for AI: ${ai.player.blockTargetForAi.name} ${timePassedInSeconds}');
+		if (timePassedInSeconds < 20) AddTargetBlockedByAi(ai.player.blockTargetForAi);
+		if (AddTargetBlockedByAi(ai.ai.myPlayer.blockTargetForAi)) return;
 		if (AddTargetBlockedByAi(ai.ai.foodTarget)) return;
 		if (AddTargetBlockedByAi(ai.ai.dropTarget)) return;
 		if (AddTargetBlockedByAi(ai.ai.useTarget, ai.ai.myPlayer.heldObject)) return;
@@ -231,7 +235,7 @@ abstract class AiBase {
 
 	private static function RemoveBlockedByAi(ai:ServerAi) {
 		// RemoveTargetBlockedByAi(ai.ai.myPlayer.blockActorForAi);
-		// RemoveTargetBlockedByAi(ai.ai.myPlayer.blockTargetForAi);
+		RemoveTargetBlockedByAi(ai.ai.myPlayer.blockTargetForAi);
 		RemoveTargetBlockedByAi(ai.ai.foodTarget);
 		RemoveTargetBlockedByAi(ai.ai.dropTarget);
 		RemoveTargetBlockedByAi(ai.ai.useTarget);
@@ -7747,8 +7751,8 @@ abstract class AiBase {
 			if (shouldDebugSay()) myPlayer.say('Drop ${myPlayer.heldObject.name} Drop for container ${dropTarget.name}');
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} for container ${dropTarget.name}');
 			// save droptarget from other Ai if first held object is dropped to pickup actor
-			myPlayer.blockActorForAi = dropTarget;
-			myPlayer.blockTargetForAi = useTarget;
+			// myPlayer.blockActorForAi = dropTarget;
+			// myPlayer.blockTargetForAi = useTarget;
 			return dropHeldObject(dropDistance);
 		}
 
@@ -7759,15 +7763,15 @@ abstract class AiBase {
 				trace('AAI: ${myPlayer.name + myPlayer.id} Drop ${myPlayer.heldObject.name} target: ${dropTarget.name} TOO FAR AWAY! dist: $distance');
 
 			// save droptarget from other Ai if first held object is dropped to pickup actor
-			myPlayer.blockActorForAi = dropTarget;
-			myPlayer.blockTargetForAi = useTarget;
+			// myPlayer.blockActorForAi = dropTarget;
+			// myPlayer.blockTargetForAi = useTarget;
 
 			return dropHeldObject(dropDistance);
 		}
 
 		// TODO reset somehwere else, since otherwise this might be blocked too long
-		myPlayer.blockActorForAi = null;
-		myPlayer.blockTargetForAi = null;
+		// myPlayer.blockActorForAi = null;
+		// myPlayer.blockTargetForAi = null;
 
 		// TODO go only for floored target or fire if kid or mother with kids and winter
 

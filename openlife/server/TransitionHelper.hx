@@ -375,12 +375,13 @@ class TransitionHelper {
 		}
 
 		// block last target for Ai for some time if no weapon, cloth or food or permanent
-		var block = player.isHuman();
+		var isHoldingSmithingHammer = heldId == 441; // Smithing Hammer 441
+		var block = player.isHuman() || isHoldingSmithingHammer;
 		var blockTarget = WorldMap.world.getObjectHelper(target.tx, target.ty);
 
 		if (blockTarget.parentId == 0) block = false;
-		// Smithing Hammer 441
-		if (blockTarget.objectData.isPermanent() && heldId != 441) block = false;
+
+		if (blockTarget.objectData.isPermanent() && isHoldingSmithingHammer == false) block = false;
 		if (blockTarget.objectData.isWeapon()) block = false;
 		if (blockTarget.objectData.isAnimal()) block = false;
 		if (blockTarget.objectData.foodValue > 0) block = false;
