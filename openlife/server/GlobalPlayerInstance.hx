@@ -1863,6 +1863,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			toSelf = true;
 		}
 
+		if (StringTools.startsWith(text, '?FAMSCORE')
+			|| StringTools.startsWith(text, 'FAMSCORE?')
+			|| StringTools.startsWith(text, '?FAMILYSCORE')
+			|| StringTools.startsWith(text, 'FAMILYSCORE?')) {
+			var score = Math.floor(this.getFamilyPresige());
+			text = 'MY FAMILY PRESTIGE IS ${score}!';
+			toSelf = true;
+		}
+
 		if (StringTools.startsWith(text, '?R')
 			|| StringTools.startsWith(text, '?REPUTATION')
 			|| StringTools.startsWith(text, 'REPUTATION?')) {
@@ -1931,6 +1940,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (StringTools.startsWith(text, 'FOLLOWER?')) {
 			var count = this.CountAndDisplayFollower();
 			text = 'FOLLOWER ${count}';
+		}
+
+		if (StringTools.startsWith(text, '?FAM')) {
+			// if (text == '?F') player.connection.sendToMeAllFollowings(true);
+
+			var count = this.CountAndDisplayFamily();
+			text = 'FAMILY ${count}';
+			toSelf = true;
+		}
+
+		if (StringTools.startsWith(text, 'FAM?')) {
+			var count = this.CountAndDisplayFamily();
+			text = 'FAMILY ${count}';
 		}
 
 		if (StringTools.startsWith(text, '?POWER')) {
@@ -6433,6 +6455,33 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 
 		if (display && bestPlayer != null) this.connection.sendMapLocation(bestPlayer, 'ALLY', 'follower');
+		if (display) this.connection.send(FRAME);
+
+		return count;
+	}
+
+	public function CountAndDisplayFamily(display = true) {
+		var count = 0;
+		var bestDist = -1.0;
+		var bestPlayer = null;
+
+		for (p in AllPlayers) {
+			if (p.isDeleted()) continue;
+			if (p == this) continue;
+			if (p.isSameFamily(this) == false) continue;
+			if (display) this.connection.send(PLAYER_SAYS, ['${p.id}/0 +${p.name}+']);
+			// if (display) c.send(PLAYER_SAYS, ['${p.id}/$curse $text']);
+
+			count++;
+
+			var dist = AiHelper.CalculateDistanceToPlayer(p, this);
+			if (bestPlayer != null && dist > bestDist) continue;
+
+			bestDist = dist;
+			bestPlayer = p;
+		}
+
+		if (display && bestPlayer != null) this.connection.sendMapLocation(bestPlayer, 'FAM', 'follower');
 		if (display) this.connection.send(FRAME);
 
 		return count;
