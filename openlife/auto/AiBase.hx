@@ -5606,7 +5606,7 @@ abstract class AiBase {
 		// Collect Rabbits needed for cloths
 		// Dead Rabbit 180 // Rabbit Fur 183
 		var count = countCurrentObject(183);
-		if (count < 5 && makeOrCollect(180, 1, 3)) return true;
+		if (count < 15 && makeOrCollect(180, 2, 4)) return true;
 
 		Macro.exception(if (doWatering(1)) return true);
 
