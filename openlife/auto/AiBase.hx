@@ -2198,10 +2198,7 @@ abstract class AiBase {
 
 		if (shortCraft(1137, 1143, 30)) return true; // Bowl of Soil 1137 + Potato Plants 1143
 		if (shortCraft(502, 1146, 30)) return true; // Shovel + Mature Potato Plants 1146
-
-		// Dry Planted Potatoes 1145
-		// Wet Planted Potatoes 1142 // Potato Plants 1143 // Mounded Potato Plants 1144 // Mature Potato Plants 1146
-		if (doPlant(2, 5, 1145, [1142, 1143, 1144, 1146])) return true;
+		if (doPlantPotatos(2, 5)) return true;
 
 		if (doComposting()) return true;
 		if (doWatering(3)) return true;
