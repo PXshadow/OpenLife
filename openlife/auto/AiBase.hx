@@ -1722,12 +1722,13 @@ abstract class AiBase {
 		// Domestic Cow 1458
 		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1458, 30);
 		if (count > 5) {
-			var cow = AiHelper.GetClosestObjectToHome(myPlayer, 1458, 30);
-			if (cow != null) cow = AiHelper.GetClosestObjectToHome(myPlayer, 1458, 30, cow);
-			// Knife 560 + Domestic Cow 1458
-			if (cow != null && shortCraftOnTarget(560, cow)) return true;
-			// Mango Leaf 1878 + Domestic Cow 1458 (in case there is no Knife)
-			if (cow != null && shortCraftOnTarget(1878, cow)) return true;
+			/*var cow = AiHelper.GetClosestObjectToHome(myPlayer, 1458, 30);
+				if (cow != null) cow = AiHelper.GetClosestObjectToHome(myPlayer, 1458, 30, cow);
+				// Knife 560 + Domestic Cow 1458
+				if (cow != null && shortCraftOnTarget(560, cow)) return true;
+				// Mango Leaf 1878 + Domestic Cow 1458 (in case there is no Knife)
+				if (cow != null && shortCraftOnTarget(1878, cow)) return true;
+			 */
 		} else {
 			// Bowl with Corn Kernels 1247 + Domestic Cow 1458
 			if (countCorn > 3 && hasCornSeeds && shortCraft(1247, 1458, distance)) return true;
