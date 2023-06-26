@@ -2600,6 +2600,7 @@ abstract class AiBase {
 
 		if (shortCraftOnGround(283)) return true; // Wooden Tongs with Fired Bowl
 		if (shortCraftOnGround(241)) return true; // Fired Plate in Wooden Tongs
+		if (shortCraftOnGround(1219)) return true; // Wooden Tongs with Fired Crock 1219
 
 		// Basket of Charcoal 298
 		var countCharcoalBasket = countCurrentObject(298);
