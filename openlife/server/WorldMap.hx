@@ -782,9 +782,10 @@ class WorldMap {
 			var foodValueYumBoni = Math.round(eatenFoodsYumBoni[foodId] * 1) / 1;
 			var foodValueMehMali = Math.round(eatenFoodsMehMali[foodId] * 1) / 1;
 			var percent = Math.round(eatenFoodValues[foodId] / total * 100) / 1;
+			var totalPercent = Math.round(getEatenFoodPercentage(foodId) / total * 100) / 1;
 			eatenFoodPercentage[foodId] = percent;
 
-			writer.writeString('${percent}% pipes: ${foodValue} ${foodData.name}[${foodData.id}] yum: ${foodValueYum} meh: ${foodValueMeh} boni: ${foodValueYumBoni} mali: ${foodValueMehMali}\n');
+			writer.writeString('${percent}% t: ${totalPercent}% pipes: ${foodValue} ${foodData.name}[${foodData.id}] yum: ${foodValueYum} meh: ${foodValueMeh} boni: ${foodValueYumBoni} mali: ${foodValueMehMali}\n');
 		}
 		writer.close();
 	}
@@ -1567,7 +1568,7 @@ class WorldMap {
 	}
 
 	public function getFoodFactor(foodId) {
-		var foodPercentage = WorldMap.world.eatenFoodPercentage[foodId];
+		var foodPercentage = getEatenFoodPercentage(foodId);
 
 		if (foodPercentage < 1) return ServerSettings.FoodFactorEatenLessThanOnePercent;
 		if (foodPercentage < 3) return ServerSettings.FoodFactorEatenLessThanThreePercent;
@@ -1576,6 +1577,14 @@ class WorldMap {
 		if (foodPercentage >= 8) return ServerSettings.FoodFactorEatenMoreThanEightPercent;
 
 		return 1;
+	}
+
+	public function getEatenFoodPercentage(foodId) {
+		var objData = ObjectData.getObjectData(foodId);
+		var foodPercentage = eatenFoodPercentage[foodId];
+
+		if (objData.higherQaulityFood > 0) foodPercentage += getEatenFoodPercentage(objData.higherQaulityFood);
+		return foodPercentage;
 	}
 }
 #end

@@ -125,6 +125,7 @@ class ObjectData extends LineReader {
 	public var fortificationValue:Float = 10; // Reduces hits with this amount
 
 	public var reducesLongingFor:Int = -1;
+	public var higherQaulityFood:Int = -1;
 
 	// saved
 
