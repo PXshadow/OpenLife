@@ -970,6 +970,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		food_store_max = calculateFoodStoreMax();
 		food_store = food_store_max / 2;
 		exhaustion = -food_store_max;
+		// yum_multiplier = (this.account.totalScore + this.getFamilyPresige()) * 0.5 * ServerSettings.BirthPrestigeFactor;
 		yum_multiplier = this.account.totalScore * ServerSettings.BirthPrestigeFactor;
 		yum_multiplier = Math.max(yum_multiplier, (medianPrestige / 30) * trueAge);
 
@@ -1020,7 +1021,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	private function calculateTotalPresige() {
-		var prestige = lineagePrestige + 4 * getFamilyPresige();
+		var prestige = lineagePrestige + (4 * getFamilyPresige());
 		return prestige;
 	}
 
@@ -6355,7 +6356,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var founderId = lineage.myEveId;
 		var familyPrestige = account.familyPrestige[founderId];
 		var familyPrestigeLeaderFamily = followPlayer == null ? 0 : account.familyPrestige[followPlayer.lineage.myEveId];
-		var power = (this.prestige + this.coins) * (10 + familyPrestige + familyPrestigeLeaderFamily);
+		// var power = (this.prestige + this.coins) * (10 + familyPrestige + familyPrestigeLeaderFamily);
+		var power = (this.prestige + this.coins) + 2 * (familyPrestige + familyPrestigeLeaderFamily);
 		if (this.lineage.prestigeClass == Noble) power *= 2;
 		if (this.lineage.prestigeClass == Serf) power /= 2;
 		power /= 10;
