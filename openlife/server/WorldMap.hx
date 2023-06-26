@@ -1585,11 +1585,11 @@ class WorldMap {
 	public function getEatenFoodPercentage(foodId):Float {
 		var objData = ObjectData.getObjectData(foodId);
 		var foodPercentage:Float = eatenFoodPercentage[foodId];
-		if (foodPercentage > 0) trace('getEatenFoodPercentage:1 ${objData.name} ${eatenFoodPercentage[foodId]}% t: ${foodPercentage}%');
+		// if (foodPercentage > 0) trace('getEatenFoodPercentage:1 ${objData.name} ${eatenFoodPercentage[foodId]}% t: ${foodPercentage}%');
 
 		if (objData.higherQaulityFood > 0) foodPercentage += getEatenFoodPercentage(objData.higherQaulityFood);
 
-		if (foodPercentage > 0) trace('getEatenFoodPercentage: ${objData.name} ${eatenFoodPercentage[foodId]}% t: ${foodPercentage}%');
+		// if (foodPercentage > 0) trace('getEatenFoodPercentage: ${objData.name} ${eatenFoodPercentage[foodId]}% t: ${foodPercentage}%');
 		return foodPercentage;
 	}
 }
