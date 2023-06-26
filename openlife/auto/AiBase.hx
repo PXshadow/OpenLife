@@ -3574,7 +3574,8 @@ abstract class AiBase {
 
 		// Steel Chisel 455
 		if (this.profession['SMITH'] < 9) {
-			var count = countCurrentObject(455);
+			// Steel File with Chisel 466 // Dug Big Rock with Chisel
+			var count = countCurrentObjects(ServerSettings.objectIdArrays[455]);
 			// count += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 455, 30);
 			if (count < 1 && craftItem(455)) return true;
 			this.profession['SMITH'] = 9;

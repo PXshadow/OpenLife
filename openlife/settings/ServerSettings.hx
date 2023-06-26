@@ -416,6 +416,8 @@ class ServerSettings {
 	public static var AIFoodUseFactorCommoner:Float = 0.9;
 	public static var AIFoodUseFactorNoble:Float = 1;
 
+	public static var objectIdArrays = new Map<Int, Array<Int>>();
+
 	public static function CanObjectBeLuckySpot(obj:Int):Bool {
 		// 942 Muddy Iron Vein (can now respawn but not be lucky spot)
 		// 3962 Loose Muddy Iron Vein
@@ -542,6 +544,13 @@ class ServerSettings {
 			/*if(obj.floorHugging){
 				trace('floorHugging: ${obj.name}');
 			}*/
+
+			if (obj.description.contains('Chisel')) {
+				// Steel Chisel 455
+				if (objectIdArrays[455] == null) objectIdArrays[455] = new Array<Int>();
+				objectIdArrays[455].push(obj.parentId);
+				// trace('Steel Chisel: ${obj.name}');
+			}
 
 			if (obj.description.contains('Wall') || obj.description.contains('Door')) {
 				obj.allowFloorPlacement = true;
