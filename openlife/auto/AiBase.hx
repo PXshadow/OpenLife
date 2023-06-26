@@ -6305,6 +6305,13 @@ abstract class AiBase {
 		var targetId = itemToCraft.transTarget.parentId;
 		var heldId = myPlayer.heldObject.parentId;
 
+		// Bowl of Gooseberries 253 // Raw Pie Crust 264
+		// Raw Berry Pie 265 // Cooked Berry Pie 272
+		if (actorId == 253 && targetId == 264) {
+			var count = countCurrentObjects([265, 272]);
+			if (count > 1) return false;
+		}
+
 		// Dont place Rabbit Bait or other not belonging stuff on Flat Rock near Forge
 		// Flat Rock 291
 		// Hot Iron Bloom in Wooden Tongs 308 // Hot Wrought Iron in Wooden Tongs 2217
