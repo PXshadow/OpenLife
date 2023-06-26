@@ -1475,7 +1475,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		tmpFitness += p.food_store_max / 10; // the more healthy the more likely
 		tmpFitness += p.calculateClassBoni(mother); // the closer the mother is to same class the better
-		tmpFitness += p.yum_multiplier / 100; // the more health / prestige the more likely
+		tmpFitness += p.prestigeFromEating / 20; // the more health / prestige the more likely
 		tmpFitness += child.account.familyPrestige[founderId] / 20;
 
 		// mali
@@ -1512,7 +1512,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		tmpFitness += p.food_store_max / 10; // the more healthy the more likely
 		tmpFitness += p.calculateClassBoni(child); // the closer the mother is to same class the better
 		tmpFitness += child.account.hasCloseNonBlockingGrave(p.tx, p.ty) ? 3 : 0;
-		tmpFitness += p.yum_multiplier / 100; // the more health / prestige the more likely
+		tmpFitness += p.prestigeFromEating / 20; // the more health / prestige the more likely
 		tmpFitness += child.account.familyPrestige[founderId] / 20;
 
 		// mali
