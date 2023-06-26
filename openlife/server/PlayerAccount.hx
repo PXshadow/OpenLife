@@ -176,7 +176,12 @@ class PlayerAccount {
 		account.femaleScore = Math.round(account.femaleScore * 100) / 100;
 		account.maleScore = Math.round(account.maleScore * 100) / 100;
 
-		trace('Score: ${account.score} This Life: $score femaleScore: ${account.femaleScore} maleScore: ${account.maleScore}');
+		// do family score
+		var founderId = player.lineage.eve.id;
+		var oldFamilyPrestige:Float = account.familyPrestige[founderId];
+		account.familyPrestige[founderId] = oldFamilyPrestige * (1 - factor) + score * factor;
+
+		trace('Score: ${account.score} This Life: $score femaleScore: ${account.femaleScore} maleScore: ${account.maleScore} family: ${player.familyName} ${oldFamilyPrestige} --> ${account.familyPrestige[founderId]}');
 	}
 
 	public function removeDeletedGraves() {
