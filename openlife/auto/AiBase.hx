@@ -2711,7 +2711,9 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make bowl $countBowl from $maxBowls');
 
 		// Wooden Tongs with Fired Bowl 283
-		if (countWetBowl > 0 && countBowl < maxBowls && craftItem(283)) return true;
+		// if (countWetBowl > 0 && countBowl < maxBowls && craftItem(283)) return true;
+		// this.taskState['Bowl']
+		if (countBowl < maxBowls && craftItem(283)) return true;
 
 		var countPlate = countCurrentObject(236); // Clay Plate 236
 		var maxPlates = ObjectData.getObjectData(236).aiCraftMax; // Clay Plate 236
@@ -2729,10 +2731,10 @@ abstract class AiBase {
 
 		// TODO make other potter stuff
 
-		var countCoal = countCurrentObject(300); //  Big Charcoal Pile 300
+		var countCoal = countCurrentObjects([300, 4102]); //  Big Charcoal Pile 300
 
 		// Adobe 127 // Firing Adobe Kiln 282
-		if (countCoal < 5 && shortCraft(127, 282)) return true;
+		if (countCoal < 3 && shortCraft(127, 282)) return true;
 
 		return false;
 	}
