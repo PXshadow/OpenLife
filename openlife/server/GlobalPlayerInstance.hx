@@ -1019,7 +1019,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		trace('Home: ${name} ${home.tx} ${home.ty} biome: ${WorldMap.world.getBiomeId(home.tx, home.ty)}');
 	}
 
-	// TODO test
+	private function calculateTotalPresige() {
+		var prestige = lineagePrestige + 4 * getFamilyPresige();
+		return prestige;
+	}
+
+	public function getFamilyPresige() {
+		var founderId = lineage.myEveId;
+		var familyPrestige = account.familyPrestige[founderId];
+		return familyPrestige;
+	}
+
 	private function calculatePrestigeClass():PrestigeClass {
 		// trace('PRESTIGE ${playerAccount.totalScore} prestigeNeededForNobleBirth: $prestigeNeededForNobleBirth');
 		// [for(key in map.keys()) key]
@@ -1027,8 +1037,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (players.length < 2) return PrestigeClass.Commoner;
 
+		// if (a.lineagePrestige < b.lineagePrestige) return -1; else if (a.lineagePrestige > b.lineagePrestige) return 1; else
+
+		// TODO calculte class more dpending on prestige in family?
 		players.sort(function(a, b) {
-			if (a.lineagePrestige < b.lineagePrestige) return -1; else if (a.lineagePrestige > b.lineagePrestige) return 1; else
+			if (a.calculateTotalPresige() < b.calculateTotalPresige()) return -1; else if (a.calculateTotalPresige() > b.calculateTotalPresige()) return 1; else
 				return 0;
 		});
 
