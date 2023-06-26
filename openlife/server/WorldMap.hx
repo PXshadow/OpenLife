@@ -786,8 +786,9 @@ class WorldMap {
 			var foodValueYumBoni = Math.round(eatenFoodsYumBoni[foodId] * 1) / 1;
 			var foodValueMehMali = Math.round(eatenFoodsMehMali[foodId] * 1) / 1;
 			var percent = eatenFoodPercentage[foodId];
-			var totalPercent = Math.round(getEatenFoodPercentage(foodId) / total * 100) / 1;
+			var totalPercent = getEatenFoodPercentage(foodId);
 
+			// trace('writeFoodStatistics: ${percent}% t: ${totalPercent}% pipes: ${foodValue} ${foodData.name}');
 			writer.writeString('${percent}% t: ${totalPercent}% pipes: ${foodValue} ${foodData.name}[${foodData.id}] yum: ${foodValueYum} meh: ${foodValueMeh} boni: ${foodValueYumBoni} mali: ${foodValueMehMali}\n');
 		}
 		writer.close();
@@ -1582,14 +1583,14 @@ class WorldMap {
 		return 1;
 	}
 
-	public function getEatenFoodPercentage(foodId):Float {
+	public function getEatenFoodPercentage(foodId, doTrace = false):Float {
 		var objData = ObjectData.getObjectData(foodId);
 		var foodPercentage:Float = eatenFoodPercentage[foodId];
-		// if (foodPercentage > 0) trace('getEatenFoodPercentage:1 ${objData.name} ${eatenFoodPercentage[foodId]}% t: ${foodPercentage}%');
+		if (doTrace) trace('getEatenFoodPercentage:1 ${objData.name} ${eatenFoodPercentage[foodId]}% t: ${foodPercentage}%');
 
 		if (objData.higherQaulityFood > 0) foodPercentage += getEatenFoodPercentage(objData.higherQaulityFood);
 
-		// if (foodPercentage > 0) trace('getEatenFoodPercentage: ${objData.name} ${eatenFoodPercentage[foodId]}% t: ${foodPercentage}%');
+		if (doTrace) trace('getEatenFoodPercentage: ${objData.name} ${eatenFoodPercentage[foodId]}% t: ${foodPercentage}%');
 		return foodPercentage;
 	}
 }
