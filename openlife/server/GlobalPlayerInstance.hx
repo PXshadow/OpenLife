@@ -5776,6 +5776,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (this.exiledByPlayers.exists(leader.p_id)) return; // is exiled
 
 			var factor = 1 + calculateCClothingPrestigeFactor();
+			if (this.isSameFamily(leader) == false) factor *= 0.4;
 
 			// if (factor > 1) trace('clothingPrestigeFactor: ${factor}');
 
