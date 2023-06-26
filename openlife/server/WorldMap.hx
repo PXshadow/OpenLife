@@ -1565,5 +1565,17 @@ class WorldMap {
 		if (yum > 0) this.eatenFoodsYumBoni[foodId] += yum; else
 			this.eatenFoodsMehMali[foodId] -= yum;
 	}
+
+	public function getFoodFactor(foodId) {
+		var foodPercentage = WorldMap.world.eatenFoodPercentage[foodId];
+
+		if (foodPercentage < 1) return ServerSettings.FoodFactorEatenLessThanOnePercent;
+		if (foodPercentage < 3) return ServerSettings.FoodFactorEatenLessThanThreePercent;
+		if (foodPercentage < 5) return ServerSettings.FoodFactorEatenLessThanFivePercent;
+		if (foodPercentage >= 10) return ServerSettings.FoodFactorEatenMoreThanTenPercent;
+		if (foodPercentage >= 8) return ServerSettings.FoodFactorEatenMoreThanEightPercent;
+
+		return 1;
+	}
 }
 #end

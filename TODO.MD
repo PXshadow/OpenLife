@@ -103,7 +103,8 @@ Reworked Yum and Craving System:
 - More details to YUM / Craving see below
 
 Auto Balance Food Value Server wide:
-- If a food is eaten less than 1% it has double food value
+- If a food is eaten less than 1% it has 150% more food value
+- If a food is eaten less than 3% it has 100% more food value
 - If a food is eaten less than 5% it has 50% more food value
 - If a food is eaten more than 8% it has 20% less food value
 - If a food is eaten more than 10% it has 50% less food value
