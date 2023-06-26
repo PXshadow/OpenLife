@@ -3097,7 +3097,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 		// like eating a Berry Pie reduces longing for Bowl of Berries
 
-		foodEaten *= 0.45;
+		foodEaten *= ServerSettings.FoodReductionFaktorForEatingHighQuailitFood; // 0.45;
+		foodEaten *= 0.5;
 		hasEatenMap[foodId] += foodEaten;
 		// trace('reduceFoodValue: foodEaten: ${foodEaten} ${objData.name}');
 		reduceFoodValue(reducesLongingForId, foodEaten);

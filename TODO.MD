@@ -111,9 +111,9 @@ Auto Balance Food Value Server wide:
 
 High quality food reduces longing for bad quality food:
 - For example eating a Cooked Berry Pie reduces:
---> longing for Cooked Berry Pie by 0.45
---> longing for Bowl of Berries by around 0.2
---> longing for Berries by around 0.2
+--> longing for Cooked Berry Pie by 0.4
+--> longing for Bowl of Berries by around 0.16
+--> longing for Berries by around 0.16
 
 New in game Currency:
 - there is a new in game currency see more about below (Coins)
