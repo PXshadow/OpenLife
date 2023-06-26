@@ -1459,6 +1459,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var childIsHuman = child.isHuman();
 		var fatherIsHuman = p.isHuman();
 		var quadDist = AiHelper.CalculateDistanceToPlayer(p, mother);
+		var founderId = p.lineage.eve.id;
 
 		if (p.deleted) return -1000;
 		if (p.isFemale()) return -1000;
@@ -1474,7 +1475,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		tmpFitness += p.food_store_max / 10; // the more healthy the more likely
 		tmpFitness += p.calculateClassBoni(mother); // the closer the mother is to same class the better
-		tmpFitness += p.yum_multiplier / 10; // the more health / prestige the more likely
+		tmpFitness += p.yum_multiplier / 100; // the more health / prestige the more likely
+		tmpFitness += child.account.familyPrestige[founderId] / 20;
 
 		// mali
 		tmpFitness -= p.age < 16 ? 2 : 0;
@@ -1495,6 +1497,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var childIsHuman = child.isAi() == false;
 		var motherIsHuman = p.isAi() == false;
 		var maxExhaustion = childIsHuman == motherIsHuman ? 10 : 5;
+		var founderId = p.lineage.eve.id;
 
 		if (p.deleted) return -1000;
 		if (p.isFertile() == false) return -1000;
@@ -1509,7 +1512,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		tmpFitness += p.food_store_max / 10; // the more healthy the more likely
 		tmpFitness += p.calculateClassBoni(child); // the closer the mother is to same class the better
 		tmpFitness += child.account.hasCloseNonBlockingGrave(p.tx, p.ty) ? 3 : 0;
-		tmpFitness += p.yum_multiplier / 20; // the more health / prestige the more likely
+		tmpFitness += p.yum_multiplier / 100; // the more health / prestige the more likely
+		tmpFitness += child.account.familyPrestige[founderId] / 20;
 
 		// mali
 		var temperatureMail = Math.pow(((p.heat - 0.5) * 10), 2) / 10; // between 0 and 2.5 for very bad temperature
