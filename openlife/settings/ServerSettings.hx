@@ -1204,6 +1204,9 @@ class ServerSettings {
 		ObjectData.getObjectData(2861).reducesLongingFor = 2836; // Chopped Tomato on Plate --> Tomato 2836
 		ObjectData.getObjectData(2836).higherQaulityFood = 2861;
 
+		ObjectData.getObjectData(803).reducesLongingFor = 570; // Cooked Mutton Pie 803 -->  Cooked Mutton 570
+		ObjectData.getObjectData(570).higherQaulityFood = 803;
+
 		// nerve food
 		ObjectData.getObjectData(768).foodValue = 4; // Cactus Fruit 768 // origional 8
 		ObjectData.getObjectData(2143).foodValue = 5; // banana // origional 7
