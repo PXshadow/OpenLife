@@ -27,6 +27,8 @@ class PlayerAccount {
 	public var lastSeenInTicks:Float;
 
 	public var coinsInherited:Float;
+	public var role:Int = 0; // 0 = normal player 10 = admin
+	public var familyPrestige = new Map<Int, Float>();
 
 	// not saved yet
 	public var scoreEntries = new Array<ScoreEntry>(); // is used to store prestige boni / mali
@@ -64,7 +66,7 @@ class PlayerAccount {
 		// trace('Wrtie to file: $path width: $width height: $height length: $length');
 
 		var writer = File.write(path, true);
-		var dataVersion = 1;
+		var dataVersion = 2;
 		var count = 0;
 
 		for (ac in accounts)
@@ -88,6 +90,16 @@ class PlayerAccount {
 			writer.writeDouble(ac.lastSeenInTicks);
 
 			writer.writeFloat(ac.coinsInherited);
+
+			// Data Version 2
+			writer.writeInt8(ac.role);
+
+			var count = Lambda.count(ac.familyPrestige);
+			writer.writeInt32(count);
+			for (key in ac.familyPrestige.keys()) {
+				writer.writeInt32(key);
+				writer.writeFloat(ac.familyPrestige[key]);
+			}
 		}
 
 		writer.close();
@@ -117,6 +129,20 @@ class PlayerAccount {
 			account.lastSeenInTicks = reader.readDouble();
 
 			account.coinsInherited = reader.readFloat();
+
+			// Data Version 2
+			if (dataVersion >= 2) {
+				account.role = reader.readInt8();
+				account.canUseServerCommands = account.role >= 10;
+				var count = reader.readInt32();
+				// trace('ReadPlayerAccounts: ${account.id} role: ${account.role} count: ${count}');
+
+				for (i in 0...count) {
+					var key = reader.readInt32();
+					account.familyPrestige[key] = reader.readFloat();
+					trace('ReadPlayerAccounts: ${account.id} key: ${key} prestige: ${account.familyPrestige[key]}');
+				}
+			}
 
 			// trace('ReadPlayerAccounts: ${account.id} ${account.name} ${account.email} ${account.score}');
 		}

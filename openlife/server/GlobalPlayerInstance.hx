@@ -4934,10 +4934,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (strings.length < 2) return true;
 
 			var secret = strings[1];
+			var isAdmin = secret == ServerSettings.Secret;
+			player.account.canUseServerCommands = isAdmin;
+			player.account.role = isAdmin ? 10 : 0;
 
-			player.account.canUseServerCommands = secret == ServerSettings.Secret;
-
-			player.say('Secret: ${player.account.canUseServerCommands}}', true);
+			player.say('Secret: ${isAdmin}}', true);
 
 			return true;
 		}
