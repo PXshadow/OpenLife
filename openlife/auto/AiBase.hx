@@ -2302,8 +2302,8 @@ abstract class AiBase {
 
 	private function doPlantPepper(minPlanted:Int, maxPlanted:Int) {
 		// Dry Planted Pepper Seed 2839
-		// Wet Planted Pepper Seed 2840 // Pepper Plant 2842
-		return doPlant(minPlanted, maxPlanted, 2839, [2840, 2842]);
+		// Wet Planted Pepper Seed 2840 // Pepper Plant 2842 // Fruiting Pepper Plant 2843
+		return doPlant(minPlanted, maxPlanted, 2839, [2840, 2842, 2843]);
 	}
 
 	private function doPlantWheat(minPlanted:Int, maxPlanted:Int) {
