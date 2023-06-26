@@ -3584,11 +3584,11 @@ abstract class AiBase {
 		// Steel File 458
 		var countFile = countCurrentObject(458);
 		// countFile += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 458, 30);
-		if (heldId == 458) countFile += 1;
 
 		// Steel File Blank 457
 		if (this.profession['SMITH'] < 10) {
-			var count = countCurrentObject(457);
+			// Hot Steel File Blank 447 // Oiled File Blank 464 // Oiled File Blank with Chisel 465 // Steel File with Chisel 466
+			var count = countCurrentObjects([457, 447, 464, 465, 466]);
 			if (count + countFile < 1 && craftItem(457)) return true;
 			this.profession['SMITH'] = 10;
 		}
