@@ -386,6 +386,13 @@ class Connection {
 		}
 	}
 
+	public static function SendToineageAndNameToAll(player:GlobalPlayerInstance) {
+		for (c in Connection.getConnections()) {
+			c.send(ClientTag.NAME, ['${player.p_id} ${player.name} ${player.familyName}']);
+			c.send(ClientTag.LINEAGE, [player.lineage.createLineageString()]);
+		}
+	}
+
 	// fathers are not supported by client
 	public function sendToMeAllLineages() {
 		for (c in Connection.getConnections()) {

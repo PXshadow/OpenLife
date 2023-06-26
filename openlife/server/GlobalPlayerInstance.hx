@@ -978,13 +978,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		Connection.SendUpdateToAllClosePlayers(this);
 
-		for (c in Connection.getConnections()) {
-			c.send(ClientTag.NAME, ['${this.p_id} ${this.name} ${this.familyName}']);
-		}
-
-		for (c in Connection.getConnections()) {
-			c.send(ClientTag.LINEAGE, [this.lineage.createLineageString()]);
-		}
+		Connection.SendToineageAndNameToAll(this);
 
 		Connection.SendFollowingToAll(this);
 

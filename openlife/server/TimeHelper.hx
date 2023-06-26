@@ -743,7 +743,9 @@ class TimeHelper {
 
 						if (done) {
 							var text = player.isMale() ? 'SON' : 'DAUGHTER';
+							player.lineage.myEveId = player.father.lineage.myEveId;
 
+							Connection.SendToineageAndNameToAll(player);
 							Connection.SendFollowingToAll(player);
 
 							player.say('I FOLLOW MY FATHER!');
