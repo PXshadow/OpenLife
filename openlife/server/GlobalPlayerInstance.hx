@@ -4032,7 +4032,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (p == bestLeader) continue;
 			if (p.getTopLeader(bestLeader) != bestLeader) continue;
 
-			p.say('My new $text is ${bestLeader.name} ${bestLeader.familyName}!', true);
+			p.say('The old $text ${deadLeader.name} died. My new $text is ${bestLeader.name} ${bestLeader.familyName}!', true);
 			p.connection.sendGlobalMessage('The old $text ${deadLeader.name} died. Long live the new $text ${bestLeader.name}!');
 			p.connection.sendMapLocation(bestLeader, "LEADER", "leader");
 		}
