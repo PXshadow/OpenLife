@@ -394,7 +394,7 @@ class ServerSettings {
 	public static var AiReactionTimeNoble:Float = 0.2;
 	public static var AiReactionTimeFactorIfAngry:Float = 0.2;
 	public static var TimeToAiRebirthPerYear:Float = 10; // X seconds per not lived year = 60 - death age
-	public static var AiTotalScoreFactor:Float = 0.6;
+	public static var AiTotalScoreFactor:Float = 0.8;
 	public static var AiTimeToWaitIfCraftingFailed:Float = 15; // if item failed to craft dont craft for X seconds
 	public static var AiMaxSearchRadius:Int = 60;
 	public static var AiMaxSearchIncrement:Int = 30; // 16
