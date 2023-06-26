@@ -2171,7 +2171,7 @@ abstract class AiBase {
 
 		if (shortCraft(502, 1146, distance)) return true; // Shovel + Mature Potato Plants 1146
 		if (shortCraft(1137, 1143, 30)) return true; // Bowl of Soil 1137 + Potato Plants 1143
-		if (shortCraft(0, 4144, distance)) return true; // 0 + Dug Potatoes 4144
+		// if (shortCraft(0, 4144, distance)) return true; // 0 + Dug Potatoes 4144
 
 		if (ServerSettings.DebugAi) trace('AAI: 2 ${myPlayer.name + myPlayer.id} doBasicFarming:${profession['BASICFARMER']}');
 
@@ -2326,7 +2326,8 @@ abstract class AiBase {
 	private function doPlantPotatos(minPlanted:Int, maxPlanted:Int) {
 		// Dry Planted Potatoes 1145
 		// Wet Planted Potatoes 1142 // Potato Plants 1143 // Mounded Potato Plants 1144 // Mature Potato Plants 1146
-		return doPlant(minPlanted, maxPlanted, 1145, [1142, 1143, 1144, 1146]);
+		// Dug Potatoes 4144
+		return doPlant(minPlanted, maxPlanted, 1145, [1142, 1143, 1144, 1146, 4144]);
 	}
 
 	private function doPlantTomato(minPlanted:Int, maxPlanted:Int) {
