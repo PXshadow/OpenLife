@@ -481,7 +481,7 @@ class TimeHelper {
 				if (p == player) continue;
 				if (p.getTopLeader(player) != player) continue;
 
-				p.say('My new $text is ${player.name} ${player.familyName}!', true);
+				p.say('My new $text is ${player.name} ${player.familyName}! Old ${leader.name}', true);
 				p.connection.sendGlobalMessage('Long live the new $text ${player.name} ${player.familyName}!');
 				// p.connection.sendMapLocation(bestLeader, "LEADER", "leader");
 			}

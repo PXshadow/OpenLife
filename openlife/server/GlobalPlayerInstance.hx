@@ -6372,9 +6372,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// var power = this.food_store_max * (this.prestige + this.coins);
 		var founderId = lineage.myEveId;
 		var familyPrestige = account.familyPrestige[founderId];
-		var familyPrestigeLeaderFamily = followPlayer == null ? 0 : account.familyPrestige[followPlayer.lineage.myEveId];
+		// var familyPrestigeLeaderFamily = followPlayer == null ? 0 : account.familyPrestige[followPlayer.lineage.myEveId];
 		// var power = (this.prestige + this.coins) * (10 + familyPrestige + familyPrestigeLeaderFamily);
-		var power = (this.prestige + this.coins) + 2 * (familyPrestige + familyPrestigeLeaderFamily);
+		var power = (this.prestige + this.coins) + 4 * familyPrestige;
 		if (this.lineage.prestigeClass == Noble) power *= 2;
 		if (this.lineage.prestigeClass == Serf) power /= 2;
 		power /= 10;
