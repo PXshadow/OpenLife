@@ -14,11 +14,13 @@ NEW Commands:
 - say "COINS?" --> guess what it does! But no it wont do it in silence! 
 - say "SEASON?" OR "?SEASON" displays current season
 - say "?AGE" to get your age
+- say "FAM?" to count and displays family
 - say "?ALLY" to disokay ally, ally count and closest ally
 - say "?F" "?FOLLOWER" or "FOLLOWER?" to display follower and direction of closest one
 - say "?SCORE" to get current account score / prestige (MSCORE + FSCORE) / 2
 - say "?MSCORE" to get current account male score / prestige
 - say "?FSCORE" to get current account female score / prestige
+- say "?FAMSCORE" to displays family score
 - say ?R or ?REPUTATION or REPUTATION? to get current combat reputation
 
 AI:

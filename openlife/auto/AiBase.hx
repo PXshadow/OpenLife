@@ -2991,7 +2991,8 @@ abstract class AiBase {
 			// Raw Bread Loaf 1469
 			if (countSlicedBread < 3 && shortCraftOnTarget(1469, hotOven, false)) return true;
 			// Raw Mutton 569
-			if (shortCraftOnTarget(569, hotOven, false)) return true;
+			var countDoneMutton = countCurrentObject(570);
+			if (countDoneMutton < 2 && shortCraftOnTarget(569, hotOven, false)) return true;
 			// Raw Potato 1147
 			if (shortCraftOnTarget(1147, hotOven, false)) return true;
 			// Bowl of Soaking Beans 1180
@@ -3103,7 +3104,7 @@ abstract class AiBase {
 
 		// Cooked Mutton 570 // Raw Mutton 569
 		var countMutton = countCurrentObjects([570, 569]);
-		if (countMutton < 3 && craftItem(569)) return true; // Raw Mutton 569
+		if (countMutton < 2 && craftItem(569)) return true; // Raw Mutton 569
 
 		if (doPlantWheat(2, 5)) return true;
 
@@ -4046,7 +4047,7 @@ abstract class AiBase {
 		if (shortCraftOnGround(186)) return true; // Cooked Rabbit --> unskew the Cooked Rabbits
 
 		// Cooked Mutton 570
-		var countDoneMutton = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 570, 20);
+		var countDoneMutton = countCurrentObject(570);
 		// Cooked Rabbit 197
 		var countDoneRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 197, 20);
 
@@ -4061,7 +4062,7 @@ abstract class AiBase {
 		var hotCoals = AiHelper.GetClosestObjectToHome(myPlayer, 85, 30);
 
 		if (hotCoals != null) {
-			if (countDoneMutton < 5 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
+			if (countDoneMutton < 2 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
 
 			if (countRawRabbit > 0) {
 				if (countDoneRabbit < 5 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
