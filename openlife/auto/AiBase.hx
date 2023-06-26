@@ -4224,11 +4224,8 @@ abstract class AiBase {
 
 		if (hasOrBecomeProfession('TAILOR', maxProf) == false) return false;
 
-		// Check that there are enough Water Pouches left
 		// Empty Water Pouch 209
-		// var count = myPlayer.CountCloseObjects(myPlayer.tx, myPlayer.ty, 209, 40);
-		// if (count > 1) return true;
-		// if (craftItem(209)) return true;
+		if (craftItemMax(209)) return true;
 
 		// Shoes
 		// 844 Fruit Boot ==> Black
