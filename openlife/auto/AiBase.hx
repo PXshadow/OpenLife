@@ -2192,9 +2192,7 @@ abstract class AiBase {
 
 		if (doPlantBeans(2, 4)) return true;
 
-		// Dry Planted Cucumber Seeds 4225
-		// Wet Planted Cucumber Seeds 4226 // Cucumber Sprout 4228 // Ripe Cucumber Plant 4232
-		if (doPlant(2, 4, 4225, [4226, 4228, 4232])) return true;
+		if (doPlantCucumber(2, 4)) return true;
 
 		if (doPlantPepper(2, 5)) return true;
 
@@ -2335,6 +2333,12 @@ abstract class AiBase {
 		// Dry Planted Tomato Seed 2829
 		// Tomato Plant 2834 // Fruiting Tomato Plant 2835
 		return doPlant(minPlanted, maxPlanted, 2829, [2834, 2835]);
+	}
+
+	private function doPlantCucumber(minPlanted:Int, maxPlanted:Int) {
+		// Dry Planted Cucumber Seeds 4225
+		// Wet Planted Cucumber Seeds 4226 // Cucumber Sprout 4228 // Ripe Cucumber Plant 4232
+		return doPlant(minPlanted, maxPlanted, 4225, [4226, 4228, 4232]);
 	}
 
 	private function doPlantMilkWeed(minPlanted:Int, maxPlanted:Int) {
@@ -3703,6 +3707,13 @@ abstract class AiBase {
 			// Wet Planted Potatoes 1142
 			if (toPlant == 1145 || toPlant == 1142) {
 				if (doPlantPotatos(2, 8)) return true;
+				toPlant += 1;
+				continue;
+			}
+
+			// 4225 Dry Planted Cucumber Seeds
+			if (toPlant == 4225) {
+				if (doPlantCucumber(2, 8)) return true;
 				toPlant += 1;
 				continue;
 			}
