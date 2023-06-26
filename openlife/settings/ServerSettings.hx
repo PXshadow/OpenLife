@@ -1189,7 +1189,6 @@ class ServerSettings {
 
 		ObjectData.getObjectData(253).reducesLongingFor = 31; // BOWL OF GOOSEBERRIES 253 -->  Gooseberry 31
 		ObjectData.getObjectData(31).higherQaulityFood = 253; // Gooseberry 31 --> BOWL OF GOOSEBERRIES 253
-
 		ObjectData.getObjectData(272).reducesLongingFor = 253; // Cooked Berry Pie 272 --> BOWL OF GOOSEBERRIES 253
 		ObjectData.getObjectData(253).higherQaulityFood = 272; // BOWL OF GOOSEBERRIES 253 --> Cooked Berry Pie 272
 
@@ -1198,14 +1197,26 @@ class ServerSettings {
 		ObjectData.getObjectData(273).reducesLongingFor = 402; // Cooked Carrot Pie 273 --> Carrot 402
 		ObjectData.getObjectData(402).higherQaulityFood = 273;
 
-		ObjectData.getObjectData(2855).reducesLongingFor = 808; // Onion 2855 -->  Wild Onion 808
+		ObjectData.getObjectData(2855).reducesLongingFor = 808; // Onion 2855 --> Wild Onion 808
 		ObjectData.getObjectData(808).higherQaulityFood = 2855;
+		ObjectData.getObjectData(2860).reducesLongingFor = 2855; // Chopped Onion on Plate 2860 --> Onion 2855
+		ObjectData.getObjectData(2855).higherQaulityFood = 2860;
 
 		ObjectData.getObjectData(2861).reducesLongingFor = 2836; // Chopped Tomato on Plate --> Tomato 2836
 		ObjectData.getObjectData(2836).higherQaulityFood = 2861;
 
-		ObjectData.getObjectData(803).reducesLongingFor = 570; // Cooked Mutton Pie 803 -->  Cooked Mutton 570
+		ObjectData.getObjectData(803).reducesLongingFor = 570; // Cooked Mutton Pie 803 --> Cooked Mutton 570
 		ObjectData.getObjectData(570).higherQaulityFood = 803;
+
+		ObjectData.getObjectData(4081).reducesLongingFor = 1463; // Whole Milk Pouch 4081 --> Bowl of Whole Milk 1463
+		ObjectData.getObjectData(1463).higherQaulityFood = 4081;
+		ObjectData.getObjectData(3593).reducesLongingFor = 4081; // Whole Milk Bottle 3593 --> Whole Milk Pouch 4081
+		ObjectData.getObjectData(4081).higherQaulityFood = 3593;
+
+		ObjectData.getObjectData(4082).reducesLongingFor = 1481; // Skim Milk Pouch 4082 --> Bowl of Skim Milk 1481
+		ObjectData.getObjectData(1481).higherQaulityFood = 4082;
+		ObjectData.getObjectData(3596).reducesLongingFor = 4082; // Skim Milk Bottle 3596 --> Skim Milk Pouch 4082
+		ObjectData.getObjectData(4082).higherQaulityFood = 3596;
 
 		// nerve food
 		ObjectData.getObjectData(768).foodValue = 4; // Cactus Fruit 768 // origional 8
