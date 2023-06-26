@@ -3630,10 +3630,12 @@ abstract class AiBase {
 
 		Macro.exception(if (doPrepareRows(maxPeople)) return true);
 
+		if (doPlantMilkWeed(2, 10)) return true;
+
 		// take care of potatos
 		if (shortCraft(502, 1146, 30)) return true; // Shovel + Mature Potato Plants 1146
 		if (shortCraft(1137, 1143, 30)) return true; // Bowl of Soil 1137 + Potato Plants 1143
-		if (shortCraft(0, 4144, 30)) return true; // 0 + Dug Potatoes 4144
+		// if (shortCraft(0, 4144, 30)) return true; // 0 + Dug Potatoes 4144
 
 		// 1109 Dry Planted Corn Seed
 		// 396 Dry Planted Carrots
