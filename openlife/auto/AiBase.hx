@@ -2166,6 +2166,8 @@ abstract class AiBase {
 		if (shortCraft(0, 400, 30)) return true; // pull out the carrots
 		if (shortCraft(900, 625, distance)) return true; // Shovel of Dung 900 + Wet Compost Pile 625
 
+		if (craftItemMax(2744, 1)) return true; // Bowl of Milkweed Seeds 2744
+
 		if (shortCraft(139, 2832, distance)) return true; // Skewer + Tomato Sprout
 		if (shortCraft(139, 4228, distance)) return true; // Skewer + Cucumber Sprout
 		if (shortCraft(0, 2837, distance)) return true; // 0 + Hardened Row with Stake
