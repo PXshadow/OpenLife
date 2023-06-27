@@ -1024,6 +1024,9 @@ class ServerSettings {
 		ObjectData.getObjectData(857).hungryWork = -2;
 		ObjectData.getObjectData(857).useChance = 0.05; // vanilla: 8%
 
+		// Stone Hoe 850
+		ObjectData.getObjectData(850).useChance = 0.1; // vanilla: 20%
+
 		ObjectData.getObjectData(1849).hungryWork = 5; // Buried Grave with Dug Stone
 
 		ObjectData.getObjectData(123).hungryWork = 2; // Harvested Tule
@@ -2195,6 +2198,7 @@ class ServerSettings {
 
 		trans = new TransitionData(850, 292, 850, 124); // Stone Hoe  + Basket 292 --> Stone Hoe + Reed Bundle 124
 		trans.aiShouldIgnore = true;
+		trans.noUseActor = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(0, 92, 59, 67); // 0 + Tied Long Shaft --> Rope + Long Straight Shaft
@@ -2545,18 +2549,22 @@ class ServerSettings {
 
 		var trans = new TransitionData(850, 357, 850, 1011); // Stone Hoe + Bone Pile --> Stone Hoe + Buried Grave
 		trans.tool = true;
+		trans.noUseActor = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(850, 87, 850, 1011); // Stone Hoe + Fresh Grave --> Stone Hoe + Buried Grave
 		trans.tool = true;
+		trans.noUseActor = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(850, 88, 850, 1011); // Stone Hoe + Grave --> Stone Hoe + Buried Grave
 		trans.tool = true;
+		trans.noUseActor = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = new TransitionData(850, 89, 850, 1011); // Stone Hoe + Old Grave --> Stone Hoe + Buried Grave
 		trans.tool = true;
+		trans.noUseActor = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		// allow more options to kill animals
