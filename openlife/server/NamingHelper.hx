@@ -49,9 +49,33 @@ class NamingHelper {
 
 		if (targetPlayer == null) return text;
 
+		var foundNewFamily = false;
+		var foundFamilyCost = ServerSettings.FoundFamilyCost;
+
 		if (doFamilyName) {
 			// TODO allow to change name after some generations and with high prestiege
-			if (targetPlayer.familyName != ServerSettings.StartingFamilyName) return text;
+			if (targetPlayer.familyName != ServerSettings.StartingFamilyName) {
+				var missing = Math.ceil(100 - p.prestige);
+				if (missing > 0) {
+					p.say('I need ${missing} more prestige!', true);
+					return null;
+				}
+
+				var countFollower = p.CountAndDisplayFollower(false, true); // Only same family
+				var missing = 4 - countFollower;
+				if (missing > 0) {
+					p.say('I need ${missing} more followers!', true);
+					return null;
+				}
+
+				var missing = Math.ceil(foundFamilyCost - p.coins);
+				if (missing > 0) {
+					p.say('I need ${missing} more coins!', true);
+					return null;
+				}
+
+				foundNewFamily = true;
+			}
 		} else if (targetPlayer.name != ServerSettings.StartingName) return text;
 
 		/*
@@ -86,8 +110,32 @@ class NamingHelper {
 			for (p in GlobalPlayerInstance.AllPlayers) {
 				if (p.familyName == name) {
 					trace('family name: "$name" is used already!');
-
 					return text;
+				}
+			}
+
+			if (foundNewFamily) {
+				p.coins -= foundFamilyCost; // most important pay the cost!
+				var oldFounder = p.lineage.myEveId;
+				if (oldFounder != p.id && p.lineage.myDynastyId < 1) p.lineage.myDynastyId = oldFounder;
+				p.lineage.myEveId = p.id;
+				p.account.familyPrestige[p.id] = p.account.familyPrestige[oldFounder];
+
+				var count = 0;
+				var player = p;
+
+				for (p in GlobalPlayerInstance.AllPlayers) {
+					if (p.isDeleted()) continue;
+					if (p == player) continue;
+					if (p.isFollowerFrom(player) == false) continue;
+					if (p.isSameFamily(player) == false) continue;
+					if (count >= 4 && p.isCloseRelative(player) == false) continue;
+
+					player.connection.send(PLAYER_SAYS, ['${p.id}/0 ++${p.name}++']);
+					// if (display) c.send(PLAYER_SAYS, ['${p.id}/$curse $text']);
+					p.say('My leader ${player.name} created a new family', true);
+
+					count++;
 				}
 			}
 

@@ -2002,6 +2002,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		text = NamingHelper.DoNaming(this, text);
 
+		if (text == null) return;
+
 		this.lineage.lastSaid = text;
 
 		if (doCommands(text)) this.connection.sendSayToAllClose(text, curse);
@@ -6407,7 +6409,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return bestPlayer;
 	}
 
-	public function CountAndDisplayFollower(display = true) {
+	public function CountAndDisplayFollower(display = true, onlyOwnFamily = false) {
 		var count = 0;
 		var bestDist = -1.0;
 		var bestPlayer = null;
@@ -6416,6 +6418,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (p.isDeleted()) continue;
 			if (p == this) continue;
 			if (p.isFollowerFrom(this) == false) continue;
+			if (onlyOwnFamily && p.isSameFamily(this) == false) continue;
 			if (display) this.connection.send(PLAYER_SAYS, ['${p.id}/0 +${p.name}+']);
 			// if (display) c.send(PLAYER_SAYS, ['${p.id}/$curse $text']);
 
