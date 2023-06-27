@@ -3850,6 +3850,12 @@ class ServerSettings {
 
 		// Full Water Pouch+ 210 + Bowl of Tomato Seeds 2828 = Empty Water Pouch 209 + Bowl of Water 382
 		LimitTransitionIfMinNotReached(210, 2828, 2828, 3);
+
+		// Flowering Milkweed 51 to get seeds
+		LimitTransitionIfMinNotReached(0, 51, 51, 2);
+
+		// Milkweed 50 to get seeds
+		LimitTransitionIfMinNotReached(0, 50, 50, 2);
 	}
 
 	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 3) {
