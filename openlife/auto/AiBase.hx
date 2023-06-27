@@ -4817,7 +4817,7 @@ abstract class AiBase {
 	// TODO drop somewhere save Shovel 502 // Shovel of Dung 900 // Knife 560
 	// Stone 33 // Sharp Stone 34 // Banana Peel 2144
 	// This should not brought far away through switching so better drop for now:
-	// Bowl of Water 382 // Full Water Pouch 210 // Bowl of Soil 1137
+	// Full Water Pouch 210 // Bowl of Soil 1137
 	var dropAtCurrentPosition = [33, 34, 2144, 382, 210];
 
 	// Iron Ore in Wooden Tongs 289 // Iron Ore 290 // Wooden Tongs cool steel ingot 327 // Steel Ingot
@@ -4825,8 +4825,8 @@ abstract class AiBase {
 	// Shears 568 // Cold Iron Bloom in Wooden Tongs 311
 	var dropNearForgeItemIds = [289, 290, 327, 326, 319, 320, 441, 568, 311];
 
-	// Basket of Soil 336 // Straw 227
-	var dropNearWellItemIds = [336, 227];
+	// Basket of Soil 336 // Straw 227 // Bowl of Water 382
+	var dropNearWellItemIds = [336, 227, 382];
 
 	private function considerDropHeldObject(gotoTarget:ObjectHelper) {
 		// return false;
