@@ -2630,8 +2630,8 @@ abstract class AiBase {
 		var countWetBowl = countCurrentObjects([233, 284]);
 		// Wet Clay Plate 234 // Wet Plate in Wooden Tongs 240
 		var countWetPlate = countCurrentObjects([234, 240]);
-		// Wet Clay Crock 1216 // Wet Crock in Wooden Tongs 1218
-		var countWetCrock = countCurrentObjects([1216, 1218]);
+		// Wet Clay Crock 1216 // Wet Crock in Wooden Tongs 1218 // Crock with Squash 1243
+		var countWetCrock = countCurrentObjects([1216, 1218, 1243]);
 		// Clay 126
 		var clay = countCurrentObject(126);
 		clay += countWetBowl + countWetPlate;
@@ -2702,8 +2702,8 @@ abstract class AiBase {
 		var countWetBowl = countCurrentObjects([233, 284]);
 		// Wet Clay Plate 234 // Wet Plate in Wooden Tongs 240
 		var countWetPlate = countCurrentObjects([234, 240]);
-		// Wet Clay Crock 1216 // Wet Crock in Wooden Tongs 1218
-		var countWetCrock = countCurrentObjects([1216, 1218]);
+		// Wet Clay Crock 1216 // Wet Crock in Wooden Tongs 1218 // Crock with Squash 1243
+		var countWetCrock = countCurrentObjects([1216, 1218, 1243]);
 
 		var countBowl = countCurrentObject(235); //  Clay Bowl 235
 		var maxBowls = ObjectData.getObjectData(235).aiCraftMax; // Clay Bowl 235
