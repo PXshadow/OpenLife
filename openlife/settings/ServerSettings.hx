@@ -2192,7 +2192,7 @@ class ServerSettings {
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		trans = new TransitionData(850, 236, 850, 126); // Stone Hoe  + Clay Plate --> Stone Hoe + Clay
-		trans.aiShouldIgnore = true;
+		// trans.aiShouldIgnore = true;
 		trans.noUseActor = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
@@ -3860,6 +3860,9 @@ class ServerSettings {
 
 		// Milkweed 50 to get seeds
 		LimitTransitionIfMinNotReached(0, 50, 50, 2);
+
+		// Stone Hoe  + Clay Plate
+		LimitTransitionIfMinNotReached(850, 236, 236, 10);
 	}
 
 	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 3) {
