@@ -220,15 +220,15 @@ class Lineage {
 
 	public static function ReadLineages(path:String):Map<Int, Lineage> {
 		var reader = File.read(path, true);
-		var expectedDataVersion = 1;
+		var supportedDataVersion = 1;
 		var dataVersion = reader.readInt32();
 		var count = reader.readInt32();
 		var loadedLineages = new Map<Int, Lineage>();
 
 		trace('Read lineages from file: $path count: ${count}');
 
-		if (dataVersion != expectedDataVersion)
-			throw new Exception('ReadLineages: Data version is: $dataVersion expected data version is: $expectedDataVersion');
+		if (dataVersion < supportedDataVersion)
+			throw new Exception('ReadLineages: Data version is: $dataVersion supported data version is: $supportedDataVersion');
 
 		try {
 			for (i in 0...count) {
