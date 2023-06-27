@@ -4938,8 +4938,9 @@ abstract class AiBase {
 		// drop on ground to process
 		// 225 Wheat Sheaf // 1113 Ear of Corn  // 292 Basket // 233 Wet Clay Bowl
 		// For now allowed: 126 Clay // 236 Clay Plate
+		// Yew Branch 132 // Straight Branch 64 // Small Curved Branch 66
 		// var dontUsePile = allowAllPiles ? [] : [225, 1113, 126, 236, 292, 233];
-		var dontUsePile = allowAllPiles ? [] : [225, 1113, 292, 233];
+		var dontUsePile = allowAllPiles ? [] : [225, 1113, 292, 233, 132, 64, 66];
 
 		if (heldObjId == 2144) dropOnStart = false; // 2144 Banana Peel
 		else if (heldObjId == 34) dropOnStart = false; // 34 Sharp Stone
