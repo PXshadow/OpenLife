@@ -6406,7 +6406,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return bestPlayer;
 	}
 
-	public function CountAndDisplayAlly(display = true) {
+	public function CountAndDisplayFollower(display = true) {
 		var count = 0;
 		var bestDist = -1.0;
 		var bestPlayer = null;
@@ -6433,7 +6433,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return count;
 	}
 
-	public function CountAndDisplayFollower(display = true) {
+	public function CountAndDisplayAlly(display = true) {
 		var count = 0;
 		var bestDist = -1.0;
 		var bestPlayer = null;
