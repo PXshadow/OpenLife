@@ -6750,7 +6750,7 @@ abstract class AiBase {
 		var baseY = player.ty;
 
 		// reset objects so that it can be filled again
-		itemToCraft.clearTransitionsByObjectId();
+		// itemToCraft.clearTransitionsByObjectId(); // should be cleared allready
 
 		transitionsByObjectId[0].count = 0;
 

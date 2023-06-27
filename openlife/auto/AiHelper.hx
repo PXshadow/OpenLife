@@ -1766,6 +1766,7 @@ class IntemToCraft {
 		itemToCraft = ObjectData.getObjectData(0);
 	}
 
+	// FIX: seems to make seg faults // TODO find out why multiple threads use it?
 	public function clearAllCheachedObjects() {
 		for (cachedObjectList in cachedObjectLists) {
 			clearTransitionsByObject(cachedObjectList);
@@ -1778,6 +1779,8 @@ class IntemToCraft {
 	}
 
 	private function clearTransitionsByObject(objcectsToClear:Map<Int, TransitionForObject>) {
+		GlobalPlayerInstance.AcquireMutex(); // TODO find out why multiple threads use it?
+
 		for (trans in objcectsToClear) {
 			trans.count = 0;
 			if (trans.objId == 0) trans.count = -1; // mark as cleared
@@ -1794,6 +1797,8 @@ class IntemToCraft {
 			trans.bestCraftSteps = -1;
 			trans.bestCraftDistance = -1;
 		}
+
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 }
 
