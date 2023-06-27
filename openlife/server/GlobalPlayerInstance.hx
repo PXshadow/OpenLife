@@ -3838,6 +3838,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		this.lineage.trueAge = this.trueAge;
 		this.lineage.deathReason = deathReason;
 		this.lineage.prestige = this.prestige;
+		this.lineage.reputation = this.lostCombatPrestige * (-1);
 		this.lineage.coins = this.coins;
 
 		var oldScore = this.account.totalScore;

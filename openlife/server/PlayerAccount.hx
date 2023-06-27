@@ -140,7 +140,7 @@ class PlayerAccount {
 				for (i in 0...count) {
 					var key = reader.readInt32();
 					account.familyPrestige[key] = reader.readFloat();
-					trace('ReadPlayerAccounts: ${account.id} key: ${key} prestige: ${account.familyPrestige[key]}');
+					// trace('ReadPlayerAccounts: ${account.id} key: ${key} prestige: ${account.familyPrestige[key]}');
 				}
 			}
 

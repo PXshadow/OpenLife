@@ -58,8 +58,10 @@ class Lineage {
 	public var lastSaid:String;
 	public var prestige:Float;
 	public var coins:Float;
+	public var reputation:Float;
 
-	public var myEveId:Int = -1; // TODO support family head
+	public var myDynastyId:Int = -1; // If a family splits of the old family head (myEveId) is linked with this
+	public var myEveId:Int = -1;
 	public var motherId:Int = -1;
 	public var fatherId:Int = -1;
 
@@ -109,7 +111,7 @@ class Lineage {
 	// TODO archive important deleted lineages
 	public static function WriteLineages(path:String, lineages:Map<Int, Lineage>, deleteOld = false) {
 		var count = 0;
-		var dataVersion = 1;
+		var dataVersion = 2;
 		var writer = File.write(path, true);
 
 		if (deleteOld) {
@@ -175,6 +177,10 @@ class Lineage {
 			writer.writeInt32(lineage.fatherId);
 
 			writer.writeInt8(lineage.prestigeClass);
+
+			// Dataversion 2
+			writer.writeInt32(lineage.myDynastyId);
+			writer.writeFloat(lineage.reputation);
 		}
 
 		writer.close();
@@ -250,6 +256,12 @@ class Lineage {
 				lineage.fatherId = reader.readInt32();
 
 				lineage.prestigeClass = reader.readInt8();
+
+				// Dataversion 2
+				if (dataVersion >= 2) {
+					lineage.myDynastyId = reader.readInt32();
+					lineage.reputation = reader.readFloat();
+				}
 
 				loadedLineages[lineage.myId] = lineage;
 
