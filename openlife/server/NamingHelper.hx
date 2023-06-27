@@ -116,10 +116,14 @@ class NamingHelper {
 
 			if (foundNewFamily) {
 				p.coins -= foundFamilyCost; // most important pay the cost!
+
 				var oldFounder = p.lineage.myEveId;
-				if (oldFounder != p.id && p.lineage.myDynastyId < 1) p.lineage.myDynastyId = oldFounder;
-				p.lineage.myEveId = p.id;
-				p.account.familyPrestige[p.id] = p.account.familyPrestige[oldFounder];
+				var newFounder = p.id;
+				var dynasty = p.lineage.myDynastyId < 1 ? oldFounder : p.lineage.myDynastyId;
+
+				p.lineage.myDynastyId = dynasty;
+				p.lineage.myEveId = newFounder;
+				p.account.familyPrestige[newFounder] = p.account.familyPrestige[oldFounder];
 
 				var count = 0;
 				var player = p;
@@ -132,6 +136,11 @@ class NamingHelper {
 					if (count >= 4 && p.isCloseRelative(player) == false) continue;
 
 					player.connection.send(PLAYER_SAYS, ['${p.id}/0 ++${p.name}++']);
+
+					p.lineage.myDynastyId = dynasty;
+					p.lineage.myEveId = newFounder;
+					p.account.familyPrestige[newFounder] = p.account.familyPrestige[oldFounder];
+
 					// if (display) c.send(PLAYER_SAYS, ['${p.id}/$curse $text']);
 					p.say('My leader ${player.name} created a new family', true);
 
