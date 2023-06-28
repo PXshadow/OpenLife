@@ -1397,12 +1397,12 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return personColorByBiome;
 	}
 
-	private static function GetFittestFather(child:GlobalPlayerInstance, mother:GlobalPlayerInstance):GlobalPlayerInstance {
+	private static function GetFittestFather(child:GlobalPlayerInstance, mother:GlobalPlayerInstance, considerFamily:Bool):GlobalPlayerInstance {
 		var bestFather:GlobalPlayerInstance = null;
 		var fitness = -1000.0;
 
 		for (p in AllPlayers) {
-			var tmpFitness = CalculateFatherFitness(p, child, mother);
+			var tmpFitness = CalculateFatherFitness(p, child, mother, considerFamily);
 
 			// trace('Spawn As Child: father fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
 			// trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
@@ -1421,21 +1421,20 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	private static function GetFittestMother(child:GlobalPlayerInstance):GlobalPlayerInstance {
 		var mother:GlobalPlayerInstance = null;
 		var fitness = -1000.0;
-
-		// var count = 0;
-		// for(p in AllPlayers) count++;
+		var rand = WorldMap.world.randomFloat();
+		var considerFamily = child.isAi() ? rand < 0.5 : rand < 0.8; // make sure new families have some kids too
 
 		// trace('Spawn As Child: GetFittestMother ${child.account.email} count: $count');
 
 		// search fertile mother
 		for (p in AllPlayers) {
-			var tmpFitness = CalculateMotherFitness(p, child);
+			var tmpFitness = CalculateMotherFitness(p, child, considerFamily);
 
 			if (tmpFitness < -100) continue;
 
-			p.potentialMate = GetFittestFather(child, p);
+			p.potentialMate = GetFittestFather(child, p, considerFamily);
 
-			var fatherFitness = p.potentialMate != null ? CalculateFatherFitness(p.potentialMate, child, p) : -50;
+			var fatherFitness = p.potentialMate != null ? CalculateFatherFitness(p.potentialMate, child, p, considerFamily) : -50;
 			var fatherName = p.potentialMate != null ? ${p.potentialMate.name} : '';
 			tmpFitness += fatherFitness / 2;
 
@@ -1463,7 +1462,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return 0;
 	}
 
-	private static function CalculateFatherFitness(p:GlobalPlayerInstance, child:GlobalPlayerInstance, mother:GlobalPlayerInstance):Float {
+	private static function CalculateFatherFitness(p:GlobalPlayerInstance, child:GlobalPlayerInstance, mother:GlobalPlayerInstance,
+			considerFamily:Bool):Float {
 		var childIsHuman = child.isHuman();
 		var fatherIsHuman = p.isHuman();
 		var quadDist = AiHelper.CalculateDistanceToPlayer(p, mother);
@@ -1485,7 +1485,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		tmpFitness += p.calculateClassBoni(mother); // the closer the mother is to same class the better
 		tmpFitness += p.prestigeFromEating / 20; // the more health / prestige the more likely
 		// Give some chance to be born also in other families
-		if (TimeHelper.tick % 3 != 0) tmpFitness += child.account.familyPrestige[founderId] / 20;
+		if (considerFamily) tmpFitness += child.account.familyPrestige[founderId] / 20;
 
 		// mali
 		tmpFitness -= p.age < 16 ? 2 : 0;
@@ -1502,7 +1502,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return tmpFitness;
 	}
 
-	private static function CalculateMotherFitness(p:GlobalPlayerInstance, child:GlobalPlayerInstance):Float {
+	private static function CalculateMotherFitness(p:GlobalPlayerInstance, child:GlobalPlayerInstance, considerFamily:Bool):Float {
 		var childIsHuman = child.isAi() == false;
 		var motherIsHuman = p.isAi() == false;
 		var maxExhaustion = childIsHuman == motherIsHuman ? 10 : 5;
@@ -1522,7 +1522,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		tmpFitness += p.calculateClassBoni(child); // the closer the mother is to same class the better
 		tmpFitness += child.account.hasCloseNonBlockingGrave(p.tx, p.ty) ? 3 : 0;
 		tmpFitness += p.prestigeFromEating / 20; // the more health / prestige the more likely
-		if (TimeHelper.tick % 3 != 0) tmpFitness += child.account.familyPrestige[founderId] / 20;
+		if (considerFamily) tmpFitness += child.account.familyPrestige[founderId] / 20;
 
 		// mali
 		var temperatureMail = Math.pow(((p.heat - 0.5) * 10), 2) / 10; // between 0 and 2.5 for very bad temperature
