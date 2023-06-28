@@ -6326,6 +6326,9 @@ abstract class AiBase {
 		var targetId = itemToCraft.transTarget.parentId;
 		var heldId = myPlayer.heldObject.parentId;
 
+		// Adobe 127 // Firing Adobe Kiln 282
+		if (actorId == 127 && targetId == 282 && doPotteryOnFire()) return true;
+
 		// Basket of Soil 336
 		if (actorId == 336 && shortCraftOnGround(336)) return true;
 
