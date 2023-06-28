@@ -1825,9 +1825,9 @@ abstract class AiBase {
 		if (shortCraftOnGround(336)) return true;
 
 		// Fertile Soil Pile 1101
-		var count = 2 * AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1101, 20);
+		var count = 2 * countCurrentObject(1101);
 		// Fertile Soil 1138
-		count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1138, 20);
+		count += countCurrentObject(1138);
 
 		// trace('doPrepareSoil: count: ${count}');
 
@@ -6322,6 +6322,9 @@ abstract class AiBase {
 		var actorId = itemToCraft.transActor.parentId;
 		var targetId = itemToCraft.transTarget.parentId;
 		var heldId = myPlayer.heldObject.parentId;
+
+		// Basket of Soil 336
+		if (actorId == 336 && shortCraftOnGround(336)) return true;
 
 		// Bowl of Gooseberries 253 // Raw Pie Crust 264
 		// Raw Berry Pie 265 // Cooked Berry Pie 272
