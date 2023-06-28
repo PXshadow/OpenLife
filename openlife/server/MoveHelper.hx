@@ -379,9 +379,10 @@ class MoveHelper {
 			SetHeldPlayerPositionToSame(p);
 
 			p.forced = false;
-			// if (p.isAi()) p.forced = true; // TODO no foce needed if movement is fixed
+			// TODO try out why AI is displayed not moveing sometimes. forced = true might help for it
+			if (p.isAi()) p.forced = true; // TODO no foce needed if movement is fixed
 			Connection.SendUpdateToAllClosePlayers(p);
-			// if (p.isAi()) p.forced = false;
+			if (p.isAi()) p.forced = false;
 
 			// Force Frame so that there is no delay??? Seems crash HETUW client
 			// p.connection.send(FRAME, null, false, true);
