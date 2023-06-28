@@ -3,61 +3,30 @@ Welcome to Open Life Reborn - A hard Winter is comming / Hardcore OHOL with cons
 To play, just use any normal OHOL client and put in the custom server IP! No new Client needed!
 
 Summary: 
-- the server is written from scratch in Haxe and is in early BETA, so expect some bugs / feel welcome to report them
+- the server is written from scratch in Haxe and is in BETA
 - there is winter as main new challange and where there is winter there is spring to grow back nature!
 - Wolfs and other deadly animals are double strong in winter!
 - Temperature can and will kill you!
-- Jump drink some water or jump in a river to cool down!
+- Drink some water or jump in a river to cool down!
 - Use fire or cloths to warm up or escape into a desert!
-
-NEW Commands:
-- say "COINS?" --> guess what it does! But no it wont do it in silence! 
-- say "SEASON?" OR "?SEASON" displays current season
-- say "?AGE" to get your age
-- say "FAM?" to count and displays family
-- say "?ALLY" to disokay ally, ally count and closest ally
-- say "?F" "?FOLLOWER" or "FOLLOWER?" to display follower and direction of closest one
-- say "?SCORE" to get current account score / prestige (MSCORE + FSCORE) / 2
-- say "?MSCORE" to get current account male score / prestige
-- say "?FSCORE" to get current account female score / prestige
-- say "?FAMSCORE" to displays family score
-- say ?R or ?REPUTATION or REPUTATION? to get current combat reputation
 
 AI:
 - Currently the Ai does not use containers, so use Baskets and Tables to save stuff you dont want the Ai to touch
 - Currently Ai wont open doors so use them for now to lock out AI
 - AI NPCs can hunt, nurse, eat, feed and craft clothing quite well. It goes for YUM and cravings and feeds you your YUM and cravings.
-- The AI can bake and cook some basic stuff 
-- The Ai can do some basic farming
+- The AI can bake and cook some stuff 
+- The Ai can do some farming
 - AI can do pottery and basic smithing
-- The Ai can defend against attackers and will attack not allied onces if you attack them
-- By saying "STOP" or "DROP You can order the AI to stop or drop what it helds
-- By saying "MAKE xxx"  you can instruct the ai to make stuff with xxx is the item name
-- By saying "NAME?" AI says it name
-- By saying "PROF?" AI says its current profession
-
-You can assign jobs to AI with say JOB! or JOB!! to assign jobs to all close AI. Assigned jobs have very high priority (executed after MAKE commands). 
-Jobs are: 
-'SOILMAKER', 'ROWMAKER', 'BASICFARMER', 'ADVANCEDFARMER', 'SHEPHERD', 'BAKER', 'POTTER', 'FIREKEEPER', 'TAILOR', 'FIREFOODMAKER', 'LUMBERJACK','WATERBRINGER', 'FOODSERVER', 'GRAVEKEEPER', 'HUNTER', 'SMITH'
-
-FARMER is shortcut for BASICFARMER
-As example FARMER! (closest AI) or FARMER!! (all near AI)
-
-Commands for followers or close relatives:
-- By saying "COME" the Ai will follow you for some time or untill you say "STOP"
-- By saying "HOME" you can set the closest oven as their new Home
-- By starting the command with "ALL" the commands will reach all close AI
-
- The AI might or might not manage to craft the item. In theory it knows the hole crafting tree, but there might be bugs or needed stuff might not be close enough. Some stuff like making bowls if there are too many might be forbidden for AI.
+- The Ai can defend against attackers and will attack exiled players
 
 Combat:
-- combat is allowed but might give some prestige mali like attacking children, relatives or allies...
+- combat is allowed but might give some prestige mali like attacking children or relatives
 - combat is more skill based / the more close you hit where the playere is the more damage you do
-- combat is affected by many other paramters like how healthy you are (max food pipes), if you are in the right biome, if you have clothing...
+- combat is affected by many other paramters like how healthy you are (max food pipes), if you are in the right biome, if you have clothing, if you have allies close by and many more factors...
 
 Map with rivers mountains and oceans:
 - the server uses a limited hand made map which can be changed using a picture
-- rivers oceans and mountains that block movement (you can build brides with floors)
+- rivers oceans and mountains that block movement (you can build bridges with floors)
 - no locked iron or wells
 - all natural stuff can re-spawn (TODO except natural springs and tary spots)
 --> So having a lucky spot of one thing keeps it lucky also in the future
@@ -79,9 +48,8 @@ Curses based on graves:
 - curse system is now based on graves
 - you incarnate more likely to your grave with a grave stone
 - you incarnate less likely to your grave without a grave stone
-- you are cursed if going close to your grave without grave stone
-- You can curse a grave additionaly by adding a sharp stone
-- Cursed players have lower speed, make less damage, receive more damage
+- you are cursed if going close to your not burried bones
+- Cursed players have lower speed, make less damage and receive more damage
 - Cursed players have a black writing
 
 Different Classes:
@@ -96,6 +64,38 @@ Prestige System:
 Hitpoints / Exhaustion:
 - Your max food storage pipes (bootom left) is also now your hitpoints / stamina
 - If you are injured or Exhausted you loose Max Food Store pipes. Exhaustion will recover faster than hits.
+
+Commands:
+- By saying "STOP" or "DROP You can order the AI to stop or drop what it helds
+- By saying "MAKE xxx"  you can instruct the ai to make stuff with xxx is the item name
+- By saying "NAME?" AI says it name
+- By saying "PROF?" AI says its current profession
+
+- say "COINS?" --> guess what it does! But no it wont do it in silence! 
+- say "SEASON?" OR "?SEASON" displays current season
+- say "?AGE" to get your age
+- say "FAM?" to count and displays family
+- say "?ALLY" to disokay ally, ally count and closest ally
+- say "?F" "?FOLLOWER" or "FOLLOWER?" to display follower and direction of closest one
+- say "?SCORE" to get current account score / prestige (MSCORE + FSCORE) / 2
+- say "?MSCORE" to get current account male score / prestige
+- say "?FSCORE" to get current account female score / prestige
+- say "?FAMSCORE" to displays family score
+- say ?R or ?REPUTATION or REPUTATION? to get current combat reputation
+
+You can assign jobs to AI with say JOB! or JOB!! to assign jobs to all close AI. Assigned jobs have very high priority (executed after MAKE commands). 
+Jobs are: 
+'SOILMAKER', 'ROWMAKER', 'BASICFARMER', 'ADVANCEDFARMER', 'SHEPHERD', 'BAKER', 'POTTER', 'FIREKEEPER', 'TAILOR', 'FIREFOODMAKER', 'LUMBERJACK','WATERBRINGER', 'FOODSERVER', 'GRAVEKEEPER', 'HUNTER', 'SMITH'
+
+FARMER is shortcut for BASICFARMER
+As example FARMER! (closest AI) or FARMER!! (all near AI)
+
+Commands for followers or close relatives:
+- By saying "COME" the Ai will follow you for some time or untill you say "STOP"
+- By saying "HOME" you can set the closest oven as their new Home
+- By starting the command with "ALL" the commands will reach all close AI
+
+ The AI might or might not manage to craft the item. In theory it knows the hole crafting tree, but there might be bugs or needed stuff might not be close enough. Some stuff like making bowls if there are too many might be forbidden for AI.
 
 Reworked Yum and Craving System:
 - new craving system that shows you what has full YUM boni
