@@ -103,6 +103,7 @@ interface PlayerInterface {
 	public function isSuperCold():Bool;
 	public function hasYellowFever():Bool;
 	public function getClothingById(clothingId:Int):ObjectHelper;
+	public function countLittleKids():Int;
 
 	public var coldPlace(default, default):ObjectHelper;
 	public var warmPlace(default, default):ObjectHelper;

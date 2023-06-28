@@ -1565,6 +1565,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return fitness;
 	}
 
+	public function countLittleKids() {
+		var count = 0;
+		var parent = this;
+
+		for (p in AllPlayers) {
+			if (p.mother != parent && p.father != parent) continue;
+			if (p.deleted) continue;
+			if (p.age > ServerSettings.MinAgeToEat) continue;
+
+			count++;
+		}
+
+		return count;
+	}
+
 	public function getPlayerInstance():PlayerInstance {
 		return this;
 	}

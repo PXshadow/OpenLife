@@ -1485,6 +1485,9 @@ abstract class AiBase {
 		var tmpLastTemperature = lastTemperature;
 		this.lastTemperature = myPlayer.heat;
 
+		// Keep mother of smal kids in the warm
+		if (TimeHelper.Season == Winter && myPlayer.isFemale() && myPlayer.countLittleKids() > 0) needWarming = true;
+
 		// Large Fast Fire 83
 		if (this.itemToCraftId == 83) return craftItem(83);
 
