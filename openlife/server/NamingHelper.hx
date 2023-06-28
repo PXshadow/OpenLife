@@ -133,7 +133,14 @@ class NamingHelper {
 					if (p == player) continue;
 					if (p.isFollowerFrom(player) == false) continue;
 					if (p.isSameFamily(player) == false) continue;
-					if (count >= 4 && p.isCloseRelative(player) == false) continue;
+					// if (count >= 4 && p.isCloseRelative(player) == false) continue;
+					if (p.isCloseRelative(player) == false) {
+						var rand = WorldMap.world.randomFloat();
+						rand += count * 0.1;
+						if (p.home.tx == player.home.tx && p.home.ty == player.home.ty) rand -= 0.5;
+						if (p.getColor() != player.getColor()) rand += 0.5;
+						if (rand < 1) continue;
+					}
 
 					player.connection.send(PLAYER_SAYS, ['${p.id}/0 ++${p.name}++']);
 
