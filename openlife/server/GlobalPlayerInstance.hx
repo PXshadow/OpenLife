@@ -4636,7 +4636,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (attacker == null) return;
 
 		var factor = ServerSettings.CoinsOnWoundingFactor;
-		if (attacker.darkNosaj > 0) factor += 0.2;
+		if (attacker.darkNosaj > 0) factor *= 2;
 		if (factor > 1) factor = 1;
 
 		var targetCoins = Math.floor(targetPlayer.coins);
