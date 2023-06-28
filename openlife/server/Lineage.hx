@@ -443,6 +443,15 @@ class Lineage {
 		return value;
 	}
 
+	public var dynastyLneage(get, null):Lineage;
+
+	public function get_dynastyLneage() {
+		GlobalPlayerInstance.AcquireMutex();
+		var value = AllLineages[myDynastyId];
+		GlobalPlayerInstance.ReleaseMutex();
+		return value;
+	}
+
 	public var mother(get, set):GlobalPlayerInstance;
 
 	public function get_mother() {

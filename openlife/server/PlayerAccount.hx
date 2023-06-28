@@ -178,8 +178,19 @@ class PlayerAccount {
 
 		// do family score
 		var founderId = player.lineage.myEveId;
+		var founderAccountId = player.lineage.eveLineage.accountId;
 		var oldFamilyPrestige:Float = account.familyPrestige[founderId];
-		account.familyPrestige[founderId] = oldFamilyPrestige * (1 - factor) + score * factor;
+		var newScore = player.account.id == founderAccountId ? score * 2 : score; // give double prestige if player is founder
+		account.familyPrestige[founderId] = oldFamilyPrestige * (1 - factor) + newScore * factor;
+
+		// do dynasty score
+		var founderId = player.lineage.myDynastyId;
+		if (founderId > 0) {
+			var founderAccountId = player.lineage.dynastyLneage.accountId;
+			var oldFamilyPrestige:Float = account.familyPrestige[founderId];
+			var newScore = player.account.id == founderAccountId ? score * 2 : score; // give double prestige if player is founder
+			account.familyPrestige[founderId] = oldFamilyPrestige * (1 - factor) + newScore * factor;
+		}
 
 		trace('Score: ${account.score} This Life: $score femaleScore: ${account.femaleScore} maleScore: ${account.maleScore} family: ${player.familyName} ${oldFamilyPrestige} --> ${account.familyPrestige[founderId]}');
 	}
