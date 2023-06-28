@@ -669,6 +669,11 @@ class AiHelper {
 				if (bestFood == null || foodValue / quadDistance > bestFoodValue / bestDistance) {
 					var obj = world.getObjectHelper(tx, ty);
 
+					// Wild Onion 805 // 808
+					if (ai != null && (obj.parentId == 805 || obj.parentId == 808)) {
+						if (ai.hasOnionSeeds() == false) continue;
+					}
+
 					// Ripe Onions
 					if (obj.parentId == 2854 && obj.numberOfUses < 3) continue;
 

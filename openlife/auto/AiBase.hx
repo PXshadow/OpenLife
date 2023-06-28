@@ -1274,6 +1274,12 @@ abstract class AiBase {
 		return count > 1;
 	}
 
+	// wild onion 808 // Wild Onion - in ground 805 // Onion 2855 // Dry Planted Onion 2856 // Ripe Onions 2854
+	public function hasOnionSeeds() {
+		var count = countCurrentObjects([805, 808, 2855, 2856, 2854]);
+		return count > 1;
+	}
+
 	// isCaringForFire
 
 	private function useHeldObjOnTarget(target:ObjectHelper):Bool {
@@ -3202,7 +3208,7 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function countCurrentObjects(objIds:Array<Int>) {
+	public function countCurrentObjects(objIds:Array<Int>) {
 		var count = 0;
 		for (objId in objIds)
 			count += countCurrentObject(objId);
@@ -7575,6 +7581,11 @@ abstract class AiBase {
 				objNoTimeWantedIndex = index;
 				var objNoTimeWanted = itemToCraft.craftingList[objNoTimeWantedIndex];
 				var trans = itemToCraft.craftingTransitions[objNoTimeWantedIndex];
+				// TODO FIX: trans == null
+				if (trans == null) {
+					trace('WARNING: objNoTimeWantedIndex: ${GetName(objNoTimeWantedIndex)} craftingTransition not found!');
+					continue;
+				}
 				var doFirst = trans.actorID == objNoTimeWanted ? trans.targetID : trans.actorID;
 				var obj = transitionsByObjectId[doFirst];
 				var dist:Float = -1;
@@ -8191,6 +8202,13 @@ abstract class AiBase {
 			var home = myPlayer.home;
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 518, 20);
 			if (count < 1) return false;
+		}
+
+		// dont eat wild onion if there is only one since needed for planting onions
+		// wild onion 808 // Wild Onion - in ground 805 // Onion 2855 // Dry Planted Onion 2856 // Ripe Onions 2854
+		if (heldId == 808 || heldId == 2855) {
+			// var count = countCurrentObjects([805, 808, 2855, 2856, 2854]);
+			if (hasOnionSeeds() == false) return false;
 		}
 
 		// dont eat last pepper // Hot Pepper 2844
