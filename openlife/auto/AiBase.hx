@@ -2343,6 +2343,17 @@ abstract class AiBase {
 		return doPlant(minPlanted, maxPlanted, 4225, [4226, 4228, 4232]);
 	}
 
+	private function doPlanSquash(minPlanted:Int, maxPlanted:Int) {
+		// Dry Planted Squash Seeds 1192
+		// Wet Planted Squash Seeds 1190
+		// Hubbard Squash 1199
+		// Ripe Squash Plant 1196
+		// Crock with Squash 1243
+		// Plate of Squash Chunks 1202
+		// Plate of Squash Chunks with Seeds 1201
+		return doPlant(minPlanted, maxPlanted, 1192, [1190, 1199, 1196, 1243, 1202, 1201]);
+	}
+
 	private function doPlantMilkWeed(minPlanted:Int, maxPlanted:Int) {
 		// Dry Planted Milkweed Seed 214
 		// Wet Planted Milkweed Seed 215
@@ -3742,25 +3753,9 @@ abstract class AiBase {
 
 			// Dry Planted Squash Seeds 1192 // Wet Planted Squash Seeds 1190
 			if (toPlant == 1192 || toPlant == 1190) {
-				// Dry Planted Squash Seeds 1192
-				var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1192, 30);
-				// Wet Planted Squash Seeds 1190
-				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1190, 30);
-				// Hubbard Squash 1199
-				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1199, 30);
-				// Ripe Squash Plant 1196
-				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1196, 30);
-				// Crock with Squash 1243
-				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1243, 30);
-				// Plate of Squash Chunks 1202
-				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1202, 30);
-				// Plate of Squash Chunks with Seeds 1201
-				count += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1201, 30);
-
-				if (count > 3) {
-					toPlant += 1;
-					continue;
-				}
+				if (doPlanSquash(2, 5)) return true;
+				toPlant += 1;
+				continue;
 			}
 
 			// Dry Planted Tomato Seed 2829
