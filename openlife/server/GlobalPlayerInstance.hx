@@ -4465,7 +4465,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			damage *= targetPlayer.isCursed ? ServerSettings.CursedReceiveDamageFactor : 1;
 			damage *= attacker.isCursed ? ServerSettings.CursedMakeDamageFactor : 1;
 			damage *= attacker.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
-			damage *= attacker.darkNosaj > 0 ? 1.1 : 1;
+			damage *= attacker.darkNosaj > 0 ? 1.2 : 1;
 
 			if (ServerSettings.DebugCombat)
 				trace('COMBAT: HIT weaponDamage1: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance attacker cursed: ${attacker.isCursed}');
