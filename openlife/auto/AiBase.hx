@@ -1977,7 +1977,7 @@ abstract class AiBase {
 
 				// TODO maybe better make closest
 				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row 1136
-				// if (shortCraft(1137, 848, 30)) return true;
+				if (shortCraft(1137, 848, 30)) return true;
 			} else
 				this.taskState['RowMaker'] = 2;
 		}
@@ -6340,6 +6340,17 @@ abstract class AiBase {
 		if (actorId == 253 && targetId == 264) {
 			var count = countCurrentObjects([265, 272]);
 			if (count > 1) return false;
+		}
+
+		// Clay Bowl 235
+		// Fertile Soil Pile 1101 // Fertile Soil 1138
+		var soilTargets = [1101, 1138];
+		if (actorId == 235 && soilTargets.contains(targetId)) {
+			var closest = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, soilTargets, 30, myPlayer);
+			if (closest != null) {
+				itemToCraft.transTarget = closest;
+				var targetId = itemToCraft.transTarget.parentId;
+			}
 		}
 
 		// Dont place Rabbit Bait or other not belonging stuff on Flat Rock near Forge
