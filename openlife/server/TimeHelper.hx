@@ -733,7 +733,7 @@ class TimeHelper {
 				player.connection.sendGlobalMessage(text4);
 			}
 
-			if (Std.int(player.trueAge) == 5) {
+			if (Std.int(player.trueAge) == 10) {
 				var father = player.father;
 				if (player.followPlayer == player.mother && father != null && father.isDeleted() == false) {
 					var rand = WorldMap.world.randomFloat();
