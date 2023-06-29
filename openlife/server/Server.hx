@@ -47,6 +47,8 @@ class Server {
 	}
 
 	public static function main() {
+		WebServer.Start(); // Start WebServer to display statistics
+
 		Sys.println("Starting OpenLife Server" #if debug + " in debug mode" #end);
 
 		if (ServerSettings.debug) trace('Debug Mode: ${ServerSettings.debug}');
