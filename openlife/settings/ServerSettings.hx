@@ -3627,6 +3627,17 @@ class ServerSettings {
 				// trans.aiShouldIgnore = true;
 		}*/
 
+		// Shallow Well 662
+		var transByTarget = TransitionImporter.GetTransitionByActor(662);
+		for (trans in transByTarget) {
+			// Skewer 139 // Weak Skewer 852
+			// if(trans.actorID != 139 && trans.actorID != 852) continue;
+
+			// trace('DEBUG!!: ' + trans.getDescription(true));
+			// ignore tapoutTrigger for Shallow Well
+			trans.aiShouldIgnore = true;
+		}
+
 		InitWaterSourceIds();
 		InitWateringTargets();
 
