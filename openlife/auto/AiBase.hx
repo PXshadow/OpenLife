@@ -2736,7 +2736,9 @@ abstract class AiBase {
 		// Wooden Tongs with Fired Bowl 283
 		// if (countWetBowl > 0 && countBowl < maxBowls && craftItem(283)) return true;
 		// this.taskState['Bowl']
-		if (countBowl < maxBowls && craftItem(283)) return true;
+		// FIX: still AI manages to break somehow the Bowl limit, so count also current objects???
+		var countCloseBowls = AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 235, 20);
+		if (countBowl < maxBowls && countBowl < countCloseBowls && craftItem(283)) return true;
 
 		var countPlate = countCurrentObject(236); // Clay Plate 236
 		var maxPlates = ObjectData.getObjectData(236).aiCraftMax; // Clay Plate 236
@@ -7583,7 +7585,7 @@ abstract class AiBase {
 				var trans = itemToCraft.craftingTransitions[objNoTimeWantedIndex];
 				// TODO FIX: trans == null
 				if (trans == null) {
-					trace('WARNING: objNoTimeWantedIndex: ${GetName(objNoTimeWantedIndex)} craftingTransition not found!');
+					trace('WARNING: objNoTimeWantedIndex: ${GetName(objNoTimeWantedIndex)} craftingTransition not found! Try crafting ${GetName(itemToCraft.itemToCraft.id)} ');
 					continue;
 				}
 				var doFirst = trans.actorID == objNoTimeWanted ? trans.targetID : trans.actorID;
