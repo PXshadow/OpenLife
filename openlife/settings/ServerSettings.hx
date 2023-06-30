@@ -142,6 +142,7 @@ class ServerSettings {
 
 	public static var MapFileName = "mysteraV1Test.png";
 	public static var SaveDirectory = "SaveFiles";
+	public static var WebServerDirectory = "WebServer";
 	public static var OriginalBiomesFileName = "OriginalBiomes"; // .bin is added
 	public static var CurrentBiomesFileName = "CurrentBiomes"; // .bin is added
 	public static var CurrentFloorsFileName = "CurrentFloors"; // .bin is added
