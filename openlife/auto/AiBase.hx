@@ -5377,21 +5377,8 @@ abstract class AiBase {
 		return false;
 	}
 
-	// if (myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false;
-	private function attackPlayer(targetPlayer:GlobalPlayerInstance):Bool {
-		if (targetPlayer == null) return false;
-		if (myPlayer.food_store < -2) return false;
-		if (myPlayer.isWounded()) return false;
-
-		var heldObject = myPlayer.heldObject;
-
-		// if (foodTarget != null) return false;
+	private function getBowAndArrow() {
 		var bowAndArrow = ObjectData.getObjectData(152); // Bow and Arrow
-
-		// if (myPlayer.age < objData.minPickupAge) return false;
-		if (myPlayer.age < ServerSettings.MinAiAgeForCombat) return false;
-
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} attackPlayer: ${targetPlayer.name}');
 
 		// 151 Yew Bow
 		if (myPlayer.heldObject.parentId == 151) {
@@ -5443,6 +5430,27 @@ abstract class AiBase {
 
 			return GetOrCraftItem(152); // Bow and Arrow
 		}
+
+		return false;
+	}
+
+	// if (myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false;
+	private function attackPlayer(targetPlayer:GlobalPlayerInstance):Bool {
+		if (targetPlayer == null) return false;
+		if (myPlayer.food_store < -2) return false;
+		if (myPlayer.isWounded()) return false;
+
+		var heldObject = myPlayer.heldObject;
+
+		// if (foodTarget != null) return false;
+
+		if (myPlayer.age < ServerSettings.MinAiAgeForCombat) return false;
+
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} attackPlayer: ${targetPlayer.name}');
+
+		if (getBowAndArrow()) return true;
+
+		if (myPlayer.isHoldingWeapon() == false || myPlayer.heldObject.isBloody()) return false;
 
 		// FIX: combat uses exact distance calculation
 		// var distance = myPlayer.CalculateDistanceToPlayer(targetPlayer);
@@ -5501,10 +5509,11 @@ abstract class AiBase {
 			}
 		}
 
-		if (foodTarget != null) return false;
+		// if (foodTarget != null) return false;
+		if (myPlayer.food_store < 0) return false;
 
-		var objData = ObjectData.getObjectData(152); // Bow and Arrow
-		if (myPlayer.age < objData.minPickupAge) return false;
+		var bowAndArrow = ObjectData.getObjectData(152); // Bow and Arrow
+		if (myPlayer.age < bowAndArrow.minPickupAge) return false;
 
 		if (animalTarget != null && animalTarget.isKillableByBow() == false) {
 			if (ServerSettings.DebugAi)
@@ -5524,55 +5533,12 @@ abstract class AiBase {
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: ${animalTarget.description}');
 
-		// 151 Yew Bow
-		if (myPlayer.heldObject.id == 151) {
-			// Arrow Quiver
-			var quiver = myPlayer.getClothingById(3948);
-			if (quiver != null) {
-				myPlayer.self(0, 0, 5);
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} get Arrow from Quiver!');
-				return true;
-			}
-		}
+		if (getBowAndArrow()) return true;
 
-		if (myPlayer.heldObject.id == 0) {
-			// Arrow Quiver with Bow
-			var quiver = myPlayer.getClothingById(4151);
-
-			if (quiver != null) {
-				myPlayer.self(0, 0, 5);
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} get Bow from Quiver!');
-				return true;
-			}
-		}
-
-		// Arrow
-		if (myPlayer.heldObject.id == 148) {
-			// 4149 Empty Arrow Quiver with Bow
-			var quiver = myPlayer.getClothingById(4149);
-			// Arrow Quiver with Bow
-			if (quiver == null) quiver = myPlayer.getClothingById(4151);
-
-			if (quiver != null && quiver.canAddToQuiver()) {
-				myPlayer.self(0, 0, 5);
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} KillAnimal: put Arrow in Quiver!');
-				return true;
-			}
-		}
-
-		if (myPlayer.heldObject.id != objData.id) {
-			// 4149 Empty Arrow Quiver with Bow
-			var quiver = myPlayer.getClothingById(4149);
-			// Arrow Quiver with Bow
-			if (quiver == null) quiver = myPlayer.getClothingById(4151);
-
-			if (quiver == null) return GetOrCraftItem(152); // Bow and Arrow
-			else
-				return GetOrCraftItem(148); // Arrow
-		}
+		if (myPlayer.heldObject.parentId != bowAndArrow.parentId) return false;
 
 		var distance = myPlayer.CalculateQuadDistanceToObject(animalTarget);
-		var range = objData.useDistance;
+		var range = bowAndArrow.useDistance;
 
 		if (distance > range * range || (range > 1.9 && distance < 1.5)) // check if too far or too close
 		{
