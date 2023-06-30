@@ -4073,22 +4073,29 @@ abstract class AiBase {
 		// myPlayer.say('makeFireFood!');
 
 		if (shortCraftOnGround(186)) return true; // Cooked Rabbit --> unskew the Cooked Rabbits
+		if (shortCraftOnGround(517)) return true; // Cooked Goose - skewered 517--> unskew
 
 		// Cooked Mutton 570
 		var countDoneMutton = countCurrentObject(570);
 		// Cooked Rabbit 197
 		var countDoneRabbit = countCurrentObject(197);
-
 		// Skinned Rabbit 181 // Skewered Rabbit 185
 		var countRawRabbit = countCurrentObjects([181, 185]);
+		// Dead Canada Goose 514 // Plucked Goose 515 // Skewered Goose 516
+		var countRawGoose = countCurrentObjects([514, 515, 516]);
+		// Cooked Goose - skewered 517 // Cooked Goose 518
+		var countDoneRGoose = countCurrentObjects([517, 518]);
 
 		// Hot Coals 85 // TODO consider time to change
 		var hotCoals = AiHelper.GetClosestObjectToHome(myPlayer, 85, 30);
 
 		if (hotCoals != null) {
-			if (countDoneMutton < 2 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
-
-			if (countRawRabbit > 0 && countDoneRabbit < 5 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
+			// Raw Mutton 569 --> Cooked Mutton 570
+			if (countDoneMutton < 3 && shortCraftOnTarget(569, hotCoals, false)) return true;
+			// Skewered Goose 516 --> Cooked Goose 517
+			if (countRawGoose > 0 && countDoneRGoose < 5 && shortCraftOnTarget(516, hotCoals)) return true;
+			// Skewered Rabbit 185 --> Cooked Rabbit 186
+			if (countRawRabbit > 0 && countDoneRabbit < 5 && shortCraftOnTarget(185, hotCoals)) return true;
 
 			// Bowl of Raw Pork 1354 --? Bowl of Carnitas
 			if (shortCraftOnTarget(1354, hotCoals)) return true;
@@ -4154,6 +4161,9 @@ abstract class AiBase {
 		// Raw Pork 1342 // Bowl of Carnitas 1355
 		var countPorkFood = countCurrentObjects([1342, 1355]);
 		if (countPorkFood < 2 && craftItem(1342)) return true;
+
+		// Plucked Goose 515
+		if (countDoneRGoose + countRawGoose < 3 && craftItem(515)) return true;
 
 		// Bowl of Soaking Beans 1180 // Bowl of Cooked Beans 1292
 		var countBeanFood = countCurrentObjects([1180, 1292]);
