@@ -1773,9 +1773,11 @@ class IntemToCraft {
 
 	// FIX: seems to make seg faults // TODO find out why multiple threads use it?
 	public function clearAllCheachedObjects() {
+		GlobalPlayerInstance.AcquireMutex(); // TODO find out why multiple threads use it?
 		for (cachedObjectList in cachedObjectLists) {
 			clearTransitionsByObject(cachedObjectList);
 		}
+		GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	public function clearTransitionsByObjectId() {
