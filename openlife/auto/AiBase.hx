@@ -5373,11 +5373,19 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function getWeapon() {
-		return false;
-	}
+	private function getWeapon(onlyBowAndArrow = true) {
+		if (onlyBowAndArrow == false && myPlayer.isHoldingWeapon()) return false;
 
-	private function getBowAndArrow() {
+		if (myPlayer.heldObject.isBloody()) {
+			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} attack: holding isBloody: ${myPlayer.heldObject.name}');
+
+			// TODO go closer to target if holding Melee Weapon and time is short
+			Macro.exception(if (isMovingToHome(4)) return true);
+			// TODO escape if close to home?
+			return true;
+		}
+
+		// private function getBowAndArrow() {
 		var bowAndArrow = ObjectData.getObjectData(152); // Bow and Arrow
 
 		// 151 Yew Bow
@@ -5426,8 +5434,15 @@ abstract class AiBase {
 
 			// 4149 Empty Arrow Quiver with Bow
 			var quiver = myPlayer.getClothingById(4149);
-			if (quiver != null) return GetOrCraftItem(148); // Arrow
 
+			if (onlyBowAndArrow == false) {
+				// Knife // War Sword 3047 // Bow and Arrow 152 // Arrow 148
+				var weapons = quiver != null ? [560, 3047, 152, 148] : [560, 3047, 152];
+				var closest = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, weapons, 40, myPlayer);
+				if (closest != null && PickupObj(closest)) return true;
+			}
+
+			if (quiver != null) return GetOrCraftItem(148); // Arrow
 			return GetOrCraftItem(152); // Bow and Arrow
 		}
 
@@ -5448,9 +5463,11 @@ abstract class AiBase {
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} attackPlayer: ${targetPlayer.name}');
 
-		if (getBowAndArrow()) return true;
+		if (getWeapon(false)) return true;
 
-		if (myPlayer.isHoldingWeapon() == false || myPlayer.heldObject.isBloody()) return false;
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} attackPlayer: ${targetPlayer.name} holding: ${myPlayer.heldObject.name}');
+
+		if (myPlayer.isHoldingWeapon() == false) return false;
 
 		// FIX: combat uses exact distance calculation
 		// var distance = myPlayer.CalculateDistanceToPlayer(targetPlayer);
@@ -5533,7 +5550,7 @@ abstract class AiBase {
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: ${animalTarget.description}');
 
-		if (getBowAndArrow()) return true;
+		if (getWeapon(true)) return true;
 
 		if (myPlayer.heldObject.parentId != bowAndArrow.parentId) return false;
 
@@ -5729,6 +5746,7 @@ abstract class AiBase {
 	}
 
 	private function PickupObj(obj:ObjectHelper):Bool {
+		if (obj == null) return false;
 		if (obj.isPermanent()) return false;
 		this.dropTarget = obj;
 		CancleUse();
