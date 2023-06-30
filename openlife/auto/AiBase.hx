@@ -1612,11 +1612,11 @@ abstract class AiBase {
 		var home = myPlayer.home;
 
 		// Bowl of Butter 1465
-		var countButter = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1465, 30);
+		var countButter = countCurrentObject(1465);
 		// Partial Bucket of Skim Milk 1483
-		var countSkimMilk = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1483, 30);
+		var countSkimMilk = countCurrentObject(1483);
 		// Full Bucket of Skim Milk 2124
-		countSkimMilk += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 2124, 30);
+		countSkimMilk += countCurrentObject(2124);
 
 		if (countButter + countSkimMilk > 0) {
 			// Clay Bowl 235 + Full Bucket of Milk 1478
@@ -1652,7 +1652,7 @@ abstract class AiBase {
 		if (hasOrBecomeProfession('SHEPHERD', maxProfession) == false) return false;
 
 		// Domestic Sheep 575
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 575, 40);
+		var count = countCurrentObject(575);
 
 		if (count < 10) {
 			// Bowl of Gooseberries and Carrot 258 + Hungry Domestic Lamb 604
@@ -1678,9 +1678,9 @@ abstract class AiBase {
 		// var countDung = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 899, distance);
 		// if (countDung > 0) {
 		// Composting Compost Pile 790
-		var countCompost = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 790, distance);
+		var countCompost = countCurrentObject(790);
 		// Composted Soil 624
-		countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 624, distance);
+		countCompost += countCurrentObject(624);
 
 		// Composting Compost Pile 625
 		if (countCompost < 3 && craftItem(790)) return true;
@@ -1719,17 +1719,22 @@ abstract class AiBase {
 		var countCorn = countCorn();
 
 		// Cold Goose Egg 1262
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1262, 40);
+		var count = countCurrentObject(1262);
 		if (count < 5 && countCorn > 1) {
 			// Bowl with Corn Kernels 1247 + Domestic Goose 1256
 			if (hasCornSeeds && shortCraft(1247, 1256, distance)) return true;
 		}
 
+		// Domestic Goose 1256
+		var count = countCurrentObject(1256);
+		// Dung Goose Egg Incubator 1263
+		if (count < 5 && craftItem(1263)) return true;
+
 		// Dead Cow 1900
 		if (shortCraft(560, 1900, distance)) return true;
 
 		// Domestic Cow 1458
-		var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1458, 30);
+		var count = countCurrentObject(1458);
 		if (count > 5) {
 			/*var cow = AiHelper.GetClosestObjectToHome(myPlayer, 1458, 30);
 				if (cow != null) cow = AiHelper.GetClosestObjectToHome(myPlayer, 1458, 30, cow);

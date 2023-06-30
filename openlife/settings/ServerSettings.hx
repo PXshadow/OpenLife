@@ -3875,6 +3875,9 @@ class ServerSettings {
 
 		// Stone Hoe  + Clay Plate
 		LimitTransitionIfMinNotReached(850, 236, 236, 10);
+
+		// Domestic Goose- held 1267 + Stump 338 // Domestic Goose 1256
+		LimitTransitionIfMinNotReached(1267, 1256, 1256, 3);
 	}
 
 	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 3) {
