@@ -50,12 +50,11 @@ class WebServer {
 	private function handleRequest(socket:Socket) {
 		trace('received request!');
 
-		if (startText == null) startText = createStartText();
+		startText = createStartText();
 
-		socket.output.writeString(startText);
+		socket.output.writeString(startText); // TODO cache
 		Sys.sleep(0.1);
 		socket.close();
-		startText = createStartText(); // TODO count once in a while
 	}
 
 	private static function createStartText() {

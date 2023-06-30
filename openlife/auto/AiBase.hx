@@ -4072,14 +4072,10 @@ abstract class AiBase {
 		// Cooked Mutton 570
 		var countDoneMutton = countCurrentObject(570);
 		// Cooked Rabbit 197
-		var countDoneRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 197, 20);
+		var countDoneRabbit = countCurrentObject(197);
 
-		// Skinned Rabbit 181
-		var countRawRabbit = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 181, 25);
-		// Skewered Rabbit 185
-		countRawRabbit += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 185, 25);
-		// Skewered Rabbit 185
-		if (myPlayer.heldObject.parentId == 185) countRawRabbit += 1;
+		// Skinned Rabbit 181 // Skewered Rabbit 185
+		var countRawRabbit = countCurrentObjects([181, 185]);
 
 		// Hot Coals 85 // TODO consider time to change
 		var hotCoals = AiHelper.GetClosestObjectToHome(myPlayer, 85, 30);
@@ -4087,9 +4083,7 @@ abstract class AiBase {
 		if (hotCoals != null) {
 			if (countDoneMutton < 2 && shortCraftOnTarget(569, hotCoals, false)) return true; // Raw Mutton 569 --> Cooked Mutton 570
 
-			if (countRawRabbit > 0) {
-				if (countDoneRabbit < 5 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
-			}
+			if (countRawRabbit > 0 && countDoneRabbit < 5 && shortCraftOnTarget(185, hotCoals)) return true; // Skewered Rabbit 185 --> Cooked Rabbit 186
 
 			// Bowl of Raw Pork 1354 --? Bowl of Carnitas
 			if (shortCraftOnTarget(1354, hotCoals)) return true;
@@ -4118,23 +4112,26 @@ abstract class AiBase {
 		if (shortCraft(0, 1284, 20)) return true;
 
 		// Cold Goose Egg 1262
-		var countEggs = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1262, 20);
-		var countPlates = AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 236, 20);
+		var countEggs = countCurrentObject(1262);
+		var countPlates = countCurrentObject(236);
+		var countOmelette = countCurrentObject(236); // Omelette 1285
 
-		if (countRawRabbit < 0 && countPlates > 0 && countEggs > 0 && craftItem(1285)) return true; // Omelette
+		if (countPlates > 0 && countEggs > 0 && countOmelette < 4 && craftItem(1285)) return true; // Omelette 1285
+		// if (countRawRabbit < 0 && countPlates > 0 && countEggs > 0 && craftItem(1285)) return true; // Omelette
 
-		var countRawFireFood = countRawRabbit;
+		var countRawFireFood = countRawRabbit + countEggs;
 
 		// Raw Mutton 569
-		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 569, 30);
+		countRawFireFood += countCurrentObject(569);
 		// Raw Pork 1342
-		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1342, 30);
+		countRawFireFood += countCurrentObject(1342);
 		// Raw Stew Pot 1246
-		countRawFireFood += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, 1246, 30);
+		countRawFireFood += countCurrentObject(1246);
 
 		var neededRaw = isHungry ? 1 : 4;
+		var needCoals = (countOmelette < 1 && countPlates > 0) || countDoneRabbit < 1 || countDoneMutton < 1;
 
-		if (countRawFireFood >= neededRaw && hotCoals == null && (countDoneRabbit < 1 || countDoneMutton < 1)) {
+		if (countRawFireFood >= neededRaw && hotCoals == null && needCoals) {
 			// look for second fire 82
 			var fire = AiHelper.GetClosestObjectToHome(myPlayer, 82, 30, firePlace);
 			if (fire == null) return craftItem(82);
