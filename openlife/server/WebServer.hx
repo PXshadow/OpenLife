@@ -73,7 +73,7 @@ class WebServer {
 		var countHuman = 0;
 		var countAi = 0;
 		var countStarving = 0;
-		var livingPlayerText = '<center><table>\n<tr><td>Name</td><td>Prestige</td><td>Age</td><td>Power</td></tr>\n';
+		var livingPlayerText = '<center><table>\n<tr><td>Name</td><td>Age</td><td>Prestige</td><td>Power</td></tr>\n';
 
 		/*
 			<table>
@@ -98,9 +98,9 @@ class WebServer {
 			var lineage = player.lineage;
 			livingPlayerText += '<tr>';
 			livingPlayerText += '<td>${lineage.getFullName()}</td>';
+			livingPlayerText += '<td>${Math.floor(player.trueAge)}</td>';
 			livingPlayerText += '<td>${Math.floor(player.prestige)}</td>';
 			// livingPlayerText += '<td>${lineage.generation}</td>';
-			livingPlayerText += '<td>${Math.floor(player.trueAge)}</td>';
 			livingPlayerText += '<td>${Math.floor(player.power)}</td>';
 			livingPlayerText += '</tr>\n';
 		}
