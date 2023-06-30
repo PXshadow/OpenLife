@@ -5386,7 +5386,7 @@ abstract class AiBase {
 		var heldObject = myPlayer.heldObject;
 
 		// if (foodTarget != null) return false;
-		var objData = ObjectData.getObjectData(152); // Bow and Arrow
+		var bowAndArrow = ObjectData.getObjectData(152); // Bow and Arrow
 
 		// if (myPlayer.age < objData.minPickupAge) return false;
 		if (myPlayer.age < ServerSettings.MinAiAgeForCombat) return false;
@@ -5405,7 +5405,7 @@ abstract class AiBase {
 			}
 		}
 
-		if (myPlayer.heldObject.id == 0) {
+		if (myPlayer.isHeldEmpty()) {
 			// Arrow Quiver with Bow
 			var quiver = myPlayer.getClothingById(4151);
 
@@ -5430,15 +5430,18 @@ abstract class AiBase {
 			}
 		}
 
-		if (myPlayer.heldObject.parentId != objData.id) {
+		if (myPlayer.heldObject.parentId != bowAndArrow.id) {
+			// Arrow Quiver with Bow
+			var quiver = myPlayer.getClothingById(4151);
+			if (quiver != null) {
+				return dropHeldObject(5);
+			}
+
 			// 4149 Empty Arrow Quiver with Bow
 			var quiver = myPlayer.getClothingById(4149);
+			if (quiver != null) return GetOrCraftItem(148); // Arrow
 
-			// Arrow Quiver with Bow
-			if (quiver == null) quiver = myPlayer.getClothingById(4151);
-			if (quiver == null) return GetOrCraftItem(152); // Bow and Arrow
-			else
-				return GetOrCraftItem(148); // Arrow
+			return GetOrCraftItem(152); // Bow and Arrow
 		}
 
 		// FIX: combat uses exact distance calculation
