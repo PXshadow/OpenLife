@@ -5452,6 +5452,7 @@ abstract class AiBase {
 	// if (myPlayer.isHoldingWeapon() && myPlayer.isWounded() == false) return false;
 	private function attackPlayer(targetPlayer:GlobalPlayerInstance):Bool {
 		if (targetPlayer == null) return false;
+		if (targetPlayer.isWounded()) return false;
 		if (myPlayer.food_store < -2) return false;
 		if (myPlayer.isWounded()) return false;
 
