@@ -1,7 +1,6 @@
 package openlife.server;
 
 import haxe.Exception;
-import haxe.macro.Expr.Catch;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
 import openlife.settings.ServerSettings;
@@ -27,6 +26,13 @@ class Lineage {
 	// sperate in new and old to save faster (use DB???)
 	private static var NewLineages = new Map<Int, Lineage>();
 	private static var AllLineages = new Map<Int, Lineage>();
+
+	// Statistics
+	public static var lastStatisticGenerated:Float = -1;
+
+	public static var reasonKilled = new Map<String, Int>();
+	public static var ages = new Map<Int, Int>();
+	public static var generations = new Map<Int, Int>();
 
 	public static function AddLineage(lineageId:Int, lineage:Lineage) {
 		lineage.myId = lineageId;
@@ -317,7 +323,65 @@ class Lineage {
 		return generation;
 	}
 
+	public static function GenerateLineageStatistics() {
+		var timeSinceLast = TimeHelper.CalculateTimeSinceTicksInSec(lastStatisticGenerated);
+		if (lastStatisticGenerated > 0 && timeSinceLast < 60) return false;
+		timeSinceLast = TimeHelper.tick;
+
+		var countOld = 0;
+		var countNew = 0;
+		var reasonKilled = new Map<String, Int>();
+		var ages = new Map<Int, Int>();
+		var generations = new Map<Int, Int>();
+
+		for (lineage in AllLineages) {
+			var yearsSinceBirth = TimeHelper.CalculateTimeSinceTicksInYears(lineage.birthTime);
+			var yearsSinceDeath = TimeHelper.CalculateTimeSinceTicksInYears(lineage.deathTime);
+			var age = Math.round(yearsSinceBirth - yearsSinceDeath);
+			var deathReason = lineage.deathReason == null ? '' : lineage.deathReason;
+			var killedBy = deathReason;
+			var isNew = yearsSinceBirth > 1440; // 1440 = 24h// 2880 = 48h
+
+			if (deathReason.startsWith('reason_killed_')) {
+				var idString = deathReason.replace('reason_killed_', '');
+				var id = Std.parseInt(idString);
+				var objData = ObjectData.getObjectData(id);
+				killedBy = objData.name;
+			}
+
+			if (isNew) countNew++; else
+				countOld++;
+
+			var generation = lineage.generation;
+
+			if (generation < 0) {
+				generation = lineage.calculateGeneration();
+				lineage.generation = generation;
+				NewLineages[lineage.myId] = lineage;
+			}
+
+			if (age < -1) age = -1;
+
+			ages[age] += 1;
+			reasonKilled[killedBy] += 1;
+			generations[generation] += 1;
+
+			// if(lineage.familyName.startsWith('SNOW') == false) trace('Lineage: ${lineage.getFullName()} age: ${age} ${lineage.deathReason}');
+			// if(lineage.motherId < 1) trace('Lineage: ${lineage.myEveId} --> ${lineage.getFullName()} age: ${age} ${lineage.deathReason}');
+		}
+
+		Lineage.reasonKilled = reasonKilled;
+		Lineage.ages = ages;
+		Lineage.generations = generations;
+
+		trace('Lineage: countNew: ${countNew} countOld: ${countOld}');
+
+		return true;
+	}
+
 	public static function WriteLineageStatistics() {
+		// GenerateLineageStatistics();
+
 		var countOld = 0;
 		var countNew = 0;
 		var reasonKilled = new Map<String, Int>();

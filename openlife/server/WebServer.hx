@@ -1,5 +1,6 @@
 package openlife.server;
 
+import haxe.Resource;
 import openlife.settings.ServerSettings;
 import sys.net.Host;
 import sys.thread.Thread;
@@ -19,6 +20,7 @@ class WebServer {
 	var countAi = 0;
 	var countStarving = 0;
 	var livingPlayerText:String = null;
+	var lineageText:String = 'Loading Lineages...';
 
 	public static function Start() {
 		var webServer = new WebServer();
@@ -73,7 +75,7 @@ class WebServer {
 		var countHuman = 0;
 		var countAi = 0;
 		var countStarving = 0;
-		var livingPlayerText = '<table>\n<b><tr><td>Name</td><td>Age</td><td>Prestige</td><td>Power</td><td>Generation</td></b></tr>\n';
+		var livingPlayerText = '<table>\n<tr><td><b>Name</b></td><td><b>Age</b></td><td><b>Prestige</b></td><td><b>Power</b></td><td><b>Generation</b></td></tr>\n';
 
 		GlobalPlayerInstance.AcquireMutex();
 		for (player in GlobalPlayerInstance.AllPlayers) {
@@ -119,6 +121,80 @@ class WebServer {
 		return "#FFFFFF"; // White
 	}
 
+	public function generateLineageStatistics() {
+		GlobalPlayerInstance.AcquireMutex();
+		var done = Lineage.GenerateLineageStatistics();
+		GlobalPlayerInstance.ReleaseMutex();
+
+		if (done == false) return;
+
+		var reasonKilled = Lineage.reasonKilled;
+		var ages = Lineage.ages;
+		var generations = Lineage.generations;
+
+		var reasonKilledList = [for (a in reasonKilled.keys()) a];
+		reasonKilledList.sort(function(a, b) {
+			if (a < b) return -1; else if (a > b) return 1; else
+				return 0;
+		});
+
+		lineageText = '<br><br>\n<center><table>\n<tr><td><b>Reason killed</b></td><td><b>Count</b></td></tr>\n';
+
+		for (reason in reasonKilledList) {
+			var reasonText = reason;
+			if (reasonText == 'null') {
+				reasonText = 'N/A';
+			} else if (reasonText == '') {
+				continue;
+			} else if (reasonText == 'reason_age') {
+				reasonText = 'OLD AGE';
+			} else if (reasonText == 'reason_hunger') {
+				reasonText = 'STARVATION';
+			}
+
+			lineageText += '<tr>';
+			lineageText += '<td>${reasonText}</td>';
+			lineageText += '<td>${reasonKilled[reason]}</td>';
+			lineageText += '</tr>\n';
+		}
+
+		lineageText += '</table></center>\n';
+		lineageText += '<br><br>\n<center><table>\n<tr><td><b>Age</b></td><td><b>Count</b></td></tr>\n';
+
+		var ageList = [for (a in ages.keys()) a];
+		ageList.sort(function(a, b) {
+			if (a < b) return -1; else if (a > b) return 1; else
+				return 0;
+		});
+
+		for (age in ageList) {
+			lineageText += '<tr>';
+			lineageText += '<td>Age: ${age}</td>';
+			lineageText += '<td>${ages[age]}</td>';
+			lineageText += '</tr>\n';
+		}
+
+		lineageText += '</table></center>\n';
+		/*lineageText += '<br><br>\n<center><table>\n<tr><td><b>Generation</b></td><td><b>Count<b></td></tr>\n';
+
+			var generationsList = [for (g in generations.keys()) g];
+
+			generationsList.sort(function(a, b) {
+				if (a < b) return -1; else if (a > b) return 1; else
+					return 0;
+			});
+
+			for (generation in generationsList) {
+				lineageText += '<tr>';
+				lineageText += '<td>Generation: ${generation}</td>';
+				lineageText += '<td>${generations[generation]}</td>';
+				lineageText += '</tr>\n';
+			}
+
+			lineageText += '</table></center>\n';
+		 */
+	}
+
 	private function handleRequest(socket:Socket) {
 		trace('received request!');
 
@@ -138,11 +214,12 @@ class WebServer {
 
 		// TODO do only every 10 sec
 		createCurrentlyPlayingStatistics();
+		generateLineageStatistics();
 
 		// var text = '<!DOCTYPE html>\n<html>\n<head>\n<title>Open Life Reborn</title>\n</head>\n<body>\n<h1>Welcome to Open Life Reborn!</h1><p>Currently Playing: ${count}</p>\n</body>\n</html>';
 		var text = welcomeText;
 		// text = text.replace('</ul>', '</ul>\n<p>Currently Playing: ${count}</p>');
-		text = text.replace('</body>', '${livingPlayerText}</body>');
+		text = text.replace('</body>', '${livingPlayerText}\n${lineageText}</body>');
 
 		var message = 'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Encoding: UTF-8\r\nContent-Length: ${text.length}\r\n\r\n${text}';
 		// var message = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Encoding: UTF-8\nContent-Length: ${text.length}\nDate: Wed, 28 Jun 2023 22:36:00 GMT+02:00\n\n<!DOCTYPE html>\n<html>\n<head>\n    <title>Example</title>\n</head>\n<body>\n    <h1>Hello World!</h1>\n</body>\n</html>";
