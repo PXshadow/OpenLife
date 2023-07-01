@@ -1747,6 +1747,7 @@ class TimeHelper {
 					trace('Hungry Grizzly Bear: NEW! ${world.currentObjectsCount[631]} Bear Cave: ${world.originalObjectsCount[630]}');
 
 					var obj = world.getObjectHelper(tx, ty);
+					// Bear Cave awake 648
 					obj.id = 648;
 					world.setObjectHelper(tx, ty, obj);
 				}

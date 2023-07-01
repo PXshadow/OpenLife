@@ -1165,6 +1165,8 @@ class ServerSettings {
 
 		ObjectData.getObjectData(631).biomes = []; // Hungry Grizzly Bear
 		ObjectData.getObjectData(631).biomes.push(BiomeTag.GREY); // Hungry Grizzly Bear
+		ObjectData.getObjectData(4762).biomes = []; // Sleepy Grizzly Bear 4762
+		ObjectData.getObjectData(4762).biomes.push(BiomeTag.GREY); // Sleepy Grizzly Bear 4762
 		ObjectData.getObjectData(632).biomes = []; // Shot Grizzly Bear
 		ObjectData.getObjectData(632).biomes.push(BiomeTag.GREY); // Shot Grizzly Bear
 		ObjectData.getObjectData(635).biomes = []; // Shot Grizzly Bear 2
@@ -1411,6 +1413,8 @@ class ServerSettings {
 		ObjectData.getObjectData(631).damage = 6; // Hungry Grizzly Bear
 		ObjectData.getObjectData(653).deadlyDistance = AnimalDeadlyDistanceFactor; // Hungry Grizzly Bear attacking
 		ObjectData.getObjectData(653).damage = 6; // Hungry Grizzly Bear attacking
+		ObjectData.getObjectData(4762).deadlyDistance = AnimalDeadlyDistanceFactor; // Sleepy Grizzly Bear 4762
+		ObjectData.getObjectData(4762).damage = 5; // Sleepy Grizzly Bear 4762
 
 		ObjectData.getObjectData(632).deadlyDistance = AnimalDeadlyDistanceFactor; // Shot Grizzly Bear 1
 		ObjectData.getObjectData(632).damage = 6; // Shot Grizzly Bear 1
@@ -3466,6 +3470,12 @@ class ServerSettings {
 		// trans.aiShouldIgnore = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
+		// Time + Bear Cave - awake 648 --> Hungry Grizzly Bear 631
+		var trans = TransitionImporter.GetTransition(-1, 648);
+		trans.aiShouldIgnore = true;
+		trans.newTargetID = 631;
+		transitions.addTransition("PatchTransitions: ", trans);
+
 		/*var transByTarget = TransitionImporter.GetTransitionByTarget(2828); // Bowl of Tomato Seeds
 			for (trans in transByTarget) {
 				trace('Bowl of Tomato Seeds: ' + trans.getDescription(true));
@@ -3540,7 +3550,7 @@ class ServerSettings {
 			trans.hungryWorkCost = 5;
 			trans.alternativeTransitionOutcome.push(0);
 
-			trace('Property Gate: ' + trans.getDescription(false));
+			// trace('Property Gate: ' + trans.getDescription(false));
 		}
 
 		/*// Bowl of Water 382
