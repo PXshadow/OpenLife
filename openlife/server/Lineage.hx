@@ -53,8 +53,11 @@ class Lineage {
 	public var deathTime:Float;
 	public var age:Float;
 	public var trueAge:Float;
+	public var generation = -1; // from dysnasty founder (Eve/Adam)
+	public var houseGeneration = -1; // from house founder // not set yet
 
 	public var deathReason:String;
+	public var killedByPlayerId:Int; // not set yet
 	public var lastSaid:String;
 	public var prestige:Float;
 	public var coins:Float;
@@ -66,6 +69,7 @@ class Lineage {
 	public var fatherId:Int = -1;
 
 	public var prestigeClass:PrestigeClass = PrestigeClass.Commoner;
+	public var followPlayerId:Int; // not set yet
 
 	public var ownsObject:Bool = false; // indicates if this linage owns a object on the map. If not it might be deleted
 	public var alive:Bool = false; // indicates if still alive. If not it might be deleted. Up to now its only set on server restart
@@ -111,7 +115,7 @@ class Lineage {
 	// TODO archive important deleted lineages
 	public static function WriteLineages(path:String, lineages:Map<Int, Lineage>, deleteOld = false) {
 		var count = 0;
-		var dataVersion = 2;
+		var dataVersion = 3;
 		var writer = File.write(path, true);
 
 		if (deleteOld) {
@@ -181,6 +185,13 @@ class Lineage {
 			// Dataversion 2
 			writer.writeInt32(lineage.myDynastyId);
 			writer.writeFloat(lineage.reputation);
+
+			// Dataversion 3
+			if (lineage.generation < 0) lineage.generation = lineage.calculateGeneration();
+			writer.writeInt32(lineage.generation);
+			writer.writeInt32(lineage.houseGeneration);
+			writer.writeInt32(lineage.killedByPlayerId);
+			writer.writeInt32(lineage.followPlayerId);
 		}
 
 		writer.close();
@@ -263,6 +274,15 @@ class Lineage {
 					lineage.reputation = reader.readFloat();
 				}
 
+				// Dataversion 3
+				if (dataVersion >= 3) {
+					lineage.generation = reader.readInt32();
+					lineage.houseGeneration = reader.readInt32();
+					lineage.killedByPlayerId = reader.readInt32();
+					lineage.followPlayerId = reader.readInt32();
+					// if (lineage.generation < 0) trace('Dataversion 3: ${lineage.generation}');
+				}
+
 				loadedLineages[lineage.myId] = lineage;
 
 				// trace('$i read Lineage: ${lineage.myId} FamilyName: ${lineage.myFamilyName} ${lineage.accountId}');
@@ -283,6 +303,18 @@ class Lineage {
 		// trace('read $count Lineages...');
 
 		return loadedLineages;
+	}
+
+	public function calculateGeneration() {
+		var generation = 0;
+		var mother = this.getMotherLineage();
+
+		for (i in 0...10000) {
+			if (mother == null) break;
+			generation++;
+			mother = mother.getMotherLineage();
+		}
+		return generation;
 	}
 
 	public static function WriteLineageStatistics() {
@@ -314,13 +346,12 @@ class Lineage {
 			else
 				countNew++;
 
-			var mother = lineage.getMotherLineage();
-			var generation = 0;
+			var generation = lineage.generation;
 
-			for (i in 0...1000) {
-				if (mother == null) break;
-				generation++;
-				mother = mother.getMotherLineage();
+			if (generation < 0) {
+				generation = lineage.calculateGeneration();
+				lineage.generation = generation;
+				NewLineages[lineage.myId] = lineage;
 			}
 
 			ages[age] += 1;

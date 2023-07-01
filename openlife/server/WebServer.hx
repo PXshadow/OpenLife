@@ -73,7 +73,7 @@ class WebServer {
 		var countHuman = 0;
 		var countAi = 0;
 		var countStarving = 0;
-		var livingPlayerText = '<table>\n<b><tr><td>Name</td><td>Age</td><td>Prestige</td><td>Power</td></b></tr>\n';
+		var livingPlayerText = '<table>\n<b><tr><td>Name</td><td>Age</td><td>Prestige</td><td>Power</td><td>Generation</td></b></tr>\n';
 
 		GlobalPlayerInstance.AcquireMutex();
 		for (player in GlobalPlayerInstance.AllPlayers) {
@@ -87,8 +87,8 @@ class WebServer {
 			livingPlayerText += '<td><font color="${getPersonFontColor(player)}">${lineage.getFullName()}</font></td>';
 			livingPlayerText += '<td>${Math.floor(player.trueAge)}</td>';
 			livingPlayerText += '<td>${Math.floor(player.prestige)}</td>';
-			// livingPlayerText += '<td>${lineage.generation}</td>';
 			livingPlayerText += '<td>${Math.floor(player.power)}</td>';
+			livingPlayerText += '<td>${lineage.generation}</td>';
 			livingPlayerText += '</tr>\n';
 		}
 		// var count = Connection.CountHumans();
@@ -113,7 +113,7 @@ class WebServer {
 		// person ==> Ginger = 6 / White = 4 / Brown = 3 /  Black = 1
 		var color = player.getColor();
 
-		if (color == 1) return "#FFFF00"; // Yellow
+		if (color == 1) return "#8B80001"; // Yellow FFFF00
 		if (color == 3) return "#008000"; // Green
 		if (color == 4) return "#808080"; // Grey
 		return "#FFFFFF"; // White

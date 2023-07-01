@@ -1182,6 +1182,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (lastEveOrAdam == null) {
 			lastEveOrAdam = this;
 			this.lineage.myEveId = this.p_id;
+			this.lineage.generation = 0;
 
 			// give eve the right color fitting to closest special biome
 			var closeSpecialBiomePersonColor = getCloseSpecialBiomePersonColor(this.tx, this.ty, true);
@@ -1195,6 +1196,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 		} else {
 			this.lineage.myEveId = lastEveOrAdam.p_id;
+			this.lineage.generation = 0;
 			// Spawn An Eve / Adam is to last Eve / Adam
 			this.followPlayer = lastEveOrAdam;
 			// lastEveOrAdam.followPlayer = this;
@@ -1242,6 +1244,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		this.lineage.myEveId = mother.lineage.myEveId;
 		this.mother = mother;
+		if (mother.lineage.generation >= 0) this.lineage.generation = mother.lineage.generation + 1;
 		this.followPlayer = mother; // the mother is the leader
 		if (mother.potentialMate != null) this.father = mother.potentialMate;
 		if (mother.partner == null) mother.partner = mother.potentialMate;
