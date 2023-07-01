@@ -73,20 +73,7 @@ class WebServer {
 		var countHuman = 0;
 		var countAi = 0;
 		var countStarving = 0;
-		var livingPlayerText = '<center><table>\n<tr><td>Name</td><td>Age</td><td>Prestige</td><td>Power</td></tr>\n';
-
-		/*
-			<table>
-			  <tr>
-			<td>Row 1, Column 1</td>
-			<td>Row 1, Column 2</td>
-			  </tr>
-			  <tr>
-			<td>Row 2, Column 1</td>
-			<td>Row 2, Column 2</td>
-			  </tr>
-			</table>
-		 */
+		var livingPlayerText = '<table>\n<b><tr><td>Name</td><td>Age</td><td>Prestige</td><td>Power</td></b></tr>\n';
 
 		GlobalPlayerInstance.AcquireMutex();
 		for (player in GlobalPlayerInstance.AllPlayers) {
@@ -97,7 +84,7 @@ class WebServer {
 
 			var lineage = player.lineage;
 			livingPlayerText += '<tr>';
-			livingPlayerText += '<td>${lineage.getFullName()}</td>';
+			livingPlayerText += '<td><font color="${getPersonFontColor(player)}">${lineage.getFullName()}</font></td>';
 			livingPlayerText += '<td>${Math.floor(player.trueAge)}</td>';
 			livingPlayerText += '<td>${Math.floor(player.prestige)}</td>';
 			// livingPlayerText += '<td>${lineage.generation}</td>';
@@ -109,9 +96,10 @@ class WebServer {
 
 		livingPlayerText += '</table></center>';
 
-		var countText = '<p>Currently Playing: ${countHuman}\n';
+		var countText = '<center><p><b>Currently Playing: ${countHuman}\n';
 		countText += '&Tab;AIs: ${countAi}\n';
-		countText += '&Tab;Starving: ${countStarving}</p>\n';
+		countText += '&Tab;Starving: ${countStarving}\n';
+		countText += '&Tab;Season: ${TimeHelper.SeasonText}</b></p>\n';
 
 		livingPlayerText = countText + livingPlayerText;
 
@@ -121,11 +109,16 @@ class WebServer {
 		this.livingPlayerText = livingPlayerText;
 	}
 
-	/*static function main() {
-		var server = new ServerSocket();
-		server.bind("127.0.0.1", 8080);
-		server.listen(handleRequest);
-	}*/
+	private function getPersonFontColor(player:GlobalPlayerInstance) {
+		// person ==> Ginger = 6 / White = 4 / Brown = 3 /  Black = 1
+		var color = player.getColor();
+
+		if (color == 1) return "#FFFF00"; // Yellow
+		if (color == 3) return "#008000"; // Green
+		if (color == 4) return "#808080"; // Grey
+		return "#FFFFFF"; // White
+	}
+
 	private function handleRequest(socket:Socket) {
 		trace('received request!');
 
