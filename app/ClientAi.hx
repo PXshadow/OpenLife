@@ -44,7 +44,7 @@ class Bot extends Engine implements EngineHeader {
 		}
 		this.setPlayer = function() {
 			// new player set
-			auto = new Automation(program, App.vector);
+			auto = new Automation(program);
 			#if script
 			trace("EXECUTING SCRIPT");
 			Script.main(this);
@@ -121,6 +121,7 @@ class Bot extends Engine implements EngineHeader {
 	public function saysLocation(x:Int, y:Int, text:String) {} // LOCATION_SAYS
 
 	public function dying(id:Int, sick:Bool) {
+		if (id != player.p_id) return;
 		program.say("I AM DYING!");
 	} // DYING
 
@@ -132,7 +133,7 @@ class Bot extends Engine implements EngineHeader {
 		words.shift();
 		var index:Int = 0;
 		if (words.indexOf("YOU") > -1 && (index = words.indexOf("KNOW") + 1) > 0) {
-			found = auto.interp.stringObject(words.slice(index, words.length));
+			found = -1; // auto.interp.stringObject(words.slice(index, words.length));
 			if (found == -1) {
 				program.say("I DO NOT KNOW");
 				return;

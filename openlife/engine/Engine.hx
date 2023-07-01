@@ -54,6 +54,7 @@ class Engine {
 		map = new MapData();
 		if (client == null) client = new Client();
 		@:privateAccess program = new Program(client, map);
+		program.setPlayer(this.player);
 		this.client = client;
 	}
 
@@ -134,6 +135,7 @@ class Engine {
 				}
 				if (this.player == null) {
 					this.player = list[list.length - 1];
+					this.program.setPlayer(this.player);
 					if (setPlayer != null) setPlayer();
 				}
 				_playerUpdate(list);
@@ -142,7 +144,8 @@ class Engine {
 				for (string in input) {
 					a = string.split(" ");
 					if (a.length < 8 || a.length % 2 != 0) continue;
-					_playerMoveStart(new PlayerMove(a));
+					// TODO: FIX IT!
+					// _playerMoveStart(new PlayerMove(a));
 				}
 			case MAP_CHUNK:
 				if (_mapInstance == null) {

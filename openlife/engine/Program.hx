@@ -100,7 +100,7 @@ class Program {
 
 	var forcePlayerDropNext:Bool = false;
 
-	public function playerMainMove(player:GlobalPlayerInstance, move:PlayerMove) {
+	public function playerMainMove(player:PlayerInstance, move:PlayerMove) {
 		if (client.relayIn == null || !parentMove) return;
 		parent = GlobalPlayerInstance.CreateNewAiPlayer(null); // TODO change
 		parent.p_id = 999999;

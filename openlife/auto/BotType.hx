@@ -1,6 +1,7 @@
 package openlife.auto;
 
 import openlife.engine.Engine;
+import ClientAi.Bot;
 
 class BotType extends #if app Bot #else Engine #end
 {
