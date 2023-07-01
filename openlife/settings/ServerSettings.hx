@@ -3650,6 +3650,39 @@ class ServerSettings {
 			trans.aiShouldIgnore = true;
 		}
 
+		//  Deep Well 663
+		var transByTarget = TransitionImporter.GetTransitionByActor(663);
+		for (trans in transByTarget) {
+			// Skewer 139 // Weak Skewer 852
+			// if(trans.actorID != 139 && trans.actorID != 852) continue;
+
+			// trace('DEBUG!!: Deep Well ' + trans.getDescription(true));
+			// ignore tapoutTrigger for Shallow Well
+			trans.aiShouldIgnore = true;
+		}
+
+		// Full Deep Well 1097
+		var transByTarget = TransitionImporter.GetTransitionByActor(1097);
+		for (trans in transByTarget) {
+			// Skewer 139 // Weak Skewer 852
+			// if(trans.actorID != 139 && trans.actorID != 852) continue;
+
+			// trace('DEBUG!!: Full Deep Wel ' + trans.getDescription(true));
+			// ignore tapoutTrigger for Shallow Well
+			trans.aiShouldIgnore = true;
+		}
+
+		// Deep Well - was empty 1861
+		var transByTarget = TransitionImporter.GetTransitionByActor(1861);
+		for (trans in transByTarget) {
+			// Skewer 139 // Weak Skewer 852
+			// if(trans.actorID != 139 && trans.actorID != 852) continue;
+
+			// trace('DEBUG!!: Deep Well - was empty ' + trans.getDescription(true));
+			// ignore tapoutTrigger for Shallow Well
+			trans.aiShouldIgnore = true;
+		}
+
 		InitWaterSourceIds();
 		InitWateringTargets();
 
