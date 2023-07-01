@@ -3397,7 +3397,8 @@ class ServerSettings {
 
 		// ignore time transitions that make 732 Ashes with Bowl since Ai uses that to get empty bowl
 		// Time + Simmering Water 730 ==> Ashes with Bowl 732
-		var transByTarget = TransitionImporter.GetTransitionByNewTarget(732);
+		// FIX: better forbid Simmering Water 730 since Ai somehow makes still Simmering Water
+		var transByTarget = TransitionImporter.GetTransitionByNewTarget(730);
 		for (trans in transByTarget) {
 			if (trans.actorID > -1) continue;
 			// trace('Ashes with Bowl: ' + trans.getDesciption());
