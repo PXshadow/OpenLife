@@ -31,7 +31,11 @@ class Lineage {
 	public static var lastStatisticGenerated:Float = -1;
 
 	public static var reasonKilled = new Map<String, Int>();
+	public static var reasonKilledLastDay = new Map<String, Int>();
+	public static var reasonKilledLastHour = new Map<String, Int>();
 	public static var ages = new Map<Int, Int>();
+	public static var agesLastDay = new Map<Int, Int>();
+	public static var agesLastHour = new Map<Int, Int>();
 	public static var generations = new Map<Int, Int>();
 
 	public static function AddLineage(lineageId:Int, lineage:Lineage) {
@@ -147,12 +151,13 @@ class Lineage {
 			}
 
 			for (lineage in lineages) {
-				if (lineage.delete) countDelete++; else
-					countNotDelete++;
+				if (lineage.delete) countDelete++;
+				else countNotDelete++;
 			}
 			count = countNotDelete;
 			trace('WriteLineages: canBeDeleted: $countDelete saved: $countNotDelete');
-		} else {
+		}
+		else {
 			for (lineage in lineages)
 				count++;
 
@@ -219,8 +224,8 @@ class Lineage {
 				AllLineages = ReadLineages(pathAll);
 			}
 			File.copy(pathAll, pathBackup);
-		} else
-			AllLineages = [];
+		}
+		else AllLineages = [];
 
 		var newLineages = ReadLineages(pathNew);
 
@@ -331,7 +336,11 @@ class Lineage {
 		var countOld = 0;
 		var countNew = 0;
 		var reasonKilled = new Map<String, Int>();
+		var reasonKilledLastDay = new Map<String, Int>();
+		var reasonKilledLastHour = new Map<String, Int>();
 		var ages = new Map<Int, Int>();
+		var agesLastDay = new Map<Int, Int>();
+		var agesLastHour = new Map<Int, Int>();
 		var generations = new Map<Int, Int>();
 
 		for (lineage in AllLineages) {
@@ -340,7 +349,8 @@ class Lineage {
 			var age = Math.round(yearsSinceBirth - yearsSinceDeath);
 			var deathReason = lineage.deathReason == null ? '' : lineage.deathReason;
 			var killedBy = deathReason;
-			var isNew = yearsSinceBirth > 1440; // 1440 = 24h// 2880 = 48h
+			var isLastDay = yearsSinceBirth < 1440; // 1440 = 24h// 2880 = 48h
+			var isLastHour = yearsSinceBirth < 60;
 
 			if (deathReason.startsWith('reason_killed_')) {
 				var idString = deathReason.replace('reason_killed_', '');
@@ -349,8 +359,8 @@ class Lineage {
 				killedBy = objData.name;
 			}
 
-			if (isNew) countNew++; else
-				countOld++;
+			if (isLastDay) countNew++;
+			else countOld++;
 
 			var generation = lineage.generation;
 
@@ -363,7 +373,11 @@ class Lineage {
 			if (age < -1) age = -1;
 
 			ages[age] += 1;
+			if (isLastDay) agesLastDay[age] += 1;
+			if (isLastHour) agesLastHour[age] += 1;
 			reasonKilled[killedBy] += 1;
+			if (isLastDay) reasonKilledLastDay[killedBy] += 1;
+			if (isLastHour) reasonKilledLastHour[killedBy] += 1;
 			generations[generation] += 1;
 
 			// if(lineage.familyName.startsWith('SNOW') == false) trace('Lineage: ${lineage.getFullName()} age: ${age} ${lineage.deathReason}');
@@ -371,7 +385,11 @@ class Lineage {
 		}
 
 		Lineage.reasonKilled = reasonKilled;
+		Lineage.reasonKilledLastDay = reasonKilledLastDay;
+		Lineage.reasonKilledLastHour = reasonKilledLastHour;
 		Lineage.ages = ages;
+		Lineage.agesLastDay = agesLastDay;
+		Lineage.agesLastHour = agesLastHour;
 		Lineage.generations = generations;
 
 		trace('Lineage: countNew: ${countNew} countOld: ${countOld}');
@@ -407,8 +425,7 @@ class Lineage {
 			}
 
 			if (yearsSinceBirth > 2880) countOld++; // 2880 = 48h
-			else
-				countNew++;
+			else countNew++;
 
 			var generation = lineage.generation;
 
@@ -443,8 +460,10 @@ class Lineage {
 		var ageList = [for (a in ages.keys()) a];
 
 		ageList.sort(function(a, b) {
-			if (a < b) return -1; else if (a > b) return 1; else
-				return 0;
+			if (a < b) return -1;
+			else
+				if (a > b) return 1;
+				else return 0;
 		});
 
 		var path = dir + 'PlayerAges.txt';
@@ -460,8 +479,10 @@ class Lineage {
 		var generationsList = [for (g in generations.keys()) g];
 
 		generationsList.sort(function(a, b) {
-			if (a < b) return -1; else if (a > b) return 1; else
-				return 0;
+			if (a < b) return -1;
+			else
+				if (a > b) return 1;
+				else return 0;
 		});
 
 		var path = dir + 'PlayerGenerations.txt';

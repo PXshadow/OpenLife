@@ -81,8 +81,8 @@ class WebServer {
 		for (player in GlobalPlayerInstance.AllPlayers) {
 			if (player.isDeleted()) continue;
 			if (player.food_store < 1) countStarving++;
-			if (player.isHuman()) countHuman++; else
-				countAi++;
+			if (player.isHuman()) countHuman++;
+			else countAi++;
 
 			var lineage = player.lineage;
 			livingPlayerText += '<tr>';
@@ -134,43 +134,57 @@ class WebServer {
 
 		var reasonKilledList = [for (a in reasonKilled.keys()) a];
 		reasonKilledList.sort(function(a, b) {
-			if (a < b) return -1; else if (a > b) return 1; else
-				return 0;
+			if (a < b) return -1;
+			else
+				if (a > b) return 1;
+				else return 0;
 		});
 
-		lineageText = '<br><br>\n<center><table>\n<tr><td><b>Reason killed</b></td><td><b>Count</b></td></tr>\n';
+		lineageText = '<br><br>\n<center><table>\n<tr><td><b>Reason killed</b></td><td><b>Total</b></td><td><b>Last Day</b></td><td><b>Last Hour</b></td></tr>\n';
 
 		for (reason in reasonKilledList) {
 			var reasonText = reason;
 			if (reasonText == 'null') {
 				reasonText = 'N/A';
-			} else if (reasonText == '') {
-				continue;
-			} else if (reasonText == 'reason_age') {
-				reasonText = 'OLD AGE';
-			} else if (reasonText == 'reason_hunger') {
-				reasonText = 'STARVATION';
 			}
+			else
+				if (reasonText == '') {
+					continue;
+				}
+				else
+					if (reasonText == 'reason_age') {
+						reasonText = 'OLD AGE';
+					}
+					else
+						if (reasonText == 'reason_hunger') {
+							reasonText = 'STARVATION';
+						}
 
 			lineageText += '<tr>';
 			lineageText += '<td>${reasonText}</td>';
-			lineageText += '<td>${reasonKilled[reason]}</td>';
+			lineageText += '<td>${Lineage.reasonKilled[reason]}</td>';
+			lineageText += '<td>${cast (Lineage.reasonKilledLastDay[reason], Int)}</td>';
+			lineageText += '<td>${cast (Lineage.reasonKilledLastHour[reason], Int)}</td>';
 			lineageText += '</tr>\n';
 		}
 
 		lineageText += '</table></center>\n';
-		lineageText += '<br><br>\n<center><table>\n<tr><td><b>Age</b></td><td><b>Count</b></td></tr>\n';
+		lineageText += '<br><br>\n<center><table>\n<tr><td><b>Age</b></td><td><b>Total</b></td><td><b>Last Day</b></td><td><b>Last Hour</b></td></tr>\n';
 
 		var ageList = [for (a in ages.keys()) a];
 		ageList.sort(function(a, b) {
-			if (a < b) return -1; else if (a > b) return 1; else
-				return 0;
+			if (a < b) return -1;
+			else
+				if (a > b) return 1;
+				else return 0;
 		});
 
 		for (age in ageList) {
 			lineageText += '<tr>';
 			lineageText += '<td>Age: ${age}</td>';
-			lineageText += '<td>${ages[age]}</td>';
+			lineageText += '<td>${Lineage.ages[age]}</td>';
+			lineageText += '<td>${cast (Lineage.agesLastDay[age], Int)}</td>';
+			lineageText += '<td>${cast (Lineage.agesLastHour[age], Int)}</td>';
 			lineageText += '</tr>\n';
 		}
 
