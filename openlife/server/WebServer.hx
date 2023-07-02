@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.data.object.ObjectData;
 import haxe.Resource;
 import openlife.settings.ServerSettings;
 import sys.net.Host;
@@ -20,7 +21,8 @@ class WebServer {
 	var countAi = 0;
 	var countStarving = 0;
 	var livingPlayerText:String = null;
-	var lineageText:String = 'Loading Lineages...';
+	var lineageText:String = 'Loading Lineages...<br>\n';
+	var foodText:String = 'Loading Food Statistics...<br>\n';
 
 	public static function Start() {
 		var webServer = new WebServer();
@@ -196,6 +198,41 @@ class WebServer {
 		 */
 	}
 
+	public function generateFoodStatistics() {
+		// GlobalPlayerInstance.AcquireMutex();
+		// var done = Lineage.GenerateLineageStatistics();
+		// GlobalPlayerInstance.ReleaseMutex();
+
+		var eatenFoodPercentage = WorldMap.world.eatenFoodPercentage;
+		// eatenFoodPercentage[31] = 1;
+
+		// TODO sort for percentage
+		var eatenFoodPercenList = [for (a in eatenFoodPercentage.keys()) a];
+		eatenFoodPercenList.sort(function(a, b) {
+			if (a < b) return -1;
+			else if (a > b) return 1;
+			else return 0;
+		});
+
+		// <td><b>Last Hour</b></td>
+		foodText = '<br><br>\n<center><table>\n<tr><td><b>Food</b></td><td><b>Eaten</b></td><td><b>Related</b></td></tr>\n';
+
+		for (foodId in eatenFoodPercenList) {
+			var objData = ObjectData.getObjectData(foodId);
+			var foodName = objData.name;
+			var foodTotalPercent:Int = Math.round(WorldMap.world.getEatenFoodPercentage(foodId));
+
+			foodText += '<tr>';
+			foodText += '<td>${foodName}</td>';
+			foodText += '<td>${eatenFoodPercentage[foodId]}%</td>';
+			foodText += '<td>${foodTotalPercent}%</td>';
+			// foodText += '<td>${cast (Lineage.reasonKilledLastHour[reason], Int)}</td>';
+			foodText += '</tr>\n';
+		}
+
+		foodText += '</table></center>\n';
+	}
+
 	private function handleRequest(socket:Socket) {
 		trace('received request!');
 
@@ -216,11 +253,12 @@ class WebServer {
 		// TODO do only every 10 sec
 		createCurrentlyPlayingStatistics();
 		generateLineageStatistics();
+		generateFoodStatistics();
 
 		// var text = '<!DOCTYPE html>\n<html>\n<head>\n<title>Open Life Reborn</title>\n</head>\n<body>\n<h1>Welcome to Open Life Reborn!</h1><p>Currently Playing: ${count}</p>\n</body>\n</html>';
 		var text = welcomeText;
 		// text = text.replace('</ul>', '</ul>\n<p>Currently Playing: ${count}</p>');
-		text = text.replace('</body>', '${livingPlayerText}\n${lineageText}</body>');
+		text = text.replace('</body>', '${livingPlayerText}\n${foodText}\n${lineageText}\n</body>');
 
 		var message = 'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Encoding: UTF-8\r\nContent-Length: ${text.length}\r\n\r\n${text}';
 		// var message = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Encoding: UTF-8\nContent-Length: ${text.length}\nDate: Wed, 28 Jun 2023 22:36:00 GMT+02:00\n\n<!DOCTYPE html>\n<html>\n<head>\n    <title>Example</title>\n</head>\n<body>\n    <h1>Hello World!</h1>\n</body>\n</html>";
