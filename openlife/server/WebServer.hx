@@ -135,30 +135,18 @@ class WebServer {
 		var reasonKilledList = [for (a in reasonKilled.keys()) a];
 		reasonKilledList.sort(function(a, b) {
 			if (a < b) return -1;
-			else
-				if (a > b) return 1;
-				else return 0;
+			else if (a > b) return 1;
+			else return 0;
 		});
 
 		lineageText = '<br><br>\n<center><table>\n<tr><td><b>Reason killed</b></td><td><b>Total</b></td><td><b>Last Day</b></td><td><b>Last Hour</b></td></tr>\n';
 
 		for (reason in reasonKilledList) {
 			var reasonText = reason;
-			if (reasonText == 'null') {
-				reasonText = 'N/A';
-			}
-			else
-				if (reasonText == '') {
-					continue;
-				}
-				else
-					if (reasonText == 'reason_age') {
-						reasonText = 'OLD AGE';
-					}
-					else
-						if (reasonText == 'reason_hunger') {
-							reasonText = 'STARVATION';
-						}
+			if (reasonText == 'null') reasonText = 'N/A';
+			else if (reasonText == '') continue;
+			else if (reasonText == 'reason_age') reasonText = 'OLD AGE';
+			else if (reasonText == 'reason_hunger') reasonText = 'STARVATION';
 
 			lineageText += '<tr>';
 			lineageText += '<td>${reasonText}</td>';
@@ -174,9 +162,8 @@ class WebServer {
 		var ageList = [for (a in ages.keys()) a];
 		ageList.sort(function(a, b) {
 			if (a < b) return -1;
-			else
-				if (a > b) return 1;
-				else return 0;
+			else if (a > b) return 1;
+			else return 0;
 		});
 
 		for (age in ageList) {

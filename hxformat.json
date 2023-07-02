@@ -3,6 +3,6 @@
         "ifBody": "same",
         "elseBody": "same",
         "ifElse": "next",
-        "elseIf": "next"
+        "elseIf": "same"
     }
 }
