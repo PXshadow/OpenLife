@@ -290,22 +290,23 @@ class TimeHelper {
 			var season = Season == Seasons.Summer ? ' ${SeasonNames[Season]}' : '';
 			var rand = WorldMap.calculateRandomInt(2);
 
-			if (rand == 0) player.say('too hot${season} a river could help!',
-				true); else if (rand == 1) player.say('too hot${season} could drink some water!',
-				true); else if (rand == 2) player.say('too hot${season} some snow would be nice!', true);
+			if (rand == 0) player.say('too hot${season} a river could help!', true);
+			else if (rand == 1) player.say('too hot${season} could drink some water!', true);
+			else if (rand == 2) player.say('too hot${season} some snow would be nice!', true);
 			// else if(rand == 2) player.say('too hot${season} a jungle could help', true);
 			// else player.say('too hot${season} a desert would be warm!', true);
-		} else if (player.displaySeason && player.isSuperCold() && player.hits > 3) {
+		}
+		else if (player.displaySeason && player.isSuperCold() && player.hits > 3) {
 			player.timeLastTemperatureHint = TimeHelper.tick;
 			// if(Season == Seasons.Winter) player.say('its ${SeasonNames[Season]} i need to get warmer', true);
 
 			var season = Season == Seasons.Winter ? ' ${SeasonNames[Season]}' : '';
 			var rand = WorldMap.calculateRandomInt(3);
 
-			if (rand == 0) player.say('too cold${season} need a fire!',
-				true); else if (rand == 1) player.say('too cold${season} need more clothing!',
-				true); else if (rand == 2) player.say('too cold${season} a jungle could help', true); else
-				player.say('too cold${season} a desert would be warm!', true);
+			if (rand == 0) player.say('too cold${season} need a fire!', true);
+			else if (rand == 1) player.say('too cold${season} need more clothing!', true);
+			else if (rand == 2) player.say('too cold${season} a jungle could help', true);
+			else player.say('too cold${season} a desert would be warm!', true);
 		}
 
 		// if(player.isSuperHot() || player.isSuperCold()) player.displaySeason = false;
@@ -380,9 +381,10 @@ class TimeHelper {
 		var minAngryTime = ServerSettings.CombatAngryTimeMinimum;
 
 		if (moreAngry) {
-			if (player.angryTime > minAngryTime) player.angryTime -= timePassedInSeconds; else
-				player.angryTime = minAngryTime;
-		} else {
+			if (player.angryTime > minAngryTime) player.angryTime -= timePassedInSeconds;
+			else player.angryTime = minAngryTime;
+		}
+		else {
 			var biomeId = WorldMap.world.getBiomeId(player.tx, player.ty);
 			var biomeFactor:Float = biomeId == PASSABLERIVER ? 2 : 1;
 			biomeFactor = biomeId == DESERT ? 0.5 : biomeFactor;
@@ -403,7 +405,8 @@ class TimeHelper {
 		}
 
 		// add new follower
-		if (player.newFollowerTime > 0) player.newFollowerTime -= timePassedInSeconds; else {
+		if (player.newFollowerTime > 0) player.newFollowerTime -= timePassedInSeconds;
+		else {
 			if (player.newFollower != null) {
 				var exileLeader = player.newFollower.getLeaderWhoExiled(player);
 				var notExiled = exileLeader == null;
@@ -549,7 +552,8 @@ class TimeHelper {
 			if (player.hiddenWound.isTimeToChangeReached()) {
 				player.hiddenWound = null;
 				player.doEmote(Emote.happy);
-			} else {
+			}
+			else {
 				if (player.heldObject.id == 0) {
 					player.setHeldObject(player.hiddenWound);
 					player.setHeldObjectOriginNotValid(); // no animation
@@ -597,20 +601,21 @@ class TimeHelper {
 
 		// if(player.isHoldingWeapon() && player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack / 2 )
 		if (player.angryTime < 2) {
-			if (player.isHoldingWeapon()) player.doEmote(Emote.murderFace); else {
+			if (player.isHoldingWeapon()) player.doEmote(Emote.murderFace);
+			else {
 				var lastPlayerAttackedMe = player.lastPlayerAttackedMe;
 				if (lastPlayerAttackedMe != null
 					&& lastPlayerAttackedMe.lastAttackedPlayer == player
-					&& lastPlayerAttackedMe.isHoldingWeapon()) player.doEmote(Emote.terrified); else
-					player.doEmote(Emote.angry);
+					&& lastPlayerAttackedMe.isHoldingWeapon()) player.doEmote(Emote.terrified);
+				else player.doEmote(Emote.angry);
 			}
 
 			return;
 		}
 
 		if (player.hasYellowFever()) {
-			if (player.isSuperHot()) player.doEmote(Emote.heatStroke); else
-				player.doEmote(Emote.yellowFever);
+			if (player.isSuperHot()) player.doEmote(Emote.heatStroke);
+			else player.doEmote(Emote.yellowFever);
 			return;
 		}
 
@@ -620,9 +625,10 @@ class TimeHelper {
 		}
 
 		if (player.angryTime < ServerSettings.CombatAngryTimeBeforeAttack) {
-			if (player.isHoldingWeapon()) player.doEmote(Emote.angry); else {
-				if (player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon()) player.doEmote(Emote.shock); else
-					player.doEmote(Emote.angry);
+			if (player.isHoldingWeapon()) player.doEmote(Emote.angry);
+			else {
+				if (player.lastPlayerAttackedMe != null && player.lastPlayerAttackedMe.isHoldingWeapon()) player.doEmote(Emote.shock);
+				else player.doEmote(Emote.angry);
 			}
 		}
 
@@ -658,14 +664,16 @@ class TimeHelper {
 
 		if (player.age < ServerSettings.GrownUpAge) {
 			// ageingFactor = healthFactor;
-		} else {
+		}
+		else {
 			ageingFactor = 1 / healthFactor;
 		}
 
 		if (player.isHuman() && player.mother != null && player.mother.isAi() && player.age < ServerSettings.MinAgeToEat) {
 			ageingFactor *= ServerSettings.AgingFactorHumanBornToAi;
 			// if(TimeHelper.tick % 20 == 0) trace('ageing: human born to ai: $ageingFactor');
-		} else if (player.isAi() && player.mother != null && player.mother.isHuman() && player.age < ServerSettings.MinAgeToEat) {
+		}
+		else if (player.isAi() && player.mother != null && player.mother.isHuman() && player.age < ServerSettings.MinAgeToEat) {
 			ageingFactor *= ServerSettings.AgingFactorAiBornToHuman;
 			// if(TimeHelper.tick % 20 == 0) trace('ageing: human born to ai: $ageingFactor');
 		}
@@ -673,7 +681,8 @@ class TimeHelper {
 		if (player.food_store < 0) {
 			if (player.age < ServerSettings.GrownUpAge) {
 				ageingFactor *= ServerSettings.AgingFactorWhileStarvingToDeath;
-			} else {
+			}
+			else {
 				ageingFactor *= 1 / ServerSettings.AgingFactorWhileStarvingToDeath;
 			}
 		}
@@ -744,6 +753,7 @@ class TimeHelper {
 						if (done) {
 							var text = player.isMale() ? 'SON' : 'DAUGHTER';
 							player.lineage.myEveId = player.father.lineage.myEveId;
+							player.lineage.generation = player.father.lineage.generation + 1;
 
 							Connection.SendToineageAndNameToAll(player);
 							Connection.SendFollowingToAll(player);
@@ -821,9 +831,9 @@ class TimeHelper {
 		if (player.age < ServerSettings.GrownUpAge && player.food_store > 0) foodDecay *= ServerSettings.FoodUseChildFaktor;
 
 		if (player.isAi()) {
-			if (player.lineage.prestigeClass == PrestigeClass.Serf) foodDecay *= ServerSettings.AIFoodUseFactorSerf; else
-				if (player.lineage.prestigeClass == PrestigeClass.Commoner) foodDecay *= ServerSettings.AIFoodUseFactorCommoner; else
-					if (player.lineage.prestigeClass == PrestigeClass.Noble) foodDecay *= ServerSettings.AIFoodUseFactorNoble;
+			if (player.lineage.prestigeClass == PrestigeClass.Serf) foodDecay *= ServerSettings.AIFoodUseFactorSerf;
+			else if (player.lineage.prestigeClass == PrestigeClass.Commoner) foodDecay *= ServerSettings.AIFoodUseFactorCommoner;
+			else if (player.lineage.prestigeClass == PrestigeClass.Noble) foodDecay *= ServerSettings.AIFoodUseFactorNoble;
 		}
 
 		// do damage if wound
@@ -858,8 +868,8 @@ class TimeHelper {
 
 		// give some time for BB to survive first year FIX: BB instand death in hard winter born outside
 		if (player.age > 1) {
-			if (player.isSuperHot()) damage = player.heat > 0.95 ? 2 * originalFoodDecay : originalFoodDecay; else if (player.isSuperCold())
-				damage = player.heat < 0.05 ? 2 * originalFoodDecay : originalFoodDecay;
+			if (player.isSuperHot()) damage = player.heat > 0.95 ? 2 * originalFoodDecay : originalFoodDecay;
+			else if (player.isSuperCold()) damage = player.heat < 0.05 ? 2 * originalFoodDecay : originalFoodDecay;
 
 			player.hits += damage * ServerSettings.TemperatureHitsDamageFactor;
 			player.exhaustion += damage * ServerSettings.TemperatureExhaustionDamageFactor;
@@ -932,7 +942,8 @@ class TimeHelper {
 
 		if (player.yum_bonus > 0) {
 			player.yum_bonus -= foodDecay;
-		} else {
+		}
+		else {
 			player.food_store -= foodDecay;
 		}
 
@@ -1244,7 +1255,8 @@ class TimeHelper {
 				if (WorldMap.world.currentObjectsCount[objID] % mod == 0)
 					trace('SEASON DECAY: ${objData.description} ${WorldMap.world.currentObjectsCount[objID]} original: ${WorldMap.world.originalObjectsCount[objID]}');
 			}
-		} else if (Season == Seasons.Spring && objData.springRegrowFactor > 0) {
+		}
+		else if (Season == Seasons.Spring && objData.springRegrowFactor > 0) {
 			// TODO regrow also from originalObjects?
 
 			// increase uses if it is for example a berry bush
@@ -1521,12 +1533,14 @@ class TimeHelper {
 			obj.id = walls[0];
 			world.setObjectHelper(tx, ty, obj);
 			trace('WALL: ${objData.description} ${objData.parentId} --> Corner');
-		} else if (isVertical && objData.parentId != walls[1]) {
+		}
+		else if (isVertical && objData.parentId != walls[1]) {
 			var obj = world.getObjectHelper(tx, ty);
 			obj.id = walls[1];
 			world.setObjectHelper(tx, ty, obj);
 			trace('WALL: ${objData.description} ${objData.parentId} --> Vertical');
-		} else if (isHorizontal && objData.parentId != walls[2]) {
+		}
+		else if (isHorizontal && objData.parentId != walls[2]) {
 			var obj = world.getObjectHelper(tx, ty);
 			obj.id = walls[2];
 			world.setObjectHelper(tx, ty, obj);
@@ -1571,7 +1585,8 @@ class TimeHelper {
 		var decaysToObj = objData.decaysToObj == 0 ? 618 : objData.decaysToObj; // 618 Filled Small Trash Pit
 		var decaysToObjData = ObjectData.getObjectData(decaysToObj);
 
-		if (decaysToObjData.floor) world.setFloorId(x, y, decaysToObj); else {
+		if (decaysToObjData.floor) world.setFloorId(x, y, decaysToObj);
+		else {
 			world.setFloorId(x, y, 0);
 			if (objId == 0) world.setObjectId(x, y, [decaysToObj]);
 		}
@@ -1688,17 +1703,20 @@ class TimeHelper {
 			if (world.randomFloat() < passedTimeInYears / 60) {
 				world.setObjectId(tx, ty, [50]);
 			}
-		} else if (origObj[0] == 136) // Sapling
+		}
+		else if (origObj[0] == 136) // Sapling
 		{
 			if (world.randomFloat() < passedTimeInYears / 60) {
 				world.setObjectId(tx, ty, [136]);
 			}
-		} else if (origObj[0] == 1261) // 1261 Canada Goose Pond with Egg
+		}
+		else if (origObj[0] == 1261) // 1261 Canada Goose Pond with Egg
 		{
 			if (world.randomFloat() < passedTimeInYears / (60 * 24)) {
 				world.setObjectId(tx, ty, [1261]);
 			}
-		} else if (origObj[0] == 211) // 211 Fertile Soil Deposit // TODO remove if AI can handle compost
+		}
+		else if (origObj[0] == 211) // 211 Fertile Soil Deposit // TODO remove if AI can handle compost
 		{
 			if (world.randomFloat() < passedTimeInYears / (60 * 24 * 2)) {
 				world.setObjectId(tx, ty, [211]);
@@ -1775,7 +1793,10 @@ class TimeHelper {
 		var randX = tx;
 		var randY = ty;
 
-		if (rand == 0) randX = tx + 1; else if (rand == 1) randX = tx - 1; else if (rand == 2) randY = ty + 1; else if (rand == 3) randY = ty - 1;
+		if (rand == 0) randX = tx + 1;
+		else if (rand == 1) randX = tx - 1;
+		else if (rand == 2) randY = ty + 1;
+		else if (rand == 3) randY = ty - 1;
 
 		if (IsProtected(randX, randY) == false) world.setBiomeId(randX, randY, SNOW);
 
@@ -1898,7 +1919,10 @@ class TimeHelper {
 		var randX = tx;
 		var randY = ty;
 
-		if (rand == 0) randX = tx + 1; else if (rand == 1) randX = tx - 1; else if (rand == 2) randY = ty + 1; else if (rand == 3) randY = ty - 1;
+		if (rand == 0) randX = tx + 1;
+		else if (rand == 1) randX = tx - 1;
+		else if (rand == 2) randY = ty + 1;
+		else if (rand == 3) randY = ty - 1;
 
 		var biomeId = world.getBiomeId(randX, randY);
 		var doChange = true;
@@ -2014,7 +2038,8 @@ class TimeHelper {
 
 		if (helper.isLastUse()) {
 			var tmpTransition = TransitionImporter.GetTransition(-1, helper.parentId, false, true);
-			if (tmpTransition != null) transition = tmpTransition; else {
+			if (tmpTransition != null) transition = tmpTransition;
+			else {
 				var objData = ObjectData.getObjectData(tileObject[0]);
 				var name = objData == null ? '' : objData.name;
 				trace('WARNING: TIME: $tileObject ${name} isLastUse transition not found!');
@@ -2043,8 +2068,8 @@ class TimeHelper {
 		helper.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(helper);
 		helper.creationTimeInTicks = TimeHelper.tick;
 
-		if (isMaxUse) helper.numberOfUses = helper.objectData.numUses; else
-			TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, null, false);
+		if (isMaxUse) helper.numberOfUses = helper.objectData.numUses;
+		else TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, null, false);
 
 		WorldMap.world.setObjectHelper(tx, ty, helper);
 
@@ -2163,7 +2188,8 @@ class TimeHelper {
 
 		// 418 Wolf // 631 Hungry Grizzly Bear
 		if (gotoTarget && (animal.parentId == 418 || animal.parentId == 631)) {
-			if (animal.target == null) animal.target = GetClosestBoneGrave(animal); else {
+			if (animal.target == null) animal.target = GetClosestBoneGrave(animal);
+			else {
 				var objData = WorldMap.world.getObjectDataAtPosition(animal.target.tx, animal.target.ty);
 				if (objData.isBoneGrave() == false) animal.target = GetClosestBoneGrave(animal);
 			}
@@ -2322,7 +2348,8 @@ class TimeHelper {
 
 			if (timeAlternaiveTransition == null) {
 				worldmap.setObjectHelper(fromTx, fromTy, animal.groundObject);
-			} else {
+			}
+			else {
 				// FIX: 544 Domestic Mouflon with Lamb + -1  ==> 545 Domestic Lamb + 541 Domestic Mouflon
 
 				oldTileObject = [timeAlternaiveTransition.newActorID];
@@ -2386,7 +2413,8 @@ class TimeHelper {
 					// NO Offspring since too close to same animal
 					// TODO does not yet consider count as
 					trace('Animal Offspring: CLOSE ${animal.name} id: ${newTileObject} chance: ${chanceForOffspring} curPop: ${currentPop]} original: ${originalPop}');
-				} else {
+				}
+				else {
 					worldmap.currentObjectsCount[countAs] += 1;
 
 					trace('Animal Offspring: ${animal.name} id: ${newTileObject} chance: ${chanceForOffspring} curPop: ${currentPop]} original: ${originalPop}');
@@ -2400,7 +2428,8 @@ class TimeHelper {
 					newAnimal.groundObject = tmpGroundObject;
 					worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
 				}
-			} else if (currentPop > originalPop * ServerSettings.MaxOffspringFactor * canDieIfPopulationIsAbove
+			}
+			else if (currentPop > originalPop * ServerSettings.MaxOffspringFactor * canDieIfPopulationIsAbove
 				&& originalPop > 0
 				&& worldmap.randomFloat() < chanceForAnimalDying) {
 				// decay animal only if it is a original one
@@ -2433,7 +2462,8 @@ class TimeHelper {
 		if (animal.failedMoves > 20) {
 			trace('ANIMALMOVE: dead failedMoves: ${animal.failedMoves} ${animal.name}');
 			animal.failedMoves = 0;
-			if (animal.groundObject != null && animal.groundObject.id > 0) WorldMap.world.setObjectHelper(animal.tx, animal.ty, animal.groundObject); else {
+			if (animal.groundObject != null && animal.groundObject.id > 0) WorldMap.world.setObjectHelper(animal.tx, animal.ty, animal.groundObject);
+			else {
 				animal.id = animal.objectData.decaysToObj;
 				WorldMap.world.setObjectHelper(animal.tx, animal.ty, animal);
 			}
@@ -2549,9 +2579,11 @@ class TimeHelper {
 		for (ii in 0...10) {
 			if (tmpX == tx && tmpY == ty) break;
 
-			if (tx > tmpX) tmpX += 1; else if (tx < tmpX) tmpX -= 1;
+			if (tx > tmpX) tmpX += 1;
+			else if (tx < tmpX) tmpX -= 1;
 
-			if (ty > tmpY) tmpY += 1; else if (ty < tmpY) tmpY -= 1;
+			if (ty > tmpY) tmpY += 1;
+			else if (ty < tmpY) tmpY -= 1;
 
 			// trace('movement: $tmpX,$tmpY');
 
@@ -2662,8 +2694,10 @@ class TimeHelper {
 			}
 
 			if (tmpX == tx && tmpY == ty) break;
-			if (tx > tmpX) tmpX += 1; else if (tx < tmpX) tmpX -= 1;
-			if (ty > tmpY) tmpY += 1; else if (ty < tmpY) tmpY -= 1;
+			if (tx > tmpX) tmpX += 1;
+			else if (tx < tmpX) tmpX -= 1;
+			if (ty > tmpY) tmpY += 1;
+			else if (ty < tmpY) tmpY -= 1;
 		}
 
 		return damage;
