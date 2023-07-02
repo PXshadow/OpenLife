@@ -1,5 +1,8 @@
 {
     "sameLine": {
-        "ifBody": "same"
+        "ifBody": "same",
+        "elseBody": "same",
+        "ifElse": "next",
+        "elseIf": "next"
     }
 }
