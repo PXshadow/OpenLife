@@ -463,7 +463,8 @@ class ServerSettings {
 
 			if ('${field.type}' == "CClass(String,[])") {
 				writer.writeString('**default** ${field.name} = "$value"\n');
-			} else {
+			}
+			else {
 				writer.writeString('**default** ${field.name} = $value\n');
 			}
 		}
@@ -510,7 +511,8 @@ class ServerSettings {
 					if (splitString.length < 3) continue;
 
 					value = splitString[1];
-				} else {
+				}
+				else {
 					value = StringTools.replace(value, 'true', '1');
 					value = StringTools.replace(value, 'false', '0');
 					value = Std.parseFloat(value);
@@ -3642,12 +3644,15 @@ class ServerSettings {
 		// Shallow Well 662
 		var transByTarget = TransitionImporter.GetTransitionByActor(662);
 		for (trans in transByTarget) {
-			// Skewer 139 // Weak Skewer 852
-			// if(trans.actorID != 139 && trans.actorID != 852) continue;
-
 			// trace('DEBUG!!: ' + trans.getDescription(true));
-			// ignore tapoutTrigger for Shallow Well
-			trans.aiShouldIgnore = true;
+			trans.aiShouldIgnore = true; // ignore tapoutTrigger for Shallow Well
+		}
+
+		// Dry Shallow Well 664
+		var transByTarget = TransitionImporter.GetTransitionByActor(664);
+		for (trans in transByTarget) {
+			// trace('DEBUG!!: ' + trans.getDescription(true));
+			trans.aiShouldIgnore = true; // ignore tapoutTrigger for Shallow Well
 		}
 
 		//  Deep Well 663
@@ -3679,7 +3684,6 @@ class ServerSettings {
 			// if(trans.actorID != 139 && trans.actorID != 852) continue;
 
 			// trace('DEBUG!!: Deep Well - was empty ' + trans.getDescription(true));
-			// ignore tapoutTrigger for Shallow Well
 			trans.aiShouldIgnore = true;
 		}
 
