@@ -630,42 +630,59 @@ abstract class AiBase {
 		// || lastProfession == 'ROWMAKER'
 		if (assignedProfession == 'ROWMAKER' || lastProfession == 'ROWMAKER') {
 			Macro.exception(if (doPrepareRows(100)) return);
-		} else if (assignedProfession == 'SOILMAKER' || lastProfession == 'SOILMAKER') {
+		}
+		else if (assignedProfession == 'SOILMAKER' || lastProfession == 'SOILMAKER') {
 			Macro.exception(if (doPrepareSoil(100)) return);
-		} else if (assignedProfession == 'CARROTFARMER' || lastProfession == 'CARROTFARMER') {
+		}
+		else if (assignedProfession == 'CARROTFARMER' || lastProfession == 'CARROTFARMER') {
 			Macro.exception(if (doCarrotFarming(100)) return);
-		} else if (assignedProfession == 'BASICFARMER' || lastProfession == 'BASICFARMER') {
+		}
+		else if (assignedProfession == 'BASICFARMER' || lastProfession == 'BASICFARMER') {
 			Macro.exception(if (doBasicFarming(100)) return);
-		} else if (assignedProfession == 'ADVANCEDFARMER' || lastProfession == 'ADVANCEDFARMER') {
+		}
+		else if (assignedProfession == 'ADVANCEDFARMER' || lastProfession == 'ADVANCEDFARMER') {
 			Macro.exception(if (doAdvancedFarming(100)) return);
-		} else if (assignedProfession == 'SHEPHERD' || lastProfession == 'SHEPHERD') {
+		}
+		else if (assignedProfession == 'SHEPHERD' || lastProfession == 'SHEPHERD') {
 			Macro.exception(if (isSheepHerding(100)) return);
-		} else if (assignedProfession == 'COLLECTOR' || lastProfession == 'COLLECTOR') {
+		}
+		else if (assignedProfession == 'COLLECTOR' || lastProfession == 'COLLECTOR') {
 			Macro.exception(if (isCollecting(100)) return);
-		} else if (assignedProfession == 'BAKER' || lastProfession == 'BAKER') {
+		}
+		else if (assignedProfession == 'BAKER' || lastProfession == 'BAKER') {
 			Macro.exception(if (doBaking(100)) return);
-		} else if (assignedProfession == 'SMITH' || lastProfession == 'SMITH') {
+		}
+		else if (assignedProfession == 'SMITH' || lastProfession == 'SMITH') {
 			Macro.exception(if (doSmithing(100)) return);
-		} else if (assignedProfession == 'POTTER' || lastProfession == 'POTTER') {
+		}
+		else if (assignedProfession == 'POTTER' || lastProfession == 'POTTER') {
 			Macro.exception(if (doPottery(100)) return);
-		} else if (assignedProfession == 'FIREKEEPER') {
+		}
+		else if (assignedProfession == 'FIREKEEPER') {
 			Macro.exception(if (isHandlingFire(100)) return);
-		} else if (assignedProfession == 'LUMBERJACK') {
+		}
+		else if (assignedProfession == 'LUMBERJACK') {
 			Macro.exception(if (isCuttingWood(100)) return);
-		} else if (assignedProfession == 'WATERBRINGER' || lastProfession == 'WATERBRINGER') {
+		}
+		else if (assignedProfession == 'WATERBRINGER' || lastProfession == 'WATERBRINGER') {
 			Macro.exception(if (doWatering(100)) return);
-		} else if (assignedProfession == 'FOODSERVER') {
+		}
+		else if (assignedProfession == 'FOODSERVER') {
 			Macro.exception(if (isFeedingPlayerInNeed(100)) return);
-		} else if (assignedProfession == 'GRAVEKEEPER') {
+		}
+		else if (assignedProfession == 'GRAVEKEEPER') {
 			Macro.exception(if (isHandlingGraves(100)) return);
-		} else if (assignedProfession == 'HUNTER') {
+		}
+		else if (assignedProfession == 'HUNTER') {
 			Macro.exception(if (isHunting(100)) return);
 			// Macro.exception(if (doHunting(100)) return);
-		} else if (assignedProfession == 'TAILOR') {
+		}
+		else if (assignedProfession == 'TAILOR') {
 			Macro.exception(if (craftHighPriorityClothing()) return);
 			Macro.exception(if (craftMediumPriorityClothing(100)) return);
 			Macro.exception(if (craftLowPriorityClothing(100)) return);
-		} else if (assignedProfession == 'FIREFOODMAKER') {
+		}
+		else if (assignedProfession == 'FIREFOODMAKER') {
 			Macro.exception(if (makeFireFood(100)) return);
 		}
 
@@ -704,9 +721,11 @@ abstract class AiBase {
 
 		for (i in 0...5) {
 			jobByAge = (jobByAge + i) % 5;
-			if (jobByAge == 0) Macro.exception(if (doBerryFarming()) return); else if (jobByAge == 1) Macro.exception(if (doBasicFarming()) return); else
-				if (jobByAge == 2) Macro.exception(if (doBaking()) return); else if (jobByAge == 3) Macro.exception(if (doPottery()) return); else
-					if (jobByAge == 4) Macro.exception(if (isSheepHerding()) return);
+			if (jobByAge == 0) Macro.exception(if (doBerryFarming()) return);
+			else if (jobByAge == 1) Macro.exception(if (doBasicFarming()) return);
+			else if (jobByAge == 2) Macro.exception(if (doBaking()) return);
+			else if (jobByAge == 3) Macro.exception(if (doPottery()) return);
+			else if (jobByAge == 4) Macro.exception(if (isSheepHerding()) return);
 		}
 		// Macro.exception(if (doBerryFarming()) return);
 
@@ -776,7 +795,8 @@ abstract class AiBase {
 
 		if (myPlayer.age > ServerSettings.MinAgeToEat) {
 			var rand = WorldMap.calculateRandomFloat();
-			if (rand < 0.05) myPlayer.say('say make xxx to give me some work!'); else if (rand < 0.2) myPlayer.say('nothing to do...');
+			if (rand < 0.05) myPlayer.say('say make xxx to give me some work!');
+			else if (rand < 0.2) myPlayer.say('nothing to do...');
 		}
 	}
 
@@ -1064,7 +1084,8 @@ abstract class AiBase {
 					trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} Fire: Has Kindling Use On ==> Hot Coals!  ${firePlace.name} objAtPlace: ${objAtPlace.name} $done');
 				if (shouldDebugSay()) myPlayer.say('Use Kindling on ${firePlace.name} $done'); // hot coals
 				return done;
-			} else {
+			}
+			else {
 				if (ServerSettings.DebugAiSay) myPlayer.say('Get Kindling For ${firePlace.name}');
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} Fire: Get Kindling ==> ${firePlace.name} ');
 
@@ -1442,7 +1463,8 @@ abstract class AiBase {
 		var quadDist = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 
 		// 850 Stone Hoe
-		if (quadDist < 900) if (GetOrCraftItem(850, 0, 30, grave)) return true; else if (GetItem(850, 30, grave)) return true;
+		if (quadDist < 900) if (GetOrCraftItem(850, 0, 30, grave)) return true;
+		else if (GetItem(850, 30, grave)) return true;
 
 		return false;
 	}
@@ -1459,7 +1481,8 @@ abstract class AiBase {
 		Macro.exception(if (isUsingItem()) return true);
 
 		var rand = WorldMap.calculateRandomFloat();
-		if (rand < 0.05) myPlayer.say('Good bye!'); else if (rand < 0.1) myPlayer.say('Jasoniah is calling me. Take care!');
+		if (rand < 0.05) myPlayer.say('Good bye!');
+		else if (rand < 0.1) myPlayer.say('Jasoniah is calling me. Take care!');
 
 		if (myPlayer.isMoving()) return true;
 
@@ -1515,7 +1538,8 @@ abstract class AiBase {
 			if (goodPlace != null && ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} found place to cool!');
 			if (goodPlace == null) goodPlace = myPlayer.coldPlace;
 			text = 'cool';
-		} else if (needWarming) {
+		}
+		else if (needWarming) {
 			// trace('AAI: ${myPlayer.name + myPlayer.id} handle heat: too cold');
 			if (firePlace != null && firePlace.objectData.heatValue > 4) {
 				goodPlace = firePlace;
@@ -1743,7 +1767,8 @@ abstract class AiBase {
 				// Mango Leaf 1878 + Domestic Cow 1458 (in case there is no Knife)
 				if (cow != null && shortCraftOnTarget(1878, cow)) return true;
 			 */
-		} else {
+		}
+		else {
 			// Bowl with Corn Kernels 1247 + Domestic Cow 1458
 			if (countCorn > 3 && hasCornSeeds && shortCraft(1247, 1458, distance)) return true;
 		}
@@ -1973,6 +1998,12 @@ abstract class AiBase {
 				//  Hardened Row 848
 				var target = myPlayer.GetClosestObjectToTarget(newTarget, 848, null, 20, minDist);
 
+				// Bowl of Soil 1137 + Hardened Row 848
+				if (target != null) {
+					var biomeId = WorldMap.world.getBiomeId(target.tx, target.ty);
+					if (biomeId == SNOW || biomeId == BiomeTag.OCEAN) return false;
+				}
+
 				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row 1136
 				if (shortCraftOnTarget(1137, target)) return true;
 
@@ -1983,8 +2014,8 @@ abstract class AiBase {
 				// TODO maybe better make closest
 				// Bowl of Soil 1137 + Hardened Row 848 --> Shallow Tilled Row 1136
 				if (shortCraft(1137, 848, 30)) return true;
-			} else
-				this.taskState['RowMaker'] = 2;
+			}
+			else this.taskState['RowMaker'] = 2;
 		}
 
 		// Dont do hungry row work if hungry
@@ -2026,8 +2057,8 @@ abstract class AiBase {
 				if (shortCraft(850, 1138, 30)) return true;
 
 				// if (craftItem(1136, 20, true)) return true;
-			} else
-				this.taskState['RowMaker'] = 3;
+			}
+			else this.taskState['RowMaker'] = 3;
 		}
 
 		if (deepRows < 6) {
@@ -3135,7 +3166,8 @@ abstract class AiBase {
 		// Limit making pies if no wheat is left. If least what is collected in a bowl they should stop now, so there should be wheat for planting
 		if (countWheat < 1) {
 			if (craftItem(228)) return true; // Dry Planted Wheat 228
-		} else if (makeRawPies()) return true;
+		}
+		else if (makeRawPies()) return true;
 
 		// Cooked Mutton 570 // Raw Mutton 569
 		var countMutton = countCurrentObjects([570, 569]);
@@ -3470,6 +3502,9 @@ abstract class AiBase {
 
 		// Steel Chisel on Flat Rock 451
 		if (shortCraft(0, 451, 20, false)) return true;
+
+		// Steel Adze Head on Flat Rock 453
+		if (shortCraft(0, 453, 20, false)) return true;
 
 		if (this.profession['SMITH'] < 3) {
 			// TODO fix make space for them otherwise it might try again and again
@@ -3855,14 +3890,12 @@ abstract class AiBase {
 
 		var obj;
 		if (maxDistance <= 10) obj = AiHelper.GetClosestObjectById(myPlayer, 36, null, maxDistance); // Seeding Wild Carrot
-		else
-			obj = getClosestObjectById(36, maxDistance); // Seeding Wild Carrot
+		else obj = getClosestObjectById(36, maxDistance); // Seeding Wild Carrot
 		if (obj != null && isHoldingSharpStone == false) return GetOrCraftItem(34);
 		if (obj != null && craftItem(39)) return true; // Dug Wild Carrot // 40 Wild Carrot
 
 		if (maxDistance <= 10) obj = AiHelper.GetClosestObjectById(myPlayer, 804, null, maxDistance); // Burdock
-		else
-			obj = getClosestObjectById(804, maxDistance); // Burdock
+		else obj = getClosestObjectById(804, maxDistance); // Burdock
 		if (obj != null && isHoldingSharpStone == false) return GetOrCraftItem(34);
 		if (obj != null && craftItem(806)) return true; // Dug Burdock
 
@@ -4484,7 +4517,8 @@ abstract class AiBase {
 
 		if (text.startsWith("ALL ") || text.contains("?") || text.contains("!!")) {
 			text = text.replace("ALL ", "");
-		} else {
+		}
+		else {
 			var closePlayer = player.getClosestPlayer(ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi);
 			// myPlayer.say('NOT CLOSE!');
 			if (closePlayer != null && myPlayer.id != closePlayer.id) return;
@@ -4505,17 +4539,21 @@ abstract class AiBase {
 			if (timePassedInSeconds > 4 || timeReactedLastCommand < 1) {
 				if (player.isHoldingWeapon()) {
 					myPlayer.say('PUT DOWN YOUR WEAPON FIRST!');
-				} else if (myPlayer.isAngryOrTerrified()) {
+				}
+				else if (myPlayer.isAngryOrTerrified()) {
 					myPlayer.say('DONT MAKE ME ANGRY!');
-				} else if (player.isAngryOrTerrified()) {
+				}
+				else if (player.isAngryOrTerrified()) {
 					myPlayer.say('YOU LOOK ANGRY!');
-				} else {
+				}
+				else {
 					myPlayer.Goto(myPlayer.x, myPlayer.y);
 					myPlayer.say('HOLA ${player.name}');
 					timeReactedLastCommand = TimeHelper.tick;
 					waitingTime += 2;
 				}
-			} else {
+			}
+			else {
 				// myPlayer.say('TIME!');
 			}
 		}
@@ -4524,11 +4562,15 @@ abstract class AiBase {
 			if (timePassedInSeconds > 4 || timeReactedLastCommand < 1) {
 				if (myPlayer.isAngryOrTerrified()) {
 					myPlayer.say('GRRR!');
-				} else if (player.isHoldingWeapon()) {
+				}
+				else if (player.isHoldingWeapon()) {
 					myPlayer.say('PUT DOWN YOUR WEAPON FIRST!');
-				} else if (player.isAngryOrTerrified()) {
+				}
+				else if (player.isAngryOrTerrified()) {
 					myPlayer.say('I DONT TRUST YOU!');
-				} else if (myPlayer.isAngryOrTerrified()) myPlayer.say('GRRR!'); else {
+				}
+				else if (myPlayer.isAngryOrTerrified()) myPlayer.say('GRRR!');
+				else {
 					myPlayer.Goto(myPlayer.x, myPlayer.y);
 					myPlayer.say('${myPlayer.name} ${myPlayer.familyName}');
 					timeReactedLastCommand = TimeHelper.tick;
@@ -4545,24 +4587,30 @@ abstract class AiBase {
 				var rand = WorldMap.world.randomInt(8);
 				if (rand == 0) {
 					myPlayer.say('Im not a stupid AI!');
-				} else if (rand == 1) {
+				}
+				else if (rand == 1) {
 					myPlayer.say('Im an AI!');
-				} else if (rand == 2) {
+				}
+				else if (rand == 2) {
 					myPlayer.say('No');
-				} else if (rand == 3) {
+				}
+				else if (rand == 3) {
 					myPlayer.say('Sure');
-				} else if (rand == 4) {
+				}
+				else if (rand == 4) {
 					myPlayer.say('yes i am');
-				} else if (rand == 5) {
+				}
+				else if (rand == 5) {
 					myPlayer.say('Yes, And you?');
-				} else if (rand == 6) {
+				}
+				else if (rand == 6) {
 					myPlayer.say('Why should I?');
 				}
 			}
 		}
 		if (text.startsWith("NICE?")) {
-			if (isNiceBaby) myPlayer.say("YES!"); else
-				myPlayer.say("GRR!");
+			if (isNiceBaby) myPlayer.say("YES!");
+			else myPlayer.say("GRR!");
 		}
 		if (text == "JUMP!") {
 			myPlayer.say("JUMP");
@@ -4585,11 +4633,13 @@ abstract class AiBase {
 			playerToFollow = player;
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.say("IM COMMING");
-		} else if (text.contains("STOP FOLLOW")) {
+		}
+		else if (text.contains("STOP FOLLOW")) {
 			playerToFollow = null;
 			autoStopFollow = true;
 			myPlayer.say("STOPED");
-		} else if (text.startsWith("STOP") || text.startsWith("WAIT")) {
+		}
+		else if (text.startsWith("STOP") || text.startsWith("WAIT")) {
 			if (checkIfYouAreAllied(player) == false) return;
 			playerToFollow = null;
 			autoStopFollow = true;
@@ -4599,7 +4649,8 @@ abstract class AiBase {
 			waitingTime = 10;
 			myPlayer.say("STOPING");
 			// myPlayer.age -= 1;
-		} else if (text.startsWith("DROP")) {
+		}
+		else if (text.startsWith("DROP")) {
 			if (checkIfYouAreAllied(player) == false) return;
 			// myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.Goto(myPlayer.x, myPlayer.y);
@@ -4616,16 +4667,17 @@ abstract class AiBase {
 				this.time += 5;
 				return;
 			}
-			if (isMovingToHome()) myPlayer.say("GOING HOME!"); else
-				myPlayer.say("I CANNOT GO HOME!");
+			if (isMovingToHome()) myPlayer.say("GOING HOME!");
+			else myPlayer.say("I CANNOT GO HOME!");
 			this.time += 6;
-		} else if (text.startsWith("HOME!")) {
+		}
+		else if (text.startsWith("HOME!")) {
 			if (checkIfShouldDoCommand(player) == false) return;
 			var newHome = AiHelper.SearchNewHome(myPlayer);
 
 			if (newHome != null) {
-				if (myPlayer.home.tx != newHome.tx || myPlayer.home.ty != newHome.ty) myPlayer.say('Have a new home! ${newHome.name}'); else
-					myPlayer.say('No mew home! ${newHome.name}');
+				if (myPlayer.home.tx != newHome.tx || myPlayer.home.ty != newHome.ty) myPlayer.say('Have a new home! ${newHome.name}');
+				else myPlayer.say('No mew home! ${newHome.name}');
 				myPlayer.home = newHome;
 			}
 			myPlayer.firePlace = AiHelper.GetCloseFire(myPlayer);
@@ -4647,23 +4699,29 @@ abstract class AiBase {
 				this.itemToCraftName = obj.name;
 				myPlayer.say("Making " + obj.name);
 			}
-		} else if (text.startsWith("DEBUG!") || text.startsWith("DEBUG ON")) {
+		}
+		else if (text.startsWith("DEBUG!") || text.startsWith("DEBUG ON")) {
 			debugSay = true;
 			myPlayer.say('DEBUG ON');
-		} else if (text.startsWith("DEBUG OFF")) {
+		}
+		else if (text.startsWith("DEBUG OFF")) {
 			debugSay = false;
 			myPlayer.say('DEBUG OFF');
-		} else if (text.startsWith("PROF ON")) {
+		}
+		else if (text.startsWith("PROF ON")) {
 			debugProfession = true;
 			myPlayer.say('PROF ON');
-		} else if (text.startsWith("PROF OFF")) {
+		}
+		else if (text.startsWith("PROF OFF")) {
 			debugProfession = false;
 			myPlayer.say('PROF OFF');
-		} else if (text.startsWith("PROFESSION?") || text.startsWith("PROF?")) {
+		}
+		else if (text.startsWith("PROFESSION?") || text.startsWith("PROF?")) {
 			var text = createProfessionText();
 
 			myPlayer.say('${text}');
-		} else if (text.endsWith("!")) {
+		}
+		else if (text.endsWith("!")) {
 			if (checkIfShouldDoCommand(player) == false) return;
 			var tmp = text.split("!");
 			var prof = tmp.length == 0 ? '' : tmp[0];
@@ -4706,8 +4764,8 @@ abstract class AiBase {
 
 	public function createProfessionText() {
 		var text = assignedProfession;
-		if (text == null || text == lastProfession) text = lastProfession; else
-			text += ' doing ' + lastProfession;
+		if (text == null || text == lastProfession) text = lastProfession;
+		else text += ' doing ' + lastProfession;
 		if (text == null) text = 'NONE';
 		return text;
 	}
@@ -4734,8 +4792,8 @@ abstract class AiBase {
 		}*/
 
 		if (shouldDebugSay()) {
-			if (foodTarget == null) myPlayer.say('No food found...'); else
-				myPlayer.say('new food ${foodTarget.name}');
+			if (foodTarget == null) myPlayer.say('No food found...');
+			else myPlayer.say('new food ${foodTarget.name}');
 		}
 		var heldObjName = myPlayer.heldObject.name;
 		if (ServerSettings.DebugAi && foodTarget != null) trace('AAI: ${myPlayer.name + myPlayer.id} new Foodtarget! ${foodTarget.name} held: ${heldObjName}');
@@ -5260,7 +5318,8 @@ abstract class AiBase {
 		if (newDropTarget.id == 0 && dontUseDropForItems.contains(heldId) == false && transition == null) {
 			this.dropIsAUse = false;
 			this.dropTarget = newDropTarget;
-		} else {
+		}
+		else {
 			this.dropIsAUse = true;
 			this.dropTarget = null;
 			this.useTarget = newDropTarget;
@@ -5289,8 +5348,8 @@ abstract class AiBase {
 		var index = this.craftingTasks.indexOf(taskId);
 		if (index >= 0) return;
 
-		if (atEnd) this.craftingTasks.push(taskId); else
-			this.craftingTasks.unshift(taskId);
+		if (atEnd) this.craftingTasks.push(taskId);
+		else this.craftingTasks.unshift(taskId);
 	}
 
 	// Feed Lambs
@@ -5490,7 +5549,8 @@ abstract class AiBase {
 			targetXY.ty = targetPlayer.ty > myPlayer.ty ? targetPlayer.ty - range + 1 : targetPlayer.ty + range - 1;
 			var done = myPlayer.gotoObj(targetXY);
 
-			if (done) didNotReachAnimalTarget = 0; else {
+			if (done) didNotReachAnimalTarget = 0;
+			else {
 				// didNotReachAnimalTarget++;
 				// if (didNotReachAnimalTarget >= 5) animalTarget = null;
 			}
@@ -5522,7 +5582,8 @@ abstract class AiBase {
 
 				profession['HUNTER'] = quiver == null ? 0 : 1;
 				return false;
-			} else {
+			}
+			else {
 				if (hasOrBecomeProfession('HUNTER') == false) return false;
 			}
 		}
@@ -5540,8 +5601,8 @@ abstract class AiBase {
 		}
 
 		if (animalTarget == null && animal != null) {
-			if (animal.isKillableByBow()) this.animalTarget = animal; else if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: Not killable with bow: ${animal.description}');
+			if (animal.isKillableByBow()) this.animalTarget = animal;
+			else if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} killAnimal: Not killable with bow: ${animal.description}');
 		}
 
 		if (animalTarget == null) return false;
@@ -5567,7 +5628,8 @@ abstract class AiBase {
 
 			var done = myPlayer.gotoObj(targetXY);
 
-			if (done) didNotReachAnimalTarget = 0; else {
+			if (done) didNotReachAnimalTarget = 0;
+			else {
 				didNotReachAnimalTarget++;
 				if (didNotReachAnimalTarget >= 5) animalTarget = null;
 			}
@@ -5779,7 +5841,8 @@ abstract class AiBase {
 		if (minDistance > 0) {
 			if (obj == null) obj = myPlayer.GetClosestObjectById(objId, null, searchDistance, minDistance);
 			if (pile == null) pile = hasPile ? myPlayer.GetClosestObjectById(pileId, null, searchDistance, minDistance) : null;
-		} else {
+		}
+		else {
 			if (obj == null) obj = getClosestObjectById(objId, searchDistance);
 			if (pile == null) pile = hasPile ? getClosestObjectById(pileId, searchDistance) : null;
 		}
@@ -5794,7 +5857,8 @@ abstract class AiBase {
 				obj = myPlayer.GetClosestObjectById(pileId, null, maxSearchDistance, minDistance);
 				usePile = obj != null;
 			}
-		} else {
+		}
+		else {
 			if (obj == null) obj = getClosestObjectById(objId, maxSearchDistance);
 			if (obj == null && hasPile) {
 				obj = getClosestObjectById(pileId, maxSearchDistance);
@@ -5818,7 +5882,8 @@ abstract class AiBase {
 			this.useTarget = obj;
 			this.useActor = new ObjectHelper(null, myPlayer.heldObject.id);
 			this.expectedUseTarget = this.useTarget.objectData;
-		} else {
+		}
+		else {
 			this.dropIsAUse = false;
 			this.dropTarget = obj;
 			CancleUse();
@@ -6143,10 +6208,12 @@ abstract class AiBase {
 
 				if (ii > 0) {
 					var rand = WorldMap.calculateRandomFloat();
-					if (rand < 0.2) escapeInLowerX = true; else if (rand < 0.4) escapeInLowerX = false;
+					if (rand < 0.2) escapeInLowerX = true;
+					else if (rand < 0.4) escapeInLowerX = false;
 
 					var rand = WorldMap.calculateRandomFloat();
-					if (rand < 0.2) escapeInLowerY = true; else if (rand < 0.4) escapeInLowerY = false;
+					if (rand < 0.2) escapeInLowerY = true;
+					else if (rand < 0.4) escapeInLowerY = false;
 				}
 
 				newEscapetarget.tx = escapeInLowerX ? player.tx - escapeDist : player.tx + escapeDist;
@@ -6300,7 +6367,8 @@ abstract class AiBase {
 				itemToCraft.startLocation.tx = myPlayer.home.tx;
 				itemToCraft.startLocation.ty = myPlayer.home.ty;
 				// trace('AAI: ${myPlayer.name + myPlayer.id} craft: startLocation --> home');
-			} else {
+			}
+			else {
 				itemToCraft.startLocation.tx = itemToCraft.transTarget.tx;
 				itemToCraft.startLocation.ty = itemToCraft.transTarget.ty;
 
@@ -6655,7 +6723,8 @@ abstract class AiBase {
 				return true;
 			} else*/
 			dropTarget = itemToCraft.transActor;
-		} else {
+		}
+		else {
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} craft goto piled actor: ${itemToCraft.transActor.name}[${itemToCraft.transActor.id}]');
 			if (shouldDebugSay()) myPlayer.say('Goto piled actor ' + itemToCraft.transActor.name);
@@ -6731,8 +6800,8 @@ abstract class AiBase {
 					trace('AI: new craft: Bot ms: ${time1} ${GetName(itemToCraft.itemToCraft.parentId)} radius: ${itemToCraft.searchRadius} ${bestTrans1 == null ? 'NA' : bestTrans1.getDescription()}');
 				if (bestTrans1 != bestTrans2)
 					trace('AI: new craft: Top ms: ${time2} ${GetName(itemToCraft.itemToCraft.parentId)} radius: ${itemToCraft.searchRadius} ${bestTrans2 == null ? 'NA' : bestTrans2.getDescription()}');
-			} else
-				searchBestTransitionTopDown(itemToCraft);
+			}
+			else searchBestTransitionTopDown(itemToCraft);
 
 			if (ServerSettings.DebugAi)
 				trace('AI:  ${myPlayer.name}${myPlayer.id} craft: FINISHED transitions ms: ${Math.round((Sys.time() - startTime) * 1000)} radius: ${itemToCraft.searchRadius}');
@@ -7012,19 +7081,20 @@ abstract class AiBase {
 			// found = true;
 
 			var distance = actorObj == null ? actor.bestCraftDistance : actor.closestObjectDistance;
-			if (actorObj != null && targetObj != null) distance += AiHelper.CalculateDistance(actorObj.tx, actorObj.ty, targetObj.tx,
-				targetObj.ty); else if (actorObj == null && targetObj != null) distance += AiHelper.CalculateDistance(actor.craftTarget.tx,
-				actor.craftTarget.ty, targetObj.tx,
-				targetObj.ty); else if (actorObj != null && targetObj == null) distance += AiHelper.CalculateDistance(actorObj.tx, actorObj.ty,
-				target.craftActor.tx,
-				target.craftActor.ty); else if (actorObj == null && targetObj == null) distance += AiHelper.CalculateDistance(actor.craftTarget.tx,
-				actor.craftTarget.ty, target.craftActor.tx, target.craftActor.ty);
+			if (actorObj != null && targetObj != null) distance += AiHelper.CalculateDistance(actorObj.tx, actorObj.ty, targetObj.tx, targetObj.ty);
+			else if (actorObj == null && targetObj != null) distance += AiHelper.CalculateDistance(actor.craftTarget.tx, actor.craftTarget.ty, targetObj.tx,
+				targetObj.ty);
+			else if (actorObj != null && targetObj == null) distance += AiHelper.CalculateDistance(actorObj.tx, actorObj.ty, target.craftActor.tx,
+				target.craftActor.ty);
+			else if (actorObj == null && targetObj == null) distance += AiHelper.CalculateDistance(actor.craftTarget.tx, actor.craftTarget.ty,
+				target.craftActor.tx, target.craftActor.ty);
 			// distance += targetObj == null ? target.bestCraftDistance : target.closestObjectDistance;
 
 			if (actorObj == null) {
 				actorObj = actor.craftActor;
 				targetObj = actor.craftTarget;
-			} else if (targetObj == null) {
+			}
+			else if (targetObj == null) {
 				actorObj = target.craftActor;
 				targetObj = target.craftTarget;
 			}
@@ -7271,7 +7341,8 @@ abstract class AiBase {
 			// Steel Hoe 857 + Fertile Soil
 			var trans = transitions.getTransition(857, 1138);
 			trans.aiShouldIgnore = true;
-		} else {
+		}
+		else {
 			var trans = transitions.getTransition(850, 1138);
 			trans.aiShouldIgnore = false;
 			var trans = transitions.getTransition(857, 1138);
@@ -7478,7 +7549,8 @@ abstract class AiBase {
 			if (actorObj == null) {
 				actorObj = actor.craftActor;
 				targetObj = actor.craftTarget;
-			} else if (targetObj == null) {
+			}
+			else if (targetObj == null) {
 				actorObj = target.craftActor;
 				targetObj = target.craftTarget;
 			}
@@ -7522,7 +7594,8 @@ abstract class AiBase {
 					itemToCraft.transTarget = actorObj;
 
 					trace('USE PILE: ${actorObj.name}');
-				} else {
+				}
+				else {
 					itemToCraft.transActor = actorObj;
 					itemToCraft.transTarget = targetObj;
 				}
@@ -7608,7 +7681,8 @@ abstract class AiBase {
 					doFirst = 0;
 
 					// if(ServerSettings.DebugAi) trace('Ai: craft TIME not wanted: ${GetName(objNoTimeWanted)} dist: $dist ${trans.getDesciption()}');
-				} else {
+				}
+				else {
 					altActor = obj.craftActor;
 					altTarget = obj.craftTarget;
 
@@ -7750,7 +7824,8 @@ abstract class AiBase {
 		if (playerToFollow == null) {
 			if (isChildAndHasMother()) {
 				playerToFollow = myPlayer.getFollowPlayer();
-			} else {
+			}
+			else {
 				if (ServerSettings.AutoFollowPlayer == false) return false;
 				// get close human player
 				playerToFollow = myPlayer.getWorld().getClosestPlayer(20, followHuman);
@@ -8096,8 +8171,8 @@ abstract class AiBase {
 		var done = false;
 
 		// x,y is relativ to birth position, since this is the center of the universe for a player
-		if (isUse) done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); else
-			done = myPlayer.drop(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); // use drop for berry bowl
+		if (isUse) done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+		else done = myPlayer.drop(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); // use drop for berry bowl
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} pickup food: ${foodTarget.name} $done');
 
@@ -8250,7 +8325,8 @@ abstract class AiBase {
 
 		if (isHungry) {
 			isHungry = player.food_store < player.food_store_max * 0.8;
-		} else {
+		}
+		else {
 			// if(this.profession['SMITH'] > 0)
 			// Smithing Hammer 441
 			var max = 3;
@@ -8313,7 +8389,8 @@ abstract class AiBase {
 						trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name} drop held!');
 					return true;
 				}
-			} else {
+			}
+			else {
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name}');
 
@@ -8390,8 +8467,8 @@ abstract class AiBase {
 
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} held: ${heldObject.name} goto useItem ${name} $done');
 			if (shouldDebugSay()) {
-				if (done) myPlayer.say('Goto ${name} for use!'); else
-					myPlayer.say('Cannot Goto ${name} for use!');
+				if (done) myPlayer.say('Goto ${name} for use!');
+				else myPlayer.say('Cannot Goto ${name} for use!');
 			}
 			if (done == false) {
 				if (ServerSettings.DebugAi) trace('AI: held: ${heldObject.name} GOTO useItem ${name} failed!');
@@ -8433,7 +8510,8 @@ abstract class AiBase {
 						useActor = null;
 				}*/
 				return true;
-			} else {
+			}
+			else {
 				var taregtObjectId = myPlayer.getWorld().getObjectId(useTarget.tx, useTarget.ty)[0];
 
 				itemToCraft.done = true;
@@ -8462,7 +8540,8 @@ abstract class AiBase {
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} done: ${useActorName} + ${useTarget.name} expected: ${expectedUseTargetName} ==> ${itemToCraft.itemToCraft.name} trans: ${itemToCraft.countTransitionsDone} finished: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
 			}
-		} else {
+		}
+		else {
 			var foodStore = Math.round(myPlayer.food_store * 10) / 10;
 			var heat = Math.round(myPlayer.heat * 100) / 100;
 			var target = myPlayer.getWorld().getObjectHelper(useTarget.tx, useTarget.ty);
@@ -8488,8 +8567,8 @@ abstract class AiBase {
 				isHungry = true;
 				return true;
 			}
-			if (age > 3) this.addNotReachableObject(oldUseTarget); else
-				this.addObjectWithHostilePath(oldUseTarget);
+			if (age > 3) this.addNotReachableObject(oldUseTarget);
+			else this.addObjectWithHostilePath(oldUseTarget);
 		}
 		CancleUse();
 		return true;
@@ -8545,7 +8624,8 @@ abstract class AiBase {
 
 			if (done) {
 				if (shouldDebugSay()) myPlayer.say('Goto ${name} for remove!');
-			} else {
+			}
+			else {
 				if (shouldDebugSay()) myPlayer.say('Cannot Goto ${name} for remove!');
 				removeFromContainerTarget = null;
 				expectedContainer = null;
@@ -8569,7 +8649,8 @@ abstract class AiBase {
 
 		if (done) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Remove: done ${target.name} ==> ${myPlayer.heldObject}');
-		} else {
+		}
+		else {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} Remove: failed! Ignore: ${target.name} ${target.tx} ${target.ty} ');
 
 			this.addNotReachableObject(target);
