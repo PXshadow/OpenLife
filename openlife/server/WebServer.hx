@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.macros.Macro;
 import openlife.data.object.ObjectData;
 import haxe.Resource;
 import openlife.settings.ServerSettings;
@@ -66,11 +67,15 @@ class WebServer {
 		serverSocket.listen(listenCount);
 
 		while (true) {
-			var socket = serverSocket.accept();
-			socket.setBlocking(false);
-			socket.setFastSend(true);
-			handleRequest(socket);
+			Macro.exception(acceptConnection(serverSocket));
 		}
+	}
+
+	private function acceptConnection(serverSocket:Socket) {
+		var socket = serverSocket.accept();
+		socket.setBlocking(false);
+		socket.setFastSend(true);
+		handleRequest(socket);
 	}
 
 	public function createCurrentlyPlayingStatistics() {
@@ -251,9 +256,9 @@ class WebServer {
 		// GlobalPlayerInstance.ReleaseMutex();
 
 		// TODO do only every 10 sec
-		createCurrentlyPlayingStatistics();
-		generateLineageStatistics();
-		generateFoodStatistics();
+		Macro.exception(createCurrentlyPlayingStatistics());
+		Macro.exception(generateLineageStatistics());
+		Macro.exception(generateFoodStatistics());
 
 		// var text = '<!DOCTYPE html>\n<html>\n<head>\n<title>Open Life Reborn</title>\n</head>\n<body>\n<h1>Welcome to Open Life Reborn!</h1><p>Currently Playing: ${count}</p>\n</body>\n</html>';
 		var text = welcomeText;
