@@ -38,6 +38,7 @@ abstract class AiBase {
 	public var seqNum = 1;
 	public var time:Float = 1;
 	public var waitingTime:Float = 0; // if Ai is manual set to wait. Before that it is allowed to finish drop
+	public var orderedToDrop = false;
 
 	private var timeLookedForDeadlyAnimalAtHome:Float = -1;
 
@@ -426,6 +427,12 @@ abstract class AiBase {
 
 		// myPlayer.say('1');
 		var startTime = Sys.time();
+
+		// check if there is a manual drop command FIX: handle here to not have crashes
+		if (orderedToDrop) {
+			orderedToDrop = false;
+			dropHeldObject(0);
+		}
 
 		this.deadlyAnimal = AiHelper.GetCloseDeadlyAnimal(myPlayer);
 		this.deadlyPlayer = AiHelper.GetCloseDeadlyPlayer(myPlayer, 30);
@@ -4645,7 +4652,8 @@ abstract class AiBase {
 			autoStopFollow = true;
 			// myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.Goto(myPlayer.x, myPlayer.y);
-			dropHeldObject(0);
+			// dropHeldObject(0);
+			orderedToDrop = true;
 			waitingTime = 10;
 			myPlayer.say("STOPING");
 			// myPlayer.age -= 1;
@@ -4654,7 +4662,8 @@ abstract class AiBase {
 			if (checkIfYouAreAllied(player) == false) return;
 			// myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.Goto(myPlayer.x, myPlayer.y);
-			dropHeldObject(0);
+			// dropHeldObject(0);
+			orderedToDrop = true;
 			waitingTime = 1;
 			myPlayer.say("DROPING");
 		}
