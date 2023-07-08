@@ -1165,6 +1165,10 @@ class ServerSettings {
 		ObjectData.getObjectData(1328).biomes = []; // Wild Boar with Piglet
 		ObjectData.getObjectData(1328).biomes.push(BiomeTag.SWAMP); // Wild Boar with Piglet
 
+		// Fleeing Rabbit 3566
+		ObjectData.getObjectData(3566).biomes = [];
+		ObjectData.getObjectData(3566).biomes.push(BiomeTag.YELLOW);
+
 		ObjectData.getObjectData(631).biomes = []; // Hungry Grizzly Bear
 		ObjectData.getObjectData(631).biomes.push(BiomeTag.GREY); // Hungry Grizzly Bear
 		ObjectData.getObjectData(4762).biomes = []; // Sleepy Grizzly Bear 4762
