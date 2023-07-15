@@ -174,8 +174,12 @@ class WebServer {
 		});
 
 		for (age in ageList) {
+			var ageText;
+			if (age < 0) ageText = 'N/A';
+			else ageText = '${age}';
+
 			lineageText += '<tr>';
-			lineageText += '<td>Age: ${age}</td>';
+			lineageText += '<td>Age: ${ageText}</td>';
 			lineageText += '<td>${Lineage.ages[age]}</td>';
 			lineageText += '<td>${cast (Lineage.agesLastDay[age], Int)}</td>';
 			lineageText += '<td>${cast (Lineage.agesLastHour[age], Int)}</td>';
