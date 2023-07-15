@@ -349,8 +349,8 @@ class Lineage {
 			var age = Math.round(yearsSinceBirth - yearsSinceDeath);
 			var deathReason = lineage.deathReason == null ? '' : lineage.deathReason;
 			var killedBy = deathReason;
-			var isLastDay = yearsSinceBirth < 1440; // 1440 = 24h// 2880 = 48h
-			var isLastHour = yearsSinceBirth < 60;
+			var isLastDay = lineage.deathTime > 0 && yearsSinceDeath < 1440; // 1440 = 24h// 2880 = 48h
+			var isLastHour = lineage.deathTime > 0 && yearsSinceDeath < 60;
 
 			if (deathReason.startsWith('reason_killed_')) {
 				var idString = deathReason.replace('reason_killed_', '');
@@ -461,9 +461,8 @@ class Lineage {
 
 		ageList.sort(function(a, b) {
 			if (a < b) return -1;
-			else
-				if (a > b) return 1;
-				else return 0;
+			else if (a > b) return 1;
+			else return 0;
 		});
 
 		var path = dir + 'PlayerAges.txt';
@@ -480,9 +479,8 @@ class Lineage {
 
 		generationsList.sort(function(a, b) {
 			if (a < b) return -1;
-			else
-				if (a > b) return 1;
-				else return 0;
+			else if (a > b) return 1;
+			else return 0;
 		});
 
 		var path = dir + 'PlayerGenerations.txt';
