@@ -161,7 +161,8 @@ class AiHelper {
 				if (objIdToSearch == -10) {
 					if (objData.isPermanent()) continue;
 					if (objData.parentId == heldId) continue; // dont replace a basket with a basket
-				} else if (parentId != objIdToSearch) continue;
+				}
+				else if (parentId != objIdToSearch) continue;
 
 				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
 
@@ -190,7 +191,8 @@ class AiHelper {
 						var obj = world.getObjectHelper(tx, ty);
 						if (obj.containedObjects.length > 0) continue;
 					}
-				} else {
+				}
+				else {
 					if (objData.numSlots < 1) continue;
 					var obj = world.getObjectHelper(tx, ty);
 					if (obj.contains(searchContained) == false) continue;
@@ -363,7 +365,8 @@ class AiHelper {
 							bestDistanceToBadPlaceforDrop = distance;
 							// trace('Bad Empty Space For drop distance: $distance');
 						}
-					} else {
+					}
+					else {
 						if (closestObject == null || distance < bestDistance) {
 							closestObject = obj;
 							bestDistance = distance;
@@ -715,8 +718,8 @@ class AiHelper {
 		}*/
 
 		if (bestFood != null) if (ServerSettings.DebugAi)
-			trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: $bestDistance ${bestFood.description} ${bestFood.id}'); else
-			if (ServerSettings.DebugAi) trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: NA');
+			trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: $bestDistance ${bestFood.description} ${bestFood.id}');
+		else if (ServerSettings.DebugAi) trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: NA');
 
 		return bestFood;
 	}
@@ -767,7 +770,8 @@ class AiHelper {
 			ai.addObjectWithHostilePath(obj);
 			ai.lastGotoObj = null;
 			return false;
-		} else if (ServerSettings.DebugAi)
+		}
+		else if (ServerSettings.DebugAi)
 			trace('AAI: ${player.name + player.id} gotoObj: ${obj.name} held: ${player.heldObject.name} d: ${distance} ${infos.methodName}');
 
 		ai.lastGotoObjDistance = distance;
@@ -814,8 +818,8 @@ class AiHelper {
 			return false;
 		}
 
-		if (blockedByAnimal) ai.addHostilePath(tx, ty); else
-			ai.addNotReachable(tx, ty);
+		if (blockedByAnimal) ai.addHostilePath(tx, ty);
+		else ai.addNotReachable(tx, ty);
 
 		// if(blockedByAnimal) trace('blockedByAnimal!!!');
 
@@ -1375,7 +1379,10 @@ class AiHelper {
 			transitionForObject.transitions.push(new TransitionForObject(objId, steps, wantedObjId, transition));
 			// transitionForObject.transitions.push(transition);
 
+			// FIX: crash clearTransitionsByObject // TODO look why
+			GlobalPlayerInstance.AcquireMutex();
 			transitionsForObject[objId] = transitionForObject;
+			GlobalPlayerInstance.ReleaseMutex();
 
 			return;
 		}
