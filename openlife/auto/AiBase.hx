@@ -1713,7 +1713,7 @@ abstract class AiBase {
 		// Composted Soil 624
 		countCompost += countCurrentObject(624);
 
-		// Composting Compost Pile 625
+		// Composting Compost Pile 790
 		if (countCompost < 3 && craftItem(790)) return true;
 
 		// TODO pile dung
@@ -1938,7 +1938,7 @@ abstract class AiBase {
 		if (craftItem(790)) return true;
 
 		// Wet Compost Pile 625
-		countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 625, 30);
+		countCompost += countCurrentObject(625);
 		countCompost += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 625, 30);
 
 		// Wet Compost Pile 625
@@ -2767,8 +2767,8 @@ abstract class AiBase {
 		var countWetBowl = countCurrentObjects([233, 284]);
 		// Wet Clay Plate 234 // Wet Plate in Wooden Tongs 240
 		var countWetPlate = countCurrentObjects([234, 240]);
-		// Wet Clay Crock 1216 // Wet Crock in Wooden Tongs 1218 // Crock with Squash 1243
-		var countWetCrock = countCurrentObjects([1216, 1218, 1243]);
+		// Wet Clay Crock 1216 // Wet Crock in Wooden Tongs 1218
+		var countWetCrock = countCurrentObjects([1216, 1218]);
 
 		var countBowl = countCurrentObject(235); //  Clay Bowl 235
 		var maxBowls = ObjectData.getObjectData(235).aiCraftMax; // Clay Bowl 235
@@ -2790,12 +2790,14 @@ abstract class AiBase {
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make Plate $countPlate from ${maxPlates}');
 		if (countWetPlate > 0 && countPlate < maxPlates && craftItem(241)) return true; // Fired Plate in Wooden Tongs
 
-		var countCrock = countCurrentObject(1217); // Clay Crock 1217
+		// Clay Crock 1217	// Crock with Squash 1243
+		var countCrock = countCurrentObjects([1217, 1243]);
+		var countCloseCrock = AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 1217, 20);
 		var maxCrock = ObjectData.getObjectData(1217).aiCraftMax; // Clay Crock 1217
 
 		if (shouldDebugSay()) myPlayer.say('make Crock $countCrock from ${maxCrock}');
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doPottery: make Crock $countCrock from ${maxCrock}');
-		if (countWetCrock > 0 && countCrock < maxCrock && craftItem(1219)) return true; // Wooden Tongs with Fired Crock 1219
+		if (countWetCrock > 0 && countCrock < maxCrock && countCloseCrock < maxCrock && craftItem(1219)) return true; // Wooden Tongs with Fired Crock 1219
 
 		// TODO make other potter stuff
 
