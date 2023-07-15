@@ -359,7 +359,8 @@ class WorldMap {
 		if (ids.length > 1) {
 			// set object Helper, otherwiese stuff in containers will not be saved
 			setObjectHelper(x, y, ObjectHelper.readObjectHelper(null, ids));
-		} else {
+		}
+		else {
 			// TODO create time transition
 			setObjectHelperNull(x, y);
 		}
@@ -931,6 +932,10 @@ class WorldMap {
 		ObjectHelper.InitObjectHelpersAfterRead(); // should be called before writing lineages, otherwise lineages with objects on the map might be deleted
 		Lineage.WriteAllLineages(dir + "LineagesAll.bin");
 		Lineage.WriteLineageStatistics();
+
+		// for (account in PlayerAccount.AllPlayerAccountsById)
+		//	account.cleanUpFamilyPrestige();
+
 		this.originalObjectsCount = countObjects(this.originalObjects);
 		this.currentObjectsCount = countObjects(this.objects);
 		return true;
@@ -1129,7 +1134,8 @@ class WorldMap {
 										tmpIsPlaced[index(tmpX, tmpY)] = true;
 									}
 								}
-							} else {
+							}
+							else {
 								if (nextBiome == BiomeTag.YELLOW || nextBiome == BiomeTag.DESERT) {
 									setBiomeId(tmpX, tmpY, BiomeTag.GREEN);
 									// tmpIsPlaced[index(tmpX, tmpY)] = true;
@@ -1564,11 +1570,11 @@ class WorldMap {
 		// trace('addFoodStatistic: ${foodData.name} foodValue: ${Math.round(foodValue*10)/10} all total: ${Math.round(this.eatenFoodValues[foodId]*10)/10} yum: ${Math.round(yum*10)/10}');
 
 		this.eatenFoodValues[foodId] += foodValue;
-		if (yum > 0) this.eatenFoodsYum[foodId] += foodValue; else
-			this.eatenFoodsMeh[foodId] += foodValue;
+		if (yum > 0) this.eatenFoodsYum[foodId] += foodValue;
+		else this.eatenFoodsMeh[foodId] += foodValue;
 
-		if (yum > 0) this.eatenFoodsYumBoni[foodId] += yum; else
-			this.eatenFoodsMehMali[foodId] -= yum;
+		if (yum > 0) this.eatenFoodsYumBoni[foodId] += yum;
+		else this.eatenFoodsMehMali[foodId] -= yum;
 	}
 
 	public function getFoodFactor(foodId) {

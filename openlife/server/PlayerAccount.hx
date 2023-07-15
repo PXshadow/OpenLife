@@ -1,5 +1,6 @@
 package openlife.server;
 
+import haxe.ds.HashMap;
 import haxe.display.Display.CompletionResult;
 import openlife.auto.AiHelper;
 import openlife.data.object.ObjectHelper;
@@ -169,8 +170,8 @@ class PlayerAccount {
 
 		account.score = account.score * (1 - factor) + score * factor;
 
-		if (player.isFemale()) account.femaleScore = account.femaleScore * (1 - factor) + score * factor; else
-			account.maleScore = account.maleScore * (1 - factor) + score * factor;
+		if (player.isFemale()) account.femaleScore = account.femaleScore * (1 - factor) + score * factor;
+		else account.maleScore = account.maleScore * (1 - factor) + score * factor;
 
 		account.score = Math.round(account.score * 100) / 100;
 		account.femaleScore = Math.round(account.femaleScore * 100) / 100;
@@ -192,7 +193,29 @@ class PlayerAccount {
 			account.familyPrestige[founderId] = oldFamilyPrestige * (1 - factor) + newScore * factor;
 		}
 
+		account.cleanUpFamilyPrestige();
+
 		trace('Score: ${account.score} This Life: $score femaleScore: ${account.femaleScore} maleScore: ${account.maleScore} family: ${player.familyName} ${oldFamilyPrestige} --> ${account.familyPrestige[founderId]}');
+	}
+
+	public function cleanUpFamilyPrestige() {
+		var count = Lambda.count(familyPrestige);
+		if (count < 10) return;
+
+		var countFamily = new Map<Int, Int>();
+		for (player in GlobalPlayerInstance.AllPlayers) {
+			countFamily[player.lineage.myEveId] += 1;
+			var eve = player.lineage.eveLineage;
+			var dynastyId = eve.myDynastyId;
+			if (dynastyId > 0) countFamily[player.lineage.myDynastyId] += 1;
+
+			// trace('founder: ${eve.getFullName()} count: ${countFamily[player.lineage.myEveId]}');
+		}
+
+		for (founderId in familyPrestige.keys()) {
+			if (countFamily.exists(founderId) == false) familyPrestige.remove(founderId);
+			// trace('founderId: ${founderId} count: ${countFamily[founderId]}');
+		}
 	}
 
 	public function removeDeletedGraves() {
