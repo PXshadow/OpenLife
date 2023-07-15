@@ -148,7 +148,8 @@ class TransitionHelper {
 				player.lostCombatPrestige -= 90;
 				if (player.lostCombatPrestige < 0) player.lostCombatPrestige = 0;
 				player.sendFoodUpdate();
-			} else {
+			}
+			else {
 				player.say('Praise Jinbaili!');
 				if (player.praisedJinbali == false) {
 					player.yum_multiplier += 5;
@@ -166,7 +167,8 @@ class TransitionHelper {
 				player.hits += 10;
 				player.say('AAAAAAAAAAAAAAAAAAAAaaaa!!!');
 				player.sendFoodUpdate();
-			} else {
+			}
+			else {
 				Connection.SendCurseToAll(player, 1, 'DARK_MINION');
 				player.say('All hail dark nosaj');
 				if (player.darkNosaj < 1) {
@@ -217,11 +219,13 @@ class TransitionHelper {
 				// player.say('NEW KEY ID: $newKeyId FOR ${targetObj.name}!', true);
 				// player.say('NEW KEY ID: $newKeyId FOR ${targetObj.name}!', true);
 				player.say('NEW KEY FOR ${targetObj.name}!', true);
-			} else if (heldObject.externId != 0 && targetObj.externId == 0) {
+			}
+			else if (heldObject.externId != 0 && targetObj.externId == 0) {
 				targetObj.externId = heldObject.externId;
 				// player.say('USE KEY ID: ${heldObject.externId} FOR ${targetObj.name}!', true);
 				player.say('USE KEY FOR ${targetObj.name}!!', true);
-			} else if (heldObject.externId != targetObj.externId) {
+			}
+			else if (heldObject.externId != targetObj.externId) {
 				// player.say('KEY DOES NOT FIT! KEY ID: ${heldObject.externId} FOR ${targetObj.name} ID: ${targetObj.externId}', true);
 				player.say('KEY DOES NOT FIT!', true);
 				// TODO lockpick
@@ -316,7 +320,8 @@ class TransitionHelper {
 			// you can still do things with a hiddenwound
 			if (player.heldObject == player.hiddenWound) {
 				player.setHeldObject(null);
-			} else {
+			}
+			else {
 				// if(ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} HeldObject is permanent ${player.heldObject.isPermanent()} or cannot be dropped! ${player.heldObject.isNeverDrop()}');
 				if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} HeldObject is a wound!');
 				helper.sendUpdateToClient();
@@ -803,7 +808,8 @@ class TransitionHelper {
 
 		if (transition != null) {
 			player.heldObject = ObjectHelper.readObjectHelper(player, [transition.newActorID]);
-		} else {
+		}
+		else {
 			player.heldObject = target;
 		}
 
@@ -817,7 +823,8 @@ class TransitionHelper {
 			if (ServerSettings.DebugTransitionHelper)
 				trace('TRANS: ${player.name + player.id} HORSE: without trans / has eaten: ${player.heldObject.description}');
 			this.target = player.heldObject;
-		} else {
+		}
+		else {
 			if (ServerSettings.DebugTransitionHelper)
 				trace('TRANS: ${player.name + player.id} HORSE: with trans / has eaten: ${player.heldObject.description}');
 			this.target.id = transition.newTargetID;
@@ -857,7 +864,8 @@ class TransitionHelper {
 
 			this.target = originaltarget;
 			this.tileObjectData = originalTileObjectData;
-		} else {
+		}
+		else {
 			returnValue = doTransitionIfPossibleHelper();
 		}
 
@@ -1121,7 +1129,8 @@ class TransitionHelper {
 				// make it easier for player to remove
 				hungryWorkCost *= 0.5;
 				if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Player is not owner of ${target.description}!');
-			} else {
+			}
+			else {
 				if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Player is not owner of ${target.description}!');
 				if (hungryWorkCost < 1) {
 					player.say('The owner is ${owner.name}', true);
@@ -1193,8 +1202,8 @@ class TransitionHelper {
 				target.hits += 1;
 				// rand += target.hits / 20;
 				// player.say('Try again! Hits ${Math.round(target.hits)} Uses: ${Math.round(target.numberOfUses)} exhaustion: ${Math.round(player.exhaustion)}', true);
-				if (isFortified) player.say('Try again! Fortification: ${- Math.round(target.hits)}', true); else
-					player.say('Try again! Hits ${Math.round(target.hits)}', true);
+				if (isFortified) player.say('Try again! Fortification: ${- Math.round(target.hits)}', true);
+				else player.say('Try again! Hits ${Math.round(target.hits)}', true);
 				// drop fortification material
 				var fortificationObjId = target.objectData.fortificationObjId;
 				if (target.countObj > 0 && fortificationObjId > 0) {
@@ -1205,7 +1214,8 @@ class TransitionHelper {
 						target.countObj -= 1;
 						WorldMap.PlaceObjectById(tx, ty, fortificationObjId);
 					}
-				} else {
+				}
+				else {
 					if (alternativeTransitionOutcome.length > 0 && fortificationObjId < 1) {
 						var rand = WorldMap.calculateRandomInt(alternativeTransitionOutcome.length - 1);
 						// TODO use piles
@@ -1251,7 +1261,8 @@ class TransitionHelper {
 			this.target.creationTimeInTicks = TimeHelper.tick;
 			// this.pickUpObject = true;
 			// return true;
-		} else {
+		}
+		else {
 			// check if not horse pickup or drop
 			if (player.heldObject.containedObjects.length > newActorObjectData.numSlots) {
 				if (ServerSettings.DebugTransitionHelper)
@@ -1261,8 +1272,8 @@ class TransitionHelper {
 					// TODO solve
 					player.heldObject.containedObjects = [];
 					trace('TRANS: ${player.name + player.id} WARNING TRANS: held object is empty and contains something!' + player.heldObject.toString());
-				} else
-					return false;
+				}
+				else return false;
 			}
 			if (target.containedObjects.length > newTargetObjectData.numSlots) {
 				if (ServerSettings.DebugTransitionHelper)
@@ -1277,11 +1288,13 @@ class TransitionHelper {
 			player.say('needs snow biome', true);
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} needs ice biome!');
 			return false;
-		} else if (newTargetObjectData.description.contains('+biomeReq6') && biome != 6) {
+		}
+		else if (newTargetObjectData.description.contains('+biomeReq6') && biome != 6) {
 			player.say('needs jungle', true);
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} needs jungle biome!');
 			return false;
-		} else if (newTargetObjectData.description.contains('+biomeBlock4') && biome == 4) {
+		}
+		else if (newTargetObjectData.description.contains('+biomeBlock4') && biome == 4) {
 			player.say('is blocked by snow', true);
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} is blocked by ice!');
 			return false;
@@ -1309,8 +1322,8 @@ class TransitionHelper {
 			// player.setHeldObject(null);
 		}
 		// if(transition.actorID != transition.newActorID) this.pickUpObject = true; // TODO does error for bow animation but may be needed for other animations?
-		if (newTargetObjectData.unreleased) {
-			this.player.say('${newTargetObjectData.name} is not for this world!', true);
+		if (newTargetObjectData.unreleased || transition.isForbidden) {
+			if (newTargetObjectData.unreleased) this.player.say('${newTargetObjectData.name} is not for this world!', true);
 			return false;
 		}
 		// Arrow and Bow + Arrow Quiver = false;
@@ -1334,7 +1347,8 @@ class TransitionHelper {
 			// if (targetIsFloor == false) this.target.id = 0;
 			this.target.id = 0;
 			this.newFloorId = transition.newTargetID;
-		} else {
+		}
+		else {
 			if (targetIsFloor) this.newFloorId = 0;
 		}
 		// take care of special transition if heldobj is floor like Huge Snowball + Ice Hole
@@ -1523,7 +1537,8 @@ class TransitionHelper {
 			if (reverseUse) {
 				if (doTrace) trace("TRANS: NEW PILE OR BUCKET?");
 				obj.numberOfUses = 1;
-			} else {
+			}
+			else {
 				//  numberOfUses = MAX // 0 + 125 = 126 + 409 // Empty + Clay Deposit -->  Clay + Clay Pit#partial
 				obj.numberOfUses = objectData.numUses;
 			}
@@ -1539,7 +1554,8 @@ class TransitionHelper {
 
 			obj.numberOfUses += 1;
 			if (doTrace) trace('TRANS: ${player.name + player.id} ${objectData.description} numberOfUses: ' + obj.numberOfUses);
-		} else {
+		}
+		else {
 			// TODO wild garlic and dug wild carrot
 			// var lovedPlants = player == null ? [] : player.getLovedPlants();
 			// var isLovedFood = lovedPlants.contains(objectData.parentId);

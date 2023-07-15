@@ -6,6 +6,7 @@ import openlife.settings.ServerSettings;
 
 @:expose
 class TransitionData {
+	public var isForbidden = false;
 	public var isPickupOrDrop = false; // Not saved // Is used if a horse cart is picked up through a use
 	public var switchNumberOfUses = false; // Like putting / picking dough on / from table
 	public var addedBy = "Not Set"; // Arcurus gives a hint from who this Transiton was created, like a normal transition, or category or if it was patched
@@ -246,7 +247,6 @@ class TransitionData {
 
 		if (smal) return
 			'<${actorID}> + <${targetID}> = <${newActorID}> + <${newTargetID}> / $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n';
-		else
-			return '$transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n';
+		else return '$transition $actorDescription + $targetDescription  -->  $newActorDescription + $newTargetDescription\n';
 	}
 }
