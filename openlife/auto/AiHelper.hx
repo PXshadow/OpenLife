@@ -1781,9 +1781,11 @@ class IntemToCraft {
 	// FIX: seems to make seg faults // TODO find out why multiple threads use it?
 	public function clearAllCheachedObjects() {
 		// GlobalPlayerInstance.AcquireMutex(); // TODO find out why multiple threads use it?
+		ai.mutex.acquire();
 		for (cachedObjectList in cachedObjectLists) {
 			clearTransitionsByObject(cachedObjectList);
 		}
+		ai.mutex.release();
 		// GlobalPlayerInstance.ReleaseMutex();
 	}
 
@@ -1795,6 +1797,7 @@ class IntemToCraft {
 	private function clearTransitionsByObject(objcectsToClear:Map<Int, TransitionForObject>) {
 		// GlobalPlayerInstance.AcquireMutex(); // TODO find out why multiple threads use it?
 
+		ai.mutex.acquire();
 		for (trans in objcectsToClear) {
 			trans.count = 0;
 			if (trans.objId == 0) trans.count = -1; // mark as cleared
@@ -1812,6 +1815,7 @@ class IntemToCraft {
 			trans.bestCraftDistance = -1;
 		}
 
+		ai.mutex.release();
 		// GlobalPlayerInstance.ReleaseMutex();
 	}
 }

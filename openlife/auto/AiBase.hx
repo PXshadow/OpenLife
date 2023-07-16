@@ -382,9 +382,9 @@ abstract class AiBase {
 		if (time > 1) time = 1; // wait max 10 sec
 		if (time > 0) return;
 
-		this.mutex.acquire(); // TODO check why mutex is needed
+		// this.mutex.acquire(); // TODO check why mutex is needed
 		Macro.exception(doTimeStuffHelper(movedOneTileTmp));
-		this.mutex.release();
+		// this.mutex.release();
 	}
 
 	private function doTimeStuffHelper(movedOneTileTmp:Bool) {
@@ -407,6 +407,7 @@ abstract class AiBase {
 		ignoreFullPiles = false;
 		calledCraftItem = false;
 
+		itemToCraft.ai = this;
 		// TODO only clean after move?
 		itemToCraft.clearAllCheachedObjects();
 
@@ -3273,6 +3274,11 @@ abstract class AiBase {
 	}
 
 	private function countCurrentObject(objId:Int) {
+		return countCurrentObjectHelper(objId);
+	}
+
+	private function countCurrentObjectHelper(objId:Int) {
+		this.mutex.acquire();
 		// var count += AiHelper.CountCloseObjects(myPlayer, myPlayer.home.tx, myPlayer.home.ty, objId, 10);
 		var count = myPlayer.heldObject.parentId == objId ? 1 : 0;
 
@@ -3283,6 +3289,7 @@ abstract class AiBase {
 		if (object == null) return count;
 		// trace('countCurrentObject: ${objId} ${object.count}');
 		return count += object.count;
+		this.mutex.release();
 	}
 
 	private function getClosestObjectById(objId:Int, distance = 30) {
@@ -4520,9 +4527,9 @@ abstract class AiBase {
 
 	public function say(player:PlayerInterface, curse:Bool, text:String) {
 		// GlobalPlayerInstance.AcquireMutex(); // TODO remove mutex
-		this.mutex.acquire();
+		// this.mutex.acquire();
 		Macro.exception(sayHelper(player, curse, text));
-		this.mutex.release();
+		// this.mutex.release();
 		// GlobalPlayerInstance.ReleaseMutex();
 	}
 
@@ -6309,7 +6316,10 @@ abstract class AiBase {
 		if (onlyHome) itemToCraft.searchCurrentPosition = false;
 
 		var done = false;
+
+		mutex.acquire();
 		Macro.exception(done = craftItemHelper(objId, maxDistance, onlyHome));
+		mutex.release();
 		// done = craftItemHelper(objId, maxDistance, onlyHome);
 
 		itemToCraft.maxSearchRadius = tmpMaxSearchRadius;
@@ -6837,6 +6847,12 @@ abstract class AiBase {
 	}
 
 	private function intitObjectsForCraftig() {
+		this.mutex.acquire();
+		Macro.exception(intitObjectsForCraftigHelper());
+		this.mutex.release();
+	}
+
+	private function intitObjectsForCraftigHelper() {
 		var radius = itemToCraft.searchRadius;
 		if (radius < 15) {
 			radius = 15;
