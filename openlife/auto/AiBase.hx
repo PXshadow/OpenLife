@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import sys.thread.Mutex;
 import openlife.server.Server;
 import openlife.data.Pos;
 import openlife.server.Biome.BiomeTag;
@@ -33,6 +34,8 @@ abstract class AiBase {
 	public static var blockedByAI = new Map<Int, Float>();
 
 	final RAD:Int = MapData.RAD; // search radius
+
+	public var mutex = new Mutex();
 
 	public var myPlayer(default, default):PlayerInterface;
 	public var seqNum = 1;
@@ -379,6 +382,12 @@ abstract class AiBase {
 		if (time > 1) time = 1; // wait max 10 sec
 		if (time > 0) return;
 
+		this.mutex.acquire(); // TODO check why mutex is needed
+		Macro.exception(doTimeStuffHelper(movedOneTileTmp));
+		this.mutex.release();
+	}
+
+	private function doTimeStuffHelper(movedOneTileTmp:Bool) {
 		var reactionTime = ServerSettings.AiReactionTime; // minimum AI reacting time
 		if (myPlayer.lineage.prestigeClass == PrestigeClass.Serf) reactionTime = ServerSettings.AiReactionTimeSerf;
 		if (myPlayer.lineage.isNobleOrMore()) reactionTime = ServerSettings.AiReactionTimeNoble;
@@ -4510,9 +4519,11 @@ abstract class AiBase {
 	}
 
 	public function say(player:PlayerInterface, curse:Bool, text:String) {
-		GlobalPlayerInstance.AcquireMutex();
+		// GlobalPlayerInstance.AcquireMutex(); // TODO remove mutex
+		this.mutex.acquire();
 		Macro.exception(sayHelper(player, curse, text));
-		GlobalPlayerInstance.ReleaseMutex();
+		this.mutex.release();
+		// GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	private function sayHelper(player:PlayerInterface, curse:Bool, text:String) {
@@ -6936,6 +6947,7 @@ abstract class AiBase {
 					if (onlyRelevantObjects) continue; // object is not useful for crafting wanted object
 					else {
 						trans = new TransitionForObject(objData.parentId, 0, 0, null);
+						// Mutex?
 						transitionsByObjectId[objData.parentId] = trans;
 					}
 				}
@@ -7003,6 +7015,7 @@ abstract class AiBase {
 		itemToCraft.bestTransition = null;
 
 		// objectsToSearch.push(objToCraftId);
+		// Mutex?
 		transitionsByObjectId[0] = new TransitionForObject(0, 0, 0, null);
 		transitionsByObjectId[-1] = new TransitionForObject(-1, 0, 0, null);
 		// transitionsByObjectId[objToCraftId] = new TransitionForObject(objToCraftId, 0, 0, null);
@@ -7132,11 +7145,13 @@ abstract class AiBase {
 			var newTarget = transitionsByObjectId[trans.newTargetID];
 
 			if (newActor == null) {
+				// Mutex?
 				newActor = new TransitionForObject(trans.newActorID, 0, 0, null);
 				transitionsByObjectId[trans.newActorID] = newActor;
 			}
 
 			if (newTarget == null) {
+				// Mutex?
 				newTarget = new TransitionForObject(trans.newTargetID, 0, 0, null);
 				transitionsByObjectId[trans.newTargetID] = newTarget;
 			}
@@ -7332,6 +7347,7 @@ abstract class AiBase {
 		itemToCraft.bestTransition = null;
 
 		objectsToSearch.push(objToCraftId);
+		// // Mutex?
 		transitionsByObjectId[0] = new TransitionForObject(0, 0, 0, null);
 		transitionsByObjectId[-1] = new TransitionForObject(-1, 0, 0, null);
 		transitionsByObjectId[objToCraftId] = new TransitionForObject(objToCraftId, 0, 0, null);
@@ -7523,6 +7539,7 @@ abstract class AiBase {
 				}
 			}
 			if (target == null) {
+				// Mutex?
 				target = new TransitionForObject(trans.targetID, 0, 0, null);
 				transitionsByObjectId[trans.targetID] = target;
 			}

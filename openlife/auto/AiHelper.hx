@@ -1380,9 +1380,9 @@ class AiHelper {
 			// transitionForObject.transitions.push(transition);
 
 			// FIX: crash clearTransitionsByObject // TODO look why
-			GlobalPlayerInstance.AcquireMutex();
+			// GlobalPlayerInstance.AcquireMutex();
 			transitionsForObject[objId] = transitionForObject;
-			GlobalPlayerInstance.ReleaseMutex();
+			// GlobalPlayerInstance.ReleaseMutex();
 
 			return;
 		}
@@ -1780,11 +1780,11 @@ class IntemToCraft {
 
 	// FIX: seems to make seg faults // TODO find out why multiple threads use it?
 	public function clearAllCheachedObjects() {
-		GlobalPlayerInstance.AcquireMutex(); // TODO find out why multiple threads use it?
+		// GlobalPlayerInstance.AcquireMutex(); // TODO find out why multiple threads use it?
 		for (cachedObjectList in cachedObjectLists) {
 			clearTransitionsByObject(cachedObjectList);
 		}
-		GlobalPlayerInstance.ReleaseMutex();
+		// GlobalPlayerInstance.ReleaseMutex();
 	}
 
 	public function clearTransitionsByObjectId() {
@@ -1793,7 +1793,7 @@ class IntemToCraft {
 	}
 
 	private function clearTransitionsByObject(objcectsToClear:Map<Int, TransitionForObject>) {
-		GlobalPlayerInstance.AcquireMutex(); // TODO find out why multiple threads use it?
+		// GlobalPlayerInstance.AcquireMutex(); // TODO find out why multiple threads use it?
 
 		for (trans in objcectsToClear) {
 			trans.count = 0;
@@ -1812,7 +1812,7 @@ class IntemToCraft {
 			trans.bestCraftDistance = -1;
 		}
 
-		GlobalPlayerInstance.ReleaseMutex();
+		// GlobalPlayerInstance.ReleaseMutex();
 	}
 }
 
