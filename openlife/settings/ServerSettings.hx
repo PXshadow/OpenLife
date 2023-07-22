@@ -2304,6 +2304,12 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 		transitions.addTransition("PatchTransitions: ", trans, false, true);
 
+		// 0 + Bowl of Green Beans
+		var trans = transitions.getTransition(0, 1175);
+		trans.aiShouldIgnore = true;
+		var trans = transitions.getTransition(0, 1175, false, true);
+		trans.aiShouldIgnore = true;
+
 		// Bowl of Dry Beans 1176 + Deep Tilled Row 213 --> Dry Planted Beans 1161
 		trans = new TransitionData(1176, 213, 1176, 1161);
 		transitions.addTransition("PatchTransitions: ", trans);
