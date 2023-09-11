@@ -1400,7 +1400,7 @@ class ServerSettings {
 		ObjectData.getObjectData(2156).damage = 1; // 2156 Mosquito Swarm
 
 		ObjectData.getObjectData(418).deadlyDistance = AnimalDeadlyDistanceFactor; // Wolfs
-		ObjectData.getObjectData(418).damage = 4; // 3 // Wolfs
+		ObjectData.getObjectData(418).damage = 3; // 4 // 3 // Wolfs
 		ObjectData.getObjectData(420).deadlyDistance = AnimalDeadlyDistanceFactor; // Shot Wolf
 		ObjectData.getObjectData(420).damage = 5; // Shot Wolf
 
