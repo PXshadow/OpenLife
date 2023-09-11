@@ -2728,8 +2728,10 @@ class ServerSettings {
 			trans.autoDecaySeconds = ServerSettings.RabbitFurClothDecayTime;
 		}
 
-		var trans = TransitionImporter.GetTransition(-1, 766); // TIME + Snake Skin Boot
-		trans.autoDecaySeconds = -24 * 10; // -5
+		// var trans = TransitionImporter.GetTransition(-1, 766); // TIME + Snake Skin Boot
+		var trans = new TransitionData(-1, 766, 0, 0); // TIME + Snake Skin Boot
+		trans.autoDecaySeconds = -24 * 30; // -5
+		transitions.addTransition("PatchTransitions: ", trans);
 
 		var trans = TransitionImporter.GetTransition(-1, 2887); // TIME + Sandal
 		trans.autoDecaySeconds = -24 * 30; // -5
