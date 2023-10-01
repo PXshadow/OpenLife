@@ -64,6 +64,7 @@ class Client {
 			try {
 				@:privateAccess var input = relayIn.input.readUntil("#".code);
 				send(input);
+				// trace("CLIENT: " + input);
 			} catch (e) {
 				if (e.message != "Blocked") close();
 			}
@@ -74,6 +75,7 @@ class Client {
 				if (compressInput(temp)) return;
 			} else {
 				data = socket.input.readUntil("#".code);
+				// trace("SERVER: " + data);
 			}
 		} catch (e:haxe.Exception) {
 			if (e.message != "Blocked") {

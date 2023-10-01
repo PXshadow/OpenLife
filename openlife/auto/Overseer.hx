@@ -1,5 +1,7 @@
 package openlife.auto;
 
+import ClientAi.Bot;
+
 class Overseer {
 	public function new() {}
 
@@ -12,8 +14,9 @@ class Overseer {
 		// This would reduce processing at the cost of precision.
 
 		// Run the bots
-		// for (ai in ais) bot.role.run();
-		for (ai in ais)
+		for (bot in bots)
 			bot.update();
+		// for (ai in ais)
+		// 	bot.update();
 	}
 }
