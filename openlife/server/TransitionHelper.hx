@@ -362,6 +362,8 @@ class TransitionHelper {
 				helper.use(targetId, index);
 			case DROP:
 				helper.drop(index);
+			case SWAP:
+				helper.swap();
 			case REMV:
 				helper.remove(index);
 			default:
@@ -481,6 +483,12 @@ class TransitionHelper {
 			+ target.toArray());
 	}
 
+	public function swap():Bool {
+		if (ServerSettings.DebugTransitionHelper) trace('SWAP: ${player.name + player.id}');
+		this.doTransition = false;
+		return this.swapHandAndFloorObject();
+	}
+
 	/*
 		DROP x y c#
 
@@ -490,7 +498,7 @@ class TransitionHelper {
 		 indicates clothing with:
 		 0=hat, 1=tunic, 2=frontShoe, 3=backShoe, 4=bottom, 5=backpack */
 	public function drop(clothingIndex:Int = -1):Bool {
-		if (ServerSettings.DebugTransitionHelper) trace('DROP: ${player.name + player.id} ${player.name + player.id} clothingIndex: $clothingIndex');
+		if (ServerSettings.DebugTransitionHelper) trace('DROP: ${player.name + player.id} clothingIndex: $clothingIndex');
 		// this is a drop and not a transition
 		this.doTransition = false;
 

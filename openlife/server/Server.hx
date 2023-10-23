@@ -98,7 +98,8 @@ class Server {
 			if (saveExists == false) trace('Save ${dir + "lastDataNumber.txt and .bak"} could not be found! Generate new Map!');
 			map.generate();
 			map.writeToDisk();
-		} else {
+		}
+		else {
 			this.canStart = map.readFromDisk();
 			if (this.canStart == false) {
 				trace('could not load Save! Please fix save or delete lastDataNumber.txt and .bak to generate a new Map!');
@@ -125,6 +126,8 @@ class Server {
 
 	public function process(connection:Connection, string:String) {
 		// Sys.println(string); //log messages
+		// trace('TAG: $string');
+
 		var index = string.indexOf(" ");
 		if (index == -1) return;
 		var tag = string.substring(0, index);
@@ -156,6 +159,7 @@ class Server {
 		REMV x y i#
 		SREMV x y c i#
 		DROP x y c#
+		SWAP x y#
 		KILL x y#
 		KILL x y id#
 		JUMP x y#
@@ -205,6 +209,8 @@ class Server {
 					input.length > 2 ? Std.parseInt(input[2]) : 0);
 			case DROP: // DROP x y c#
 				connection.player.drop(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]));
+			case SWAP: // SWAP x y#
+				connection.player.swap(Std.parseInt(input[0]), Std.parseInt(input[1]));
 			case SELF: // SELF x y i#
 				connection.player.self(Std.parseInt(input[0]), Std.parseInt(input[1]), Std.parseInt(input[2]));
 			case UBABY: // UBABY x y i id#
