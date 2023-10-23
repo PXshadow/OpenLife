@@ -830,7 +830,7 @@ How to pull stuff from git:
 git pull https://github.com/PXshadow/OpenLife
 
 How to connect to the test server:
-Currently the server is written totally new and is in Alpha, so expect many bugs and feel free to report them in the forum or even better on github! There is most likely an AI running which can susatin a village with some litte help. It can nurse, eat, feed, craft, smith, defend, hunt. It does not know about containers. Crafting might sometimes fail. Nevertheless you can say to the Ai to craft something with saying "make xxx" which might or might not work... Now you can also hire Ais with in game coins to become your followers and defend you and follow your orders:
+Currently the server is written totally new and is in BETA, so expect some bugs and feel free to report them! By default there is an AI running which can manage and defend a village with some litte human help. The AI can nurse, eat, feed, craft, smith, attack, defend, hunt, do pottery. The AI does not know about containers yet. Crafting might sometimes fail. Nevertheless you can say to the Ai to craft something with saying "make xxx" which might or might not work... Now you can also hire Ais with in game coins to become your followers and defend you and follow your orders:
 ip: 37.120.188.155
 port: 8005
 
