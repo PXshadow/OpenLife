@@ -1,10 +1,12 @@
-Welcome to Open Life Reborn - A hard Winter is comming / Hardcore OHOL with constant rebirthing world
+Welcome to Open Life Reborn
 ====
+A hard Winter is comming / Hardcore OHOL with constant rebirthing world
+Much thx to Jason Rohrer for making One Hour One Life / OHOL open source!
 
 To play, just use any normal OHOL client and put in the custom server IP! No new Client needed!
 
 Summary:
-===
+---
 - the server is written from scratch in Haxe and is in BETA
 - there is winter as main new challange and where there is winter there is spring to grow
 - Be careful wolfs and other deadly animals are double strong in winter!
@@ -13,7 +15,7 @@ Summary:
 - Use fire or cloths to warm up or migrate into a jungle or desert!
 
 AI:
-===
+---
 - Currently the Ai does not use containers, so use Baskets and Tables to save stuff you dont want the Ai to touch
 - Currently Ai wont open doors so use them for now to lock out AI
 - AI NPCs can hunt, nurse, eat, feed and craft clothing quite well. It goes for YUM and cravings and feeds you your YUM and cravings.
