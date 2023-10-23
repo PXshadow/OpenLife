@@ -18,11 +18,10 @@ AI:
 ---
 - Currently the Ai does not use containers, so use Baskets and Tables to save stuff you dont want the Ai to touch
 - Currently Ai wont open doors so use them for now to lock out AI
-- AI NPCs can hunt, nurse, eat, feed and craft clothing quite well. It goes for YUM and cravings and feeds you your YUM and cravings.
-- The AI can bake and cook some stuff 
-- The Ai can do some farming
-- AI can do pottery and basic smithing
-- The Ai can defend against attackers and will attack exiled players
+- AI NPCs can  hunt, nurse, feed, bake, farm, make fire, do pottery, do smithing and craft clothing quite well
+- The AI goes for YUM and cravings and feeds you your YUM and cravings
+- The AI can defend against attackers and will attack exiled players
+- The AI can be hired with in game coins
 
 Combat:
 - combat is allowed but might give some prestige mali like attacking children or relatives

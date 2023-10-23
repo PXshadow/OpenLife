@@ -812,6 +812,9 @@ class ServerSettings {
 		// TODO collapse mine if it gave 12 iron
 
 		// horse cart decay // TODO allow decay? set decay for horse cart
+		ObjectData.getObjectData(484).decaysToObj = 483; // Hand Cart 484 --> Wheelbarrow 483
+		ObjectData.getObjectData(483).decaysToObj = 471; // Wheelbarrow 483 --> Wooden Sledge 471
+
 		ObjectData.getObjectData(3157).decaysToObj = 780; // Escaped Horse-Drawn Tire Cart --> Escaped Horse-Drawn Cart
 		ObjectData.getObjectData(780).decaysToObj = 775; // Escaped Horse-Drawn Tire Cart --> Escaped Riding Horse
 		ObjectData.getObjectData(775).decaysToObj = 769; // Escaped Riding Horse --> Wild Horse
