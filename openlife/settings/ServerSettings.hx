@@ -3357,6 +3357,10 @@ class ServerSettings {
 		var trans = transitions.getTransition(0, 3948);
 		trans.aiShouldIgnore = true;
 
+		// Bowl of Popcorn
+		var trans = transitions.getTransition(0, 1121);
+		trans.aiShouldIgnore = true;
+
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		// var trans = transitions.getTransition(1247, 4110);
 		// trans.aiShouldIgnore = true;
