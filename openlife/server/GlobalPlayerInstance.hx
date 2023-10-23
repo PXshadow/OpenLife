@@ -2752,7 +2752,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		  close to the target tile.
 	 */
 	public function doOnOther(x:Int, y:Int, clothingSlot:Int, playerId:Int):Bool {
-		trace('doOnOther: p_id: ${this.p_id} clothingSlot: $clothingSlot playerId: $playerId');
+		// trace('doOnOther: p_id: ${this.p_id} clothingSlot: $clothingSlot playerId: $playerId');
 		GlobalPlayerInstance.AcquireMutex();
 
 		var done = false;
@@ -2772,8 +2772,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	// public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, targetPlayer:GlobalPlayerInstance) : Bool
 	public function doOnOtherHelper(x:Int, y:Int, clothingSlot:Int, playerId:Int, ?infos:haxe.PosInfos):Bool {
-		// if (ServerSettings.DebugPlayer)
-		trace('doOnOtherHelper: ${this.name}${this.id} to ${playerId} ${this.o_id[0]} ${heldObject.name} clothingSlot: $clothingSlot');
+		if (ServerSettings.DebugPlayer)
+			trace('doOnOtherHelper: ${this.name}${this.id} to ${playerId} ${this.o_id[0]} ${heldObject.name} clothingSlot: $clothingSlot');
 
 		if (this.o_id[0] < 0) {
 			this.say('need to drop held', true);
@@ -2797,17 +2797,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			return false;
 		}
 
-		trace('doOnOther: before doEating');
-
 		if (clothingSlot < 0) {
 			if (doEating(this, targetPlayer)) return true;
 		}
 
-		trace('doOnOther: before doSwitchCloths');
-
 		if (doSwitchCloths(this, targetPlayer, clothingSlot)) return true;
-
-		trace('doOnOther: before isWounded');
 
 		if (targetPlayer.isWounded()) {
 			var trans = TransitionImporter.GetTrans(this.heldObject, targetPlayer.heldObject);

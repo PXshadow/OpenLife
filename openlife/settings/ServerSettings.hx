@@ -27,7 +27,7 @@ class ServerSettings {
 	public static var DebugSpeed = false; // MovementHelper
 	public static var DebugEating = false;
 	public static var DebugCombat = false;
-	public static var DebugPlayer = true; // TODO set false again
+	public static var DebugPlayer = false;
 	public static var DebugSayPlayerPosition = false;
 
 	public static var AllowDebugCommmands = true; // can create objects with saying "!create ID" / "!create object" "!create object!" with ! indicating that object ends with "object" or test wounds with using "!hit" or "!heal"
