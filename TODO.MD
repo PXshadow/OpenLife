@@ -1,16 +1,19 @@
 Welcome to Open Life Reborn - A hard Winter is comming / Hardcore OHOL with constant rebirthing world
+====
 
 To play, just use any normal OHOL client and put in the custom server IP! No new Client needed!
 
-Summary: 
+Summary:
+===
 - the server is written from scratch in Haxe and is in BETA
-- there is winter as main new challange and where there is winter there is spring to grow back nature!
-- Wolfs and other deadly animals are double strong in winter!
+- there is winter as main new challange and where there is winter there is spring to grow
+- Be careful wolfs and other deadly animals are double strong in winter!
 - Temperature can and will kill you!
 - Drink some water or jump in a river to cool down!
-- Use fire or cloths to warm up or escape into a desert!
+- Use fire or cloths to warm up or migrate into a jungle or desert!
 
 AI:
+===
 - Currently the Ai does not use containers, so use Baskets and Tables to save stuff you dont want the Ai to touch
 - Currently Ai wont open doors so use them for now to lock out AI
 - AI NPCs can hunt, nurse, eat, feed and craft clothing quite well. It goes for YUM and cravings and feeds you your YUM and cravings.
@@ -66,6 +69,7 @@ Hitpoints / Exhaustion:
 - If you are injured or Exhausted you loose Max Food Store pipes. Exhaustion will recover faster than hits.
 
 Commands:
+====
 - By saying "STOP" or "DROP You can order the AI to stop or drop what it helds
 - By saying "MAKE xxx"  you can instruct the ai to make stuff with xxx is the item name
 - By saying "NAME?" AI says it name
@@ -708,7 +712,7 @@ if AllowDebugCommmands = true in ServerSettings.txt:
     can create objects with saying "!create ID" / "!create object" "!create object!" with ! indicating that object ends with "object" or test wounds with using "!hit" or "!heal"
     --> for example: "!create ore!" creates iron ore. "!create iron" creates the first object with iron in the name.
 
-Server setup:
+How to setup the server:
 ====
 Best is use Unbuntu, got tons of problems with (default) Debian...
 
@@ -790,8 +794,11 @@ hl server.hl
 
 If you want to create the map from scratch delete SaveFiles folder or the stored stuff inside
 
+
 In case you want to programm:
-Setup Development (Windows):
+How to setup Development on Windows:
+====
+
 - Install VS Code
 - Install Git
 - Install Haxe: https://haxe.org/download
