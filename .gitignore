@@ -1,4 +1,5 @@
 .vscode/launch.json
+/yarn.lock
 bin
 cred.json
 modules

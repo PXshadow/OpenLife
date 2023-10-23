@@ -16,7 +16,7 @@ class OpenLifeData {
 		return {
 			relay: true,
 			combo: 0,
-			syncSettings: false,
+			syncSettings: true,
 			script: "Script.hx",
 			debug: false
 		};

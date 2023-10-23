@@ -1,5 +1,6 @@
 package;
 
+import openlife.auto.Ai;
 import haxe.Exception;
 import openlife.client.Client;
 import haxe.Json;
@@ -20,6 +21,7 @@ import openlife.data.map.MapChange;
 import openlife.auto.Overseer;
 import openlife.settings.OpenLifeData;
 import openlife.settings.OpenLifeData.OpenLifeData;
+import ClientAi.Bot;
 
 using StringTools;
 
@@ -46,28 +48,28 @@ class App {
 			config = Json.parse(File.getContent("config.json"));
 		}
 		if (!data.relay && data.combo > 0) {
-			// multiple ais from combo
-			if (!FileSystem.exists("combo.txt")) throw "no combo list found";
-			var list = File.getContent("combo.txt").split("\r\n");
-			var ais:Array<Ai> = [];
-			if (data.combo > list.length) data.combo = list.length;
-			for (i in 0...data.combo) {
-				var config = configClone(config);
-				var data = list[i].split(":");
-				config.email = data[0];
-				config.key = data[1];
-				var client = new Client();
-				client.config = config;
-				var ai = new Ai(client);
-				ai.connect(false, false);
-				bots.push(bot);
-				Sys.sleep(0.1);
-			}
-			trace("finish going through combo list length: " + data.combo);
-			while (true) {
-				overseer.run(bots);
-				Sys.sleep(1 / 120);
-			}
+			// // multiple ais from combo
+			// if (!FileSystem.exists("combo.txt")) throw "no combo list found";
+			// var list = File.getContent("combo.txt").split("\r\n");
+			// var ais:Array<Ai> = [];
+			// if (data.combo > list.length) data.combo = list.length;
+			// for (i in 0...data.combo) {
+			// 	var config = configClone(config);
+			// 	var data = list[i].split(":");
+			// 	config.email = data[0];
+			// 	config.key = data[1];
+			// 	var client = new Client();
+			// 	client.config = config;
+			// 	var ai = new Ai(client);
+			// 	ai.connect(false, false);
+			// 	bots.push(bot);
+			// 	Sys.sleep(0.1);
+			// }
+			// trace("finish going through combo list length: " + data.combo);
+			// while (true) {
+			// 	overseer.run(bots);
+			// 	Sys.sleep(1 / 120);
+			// }
 		} else {
 			var client = new Client();
 			client.config = config;
