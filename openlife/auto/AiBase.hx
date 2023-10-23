@@ -3273,6 +3273,8 @@ abstract class AiBase {
 		return count;
 	}
 
+	// TODO is called from hasOnionSeeds (and maybe others) while SearchBestFoodHelper which is called also on feeding others
+	// TODO --> use old thrad save counting??? so that no mutex is needed for counting?
 	private function countCurrentObject(objId:Int) {
 		return countCurrentObjectHelper(objId);
 	}
@@ -3286,10 +3288,11 @@ abstract class AiBase {
 
 		var cachedObjectList = itemToCraft.transitionsByObjectId;
 		var object = cachedObjectList[objId];
+		this.mutex.release();
+
 		if (object == null) return count;
 		// trace('countCurrentObject: ${objId} ${object.count}');
 		return count += object.count;
-		this.mutex.release();
 	}
 
 	private function getClosestObjectById(objId:Int, distance = 30) {
