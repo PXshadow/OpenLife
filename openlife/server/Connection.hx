@@ -111,7 +111,8 @@ class Connection {
 	}
 
 	public function rlogin(client_tag:String, email:String, password_hash:String, account_key_hash:String) {
-		trace('rlogin: ${account_key_hash} ${Server.server.lastCommand}');
+		// trace('rlogin: ${account_key_hash} ${Server.server.lastCommand}');
+		trace('rlogin: last command: ${Server.server.lastCommand}');
 
 		GlobalPlayerInstance.AcquireMutex();
 		Macro.exception(rloginHelper(client_tag, email, password_hash, account_key_hash));
