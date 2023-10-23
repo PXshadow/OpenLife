@@ -38,6 +38,8 @@ class Server {
 
 	private static var mutex:Mutex = new Mutex();
 
+	public var lastCommand = null; // To debug what the last client command was
+
 	public static function Acquire() {
 		mutex.acquire();
 	}
@@ -127,10 +129,17 @@ class Server {
 	public function process(connection:Connection, string:String) {
 		// Sys.println(string); //log messages
 		// trace('TAG: $string');
+		lastCommand = string;
 
 		var index = string.indexOf(" ");
 		if (index == -1) return;
 		var tag = string.substring(0, index);
+
+		if (tag == null) {
+			trace('TAG NOT FOUND! $tag');
+			return;
+		}
+
 		string = string.substring(index + 1);
 		var array = string.split(" ");
 		if (array.length == 0) return;

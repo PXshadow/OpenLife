@@ -111,7 +111,8 @@ class Connection {
 	}
 
 	public function rlogin(client_tag:String, email:String, password_hash:String, account_key_hash:String) {
-		trace('rlogin: ${account_key_hash}');
+		trace('rlogin: ${account_key_hash} ${Server.server.lastCommand}');
+
 		GlobalPlayerInstance.AcquireMutex();
 		Macro.exception(rloginHelper(client_tag, email, password_hash, account_key_hash));
 		GlobalPlayerInstance.ReleaseMutex();
@@ -352,7 +353,8 @@ class Connection {
 			}
 
 			// sending moving player again creates otherwise a display bug
-		} else {
+		}
+		else {
 			player.connection.send(PLAYER_UPDATE, [playerToSend.toRelativeData(player)], isPlayerAction);
 		}
 
@@ -523,7 +525,8 @@ class Connection {
 
 				if (doTransition) {
 					c.sendMapUpdate(targetX, targetY, newFloorId, newTileObject, (-1) * player.p_id);
-				} else {
+				}
+				else {
 					c.sendMapUpdate(targetX, targetY, newFloorId, newTileObject, player.p_id);
 				}
 
@@ -923,8 +926,8 @@ class Connection {
 		// update only close players
 		if (toConnection.player.isClose(targetX, targetY, ServerSettings.MaxDistanceToBeConsideredAsClose) == false) return;
 
-		if (seconds < -2) toConnection.send(PLAYER_EMOT, ['${fromPlayer.p_id} $id']); else
-			toConnection.send(PLAYER_EMOT, ['${fromPlayer.p_id} $id $seconds']);
+		if (seconds < -2) toConnection.send(PLAYER_EMOT, ['${fromPlayer.p_id} $id']);
+		else toConnection.send(PLAYER_EMOT, ['${fromPlayer.p_id} $id $seconds']);
 
 		toConnection.send(FRAME);
 	}
@@ -946,7 +949,8 @@ class Connection {
 		// send frame only once every time step
 		if (tag == FRAME) {
 			if (force && sendFrame == false) return; // no frame to send
-			if (force) sendFrame = false; else {
+			if (force) sendFrame = false;
+			else {
 				sendFrame = true;
 				return;
 			}
@@ -1258,15 +1262,16 @@ class Connection {
 		for (c in connections) {
 			if (word != null) {
 				c.send(CURSED, ['${player.p_id} $level $word']);
-			} else
-				c.send(CURSED, ['${player.p_id} $level']);
+			}
+			else c.send(CURSED, ['${player.p_id} $level']);
 		}
 	}
 
 	public function doTime(passedTimeInSeconds:Float) {
 		if (this.timeToWaitBeforeNextMessageSend > 0) {
 			this.timeToWaitBeforeNextMessageSend -= passedTimeInSeconds;
-		} else if (this.messageQueue.length > 0) {
+		}
+		else if (this.messageQueue.length > 0) {
 			this.sendGlobalMessage(this.messageQueue.shift());
 		}
 	}

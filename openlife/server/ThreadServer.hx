@@ -38,7 +38,7 @@ class ThreadServer {
 
 	private function connection() {
 		var socket:Socket = cast Thread.readMessage(true);
-		trace("start connection");
+		trace('start connection ${Server.server.lastCommand}');
 		socket.setBlocking(ServerSettings.UseBlockingSockets);
 		socket.setFastSend(true);
 		var connection = new Connection(socket, server);
@@ -59,13 +59,14 @@ class ThreadServer {
 				if (e != haxe.io.Error.Blocked) {
 					if ('$e' == 'Eof') {
 						trace('Client closed connection / EOF');
-					} else
-						trace('WARNING: EXEPTION: ' + e);
+					}
+					else trace('WARNING: EXEPTION: ' + e);
 
 					Macro.exception(connection.close());
 
 					break;
-				} else {
+				}
+				else {
 					if (Timer.stamp() - ka > 20) {
 						Macro.exception(connection.close());
 					}
@@ -77,7 +78,8 @@ class ThreadServer {
 			if (ServerSettings.debug) {
 				server.process(connection, message);
 				message = "";
-			} else {
+			}
+			else {
 				try {
 					server.process(connection, message);
 					message = "";
