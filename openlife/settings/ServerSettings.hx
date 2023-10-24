@@ -2890,6 +2890,10 @@ class ServerSettings {
 		trans.aiShouldIgnore = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
+		// Basket of Charcoal 298 + 0 --> Basket + Big Charcoal Pile 300
+		var trans = new TransitionData(298, 0, 292, 300);
+		transitions.addTransition("PatchTransitions: ", trans);
+
 		// TODo needs client change
 		// var trans = new TransitionData(298, 317, 298, 316); // 298 Basket of Charcoal + 317 Crucible with Iron --> 298 +  316 Crucible with Iron and Charcoal
 		// transitions.addTransition("PatchTransitions: ", trans);
