@@ -802,7 +802,7 @@ class TransitionHelper {
 		// do container stuff
 		if (oldEnoughForPickup && this.doContainerStuff(false, containerIndex)) return true;
 
-		player.message = 'nothing found to do';
+		if (player.message == null) player.message = 'nothing found to do';
 
 		return false;
 	}
