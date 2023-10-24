@@ -187,6 +187,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var blockTargetTime = 0.0; // not saved
 
 	public var allowShowHuman = true; // not saved
+	public var message:String = null; // not saved // ised to provide feedback why something failed
 
 	public function getFollowPlayer() {
 		return followPlayer;
@@ -281,7 +282,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var lostCombatPrestige:Float = 0; // like damage dealt to people without weapon if not justified // used to check if person should be attacked // not saved yet
 	public var timeLastTemperatureCalculation:Float = 0;
 
-	public var useFailedReason = 'NA';
+	// public var useFailedReason = 'NA';
 	public var blockedTeleportLocations = new Array<Int>();
 
 	// set all stuff null so that nothing is hanging around

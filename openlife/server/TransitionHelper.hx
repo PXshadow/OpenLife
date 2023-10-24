@@ -43,7 +43,7 @@ class TransitionHelper {
 
 	public static function doCommand(player:GlobalPlayerInstance, tag:ServerTag, x:Int, y:Int, index:Int = -1, target:Int = 0):Bool {
 		var startTime = Sys.time();
-		player.useFailedReason = 'NA';
+		// player.useFailedReason = 'NA';
 
 		/*
 			var targetObj = WorldMap.world.getObjectHelper(x - player.gx, y - player.gy);
@@ -110,10 +110,13 @@ class TransitionHelper {
 		var targetId = helper.target.parentId;
 		var isHeldEmpty = player.isHeldEmpty();
 
+		player.message = null;
+
 		if ((player.o_id[0] < 0) || player.heldPlayer != null) {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} cannot do use since holding a player! ${player.o_id[0]}');
 			helper.sendUpdateToClient();
 			player.dropPlayer(player.x, player.y);
+			player.message = ' holding a player';
 			return false;
 		}
 
@@ -127,6 +130,7 @@ class TransitionHelper {
 			// TODO implement hidden containers so that cointainers can be put on top of containers
 			var text = 'TRANS: ${player.name + player.id} ${player.heldObject.name} + ${helper.target.name} ${helper.target.toArray()} NOT SUPPORTET YET!';
 			trace(text); // 5792
+			player.message = text;
 			return false;
 		}
 
@@ -203,6 +207,7 @@ class TransitionHelper {
 
 			trace('Fortification: ${- Math.ceil(targetObj.hits)}');
 			player.say('Cost $cost coins! NEW Fortification: ${- Math.ceil(targetObj.hits)}', true);
+			player.message = 'fortify';
 			return false;
 		}
 
@@ -229,6 +234,7 @@ class TransitionHelper {
 				// player.say('KEY DOES NOT FIT! KEY ID: ${heldObject.externId} FOR ${targetObj.name} ID: ${targetObj.externId}', true);
 				player.say('KEY DOES NOT FIT!', true);
 				// TODO lockpick
+				player.message = 'key does not fit';
 				return false;
 			}
 		}
@@ -238,6 +244,7 @@ class TransitionHelper {
 			if (heldObject.externId != targetObj.externId) {
 				if (LockPick(player, heldObject, targetObj) == false) {
 					// player.say('KEY DOES NOT FIT!', true);
+					player.message = 'key does not fit';
 					return false;
 				}
 			}
@@ -314,6 +321,7 @@ class TransitionHelper {
 				trace('WARNING isNeverDrop NO TIME SET!!!');
 			}
 			if (time > 4 && time <= 60) player.say('${Math.ceil(time)} seconds...', true);
+			player.message = 'item cannot be dropped';
 			return false;
 		}
 		if (player.heldObject.isWound()) {
@@ -328,6 +336,7 @@ class TransitionHelper {
 				var time = player.heldObject.timeToChange - TimeHelper.CalculateTimeSinceTicksInSec(player.heldObject.creationTimeInTicks);
 
 				if (time > 0) player.say('${Math.ceil(time)} seconds...', true);
+				player.message = 'is wounded';
 				return false;
 			}
 		}
@@ -335,6 +344,7 @@ class TransitionHelper {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} kill mode deactivated try again!');
 			helper.sendUpdateToClient();
 			player.killMode = false;
+			player.message = 'kill mode';
 			return false;
 		}
 		if (ServerSettings.AllyStrenghTooLowForPickup > 0) {
@@ -344,6 +354,7 @@ class TransitionHelper {
 			{
 				player.say('Too many hostile people...', true);
 				helper.sendUpdateToClient();
+				player.message = 'Too many hostile people';
 				return false;
 			}
 		}
@@ -353,6 +364,7 @@ class TransitionHelper {
 			if (countHumans >= ServerSettings.MaxPlayersBeforeForbidTouchGrave) {
 				player.say('Its my grave...', true);
 				helper.sendUpdateToClient();
+				player.message = 'is own grave';
 				return false;
 			}
 		}
@@ -713,6 +725,7 @@ class TransitionHelper {
 			&& this.target.parentId != 391) {
 			// if (this.target.numberOfUses > 1 && player.age < 20) {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Not old enough to pickup stuff with more than one use!');
+			player.message = 'Not old enough';
 			return false;
 		}
 
@@ -727,6 +740,7 @@ class TransitionHelper {
 			player.say('I am $neededAge years too young', true);
 			if (ServerSettings.DebugTransitionHelper)
 				trace('TRANS: ${player.name + player.id} USE: Too low age to use: target.minPickupAge: ${tileObjectData.minPickupAge} player.age: ${player.age}');
+			player.message = 'Not old enough to use';
 			return false;
 		}
 
@@ -742,12 +756,16 @@ class TransitionHelper {
 		// if (deadlyDistance > 1.9 && this.target.id != 0 && player.isCloseUseExact(this.target.tx, this.target.ty, 1.5)) {
 		if (deadlyDistance > 1.9 && this.target.isAnimal() && player.isCloseUseExact(this.target.tx, this.target.ty, 1.5)) {
 			player.say('Too close...');
+			player.message = 'too close';
 			return false;
 		}
 
 		// give (not domestic) animal a chance to escape
 		if (deadlyDistance > 0 && this.target.isAnimal() && this.target.isDomesticAnimal() == false) {
-			if (TimeHelper.TryAnimaEscape(this.player, this.target)) return false;
+			if (TimeHelper.TryAnimaEscape(this.player, this.target)) {
+				player.message = 'animal escaped';
+				return false;
+			}
 		}
 
 		var oldEnoughForTransitions = this.tileObjectData.minPickupAge <= player.age
@@ -773,13 +791,18 @@ class TransitionHelper {
 		if (oldEnoughForTransitions && this.doTransitionIfPossible(containerIndex)) return true;
 
 		// do nothing if tile Object is empty
-		if (this.target.id == 0) return false;
+		if (this.target.id == 0) {
+			player.message = 'no target';
+			return false;
+		}
 
 		// do pickup if hand is empty
 		if (oldEnoughForPickup && this.player.heldObject.id == 0 && this.swapHandAndFloorObject()) return true;
 
 		// do container stuff
 		if (oldEnoughForPickup && this.doContainerStuff(false, containerIndex)) return true;
+
+		player.message = 'nothing found to do';
 
 		return false;
 	}
@@ -856,7 +879,10 @@ class TransitionHelper {
 
 		// check if you can use on item in container
 		if (containerIndex >= 0) {
-			if (this.target.containedObjects.length < containerIndex + 1) return false;
+			if (this.target.containedObjects.length < containerIndex + 1) {
+				player.message = 'container index not found';
+				return false;
+			}
 
 			originaltarget = this.target;
 			originalTileObjectData = this.tileObjectData;
@@ -934,6 +960,7 @@ class TransitionHelper {
 				if (objData.floor && this.floorId != 0 && (this.floorId != 3290 || objData.id == 3290)) {
 					trace('TRANS: ${player.name + player.id} Special: Cannot place another floor on existing floor except Pine Floor!');
 					player.say('There is a floor already!', true);
+					player.message = 'There is a floor already';
 					return false;
 				}
 
@@ -993,6 +1020,7 @@ class TransitionHelper {
 		if (transition.reverseUseActor && this.player.heldObject.numberOfUses >= newActorObjectData.numUses) {
 			if (ServerSettings.DebugTransitionHelper)
 				trace('TRANS: ${player.name + player.id} Actor: numberOfUses >= newTargetObjectData.numUses: ${this.player.heldObject.numberOfUses} ${newActorObjectData.numUses}');
+			player.message = 'actor: cannot increase used above max';
 			return false;
 		}
 
@@ -1011,6 +1039,7 @@ class TransitionHelper {
 				if (ServerSettings.DebugTransitionHelper)
 					trace('TRANS: ${player.name + player.id} Cannot do reverse transition for taget: ${this.target.name} numberOfUses: ${this.target.numberOfUses} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
 
+				player.message = 'target: cannot increase used above max';
 				return false;
 			}
 
@@ -1030,6 +1059,7 @@ class TransitionHelper {
 			&& (this.floorId != 3290 || newTargetObjectData.id == 3290)) {
 			trace('TRANS: ${player.name + player.id} Cannot place another floor on existing floor except Pine Floor!');
 			player.say('There is a floor already!', true);
+			player.message = 'there is floor already';
 			return false;
 		}
 
@@ -1039,6 +1069,7 @@ class TransitionHelper {
 		if (containerSlotSize >= 0 && (newTargetObjectData.containable == false || newTargetObjectData.containSize > containerSlotSize)) {
 			if (ServerSettings.DebugTransitionHelper)
 				trace('TRANS: ${player.name + player.id} Result ${newTargetObjectData.description} does not fit in container: containable: ${newTargetObjectData.containable} containSize: ${newTargetObjectData.containSize} > containerSlotSize: $containerSlotSize');
+			player.message = 'result does not fit in container';
 			return false;
 		}
 
@@ -1047,6 +1078,7 @@ class TransitionHelper {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newTargetObjectData.name} cannot be placed on floor');
 
 			player.say('Cannot be placed on floor!', true);
+			player.message = 'cannot be placed on floor';
 			return false;
 		}
 
@@ -1061,6 +1093,7 @@ class TransitionHelper {
 					trace('TRANS: ${player.name + player.id} ${player.heldObject.name} must have max uses ${heldUses} < ${numUses}');
 
 				player.say('Must be full!', true);
+				player.message = 'actor must be full';
 
 				return false;
 			}
@@ -1077,6 +1110,7 @@ class TransitionHelper {
 				trace('TRANS: ${player.name + player.id} Target ${target.name} must have max uses ${uses} < ${numUses}');
 
 				player.say('Missing ${numUses - uses}', true);
+				player.message = 'target us not full';
 
 				return false;
 			}
@@ -1092,6 +1126,7 @@ class TransitionHelper {
 				trace('TRANS: ${player.name + player.id} new target : containedObj ${numberContainedObj} < Slots: ${newNumSlots} TRUE isPickup? ${transition.isPickupOrDrop}');
 			player.say('empty first', true);
 			player.doEmote(Emote.sad);
+			player.message = 'container must be empty';
 			return false;
 		}
 
@@ -1105,6 +1140,7 @@ class TransitionHelper {
 
 		if (missingCoins > 0) {
 			player.say('Missing ${missingCoins} coins!', true);
+			player.message = 'need more coins';
 			return false;
 		}
 
@@ -1142,6 +1178,7 @@ class TransitionHelper {
 				if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Player is not owner of ${target.description}!');
 				if (hungryWorkCost < 1) {
 					player.say('The owner is ${owner.name}', true);
+					player.message = 'player it not the owner';
 					return false;
 				}
 			}
@@ -1157,7 +1194,7 @@ class TransitionHelper {
 				var message = 'Too hot!';
 				player.say(message, true);
 				player.doEmote(Emote.yellowFever);
-				player.useFailedReason = message;
+				//player.useFailedReason = message;
 				return false;
 			}*/
 			// var excessExhaustion = Math.ceil(player.exhaustion - (player.food_store_max + 1));
@@ -1167,7 +1204,8 @@ class TransitionHelper {
 
 				player.say(message, true);
 				player.doEmote(Emote.homesick);
-				player.useFailedReason = message;
+				// player.useFailedReason = message;
+				player.message = 'too exhausted';
 				return false;
 			}
 			if (missingFood > 0) {
@@ -1177,9 +1215,11 @@ class TransitionHelper {
 
 				player.say(message, true);
 				player.doEmote(Emote.homesick);
-				player.useFailedReason = message;
+				// player.useFailedReason = message;
+				player.message = 'need more food';
 				return false;
 			}
+
 			player.heat += hungryWorkTemperature;
 			if (player.heat > 1) player.heat = 1;
 			hungryWorkCost /= 2; // half for exhaustion
@@ -1281,11 +1321,15 @@ class TransitionHelper {
 					player.heldObject.containedObjects = [];
 					trace('TRANS: ${player.name + player.id} WARNING TRANS: held object is empty and contains something!' + player.heldObject.toString());
 				}
-				else return false;
+				else {
+					player.message = 'new actor cannot contain objects';
+					return false;
+				}
 			}
 			if (target.containedObjects.length > newTargetObjectData.numSlots) {
 				if (ServerSettings.DebugTransitionHelper)
 					trace('TRANS: ${player.name + player.id} New target can only contain ${newTargetObjectData.numSlots} but old target had ${target.containedObjects.length} contained objects!');
+				player.message = 'new target cannot contain objects';
 				return false;
 			}
 		}
@@ -1294,16 +1338,19 @@ class TransitionHelper {
 
 		if (newTargetObjectData.description.contains('+biomeReq4') && biome != 4) {
 			player.say('needs snow biome', true);
+			player.message = 'needs snow biome';
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} needs ice biome!');
 			return false;
 		}
 		else if (newTargetObjectData.description.contains('+biomeReq6') && biome != 6) {
 			player.say('needs jungle', true);
+			player.message = 'needs jungle';
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} needs jungle biome!');
 			return false;
 		}
 		else if (newTargetObjectData.description.contains('+biomeBlock4') && biome == 4) {
 			player.say('is blocked by snow', true);
+			player.message = 'is blocked by snow';
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} is blocked by ice!');
 			return false;
 		}
@@ -1313,6 +1360,8 @@ class TransitionHelper {
 			&& (this.target.id == 292 || this.target.id == 1605)) {
 			// TODO implement hidden containers so that cointainers can be put on top of containers
 			var text = 'TRANS: ${player.name + player.id} ${player.heldObject.name} + ${this.target.name} ${this.target.toArray()} NOT SUPPORTET YET!';
+
+			player.message = 'basket contains objects';
 
 			trace(text);
 			throw new Exception(text);
@@ -1332,6 +1381,7 @@ class TransitionHelper {
 		// if(transition.actorID != transition.newActorID) this.pickUpObject = true; // TODO does error for bow animation but may be needed for other animations?
 		if (newTargetObjectData.unreleased || transition.isForbidden) {
 			if (newTargetObjectData.unreleased) this.player.say('${newTargetObjectData.name} is not for this world!', true);
+			player.message = 'not for this world';
 			return false;
 		}
 		// Arrow and Bow + Arrow Quiver = false;

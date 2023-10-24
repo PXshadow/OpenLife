@@ -8609,7 +8609,7 @@ abstract class AiBase {
 
 			// if (ServerSettings.DebugAi)
 			if (age > 3)
-				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use failed! held: ${heldObject.name} expected: ${useActor.name} uses: ${useActor.numberOfUses} Ignore: ${target.name} expected: ${expectedUseTargetName}  foodStore: ${foodStore} heat: ${heat}');
+				trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: Use failed! held: ${heldObject.name} expected: ${useActor.name} uses: ${useActor.numberOfUses} Ignore: ${target.name} expected: ${expectedUseTargetName}  foodStore: ${foodStore} heat: ${heat} ${myPlayer.message}');
 			// TODO check why use is failed... for now add to ignore list
 			// TODO dont use on contained objects if result cannot contain (ignore in crafting search)
 			// TODO check if failed because of hungry work
@@ -8618,11 +8618,11 @@ abstract class AiBase {
 			itemToCraft.transActor = null;
 			itemToCraft.transTarget = null;
 			// TODO check in advance
-			if (myPlayer.useFailedReason == 'Too hot!') {
+			if (myPlayer.message == 'Too hot!') {
 				isHandlingTemperature = true;
 				return handleTemperature();
 			}
-			if (myPlayer.useFailedReason.contains('food')) {
+			if (myPlayer.message.contains('food')) {
 				isHungry = true;
 				return true;
 			}
