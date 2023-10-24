@@ -1335,7 +1335,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (foodCount > ServerSettings.MaxHasEatenForNextGeneration) foodCount = ServerSettings.MaxHasEatenForNextGeneration;
 			child.hasEatenMap[food] = foodCount;
 
-			trace('Inherit from: ${fromPlayer.name} GP?: $inheritFromGrandparents food: ${GetName(food)} value: ${Math.round(foodCount * 10) / 10}');
+			// trace('Inherit from: ${fromPlayer.name} GP?: $inheritFromGrandparents food: ${GetName(food)} value: ${Math.round(foodCount * 10) / 10}');
 		}
 	}
 
@@ -4586,7 +4586,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			else trace('COMBAT: HIT weaponDamage2: $orgDamage damage: $damage moskitoDamageFactor: $moskitoDamageFactor');
 		}
 
-		if (doesRealDamage) trace('Real Damage!');
+		// if (doesRealDamage) trace('Real Damage!');
 
 		if (targetPlayer.woundedBy == 0 || doesRealDamage) targetPlayer.woundedBy = fromObj.id;
 		var longWeaponCoolDown = false;

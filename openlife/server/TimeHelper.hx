@@ -1687,7 +1687,7 @@ class TimeHelper {
 
 		Connection.SendMapUpdateToAllClosePlayers(x, y);
 
-		trace('decay object: ${objData.name} $objId');
+		// trace('decay object: ${objData.name} $objId');
 	}
 
 	// TODO find a better way to respawn this stuff???

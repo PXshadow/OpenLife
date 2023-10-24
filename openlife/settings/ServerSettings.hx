@@ -3396,6 +3396,21 @@ class ServerSettings {
 		// var trans = transitions.getTransition(677, 661); // Bowl of Plaster 677  + Stone Pile 661
 		// trans.aiShouldIgnore = true;
 
+		// Steel Adze 462
+		var transBy = TransitionImporter.GetTransitionByActor(462);
+		for (trans in transBy) {
+			// Two Shafts
+			if (trans.targetID == 557) continue;
+			// Butt Log 345
+			if (trans.targetID == 156) continue;
+			// Mallet 467
+			if (trans.targetID == 154) continue;
+			// Broken Hand Cart 846
+			if (trans.targetID == 846) continue;
+
+			trans.aiShouldIgnore = true;
+		}
+
 		// Bowl of Plaster 677
 		var transByTarget = TransitionImporter.GetTransitionByActor(677);
 		for (trans in transByTarget) {
