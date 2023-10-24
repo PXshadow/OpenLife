@@ -5623,6 +5623,12 @@ abstract class AiBase {
 		// if (foodTarget != null) return false;
 		if (myPlayer.food_store < 0) return false;
 
+		// Rattle Snake 764
+		if (animal != null && animal.parentId == 764) {
+			// Try kill some Rattle Snake // Knife 560 + Rattle Snake 764
+			if (shortCraft(560, 764, 10)) return true;
+		}
+
 		var bowAndArrow = ObjectData.getObjectData(152); // Bow and Arrow
 		if (myPlayer.age < bowAndArrow.minPickupAge) return false;
 
@@ -5684,8 +5690,14 @@ abstract class AiBase {
 		if (hasOrBecomeProfession('HUNTER', maxPeople) == false) return false;
 		var quadDistanceToHome = myPlayer.CalculateQuadDistanceToObject(myPlayer.home);
 		if (quadDistanceToHome < 400) {
+			// Try kill some Rattle Snake // Knife 560 + Rattle Snake 764
+			if (shortCraft(560, 764, 20)) return true;
+
 			// Try kill some Mosquito // Firebrand + Mosquito Swarm just bit --> 0 + Ashes
 			if (shortCraft(248, 2157, 20)) return true;
+
+			// Try kill some Mosquito // Firebrand + Mosquito Swarm --> 0 + Ashes
+			if (shortCraft(248, 2156, 20)) return true;
 		}
 
 		return false;
