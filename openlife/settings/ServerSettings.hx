@@ -1213,10 +1213,14 @@ class ServerSettings {
 		ObjectData.getObjectData(861).speedMult = 0.85; // // Old Hand Cart
 		ObjectData.getObjectData(2172).speedMult = 0.9; // Hand Cart with Tires
 
-		ObjectData.getObjectData(253).reducesLongingFor = 31; // BOWL OF GOOSEBERRIES 253 -->  Gooseberry 31
+		ObjectData.getObjectData(253).reducesLongingFor = 31; // BOWL OF GOOSEBERRIES 253 --> Gooseberry 31
 		ObjectData.getObjectData(31).higherQaulityFood = 253; // Gooseberry 31 --> BOWL OF GOOSEBERRIES 253
 		ObjectData.getObjectData(272).reducesLongingFor = 253; // Cooked Berry Pie 272 --> BOWL OF GOOSEBERRIES 253
 		ObjectData.getObjectData(253).higherQaulityFood = 272; // BOWL OF GOOSEBERRIES 253 --> Cooked Berry Pie 272
+
+		// TODO treat popcorn same as bowl of popcorn
+		ObjectData.getObjectData(1121).reducesLongingFor = 4895; // Bowl of Popcorn 1121 --> Popcorn
+		ObjectData.getObjectData(4895).higherQaulityFood = 1121; // Popcorn --> Bowl of Popcorn 1121
 
 		ObjectData.getObjectData(402).reducesLongingFor = 40; // Carrot 402 -->  Wild Carrot 40
 		ObjectData.getObjectData(40).higherQaulityFood = 402;
