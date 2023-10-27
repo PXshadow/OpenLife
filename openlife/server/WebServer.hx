@@ -142,7 +142,7 @@ class WebServer {
 			if (account.totalScore < 5) continue;
 
 			newAccountsText += '<tr>';
-			newAccountsText += '<td>${account.id}</td>';
+			newAccountsText += '<td>${generateAccountName(account.id)}</td>';
 			newAccountsText += '<td>${account.totalScore}</td>';
 			newAccountsText += '<td>${Math.floor(account.femaleScore)}</td>';
 			newAccountsText += '<td>${Math.floor(account.maleScore)}</td>';
@@ -152,6 +152,16 @@ class WebServer {
 		newAccountsText += '</table></center';
 		accountsText = '<br><br><center>Score: count: ${count} human: ${countHuman}\n\n<table>\n<tr><td><b>ID</b></td><td><b>Prestige</b></td><td><b>Female Prestige</b></td><td><b>Male Prestige</b></td><td><b>Coins</b></td></tr>\n';
 		accountsText += newAccountsText;
+	}
+
+	public function generateAccountName(id:Int):String {
+		var length = NamingHelper.MaleNamesArray.length;
+		var index = WorldMap.RandomIntFromSeed(length, id * 100 + id + 42);
+		var name = NamingHelper.MaleNamesArray[index];
+
+		var index = (id * 100 + id + 9973) % NamingHelper.FemaleNamesArray.length;
+		name += ' ' + NamingHelper.FemaleNamesArray[index];
+		return name;
 	}
 
 	public function generateLineageStatistics() {

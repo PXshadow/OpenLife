@@ -11,8 +11,8 @@ using StringTools;
 class NamingHelper {
 	private static var FemaleNames = new Map<String, Map<String, String>>();
 	private static var MaleNames = new Map<String, Map<String, String>>();
-	private static var FemaleNamesArray = new Array<String>();
-	private static var MaleNamesArray = new Array<String>();
+	public static var FemaleNamesArray = new Array<String>();
+	public static var MaleNamesArray = new Array<String>();
 
 	public static function GetRandomName(female:Bool):String {
 		var names = female ? FemaleNamesArray : MaleNamesArray;
@@ -76,7 +76,8 @@ class NamingHelper {
 
 				foundNewFamily = true;
 			}
-		} else if (targetPlayer.name != ServerSettings.StartingName) return text;
+		}
+		else if (targetPlayer.name != ServerSettings.StartingName) return text;
 
 		/*
 			var strings = text.split(' ');
@@ -156,7 +157,8 @@ class NamingHelper {
 			}
 
 			targetPlayer.lineage.setFamilyName(name); // check if used
-		} else {
+		}
+		else {
 			// check if name is used
 			/*
 				for(c in Connection.getConnections())
@@ -194,7 +196,8 @@ class NamingHelper {
 					p.connection.sendNameToAll();
 				}
 			}
-		} else {
+		}
+		else {
 			// only one name changed
 			targetPlayer.connection.sendNameToAll();
 		}

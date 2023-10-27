@@ -226,6 +226,11 @@ class WorldMap {
 		setObjectId(tx - 11, ty + 7, [3371, 1251, 1251, 245]);
 	}
 
+	public static function RandomIntFromSeed(x:Int = MAX_NUM, newSeed:Int):Int {
+		var newSeed = Std.int((newSeed * MULTIPLIER) % MODULUS);
+		return Math.floor(newSeed / MODULUS * (x + 1));
+	}
+
 	private function generateSeed():Int {
 		return seed = Std.int((seed * MULTIPLIER) % MODULUS);
 	}
