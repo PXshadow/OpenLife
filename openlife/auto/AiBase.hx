@@ -1351,11 +1351,13 @@ abstract class AiBase {
 			return false;
 		}
 
-		if (myPlayer.food_store < trans.totalHungryWorkCost()) {
+		var cost = trans.totalHungryWorkCost();
+
+		if (cost > 0 && myPlayer.food_store < cost + 1) {
 			// if (shouldDebugSay())
-			myPlayer.say('need more food');
+			// myPlayer.say('need more food');
 			// if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} need more food ${GetName(actorId)} + ${GetName(targetId)}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} need more food f: ${Math.floor(myPlayer.food_store * 10) / 10} cost: ${cost} ${GetName(actorId)} + ${GetName(targetId)}');
 			return false;
 		}
 		return true;
