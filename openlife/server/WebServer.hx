@@ -133,8 +133,25 @@ class WebServer {
 		var count = 0;
 		var countHuman = 0;
 		var newAccountsText = '';
+		var accountList = new Array<PlayerAccount>();
 
 		for (account in PlayerAccount.AllPlayerAccountsById) {
+			count++;
+
+			if (account.isAi) continue;
+			if (account.isAi == false) countHuman++;
+			if (account.totalScore < 5) continue;
+
+			accountList.push(account);
+		}
+
+		accountList.sort(function(a, b) {
+			if (a.totalScore < b.totalScore) return 1;
+			else if (a.totalScore > b.totalScore) return -1;
+			else return 0;
+		});
+
+		for (account in accountList) {
 			count++;
 
 			if (account.isAi) continue;
@@ -304,7 +321,7 @@ class WebServer {
 		// var text = '<!DOCTYPE html>\n<html>\n<head>\n<title>Open Life Reborn</title>\n</head>\n<body>\n<h1>Welcome to Open Life Reborn!</h1><p>Currently Playing: ${count}</p>\n</body>\n</html>';
 		var text = welcomeText;
 		// text = text.replace('</ul>', '</ul>\n<p>Currently Playing: ${count}</p>');
-		text = text.replace('</body>', '${accountsText}\n${livingPlayerText}\n${foodText}\n${lineageText}\n</body>');
+		text = text.replace('</body>', '${livingPlayerText}\n${accountsText}\n${foodText}\n${lineageText}\n</body>');
 
 		var message = 'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Encoding: UTF-8\r\nContent-Length: ${text.length}\r\n\r\n${text}';
 		// var message = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Encoding: UTF-8\nContent-Length: ${text.length}\nDate: Wed, 28 Jun 2023 22:36:00 GMT+02:00\n\n<!DOCTYPE html>\n<html>\n<head>\n    <title>Example</title>\n</head>\n<body>\n    <h1>Hello World!</h1>\n</body>\n</html>";
