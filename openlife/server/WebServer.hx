@@ -24,6 +24,7 @@ class WebServer {
 	var livingPlayerText:String = null;
 	var lineageText:String = 'Loading Lineages...<br>\n';
 	var foodText:String = 'Loading Food Statistics...<br>\n';
+	var accountsText:String = 'Loading account scores<br>\n';
 
 	public static function Start() {
 		var webServer = new WebServer();
@@ -126,6 +127,31 @@ class WebServer {
 		if (color == 3) return "#008000"; // Green
 		if (color == 4) return "#808080"; // Grey
 		return "#FFFFFF"; // White
+	}
+
+	public function generateAccountStatistics() {
+		var count = 0;
+		var countHuman = 0;
+		var newAccountsText = '';
+
+		for (account in PlayerAccount.AllPlayerAccountsById) {
+			count++;
+
+			if (account.isAi) continue;
+			if (account.isAi == false) countHuman++;
+			if (account.totalScore < 5) continue;
+
+			newAccountsText += '<tr>';
+			newAccountsText += '<td>${account.id}</td>';
+			newAccountsText += '<td>${account.totalScore}</td>';
+			newAccountsText += '<td>${Math.floor(account.femaleScore)}</td>';
+			newAccountsText += '<td>${Math.floor(account.maleScore)}</td>';
+			newAccountsText += '<td>${Math.floor(account.coinsInherited)}</td>';
+			newAccountsText += '</tr>\n';
+		}
+		newAccountsText += '</table></center';
+		accountsText = '<br><br><center>Score: count: ${count} human: ${countHuman}\n\n<table>\n<tr><td><b>ID</b></td><td><b>Prestige</b></td><td><b>Female Prestige</b></td><td><b>Male Prestige</b></td><td><b>Coins</b></td></tr>\n';
+		accountsText += newAccountsText;
 	}
 
 	public function generateLineageStatistics() {
@@ -263,11 +289,12 @@ class WebServer {
 		Macro.exception(createCurrentlyPlayingStatistics());
 		Macro.exception(generateLineageStatistics());
 		Macro.exception(generateFoodStatistics());
+		Macro.exception(generateAccountStatistics());
 
 		// var text = '<!DOCTYPE html>\n<html>\n<head>\n<title>Open Life Reborn</title>\n</head>\n<body>\n<h1>Welcome to Open Life Reborn!</h1><p>Currently Playing: ${count}</p>\n</body>\n</html>';
 		var text = welcomeText;
 		// text = text.replace('</ul>', '</ul>\n<p>Currently Playing: ${count}</p>');
-		text = text.replace('</body>', '${livingPlayerText}\n${foodText}\n${lineageText}\n</body>');
+		text = text.replace('</body>', '${accountsText}\n${livingPlayerText}\n${foodText}\n${lineageText}\n</body>');
 
 		var message = 'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Encoding: UTF-8\r\nContent-Length: ${text.length}\r\n\r\n${text}';
 		// var message = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Encoding: UTF-8\nContent-Length: ${text.length}\nDate: Wed, 28 Jun 2023 22:36:00 GMT+02:00\n\n<!DOCTYPE html>\n<html>\n<head>\n    <title>Example</title>\n</head>\n<body>\n    <h1>Hello World!</h1>\n</body>\n</html>";
