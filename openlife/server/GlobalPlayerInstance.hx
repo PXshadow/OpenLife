@@ -1454,7 +1454,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			var fatherName = p.potentialMate != null ? ${p.potentialMate.name} : '';
 			tmpFitness += fatherFitness / 2;
 
-			trace('Spawn As Child: ${p.name} ${p.familyName} MFitness: ${Math.round(tmpFitness * 10) / 10} $fatherName VFitness: ${Math.round(fatherFitness * 10) / 10}');
+			// trace('Spawn As Child: ${p.name} ${p.familyName} MFitness: ${Math.round(tmpFitness * 10) / 10} $fatherName VFitness: ${Math.round(fatherFitness * 10) / 10}');
 			// trace('Spawn As Child: ${child.account.email} Fitness: ${Math.round(tmpFitness * 10) / 10} ${p.name} ${p.familyName}');
 
 			if (tmpFitness > fitness || mother == null) {
