@@ -1446,7 +1446,8 @@ abstract class AiBase {
 		if (myPlayer.age > 50) this.lastProfession = 'GRAVEKEEPER';
 
 		// Basket of Bones 356
-		if (shortCraft(0, 356, searchDistance)) return true;
+		// if (shortCraft(0, 356, searchDistance)) return true;
+		if (PickupItem(356)) return true;
 
 		var grave = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, graveIdsToDigIn, searchDistance, myPlayer);
 		if (grave == null) return false;
