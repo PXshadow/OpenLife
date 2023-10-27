@@ -1144,6 +1144,7 @@ class TransitionHelper {
 			return false;
 		}
 
+		// TODO move hungry work calculation fully to TransitionData
 		// var hungryWorkCost = Math.max(parentActorObjectData.hungryWork, newParentTargetObjectData.hungryWork);
 		var hungryWorkCost = parentActorObjectData.hungryWork + newParentTargetObjectData.hungryWork;
 		hungryWorkCost += transition.hungryWorkCost;

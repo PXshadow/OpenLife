@@ -1325,12 +1325,39 @@ abstract class AiBase {
 		if (this.isObjectNotReachable(target.tx, target.ty)) return false;
 		if (this.isObjectWithHostilePath(target.tx, target.ty)) return false;
 
+		if (checkHungryWorkCost(myPlayer.heldObject, target) == false) return false;
+
 		this.useTarget = target;
 		this.expectedUseTarget = target.objectData;
 		this.useActor = new ObjectHelper(null, myPlayer.heldObject.parentId);
 		this.useActor.tx = target.tx;
 		this.useActor.ty = target.ty;
 
+		return true;
+	}
+
+	private function checkHungryWorkCost(actor:ObjectHelper, target:ObjectHelper):Bool {
+		return checkHungryWorkCostById(actor.parentId, target.parentId);
+	}
+
+	private function checkHungryWorkCostById(actorId:Int, targetId:Int):Bool {
+		var trans = TransitionImporter.GetTransition(actorId, targetId);
+
+		if (trans == null) {
+			// if (shouldDebugSay())
+			myPlayer.say('could not find ${GetName(actorId)} + ${GetName(targetId)}');
+			// if (ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: could not find ${GetName(actorId)} + ${GetName(targetId)}');
+			return false;
+		}
+
+		if (myPlayer.food_store < trans.totalHungryWorkCost()) {
+			// if (shouldDebugSay())
+			myPlayer.say('need more food');
+			// if (ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} need more food ${GetName(actorId)} + ${GetName(targetId)}');
+			return false;
+		}
 		return true;
 	}
 
@@ -2592,6 +2619,8 @@ abstract class AiBase {
 		var home = myPlayer.home;
 		var targetId = target.parentId;
 		var heldId = myPlayer.heldObject.parentId;
+
+		if (checkHungryWorkCostById(actorId, target.parentId) == false) return false;
 
 		// Skewer 139 --> Weak Skewer 852 FIX: making new Skewer if there are tons of Week ones
 		if (actorId == 139 && shortCraftOnTarget(852, target, false, maxNewActor)) return true;

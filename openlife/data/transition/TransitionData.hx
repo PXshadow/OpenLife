@@ -1,5 +1,6 @@
 package openlife.data.transition;
 
+import openlife.resources.ObjectBake;
 import openlife.data.object.ObjectData;
 import openlife.server.WorldMap;
 import openlife.settings.ServerSettings;
@@ -162,6 +163,15 @@ class TransitionData {
 		// if(timeTransition.targetID == 2992) trace('TIME33:  ${timeTransition.targetID} ${timeToChange}');
 
 		return timeToChange;
+	}
+
+	public function totalHungryWorkCost():Float {
+		var actorData = ObjectData.getObjectData(this.actorID);
+		var targetData = ObjectData.getObjectData(this.newTargetID);
+
+		var cost = actorData.hungryWork + targetData.hungryWork;
+		cost += this.hungryWorkCost;
+		return cost;
 	}
 
 	public function toString():String {
