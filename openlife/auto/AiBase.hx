@@ -8806,7 +8806,7 @@ abstract class AiBase {
 		return notReachable;
 	}
 
-	private function shouldDebugSay() {
+	public function shouldDebugSay() {
 		return debugSay || ServerSettings.DebugAiSay;
 	}
 

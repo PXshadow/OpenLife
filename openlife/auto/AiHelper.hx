@@ -821,6 +821,9 @@ class AiHelper {
 		if (blockedByAnimal) ai.addHostilePath(tx, ty);
 		else ai.addNotReachable(tx, ty);
 
+		if (ai.shouldDebugSay()) ai.myPlayer.say('Cannot Goto blockedByAnimal: ${blockedByAnimal}!');
+		if (ServerSettings.DebugAi) trace('AAI: ${ai.myPlayer.name + ai.myPlayer.id} Cannot Goto blockedByAnimal: ${blockedByAnimal}');
+
 		// if(blockedByAnimal) trace('blockedByAnimal!!!');
 
 		ai.resetTargets();
@@ -1181,27 +1184,30 @@ class AiHelper {
 				if (considerAnimal == false) continue;
 
 				var obj = world.getObjectHelper(x, y, true);
-				if (obj != null && obj.isAnimal() && obj.objectData.damage > 0) {
-					// trace('Animal: ${obj.name}');
-					var moves = obj.objectData.moves;
-					var minYY = y - moves;
-					var minXX = x - moves;
-					var maxYY = y + moves + 1;
-					var maxXX = x + moves + 1;
-					if (minYY < minY) minYY = minY;
-					if (minXX < minX) minXX = minX;
-					if (maxYY > maxY) maxYY = maxY;
-					if (maxXX > maxX) maxXX = maxX;
 
-					for (yy in minYY...maxYY) {
-						for (xx in minXX...maxXX) {
-							var index = (xx - minX) + (yy - minY) * RAD * 2;
-							if (index < 0) trace('Animal: $index < ${vector.length} $x,$y => $xx,$yy');
-							if (index > vector.length - 1) trace('Animal: $index < ${vector.length} $x,$y => $xx,$yy');
-							if (index < 0) index = 0;
-							if (index > vector.length - 1) index = vector.length - 1;
-							vector[index] = true;
-						}
+				if (obj == null) continue;
+				if (playerInterface.isAnimalNotDeadlyForMe(obj)) continue;
+
+				// if (obj != null && obj.isAnimal() && obj.objectData.damage > 0) {
+				// trace('Animal: ${obj.name}');
+				var moves = obj.objectData.moves;
+				var minYY = y - moves;
+				var minXX = x - moves;
+				var maxYY = y + moves + 1;
+				var maxXX = x + moves + 1;
+				if (minYY < minY) minYY = minY;
+				if (minXX < minX) minXX = minX;
+				if (maxYY > maxY) maxYY = maxY;
+				if (maxXX > maxX) maxXX = maxX;
+
+				for (yy in minYY...maxYY) {
+					for (xx in minXX...maxXX) {
+						var index = (xx - minX) + (yy - minY) * RAD * 2;
+						if (index < 0) trace('Animal: $index < ${vector.length} $x,$y => $xx,$yy');
+						if (index > vector.length - 1) trace('Animal: $index < ${vector.length} $x,$y => $xx,$yy');
+						if (index < 0) index = 0;
+						if (index > vector.length - 1) index = vector.length - 1;
+						vector[index] = true;
 					}
 				}
 
@@ -1231,8 +1237,7 @@ class AiHelper {
 		return false;
 	}
 
-	public static function SearchTransitions(playerInterface:PlayerInterface, objectIdToSearch:Int,
-			ignoreHighTech:Bool = false):Map<Int, TransitionForObject> {
+	public static function SearchTransitions(playerInterface:PlayerInterface, objectIdToSearch:Int, ignoreHighTech:Bool = false):Map<Int, TransitionForObject> {
 		var world = playerInterface.getWorld();
 		var transitionsByObject = new Map<Int, TransitionData>();
 		var transitionsForObject = new Map<Int, TransitionForObject>();
