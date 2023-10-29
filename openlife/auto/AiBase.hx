@@ -8489,6 +8489,23 @@ abstract class AiBase {
 		this.dropIsAUse = false;
 	}
 
+	private function emptyContainer() {
+		if (useTarget.containedObjects.length < 1) return false;
+		var stored = useTarget.containedObjects[0];
+		var storedName = stored == null ? 'null' : stored.name;
+
+		if (dropHeldObject(10)) {
+			if (shouldDebugSay()) myPlayer.say('drop for remove from container');
+			// if (ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} drop ${myPlayer.heldObject.name} for remove from container ${useTarget.name} --> ${storedName}');
+			return true;
+		}
+		if (shouldDebugSay()) myPlayer.say('remove from container');
+		// if (ServerSettings.DebugAi)
+		trace('AAI: ${myPlayer.name + myPlayer.id} remove from container ${useTarget.name} --> ${storedName}');
+		return removeItemFromContainer(useTarget);
+	}
+
 	private function isUsingItem():Bool {
 		if (useTarget == null) return false;
 
@@ -8496,6 +8513,11 @@ abstract class AiBase {
 
 		var heldObject = myPlayer.heldObject;
 		var isHoldingObject = myPlayer.isHoldingObject();
+
+		if (emptyContainer()) {
+			CancleUse();
+			return true;
+		}
 
 		// check if target changed meanwhile like Fire --> Hot Coals
 		if (expectedUseTarget != null && useTarget.parentId != expectedUseTarget.parentId) {
@@ -8520,16 +8542,17 @@ abstract class AiBase {
 
 		// only allow to go on with use if right actor is in the hand, or if actor will be empty
 		if (heldObject.parentId != useActor.parentId) {
+			var useActorName = useActor == null ? 'null' : useActor.name;
 			if (useActor.parentId == 0) {
 				if (isHoldingObject && considerDropHeldObject(useTarget)) {
 					if (ServerSettings.DebugAi)
-						trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name} drop held!');
+						trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActorName} drop held!');
 					return true;
 				}
 			}
 			else {
 				if (ServerSettings.DebugAi)
-					trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActor.name}');
+					trace('AAI: ${myPlayer.name + myPlayer.id} Use: not the right actor! ${myPlayer.heldObject.name} expected: ${useActorName}');
 
 				CancleUse();
 				// dropTarget = itemToCraft.transActor;
