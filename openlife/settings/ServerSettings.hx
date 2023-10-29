@@ -3813,6 +3813,9 @@ class ServerSettings {
 		LimitTransitionIfMaxReached(559, 69, 500); // Steel Blade 559 + Short Shaft 69 // Knife 560
 		LimitTransitionIfMaxReached(69, 559, 500); // Short Shaft 69 + Steel Blade 559  // Knife 560
 
+		LimitTransitionIfMaxReached(443, 69, 441); // Smithing Hammer Head 443 + Short Shaft 69 // Smithing Hammer 441
+		LimitTransitionIfMaxReached(69, 443, 441); // Short Shaft 69 + Smithing Hammer Head 443  // Smithing Hammer 441
+
 		LimitTransitionIfMaxReached(124, 124, 292, 5); // Reed Bundle 124 + Reed Bundle 124 // Basket 292
 		LimitTransitionIfMaxReached(58, 124, 292, 5); // Thread 58 + Reed Bundle 124 // Basket 292
 		LimitTransitionIfMaxReached(58, 123, 292, 5); // Thread 58 + Harvested Tule 123 // Basket 292
