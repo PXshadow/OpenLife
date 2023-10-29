@@ -1127,6 +1127,11 @@ class TransitionHelper {
 			player.say('empty first', true);
 			player.doEmote(Emote.sad);
 			player.message = 'container must be empty';
+
+			for (obj in this.target.containedObjects) {
+				player.message += '' + obj.name;
+			}
+
 			return false;
 		}
 
