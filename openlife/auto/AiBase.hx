@@ -7553,9 +7553,25 @@ abstract class AiBase {
 				var objData = ObjectData.getObjectData(trans.newTargetID);
 				var closestObject = obj == null ? null : obj.closestObject;
 
-				if (obj != null && closestObject != null && closestObject.numberOfUses >= objData.numUses) {
-					// trace('Ignore transition since max numberOfUses is reached count: ${objData.name} ${closestObject.numberOfUses}: ${trans.getDescription()}');
+				if (closestObject != null && closestObject.numberOfUses >= objData.numUses) {
+					// trace('Ignore transition since max numberOfUses is reached ${objData.name} count: ${closestObject.numberOfUses}: ${trans.getDescription()}');
 					continue;
+				}
+			}
+
+			// ignore if target is not full. Like Stone + dry bean bowl
+			if (trans.targetMinUseFraction == 1 && trans.reverseUseTarget == false) {
+				var objData = ObjectData.getObjectData(trans.targetID);
+				var maxNumUses = objData.numUses;
+
+				if (maxNumUses > 1) {
+					var obj = transitionsByObjectId[trans.targetID];
+					var closestObject = obj == null ? null : obj.closestObject;
+
+					if (closestObject != null && closestObject.numberOfUses < maxNumUses) {
+						// trace('Ignore transition since object needs to be full: ${objData.name} count: ${closestObject.numberOfUses}: ${trans.getDescription()}');
+						continue;
+					}
 				}
 			}
 

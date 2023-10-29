@@ -1102,14 +1102,14 @@ class TransitionHelper {
 		// check if target has max number of uses
 		// if(transition.isTargetMaxUse && transition.reverseUseTarget == false){
 		if (transition.targetMinUseFraction == 1 && transition.reverseUseTarget == false) {
-			var numUses = target.objectData.numUses;
+			var maxNumUses = target.objectData.numUses;
 			var uses = target.numberOfUses;
 
-			if (numUses > 1 && uses < numUses) {
+			if (maxNumUses > 1 && uses < maxNumUses) {
 				// if (ServerSettings.DebugTransitionHelper)
-				trace('TRANS: ${player.name + player.id} Target ${target.name} must have max uses ${uses} < ${numUses}');
+				trace('TRANS: ${player.name + player.id} Target ${target.name} must have max uses ${uses} < ${maxNumUses}');
 
-				player.say('Missing ${numUses - uses}', true);
+				player.say('Missing ${maxNumUses - uses}', true);
 				player.message = 'target us not full';
 
 				return false;
