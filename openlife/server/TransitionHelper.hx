@@ -1129,7 +1129,7 @@ class TransitionHelper {
 			player.message = 'container must be empty';
 
 			for (obj in this.target.containedObjects) {
-				player.message += '' + obj.name;
+				player.message += ' ' + obj.name;
 			}
 
 			return false;
