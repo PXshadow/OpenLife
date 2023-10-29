@@ -411,6 +411,17 @@ abstract class AiBase {
 		// TODO only clean after move?
 		itemToCraft.clearAllCheachedObjects();
 
+		/*itemToCraft.maxSearchRadius = 30;
+			var count1 = countCurrentObject(292);
+			var count2 = countCurrentObject(441);
+			itemToCraft.maxSearchRadius = 60;
+
+			var obj1 = getClosestObjectById(292, 30);
+			var obj2 = GetOrCraftItem(292, false, 0, 30);
+
+			trace('basket: ${count1} hammer: ${count2} basket: ${obj1 != null} ${obj2}');
+		 */
+
 		// keep only last profession
 		cleanUpProfessions();
 
@@ -1344,6 +1355,13 @@ abstract class AiBase {
 		var trans = TransitionImporter.GetTransition(actorId, targetId);
 
 		if (trans == null) {
+			var targetObjData = ObjectData.getObjectData(targetId);
+			var canPlaceFloor = targetObjData.allowFloorPlacement;
+			// Pine Needles 96 // Boards 470 // Cut Stones 881
+			canPlaceFloor = canPlaceFloor && (actorId == 96 || actorId == 470 || actorId == 881);
+
+			if (canPlaceFloor) return true;
+
 			// if (shouldDebugSay())
 			myPlayer.say('could not find ${GetName(actorId)} + ${GetName(targetId)}');
 			// if (ServerSettings.DebugAi)
@@ -1955,6 +1973,7 @@ abstract class AiBase {
 		}
 
 		// var max = this.profession['BASICFARMER'] < 2 ? 3 : 1;
+		// Basket of Soil 336
 		if (craftItem(336)) return true;
 
 		return false;
@@ -3323,8 +3342,9 @@ abstract class AiBase {
 		this.mutex.release();
 
 		if (object == null) return count;
+		count += object.count;
 		// trace('countCurrentObject: ${objId} ${object.count}');
-		return count += object.count;
+		return count;
 	}
 
 	private function getClosestObjectById(objId:Int, distance = 30) {
@@ -3340,8 +3360,6 @@ abstract class AiBase {
 		if (objectList == null) return null;
 
 		var object = objectList.closestObject;
-
-		if (object == null) return null;
 
 		if (object == null) return null;
 
