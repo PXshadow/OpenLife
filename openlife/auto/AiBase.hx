@@ -8485,8 +8485,8 @@ abstract class AiBase {
 		if (expectedUseTarget != null && useTarget.parentId != expectedUseTarget.parentId) {
 			// Allow: Milkweed 50 // Flowering Milkweed 51 // Fruiting Milkweed 52
 			if (useTarget.parentId != 50 && useTarget.parentId != 51 && useTarget.parentId != 52) {
-				// if (ServerSettings.DebugAi)
-				trace('AAI: ${myPlayer.name + myPlayer.id} Use target changed! ${useTarget.name} expected: ${expectedUseTarget.name}');
+				if (ServerSettings.DebugAi)
+					trace('AAI: ${myPlayer.name + myPlayer.id} Use target changed! ${useTarget.name} expected: ${expectedUseTarget.name}');
 				CancleUse();
 				return false;
 			}
