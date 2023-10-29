@@ -2900,6 +2900,10 @@ class ServerSettings {
 		var trans = new TransitionData(517, 0, 852, 518);
 		transitions.addTransition("PatchTransitions: ", trans);
 
+		// Basket of Soil 336 + 0 --> Basket 292 + Fertile Soil Pile 1101
+		var trans = new TransitionData(336, 0, 292, 1101);
+		transitions.addTransition("PatchTransitions: ", trans);
+
 		// TODo needs client change
 		// var trans = new TransitionData(298, 317, 298, 316); // 298 Basket of Charcoal + 317 Crucible with Iron --> 298 +  316 Crucible with Iron and Charcoal
 		// transitions.addTransition("PatchTransitions: ", trans);
