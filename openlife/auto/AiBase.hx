@@ -7547,6 +7547,18 @@ abstract class AiBase {
 			// a oven needs 15 sec to warm up this is ok, but waiting for mushroom to grow is little bit too long!
 			if (trans.calculateTimeToChange() > ServerSettings.AiIgnoreTimeTransitionsLongerThen) continue;
 
+			// ignore if reverse use and max is already reached like Filling Bucket of Wheat
+			if (trans.reverseUseTarget) {
+				var obj = transitionsByObjectId[trans.newTargetID];
+				var objData = ObjectData.getObjectData(trans.newTargetID);
+				var closestObject = obj == null ? null : obj.closestObject;
+
+				if (obj != null && closestObject != null && closestObject.numberOfUses >= objData.numUses) {
+					// trace('Ignore transition since max numberOfUses is reached count: ${objData.name} ${closestObject.numberOfUses}: ${trans.getDescription()}');
+					continue;
+				}
+			}
+
 			// ignore transition if max of object is reached // like making new Clay Bowl
 			if (trans.ignoreIfMaxIsReachedObjectId > 0) {
 				var maxObj = transitionsByObjectId[trans.ignoreIfMaxIsReachedObjectId];
