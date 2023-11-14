@@ -7944,6 +7944,10 @@ abstract class AiBase {
 		trace('foundFamily: ${player.familyName} => ${newFamilyName}');
 
 		player.say('I AM ${newFamilyName}');
+
+		var rand = WorldMap.calculateRandomFloat();
+		var chance = ServerSettings.FoundFamilyBreakAllianceChance;
+		if (player.followPlayer != null && rand <= chance) player.say('I FOLLOW ME');
 	}
 
 	private function allyUp() {

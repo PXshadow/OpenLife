@@ -282,6 +282,7 @@ class ServerSettings {
 	public static var FoundFamilyNeededPrestige:Float = 50; // 100
 	public static var FoundFamilyNeededFollowers:Float = 4;
 	public static var FoundFamilyCost:Float = 10; // 100
+	public static var FoundFamilyBreakAllianceChance:Float = 0.5; // 100
 
 	// for animal movement
 	public static var ChanceThatAnimalsCanPassBlockingBiome:Float = 0.03;
