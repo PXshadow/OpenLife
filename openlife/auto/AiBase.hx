@@ -568,6 +568,7 @@ abstract class AiBase {
 		if (myPlayer.isMoving()) return;
 
 		Macro.exception(if (searchNewHomeIfNeeded()) return);
+		Macro.exception(foundFamily());
 		Macro.exception(allyUp());
 
 		// High priortiy takes
@@ -7916,6 +7917,33 @@ abstract class AiBase {
 		}
 
 		return false;
+	}
+
+	private function foundFamily() {
+		var player = cast(myPlayer, GlobalPlayerInstance);
+
+		var foundFamilyNeededPrestige = ServerSettings.FoundFamilyNeededPrestige;
+		var foundFamilyNeededFollowers = ServerSettings.FoundFamilyNeededFollowers;
+		var foundFamilyCost = ServerSettings.FoundFamilyCost;
+
+		if (player.lineage.myEveId == player.id) return;
+
+		var missing = Math.ceil(foundFamilyNeededPrestige - player.prestige);
+		if (missing > 0) return;
+
+		var countFollower = player.CountAndDisplayFollower(false, true); // Only same family
+		var missing = foundFamilyNeededFollowers - countFollower;
+		if (missing > 0) return;
+
+		var missing = Math.ceil(foundFamilyCost - player.coins);
+		if (missing > 0) return;
+
+		var newFamilyName = NamingHelper.GetFamilyNameFromList(player.familyName);
+		if (newFamilyName == null) return;
+
+		trace('foundFamily: ${player.familyName} => ${newFamilyName}');
+
+		player.say('I AM ${newFamilyName}');
 	}
 
 	private function allyUp() {

@@ -9,8 +9,11 @@ import sys.io.File;
 using StringTools;
 
 class NamingHelper {
+	private static var FamilyNames = new Map<String, Map<String, String>>();
 	private static var FemaleNames = new Map<String, Map<String, String>>();
 	private static var MaleNames = new Map<String, Map<String, String>>();
+
+	public static var FamilyNamesArray = new Array<String>();
 	public static var FemaleNamesArray = new Array<String>();
 	public static var MaleNamesArray = new Array<String>();
 
@@ -263,7 +266,11 @@ class NamingHelper {
 		return bestPlayer;
 	}
 
-	public static function GetNameFromList(newName:String, female:Bool):String {
+	public static function GetFamilyNameFromList(newName:String):String {
+		return GetNameFromList(newName, true, true);
+	}
+
+	public static function GetNameFromList(newName:String, female:Bool, family:Bool = false):String {
 		newName = newName.toUpperCase();
 		var index = newName.substr(0, 2);
 		var letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -283,7 +290,7 @@ class NamingHelper {
 			}
 
 			var map = female ? FemaleNames[index] : MaleNames[index];
-
+			if (family) map = FamilyNames[index];
 			if (map == null) {
 				trace('NAME: index: $index IS EMPTY');
 				continue;
@@ -291,7 +298,7 @@ class NamingHelper {
 
 			var name = map[newName];
 
-			if (name != null && isUsedName(name) == false) return name; // TODO save to a file if not in list so that they may be added
+			if (name != null && isUsedName(name, family) == false) return name; // TODO save to a file if not in list so that they may be added
 
 			for (ii in 1...newName.length - 1) {
 				var testName = newName.substr(0, newName.length - ii);
@@ -300,7 +307,7 @@ class NamingHelper {
 
 				for (n in map) {
 					if (StringTools.startsWith(n, testName) || StringTools.contains(n, testName)) {
-						if (isUsedName(name) == false) return n;
+						if (isUsedName(name, family) == false) return n;
 					}
 				}
 			}
@@ -309,16 +316,20 @@ class NamingHelper {
 		return null;
 	}
 
-	private static function isUsedName(name:String):Bool {
+	private static function isUsedName(name:String, family:Bool = false):Bool {
 		for (p in GlobalPlayerInstance.AllPlayers) {
 			if (p.isDeleted()) continue;
-			if (p.name == name) return true;
+			if (family) {
+				if (p.familyName == name) return true;
+			}
+			else if (p.name == name) return true;
 		}
 
 		return false;
 	}
 
 	public static function ReadNames():Bool {
+		var result1 = ReadFamilyNames();
 		var result1 = ReadNamesByGender(true);
 		var result2 = ReadNamesByGender(false);
 
@@ -327,7 +338,11 @@ class NamingHelper {
 		return result1 && result2;
 	}
 
-	public static function ReadNamesByGender(female:Bool):Bool {
+	public static function ReadFamilyNames():Bool {
+		return ReadNamesByGender(true, true);
+	}
+
+	public static function ReadNamesByGender(female:Bool, family:Bool = false):Bool {
 		var reader = null;
 		var count = 0;
 
@@ -335,8 +350,15 @@ class NamingHelper {
 			// var rtti = haxe.rtti.Rtti.getRtti(ServerSettings);
 			var dir = './';
 			dir += female ? "femaleNames.txt" : "maleNames.txt";
+			if (family) dir = "./lastNames.txt";
+
 			var nameMap = female ? FemaleNames : MaleNames;
 			var nameArray = female ? FemaleNamesArray : MaleNamesArray;
+
+			if (family) {
+				nameMap = FamilyNames;
+				nameArray = FamilyNamesArray;
+			}
 
 			reader = File.read(dir, false);
 
