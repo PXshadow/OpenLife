@@ -7928,6 +7928,9 @@ abstract class AiBase {
 
 		if (player.lineage.myEveId == player.id) return;
 
+		// found only new family if different color than leader
+		if (player.followPlayer != null && player.followPlayer.getColor() == player.getColor()) return;
+
 		var missing = Math.ceil(foundFamilyNeededPrestige - player.prestige);
 		if (missing > 0) return;
 
