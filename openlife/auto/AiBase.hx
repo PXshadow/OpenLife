@@ -5137,6 +5137,10 @@ abstract class AiBase {
 
 		// Stone Hoe 850 // if maxDistanceToHome is low dont do other stuff since its important to drop
 		if (heldObjId == 850 && myPlayer.food_store > 3 && maxDistanceToHome > 5) {
+			var count = countCurrentObject(292); // Basket 292
+
+			// Stone Hoe 850 + Basket 292
+			if (count > 6 && shortCraft(850, 292, 15)) return true;
 			// Stone Hoe 850 + Shallow Tilled Row 1136 --> Deep Tilled Row 213
 			if (shortCraft(850, 1136, 15)) return true;
 			// Stone Hoe 850 + Fertile Soil 1138
