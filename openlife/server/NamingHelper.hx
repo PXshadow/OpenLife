@@ -50,19 +50,25 @@ class NamingHelper {
 		if (targetPlayer == null) return text;
 
 		var foundNewFamily = false;
+		var foundFamilyNeededPrestige = ServerSettings.FoundFamilyNeededPrestige;
+		var foundFamilyNeededFollowers = ServerSettings.FoundFamilyNeededFollowers;
 		var foundFamilyCost = ServerSettings.FoundFamilyCost;
 
 		if (doFamilyName) {
-			// TODO allow to change name after some generations and with high prestiege
 			if (targetPlayer.familyName != ServerSettings.StartingFamilyName) {
-				var missing = Math.ceil(100 - p.prestige);
+				if (p.lineage.myEveId == p.id) {
+					p.say('I am the founder already!', true);
+					return null;
+				}
+
+				var missing = Math.ceil(foundFamilyNeededPrestige - p.prestige);
 				if (missing > 0) {
 					p.say('I need ${missing} more prestige!', true);
 					return null;
 				}
 
 				var countFollower = p.CountAndDisplayFollower(false, true); // Only same family
-				var missing = 4 - countFollower;
+				var missing = foundFamilyNeededFollowers - countFollower;
 				if (missing > 0) {
 					p.say('I need ${missing} more followers!', true);
 					return null;
