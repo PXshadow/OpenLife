@@ -1733,7 +1733,7 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function isSheepHerding(maxProfession = 1) {
+	private function isSheepHerding(maxProfession = 1, maxAnimal:Int = 10) {
 		var home = myPlayer.home;
 		var distance = 30;
 
@@ -1743,7 +1743,7 @@ abstract class AiBase {
 		// Domestic Sheep 575
 		var count = countCurrentObject(575);
 
-		if (count < 10) {
+		if (count < maxAnimal) {
 			// Bowl of Gooseberries and Carrot 258 + Hungry Domestic Lamb 604
 			if (shortCraft(258, 604, distance)) return true;
 
@@ -1788,7 +1788,7 @@ abstract class AiBase {
 		// Feed: Bowl of Gooseberries and Carrot 258 + Shorn Domestic Sheep 576
 		if (shortCraft(258, 576, distance)) return true;
 
-		if (count < 10) {
+		if (count < maxAnimal) {
 			// Bowl of Gooseberries and Carrot 258 + Domestic Sheep 575
 			if (shortCraft(258, 575, distance)) return true;
 		}
@@ -1809,7 +1809,7 @@ abstract class AiBase {
 
 		// Cold Goose Egg 1262
 		var count = countCurrentObject(1262);
-		if (count < 5 && countCorn > 1) {
+		if (maxAnimal > 5 && count < 5 && countCorn > 1) {
 			// Bowl with Corn Kernels 1247 + Domestic Goose 1256
 			if (hasCornSeeds && shortCraft(1247, 1256, distance)) return true;
 		}
@@ -1817,7 +1817,7 @@ abstract class AiBase {
 		// Domestic Goose 1256
 		var count = countCurrentObject(1256);
 		// Dung Goose Egg Incubator 1263
-		if (count < 5 && craftItem(1263)) return true;
+		if (maxAnimal > 5 && count < 5 && craftItem(1263)) return true;
 
 		// Dead Cow 1900
 		if (shortCraft(560, 1900, distance)) return true;
@@ -3225,6 +3225,16 @@ abstract class AiBase {
 		// 0 + Dug Potatoes 4144
 		if (countPotatos < 5 && shortCraft(0, 4144, 20)) return true;
 
+		// Cooked Mutton Pie 803 // Raw Mutton Pie 802
+		var countMuttonPies = countCurrentObjects([803, 802]);
+		if (countMuttonPies < 2 && craftItem(802)) return true; // Raw Mutton Pie 802
+
+		// Cooked Mutton 570 // Raw Mutton 569
+		var countMutton = countCurrentObjects([570, 569]);
+		if (countMutton < 2 && craftItem(569)) return true; // Raw Mutton 569
+
+		Macro.exception(if (isSheepHerding(2, 5)) return true); // Making Sheep for dung should have high prio for compost
+
 		// Ripe Wheat 242 // // Dry Planted Wheat 228 // Threshed Wheat 226
 		// Threshed Wheat - removed Straw 297 // Pile of Threshed Wheat 4070
 		var countWheat = countCurrentObjects([242, 228, 226, 297, 4070]);
@@ -3239,9 +3249,7 @@ abstract class AiBase {
 		}
 		else if (makeRawPies()) return true;
 
-		// Cooked Mutton 570 // Raw Mutton 569
-		var countMutton = countCurrentObjects([570, 569]);
-		if (countMutton < 2 && craftItem(569)) return true; // Raw Mutton 569
+		// old cook mutton
 
 		if (doPlantWheat(2, 5)) return true;
 

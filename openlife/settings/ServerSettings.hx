@@ -3938,9 +3938,9 @@ class ServerSettings {
 		// Bow and Arrow 152 + Mouflon 531
 		LimitTransitionIfMinNotReached(152, 531, 531, 3); // Allow to kill Mouflon if needed are reached
 		// Knife 560 +  Domestic Sheep 575
-		LimitTransitionIfMinNotReached(560, 575, 575, 4); // Allow to kill Sheep if enough
+		LimitTransitionIfMinNotReached(560, 575, 575, 3); // Allow to kill Sheep if enough
 		// Knife 560 +  Shorn Domestic Sheep 576
-		LimitTransitionIfMinNotReached(560, 576, 576, 5); // Allow to kill Sheep if enough
+		LimitTransitionIfMinNotReached(560, 576, 576, 4); // Allow to kill Sheep if enough
 
 		// Knife 560 + Domestic Cow 1458
 		LimitTransitionIfMinNotReached(560, 1458, 1458, 4); // Allow to kill Cow if enough
