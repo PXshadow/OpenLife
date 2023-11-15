@@ -217,9 +217,9 @@ class WebServer {
 			lineageText += '</tr>\n';
 		}
 
-		var foodFactor = Math.ceil(WorldMap.world.getStarvingFoodFactor() * 100) / 100;
+		var foodFactorPercent = Math.ceil(WorldMap.world.getStarvingFoodFactor() * 100) - 100;
 
-		lineageText += '</table>Starving Food Factor: ${foodFactor}</center>\n';
+		lineageText += '</table>Extra food because of Starving: ${foodFactorPercent}%</center>\n';
 		lineageText += '<br><br>\n<center><table>\n<tr><td><b>Age</b></td><td><b>Total</b></td><td><b>Last Day</b></td><td><b>Last Hour</b></td></tr>\n';
 
 		var ageList = [for (a in ages.keys()) a];
