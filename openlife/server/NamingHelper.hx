@@ -64,6 +64,11 @@ class NamingHelper {
 					return null;
 				}
 
+				if (p.lineage.eveLineage != null && p.lineage.eveLineage.account.id == p.account.id) {
+					p.say('My spirit is the founder already!', true);
+					return null;
+				}
+
 				var missing = Math.ceil(foundFamilyNeededPrestige - p.prestige);
 				if (missing > 0) {
 					p.say('I need ${missing} more prestige!', true);

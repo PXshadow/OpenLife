@@ -7932,6 +7932,8 @@ abstract class AiBase {
 
 		if (player.lineage.myEveId == player.id) return;
 
+		if (player.lineage.eveLineage != null && player.lineage.eveLineage.account.id == player.account.id) return;
+
 		// found only new family if different color than leader
 		if (player.followPlayer != null && player.followPlayer.getColor() == player.getColor()) return;
 
