@@ -4692,7 +4692,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// do damage to attacking animal
 		// TODO bloody weapon
-		if (attacker == null && targetPlayer.isHoldingMeleeWeapon()) {
+		/*if (attacker == null && targetPlayer.isHoldingMeleeWeapon()) {
 			fromObj.hits += isRightClassForWeapon ? 0.5 : 0.25;
 
 			targetPlayer.makeWeaponBloodyIfNeeded(fromObj);
@@ -4713,7 +4713,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 					Connection.SendMapUpdateToAllClosePlayers(fromObj.tx, fromObj.ty);
 				}
 			}
-		}
+		}*/
 
 		// this.connection.send(PLAYER_UPDATE, [this.toData()]);
 
