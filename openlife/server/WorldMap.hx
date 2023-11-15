@@ -1594,6 +1594,21 @@ class WorldMap {
 		return 1;
 	}
 
+	/**
+	 * There more died of hunger compared old age the higher the food factor
+	 * Between 0.5 and 2
+	 * One if 20% died of hunger and 90% of old age
+	 */
+	public function getStarvingFoodFactor() {
+		Lineage.GenerateLineageStatistics();
+
+		var killedAge = Lineage.reasonKilledLastDay['reason_age'];
+		var killedHunger = 4 * Lineage.reasonKilledLastDay['reason_hunger'];
+
+		var factor = (killedHunger + killedHunger + killedAge) / (killedHunger + killedAge + killedAge);
+		return factor;
+	}
+
 	public function getEatenFoodPercentage(foodId, doTrace = false):Float {
 		var objData = ObjectData.getObjectData(foodId);
 		var foodPercentage:Float = eatenFoodPercentage[foodId];

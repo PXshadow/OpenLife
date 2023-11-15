@@ -3133,7 +3133,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// increase food value depending on how much world wide eaten
 		var foodFactor = WorldMap.world.getFoodFactor(heldObjData.parentId);
+		var starvingFoodFactor = WorldMap.world.getStarvingFoodFactor();
 		foodValue *= foodFactor;
+		foodValue *= starvingFoodFactor;
 
 		// trade health for little bit more food
 		if (isSuperMeh) {
