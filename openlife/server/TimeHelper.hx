@@ -2206,7 +2206,7 @@ class TimeHelper {
 			var rightSeason = TimeHelper.Season == lovedSeason;
 
 			// Wild Boar 1323 // Wild Boar with Piglet 1328 // Bison 1435 // Bison with Calf 1436
-			var animalsDontChase = [1323, 1328, 1435, 1436];
+			var animalsDontChase = [1323, 1328, 1435, 1436, 764];
 			if (animalsDontChase.contains(animal.parentId)) rightSeason = false;
 
 			if (animal.hits > 0 || rightSeason || chasingAnimals.contains(animal.parentId)) {
