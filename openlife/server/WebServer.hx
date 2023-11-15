@@ -207,6 +207,7 @@ class WebServer {
 			else if (reasonText == '') continue;
 			else if (reasonText == 'reason_age') reasonText = 'OLD AGE';
 			else if (reasonText == 'reason_hunger') reasonText = 'STARVATION';
+			else if (reasonText == 'reason_hunger_kid') reasonText = 'STARVATION KID';
 
 			lineageText += '<tr>';
 			lineageText += '<td>${reasonText}</td>';

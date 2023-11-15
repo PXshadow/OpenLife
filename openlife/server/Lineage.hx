@@ -373,6 +373,8 @@ class Lineage {
 			if (age < -1) age = -1;
 
 			ages[age] += 1;
+
+			if (age < 5 && killedBy == 'reason_hunger') killedBy = 'reason_hunger_kid';
 			if (isLastDay) agesLastDay[age] += 1;
 			if (isLastHour) agesLastHour[age] += 1;
 			reasonKilled[killedBy] += 1;
