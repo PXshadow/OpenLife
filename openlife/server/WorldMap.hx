@@ -1602,8 +1602,8 @@ class WorldMap {
 	public function getStarvingFoodFactor() {
 		Lineage.GenerateLineageStatistics();
 
-		var killedAge = Lineage.reasonKilledLastDay['reason_age'];
-		var killedHunger = 4 * Lineage.reasonKilledLastDay['reason_hunger'];
+		var killedAge = 100 + Lineage.reasonKilledLastDay['reason_age'];
+		var killedHunger = 4 * (100 + Lineage.reasonKilledLastDay['reason_hunger']);
 
 		var factor = (killedHunger + killedHunger + killedAge) / (killedHunger + killedAge + killedAge);
 		return factor;
