@@ -2660,9 +2660,6 @@ class ServerSettings {
 		var trans = transitions.getTransition(-1, 861); // Old Hand Cart
 		trans.autoDecaySeconds = -12; // original: -0.5
 
-		var trans = transitions.getTransition(-1, 1281); // Cooked Omelette
-		trans.autoDecaySeconds = 20;
-
 		var trans = transitions.getTransition(-1, 846); // Broken Hand Cart
 		trans.autoDecaySeconds = -2;
 

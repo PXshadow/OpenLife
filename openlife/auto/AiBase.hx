@@ -583,6 +583,9 @@ abstract class AiBase {
 		// if (hotkiln != null) hotkiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 304, 10, null, myPlayer);
 		if (hotkiln != null || this.profession['POTTER'] >= 10) Macro.exception(if (doPottery(-2)) return);
 
+		// Clay Plate 236 + Cooked Omelette 1281 --> dont let omelette burn
+		Macro.exception(if (shortCraft(236, 1281)) return);
+		Macro.exception(if (shortCraft(0, 400, 10)) return); // pull out the carrots
 		Macro.exception(if (fillBerryBowlIfNeeded(true)) return);
 		Macro.exception(if (fillBeanBowlIfNeeded(true, true)) return); // green beans
 		Macro.exception(if (fillBeanBowlIfNeeded(false, true)) return); // dry beans
