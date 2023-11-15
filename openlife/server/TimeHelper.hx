@@ -2522,7 +2522,7 @@ class TimeHelper {
 
 		attacker.say('Hits ${Math.round(target.hits)}', true);
 
-		attacker.makeWeaponBloodyIfNeeded(target);
+		// attacker.makeWeaponBloodyIfNeeded(target);
 
 		if (usingBowAndArrow) // Bow and Arrow
 		{
