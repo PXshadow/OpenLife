@@ -3384,6 +3384,14 @@ class ServerSettings {
 		var trans = transitions.getTransition(0, 1121, false, false);
 		trans.aiShouldIgnore = true;
 
+		// Partial Pulley Mechanism 2264
+		var trans = transitions.getTransition(0, 2264);
+		trans.aiShouldIgnore = true;
+
+		// Multipurpose Newcomen Engine 2243
+		var trans = transitions.getTransition(0, 2243);
+		trans.aiShouldIgnore = true;
+
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		// var trans = transitions.getTransition(1247, 4110);
 		// trans.aiShouldIgnore = true;
