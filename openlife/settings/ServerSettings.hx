@@ -1375,6 +1375,8 @@ class ServerSettings {
 		// ObjectData.getObjectData(1378).permanent = 0; // Sterile Wool Pad
 
 		ObjectData.getObjectData(1618).permanent = 0; // Written Paper &written 1618
+		ObjectData.getObjectData(2100).permanent = 0; // Fishing Pole with Char
+		ObjectData.getObjectData(2098).permanent = 0; // Fishing Pole with Old Boot
 
 		ObjectData.getObjectData(3047).prestigeClass = PrestigeClass.Noble; // War Sword
 
