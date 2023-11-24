@@ -2226,8 +2226,9 @@ class ServerSettings {
 		trans.noUseActor = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
-		trans = new TransitionData(0, 92, 59, 67); // 0 + Tied Long Shaft --> Rope + Long Straight Shaft
-		transitions.addTransition("PatchTransitions: ", trans);
+		// trans = new TransitionData(0, 92, 59, 67); // 0 + Tied Long Shaft --> Rope + Long Straight Shaft
+		// var trans = transitions.getTransition(135, 92); // Flint Chip 135 + Tied Long Shaft 92
+		// transitions.addTransition("PatchTransitions: ", trans);
 
 		// trans = new TransitionData(135, 71, 135, 70); // Flint Chip + Stone Hatchet --> Flint Chip + Tied Short Shaft
 		trans = new TransitionData(34, 71, 34, 70); // Sharp Stone + Stone Hatchet --> Sharp Stone + Tied Short Shaft
