@@ -72,6 +72,7 @@ using openlife.server.MoveHelper;
 class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface implements WorldInterface {
 	public static var AllPlayerMutex = new Mutex();
 	private static var Locked = false;
+	private static var biomeColor = 1;
 
 	public static function AcquireMutex() {
 		if (ServerSettings.UseOneSingleMutex) {
@@ -5629,6 +5630,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (leader != null) {
 				player.say('${leader.name} ${leader.familyName} Power: ${Math.ceil(leader.countLeadershipPower())}', true);
 			}
+			return true;
+		}
+		else if (text == '!CB') {
+			if (checkIfNotAllowed(player)) return true;
+			WorldMap.world.setBiomeId(player.tx, player.ty, biomeColor);
+			player.connection.sendMapChunk(player.x, player.y);
+			player.say('Biome Color ${biomeColor}!', true);
+			biomeColor += 1;
 			return true;
 		}
 		return false;
