@@ -2368,14 +2368,13 @@ class TimeHelper {
 				chanceForOffspring *= ServerSettings.OffspringFactorIfAnimalPopIsLow;
 			if (originalPop > 10) chanceForAnimalDying *= currentPop > originalPop ? 100 : 1;
 
-			// && originalPop > 0
-			if (currentPop > originalPop * ServerSettings.MaxOffspringFactor * canDieIfPopulationIsAbove
-				&& worldmap.randomFloat() < chanceForAnimalDying) {
-				var shouldDie = currentPop > 10; // for now make smal pop stuff hungry greezly with arrow immune to dieing
+			var shouldDie = currentPop > 10; // for now make smal pop stuff hungry greezly with arrow immune to dieing
+			if (currentPop <= originalPop * ServerSettings.MaxOffspringFactor * canDieIfPopulationIsAbove) shouldDie = false;
+			if (animal.containedObjects.length > 0) shouldDie = false; // TODO let die animals that cointain items like a horse wagon
 
+			// && originalPop > 0
+			if (shouldDie && worldmap.randomFloat() < chanceForAnimalDying) {
 				if (originalPop < 1) {
-					// chanceForAnimalDying /= 1000;
-					// var closeAnimal = AiHelper.GetClosestObjectToPosition(animal.tx, animal.ty, animal.parentId, 2, animal);
 					var countAnimal = AiHelper.CountCloseObjects(null, animal.tx, animal.ty, animal.parentId, 10);
 					if (countAnimal < 6 && (lovesCurrentBiome || lovesCurrentOriginalBiome)) shouldDie = false;
 					// for now keep lonely not natural animals like sheep alive if there are alone so that sheeppens will have still an animal
@@ -2385,7 +2384,6 @@ class TimeHelper {
 				}
 
 				if (shouldDie) {
-					// TODO decay animals that cointain items like a horse wagon
 					trace('Animal DEAD: ${animal.name} $newTileObject Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
 
 					worldmap.currentObjectsCount[countAs] -= 1;
