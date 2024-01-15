@@ -8546,7 +8546,8 @@ abstract class AiBase {
 		var stored = useTarget.containedObjects[0];
 		var storedName = stored == null ? 'null' : stored.name;
 
-		if (dropHeldObject(10)) {
+		// if (dropHeldObject(10)) {
+		if (dropHeldObject(0)) {
 			if (shouldDebugSay()) myPlayer.say('drop for remove from container');
 			// if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} drop ${myPlayer.heldObject.name} for remove from container ${useTarget.name} --> ${storedName}');
@@ -8566,10 +8567,10 @@ abstract class AiBase {
 		var heldObject = myPlayer.heldObject;
 		var isHoldingObject = myPlayer.isHoldingObject();
 
-		if (emptyContainer()) {
-			// CancleUse();
+		/*if (emptyContainer()) {
+			CancleUse();
 			return true;
-		}
+		}*/
 
 		// check if target changed meanwhile like Fire --> Hot Coals
 		if (expectedUseTarget != null && useTarget.parentId != expectedUseTarget.parentId) {
