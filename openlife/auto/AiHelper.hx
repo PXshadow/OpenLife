@@ -515,7 +515,7 @@ class AiHelper {
 	}
 
 	private static function CountCloseObjectsHelper(player:PlayerInterface, tx:Int, ty:Int, objId:Int, radius:Int = 10, countPiles:Bool = true) {
-		var world = player.getWorld();
+		var world = WorldMap.world; // player.getWorld();
 		var objdataToSearch = ObjectData.getObjectData(objId);
 		var pileObjId = objdataToSearch.getPileObjId();
 		var count = 0;

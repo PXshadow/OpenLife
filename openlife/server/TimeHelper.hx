@@ -2388,7 +2388,7 @@ class TimeHelper {
 			// TODO let domestic animals multiply if there is enough green biome
 			// TODO let domestic animals eat up green biome
 			// TODO dont consider lovesCurrentOriginalBiome once domestic animals muliply
-			if (animal.isDomesticAnimal() && (lovesCurrentBiome || lovesCurrentOriginalBiome)) chanceForAnimalDying /= 1000;
+			// if (animal.isDomesticAnimal() && (lovesCurrentBiome || lovesCurrentOriginalBiome)) chanceForAnimalDying /= 1000;
 			if (rabbitInWrongPlace) chanceForAnimalDying *= 2; // 10
 
 			var canDieIfPopulationIsAbove = rabbitInWrongPlace ? 0.4 : 0.8; // 0.2 0.8
@@ -2402,7 +2402,9 @@ class TimeHelper {
 			// give extra birth chance bonus if population is very low
 			if (currentPop < originalPop * ServerSettings.OffspringFactorLowAnimalPopulationBelow)
 				chanceForOffspring *= ServerSettings.OffspringFactorIfAnimalPopIsLow;
-			chanceForAnimalDying *= currentPop > originalPop ? 100 : 1;
+			if (originalPop > 10) chanceForAnimalDying *= currentPop > originalPop ? 100 : 1;
+			// chanceForAnimalDying *= currentPop > originalPop ? 100 : 1;
+			// if (animal.isDomesticAnimal()) chanceForAnimalDying = 1;
 
 			// if(rabbitInWrongPlace) trace('Animal DEAD? RABBIT: ${animal.name} $newTileObject Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
 
@@ -2429,17 +2431,32 @@ class TimeHelper {
 					worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
 				}
 			}
+			// && originalPop > 0
 			else if (currentPop > originalPop * ServerSettings.MaxOffspringFactor * canDieIfPopulationIsAbove
-				&& originalPop > 0
 				&& worldmap.randomFloat() < chanceForAnimalDying) {
-				// decay animal only if it is a original one
-				// TODO decay all animals and cosider if they cointain items like a horse wagon
-				trace('Animal DEAD: ${animal.name} $newTileObject Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
+				var shouldDie = currentPop > 10; // for now make smal pop stuff hungry greezly with arrow immune to dieing
 
-				worldmap.currentObjectsCount[countAs] -= 1;
-				animal.id = 0;
-				newTileObject = animal.groundObject.toArray();
-				worldmap.setObjectHelper(toTx, toTy, animal.groundObject);
+				if (originalPop < 1) {
+					// chanceForAnimalDying /= 1000;
+					// var closeAnimal = AiHelper.GetClosestObjectToPosition(animal.tx, animal.ty, animal.parentId, 2, animal);
+					var countAnimal = AiHelper.CountCloseObjects(null, animal.tx, animal.ty, animal.parentId, 10);
+					if (countAnimal < 6 && (lovesCurrentBiome || lovesCurrentOriginalBiome)) shouldDie = false;
+					// for now keep lonely not natural animals like sheep alive if there are alone so that sheeppens will have still an animal
+					if (countAnimal < 2) shouldDie = false;
+
+					trace('Animal DEAD?: ${animal.name} CountClose: $countAnimal Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
+				}
+
+				if (shouldDie) {
+					// decay animal only if it is a original one
+					// TODO decay all animals and cosider if they cointain items like a horse wagon
+					trace('Animal DEAD: ${animal.name} $newTileObject Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
+
+					worldmap.currentObjectsCount[countAs] -= 1;
+					animal.id = 0;
+					newTileObject = animal.groundObject.toArray();
+					worldmap.setObjectHelper(toTx, toTy, animal.groundObject);
+				}
 			}
 
 			animal.failedMoves = 0;
