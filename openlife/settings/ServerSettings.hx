@@ -1168,6 +1168,10 @@ class ServerSettings {
 		ObjectData.getObjectData(780).biomes.push(BiomeTag.GREEN); // Escaped Horse-Drawn Cart
 		ObjectData.getObjectData(3157).biomes.push(BiomeTag.GREEN); // Escaped Horse-Drawn Tire Cart
 
+		ObjectData.getObjectData(1256).biomes.push(BiomeTag.GREEN); // Domestic Goose 1256
+		ObjectData.getObjectData(1278).biomes.push(BiomeTag.GREEN); // Fed Domestic Goose
+		ObjectData.getObjectData(1255).biomes.push(BiomeTag.GREEN); // Gosling 1255
+
 		// set loved biomes right
 		ObjectData.getObjectData(1328).biomes = []; // Wild Boar with Piglet
 		ObjectData.getObjectData(1328).biomes.push(BiomeTag.SWAMP); // Wild Boar with Piglet
