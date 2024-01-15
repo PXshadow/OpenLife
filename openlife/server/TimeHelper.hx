@@ -2368,9 +2368,14 @@ class TimeHelper {
 				chanceForOffspring *= ServerSettings.OffspringFactorIfAnimalPopIsLow;
 			if (originalPop > 10) chanceForAnimalDying *= currentPop > originalPop ? 100 : 1;
 
-			var shouldDie = currentPop > 10; // for now make smal pop stuff hungry greezly with arrow immune to dieing
+			// for now make smal pop stuff hungry greezly with arrow immune to dieing
+			var shouldDie = currentPop > 10;
+			// make sure that natural animals die only id there are enough
 			if (currentPop <= originalPop * ServerSettings.MaxOffspringFactor * canDieIfPopulationIsAbove) shouldDie = false;
-			if (animal.containedObjects.length > 0) shouldDie = false; // TODO let die animals that cointain items like a horse wagon
+			// TODO let die animals that cointain items like a horse wagon
+			if (animal.containedObjects.length > 0) shouldDie = false;
+			// Dont die on top of stuff
+			if (animal.groundObject != null && animal.groundObject.id > 0) shouldDie = false;
 
 			// && originalPop > 0
 			if (shouldDie && worldmap.randomFloat() < chanceForAnimalDying) {
