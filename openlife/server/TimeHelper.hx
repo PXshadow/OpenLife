@@ -2346,6 +2346,62 @@ class TimeHelper {
 			// var des = animal.groundObject == null ? "NONE": 'GROUND: ${animal.groundObject.name}';
 			// if(animal.groundObject != null && animal.groundObject.id != 0) trace('MOVE: oldTile: $des $oldTileObject newTile: ${animal.name} $newTileObject');
 
+			// var chanceForOffspring = isPreferredBiome ? ServerSettings.ChanceForOffspring : ServerSettings.ChanceForOffspring * Math.pow((1
+			//	- chancePreferredBiome), 2);
+			var chanceForOffspring = isPreferredBiome ? ServerSettings.ChanceForOffspring : ServerSettings.ChanceForOffspring / 100;
+			var chanceForAnimalDying = isPreferredBiome ? ServerSettings.ChanceForAnimalDying * ServerSettings.ChanceForAnimalDyingFactorIfInLovedBiome : ServerSettings.ChanceForAnimalDying;
+
+			// TODO let domestic animals multiply if there is enough green biome
+			// TODO let domestic animals eat up green biome
+			// TODO dont consider lovesCurrentOriginalBiome once domestic animals muliply
+			// if (animal.isDomesticAnimal() && (lovesCurrentBiome || lovesCurrentOriginalBiome)) chanceForAnimalDying /= 1000;
+			if (rabbitInWrongPlace) chanceForAnimalDying *= 2; // 10
+
+			var canDieIfPopulationIsAbove = rabbitInWrongPlace ? 0.4 : 0.8; // 0.2 0.8
+
+			var countAs = animal.objectData.countsOrGrowsAs < 1 ? animal.parentId : animal.objectData.countsOrGrowsAs;
+			var currentPop = worldmap.currentObjectsCount[countAs];
+			var originalPop = worldmap.originalObjectsCount[countAs];
+
+			// give extra birth chance bonus if population is very low
+			if (currentPop < originalPop * ServerSettings.OffspringFactorLowAnimalPopulationBelow)
+				chanceForOffspring *= ServerSettings.OffspringFactorIfAnimalPopIsLow;
+			if (originalPop > 10) chanceForAnimalDying *= currentPop > originalPop ? 100 : 1;
+
+			// && originalPop > 0
+			if (currentPop > originalPop * ServerSettings.MaxOffspringFactor * canDieIfPopulationIsAbove
+				&& worldmap.randomFloat() < chanceForAnimalDying) {
+				var shouldDie = currentPop > 10; // for now make smal pop stuff hungry greezly with arrow immune to dieing
+
+				if (originalPop < 1) {
+					// chanceForAnimalDying /= 1000;
+					// var closeAnimal = AiHelper.GetClosestObjectToPosition(animal.tx, animal.ty, animal.parentId, 2, animal);
+					var countAnimal = AiHelper.CountCloseObjects(null, animal.tx, animal.ty, animal.parentId, 10);
+					if (countAnimal < 6 && (lovesCurrentBiome || lovesCurrentOriginalBiome)) shouldDie = false;
+					// for now keep lonely not natural animals like sheep alive if there are alone so that sheeppens will have still an animal
+					if (countAnimal < 2) shouldDie = false;
+
+					trace('Animal DEAD?: ${animal.name} CountClose: $countAnimal Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
+				}
+
+				if (shouldDie) {
+					// TODO decay animals that cointain items like a horse wagon
+					trace('Animal DEAD: ${animal.name} $newTileObject Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
+
+					worldmap.currentObjectsCount[countAs] -= 1;
+
+					animal.failedMoves = 0;
+					if (animal.groundObject != null && animal.groundObject.id > 0) WorldMap.world.setObjectHelper(animal.tx, animal.ty, animal.groundObject);
+					else {
+						animal.id = animal.objectData.decaysToObj;
+						WorldMap.world.setObjectHelper(animal.tx, animal.ty, animal);
+					}
+					Connection.SendMapUpdateToAllClosePlayers(animal.tx, animal.ty);
+
+					return false;
+				}
+			}
+
 			if (timeAlternaiveTransition == null) {
 				worldmap.setObjectHelper(fromTx, fromTy, animal.groundObject);
 			}
@@ -2380,32 +2436,6 @@ class TimeHelper {
 
 			worldmap.setObjectHelper(toTx, toTy, animal); // set again since animal might be killed
 
-			// var chanceForOffspring = isPreferredBiome ? ServerSettings.ChanceForOffspring : ServerSettings.ChanceForOffspring * Math.pow((1
-			//	- chancePreferredBiome), 2);
-			var chanceForOffspring = isPreferredBiome ? ServerSettings.ChanceForOffspring : ServerSettings.ChanceForOffspring / 100;
-			var chanceForAnimalDying = isPreferredBiome ? ServerSettings.ChanceForAnimalDying * ServerSettings.ChanceForAnimalDyingFactorIfInLovedBiome : ServerSettings.ChanceForAnimalDying;
-
-			// TODO let domestic animals multiply if there is enough green biome
-			// TODO let domestic animals eat up green biome
-			// TODO dont consider lovesCurrentOriginalBiome once domestic animals muliply
-			// if (animal.isDomesticAnimal() && (lovesCurrentBiome || lovesCurrentOriginalBiome)) chanceForAnimalDying /= 1000;
-			if (rabbitInWrongPlace) chanceForAnimalDying *= 2; // 10
-
-			var canDieIfPopulationIsAbove = rabbitInWrongPlace ? 0.4 : 0.8; // 0.2 0.8
-
-			// var currentPop = worldmap.currentObjectsCount[newTileObject[0]];
-			// var originalPop = worldmap.originalObjectsCount[newTileObject[0]];
-			var countAs = animal.objectData.countsOrGrowsAs < 1 ? animal.parentId : animal.objectData.countsOrGrowsAs;
-			var currentPop = worldmap.currentObjectsCount[countAs];
-			var originalPop = worldmap.originalObjectsCount[countAs];
-
-			// give extra birth chance bonus if population is very low
-			if (currentPop < originalPop * ServerSettings.OffspringFactorLowAnimalPopulationBelow)
-				chanceForOffspring *= ServerSettings.OffspringFactorIfAnimalPopIsLow;
-			if (originalPop > 10) chanceForAnimalDying *= currentPop > originalPop ? 100 : 1;
-			// chanceForAnimalDying *= currentPop > originalPop ? 100 : 1;
-			// if (animal.isDomesticAnimal()) chanceForAnimalDying = 1;
-
 			// if(rabbitInWrongPlace) trace('Animal DEAD? RABBIT: ${animal.name} $newTileObject Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
 
 			if (currentPop < originalPop * ServerSettings.MaxOffspringFactor && worldmap.randomFloat() < chanceForOffspring) {
@@ -2431,33 +2461,6 @@ class TimeHelper {
 					worldmap.setObjectHelper(fromTx, fromTy, newAnimal);
 				}
 			}
-			// && originalPop > 0
-			else if (currentPop > originalPop * ServerSettings.MaxOffspringFactor * canDieIfPopulationIsAbove
-				&& worldmap.randomFloat() < chanceForAnimalDying) {
-				var shouldDie = currentPop > 10; // for now make smal pop stuff hungry greezly with arrow immune to dieing
-
-				if (originalPop < 1) {
-					// chanceForAnimalDying /= 1000;
-					// var closeAnimal = AiHelper.GetClosestObjectToPosition(animal.tx, animal.ty, animal.parentId, 2, animal);
-					var countAnimal = AiHelper.CountCloseObjects(null, animal.tx, animal.ty, animal.parentId, 10);
-					if (countAnimal < 6 && (lovesCurrentBiome || lovesCurrentOriginalBiome)) shouldDie = false;
-					// for now keep lonely not natural animals like sheep alive if there are alone so that sheeppens will have still an animal
-					if (countAnimal < 2) shouldDie = false;
-
-					trace('Animal DEAD?: ${animal.name} CountClose: $countAnimal Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
-				}
-
-				if (shouldDie) {
-					// decay animal only if it is a original one
-					// TODO decay all animals and cosider if they cointain items like a horse wagon
-					trace('Animal DEAD: ${animal.name} $newTileObject Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
-
-					worldmap.currentObjectsCount[countAs] -= 1;
-					animal.id = 0;
-					newTileObject = animal.groundObject.toArray();
-					worldmap.setObjectHelper(toTx, toTy, animal.groundObject);
-				}
-			}
 
 			animal.failedMoves = 0;
 			var speed = ServerSettings.InitialPlayerMoveSpeed * objectData.speedMult;
@@ -2478,6 +2481,8 @@ class TimeHelper {
 		// kill animal if it cannot move for some time
 		if (animal.failedMoves > 20) {
 			trace('ANIMALMOVE: dead failedMoves: ${animal.failedMoves} ${animal.name}');
+			// worldmap.currentObjectsCount[countAs] -= 1;
+
 			animal.failedMoves = 0;
 			if (animal.groundObject != null && animal.groundObject.id > 0) WorldMap.world.setObjectHelper(animal.tx, animal.ty, animal.groundObject);
 			else {
