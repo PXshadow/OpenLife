@@ -8567,7 +8567,7 @@ abstract class AiBase {
 		var isHoldingObject = myPlayer.isHoldingObject();
 
 		if (emptyContainer()) {
-			CancleUse();
+			// CancleUse();
 			return true;
 		}
 
