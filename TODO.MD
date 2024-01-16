@@ -194,9 +194,10 @@ SCORE / PRESTIGE:
 - you loose score for a cursed grave or if no one burried your bones before they decay
 
 Clothing Prestige:
-- clothing influences how much prestige / coins you get from your followers 50% naked 250% with top clothing 
-- halve of the clothing influence comes from your cloths halve from the cloths of the follower
-- Crowns Give extra 20% prestige / Coins from followers
+- clothing influences how much prestige / coins you get from your followers / kids / grandkids / siblings / mother / father
+- 50% naked 250% with top clothing 
+- halve of the clothing influence comes from your cloths halve from the cloths of the follower (...)
+- Crowns Give extra 20% prestige / coins from followers
 - If the follower is not from your own family the received prestige is halved
 - The ?CP command displayes your current clothing prestige factor
 

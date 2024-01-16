@@ -5908,36 +5908,42 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// siblings 50% (50%)
 
 		if (this.mother != null) {
-			mother.yum_multiplier += tmpCount / 4; // 2
-			mother.prestigeFromChildren += tmpCount / 4; // 2
+			var clothingFactor = mother.calculateTotalClothingPrestigeFactor(factor);
+			mother.yum_multiplier += (tmpCount * clothingFactor) / 4; // 2
+			mother.prestigeFromChildren += (tmpCount * clothingFactor) / 4; // 2
 
 			if (this.mother.mother != null) // grandma
 			{
-				mother.mother.yum_multiplier += tmpCount / 4;
-				mother.mother.prestigeFromGrandkids += tmpCount / 4;
+				var clothingFactor = mother.mother.calculateTotalClothingPrestigeFactor(factor);
+				mother.mother.yum_multiplier += (tmpCount * clothingFactor) / 4;
+				mother.mother.prestigeFromGrandkids += (tmpCount * clothingFactor) / 4;
 			}
 
 			if (this.mother.father != null) // grandpa
 			{
-				mother.father.yum_multiplier += tmpCount / 4;
-				mother.father.prestigeFromGrandkids += tmpCount / 4;
+				var clothingFactor = mother.father.calculateTotalClothingPrestigeFactor(factor);
+				mother.father.yum_multiplier += (tmpCount * clothingFactor) / 4;
+				mother.father.prestigeFromGrandkids += (tmpCount * clothingFactor) / 4;
 			}
 		}
 
 		if (this.father != null) {
-			father.yum_multiplier += tmpCount / 4; // 2
-			father.prestigeFromChildren += tmpCount / 4; // 2
+			var clothingFactor = father.calculateTotalClothingPrestigeFactor(factor);
+			father.yum_multiplier += (tmpCount * clothingFactor) / 4; // 2
+			father.prestigeFromChildren += (tmpCount * clothingFactor) / 4; // 2
 
 			if (this.father.mother != null) // grandma
 			{
-				father.mother.yum_multiplier += tmpCount / 4;
-				father.mother.prestigeFromGrandkids += tmpCount / 4;
+				var clothingFactor = father.mother.calculateTotalClothingPrestigeFactor(factor);
+				father.mother.yum_multiplier += (tmpCount * clothingFactor) / 4;
+				father.mother.prestigeFromGrandkids += (tmpCount * clothingFactor) / 4;
 			}
 
 			if (this.father.father != null) // grandpa
 			{
-				father.father.yum_multiplier += tmpCount / 4;
-				father.father.prestigeFromGrandkids += tmpCount / 4;
+				var clothingFactor = father.father.calculateTotalClothingPrestigeFactor(factor);
+				father.father.yum_multiplier += (tmpCount * clothingFactor) / 4;
+				father.father.prestigeFromGrandkids += (tmpCount * clothingFactor) / 4;
 			}
 		}
 
@@ -5945,15 +5951,17 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// prestige for children
 		for (child in children) {
-			child.yum_multiplier += tmpCount / 2; // 4
-			child.prestigeFromParents += tmpCount / 2; // 4
+			var clothingFactor = child.calculateTotalClothingPrestigeFactor(factor);
+			child.yum_multiplier += (tmpCount * clothingFactor) / 2; // 4
+			child.prestigeFromParents += (tmpCount * clothingFactor) / 2; // 4
 		}
 
 		// prestige for siblings
 		if (mother != null && children.length > 0) {
 			var sibling = children[WorldMap.calculateRandomInt(children.length - 1)];
-			sibling.yum_multiplier += tmpCount / 2;
-			sibling.prestigeFromSiblings += tmpCount / 2;
+			var clothingFactor = sibling.calculateTotalClothingPrestigeFactor(factor);
+			sibling.yum_multiplier += (tmpCount * clothingFactor) / 2;
+			sibling.prestigeFromSiblings += (tmpCount * clothingFactor) / 2;
 		}
 
 		if (this.getTopLeader() == null) return;
@@ -5966,8 +5974,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		for (ii in 0...4) {
 			if (this.exiledByPlayers.exists(leader.p_id)) return; // is exiled
 
-			var leaderFactor = leader.calculateClothingPrestigeFactor();
-			leaderFactor = (leaderFactor + factor) / 2; // take halve from leader halve from follower
+			// take halve from leader halve from follower
+			var leaderFactor = leader.calculateTotalClothingPrestigeFactor(factor);
 			leaderFactor += leader.calculateClothingPrestigeFactorForLeader();
 
 			// if (leaderFactor > 0.1) trace('clothingPrestigeFactor: factor: ${factor} leaderFactor: $leaderFactor');
@@ -5981,6 +5989,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			leader = leader.followPlayer;
 		}
+	}
+
+	// take halve from leader halve from follower
+	public function calculateTotalClothingPrestigeFactor(factor:Float) {
+		var clothingFactor = this.calculateClothingPrestigeFactor();
+		clothingFactor = (factor + clothingFactor) / 2;
+		return clothingFactor;
 	}
 
 	public function calculateClothingPrestigeFactorForLeader() {
