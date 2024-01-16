@@ -201,6 +201,15 @@ Clothing Prestige:
 - If the follower is not from your own family the received prestige is halved
 - The ?CP command displayes your current clothing prestige factor
 
+- Rag cloths have halve the prestige boni (still better then nothing)
+- Cloaks have halve double prestige boni (the best you can get)
+- Colored cloths have double the prestige boni. Example: Red Cloak --> 4X boni
+
+
+Example:
+- If a follower of your has one Reed Skirt instead nothing you get now +10% prestige / coins from him
+- Sane if your wear now a Reed Skirt you get you get now +10% prestige / coins from all followers / kids / grandkids and so on
+
 MAP:
 - generate limited map using image color as index for biome id
 - made map "round", so you can walk over both x,y borders and come out on the other side. 

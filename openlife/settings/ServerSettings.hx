@@ -642,6 +642,8 @@ class ServerSettings {
 				obj.containSize = 1;
 				obj.containable = true;
 			}
+
+			SetClothingPrestige(obj);
 		}
 
 		ObjectData.getObjectData(0).containSize = 1; // Empty
@@ -4044,6 +4046,41 @@ class ServerSettings {
 		if (trans != null) trans.igmoreIfMinIsNotReachedObjectId = id;
 		var trans = TransitionImporter.GetTransition(actorId, targetId, true, true);
 		if (trans != null) trans.igmoreIfMinIsNotReachedObjectId = id;
+	}
+
+	private static function SetClothingPrestige(clothing:ObjectData) {
+		if (clothing.clothing.length > 1) clothing.clothing = StringTools.trim(clothing.clothing);
+		if (clothing.clothing == 'n') return;
+
+		if (clothing.description.startsWith('Red ')) {
+			clothing.prestigeFactor += 0.5;
+		}
+		if (clothing.description.startsWith('Indigo ')) {
+			clothing.prestigeFactor += 0.5;
+			trace('Clothing: ${clothing.name} index: ${clothing.clothing} prestige: ${clothing.prestigeFactor}');
+		}
+		if (clothing.description.startsWith('Green ')) {
+			clothing.prestigeFactor += 0.5;
+		}
+		if (clothing.description.startsWith('Yellow ')) {
+			clothing.prestigeFactor += 0.5;
+		}
+		if (clothing.description.startsWith('Black ')) {
+			clothing.prestigeFactor += 0.5;
+		}
+
+		// ROSE
+		// WITH FEATHER
+		// LONG DRESS
+
+		if (clothing.description.contains('Rag ')) {
+			clothing.prestigeFactor /= 2;
+		}
+
+		if (clothing.description.contains('Cloak')) {
+			clothing.prestigeFactor *= 2;
+			trace('Clothing: ${clothing.name} index: ${clothing.clothing} prestige: ${clothing.prestigeFactor}');
+		}
 	}
 }
 /**Actor Category: 1641 @ Deadly Wolf
