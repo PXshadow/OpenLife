@@ -8577,7 +8577,7 @@ abstract class AiBase {
 			var stored = useTarget.containedObjects[0];
 			var storedName = stored == null ? 'null' : stored.name;
 
-			trace('AAI: ${myPlayer.name + myPlayer.id} USE: needs remove from container ${useTarget.name} --> ${storedName}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} USE: needs remove from container ${useTarget.name} --> ${storedName} held: ${myPlayer.heldObject.name}}');
 
 			// this.addNotReachableObject(useTarget);
 			addObjectWithHostilePath(useTarget);
