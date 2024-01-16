@@ -444,4 +444,14 @@ class NamingHelper {
 		var name = NamingHelper.GetNameFromList('yyyZdsd', false);
 		trace('Name: $name');
 	}
+
+	public static function GenerateAccountName(id:Int):String {
+		var length = NamingHelper.MaleNamesArray.length;
+		var index = WorldMap.RandomIntFromSeed(length, id * 100 + id + 42);
+		var name = NamingHelper.MaleNamesArray[index];
+
+		var index = (id * 100 + id + 9973) % NamingHelper.FemaleNamesArray.length;
+		name += ' ' + NamingHelper.FemaleNamesArray[index];
+		return name;
+	}
 }

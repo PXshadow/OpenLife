@@ -159,7 +159,7 @@ class WebServer {
 			if (account.totalScore < 5) continue;
 
 			newAccountsText += '<tr>';
-			newAccountsText += '<td>${generateAccountName(account.id)}</td>';
+			newAccountsText += '<td>${account.scoreName}</td>';
 			newAccountsText += '<td>${account.totalScore}</td>';
 			newAccountsText += '<td>${Math.floor(account.femaleScore)}</td>';
 			newAccountsText += '<td>${Math.floor(account.maleScore)}</td>';

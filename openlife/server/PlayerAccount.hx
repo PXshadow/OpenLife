@@ -38,6 +38,12 @@ class PlayerAccount {
 	// not saved
 	public var graves = new Array<ObjectHelper>();
 
+	public var scoreName(get, null):String;
+
+	public function get_scoreName() {
+		return NamingHelper.GenerateAccountName(this.id);
+	}
+
 	private function new() {}
 
 	public static function GetOrCreatePlayerAccount(email:String, account_key_hash:String, id:Int = 0):PlayerAccount {
