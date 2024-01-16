@@ -1914,7 +1914,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (StringTools.startsWith(text, '?SCORE') || StringTools.startsWith(text, 'SCORE?')) {
 			var score = Math.floor(this.account.totalScore);
-			text = 'MY / ${this.account.scoreName} SCORE IS ${score} PRESTIGE!';
+			text = 'MY / ${this.account.scoreName} / SCORE IS ${score} PRESTIGE!';
 			toSelf = true;
 		}
 
