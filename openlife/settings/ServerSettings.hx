@@ -4057,7 +4057,6 @@ class ServerSettings {
 		}
 		if (clothing.description.startsWith('Indigo ')) {
 			clothing.prestigeFactor += 0.5;
-			trace('Clothing: ${clothing.name} index: ${clothing.clothing} prestige: ${clothing.prestigeFactor}');
 		}
 		if (clothing.description.startsWith('Green ')) {
 			clothing.prestigeFactor += 0.5;
@@ -4069,9 +4068,14 @@ class ServerSettings {
 			clothing.prestigeFactor += 0.5;
 		}
 
-		// ROSE
-		// WITH FEATHER
-		// LONG DRESS
+		if (clothing.description.contains(' Rose')) {
+			clothing.prestigeFactor += 0.5;
+			trace('Clothing: ${clothing.name} index: ${clothing.clothing} prestige: ${clothing.prestigeFactor}');
+		}
+		if (clothing.description.contains(' Feather')) {
+			clothing.prestigeFactor += 0.2;
+		}
+		// LONG DRESS LONG SKIRT PLEATED SKIR
 
 		if (clothing.description.contains('Rag ')) {
 			clothing.prestigeFactor /= 2;
@@ -4079,7 +4083,6 @@ class ServerSettings {
 
 		if (clothing.description.contains('Cloak')) {
 			clothing.prestigeFactor *= 2;
-			trace('Clothing: ${clothing.name} index: ${clothing.clothing} prestige: ${clothing.prestigeFactor}');
 		}
 	}
 }
