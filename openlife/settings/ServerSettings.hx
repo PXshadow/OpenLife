@@ -717,6 +717,23 @@ class ServerSettings {
 		// ObjectData.getObjectData(1121).decayFactor = 2; // Popcorn 1121
 		ObjectData.getObjectData(1121).decaysToObj = 235; //  Popcorn 1121 --> Clay Bowl
 
+		// Make Chest decay as fast as not permanent objects
+		ObjectData.getObjectData(986).decayFactor /= ObjDecayFactorForPermanentObjs; // Open Wooden Chest
+		ObjectData.getObjectData(986).decaysToObj = 4910; // Open Wooden Chest ==> Wooden Box with Boards and Rope
+
+		ObjectData.getObjectData(4910).decayFactor /= ObjDecayFactorForPermanentObjs; // Wooden Box with Boards and Rope
+		ObjectData.getObjectData(4910).decaysToObj = 2740; // Wooden Box with Boards and Rope ==> Wooden Box with Boards
+
+		ObjectData.getObjectData(2740).decayFactor /= ObjDecayFactorForPermanentObjs; // Wooden Box with Boards
+		ObjectData.getObjectData(2740).decaysToObj = 434; // Wooden Box with Boards ==> Wooden Box
+
+		ObjectData.getObjectData(434).decayFactor /= ObjDecayFactorForPermanentObjs; // Wooden Box
+		ObjectData.getObjectData(434).decaysToObj = 470; // Wooden Box ==> Boards
+
+		ObjectData.getObjectData(470).decaysToObj = 847; // Boards ==> Broken Skewer
+
+		ObjectData.getObjectData(292).decaysToObj = 860; // Basket ==> Broken Basket
+
 		// set decay for ancient
 		ObjectData.getObjectData(898).decayFactor = 0.02; // Ancient Stone Floor
 		ObjectData.getObjectData(898).decaysToObj = 1853; // Ancient Stone Floor ==> Cut Stones
