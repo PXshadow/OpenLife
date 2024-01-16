@@ -291,9 +291,10 @@ class ServerSettings {
 	public static var DomesticAnimalMoveUseChance:Float = 0.2;
 	public static var FedDomesticAnimalMoveUseChance:Float = 0.66;
 
-	// for animal offsprings
+	// for animal offsprings and death
 	public static var ChanceForOffspring:Float = 0.00005; // 0.00005;// 0.0005 // For each movement there is X chance to generate an offspring.
 	public static var ChanceForAnimalDying:Float = 0.00005; // 0.05 // 0.00002 // 0.00025 // For each movement there is X chance that the animal dies
+	public static var ChanceForDomesticAnimalDyingFactor:Float = 2; // Is used in combination with ChanceForAnimalDying
 	public static var ChanceForAnimalDyingFactorIfInLovedBiome:Float = 0.1; // Animals die less if they are in their loved biome
 	public static var OffspringFactorLowAnimalPopulationBelow:Float = 0.2;
 	public static var OffspringFactorIfAnimalPopIsLow:Float = 10;

@@ -2350,6 +2350,7 @@ class TimeHelper {
 			//	- chancePreferredBiome), 2);
 			var chanceForOffspring = isPreferredBiome ? ServerSettings.ChanceForOffspring : ServerSettings.ChanceForOffspring / 100;
 			var chanceForAnimalDying = isPreferredBiome ? ServerSettings.ChanceForAnimalDying * ServerSettings.ChanceForAnimalDyingFactorIfInLovedBiome : ServerSettings.ChanceForAnimalDying;
+			if (animal.isDomesticAnimal()) chanceForAnimalDying * ServerSettings.ChanceForDomesticAnimalDyingFactor;
 
 			// TODO let domestic animals multiply if there is enough green biome
 			// TODO let domestic animals eat up green biome
