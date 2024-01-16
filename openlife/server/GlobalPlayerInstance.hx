@@ -5889,6 +5889,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public function addHealthAndPrestige(count:Float, isFood:Bool = true) {
 		if (this.darkNosaj > 0) return;
 
+		var factor = calculateClothingPrestigeFactor();
+		// var fromFollowerFactor = factor + calculateClothingPrestigeFactorForLeader();
+
 		this.yum_multiplier += count;
 		if (isFood) this.prestigeFromEating += count;
 
@@ -5963,14 +5966,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		for (ii in 0...4) {
 			if (this.exiledByPlayers.exists(leader.p_id)) return; // is exiled
 
-			var factor = calculateClothingPrestigeFactor();
-			factor += calculateClothingPrestigeFactorForLeader();
-			// if (factor > 0.1) trace('clothingPrestigeFactor: ${factor}');
-			if (this.isSameFamily(leader) == false) factor *= 0.4;
+			var leaderFactor = leader.calculateClothingPrestigeFactor();
+			leaderFactor = (leaderFactor + factor) / 2; // take halve from leader halve from follower
+			leaderFactor += leader.calculateClothingPrestigeFactorForLeader();
 
-			leader.yum_multiplier += tmpCount * factor;
-			leader.prestigeFromFollowers += tmpCount * factor;
-			leader.coins += tmpCount * factor;
+			// if (leaderFactor > 0.1) trace('clothingPrestigeFactor: factor: ${factor} leaderFactor: $leaderFactor');
+			if (this.isSameFamily(leader) == false) leaderFactor *= 0.5;
+
+			leader.yum_multiplier += tmpCount * leaderFactor;
+			leader.prestigeFromFollowers += tmpCount * leaderFactor;
+			leader.coins += tmpCount * leaderFactor;
 
 			if (leader.followPlayer == null) return;
 

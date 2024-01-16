@@ -193,6 +193,13 @@ SCORE / PRESTIGE:
 - you get only prestige for your ancestors if your body from that life is burried and the grave still exists
 - you loose score for a cursed grave or if no one burried your bones before they decay
 
+Clothing Prestige:
+- clothing influences how much prestige / coins you get from your followers 50% naked 250% with top clothing 
+- halve of the clothing influence comes from your cloths halve from the cloths of the follower
+- Crowns Give extra 20% prestige / Coins from followers
+- If the follower is not from your own family the received prestige is halved
+- The ?CP command displayes your current clothing prestige factor
+
 MAP:
 - generate limited map using image color as index for biome id
 - made map "round", so you can walk over both x,y borders and come out on the other side. 
@@ -255,7 +262,7 @@ Combat / Attacking
 - In case you attack an ally without any weapon your Top Leader will auto exile you
 - The more / less strenght (max food pipes) you have the more / less damage you do 
 - clothing insulation reduces damage up to 66%
-- clothing influences how much prestige you get from your followers 50% to 150% 
+- clothing influences how much prestige you get from your followers
 - Floor insulation is added to clothing insulation up to a damage protection of 75% with full cloths
 - you have reduced speed if close to enemy with weapon
 - already wounded players receive less damage
