@@ -8455,6 +8455,7 @@ abstract class AiBase {
 		if (slot == 2) switchCloths = switchCloths || myPlayer.clothingObjects[3].id == 0;
 		if (isRag == false && wornCloth.name.contains('RAG ')) switchCloths = true;
 		if (objectData.extraPrestigeFactor > wornCloth.objectData.extraPrestigeFactor) switchCloths = true;
+		if (objectData.prestigeFactor > wornCloth.objectData.prestigeFactor) switchCloths = true;
 
 		return switchCloths;
 	}
