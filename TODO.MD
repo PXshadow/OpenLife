@@ -254,6 +254,8 @@ Combat / Attacking
 - In case you attack an ally without any weapon your Top Leader will auto exile you
 - The more / less strenght (max food pipes) you have the more / less damage you do 
 - clothing insulation reduces damage up to 66%
+- clothing influences how much prestige you get from your followers 50% to 150% 
+- ?CP command shows you your current clothing prestige factor  
 - Floor insulation is added to clothing insulation up to a damage protection of 75% with full cloths
 - you have reduced speed if close to enemy with weapon
 - already wounded players receive less damage
@@ -654,8 +656,6 @@ Middle priority:
 - ANIMAl snakes hide in winter and come back in sommer
 - ANIMAL leaders
 - ANIMAL advanced player like animals
-
-- SCORE give prestige boni for clothing (currently you get for crowns)
 
 - AI guards 
 

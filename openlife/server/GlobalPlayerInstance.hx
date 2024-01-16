@@ -1918,6 +1918,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			toSelf = true;
 		}
 
+		if (StringTools.startsWith(text, '?CP')) {
+			var factor = calculateClothingPrestigeFactor();
+			factor += calculateClothingPrestigeFactorForLeader();
+			factor *= 100;
+			text = 'PRESTIGE FACTOR ${factor}%';
+			toSelf = true;
+		}
+
 		if (StringTools.startsWith(text, '?FAMSCORE')
 			|| StringTools.startsWith(text, 'FAMSCORE?')
 			|| StringTools.startsWith(text, '?FAMILYSCORE')
@@ -4226,6 +4234,22 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return clothingHeatProtection;
 	}
 
+	public function calculateClothingPrestigeFactor():Float {
+		var clothingPrestigeFactor:Float = 0.5;
+
+		for (clothing in this.clothingObjects) {
+			if (clothing.id == 0) continue;
+
+			clothingPrestigeFactor += clothing.objectData.getPrestigeFactor();
+
+			// trace('clothingPrestigeFactor: ${clothing.description} ${clothing.objectData.getPrestigeFactor()}');
+		}
+
+		// trace('clothingPrestigeFactor: $clothingPrestigeFactor');
+
+		return clothingPrestigeFactor;
+	}
+
 	// TODO increase with health
 	public function calculateNotReducedFoodStoreMax():Float {
 		var p:GlobalPlayerInstance = this;
@@ -5939,10 +5963,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		for (ii in 0...4) {
 			if (this.exiledByPlayers.exists(leader.p_id)) return; // is exiled
 
-			var factor = 1 + calculateCClothingPrestigeFactor();
+			var factor = calculateClothingPrestigeFactor();
+			factor += calculateClothingPrestigeFactorForLeader();
+			// if (factor > 0.1) trace('clothingPrestigeFactor: ${factor}');
 			if (this.isSameFamily(leader) == false) factor *= 0.4;
-
-			// if (factor > 1) trace('clothingPrestigeFactor: ${factor}');
 
 			leader.yum_multiplier += tmpCount * factor;
 			leader.prestigeFromFollowers += tmpCount * factor;
@@ -5954,7 +5978,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		}
 	}
 
-	public function calculateCClothingPrestigeFactor() {
+	public function calculateClothingPrestigeFactorForLeader() {
 		var clothingPrestigeFactor = 0.0;
 		for (clothing in this.clothingObjects) {
 			clothingPrestigeFactor += clothing.objectData.extraPrestigeFactor;

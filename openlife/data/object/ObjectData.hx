@@ -507,6 +507,7 @@ class ObjectData extends LineReader {
 	public var parentId(get, null):Int;
 
 	public var extraPrestigeFactor = 0.0; // For example if special cloth increase the prestige for followers
+	public var prestigeFactor = 0.5; // How a clothing influences gained prestige
 
 	public var blocksRemove = false; // If items cant be removed like from a closed chest
 
@@ -591,7 +592,8 @@ class ObjectData extends LineReader {
 		for (objData in ObjectData.importedObjectData) {
 			if (searchFromEnd) {
 				if (StringTools.endsWith(objData.name, searchName)) return objData.id;
-			} else {
+			}
+			else {
 				if (StringTools.startsWith(objData.name, searchName)) return objData.id;
 			}
 		}
@@ -1421,12 +1423,12 @@ class ObjectData extends LineReader {
 		return isClothing() == false && rValue > 0;
 	}
 
+	// original: {'h': 0.25, 't': 0.35, 'b': 0.2, 's': 0.1, 'p': 0.1};
+	static var parts:Map<String, Float> = ["h" => 0.4, "t" => 0.4, "b" => 0.4, "s" => 0.2, "p" => 0.4];
+
 	// insulation reaches from 0 to 2
 	public function getInsulation():Float {
 		if (isClothing() == false) return rValue;
-
-		// original: {'h': 0.25, 't': 0.35, 'b': 0.2, 's': 0.1, 'p': 0.1};
-		var parts:Map<String, Float> = ["h" => 0.4, "t" => 0.4, "b" => 0.4, "s" => 0.2, "p" => 0.4];
 
 		// trace('Insulation: clothing: ${this.clothing} ' + parts);
 
@@ -1436,14 +1438,14 @@ class ObjectData extends LineReader {
 
 		// trace('Insulation: clothing: ${this.clothing} ${this.clothing.length} ${parts[this.clothing]}');
 
-		if (rValue > 0) return parts[this.clothing] * rValue; else
-			return parts[this.clothing];
+		if (rValue > 0) return parts[this.clothing] * rValue;
+		else return parts[this.clothing];
 	}
 
 	// TODO allow to set custom heat value that overrides rvalue
 	public function getHeatProtection():Float {
 		// original: {'h': 0.25, 't': 0.35, 'b': 0.2, 's': 0.1, 'p': 0.1};
-		var parts:Map<String, Float> = ["h" => 0.4, "t" => 0.4, "b" => 0.4, "s" => 0.2, "p" => 0.4];
+		// var parts:Map<String, Float> = ["h" => 0.4, "t" => 0.4, "b" => 0.4, "s" => 0.2, "p" => 0.4];
 
 		// trace('Insulation: clothing: ${this.clothing} ' + parts);
 
@@ -1457,8 +1459,14 @@ class ObjectData extends LineReader {
 
 		// trace('Insulation: clothing: ${this.clothing} ${this.clothing.length} ${parts[this.clothing]}');
 
-		if (rValue > 0) return parts[this.clothing] * (1 - rValue); else
-			return parts[this.clothing];
+		if (rValue > 0) return parts[this.clothing] * (1 - rValue);
+		else return parts[this.clothing];
+	}
+
+	public function getPrestigeFactor():Float {
+		if (this.clothing.length > 1) this.clothing = StringTools.trim(this.clothing);
+		if (parts[this.clothing] == 0) return 0;
+		return parts[this.clothing] * this.prestigeFactor;
 	}
 
 	public function isDrugs():Bool {
