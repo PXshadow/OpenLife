@@ -1698,17 +1698,17 @@ class ServerSettings {
 		// Knife + Domestic Cow ==> Bloody Knife + Butchered Sheep 587
 		// var trans = new TransitionData(560, 1458, 750, 587);
 		// Knife + Domestic Cow ==> Knife + Dead Cow 1900
-		var trans = new TransitionData(560, 1458, 750, 1900);
+		var trans = new TransitionData(560, 1458, 560, 1900);
 		// trans.aiShouldIgnore = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Domestic Calf 1459 ==> Knife + Dead Domestic Calf 1487
-		var trans = new TransitionData(560, 1459, 750, 1487);
+		var trans = new TransitionData(560, 1459, 560, 1487);
 		trans.aiShouldIgnore = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		// Knife + Hungry Domestic Calf 1462 ==> Knife + Dead Domestic Calf 1487
-		var trans = new TransitionData(560, 1462, 750, 1487);
+		var trans = new TransitionData(560, 1462, 560, 1487);
 		trans.aiShouldIgnore = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
