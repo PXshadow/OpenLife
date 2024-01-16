@@ -87,6 +87,7 @@ Commands:
 - say "?FSCORE" to get current account female score / prestige
 - say "?FAMSCORE" to displays family score
 - say ?R or ?REPUTATION or REPUTATION? to get current combat reputation
+- say "?CP" to get your current clothing prestige factor  
 
 You can assign jobs to AI with say JOB! or JOB!! to assign jobs to all close AI. Assigned jobs have very high priority (executed after MAKE commands). 
 Jobs are: 
@@ -255,7 +256,6 @@ Combat / Attacking
 - The more / less strenght (max food pipes) you have the more / less damage you do 
 - clothing insulation reduces damage up to 66%
 - clothing influences how much prestige you get from your followers 50% to 150% 
-- ?CP command shows you your current clothing prestige factor  
 - Floor insulation is added to clothing insulation up to a damage protection of 75% with full cloths
 - you have reduced speed if close to enemy with weapon
 - already wounded players receive less damage
