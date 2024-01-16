@@ -722,6 +722,9 @@ class ServerSettings {
 		ObjectData.getObjectData(986).decayFactor /= ObjDecayFactorForPermanentObjs; // Open Wooden Chest
 		ObjectData.getObjectData(986).decaysToObj = 4910; // Open Wooden Chest ==> Wooden Box with Boards and Rope
 
+		ObjectData.getObjectData(987).decayFactor /= ObjDecayFactorForPermanentObjs; // Closed Wooden Chest
+		ObjectData.getObjectData(987).decaysToObj = 4910; // Closed Wooden Chest ==> Wooden Box with Boards and Rope
+
 		ObjectData.getObjectData(4910).decayFactor /= ObjDecayFactorForPermanentObjs; // Wooden Box with Boards and Rope
 		ObjectData.getObjectData(4910).decaysToObj = 2740; // Wooden Box with Boards and Rope ==> Wooden Box with Boards
 
