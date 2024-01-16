@@ -1601,9 +1601,11 @@ class ServerSettings {
 		ObjectData.getObjectData(693).extraPrestigeFactor = 0.2;
 
 		// Increase General prestige gain
-		ObjectData.getObjectData(695).prestigeFactor = 1;
-		ObjectData.getObjectData(694).prestigeFactor = 1;
-		ObjectData.getObjectData(693).prestigeFactor = 1;
+		ObjectData.getObjectData(695).prestigeFactor = 1.5;
+		ObjectData.getObjectData(694).prestigeFactor = 1.5;
+		ObjectData.getObjectData(693).prestigeFactor = 1.5;
+
+		ObjectData.getObjectData(692).prestigeFactor = 1; // Crown Blank
 
 		ObjectData.getObjectData(700).clothing = "n"; // Leaf Crown with Leaf 700 is not to wear
 

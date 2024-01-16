@@ -213,6 +213,9 @@ Example:
 - Rag or Old cloths have halve the prestige boni (still better then nothing)
 - Long Dresses have double prestige boni
 - Cloaks have double prestige boni (Display of pure decadence)
+- A Blank Crown has +50% extra prestige boni (same as colored cloth)
+- All other Crowns have +150% extra prestige boni (same as colored cloth with rose) 
+(Remember that not blank Crowns give additional full +20% prestige boni from followers)
 
 Example: Red Cloak --> (50% (initial) + 50% (Red)) X 2 since cloak = 200% (X0.4 since covers 40% of body = 50% boni) 
 
