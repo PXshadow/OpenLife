@@ -4070,18 +4070,23 @@ class ServerSettings {
 
 		if (clothing.description.contains(' Rose')) {
 			clothing.prestigeFactor += 0.5;
-			trace('Clothing: ${clothing.name} index: ${clothing.clothing} prestige: ${clothing.prestigeFactor}');
 		}
 		if (clothing.description.contains(' Feather')) {
 			clothing.prestigeFactor += 0.2;
 		}
-		// LONG DRESS LONG SKIRT PLEATED SKIR
 
 		if (clothing.description.contains('Rag ')) {
 			clothing.prestigeFactor /= 2;
 		}
+		if (clothing.description.contains('Old ')) {
+			clothing.prestigeFactor /= 2;
+			// trace('Clothing: ${clothing.name} index: ${clothing.clothing} prestige: ${clothing.prestigeFactor}');
+		}
 
 		if (clothing.description.contains('Cloak')) {
+			clothing.prestigeFactor *= 2;
+		}
+		if (clothing.description.contains('Long Dress')) {
 			clothing.prestigeFactor *= 2;
 		}
 	}

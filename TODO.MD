@@ -210,8 +210,9 @@ Example:
 - Colored cloths have +50% extra prestige boni 
 - Cloths with a Feather have +20% extra prestige boni 
 - Cloths with a Rose have +50% extra prestige boni
-- Rag cloths have halve the prestige boni (still better then nothing)
-- Cloaks have double prestige boni (the best you can get)
+- Rag or Old cloths have halve the prestige boni (still better then nothing)
+- Long Dresses have double prestige boni
+- Cloaks have double prestige boni (Display of pure decadence)
 
 Example: Red Cloak --> (50% (initial) + 50% (Red)) X 2 since cloak = 200% (X0.4 since covers 40% of body = 50% boni) 
 
