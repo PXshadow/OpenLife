@@ -8572,6 +8572,19 @@ abstract class AiBase {
 			return true;
 		}*/
 
+		// TODO empty container?
+		if (useTarget.containedObjects.length > 0) {
+			var stored = useTarget.containedObjects[0];
+			var storedName = stored == null ? 'null' : stored.name;
+
+			trace('AAI: ${myPlayer.name + myPlayer.id} USE: needs remove from container ${useTarget.name} --> ${storedName}');
+
+			// this.addNotReachableObject(useTarget);
+			addObjectWithHostilePath(useTarget);
+			CancleUse();
+			return true;
+		}
+
 		// check if target changed meanwhile like Fire --> Hot Coals
 		if (expectedUseTarget != null && useTarget.parentId != expectedUseTarget.parentId) {
 			// Allow: Milkweed 50 // Flowering Milkweed 51 // Fruiting Milkweed 52
