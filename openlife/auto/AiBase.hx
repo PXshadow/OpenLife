@@ -1443,7 +1443,8 @@ abstract class AiBase {
 		}
 
 		if (grave.containedObjects.length > 0) {
-			if (dropHeldObject(10)) {
+			// if (dropHeldObject(10)) {
+			if (dropHeldObject(0)) {
 				if (shouldDebugSay()) myPlayer.say('drop for remove from grave');
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: drop heldobj for remove');
 				return true;
@@ -1471,7 +1472,8 @@ abstract class AiBase {
 		// if (shortCraft(0, 356, searchDistance)) return true;
 		if (PickupItem(356)) return true;
 
-		var grave = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, graveIdsToDigIn, searchDistance, myPlayer);
+		// TODO why again look here for grave? Makes Ai stuck if grave is not empty!
+		// var grave = AiHelper.GetClosestObjectToPositionByIds(myPlayer.tx, myPlayer.ty, graveIdsToDigIn, searchDistance, myPlayer);
 		if (grave == null) return false;
 
 		// pickup bones
@@ -1507,7 +1509,10 @@ abstract class AiBase {
 			if (heldId == 292) {
 				if (shouldDebugSay()) myPlayer.say('use basket on bones');
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: use basket on bones');
+				// make sure Basket is empty
 				if (myPlayer.heldObject.containedObjects.length > 0) return dropHeldObject();
+				// make sure grave is empty
+				if (grave.containedObjects.length > 0) return dropHeldObject();
 				return useHeldObjOnTarget(grave);
 			}
 			if (shouldDebugSay()) myPlayer.say('get basket for bones');
@@ -8580,8 +8585,8 @@ abstract class AiBase {
 
 			trace('AAI: ${myPlayer.name + myPlayer.id} USE: needs remove from container ${useTarget.name} --> ${storedName} held: ${myPlayer.heldObject.name}}');
 
-			// this.addNotReachableObject(useTarget);
-			addObjectWithHostilePath(useTarget);
+			this.addNotReachableObject(useTarget);
+			// addObjectWithHostilePath(useTarget);
 			CancleUse();
 			return true;
 		}
