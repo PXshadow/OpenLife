@@ -3431,6 +3431,10 @@ class ServerSettings {
 		var trans = transitions.getTransition(0, 2243);
 		trans.aiShouldIgnore = true;
 
+		// Wooden Sledge 471 + Wooden Box 434 // Ai seems to use this tranistion for making kindling but why?
+		var trans = transitions.getTransition(471, 434);
+		trans.aiShouldIgnore = true;
+
 		// Bowl with Corn Kernels 1247 + Bucket of Corn 4110 (untill circular crafting is fixed)
 		// var trans = transitions.getTransition(1247, 4110);
 		// trans.aiShouldIgnore = true;
