@@ -1372,7 +1372,7 @@ abstract class AiBase {
 			var heldObjData = myPlayer.heldObject.objectData;
 
 			// Use might be to store held object // TODOC check if it really can contain object
-			if (targetObjData.numSlots > 0 && heldObjData.containable) return true;
+			if (useIsDropInContainer && targetObjData.numSlots > 0 && heldObjData.containable) return true;
 
 			// if (shouldDebugSay())
 			myPlayer.say('could not find ${GetName(actorId)} + ${GetName(targetId)}');
@@ -3557,28 +3557,22 @@ abstract class AiBase {
 	private function GetForge() {
 		var home = myPlayer.home;
 
-		// forge 303
-		var forge = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 303, 20, null, myPlayer);
+		// Firing Forge 304
+		var forge =  AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 304, 20, null, myPlayer);
 
 		// Forge with Charcoal 305
 		if (forge == null) forge = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 305, 20, null, myPlayer);
 
-		// Firing Forge 304
-		if (forge == null) forge = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 304, 20, null, myPlayer);
+		// forge 303
+		if (forge == null) forge = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 303, 20, null, myPlayer);
 
 		return forge;
 	}
 
-	private function doSmithing(maxPeople:Int = 1):Bool {
+	private function prepareSmithingTools():Bool {
 		var home = myPlayer.home;
 		var heldObject = myPlayer.heldObject;
 		var heldId = heldObject.parentId;
-
-		// Basket of Charcoal 298 + Forge 303
-		if (heldObject.parentId == 298 && shortCraft(298, 303, 30, false)) return true;
-
-		if (hasOrBecomeProfession('SMITH', maxPeople) == false) return false;
-
 		var forge = GetForge();
 
 		if (forge == null) return false;
@@ -3609,7 +3603,7 @@ abstract class AiBase {
 		// Steel Adze Head on Flat Rock 453
 		if (shortCraft(0, 453, 20, false)) return true;
 
-		if (this.profession['SMITH'] < 3) {
+		if (this.profession['SMITH'] < 3 || forge.parentId == 304) {
 			// TODO fix make space for them otherwise it might try again and again
 			// Flat Rock 291
 			var count = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 291, 10);
@@ -3694,11 +3688,11 @@ abstract class AiBase {
 			this.profession['SMITH'] = 3;
 		}
 
-		/*if (countSteel < 1){
+		if (countSteel < 1) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: no steel');
-			this.profession['SMITH'] = 0;
+			// this.profession['SMITH'] = 0;
 			return false;
-		}*/
+		}
 
 		if (this.profession['SMITH'] < 5) {
 			// Smithing Hammer
@@ -3707,6 +3701,28 @@ abstract class AiBase {
 			if (count < 1 && craftItem(441)) return true;
 			this.profession['SMITH'] = 5;
 		}
+
+		return false;
+	}
+
+	private function doSmithing(maxPeople:Int = 1):Bool {
+		var home = myPlayer.home;
+		var heldObject = myPlayer.heldObject;
+		var heldId = heldObject.parentId;
+
+		// Basket of Charcoal 298 + Forge 303
+		if (heldObject.parentId == 298 && shortCraft(298, 303, 30, false)) return true;
+
+		if (hasOrBecomeProfession('SMITH', maxPeople) == false) return false;
+
+		var forge = GetForge();
+		if (forge == null) return false;
+
+		if (prepareSmithingTools()) return true;
+
+		// Steel Ingot 326
+		var countSteel = countCurrentObject(326);
+		if (countSteel < 1) return false;
 
 		if (this.profession['SMITH'] < 6) {
 			// Steel Mining Pick 684
@@ -8112,6 +8128,7 @@ abstract class AiBase {
 		// TODO go only for floored target or fire if kid or mother with kids and winter
 
 		// myPlayer.getFollowPlayer()
+		// limit that AI that follows another player like a kid does go far away
 		if (dropTargetId != 0 && distance > 400 && playerToFollow != null && isHungry == false) {
 			// if (shouldDebugSay()) myPlayer.say('Drop ${myPlayer.heldObject.name} FOLLOW PLAYER / DROP TOO FAR AWAY! dist: : $distance');
 			// myPlayer.say('${playerToFollow.name} IM COMMING!');
@@ -8574,6 +8591,8 @@ abstract class AiBase {
 		return removeItemFromContainer(useTarget);
 	}
 
+	// Use can be used to drop held object in a container or pickup a container.
+	// In this cases useIsDropInContainer should be set true!
 	private function isUsingItem():Bool {
 		if (useTarget == null) return false;
 
