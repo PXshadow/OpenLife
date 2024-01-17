@@ -65,6 +65,7 @@ abstract class AiBase {
 	public var expectedUseTarget:ObjectData = null; // to check if target is the same (time may have changed it)
 
 	var dropIsAUse:Bool = false;
+	var useIsDropInContainer:Bool = false; // For example to put clay in a basket
 
 	var itemToCraftId = -1;
 	var itemToCraftName:String = null;
@@ -1335,7 +1336,7 @@ abstract class AiBase {
 
 	// isCaringForFire
 
-	private function useHeldObjOnTarget(target:ObjectHelper):Bool {
+	private function useHeldObjOnTarget(target:ObjectHelper, useIsDropInContainer = false):Bool {
 		if (target == null) return false;
 		if (this.isObjectNotReachable(target.tx, target.ty)) return false;
 		if (this.isObjectWithHostilePath(target.tx, target.ty)) return false;
@@ -1347,6 +1348,7 @@ abstract class AiBase {
 		this.useActor = new ObjectHelper(null, myPlayer.heldObject.parentId);
 		this.useActor.tx = target.tx;
 		this.useActor.ty = target.ty;
+		this.useIsDropInContainer = useIsDropInContainer;
 
 		return true;
 	}
@@ -1366,9 +1368,14 @@ abstract class AiBase {
 
 			if (canPlaceFloor) return true;
 
+			// if (ServerSettings.DebugAi)
+			var heldObjData = myPlayer.heldObject.objectData;
+
+			// Use might be to store held object // TODOC check if it really can contain object
+			if (targetObjData.numSlots > 0 && heldObjData.containable) return true;
+
 			// if (shouldDebugSay())
 			myPlayer.say('could not find ${GetName(actorId)} + ${GetName(targetId)}');
-			// if (ServerSettings.DebugAi)
 			trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: could not find ${GetName(actorId)} + ${GetName(targetId)}');
 			return false;
 		}
@@ -2948,9 +2955,10 @@ abstract class AiBase {
 			}
 		}
 
-		// search if there is a dropped clay basket to bring home
+		// search if there is a dropped clay basket to bring home or fill
 		// Basket 292, Clay 126
 		basket = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 292, 20, null, myPlayer, [126]);
+		// if (basket != null) trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: found basket with clay held: ${heldObject.name} d: $distanceToHome');
 
 		// search if there is a basket to fill close to the clay deposit
 		if (basket == null && clayDeposit != null) basket = AiHelper.GetClosestObjectToPosition(clayDeposit.tx, clayDeposit.ty, 292, 5, null,
@@ -2965,7 +2973,7 @@ abstract class AiBase {
 				trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: pickup basket to bring home: held: ${heldObject.name} d: $distanceToHome');
 
 			// pickup basket to bring home
-			return useHeldObjOnTarget(basket);
+			return useHeldObjOnTarget(basket, true);
 		}
 
 		// holding Clay 126
@@ -2983,7 +2991,7 @@ abstract class AiBase {
 			if (ServerSettings.DebugAi)
 				trace('AAI: ${myPlayer.name + myPlayer.id} gatherClay: drop clay in basket: held: ${heldObject.name} d: $distanceToHome');
 
-			return useHeldObjOnTarget(basket); // fill basket
+			return useHeldObjOnTarget(basket, true); // fill basket
 		}
 
 		// check if there is loose clay to bring home
@@ -8545,6 +8553,7 @@ abstract class AiBase {
 		this.useActor = null;
 		this.expectedUseTarget = null;
 		this.dropIsAUse = false;
+		this.useIsDropInContainer = false;
 	}
 
 	private function emptyContainer() {
@@ -8579,7 +8588,7 @@ abstract class AiBase {
 		}*/
 
 		// TODO empty container?
-		if (useTarget.containedObjects.length > 0) {
+		if (useIsDropInContainer == false && useTarget.containedObjects.length > 0) {
 			var stored = useTarget.containedObjects[0];
 			var storedName = stored == null ? 'null' : stored.name;
 
