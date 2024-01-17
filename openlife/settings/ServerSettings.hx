@@ -613,7 +613,7 @@ class ServerSettings {
 			ObjectData.getObjectData(917).decaysToObj = 862; // Key 917 --> roken Steel Tool no wood 862
 			ObjectData.getObjectData(1003).decaysToObj = 862; // Lock Removal Key 1003 --> roken Steel Tool no wood 862
 
-			ObjectData.getObjectData(625).decayFactor /= ObjDecayFactorForPermanentObjs;
+			// ObjectData.getObjectData(625).decayFactor /= ObjDecayFactorForPermanentObjs;
 			ObjectData.getObjectData(625).decaysToObj = 1101; // Wet Compost Pile --> Fertile Soil Pile 1101
 
 			// this might be override for some down below
