@@ -3558,7 +3558,7 @@ abstract class AiBase {
 		var home = myPlayer.home;
 
 		// Firing Forge 304
-		var forge =  AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 304, 20, null, myPlayer);
+		var forge = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 304, 20, null, myPlayer);
 
 		// Forge with Charcoal 305
 		if (forge == null) forge = AiHelper.GetClosestObjectToPosition(home.tx, home.ty, 305, 20, null, myPlayer);
@@ -3630,13 +3630,15 @@ abstract class AiBase {
 			if (shortCraftOnGround(324)) return true;
 
 			// Unforged Sealed Steel Crucible 319
+			// this.taskState['Unforged Sealed Steel Crucible']
 			if (this.profession['SMITH'] < 3.5 && countForgedCrucible < 1) {
 				// Big Charcoal Pile 300
-				var count = countCurrentObject(300);
+				// var count = countCurrentObject(300);
 				// Basket of Charcoal 298
 				// if (count < 1 && craftItem(298)) return true;
 
-				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Unforged Sealed Steel Crucible count done: ${count}');
+				if (ServerSettings.DebugAi)
+					trace('AAI: ${myPlayer.name + myPlayer.id} doSmithing: Unforged Sealed Steel Crucible: forgedCrucible: ${countForgedCrucible}');
 				if (countCrucible < 3 && GetCraftAndDropItemsCloseToObj(forge, 319, 3, 10)) return true;
 				this.profession['SMITH'] = 3.5;
 			}
@@ -3721,8 +3723,8 @@ abstract class AiBase {
 		if (prepareSmithingTools()) return true;
 
 		// Steel Ingot 326
-		var countSteel = countCurrentObject(326);
-		if (countSteel < 1) return false;
+		// var countSteel = countCurrentObject(326);
+		// if (countSteel < 1) return false;
 
 		if (this.profession['SMITH'] < 6) {
 			// Steel Mining Pick 684
@@ -6437,6 +6439,13 @@ abstract class AiBase {
 
 		if (done) lastActorId = -1;
 		if (done && itemToCraft.transActor != null) lastActorId = itemToCraft.transActor.parentId;
+
+		// make AI smith if it wants to use the forge since otherwise Ai might not be able to do the tool
+		// Firing Forge 304 // Forge with Charcoal 305 // forge 303
+		var forgeIds = [304, 305, 303];
+		if (this.useTarget != null && forgeIds.contains(this.useTarget.id)) this.lastProfession = 'SMITH';
+		if (this.itemToCraft.transTarget != null && forgeIds.contains(this.itemToCraft.transTarget.id)) this.lastProfession = 'SMITH';
+
 		return done;
 	}
 
