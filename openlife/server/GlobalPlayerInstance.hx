@@ -5095,6 +5095,16 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			return true;
 		}
+		if (text.contains('!SAVE')) {
+			if (checkIfNotAllowed(player)) return true;
+			if (ServerSettings.saveToDisk) {
+				player.say('Save is already ON!', true);
+				return true;
+			}
+			Macro.exception(Server.server.map.writeToDisk(false));
+			player.say('Saved!', true);
+			return true;
+		}
 		if (text.contains('!COIN')) {
 			if (checkIfNotAllowed(player)) return true;
 
