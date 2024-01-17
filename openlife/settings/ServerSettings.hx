@@ -2984,10 +2984,10 @@ class ServerSettings {
 		var trans = transitions.getTransition(334, 2145); // Steel Axe + Empty Banana Plant
 		trans.aiShouldIgnore = true;
 		trans.hungryWorkCost = 10;
-		var trans = transitions.getTransition(334, 239); // Steel Axe + Wooden Tongs
-		trans.aiShouldIgnore = true;
-		var trans = transitions.getTransition(71, 239); // Stone Hatchet + Wooden Tongs
-		trans.aiShouldIgnore = true;
+		// var trans = transitions.getTransition(334, 239); // Steel Axe + Wooden Tongs
+		// trans.aiShouldIgnore = true;
+		// var trans = transitions.getTransition(71, 239); // Stone Hatchet + Wooden Tongs
+		// trans.aiShouldIgnore = true;
 		var trans = transitions.getTransition(334, 583); // Steel Axe + Knitting Needles
 		trans.aiShouldIgnore = true;
 		var trans = transitions.getTransition(71, 583); // Stone Hatchet + Knitting Needles
@@ -3890,6 +3890,8 @@ class ServerSettings {
 
 		LimitObject(236, 241, 5); // Limit Clay Plate 236 // Fired Plate in Wooden Tongs 241
 
+		LimitObject(236, 241, 5); // Limit Clay Plate 236 // Fired Plate in Wooden Tongs 241
+
 		LimitObject(183, 180, 20); // Rabbit Fur 183 // Dead Rabbit 180
 
 		LimitObject(132, 132, 20); // Yew Branch 132
@@ -3984,6 +3986,11 @@ class ServerSettings {
 	}
 
 	private static function LimitTransitionsIfTooFewOfObject() {
+		// Steel Axe + Wooden Tongs
+		LimitTransitionIfMinNotReached(334, 239, 239, 3);
+		// Stone Hatchet + Wooden Tongs
+		LimitTransitionIfMinNotReached(71, 239, 239, 3);
+
 		// Flint Chip 135 + Yew Bow 151
 		LimitTransitionIfMinNotReached(135, 151, 151, 3); // Allow to destroy Bows if more than 3
 		// Knife 560 + Yew Bow 151
