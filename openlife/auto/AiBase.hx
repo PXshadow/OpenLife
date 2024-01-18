@@ -1907,7 +1907,7 @@ abstract class AiBase {
 
 		if (doPlantCarrots(2, 5)) return true;
 
-		if (doPlantMilkWeed(2, 5)) return true;
+		// if (doPlantMilkWeed(2, 5)) return true;
 
 		if (doPlantCarrots(6, 40)) return true;
 
@@ -2313,7 +2313,7 @@ abstract class AiBase {
 
 		if (doPlantCorn(2, 5)) return true;
 
-		if (doPlantMilkWeed(2, 7)) return true;
+		// if (doPlantMilkWeed(2, 7)) return true;
 
 		if (doPlantWheat(2, 5)) return true;
 
@@ -3816,7 +3816,7 @@ abstract class AiBase {
 
 		Macro.exception(if (doPrepareRows(maxPeople)) return true);
 
-		if (doPlantMilkWeed(2, 10)) return true;
+		// if (doPlantMilkWeed(2, 10)) return true;
 
 		// take care of potatos
 		if (shortCraft(502, 1146, 30)) return true; // Shovel + Mature Potato Plants 1146
