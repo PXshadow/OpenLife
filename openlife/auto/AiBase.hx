@@ -2449,6 +2449,10 @@ abstract class AiBase {
 	}
 
 	private function doPlantPotatos(minPlanted:Int, maxPlanted:Int) {
+		// Shovel 502
+		var count = countCurrentObject(502);
+		if (count < 1) return false;
+
 		// Dry Planted Potatoes 1145
 		// Wet Planted Potatoes 1142 // Potato Plants 1143 // Mounded Potato Plants 1144 // Mature Potato Plants 1146
 		// Dug Potatoes 4144
@@ -3922,7 +3926,7 @@ abstract class AiBase {
 
 			// Dry Planted Squash Seeds 1192 // Wet Planted Squash Seeds 1190
 			if (toPlant == 1192 || toPlant == 1190) {
-				if (doPlanSquash(2, 5)) return true;
+				// if (doPlanSquash(2, 5)) return true;
 				toPlant += 1;
 				continue;
 			}
