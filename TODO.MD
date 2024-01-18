@@ -130,6 +130,7 @@ New in game Currency:
 Quality of Life Changes:
 - you can pick berriers directly with a bowl
 - you can pick up dry beans with a bowl
+- You can now make Threads from Wool: Drop Spindle + Ball of Thread -->  Thread
 - soaked dry beans can be cooked with a hot oven
 - kids can carry one item (with max one use) and pick berries
 - you can do smithing on a table
@@ -543,11 +544,9 @@ TODO Missing:
 more up in the list means more likely to be implemented first but no guarantee!
 
 High priority:
-- AI not close kiln with adobe if clay stuff is to make / check in craftitem for transition
 - AI SWORD: get angry if one has one and is not noble
 
 Combat:
-- AI use Knife / Sword for combat
 - AI dont engage in combat if cursed and opponent is not cursed
 - AI dont run back if fleeing / mark target tile hostile
 
@@ -576,7 +575,6 @@ Cointainer:
 - AI using of backpack (baskets) / for example kindling, potato, pies to eat / water
 
 Generel:
-- FIX AI dig in graves
 - FIX wrong death messages / stuck on death
 - FIX teleporting Ai especially if you drop BB
 - FIX Ai dont make tables
@@ -702,8 +700,6 @@ Middle priority:
 - GATES visitor at gate
 
 Low priority stuff:
-- AI pickup stuff after droped for eating???
-- ??? YUM use yum category // for example for berry / berry bowl
 - PLANES
 - RADIO
 - LANGUAGE implement different languages
@@ -712,6 +708,7 @@ Low priority stuff:
 
 Will not be:
 Apocalyse, but there is some thing else
+Truck
 
 PX TODO
 ====
