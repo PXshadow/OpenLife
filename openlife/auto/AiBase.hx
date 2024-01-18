@@ -6565,6 +6565,15 @@ abstract class AiBase {
 			if (count > 1) return false;
 		}
 
+		// Make sure that there is a Axe close // TODO check if making PLUCKED GOOSE???
+		// Domestic Goose held 1267 Stump 338 // Steel Axe 334 // Domestic Goose 1256
+		// if (actorId == 1267 && targetId == 338) {
+		if (actorId == 0 && targetId == 1256) {
+			var closest = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 338, 20, myPlayer);
+			if (closest == null) return false;
+			if (GetCraftAndDropItemsCloseToObj(closest, 334, 1, 3)) return true;
+		}
+
 		// Clay Bowl 235
 		// Fertile Soil Pile 1101 // Fertile Soil 1138
 		var soilTargets = [1101, 1138];
@@ -8809,6 +8818,9 @@ abstract class AiBase {
 						trace('AAI: ${myPlayer.name + myPlayer.id} raw pie done: ${itemToCraft.itemToCraft.name} countPies: $countPies lastPie: $lastPie');
 				}
 				var expectedUseTargetName = expectedUseTarget == null ? 'NOTSET!!!' : expectedUseTarget.name;
+
+				// Make sure AI is fast // Goose On Stump 1268
+				if (taregtObjectId == 1268) time -= 1;
 
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} done: ${useActorName} + ${useTarget.name} expected: ${expectedUseTargetName} ==> ${itemToCraft.itemToCraft.name} trans: ${itemToCraft.countTransitionsDone} finished: ${itemToCraft.countDone} FROM: ${itemToCraft.count}');
