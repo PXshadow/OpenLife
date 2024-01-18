@@ -4234,9 +4234,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return clothingHeatProtection;
 	}
 
-	public function calculateClothingPrestigeFactor():Float {
-		var clothingPrestigeFactor:Float = 0.5;
-
+	public function calculateClothingPrestigeFactor():Float {		
+		var clothingPrestigeFactor:Float = 0.0;
+		
 		for (clothing in this.clothingObjects) {
 			if (clothing.id == 0) continue;
 
@@ -4244,6 +4244,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			// trace('clothingPrestigeFactor: ${clothing.description} ${clothing.objectData.getPrestigeFactor()}');
 		}
+
+		if(this.isEveOrAdam()) clothingPrestigeFactor /= 2;
+		if(this.isEveOrAdam()) clothingPrestigeFactor += 0.5;
 
 		// trace('clothingPrestigeFactor: $clothingPrestigeFactor');
 

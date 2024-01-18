@@ -195,7 +195,8 @@ SCORE / PRESTIGE:
 
 Clothing Prestige:
 - clothing influences how much prestige / coins you get from your followers / kids / grandkids / siblings / mother / father
-- 50% naked 250% with top clothing 
+- 0% naked 200% with top clothing 
+- Eve or Adams have 50% naked and 150 with top clothing (cloths are less important for them)
 - halve of the clothing influence comes from your cloths halve from the cloths of the follower (...)
 - Crowns Give extra 20% prestige / coins from followers
 - If the follower is not from your own family the received prestige is halved
