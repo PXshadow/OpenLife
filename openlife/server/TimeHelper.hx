@@ -2381,10 +2381,10 @@ class TimeHelper {
 			// && originalPop > 0
 			if (shouldDie && worldmap.randomFloat() < chanceForAnimalDying) {
 				if (originalPop < 1) {
-					var countAnimal = AiHelper.CountCloseObjects(null, animal.tx, animal.ty, animal.parentId, 10);
+					var countAnimal = AiHelper.CountCloseObjects(null, animal.tx, animal.ty, animal.parentId, 5);
 					if (countAnimal < 6 && (lovesCurrentBiome || lovesCurrentOriginalBiome)) shouldDie = false;
 					// for now keep lonely not natural animals like sheep alive if there are alone so that sheeppens will have still an animal
-					if (countAnimal < 2) shouldDie = false;
+					if (countAnimal < 3) shouldDie = false;
 
 					trace('Animal DEAD?: ${animal.name} CountClose: $countAnimal Count: ${currentPop} Original Count: ${originalPop} chance: $chanceForAnimalDying biome: $targetBiome');
 				}
