@@ -558,7 +558,10 @@ abstract class AiBase {
 
 		if (isHandlingTemperature && dist > 100) Macro.exception(if (handleTemperature()) return);
 
-		Macro.exception(if (doStuff && attackPlayer(deadlyPlayer)) return);
+		// choose target to attack
+		var playerTarget = deadlyPlayer != null ? deadlyPlayer : AiHelper.GetClosePlayerTarget(myPlayer);
+
+		Macro.exception(if (doStuff && attackPlayer(playerTarget)) return);
 		Macro.exception(if (doStuff && isStayingCloseToChild()) return);
 		Macro.exception(if (doStuff && killAnimal(deadlyAnimal)) return);
 		Macro.exception(if (doStuff && this.profession['SMITH'] < 1 && isFeedingPlayerInNeed()) return);

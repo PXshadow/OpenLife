@@ -1467,10 +1467,48 @@ class AiHelper {
 		return bestPlayer;
 	}
 
+	public static function GetClosePlayerTarget(playerInter:PlayerInterface, searchDistance:Int = 20) {
+		var bestPlayer = null;
+
+		GlobalPlayerInstance.AcquireMutex();
+		Macro.exception(bestPlayer = GetClosePlayerTargetHelper(playerInter, searchDistance));
+		GlobalPlayerInstance.ReleaseMutex();
+
+		return bestPlayer;
+	}
+
+	private static function GetClosePlayerTargetHelper(playerInter:PlayerInterface, searchDistance:Int = 20) {
+		var player = cast(playerInter, GlobalPlayerInstance);
+		var bestPlayer = null;
+		var bestDist:Float = searchDistance * searchDistance;
+		var hasRedMask = player.getClothingById(3213) != null;
+
+		if (hasRedMask == false) return null; // For now be firendly // TODO change
+		if (player.age < 10) searchDistance = 4;
+
+		for (p in GlobalPlayerInstance.AllPlayers) {
+			if (p.deleted) continue;
+			if (p.age < 4) continue;
+			if (p.isSameFamily(player)) continue;
+			if (player.getTopLeader(p) != null) continue;
+
+			var dist = AiHelper.CalculateDistanceToPlayer(player, p);
+			if (p.lostCombatPrestige > 1) dist /= (15 + p.lostCombatPrestige) / 10;
+
+			if (dist > bestDist) continue;
+
+			bestDist = dist;
+			bestPlayer = p;
+		}
+
+		return bestPlayer;
+	}
+
 	private static function GetCloseDeadlyPlayerHelper(playerInter:PlayerInterface, searchDistance:Int = 8) {
 		var player = cast(playerInter, GlobalPlayerInstance);
 		var bestPlayer = null;
 		var bestDist:Float = searchDistance * searchDistance;
+		var hasRedMask = player.getClothingById(3213) != null;
 
 		// if (player.angryTime > 4) return null;
 		// TODO consider ally that can soon attack player
