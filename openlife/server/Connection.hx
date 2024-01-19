@@ -423,6 +423,7 @@ class Connection {
 
 		if (leader == null) {
 			trace('WARNING: sendFollowing: circular leader: ${player.name} ${player.followPlayer.name} ');
+			player.followPlayer = null;
 			leaderId = -1;
 		}
 
