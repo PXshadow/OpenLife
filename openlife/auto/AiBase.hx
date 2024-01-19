@@ -1360,6 +1360,12 @@ abstract class AiBase {
 	private function checkHungryWorkCostById(actorId:Int, targetId:Int):Bool {
 		var trans = TransitionImporter.GetTransition(actorId, targetId);
 
+		// check if there is a ground transition like: Hot Steel Crucible in Wooden Tongs
+		if (trans == null) {
+			// trans = TransitionImporter.GetTransition(actorId, -1, lastUseActor, target.isLastUse());		
+			trans = TransitionImporter.GetTransition(actorId, -1);
+		}
+
 		if (trans == null) {
 			var targetObjData = ObjectData.getObjectData(targetId);
 			var canPlaceFloor = targetObjData.allowFloorPlacement;
