@@ -3533,6 +3533,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (clothingId == 694) playerTo.say('I am King of the Forests!', true);
 		if (clothingId == 693) playerTo.say('I am King of the Carrots!', true);
 
+		// Devil Mask 3213
+		if (clothingId == 3213) playerTo.say('I am burning fire!', true);
+
 		// this.action = 0;
 
 		return true;
@@ -4234,9 +4237,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return clothingHeatProtection;
 	}
 
-	public function calculateClothingPrestigeFactor():Float {		
+	public function calculateClothingPrestigeFactor():Float {
 		var clothingPrestigeFactor:Float = 0.0;
-		
+
 		for (clothing in this.clothingObjects) {
 			if (clothing.id == 0) continue;
 
@@ -4245,8 +4248,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// trace('clothingPrestigeFactor: ${clothing.description} ${clothing.objectData.getPrestigeFactor()}');
 		}
 
-		if(this.isEveOrAdam()) clothingPrestigeFactor /= 2;
-		if(this.isEveOrAdam()) clothingPrestigeFactor += 0.5;
+		if (this.isEveOrAdam()) clothingPrestigeFactor /= 2;
+		if (this.isEveOrAdam()) clothingPrestigeFactor += 0.5;
 
 		// trace('clothingPrestigeFactor: $clothingPrestigeFactor');
 
@@ -4554,6 +4557,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			var isRightClassForWeapon = attacker.isRightClassForWeapon();
 			if (ServerSettings.DebugCombat) trace('COMBAT: isRightClassForWeapon: $isRightClassForWeapon');
 
+			// Devil Mask 3213
+			var hasRedMask = this.getClothingById(3213) != null;
+
 			currentStrengthFactor = attacker.food_store_max / ServerSettings.GrownUpFoodStoreMax;
 
 			damage *= attacker.isMale() ? ServerSettings.MaleDamageFactor : 1;
@@ -4565,9 +4571,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			damage *= attacker.isCursed ? ServerSettings.CursedMakeDamageFactor : 1;
 			damage *= attacker.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
 			damage *= attacker.darkNosaj > 0 ? 1.2 : 1;
+			damage *= hasRedMask ? 1.1 : 1;
 
-			if (ServerSettings.DebugCombat)
-				trace('COMBAT: HIT weaponDamage1: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance attacker cursed: ${attacker.isCursed}');
+			// if (clothingId == 3213) if (ServerSettings.DebugCombat)
+
+			trace('COMBAT: HIT weaponDamage1: $orgDamage damage: $damage allyFactor: $allyFactor distanceFactor: $distanceFactor quadDistance: $quadDistance attacker cursed: ${attacker.isCursed}');
 		}
 
 		var isRightClassForWeapon = targetPlayer.isRightClassForWeapon();

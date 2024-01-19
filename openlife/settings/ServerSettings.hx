@@ -4073,6 +4073,8 @@ class ServerSettings {
 		if (clothing.clothing.length > 1) clothing.clothing = StringTools.trim(clothing.clothing);
 		if (clothing.clothing == 'n') return;
 
+		// trace('Clothing: ${clothing.name} index: ${clothing.clothing} prestige: ${clothing.prestigeFactor}');
+
 		if (clothing.description.startsWith('Red ')) {
 			clothing.prestigeFactor += 0.5;
 		}
@@ -4101,7 +4103,6 @@ class ServerSettings {
 		}
 		if (clothing.description.contains('Old ')) {
 			clothing.prestigeFactor /= 2;
-			// trace('Clothing: ${clothing.name} index: ${clothing.clothing} prestige: ${clothing.prestigeFactor}');
 		}
 
 		if (clothing.description.contains('Cloak')) {
