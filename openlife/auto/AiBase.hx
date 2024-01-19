@@ -6462,8 +6462,14 @@ abstract class AiBase {
 		// make AI smith if it wants to use the forge since otherwise Ai might not be able to do the tool
 		// Firing Forge 304 // Forge with Charcoal 305 // forge 303
 		var forgeIds = [304, 305, 303];
-		if (this.useTarget != null && forgeIds.contains(this.useTarget.id)) this.lastProfession = 'SMITH';
-		if (this.itemToCraft.transTarget != null && forgeIds.contains(this.itemToCraft.transTarget.id)) this.lastProfession = 'SMITH';
+		var useForge = false;
+		if (this.useTarget != null && forgeIds.contains(this.useTarget.id)) useForge = true;
+		if (this.itemToCraft.transTarget != null && forgeIds.contains(this.itemToCraft.transTarget.id)) useForge = true;
+		if (useForge) {
+			if (hasOrBecomeProfession('SMITH', 2) == false) return false;
+		}
+
+		// this.lastProfession = 'SMITH';
 
 		return done;
 	}
