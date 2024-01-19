@@ -3154,9 +3154,18 @@ abstract class AiBase {
 			if (shortCraftOnTarget(1147, hotOven, false)) return true;
 			// Bowl of Soaking Beans 1180
 			if (shortCraftOnTarget(1180, hotOven, false)) return true;
+
+			// Plucked Turkey on Plate 2183
+			if (shortCraftOnTarget(2183, hotOven)) return true;
 		}
 
 		if (handleMilk()) return true;
+
+		// Cooked Turkey 2185
+		if (shortCraft(0, 2185, 20)) return true;
+
+		// Bowl of Turkey Broth 2198
+		if (craftItemMax(2198)) return true;
 
 		// FIX: AI gets stuck picking up Bowl
 		// Clay Bow 235 + Three Sisters Stew 1249
@@ -3193,6 +3202,9 @@ abstract class AiBase {
 			trace('AI TIME WARNING: doBaking ${Math.round((Sys.time() - startTime) * 1000)}ms ');
 
 		if (hasKnife && this.profession['BAKER'] < 3) {
+			// Cooked Turkey on Plate
+			if (shortCraft(560, 2186, 20, false)) return true;
+
 			// Chopped Tomato on Plate 2861
 			if (craftItemMax(2861)) return true;
 
@@ -3226,6 +3238,9 @@ abstract class AiBase {
 		}
 
 		this.profession['BAKER'] = 3; // TODO set to 2 once in a while to check for bread stuff???
+
+		// Carved Turkey on Plate 2187
+		if (shortCraft(560, 2187, 20, false)) return true;
 
 		// Baker needs Carrots!
 		if (doPlantCarrots(2, 10)) return true;
