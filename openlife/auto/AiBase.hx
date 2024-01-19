@@ -8562,6 +8562,9 @@ abstract class AiBase {
 		var switchCloths = wornCloth.id == 0;
 		var isRag = objectData.name.contains('RAG ');
 
+		// Devil Mask 3213
+		if(wornCloth.id == 3213) return false;
+	
 		// in case of shoes either one can be needed
 		if (slot == 2) switchCloths = switchCloths || myPlayer.clothingObjects[3].id == 0;
 		if (isRag == false && wornCloth.name.contains('RAG ')) switchCloths = true;
