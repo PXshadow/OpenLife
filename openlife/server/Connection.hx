@@ -421,6 +421,11 @@ class Connection {
 		var leaderId = player.followPlayer == null ? -1 : player.followPlayer.p_id;
 		var leaderBadgeColor = leader == null ? player.leaderBadgeColor : leader.leaderBadgeColor;
 
+		if (leader == null) {
+			trace('WARNING: sendFollowing: circular leader: ${player.name} ${player.followPlayer.name} ');
+			leaderId = -1;
+		}
+
 		// trace('sendFollowing ${player.id} --> $leaderId color: $leaderBadgeColor');
 		send(FOLLOWING, ['${player.p_id} $leaderId $leaderBadgeColor']);
 	}
