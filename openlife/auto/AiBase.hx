@@ -6586,13 +6586,30 @@ abstract class AiBase {
 			if (count > 1) return false;
 		}
 
-		// Make sure that there is a Axe close // TODO check if making PLUCKED GOOSE???
-		// Domestic Goose held 1267 Stump 338 // Steel Axe 334 // Domestic Goose 1256
-		// if (actorId == 1267 && targetId == 338) {
-		if (actorId == 0 && targetId == 1256) {
-			var closest = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 338, 20, myPlayer);
-			if (closest == null) return false;
-			if (GetCraftAndDropItemsCloseToObj(closest, 334, 1, 3)) return true;
+		// make sure not get into an endless loop
+		if (calledCraftItem == false) {
+			// Bring targets to tool instead tool to target
+			// Steel Adze 462 // Butt Log 345
+			if (actorId == 462 && targetId == 345) {
+				calledCraftItem = true;
+				if (GetCraftAndDropItemsCloseToObj(itemToCraft.transActor, 345, 1, 6)) return true;
+			}
+
+			// Steel Froe 463 // Butt Log 345
+			if (actorId == 463 && targetId == 345) {
+				calledCraftItem = true;
+				if (GetCraftAndDropItemsCloseToObj(itemToCraft.transActor, 345, 1, 6)) return true;
+			}
+
+			// Make sure that there is a Axe close // TODO check if making PLUCKED GOOSE???
+			// Domestic Goose held 1267 Stump 338 // Steel Axe 334 // Domestic Goose 1256
+			// if (actorId == 1267 && targetId == 338) {
+			if (actorId == 0 && targetId == 1256) {
+				calledCraftItem = true;
+				var closest = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 338, 20, myPlayer);
+				if (closest == null) return false;
+				if (GetCraftAndDropItemsCloseToObj(closest, 334, 1, 3)) return true;
+			}
 		}
 
 		// Clay Bowl 235
