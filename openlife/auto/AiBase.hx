@@ -1387,7 +1387,7 @@ abstract class AiBase {
 
 			// if (shouldDebugSay())
 			myPlayer.say('could not find ${GetName(actorId)} + ${GetName(targetId)}');
-			trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: could not find ${GetName(actorId)} + ${GetName(targetId)}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: could not find ${GetName(actorId)} + ${GetName(targetId) ${targetId}}');
 			return false;
 		}
 
@@ -8563,8 +8563,8 @@ abstract class AiBase {
 		var isRag = objectData.name.contains('RAG ');
 
 		// Devil Mask 3213
-		if(wornCloth.id == 3213) return false;
-	
+		if (wornCloth.id == 3213) return false;
+
 		// in case of shoes either one can be needed
 		if (slot == 2) switchCloths = switchCloths || myPlayer.clothingObjects[3].id == 0;
 		if (isRag == false && wornCloth.name.contains('RAG ')) switchCloths = true;
