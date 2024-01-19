@@ -1481,7 +1481,9 @@ class AiHelper {
 		var player = cast(playerInter, GlobalPlayerInstance);
 		var bestPlayer = null;
 		var bestDist:Float = searchDistance * searchDistance;
-		var hasRedMask = player.getClothingById(3213) != null;
+		var hasRedMask = player.getClothingById(3213) != null; // Devil Mask 3213
+
+		// trace('GetClosePlayerTarget: 1');
 
 		if (hasRedMask == false) return null; // For now be firendly // TODO change
 		if (player.age < 10) searchDistance = 4;
@@ -1490,7 +1492,7 @@ class AiHelper {
 			if (p.deleted) continue;
 			if (p.age < 4) continue;
 			if (p.isSameFamily(player)) continue;
-			if (player.getTopLeader(p) != null) continue;
+			if (player.getTopLeader(p) != p) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p);
 			if (p.lostCombatPrestige > 1) dist /= (15 + p.lostCombatPrestige) / 10;
@@ -1500,6 +1502,8 @@ class AiHelper {
 			bestDist = dist;
 			bestPlayer = p;
 		}
+
+		// trace('GetClosePlayerTarget: ${bestPlayer != null}');
 
 		return bestPlayer;
 	}
