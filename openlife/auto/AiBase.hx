@@ -1362,7 +1362,7 @@ abstract class AiBase {
 
 		// check if there is a ground transition like: Hot Steel Crucible in Wooden Tongs
 		if (trans == null) {
-			// trans = TransitionImporter.GetTransition(actorId, -1, lastUseActor, target.isLastUse());		
+			// trans = TransitionImporter.GetTransition(actorId, -1, lastUseActor, target.isLastUse());
 			trans = TransitionImporter.GetTransition(actorId, -1);
 		}
 
@@ -5050,8 +5050,8 @@ abstract class AiBase {
 
 	// Iron Ore in Wooden Tongs 289 // Iron Ore 290 // Wooden Tongs cool steel ingot 327 // Steel Ingot
 	// Unforged Sealed Steel Crucible 319 // Unforged Steel Crucible in Wooden Tongs 320 // Smithing Hammer 441
-	// Shears 568 // Cold Iron Bloom in Wooden Tongs 311
-	var dropNearForgeItemIds = [289, 290, 327, 326, 319, 320, 441, 568, 311];
+	// Shears 568 // Cold Iron Bloom in Wooden Tongs 311 // Hot Iron Bloom in Wooden Tongs 308
+	var dropNearForgeItemIds = [289, 290, 327, 326, 319, 320, 441, 568, 311, 308];
 
 	// Basket of Soil 336 // Straw 227 // Bowl of Water 382
 	var dropNearWellItemIds = [336, 227, 382];
@@ -5257,6 +5257,11 @@ abstract class AiBase {
 					return useHeldObjOnTarget(basket); // fill basket
 				}
 			}
+		}
+
+		// Hot Iron Bloom in Wooden Tongs 308 // Flat Rock 291
+		if (heldId == 308) {
+			if (shortCraft(308, 291, 10, false)) return true;
 		}
 
 		// Flat Rock 291 // Stone 33
