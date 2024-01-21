@@ -1059,7 +1059,7 @@ class ServerSettings {
 
 		// Steel Hoe 857
 		ObjectData.getObjectData(857).hungryWork = -2;
-		ObjectData.getObjectData(857).useChance = 0.05; // vanilla: 8%
+		ObjectData.getObjectData(857).useChance = 0.02; // vanilla: 8%
 
 		// Stone Hoe 850
 		ObjectData.getObjectData(850).useChance = 0.1; // vanilla: 20%
