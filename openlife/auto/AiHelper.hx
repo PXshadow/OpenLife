@@ -1483,12 +1483,11 @@ class AiHelper {
 		var bestDist:Float = searchDistance * searchDistance;
 		var hasRedMask = player.getClothingById(3213) != null; // Devil Mask 3213
 		var hasBlueMask = player.getClothingById(3214) != null; // Goblin Mask 3214
-		var distanceToHome = CalculateQuadDistanceToObject(playerInter, player.home);
 
 		// trace('GetClosePlayerTarget: 1');-
 
 		if (hasRedMask == false && hasBlueMask == false && player.darkNosaj <= 0) return null;
-		if (hasBlueMask && distanceToHome > 400) return null;
+		// if (hasBlueMask && distanceToHome > 400) return null;
 
 		if (player.age < 10) searchDistance = 4;
 
@@ -1496,8 +1495,13 @@ class AiHelper {
 			if (p.deleted) continue;
 			if (p.age < 4) continue;
 			if (p.isSameFamily(player)) continue;
-			if (hasBlueMask && p.isAlly(player)) continue;
+			if (hasRedMask == false && p.isAlly(player)) continue;
 			if (player.getTopLeader(p) != p) continue;
+
+			if (hasBlueMask) {
+				var distanceToHome = CalculateQuadDistanceToObject(p, player.home);
+				if (distanceToHome > 400) continue;
+			}
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p);
 			if (p.lostCombatPrestige > 1) dist /= (15 + p.lostCombatPrestige) / 10;
@@ -1548,6 +1552,63 @@ class AiHelper {
 			if (dist > bestDist) continue;
 
 			bestDist = dist;
+			bestPlayer = p;
+		}
+
+		return bestPlayer;
+	}
+
+	public static function GetBestPlayerForCloth(myPlayer:PlayerInterface, searchDistance:Int = 20) {
+		var bestPlayer = null;
+
+		GlobalPlayerInstance.AcquireMutex();
+		Macro.exception(bestPlayer = GetBestPlayerForClothHelper(myPlayer, searchDistance));
+		GlobalPlayerInstance.ReleaseMutex();
+
+		return bestPlayer;
+	}
+
+	private static function GetBestPlayerForClothHelper(myPlayer:PlayerInterface, searchDistance:Int = 20) {
+		var player = cast(myPlayer, GlobalPlayerInstance); // TODO find better way / maybe use globalplayer also for client
+		var bestPlayer:GlobalPlayerInstance = null;
+
+		if (player.age < ServerSettings.MinAgeToEat) return null;
+
+		var maxDist = searchDistance * searchDistance;
+		var bestQuadPrio:Float = 0;
+
+		var myPlayerIsNobleOrMore = cast(player.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int);
+		var ai = myPlayer.getAi();
+
+		for (p in GlobalPlayerInstance.AllPlayers) {
+			if (p.deleted) continue;
+			if (p.heldByPlayer != null) continue;
+			if (p.isAlly(player) == false) continue;
+			if (p.lostCombatPrestige > 4) continue;
+			if (p.age > 50) continue;
+
+			var targetAi = p.getAi();
+			var isNobleOrMore = cast(p.lineage.prestigeClass, Int) > cast(PrestigeClass.Commoner, Int);
+			var isCommoner = cast(p.lineage.prestigeClass, Int) == cast(PrestigeClass.Commoner, Int);
+
+			var prio = isNobleOrMore ? 10 : 1;
+			if (isCommoner) prio *= 2;
+			if (p.isSameFamily(player)) prio *= 5;
+			if (p.isCloseRelative(player)) prio *= 2;
+			if (p.mother == player) prio *= 10;
+			if (p.father == player) prio *= 5;
+			if (player.getTopLeader(p) == p) prio *= 5;
+
+			// if (hungry < 0) continue;
+
+			var dist = AiHelper.CalculateDistanceToPlayer(player, p) + 5;
+			if (dist > maxDist) continue;
+
+			var quadPrio = Math.pow(prio, 2) / dist;
+			if (quadPrio < bestQuadPrio) continue;
+			// trace('${p.name} class: ${p.lineage.prestigeClass} dist: $dist food: ${Math.ceil(p.food_store * 10) / 10} hungry: ${Math.ceil(hungry * 10) / 10} quadHungry: ${Math.ceil(quadHungry * 1000) / 1000}');
+
+			bestQuadPrio = quadPrio;
 			bestPlayer = p;
 		}
 
