@@ -1509,12 +1509,12 @@ class TimeHelper {
 		AlignWall(tx, ty, objData, [3266, 3267, 3268]); // Snow Wall
 		AlignWall(tx, ty, objData, [885, 886, 887]); // Stone Wall
 		AlignWall(tx, ty, objData, [895, 897, 896]); // Ancient Stone Wall
-		AlignWall(tx, ty, objData, [551, 549, 550]); // Fence
+		AlignWall(tx, ty, objData, [551, 549, 550], true); // Fence
 
 		// TODO different colors // walls with containers
 	}
 
-	private static function AlignWall(tx:Int, ty:Int, objData:ObjectData, walls:Array<Int>) {
+	private static function AlignWall(tx:Int, ty:Int, objData:ObjectData, walls:Array<Int>, onlyCornerIfWallTopOrBottom:Bool = false) {
 		if (walls.length < 3) return;
 
 		if (walls.contains(objData.parentId) == false) return;
@@ -1527,6 +1527,12 @@ class TimeHelper {
 		var isHorizontal = objDataLeft.isWall() && objDataRight.isWall() && objDataNorth.isWall() == false && objDataSouth.isWall() == false;
 		var isVertical = objDataLeft.isWall() == false && objDataRight.isWall() == false && objDataNorth.isWall() && objDataSouth.isWall();
 		var isCorner = isHorizontal == false && isVertical == false;
+
+		if (onlyCornerIfWallTopOrBottom) {
+			isHorizontal = objDataNorth.isWall() == false && objDataSouth.isWall() == false;
+			isVertical = objDataLeft.isWall() == false && objDataRight.isWall() == false;
+			isCorner = isHorizontal == false && isVertical == false;
+		}
 
 		if (isCorner && objData.parentId != walls[0]) {
 			var obj = world.getObjectHelper(tx, ty);
