@@ -1482,16 +1482,21 @@ class AiHelper {
 		var bestPlayer = null;
 		var bestDist:Float = searchDistance * searchDistance;
 		var hasRedMask = player.getClothingById(3213) != null; // Devil Mask 3213
+		var hasBlueMask = player.getClothingById(3214) != null; // Goblin Mask 3214
+		var distanceToHome = CalculateQuadDistanceToObject(playerInter, player.home);
 
-		// trace('GetClosePlayerTarget: 1');
+		// trace('GetClosePlayerTarget: 1');-
 
-		if (hasRedMask == false) return null; // For now be firendly // TODO change
+		if (hasRedMask == false && hasBlueMask == false && player.darkNosaj <= 0) return null;
+		if (hasBlueMask && distanceToHome > 400) return null;
+
 		if (player.age < 10) searchDistance = 4;
 
 		for (p in GlobalPlayerInstance.AllPlayers) {
 			if (p.deleted) continue;
 			if (p.age < 4) continue;
 			if (p.isSameFamily(player)) continue;
+			if (hasBlueMask && p.isAlly(player)) continue;
 			if (player.getTopLeader(p) != p) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p);
