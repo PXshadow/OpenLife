@@ -8356,6 +8356,9 @@ abstract class AiBase {
 
 		if (myPlayer.isMoving()) return true;
 
+		// Turkey Slice on Plate 2190
+		if (craftItemMax(2190)) return true;
+
 		Macro.exception(if (shortCraft(0, 400, 10)) return true); // pull out the carrots
 		if (doKnifeStuff()) return true;
 
