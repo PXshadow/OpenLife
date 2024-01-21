@@ -4460,48 +4460,57 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (attackWasLegit) {
 			this.lostCombatPrestige -= damage / 2;
 			targetPlayer.lostCombatPrestige -= damage / 2;
+			return true;
 		}
+
+		// Devil Mask 3213
+		var hasRedMask = this.getClothingById(3213) != null;
+
 		if (targetPlayer.isHoldingWeapon() == false && attackWasLegit == false) {
 			var attackerPrestigeClass:Int = this.lineage.prestigeClass;
 			var targetPrestigeClass:Int = targetPlayer.lineage.prestigeClass;
 			var isHigherPrestigeClass = targetPrestigeClass < attackerPrestigeClass;
 			if (isHigherPrestigeClass) this.lostCombatPrestige += damage * 0.5;
 			else this.lostCombatPrestige += damage;
+
+			if (hasRedMask) damage *= 5; // more lost combat prestige but no prestige lost
+
 			// TODO count as ally if exile happened not long ago ???
 			if (targetPlayer.trueAge < ServerSettings.MinAgeToEat) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForChild;
 				prestigeCost = Math.ceil(prestigeCost);
-				this.addHealthAndPrestige(-prestigeCost, false);
 				this.lostCombatPrestige += prestigeCost;
-				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking a child ${targetPlayer.name}!');
+				if (hasRedMask == false) this.addHealthAndPrestige(-prestigeCost, false);
+				if (hasRedMask == false) this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking a child ${targetPlayer.name}!');
 			}
 			else if (targetPlayer.trueAge > 50) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForElderly;
 				prestigeCost = Math.ceil(prestigeCost);
-				this.addHealthAndPrestige(-prestigeCost, false);
 				this.lostCombatPrestige += prestigeCost;
-				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking elder ${targetPlayer.name}!');
+				if (hasRedMask == false) this.addHealthAndPrestige(-prestigeCost, false);
+				if (hasRedMask == false) this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking elder ${targetPlayer.name}!');
 			}
 			else if (targetPlayer.isAlly(this)) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForAlly;
 				prestigeCost = Math.ceil(prestigeCost);
-				this.addHealthAndPrestige(-prestigeCost, false);
 				this.lostCombatPrestige += prestigeCost;
-				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking ally ${targetPlayer.name}!');
+				if (hasRedMask == false) this.addHealthAndPrestige(-prestigeCost, false);
+				if (hasRedMask == false) this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking ally ${targetPlayer.name}!');
 			}
 			else if (isCloseRelative(targetPlayer)) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForCloseRelatives;
 				prestigeCost = Math.ceil(prestigeCost);
-				this.addHealthAndPrestige(-prestigeCost, false);
 				this.lostCombatPrestige += prestigeCost;
-				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking close relative ${targetPlayer.name}!');
+				if (hasRedMask == false) this.addHealthAndPrestige(-prestigeCost, false);
+				if (hasRedMask == false) this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking close relative ${targetPlayer.name}!');
 			}
 			else if (targetPlayer.isFemale()) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForWomenWithoutWeapon;
 				prestigeCost = Math.ceil(prestigeCost);
-				this.addHealthAndPrestige(-prestigeCost, false);
 				this.lostCombatPrestige += prestigeCost;
-				this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking a women without weapon ${targetPlayer.name}!');
+				if (hasRedMask == false) this.addHealthAndPrestige(-prestigeCost, false);
+				if (hasRedMask == false)
+					this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking a women without weapon ${targetPlayer.name}!');
 			}
 		}
 		// trace('Wound: damage: $damage prestigeCost: $prestigeCost');
