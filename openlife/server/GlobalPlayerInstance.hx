@@ -3535,6 +3535,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// Devil Mask 3213
 		if (clothingId == 3213) playerTo.say('I am burning fire!', true);
+		// Goblin Mask 3214
+		if (clothingId == 3214) playerTo.say('I am freezing water!', true);
 
 		// this.action = 0;
 
@@ -4601,6 +4603,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (doesRealDamage) damage *= weaponDamageProtectionFactor;
 		else damage *= moskitoDamageFactor;
 
+		// Goblin Mask 3214
+		var hasBlueMask = this.getClothingById(3214) != null;
+
+		damage *= hasBlueMask && attacker != null ? 0.9 : 1;
 		damage *= biomeDamageFactor;
 		damage *= targetPlayer.isEveOrAdam() ? ServerSettings.EveDamageFactor : 1;
 		damage *= protectionFactor;
