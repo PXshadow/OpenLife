@@ -1532,6 +1532,7 @@ class TimeHelper {
 			isHorizontal = objDataNorth.isWall() == false && objDataSouth.isWall() == false;
 			isVertical = objDataLeft.isWall() == false && objDataRight.isWall() == false;
 			isCorner = isHorizontal == false && isVertical == false;
+			if (isHorizontal) isVertical = false;
 		}
 
 		if (isCorner && objData.parentId != walls[0]) {
