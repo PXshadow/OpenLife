@@ -389,6 +389,7 @@ abstract class AiBase {
 	}
 
 	private function doTimeStuffHelper(movedOneTileTmp:Bool) {
+		var heldObject = myPlayer.heldObject;
 		var reactionTime = ServerSettings.AiReactionTime; // minimum AI reacting time
 		if (myPlayer.lineage.prestigeClass == PrestigeClass.Serf) reactionTime = ServerSettings.AiReactionTimeSerf;
 		if (myPlayer.lineage.isNobleOrMore()) reactionTime = ServerSettings.AiReactionTimeNoble;
@@ -587,10 +588,15 @@ abstract class AiBase {
 		// if (hotkiln != null) hotkiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 304, 10, null, myPlayer);
 		if (hotkiln != null || this.profession['POTTER'] >= 10) Macro.exception(if (doPottery(-2)) return);
 
-		// Clay Plate 236 + Cooked Omelette 1281 --> dont let omelette burn
-		Macro.exception(if (shortCraft(236, 1281)) return);
+		// Do critical smith stuff
 		if (shortCraft(441, 309, 5, false)) return; // Smithing Hammer 441 // Hot Iron Bloom on Flat Rock 309
 		if (shortCraft(33, 309, 5, false)) return; // Stone 33 // Hot Iron Bloom on Flat Rock 309
+		// Smithing Hammer 441 // Unforged Sealed Steel Crucible 319 // Firing Forge 304
+		if (heldObject.parentId != 441 && shortCraft(319, 304, 10, false)) return;
+
+		// Clay Plate 236 + Cooked Omelette 1281 --> dont let omelette burn
+		Macro.exception(if (shortCraft(236, 1281)) return);
+
 		Macro.exception(if (shortCraft(0, 400, 10)) return); // pull out the carrots
 		Macro.exception(if (fillBerryBowlIfNeeded(true)) return);
 		Macro.exception(if (fillBeanBowlIfNeeded(true, true)) return); // green beans
@@ -3611,6 +3617,9 @@ abstract class AiBase {
 		if (shortCraft(441, 309, 5, false)) return true;
 		// Stone 33 // Hot Iron Bloom on Flat Rock 309
 		if (shortCraft(33, 309, 5, false)) return true;
+
+		// Smithing Hammer 441 // Unforged Sealed Steel Crucible 319 // Firing Forge 304
+		if (heldObject.parentId != 441 && shortCraft(319, 304, 10, false)) return true;
 
 		// Firing Forge 304 // Stone 33 // Smithing Hammer 441
 		if (forge.parentId != 304 && heldObject.parentId != 33 && heldObject.parentId != 441) {
