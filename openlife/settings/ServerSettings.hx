@@ -3947,6 +3947,9 @@ class ServerSettings {
 		// Clay Bow 235 + Partial Bucket of Water 1099 / Bowl of Water 382
 		LimitTransitionIfMaxReached(235, 1099, 382, 3);
 
+		//  Clay Plate 236 // Carved Turkey on Plate 2187 // Turkey Slice on Plate 2190
+		LimitTransitionIfMaxReached(236, 2187, 2190, 1);
+
 		for (i in 0...AiBase.rawPies.length)
 			LimitObjectByNewTarget(AiBase.pies[i], AiBase.rawPies[i], 2);
 	}
