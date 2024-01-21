@@ -3256,7 +3256,8 @@ abstract class AiBase {
 
 		this.profession['BAKER'] = 3; // TODO set to 2 once in a while to check for bread stuff???
 
-		// Carved Turkey on Plate 2187
+		// Turkey Slice on Plate 2190
+		if (craftItemMax(2190)) return true;
 		// if (shortCraft(560, 2187, 20, false)) return true;
 
 		// Baker needs Carrots!
