@@ -3620,7 +3620,7 @@ abstract class AiBase {
 		if (shortCraft(33, 309, 5, false)) return true;
 
 		// Smithing Hammer 441 // Unforged Steel Crucible in Wooden Tongs 320 // Firing Forge 304
-		if (heldObject.parentId != 441 && shortCraft(320, 304, 10, true)) return;
+		if (heldObject.parentId != 441 && shortCraft(320, 304, 10, true)) return true;
 
 		// Firing Forge 304 // Stone 33 // Smithing Hammer 441
 		if (forge.parentId != 304 && heldObject.parentId != 33 && heldObject.parentId != 441) {
