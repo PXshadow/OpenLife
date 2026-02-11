@@ -530,6 +530,30 @@ Yellow fever:
 
 TODO Features: 
 more up in the list means more likely to be implemented first but no guarantee!
+
+Server:
+- FIX server crash 
+- Reduce server lag
+- FIX backpack item disapear on fast use
+
+- implement tempearture map
+- implement water map 
+
+- HUGE: implement a bigger map, at least 4X size
+
+Web Server
+- FIX picture
+- use https for web server
+- make stuff clickable / add tons more information, statistics and graphs
+
+AI:
+- FIX AI is currenty not good in surviving, was much better, some updates messed it up
+- implement / use super crafter *bottom up crafting instead of top down*
+- use Cloud based advanced AI for chatting
+- use Cloud based advanced AI for setting prios and add soul / character
+- add neural net or let advanced AI code AI changes
+
+OTHER:
 - animals grouping / animal bosses / wolf ilness
 - illnesses (can spread dependign on health, more food use no eating)
 - better property / fortification for other clay walls / forge / graves 
