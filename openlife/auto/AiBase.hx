@@ -136,6 +136,7 @@ abstract class AiBase {
 
 	private static function RunAi() {
 		var skipedTicks = 0;
+		var lastSkipedTicks = 100;
 		var averageSleepTime:Float = 0;
 
 		while (true) {
@@ -149,11 +150,12 @@ abstract class AiBase {
 			var aiCount = Connection.getAis().length;
 
 			if (AiBase.tick % 20 != 0 && aiCount < ServerSettings.NumberOfAis) {
-				Macro.exception(var ai = ServerAi.createNewServerAiWithNewPlayer());
+				if (lastSkipedTicks < ServerSettings.MaxAiSkipedTicksBeforeReducingAIs
+					|| aiCount < ServerSettings.MinNumberOfAis) Macro.exception(var ai = ServerAi.createNewServerAiWithNewPlayer());
 				// ai.player.delete(); // delete, so that they wont all spawn at same time
 			}
 
-			// TODO what to do if server is too slow?
+			// if server is too slow dont create new AIs
 			if (AiBase.tick % 10 != 0 && timeSinceStartCountedFromTicks < timeSinceStart) {
 				AiBase.tick = Std.int(AiBase.tick + 1);
 				skipedTicks++;
@@ -164,6 +166,7 @@ abstract class AiBase {
 				// trace('AIs: ${Connection.getAis().length} Tick: ${Ai.tick} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime');
 				trace('\nAIs: ${Connection.CountAis()} Time From Ticks: ${timeSinceStartCountedFromTicks} Time: ${Math.ceil(timeSinceStart)} Skiped Ticks: $skipedTicks Average Sleep Time: $averageSleepTime ');
 				averageSleepTime = 0;
+				lastSkipedTicks = skipedTicks;
 				skipedTicks = 0;
 			}
 
@@ -4941,8 +4944,24 @@ abstract class AiBase {
 	}
 
 	public static var professions = [
-		'SOILMAKER', 'ROWMAKER', 'BASICFARMER', 'ADVANCEDFARMER', 'SHEPHERD', 'BAKER', 'POTTER', 'FIREKEEPER', 'TAILOR', 'FIREFOODMAKER', 'LUMBERJACK',
-		'WATERBRINGER', 'FOODSERVER', 'GRAVEKEEPER', 'HUNTER', 'SMITH', 'CARROTFARMER', 'COLLECTOR'
+		'SOILMAKER',
+		'ROWMAKER',
+		'BASICFARMER',
+		'ADVANCEDFARMER',
+		'SHEPHERD',
+		'BAKER',
+		'POTTER',
+		'FIREKEEPER',
+		'TAILOR',
+		'FIREFOODMAKER',
+		'LUMBERJACK',
+		'WATERBRINGER',
+		'FOODSERVER',
+		'GRAVEKEEPER',
+		'HUNTER',
+		'SMITH',
+		'CARROTFARMER',
+		'COLLECTOR'
 	];
 
 	public function searchFoodAndEat() {
