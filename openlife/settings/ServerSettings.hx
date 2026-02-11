@@ -2793,8 +2793,8 @@ class ServerSettings {
 		trans.autoDecaySeconds = -24 * 30; // -5
 		transitions.addTransition("PatchTransitions: ", trans);
 
-		var trans = TransitionImporter.GetTransition(-1, 2887); // TIME + Sandal
-		trans.autoDecaySeconds = -24 * 30; // -5
+		// var trans = TransitionImporter.GetTransition(-1, 2887); // TIME + Sandal
+		// trans.autoDecaySeconds = -24 * 30; // -5
 
 		var trans = TransitionImporter.GetTransition(-1, 866); // TIME + Rag Loincloth
 		trans.autoDecaySeconds = -2; // -0.5

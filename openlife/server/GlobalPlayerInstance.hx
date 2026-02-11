@@ -6624,11 +6624,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			var power = p.countLeadershipPower();
 
-			if (ServerSettings.debug) trace('GetMostPowerful: ${p.name} power: ${power} prestige: ${p.prestige} coins: ${p.coins}');
+			// if (ServerSettings.debug) trace('GetMostPowerful: ${p.name} power: ${power} prestige: ${p.prestige} coins: ${p.coins}');
 
 			if (bestPlayer != null && power < bestPower) continue;
 
-			if (ServerSettings.debug) trace('GetMostPowerful: BEST ${p.name} power: ${power} prestige: ${p.prestige} coins: ${p.coins}');
+			// if (ServerSettings.debug) trace('GetMostPowerful: BEST ${p.name} power: ${power} prestige: ${p.prestige} coins: ${p.coins}');
 
 			bestPower = power;
 			bestPlayer = p;
