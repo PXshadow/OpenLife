@@ -76,7 +76,7 @@ class ServerSettings {
 	public static var traceTransitionByTargetDescription = "!!!Basket of Soil"; // set to object description which you want to debug
 
 	// Timing
-	public static var PlayerResponseSleepTime:Float = 0.05; // secs between each player command
+	public static var PlayerResponseSleepTime:Float = 0.02; // secs between each player command
 
 	// score
 	public static var BirthPrestigeFactor:Float = 0.4; // TODO set 0.2 if fathers are implemented // on birth your starting prestige is factor X * total prestige
@@ -1231,13 +1231,15 @@ class ServerSettings {
 		ObjectData.getObjectData(766).rValue = 1;
 		// trace('Snake Skin Boot: ${ObjectData.getObjectData(766).getInsulation()} rv: ${ObjectData.getObjectData(766).rValue}');
 
-		ObjectData.getObjectData(411).speedMult = SemiHeavyItemSpeed; // Fertile Soil Reduced carring speed
+		// Reduced carry speed
+		ObjectData.getObjectData(411).speedMult = SemiHeavyItemSpeed; // Fertile Soil
 		ObjectData.getObjectData(345).speedMult = SemiHeavyItemSpeed; // Butt Log
-		ObjectData.getObjectData(126).speedMult = SemiHeavyItemSpeed; // Clay
-		ObjectData.getObjectData(127).speedMult = SemiHeavyItemSpeed; // Adobe
+		// ObjectData.getObjectData(126).speedMult = SemiHeavyItemSpeed; // Clay (Players complained)
+		// ObjectData.getObjectData(127).speedMult = SemiHeavyItemSpeed; // Adobe
 		ObjectData.getObjectData(290).speedMult = SemiHeavyItemSpeed; // Iron Ore
 		ObjectData.getObjectData(314).speedMult = SemiHeavyItemSpeed; // Wrought Iron
 		ObjectData.getObjectData(326).speedMult = SemiHeavyItemSpeed; // Steel Ingot
+
 		ObjectData.getObjectData(838).mapChance = ObjectData.getObjectData(211).mapChance / 5; // Add some lovely mushrooms
 		ObjectData.getObjectData(838).biomes.push(BiomeTag.GREEN); // Add some lovely mushrooms
 
