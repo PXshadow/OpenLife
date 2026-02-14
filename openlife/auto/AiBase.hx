@@ -138,6 +138,7 @@ abstract class AiBase {
 		var skipedTicks = 0;
 		var lastSkipedTicks = 100;
 		var averageSleepTime:Float = 0;
+		var currentMaxAIs = ServerSettings.MinNumberOfAis;
 
 		while (true) {
 			if (ServerSettings.UseOneGlobalMutex) Server.Acquire();
@@ -149,7 +150,7 @@ abstract class AiBase {
 
 			var aiCount = Connection.getAis().length;
 
-			if (AiBase.tick % 20 != 0 && aiCount < ServerSettings.NumberOfAis) {
+			if (AiBase.tick % 20 != 0 && aiCount < currentMaxAIs) {
 				if (lastSkipedTicks < ServerSettings.MaxAiSkipedTicksBeforeReducingAIs
 					|| aiCount < ServerSettings.MinNumberOfAis) Macro.exception(var ai = ServerAi.createNewServerAiWithNewPlayer());
 				// ai.player.delete(); // delete, so that they wont all spawn at same time
@@ -168,6 +169,11 @@ abstract class AiBase {
 				averageSleepTime = 0;
 				lastSkipedTicks = skipedTicks;
 				skipedTicks = 0;
+
+				if (currentMaxAIs < ServerSettings.NumberOfAis
+					&& lastSkipedTicks < ServerSettings.MaxAiSkipedTicksBeforeReducingAIs) currentMaxAIs += 1;
+				if (currentMaxAIs > ServerSettings.MinNumberOfAis
+					&& lastSkipedTicks > ServerSettings.MaxAiSkipedTicksBeforeReducingAIs) currentMaxAIs -= 1;
 			}
 
 			var timePassedInSeconds = CalculateTimeSinceTicksInSec(lastTick);
