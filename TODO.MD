@@ -763,15 +763,66 @@ if AllowDebugCommmands = true in ServerSettings.txt:
 
 How to setup the server:
 ====
-Best is use Unbuntu, got tons of problems with (default) Debian...
+UPDATE Server Setup 2026-02
 
+1. Connect
 From windows putty can be used to connect to server:
 putty.exe -ssh root@x.x.x.x -pw password
 
-If you dont know which Linux distro the server has:
-Get current Linux Distroinfo: 
-ls -la ~/ | more
+2. Install Haxe:
+sudo apt update
+sudo apt install haxe
 
+3. Install Git (To get the code)
+sudo apt-get install git
+
+4. Install hashlink (to excecute Haxe hl files)
+
+# 4.1 Install build tools + all common runtime deps (for SDL/OpenGL/audio/etc. — skip some if you know you don't need them)
+sudo apt update
+sudo apt install -y build-essential git libpng-dev libturbojpeg-dev libvorbis-dev libopenal-dev libsdl2-dev libglu1-mesa-dev libmbedtls-dev libuv1-dev libsqlite3-dev
+
+# 4.2 Clone & build latest (master = post-1.15 fixes as of now)
+git clone https://github.com/HaxeFoundation/hashlink.git
+cd hashlink
+make
+
+# 4.3 Optional but smart: install system-wide (or just use ./hl from the folder)
+sudo make install
+
+# 4.4 Verify (should print HashLink VM 1.15 or slightly newer commit hash)
+hl --version
+
+
+5. Install Open Life
+git clone https://github.com/PXshadow/OpenLife
+
+Get OHOL data from Jason option 0 (Jason): 
+haxe setup_data_server.hxml
+// if SetupDataServer does not work try: haxe setup_data.hxml 
+
+6. Install tmux for letting the server run after disconnect:
+sudo apt-get install tmux
+
+https://www.howtogeek.com/671422/how-to-use-tmux-on-linux-and-why-its-better-than-screen/
+
+7. Run Open Life Server in tmux for letting the server run after disconnect
+
+tmux
+then start the server in tmux with: hl server.hl
+then detach: If you press Ctrl+B, and then D, you will detach the session.
+the server should run now still in a tmux session even after you close your connection
+Dont forget to remember the session name so that you can attach again!
+
+If you want to shut it down attach with tmux:
+tmux attach-session -t sessionname
+
+And then press "ctrl" c to stop the server.
+
+
+DONE!
+
+Old:
 Install haxe (best use Unbuntu) Haxe Version must be 4.2 at least (Debian has old version by default so setting up haxe is tricky on Debian (beginning 2022)):
 https://haxe.org/download/linux/
 
@@ -814,7 +865,7 @@ then detach: If you press Ctrl+B, and then D, you will detach the session.
 the server should run now still in a tmux session even after you close your connection
 Dont forget to remember the session name so that you can attach again!
 
-If you want to shut it down attack with tmux:
+If you want to shut it down attach with tmux:
 tmux attach-session -t sessionname
 
 And then press "ctrl" c to stop the server.
