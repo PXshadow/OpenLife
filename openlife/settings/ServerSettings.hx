@@ -1080,6 +1080,7 @@ class ServerSettings {
 
 		ObjectData.getObjectData(213).hungryWork = 3; // Deep Tilled Row
 		ObjectData.getObjectData(1136).hungryWork = 3; // Shallow Tilled Row
+		ObjectData.getObjectData(1136).description += ' +biomeBlock13'; // Shallow Tilled Row
 
 		ObjectData.getObjectData(511).hungryWork = 2; // Pond
 		ObjectData.getObjectData(1261).hungryWork = 2; // Canada Goose Pond with Egg

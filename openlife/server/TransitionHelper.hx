@@ -1360,6 +1360,13 @@ class TransitionHelper {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} is blocked by ice!');
 			return false;
 		}
+		else if (newTargetObjectData.description.contains('+biomeBlock13') && biome == 13) {
+			player.say('is blocked by water', true);
+			player.message = 'is blocked by water';
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} is blocked by water!');
+			return false;
+		}
+
 		// take care to pile baskets // 292 Basket // 1605 Stack of Baskets
 		// if(handObjectData.id == 292 && this.target.id == 292){
 		if ((player.heldObject.parentId == 292 && player.heldObject.containedObjects.length > 0)
