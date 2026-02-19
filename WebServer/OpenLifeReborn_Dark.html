@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Open Life Reborn</title>
+	<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+	<style>
+		:root {
+			--bg-dark: #0a0a0f;
+			--bg-card: #12121a;
+			--bg-card-hover: #1a1a25;
+			--accent-purple: #8b5cf6;
+			--accent-violet: #7c3aed;
+			--accent-gold: #f59e0b;
+			--accent-amber: #fbbf24;
+			--accent-rose: #f43f5e;
+			--accent-emerald: #10b981;
+			--text-primary: #f1f5f9;
+			--text-secondary: #94a3b8;
+			--text-muted: #64748b;
+			--border: #2a2a3a;
+			--glow-purple: rgba(139, 92, 246, 0.4);
+			--glow-gold: rgba(245, 158, 11, 0.3);
+			--glow-rose: rgba(244, 63, 94, 0.2);
+		}
+		
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+		
+		body {
+			font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+			background-color: var(--bg-dark);
+			background-image: 
+				radial-gradient(ellipse at 20% 0%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+				radial-gradient(ellipse at 80% 100%, rgba(245, 158, 11, 0.08) 0%, transparent 50%),
+				radial-gradient(ellipse at 50% 50%, rgba(124, 58, 237, 0.05) 0%, transparent 70%);
+			color: var(--text-primary);
+			line-height: 1.7;
+			min-height: 100vh;
+			overflow-x: hidden;
+		}
+		
+		/* Floating particles background */
+		.particles {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			overflow: hidden;
+			z-index: 0;
+		}
+		
+		.particle {
+			position: absolute;
+			width: 4px;
+			height: 4px;
+			background: var(--accent-gold);
+			border-radius: 50%;
+			opacity: 0.3;
+			animation: float 15s infinite ease-in-out;
+		}
+		
+		.particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+		.particle:nth-child(2) { left: 20%; animation-delay: 2s; background: var(--accent-purple); }
+		.particle:nth-child(3) { left: 30%; animation-delay: 4s; }
+		.particle:nth-child(4) { left: 40%; animation-delay: 1s; background: var(--accent-rose); }
+		.particle:nth-child(5) { left: 50%; animation-delay: 3s; }
+		.particle:nth-child(6) { left: 60%; animation-delay: 5s; background: var(--accent-purple); }
+		.particle:nth-child(7) { left: 70%; animation-delay: 2.5s; }
+		.particle:nth-child(8) { left: 80%; animation-delay: 4.5s; background: var(--accent-rose); }
+		.particle:nth-child(9) { left: 90%; animation-delay: 1.5s; }
+		.particle:nth-child(10) { left: 15%; animation-delay: 3.5s; background: var(--accent-purple); }
+		
+		@keyframes float {
+			0%, 100% { transform: translateY(100vh) scale(1); opacity: 0; }
+			10% { opacity: 0.4; }
+			90% { opacity: 0.4; }
+			100% { transform: translateY(-100vh) scale(0.5); opacity: 0; }
+		}
+		
+		.container {
+			max-width: 900px;
+			margin: 0 auto;
+			padding: 3rem 2rem;
+			position: relative;
+			z-index: 1;
+		}
+		
+		/* Hero Section */
+		.hero {
+			text-align: center;
+			padding: 4rem 0 5rem;
+			position: relative;
+		}
+		
+		.hero::before {
+			content: '';
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			width: 300px;
+			height: 300px;
+			background: radial-gradient(circle, var(--glow-purple) 0%, transparent 70%);
+			filter: blur(60px);
+			z-index: -1;
+			animation: pulse 4s ease-in-out infinite;
+		}
+		
+		@keyframes pulse {
+			0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+			50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+		}
+		
+		h1 {
+			font-family: 'Cinzel', serif;
+			font-size: 3.5rem;
+			font-weight: 700;
+			margin-bottom: 1rem;
+			background: linear-gradient(135deg, #f1f5f9 0%, var(--accent-purple) 30%, var(--accent-gold) 70%, var(--accent-amber) 100%);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+			letter-spacing: 0.05em;
+			animation: shimmer 3s ease-in-out infinite;
+			background-size: 200% 200%;
+		}
+		
+		@keyframes shimmer {
+			0%, 100% { background-position: 0% 50%; }
+			50% { background-position: 100% 50%; }
+		}
+		
+		.tagline {
+			font-size: 1.35rem;
+			color: var(--text-secondary);
+			margin-bottom: 2rem;
+			font-weight: 300;
+			animation: fadeInUp 0.8s ease forwards;
+		}
+		
+		/* Buttons */
+		.btn-group {
+			display: flex;
+			gap: 1rem;
+			justify-content: center;
+			flex-wrap: wrap;
+			animation: fadeInUp 0.8s ease forwards;
+			animation-delay: 0.2s;
+			opacity: 0;
+		}
+		
+		.btn {
+			display: inline-block;
+			padding: 1rem 2.5rem;
+			border-radius: 12px;
+			font-weight: 600;
+			font-size: 1rem;
+			text-decoration: none;
+			transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+			position: relative;
+			overflow: hidden;
+		}
+		
+		.btn::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: -100%;
+			width: 100%;
+			height: 100%;
+			background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+			transition: left 0.5s;
+		}
+		
+		.btn:hover::before {
+			left: 100%;
+		}
+		
+		.btn-primary {
+			background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-violet) 100%);
+			color: white;
+			border: none;
+			box-shadow: 0 4px 20px var(--glow-purple), 0 0 40px rgba(139, 92, 246, 0.2);
+		}
+		
+		.btn-primary:hover {
+			transform: translateY(-3px) scale(1.02);
+			box-shadow: 0 8px 30px var(--glow-purple), 0 0 60px rgba(139, 92, 246, 0.3);
+		}
+		
+		.btn-secondary {
+			background: rgba(255, 255, 255, 0.05);
+			color: var(--text-primary);
+			border: 1px solid var(--border);
+			backdrop-filter: blur(10px);
+		}
+		
+		.btn-secondary:hover {
+			background: rgba(255, 255, 255, 0.1);
+			border-color: var(--accent-gold);
+			transform: translateY(-2px);
+			box-shadow: 0 4px 20px var(--glow-gold);
+		}
+		
+		/* Navigation */
+		.nav-links {
+			margin: 3rem 0;
+			display: flex;
+			gap: 0.75rem;
+			justify-content: center;
+			flex-wrap: wrap;
+			animation: fadeInUp 0.8s ease forwards;
+			animation-delay: 0.4s;
+			opacity: 0;
+		}
+		
+		.nav-links a {
+			padding: 0.75rem 1.5rem;
+			background: var(--bg-card);
+			border-radius: 10px;
+			font-size: 0.9rem;
+			border: 1px solid var(--border);
+			color: var(--text-secondary);
+			transition: all 0.3s ease;
+			position: relative;
+		}
+		
+		.nav-links a:hover {
+			background: var(--bg-card-hover);
+			color: var(--accent-gold);
+			border-color: var(--accent-gold);
+			transform: translateY(-3px);
+			box-shadow: 0 6px 20px var(--glow-gold);
+		}
+		
+		/* Banner */
+		.hero-image {
+			width: 100%;
+			border-radius: 20px;
+			margin: 2rem 0;
+			box-shadow: 
+				0 4px 30px rgba(0,0,0,0.5),
+				0 0 60px var(--glow-purple),
+				inset 0 0 60px rgba(139, 92, 246, 0.1);
+			border: 1px solid var(--border);
+			animation: fadeInScale 0.8s ease forwards;
+		}
+		
+		@keyframes fadeInScale {
+			from { opacity: 0; transform: scale(0.95); }
+			to { opacity: 1; transform: scale(1); }
+		}
+		
+		/* Cards */
+		.card {
+			background: var(--bg-card);
+			border: 1px solid var(--border);
+			border-radius: 20px;
+			padding: 2.5rem;
+			margin-bottom: 1.5rem;
+			transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+			position: relative;
+			overflow: hidden;
+			animation: fadeInUp 0.6s ease forwards;
+			opacity: 0;
+		}
+		
+		.card:nth-child(1) { animation-delay: 0.1s; }
+		.card:nth-child(2) { animation-delay: 0.2s; }
+		.card:nth-child(3) { animation-delay: 0.3s; }
+		.card:nth-child(4) { animation-delay: 0.4s; }
+		
+		.card::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			height: 3px;
+			background: linear-gradient(90deg, var(--accent-purple), var(--accent-gold), var(--accent-rose));
+			opacity: 0;
+			transition: opacity 0.3s;
+		}
+		
+		.card:hover {
+			transform: translateY(-6px);
+			border-color: var(--accent-purple);
+			box-shadow: 0 12px 40px rgba(139, 92, 246, 0.15), 0 0 30px rgba(139, 92, 246, 0.1);
+		}
+		
+		.card:hover::before {
+			opacity: 1;
+		}
+		
+		@keyframes fadeInUp {
+			from { opacity: 0; transform: translateY(30px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+		
+		h2 {
+			font-family: 'Cinzel', serif;
+			font-size: 1.6rem;
+			font-weight: 600;
+			margin-bottom: 1.5rem;
+			color: var(--text-primary);
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		
+		h2::before {
+			content: '';
+			width: 4px;
+			height: 1.8rem;
+			background: linear-gradient(180deg, var(--accent-purple), var(--accent-gold));
+			border-radius: 2px;
+		}
+		
+		p {
+			margin-bottom: 1rem;
+			color: var(--text-secondary);
+			font-size: 1.05rem;
+		}
+		
+		p:last-child {
+			margin-bottom: 0;
+		}
+		
+		a {
+			color: var(--accent-gold);
+			text-decoration: none;
+			transition: all 0.2s ease;
+			position: relative;
+		}
+		
+		a:hover {
+			color: var(--accent-amber);
+		}
+		
+		a::after {
+			content: '';
+			position: absolute;
+			bottom: -2px;
+			left: 0;
+			width: 0;
+			height: 1px;
+			background: var(--accent-gold);
+			transition: width 0.3s;
+		}
+		
+		a:hover::after {
+			width: 100%;
+		}
+		
+		strong {
+			color: var(--text-primary);
+			font-weight: 600;
+		}
+		
+		/* Lists */
+		ul {
+			list-style: none;
+			padding-left: 0;
+		}
+		
+		ul li {
+			padding: 1rem 0;
+			padding-left: 2rem;
+			position: relative;
+			color: var(--text-secondary);
+			border-bottom: 1px solid var(--border);
+			transition: all 0.3s;
+		}
+		
+		ul li:last-child {
+			border-bottom: none;
+		}
+		
+		ul li:hover {
+			padding-left: 2.5rem;
+			color: var(--text-primary);
+		}
+		
+		ul li::before {
+			content: '✦';
+			color: var(--accent-gold);
+			position: absolute;
+			left: 0;
+			font-size: 0.8rem;
+			transition: all 0.3s;
+		}
+		
+		ul li:hover::before {
+			color: var(--accent-purple);
+			transform: scale(1.2);
+		}
+		
+		/* Feature tags */
+		.feature-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+			gap: 1rem;
+			margin-top: 1rem;
+		}
+		
+		.feature-item {
+			display: flex;
+			align-items: center;
+			gap: 1rem;
+			padding: 1.25rem;
+			background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(245, 158, 11, 0.04) 100%);
+			border-radius: 12px;
+			border: 1px solid var(--border);
+			transition: all 0.3s ease;
+		}
+		
+		.feature-item:hover {
+			background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(245, 158, 11, 0.08) 100%);
+			transform: translateX(5px);
+			border-color: var(--accent-purple);
+		}
+		
+		.feature-icon {
+			font-size: 1.5rem;
+			min-width: 2.5rem;
+			text-align: center;
+		}
+		
+		.feature-text {
+			color: var(--text-secondary);
+			font-size: 0.95rem;
+		}
+		
+		/* Stats */
+		.stats-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+			gap: 1rem;
+			margin-top: 1rem;
+		}
+		
+		.stat-item {
+			background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+			border: 1px solid var(--border);
+			border-radius: 16px;
+			padding: 1.5rem;
+			text-align: center;
+			transition: all 0.3s ease;
+		}
+		
+		.stat-item:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 8px 25px rgba(139, 92, 246, 0.2);
+			border-color: var(--accent-purple);
+		}
+		
+		.stat-value {
+			font-size: 2rem;
+			font-weight: 700;
+			background: linear-gradient(135deg, var(--accent-purple), var(--accent-gold));
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+		
+		.stat-label {
+			font-size: 0.75rem;
+			color: var(--text-muted);
+			text-transform: uppercase;
+			letter-spacing: 0.15em;
+			margin-top: 0.5rem;
+		}
+		
+		/* Footer */
+		.footer {
+			text-align: center;
+			padding: 4rem 0 2rem;
+			color: var(--text-muted);
+			font-size: 0.9rem;
+			border-top: 1px solid var(--border);
+			margin-top: 4rem;
+			position: relative;
+		}
+		
+		.footer::before {
+			content: '';
+			position: absolute;
+			top: -1px;
+			left: 50%;
+			transform: translateX(-50%);
+			width: 200px;
+			height: 2px;
+			background: linear-gradient(90deg, transparent, var(--accent-purple), var(--accent-gold), transparent);
+		}
+		
+		.footer-logo {
+			font-family: 'Cinzel', serif;
+			font-size: 1.4rem;
+			background: linear-gradient(135deg, var(--accent-purple), var(--accent-gold));
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+			margin-bottom: 0.5rem;
+		}
+		
+		/* Mobile */
+		@media (max-width: 600px) {
+			.container {
+				padding: 1.5rem 1rem;
+			}
+			h1 {
+				font-size: 2.2rem;
+			}
+			.tagline {
+				font-size: 1rem;
+			}
+			.hero-image {
+				width: 100%;
+			}
+			.btn-group {
+				flex-direction: column;
+				align-items: center;
+			}
+			.btn {
+				width: 100%;
+				max-width: 280px;
+				text-align: center;
+			}
+			.card {
+				padding: 1.5rem;
+			}
+		}
+	</style>
+</head>
+<body>
+	<!-- Floating particles -->
+	<div class="particles">
+		<div class="particle"></div>
+		<div class="particle"></div>
+		<div class="particle"></div>
+		<div class="particle"></div>
+		<div class="particle"></div>
+		<div class="particle"></div>
+		<div class="particle"></div>
+		<div class="particle"></div>
+		<div class="particle"></div>
+		<div class="particle"></div>
+	</div>
+	
+	<div class="container">
+		<div class="hero">
+			<h1>Open Life Reborn</h1>
+			<p class="tagline">A free multiplayer civilisation building & survival game</p>
+			<div class="btn-group">
+				<a href="#Rules" class="btn btn-primary">View Rules</a>
+				<a href="#Features" class="btn btn-secondary">Explore Features</a>
+			</div>
+		</div>
+	
+		<div class="nav-links">
+			<a href="#Rules">⚖️ Rules</a>
+			<a href="#Features">✨ Features</a>
+			<a href="#Statistics">📊 Statistics</a>
+		</div>
+	
+		<!-- Banner image -->
+		<img src="/static/images/logo.png" alt="Open Life Reborn" class="hero-image">
+	
+		<div class="card">
+			<p>Open Life Reborn is a free roleplay multiplayer civilisation building and survival game based on <a href="https://onehouronelife.com/">One Hour One Life</a> by Jason Rohrer. Play for free with any One Hour One Life client by entering <strong>OpenLifeReborn.com</strong> as a custom server (port 8005).</p>
+			
+			<p>🎮 No client? Use <a href="https://github.com/hetuw/OneLife/releases">this free client</a> at your own risk.</p>
+			
+			<p>💬 Join our <a href="https://discord.gg/XtVEA5RVjX">Discord Community</a> to connect with fellow players!</p>
+			
+			<p style="color: var(--accent-gold); font-style: italic;">And most importantly — have fun!</p>
+		</div>
+	
+		<div class="card" id="Rules">
+			<h2>By playing, you accept these rules:</h2>
+			<ul class="rules">
+				<li>Have fun and ensure fellow players have fun too!</li>
+				<li>Dive into the world and roleplay in a medieval fantasy setting</li>
+				<li>If born noble, be noble!</li>
+				<li>Want to play an antagonist? Ask moderators in <a href="https://discord.gg/XtVEA5RVjX">Discord</a> first</li>
+				<li>What happens in-game stays in-game — but remember rule #1</li>
+			</ul>
+		</div>
+	
+		<div class="card" id="Features">
+			<h2>Features</h2>
+			<div class="feature-grid">
+				<div class="feature-item">
+					<span class="feature-icon">🗺️</span>
+					<span class="feature-text"><a href="/static/images/map.png" target="_blank">Round Map</a> with rivers, bridges, mountains & oceans</span>
+				</div>
+				<div class="feature-item">
+					<span class="feature-icon">⚔️</span>
+					<span class="feature-text">New combat system with weapon damage / HP</span>
+				</div>
+				<div class="feature-item">
+					<span class="feature-icon">🌡️</span>
+					<span class="feature-text">Seasons affecting temperature & plant growth</span>
+				</div>
+				<div class="feature-item">
+					<span class="feature-icon">❄️</span>
+					<span class="feature-text">Cold and heat can kill — be prepared!</span>
+				</div>
+				<div class="feature-item">
+					<span class="feature-icon">💰</span>
+					<span class="feature-text">New in-game currency system</span>
+				</div>
+				<div class="feature-item">
+					<span class="feature-icon">🤖</span>
+					<span class="feature-text">AI NPCs that can be hired</span>
+				</div>
+				<div class="feature-item">
+					<span class="feature-icon">🔄</span>
+					<span class="feature-text">AI takes over until you reconnect</span>
+				</div>
+				<div class="feature-item">
+					<span class="feature-icon">🏆</span>
+					<span class="feature-text">Prestige score based on Yummy food & family care</span>
+				</div>
+			</div>
+		</div>
+	
+		<div class="card">
+			<p style="font-size: 0.9rem; color: var(--text-muted);">⚠️ Open Life Reborn is a community-driven non-commercial project. Use all links at your own risk. Contact: martin_auer(at)gmx.net</p>
+		</div>
+	
+		<div class="card" id="Statistics">
+			<h2>Statistics</h2>
+			<div class="stats-grid">
+				${livingPlayerText}
+				${accountsText}
+				${foodText}
+				${lineageText}
+			</div>
+		</div>
+	
+		<div class="footer">
+			<div class="footer-logo">⚔️ Open Life Reborn ⚔️</div>
+			<p>© 2024 — A community-driven project</p>
+		</div>
+	</div>
+</body>
+</html>
