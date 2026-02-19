@@ -89,6 +89,8 @@ Commands:
 - say ?R or ?REPUTATION or REPUTATION? to get current combat reputation
 - say "?CP" to get your current clothing prestige factor  
 
+- say "!YUM" to switch off and on displaying where best food is 
+
 You can assign jobs to AI with say JOB! or JOB!! to assign jobs to all close AI. Assigned jobs have very high priority (executed after MAKE commands). 
 Jobs are: 
 'SOILMAKER', 'ROWMAKER', 'BASICFARMER', 'ADVANCEDFARMER', 'SHEPHERD', 'BAKER', 'POTTER', 'FIREKEEPER', 'TAILOR', 'FIREFOODMAKER', 'LUMBERJACK','WATERBRINGER', 'FOODSERVER', 'GRAVEKEEPER', 'HUNTER', 'SMITH'

@@ -260,7 +260,7 @@ class TimeHelper {
 		if (player.account.displayClosePlayers) DisplayClosePlayers(player);
 		if (player.age < 3) return;
 
-		GlobalPlayerInstance.DisplayBestFood(player);
+		if (player.account.displayYum) GlobalPlayerInstance.DisplayBestFood(player);
 
 		if (player.hits > 1) AiHelper.DisplayCloseDeadlyAnimals(player, 10);
 

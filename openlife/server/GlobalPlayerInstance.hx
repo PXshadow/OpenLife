@@ -1881,6 +1881,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			text = text.toUpperCase();
 		}
 
+		if (StringTools.contains(text, '!YUM')) {
+			toSelf = true;
+			if (this.account.displayYum) this.account.displayYum = false;
+			else this.account.displayYum = true;
+
+			text = this.account.displayYum ? 'display yum on' : 'display yum off';
+			text = text.toUpperCase();
+		}
+
 		if (text.startsWith('?NAME')) {
 			text = '${this.name} ${this.familyName}';
 			toSelf = true;
@@ -5286,7 +5295,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			player.connection.sendMapChunk(player.x, player.y);
 			return true;
 		}
-		else if (text.indexOf('!YUM') != -1) {
+		else if (text.indexOf('!F') != -1) {
 			if (checkIfNotAllowed(player)) return true;
 			player.food_store += 10;
 			player.sendFoodUpdate(false);

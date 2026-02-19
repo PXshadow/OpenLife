@@ -34,6 +34,7 @@ class PlayerAccount {
 	// not saved yet
 	public var scoreEntries = new Array<ScoreEntry>(); // is used to store prestige boni / mali
 	public var displayClosePlayers:Bool = true;
+	public var displayYum:Bool = true;
 
 	// not saved
 	public var graves = new Array<ObjectHelper>();
