@@ -167,6 +167,9 @@ And the best on the end Better Snake Stuff!
 - Snake Skin Boot: Increase decay time from 5h to 10 days
 - Double insulation from Snake Skin Boot
 
+Other changes:
+- Animals can pass through: Trees, Plants, Palms, Sugarcane, Ponds, Springs
+
 Not yet implemented:
 - Ai territory
 - maps
