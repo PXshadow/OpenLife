@@ -6272,7 +6272,8 @@ abstract class AiBase {
 		}
 
 		if (targetPlayer.name == ServerSettings.StartingName && targetPlayer.age > 1.5) {
-			var newName = myPlayer.isEveOrAdam() ? NamingHelper.GetRandomName(targetPlayer.isFemale()) : myPlayer.name;
+			var newName = myPlayer.isEveOrAdam()
+				|| Math.random() < 0.2 ? NamingHelper.GetRandomName(targetPlayer.isFemale()) : myPlayer.name;
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} newName: $newName');
 			myPlayer.say('You are $newName');
 		}
@@ -6315,7 +6316,8 @@ abstract class AiBase {
 		// if (foodTarget != null) return false;
 		if (heldPlayer != null) {
 			if (heldPlayer.name == ServerSettings.StartingName && (heldPlayer.mother == myPlayer || heldPlayer.age > 1.5)) {
-				var newName = myPlayer.isEveOrAdam() ? NamingHelper.GetRandomName(heldPlayer.isFemale()) : myPlayer.name;
+				var newName = myPlayer.isEveOrAdam()
+					|| Math.random() < 0.2 ? NamingHelper.GetRandomName(heldPlayer.isFemale()) : myPlayer.name;
 				if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} child newName: $newName');
 				myPlayer.say('You are $newName');
 			}
