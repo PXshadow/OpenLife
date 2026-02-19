@@ -636,7 +636,7 @@ abstract class AiBase {
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (handleTemperature()) return);
 		Macro.exception(if (doFeedLambsAndCalfs(1)) return);
-		Macro.exception(if (doStuff && myPlayer.age > 20 && isHunting()) return);
+		Macro.exception(if (doStuff && myPlayer.age > 14 && isHunting()) return);
 		Macro.exception(if (makeSharpieFood(5)) return);
 		Macro.exception(if (isHandlingGraves()) return);
 		Macro.exception(if (fillBucketIfNeeded()) return);
