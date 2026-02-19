@@ -3587,6 +3587,14 @@ class ServerSettings {
 			trans.aiShouldIgnore = true;
 		}
 
+		// Skewer 139 +  Fire 82 = 0 + Large Fast Fire 83
+		var trans = new TransitionData(139, 82, 0, 83);
+		transitions.addTransition("PatchTransitions: ", trans);
+
+		// Weak Skewer 852 +  Fire 82 = 0 + Large Fast Fire 83
+		var trans = new TransitionData(852, 82, 0, 83);
+		transitions.addTransition("PatchTransitions: ", trans);
+
 		// Bowl of Water 382 +  Bowl of Tomato Seeds = Clay Bowl 235 + Bowl of Water 382
 		var trans = new TransitionData(382, 2828, 235, 382);
 		// trans.aiShouldIgnore = true;
