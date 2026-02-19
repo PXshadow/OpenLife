@@ -1154,6 +1154,18 @@ abstract class AiBase {
 				if (shortCraftOnTarget(72, firePlace)) return true;
 			}
 
+			// Skewer 139
+			var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 139, 30);
+			if (heldId == 139) count += 1;
+			// Skewer 139
+			if (count > 10 && shortCraftOnTarget(139, firePlace)) return true;
+
+			// Weak Skewer 852
+			var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 852, 30);
+			if (heldId == 852) count += 1;
+			// Weak Skewer 852
+			if (count > 5 && shortCraftOnTarget(852, firePlace)) return true;
+
 			// Big Charcoal Pile 300
 			var count = AiHelper.CountCloseObjects(myPlayer, firePlace.tx, firePlace.ty, 300, 30);
 			if (heldId == 298) count += 1;
