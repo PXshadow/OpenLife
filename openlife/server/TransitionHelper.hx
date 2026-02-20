@@ -1360,7 +1360,19 @@ class TransitionHelper {
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} is blocked by ice!');
 			return false;
 		}
+		else if (newTargetObjectData.description.contains('+biomeBlock9') && biome == 9) {
+			player.say('is blocked by water', true);
+			player.message = 'is blocked by water';
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} is blocked by water!');
+			return false;
+		}
 		else if (newTargetObjectData.description.contains('+biomeBlock13') && biome == 13) {
+			player.say('is blocked by water', true);
+			player.message = 'is blocked by water';
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} is blocked by water!');
+			return false;
+		}
+		else if (newTargetObjectData.description.contains('+biomeBlock17') && biome == 17) {
 			player.say('is blocked by water', true);
 			player.message = 'is blocked by water';
 			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} ${newParentTargetObjectData.name} is blocked by water!');
