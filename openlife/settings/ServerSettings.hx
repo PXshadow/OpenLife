@@ -1080,7 +1080,6 @@ class ServerSettings {
 
 		ObjectData.getObjectData(213).hungryWork = 3; // Deep Tilled Row
 		ObjectData.getObjectData(1136).hungryWork = 3; // Shallow Tilled Row
-		ObjectData.getObjectData(1136).description += ' +biomeBlock13'; // Shallow Tilled Row
 
 		ObjectData.getObjectData(511).hungryWork = 2; // Pond
 		ObjectData.getObjectData(1261).hungryWork = 2; // Canada Goose Pond with Egg
@@ -1089,6 +1088,19 @@ class ServerSettings {
 		ObjectData.getObjectData(143).hungryWork = 2; // Canada Goose Pond swimming, feather
 		ObjectData.getObjectData(662).hungryWork = 1; // Shallow Well
 		ObjectData.getObjectData(663).hungryWork = 2; // Deep Well
+
+		// Forbid Farming in Water (TODO allow when Rice is there)
+		ObjectData.getObjectData(1136).description += ' +biomeBlock9'; // Shallow Tilled Row // OCEAN
+		ObjectData.getObjectData(1136).description += ' +biomeBlock13'; // Shallow Tilled Row // PASSABLERIVER
+		ObjectData.getObjectData(1136).description += ' +biomeBlock17'; // Shallow Tilled Row // RIver
+
+		ObjectData.getObjectData(1101).description += ' +biomeBlock9'; // Fertile Soil Pile // OCEAN
+		ObjectData.getObjectData(1101).description += ' +biomeBlock13'; // Fertile Soil Pile // PASSABLERIVER
+		ObjectData.getObjectData(1101).description += ' +biomeBlock17'; // Fertile Soil Pile // RIver
+
+		ObjectData.getObjectData(1138).description += ' +biomeBlock9'; // Fertile Soil // OCEAN
+		ObjectData.getObjectData(1138).description += ' +biomeBlock13'; // Fertile Soil // PASSABLERIVER
+		ObjectData.getObjectData(1138).description += ' +biomeBlock17'; // Fertile Soil // RIver
 
 		// reduce water in ponds / wells
 		ObjectData.getObjectData(511).useChance = 0.5; // 0.2 // Pond
