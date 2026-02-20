@@ -12,6 +12,11 @@ class PlayerAccount {
 	public static var AllPlayerAccountsById = new Map<Int, PlayerAccount>();
 	public static var AccountIdIndex:Int = 1;
 
+	// Account limiting - anti spam
+	public static var newAccountsTodayPerIp = new Map<String, Int>(); // IP -> count
+	public static var totalNewAccountsToday:Int = 0;
+	public static var lastAccountResetTime:Float = 0;
+
 	// saved
 	public var id:Int;
 	public var isAi:Bool = false;
@@ -35,7 +40,6 @@ class PlayerAccount {
 	public var scoreEntries = new Array<ScoreEntry>(); // is used to store prestige boni / mali
 	public var displayClosePlayers:Bool = true;
 	public var displayYum:Bool = true;
-
 	// not saved
 	public var graves = new Array<ObjectHelper>();
 
@@ -47,9 +51,30 @@ class PlayerAccount {
 
 	private function new() {}
 
-	public static function GetOrCreatePlayerAccount(email:String, account_key_hash:String, id:Int = 0):PlayerAccount {
+	// if Ip is not set there is no limit to account generation
+	public static function GetOrCreatePlayerAccount(email:String, account_key_hash:String, id:Int = 0, clientIp:String = ''):PlayerAccount {
+		var checkLimit = clientIp != '';
 		var account = AllPlayerAccountsByEmail[email];
 		if (account != null) return account;
+
+		// Check if account limit reached
+		if (checkLimit) {
+			// Reset daily counts if it's a new day
+			ResetDailyAccountCounts();
+
+			// Check IP-specific limit
+			var ipCount = newAccountsTodayPerIp[clientIp];
+			if (ipCount != null && ipCount >= ServerSettings.NewAccountsPerIpPerDay) {
+				trace('PlayerAccount: WARNING: IP account limit reached for $clientIp ($ipCount/${ServerSettings.NewAccountsPerIpPerDay} per day)');
+				return null;
+			}
+
+			// Check total server-wide limit
+			if (totalNewAccountsToday >= ServerSettings.TotalNewAccountsPerDay) {
+				trace('PlayerAccount: WARNING: Total daily account limit reached ($totalNewAccountsToday/${ServerSettings.TotalNewAccountsPerDay})');
+				return null;
+			}
+		}
 
 		account = new PlayerAccount();
 		account.id = id > 0 ? id : AccountIdIndex++;
@@ -59,9 +84,30 @@ class PlayerAccount {
 		AllPlayerAccountsByEmail[account.email] = account;
 		AllPlayerAccountsById[account.id] = account;
 
+		// Track new account creation
+		if (checkLimit) {
+			totalNewAccountsToday++;
+
+			var ipCount = newAccountsTodayPerIp[clientIp];
+			newAccountsTodayPerIp[clientIp] = (ipCount != null ? ipCount : 0) + 1;
+			trace('PlayerAccount: New account created: ${account.id} from IP $clientIp (today: $totalNewAccountsToday total, IP: ${newAccountsTodayPerIp[clientIp]})');
+		}
+
 		// trace('New account: ${id}-->${account.id} $email');
 
 		return account;
+	}
+
+	public static function ResetDailyAccountCounts() {
+		var now = Date.now().getTime();
+		var oneDayInMs:Float = 86400000; // 24 * 60 * 60 * 1000
+
+		if (now - lastAccountResetTime >= oneDayInMs) {
+			newAccountsTodayPerIp = new Map<String, Int>();
+			totalNewAccountsToday = 0;
+			lastAccountResetTime = now;
+			trace('PlayerAccount: Daily account counts reset for day ${Date.now()}');
+		}
 	}
 
 	public static function GetPlayerAccountById(id:Int):PlayerAccount {

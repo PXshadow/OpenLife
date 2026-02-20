@@ -51,6 +51,10 @@ class ServerSettings {
 	public static var DebugCreateOldPath:Bool = false; // To compare new pathing method with old
 	public static var DebugWritePathToFile:Bool = false; // wriths path map to SaveFiles/paths.txt
 
+	// Account limiting
+	public static var NewAccountsPerIpPerDay:Int = 3; // Max new accounts per IP per day
+	public static var TotalNewAccountsPerDay:Int = 20; // Total new accounts server-wide per day
+
 	// Save / Load
 	public static var saveToDisk = true;
 	public static var SavePlayers = true;

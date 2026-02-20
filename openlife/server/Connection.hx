@@ -25,6 +25,7 @@ class Connection {
 
 	public var sock:Socket;
 	public var sendFrame = false;
+	public var clientIp:String = ''; // Client IP for account limiting
 
 	var server:Server;
 	var tag:ServerTag;
@@ -41,7 +42,10 @@ class Connection {
 		var version = ObjectData.dataVersionNumber;
 
 		// if it is an AI there is no sock
-		if (sock != null) send(SERVER_INFO, ["0/0", challenge, '$version']);
+		if (sock != null) {
+			clientIp = sock.peer().host.toString(); // Get client IP for account limiting
+			send(SERVER_INFO, ["0/0", challenge, '$version']);
+		}
 	}
 
 	public function isAi():Bool {
@@ -93,7 +97,13 @@ class Connection {
 
 		trace('login2: ${account_key_hash}');
 
-		this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
+		this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash, 0, clientIp);
+		if (this.playerAccount == null) {
+			trace('login: ${account_key_hash} REJECTED! Account limit reached for IP ${clientIp}');
+			send(REJECTED);
+			if (sock != null) sock.close();
+			return;
+		}
 		this.player = GlobalPlayerInstance.CreateNewHumanPlayer(this);
 
 		Macro.exception(initConnection(this.player, this.playerAccount));
@@ -123,7 +133,13 @@ class Connection {
 		trace('rlogin2: ${account_key_hash}');
 		// GlobalPlayerInstance.AcquireMutex();
 
-		this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash);
+		this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash, 0, clientIp);
+		if (this.playerAccount == null) {
+			trace('rlogin: ${account_key_hash} REJECTED! Account limit reached for IP ${clientIp}');
+			send(REJECTED);
+			if (sock != null) sock.close();
+			return;
+		}
 		var lastLivingPlayer = playerAccount.getLastLivingPlayer();
 
 		if (lastLivingPlayer != null) {
