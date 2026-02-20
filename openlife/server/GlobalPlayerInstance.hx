@@ -3803,8 +3803,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			else if (isSuperMeh(this.heldObject)) this.doEmote(Emote.sad);
 			else this.doEmote(Emote.hmph);
 
-			if (ServerSettings.DisplayYumAndMehFood) displayFood(obj);
-			DisplayBestFood(player);
+			// if (ServerSettings.DisplayYumAndMehFood) displayFood(obj);
+			if (player.account.displayYum) displayFood(obj);
+			if (player.account.displayYum) DisplayBestFood(player);
 		}
 	}
 
