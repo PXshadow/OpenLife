@@ -1694,7 +1694,7 @@ abstract class AiBase {
 
 			if (myPlayer.heat > 0.5 && myPlayer.lastTemperature > 0.45 && tmpLastTemperature <= myPlayer.heat) {
 				// if (shouldDebugSay()) myPlayer.say('Could not cool!');
-				myPlayer.say('Could not cool!');
+				if (ServerSettings.DebugAi) myPlayer.say('Could not cool!');
 				if (ServerSettings.DebugAi)
 					trace('AAI: ${myPlayer.name + myPlayer.id} does not help: $text player heat: ${Math.round(myPlayer.heat * 100) / 100} temp: ${temperature} b: ${biomeId} yv: ${myPlayer.hasYellowFever()}');
 				myPlayer.coldPlace = null; // this place does not help
@@ -1705,7 +1705,7 @@ abstract class AiBase {
 			if (myPlayer.heat < 0.5 && myPlayer.lastTemperature < 0.55 && tmpLastTemperature >= myPlayer.heat) {
 				// if (shouldDebugSay()) myPlayer.say('Could not warm!');
 
-				myPlayer.say('Could not warm!');
+				if (ServerSettings.DebugAi) myPlayer.say('Could not warm!');
 
 				if (myPlayer.age > 5) {
 					// Large Fast Fire 83 --> Make fast fire to warm
