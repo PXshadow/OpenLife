@@ -1815,7 +1815,7 @@ abstract class AiBase {
 		if (hasCornSeeds && shortCraft(1247, 1459, distance)) return true;
 
 		// Empty Bucket 659 + Milk Cow 1489
-		if (shortCraft(1247, 1489, distance)) return true;
+		if (shortCraft(659, 1489, distance)) return true;
 
 		// Count all the Sheep Dung 899
 		// var countDung = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 899, distance);
@@ -5575,7 +5575,7 @@ abstract class AiBase {
 		if (hasOrBecomeProfession('SHEPHERD', maxPeople) == false) return false;
 
 		// Empty Bucket 659 + Milk Cow 1489
-		if (shortCraft(1247, 1489, 30)) return true;
+		if (shortCraft(659, 1489, 30)) return true;
 
 		// Macro.exception(if (fillBerryBowlIfNeeded(1)) return true);
 
