@@ -1393,7 +1393,7 @@ class TimeHelper {
 
 	public static function DoWorldLongTermTimeStuff() {
 		// TODO dont decay if some on is close?
-		// TODO decay stuff in containers
+		// TODO decay stuff in containers (check if implemented)
 		// TODO decay stuff with number of uses > 1
 		// TODO set custom objDecayTo
 		// TODO add decay object so that decay is visible ==> 618 Filled Small Trash Pit
@@ -1438,8 +1438,29 @@ class TimeHelper {
 				if (objId != 0) AlignWalls(x, y);
 
 				if (objId != 0) ClearHeldObjectOnground(x, y, objId);
+
+				if (objId != 0) DelteObjectsInWater(x, y, objId);
+
+				//  Hardened Row 848
 			}
 		}
+	}
+
+	// Hardened Row 848
+	private static var objectIdsToDelete = [848];
+
+	private static function DelteObjectsInWater(tx:Int, ty:Int, objId:Int) {
+		if (objectIdsToDelete.contains(objId) == false) return false;
+		var world = WorldMap.world;
+
+		var biome = world.getBiomeId(tx, ty);
+		if (biome != BiomeTag.RIVER && biome != BiomeTag.PASSABLERIVER && biome != BiomeTag.OCEAN) return false;
+
+		var obj = world.getObjectHelper(tx, ty);
+		world.setObjectHelper(tx, ty, null);
+
+		trace('WARNING: DelteObjectsInWater ${obj.name} ${obj.parentId}');
+		return true;
 	}
 
 	// Horse-Drawn Cart 778 // Horse-Drawn Tire Cart 3158
