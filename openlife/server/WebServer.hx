@@ -236,7 +236,7 @@ class WebServer {
 			else ageText = '${age}';
 
 			lineageText += '<tr>';
-			lineageText += '<td>Age: ${ageText}</td>';
+			lineageText += '<td>${ageText}</td>';
 			lineageText += '<td>${Lineage.ages[age]}</td>';
 			lineageText += '<td>${cast (Lineage.agesLastDay[age], Int)}</td>';
 			lineageText += '<td>${cast (Lineage.agesLastHour[age], Int)}</td>';
@@ -325,7 +325,9 @@ class WebServer {
 		// var text = '<!DOCTYPE html>\n<html>\n<head>\n<title>Open Life Reborn</title>\n</head>\n<body>\n<h1>Welcome to Open Life Reborn!</h1><p>Currently Playing: ${count}</p>\n</body>\n</html>';
 		var text = welcomeText;
 		// text = text.replace('</ul>', '</ul>\n<p>Currently Playing: ${count}</p>');
-		text = text.replace('</body>', '${livingPlayerText}\n${accountsText}\n${foodText}\n${lineageText}\n</body>');
+		// text = text.replace('</body>', '${livingPlayerText}\n${accountsText}\n${foodText}\n${lineageText}\n</body>');
+		text = text.replace("${livingPlayerText} ${accountsText} ${foodText} ${lineageText}",
+			'${livingPlayerText}\n${accountsText}\n${foodText}\n${lineageText}\n</body>');
 
 		var message = 'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Encoding: UTF-8\r\nContent-Length: ${text.length}\r\n\r\n${text}';
 		// var message = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Encoding: UTF-8\nContent-Length: ${text.length}\nDate: Wed, 28 Jun 2023 22:36:00 GMT+02:00\n\n<!DOCTYPE html>\n<html>\n<head>\n    <title>Example</title>\n</head>\n<body>\n    <h1>Hello World!</h1>\n</body>\n</html>";
