@@ -38,7 +38,8 @@ class WebServer {
 		trace('Starting WebServer...');
 
 		var dir = './${ServerSettings.WebServerDirectory}/';
-		var path = dir + "OpenLifeReborn_Dark.html";
+		// var path = dir + "OpenLifeReborn-Dark-Stars.html";
+		var path = dir + ServerSettings.WebServerMainHtml;
 		var saveExists = sys.FileSystem.exists(path);
 
 		if (saveExists == false) {

@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Open Life Reborn</title>
+	<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+	<style>
+		:root {
+			--bg-dark: #0a0a0f;
+			--bg-card: #12121a;
+			--bg-card-hover: #1a1a25;
+			--accent-purple: #8b5cf6;
+			--accent-violet: #7c3aed;
+			--accent-gold: #f59e0b;
+			--accent-amber: #fbbf24;
+			--accent-rose: #f43f5e;
+			--accent-emerald: #10b981;
+			--text-primary: #f1f5f9;
+			--text-secondary: #94a3b8;
+			--text-muted: #64748b;
+			--border: #2a2a3a;
+			--glow-purple: rgba(139, 92, 246, 0.4);
+			--glow-gold: rgba(245, 158, 11, 0.3);
+			--glow-rose: rgba(244, 63, 94, 0.2);
+		}
+		
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+		
+		body {
+			font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+			background-color: var(--bg-dark);
+			background-image: 
+				radial-gradient(ellipse at 20% 0%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+				radial-gradient(ellipse at 80% 100%, rgba(245, 158, 11, 0.08) 0%, transparent 50%),
+				radial-gradient(ellipse at 50% 50%, rgba(124, 58, 237, 0.05) 0%, transparent 70%);
+			color: var(--text-primary);
+			line-height: 1.7;
+			min-height: 100vh;
+			overflow-x: hidden;
+		}
+		
+		/* Twinkling Stars Background */
+		.stars {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			z-index: -1;
+		}
+		
+		.star {
+			position: absolute;
+			background: white;
+			border-radius: 50%;
+			animation: twinkle var(--duration) ease-in-out infinite;
+			animation-delay: var(--delay);
+		}
+		
+		.star.small {
+			width: 1px;
+			height: 1px;
+		}
+		
+		.star.medium {
+			width: 2px;
+			height: 2px;
+			box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.5);
+		}
+		
+		.star.large {
+			width: 3px;
+			height: 3px;
+			box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.6);
+		}
+		
+		.star.blue {
+			background: #93c5fd;
+			box-shadow: 0 0 4px 1px rgba(147, 197, 253, 0.6);
+		}
+		
+		.star.purple {
+			background: #c4b5fd;
+			box-shadow: 0 0 4px 1px rgba(196, 181, 253, 0.6);
+		}
+		
+		@keyframes twinkle {
+			0%, 100% { opacity: 0.3; transform: scale(1); }
+			50% { opacity: 1; transform: scale(1.2); }
+		}
+		
+		.container {
+			max-width: 900px;
+			margin: 0 auto;
+			padding: 3rem 2rem;
+			position: relative;
+			z-index: 1;
+		}
+		
+		/* Hero Section */
+		.hero {
+			text-align: center;
+			padding: 4rem 0 5rem;
+			position: relative;
+		}
+		
+		.hero::before {
+			content: '';
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			width: 300px;
+			height: 300px;
+			background: radial-gradient(circle, var(--glow-purple) 0%, transparent 70%);
+			filter: blur(60px);
+			z-index: -1;
+			animation: pulse 4s ease-in-out infinite;
+		}
+		
+		@keyframes pulse {
+			0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+			50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+		}
+		
+		h1 {
+			font-family: 'Cinzel', serif;
+			font-size: 3.5rem;
+			font-weight: 700;
+			margin-bottom: 1rem;
+			background: linear-gradient(135deg, #f1f5f9 0%, var(--accent-purple) 30%, var(--accent-gold) 70%, var(--accent-amber) 100%);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+			letter-spacing: 0.05em;
+			animation: shimmer 3s ease-in-out infinite;
+			background-size: 200% 200%;
+		}
+		
+		@keyframes shimmer {
+			0%, 100% { background-position: 0% 50%; }
+			50% { background-position: 100% 50%; }
+		}
+		
+		.tagline {
+			font-size: 1.35rem;
+			color: var(--text-secondary);
+			margin-bottom: 2rem;
+			font-weight: 300;
+			animation: fadeInUp 0.8s ease forwards;
+		}
+		
+		@keyframes fadeInUp {
+			from { opacity: 0; transform: translateY(20px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+		
+		/* Buttons */
+		.btn-group {
+			display: flex;
+			gap: 1rem;
+			justify-content: center;
+			flex-wrap: wrap;
+			animation: fadeInUp 0.8s ease forwards;
+			animation-delay: 0.2s;
+			opacity: 0;
+		}
+		
+		.btn {
+			display: inline-block;
+			padding: 1rem 2.5rem;
+			border-radius: 12px;
+			font-weight: 600;
+			font-size: 1rem;
+			text-decoration: none;
+			transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+			position: relative;
+			overflow: hidden;
+		}
+		
+		.btn::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: -100%;
+			width: 100%;
+			height: 100%;
+			background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+			transition: left 0.5s;
+		}
+		
+		.btn:hover::before {
+			left: 100%;
+		}
+		
+		.btn-primary {
+			background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-violet) 100%);
+			color: white;
+			box-shadow: 0 4px 20px var(--glow-purple);
+		}
+		
+		.btn-primary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 30px var(--glow-purple);
+		}
+		
+		.btn-secondary {
+			background: transparent;
+			color: var(--text-primary);
+			border: 1px solid var(--border);
+		}
+		
+		.btn-secondary:hover {
+			background: var(--bg-card);
+			border-color: var(--accent-purple);
+		}
+		
+		/* Navigation */
+		.nav-links {
+			margin: 3rem 0;
+			display: flex;
+			gap: 0.75rem;
+			justify-content: center;
+			flex-wrap: wrap;
+		}
+		
+		.nav-links a {
+			padding: 0.6rem 1.25rem;
+			background: var(--bg-card);
+			border-radius: 8px;
+			font-size: 0.875rem;
+			border: 1px solid var(--border);
+			color: var(--text-secondary);
+			transition: all 0.3s ease;
+			cursor: pointer;
+		}
+		
+		.nav-links a:hover {
+			background: var(--bg-card-hover);
+			color: var(--accent-purple);
+			border-color: var(--accent-purple);
+			transform: translateY(-2px);
+		}
+		
+		/* Banner */
+		.hero-image {
+			width: 100%;
+			border-radius: 16px;
+			margin: 2rem 0;
+			box-shadow: 
+				0 4px 20px rgba(0,0,0,0.4),
+				0 0 60px var(--glow-purple);
+			border: 1px solid var(--border);
+		}
+		
+		/* Cards */
+		.card {
+			background: var(--bg-card);
+			border: 1px solid var(--border);
+			border-radius: 16px;
+			padding: 2rem;
+			margin-bottom: 1.5rem;
+			transition: all 0.3s ease;
+		}
+		
+		.card:hover {
+			transform: translateY(-4px);
+			border-color: var(--accent-purple);
+			box-shadow: 0 8px 30px rgba(139, 92, 246, 0.1);
+		}
+		
+		h2 {
+			font-family: 'Cinzel', serif;
+			font-size: 1.5rem;
+			font-weight: 600;
+			margin-bottom: 1.25rem;
+			color: var(--text-primary);
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+		}
+		
+		h2::before {
+			content: '';
+			width: 4px;
+			height: 1.5rem;
+			background: linear-gradient(180deg, var(--accent-purple), var(--accent-gold));
+			border-radius: 2px;
+		}
+		
+		p {
+			margin-bottom: 1rem;
+			color: var(--text-secondary);
+			font-size: 1rem;
+		}
+		
+		p:last-child {
+			margin-bottom: 0;
+		}
+		
+		a {
+			color: var(--accent-purple);
+			text-decoration: none;
+			transition: color 0.2s ease;
+		}
+		
+		a:hover {
+			color: var(--accent-gold);
+		}
+		
+		strong {
+			color: var(--text-primary);
+			font-weight: 600;
+		}
+		
+		/* Lists */
+		ul {
+			list-style: none;
+			padding-left: 0;
+		}
+		
+		ul li {
+			padding: 0.75rem 0;
+			padding-left: 1.75rem;
+			position: relative;
+			color: var(--text-secondary);
+			border-bottom: 1px solid var(--border);
+		}
+		
+		ul li:last-child {
+			border-bottom: none;
+		}
+		
+		ul li::before {
+			content: '✦';
+			color: var(--accent-purple);
+			position: absolute;
+			left: 0;
+			font-size: 0.75rem;
+		}
+		
+		/* Feature tags */
+		.feature-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+			gap: 1rem;
+			margin-top: 1rem;
+		}
+		
+		.feature-item {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			padding: 1rem;
+			background: rgba(139, 92, 246, 0.05);
+			border-radius: 8px;
+			border: 1px solid var(--border);
+			cursor: pointer;
+			transition: all 0.3s ease;
+		}
+		
+		.feature-item:hover {
+			background: rgba(139, 92, 246, 0.15);
+			border-color: var(--accent-purple);
+			transform: translateY(-2px);
+		}
+		
+		.feature-item.active {
+			background: rgba(139, 92, 246, 0.2);
+			border-color: var(--accent-gold);
+		}
+		
+		.feature-icon {
+			font-size: 1.25rem;
+		}
+		
+		.feature-text {
+			color: var(--text-secondary);
+			font-size: 0.9rem;
+		}
+		
+		/* Feature Description Panel */
+		.feature-description {
+			display: none;
+			margin-top: 1.5rem;
+			padding: 1.5rem;
+			background: rgba(245, 158, 11, 0.05);
+			border: 1px solid var(--accent-gold);
+			border-radius: 12px;
+			animation: fadeIn 0.3s ease;
+		}
+		
+		.feature-description.visible {
+			display: block;
+		}
+		
+		.feature-description h3 {
+			font-family: 'Cinzel', serif;
+			font-size: 1.1rem;
+			color: var(--accent-gold);
+			margin-bottom: 0.75rem;
+		}
+		
+		.feature-description p {
+			font-size: 0.95rem;
+			line-height: 1.8;
+		}
+		
+		.feature-description ul {
+			margin-top: 0.5rem;
+		}
+		
+		.feature-description ul li {
+			padding: 0.4rem 0;
+			padding-left: 1.25rem;
+			font-size: 0.9rem;
+			border-bottom: none;
+		}
+		
+		.feature-description ul li::before {
+			content: '→';
+			color: var(--accent-gold);
+		}
+		
+		/* Feature Tooltip (Hover) */
+		.feature-tooltip {
+			display: none;
+			position: absolute;
+			background: var(--bg-card);
+			border: 1px solid var(--accent-purple);
+			border-radius: 10px;
+			padding: 1rem;
+			max-width: 320px;
+			z-index: 1000;
+			box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+			animation: fadeIn 0.2s ease;
+			pointer-events: none;
+		}
+		
+		.feature-tooltip.visible {
+			display: block;
+		}
+		
+		.feature-tooltip-title {
+			font-weight: 600;
+			color: var(--accent-gold);
+			margin-bottom: 0.5rem;
+			font-size: 0.95rem;
+		}
+		
+		.feature-tooltip-text {
+			font-size: 0.85rem;
+			color: var(--text-secondary);
+			line-height: 1.6;
+		}
+		
+		/* Feature Accordion */
+		.feature-accordion {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			margin-top: 1rem;
+		}
+		
+		.feature-header {
+			display: flex;
+			align-items: center;
+			gap: 0.75rem;
+			padding: 1rem;
+			background: rgba(139, 92, 246, 0.05);
+			border-radius: 8px;
+			border: 1px solid var(--border);
+			cursor: pointer;
+			transition: all 0.3s ease;
+		}
+		
+		.feature-header:hover {
+			background: rgba(139, 92, 246, 0.15);
+			border-color: var(--accent-purple);
+			transform: translateY(-2px);
+		}
+		
+		.feature-header.active {
+			background: rgba(139, 92, 246, 0.2);
+			border-color: var(--accent-gold);
+		}
+		
+		.feature-header .feature-icon {
+			font-size: 1.25rem;
+		}
+		
+		.feature-header .feature-text {
+			color: var(--text-secondary);
+			font-size: 0.9rem;
+			flex: 1;
+		}
+		
+		.feature-header .toggle-icon {
+			color: var(--accent-purple);
+			font-size: 0.8rem;
+			transition: transform 0.3s ease;
+		}
+		
+		.feature-header.active .toggle-icon {
+			transform: rotate(180deg);
+		}
+		
+		.feature-content {
+			display: none;
+			padding: 1rem 1.25rem;
+			background: rgba(245, 158, 11, 0.05);
+			border: 1px solid var(--accent-gold);
+			border-radius: 10px;
+			margin-top: -0.25rem;
+			animation: fadeIn 0.3s ease;
+		}
+		
+		.feature-content.visible {
+			display: block;
+		}
+		
+		.feature-content p {
+			font-size: 0.95rem;
+			line-height: 1.8;
+			margin-bottom: 0.75rem;
+		}
+		
+		.feature-content p:last-child {
+			margin-bottom: 0;
+		}
+		
+		/* Stats */
+		.stats-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+			gap: 1rem;
+			margin-top: 1rem;
+		}
+		
+		.stat-item {
+			background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+			border: 1px solid var(--border);
+			border-radius: 12px;
+			padding: 1.25rem;
+			text-align: center;
+		}
+		
+		.stat-value {
+			font-size: 1.75rem;
+			font-weight: 700;
+			background: linear-gradient(135deg, var(--accent-purple), var(--accent-gold));
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+		
+		.stat-label {
+			font-size: 0.8rem;
+			color: var(--text-muted);
+			text-transform: uppercase;
+			letter-spacing: 0.1em;
+			margin-top: 0.25rem;
+		}
+		
+		/* Footer */
+		.footer {
+			text-align: center;
+			padding: 3rem 0;
+			color: var(--text-muted);
+			font-size: 0.875rem;
+			border-top: 1px solid var(--border);
+			margin-top: 3rem;
+		}
+		
+		.footer-logo {
+			font-family: 'Cinzel', serif;
+			font-size: 1.25rem;
+			color: var(--text-secondary);
+			margin-bottom: 0.5rem;
+		}
+		
+		/* Animations */
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(10px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+		
+		.hero, .card {
+			animation: fadeIn 0.6s ease forwards;
+		}
+		
+		.card:nth-child(2) { animation-delay: 0.1s; }
+		.card:nth-child(3) { animation-delay: 0.2s; }
+		
+		/* Mobile */
+		@media (max-width: 600px) {
+			.container {
+				padding: 1.5rem 1rem;
+			}
+			h1 {
+				font-size: 2rem;
+			}
+			.tagline {
+				font-size: 1rem;
+			}
+			.hero-image {
+				width: 100%;
+			}
+			.btn-group {
+				flex-direction: column;
+				align-items: center;
+			}
+			.btn {
+				width: 100%;
+				max-width: 250px;
+				text-align: center;
+			}
+		}
+	</style>
+</head>
+<body>
+	<!-- Twinkling Stars -->
+	<div class="stars" id="stars"></div>
+	
+	<div class="container">
+		<div class="hero">
+			<h1>Open Life Reborn</h1>
+			<p class="tagline">A free multiplayer civilisation building & survival game</p>
+			<div class="btn-group">
+				<a href="#Rules" class="btn btn-primary">View Rules</a>
+				<a href="#Features" class="btn btn-secondary">Explore Features</a>
+				<a href="#Statistics" class="btn btn-secondary">Statistics</a>
+				<a href="#GetStarted" class="btn btn-secondary">Get Started</a>
+			</div>
+		</div>
+	
+		<!-- Banner image -->
+		<img src="/static/images/logo.png" alt="Open Life Reborn" class="hero-image">
+	
+		<div class="card" id="GetStarted">
+			<p>Open Life Reborn is a free roleplay multiplayer civilisation building and survival game based on <a href="https://onehouronelife.com/">One Hour One Life</a> by Jason Rohrer. Play for free with any One Hour One Life client by entering <strong>OpenLifeReborn.com</strong> as a custom server (port 8005).</p>
+			
+			<p>🎮 No client? Use <a href="https://github.com/hetuw/OneLife/releases" onclick="return confirm('No client? Use this free client at your own risk.');">this free client</a> at your own risk.</p>
+			
+			<p>💬 Join our <a href="https://discord.gg/XtVEA5RVjX">Discord Community</a> to connect with fellow players!</p>
+			
+			<p style="color: var(--accent-gold); font-style: italic;">And most importantly — have fun!</p>
+		</div>
+	
+		<div class="card" id="Rules">
+			<h2>By playing, you accept these rules:</h2>
+			<ul class="rules">
+				<li>Have fun and ensure fellow players have fun too!</li>
+				<li>Dive into the world and roleplay in a medieval fantasy setting</li>
+				<li>If born noble, be noble!</li>
+				<li>Want to play an antagonist? Ask moderators in <a href="https://discord.gg/XtVEA5RVjX">Discord</a> first</li>
+				<li>What happens in-game stays in-game — but remember rule #1</li>
+			</ul>
+		</div>
+	
+		<div class="card" id="Features">
+			<h2>Features</h2>
+			<p style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-muted);">Click on a feature to learn more!</p>
+			
+			<div class="feature-accordion">
+				<div class="feature-header" data-feature="map">
+					<span class="feature-icon">🗺️</span>
+					<span class="feature-text">Round Map with rivers, bridges, mountains & oceans</span>
+					<span class="toggle-icon">▼</span>
+				</div>
+				<div class="feature-content" id="content-map">
+					<p>The server uses a limited hand-made map which can be changed using a picture. The map is "round," meaning you can walk over both x,y borders and come out on the other side.</p>
+					<p>Rivers, oceans, and mountains block movement — but you can build bridges over rivers and oceans with boards or stone. Unlike the original game, there are no locked iron or wells, and all natural stuff can re-spawn. Everything can decay and be reborn! Ancient stuff decays very, very slowly.</p>
+				</div>
+				
+				<div class="feature-header" data-feature="combat">
+					<span class="feature-icon">⚔️</span>
+					<span class="feature-text">New combat system with weapon damage / HP</span>
+					<span class="toggle-icon">▼</span>
+				</div>
+				<div class="feature-content" id="content-combat">
+					<p>Combat is allowed but may give some prestige penalty (especially for attacking children or relatives). Combat is more skill-based — the closer you hit to where the player is, the more damage you do.</p>
+					<p>Combat is affected by many parameters: your health (max food pipes), biome, clothing, allies nearby, and many more factors! Different weapons have different damage and cooldown times. Males do 1.2x damage. Clothing insulation reduces damage up to 66%, and floor insulation can add up to 75% total protection with full cloths.</p>
+				</div>
+				
+				<div class="feature-header" data-feature="seasons">
+					<span class="feature-icon">🌡️</span>
+					<span class="feature-text">Seasons affecting temperature & plant growth</span>
+					<span class="toggle-icon">▼</span>
+				</div>
+				<div class="feature-content" id="content-seasons">
+					<p>There are four seasons: winter, summer, spring, and autumn — each with normal, hard, and super hard variants (longer, colder, or hotter than normal). Seasons influence temperature and plant growth.</p>
+					<p>In winter, the snow biome spreads and melts in spring or summer. Winter decays wild plants, while spring lets them grow back. Plants only grow back if some were left behind, hidden in winter, or if you plant new ones. Almost all objects can respawn, but this can take a lot of time.</p>
+				</div>
+				
+				<div class="feature-header" data-feature="temperature">
+					<span class="feature-icon">❄️</span>
+					<span class="feature-text">Cold and heat can kill — be prepared!</span>
+					<span class="toggle-icon">▼</span>
+				</div>
+				<div class="feature-content" id="content-temperature">
+					<p>Bad temperature reduces your speed (you get a heat/cold animation warning). Very bad temperature causes damage, especially at far temperature edges. Different skin colors love different temperatures: Ginger (+0.1), Brown (+0.05), White (-0.05), Black (-0.1).</p>
+					<p>Clothing can protect against cold and heat — the better the insulation, the less protection against heat. With full insulation, you can stay outside 20x longer than time spent warming up/cooling down. Rivers affect temperature twice as much and ignore clothing protection!</p>
+				</div>
+				
+				<div class="feature-header" data-feature="currency">
+					<span class="feature-icon">💰</span>
+					<span class="feature-text">New in-game currency system</span>
+					<span class="toggle-icon">▼</span>
+				</div>
+				<div class="feature-content" id="content-currency">
+					<p>There's a new in-game currency! You earn coins for eating YUM food, with more coins for eating cravings. Give coins to others by saying "I GIVE YOU XX" (using Roman numerals: I=1, V=5, X=10, L=50, C=100, D=500, M=1000 — order doesn't matter).</p>
+					<p>You can hire AIs with coins using "I HIRE YOU" — costs depend on the AI's class and your combat reputation. Leaders get 1/5 of the prestige/coins their followers earn. Coins decay 1% per year if you have 100+ coins — but you gain 1 prestige per decayed coin (up to 5 per year).</p>
+				</div>
+				
+				<div class="feature-header" data-feature="ai">
+					<span class="feature-icon">🤖</span>
+					<span class="feature-text">AI NPCs that can be hired</span>
+					<span class="toggle-icon">▼</span>
+				</div>
+				<div class="feature-content" id="content-ai">
+					<p>The AI NPCs are quite capable! They can hunt, nurse, feed, bake, farm, make fire, do pottery, smithing, and craft clothing. The AI follows YUM and cravings and will feed you what you want.</p>
+					<p>They can defend against attackers and will attack exiled players. You can hire them with in-game coins! Currently, AI doesn't use containers — use Baskets and Tables to save stuff you don't want AI to touch. AI also won't open doors, so you can use doors to lock them out. Assign jobs using commands like "FARMER!" or "SMITH!"</p>
+				</div>
+				
+				<div class="feature-header" data-feature="reconnect">
+					<span class="feature-icon">🔄</span>
+					<span class="feature-text">AI takes over until you reconnect</span>
+					<span class="toggle-icon">▼</span>
+				</div>
+				<div class="feature-content" id="content-reconnect">
+					<p>A normal server restart/update takes about 30 seconds. All player data is saved, so you can reconnect after a restart and continue playing!</p>
+					<p>While you're disconnected, the AI takes over your player and continues living your life — making food, defending, crafting, and more. This means you never lose progress when you need to step away. The AI isn't perfect, but it'll keep you alive and productive until you return!</p>
+				</div>
+				
+				<div class="feature-header" data-feature="prestige">
+					<span class="feature-icon">🏆</span>
+					<span class="feature-text">Prestige score based on Yummy food & family care</span>
+					<span class="toggle-icon">▼</span>
+				</div>
+				<div class="feature-content" id="content-prestige">
+					<p>Your YUM-Multiplier is now your score/prestige/health! Your prestige influences aging (0.5x to 2x), speed (1.2x to 0.5x), and max food pipes. On death, your new score is 9/10 of your old score plus 1/10 of this life's score.</p>
+					<p>You have separate scores for male and female lives — your total score is half of each. Eating YUM or feeding family YUM increases prestige. You also gain prestige if your followers, children, grandchildren, siblings, or mother get prestige. Clothing influences how much prestige you receive from followers!</p>
+				</div>
+			</div>
+			
+			<!-- Feature Tooltip (Hover) -->
+			<div class="feature-tooltip" id="featureTooltip">
+				<div class="feature-tooltip-title" id="tooltipTitle"></div>
+				<div class="feature-tooltip-text" id="tooltipText"></div>
+			</div>
+		</div>
+	
+		<div class="card">
+			<p style="font-size: 0.9rem; color: var(--text-muted);">⚠️ Open Life Reborn is a community-driven non-commercial project. Use all links at your own risk. Contact: martin_auer(at)gmx.net</p>
+		</div>
+	
+		<div class="card" id="Statistics">
+			<h2>Statistics</h2>
+			<div class="stats-grid">
+				${livingPlayerText}
+				${accountsText}
+				${foodText}
+				${lineageText}
+			</div>
+		</div>
+	
+		<div class="footer">
+			<div class="footer-logo">⚔️ Open Life Reborn ⚔️</div>
+			<p>© 2024 — A community-driven project</p>
+		</div>
+	</div>
+
+	<script>
+		// Generate random twinkling stars
+		(function() {
+			const starsContainer = document.getElementById('stars');
+			const starCount = 80;
+			const colors = ['', 'blue', 'purple'];
+			
+			for (let i = 0; i < starCount; i++) {
+				const star = document.createElement('div');
+				const sizeClass = ['small', 'medium', 'large'][Math.floor(Math.random() * 3)];
+				const colorClass = colors[Math.floor(Math.random() * colors.length)];
+				star.className = 'star ' + sizeClass + (colorClass ? ' ' + colorClass : '');
+				star.style.left = Math.random() * 100 + '%';
+				star.style.top = Math.random() * 100 + '%';
+				star.style.setProperty('--duration', (2 + Math.random() * 4) + 's');
+				star.style.setProperty('--delay', Math.random() * 5 + 's');
+				starsContainer.appendChild(star);
+			}
+		})();
+		
+		// Accordion functionality for features
+		document.querySelectorAll('.feature-header').forEach(header => {
+			header.addEventListener('click', function() {
+				const featureKey = this.getAttribute('data-feature');
+				const content = document.getElementById('content-' + featureKey);
+				
+				// Toggle current
+				this.classList.toggle('active');
+				content.classList.toggle('visible');
+				
+				// Close others (optional - comment out if you want multiple open)
+				document.querySelectorAll('.feature-header').forEach(h => {
+					if (h !== this) {
+						h.classList.remove('active');
+						document.getElementById('content-' + h.getAttribute('data-feature')).classList.remove('visible');
+					}
+				});
+			});
+		});
+		
+		// Tooltip for hover (short descriptions)
+		const featureShortDescriptions = {
+			map: "Hand-made round map with rivers, oceans, mountains, and bridge-building. Everything respawns!",
+			combat: "Skill-based combat with weapons, HP, damage bonuses, and prestige penalties for attacking family.",
+			seasons: "Four seasons with hard variants affect temperature, plant growth, and animal behavior.",
+			temperature: "Cold and heat affect speed, health, and can kill. Skin color affects preferred temperature.",
+			currency: "Earn coins from YUM food, hire AI followers, give coins to players using Roman numerals.",
+			ai: "Smart AI that farms, crafts, defends, and can be hired. Assign jobs with chat commands.",
+			reconnect: "AI controls your character while offline. Data saves on restart. Never lose progress!",
+			prestige: "Score based on YUM food and family care. Affects aging, speed, and max food pipes."
+		};
+		
+		const tooltip = document.getElementById('featureTooltip');
+		const tooltipText = document.getElementById('tooltipText');
+		
+		document.querySelectorAll('.feature-header').forEach(header => {
+			header.addEventListener('mouseenter', function(e) {
+				const featureKey = this.getAttribute('data-feature');
+				tooltipText.textContent = featureShortDescriptions[featureKey];
+				tooltip.classList.add('visible');
+				
+				const rect = this.getBoundingClientRect();
+				tooltip.style.left = rect.left + 'px';
+				tooltip.style.top = (rect.bottom + 10) + 'px';
+			});
+			
+			header.addEventListener('mousemove', function(e) {
+				const rect = this.getBoundingClientRect();
+				tooltip.style.left = rect.left + 'px';
+				tooltip.style.top = (rect.bottom + 10) + 'px';
+			});
+			
+			header.addEventListener('mouseleave', function() {
+				tooltip.classList.remove('visible');
+			});
+		});
+	</script>
+</body>
+</html>
