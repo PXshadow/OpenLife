@@ -329,8 +329,12 @@ class WebServer {
 		text = text.replace("${livingPlayerText} ${accountsText} ${foodText} ${lineageText}",
 			'${livingPlayerText}\n${accountsText}\n${foodText}\n${lineageText}\n</body>');
 
-		var message = 'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Encoding: UTF-8\r\nContent-Length: ${text.length}\r\n\r\n${text}';
+		// var message = 'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Encoding: UTF-8\r\nContent-Length: ${text.length}\r\n\r\n${text}';
+
 		// var message = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Encoding: UTF-8\nContent-Length: ${text.length}\nDate: Wed, 28 Jun 2023 22:36:00 GMT+02:00\n\n<!DOCTYPE html>\n<html>\n<head>\n    <title>Example</title>\n</head>\n<body>\n    <h1>Hello World!</h1>\n</body>\n</html>";
+
+		var message = 'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Length: ${text.length}\r\nContent-Security-Policy: default-src \'self\' \'unsafe-inline\' \'unsafe-eval\'\r\nX-Content-Type-Options: nosniff\r\n\r\n${text}';
+		// var message = 'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Security-Policy: default-src \'self\' \'unsafe-inline\' \'unsafe-eval\'; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; font-src \'self\' https://fonts.gstatic.com\r\nX-Content-Type-Options: nosniff\r\n\r\n${text}';
 
 		return message;
 	}

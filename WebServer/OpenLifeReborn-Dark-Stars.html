@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Open Life Reborn</title>
+	<title>Open Life Reborn2</title>
 	<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 	<style>
 		:root {
@@ -630,7 +630,7 @@
 	
 	<div class="container">
 		<div class="hero">
-			<h1>Open Life Reborn stars2</h1>
+			<h1>Open Life Reborn</h1>
 			<p class="tagline">A free multiplayer civilisation building & survival game</p>
 			<div class="btn-group">
 				<a href="#Rules" class="btn btn-primary">View Rules</a>
@@ -775,81 +775,112 @@
 	</div>
 
 	<script>
-		// Generate random twinkling stars
-		(function() {
-			const starsContainer = document.getElementById('stars');
-			const starCount = 80;
-			const colors = ['', 'blue', 'purple'];
-			
-			for (let i = 0; i < starCount; i++) {
-				const star = document.createElement('div');
-				const sizeClass = ['small', 'medium', 'large'][Math.floor(Math.random() * 3)];
-				const colorClass = colors[Math.floor(Math.random() * colors.length)];
-				star.className = 'star ' + sizeClass + (colorClass ? ' ' + colorClass : '');
-				star.style.left = Math.random() * 100 + '%';
-				star.style.top = Math.random() * 100 + '%';
-				star.style.setProperty('--duration', (2 + Math.random() * 4) + 's');
-				star.style.setProperty('--delay', Math.random() * 5 + 's');
-				starsContainer.appendChild(star);
-			}
-		})();
-		
-		// Accordion functionality for features
-		document.querySelectorAll('.feature-header').forEach(header => {
-			header.addEventListener('click', function() {
-				const featureKey = this.getAttribute('data-feature');
-				const content = document.getElementById('content-' + featureKey);
-				
-				// Toggle current
-				this.classList.toggle('active');
-				content.classList.toggle('visible');
-				
-				// Close others (optional - comment out if you want multiple open)
-				document.querySelectorAll('.feature-header').forEach(h => {
-					if (h !== this) {
-						h.classList.remove('active');
-						document.getElementById('content-' + h.getAttribute('data-feature')).classList.remove('visible');
-					}
-				});
-			});
-		});
-		
-		// Tooltip for hover (short descriptions)
-		const featureShortDescriptions = {
-			map: "Hand-made round map with rivers, oceans, mountains, and bridge-building. Everything respawns!",
-			combat: "Skill-based combat with weapons, HP, damage bonuses, and prestige penalties for attacking family.",
-			seasons: "Four seasons with hard variants affect temperature, plant growth, and animal behavior.",
-			temperature: "Cold and heat affect speed, health, and can kill. Skin color affects preferred temperature.",
-			currency: "Earn coins from YUM food, hire AI followers, give coins to players using Roman numerals.",
-			ai: "Smart AI that farms, crafts, defends, and can be hired. Assign jobs with chat commands.",
-			reconnect: "AI controls your character while offline. Data saves on restart. Never lose progress!",
-			prestige: "Score based on YUM food and family care. Affects aging, speed, and max food pipes."
-		};
-		
-		const tooltip = document.getElementById('featureTooltip');
-		const tooltipText = document.getElementById('tooltipText');
-		
-		document.querySelectorAll('.feature-header').forEach(header => {
-			header.addEventListener('mouseenter', function(e) {
-				const featureKey = this.getAttribute('data-feature');
-				tooltipText.textContent = featureShortDescriptions[featureKey];
-				tooltip.classList.add('visible');
-				
-				const rect = this.getBoundingClientRect();
-				tooltip.style.left = rect.left + 'px';
-				tooltip.style.top = (rect.bottom + 10) + 'px';
-			});
-			
-			header.addEventListener('mousemove', function(e) {
-				const rect = this.getBoundingClientRect();
-				tooltip.style.left = rect.left + 'px';
-				tooltip.style.top = (rect.bottom + 10) + 'px';
-			});
-			
-			header.addEventListener('mouseleave', function() {
-				tooltip.classList.remove('visible');
-			});
-		});
-	</script>
+  document.addEventListener('DOMContentLoaded', () => {
+
+    // ── Stars ──────────────────────────────────────────────────────────────
+    const starsContainer = document.getElementById('stars');
+    if (starsContainer) {
+      const starCount = 80;
+      const sizes  = ['small', 'medium', 'large'];
+      const colors = ['', 'blue', 'purple'];
+
+      for (let i = 0; i < starCount; i++) {
+        const star       = document.createElement('div');
+        const sizeClass  = sizes[Math.floor(Math.random() * sizes.length)];
+        const colorClass = colors[Math.floor(Math.random() * colors.length)];
+
+        star.className = 'star ' + sizeClass + (colorClass ? ' ' + colorClass : '');
+        star.style.left = (Math.random() * 100) + '%';
+        star.style.top  = (Math.random() * 100) + '%';
+        star.style.setProperty('--duration', (2 + Math.random() * 4) + 's');
+        star.style.setProperty('--delay',    (Math.random() * 5)     + 's');
+
+        starsContainer.appendChild(star);
+      }
+    } else {
+      console.warn('Stars container (#stars) not found in DOM.');
+    }
+
+    // ── Accordion ──────────────────────────────────────────────────────────
+    const featureHeaders = document.querySelectorAll('.feature-header');
+
+    featureHeaders.forEach(header => {
+      header.addEventListener('click', function () {
+        const featureKey = this.getAttribute('data-feature');
+        const content    = featureKey && document.getElementById('content-' + featureKey);
+
+        if (!content) {
+          console.warn('No content panel found for feature:', featureKey);
+          return;
+        }
+
+        const isActive = this.classList.contains('active');
+
+        // Close all
+        featureHeaders.forEach(h => {
+          h.classList.remove('active');
+          const key  = h.getAttribute('data-feature');
+          const pane = key && document.getElementById('content-' + key);
+          if (pane) pane.classList.remove('visible');
+        });
+
+        // Re-open if it wasn't already open (toggle behaviour)
+        if (!isActive) {
+          this.classList.add('active');
+          content.classList.add('visible');
+        }
+      });
+    });
+
+    // ── Tooltip ────────────────────────────────────────────────────────────
+    const featureShortDescriptions = {
+      map:        "Hand-made round map with rivers, oceans, mountains, and bridge-building. Everything respawns!",
+      combat:     "Skill-based combat with weapons, HP, damage bonuses, and prestige penalties for attacking family.",
+      seasons:    "Four seasons with hard variants affect temperature, plant growth, and animal behavior.",
+      temperature:"Cold and heat affect speed, health, and can kill. Skin color affects preferred temperature.",
+      currency:   "Earn coins from YUM food, hire AI followers, give coins to players using Roman numerals.",
+      ai:         "Smart AI that farms, crafts, defends, and can be hired. Assign jobs with chat commands.",
+      reconnect:  "AI controls your character while offline. Data saves on restart. Never lose progress!",
+      prestige:   "Score based on YUM food and family care. Affects aging, speed, and max food pipes."
+    };
+
+    const tooltip     = document.getElementById('featureTooltip');
+    const tooltipText = document.getElementById('tooltipText');
+
+    if (tooltip && tooltipText) {
+      featureHeaders.forEach(header => {
+
+        header.addEventListener('mouseenter', function () {
+          const featureKey = this.getAttribute('data-feature');
+          const desc = featureShortDescriptions[featureKey];
+          if (!desc) return;
+
+          tooltipText.textContent = desc;
+          tooltip.classList.add('visible');
+          positionTooltip(this);
+        });
+
+        header.addEventListener('mousemove', function () {
+          positionTooltip(this);
+        });
+
+        header.addEventListener('mouseleave', function () {
+          tooltip.classList.remove('visible');
+        });
+      });
+    } else {
+      console.warn('Tooltip elements (#featureTooltip / #tooltipText) not found in DOM.');
+    }
+
+    function positionTooltip(el) {
+      const rect = el.getBoundingClientRect();
+      // Keep tooltip inside the viewport horizontally
+      const left = Math.min(rect.left, window.innerWidth - tooltip.offsetWidth - 10);
+      tooltip.style.left = left + 'px';
+      tooltip.style.top  = (rect.bottom + window.scrollY + 10) + 'px';
+    }
+
+  });
+</script>
 </body>
 </html>
