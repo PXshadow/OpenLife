@@ -99,9 +99,13 @@ class WebServer {
 
 			trace('$method $path');
 
-			var response = routeRequest(method, path);
-			socket.output.writeString(response);
-			socket.output.flush();
+			// routeRequest returns a response string for named routes, or null
+			// if it already wrote directly to the socket (e.g. static file serving).
+			var response = routeRequest(method, path, socket);
+			if (response != null) {
+				socket.output.writeString(response);
+				socket.output.flush();
+			}
 		} catch (e:Dynamic) {
 			trace('WebServer connection error: $e');
 			try {
@@ -115,7 +119,9 @@ class WebServer {
 		} catch (_:Dynamic) {}
 	}
 
-	private function routeRequest(method:String, path:String):String {
+	// Returns a response string to write, or null if the response was already
+	// written directly to the socket (used for binary static file serving).
+	private function routeRequest(method:String, path:String, socket:Socket):Null<String> {
 		if (method != 'GET') {
 			return buildResponse(405, "Method Not Allowed", "text/plain", "Method Not Allowed");
 		}
@@ -147,8 +153,69 @@ class WebServer {
 				buildResponse(200, "OK", "text/html; charset=UTF-8", accountsText);
 
 			default:
-				buildResponse(404, "Not Found", "text/plain", "Not Found");
+				// Fall through to static file serving from the public directory
+				serveStaticFile(socket, path);
+				null; // response already written directly to socket
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Static file serving
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Serves a file from ServerSettings.WebServerPublicDirectory.
+	 * Writes the response (headers + body bytes) directly to the socket so that
+	 * binary files like images are never passed through a String.
+	 * Path traversal attempts (containing "..") are rejected with 403.
+	 */
+	private function serveStaticFile(socket:Socket, urlPath:String) {
+		// Reject path traversal
+		if (urlPath.indexOf('..') >= 0) {
+			socket.output.writeString(buildResponse(403, "Forbidden", "text/plain", "Forbidden"));
+			socket.output.flush();
+			return;
+		}
+
+		var publicDir = './${ServerSettings.WebServerPublicDirectory}';
+		var filePath = publicDir + urlPath;
+
+		if (!sys.FileSystem.exists(filePath) || sys.FileSystem.isDirectory(filePath)) {
+			socket.output.writeString(buildResponse(404, "Not Found", "text/plain", "Not Found"));
+			socket.output.flush();
+			return;
+		}
+
+		var bytes = sys.io.File.getBytes(filePath);
+		var mime = getMimeType(filePath);
+
+		// Write headers as a string, then the raw bytes — safe for both text and binary
+		var headers = 'HTTP/1.1 200 OK\r\n' + 'Content-Type: $mime\r\n' + 'Content-Length: ${bytes.length}\r\n' + 'X-Content-Type-Options: nosniff\r\n'
+			+ 'Connection: close\r\n' + '\r\n';
+
+		socket.output.writeString(headers);
+		socket.output.write(bytes);
+		socket.output.flush();
+	}
+
+	/** Maps common file extensions to MIME types. */
+	private function getMimeType(filePath:String):String {
+		var ext = filePath.toLowerCase();
+		if (ext.endsWith('.html') || ext.endsWith('.htm')) return 'text/html; charset=UTF-8';
+		if (ext.endsWith('.css')) return 'text/css; charset=UTF-8';
+		if (ext.endsWith('.js')) return 'application/javascript; charset=UTF-8';
+		if (ext.endsWith('.json')) return 'application/json';
+		if (ext.endsWith('.png')) return 'image/png';
+		if (ext.endsWith('.jpg') || ext.endsWith('.jpeg')) return 'image/jpeg';
+		if (ext.endsWith('.gif')) return 'image/gif';
+		if (ext.endsWith('.webp')) return 'image/webp';
+		if (ext.endsWith('.svg')) return 'image/svg+xml';
+		if (ext.endsWith('.ico')) return 'image/x-icon';
+		if (ext.endsWith('.woff')) return 'font/woff';
+		if (ext.endsWith('.woff2')) return 'font/woff2';
+		if (ext.endsWith('.ttf')) return 'font/ttf';
+		if (ext.endsWith('.txt')) return 'text/plain; charset=UTF-8';
+		return 'application/octet-stream'; // safe fallback for unknown types
 	}
 
 	/**

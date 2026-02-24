@@ -155,6 +155,7 @@ class ServerSettings {
 
 	// WebServer
 	public static var WebServerDirectory = "WebServer";
+	public static var WebServerPublicDirectory = "WebServer/public";
 	public static var WebServerMainHtml = "OpenLifeReborn-Dark-Stars.html";
 
 	// worldMap
