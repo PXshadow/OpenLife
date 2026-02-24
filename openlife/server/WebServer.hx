@@ -2,13 +2,10 @@ package openlife.server;
 
 import openlife.macros.Macro;
 import openlife.data.object.ObjectData;
-import haxe.Resource;
 import openlife.settings.ServerSettings;
 import sys.net.Host;
-import sys.thread.Thread;
 import sys.net.Socket;
-import sys.io.File;
-import sys.io.FileInput;
+import sys.thread.Thread;
 
 using StringTools;
 
@@ -38,22 +35,15 @@ class WebServer {
 		trace('Starting WebServer...');
 
 		var dir = './${ServerSettings.WebServerDirectory}/';
-		// var path = dir + "OpenLifeReborn-Dark-Stars.html";
 		var path = dir + ServerSettings.WebServerMainHtml;
-		var saveExists = sys.FileSystem.exists(path);
 
-		if (saveExists == false) {
+		if (!sys.FileSystem.exists(path)) {
 			trace('Could not find welcome text!');
 			return;
 		}
 
-		var content:String = sys.io.File.getContent(path);
-		// var reader = File.read(path, false);
-		welcomeText = content;
-		// trace(content);
+		welcomeText = sys.io.File.getContent(path);
 
-		// run run run Thread run run run
-		// var thread = new ThreadServer(this, 8005);
 		Thread.create(function() {
 			this.run();
 		});
@@ -62,8 +52,6 @@ class WebServer {
 	public function run() {
 		var port = 80;
 		var serverSocket = new Socket();
-
-		// serverSocket.bind(new Host("127.0.0.1"), port);
 		serverSocket.bind(new Host("0.0.0.0"), port);
 		trace('listening on port: $port');
 		serverSocket.listen(listenCount);
@@ -75,10 +63,122 @@ class WebServer {
 
 	private function acceptConnection(serverSocket:Socket) {
 		var socket = serverSocket.accept();
-		socket.setBlocking(false);
-		socket.setFastSend(true);
-		handleRequest(socket);
+		// Handle each connection on its own thread so slow clients
+		// don't block the accept loop.
+		Thread.create(function() {
+			Macro.exception(handleConnection(socket));
+		});
 	}
+
+	// -------------------------------------------------------------------------
+	// HTTP request parsing and routing
+	// -------------------------------------------------------------------------
+
+	private function handleConnection(socket:Socket) {
+		try {
+			socket.setFastSend(true);
+
+			// Read until the blank line that ends the HTTP request headers.
+			var buf = new StringBuf();
+			var input = socket.input;
+			while (true) {
+				buf.addChar(input.readByte());
+				var s = buf.toString();
+				if (s.endsWith('\r\n\r\n') || s.endsWith('\n\n')) break;
+			}
+
+			// First line is: METHOD /path HTTP/1.x
+			var firstLine = buf.toString().split('\n')[0].trim();
+			var parts = firstLine.split(' ');
+			var method = parts.length > 0 ? parts[0].toUpperCase() : 'GET';
+			var path = parts.length > 1 ? parts[1] : '/';
+
+			// Strip query string
+			var qIdx = path.indexOf('?');
+			if (qIdx >= 0) path = path.substr(0, qIdx);
+
+			trace('$method $path');
+
+			var response = routeRequest(method, path);
+			socket.output.writeString(response);
+			socket.output.flush();
+		} catch (e:Dynamic) {
+			trace('WebServer connection error: $e');
+			try {
+				socket.output.writeString(buildResponse(500, "Internal Server Error", "text/plain", "Internal Server Error"));
+				socket.output.flush();
+			} catch (_:Dynamic) {}
+		}
+
+		try {
+			socket.close();
+		} catch (_:Dynamic) {}
+	}
+
+	private function routeRequest(method:String, path:String):String {
+		if (method != 'GET') {
+			return buildResponse(405, "Method Not Allowed", "text/plain", "Method Not Allowed");
+		}
+
+		return switch path {
+			case '/' | '/index.html':
+				Macro.exception(createCurrentlyPlayingStatistics());
+				Macro.exception(generateLineageStatistics());
+				Macro.exception(generateFoodStatistics());
+				Macro.exception(generateAccountStatistics());
+				var html = buildPageHtml();
+				fullLandingPageText = html;
+				buildResponse(200, "OK", "text/html; charset=UTF-8", html);
+
+			case '/stats/players':
+				Macro.exception(createCurrentlyPlayingStatistics());
+				buildResponse(200, "OK", "text/html; charset=UTF-8", livingPlayerText != null ? livingPlayerText : "Loading...");
+
+			case '/stats/lineage':
+				Macro.exception(generateLineageStatistics());
+				buildResponse(200, "OK", "text/html; charset=UTF-8", lineageText);
+
+			case '/stats/food':
+				Macro.exception(generateFoodStatistics());
+				buildResponse(200, "OK", "text/html; charset=UTF-8", foodText);
+
+			case '/stats/accounts':
+				Macro.exception(generateAccountStatistics());
+				buildResponse(200, "OK", "text/html; charset=UTF-8", accountsText);
+
+			default:
+				buildResponse(404, "Not Found", "text/plain", "Not Found");
+		}
+	}
+
+	/**
+	 * Builds a complete HTTP/1.1 response string with correct headers.
+	 * Content-Length is based on the UTF-8 byte length of the body.
+	 */
+	private function buildResponse(status:Int, reason:String, contentType:String, body:String):String {
+		var byteLen = haxe.io.Bytes.ofString(body).length;
+		return 'HTTP/1.1 $status $reason\r\n'
+			+ 'Content-Type: $contentType\r\n'
+			+ 'Content-Length: $byteLen\r\n'
+			+ 'Content-Security-Policy: default-src \'self\' \'unsafe-inline\' \'unsafe-eval\'\r\n'
+			+ 'X-Content-Type-Options: nosniff\r\n'
+			+ 'Connection: close\r\n'
+			+ '\r\n'
+			+ body;
+	}
+
+	private function buildPageHtml():String {
+		if (welcomeText == null) return "<html><body>Server not ready.</body></html>";
+
+		var text = welcomeText;
+		text = text.replace("${livingPlayerText} ${accountsText} ${foodText} ${lineageText}",
+			'${livingPlayerText}\n${accountsText}\n${foodText}\n${lineageText}\n</body>');
+		return text;
+	}
+
+	// -------------------------------------------------------------------------
+	// Statistics helpers (logic unchanged from original)
+	// -------------------------------------------------------------------------
 
 	public function createCurrentlyPlayingStatistics() {
 		var countHuman = 0;
@@ -102,7 +202,6 @@ class WebServer {
 			livingPlayerText += '<td>${lineage.generation}</td>';
 			livingPlayerText += '</tr>\n';
 		}
-		// var count = Connection.CountHumans();
 		GlobalPlayerInstance.ReleaseMutex();
 
 		livingPlayerText += '</table></center>';
@@ -138,11 +237,9 @@ class WebServer {
 
 		for (account in PlayerAccount.AllPlayerAccountsById) {
 			count++;
-
 			if (account.isAi) continue;
 			if (account.isAi == false) countHuman++;
 			if (account.totalScore < 5) continue;
-
 			accountList.push(account);
 		}
 
@@ -167,7 +264,7 @@ class WebServer {
 			newAccountsText += '<td>${Math.floor(account.coinsInherited)}</td>';
 			newAccountsText += '</tr>\n';
 		}
-		newAccountsText += '</table></center';
+		newAccountsText += '</table></center>';
 		accountsText = '<br><br><center>Score: count: ${count} human: ${countHuman}\n\n<table>\n<tr><td><b>ID</b></td><td><b>Prestige</b></td><td><b>Female Prestige</b></td><td><b>Male Prestige</b></td><td><b>Coins</b></td></tr>\n';
 		accountsText += newAccountsText;
 	}
@@ -177,7 +274,7 @@ class WebServer {
 		var index = WorldMap.RandomIntFromSeed(length, id * 100 + id + 42);
 		var name = NamingHelper.MaleNamesArray[index];
 
-		var index = (id * 100 + id + 9973) % NamingHelper.FemaleNamesArray.length;
+		index = (id * 100 + id + 9973) % NamingHelper.FemaleNamesArray.length;
 		name += ' ' + NamingHelper.FemaleNamesArray[index];
 		return name;
 	}
@@ -191,14 +288,9 @@ class WebServer {
 
 		var reasonKilled = Lineage.reasonKilled;
 		var ages = Lineage.ages;
-		var generations = Lineage.generations;
 
 		var reasonKilledList = [for (a in reasonKilled.keys()) a];
-		reasonKilledList.sort(function(a, b) {
-			if (a < b) return -1;
-			else if (a > b) return 1;
-			else return 0;
-		});
+		reasonKilledList.sort(function(a, b) return (a < b) ? -1 : (a > b) ? 1 : 0);
 
 		lineageText = '<br><br>\n<center><table>\n<tr><td><b>Reason killed</b></td><td><b>Total</b></td><td><b>Last Day</b></td><td><b>Last Hour</b></td></tr>\n';
 
@@ -219,22 +311,14 @@ class WebServer {
 		}
 
 		var foodFactorPercent = Math.ceil(WorldMap.world.getStarvingFoodFactor() * 100) - 100;
-
 		lineageText += '</table>Extra food because of Starving: ${foodFactorPercent}%</center>\n';
 		lineageText += '<br><br>\n<center><table>\n<tr><td><b>Age</b></td><td><b>Total</b></td><td><b>Last Day</b></td><td><b>Last Hour</b></td></tr>\n';
 
 		var ageList = [for (a in ages.keys()) a];
-		ageList.sort(function(a, b) {
-			if (a < b) return -1;
-			else if (a > b) return 1;
-			else return 0;
-		});
+		ageList.sort(function(a, b) return (a < b) ? -1 : (a > b) ? 1 : 0);
 
 		for (age in ageList) {
-			var ageText;
-			if (age < 0) ageText = 'N/A';
-			else ageText = '${age}';
-
+			var ageText = (age < 0) ? 'N/A' : '${age}';
 			lineageText += '<tr>';
 			lineageText += '<td>${ageText}</td>';
 			lineageText += '<td>${Lineage.ages[age]}</td>';
@@ -244,43 +328,14 @@ class WebServer {
 		}
 
 		lineageText += '</table></center>\n';
-		/*lineageText += '<br><br>\n<center><table>\n<tr><td><b>Generation</b></td><td><b>Count<b></td></tr>\n';
-
-			var generationsList = [for (g in generations.keys()) g];
-
-			generationsList.sort(function(a, b) {
-				if (a < b) return -1; else if (a > b) return 1; else
-					return 0;
-			});
-
-			for (generation in generationsList) {
-				lineageText += '<tr>';
-				lineageText += '<td>Generation: ${generation}</td>';
-				lineageText += '<td>${generations[generation]}</td>';
-				lineageText += '</tr>\n';
-			}
-
-			lineageText += '</table></center>\n';
-		 */
 	}
 
 	public function generateFoodStatistics() {
-		// GlobalPlayerInstance.AcquireMutex();
-		// var done = Lineage.GenerateLineageStatistics();
-		// GlobalPlayerInstance.ReleaseMutex();
-
 		var eatenFoodPercentage = WorldMap.world.eatenFoodPercentage;
-		// eatenFoodPercentage[31] = 1;
 
-		// TODO sort for percentage
 		var eatenFoodPercenList = [for (a in eatenFoodPercentage.keys()) a];
-		eatenFoodPercenList.sort(function(a, b) {
-			if (a < b) return -1;
-			else if (a > b) return 1;
-			else return 0;
-		});
+		eatenFoodPercenList.sort(function(a, b) return (a < b) ? -1 : (a > b) ? 1 : 0);
 
-		// <td><b>Last Hour</b></td>
 		foodText = '<br><br>\n<center><table>\n<tr><td><b>Food</b></td><td><b>Eaten</b></td><td><b>Related</b></td></tr>\n';
 
 		for (foodId in eatenFoodPercenList) {
@@ -297,45 +352,5 @@ class WebServer {
 		}
 
 		foodText += '</table></center>\n';
-	}
-
-	private function handleRequest(socket:Socket) {
-		trace('received request!');
-
-		fullLandingPageText = createStartText();
-
-		socket.output.writeString(fullLandingPageText); // TODO cache
-		Sys.sleep(0.1);
-		socket.close();
-	}
-
-	private function createStartText() {
-		// var text = 'Welcome to Open Life Reborn!\n';
-
-		// GlobalPlayerInstance.AcquireMutex();
-		// var count = Connection.CountHumans();
-		// GlobalPlayerInstance.ReleaseMutex();
-
-		// TODO do only every 10 sec
-		Macro.exception(createCurrentlyPlayingStatistics());
-		Macro.exception(generateLineageStatistics());
-		Macro.exception(generateFoodStatistics());
-		Macro.exception(generateAccountStatistics());
-
-		// var text = '<!DOCTYPE html>\n<html>\n<head>\n<title>Open Life Reborn</title>\n</head>\n<body>\n<h1>Welcome to Open Life Reborn!</h1><p>Currently Playing: ${count}</p>\n</body>\n</html>';
-		var text = welcomeText;
-		// text = text.replace('</ul>', '</ul>\n<p>Currently Playing: ${count}</p>');
-		// text = text.replace('</body>', '${livingPlayerText}\n${accountsText}\n${foodText}\n${lineageText}\n</body>');
-		text = text.replace("${livingPlayerText} ${accountsText} ${foodText} ${lineageText}",
-			'${livingPlayerText}\n${accountsText}\n${foodText}\n${lineageText}\n</body>');
-
-		// var message = 'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Encoding: UTF-8\r\nContent-Length: ${text.length}\r\n\r\n${text}';
-
-		// var message = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Encoding: UTF-8\nContent-Length: ${text.length}\nDate: Wed, 28 Jun 2023 22:36:00 GMT+02:00\n\n<!DOCTYPE html>\n<html>\n<head>\n    <title>Example</title>\n</head>\n<body>\n    <h1>Hello World!</h1>\n</body>\n</html>";
-
-		var message = 'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Length: ${text.length}\r\nContent-Security-Policy: default-src \'self\' \'unsafe-inline\' \'unsafe-eval\'\r\nX-Content-Type-Options: nosniff\r\n\r\n${text}';
-		// var message = 'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Security-Policy: default-src \'self\' \'unsafe-inline\' \'unsafe-eval\'; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; font-src \'self\' https://fonts.gstatic.com\r\nX-Content-Type-Options: nosniff\r\n\r\n${text}';
-
-		return message;
 	}
 }
