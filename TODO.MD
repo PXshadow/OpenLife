@@ -824,8 +824,59 @@ tmux attach-session -t sessionname
 
 And then press "ctrl" c to stop the server.
 
-
 DONE!
+
+How to setup the web server (needed for https):
+====
+By default statistics and basic page is displayed at port 8080
+If you only want to display the stats in http, use port 80 in the ServerSettings.WebServerPort
+If you want to use it as proper webserver with https setup Caddy:
+
+Prerequisites
+- A VPS/cloud server (Ubuntu or Debian is easiest)
+- root (or sudo) access
+- A domain name (e.g. myhaxeapp.com) with A record pointing to your server’s public IP
+- Your Haxe server already working on http://localhost:8080 (or any port you like)
+- Ports 80 and 443 open in your firewall / security group (AWS, DigitalOcean, etc.)
+
+1. Install required dependencies
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
+
+2. Add Caddy's official GPG key and repository
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+
+3. Install Caddy
+sudo apt update
+sudo apt install caddy
+
+4. Configure the Caddyfile
+
+sudo nano /etc/caddy/Caddyfile 
+Or use WinSCP to edit the file: /etc/caddy/Caddyfile 
+
+Replace everything with this (change myhaxeapp.com to your domain name):
+
+myhaxeapp.com {
+    # Reverse proxy to your Haxe app
+    reverse_proxy localhost:8080
+
+    # Optional but recommended: nice headers & compression
+    encode gzip zstd
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy no-referrer-when-downgrade
+    }
+}
+
+5. Restart Caddy
+sudo systemctl restart caddy
+
+6. Verify it's running
+systemctl status caddy
 
 Old:
 Install haxe (best use Unbuntu) Haxe Version must be 4.2 at least (Debian has old version by default so setting up haxe is tricky on Debian (beginning 2022)):
