@@ -227,7 +227,8 @@ class WebServer {
 		return 'HTTP/1.1 $status $reason\r\n'
 			+ 'Content-Type: $contentType\r\n'
 			+ 'Content-Length: $byteLen\r\n'
-			+ 'Content-Security-Policy: default-src \'self\' \'unsafe-inline\' \'unsafe-eval\'\r\n'
+			+
+			'Content-Security-Policy: default-src \'self\' \'unsafe-inline\' \'unsafe-eval\'; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; font-src \'self\' https://fonts.gstatic.com\r\n'
 			+ 'X-Content-Type-Options: nosniff\r\n'
 			+ 'Connection: close\r\n'
 			+ '\r\n'
