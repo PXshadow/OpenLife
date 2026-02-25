@@ -155,6 +155,7 @@ class ServerSettings {
 
 	// WebServer
 	public static var WebServerDirectory = "WebServer";
+	public static var WebServerPort = 8080; // use 80 if it should direcly serve http 8080 is if you use the server in a webhook like caddy or Nginx
 	public static var WebServerPublicDirectory = "WebServer/public";
 	public static var WebServerMainHtml = "OpenLifeReborn-Dark-Stars.html";
 

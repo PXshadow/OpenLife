@@ -50,7 +50,7 @@ class WebServer {
 	}
 
 	public function run() {
-		var port = 80;
+		var port = ServerSettings.WebServerPort;
 		var serverSocket = new Socket();
 		serverSocket.bind(new Host("0.0.0.0"), port);
 		trace('listening on port: $port');
