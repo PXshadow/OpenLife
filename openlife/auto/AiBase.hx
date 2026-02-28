@@ -2350,7 +2350,7 @@ abstract class AiBase {
 
 		if (doHarvestWheat(1, 4)) return true;
 
-		if (doPlantCorn(2, 5)) return true;
+		if (doPlantCorn(1, 3)) return true;
 
 		// if (doPlantMilkWeed(2, 7)) return true;
 
@@ -2371,8 +2371,8 @@ abstract class AiBase {
 		if (doComposting()) return true;
 		if (doWatering(3)) return true;
 
-		if (doPlantWheat(6, 10)) return true;
-		if (doPlantCorn(6, 10)) return true;
+		if (doPlantWheat(6, 12)) return true;
+		if (doPlantCorn(4, 8)) return true;
 
 		this.profession['BASICFARMER'] = 1;
 
@@ -2382,8 +2382,8 @@ abstract class AiBase {
 		// var deepRow = AiHelper.GetClosestObjectToHome(myPlayer, 213, 20); // Deep Tilled Row
 		// if (deepRow == null) if (shortCraft(850, 1138, 30)) return true; // Stone Hoe + Fertile Soil --> Shallow Tilled Row
 
-		if (doPlantWheat(11, 20)) return true;
-		if (doPlantCorn(11, 20)) return true;
+		if (doPlantWheat(15, 30)) return true;
+		if (doPlantCorn(8, 12)) return true;
 
 		if (myPlayer.age < 20 && makeSharpieFood()) return true;
 
