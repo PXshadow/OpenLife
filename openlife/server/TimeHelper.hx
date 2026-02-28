@@ -1464,8 +1464,8 @@ class TimeHelper {
 	}
 
 	// Horse-Drawn Cart 778 // Horse-Drawn Tire Cart 3158
-	// Shorn Sheep on Rope 3934 // Domestic Sheep on Rope 3926
-	private static var objectIdsToUnstuck = [778, 3158, 3934, 3926, 3926];
+	// Shorn Sheep on Rope 3934 // Domestic Sheep on Rope 3926 // Riding Horse 770
+	private static var objectIdsToUnstuck = [778, 3158, 3934, 3926, 3926, 770];
 
 	private static function ClearHeldObjectOnground(tx:Int, ty:Int, objId:Int) {
 		var world = WorldMap.world;
