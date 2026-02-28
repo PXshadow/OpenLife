@@ -2165,7 +2165,8 @@ abstract class AiBase {
 
 				// Hardened Row 848
 				var countHardRows = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 848, 30);
-				if (countHardRows > 0 && countBowls > 0) {
+				// if (countHardRows > 0 && countBowls > 0) { // Arcurus: If one fills a bowl, it might top
+				if (countHardRows > 0) {
 					// consider putting soil on hard row
 					this.taskState['RowMaker'] = 1;
 					if (shortCraft(1137, 848, 30)) return true;
