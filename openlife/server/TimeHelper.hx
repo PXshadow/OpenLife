@@ -175,7 +175,7 @@ class TimeHelper {
 		var tmpSeasonTemperatureImpact:Float = 0;
 
 		// make eternal ice age
-		// Season = Seasons.Winter;
+		if (ServerSettings.EternalWinter) Season = Seasons.Winter;
 		// SeasonHardness = 2;
 		// passedSeasonTime = 0;
 

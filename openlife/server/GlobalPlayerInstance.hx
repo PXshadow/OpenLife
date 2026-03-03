@@ -6287,6 +6287,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// between 0.1 black to -0.1 Ginger
 		var colorTemperatureShift = getTemperatureShiftForColor(player.getColor());
 
+		TemperatureHandler.BalanceTemperatureArea(this.tx, this.ty, 5, timePassed);
 		var temperatureNew = WorldMap.get_world().getTileTemperature(this.tx, this.ty);
 		temperatureNew -= colorTemperatureShift; // For example for black all feels more cold
 		var temperatureOld = calculateTemperature(player, player.tx, player.ty);

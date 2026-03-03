@@ -87,30 +87,15 @@ class TemperatureHandler {
 	}
 
 	/**
-	 * Main update function - call this each tick from TimeHelper
-	 * Processes a portion of the map per call (like DoWorldMapTimeStuff)
-	 */
-	/*public static function DoTileTemperatureTimeStuff(worldMap:WorldMap, deltaTime:Float) {
-		var timeParts = ServerSettings.WorldTimeParts;
-
-		var partSizeY = Std.int(worldMap.height / timeParts);
-		var startY = (temperatureUpdateStep % timeParts) * partSizeY;
-		var endY = startY + partSizeY;
-
-		temperatureUpdateStep++;
-
-		for (y in startY...endY) {
-			for (x in 0...worldMap.width) {
-				updateTileTemperature(worldMap, x, y, deltaTime);
-			}
-		}
-	}*/
-	/**
 	 * Balances temperature for a single tile with its neighbors (extracted from UpdateTileTemperature)
 	 */
 	private static function balanceTileTemperature(worldMap:WorldMap, x:Int, y:Int, deltaTime:Float, localHeat:Bool = false) {
 		var currentTemp = worldMap.getTileTemperature(x, y);
 		if (currentTemp < 0) return;
+
+		// Balance only temperature around players if tile is a floor
+		var floorInsulation = getFloorInsulation(worldMap, x, y);
+		if (localHeat == false && floorInsulation < 0.1) return;
 
 		var objectInsulation = getObjectInsulation(worldMap, x, y);
 		var moveSpeedDeltaNeighbor = clamp(ServerSettings.TemperatureBalanceRate * deltaTime * (1 - objectInsulation), 0.0, 0.9);
@@ -204,8 +189,11 @@ class TemperatureHandler {
 	 * iterating ring by ring from inside (ring 0) to outside (ring d).
 	 * Uses Chebyshev distance so rings form expanding squares.
 	 */
-	public static function BalanceTemperatureArea(worldMap:WorldMap, x:Int, y:Int, d:Int, deltaTime:Float) {
+	public static function BalanceTemperatureArea(x:Int, y:Int, d:Int, deltaTime:Float) {
+		var worldMap = WorldMap.get_world();
+
 		// Ring 0: the center tile itself
+
 		balanceTileTemperature(worldMap, x, y, deltaTime);
 
 		// Rings 1..d: walk the perimeter of each Chebyshev ring
@@ -238,19 +226,4 @@ class TemperatureHandler {
 		if (value > max) return max;
 		return value;
 	}
-
-	/**
-	 * Get temperature at player position (for player temperature calculation)
-	 * This replaces the old biome-based calculation
-	 */
-	/*public static function getPlayerTileTemperature(worldMap:WorldMap, x:Int, y:Int):Float {
-		var idx = worldMap.index(x, y);
-
-		// Initialize if needed
-		if (worldMap.tileTemperatures[idx] < 0) {
-			return initializeTileTemperature(worldMap, x, y);
-		}
-
-		return worldMap.tileTemperatures[idx];
-	}*/
 }
