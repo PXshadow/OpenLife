@@ -4,26 +4,26 @@
 		{
 			"type": "haxe",
 			"args": "active configuration",
-			"problemMatcher": [
-				"$haxe-absolute",
-				"$haxe",
-				"$haxe-error",
-				"$haxe-trace"
-			],
+			"problemMatcher": ["$haxe-absolute","$haxe","$haxe-error","$haxe-trace"],
 			"group": "build",
 			"label": "haxe: active configuration"
 		},
 		{
 			"type": "hxml",
 			"file": "app.hxml",
-			"problemMatcher": [
-				"$haxe-absolute",
-				"$haxe",
-				"$haxe-error",
-				"$haxe-trace"
-			],
+			"problemMatcher": ["$haxe-absolute","$haxe","$haxe-error","$haxe-trace"],
 			"group": "build",
 			"label": "haxe: app.hxml"
+		},
+		{
+			"label": "haxe: build fast",
+			"type": "shell",
+			"command": "haxe --connect 6001 app.hxml",
+			"problemMatcher": ["$haxe-absolute","$haxe","$haxe-error","$haxe-trace"],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
 		}
 	]
 }
