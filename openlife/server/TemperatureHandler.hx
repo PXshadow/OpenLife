@@ -106,11 +106,45 @@ class TemperatureHandler {
 		}
 	}*/
 	/**
+	 * Balances temperature for a single tile with its neighbors (extracted from UpdateTileTemperature)
+	 */
+	private static function balanceTileTemperature(worldMap:WorldMap, x:Int, y:Int, deltaTime:Float, localHeat:Bool = false) {
+		var currentTemp = worldMap.getTileTemperature(x, y);
+		if (currentTemp < 0) return;
+
+		var objectInsulation = getObjectInsulation(worldMap, x, y);
+		var moveSpeedDeltaNeighbor = clamp(ServerSettings.TemperatureBalanceRate * deltaTime * (1 - objectInsulation), 0.0, 0.9);
+
+		var localHeat = localHeat ? getLocalHeat(worldMap, x, y) : 0;
+		if (currentTemp > 0.8) localHeat *= 0.5;
+		localHeat *= deltaTime;
+
+		var neighborTempDiff = 0.0;
+		var neighborCount = 0;
+
+		for (dy in -1...2) {
+			for (dx in -1...2) {
+				if (dx == 0 && dy == 0) continue;
+				var neighborTemp = worldMap.getTileTemperature(x + dx, y + dy);
+				if (neighborTemp < 0) continue;
+
+				neighborCount++;
+				var tempDiffN = (currentTemp - neighborTemp) * moveSpeedDeltaNeighbor * 0.1;
+				neighborTempDiff -= tempDiffN;
+
+				worldMap.setTileTemperature(x + dx, y + dy, neighborTemp + localHeat + tempDiffN);
+			}
+		}
+
+		var newTemp = currentTemp + neighborTempDiff + localHeat * 1.2;
+		newTemp = clamp(newTemp, 0.0, 5.0);
+		worldMap.setTileTemperature(x, y, newTemp);
+	}
+
+	/**
 	 * Update temperature for a single tile
 	 */
 	public static function UpdateTileTemperature(worldMap:WorldMap, x:Int, y:Int, deltaTime:Float) {
-		// var idx = worldMap.index(x, y);
-
 		// Initialize if needed
 		if (worldMap.getTileTemperature(x, y) < 0) {
 			initializeTileTemperature(worldMap, x, y);
@@ -132,7 +166,6 @@ class TemperatureHandler {
 		// Get insulations
 		var floorInsulation = getFloorInsulation(worldMap, x, y);
 		var objectInsulation = getObjectInsulation(worldMap, x, y);
-		// floorInsulation *= floorInsulation;
 
 		// Calculate insulation factor (multiplicative)
 		var insulationFactor = (1 - floorInsulation) * (1 - objectInsulation);
@@ -140,72 +173,53 @@ class TemperatureHandler {
 		insulationFactor = clamp(insulationFactor, 0, 1);
 
 		// Calculate target temperature (what the tile "wants" to be)
-		// var targetTemp = biomeTemperature + seasonImpact + localHeat;
 		var targetTemp = biomeTemperature + seasonImpact;
 		targetTemp = clamp(targetTemp, 0.0, 5.0);
 
 		// Step 1: Move toward target, slowed by insulation
-		// Higher insulation = slower movement toward target
 		var moveSpeed = ServerSettings.TemperatureOwnTileRate * insulationFactor;
 		var moveSpeedDelta = clamp(moveSpeed * deltaTime, 0.0, 0.9);
 		var newTemp = lerp(currentTemp, targetTemp, moveSpeedDelta);
-
-		if (newTemp > 0.8) localHeat *= 0.5;
-		localHeat *= deltaTime;
-
-		// localHeat *= 0.8;
 
 		if (ServerSettings.DebugTemperature && x == 100 && y == 100) {
 			trace('TileTemp[100,100]: deltaTime: ${Math.round(deltaTime * 1000) / 1000} moveSpeed: ${Math.round(moveSpeed * 1000) / 1000}');
 		}
 
-		// Step 2: Balance with neighbors (thermal diffusion)
-		var moveSpeedDeltaNeighbor = clamp(ServerSettings.TemperatureBalanceRate * deltaTime * (1 - objectInsulation), 0.0, 0.9);
-		var neighborTempSum = 0.0;
-		var neighborTempDiff = 0.0;
-		var neighborCount = 0;
-
-		// Get all 8 neighbors
-		// var neighbors = getNeighbors(x, y, worldMap.width, worldMap.height);
-
-		for (dy in -1...2) {
-			for (dx in -1...2) {
-				if (dx == 0 && dy == 0) continue; // Skip self
-				var neighborTemp = worldMap.getTileTemperature(x + dx, y + dy);
-
-				// If neighbor not initialized, skip it
-				if (neighborTemp < 0) continue;
-
-				neighborTempSum += neighborTemp;
-				neighborCount++;
-
-				var tempDiffN = (newTemp - neighborTemp) * moveSpeedDeltaNeighbor * 0.1;
-				neighborTempDiff -= tempDiffN;
-
-				if (localHeat != 0) {
-					worldMap.setTileTemperature(x + dx, y + dy, neighborTemp + localHeat + tempDiffN);
-				}
-			}
-		}
-
-		newTemp += localHeat * 1.2;
-
-		var averageNeighborTemp = neighborTempSum / neighborCount;
-		var tempDiff = averageNeighborTemp - newTemp;
-
-		// Apply balance rate
-		// newTemp += tempDiff * moveSpeedDeltaNeighbor;
-		newTemp += neighborTempDiff;
+		// Step 2: Balance with neighbors (thermal diffusion) - using extracted function
+		worldMap.setTileTemperature(x, y, newTemp);
+		balanceTileTemperature(worldMap, x, y, deltaTime, true);
+		newTemp = worldMap.getTileTemperature(x, y);
 
 		// Clamp final temperature
 		newTemp = clamp(newTemp, 0.0, 5.0);
-
-		// Store result
 		worldMap.setTileTemperature(x, y, newTemp);
 
 		if (ServerSettings.DebugTemperature && x == 100 && y == 100) {
-			// trace('TileTemp[100,100]: $currentTemp -> $newTemp (target=$targetTemp, $moveSpeedDelta, averageNeighborTemp=$averageNeighborTemp, $moveSpeedDeltaNeighbor ins=$insulationFactor)');
-			trace('TileTemp[100,100]: ${Math.round(currentTemp * 1000) / 1000} -> ${Math.round(newTemp * 1000) / 1000} (target=${Math.round(targetTemp * 1000) / 1000}, ${Math.round(moveSpeedDelta * 1000) / 1000}, averageNeighborTemp=${Math.round(averageNeighborTemp * 1000) / 1000}, ${Math.round(moveSpeedDeltaNeighbor * 1000) / 1000}, neighborTempDiff ${Math.round(neighborTempDiff * 1000) / 1000}} ins=${Math.round(insulationFactor * 1000) / 1000})');
+			trace('TileTemp[100,100]: ${Math.round(currentTemp * 1000) / 1000} -> ${Math.round(newTemp * 1000) / 1000} (target=${Math.round(targetTemp * 1000) / 1000}, ${Math.round(moveSpeedDelta * 1000) / 1000}, ins=${Math.round(insulationFactor * 1000) / 1000})');
+		}
+	}
+
+	/**
+	 * Balance temperature for all tiles within radius d around (x, y),
+	 * iterating ring by ring from inside (ring 0) to outside (ring d).
+	 * Uses Chebyshev distance so rings form expanding squares.
+	 */
+	public static function BalanceTemperatureArea(worldMap:WorldMap, x:Int, y:Int, d:Int, deltaTime:Float) {
+		// Ring 0: the center tile itself
+		balanceTileTemperature(worldMap, x, y, deltaTime);
+
+		// Rings 1..d: walk the perimeter of each Chebyshev ring
+		for (ring in 1...d + 1) {
+			// Top and bottom rows of the ring
+			for (dx in -ring...ring + 1) {
+				balanceTileTemperature(worldMap, x + dx, y - ring, deltaTime); // top
+				balanceTileTemperature(worldMap, x + dx, y + ring, deltaTime); // bottom
+			}
+			// Left and right columns of the ring (excluding corners already covered)
+			for (dy in -ring + 1...ring) {
+				balanceTileTemperature(worldMap, x - ring, y + dy, deltaTime); // left
+				balanceTileTemperature(worldMap, x + ring, y + dy, deltaTime); // right
+			}
 		}
 	}
 
