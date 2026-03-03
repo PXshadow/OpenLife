@@ -1036,6 +1036,8 @@ class TimeHelper {
 
 		for (y in startY...endY) {
 			for (x in 0...worldMap.width) {
+				TemperatureHandler.UpdateTileTemperature(worldMap, x, y, TimePassedToDoAllTimeSteps);
+
 				if (Season == Seasons.Spring) {
 					var hiddenObj = worldMap.getHiddenObjectId(x, y);
 					if (hiddenObj[0] != 0) RespawnOrDecayPlant(hiddenObj, x, y, true);
@@ -1427,6 +1429,8 @@ class TimeHelper {
 
 				DoSeasonalBiomeChanges(x, y, timePassedInYears);
 
+				// TemperatureHandler.UpdateTileTemperature(worldMap, x, y, timePassedInYears * 60);
+
 				if (objId == 0 && floorId == 0 && season == Spring) DoRespawnFromOriginal(x, y, timePassedInYears);
 
 				if (season == Spring) DoSpringStuff(x, y, timePassedInYears);
@@ -1440,8 +1444,6 @@ class TimeHelper {
 				if (objId != 0) ClearHeldObjectOnground(x, y, objId);
 
 				if (objId != 0) DelteObjectsInWater(x, y, objId);
-
-				//  Hardened Row 848
 			}
 		}
 	}

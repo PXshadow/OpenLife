@@ -1872,6 +1872,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			trace('Writing: ${heldObject.text}');
 		}
 
+		if (StringTools.contains(text, '!TH') || StringTools.contains(text, '!TH')) {
+			toSelf = true;
+			var temperature = WorldMap.get_world().getTileTemperature(this.tx, this.ty);
+
+			text = '${Math.round(temperature * 100) / 100}';
+			text = text.toUpperCase();
+		}
+
 		if (StringTools.contains(text, '!MSG') || StringTools.contains(text, '!TEA')) {
 			toSelf = true;
 			if (this.account.displayClosePlayers) this.account.displayClosePlayers = false;
@@ -6276,7 +6284,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		if (dontUpdateTemperature == false) player.timeLastTemperatureCalculation = TimeHelper.tick;
 
-		var temperature = calculateTemperature(player, player.tx, player.ty);
+		// between 0.1 black to -0.1 Ginger
+		var colorTemperatureShift = getTemperatureShiftForColor(player.getColor());
+
+		var temperatureNew = WorldMap.get_world().getTileTemperature(this.tx, this.ty);
+		temperatureNew -= colorTemperatureShift; // For example for black all feels more cold
+		var temperatureOld = calculateTemperature(player, player.tx, player.ty);
+
+		var temperature = temperatureNew;
 
 		var closestHeatObj = AiHelper.GetClosestHeatObject(player); // TODO use GetClosestObjectToPosition
 
@@ -6364,6 +6379,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		var biomeId = WorldMap.world.getBiomeId(player.tx, player.ty);
 		var isInWater = biomeId == PASSABLERIVER || biomeId == OCEAN;
+		if (isInWater) temperature *= 0.5;
 
 		// apply clothing temp
 		var clothingInsulation = player.calculateClothingInsulation(); // clothing insulation can be between 0 and 2 for now
@@ -6402,12 +6418,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// consider held object heat
 		var heldObjectData = player.heldObject.objectData;
 		if (heldObjectData.heatValue != 0) temperature += (heldObjectData.heatValue / 20) * ServerSettings.TemperatureHeatObjFactor;
-
-		// add SeasonTemperatureImpact
-		var seasonImpact = TimeHelper.SeasonTemperatureImpact;
-		if (seasonImpact > 0) seasonImpact *= ServerSettings.HotSeasonTemperatureFactor;
-		if (seasonImpact < 0) seasonImpact *= ServerSettings.ColdSeasonTemperatureFactor;
-		temperature += seasonImpact;
 
 		// balance temperature out if the biome is loved
 		var biomeLoveFactor = player.biomeLoveFactor();
@@ -6483,7 +6493,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		// player.say('${player.tx},${player.ty}');
 
-		if (ServerSettings.DebugTemperature) player.say('H ${Math.round(playerHeat * 100) / 100}} T $temperature');
+		temperatureOld = Math.round(temperatureOld * 100) / 100;
+		temperatureNew = Math.round(temperatureNew * 100) / 100;
+
+		if (ServerSettings.DebugTemperature) player.say('H ${Math.round(playerHeat * 100) / 100}} T $temperature TN $temperatureNew TO $temperatureOld');
 		// player.say(WorldMap.world.getObjectDataAtPosition(player.tx,player.ty).name);
 		if (ServerSettings.DebugTemperature)
 			trace('${player.name + player.id} Temperature: $temperature playerHeat: ${Math.round(playerHeat * 100) / 100} clothingFactor: $clothingFactor foodDrainTime: $foodDrainTime foodUsePerSecond: $foodUsePerSecond clothingInsulation: $clothingInsulation clothingHeatProtection: $clothingHeatProtection');
@@ -6508,8 +6521,13 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var floorObjData = ObjectData.getObjectData(floorId);
 		var floorInsulation = floorObjData.getInsulation();
 
+		// add SeasonTemperatureImpact
+		var seasonImpact = TimeHelper.SeasonTemperatureImpact;
+		if (seasonImpact > 0) seasonImpact *= ServerSettings.HotSeasonTemperatureFactor;
+		if (seasonImpact < 0) seasonImpact *= ServerSettings.ColdSeasonTemperatureFactor;
+
 		// between 0.1 black to -0.1 Ginger
-		var colorTemperatureShift = getIdealTemperatureShiftForColor(player.getColor());
+		var colorTemperatureShift = getTemperatureShiftForColor(player.getColor());
 
 		if (floorInsulation > 0 && floorInsulation > WorldMap.world.randomFloat()) {
 			var tmpTemperature = (0.45 + originalBiomeTemperature) / 2;
@@ -6519,10 +6537,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				trace('calculateTemperature: ${floorObjData.name} floorInsulation: ${Math.round(floorInsulation * 100) / 100} temp: ${Math.round(temperature * 100) / 100} orig: ${originalBiomeTemperature} tTemp: $tmpTemperature');
 
 			temperature -= colorTemperatureShift;
-			return temperature;
+			return temperature + seasonImpact;
 		}
 
-		// looke for close biomes that influence temperature
+		// look for close biomes that influence temperature
 		if (biome == BiomeTag.GREEN || biome == BiomeTag.YELLOW || biome == BiomeTag.GREY) {
 			// direct x / y
 			for (ii in 1...maxBiomeDistance - 1) {
@@ -6572,10 +6590,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		if (ServerSettings.DebugTemperature)
 			trace('${player.name}${player.id} calculateTemperature: temperature: $temperature biomeTemperature: $biomeTemperature colorTemperatureShift: $colorTemperatureShift');
 
-		return temperature;
+		return temperature + seasonImpact;
 	}
 
-	private static function getIdealTemperatureShiftForColor(personColor:PersonColor):Float {
+	private static function getTemperatureShiftForColor(personColor:PersonColor):Float {
 		if (personColor == PersonColor.Black) return ServerSettings.TemperatureShiftForBlack;
 		if (personColor == PersonColor.Brown) return ServerSettings.TemperatureShiftForBrown;
 		if (personColor == PersonColor.White) return ServerSettings.TemperatureShiftForWhite;

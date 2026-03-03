@@ -52,6 +52,8 @@ class WorldMap {
 	var biomes:Vector<Int>;
 	var originalBiomes:Vector<Int>;
 
+	var tileTemperatures:Vector<Float>; // Not saved  // Tile temperatures (0.0 to 1.0, -1 = uninitialized)
+
 	public var originalObjectsCount:Map<Int, Int>;
 	public var currentObjectsCount:Map<Int, Int>;
 
@@ -265,14 +267,39 @@ class WorldMap {
 		biomes = new Vector<Int>(length);
 
 		// timeObjectHelpers = [];
+		initTemperatureVector();
 
 		originalObjectsCount = new Map<Int, Int>();
 		currentObjectsCount = new Map<Int, Int>();
 	}
 
+	private function initTemperatureVector() {
+		// Tile temperatures - -1 means uninitialized
+		tileTemperatures = new Vector<Float>(length);
+		for (i in 0...length) {
+			tileTemperatures[i] = -1;
+		}
+	}
+
 	public function isWater(x:Int, y:Int):Bool {
 		var biome = getBiomeId(x, y);
 		return Biome.IsWater(biome);
+	}
+
+	public function getTileTemperature(x:Int, y:Int):Float {
+		return tileTemperatures[index(x, y)];
+	}
+
+	public function setTileTemperature(x:Int, y:Int, temp:Float) {
+		if (temp < 0) {
+			trace('WARNING: temp is < 0 ${temp}');
+			temp = 0;
+		}
+		if (temp > 10) {
+			trace('WARNING: temp is > 10 ${temp}');
+			temp = 10;
+		}
+		tileTemperatures[index(x, y)] = temp;
 	}
 
 	public function getBiomeSpeed(x:Int, y:Int):Float {
@@ -940,6 +967,8 @@ class WorldMap {
 
 		// for (account in PlayerAccount.AllPlayerAccountsById)
 		//	account.cleanUpFamilyPrestige();
+
+		this.initTemperatureVector(); // TODO read from save?
 
 		this.originalObjectsCount = countObjects(this.originalObjects);
 		this.currentObjectsCount = countObjects(this.objects);

@@ -331,8 +331,8 @@ class ServerSettings {
 	public static var DecayFactorInSwamp:Float = 2;
 
 	// Temperature
-	public static var DebugTemperature = true;
-	public static var TemperatureLocalHeatFactor:Float = 0.01; // OLD: 0.07 // NEW: impact of fire and ice stuff
+	public static var DebugTemperature = false;
+	public static var TemperatureLocalHeatFactor:Float = 0.005; // OLD: 0.07 // NEW: impact of fire and ice stuff
 	public static var TemperatureOwnTileRate:Float = 0.05; // per sec // How fast tile settles to its own conditions (biome + season + local heat)
 	public static var TemperatureBalanceRate:Float = 0.9; // per sec // How fast temperature equalizes between neighboring tiles (thermal diffusion)
 
