@@ -994,8 +994,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (this.mother.isHuman()) mother.connection.sendMapLocation(this, 'BABY', 'baby');
 			else mother.connection.serverAi.ai.newChild(this);
 
-			if (this.isHuman()) mother.connection.sendGlobalMessage('Your newborn is a human soal. Take good care!');
-			if (this.isHuman()) mother.say('A human soal is born!', true);
+			if (this.isHuman()) mother.connection.sendGlobalMessage('Your newborn is a human soul. Take good care!');
+			if (this.isHuman()) mother.say('A human soul is born!', true);
 		}
 
 		if (this.father != null && this.age < ServerSettings.MinAgeToEat) {
@@ -1004,8 +1004,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			if (this.father.isHuman()) father.connection.sendMapLocation(this, 'BABY', 'baby');
 			else father.connection.serverAi.ai.newChild(this);
 
-			if (this.isHuman()) father.connection.sendGlobalMessage('Your new child is a  human soal. Take good care!');
-			if (this.isHuman()) father.say('A human soal is born!', true);
+			if (this.isHuman()) father.connection.sendGlobalMessage('Your new child is a  human soul. Take good care!');
+			if (this.isHuman()) father.say('A human soul is born!', true);
 		}
 
 		// for Eve set birth position as home
