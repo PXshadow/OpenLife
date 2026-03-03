@@ -151,6 +151,7 @@ Quality of Life Changes:
 - Wolfs, Bison and Bears give meat
 
 Better fire Handling:
+- fire holds twice as long if the room is already heated enough
 - you can use Straw on Ashes to start a fire again
 - you can use Smithing Hammer plus Stakes to make a Ember Leaf for making a fire
 - you can use Ember Leaf on Straw to start a fire
@@ -171,11 +172,11 @@ Other changes:
 - Animals can pass through: Trees, Plants, Palms, Sugarcane, Ponds, Springs
 
 Not yet implemented:
+- bigger map
 - Ai territory
-- maps
+- maps leading to locations
 - twinning
 - ally gates / ally spring doors
-- in door temperature calculation
 - advanced stuff like rails, pipes, plows, cars
 - see more in TODO below
 
@@ -326,6 +327,7 @@ Graves / Curses
 - Teleporting to your Grave costs some points
 
 Heat / Temperature:
+- temperature is calculated on a tile basis. More fire more heat. Walls / Floors insulate
 - bad temperature reduces speed (you get get an heat / cold animation warning you)
 - having very bad temperature causes damage (especially on the far temperature edges)
 - bad temperature generates exhaustion and reduces exhaustion reduction
@@ -538,17 +540,11 @@ more up in the list means more likely to be implemented first but no guarantee!
 
 Server:
 - FIX server crash 
-- Reduce server lag
 - FIX backpack item disapear on fast use
-
-- implement tempearture map
 - implement water map 
-
 - HUGE: implement a bigger map, at least 4X size
 
 Web Server
-- FIX picture
-- use https for web server
 - make stuff clickable / add tons more information, statistics and graphs
 
 AI:
@@ -656,12 +652,11 @@ Middle priority:
 - Give sandlas high heat protection / implement custom cloth heat protection
 - ALLow building bridges only with 4 stone walls close, except stone bridge
 - BIOME better water drift meechanics
-- TEMPERATURE indoor temperature calculation 
 - Account Authentication (Maybe a system based on IP limits plus higher prio for players with higher score)
 - AI build oven / klin / forge on a good location
 - AI FIX bug with transitions that need two input like 2X thread for rope. thread --> bowl --> thread 
 - AI if waiting for time transition check if the next step can be prepared --> fire for now is manually optimized in craftItem
-- Heating for building / Biome temperature changes
+- Biome changes depending on temperature
 
 - AI using containers 
 - AI help building roads / repair roads

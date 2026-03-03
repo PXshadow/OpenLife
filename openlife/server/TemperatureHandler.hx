@@ -104,7 +104,17 @@ class TemperatureHandler {
 		var moveSpeedDeltaNeighbor = clamp(ServerSettings.TemperatureBalanceRate * deltaTime * (1 - objectInsulation), 0.0, 0.9);
 
 		var localHeat = doLocalHeat ? getLocalHeat(worldMap, x, y) : 0;
-		if (currentTemp > 0.8) localHeat *= 0.5;
+		if ((localHeat > 0.01 && currentTemp > 0.6) || (localHeat < -0.01 && currentTemp < 0.2)) {
+			localHeat *= 0.5;
+			// let fire live longer if it can  burn low
+			var obj = worldMap.getObjectHelper(x, y);
+			if (obj.timeToChange > 2) {
+				obj.timeToChange += deltaTime * 0.5;
+				if (ServerSettings.DebugTemperature)
+					trace('TileTemp: deltaTime: ${obj.name} ${obj.tx} ${obj.ty} time: ${Math.round(deltaTime * 1000) / 1000} timeToChange: ${Math.round(obj.timeToChange)}');
+			}
+		}
+
 		localHeat *= deltaTime;
 
 		var neighborTempDiff = 0.0;
@@ -155,7 +165,7 @@ class TemperatureHandler {
 		if (seasonImpact < 0) seasonImpact *= ServerSettings.ColdSeasonTemperatureFactor;
 
 		// Get local heat
-		var localHeat = getLocalHeat(worldMap, x, y);
+		// var localHeat = getLocalHeat(worldMap, x, y);
 
 		// Get insulations
 		var floorInsulation = getFloorInsulation(worldMap, x, y);
