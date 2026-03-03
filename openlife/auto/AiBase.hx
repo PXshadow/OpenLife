@@ -22,6 +22,7 @@ import openlife.server.WorldMap;
 import openlife.settings.ServerSettings;
 import openlife.server.Lineage.PrestigeClass;
 import sys.thread.Thread;
+import haxe.CallStack;
 
 using StringTools;
 using openlife.auto.AiHelper;
@@ -7940,7 +7941,15 @@ abstract class AiBase {
 	private static function GetName(objId:Int):String {
 		var objData = ObjectData.getObjectData(objId);
 		if (objData == null) {
-			trace('WARNING could not find objData to $objId');
+			var callerInfo = "unknown caller";
+			var stack = CallStack.callStack();
+
+			if (stack.length > 1) {
+				callerInfo = CallStack.toString([stack[1]]); // shows the exact function/file/line that called GetName()
+			}
+
+			trace('WARNING could not find objData for $objId\nCalled from: $callerInfo');
+			// trace('WARNING could not find objData to $objId');
 			return 'NULL';
 		}
 
