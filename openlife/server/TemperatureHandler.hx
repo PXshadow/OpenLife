@@ -89,18 +89,21 @@ class TemperatureHandler {
 	/**
 	 * Balances temperature for a single tile with its neighbors (extracted from UpdateTileTemperature)
 	 */
-	private static function balanceTileTemperature(worldMap:WorldMap, x:Int, y:Int, deltaTime:Float, localHeat:Bool = false) {
+	private static function balanceTileTemperature(worldMap:WorldMap, x:Int, y:Int, deltaTime:Float, doLocalHeat:Bool = false) {
 		var currentTemp = worldMap.getTileTemperature(x, y);
 		if (currentTemp < 0) return;
 
 		// Balance only temperature around players if tile is a floor
 		var floorInsulation = getFloorInsulation(worldMap, x, y);
-		if (localHeat == false && floorInsulation < 0.1) return;
+		if (doLocalHeat == false && floorInsulation < 0.1) return;
 
+		// Dont apply heat exchange with walls / doors if balancing around a player to not loose heat twice
 		var objectInsulation = getObjectInsulation(worldMap, x, y);
+		if (doLocalHeat == false && objectInsulation > 0) return;
+
 		var moveSpeedDeltaNeighbor = clamp(ServerSettings.TemperatureBalanceRate * deltaTime * (1 - objectInsulation), 0.0, 0.9);
 
-		var localHeat = localHeat ? getLocalHeat(worldMap, x, y) : 0;
+		var localHeat = doLocalHeat ? getLocalHeat(worldMap, x, y) : 0;
 		if (currentTemp > 0.8) localHeat *= 0.5;
 		localHeat *= deltaTime;
 
@@ -112,6 +115,12 @@ class TemperatureHandler {
 				if (dx == 0 && dy == 0) continue;
 				var neighborTemp = worldMap.getTileTemperature(x + dx, y + dy);
 				if (neighborTemp < 0) continue;
+
+				if (doLocalHeat == false) {
+					// Dont apply heat exchange with walls / doors if balancing around a player to not loose heat twice
+					var neighborObjectInsulation = getObjectInsulation(worldMap, x + dx, y + dy);
+					if (neighborObjectInsulation > 0) continue;
+				}
 
 				neighborCount++;
 				var tempDiffN = (currentTemp - neighborTemp) * moveSpeedDeltaNeighbor * 0.1;
