@@ -17,6 +17,7 @@ import openlife.data.transition.TransitionImporter;
 import openlife.macros.Macro;
 import openlife.server.Biome.BiomeTag;
 import openlife.server.Lineage.PrestigeClass;
+import openlife.server.TimeHelper;
 import openlife.settings.ServerSettings;
 import sys.io.File;
 import sys.thread.Mutex;
@@ -5137,6 +5138,30 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			player.say('Secret: ${isAdmin}}', true);
 
+			return true;
+		}
+		if (text.contains('!SEASON WINTER')) {
+			if (checkIfNotAllowed(player)) return true;
+			TimeHelper.Season = Seasons.Winter;
+			player.say('Season set to WINTER', true);
+			return true;
+		}
+		if (text.contains('!SEASON SPRING')) {
+			if (checkIfNotAllowed(player)) return true;
+			TimeHelper.Season = Seasons.Spring;
+			player.say('Season set to SPRING', true);
+			return true;
+		}
+		if (text.contains('!SEASON SUMMER')) {
+			if (checkIfNotAllowed(player)) return true;
+			TimeHelper.Season = Seasons.Summer;
+			player.say('Season set to SUMMER', true);
+			return true;
+		}
+		if (text.contains('!SEASON AUTUMN')) {
+			if (checkIfNotAllowed(player)) return true;
+			TimeHelper.Season = Seasons.Autumn;
+			player.say('Season set to AUTUMN', true);
 			return true;
 		}
 		if (text.contains('!SAVE')) {
