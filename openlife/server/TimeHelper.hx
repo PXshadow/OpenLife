@@ -1039,6 +1039,9 @@ class TimeHelper {
 				TemperatureHandler.UpdateTileTemperature(worldMap, x, y, TimePassedToDoAllTimeSteps);
 
 				if (Season == Seasons.Spring) {
+					// Unhide rabbits in spring
+					if (UnHideRabbitsInSpring(worldMap, x, y)) continue;
+
 					var hiddenObj = worldMap.getHiddenObjectId(x, y);
 					if (hiddenObj[0] != 0) RespawnOrDecayPlant(hiddenObj, x, y, true);
 
@@ -1080,6 +1083,9 @@ class TimeHelper {
 				if (floorId == 1596) WorldMap.world.roads[WorldMap.world.index(x, y)] = worldMap.getObjectHelper(x, y);
 
 				RespawnOrDecayPlant(obj, x, y);
+
+				// Hide rabbits in winter if current biome is snow but original biome is not snow
+				HideRabbitsInWinter(worldMap, x, y, obj);
 
 				var helper = worldMap.getObjectHelper(x, y, true);
 
@@ -1215,6 +1221,7 @@ class TimeHelper {
 
 		// Season = Seasons.Spring;
 
+		// TODO / WARNING currently this function is called only for SPRING so there is never WINTER!
 		if (Season == Seasons.Winter && hidden == false && objData.winterDecayFactor > 0) {
 			// reduce uses if it is for example a berry bush
 			if (objData.numUses > 1) {
@@ -1312,6 +1319,46 @@ class TimeHelper {
 				if (currentCount % mod == 0) trace('SEASON REGROW: ${objData.name} ${currentCount} original: ${originalCount} spawnAs: $spawnAs');
 			}
 		}
+	}
+
+	/**
+	 * Hide rabbits in winter if current biome is snow but original biome is not snow
+	 */
+	private static function HideRabbitsInWinter(worldMap:WorldMap, x:Int, y:Int, obj:Array<Int>):Bool {
+		if (obj[0] != 3566) return false; // Only handle Fleeing Rabbit
+
+		var currentBiome = worldMap.getBiomeId(x, y);
+		var originalBiome = worldMap.getOriginalBiomeId(x, y);
+		var hiddenObj = worldMap.getHiddenObjectId(x, y);
+
+		if (currentBiome == SNOW && originalBiome != SNOW && originalBiome != BiomeTag.SNOWINGREY && hiddenObj[0] == 0) {
+			worldMap.mutex.acquire();
+			worldMap.setObjectId(x, y, [0]);
+			worldMap.setHiddenObjectId(x, y, [3566]);
+			Connection.SendMapUpdateToAllClosePlayers(x, y);
+			worldMap.mutex.release();
+			if (ServerSettings.DebugSeason) trace('SEASON: Hide rabbit at $x,$y (biome: $currentBiome, original: $originalBiome)');
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Unhide rabbits in spring if they were hidden and original biome was not snow
+	 */
+	private static function UnHideRabbitsInSpring(worldMap:WorldMap, x:Int, y:Int):Bool {
+		var hiddenObj = worldMap.getHiddenObjectId(x, y);
+		if (hiddenObj[0] != 3566) return false; // Only handle Fleeing Rabbit
+
+		var biomeId = worldMap.getBiomeId(x, y);
+		if (biomeId != SNOW && biomeId != BiomeTag.SNOWINGREY) {
+			worldMap.setObjectId(x, y, [3566]);
+			worldMap.setHiddenObjectId(x, y, [0]);
+			Connection.SendMapUpdateToAllClosePlayers(x, y);
+			if (ServerSettings.DebugSeason) trace('SEASON: Respawn rabbit at $x,$y');
+			return true;
+		}
+		return false;
 	}
 
 	private static function IncreaseNumberOfUses(objHelper:ObjectHelper) {
