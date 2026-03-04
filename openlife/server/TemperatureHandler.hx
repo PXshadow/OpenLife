@@ -22,9 +22,8 @@ class TemperatureHandler {
 	 * Called when a tile first needs its temperature calculated
 	 */
 	private static function initializeTileTemperature(worldMap:WorldMap, x:Int, y:Int):Float {
-		// Get base temperature from biome
-		var biomeId = worldMap.getBiomeId(x, y);
-		var biomeTemperature = Biome.getBiomeTemperature(biomeId);
+		// Get average base temperature from original and current biome
+		var biomeTemperature = worldMap.getAverageBiomeTemperature(x, y);
 
 		// Add seasonal impact
 		var seasonImpact = TimeHelper.SeasonTemperatureImpact;
@@ -157,9 +156,8 @@ class TemperatureHandler {
 
 		var currentTemp = worldMap.getTileTemperature(x, y);
 
-		// Get base temperature (biome + season)
-		var biomeId = worldMap.getBiomeId(x, y);
-		var biomeTemperature = Biome.getBiomeTemperature(biomeId);
+		// Get average base temperature from original and current biome (biome + season)
+		var biomeTemperature = worldMap.getAverageBiomeTemperature(x, y);
 		var seasonImpact = TimeHelper.SeasonTemperatureImpact;
 		if (seasonImpact > 0) seasonImpact *= ServerSettings.HotSeasonTemperatureFactor;
 		if (seasonImpact < 0) seasonImpact *= ServerSettings.ColdSeasonTemperatureFactor;

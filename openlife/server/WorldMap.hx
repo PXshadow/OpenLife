@@ -364,6 +364,20 @@ class WorldMap {
 		return originalBiomes[index(x, y)];
 	}
 
+	/**
+	 * Get the average temperature of original biome and current biome
+	 * Useful when a tile's biome has changed
+	 */
+	public function getAverageBiomeTemperature(x:Int, y:Int):Float {
+		var currentBiome = getBiomeId(x, y);
+		var originalBiome = getOriginalBiomeId(x, y);
+
+		var currentTemp = Biome.getBiomeTemperature(currentBiome);
+		var originalTemp = Biome.getBiomeTemperature(originalBiome);
+
+		return (currentTemp + originalTemp) / 2;
+	}
+
 	public function setBiomeId(x:Int, y:Int, biomeId:Int) {
 		return biomes[index(x, y)] = biomeId;
 	}
