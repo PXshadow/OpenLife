@@ -346,7 +346,7 @@ class ServerSettings {
 	public static var MaxStoredWater:Float = 1;
 	public static var TemperatureNaturalHeatInsulation:Float = 0.5; // gives X extra natural insulation against heat
 	public static var TemperatureClothingInsulationFactor:Float = 5; // with 100% insulation 5X more time 10X with 200% insulation / only if temperature change is ositive
-	public static var TemperatureImpactReduction:Float = 0.4; // reduces the impact of bad temperature if temperature is already bad
+	public static var TemperatureImpactReduction:Float = 0.0; // 0.4; // TODO seems bugged: reduces the impact of bad temperature if temperature is already bad
 	public static var TemperatureHeatObjFactor:Float = 1; // increase or decrase impact of a head obj like fire
 	public static var TemperatureLovedBiomeFactor:Float = 1;
 	public static var TemperatureMaxLovedBiomeImpact:Float = 0.1; // max 0.1 better in loved biome (right color or borh parents right color)
