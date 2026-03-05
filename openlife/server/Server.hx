@@ -7,6 +7,7 @@ import openlife.data.transition.TransitionImporter;
 import openlife.macros.Macro;
 import openlife.resources.Resource;
 import openlife.settings.ServerSettings;
+import openlife.server.AiHandler;
 #if (target.threaded)
 import haxe.Timer;
 import haxe.ds.Vector;
@@ -54,6 +55,8 @@ class Server {
 		if (ServerSettings.debug) trace('Debug Mode: ${ServerSettings.debug}');
 
 		server = new Server();
+
+		// AiHandler.Test(); // Test AI connection at startup
 
 		var aiCount = Connection.getAis().length;
 

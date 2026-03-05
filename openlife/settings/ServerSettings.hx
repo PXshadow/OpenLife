@@ -101,6 +101,13 @@ class ServerSettings {
 	// message
 	public static var SecondsBetweenMessages:Float = 5;
 
+	// AI / LLM settings
+	public static var AiApiUrl:String = "https://api.minimax.io/anthropic"; // Base URL for MiniMax API
+	public static var AiApiKey:String = "Not Set"; // TODO: Fill in your MiniMax API key here
+	public static var AiDefaultModel:String = "MiniMax-M2.5-highspeed"; // Default model for AI responses
+	public static var AiCallsPerHour:Int = 60; // Rate limit: max calls per hour
+	public static var AiMaxTokens:Int = 1024; // Max tokens in response
+
 	// coins
 	public static var InheritCoinsFactor:Float = 0.8; // on death X coins are inherited
 	public static var CoinsOnWoundingFactor:Float = 0.5; // If you manage to wound somebody
