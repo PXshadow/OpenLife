@@ -17,6 +17,7 @@ import openlife.server.Connection;
 import openlife.server.GlobalPlayerInstance;
 import openlife.server.NamingHelper;
 import openlife.server.ServerAi;
+import openlife.server.AiHandler;
 import openlife.server.TimeHelper;
 import openlife.server.WorldMap;
 import openlife.settings.ServerSettings;
@@ -4926,6 +4927,19 @@ abstract class AiBase {
 			if (professions.contains(prof)) {
 				assignedProfession = prof;
 				myPlayer.say('${prof}');
+			}
+		}
+
+		// Fallback: Use AI handler for unhandled messages from human players
+		// This runs after all other command handlers have been checked
+		var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeReactedLastCommand);
+		if (timePassedInSeconds > 4 || timeReactedLastCommand < 1) {
+			waitingTime += 3;
+			var response = AiHandler.ChatResponse(text);
+			if (response != null) {
+				myPlayer.say(response);
+				timeReactedLastCommand = TimeHelper.tick;
+				waitingTime += 2;
 			}
 		}
 	}
