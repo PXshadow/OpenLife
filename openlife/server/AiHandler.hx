@@ -166,6 +166,82 @@ class AiHandler {
 	}
 
 	/**
+	 * Generate relationship info text between two players.
+	 * Checks alliance status, exile status, and leadership relationships.
+	 * @param fromPlayer The AI player who will respond (self)
+	 * @param toPlayer The human player who sent the message (other)
+	 * @return Text describing the relationship between the two players
+	 */
+	public static function getRelationshipInfo(fromPlayer:GlobalPlayerInstance, toPlayer:GlobalPlayerInstance):String {
+		var text = "";
+
+		// Check if players are allied (same top leader)
+		if (fromPlayer.isAlly(toPlayer)) {
+			text += "You are allied with this player (same tribe/family). ";
+		}
+
+		// Check if friendly (ally + no recent attacks)
+		if (fromPlayer.isFriendly(toPlayer)) {
+			text += "You are on friendly terms with this player. ";
+		}
+
+		// Check if toPlayer is exiled by fromPlayer (AI exiled the human)
+		if (toPlayer.isExiledBy(fromPlayer)) {
+			text += "You have exiled this player! They are not welcome in your tribe. ";
+		}
+
+		// Check if fromPlayer (AI) is exiled by toPlayer (human exiled AI)
+		if (fromPlayer.isExiledBy(toPlayer)) {
+			text += "This player has exiled you! You are not welcome in their tribe. ";
+		}
+
+		// Check if toPlayer is exiled by any leader from fromPlayer's perspective
+		if (toPlayer.isExiledByAnyLeaderFrom(fromPlayer)) {
+			text += "This player has been exiled by a leader in your tribe. ";
+		}
+
+		// Check if toPlayer is a leader (has followers)
+		var toPlayerTopLeader = toPlayer.getTopLeader();
+		if (toPlayer.followPlayer != null || toPlayerTopLeader != toPlayer) {
+			// toPlayer follows someone, so they are not the top leader
+			// Check if toPlayer has followers
+			var hasFollowers = false;
+			for (p in GlobalPlayerInstance.AllPlayers) {
+				if (p.followPlayer == toPlayer && p != toPlayer) {
+					hasFollowers = true;
+					break;
+				}
+			}
+			if (hasFollowers) {
+				text += "This player is a leader with followers in their tribe. ";
+			}
+		}
+
+		// Check if fromPlayer (AI) is the leader of toPlayer (human follows AI)
+		if (toPlayer.followPlayer == fromPlayer) {
+			text += "This player follows you as their leader! ";
+		}
+
+		// Check if fromPlayer (AI) is the top leader of toPlayer
+		if (toPlayerTopLeader == fromPlayer) {
+			text += "You are the top leader of this player's tribe! ";
+		}
+
+		// Check if toPlayer is the leader of fromPlayer (AI follows human)
+		var fromPlayerTopLeader = fromPlayer.getTopLeader();
+		if (fromPlayer.followPlayer == toPlayer) {
+			text += "You follow this player as your leader! ";
+		}
+
+		// Check if toPlayer is the top leader of fromPlayer
+		if (fromPlayerTopLeader == toPlayer) {
+			text += "This player is the top leader of your tribe! ";
+		}
+
+		return text;
+	}
+
+	/**
 	 * Generate AI response to a message from another player.
 	 * Builds context from both players and sends to AI for roleplay response.
 	 * @param fromPlayer The AI player who will respond
@@ -180,16 +256,23 @@ class AiHandler {
 		// Get context about the human player (toPlayer)
 		var otherContext = toPlayer.playerSoul.getExternalIntro();
 
+		// Get relationship info between the two players
+		var relationshipContext = getRelationshipInfo(fromPlayer, toPlayer);
+
 		// Combine context and message for the AI
 		var fullPrompt = ownContext
 			+ "\n"
 			+ otherContext
+			+ "\n"
+			+ relationshipContext
 			+ "\nThe other player says to you respond in your role considering your status / prestige and the other players status / prestige: "
 			+ message;
 
 		trace(fullPrompt);
 
 		var response = ChatResponse(fullPrompt);
+
+		trace(response);
 
 		return response;
 	}
