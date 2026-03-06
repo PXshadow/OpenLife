@@ -1,5 +1,6 @@
 package openlife.auto;
 
+import openlife.server.AIProvider;
 import sys.thread.Mutex;
 import openlife.server.Server;
 import openlife.data.Pos;
@@ -4933,9 +4934,10 @@ abstract class AiBase {
 		// Fallback: Use AI handler for unhandled messages from human players
 		// This runs after all other command handlers have been checked
 		var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeReactedLastCommand);
-		if (timePassedInSeconds > 4 || timeReactedLastCommand < 1) {
+		if (AIProvider.IsLLMActivated() && (timePassedInSeconds > 4 || timeReactedLastCommand < 1)) {
 			waitingTime += 3;
-			var response = AiHandler.ChatResponse(text);
+			var aiPlayer = cast(myPlayer, GlobalPlayerInstance);
+			var response = AiHandler.respondToPlayer(aiPlayer, player, text);
 			if (response != null) {
 				myPlayer.say(response);
 				timeReactedLastCommand = TimeHelper.tick;

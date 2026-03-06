@@ -166,6 +166,35 @@ class AiHandler {
 	}
 
 	/**
+	 * Generate AI response to a message from another player.
+	 * Builds context from both players and sends to AI for roleplay response.
+	 * @param fromPlayer The AI player who will respond
+	 * @param toPlayer The human player who sent the message
+	 * @param message The message from the human player
+	 * @return The AI's response text, or null if rate limited
+	 */
+	public static function respondToPlayer(fromPlayer:GlobalPlayerInstance, toPlayer:GlobalPlayerInstance, message:String):String {
+		// Get context about the AI (fromPlayer)
+		var ownContext = fromPlayer.playerSoul.getSoulText();
+
+		// Get context about the human player (toPlayer)
+		var otherContext = toPlayer.playerSoul.getExternalIntro();
+
+		// Combine context and message for the AI
+		var fullPrompt = ownContext
+			+ "\n"
+			+ otherContext
+			+ "\nThe other player says to you respond in your role considering your status / prestige and the other players status / prestige: "
+			+ message;
+
+		trace(fullPrompt);
+
+		var response = ChatResponse(fullPrompt);
+
+		return response;
+	}
+
+	/**
 	 * Test function to verify AI connection is working.
 	 * Makes a test call with a simple message and traces the response.
 	 */

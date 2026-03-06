@@ -10,6 +10,10 @@ import openlife.settings.ServerSettings;
  * Makes HTTP requests to the MiniMax chat completion endpoint.
  */
 class AIProvider {
+	public static function IsLLMActivated() {
+		return (ServerSettings.AiApiKey != "Not Set");
+	}
+
 	/**
 	 * Call the AI API with a prompt and get the response text.
 	 * @param prompt The user prompt/message

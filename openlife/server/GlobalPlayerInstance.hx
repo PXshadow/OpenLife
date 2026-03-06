@@ -284,6 +284,19 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var lostCombatPrestige:Float = 0; // like damage dealt to people without weapon if not justified // used to check if person should be attacked // not saved yet
 	public var timeLastTemperatureCalculation:Float = 0;
 
+	// PlayerSoul for AI interactions
+	private var _playerSoul:PlayerSoul;
+
+	// Getter for PlayerSoul that initializes on first access
+	public var playerSoul(get, never):PlayerSoul;
+
+	private function get_playerSoul():PlayerSoul {
+		if (_playerSoul == null) {
+			_playerSoul = new PlayerSoul(this);
+		}
+		return _playerSoul;
+	}
+
 	// public var useFailedReason = 'NA';
 	public var blockedTeleportLocations = new Array<Int>();
 
