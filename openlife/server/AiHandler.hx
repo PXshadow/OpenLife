@@ -29,6 +29,9 @@ class AiHandler {
 		// Record this call
 		recordCall();
 
+		// Start timing
+		var startTime = Sys.time();
+
 		// Try to get response with one retry
 		var response:String = null;
 		var attempts = 0;
@@ -53,6 +56,18 @@ class AiHandler {
 				// Brief delay before retry (could add sleep here if needed)
 				// trace("Retrying AI call...");
 			}
+		}
+
+		// Calculate elapsed time in seconds
+		var elapsedSeconds = Sys.time() - startTime;
+
+		// Log timing info
+		if (response != null) {
+			trace('AI call succeeded in ${elapsedSeconds} seconds - attempts: ${attempts}');
+			trace(response);
+		}
+		else {
+			trace('AI call failed after ${elapsedSeconds} seconds - attempts: ${attempts}');
 		}
 
 		return response;
