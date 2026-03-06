@@ -287,7 +287,7 @@ class AiHandler {
 
 		var response = ChatResponse(fullPrompt);
 
-		trace(response);
+		// trace(response);
 
 		return response;
 	}

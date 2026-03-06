@@ -107,6 +107,7 @@ class ServerSettings {
 	public static var AiDefaultModel:String = "MiniMax-M2.5-highspeed"; // Default model for AI responses
 	public static var AiCallsPerHour:Int = 60; // Rate limit: max calls per hour
 	public static var AiMaxTokens:Int = 1024; // Max tokens in response
+	public static var AiMaxTokensForChat:Int = 1024; // Max tokens in response
 
 	// coins
 	public static var InheritCoinsFactor:Float = 0.8; // on death X coins are inherited

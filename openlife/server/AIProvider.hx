@@ -31,8 +31,14 @@ class AIProvider {
 		// Build request body
 		var requestBody:Dynamic = {
 			model: useModel,
-			max_tokens: ServerSettings.AiMaxTokens,
-			messages: [{role: "user", content: prompt}]
+			max_tokens: ServerSettings.AiMaxTokensForChat,
+			messages: [
+				{
+					role: "system",
+					content: "Respond super fast as possible, directly with the final answer only. Never show thinking, reasoning, or internal monologue. Just the answer."
+				},
+				{role: "user", content: prompt}
+			]
 		};
 
 		var jsonBody:String = Json.stringify(requestBody);
@@ -73,6 +79,8 @@ class AIProvider {
 			throw new Exception("AI empty response");
 		}
 
+		trace(response);
+
 		return parseResponse(response);
 	}
 
@@ -89,7 +97,6 @@ class AIProvider {
 			throw new Exception("Failed to parse AI response: " + e.message);
 		}
 
-		trace(response);
 		/**
 			{usage : {input_tokens : 56, output_tokens : 49}, stop_reason : end_turn, id : 05f8ffd7915b9d744e5232be56bfb968, role : assistant, model : MiniMax-M2.5-highspeed, type : message, content : [{thinking : The user is asking me to respond with a specific phrase "AI is working!" to confirm that I received their message. This is a simple test to verify I'm functioning properly. I should respond as requested., type : thinking, signature : c958ea53c885331e7dafc7731993546ec8d81ec94a4e9c1b43eb7fa306254060},{text : AI is working!, type : text}], base_resp : {status_code : 0, status_msg : }}
 		 */
