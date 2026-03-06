@@ -63,11 +63,11 @@ class AiHandler {
 
 		// Log timing info
 		if (response != null) {
-			trace('AI call succeeded in ${elapsedSeconds} seconds - attempts: ${attempts}');
+			trace('AI call succeeded in ${Math.round(elapsedSeconds)} seconds - attempts: ${attempts}');
 			trace(response);
 		}
 		else {
-			trace('AI call failed after ${elapsedSeconds} seconds - attempts: ${attempts}');
+			trace('AI call failed after ${Math.round(elapsedSeconds)} seconds - attempts: ${attempts}');
 		}
 
 		return response;

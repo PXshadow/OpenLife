@@ -35,11 +35,13 @@ class AIProvider {
 			messages: [
 				{
 					role: "system",
-					content: "Respond super fast as possible, directly with the final answer only. Never show thinking, reasoning, or internal monologue. Just the answer."
+					content: "This is a interactiv dialog! No thinking needed! Respond fast with one or two sentences and stay in your role!"
 				},
 				{role: "user", content: prompt}
 			]
 		};
+
+		// content: "Respond super fast as possible, directly with the final answer only. Never show thinking, reasoning, or internal monologue. Just the answer."
 
 		var jsonBody:String = Json.stringify(requestBody);
 
