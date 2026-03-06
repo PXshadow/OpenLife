@@ -2,6 +2,7 @@ package openlife.server;
 
 import haxe.Exception;
 import sys.thread.Mutex;
+import sys.thread.Thread;
 import openlife.settings.ServerSettings;
 
 /**
@@ -265,6 +266,22 @@ class AiHandler {
 	 * @return The AI's response text, or null if rate limited
 	 */
 	public static function respondToPlayer(fromPlayer:GlobalPlayerInstance, toPlayer:GlobalPlayerInstance, message:String):String {
+		var fullPrompt = buildPrompt(fromPlayer, toPlayer, message);
+		trace(fullPrompt);
+		var response = ChatResponse(fullPrompt);
+		// trace(response);
+		return response;
+	}
+
+	/**
+	 * Build the prompt string for AI response from player context.
+	 * Extracts soul text, relationship info, and combines with the message.
+	 * @param fromPlayer The AI player who will respond
+	 * @param toPlayer The human player who sent the message
+	 * @param message The message from the human player
+	 * @return The full prompt string to send to the AI
+	 */
+	private static function buildPrompt(fromPlayer:GlobalPlayerInstance, toPlayer:GlobalPlayerInstance, message:String):String {
 		// Get context about the AI (fromPlayer)
 		var ownContext = fromPlayer.playerSoul.getSoulText();
 
@@ -277,7 +294,7 @@ class AiHandler {
 		// var doCommandText = doCommand ? "You are a close relative or a follower of this player do if asked you should do commands! " : "You are not a follower of this player, so if asked you should reject commands of this player!";
 
 		// Combine context and message for the AI
-		var fullPrompt = ownContext
+		return ownContext
 			+ "\n"
 			+ otherContext
 			+ "\n"
@@ -286,14 +303,6 @@ class AiHandler {
 			+ doCommandText
 			+ "\nThe other player says to you respond in your role considering your status / prestige and the other players status / prestige: "
 			+ message;
-
-		trace(fullPrompt);
-
-		var response = ChatResponse(fullPrompt);
-
-		// trace(response);
-
-		return response;
 	}
 
 	public static function checkIfShouldDoCommand(fromPlayer:GlobalPlayerInstance, toPlayer:GlobalPlayerInstance) {
@@ -304,6 +313,28 @@ class AiHandler {
 		// myPlayer.say('I AM NOT YOUR FOLLOWER!');
 		// myPlayer.doEmote(Emote.angry);
 		return "You are not a follower of this player, so if asked you can reject commands of this player!";
+	}
+
+	/**
+	 * Async version of respondToPlayer that calls the LLM in a separate thread.
+	 * Executes the onSuccess callback with the AI response when complete.
+	 * @param fromPlayer The AI player who will respond
+	 * @param toPlayer The human player who sent the message
+	 * @param message The message from the human player
+	 * @param onSuccess Callback function executed on success with the AI response string
+	 */
+	public static function respondToPlayerAsync(fromPlayer:GlobalPlayerInstance, toPlayer:GlobalPlayerInstance, message:String, onSuccess:String->Void):Void {
+		// Build the prompt in the main thread (player context must be accessed there)
+		var fullPrompt = buildPrompt(fromPlayer, toPlayer, message);
+
+		// Spawn a new thread to call the LLM without blocking the main thread
+		Thread.create(function() {
+			// Call ChatResponse directly with the pre-built prompt
+			var response = ChatResponse(fullPrompt);
+
+			// Execute the callback with the response
+			onSuccess(response);
+		});
 	}
 
 	/**

@@ -4934,17 +4934,19 @@ abstract class AiBase {
 		// Fallback: Use AI handler for unhandled messages from human players
 		// This runs after all other command handlers have been checked
 		var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeReactedLastCommand);
-		if (AIProvider.IsLLMActivated() && (timePassedInSeconds > 4 || timeReactedLastCommand < 1)) {
+		if (AIProvider.IsLLMActivated() && myPlayer.age > 10 && (timePassedInSeconds > 4 || timeReactedLastCommand < 1)) {
 			waitingTime += 3;
-			myPlayer.doEmote(Emote.hubba);
+			// myPlayer.doEmote(Emote.hubba);
+			myPlayer.doEmote(Emote.oreally);
 
 			var aiPlayer = cast(myPlayer, GlobalPlayerInstance);
-			var response = AiHandler.respondToPlayer(aiPlayer, player, text);
-			if (response != null) {
-				myPlayer.say(response);
-				timeReactedLastCommand = TimeHelper.tick;
-				waitingTime += 2;
-			}
+			AiHandler.respondToPlayerAsync(aiPlayer, player, text, function(response:String) {
+				if (response != null) {
+					myPlayer.say(response);
+					timeReactedLastCommand = TimeHelper.tick;
+					waitingTime += 2;
+				}
+			});
 		}
 	}
 
