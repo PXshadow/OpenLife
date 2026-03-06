@@ -4936,6 +4936,8 @@ abstract class AiBase {
 		var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeReactedLastCommand);
 		if (AIProvider.IsLLMActivated() && (timePassedInSeconds > 4 || timeReactedLastCommand < 1)) {
 			waitingTime += 3;
+			myPlayer.doEmote(Emote.hubba);
+
 			var aiPlayer = cast(myPlayer, GlobalPlayerInstance);
 			var response = AiHandler.respondToPlayer(aiPlayer, player, text);
 			if (response != null) {

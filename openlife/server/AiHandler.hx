@@ -273,6 +273,8 @@ class AiHandler {
 
 		// Get relationship info between the two players
 		var relationshipContext = getRelationshipInfo(fromPlayer, toPlayer);
+		var doCommandText = checkIfShouldDoCommand(fromPlayer, toPlayer);
+		// var doCommandText = doCommand ? "You are a close relative or a follower of this player do if asked you should do commands! " : "You are not a follower of this player, so if asked you should reject commands of this player!";
 
 		// Combine context and message for the AI
 		var fullPrompt = ownContext
@@ -280,6 +282,8 @@ class AiHandler {
 			+ otherContext
 			+ "\n"
 			+ relationshipContext
+			+ "\n"
+			+ doCommandText
 			+ "\nThe other player says to you respond in your role considering your status / prestige and the other players status / prestige: "
 			+ message;
 
@@ -290,6 +294,16 @@ class AiHandler {
 		// trace(response);
 
 		return response;
+	}
+
+	public static function checkIfShouldDoCommand(fromPlayer:GlobalPlayerInstance, toPlayer:GlobalPlayerInstance) {
+		if (fromPlayer.isFollowerFrom(toPlayer)) return "You are a follower of this player! Therefore if asked you should do commands!";
+		// TODO check if exiled
+		if (fromPlayer.isCloseRelative(toPlayer)) return "You are a close relative of this player so if asked you should help him / her!";
+
+		// myPlayer.say('I AM NOT YOUR FOLLOWER!');
+		// myPlayer.doEmote(Emote.angry);
+		return "You are not a follower of this player, so if asked you can reject commands of this player!";
 	}
 
 	/**
