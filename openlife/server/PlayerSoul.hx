@@ -293,6 +293,13 @@ class PlayerSoul {
 		// Status visible to others
 		text += getExternalStatusText();
 
+		// Profession (if any)
+		var profession = getProfessionText();
+		if (profession.length > 0) {
+			if (player.isFemale()) text += "Her profession is " + profession + ". ";
+			else text += "His profession is " + profession + ". ";
+		}
+
 		// Held object (visible)
 		if (player.heldObject != null) {
 			text += "They are holding " + player.heldObject.objectData.name + ". ";
@@ -518,8 +525,15 @@ class PlayerSoul {
 	}
 
 	private function getProfessionText():String {
-		// This would need to come from AI's assigned profession
-		// For now, return empty - will be enhanced later
-		return "";
+		// Use assignedProfession if available, otherwise fall back to lastProfession
+		var text = player.assignedProfession;
+		if (text == null || text == player.lastProfession) {
+			text = player.lastProfession;
+		}
+		else {
+			text += ' doing ' + player.lastProfession;
+		}
+		if (text == null) text = 'NONE';
+		return text;
 	}
 }

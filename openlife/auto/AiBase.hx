@@ -103,8 +103,6 @@ abstract class AiBase {
 	public var hasCarrotSeeds = false;
 
 	public var wasIdle:Float = 0;
-	public var assignedProfession:String = null;
-	public var lastProfession:String = null;
 	public var profession:Map<String, Float> = [];
 	public var taskState:Map<String, Float> = [];
 	public var lastCheckedTimes:Map<String, Float> = [];
@@ -592,7 +590,7 @@ abstract class AiBase {
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = 30;
 
-		if (this.lastProfession == 'SMITH') Macro.exception(if (doSmithing()) return);
+		if (myPlayer.lastProfession == 'SMITH') Macro.exception(if (doSmithing()) return);
 
 		// Firing Adobe Kiln 282
 		var hotkiln = AiHelper.GetClosestObjectToPosition(myPlayer.tx, myPlayer.ty, 282, 10);
@@ -682,6 +680,8 @@ abstract class AiBase {
 		itemToCraft.maxSearchRadius = 30; // old null
 
 		// Macro.exception(if (doPrepareRows(1)) return);
+		var assignedProfession = myPlayer.assignedProfession;
+		var lastProfession = myPlayer.lastProfession;
 
 		// || lastProfession == 'ROWMAKER'
 		if (assignedProfession == 'ROWMAKER' || lastProfession == 'ROWMAKER') {
@@ -750,7 +750,7 @@ abstract class AiBase {
 		// if(craftItem(1137)) return;
 
 		// if(this.profession['SMITH'] > 0) Macro.exception(if (doSmithing()) return);
-		if (this.lastProfession == 'SMITH') Macro.exception(if (doSmithing()) return);
+		if (lastProfession == 'SMITH') Macro.exception(if (doSmithing()) return);
 		// if(this.profession['WATERBRINGER'] > 0) Macro.exception(if (doWatering()) return);
 		// if(this.profession['BASICFARMER'] > 0) Macro.exception(if (doBasicFarming()) return);
 		// if(this.profession['SHEPHERD'] > 0) Macro.exception(if (ADVANCEDFARMER()) return);
@@ -1281,7 +1281,7 @@ abstract class AiBase {
 			if (p.home.tx != myPlayer.home.tx || p.home.ty != myPlayer.home.ty) continue;
 
 			// var hasProfession = ai.profession[profession] > 0;
-			var hasProfession = ai.lastProfession == profession;
+			var hasProfession = ai.myPlayer.lastProfession == profession;
 
 			if (hasProfession == false) continue;
 
@@ -1448,7 +1448,7 @@ abstract class AiBase {
 
 	private function isHandlingGraves(maxPlayer:Int = 1):Bool {
 		// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} GRAVE: check1!');
-		var isGravekeeper = lastProfession == 'GRAVEKEEPER';
+		var isGravekeeper = myPlayer.lastProfession == 'GRAVEKEEPER';
 		var searchDistance = isGravekeeper && this.myPlayer.age < 50 && this.myPlayer.age > 59 ? 10 : 30;
 
 		// Basket of Bones 356
@@ -1473,7 +1473,7 @@ abstract class AiBase {
 
 		if (grave == null) return false;
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} ${lastProfession} GRAVE: ${grave.name} found! ${grave.tx},${grave.ty}');
+		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} ${myPlayer.lastProfession} GRAVE: ${grave.name} found! ${grave.tx},${grave.ty}');
 
 		lastGrave = null; // in case it is not reachable
 		if (this.isObjectNotReachable(grave.tx, grave.ty)) return false;
@@ -1506,7 +1506,7 @@ abstract class AiBase {
 
 		if (isHungry) return false; // Only take care of bones if not hungry
 
-		if (this.lastProfession != 'GRAVEKEEPER' && this.myPlayer.age < 50) {
+		if (myPlayer.lastProfession != 'GRAVEKEEPER' && this.myPlayer.age < 50) {
 			var bestPlayer = getBestAiForObjByProfession('GRAVEKEEPER', grave);
 			if (bestPlayer == null || bestPlayer.myPlayer.id != myPlayer.id) {
 				return false;
@@ -1514,7 +1514,7 @@ abstract class AiBase {
 		}
 
 		this.profession['GRAVEKEEPER'] = 1;
-		if (myPlayer.age > 50) this.lastProfession = 'GRAVEKEEPER';
+		if (myPlayer.age > 50) myPlayer.lastProfession = 'GRAVEKEEPER';
 
 		// Basket of Bones 356
 		// if (shortCraft(0, 356, searchDistance)) return true;
@@ -1597,7 +1597,7 @@ abstract class AiBase {
 
 		this.profession = new Map<String, Float>(); // clear all professions
 		this.profession['GRAVEKEEPER'] = 1;
-		this.lastProfession = 'GRAVEKEEPER';
+		myPlayer.lastProfession = 'GRAVEKEEPER';
 
 		Macro.exception(if (isRemovingFromContainer()) return true);
 		Macro.exception(if (isUsingItem()) return true);
@@ -4416,23 +4416,23 @@ abstract class AiBase {
 	}
 
 	private function cleanUpProfessions() {
-		if (lastProfession == null) return;
+		if (myPlayer.lastProfession == null) return;
 
 		for (key in profession.keys()) {
 			// keep old profession
-			if (key == lastProfession) continue;
+			if (key == myPlayer.lastProfession) continue;
 			if (key == 'FOODSERVER') continue;
 			if (key == 'BowlFiller') continue;
 			if (key == 'FIREKEEPER') continue;
 			if (key == 'GRAVEKEEPER') continue;
-			if (lastProfession == 'FOODSERVER') continue;
-			if (lastProfession == 'BowlFiller') continue;
-			if (lastProfession == 'FIREKEEPER') continue;
-			if (lastProfession == 'GRAVEKEEPER') continue;
+			if (myPlayer.lastProfession == 'FOODSERVER') continue;
+			if (myPlayer.lastProfession == 'BowlFiller') continue;
+			if (myPlayer.lastProfession == 'FIREKEEPER') continue;
+			if (myPlayer.lastProfession == 'GRAVEKEEPER') continue;
 
 			profession[key] = 0;
 
-			// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} profession: ${key} --> ${lastProfession}');
+			// if(ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} profession: ${key} --> ${myPlayer.lastProfession}');
 		}
 	}
 
@@ -4440,13 +4440,13 @@ abstract class AiBase {
 	// I nthis case lastProfession should not be assigned
 	private function hasOrBecomeProfession(profession:String, max:Int = 1):Bool {
 		// var hasProfession = this.profession[profession] > 0;
-		var hasProfession = lastProfession == profession;
+		var hasProfession = myPlayer.lastProfession == profession;
 		var highPriority = max < 0;
 
 		if (highPriority) return true; // do job but dont assign profession
 
 		if (hasProfession) {
-			this.lastProfession = profession;
+			myPlayer.lastProfession = profession;
 			return true;
 		}
 
@@ -4457,7 +4457,7 @@ abstract class AiBase {
 		// trace('hasOrBecomeProfession: $profession count: $count');
 		if (count >= max + wasIdle) return false;
 		this.profession[profession] = 1;
-		this.lastProfession = profession;
+		myPlayer.lastProfession = profession;
 		// trace('new profession: ${profession}');
 		return true;
 	}
@@ -4608,7 +4608,7 @@ abstract class AiBase {
 		var tmpMaxSearchRadius = itemToCraft.maxSearchRadius;
 		var count = countProfession('TAILOR');
 
-		itemToCraft.maxSearchRadius = count < 1 || lastProfession == 'TAILOR' ? 60 : 20;
+		itemToCraft.maxSearchRadius = count < 1 || myPlayer.lastProfession == 'TAILOR' ? 60 : 20;
 		if (myPlayer.age < 20) itemToCraft.maxSearchRadius = 20;
 		var done = fillUpQuiverHelper();
 		itemToCraft.maxSearchRadius = tmpMaxSearchRadius;
@@ -4924,9 +4924,9 @@ abstract class AiBase {
 			if (prof == 'WHEAT') prof = 'BASICFARMER';
 			if (prof == 'CARROT') prof = 'CARROTFARMER';
 			if (prof == 'COLLECT') prof = 'COLLECTOR';
-			if (prof == 'NONE') assignedProfession = null;
+			if (prof == 'NONE') myPlayer.assignedProfession = null;
 			if (professions.contains(prof)) {
-				assignedProfession = prof;
+				myPlayer.assignedProfession = prof;
 				myPlayer.say('${prof}');
 			}
 		}
@@ -4984,9 +4984,9 @@ abstract class AiBase {
 	}
 
 	public function createProfessionText() {
-		var text = assignedProfession;
-		if (text == null || text == lastProfession) text = lastProfession;
-		else text += ' doing ' + lastProfession;
+		var text = myPlayer.assignedProfession;
+		if (text == null || text == myPlayer.lastProfession) text = myPlayer.lastProfession;
+		else text += ' doing ' + myPlayer.lastProfession;
 		if (text == null) text = 'NONE';
 		return text;
 	}
@@ -8357,15 +8357,15 @@ abstract class AiBase {
 	private function isConsideringMakingFood():Bool {
 		var home = myPlayer.home;
 
-		// if (shouldDebugSay()) myPlayer.say('$lastProfession  ${countProfession(lastProfession)}');
+		// if (shouldDebugSay()) myPlayer.say('$myPlayer.lastProfession  ${countProfession(myPlayer.lastProfession)}');
 		if (shouldDebugProfession()) {
 			var text = createProfessionText();
-			myPlayer.say('$text ${countProfession(lastProfession)}');
+			myPlayer.say('$text ${countProfession(myPlayer.lastProfession)}');
 		}
 
 		var foodName = foodTarget == null ? 'none' : foodTarget.name;
 		if (ServerSettings.DebugAi)
-			trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} profession: $lastProfession count: ${countProfession(lastProfession)} food: ${myPlayer.food_store} isHungry: ${isHungry} food: ${foodName}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} t: ${TimeHelper.tick} profession: ${myPlayer.lastProfession} count: ${countProfession(myPlayer.lastProfession)} food: ${myPlayer.food_store} isHungry: ${isHungry} food: ${foodName}');
 
 		if (myPlayer.age < ServerSettings.MinAgeToEat) return false;
 		if (isHungry == false && foodTarget == null) return false;
@@ -8373,7 +8373,7 @@ abstract class AiBase {
 		// TODO reset SMITH here?
 		this.profession['SMITH'] = 0;
 		// TODO try out if it is better or not to keep profession while eating
-		if (this.lastProfession != 'FOODSERVER') this.lastProfession = 'Eating';
+		if (myPlayer.lastProfession != 'FOODSERVER') myPlayer.lastProfession = 'Eating';
 
 		var quadDistance = -1.0;
 

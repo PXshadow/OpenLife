@@ -110,5 +110,8 @@ interface PlayerInterface {
 	public var firePlace(default, default):ObjectHelper;
 	public var lastTemperature(default, default):Float;
 
+	public var assignedProfession(default, default):String; // assigned profession for AI NPCs
+	public var lastProfession(default, default):String; // current/last profession of AI NPC
+
 	public function getClosestPlayer(maxDistance:Int, onlyHuman:Bool = false):PlayerInterface;
 }

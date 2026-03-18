@@ -277,6 +277,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	public var partner:GlobalPlayerInstance = null; // not saved yet
 	public var potentialMate:GlobalPlayerInstance = null; // not saved
 
+	// AI profession
+	public var assignedProfession:String = null; // assigned profession for AI NPCs
+	public var lastProfession:String = null; // current/last profession of AI NPC
+
 	public var locationSaysPositions = new Array<Point>(); // no need to be saved
 
 	public var home = new ObjectHelper(null, 0); // position player considers home
