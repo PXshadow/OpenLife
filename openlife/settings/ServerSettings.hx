@@ -150,7 +150,7 @@ class ServerSettings {
 	public static var MinAgeFertile = 14; // TODO only make lower then 14 if client allows it
 	public static var MaxAgeFertile = 42;
 	public static var MaxSayLength = 80;
-	public static var AiAdditionalSayCharacters:Int = 200; // Additional characters AI NPCs can use in speech
+	public static var AiAdditionalSayCharacters:Int = 100; // Additional characters AI NPCs can use in speech
 
 	// save to disk
 	public static var TicksBetweenSaving = 600; // 600 // 200// in ticks 200 = 10 sec
