@@ -3,6 +3,8 @@ package openlife.server;
 import haxe.Exception;
 import sys.thread.Mutex;
 import sys.thread.Thread;
+import sys.io.File;
+import sys.io.FileOutput;
 import openlife.settings.ServerSettings;
 
 /**
@@ -13,6 +15,66 @@ class AiHandler {
 	// Rate limiting: track timestamps of all calls in the last hour
 	private static var callTimestamps:Array<Float> = [];
 	private static var mutex:Mutex = new Mutex();
+
+	// File logging for AI conversations
+	private static var logMutex:Mutex = new Mutex();
+	private static var logFileBaseName:String = "ai_conversation_log";
+
+	/**
+	 * Set the log file base name for AI conversation logging.
+	 * The date will be appended to create daily log files.
+	 * @param baseName The base file name (without date and extension)
+	 */
+	public static function setLogFilePath(baseName:String):Void {
+		logMutex.acquire();
+		logFileBaseName = baseName;
+		logMutex.release();
+	}
+
+	/**
+	 * Get today's date formatted as YYYY-MM-DD.
+	 * @return The formatted date string
+	 */
+	private static function getDateString():String {
+		var now = Date.now();
+		var year = now.getFullYear();
+		var month = now.getMonth() + 1;
+		var day = now.getDate();
+		return StringTools.lpad(Std.string(year), "0", 4) + "-" + StringTools.lpad(Std.string(month), "0", 2) + "-" + StringTools.lpad(Std.string(day), "0", 2);
+	}
+
+	/**
+	 * Get the current log file path with date appended.
+	 * @return The full log file path for today
+	 */
+	private static function getCurrentLogFilePath():String {
+		return logFileBaseName + "_" + getDateString() + ".txt";
+	}
+
+	/**
+	 * Thread-safe method to log AI conversation to a file.
+	 * Logs the timestamp, fullPrompt, and response.
+	 * @param fullPrompt The prompt sent to the AI
+	 * @param response The response from the AI (can be null if failed)
+	 */
+	private static function logToFile(fullPrompt:String, response:String):Void {
+		logMutex.acquire();
+		try {
+			var timestamp = Date.now().toString();
+			var logFilePath = getCurrentLogFilePath();
+			var logEntry = "========================================\n";
+			logEntry += "Timestamp: " + timestamp + "\n";
+			logEntry += "Log File: " + logFilePath + "\n\n";
+			logEntry += "--- FULL PROMPT ---\n" + fullPrompt + "\n\n";
+			logEntry += "--- RESPONSE ---\n" + (response != null ? response : "(null - failed or rate limited)") + "\n";
+			logEntry += "========================================\n\n";
+
+			File.append(logFilePath).writeString(logEntry);
+		} catch (e:Dynamic) {
+			trace('Failed to write to log file: $e');
+		}
+		logMutex.release();
+	}
 
 	/**
 	 * Get a chat response from the AI.
@@ -275,7 +337,7 @@ class AiHandler {
 
 	/**
 	 * Build the prompt string for AI response from player context.
-	 * Extracts soul text, relationship info, and combines with the message.
+	 * Extracts soul text, relationship info, memory, and combines with the message.
 	 * @param fromPlayer The AI player who will respond
 	 * @param toPlayer The human player who sent the message
 	 * @param message The message from the human player
@@ -291,18 +353,29 @@ class AiHandler {
 		// Get relationship info between the two players
 		var relationshipContext = getRelationshipInfo(fromPlayer, toPlayer);
 		var doCommandText = checkIfShouldDoCommand(fromPlayer, toPlayer);
-		// var doCommandText = doCommand ? "You are a close relative or a follower of this player do if asked you should do commands! " : "You are not a follower of this player, so if asked you should reject commands of this player!";
+
+		// Get memory context (interactions with other players)
+		var memoryContext = fromPlayer.playerSoul.getMemoryText();
+
+		// Get chat memory context
+		var chatMemoryContext = fromPlayer.playerSoul.getChatMemoryText();
 
 		// Combine context and message for the AI
-		return ownContext
-			+ "\n"
-			+ otherContext
-			+ "\n"
-			+ relationshipContext
-			+ "\n"
-			+ doCommandText
-			+ "\nThe other player says to you respond in your role considering your status / prestige and the other players status / prestige: "
-			+ message;
+		var prompt = ownContext + "\n" + otherContext + "\n" + relationshipContext + "\n" + doCommandText;
+
+		// Add memory context if available
+		if (memoryContext.length > 0) {
+			prompt += "\n" + memoryContext;
+		}
+
+		// Add chat memory context if available
+		if (chatMemoryContext.length > 0) {
+			prompt += "\n" + chatMemoryContext;
+		}
+
+		prompt += "\nThe other player says to you respond in your role considering your status / prestige and the other players status / prestige: " + message;
+
+		return prompt;
 	}
 
 	public static function checkIfShouldDoCommand(fromPlayer:GlobalPlayerInstance, toPlayer:GlobalPlayerInstance) {
@@ -327,10 +400,22 @@ class AiHandler {
 		// Build the prompt in the main thread (player context must be accessed there)
 		var fullPrompt = buildPrompt(fromPlayer, toPlayer, message);
 
+		// Store references for use in thread
+		var fromSoul = fromPlayer.playerSoul;
+
 		// Spawn a new thread to call the LLM without blocking the main thread
 		Thread.create(function() {
 			// Call ChatResponse directly with the pre-built prompt
 			var response = ChatResponse(fullPrompt);
+
+			// Log the conversation to file (thread-safe)
+			logToFile(fullPrompt, response);
+
+			// Add to chat memory only if call succeeded
+			if (response != null) {
+				fromSoul.addChatEntry(toPlayer, message, response);
+				// TODO toSoul.addChatEntry(toPlayer, message, response);
+			}
 
 			// Execute the callback with the response
 			onSuccess(response);

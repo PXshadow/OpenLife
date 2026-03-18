@@ -1,7 +1,66 @@
 package openlife.server;
 
+import sys.thread.Mutex;
 import openlife.auto.PlayerInterface;
 import openlife.server.Lineage.PrestigeClass;
+import openlife.settings.ServerSettings;
+import openlife.macros.Macro;
+
+/**
+ * Types of interactions that can be tracked in player memory
+ */
+enum InteractionType {
+	AttackDamage;
+	ServedFood;
+	ProvidedCloths;
+	GivenCoins;
+	ProvidedHealing; // Prepared for future use
+	Trade; // Prepared for future use
+}
+
+/**
+ * Data class to store interaction values with a specific player
+ */
+class InteractionData {
+	public var playerId:Int;
+	public var playerName:String;
+	public var playerFamilyName:String;
+	public var attackDamage:Float = 0;
+	public var servedFood:Float = 0;
+	public var providedCloths:Float = 0;
+	public var givenCoins:Float = 0;
+	public var providedHealing:Float = 0; // Prepared for future use
+	public var tradeValue:Float = 0; // Prepared for future use
+
+	public function new(playerId:Int, playerName:String, playerFamilyName:String) {
+		this.playerId = playerId;
+		this.playerName = playerName;
+		this.playerFamilyName = playerFamilyName;
+	}
+}
+
+/**
+ * Data class to store chat history entries
+ */
+class ChatEntry {
+	public var playerId:Int;
+	public var playerName:String;
+	public var playerFamilyName:String;
+	public var message:String;
+	public var reply:String;
+
+	public function new(playerId:Int, playerName:String, playerFamilyName:String, message:String, reply:String) {
+		this.playerId = playerId;
+		this.playerName = playerName;
+		this.playerFamilyName = playerFamilyName;
+		this.message = message;
+		this.reply = reply;
+	}
+
+	public function toString():String {
+		return 'Name $playerName $playerFamilyName: $message Your reply: $reply';
+	}
+}
 
 /**
  * PlayerSoul provides context about a player for AI interactions.
@@ -10,8 +69,150 @@ import openlife.server.Lineage.PrestigeClass;
 class PlayerSoul {
 	public var player:GlobalPlayerInstance;
 
+	// Thread-safe memory for player interactions
+	private var memory:Map<Int, InteractionData> = new Map<Int, InteractionData>();
+	private var memoryOrder:Array<Int> = []; // Track order of entries for FIFO removal
+	private var memoryMutex:Mutex = new Mutex();
+
+	// Thread-safe chat memory
+	private var chatMemory:Array<ChatEntry> = [];
+	private var chatMemoryMutex:Mutex = new Mutex();
+
 	public function new(player:GlobalPlayerInstance) {
 		this.player = player;
+	}
+
+	/**
+	 * Add or update an interaction with another player.
+	 * Thread-safe method for async access.
+	 */
+	public function addInteraction(otherPlayerId:Int, otherPlayerName:String, otherPlayerFamilyName:String, type:InteractionType, value:Float):Void {
+		memoryMutex.acquire();
+		Macro.exception(addInteractionHelper(otherPlayerId, otherPlayerName, otherPlayerFamilyName, type, value));
+		memoryMutex.release();
+	}
+
+	private function addInteractionHelper(otherPlayerId:Int, otherPlayerName:String, otherPlayerFamilyName:String, type:InteractionType, value:Float):Void {
+		var interaction = memory.get(otherPlayerId);
+		if (interaction == null) {
+			// Create new entry
+			interaction = new InteractionData(otherPlayerId, otherPlayerName, otherPlayerFamilyName);
+			memory.set(otherPlayerId, interaction);
+			memoryOrder.push(otherPlayerId);
+
+			// Enforce memory limit (remove oldest if needed)
+			if (memoryOrder.length > ServerSettings.AiMemoryMaxEntries) {
+				var oldestId = memoryOrder.shift();
+				memory.remove(oldestId);
+			}
+		}
+
+		// Update the appropriate field based on type
+		switch (type) {
+			case InteractionType.AttackDamage:
+				interaction.attackDamage += value;
+			case InteractionType.ServedFood:
+				interaction.servedFood += value;
+			case InteractionType.ProvidedCloths:
+				interaction.providedCloths += value;
+			case InteractionType.GivenCoins:
+				interaction.givenCoins += value;
+			case InteractionType.ProvidedHealing:
+				interaction.providedHealing += value;
+			case InteractionType.Trade:
+				interaction.tradeValue += value;
+		}
+	}
+
+	/**
+	 * Add a chat entry to the chat memory.
+	 * Thread-safe method for async access.
+	 * Only call this after successful LLM response.
+	 */
+	public function addChatEntry(fromPlayer:GlobalPlayerInstance, message:String, reply:String):Void {
+		chatMemoryMutex.acquire();
+		Macro.exception(addChatEntryHelper(fromPlayer, message, reply));
+		chatMemoryMutex.release();
+	}
+
+	private function addChatEntryHelper(fromPlayer:GlobalPlayerInstance, message:String, reply:String):Void {
+		chatMemory.push(new ChatEntry(fromPlayer.id, fromPlayer.name, fromPlayer.familyName, message, reply));
+
+		// Enforce chat memory limit (remove oldest if needed)
+		while (chatMemory.length > ServerSettings.AiChatMemoryMaxEntries) {
+			chatMemory.shift();
+		}
+	}
+
+	/**
+	 * Get the memory text for AI context.
+	 * Returns formatted string of all interactions.
+	 */
+	public function getMemoryText():String {
+		memoryMutex.acquire();
+		var result = "";
+		Macro.exception(result = getMemoryTextHelper());
+		memoryMutex.release();
+		return result;
+	}
+
+	private function getMemoryTextHelper():String {
+		if (memoryOrder.length == 0) return "";
+
+		var result = "Recent interactions with other players: ";
+		for (playerId in memoryOrder) {
+			var interaction = memory.get(playerId);
+			if (interaction == null) continue;
+
+			var playerName = interaction.playerName + " " + interaction.playerFamilyName;
+			var parts:Array<String> = [];
+			if (interaction.attackDamage > 0) {
+				parts.push('$playerName, AttackDamage += ${interaction.attackDamage}');
+			}
+			if (interaction.servedFood > 0) {
+				parts.push('$playerName, ServedFood += ${interaction.servedFood}');
+			}
+			if (interaction.providedCloths > 0) {
+				parts.push('$playerName, ProvidedCloths += ${interaction.providedCloths}');
+			}
+			if (interaction.givenCoins > 0) {
+				parts.push('$playerName, GivenCoins += ${interaction.givenCoins}');
+			}
+			if (interaction.providedHealing > 0) {
+				parts.push('$playerName, ProvidedHealing += ${interaction.providedHealing}');
+			}
+			if (interaction.tradeValue > 0) {
+				parts.push('$playerName, Trade += ${interaction.tradeValue}');
+			}
+
+			if (parts.length > 0) {
+				result += parts.join("; ") + " --- ";
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Get the chat memory text for AI context.
+	 * Returns formatted string of recent chat history.
+	 */
+	public function getChatMemoryText():String {
+		chatMemoryMutex.acquire();
+		var result = "";
+		Macro.exception(result = getChatMemoryTextHelper());
+		chatMemoryMutex.release();
+		return result;
+	}
+
+	// TODO only from player talking to
+	private function getChatMemoryTextHelper():String {
+		if (chatMemory.length == 0) return "";
+
+		var result = "Recent chat history: ";
+		for (entry in chatMemory) {
+			result += entry.toString() + " --- ";
+		}
+		return result;
 	}
 
 	/**

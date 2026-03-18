@@ -109,6 +109,10 @@ class ServerSettings {
 	public static var AiMaxTokens:Int = 1024; // Max tokens in response
 	public static var AiMaxTokensForChat:Int = 1024; // Max tokens in response
 
+	// AI Memory settings
+	public static var AiMemoryMaxEntries:Int = 20; // Max player interaction entries to remember
+	public static var AiChatMemoryMaxEntries:Int = 100; // Max chat history entries to remember
+
 	// coins
 	public static var InheritCoinsFactor:Float = 0.8; // on death X coins are inherited
 	public static var CoinsOnWoundingFactor:Float = 0.5; // If you manage to wound somebody
