@@ -2092,6 +2092,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		maxLenght += Math.ceil(extraAge * 4);
 		if (maxLenght > ServerSettings.MaxSayLength) maxLenght = ServerSettings.MaxSayLength;
 
+		// Give AI more characters so that AI can describe stuff it does
+		if (this.isAi()) maxLenght += ServerSettings.AiAdditionalSayCharacters;
+
 		if (text.startsWith('/') == false && text.length > maxLenght) text = text.substr(0, maxLenght);
 
 		text = NamingHelper.DoNaming(this, text);
