@@ -18,7 +18,7 @@ class AiHandler {
 
 	// File logging for AI conversations
 	private static var logMutex:Mutex = new Mutex();
-	private static var logFileBaseName:String = "ai_conversation_log";
+	private static var logFileBaseName:String = "log/ai_conversation_log";
 
 	/**
 	 * Set the log file base name for AI conversation logging.
@@ -60,6 +60,12 @@ class AiHandler {
 	private static function logToFile(fullPrompt:String, response:String):Void {
 		logMutex.acquire();
 		try {
+			// Ensure log directory exists
+			var logDir = "log";
+			if (!sys.FileSystem.exists(logDir)) {
+				sys.FileSystem.createDirectory(logDir);
+			}
+
 			var timestamp = Date.now().toString();
 			var logFilePath = getCurrentLogFilePath();
 			var logEntry = "========================================\n";
