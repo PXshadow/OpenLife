@@ -1,5 +1,6 @@
 package openlife.server;
 
+import openlife.auto.AiHelper;
 import sys.thread.Mutex;
 import openlife.auto.PlayerInterface;
 import openlife.server.Lineage.PrestigeClass;
@@ -243,6 +244,9 @@ class PlayerSoul {
 		// Temperature context
 		text += getTemperatureContextText();
 
+		// Home context
+		text += getHomeContextText();
+
 		// Profession (if any)
 		var profession = getProfessionText();
 		if (profession.length > 0) {
@@ -343,6 +347,72 @@ class PlayerSoul {
 		var heat = player.heat;
 		var tempLabel = getTemperatureLabel(heat);
 		return "The temperature is " + tempLabel + ". ";
+	}
+
+	/**
+	 * Get home context text describing distance and direction to player's home.
+	 * Uses 1 tile = 1 mile conversion.
+	 * @return Text describing distance and direction to home
+	 */
+	private function getHomeContextText():String {
+		// Check if player has a home set
+		if (player.home == null || (player.home.tx == 0 && player.home.ty == 0)) {
+			return "No home. ";
+		}
+
+		// Calculate quad distance to home
+		var quadDist = AiHelper.CalculateQuadDistanceToObject(player, player.home);
+		var distance = Math.sqrt(quadDist);
+		var miles = Math.round(distance);
+
+		// Calculate direction
+		var dx = player.home.tx - player.tx;
+		var dy = player.home.ty - player.ty;
+
+		// Determine direction with intermediate directions
+		var direction = "";
+		var useIntermediate = Math.abs(dx) < 2 * Math.abs(dy) || Math.abs(dy) < 2 * Math.abs(dx); // Only use intermediate if both are significant
+
+		if (dx > 0 && dy > 0) {
+			// East, South
+			direction = useIntermediate ? "south east" : (Math.abs(dx) >= Math.abs(dy) ? "east" : "south");
+		}
+		else if (dx < 0 && dy > 0) {
+			// West, South
+			direction = useIntermediate ? "south west" : (Math.abs(dx) >= Math.abs(dy) ? "west" : "south");
+		}
+		else if (dx > 0 && dy < 0) {
+			// East, North
+			direction = useIntermediate ? "north east" : (Math.abs(dx) >= Math.abs(dy) ? "east" : "north");
+		}
+		else if (dx < 0 && dy < 0) {
+			// West, North
+			direction = useIntermediate ? "north west" : (Math.abs(dx) >= Math.abs(dy) ? "west" : "north");
+		}
+		else if (dx > 0) {
+			direction = "east";
+		}
+		else if (dx < 0) {
+			direction = "west";
+		}
+		else if (dy > 0) {
+			direction = "south";
+		}
+		else if (dy < 0) {
+			direction = "north";
+		}
+
+		if (miles < 20) {
+			return "You are at your home. ";
+		}
+
+		var milesText = miles == 1 ? "mile" : "miles";
+		if (direction.length > 0) {
+			return "Your home is " + miles + " " + milesText + " to the " + direction + ". ";
+		}
+		else {
+			return "Your home is " + miles + " " + milesText + " away. ";
+		}
 	}
 
 	private function getFamilyText():String {
