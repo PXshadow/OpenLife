@@ -413,6 +413,7 @@ class AiHandler {
 		Thread.create(function() {
 			// Call ChatResponse directly with the pre-built prompt
 			var response = ChatResponse(fullPrompt);
+			response = response.split("\n").join(" ");
 
 			// Log the conversation to file (thread-safe)
 			logToFile(fullPrompt, response);
@@ -423,7 +424,7 @@ class AiHandler {
 				// TODO toSoul.addChatEntry(toPlayer, message, response);
 			}
 
-			// Execute the callback with the response
+			// Execute the callback with the response (replace newlines with spaces)
 			onSuccess(response);
 		});
 	}
