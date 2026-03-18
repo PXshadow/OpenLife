@@ -227,6 +227,13 @@ class TimeHelper {
 		if (player == null) return false;
 		if (player.deleted) return false; // maybe remove?
 
+		if (player.lineage.eveLineage == null) {
+			trace('WARNING: No eve lineage found!!! player.lineage.myEveId: ${player.lineage.myEveId} ');
+			if (player.mother != null) player.lineage.myEveId = player.mother.lineage.myEveId;
+			else if (player.father != null) player.lineage.myEveId = player.father.lineage.myEveId;
+			else player.lineage.myEveId = player.lineage.myId;
+		}
+
 		Macro.exception(player.connection.doTime(timePassedInSeconds));
 
 		Macro.exception(UpdatePlayerStats(player, timePassedInSeconds));
