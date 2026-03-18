@@ -4935,16 +4935,24 @@ abstract class AiBase {
 		// This runs after all other command handlers have been checked
 		var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeReactedLastCommand);
 		if (AIProvider.IsLLMActivated() && myPlayer.age > 10 && (timePassedInSeconds > 4 || timeReactedLastCommand < 1)) {
-			waitingTime += 3;
 			// myPlayer.doEmote(Emote.hubba);
 			myPlayer.doEmote(Emote.oreally);
+
+			// Stop if an ally
+			if (checkIfYouAreAllied(player)) {
+				if (waitingTime < 3) waitingTime += 3;
+				myPlayer.Goto(myPlayer.x, myPlayer.y);
+			}
 
 			var aiPlayer = cast(myPlayer, GlobalPlayerInstance);
 			AiHandler.respondToPlayerAsync(aiPlayer, player, text, function(response:String) {
 				if (response != null) {
 					myPlayer.say(response);
 					timeReactedLastCommand = TimeHelper.tick;
-					waitingTime += 2;
+					if (checkIfYouAreAllied(player)) {
+						if (waitingTime < 3) waitingTime += 3;
+						myPlayer.Goto(myPlayer.x, myPlayer.y);
+					}
 				}
 			});
 		}
