@@ -141,7 +141,8 @@ class Lineage {
 
 			// save Eve lineages --> important for family name
 			for (lineage in lineages) {
-				if (lineage.delete == false) {
+				// TODO check why eveLineage  == null?
+				if (lineage.delete == false && lineage.eveLineage != null) {
 					lineage.eveLineage.setDelete(false);
 					var mother = lineage.getMotherLineage();
 					if (mother != null) mother.setDelete(false);
@@ -441,6 +442,11 @@ class Lineage {
 			reasonKilled[killedBy] += 1;
 			generations[generation] += 1;
 
+			// TODO check why account is 0
+			if (lineage.accountId < 1 || lineage.account == null) {
+				trace('WARNING! Lineage: account does not exist! Account Id: ${lineage.accountId} Player Id: ${lineage.po_id}');
+				continue;
+			}
 			writer.writeString('${lineage.getFullName()} gen: ${generation} age: ${age} ${killedBy}\n');
 
 			// if(lineage.familyName.startsWith('SNOW') == false) trace('Lineage: ${lineage.getFullName()} age: ${age} ${lineage.deathReason}');
@@ -613,6 +619,8 @@ class Lineage {
 	public var familyName(get, null):String;
 
 	public function get_familyName() {
+		// TODO check why eveLineage == null?
+		if (this.eveLineage == null) return this.myFamilyName;
 		return this.eveLineage.myFamilyName;
 	}
 
