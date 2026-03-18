@@ -6,6 +6,7 @@ import openlife.auto.PlayerInterface;
 import openlife.server.Lineage.PrestigeClass;
 import openlife.settings.ServerSettings;
 import openlife.macros.Macro;
+import openlife.server.WorldMap;
 
 /**
  * Types of interactions that can be tracked in player memory
@@ -346,7 +347,14 @@ class PlayerSoul {
 	private function getTemperatureContextText():String {
 		var heat = player.heat;
 		var tempLabel = getTemperatureLabel(heat);
-		return "The temperature is " + tempLabel + ". ";
+		var text = "The temperature is " + tempLabel + ". ";
+
+		// Add tile temperature at player position
+		var tileTemperature = WorldMap.world.getTileTemperature(player.tx, player.ty);
+		var tileTempLabel = getTemperatureLabel(tileTemperature);
+		text += "The surrounding temperature is " + tileTempLabel + ". ";
+
+		return text;
 	}
 
 	/**
