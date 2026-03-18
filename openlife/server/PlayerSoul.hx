@@ -225,6 +225,9 @@ class PlayerSoul {
 		text += player.isFemale() ? "female" : "male";
 		text += " aged " + Math.floor(player.trueAge) + " years. ";
 
+		// Current season
+		text += 'It is currently ${TimeHelper.SeasonText}. ';
+
 		// Prestige class with exact value
 		var prestige = player.prestige;
 		var prestigeClass = player.lineage.prestigeClass;
@@ -236,6 +239,9 @@ class PlayerSoul {
 
 		// Status
 		text += getStatusText();
+
+		// Temperature context
+		text += getTemperatureContextText();
 
 		// Profession (if any)
 		var profession = getProfessionText();
@@ -310,6 +316,33 @@ class PlayerSoul {
 			case PrestigeClass.Emperor: "emperor";
 			default: "commoner";
 		}
+	}
+
+	/**
+	 * Get a descriptive temperature label based on heat value.
+	 * 7 temperature levels: freezing, cold, cool, mild, warm, hot, sweltering
+	 * @param heat The heat value (0.0 to 1.0)
+	 * @return A descriptive temperature label
+	 */
+	public static function getTemperatureLabel(heat:Float):String {
+		if (heat < 0.1) return "freezing";
+		if (heat < 0.25) return "cold";
+		if (heat < 0.4) return "cool";
+		if (heat < 0.6) return "mild";
+		if (heat < 0.75) return "warm";
+		if (heat < 0.9) return "hot";
+		return "sweltering";
+	}
+
+	/**
+	 * Get temperature context text for AI.
+	 * Includes current temperature with descriptive label.
+	 * @return Text describing current temperature conditions
+	 */
+	private function getTemperatureContextText():String {
+		var heat = player.heat;
+		var tempLabel = getTemperatureLabel(heat);
+		return "The temperature is " + tempLabel + ". ";
 	}
 
 	private function getFamilyText():String {
