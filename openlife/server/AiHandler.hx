@@ -398,9 +398,19 @@ class AiHandler {
 	}
 
 	private static function getCommandContext():String {
-		return "You can also respond with a JSON command object to perform actions. By default respond with one fitting emote to your text reponse:
-{ \"text\": \"your response\", \"command\": { \"type\": \"doEmote\", \"emote\": \"emoteName\" } }
-Available emotes: happy, angry, love, sad, joy, blush, devious, shock, terrified, homesick, mad, oreally, ill, hmph, snowSplat";
+		return "Always respond with valid JSON including a fitting emote and any actions you want to perform:
+{ \"text\": \"your response\", \"emote\": \"emoteName\" }
+Add only the actions you want to perform:
+- \"text\": your roleplay response
+- \"emote\": one ONLY: happy, angry, love, sad, joy, blush, devious, shock, terrified, homesick, mad, oreally, ill, hmph, snowSplat
+- \"followPlayer\": true - to stay close / walk with the player
+- \"drop\": true - to drop held item
+- \"makeItem\": \"item name or id\" - to craft an item (e.g. \"knife\" or 71)
+
+Examples:
+{ \"text\": \"I will follow you!\", \"emote\": \"happy\", \"followPlayer\": true }
+{ \"text\": \"Making a knife.\", \"emote\": \"joy\", \"makeItem\": \"knife\" }
+{ \"text\": \"Hello!\", \"emote\": \"joy\" }";
 	}
 
 	private static function getEmoteId(emoteName:String):Int {
@@ -447,14 +457,33 @@ Available emotes: happy, angry, love, sad, joy, blush, devious, shock, terrified
 			if (Reflect.hasField(json, "text")) {
 				text = json.text;
 			}
-			if (Reflect.hasField(json, "command")) {
-				var command = json.command;
-				if (Reflect.hasField(command, "type") && command.type == "doEmote") {
-					var emoteName = command.emote;
-					var emoteId = getEmoteId(emoteName);
-					if (emoteId >= 0) {
-						aiPlayer.doEmote(emoteId, 300);
-					}
+
+			// Handle emote at top level
+			if (Reflect.hasField(json, "emote")) {
+				var emoteName = json.emote;
+				var emoteId = getEmoteId(emoteName);
+				if (emoteId >= 0) {
+					aiPlayer.doEmote(emoteId, 300);
+				}
+			}
+
+			// Check for action commands at top level
+			if (aiPlayer.connection != null && aiPlayer.connection.serverAi != null) {
+				var ai = aiPlayer.connection.serverAi.ai;
+
+				// followPlayer action
+				if (Reflect.hasField(json, "followPlayer") && json.followPlayer == true) {
+					ai.startFollowingPlayer(aiPlayer);
+				}
+
+				// drop action
+				if (Reflect.hasField(json, "drop") && json.drop == true) {
+					ai.doDropCommand();
+				}
+
+				// makeItem action
+				if (Reflect.hasField(json, "makeItem") && json.makeItem != null) {
+					ai.doMakeCraftCommand(Std.string(json.makeItem), true);
 				}
 			}
 		} catch (e:Dynamic) {

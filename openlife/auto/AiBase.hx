@@ -4827,10 +4827,7 @@ abstract class AiBase {
 		}
 		if (text.startsWith("FOLLOW ME!") || text.startsWith("FOLLOW") || text.startsWith("COME")) {
 			if (checkIfShouldDoCommand(player) == false) return;
-			autoStopFollow = false; // otherwise if old enough ai would stop follow
-			timeStartedToFolow = TimeHelper.tick;
-			playerToFollow = player;
-			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
+			startFollowingPlayer(player);
 			myPlayer.say("IM COMMING");
 		}
 		else if (text.contains("STOP FOLLOW")) {
@@ -4852,11 +4849,7 @@ abstract class AiBase {
 		}
 		else if (text.startsWith("DROP")) {
 			if (checkIfYouAreAllied(player) == false) return;
-			// myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
-			myPlayer.Goto(myPlayer.x, myPlayer.y);
-			// dropHeldObject(0);
-			orderedToDrop = true;
-			waitingTime = 1;
+			doDropCommand();
 			myPlayer.say("DROPING");
 		}
 		if (text.contains("GO HOME")) {
@@ -4891,15 +4884,7 @@ abstract class AiBase {
 		}*/
 		if (text.startsWith("MAKE") || text.startsWith("CRAFT")) {
 			if (checkIfYouAreAllied(player) == false) return;
-			var id = GlobalPlayerInstance.findObjectByCommand(text);
-
-			if (id > 0) {
-				itemToCraftId = id;
-				// craftItem(id); // TODO use mutex if Ai does not use Globalplayermutex
-				var obj = ObjectData.getObjectData(id);
-				this.itemToCraftName = obj.name;
-				myPlayer.say("Making " + obj.name);
-			}
+			doMakeCraftCommand(text);
 		}
 		else if (text.startsWith("DEBUG!") || text.startsWith("DEBUG ON")) {
 			debugSay = true;
@@ -4951,8 +4936,8 @@ abstract class AiBase {
 
 			// Stop if an ally
 			if (checkIfYouAreAllied(player, true)) {
-				setWaitingTimeMin(3);
-				myPlayer.Goto(myPlayer.x, myPlayer.y);
+				myPlayer.Goto(player.x, player.y);
+				setWaitingTimeMin(6);
 			}
 
 			myPlayer.say("...");
@@ -8257,6 +8242,30 @@ abstract class AiBase {
 			trace('AAI: ${myPlayer.name + myPlayer.id} age: ${Math.ceil(myPlayer.age * 10) / 10} dist: $quadDistance goto player $done');
 
 		return done;
+	}
+
+	public function startFollowingPlayer(player:PlayerInterface):Void {
+		autoStopFollow = false;
+		timeStartedToFolow = TimeHelper.tick;
+		playerToFollow = player;
+		myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
+	}
+
+	public function doDropCommand():Void {
+		myPlayer.Goto(myPlayer.x, myPlayer.y);
+		orderedToDrop = true;
+		waitingTime = 1;
+	}
+
+	public function doMakeCraftCommand(text:String, silent:Bool = false):Void {
+		var id = GlobalPlayerInstance.findObjectByCommand(text);
+
+		if (id > 0) {
+			itemToCraftId = id;
+			var obj = ObjectData.getObjectData(id);
+			this.itemToCraftName = obj.name;
+			if (silent == false) myPlayer.say("Making " + obj.name);
+		}
 	}
 
 	// returns true if in process of dropping item

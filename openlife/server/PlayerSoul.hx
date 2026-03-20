@@ -261,12 +261,12 @@ class PlayerSoul {
 
 		// Emotional state
 		if (player.isAngryOrTerrified()) {
-			text += "You are angry or terrified. ";
+			text += "You are angry or terrified act acordingly! ";
 		}
 
 		// Weapon
 		if (player.isHoldingWeapon()) {
-			text += "You are holding a weapon. ";
+			text += "You are holding a weapon. Consider this strongly!";
 		}
 
 		return text;
@@ -307,12 +307,12 @@ class PlayerSoul {
 
 		// Emotional state (visible)
 		if (player.isAngryOrTerrified()) {
-			text += "They look angry or terrified. ";
+			text += "They look angry or terrified. Consider this strongly!";
 		}
 
 		// Weapon (visible)
 		if (player.isHoldingWeapon()) {
-			text += "They are holding a weapon. ";
+			text += "They are holding a weapon.";
 		}
 
 		return text;
