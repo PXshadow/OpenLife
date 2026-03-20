@@ -4714,7 +4714,7 @@ abstract class AiBase {
 		var quadDist = AiHelper.CalculateDistanceToPlayer(this.myPlayer, player);
 		if (quadDist > Math.pow(ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi, 2)) return;
 
-		if (text.startsWith("ALL ") || text.contains("!!") || text.contains("??")) {
+		if (text.startsWith("ALL ") || text.contains("!!") || text.contains("??") || text.contains(myPlayer.name.toUpperCase())) {
 			text = text.replace("ALL ", "");
 		}
 		else {
