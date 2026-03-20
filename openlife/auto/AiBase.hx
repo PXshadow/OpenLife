@@ -296,6 +296,12 @@ abstract class AiBase {
 		return (AiBase.tick - ticks) * TimeHelper.tickTime;
 	}
 
+	public function setWaitingTimeMin(minTime:Float):Void {
+		if (this.waitingTime < minTime) {
+			this.waitingTime = minTime;
+		}
+	}
+
 	public function new(player:PlayerInterface) {
 		this.myPlayer = player;
 		// this.myPlayer = cast(playerInterface, GlobalPlayerInstance); // TODO support only client AI
@@ -4939,8 +4945,8 @@ abstract class AiBase {
 			myPlayer.doEmote(Emote.oreally);
 
 			// Stop if an ally
-			if (checkIfYouAreAllied(player)) {
-				if (waitingTime < 3) waitingTime += 3;
+			if (checkIfYouAreAllied(player, true)) {
+				setWaitingTimeMin(3);
 				myPlayer.Goto(myPlayer.x, myPlayer.y);
 			}
 
@@ -4950,7 +4956,6 @@ abstract class AiBase {
 					myPlayer.say(response);
 					timeReactedLastCommand = TimeHelper.tick;
 					if (checkIfYouAreAllied(player, true)) {
-						if (waitingTime < 3) waitingTime += 3;
 						myPlayer.Goto(myPlayer.x, myPlayer.y);
 					}
 				}

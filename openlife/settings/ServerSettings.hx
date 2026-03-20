@@ -105,9 +105,10 @@ class ServerSettings {
 	public static var AiApiUrl:String = "https://api.minimax.io/anthropic"; // Base URL for MiniMax API
 	public static var AiApiKey:String = "Not Set"; // TODO: Fill in your MiniMax API key here
 	public static var AiDefaultModel:String = "MiniMax-M2.5-highspeed"; // Default model for AI responses
-	public static var AiCallsPerHour:Int = 60; // Rate limit: max calls per hour
-	public static var AiMaxTokens:Int = 1024; // Max tokens in response
+	public static var AiCallsPerHour:Int = 500; // Rate limit: max calls per hour
 	public static var AiMaxTokensForChat:Int = 1024; // Max tokens in response
+	public static var MaxAIResponseperSay:Int = 100; // Max characters before splitting long AI responses
+	public static var AIWaitTimePer100Chars:Float = 5; // Seconds to wait per 100 characters when splitting responses
 
 	// AI Memory settings
 	public static var AiMemoryMaxEntries:Int = 20; // Max player interaction entries to remember

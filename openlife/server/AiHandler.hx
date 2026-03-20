@@ -6,6 +6,7 @@ import sys.thread.Thread;
 import sys.io.File;
 import sys.io.FileOutput;
 import openlife.settings.ServerSettings;
+import openlife.auto.AiBase;
 
 /**
  * AiHandler handles AI chat responses with rate limiting and retry logic.
@@ -425,8 +426,101 @@ class AiHandler {
 			}
 
 			// Execute the callback with the response (replace newlines with spaces)
-			onSuccess(response);
+			sendResponseInChunks(fromPlayer, response, onSuccess);
 		});
+	}
+
+	private static function sendResponseInChunks(fromPlayer:GlobalPlayerInstance, response:String, onSuccess:String->Void):Void {
+		if (response == null) {
+			onSuccess(response);
+			return;
+		}
+
+		var aiBase = fromPlayer.connection.serverAi.ai;
+		var separators = [".", "!", "?", "*"];
+		var maxLen = ServerSettings.MaxAIResponseperSay;
+
+		// Check if splitting is needed
+		var needsSplit = response.length > maxLen && containsAnySeparator(response, separators);
+
+		if (!needsSplit) {
+			var waitTime = (response.length / 100) * ServerSettings.AIWaitTimePer100Chars;
+			if (aiBase != null) aiBase.setWaitingTimeMin(waitTime);
+			onSuccess(response);
+			return;
+		}
+
+		// Split and send chunks
+		var chunks = splitResponse(response, maxLen, separators, 10);
+
+		for (i in 0...chunks.length) {
+			var chunk = chunks[i];
+			var waitTime = (chunk.length / 100) * ServerSettings.AIWaitTimePer100Chars;
+
+			logToFile('Chunk: ${i + 1}: ', chunk);
+
+			if (aiBase != null) aiBase.setWaitingTimeMin(waitTime);
+			onSuccess(chunk);
+			if (i < chunks.length - 1) Sys.sleep(waitTime);
+		}
+	}
+
+	private static function containsAnySeparator(text:String, separators:Array<String>):Bool {
+		for (sep in separators) {
+			if (text.indexOf(sep) >= 0) return true;
+		}
+		return false;
+	}
+
+	private static function splitResponse(text:String, maxLen:Int, separators:Array<String>, maxSplits:Int):Array<String> {
+		var chunks = new Array<String>();
+		var remaining = text;
+
+		while (remaining.length > 0 && chunks.length < maxSplits) {
+			if (remaining.length <= maxLen) {
+				chunks.push(remaining);
+				break;
+			}
+
+			// Find the best split point
+			var splitIndex = -1;
+			var bestSeparator = "";
+
+			// First, try to find a separator before or at maxLen
+			for (sep in separators) {
+				var idx = remaining.lastIndexOf(sep, maxLen);
+				if (idx > splitIndex) {
+					splitIndex = idx;
+					bestSeparator = sep;
+				}
+			}
+
+			// If no separator found before maxLen, find first separator after maxLen
+			if (splitIndex == -1) {
+				var earliestAfter = remaining.length;
+				for (sep in separators) {
+					var idx = remaining.indexOf(sep, maxLen);
+					if (idx >= 0 && idx < earliestAfter) {
+						earliestAfter = idx;
+						bestSeparator = sep;
+					}
+				}
+				splitIndex = earliestAfter;
+				if (splitIndex == remaining.length) splitIndex = -1;
+			}
+
+			if (splitIndex > 0) {
+				chunks.push(remaining.substring(0, splitIndex + 1));
+				remaining = remaining.substring(splitIndex + 1);
+			}
+			else {
+				// No separator found at all, take maxLen characters
+				chunks.push(remaining.substring(0, maxLen));
+				remaining = remaining.substring(maxLen);
+			}
+		}
+
+		return chunks;
 	}
 
 	/**
