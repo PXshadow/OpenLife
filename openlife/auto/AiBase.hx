@@ -4943,6 +4943,8 @@ abstract class AiBase {
 		if (player.isHuman()
 			&& AIProvider.IsLLMActivated()
 			&& myPlayer.age > 0
+			&& !text.startsWith("!")
+			&& !text.startsWith("?")
 			&& (timePassedInSeconds > 4 || timeReactedLastCommand < 1)) {
 			// myPlayer.doEmote(Emote.hubba);
 			myPlayer.doEmote(Emote.oreally);
@@ -4961,7 +4963,7 @@ abstract class AiBase {
 					myPlayer.say(response);
 					timeReactedLastCommand = TimeHelper.tick;
 					if (checkIfYouAreAllied(player, true)) {
-						myPlayer.Goto(myPlayer.x, myPlayer.y);
+						myPlayer.Goto(player.x, player.y);
 					}
 				}
 			});
