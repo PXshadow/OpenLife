@@ -4714,7 +4714,7 @@ abstract class AiBase {
 		var quadDist = AiHelper.CalculateDistanceToPlayer(this.myPlayer, player);
 		if (quadDist > Math.pow(ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi, 2)) return;
 
-		if (text.startsWith("ALL ") || text.contains("?") || text.contains("!!")) {
+		if (text.startsWith("ALL ") || text.contains("!!")) {
 			text = text.replace("ALL ", "");
 		}
 		else {
@@ -4940,7 +4940,10 @@ abstract class AiBase {
 		// Fallback: Use AI handler for unhandled messages from human players
 		// This runs after all other command handlers have been checked
 		var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeReactedLastCommand);
-		if (AIProvider.IsLLMActivated() && myPlayer.age > 10 && (timePassedInSeconds > 4 || timeReactedLastCommand < 1)) {
+		if (player.isHuman()
+			&& AIProvider.IsLLMActivated()
+			&& myPlayer.age > 0
+			&& (timePassedInSeconds > 4 || timeReactedLastCommand < 1)) {
 			// myPlayer.doEmote(Emote.hubba);
 			myPlayer.doEmote(Emote.oreally);
 
