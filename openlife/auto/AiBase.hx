@@ -4949,7 +4949,7 @@ abstract class AiBase {
 				if (response != null) {
 					myPlayer.say(response);
 					timeReactedLastCommand = TimeHelper.tick;
-					if (checkIfYouAreAllied(player)) {
+					if (checkIfYouAreAllied(player, true)) {
 						if (waitingTime < 3) waitingTime += 3;
 						myPlayer.Goto(myPlayer.x, myPlayer.y);
 					}
@@ -4958,10 +4958,11 @@ abstract class AiBase {
 		}
 	}
 
-	public function checkIfYouAreAllied(player:GlobalPlayerInstance) {
+	public function checkIfYouAreAllied(player:GlobalPlayerInstance, silent:Bool = false) {
 		var aiPlayer = cast(myPlayer, GlobalPlayerInstance);
 
 		if (aiPlayer.isFriendly(player)) return true;
+		if (silent) return false;
 
 		myPlayer.say('I AM NOT YOUR ALLY!');
 		myPlayer.doEmote(Emote.angry);
