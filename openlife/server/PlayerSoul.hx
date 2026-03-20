@@ -226,7 +226,7 @@ class PlayerSoul {
 		var text = "You are " + player.name + " " + player.familyName + ", a ";
 		text += player.isFemale() ? "female" : "male";
 		text += " aged " + Math.floor(player.trueAge) + " years. ";
-
+		if (player.trueAge < 6) text += "You are very young! Speak according to your age! ";
 		// Current season
 		text += 'It is currently ${TimeHelper.SeasonText}. ';
 
