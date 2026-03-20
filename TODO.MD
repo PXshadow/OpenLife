@@ -539,22 +539,45 @@ TODO Features:
 more up in the list means more likely to be implemented first but no guarantee!
 
 Server:
-- FIX server crash 
 - FIX backpack item disapear on fast use
 - implement water map 
 - HUGE: implement a bigger map, at least 4X size
 
 Web Server
+- make an own client site
+- display LLM calls done / left
+- create a help manual
+- separate style css
 - make stuff clickable / add tons more information, statistics and graphs
 
 AI:
-- FIX AI is currenty not good in surviving, was much better, some updates messed it up
+- FIX circular uses like getting soil or water pouch
+- Add player and own emote to LLM context
+- Add more commands for LLM like attack or exile
+- Feed make reply back to llm context to respond
+- Make AI proactively talk (if born to, if kid, if feeding, on death preparation, wounded, attackt)
+- Make AI talk to each other if player is close
+- Track more events that happened to AI in context for LLM
+- add  LLm model and response time in log
+- add info about hire cost in LLm context and as command
+- increase hire cost if over used (the more % are hired)
+- add LLM calls done / left in log
+- Let AI mention that its starving and cant wait (or is no ally)
+- Track when the interaction was
+- Only ad context from this player in the LLM
+- Trace number of used LLM calls / left calls
+- add in context if player is grand pa / mom / uncle
+- add help to the context if help is needed
+- allow to think using ? connected with help
+- Add container use for pies
 - implement / use super crafter *bottom up crafting instead of top down*
-- use Cloud based advanced AI for chatting
 - use Cloud based advanced AI for setting prios and add soul / character
 - add neural net or let advanced AI code AI changes
 
 OTHER:
+- give cloths (allow also for elder people if better prestige or follower)
+- remove power, prestige is enough
+- make AI drop horse on a fence or wait at least some sec for reconnect
 - animals grouping / animal bosses / wolf ilness
 - illnesses (can spread dependign on health, more food use no eating)
 - better property / fortification for other clay walls / forge / graves 
