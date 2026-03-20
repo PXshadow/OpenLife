@@ -552,13 +552,21 @@ Web Server
 
 AI:
 - FIX circular uses like getting soil or water pouch
+- Make AI aware of current biome in LLM context  
 - Add player and own emote to LLM context
 - Add more commands for LLM like attack or exile
 - Feed make reply back to llm context to respond
+- AI bring water if thirsty
+- AI heal if wounded (at least remove arrow) (check if player is ally, not exiled or has good karma if not an ally)
 - Make AI proactively talk (if born to, if kid, if feeding, on death preparation, wounded, attackt)
 - Make AI talk to each other if player is close
 - Track more events that happened to AI in context for LLM
-- add  LLm model and response time in log
+- Add no AI command to have no AI bb
+- Make AI leave village if too power less (allied combat power)
+- Dont join a billage with too power less (allied combat power)
+- Take people along on attack  /  defence
+- Allow AI to attack with stones
+- add LLm model and response time in log
 - add info about hire cost in LLm context and as command
 - increase hire cost if over used (the more % are hired)
 - add LLM calls done / left in log
@@ -607,7 +615,7 @@ Commands:
 - AI add new command craft --> constanly tries to craft untill 5 are reached
 
 Follow:
-- AI auto change leader if in new home
+- AI auto change leader if in new home (might be alreay implemented)
 - AI auto set home from direct leader or change leader if want stay in same home
 
 Crafting:
