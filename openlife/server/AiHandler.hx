@@ -380,6 +380,8 @@ class AiHandler {
 			prompt += "\n" + chatMemoryContext;
 		}
 
+		prompt += "\n" + getCommandContext();
+
 		prompt += "\nThe other player says to you respond in your role considering your status / prestige and the other players status / prestige: " + message;
 
 		return prompt;
@@ -393,6 +395,72 @@ class AiHandler {
 		// myPlayer.say('I AM NOT YOUR FOLLOWER!');
 		// myPlayer.doEmote(Emote.angry);
 		return "You are not a follower of this player, so if asked you can reject commands of this player!";
+	}
+
+	private static function getCommandContext():String {
+		return "You can also respond with a JSON command object to perform actions. By default respond with one fitting emote to your text reponse:
+{ \"text\": \"your response\", \"command\": { \"type\": \"doEmote\", \"emote\": \"emoteName\" } }
+Available emotes: happy, angry, love, sad, joy, blush, devious, shock, terrified, homesick, mad, oreally, ill, hmph, snowSplat";
+	}
+
+	private static function getEmoteId(emoteName:String):Int {
+		switch (emoteName.toLowerCase()) {
+			case "happy":
+				return 0;
+			case "mad":
+				return 1;
+			case "angry":
+				return 2;
+			case "sad":
+				return 3;
+			case "devious":
+				return 4;
+			case "joy":
+				return 5;
+			case "blush":
+				return 6;
+			case "snowSplat":
+				return 8;
+			case "oreally":
+				return 14;
+			case "ill":
+				return 10;
+			case "hmph":
+				return 12;
+			case "shock":
+				return 15;
+			case "love":
+				return 13;
+			case "terrified":
+				return 27;
+			case "homesick":
+				return 28;
+			default:
+				return -1;
+		}
+	}
+
+	public static function parseAiResponse(response:String, aiPlayer:GlobalPlayerInstance):String {
+		var text = response;
+		try {
+			var json = haxe.Json.parse(response);
+			if (Reflect.hasField(json, "text")) {
+				text = json.text;
+			}
+			if (Reflect.hasField(json, "command")) {
+				var command = json.command;
+				if (Reflect.hasField(command, "type") && command.type == "doEmote") {
+					var emoteName = command.emote;
+					var emoteId = getEmoteId(emoteName);
+					if (emoteId >= 0) {
+						aiPlayer.doEmote(emoteId, 300);
+					}
+				}
+			}
+		} catch (e:Dynamic) {
+			// Not valid JSON, use original response
+		}
+		return text;
 	}
 
 	/**
@@ -425,8 +493,10 @@ class AiHandler {
 				// TODO toSoul.addChatEntry(toPlayer, message, response);
 			}
 
+			// Parse response to extract text and execute commands BEFORE sending
+			var parsedText = parseAiResponse(response, fromPlayer);
 			// Execute the callback with the response (replace newlines with spaces)
-			sendResponseInChunks(fromPlayer, response, onSuccess);
+			sendResponseInChunks(fromPlayer, parsedText, onSuccess);
 		});
 	}
 
