@@ -4936,7 +4936,8 @@ abstract class AiBase {
 
 			// Stop if an ally
 			if (checkIfYouAreAllied(player, true)) {
-				myPlayer.Goto(player.x, player.y);
+				// myPlayer.Goto(player.x, player.y);
+				myPlayer.Goto(myPlayer.x, myPlayer.y);
 				setWaitingTimeMin(6);
 			}
 
