@@ -4714,7 +4714,7 @@ abstract class AiBase {
 		var quadDist = AiHelper.CalculateDistanceToPlayer(this.myPlayer, player);
 		if (quadDist > Math.pow(ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi, 2)) return;
 
-		if (text.startsWith("ALL ") || text.contains("!!")) {
+		if (text.startsWith("ALL ") || text.contains("!!") || text.contains("??")) {
 			text = text.replace("ALL ", "");
 		}
 		else {
@@ -4952,6 +4952,8 @@ abstract class AiBase {
 				setWaitingTimeMin(3);
 				myPlayer.Goto(myPlayer.x, myPlayer.y);
 			}
+
+			myPlayer.say("...");
 
 			var aiPlayer = cast(myPlayer, GlobalPlayerInstance);
 			AiHandler.respondToPlayerAsync(aiPlayer, player, text, function(response:String) {
