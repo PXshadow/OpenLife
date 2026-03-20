@@ -69,7 +69,16 @@ class AIProvider {
 		http.setPostData(jsonBody);
 
 		// Synchronous request (blocking)
-		http.request(true);
+		hl.Gc.blocking(true);
+		try {
+			http.request(true);
+		} catch (e:Dynamic) {
+			hl.Gc.blocking(false);
+			throw e;
+		}
+		hl.Gc.blocking(false);
+		// http.request(true);
+		// Sys.sleep(120);
 
 		// Check for HTTP error
 		if (error != null) {
