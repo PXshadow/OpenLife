@@ -150,6 +150,8 @@ abstract class AiBase {
 			var timeSinceStartCountedFromTicks = AiBase.tick * TimeHelper.tickTime;
 
 			var aiCount = Connection.getAis().length;
+			var aiAlive = [for (a in Connection.getAis()) if (!a.player.deleted) a];
+			var aiCountAlive = aiAlive.length;
 
 			if (AiBase.tick % 20 != 0 && aiCount < currentMaxAIs) {
 				if (lastSkipedTicks < ServerSettings.MaxAiSkipedTicksBeforeReducingAIs || aiCount < ServerSettings.MinNumberOfAis) {
@@ -187,8 +189,8 @@ abstract class AiBase {
 			Macro.exception(CalculateBlockedByAi());
 
 			for (ai in Connection.getAis()) {
-				if (ai.player.deleted && aiCount < currentMaxAIs) Macro.exception(ai.doRebirth(timePassedInSeconds));
-				if (ai.player.deleted && aiCount > ServerSettings.NumberOfAis) {
+				if (ai.player.deleted && aiCountAlive < currentMaxAIs) Macro.exception(ai.doRebirth(timePassedInSeconds));
+				if (ai.player.deleted && aiCountAlive > ServerSettings.NumberOfAis) {
 					trace('remove ai because to many ai: ${aiCount} Max: ${ServerSettings.NumberOfAis}');
 					Connection.removeAi(ai);
 					continue;
