@@ -268,6 +268,7 @@ class WebServer {
 			livingPlayerText += '<td>${Math.floor(player.prestige)}</td>';
 			livingPlayerText += '<td>${Math.floor(player.power)}</td>';
 			livingPlayerText += '<td>${lineage.generation}</td>';
+			if (player.account.isAi) livingPlayerText += '<td>${player.account.email}</td>';
 			livingPlayerText += '</tr>\n';
 		}
 		GlobalPlayerInstance.ReleaseMutex();
