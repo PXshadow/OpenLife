@@ -65,7 +65,7 @@ class ServerAi {
 	}
 
 	public function doRebirth(timePassedInSeconds:Float) {
-		trace('doRebirth: 1');
+		// trace('doRebirth: 1');
 		// TODO limit / increase Ais if serversettings change, or connected players change
 		if (this.player.account.isAi == false) // it was a replacement for a player
 		{
@@ -87,7 +87,7 @@ class ServerAi {
 
 		timeToRebirth -= timePassedInSeconds;
 
-		trace('doRebirth: 2');
+		// trace('doRebirth: 2');
 		if (timeToRebirth > 0) return;
 		timeToRebirth = 0;
 		trace('doRebirth: 3');
