@@ -833,6 +833,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		AllPlayers = tmpAllPlayers;
 
 		for (obj in loadedPlayers) {
+			obj.calculatePrestigeClass();
+
 			obj.myMother = GetPlayerFromId(playersToLoad[obj.p_id]["myMother"]); // 2
 			obj.myFather = GetPlayerFromId(playersToLoad[obj.p_id]["myFather"]); // 3
 			obj.followPlayer = GetPlayerFromId(playersToLoad[obj.p_id]["followPlayer"]); // 5
@@ -1050,10 +1052,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return familyPrestige;
 	}
 
-	private function calculatePrestigeClass():PrestigeClass {
+	public function calculatePrestigeClass():PrestigeClass {
 		// trace('PRESTIGE ${playerAccount.totalScore} prestigeNeededForNobleBirth: $prestigeNeededForNobleBirth');
 		// [for(key in map.keys()) key]
-		var players = [for (p in AllPlayers) p];
+		var players = [for (p in AllPlayers) if (p.lineage.alive && !p.deleted) p];
 
 		if (players.length < 2) return PrestigeClass.Commoner;
 
@@ -1069,12 +1071,15 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// for (p in players) trace('${p.name} PRESTIGE: ${p.lineagePrestige}');
 
 		var neededPrestige = CalculateNeededPrestige(players, 0.4);
+		trace('Needed Prestige for commoner: ${neededPrestige} score: ${this.account.totalScore} players: ${players.length} all players: ${AllPlayers.length}');
+
 		medianPrestige = Math.max(neededPrestige, ServerSettings.MinHealthPerYear * 30); // is needed for calculating health
 		if (this.account.totalScore < neededPrestige) return PrestigeClass.Serf;
 
 		if (players.length < 5) return PrestigeClass.Commoner;
 
 		var neededPrestige = CalculateNeededPrestige(players, 0.8);
+		trace('Needed Prestige for noble: ${neededPrestige} score: ${this.account.totalScore}');
 		if (this.account.totalScore < neededPrestige) return PrestigeClass.Commoner;
 
 		return PrestigeClass.Noble;
