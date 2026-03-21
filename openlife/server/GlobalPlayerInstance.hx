@@ -1339,7 +1339,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var persons = personsByColor[color];
 		setObjectId(persons[WorldMap.calculateRandomInt(persons.length - 1)].id);
 
-		trace('New child is born to mother: ${mother.name} ${mother.familyName} female: $female motherColor: $motherColor childColor: ${this.getColor()}');
+		trace('New child is born to mother: ${mother.name} ${mother.familyName} isAI: ${account.isAi} female: $female motherColor: $motherColor childColor: ${this.getColor()}');
 
 		InheritEatenFoodCounts(this);
 

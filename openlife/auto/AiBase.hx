@@ -187,7 +187,7 @@ abstract class AiBase {
 			Macro.exception(CalculateBlockedByAi());
 
 			for (ai in Connection.getAis()) {
-				if (ai.player.deleted) Macro.exception(ai.doRebirth(timePassedInSeconds));
+				if (ai.player.deleted && aiCount < currentMaxAIs) Macro.exception(ai.doRebirth(timePassedInSeconds));
 				if (ai.player.deleted) continue;
 				RemoveBlockedByAi(ai);
 				if (ServerSettings.UseExperimentalMutex) GlobalPlayerInstance.AcquireMutex();
