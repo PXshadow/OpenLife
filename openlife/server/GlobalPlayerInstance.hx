@@ -1890,7 +1890,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			trace('Writing: ${heldObject.text}');
 		}
 
-		if (StringTools.contains(text, '!TH') || StringTools.contains(text, '!TH')) {
+		if (text == '!TH') {
 			toSelf = true;
 			var temperature = WorldMap.get_world().getTileTemperature(this.tx, this.ty);
 
