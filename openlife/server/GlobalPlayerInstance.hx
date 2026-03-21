@@ -320,6 +320,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		this.lastAttackedPlayer = null;
 		this.lastPlayerAttackedMe = null;
+		this.playerSoul.player = null;
+		// this.playerSoul = null;
 
 		RemovePlayer(this);
 	}
@@ -833,7 +835,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		AllPlayers = tmpAllPlayers;
 
 		for (obj in loadedPlayers) {
-			obj.calculatePrestigeClass();
+			// obj.calculatePrestigeClass();
 
 			obj.myMother = GetPlayerFromId(playersToLoad[obj.p_id]["myMother"]); // 2
 			obj.myFather = GetPlayerFromId(playersToLoad[obj.p_id]["myFather"]); // 3

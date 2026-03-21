@@ -26,14 +26,38 @@ class ServerAi {
 	}
 
 	public static function createNewServerAiWithNewPlayer():ServerAi {
-		var email = 'AI${AiIdIndex}';
 		var newConnection = new Connection(null, Server.server);
-		newConnection.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, email);
-		newConnection.playerAccount.isAi = true;
+		var topScore:Float = 0;
+
+		// First, try to find an existing AI account that has no living player
+		var existingAccount:PlayerAccount = null;
+		for (account in PlayerAccount.AllPlayerAccountsByEmail) {
+			if (account.isAi == false) continue;
+			var player = account.getLastLivingPlayer();
+			if (player == null || player.deleted) {
+				if (account.score >= topScore) {
+					existingAccount = account;
+					topScore = account.score;
+				}
+			}
+		}
+
+		if (existingAccount != null) {
+			// Reuse existing AI account without living player
+			newConnection.playerAccount = existingAccount;
+			trace('new ai use existing account: ${existingAccount.email} score: ${existingAccount.score}');
+		}
+		else {
+			// No existing AI account available, create a new one
+			var email = 'AI${AiIdIndex}';
+			newConnection.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, email);
+			newConnection.playerAccount.isAi = true;
+			trace('new ai create new account: ${newConnection.playerAccount.email}');
+		}
+
 		var newPlayer = GlobalPlayerInstance.CreateNewAiPlayer(newConnection);
 
 		var serverAi = new ServerAi(newPlayer);
-
 		trace('new ai: ${serverAi.number} ${newConnection.playerAccount.email}');
 
 		serverAi.ai.newBorn();
