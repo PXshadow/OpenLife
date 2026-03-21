@@ -152,8 +152,10 @@ abstract class AiBase {
 			var aiCount = Connection.getAis().length;
 
 			if (AiBase.tick % 20 != 0 && aiCount < currentMaxAIs) {
-				if (lastSkipedTicks < ServerSettings.MaxAiSkipedTicksBeforeReducingAIs
-					|| aiCount < ServerSettings.MinNumberOfAis) Macro.exception(var ai = ServerAi.createNewServerAiWithNewPlayer());
+				if (lastSkipedTicks < ServerSettings.MaxAiSkipedTicksBeforeReducingAIs || aiCount < ServerSettings.MinNumberOfAis) {
+					Macro.exception(var ai = ServerAi.createNewServerAiWithNewPlayer());
+					trace('New AI:aiCount: ${aiCount} currentMaxAIs: ${currentMaxAIs}');
+				}
 				// ai.player.delete(); // delete, so that they wont all spawn at same time
 			}
 
