@@ -72,11 +72,11 @@ class ServerAi {
 			Connection.removeAi(this);
 			return;
 		}
-		if (this.number > ServerSettings.NumberOfAis) {
+		/* if (this.number > ServerSettings.NumberOfAis) {
 			trace('remove ai because to many ai: ${this.number}');
 			Connection.removeAi(this);
 			return;
-		}
+		}*/
 
 		if (timeToRebirth == 0) {
 			var agefactor = Math.max(1, 60 - player.age);
