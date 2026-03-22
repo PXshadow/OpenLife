@@ -437,6 +437,7 @@ abstract class AiBase {
 		itemToCraft.ai = this;
 		// TODO only clean after move?
 		itemToCraft.clearAllCheachedObjects();
+		Macro.exception(if (countSeeds()) return);
 
 		/*itemToCraft.maxSearchRadius = 30;
 			var count1 = countCurrentObject(292);
@@ -647,7 +648,6 @@ abstract class AiBase {
 		itemToCraft.searchCurrentPosition = false; // true
 		itemToCraft.maxSearchRadius = 30;
 
-		Macro.exception(if (isMakingSeeds()) return);
 		Macro.exception(if (shortCraft(0, 400, 10)) return); // pull out the carrots
 		Macro.exception(if (isPickingupCloths()) return);
 		Macro.exception(if (handleTemperature()) return);
@@ -1347,7 +1347,7 @@ abstract class AiBase {
 		return bestAi;
 	}
 
-	public function isMakingSeeds() {
+	public function countSeeds() {
 		// var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['seeds']);
 		// if (passedTime < 15) return false;
 		// lastCheckedTimes['seeds'] = TimeHelper.tick;
@@ -1359,7 +1359,7 @@ abstract class AiBase {
 
 		// Seeding Carrots 401 // Bowl of Carrot Seeds 2745
 		var carrotSeedsCount = countCurrentObjects([401, 2745]);
-		this.hasCarrotSeeds = carrotSeedsCount > 0;
+		this.hasCarrotSeeds = carrotSeedsCount > 1;
 
 		// TODO make seeds
 		return false;
@@ -2738,7 +2738,7 @@ abstract class AiBase {
 		}
 
 		// dont use carrots if seed is needed // 400 Carrot Row
-		if (targetId == 400 && hasCarrotSeeds == false && target.numberOfUses < 3) return false;
+		if (targetId == 400 && hasCarrotSeeds == false && target.numberOfUses < 4) return false;
 
 		if (maxNewActor > 0) {
 			var trans = TransitionImporter.GetTransition(actorId, target.parentId);
@@ -7288,7 +7288,7 @@ abstract class AiBase {
 				}
 
 				// dont use carrots if seed is needed // 400 Carrot Row
-				if (obj.parentId == 400 && hasCarrotSeeds == false && obj.numberOfUses < 3) continue;
+				if (obj.parentId == 400 && hasCarrotSeeds == false && obj.numberOfUses < 4) continue;
 				// Ignore not full Bowl of Gooseberries 253 otherwise it might get stuck in making a pie
 				// if (obj.parentId == 253 && obj.numberOfUses < objData.numUses) continue;
 				// Ignore not full Bowl of Dry Beans 1176 otherwise it might get stuck in making cooked beans
@@ -8456,7 +8456,7 @@ abstract class AiBase {
 		if (quadDistanceToHome > quadDistance) return false;
 		// if (quadDistanceToHome > 900) return false;
 
-		Macro.exception(if (isMakingSeeds()) return true); // Count carrots // do before searching foood to not pull out carrots needed for seeds
+		// Macro.exception(if (countSeeds()) return true); // Count carrots // do before searching foood to not pull out carrots needed for seeds
 
 		var passedTime = TimeHelper.CalculateTimeSinceTicksInSec(lastCheckedTimes['considerFood']);
 		if (passedTime > 15) {

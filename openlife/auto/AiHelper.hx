@@ -189,7 +189,7 @@ class AiHelper {
 				// dont use carrots if seed is needed // 400 Carrot Row
 				if (ai != null && parentId == 400 && ai.hasCarrotSeeds == false) {
 					var obj = world.getObjectHelper(tx, ty);
-					if (obj.numberOfUses < 3) continue;
+					if (obj.numberOfUses < 4) continue;
 				}
 
 				if (searchNotFlooredPlace) {
@@ -643,7 +643,8 @@ class AiHelper {
 				// dont use carrots if seed is needed // 400 Carrot Row
 				if (ai != null && parentId == 400 && ai.hasCarrotSeeds == false) {
 					var obj = world.getObjectHelper(tx, ty);
-					if (obj.numberOfUses < 3) continue;
+					// if (obj.numberOfUses < 4) continue;
+					continue;
 				}
 
 				// dont eat last pepper // Hot Pepper 2844
@@ -706,7 +707,8 @@ class AiHelper {
 					if (ai != null) {
 						if (quadDistance > 4 && IsDangerous(player, obj)) continue;
 						// dont eat carrots if seed is needed // 400 Carrot Row
-						if (obj.parentId == 400 && ai.hasCarrotSeeds == false && obj.numberOfUses < 3) continue;
+						// if (obj.parentId == 400 && ai.hasCarrotSeeds == false && obj.numberOfUses < 4) continue;
+						if (obj.parentId == 400 && ai.hasCarrotSeeds == false) continue;
 						// Dont eat if no corn seeds // 1114 Shucked Ear of Corn
 						if (obj.parentId == 1114 && ai.hasCornSeeds == false) continue;
 
