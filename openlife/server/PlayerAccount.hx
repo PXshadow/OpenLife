@@ -206,6 +206,29 @@ class PlayerAccount {
 		// trace('PlayerAccounts: $AllPlayerAccounts');
 	}
 
+	public static function CreateListAIAccounts(maxScore:Float = -1):Array<PlayerAccount> {
+		var list = new Array<PlayerAccount>();
+		var count = 0;
+		var skipped = 0;
+
+		for (account in AllPlayerAccountsById) {
+			if (!account.isAi) continue;
+			if (maxScore >= 0 && account.score > maxScore) {
+				skipped++;
+				continue;
+			}
+
+			if (account.getLastLivingPlayer() != null) continue;
+
+			trace('CreateListAIAccounts: AI Account:  score: ${account.score} ${account.name} coins: ${account.coinsInherited}');
+			list.push(account);
+			count++;
+		}
+
+		trace('CreateListAIAccounts: $count AI accounts, $skipped skipped');
+		return list;
+	}
+
 	public var totalScore(get, null):Float;
 
 	public function get_totalScore() {

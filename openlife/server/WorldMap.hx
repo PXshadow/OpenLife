@@ -979,7 +979,14 @@ class WorldMap {
 		Lineage.WriteAllLineages(dir + "LineagesAll.bin");
 		Lineage.WriteLineageStatistics();
 
+		/* var toDelete = PlayerAccount.CreateListAIAccounts(10);
+			for (a in toDelete) {
+				PlayerAccount.AllPlayerAccountsByEmail.remove(a.email);
+				PlayerAccount.AllPlayerAccountsById.remove(a.id);
+			}
+		 */
 		// for (account in PlayerAccount.AllPlayerAccountsById)
+
 		//	account.cleanUpFamilyPrestige();
 
 		this.initTemperatureVector(); // TODO read from save?
