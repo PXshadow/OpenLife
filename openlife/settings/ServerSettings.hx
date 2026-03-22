@@ -3646,10 +3646,36 @@ class ServerSettings {
 		// trans.aiShouldIgnore = true;
 		transitions.addTransition("PatchTransitions: ", trans);
 
-		// Full Water Pouch+ 210 + Bowl of Tomato Seeds 2828 = Empty Water Pouch 209 + Bowl of Water 382
+		// Full Water Pouch 210 + Bowl of Tomato Seeds 2828 = Empty Water Pouch 209 + Bowl of Water 382
 		var trans = new TransitionData(210, 2828, 209, 382);
 		// trans.aiShouldIgnore = true;
 		transitions.addTransition("PatchTransitions: ", trans);
+
+		// Dont put water back in bucket. Otherwise it will loop to empty a bucket
+		// Full Water Pouch 210 + Partial Bucket of Water 1099
+		var trans = TransitionImporter.GetTransition(210, 1099);
+		trans.aiShouldIgnore = true;
+		var trans = TransitionImporter.GetTransition(210, 1099, false, true);
+		trans.aiShouldIgnore = true;
+		// Full Water Pouch 210 + Empty Bucket
+		var trans = TransitionImporter.GetTransition(210, 659);
+		trans.aiShouldIgnore = true;
+
+		// Bowl of Water 382 + Partial Bucket of Water 1099
+		var trans = TransitionImporter.GetTransition(382, 1099);
+		trans.aiShouldIgnore = true;
+		var trans = TransitionImporter.GetTransition(382, 1099, false, true);
+		trans.aiShouldIgnore = true;
+		// Bowl of Water 382 + Empty Bucket
+		var trans = TransitionImporter.GetTransition(382, 659);
+		trans.aiShouldIgnore = true;
+
+		// TIME + Dry Deep Well // otherwise AI tries to empty well to get stones
+		var trans = TransitionImporter.GetTransition(-1, 665);
+		trans.aiShouldIgnore = true;
+		// TIME + WELL SITE 4085 // otherwise AI tries to empty well to get stones
+		var trans = TransitionImporter.GetTransition(-1, 4085);
+		trans.aiShouldIgnore = true;
 
 		// Time + Bear Cave - awake 648 --> Hungry Grizzly Bear 631
 		var trans = TransitionImporter.GetTransition(-1, 648);
