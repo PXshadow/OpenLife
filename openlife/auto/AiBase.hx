@@ -973,7 +973,7 @@ abstract class AiBase {
 		var home = myPlayer.home;
 		var held = myPlayer.heldObject;
 
-		// Basket of Charcoal 298
+		// Basket of Charcoal 298 // just empty basket. This should not create new ones
 		if (shortCraftOnGround(298)) return true;
 
 		// trace('cleanUp!');
@@ -1997,19 +1997,21 @@ abstract class AiBase {
 		// Shovel of Dung 900 + Wet Compost Pile 625
 		if (shortCraft(900, 625, distance, false)) return true;
 
-		// Basket of Soil
+		// Basket of Soil 336
 		if (shortCraftOnGround(336)) return true;
 
 		// Fertile Soil Pile 1101
 		var count = 2 * countCurrentObject(1101);
 		// Fertile Soil 1138
 		count += countCurrentObject(1138);
+		// Deep Tilled Row 213 // no need for soil if there are enough empty rows
+		count += countCurrentObject(213);
 
 		// trace('doPrepareSoil: count: ${count}');
 
-		if (count <= 4) this.taskState['SoilMaker'] = 1;
+		if (count <= 3) this.taskState['SoilMaker'] = 1;
 
-		if (count >= 20) this.taskState['SoilMaker'] = 0;
+		if (count >= 10) this.taskState['SoilMaker'] = 0;
 
 		if (shouldDebugSay()) myPlayer.say('$count soil');
 
