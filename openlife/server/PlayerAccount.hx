@@ -263,7 +263,7 @@ class PlayerAccount {
 		// do dynasty score
 		var founderId = player.lineage.myDynastyId;
 		if (founderId > 0) {
-			var founderAccountId = player.lineage.dynastyLneage.accountId;
+			var founderAccountId = player.lineage.dynastyLneage == null ? -1 : player.lineage.dynastyLneage.accountId;
 			var oldFamilyPrestige:Float = account.familyPrestige[founderId];
 			var newScore = player.account.id == founderAccountId ? score * 2 : score; // give double prestige if player is founder
 			account.familyPrestige[founderId] = oldFamilyPrestige * (1 - factor) + newScore * factor;
