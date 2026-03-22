@@ -1770,8 +1770,8 @@ class ServerSettings {
 
 		// give more options to make Threads
 		// Drop Spindle 579 + Ball of Thread 1125 --> Thread 58
-		var trans = new TransitionData(579, 1125, 579, 58);
-		transitions.addTransition("PatchTransitions: ", trans);
+		// var trans = new TransitionData(579, 1125, 579, 58);
+		// transitions.addTransition("PatchTransitions: ", trans);
 
 		// Knife transitions for close combat
 		var trans = new TransitionData(560, 418, 750, 422); // Knife 560 + Wolf ==> Bloody Knife + Dead Wolf
