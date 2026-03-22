@@ -510,9 +510,29 @@ class TimeHelper {
 				if (p.isExiledBy(player) == false) continue;
 				if (p.isExiledBy(leader)) continue;
 
-				trace('EXILE: ${player.name} power: ${player.power} ${p.name} power: ${p.power}');
-				// Only exile ally if player pwoer is heigher
-				if (p.isAlly(leader) && p.power * 2 > player.power) continue;
+				var minPowerForExile = p.power * 2;
+				if (p.isCursed) minPowerForExile /= 2;
+				if (player.isCursed) minPowerForExile *= 2;
+				if (p.lineage.prestigeClass == PrestigeClass.Noble) minPowerForExile *= 1.5;
+				if (player.lineage.prestigeClass == PrestigeClass.Noble) minPowerForExile /= 1.5;
+				if (p.lineage.prestigeClass == PrestigeClass.Commoner) minPowerForExile *= 1.2;
+				if (player.lineage.prestigeClass == PrestigeClass.Commoner) minPowerForExile /= 1.2;
+
+				var impactP = 1 + Math.abs(p.lostCombatPrestige) / 10;
+				var impactPlayer = 1 + Math.abs(player.lostCombatPrestige) / 10;
+
+				if (p.lostCombatPrestige >= 5) minPowerForExile /= impactP;
+				if (p.lostCombatPrestige <= 5) minPowerForExile *= impactP;
+
+				if (player.lostCombatPrestige >= 5) minPowerForExile *= impactPlayer;
+				if (player.lostCombatPrestige <= 5) minPowerForExile /= impactPlayer;
+
+				// TODO consider manual leader trust
+				// TODO conder near good graves (blessed)
+
+				trace('EXILE: minPowerForExile: ${minPowerForExile} ${player.name} power: ${player.power} ${p.name} power: ${p.power}');
+				// Only exile ally if player power is heigher
+				if (p.isAlly(leader) && minPowerForExile > player.power) continue;
 
 				trace('EXILE: leader: ${leader.name} ${player.name} power: ${player.power} ${p.name} power: ${p.power}');
 
