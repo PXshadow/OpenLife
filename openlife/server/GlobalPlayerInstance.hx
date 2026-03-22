@@ -6087,6 +6087,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// if (leaderFactor > 0.1) trace('clothingPrestigeFactor: factor: ${factor} leaderFactor: $leaderFactor');
 			if (this.isSameFamily(leader) == false) leaderFactor *= 0.5;
 
+			if (leader.isCursed) tmpCount /= 2;
+
 			leader.yum_multiplier += tmpCount * leaderFactor;
 			leader.prestigeFromFollowers += tmpCount * leaderFactor;
 			leader.coins += tmpCount * leaderFactor;
