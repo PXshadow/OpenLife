@@ -909,6 +909,7 @@ class TransitionHelper {
 	public function doTransitionIfPossibleHelper(containerSlotSize:Float = -1, onPlayer:Bool = false):Bool {
 		var heldObject = this.player.heldObject;
 		var lastUseActor = false;
+		var changeHeldObject = true; // like to open a door while holind something held object should not be changed
 
 		// Hot Adobe Oven 250 ==> set to new home for player and his followers if it is not already
 		if (target.parentId == 250) {
@@ -924,6 +925,12 @@ class TransitionHelper {
 		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} search: ${player.heldObject.parentId} + ${target.parentId}');
 
 		var transition = TransitionImporter.GetTrans(this.player.heldObject, target);
+
+		// Allow transitions like Open Door when in the beginning and in the end the hand is empty even if hand is not empty
+		if (transition == null && player.isWounded() == false) {
+			transition = TransitionImporter.GetTransition(0, target.parentId);
+			if (transition != null) changeHeldObject = false;
+		}
 
 		if (transition != null) if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} found transition!');
 
@@ -1416,7 +1423,7 @@ class TransitionHelper {
 		var tmpActorNumberOfuses = heldObject.numberOfUses;
 		var tmpTargetNumberOfuses = this.target.numberOfUses;
 		// do now the magic transformation
-		player.transformHeldObject(transition.newActorID, transition.noUseActor);
+		if (changeHeldObject) player.transformHeldObject(transition.newActorID, transition.noUseActor);
 		this.target.id = TransformTarget(transition.newTargetID); // consider if there is an random outcome
 		// FIX: Like putting / picking dough on / from table
 		if (transition.switchNumberOfUses) {
