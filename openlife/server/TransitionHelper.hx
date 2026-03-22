@@ -1116,8 +1116,8 @@ class TransitionHelper {
 				// if (ServerSettings.DebugTransitionHelper)
 				trace('TRANS: ${player.name + player.id} Target ${target.name} must have max uses ${uses} < ${maxNumUses}');
 
-				player.say('Missing ${maxNumUses - uses}', true);
-				player.message = 'target us not full';
+				player.say('Missing ${maxNumUses - uses} more!', true);
+				player.message = 'target is not full';
 
 				return false;
 			}
