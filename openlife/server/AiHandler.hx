@@ -323,6 +323,20 @@ class AiHandler {
 			text += "This player is the top leader of your tribe! ";
 		}
 
+		// Cursed status
+		if (fromPlayer.isCursed) {
+			text += "You are cursed! Others might not trust you!";
+		}
+		if (toPlayer.isCursed) {
+			text += "This player is cursed! Be careful to trust!";
+		}
+
+		// Combat prestige (lostCombatPrestige: negative = good, positive = bad)
+		var fromPrestigeLabel = PlayerSoul.getCombatPrestigeLabel(fromPlayer.lostCombatPrestige);
+		var toPrestigeLabel = PlayerSoul.getCombatPrestigeLabel(toPlayer.lostCombatPrestige);
+		if (fromPlayer.lostCombatPrestige != 0) text += "Your combat reputation is " + fromPrestigeLabel + ". ";
+		if (toPlayer.lostCombatPrestige != 0) text += "This player's combat reputation is " + toPrestigeLabel + ". ";
+		if (toPlayer.lostCombatPrestige > 1) text += "Be very careful around players with bad combat reputation especially if not allied!";
 		return text;
 	}
 

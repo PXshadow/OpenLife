@@ -331,6 +331,22 @@ class PlayerSoul {
 	}
 
 	/**
+	 * Get a descriptive label for combat prestige (lostCombatPrestige).
+	 * 7 reputation levels: negative = good, positive = bad
+	 * @param lostCombatPrestige The combat prestige value (positive = bad reputation, negative = good reputation)
+	 * @return A descriptive label for the combat prestige
+	 */
+	public static function getCombatPrestigeLabel(lostCombatPrestige:Float):String {
+		if (lostCombatPrestige > 50) return "super bad";
+		if (lostCombatPrestige >= 20) return "bad";
+		if (lostCombatPrestige > 4) return "fairly bad";
+		if (lostCombatPrestige > -4) return "neutral";
+		if (lostCombatPrestige >= -20) return "fairly good";
+		if (lostCombatPrestige >= -50) return "good";
+		return "super good";
+	}
+
+	/**
 	 * Get a descriptive temperature label based on heat value.
 	 * 7 temperature levels: freezing, cold, cool, mild, warm, hot, sweltering
 	 * @param heat The heat value (0.0 to 1.0)
