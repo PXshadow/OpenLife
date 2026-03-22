@@ -236,6 +236,7 @@ class PlayerSoul {
 		var prestigeClassName = getPrestigeClassName(prestigeClass);
 		text += "You are a " + prestigeClassName + " with prestige " + Math.round(prestige) + ". ";
 
+		if (player.partner != null) text += "Your partner is " + player.partner.name + "! ";
 		// Family
 		text += getFamilyText();
 

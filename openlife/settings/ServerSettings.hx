@@ -1766,7 +1766,7 @@ class ServerSettings {
 		transitions.addTransition("PatchTransitions: ", trans);
 
 		// give more options to make Threads
-		// Drop Spindle 579 + Ball of Thread 1125 -->  Mallet 467 + Thread 58
+		// Drop Spindle 579 + Ball of Thread 1125 --> Thread 58
 		var trans = new TransitionData(579, 1125, 579, 58);
 		transitions.addTransition("PatchTransitions: ", trans);
 
