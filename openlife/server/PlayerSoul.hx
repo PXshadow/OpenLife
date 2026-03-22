@@ -296,7 +296,7 @@ class PlayerSoul {
 
 		// Profession (if any)
 		var profession = getProfessionText();
-		if (profession.length > 0) {
+		if (profession.length > 0 && player.isAi() == true) {
 			if (player.isFemale()) text += "Her profession is " + profession + ". ";
 			else text += "His profession is " + profession + ". ";
 		}
