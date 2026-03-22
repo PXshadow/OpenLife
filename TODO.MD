@@ -158,6 +158,7 @@ Better fire Handling:
 - you can burn rag cloths in fire to make fast fire
 - you can burn a Basket of Coals on a fire to make a Large Slow Fire
 - you can burn straw in a fire to make a flash fire
+- Since fires can now last longer in good temperature allow to get coals from fire with water
 
 Water Handling:
 - Better wells always refill faster then primitive wells
