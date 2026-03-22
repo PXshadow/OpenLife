@@ -1768,6 +1768,17 @@ class ServerSettings {
 		var trans = new TransitionData(467, 556, 467, 550);
 		transitions.addTransition("PatchTransitions: ", trans);
 
+		// Since fires can now last longer in good temperature allow to get coals from fire with water
+		// Full Water Pouch 210 + Fire 82 = Empty Water Pouch 209 + Hot Coals 85
+		var trans = new TransitionData(210, 82, 209, 85);
+		trans.aiShouldIgnore = true;
+		transitions.addTransition("PatchTransitions: ", trans);
+
+		// Bowl of Water 382 + Fire 82 = Clay Bowl 235 + Hot Coals 85
+		var trans = new TransitionData(382, 82, 235, 85);
+		trans.aiShouldIgnore = true;
+		transitions.addTransition("PatchTransitions: ", trans);
+
 		// give more options to make Threads
 		// Drop Spindle 579 + Ball of Thread 1125 --> Thread 58
 		// var trans = new TransitionData(579, 1125, 579, 58);
