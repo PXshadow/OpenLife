@@ -4742,7 +4742,7 @@ abstract class AiBase {
 			AiHelper.SearchTransitions(myPlayer, objectIdToSearch);
 		}*/
 
-		if (text.contains("HOLA") || text.contains("HELLO") || text == "HI") {
+		if (text.contains("HOLA") || text == "HELLO" || text == "HI") {
 			var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeReactedLastCommand);
 			if (timePassedInSeconds > 4 || timeReactedLastCommand < 1) {
 				if (player.isHoldingWeapon()) {
@@ -4764,6 +4764,7 @@ abstract class AiBase {
 			else {
 				// myPlayer.say('TIME!');
 			}
+			return;
 		}
 		if (text.startsWith("NAME?")) {
 			var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeReactedLastCommand);
@@ -4785,6 +4786,7 @@ abstract class AiBase {
 					waitingTime += 2;
 				}
 			}
+			return;
 		}
 
 		if (text.contains("ARE YOU AI") || text.contains("ARE YOU AN AI") || text == "AI?" || text == "AI") {
@@ -4815,34 +4817,41 @@ abstract class AiBase {
 					myPlayer.say('Why should I?');
 				}
 			}
+			return;
 		}
 		if (text.startsWith("NICE?")) {
 			if (isNiceBaby) myPlayer.say("YES!");
 			else myPlayer.say("GRR!");
+			return;
 		}
 		if (text == "JUMP!") {
 			myPlayer.say("JUMP");
 			myPlayer.jump();
+			return;
 		}
 		if (text.startsWith("MOVE!")) {
 			if (checkIfYouAreAllied(player) == false) return;
 			myPlayer.Goto(player.tx + 1 - myPlayer.gx, player.ty - myPlayer.gy);
 			myPlayer.say("YES CAPTAIN");
+			return;
 		}
 		if (text.startsWith("NHOME!")) {
 			var home = WorldMap.world.getObjectHelper(myPlayer.home.tx, myPlayer.home.ty);
 
 			myPlayer.say('${home.name}');
+			return;
 		}
 		if (text.startsWith("FOLLOW ME!") || text.startsWith("FOLLOW") || text.startsWith("COME")) {
 			if (checkIfShouldDoCommand(player) == false) return;
 			startFollowingPlayer(player);
 			myPlayer.say("IM COMMING");
+			return;
 		}
 		else if (text.contains("STOP FOLLOW")) {
 			playerToFollow = null;
 			autoStopFollow = true;
 			myPlayer.say("STOPED");
+			return;
 		}
 		else if (text.startsWith("STOP") || text.startsWith("WAIT")) {
 			if (checkIfYouAreAllied(player) == false) return;
@@ -4854,12 +4863,14 @@ abstract class AiBase {
 			orderedToDrop = true;
 			waitingTime = 10;
 			myPlayer.say("STOPING");
+			return;
 			// myPlayer.age -= 1;
 		}
 		else if (text.startsWith("DROP")) {
 			if (checkIfYouAreAllied(player) == false) return;
 			doDropCommand();
 			myPlayer.say("DROPING");
+			return;
 		}
 		if (text.contains("GO HOME")) {
 			if (checkIfShouldDoCommand(player) == false) return;
@@ -4873,6 +4884,7 @@ abstract class AiBase {
 			if (isMovingToHome()) myPlayer.say("GOING HOME!");
 			else myPlayer.say("I CANNOT GO HOME!");
 			this.time += 6;
+			return;
 		}
 		else if (text.startsWith("HOME!")) {
 			if (checkIfShouldDoCommand(player) == false) return;
@@ -4884,6 +4896,7 @@ abstract class AiBase {
 				myPlayer.home = newHome;
 			}
 			myPlayer.firePlace = AiHelper.GetCloseFire(myPlayer);
+			return;
 		}
 		/*if (text.contains("EAT!"))
 			{
@@ -4894,27 +4907,33 @@ abstract class AiBase {
 		if (text.startsWith("MAKE") || text.startsWith("CRAFT")) {
 			if (checkIfYouAreAllied(player) == false) return;
 			doMakeCraftCommand(text);
+			return;
 		}
 		else if (text.startsWith("DEBUG!") || text.startsWith("DEBUG ON")) {
 			debugSay = true;
 			myPlayer.say('DEBUG ON');
+			return;
 		}
 		else if (text.startsWith("DEBUG OFF")) {
 			debugSay = false;
 			myPlayer.say('DEBUG OFF');
+			return;
 		}
 		else if (text.startsWith("PROF ON")) {
 			debugProfession = true;
 			myPlayer.say('PROF ON');
+			return;
 		}
 		else if (text.startsWith("PROF OFF")) {
 			debugProfession = false;
 			myPlayer.say('PROF OFF');
+			return;
 		}
 		else if (text.startsWith("PROFESSION?") || text.startsWith("PROF?")) {
 			var text = createProfessionText();
 
 			myPlayer.say('${text}');
+			return;
 		}
 		else if (text.endsWith("!")) {
 			if (checkIfShouldDoCommand(player) == false) return;
@@ -4929,6 +4948,12 @@ abstract class AiBase {
 				myPlayer.assignedProfession = prof;
 				myPlayer.say('${prof}');
 			}
+			return;
+		}
+
+		if (text == "F" || text.startsWith("YOU ARE")) {
+			// TODO feed in case of F
+			return;
 		}
 
 		// Fallback: Use AI handler for unhandled messages from human players
