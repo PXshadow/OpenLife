@@ -7232,6 +7232,10 @@ abstract class AiBase {
 
 				var parentId = objData.parentId;
 
+				// Skip non-food objects on ignored floors (e.g., bearskin)
+				var floorID = world.getFloorId(tx, ty);
+				if (AiHelper.IsIgnoredFloor(floorID, objData)) continue;
+
 				// Ignore container with stuff inside
 				// TODO consider contained objects
 				if (objData.numSlots > 0) {

@@ -21,6 +21,13 @@ import openlife.settings.ServerSettings;
 class AiHelper {
 	static final RAD:Int = MapData.RAD; // search radius
 
+	public static function IsIgnoredFloor(floorId:Int, objData:ObjectData):Bool {
+		if (floorId < 1) return false;
+		if (objData.foodValue > 0) return false;
+		if (objData.isPermanent()) return false;
+		return ServerSettings.AiIgnoredFloorIds.contains(floorId);
+	}
+
 	private static function GetName(objId:Int):String {
 		return ObjectData.getObjectData(objId).name;
 	}
@@ -169,6 +176,10 @@ class AiHelper {
 				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
 				if (ai != null && ai.isObjectWithHostilePath(tx, ty)) continue;
 
+				// Skip non-food objects on ignored floors (e.g., bearskin)
+				var floorID = world.getFloorId(tx, ty);
+				if (IsIgnoredFloor(floorID, objData)) continue;
+
 				// search not full pile, for example to drop an item on a pile
 				if (ignoreFullPiles && objData.numUses > 1) {
 					var obj = world.getObjectHelper(tx, ty);
@@ -261,6 +272,10 @@ class AiHelper {
 
 				if (objIdsToSearch.contains(parentId) == false) continue;
 
+				// Skip non-food objects on ignored floors (e.g., bearskin) to not touch them by AI
+				var floorID = world.getFloorId(tx, ty);
+				if (IsIgnoredFloor(floorID, objData)) continue;
+
 				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
 
 				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
@@ -349,6 +364,10 @@ class AiHelper {
 						var floorId = world.getFloorId(tx, ty);
 						if (floorId > 0) continue;
 					}
+
+					// Skip non-food objects on ignored floors (e.g., bearskin) to not touch them by AI
+					var floorID = world.getFloorId(tx, ty);
+					if (IsIgnoredFloor(floorID, objData)) continue;
 
 					var obj = world.getObjectHelper(tx, ty);
 
@@ -526,6 +545,10 @@ class AiHelper {
 		for (tty in ty - radius...ty + radius) {
 			for (ttx in tx - radius...tx + radius) {
 				var objData = world.getObjectDataAtPosition(ttx, tty);
+				// Skip non-food objects on ignored floors (e.g., bearskin) to not touch them by AI
+				var floorID = world.getFloorId(tx, ty);
+				if (IsIgnoredFloor(floorID, objData)) continue;
+
 				if (objData.parentId == objId) count++;
 				if (countPiles && objData.parentId == pileObjId) {
 					var obj = world.getObjectHelper(ttx, tty);

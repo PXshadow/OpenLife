@@ -142,6 +142,9 @@ class ServerSettings {
 	public static var StartingName = "SPOON";
 	public static var AgeingSecondsPerYear = 60; // 60
 	public static var ReduceAgeNeededToPickupObjects = 10; // reduces the needed age that an item can be picked up. But still it cant be used if age is too low
+
+	// Floors that AI should ignore (not count, not drop on, not pickup non-food from)
+	public static var AiIgnoredFloorIds:Array<Int> = [656, 888]; // Bear Skin Rug 656 Bear Skin Rug stone 888
 	public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
 	public static var MaxChildAgeForBreastFeeding = 6; // also used for considering a child when being attacked
 	public static var PickupBabyMaxDistance:Float = 1.9;
