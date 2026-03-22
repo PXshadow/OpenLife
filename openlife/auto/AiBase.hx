@@ -5193,7 +5193,7 @@ abstract class AiBase {
 		if (UseUpDough()) return true;
 
 		// Skewered Rabbit 185 + Hot Coals 85
-		if (heldObjId == 185 && shortCraft(185, 85, 10, false)) return true;
+		if (heldObjId == 185 && shortCraft(185, 85, 20, false)) return true;
 
 		// TODO other items for Kiln, smith, plates for oven
 		// drop at once, since its normally dropped at fire. For exmple kindling, wood...
@@ -6031,7 +6031,7 @@ abstract class AiBase {
 			// Bowl of Soil 1137 + Dying Gooseberry Bush 389
 			if (shortCraft(1137, 389, 30)) return true;
 			// Bowl of Soil 1137 + Languishing Domestic Gooseberry Bush 392
-			if (shortCraft(1137, 392, 30)) return true;
+			// if (shortCraft(1137, 392, 30)) return true;
 		}
 
 		return false;
