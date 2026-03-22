@@ -190,7 +190,7 @@ abstract class AiBase {
 
 			for (ai in Connection.getAis()) {
 				if (ai.player.deleted && aiCountAlive < currentMaxAIs) Macro.exception(ai.doRebirth(timePassedInSeconds));
-				if (ai.player.deleted && aiCountAlive > ServerSettings.NumberOfAis) {
+				if (ai.player.deleted && (aiCountAlive > ServerSettings.NumberOfAis || aiCount > ServerSettings.NumberOfAis)) {
 					trace('remove ai because to many ai: ${aiCount} Max: ${ServerSettings.NumberOfAis}');
 					Connection.removeAi(ai);
 					continue;
