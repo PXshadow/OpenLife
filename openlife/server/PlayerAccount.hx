@@ -282,7 +282,7 @@ class PlayerAccount {
 		for (player in GlobalPlayerInstance.AllPlayers) {
 			countFamily[player.lineage.myEveId] += 1;
 			var eve = player.lineage.eveLineage;
-			var dynastyId = eve.myDynastyId;
+			var dynastyId = eve == null ? -1 : eve.myDynastyId;
 			if (dynastyId > 0) countFamily[player.lineage.myDynastyId] += 1;
 
 			// trace('founder: ${eve.getFullName()} count: ${countFamily[player.lineage.myEveId]}');
