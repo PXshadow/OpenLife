@@ -4961,7 +4961,7 @@ abstract class AiBase {
 		var timePassedInSeconds = CalculateTimeSinceTicksInSec(timeReactedLastCommand);
 		if (player.isHuman()
 			&& AIProvider.IsLLMActivated()
-			&& myPlayer.age > 0
+			&& myPlayer.age > 3
 			&& !text.startsWith("!")
 			&& !text.startsWith("?")
 			&& (timePassedInSeconds > 4 || timeReactedLastCommand < 1)) {
