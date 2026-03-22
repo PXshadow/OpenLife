@@ -527,8 +527,16 @@ class TimeHelper {
 				if (player.lostCombatPrestige >= 5) minPowerForExile *= impactPlayer;
 				if (player.lostCombatPrestige <= 5) minPowerForExile /= impactPlayer;
 
+				if (p.getColor() == leader.getColor()) minPowerForExile *= 1.5;
+				if (player.getColor() == leader.getColor()) minPowerForExile /= 1.5;
+
+				if (p.lineage.myEveId == leader.lineage.myEveId) minPowerForExile *= 2;
+				if (player.lineage.myEveId == leader.lineage.myEveId) minPowerForExile /= 2;
+
+				// TODO place trust calculation in own function
 				// TODO consider manual leader trust
 				// TODO conder near good graves (blessed)
+				// TODO consider to protect not allied nobles if they have a good reputation?
 
 				trace('EXILE: minPowerForExile: ${minPowerForExile} ${player.name} power: ${player.power} ${p.name} power: ${p.power}');
 				// Only exile ally if player power is heigher

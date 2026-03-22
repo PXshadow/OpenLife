@@ -21,7 +21,7 @@ AI:
 - AI NPCs can  hunt, nurse, feed, bake, farm, make fire, do pottery, do smithing and craft clothing quite well
 - The AI goes for YUM and cravings and feeds you your YUM and cravings
 - The AI can defend against attackers and will attack exiled players
-- The AI can be hired with in game coins
+- The AI can be hired with in game coins // TODO set dynamic prices the more are hired / add command to see needed coins
 
 Combat:
 - combat is allowed but might give some prestige mali like attacking children or relatives
