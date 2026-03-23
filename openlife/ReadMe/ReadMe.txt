@@ -1,9 +1,13 @@
 This will be the new manual for Open Life Reborn
 
-**How to protect against attackers**
-Updated: 2026/03/22
+---
 
-1. Exile them --> your followers will attack them 
+**How to protect against attackers**
+Updated: 2026/03/23
+
+1. Exile them --> your followers will attack them
+- If they attack they should be auto exiled (Needs testing)
+- attacking them should auto exile them, but be careful that you are not seen as the agressor (Needs testing)
 TODO: block doors / gates for the exiled
 
 2. Tell leader --> Go close to your leader, if the attacker is not allied or if the leader trusts you more (double) than the attcker the leader will automatically exile the attacker
@@ -32,21 +36,23 @@ TODO: consider if blessed (Your old graves nearby)
 
 TODO: 
 *Allow only trusted new followers*
-- consider their trust
-- consider how long they stayed close to their new leader they want to follow
+- TODO: consider their trust
+- TODO?: consider how long they stayed close to their new leader they want to follow
 
 *Protect Graves*
-- count down to 5 sec before allowing to interact with protect graves
-- Let players / NPCs get angry
-- Let players / NPCs attack if on 2 sec countdown
-- Change reputation if destroying graves
-- Add exceptions for main leader except for eve graves
-- Add exceptions for graves from players that have a lot of similar graves close by
-- Add exceptions for nobles removing lower rank graves
+- TODO: count down to 5 sec before allowing to interact with protect graves
+- TODO: Let players / NPCs get angry
+- TODO: Let players / NPCs attack if on 2 sec countdown
+- TODO: Change reputation if destroying graves
+- TODO: Add exceptions for main leader except for eve graves
+- TODO: Add exceptions for graves from players that have a lot of similar graves close by
+- TODO: Add exceptions for nobles removing lower rank graves
 
 *Add blessed*
-- give some smal protection 10% if your old grave is nearby
-- give some prestige boni 20% from followers if your old grave is nearby
+- TODO: give some smal protection 10% if your old grave is nearby
+- TODO: give some prestige boni 20% from followers if your old grave is nearby
+
+*Add Protective Dogs*
 
 *Protect Walls / Doors / Buildings / Wells*
 - Let NPCs defend Buildings
@@ -55,3 +61,71 @@ TODO:
 *Protect Horses / Sheeps / Domestic Animals*
 
 *Protect against bringing dangerous animals*
+
+---
+
+**Property System**
+- TODO: dont allow cursed to open doors
+- TODO: dont allow cursed to bring down walls?
+- TODO: dont allow not allied to pass fences / springy doors
+- TODO: Owner for normal doors / gates: Check once in a while if current owner or ally of owner is too far away.
+    If so choose a new close owner if there is while prefering allies to original owner 
+
+---
+
+**Prestige Class**
+- TODO: allow to level up a class if prestige for noble, enough followers and too few nobles in your family (world)
+- TODO: level down a class if attacking innocents and too less prestige left for being noble
+
+---
+
+**Kids**
+- TODO: dont allow containers
+
+---
+
+**NPCS**
+- TODO: allow to take food from containers (not on bear skin floor)
+- TODO: allow to store food in containers (not on bear skin floor)
+- TODO: allow to take tools from containers (not on bear skin floor)
+- TODO: allow to store tools in containers (not on bear skin floor)
+
+---
+
+**Stats**
+**Player stats**
+- TODO: Display stats in one line each
+- TODO: Show current needed prestige for prestige classes
+- TODO: Show born with prestige and account prestige for Animals
+- TODO: Display Dynasty family name if there is
+- TODO: Display number in their family
+- TODO: Display number of allies
+- TODO: Display from where they gained prestige (per player and per account)
+
+**World Stats**
+- TODO: Display number of items and original items (over time with graph)
+
+---
+
+**Animals** 
+- TODO: make animals only give damage if they move over you
+- TODO: Add animal interactions
+
+---
+
+**Combat / Damage**
+- TODO: Allow only to loose max halve health per hit
+
+*Movement*
+- TODO: fix too slow movement Display (display jumps)
+- TODO: fix that player is displayed at wrong position (standing and interacting) where he is not
+- TODO: only send player messages when close (might encounter bug like naming not working if not seen while naming)
+
+**Not implemented**
+- TODO: container locked stuff like no water bowl in backpack
+- TODO: cloth interactions while wearing (for example piling sheep skin)
+
+*Urgent*
+- TODO: Fix horse lost on open doors
+- TODO: AI: Limit compost making
+- TODO: make yum Display as not default setting
