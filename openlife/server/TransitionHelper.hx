@@ -927,7 +927,7 @@ class TransitionHelper {
 		var transition = TransitionImporter.GetTrans(this.player.heldObject, target);
 
 		// Allow transitions like Open Door when in the beginning and in the end the hand is empty even if hand is not empty
-		if (transition == null && player.isWounded() == false) {
+		if (transition == null && player.isWounded() == false && ServerSettings.IsDoor(target.parentId)) {
 			transition = TransitionImporter.GetTransition(0, target.parentId);
 			if (transition != null) changeHeldObject = false;
 		}

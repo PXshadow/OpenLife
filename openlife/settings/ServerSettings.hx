@@ -146,6 +146,8 @@ class ServerSettings {
 	// Floors that AI should ignore (not count, not drop on, not pickup non-food from)
 	public static var AiIgnoredFloorIds:Array<Int> = [656, 888]; // Bear Skin Rug 656 Bear Skin Rug stone 888
 	public static var MaxAgeForAllowingClothAndPrickupFromOthers = 10;
+	// public static var DoorIds:Array<Int> = [115, 116, 117, 119, 876, 877, 878, 879, 1851, 2757, 2758, 2759, 2760, 2762]; // Pine Door 115 + 116, Wooden Door 876 + 877, Springy Wooden Door, Fence Gate
+	public static var DoorIds:Array<Int> = [115, 116, 117, 119, 876, 877, 879, 878]; // Pine Door 115 + 116, Open Pine Door 117 + 119, Wooden Door 876 + 877, Open Wooden Door 879 + 878
 	public static var MaxChildAgeForBreastFeeding = 6; // also used for considering a child when being attacked
 	public static var PickupBabyMaxDistance:Float = 1.9;
 	public static var PickupFeedingFoodRestore:Float = 1.5;
@@ -466,6 +468,10 @@ class ServerSettings {
 		// 2285 Tarry Spot
 		// 503 Dug Big Rock
 		return (obj != 3030 && obj != 2285 && obj != 503 && obj != 942 && obj != 3961 && obj != 3962);
+	}
+
+	public static function IsDoor(itemId:Int):Bool {
+		return DoorIds.indexOf(itemId) != -1;
 	}
 
 	// iron, tary spot spring cannot respawn or be lucky spot
