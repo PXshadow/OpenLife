@@ -6223,7 +6223,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	}
 
 	public function getCountEaten(foodId:Int):Float {
-		return this.hasEatenMap[foodId];
+		// trace('getCountEaten: ${hasEatenMap}');
+		if (hasEatenMap == null) return 0.0;
+		var count = this.hasEatenMap[foodId]; // or .get(foodId) if it's a real Map
+		return (count != null) ? count : 0.0;
 	}
 
 	public function isRightClassForWeapon():Bool {
