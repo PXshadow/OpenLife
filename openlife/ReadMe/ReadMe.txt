@@ -90,6 +90,38 @@ TODO:
 - TODO: allow to take tools from containers (not on bear skin floor)
 - TODO: allow to store tools in containers (not on bear skin floor)
 
+- TODO: Fix: I am command not working
+
+- TODO: On disconnect wait little bit especially if on horse before taking over
+- TODO: If on horse place on fence if nearby  
+
+- TODO: Finish Omni crafter AI
+
+---
+
+**Living World**
+- TODO: Biome can change according to temperature
+- TODO: implemented water map
+- TODO: Biome can change according to water
+
+---
+
+**Custom Client**
+FIrst is to make a simple Fork that can connect by default to right server. Then we can add custom data.
+- TODO: simple client with default Ip set
+- TODO: add a proper biome for Mountains
+- TODO: Display coins
+- TODO: display score in the end plus link to score on Website once implemented
+
+- TODO: Advanced: Change protocoll to alllow players in containers like a horse cart or backpack
+
+**Custom Data*
+All custom data should look Jason style better save than sorry
+- TODO: Boat, Blood
+- TODO: more cloths
+- TODO: Decay items
+- TODO: more people skins
+
 ---
 
 **Stats**

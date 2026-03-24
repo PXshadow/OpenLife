@@ -932,7 +932,8 @@ class TransitionHelper {
 			if (transition != null) changeHeldObject = false;
 		}
 
-		if (transition != null) if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} found transition!');
+		if (transition != null) if (ServerSettings.DebugTransitionHelper)
+			trace('TRANS: ${player.name + player.id} found transition! changeHeldObject: ${changeHeldObject}');
 
 		// sometimes ground is -1 not 0 like for Riding Horse:
 		// Should work for: 770 + -1 = 0 + 1421 // TODO -1 --> 0 in transition importer???
@@ -1302,13 +1303,16 @@ class TransitionHelper {
 		// 0 + 3963 = 33 + 1096 // Transition for Well Site should not be affected by this
 		// var isHorseDropTrans = (transition.targetID == -1 && transition.newActorID == 0) && target.isPermanent() == false;
 		// TODO change
-		var isHorseDropTrans = transition.newActorID == 0 && player.heldObject.containedObjects.length > 0;
+		var isHorseDropTrans = changeHeldObject && transition.newActorID == 0 && player.heldObject.containedObjects.length > 0;
 		// var isHorsePickupTrans = (transition.actorID == 0 && transition.playerActor && target.containedObjects.length > 0);
 		// if( || (transition.targetID == -1 && transition.newActorID == 0))
 		var isPickupOrDrop = transition.isPickupOrDrop; // also used for graves?
 
-		// 292 Basket should be empty
-		if (this.player.heldObject.parentId == 292 && this.player.heldObject.containedObjects.length > 0) return false;
+		// 292 Basket should be empty if changed
+		if (changeHeldObject && this.player.heldObject.parentId == 292 && this.player.heldObject.containedObjects.length > 0) {
+			trace('TRANS: ${player.name + player.id} Basket should be empty if changed! ${this.player.heldObject.name}');
+			return false;
+		}
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} isHorseDropTrans: $isHorseDropTrans isPickupOrDrop: $isPickupOrDrop target.isPermanent: ${target.isPermanent()} targetRemains: ${transition.targetRemains}');
 		if (isPickupOrDrop || isHorseDropTrans) {
@@ -1325,7 +1329,7 @@ class TransitionHelper {
 		}
 		else {
 			// check if not horse pickup or drop
-			if (player.heldObject.containedObjects.length > newActorObjectData.numSlots) {
+			if (changeHeldObject && player.heldObject.containedObjects.length > newActorObjectData.numSlots) {
 				if (ServerSettings.DebugTransitionHelper)
 					trace('TRANS: ${player.name + player.id} New actor can only contain ${newActorObjectData.numSlots} but old actor had ${player.heldObject.containedObjects.length} contained objects!'
 					+ player.heldObject.toString());
@@ -1339,7 +1343,7 @@ class TransitionHelper {
 					return false;
 				}
 			}
-			if (target.containedObjects.length > newTargetObjectData.numSlots) {
+			if (changeHeldObject && target.containedObjects.length > newTargetObjectData.numSlots) {
 				if (ServerSettings.DebugTransitionHelper)
 					trace('TRANS: ${player.name + player.id} New target can only contain ${newTargetObjectData.numSlots} but old target had ${target.containedObjects.length} contained objects!');
 				player.message = 'new target cannot contain objects';
@@ -1422,6 +1426,10 @@ class TransitionHelper {
 		var resetNumberOfUses = this.target.objectData.isClothing() == false || this.target.objectData.numUses < 2;
 		var tmpActorNumberOfuses = heldObject.numberOfUses;
 		var tmpTargetNumberOfuses = this.target.numberOfUses;
+
+		// still change held object, otherwise picking up a horse (horse wagon) will not work
+		if (isPickupOrDrop) changeHeldObject = true;
+
 		// do now the magic transformation
 		if (changeHeldObject) player.transformHeldObject(transition.newActorID, transition.noUseActor);
 		this.target.id = TransformTarget(transition.newTargetID); // consider if there is an random outcome
@@ -1451,7 +1459,7 @@ class TransitionHelper {
 		// this.newTransitionSource = transition.targetID; // TODO ???
 		// TODO move to SetObjectHelper
 		this.target.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(this.target);
-		if (transition.noUseActor == false) DoChangeNumberOfUsesOnActor(this.player, transition);
+		if (changeHeldObject && transition.noUseActor == false) DoChangeNumberOfUsesOnActor(this.player, transition);
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} NewTileObject: ${newTargetObjectData.description} ${this.target.id} newTargetObjectData.numUses: ${newTargetObjectData.numUses}');
 		// target did not change if it is same dummy
