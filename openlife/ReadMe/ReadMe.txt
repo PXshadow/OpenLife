@@ -65,7 +65,7 @@ TODO:
 ---
 
 **Property System**
-- TODO: dont allow cursed to open doors
+- cursed cant open / close doors
 - TODO: dont allow cursed to bring down walls?
 - TODO: dont allow not allied to pass fences / springy doors
 - TODO: Owner for normal doors / gates: Check once in a while if current owner or ally of owner is too far away.

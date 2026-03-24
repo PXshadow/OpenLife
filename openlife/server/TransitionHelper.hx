@@ -924,6 +924,12 @@ class TransitionHelper {
 
 		if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} search: ${player.heldObject.parentId} + ${target.parentId}');
 
+		if (ServerSettings.IsDoor(target.parentId) && this.player.isCursed) {
+			if (ServerSettings.DebugTransitionHelper) trace('TRANS: ${player.name + player.id} Cant open a do when cursed!');
+			player.say("IM CURSED!");
+			return false;
+		}
+
 		var transition = TransitionImporter.GetTrans(this.player.heldObject, target);
 
 		// Allow transitions like Open Door when in the beginning and in the end the hand is empty even if hand is not empty
