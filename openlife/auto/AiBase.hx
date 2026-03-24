@@ -1838,18 +1838,6 @@ abstract class AiBase {
 		// Count all the Sheep Dung 899
 		// var countDung = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 899, distance);
 		// if (countDung > 0) {
-		// Composting Compost Pile 790
-		var countCompost = countCurrentObject(790);
-		// Composted Soil 624
-		countCompost += countCurrentObject(624);
-
-		// Composting Compost Pile 790
-		if (countCompost < 3 && craftItem(790)) return true;
-
-		// TODO pile dung
-		// Shovel of Dung 900
-		// return GetOrCraftItem(900);
-		// }
 
 		if (doComposting()) return true;
 
@@ -2061,6 +2049,9 @@ abstract class AiBase {
 		// Composted Soil 624
 		countCompost += AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 624, 30);
 
+		// Fertile Soil Pile 1101
+		countCompost += Math.ceil(AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1101, 30) / 2);
+
 		if (countCompost < 1) this.taskState['Composting'] = 1;
 
 		if (countCompost > 3) this.taskState['Composting'] = 0;
@@ -2075,7 +2066,7 @@ abstract class AiBase {
 		countCompost += AiHelper.CountCloseObjects(myPlayer, myPlayer.tx, myPlayer.ty, 625, 30);
 
 		// Wet Compost Pile 625
-		if (countCompost < 4 && craftItem(625)) return true;
+		if (countCompost < 2 && craftItem(625)) return true;
 
 		return false;
 	}
