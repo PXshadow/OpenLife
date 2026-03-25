@@ -164,13 +164,8 @@ All custom data should look Jason style better save than sorry
 - NPCS: Dont use closed or locked chests
 - NPCS: Drop in container. Add list which item in which container. Prefer containers 
 
-- TODO: fix teleport to human
-- TODO: make yum Display as not default setting
 - TODO: fix !KILLOBJ
 
-- TODO: Change grave teleport to use account coins if too few coins
-- TODO: allow to teleport to different graves like with !TV
-- TODO: reduce teleport cost to one coin if close to own grave
 - TODO: Add teleport cool down for 5 sec 
 
 - TODO: increase curse radius for better cursed graves

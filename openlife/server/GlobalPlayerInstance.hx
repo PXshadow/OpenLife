@@ -5494,19 +5494,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 
 			var p = livingHumans[WorldMap.calculateRandomInt(livingHumans.length - 1)];
-			player.x = WorldMap.world.transformX(player, p.tx);
-			player.y = WorldMap.world.transformY(player, p.ty);
 
-			// player.x = p.tx - player.gx;
-			// player.y = p.ty - player.gy;
-
-			player.forced = true;
-			Connection.SendUpdateToAllClosePlayers(player);
-			player.forced = false;
-
-			player.connection.sendMapChunk(player.x, player.y);
-
-			// PayTeleportCost(player);
+			doTeleport(player, p.tx, p.ty);
 
 			return true;
 		}
@@ -5659,14 +5648,9 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		else if (text.indexOf('!TP') != -1) {
 			if (checkIfNotAllowed(player)) return true;
 			// if (HasEnoughCoinsForTeleport(player) == false) return true;
-			player.x = 470 - player.gx; // 470 // 2
-			player.y = 120 - player.gy; // 380 //40
-			player.forced = true;
-			Connection.SendUpdateToAllClosePlayers(player);
-			player.forced = false;
-			player.connection.sendMapChunk(player.x, player.y);
-			// player.say('Teleport', true);
-			// PayTeleportCost(player);
+
+			doTeleport(player, 470, 120);
+
 			return true;
 		}
 		else if (text.indexOf('!SPEED') != -1) {
@@ -5829,12 +5813,14 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		player.blockedTeleportLocations.push(closestObj.index());
 
-		player.x = WorldMap.world.transformX(player, closestObj.tx);
-		player.y = WorldMap.world.transformY(player, closestObj.ty);
+		doTeleport(player, closestObj.tx, closestObj.ty);
 
-		// var home = WorldMap.world.getObjectHelper(player.x, player.y);
-		// player.say('${home.name}', true);
-		// trace('TELEPORT: ${home.name}');
+		if (coinCost > 0) PayTeleportCost(player, closeToGrave);
+	}
+
+	private static function doTeleport(player:GlobalPlayerInstance, tx:Int, ty:Int) {
+		player.x = WorldMap.world.transformX(player, tx);
+		player.y = WorldMap.world.transformY(player, ty);
 
 		if (player.isBlocked(player.tx, player.ty)) MoveHelper.JumpToNonBlocked(player);
 		if (player.isBlocked(player.tx, player.ty)) return;
@@ -5847,8 +5833,6 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		player.forced = false;
 
 		player.connection.send(FRAME, null, false, true);
-
-		if (coinCost > 0) PayTeleportCost(player, closeToGrave);
 	}
 
 	private static function HasEnoughCoinsForTeleport(player:GlobalPlayerInstance, isCloseToGrave:Bool = false):Bool {
