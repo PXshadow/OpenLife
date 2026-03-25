@@ -5407,7 +5407,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 			return true;
 		}
-		else if (text.startsWith('!KILL')) {
+		else if (text == '!KILL') {
 			if (checkIfNotAllowed(player)) return true;
 
 			var toKill = player.getClosePlayer(5);
@@ -5419,14 +5419,21 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			}
 			return true;
 		}
-		else if (text.indexOf('!KILLOBJ') != -1) {
+		else if (text == '!KILLOBJ') {
 			if (checkIfNotAllowed(player)) return true;
 
-			WorldMap.world.setObjectId(player.tx, player.ty, [0]);
-			WorldMap.world.setObjectId(player.tx, player.ty + 1, [0]);
-			WorldMap.world.setObjectId(player.tx, player.ty - 1, [0]);
-			WorldMap.world.setObjectId(player.tx + 1, player.ty, [0]);
-			WorldMap.world.setObjectId(player.tx - 1, player.ty, [0]);
+			WorldMap.world.setObjectId(player.x, player.y, [0]);
+			WorldMap.world.setObjectId(player.x, player.y + 1, [0]);
+			WorldMap.world.setObjectId(player.x, player.y - 1, [0]);
+			WorldMap.world.setObjectId(player.x + 1, player.y, [0]);
+			WorldMap.world.setObjectId(player.x - 1, player.y, [0]);
+
+			/*WorldMap.world.setObjectHelperNull(player.x, player.y);
+				WorldMap.world.setObjectHelperNull(player.x, player.y + 1);
+				WorldMap.world.setObjectHelperNull(player.x, player.y - 1);
+				WorldMap.world.setObjectHelperNull(player.x + 1, player.y);
+				WorldMap.world.setObjectHelperNull(player.x - 1, player.y);
+			 */
 
 			player.connection.sendMapChunk(player.x, player.y);
 			return true;

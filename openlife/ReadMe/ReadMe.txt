@@ -164,8 +164,6 @@ All custom data should look Jason style better save than sorry
 - NPCS: Dont use closed or locked chests
 - NPCS: Drop in container. Add list which item in which container. Prefer containers 
 
-- TODO: fix !KILLOBJ
-
 - TODO: Add teleport cool down for 5 sec 
 
 - TODO: increase curse radius for better cursed graves
@@ -176,3 +174,5 @@ All custom data should look Jason style better save than sorry
         Or if its his alliance war, in this case there must be a kind of negotiation / decicion 
         by the leader considering the relation between the families, leaders and how long the war was going on, how many deaths and so on. 
 
+
+!KILLOBJ --> delete objects around the player
