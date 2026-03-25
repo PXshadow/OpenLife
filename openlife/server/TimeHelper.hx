@@ -984,7 +984,7 @@ class TimeHelper {
 
 		// if (TimeHelper.tick % 40 == 0) trace('${player.name + player.id} FoodDecay: ${Math.round(foodDecay / timePassedInSeconds * 100) / 100} org: ${Math.round(originalFoodDecay / timePassedInSeconds * 100) / 100)} fromexh: ${Math.round(exhaustionFoodNeed / timePassedInSeconds * 100) / 100}');
 		if (ServerSettings.DebugPlayer && TimeHelper.tick % 40 == 0)
-			trace('${player.name + player.id} FoodDecay: ${Math.round(foodDecay / timePassedInSeconds * 100) / 100} org: ${Math.round(originalFoodDecay / timePassedInSeconds * 100) / 100)} fromexh: ${Math.round(exhaustionFoodNeed / timePassedInSeconds * 100) / 100}');
+			trace('${player.name + player.id} FoodDecay: ${Math.round(foodDecay / timePassedInSeconds * 100) / 100} org: ${Math.round(originalFoodDecay / timePassedInSeconds * 100) / 100} fromexh: ${Math.round(exhaustionFoodNeed / timePassedInSeconds * 100) / 100}');
 
 		player.food_store_max = player.calculateFoodStoreMax();
 
@@ -2560,12 +2560,12 @@ class TimeHelper {
 				if (closeAnimal != null) {
 					// NO Offspring since too close to same animal
 					// TODO does not yet consider count as
-					trace('Animal Offspring: CLOSE ${animal.name} id: ${newTileObject} chance: ${chanceForOffspring} curPop: ${currentPop]} original: ${originalPop}');
+					trace('Animal Offspring: CLOSE ${animal.name} id: ${newTileObject} chance: ${chanceForOffspring} curPop: ${currentPop} original: ${originalPop}');
 				}
 				else {
 					worldmap.currentObjectsCount[countAs] += 1;
 
-					trace('Animal Offspring: ${animal.name} id: ${newTileObject} chance: ${chanceForOffspring} curPop: ${currentPop]} original: ${originalPop}');
+					trace('Animal Offspring: ${animal.name} id: ${newTileObject} chance: ${chanceForOffspring} curPop: ${currentPop} original: ${originalPop}');
 
 					// if(chanceForOffspring < worldmap.chanceForOffspring) trace('NEW: $newTileObject ${helper.description()}: ${worldmap.currentPopulation[newTileObject[0]]} ${worldmap.initialPopulation[newTileObject[0]]} chance: $chanceForOffspring biome: $targetBiome');
 

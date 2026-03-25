@@ -1477,7 +1477,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			p.potentialMate = GetFittestFather(child, p, considerFamily);
 
 			var fatherFitness = p.potentialMate != null ? CalculateFatherFitness(p.potentialMate, child, p, considerFamily) : -50;
-			var fatherName = p.potentialMate != null ? ${p.potentialMate.name} : '';
+			var fatherName = p.potentialMate != null ? '${p.potentialMate.name}' : '';
 			tmpFitness += fatherFitness / 2;
 
 			// trace('Spawn As Child: ${p.name} ${p.familyName} MFitness: ${Math.round(tmpFitness * 10) / 10} $fatherName VFitness: ${Math.round(fatherFitness * 10) / 10}');
@@ -4368,7 +4368,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		// TODO block movement if not ally (with weapon?) --> currently movement is slowed down if close to enemy with weapon
 
 		var targetPlayer = getPlayerAt(this.gx + x, this.gy + y, playerId);
-		var name = targetPlayer == null ? 'not found!' : ${targetPlayer.name};
+		var name = targetPlayer == null ? 'not found!' : '${targetPlayer.name}';
 		var deadlyDistance = this.heldObject.objectData.deadlyDistance;
 
 		if (targetPlayer == null) {

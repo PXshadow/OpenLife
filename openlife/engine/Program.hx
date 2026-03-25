@@ -138,7 +138,8 @@ class Program {
 			if (id != null) {
 				// focus on id to kill on tile
 				send(KILL, x, y, " " + id);
-			} else {
+			}
+			else {
 				send(KILL, x, y);
 			}
 		}
@@ -314,7 +315,8 @@ class Program {
 			string += " " + path.x + " " + path.y;
 		}
 		string = string.substring(1);
-		send(MOVE, ${player.x}, ${player.y}, '@${++player.done_moving_seqNum} $string');
+		// send(MOVE, ${player.x}, ${player.y}, '@${++player.done_moving_seqNum} $string');
+		send(MOVE, player.x, player.y, '@${++player.done_moving_seqNum} ${string}');
 		var path = paths.pop();
 		if (client.relayIn != null) {
 			parentMove = true;

@@ -1432,7 +1432,7 @@ abstract class AiBase {
 
 			// if (shouldDebugSay())
 			myPlayer.say('could not find ${GetName(actorId)} + ${GetName(targetId)}');
-			trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: could not find ${GetName(actorId)} + ${GetName(targetId) ${targetId}}');
+			trace('AAI: ${myPlayer.name + myPlayer.id} WARNING: could not find ${GetName(actorId)} + ${GetName(targetId)} ${targetId}}');
 			return false;
 		}
 

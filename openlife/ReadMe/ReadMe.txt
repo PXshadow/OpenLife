@@ -174,6 +174,7 @@ All custom data should look Jason style better save than sorry
 - TODO: Add teleport cool down for 5 sec 
 
 - TODO: increase curse radius for better cursed graves
+- TODO: make stop command stop attacking people outside the village
 - TODO: allow redeem command to stop attacks. (give also name Stop attack X, or i protect X)
         if the external person cools down could then depend on the relationship between the families.
         In away the external person would need to consider if its his fight and decide if to stop.
