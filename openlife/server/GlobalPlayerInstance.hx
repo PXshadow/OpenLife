@@ -3840,8 +3840,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			else this.doEmote(Emote.hmph);
 
 			// if (ServerSettings.DisplayYumAndMehFood) displayFood(obj);
-			if (player.account.displayYum) displayFood(obj);
-			if (player.account.displayYum) DisplayBestFood(player);
+			// if (player.account.displayYum) displayFood(obj);
+			// if (player.account.displayYum) DisplayBestFood(player);
 		}
 	}
 
@@ -3908,6 +3908,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var bestfood = AiHelper.SearchBestFood(player);
 		var displayBestFood = bestfood != null
 			&& (player.isHoldingYum() == false || bestfood.objectData.getFoodId() == player.currentlyCraving)
+			&& (player.food_store < player.food_store_max * 0.5)
 			&& AiHelper.CalculateQuadDistanceToObject(player, bestfood) > 10;
 
 		if (displayBestFood) player.displayFood(bestfood);
