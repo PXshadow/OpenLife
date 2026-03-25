@@ -174,4 +174,9 @@ All custom data should look Jason style better save than sorry
 - TODO: Add teleport cool down for 5 sec 
 
 - TODO: increase curse radius for better cursed graves
+- TODO: allow redeem command to stop attacks. (give also name Stop attack X, or i protect X)
+        if the external person cools down could then depend on the relationship between the families.
+        In away the external person would need to consider if its his fight and decide if to stop.
+        Or if its his alliance war, in this case there must be a kind of negotiation / decicion 
+        by the leader considering the relation between the families, leaders and how long the war was going on, how many deaths and so on. 
 
