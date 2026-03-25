@@ -55,8 +55,10 @@ TODO:
 *Add Protective Dogs*
 
 *Protect Walls / Doors / Buildings / Wells*
-- Let NPCs defend Buildings
-- Add similar to combat cool down
+- TODO: Let NPCs defend Buildings
+- TODO: Add similar to combat cool down for doors / walls
+- TODO: Allow to more easy remove walls / doors if old grave nearby
+- TODO: implement ownership for doors. Check if close allied is close by give ownership to closeby ally if original owner is >50 tiles
 
 *Protect Horses / Sheeps / Domestic Animals*
 
@@ -157,7 +159,19 @@ All custom data should look Jason style better save than sorry
 - TODO: container locked stuff like no water bowl in backpack
 - TODO: cloth interactions while wearing (for example piling sheep skin)
 
-*Urgent*
-- TODO: Fix horse lost on open doors
-- TODO: AI: Limit compost making
+*General*
+- NPCS: Dont use container on bear skin floor
+- NPCS: Dont use closed or locked chests
+- NPCS: Drop in container. Add list which item in which container. Prefer containers 
+
+- TODO: fix teleport to human
 - TODO: make yum Display as not default setting
+- TODO: fix !KILLOBJ
+
+- TODO: Change grave teleport to use account coins if too few coins
+- TODO: allow to teleport to different graves like with !TV
+- TODO: reduce teleport cost to one coin if close to own grave
+- TODO: Add teleport cool down for 5 sec 
+
+- TODO: increase curse radius for better cursed graves
+

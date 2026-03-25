@@ -45,6 +45,7 @@ class ObjectHelper {
 
 	// to store contained objects in case object is a container
 	public var containedObjects:Array<ObjectHelper> = [];
+	public var indexInContainer:Int = -1;
 
 	public var hits:Float = 0;
 	public var coins:Float = 0;
@@ -299,10 +300,11 @@ class ObjectHelper {
 						// trace('${obj.name} Owner: ${account.email} ${creatorLinage.name}');
 						// TODO mark all owners of all objects not only graves
 						creatorLinage.ownsObject = true; // mark to not delete
-					} else
-						trace('WARNING: ${obj.name} Owner: ${account.email}');
+					}
+					else trace('WARNING: ${obj.name} Owner: ${account.email}');
 				}
-			} else if (obj.isOwned()) {
+			}
+			else if (obj.isOwned()) {
 				for (id in obj.livingOwners) {
 					// trace('${obj.name} Owner: ${id}');
 
@@ -381,8 +383,8 @@ class ObjectHelper {
 		ids.push(objId);
 
 		for (item in containedObjects) {
-			if (first) item.writeObjectHelper(ids, false, useParentId); else
-				item.writeObjectHelper(ids, true, useParentId);
+			if (first) item.writeObjectHelper(ids, false, useParentId);
+			else item.writeObjectHelper(ids, true, useParentId);
 		}
 
 		return ids;
@@ -571,7 +573,8 @@ class ObjectHelper {
 				obj.numberOfUses = 1;
 
 				return;
-			} else {
+			}
+			else {
 				var message = 'TransformToDummy: WARNING: ${objectData.description}: obj.numberOfUses < 1: ${obj.numberOfUses}';
 				trace(message);
 
@@ -588,7 +591,8 @@ class ObjectHelper {
 				obj.numberOfUses = 1;
 
 				// trace('DUMMY UNDO: ${objectData.description}');
-			} else {
+			}
+			else {
 				obj.numberOfUses = objectData.numUses;
 			}
 		}
@@ -597,7 +601,8 @@ class ObjectHelper {
 			if (obj.objectData.dummy) {
 				obj.objectData = obj.objectData.dummyParent;
 			}
-		} else {
+		}
+		else {
 			obj.objectData = objectData.dummyObjects[obj.numberOfUses - 1];
 			if (obj.objectData == null) {
 				trace('DUMMY UNDO: numberOfUses: ${obj.numberOfUses} ${objectData.description}');

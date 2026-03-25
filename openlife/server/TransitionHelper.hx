@@ -615,6 +615,7 @@ class TransitionHelper {
 			if (container.containedObjects[index].objectData.permanent == 1) return false;
 
 			player.setHeldObject(container.removeContainedObject(index));
+			player.heldObject.indexInContainer = -1;
 
 			// if(remove(index)) return true;
 			return true;
@@ -645,6 +646,7 @@ class TransitionHelper {
 
 			if (amountOfContainedObjects >= containerObjData.numSlots) return false;
 
+			player.heldObject.indexInContainer = container.containedObjects.length;
 			container.containedObjects.push(player.heldObject);
 
 			player.setHeldObject(null);
@@ -653,8 +655,10 @@ class TransitionHelper {
 		}
 
 		var tmpObject = container.removeContainedObject(-1);
+		tmpObject.indexInContainer = -1;
 
 		container.containedObjects.insert(0, player.heldObject);
+		player.heldObject.indexInContainer = 0;
 
 		player.setHeldObject(tmpObject);
 
@@ -1724,6 +1728,7 @@ class TransitionHelper {
 		if (container.containedObjects[index].objectData.permanent == 1) return false; // this is needed if something permanent was created on the table
 
 		player.setHeldObject(container.removeContainedObject(index));
+		player.heldObject.indexInContainer = -1;
 
 		return true;
 	}
