@@ -180,6 +180,7 @@ All custom data should look Jason style better save than sorry
 
 -TODO: find out why families die out
 -TODO: find out why all have the same class
+-TODO: name not named spoons
 
 -TODO: let the bots target cursed people. We could let AI generally exile all cursed people once they reach age 3.
 
