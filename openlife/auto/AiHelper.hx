@@ -505,7 +505,12 @@ class AiHelper {
 	}
 
 	public static function isEatableCheckAgain(player:PlayerInterface, obj:ObjectHelper):Bool {
+		if (obj.indexInContainer > -1) return true;
 		var obj = player.getWorld().getObjectHelper(obj.tx, obj.ty);
+		// TODO check if object in container is still eatable
+		// var objData = obj.parentObjData;
+		// if (objData.numSlots > 0)
+
 		return isEatable(player, obj);
 	}
 
@@ -570,14 +575,15 @@ class AiHelper {
 
 		GlobalPlayerInstance.AcquireMutex();
 		// WorldMap.world.mutex.acquire();
-		Macro.exception(bestFood = SearchBestFoodHelper(player, feedingPlayer, radius));
+		Macro.exception(bestFood = SearchBestFoodHelperOld(player, feedingPlayer, radius));
 		// WorldMap.world.mutex.release();
 		GlobalPlayerInstance.ReleaseMutex();
 
 		return bestFood;
 	}
 
-	public static function SearchBestFoodHelper(player:PlayerInterface, feedingPlayer:PlayerInterface = null, radius:Int = 40):ObjectHelper {
+	// Let in in case of problems
+	public static function SearchBestFoodHelperOld(player:PlayerInterface, feedingPlayer:PlayerInterface = null, radius:Int = 40):ObjectHelper {
 		var startTime = Sys.time();
 		var feedOther = feedingPlayer != null;
 		var ai = feedingPlayer != null ? feedingPlayer.getAi() : player.getAi();
@@ -618,7 +624,7 @@ class AiHelper {
 					continue;
 				}
 
-				// Carrot 402 // Carrot Pile 2742 ==> Leep some carrots for pies
+				// Carrot 402 // Carrot Pile 2742 ==> Leave some carrots for pies
 				if (parentId == 402 || parentId == 2742) {
 					if (countCarrots < 0) countCarrots = CountCloseObjects(player, player.tx, player.ty, 402, 20);
 					if (countCarrots < 4) continue;
@@ -627,7 +633,7 @@ class AiHelper {
 				// Carrot Row 400 // dont eat up carrots that are needed for seeds
 				if (parentId == 400) {
 					var obj = world.getObjectHelper(tx, ty);
-					if (obj.numberOfUses < 2) continue;
+					if (obj.numberOfUses < 3) continue;
 				}
 
 				// Shucked Ear of Corn 1114 // Pile of Shucked Corn 3901
@@ -642,7 +648,7 @@ class AiHelper {
 
 				// dont use carrots if seed is needed // 400 Carrot Row
 				if (ai != null && parentId == 400 && ai.hasCarrotSeeds == false) {
-					var obj = world.getObjectHelper(tx, ty);
+					// var obj = world.getObjectHelper(tx, ty);
 					// if (obj.numberOfUses < 4) continue;
 					continue;
 				}
@@ -747,6 +753,206 @@ class AiHelper {
 		else if (ServerSettings.DebugAi) trace('AI: ms: ${Math.round((Sys.time() - startTime) * 1000)} bestfood: NA');
 
 		return bestFood;
+	}
+
+	public static function SearchBestFoodHelperNew(player:PlayerInterface, feedingPlayer:PlayerInterface = null, radius:Int = 40):ObjectHelper {
+		var startTime = Sys.time();
+		var feedOther = feedingPlayer != null;
+		var ai = feedingPlayer != null ? feedingPlayer.getAi() : player.getAi();
+		var baseX = player.tx;
+		var baseY = player.ty;
+		var world = player.getWorld();
+
+		var bestFood:ObjectHelper = null;
+		var bestDistance:Float = 999999.0;
+		var bestFoodValue:Float = 0.1;
+		var bestFoods:Array<ObjectHelper> = [];
+
+		var isStarving = player.food_store < 3;
+		var starvingFactor:Float = isStarving ? 4 : 16;
+		if (player.food_store < 0.5) starvingFactor = 2;
+		if (player.food_store < -1) starvingFactor = 1.5;
+		if (player.food_store < -1.5) starvingFactor = 1.2;
+
+		var gooseFound = false;
+		var countCarrots = -1;
+		var countCorn = -1;
+
+		// Context object passed to processFood
+		var ctx = {
+			player: player,
+			feedingPlayer: feedingPlayer,
+			feedOther: feedOther,
+			ai: ai,
+			baseX: baseX,
+			baseY: baseY,
+			world: world,
+			starvingFactor: starvingFactor,
+			bestFood: bestFood,
+			bestDistance: bestDistance,
+			bestFoodValue: bestFoodValue,
+			bestFoods: bestFoods,
+			gooseFound: gooseFound,
+			countCarrots: countCarrots,
+			countCorn: countCorn
+		};
+
+		// this does nothing, but there is a bug in haxe it seems that if its not called before it will not work :/
+		ctx.player.getCountEaten(402);
+
+		for (ty in baseY - radius...baseY + radius) {
+			for (tx in baseX - radius...baseX + radius) {
+				var objData = world.getObjectDataAtPosition(tx, ty);
+				if (objData.id == 0) continue;
+				if (objData.dummyParent != null) objData = objData.dummyParent;
+
+				// Skip unreachable
+				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
+
+				// === Search inside containers ===
+				if (objData.numSlots > 0) {
+					var container = world.getObjectHelper(tx, ty);
+					if (container != null && container.containedObjects != null) {
+						var i = 0;
+						for (contained in container.containedObjects) {
+							if (contained != null) {
+								contained.tx = tx;
+								contained.ty = ty;
+								contained.indexInContainer = i;
+								i += 1;
+								processFood(contained, ctx, tx, ty); // pass container position for distance
+							}
+						}
+					}
+				}
+
+				// check first food value, to not create not needed objects in getObjectHelper
+				var foodObjData = objData.foodFromTarget == null ? objData : objData.foodFromTarget;
+				var foodValue = foodObjData.foodValue;
+				if (foodValue <= 0) continue;
+
+				// Process the top-level object itself
+				// processFood(world.getObjectHelper(tx, ty), ctx, tx, ty);
+			}
+		}
+
+		// Optional: sort bestFoods by score (highest first)
+		// bestFoods.sort(function(a, b) { ... });
+		bestFood = ctx.bestFood;
+		// trace('SearchBestFoodHelper took ${Sys.time() - startTime} seconds. BestFoodFound: ${bestFood == null ? "NONE" : bestFood.name} ${bestFoods.length} candidates.');
+		return bestFood; // or return the whole context if you want more info
+	}
+
+	// ===================================================================
+	// New helper: processes a single food object (top-level or from container)
+	// ===================================================================
+	private static function processFood(obj:ObjectHelper, ctx:Dynamic, tx:Int, ty:Int):Void {
+		if (obj == null) return;
+
+		var objData = obj.parentObjData;
+		if (objData.dummyParent != null) objData = objData.dummyParent;
+
+		var parentId = objData.parentId;
+
+		// === Special global / early skip rules (these can still use the shared counters) ===
+
+		// dont eat Cooked Goose if there is only one (needed for knife)
+		if (parentId == 518) {
+			if (ctx.gooseFound == false) {
+				ctx.gooseFound = true;
+				return;
+			}
+		}
+
+		// Carrot / Carrot Pile - keep some for pies
+		if (parentId == 402 || parentId == 2742) {
+			if (ctx.countCarrots < 0) {
+				ctx.countCarrots = CountCloseObjects(ctx.player, ctx.player.tx, ctx.player.ty, 402, 20);
+			}
+			if (ctx.countCarrots < 4) return;
+		}
+
+		// Carrot Row - don't eat if almost gone
+		if (parentId == 400) {
+			if (obj.numberOfUses < 2) return;
+		}
+
+		// Corn
+		if (parentId == 1114 || parentId == 3901) {
+			if (ctx.countCorn < 0) {
+				ctx.countCorn = CountCloseObjects(ctx.player, ctx.player.tx, ctx.player.ty, 1114, 20);
+				ctx.countCorn += CountCloseObjects(ctx.player, ctx.player.tx, ctx.player.ty, 1115, 20); // Dried
+			}
+			if (ctx.countCorn < 2) return;
+		}
+
+		// AI seed protection rules
+		if (ctx.ai != null) {
+			if (parentId == 400 && !ctx.ai.hasCarrotSeeds) return; // Carrot Row
+			if (parentId == 2844 && !ctx.ai.hasPepperSeeds()) return; // Hot Pepper
+			if (parentId == 2843 && !ctx.ai.hasPepperSeeds() && obj.numberOfUses < 2) return;
+			if ((parentId == 805 || parentId == 808) && !ctx.ai.hasOnionSeeds()) return;
+			if (parentId == 1114 && !ctx.ai.hasCornSeeds) return;
+			if (parentId == 2854 && obj.numberOfUses < 3) return; // Ripe Onions
+		}
+
+		// === Now the actual food value calculation ===
+		var foodObjData = objData.foodFromTarget == null ? objData : objData.foodFromTarget;
+		var originalFoodValue = foodObjData.foodValue;
+		var foodValue:Float = originalFoodValue;
+		if (foodValue <= 0) return;
+
+		if (ctx.feedOther && ctx.player.canFeedToMeObj(foodObjData) == false) return;
+		if (ctx.player.canEatObj(foodObjData) == false) return;
+
+		// Not enough room in stomach
+		if (ctx.player.food_store_max - ctx.player.food_store < Math.ceil(originalFoodValue / 4)) return;
+
+		var foodId = foodObjData.getFoodId();
+		trace(ctx != null);
+		trace(ctx.player != null);
+		if (ctx == null) return;
+		if (ctx.player == null) return;
+		// trace('foodObjData: ${foodObjData.name}');
+		var countEaten = ctx.player.getCountEaten(foodId);
+
+		var quadDistance = 16 + AiHelper.CalculateDistance(ctx.baseX, ctx.baseY, tx, ty);
+		if (ctx.feedingPlayer != null) {
+			quadDistance += 1 + AiHelper.CalculateDistance(ctx.feedingPlayer.tx, ctx.feedingPlayer.ty, tx, ty);
+		}
+		if (quadDistance < 1) quadDistance = 1;
+
+		foodValue -= countEaten;
+
+		var isYum = countEaten < ServerSettings.YumBonus;
+		var isSuperMeh = foodValue < originalFoodValue / 2;
+
+		// Global food factor
+		var foodFactor = WorldMap.world.getFoodFactor(foodId);
+		foodValue *= foodFactor;
+
+		if (isYum) foodValue *= ctx.starvingFactor;
+		if (isSuperMeh) foodValue = originalFoodValue / ctx.starvingFactor;
+		if (isSuperMeh && ctx.player.food_store > 3) foodValue = 0;
+
+		if (foodId == ctx.player.getCraving()) foodValue *= ctx.starvingFactor;
+
+		// Danger / final AI checks
+		if (ctx.ai != null) {
+			if (quadDistance > 4 && IsDangerous(ctx.player, obj)) return;
+		}
+
+		// === Compare with current best ===
+		var currentScore = foodValue / quadDistance;
+		var bestScore = ctx.bestFoodValue / ctx.bestDistance;
+
+		if (ctx.bestFood == null || currentScore > bestScore) {
+			ctx.bestFood = obj;
+			ctx.bestDistance = quadDistance;
+			ctx.bestFoodValue = foodValue;
+		}
+
+		ctx.bestFoods.push(obj);
 	}
 
 	public static function IsDangerous(player:PlayerInterface, object:ObjectHelper, radius:Int = 4):Bool {
