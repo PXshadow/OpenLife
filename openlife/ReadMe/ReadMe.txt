@@ -159,12 +159,13 @@ All custom data should look Jason style better save than sorry
 - TODO: container locked stuff like no water bowl in backpack
 - TODO: cloth interactions while wearing (for example piling sheep skin)
 
-*General*
+*AI container use*
 - NPCS: Dont use container on bear skin floor
 - NPCS: Dont use closed or locked chests
 - NPCS: Drop in container. Add list which item in which container. Prefer containers 
+- NPCS: Let baker store pies in container. Implement a gneric store in container function.
 
-- TODO: Add teleport cool down for 5 sec 
+- TODO: Add teleport cool down for 5 sec
 
 - TODO: increase curse radius for better cursed graves
 - TODO: make stop command stop attacking people outside the village
@@ -174,5 +175,16 @@ All custom data should look Jason style better save than sorry
         Or if its his alliance war, in this case there must be a kind of negotiation / decicion 
         by the leader considering the relation between the families, leaders and how long the war was going on, how many deaths and so on. 
 
+-TODO: AI: dont kill last turkey
+-TODO: let hitched fences become normal faster
+
+-TODO: find out why families die out
+-TODO: find out why all have the same class
+
+-TODO: let the bots target cursed people. We could let AI generally exile all cursed people once they reach age 3.
+
+- TODO: FIX garlic bug!
+Garlic Bulbs can be pilled. Place a Garlic Bulb in a bowl and mash with a round stone to get a Bowl of Garlic Cloves (contains 5 cloves). A full Bowl of Garlic Cloves can be used directly on a deep tilled row to plant 5 units of garlic, or each clove can be removed and planted separately, for up to 5 units in a row. Water the row to continue the cycle.
+I didn't try planting them separately; just full bowl on tilled row & it only returned one garlic
 
 !KILLOBJ --> delete objects around the player
