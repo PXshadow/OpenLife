@@ -5837,7 +5837,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	private static function HasEnoughCoinsForTeleport(player:GlobalPlayerInstance, isCloseToGrave:Bool = false):Bool {
 		var cost = isCloseToGrave ? 1 : ServerSettings.TeleportCost;
-		var coins = player.coins + player.account.coinsInherited;
+		var accountCoins = player.account.coinsInherited > 0 ? player.account.coinsInherited : 0;
+		var coins = player.coins + accountCoins;
 		var needed = Math.ceil(cost - coins);
 
 		trace('JUMP cost: $cost needed: $needed');
