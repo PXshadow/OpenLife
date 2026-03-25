@@ -5848,7 +5848,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 	private static function HasEnoughCoinsForTeleport(player:GlobalPlayerInstance):Bool {
 		var cost = ServerSettings.TeleportCost;
-		var needed = Math.ceil(cost - player.coins);
+		var coins = player.coins + player.account.coinsInherited;
+		var needed = Math.ceil(cost - coins);
 
 		trace('JUMP cost: $cost needed: $needed');
 
@@ -5860,6 +5861,10 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 	private static function PayTeleportCost(player:GlobalPlayerInstance) {
 		var cost = ServerSettings.TeleportCost;
 		player.coins -= cost;
+		if (player.coins < 0) {
+			player.account.coinsInherited += player.coins;
+			player.coins = 0;
+		}
 		var left = Math.floor(player.coins);
 		player.say('costed ${cost} coins. left $left', true);
 	}
