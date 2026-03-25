@@ -5530,14 +5530,18 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 			// var graves = [for (obj in WorldMap.world.cursedGraves) obj];
 			var tmpGraves = player.account.graves;
 			var locations = [];
+			var closeToGrave = false;
 
 			for (g in tmpGraves) {
 				trace('Grave: ${g.name} ${g.isGraveWithGraveStone()}');
 				if (g.isGraveWithGraveStone() == false) continue;
+				var quadDist = AiHelper.CalculateDistance(player.x, player.y, g.tx, g.ty);
+				if (quadDist < 25) closeToGrave = true;
+
 				locations.push(g);
 			}
 
-			if (HasEnoughCoinsForTeleport(player) == false) return true;
+			if (HasEnoughCoinsForTeleport(player, closeToGrave) == false) return true;
 
 			if (locations.length < 1) {
 				player.say('No graves with a gravestone found!', true);
@@ -5556,7 +5560,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				}
 			}
 
-			teleport(player, locations, 1, 'No graves with a gravestone found!');
+			teleport(player, locations, 1, 'No graves with a gravestone found!', closeToGrave);
 
 			/*if (graves.length < 1) {
 					player.say('No graves with a stone', true);
@@ -5794,7 +5798,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		301 14
 		#
 	 */
-	private static function teleport(player:GlobalPlayerInstance, locations:Array<ObjectHelper>, coinCost:Int, notFoundtext:String) {
+	private static function teleport(player:GlobalPlayerInstance, locations:Array<ObjectHelper>, coinCost:Int, notFoundtext:String, closeToGrave:Bool = false) {
 		if (locations.length < 1) {
 			player.say(notFoundtext, true);
 			return;
@@ -5844,11 +5848,11 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 		player.connection.send(FRAME, null, false, true);
 
-		if (coinCost > 0) PayTeleportCost(player);
+		if (coinCost > 0) PayTeleportCost(player, closeToGrave);
 	}
 
-	private static function HasEnoughCoinsForTeleport(player:GlobalPlayerInstance):Bool {
-		var cost = ServerSettings.TeleportCost;
+	private static function HasEnoughCoinsForTeleport(player:GlobalPlayerInstance, isCloseToGrave:Bool = false):Bool {
+		var cost = isCloseToGrave ? 1 : ServerSettings.TeleportCost;
 		var coins = player.coins + player.account.coinsInherited;
 		var needed = Math.ceil(cost - coins);
 
@@ -5859,8 +5863,8 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		return false;
 	}
 
-	private static function PayTeleportCost(player:GlobalPlayerInstance) {
-		var cost = ServerSettings.TeleportCost;
+	private static function PayTeleportCost(player:GlobalPlayerInstance, isCloseToGrave:Bool = false) {
+		var cost = isCloseToGrave ? 1 : ServerSettings.TeleportCost;
 		player.coins -= cost;
 		if (player.coins < 0) {
 			player.account.coinsInherited += player.coins;
