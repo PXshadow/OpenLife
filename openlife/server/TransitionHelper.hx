@@ -1263,7 +1263,8 @@ class TransitionHelper {
 		if (ServerSettings.DebugTransitionHelper)
 			trace('TRANS: ${player.name + player.id} TEST: ${newTargetObjectData.name} ${newTargetObjectData.id}  ${newTargetObjectData.alternativeTransitionOutcome}');
 		// player.say('id ${target.id} h: ${target.objectData.hungryWork}');
-		if (allowForOwner == false && (alternativeTransitionOutcome.length > 0 || isFortified)) {
+		// FIX: Bug with Stone Floor 884
+		if (transition.targetID != 884 && allowForOwner == false && (alternativeTransitionOutcome.length > 0 || isFortified)) {
 			// TODO reduce tool
 			var rand = WorldMap.calculateRandomFloat();
 
