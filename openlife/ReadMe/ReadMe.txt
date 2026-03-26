@@ -186,11 +186,11 @@ All custom data should look Jason style better save than sorry
 -TODO: find out why all have the same class
 -TODO: name not named spoons
 
--TODO: let the bots target cursed people. If human / or has a marked grave
 -TODO: let AI exile all cursed humans once they reach age 6.
 -TODO: limit interacting with good / cursed graves to age 10
+-TODO: curse range increased and higher attack prio if its a marked grave
 -TODO: let Ai destroy good graves of humans marked cursed
--TODO: let AI send out armies to demand or destroy graves of people marked in their village
+-TODO: advaned: let AI send out armies to demand or destroy graves of people marked in their village
 
 
 -TODO: display bestfood again if ate food. Its nice to see next food

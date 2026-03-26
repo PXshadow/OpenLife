@@ -3841,7 +3841,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 
 			// if (ServerSettings.DisplayYumAndMehFood) displayFood(obj);
 			// if (player.account.displayYum) displayFood(obj);
-			// if (player.account.displayYum) DisplayBestFood(player);
+			if (player.account.displayYum) DisplayBestFood(player, 1);
 		}
 	}
 
@@ -3898,7 +3898,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		player.connection.send(ClientTag.LOCATION_SAYS, ['${food.tx - player.gx} ${food.ty - player.gy} $text']);
 	}
 
-	public static function DisplayBestFood(player:GlobalPlayerInstance) {
+	public static function DisplayBestFood(player:GlobalPlayerInstance, foodStoreFactor:Float = 0.5) {
 		if (player.isAi()) return;
 		// if (player.heldObject.objectData.foodValue <= 0 && player.food_store > 5) return;
 		// if(player.isHoldingYum()) return;
@@ -3908,7 +3908,7 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 		var bestfood = AiHelper.SearchBestFood(player);
 		var displayBestFood = bestfood != null
 			&& (player.isHoldingYum() == false || bestfood.objectData.getFoodId() == player.currentlyCraving)
-			&& (player.food_store < player.food_store_max * 0.5)
+			&& (player.food_store < player.food_store_max * foodStoreFactor)
 			&& AiHelper.CalculateQuadDistanceToObject(player, bestfood) > 10;
 
 		if (displayBestFood) player.displayFood(bestfood);
