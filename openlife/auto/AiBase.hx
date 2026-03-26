@@ -5312,7 +5312,7 @@ abstract class AiBase {
 			var count = countCurrentObject(292); // Basket 292
 
 			// Stone Hoe 850 + Basket 292
-			if (count > 6 && shortCraft(850, 292, 15)) return true;
+			if (count > 15 && shortCraft(850, 292, 15)) return true;
 			// Stone Hoe 850 + Shallow Tilled Row 1136 --> Deep Tilled Row 213
 			if (shortCraft(850, 1136, 15)) return true;
 			// Stone Hoe 850 + Fertile Soil 1138
