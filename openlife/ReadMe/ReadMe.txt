@@ -146,6 +146,10 @@ All custom data should look Jason style better save than sorry
 - TODO: Add animal interactions
 
 ---
+*Eve spawn protection*
+-TODO: if you leave eve area you get a warning, if you leave to far you cant come back without getting rid of all your stuff. 
+    This would protect eve areas for some time from the outside contamination. 
+---
 
 **Combat / Damage**
 - TODO: Allow only to loose max halve health per hit
@@ -184,8 +188,13 @@ All custom data should look Jason style better save than sorry
 
 -TODO: let the bots target cursed people. We could let AI generally exile all cursed people once they reach age 3.
 
+-TODO: display bestfood again if ate food. Its nice to see next food
+
 - TODO: FIX garlic bug!
 Garlic Bulbs can be pilled. Place a Garlic Bulb in a bowl and mash with a round stone to get a Bowl of Garlic Cloves (contains 5 cloves). A full Bowl of Garlic Cloves can be used directly on a deep tilled row to plant 5 units of garlic, or each clove can be removed and planted separately, for up to 5 units in a row. Water the row to continue the cycle.
 I didn't try planting them separately; just full bowl on tilled row & it only returned one garlic
+
+- TODO: the ai is filling the available buckets with 1 feed mash, not using for water, etc
+- TODO: sheep don't poop if they have fur; only when they are sheared do they poop
 
 !KILLOBJ --> delete objects around the player

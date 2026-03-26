@@ -1769,6 +1769,12 @@ class ServerSettings {
 		var trans = transitions.getTransition(236, 2836); // Clay Plate 236 + Tomato 2836
 		trans.aiShouldIgnore = true; // only do manual // dont loose the clay plates near tomatos
 
+		// Bowl of Gooseberries and Carrot 258 + Feed Mash Bucket 4211
+		var trans = transitions.getTransition(258, 4211);
+		trans.aiShouldIgnore = true;
+		var trans = transitions.getTransition(258, 4211, false, true);
+		trans.aiShouldIgnore = true;
+
 		// Make reapir fences more easy:
 		// Mallet 467 + Fence Kit 556 -->  Mallet 467 + Fence 550
 		var trans = new TransitionData(467, 556, 467, 550);
