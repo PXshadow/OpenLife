@@ -1736,6 +1736,7 @@ class AiHelper {
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p);
 			if (p.lostCombatPrestige > 1) dist /= (15 + p.lostCombatPrestige) / 10;
+			if (p.isCursed) dist /= 2;
 
 			if (dist > bestDist) continue;
 
@@ -1774,10 +1775,13 @@ class AiHelper {
 			// TODO this is less agro but would allow to shoot first on a agro AI
 			if (p.isHoldingWeapon() && (p.angryTime < 4 || player.angryTime < 4)) dangerous = true;
 			// if (p.isHoldingWeapon() == false || (p.angryTime > 4 && player.angryTime > 4))) continue;
+			if (p.isCursed) dangerous = true;
+
 			if (dangerous == false) continue;
 			if (p.isFriendly(player)) continue;
 
 			var dist = AiHelper.CalculateDistanceToPlayer(player, p);
+			if (p.isCursed) dist /= 2;
 			if (p.lostCombatPrestige > 1) dist /= (15 + p.lostCombatPrestige) / 10;
 
 			if (dist > bestDist) continue;
