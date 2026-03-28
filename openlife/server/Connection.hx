@@ -1,6 +1,7 @@
 package openlife.server;
 
 import haxe.Exception;
+import haxe.Http;
 import openlife.data.map.MapData;
 import openlife.data.object.ObjectData;
 import openlife.data.object.ObjectHelper;
@@ -33,19 +34,69 @@ class Connection {
 	private var messageQueue = new Array<String>();
 	private var timeToWaitBeforeNextMessageSend:Float = 0;
 	private var timeLastMapChunkSend:Float = 0;
+	private var challengeString:String;
 
 	// if it is an AI sock = null
 	public function new(sock:Socket, server:Server) {
 		this.sock = sock;
 		this.server = server;
-		var challenge = "dsdjsiojdiasjiodsjiosd";
+		this.challengeString = generateChallengeString();
 		var version = ObjectData.dataVersionNumber;
 
 		// if it is an AI there is no sock
 		if (sock != null) {
 			clientIp = sock.peer().host.toString(); // Get client IP for account limiting
-			send(SERVER_INFO, ["0/0", challenge, '$version']);
+			send(SERVER_INFO, ["0/0", challengeString, '$version']);
 		}
+	}
+
+	private function generateChallengeString():String {
+		var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+		var result = "";
+		for (i in 0...48) {
+			result += chars.charAt(Std.random(chars.length));
+		}
+		return result;
+	}
+
+	private function verifyAccount(email:String, accountKeyHash:String):Bool {
+		var url = 'https://onehouronelife.com/ticketServer/server.php?action=check_ticket_hash&email=$email&hash_value=$accountKeyHash&string_to_hash=$challengeString';
+
+		var response:String = null;
+		var error:String = null;
+
+		var http = new Http(url);
+		http.onData = function(data:String) {
+			response = data;
+		};
+		http.onError = function(msg:String) {
+			error = msg;
+		};
+
+		hl.Gc.blocking(true);
+		try {
+			http.request(false);
+		} catch (e:Dynamic) {
+			hl.Gc.blocking(false);
+			trace('Account verification HTTP error: $e');
+			return false;
+		}
+		hl.Gc.blocking(false);
+
+		if (error != null) {
+			trace('Account verification error: $error');
+			return false;
+		}
+
+		if (response == null) {
+			trace('Account verification no response');
+			return false;
+		}
+
+		// var isValid = response.indexOf(" VALID") != -1;
+		var isValid = response == "VALID";
+		trace('Account verification for $email: ${isValid ? "VALID" : "INVALID"} (response: $response)');
+		return isValid;
 	}
 
 	public function isAi():Bool {
@@ -95,6 +146,13 @@ class Connection {
 			return;
 		}
 
+		if (verifyAccount(email, account_key_hash) == false) {
+			trace('login: ${account_key_hash} REJECTED! Account verification failed for email: $email');
+			send(REJECTED);
+			if (sock != null) sock.close();
+			return;
+		}
+
 		trace('login2: ${account_key_hash}');
 
 		this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash, 0, clientIp);
@@ -132,6 +190,13 @@ class Connection {
 	public function rloginHelper(client_tag:String, email:String, password_hash:String, account_key_hash:String) {
 		trace('rlogin2: ${account_key_hash}');
 		// GlobalPlayerInstance.AcquireMutex();
+
+		if (verifyAccount(email, account_key_hash) == false) {
+			trace('rlogin: ${account_key_hash} REJECTED! Account verification failed for email: $email');
+			send(REJECTED);
+			if (sock != null) sock.close();
+			return;
+		}
 
 		this.playerAccount = PlayerAccount.GetOrCreatePlayerAccount(email, account_key_hash, 0, clientIp);
 		if (this.playerAccount == null) {
