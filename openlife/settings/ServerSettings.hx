@@ -54,6 +54,7 @@ class ServerSettings {
 	// Account limiting
 	public static var NewAccountsPerIpPerDay:Int = 3; // Max new accounts per IP per day
 	public static var TotalNewAccountsPerDay:Int = 20; // Total new accounts server-wide per day
+	public static var VerifyIfOholAccount:Bool = true; // Verify account key hash against ticket server on login
 
 	// Save / Load
 	public static var saveToDisk = true;

@@ -146,7 +146,7 @@ class Connection {
 			return;
 		}
 
-		if (verifyAccount(email, account_key_hash) == false) {
+		if (ServerSettings.VerifyIfOholAccount && verifyAccount(email, account_key_hash) == false) {
 			trace('login: ${account_key_hash} REJECTED! Account verification failed for email: $email');
 			send(REJECTED);
 			if (sock != null) sock.close();
@@ -191,7 +191,7 @@ class Connection {
 		trace('rlogin2: ${account_key_hash}');
 		// GlobalPlayerInstance.AcquireMutex();
 
-		if (verifyAccount(email, account_key_hash) == false) {
+		if (ServerSettings.VerifyIfOholAccount && verifyAccount(email, account_key_hash) == false) {
 			trace('rlogin: ${account_key_hash} REJECTED! Account verification failed for email: $email');
 			send(REJECTED);
 			if (sock != null) sock.close();
