@@ -689,8 +689,6 @@ abstract class AiBase {
 		var rightAge = myPlayer.age > 10;
 		if (rightAge) Macro.exception(if (craftMediumPriorityClothing(1)) return);
 
-		Macro.exception(if (isCollecting(1)) return);
-
 		itemToCraft.searchCurrentPosition = false;
 		itemToCraft.maxSearchRadius = 30; // old null
 
@@ -729,33 +727,37 @@ abstract class AiBase {
 		else if (assignedProfession == 'POTTER' || lastProfession == 'POTTER') {
 			Macro.exception(if (doPottery(100)) return);
 		}
-		else if (assignedProfession == 'FIREKEEPER') {
+		else if (assignedProfession == 'FIREKEEPER' || lastProfession == 'FIREKEEPER') {
 			Macro.exception(if (isHandlingFire(100)) return);
 		}
-		else if (assignedProfession == 'LUMBERJACK') {
+		else if (assignedProfession == 'LUMBERJACK' || lastProfession == 'LUMBERJACK') {
 			Macro.exception(if (isCuttingWood(100)) return);
 		}
 		else if (assignedProfession == 'WATERBRINGER' || lastProfession == 'WATERBRINGER') {
 			Macro.exception(if (doWatering(100)) return);
 		}
-		else if (assignedProfession == 'FOODSERVER') {
+		else if (assignedProfession == 'FOODSERVER' || lastProfession == 'FOODSERVER') {
 			Macro.exception(if (isFeedingPlayerInNeed(100)) return);
 		}
-		else if (assignedProfession == 'GRAVEKEEPER') {
+		else if (assignedProfession == 'GRAVEKEEPER' || lastProfession == 'GRAVEKEEPER') {
 			Macro.exception(if (isHandlingGraves(100)) return);
 		}
-		else if (assignedProfession == 'HUNTER') {
+		else if (assignedProfession == 'HUNTER' || lastProfession == 'HUNTER') {
 			Macro.exception(if (isHunting(100)) return);
 			// Macro.exception(if (doHunting(100)) return);
 		}
-		else if (assignedProfession == 'TAILOR') {
+		else if (assignedProfession == 'TAILOR' || lastProfession == 'TAILOR') {
 			Macro.exception(if (craftHighPriorityClothing()) return);
 			Macro.exception(if (craftMediumPriorityClothing(100)) return);
 			Macro.exception(if (craftLowPriorityClothing(100)) return);
 		}
-		else if (assignedProfession == 'FIREFOODMAKER') {
+		else if (assignedProfession == 'FIREFOODMAKER' || lastProfession == 'FIREFOODMAKER') {
 			Macro.exception(if (makeFireFood(100)) return);
 		}
+
+		Macro.exception(if (doCriticalStuff()) return);
+
+		Macro.exception(if (isCollecting(1)) return);
 
 		// this.profession['BowlFiller'] = 1;
 
@@ -4466,7 +4468,7 @@ abstract class AiBase {
 		if (count >= max + wasIdle) return false;
 		this.profession[profession] = 1;
 		myPlayer.lastProfession = profession;
-		// trace('new profession: ${profession}');
+		if (ServerSettings.DebugAi) trace('${myPlayer.name + myPlayer.id} new profession: ${profession}');
 		return true;
 	}
 
@@ -5970,13 +5972,15 @@ abstract class AiBase {
 		var count = countCurrentObject(183);
 		if (count < 15 && makeOrCollect(180, 2, 4)) return true;
 
-		Macro.exception(if (doWatering(1)) return true);
+		// Macro.exception(if (doWatering(1)) return true);
 
-		Macro.exception(if (doCriticalStuff()) return true);
+		// Macro.exception(if (doCriticalStuff()) return true);
 
 		// todo / dont steel from other towns
 
 		// Raw Mutton 569
+		if (shortCraft(569, 250, 10, false, 5)) return true; // check if it can bake // Hot Adobe Oven 250
+		if (shortCraft(569, 85, 10, false, 5)) return true; // check if it can bake // Hot Coals 85
 		if (makeOrCollect(569, 1, 5)) return true;
 
 		// Raw Pork 1342
@@ -5991,7 +5995,7 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function makeOrCollect(id:Int, min:Int = 2, max:Int = 5, target:ObjectHelper = null) {
+	private function makeOrCollect(id:Int, min:Int = 2, max:Int = 5, target:ObjectHelper = null, ?infos:haxe.PosInfos) {
 		if (target == null) target = myPlayer.home;
 
 		var count = AiHelper.CountCloseObjects(myPlayer, target.tx, target.ty, id, 15);
@@ -6000,7 +6004,8 @@ abstract class AiBase {
 
 		if (this.taskState['$id'] > 0) {
 			var objData = ObjectData.getObjectData(id);
-			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} doCriticalStuff: get ${objData.name}: ${count}');
+			if (ServerSettings.DebugAi)
+				trace('AAI: ${myPlayer.name + myPlayer.id} doCriticalStuff: get ${objData.name}: ${count} target: ${target.name} ${infos.methodName}');
 			if (shouldDebugSay()) myPlayer.say('Get ${objData.name} ${count} from ${max}');
 		}
 
@@ -6058,6 +6063,8 @@ abstract class AiBase {
 		// Macro.exception(if (doWatering(1)) return true);
 
 		if (cleanUp()) return true;
+
+		if (doWatering(1)) return true;
 
 		if (doBasicFarming(1)) return true;
 
@@ -8613,9 +8620,14 @@ abstract class AiBase {
 		}
 
 		var done = false;
+		var isInContainer = foodTarget.indexInContainer >= 0;
 
 		// x,y is relativ to birth position, since this is the center of the universe for a player
-		if (isUse) done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
+		if (isInContainer) {
+			// myPlayer.say('Container ${foodTarget.name} ${foodTarget.indexInContainer}');
+			done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy, foodTarget.indexInContainer);
+		}
+		else if (isUse) done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
 		else done = myPlayer.drop(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); // use drop for berry bowl
 
 		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} pickup food: ${foodTarget.name} $done');
