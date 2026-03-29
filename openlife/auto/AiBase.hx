@@ -3200,8 +3200,8 @@ abstract class AiBase {
 			// Raw Bread Loaf 1469
 			if (countSlicedBread < 3 && shortCraftOnTarget(1469, hotOven, false)) return true;
 			// Raw Mutton 569
-			var countDoneMutton = countCurrentObject(570);
-			if (countDoneMutton < 2 && shortCraftOnTarget(569, hotOven, false)) return true;
+			// var countDoneMutton = countCurrentObject(570);
+			if (shortCraftOnTarget(569, hotOven, false, 4)) return true;
 			// Raw Potato 1147
 			if (shortCraftOnTarget(1147, hotOven, false)) return true;
 			// Bowl of Soaking Beans 1180
@@ -4876,8 +4876,10 @@ abstract class AiBase {
 				this.time += 5;
 				return;
 			}
-			if (isMovingToHome()) myPlayer.say("GOING HOME!");
-			else myPlayer.say("I CANNOT GO HOME!");
+			if (shouldDebugSay()) {
+				if (isMovingToHome()) myPlayer.say("GOING HOME!");
+				else myPlayer.say("I CANNOT GO HOME!");
+			}
 			this.time += 6;
 			return;
 		}
@@ -5297,6 +5299,12 @@ abstract class AiBase {
 		// if (maxDistanceToHome > 5 && UseUpDough()) return true;
 		if (UseUpDough()) return true;
 		// if (heldObjId == 252 && heldObject.numberOfUses > 1 && && shortCraft(252, 236, 5, false)) return true;
+
+		// Raw Mutton 569 // check if it can bake
+		if (heldObjId == 569) {
+			if (shortCraft(569, 250, 10, false, 4)) return true; // Hot Adobe Oven 250
+			if (shortCraft(569, 85, 10, false, 4)) return true; // Hot Coals 85
+		}
 
 		// Bowl of Soil 1137
 		// if (heldObjId == 1137 && maxDistanceToHome > 5) {
