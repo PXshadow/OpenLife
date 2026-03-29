@@ -21,6 +21,17 @@ import openlife.settings.ServerSettings;
 class AiHelper {
 	static final RAD:Int = MapData.RAD; // search radius
 
+	public static var pies = [272, 803, 273, 274, 275, 276, 277, 278];
+	public static var smallCookedFood = [570]; // Cooked Mutton 570
+
+	public static inline function IsBakedPie(parentId:Int):Bool {
+		return pies.contains(parentId);
+	}
+
+	public static inline function isSmallFoodToStore(parentId:Int):Bool {
+		return IsBakedPie(parentId) || smallCookedFood.contains(parentId);
+	}
+
 	public static function IsIgnoredFloor(floorId:Int, objData:ObjectData):Bool {
 		if (floorId < 1) return false;
 		if (objData.foodValue > 0) return false;
@@ -151,6 +162,8 @@ class AiHelper {
 		var mindistaceToTargetObj = player == null ? null : player.home;
 		var minDistanceToTarget = dontDropCloseHomeIds.contains(heldId) ? 6 : 0; // to home
 		var quadMinDistanceToTarget = minDistanceToTarget * minDistanceToTarget;
+		var allowDropInContainer = objIdToSearch == 0;
+		var factor:Float = 1;
 
 		// minDistance = -1 allows to be dropped close to oven even if it normaly should not (flat rock for forge)
 		if (minDistance < 0) {
@@ -163,13 +176,14 @@ class AiHelper {
 			for (tx in baseX - searchDistance...baseX + searchDistance) {
 				var objData = world.getObjectDataAtPosition(tx, ty);
 				var parentId = objData.parentId;
+				var isContainer = objData.numSlots > 0;
 
 				// used for example to drop a basket with clay near kiln and switch with existing
 				if (objIdToSearch == -10) {
 					if (objData.isPermanent()) continue;
 					if (objData.parentId == heldId) continue; // dont replace a basket with a basket
 				}
-				else if (parentId != objIdToSearch) continue;
+				else if (parentId != objIdToSearch && (allowDropInContainer == false || isContainer == false)) continue;
 
 				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
 
@@ -197,21 +211,66 @@ class AiHelper {
 					if (floorId > 0) continue;
 				}
 
-				if (searchContained == null) {
-					if (allowContainerWithItems == false && objData.numSlots > 0) {
-						var obj = world.getObjectHelper(tx, ty);
-						if (obj.containedObjects.length > 0) continue;
+				var considerContainer = false;
+				if (objIdToSearch == 0 && allowDropInContainer && isContainer) {
+					// skip close or locked chest
+					if (objData.blocksRemove) continue; // blocksRemove: items cant be stored/removed like from closed chest
+
+					// skip if container is full
+					var obj = world.getObjectHelper(tx, ty);
+					if (obj.containedObjects.length >= objData.numSlots) continue;
+
+					if (isSmallFoodToStore(heldId)) { // IsBakedPie(heldId) || heldId == 570 // Cooked Mutton
+						considerContainer = true;
+						var containerParentId = objData.parentId;
+						if (containerParentId == 3065) {
+							factor = 0.25; // Wooden Slot Box - most preferred
+						}
+						else if (containerParentId == 292) {
+							factor = 0.5; // Basket - preferred
+						}
+						else {
+							// TODO check slot size
+							factor = 0.8; // Other containers
+						}
+
+						// Prefer if container already has a smal cooked food
+						if (IsBakedPie(heldId)) {
+							for (contained in obj.containedObjects) {
+								if (IsBakedPie(contained.parentId)) {
+									factor *= 0.5;
+									break;
+								}
+							}
+						}
+						else if (heldId == 570) { // Cooked Mutton 570
+							for (contained in obj.containedObjects) {
+								if (contained.parentId == 570) {
+									factor *= 0.5;
+									break;
+								}
+							}
+						}
 					}
 				}
-				else {
-					if (objData.numSlots < 1) continue;
-					var obj = world.getObjectHelper(tx, ty);
-					if (obj.contains(searchContained) == false) continue;
+
+				if (considerContainer == false) {
+					if (searchContained == null) {
+						if (allowContainerWithItems == false && objData.numSlots > 0) {
+							var obj = world.getObjectHelper(tx, ty);
+							if (obj.containedObjects.length > 0) continue;
+						}
+					}
+					else {
+						if (objData.numSlots < 1) continue;
+						var obj = world.getObjectHelper(tx, ty);
+						if (obj.contains(searchContained) == false) continue;
+					}
 				}
 
 				var quadDistance = AiHelper.CalculateQuadDistanceHelper(tx, ty, baseX, baseY);
 
-				if (quadDistance < quadMinDistance) continue; // for example used to not pikcup kindling close to fire to bring this kindling then to fire
+				if (quadDistance < quadMinDistance) continue; // for example used to not pipickup kindling close to fire to bring this kindling then to fire
 
 				if (searchEmptyPlace && mindistaceToTargetObj != null && quadMinDistanceToTarget > 0) {
 					var quadDistanceToHome = AiHelper.CalculateQuadDistanceHelper(tx, ty, mindistaceToTargetObj.tx, mindistaceToTargetObj.ty);
@@ -232,11 +291,20 @@ class AiHelper {
 					continue;
 				}
 
+				// prefer drop in container
+				if (factor < 1) quadDistance -= 4;
+				if (quadDistance > 0) quadDistance *= factor;
+				else quadDistance /= factor;
+
 				if (closestObject != null && quadDistance > bestDistance) continue;
 
 				bestDistance = quadDistance;
 				closestObject = world.getObjectHelper(tx, ty);
 			}
+		}
+
+		if (closestObject != null && closestObject.objectData.numSlots > 0 && isSmallFoodToStore(heldId)) {
+			// trace('Best object is container: search: ${objIdToSearch} ${player.heldObject.name} --> ${closestObject.name}');
 		}
 
 		return closestObject != null ? closestObject : closestBadPlace;
@@ -811,6 +879,7 @@ class AiHelper {
 
 				// === Search inside containers ===
 				if (objData.numSlots > 0) {
+					if (objData.blocksRemove) continue; // blocksRemove: items cant be stored/removed like from closed chest
 					var container = world.getObjectHelper(tx, ty);
 					if (container != null && container.containedObjects != null) {
 						var i = 0;

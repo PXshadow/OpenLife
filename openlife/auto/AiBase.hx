@@ -3099,8 +3099,12 @@ abstract class AiBase {
 	// Raw Berry Pie 265
 	// Raw Mutton Pie 802
 	// Raw Carrot Pie 268
-	public static var pies = [272, 803, 273, 274, 275, 276, 277, 278];
+	public static var pies(get, null):Array<Int>;
 	public static var rawPies = [265, 802, 268, 270, 266, 271, 269, 267];
+
+	private static function get_pies():Array<Int> {
+		return AiHelper.pies;
+	}
 
 	private function doBaking(maxPeople:Int = 1):Bool {
 		var tmpMaxSearchRadius = itemToCraft.maxSearchRadius;
@@ -5573,7 +5577,20 @@ abstract class AiBase {
 			}
 
 			// get empty tile
-			if (newDropTarget == null) newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, searchDistance, mindistance);
+			if (newDropTarget == null) {
+				newDropTarget = myPlayer.GetClosestObjectToTarget(target, 0, searchDistance, mindistance);
+
+				// if target is a container use a use to drop item into the container
+				if (newDropTarget != null && newDropTarget.parentObjData.numSlots > 0) {
+					this.useTarget = newDropTarget;
+					this.expectedUseTarget = newDropTarget.objectData;
+					this.useActor = new ObjectHelper(null, myPlayer.heldObject.parentId);
+					this.useActor.tx = newDropTarget.tx;
+					this.useActor.ty = newDropTarget.ty;
+					this.useIsDropInContainer = true;
+					return true;
+				}
+			}
 
 			// dont drop on a pile if last transition removed it from similar pile // like picking a bowl from a pile to put it then back on a pile
 			if (newDropTarget != null && newDropTarget.id > 0 && itemToCraft.lastNewTargetId == newDropTarget.id) {
