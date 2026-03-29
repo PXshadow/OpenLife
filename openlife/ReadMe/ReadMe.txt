@@ -68,7 +68,7 @@ TODO:
 
 **Property System**
 - cursed cant open / close doors
-- TODO: dont allow cursed to bring down walls?
+- TODO: dont allow cursed to bring down walls? (or attack people with pick axe?)
 - TODO: dont allow not allied to pass fences / springy doors
 - TODO: Owner for normal doors / gates: Check once in a while if current owner or ally of owner is too far away.
     If so choose a new close owner if there is while prefering allies to original owner 
@@ -82,13 +82,11 @@ TODO:
 ---
 
 **Kids**
-- TODO: dont allow containers
+- TODO: dont allow containers (test if implement)
 
 ---
 
 **NPCS**
-- TODO: allow to take food from containers (not on bear skin floor)
-- TODO: allow to store food in containers (not on bear skin floor)
 - TODO: allow to take tools from containers (not on bear skin floor)
 - TODO: allow to store tools in containers (not on bear skin floor)
 
@@ -119,6 +117,7 @@ FIrst is to make a simple Fork that can connect by default to right server. Then
 
 **Custom Data*
 All custom data should look Jason style better save than sorry
+- TODO: fishing
 - TODO: Boat, Blood
 - TODO: more cloths
 - TODO: Decay items
@@ -138,7 +137,10 @@ All custom data should look Jason style better save than sorry
 
 **World Stats**
 - TODO: Display number of items and original items (over time with graph)
+- TODO: Display number of family members over time
 
+---
+- TODO: FIX all the commands like /LEADER /ALLY /FAM etc
 ---
 
 **Animals** 
@@ -164,10 +166,8 @@ All custom data should look Jason style better save than sorry
 - TODO: cloth interactions while wearing (for example piling sheep skin)
 
 *AI container use*
-- NPCS: Dont use container on bear skin floor
-- NPCS: Dont use closed or locked chests
-- NPCS: Drop in container. Add list which item in which container. Prefer containers 
-- NPCS: Let baker store pies in container. Implement a gneric store in container function.
+- NPCS: Dont use food in container on bear skin floor
+- NPCS: Drop toos in cointainer and use tools from container 
 
 - TODO: Add teleport cool down for 5 sec
 
@@ -192,14 +192,10 @@ All custom data should look Jason style better save than sorry
 -TODO: let Ai destroy good graves of humans marked cursed
 -TODO: advaned: let AI send out armies to demand or destroy graves of people marked in their village
 
-
--TODO: display bestfood again if ate food. Its nice to see next food
-
 - TODO: FIX garlic bug!
 Garlic Bulbs can be pilled. Place a Garlic Bulb in a bowl and mash with a round stone to get a Bowl of Garlic Cloves (contains 5 cloves). A full Bowl of Garlic Cloves can be used directly on a deep tilled row to plant 5 units of garlic, or each clove can be removed and planted separately, for up to 5 units in a row. Water the row to continue the cycle.
 I didn't try planting them separately; just full bowl on tilled row & it only returned one garlic
 
-- TODO: the ai is filling the available buckets with 1 feed mash, not using for water, etc
-- TODO: sheep don't poop if they have fur; only when they are sheared do they poop
-
-!KILLOBJ --> delete objects around the player
+- TODO: fix placing corn everywhere
+- TODO: fix picking up basket instead of eating from it 
+- TODO: !KILLOBJ --> delete objects around the player
