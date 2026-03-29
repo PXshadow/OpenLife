@@ -8414,7 +8414,15 @@ abstract class AiBase {
 			return true;
 		}
 
-		var done = myPlayer.drop(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
+		var done = false;
+		// Extracted Arrowhead Wound 1367
+		if (dropTarget.parentId == 1367) {
+			// myPlayer.say('Extracted Arrowhead Wound: ${done}');
+			done = myPlayer.use(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
+		}
+		else {
+			done = myPlayer.drop(dropTarget.tx - myPlayer.gx, dropTarget.ty - myPlayer.gy);
+		}
 
 		dropTarget = null;
 
