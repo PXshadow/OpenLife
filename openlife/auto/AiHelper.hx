@@ -575,7 +575,7 @@ class AiHelper {
 
 		GlobalPlayerInstance.AcquireMutex();
 		// WorldMap.world.mutex.acquire();
-		Macro.exception(bestFood = SearchBestFoodHelperOld(player, feedingPlayer, radius));
+		Macro.exception(bestFood = SearchBestFoodHelperNew(player, feedingPlayer, radius));
 		// WorldMap.world.mutex.release();
 		GlobalPlayerInstance.ReleaseMutex();
 
@@ -832,7 +832,7 @@ class AiHelper {
 				if (foodValue <= 0) continue;
 
 				// Process the top-level object itself
-				// processFood(world.getObjectHelper(tx, ty), ctx, tx, ty);
+				processFood(world.getObjectHelper(tx, ty), ctx, tx, ty);
 			}
 		}
 
