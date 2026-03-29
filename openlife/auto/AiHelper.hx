@@ -978,10 +978,10 @@ class AiHelper {
 		if (ctx.player.food_store_max - ctx.player.food_store < Math.ceil(originalFoodValue / 4)) return;
 
 		var foodId = foodObjData.getFoodId();
-		trace(ctx != null);
-		trace(ctx.player != null);
-		if (ctx == null) return;
-		if (ctx.player == null) return;
+		// trace(ctx != null);
+		// trace(ctx.player != null);
+		// if (ctx == null) return;
+		// if (ctx.player == null) return;
 		// trace('foodObjData: ${foodObjData.name}');
 		var countEaten = ctx.player.getCountEaten(foodId);
 
