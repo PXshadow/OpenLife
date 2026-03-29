@@ -1761,6 +1761,15 @@ class ServerSettings {
 		var trans = transitions.getTransition(-1, 749); // Bloody Yew Bow
 		trans.autoDecaySeconds = 6; // 30
 
+		var trans = transitions.getTransition(71, 3028); // Stone Hatchet 71 + Tripod 3028
+		trans.aiShouldIgnore = true;
+		// var trans = transitions.getTransition(71, 3028, true); // Stone Hatchet 71 + Tripod 3028
+		// trans.aiShouldIgnore = true;
+		var trans = transitions.getTransition(334, 3028); // Steel Axe 334 + Tripod 3028
+		trans.aiShouldIgnore = true;
+		// var trans = transitions.getTransition(334, 3028, true); // Steel Axe 334 + Tripod 3028
+		// trans.aiShouldIgnore = true;
+
 		var trans = transitions.getTransition(560, 180); // Knife 560 + Dead Rabbit 180
 		trans.aiShouldIgnore = true;
 
