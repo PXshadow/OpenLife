@@ -2424,13 +2424,13 @@ abstract class AiBase {
 		if (this.taskState['doHarvestCorn'] > 0) return false;
 
 		// 0 + Corn Plant 1112 --> Ear of Corn
-		if (this.taskState['doHarvestCorn'] < 2 && countEarOfCorn < 4 && shortCraft(0, 1112, 30)) return true;
+		if (this.taskState['doHarvestCorn'] < 2 && countEarOfCorn < 4 && shortCraft(0, 1112, 30, false, 5)) return true;
 		this.taskState['doHarvestCorn'] = 2;
 
 		// Sharp Stone + Ear of Corn --> Shucked Ear of Corn
 		if (shortCraft(34, 1113, 30)) return true;
 		this.taskState['doHarvestCorn'] = 1;
-		if (this.taskState['doHarvestCorn'] < 2 && countEarOfCorn < 4 && shortCraft(0, 1112, 30)) return true;
+		// if (this.taskState['doHarvestCorn'] < 2 && countEarOfCorn < 4 && shortCraft(0, 1112, 30)) return true;
 
 		return false;
 	}
@@ -8554,7 +8554,7 @@ abstract class AiBase {
 			if (countCorn < 1) this.taskState['EearOfCornMaker'] = 1;
 			if (countCorn > 2) this.taskState['EearOfCornMaker'] = 0;
 
-			if (this.taskState['EearOfCornMaker'] > 0 && shortCraft(0, 1112, 30)) return true; // 0 + Corn Plant --> Ear of Corn
+			if (this.taskState['EearOfCornMaker'] > 0 && shortCraft(0, 1112, 30, false, 4)) return true; // 0 + Corn Plant --> Ear of Corn
 
 			// Shucked Ear of Corn 1114
 			if (countCorn > 0 && countShuckedCorn < 2 && craftItem(1114)) return true; // Sharp Stone + Ear of Corn --> Shucked Ear of Corn
