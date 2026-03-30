@@ -23,6 +23,13 @@ class AiHelper {
 
 	public static var pies = [272, 803, 273, 274, 275, 276, 277, 278];
 	public static var smallCookedFood = [570]; // Cooked Mutton 570
+	public static var dropOnTable = [1285]; // Omelette 1285
+
+	// TODO once craft on table: Baked Bread 1470
+
+	public static inline function ShouldDropOnTable(parentId:Int):Bool {
+		return dropOnTable.contains(parentId);
+	}
 
 	public static inline function IsBakedPie(parentId:Int):Bool {
 		return pies.contains(parentId);
@@ -220,14 +227,24 @@ class AiHelper {
 					var obj = world.getObjectHelper(tx, ty);
 					if (obj.containedObjects.length >= objData.numSlots) continue;
 
-					if (isSmallFoodToStore(heldId)) { // IsBakedPie(heldId) || heldId == 570 // Cooked Mutton
+					if (ShouldDropOnTable(heldId)) {
 						considerContainer = true;
 						var containerParentId = objData.parentId;
-						if (containerParentId == 3065) {
-							factor = 0.25; // Wooden Slot Box - most preferred
+						// Table 3371
+						if (containerParentId == 3371) {
+							factor = 0.25;
 						}
+					}
+					else if (isSmallFoodToStore(heldId)) { // IsBakedPie(heldId) || heldId == 570 // Cooked Mutton
+						considerContainer = true;
+						var containerParentId = objData.parentId;
+						// Wooden Slot Box 3065 - most preferred
+						if (containerParentId == 3065) {
+							factor = 0.25;
+						}
+						// Basket 292 - preferred
 						else if (containerParentId == 292) {
-							factor = 0.5; // Basket - preferred
+							factor = 0.5;
 						}
 						else {
 							// TODO check slot size
