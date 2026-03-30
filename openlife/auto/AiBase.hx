@@ -8645,28 +8645,36 @@ abstract class AiBase {
 			return true;
 		}
 
+		var isInContainer = foodTarget.indexInContainer >= 0;
+		// if (isInContainer) isUse = true;
+		// myPlayer.say('Container ${foodTarget.name} ${foodTarget.indexInContainer}');
+
 		// TODO pickup up droped object after eating
-		if (isUse && isHoldingObject) {
+		if ((isUse || isInContainer) && isHoldingObject) {
 			if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} drop held object to pickup food / after move');
 			dropHeldObject(0);
 			return true;
 		}
 
 		var done = false;
-		var isInContainer = foodTarget.indexInContainer >= 0;
 
 		// x,y is relativ to birth position, since this is the center of the universe for a player
-		if (isInContainer) {
-			// myPlayer.say('Container ${foodTarget.name} ${foodTarget.indexInContainer}');
-			done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy, foodTarget.indexInContainer);
-		}
-		else if (isUse) done = myPlayer.use(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy);
-		else done = myPlayer.drop(foodTarget.tx - myPlayer.gx, foodTarget.ty - myPlayer.gy); // use drop for berry bowl
+		var tx = foodTarget.tx - myPlayer.gx;
+		var ty = foodTarget.ty - myPlayer.gy;
 
-		if (ServerSettings.DebugAi) trace('AAI: ${myPlayer.name + myPlayer.id} pickup food: ${foodTarget.name} $done');
+		// removing for example a pie from a basket
+		if (isInContainer && isUse == false) {
+			done = myPlayer.remove(tx, ty, foodTarget.indexInContainer);
+		}
+		// for example to get a piece of bread (should work also if bread is on a table)
+		else if (isUse) done = myPlayer.use(tx, ty);
+		else done = myPlayer.drop(tx, ty); // use drop for berry bowl
+
+		if (ServerSettings.DebugAi)
+			trace('AAI: ${myPlayer.name + myPlayer.id} pickup food: ${foodTarget.name} $done isUse: ${isUse} container index: ${foodTarget.indexInContainer}');
 
 		if (done == false) {
-			if (ServerSettings.DebugAi) trace('AI: food Use failed! Ignore ${foodTarget.tx} ${foodTarget.ty} ');
+			if (ServerSettings.DebugAi) trace('AI: ${myPlayer.name + myPlayer.id} food Use failed! Ignore ${foodTarget.tx} ${foodTarget.ty} ');
 
 			// TODO check why use is failed... for now add to ignore list
 			this.addNotReachableObject(foodTarget, 30);
@@ -8815,6 +8823,7 @@ abstract class AiBase {
 	private function checkIsHungryAndEat():Bool {
 		var player = myPlayer.getPlayerInstance();
 		var heldObject = myPlayer.heldObject;
+		// player.food_store = 1;
 
 		if (isHungry) {
 			isHungry = player.food_store < player.food_store_max * 0.8;

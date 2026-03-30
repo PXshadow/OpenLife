@@ -90,7 +90,7 @@ TODO:
 - TODO: allow to take tools from containers (not on bear skin floor)
 - TODO: allow to store tools in containers (not on bear skin floor)
 
-- TODO: Fix: I am command not working
+- TODO: Fix: I am command not working (might be that checking if family name is used used  old linages?)
 
 - TODO: On disconnect wait little bit especially if on horse before taking over
 - TODO: If on horse place on fence if nearby  
@@ -199,3 +199,6 @@ I didn't try planting them separately; just full bowl on tilled row & it only re
 - TODO: fix placing corn everywhere
 - TODO: fix picking up basket instead of eating from it 
 - TODO: !KILLOBJ --> delete objects around the player
+
+- TODO: Owner system / Let human stuff be owned for 2 Minutes ater dropping if not food. (Allow interacting still with bucket but not picking it up)
+- TODO: Create system: If human for example plants carrots, mark this field for carrot only. Could be used also for building / roads 
