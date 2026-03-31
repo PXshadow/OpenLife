@@ -68,6 +68,7 @@ TODO:
 
 **Property System**
 - cursed cant open / close doors
+- If one is cursed you loose only combat reputation on attack if he can not eat by himself
 - TODO: dont allow cursed to bring down walls? (or attack people with pick axe?)
 - TODO: dont allow not allied to pass fences / springy doors
 - TODO: Owner for normal doors / gates: Check once in a while if current owner or ally of owner is too far away.

@@ -4530,28 +4530,28 @@ class GlobalPlayerInstance extends PlayerInstance implements PlayerInterface imp
 				if (hasRedMask == false) this.addHealthAndPrestige(-prestigeCost, false);
 				if (hasRedMask == false) this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking a child ${targetPlayer.name}!');
 			}
-			else if (targetPlayer.trueAge > 50) {
+			else if (targetPlayer.trueAge > 50 && targetPlayer.isCursed == false) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForElderly;
 				prestigeCost = Math.ceil(prestigeCost);
 				this.lostCombatPrestige += prestigeCost;
 				if (hasRedMask == false) this.addHealthAndPrestige(-prestigeCost, false);
 				if (hasRedMask == false) this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking elder ${targetPlayer.name}!');
 			}
-			else if (targetPlayer.isAlly(this)) {
+			else if (targetPlayer.isAlly(this) && targetPlayer.isCursed == false) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForAlly;
 				prestigeCost = Math.ceil(prestigeCost);
 				this.lostCombatPrestige += prestigeCost;
 				if (hasRedMask == false) this.addHealthAndPrestige(-prestigeCost, false);
 				if (hasRedMask == false) this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking ally ${targetPlayer.name}!');
 			}
-			else if (isCloseRelative(targetPlayer)) {
+			else if (isCloseRelative(targetPlayer) && targetPlayer.isCursed == false) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForCloseRelatives;
 				prestigeCost = Math.ceil(prestigeCost);
 				this.lostCombatPrestige += prestigeCost;
 				if (hasRedMask == false) this.addHealthAndPrestige(-prestigeCost, false);
 				if (hasRedMask == false) this.connection.sendGlobalMessage('Lost $prestigeCost prestige for attacking close relative ${targetPlayer.name}!');
 			}
-			else if (targetPlayer.isFemale()) {
+			else if (targetPlayer.isFemale() && targetPlayer.isCursed == false) {
 				prestigeCost = damage * ServerSettings.PrestigeCostPerDamageForWomenWithoutWeapon;
 				prestigeCost = Math.ceil(prestigeCost);
 				this.lostCombatPrestige += prestigeCost;
