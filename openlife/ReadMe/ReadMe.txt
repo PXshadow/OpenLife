@@ -196,9 +196,15 @@ All custom data should look Jason style better save than sorry
 Garlic Bulbs can be pilled. Place a Garlic Bulb in a bowl and mash with a round stone to get a Bowl of Garlic Cloves (contains 5 cloves). A full Bowl of Garlic Cloves can be used directly on a deep tilled row to plant 5 units of garlic, or each clove can be removed and planted separately, for up to 5 units in a row. Water the row to continue the cycle.
 I didn't try planting them separately; just full bowl on tilled row & it only returned one garlic
 
-- TODO: fix placing corn everywhere
-- TODO: fix picking up basket instead of eating from it 
 - TODO: !KILLOBJ --> delete objects around the player
 
 - TODO: Owner system / Let human stuff be owned for 2 Minutes ater dropping if not food. (Allow interacting still with bucket but not picking it up)
 - TODO: Create system: If human for example plants carrots, mark this field for carrot only. Could be used also for building / roads 
+
+
+editor TODO:
+I 'm thinking of starting with object editor part. UI should be typical application with docked windows for :
+sprites manipulation like selection ,positioning and rotation
+list of all sprites used in object with parent-child hierarchy displayed
+list of object properties like name and type
+list of currently selected sprite properties.

@@ -1861,7 +1861,8 @@ class AiHelper {
 			// TODO this is less agro but would allow to shoot first on a agro AI
 			if (p.isHoldingWeapon() && (p.angryTime < 4 || player.angryTime < 4)) dangerous = true;
 			// if (p.isHoldingWeapon() == false || (p.angryTime > 4 && player.angryTime > 4))) continue;
-			if (p.isCursed) dangerous = true;
+			if (p.isCursed && p.isAi() == false && p.age > 5) dangerous = true;
+			if (p.lostCombatPrestige > 5) dangerous = true;
 
 			if (dangerous == false) continue;
 			if (p.isFriendly(player)) continue;
