@@ -209,3 +209,9 @@ sprites manipulation like selection ,positioning and rotation
 list of all sprites used in object with parent-child hierarchy displayed
 list of object properties like name and type
 list of currently selected sprite properties.
+
+*Vanilla Object Mapping*
+You can add a new Open Life Object Id to a vanilla id by adding +VanillaId xxx to the object desciption
+For the object mapping to work you need to set lastVanillaID in ServerSettings to the highest Id in vanilla.
+In ServerSettings OpenLifeClientName you can set a Client name where no object mapping is applied. 
+By default the its set to "OpenLife"  
