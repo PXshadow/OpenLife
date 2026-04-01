@@ -1,5 +1,6 @@
 package openlife.settings;
 
+import openlife.server.Server;
 import openlife.auto.AiBase;
 import haxe.Exception;
 import openlife.data.object.ObjectData;
@@ -15,6 +16,10 @@ using StringTools;
 @:rtti
 class ServerSettings {
 	public static var Secret = 'JASON';
+
+	// Vanilla Client Mapping
+	public static var lastVanillaID:Int = -1; // Highest vanilla object ID (set manually)
+	public static var OpenLifeClientName:String = "OpenLife"; // Client name that skips mapping
 
 	// DEBUG: switch on / off
 	public static var dumpOutput = false;
@@ -590,6 +595,8 @@ class ServerSettings {
 
 		// allow some smithing on tables // TODO fix time transition for contained obj
 		for (obj in ObjectData.importedObjectData) {
+			InitVanillaObjectIdMap(obj);
+
 			/*if(obj.floorHugging){
 				trace('floorHugging: ${obj.name}');
 			}*/
@@ -1698,6 +1705,20 @@ class ServerSettings {
 
 		// var obj = ObjectData.getObjectData(82); // Fire 82
 		// trace('Trace: ${obj.name} heat: ${obj.heatValue}');
+	}
+
+	public static function InitVanillaObjectIdMap(obj:ObjectData) {
+		var vanillaIdPos = obj.description.indexOf("+VanillaId ");
+		if (vanillaIdPos < 0) return;
+
+		var vanillaIdStr = obj.description.substring(vanillaIdPos + 12);
+		var spacePos = vanillaIdStr.indexOf(" ");
+		if (spacePos != -1) vanillaIdStr = vanillaIdStr.substring(0, spacePos);
+		var vanillaId = Std.parseInt(vanillaIdStr);
+		if (vanillaId != null) {
+			Server.VanillaObjIdMap[obj.parentId] = vanillaId;
+			trace('Map Obj to vanilla ID ${obj.name} Id ${obj.parentId} --> ${vanillaId} ');
+		}
 	}
 
 	public static function PatchTransitions(transitions:TransitionImporter) {
@@ -3971,6 +3992,7 @@ class ServerSettings {
 
 	public static var WateringTargetsIds:Array<Int> = [];
 	public static var WateringTargetsIdsWithoutCarrots:Array<Int> = [];
+
 	// Full Water Pouch 210 // Full Water Pouch Pile 4094 // Adobe 127 // Bowl of Water 382
 	// Full Bucket of Water 660 // Partial Bucket of Water 1099 // Watered Wild Gooseberry Bush
 	public static var IgnoreToWaterNewTargets:Array<Int> = [210, 4094, 127, 382, 660, 1099, 3946];
@@ -4252,8 +4274,7 @@ class ServerSettings {
 	+ Empty  
 	--> Attacking Wolf
 	+ Bite Wound
-**/
-/**public static function add(a:Int, b:Int, ?pos:PosInfos) {
+**/ /**public static function add(a:Int, b:Int, ?pos:PosInfos) {
 	trace( 'Called from ${pos.className}');
 	trace( 'Called from ${pos.methodName}');
 	trace( 'Called from ${pos.fileName}');

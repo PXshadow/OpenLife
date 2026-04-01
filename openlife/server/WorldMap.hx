@@ -1389,7 +1389,7 @@ class WorldMap {
 		return ret;
 	}
 
-	public function getChunk(x:Int, y:Int, width:Int, height:Int):WorldMap {
+	public function getChunk(x:Int, y:Int, width:Int, height:Int, patchIds:Bool = false):WorldMap {
 		var map = new WorldMap();
 		var length = width * height;
 		map.createVectors(length);
@@ -1399,8 +1399,16 @@ class WorldMap {
 				var index = index(x + px, y + py);
 
 				map.biomes[localIndex] = biomes[index];
-				map.floors[localIndex] = floors[index];
-				map.objects[localIndex] = objects[index];
+				map.floors[localIndex] = patchIds ? Server.server.mapIdToVanillaId(floors[index]) : floors[index];
+				if (patchIds) {
+					var patchedObjects = new Array<Int>();
+					for (objId in objects[index]) {
+						patchedObjects.push(Server.server.mapIdToVanillaId(objId));
+					}
+					map.objects[localIndex] = patchedObjects;
+				} else {
+					map.objects[localIndex] = objects[index];
+				}
 			}
 		}
 		return map;

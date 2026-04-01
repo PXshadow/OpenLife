@@ -35,6 +35,7 @@ class Connection {
 	private var timeToWaitBeforeNextMessageSend:Float = 0;
 	private var timeLastMapChunkSend:Float = 0;
 	private var challengeString:String;
+	private var isOpenLifeClient:Bool = false;
 
 	// if it is an AI sock = null
 	public function new(sock:Socket, server:Server) {
@@ -120,6 +121,8 @@ class Connection {
 	**/
 	public function login(client_tag:String, email:String, password_hash:String, account_key_hash:String) {
 		trace('login: ${account_key_hash}');
+
+		isOpenLifeClient = client_tag != null && client_tag.indexOf(ServerSettings.OpenLifeClientName) != -1;
 
 		GlobalPlayerInstance.AcquireMutex();
 		Macro.exception(loginHelper(client_tag, email, password_hash, account_key_hash));
@@ -906,7 +909,7 @@ class Connection {
 			x -= Std.int(width / 2);
 			y -= Std.int(height / 2);
 
-			var map = server.map.getChunk(x + player.gx, y + player.gy, width, height).toString();
+			var map = server.map.getChunk(x + player.gx, y + player.gy, width, height, !isOpenLifeClient).toString();
 			var uncompressed = Bytes.ofString(map);
 			var bytes = haxe.zip.Compress.run(uncompressed, -1);
 
@@ -949,13 +952,17 @@ class Connection {
 	 */
 	public function sendMapUpdate(x:Int, y:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, isPlayerAction:Bool = true) {
 		if (serverAi != null) return;
-		send(MAP_CHANGE, ['$x $y $newFloorId ${MapData.stringID(newObjectId)} $playerId'], isPlayerAction);
+		var patchedFloorId = isOpenLifeClient ? newFloorId : server.mapIdToVanillaId(newFloorId);
+		var patchedObjectId = isOpenLifeClient ? newObjectId : newObjectId.map(id -> server.mapIdToVanillaId(id));
+		send(MAP_CHANGE, ['$x $y $patchedFloorId ${MapData.stringID(patchedObjectId)} $playerId'], isPlayerAction);
 	}
 
 	public function sendMapUpdateForMoving(toX:Int, toY:Int, newFloorId:Int, newObjectId:Array<Int>, playerId:Int, fromX:Int, fromY:Int, speed:Float) {
 		if (serverAi != null) return;
+		var patchedFloorId = isOpenLifeClient ? newFloorId : server.mapIdToVanillaId(newFloorId);
+		var patchedObjectId = isOpenLifeClient ? newObjectId : newObjectId.map(id -> server.mapIdToVanillaId(id));
 		send(MAP_CHANGE, [
-			'$toX $toY $newFloorId ${MapData.stringID(newObjectId)} $playerId $fromX $fromY $speed'
+			'$toX $toY $patchedFloorId ${MapData.stringID(patchedObjectId)} $playerId $fromX $fromY $speed'
 		], false);
 	}
 

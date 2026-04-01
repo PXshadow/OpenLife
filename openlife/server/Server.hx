@@ -41,12 +41,25 @@ class Server {
 
 	public var lastCommand = null; // To debug what the last client command was
 
+	public static var lastOpenLifeID:Int = 0; // Set during object initialization, before dummy objects
+	public static var VanillaObjIdMap:Map<Int, Int> = new Map(); // OpenLifeID -> VanillaID mapping
+
 	public static function Acquire() {
 		mutex.acquire();
 	}
 
 	public static function Release() {
 		mutex.release();
+	}
+
+	public function mapIdToVanillaId(id:Int):Int {
+		if (ServerSettings.lastVanillaID < 1) return id;
+		if (id <= ServerSettings.lastVanillaID) return id;
+
+		var idOffset = Server.lastOpenLifeID - ServerSettings.lastVanillaID;
+
+		if (id > Server.lastOpenLifeID) return id - idOffset;
+		return VanillaObjIdMap.exists(id) ? VanillaObjIdMap[id] : 0;
 	}
 
 	public static function main() {

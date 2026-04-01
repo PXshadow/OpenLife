@@ -537,6 +537,7 @@ class ObjectData extends LineReader {
 
 		GenerateSearchableNames();
 		CreatePersonArray();
+		Server.lastOpenLifeID = importedObjectData[importedObjectData.length - 1].id;
 		CreateAndAddDummyObjectData();
 		CreateFoodObjectArray();
 		ServerSettings.PatchObjectData();
@@ -979,7 +980,7 @@ class ObjectData extends LineReader {
 						// name
 						spriteArray[i].name = string;
 					case 1:
-					// multitag
+						// multitag
 
 					case 2:
 						// centerX
