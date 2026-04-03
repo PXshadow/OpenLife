@@ -537,7 +537,9 @@ class ObjectData extends LineReader {
 
 		GenerateSearchableNames();
 		CreatePersonArray();
-		Server.lastOpenLifeID = importedObjectData[importedObjectData.length - 1].id;
+		// Server.lastOpenLifeID = importedObjectData[importedObjectData.length - 1].id;
+		Server.lastOpenLifeID = ObjectBake.nextObjectNumber - 1;
+		trace('lastOpenLifeID: ${Server.lastOpenLifeID}');
 		CreateAndAddDummyObjectData();
 		CreateFoodObjectArray();
 		ServerSettings.PatchObjectData();

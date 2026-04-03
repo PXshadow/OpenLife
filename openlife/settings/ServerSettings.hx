@@ -590,12 +590,20 @@ class ServerSettings {
 		// trace('Read Test: YumBonus: $YumBonus');
 	}
 
+	public static function parseTags(obj:ObjectData) {
+		InitVanillaObjectIdMap(obj);
+
+		if (obj.description.indexOf("+isBoat") != -1) {
+			obj.isBoat = true;
+		}
+	}
+
 	public static function PatchObjectData() {
 		ObjectData.getObjectData(707).clothing = "n"; // ANTARCTIC FUR SEAL
 
 		// allow some smithing on tables // TODO fix time transition for contained obj
 		for (obj in ObjectData.importedObjectData) {
-			InitVanillaObjectIdMap(obj);
+			parseTags(obj);
 
 			/*if(obj.floorHugging){
 				trace('floorHugging: ${obj.name}');
