@@ -192,6 +192,8 @@ class AiHelper {
 				}
 				else if (parentId != objIdToSearch && (allowDropInContainer == false || isContainer == false)) continue;
 
+				if (allowDropInContainer && isContainer && !ShouldDropOnTable(heldId) && !isSmallFoodToStore(heldId)) continue;
+
 				if (ignoreObj != null && ignoreObj.tx == tx && ignoreObj.ty == ty) continue;
 
 				if (ai != null && ai.isObjectNotReachable(tx, ty)) continue;
