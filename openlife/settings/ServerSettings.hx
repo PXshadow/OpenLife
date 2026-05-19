@@ -4058,6 +4058,10 @@ class ServerSettings {
 
 		LimitObject(213, 1136, 20); // Deep Tilled Row 213 // Shallow Tilled Row 1136
 
+		LimitObject(1053, 1053, 1); // Rose Hip - red 1053
+
+		LimitObject(1465, 1464, 1); // Bowl of Butter 1465 // Bowl of Cream 1464
+
 		LimitObjectByNewTarget(2835, 2829, 9); // Fruiting Tomato Plant // Dry Planted Tomato Seed
 		// LimitObjectByNewTarget(623, 623, 3); // Dry Compost Pile 623
 		// LimitObjectByNewTarget(624, 623, 3); // Composted Soil 624 // Dry Compost Pile 623
