@@ -2409,8 +2409,9 @@ abstract class AiBase {
 		return false;
 	}
 
-	private function doHarvestCorn(minHarvest:Int = 3, maxHarvest:Int = 10) {
-		var countDryCorn = countCurrentObject(1115); // Dried Ear of Corn 1115
+	private function doHarvestCorn(minHarvest:Int = 1, maxHarvest:Int = 5) {
+		var countDryCornPiles = countCurrentObject(3902); // Pile of Dried Corn 3902
+		var countDryCorn = countCurrentObject(1115) + 2 * countDryCornPiles; // Dried Ear of Corn 1115
 		var countEarOfCorn = countCurrentObject(1113); // Ear of Corn 1113
 		var countShuckedCorn = countCurrentObject(1114); // Shucked Ear of Corn 1114
 
