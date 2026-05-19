@@ -4081,6 +4081,8 @@ class ServerSettings {
 		LimitObject(1880, 1879, 1); // Mango Slices 1880 // Mango on a Plate 1879
 		LimitObjectByNewTarget(1880, 1879, 1); // Mango Slices 1880 // Mango on a Plate 1879
 
+		LimitObject(1101, 336, 3); // Fertile Soil Pile 1101 // Basket of Soil 336
+
 		LimitObjectByNewTarget(2835, 2829, 9); // Fruiting Tomato Plant // Dry Planted Tomato Seed
 		// LimitObjectByNewTarget(623, 623, 3); // Dry Compost Pile 623
 		// LimitObjectByNewTarget(624, 623, 3); // Composted Soil 624 // Dry Compost Pile 623
