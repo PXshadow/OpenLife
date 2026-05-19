@@ -4808,7 +4808,7 @@ abstract class AiBase {
 					myPlayer.say('Sure');
 				}
 				else if (rand == 4) {
-					myPlayer.say('yes i am');
+					myPlayer.say('yes i am!');
 				}
 				else if (rand == 5) {
 					myPlayer.say('Yes, And you?');
@@ -8188,6 +8188,10 @@ abstract class AiBase {
 
 	private function foundFamily() {
 		var player = cast(myPlayer, GlobalPlayerInstance);
+
+		// ServerSettings.FoundFamilyNeededPrestige = 1;
+		// ServerSettings.FoundFamilyNeededFollowers = 1;
+		// ServerSettings.FoundFamilyCost = 1;
 
 		var foundFamilyNeededPrestige = ServerSettings.FoundFamilyNeededPrestige;
 		var foundFamilyNeededFollowers = ServerSettings.FoundFamilyNeededFollowers;

@@ -40,7 +40,7 @@ class NamingHelper {
 	public static function DoNaming(p:GlobalPlayerInstance, text:String):String {
 		// trace('TEST Naming1: $text');
 
-		var doFamilyName = text.startsWith('I AM');
+		var doFamilyName = text.startsWith('I AM') && text.contains("!") == false;
 
 		if (doFamilyName == false && text.startsWith('YOU ARE') == false) return text;
 
