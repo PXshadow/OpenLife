@@ -8548,12 +8548,13 @@ abstract class AiBase {
 
 		// Shucked Ear of Corn 1114
 		if (myPlayer.isObjIdYum(1114)) {
-			// var countDryCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 30); // Dried Ear of Corn 1115
+			var countDryCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1115, 30); // Dried Ear of Corn 1115
+			countDryCorn += 2 * countCurrentObject(3902); // Pile of Dried Corn 3902
 			var countCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1113, 30); // Ear of Corn 1113
 			var countShuckedCorn = AiHelper.CountCloseObjects(myPlayer, home.tx, home.ty, 1114, 30); // Shucked Ear of Corn 1114
 
 			if (countCorn < 1) this.taskState['EearOfCornMaker'] = 1;
-			if (countCorn > 2) this.taskState['EearOfCornMaker'] = 0;
+			if (countCorn > 1 || countDryCorn > 5) this.taskState['EearOfCornMaker'] = 0;
 
 			if (this.taskState['EearOfCornMaker'] > 0 && shortCraft(0, 1112, 30, false, 4)) return true; // 0 + Corn Plant --> Ear of Corn
 
