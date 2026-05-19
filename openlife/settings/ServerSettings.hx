@@ -3706,6 +3706,11 @@ class ServerSettings {
 		trans.aiShouldIgnore = true; // only use if too many skewers
 		transitions.addTransition("PatchTransitions: ", trans);
 
+		// Bowl of Water 382 +  Bowl of Butter 1465 = Clay Bowl 235 + Bowl of Water 382
+		var trans = new TransitionData(382, 1465, 235, 382);
+		// trans.aiShouldIgnore = true;
+		transitions.addTransition("PatchTransitions: ", trans);
+
 		// Bowl of Water 382 +  Bowl of Tomato Seeds = Clay Bowl 235 + Bowl of Water 382
 		var trans = new TransitionData(382, 2828, 235, 382);
 		// trans.aiShouldIgnore = true;
