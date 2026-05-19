@@ -4076,8 +4076,10 @@ class ServerSettings {
 		LimitObject(1465, 1464, 1); // Bowl of Butter 1465 // Bowl of Cream 1464
 
 		LimitObject(2877, 2859, 1); // Bowl of Ketchup 2877 // Tomato on Plate 2859
-
 		LimitObjectByNewTarget(2877, 2859, 1); // Bowl of Ketchup 2877 // Tomato on Plate 2859
+
+		LimitObject(1880, 1879, 1); // Mango Slices 1880 // Mango on a Plate 1879
+		LimitObjectByNewTarget(1880, 1879, 1); // Mango Slices 1880 // Mango on a Plate 1879
 
 		LimitObjectByNewTarget(2835, 2829, 9); // Fruiting Tomato Plant // Dry Planted Tomato Seed
 		// LimitObjectByNewTarget(623, 623, 3); // Dry Compost Pile 623
