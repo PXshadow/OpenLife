@@ -3274,11 +3274,11 @@ class ServerSettings {
 		var trans = transitions.getTransition(852, 1101); // Weak Skewer + Fertile Soil Pile
 		trans.aiShouldIgnore = true;
 
-		var trans = transitions.getTransition(850, 1101); // Stone Hoe + Fertile Soil Pile
-		trans.aiShouldIgnore = true;
+		// var trans = transitions.getTransition(850, 1101); // Stone Hoe + Fertile Soil Pile
+		// trans.aiShouldIgnore = true;
 
-		var trans = transitions.getTransition(857, 1101); // Steel Hoe + Fertile Soil Pile
-		trans.aiShouldIgnore = true;
+		// var trans = transitions.getTransition(857, 1101); // Steel Hoe + Fertile Soil Pile
+		// trans.aiShouldIgnore = true;
 
 		// stop picking up same soil again with basket
 		var trans = transitions.getTransition(292, 1101); // Basket 292 + Fertile Soil Pile 1101
@@ -4234,6 +4234,12 @@ class ServerSettings {
 
 		// Domestic Goose- held 1267 + Stump 338 // Domestic Goose 1256
 		LimitTransitionIfMinNotReached(1267, 338, 1256, 3);
+
+		// Stone Hoe + Fertile Soil Pile // Fertile Soil Pile 1101
+		LimitTransitionIfMinNotReached(850, 1101, 1101, 7);
+
+		// Seel Hoe + Fertile Soil Pile // Fertile Soil Pile 1101
+		LimitTransitionIfMinNotReached(857, 1101, 1101, 5);
 	}
 
 	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 3) {
