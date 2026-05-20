@@ -1774,8 +1774,20 @@ abstract class AiBase {
 	private function handleMilk() {
 		var home = myPlayer.home;
 
+		// Skewer 139 + Bowl of Whipped Cream 3374
+		if (shortCraft(139, 3374, 30)) return true;
+
+		// Skewer 139 + Bowl of Cream 1464
+		if (shortCraft(139, 1464, 30)) return true;
+
+		// Buttered Bread on Clay Plate 1473
+		var countButteredBread = countCurrentObject(1473);
+		if (countButteredBread < 1 && craftItem(1473)) return true;
+
 		// Bowl of Butter 1465
 		var countButter = countCurrentObject(1465);
+		if (countButter < 1 && craftItem(1465)) return true;
+
 		// Partial Bucket of Skim Milk 1483
 		var countSkimMilk = countCurrentObject(1483);
 		// Full Bucket of Skim Milk 2124
@@ -1783,26 +1795,20 @@ abstract class AiBase {
 
 		if (countButter + countSkimMilk > 0) {
 			// Clay Bowl 235 + Full Bucket of Milk 1478
-			if (shortCraft(235, 1478, 30, 1)) return true;
+			// if (shortCraft(235, 1478, 30, 1)) return true;
 		}
 
 		// Clay Bowl 235 + Bucket of Separated Milk 1480
-		if (shortCraft(235, 1480, 30, 1)) return true;
-
-		// Skewer 139 + Bowl of Whipped Cream 3374
-		if (shortCraft(139, 3374, 30)) return true;
-
-		// Skewer 139 + Bowl of Cream 1464
-		if (shortCraft(139, 1464, 30)) return true;
+		// if (shortCraft(235, 1480, 30, 1)) return true;
 
 		// Clay Bowl 235 + Partial Bucket of Milk 1479
-		if (shortCraft(235, 1479, 30, 1)) return true;
+		// if (shortCraft(235, 1479, 30, 1)) return true;
 
 		// Clay Bowl 235 + Partial Bucket of Skim Milk 1483
-		if (shortCraft(235, 1483, 30, 1)) return true;
+		// if (shortCraft(235, 1483, 30, 1)) return true;
 
 		// Clay Bowl 235 + Full Bucket of Skim Milk 2124
-		if (shortCraft(235, 2124, 30, 1)) return true;
+		// if (shortCraft(235, 2124, 30, 1)) return true;
 
 		return false;
 	}
