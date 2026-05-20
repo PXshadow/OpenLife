@@ -4240,6 +4240,9 @@ class ServerSettings {
 
 		// Seel Hoe + Fertile Soil Pile // Fertile Soil Pile 1101
 		LimitTransitionIfMinNotReached(857, 1101, 1101, 5);
+
+		// Drop Spindle 579 + Small Ball of Yarn 581 // Limit by Pile of Sheep Skins 3919
+		LimitTransitionIfMinNotReached(579, 581, 3919, 3);
 	}
 
 	private static function LimitTransitionIfMinNotReached(actorId:Int, targetId:Int, id:Int, min:Int = 3) {
