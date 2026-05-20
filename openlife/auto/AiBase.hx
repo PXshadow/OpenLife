@@ -1774,6 +1774,10 @@ abstract class AiBase {
 	private function handleMilk() {
 		var home = myPlayer.home;
 
+		// Whole Milk Pouch 4081
+		var count = countCurrentObject(4081);
+		if (count < 3 && craftItem(4081)) return true;
+
 		// Skewer 139 + Bowl of Whipped Cream 3374
 		if (shortCraft(139, 3374, 30)) return true;
 
@@ -1789,14 +1793,14 @@ abstract class AiBase {
 		if (countButter < 1 && craftItem(1465)) return true;
 
 		// Partial Bucket of Skim Milk 1483
-		var countSkimMilk = countCurrentObject(1483);
+		// var countSkimMilk = countCurrentObject(1483);
 		// Full Bucket of Skim Milk 2124
-		countSkimMilk += countCurrentObject(2124);
+		// countSkimMilk += countCurrentObject(2124);
 
-		if (countButter + countSkimMilk > 0) {
-			// Clay Bowl 235 + Full Bucket of Milk 1478
-			// if (shortCraft(235, 1478, 30, 1)) return true;
-		}
+		// if (countButter + countSkimMilk > 0) {
+		// Clay Bowl 235 + Full Bucket of Milk 1478
+		// if (shortCraft(235, 1478, 30, 1)) return true;
+		// }
 
 		// Clay Bowl 235 + Bucket of Separated Milk 1480
 		// if (shortCraft(235, 1480, 30, 1)) return true;
