@@ -202,12 +202,23 @@ I didn't try planting them separately; just full bowl on tilled row & it only re
 - TODO: Owner system / Let human stuff be owned for 2 Minutes ater dropping if not food. (Allow interacting still with bucket but not picking it up)
 - TODO: Create system: If human for example plants carrots, mark this field for carrot only. Could be used also for building / roads 
 
-- TODO: allow make rope from sheep skin if enough sheep skin (10)
-- TODO: allow to tilt fertile soil pile if there are plenty (5)
+
 - TODO: fix AI family naming
 - TODO: fix AI all same class / display class condictions in web
-- TODO: Web: display followers 
+- TODO: Web: display count followers / count allies
 - TODO: Web: fixe stats display
+- TODO: discplay direct and top leader and make it clickable
+- TODO: display object counts and change graph
+- TODO: display family linage info
+- TODO: dispay cravings
+
+- TODO: ownership let nearby ally own if further then 50 tiles away / restric for exiled (gates) and not allied (doors)
+- TODO: add in object when dropped by human and dont let touch for one minute if no cloth or food
+- TODO: add in object what humans plantet and resrcit Ai to that
+
+- tODO: Implement backpack / knife, store items / search / count 
+- TODO: drop tools in container and use for crafting from container
+
 
 editor TODO:
 I 'm thinking of starting with object editor part. UI should be typical application with docked windows for :

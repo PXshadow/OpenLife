@@ -655,7 +655,7 @@ class TransitionHelper {
 		}
 
 		var tmpObject = container.removeContainedObject(-1);
-		tmpObject.indexInContainer = -1;
+		if (tmpObject != null) tmpObject.indexInContainer = -1;
 
 		container.containedObjects.insert(0, player.heldObject);
 		player.heldObject.indexInContainer = 0;
