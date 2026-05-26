@@ -112,8 +112,8 @@ class Lineage {
 
 		if (this.delete && shouldDelete == false) {
 			this.delete = shouldDelete;
-
-			lineage.eveLineage.setDelete(false);
+			// TODO check why null
+			if (lineage.eveLineage != null) lineage.eveLineage.setDelete(false);
 			var mother = lineage.getMotherLineage();
 			if (mother != null) mother.setDelete(false);
 			var father = lineage.getFatherLineage();
