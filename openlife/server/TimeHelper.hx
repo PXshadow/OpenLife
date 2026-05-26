@@ -2181,7 +2181,7 @@ class TimeHelper {
 		helper.creationTimeInTicks = TimeHelper.tick;
 
 		if (isMaxUse) helper.numberOfUses = helper.objectData.numUses;
-		else TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, null, false);
+		else if (transition.noUseTarget == false) TransitionHelper.DoChangeNumberOfUsesOnTarget(helper, transition, null, false);
 
 		WorldMap.world.setObjectHelper(tx, ty, helper);
 
@@ -2227,7 +2227,7 @@ class TimeHelper {
 		obj.timeToChange = ObjectHelper.CalculateTimeToChangeForObj(obj);
 		obj.creationTimeInTicks = TimeHelper.tick;
 
-		TransitionHelper.DoChangeNumberOfUsesOnTarget(obj, transition, null, false);
+		if (transition.noUseTarget == false) TransitionHelper.DoChangeNumberOfUsesOnTarget(obj, transition, null, false);
 
 		return true;
 	}

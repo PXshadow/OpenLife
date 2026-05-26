@@ -219,6 +219,15 @@ I didn't try planting them separately; just full bowl on tilled row & it only re
 - tODO: Implement backpack / knife, store items / search / count 
 - TODO: drop tools in container and use for crafting from container
 
+- TODO: allow to use bowl to get water from well with bucket (add object counter)
+- TODO: need more corn to feed cow (add object counter)
+
+- TODO: let terain change according to temperature / balance with original biome
+- TODO: add water mechhanics / let plant regrow drain waterange
+
+- TODO: allow to exxhange cloth if ally and better or same clothing prestige
+- TODO: let AI give cloths
+- TODO: let AI value smae cloths their leader wears higher
 
 editor TODO:
 I 'm thinking of starting with object editor part. UI should be typical application with docked windows for :

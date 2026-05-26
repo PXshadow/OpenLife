@@ -3274,6 +3274,9 @@ class ServerSettings {
 		var trans = transitions.getTransition(852, 1101); // Weak Skewer + Fertile Soil Pile
 		trans.aiShouldIgnore = true;
 
+		var trans = transitions.getTransition(0, 4092); // 0 + Corn Tortilla Table 4092
+		trans.aiShouldIgnore = true;
+
 		// var trans = transitions.getTransition(850, 1101); // Stone Hoe + Fertile Soil Pile
 		// trans.aiShouldIgnore = true;
 
@@ -3437,6 +3440,20 @@ class ServerSettings {
 		var trans = transitions.getTransition(235, 4086);
 		trans.switchNumberOfUses = true;
 		trans.aiShouldIgnore = true;
+
+		// Bowl of Masa Dough 1300 + Table
+		var trans = transitions.getTransition(1300, 3371);
+		trans.switchNumberOfUses = true;
+		// trans.aiShouldIgnore = true;
+
+		// Clay Bowl 235 + Table with Masa Dough
+		var trans = transitions.getTransition(235, 4090);
+		trans.switchNumberOfUses = true;
+		// trans.aiShouldIgnore = true;
+
+		// time + Corn Tortilla Table - justMade 4091
+		var trans = transitions.getTransition(-1, 4091);
+		trans.noUseTarget = true;
 
 		// Bowl of Soil 1137 + Fertile Soil Pile 1101
 		// var trans = transitions.getTransition(1137, 1101);
