@@ -381,6 +381,8 @@ class Lineage {
 			reasonKilled[killedBy] += 1;
 			if (isLastDay) reasonKilledLastDay[killedBy] += 1;
 			if (isLastHour) reasonKilledLastHour[killedBy] += 1;
+			if (!generations.exists(generation)) generations[generation] = 0;
+
 			generations[generation] += 1;
 
 			// if(lineage.familyName.startsWith('SNOW') == false) trace('Lineage: ${lineage.getFullName()} age: ${age} ${lineage.deathReason}');
