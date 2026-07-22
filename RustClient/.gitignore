@@ -1,0 +1,9 @@
+/target/
+# Local secrets — never commit
+.env
+.env.local
+*.env.local
+# Probe output may include account email / live coords
+move-probe-report.md
+/logs/
+*.log

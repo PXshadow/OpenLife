@@ -1,0 +1,21 @@
+[package]
+name = "ohol-headless"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Headless One Hour One Life client for playtesting (original wire protocol)"
+license = "LicenseRef-Proprietary"
+
+[[bin]]
+name = "ohol-headless"
+path = "src/main.rs"
+
+[dependencies]
+hmac = "0.12"
+sha1 = "0.10"
+hex = "0.4"
+thiserror = "2"
+anyhow = "1"
+dotenvy = "0.15"
+
+[dev-dependencies]
