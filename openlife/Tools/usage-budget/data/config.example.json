@@ -1,0 +1,8 @@
+{
+  "cap_percent": 80,
+  "period_days": 7,
+  "period_start_utc": null,
+  "reset_at_utc": null,
+  "soft_pace": true,
+  "notes": "Copy to config.json (gitignored). period_days=7 matches SuperGrok weekly pool."
+}

@@ -1,0 +1,14 @@
+# Secrets — never transmit / never commit
+.env
+.env.local
+.env.*.local
+
+# Runtime snapshots (personal usage %, not keys — still keep local)
+data/usage-snapshot.json
+data/config.local.json
+data/config.json
+
+# Keep examples
+!.env.example
+!data/config.example.json
+!data/usage-snapshot.example.json

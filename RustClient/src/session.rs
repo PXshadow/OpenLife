@@ -54,6 +54,7 @@ pub enum SessionEvent {
     Login(LoginOutcome),
     PlayerUpdate {
         player_id: i32,
+        held_id: i32,
         done_moving_seq_num: i32,
         force: bool,
         x: i32,
@@ -264,6 +265,7 @@ impl ClientSession {
                         }
                         last_evt = Some(SessionEvent::PlayerUpdate {
                             player_id: pu.player_id,
+                            held_id: pu.held_id,
                             done_moving_seq_num: pu.done_moving_seq_num,
                             force: pu.force,
                             x: pu.x,

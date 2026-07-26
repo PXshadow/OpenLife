@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>OLR Self-play Viewer — full map</title>
+<style>
+:root{--bg:#0b0f14;--panel:#121a24;--fg:#e7eef7;--muted:#8aa0b5;--accent:#6ec6ff;--border:#1e2a3a}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:system-ui,sans-serif;background:var(--bg);color:var(--fg);overflow:hidden}
+#app{display:grid;grid-template-rows:auto auto 1fr;height:100%}
+header{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center;padding:.55rem .9rem;border-bottom:1px solid var(--border);background:#0e141c}
+header h1{font-size:1rem;margin:0;font-weight:600}
+header a{color:var(--accent);font-size:.85rem}
+.tools{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center}
+.tools button,.tools label{background:#1e3a5f;color:var(--fg);border:0;padding:.3rem .55rem;border-radius:4px;cursor:pointer;font-size:.8rem}
+.tools button:hover{background:#2a4f7a}
+.tools button.active{background:#3d6a9e;outline:1px solid var(--accent)}
+.tools input[type=range]{width:7rem;vertical-align:middle}
+#metrics-strip{display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:center;padding:.35rem .9rem;border-bottom:1px solid var(--border);background:#0c121a;font-size:.78rem;color:var(--muted)}
+#metrics-strip .chip{background:#151e2a;border:1px solid var(--border);border-radius:4px;padding:.2rem .45rem;white-space:nowrap}
+#metrics-strip .chip b{color:var(--fg);font-weight:600}
+#metrics-strip .chip a{color:var(--accent);text-decoration:none}
+#body{display:grid;grid-template-columns:1fr 300px;min-height:0}
+#stage-wrap{position:relative;min-height:0;overflow:hidden;background:#05080c;cursor:grab}
+#stage-wrap.drag{cursor:grabbing}
+#stage{display:block;width:100%;height:100%}
+#hud{position:absolute;left:.6rem;bottom:.6rem;background:rgba(10,16,24,.82);border:1px solid var(--border);border-radius:6px;padding:.4rem .6rem;font-size:.75rem;color:var(--muted);pointer-events:none;max-width:60%}
+#minimap-box{position:absolute;right:.6rem;top:.6rem;border:1px solid var(--border);background:#0a1018;border-radius:4px;padding:3px}
+#minimap{display:block;image-rendering:pixelated;cursor:pointer}
+aside{background:var(--panel);border-left:1px solid var(--border);padding:.75rem;overflow:auto;font-size:.8rem}
+aside h2{font-size:.85rem;margin:.2rem 0 .45rem;color:var(--accent)}
+#stats,#hover-info{line-height:1.55;color:var(--muted);margin-bottom:.75rem}
+#log{white-space:pre-wrap;font-family:ui-monospace,monospace;color:var(--muted);max-height:40vh;overflow:auto;font-size:.72rem}
+.bar{height:8px;background:#1a222e;border-radius:4px;overflow:hidden;margin:.2rem 0 .5rem}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,#3d8f5a,#6ec6ff)}
+.legend{display:grid;grid-template-columns:12px 1fr;gap:.2rem .4rem;align-items:center;margin:.4rem 0 .8rem}
+.sw{width:12px;height:12px;border-radius:2px}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <h1>Open Life Reborn — self-play map</h1>
+  <a href="/">home</a>
+  <a href="/lineage">lineages</a>
+  <a href="/api/weather">weather JSON</a>
+  <a href="/api/world/overview">overview JSON</a>
+  <a href="/health">health</a>
+  <div class="tools">
+    <button type="button" id="btn-whole" class="active" title="Fit whole map">Whole map</button>
+    <button type="button" id="btn-follow">Follow agent</button>
+    <button type="button" id="btn-zoom-in">Zoom +</button>
+    <button type="button" id="btn-zoom-out">Zoom −</button>
+    <label>zoom <input type="range" id="zoom-range" min="0" max="100" value="0"/></label>
+    <span id="zoom-label">fit</span>
+  </div>
+</header>
+<div id="metrics-strip" title="Live animals / treasury / counters">
+  <span class="chip"><a href="/api/animals">animals</a> <b id="m-animals">…</b></span>
+  <span class="chip"><a href="/api/treasury">treasury</a> <b id="m-treasury">…</b></span>
+  <span class="chip"><a href="/api/metrics">logins</a> <b id="m-logins">0</b></span>
+  <span class="chip">deaths <b id="m-deaths">0</b></span>
+  <span class="chip">crafts <b id="m-crafts">0</b></span>
+  <span class="chip">ticks <b id="m-ticks">0</b></span>
+  <span class="chip">conn <b id="m-conn">0</b></span>
+</div>
+<div id="body">
+  <div id="stage-wrap">
+    <canvas id="stage"></canvas>
+    <div id="minimap-box"><canvas id="minimap" width="160" height="160"></canvas></div>
+    <div id="hud">Loading map…</div>
+  </div>
+  <aside>
+    <h2>World</h2>
+    <div id="stats">…</div>
+    <h2>Agent / players</h2>
+    <div id="agent-panel">…</div>
+    <h2>Hover tile</h2>
+    <div id="hover-info">Move over the map</div>
+    <h2>Layers (Haxe-style)</h2>
+    <div class="legend" id="legend"></div>
+    <p class="muted" style="color:var(--muted);font-size:.72rem">Ground = biome colors · Objects = shapes by name (tree/food/stone…) · Player = figure + held badge</p>
+    <h2>Self-play log</h2>
+    <div id="log">…</div>
+  </aside>
+</div>
+</div>
+<script>
+/* Biome palette approx OHOL / Open Life map colors */
+const BIOME = {
+  0:'#6a9e3a',1:'#2d6b5a',2:'#c9a84c',3:'#7a7a7a',4:'#e8eef5',
+  5:'#c4a35a',6:'#1f6b2d',9:'#1a4a7a',13:'#3aa8c8',15:'#145a20',
+  17:'#2080d0',21:'#4a4a4a'
+};
+const BIOME_NAMES = {0:'green',1:'swamp',2:'yellow',3:'grey',4:'snow',5:'desert',6:'jungle',9:'ocean',13:'pass.river',15:'border.j',17:'river',21:'snow.grey'};
+const leg = document.getElementById('legend');
+Object.keys(BIOME_NAMES).forEach(id => {
+  leg.innerHTML += `<span class="sw" style="background:${BIOME[id]||'#333'}"></span><span>${id} ${BIOME_NAMES[id]}</span>`;
+});
+
+const stage = document.getElementById('stage');
+const ctx = stage.getContext('2d');
+const mini = document.getElementById('minimap');
+const mctx = mini.getContext('2d');
+const wrap = document.getElementById('stage-wrap');
+
+/** Camera in world tile space */
+let cam = { x: 0, y: 0, tilesAcross: 64, follow: false, whole: true };
+let worldMeta = { width: 0, height: 0 };
+let overview = null;
+let detail = null;
+let players = [];
+let selfplay = { log: [], x: 0, y: 0 };
+let drag = null;
+let lastHover = null;
+
+async function j(u){ const r = await fetch(u); if(!r.ok) throw new Error(u+':'+r.status); return r.json(); }
+
+function objectStyle(name, id) {
+  const n = (name||'').toLowerCase();
+  if (n.includes('tree') || n.includes('pine') || n.includes('oak') || n.includes('maple') || n.includes('poplar'))
+    return { kind: 'tree', fill: '#2d6b2a', stroke: '#1a4018' };
+  if (n.includes('berry') || n.includes('fruit') || n.includes('carrot') || n.includes('onion') || n.includes('food') || n.includes('goose'))
+    return { kind: 'food', fill: '#e05070', stroke: '#802030' };
+  if (n.includes('stone') || n.includes('rock') || n.includes('flint') || n.includes('iron'))
+    return { kind: 'stone', fill: '#9aa0a8', stroke: '#4a5058' };
+  if (n.includes('rabbit') || n.includes('wolf') || n.includes('boar') || n.includes('sheep') || n.includes('cow') || n.includes('pig'))
+    return { kind: 'animal', fill: '#d0b090', stroke: '#6a5040' };
+  if (n.includes('water') || n.includes('pond') || n.includes('well'))
+    return { kind: 'water', fill: '#4a90c8', stroke: '#204060' };
+  if (n.includes('fire') || n.includes('ash') || n.includes('coal'))
+    return { kind: 'fire', fill: '#e08030', stroke: '#803010' };
+  if (n.includes('basket') || n.includes('bowl') || n.includes('pot') || n.includes('clay'))
+    return { kind: 'vessel', fill: '#c09060', stroke: '#604020' };
+  // stable pseudo-color from id
+  const h = ((id * 47) % 360);
+  return { kind: 'misc', fill: `hsl(${h} 45% 55%)`, stroke: `hsl(${h} 45% 30%)` };
+}
+
+function drawObjectIcon(g, px, py, cell, style, label, uses) {
+  const s = Math.max(4, cell * 0.75);
+  const cx = px + cell/2, cy = py + cell/2;
+  g.save();
+  g.translate(cx, cy);
+  g.fillStyle = style.fill;
+  g.strokeStyle = style.stroke;
+  g.lineWidth = Math.max(1, cell * 0.06);
+  if (style.kind === 'tree') {
+    g.beginPath(); g.moveTo(0, -s*0.45); g.lineTo(s*0.35, s*0.25); g.lineTo(-s*0.35, s*0.25); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = '#5a3a20'; g.fillRect(-s*0.08, s*0.15, s*0.16, s*0.3);
+  } else if (style.kind === 'food') {
+    g.beginPath(); g.arc(0, 0, s*0.28, 0, Math.PI*2); g.fill(); g.stroke();
+  } else if (style.kind === 'stone') {
+    g.beginPath(); g.moveTo(-s*0.3, s*0.1); g.lineTo(-s*0.1, -s*0.25); g.lineTo(s*0.3, -s*0.15); g.lineTo(s*0.25, s*0.25); g.lineTo(-s*0.25, s*0.28); g.closePath(); g.fill(); g.stroke();
+  } else if (style.kind === 'animal') {
+    g.beginPath(); g.ellipse(0, 0, s*0.32, s*0.22, 0, 0, Math.PI*2); g.fill(); g.stroke();
+    g.beginPath(); g.arc(s*0.28, -s*0.05, s*0.12, 0, Math.PI*2); g.fill();
+  } else {
+    g.fillRect(-s*0.28, -s*0.28, s*0.56, s*0.56);
+    g.strokeRect(-s*0.28, -s*0.28, s*0.56, s*0.56);
+  }
+  if (uses > 0 && cell >= 14) {
+    g.fillStyle = '#fff'; g.font = `${Math.max(8, cell*0.28)}px sans-serif`;
+    g.textAlign = 'center'; g.fillText(String(uses), 0, s*0.42);
+  }
+  g.restore();
+  if (label && cell >= 22) {
+    g.fillStyle = 'rgba(10,14,20,.75)';
+    g.font = `${Math.max(9, Math.floor(cell*0.22))}px system-ui`;
+    const t = label.length > 14 ? label.slice(0,12)+'…' : label;
+    const tw = g.measureText(t).width;
+    g.fillRect(px + (cell-tw)/2 - 2, py + cell - 12, tw + 4, 12);
+    g.fillStyle = '#e7eef7';
+    g.textAlign = 'center';
+    g.fillText(t, px + cell/2, py + cell - 3);
+  }
+}
+
+function drawPlayer(g, px, py, cell, p) {
+  const s = Math.max(6, cell * 0.7);
+  const cx = px + cell/2, cy = py + cell/2;
+  g.save();
+  g.translate(cx, cy);
+  // body
+  g.fillStyle = '#ff5a6a';
+  g.strokeStyle = '#fff';
+  g.lineWidth = 2;
+  g.beginPath(); g.arc(0, -s*0.15, s*0.22, 0, Math.PI*2); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(0, s*0.05); g.lineTo(0, s*0.4); g.stroke();
+  g.beginPath(); g.moveTo(-s*0.28, s*0.15); g.lineTo(s*0.28, s*0.15); g.stroke();
+  g.beginPath(); g.moveTo(0, s*0.4); g.lineTo(-s*0.2, s*0.65); g.moveTo(0, s*0.4); g.lineTo(s*0.2, s*0.65); g.stroke();
+  if (p.held_id) {
+    g.fillStyle = '#f0e6c8';
+    g.fillRect(s*0.22, -s*0.05, s*0.28, s*0.28);
+    g.strokeStyle = '#333'; g.lineWidth = 1;
+    g.strokeRect(s*0.22, -s*0.05, s*0.28, s*0.28);
+    if (cell >= 16) {
+      g.fillStyle = '#111'; g.font = `${Math.max(7, cell*0.18)}px sans-serif`;
+      g.textAlign = 'left';
+      g.fillText(String(p.held_id), s*0.24, s*0.15);
+    }
+  }
+  g.restore();
+  // outline highlight
+  g.strokeStyle = '#ff4466';
+  g.lineWidth = 2;
+  g.strokeRect(px+1, py+1, cell-2, cell-2);
+}
+
+function cameraBounds() {
+  const w = worldMeta.width || 1;
+  const h = worldMeta.height || 1;
+  const tw = cam.tilesAcross;
+  const th = Math.max(8, Math.round(tw * (stage.height / Math.max(1, stage.width))));
+  return { x0: cam.x - tw/2, y0: cam.y - th/2, tw, th };
+}
+
+function resize() {
+  const r = wrap.getBoundingClientRect();
+  stage.width = Math.max(100, Math.floor(r.width * devicePixelRatio));
+  stage.height = Math.max(100, Math.floor(r.height * devicePixelRatio));
+  stage.style.width = r.width + 'px';
+  stage.style.height = r.height + 'px';
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  paint();
+}
+
+function fitWhole() {
+  cam.whole = true;
+  cam.follow = false;
+  document.getElementById('btn-whole').classList.add('active');
+  document.getElementById('btn-follow').classList.remove('active');
+  if (worldMeta.width > 0) {
+    cam.x = worldMeta.width / 2;
+    cam.y = worldMeta.height / 2;
+    const aspect = stage.width / Math.max(1, stage.height);
+    const needW = worldMeta.width;
+    const needH = worldMeta.height * aspect;
+    cam.tilesAcross = Math.max(needW, needH) * 1.02;
+  }
+  document.getElementById('zoom-range').value = 0;
+  document.getElementById('zoom-label').textContent = 'fit';
+}
+
+function setZoomFromSlider(v) {
+  // 0 = whole map, 100 = ~12 tiles across
+  cam.whole = false;
+  document.getElementById('btn-whole').classList.remove('active');
+  const minTiles = 12;
+  const maxTiles = Math.max(minTiles + 1, Math.max(worldMeta.width, worldMeta.height) * 1.05);
+  const t = v / 100;
+  cam.tilesAcross = maxTiles * (1 - t) + minTiles * t;
+  document.getElementById('zoom-label').textContent = cam.tilesAcross.toFixed(0) + ' tiles';
+}
+
+function worldToScreen(tx, ty, b, cssW, cssH) {
+  const cellW = cssW / b.tw;
+  const cellH = cssH / b.th;
+  return { x: (tx - b.x0) * cellW, y: (ty - b.y0) * cellH, cellW, cellH };
+}
+
+function paintOverviewLayer(g, b, cssW, cssH) {
+  if (!overview) return;
+  const cellW = cssW / b.tw;
+  const cellH = cssH / b.th;
+  const step = overview.step;
+  // Draw sample cells that intersect camera
+  for (let sy = 0; sy < overview.sample_h; sy++) {
+    for (let sx = 0; sx < overview.sample_w; sx++) {
+      const wx0 = sx * step;
+      const wy0 = sy * step;
+      const wx1 = wx0 + step;
+      const wy1 = wy0 + step;
+      if (wx1 < b.x0 || wy1 < b.y0 || wx0 > b.x0 + b.tw || wy0 > b.y0 + b.th) continue;
+      const idx = sy * overview.sample_w + sx;
+      const biome = overview.biomes[idx];
+      const px = (wx0 - b.x0) * cellW;
+      const py = (wy0 - b.y0) * cellH;
+      g.fillStyle = BIOME[biome] || '#203040';
+      g.fillRect(px, py, step * cellW + 0.5, step * cellH + 0.5);
+      if (overview.object_mask[idx]) {
+        const dens = overview.object_density[idx] || 1;
+        const alpha = Math.min(0.85, 0.25 + dens * 0.08);
+        g.fillStyle = `rgba(240,230,200,${alpha})`;
+        const m = Math.max(1, Math.min(step * cellW, step * cellH) * 0.35);
+        g.fillRect(px + (step*cellW - m)/2, py + (step*cellH - m)/2, m, m);
+      }
+    }
+  }
+}
+
+function paintDetailLayer(g, b, cssW, cssH) {
+  if (!detail) return;
+  const cellW = cssW / b.tw;
+  const cellH = cssH / b.th;
+  // When zoomed in enough, paint exact tiles from detail window
+  if (cam.tilesAcross > 96 && overview) return; // overview already good
+  for (let i = 0; i < detail.w * detail.h; i++) {
+    const lx = i % detail.w, ly = Math.floor(i / detail.w);
+    const tx = detail.origin_x + lx;
+    const ty = detail.origin_y + ly;
+    if (tx < b.x0 - 1 || ty < b.y0 - 1 || tx > b.x0 + b.tw || ty > b.y0 + b.th) continue;
+    const px = (tx - b.x0) * cellW;
+    const py = (ty - b.y0) * cellH;
+    g.fillStyle = BIOME[detail.biomes[i]] || '#203040';
+    g.fillRect(px, py, cellW + 0.5, cellH + 0.5);
+    const id = detail.objects[i];
+    if (id) {
+      const name = detail.names[String(id)] || ('#'+id);
+      const st = objectStyle(name, id);
+      const cell = Math.min(cellW, cellH);
+      drawObjectIcon(g, px, py, cell, st, name, detail.uses[i] || 0);
+    }
+  }
+}
+
+function paintPlayers(g, b, cssW, cssH) {
+  const cellW = cssW / b.tw;
+  const cellH = cssH / b.th;
+  const cell = Math.min(cellW, cellH);
+  for (const p of players) {
+    if (p.deleted) continue;
+    const px = (p.x - b.x0) * cellW;
+    const py = (p.y - b.y0) * cellH;
+    if (px < -cell || py < -cell || px > cssW || py > cssH) continue;
+    drawPlayer(g, px, py, cell, p);
+  }
+}
+
+function paintMinimap() {
+  if (!overview) return;
+  const mw = mini.width, mh = mini.height;
+  mctx.fillStyle = '#0a1018';
+  mctx.fillRect(0,0,mw,mh);
+  const sw = overview.sample_w, sh = overview.sample_h;
+  const sx = mw / sw, sy = mh / sh;
+  for (let y = 0; y < sh; y++) {
+    for (let x = 0; x < sw; x++) {
+      const i = y * sw + x;
+      mctx.fillStyle = BIOME[overview.biomes[i]] || '#203040';
+      mctx.fillRect(x*sx, y*sy, sx+0.5, sy+0.5);
+      if (overview.object_mask[i]) {
+        mctx.fillStyle = 'rgba(240,230,200,.5)';
+        mctx.fillRect(x*sx + sx*0.25, y*sy + sy*0.25, sx*0.5, sy*0.5);
+      }
+    }
+  }
+  // camera rect
+  const b = cameraBounds();
+  const scaleX = mw / Math.max(1, worldMeta.width);
+  const scaleY = mh / Math.max(1, worldMeta.height);
+  mctx.strokeStyle = '#ff4466';
+  mctx.lineWidth = 1.5;
+  mctx.strokeRect(b.x0 * scaleX, b.y0 * scaleY, b.tw * scaleX, b.th * scaleY);
+  for (const p of players) {
+    mctx.fillStyle = '#ff5a6a';
+    mctx.fillRect(p.x * scaleX - 2, p.y * scaleY - 2, 4, 4);
+  }
+}
+
+function paint() {
+  const cssW = stage.width / devicePixelRatio;
+  const cssH = stage.height / devicePixelRatio;
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.fillStyle = '#05080c';
+  ctx.fillRect(0, 0, cssW, cssH);
+  if (!worldMeta.width) {
+    ctx.fillStyle = '#8aa0b5';
+    ctx.fillText('Waiting for world…', 20, 30);
+    return;
+  }
+  if (cam.whole) fitWhole();
+  const b = cameraBounds();
+  // always paint overview as base (whole map ground)
+  paintOverviewLayer(ctx, b, cssW, cssH);
+  // detail objects when zoomed
+  if (cam.tilesAcross <= 80) paintDetailLayer(ctx, b, cssW, cssH);
+  paintPlayers(ctx, b, cssW, cssH);
+  paintMinimap();
+  const hud = document.getElementById('hud');
+  hud.textContent = `map ${worldMeta.width}×${worldMeta.height} · camera (${cam.x.toFixed(0)},${cam.y.toFixed(0)}) · ${cam.tilesAcross.toFixed(0)} tiles across · overview step ${overview?overview.step: '?'} · wheel=zoom, drag=pan`;
+}
+
+async function refreshMeta() {
+  const s = await j('/api/world/summary');
+  worldMeta = { width: s.width, height: s.height };
+  document.getElementById('stats').innerHTML =
+    `size <b>${s.width}×${s.height}</b><br/>wrap ${s.wrap}<br/>format v${s.format_version}<br/>`+
+    `chunks ${s.chunks}<br/>complex helpers ${s.helpers}<br/>sample objects (−16..16): ${s.sample_nonempty_32x32}`;
+}
+
+async function refreshMetricsStrip() {
+  const [animals, treasury, metrics] = await Promise.all([
+    j('/api/animals'),
+    j('/api/treasury'),
+    j('/api/metrics'),
+  ]);
+  const a = animals || {};
+  document.getElementById('m-animals').textContent =
+    `${a.total ?? 0} (r${a.rabbit ?? 0}/w${a.wolf ?? 0}/b${a.boar ?? 0})`;
+  document.getElementById('m-treasury').textContent = String((treasury && treasury.coins) ?? 0);
+  document.getElementById('m-logins').textContent = String(metrics.logins ?? 0);
+  document.getElementById('m-deaths').textContent = String(metrics.deaths ?? 0);
+  document.getElementById('m-crafts').textContent = String(metrics.crafts ?? 0);
+  document.getElementById('m-ticks').textContent = String(metrics.ticks ?? 0);
+  document.getElementById('m-conn').textContent = String(metrics.connections ?? 0);
+  // Also mirror into World sidebar when present
+  const side = document.getElementById('stats');
+  if (side && worldMeta.width) {
+    const base = side.innerHTML.split('<hr')[0];
+    side.innerHTML = base +
+      `<hr style="border:0;border-top:1px solid var(--border);margin:.45rem 0"/>` +
+      `animals <b>${a.total ?? 0}</b> · treasury <b>${(treasury && treasury.coins) ?? 0}</b><br/>` +
+      `logins ${metrics.logins ?? 0} · deaths ${metrics.deaths ?? 0} · crafts ${metrics.crafts ?? 0}`;
+  }
+}
+
+async function refreshOverview() {
+  overview = await j('/api/world/overview?max_side=256');
+}
+
+async function refreshDetail() {
+  if (cam.tilesAcross > 90) { detail = null; return; }
+  const w = Math.min(128, Math.ceil(cam.tilesAcross) + 4);
+  const h = Math.min(128, Math.ceil(cam.tilesAcross * (stage.height/Math.max(1,stage.width))) + 4);
+  detail = await j(`/api/world/view?x=${Math.round(cam.x)}&y=${Math.round(cam.y)}&w=${w}&h=${h}`);
+}
+
+function agentRole(email) {
+  const e = (email || '').toLowerCase();
+  if (e.includes('farmer')) return 'farmer';
+  if (e.includes('hunter')) return 'hunter';
+  if (e.includes('selfplay')) return 'forager';
+  return 'player';
+}
+
+async function refreshPlayers() {
+  const data = await j('/api/players');
+  players = data.players || [];
+  selfplay = await j('/api/selfplay');
+  document.getElementById('log').textContent = (selfplay.log||[]).slice(-50).join('\n') || '(waiting…)';
+  const selfplayAgents = players.filter(p => p.email && p.email.includes('selfplay'));
+  const agent = selfplayAgents[0] || players[0];
+  if (players.length) {
+    const rows = players.map(p => {
+      const role = agentRole(p.email);
+      const food = (p.food != null) ? p.food.toFixed(1) : '?';
+      const foodMax = p.food_max != null ? p.food_max : 20;
+      return `<div style="margin:.35rem 0;padding:.3rem 0;border-bottom:1px solid var(--border)">`+
+        `<div><b>${role}</b> p_id ${p.p_id} @ (<b>${p.x}</b>,<b>${p.y}</b>)</div>`+
+        `<div>held <b>${p.held_id||0}</b> · age ${(p.age||0).toFixed(1)} · food ${food}/${foodMax}</div>`+
+        `<div class="bar"><i style="width:${Math.min(100, 100*(p.food||0)/Math.max(1,foodMax))}%"></i></div>`+
+        `<div style="color:var(--muted);font-size:.72rem">${p.email||''}</div></div>`;
+    }).join('');
+    const triple = selfplayAgents.length
+      ? `<div style="margin-bottom:.4rem;color:var(--muted)">self-play agents: `+
+        selfplayAgents.map(p => `${agentRole(p.email)} (${p.x},${p.y})`).join(' · ')+
+        `</div>`
+      : (selfplay.x != null
+        ? `<div style="margin-bottom:.4rem;color:var(--muted)">selfplay API @ (${selfplay.x},${selfplay.y})</div>`
+        : '');
+    document.getElementById('agent-panel').innerHTML = triple + rows;
+    if (cam.follow && agent) {
+      cam.x = agent.x; cam.y = agent.y;
+    }
+  } else {
+    document.getElementById('agent-panel').textContent = 'no players yet';
+  }
+}
+
+async function tick() {
+  try {
+    await refreshPlayers();
+    if (!overview || !worldMeta.width) {
+      await refreshMeta();
+      await refreshOverview();
+      fitWhole();
+    }
+    await refreshMetricsStrip();
+    await refreshDetail();
+    paint();
+  } catch (e) {
+    document.getElementById('hud').textContent = String(e);
+  }
+}
+
+// Interactions
+document.getElementById('btn-whole').onclick = () => { fitWhole(); paint(); };
+document.getElementById('btn-follow').onclick = () => {
+  cam.follow = !cam.follow; cam.whole = false;
+  document.getElementById('btn-follow').classList.toggle('active', cam.follow);
+  document.getElementById('btn-whole').classList.remove('active');
+  paint();
+};
+document.getElementById('btn-zoom-in').onclick = () => {
+  const r = document.getElementById('zoom-range');
+  r.value = Math.min(100, +r.value + 8);
+  setZoomFromSlider(+r.value); paint();
+};
+document.getElementById('btn-zoom-out').onclick = () => {
+  const r = document.getElementById('zoom-range');
+  r.value = Math.max(0, +r.value - 8);
+  if (+r.value === 0) fitWhole(); else setZoomFromSlider(+r.value);
+  paint();
+};
+document.getElementById('zoom-range').oninput = (e) => {
+  if (+e.target.value === 0) fitWhole(); else setZoomFromSlider(+e.target.value);
+  paint();
+};
+
+wrap.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  cam.whole = false; cam.follow = false;
+  document.getElementById('btn-whole').classList.remove('active');
+  document.getElementById('btn-follow').classList.remove('active');
+  const r = document.getElementById('zoom-range');
+  const delta = e.deltaY > 0 ? -6 : 6;
+  r.value = Math.max(0, Math.min(100, +r.value + delta));
+  if (+r.value === 0) fitWhole(); else setZoomFromSlider(+r.value);
+  paint();
+}, { passive: false });
+
+wrap.addEventListener('pointerdown', (e) => {
+  if (e.target === mini) return;
+  drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y };
+  wrap.classList.add('drag');
+  cam.whole = false; cam.follow = false;
+  document.getElementById('btn-whole').classList.remove('active');
+  document.getElementById('btn-follow').classList.remove('active');
+});
+window.addEventListener('pointerup', () => { drag = null; wrap.classList.remove('drag'); });
+window.addEventListener('pointermove', (e) => {
+  if (drag) {
+    const cssW = stage.width / devicePixelRatio;
+    const cssH = stage.height / devicePixelRatio;
+    const b = cameraBounds();
+    const cellW = cssW / b.tw;
+    const cellH = cssH / b.th;
+    cam.x = drag.cx - (e.clientX - drag.x) / cellW;
+    cam.y = drag.cy - (e.clientY - drag.y) / cellH;
+    paint();
+    return;
+  }
+  // hover
+  const rect = stage.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const cssW = rect.width, cssH = rect.height;
+  const b = cameraBounds();
+  const tx = Math.floor(b.x0 + (mx / cssW) * b.tw);
+  const ty = Math.floor(b.y0 + (my / cssH) * b.th);
+  if (lastHover && lastHover.tx === tx && lastHover.ty === ty) return;
+  lastHover = { tx, ty };
+  let info = `(${tx}, ${ty})`;
+  if (detail) {
+    const lx = tx - detail.origin_x, ly = ty - detail.origin_y;
+    if (lx >= 0 && ly >= 0 && lx < detail.w && ly < detail.h) {
+      const i = ly * detail.w + lx;
+      const id = detail.objects[i];
+      const name = id ? (detail.names[String(id)] || '#'+id) : 'empty';
+      info += ` biome=${detail.biomes[i]} floor=${detail.floors[i]} obj=${id||0} ${name}`;
+      if (detail.uses[i]) info += ` uses=${detail.uses[i]}`;
+    }
+  }
+  document.getElementById('hover-info').textContent = info;
+});
+
+mini.addEventListener('click', (e) => {
+  const r = mini.getBoundingClientRect();
+  const u = (e.clientX - r.left) / r.width;
+  const v = (e.clientY - r.top) / r.height;
+  cam.x = u * worldMeta.width;
+  cam.y = v * worldMeta.height;
+  cam.whole = false; cam.follow = false;
+  document.getElementById('btn-whole').classList.remove('active');
+  document.getElementById('btn-follow').classList.remove('active');
+  if (+document.getElementById('zoom-range').value === 0) {
+    document.getElementById('zoom-range').value = 40;
+    setZoomFromSlider(40);
+  }
+  paint();
+});
+
+window.addEventListener('resize', resize);
+resize();
+tick();
+setInterval(tick, 1200);
+setInterval(async () => { try { await refreshOverview(); await refreshMeta(); } catch(_){} }, 8000);
+</script>
+</body>
+</html>

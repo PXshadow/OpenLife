@@ -1,0 +1,182 @@
+//! Coins / trade prestige (Open Life Reborn economy subset).
+
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, Default)]
+pub struct Wallet {
+    pub coins: i32,
+    pub trade_prestige: f32,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct Economy {
+    pub wallets: HashMap<i32, Wallet>,
+    /// Shared village treasury (taxes / donations / unclaimed inheritance).
+    pub treasury: i32,
+}
+
+impl Economy {
+    pub fn wallet_mut(&mut self, p_id: i32) -> &mut Wallet {
+        self.wallets.entry(p_id).or_default()
+    }
+
+    pub fn add_coins(&mut self, p_id: i32, amount: i32) {
+        let w = self.wallet_mut(p_id);
+        w.coins = w.coins.saturating_add(amount);
+        if amount > 0 {
+            w.trade_prestige += (amount as f32) * 0.01;
+        }
+    }
+
+    /// Transfer coins; returns false if insufficient.
+    ///
+    /// Grants small trade prestige to both parties (PAY / TRADE path).
+    pub fn transfer(&mut self, from: i32, to: i32, amount: i32) -> bool {
+        if amount <= 0 {
+            return false;
+        }
+        if self.wallet_mut(from).coins < amount {
+            return false;
+        }
+        self.wallet_mut(from).coins -= amount;
+        self.wallet_mut(to).coins = self.wallet_mut(to).coins.saturating_add(amount);
+        self.wallet_mut(from).trade_prestige += 0.05;
+        self.wallet_mut(to).trade_prestige += 0.02;
+        true
+    }
+
+    /// Move coins with **no** trade-prestige change (GIFT / LOAN / REPAY path).
+    ///
+    /// Returns false if `amount` is non-positive or `from` has insufficient coins.
+    pub fn gift(&mut self, from: i32, to: i32, amount: i32) -> bool {
+        if amount <= 0 || from == to {
+            return false;
+        }
+        if self.wallet_mut(from).coins < amount {
+            return false;
+        }
+        self.wallet_mut(from).coins -= amount;
+        self.wallet_mut(to).coins = self.wallet_mut(to).coins.saturating_add(amount);
+        true
+    }
+
+    /// Debit `amount` from `from` into [`Self::treasury`]. Returns false if insufficient.
+    pub fn donate_to_treasury(&mut self, from: i32, amount: i32) -> bool {
+        if amount <= 0 {
+            return false;
+        }
+        let w = self.wallet_mut(from);
+        if w.coins < amount {
+            return false;
+        }
+        w.coins -= amount;
+        self.treasury = self.treasury.saturating_add(amount);
+        true
+    }
+
+    /// Leader tax: same coin path as donate (caller enforces leadership).
+    pub fn tax_to_treasury(&mut self, from: i32, amount: i32) -> bool {
+        self.donate_to_treasury(from, amount)
+    }
+
+    /// Pay from treasury to a player wallet.
+    pub fn pay_from_treasury(&mut self, to: i32, amount: i32) -> bool {
+        if amount <= 0 || self.treasury < amount {
+            return false;
+        }
+        self.treasury -= amount;
+        self.add_coins(to, amount);
+        true
+    }
+
+    /// On death: zero the deceased wallet and move remaining coins to mother (if
+    /// `mother_online` is `Some`) or into the shared treasury.
+    ///
+    /// Returns the amount transferred (0 if the wallet was empty).
+    pub fn inherit_on_death(&mut self, deceased: i32, mother_online: Option<i32>) -> i32 {
+        let coins = self.wallets.get(&deceased).map(|w| w.coins).unwrap_or(0);
+        if let Some(w) = self.wallets.get_mut(&deceased) {
+            w.coins = 0;
+        }
+        if coins <= 0 {
+            return 0;
+        }
+        match mother_online {
+            Some(mid) if mid != deceased => {
+                self.add_coins(mid, coins);
+            }
+            _ => {
+                self.treasury = self.treasury.saturating_add(coins);
+            }
+        }
+        coins
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn transfer_and_reject() {
+        let mut e = Economy::default();
+        e.add_coins(1, 10);
+        assert!(e.transfer(1, 2, 3));
+        assert_eq!(e.wallets.get(&1).unwrap().coins, 7);
+        assert_eq!(e.wallets.get(&2).unwrap().coins, 3);
+        assert!(!e.transfer(1, 2, 100));
+    }
+
+    #[test]
+    fn gift_moves_coins_without_trade_prestige() {
+        let mut e = Economy::default();
+        e.add_coins(1, 20);
+        let tp_from_before = e.wallets.get(&1).unwrap().trade_prestige;
+        assert!(e.gift(1, 2, 5));
+        assert_eq!(e.wallets.get(&1).unwrap().coins, 15);
+        assert_eq!(e.wallets.get(&2).unwrap().coins, 5);
+        assert_eq!(
+            e.wallets.get(&1).unwrap().trade_prestige,
+            tp_from_before,
+            "gift must not change giver trade_prestige"
+        );
+        assert_eq!(
+            e.wallets.get(&2).unwrap().trade_prestige,
+            0.0,
+            "gift must not grant trade_prestige to recipient"
+        );
+        assert!(!e.gift(1, 2, 999));
+        assert!(!e.gift(1, 1, 1));
+        assert!(!e.gift(1, 2, 0));
+    }
+
+    #[test]
+    fn donate_tax_and_treasury() {
+        let mut e = Economy::default();
+        e.add_coins(1, 50);
+        assert!(e.donate_to_treasury(1, 20));
+        assert_eq!(e.treasury, 20);
+        assert_eq!(e.wallets.get(&1).unwrap().coins, 30);
+        assert!(e.tax_to_treasury(1, 5));
+        assert_eq!(e.treasury, 25);
+        assert!(e.pay_from_treasury(2, 10));
+        assert_eq!(e.treasury, 15);
+        assert_eq!(e.wallets.get(&2).unwrap().coins, 10);
+        assert!(!e.donate_to_treasury(1, 999));
+    }
+
+    #[test]
+    fn inherit_to_mother_or_treasury() {
+        let mut e = Economy::default();
+        e.add_coins(10, 12);
+        assert_eq!(e.inherit_on_death(10, Some(20)), 12);
+        assert_eq!(e.wallets.get(&10).map(|w| w.coins), Some(0));
+        assert_eq!(e.wallets.get(&20).map(|w| w.coins), Some(12));
+        assert_eq!(e.treasury, 0);
+
+        e.add_coins(11, 7);
+        assert_eq!(e.inherit_on_death(11, None), 7);
+        assert_eq!(e.wallets.get(&11).map(|w| w.coins), Some(0));
+        assert_eq!(e.treasury, 7);
+    }
+}

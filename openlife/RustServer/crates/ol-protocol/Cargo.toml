@@ -1,0 +1,10 @@
+[package]
+name = "ol-protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "OHOL / Open Life wire protocol framing and message types"
+publish = false
+
+[dependencies]
+thiserror.workspace = true

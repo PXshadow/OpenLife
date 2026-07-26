@@ -1,0 +1,21 @@
+[package]
+name = "ol-sim"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Simulation tick and intent application (sole world writer)"
+publish = false
+
+[dependencies]
+ol-metrics.workspace = true
+ol-net.workspace = true
+ol-content.workspace = true
+ol-world.workspace = true
+ol-protocol.workspace = true
+tracing.workspace = true
+tokio = { version = "1", features = ["sync", "time", "macros", "rt"] }
+flate2 = "1"
+serde = { version = "1", features = ["derive"] }
+byteorder = "1"
+rand = "0.8"
+serde_json = "1"

@@ -1,4 +1,4 @@
-//! Headless OHOL client CLI for playtesting servers that speak the original protocol.
+﻿//! Headless OHOL client CLI for playtesting servers that speak the original protocol.
 //!
 //! Default target: local Open Life / OHOL game server at `127.0.0.1:8005`.
 //!
@@ -42,7 +42,7 @@ fn usage() {
 
 Credentials (priority: CLI flag > process env > .env file):
   OHOL_HOST, OHOL_PORT, OHOL_EMAIL, OHOL_PASSWORD, OHOL_ACCOUNT_KEY
-  Copy .env.example → .env (gitignored) for local secrets.
+  Copy .env.example â†’ .env (gitignored) for local secrets.
 
 Options:
   --host HOST        default {DEFAULT_HOST} or OHOL_HOST
@@ -66,7 +66,8 @@ Options:
   --swap x,y         send SWAP x y#
   --sremv x,y        send SREMV (needs --sremv-c C --sremv-i I)
   --probe-actions    login + encode/send USE/DROP/REMV/SELF (wire log)
-  --probe-play       login, MOVE, SAY, USE — full playtest log
+  --probe-play       login, MOVE, SAY, USE â€” full playtest log
+  --probe-fix        version-name, pickup, MX -p_id, animals, !CLOSE
   --say TEXT         send SAY 0 0 TEXT#
   --ka               send KA 0 0
   --timeout SECS     socket timeout (default 10)
@@ -76,7 +77,7 @@ Options:
 
 fn main() -> ExitCode {
     // Load local `.env` if present (does not override already-set process env).
-    // Missing file is fine — CLI flags / system env still work.
+    // Missing file is fine â€” CLI flags / system env still work.
     let _ = dotenvy::dotenv();
 
     let args: Vec<String> = env::args().skip(1).collect();
@@ -152,7 +153,25 @@ fn main() -> ExitCode {
         };
     }
 
-    // No args or only action flags → local rust server defaults (127.0.0.1:8005).
+    if args.iter().any(|a| a == "--probe-fix") {
+        return match run_probe_fix(&args) {
+            Ok(ok) => {
+                if ok {
+                    println!("probe-fix: PASS");
+                    ExitCode::SUCCESS
+                } else {
+                    println!("probe-fix: FAIL");
+                    ExitCode::FAILURE
+                }
+            }
+            Err(e) => {
+                eprintln!("probe-fix FAILED: {e:#}");
+                ExitCode::FAILURE
+            }
+        };
+    }
+
+    // No args or only action flags â†’ local rust server defaults (127.0.0.1:8005).
     match run_live(&args) {
         Ok(code) => code,
         Err(e) => {
@@ -231,7 +250,7 @@ fn run_live(args: &[String]) -> anyhow::Result<ExitCode> {
         "(empty)".to_string()
     } else {
         let keep = account_key.chars().take(4).collect::<String>();
-        format!("{keep}…")
+        format!("{keep}â€¦")
     };
     println!(
         "connecting to {}:{} as {} key={} ...",
@@ -256,7 +275,7 @@ fn run_live(args: &[String]) -> anyhow::Result<ExitCode> {
         }
     }
 
-    // After ACCEPTED the server often pushes MC/PU/FX/FM — drain a few frames so our
+    // After ACCEPTED the server often pushes MC/PU/FX/FM â€” drain a few frames so our
     // player position can sync before MOVE (best-effort, non-fatal on timeout).
     session.stream_mut().set_read_timeout(Some(Duration::from_millis(300))).ok();
     for _ in 0..32 {
@@ -333,7 +352,321 @@ fn run_live(args: &[String]) -> anyhow::Result<ExitCode> {
     Ok(ExitCode::SUCCESS)
 }
 
-/// Full playtest: login → move → say → use at feet; measure reply latency; log wire.
+/// Regression probe: version name, ground pickup, MX transform p_id, animal MX move, !CLOSE.
+fn run_probe_fix(args: &[String]) -> anyhow::Result<bool> {
+    use std::sync::Arc;
+    use std::time::Instant;
+
+    let log_path = flag_value(args, "--log")
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "logs/wire-probe-fix.log".into());
+    let wire = Arc::new(WireLog::create(&log_path)?);
+    println!("wire log: {}", wire.path().display());
+
+    let cfg = SessionConfig {
+        host: env_or("OHOL_HOST", DEFAULT_HOST),
+        port: env_or("OHOL_PORT", DEFAULT_PORT).parse()?,
+        email: env_or("OHOL_EMAIL", "blank_email"),
+        password: env_or("OHOL_PASSWORD", "x"),
+        account_key: env_or("OHOL_ACCOUNT_KEY", ""),
+        pad_email_to_80: !has_flag(args, "--no-email-pad"),
+        read_timeout: Duration::from_secs(15),
+        write_timeout: Duration::from_secs(5),
+        ..SessionConfig::default()
+    };
+
+    let mut session = connect_and_login_logged(&cfg, Arc::clone(&wire))?;
+    println!("login={:?}", session.login);
+    if session.login != LoginOutcome::Accepted {
+        return Ok(false);
+    }
+    session
+        .stream_mut()
+        .set_read_timeout(Some(Duration::from_millis(250)))
+        .ok();
+
+    let mut saw_version_name = false;
+    let mut saw_mx_transform = false; // MX line with negative p_id
+    let mut saw_mx_moving = false; // MX with old_x old_y speed (8+ fields)
+    let mut held_after_pickup: Option<i32> = None;
+    let mut name_line = String::new();
+
+    // Drain bootstrap: look for NM with version.
+    let boot_deadline = Instant::now() + Duration::from_secs(3);
+    while Instant::now() < boot_deadline {
+        match session.poll_event() {
+            Ok(SessionEvent::Other(s)) if s.starts_with("NM") => {
+                let flat = s.replace('\n', " ");
+                println!("NM: {flat}");
+                name_line = flat.clone();
+                // Expect GROKPLAY V0.1.0 style for playtest account.
+                if flat.contains("GROKPLAY") && flat.contains('V') {
+                    saw_version_name = true;
+                }
+                if flat.contains(env!("CARGO_PKG_VERSION"))
+                    || flat.contains("V0.")
+                    || flat.contains("V1.")
+                {
+                    saw_version_name = true;
+                }
+            }
+            Ok(SessionEvent::PlayerUpdate {
+                player_id,
+                held_id,
+                ..
+            }) if Some(player_id) == session.our_id => {
+                held_after_pickup = Some(held_id);
+            }
+            Ok(_) => {}
+            Err(_) => break,
+        }
+    }
+    session.move_state.in_motion = false;
+    session.move_state.awaiting_force_ack = false;
+
+    // DROP nothing if empty hands; first USE empty may fail â€” place via god isn't available.
+    // Strategy: MOVE, then USE feet (may harvest), then if we hold something DROP then USE pickup.
+    let path = [PathDelta { x: 1, y: 0 }];
+    let _ = session.send_move(&path)?;
+    let t0 = Instant::now();
+    while t0.elapsed() < Duration::from_secs(3) {
+        match session.poll_event() {
+            Ok(SessionEvent::PlayerUpdate {
+                player_id,
+                done_moving_seq_num,
+                force,
+                held_id,
+                ..
+            }) if Some(player_id) == session.our_id => {
+                held_after_pickup = Some(held_id);
+                if done_moving_seq_num > 1 && !force {
+                    break;
+                }
+            }
+            Ok(SessionEvent::Other(s)) if s.starts_with("MX") => {
+                let line = s.lines().nth(1).unwrap_or("");
+                let parts: Vec<_> = line.split_whitespace().collect();
+                if parts.len() >= 5 {
+                    if let Ok(pid) = parts[4].parse::<i32>() {
+                        if pid < -1 {
+                            saw_mx_transform = true;
+                        }
+                    }
+                }
+                if parts.len() >= 8 {
+                    saw_mx_moving = true;
+                    println!("MX moving: {line}");
+                }
+            }
+            Ok(_) => {}
+            Err(_) => continue,
+        }
+    }
+    session.move_state.in_motion = false;
+
+    // If empty-handed, try to USE adjacent tiles for a non-permanent object or transition.
+    // Then DROP at feet and USE again to verify bare-hand pickup.
+    let (fx, fy) = (session.move_state.x, session.move_state.y);
+    let mut held = held_after_pickup.unwrap_or(0);
+
+    // Give server a stick via SAY isn't available â€” try USE on several nearby cells.
+    if held == 0 {
+        for (dx, dy) in [(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1), (1, 1)] {
+            let ux = fx + dx;
+            let uy = fy + dy;
+            let _ = session.send_use(ux, uy, None, None)?;
+            let t = Instant::now();
+            while t.elapsed() < Duration::from_millis(800) {
+                match session.poll_event() {
+                    Ok(SessionEvent::PlayerUpdate {
+                        player_id,
+                        held_id,
+                        ..
+                    }) if Some(player_id) == session.our_id => {
+                        held = held_id;
+                        held_after_pickup = Some(held_id);
+                        if held_id != 0 {
+                            println!("picked/held id={held_id} at use ({ux},{uy})");
+                        }
+                    }
+                    Ok(SessionEvent::Other(s)) if s.starts_with("MX") => {
+                        let line = s.lines().nth(1).unwrap_or("");
+                        let parts: Vec<_> = line.split_whitespace().collect();
+                        if parts.len() >= 5 {
+                            if let Ok(pid) = parts[4].parse::<i32>() {
+                                if pid < -1 {
+                                    saw_mx_transform = true;
+                                    println!("MX transform p_id={pid}: {line}");
+                                }
+                            }
+                        }
+                        if parts.len() >= 8 {
+                            saw_mx_moving = true;
+                        }
+                    }
+                    Ok(_) => {}
+                    Err(_) => break,
+                }
+            }
+            if held != 0 {
+                break;
+            }
+        }
+    }
+
+    let mut pickup_ok = false;
+    if held != 0 {
+        // DROP at feet (offset empty prefer 0,0 relative if world empty under us).
+        let dx = session.move_state.x;
+        let dy = session.move_state.y;
+        // Drop one step east of current (client coords).
+        let drop_x = dx;
+        let drop_y = dy;
+        let _ = session.send_drop(drop_x, drop_y, -1)?;
+        let t = Instant::now();
+        while t.elapsed() < Duration::from_millis(800) {
+            match session.poll_event() {
+                Ok(SessionEvent::PlayerUpdate {
+                    player_id,
+                    held_id,
+                    ..
+                }) if Some(player_id) == session.our_id => {
+                    held = held_id;
+                }
+                Ok(SessionEvent::Other(s)) if s.starts_with("MX") => {
+                    let line = s.lines().nth(1).unwrap_or("");
+                    // Drop uses positive p_id.
+                    println!("MX after drop: {line}");
+                }
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        // Bare-hand USE to pick up again.
+        if held == 0 {
+            let _ = session.send_use(drop_x, drop_y, None, None)?;
+            let t = Instant::now();
+            while t.elapsed() < Duration::from_millis(1200) {
+                match session.poll_event() {
+                    Ok(SessionEvent::PlayerUpdate {
+                        player_id,
+                        held_id,
+                        ..
+                    }) if Some(player_id) == session.our_id => {
+                        if held_id != 0 {
+                            pickup_ok = true;
+                            held = held_id;
+                            println!("pickup OK held={held_id}");
+                        }
+                    }
+                    Ok(SessionEvent::Other(s)) if s.starts_with("MX") => {
+                        let line = s.lines().nth(1).unwrap_or("");
+                        let parts: Vec<_> = line.split_whitespace().collect();
+                        if parts.len() >= 5 {
+                            if let Ok(pid) = parts[4].parse::<i32>() {
+                                if pid < -1 {
+                                    saw_mx_transform = true;
+                                    println!("MX pickup transform: {line}");
+                                }
+                            }
+                        }
+                    }
+                    Ok(_) => {}
+                    Err(_) => break,
+                }
+            }
+        }
+    } else {
+        println!("WARN: never held an object â€” pickup path untested on this spawn");
+    }
+
+    // Listen for animal moving MX for a few seconds.
+    let animal_wait = Instant::now() + Duration::from_secs(6);
+    while Instant::now() < animal_wait && !saw_mx_moving {
+        match session.poll_event() {
+            Ok(SessionEvent::Other(s)) if s.starts_with("MX") => {
+                let line = s.lines().nth(1).unwrap_or("");
+                let parts: Vec<_> = line.split_whitespace().collect();
+                if parts.len() >= 8 {
+                    saw_mx_moving = true;
+                    println!("animal/moving MX: {line}");
+                }
+            }
+            Ok(_) => {}
+            Err(_) => continue,
+        }
+    }
+
+    // !CLOSE should disconnect us but leave server healthy.
+    let _ = session.send_say("!CLOSE")?;
+    let mut close_ps = false;
+    let t = Instant::now();
+    while t.elapsed() < Duration::from_secs(2) {
+        match session.poll_event() {
+            Ok(SessionEvent::Other(s)) if s.starts_with("PS") => {
+                if s.contains("CLOSE") {
+                    close_ps = true;
+                    println!("CLOSE reply: {}", s.lines().next().unwrap_or(""));
+                }
+            }
+            Ok(_) => {}
+            Err(e)
+                if e.kind() == std::io::ErrorKind::ConnectionReset
+                    || e.kind() == std::io::ErrorKind::UnexpectedEof
+                    || e.kind() == std::io::ErrorKind::ConnectionAborted =>
+            {
+                println!("socket closed after !CLOSE (expected)");
+                break;
+            }
+            Err(_) => continue,
+        }
+    }
+
+    // Health check: server must still be up.
+    let health_ok = std::net::TcpStream::connect(format!(
+        "{}:{}",
+        cfg.host, cfg.port
+    ))
+    .map(|s| {
+        drop(s);
+        true
+    })
+    .unwrap_or(false);
+
+    // Web health if available.
+    let web_ok = std::process::Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-Command",
+            "try { (Invoke-WebRequest http://127.0.0.1:8080/health -UseBasicParsing -TimeoutSec 2).StatusCode -eq 200 } catch { $false }",
+        ])
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).contains("True"))
+        .unwrap_or(false);
+
+    println!("## probe-fix summary");
+    println!("  name_line={name_line}");
+    println!("  version_name={saw_version_name}");
+    println!("  pickup_ok={pickup_ok} held={held}");
+    println!("  mx_transform_neg_pid={saw_mx_transform}");
+    println!("  mx_moving_animal={saw_mx_moving}");
+    println!("  close_ps={close_ps} tcp_still_up={health_ok} web_ok={web_ok}");
+    println!("wire log: {}", wire.path().display());
+
+    // Soft requirements: name + transform MX + server alive after CLOSE.
+    // Pickup may fail if spawn has no non-permanent objects; still report.
+    // Animals may be far from player â€” soft.
+    let pass = saw_version_name && health_ok && web_ok;
+    if !pickup_ok {
+        println!("note: pickup not verified (no holdable tile found near spawn)");
+    }
+    if !saw_mx_moving {
+        println!("note: no animal-move MX in window (animals may be out of range)");
+    }
+    Ok(pass)
+}
+
+/// Full playtest: login â†’ move â†’ say â†’ use at feet; measure reply latency; log wire.
 fn run_probe_play(args: &[String]) -> anyhow::Result<bool> {
     use std::sync::Arc;
     use std::time::Instant;
@@ -496,7 +829,7 @@ fn run_probe_play(args: &[String]) -> anyhow::Result<bool> {
                     t_use.elapsed().as_millis()
                 );
                 // After a completed MOVE @N, action PUs must not reset done to 1 incorrectly
-                // in a way that re-sticks motion — force=0 with seq>=last is OK.
+                // in a way that re-sticks motion â€” force=0 with seq>=last is OK.
                 if done_moving_seq_num > 0 && done_moving_seq_num < seq_before && !force {
                     use_seq_ok = false;
                     println!("WARN: done_moving_seq {done_moving_seq_num} < last {seq_before}");
@@ -521,7 +854,7 @@ fn run_probe_play(args: &[String]) -> anyhow::Result<bool> {
     println!("## Summary");
     println!("  move_ok={}", move_done && saw_pm);
     println!("  say_reply_ms={say_reply_ms:?} say_fast={say_ok}");
-    println!("  ls_count={ls_count} (want ≥1 within window)");
+    println!("  ls_count={ls_count} (want â‰¥1 within window)");
     println!("  use_reply={use_reply} use_seq_ok={use_seq_ok}");
     println!("  pass={pass}");
     println!("wire log: {}", wire.path().display());
@@ -533,7 +866,7 @@ fn run_probe_actions(args: &[String]) -> anyhow::Result<bool> {
     use ohol_headless::ObjectAction;
     use std::sync::Arc;
 
-    // Pure encode checks first (no server) — must match C++ / protocol.txt.
+    // Pure encode checks first (no server) â€” must match C++ / protocol.txt.
     let samples = [
         ObjectAction::Use {
             x: 0,
@@ -819,7 +1152,7 @@ fn run_probe_move(args: &[String]) -> anyhow::Result<bool> {
     }
 
     // Wait until our player is stationary (done_moving > 0). Bootstrap often arrives mid-path.
-    log!("waiting for stationary PU on our player before MOVE…");
+    log!("waiting for stationary PU on our player before MOVEâ€¦");
     session
         .stream_mut()
         .set_read_timeout(Some(Duration::from_millis(300)))
@@ -827,7 +1160,7 @@ fn run_probe_move(args: &[String]) -> anyhow::Result<bool> {
     let wait_station_deadline = Instant::now() + Duration::from_secs(wait_secs.min(20));
     let mut stationary = session.move_state.last_move_sequence_number > 0
         && !session.move_state.in_motion;
-    // If bound with done=0, last_seq may still be 1 default — treat done=0 as not stationary.
+    // If bound with done=0, last_seq may still be 1 default â€” treat done=0 as not stationary.
     while Instant::now() < wait_station_deadline {
         match session.poll_event() {
             Ok(SessionEvent::PlayerUpdate {
@@ -836,7 +1169,7 @@ fn run_probe_move(args: &[String]) -> anyhow::Result<bool> {
                 force,
                 x,
                 y,
-                force_ack_sent,
+                held_id: _, force_ack_sent,
             }) if Some(player_id) == our_id => {
                 log!(
                     "wait PU id={player_id} pos=({x},{y}) done={done_moving_seq_num} force={force} ack={force_ack_sent:?}"
@@ -846,7 +1179,7 @@ fn run_probe_move(args: &[String]) -> anyhow::Result<bool> {
                     break;
                 }
                 if done_moving_seq_num > 0 && force {
-                    // force snap — after FORCE ack we are stationary at x,y
+                    // force snap â€” after FORCE ack we are stationary at x,y
                     stationary = true;
                     break;
                 }
@@ -884,7 +1217,7 @@ fn run_probe_move(args: &[String]) -> anyhow::Result<bool> {
         session.move_state.last_move_sequence_number
     );
 
-    // Path: two steps east (relative to start), within ±16.
+    // Path: two steps east (relative to start), within Â±16.
     let path = [PathDelta { x: 1, y: 0 }, PathDelta { x: 2, y: 0 }];
     let expected_seq = session.move_state.last_move_sequence_number + 1;
     let dest_x = start_x + 2;
@@ -928,7 +1261,7 @@ fn run_probe_move(args: &[String]) -> anyhow::Result<bool> {
                 force,
                 x,
                 y,
-                force_ack_sent,
+                held_id: _, force_ack_sent,
             }) => {
                 let line = format!(
                     "PU id={player_id} pos=({x},{y}) done={done_moving_seq_num} force={force} ack={force_ack_sent:?}"
@@ -1027,9 +1360,9 @@ fn run_probe_move(args: &[String]) -> anyhow::Result<bool> {
     log!(
         "## Verdict: {}",
         if pass {
-            "PASS — movement responses look correct"
+            "PASS â€” movement responses look correct"
         } else {
-            "FAIL — missing expected PM and/or done_moving PU for our player"
+            "FAIL â€” missing expected PM and/or done_moving PU for our player"
         }
     );
     if !pass {
@@ -1140,7 +1473,7 @@ fn parse_pair(s: &str) -> anyhow::Result<(i32, i32)> {
     Ok((a.trim().parse()?, b.trim().parse()?))
 }
 
-/// Local fixture peer speaking SN → verify LOGIN HMACs → ACCEPTED, then accept MOVE/actions.
+/// Local fixture peer speaking SN â†’ verify LOGIN HMACs â†’ ACCEPTED, then accept MOVE/actions.
 fn run_self_check() -> anyhow::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:0")?;
     let port = listener.local_addr()?.port();

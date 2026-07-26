@@ -1,0 +1,42 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/ol-protocol",
+    "crates/ol-metrics",
+    "crates/ol-config",
+    "crates/ol-net",
+    "crates/ol-web",
+    "crates/ol-sim",
+    "crates/ol-content",
+    "crates/ol-world",
+    "crates/ol-server",
+]
+default-members = ["crates/ol-server"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Open Life Reborn contributors"]
+repository = ""
+rust-version = "1.75"
+
+[workspace.dependencies]
+ol-protocol = { path = "crates/ol-protocol" }
+ol-metrics = { path = "crates/ol-metrics" }
+ol-config = { path = "crates/ol-config" }
+ol-net = { path = "crates/ol-net" }
+ol-web = { path = "crates/ol-web" }
+ol-sim = { path = "crates/ol-sim" }
+ol-content = { path = "crates/ol-content" }
+ol-world = { path = "crates/ol-world" }
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time", "signal"] }
+serde = { version = "1", features = ["derive"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

@@ -54,3 +54,30 @@ hashlink-debugger
 *.db
 /SaveFiles
 hashlink-1.15.0-win.zip
+
+# Open Life Rust server — secrets & runtime (see openlife/RustServer/SECURITY.md)
+openlife/RustServer/.env
+openlife/RustServer/.env.*
+openlife/RustServer/**/auth.json
+openlife/RustServer/secrets/
+openlife/RustServer/SaveFiles/
+openlife/RustServer/target/
+openlife/RustServer/target-play/
+openlife/RustServer/.grok/
+openlife/RustServer/scripts/usage-budget/
+openlife/RustServer/tmp/
+openlife/RustServer/**/*.pem
+openlife/RustServer/**/*.key
+
+# Tools — Grok usage scripts (secrets via local .env only)
+openlife/Tools/usage-budget/.env
+openlife/Tools/usage-budget/.env.*
+openlife/Tools/usage-budget/data/usage-snapshot.json
+openlife/Tools/usage-budget/data/config.json
+openlife/Tools/usage-budget/data/config.local.json
+openlife/Tools/**/auth.json
+
+cred.json
+**/auth.json
+.env
+.env.*

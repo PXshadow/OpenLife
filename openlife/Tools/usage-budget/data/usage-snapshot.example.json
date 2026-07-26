@@ -1,0 +1,12 @@
+{
+  "captured_at_utc": "2026-01-01T00:00:00+00:00",
+  "source": "cli-chat-proxy-billing",
+  "used_percent": 0,
+  "remaining_percent": 100,
+  "reset_at_utc": null,
+  "period_start_utc": null,
+  "period_type": "USAGE_PERIOD_TYPE_WEEKLY",
+  "product_breakdown": {},
+  "extra_credits_usd": 0,
+  "raw_note": "example only — no secrets; real snapshot is gitignored"
+}

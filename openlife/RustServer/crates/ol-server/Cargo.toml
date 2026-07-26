@@ -1,0 +1,26 @@
+[package]
+name = "ol-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Open Life Reborn game server binary"
+publish = false
+
+[[bin]]
+name = "ol-server"
+path = "src/main.rs"
+
+[dependencies]
+ol-protocol.workspace = true
+ol-metrics.workspace = true
+ol-config.workspace = true
+ol-net.workspace = true
+ol-web.workspace = true
+ol-sim.workspace = true
+ol-content.workspace = true
+ol-world.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tokio.workspace = true
+rand = "0.8"
+serde_json = "1"

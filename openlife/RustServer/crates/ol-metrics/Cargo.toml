@@ -1,0 +1,9 @@
+[package]
+name = "ol-metrics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Process metrics and health snapshot types for Open Life Reborn"
+publish = false
+
+[dependencies]

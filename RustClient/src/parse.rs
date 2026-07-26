@@ -119,6 +119,8 @@ fn parse_players_line(body: &str) -> (i32, i32) {
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlayerUpdate {
     pub player_id: i32,
+    /// Held object id (`o_id` field).
+    pub held_id: i32,
     pub done_moving_seq_num: i32,
     pub force: bool,
     pub x: i32,
@@ -137,6 +139,7 @@ pub fn parse_pu_line(line: &str) -> Option<PlayerUpdate> {
         return None;
     }
     let player_id: i32 = parts[0].parse().ok()?;
+    let held_id: i32 = parts[6].parse().ok()?;
     let done_moving_seq_num: i32 = parts[12].parse().ok()?;
     let force: i32 = parts[13].parse().ok()?;
     // x,y may be "X" for deleted players
@@ -147,6 +150,7 @@ pub fn parse_pu_line(line: &str) -> Option<PlayerUpdate> {
     let y: i32 = parts[15].parse().ok()?;
     Some(PlayerUpdate {
         player_id,
+        held_id,
         done_moving_seq_num,
         force: force != 0,
         x,

@@ -1,0 +1,19 @@
+[package]
+name = "ol-web"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Embedded HTTP status and future lineage site"
+publish = false
+
+[dependencies]
+ol-metrics.workspace = true
+ol-world.workspace = true
+ol-content.workspace = true
+ol-sim.workspace = true
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "fs"] }
+tower-http = { version = "0.6", features = ["fs"] }
+tracing.workspace = true
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

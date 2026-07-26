@@ -1,0 +1,12 @@
+[package]
+name = "ol-config"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Server configuration (TOML)"
+publish = false
+
+[dependencies]
+serde = { workspace = true }
+toml = { version = "0.8", features = ["parse", "display"] }
+thiserror.workspace = true

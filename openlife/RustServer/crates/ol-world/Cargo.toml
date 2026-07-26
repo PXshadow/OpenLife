@@ -1,0 +1,15 @@
+[package]
+name = "ol-world"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Chunked dynamic world: cells, complex objects, PNG gen, binary save"
+publish = false
+
+[dependencies]
+thiserror.workspace = true
+tracing.workspace = true
+ol-content.workspace = true
+image = { version = "0.25", default-features = false, features = ["png"] }
+byteorder = "1"
+rand = "0.8"

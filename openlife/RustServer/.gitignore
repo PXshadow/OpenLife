@@ -1,0 +1,63 @@
+# Rust build
+/target/
+**/target/
+target-play/
+**/*.rs.bk
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ── Secrets & local credentials (never commit) ──────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+**/auth.json
+**/cred.json
+**/credentials*
+**/cookies*
+login.txt
+combo.txt
+
+# Local Grok / CLI auth (if accidentally placed under the tree)
+.grok/
+**/.grok/auth.json
+scripts/usage-budget/data/usage-snapshot.json
+scripts/usage-budget/data/config.local.json
+scripts/budget/usage-snapshot.json
+scripts/budget/config.local.json
+
+# Runtime worlds / saves / logs
+/data/
+/saves/
+/SaveFiles/
+/log/
+/logs/
+*.bin
+*.wal
+*.mmap
+*.olw
+*.journal
+ops_metrics.journal
+
+# Content packs (large; keep external or symlink)
+/content/OneLifeData7/
+/content/world_pack/
+
+# Generated
+/out/
+/dist/
+/tmp/
+/fixtures/raw/
+*.memtrace

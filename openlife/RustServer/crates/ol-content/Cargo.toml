@@ -1,0 +1,12 @@
+[package]
+name = "ol-content"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Load OHOL object and transition text data"
+publish = false
+
+[dependencies]
+thiserror.workspace = true
+tracing.workspace = true
+rayon = "1"

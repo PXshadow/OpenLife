@@ -1,0 +1,66 @@
+# Open Life Reborn — server configuration
+# Override path: `ol-server path/to/config.toml`
+
+game_port = 8005
+web_port = 8080
+bind = "0.0.0.0"
+max_players = 200
+# Fallback if content/dataVersionNumber.txt missing. Live server prefers content version (e.g. 437).
+required_version = 437
+# When true, LOGIN with a numeric client_tag that mismatches required_version is hard-rejected
+# (PS reject message + no player spawn). Default false = soft-log only.
+client_version_strict = false
+content_path = "content/OneLifeData7"
+challenge_len = 48
+tick_hz = 20
+# Time dilation: multiplies vitals dt (1.0 = realtime; 2.0 = 2x aging/food; 0 freezes).
+sim_speed = 1.0
+enable_game_net = true
+enable_web = true
+
+# Ticket auth (Haxe VerifyIfOholAccount). Default ON — set false for local/dev clients.
+verify_ohol_ticket = true
+ticket_verify_url = "https://onehouronelife.com/ticketServer/server.php"
+
+# World: PNG biomes + natural spawn → versioned binary OLW1
+map_png_path = "maps/mysteraV1Test.png"
+save_directory = "SaveFiles"
+generate_map_if_missing = true
+force_regenerate_map = false
+natural_object_density = 0.4
+
+# Self-play agents (dev / viewer). OFF for human playtest — floods clients with AI traffic.
+selfplay_enabled = false
+selfplay_agents = 0
+# Cap reverse craft-graph seed size (boot speed).
+craft_graph_seed_cap = 50000
+
+# Multi-server twin peers (stub only — listed in SAY ?TWINS, no network I/O yet).
+# twin_peers = [
+#   { host = "127.0.0.1", port = 8006 },
+# ]
+twin_peers = []
+
+# Timed multi-tile MovePath + PM (Haxe MoveHelper) — not instant teleports.
+# Timed jump gate is always Haxe MaxMovementQuadJumpDistanceBeforeForce (quadDist ≤ 5).
+# move_jump_max_chebyshev only affects instant MOVE (timed_movement = false).
+timed_movement = true
+move_jump_max_chebyshev = 2
+intent_drain_budget = 64
+ops_sample_every_ticks = 100
+ops_flush_secs = 300
+ops_journal_path = "SaveFiles/ops_metrics.journal"
+# AI NPCs OFF for human playtest (was flooding PU/MX and delaying SAY/LS/USE).
+npc_enabled = false
+npc_min = 0
+npc_max = 0
+ai_think_period_ticks = 10
+ai_observe_radius = 16
+ai_craft_radius = 50
+# Always send PU/MX to all connected players (ignore distance).
+# MUST stay false for playable latency — true floods humans with all AI traffic
+# and delayed SAY/LS by tens of seconds to minutes.
+broadcast_all_updates = false
+# SAY !shutdown (godmode): global countdown, then save + AP apocalypse signal, then exit.
+shutdown_countdown_secs = 3
+shutdown_apocalypse_secs = 3

@@ -1,0 +1,18 @@
+[package]
+name = "ol-net"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Tokio TCP game protocol accept and connection handling"
+publish = false
+
+[dependencies]
+ol-protocol.workspace = true
+ol-metrics.workspace = true
+ol-world.workspace = true
+tokio = { version = "1", features = ["net", "io-util", "macros", "rt-multi-thread", "sync", "time"] }
+tracing.workspace = true
+thiserror.workspace = true
+rand = "0.8"
+flate2 = "1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
