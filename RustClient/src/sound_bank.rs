@@ -4,9 +4,9 @@
 //! - Boot loads the HashMap only — **zero** AIFF opens.
 //! - First [`SoundBank::ensure`]: open `sounds/{id}.aiff`, decode BE→LE i16 from byte 54.
 //! - OGG entries are indexed but `ensure` returns `None` (v1 — no vorbis).
-//! - Playback: default build logs via [`SoundBank::last_played`] (no device crate).
-//!   With `--features audio`, first play lazily opens a cpal output stream (soft-fail
-//!   if no device); set `OHOL_AUDIO_DISABLE=1` to force the log-only path.
+//! - Playback: with default features (`audio`), first play lazily opens a cpal output
+//!   stream (soft-fail if no device). Without `audio`, only [`SoundBank::last_played`] logs.
+//!   Runtime off: Settings → Audio, or `OHOL_AUDIO_DISABLE=1` / [`set_audio_device_enabled`].
 //!
 //! // C++: soundBank.cpp + SoundUsage.cpp · Haxe: Sound.hx + Resource.sound
 
@@ -15,11 +15,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-/// Runtime SFX mute (P5#39 Settings). Independent of `OHOL_AUDIO_DISABLE` env
-/// (env still forces device silence). Headless play logs respect this flag.
+/// Runtime SFX mute (P5#39 Settings). Independent of master audio device enable.
+/// Headless play logs respect this flag.
 static SFX_MUTED: AtomicBool = AtomicBool::new(false);
 /// Runtime music-bed mute (P5#39 Settings / C++ `musicOff`).
 static MUSIC_MUTED: AtomicBool = AtomicBool::new(false);
+/// Master device enable (default **on**). Settings → Audio or `OHOL_AUDIO_DISABLE`.
+/// When false, cpal is not opened and plays stay log-only.
+static AUDIO_DEVICE_ENABLED: AtomicBool = AtomicBool::new(true);
 
 /// Mute / unmute sound-effect device + headless play log (Settings page).
 pub fn set_sfx_muted(muted: bool) {
@@ -41,7 +44,24 @@ pub fn music_muted() -> bool {
     MUSIC_MUTED.load(Ordering::Relaxed)
 }
 
-/// Prefill mute from `OHOL_AUDIO_DISABLE` (any value = muted). Does not write the atomic.
+/// Master on/off for device output (default true). Does not change volume mutes.
+pub fn set_audio_device_enabled(enabled: bool) {
+    AUDIO_DEVICE_ENABLED.store(enabled, Ordering::Relaxed);
+}
+
+/// True when Settings/runtime wants device output (ignores env and feature flag).
+pub fn audio_device_enabled_setting() -> bool {
+    AUDIO_DEVICE_ENABLED.load(Ordering::Relaxed)
+}
+
+/// True when device output may run: feature on, setting on, and env not forcing off.
+pub fn audio_device_allowed() -> bool {
+    cfg!(feature = "audio")
+        && AUDIO_DEVICE_ENABLED.load(Ordering::Relaxed)
+        && !audio_disable_env_set()
+}
+
+/// Prefill mute / disable from `OHOL_AUDIO_DISABLE` (any value = force device off).
 pub fn audio_disable_env_set() -> bool {
     std::env::var_os("OHOL_AUDIO_DISABLE").is_some()
 }
@@ -1597,9 +1617,9 @@ mod device {
     }
 
     pub fn play(samples: &[i16], sample_rate: u32, left_gain: f32, right_gain: f32) -> bool {
-        // Force silent queue path (CI / hosts without wanting device open).
+        // Force silent queue path: Settings → Audio off, or `OHOL_AUDIO_DISABLE`.
         // SFX mute is applied in SoundBank before this call; music uses music_muted.
-        if std::env::var_os("OHOL_AUDIO_DISABLE").is_some() {
+        if !super::audio_device_allowed() {
             QUEUED.fetch_add(1, Ordering::Relaxed);
             return true;
         }

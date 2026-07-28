@@ -16,10 +16,11 @@ path = "src/bin/ohol_client.rs"
 required-features = ["gpu"]
 
 [features]
-default = []
-## Windowed client via minifb (simple framebuffer window).
-gpu = ["dep:minifb"]
-## Optional real-device sound playback (cpal). Headless decode/triggers work without it.
+## Default client: GPU present + real-device audio. Headless-only: `--no-default-features`.
+default = ["gpu", "audio"]
+## Windowed client: minifb soft path + winit/pixels GPU present. Runtime Soft mode turns GPU present off.
+gpu = ["dep:minifb", "dep:winit", "dep:pixels"]
+## Real-device sound playback (cpal). Runtime Settings → Audio / `OHOL_AUDIO_DISABLE` turns device off.
 audio = ["dep:cpal"]
 
 [dependencies]
@@ -33,6 +34,10 @@ anyhow = "1"
 dotenvy = "0.15"
 flate2 = "1"
 minifb = { version = "0.27", optional = true }
+## GPU present of the soft-FB (texture upload + hardware scale). Default graphics mode.
+## Pin winit 0.28 to match pixels 0.13 (raw-window-handle 0.5).
+winit = { version = "0.28", optional = true }
+pixels = { version = "0.13", optional = true }
 ## One small crate for device output; only with `--features audio`.
 cpal = { version = "0.15", optional = true }
 ## Pure-Rust OGG Vorbis decode for music beds (`music/music_NN.ogg`). Lazy on ensure/play only —

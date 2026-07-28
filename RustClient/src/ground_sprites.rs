@@ -107,17 +107,18 @@ fn abs_mod(v: i32, m: i32) -> i32 {
     }
 }
 
-/// Biome flat colors (approx OHOL ground) — used when TGA missing.
+/// Biome flat colors matched to typical `ground_N.tga` midtones (underfill + missing TGA).
+/// Tuned so solid plates don't flash as neon grids under soft-edge tiles.
 pub fn biome_color(biome: u8) -> [u8; 4] {
     match biome {
-        0 => [90, 140, 70, 255],   // green
-        1 => [200, 180, 100, 255], // swamp/yellowish
-        2 => [60, 100, 50, 255],   // jungle dark
-        3 => [210, 190, 140, 255], // desert
-        4 => [180, 180, 190, 255], // arctic grey
-        5 => [50, 90, 160, 255],   // water-ish
-        6 => [230, 240, 250, 255], // snow
-        _ => [40, 40, 40, 255],
+        0 => [98, 132, 62, 255],   // grass green
+        1 => [168, 150, 78, 255],  // swamp / yellow-green
+        2 => [58, 88, 48, 255],    // jungle dark
+        3 => [198, 172, 118, 255], // desert sand
+        4 => [158, 162, 168, 255], // arctic grey
+        5 => [62, 102, 148, 255],  // water
+        6 => [220, 228, 236, 255], // snow
+        _ => [72, 96, 58, 255],    // same as CLEAR_RGBA earth
     }
 }
 
@@ -383,30 +384,38 @@ impl GroundBank {
         self.index.len() + self.overlay_index.len()
     }
 
-    /// Copy one packed tile's RGBA into a small buffer (avoids full-atlas clone per draw).
+    /// Copy one packed tile's RGBA into a small buffer (tests / rare paths).
+    /// Prefer [`Self::page_tile`] + direct atlas blit in the hot render path.
     pub fn copy_tile_rgba(&self, gt: &GroundTileRect) -> Option<(Vec<u8>, u32, u32)> {
-        let page = self.pages.get(gt.atlas_index)?;
-        let w = gt.width;
-        let h = gt.height;
+        let (pix, atlas_w, src_x, src_y, w, h) = self.page_tile(gt)?;
         let mut out = vec![0u8; (w * h * 4) as usize];
         for y in 0..h {
-            let src_y = gt.rect.y as u32 + y;
-            if src_y >= page.height {
-                continue;
-            }
             for x in 0..w {
-                let src_x = gt.rect.x as u32 + x;
-                if src_x >= page.width {
-                    continue;
-                }
-                let si = ((src_y * page.width + src_x) * 4) as usize;
+                let si = (((src_y + y) * atlas_w + (src_x + x)) * 4) as usize;
                 let di = ((y * w + x) * 4) as usize;
-                if si + 3 < page.pixels.len() {
-                    out[di..di + 4].copy_from_slice(&page.pixels[si..si + 4]);
+                if si + 3 < pix.len() {
+                    out[di..di + 4].copy_from_slice(&pix[si..si + 4]);
                 }
             }
         }
         Some((out, w, h))
+    }
+
+    /// Atlas page slice + subrect for a packed tile (no allocation).
+    /// Returns `(pixels, atlas_w, src_x, src_y, tile_w, tile_h)`.
+    pub fn page_tile(
+        &self,
+        gt: &GroundTileRect,
+    ) -> Option<(&[u8], u32, u32, u32, u32, u32)> {
+        let page = self.pages.get(gt.atlas_index)?;
+        Some((
+            page.pixels.as_slice(),
+            page.width,
+            gt.rect.x as u32,
+            gt.rect.y as u32,
+            gt.width,
+            gt.height,
+        ))
     }
 
     /// Ensure soft (2×CELL_D) tile for biome/tile coords — C++ `tiles[setY][setX]`.
@@ -536,6 +545,15 @@ impl GroundBank {
         }
         let rel = format!("groundTileCache/biome_{UNKNOWN_BIOME_CACHE_ID}_x{x}_y{y}.tga");
         self.pack_tile_from_rel(index, &rel)
+    }
+
+    /// True when any overlay sheets are known or may still load from disk.
+    /// Used by the renderer to skip per-tile overlay probes on empty banks (FPS).
+    pub fn has_overlays(&self) -> bool {
+        self.overlay_count > 0
+            || !self.overlay_index.is_empty()
+            || !self.overlays.is_empty()
+            || !self.index_loaded
     }
 
     /// Ensure overlay sheet `graphics/ground_t{id}.tga` is packed (Haxe groundOverlay).

@@ -937,6 +937,13 @@ pub fn click_tile_with(
     session
         .send_raw(&line)
         .map_err(|_| MoveError::EmptyPath)?;
+    // Walk anim + currentPos before server PM (Jason onPath).
+    session.sync_our_live_motion();
+    if let Some(oid) = session.our_id {
+        if let Some(o) = session.world.get_mut(oid) {
+            o.moving = true;
+        }
+    }
 
     let end = if let Some(last) = path.last() {
         (start.0 + last.x, start.1 + last.y)
@@ -1434,6 +1441,12 @@ pub fn click_object(
         session
             .send_raw(&move_line)
             .map_err(|_| MoveError::EmptyPath)?;
+        session.sync_our_live_motion();
+        if let Some(oid) = session.our_id {
+            if let Some(o) = session.world.get_mut(oid) {
+                o.moving = true;
+            }
+        }
 
         let end = if let Some(last) = path.last() {
             (path_start.0 + last.x, path_start.1 + last.y)

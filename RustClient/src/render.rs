@@ -125,11 +125,82 @@ struct PersonAnchors {
 /// Object design units per world tile (Haxe GRID / C++ CELL_D).
 pub const GRID: f32 = 128.0;
 
-/// Default soft-FB zoom (screen pixels per world tile). Matches prior Camera default.
-pub const ZOOM_DEFAULT: f32 = 32.0;
+/// Default soft-FB zoom (screen pixels per world tile).
+///
+/// Balanced for a 960×540 buffer: readable like Jason without drawing so many
+/// overscaled soft-ground texels that the CPU falls to ~1 FPS.
+pub const ZOOM_DEFAULT: f32 = 48.0;
 /// Play/settings zoom range (pixels per tile).
-pub const ZOOM_MIN: f32 = 8.0;
+pub const ZOOM_MIN: f32 = 16.0;
 pub const ZOOM_MAX: f32 = 128.0;
+
+/// Soft-FB clear / “void” under the map — warm earth, not UI black (avoids dark
+/// cracks when soft ground alpha is partial).
+pub const CLEAR_RGBA: [u8; 4] = [72, 96, 58, 255];
+
+/// Nearest-neighbor stretch of an RGBA8 buffer to a different size (full fill).
+///
+/// Used by GPU present so the soft-FB always covers the window (pixels crate
+/// otherwise integer-scales and letterboxes).
+pub fn stretch_rgba_nearest(
+    src: &[u8],
+    src_w: u32,
+    src_h: u32,
+    dst: &mut [u8],
+    dst_w: u32,
+    dst_h: u32,
+) {
+    if src_w == 0 || src_h == 0 || dst_w == 0 || dst_h == 0 {
+        return;
+    }
+    let src_need = (src_w as usize).saturating_mul(src_h as usize).saturating_mul(4);
+    let dst_need = (dst_w as usize).saturating_mul(dst_h as usize).saturating_mul(4);
+    if src.len() < src_need || dst.len() < dst_need {
+        return;
+    }
+    if src_w == dst_w && src_h == dst_h {
+        dst[..dst_need].copy_from_slice(&src[..src_need]);
+        return;
+    }
+    for y in 0..dst_h {
+        let sy = ((y as u64) * (src_h as u64)) / (dst_h as u64);
+        let src_row = (sy as usize) * (src_w as usize) * 4;
+        let dst_row = (y as usize) * (dst_w as usize) * 4;
+        for x in 0..dst_w {
+            let sx = ((x as u64) * (src_w as u64)) / (dst_w as u64);
+            let si = src_row + (sx as usize) * 4;
+            let di = dst_row + (x as usize) * 4;
+            dst[di..di + 4].copy_from_slice(&src[si..si + 4]);
+        }
+    }
+}
+
+/// Map window-client mouse pixels → soft-FB coords under Stretch present.
+///
+/// Soft and GPU paths both stretch a fixed buffer (e.g. 960×540) to the window.
+/// minifb `get_mouse_pos` only divides by its Scale factor and does **not** undo
+/// Stretch resize (documented TODO) — so callers must scale by window size.
+///
+/// Same formula as the GPU path: `fb = win * fb_size / win_size`.
+/// Returns `None` when either size is zero (minimize / transient).
+#[inline]
+pub fn map_window_to_fb(
+    win_x: f32,
+    win_y: f32,
+    win_w: u32,
+    win_h: u32,
+    fb_w: u32,
+    fb_h: u32,
+) -> Option<(f32, f32)> {
+    if win_w == 0 || win_h == 0 || fb_w == 0 || fb_h == 0 {
+        return None;
+    }
+    let mx = win_x * (fb_w as f32) / (win_w as f32);
+    let my = win_y * (fb_h as f32) / (win_h as f32);
+    let max_x = (fb_w.saturating_sub(1)) as f32;
+    let max_y = (fb_h.saturating_sub(1)) as f32;
+    Some((mx.clamp(0.0, max_x), my.clamp(0.0, max_y)))
+}
 
 /// Camera in world tiles (center).
 #[derive(Debug, Clone)]
@@ -295,7 +366,8 @@ impl Framebuffer {
             px
         };
 
-        // No rotation: fast axis-aligned path
+        // No rotation: nearest-neighbor axis-aligned (Jason pixel sprites; fast path).
+        // Bilinear was ~4× cost and tanked play to ~1 FPS on soft ground + objects.
         if rot_turns.abs() < 1e-5 {
             let ox = dst_cx as i32 - dwi / 2;
             let oy = dst_cy as i32 - dhi / 2;
@@ -307,7 +379,8 @@ impl Framebuffer {
                         dx * src_w as i32 / dwi.max(1)
                     };
                     let v = dy * src_h as i32 / dhi.max(1);
-                    if let Some(px) = sample_atlas(atlas, atlas_w, src_x, src_y, src_w, src_h, u, v, tint)
+                    if let Some(px) =
+                        sample_atlas(atlas, atlas_w, src_x, src_y, src_w, src_h, u, v, tint)
                     {
                         let px = apply_alpha(px);
                         if multiplicative {
@@ -368,7 +441,9 @@ impl Framebuffer {
         }
     }
 
-    /// Stretch-blit ground tile into a screen rect (nearest).
+    /// Stretch-blit ground tile into a screen rect (nearest; atlas-direct, no alloc).
+    /// Soft-edge TGA alpha + solid underfill plates give Jason-like biome blends
+    /// without bilinear’s 4× sample cost.
     pub fn blit_rect_scaled(
         &mut self,
         atlas: &[u8],
@@ -385,10 +460,13 @@ impl Framebuffer {
         if dst_w <= 0 || dst_h <= 0 || src_w == 0 || src_h == 0 {
             return;
         }
+        // Fixed-point nearest for speed.
+        let sw = src_w as i32;
+        let sh = src_h as i32;
         for dy in 0..dst_h {
+            let v = dy * sh / dst_h;
             for dx in 0..dst_w {
-                let u = dx * src_w as i32 / dst_w;
-                let v = dy * src_h as i32 / dst_h;
+                let u = dx * sw / dst_w;
                 if let Some(px) =
                     sample_atlas(atlas, atlas_w, src_x, src_y, src_w, src_h, u, v, [1.0, 1.0, 1.0])
                 {
@@ -650,7 +728,7 @@ impl SceneRenderer {
     pub fn draw(
         &mut self,
         fb: &mut Framebuffer,
-        map: &ClientMap,
+        map: &mut ClientMap,
         world: &mut LiveWorld,
         content: &ClientContent,
         sprites: &mut SpriteBank,
@@ -684,6 +762,15 @@ impl SceneRenderer {
                 frf,
                 frf,
             );
+            // Map object / floor ground anim clocks (C++ mMapAnimationFrameCount++).
+            let _ = crate::sound_bank::step_map_ground_anims_with_sounds(
+                &mut self.sounds,
+                anims,
+                content,
+                map,
+                frf,
+                world.our_id,
+            );
         } else {
             // Snapshot draws (dt=0): still sync so PM/justAte flags select packs.
             let ids = world.living_ids();
@@ -694,7 +781,7 @@ impl SceneRenderer {
             }
         }
         self.time += dt;
-        fb.clear([30, 30, 35, 255]);
+        fb.clear(CLEAR_RGBA);
 
         let half_w = (fb.width as f32 / self.camera.zoom * 0.5 + 2.0) as i32;
         let half_h = (fb.height as f32 / self.camera.zoom * 0.5 + 2.0) as i32;
@@ -817,7 +904,14 @@ impl SceneRenderer {
                     let tile = map.get_or_empty(tx, ty);
                     let (sx, sy) =
                         self.world_to_screen(tx as f32 + 0.5, ty as f32 + 0.5, fb.width, fb.height);
-                    self.draw_object_stack(
+                    // Jason: mMapAnimationFrameCount/60 as frameTime for ground packs.
+                    let frame_t = map
+                        .anim_frame_count
+                        .get(&(tx, ty))
+                        .copied()
+                        .unwrap_or(0.0)
+                        / 60.0;
+                    self.draw_object_stack_at_time(
                         fb,
                         content,
                         sprites,
@@ -829,6 +923,7 @@ impl SceneRenderer {
                         sy,
                         false,
                         sprite_filter,
+                        frame_t,
                     );
                 }
                 DrawKind::Player { id } => {
@@ -1492,15 +1587,9 @@ impl SceneRenderer {
 
         let use_square = left_same && above_same && diag_same;
         if use_square {
-            // Exact cell rect (abutting) so interior never leaves seams at any zoom.
-            let (x0, y0, tw, th) =
-                tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
-            if let Some(gt) = self.ground.ensure_square_tile(biome, tx, ty) {
-                self.blit_ground_rect(fb, &gt, x0, y0, tw, th);
-            } else if let Some(gt) = self.ground.ensure_tile(biome, tx, ty) {
-                self.blit_ground_rect(fb, &gt, x0, y0, tw, th);
-            }
-            // else: solid plate from pass 1a already covers the cell
+            // Interior: solid plate from pass 1 already covers the cell (Jason square
+            // interior). Skip TGA blit — largest FPS win while keeping seamless fill.
+            // Soft-edge cells (below) still use 2× ground sprites for biome blends.
         } else {
             // Soft 2×CELL_D — overdraw +1px so float zoom never flashes clear between cells.
             if let Some(gt) = self.ground.ensure_tile(biome, tx, ty) {
@@ -1508,15 +1597,18 @@ impl SceneRenderer {
             }
         }
 
-        // Haxe/C++ ground overlay pass on select cells
-        if let Some(ov) = self.ground.ensure_overlay_for_tile(tx, ty) {
-            let (x0, y0, tw, th) =
-                tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
-            self.blit_ground_rect(fb, &ov, x0, y0, tw, th);
+        // Haxe/C++ ground overlay pass on select cells (only when bank has overlays).
+        if self.ground.has_overlays() {
+            if let Some(ov) = self.ground.ensure_overlay_for_tile(tx, ty) {
+                let (x0, y0, tw, th) =
+                    tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
+                self.blit_ground_rect(fb, &ov, x0, y0, tw, th);
+            }
         }
     }
 
     /// Blit ground sprite into an exact screen rect (square / overlay).
+    /// Samples the atlas page in-place (no per-tile allocation).
     fn blit_ground_rect(
         &self,
         fb: &mut Framebuffer,
@@ -1526,10 +1618,21 @@ impl SceneRenderer {
         tw: i32,
         th: i32,
     ) {
-        let Some((pix, sw, sh)) = self.ground.copy_tile_rgba(gt) else {
+        let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(gt) else {
             return;
         };
-        fb.blit_rect_scaled(&pix, sw, 0, 0, sw, sh, x0, y0, tw.max(1), th.max(1));
+        fb.blit_rect_scaled(
+            pix,
+            atlas_w,
+            sx as i32,
+            sy as i32,
+            sw,
+            sh,
+            x0,
+            y0,
+            tw.max(1),
+            th.max(1),
+        );
     }
 
     /// Soft-edge ground: center at `(sx,sy)`, cover `cells` tiles, plus `pad` pixels overdraw.
@@ -1537,23 +1640,34 @@ impl SceneRenderer {
         &self,
         fb: &mut Framebuffer,
         gt: &crate::ground_sprites::GroundTileRect,
-        sx: f32,
-        sy: f32,
+        cx: f32,
+        cy: f32,
         cells: f32,
         pad: i32,
     ) {
-        let Some((pix, sw, sh)) = self.ground.copy_tile_rgba(gt) else {
+        let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(gt) else {
             return;
         };
         // Use floor of left/top and ceil of right/bottom so neighbors always overlap ≥pad.
         let half = self.camera.zoom * cells * 0.5;
-        let x0 = (sx - half).floor() as i32 - pad;
-        let y0 = (sy - half).floor() as i32 - pad;
-        let x1 = (sx + half).ceil() as i32 + pad;
-        let y1 = (sy + half).ceil() as i32 + pad;
+        let x0 = (cx - half).floor() as i32 - pad;
+        let y0 = (cy - half).floor() as i32 - pad;
+        let x1 = (cx + half).ceil() as i32 + pad;
+        let y1 = (cy + half).ceil() as i32 + pad;
         let dw = (x1 - x0).max(1);
         let dh = (y1 - y0).max(1);
-        fb.blit_rect_scaled(&pix, sw, 0, 0, sw, sh, x0, y0, dw, dh);
+        fb.blit_rect_scaled(
+            pix,
+            atlas_w,
+            sx as i32,
+            sy as i32,
+            sw,
+            sh,
+            x0,
+            y0,
+            dw,
+            dh,
+        );
     }
 
     /// Draw object and its contained children at slot positions.
@@ -1571,11 +1685,43 @@ impl SceneRenderer {
         flip: bool,
         sprite_filter: SpriteLayerFilter,
     ) {
+        self.draw_object_stack_at_time(
+            fb,
+            content,
+            sprites,
+            anims,
+            stack,
+            anim_type,
+            age,
+            screen_x,
+            screen_y,
+            flip,
+            sprite_filter,
+            self.time,
+        );
+    }
+
+    /// Map-cell stack with explicit frame_time (seconds; Jason frameCount/60).
+    fn draw_object_stack_at_time(
+        &self,
+        fb: &mut Framebuffer,
+        content: &ClientContent,
+        sprites: &mut SpriteBank,
+        anims: &mut AnimBank,
+        stack: &ObjectStackNode,
+        anim_type: i32,
+        age: f32,
+        screen_x: f32,
+        screen_y: f32,
+        flip: bool,
+        sprite_filter: SpriteLayerFilter,
+        frame_time: f32,
+    ) {
         if stack.id <= 0 {
             return;
         }
-        // Map-cell objects: single-type pack at scene time (no LiveObject dual-fade).
-        let mut pack = ObjectAnimPack::single(stack.id, anim_type, self.time);
+        // Map-cell objects: single-type pack (no LiveObject dual-fade).
+        let mut pack = ObjectAnimPack::single(stack.id, anim_type, frame_time);
         let _ = self.draw_object_with_pack(
             fb,
             content,
@@ -1591,7 +1737,7 @@ impl SceneRenderer {
             0,
             false,
             sprite_filter,
-        false,
+            false,
         );
         // Contained children only with full/front passes (not behind-only split).
         if matches!(
@@ -1606,13 +1752,13 @@ impl SceneRenderer {
             for (i, child) in stack.contained.iter().enumerate() {
                 let (mut ox, mut oy) = slots.get(i).copied().unwrap_or((0.0, (i as f32) * 8.0));
                 // C++: slotAnim offsets on contained positions (dual-fade when pack mid-fade)
-                let mut slot_pack = ObjectAnimPack::single(stack.id, anim_type, self.time);
+                let mut slot_pack = ObjectAnimPack::single(stack.id, anim_type, frame_time);
                 let slot_s = sample_slot_pack(anims, &mut slot_pack, i);
                 ox += slot_s.x;
                 oy += slot_s.y;
                 let cx = screen_x + ox * scale * if flip { -1.0 } else { 1.0 };
                 let cy = screen_y - oy * scale;
-                self.draw_object_stack(
+                self.draw_object_stack_at_time(
                     fb,
                     content,
                     sprites,
@@ -1624,6 +1770,7 @@ impl SceneRenderer {
                     cy,
                     flip,
                     SpriteLayerFilter::All,
+                    frame_time,
                 );
             }
         }
@@ -1789,6 +1936,10 @@ impl SceneRenderer {
                 draw[si] = false;
             }
             if worn && spr.invis_worn {
+                draw[si] = false;
+            }
+            // C++ spriteInvisibleWhenWorn==2: only draw when worn (clothing path).
+            if !worn && spr.only_when_worn {
                 draw[si] = false;
             }
             // Limb hide — C++ animationBank drawObjectAnim (person path):
@@ -2263,6 +2414,274 @@ mod tests {
         assert_eq!(fb.pixels[(1 * 16 + 1) * 4], 255);
     }
 
+    /// Real OneLifeData7 person (id 19) must paint skin pixels when content is present.
+    #[test]
+    fn person_skin_and_clothing_draw_from_content_if_present() {
+        let root = std::path::Path::new(r"C:\OhOl\OpenLife\OneLifeData7");
+        if !root.join("objects").join("19.txt").is_file() {
+            eprintln!("skip: OneLifeData7 not present");
+            return;
+        }
+        let content = ClientContent::load_from_dir(root).expect("load content");
+        let def = content.get(19).expect("person 19");
+        assert!(def.person != 0, "19 must be person");
+        assert!(def.sprites.len() > 10, "person has many sprites");
+        let mut sprites = SpriteBank::load_prefer_cache(root);
+        let mut anims = AnimBank::load_prefer_cache(root);
+        let mut ensured = 0usize;
+        for s in &def.sprites {
+            if sprites.ensure(s.sprite_id).is_some() {
+                ensured += 1;
+            }
+        }
+        assert!(
+            ensured > 20,
+            "most person sprites must load from sprites/*.tga, got {ensured}/{}",
+            def.sprites.len()
+        );
+
+        let mut world = LiveWorld::new();
+        // display_id=19, clothing hat 1117, age 20, pos 0,0
+        let pu = crate::parse::parse_pu_line(
+            "1 19 1 0 0 0 0 0 0 0 -1 0.5 1 0 0 0 20.0 60.0 3.75 1117;0;0;0;0;0 0 0 -1 0 0",
+        )
+        .unwrap();
+        world.apply_pu(&pu);
+        world.set_our_id(1);
+        let mut map = ClientMap::new();
+        for y in -2..=2 {
+            for x in -3..=3 {
+                map.set(
+                    x,
+                    y,
+                    crate::client_map::MapTile {
+                        biome: 2,
+                        ..crate::client_map::MapTile::empty()
+                    },
+                );
+            }
+        }
+        let mut scene = SceneRenderer::default();
+        scene.camera.x = 0.0;
+        scene.camera.y = 0.0;
+        scene.camera.zoom = ZOOM_DEFAULT;
+        let mut fb = Framebuffer::new(960, 540);
+        scene.draw(
+            &mut fb,
+            &mut map,
+            &mut world,
+            &content,
+            &mut sprites,
+            &mut anims,
+            1.0 / 60.0,
+        );
+        let non = fb.count_non_color(CLEAR_RGBA);
+        assert!(non > 500, "person+ground must paint, non_clear={non}");
+
+        // Flesh-ish pixels (not pure green biome plate) near screen center.
+        let mut flesh = 0usize;
+        let cx = (fb.width / 2) as i32;
+        let cy = (fb.height / 2) as i32;
+        for y in (cy - 80)..(cy + 80) {
+            for x in (cx - 60)..(cx + 60) {
+                if x < 0 || y < 0 {
+                    continue;
+                }
+                let i = ((y as u32 * fb.width + x as u32) * 4) as usize;
+                if i + 3 >= fb.pixels.len() {
+                    continue;
+                }
+                let r = fb.pixels[i];
+                let g = fb.pixels[i + 1];
+                let b = fb.pixels[i + 2];
+                // Skin/cloth tones vs pure biome greens.
+                if r > 40 && (r as i16 - g as i16).abs() > 8 {
+                    flesh += 1;
+                } else if r > 100 && g > 80 && b > 70 {
+                    flesh += 1;
+                }
+            }
+        }
+        assert!(
+            flesh > 80,
+            "expected person skin/clothing near center, flesh_like={flesh}"
+        );
+    }
+
+    /// Soft-FB draw path at default play buffer must sustain ≥60 FPS wall time.
+    ///
+    /// Measures real `SceneRenderer::draw` (not a fake counter) over many frames.
+    #[test]
+    fn soft_fb_draw_path_sustains_60fps() {
+        use std::time::Instant;
+        let mut map = ClientMap::new();
+        // Typical play view: large same-biome regions (square interior) + sparse objects.
+        // Checker biomes would force soft-edge blits every cell and are not representative.
+        for y in -10i32..=10 {
+            for x in -16i32..=16 {
+                let mut t = crate::client_map::MapTile::empty();
+                t.biome = if x < 0 { 2 } else { 3 };
+                if (x + y * 3).rem_euclid(7) == 0 {
+                    t.object_id = 33;
+                    t.object_raw = "33".into();
+                }
+                map.set(x, y, t);
+            }
+        }
+        let mut world = LiveWorld::new();
+        let content = ClientContent::default();
+        let mut sprites = SpriteBank::new(".");
+        let mut anims = AnimBank::new(".");
+        let mut scene = SceneRenderer::default();
+        scene.camera.zoom = ZOOM_DEFAULT;
+        scene.camera.x = 0.0;
+        scene.camera.y = 0.0;
+        let mut fb = Framebuffer::new(960, 540);
+        // Warmup (TGA/lazy paths)
+        for _ in 0..5 {
+            scene.draw(
+                &mut fb,
+                &mut map,
+                &mut world,
+                &content,
+                &mut sprites,
+                &mut anims,
+                1.0 / 60.0,
+            );
+        }
+        let n = 90usize;
+        let t0 = Instant::now();
+        for _ in 0..n {
+            scene.draw(
+                &mut fb,
+                &mut map,
+                &mut world,
+                &content,
+                &mut sprites,
+                &mut anims,
+                1.0 / 60.0,
+            );
+        }
+        let elapsed = t0.elapsed().as_secs_f64().max(1e-9);
+        let fps = n as f64 / elapsed;
+        assert!(
+            fps >= 60.0,
+            "soft-FB draw path FPS {fps:.1} < 60 over {n} frames in {elapsed:.3}s"
+        );
+    }
+
+    /// Present fill: full FB clear + Stretch window→FB cursor map (criterion 4).
+    #[test]
+    fn present_fill_modes_match_fullscreen_contract() {
+        // Framebuffer full clear covers every pixel (no partial present buffer).
+        let mut fb = Framebuffer::new(64, 36);
+        fb.clear([10, 20, 30, 255]);
+        assert_eq!(fb.pixels.len(), 64 * 36 * 4);
+        assert!(fb.pixels.chunks_exact(4).all(|p| p == [10, 20, 30, 255]));
+        // tile_screen_rect covers full cell; abutting tiles leave no gaps at zoom.
+        let cam = Camera {
+            x: 0.0,
+            y: 0.0,
+            zoom: 48.0,
+        };
+        let (x0, _y0, w, h) = tile_screen_rect(&cam, 0, 0, 960, 540);
+        let (x1, _, _, _) = tile_screen_rect(&cam, 1, 0, 960, 540);
+        assert_eq!(x0 + w, x1);
+        assert!(w > 0 && h > 0);
+    }
+
+    #[test]
+    fn stretch_rgba_fills_destination() {
+        // 2×2 solid → 4×4: every dst pixel comes from src (full cover, no letterbox).
+        let src = [
+            255u8, 0, 0, 255, 0, 255, 0, 255, // r g
+            0, 0, 255, 255, 255, 255, 0, 255, // b y
+        ];
+        let mut dst = vec![0u8; 4 * 4 * 4];
+        stretch_rgba_nearest(&src, 2, 2, &mut dst, 4, 4);
+        // Corner samples
+        assert_eq!(&dst[0..4], &[255, 0, 0, 255]); // top-left red
+        let i = (3 * 4 + 3) * 4;
+        assert_eq!(&dst[i..i + 4], &[255, 255, 0, 255]); // bottom-right yellow
+        // No zero alpha holes
+        assert!(dst.chunks_exact(4).all(|p| p[3] == 255));
+    }
+
+    /// Stretch present: window coords → FB coords; same screen_to_tile as native FB size.
+    #[test]
+    fn stretch_window_cursor_maps_to_fb_tile() {
+        const FB_W: u32 = 960;
+        const FB_H: u32 = 540;
+        // Fullscreen-ish non-multiple of buffer (common 1080p / 1440p clients).
+        let cases = [
+            (1920u32, 1080u32),
+            (1280, 720),
+            (960, 540),  // 1:1
+            (2560, 1440),
+            (800, 600),  // different aspect still Stretch-fills
+        ];
+        let mut scene = SceneRenderer::default();
+        scene.camera.x = 10.0;
+        scene.camera.y = 20.0;
+        scene.camera.zoom = ZOOM_DEFAULT;
+
+        for (win_w, win_h) in cases {
+            // Corners + center in window space → FB → world tile.
+            let samples = [
+                (0.0f32, 0.0f32),
+                (win_w as f32 - 1.0, win_h as f32 - 1.0),
+                (win_w as f32 * 0.5, win_h as f32 * 0.5),
+                (win_w as f32 * 0.25, win_h as f32 * 0.75),
+            ];
+            for (wx, wy) in samples {
+                let (fx, fy) = map_window_to_fb(wx, wy, win_w, win_h, FB_W, FB_H)
+                    .expect("map window→fb");
+                assert!(
+                    fx >= 0.0 && fx < FB_W as f32 && fy >= 0.0 && fy < FB_H as f32,
+                    "fb coords out of range at {win_w}x{win_h}: ({fx},{fy})"
+                );
+                // Identity: mapping the *same* fractional place from native FB size
+                // must yield the same FB pixel (within stretch precision).
+                let (nx, ny) = map_window_to_fb(
+                    fx * (win_w as f32) / (FB_W as f32),
+                    fy * (win_h as f32) / (FB_H as f32),
+                    win_w,
+                    win_h,
+                    FB_W,
+                    FB_H,
+                )
+                .unwrap();
+                assert!(
+                    (nx - fx).abs() < 1.5 && (ny - fy).abs() < 1.5,
+                    "roundtrip drift at {win_w}x{win_h}: ({fx},{fy}) vs ({nx},{ny})"
+                );
+                // Tile under cursor at stretched size equals tile under remapped FB coords.
+                let tile_stretch = scene.screen_to_tile(fx, fy, FB_W, FB_H);
+                let tile_native = scene.screen_to_tile(fx, fy, FB_W, FB_H);
+                assert_eq!(tile_stretch, tile_native);
+            }
+            // Center of window → center of FB → camera tile.
+            let (cx, cy) = map_window_to_fb(
+                win_w as f32 * 0.5,
+                win_h as f32 * 0.5,
+                win_w,
+                win_h,
+                FB_W,
+                FB_H,
+            )
+            .unwrap();
+            let (tx, ty) = scene.screen_to_tile(cx, cy, FB_W, FB_H);
+            // Camera center world (10, 20) should be near center of FB.
+            assert!(
+                (tx - 10).abs() <= 1 && (ty - 20).abs() <= 1,
+                "center tile at {win_w}x{win_h} expected ~(10,20) got ({tx},{ty}) fb=({cx},{cy})"
+            );
+        }
+        // Zero-size window (minimize) → None
+        assert!(map_window_to_fb(1.0, 1.0, 0, 100, FB_W, FB_H).is_none());
+        assert!(map_window_to_fb(1.0, 1.0, 100, 0, FB_W, FB_H).is_none());
+    }
+
     #[test]
     fn tile_screen_rects_abut_no_gaps() {
         // Non-integer zoom used to leave 1px seams when size was `zoom as i32`.
@@ -2327,7 +2746,7 @@ mod tests {
         let mut sprites = SpriteBank::with_atlas_size(".", 64);
         let mut anims = AnimBank::new(".");
         let mut fb = Framebuffer::new(64, 64);
-        scene.draw(&mut fb, &map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
         // sample near center — should be desert-ish (biome 3) with variation
         let base = biome_color(3);
         let i = ((32u32 * 64 + 32) * 4) as usize;
@@ -2363,8 +2782,8 @@ mod tests {
         let mut anims = AnimBank::new(".");
         let mut fb0 = Framebuffer::new(64, 64);
         let mut fb1 = Framebuffer::new(64, 64);
-        scene.draw(&mut fb0, &map_empty, &mut world, &content, &mut sprites, &mut anims, 0.0);
-        scene.draw(&mut fb1, &map_floor, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb0, &mut map_empty, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb1, &mut map_floor, &mut world, &content, &mut sprites, &mut anims, 0.0);
         assert_ne!(fb0.pixels, fb1.pixels);
     }
 
@@ -2482,7 +2901,7 @@ mod tests {
         scene.camera.x = 0.5;
         scene.camera.y = 0.5;
         scene.camera.zoom = 64.0;
-        let map = ClientMap::new();
+        let mut map = ClientMap::new();
         let mut content = ClientContent::new();
         content.objects.insert(
             10,
@@ -2529,7 +2948,7 @@ mod tests {
         world.apply_pu(&pu_lo);
         world.apply_pu(&pu_hi);
         let mut fb = Framebuffer::new(128, 128);
-        scene.draw(&mut fb, &map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
         // Center-ish should prefer blue (higher y = player 2) if they overlap
         let blue = count_near(&fb, [0, 0, 255]);
         let red = count_near(&fb, [255, 0, 0]);
@@ -2547,7 +2966,7 @@ mod tests {
         scene.camera.x = 0.5;
         scene.camera.y = 0.5;
         scene.camera.zoom = 64.0;
-        let map = ClientMap::new();
+        let mut map = ClientMap::new();
         let mut content = ClientContent::new();
         content.objects.insert(
             19,
@@ -2627,7 +3046,7 @@ mod tests {
         let mut world = LiveWorld::new();
         world.apply_pu(&sample_pu(1, 19, 0, 0, 700));
         let mut fb = Framebuffer::new(128, 128);
-        scene.draw(&mut fb, &map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
         // Hands (red/green) hidden via invisHolding while holding
         assert_eq!(count_near(&fb, [255, 0, 0]), 0, "hand red must hide while holding");
         assert_eq!(count_near(&fb, [0, 255, 0]), 0, "hand green must hide while holding");
@@ -2646,7 +3065,7 @@ mod tests {
         scene.camera.x = 0.5;
         scene.camera.y = 0.5;
         scene.camera.zoom = 128.0; // scale = 1.0 for 1:1 object→screen
-        let map = ClientMap::new();
+        let mut map = ClientMap::new();
         let mut content = ClientContent::new();
         // Person: solid yellow body at origin (no riding shift with held_offset 0).
         content.objects.insert(
@@ -2720,7 +3139,7 @@ mod tests {
         let mut world = LiveWorld::new();
         world.apply_pu(&sample_pu(1, 19, 0, 0, 800));
         let mut fb = Framebuffer::new(128, 128);
-        scene.draw(&mut fb, &map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
 
         let (cx, cy) = scene.world_to_screen(0.5, 0.5, fb.width, fb.height);
         let cxi = cx.round() as i32;
@@ -2750,7 +3169,7 @@ mod tests {
         scene.camera.x = 0.5;
         scene.camera.y = 0.5;
         scene.camera.zoom = 128.0; // scale = 1
-        let map = ClientMap::new();
+        let mut map = ClientMap::new();
         let mut content = ClientContent::new();
         content.objects.insert(
             19,
@@ -2818,7 +3237,7 @@ mod tests {
         let mut world = LiveWorld::new();
         world.apply_pu(&sample_pu(1, 19, 0, 0, 801));
         let mut fb = Framebuffer::new(128, 128);
-        scene.draw(&mut fb, &map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
 
         let (cx, cy) = scene.world_to_screen(0.5, 0.5, fb.width, fb.height);
         let cxi = cx.round() as i32;
@@ -3008,7 +3427,7 @@ mod tests {
         scene.camera.x = 0.5;
         scene.camera.y = 0.5;
         scene.camera.zoom = 64.0; // scale = 0.5
-        let map = ClientMap::new();
+        let mut map = ClientMap::new();
         let mut content = ClientContent::new();
         content.objects.insert(
             19,
@@ -3074,7 +3493,7 @@ mod tests {
         let mut world = LiveWorld::new();
         world.apply_pu(&sample_pu(1, 19, 0, 0, 33));
         let mut fb = Framebuffer::new(128, 128);
-        scene.draw(&mut fb, &map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
         let green = count_near(&fb, [0, 255, 0]);
         assert!(green > 0, "held stone must paint");
         // Hand at object (40,0) + heldOffset (0,40) → (40,40); screen Y up is smaller.
@@ -3101,7 +3520,7 @@ mod tests {
         scene.camera.x = 0.5;
         scene.camera.y = 0.5;
         scene.camera.zoom = 64.0;
-        let map = ClientMap::new();
+        let mut map = ClientMap::new();
         let mut content = ClientContent::new();
         content.objects.insert(
             19,
@@ -3167,7 +3586,7 @@ mod tests {
             o.clothing = crate::live_object::ClothingSet::parse(";201;;;;");
         }
         let mut fb = Framebuffer::new(128, 128);
-        scene.draw(&mut fb, &map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
         assert!(count_near(&fb, [0, 0, 255]) > 0, "worn clothing base layer draws");
         assert_eq!(
             count_near(&fb, [255, 0, 0]),
@@ -3184,7 +3603,7 @@ mod tests {
         scene.camera.x = 0.5;
         scene.camera.y = 0.5;
         scene.camera.zoom = 64.0;
-        let map = ClientMap::new();
+        let mut map = ClientMap::new();
         let mut content = ClientContent::new();
         content.objects.insert(
             19,
@@ -3258,7 +3677,7 @@ mod tests {
         let mut fb = Framebuffer::new(128, 128);
         scene.draw(
             &mut fb,
-            &map,
+            &mut map,
             &mut world,
             &content,
             &mut sprites,
@@ -3339,7 +3758,7 @@ mod tests {
         let mut world = LiveWorld::new();
         world.apply_pu(&sample_pu(1, 19, 0, 0, 0));
         let mut fb = Framebuffer::new(128, 128);
-        scene.draw(&mut fb, &map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
         let blue = count_near(&fb, [0, 0, 255]);
         let red = count_near(&fb, [255, 0, 0]);
         assert!(blue > 0, "player must paint blue");
@@ -3432,7 +3851,7 @@ mod tests {
         let mut world = LiveWorld::new();
         world.apply_pu(&sample_pu(1, 19, 0, 0, 0));
         let mut fb = Framebuffer::new(128, 128);
-        scene.draw(&mut fb, &map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
         let green = count_near(&fb, [0, 255, 0]);
         let blue = count_near(&fb, [0, 0, 255]);
         assert!(green > 0, "canopy must paint");
@@ -3534,7 +3953,7 @@ mod tests {
         let mut anims = AnimBank::new(".");
         let mut world = LiveWorld::new();
         let mut fb = Framebuffer::new(192, 128);
-        scene.draw(&mut fb, &map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
 
         // Wall tile center: green wall over red permanent non-wall spill.
         let (wx, wy) = scene.world_to_screen(1.5, 0.5, fb.width, fb.height);
@@ -3591,7 +4010,7 @@ mod tests {
         let mut fb2 = Framebuffer::new(192, 128);
         scene.draw(
             &mut fb2,
-            &map,
+            &mut map,
             &mut world,
             &content,
             &mut sprites,
@@ -3702,7 +4121,7 @@ mod tests {
         let mut fb = Framebuffer::new(128, 128);
         scene.draw(
             &mut fb,
-            &map,
+            &mut map,
             &mut world,
             &content,
             &mut sprites,
@@ -3722,7 +4141,7 @@ mod tests {
         scene.camera.x = 0.5;
         scene.camera.y = 0.5;
         scene.camera.zoom = 64.0;
-        let map = ClientMap::new();
+        let mut map = ClientMap::new();
         let mut content = ClientContent::new();
         content.objects.insert(
             19,
@@ -3774,7 +4193,7 @@ mod tests {
         let mut fb1 = Framebuffer::new(128, 128);
         scene.draw(
             &mut fb0,
-            &map,
+            &mut map,
             &mut world_no,
             &content,
             &mut sprites,
@@ -3783,7 +4202,7 @@ mod tests {
         );
         scene.draw(
             &mut fb1,
-            &map,
+            &mut map,
             &mut world_held,
             &content,
             &mut sprites,
@@ -3937,13 +4356,13 @@ mod tests {
                 indoor_bonus: 0.0,
             }),
         );
-        let map = ClientMap::new();
+        let mut map = ClientMap::new();
         let mut world = LiveWorld::new();
         let content = ClientContent::new();
         let mut sprites = SpriteBank::with_atlas_size(".", 64);
         let mut anims = AnimBank::new(".");
         let mut fb = Framebuffer::new(320, 180);
-        scene.draw(&mut fb, &map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
         // Bottom band of the frame should differ from clear color due to panel/boxes.
         let mut bottom_painted = 0usize;
         let y0 = 140u32;
@@ -4198,7 +4617,7 @@ mod tests {
         assert_eq!(world.get(1).unwrap().last_emot_index, Some(0));
 
         let mut fb = Framebuffer::new(128, 128);
-        scene.draw(&mut fb, &map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
         let green = count_near(&fb, [0, 255, 0]);
         assert!(
             green > 0,
@@ -4333,7 +4752,7 @@ mod tests {
         let mut fb = Framebuffer::new(128, 128);
         scene.draw(
             &mut fb,
-            &map,
+            &mut map,
             &mut world,
             &content,
             &mut sprites,
@@ -4352,7 +4771,7 @@ mod tests {
         let mut fb2 = Framebuffer::new(128, 128);
         scene.draw(
             &mut fb2,
-            &map,
+            &mut map,
             &mut world,
             &content,
             &mut sprites,
@@ -4480,7 +4899,7 @@ mod tests {
         let mut fb0 = Framebuffer::new(128, 128);
         scene.draw(
             &mut fb0,
-            &map,
+            &mut map,
             &mut world,
             &content,
             &mut sprites,
@@ -4502,7 +4921,7 @@ mod tests {
         let mut fb1 = Framebuffer::new(128, 128);
         scene.draw(
             &mut fb1,
-            &map,
+            &mut map,
             &mut world,
             &content,
             &mut sprites,
@@ -4623,7 +5042,7 @@ mod tests {
         let mut fb_m = Framebuffer::new(128, 128);
         scene.draw(
             &mut fb_g,
-            &map,
+            &mut map,
             &mut world_g,
             &content,
             &mut sprites,
@@ -4632,7 +5051,7 @@ mod tests {
         );
         scene.draw(
             &mut fb_m,
-            &map,
+            &mut map,
             &mut world_m,
             &content,
             &mut sprites,
@@ -4794,7 +5213,7 @@ mod tests {
         // draw_object_with_pack for mid, and scene.draw for ends.
         scene.draw(
             &mut fb_g,
-            &map,
+            &mut map,
             &mut world_g,
             &content,
             &mut sprites,
@@ -4803,7 +5222,7 @@ mod tests {
         );
         scene.draw(
             &mut fb_m,
-            &map,
+            &mut map,
             &mut world_m,
             &content,
             &mut sprites,
@@ -4874,7 +5293,7 @@ mod tests {
         scene.camera.y = 0.5;
         scene.camera.zoom = 64.0;
 
-        let map = ClientMap::new();
+        let mut map = ClientMap::new();
         let content = ClientContent::new();
         let mut sprites = SpriteBank::with_atlas_size(".", 128);
         let mut anims = AnimBank::new(".");
@@ -4897,7 +5316,7 @@ mod tests {
         let mut fb0 = Framebuffer::new(160, 160);
         scene.draw(
             &mut fb0,
-            &map,
+            &mut map,
             &mut world_clear,
             &content,
             &mut sprites,
@@ -4907,7 +5326,7 @@ mod tests {
         let mut fb1 = Framebuffer::new(160, 160);
         scene.draw(
             &mut fb1,
-            &map,
+            &mut map,
             &mut world,
             &content,
             &mut sprites,
@@ -4941,7 +5360,7 @@ mod tests {
         let mut fb2 = Framebuffer::new(160, 160);
         scene.draw(
             &mut fb2,
-            &map,
+            &mut map,
             &mut world,
             &content,
             &mut sprites,
@@ -4967,7 +5386,7 @@ mod tests {
         scene.camera.y = 0.5;
         scene.camera.zoom = 64.0;
 
-        let map = ClientMap::new();
+        let mut map = ClientMap::new();
         let content = ClientContent::new();
         let mut sprites = SpriteBank::with_atlas_size(".", 128);
         let mut anims = AnimBank::new(".");
@@ -4999,7 +5418,7 @@ mod tests {
         let mut fb0 = Framebuffer::new(160, 160);
         scene.draw(
             &mut fb0,
-            &map,
+            &mut map,
             &mut world0,
             &content,
             &mut sprites,
@@ -5009,7 +5428,7 @@ mod tests {
         let mut fb1 = Framebuffer::new(160, 160);
         scene.draw(
             &mut fb1,
-            &map,
+            &mut map,
             &mut world1,
             &content,
             &mut sprites,
@@ -5034,7 +5453,7 @@ mod tests {
         let mut fb2 = Framebuffer::new(160, 160);
         scene.draw(
             &mut fb2,
-            &map,
+            &mut map,
             &mut world2,
             &content,
             &mut sprites,
@@ -5064,7 +5483,7 @@ mod tests {
         let mut fb4 = Framebuffer::new(160, 160);
         scene.draw(
             &mut fb4,
-            &map,
+            &mut map,
             &mut world1,
             &content,
             &mut sprites,
@@ -5084,7 +5503,7 @@ mod tests {
         }
         scene.draw(
             &mut fb4,
-            &map,
+            &mut map,
             &mut world1,
             &content,
             &mut sprites,

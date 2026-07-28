@@ -35,6 +35,12 @@ pub(crate) fn continue_multi_move_body(session: &mut ClientSession) -> io::Resul
             }
         };
         session.send_raw(&line)?;
+        session.sync_our_live_motion();
+        if let Some(oid) = session.our_id {
+            if let Some(o) = session.world.get_mut(oid) {
+                o.moving = true;
+            }
+        }
         // After last pre-split hop: clear goal only if we landed on it.
         if session.multi_move_chunks.is_empty() {
             if let Some(goal) = session.multi_move_goal {
@@ -97,6 +103,12 @@ fn repath_toward_goal(
                 }
             };
             session.send_raw(&line)?;
+            session.sync_our_live_motion();
+            if let Some(oid) = session.our_id {
+                if let Some(o) = session.world.get_mut(oid) {
+                    o.moving = true;
+                }
+            }
             let end = first
                 .last()
                 .map(|d| (start.0 + d.x, start.1 + d.y))

@@ -13,7 +13,7 @@ This folder is the **AI + human overview** of how the Open Life / OHOL **Rust cl
 | Mode | Binary | Feature | Role |
 |------|--------|---------|------|
 | **Headless** | `ohol-headless` | default | Wire, world, content, probes, bake, bench — **no window** |
-| **Soft-FB GUI** | `ohol-client` | `--features gpu` | minifb window; same logic + CPU atlas + HUD |
+| **Soft-FB GUI** | `ohol-client` | default (`gpu`+`audio`) | minifb/GPU present + cpal; Settings can turn either off |
 | **Device audio** | either | `--features audio` | cpal mixer (soft-fail if no device) |
 
 **Playable bar + P1–P5 priority list are met** (2026-07-28). Remaining work is **in-row residuals** and **deferred non-goals** only — see [TODO_PORT.md](TODO_PORT.md). Not goals: full editor suite, photo, wgpu pixel-perfect GL, C++ `folderCache` bytes.
@@ -114,7 +114,7 @@ cargo test --lib
 cargo run --bin ohol-headless -- --self-check
 cargo run --bin ohol-headless -- --bake-content --src $env:OHOL_CONTENT_DIR
 cargo run --bin ohol-headless -- --bench-load --report logs/load-bench.md
-cargo run --features gpu --bin ohol-client
+cargo run --release --bin ohol-client
 # optional: --features audio
 ```
 

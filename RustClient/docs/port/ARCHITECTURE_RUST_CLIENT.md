@@ -1,7 +1,7 @@
 # Rust client architecture
 
 **Crate:** `ohol-headless` at `C:\OhOl\OpenLife\RustClient`  
-**Binaries:** `ohol-headless` (default), `ohol-client` (`--features gpu`)  
+**Binaries:** `ohol-headless`, `ohol-client` (default features: `gpu` + `audio`)  
 **Status of features:** [TODO_PORT.md](TODO_PORT.md) · hub: [README.md](README.md)
 
 This doc explains **structure and data flow**. It does not repeat the P1–P5 checklist.
@@ -144,9 +144,12 @@ HUD chrome TGAs come from `OneLifeGameSourceData/graphics/` (not OLC1), with pro
 
 | Feature | Default | Effect |
 |---------|---------|--------|
-| (none) | headless build | no minifb |
-| `gpu` | off | `ohol-client` + minifb |
-| `audio` | off | cpal device output |
+| `gpu` | **on** | `ohol-client` + minifb + winit/pixels present |
+| `audio` | **on** | cpal device output |
+| (none) | `--no-default-features` | pure headless, no window/audio deps |
+
+Runtime off switches (no rebuild): Settings → **Graphics** = Soft; Settings → **Audio device** = OFF
+(`graphics=soft` / `audio=0` in ini; `OHOL_GRAPHICS` / `OHOL_AUDIO` / `OHOL_AUDIO_DISABLE`).
 
 Music decode uses **lewton** always compiled (lazy on ensure only).
 

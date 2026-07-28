@@ -213,7 +213,18 @@ impl SpriteAnimParam {
     ///
     /// hardVersion = sign(s) * |s|^(1/(hardness*10+1)); hardness==1 → square ±1.
     /// fade = (max-min)*(0.5*hard + 0.5) + min
+    ///
+    /// When fade is unused (`fadeMin==fadeMax==0` and no osc) — common on person
+    /// body layers in Jason's anim files — return **1.0** (fully opaque). Treating
+    /// that as 0 made player skin invisible while clothing (often fadeMax=1) still drew.
     pub fn sample_fade(&self, frame_time: f32, start_phase: f32) -> f32 {
+        // Unused fade channel → full opacity (Jason person body animParams).
+        if self.fade_osc_per_sec.abs() < 1e-8
+            && self.fade_min.abs() < 1e-8
+            && self.fade_max.abs() < 1e-8
+        {
+            return 1.0;
+        }
         // C++: getOscOffset(frameTime, 0, fadeOscPerSec, 1.0, fadePhase + 0.25)
         let sin_val = phase_sin(
             self.fade_osc_per_sec,
@@ -1225,6 +1236,24 @@ animParam=0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 (0.000000,0.0000
         assert!((p.rot_center_y + 0.5).abs() < 1e-5);
         assert!((p.rot_per_sec - 0.1).abs() < 1e-5);
         assert!((p.fade_max - 0.9).abs() < 1e-5);
+    }
+
+    #[test]
+    fn unused_fade_channel_is_full_opacity() {
+        // Jason person body layers: fadeMin=fadeMax=0, fadeOsc=0 → fully visible.
+        let p = SpriteAnimParam {
+            fade_min: 0.0,
+            fade_max: 0.0,
+            fade_osc_per_sec: 0.0,
+            fade_hardness: 0.0,
+            fade_phase: 0.0,
+            ..Default::default()
+        };
+        assert!(
+            (p.sample_fade(0.0, 0.0) - 1.0).abs() < 1e-5,
+            "unused fade must not hide skin"
+        );
+        assert!((p.sample_fade(1.5, 0.3) - 1.0).abs() < 1e-5);
     }
 
     #[test]

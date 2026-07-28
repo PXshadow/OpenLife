@@ -18,7 +18,7 @@ This file answers only: **can you live a life on a compatible server with this c
 | **Present** | Soft-FB SceneRenderer, dual-fade anim packs, PE/emotes, speech, HUD food/heat, wall layers, rideable draw order |
 | **Audio** | Lazy OLSN + triggers + optional cpal pan; music OGG (`lewton`) under `--features audio` |
 | **Product UI** | Loading progress, Account, Death/rebirth, Settings (`ClientScreen` soft-FB) |
-| **GUI shell** | `ohol-client` minifb (`--features gpu`) |
+| **GUI shell** | `ohol-client` (default `gpu`+`audio`) |
 
 **Deps (policy):** hmac, sha1, hex, thiserror, anyhow, dotenvy, flate2, path `ol-binary`; optional minifb / cpal; lewton for music beds only.
 
@@ -40,7 +40,7 @@ This file answers only: **can you live a life on a compatible server with this c
 cd C:\OhOl\OpenLife\RustClient
 cargo test --lib
 cargo run --bin ohol-headless -- --self-check
-cargo run --features gpu --bin ohol-client
+cargo run --release --bin ohol-client
 ```
 
 Overview + doc map: [README.md](README.md).  

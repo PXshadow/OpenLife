@@ -12,8 +12,8 @@ Wire protocol matches Jason Rohrer’s client and `protocol.txt`.
 |-------|--------|
 | Headless wire + world + path + interact | **Playable** |
 | Binary content cache (OLC1…OLS1) + optional OLSA/OLGA | **Done** |
-| Soft-FB graphics (`--features gpu`) | **Playable** |
-| Audio / music (`--features audio`) | **Done** (lazy banks) |
+| Soft-FB + GPU present (default features) | **Playable** |
+| Audio / music (default features) | **Done** (lazy banks; Settings off switch) |
 | Product pages (account / loading / death / settings) | **P5 done** (#36–39) — [TODO](docs/port/TODO_PORT.md) |
 
 ## Build / run
@@ -22,16 +22,32 @@ Wire protocol matches Jason Rohrer’s client and `protocol.txt`.
 cd C:\OhOl\OpenLife\RustClient
 $env:PATH = "$env:USERPROFILE\.cargo\bin;" + $env:PATH
 
+# Defaults include gpu + audio
 cargo build --release
 cargo run --release --bin ohol-headless -- --self-check
 
-# Graphical
-cargo run --release --features gpu --bin ohol-client
-# + device sound
-cargo run --release --features "gpu,audio" --bin ohol-client
+# Graphical client (GPU present + device audio by default)
+cargo run --release --bin ohol-client
+
+# Headless-only (no window / cpal deps)
+cargo build --release --no-default-features --bin ohol-headless
 ```
 
-Without a server, `ohol-client` can open an offline demo. Headless defaults to `127.0.0.1:8005`.
+**Graphics mode** (F3 → **Graphics**, or `graphics=gpu|soft` / `OHOL_GRAPHICS`):
+
+| Mode | Present | Notes |
+|------|---------|--------|
+| **GPU** (default) | `pixels` + wgpu | Soft-FB scene → GPU texture, hardware scale |
+| **Soft** | minifb | Classic CPU buffer path (turn GPU off) |
+
+**Audio** (F3 → **Audio device**, or `audio=1|0` / `OHOL_AUDIO` / `OHOL_AUDIO_DISABLE=1`):
+
+| State | Notes |
+|-------|--------|
+| **ON** (default) | cpal device output for SFX + music |
+| **OFF** | Log-only path; no device open |
+
+Restart after switching **Graphics**. **Audio** applies immediately. Without a server, `ohol-client` can open an offline demo. Headless defaults to `127.0.0.1:8005`.
 
 ## Credentials
 
@@ -39,7 +55,7 @@ Without a server, `ohol-client` can open an offline demo. Headless defaults to `
 copy .env.example .env   # gitignored — set OHOL_EMAIL / OHOL_ACCOUNT_KEY / OHOL_PASSWORD
 ```
 
-Env: `OHOL_HOST`, `OHOL_PORT`, `OHOL_CONTENT_DIR`, `OHOL_AUDIO_DISABLE`, … — [docs/port/PATHS.md](docs/port/PATHS.md).
+Env: `OHOL_HOST`, `OHOL_PORT`, `OHOL_CONTENT_DIR`, `OHOL_AUDIO` / `OHOL_AUDIO_DISABLE`, … — [docs/port/PATHS.md](docs/port/PATHS.md).
 
 ## Content bake
 

@@ -784,8 +784,43 @@ impl ClientSession {
     /// Advance own fractional `currentPos` (wall-clock seconds).
     ///
     /// Call each frame for headless / GUI. Also invoked from [`Self::step_anims`].
+    /// Syncs local [`LiveObject`] display pos + `moving` for Jason walk anim select.
     pub fn step_move_pos(&mut self, wall_dt: f64) {
         self.move_state.step_current_pos(wall_dt);
+        self.sync_our_live_motion();
+    }
+
+    /// Mirror [`MoveState`] into our [`LiveObject`] for draw/anim (C++ currentPos / onPath).
+    pub fn sync_our_live_motion(&mut self) {
+        let Some(oid) = self.our_id else {
+            return;
+        };
+        let Some(o) = self.world.get_mut(oid) else {
+            return;
+        };
+        if self.move_state.in_motion {
+            o.moving = true;
+            o.set_display_pos(
+                self.move_state.current_pos_x as f32,
+                self.move_state.current_pos_y as f32,
+            );
+        } else if !o.moving {
+            // Idle: keep display on grid unless remote path still active.
+            o.set_display_pos(o.x as f32, o.y as f32);
+        }
+    }
+
+    /// Mark our LiveObject as moving when we send MOVE (before server PM arrives).
+    fn mark_our_moving_from_send(&mut self) {
+        if let Some(oid) = self.our_id {
+            if let Some(o) = self.world.get_mut(oid) {
+                o.moving = true;
+                o.set_display_pos(
+                    self.move_state.current_pos_x as f32,
+                    self.move_state.current_pos_y as f32,
+                );
+            }
+        }
     }
 
     /// Pathfind on client map and send first MOVE segment (≤16 steps).
@@ -899,6 +934,16 @@ impl ClientSession {
                             // Non-matching done_moving leaves in_motion → flush is a no-op.
                             // After continue_multi_move arms another hop, in_motion blocks flush.
                             let _ = self.flush_pending_action()?;
+                        }
+                        // Jason: walk anim follows client onPath (move_state), not last PU alone.
+                        // Re-assert moving + display after apply_pu may have cleared mid-path.
+                        self.sync_our_live_motion();
+                        if self.move_state.in_motion {
+                            if let Some(oid) = self.our_id {
+                                if let Some(o) = self.world.get_mut(oid) {
+                                    o.moving = true;
+                                }
+                            }
                         }
                     }
                     // C++ ~19845: baby-held interrupt clears nextAction for ourID.
@@ -1787,6 +1832,8 @@ impl ClientSession {
             .move_state
             .send_move_with_offset(path, self.map_global_offset)?;
         self.send_raw(&line)?;
+        // Jason: client is onPath immediately so walk anim + currentPos start before PM.
+        self.mark_our_moving_from_send();
         Ok(line)
     }
 
@@ -2870,6 +2917,147 @@ mod tests {
         let _ = handle.join();
         let tx = captured.lock().unwrap().clone();
         assert!(!tx.iter().any(|m| m.starts_with("USE ")));
+    }
+
+    /// Multi-second fixture: frames keep applying after T>5s; MOVE + USE succeed.
+    ///
+    /// Proves poll/apply does not stall after a few seconds (goal stall fix).
+    #[test]
+    fn sustained_poll_move_interact_past_five_seconds() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let frames_sent = Arc::new(AtomicUsize::new(0));
+        let frames_sent2 = Arc::clone(&frames_sent);
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let peer = thread::spawn(move || {
+            let (mut sock, _) = listener.accept().unwrap();
+            write_message(&mut sock, "SN\n1/20\ntest_challenge_xyz\n184\n").unwrap();
+            let mut fr = FrameReader::new();
+            let mut buf = [0u8; 4096];
+            loop {
+                let n = sock.read(&mut buf).unwrap_or(0);
+                if n == 0 {
+                    return;
+                }
+                let msgs = fr.push(&buf[..n]);
+                if msgs
+                    .into_iter()
+                    .any(|m| m.starts_with("LOGIN ") || m.starts_with("RLOGIN "))
+                {
+                    break;
+                }
+            }
+            write_message(&mut sock, "ACCEPTED\n").unwrap();
+            // MC first: center (16,15) so maybe_bind_our_player accepts PU nearby.
+            write_message(&mut sock, "MC\n32 30 0 0\n0 0\n").unwrap();
+            write_message(
+                &mut sock,
+                "PU\n7 100 1 0 0 0 0 0 0 0 -1 0.5 1 0 16 15 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n",
+            )
+            .unwrap();
+            write_message(&mut sock, "MX\n16 15 0 33 -1\n").unwrap();
+            write_message(&mut sock, "FM\n").unwrap();
+            frames_sent2.fetch_add(1, Ordering::SeqCst);
+            // Stream frames for ~7s so client can poll past the stall window.
+            let t0 = Instant::now();
+            let mut n = 0u32;
+            while t0.elapsed() < Duration::from_secs(7) {
+                n += 1;
+                // Separate `#` frames (Jason wire) — one tag per write_message.
+                write_message(
+                    &mut sock,
+                    "PU\n7 100 1 0 0 0 0 0 0 0 -1 0.5 0 0 16 15 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n",
+                )
+                .unwrap();
+                write_message(
+                    &mut sock,
+                    &format!("MX\n16 15 0 {} -1\n", 33 + (n % 3) as i32),
+                )
+                .unwrap();
+                write_message(&mut sock, "FM\n").unwrap();
+                frames_sent2.fetch_add(1, Ordering::SeqCst);
+                thread::sleep(Duration::from_millis(200));
+            }
+        });
+
+        let mut cfg = test_cfg(port);
+        cfg.read_timeout = Duration::from_millis(50);
+        let mut session = ClientSession::connect(&cfg).unwrap();
+        assert!(matches!(session.login, LoginOutcome::Accepted));
+
+        let start = Instant::now();
+        let mut events_after_5s = 0usize;
+        let mut total_ok = 0usize;
+        let mut saw_mx = false;
+        let mut sent_move = false;
+        let mut sent_use = false;
+
+        while start.elapsed() < Duration::from_secs(6) {
+            let _ = session.maybe_send_ka();
+            // Early MOVE once bound (walk path).
+            if session.our_id.is_some() && !sent_move {
+                session.move_state.in_motion = false;
+                session.move_state.awaiting_force_ack = false;
+                if session
+                    .send_move(&[PathDelta { x: 1, y: 0 }])
+                    .is_ok()
+                {
+                    sent_move = true;
+                }
+            }
+            // Interact: after MOVE, free the motion gate (fixture has no done_moving PM)
+            // then send USE — proves object-action path on a live session past join.
+            if sent_move && !sent_use {
+                session.move_state.in_motion = false;
+                session.move_state.awaiting_force_ack = false;
+                session.player_action_pending = false;
+                let x = session.move_state.x;
+                let y = session.move_state.y;
+                if session.send_use(x, y, Some(33), None).is_ok() {
+                    sent_use = true;
+                }
+            }
+            match session.poll_event() {
+                Ok(ev) => {
+                    total_ok += 1;
+                    if start.elapsed() >= Duration::from_secs(5) {
+                        events_after_5s += 1;
+                    }
+                    if matches!(ev, SessionEvent::MapChanges(_)) {
+                        saw_mx = true;
+                    }
+                    // Step anim/move clocks like a real client frame.
+                    session.step_move_pos(1.0 / 60.0);
+                }
+                Err(e) => {
+                    let k = e.kind();
+                    if k != std::io::ErrorKind::WouldBlock && k != std::io::ErrorKind::TimedOut {
+                        // Peer closed at end is ok after 6s wall.
+                        if start.elapsed() < Duration::from_secs(5) {
+                            panic!("poll failed early: {e}");
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        let _ = peer.join();
+        assert!(session.our_id.is_some(), "must bind our player");
+        assert!(sent_move, "must send MOVE");
+        assert!(sent_use, "must send USE interact after freeing motion");
+        assert!(
+            saw_mx || total_ok > 10,
+            "must apply world updates (mx={saw_mx} total={total_ok})"
+        );
+        assert!(
+            events_after_5s > 0,
+            "must still apply events after 5s (got {events_after_5s}); total={total_ok} frames_sent={}",
+            frames_sent.load(Ordering::SeqCst)
+        );
+        assert!(
+            frames_sent.load(Ordering::SeqCst) >= 10,
+            "fixture must stream multiple frames"
+        );
     }
 
     /// KA auto-send after idle window (C++ 15s; test uses short ka_idle).

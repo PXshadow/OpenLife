@@ -1,7 +1,9 @@
 //! P5#39 — Settings page (C++ `SettingsPage` stand-in).
 //!
-//! Soft-FB options: SFX/music volume + mute, show FPS, host/port/email display.
+//! Soft-FB options: GPU/Soft present, audio device on/off, SFX/music volume + mute,
+//! show FPS, host/port/email display.
 //! Open: F3 from Account or Playing. Esc/Back returns. Persist: ohol_client_settings.ini.
+//! Defaults: **GPU present** + **audio device on**. Switch either off from Settings.
 //! Headless CLI / OHOL_* session flags unchanged. No new crates.
 //!
 //! // C++: SettingsPage soundLoudness / musicLoudness / musicOff (subset)
@@ -17,6 +19,53 @@ use crate::sound_bank::SoundBank;
 /// Default relative path for client settings (cwd).
 pub const CLIENT_SETTINGS_FILE: &str = "ohol_client_settings.ini";
 
+/// How the windowed client presents pixels.
+///
+/// - **Gpu** — soft-FB scene still authored on CPU, presented via **wgpu/`pixels`**
+///   (texture upload + GPU scale). Faster present, smoother upscale; default when available.
+/// - **Soft** — classic minifb CPU buffer path (debug / fallback).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum GraphicsMode {
+    /// GPU-accelerated present (default).
+    #[default]
+    Gpu,
+    /// Software minifb present.
+    Soft,
+}
+
+impl GraphicsMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            GraphicsMode::Gpu => "gpu",
+            GraphicsMode::Soft => "soft",
+        }
+    }
+
+    pub fn from_str_loose(s: &str) -> Option<Self> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "gpu" | "wgpu" | "hardware" | "1" | "true" | "on" => Some(GraphicsMode::Gpu),
+            "soft" | "software" | "cpu" | "minifb" | "0" | "false" | "off" => {
+                Some(GraphicsMode::Soft)
+            }
+            _ => None,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            GraphicsMode::Gpu => "GPU present",
+            GraphicsMode::Soft => "Soft (CPU)",
+        }
+    }
+
+    pub fn cycle(self) -> Self {
+        match self {
+            GraphicsMode::Gpu => GraphicsMode::Soft,
+            GraphicsMode::Soft => GraphicsMode::Gpu,
+        }
+    }
+}
+
 /// Soft-FB Settings form + committed options.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SettingsPage {
@@ -29,11 +78,18 @@ pub struct SettingsPage {
     pub debug: bool,
     /// Screen pixels per world tile (camera zoom). Persist + apply on play.
     pub zoom: f32,
+    /// Soft vs GPU present (takes effect on next client start). Default: GPU.
+    pub graphics_mode: GraphicsMode,
+    /// Master device audio on/off (default **on**). Off skips cpal; volumes/mutes still apply when on.
+    pub audio_enabled: bool,
+    /// Borderless fullscreen for the play window (GPU path; soft uses max scale).
+    pub fullscreen: bool,
     pub host: String,
     pub port: u16,
     pub email: String,
     pub window_w: u32,
     pub window_h: u32,
+    /// Build-time: crate compiled with `--features audio` (now default).
     pub audio_feature: bool,
     pub focus: SettingsFocus,
     pub status: String,
@@ -46,6 +102,9 @@ pub enum SettingsFocus {
     SoundVolume,
     MusicVolume,
     Zoom,
+    Graphics,
+    Audio,
+    Fullscreen,
     SoundMute,
     MusicMute,
     ShowFps,
@@ -55,10 +114,13 @@ pub enum SettingsFocus {
 }
 
 impl SettingsFocus {
-    const ALL: [SettingsFocus; 9] = [
+    const ALL: [SettingsFocus; 12] = [
         SettingsFocus::SoundVolume,
         SettingsFocus::MusicVolume,
         SettingsFocus::Zoom,
+        SettingsFocus::Graphics,
+        SettingsFocus::Audio,
+        SettingsFocus::Fullscreen,
         SettingsFocus::SoundMute,
         SettingsFocus::MusicMute,
         SettingsFocus::ShowFps,
@@ -110,6 +172,9 @@ impl Default for SettingsPage {
             show_fps: true,
             debug: false,
             zoom: ZOOM_DEFAULT,
+            graphics_mode: GraphicsMode::Gpu,
+            audio_enabled: true,
+            fullscreen: false,
             host: "127.0.0.1".into(),
             port: 8005,
             email: String::new(),
@@ -151,9 +216,7 @@ impl SettingsPage {
             if std::env::var_os("OHOL_MUSIC_VOLUME").is_none() {
                 s.music_volume = file.music_volume;
             }
-            if std::env::var_os("OHOL_AUDIO_MUTE").is_none()
-                && std::env::var_os("OHOL_AUDIO_DISABLE").is_none()
-            {
+            if std::env::var_os("OHOL_AUDIO_MUTE").is_none() {
                 s.sound_muted = file.sound_muted;
             }
             if std::env::var_os("OHOL_MUSIC_MUTE").is_none() {
@@ -168,7 +231,35 @@ impl SettingsPage {
             if std::env::var_os("OHOL_ZOOM").is_none() {
                 s.zoom = file.zoom;
             }
+            if std::env::var_os("OHOL_GRAPHICS").is_none()
+                && std::env::var_os("OHOL_RENDERER").is_none()
+            {
+                s.graphics_mode = file.graphics_mode;
+            }
+            if std::env::var_os("OHOL_AUDIO_DISABLE").is_none()
+                && std::env::var_os("OHOL_AUDIO").is_none()
+            {
+                s.audio_enabled = file.audio_enabled;
+            }
+            if std::env::var_os("OHOL_FULLSCREEN").is_none() {
+                s.fullscreen = file.fullscreen;
+            }
         }
+        if let Ok(g) = std::env::var("OHOL_GRAPHICS").or_else(|_| std::env::var("OHOL_RENDERER")) {
+            if let Some(m) = GraphicsMode::from_str_loose(&g) {
+                s.graphics_mode = m;
+            }
+        }
+        // Master audio: OHOL_AUDIO_DISABLE always forces off; OHOL_AUDIO=0|1 overrides.
+        if std::env::var_os("OHOL_AUDIO_DISABLE").is_some() {
+            s.audio_enabled = false;
+        } else if let Ok(a) = std::env::var("OHOL_AUDIO") {
+            s.audio_enabled = env_truthy(Some(a.as_str()));
+        }
+        if let Ok(fs) = std::env::var("OHOL_FULLSCREEN") {
+            s.fullscreen = env_truthy(Some(fs.as_str()));
+        }
+        s.apply_runtime_globals();
         s.clamp();
         s
     }
@@ -201,11 +292,16 @@ impl SettingsPage {
                 s.music_volume = n;
             }
         }
-        if env_truthy(get("OHOL_AUDIO_MUTE").as_deref()) || get("OHOL_AUDIO_DISABLE").is_some() {
+        if env_truthy(get("OHOL_AUDIO_MUTE").as_deref()) {
             s.sound_muted = true;
         }
         if env_truthy(get("OHOL_MUSIC_MUTE").as_deref()) {
             s.music_muted = true;
+        }
+        if get("OHOL_AUDIO_DISABLE").is_some() {
+            s.audio_enabled = false;
+        } else if let Some(v) = get("OHOL_AUDIO") {
+            s.audio_enabled = env_truthy(Some(v.as_str()));
         }
         if let Some(v) = get("OHOL_SHOW_FPS") {
             s.show_fps = env_truthy(Some(v.as_str()));
@@ -213,6 +309,11 @@ impl SettingsPage {
         if let Some(v) = get("OHOL_ZOOM") {
             if let Ok(n) = v.trim().parse::<f32>() {
                 s.zoom = n;
+            }
+        }
+        if let Some(v) = get("OHOL_GRAPHICS").or_else(|| get("OHOL_RENDERER")) {
+            if let Some(m) = GraphicsMode::from_str_loose(&v) {
+                s.graphics_mode = m;
             }
         }
         s.clamp();
@@ -265,6 +366,8 @@ impl SettingsPage {
     pub fn apply_runtime_globals(&self) {
         crate::sound_bank::set_sfx_muted(self.sound_muted);
         crate::sound_bank::set_music_muted(self.music_muted);
+        // Master device switch (default on). Env OHOL_AUDIO_DISABLE still forces off in device path.
+        crate::sound_bank::set_audio_device_enabled(self.audio_enabled);
     }
 
     pub fn save_default(&self) -> std::io::Result<()> {
@@ -278,13 +381,17 @@ impl SettingsPage {
     pub fn serialize_ini(&self) -> String {
         format!(
             "# Open Life client settings (P5#39)\n\
+             # Defaults: graphics=gpu, audio=1 (device on). Set graphics=soft / audio=0 to turn off.\n\
              sound_volume={:.3}\n\
              music_volume={:.3}\n\
              sound_muted={}\n\
              music_muted={}\n\
              show_fps={}\n\
              debug={}\n\
-             zoom={:.3}\n",
+             zoom={:.3}\n\
+             graphics={}\n\
+             audio={}\n\
+             fullscreen={}\n",
             self.sound_volume.clamp(0.0, 1.0),
             self.music_volume.clamp(0.0, 1.0),
             if self.sound_muted { "1" } else { "0" },
@@ -292,6 +399,9 @@ impl SettingsPage {
             if self.show_fps { "1" } else { "0" },
             if self.debug { "1" } else { "0" },
             self.zoom.clamp(ZOOM_MIN, ZOOM_MAX),
+            self.graphics_mode.as_str(),
+            if self.audio_enabled { "1" } else { "0" },
+            if self.fullscreen { "1" } else { "0" },
         )
     }
 
@@ -327,6 +437,15 @@ impl SettingsPage {
                         s.zoom = n;
                     }
                 }
+                "graphics" | "graphics_mode" | "renderer" | "render" => {
+                    if let Some(m) = GraphicsMode::from_str_loose(v) {
+                        s.graphics_mode = m;
+                    }
+                }
+                "audio" | "audio_enabled" | "audio_device" => {
+                    s.audio_enabled = env_truthy(Some(v));
+                }
+                "fullscreen" | "full_screen" | "fs" => s.fullscreen = env_truthy(Some(v)),
                 _ => {}
             }
         }
@@ -427,6 +546,32 @@ impl SettingsPage {
                     self.apply_runtime_globals();
                     SettingsAction::Applied
                 }
+                SettingsFocus::Graphics => {
+                    self.graphics_mode = self.graphics_mode.cycle();
+                    self.status = format!(
+                        "Graphics: {} (restart client to apply)",
+                        self.graphics_mode.label()
+                    );
+                    SettingsAction::Applied
+                }
+                SettingsFocus::Audio => {
+                    self.audio_enabled = !self.audio_enabled;
+                    self.status = if self.audio_enabled {
+                        "Audio device: ON".into()
+                    } else {
+                        "Audio device: OFF".into()
+                    };
+                    self.apply_runtime_globals();
+                    SettingsAction::Applied
+                }
+                SettingsFocus::Fullscreen => {
+                    self.fullscreen = !self.fullscreen;
+                    self.status = format!(
+                        "Fullscreen: {} (restart play window)",
+                        if self.fullscreen { "ON" } else { "windowed" }
+                    );
+                    SettingsAction::Applied
+                }
                 SettingsFocus::Credentials => {
                     self.status = "Edit email/key on Account page".into();
                     SettingsAction::None
@@ -452,6 +597,28 @@ impl SettingsPage {
                 let step_z = ((ZOOM_MAX - ZOOM_MIN) * 0.1).max(1.0);
                 self.zoom = (self.zoom + step_z * dir as f32).clamp(ZOOM_MIN, ZOOM_MAX);
                 self.status = format!("Zoom {:.0} px/tile  (+/- or Left/Right)", self.zoom);
+            }
+            SettingsFocus::Graphics if dir != 0 => {
+                self.graphics_mode = self.graphics_mode.cycle();
+                self.status = format!(
+                    "Graphics: {} (restart client to apply)",
+                    self.graphics_mode.label()
+                );
+            }
+            SettingsFocus::Audio if dir != 0 => {
+                self.audio_enabled = !self.audio_enabled;
+                self.status = if self.audio_enabled {
+                    "Audio device: ON".into()
+                } else {
+                    "Audio device: OFF".into()
+                };
+            }
+            SettingsFocus::Fullscreen if dir != 0 => {
+                self.fullscreen = !self.fullscreen;
+                self.status = format!(
+                    "Fullscreen: {} (restart play window)",
+                    if self.fullscreen { "ON" } else { "windowed" }
+                );
             }
             SettingsFocus::SoundMute if dir != 0 => {
                 self.sound_muted = !self.sound_muted;
@@ -567,16 +734,22 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage) {
     draw_pencil_string(fb, "SETTINGS", cx, y, title_scale, accent, true);
     y += 28.0 * title_scale * 0.35 + 12.0;
 
-    let audio_note = if page.audio_feature {
-        "audio: device (cpal)"
+    let audio_note = if !page.audio_feature {
+        "audio: build without cpal"
+    } else if page.audio_enabled {
+        "audio: ON (cpal)"
     } else {
-        "audio: headless (no cpal)"
+        "audio: OFF"
+    };
+    let gfx_note = match page.graphics_mode {
+        GraphicsMode::Gpu => "gfx: GPU",
+        GraphicsMode::Soft => "gfx: Soft",
     };
     draw_pencil_string(
         fb,
         &format!(
-            "window {}x{} resize-on  |  {}",
-            page.window_w, page.window_h, audio_note
+            "window {}x{}  |  {}  |  {}",
+            page.window_w, page.window_h, gfx_note, audio_note
         ),
         cx,
         y,
@@ -600,6 +773,28 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage) {
                 format!(
                     "{mark} Zoom           {:.0} px/tile  (+/-)",
                     page.zoom
+                )
+            }
+            SettingsFocus::Graphics => {
+                format!(
+                    "{mark} Graphics       {}  (restart)",
+                    page.graphics_mode.label()
+                )
+            }
+            SettingsFocus::Audio => {
+                let state = if !page.audio_feature {
+                    "n/a (no cpal)"
+                } else if page.audio_enabled {
+                    "ON"
+                } else {
+                    "OFF"
+                };
+                format!("{mark} Audio device   {state}")
+            }
+            SettingsFocus::Fullscreen => {
+                format!(
+                    "{mark} Fullscreen     {}",
+                    if page.fullscreen { "ON" } else { "windowed" }
                 )
             }
             SettingsFocus::SoundMute => {
@@ -640,6 +835,20 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage) {
             focus_c
         } else {
             match row {
+                SettingsFocus::Audio => {
+                    if page.audio_feature && page.audio_enabled {
+                        on_col
+                    } else {
+                        off_col
+                    }
+                }
+                SettingsFocus::Graphics => {
+                    if page.graphics_mode == GraphicsMode::Gpu {
+                        on_col
+                    } else {
+                        white
+                    }
+                }
                 SettingsFocus::SoundMute => {
                     if page.sound_muted {
                         off_col
@@ -735,12 +944,25 @@ mod tests {
     }
 
     #[test]
-    fn audio_disable_env_prefills_sound_mute() {
+    fn audio_disable_env_turns_audio_device_off() {
         let s = SettingsPage::from_env_map(|k| match k {
             "OHOL_AUDIO_DISABLE" => Some("1".into()),
             _ => None,
         });
-        assert!(s.sound_muted);
+        assert!(!s.audio_enabled);
+        assert!(!s.sound_muted); // master off is not the same as SFX mute
+    }
+
+    #[test]
+    fn audio_enabled_default_on_and_ini() {
+        assert!(SettingsPage::default().audio_enabled);
+        let mut s = SettingsPage::default();
+        s.audio_enabled = false;
+        let p = SettingsPage::parse_ini(&s.serialize_ini());
+        assert!(!p.audio_enabled);
+        s.focus = SettingsFocus::Audio;
+        assert_eq!(s.on_key(SettingsKey::Enter), SettingsAction::Applied);
+        assert!(s.audio_enabled);
     }
 
     #[test]
@@ -774,6 +996,18 @@ mod tests {
         s.zoom = ZOOM_MIN;
         assert_eq!(s.on_key(SettingsKey::Minus), SettingsAction::Applied);
         assert!((s.zoom - ZOOM_MIN).abs() < 1e-3);
+    }
+
+    #[test]
+    fn graphics_mode_default_gpu_and_ini() {
+        assert_eq!(SettingsPage::default().graphics_mode, GraphicsMode::Gpu);
+        let mut s = SettingsPage::default();
+        s.graphics_mode = GraphicsMode::Soft;
+        let p = SettingsPage::parse_ini(&s.serialize_ini());
+        assert_eq!(p.graphics_mode, GraphicsMode::Soft);
+        s.focus = SettingsFocus::Graphics;
+        assert_eq!(s.on_key(SettingsKey::Enter), SettingsAction::Applied);
+        assert_eq!(s.graphics_mode, GraphicsMode::Gpu);
     }
 
     #[test]

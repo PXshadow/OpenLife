@@ -46,8 +46,8 @@ pub use account_page::{
     AccountAction, AccountFocus, AccountKey, AccountPage, ClientAppState, ClientScreen, SecretMode,
 };
 pub use settings_page::{
-    draw_settings_screen, settings_key_command, ClientSettings, SettingsAction, SettingsFocus,
-    SettingsKey, SettingsPage, CLIENT_SETTINGS_FILE,
+    draw_settings_screen, settings_key_command, ClientSettings, GraphicsMode, SettingsAction,
+    SettingsFocus, SettingsKey, SettingsPage, CLIENT_SETTINGS_FILE,
 };
 pub use play_snapshot::{
     draw_snapshot_button, snapshot_button_hit, write_play_snapshot, PlaySnapshot,
@@ -185,8 +185,9 @@ pub use pathfind::{
     PATH_FINDING_D,
 };
 pub use render::{
-    biome_color_for, draw_map_spot_marker, select_packs_for_player, tile_screen_rect, Camera,
-    Framebuffer, PlayerAnimSelection, SceneRenderer, GRID, ZOOM_DEFAULT, ZOOM_MAX, ZOOM_MIN,
+    biome_color_for, draw_map_spot_marker, map_window_to_fb, select_packs_for_player,
+    stretch_rgba_nearest, tile_screen_rect, Camera, Framebuffer, PlayerAnimSelection,
+    SceneRenderer, GRID, ZOOM_DEFAULT, ZOOM_MAX, ZOOM_MIN,
 };
 pub use rmb_action::{
     click_rmb_tile, click_rmb_tile_ex, click_rmb_tile_hit, our_held_id, tile_allows_remv,
@@ -201,8 +202,9 @@ pub use overlay_bank::{
     OverlayRecord, OLO1_FORMAT_VERSION, OLO1_MAGIC,
 };
 pub use sound_bank::{
-    audio_device_active, audio_disable_env_set, audio_feature_enabled, bake_olsn_from_dir,
-    bake_olsn_to_dir, music_muted, set_music_muted, set_sfx_muted, sfx_muted,
+    audio_device_active, audio_device_allowed, audio_device_enabled_setting, audio_disable_env_set,
+    audio_feature_enabled, bake_olsn_from_dir, bake_olsn_to_dir, music_muted,
+    set_audio_device_enabled, set_music_muted, set_sfx_muted, sfx_muted,
     both_same_use_parent, clothing_added_id, clothing_slot_contained_count,
     description_has_off_screen_sound, get_object_parent, get_vector_from_camera, get_volume_and_pan,
     handle_anim_sound, handle_anim_sound_ex, is_less_used_than, is_sprite_subset, load_olsn,

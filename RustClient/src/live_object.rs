@@ -596,6 +596,10 @@ pub struct LiveObject {
     pub force: bool,
     pub x: i32,
     pub y: i32,
+    /// Fractional display position (C++ `LiveObject.currentPos`). Updated mid-path
+    /// for local player from [`crate::move_state::MoveState`]; equals `(x,y)` when idle.
+    pub display_x: f32,
+    pub display_y: f32,
     pub age: f32,
     pub age_rate: f32,
     pub move_speed: f32,
@@ -733,6 +737,8 @@ impl LiveObject {
             force: pu.force,
             x: pu.x,
             y: pu.y,
+            display_x: pu.x as f32,
+            display_y: pu.y as f32,
             age: pu.age,
             age_rate: pu.age_rate,
             move_speed: pu.move_speed,
@@ -818,6 +824,10 @@ impl LiveObject {
         let emot_extra = self.emot_extra_index;
         let emot_extra_type = self.emot_extra_anim_type;
         let anim = self.anim.clone();
+        // Preserve mid-path motion unless this PU ends the path (Jason: done_moving / force).
+        let was_moving = self.moving;
+        let was_last_move = self.last_move.clone();
+        let was_display = (self.display_x, self.display_y);
         // heldByAdultID is client-derived (not a PU field) — keep across baby PUs.
         let held_by = self.held_by_adult_id;
         let held_by_pending = self.held_by_adult_pending_id;
@@ -886,10 +896,26 @@ impl LiveObject {
         self.curse_name = curse_name;
         self.speech_is_curse_tag = speech_is_curse_tag;
         self.curse_tag_idle_sec = curse_tag_idle_sec;
-        // Settled PU clears mid-path motion flag.
-        self.moving = false;
-        self.last_move = None;
         self.out_of_range = false;
+        // C++ / Jason: only clear on-path when done_moving or force; intermediate PUs
+        // (held, clothing, justAte) must not snap anim back to ground mid-walk.
+        if pu.done_moving_seq_num > 0 || pu.force {
+            self.moving = false;
+            self.last_move = None;
+            self.display_x = pu.x as f32;
+            self.display_y = pu.y as f32;
+        } else if was_moving {
+            self.moving = true;
+            self.last_move = was_last_move;
+            // Keep fractional display until path end (local step_move_pos refreshes it).
+            self.display_x = was_display.0;
+            self.display_y = was_display.1;
+        } else {
+            self.moving = false;
+            self.last_move = None;
+            self.display_x = pu.x as f32;
+            self.display_y = pu.y as f32;
+        }
 
         // P3#22: remote actionAttempt starts a short bounce (C++ ~18436–18441).
         if pu.action != 0 && !pu.just_ate && self.pending_action_animation_progress == 0.0 {
@@ -1056,11 +1082,27 @@ impl LiveObject {
     }
 
     /// Draw position in tile units including drop offset (C++ pos + heldByDropOffset).
+    ///
+    /// Uses fractional [`Self::display_x`]/[`Self::display_y`] (mid-path currentPos).
     pub fn draw_pos_tiles(&self) -> (f32, f32) {
         (
-            self.x as f32 + self.held_by_drop_offset_x,
-            self.y as f32 + self.held_by_drop_offset_y,
+            self.display_x + self.held_by_drop_offset_x,
+            self.display_y + self.held_by_drop_offset_y,
         )
+    }
+
+    /// Snap grid + display to a world tile (FORCE / birth / done_moving).
+    pub fn set_grid_pos(&mut self, x: i32, y: i32) {
+        self.x = x;
+        self.y = y;
+        self.display_x = x as f32;
+        self.display_y = y as f32;
+    }
+
+    /// Set fractional display only (path interpolation; grid xd/yd stay destination).
+    pub fn set_display_pos(&mut self, x: f32, y: f32) {
+        self.display_x = x;
+        self.display_y = y;
     }
 
     /// Step P3#22 bounce / drop / baby-wiggle counters for one frame.
@@ -1855,8 +1897,11 @@ impl LiveWorld {
                 o.moving = true;
                 o.last_move = Some(m.clone());
                 // PM xs/ys are path origin on wire (often absolute or birth-relative).
+                // Display starts at path origin; local player is refined by MoveState.
                 o.x = m.xs;
                 o.y = m.ys;
+                o.display_x = m.xs as f32;
+                o.display_y = m.ys as f32;
             }
         }
     }
@@ -2199,10 +2244,38 @@ mod tests {
         let o = w.get(9).unwrap();
         assert!(o.moving);
         assert!(o.last_move.is_some());
-        // Settling PU clears motion.
+        // Settling PU (done_moving_seq > 0) clears motion.
         let pu2 = parse_pu_line(&sample_pu_line(9, 1, 0, 0)).unwrap();
         w.apply_pu(&pu2);
         assert!(!w.get(9).unwrap().moving);
+    }
+
+    /// Intermediate PU with done_moving=0 must not kill mid-path walk anim (Jason).
+    #[test]
+    fn mid_path_pu_preserves_moving_and_display() {
+        let mut w = LiveWorld::new();
+        w.apply_pu(&parse_pu_line(&sample_pu_line(3, 0, 0, 0)).unwrap());
+        w.apply_moves_start(&[PlayerMoveStart {
+            player_id: 3,
+            xs: 0,
+            ys: 0,
+            total_sec: 2.0,
+            eta_sec: 2.0,
+            trunc: 0,
+            deltas: vec![(2, 0)],
+        }]);
+        {
+            let o = w.get_mut(3).unwrap();
+            o.set_display_pos(0.4, 0.0);
+            assert!(o.moving);
+        }
+        // done_moving=0 force=0, new held id — clothing/held update mid-walk.
+        let mid = "3 19 0 0 0 0 99 0 0 0 -1 0.50 0 0 0 0 20.00 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 0";
+        w.apply_pu(&parse_pu_line(mid).unwrap());
+        let o = w.get(3).unwrap();
+        assert!(o.moving, "mid-path PU must keep moving");
+        assert!((o.display_x - 0.4).abs() < 1e-4, "keep fractional display");
+        assert_eq!(o.held_id, 99);
     }
 
     #[test]
