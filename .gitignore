@@ -1,6 +1,8 @@
 .vscode/launch.json
 /yarn.lock
-bin
+# Haxe / HashLink local bins only (do NOT use bare "bin" — it blocked RustClient/src/bin/)
+/bin/
+/bin
 cred.json
 modules
 extension
@@ -33,7 +35,16 @@ src/Secret.hx
 food_efficency.txt
 temp
 pages
-docs
+# Haxe root docs only (leading slash = repo root).
+# Rust port docs ARE tracked:
+#   openlife/RustServer/docs/**
+#   RustClient/docs/**
+/docs/
+# Explicit un-ignore if any broader rule is added later:
+!openlife/RustServer/docs/
+!openlife/RustServer/docs/**
+!RustClient/docs/
+!RustClient/docs/**
 dox
 *.n
 *.js
@@ -81,3 +92,23 @@ cred.json
 **/auth.json
 .env
 .env.*
+
+# Rust client local secrets / playtest (also mirrored in RustClient/.gitignore)
+RustClient/.env
+RustClient/.env.*
+RustClient/ohol_client_settings.ini
+RustClient/*client_settings*.ini
+RustClient/*client*settings*.ini
+RustClient/settings.local.ini
+RustClient/*.local.ini
+RustClient/logs/
+RustClient/.grok/
+RustClient/scripts/
+RustClient/target/
+# Sniped playtest screenshots (desktop capture harness)
+RustClient/**/playtest_screens/
+RustClient/**/shot_*.jpg
+RustClient/**/shot_*.jpeg
+RustClient/**/shot_*.png
+RustClient/**/screenshot_*.jpg
+RustClient/**/screenshot_*.png

@@ -1,84 +1,75 @@
-# ohol-headless (RustClient)
+# ohol-headless / ohol-client
 
-Headless (no graphics) One Hour One Life / OpenLife client for playtesting a compatible server.
+Rust **One Hour One Life / Open Life** client: headless playtest binary + optional soft-FB window.
 
-Wire protocol follows Jason Rohrer’s original client and `protocol.txt` (see parent OpenLife tree and/or upstream OneLife `server/protocol.txt`).
+Wire protocol matches Jason Rohrer’s client and `protocol.txt`.  
+**Full port kit (how it works, status, formats):** → **[docs/port/README.md](docs/port/README.md)**  
+**Status / residuals:** → **[docs/port/TODO_PORT.md](docs/port/TODO_PORT.md)** (P1–P5 complete)
 
-## Features
+## Status (one glance)
 
-- `#`-framed TCP messages
-- Login: read `SN`, compute `HMAC_SHA1(password, challenge)` and `HMAC_SHA1(pure_account_key, challenge)`, send `LOGIN` / `RLOGIN`
-- Movement matching original wire rules: `MOVE xs ys @seq …#`, sequence starts at **2**, deltas within **±16**, client-side in-motion / `FORCE` ack / block USE·DROP·REMV while moving
-- Object commands: `USE`, `DROP`, `REMV`, `SELF`, plus `KA` keepalive
+| Layer | State |
+|-------|--------|
+| Headless wire + world + path + interact | **Playable** |
+| Binary content cache (OLC1…OLS1) + optional OLSA/OLGA | **Done** |
+| Soft-FB graphics (`--features gpu`) | **Playable** |
+| Audio / music (`--features audio`) | **Done** (lazy banks) |
+| Product pages (account / loading / death / settings) | **P5 done** (#36–39) — [TODO](docs/port/TODO_PORT.md) |
 
-## Build
+## Build / run
 
-```bash
+```powershell
 cd C:\OhOl\OpenLife\RustClient
+$env:PATH = "$env:USERPROFILE\.cargo\bin;" + $env:PATH
+
 cargo build --release
+cargo run --release --bin ohol-headless -- --self-check
+
+# Graphical
+cargo run --release --features gpu --bin ohol-client
+# + device sound
+cargo run --release --features "gpu,audio" --bin ohol-client
 ```
 
-## Self-check (fixture peer, no real game server)
+Without a server, `ohol-client` can open an offline demo. Headless defaults to `127.0.0.1:8005`.
 
-```bash
-cargo run -- --self-check
+## Credentials
+
+```powershell
+copy .env.example .env   # gitignored — set OHOL_EMAIL / OHOL_ACCOUNT_KEY / OHOL_PASSWORD
 ```
 
-## Connect to local Rust server (OpenLifeReborn)
+Env: `OHOL_HOST`, `OHOL_PORT`, `OHOL_CONTENT_DIR`, `OHOL_AUDIO_DISABLE`, … — [docs/port/PATHS.md](docs/port/PATHS.md).
 
-Defaults match stock OHOL / OpenLifeReborn: **`127.0.0.1:8005`**.
+## Content bake
 
-### Local credentials (gitignored)
-
-```bash
-copy .env.example .env
-# edit .env — set OHOL_EMAIL / OHOL_ACCOUNT_KEY / OHOL_PASSWORD
+```powershell
+cargo run --release --bin ohol-headless -- --bake-content --src C:\OhOl\OpenLife\OneLifeData7
+cargo run --release --bin ohol-headless -- --bench-load --report logs/load-bench.md
+# optional large pixel atlases:
+#   --bake-sprite-atlas   → cache/olsa_sprite_atlas.bin
+#   --bake-ground-atlas   → cache/olga_ground_atlas.bin
 ```
 
-`.env` is listed in `.gitignore`. Never commit real keys.
+Details: [docs/port/CONTENT_BINARY.md](docs/port/CONTENT_BINARY.md) · [docs/port/HEADLESS.md](docs/port/HEADLESS.md).
 
-Vars: `OHOL_HOST`, `OHOL_PORT`, `OHOL_EMAIL`, `OHOL_PASSWORD`, `OHOL_ACCOUNT_KEY`  
-(CLI flags override env.)
+## Probes + play snapshots
 
-```bash
-# Probe SN + LOGIN (uses .env if present)
-cargo run
+```powershell
+cargo run --bin ohol-headless -- --probe-move --ka
+cargo run --bin ohol-headless -- --probe-actions
+cargo run --bin ohol-headless -- --probe-play
 
-# After ACCEPTED: move one step east and keep-alive
-cargo run -- --move 1,0 --ka
-
-# One-off override without editing .env
-cargo run -- --email you@example.com --account-key AB-CD-EF-GH --move 1,0
+# Synthetic snapshot (no server)
+cargo run --bin ohol-headless -- --snapshot-self-check
+# Live snapshot after login (needs server + .env)
+# cargo run --bin ohol-headless -- --snapshot logs/snapshots/login.txt --snapshot-label login
 ```
 
-Server config reference: `C:\OhOl\OpenLifeReborn\server.toml` (`game_port = 8005`).  
-If logins are rejected, check ticket verify / account key validity.
+In **ohol-client**: Settings → enable **Debug tools** (saved to `ohol_client_settings.ini`), then **F9** or bottom-right **SNAP** while playing.
 
-Optional: `--reconnect` (RLOGIN), `--tutorial N`, `--drop x,y`, `--remv x,y`, `--self x,y`, `--swap x,y`, `--use-id`, `--no-email-pad`, `--host` / `--port` overrides.
-
-### Object interactions (official wire)
-
-Matches LivingLifePage / `protocol.txt`:
-
-| Command | Wire |
-|---------|------|
-| USE | `USE x y#` / `USE x y id#` / `USE x y id i#` |
-| DROP | `DROP x y c#` (`c=-1` ground) |
-| REMV | `REMV x y i#` |
-| SELF | `SELF x y i#` |
-| SREMV / SWAP / BABY / UBABY | also supported in lib |
-
-Actions are **queued** while mid-MOVE (same as official `nextActionMessageToSend`) and flushed when the move finishes.
-
-```bash
-cargo run -- --probe-actions --log logs/wire-actions.log
-cargo run -- --use 0,0 --use-id 33 --drop 1,0 --self 0,0
-```
-
-## Library
-
-Pure encoders live in the `ohol_headless` crate (`encode_move`, `encode_login`, `encode_use`, …) and are unit-tested; the binary uses the same functions.
+Library encoders (`encode_move`, `encode_use`, …) are unit-tested and used by the binaries.
 
 ## Legal
 
-Unofficial tooling. One Hour One Life is by Jason Rohrer. This crate reimplements only the documented network protocol for automated playtesting.
+Unofficial tooling. One Hour One Life is by Jason Rohrer. This crate reimplements the documented network protocol and client-side presentation for development and playtesting.

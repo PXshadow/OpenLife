@@ -1,21 +1,42 @@
 [package]
 name = "ohol-headless"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 publish = false
-description = "Headless One Hour One Life client for playtesting (original wire protocol)"
+description = "One Hour One Life / Open Life Rust client (headless + optional GPU)"
 license = "LicenseRef-Proprietary"
 
 [[bin]]
 name = "ohol-headless"
 path = "src/main.rs"
 
+[[bin]]
+name = "ohol-client"
+path = "src/bin/ohol_client.rs"
+required-features = ["gpu"]
+
+[features]
+default = []
+## Windowed client via minifb (simple framebuffer window).
+gpu = ["dep:minifb"]
+## Optional real-device sound playback (cpal). Headless decode/triggers work without it.
+audio = ["dep:cpal"]
+
 [dependencies]
+## Shared OLC1/OLT1 binary loaders (client + server; zero-dep format crate).
+ol-binary = { path = "../openlife/RustServer/crates/ol-binary" }
 hmac = "0.12"
 sha1 = "0.10"
 hex = "0.4"
 thiserror = "2"
 anyhow = "1"
 dotenvy = "0.15"
+flate2 = "1"
+minifb = { version = "0.27", optional = true }
+## One small crate for device output; only with `--features audio`.
+cpal = { version = "0.15", optional = true }
+## Pure-Rust OGG Vorbis decode for music beds (`music/music_NN.ogg`). Lazy on ensure/play only —
+## boot index scan never calls lewton. Justified: only min pure-Rust Vorbis decoder; no C deps.
+lewton = "0.10"
 
 [dev-dependencies]

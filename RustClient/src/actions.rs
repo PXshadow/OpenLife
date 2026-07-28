@@ -85,6 +85,14 @@ pub fn encode_force(x: i32, y: i32) -> String {
     format!("FORCE {x} {y}#")
 }
 
+/// `JUMP x y#` — baby jump-out of arms / ground wiggle (protocol ignores x/y).
+///
+/// C++ `LivingLifePage::pointerDown` sends `"JUMP 0 0#"` when held by adult or
+/// `age < noMoveAge` (0.20). MOVE must not be used for jump-out.
+pub fn encode_jump(x: i32, y: i32) -> String {
+    format!("JUMP {x} {y}#")
+}
+
 /// `SAY x y text#` — spoken text; x/y ignored by server but required (usually 0 0).
 ///
 /// Text must not contain `#`. Official client truncates by age speech limit;
@@ -92,6 +100,14 @@ pub fn encode_force(x: i32, y: i32) -> String {
 pub fn encode_say(x: i32, y: i32, text: &str) -> String {
     let text = text.replace('#', " ");
     format!("SAY {x} {y} {text}#")
+}
+
+/// `EMOT x y emotIndex#` — request temporary emotion display (server broadcasts PE).
+///
+/// // C++: LivingLifePage ~27086 `autoSprintf( "EMOT 0 0 %d#", emotIndex )`
+/// x/y ignored (usually 0 0). Index is row in `emotionWords` / `emotionObjects`.
+pub fn encode_emot(x: i32, y: i32, emot_index: i32) -> String {
+    format!("EMOT {x} {y} {emot_index}#")
 }
 
 /// High-level object action kinds the headless client can queue/send.
@@ -231,6 +247,49 @@ mod tests {
     }
 
     #[test]
+    fn drop_clothing_slots_0_through_5() {
+        // protocol: 0=hat … 5=backpack
+        for c in 0..=5 {
+            assert_eq!(
+                encode_drop(10, 20, c),
+                format!("DROP 10 20 {c}#"),
+                "DROP clothing slot {c}"
+            );
+            assert_eq!(
+                ObjectAction::Drop {
+                    x: 10,
+                    y: 20,
+                    clothing_slot: c,
+                }
+                .encode(),
+                format!("DROP 10 20 {c}#")
+            );
+        }
+    }
+
+    #[test]
+    fn self_and_sremv_clothing_wire() {
+        assert_eq!(encode_self(3, 4, -1), "SELF 3 4 -1#");
+        for c in 0..=5 {
+            assert_eq!(encode_self(0, 0, c), format!("SELF 0 0 {c}#"));
+            assert_eq!(
+                encode_sremv(0, 0, c, -1),
+                format!("SREMV 0 0 {c} -1#")
+            );
+            assert_eq!(
+                ObjectAction::Sremv {
+                    x: 0,
+                    y: 0,
+                    clothing_slot: c,
+                    slot: 0,
+                }
+                .encode(),
+                format!("SREMV 0 0 {c} 0#")
+            );
+        }
+    }
+
+    #[test]
     fn remv_self_sremv_swap_baby_ubaby() {
         assert_eq!(encode_remv(5, 6, -1), "REMV 5 6 -1#");
         assert_eq!(encode_remv(5, 6, 0), "REMV 5 6 0#");
@@ -242,6 +301,8 @@ mod tests {
         assert_eq!(encode_ubaby(1, 1, -1, None), "UBABY 1 1 -1#");
         assert_eq!(encode_ubaby(1, 1, 0, Some(9)), "UBABY 1 1 0 9#");
         assert_eq!(encode_force(10, 20), "FORCE 10 20#");
+        assert_eq!(encode_jump(0, 0), "JUMP 0 0#");
+        assert_eq!(encode_jump(1, 2), "JUMP 1 2#");
     }
 
     #[test]
@@ -269,6 +330,14 @@ mod tests {
     }
 
     #[test]
+    fn emot_format() {
+        // C++: EMOT 0 0 %d#
+        assert_eq!(encode_emot(0, 0, 0), "EMOT 0 0 0#");
+        assert_eq!(encode_emot(0, 0, 12), "EMOT 0 0 12#");
+        assert_eq!(encode_emot(1, 2, 5), "EMOT 1 2 5#");
+    }
+
+    #[test]
     fn single_space_no_trailing_junk() {
         for s in [
             encode_ka(0, 0),
@@ -282,6 +351,7 @@ mod tests {
             encode_baby(0, 0, Some(1)),
             encode_ubaby(0, 0, -1, Some(2)),
             encode_force(0, 0),
+            encode_emot(0, 0, 3),
         ] {
             assert!(s.ends_with('#'), "{s}");
             assert!(!s.contains("  "), "double space in {s}");

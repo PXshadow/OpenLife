@@ -1,9 +1,67 @@
 /target/
+
 # Local secrets — never commit
 .env
 .env.local
 *.env.local
-# Probe output may include account email / live coords
+
+# Local client settings (volume/zoom/host/email if ever persisted) — never commit
+ohol_client_settings.ini
+*client_settings*.ini
+*client*settings*.ini
+settings.local.ini
+*.local.ini
+
+# Probe / playtest output may include account email, live coords, wire dumps
 move-probe-report.md
+SERVER_MOVE_FEEDBACK.md
 /logs/
 *.log
+logs/
+
+# Sniped / playtest desktop screenshots (any folder under client)
+playtest_screens/
+**/playtest_screens/
+shot_*.jpg
+shot_*.jpeg
+shot_*.png
+**/shot_*.jpg
+**/shot_*.jpeg
+**/shot_*.png
+screenshot_*.jpg
+screenshot_*.png
+**/*_screenshot*.jpg
+**/*_screenshot*.png
+
+# Local playtest / agent tooling scripts (desktop capture, TCP probes) — do not share
+# Keep folder optional; ignore all local harness binaries + capture tools.
+scripts/
+!scripts/.gitkeep
+
+# Grok Build workflows & session glue (local automation, not product)
+.grok/
+
+# Scratch / patch helpers left in tree during port (not product sources)
+src/_*.txt
+src/_*.bat
+src/_*.rs
+src/*_snip.txt
+src/*_inc.rs
+src/*_snippet.rs
+src/*_export.txt
+src/main_part2.txt
+src/main_head.rs
+src/content_binary_patch_note.txt
+src/session_dispatch_snippet.rs
+src/session_multi_block.inc.rs
+src/lib_emotion_export.txt
+# Port kit markdown is tracked; agent harness under docs/port is not.
+docs/port/_*.py
+docs/port/_*.bat
+docs/port/_*.txt
+docs/port/_*.ps1
+docs/port/_*.cmd
+docs/port/_chunk_*.md
+docs/port/*_patch_note.txt
+docs/port/*_note.txt
+docs/port/CALL_INDEX_*_ADDENDUM.md
