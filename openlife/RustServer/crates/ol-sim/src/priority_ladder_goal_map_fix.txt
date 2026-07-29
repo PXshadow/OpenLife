@@ -1,0 +1,92 @@
+/// Map a ladder rung + thin context into the existing self-play [`Goal`] action layer.
+///
+/// Profession defaults apply on job/craft fallthroughs. Bodies of each job remain AI-JOB-*.
+/// Band mapping (until dedicated goals land):
+/// - Feed → SeekFood
+/// - Follow / home → Explore
+/// - Craft / Job → profession SeekObject / Harvest / Hunt / Explore
+pub fn goal_from_rung(
+    rung: PriorityRung,
+    profession: Profession,
+    held_id: i32,
+    nearby_food: bool,
+    prey_adjacent: bool,
+    on_grassland: bool,
+) -> Goal {
+    match rung {
+        PriorityRung::Escape => Goal::Flee,
+        PriorityRung::BabyHungryMother
+        | PriorityRung::Eating
+        | PriorityRung::ConsiderMakeFood
+        | PriorityRung::PickupFood
+        | PriorityRung::FeedChild
+        | PriorityRung::FeedPlayerInNeed => Goal::SeekFood,
+        PriorityRung::ChildWithMother
+        | PriorityRung::WoundedSeekHelp
+        | PriorityRung::OrderedFollow
+        | PriorityRung::FollowPlayer
+        | PriorityRung::StayCloseChild
+        | PriorityRung::HomeSocial
+        | PriorityRung::GoHome => Goal::Explore,
+        PriorityRung::Combat | PriorityRung::KillAnimal => {
+            if profession == Profession::Hunter || prey_adjacent {
+                Goal::Hunt
+            } else {
+                Goal::Flee
+            }
+        }
+        PriorityRung::CraftQueue
+        | PriorityRung::CriticalCraft
+        | PriorityRung::ClothingCraft
+        | PriorityRung::MidPriorityTasks
+        | PriorityRung::AssignedJob
+        | PriorityRung::AgeRotatedJob
+        | PriorityRung::LowPriorityWork
+        | PriorityRung::CriticalMisc => match profession {
+            Profession::Farmer => Goal::SeekObject(FARMER_TARGET_ID),
+            Profession::Smith => Goal::SeekObject(SMITH_TARGET_ID),
+            Profession::Hunter if prey_adjacent => Goal::Hunt,
+            Profession::Forager if on_grassland => Goal::Harvest,
+            Profession::Forager if nearby_food => Goal::SeekFood,
+            _ => Goal::Explore,
+        },
+        PriorityRung::Temperature
+        | PriorityRung::HandleDeath
+        | PriorityRung::HeldByOther
+        | PriorityRung::Wait
+        | PriorityRung::DroppingItem
+        | PriorityRung::CloseUse
+        | PriorityRung::OrderedDrop
+        | PriorityRung::UsingItem
+        | PriorityRung::RemoveFromContainer
+        | PriorityRung::SwitchClothes => Goal::Idle,
+        PriorityRung::Idle => {
+            if held_id != 0 {
+                return Goal::Idle;
+            }
+            match profession {
+                Profession::Forager => {
+                    if on_grassland {
+                        Goal::Harvest
+                    } else if nearby_food {
+                        Goal::SeekFood
+                    } else {
+                        Goal::Explore
+                    }
+                }
+                Profession::Farmer => Goal::SeekObject(FARMER_TARGET_ID),
+                Profession::Smith => Goal::SeekObject(SMITH_TARGET_ID),
+                Profession::Explorer => Goal::Explore,
+                Profession::Hunter => {
+                    if prey_adjacent {
+                        Goal::Hunt
+                    } else if nearby_food {
+                        Goal::SeekFood
+                    } else {
+                        Goal::Explore
+                    }
+                }
+            }
+        }
+    }
+}

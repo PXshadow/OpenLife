@@ -163,6 +163,8 @@ pub enum ServerTag {
     Te,
     /// PONG — reply to client PING (echo unique_id)
     Pong,
+    /// CRAVING — food_id bonus after eat (Haxe ClientTag.CRAVING)
+    Cr,
     // Keep extending as needed
 }
 
@@ -199,6 +201,7 @@ impl ServerTag {
             Self::Ts => "TS",
             Self::Te => "TE",
             Self::Pong => "PONG",
+            Self::Cr => "CR",
         }
     }
 
@@ -234,6 +237,7 @@ impl ServerTag {
             "TS" => Self::Ts,
             "TE" => Self::Te,
             "PONG" => Self::Pong,
+            "CR" => Self::Cr,
             _ => return None,
         })
     }
@@ -322,5 +326,11 @@ mod tests {
         assert_eq!(ServerTag::Ln.as_str(), "LN");
         assert_eq!(format_learned_tool_report(&[12, 334]), "LR\n12 334\n#");
         assert_eq!(format_tool_slots(2, 1000), "TS\n2 1000\n#");
+    }
+
+    #[test]
+    fn craving_server_tag() {
+        assert_eq!(ServerTag::parse("CR"), Some(ServerTag::Cr));
+        assert_eq!(ServerTag::Cr.as_str(), "CR");
     }
 }

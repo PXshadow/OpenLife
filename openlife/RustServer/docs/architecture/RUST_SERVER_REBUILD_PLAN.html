@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Open Life Reborn — Rust Server Rebuild Plan</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --bg2: #121820;
+      --panel: #161d27;
+      --border: #2a3544;
+      --text: #e7eef7;
+      --muted: #9aabbd;
+      --accent: #6ec6ff;
+      --accent2: #8bffb0;
+      --warn: #ffc86e;
+      --danger: #ff7b7b;
+      --link: #8fd3ff;
+      --code-bg: #0a1018;
+      --table-stripe: #1a222e;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #1a2740 0%, transparent 50%),
+                  radial-gradient(900px 500px at 100% 0%, #132418 0%, transparent 45%),
+                  var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    header.hero {
+      border: 1px solid var(--border);
+      background: linear-gradient(160deg, #172033, #101820 60%, #0e1814);
+      border-radius: 16px;
+      padding: 2rem 1.75rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 20px 50px rgba(0,0,0,.35);
+    }
+    header.hero h1 {
+      margin: 0 0 .4rem;
+      font-size: clamp(1.5rem, 3vw, 2.1rem);
+      letter-spacing: .02em;
+    }
+    header.hero p { margin: .35rem 0; color: var(--muted); max-width: 70ch; }
+    .badges { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+    .badge {
+      font-size: .78rem;
+      padding: .28rem .6rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+    }
+    .badge.ok { border-color: #2e6b48; color: var(--accent2); }
+    .badge.info { border-color: #2a567a; color: var(--accent); }
+    .badge.warn { border-color: #7a5b2a; color: var(--warn); }
+
+    nav.toc {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(11,15,20,.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: .85rem 1rem;
+      margin-bottom: 1.5rem;
+    }
+    nav.toc strong { display: block; margin-bottom: .4rem; font-size: .85rem; color: var(--muted); }
+    nav.toc ol {
+      margin: 0;
+      padding-left: 1.2rem;
+      columns: 2;
+      gap: 2rem;
+      font-size: .9rem;
+    }
+    @media (max-width: 720px) {
+      nav.toc ol { columns: 1; }
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.4rem 1.4rem 1.6rem;
+      margin-bottom: 1.1rem;
+    }
+    section h2 {
+      margin: 0 0 .8rem;
+      font-size: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: .55rem;
+    }
+    section h3 { margin: 1.2rem 0 .5rem; font-size: 1.05rem; color: var(--accent); }
+    section h4 { margin: 1rem 0 .4rem; font-size: .95rem; color: var(--accent2); }
+    p, li { color: var(--text); }
+    .muted { color: var(--muted); }
+    ul, ol { padding-left: 1.25rem; }
+    li { margin: .25rem 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .9rem;
+      margin: .7rem 0 1rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: .45rem .55rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #1c2633;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    tr:nth-child(even) td { background: var(--table-stripe); }
+
+    pre, code {
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: .84rem;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .9rem 1rem;
+      overflow-x: auto;
+      line-height: 1.45;
+      color: #d7e7f7;
+    }
+    code {
+      background: rgba(255,255,255,.05);
+      padding: .1rem .3rem;
+      border-radius: 4px;
+    }
+    pre code { background: none; padding: 0; }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 800px) {
+      .grid2 { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .9rem 1rem;
+    }
+    .card h4 { margin-top: 0; }
+
+    .callout {
+      border-left: 3px solid var(--accent);
+      background: rgba(110,198,255,.06);
+      padding: .7rem 1rem;
+      border-radius: 0 8px 8px 0;
+      margin: .8rem 0;
+    }
+    .callout.warn { border-left-color: var(--warn); background: rgba(255,200,110,.06); }
+    .callout.ok { border-left-color: var(--accent2); background: rgba(139,255,176,.05); }
+
+    .budget-bar {
+      display: flex;
+      height: 1.4rem;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin: .6rem 0 1rem;
+    }
+    .budget-bar span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .65rem;
+      color: #061018;
+      font-weight: 700;
+    }
+    .budget-bar .used { background: #3d8fd1; flex: 8; }
+    .budget-bar .reserve { background: #2a9d6a; flex: 2; }
+    .budget-bar .forbid { background: #5a3030; flex: 2; color: #f0c0c0; }
+
+    footer {
+      margin-top: 2rem;
+      color: var(--muted);
+      font-size: .85rem;
+      text-align: center;
+    }
+    .diagram {
+      font-size: .78rem;
+      white-space: pre;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>Open Life Reborn → Rust Game Server</h1>
+      <p>
+        Blueprint for rebuilding the custom OHOL / Open Life Reborn server in Rust:
+        multi-threaded, efficient, large dynamic worlds, in-process AI NPCs, lineage web UI,
+        <strong>no traditional database</strong>, and metrics designed so AI (and Grok Build)
+        can track and evolve the system.
+      </p>
+      <p class="muted">Source: <code>C:\OhOl\OpenLife</code> · Scope: game server + web (not client) · Markdown twin: <code>docs/RUST_SERVER_REBUILD_PLAN.md</code></p>
+      <div class="badges">
+        <span class="badge info">Protocol-first</span>
+        <span class="badge info">Intent queues</span>
+        <span class="badge ok">Chunked world</span>
+        <span class="badge ok">File / mmap persist</span>
+        <span class="badge warn">≤80% Super Grok paced</span>
+      </div>
+    </header>
+
+    <nav class="toc">
+      <strong>Contents</strong>
+      <ol>
+        <li><a href="#goals">Goals</a></li>
+        <li><a href="#read">How to read the codebase</a></li>
+        <li><a href="#research">Architecture research findings</a></li>
+        <li><a href="#threads">Thread access analysis</a></li>
+        <li><a href="#rust">Rust design</a></li>
+        <li><a href="#worlds">Large dynamic worlds</a></li>
+        <li><a href="#ai">Server AI NPCs</a></li>
+        <li><a href="#web">Web + lineage</a></li>
+        <li><a href="#metrics">Metrics &amp; AI evolution</a></li>
+        <li><a href="#phases">Implementation phases</a></li>
+        <li><a href="#budget">Grok Build usage plan</a></li>
+        <li><a href="#risks">Risks</a></li>
+        <li><a href="#appendix">Source map</a></li>
+      </ol>
+    </nav>
+
+    <section id="goals">
+      <h2>1. Goals and non-goals</h2>
+      <div class="grid2">
+        <div class="card">
+          <h4>Goals</h4>
+          <ul>
+            <li>Rust game server (OHOL-compatible protocol)</li>
+            <li>Multi-core from day one; low lock contention</li>
+            <li>Worlds far larger than ~500×500, still dynamic</li>
+            <li>Rule AI + optional LLM AI <em>on the server</em></li>
+            <li>Web hosts site + live stats + family trees</li>
+            <li>No SQL/Redis runtime dependency</li>
+            <li>Structured metrics for automated evolution</li>
+            <li>Grok Build work paced under 80% quota</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Non-goals (now)</h4>
+          <ul>
+            <li>Full client rewrite</li>
+            <li>Pixel-perfect day-one parity with every Haxe quirk</li>
+            <li>External database requirement</li>
+            <li>Multi-region cluster (design may allow later sharding)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="read">
+      <h2>2. Phase 0 — How to read the current architecture</h2>
+      <p class="muted">Do not port line-by-line. Extract invariants, ownership, and protocol contracts.</p>
+
+      <h3>Recommended reading order</h3>
+      <ol>
+        <li><strong>Protocol &amp; bootstrap</strong> — <code>protocol.txt</code>, <code>Server.hx</code>, <code>ThreadServer.hx</code>, <code>Connection.hx</code></li>
+        <li><strong>World &amp; content</strong> — <code>WorldMap.hx</code>, <code>ObjectData.hx</code>, <code>transition/*</code>, <code>OneLifeData7/</code></li>
+        <li><strong>Tick</strong> — <code>TimeHelper.hx</code>, <code>TransitionHelper.hx</code>, <code>MoveHelper.hx</code>, <code>TemperatureHandler.hx</code></li>
+        <li><strong>Players / lineage</strong> — <code>GlobalPlayerInstance.hx</code>, <code>Lineage.hx</code>, <code>PlayerAccount.hx</code></li>
+        <li><strong>AI</strong> — <code>AiBase.hx</code>, <code>AiHelper.hx</code>, <code>ServerAi.hx</code>, <code>AiHandler.hx</code></li>
+        <li><strong>Web &amp; rules</strong> — <code>WebServer.hx</code>, <code>TODO.MD</code>, <code>ServerSettings.hx</code></li>
+      </ol>
+
+      <h3>Research checklist (per subsystem)</h3>
+      <ul>
+        <li>Who owns the data?</li>
+        <li>Who mutates it (tick / net / AI / web)?</li>
+        <li>What locks exist today?</li>
+        <li>Pure tables vs impure RNG / I/O?</li>
+        <li>Protocol messages in/out</li>
+        <li>Save format</li>
+        <li>Hot paths</li>
+      </ul>
+
+      <h3>Research tasks → artifacts</h3>
+      <table>
+        <thead><tr><th>ID</th><th>Task</th><th>Output</th></tr></thead>
+        <tbody>
+          <tr><td>R1</td><td>Client↔server tag matrix</td><td><code>docs/research/protocol-matrix.md</code></td></tr>
+          <tr><td>R2</td><td>World memory layout</td><td><code>docs/research/world-layout.md</code></td></tr>
+          <tr><td>R3</td><td>Save / lineage / account formats</td><td><code>docs/research/persistence.md</code></td></tr>
+          <tr><td>R4</td><td>Transition data model</td><td><code>docs/research/transitions.md</code></td></tr>
+          <tr><td>R5</td><td>Tick pipeline map</td><td><code>docs/research/tick-pipeline.md</code></td></tr>
+          <tr><td>R6</td><td>AI decision graph</td><td><code>docs/research/ai-behavior.md</code></td></tr>
+          <tr><td>R7</td><td>Open Life rule deltas vs vanilla</td><td><code>docs/research/game-rules.md</code></td></tr>
+          <tr><td>R8</td><td>Contention hotspots</td><td><code>docs/research/contention.md</code></td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        Highest leverage first: <strong>R1 protocol matrix</strong>, then a real client connecting to a stub Rust server.
+      </div>
+    </section>
+
+    <section id="research">
+      <h2>3. Research findings — current architecture</h2>
+
+      <h3>Runtime topology (Haxe today)</h3>
+      <pre class="diagram">main thread
+  └─ TimeHelper.DoTimeLoop()          ~20 Hz simulation
+       ├─ player vitals, move, temperature
+       ├─ world map slice (1/WorldTimeParts)
+       ├─ respawn / long-term decay
+       └─ periodic save / backup
+
+ThreadServer (accept)
+  └─ Thread per TCP connection
+       └─ read until '#' → Server.process (mutex-guarded)
+
+AiBase.StartAiThread()
+  └─ single loop over all ServerAi → doTimeStuff
+
+WebServer
+  └─ HTTP accept → thread per request → HTML stats</pre>
+
+      <h3>Data model (simplified)</h3>
+      <table>
+        <thead><tr><th>Domain</th><th>Today</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>World</td><td>Flat vectors W×H</td><td>biomes, floors, objects, helpers, hidden, heat</td></tr>
+          <tr><td>Map gen</td><td>PNG → biome</td><td>toroidal wrap; sample map <strong>500×500</strong></td></tr>
+          <tr><td>Content</td><td>objects + transitions txt</td><td>~4k objects, ~5k transitions</td></tr>
+          <tr><td>Players</td><td>GlobalPlayerInstance</td><td>humans + AIs same type</td></tr>
+          <tr><td>Lineage</td><td>in-memory map + bin</td><td>mother/father/eve, prestige, death</td></tr>
+          <tr><td>AI</td><td>AiBase monolith (~7k LOC)</td><td>professions, craft, combat, LLM hooks</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Bottlenecks that force a redesign</h3>
+      <ul>
+        <li><strong>Full-map arrays</strong> — RAM and full/partial scans do not scale to “vast” maps.</li>
+        <li><strong>Coarse mutexes</strong> — global / world / player locks; net, AI, web can stall sim.</li>
+        <li><strong>One AI thread</strong> — sequential NPC thinking; AI count auto-throttled when slow.</li>
+        <li><strong>Thread-per-connection</strong> — poor for large player counts.</li>
+        <li><strong>God-objects</strong> — GlobalPlayerInstance + AiBase hard to parallelize or test.</li>
+        <li><strong>Web holds player mutex</strong> while building HTML.</li>
+        <li><strong>No structured metrics</strong> — hard for automated evolution.</li>
+      </ul>
+
+      <h3>Product identity to preserve (from TODO.MD)</h3>
+      <p>Seasons/winter, temperature, prestige-as-health, classes, coins &amp; hire AI, grave curses, fathers, generational YUM, server AI jobs/commands, reconnect with AI takeover, vanilla client on port <strong>8005</strong>, web on <strong>8080</strong>.</p>
+    </section>
+
+    <section id="threads">
+      <h2>4. Thread access analysis</h2>
+
+      <h3>Access matrix</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Sim</th>
+            <th>Net</th>
+            <th>AI</th>
+            <th>Web</th>
+            <th>Save</th>
+            <th>Pattern</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Tiles (biome/floor/obj)</td><td>R/W</td><td>R (chunks)</td><td>R obs</td><td>R rare</td><td>R</td><td>Shard by region; sim commits</td></tr>
+          <tr><td>ObjectData / transitions</td><td>R</td><td>—</td><td>R</td><td>R</td><td>—</td><td>Immutable <code>Arc</code></td></tr>
+          <tr><td>Player body</td><td>R/W</td><td>intent</td><td>intent</td><td>snapshot</td><td>R</td><td>Sim-owned components</td></tr>
+          <tr><td>Lineage / accounts</td><td>W birth/death</td><td>R login</td><td>R</td><td>R heavy</td><td>R/W</td><td>Append + indexes</td></tr>
+          <tr><td>AI blackboards</td><td>—</td><td>—</td><td>R/W</td><td>metrics</td><td>opt</td><td>Per-AI private</td></tr>
+          <tr><td>Metrics</td><td>W</td><td>W</td><td>W</td><td>R</td><td>flush</td><td>Atomics / lock-free</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Target concurrency (minimal blocking)</h3>
+      <pre class="diagram">              ┌──────────────────────────┐
+              │   Simulation (sole write │
+              │   of world + players)    │
+              └────────────▲─────────────┘
+                           │ Intent queue
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+   Net (tokio)        AI workers         Web (axum)
+   parse→Intent       obs→plan→Intent    snapshots only
+        │                  │                  │
+   Outbound TX        local mind state   lineage mmap</pre>
+
+      <div class="callout ok">
+        <strong>Rules:</strong> Net and AI never write world/player fields directly.
+        AI plans on a copied observation. Web reads snapshots / append-only lineage files.
+        Prefer message passing over mutexes.
+      </div>
+
+      <h3>Blocking budgets</h3>
+      <table>
+        <thead><tr><th>Path</th><th>Target</th></tr></thead>
+        <tbody>
+          <tr><td>Apply one command</td><td>&lt; 50 µs typical</td></tr>
+          <tr><td>AI observation copy</td><td>&lt; 200 µs</td></tr>
+          <tr><td>AI rule plan</td><td>0.2–2 ms off sim thread</td></tr>
+          <tr><td>Snapshot for web (stats)</td><td>&lt; 1 ms (not full map)</td></tr>
+          <tr><td>Save / WAL</td><td>background only</td></tr>
+          <tr><td>HTTP character page</td><td>0 sim locks</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="rust">
+      <h2>5. Rust target architecture</h2>
+
+      <h3>Workspace layout</h3>
+      <pre>openlife-rs/
+  crates/
+    ol-protocol/     # # framing, tags, parse/serialize
+    ol-content/      # objects, transitions, categories
+    ol-world/        # chunks, biomes, heat
+    ol-sim/          # tick, transitions, seasons, combat
+    ol-entity/       # player SoA components
+    ol-lineage/      # birth/death graph, character data
+    ol-ai/           # rule AI, path, professions
+    ol-ai-llm/       # optional LLM (feature)
+    ol-net/          # tokio game TCP
+    ol-web/          # axum site + API
+    ol-persist/      # snapshots, WAL, mmap (NO SQL)
+    ol-metrics/      # histograms, counters, tracing
+    ol-server/       # binary</pre>
+
+      <h3>Stack</h3>
+      <table>
+        <thead><tr><th>Concern</th><th>Choice</th></tr></thead>
+        <tbody>
+          <tr><td>Async I/O + HTTP</td><td>tokio + axum</td></tr>
+          <tr><td>AI CPU parallelism</td><td>rayon / worker pool</td></tr>
+          <tr><td>Huge maps</td><td>memmap2 chunk files</td></tr>
+          <tr><td>Logging / metrics</td><td>tracing + metrics (+ Prometheus text or JSON)</td></tr>
+          <tr><td>Config</td><td>TOML + hot reload</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Fixed timestep (keep 20 Hz game feel)</h3>
+      <ol>
+        <li>Drain intent queue (capped per tick)</li>
+        <li>Movement integration</li>
+        <li>Vitals (food, heal, heat, exhaust)</li>
+        <li>Animals / time transitions on hot chunks</li>
+        <li>Season / biome work (budgeted)</li>
+        <li>Emit protocol deltas → connection TX queues</li>
+        <li>Publish metrics / snapshot revision</li>
+      </ol>
+
+      <div class="callout warn">
+        <strong>v1 recommendation:</strong> single simulation writer thread + parallel AI + chunked storage.
+        Multi-shard <em>simulation</em> comes after the intent architecture is proven.
+      </div>
+    </section>
+
+    <section id="worlds">
+      <h2>6. Large dynamic worlds (no DB)</h2>
+      <p>Vast worlds do <strong>not</strong> require every tile at 20 Hz. Use residency + catch-up.</p>
+
+      <h3>Chunk model</h3>
+      <ul>
+        <li>Chunks e.g. 64×64: biome, floor, sparse objects, helpers, hidden layer, heat, dirty flags, last_sim_tick</li>
+        <li><strong>Hot</strong> — players/AI/recent edits → full sim</li>
+        <li><strong>Warm</strong> — nearby → reduced rate</li>
+        <li><strong>Cold</strong> — time-skip or lazy catch-up on wake</li>
+        <li><strong>On disk</strong> — mmap / load when approached</li>
+      </ul>
+
+      <h3>Persistence layers (files only)</h3>
+      <table>
+        <thead><tr><th>Layer</th><th>Mechanism</th></tr></thead>
+        <tbody>
+          <tr><td>Content</td><td>OneLifeData7 text (read-only)</td></tr>
+          <tr><td>World</td><td>chunk packs + index</td></tr>
+          <tr><td>Crash safety</td><td>append-only WAL</td></tr>
+          <tr><td>Fast boot</td><td>periodic snapshots</td></tr>
+          <tr><td>Lineage</td><td>append records + rebuildable indexes</td></tr>
+          <tr><td>Accounts</td><td>small mmap / compacted file</td></tr>
+          <tr><td>Metrics</td><td>rotated logs / rings</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">This continues the spirit of existing <code>SaveFiles/*.bin</code> rotation — just scaled and structured.</p>
+    </section>
+
+    <section id="ai">
+      <h2>7. Server AI NPCs / players</h2>
+      <div class="grid2">
+        <div class="card">
+          <h4>Body (sim)</h4>
+          <p>Same validators as humans: USE, food, combat, death. No special cheating paths.</p>
+        </div>
+        <div class="card">
+          <h4>Mind (workers)</h4>
+          <p>Capture observation → plan → enqueue intents. Never holds world write lock while thinking.</p>
+        </div>
+      </div>
+      <h3>Port strategy for AiBase</h3>
+      <ol>
+        <li>Split modules: Survive, Feed, Flee, Hunt, Craft, Profession, Follow, Combat, Temperature</li>
+        <li>Data-driven priorities / cooldowns later (TOML)</li>
+        <li>Reverse craft graph from transitions</li>
+        <li>Hierarchical pathfinding for large maps</li>
+        <li>Stagger AI ticks so hundreds/thousands do not think simultaneously</li>
+      </ol>
+      <p>LLM path (optional): token bucket rate limit, async HTTP, conversation logs, metrics for latency and remaining calls — never block the sim.</p>
+    </section>
+
+    <section id="web">
+      <h2>8. Web interface and lineage</h2>
+      <p>
+        Host the site (from current <code>WebServer/</code> HTML) and add character/family views inspired by
+        OHOL lineage character pages (<code>action=character_page&amp;id=…</code>).
+      </p>
+
+      <h3>Routes (v1)</h3>
+      <table>
+        <thead><tr><th>Route</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /</code></td><td>Landing + live counts, season</td></tr>
+          <tr><td><code>GET /stats/players</code></td><td>Living humans / AIs</td></tr>
+          <tr><td><code>GET /stats/food</code></td><td>Global food balance</td></tr>
+          <tr><td><code>GET /stats/accounts</code></td><td>Prestige board</td></tr>
+          <tr><td><code>GET /stats/lineage</code></td><td>Death / age histograms</td></tr>
+          <tr><td><code>GET /character/{id}</code></td><td>Family tree / character page</td></tr>
+          <tr><td><code>GET /family/{eve_id}</code></td><td>Dynasty overview</td></tr>
+          <tr><td><code>GET /api/metrics</code></td><td>JSON / Prometheus</td></tr>
+          <tr><td><code>GET /health</code></td><td>Tick health for ops &amp; AI agents</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Character page fields</h3>
+      <ul>
+        <li>Name, age, birth/death, death reason, generation, class</li>
+        <li>Mother / father links, Eve / dynasty</li>
+        <li>Children (reverse index)</li>
+        <li>Prestige, coins, last words</li>
+        <li>HTML/SVG ancestor + descendant tree</li>
+      </ul>
+
+      <p><strong>Indexes without a DB:</strong> append-only <code>records.wal</code> + <code>by_id</code> / <code>by_eve</code> / <code>children</code> index files (rebuildable on boot). HTTP uses mmap; sim only appends on birth/death.</p>
+    </section>
+
+    <section id="metrics">
+      <h2>9. Metrics &amp; AI-evolvable design</h2>
+      <table>
+        <thead><tr><th>Category</th><th>Examples</th></tr></thead>
+        <tbody>
+          <tr><td>Latency</td><td>cmd apply, tick, AI think, HTTP, LLM</td></tr>
+          <tr><td>Throughput</td><td>intents, ticks, bytes out, chunk loads</td></tr>
+          <tr><td>Saturation</td><td>queue depths, hot chunks, skip ticks</td></tr>
+          <tr><td>Gameplay</td><td>pop, births/deaths, food %, combat</td></tr>
+          <tr><td>AI</td><td>professions, craft fail, path fail, LLM budget</td></tr>
+          <tr><td>Persist</td><td>WAL lag, flush time, dirty chunks</td></tr>
+        </tbody>
+      </table>
+      <p>Structured event stream (JSONL) enables offline comparison before/after changes — the feedback loop for Grok-driven evolution.</p>
+      <p>Codebase traits that help AI work: small crates, pure functions, golden protocol fixtures, feature flags, project rules forbidding sim-thread I/O.</p>
+    </section>
+
+    <section id="phases">
+      <h2>10. Implementation phases</h2>
+      <table>
+        <thead><tr><th>Phase</th><th>Deliverable</th></tr></thead>
+        <tbody>
+          <tr><td><strong>A</strong> Skeleton</td><td>workspace, protocol tests, TCP stub, metrics, web /health</td></tr>
+          <tr><td><strong>B</strong> Content + world</td><td>load objects/transitions, chunks, PNG bake, map to real client</td></tr>
+          <tr><td><strong>C</strong> Core verbs</td><td>MOVE/USE/DROP, transitions, food/age/death, intent queue locked</td></tr>
+          <tr><td><strong>D</strong> Open Life rules</td><td>temp, seasons, YUM/prestige, combat, graves, coins</td></tr>
+          <tr><td><strong>E</strong> AI</td><td>observe/path/survive, craft, professions, optional LLM</td></tr>
+          <tr><td><strong>F</strong> Lineage web</td><td>append lineage, character pages, dashboards</td></tr>
+          <tr><td><strong>G</strong> Scale</td><td>sharding polish, cold chunks, AI pool tuning, load tests</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">Each phase ends with compile + tests + metrics baseline + short changelog note.</p>
+    </section>
+
+    <section id="budget">
+      <h2>11. Grok Build usage budget plan</h2>
+      <p>Stay under <strong>80%</strong> of Super Grok / subscription allowance until refresh, paced evenly so day 1 cannot burn the period.</p>
+      <p><strong>Canonical docs in this repo:</strong> <code>AGENTS.md</code>, <code>docs/GROK_BUILD.md</code>, <code>docs/USAGE_BUDGET.md</code>.</p>
+
+      <div class="callout ok">
+        <strong>Source of truth — slash command:</strong>
+        <pre style="margin:.5rem 0 0">/usage</pre>
+        Run <code>/usage</code> at session start and before expensive work.
+        This shows credit / subscription usage (not the same as <code>/context</code> window fill).
+      </div>
+
+      <div class="budget-bar" title="Plan: use up to 80%, keep 20% hard reserve">
+        <span class="used">paced usable ≤80%</span>
+        <span class="reserve">buffer</span>
+        <span class="forbid">never</span>
+      </div>
+
+      <h3>Formula</h3>
+      <pre>Cap = 0.80 × Budget
+soft_ceiling(day t) = Cap × (t / D)
+
+Example D=10: day1 ≤8% cumulative, day2 ≤16%, … day10 ≤80%</pre>
+
+      <h3>Slash commands</h3>
+      <table>
+        <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>/usage</code></td><td><strong>Budget</strong> — credit / subscription usage</td></tr>
+          <tr><td><code>/context</code></td><td>Session context window only</td></tr>
+          <tr><td><code>/session-info</code></td><td>Model / turns / session stats</td></tr>
+          <tr><td><code>/compact</code></td><td>Shrink fat sessions</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Session tiers</h3>
+      <table>
+        <thead><tr><th>Tier</th><th>Use</th><th>~Cost</th></tr></thead>
+        <tbody>
+          <tr><td>T0 Local</td><td>cargo test/check yourself</td><td>0%</td></tr>
+          <tr><td>T1 Micro</td><td>one file / API</td><td>small</td></tr>
+          <tr><td>T2 Feature</td><td>one vertical slice</td><td>medium</td></tr>
+          <tr><td>T3 Review</td><td>diff review only</td><td>small</td></tr>
+          <tr><td>T4 Spike</td><td>unknown architecture</td><td>≤ 1 daily; write docs</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Daily workflow</h3>
+      <ol>
+        <li><strong><code>/usage</code></strong> — check real subscription budget vs soft ceiling</li>
+        <li><strong>Human:</strong> cargo check, pick one checklist item</li>
+        <li><strong>Grok T1/T2:</strong> single focused session with path scope</li>
+        <li><strong>Human:</strong> tests; fix trivial errors without AI if possible</li>
+        <li><strong>Human:</strong> log estimated % in <code>docs/USAGE_BUDGET.md</code></li>
+      </ol>
+
+      <h3>Session contract</h3>
+      <p>Full paste block (includes Budget + <code>/usage</code>) is in <code>docs/GROK_BUILD.md</code>.</p>
+
+      <div class="callout">
+        Prefer research notes over re-reading 5k–7k line Haxe files every session.
+        Avoid parallel heavy implementer subagents unless <code>/usage</code> shows headroom.
+      </div>
+    </section>
+
+    <section id="risks">
+      <h2>12. Risks and open decisions</h2>
+      <table>
+        <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Client protocol mismatch</td><td>Golden fixtures from live captures; test real clients early</td></tr>
+          <tr><td>Transition edge cases</td><td>Recorded USE sequences as tests</td></tr>
+          <tr><td>AI regressions</td><td>Behavior metrics + event log compare</td></tr>
+          <tr><td>Disk thrash on huge maps</td><td>Resident set + prefetch around players</td></tr>
+          <tr><td>Scope explosion (TODO.MD)</td><td>Phases A–C vertical slice first</td></tr>
+          <tr><td>Mutex habits return</td><td>Intent-only API; review checklist</td></tr>
+        </tbody>
+      </table>
+      <h3>Open decisions (Phase A)</h3>
+      <ol>
+        <li>Single sim thread vs multi-shard sim in v1? → <strong>single sim + parallel AI</strong></li>
+        <li>Chunk size 32 vs 64?</li>
+        <li>WAL every command vs dirty-chunk flush?</li>
+        <li>Strict wire compatibility vs versioned extensions?</li>
+      </ol>
+    </section>
+
+    <section id="appendix">
+      <h2>13. Appendix — key source map</h2>
+      <table>
+        <thead><tr><th>File</th><th>~Lines</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td>GlobalPlayerInstance.hx</td><td>5300+</td><td>player god-object</td></tr>
+          <tr><td>AiBase.hx</td><td>7300+</td><td>NPC brain</td></tr>
+          <tr><td>TimeHelper.hx</td><td>2200+</td><td>tick / seasons / world time</td></tr>
+          <tr><td>TransitionHelper.hx</td><td>1400+</td><td>USE / transitions</td></tr>
+          <tr><td>WorldMap.hx</td><td>1300+</td><td>map + save</td></tr>
+          <tr><td>ObjectData.hx</td><td>1300+</td><td>object definitions</td></tr>
+          <tr><td>Connection.hx</td><td>1100+</td><td>net + login</td></tr>
+          <tr><td>AiHelper.hx</td><td>1700+</td><td>AI utilities</td></tr>
+          <tr><td>Lineage.hx</td><td>530+</td><td>family / stats</td></tr>
+          <tr><td>WebServer.hx</td><td>350+</td><td>HTTP</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Defaults</h3>
+      <ul>
+        <li>Game port <strong>8005</strong>, web <strong>8080</strong>, tick <strong>1/20 s</strong></li>
+        <li>Map sample <strong>500×500</strong>, WorldTimeParts <strong>25</strong></li>
+        <li>AIs default <strong>40</strong> (min 20), save ~every <strong>30 s</strong></li>
+        <li>Save dir <code>SaveFiles/</code> — already file-based, no DB</li>
+      </ul>
+
+      <h3>MVP success criteria</h3>
+      <ol>
+        <li>Common OHOL client: connect, move, pick berry, age, die</li>
+        <li>Website shows live player list</li>
+        <li>Character page shows mother/father/children</li>
+        <li>Rule AIs eat/survive without blocking humans</li>
+        <li>Metrics expose tick p99 and command latency</li>
+        <li>≥4× area via chunk streaming</li>
+        <li>Zero database processes</li>
+      </ol>
+
+      <h3>Next actions</h3>
+      <ol>
+        <li>Create <code>docs/research/</code> stubs; complete R1 protocol matrix</li>
+        <li>Scaffold <code>openlife-rs</code> beside (not overwriting) the Haxe tree</li>
+        <li>Start <code>docs/USAGE_BUDGET.md</code> with real refresh date</li>
+        <li>Capture live client traffic fixtures for golden tests</li>
+      </ol>
+    </section>
+
+    <footer>
+      Open Life Reborn Rust rebuild plan v1.0 · See also <code>docs/RUST_SERVER_REBUILD_PLAN.md</code>
+    </footer>
+  </div>
+</body>
+</html>

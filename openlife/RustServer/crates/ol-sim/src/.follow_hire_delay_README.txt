@@ -1,0 +1,14 @@
+FOLLOW-HIRE-DELAY / hire_confirm
+================================
+
+Apply (idempotent):
+  python crates/ol-sim/src/_apply_follow_hire_delay.py
+  python docs/port/_apply_follow_hire_docs.py
+
+Or: cargo test -p ol-sim --lib -- follow_hire
+  (build.rs → build_do_commands → build_follow_hire_delay runs the apply)
+
+Haxe parity notes:
+- I FOLLOW: delayed via newFollower* + TimeConfirmNewFollower (live)
+- I HIRE: immediate setFollowPlayer (NOT delayed) — intentional Haxe parity
+- Live knobs: TimeConfirmNewFollower, HireCost, HireCostIncreasePerPerson

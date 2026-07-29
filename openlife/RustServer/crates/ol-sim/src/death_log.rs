@@ -103,7 +103,7 @@ impl DeathLog {
         use std::sync::atomic::Ordering::*;
         self.total.fetch_add(1, Relaxed);
         match DeathCause::from_reason(&r.reason) {
-            DeathCause::Hunger => {
+            DeathCause::Hunger | DeathCause::NursingHunger => {
                 self.by_hunger.fetch_add(1, Relaxed);
             }
             DeathCause::Age => {
@@ -115,7 +115,7 @@ impl DeathLog {
             DeathCause::Suicide => {
                 self.by_suicide.fetch_add(1, Relaxed);
             }
-            DeathCause::Unknown => {
+            DeathCause::Disconnected | DeathCause::Unknown => {
                 self.by_other.fetch_add(1, Relaxed);
             }
         }

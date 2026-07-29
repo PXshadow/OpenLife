@@ -10,7 +10,7 @@ pub struct BadBiomeEntry {
 /// Haxe BAD_BIOMES wall set used by login BB + move block (mountain primary).
 ///
 /// Includes mountain (21) plus named hostile/water biomes for query display.
-/// Only mountain currently blocks MOVE in sim (`biome_blocks_move`).
+/// MOVE uses Haxe `isBiomeBlocking` (`biome_speed < 0.1` unless floor exception).
 pub const BAD_BIOMES: &[BadBiomeEntry] = &[
     BadBiomeEntry {
         id: 21,

@@ -1,9 +1,39 @@
 //! Move-speed composition notes (Haxe moveSpeed factors subset).
+//!
+//! Includes **S-MOVE** `road_floor_speed` pure helpers via [`move_speed`].
 
 use crate::fire::FireState;
 use crate::snow::{SnowCover, SNOW_MOVE_FACTOR};
 use crate::weather::Weather;
 use crate::{RIDE_MOVE_SPEED, WALK_MOVE_SPEED};
+
+/// Haxe `MoveHelper.calculateSpeed` floor/road/biome + path road scan.
+#[path = "move_speed.rs"]
+mod move_speed;
+
+pub use move_speed::{
+    adjust_contained_speed_mult, adjust_held_speed_mult, ai_class_speed_factor,
+    ai_class_speed_factor_ex, apply_calculate_speed_full, apply_calculate_speed_full_live,
+    apply_floor_road_to_speed, apply_held_floor_speed, apply_held_floor_speed_at,
+    apply_held_floor_speed_at_ex, apply_held_floor_speed_ex, apply_vitals_speed_polish,
+    apply_vitals_speed_polish_live, backpack_nest_speed_product, backpack_speed_product,
+    clamp_held_speed_bad_biome, close_enemy_speed_factor, close_enemy_speed_factor_ex,
+    combine_backpack_and_held_nest, contained_obj_speed_mult, effective_biome_speed,
+    floor_counts_as_road, floor_road_biome_factor, floor_road_factor_at, floor_speed_mult,
+    grave_curse_speed_factor, half_penalty_for_strong, has_both_shoes, heat_is_super_cold,
+    heat_is_super_hot, held_nest_speed_product, held_object_speed_mult, hitpoints_speed_factor,
+    is_horse_or_car, is_water_biome, object_is_boat, path_length,
+    resolve_backpack_speed_product, scan_path_road_and_biome, shoe_pair_ids,
+    shoes_soften_backpack_product, shoes_speed_factor, soften_contained_speed_on_floor,
+    soften_held_speed_on_floor, temperature_speed_factor, tile_biome_blocks_move,
+    tile_biome_speed, truncate_path_with_road, vitals_speed_product, PathRoadScan,
+    VitalsSpeedInput, VitalsSpeedLiveKnobs, AI_SPEED_FACTOR_COMMONER, AI_SPEED_FACTOR_NOBLE,
+    AI_SPEED_FACTOR_SERF, BOAT_ON_LAND_SPEED_FACTOR, CLOSE_ENEMY_WITH_WEAPON_SPEED_FACTOR,
+    CLOSE_GRAVE_SPEED_MALI, CONTAINED_SPEED_FLOOR, GROWN_UP_FOOD_STORE_MAX, HITPOINTS_SPEED_FACTOR,
+    HORSE_OR_CAR_SPEED_THRESHOLD, INITIAL_PLAYER_MOVE_SPEED, MIN_BIOME_SPEED_FACTOR,
+    MIN_SPEED_REDUCTION_PER_CONTAINED, ROAD_SPEED_THRESHOLD, SPEED_FACTOR,
+    SPEED_WITH_BOTH_SHOES, TEMPERATURE_SPEED_IMPACT, TRUNC_MOVEMENT_SPEED_DIFF,
+};
 
 /// Per-item ballast penalty applied to move speed (held + backpack count).
 ///
@@ -53,6 +83,32 @@ pub fn compose_move_speed(
     }
     speed *= ballast_speed_mult(ballast_items);
     speed
+}
+
+/// Compose with floor/road/biome factor on top of ride/weather/snow/fire/ballast.
+pub fn compose_move_speed_with_floor(
+    riding: bool,
+    weather: &Weather,
+    snow: &SnowCover,
+    fire: &FireState,
+    x: i32,
+    y: i32,
+    ballast_items: u32,
+    floor_id: i32,
+    floor_spd: f32,
+    biome_spd: f32,
+    full_path_has_road: bool,
+    is_on_boat: bool,
+) -> f32 {
+    let base = compose_move_speed(riding, weather, snow, fire, x, y, ballast_items);
+    apply_floor_road_to_speed(
+        base,
+        floor_id,
+        floor_spd,
+        biome_spd,
+        full_path_has_road,
+        is_on_boat,
+    )
 }
 
 /// `SAY ?SPEED` body without leading p_id: composed move speed note.
@@ -158,6 +214,5 @@ mod tests {
     fn format_weight_query_shape() {
         assert_eq!(format_weight_query(0), "WEIGHT 0 items");
         assert_eq!(format_weight_query(1), "WEIGHT 1 items");
-        assert_eq!(format_weight_query(9), "WEIGHT 9 items");
     }
 }

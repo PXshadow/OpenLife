@@ -202,6 +202,208 @@ pub fn path_steps(
     find_path(world, sx, sy, gx, gy, walkable, 2000).map(|p| p.len())
 }
 
+// ── Animal collision chunk (AI-ANIMAL-GOTO / CreateCollisionChunkHelper) ────
+
+/// Haxe `MapData.RAD` used by `CreateCollisionChunkHelper` (half-width of chunk).
+// Haxe: MapData.RAD / AiHelper.CreateCollisionChunkHelper
+pub const GOTO_COLLISION_RAD: i32 = 16;
+
+/// Simplified Haxe `isAnimalDeadlyForMe` for path collision (no biome / hits / weapon).
+///
+/// Deadly for path when `isAnimal() && deadlyDistance > 0 && damage > 0`.
+// Haxe: GPI.isAnimalDeadlyForMe ~6302; CreateCollisionChunkHelper ~1508
+#[inline]
+pub fn is_deadly_animal_for_path(def: &ol_content::ObjectDef) -> bool {
+    def.is_animal() && def.deadly_distance > 0.0 && def.damage > 0.0
+}
+
+/// Haxe animal `moves` footprint: half-open square
+/// `[ax - moves, ax + moves + 1) × [ay - moves, ay + moves + 1)`.
+// Haxe: AiHelper.CreateCollisionChunkHelper ~1512–1530
+#[inline]
+pub fn animal_moves_covers_tile(
+    animal_x: i32,
+    animal_y: i32,
+    moves: i32,
+    tile_x: i32,
+    tile_y: i32,
+) -> bool {
+    let m = moves.max(0);
+    tile_x >= animal_x - m
+        && tile_x < animal_x + m + 1
+        && tile_y >= animal_y - m
+        && tile_y < animal_y + m + 1
+}
+
+/// Collect tiles blocked by deadly-animal `moves` footprints in `[min, max)`.
+// Haxe: AiHelper.CreateCollisionChunkHelper considerAnimal branch
+pub fn collect_deadly_animal_blocked_tiles(
+    world: &World,
+    content: &ContentDb,
+    min_x: i32,
+    min_y: i32,
+    max_x: i32,
+    max_y: i32,
+) -> HashSet<(i32, i32)> {
+    let mut blocked = HashSet::new();
+    for y in min_y..max_y {
+        for x in min_x..max_x {
+            let id = world.get_object(x, y);
+            if id == 0 {
+                continue;
+            }
+            let Some(def) = content.get(id) else {
+                continue;
+            };
+            if !is_deadly_animal_for_path(def) {
+                continue;
+            }
+            let moves = def.moves;
+            let min_yy = (y - moves).max(min_y);
+            let min_xx = (x - moves).max(min_x);
+            let max_yy = (y + moves + 1).min(max_y);
+            let max_xx = (x + moves + 1).min(max_x);
+            for yy in min_yy..max_yy {
+                for xx in min_xx..max_xx {
+                    blocked.insert((xx, yy));
+                }
+            }
+        }
+    }
+    blocked
+}
+
+/// Animal-blocked set centered on player (Haxe collision chunk around `tx,ty`).
+// Haxe: CreateCollisionChunkHelper minX/Y = player.tx/ty − RAD
+#[inline]
+pub fn collect_deadly_animal_blocked_around(
+    world: &World,
+    content: &ContentDb,
+    cx: i32,
+    cy: i32,
+    rad: i32,
+) -> HashSet<(i32, i32)> {
+    let r = rad.max(1);
+    collect_deadly_animal_blocked_tiles(world, content, cx - r, cy - r, cx + r, cy + r)
+}
+
+/// Base walkability plus optional deadly-animal footprint set.
+// Haxe: MapCollision from CreateCollisionChunk (terrain + animals)
+pub fn is_walkable_with_animals(
+    world: &World,
+    content: &ContentDb,
+    x: i32,
+    y: i32,
+    animal_blocked: Option<&HashSet<(i32, i32)>>,
+) -> bool {
+    if !is_walkable(world, content, x, y) {
+        return false;
+    }
+    if let Some(ab) = animal_blocked {
+        if ab.contains(&(x, y)) {
+            return false;
+        }
+    }
+    true
+}
+
+/// Dual-pass Goto path classification (Haxe `gotoAdv`).
+// Haxe: AiHelper.gotoAdv ~1116–1141
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GotoPathOutcome {
+    /// Path exists under current animal consideration.
+    Reachable,
+    /// Failed with animals but succeeds without → mark `hostile_path`.
+    BlockedByAnimal,
+    /// Failed with and without animals (or animals not considered) → `not_reachable`.
+    NotReachable,
+}
+
+/// Probe path with optional animal footprints; on fail dual-pass recheck without animals.
+// Haxe: AiHelper.gotoAdv Goto(considerAnimals) then Goto(false, move=false)
+pub fn goto_path_outcome(
+    world: &World,
+    content: &ContentDb,
+    sx: i32,
+    sy: i32,
+    gx: i32,
+    gy: i32,
+    consider_animals: bool,
+) -> GotoPathOutcome {
+    let animal_blocked = if consider_animals {
+        Some(collect_deadly_animal_blocked_around(
+            world,
+            content,
+            sx,
+            sy,
+            GOTO_COLLISION_RAD,
+        ))
+    } else {
+        None
+    };
+    let ab = animal_blocked.as_ref();
+    let ok_with = find_path(
+        world,
+        sx,
+        sy,
+        gx,
+        gy,
+        &|x, y| is_walkable_with_animals(world, content, x, y, ab),
+        2000,
+    )
+    .is_some();
+    if ok_with {
+        return GotoPathOutcome::Reachable;
+    }
+    if !consider_animals {
+        return GotoPathOutcome::NotReachable;
+    }
+    // Dual-pass: animals off (Haxe move=false recheck).
+    let ok_without = find_path(
+        world,
+        sx,
+        sy,
+        gx,
+        gy,
+        &|x, y| is_walkable(world, content, x, y),
+        2000,
+    )
+    .is_some();
+    if ok_without {
+        GotoPathOutcome::BlockedByAnimal
+    } else {
+        GotoPathOutcome::NotReachable
+    }
+}
+
+/// First step toward goal, inflating deadly-animal footprints when `consider_animals`.
+// Haxe: GotoHelper CreateCollisionChunk(considerAnimal) + path first step
+pub fn next_step_consider_animals(
+    world: &World,
+    content: &ContentDb,
+    sx: i32,
+    sy: i32,
+    gx: i32,
+    gy: i32,
+    consider_animals: bool,
+) -> Option<(i32, i32)> {
+    let animal_blocked = if consider_animals {
+        Some(collect_deadly_animal_blocked_around(
+            world,
+            content,
+            sx,
+            sy,
+            GOTO_COLLISION_RAD,
+        ))
+    } else {
+        None
+    };
+    let ab = animal_blocked.as_ref();
+    next_step(world, sx, sy, gx, gy, &|x, y| {
+        is_walkable_with_animals(world, content, x, y, ab)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,6 +426,25 @@ mod tests {
             num_slots: 0,
             floor: false,
         dummy_ids: Vec::new(),
+        use_chance: 0.0,
+        speed_mult: 1.0,
+        winter_decay_factor: 0.0,
+        spring_regrow_factor: 0.0,
+        decay_factor: 1.0,
+        decays_to_obj: 0,
+        r_value: 0.0,
+        clothing: "n".into(),
+        counts_or_grows_as: 0,
+        crafting_steps: 0,
+        use_distance: 1,
+        deadly_distance: 0.0,
+        moves: 0,
+        damage: 0.0,
+        damage_protection_factor: 1.0,
+        wound_factor: 0.5,
+        male: false,
+        contain_size: 0.0,
+        slot_size: 1.0,
         }
     }
 
@@ -369,6 +590,117 @@ mod tests {
             3,
             &|_, _| false
         ));
+    }
+
+    fn animal_def(id: i32, name: &str, moves: i32, deadly: f32, damage: f32) -> ObjectDef {
+        let mut d = def(id, name, false);
+        d.moves = moves;
+        d.deadly_distance = deadly;
+        d.damage = damage;
+        d
+    }
+
+    // Haxe: CreateCollisionChunkHelper animal moves footprint
+    #[test]
+    fn animal_moves_footprint_and_deadly_gate() {
+        let mut wolf = animal_def(418, "Wolf", 2, 0.5, 3.0);
+        assert!(is_deadly_animal_for_path(&wolf));
+        assert!(animal_moves_covers_tile(5, 5, 2, 5, 5));
+        assert!(animal_moves_covers_tile(5, 5, 2, 3, 3)); // 5-2
+        assert!(animal_moves_covers_tile(5, 5, 2, 7, 7)); // 5+2 inclusive via half-open max=8
+        assert!(!animal_moves_covers_tile(5, 5, 2, 8, 5)); // 5+2+1 = 8 excluded
+        assert!(!animal_moves_covers_tile(5, 5, 2, 2, 5)); // 5-2-1
+
+        wolf.damage = 0.0;
+        assert!(!is_deadly_animal_for_path(&wolf));
+        let rabbit = animal_def(132, "Rabbit", 1, 0.0, 0.0);
+        assert!(!is_deadly_animal_for_path(&rabbit));
+    }
+
+    #[test]
+    fn collect_animal_blocked_inflates_moves_radius() {
+        let mut w = World::new(32, 32, false);
+        let mut db = ContentDb::default();
+        db.objects.insert(418, animal_def(418, "Wolf", 2, 0.5, 3.0));
+        w.set_object(10, 10, 418);
+        let blocked = collect_deadly_animal_blocked_tiles(&w, &db, 0, 0, 32, 32);
+        assert!(blocked.contains(&(10, 10)));
+        assert!(blocked.contains(&(8, 8)));
+        assert!(blocked.contains(&(12, 12)));
+        assert!(!blocked.contains(&(13, 10))); // outside moves=2 half-open
+        assert!(!blocked.contains(&(0, 0)));
+    }
+
+    /// Corridor sealed only by wolf footprint → dual-pass BlockedByAnimal.
+    // Haxe: gotoAdv animals-on fail + animals-off success → addHostilePath
+    #[test]
+    fn goto_dual_pass_animal_only_block_hostile() {
+        let mut w = World::new(40, 40, false);
+        let mut db = ContentDb::default();
+        db.objects.insert(1, def(1, "Wall", true));
+        // moves=0 still is_animal false; use moves=1 so footprint is the tile only
+        db.objects.insert(418, animal_def(418, "Wolf", 0, 0.5, 3.0));
+        // Force animal via moves>0 (is_animal requires moves>0)
+        if let Some(d) = db.objects.get_mut(&418) {
+            d.moves = 1;
+        }
+        // Seal everything except a 1-tile-wide corridor on y=5 from x=0..10
+        for y in 0..20 {
+            for x in 0..20 {
+                if y != 5 || !(0..=10).contains(&x) {
+                    w.set_object(x, y, 1);
+                }
+            }
+        }
+        // Wolf on corridor midpoint — footprint covers (4..6, 4..6) but walls already seal;
+        // on-corridor tiles (4,5)(5,5)(6,5) become animal-blocked.
+        w.set_object(5, 5, 418);
+        let out = goto_path_outcome(&w, &db, 0, 5, 10, 5, true);
+        assert_eq!(out, GotoPathOutcome::BlockedByAnimal);
+        // Without considerAnimals: wolf tile is not blocks_walking → path ok
+        let out2 = goto_path_outcome(&w, &db, 0, 5, 10, 5, false);
+        assert_eq!(out2, GotoPathOutcome::Reachable);
+    }
+
+    /// Solid wall seal → NotReachable (no animal dual-pass win).
+    #[test]
+    fn goto_solid_wall_not_reachable() {
+        let mut w = World::new(20, 20, false);
+        let mut db = ContentDb::default();
+        db.objects.insert(1, def(1, "Wall", true));
+        // Seal start completely
+        w.set_object(1, 0, 1);
+        w.set_object(-1, 0, 1);
+        w.set_object(0, 1, 1);
+        w.set_object(0, -1, 1);
+        assert_eq!(
+            goto_path_outcome(&w, &db, 0, 0, 5, 5, true),
+            GotoPathOutcome::NotReachable
+        );
+        assert_eq!(
+            goto_path_outcome(&w, &db, 0, 0, 5, 5, false),
+            GotoPathOutcome::NotReachable
+        );
+    }
+
+    #[test]
+    fn next_step_consider_animals_avoids_wolf_footprint() {
+        let mut w = World::new(40, 40, false);
+        let mut db = ContentDb::default();
+        db.objects.insert(1, def(1, "Wall", true));
+        db.objects.insert(418, animal_def(418, "Wolf", 1, 0.5, 3.0));
+        for y in 0..20 {
+            for x in 0..20 {
+                if y != 5 || !(0..=10).contains(&x) {
+                    w.set_object(x, y, 1);
+                }
+            }
+        }
+        w.set_object(5, 5, 418);
+        // With animals: corridor sealed by wolf footprint
+        assert!(next_step_consider_animals(&w, &db, 0, 5, 10, 5, true).is_none());
+        // Without animals: can step toward goal along corridor
+        assert!(next_step_consider_animals(&w, &db, 0, 5, 10, 5, false).is_some());
     }
 
     /// Benchmark-style unit: A* corner-to-corner on empty 50×50 finishes quickly.

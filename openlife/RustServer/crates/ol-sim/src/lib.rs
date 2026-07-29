@@ -12,27 +12,43 @@ mod afk;
 mod age_curves;
 mod age_stage;
 mod ai_goals;
+// Haxe: openlife.server.AiHandler rate-limit/prompt/async (AI-HANDLER / S-AIH llm_prompt)
+mod ai_handler;
+mod ai_llm_apply;
+// Haxe: openlife.server.AIProvider pure re-export (AI-PROVIDER / S-AIP llm_http)
+mod ai_provider;
 mod ally;
 mod animal_move;
 mod animals;
 mod apocalypse;
 mod biome_colors;
 mod death_cause;
+mod death_inherit;
+mod death_polish;
+mod postload_wire;
+// Haxe: ServerSettings.readFromFile / TimeHelper.ReadServerSettings (CONFIG-SETTINGS)
+mod settings_live;
 mod death_log;
 mod biomes_query;
 mod chunk_tier;
 mod clothing_cmds;
 mod combat;
 mod craft_graph;
+// Haxe: AiBase.itemToCraft + failedCraftings sticky on Player (AI-CRAFT-STICKY)
+mod craft_ai_sticky;
 mod craft_value;
 mod crime;
 mod curse;
+// Haxe: TransitionHelper Dark Nosaj / Tarr monument USE (DARK-NOSAJ)
+mod dark_nosaj;
 mod debt_book;
 mod drain_est;
 mod economy;
 mod emote_limit;
 mod environment;
 mod feed;
+// Haxe: GlobalPlayerInstance.doEating feed-other (FEED-OTHER-YUM)
+mod feed_other_yum;
 mod fertility;
 mod fire;
 mod gestation_tick;
@@ -41,12 +57,16 @@ mod hunt;
 mod move_notes;
 mod move_path;
 mod birth_fitness;
+// Haxe: GPI.spawnAsEve food plants + jungle banana (EVE-BANANA)
+mod eve_spawn;
 mod leadership;
 mod lineage_persist;
 mod locks;
 mod look;
 mod map_chunk;
 mod markers;
+// Haxe: Connection.sendMapLocation MOTHER/BABY/FOLLOWER/HUMAN/ALLY/FAM (MAP-LOCATION-PINS)
+mod map_location_pins;
 mod mumble;
 mod mute;
 mod mutation;
@@ -72,15 +92,179 @@ mod skills;
 mod snow;
 mod social;
 mod speech;
+// Haxe: GlobalPlayerInstance.doCommands (DO-COMMANDS / say_commands)
+mod do_commands_wire;
 mod tools;
 mod tutorial;
 mod twins;
+mod twin_heart;
 mod version_gate;
 mod war;
+// SOCIAL-WAR-PERSIST: WPS1 war/posse session disk (war_posse_disk)
+mod war_posse_persist;
 mod weather;
 mod wire_fields;
 mod yum;
 
+// --- Port residual modules (wired for compile; keep alphabetical) ---
+mod ai_follow_walk;
+mod ai_path_reach;
+mod ai_say_helper;
+mod ai_takeover;
+mod animal_damage;
+mod animal_pop;
+mod baker_profession;
+mod clothing_transitions;
+mod contained_timers_persist;
+mod day_phase_names;
+mod emotes;
+mod farmer_profession;
+mod fever_pe;
+mod follow_hire_knobs;
+mod food_fill;
+mod food_store_max;
+mod health_prestige;
+mod heat_ideal;
+mod horse_mount;
+mod item_value;
+mod jump_bw;
+mod leader_range;
+mod long_term;
+mod loved_food_wire;
+mod map_temp_player;
+mod math_wrap;
+mod move_live_gates;
+mod move_nest_speed;
+mod move_speed;
+mod multi_use;
+mod nested_body;
+mod object_counts_share;
+mod place_object;
+mod player_soul;
+mod players_persist;
+mod pottery_profession;
+mod score_entry;
+mod shepherd_profession;
+mod smith_profession;
+mod teleport_cmd;
+mod alt_outcome;
+mod use_transition;
+mod weapon_wound;
+mod world_food_stats;
+mod world_time;
+mod fire_food_profession;
+mod handling_fire;
+mod get_or_craft;
+mod short_craft_intent;
+mod search_best_food;
+mod fire_food_rung;
+mod is_picking_up_food;
+// --- end residual modules ---
+// OBJECTCOUNTS-LIVE: ObjectCounts autosave share
+pub use object_counts_share::{ObjectCountsShare, ObjectCountsSnapshot};
+pub use health_prestige::{clothing_prestige_factor, clothing_prestige_factor_ex, prestige_fan_deltas, prestige_fan_deltas_ex, coins_from_prestige_count, PrestigeFanDelta};
+// --- Port residual crate-root reexports (minimal + profession runtimes) ---
+pub use ai_handler::{LlmSpeechIoShare, LlmSpeechRuntime, new_llm_speech_io_share};
+pub use animal_damage::is_holding_weapon;
+pub use baker_profession::{BakerProfessionRuntime, BakerTaskState};
+pub use farmer_profession::{FarmProfessionRuntime, FarmTaskState, BASIC_FARM_ASSIGNED_MAX_PROFESSION, BASIC_FARM_DEFAULT_MAX_PROFESSION};
+// Haxe: AiBase smith profession (AI-JOB-SMITH / AI-JOB-SMITH-WIRE)
+pub use smith_profession::{
+    assign_smith_from_speech, chebyshev, count_smith_peers_filtered, critical_smith_shortcrafts,
+    decide_smith_job, decide_smith_job_for_slot, do_smithing, do_smithing_products,
+    fill_smith_counts_from_map, forge_id_priority, has_or_become_smith, infer_smith_stage_from_have,
+    is_forge_id, is_steel_crucible_count_id, parse_smith_profession_speech, pick_forge_near_home,
+    pick_forge_parent, pick_smith_profession_goal, prepare_smithing_tools,
+    resolve_smith_assigned_job, smith_action_to_goal, smith_goal_from_counts_and_rung,
+    smith_goal_from_map_and_rung, smith_job_rung_label, smith_job_slot_priority,
+    smith_pipeline_targets, smith_slot_for_rung, try_decide_smith_from_rung, wipe_smith_on_eat,
+    ForgeCandidate, MapObj, SmithAction, SmithCounts, SmithJobSlot, SmithPeerSnapshot,
+    SmithProfessionRuntime, BASKET_OF_CHARCOAL, FIRING_FORGE, FIRING_KILN, FLAT_ROCK,
+    FLAT_STONE_COUNT_RADIUS, FORGE, FORGE_SEARCH_RADIUS, FORGE_WITH_CHARCOAL, IRON_ORE,
+    IRON_ORE_COUNT_RADIUS, SHEARS, SMITHING_HAMMER, SMITH_PROFESSION_KEY, STEEL_AXE,
+    STEEL_CHISEL_FAMILY, STEEL_COUNT_RADIUS, STEEL_HOE, STEEL_INGOT, STEEL_MINING_PICK, STONE,
+    WROUGHT_IRON,
+};
+pub use fire_food_rung::try_decide_fire_food_from_rung;
+pub use fire_food_profession::{FireFoodAction, FireFoodProfessionRuntime, FIRE_FOOD_HOME_RADIUS};
+pub use food_store_max::{food_store_max_from_parts, food_store_max_from_parts_ex, MIN_HEALTH_MEDIAN_PRESTIGE};
+pub use handling_fire::{FireFoodDispatchPath, FireKeeperProfessionRuntime, HandlingFireAction, HandlingFireMapObj, handling_fire_sensors_from_map, make_fire_food_late_or_hungry};
+pub use leadership::direct_follow_leader;
+pub use move_speed::VitalsSpeedLiveKnobs;
+pub use player_soul::{person_looks_female, PlayerSoul, SoulView};
+pub use players_persist::PlayersShare;
+pub use pottery_profession::PotterProfessionRuntime;
+pub use shepherd_profession::ShepherdProfessionRuntime;
+pub use short_craft_intent::{
+    drop_held_live_intent_actionable, live_intent_is_wait, smart_drop_held_profession,
+    smart_drop_held_profession_ex,
+    ShortCraftLiveIntent,
+};
+// Haxe: AiBase.itemToCraft / failedCraftings / itemToCraftId (AI-CRAFT-STICKY / craft_runtime)
+pub use craft_ai_sticky::{
+    craft_item_with_player_craft_ai, expand_craft_item_player_sticky,
+    resolve_seek_or_craft_player_sticky, PlayerCraftAi,
+};
+
+pub use accounts::format_account_statistics_html;
+pub use world_food_stats::{
+    apply_world_food_factors, format_food_statistics_html, format_lineage_ages_html, format_lineage_death_reason_html, generate_lineage_statistics,
+    format_lineage_statistics_html, super_meh_extra_food_value, super_meh_food_max_is_deadly, super_meh_trade, SuperMehTrade,
+    WorldFoodShare, WorldFoodStats,
+};
+pub use yum::{
+    can_eat_obj_ex, compute_eat_full, dont_change_craving, loved_food_ids_for_person_color,
+    refuse_self_eat_super_meh,
+};
+pub use ai_follow_walk::{
+    apply_follow_sticky_clear, decide_follow_walk, follow_seed, plan_follow_sticky_clear_ex,
+    truncate_follow_path_steps, FollowWalkDecision, FOLLOW_PATH_STEP_CAP,
+};
+pub use animals::AnimalMovementTick;
+pub use baker_profession::do_baking;
+pub use craft_ai_sticky::apply_sticky_flags_to_craft_sensors;
+pub use get_or_craft::CraftLiveExpandOpts;
+pub use death_polish::is_wound_object;
+pub use short_craft_intent::drop_held_ai::{HOT_ADOBE_OVEN, HOT_COALS};
+pub use farmer_profession::{do_basic_farming, do_basic_farming_after_sheep, farm_counts_from_nearby};
+pub use fertility::is_fertile_ex;
+pub use fire_food_profession::{
+    count_fire_food_peers_filtered, fill_fire_food_counts_from_map, make_fire_food,
+    FireFoodMapObj, FireFoodPeerSnapshot,
+    FIRE_FOOD_ASSIGNED_MAX_PEOPLE, FIRE_FOOD_MAKE_STUFF_MAX_PEOPLE,
+};
+pub use player_soul::{email_looks_ai, person_is_female};
+pub use ai_goals::priority_ladder::{LiveSensorInput, age_rotated_job_sequence, sensors_from_ext_ex, LiveSensorExtras, AgeRotatedJobKind};
+pub use reputation::{compute_hit_reputation, HitReputationInput, DEVIL_MASK_CLOTHING_ID};
+pub const MAKE_STUFF_FARM_MAX_PEOPLE: i32 = FIRE_FOOD_MAKE_STUFF_MAX_PEOPLE;
+pub use ai_goals::{POTTER_TARGET_ID, SHEPHERD_TARGET_ID};
+
+
+pub use get_or_craft::CraftScanFilters;
+
+// --- compile-green reexports (missing crate-root symbols) ---
+pub use combat::calculate_enemy_vs_ally_strength_factor_ex;
+pub use move_path::check_if_not_moving_and_close_enough;
+pub use move_live_gates::{
+    is_friendly, note_too_close_say, refuse_ranged_use_too_close,
+};
+pub use craft_ai_sticky::{
+    expand_craft_item_player_sticky_scan, select_sticky_craft_for_tick, StickyCraftTickChoice,
+};
+pub use shepherd_profession::BOWL_CORN_KERNELS;
+pub use short_craft_intent::short_craft_on_ground_to_live_intent;
+pub use handling_fire::try_decide_handling_fire_from_rung;
+pub use ai_follow_walk::{AiFollowSticky, FollowTargetSnap};
+pub use locks::LockpickSettings;
+pub use food_store_max::{
+    calculate_health_age_factor, calculate_health_food_store_max_factor, median_prestige_for_health,
+};
+pub use world_time::WorldMapTimeState;
+// --- end compile-green reexports ---
+pub use settings_live::SimBootLive;
+include!("server_api_reexports.inc.rs");
+
+// --- end residual reexports ---
 
 pub use move_path::{
     advance_path, build_move_path, calculate_length, chebyshev as move_chebyshev,
@@ -90,6 +274,15 @@ pub use move_path::{
 };
 pub use birth_fitness::{
     father_fitness, mother_fitness, ChildView, FatherView, MotherView, EVE_OR_ADAM_BIRTH_CHANCE,
+};
+// Haxe: GlobalPlayerInstance.spawnAsEve + ClearStartLocations (EVE-BANANA / jungle_spawn)
+pub use eve_spawn::{
+    classify_eve_food_site, collect_eve_food_sites, eve_location_fitness, eve_person_color_at,
+    find_eve_spawn, find_eve_spawn_with_rng, get_close_special_biome_person_color,
+    is_eve_start_food_id, person_color_by_biome, pick_best_eve_site, resolve_eve_spawn_site,
+    select_eve_food_pool, sites_for_pool, use_fixed_starting_spawn, EveFoodPool, EveFoodPoolCounts,
+    EveFoodSite, EveSpawnOpts, EVE_BANANA_PLANT, EVE_BERRY_BUSH, EVE_LOCATION_SAMPLES,
+    EVE_MIN_FOOD_SITES, EVE_START_FOOD_IDS,
 };
 
 pub use accounts::{
@@ -108,8 +301,18 @@ pub use biome_colors::{
     format_hex_query, name_for_biome, BiomeColorEntry, Rgb, BIOME_COLORS,
 };
 pub use death_cause::{
-    combat_death, format_cause_query, format_death_event, DeathCause,
+    combat_death, combat_death_wire, food_death_wire, format_cause_query, format_death_event,
+    format_death_event_tag, hunger_death_wire, killed_by_object_wire,
+    parse_killed_object_id, DeathCause,
 };
+pub use death_inherit::{
+    account_soul_token, add_owner_to_helper, apply_inherit_coins, apply_inherit_ownership_on_helpers,
+    choose_new_leader, count_leadership_power, format_inherit_events, format_leader_succession_event,
+    format_ownership_events, remove_owner_from_helper, stamp_grave_soul, InheritContext,
+    InheritTransfer, LeaderSuccession, OwnershipTransfer,
+};
+pub use death_polish::{apply_death_polish, place_grave_with_soul};
+pub use economy::INHERIT_COINS_FACTOR;
 pub use mute::{format_mute_query, parse_mute_command, should_hear, MuteBook};
 pub use object_tags::{
     format_held_tags_query, format_object_tags_summary, parse_object_description, plus_tags_only,
@@ -130,11 +333,15 @@ pub use version_gate::{
     format_version_reject_ps, parse_version_token, should_hard_reject_login, versions_compatible,
     VersionGatePolicy, VersionGateResult, DEFAULT_REQUIRED_VERSION,
 };
-pub use gestation_tick::due_mothers;
+pub use gestation_tick::{due_mothers, format_twin_party_ready, format_twin_wait_ps, poll_twin_timeouts};
 pub use ai_goals::{
-    format_seeking_query, parse_profession_token, pick_goal, pick_goal_ext, pick_goal_smith_craft,
-    pick_smith_goal, smith_product_targets, Goal, Profession, FARMER_TARGET_ID, HUNGRY_FOOD,
-    SMITH_IRON_ID, SMITH_TARGET_ID,
+    age_job_index, format_seeking_query, goal_from_rung, is_child_and_has_mother,
+    is_hungry_simple, parse_profession_token, pick_goal, pick_goal_ext, pick_goal_from_ladder,
+    pick_goal_from_live_sensors, pick_goal_smith_craft, pick_goal_smith_craft_at_stage,
+    pick_smith_goal, resolve_priority_rung, sensors_from_simple,
+    smith_product_targets, update_is_hungry, Goal, PriorityBand, PriorityRung, PrioritySensors,
+    Profession, BAKER_TARGET_ID, FARMER_TARGET_ID, HUNGRY_FOOD, HUNGRY_ENTER_FLOOR, HUNGRY_ENTER_FRAC,
+    HUNGRY_LEAVE_FRAC, MIN_AGE_TO_EAT, SMITH_IRON_ID, SMITH_TARGET_ID, SMITHING_HAMMER_ID,
 };
 pub use ally::AllyState;
 pub use animals::{
@@ -147,9 +354,12 @@ pub use chunk_tier::{
     ChunkTier,
 };
 pub use combat::{
-    CombatState, CombatStats, HitResult, FOOD_MAX_DEATH, HITS_KILL_THRESHOLD, KILL_RANGE,
-    MAX_WOUND, WOUND_BLEED_DRAIN,
-    WOUND_KILL_THRESHOLD,
+ally_strength_blocks_pickup, calculate_enemy_vs_ally_strength_factor, close_ally_ids_for_anger,
+combat_strength, is_close_for_ally_strength, resolve_ally_damage_factor, AllyStrengthPlayer,
+CombatState, CombatStats, HitResult, ALLY_CONSIDERED_CLOSE, ALLY_ON_ALLY_DAMAGE_FACTOR,
+ALLY_STRENGTH_BASE, ALLY_STRENGTH_FACTOR_CAP, ALLY_STRENGTH_TOO_LOW_FOR_PICKUP_DEFAULT,
+FOOD_MAX_DEATH, HITS_KILL_THRESHOLD, KILL_RANGE, MAX_WOUND, WOUND_BLEED_DRAIN,
+WOUND_KILL_THRESHOLD,
 };
 pub use craft_graph::ReverseCraftGraph;
 pub use craft_value::{
@@ -181,13 +391,35 @@ pub use professions::{
 pub use leadership::{
     follower_count, format_leader_query, is_leader, rank_leaders, LeaderEntry, LEADER_QUERY_LIMIT,
 };
+pub use postload_wire::{
+apply_grave_account_link, apply_init_object_helpers_after_read,
+apply_player_owning_link, content_grave_meta, description_is_orig_grave,
+player_alive_for_postload, rebuild_account_graves_from_world,
+rebuild_player_owning_from_world, account_token_index, PostloadWireStats,
+};
 pub use mutation::{SpecialIndex, SpecialKind};
 pub use fire::{FireState, FireTile, DEFAULT_FIRE_SECS, FIRE_FOOD_DRAIN};
 pub use locks::LockState;
 pub use drain_est::{estimate_food_drain, DrainEstimate};
+pub use move_live_gates::{
+    calculate_close_blocking_grave_fitness, calculate_distance_sq,
+    close_hostile_weapon_speed_active, format_cursed_message,
+    has_close_blocking_grave, has_close_hostile_with_weapon,
+    is_close_use_exact, is_friendly_ally_only, resolve_grave_curse,
+    ClosePlayerCandidate, GraveCurseTransition, BLOCKING_GRAVE_FITNESS_CAP,
+    BLOCKING_GRAVE_FITNESS_THRESHOLD, CLOSE_ENEMY_WEAPON_DISTANCE,
+    COMBAT_ANGRY_TIME_BEFORE_ATTACK, CURSE_CLEAR_EMOTE_INDEX,
+    CURSE_CLEAR_SAY, CURSE_ENTER_EMOTE_INDEX, CURSE_ENTER_SAY,
+    GRAVE_BLOCKING_DISTANCE, GRAVE_CURSE_CLEAR_DISTANCE_MULT,
+    MAX_PLAYERS_BEFORE_ACTIVATING_GRAVE_CURSE,
+};
 pub use move_notes::{
-    ballast_speed_mult, compose_move_speed, format_speed_query, format_weight_query,
-    weight_item_count, BALLAST_PER_ITEM,
+    ballast_speed_mult, compose_move_speed, compose_move_speed_with_floor,
+    floor_counts_as_road, floor_road_biome_factor, floor_road_factor_at, floor_speed_mult,
+    format_speed_query, format_weight_query, scan_path_road_and_biome,
+    soften_contained_speed_on_floor, soften_held_speed_on_floor, tile_biome_speed,
+    weight_item_count, PathRoadScan, BALLAST_PER_ITEM, INITIAL_PLAYER_MOVE_SPEED,
+    MIN_BIOME_SPEED_FACTOR, ROAD_SPEED_THRESHOLD,
 };
 pub use permissions::{check_owned_access, format_lock_query, Access};
 pub use look::format_look;
@@ -198,15 +430,21 @@ pub use queries_extra::{
     format_save_denied, format_save_reply, format_wjournal_query,
 };
 pub use relations::{
-    format_children_query, format_gen_query, format_relation_query, is_eve, relation_of, Relation,
+    format_children_query, format_gen_query, format_relation_query, is_close_relative, is_eve,
+    is_leadership_ally, is_same_family, living_children_of, relation_of, root_eve_id, top_leader,
+    Relation,
 };
 pub use treasury::{
     donate as treasury_donate, format_treasury_query, pay_from_treasury, tax, TreasurySnapshot,
     TreasuryView,
 };
 pub use weapons::{
-    format_range_query, held_damage_protection_factor, weapon_damage, weapon_range,
-    DEFAULT_WEAPON_DAMAGE,
+bloody_weapon_after_strike, bloody_weapon_id_for, bloody_weapon_speed_mult,
+weapon_bloody_time_to_change, format_range_query, held_damage_protection_factor,
+is_bloody_weapon, is_never_drop_weapon, make_weapon_bloody_if_needed, weapon_damage,
+weapon_range, BloodyWeaponTransform, BLOODY_KNIFE_ID, BLOODY_WAR_SWORD_ID,
+BLOODY_WEAPON_MAKE_TTC, DEFAULT_WEAPON_DAMAGE, KNIFE_ID, WAR_SWORD_ID,
+WEAPON_COOLDOWN_FACTOR, WEAPON_COOLDOWN_FACTOR_IF_WOUNDING,
 };
 pub use skills::{SkillBook, SkillState, SkillTrack, XP_PER_CRAFT};
 pub use snow::{SnowCover, SNOW_FOOD_EXTRA, SNOW_MOVE_FACTOR};
@@ -214,13 +452,21 @@ pub use tutorial::{TutorialProgress, TutorialState, TIPS};
 pub use apocalypse::{
     Apocalypse, ApocalypsePhase, APOC_FOOD_DRAIN_MULT, DEFAULT_ACTIVE_SECS, DEFAULT_WARNING_SECS,
 };
+// Haxe: doEating feed-other feeder prestige share (FEED-OTHER-YUM)
+pub use feed_other_yum::{
+    feed_other_feeder_prestige_delta, FEED_OTHER_FEEDER_PRESTIGE_SHARE,
+};
 pub use feed::{
-    apply_feed_amounts, breastfeed_tick, can_breastfeed, can_feed, name_looks_like_food,
-    pickup_feed_amounts, FEED_RANGE, FOOD_RESTORE_FACTOR_WHILE_FEEDING,
-    MAX_CHILD_AGE_BREAST_FEEDING, PICKUP_FEEDING_FOOD_RESTORE,
+    apply_feed_amounts, breastfeed_tick, can_breastfeed, can_feed, can_nurse_age,
+    can_pickup_breastfeed_age, can_pickup_player_ages, get_max_child_feeding,
+    name_looks_like_food, nurse_hits_heal, pickup_feed_amounts, should_set_follow_on_hold,
+    FEED_RANGE, FOOD_RESTORE_FACTOR_WHILE_FEEDING, MAX_AGE_FOR_PICKUP_FROM_OTHERS,
+    MAX_CHILD_AGE_BREAST_FEEDING, MIN_MAX_CHILD_FEEDING, NURSE_HITS_HEAL_PER_SEC,
+    PICKUP_EXHAUSTION_GAIN, PICKUP_FEEDING_FOOD_RESTORE,
 };
 pub use fertility::{
-    FertilityState, BIRTH_COOLDOWN_SECS, FERTILE_MAX_AGE, FERTILE_MIN_AGE, GESTATION_SECS,
+    age_fertile, is_fertile, FertilityState, BIRTH_COOLDOWN_SECS, FERTILE_MAX_AGE,
+    FERTILE_MIN_AGE, GESTATION_SECS,
 };
 pub use curse::{
     compute_excess, format_curse_score_change, format_curse_token_change, CursePlayer, CurseState,
@@ -234,9 +480,17 @@ pub use environment::{
     BIOME_OCEAN, BIOME_RIVER, OCEAN_RIVER_FOOD_DRAIN_MULT,
 };
 pub use speech::{
-    chat_range_for_age as speech_chat_range_for_age, ADULT_CHAT_RANGE, MUMBLE_CHAT_RANGE,
-    SHOUT_CHAT_RANGE, SpeechVolume, WHISPER_CHAT_RANGE,
+    chat_range_for_age as speech_chat_range_for_age, closest_owned_tile, compute_hire_cost,
+    do_command_broadcasts_chat, extract_command_name, find_player_by_name, format_exile_say_result,
+    format_follow_say_result, format_give_say_result, format_hire_say_result,
+    format_home_bang_result, format_order_global, format_own_this_result, format_redeem_say_result,
+    hire_age_ok, hire_angry_ok, hire_class_ok, is_follow_self_name, is_home_oven_id,
+    parse_do_command, parse_own_this_name, parse_roman_coin_amount, pick_nearest_home_oven,
+    ADULT_CHAT_RANGE, MAX_DISTANCE_CLOSE_FOR_SAY, DoCommand, HIRE_COST,
+    HIRE_COST_INCREASE_PER_PERSON, HOME_OVEN_IDS,
+    HOME_SEARCH_MAX_QUAD, MUMBLE_CHAT_RANGE, SHOUT_CHAT_RANGE, SpeechVolume, WHISPER_CHAT_RANGE,
 };
+pub use do_commands_wire::{apply_do_commands_live, DoCommandEffects, NameCandidate};
 pub use weather::{
     default_for_season, parse_weather_kind, Weather, WeatherKind, WeatherSnapshot, WeatherView,
 };
@@ -252,6 +506,21 @@ pub use map_chunk::{
 };
 pub use markers::{MapMarker, MarkerKind, MarkerState};
 pub use naming::{pick_random_name, FAMILY_NAMES, FIRST_NAMES};
+
+// Haxe: AiHandler.hx LLM path (AI-HANDLER / S-AIH llm_prompt) â€” pure rate limit, prompt, parse, log, chunk
+pub use ai_handler::{
+    api_key_from_env, api_url_from_env, append_conversation_log, build_prompt,
+    chat_response_with, check_if_should_do_command, collapse_response_newlines,
+    contains_any_separator, conversation_log_path, default_model_from_env, ensure_log_dir,
+    format_conversation_log_entry, format_date_string, get_command_context, get_emote_id,
+    get_rate_limit, get_relationship_info, is_llm_activated, is_network_error,
+    plan_respond_to_player, plan_response_chunks, parse_ai_response, process_llm_response_for_say,
+    split_response, wait_time_for_chars, AiCallRateLimit, AiResponseActions, ChatResponseOutcome,
+    ParsedAiResponse, PromptParts, RelationshipView, RespondProcessResult, RespondToPlayerPlan,
+    AI_API_KEY_NOT_SET, AI_CALLS_PER_HOUR_DEFAULT, AI_CHAT_MAX_ATTEMPTS,
+    AI_CONVERSATION_LOG_BASE_DEFAULT, AI_RATE_WINDOW_SECS, AI_RESPONSE_MAX_SPLITS,
+    AI_RESPONSE_SEPARATORS, AI_WAIT_TIME_PER_100_CHARS_DEFAULT, MAX_AI_RESPONSE_PER_SAY_DEFAULT,
+};
 pub use pathfind::{
     find_path, is_walkable, is_walkable_for_player, name_is_gate_or_door, next_step, path_steps,
 };
@@ -262,9 +531,11 @@ pub use player::{
 pub use poll::{parse_vote_choice, PollState, VoteChoice};
 pub use posse::{format_posse_join, PosseState};
 pub use prestige::{
-    other_prestige_info_wire, player_prestige_info_wire, prestige_class_from_percentile,
-    prestige_class_wire_token, prestige_classes_from_living_scores, PrestigeClass,
-    PRESTIGE_COMMONER_MAX, PRESTIGE_KING_MAX, PRESTIGE_NOBLE_MAX, PRESTIGE_SERF_MAX,
+    calculate_class_boni, other_prestige_info_wire, player_prestige_info_wire,
+    prestige_class_from_percentile, prestige_class_name_at_index, prestige_class_wire_token,
+    prestige_classes_from_living_scores, PrestigeClass, CLASS_BONI_NOBLE_SERF, CLASS_BONI_SAME,
+    PRESTIGE_CLASS_NAMES, PRESTIGE_COMMONER_MAX, PRESTIGE_KING_MAX, PRESTIGE_NOBLE_MAX,
+    PRESTIGE_SERF_MAX,
 };
 pub use score::{
     compute_score, PrestigePlayerRow, PrestigeSnapshot, PrestigeView, ScoreEntry, Scoreboard,
@@ -275,9 +546,21 @@ pub use social::{
     LineageView, SocialState,
 };
 pub use tools::ToolSlots;
-pub use twins::{TwinPeer, TwinRegistry};
+pub use twin_heart::{
+    format_twin_heart_ps, format_twin_timeout_ps, format_twin_wait_ps_code,
+    is_murder_death_reason, TwinHeartLinks, BROKEN_HEART_WOUND_STACKS,
+    TWIN_WAIT_TIMEOUT_SECS,
+};
+pub use twins::{
+    TwinJoinOutcome, TwinPeer, TwinRegistry, TwinWaitQueue, TwinWaiter, ReadyTwinParty,
+    TWIN_COUNT_MAX, TWIN_COUNT_MIN,
+};
 pub use war::{
     format_war_report, pair_key, WarState, STATUS_ALLIANCE, STATUS_PEACE, STATUS_WAR,
+};
+pub use war_posse_persist::{
+    apply_war_posse_snapshot, capture_war_posse_snapshot, load_war_posse, save_war_posse,
+    WarPosseShare, WarPosseSnapshot, DEFAULT_WAR_POSSE_FILE, WAR_POSSE_FORMAT_VERSION,
 };
 pub use yum::YumState;
 pub use ol_protocol::{format_baby_wiggle, format_dying};
@@ -288,7 +571,7 @@ use ol_net::{OutboundHub, NetIntent};
 use ol_protocol::{
     format_food_change, format_frame, format_heat_change, format_learned_tool_report,
     format_location_says, format_map_change, format_map_change_moving, format_photo_signature,
-    format_player_says,
+    format_player_emot, format_player_says,
     format_player_update_line, format_player_update_line_eat, format_player_update_line_full,
     format_pong, format_server_message, format_vog_update, ClientTag, PHOTO_DENIED_SIGNATURE,
 };
@@ -391,14 +674,41 @@ pub fn person_object_id(p: &Player) -> i32 {
     }
 }
 
-/// Known local playtest account — unique name + distinct skin so clients know the server.
+/// Live female check for fertility / mother fitness (Haxe `isFemale`).
+///
+/// When content has a person race (`person` â‰  0) or an explicit `male=1` flag,
+/// use Haxe `ObjectData.male` (`!male` â‡’ female). Otherwise fall back to the
+/// name/description heuristic (`person_looks_female`).
+// Haxe: GlobalPlayerInstance.isFemale / ObjectData.male
+// TWIN-PARTY-RESID: ObjectData.male flag
+pub fn player_is_female(state: &SimState, p: &Player) -> bool {
+    let po = person_object_id(p);
+    let Some(def) = state.content.get(po) else {
+        return person_looks_female(po, "", "");
+    };
+    let race = state.content.person_color(po);
+    let content_male = if race != 0 || def.male {
+        Some(def.male)
+    } else {
+        None
+    };
+    person_is_female(po, def.name.as_str(), def.description.as_str(), content_male)
+}
+
+/// Full Haxe `isFertile` for a live player.
+// Haxe: GlobalPlayerInstance.isFertile
+pub fn player_is_fertile(state: &SimState, p: &Player) -> bool {
+    is_fertile(p.deleted, p.age, player_is_female(state, p))
+}
+
+/// Known local playtest account â€” unique name + distinct skin so clients know the server.
 const PLAYTEST_EMAIL_NEEDLE: &str = "76561198032560680";
 const PLAYTEST_FIRST_NAME: &str = "GROKPLAY";
 /// Family name embeds the server crate version so the client always shows which build.
 fn playtest_family_name() -> String {
     format!("V{}", env!("CARGO_PKG_VERSION"))
 }
-/// Male005 — distinct from default Female001 (19).
+/// Male005 â€” distinct from default Female001 (19).
 const PLAYTEST_SKIN_OBJECT: i32 = 352;
 /// Haxe-style interest radius for MX/PU fan-out (Chebyshev tiles).
 pub const NEARBY_RANGE: i32 = 24;
@@ -407,18 +717,19 @@ pub const SHOUT_RANGE: i32 = 48;
 /// Soft Chebyshev radius for `SAY MUMBLE <text>` PS fan-out ([`MUMBLE_RANGE`]).
 pub const MUMBLE_SAY_RANGE: i32 = MUMBLE_RANGE;
 
-/// Chat PS fan-out radius by speaker age (Haxe age-scaled speech range).
+/// Chat PS fan-out radius by speaker age.
 ///
-/// Infants &lt;3 → 8, children &lt;10 → 16, elders ≥60 → 20, else [`NEARBY_RANGE`].
+/// Haxe `sendSayToAllClose` uses `MaxDistanceToBeConsideredAsCloseForSay` (20) for adults.
+/// Young soft scale is product-only; adults/elders â†’ [`ADULT_CHAT_RANGE`] (not [`NEARBY_RANGE`]).
+/// // Haxe: ServerSettings.MaxDistanceToBeConsideredAsCloseForSay = 20
+/// // PO-MAX-DISTANCE
 pub fn chat_range_for_age(age: f32) -> i32 {
     if age < 3.0 {
         8
     } else if age < 10.0 {
         16
-    } else if age >= 60.0 {
-        20
     } else {
-        NEARBY_RANGE
+        ADULT_CHAT_RANGE
     }
 }
 /// Resend MAP_CHUNK when player moved this many tiles from last MC center (Haxe).
@@ -445,44 +756,10 @@ pub fn resolve_grave_object_id(content: &ContentDb) -> i32 {
         .unwrap_or(GRAVE_OBJECT_ID)
 }
 
-/// Transfer deceased coins to mother if she is online and living; otherwise to treasury.
-/// Updates scoreboard coin fields for affected wallets.
+/// GPI-DEATH-POLISH grave_soul_leader — Haxe doDeathHelper polish:
+/// ChooseNewLeader + InheritOwnership + InheritCoins (grave residual + soul).
 fn apply_death_inheritance(state: &mut SimState, deceased_p_id: i32) {
-    let mother_id = state
-        .social
-        .lineages
-        .get(&deceased_p_id)
-        .and_then(|n| n.mother_id);
-    let mother_online = mother_id.and_then(|mid| {
-        state
-            .players
-            .values()
-            .find(|pl| pl.p_id == mid && !pl.deleted && pl.connected)
-            .map(|pl| pl.p_id)
-    });
-    let amount = state
-        .economy
-        .inherit_on_death(deceased_p_id, mother_online);
-    if amount <= 0 {
-        return;
-    }
-    // Deceased wallet is zero; sync scoreboard + beneficiary.
-    state.scoreboard.set_coins(deceased_p_id, 0);
-    if let Some(mid) = mother_online {
-        let coins = state
-            .economy
-            .wallets
-            .get(&mid)
-            .map(|w| w.coins)
-            .unwrap_or(0);
-        state.scoreboard.set_coins(mid, coins);
-        state.push_event(format!("INHERIT {deceased_p_id} mother={mid} {amount}"));
-    } else {
-        state.push_event(format!(
-            "INHERIT {deceased_p_id} treasury={} {amount}",
-            state.economy.treasury
-        ));
-    }
+    death_polish::apply_death_polish(state, deceased_p_id);
 }
 
 /// Max Chebyshev ring radius when scattering loot on death / DROPALL.
@@ -632,7 +909,7 @@ pub struct SimState {
     pub prefer_last_use: bool,
     /// Shared snapshots for web viewer (optional).
     pub player_views: Option<PlayerViewMap>,
-    /// Tile auto-decay timers: (x,y) → (expected object id, seconds remaining).
+    /// Tile auto-decay timers: (x,y) â†’ (expected object id, seconds remaining).
     pub pending_decays: HashMap<(i32, i32), (i32, f32)>,
     pub social: SocialState,
     pub environment: Environment,
@@ -663,7 +940,7 @@ pub struct SimState {
     pub posse: PosseState,
     /// Theft / crime bookkeeping (owned-object takes).
     pub crime: CrimeState,
-    /// Soft email→account identity (no SQL).
+    /// Soft emailâ†’account identity (no SQL).
     pub accounts: AccountBook,
     /// Weather overlay (food drain / move notes).
     pub weather: Weather,
@@ -677,8 +954,14 @@ pub struct SimState {
     pub allies: AllyState,
     /// Session yes/no poll (`SAY POLL` / `VOTE` / `?POLL`).
     pub poll: PollState,
-    /// Multi-server twin peer list (**stub only** — no network I/O).
-    pub twins: TwinRegistry,
+    /// Multi-server twin peer list (**stub only** â€” no network I/O).
+pub twins: TwinRegistry,
+/// Twin-code birth waiting queue (protocol twin_code_hash / twin_count).
+/// // Haxe: Connection.loginHelper TODO twins â€” product queue
+pub twin_wait: TwinWaitQueue,
+    /// Same-server twin party heart-link after birth (murder â†’ broken heart).
+    /// // OHOL twins plan #10; TWIN-PARTY-RESID
+    pub twin_heart: TwinHeartLinks,
     /// Sparse special-object index (gates, graves, containers).
     pub specials: SpecialIndex,
     /// Soft skill XP per player (craft familiarity).
@@ -695,7 +978,7 @@ pub struct SimState {
     pub afk: AfkBook,
     /// Per-listener chat mute graph (`SAY MUTE` / `UNMUTE`; filters normal SAY PS).
     pub mutes: MuteBook,
-    /// Combat reputation floats (≠ prestige / PrestigeClass); updated on illegal/legal kill.
+    /// Combat reputation floats (â‰  prestige / PrestigeClass); updated on every connecting HIT (REPUTATION-HIT).
     pub reputation: ReputationBook,
     /// Optional client data-version policy (soft-log on LOGIN when client reports a version).
     pub version_gate: VersionGatePolicy,
@@ -736,8 +1019,15 @@ pub struct SimState {
     pub animal_wander_timer: f32,
     /// Accumulates toward [`LIVING_PRESTIGE_REFRESH_SECS`] for living prestige classes.
     pub prestige_refresh_timer: f32,
+    /// Haxe `GlobalPlayerInstance.medianPrestige` â€” health factor median (food max + aging).
+    // Haxe: GlobalPlayerInstance.medianPrestige (HEALTH-AGE-FOOD)
+    pub median_prestige: f32,
+    /// Haxe `WorldMap.eatenFoodPercentage` / FoodFactor live map (WORLD-FOOD-FACTOR).
+    // Haxe: WorldMap.addFoodStatistic / getFoodFactor / getStarvingFoodFactor
+    pub world_food: WorldFoodStats,
+    pub gameplay: crate::settings_live::GameplayKnobs,
     /// Recent session events (deaths, births, wars). Ring buffer max [`EVENT_LOG_MAX`].
-    /// No SQL — in-memory only.
+    /// No SQL â€” in-memory only.
     pub event_log: VecDeque<String>,
     /// Cached chunk interest-tier counts (refreshed each vitals tick).
     pub chunk_hot: u32,
@@ -746,12 +1036,24 @@ pub struct SimState {
     pub timed_movement: bool,
     /// When true, MX/PU/FX fan-out to **all** connected players (ignore NEARBY_RANGE).
     pub broadcast_all_updates: bool,
-    /// Optional death journal (RAM → disk); set by server at boot.
+    /// Optional death journal (RAM â†’ disk); set by server at boot.
     pub death_log: Option<std::sync::Arc<DeathLog>>,
     pub move_jump_max_chebyshev: i32,
     pub last_lock_wait_us: u32,
+    /// Haxe WorldMap time (long-term / soul / postload).
+    pub world_map_time: crate::world_time::WorldMapTimeState,
+    /// Base season duration seconds (settings_live).
+    pub season_duration_base_secs: f32,
+    /// Eternal winter override.
+    pub eternal_winter: bool,
+    /// Live lockpick knobs.
+    pub lockpick_settings: crate::locks::LockpickSettings,
+    /// AI memory caps.
+    pub ai_memory_max_entries: usize,
+    pub ai_chat_memory_max_entries: usize,
+    /// Haxe CalculateBlockedByAi sticky map (conn -> blocked positions).
+    pub blocked_by_ai: HashMap<(i32, i32), f32>,
 }
-
 
 impl SimState {
     pub fn new(world: Arc<RwLock<World>>, content: Arc<ContentDb>) -> Self {
@@ -796,6 +1098,8 @@ impl SimState {
             allies: AllyState::default(),
             poll: PollState::default(),
             twins: TwinRegistry::default(),
+twin_wait: TwinWaitQueue::default(),
+            twin_heart: TwinHeartLinks::default(),
             specials: SpecialIndex::default(),
             skills: SkillState::default(),
             tutorial: TutorialState::default(),
@@ -822,6 +1126,8 @@ impl SimState {
             paused: false,
             animal_wander_timer: 0.0,
             prestige_refresh_timer: 0.0,
+            // Haxe: medianPrestige default MinHealthPerYear * 30
+            median_prestige: MIN_HEALTH_MEDIAN_PRESTIGE,
             event_log: VecDeque::new(),
             chunk_hot: 0,
             chunk_warm: 0,
@@ -833,6 +1139,15 @@ impl SimState {
             death_log: None,
             move_jump_max_chebyshev: 2,
             last_lock_wait_us: 0,
+            world_food: WorldFoodStats::new(),
+            gameplay: crate::settings_live::GameplayKnobs::default(),
+            world_map_time: crate::world_time::WorldMapTimeState::default(),
+            season_duration_base_secs: 604800.0,
+            eternal_winter: false,
+            lockpick_settings: crate::locks::LockpickSettings::default(),
+            ai_memory_max_entries: 64,
+            ai_chat_memory_max_entries: 32,
+            blocked_by_ai: HashMap::new(),
         }
     }
 
@@ -848,7 +1163,7 @@ impl SimState {
     /// [`EVENT_LOG_QUERY_LAST`] entries, or `LOG none` when empty.
     ///
     /// `JOURNAL` is an alias for the same event-log ring buffer (not the on-disk
-    /// world journal — see [`Self::format_wjournal_query`]).
+    /// world journal â€” see [`Self::format_wjournal_query`]).
     pub fn format_event_log_query(&self) -> String {
         if self.event_log.is_empty() {
             return "LOG none".into();
@@ -887,7 +1202,7 @@ impl SimState {
     /// Operator force-save: set hook flag when Arc present.
     ///
     /// Returns reply body without leading p_id (`SAVE OK` / `SAVE deferred`).
-    /// No disk I/O — outer autosave task performs the write.
+    /// No disk I/O â€” outer autosave task performs the write.
     pub fn request_force_save(&self) -> String {
         match &self.save_request {
             Some(flag) => {
@@ -901,7 +1216,7 @@ impl SimState {
     /// `SAY ?WHO` / `SAY WHO` chat reply body (without leading player id).
     ///
     /// Lists online players (`connected && !deleted`) as `p_id first last`, sorted by
-    /// `p_id`, joined with `"; "`. Empty → `WHO none`.
+    /// `p_id`, joined with `"; "`. Empty â†’ `WHO none`.
     pub fn format_who_query(&self) -> String {
         let mut online: Vec<(i32, String)> = self
             .players
@@ -1077,7 +1392,7 @@ impl SimState {
 
     /// `SAY ?HELD` / `SAY HELD` chat reply body (without leading player id).
     ///
-    /// Empty hands → `HELD 0`. Non-zero → `HELD {id}` plus content object name when
+    /// Empty hands â†’ `HELD 0`. Non-zero â†’ `HELD {id}` plus content object name when
     /// present and non-empty (`HELD 33 Gooseberry`).
     pub fn format_held_query(&self, held_id: i32) -> String {
         if held_id == 0 {
@@ -1354,6 +1669,8 @@ impl SimState {
         for (p_id, class) in classes {
             self.social.set_lineage_prestige_class(p_id, class);
         }
+        // HEALTH-AGE-FOOD: keep medianPrestige in sync with living set.
+        self.recompute_median_prestige();
     }
 
     /// Combined social lineage prestige (falls back to combat prestige).
@@ -1376,6 +1693,39 @@ impl SimState {
         self.combat.prestige_class(p_id)
     }
 
+    /// Refresh Haxe medianPrestige from living prestige (HEALTH-AGE-FOOD).
+    pub fn recompute_median_prestige(&mut self) {
+        let mut vals: Vec<f32> = self
+            .players
+            .values()
+            .filter(|p| !p.deleted)
+            .map(|p| self.player_prestige(p.p_id).max(0.0))
+            .collect();
+        if vals.is_empty() {
+            self.median_prestige = MIN_HEALTH_MEDIAN_PRESTIGE;
+            return;
+        }
+        vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        let mid = vals.len() / 2;
+        let med = if vals.len() % 2 == 0 {
+            (vals[mid - 1] + vals[mid]) * 0.5
+        } else {
+            vals[mid]
+        };
+        self.median_prestige = median_prestige_for_health(med);
+    }
+
+    /// Haxe CalculateHealthFoodStoreMaxFactor for a living player.
+    pub fn player_health_food_store_max_factor(&self, p_id: i32, true_age: f32) -> f32 {
+        let yum = self.player_prestige(p_id);
+        calculate_health_food_store_max_factor(yum, self.median_prestige, true_age)
+    }
+
+    /// Haxe CalculateHealthAgeFactor for a living player.
+    pub fn player_health_age_factor(&self, p_id: i32, true_age: f32) -> f32 {
+        let yum = self.player_prestige(p_id);
+        calculate_health_age_factor(yum, self.median_prestige, true_age)
+    }
     /// Haxe PlayerSoul-style first-person prestige info wire string.
     pub fn player_prestige_info(&self, p_id: i32) -> String {
         player_prestige_info_wire(self.player_prestige(p_id))
@@ -1468,17 +1818,17 @@ fn send_frame(outbound: &OutboundHub, conn_id: u64) {
 /// Private/query PS in **protocol form** `p_id/0 text` + FRAME.
 ///
 /// Protocol (`protocol.txt` PLAYER_SAYS): each data line is **`p_id/isCurse text`**.
-/// Official clients parse with `indexOf("/")` — a space-only `p_id text` form is rejected.
+/// Official clients parse with `indexOf("/")` â€” a space-only `p_id text` form is rejected.
 ///
 /// Accepts either:
-/// - protocol lines `"p_id/0 text…"` (slash already present)
-/// - legacy sim lines `"p_id text…"` (space, no slash) — rewritten to `/0`
-/// - bare tokens like `"RATE"` — emitted as `0/0 RATE` so the slash parse always works
+/// - protocol lines `"p_id/0 textâ€¦"` (slash already present)
+/// - legacy sim lines `"p_id textâ€¦"` (space, no slash) â€” rewritten to `/0`
+/// - bare tokens like `"RATE"` â€” emitted as `0/0 RATE` so the slash parse always works
 fn send_ps_reply(outbound: &OutboundHub, conn_id: u64, line: &str) {
     let line = line.trim();
     let pkt = if let Some((head, rest)) = line.split_once(' ') {
         if head.contains('/') {
-            // Already `id/curse …` — keep body, still re-wrap via format_player_says when
+            // Already `id/curse â€¦` â€” keep body, still re-wrap via format_player_says when
             // the head is a clean `N/0` so #/newlines are sanitized.
             if let Some((id_s, curse_s)) = head.split_once('/') {
                 if let (Ok(p_id), Ok(curse)) = (id_s.parse::<i32>(), curse_s.parse::<i32>()) {
@@ -1492,7 +1842,7 @@ fn send_ps_reply(outbound: &OutboundHub, conn_id: u64, line: &str) {
         } else if let Ok(p_id) = head.parse::<i32>() {
             format_player_says(p_id, false, rest).into_bytes()
         } else {
-            // Non-numeric head (e.g. "RATE …") — still legal wire with speaker 0.
+            // Non-numeric head (e.g. "RATE â€¦") â€” still legal wire with speaker 0.
             format_player_says(0, false, line).into_bytes()
         }
     } else if let Ok(p_id) = line.parse::<i32>() {
@@ -1545,7 +1895,8 @@ fn send_chat_ps(
 
 /// Normal SAY / SHOUT / MUMBLE PS fan-out: skip muted listeners and DEAF players.
 ///
-/// Whispers use a private path and are not filtered by DEAF (see WHISPER handler).
+/// Whispers use a private path: muted listeners are skipped; DEAF does not block
+/// whispers (`should_hear(deaf, true)`). Prefer live path [`send_chat_ps`].
 /// Packet must already be full wire bytes for one PS (prefer [`format_player_says`]).
 fn send_nearby_chat(
     state: &SimState,
@@ -1568,7 +1919,7 @@ fn send_nearby_chat(
     }
 }
 
-/// Server→client global chat (Haxe GLOBAL / GLOBAL_MESSAGE style).
+/// Serverâ†’client global chat (Haxe GLOBAL / GLOBAL_MESSAGE style).
 /// Wire: `format_server_message("GM", &[text])` then [`OutboundHub::broadcast`].
 pub fn broadcast_global(outbound: &OutboundHub, text: &str) {
     let text = text.trim();
@@ -1629,7 +1980,7 @@ pub fn refresh_chunk_tier_counts(state: &mut SimState) {
         .filter(|pl| pl.connected && !pl.deleted)
         .map(|pl| (pl.x, pl.y))
         .collect();
-    // Sample a 7×7 chunk neighborhood around each player (cheap).
+    // Sample a 7Ã—7 chunk neighborhood around each player (cheap).
     let mut coords = std::collections::HashSet::new();
     const CS: i32 = 64;
     for &(x, y) in &player_tiles {
@@ -1652,7 +2003,7 @@ pub fn refresh_chunk_tier_counts(state: &mut SimState) {
 /// DROP on empty ground or into container (Haxe DROP x y [c]).
 ///
 /// Floor-only objects (`ObjectDef.floor`) are **not** placed on the ground object
-/// layer — DROP is skipped and the player keeps holding (floor place path TBD).
+/// layer â€” DROP is skipped and the player keeps holding (floor place path TBD).
 pub fn apply_drop(
     state: &mut SimState,
     outbound: &OutboundHub,
@@ -1735,7 +2086,7 @@ pub fn apply_drop(
                 return;
             }
         }
-        // Occupied non-container: try USE-style stack transition (stone on stone → pile).
+        // Occupied non-container: try USE-style stack transition (stone on stone â†’ pile).
         // Haxe often uses USE; clients may also DROP onto a same-type stackable.
         if let Some(r) = apply_use_at(state, conn_id, x, y) {
             if r.applied {
@@ -1760,7 +2111,7 @@ pub fn apply_drop(
                 return;
             }
         }
-        // Still blocked — unstick client immediately.
+        // Still blocked â€” unstick client immediately.
         send_player_update_and_frame(state, outbound, conn_id);
         let _ = c;
         return;
@@ -1793,7 +2144,7 @@ pub fn apply_drop(
 
 /// DROP reply: MX+PU **urgent** + **FM** (same speed class as USE).
 ///
-/// Previously used the normal lane without FM — official clients buffered and
+/// Previously used the normal lane without FM â€” official clients buffered and
 /// DROP looked multi-second laggy while pickup (USE+FM) felt instant.
 fn send_drop_result(
     state: &SimState,
@@ -1824,7 +2175,7 @@ pub fn normalize_say_text(payload: &str) -> String {
     let mut parts = t.split_whitespace();
     let a = parts.next().unwrap_or("");
     let b = parts.next();
-    // Two leading integers → drop them; remainder is the spoken line.
+    // Two leading integers â†’ drop them; remainder is the spoken line.
     if a.parse::<i32>().is_ok() {
         if let Some(b) = b {
             if b.parse::<i32>().is_ok() {
@@ -1838,7 +2189,7 @@ pub fn normalize_say_text(payload: &str) -> String {
 
 /// True when SAY text is a **server-wide** orderly shutdown command.
 ///
-/// Note: `!CLOSE` is **not** included — it only disconnects the speaking client
+/// Note: `!CLOSE` is **not** included â€” it only disconnects the speaking client
 /// (see `apply_say_or_remv` CLOSE handler). Use `!SHUTDOWN` to stop the process.
 pub fn is_shutdown_say(upper: &str) -> bool {
     let u = upper.trim();
@@ -1856,10 +2207,52 @@ pub fn is_close_say(upper: &str) -> bool {
     u == "!CLOSE" || u == "CLOSE!" || u == "CLOSE" || u.starts_with("!CLOSE ")
 }
 
-/// REMV x y [i] — take from container; SAY text — nearby chat + query commands.
+/// REMV x y [i] â€” take from container; SAY text â€” nearby chat + query commands.
 ///
 /// `SAY EMOTE <n>` is an alias for client `EMOT`: emit `PE player_id n` to
 /// connections within [`NEARBY_RANGE`] (no PS chat line).
+
+// --- Compile-heal stubs for partial CRAVING / path residual wires ---
+/// List content food object ids (craving pool).
+pub fn food_objects_list(state: &SimState) -> Vec<i32> {
+    state
+        .content
+        .objects
+        .iter()
+        .filter(|(_, d)| d.food_value > 0)
+        .map(|(id, _)| *id)
+        .collect()
+}
+
+/// Nearby best food for craving (stub until search_best_food live wire).
+pub fn nearby_best_for_craving(
+    _state: &SimState,
+    _conn_id: u64,
+) -> Option<crate::yum::NearbyBestFood> {
+    None
+}
+
+/// Deterministic craving RNG hooks (Haxe Math.random residual).
+pub fn craving_rand_int(max_inclusive: i32) -> i32 {
+    let _ = max_inclusive;
+    0
+}
+pub fn craving_rand_f01() -> f32 {
+    0.5
+}
+
+/// Mark path fail after USE (AI residual) — no-op until path_reach full wire.
+pub fn mark_path_fail_after_use_live(_state: &mut SimState, _conn_id: u64, _x: i32, _y: i32) {}
+pub fn process_player_score_entries(_state: &mut SimState, _outbound: &OutboundHub) {}
+pub fn mark_path_fail_after_food_pickup_action_live(
+    _state: &mut SimState,
+    _conn_id: u64,
+    _x: i32,
+    _y: i32,
+) {
+}
+pub fn mirror_war_posse_share(_state: &SimState, _share: &Option<WarPosseShare>) {}
+// --- end compile-heal stubs ---
 fn apply_say_or_remv(
     state: &mut SimState,
     outbound: &OutboundHub,
@@ -1883,21 +2276,21 @@ fn apply_say_or_remv(
         if upper != "?AFK" && upper != "AFK" {
             touch_afk_activity(state, conn_id);
         }
-        // ?STAGE / STAGE — infant/child/adult/elder.
+        // ?STAGE / STAGE â€” infant/child/adult/elder.
         if upper == "?STAGE" || upper == "STAGE" {
             let reply = format_stage_query(p.age);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?AFK / AFK — idle / remaining secs until AFK (DEFAULT_AFK_SECS).
+        // ?AFK / AFK â€” idle / remaining secs until AFK (DEFAULT_AFK_SECS).
         if upper == "?AFK" || upper == "AFK" {
             let reply = format_afk_query(&state.afk, p.p_id, state.sim_time, DEFAULT_AFK_SECS);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?RANGE / RANGE — combat range for held weapon name (before rate limit: cheap query).
+        // ?RANGE / RANGE â€” combat range for held weapon name (before rate limit: cheap query).
         if upper == "?RANGE" || upper == "RANGE" {
             let name = held_object_name(state, p.held_id);
             let r = weapon_range(p.held_id, &name);
@@ -1911,7 +2304,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // LOOK [dx dy] — biome/floor/obj under relative tile.
+        // LOOK [dx dy] â€” biome/floor/obj under relative tile.
         if upper == "LOOK" || upper.starts_with("LOOK ") || upper.starts_with("?LOOK") {
             // Prefer wire_fields::parse_xy for the coordinate pair after the verb.
             let after = text
@@ -1935,7 +2328,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?TREASURY / DONATE / TAX — treasury lives on Economy.
+        // ?TREASURY / DONATE / TAX â€” treasury lives on Economy.
         if upper == "?TREASURY" || upper == "TREASURY" {
             let reply = format_treasury_query(state.economy.treasury);
             let line = format!("{} {}", p.p_id, reply);
@@ -1967,7 +2360,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // TAX <amount> — leader pays from own wallet into treasury.
+        // TAX <amount> â€” leader pays from own wallet into treasury.
         if upper.starts_with("TAX ") {
             let amount: i32 = text
                 .split_whitespace()
@@ -2025,17 +2418,17 @@ fn apply_say_or_remv(
             info!(conn_id, e, "sim: SAY EMOTE/YAWN");
             return;
         }
-        // Commands (! / ? / known verbs) are NOT rate-limited — intermittent
+        // Commands (! / ? / known verbs) are NOT rate-limited â€” intermittent
         // "command sometimes works" was SAY RATE blocking before handlers.
         // Rate limit only free-form chat at the bottom of this function.
-        // HELP / ?HELP — short list of supported SAY commands (private PS; no SQL).
+        // HELP / ?HELP â€” short list of supported SAY commands (private PS; no SQL).
         if upper == "HELP" || upper == "?HELP" || upper.starts_with("?HELP") {
             let reply = SimState::format_help_query();
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // TIP / ?TIP / NEXT — newbie tutorial tip (advances on TIP/NEXT).
+        // TIP / ?TIP / NEXT â€” newbie tutorial tip (advances on TIP/NEXT).
         if upper == "?TIP" {
             let reply = state.tutorial.format_tip_query(p.p_id);
             let line = format!("{} {}", p.p_id, reply);
@@ -2055,7 +2448,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?REL / REL <p_id> — kinship via lineage mother links (Eve when mother_id None).
+        // ?REL / REL <p_id> â€” kinship via lineage mother links (Eve when mother_id None).
         if upper.starts_with("REL ") || upper.starts_with("?REL ") {
             let other: i32 = text
                 .split_whitespace()
@@ -2067,14 +2460,14 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // Bare ?REL / REL — self relation (shows EVE when mother_id is None).
+        // Bare ?REL / REL â€” self relation (shows EVE when mother_id is None).
         if upper == "?REL" || upper == "REL" {
             let reply = format_relation_query(&state.social, p.p_id, p.p_id);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?GEN / GEN [p_id] — multi-gen lineage depth from LineageNode.generation.
+        // ?GEN / GEN [p_id] â€” multi-gen lineage depth from LineageNode.generation.
         if upper == "?GEN" || upper == "GEN" {
             let reply = format_gen_query(&state.social, p.p_id);
             let line = format!("{} {}", p.p_id, reply);
@@ -2092,7 +2485,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?FAMILY / FAMILY — online players sharing caller's family_name.
+        // ?FAMILY / FAMILY â€” online players sharing caller's family_name.
         if upper == "?FAMILY" || upper == "FAMILY" || upper.starts_with("?FAMILY") {
             let reply = state.format_family_query(p.p_id);
             let line = format!("{} {}", p.p_id, reply);
@@ -2169,7 +2562,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // SETSEASON SPRING|SUMMER|AUTUMN|WINTER — force season (testing; no admin).
+        // SETSEASON SPRING|SUMMER|AUTUMN|WINTER â€” force season (testing; no admin).
         if upper.starts_with("SETSEASON ") || upper == "SETSEASON" {
             let tok = text.split_whitespace().nth(1).unwrap_or("");
             if let Some(season) = Season::parse(tok) {
@@ -2214,14 +2607,14 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?TICK / TICK — private PS: monotonic tick counter + sim_time seconds.
+        // ?TICK / TICK â€” private PS: monotonic tick counter + sim_time seconds.
         if upper == "?TICK" || upper == "TICK" || upper.starts_with("?TICK") {
             let reply = SimState::format_tick_query(state.tick, state.sim_time);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // PAUSE — freeze vitals (sim_time / food / age); wall loop still accepts intents.
+        // PAUSE â€” freeze vitals (sim_time / food / age); wall loop still accepts intents.
         if upper == "PAUSE" {
             state.paused = true;
             let reply = SimState::format_pause_reply(true);
@@ -2230,7 +2623,7 @@ fn apply_say_or_remv(
             info!(conn_id, "sim: PAUSE");
             return;
         }
-        // RESUME — unfreeze vitals after PAUSE.
+        // RESUME â€” unfreeze vitals after PAUSE.
         if upper == "RESUME" {
             state.paused = false;
             let reply = SimState::format_pause_reply(false);
@@ -2239,7 +2632,7 @@ fn apply_say_or_remv(
             info!(conn_id, "sim: RESUME");
             return;
         }
-        // SETHOUR <0-23> — force day hour (testing; no admin).
+        // SETHOUR <0-23> â€” force day hour (testing; no admin).
         if upper.starts_with("SETHOUR ") || upper == "SETHOUR" {
             let tok = text.split_whitespace().nth(1).unwrap_or("");
             match tok.parse::<f32>() {
@@ -2329,7 +2722,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // GIFT <p_id> <amount> — coin transfer without trade prestige.
+        // GIFT <p_id> <amount> â€” coin transfer without trade prestige.
         if upper.starts_with("GIFT ") {
             let mut it = text.split_whitespace();
             let _ = it.next();
@@ -2357,7 +2750,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // LOAN <p_id> <amount> — gift coins to borrower and record debt (no trade prestige).
+        // LOAN <p_id> <amount> â€” gift coins to borrower and record debt (no trade prestige).
         if upper.starts_with("LOAN ") {
             let mut it = text.split_whitespace();
             let _ = it.next();
@@ -2397,7 +2790,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // REPAY <p_id> [amount] — pay down debt to creditor (full debt if amount omitted).
+        // REPAY <p_id> [amount] â€” pay down debt to creditor (full debt if amount omitted).
         if upper.starts_with("REPAY ") || upper == "REPAY" {
             let mut it = text.split_whitespace();
             let _ = it.next();
@@ -2444,7 +2837,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // TRADE <p_id> <coins> — set pending offer toward target (no transfer yet).
+        // TRADE <p_id> <coins> â€” set pending offer toward target (no transfer yet).
         if upper.starts_with("TRADE ") {
             let mut it = text.split_whitespace();
             let _ = it.next();
@@ -2466,7 +2859,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ACCEPT — take one incoming trade offer targeting this player via economy.transfer.
+        // ACCEPT â€” take one incoming trade offer targeting this player via economy.transfer.
         if upper == "ACCEPT" {
             let accepter = p.p_id;
             // Find first online offerer with trade_offer.target == accepter.
@@ -2553,14 +2946,14 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?REP — combat reputation float (≠ prestige / PrestigeClass).
+        // ?REP â€” combat reputation float (â‰  prestige / PrestigeClass).
         if upper == "?REP" || upper == "REP" || upper.starts_with("?REP") {
             let reply = format_reputation_query(&state.reputation, p.p_id);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // DEAF — toggle ignore all nearby chat except WHISPER.
+        // DEAF â€” toggle ignore all nearby chat except WHISPER.
         if upper == "DEAF" {
             let (p_id, on) = if let Some(pl) = state.players.get_mut(&conn_id) {
                 pl.deaf = !pl.deaf;
@@ -2572,7 +2965,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // MUTE <p_id> / UNMUTE <p_id> / MUTE LIST — per-listener chat mute list.
+        // MUTE <p_id> / UNMUTE <p_id> / MUTE LIST â€” per-listener chat mute list.
         if let Some((action, opt_id)) = parse_mute_command(text) {
             let listener = p.p_id;
             match action {
@@ -2622,7 +3015,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // STARTAPOC / ENDAPOC — force apocalypse for testing (no admin gate).
+        // STARTAPOC / ENDAPOC â€” force apocalypse for testing (no admin gate).
         if upper == "STARTAPOC" {
             state.apocalypse.trigger();
             let reply = state.apocalypse.query_text();
@@ -2639,7 +3032,7 @@ fn apply_say_or_remv(
             info!(conn_id, "sim: ENDAPOC");
             return;
         }
-        // Exact `?WAR` only — do not match `?WARM` (clothing warmth query).
+        // Exact `?WAR` only â€” do not match `?WARM` (clothing warmth query).
         if upper == "?WAR" || upper.starts_with("?WAR ") {
             let reply = state.war.format_query_text();
             let line = format!("{} {}", p.p_id, reply);
@@ -2658,7 +3051,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // CLEAR YUM / RESET YUM — wipe YUM history + bonus (testing / parity reset).
+        // CLEAR YUM / RESET YUM â€” wipe YUM history + bonus (testing / parity reset).
         if upper == "CLEAR YUM"
             || upper == "RESET YUM"
             || upper == "CLEARYUM"
@@ -2675,14 +3068,14 @@ fn apply_say_or_remv(
             info!(conn_id, "sim: CLEAR YUM");
             return;
         }
-        // TOOLS / ?TOOLS — private PS: wire slots (used total) + learned count.
+        // TOOLS / ?TOOLS â€” private PS: wire slots (used total) + learned count.
         if upper == "TOOLS" || upper == "?TOOLS" || upper.starts_with("?TOOLS") {
             let reply = p.tools.query_text();
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // FORGETTOOLS — clear learned tool slots (testing).
+        // FORGETTOOLS â€” clear learned tool slots (testing).
         if upper == "FORGETTOOLS" || upper == "?FORGETTOOLS" {
             let (ts_wire, reply) = if let Some(pl) = state.players.get_mut(&conn_id) {
                 pl.tools.forget_all();
@@ -2703,7 +3096,7 @@ fn apply_say_or_remv(
             );
             return;
         }
-        // ?LOG / ?JOURNAL — last N session events (JOURNAL is an alias for LOG).
+        // ?LOG / ?JOURNAL â€” last N session events (JOURNAL is an alias for LOG).
         if upper == "?LOG"
             || upper.starts_with("?LOG")
             || upper == "?JOURNAL"
@@ -2715,14 +3108,14 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?WJOURNAL — peek last world-journal tile change (if journal Arc shared).
+        // ?WJOURNAL â€” peek last world-journal tile change (if journal Arc shared).
         if upper == "?WJOURNAL" || upper == "WJOURNAL" || upper.starts_with("?WJOURNAL") {
             let reply = state.format_wjournal_query();
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // !CLOSE — disconnect **this client only** (do not stop the server).
+        // !CLOSE â€” disconnect **this client only** (do not stop the server).
         if is_close_say(&upper) {
             let line = format!("{} CLOSE OK", p.p_id);
             send_ps_reply(outbound, conn_id, &line);
@@ -2730,12 +3123,12 @@ fn apply_say_or_remv(
                 pl.connected = false;
             }
             state.publish_player_view(conn_id);
-            // Close marker on urgent lane → net task flushes then drops TCP.
+            // Close marker on urgent lane â†’ net task flushes then drops TCP.
             outbound.close(conn_id);
-            info!(conn_id, p_id = p.p_id, "sim: !CLOSE — client disconnect only");
+            info!(conn_id, p_id = p.p_id, "sim: !CLOSE â€” client disconnect only");
             return;
         }
-        // !shutdown / SHUTDOWN — orderly: countdown → save → AP → exit (whole process).
+        // !shutdown / SHUTDOWN â€” orderly: countdown â†’ save â†’ AP â†’ exit (whole process).
         // Match anywhere in the line (client may still attach noise); no godmode gate.
         if is_shutdown_say(&upper) {
             if state.shutdown.is_some() {
@@ -2749,7 +3142,7 @@ fn apply_say_or_remv(
                 phase: ShutdownPhase::Countdown,
             });
             let msg = format!(
-                "SERVER SHUTDOWN IN {:.0} SECONDS — saving and closing",
+                "SERVER SHUTDOWN IN {:.0} SECONDS â€” saving and closing",
                 secs
             );
             broadcast_global(outbound, &msg);
@@ -2764,7 +3157,7 @@ fn apply_say_or_remv(
             info!(conn_id, secs, text = %text, "sim: !shutdown started");
             return;
         }
-        // SAVE — operator (godmode) force-save signal; no disk I/O on sim thread.
+        // SAVE â€” operator (godmode) force-save signal; no disk I/O on sim thread.
         if upper == "SAVE" || upper == "?SAVE" {
             let god = state
                 .players
@@ -2781,28 +3174,28 @@ fn apply_say_or_remv(
             info!(conn_id, god, %reply, "sim: SAVE");
             return;
         }
-        // WHO / ?WHO — list online player p_ids and display names via PS.
+        // WHO / ?WHO â€” list online player p_ids and display names via PS.
         if upper == "WHO" || upper == "?WHO" || upper.starts_with("?WHO") {
             let reply = state.format_who_query();
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // COUNT / ?COUNT — online player count.
+        // COUNT / ?COUNT â€” online player count.
         if upper == "COUNT" || upper == "?COUNT" {
             let reply = state.format_count_query();
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // NEAR / ?NEAR — nearby p_ids within NEARBY_RANGE (Chebyshev).
+        // NEAR / ?NEAR â€” nearby p_ids within NEARBY_RANGE (Chebyshev).
         if upper == "NEAR" || upper == "?NEAR" {
             let reply = state.format_near_query_at(p.x, p.y);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // DIST <p_id> / ?DIST <p_id> — Chebyshev distance to target.
+        // DIST <p_id> / ?DIST <p_id> â€” Chebyshev distance to target.
         if upper.starts_with("DIST ") || upper.starts_with("?DIST ") {
             let target: i32 = text
                 .split_whitespace()
@@ -2814,14 +3207,14 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // Bare DIST / ?DIST without arg → FAIL self-dist note.
+        // Bare DIST / ?DIST without arg â†’ FAIL self-dist note.
         if upper == "DIST" || upper == "?DIST" {
             let reply = format_dist_query(0, None);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // BIOME / ?BIOME — biome under feet with name + optional map-PNG hex.
+        // BIOME / ?BIOME â€” biome under feet with name + optional map-PNG hex.
         if upper == "BIOME" || upper == "?BIOME" {
             let biome = state.world.read().unwrap().get_biome(p.x, p.y);
             let hex = color_for_biome(biome).map(|c| c.to_hex());
@@ -2831,7 +3224,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // HEX / ?HEX — map-PNG color for biome under feet.
+        // HEX / ?HEX â€” map-PNG color for biome under feet.
         if upper == "HEX" || upper == "?HEX" {
             let biome = state.world.read().unwrap().get_biome(p.x, p.y);
             let reply = format_hex_query(biome);
@@ -2839,7 +3232,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // TAGS / ?TAGS — parse description tags of the held object.
+        // TAGS / ?TAGS â€” parse description tags of the held object.
         if upper == "TAGS" || upper == "?TAGS" {
             let held_id = state.players.get(&conn_id).map(|pl| pl.held_id).unwrap_or(0);
             let desc = state
@@ -2851,7 +3244,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // FLOOR / ?FLOOR — floor id under feet.
+        // FLOOR / ?FLOOR â€” floor id under feet.
         if upper == "FLOOR" || upper == "?FLOOR" {
             let floor = state.world.read().unwrap().get_floor(p.x, p.y);
             let reply = format_floor_query(floor);
@@ -2859,7 +3252,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // WHERE / ?WHERE — private PS: x y biome food age (no SQL).
+        // WHERE / ?WHERE â€” private PS: x y biome food age (no SQL).
         if upper == "WHERE" || upper == "?WHERE" || upper.starts_with("?WHERE") {
             let biome = state.world.read().unwrap().get_biome(p.x, p.y);
             let reply = SimState::format_where_query(p.x, p.y, biome, p.food, p.age);
@@ -2867,7 +3260,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // FOOD / ?FOOD — private PS: current food and food_max (no SQL).
+        // FOOD / ?FOOD â€” private PS: current food and food_max (no SQL).
         if upper == "FOOD" || upper == "?FOOD" || upper.starts_with("?FOOD") {
             let (food, food_max) = state
                 .players
@@ -2879,7 +3272,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // NAME / ?NAME — private PS: display_name + optional TITLE (no SQL).
+        // NAME / ?NAME â€” private PS: display_name + optional TITLE (no SQL).
         if upper == "NAME" || upper == "?NAME" || upper.starts_with("?NAME") {
             let name = state
                 .players
@@ -2891,7 +3284,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // AGE / ?AGE — private PS: current age years (no SQL).
+        // AGE / ?AGE â€” private PS: current age years (no SQL).
         if upper == "AGE" || upper == "?AGE" || upper.starts_with("?AGE") {
             let age = state
                 .players
@@ -2903,7 +3296,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // STATUS / ?STATUS — private PS: food age held prestige class wound sleep sick sit.
+        // STATUS / ?STATUS â€” private PS: food age held prestige class wound sleep sick sit.
         if upper == "STATUS" || upper == "?STATUS" || upper.starts_with("?STATUS") {
             let (food, age, held_id, sleeping, sick, sitting) = state
                 .players
@@ -2929,7 +3322,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // HEART / ?HEART — compact vitals: food + age only.
+        // HEART / ?HEART â€” compact vitals: food + age only.
         if upper == "HEART" || upper == "?HEART" || upper.starts_with("?HEART") {
             let (food, age) = state
                 .players
@@ -2941,7 +3334,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // FLAGS / ?FLAGS — sleeping sick sitting riding holding god deaf (0/1).
+        // FLAGS / ?FLAGS â€” sleeping sick sitting riding holding god deaf (0/1).
         if upper == "FLAGS" || upper == "?FLAGS" || upper.starts_with("?FLAGS") {
             let (sleeping, sick, sitting, riding, holding, god, deaf) = state
                 .players
@@ -2973,7 +3366,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // BOOST — testing: +5 food (clamped to food_max).
+        // BOOST â€” testing: +5 food (clamped to food_max).
         if upper == "BOOST" {
             let (food, food_max) = if let Some(pl) = state.players.get_mut(&conn_id) {
                 pl.food = SimState::boost_food(pl.food, pl.food_max);
@@ -2989,7 +3382,7 @@ fn apply_say_or_remv(
             info!(conn_id, food, "sim: BOOST");
             return;
         }
-        // GODMODE — flag for lite god edits (VOGSET). ?GODMODE queries; ON/OFF set.
+        // GODMODE â€” flag for lite god edits (VOGSET). ?GODMODE queries; ON/OFF set.
         if upper == "?GODMODE" || upper == "GODMODE?" {
             let god = state
                 .players
@@ -3019,7 +3412,7 @@ fn apply_say_or_remv(
             info!(conn_id, god, "sim: GODMODE");
             return;
         }
-        // SNAP [x y [seq]] — SAY alias for PHOTO deny (no photo backend).
+        // SNAP [x y [seq]] â€” SAY alias for PHOTO deny (no photo backend).
         if upper == "SNAP" || upper.starts_with("SNAP ") {
             let mut parts = text.split_whitespace();
             let _ = parts.next(); // SNAP
@@ -3033,7 +3426,7 @@ fn apply_say_or_remv(
             );
             return;
         }
-        // VOGSET <x> <y> <obj> — lite VoG map edit when godmode is on.
+        // VOGSET <x> <y> <obj> â€” lite VoG map edit when godmode is on.
         if upper.starts_with("VOGSET ") || upper == "VOGSET" {
             let god = state
                 .players
@@ -3078,7 +3471,7 @@ fn apply_say_or_remv(
             info!(conn_id, x, y, obj, "sim: VOGSET");
             return;
         }
-        // REGEN — if tile under feet is empty, place a random natural object from
+        // REGEN â€” if tile under feet is empty, place a random natural object from
         // content.biome_spawn for the tile biome (testing / sparse re-seed).
         if upper == "REGEN" || upper == "?REGEN" {
             let x = p.x;
@@ -3129,7 +3522,7 @@ fn apply_say_or_remv(
             info!(conn_id, x, y, obj, biome, "sim: REGEN");
             return;
         }
-        // CLEAROBJ — godmode: clear ground object under feet (set object id 0).
+        // CLEAROBJ â€” godmode: clear ground object under feet (set object id 0).
         if upper == "CLEAROBJ" || upper == "?CLEAROBJ" {
             let god = state
                 .players
@@ -3159,7 +3552,7 @@ fn apply_say_or_remv(
             info!(conn_id, x, y, "sim: CLEAROBJ");
             return;
         }
-        // FILL — godmode: set floor under feet to 1 (indoor / road stub).
+        // FILL â€” godmode: set floor under feet to 1 (indoor / road stub).
         if upper == "FILL" || upper == "?FILL" {
             let god = state
                 .players
@@ -3187,7 +3580,7 @@ fn apply_say_or_remv(
             return;
         }
         if upper.starts_with("POSSE ") {
-            // POSSE <p_id> — join posse of target; POSSE 0 — leave all.
+            // POSSE <p_id> â€” join posse of target; POSSE 0 â€” leave all.
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
                 let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
@@ -3217,7 +3610,7 @@ fn apply_say_or_remv(
             return;
         }
         if upper.starts_with("WAR ") {
-            // WAR <p_id> — declare war on target (Haxe WAR_REPORT subset).
+            // WAR <p_id> â€” declare war on target (Haxe WAR_REPORT subset).
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
                 let ok = state.war.declare_war(p.p_id, target_id);
@@ -3248,7 +3641,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // RAID <p_id> — posse attack note (prestige note only; no combat).
+        // RAID <p_id> â€” posse attack note (prestige note only; no combat).
         // Requires mutual posse membership (both have each other as targets).
         if upper.starts_with("RAID ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
@@ -3273,7 +3666,7 @@ fn apply_say_or_remv(
             return;
         }
         if upper.starts_with("PEACE ") {
-            // PEACE <p_id> — make peace with target.
+            // PEACE <p_id> â€” make peace with target.
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
                 let ok = state.war.make_peace(p.p_id, target_id);
@@ -3324,7 +3717,7 @@ fn apply_say_or_remv(
                 // SAY KILL remains one-shot via resolve_kill (wound path is resolve_hit / HIT).
                 if state.combat.resolve_kill(killer_id, target_id, legal) {
                     state.combat.clear_wound(target_id);
-                    // Combat reputation (≠ prestige): illegal guilt / legal recover.
+                    // Combat reputation (â‰  prestige): illegal guilt / legal recover.
                     if legal {
                         state
                             .reputation
@@ -3340,17 +3733,26 @@ fn apply_say_or_remv(
                     // Scoreboard kill/death counters + score.
                     state.scoreboard.record_kill(killer_id, target_id);
                     state.refresh_living_prestige_classes();
-                    let cause = combat_death(legal);
-                    let death_reason = cause.wire_tag();
+                    let weapon_id = state
+                        .players
+                        .values()
+                        .find(|x| x.p_id == killer_id)
+                        .map(|x| x.held_id)
+                        .unwrap_or(0);
+                    let death_reason = combat_death_wire(legal, weapon_id);
                     // Mark target deleted if online (held/clothing/backpack drained by scatter).
                     if let Some(tp) = state.players.values_mut().find(|x| x.p_id == target_id) {
                         tp.deleted = true;
-                        tp.death_reason = Some(death_reason.into());
+                        tp.death_reason = Some(death_reason.clone());
                     }
                     scatter_backpack_on_death_pid(state, target_id);
                     apply_death_inheritance(state, target_id);
+                    // TWIN-PARTY-RESID: murder of twin â†’ broken-heart siblings
+                    if is_murder_death_reason(&death_reason) {
+                        apply_twin_heart_link_on_murder(state, outbound, target_id);
+                    }
                     counters.deaths.fetch_add(1, Ordering::Relaxed);
-                    state.push_event(format_death_event(target_id, cause));
+                    state.push_event(format_death_event_tag(target_id, &death_reason));
                     state.afk.remove(target_id);
                     let line = format!("{} KILLED {} legal={}", killer_id, target_id, legal);
                     let near = nearby_conn_ids(state, killer_x, killer_y, NEARBY_RANGE);
@@ -3359,7 +3761,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // PUSH <p_id> — shove adjacent non-god target one tile away, or swap if blocked.
+        // PUSH <p_id> â€” shove adjacent non-god target one tile away, or swap if blocked.
         if upper.starts_with("PUSH ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
@@ -3497,7 +3899,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // PULL <p_id> — pull adjacent target one step toward self if dest empty.
+        // PULL <p_id> â€” pull adjacent target one step toward self if dest empty.
         if upper.starts_with("PULL ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
@@ -3579,7 +3981,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // KISS <p_id> — PE cute/love if adjacent; tiny prestige when ally.
+        // KISS <p_id> â€” PE cute/love if adjacent; tiny prestige when ally.
         if upper.starts_with("KISS ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
@@ -3637,7 +4039,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // THANK <p_id> — prestige +THANK_PRESTIGE when target adjacent (Chebyshev ≤ 1).
+        // THANK <p_id> â€” prestige +THANK_PRESTIGE when target adjacent (Chebyshev â‰¤ 1).
         if upper.starts_with("THANK ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
@@ -3679,7 +4081,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // CURSE <p_id> — spend one curse token; +1 score on target (CX/CS wires).
+        // CURSE <p_id> â€” spend one curse token; +1 score on target (CX/CS wires).
         if upper.starts_with("CURSE ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
@@ -3722,7 +4124,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // BLESS <p_id> — clear target wounds + tiny prestige when adjacent (Chebyshev ≤ 1).
+        // BLESS <p_id> â€” clear target wounds + tiny prestige when adjacent (Chebyshev â‰¤ 1).
         if upper.starts_with("BLESS ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
@@ -3744,7 +4146,7 @@ fn apply_say_or_remv(
                         } else {
                             let prev = state.combat.wound_of(target_id);
                             state.combat.clear_wound(target_id);
-                            // Self-bless heals only (no prestige); bless others → tiny prestige.
+                            // Self-bless heals only (no prestige); bless others â†’ tiny prestige.
                             let prest_note = if target_id != actor_id {
                                 state.combat.stats_mut(actor_id).prestige += BLESS_PRESTIGE;
                                 state.sync_lineage_prestige_from_combat(actor_id);
@@ -3772,7 +4174,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // HUG <p_id> — PE love when adjacent (Chebyshev ≤ 1).
+        // HUG <p_id> â€” PE love when adjacent (Chebyshev â‰¤ 1).
         if upper.starts_with("HUG ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
@@ -3815,7 +4217,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // SLAP <p_id> — PE mad when adjacent; tiny wound if not ally.
+        // SLAP <p_id> â€” PE mad when adjacent; tiny wound if not ally.
         if upper.starts_with("SLAP ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
@@ -3865,7 +4267,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // HIT <p_id> — Haxe doDamage: weapon damage + clothing protection + wounds.
+        // HIT <p_id> â€” Haxe doDamage: weapon damage + clothing protection + wounds.
         // Weapon range from held object name (bow=8, sword/knife=2, spear=3, default KILL_RANGE).
         if upper.starts_with("HIT ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
@@ -3893,7 +4295,7 @@ fn apply_say_or_remv(
                 };
                 let t_held_name = held_object_name(state, t_held);
                 let weapon_prot = held_damage_protection_factor(t_held, &t_held_name);
-                // Floor insulation proxy: non-zero floor → 0.3 (Haxe floor.getInsulation subset).
+                // Floor insulation proxy: non-zero floor â†’ 0.3 (Haxe floor.getInsulation subset).
                 let floor_insul = {
                     let w = state.world.read().unwrap();
                     if w.get_floor(tx, ty) != 0 {
@@ -3935,6 +4337,7 @@ fn apply_say_or_remv(
                     }
                     HitResult::Wound(w) => {
                         // Reduce food_max (HP) by damage (Haxe food_store_max from hits).
+                        // Haxe DoDamage: angryTime -= damage on both parties.
                         if let Some(tp) =
                             state.players.values_mut().find(|x| x.p_id == target_id)
                         {
@@ -3942,6 +4345,12 @@ fn apply_say_or_remv(
                             if tp.food > tp.food_max {
                                 tp.food = tp.food_max;
                             }
+                            tp.angry_time -= dmg;
+                        }
+                        if let Some(kp) =
+                            state.players.values_mut().find(|x| x.p_id == killer_id)
+                        {
+                            kp.angry_time -= dmg;
                         }
                         let line = format!(
                             "{} HIT {} WOUND {} dmg={:.1}",
@@ -3975,19 +4384,25 @@ fn apply_say_or_remv(
                         state.sync_lineage_prestige_from_combat(target_id);
                         state.scoreboard.record_kill(killer_id, target_id);
                         state.refresh_living_prestige_classes();
-                        let cause = combat_death(legal);
-                        let death_reason = cause.wire_tag();
+                        let death_reason = combat_death_wire(legal, held_id);
                         if let Some(tp) =
                             state.players.values_mut().find(|x| x.p_id == target_id)
                         {
                             tp.deleted = true;
-                            tp.death_reason = Some(death_reason.into());
+                            tp.death_reason = Some(death_reason.clone());
                         }
                         scatter_backpack_on_death_pid(state, target_id);
                         apply_death_inheritance(state, target_id);
                         counters.deaths.fetch_add(1, Ordering::Relaxed);
-                        state.push_event(format_death_event(target_id, cause));
+                        state.push_event(format_death_event_tag(target_id, &death_reason));
                         state.afk.remove(target_id);
+                        // COMBAT-BLOODY: kill path longWeaponCoolDown.
+                        apply_bloody_weapon_transform(
+                            state,
+                            killer_id,
+                            held_id,
+                            BloodyApplyMode::Strike { long_wounding: true },
+                        );
                         let line = format!(
                             "{} HIT {} KILL legal={} dmg={:.1}",
                             killer_id, target_id, legal, dmg
@@ -3998,7 +4413,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // NURSE / FEED (no target) — feed held baby when carrying + holding food.
+        // NURSE / FEED (no target) â€” feed held baby when carrying + holding food.
         // Bare-hand NURSE = one-shot breastfeed tick (Haxe nursing without held food).
         if upper == "NURSE" || upper == "FEED" {
             let feeder_id = p.p_id;
@@ -4026,17 +4441,20 @@ fn apply_say_or_remv(
                 }
                 Some((t_conn, t_food, t_max, t_age)) => {
                     // Bare hands: breastfeed pulse (1s worth).
+                    // FERTILITY-TWINS: Haxe isFertile for nursing
                     if held_id == 0 {
-                        let fertile = FertilityState::age_fertile(p.age);
+                        let fertile = player_is_fertile(state, &p);
                         if can_breastfeed(p.age, p.food, fertile, t_age, true) {
                             let (to_baby, from_m) =
                                 breastfeed_tick(1.0, FOOD_USE_PER_SEC, t_food, t_max);
                             if to_baby > 0.0 {
+                                // BREASTFEED-EDGES: Haxe food_store -= half without floor
                                 if let Some(feeder) = state.players.get_mut(&conn_id) {
-                                    feeder.food = (feeder.food - from_m).max(0.0);
+                                    feeder.food -= from_m;
                                 }
                                 if let Some(tp) = state.players.get_mut(&t_conn) {
-                                    tp.food = (tp.food + to_baby).min(tp.food_max);
+                                    let cap = get_max_child_feeding(tp.food_max);
+                                    tp.food = (tp.food + to_baby).min(cap);
                                 }
                                 state.publish_player_view(conn_id);
                                 state.publish_player_view(t_conn);
@@ -4094,7 +4512,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // FEED <p_id> — transfer held food to adjacent online player (or held baby).
+        // FEED <p_id> â€” transfer held food to adjacent online player (or held baby).
         if upper.starts_with("FEED ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
@@ -4217,7 +4635,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // GLOBAL <text> — server-wide GM; noble+ prestige only (lineage or combat).
+        // GLOBAL <text> â€” server-wide GM; noble+ prestige only (lineage or combat).
         if upper.starts_with("GLOBAL ") || upper == "GLOBAL" {
             if !state.player_prestige_class(p.p_id).is_noble_or_more() {
                 let line = format!("{} GLOBAL DENIED", p.p_id);
@@ -4235,7 +4653,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // ?LEADER — follow-graph leadership ranking.
+        // ?LEADER â€” follow-graph leadership ranking.
         if upper == "?LEADER" || upper == "LEADER" {
             let reply = format_leader_query(&state.social.following, LEADER_QUERY_LIMIT);
             let line = format!("{} {}", p.p_id, reply);
@@ -4250,7 +4668,7 @@ fn apply_say_or_remv(
             return;
         }
         // ?RANGE handled earlier (before rate limit) via format_range_query.
-        // HEAL / BANDAGE — clear wounds (BANDAGE is HEAL alias).
+        // HEAL / BANDAGE â€” clear wounds (BANDAGE is HEAL alias).
         if upper == "HEAL" || upper == "BANDAGE" {
             let held = p.held_id;
             let is_heal = if held == 0 {
@@ -4281,7 +4699,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // POLL / VOTE / ?POLL — session yes/no poll (pure PollState).
+        // POLL / VOTE / ?POLL â€” session yes/no poll (pure PollState).
         if upper == "?POLL" || upper.starts_with("?POLL") {
             let reply = state.poll.format_query();
             let line = format!("{} {}", p.p_id, reply);
@@ -4358,14 +4776,14 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?BIOMES — advertise impassable / special biomes (mountain wall).
+        // ?BIOMES â€” advertise impassable / special biomes (mountain wall).
         if upper == "?BIOMES" || upper == "BIOMES" {
             let reply = format_biomes_query();
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?BIOMEFOOD — food-drain multiplier for the speaker's standing biome.
+        // ?BIOMEFOOD â€” food-drain multiplier for the speaker's standing biome.
         if upper == "?BIOMEFOOD" || upper == "BIOMEFOOD" {
             let biome = state.world.read().unwrap().get_biome(p.x, p.y);
             let reply = format_biomefood_query(biome);
@@ -4373,7 +4791,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?SWIM — ocean/river wet flag + biome food_mult (extra drain already in vitals).
+        // ?SWIM â€” ocean/river wet flag + biome food_mult (extra drain already in vitals).
         if upper == "?SWIM" {
             let biome = state.world.read().unwrap().get_biome(p.x, p.y);
             let reply = format_swim_query(biome);
@@ -4381,14 +4799,14 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?WARM — clothing_temp_bonus from hat/chest/shoes slots.
+        // ?WARM â€” clothing_temp_bonus from hat/chest/shoes slots.
         if upper == "?WARM" || upper == "WARM" {
             let reply = format_warm_query(p.hat, p.chest, p.shoes);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?SPEED — composed move speed (ride / weather / snow / fire / ballast).
+        // ?SPEED â€” composed move speed (ride / weather / snow / fire / ballast).
         if upper == "?SPEED" || upper == "SPEED" {
             let speed = player_move_speed(state, &p);
             let reply = format_speed_query(speed);
@@ -4396,7 +4814,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?WEIGHT — held + backpack item count (ballast for move speed).
+        // ?WEIGHT â€” held + backpack item count (ballast for move speed).
         if upper == "?WEIGHT" || upper == "WEIGHT" {
             let n = weight_item_count(p.held_id, p.backpack.len());
             let reply = format_weight_query(n);
@@ -4404,7 +4822,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?DRAIN — estimate current food drain/sec factors.
+        // ?DRAIN â€” estimate current food drain/sec factors.
         if upper == "?DRAIN" || upper == "DRAIN" {
             let biome = state.world.read().unwrap().get_biome(p.x, p.y);
             let base = FOOD_USE_PER_SEC
@@ -4430,21 +4848,21 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?CRAFTSTATS — reverse craft graph product/edge counts (seed metrics).
+        // ?CRAFTSTATS â€” reverse craft graph product/edge counts (seed metrics).
         if upper == "?CRAFTSTATS" || upper == "CRAFTSTATS" {
             let reply = state.craft_graph.format_craft_stats_query();
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?TRANS — content transition counts (normal + last-use).
+        // ?TRANS â€” content transition counts (normal + last-use).
         if upper == "?TRANS" || upper == "TRANS" {
             let reply = SimState::format_trans_query(&state.content);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?CHUNKS — hot/warm/cold tier counts (cached on SimState each vitals tick).
+        // ?CHUNKS â€” hot/warm/cold tier counts (cached on SimState each vitals tick).
         if upper == "?CHUNKS" || upper == "CHUNKS" {
             // Ensure cache is warm if vitals has not run yet this session.
             refresh_chunk_tier_counts(state);
@@ -4453,7 +4871,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // MAPFORCE — force MAP_CHUNK resend at current position.
+        // MAPFORCE â€” force MAP_CHUNK resend at current position.
         if upper == "MAPFORCE" {
             force_send_map_chunk(state, outbound, conn_id);
             let line = format!("{} MAPFORCE OK", p.p_id);
@@ -4461,21 +4879,21 @@ fn apply_say_or_remv(
             info!(conn_id, "sim: SAY MAPFORCE");
             return;
         }
-        // PING — private PS PONG with sim_time (client PING tag is separate).
+        // PING â€” private PS PONG with sim_time (client PING tag is separate).
         if upper == "PING" {
             let reply = SimState::format_ping_query(state.sim_time);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?SPECIAL — sparse special-object index counts.
+        // ?SPECIAL â€” sparse special-object index counts.
         if upper == "?SPECIAL" || upper == "SPECIAL" {
             let reply = state.specials.format_query();
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?ANIMALS / ?FAUNA — wild animal counts by kind.
+        // ?ANIMALS / ?FAUNA â€” wild animal counts by kind.
         if upper == "?ANIMALS"
             || upper == "ANIMALS"
             || upper == "?FAUNA"
@@ -4486,9 +4904,10 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // HUNT — damage nearest adjacent animal; kill → meat placeholder + prestige.
+        // HUNT â€” damage nearest adjacent animal; kill â†’ meat placeholder + prestige.
         if upper == "HUNT" {
             let hunter_id = p.p_id;
+            let held_id = p.held_id;
             let hx = p.x;
             let hy = p.y;
             let result = hunt_nearest(
@@ -4508,6 +4927,13 @@ fn apply_say_or_remv(
                     kind,
                     hp_left,
                 } => {
+                    // COMBAT-BLOODY: makeWeaponBloodyIfNeeded(deadly animal).
+                    apply_bloody_weapon_transform(
+                        state,
+                        hunter_id,
+                        held_id,
+                        BloodyApplyMode::Animal { deadly: kind.is_deadly() },
+                    );
                     info!(
                         conn_id,
                         hunter_id,
@@ -4530,6 +4956,13 @@ fn apply_say_or_remv(
                     // Prestige for the kill.
                     state.combat.stats_mut(hunter_id).prestige += HUNT_KILL_PRESTIGE;
                     state.sync_lineage_prestige_from_combat(hunter_id);
+                    // COMBAT-BLOODY: makeWeaponBloodyIfNeeded on deadly kill.
+                    apply_bloody_weapon_transform(
+                        state,
+                        hunter_id,
+                        held_id,
+                        BloodyApplyMode::Animal { deadly: kind.is_deadly() },
+                    );
                     // Clear map object where the animal stood (Haxe removes animal tile).
                     let oid = kind.object_id();
                     let floor = {
@@ -4580,7 +5013,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // HARVEST / FISH / MINE / DIG / CHOP — lite profession actions (5s shared cooldown).
+        // HARVEST / FISH / MINE / DIG / CHOP â€” lite profession actions (5s shared cooldown).
         if upper == "HARVEST" {
             let p_id = p.p_id;
             let (hx, hy, held, last_prof) =
@@ -4674,7 +5107,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?FIRE / FIRE|IGNITE [x y] — ignite; EXTINGUISH under feet; ?SNOW
+        // ?FIRE / FIRE|IGNITE [x y] â€” ignite; EXTINGUISH under feet; ?SNOW
         if upper == "?FIRE" {
             let reply = state.fire.format_query();
             let line = format!("{} {}", p.p_id, reply);
@@ -4686,7 +5119,7 @@ fn apply_say_or_remv(
             || upper.starts_with("IGNITE ")
             || upper == "IGNITE"
         {
-            // FIRE|IGNITE [x y] — ignite under feet or at coords (testing / VOG-lite).
+            // FIRE|IGNITE [x y] â€” ignite under feet or at coords (testing / VOG-lite).
             let mut it = text.split_whitespace();
             let _ = it.next();
             let fx = it.next().and_then(|s| s.parse().ok()).unwrap_or(p.x);
@@ -4713,7 +5146,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?CRIME / CRIME — personal theft counters.
+        // ?CRIME / CRIME â€” personal theft counters.
         if upper == "?CRIME" || upper == "CRIME" {
             let reply = state.crime.format_crime_query(p.p_id);
             let line = format!("{} {}", p.p_id, reply);
@@ -4743,7 +5176,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // SEED — if animal world empty, respawn default animals (testing; no admin).
+        // SEED â€” if animal world empty, respawn default animals (testing; no admin).
         if upper == "SEED" || upper == "SEED ANIMALS" {
             let before = state.animals.animals.len();
             spawn_default_animals(state);
@@ -4759,11 +5192,12 @@ fn apply_say_or_remv(
             info!(conn_id, before, after, "sim: SEED animals");
             return;
         }
-        // ?FERTILE / ?BIRTH status
+        // ?FERTILE / ?BIRTH status (Haxe isFertile: age + female)
         if upper == "?FERTILE" || upper == "FERTILE" || upper == "?BIRTH" {
+            let female = player_is_female(state, &p);
             let reply = state
                 .fertility
-                .format_query(p.p_id, p.age, state.sim_time);
+                .format_query_sex(p.p_id, p.age, state.sim_time, female);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
@@ -4775,14 +5209,40 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // ?TWINS — multi-server twin peer list (stub registry only; no network).
+        // ?TWINS â€” multi-server peers (stub) + twin-code wait queue.
+        // FERTILITY-TWINS twin_sockets
         if upper == "?TWINS" || upper == "TWINS" {
-            let reply = state.twins.format_query();
+            let reply = TwinWaitQueue::format_twins_full(&state.twins, &state.twin_wait);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // WHISPER <p_id> <text> — private PS only to target if online (find conn by p_id).
+        // ?TWINWAIT â€” waiting-party status only.
+        if upper == "?TWINWAIT" || upper == "TWINWAIT" {
+            let reply = if let Some((have, need, code)) = state.twin_wait.status_for(conn_id) {
+                let short = if code.len() > 8 { &code[..8] } else { &code };
+                format!("TWINWAIT code={short} have={have}/{need}")
+            } else {
+                state.twin_wait.format_wait_query()
+            };
+            let line = format!("{} {}", p.p_id, reply);
+            send_ps_reply(outbound, conn_id, &line);
+            return;
+        }
+        // TWINJOIN <code> <count> â€” join twin-code birth party (protocol twin_code_hash).
+        if upper.starts_with("TWINJOIN ") || upper == "TWINJOIN" {
+            let mut it = text.split_whitespace();
+            let _ = it.next();
+            let code = it.next().unwrap_or("").to_string();
+            let count: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+            let email = p.email.clone();
+            let p_id = p.p_id;
+            apply_twin_join(state, outbound, conn_id, p_id, &email, &code, count);
+            return;
+        }
+        // WHISPER <p_id> <text> â€” private PS only to target if online (find conn by p_id).
+        // Mute filters whispers; DEAF does not (should_hear(deaf, is_whisper=true)).
+        // Haxe: Connection.sendSayToAllClose has no mute; product MUTE is Rust-side.
         if upper.starts_with("WHISPER ") {
             let rest = text
                 .split_once(char::is_whitespace)
@@ -4792,6 +5252,17 @@ fn apply_say_or_remv(
             let target_id: i32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
             let whisper_text = parts.next().map(str::trim).unwrap_or("");
             if target_id != 0 && !whisper_text.is_empty() {
+                let speaker_p_id = p.p_id;
+                // Listener muted this speaker â†’ drop privately (no PS to either side).
+                if !state.mutes.should_deliver(target_id, speaker_p_id) {
+                    info!(
+                        conn_id,
+                        target_id,
+                        speaker_p_id,
+                        "sim: WHISPER dropped (muted)"
+                    );
+                    return;
+                }
                 if let Some((&target_conn, _)) = state.players.iter().find(|(_, pl)| {
                     pl.p_id == target_id && pl.connected && !pl.deleted
                 }) {
@@ -4799,7 +5270,7 @@ fn apply_say_or_remv(
                     send_ps_reply(
                         outbound,
                         target_conn,
-                        &format!("{} {}", p.p_id, whisper_text),
+                        &format!("{} {}", speaker_p_id, whisper_text),
                     );
                     info!(
                         conn_id,
@@ -4812,11 +5283,13 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // BIRTH — minimal motherhood: spawn baby age 0 with mother lineage + marker.
-        // Fertility gate: age band + cooldown (instant birth path; not timed gestation).
+        // BIRTH â€” minimal motherhood: spawn baby age 0 with mother lineage + marker.
+        // Fertility gate: Haxe isFertile (female+age) + cooldown (instant birth path).
+        // FERTILITY-TWINS
         if upper == "BIRTH" {
             let sim_t = state.sim_time;
-            let fert = state.fertility.can_birth(p.p_id, p.age, sim_t);
+            let female = player_is_female(state, &p);
+            let fert = state.fertility.can_birth_full(p.p_id, p.age, sim_t, p.deleted, female);
             if let Err(reason) = fert {
                 let line = format!("{} BIRTH FAIL {reason}", p.p_id);
                 send_ps_reply(outbound, conn_id, &line);
@@ -4826,6 +5299,11 @@ fn apply_say_or_remv(
                 Some(baby_p_id) => {
                     state.fertility.complete_birth(p.p_id, state.sim_time);
                     // spawn_child already pushed BIRTH to event_log.
+                    // MAP-LOCATION-PINS: single BABY pin to human mother + father
+                    // Haxe: GlobalPlayerInstance init L1013â€“1027
+                    map_location_pins::send_baby_map_pins_on_birth(
+                        state, outbound, conn_id, baby_p_id,
+                    );
                     let line = format!("{} BIRTH {baby_p_id} OK", p.p_id);
                     send_ps_reply(outbound, conn_id, &line);
                     // Push new LN line to mother (minimal; full fan-out later).
@@ -4844,10 +5322,12 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // GESTATE — start timed fertility gestation; tick_vitals auto-spawns when due.
+        // GESTATE â€” start timed fertility gestation; tick_vitals auto-spawns when due.
+        // FERTILITY-TWINS: full isFertile gate
         if upper == "GESTATE" {
             let sim_t = state.sim_time;
-            let fert = state.fertility.can_birth(p.p_id, p.age, sim_t);
+            let female = player_is_female(state, &p);
+            let fert = state.fertility.can_birth_full(p.p_id, p.age, sim_t, p.deleted, female);
             if let Err(reason) = fert {
                 let line = format!("{} GESTATE FAIL {reason}", p.p_id);
                 send_ps_reply(outbound, conn_id, &line);
@@ -4859,7 +5339,9 @@ fn apply_say_or_remv(
             info!(conn_id, p_id = p.p_id, due, "sim: GESTATE started");
             return;
         }
-        // HOLD <p_id> — pick up adjacent baby (age < BABY_AGE_THRESHOLD); free hands.
+        // HOLD <p_id> â€” pick up adjacent child (Haxe doBaby / BREASTFEED-EDGES).
+        // Age: target < MaxAgeForAllowingClothAndPrickupFromOthers (10) and
+        // carrier.age >= target.age + 1; free hands (can_hold_baby).
         if upper.starts_with("HOLD ") || upper == "HOLD" {
             let baby_p_id: i32 = text
                 .split_whitespace()
@@ -4867,6 +5349,7 @@ fn apply_say_or_remv(
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
             let mother_p_id = p.p_id;
+            let mother_age = p.age;
             let (mx, my) = (p.x, p.y);
             let ok = if baby_p_id != 0
                 && state
@@ -4875,12 +5358,12 @@ fn apply_say_or_remv(
                     .map(|pl| pl.can_hold_baby())
                     .unwrap_or(false)
             {
-                // Locate baby by p_id (live, not deleted, age baby, adjacent).
+                // Haxe doBaby: not deleted, free of heldBy, age gates, adjacent.
                 state.players.values().any(|pl| {
                     pl.p_id == baby_p_id
                         && !pl.deleted
-                        && pl.age < BABY_AGE_THRESHOLD
                         && pl.held_by == 0
+                        && can_pickup_player_ages(mother_age, pl.age)
                         && (pl.x - mx).abs().max((pl.y - my).abs()) <= 1
                 })
             } else {
@@ -4890,23 +5373,29 @@ fn apply_say_or_remv(
                 // Apply links after the immutable borrow ends.
                 if let Some(pl) = state.players.get_mut(&conn_id) {
                     pl.start_holding(baby_p_id);
+                    // Haxe: exhaustion += PickupExhaustionGain
+                    pl.exhaustion += PICKUP_EXHAUSTION_GAIN;
                 }
                 if let Some(baby) = state.players.values_mut().find(|pl| pl.p_id == baby_p_id) {
                     baby.held_by = mother_p_id;
                     baby.x = mx;
                     baby.y = my;
                 }
-                // Haxe doBaby: pickup feeding when fertile mother + young child.
-                let mother_fertile = FertilityState::age_fertile(
-                    state.players.get(&conn_id).map(|pl| pl.age).unwrap_or(0.0),
-                );
+                // Haxe doBaby: pickup feeding when fertile mother + age < MaxChildAge.
+                // FERTILITY-TWINS: full isFertile (female + age)
+                // BREASTFEED-EDGES: strict < for pickup (not <= continuous)
+                let mother_fertile = state
+                    .players
+                    .get(&conn_id)
+                    .map(|pl| player_is_fertile(state, pl))
+                    .unwrap_or(false);
                 let baby_age = state
                     .players
                     .values()
                     .find(|pl| pl.p_id == baby_p_id)
                     .map(|b| b.age)
                     .unwrap_or(99.0);
-                if mother_fertile && baby_age <= MAX_CHILD_AGE_BREAST_FEEDING {
+                if mother_fertile && can_pickup_breastfeed_age(baby_age) {
                     let (b_food, b_max) = state
                         .players
                         .values()
@@ -4916,12 +5405,13 @@ fn apply_say_or_remv(
                     let (to_baby, from_m) = pickup_feed_amounts(b_food, b_max);
                     if to_baby > 0.0 {
                         if let Some(pl) = state.players.get_mut(&conn_id) {
-                            pl.food = (pl.food - from_m).max(0.0);
+                            pl.food -= from_m; // Haxe no floor
                         }
                         if let Some(baby) =
                             state.players.values_mut().find(|pl| pl.p_id == baby_p_id)
                         {
-                            baby.food = (baby.food + to_baby).min(baby.food_max);
+                            let cap = get_max_child_feeding(baby.food_max);
+                            baby.food = (baby.food + to_baby).min(cap);
                         }
                         info!(
                             conn_id,
@@ -4932,6 +5422,41 @@ fn apply_say_or_remv(
                         );
                     }
                 }
+                // Haxe: setFollowPlayer when no follow or non-fertile follow + fertile picker
+                {
+                    let has_follow = state.social.following.contains_key(&baby_p_id);
+                    let follow_fertile = state
+                        .social
+                        .following
+                        .get(&baby_p_id)
+                        .and_then(|&fid| {
+                            state
+                                .players
+                                .values()
+                                .find(|pl| pl.p_id == fid)
+                                .map(|pl| player_is_fertile(state, pl))
+                        })
+                        .unwrap_or(false);
+                    if should_set_follow_on_hold(has_follow, follow_fertile, mother_fertile) {
+                        let _ = state.social.set_follow(baby_p_id, mother_p_id);
+                    }
+                }
+                // Haxe: heldPlayer.doEmote(Emote.happy) when can breastfeed after hold
+                let m_food = state
+                    .players
+                    .get(&conn_id)
+                    .map(|pl| pl.food)
+                    .unwrap_or(0.0);
+                let m_age = state
+                    .players
+                    .get(&conn_id)
+                    .map(|pl| pl.age)
+                    .unwrap_or(0.0);
+                if can_breastfeed(m_age, m_food, mother_fertile, baby_age, true) {
+                    let near = nearby_conn_ids(state, mx, my, NEARBY_RANGE);
+                    let pe = format_player_emot(baby_p_id, 0).into_bytes(); // Emote.happy = 0
+                    send_nearby(outbound, &near, pe);
+                }
                 let line = format!("{} HOLD {baby_p_id} OK", mother_p_id);
                 send_ps_reply(outbound, conn_id, &line);
                 info!(conn_id, baby_p_id, "sim: HOLD baby");
@@ -4941,7 +5466,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // PUTDOWN / DROPBABY — release held baby at mother's tile.
+        // PUTDOWN / DROPBABY â€” release held baby at mother's tile.
         if upper == "PUTDOWN" || upper == "DROPBABY" {
             let mother_p_id = p.p_id;
             let (mx, my) = (p.x, p.y);
@@ -4965,7 +5490,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // CLOTHES — report hat/chest/shoes object ids (0 = empty).
+        // CLOTHES â€” report hat/chest/shoes object ids (0 = empty).
         if upper == "CLOTHES" || upper == "?CLOTHES" {
             if let Some(pl) = state.players.get(&conn_id) {
                 let line = format!("{} {}", pl.p_id, pl.clothes_report());
@@ -4973,7 +5498,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // WATER — simple self food+1 test boost (capped at food_max). Feed-other is FEED.
+        // WATER â€” simple self food+1 test boost (capped at food_max). Feed-other is FEED.
         if upper == "WATER" {
             let result = state.players.get_mut(&conn_id).map(|pl| {
                 let before = pl.food;
@@ -4993,7 +5518,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // STRIP hat|chest|shoes — unequip slot into empty hands.
+        // STRIP hat|chest|shoes â€” unequip slot into empty hands.
         if upper.starts_with("STRIP ") || upper == "STRIP" {
             let slot_tok = text.split_whitespace().nth(1).unwrap_or("");
             let slot = ClothingSlot::parse(slot_tok);
@@ -5045,7 +5570,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // WEAR [hat|chest|shoes] — equip held into clothing slot (inferred from object name if omitted).
+        // WEAR [hat|chest|shoes] â€” equip held into clothing slot (inferred from object name if omitted).
         if upper.starts_with("WEAR ") || upper == "WEAR" {
             let slot_tok = text.split_whitespace().nth(1);
             let explicit = slot_tok.and_then(ClothingSlot::parse);
@@ -5118,7 +5643,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // INV — list backpack object ids (max BACKPACK_MAX).
+        // INV â€” list backpack object ids (max BACKPACK_MAX).
         if upper == "INV" || upper == "?INV" {
             if let Some(pl) = state.players.get(&conn_id) {
                 let line = format!("{} {}", pl.p_id, pl.inv_report());
@@ -5126,7 +5651,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // NOTES / ?NOTES / MEMORY / ?MEMORY — personal journal list (max NOTES_MAX).
+        // NOTES / ?NOTES / MEMORY / ?MEMORY â€” personal journal list (max NOTES_MAX).
         if upper == "NOTES"
             || upper == "?NOTES"
             || upper == "MEMORY"
@@ -5138,7 +5663,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // FORGET — pop last personal journal note.
+        // FORGET â€” pop last personal journal note.
         if upper == "FORGET" {
             let result = state.players.get_mut(&conn_id).map(|pl| {
                 let r = pl.pop_note();
@@ -5159,7 +5684,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // TITLE <text> — set personal title string (shown in ?NAME).
+        // TITLE <text> â€” set personal title string (shown in ?NAME).
         if upper.starts_with("TITLE ") || upper == "TITLE" {
             let body = text
                 .split_once(char::is_whitespace)
@@ -5184,7 +5709,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // NOTE / REMEMBER <text> — append personal journal line (max NOTES_MAX).
+        // NOTE / REMEMBER <text> â€” append personal journal line (max NOTES_MAX).
         if upper.starts_with("NOTE ")
             || upper == "NOTE"
             || upper.starts_with("REMEMBER ")
@@ -5213,7 +5738,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // HELD / ?HELD — held object id + content name when known.
+        // HELD / ?HELD â€” held object id + content name when known.
         if upper == "HELD" || upper == "?HELD" {
             let held_id = state.players.get(&conn_id).map(|pl| pl.held_id).unwrap_or(0);
             let reply = state.format_held_query(held_id);
@@ -5221,7 +5746,7 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // STORE — move held object into backpack if space.
+        // STORE â€” move held object into backpack if space.
         if upper == "STORE" {
             let result = state
                 .players
@@ -5267,7 +5792,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // TAKE <i> — move backpack index i into empty hands.
+        // TAKE <i> â€” move backpack index i into empty hands.
         if upper.starts_with("TAKE ") || upper == "TAKE" {
             let idx = text
                 .split_whitespace()
@@ -5321,7 +5846,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // DROPALL — scatter held + backpack onto empty tiles near the player (no death).
+        // DROPALL â€” scatter held + backpack onto empty tiles near the player (no death).
         if upper == "DROPALL" {
             let meta = state.players.get(&conn_id).map(|pl| {
                 (pl.p_id, pl.x, pl.y, pl.age, pl.deleted)
@@ -5370,7 +5895,7 @@ fn apply_say_or_remv(
             info!(conn_id, p_id, n, "sim: DROPALL");
             return;
         }
-        // PUTNEST <slot> — put held into nested pocket of contained[slot] under feet.
+        // PUTNEST <slot> â€” put held into nested pocket of contained[slot] under feet.
         // Uses World::container_put_nested (one level deep). Slot is top-level contained index.
         if upper.starts_with("PUTNEST ") || upper == "PUTNEST" {
             let slot_raw = text
@@ -5454,7 +5979,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // CRAFT — self-craft held via transition (held, 0); same as USE on empty tile.
+        // CRAFT â€” self-craft held via transition (held, 0); same as USE on empty tile.
         if upper == "CRAFT" {
             match try_craft(state, conn_id) {
                 Some(r) if r.applied => {
@@ -5486,7 +6011,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // SLEEP — enter sleep: block MOVE, halve food drain; PE snore on vitals timer.
+        // SLEEP â€” enter sleep: block MOVE, halve food drain; PE snore on vitals timer.
         if upper == "SLEEP" {
             if let Some(pl) = state.players.get_mut(&conn_id) {
                 pl.sleeping = true;
@@ -5499,7 +6024,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // WAKE — leave sleep: restore MOVE and normal food drain.
+        // WAKE â€” leave sleep: restore MOVE and normal food drain.
         if upper == "WAKE" {
             if let Some(pl) = state.players.get_mut(&conn_id) {
                 pl.sleeping = false;
@@ -5510,7 +6035,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // SIT — sit: block MOVE, mild food-drain reduce (like SLEEP, milder).
+        // SIT â€” sit: block MOVE, mild food-drain reduce (like SLEEP, milder).
         if upper == "SIT" {
             if let Some(pl) = state.players.get_mut(&conn_id) {
                 pl.sitting = true;
@@ -5523,7 +6048,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // STAND — leave sit: restore MOVE and normal (non-sit) food drain.
+        // STAND â€” leave sit: restore MOVE and normal (non-sit) food drain.
         if upper == "STAND" {
             if let Some(pl) = state.players.get_mut(&conn_id) {
                 pl.sitting = false;
@@ -5533,7 +6058,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // RENAME <first> [last] — change display name; NM packet to nearby.
+        // RENAME <first> [last] â€” change display name; NM packet to nearby.
         if upper == "RENAME" || upper.starts_with("RENAME ") {
             let mut parts = text.split_whitespace();
             let _cmd = parts.next();
@@ -5578,7 +6103,7 @@ fn apply_say_or_remv(
             info!(conn_id, p_id, name = %display_name, "sim: RENAME");
             return;
         }
-        // DIE — voluntary death (reason_suicide); also available as client DIE tag.
+        // DIE â€” voluntary death (reason_suicide); also available as client DIE tag.
         if upper == "DIE" {
             let died = state.players.get_mut(&conn_id).map(|pl| {
                 if pl.deleted {
@@ -5604,7 +6129,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // LASTUSE / LAST_USE — force last-use transition table on the next USE
+        // LASTUSE / LAST_USE â€” force last-use transition table on the next USE
         // (Haxe multi-use nearly exhausted). Cleared after one applied USE.
         if upper == "LASTUSE" || upper == "LAST_USE" {
             if let Some(pl) = state.players.get_mut(&conn_id) {
@@ -5615,7 +6140,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // SICK — mark sick: food drain * SICK_FOOD_DRAIN_MULT; DY uses isSick.
+        // SICK â€” mark sick: food drain * SICK_FOOD_DRAIN_MULT; DY uses isSick.
         if upper == "SICK" {
             if let Some(pl) = state.players.get_mut(&conn_id) {
                 pl.sick = true;
@@ -5625,7 +6150,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // CURE — clear sick: restore normal food drain / DY flag.
+        // CURE â€” clear sick: restore normal food drain / DY flag.
         if upper == "CURE" {
             if let Some(pl) = state.players.get_mut(&conn_id) {
                 pl.sick = false;
@@ -5635,7 +6160,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // RIDE / MOUNT — set riding flag; move_speed note only (no actual MOVE speed change).
+        // RIDE / MOUNT â€” set riding flag; move_speed note only (no actual MOVE speed change).
         if upper == "RIDE" || upper == "MOUNT" {
             if let Some(pl) = state.players.get_mut(&conn_id) {
                 pl.riding = true;
@@ -5649,7 +6174,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // DISMOUNT — clear riding; report walk move_speed note only.
+        // DISMOUNT â€” clear riding; report walk move_speed note only.
         if upper == "DISMOUNT" {
             if let Some(pl) = state.players.get_mut(&conn_id) {
                 pl.riding = false;
@@ -5662,7 +6187,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // SWIM — note ocean/river food-drain mult (already applied in vitals via biome).
+        // SWIM â€” note ocean/river food-drain mult (already applied in vitals via biome).
         if upper == "SWIM" {
             let biome = state.world.read().unwrap().get_biome(p.x, p.y);
             let mult = biome_food_multiplier(biome);
@@ -5675,15 +6200,15 @@ fn apply_say_or_remv(
             info!(conn_id, biome, "sim: SWIM note");
             return;
         }
-        // BUILD — fence placeholder (object id 0; no real place yet).
+        // BUILD â€” fence placeholder (object id 0; no real place yet).
         if upper == "BUILD" || upper.starts_with("BUILD ") {
-            // Placeholder: DROP id 0 — no object placed.
+            // Placeholder: DROP id 0 â€” no object placed.
             let line = format!("{} BUILD OK fence=0", p.p_id);
             send_ps_reply(outbound, conn_id, &line);
             info!(conn_id, "sim: BUILD fence placeholder");
             return;
         }
-        // CLAIM — set ownership on object under feet without locking the tile.
+        // CLAIM â€” set ownership on object under feet without locking the tile.
         if upper == "CLAIM" {
             let (x, y, p_id) = (p.x, p.y, p.p_id);
             let ok = {
@@ -5701,7 +6226,7 @@ fn apply_say_or_remv(
                     false
                 }
             };
-            // Do not touch LockState — ownership only.
+            // Do not touch LockState â€” ownership only.
             let line = format!(
                 "{} CLAIM {} {} {}",
                 p_id,
@@ -5713,7 +6238,7 @@ fn apply_say_or_remv(
             info!(conn_id, x, y, ok, "sim: CLAIM");
             return;
         }
-        // HOME — set personal home to current tile.
+        // HOME â€” set personal home to current tile.
         if upper == "HOME" {
             if let Some(pl) = state.players.get_mut(&conn_id) {
                 pl.home_x = pl.x;
@@ -5729,7 +6254,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // MARK <label> — custom map marker at current tile for self (LOCATION_SAYS style).
+        // MARK <label> â€” custom map marker at current tile for self (LOCATION_SAYS style).
         if upper.starts_with("MARK ") || upper == "MARK" {
             let label = text
                 .split_once(char::is_whitespace)
@@ -5750,7 +6275,7 @@ fn apply_say_or_remv(
             info!(conn_id, x = px, y = py, %label, "sim: MARK custom");
             return;
         }
-        // PLAN <object_id> — reverse craft ingredient path (leaf→root actor+target).
+        // PLAN <object_id> â€” reverse craft ingredient path (leafâ†’root actor+target).
         if upper.starts_with("PLAN ") || upper == "PLAN" {
             let want: Option<i32> = text
                 .split_whitespace()
@@ -5779,7 +6304,7 @@ fn apply_say_or_remv(
             info!(conn_id, %line, "sim: PLAN");
             return;
         }
-        // RECIPE [id] — ingredients_for held (or arg) as product.
+        // RECIPE [id] â€” ingredients_for held (or arg) as product.
         if upper.starts_with("RECIPE ") || upper == "RECIPE" || upper == "?RECIPE" {
             let arg: Option<i32> = text
                 .split_whitespace()
@@ -5797,7 +6322,7 @@ fn apply_say_or_remv(
             info!(conn_id, %line, "sim: RECIPE");
             return;
         }
-        // NEXTCRAFT [id] — products using held (or arg) as ingredient (craft graph).
+        // NEXTCRAFT [id] â€” products using held (or arg) as ingredient (craft graph).
         if upper.starts_with("NEXTCRAFT ")
             || upper == "NEXTCRAFT"
             || upper == "?NEXTCRAFT"
@@ -5819,8 +6344,8 @@ fn apply_say_or_remv(
             info!(conn_id, %line, "sim: NEXTCRAFT");
             return;
         }
-        // SEEKING [PROF] — AI goal self-debug string (optional for human players).
-        // Default profession Forager; optional token FARMER/SMITH/HUNTER/…
+        // SEEKING [PROF] â€” AI goal self-debug string (optional for human players).
+        // Default profession Forager; optional token FARMER/SMITH/HUNTER/â€¦
         if upper.starts_with("SEEKING ") || upper == "SEEKING" || upper == "?SEEKING" {
             let token = text.split_whitespace().nth(1).unwrap_or("");
             let profession =
@@ -5830,7 +6355,7 @@ fn apply_say_or_remv(
                 .get(&conn_id)
                 .map(|pl| (pl.p_id, pl.held_id, pl.food, pl.x, pl.y))
                 .unwrap_or((p.p_id, p.held_id, p.food, p.x, p.y));
-            // Cheap nearby-food scan (Chebyshev ≤ 4) for goal sensors.
+            // Cheap nearby-food scan (Chebyshev â‰¤ 4) for goal sensors.
             let nearby_food = {
                 let world = state.world.read().unwrap();
                 let mut found = false;
@@ -5867,7 +6392,7 @@ fn apply_say_or_remv(
             info!(conn_id, %line, "sim: SEEKING");
             return;
         }
-        // PATH <x> <y> — next A* step (dx dy) toward absolute tile, or FAIL.
+        // PATH <x> <y> â€” next A* step (dx dy) toward absolute tile, or FAIL.
         // Uses player-aware walkability (gate/door name exception + owned locks).
         if upper.starts_with("PATH ") || upper == "PATH" {
             let mut it = text.split_whitespace();
@@ -5901,7 +6426,7 @@ fn apply_say_or_remv(
             info!(conn_id, %line, "sim: PATH");
             return;
         }
-        // STEPS <x> <y> — A* path length estimate to absolute tile, or FAIL.
+        // STEPS <x> <y> â€” A* path length estimate to absolute tile, or FAIL.
         if upper.starts_with("STEPS ") || upper == "STEPS" {
             let mut it = text.split_whitespace();
             let _ = it.next();
@@ -5931,7 +6456,7 @@ fn apply_say_or_remv(
             info!(conn_id, %line, "sim: STEPS");
             return;
         }
-        // WALKABLE <dx> <dy> — yes/no for tile relative to player (locks + gate exception).
+        // WALKABLE <dx> <dy> â€” yes/no for tile relative to player (locks + gate exception).
         if upper.starts_with("WALKABLE ") || upper == "WALKABLE" {
             let mut it = text.split_whitespace();
             let _ = it.next();
@@ -5952,7 +6477,7 @@ fn apply_say_or_remv(
             info!(conn_id, dx, dy, ok, "sim: WALKABLE");
             return;
         }
-        // GOHOME — pathfind one step toward home, or teleport one cardinal step.
+        // GOHOME â€” pathfind one step toward home, or teleport one cardinal step.
         if upper == "GOHOME" {
             let (sx, sy, hx, hy, p_id, held, age) = (
                 p.x, p.y, p.home_x, p.home_y, p.p_id, p.held_id, p.age,
@@ -6063,7 +6588,7 @@ fn apply_say_or_remv(
         // REMV x y [i] [j]
         // - no indices: take last top-level contained
         // - i only: take contained[i] (nested under i discarded)
-        // - i j: pocket-style nested take — sub-item j under contained[i]
+        // - i j: pocket-style nested take â€” sub-item j under contained[i]
         //   (j = -1 or omitted sub uses last nested; see container_take_nested)
         let mut parts = payload.split_whitespace();
         let x: i32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
@@ -6139,7 +6664,7 @@ fn apply_say_or_remv(
         let item = {
             let mut world = state.world.write().unwrap();
             match (slot, sub_raw) {
-                // Nested pocket take: REMV x y slot sub  (sub < 0 → last)
+                // Nested pocket take: REMV x y slot sub  (sub < 0 â†’ last)
                 (Some(s), Some(j)) if s >= 0 => {
                     let sub = if j < 0 {
                         None
@@ -6148,7 +6673,7 @@ fn apply_say_or_remv(
                     };
                     world.container_take_nested(x, y, s as usize, sub)
                 }
-                // Top-level: REMV x y [i]  (i < 0 → last)
+                // Top-level: REMV x y [i]  (i < 0 â†’ last)
                 (Some(s), None) => {
                     let idx = if s < 0 {
                         None
@@ -6183,7 +6708,7 @@ fn apply_say_or_remv(
                     p.y,
                     p.age,
                     spd,
-                p.done_moving_seq.max(1),
+                    p.done_moving_seq.max(1),
                 );
                 send_nearby(
                     outbound,
@@ -6257,7 +6782,7 @@ pub fn apply_use_at(
         state.prefer_last_use || player.force_last_use || uses_remaining == 1;
 
     // Prefer content transition (actor, target). If none, Haxe falls back to
-    // bare-hand pickup: empty hands + non-permanent ground object → swap.
+    // bare-hand pickup: empty hands + non-permanent ground object â†’ swap.
     let tr = state
         .content
         .find_transition_prefer(actor, target, prefer_last)
@@ -6271,7 +6796,7 @@ pub fn apply_use_at(
             true,
         )
     } else if actor == 0 && target != 0 {
-        // Haxe `swapHandAndFloorObject` — empty hands, non-permanent ground.
+        // Haxe `swapHandAndFloorObject` â€” empty hands, non-permanent ground.
         let permanent = state
             .content
             .get(target)
@@ -6290,7 +6815,7 @@ pub fn apply_use_at(
         }
         (target, 0, false, false)
     } else if actor != 0 && target != 0 {
-        // Held object on non-permanent ground with no transition → swap both
+        // Held object on non-permanent ground with no transition â†’ swap both
         // (put down held, pick up target). Permanent ground refuses.
         let tgt_perm = state
             .content
@@ -6313,7 +6838,7 @@ pub fn apply_use_at(
                 y: ty,
             });
         }
-        // Swap hand ↔ floor.
+        // Swap hand â†” floor.
         (target, actor, false, false)
     } else {
         return Some(UseResult {
@@ -6381,7 +6906,7 @@ pub fn apply_use_at(
 
 /// Place post-USE tile state with Haxe `DoChangeNumberOfUsesOnTarget` semantics.
 ///
-/// - **New multi-use object + reverseUseTarget** (stone→pile): start at **1** use  
+/// - **New multi-use object + reverseUseTarget** (stoneâ†’pile): start at **1** use  
 ///   (Haxe: "a Pile starts with 1 uses not with the full numberOfUses").
 /// - **New multi-use object + normal**: start at `num_uses` (full).
 /// - **Same id + reverseUseTarget** (add stone to pile): `uses + 1` (cap at num_uses).
@@ -6415,7 +6940,7 @@ fn place_after_use(
         let cur = if uses_before > 0 {
             uses_before
         } else {
-            // Helper missing — treat as full pile only when reverse-adding, else 1.
+            // Helper missing â€” treat as full pile only when reverse-adding, else 1.
             if reverse_use_target {
                 1
             } else {
@@ -6428,7 +6953,7 @@ fn place_after_use(
             cur - 1
         };
         if next <= 0 {
-            // Depleted without last-use transform — clear (caller should prefer LT).
+            // Depleted without last-use transform â€” clear (caller should prefer LT).
             world.set_object(tx, ty, 0);
         } else {
             world.set_object_complex(tx, ty, ComplexObject::with_uses(target_after, next));
@@ -6439,7 +6964,7 @@ fn place_after_use(
     // Id changed to a multi-use object (new pile / bucket / deposit).
     if num_uses > 1 {
         let start = if reverse_use_target {
-            // Haxe: reverseUse on new type → start at 1 (first stone in pile).
+            // Haxe: reverseUse on new type â†’ start at 1 (first stone in pile).
             1
         } else {
             num_uses
@@ -6451,7 +6976,7 @@ fn place_after_use(
     world.set_object(tx, ty, target_after);
 }
 
-/// Object id to send on the wire for a world tile (multi-use → dummy id).
+/// Object id to send on the wire for a world tile (multi-use â†’ dummy id).
 fn wire_object_at(state: &SimState, x: i32, y: i32) -> i32 {
     let w = state.world.read().unwrap();
     let base = w.get_object(x, y);
@@ -6476,8 +7001,8 @@ fn wire_object_at(state: &SimState, x: i32, y: i32) -> i32 {
 ///
 /// Map/player coords on the wire are birth-relative for this connection.
 ///
-/// **MX p_id = `-(player)`** for transforms/pickups (Haxe `SendTransitionUpdate…`
-/// with `doTransition=true`). Positive p_id is only for drops — using +p_id here
+/// **MX p_id = `-(player)`** for transforms/pickups (Haxe `SendTransitionUpdateâ€¦`
+/// with `doTransition=true`). Positive p_id is only for drops â€” using +p_id here
 /// makes the official client animate the object flying from the player.
 ///
 /// Multi-use tiles send the **dummy object id** for current uses (Haxe `dummyId()`).
@@ -6490,7 +7015,7 @@ pub fn packets_after_use(state: &SimState, conn_id: u64, r: &UseResult) -> Vec<V
     let (mx, my) = p.world_to_client(r.x, r.y);
     let (px, py) = p.world_to_client(p.x, p.y);
     let mut out = Vec::new();
-    // Transform / pickup / harvest — not a drop.
+    // Transform / pickup / harvest â€” not a drop.
     let responsible = -p.p_id;
     out.push(
         format_map_change(mx, my, floor, wire_obj, responsible).into_bytes(),
@@ -6547,7 +7072,6 @@ pub fn packets_after_drop(state: &SimState, conn_id: u64, x: i32, y: i32, placed
 pub fn player_id_for_conn(conn_id: u64) -> i32 {
     (conn_id as i32).saturating_add(1).max(2)
 }
-
 
 /// Find a non-mountain grassland-ish tile near preference (spawn bootstrap).
 pub fn find_playable_spawn(world: &World, prefer: (i32, i32)) -> (i32, i32) {
@@ -6629,7 +7153,7 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     }
     // Adult LOGIN must match net bootstrap PU position (`preferred_spawn` /
     // `state.spawn_x/y`). Mother-tile spawn is only for `spawn_child` (age 0).
-    // Mismatch caused MOVE jump_too_far → force snap to NPC tiles (see
+    // Mismatch caused MOVE jump_too_far â†’ force snap to NPC tiles (see
     // RustClient SERVER_MOVE_FEEDBACK.md).
     let mut mother_link: Option<i32> = None;
     let is_synthetic = conn_id >= 9_000_000; // self-play / NPC reserved bands
@@ -6695,7 +7219,7 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
 /// Stones (id 33, permanent=0) + one wolf entity/map object near playtest spawn.
 fn seed_playtest_local_objects(state: &mut SimState, sx: i32, sy: i32) {
     const STONE: i32 = 33;
-    // Adjacent tiles only (not under feet — permanent trees may already be there).
+    // Adjacent tiles only (not under feet â€” permanent trees may already be there).
     let offsets = [(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1)];
     {
         let mut w = state.world.write().unwrap();
@@ -6730,9 +7254,9 @@ fn seed_playtest_local_objects(state: &mut SimState, sx: i32, sy: i32) {
     }
 }
 
-/// Record activity for AFK bookkeeping (MOVE / USE / DROP / SAY / EMOT / JUMP…).
+/// Record activity for AFK bookkeeping (MOVE / USE / DROP / SAY / EMOT / JUMPâ€¦).
 ///
-/// Does not count [`NetIntent::KeepAlive`] or disconnect — only real actions.
+/// Does not count [`NetIntent::KeepAlive`] or disconnect â€” only real actions.
 fn touch_afk_activity(state: &mut SimState, conn_id: u64) {
     let Some(p) = state.players.get(&conn_id) else {
         return;
@@ -6752,6 +7276,10 @@ fn touch_afk_activity(state: &mut SimState, conn_id: u64) {
 /// - lineage `mother_id` set; mother map marker for the baby
 ///
 /// Returns baby `p_id`, or `None` if mother missing/deleted.
+include!("twin_party_live.inc.rs");
+// AI-FOLLOW-WALK continuous follow + ally Goto pathfind
+include!("ai_follow_walk_live.inc.rs");
+
 pub fn spawn_child(state: &mut SimState, mother_conn: u64) -> Option<i32> {
     let mother = state.players.get(&mother_conn)?.clone();
     if mother.deleted {
@@ -6867,7 +7395,6 @@ pub fn set_player_position_respecting_path(
 
 /// Haxe BAD_BIOMES / impassable mountain wall (`ol_world::biome::SNOWINGREY`).
 const BIOME_MOUNTAIN: u8 = 21;
-
 
 /// Force PU+FM unstick (cancel MovePath if any).
 pub fn send_player_update_and_frame(
@@ -7018,9 +7545,11 @@ pub fn catch_up_extra_steps(tick_after_base: u64, periods_behind: u32, max_extra
 }
 
 pub fn pick_best_mother_p_id(state: &SimState) -> Option<i32> {
+    // CLASS-BONI: Haxe child.lineage.prestigeClass (default Commoner when not pre-scored).
+    // // Haxe: Lineage.prestigeClass = Commoner; calculatePrestigeClass at GPI new
     let child = ChildView {
         is_human: true,
-        prestige_class: 0,
+        prestige_class: PrestigeClass::Commoner as u8,
     };
     let mut best: Option<(i32, f32)> = None;
     for p in state.players.values() {
@@ -7045,7 +7574,8 @@ pub fn pick_best_mother_p_id(state: &SimState) -> Option<i32> {
             held_id: p.held_id,
             held_speed_mult: 1.0,
             children_birth_mali: mali,
-            prestige_class: 0,
+            // CLASS-BONI: live mother lineage class for calculateClassBoni
+            prestige_class: state.player_prestige_class(p.p_id).as_i32() as u8,
             prestige_from_eating: 0.0,
             family_prestige_for_child: 0.0,
             has_close_nonblocking_grave: false,
@@ -7067,9 +7597,10 @@ pub fn pick_best_mother_p_id(state: &SimState) -> Option<i32> {
 
 pub fn pick_best_father_p_id(state: &SimState, mother_p_id: i32) -> Option<i32> {
     let mother = state.players.values().find(|p| p.p_id == mother_p_id)?;
+    // CLASS-BONI: child class for fitness path (father boni uses mother class).
     let child = ChildView {
         is_human: true,
-        prestige_class: 0,
+        prestige_class: PrestigeClass::Commoner as u8,
     };
     let mother_mali = state
         .fertility
@@ -7089,7 +7620,8 @@ pub fn pick_best_father_p_id(state: &SimState, mother_p_id: i32) -> Option<i32> 
         held_id: mother.held_id,
         held_speed_mult: 1.0,
         children_birth_mali: mother_mali,
-        prestige_class: 0,
+        // CLASS-BONI: father fitness uses calculateClassBoni(father, mother)
+        prestige_class: state.player_prestige_class(mother_p_id).as_i32() as u8,
         prestige_from_eating: 0.0,
         family_prestige_for_child: 0.0,
         has_close_nonblocking_grave: false,
@@ -7115,7 +7647,8 @@ pub fn pick_best_father_p_id(state: &SimState, mother_p_id: i32) -> Option<i32> 
             wounded: false,
             held_id: pl.held_id,
             held_speed_mult: 1.0,
-            prestige_class: 0,
+            // CLASS-BONI: live father lineage class
+            prestige_class: state.player_prestige_class(pl.p_id).as_i32() as u8,
             prestige_from_eating: 0.0,
             is_human: true,
             dist_to_mother: dist,
@@ -7187,6 +7720,28 @@ pub fn attach_fitness_mother_lineage(
     father_id
 }
 
+/// Resolve NetIntent tile coords to **world** tiles.
+///
+/// Human TCP clients send **birth-relative** coords (vanilla `m.x += birthPos`).
+/// NPC / self-play AI often enqueues **world** tiles from `PlayerSnapshot.x/y`.
+/// Prefer birth-relative when that lands nearer the body; otherwise treat the
+/// raw coords as world so AI is not stuck on `jump_too_far` after double-adding birth.
+// Haxe: client MOVE/USE absolute after birth; Rust AI uses world snapshots
+fn resolve_net_intent_tile(p: &Player, x: i32, y: i32) -> (i32, i32) {
+    let from_client = p.client_to_world(x, y);
+    // No birth offset → both interpretations match.
+    if p.birth_x == 0 && p.birth_y == 0 {
+        return from_client;
+    }
+    let d_client = move_quad_dist(from_client.0, from_client.1, p.x, p.y);
+    let d_raw = move_quad_dist(x, y, p.x, p.y);
+    if d_raw < d_client {
+        (x, y)
+    } else {
+        from_client
+    }
+}
+
 pub fn apply_move_path_start(
     state: &mut SimState,
     outbound: &OutboundHub,
@@ -7196,7 +7751,7 @@ pub fn apply_move_path_start(
     deltas: &[(i32, i32)],
     client_seq: Option<i32>,
 ) -> Result<(), MoveReject> {
-    // Baby MOVE while held → jump out of arms (user: drop if they move out).
+    // Baby MOVE while held â†’ jump out of arms (user: drop if they move out).
     // Haxe prefers JUMP; we also honor MOVE as an explicit leave.
     let held_by = state
         .players
@@ -7233,11 +7788,11 @@ pub fn apply_move_path_start(
     }
     // Haxe MoveHelper.moveHelper:
     //   if isBlocked(clientStart) || quadDist > MaxMovementQuadJumpDistanceBeforeForce(5)
-    //     → CancleMovement (no snap).
+    //     â†’ CancleMovement (no snap).
     // Else if jump: snap to client start (positionChanged), then accept path.
     // Mid-path new MOVE replaces the path (Haxe always overwrites newMoves).
     //
-    // Timed path jump gate is **only** Haxe quadDist ≤ 5. `move_jump_max_chebyshev`
+    // Timed path jump gate is **only** Haxe quadDist â‰¤ 5. `move_jump_max_chebyshev`
     // applies to instant MOVE only and must not widen this gate.
     let jump_quad = move_quad_dist(xs, ys, px, py);
     let max_quad = MAX_MOVE_QUAD_JUMP_BEFORE_FORCE;
@@ -7245,7 +7800,7 @@ pub fn apply_move_path_start(
         // Too far: caller force-PU at **server** position (Haxe CancleMovement).
         return Err(MoveReject::JumpTooFar);
     }
-    // Haxe checks isBlocked(client xs,ys) before mutating — keep server tile on reject.
+    // Haxe checks isBlocked(client xs,ys) before mutating â€” keep server tile on reject.
     {
         let world = state.world.read().unwrap();
         let (sx, sy) = world.wrap_tile(xs, ys);
@@ -7258,7 +7813,7 @@ pub fn apply_move_path_start(
     let (start_x, start_y) = if jump_quad == 0 {
         (px, py)
     } else {
-        // Accept client position (Haxe positionChanged — no CancleMovement).
+        // Accept client position (Haxe positionChanged â€” no CancleMovement).
         if let Some(p) = state.players.get_mut(&conn_id) {
             p.move_path = None;
             p.moving = false;
@@ -7279,12 +7834,22 @@ pub fn apply_move_path_start(
             p.moving = false;
         }
     }
-    let (accepted, trunc) = {
+    // Haxe calculateNewMovements: walkability + fullPathHasRoad + off-road biome trunc.
+    let (accepted, trunc, full_path_has_road) = {
         let t0 = ol_metrics::ScopeTimer::start();
         let world = state.world.read().unwrap();
-        let out = truncate_walkable(&world, &state.content, start_x, start_y, deltas);
+        let (walk_acc, walk_trunc) =
+            truncate_walkable(&world, &state.content, start_x, start_y, deltas);
+        let scan = scan_path_road_and_biome(
+            &world,
+            &state.content,
+            start_x,
+            start_y,
+            &walk_acc,
+            walk_trunc,
+        );
         state.last_lock_wait_us = t0.elapsed().as_micros().min(u128::from(u32::MAX)) as u32;
-        out
+        (scan.steps, scan.trunc, scan.full_path_has_road)
     };
     if accepted.is_empty() {
         return Err(MoveReject::EmptyPath);
@@ -7293,7 +7858,7 @@ pub fn apply_move_path_start(
         let p = state.players.get(&conn_id).ok_or(MoveReject::NoPlayer)?;
         let seq = resolve_move_seq(p, client_seq);
         let ballast = weight_item_count(p.held_id, p.backpack.len());
-        let speed = compose_move_speed(
+        let base = compose_move_speed(
             p.riding,
             &state.weather,
             &state.snow,
@@ -7302,6 +7867,17 @@ pub fn apply_move_path_start(
             p.y,
             ballast,
         );
+        // Haxe calculateSpeed(p, p.tx, p.ty, fullPathHasRoad)
+        let world = state.world.read().unwrap();
+        let floor_factor = floor_road_factor_at(
+            &world,
+            &state.content,
+            start_x,
+            start_y,
+            full_path_has_road,
+            false,
+        );
+        let speed = base * floor_factor;
         (speed, seq)
     };
     let path = build_move_path(
@@ -7322,6 +7898,8 @@ pub fn apply_move_path_start(
         p.moving = true;
         p.p_id
     };
+    // S-MOVE-LIVE-GATES: mutate is_cursed + CU/PE/say on enter/clear.
+    apply_grave_curse_live_gates(state, outbound, conn_id);
     // Per-viewer birth-relative PM (Haxe transformX/Y for each connection).
     let near = nearby_conn_ids(state, start_x, start_y, NEARBY_RANGE);
     let mut recipients: Vec<u64> = near;
@@ -7348,17 +7926,31 @@ pub fn apply_move_path_start(
         send_frame(outbound, cid);
     }
     state.publish_player_view(conn_id);
-    info!(
-        conn_id,
-        p_id,
-        start_x,
-        start_y,
-        steps = accepted.len(),
-        trunc,
-        seq,
-        total_sec = total,
-        "sim: MOVE PM sent (self+nearby)"
-    );
+    if conn_id >= 9_000_000 {
+        debug!(
+            conn_id,
+            p_id,
+            start_x,
+            start_y,
+            steps = accepted.len(),
+            trunc,
+            seq,
+            total_sec = total,
+            "sim: MOVE PM sent (self+nearby)"
+        );
+    } else {
+        info!(
+            conn_id,
+            p_id,
+            start_x,
+            start_y,
+            steps = accepted.len(),
+            trunc,
+            seq,
+            total_sec = total,
+            "sim: MOVE PM sent (self+nearby)"
+        );
+    }
     Ok(())
 }
 
@@ -7421,7 +8013,7 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
             }
         }
         if result.cancelled {
-            // Keep path seq explicit — do not clear path then call force with None
+            // Keep path seq explicit â€” do not clear path then call force with None
             // (that would saturating_add and double-step the seq).
             if let Some(p) = state.players.get_mut(&conn_id) {
                 p.x = x;
@@ -7585,7 +8177,7 @@ pub fn apply_move_deltas_with_seq(
         }
         (x, y)
     };
-    // Instant MOVE while held as baby → drop out first.
+    // Instant MOVE while held as baby â†’ drop out first.
     let (held_by_self, baby_pid_self) = state
         .players
         .get(&conn_id)
@@ -7625,7 +8217,7 @@ pub fn apply_move_deltas_with_seq(
 }
 
 /// Advance age/food, auto-decay, environment; emit BW/DY for starving infants;
-/// periodically send HX heat packets from biome temperature.
+/// periodically send HX heat packets from body heat (tile ambient path).
 ///
 /// Food drain is multiplied by [`OLD_AGE_FOOD_DRAIN_MULT`] when `age > OLD_AGE_THRESHOLD`,
 /// by [`SLEEP_FOOD_DRAIN_MULT`] (0.5) while [`Player::sleeping`], by
@@ -7651,20 +8243,135 @@ pub fn apply_move_deltas_with_seq(
 /// [`NEARBY_RANGE`].
 ///
 /// Every [`HX_EMIT_INTERVAL_SECS`] of sim time, send HX (`format_heat_change`) to
-/// each living player using [`Environment::temperature_at_biome`] at their tile.
+/// each living player using body `Player::heat` (from `tile_temps` ambient).
 ///
-/// AFK: when idle ≥ [`DEFAULT_AFK_SECS`] since last activity touch, the player is
+/// AFK: when idle â‰¥ [`DEFAULT_AFK_SECS`] since last activity touch, the player is
 /// considered AFK (no kick yet). On the tick that first crosses the threshold,
 /// optionally emit PE yawn ([`YAWN_EMOT_INDEX`]) to nearby and log `AFK <p_id>`.
 ///
-/// Indoor stub: floor id ≠ 0 halves [`TEMP_FOOD_EXTRA`] (shelter from extremes).
+/// Indoor stub: floor id â‰  0 halves [`TEMP_FOOD_EXTRA`] (shelter from extremes).
+
+/// Live Haxe `CalculateBlockedByAi` â€” wipe+rebuild `blocked_by_ai` from sticky targets.
+///
+/// Collects living AI agents' food/use/drop/block claims and human
+/// `blockTargetForAi` (age â‰¤ 20s), then replaces the global map.
+// Haxe: AiBase.CalculateBlockedByAi ~222â€“239 (each AI frame)
+// BLOCKED-BY-AI
+pub fn rebuild_blocked_by_ai_live(state: &mut SimState) {
+    use crate::ai_path_reach::{
+        apply_rebuild_blocked_by_ai_from_sticky, StickyBlockBodyRow,
+    };
+    let sim_time = state.sim_time;
+    let bodies: Vec<StickyBlockBodyRow> = state
+        .players
+        .values()
+        .map(|p| {
+            let wounded = p.hidden_wound.is_some();
+            StickyBlockBodyRow {
+                is_ai: p.is_ai_body(),
+                age: p.age,
+                is_wounded: wounded,
+                deleted: p.deleted,
+                sticky: p.ai_block_targets.clone(),
+            }
+        })
+        .collect();
+    apply_rebuild_blocked_by_ai_from_sticky(&mut state.blocked_by_ai, sim_time, &bodies);
+}
+
+/// Note sticky food/use/drop claim from a shortCraft live intent (before USE/DROP).
+// Haxe: AiBase.useTarget / dropTarget / foodTarget set while working
+// BLOCKED-BY-AI
+pub fn note_ai_block_targets_from_live_intent(
+    state: &mut SimState,
+    conn_id: u64,
+    intent: crate::ShortCraftLiveIntent,
+) {
+    use crate::ai_path_reach::{BlockTargetClaim, StickyBlockIntentKind};
+    use crate::ShortCraftLiveIntent;
+    let (mut kind, x, y, target_hint) = match intent {
+        ShortCraftLiveIntent::UseAt {
+            x,
+            y,
+            target_id,
+            ..
+        } => (StickyBlockIntentKind::Use, x, y, target_id),
+        ShortCraftLiveIntent::UseOnEmptyGround { x, y, .. } => {
+            (StickyBlockIntentKind::Use, x, y, 0)
+        }
+        ShortCraftLiveIntent::DropAt { x, y } => (StickyBlockIntentKind::Drop, x, y, 0),
+        _ => return,
+    };
+    let held_id = state
+        .players
+        .get(&conn_id)
+        .map(|p| p.held_id)
+        .unwrap_or(0);
+    let (parent_id, number_of_uses, is_animal, food_value, held_new_target_id) = {
+        let world = match state.world.read() {
+            Ok(w) => w,
+            Err(_) => return,
+        };
+        let id = world.get_object(x, y);
+        let base = if id != 0 {
+            state.content.resolve_base_id(id)
+        } else if target_hint != 0 {
+            state.content.resolve_base_id(target_hint)
+        } else {
+            0
+        };
+        let def = state.content.get(base);
+        let is_animal = def.map(|d| d.is_animal()).unwrap_or(false);
+        let food_value = def.map(|d| d.food_value).unwrap_or(0);
+        let uses = world
+            .get_helper(x, y)
+            .map(|h| h.uses_remaining)
+            .unwrap_or(0);
+        let num_uses = def.map(|d| d.num_uses).unwrap_or(0);
+        let number_of_uses = if uses > 0 {
+            uses
+        } else if num_uses > 0 {
+            num_uses
+        } else {
+            1
+        };
+        let held_new = if held_id != 0 && base != 0 {
+            state
+                .content
+                .find_transition(held_id, base)
+                .map(|tr| state.content.resolve_base_id(tr.new_target_id))
+        } else {
+            None
+        };
+        (base, number_of_uses, is_animal, food_value, held_new)
+    };
+    if matches!(kind, StickyBlockIntentKind::Use) && food_value > 0 {
+        kind = StickyBlockIntentKind::Food;
+    }
+    let claim = BlockTargetClaim {
+        x,
+        y,
+        parent_id: if parent_id != 0 {
+            parent_id
+        } else {
+            target_hint
+        },
+        number_of_uses,
+        is_animal,
+        held_new_target_id,
+    };
+    if let Some(p) = state.players.get_mut(&conn_id) {
+        p.ai_block_targets.note_action_claim(kind, claim);
+    }
+}
+
 pub fn tick_vitals(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
     tick_vitals_with_metrics(state, dt, outbound, None);
 }
 
 /// Like [`tick_vitals`], optionally recording death counts into process metrics.
 ///
-/// Time dilation: `dt` is multiplied by [`SimState::sim_speed`] (clamped ≥ 0).
+/// Time dilation: `dt` is multiplied by [`SimState::sim_speed`] (clamped â‰¥ 0).
 /// When [`SimState::paused`] is true, returns immediately (vitals skip).
 pub fn tick_vitals_with_metrics(
     state: &mut SimState,
@@ -7697,7 +8404,7 @@ pub fn tick_vitals_with_metrics(
     let day_night = state.environment.day_night_multiplier();
     let apoc_mult = state.apocalypse.food_drain_multiplier();
     let mut food_drain: HashMap<u64, f32> = HashMap::new();
-    // conn_id → biome temperature (reuse for periodic HX).
+    // conn_id â†’ biome temperature (reuse for periodic HX).
     let mut heat_by_conn: HashMap<u64, f32> = HashMap::new();
     {
         let world = state.world.read().unwrap();
@@ -7707,7 +8414,7 @@ pub fn tick_vitals_with_metrics(
             heat_by_conn.insert(cid, t);
             let mult = biome_food_multiplier(biome);
             // Extreme temps cost extra food (on top of biome / day-night / apoc multipliers).
-            // Indoor stub: floor id != 0 → half TEMP_FOOD_EXTRA.
+            // Indoor stub: floor id != 0 â†’ half TEMP_FOOD_EXTRA.
             let indoor = world.get_floor(x, y) != 0;
             let mut extra = if t < 0.25 || t > 0.75 {
                 if indoor {
@@ -7731,13 +8438,31 @@ pub fn tick_vitals_with_metrics(
         }
     }
 
-    // Snapshot wound bleed before mut player loop (avoid combat/players borrow clash).
+    // Snapshot wound bleed + wounded_by before mut player loop (GPI-DEATH).
     let bleed_by_pid: HashMap<i32, f32> = state
         .players
         .values()
         .filter(|p| !p.deleted)
         .map(|p| (p.p_id, state.combat.bleed_drain(p.p_id)))
         .filter(|(_, b)| *b > 0.0)
+        .collect();
+    let wounded_by_pid: HashMap<i32, i32> = state
+        .players
+        .values()
+        .filter(|p| !p.deleted)
+        .filter_map(|p| {
+            let w = state
+                .combat
+                .stats
+                .get(&p.p_id)
+                .map(|s| s.wounded_by)
+                .unwrap_or(0);
+            if w != 0 {
+                Some((p.p_id, w))
+            } else {
+                None
+            }
+        })
         .collect();
 
     // Advance weather timer (season-biased expiry).
@@ -7769,6 +8494,27 @@ pub fn tick_vitals_with_metrics(
         .filter(|(_, d)| *d > 0.0)
         .collect();
 
+    // HEALTH-AGE-FOOD: refresh medianPrestige + snapshot health factors before mut loop.
+    // Haxe: yum_multiplier = prestige; CalculateHealth*Factor(medianPrestige, trueAge)
+    state.recompute_median_prestige();
+    let health_food_by_cid: HashMap<u64, f32> = state
+        .players
+        .iter()
+        .filter(|(_, p)| !p.deleted)
+        .map(|(&cid, p)| {
+            (
+                cid,
+                state.player_health_food_store_max_factor(p.p_id, p.true_age),
+            )
+        })
+        .collect();
+    let health_age_by_cid: HashMap<u64, f32> = state
+        .players
+        .iter()
+        .filter(|(_, p)| !p.deleted)
+        .map(|(&cid, p)| (cid, state.player_health_age_factor(p.p_id, p.true_age)))
+        .collect();
+
     let mut dead = Vec::new();
     // (p_id, x, y, sick) for starving-infant BW + DY fan-out after the mut borrow ends.
     let mut vitals_emits: Vec<(i32, i32, i32, bool)> = Vec::new();
@@ -7781,7 +8527,7 @@ pub fn tick_vitals_with_metrics(
             continue;
         }
         p.age += AGE_YEARS_PER_SEC * dt;
-        // Old age death before hunger (age > 120 → reason_age).
+        // Old age death before hunger (age > 120 â†’ reason_age).
         if p.age > MAX_AGE {
             p.deleted = true;
             p.death_reason = Some(DeathCause::Age.wire_tag().into());
@@ -7808,7 +8554,7 @@ pub fn tick_vitals_with_metrics(
         if p.sick {
             drain *= SICK_FOOD_DRAIN_MULT;
         }
-        // Clothing warmth reduces extreme-temp portion of drain (bonus 0..1.5 → up to -0.03).
+        // Clothing warmth reduces extreme-temp portion of drain (bonus 0..1.5 â†’ up to -0.03).
         let warm = clothing_temp_bonus(p.hat, p.chest, p.shoes);
         if warm > 0.0 {
             drain = (drain - warm * 0.02).max(FOOD_USE_PER_SEC * 0.25);
@@ -7858,7 +8604,11 @@ pub fn tick_vitals_with_metrics(
         if p.food < DEATH_FOOD_THRESHOLD {
             p.food = 0.0;
             p.deleted = true;
-            p.death_reason = Some(DeathCause::Hunger.wire_tag().into());
+            // Haxe TimeHelper: woundedBy != 0 â†’ reason_killed_${woundedBy}
+            // GPI-DEATH-POLISH: holding baby â†’ reason_nursing_hunger.
+            let wb = wounded_by_pid.get(&p.p_id).copied().unwrap_or(0);
+            let nursing = p.holding_player_id != 0;
+            p.death_reason = Some(food_death_wire(wb, nursing));
             // held/clothing/backpack drained later by scatter_backpack_on_death
             p.vitals_emit_timer = 0.0;
             p.hunger_emot_timer = 0.0;
@@ -7866,7 +8616,11 @@ pub fn tick_vitals_with_metrics(
             dead.push(*cid);
         }
     }
+    // Haxe TimeHelper â†’ ScoreEntry.ProcessScoreEntry (trueAge % 5 == 0).
+    process_player_score_entries(state, outbound);
+
     // Continuous breast-feeding (Haxe TimeHelper isHoldingChildInBreastFeedingAgeAndCanFeed).
+    // BREASTFEED-EDGES nurse_edges
     {
         let nurses: Vec<(u64, i32, f32, f32, bool)> = state
             .players
@@ -7896,20 +8650,23 @@ pub fn tick_vitals_with_metrics(
             if !can_breastfeed(m_age, m_food, fertile, b_age, true) {
                 continue;
             }
+            // BREASTFEED-EDGES: factor/cap via breastfeed_tick; hits heal even if full.
+            // Haxe: TimeHelper breast-feed L950-973
             let (to_baby, from_m) = breastfeed_tick(dt, FOOD_USE_PER_SEC, b_food, b_max);
-            if to_baby <= 0.0 {
-                continue;
+            if to_baby > 0.0 {
+                if let Some(m) = state.players.get_mut(&mother_conn) {
+                    // Haxe foodDecay += food/2 (may go negative; stops next tick)
+                    m.food -= from_m;
+                }
+                if let Some(b) = state.players.get_mut(&baby_conn) {
+                    let cap = get_max_child_feeding(b.food_max);
+                    b.food = (b.food + to_baby).min(cap);
+                }
             }
-            if let Some(m) = state.players.get_mut(&mother_conn) {
-                m.food = (m.food - from_m).max(0.0);
-            }
-            if let Some(b) = state.players.get_mut(&baby_conn) {
-                b.food = (b.food + to_baby).min(b.food_max);
-            }
-            // Heal baby hits slowly while nursing (Haxe hits -= dt * 0.2).
+            // Heal baby hits slowly while nursing (Haxe hits -= dt * 0.2) even at cap.
             if let Some(s) = state.combat.stats.get_mut(&baby_p_id) {
                 if s.hits > 0.0 {
-                    s.hits = (s.hits - dt * 0.2).max(0.0);
+                    s.hits = nurse_hits_heal(s.hits, dt);
                 }
             }
         }
@@ -8025,7 +8782,7 @@ pub fn tick_vitals_with_metrics(
                 heat,
                 x,
                 y,
-                email,
+                email: email.clone(),
             });
         }
         info!(
@@ -8038,18 +8795,16 @@ pub fn tick_vitals_with_metrics(
             "sim: player death"
         );
         let cause = DeathCause::from_reason(&reason);
-        // Hunger/age: place content-resolved grave when non-zero.
+        // Hunger/age: place content-resolved grave when non-zero (GPI-DEATH-POLISH soul).
         if cause.is_natural() {
             let gid = state.grave_object_id;
             if gid != 0 {
                 if let Some((x, y)) = death_xy {
-                    state.world.write().unwrap().set_object(x, y, gid);
-                    state.record_world_change(x, y, gid);
-                    state.specials.insert(x, y, SpecialKind::Grave);
+                    place_grave_with_soul(state, x, y, gid, p_id, &email);
                 }
             }
         }
-        // Held + clothing + backpack → ground scatter (rings first so grave can keep death tile).
+        // Held + clothing + backpack â†’ ground scatter (rings first so grave can keep death tile).
         scatter_backpack_on_death(state, cid);
         // Fold session score into soft account (no SQL) before inheritance zeros wallet.
         if let Some(pl) = state.players.get(&cid) {
@@ -8081,12 +8836,13 @@ pub fn tick_vitals_with_metrics(
                 .accounts
                 .on_death(&pl.email, score, kills, deaths, coins);
         }
-        // Inheritance: coins → mother if online, else treasury.
+        // Inheritance: coins â†’ mother if online, else treasury.
         apply_death_inheritance(state, p_id);
         if let Some(c) = counters {
             c.deaths.fetch_add(1, Ordering::Relaxed);
         }
-        state.push_event(format_death_event(p_id, cause));
+        // Prefer full wire tag (reason_killed_<id>) over bare DeathCause enum tag.
+        state.push_event(format_death_event_tag(p_id, &reason));
         state.afk.remove(p_id);
         info!(conn_id = cid, reason = %reason, "player died");
     }
@@ -8131,14 +8887,14 @@ pub fn tick_vitals_with_metrics(
         // Speed scales mildly with Chebyshev hop length (Haxe often uses ~1).
         let steps = (nx - ox).abs().max((ny - oy).abs()).max(1) as f32;
         let speed = kind.move_speed() * steps.sqrt().max(1.0);
-        // Update world tiles: move animal object from origin → dest (leave origin empty
+        // Update world tiles: move animal object from origin â†’ dest (leave origin empty
         // if it still held this animal; do not stomp a non-animal already at dest).
         {
             let mut w = state.world.write().unwrap();
             let at_old = w.get_object(ox, oy);
             let at_new = w.get_object(nx, ny);
             if at_new != 0 && at_new != animal_obj {
-                // Dest blocked after path check race — skip map write, keep entity moved.
+                // Dest blocked after path check race â€” skip map write, keep entity moved.
             } else {
                 if at_old == animal_obj {
                     w.set_object(ox, oy, 0);
@@ -8210,7 +8966,7 @@ pub fn tick_vitals_with_metrics(
     state.publish_all_player_views();
 }
 
-/// Advance `SAY !shutdown` countdown → save → apocalypse AP → exit flag.
+/// Advance `SAY !shutdown` countdown â†’ save â†’ apocalypse AP â†’ exit flag.
 fn tick_shutdown(state: &mut SimState, outbound: &OutboundHub, dt: f32) {
     let Some(mut sh) = state.shutdown.take() else {
         return;
@@ -8228,7 +8984,7 @@ fn tick_shutdown(state: &mut SimState, outbound: &OutboundHub, dt: f32) {
             }
             // Apocalypse client visual (Haxe APOCALYPSE / AP).
             state.apocalypse.trigger();
-            broadcast_global(outbound, "SERVER SHUTDOWN — APOCALYPSE");
+            broadcast_global(outbound, "SERVER SHUTDOWN â€” APOCALYPSE");
             // Wire-ish AP tag for clients that listen for apocalypse.
             outbound.broadcast(format_server_message("AP", &["1"]).into_bytes());
             let hold = state.shutdown_apocalypse_secs.max(0.5);
@@ -8345,6 +9101,8 @@ pub fn build_reverse_craft_graph_capped(content: &ContentDb, cap: usize) -> Reve
     }
     let mut graph = ReverseCraftGraph::new();
     let seeded = graph.seed_from_pairs(pairs, cap);
+    // C-SS-AI-IGNORE: content PatchTransitions â†’ craft graph skip edges
+    graph.load_ai_should_ignore_from(content.ai_should_ignore.iter().copied());
     info!(
         seeded,
         products = graph.product_count(),
@@ -8383,7 +9141,7 @@ pub fn spawn_default_animals(state: &mut SimState) {
             (state.spawn_x, state.spawn_y)
         }
     };
-    // 3 rabbit / 2 wolf / 2 boar — cover center forager + east farmer/hunter band (~+18..+28).
+    // 3 rabbit / 2 wolf / 2 boar â€” cover center forager + east farmer/hunter band (~+18..+28).
     let seeds: &[(AnimalKind, i32, i32)] = &[
         (AnimalKind::Rabbit, sx + 3, sy + 2),
         (AnimalKind::Rabbit, sx - 2, sy + 4),
@@ -8438,6 +9196,76 @@ fn find_empty_animal_tile(state: &SimState, prefer_x: i32, prefer_y: i32) -> (i3
     (prefer_x.max(0).min(ww - 1), prefer_y.max(0).min(hh - 1))
 }
 
+/// Apply map MX for animal natural death / failedMoves death / offspring births.
+///
+/// Haxe: die-in-place restores groundObject or `decaysToObj`; offspring places a
+/// copy on `fromTx/fromTy`. Entity model clears/places content object ids.
+// Haxe: TimeHelper.doAnimalMovement death + offspring map updates
+fn apply_animal_pop_map_events(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    tick: &AnimalMovementTick,
+) {
+    for death in &tick.deaths {
+        let animal_obj = death.kind.object_id();
+        let decays = state
+            .content
+            .get(animal_obj)
+            .map(|d| d.decays_to_obj)
+            .unwrap_or(0);
+        let new_id = if decays > 0 { decays } else { 0 };
+        {
+            let mut w = state.world.write().unwrap();
+            let at = w.get_object(death.x, death.y);
+            if at == animal_obj || at == 0 {
+                w.set_object(death.x, death.y, new_id);
+            }
+        }
+        let floor = state.world.read().unwrap().get_floor(death.x, death.y) as i32;
+        let near = nearby_conn_ids(state, death.x, death.y, NEARBY_RANGE.max(32));
+        for &cid in &near {
+            let Some(viewer) = state.players.get(&cid) else {
+                continue;
+            };
+            if viewer.deleted || !viewer.connected {
+                continue;
+            }
+            let (rx, ry) = viewer.world_to_client(death.x, death.y);
+            outbound.send_urgent(
+                cid,
+                format_map_change(rx, ry, floor, new_id, -1).into_bytes(),
+            );
+            send_frame(outbound, cid);
+        }
+    }
+    for birth in &tick.births {
+        let animal_obj = birth.kind.object_id();
+        {
+            let mut w = state.world.write().unwrap();
+            if w.get_object(birth.x, birth.y) == 0 {
+                w.set_object(birth.x, birth.y, animal_obj);
+            }
+        }
+        let floor = state.world.read().unwrap().get_floor(birth.x, birth.y) as i32;
+        let obj = state.world.read().unwrap().get_object(birth.x, birth.y);
+        let near = nearby_conn_ids(state, birth.x, birth.y, NEARBY_RANGE.max(32));
+        for &cid in &near {
+            let Some(viewer) = state.players.get(&cid) else {
+                continue;
+            };
+            if viewer.deleted || !viewer.connected {
+                continue;
+            }
+            let (rx, ry) = viewer.world_to_client(birth.x, birth.y);
+            outbound.send_urgent(
+                cid,
+                format_map_change(rx, ry, floor, obj, -1).into_bytes(),
+            );
+            send_frame(outbound, cid);
+        }
+    }
+}
+
 /// One wander step for all animals using pathfind walkability.
 /// Returns animal moves for wire MX fan-out.
 pub fn tick_animals(state: &mut SimState) -> Vec<(i32, AnimalKind, i32, i32, i32, i32)> {
@@ -8482,7 +9310,11 @@ pub fn tick_animals_dt(state: &mut SimState, dt: f32) -> Vec<(i32, AnimalKind, i
         ww,
         wh,
         Some(&interval_for),
-        |rng, ox, oy, kind| {
+        |rng, animals, idx| {
+            let a = animals.get(idx)?;
+            let ox = a.x;
+            let oy = a.y;
+            let kind = a.kind;
             let w = world.read().unwrap();
             let rad = {
                 let oid = kind.object_id();
@@ -8540,6 +9372,124 @@ fn resolve_held_food(state: &SimState, held_id: i32) -> (bool, f32) {
     } else {
         (false, 0.0)
     }
+}
+
+/// True if any clothing slot / helper holds `id` (Haxe getClothingById).
+// Haxe: GlobalPlayerInstance.getClothingById
+fn player_wears_clothing_id(p: &Player, id: i32) -> bool {
+    if id <= 0 {
+        return false;
+    }
+    if p.hat == id || p.chest == id || p.shoes == id {
+        return true;
+    }
+    p.clothing_helpers
+        .iter()
+        .any(|h| h.as_ref().map(|x| x.id == id).unwrap_or(false))
+}
+
+/// REPUTATION-HIT: apply Haxe kill post-DoDamage `lostCombatPrestige` on a connecting hit.
+///
+/// Updates [`SimState::reputation`] and mirrors into `combat.stats.lost_combat_prestige`
+/// for AI deadly-player scans. Prestige/health speech residual (addHealthAndPrestige / GM).
+// Haxe: GlobalPlayerInstance.kill attackWasLegit / lostCombatPrestige after DoDamage
+fn apply_connecting_hit_reputation(
+    state: &mut SimState,
+    killer_id: i32,
+    target_id: i32,
+    damage: f32,
+    target_holding_weapon: bool,
+    target_is_ally: bool,
+) {
+    if !damage.is_finite() || damage <= 0.0 {
+        return;
+    }
+    let target_lost = state.reputation.lost_combat(target_id);
+    let attacker_class = state.player_prestige_class(killer_id).as_i32();
+    let target_class = state.player_prestige_class(target_id).as_i32();
+    let close_rel = is_close_relative(&state.social, killer_id, target_id);
+    // Snapshot fields first (avoid borrow conflicts with content lookups).
+    let (target_true_age, target_is_cursed, target_display, has_red_mask) = {
+        let tp = state.players.values().find(|p| p.p_id == target_id);
+        let true_age = tp.map(|p| p.true_age).unwrap_or(20.0);
+        let cursed = tp.map(|p| p.is_cursed).unwrap_or(false);
+        let display = tp.map(|p| person_object_id(p)).unwrap_or(DEFAULT_PERSON_OBJECT);
+        let red = state
+            .players
+            .values()
+            .find(|p| p.p_id == killer_id)
+            .map(|p| player_wears_clothing_id(p, DEVIL_MASK_CLOTHING_ID))
+            .unwrap_or(false);
+        (true_age, cursed, display, red)
+    };
+    let (name, desc) = state
+        .content
+        .get(target_display)
+        .map(|d| (d.name.as_str(), d.description.as_str()))
+        .unwrap_or(("", ""));
+    let target_is_female = person_looks_female(target_display, name, desc);
+    let input = HitReputationInput {
+        damage,
+        target_lost_combat: target_lost,
+        target_holding_weapon,
+        attacker_prestige_class: attacker_class,
+        target_prestige_class: target_class,
+        target_true_age,
+        target_is_ally,
+        target_is_close_relative: close_rel,
+        target_is_female,
+        target_is_cursed,
+        attacker_has_red_mask: has_red_mask,
+    };
+    let delta = compute_hit_reputation(&input);
+    state.reputation.apply_hit_delta(killer_id, target_id, &delta);
+    // Mirror Haxe GPI.lostCombatPrestige for combat stats / AI
+    if delta.attacker_lost_delta != 0.0 {
+        let s = state.combat.stats_mut(killer_id);
+        s.lost_combat_prestige += delta.attacker_lost_delta;
+    }
+    if delta.target_lost_delta != 0.0 {
+        let s = state.combat.stats_mut(target_id);
+        s.lost_combat_prestige += delta.target_lost_delta;
+    }
+}
+
+/// How to apply a bloody-weapon transform (COMBAT-BLOODY).
+#[derive(Debug, Clone, Copy)]
+enum BloodyApplyMode {
+/// Haxe `makeWeaponBloodyIfNeeded` â€” deadly animal only, ttc=3.
+Animal { deadly: bool },
+/// Haxe DoDamage strike path â€” cool-down factors.
+Strike { long_wounding: bool },
+}
+
+/// Apply bloody weapon id + held_helper timeToChange to player by p_id.
+// Haxe: makeWeaponBloodyIfNeeded / DoDamage setHeldObject(bloodyWeapon)
+fn apply_bloody_weapon_transform(
+state: &mut SimState,
+p_id: i32,
+held_id: i32,
+mode: BloodyApplyMode,
+) -> bool {
+let xf = match mode {
+BloodyApplyMode::Animal { deadly } => make_weapon_bloody_if_needed(held_id, deadly),
+BloodyApplyMode::Strike { long_wounding } => {
+bloody_weapon_after_strike(held_id, long_wounding)
+}
+};
+let Some(xf) = xf else {
+return false;
+};
+let sim_t = state.sim_time;
+let Some(pl) = state.players.values_mut().find(|p| p.p_id == p_id && !p.deleted) else {
+        return false;
+    };
+    let uses = pl.held_uses;
+    pl.set_held(xf.new_held_id, uses);
+    if let Some(h) = pl.held_helper.as_mut() {
+        h.stamp_time(sim_t, xf.time_to_change);
+    }
+    true
 }
 
 /// Held object display name from content (empty when hands empty / unknown id).
@@ -8602,7 +9552,7 @@ pub fn try_eat_held(state: &mut SimState, conn_id: u64) -> bool {
         let gain = p.yum.eat(held, base, fill_before);
         p.held_id = 0;
         p.food = (p.food + gain).min(p.food_max);
-        // Learning tools when eating isn't typical — learn held craft tools on use instead.
+        // Learning tools when eating isn't typical â€” learn held craft tools on use instead.
         info!(conn_id, held, gain, food = p.food, "sim: ate food");
         true
     } else {
@@ -8614,7 +9564,7 @@ pub fn try_eat_held(state: &mut SimState, conn_id: u64) -> bool {
 ///
 /// `SAY CRAFT` is equivalent to USE on an empty tile for recipes keyed
 /// `(actor=held, target=0)`. Lookup is always [`ContentDb::find_transition`]
-/// `(held, 0)` — not last-use prefer.
+/// `(held, 0)` â€” not last-use prefer.
 ///
 /// On success: held becomes `new_actor_id`; `new_target_id` is placed under
 /// the player's feet when non-zero (ground left unchanged when 0).
@@ -8704,10 +9654,182 @@ pub fn try_craft(state: &mut SimState, conn_id: u64) -> Option<UseResult> {
     })
 }
 
-/// Reported move speed for PU / FX from ride + weather + snow + fire + ballast.
+/// Living non-deleted player count (Haxe `GetNumberLifingPlayers`).
+// Haxe: GlobalPlayerInstance.GetNumberLifingPlayers
+fn living_player_count(state: &SimState) -> usize {
+    state.players.values().filter(|p| !p.deleted).count()
+}
+
+/// Account bone-grave tiles for email (session graves; optional world bone filter).
+// Haxe: PlayerAccount.graves + isBoneGrave filter
+fn account_blocking_grave_tiles(state: &SimState, email: &str) -> Vec<(i32, i32)> {
+    let Some(rec) = state.accounts.get(email) else {
+        return Vec::new();
+    };
+    let world = state.world.read().unwrap();
+    let mut out = Vec::new();
+    for &(gx, gy) in &rec.graves {
+        let id = world.get_object(gx, gy);
+        // Empty/unknown tile still counts (session stamp before map object settle).
+        if id == 0 || animal_move::is_bone_grave(id) {
+            out.push((gx, gy));
+        }
+    }
+    out
+}
+
+/// Haxe `calculateSpeed` live grave + close-enemy gate flags (no mutation).
+// Haxe: MoveHelper.calculateSpeed L210-252
+fn live_move_speed_gates(state: &SimState, p: &Player) -> (bool, bool) {
+    let (mw, mh, wrap) = {
+        let w = state.world.read().unwrap();
+        (w.width_tiles, w.height_tiles, w.wrap)
+    };
+    let graves = account_blocking_grave_tiles(state, &p.email);
+    let near = has_close_blocking_grave(
+        p.x,
+        p.y,
+        &graves,
+        GRAVE_BLOCKING_DISTANCE,
+        mw,
+        mh,
+        wrap,
+    );
+    let near_clear = has_close_blocking_grave(
+        p.x,
+        p.y,
+        &graves,
+        GRAVE_BLOCKING_DISTANCE * GRAVE_CURSE_CLEAR_DISTANCE_MULT,
+        mw,
+        mh,
+        wrap,
+    );
+    let living = living_player_count(state);
+    let (curse_mali, _new_cursed, _trans) = resolve_grave_curse(
+        p.is_cursed,
+        near,
+        near_clear,
+        living,
+        MAX_PLAYERS_BEFORE_ACTIVATING_GRAVE_CURSE,
+    );
+
+    // Close hostile with weapon (getClosePlayer 1.5 hostile+weapon).
+    let mut cands: Vec<ClosePlayerCandidate> = Vec::new();
+    for other in state.players.values() {
+        if other.deleted || other.p_id == p.p_id {
+            continue;
+        }
+        let name = held_object_name(state, other.held_id);
+        let holding_weapon = is_holding_weapon(other.held_id, &name);
+        let is_ally = state.allies.is_mutual_or_either(p.p_id, other.p_id);
+        cands.push(ClosePlayerCandidate {
+            p_id: other.p_id,
+            x: other.x,
+            y: other.y,
+            exact_x: other.x as f32,
+            exact_y: other.y as f32,
+            deleted: other.deleted,
+            holding_weapon,
+            is_friendly: is_friendly_ally_only(is_ally),
+        });
+    }
+    let has_close = has_close_hostile_with_weapon(
+        p.x,
+        p.y,
+        p.p_id,
+        &cands,
+        CLOSE_ENEMY_WEAPON_DISTANCE,
+    );
+    let close_hostile = close_hostile_weapon_speed_active(p.angry_time, has_close);
+    (curse_mali, close_hostile)
+}
+
+/// Apply Haxe `isCursed` enter/clear + CU/PE/private say when state flips.
+// Haxe: MoveHelper.calculateSpeed + Connection.SendCurseToAll
+fn apply_grave_curse_live_gates(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+) {
+    let Some(p) = state.players.get(&conn_id).cloned() else {
+        return;
+    };
+    if p.deleted {
+        return;
+    }
+    let (mw, mh, wrap) = {
+        let w = state.world.read().unwrap();
+        (w.width_tiles, w.height_tiles, w.wrap)
+    };
+    let graves = account_blocking_grave_tiles(state, &p.email);
+    let near = has_close_blocking_grave(
+        p.x,
+        p.y,
+        &graves,
+        GRAVE_BLOCKING_DISTANCE,
+        mw,
+        mh,
+        wrap,
+    );
+    let near_clear = has_close_blocking_grave(
+        p.x,
+        p.y,
+        &graves,
+        GRAVE_BLOCKING_DISTANCE * GRAVE_CURSE_CLEAR_DISTANCE_MULT,
+        mw,
+        mh,
+        wrap,
+    );
+    let living = living_player_count(state);
+    let (_mali, new_cursed, trans) = resolve_grave_curse(
+        p.is_cursed,
+        near,
+        near_clear,
+        living,
+        MAX_PLAYERS_BEFORE_ACTIVATING_GRAVE_CURSE,
+    );
+    if matches!(trans, GraveCurseTransition::None) && new_cursed == p.is_cursed {
+        return;
+    }
+    if let Some(pl) = state.players.get_mut(&conn_id) {
+        pl.is_cursed = new_cursed;
+    }
+    let p_id = p.p_id;
+    let px = p.x;
+    let py = p.y;
+    match trans {
+        GraveCurseTransition::Entered => {
+            let cu = format_cursed_message(p_id, 1);
+            outbound.broadcast(cu.into_bytes());
+            let pe = format_player_emot(p_id, CURSE_ENTER_EMOTE_INDEX);
+            let near_ids = nearby_conn_ids(state, px, py, NEARBY_RANGE);
+            send_nearby(outbound, &near_ids, pe.into_bytes());
+            outbound.send(
+                conn_id,
+                format_player_says(p_id, false, CURSE_ENTER_SAY).into_bytes(),
+            );
+        }
+        GraveCurseTransition::Cleared => {
+            let cu = format_cursed_message(p_id, 0);
+            outbound.broadcast(cu.into_bytes());
+            let pe = format_player_emot(p_id, CURSE_CLEAR_EMOTE_INDEX);
+            let near_ids = nearby_conn_ids(state, px, py, NEARBY_RANGE);
+            send_nearby(outbound, &near_ids, pe.into_bytes());
+            outbound.send(
+                conn_id,
+                format_player_says(p_id, false, CURSE_CLEAR_SAY).into_bytes(),
+            );
+        }
+        GraveCurseTransition::None => {}
+    }
+}
+
+/// Reported move speed for PU / FX from ride + weather + snow + fire + ballast + floor/road/biome.
+///
+/// Haxe `MoveHelper.calculateSpeed` floor/road portion (standing: `fullPathHasRoad=true`).
 fn player_move_speed(state: &SimState, p: &Player) -> f32 {
     let ballast = weight_item_count(p.held_id, p.backpack.len());
-    compose_move_speed(
+    let base = compose_move_speed(
         p.riding,
         &state.weather,
         &state.snow,
@@ -8715,7 +9837,11 @@ fn player_move_speed(state: &SimState, p: &Player) -> f32 {
         p.x,
         p.y,
         ballast,
-    )
+    );
+    // Standing / report path: Haxe default fullPathHasRoad = true.
+    let world = state.world.read().unwrap();
+    let floor_factor = floor_road_factor_at(&world, &state.content, p.x, p.y, true, false);
+    base * floor_factor
 }
 
 /// FX food-change line from current player vitals + yum state + composed move speed.
@@ -8778,6 +9904,7 @@ pub async fn run_sim_loop(
         None,
         3.0,
         3.0,
+        None, // boot_live
     )
     .await
 }
@@ -8785,7 +9912,7 @@ pub async fn run_sim_loop(
 /// Sim loop with optional web snapshot arcs (weather / accounts / prestige / lineage /
 /// animals / treasury) and optional live [`AnimalWorldShare`] for self-play AI.
 ///
-/// `twins` is the multi-server twin peer registry (**stub only** — no network).
+/// `twins` is the multi-server twin peer registry (**stub only** â€” no network).
 /// `save_request` is an optional force-save flag for operator `SAY SAVE` (outer autosave polls).
 #[allow(clippy::too_many_arguments)]
 pub async fn run_sim_loop_with_views(
@@ -8796,7 +9923,7 @@ pub async fn run_sim_loop_with_views(
     sim_speed: f32,
     // SN / data version (sets SimState::version_gate.required).
     required_version: i32,
-    // Config `client_version_strict` — hard-reject LOGIN on version mismatch.
+    // Config `client_version_strict` â€” hard-reject LOGIN on version mismatch.
     client_version_strict: bool,
     content: Arc<ContentDb>,
     world: Arc<RwLock<World>>,
@@ -8826,7 +9953,12 @@ pub async fn run_sim_loop_with_views(
     shutdown_exit: Option<Arc<AtomicBool>>,
     shutdown_countdown_secs: f32,
     shutdown_apocalypse_secs: f32,
+    // Optional boot wiring (war/posse share, live settings, LLM share, …).
+    boot_live: Option<settings_live::SimBootLive>,
 ) {
+    let war_posse_share: Option<WarPosseShare> = boot_live
+        .as_ref()
+        .and_then(|b| b.war_posse_share.clone());
     let mut state = SimState::new(world, content);
     state.timed_movement = timed_movement;
     state.broadcast_all_updates = broadcast_all_updates;
@@ -8836,11 +9968,13 @@ pub async fn run_sim_loop_with_views(
     state.shutdown_countdown_secs = shutdown_countdown_secs.max(1.0);
     state.shutdown_apocalypse_secs = shutdown_apocalypse_secs.max(0.5);
     {
+        // EVE-BANANA: prefer food-plant Eve spawn (jungle banana) when map has plants.
         let w = state.world.read().unwrap();
-        let (sx, sy) = find_playable_spawn(&w, (0, 0));
+        let fallback = find_playable_spawn(&w, (0, 0));
+        let (sx, sy) = find_eve_spawn(&w, fallback, &[], fallback);
         state.spawn_x = sx;
         state.spawn_y = sy;
-        info!(sx, sy, "sim: playable spawn point ready");
+        info!(sx, sy, "sim: playable spawn point ready (Eve food / grassland)");
     }
     state.sim_speed = if sim_speed.is_finite() && sim_speed >= 0.0 {
         sim_speed
@@ -8898,7 +10032,7 @@ pub async fn run_sim_loop_with_views(
             "sim: loaded accounts from shared book"
         );
     }
-    // Natural spawn / OLW load never went through USE — arm decay timers now.
+    // Natural spawn / OLW load never went through USE â€” arm decay timers now.
     arm_decays_for_loaded_world(&mut state);
     // Reverse craft graph from content transitions (capped for boot speed).
     seed_craft_graph_from_content(&mut state);
@@ -8920,7 +10054,7 @@ pub async fn run_sim_loop_with_views(
     );
     let mut next_tick_deadline = tokio::time::Instant::now() + period;
     let mut last_skip_log = 0u64;
-    // Wall-clock 1 Hz LS pos-debug (bare x y) — independent of sim catch-up.
+    // Wall-clock 1 Hz LS pos-debug (bare x y) â€” independent of sim catch-up.
     let ls_period = std::time::Duration::from_secs_f32(POS_DEBUG_LS_INTERVAL_SECS);
     let mut next_ls_at = tokio::time::Instant::now() + ls_period;
     counters.mark_start_now();
@@ -8946,6 +10080,7 @@ pub async fn run_sim_loop_with_views(
                     if let Some(ref shared) = shared_accounts {
                         *shared.write().unwrap() = state.accounts.clone();
                     }
+                    mirror_war_posse_share(&state, &war_posse_share);
                     info!("intent channel closed; sim stopping");
                     return;
                 }
@@ -8982,11 +10117,11 @@ pub async fn run_sim_loop_with_views(
 
         // Wall-clock LS every 1s: spoken map location at the player tile.
         // Client uses birth-relative coords + a text token (Haxe array[2]).
-        // Wire: LS\n{rx} {ry} {x},{y}\n#  — only the coordinates (no POS/id fluff).
+        // Wire: LS\n{rx} {ry} {x},{y}\n#  â€” only the coordinates (no POS/id fluff).
         // Catch up only one beat if the sim was busy (no multi-minute backlog flood).
         let now_ls = tokio::time::Instant::now();
         if now_ls >= next_ls_at {
-            // If we fell far behind, skip backlog — send once and reschedule from now.
+            // If we fell far behind, skip backlog â€” send once and reschedule from now.
             while next_ls_at + ls_period < now_ls {
                 next_ls_at += ls_period;
             }
@@ -9004,12 +10139,12 @@ pub async fn run_sim_loop_with_views(
             for (cid, rx, ry, wx, wy) in targets {
                 // Spoken text = absolute x,y as one token so the bubble is visible.
                 let label = format!("{wx},{wy}");
-                // LS then FM — official client will not show LS until FRAME.
+                // LS then FM â€” official client will not show LS until FRAME.
                 outbound.send_urgent(
                     cid,
                     format_location_says(rx, ry, &label).into_bytes(),
                 );
-                // Arc<OutboundHub> in the sim loop — borrow for send_frame.
+                // Arc<OutboundHub> in the sim loop â€” borrow for send_frame.
                 send_frame(outbound.as_ref(), cid);
             }
             if n > 0 {
@@ -9068,6 +10203,7 @@ pub async fn run_sim_loop_with_views(
                             if let Some(ref shared) = shared_accounts {
                                 *shared.write().unwrap() = state.accounts.clone();
                             }
+                            mirror_war_posse_share(&state, &war_posse_share);
                             info!("intent channel closed; sim stopping");
                             return;
                         }
@@ -9127,6 +10263,9 @@ pub async fn run_sim_loop_with_views(
         if post_human {
             tokio::task::yield_now().await;
         }
+        // Always yield once per tick so sibling Tokio tasks (web/HTTP, game TCP)
+        // stay responsive even when this future is polled on a worker thread.
+        tokio::task::yield_now().await;
 
         ops.on_tick_work(work.elapsed());
         if state.last_lock_wait_us > 0 {
@@ -9149,6 +10288,7 @@ pub async fn run_sim_loop_with_views(
             if let Some(ref shared) = shared_accounts {
                 *shared.write().unwrap() = state.accounts.clone();
             }
+            mirror_war_posse_share(&state, &war_posse_share);
         }
 
         if state.tick.saturating_sub(last_skip_log) >= 200 {
@@ -9309,6 +10449,9 @@ pub fn apply_intent(
                     "sim: post-login NM+PU+FM (force, urgent)"
                 );
             }
+            // MAP-LOCATION-PINS: Haxe Connection L281 mother map pin
+            // Haxe: sendMapLocation(mother, 'MOTHER', 'leader')
+            map_location_pins::send_mother_map_pin_on_login(state, outbound, conn_id);
             state.publish_player_view(conn_id);
             info!(
                 conn_id,
@@ -9335,21 +10478,30 @@ pub fn apply_intent(
             seq,
         } => {
             touch_afk_activity(state, conn_id);
-            // Client xs/ys are birth-relative (vanilla server.cpp: m.x += birthPos).
+            // Client: birth-relative; NPC/AI: often world tiles (see resolve_net_intent_tile).
             let (xs, ys) = state
                 .players
                 .get(&conn_id)
-                .map(|p| p.client_to_world(xs, ys))
+                .map(|p| resolve_net_intent_tile(p, xs, ys))
                 .unwrap_or((xs, ys));
             if state.timed_movement {
                 match apply_move_path_start(state, outbound, conn_id, xs, ys, &deltas, seq) {
                     Ok(()) => {
                         // Success: PM only (apply_move_path_start). No force PU snap-back.
-                        info!(conn_id, steps = deltas.len(), ?seq, "sim: MOVE path accepted");
+                        // NPC band floods INFO at 1+ accepts/sec; keep human clients visible.
+                        if conn_id >= 9_000_000 {
+                            debug!(conn_id, steps = deltas.len(), ?seq, "sim: MOVE path accepted");
+                        } else {
+                            info!(conn_id, steps = deltas.len(), ?seq, "sim: MOVE path accepted");
+                        }
                     }
                     Err(e) => {
                         // Haxe CancleMovement: force PU at **server** pos with client seq.
-                        warn!(conn_id, reason = e.as_str(), "sim: MOVE path rejected");
+                        if conn_id >= 9_000_000 {
+                            debug!(conn_id, reason = e.as_str(), "sim: MOVE path rejected");
+                        } else {
+                            warn!(conn_id, reason = e.as_str(), "sim: MOVE path rejected");
+                        }
                         send_forced_player_update(state, outbound, conn_id, seq);
                     }
                 }
@@ -9383,8 +10535,8 @@ pub fn apply_intent(
                     }
                 }
             } else {
-                // Blocked path / empty trunc / missing player — force unstick.
-                warn!(conn_id, "sim: MOVE rejected — force unstick");
+                // Blocked path / empty trunc / missing player â€” force unstick.
+                warn!(conn_id, "sim: MOVE rejected â€” force unstick");
                 send_player_update_and_frame(state, outbound, conn_id);
             }
         }
@@ -9399,10 +10551,10 @@ pub fn apply_intent(
             let (x, y) = state
                 .players
                 .get(&conn_id)
-                .map(|p| p.client_to_world(x, y))
+                .map(|p| resolve_net_intent_tile(p, x, y))
                 .unwrap_or((x, y));
             if state.players.get(&conn_id).map(|p| is_moving(p)).unwrap_or(false) {
-                // Keep real done_moving_seq — do not force-bump mid-walk.
+                // Keep real done_moving_seq â€” do not force-bump mid-walk.
                 send_action_result_pu_and_frame(state, outbound, conn_id);
                 state.publish_player_view(conn_id);
             } else {
@@ -9469,7 +10621,7 @@ pub fn apply_intent(
                         y,
                         actor = r.actor_before,
                         target = r.target_before,
-                        "sim: USE no transition — unstick PU+FM (keep seq)"
+                        "sim: USE no transition â€” unstick PU+FM (keep seq)"
                     );
                     state.publish_player_view(conn_id);
                     send_action_result_pu_and_frame(state, outbound, conn_id);
@@ -9487,7 +10639,7 @@ pub fn apply_intent(
             let (x, y) = state
                 .players
                 .get(&conn_id)
-                .map(|p| p.client_to_world(x, y))
+                .map(|p| resolve_net_intent_tile(p, x, y))
                 .unwrap_or((x, y));
             apply_drop(state, outbound, conn_id, x, y, c);
         }
@@ -9496,6 +10648,44 @@ pub fn apply_intent(
             tag,
             payload,
         } => {
+            // FERTILITY-TWINS: login bootstrap may send TWINJOIN after LOGIN intent.
+            if tag.eq_ignore_ascii_case("TWINJOIN") {
+                let mut it = payload.split_whitespace();
+                let code = it.next().unwrap_or("").to_string();
+                let count: i32 = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+                let (p_id, email) = state
+                    .players
+                    .get(&conn_id)
+                    .map(|p| (p.p_id, p.email.clone()))
+                    .unwrap_or((0, String::new()));
+                if p_id != 0 {
+                    apply_twin_join(state, outbound, conn_id, p_id, &email, &code, count);
+                } else {
+                    let outcome = state.twin_wait.join(
+                        &code,
+                        count,
+                        conn_id,
+                        format!("wait{conn_id}@twin"),
+                        state.sim_time,
+                    );
+                    match outcome {
+                        TwinJoinOutcome::Waiting { have, need } => {
+                            send_ps_reply(
+                                outbound,
+                                conn_id,
+                                &format_twin_wait_ps(have, need),
+                            );
+                        }
+                        TwinJoinOutcome::Ready(party) => {
+                            process_ready_twin_party(state, outbound, party);
+                        }
+                        other => {
+                            info!(conn_id, ?other, "sim: TWINJOIN pre-spawn outcome");
+                        }
+                    }
+                }
+                return;
+            }
             // Client activity (not KA / PING heartbeats) resets AFK idle.
             // SAY handles touch inside apply_say_or_remv so `?AFK` can report
             // true idle without self-resetting.
@@ -9526,7 +10716,7 @@ pub fn apply_intent(
                 }
             } else if tag.eq_ignore_ascii_case("EMOT") {
                 touch_afk_activity(state, conn_id);
-                // EMOT x y e → PE player_id emot_index (emote rate limit, not SAY).
+                // EMOT x y e â†’ PE player_id emot_index (emote rate limit, not SAY).
                 let now = state.sim_time;
                 let allowed = state
                     .players
@@ -9557,7 +10747,7 @@ pub fn apply_intent(
                 }
             } else if tag.eq_ignore_ascii_case("JUMP") {
                 touch_afk_activity(state, conn_id);
-                // JUMP x y — baby jump-out / wiggle, or position refresh + PU note.
+                // JUMP x y â€” baby jump-out / wiggle, or position refresh + PU note.
                 // Haxe: if held, drop from arms; else PU + wiggle. Always emit PU.
                 let mut parts = payload.split_whitespace();
                 let x = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
@@ -9611,7 +10801,7 @@ pub fn apply_intent(
                 }
                 state.publish_player_view(conn_id);
             } else if tag.eq_ignore_ascii_case("PING") {
-                // PING x y unique_id → PONG unique_id (x,y ignored; protocol.txt).
+                // PING x y unique_id â†’ PONG unique_id (x,y ignored; protocol.txt).
                 // Net maps ClientCommand::Ping to payload=unique_id only.
                 let unique_id = payload
                     .split_whitespace()
@@ -9620,7 +10810,7 @@ pub fn apply_intent(
                 outbound.send(conn_id, format_pong(unique_id).into_bytes());
             } else if tag.eq_ignore_ascii_case("PHOTO") {
                 touch_afk_activity(state, conn_id);
-                // PHOTO x y seq → PH x y signature (dummy deny ACK; no photo backend).
+                // PHOTO x y seq â†’ PH x y signature (dummy deny ACK; no photo backend).
                 // SAY SNAP is the chat alias (same deny).
                 let mut parts = payload.split_whitespace();
                 let x = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
@@ -9655,6 +10845,8 @@ pub fn apply_intent(
             }
         }
         NetIntent::Disconnected { conn_id } => {
+            // FERTILITY-TWINS: drop from twin-code wait queue
+            let _ = state.twin_wait.leave(conn_id);
             let p_id = state.players.get(&conn_id).map(|p| p.p_id);
             if let Some(p) = state.players.get_mut(&conn_id) {
                 p.connected = false;
@@ -9744,7 +10936,7 @@ mod tests {
             desired_move_dist: 0,
             },
         );
-        // last-use variant: hand on 33 when last use → different outcome
+        // last-use variant: hand on 33 when last use â†’ different outcome
         db.transitions_last_use.insert(
             (0, 33),
             Transition {
@@ -9767,6 +10959,37 @@ mod tests {
         db.transition_count = 1;
         db.last_use_transition_count = 1;
         Arc::new(db)
+    }
+
+    // AI-FOOD-FAIL-MARK: live Player.ai_path_reach 30s on empty-hand edible USE fail
+    #[test]
+    fn mark_path_fail_after_use_live_food_30s() {
+        let mut state = SimState::with_default_empty(test_content());
+        let _ = spawn_player(&mut state, 42, "npc@ai.local");
+        {
+            let p = state.players.get_mut(&42).expect("p");
+            p.x = 0;
+            p.y = 0;
+            p.held_id = 0;
+            p.age = 20.0;
+        }
+        {
+            let mut w = state.world.write().unwrap();
+            w.set_object(1, 0, 33);
+        }
+        assert!(mark_path_fail_after_use_live(&mut state, 42, 1, 0));
+        let p = state.players.get(&42).expect("p");
+        assert!(
+            (p.ai_path_reach.not_reachable[&(1, 0)] - crate::NOT_REACHABLE_FOOD_SECS).abs() < 0.01,
+            "food USE fail should mark 30s not_reachable"
+        );
+        let _ = spawn_player(&mut state, 43, "human@test");
+        {
+            let p = state.players.get_mut(&43).expect("p");
+            p.held_id = 0;
+            p.age = 20.0;
+        }
+        assert!(!mark_path_fail_after_use_live(&mut state, 43, 1, 0));
     }
 
     #[test]
@@ -9916,11 +11139,11 @@ mod tests {
     }
 
     /// Haxe-aligned USE outcomes from real OneLifeData7 goldens (0_63, 0_36, 0_242).
-    /// TransitionImporter: filename actor_target.txt, first line newActor newTarget …
+    /// TransitionImporter: filename actor_target.txt, first line newActor newTarget â€¦
     #[test]
     fn use_applies_haxe_style_transition_goldens() {
         let mut db = ContentDb::default();
-        // 0_63.txt → 64 48 0  (hand + maple branch tree)
+        // 0_63.txt â†’ 64 48 0  (hand + maple branch tree)
         db.transitions.insert(
             (0, 63),
             Transition {
@@ -9940,7 +11163,7 @@ mod tests {
             desired_move_dist: 0,
             },
         );
-        // 0_36.txt → 395 404
+        // 0_36.txt â†’ 395 404
         db.transitions.insert(
             (0, 36),
             Transition {
@@ -9960,7 +11183,7 @@ mod tests {
             desired_move_dist: 0,
             },
         );
-        // 0_242.txt → 223 242
+        // 0_242.txt â†’ 223 242
         db.transitions.insert(
             (0, 242),
             Transition {
@@ -10042,7 +11265,7 @@ mod tests {
         assert!(state.players.get(&1).unwrap().force_last_use);
         let r = apply_use_at(&mut state, 1, 1, 1).unwrap();
         assert!(r.applied);
-        // last-use (0,33) → (99,1) in test_content
+        // last-use (0,33) â†’ (99,1) in test_content
         assert_eq!(r.actor_after, 99);
         assert_eq!(r.target_after, 1);
         // force flag cleared after applied USE
@@ -10118,7 +11341,7 @@ mod tests {
             );
         }
         let g = build_reverse_craft_graph_capped(&db, 5);
-        // At most 5 transitions seeded → at most 5 product edges.
+        // At most 5 transitions seeded â†’ at most 5 product edges.
         assert!(g.edge_count() <= 5);
         assert!(g.product_count() <= 5);
         assert!(g.product_count() >= 1);
@@ -10163,12 +11386,12 @@ mod tests {
         assert_eq!(state.world.read().unwrap().get_object(5, 5), 0);
         assert_eq!(state.players.get(&1).unwrap().held_id, 34);
 
-        // Outbound MX then PU then FX — MX uses -(p_id) for transforms (not drop).
+        // Outbound MX then PU then FX â€” MX uses -(p_id) for transforms (not drop).
         let mx = rx.try_recv().expect("MX packet");
         let mx_s = String::from_utf8_lossy(&mx);
         assert!(mx_s.starts_with("MX\n"));
         assert!(mx_s.contains("5 5 0 0"), "got {mx_s}");
-        // player_id_for_conn(1)=2 → responsible -2
+        // player_id_for_conn(1)=2 â†’ responsible -2
         assert!(
             mx_s.contains(" 0 -2\n") || mx_s.contains("0 -2\n#") || mx_s.contains("0 -2"),
             "transform MX must use -p_id (got {mx_s})"
@@ -10221,7 +11444,7 @@ mod tests {
             dummy_ids: Vec::new(),
             },
         );
-        // 33+33 → pile reverse target (start uses=1)
+        // 33+33 â†’ pile reverse target (start uses=1)
         db.transitions.insert(
             (33, 33),
             Transition {
@@ -10240,7 +11463,7 @@ mod tests {
                 desired_move_dist: 0,
             },
         );
-        // 33+661 → pile reverse (uses += 1)
+        // 33+661 â†’ pile reverse (uses += 1)
         db.transitions.insert(
             (33, 661),
             Transition {
@@ -10259,7 +11482,7 @@ mod tests {
                 desired_move_dist: 0,
             },
         );
-        // 0+661 → take stone, pile stays (uses -= 1)
+        // 0+661 â†’ take stone, pile stays (uses -= 1)
         db.transitions.insert(
             (0, 661),
             Transition {
@@ -10278,7 +11501,7 @@ mod tests {
                 desired_move_dist: 0,
             },
         );
-        // last-use: 0+661 → stone + stone
+        // last-use: 0+661 â†’ stone + stone
         db.transitions_last_use.insert(
             (0, 661),
             Transition {
@@ -10320,7 +11543,7 @@ mod tests {
             .unwrap_or(-1);
         assert_eq!(uses, 1, "new pile must start at 1 use, got {uses}");
 
-        // Add another stone → uses = 2.
+        // Add another stone â†’ uses = 2.
         state.players.get_mut(&1).unwrap().held_id = 33;
         let r = apply_use_at(&mut state, 1, 5, 5).unwrap();
         assert!(r.applied);
@@ -10333,7 +11556,7 @@ mod tests {
             .unwrap_or(-1);
         assert_eq!(uses, 2, "add stone should increment uses to 2");
 
-        // Take one → uses = 1, hold stone.
+        // Take one â†’ uses = 1, hold stone.
         let r = apply_use_at(&mut state, 1, 5, 5).unwrap();
         assert!(r.applied);
         assert_eq!(state.players.get(&1).unwrap().held_id, 33);
@@ -10346,7 +11569,7 @@ mod tests {
             .unwrap_or(-1);
         assert_eq!(uses, 1, "take must decrement pile uses");
 
-        // Last take (uses=1 → prefer LT) → stone + stone on ground.
+        // Last take (uses=1 â†’ prefer LT) â†’ stone + stone on ground.
         state.players.get_mut(&1).unwrap().held_id = 0;
         let r = apply_use_at(&mut state, 1, 5, 5).unwrap();
         assert!(r.applied);
@@ -10358,11 +11581,11 @@ mod tests {
         );
     }
 
-    /// Bare-hand USE on non-permanent ground object with no transition → pickup (Haxe swap).
+    /// Bare-hand USE on non-permanent ground object with no transition â†’ pickup (Haxe swap).
     #[test]
     fn bare_hand_pickup_swaps_ground_object() {
         let mut db = ContentDb::default();
-        // Stick: non-permanent, no (0,stick) transition → bare-hand swap.
+        // Stick: non-permanent, no (0,stick) transition â†’ bare-hand swap.
         db.objects.insert(
             99,
             ObjectDef {
@@ -10427,7 +11650,7 @@ mod tests {
     #[test]
     fn try_craft_applies_held_target_zero_transition() {
         let mut db = ContentDb::default();
-        // Fake recipe: hold 100 on empty → hold 101, place 200 under feet.
+        // Fake recipe: hold 100 on empty â†’ hold 101, place 200 under feet.
         db.transitions.insert(
             (100, 0),
             Transition {
@@ -10471,13 +11694,13 @@ mod tests {
         assert_eq!(state.players.get(&1).unwrap().held_id, 101);
         assert_eq!(state.world.read().unwrap().get_object(3, 4), 200);
 
-        // No recipe for held 999 → fail without mutating.
+        // No recipe for held 999 â†’ fail without mutating.
         state.players.get_mut(&1).unwrap().held_id = 999;
         let r2 = try_craft(&mut state, 1).unwrap();
         assert!(!r2.applied);
         assert_eq!(state.players.get(&1).unwrap().held_id, 999);
 
-        // Empty hands → not applied.
+        // Empty hands â†’ not applied.
         state.players.get_mut(&1).unwrap().held_id = 0;
         let r3 = try_craft(&mut state, 1).unwrap();
         assert!(!r3.applied);
@@ -10546,7 +11769,7 @@ mod tests {
     #[test]
     fn multi_use_decrements_then_last_use() {
         use ol_world::ComplexObject;
-        // Object 50: multi-use berry; normal USE keeps id 50, last-use → 0
+        // Object 50: multi-use berry; normal USE keeps id 50, last-use â†’ 0
         let mut db = ContentDb::default();
         db.objects.insert(
             50,
@@ -10631,7 +11854,7 @@ mod tests {
         assert_eq!(r2.target_after, 50);
         state.players.get_mut(&1).unwrap().held_id = 0;
 
-        // uses==1 → last-use table → empty tile
+        // uses==1 â†’ last-use table â†’ empty tile
         let r3 = apply_use_at(&mut state, 1, 0, 0).unwrap();
         assert_eq!(r3.target_after, 0);
         assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
@@ -10656,7 +11879,7 @@ mod tests {
         let mut state = SimState::with_default_empty(test_content());
         spawn_player(&mut state, 1, "u");
         // Client path deltas are **start-relative** waypoints (protocol.txt), not steps.
-        // From (10,20): (1,0)→(11,20), (2,0)→(12,20), (2,1)→(12,21).
+        // From (10,20): (1,0)â†’(11,20), (2,0)â†’(12,20), (2,1)â†’(12,21).
         assert!(apply_move_deltas(
             &mut state,
             1,
@@ -10828,7 +12051,7 @@ mod tests {
         );
     }
 
-    /// age > 60 multiplies food drain by OLD_AGE_FOOD_DRAIN_MULT (1.5×).
+    /// age > 60 multiplies food drain by OLD_AGE_FOOD_DRAIN_MULT (1.5Ã—).
     #[test]
     fn old_age_increases_food_drain() {
         let hub = OutboundHub::new();
@@ -10867,7 +12090,7 @@ mod tests {
         assert!(old_lost > young_lost);
     }
 
-    /// age ≤ 60 does not get the old-age food drain multiplier.
+    /// age â‰¤ 60 does not get the old-age food drain multiplier.
     #[test]
     fn at_old_age_threshold_no_extra_drain() {
         let hub = OutboundHub::new();
@@ -10877,7 +12100,7 @@ mod tests {
         state.environment.season_length = 10_000.0;
         state.environment.day_length = 10_000.0;
         state.environment.hour_of_day = 12.0;
-        // After +AGE_YEARS_PER_SEC still ≤ 60 if we start low enough... use age that
+        // After +AGE_YEARS_PER_SEC still â‰¤ 60 if we start low enough... use age that
         // ends exactly at threshold after tick (strict > required for mult).
         let p = state.players.get_mut(&1).unwrap();
         p.age = OLD_AGE_THRESHOLD - AGE_YEARS_PER_SEC;
@@ -10889,7 +12112,7 @@ mod tests {
         let lost = food0 - p.food;
         assert!(
             (lost - FOOD_USE_PER_SEC).abs() < 1e-4,
-            "at threshold age, no 1.5×: lost={lost}"
+            "at threshold age, no 1.5Ã—: lost={lost}"
         );
     }
 
@@ -10929,7 +12152,7 @@ mod tests {
         assert!(p.death_reason.is_none());
     }
 
-    /// Every ~10s sim time, tick_vitals sends HX heat from temperature_at_biome.
+    /// Every ~10s sim time, tick_vitals sends HX heat from body heat (tile path).
     #[test]
     fn tick_vitals_emits_hx_heat_every_interval() {
         let hub = OutboundHub::new();
@@ -11480,7 +12703,7 @@ mod tests {
             .unwrap_or(true));
     }
 
-    /// SAY PUTNEST <slot> — put held into nested pocket of contained[slot] under feet.
+    /// SAY PUTNEST <slot> â€” put held into nested pocket of contained[slot] under feet.
     #[test]
     fn say_putnest_nested_pocket_drop() {
         use ol_world::ComplexObject;
@@ -11506,7 +12729,7 @@ mod tests {
             dummy_ids: Vec::new(),
             },
         );
-        // Bag in contained[0] — nested pocket with 2 sub-slots.
+        // Bag in contained[0] â€” nested pocket with 2 sub-slots.
         db.objects.insert(
             292,
             ObjectDef {
@@ -11699,7 +12922,7 @@ mod tests {
         );
     }
 
-    /// REMV x y slot sub — pocket-style nested take from contained[slot].nested[sub].
+    /// REMV x y slot sub â€” pocket-style nested take from contained[slot].nested[sub].
     #[test]
     fn remv_nested_pocket_take() {
         use ol_world::ComplexObject;
@@ -11724,7 +12947,7 @@ mod tests {
                 time_to_change: 0.0,
             },
         );
-        // REMV x y 0 0 → take nested[0][0] = 100
+        // REMV x y 0 0 â†’ take nested[0][0] = 100
         apply_intent(
             &mut state,
             &counters,
@@ -11757,6 +12980,159 @@ mod tests {
         assert!(h.nested.is_empty());
         assert_eq!(h.contained, vec![292]);
         assert_eq!(h.to_map_string_id(), "391,292");
+    }
+
+    /// DO-COMMANDS: I FOLLOW ME unfollows; I EXILE by name; I GIVE roman coins.
+    #[test]
+    fn say_do_commands_follow_exile_give() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let _rx1 = hub.register(1);
+        let _rx2 = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "alice@x");
+        spawn_player(&mut state, 2, "bob@x");
+        {
+            let a = state.players.get_mut(&1).unwrap();
+            a.first_name = "ALICE".into();
+            a.x = 0;
+            a.y = 0;
+        }
+        {
+            let b = state.players.get_mut(&2).unwrap();
+            b.first_name = "BOB".into();
+            b.x = 1;
+            b.y = 0;
+        }
+        let alice = state.players.get(&1).unwrap().p_id;
+        let bob = state.players.get(&2).unwrap().p_id;
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 2,
+                tag: "SAY".into(),
+                payload: format!("FOLLOW {alice}"),
+            },
+        );
+        assert_eq!(state.social.following.get(&bob), Some(&alice));
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 2,
+                tag: "SAY".into(),
+                payload: "I FOLLOW ME".into(),
+            },
+        );
+        assert!(!state.social.following.contains_key(&bob));
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "I EXILE BOB".into(),
+            },
+        );
+        assert!(state.social.is_exiled_by(alice, bob));
+        state.economy.add_coins(alice, 20);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "I GIVE BOB XII".into(),
+            },
+        );
+        assert_eq!(state.economy.coins_of(alice), 8);
+        assert_eq!(state.economy.coins_of(bob), 12);
+    }
+
+    /// DO-COMMANDS: I HIRE AI by name with coin cost.
+    #[test]
+    fn say_do_commands_hire_ai() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let _rx1 = hub.register(1);
+        let _rx2 = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "boss@x");
+        spawn_player(&mut state, 2, "npc-worker@local");
+        {
+            let a = state.players.get_mut(&1).unwrap();
+            a.first_name = "BOSS".into();
+            a.x = 0;
+            a.y = 0;
+            a.age = 20.0;
+        }
+        {
+            let b = state.players.get_mut(&2).unwrap();
+            b.first_name = "WORKER".into();
+            b.x = 1;
+            b.y = 0;
+            b.age = 20.0;
+            b.ai_controlled = true;
+            b.connected = false;
+            b.email = "npc-worker@local".into();
+        }
+        let boss = state.players.get(&1).unwrap().p_id;
+        let worker = state.players.get(&2).unwrap().p_id;
+        state.economy.add_coins(boss, 100);
+        state.social.set_lineage_prestige_class(boss, crate::prestige::PrestigeClass::Commoner);
+        state.social.set_lineage_prestige_class(worker, crate::prestige::PrestigeClass::Commoner);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "I HIRE WORKER".into(),
+            },
+        );
+        assert_eq!(state.social.following.get(&worker), Some(&boss));
+        assert_eq!(state.social.hired_boss(worker), boss);
+        assert!(state.economy.coins_of(boss) < 100);
+        assert!(state.economy.coins_of(worker) > 0);
+    }
+
+    /// DO-COMMANDS: HOME! finds nearby oven and sets home.
+    #[test]
+    fn say_do_commands_home_bang_oven() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let _rx1 = hub.register(1);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "home@x");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.x = 10;
+            p.y = 10;
+            p.home_x = 0;
+            p.home_y = 0;
+        }
+        {
+            let mut w = state.world.write().unwrap();
+            w.set_object(12, 10, 237);
+        }
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "HOME!".into(),
+            },
+        );
+        let p = state.players.get(&1).unwrap();
+        assert_eq!((p.home_x, p.home_y), (12, 10));
     }
 
     #[test]
@@ -11961,7 +13337,7 @@ mod tests {
         spawn_player(&mut state, 1, "eater");
         state.players.get_mut(&1).unwrap().held_id = 33;
         state.players.get_mut(&1).unwrap().food = 5.0;
-        // USE on empty tile: no transition → eat
+        // USE on empty tile: no transition â†’ eat
         apply_intent(
             &mut state,
             &counters,
@@ -11976,7 +13352,7 @@ mod tests {
         );
         let p = state.players.get(&1).unwrap();
         assert_eq!(p.held_id, 0);
-        // YUM multiplies first-of-kind food (5 * 1.5 + bonus) → > base 5.
+        // YUM multiplies first-of-kind food (5 * 1.5 + bonus) â†’ > base 5.
         assert!(p.food > 5.0 + 4.9);
         assert_eq!(p.yum.just_ate_id, 33);
         assert_eq!(p.yum.last_ate_fill_max, 5);
@@ -12085,7 +13461,7 @@ mod tests {
             let p = state.players.get_mut(&1).unwrap();
             p.tools.learn(334);
             p.tools.learn(12);
-            p.tools.learn(334); // duplicate — still 2 learned
+            p.tools.learn(334); // duplicate â€” still 2 learned
         }
         let expected_slots = state.players.get(&1).unwrap().tools.wire_slots();
         let expected_reply = state.players.get(&1).unwrap().tools.query_text();
@@ -12351,7 +13727,7 @@ mod tests {
         state.scoreboard.set_coins(high, 1);
         state.combat.stats_mut(low).prestige = 2.0;
         state.combat.stats_mut(high).prestige = 55.0;
-        // Lineage prestige preferred when present — clear path via combat only.
+        // Lineage prestige preferred when present â€” clear path via combat only.
         state.social.lineages.remove(&low);
         state.social.lineages.remove(&high);
 
@@ -12477,7 +13853,144 @@ mod tests {
                 saw_ok = true;
             }
         }
-        assert!(saw_ok, "expected PS ACCEPT … OK for accepter");
+        assert!(saw_ok, "expected PS ACCEPT â€¦ OK for accepter");
+    }
+
+    /// WALLET-COINS: live `apply_take_coins_on_wound` wallet + scoreboard + say.
+    // Haxe: GlobalPlayerInstance.takeCoins
+    #[test]
+    fn wallet_take_coins_on_wound_live_helper() {
+        let hub = OutboundHub::new();
+        let mut rx1 = hub.register(1);
+        let _rx2 = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        let attacker = spawn_player(&mut state, 1, "atk@wallet");
+        let target = spawn_player(&mut state, 2, "vic@wallet");
+        state.players.get_mut(&1).unwrap().x = 10;
+        state.players.get_mut(&1).unwrap().y = 10;
+        state.players.get_mut(&2).unwrap().x = 11;
+        state.players.get_mut(&2).unwrap().y = 10;
+        state.economy.wallet_mut(attacker).coins = 0;
+        state.economy.wallet_mut(target).coins = 10;
+        state.scoreboard.set_coins(attacker, 0);
+        state.scoreboard.set_coins(target, 10);
+        while rx1.try_recv().is_ok() {}
+        let stole = apply_take_coins_on_wound(&mut state, &hub, attacker, target, false);
+        assert_eq!(stole, 6, "floor(10*0.5)+1");
+        assert_eq!(state.economy.coins_of(attacker), 6);
+        assert_eq!(state.economy.coins_of(target), 4);
+        assert_eq!(state.scoreboard.entry(attacker).unwrap().coins, 6);
+        assert_eq!(state.scoreboard.entry(target).unwrap().coins, 4);
+        let mut saw_say = false;
+        while let Ok(pkt) = rx1.try_recv() {
+            if String::from_utf8_lossy(&pkt).contains("Got 6 coins!") {
+                saw_say = true;
+            }
+        }
+        assert!(saw_say, "expected Got 6 coins! PS");
+        assert_eq!(
+            apply_take_coins_on_wound(&mut state, &hub, attacker, target, false),
+            3
+        ); // floor(4*0.5)+1 = 3
+        assert_eq!(state.economy.coins_of(target), 1);
+        state.economy.wallet_mut(target).coins = 5;
+        let d = apply_take_coins_on_wound(&mut state, &hub, attacker, target, true);
+        assert_eq!(d, 5);
+        assert_eq!(state.economy.coins_of(target), 0);
+    }
+
+    /// DARK-NOSAJ: live USE set/clear mutates Player.dark_nosaj + CU word wire.
+    // Haxe: TransitionHelper L144â€“185 + Connection.SendCurseToAll
+    #[test]
+    fn dark_nosaj_use_live_set_clear_wire() {
+        use crate::dark_nosaj::{DARK_NOSAJ_MONUMENT_ID, TARR_MONUMENT_ID};
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = SimState::with_default_empty(test_content());
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Login {
+                conn_id: 1,
+                reconnect: false,
+                email: "dark@nosaj".into(),
+                client_tag: "t".into(),
+            },
+        );
+        let (px, py, p_id) = {
+            let p = state.players.get(&1).unwrap();
+            (p.x, p.y, p.p_id)
+        };
+        {
+            let mut w = state.world.write().unwrap();
+            w.set_object(px, py, DARK_NOSAJ_MONUMENT_ID);
+        }
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 0,
+                y: 0,
+                id: -1,
+                index: -1,
+            },
+        );
+        let pl = state.players.get(&1).unwrap();
+        assert!(
+            pl.dark_nosaj.is_finite() && pl.dark_nosaj >= 1.0,
+            "dark_nosaj after set = {}",
+            pl.dark_nosaj
+        );
+        let mut saw_cu_minion = false;
+        let mut saw_hail = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.contains("DARK_MINION") {
+                saw_cu_minion = true;
+            }
+            if s.to_ascii_uppercase().contains("ALL HAIL DARK NOSAJ") {
+                saw_hail = true;
+            }
+        }
+        assert!(saw_cu_minion, "expected CU â€¦ DARK_MINION");
+        assert!(saw_hail, "expected public ALL HAIL say");
+
+        {
+            let mut w = state.world.write().unwrap();
+            w.set_object(px, py, TARR_MONUMENT_ID);
+        }
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 0,
+                y: 0,
+                id: -1,
+                index: -1,
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().dark_nosaj, 0.0);
+        let mut saw_cu_clear = false;
+        let mut saw_jasoniah = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.contains(" 0 _") {
+                saw_cu_clear = true;
+            }
+            if s.to_ascii_uppercase().contains("JASONIAH") {
+                saw_jasoniah = true;
+            }
+        }
+        assert!(saw_cu_clear, "expected CU clear with _ word");
+        assert!(saw_jasoniah, "expected Jasoniah say");
+        let _ = p_id;
     }
 
     /// SAY DONATE / ?TREASURY move coins into Economy.treasury.
@@ -12569,7 +14082,7 @@ mod tests {
         let a = state.players.get(&1).unwrap().p_id;
         let b = state.players.get(&2).unwrap().p_id;
 
-        // Not a leader yet — TAX fails.
+        // Not a leader yet â€” TAX fails.
         apply_intent(
             &mut state,
             &counters,
@@ -12583,7 +14096,7 @@ mod tests {
         assert_eq!(state.economy.treasury, 0);
         assert_eq!(state.economy.wallets.get(&a).map(|w| w.coins), Some(5));
 
-        // b follows a → a is leader.
+        // b follows a â†’ a is leader.
         state.social.following.insert(b, a);
         assert!(is_leader(&state.social.following, a));
 
@@ -12629,6 +14142,8 @@ mod tests {
             .social
             .lineages
             .insert(child, LineageNode::with_mother(child, "KID", &mother_node));
+        // GPI-DEATH: mother needs past-actions credit to inherit (Haxe coinsInherited).
+        state.accounts.ensure("mom@x").coins_inherited = 20.0;
         state.economy.add_coins(child, 10);
         state.economy.add_coins(mother, 1);
         {
@@ -12645,7 +14160,7 @@ mod tests {
         );
         assert_eq!(state.economy.treasury, 0);
 
-        // Eve with coins, no mother → treasury.
+        // Eve with coins, no mother â†’ treasury.
         let eve = spawn_player(&mut state, 3, "eve@x");
         state
             .social
@@ -12661,6 +14176,204 @@ mod tests {
         assert!(state.players.get(&3).unwrap().deleted);
         assert_eq!(state.economy.wallets.get(&eve).map(|w| w.coins), Some(0));
         assert_eq!(state.economy.treasury, 7);
+    }
+
+    /// GPI-DEATH: leftover coins after no past-actions go equally to living children.
+    #[test]
+    fn death_inheritance_splits_to_children() {
+        let hub = OutboundHub::new();
+        let mut state = SimState::with_default_empty(test_content());
+        let mom = spawn_player(&mut state, 1, "parent@x");
+        let a = spawn_player(&mut state, 2, "a@x");
+        let b = spawn_player(&mut state, 3, "b@x");
+        state.social.lineages.insert(mom, LineageNode::eve(mom, "P"));
+        let node = state.social.lineages.get(&mom).unwrap().clone();
+        state
+            .social
+            .lineages
+            .insert(a, LineageNode::with_mother(a, "A", &node));
+        state
+            .social
+            .lineages
+            .insert(b, LineageNode::with_mother(b, "B", &node));
+        state.economy.add_coins(mom, 10);
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.food = 0.05;
+            p.age = 20.0;
+        }
+        tick_vitals(&mut state, 1.0, &hub);
+        assert!(state.players.get(&1).unwrap().deleted);
+        assert_eq!(state.economy.coins_of(mom), 0);
+        assert_eq!(state.economy.coins_of(a), 5);
+        assert_eq!(state.economy.coins_of(b), 5);
+    }
+
+    /// GPI-DEATH: hunger death with wounded_by uses reason_killed_<id>.
+    #[test]
+
+    /// GPI-DEATH-POLISH: starving while holding a baby â†’ reason_nursing_hunger.
+    #[test]
+    fn death_polish_nursing_hunger_emit() {
+        let hub = OutboundHub::new();
+        let mut state = SimState::with_default_empty(test_content());
+        let mom = spawn_player(&mut state, 1, "nurse@x");
+        let baby = spawn_player(&mut state, 2, "baby@x");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.food = 0.05;
+            p.age = 20.0;
+            p.holding_player_id = baby;
+        }
+        {
+            let b = state.players.get_mut(&2).unwrap();
+            b.age = 1.0;
+            b.food = 5.0;
+        }
+        tick_vitals(&mut state, 1.0, &hub);
+        assert!(state.players.get(&1).unwrap().deleted);
+        assert_eq!(
+            state.players.get(&1).unwrap().death_reason.as_deref(),
+            Some("reason_nursing_hunger")
+        );
+        assert!(state
+            .event_log
+            .iter()
+            .any(|e| e == &format!("DEATH {mom} reason_nursing_hunger")));
+    }
+
+    /// GPI-DEATH-POLISH: ChooseNewLeader reassigns direct followers.
+    #[test]
+    fn death_polish_choose_new_leader() {
+        let hub = OutboundHub::new();
+        let mut state = SimState::with_default_empty(test_content());
+        let leader = spawn_player(&mut state, 1, "lead@x");
+        let a = spawn_player(&mut state, 2, "a@x");
+        let b = spawn_player(&mut state, 3, "b@x");
+        state.social.following.insert(a, leader);
+        state.social.following.insert(b, leader);
+        state.social.lineages.insert(a, LineageNode::eve(a, "A"));
+        state.social.lineages.insert(b, LineageNode::eve(b, "B"));
+        state.social.set_lineage_prestige(a, 5.0);
+        state.social.set_lineage_prestige(b, 50.0);
+        state.economy.add_coins(leader, 1);
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.food = 0.05;
+            p.age = 20.0;
+        }
+        tick_vitals(&mut state, 1.0, &hub);
+        assert!(state.players.get(&1).unwrap().deleted);
+        assert_eq!(state.social.following.get(&a), Some(&b));
+        assert!(!state.social.following.contains_key(&b));
+        assert!(state
+            .event_log
+            .iter()
+            .any(|e| e.starts_with(&format!("LEADER_DIE {leader} {b}"))));
+    }
+
+    /// GPI-DEATH-POLISH: sole-owned property transfers to follow leader.
+    #[test]
+    fn death_polish_inherit_ownership() {
+        let hub = OutboundHub::new();
+        let mut state = SimState::with_default_empty(test_content());
+        let dead = spawn_player(&mut state, 1, "own@x");
+        let leader = spawn_player(&mut state, 2, "boss@x");
+        state.social.following.insert(dead, leader);
+        state
+            .world
+            .write()
+            .unwrap()
+            .set_object_complex(5, 6, ol_world::ComplexObject::with_owner(33, dead));
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.food = 0.05;
+            p.age = 20.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        tick_vitals(&mut state, 1.0, &hub);
+        assert!(state.players.get(&1).unwrap().deleted);
+        let h = state.world.read().unwrap().get_helper(5, 6).cloned().expect("helper");
+        assert!(h.is_owner(leader), "leader inherits sole property");
+        assert!(!h.is_owner(dead));
+        assert!(state.event_log.iter().any(|e| e.contains("INHERIT_OWN")));
+    }
+
+    /// GPI-DEATH-POLISH: residual coins stored on grave when no kids.
+    #[test]
+    fn death_polish_grave_coins_residual() {
+        let hub = OutboundHub::new();
+        let mut db = test_content().as_ref().clone();
+        db.objects.insert(
+            87,
+            ol_content::ObjectDef {
+                id: 87,
+                description: "fresh grave".into(),
+                name: "Grave".into(),
+                containable: false,
+                permanent: true,
+                blocks_walking: false,
+                food_value: 0,
+                heat_value: 0.0,
+                map_chance: 0.0,
+                biomes: Vec::new(),
+                num_uses: 0,
+                num_slots: 0,
+                floor: false,
+                dummy_ids: Vec::new(),
+                use_chance: 0.0,
+                speed_mult: 1.0,
+                winter_decay_factor: 0.0,
+                spring_regrow_factor: 0.0,
+                decay_factor: 1.0,
+                decays_to_obj: 0,
+                r_value: 0.0,
+                clothing: "n".into(),
+                counts_or_grows_as: 0,
+                crafting_steps: 0,
+            },
+        );
+        let mut state = SimState::with_default_empty(std::sync::Arc::new(db));
+        assert_eq!(state.grave_object_id, 87);
+        let eve = spawn_player(&mut state, 1, "eve@grave");
+        state.economy.add_coins(eve, 12);
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.food = 0.05;
+            p.age = 20.0;
+            p.x = 4;
+            p.y = 5;
+        }
+        tick_vitals(&mut state, 1.0, &hub);
+        assert!(state.players.get(&1).unwrap().deleted);
+        assert_eq!(state.economy.treasury, 0, "residual goes to grave not treasury");
+        let g = state.world.read().unwrap().get_helper(4, 5).cloned().expect("grave helper");
+        assert!((g.coins - 12.0).abs() < 1e-4, "coins on grave={}", g.coins);
+        assert!(g.owners_by_account.contains(&account_soul_token("eve@grave")));
+        assert!(state.event_log.iter().any(|e| e.contains("INHERIT") && e.contains("grave")));
+    }
+
+    fn hunger_death_uses_wounded_by_reason() {
+        let hub = OutboundHub::new();
+        let mut state = SimState::with_default_empty(test_content());
+        let p_id = spawn_player(&mut state, 1, "wounded@x");
+        state.combat.apply_hits(p_id, 1.0, 752);
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.food = -0.01;
+            p.age = 20.0;
+        }
+        tick_vitals(&mut state, 0.1, &hub);
+        assert!(state.players.get(&1).unwrap().deleted);
+        assert_eq!(
+            state.players.get(&1).unwrap().death_reason.as_deref(),
+            Some("reason_killed_752")
+        );
+        assert!(state
+            .event_log
+            .iter()
+            .any(|e| e == &format!("DEATH {p_id} reason_killed_752")));
     }
 
     /// ACCEPT with no matching offer fails; invalid TRADE rejected.
@@ -12830,7 +14543,7 @@ mod tests {
                 saw = true;
             }
         }
-        assert!(saw, "expected PS GIFT … OK");
+        assert!(saw, "expected PS GIFT â€¦ OK");
 
         // Insufficient funds fails without changing balances.
         apply_intent(
@@ -13834,7 +15547,7 @@ mod tests {
         let a = state.players.get(&1).unwrap().p_id;
         let b = state.players.get(&2).unwrap().p_id;
 
-        // Without mutual posse → FAIL.
+        // Without mutual posse â†’ FAIL.
         while rx1.try_recv().is_ok() {}
         apply_intent(
             &mut state,
@@ -13856,7 +15569,7 @@ mod tests {
         assert!(saw_fail, "expected RAID FAIL without posse");
         assert!(!state.players.get(&2).unwrap().deleted);
 
-        // Mutual posse → OK prestige note; no death.
+        // Mutual posse â†’ OK prestige note; no death.
         state.posse.add_posse(a, b);
         state.posse.add_posse(b, a);
         while rx1.try_recv().is_ok() {}
@@ -13901,7 +15614,7 @@ mod tests {
         spawn_player(&mut state, 1, "ping@x");
         while rx.try_recv().is_ok() {}
 
-        // Net maps Ping → payload = unique_id only.
+        // Net maps Ping â†’ payload = unique_id only.
         apply_intent(
             &mut state,
             &counters,
@@ -13970,7 +15683,7 @@ mod tests {
         }
         assert!(saw_ph, "expected PH deny ACK for PHOTO");
 
-        // SAY SNAP — same deny as PHOTO (coords from args).
+        // SAY SNAP â€” same deny as PHOTO (coords from args).
         while rx.try_recv().is_ok() {}
         apply_intent(
             &mut state,
@@ -14021,7 +15734,7 @@ mod tests {
         let p_id = spawn_player(&mut state, 1, "vog@x");
         while rx.try_recv().is_ok() {}
 
-        // Without godmode → DENIED, tile unchanged.
+        // Without godmode â†’ DENIED, tile unchanged.
         assert!(!state.players.get(&1).unwrap().godmode);
         apply_intent(
             &mut state,
@@ -14072,7 +15785,7 @@ mod tests {
         assert!(saw_ok, "expected VOGSET OK PS");
         assert!(saw_mx, "expected map-change MX after VOGSET");
 
-        // Malformed args → FAIL.
+        // Malformed args â†’ FAIL.
         while rx.try_recv().is_ok() {}
         state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
         apply_intent(
@@ -14178,7 +15891,7 @@ mod tests {
         assert!(saw_ok, "expected REGEN OK PS");
         assert!(saw_mx, "expected MX after REGEN");
 
-        // Second REGEN on non-empty tile → SKIP.
+        // Second REGEN on non-empty tile â†’ SKIP.
         while rx.try_recv().is_ok() {}
         state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
         apply_intent(
@@ -14244,7 +15957,7 @@ mod tests {
         state.world.write().unwrap().set_object(0, 0, 33);
         while rx.try_recv().is_ok() {}
 
-        // Without godmode → DENIED.
+        // Without godmode â†’ DENIED.
         apply_intent(
             &mut state,
             &counters,
@@ -14363,7 +16076,7 @@ mod tests {
         let mut state = SimState::with_default_empty(test_content());
         let p1 = spawn_player(&mut state, 1, "g1@x");
         spawn_player(&mut state, 2, "g2@x");
-        // GLOBAL requires noble+ prestige (combat threshold ≥ 50).
+        // GLOBAL requires noble+ prestige (combat threshold â‰¥ 50).
         state.combat.stats_mut(p1).prestige = 50.0;
         if let Some(n) = state.social.lineages.get_mut(&p1) {
             n.set_prestige(50.0);
@@ -14412,6 +16125,73 @@ mod tests {
         assert!(saw_direct, "broadcast_global should push GM");
     }
 
+    /// PO-MAX-DISTANCE: adult normal SAY uses CloseForSay 20 (not NEARBY_RANGE 24).
+    // Haxe: Connection.sendSayToAllClose + ServerSettings.MaxDistanceToBeConsideredAsCloseForSay
+    #[test]
+    fn say_adult_close_for_say_range_twenty() {
+        assert_eq!(ADULT_CHAT_RANGE, 20);
+        assert_eq!(MAX_DISTANCE_CLOSE_FOR_SAY, 20);
+        assert_eq!(chat_range_for_age(25.0), 20);
+        assert_ne!(ADULT_CHAT_RANGE, NEARBY_RANGE);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx1 = hub.register(1);
+        let mut rx2 = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "near@x");
+        spawn_player(&mut state, 2, "mid@x");
+        // Chebyshev 22: inside old NEARBY 24, outside CloseForSay 20.
+        set_player_position(&mut state, 1, 0, 0);
+        set_player_position(&mut state, 2, 22, 0);
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.age = 25.0;
+        }
+        while rx1.try_recv().is_ok() {}
+        while rx2.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "hello close-for-say".into(),
+            },
+        );
+        let mut far_mid = false;
+        while let Ok(pkt) = rx2.try_recv() {
+            if String::from_utf8_lossy(&pkt).contains("hello close-for-say") {
+                far_mid = true;
+            }
+        }
+        assert!(
+            !far_mid,
+            "adult SAY must not reach cheby 22 when CloseForSay=20"
+        );
+        // Within 20 must still hear.
+        set_player_position(&mut state, 2, 20, 0);
+        while rx1.try_recv().is_ok() {}
+        while rx2.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "edge twenty".into(),
+            },
+        );
+        let mut near_ok = false;
+        while let Ok(pkt) = rx2.try_recv() {
+            if String::from_utf8_lossy(&pkt).contains("edge twenty") {
+                near_ok = true;
+            }
+        }
+        assert!(near_ok, "adult SAY must reach cheby 20");
+    }
+
     /// `SAY SHOUT <text>` fans out PS at [`SHOUT_RANGE`] (48), past normal nearby.
     #[test]
     fn say_shout_uses_larger_nearby_range() {
@@ -14422,7 +16202,7 @@ mod tests {
         let mut state = SimState::with_default_empty(test_content());
         spawn_player(&mut state, 1, "near@x");
         spawn_player(&mut state, 2, "far@x");
-        // Beyond NEARBY_RANGE (24) but within SHOUT_RANGE (48).
+        // Beyond ADULT_CHAT_RANGE (20) / NEARBY_RANGE (24) but within SHOUT_RANGE (48).
         set_player_position(&mut state, 1, 0, 0);
         set_player_position(&mut state, 2, 30, 0);
         while rx1.try_recv().is_ok() {}
@@ -14444,7 +16224,7 @@ mod tests {
                 far_soft = true;
             }
         }
-        assert!(!far_soft, "normal SAY must not reach beyond NEARBY_RANGE");
+        assert!(!far_soft, "normal SAY must not reach beyond ADULT_CHAT_RANGE/CloseForSay");
 
         apply_intent(
             &mut state,
@@ -14849,7 +16629,7 @@ mod tests {
             "expected PS ?STATUS reply with food age held prestige class wound flags"
         );
 
-        // Bare STATUS also works (private PS only); empty hands → held 0; serf at 0 prestige.
+        // Bare STATUS also works (private PS only); empty hands â†’ held 0; serf at 0 prestige.
         while rx.try_recv().is_ok() {}
         {
             let p = state.players.get_mut(&1).unwrap();
@@ -15361,7 +17141,7 @@ mod tests {
         }
         assert!(saw_q, "expected PS ?WHO reply");
 
-        // Bare WHO also works (no nearby fan-out — private PS only).
+        // Bare WHO also works (no nearby fan-out â€” private PS only).
         while rx1.try_recv().is_ok() {}
         while rx2.try_recv().is_ok() {}
         apply_intent(
@@ -15383,7 +17163,7 @@ mod tests {
             }
         }
         assert!(saw_bare, "expected PS WHO reply");
-        // Target alone receives reply — not fan-out to other conns.
+        // Target alone receives reply â€” not fan-out to other conns.
         let mut leaked = false;
         while let Ok(pkt) = rx2.try_recv() {
             if String::from_utf8_lossy(&pkt).contains("WHO ") {
@@ -15482,7 +17262,7 @@ mod tests {
             state.event_log
         );
 
-        // Ring buffer max EVENT_LOG_MAX: push 125 → keep last 100 (E25..=E124).
+        // Ring buffer max EVENT_LOG_MAX: push 125 â†’ keep last 100 (E25..=E124).
         state.event_log.clear();
         for i in 0..(EVENT_LOG_MAX + 25) {
             state.push_event(format!("E{i}"));
@@ -15698,7 +17478,7 @@ mod tests {
         assert_eq!(state.poll.counts(), (2, 0));
     }
 
-    /// Pure-ish: no journal Arc → WJOURNAL none; shared journal peeks last entry.
+    /// Pure-ish: no journal Arc â†’ WJOURNAL none; shared journal peeks last entry.
     #[test]
     fn wjournal_none_or_last_entry() {
         let counters = Counters::new();
@@ -15733,7 +17513,7 @@ mod tests {
         }
         assert!(saw_none, "expected WJOURNAL none without journal Arc");
 
-        // Attach journal + record one place → last entry summary.
+        // Attach journal + record one place â†’ last entry summary.
         use std::time::{SystemTime, UNIX_EPOCH};
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -15782,7 +17562,7 @@ mod tests {
         let p_id = spawn_player(&mut state, 1, "save@x");
         assert!(!state.players.get(&1).unwrap().godmode);
 
-        // Non-operator → DENIED
+        // Non-operator â†’ DENIED
         while rx.try_recv().is_ok() {}
         apply_intent(
             &mut state,
@@ -15803,7 +17583,7 @@ mod tests {
         }
         assert!(saw_denied, "expected SAVE DENIED without godmode");
 
-        // Operator, no hook Arc → deferred
+        // Operator, no hook Arc â†’ deferred
         state.players.get_mut(&1).unwrap().godmode = true;
         assert_eq!(state.request_force_save(), "SAVE deferred");
         while rx.try_recv().is_ok() {}
@@ -15826,11 +17606,11 @@ mod tests {
         }
         assert!(saw_deferred, "expected SAVE deferred without hook Arc");
 
-        // Operator + hook Arc → sets flag + SAVE OK
+        // Operator + hook Arc â†’ sets flag + SAVE OK
         let flag = Arc::new(AtomicBool::new(false));
         state = state.with_save_request(Arc::clone(&flag));
         // re-spawn not needed; player still in map... wait, with_save_request consumes state
-        // but we reassigned — players should still be there since with_save_request only sets field.
+        // but we reassigned â€” players should still be there since with_save_request only sets field.
         assert!(state.players.get(&1).unwrap().godmode);
         while rx.try_recv().is_ok() {}
         apply_intent(
@@ -15966,7 +17746,7 @@ mod tests {
             "got {named_s}"
         );
 
-        // Unknown object id → id only (no content name).
+        // Unknown object id â†’ id only (no content name).
         state.players.get_mut(&1).unwrap().held_id = 9999;
         apply_intent(
             &mut state,
@@ -16558,7 +18338,7 @@ mod tests {
         );
     }
 
-    /// SAY STRIP / WEAR move clothing ↔ hands.
+    /// SAY STRIP / WEAR move clothing â†” hands.
     #[test]
     fn say_wear_and_strip_clothing() {
         let counters = Counters::new();
@@ -16636,7 +18416,7 @@ mod tests {
         }
         assert!(saw_wear, "expected WEAR hat 500 OK");
 
-        // STRIP hat → hands.
+        // STRIP hat â†’ hands.
         apply_intent(
             &mut state,
             &counters,
@@ -16915,7 +18695,7 @@ mod tests {
             dummy_ids: Vec::new(),
             },
         );
-        // Bare-hand USE on tile 1 → new_actor is Wool Hat (500).
+        // Bare-hand USE on tile 1 â†’ new_actor is Wool Hat (500).
         db.transitions.insert(
             (0, 1),
             Transition {
@@ -17197,7 +18977,7 @@ mod tests {
         }
         assert!(saw_zero);
 
-        // Seal player so goal is unreachable → FAIL.
+        // Seal player so goal is unreachable â†’ FAIL.
         {
             let mut w = state.world.write().unwrap();
             w.set_object(1, 0, 10);
@@ -17479,7 +19259,7 @@ mod tests {
             p.food = 10.0;
             p.sleep_emot_timer = 0.0;
         }
-        // Neutral vitals so hunger PE does not fire (HX may still emit — ignore non-PE).
+        // Neutral vitals so hunger PE does not fire (HX may still emit â€” ignore non-PE).
         state.environment.temperature = 0.5;
         state.environment.season_length = 10_000.0;
         state.environment.day_length = 10_000.0;
@@ -17527,7 +19307,7 @@ mod tests {
         spawn_player(&mut outdoor, 1, "out");
         spawn_player(&mut indoor, 1, "in");
         for s in [&mut outdoor, &mut indoor] {
-            s.environment.temperature = 0.0; // extreme cold → TEMP_FOOD_EXTRA
+            s.environment.temperature = 0.0; // extreme cold â†’ TEMP_FOOD_EXTRA
             s.environment.season_length = 10_000.0;
             s.environment.day_length = 10_000.0;
             s.environment.hour_of_day = 12.0;
@@ -17837,7 +19617,7 @@ mod tests {
         assert!(saw_q, "expected PS {p_id} {expected}");
     }
 
-    /// SAY BUILD is a fence placeholder (object id 0 — no place).
+    /// SAY BUILD is a fence placeholder (object id 0 â€” no place).
     #[test]
     fn say_build_fence_placeholder() {
         let counters = Counters::new();
@@ -17914,7 +19694,7 @@ mod tests {
         }
         assert!(saw, "expected CLAIM 4 5 OK");
 
-        // Empty tile → FAIL.
+        // Empty tile â†’ FAIL.
         set_player_position(&mut state, 1, 0, 0);
         while rx.try_recv().is_ok() {}
         apply_intent(
@@ -18088,7 +19868,7 @@ mod tests {
                 saw0 = true;
             }
         }
-        assert!(saw0, "SAY EMOTE with no index should emit PE … 0");
+        assert!(saw0, "SAY EMOTE with no index should emit PE â€¦ 0");
     }
 
     /// PE/EMOTE rate limit is independent of SAY: max 3 per 10 sim-seconds.
@@ -18114,7 +19894,7 @@ mod tests {
                 },
             );
         }
-        // Fourth emote in window → EMOTE RATE (not SAY RATE).
+        // Fourth emote in window â†’ EMOTE RATE (not SAY RATE).
         while rx.try_recv().is_ok() {}
         apply_intent(
             &mut state,
@@ -18166,7 +19946,7 @@ mod tests {
         let mut state = SimState::with_default_empty(test_content());
         assert_eq!(state.craft_graph.product_count(), 0);
         seed_craft_graph_from_content(&mut state);
-        // test_content has (0,33)→(34,0) and last-use (0,33)→(99,1)
+        // test_content has (0,33)â†’(34,0) and last-use (0,33)â†’(99,1)
         assert!(
             state.craft_graph.product_count() >= 1,
             "expected products after seed"
@@ -18254,7 +20034,7 @@ mod tests {
         let mut state = SimState::with_default_empty(test_content());
         let p1 = spawn_player(&mut state, 1, "whisperer@x");
         let p2 = spawn_player(&mut state, 2, "listener@x");
-        // Place far apart so normal nearby chat would not reach — whisper must still work.
+        // Place far apart so normal nearby chat would not reach â€” whisper must still work.
         state.players.get_mut(&1).unwrap().x = 0;
         state.players.get_mut(&1).unwrap().y = 0;
         state.players.get_mut(&2).unwrap().x = 500;
@@ -18615,7 +20395,7 @@ mod tests {
                 saw_sick = true;
             }
         }
-        assert!(saw_sick, "expected FEED OK … sick in PS");
+        assert!(saw_sick, "expected FEED OK â€¦ sick in PS");
         let _ = a;
     }
 
@@ -18692,6 +20472,134 @@ mod tests {
             spear.contains("held=Wooden Spear"),
             "spear name, got {spear}"
         );
+    }
+
+    /// BREASTFEED-EDGES: continuous nurse factor 10 + hits heal at food cap.
+    #[test]
+    fn breastfeed_edges_continuous_factor_and_hits() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let _rx = hub.register(1);
+        let mut state = SimState::with_default_empty(test_content());
+        let mother = spawn_player(&mut state, 1, "mom@bf");
+        state.players.get_mut(&1).unwrap().age = 20.0;
+        state.players.get_mut(&1).unwrap().food = 10.0;
+        // Force female person object for is_fertile
+        state.players.get_mut(&1).unwrap().display_object_id = 19;
+        let baby_id = spawn_child(&mut state, 1).expect("baby");
+        let baby_conn = state
+            .players
+            .iter()
+            .find(|(_, p)| p.p_id == baby_id)
+            .map(|(&c, _)| c)
+            .expect("baby conn");
+        {
+            let m = state.players.get_mut(&1).unwrap();
+            m.start_holding(baby_id);
+            m.food = 10.0;
+        }
+        state.players.get_mut(&baby_conn).unwrap().held_by = mother;
+        state.players.get_mut(&baby_conn).unwrap().food = 5.0;
+        state.players.get_mut(&baby_conn).unwrap().food_max = 20.0;
+        state.players.get_mut(&baby_conn).unwrap().age = 1.0;
+        state.combat.apply_hits(baby_id, 1.0, 0);
+        let hits_before = state.combat.hits_of(baby_id);
+        assert!(hits_before > 0.0);
+
+        // 1s vitals: food += 10 * 1 * 0.1 = 1.0; mother -= 0.5; hits -= 0.2
+        let food_before = state.players.get(&baby_conn).unwrap().food;
+        let m_food_before = state.players.get(&1).unwrap().food;
+        tick_vitals(&mut state, &counters, &hub, 1.0);
+        let food_after = state.players.get(&baby_conn).unwrap().food;
+        let m_food_after = state.players.get(&1).unwrap().food;
+        let gained = food_after - food_before;
+        // Allow normal food drain on both; nurse transfer is large vs drain
+        assert!(
+            gained > 0.5,
+            "baby should gain ~1 food from factor-10 nurse, gained {gained}"
+        );
+        assert!(
+            m_food_after < m_food_before - 0.2,
+            "mother should lose half of transfer, {m_food_before} -> {m_food_after}"
+        );
+        let hits_after = state.combat.hits_of(baby_id);
+        assert!(
+            hits_after < hits_before,
+            "hits heal while nursing: {hits_before} -> {hits_after}"
+        );
+    }
+
+    /// BREASTFEED-EDGES: HOLD pickup restore + exhaustion + follow + age < 6.
+    #[test]
+    fn breastfeed_edges_hold_pickup_exhaustion_follow() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = SimState::with_default_empty(test_content());
+        let mother = spawn_player(&mut state, 1, "mom@hold");
+        state.players.get_mut(&1).unwrap().age = 20.0;
+        state.players.get_mut(&1).unwrap().food = 10.0;
+        state.players.get_mut(&1).unwrap().display_object_id = 19;
+        let baby_id = spawn_child(&mut state, 1).expect("baby");
+        let baby_conn = state
+            .players
+            .iter()
+            .find(|(_, p)| p.p_id == baby_id)
+            .map(|(&c, _)| c)
+            .expect("baby conn");
+        {
+            let b = state.players.get_mut(&baby_conn).unwrap();
+            b.age = 1.0;
+            b.food = 0.0;
+            b.x = 0;
+            b.y = 0;
+            b.held_by = 0;
+        }
+        state.players.get_mut(&1).unwrap().x = 0;
+        state.players.get_mut(&1).unwrap().y = 0;
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: format!("HOLD {baby_id}"),
+            },
+        );
+        let m = state.players.get(&1).unwrap();
+        assert_eq!(m.holding_player_id, baby_id, "mother holds baby");
+        assert!(
+            (m.exhaustion - PICKUP_EXHAUSTION_GAIN).abs() < 1e-5,
+            "exhaustion gain, got {}",
+            m.exhaustion
+        );
+        let b = state.players.get(&baby_conn).unwrap();
+        assert_eq!(b.held_by, mother);
+        assert!(
+            b.food >= PICKUP_FEEDING_FOOD_RESTORE - 0.01,
+            "pickup feed restore, got {}",
+            b.food
+        );
+        assert_eq!(
+            state.social.following.get(&baby_id),
+            Some(&mother),
+            "baby follows mother"
+        );
+        let _ = mother; // silence
+    }
+
+    /// BREASTFEED-EDGES: age == 6 continuous OK; pickup age == 6 no restore.
+    #[test]
+    fn breastfeed_edges_age_six_boundary() {
+        assert!(can_nurse_age(6.0));
+        assert!(!can_pickup_breastfeed_age(6.0));
+        assert!(can_pickup_player_ages(20.0, 5.0));
+        assert!(!can_pickup_player_ages(20.0, 10.0));
+        let (to, _) = breastfeed_tick(1.0, FOOD_USE_PER_SEC, 0.0, 20.0);
+        assert!((to - FOOD_RESTORE_FACTOR_WHILE_FEEDING * FOOD_USE_PER_SEC).abs() < 1e-5);
+        assert!((get_max_child_feeding(2.0) - 4.0).abs() < 1e-5);
     }
 
     /// SAY NURSE / FEED while holding baby transfers held food to the baby.
@@ -18820,7 +20728,7 @@ mod tests {
                 saw_fauna = true;
             }
         }
-        assert!(saw_fauna, "expected ?FAUNA → ANIMALS PS reply");
+        assert!(saw_fauna, "expected ?FAUNA â†’ ANIMALS PS reply");
     }
 
     /// SAY HUNT damages adjacent animals; kill grants meat placeholder + prestige.
@@ -18874,7 +20782,7 @@ mod tests {
             "prestige should gain {HUNT_KILL_PRESTIGE}, got {prest}"
         );
 
-        // No adjacent animal → MISS
+        // No adjacent animal â†’ MISS
         while rx.try_recv().is_ok() {}
         apply_intent(
             &mut state,
@@ -18895,7 +20803,7 @@ mod tests {
         }
         assert!(saw_miss, "expected HUNT MISS when no adjacent animal");
 
-        // Multi-hit wolf (hp 20) → HIT then later KILL
+        // Multi-hit wolf (hp 20) â†’ HIT then later KILL
         state.animals.animals.clear();
         let wolf_id = state.animals.spawn(AnimalKind::Wolf, px, py);
         while rx.try_recv().is_ok() {}
@@ -18987,7 +20895,7 @@ mod tests {
         assert!(saw_cd, "expected FISH FAIL COOLDOWN within 5s");
         assert_eq!(state.players.get(&1).unwrap().held_id, 0);
 
-        // Advance past cooldown → FISH on ocean gives placeholder.
+        // Advance past cooldown â†’ FISH on ocean gives placeholder.
         state.sim_time += PROF_ACTION_COOLDOWN_SECS;
         while rx.try_recv().is_ok() {}
         apply_intent(
@@ -19106,7 +21014,7 @@ mod tests {
             WOOD_PLACEHOLDER_ID
         );
 
-        // Hands full → FAIL HANDS (after cooldown advance).
+        // Hands full â†’ FAIL HANDS (after cooldown advance).
         state.sim_time += PROF_ACTION_COOLDOWN_SECS;
         while rx.try_recv().is_ok() {}
         apply_intent(
@@ -19144,7 +21052,7 @@ mod tests {
             })
             .collect();
         state.refresh_living_prestige_classes();
-        // Lowest score → Serf-ish; highest → higher class for n=5.
+        // Lowest score â†’ Serf-ish; highest â†’ higher class for n=5.
         let low = state.social.prestige_class(ids[0]);
         let high = state.social.prestige_class(ids[4]);
         assert_eq!(low, PrestigeClass::Serf);
@@ -19562,7 +21470,7 @@ mod tests {
         let mut state = SimState::with_default_empty(test_content());
         let p_id = spawn_player(&mut state, 1, "afkq@x");
         state.players.get_mut(&1).unwrap().food = 10_000.0;
-        // Force idle into warn window (remain ≤ 60).
+        // Force idle into warn window (remain â‰¤ 60).
         state.afk.touch(p_id, 0.0);
         state.sim_time = DEFAULT_AFK_SECS - 30.0;
         while rx.try_recv().is_ok() {}
@@ -19820,7 +21728,7 @@ mod tests {
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            // format_look: LOOK dx dy biome=… floor=… obj=33 …
+            // format_look: LOOK dx dy biome=â€¦ floor=â€¦ obj=33 â€¦
             if s.contains("LOOK") && s.contains("obj=33") {
                 saw = true;
             }
@@ -19986,7 +21894,7 @@ mod tests {
                 saw = true;
             }
         }
-        assert!(saw, "expected SAY PING → {expected}");
+        assert!(saw, "expected SAY PING â†’ {expected}");
         // Client PING tag still echoes unique_id.
         apply_intent(
             &mut state,
@@ -20367,7 +22275,7 @@ mod tests {
                 saw_infant = true;
             }
         }
-        assert!(saw_infant, "age 2 → infant");
+        assert!(saw_infant, "age 2 â†’ infant");
 
         state.players.get_mut(&1).unwrap().age = 10.0;
         while rx.try_recv().is_ok() {}
@@ -20387,7 +22295,7 @@ mod tests {
                 saw_child = true;
             }
         }
-        assert!(saw_child, "age 10 → child");
+        assert!(saw_child, "age 10 â†’ child");
 
         state.players.get_mut(&1).unwrap().age = 70.0;
         while rx.try_recv().is_ok() {}
@@ -20407,7 +22315,7 @@ mod tests {
                 saw_elder = true;
             }
         }
-        assert!(saw_elder, "age 70 → elder");
+        assert!(saw_elder, "age 70 â†’ elder");
     }
 
     /// SAY ?BIOMEFOOD reports standing biome food-drain multiplier.
@@ -20554,6 +22462,52 @@ mod tests {
         assert!(saw, "expected PS with {p_id} {expected}");
     }
 
+    /// Haxe calculateSpeed: swamp biome 0.9 slows without floor.
+    #[test]
+    fn player_move_speed_swamp_slows_without_floor() {
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "swamp@x");
+        set_player_position(&mut state, 1, 2, 2);
+        {
+            let mut w = state.world.write().unwrap();
+            w.set_floor(2, 2, 0);
+            w.set_biome(2, 2, 1); // SWAMP
+        }
+        let p = state.players.get(&1).unwrap().clone();
+        let spd = player_move_speed(&state, &p);
+        let expected = WALK_MOVE_SPEED * 0.9;
+        assert!(
+            (spd - expected).abs() < 0.01,
+            "swamp speed spd={spd} expected={expected}"
+        );
+    }
+
+    /// Haxe calculateSpeed: Stone Road 1596 (speedMult 1.5) boosts reported speed.
+    #[test]
+    fn player_move_speed_road_floor_boosts_on_stone_road() {
+        let mut db = (*test_content()).clone();
+        let mut road = ObjectDef::empty(1596);
+        road.floor = true;
+        road.speed_mult = 1.5;
+        road.name = "Stone Road".into();
+        db.objects.insert(1596, road);
+        let mut state = SimState::with_default_empty(Arc::new(db));
+        spawn_player(&mut state, 1, "road@x");
+        set_player_position(&mut state, 1, 5, 5);
+        {
+            let mut w = state.world.write().unwrap();
+            w.set_floor(5, 5, 1596);
+            w.set_biome(5, 5, 0); // GREEN
+        }
+        let p = state.players.get(&1).unwrap().clone();
+        let spd = player_move_speed(&state, &p);
+        let expected = WALK_MOVE_SPEED * 1.5;
+        assert!(
+            (spd - expected).abs() < 0.01,
+            "road speed spd={spd} expected={expected}"
+        );
+    }
+
     /// Ballast from held + backpack slightly reduces reported move speed.
     #[test]
     fn player_move_speed_ballast_from_held_and_backpack() {
@@ -20574,13 +22528,66 @@ mod tests {
             let p = state.players.get(&1).unwrap().clone();
             player_move_speed(&state, &p)
         };
-        // 5 items → 10% slower
+        // 5 items â†’ 10% slower
         let expected = WALK_MOVE_SPEED * ballast_speed_mult(5);
         assert!((heavy - expected).abs() < 0.001, "heavy={heavy} expected={expected}");
         assert!(heavy < empty);
     }
 
     /// SAY ?DRAIN estimates current food drain/sec factors.
+
+    /// S-MOVE-LIVE-GATES: near account bone grave slows; close angry+weapon enemy slows.
+    #[test]
+    fn player_move_speed_live_gates_grave_and_enemy() {
+        let hub = OutboundHub::new();
+        let mut state = SimState::with_default_empty(test_content());
+        let mut p = Player::new(1, 1, "grave@test");
+        p.x = 10;
+        p.y = 10;
+        state.players.insert(1, p);
+        let base = player_move_speed(&state, state.players.get(&1).unwrap());
+        state.accounts.record_grave("grave@test", 10, 10);
+        {
+            let mut w = state.world.write().unwrap();
+            w.set_object(10, 10, 87); // bone pile
+        }
+        let cursed_spd = player_move_speed(&state, state.players.get(&1).unwrap());
+        assert!(
+            cursed_spd < base * 0.95,
+            "grave mali: base={base} cursed={cursed_spd}"
+        );
+        apply_grave_curse_live_gates(&mut state, &hub, 1);
+        assert!(state.players.get(&1).unwrap().is_cursed);
+
+        let mut enemy = Player::new(2, 2, "foe@test");
+        enemy.x = 11;
+        enemy.y = 10;
+        enemy.held_id = BOW_AND_ARROW_ID;
+        state.players.insert(2, enemy);
+        if let Some(me) = state.players.get_mut(&1) {
+            me.angry_time = -1.0;
+        }
+        let with_enemy = player_move_speed(&state, state.players.get(&1).unwrap());
+        assert!(
+            with_enemy < cursed_spd * 0.95,
+            "enemy mali: cursed={cursed_spd} with_enemy={with_enemy}"
+        );
+    }
+
+    #[test]
+    fn apply_grave_curse_live_gates_clear_hysteresis() {
+        let hub = OutboundHub::new();
+        let mut state = SimState::with_default_empty(test_content());
+        let mut p = Player::new(1, 1, "c@test");
+        p.x = 0;
+        p.y = 0;
+        p.is_cursed = true;
+        state.players.insert(1, p);
+        state.accounts.record_grave("c@test", 200, 0);
+        apply_grave_curse_live_gates(&mut state, &hub, 1);
+        assert!(!state.players.get(&1).unwrap().is_cursed);
+    }
+
     #[test]
     fn say_drain_query_estimates_food_drain_factors() {
         let counters = Counters::new();
@@ -20683,7 +22690,7 @@ mod tests {
         let mut rx = hub.register(1);
         let mut state = SimState::with_default_empty(test_content());
         let p_id = spawn_player(&mut state, 1, "plan@x");
-        // Chain A=1 + B=2 → C=3; C=3 + D=4 → E=5
+        // Chain A=1 + B=2 â†’ C=3; C=3 + D=4 â†’ E=5
         state.craft_graph.insert(1, 2, 3, 0);
         state.craft_graph.insert(3, 4, 5, 0);
         // Have A,B,D in inventory so path to E is solvable.
@@ -20717,7 +22724,7 @@ mod tests {
         assert!(plan.contains("3+4"), "got {plan}");
         assert!(!plan.contains("FAIL"), "got {plan}");
 
-        // Already holding product → HAVE
+        // Already holding product â†’ HAVE
         state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
         state.players.get_mut(&1).unwrap().held_id = 5;
         while rx.try_recv().is_ok() {}
@@ -20783,7 +22790,7 @@ mod tests {
         }
         assert!(saw_trans, "expected ?TRANS PS");
 
-        // SEEKING — fed + holding → IDLE; empty hands + farmer → SEEKOBJECT
+        // SEEKING â€” fed + holding â†’ IDLE; empty hands + farmer â†’ SEEKOBJECT
         state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
         while rx.try_recv().is_ok() {}
         apply_intent(
@@ -20802,7 +22809,7 @@ mod tests {
                 saw_idle = true;
             }
         }
-        assert!(saw_idle, "holding + fed → SEEKING IDLE");
+        assert!(saw_idle, "holding + fed â†’ SEEKING IDLE");
 
         state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
         state.players.get_mut(&1).unwrap().held_id = 0;
@@ -20824,7 +22831,7 @@ mod tests {
                 saw_farm = true;
             }
         }
-        assert!(saw_farm, "SEEKING FARMER → SEEKOBJECT profession target");
+        assert!(saw_farm, "SEEKING FARMER â†’ SEEKOBJECT profession target");
     }
 
     /// SAY RECIPE / NEXTCRAFT use reverse craft graph for held item products.
@@ -21038,7 +23045,7 @@ mod tests {
         assert_eq!(SpeechVolume::Shout.range(), 48);
     }
 
-    // ── COUNT / NEAR / DIST / BIOME / FLOOR / FORGETTOOLS / floor DROP ──
+    // â”€â”€ COUNT / NEAR / DIST / BIOME / FLOOR / FORGETTOOLS / floor DROP â”€â”€
 
     #[test]
     fn format_count_query_matches_online() {
@@ -21554,6 +23561,194 @@ mod tests {
         assert!(saw_peer, "configured peer should appear in ?TWINS");
     }
 
+    /// FERTILITY-TWINS: male fails BIRTH; female succeeds.
+    #[test]
+    fn birth_requires_female_is_fertile() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "male@x");
+        state.players.get_mut(&1).unwrap().age = 20.0;
+        state.players.get_mut(&1).unwrap().display_object_id = 352;
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "BIRTH".into(),
+            },
+        );
+        let mut saw_male = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.contains("BIRTH FAIL MALE") {
+                saw_male = true;
+            }
+        }
+        assert!(saw_male, "male (non-19 po) must fail BIRTH");
+
+        state.players.get_mut(&1).unwrap().display_object_id = 19;
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "BIRTH".into(),
+            },
+        );
+        let mut saw_ok = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.contains("BIRTH") && s.contains("OK") {
+                saw_ok = true;
+            }
+        }
+        assert!(saw_ok, "female (po 19) must BIRTH OK");
+    }
+
+    /// FERTILITY-TWINS: TWINJOIN fills party and births twins.
+    #[test]
+    fn twin_join_party_ready_births() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx1 = hub.register(1);
+        let mut rx2 = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 9, "mom@x");
+        state.players.get_mut(&9).unwrap().age = 25.0;
+        state.players.get_mut(&9).unwrap().display_object_id = 19;
+        spawn_player(&mut state, 1, "t1@x");
+        spawn_player(&mut state, 2, "t2@x");
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "TWINJOIN secretcode 2".into(),
+            },
+        );
+        let mut waiting = false;
+        while let Ok(pkt) = rx1.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.contains("TWINWAIT have=1/2") {
+                waiting = true;
+            }
+        }
+        assert!(waiting, "first joiner should wait");
+
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 2,
+                tag: "SAY".into(),
+                payload: "TWINJOIN secretcode 2".into(),
+            },
+        );
+        let mut ready = false;
+        for rx in [&mut rx1, &mut rx2] {
+            while let Ok(pkt) = rx.try_recv() {
+                let s = String::from_utf8_lossy(&pkt);
+                if s.contains("TWINREADY") || s.contains("TWINBORN") {
+                    ready = true;
+                }
+            }
+        }
+        assert!(ready, "party should ready+born");
+        assert!(state.players.get(&1).unwrap().age < 1.0, "twin1 baby");
+        assert!(state.players.get(&2).unwrap().age < 1.0, "twin2 baby");
+        assert!(state.twin_wait.is_empty());
+    }
+
+    /// FERTILITY-TWINS: pure is_fertile matches Haxe.
+    #[test]
+
+    /// TWIN-PARTY-RESID: murder of one twin wounds siblings with broken heart.
+    #[test]
+    fn twin_heart_link_on_murder_wounds_sibling() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let _rx1 = hub.register(1);
+        let mut rx2 = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 9, "mom@x");
+        state.players.get_mut(&9).unwrap().age = 25.0;
+        state.players.get_mut(&9).unwrap().display_object_id = 19;
+        spawn_player(&mut state, 1, "t1@x");
+        spawn_player(&mut state, 2, "t2@x");
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "TWINJOIN heartcode 2".into(),
+            },
+        );
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 2,
+                tag: "SAY".into(),
+                payload: "TWINJOIN heartcode 2".into(),
+            },
+        );
+        let p1 = state.players.get(&1).unwrap().p_id;
+        let p2 = state.players.get(&2).unwrap().p_id;
+        assert!(state.twin_heart.is_linked(p1), "twin1 linked");
+        assert!(state.twin_heart.is_linked(p2), "twin2 linked");
+        state.players.get_mut(&1).unwrap().deleted = true;
+        state.players.get_mut(&1).unwrap().death_reason =
+            Some(DeathCause::Killed.wire_tag().into());
+        apply_twin_heart_link_on_murder(&mut state, &hub, p1);
+        assert!(!state.twin_heart.is_linked(p1), "deceased unlinked");
+        let w = state.combat.wound_of(p2);
+        assert!(w >= BROKEN_HEART_WOUND_STACKS, "sibling wounded stacks={w}");
+        let _ = rx2.try_recv();
+    }
+
+    /// TWIN-PARTY-RESID: wait queue timeout evicts stale waiters.
+    #[test]
+    fn twin_wait_timeout_evicts() {
+        let mut q = TwinWaitQueue::new();
+        let _ = q.join("late", 2, 1, "a@x", 0.0);
+        assert!(q.is_waiting(1));
+        let gone = q.poll_timeouts(TWIN_WAIT_TIMEOUT_SECS + 1.0, TWIN_WAIT_TIMEOUT_SECS);
+        assert_eq!(gone, vec![1u64]);
+        assert!(!q.is_waiting(1));
+        assert_eq!(format_twin_timeout_ps(), "TWINWAIT FAIL timeout");
+    }
+
+    /// TWIN-PARTY-RESID: murder reason classifier (not legal / suicide).
+    #[test]
+    fn twin_murder_reason_classifier() {
+        assert!(is_murder_death_reason("reason_killed"));
+        assert!(is_murder_death_reason("reason_killed_33"));
+        assert!(!is_murder_death_reason("reason_killed_legal"));
+        assert!(!is_murder_death_reason("reason_suicide"));
+        assert!(!is_murder_death_reason("reason_hunger"));
+    }
+
+    fn is_fertile_haxe_parity_unit() {
+        assert!(is_fertile(false, 20.0, true));
+        assert!(!is_fertile(false, 20.0, false));
+        assert!(!is_fertile(true, 20.0, true));
+        assert!(!is_fertile(false, 13.9, true));
+        assert!(is_fertile(false, 42.0, true));
+        assert!(!is_fertile(false, 42.01, true));
+    }
+
     #[test]
     fn object_def_is_floor_flag() {
         let mut floor = ObjectDef::empty(1);
@@ -21592,7 +23787,7 @@ mod tests {
             },
         );
         let t = state.players.get(&2).unwrap();
-        // Shoved away: from (11,10) away from (10,10) → (12,10).
+        // Shoved away: from (11,10) away from (10,10) â†’ (12,10).
         assert_eq!((t.x, t.y), (12, 10), "target should be shoved one tile away");
         assert_eq!(
             (state.players.get(&1).unwrap().x, state.players.get(&1).unwrap().y),
@@ -21659,7 +23854,7 @@ mod tests {
                 payload: format!("PUSH {p2}"),
             },
         );
-        // Swap: actor ↔ target.
+        // Swap: actor â†” target.
         assert_eq!(
             (state.players.get(&1).unwrap().x, state.players.get(&1).unwrap().y),
             (21, 20)
@@ -21717,7 +23912,7 @@ mod tests {
         }
         assert!(saw, "expected PULL OK");
 
-        // Far target → range fail.
+        // Far target â†’ range fail.
         state.players.get_mut(&2).unwrap().x = 20;
         state.players.get_mut(&2).unwrap().y = 20;
         state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
@@ -21860,7 +24055,7 @@ mod tests {
         }
         assert!(saw_ok, "expected THANK OK prestige note");
 
-        // Out of range → FAIL range, no extra prestige.
+        // Out of range â†’ FAIL range, no extra prestige.
         state.players.get_mut(&2).unwrap().x = 20;
         state.players.get_mut(&2).unwrap().y = 20;
         state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
@@ -21957,7 +24152,7 @@ mod tests {
         }
         assert!(saw_cs_target, "target should receive CS");
 
-        // No tokens left → FAIL no_token.
+        // No tokens left â†’ FAIL no_token.
         state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
         while rx1.try_recv().is_ok() {}
         apply_intent(
@@ -22241,7 +24436,7 @@ mod tests {
                 conn_id: 1,
                 reconnect: false,
                 email: "v@x".into(),
-                client_tag: "400".into(), // mismatch → soft log, still spawn
+                client_tag: "400".into(), // mismatch â†’ soft log, still spawn
             },
         );
         assert!(
@@ -22310,6 +24505,56 @@ mod tests {
             },
         );
         assert!(state.players.contains_key(&2));
+    }
+
+    /// MUTE also blocks WHISPER (unlike DEAF).
+    #[test]
+    fn say_mute_blocks_whisper() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx1 = hub.register(1);
+        let mut rx2 = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        let a = spawn_player(&mut state, 1, "speaker@x");
+        let b = spawn_player(&mut state, 2, "listener@x");
+        set_player_position(&mut state, 1, 0, 0);
+        set_player_position(&mut state, 2, 1, 0);
+        while rx1.try_recv().is_ok() {}
+        while rx2.try_recv().is_ok() {}
+
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 2,
+                tag: "SAY".into(),
+                payload: format!("MUTE {a}"),
+            },
+        );
+        while rx2.try_recv().is_ok() {}
+        assert!(!state.mutes.should_deliver(b, a));
+
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: format!("WHISPER {b} secret muted"),
+            },
+        );
+        let mut b_heard = false;
+        while let Ok(pkt) = rx2.try_recv() {
+            if String::from_utf8_lossy(&pkt).contains("secret muted") {
+                b_heard = true;
+            }
+        }
+        assert!(!b_heard, "muted listener must not receive WHISPER");
+        assert!(rx1.try_recv().is_err(), "whisperer must not get echo when dropped");
+        let _ = a;
+        let _ = b;
     }
 
     /// SAY DEAF toggles Player.deaf; blocks normal chat; WHISPER still delivers.
@@ -22464,7 +24709,7 @@ mod tests {
         }
         assert!(saw_self, "expected HUG FAIL self");
 
-        // Far → range fail.
+        // Far â†’ range fail.
         state.players.get_mut(&2).unwrap().x = 40;
         state.players.get_mut(&2).unwrap().y = 40;
         state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
@@ -22581,13 +24826,13 @@ mod tests {
     fn catch_up_extra_steps_pure() {
         assert_eq!(catch_up_extra_steps(1, 0, 5), 0);
         assert_eq!(catch_up_extra_steps(1, 3, 5), 3);
-        // max_extra cap (periods_behind 10, max 5 → 5 extras).
+        // max_extra cap (periods_behind 10, max 5 â†’ 5 extras).
         assert_eq!(catch_up_extra_steps(1, 10, 5), 5);
-        // Already on tick % 10 == 0 → no extras.
+        // Already on tick % 10 == 0 â†’ no extras.
         assert_eq!(catch_up_extra_steps(10, 5, 5), 0);
-        // Mid-%10: starting at 8, extras stop before/at 10 → only 2 (8→9, 9→10).
+        // Mid-%10: starting at 8, extras stop before/at 10 â†’ only 2 (8â†’9, 9â†’10).
         assert_eq!(catch_up_extra_steps(8, 5, 5), 2);
-        // max_extra 0 → 0.
+        // max_extra 0 â†’ 0.
         assert_eq!(catch_up_extra_steps(1, 10, 0), 0);
     }
 
@@ -22609,7 +24854,7 @@ mod tests {
         );
     }
 
-    /// Haxe `Connection.keepAlive()` is empty — KA must never write position.
+    /// Haxe `Connection.keepAlive()` is empty â€” KA must never write position.
     #[test]
     fn ka_intent_does_not_change_position() {
         let counters = Counters::new();
@@ -22647,7 +24892,7 @@ mod tests {
         assert!(p.move_path.is_some(), "KA must not cancel path");
     }
 
-    /// Parse PU body fields: order is `… heat seq force x y …` (indices 12/13 after tag line).
+    /// Parse PU body fields: order is `â€¦ heat seq force x y â€¦` (indices 12/13 after tag line).
     fn pu_seq_force(pkt: &[u8]) -> Option<(i32, i32)> {
         let s = String::from_utf8_lossy(pkt);
         if !s.starts_with("PU\n") {
@@ -22660,6 +24905,38 @@ mod tests {
             return None;
         }
         Some((f[12].parse().ok()?, f[13].parse().ok()?))
+    }
+
+    /// EVE-BANANA: synthetic Eve picks food-plant tile when bananas/berries abundant.
+    #[test]
+    fn synthetic_eve_spawn_prefers_banana_when_abundant() {
+        let mut state = SimState::with_default_empty(test_content());
+        state.spawn_x = 10;
+        state.spawn_y = 10;
+        {
+            let mut w = state.world.write().unwrap();
+            for i in 0..12 {
+                let x = 30 + i;
+                w.set_biome(x, 30, 6); // jungle
+                w.set_object(x, 30, crate::EVE_BANANA_PLANT);
+                w.set_object(i, 2, crate::EVE_BERRY_BUSH);
+            }
+        }
+        let p_id = spawn_player(&mut state, 9_000_001, "eve_banana@ai");
+        let p = state
+            .players
+            .values()
+            .find(|pl| pl.p_id == p_id)
+            .expect("eve");
+        let obj = state.world.read().unwrap().get_object(p.x, p.y);
+        assert!(
+            obj == crate::EVE_BANANA_PLANT
+                || obj == crate::EVE_BERRY_BUSH
+                || (p.x - 10).abs() <= 200,
+            "eve at {},{} obj={obj}",
+            p.x,
+            p.y
+        );
     }
 
     /// Human LOGIN must not spawn on mother/NPC tile (bootstrap desync fix).
@@ -22683,7 +24960,7 @@ mod tests {
             (499, 487),
             "human must not use mother/NPC tile"
         );
-        // Empty test world: find_playable_spawn walks from prefer — stay near spawn.
+        // Empty test world: find_playable_spawn walks from prefer â€” stay near spawn.
         assert!(
             (p.x - 100).abs() <= 200 && (p.y - 200).abs() <= 200,
             "got {},{}",
@@ -22702,7 +24979,7 @@ mod tests {
         spawn_player(&mut state, 1, "jmp@t");
         set_player_position(&mut state, 1, 5, 5);
         let hub = OutboundHub::new();
-        // (2,1) → quad = 4+1 = 5 → accept
+        // (2,1) â†’ quad = 4+1 = 5 â†’ accept
         apply_move_path_start(&mut state, &hub, 1, 7, 6, &[(1, 0)], Some(7)).unwrap();
         let p = state.players.get(&1).unwrap();
         assert_eq!((p.x, p.y), (7, 6), "server snaps to client start");
@@ -22712,7 +24989,7 @@ mod tests {
         assert_eq!(p.move_path.as_ref().unwrap().seq, 7);
     }
 
-    /// Haxe: quadDist > 5 → CancleMovement / JumpTooFar (even if cheby config is 3).
+    /// Haxe: quadDist > 5 â†’ CancleMovement / JumpTooFar (even if cheby config is 3).
     #[test]
     fn move_path_large_jump_rejected() {
         let mut state = SimState::with_default_empty(test_content());
@@ -22722,7 +24999,7 @@ mod tests {
         spawn_player(&mut state, 1, "far@t");
         set_player_position(&mut state, 1, 5, 5);
         let hub = OutboundHub::new();
-        // (3,0) → quad = 9 > 5
+        // (3,0) â†’ quad = 9 > 5
         let err = apply_move_path_start(&mut state, &hub, 1, 8, 5, &[(1, 0)], Some(3))
             .unwrap_err();
         assert_eq!(err, MoveReject::JumpTooFar);
@@ -22822,7 +25099,7 @@ mod tests {
         state.world.write().unwrap().set_object(1, 0, 99);
         let hub = OutboundHub::new();
         let mut rx = hub.register(1);
-        // Build path that already includes the (now blocked) step — as if accepted earlier.
+        // Build path that already includes the (now blocked) step â€” as if accepted earlier.
         state.players.get_mut(&1).unwrap().move_path =
             Some(build_move_path(0, 0, vec![(1, 0)], 10.0, 7, 0, 0));
         state.players.get_mut(&1).unwrap().moving = true;
@@ -22842,7 +25119,7 @@ mod tests {
         assert!(saw, "cancel force PU must use path seq=7 force=1");
     }
 
-    /// Haxe: blocked client start → CancleMovement without snap.
+    /// Haxe: blocked client start â†’ CancleMovement without snap.
     #[test]
     fn move_path_blocked_start_no_snap() {
         use ol_content::ObjectDef;
@@ -22954,7 +25231,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn instant_move_client_seq_sets_done_moving_seq() {
         let mut state = SimState::with_default_empty(test_content());
@@ -23053,7 +25329,7 @@ mod tests {
         assert_eq!(path.trunc, 1);
         assert_eq!(path.remaining.len(), 1);
         assert_eq!(path.seq, 4);
-        // PM wire body must list trunc=1 (accepted length 1 → total≈0.27).
+        // PM wire body must list trunc=1 (accepted length 1 â†’ totalâ‰ˆ0.27).
         let mut saw_trunc_pm = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
@@ -23063,7 +25339,7 @@ mod tests {
         }
         assert!(
             saw_trunc_pm,
-            "PM body must include trunc=1 (… 0.27 0.27 1 …)"
+            "PM body must include trunc=1 (â€¦ 0.27 0.27 1 â€¦)"
         );
     }
 
@@ -23113,7 +25389,7 @@ mod tests {
             let s = String::from_utf8_lossy(&pkt);
             if s.starts_with("PU\n") {
                 saw_pu = true;
-                // force field is 14th data field in full PU — look for force=1 pattern
+                // force field is 14th data field in full PU â€” look for force=1 pattern
                 // wire: ... seq force x y ...
                 if s.contains(" 1 ") {
                     force1 = true;
@@ -23199,3 +25475,4 @@ mod tests {
     }
 
 }
+

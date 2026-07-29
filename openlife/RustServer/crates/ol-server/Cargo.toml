@@ -17,6 +17,7 @@ ol-config.workspace = true
 ol-net.workspace = true
 ol-web.workspace = true
 ol-sim.workspace = true
+ol-ai.workspace = true
 ol-content.workspace = true
 ol-world.workspace = true
 tracing.workspace = true
@@ -24,3 +25,5 @@ tracing-subscriber.workspace = true
 tokio.workspace = true
 rand = "0.8"
 serde_json = "1"
+# AI-PROVIDER: MiniMax / Anthropic-compatible HTTP (secrets via env only)
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }

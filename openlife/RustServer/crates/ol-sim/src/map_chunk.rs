@@ -179,19 +179,9 @@ mod tests {
 
         let mut w = World::new(64, 64, false);
         w.set_biome(0, 0, 1);
-        w.set_object_complex(
-            0,
-            0,
-            ComplexObject {
-                base_id: 391,
-                uses_remaining: 0,
-                contained: vec![33, 40],
-                nested: Vec::new(),
-                owner_id: 0,
-                creation_time: 0.0,
-                time_to_change: 0.0,
-            },
-        );
+        let mut h = ComplexObject::new_simple(391);
+        h.contained = vec![33, 40];
+        w.set_object_complex(0, 0, h);
         // Neighbor plain object must stay bare id.
         w.set_object(1, 0, 99);
 
@@ -219,19 +209,10 @@ mod tests {
         let mut w = World::new(64, 64, false);
         w.set_biome(0, 0, 1);
         // Basket with bag (292) and nested berries under the bag: Haxe `391,292:100:101`
-        w.set_object_complex(
-            0,
-            0,
-            ComplexObject {
-                base_id: 391,
-                uses_remaining: 0,
-                contained: vec![292],
-                nested: vec![vec![100, 101]],
-                owner_id: 0,
-                creation_time: 0.0,
-                time_to_change: 0.0,
-            },
-        );
+        let mut h = ComplexObject::new_simple(391);
+        h.contained = vec![292];
+        h.nested = vec![vec![100, 101]];
+        w.set_object_complex(0, 0, h);
         let plain = build_chunk_plaintext(&w, 0, 0, 1, 1);
         let cells: Vec<&str> = plain.split(' ').collect();
         assert_eq!(cells.len(), 1);

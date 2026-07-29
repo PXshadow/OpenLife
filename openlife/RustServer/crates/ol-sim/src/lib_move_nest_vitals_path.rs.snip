@@ -1,0 +1,14 @@
+        let vitals = VitalsSpeedInput {
+            has_both_shoes: has_both_shoes(left_shoe, right_shoe),
+            on_horse_or_car: on_horse,
+            current_food_store_max: p.food_max,
+            heat,
+            curse_active,
+            close_hostile_with_weapon: close_hostile,
+            is_ai,
+            prestige_class: class,
+            is_strong,
+            // MOVE-NEST-SPEED: heldObject.containedObjects (+1 nest)
+            held_nest_product: held_nest_speed_product(&state.content, p.held_helper.as_ref()),
+        };
+        let speed = apply_calculate_speed_full(

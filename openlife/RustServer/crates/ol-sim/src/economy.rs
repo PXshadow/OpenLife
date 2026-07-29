@@ -2,6 +2,10 @@
 
 use std::collections::HashMap;
 
+/// Haxe `ServerSettings.InheritCoinsFactor` — fraction of wallet credited as
+/// account `coinsInherited` on death (for future-life inheritance weight).
+pub const INHERIT_COINS_FACTOR: f32 = 0.8;
+
 #[derive(Debug, Clone, Default)]
 pub struct Wallet {
     pub coins: i32,
@@ -89,15 +93,43 @@ impl Economy {
         true
     }
 
-    /// On death: zero the deceased wallet and move remaining coins to mother (if
-    /// `mother_online` is `Some`) or into the shared treasury.
+    /// Read wallet coins (0 if missing).
+    pub fn coins_of(&self, p_id: i32) -> i32 {
+        self.wallets.get(&p_id).map(|w| w.coins).unwrap_or(0)
+    }
+
+    /// Haxe `takeCoins`: move coins target → attacker with **no** trade prestige.
     ///
-    /// Returns the amount transferred (0 if the wallet was empty).
-    pub fn inherit_on_death(&mut self, deceased: i32, mother_online: Option<i32>) -> i32 {
-        let coins = self.wallets.get(&deceased).map(|w| w.coins).unwrap_or(0);
+    /// Same coin path as [`Self::gift`]; amount must already be resolved via
+    /// `coins_stolen_on_wound` (floor factor +1, darkNosaj ×2 cap 1).
+    // Haxe: GlobalPlayerInstance.takeCoins L4835–4836
+    // WALLET-COINS
+    pub fn take_coins_on_wound(&mut self, attacker: i32, target: i32, amount: i32) -> bool {
+        self.gift(target, attacker, amount)
+    }
+
+    /// Zero wallet and return previous coins (no destination).
+    pub fn take_wallet(&mut self, deceased: i32) -> i32 {
+        let coins = self.coins_of(deceased);
         if let Some(w) = self.wallets.get_mut(&deceased) {
             w.coins = 0;
         }
+        coins
+    }
+
+    /// Deposit residual coins into treasury (unclaimed inheritance / no kids).
+    pub fn deposit_treasury(&mut self, amount: i32) {
+        if amount > 0 {
+            self.treasury = self.treasury.saturating_add(amount);
+        }
+    }
+
+    /// Legacy helper: zero deceased wallet → mother (if `Some`) else treasury.
+    ///
+    /// Prefer [`crate::apply_death_inheritance`] (Haxe InheritCoins + kids).
+    /// Returns the amount transferred (0 if the wallet was empty).
+    pub fn inherit_on_death(&mut self, deceased: i32, mother_online: Option<i32>) -> i32 {
+        let coins = self.take_wallet(deceased);
         if coins <= 0 {
             return 0;
         }
@@ -106,7 +138,7 @@ impl Economy {
                 self.add_coins(mid, coins);
             }
             _ => {
-                self.treasury = self.treasury.saturating_add(coins);
+                self.deposit_treasury(coins);
             }
         }
         coins
@@ -163,6 +195,25 @@ mod tests {
         assert_eq!(e.treasury, 15);
         assert_eq!(e.wallets.get(&2).unwrap().coins, 10);
         assert!(!e.donate_to_treasury(1, 999));
+    }
+
+    /// WALLET-COINS: pure amount + wallet gift path (no trade prestige).
+    // Haxe: GlobalPlayerInstance.takeCoins
+    #[test]
+    fn take_coins_on_wound_moves_half_plus_one() {
+        let mut e = Economy::default();
+        e.wallet_mut(10).coins = 10; // target
+        e.wallet_mut(1).coins = 0; // attacker
+        // Mirrors weapon_wound::coins_stolen_on_wound(10, 0.5, false) = 6
+        let amount = 6;
+        assert!(e.take_coins_on_wound(1, 10, amount));
+        assert_eq!(e.coins_of(1), 6);
+        assert_eq!(e.coins_of(10), 4);
+        assert_eq!(e.wallets.get(&1).unwrap().trade_prestige, 0.0);
+        assert_eq!(e.wallets.get(&10).unwrap().trade_prestige, 0.0);
+        // Empty / insufficient target
+        assert!(!e.take_coins_on_wound(1, 10, 99));
+        assert!(!e.take_coins_on_wound(1, 10, 0));
     }
 
     #[test]

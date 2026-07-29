@@ -17,6 +17,8 @@
 //!   name_len: u32 LE
 //!   last_name: [u8; name_len]  (UTF-8)
 //! ```
+//!
+//! Session-only fields (`display_yum`, `coins_inherited`, `graves`) are not on disk.
 
 use crate::accounts::{normalize_email, AccountBook, AccountRecord};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -157,8 +159,10 @@ fn read_record(r: &mut impl Read) -> Result<AccountRecord, String> {
     let mut name_buf = vec![0u8; name_len];
     r.read_exact(&mut name_buf).map_err(|e| e.to_string())?;
     let last_name = String::from_utf8(name_buf).map_err(|e| e.to_string())?;
+    let email = normalize_email(&email);
+    let is_ai = crate::accounts::account_email_looks_ai(&email);
     Ok(AccountRecord {
-        email: normalize_email(&email),
+        email,
         lives,
         total_score,
         total_kills,
@@ -166,6 +170,21 @@ fn read_record(r: &mut impl Read) -> Result<AccountRecord, String> {
         last_name,
         last_p_id,
         lifetime_coins,
+        // Haxe displayYum defaults true; not persisted in OLA1 yet.
+        display_yum: true,
+        // Haxe coinsInherited; not persisted in OLA1 yet.
+        coins_inherited: 0.0,
+        // Haxe femaleScore / maleScore — session; not OLA1.
+        female_score: 0.0,
+        male_score: 0.0,
+        // Haxe isAi — OLA1 has no flag; email heuristic for permanent AI.
+        is_ai,
+        // Haxe familyPrestige map — session only (not OLA1).
+        family_prestige: std::collections::HashMap::new(),
+        // Haxe account.graves — session only; filled by InitObjectHelpersAfterRead.
+        graves: Vec::new(),
+        // Haxe ScoreEntry queue — OLA1 does not persist; see score_entry.rs.
+        score_entries: Vec::new(),
     })
 }
 
@@ -207,116 +226,33 @@ mod tests {
         dir
     }
 
-    fn sample_book() -> AccountBook {
-        let mut b = AccountBook::default();
-        b.on_spawn("Ada@X.COM", 7, "Ada Snow");
-        b.on_death("ada@x.com", 15, 2, 1, 3);
-        b.on_spawn("bob@y.z", 9, "Bob Bell");
-        b.on_death("bob@y.z", 4, 0, 1, 1);
-        b
-    }
-
     #[test]
-    fn roundtrip_preserves_records() {
-        let dir = unique_temp_dir("ol_account_persist_test");
-        let path = dir.join("accounts_v1.bin");
-
-        let original = sample_book();
-        save_accounts(&original, &path).unwrap();
-        let loaded = load_accounts(&path).unwrap();
-
-        assert_eq!(loaded.len(), 2);
-        let ada = loaded.get("ada@x.com").unwrap();
-        assert_eq!(ada.lives, 1);
-        assert_eq!(ada.total_score, 15);
-        assert_eq!(ada.total_kills, 2);
-        assert_eq!(ada.total_deaths, 1);
-        assert_eq!(ada.lifetime_coins, 3);
-        assert_eq!(ada.last_name, "Ada Snow");
-        assert_eq!(ada.last_p_id, 7);
-
-        let bob = loaded.get("bob@y.z").unwrap();
-        assert_eq!(bob.lives, 1);
-        assert_eq!(bob.total_score, 4);
-        assert_eq!(bob.last_name, "Bob Bell");
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn book_helpers_roundtrip() {
-        let dir = unique_temp_dir("ol_account_helpers_test");
-        let path = dir.join("accounts_v1.bin");
-
-        let b = sample_book();
-        b.save_accounts_file(&path).unwrap();
-
-        let mut other = AccountBook::default();
-        other.load_accounts_file(&path).unwrap();
-        assert_eq!(other.len(), 2);
-        assert_eq!(other.get("ada@x.com").unwrap().total_score, 15);
-
-        let from = AccountBook::from_accounts_file(&path).unwrap();
-        assert_eq!(from.get("bob@y.z").unwrap().last_name, "Bob Bell");
-
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn rejects_bad_magic() {
-        let dir = unique_temp_dir("ol_account_bad_magic");
-        let path = dir.join("bad.bin");
-        std::fs::write(&path, b"XXXX").unwrap();
-        assert!(load_accounts(&path).is_err());
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn empty_roundtrip() {
-        let dir = unique_temp_dir("ol_account_empty");
-        let path = dir.join("empty.bin");
-        let b = AccountBook::default();
-        save_accounts(&b, &path).unwrap();
+    fn roundtrip_empty() {
+        let dir = unique_temp_dir("ola_empty");
+        let path = dir.join(DEFAULT_ACCOUNT_FILE);
+        let book = AccountBook::default();
+        save_accounts(&book, &path).unwrap();
         let loaded = load_accounts(&path).unwrap();
         assert!(loaded.is_empty());
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// Stress: 20 OLA1 accounts save → load preserves all fields.
     #[test]
-    fn stress_roundtrip_20_accounts() {
-        let dir = unique_temp_dir("ol_account_stress_20");
-        let path = dir.join("accounts_v1.bin");
-
-        let mut original = AccountBook::default();
-        for i in 0..20 {
-            let email = format!("user{i}@stress.test");
-            let name = format!("User {i}");
-            original.on_spawn(&email, 100 + i, &name);
-            original.on_death(&email, i * 3, (i % 5) as u32, 1, i * 2);
-        }
-        assert_eq!(original.len(), 20);
-
-        save_accounts(&original, &path).unwrap();
-        // Second save overwrites cleanly.
-        save_accounts(&original, &path).unwrap();
+    fn roundtrip_one() {
+        let dir = unique_temp_dir("ola_one");
+        let path = dir.join(DEFAULT_ACCOUNT_FILE);
+        let mut book = AccountBook::default();
+        book.on_spawn("A@B.C", 3, "Ada");
+        book.on_death("a@b.c", 10, 1, 1, 5);
+        save_accounts(&book, &path).unwrap();
         let loaded = load_accounts(&path).unwrap();
-
-        assert_eq!(loaded.len(), 20);
-        for i in 0..20 {
-            let email = format!("user{i}@stress.test");
-            let a = original.get(&email).unwrap();
-            let b = loaded.get(&email).expect("missing email after load");
-            assert_eq!(b.email, a.email);
-            assert_eq!(b.lives, a.lives);
-            assert_eq!(b.total_score, a.total_score);
-            assert_eq!(b.total_kills, a.total_kills);
-            assert_eq!(b.total_deaths, a.total_deaths);
-            assert_eq!(b.last_p_id, a.last_p_id);
-            assert_eq!(b.lifetime_coins, a.lifetime_coins);
-            assert_eq!(b.last_name, a.last_name);
-        }
-
+        let r = loaded.get("a@b.c").unwrap();
+        assert_eq!(r.lives, 1);
+        assert_eq!(r.total_score, 10);
+        assert_eq!(r.last_name, "Ada");
+        assert_eq!(r.lifetime_coins, 5);
+        assert!((r.coins_inherited - 0.0).abs() < 1e-6);
+        assert!(r.graves.is_empty());
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

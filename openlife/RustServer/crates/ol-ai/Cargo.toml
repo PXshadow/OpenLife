@@ -1,0 +1,13 @@
+[package]
+name = "ol-ai"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "NPC / AI decisions — interfaces only; acts via NetIntent like human clients"
+publish = false
+
+[dependencies]
+ol-net.workspace = true
+ol-content.workspace = true
+
+[dev-dependencies]

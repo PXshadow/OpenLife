@@ -102,6 +102,50 @@ impl PosseState {
     pub fn leave_wire(killer: i32) -> String {
         format_posse_join(killer, 0)
     }
+
+    /// Drop all edges involving `p_id` as killer **or** target (death cleanup).
+    ///
+    /// Returns total edges removed (killer-map entries + target removals).
+    pub fn prune_player(&mut self, p_id: i32) -> usize {
+        let mut removed = 0usize;
+        // As killer: whole set goes away.
+        if let Some(set) = self.by_killer.remove(&p_id) {
+            removed += set.len();
+        }
+        // As target on other killers.
+        let killers: Vec<i32> = self.by_killer.keys().copied().collect();
+        for k in killers {
+            if self.remove_target(k, p_id) {
+                removed += 1;
+            }
+        }
+        removed
+    }
+
+    /// Keep only edges where both killer and target are in `alive`.
+    /// Returns edges removed.
+    pub fn prune_absent(&mut self, alive: &HashSet<i32>) -> usize {
+        let mut removed = 0usize;
+        let killers: Vec<i32> = self.by_killer.keys().copied().collect();
+        for k in killers {
+            if !alive.contains(&k) {
+                if let Some(set) = self.by_killer.remove(&k) {
+                    removed += set.len();
+                }
+                continue;
+            }
+            let Some(set) = self.by_killer.get_mut(&k) else {
+                continue;
+            };
+            let before = set.len();
+            set.retain(|t| alive.contains(t));
+            removed += before.saturating_sub(set.len());
+            if set.is_empty() {
+                self.by_killer.remove(&k);
+            }
+        }
+        removed
+    }
 }
 
 /// `PJ` / `POSSE_JOIN` — `PJ\n{killer} {target}\n#`
@@ -176,5 +220,34 @@ mod tests {
         assert_eq!(format_posse_join(7, 0), "PJ\n7 0\n#");
         assert_eq!(PosseState::join_wire(1, 2), "PJ\n1 2\n#");
         assert_eq!(PosseState::leave_wire(1), "PJ\n1 0\n#");
+    }
+
+    #[test]
+    fn prune_player_as_killer_and_target() {
+        let mut s = PosseState::new();
+        s.add_posse(1, 2);
+        s.add_posse(1, 3);
+        s.add_posse(4, 1);
+        s.add_posse(4, 5);
+        // Removes 2 (as killer) + 1 (as target of 4) = 3
+        assert_eq!(s.prune_player(1), 3);
+        assert_eq!(s.target_count(1), 0);
+        assert!(!s.has_target(4, 1));
+        assert!(s.has_target(4, 5));
+        assert_eq!(s.prune_player(99), 0);
+    }
+
+    #[test]
+    fn prune_absent_keeps_living_edges() {
+        let mut s = PosseState::new();
+        s.add_posse(1, 2);
+        s.add_posse(1, 9);
+        s.add_posse(9, 2);
+        let alive: HashSet<i32> = [1, 2].into_iter().collect();
+        let n = s.prune_absent(&alive);
+        assert!(n >= 2);
+        assert!(s.has_target(1, 2));
+        assert!(!s.has_target(1, 9));
+        assert!(!s.by_killer.contains_key(&9));
     }
 }

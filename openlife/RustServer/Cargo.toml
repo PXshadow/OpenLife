@@ -7,6 +7,8 @@ members = [
     "crates/ol-net",
     "crates/ol-web",
     "crates/ol-sim",
+    "crates/ol-ai",
+    "crates/ol-binary",
     "crates/ol-content",
     "crates/ol-world",
     "crates/ol-server",
@@ -28,6 +30,8 @@ ol-config = { path = "crates/ol-config" }
 ol-net = { path = "crates/ol-net" }
 ol-web = { path = "crates/ol-web" }
 ol-sim = { path = "crates/ol-sim" }
+ol-ai = { path = "crates/ol-ai" }
+ol-binary = { path = "crates/ol-binary" }
 ol-content = { path = "crates/ol-content" }
 ol-world = { path = "crates/ol-world" }
 thiserror = "2"
@@ -35,6 +39,37 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time", "signal"] }
 serde = { version = "1", features = ["derive"] }
+
+# --- Build speed (dev / day-to-day) -------------------------------------------
+# Local crates stay opt-level 0 for fast recompile of ol-sim/ol-server.
+# Dependencies compile once at opt-level 2 (slower first build, much faster
+# incremental + faster tests that exercise dep code).
+# Linker: see .cargo/config.toml (rust-lld).
+[profile.dev]
+incremental = true
+# Line tables only — much faster link than full debuginfo; stack traces OK.
+debug = "line-tables-only"
+# More parallel codegen units for large crates (ol-sim lib.rs ~1.5MB).
+codegen-units = 256
+
+[profile.dev.package."*"]
+opt-level = 2
+debug = false
+
+# Faster *running* of ol-sim's large build.rs patch suite (reads lib.rs many times).
+[profile.dev.build-override]
+opt-level = 2
+debug = false
+
+[profile.test]
+# Match dev for test binaries (cargo test uses this + dev for deps).
+incremental = true
+debug = "line-tables-only"
+codegen-units = 256
+
+[profile.test.package."*"]
+opt-level = 2
+debug = false
 
 [profile.release]
 lto = "thin"

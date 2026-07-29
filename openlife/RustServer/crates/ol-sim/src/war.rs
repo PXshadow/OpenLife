@@ -120,6 +120,23 @@ impl WarState {
         out
     }
 
+    /// Drop every pair involving `p_id` (death / session cleanup).
+    ///
+    /// Returns the number of pairs removed. Self-only / missing → 0.
+    pub fn prune_player(&mut self, p_id: i32) -> usize {
+        let before = self.pairs.len();
+        self.pairs.retain(|(a, b), _| *a != p_id && *b != p_id);
+        before.saturating_sub(self.pairs.len())
+    }
+
+    /// Keep only pairs where both ends are in `alive`. Returns pairs removed.
+    pub fn prune_absent(&mut self, alive: &std::collections::HashSet<i32>) -> usize {
+        let before = self.pairs.len();
+        self.pairs
+            .retain(|(a, b), _| alive.contains(a) && alive.contains(b));
+        before.saturating_sub(self.pairs.len())
+    }
+
     /// `?WAR` chat reply body (without leading player id).
     ///
     /// Lists all non-Peace pairs: `WAR a b War; c d Alliance` or `WAR none`.
@@ -214,5 +231,30 @@ mod tests {
             WarState::war_report_wire(3, 4, STATUS_PEACE),
             "WR\n3 4 Peace\n#"
         );
+    }
+
+    #[test]
+    fn prune_player_drops_pairs() {
+        let mut w = WarState::new();
+        w.declare_war(1, 2);
+        w.make_alliance(1, 3);
+        w.declare_war(2, 3);
+        assert_eq!(w.prune_player(1), 2);
+        assert!(!w.is_at_war(1, 2));
+        assert!(!w.is_allied(1, 3));
+        assert!(w.is_at_war(2, 3));
+        assert_eq!(w.prune_player(99), 0);
+    }
+
+    #[test]
+    fn prune_absent_keeps_living_pairs() {
+        use std::collections::HashSet;
+        let mut w = WarState::new();
+        w.declare_war(1, 2);
+        w.declare_war(3, 4);
+        let alive: HashSet<i32> = [1, 2].into_iter().collect();
+        assert_eq!(w.prune_absent(&alive), 1);
+        assert!(w.is_at_war(1, 2));
+        assert!(!w.is_at_war(3, 4));
     }
 }

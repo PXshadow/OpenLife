@@ -61,3 +61,115 @@ ops_metrics.journal
 /tmp/
 /fixtures/raw/
 *.memtrace
+*.log
+*.pyc
+__pycache__/
+
+# ── Agent one-shot debris (NOT needed for cargo test / run) ─────────────
+# Keep in git: crates/**/src/**/*.rs, Cargo.toml, and crates/ol-sim/build.rs
+# plus only the build_*.rs modules that `build.rs` actually `mod`s (~27 files).
+# Delete freely: Python/ps1 one-shots, .rs.txt snippets, orphan build_* injectors
+# not listed in build.rs, and build-stamp dotfiles.
+**/_patch_*.py
+**/_apply_*.py
+**/_fix_*.py
+**/_run_*.py
+**/_run_*.ps1
+**/_inject_*.py
+**/_strip_*.py
+**/_wire_*.py
+**/_finalize_*.py
+**/_patch_*.txt
+**/_apply_*.txt
+**/_fix_*.txt
+**/_build_*.txt
+**/_insert_*.txt
+**/_rep_*.txt
+**/_wps_*.txt
+**/_ally_*.txt
+**/_animals_*.txt
+**/_ct_*.txt
+**/*_snip.txt
+**/*_snippet*.txt
+**/*_snippet.rs.txt
+**/*.rs.txt
+**/build_*_insert.txt
+**/build_*_tail*.txt
+**/build_*_docs*.txt
+**/build_*_docs*.rs
+**/build_*_patch*.txt
+**/build_rs_*.txt
+**/build_*.inc.rs
+scripts/patch_*.py
+scripts/patch_*.txt
+scripts/apply_*.py
+scripts/fix_*.py
+scripts/_run_*.ps1
+crates/**/_*.py
+crates/**/_*.ps1
+crates/**/_*.cmd
+crates/**/_*.rs
+crates/**/.*_patched
+**/*_patch.md
+**/*_patch.txt
+**/*_header_fix.txt
+**/*_tail_fix.txt
+**/*_extra_patch.txt
+fix_lib_ground.py
+# Orphan build injectors never `mod`d by crates/ol-sim/build.rs (safe to delete)
+crates/ol-sim/build_ai_shepherd_mid.rs
+crates/ol-sim/build_ai_takeover.rs
+crates/ol-sim/build_ally_strength.rs
+crates/ol-sim/build_ally_strength_inc.rs
+crates/ol-sim/build_combat_bloody.rs
+crates/ol-sim/build_combat_bloody_inc.rs
+crates/ol-sim/build_craft_live_tick_shepherd_tail.rs
+crates/ol-sim/build_craving_wire.rs
+crates/ol-sim/build_css_full_table.rs
+crates/ol-sim/build_drop_held_ai.rs
+crates/ol-sim/build_eaten_food_pct.rs
+crates/ol-sim/build_fertility_twins.rs
+crates/ol-sim/build_follow_hire_delay.rs
+crates/ol-sim/build_foodstats_disk.rs
+crates/ol-sim/build_health_age_food.rs
+crates/ol-sim/build_horse_mount_polish.rs
+crates/ol-sim/build_leader_range.rs
+crates/ol-sim/build_map_location_pins.rs
+crates/ol-sim/build_nested_in_nested_timers.rs
+crates/ol-sim/build_noob_noble_spawn.rs
+crates/ol-sim/build_npc_scan_full.rs
+crates/ol-sim/build_place_object.rs
+crates/ol-sim/build_po_far_players.rs
+crates/ol-sim/build_th_multi_polish.rs
+crates/ol-sim/build_war_posse_docs.rs
+crates/ol-sim/build_world_food_factor.rs
+crates/ol-sim/build_world_food_factor_eaten_append.rs
+crates/ol-sim/build_world_polish_check.rs
+
+# ── Docs: keep product/port markdown; ignore agent doc-patch harness ─────
+# Tracked intentionally: docs/**/*.md, docs/**/*.html (port kit, architecture).
+# Root monorepo only ignores /docs/ (Haxe), not openlife/RustServer/docs/.
+docs/port/_*.py
+docs/port/_*.ps1
+docs/port/_*.txt
+docs/port/_*.bat
+docs/port/_*.cmd
+docs/port/_apply_*.py
+docs/port/_patch_*.py
+docs/port/_run_*.py
+docs/port/_run_*.ps1
+docs/port/_fix_*.py
+docs/port/_update_*.py
+docs/port/apply_*.py
+docs/port/patch_*.py
+docs/port/_doc_snip*
+docs/port/_fm_*.txt
+docs/port/_mute_*.txt
+docs/port/_todo_*.txt
+# Underscore-prefixed agent scratch under port kit (canonical docs have no leading _)
+docs/port/_*.md
+docs/port/*_ADDENDUM.md
+# Transient CALL_INDEX insert fragments (canonical CALL_INDEX.md is tracked)
+docs/port/CALL_INDEX_*_INSERT.md
+docs/port/CALL_INDEX_*_snip.md
+docs/port/*_snip.md

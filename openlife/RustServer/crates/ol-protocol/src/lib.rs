@@ -12,13 +12,12 @@ pub use tags::{
     PHOTO_DENIED_SIGNATURE,
 };
 pub use wire_out::{
-    format_baby_wiggle, format_curse_score_change, format_curse_token_change, format_dying,
-    format_exile_wire, format_following_wire, format_food_change, format_grave_place,
-    format_frame, format_heat_change, format_held_update, format_learned_tool_report,
-    format_location_says, format_player_says,
+    format_baby_wiggle, format_craving, format_curse_score_change, format_curse_token_change, format_dying,
+    format_exile_wire, format_following_wire, format_food_change, format_grave_info,
+    format_grave_place, format_frame, format_healed, format_heat_change, format_held_update,
+    format_learned_tool_report, format_location_says, format_player_out_of_range, format_player_says,
     format_map_change, format_map_change_moving, format_name_message, format_player_emot,
-    format_player_moves_start,
-    format_tool_slots, format_weather_status,
+    format_player_moves_start, format_tool_slots, format_weather_status,
 };
 
 use thiserror::Error;
@@ -173,6 +172,9 @@ pub fn format_player_update_line(
 }
 
 /// PU line with explicit eat fields (Haxe `just_ate` / `last_ate_id`).
+///
+/// Self-eat `responsible_id` is `-1` (Haxe). Use
+/// [`format_player_update_line_eat_responsible`] for feed-other.
 #[allow(clippy::too_many_arguments)]
 pub fn format_player_update_line_eat(
     p_id: i32,
@@ -186,7 +188,38 @@ pub fn format_player_update_line_eat(
     last_ate: i32,
     done_moving_seq: i32,
 ) -> String {
-    format_player_update_line_full(
+    format_player_update_line_eat_responsible(
+        p_id,
+        po_id,
+        held_id,
+        x,
+        y,
+        age,
+        move_speed,
+        just_ate,
+        last_ate,
+        -1,
+        done_moving_seq,
+    )
+}
+
+/// PU line with eat fields + Haxe `responsible_id` (feed-other → feeder p_id).
+// Haxe: GlobalPlayerInstance.doEating L3175 / PlayerInstance.toData
+#[allow(clippy::too_many_arguments)]
+pub fn format_player_update_line_eat_responsible(
+    p_id: i32,
+    po_id: i32,
+    held_id: i32,
+    x: i32,
+    y: i32,
+    age: f32,
+    move_speed: f32,
+    just_ate: i32,
+    last_ate: i32,
+    responsible_id: i32,
+    done_moving_seq: i32,
+) -> String {
+    format_player_update_line_full_clothing_responsible(
         p_id,
         po_id,
         held_id,
@@ -205,10 +238,12 @@ pub fn format_player_update_line_eat(
         0, // origin
         -1, // o_trans
         done_moving_seq.max(1),
+        "0;0;0;0;0;0",
+        responsible_id,
     )
 }
 
-/// Full Haxe `PlayerInstance.toData` field set.
+/// Full Haxe `PlayerInstance.toData` field set (default empty clothing).
 ///
 /// Order: p_id po_id facing action atx aty held origin_valid ox oy o_trans heat
 /// seq force x y age age_r speed clothing just_ate last_ate responsible yum learned
@@ -237,8 +272,109 @@ pub fn format_player_update_line_full(
     o_trans: i32,
     seq: i32,
 ) -> String {
+    format_player_update_line_full_clothing(
+        p_id,
+        po_id,
+        held_id,
+        x,
+        y,
+        age,
+        move_speed,
+        just_ate,
+        last_ate,
+        force,
+        action,
+        atx,
+        aty,
+        o_origin_valid,
+        ox,
+        oy,
+        o_trans,
+        seq,
+        "0;0;0;0;0;0",
+    )
+}
+
+/// Full PU with live `clothing_set` (Haxe TH-CLOTHING-MATRIX / `PlayerInstance.clothing_set`).
+// Haxe: PlayerInstance.toData clothing_set field
+#[allow(clippy::too_many_arguments)]
+pub fn format_player_update_line_full_clothing(
+    p_id: i32,
+    po_id: i32,
+    held_id: i32,
+    x: i32,
+    y: i32,
+    age: f32,
+    move_speed: f32,
+    just_ate: i32,
+    last_ate: i32,
+    force: i32,
+    action: i32,
+    atx: i32,
+    aty: i32,
+    o_origin_valid: i32,
+    ox: i32,
+    oy: i32,
+    o_trans: i32,
+    seq: i32,
+    clothing_set: &str,
+) -> String {
+    format_player_update_line_full_clothing_responsible(
+        p_id,
+        po_id,
+        held_id,
+        x,
+        y,
+        age,
+        move_speed,
+        just_ate,
+        last_ate,
+        force,
+        action,
+        atx,
+        aty,
+        o_origin_valid,
+        ox,
+        oy,
+        o_trans,
+        seq,
+        clothing_set,
+        -1,
+    )
+}
+
+/// Full PU with live clothing + Haxe `responsible_id` (self-eat `-1`, feed-other feeder).
+// Haxe: PlayerInstance.toData responsible_id / doEating L3175
+#[allow(clippy::too_many_arguments)]
+pub fn format_player_update_line_full_clothing_responsible(
+    p_id: i32,
+    po_id: i32,
+    held_id: i32,
+    x: i32,
+    y: i32,
+    age: f32,
+    move_speed: f32,
+    just_ate: i32,
+    last_ate: i32,
+    force: i32,
+    action: i32,
+    atx: i32,
+    aty: i32,
+    o_origin_valid: i32,
+    ox: i32,
+    oy: i32,
+    o_trans: i32,
+    seq: i32,
+    clothing_set: &str,
+    responsible_id: i32,
+) -> String {
+    let clothing = if clothing_set.is_empty() {
+        "0;0;0;0;0;0"
+    } else {
+        clothing_set
+    };
     format!(
-        "{p_id} {po_id} 0 {action} {atx} {aty} {held_id} {o_origin_valid} {ox} {oy} {o_trans} 0.50 {seq} {force} {x} {y} {age:.2} 60.00 {move_speed:.2} 0;0;0;0;0;0 {just_ate} {last_ate} -1 0 0"
+        "{p_id} {po_id} 0 {action} {atx} {aty} {held_id} {o_origin_valid} {ox} {oy} {o_trans} 0.50 {seq} {force} {x} {y} {age:.2} 60.00 {move_speed:.2} {clothing} {just_ate} {last_ate} {responsible_id} 0 0"
     )
 }
 
@@ -657,5 +793,14 @@ mod tests {
             ClientCommand::Raw { tag, .. } => assert_eq!(tag, ClientTag::Vogi),
             _ => panic!("expected Raw VOGI"),
         }
+    }
+
+    #[test]
+    fn full_clothing_pu_embeds_set() {
+        let s = format_player_update_line_full_clothing(
+            7, 19, 0, 1, 2, 14.0, 3.75, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 9, "1;0;0;0;0;0",
+        );
+        assert!(s.contains(" 9 1 "));
+        assert!(s.contains(" 1;0;0;0;0;0 "));
     }
 }

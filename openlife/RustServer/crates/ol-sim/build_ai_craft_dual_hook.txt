@@ -1,0 +1,19 @@
+// Paste target for build.rs — applied by build_ai_craft_dual / _wire script
+
+// After mod build_twin_party_resid:
+// mod build_ai_craft_dual;
+
+// After twin_party_resid use:
+// use build_ai_craft_dual::{already_wired as craft_dual_wired, patch_all as patch_all_ai_craft_dual};
+
+// End of main():
+//     // AI-CRAFT-DUAL dual_center_search
+//     let dual_stamp = src.join(".ai_craft_dual_patched");
+//     if craft_dual_wired(&src) {
+//         let _ = std::fs::write(&dual_stamp, b"ai-craft-dual-1-source-wired\n");
+//         let _ = patch_all_ai_craft_dual(&src, &workspace);
+//     } else if patch_all_ai_craft_dual(&src, &workspace) {
+//         let _ = std::fs::write(&dual_stamp, b"ai-craft-dual-1-rs-patched\n");
+//     } else {
+//         println!("cargo:warning=AI-CRAFT-DUAL: could not wire dual-center search / re-anchor");
+//     }

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/><title>OLR Progress</title>
+<style>
+body{font-family:system-ui,Segoe UI,sans-serif;background:#0b0f14;color:#e7eef7;margin:2rem;line-height:1.5;max-width:52rem}
+.ok{color:#8bffb0}.todo{color:#ffc86e}.muted{color:#9aa8b8}
+a{color:#6ec6ff}
+section{background:#161d27;border:1px solid #2a3544;border-radius:12px;padding:1rem 1.25rem;margin:1rem 0}
+h1,h2{margin-top:0}
+ul,ol{padding-left:1.25rem}
+code{background:#0b0f14;padding:0.1rem 0.35rem;border-radius:4px;font-size:0.92em}
+table{border-collapse:collapse;width:100%;font-size:0.95em}
+td,th{border:1px solid #2a3544;padding:0.4rem 0.55rem;text-align:left}
+th{background:#0b0f14}
+.play{border-color:#3d6b4a;background:#122018}
+</style></head><body>
+<h1>Open Life Reborn — Progress</h1>
+<p><strong>Last updated:</strong> 2026-07-21 · SuperGrok weekly used about <strong>5%</strong> (cap <strong>80%</strong>).
+<strong>Full Haxe parity is not claimed.</strong></p>
+<p class="muted">
+  <a href="PROGRESS.md">PROGRESS.md</a> ·
+  <a href="BUILD_BACKLOG.md">BUILD_BACKLOG.md</a> ·
+  <a href="USAGE_BUDGET.md">USAGE_BUDGET.md</a>
+</p>
+
+<section class="play">
+<h2 class="ok">Playtest now</h2>
+<pre style="background:#0b0f14;padding:0.75rem;border-radius:8px;overflow:auto">cd C:\OhOl\OpenLifeReborn
+$env:PATH = "$env:USERPROFILE\.cargo\bin;" + $env:PATH
+cargo run -p ol-server --release
+# or: .\target\release\ol-server.exe</pre>
+<ul>
+<li><strong>Game port:</strong> <code>8005</code> (OHOL-style TCP; ticket verify default <strong>on</strong> — set <code>verify_ohol_ticket = false</code> in <code>server.toml</code> for offline clients)</li>
+<li><strong>Web:</strong> <a href="http://127.0.0.1:8080/viewer">http://127.0.0.1:8080/viewer</a></li>
+<li><strong>APIs:</strong>
+  <a href="http://127.0.0.1:8080/api/selfplay">/api/selfplay</a> ·
+  <a href="http://127.0.0.1:8080/api/players">/api/players</a> ·
+  <a href="http://127.0.0.1:8080/api/environment">/api/environment</a> ·
+  <a href="http://127.0.0.1:8080/health">/health</a> ·
+  <a href="http://127.0.0.1:8080/lineage">/lineage</a>
+</li>
+<li><strong>Self-play:</strong> 3 agents on by default (forager / farmer / hunter)</li>
+<li><strong>In-game help:</strong> <code>/HELP</code> or <code>?HELP</code></li>
+<li><strong>Disconnect:</strong> <code>!CLOSE</code> or <code>/close</code> only — bare <code>close</code> is just speech</li>
+</ul>
+<table>
+<tr><th>You type</th><th>Meaning</th></tr>
+<tr><td>Bare text (<code>i give berries</code>, <code>close</code>)</td><td><strong>Speech only</strong> (PS chat)</td></tr>
+<tr><td><code>!CLOSE</code> or <code>/close</code></td><td><strong>Drop TCP</strong> (reconnect free)</td></tr>
+<tr><td>Starts with <code>/</code> or <code>!</code></td><td><strong>Server command</strong> (<code>/CRAFT</code>, <code>/HELP</code>, …)</td></tr>
+<tr><td>Starts with <code>?</code></td><td><strong>Query</strong> (<code>?WHERE</code>, <code>?HELP</code>)</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Evidence (green)</h2>
+<table>
+<tr><th>Check</th><th>Result</th></tr>
+<tr><td><code>cargo test --workspace --lib</code></td><td class="ok">~690+ pass (ol-sim ~629+)</td></tr>
+<tr><td>Cold/warm boot from OLW1 save</td><td class="ok">typically <strong>15–40 ms</strong> world boot_ms; content ~0.2–0.4 s</td></tr>
+<tr><td>Triple self-play motion</td><td class="ok">forager + farmer + hunter move; hunter flees live wolves</td></tr>
+<tr><td>Craft graph seed</td><td class="ok">~3052 products / ~7555 edges (cap 50k)</td></tr>
+</table>
+</section>
+
+<section>
+<h2 class="ok">Done (high level)</h2>
+<p>Rust multi-threaded OHOL-style server: in-memory world (no SQL), embedded web, ticket toggle.</p>
+<ul>
+<li class="ok"><strong>Core loop</strong> — LOGIN/SN, MOVE, USE, DROP, REMV, eat/multi-use, vitals, MC chunks, MX/PU nearby</li>
+<li class="ok"><strong>Fast restart</strong> — parallel content, bulk OLW1 + backup rotation, OLN1 lineages, OLA1 accounts, journal, autosave</li>
+<li class="ok"><strong>Containers</strong> — put/take + nested wire/pockets; ownership, locks, crime, <code>?OWN</code></li>
+<li class="ok"><strong>Social</strong> — FOLLOW/EXILE/ALLY, leadership ORDER/OBEY, mute/deaf, relations, birth/gestation/hold/nurse</li>
+<li class="ok"><strong>Combat</strong> — KILL/HIT wounds, weapon range, heal, curse, reputation, prestige + percentiles</li>
+<li class="ok"><strong>Economy</strong> — pay/trade/gift/loan, treasury, inheritance, scoreboard + season reset</li>
+<li class="ok"><strong>Environment</strong> — seasons/day/temp/weather/snow/fire, animals + HUNT, HX heat</li>
+<li class="ok"><strong>AI / self-play</strong> — pathfind, craft graph RECIPE/NEXTCRAFT, professions harvest/fish/mine…, 1–3 agents</li>
+<li class="ok"><strong>Chat meta</strong> — shout/whisper/mumble, many <code>?QUERY</code> commands, emotes, notes, godmode VOGSET lite</li>
+<li class="ok"><strong>Web</strong> — full-map zoom viewer, selfplay/players/env/metrics/lineage APIs</li>
+</ul>
+</section>
+
+<section>
+<h2 class="todo">Next (honest remaining Haxe)</h2>
+<ol>
+<li class="todo">Full <strong>AiBase</strong> craft trees / reverse graphs / priorities (current is a thin slice)</li>
+<li class="todo">Nested containers <strong>persisted in OLW1</strong> (wire works; save drops nests)</li>
+<li class="todo">Full combat weapons/animations; real PHOTO + VOG backends</li>
+<li class="todo">Motherhood product (pregnancy hold UI multiplayer loop)</li>
+<li class="todo">Accounts/souls + real lineage.onehouronelife-class web</li>
+<li class="todo">Hot/warm/cold <strong>sim skip</strong>, animals beyond wander, twin multi-server sockets</li>
+<li class="todo">Long vanilla OneLife client QA on every protocol edge</li>
+</ol>
+<p class="todo">Not full Haxe parity. Budget ~5% used after weekly reset — room to ship more under 80%.</p>
+</section>
+
+<section>
+<h2>Config tips</h2>
+<ul>
+<li><code>server.toml</code> — ports, <code>verify_ohol_ticket</code>, <code>selfplay_agents</code>, <code>sim_speed</code>, map paths</li>
+<li>World save: <code>SaveFiles/world_v1.olw</code> · lineages · accounts</li>
+<li>Map: <code>maps/mysteraV1Test.png</code></li>
+</ul>
+</section>
+</body></html>

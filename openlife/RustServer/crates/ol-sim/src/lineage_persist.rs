@@ -1,9 +1,9 @@
 //! Versioned binary lineage save/load (no SQL).
 //!
-//! Format `OLN1` (u32 version = LINEAGE_FORMAT_VERSION):
+//! Format family magic `OLN1` (version field selects record layout):
 //! ```text
 //! magic[4] = b"OLN1"
-//! version: u32 LE
+//! version: u32 LE   (1 = core; 2 = + death fields for LINEAGE-24H)
 //! count: u32 LE
 //! records × count:
 //!   id: i32 LE
@@ -13,7 +13,14 @@
 //!   prestige: f32 LE
 //!   name_len: u32 LE
 //!   name: [u8; name_len]  (UTF-8)
+//!   # version >= 2 (LINEAGE-24H / Haxe deathTime+deathReason):
+//!   death_sim_time: f32 LE
+//!   age_at_death: f32 LE
+//!   death_reason_len: u32 LE
+//!   death_reason: [u8; death_reason_len]  (UTF-8)
 //! ```
+//!
+//! Session-only: `alive` (derived on load from death fields), `owns_object`.
 
 use crate::prestige::PrestigeClass;
 use crate::social::{LineageNode, SocialState};
@@ -25,7 +32,14 @@ use std::path::Path;
 use std::time::Instant;
 use tracing::info;
 
-pub const LINEAGE_FORMAT_VERSION: u32 = 1;
+/// Current on-disk lineage record version (writes always use this).
+///
+/// v1: core identity/parents/gen/prestige/name.  
+/// v2: + death_sim_time / age_at_death / death_reason (LINEAGE-24H starving window).
+// Haxe: Lineage WriteLineages deathTime + deathReason
+pub const LINEAGE_FORMAT_VERSION: u32 = 2;
+/// Oldest readable version (v1 core without death fields).
+pub const LINEAGE_FORMAT_VERSION_MIN: u32 = 1;
 const MAGIC: &[u8; 4] = b"OLN1";
 /// Sentinel for missing mother/father parent id.
 const NONE_PARENT: i32 = -1;
@@ -105,6 +119,22 @@ fn write_record(n: &LineageNode, w: &mut impl Write) -> Result<(), String> {
     w.write_u32::<LittleEndian>(name_bytes.len() as u32)
         .map_err(|e| e.to_string())?;
     w.write_all(name_bytes).map_err(|e| e.to_string())?;
+    // OLN2 / LINEAGE-24H: Haxe WriteLineages deathTime + age + deathReason
+    // Haxe: Lineage.WriteLineages L182–186
+    w.write_f32::<LittleEndian>(n.death_sim_time)
+        .map_err(|e| e.to_string())?;
+    w.write_f32::<LittleEndian>(n.age_at_death)
+        .map_err(|e| e.to_string())?;
+    let reason_bytes = n.death_reason.as_bytes();
+    if reason_bytes.len() > 4096 {
+        return Err(format!(
+            "lineage death_reason too long ({})",
+            reason_bytes.len()
+        ));
+    }
+    w.write_u32::<LittleEndian>(reason_bytes.len() as u32)
+        .map_err(|e| e.to_string())?;
+    w.write_all(reason_bytes).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -115,15 +145,15 @@ fn read_lineages(r: &mut impl Read) -> Result<SocialState, String> {
         return Err(format!("bad lineage magic {:?}", magic));
     }
     let version = r.read_u32::<LittleEndian>().map_err(|e| e.to_string())?;
-    if version != LINEAGE_FORMAT_VERSION {
+    if version < LINEAGE_FORMAT_VERSION_MIN || version > LINEAGE_FORMAT_VERSION {
         return Err(format!(
-            "unsupported lineage version {version} (want {LINEAGE_FORMAT_VERSION})"
+            "unsupported lineage version {version} (want {LINEAGE_FORMAT_VERSION_MIN}..{LINEAGE_FORMAT_VERSION})"
         ));
     }
     let count = r.read_u32::<LittleEndian>().map_err(|e| e.to_string())? as usize;
     let mut lineages = HashMap::with_capacity(count);
     for _ in 0..count {
-        let node = read_record(r)?;
+        let node = read_record(r, version)?;
         lineages.insert(node.id, node);
     }
     Ok(SocialState {
@@ -132,7 +162,7 @@ fn read_lineages(r: &mut impl Read) -> Result<SocialState, String> {
     })
 }
 
-fn read_record(r: &mut impl Read) -> Result<LineageNode, String> {
+fn read_record(r: &mut impl Read, version: u32) -> Result<LineageNode, String> {
     let id = r.read_i32::<LittleEndian>().map_err(|e| e.to_string())?;
     let mother_raw = r.read_i32::<LittleEndian>().map_err(|e| e.to_string())?;
     let father_raw = r.read_i32::<LittleEndian>().map_err(|e| e.to_string())?;
@@ -156,6 +186,37 @@ fn read_record(r: &mut impl Read) -> Result<LineageNode, String> {
         Some(father_raw)
     };
     let prestige = prestige.max(0.0);
+
+    // OLN2 death fields; v1 defaults empty/alive.
+    // Haxe: Lineage.ReadLineages deathTime / deathReason / age
+    let (death_sim_time, age_at_death, death_reason) = if version >= 2 {
+        let death_sim_time = r.read_f32::<LittleEndian>().map_err(|e| e.to_string())?;
+        let age_at_death = r.read_f32::<LittleEndian>().map_err(|e| e.to_string())?;
+        let reason_len = r.read_u32::<LittleEndian>().map_err(|e| e.to_string())? as usize;
+        if reason_len > 4096 {
+            return Err(format!("lineage death_reason too long ({reason_len})"));
+        }
+        let mut reason_buf = vec![0u8; reason_len];
+        r.read_exact(&mut reason_buf).map_err(|e| e.to_string())?;
+        let death_reason = String::from_utf8(reason_buf).map_err(|e| e.to_string())?;
+        let death_sim_time = if death_sim_time.is_finite() {
+            death_sim_time.max(0.0)
+        } else {
+            0.0
+        };
+        let age_at_death = if age_at_death.is_finite() {
+            age_at_death.max(0.0)
+        } else {
+            0.0
+        };
+        (death_sim_time, age_at_death, death_reason)
+    } else {
+        (0.0, 0.0, String::new())
+    };
+
+    // Derive alive: any death record means not currently living this life.
+    let alive = death_sim_time <= 0.0 && death_reason.is_empty();
+
     Ok(LineageNode {
         id,
         name,
@@ -164,6 +225,12 @@ fn read_record(r: &mut impl Read) -> Result<LineageNode, String> {
         generation,
         prestige,
         prestige_class: PrestigeClass::from_prestige(prestige),
+        alive,
+        // Haxe ownsObject is session-only (InitObjectHelpersAfterRead); not on disk.
+        owns_object: false,
+        death_sim_time,
+        death_reason,
+        age_at_death,
     })
 }
 
@@ -217,6 +284,11 @@ mod tests {
             generation: 1,
             prestige: 55.0,
             prestige_class: PrestigeClass::from_prestige(55.0),
+            alive: true,
+            owns_object: false,
+            death_sim_time: 0.0,
+            death_reason: String::new(),
+            age_at_death: 0.0,
         };
         child.set_prestige(55.0);
         s.lineages.insert(10, child);
@@ -230,6 +302,11 @@ mod tests {
                 generation: 0,
                 prestige: 12.5,
                 prestige_class: PrestigeClass::from_prestige(12.5),
+                alive: true,
+                owns_object: false,
+                death_sim_time: 0.0,
+                death_reason: String::new(),
+                age_at_death: 0.0,
             },
         );
         s
@@ -251,6 +328,9 @@ mod tests {
         assert_eq!(eve.father_id, None);
         assert_eq!(eve.generation, 0);
         assert_eq!(eve.prestige, 0.0);
+        assert!(eve.alive);
+        assert_eq!(eve.death_sim_time, 0.0);
+        assert!(eve.death_reason.is_empty());
 
         let alice = loaded.lineages.get(&10).unwrap();
         assert_eq!(alice.name, "ALICE");
@@ -267,6 +347,85 @@ mod tests {
         // Following not in file.
         assert!(loaded.following.is_empty());
 
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// OLN2 / LINEAGE-24H: deathTime + deathReason + age survive disk roundtrip.
+    // Haxe: Lineage WriteLineages / ReadLineages death fields
+    #[test]
+    fn roundtrip_preserves_death_fields_oln2() {
+        let dir = unique_temp_dir("ol_lineage_death_oln2");
+        let path = dir.join("lineages_v1.bin");
+
+        let mut original = sample_social();
+        if let Some(n) = original.lineages.get_mut(&10) {
+            n.stamp_death(12_345.0, "reason_hunger", 42.5);
+        }
+        if let Some(n) = original.lineages.get_mut(&3) {
+            n.stamp_death(99.0, "reason_killed_33", 18.0);
+        }
+        save_lineages(&original, &path).unwrap();
+        let loaded = load_lineages(&path).unwrap();
+
+        let alice = loaded.lineages.get(&10).unwrap();
+        assert!(!alice.alive);
+        assert!((alice.death_sim_time - 12_345.0).abs() < 1e-3);
+        assert_eq!(alice.death_reason, "reason_hunger");
+        assert!((alice.age_at_death - 42.5).abs() < 1e-3);
+
+        let bob = loaded.lineages.get(&3).unwrap();
+        assert!(!bob.alive);
+        assert!((bob.death_sim_time - 99.0).abs() < 1e-3);
+        assert_eq!(bob.death_reason, "reason_killed_33");
+        assert!((bob.age_at_death - 18.0).abs() < 1e-3);
+
+        // Eve still living defaults
+        let eve = loaded.lineages.get(&2).unwrap();
+        assert!(eve.alive);
+        assert_eq!(eve.death_sim_time, 0.0);
+        assert!(eve.death_reason.is_empty());
+
+        // Boot-seed starving stamps from loaded death fields
+        use crate::world_food_stats::WorldFoodStats;
+        let mut food = WorldFoodStats::new();
+        let n = food.seed_death_stamps_from_lineage_rows(loaded.lineage_stat_rows(), 12_345.0);
+        assert_eq!(n, 2);
+        assert_eq!(food.reason_hunger_deaths, 1);
+        assert_eq!(food.reason_killed_last_day_count("reason_killed_33"), 1);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// v1 files (no death trailer) still load with empty death fields.
+    #[test]
+    fn loads_legacy_v1_without_death_fields() {
+        let dir = unique_temp_dir("ol_lineage_v1_legacy");
+        let path = dir.join("legacy.bin");
+        // Manually write a v1 file (core fields only).
+        {
+            use byteorder::WriteBytesExt;
+            use std::io::Write;
+            let f = std::fs::File::create(&path).unwrap();
+            let mut w = std::io::BufWriter::new(f);
+            w.write_all(MAGIC).unwrap();
+            w.write_u32::<LittleEndian>(1).unwrap(); // version 1
+            w.write_u32::<LittleEndian>(1).unwrap(); // count
+            w.write_i32::<LittleEndian>(7).unwrap(); // id
+            w.write_i32::<LittleEndian>(NONE_PARENT).unwrap();
+            w.write_i32::<LittleEndian>(NONE_PARENT).unwrap();
+            w.write_i32::<LittleEndian>(0).unwrap(); // gen
+            w.write_f32::<LittleEndian>(1.5).unwrap(); // prestige
+            let name = b"LEGACY";
+            w.write_u32::<LittleEndian>(name.len() as u32).unwrap();
+            w.write_all(name).unwrap();
+            w.flush().unwrap();
+        }
+        let loaded = load_lineages(&path).unwrap();
+        let n = loaded.lineages.get(&7).unwrap();
+        assert_eq!(n.name, "LEGACY");
+        assert!(n.alive);
+        assert_eq!(n.death_sim_time, 0.0);
+        assert!(n.death_reason.is_empty());
         let _ = std::fs::remove_dir_all(&dir);
     }
 

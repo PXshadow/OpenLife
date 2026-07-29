@@ -3,6 +3,30 @@
 //! Prefer calling [`Player::wear_held`] / [`Player::strip_slot`] directly from
 //! sim paths; this module keeps a pure-function style surface for tests and
 //! callers that want `Result` without the swap tuple.
+//!
+//! Also re-exports **TH-CLOTHING-MATRIX** transition helpers (see
+//! [`clothing_transitions`]).
+
+// Haxe: GPI clothing transition matrix (TH-CLOTHING-MATRIX)
+#[path = "clothing_transitions.rs"]
+pub mod clothing_transitions;
+
+// Re-export matrix API (root `clothing_transitions` also pub-used from lib).
+#[allow(unused_imports)]
+pub use clothing_transitions::{
+    allow_reset_uses_on_target, apply_drink_self, apply_place_obj_in_clothing, apply_self_clothing,
+    apply_sremv_from_clothing, apply_sremv_from_clothing_with_content, apply_switch_cloths,
+    apply_switch_cloths_on_other, apply_transition_on_clothing, can_put_into_clothing,
+    clothing_slot_from_def, crown_say_line, empty_hand_container_take_index,
+    format_clothing_helper_string, format_clothing_set, get_clothing_slot_index, is_clothing_string,
+    other_player_accepts_cloth, put_into_clothing_nest, refuse_take_permanent_contained,
+    resolve_switch_slot, sremv_resolved_index, switch_clothing_index_full,
+    take_from_clothing_nest, take_from_clothing_nest_checked, try_drink_water_pure,
+    try_transition_on_clothing_pure, try_transition_on_clothing_with_content, ClothingSlotIds,
+    ClothingTransitionIn, ClothingTransitionOut, DrinkWaterIn, DrinkWaterOut, SelfClothingPath,
+    CLOTHING_INDEX_LABELS, EMPTY_BOWL_ID, EMPTY_POUCH_ID, MAX_AGE_CLOTH_OTHERS, MAX_STORED_WATER,
+    TEMP_REDUCTION_PER_DRINK, WATER_BOWL_ID, WATER_POUCH_ID,
+};
 
 use crate::player::{ClothingSlot, Player};
 

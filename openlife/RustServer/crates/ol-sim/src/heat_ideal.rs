@@ -2,6 +2,8 @@
 //!
 //! Heat is a continuous value in `[0, 1]` where **0.5 is ideal** comfort.
 //! Extremes drive extra food drain and movement penalties (callers apply).
+//!
+//! Chunk: **MAP-TEMP-PLAYER** also hosts Haxe `updateTemperature` body-heat step.
 
 /// Ideal body heat (perfect comfort).
 pub const IDEAL_HEAT: f32 = 0.5;
@@ -13,6 +15,15 @@ pub const EXTREME_RADIUS: f32 = 0.35;
 pub const HEAT_FOOD_EXTRA_SCALE: f32 = 0.10;
 /// Cap on heat-driven extra food drain.
 pub const HEAT_FOOD_EXTRA_CAP: f32 = 0.08;
+
+/// Haxe `ServerSettings.TemperatureImpactPerSec`.
+pub const TEMPERATURE_IMPACT_PER_SEC: f32 = 0.03;
+/// Haxe `ServerSettings.TemperatureImpactPerSecIfGood`.
+pub const TEMPERATURE_IMPACT_PER_SEC_IF_GOOD: f32 = 0.06;
+/// Haxe `ServerSettings.TemperatureImpactReduction` (0 = disabled; Haxe TODO).
+pub const TEMPERATURE_IMPACT_REDUCTION: f32 = 0.0;
+/// Haxe `ServerSettings.TemperatureInWaterFactor`.
+pub const TEMPERATURE_IN_WATER_FACTOR: f32 = 1.5;
 
 /// Coarse comfort label for UI / SAY.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -144,6 +155,58 @@ pub fn env_heat(biome_temp: f32, indoor: bool) -> f32 {
     clamp_heat(h)
 }
 
+/// Haxe `updateTemperature` body-heat integration (clothing/water subset).
+///
+/// ```text
+/// heatchange = ambient - (0.5 * impactReduction + heat * (1 - impactReduction))
+/// newTempPositive = (heat>0.5 && ambient<0.5) || (heat<0.5 && ambient>0.5)
+/// rate = (good||water ? waterFactor : clothingFactor) * timeFactor * dt * heatchange
+/// heat += rate; clamp 0..1
+/// ```
+///
+/// `clothing_factor` is Haxe insulation/heat-protection factor (`1` = bare).
+/// Full closest-heat-object / loved-biome / held-object branches are deferred.
+pub fn body_heat_step(
+    heat: f32,
+    ambient: f32,
+    dt: f32,
+    clothing_factor: f32,
+    in_water: bool,
+) -> f32 {
+    let heat = clamp_heat(heat);
+    let ambient = if ambient.is_finite() { ambient } else { IDEAL_HEAT };
+    let dt = if dt.is_finite() && dt > 0.0 { dt } else { 0.0 };
+    let clothing = if clothing_factor.is_finite() && clothing_factor > 0.0 {
+        clothing_factor
+    } else {
+        1.0
+    };
+
+    let impact_reduction = TEMPERATURE_IMPACT_REDUCTION.clamp(0.0, 1.0);
+    let heatchange = ambient - (IDEAL_HEAT * impact_reduction + heat * (1.0 - impact_reduction));
+
+    let new_temp_is_positive =
+        (heat > IDEAL_HEAT && ambient < IDEAL_HEAT) || (heat < IDEAL_HEAT && ambient > IDEAL_HEAT);
+    let time_factor = if new_temp_is_positive {
+        TEMPERATURE_IMPACT_PER_SEC_IF_GOOD
+    } else {
+        TEMPERATURE_IMPACT_PER_SEC
+    };
+    let water_factor = if in_water {
+        TEMPERATURE_IN_WATER_FACTOR
+    } else {
+        1.0
+    };
+
+    // Haxe: ignore clothing if heat change is positive or if in water
+    let rate = if new_temp_is_positive || in_water {
+        water_factor * time_factor * dt * heatchange
+    } else {
+        clothing * time_factor * dt * heatchange
+    };
+    clamp_heat(heat + rate)
+}
+
 /// `HEAT heat=H ideal=0.50 err=E label=L extra=X` query body.
 pub fn format_heat_ideal_query(heat: f32) -> String {
     let h = clamp_heat(heat);
@@ -246,5 +309,49 @@ mod tests {
         assert!(COMFORT_RADIUS < EXTREME_RADIUS);
         assert!(IDEAL_HEAT + EXTREME_RADIUS <= 1.0 + 1e-6);
         assert!(IDEAL_HEAT - EXTREME_RADIUS >= 0.0 - 1e-6);
+    }
+
+    #[test]
+    fn body_heat_step_warms_toward_hot_ambient() {
+        let h0 = 0.5;
+        let h1 = body_heat_step(h0, 1.0, 5.0, 1.0, false);
+        assert!(h1 > h0, "heat rises toward hot ambient: {h1}");
+        assert!(h1 <= 1.0);
+    }
+
+    #[test]
+    fn body_heat_step_cools_toward_cold_ambient() {
+        let h0 = 0.5;
+        let h1 = body_heat_step(h0, 0.0, 5.0, 1.0, false);
+        assert!(h1 < h0, "heat falls toward cold ambient: {h1}");
+        assert!(h1 >= 0.0);
+    }
+
+    #[test]
+    fn body_heat_step_good_temp_is_faster() {
+        // Cold body, warm ambient → "good" (toward ideal) uses higher impact rate.
+        let cold = 0.2;
+        let good = body_heat_step(cold, 0.6, 1.0, 1.0, false);
+        // Hot body, warmer ambient → "bad" (away from ideal) uses slower rate.
+        let hot = 0.7;
+        let bad = body_heat_step(hot, 0.9, 1.0, 1.0, false);
+        let good_delta = (good - cold).abs();
+        let bad_delta = (bad - hot).abs();
+        assert!(
+            good_delta > bad_delta,
+            "good={good_delta} bad={bad_delta}"
+        );
+    }
+
+    #[test]
+    fn body_heat_step_clothing_slows_bad_drift() {
+        let heat = 0.5;
+        let bare = body_heat_step(heat, 0.0, 2.0, 1.0, false);
+        let clothed = body_heat_step(heat, 0.0, 2.0, 0.2, false);
+        // Clothing factor < 1 slows cooling away from ideal when cold ambient.
+        assert!(
+            clothed > bare,
+            "clothed={clothed} should cool less than bare={bare}"
+        );
     }
 }

@@ -5,8 +5,11 @@ edition.workspace = true
 license.workspace = true
 description = "Load OHOL object and transition text data"
 publish = false
+build = "build.rs"
 
 [dependencies]
+ol-binary.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 rayon = "1"
+sha1 = "0.10"

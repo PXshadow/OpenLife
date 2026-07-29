@@ -2,8 +2,14 @@
 //!
 //! Maps age-in-years to fertility, food capacity, and drain multipliers.
 //! No player state — pure functions only.
+//!
+//! **HEALTH-AGE-FOOD:** live aging speed (health factor + starve gates) lives in
+//! [`crate::food_store_max::age_step_from_health`] / `calculate_health_age_factor`
+//! (Haxe `TimeHelper.updateAge` + `CalculateHealthAgeFactor`). This module keeps
+//! the simpler query curves and `SECONDS_PER_YEAR` (= Haxe `AgeingSecondsPerYear`).
 
 /// Real seconds per game-year (OpenLife default: 60s ≈ 1 year).
+/// Haxe: `ServerSettings.AgeingSecondsPerYear`
 pub const SECONDS_PER_YEAR: f32 = 60.0;
 
 /// Age (years) at which fertility opens.
@@ -38,6 +44,9 @@ pub fn seconds_to_age(secs: f32) -> f32 {
 }
 
 /// Advance age by `dt` real seconds at rate `years_per_sec` (default 1/60).
+///
+/// For Haxe health-modulated display age, prefer
+/// [`crate::food_store_max::age_step_from_health`].
 pub fn advance_age(age: f32, dt: f32, years_per_sec: f32) -> f32 {
     if !age.is_finite() || age < 0.0 {
         return 0.0;
@@ -55,6 +64,9 @@ pub fn advance_age(age: f32, dt: f32, years_per_sec: f32) -> f32 {
 /// - child/teen: 10 → 20
 /// - adult: 20
 /// - elder: slowly down toward 12
+///
+/// **Note:** live sim capacity uses [`crate::food_store_max::calculate_food_store_max`]
+/// (Haxe NewBorn4/Grown20/Old10 + health factor) rather than this query curve.
 pub fn food_max_for_age(age: f32) -> f32 {
     let a = if age.is_finite() { age.max(0.0) } else { 0.0 };
     if a < INFANT_MAX {
@@ -236,5 +248,11 @@ mod tests {
         assert_eq!(food_drain_mult_for_age(f32::NAN), 1.15);
         assert!(!is_fertile_age(f32::NAN));
         assert_eq!(fertility_curve(f32::NAN), 0.0);
+    }
+
+    #[test]
+    fn seconds_per_year_matches_ageing_seconds() {
+        // Haxe AgeingSecondsPerYear / food_store_max::AGEING_SECONDS_PER_YEAR
+        assert!((SECONDS_PER_YEAR - 60.0).abs() < 1e-6);
     }
 }

@@ -16,15 +16,13 @@ This repository is **new and separate** from the Haxe implementation.
 
 ## Status
 
-**Phase A — skeleton**
+Working multiplayer-oriented sim (USE/DROP/MOVE, vitals, social, self-play, web viewer). **Full Haxe parity is not claimed.**
 
-- Workspace with `ol-protocol`, `ol-metrics`, `ol-server`
-- Protocol framing helpers + unit tests
-- Metrics / health types
-- Server binary boots and logs health JSON
-- Grok Build budget policy via **`/usage`**
+**Systematic port kit** (architecture, dependency graphs, file matrix, TODOs, call index):
 
-Not yet: full sim, networking loop, world, AI, web.
+→ **[docs/port/README.md](docs/port/README.md)**
+
+Chunk workflow: `.grok/workflows/haxe-port-chunk.rhai` (also install to `%USERPROFILE%\.grok\workflows\`).
 
 ## Quick start
 

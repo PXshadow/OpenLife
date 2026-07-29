@@ -16,9 +16,11 @@ use std::path::{Path, PathBuf};
 use ol_content::ContentDb;
 use ol_metrics::{Counters, OpsSample};
 use ol_sim::{
-    AccountBookSnapshot, AccountView, AnimalSnapshot, AnimalView, EnvSnapshot, EnvView,
-    LineageSnapshot, LineageView, PlayerSnapshot, PrestigeSnapshot, PrestigeView,
-    TreasurySnapshot, TreasuryView, WeatherSnapshot, WeatherView,
+    count_leadership_power, format_account_statistics_html, format_food_statistics_html,
+    format_lineage_statistics_html, generate_lineage_statistics, AccountBookSnapshot, AccountView,
+    AnimalSnapshot, AnimalView, EnvSnapshot, EnvView, LineageSnapshot, LineageView, PlayerSnapshot,
+    PrestigeClass, PrestigeSnapshot, PrestigeView, TreasurySnapshot, TreasuryView, WeatherSnapshot,
+    WeatherView, WorldFoodShare, WorldFoodStats,
 };
 use ol_world::World;
 use serde::Deserialize;
@@ -45,6 +47,9 @@ pub struct WebState {
     pub prestige_view: PrestigeView,
     /// Lineage list for `/api/lineages` + `/lineage`.
     pub lineage_view: LineageView,
+    /// World eaten-food stats for `/stats/food` (Haxe generateFoodStatistics).
+    /// Same Arc as ol-server FoodStats.txt autosave mirror.
+    pub food_view: WorldFoodShare,
     /// Animal counts for `/api/animals`.
     pub animal_view: AnimalView,
     /// Village treasury coins for `/api/treasury`.
@@ -80,6 +85,7 @@ impl WebState {
             account_view: Arc::new(RwLock::new(AccountBookSnapshot::default())),
             prestige_view: Arc::new(RwLock::new(PrestigeSnapshot::default())),
             lineage_view: Arc::new(RwLock::new(LineageSnapshot::default())),
+            food_view: Arc::new(RwLock::new(WorldFoodStats::new())),
             animal_view: Arc::new(RwLock::new(AnimalSnapshot::default())),
             treasury_view: Arc::new(RwLock::new(TreasurySnapshot::default())),
             ops_series: Arc::new(RwLock::new(Vec::new())),
@@ -104,6 +110,8 @@ pub fn router(state: WebState) -> Router {
         .route("/ops", get(ops_page))
         .route("/api/ops/series", get(ops_series_api))
         .route("/players", get(players_page))
+        .route("/stats/players", get(players_page))
+        .route("/stats/lineage", get(stats_lineage_page))
         .route("/stats/food", get(stats_food_page))
         .route("/stats/accounts", get(stats_accounts_page))
         .route("/viewer", get(viewer_page))
@@ -235,9 +243,10 @@ a{color:#6ec6ff} code{background:#1a222e;padding:.1rem .3rem;border-radius:4px}
 <div class="card"><a href="/intro"><strong>Intro</strong></a><br/>rules &amp; features</div>
 <div class="card"><a href="/ops"><strong>Ops</strong></a><br/>timings &amp; boot</div>
 <div class="card"><a href="/viewer"><strong>Viewer</strong></a><br/>map + self-play</div>
-<div class="card"><a href="/players"><strong>Players</strong></a><br/>living bodies</div>
-<div class="card"><a href="/lineage"><strong>Lineage</strong></a><br/>OLN1 families</div>
-<div class="card"><a href="/stats/food"><strong>Food</strong></a><br/>vitals stats</div>
+<div class="card"><a href="/stats/players"><strong>Players</strong></a><br/>currently playing</div>
+<div class="card"><a href="/stats/lineage"><strong>Lineage stats</strong></a><br/>death reasons / ages</div>
+<div class="card"><a href="/lineage"><strong>Lineages</strong></a><br/>OLN families</div>
+<div class="card"><a href="/stats/food"><strong>Food</strong></a><br/>eaten % / related</div>
 <div class="card"><a href="/stats/accounts"><strong>Accounts</strong></a><br/>OLA1 scores</div>
 </div>
 <ul>
@@ -299,7 +308,8 @@ You can play with any One Hour One Life client by entering this host as a custom
 </ul>
 <h2 id="Statistics">Statistics</h2>
 <p>Live server metrics: <a href="/api/metrics">/api/metrics</a> ·
-players: <a href="/players">/players</a> ·
+players: <a href="/stats/players">/stats/players</a> ·
+lineage: <a href="/stats/lineage">/stats/lineage</a> ·
 food: <a href="/stats/food">/stats/food</a> ·
 accounts: <a href="/stats/accounts">/stats/accounts</a></p>
 <p class="muted">This page does not expose arbitrary filesystem paths — only allowlisted images under <code>/static/images/</code>.</p>
@@ -308,6 +318,7 @@ accounts: <a href="/stats/accounts">/stats/accounts</a></p>
 }
 
 async fn health(State(st): State<WebState>) -> impl IntoResponse {
+    // Pure atomics — never take world locks so this stays fast under sim load.
     let h = ol_metrics::Health::from_counters(&st.counters, st.version);
     (
         StatusCode::OK,
@@ -450,88 +461,250 @@ a{{color:#6ec6ff}} .cards{{display:flex;flex-wrap:wrap;gap:1rem}}
     ))
 }
 
+/// Haxe `WebServer.createCurrentlyPlayingStatistics` living table + counts.
+// Haxe: WebServer.createCurrentlyPlayingStatistics L251–288
 async fn players_page(State(st): State<WebState>) -> Html<String> {
-    let views = st.player_views.read().unwrap();
-    let mut rows = String::new();
-    let mut list: Vec<_> = views.values().cloned().collect();
-    list.sort_by_key(|p| p.p_id);
-    for p in list {
-        rows.push_str(&format!(
-            "<tr><td>{}</td><td>{}</td><td>({},{})</td><td>{}</td><td>{:.1}/{:.0}</td><td>{:.1}</td><td>{}</td><td>{}</td></tr>",
-            p.p_id,
-            html_escape(&p.email),
-            p.x,
-            p.y,
-            p.held_id,
-            p.food,
-            p.food_max,
-            p.age,
-            if p.moving { "yes" } else { "no" },
-            if p.deleted { "dead" } else { "live" },
-        ));
-    }
-    Html(format!(
-        r#"<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"/><title>Players</title>
-<meta http-equiv="refresh" content="3"/>
-<style>
-body{{font-family:system-ui,sans-serif;background:#0b0f14;color:#e7eef7;margin:2rem}}
-a{{color:#6ec6ff}} table{{border-collapse:collapse;width:100%}}
-th,td{{border:1px solid #2a3544;padding:.4rem .6rem;text-align:left}}
-th{{background:#1a222e}}
-</style></head><body>
-<p><a href="/">← home</a></p>
-<h1>Players</h1>
-<table><thead><tr><th>p_id</th><th>email</th><th>pos</th><th>held</th><th>food</th><th>age</th><th>moving</th><th>status</th></tr></thead>
-<tbody>{rows}</tbody></table>
-</body></html>"#
-    ))
-}
-
-async fn stats_food_page(State(st): State<WebState>) -> Html<String> {
-    let views = st.player_views.read().unwrap();
-    let live: Vec<_> = views.values().filter(|p| !p.deleted).collect();
-    let n = live.len();
-    let avg_food = if n == 0 {
-        0.0
-    } else {
-        live.iter().map(|p| p.food as f64).sum::<f64>() / n as f64
+    // try_read: never block the async runtime if sim holds the view lock mid-publish.
+    let views = match st.player_views.try_read() {
+        Ok(g) => g,
+        Err(_) => {
+            return Html(
+                "<!DOCTYPE html><html><body><p>Players busy — <a href=\"/stats/players\">retry</a> · <a href=\"/\">home</a></p></body></html>"
+                    .into(),
+            );
+        }
     };
-    let hungry = live.iter().filter(|p| p.food < 3.0).count();
+    let lineages = st
+        .lineage_view
+        .try_read()
+        .map(|g| g.clone())
+        .unwrap_or_default();
+    let mut list: Vec<_> = views.values().filter(|p| !p.deleted).cloned().collect();
+    list.sort_by_key(|p| p.p_id);
+
+    let mut count_human = 0usize;
+    let mut count_ai = 0usize;
+    let mut count_starving = 0usize;
+    let mut rows = String::new();
+    for p in &list {
+        if p.food < 1.0 {
+            count_starving += 1;
+        }
+        // Haxe isHuman vs isAi — AI-controlled / AI email heuristic
+        let is_ai = p.ai_controlled
+            || p.email.ends_with("@ai")
+            || p.email.starts_with("ai_")
+            || p.email.contains("npc");
+        if is_ai {
+            count_ai += 1;
+        } else {
+            count_human += 1;
+        }
+        let lin = lineages.lineages.iter().find(|e| e.id == p.p_id);
+        let name = lin
+            .map(|e| {
+                if e.name.is_empty() {
+                    format!("#{}", e.id)
+                } else {
+                    e.name.clone()
+                }
+            })
+            .unwrap_or_else(|| format!("#{}", p.p_id));
+        let gen = lin.map(|e| e.generation).unwrap_or(0);
+        let prestige = lin.map(|e| e.prestige).unwrap_or(0.0);
+        let class = lin
+            .map(|e| PrestigeClass::from_prestige(e.prestige))
+            .unwrap_or(PrestigeClass::Serf);
+        // Haxe power = countLeadershipPower (family_prestige residual 0)
+        let power = count_leadership_power(prestige, 0, 0.0, class);
+        let color = person_font_color_from_id(p.p_id);
+        rows.push_str(&format!(
+            "<tr><td><font color=\"{color}\">{name}</font></td><td>{age}</td><td>{prestige}</td><td>{power}</td><td>{gen}</td>",
+            name = html_escape(&name),
+            age = p.age.floor() as i32,
+            prestige = prestige.floor() as i32,
+            power = power.floor() as i32,
+            gen = gen,
+            color = color,
+        ));
+        if is_ai {
+            rows.push_str(&format!("<td>{}</td>", html_escape(&p.email)));
+        }
+        rows.push_str("</tr>\n");
+    }
+
+    // Haxe: Currently Playing / AIs / Starving / Season
+    let season = st
+        .env_view
+        .read()
+        .ok()
+        .map(|e| {
+            if e.season.is_empty() {
+                "—".into()
+            } else {
+                e.season.clone()
+            }
+        })
+        .unwrap_or_else(|| "—".into());
+
     Html(format!(
         r#"<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"/><title>Food stats</title>
-<style>body{{font-family:system-ui,sans-serif;background:#0b0f14;color:#e7eef7;margin:2rem}}a{{color:#6ec6ff}}</style>
-</head><body>
-<p><a href="/">← home</a></p>
-<h1>Food / vitals</h1>
-<ul>
-<li>Living players: {n}</li>
-<li>Average food: {avg_food:.2}</li>
-<li>Hungry (food&lt;3): {hungry}</li>
-</ul>
-<p><a href="/api/players">JSON players</a></p>
-</body></html>"#
+<html lang="en"><head><meta charset="utf-8"/><title>Players — Open Life Reborn</title>
+<meta http-equiv="refresh" content="5"/>
+<style>
+body{{font-family:system-ui,sans-serif;background:#0b0f14;color:#e7eef7;margin:2rem;line-height:1.5}}
+a{{color:#6ec6ff}} table{{border-collapse:collapse;margin:1rem auto}}
+td,th{{padding:.35rem .6rem;border:1px solid #2a3544;text-align:left}}
+th{{background:#1a222e}} .muted{{color:#8aa0b5}}
+</style></head><body>
+<p><a href="/">home</a> · <a href="/stats/lineage">lineage stats</a> · <a href="/lineage">lineages</a> · <a href="/api/players">JSON</a></p>
+<center>
+<p><b>Currently Playing: {human}
+&nbsp;&nbsp;AIs: {ai}
+&nbsp;&nbsp;Starving: {starving}
+&nbsp;&nbsp;Season: {season}</b></p>
+<table>
+<tr><td><b>Name</b></td><td><b>Age</b></td><td><b>Prestige</b></td><td><b>Power</b></td><td><b>Generation</b></td></tr>
+{rows}
+</table></center>
+<p class="muted">Haxe WebServer.createCurrentlyPlayingStatistics parity · /stats/players</p>
+</body></html>"#,
+        human = count_human,
+        ai = count_ai,
+        starving = count_starving,
+        season = html_escape(&season),
+        rows = rows,
     ))
 }
 
+/// Haxe person font colors (WebServer.getPersonFontColor) — race residual via p_id hash.
+// Haxe: WebServer.getPersonFontColor L291–298
+fn person_font_color_from_id(p_id: i32) -> &'static str {
+    match p_id.unsigned_abs() % 4 {
+        0 => "#8B8000", // Yellow-ish (Haxe #8B80001 typo → #8B8000)
+        1 => "#008000", // Green
+        2 => "#808080", // Grey
+        _ => "#FFFFFF", // White
+    }
+}
+
+/// Haxe `/stats/lineage` — death-reason + ages tables + starving food %.
+// Haxe: WebServer.generateLineageStatistics L351–399
+async fn stats_lineage_page(State(st): State<WebState>) -> Html<String> {
+    let snap = st
+        .lineage_view
+        .read()
+        .map(|g| g.clone())
+        .unwrap_or_default();
+    let rows = snap.stat_rows();
+    let now = snap.sim_time;
+    let content = st.content.clone();
+    let stats = generate_lineage_statistics(rows, now, |id| {
+        content.get(id).map(|d| d.name.clone())
+    });
+    let tables = format_lineage_statistics_html(&stats);
+    let count = snap.count;
+    Html(format!(
+        r#"<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/><title>Lineage statistics — Open Life Reborn</title>
+<meta http-equiv="refresh" content="30"/>
+<style>
+body{{font-family:system-ui,sans-serif;background:#0b0f14;color:#e7eef7;margin:2rem;line-height:1.5}}
+a{{color:#6ec6ff}} table{{border-collapse:collapse;margin:0.5rem auto}}
+td,th{{padding:.35rem .65rem;border:1px solid #2a3544;text-align:left}}
+tr:first-child td{{background:#1a222e}}
+.muted{{color:#8aa0b5}}
+</style></head><body>
+<p><a href="/">home</a> · <a href="/stats/players">players</a> · <a href="/lineage">lineage list</a> · <a href="/api/lineages">JSON</a></p>
+<h1>Lineage statistics</h1>
+<p class="muted">Haxe WebServer.generateLineageStatistics · {count} lineages · sim_time={now:.0}s · format={fmt}</p>
+{tables}
+<p class="muted">Death reasons remapped via content names for reason_killed_&lt;id&gt;. Kid hunger → STARVATION KID.</p>
+</body></html>"#,
+        count = count,
+        now = now,
+        fmt = if snap.format.is_empty() {
+            "OLN2"
+        } else {
+            &snap.format
+        },
+        tables = tables,
+    ))
+}
+
+/// Haxe `/stats/food` — Food | Eaten % | Related (HQ rollup %) table.
+// Haxe: WebServer.generateFoodStatistics L402–424
+async fn stats_food_page(State(st): State<WebState>) -> Html<String> {
+    let snap = st
+        .food_view
+        .read()
+        .map(|g| g.clone())
+        .unwrap_or_else(|_| WorldFoodStats::new());
+    let n_foods = snap.eaten_percentage.len();
+    let content = st.content.clone();
+    let table = format_food_statistics_html(&snap, |id| {
+        content
+            .get(id)
+            .map(|d| {
+                if d.name.is_empty() {
+                    d.description.clone()
+                } else {
+                    d.name.clone()
+                }
+            })
+            .unwrap_or_default()
+    });
+    Html(format!(
+        r#"<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/><title>Food statistics — Open Life Reborn</title>
+<meta http-equiv="refresh" content="30"/>
+<style>
+body{{font-family:system-ui,sans-serif;background:#0b0f14;color:#e7eef7;margin:2rem;line-height:1.5}}
+a{{color:#6ec6ff}} table{{border-collapse:collapse;margin:0.5rem auto}}
+td,th{{padding:.35rem .65rem;border:1px solid #2a3544;text-align:left}}
+tr:first-child td{{background:#1a222e}}
+.muted{{color:#8aa0b5}}
+</style></head><body>
+<p><a href="/">home</a> · <a href="/stats/players">players</a> · <a href="/stats/lineage">lineage stats</a></p>
+<h1>Food statistics</h1>
+<p class="muted">Haxe WebServer.generateFoodStatistics · {n_foods} foods · sorted by id · Related = HQ rollup %</p>
+{table}
+<p class="muted">Eaten = share of total fill eaten; Related includes higher-quality food chain (getEatenFoodPercentage).</p>
+</body></html>"#,
+        n_foods = n_foods,
+        table = table,
+    ))
+}
+
+/// Haxe `WebServer.generateAccountStatistics` score table.
+// Haxe: WebServer.generateAccountStatistics L301–339
 async fn stats_accounts_page(State(st): State<WebState>) -> Html<String> {
     let snap = st
         .account_view
         .read()
         .map(|g| g.clone())
         .unwrap_or_default();
+    let table = format_account_statistics_html(&snap);
+    let count = snap.count;
     Html(format!(
         r#"<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"/><title>Accounts</title>
-<style>body{{font-family:system-ui,sans-serif;background:#0b0f14;color:#e7eef7;margin:2rem}}a{{color:#6ec6ff}}</style>
-</head><body>
-<p><a href="/">← home</a></p>
-<h1>Accounts (OLA1)</h1>
-<pre>{:?}</pre>
-<p><a href="/api/accounts">JSON</a></p>
+<html lang="en"><head><meta charset="utf-8"/><title>Accounts — Open Life Reborn</title>
+<meta http-equiv="refresh" content="30"/>
+<style>
+body{{font-family:system-ui,sans-serif;background:#0b0f14;color:#e7eef7;margin:2rem;line-height:1.5}}
+a{{color:#6ec6ff}} table{{border-collapse:collapse;margin:0.5rem auto}}
+td,th{{padding:.35rem .65rem;border:1px solid #2a3544;text-align:left}}
+tr:first-child td{{background:#1a222e}}
+.muted{{color:#8aa0b5}}
+</style></head><body>
+<p><a href="/">home</a> · <a href="/stats/players">players</a> · <a href="/stats/lineage">lineage stats</a> · <a href="/api/accounts">JSON</a></p>
+<h1>Account scores</h1>
+<p class="muted">Haxe WebServer.generateAccountStatistics · {count} accounts · totalScore ≥ 5 · non-AI · sort Prestige desc</p>
+{table}
+<p class="muted">ID = last display name (Haxe scoreName residual without NamingHelper tables). Prestige = totalScore; Female/Male/Coins from AccountBookSnapshot.</p>
 </body></html>"#,
-        snap
+        count = count,
+        table = table,
     ))
 }
 
@@ -942,9 +1115,9 @@ th{{background:#121a24;color:#6ec6ff}}
 .box{{background:#121a24;border:1px solid #1e2a3a;border-radius:8px;padding:1rem;max-width:56rem;margin:1rem 0}}
 </style></head>
 <body>
-<p><a href="/">home</a> · <a href="/viewer">viewer</a> · <a href="/api/lineages">JSON</a> · <a href="/api/npc/stats">NPC stats</a></p>
+<p><a href="/">home</a> · <a href="/stats/lineage">death / age stats</a> · <a href="/stats/players">players</a> · <a href="/viewer">viewer</a> · <a href="/api/lineages">JSON</a></p>
 <h1>Lineages</h1>
-<p class="muted">Live snapshot (count={count}). Click an id for an OHOL-style <strong>character page</strong>. Format <code>{format}</code>.</p>
+<p class="muted">Live snapshot (count={count}). Click an id for an OHOL-style <strong>character page</strong>. Format <code>{format}</code>. Jason death-reason tables: <a href="/stats/lineage">/stats/lineage</a>.</p>
 <div class="box">
 <strong>OLN1 save file</strong>
 <p class="muted">Binary lineage index (no SQL). Default path:</p>

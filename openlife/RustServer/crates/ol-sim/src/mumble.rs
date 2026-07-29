@@ -9,6 +9,8 @@ mod tests {
 
     #[test]
     fn mumble_narrower_than_adult() {
+        // PO-MAX-DISTANCE: adult CloseForSay=20; mumble still narrower
+        assert!(MUMBLE_RANGE < 20);
         assert!(MUMBLE_RANGE < 24);
         assert!(MUMBLE_RANGE > 1);
     }

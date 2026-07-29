@@ -12,6 +12,8 @@ ol-net.workspace = true
 ol-content.workspace = true
 ol-world.workspace = true
 ol-protocol.workspace = true
+ol-config.workspace = true
+ol-ai.workspace = true
 tracing.workspace = true
 tokio = { version = "1", features = ["sync", "time", "macros", "rt"] }
 flate2 = "1"

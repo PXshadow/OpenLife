@@ -1,0 +1,10 @@
+[package]
+name = "ol-binary"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Shared OLC1/OLT1 binary content cache format (client + server)"
+publish = false
+
+[dependencies]
+# Zero runtime deps — pure LE binary IO for OLC* loaders.

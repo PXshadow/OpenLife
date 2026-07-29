@@ -280,19 +280,23 @@ async fn handle_connection(
                                 ClientCommand::Login(_) | ClientCommand::RLogin(_)
                             ) && !logged_in
                             {
-                                let (email, account_key_hash, client_tag, reconnect) =
+                                let (email, account_key_hash, client_tag, reconnect, twin_hash, twin_count) =
                                     match &cmd {
                                         ClientCommand::Login(l) => (
                                             l.email.clone(),
                                             l.account_key_hash.clone(),
                                             l.client_tag.clone(),
                                             false,
+                                            l.twin_code_hash.clone(),
+                                            l.twin_count,
                                         ),
                                         ClientCommand::RLogin(l) => (
                                             l.email.clone(),
                                             l.account_key_hash.clone(),
                                             l.client_tag.clone(),
                                             true,
+                                            l.twin_code_hash.clone(),
+                                            l.twin_count,
                                         ),
                                         _ => unreachable!(),
                                     };
@@ -357,6 +361,20 @@ async fn handle_connection(
                                 };
                                 if intent_tx.send(intent).await.is_err() {
                                     return Ok(());
+                                }
+                                // FERTILITY-TWINS: protocol twin_code_hash twin_count → wait queue
+                                if let Some(hash) = twin_hash {
+                                    if !hash.is_empty() {
+                                        let count = twin_count.unwrap_or(2).max(2);
+                                        let twin_intent = NetIntent::Raw {
+                                            conn_id,
+                                            tag: "TWINJOIN".into(),
+                                            payload: format!("{hash} {count}"),
+                                        };
+                                        if intent_tx.send(twin_intent).await.is_err() {
+                                            return Ok(());
+                                        }
+                                    }
                                 }
                                 continue;
                             }

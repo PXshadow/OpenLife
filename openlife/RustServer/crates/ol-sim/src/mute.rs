@@ -1,8 +1,15 @@
-//! Per-player chat mute list (pure — filter only; no wire yet).
+//! Per-player chat mute list + delivery helpers.
 //!
-//! Each listener has a set of muted speaker `p_id`s. When delivering SAY /
-//! WHISPER / SHOUT, callers should skip delivery if
-//! [`MuteBook::is_muted`]`(listener, speaker)` is true.
+//! Each listener has a set of muted speaker `p_id`s. Wired into live SAY /
+//! SHOUT / MUMBLE fan-out (`send_chat_ps` via `SimState.mutes`) and WHISPER
+//! private path. Callers skip delivery when
+//! [`MuteBook::should_deliver`]`(listener, speaker)` is false.
+//!
+//! DEAF is separate: normal chat drops for deaf listeners; WHISPER still
+//! delivers (`should_hear(deaf, is_whisper)`).
+//!
+//! Haxe: `Connection.sendSayToAllClose` is distance-only (no mute graph);
+//! MUTE/UNMUTE/DEAF are product commands on the Rust SAY path.
 
 use std::collections::{HashMap, HashSet};
 

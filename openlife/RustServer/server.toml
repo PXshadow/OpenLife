@@ -19,7 +19,7 @@ enable_game_net = true
 enable_web = true
 
 # Ticket auth (Haxe VerifyIfOholAccount). Default ON — set false for local/dev clients.
-verify_ohol_ticket = true
+verify_ohol_ticket = false
 ticket_verify_url = "https://onehouronelife.com/ticketServer/server.php"
 
 # World: PNG biomes + natural spawn → versioned binary OLW1
@@ -35,7 +35,7 @@ selfplay_agents = 0
 # Cap reverse craft-graph seed size (boot speed).
 craft_graph_seed_cap = 50000
 
-# Multi-server twin peers (stub only — listed in SAY ?TWINS, no network I/O yet).
+# Multi-server twin peers (listed in SAY ?TWINS; live-reloaded; pongs via TWINPONG / future sockets).
 # twin_peers = [
 #   { host = "127.0.0.1", port = 8006 },
 # ]
@@ -50,11 +50,13 @@ intent_drain_budget = 64
 ops_sample_every_ticks = 100
 ops_flush_secs = 300
 ops_journal_path = "SaveFiles/ops_metrics.journal"
-# AI NPCs OFF for human playtest (was flooding PU/MX and delaying SAY/LS/USE).
-npc_enabled = false
-npc_min = 0
-npc_max = 0
-ai_think_period_ticks = 10
+# AI NPCs (Haxe NumberOfAis / MinNumberOfAis). Keep max small for local playtest latency.
+npc_enabled = true
+npc_min = 3
+npc_max = 3
+# Scheduler wakes every 200ms; think every N wakes per NPC (~4s at 20).
+# Was 10 (~2s) which re-issued MOVE almost every think after short paths finished.
+ai_think_period_ticks = 20
 ai_observe_radius = 16
 ai_craft_radius = 50
 # Always send PU/MX to all connected players (ignore distance).
@@ -64,3 +66,47 @@ broadcast_all_updates = false
 # SAY !shutdown (godmode): global countdown, then save + AP apocalypse signal, then exit.
 shutdown_countdown_secs = 3
 shutdown_apocalypse_secs = 3
+
+# --- CONFIG-SETTINGS (Haxe ServerSettings + TimeHelper.ReadServerSettings) ---
+# Live-editable while server runs (mtime change + every settings_reload_every_ticks).
+# Haxe EternalWinter — force Winter season while true.
+eternal_winter = false
+# Haxe SeasonDuration in years (1 year ≈ 60 real seconds). Default 7.5 → 450 s/season.
+season_duration_years = 7.5
+# Haxe TimeHelper.ReadServerSettings — re-read this file every N sim ticks.
+settings_hot_reload = true
+# Haxe tick % 200 == 0 cadence (@ 20 Hz ≈ 10 s).
+settings_reload_every_ticks = 200
+
+# --- LOCKPICK-SETTINGS (Haxe ServerSettings.Lockpick*) ---
+# Live-editable. Used by Lock Removal Key 1003 mismatch → try_lockpick.
+# Haxe LockpickSucessChance (typo Sucess) — success band percent of 0..100 roll.
+lockpick_success_chance = 5.0
+# Fail/break band from top of 0..100 roll (r > 100 - fail_chance → key breaks).
+lockpick_fail_chance = 10.0
+# Exhaustion added per attempt (female ×0.5 in pure try_lockpick).
+lockpick_exhaustion_cost = 3.0
+# Coins deducted per attempt.
+lockpick_coin_cost = 1.0
+
+# --- SETTINGS-FIELD-MAP gameplay (Haxe ServerSettings statics; live hot-reload) ---
+# Food drain base /s (Haxe FoodUsePerSecond). Wired into tick_vitals + ?DRAIN + nurse.
+food_use_per_second = 0.10
+# Haxe HealingPerSecond — exhaustion/wound heal pipe rate.
+healing_per_second = 0.10
+# Haxe AgeingSecondsPerYear — trueAge wall-clock years.
+ageing_seconds_per_year = 60.0
+# Haxe InitialPlayerMoveSpeed (tiles/s) + SpeedFactor global mult.
+initial_player_move_speed = 3.75
+speed_factor = 1.0
+# Haxe YumBonus — live via GameplayKnobs; eat/classifier/display/search use *_ex path.
+yum_bonus = 5.0
+# Haxe ChanceForOffspring / ChanceForAnimalDying — animal pop rolls.
+chance_for_offspring = 0.00005
+chance_for_animal_dying = 0.00005
+# Haxe HungryWorkCost — stored live (AI craft gates next wire).
+hungry_work_cost = 5.0
+# Haxe BirthPrestigeFactor — spawn yum_multiplier seed.
+birth_prestige_factor = 0.4
+# Haxe AllyStrenghTooLowForPickup (0 = gate disabled).
+ally_strength_too_low_for_pickup = 0.0

@@ -34,13 +34,17 @@ pub fn biome_speed(biome: BiomeId) -> f32 {
     }
 }
 
-/// Haxe `WorldMap.isBiomeBlocking` (floor exception: wooden/stone floors over water).
+/// Haxe `WorldMap.isBiomeBlocking`.
+///
+/// Any floor with `floorId > 0` **except** Pine Floor `3290` cancels blocking on
+/// snowingrey / ocean / passable river / river. Otherwise `getBiomeSpeed < 0.1`.
 pub fn is_biome_blocking(biome: BiomeId, floor_id: i32) -> bool {
-    // 485 Wooden Floor / 884 Stone Floor / 898 Ancient Stone Floor
-    if (floor_id == 485 || floor_id == 884 || floor_id == 898)
-        && matches!(biome, OCEAN | PASSABLE_RIVER | RIVER)
-    {
-        return false;
+    // Haxe: if (floorId > 0 && floorId != 3290) allow snowingrey/ocean/rivers
+    const PINE_FLOOR: i32 = 3290;
+    if floor_id > 0 && floor_id != PINE_FLOOR {
+        if matches!(biome, SNOWINGREY | OCEAN | PASSABLE_RIVER | RIVER) {
+            return false;
+        }
     }
     biome_speed(biome) < 0.1
 }

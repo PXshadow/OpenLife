@@ -12,6 +12,8 @@ mod biome;
 mod generate;
 mod journal;
 mod persist;
+// Haxe ObjectHelper.InitObjectHelpersAfterRead (NESTED-OLW1-POLISH)
+mod postload_owners;
 
 pub use biome::{
     biome_from_rgba, biome_speed, is_biome_blocking, BiomeId, GREEN, OCEAN, PASSABLE_RIVER, RIVER,
@@ -25,8 +27,16 @@ pub use journal::{
     JournalEntry, WorldJournal, DEFAULT_JOURNAL_MAX_BYTES, DEFAULT_JOURNAL_PATH,
 };
 pub use persist::{
-    load_world_file, rotate_world_backups, save_world_file, save_world_file_with_options,
-    world_backup_path, DEFAULT_BACKUP_KEEP, WORLD_FORMAT_VERSION,
+    load_world_file, read_nested_helper, read_optional_nested_helper, rotate_world_backups,
+    save_world_file, save_world_file_with_options, world_backup_path, write_nested_helper,
+    write_optional_nested_helper, DEFAULT_BACKUP_KEEP, NESTED_NULL_ID, WORLD_FORMAT_VERSION,
+};
+pub use postload_owners::{
+    apply_helper_postload, apply_helper_postload_simple, description_is_owned, helper_creator_player_id,
+    helper_has_owner_lists, helper_is_grave, helper_is_owned, init_object_helpers_after_read,
+    init_object_helpers_after_read_simple, name_looks_like_grave, rewire_living_owners,
+    rewire_living_owners_status, strip_account_owners_for_deleted, GraveAccountLink,
+    LineageOwnsLink, LivingOwnerStatus, PlayerOwningLink, PostloadHelperResult,
 };
 
 use std::collections::HashMap;
@@ -68,25 +78,136 @@ impl ChunkCoord {
     }
 }
 
+/// Recursive contained helper (Haxe `ObjectHelper` under `containedObjects`).
+///
+/// Disk form for **OLW3** mirrors `ObjectHelper.WriteToFile` / `ReadFromFile`
+/// (uses, owners, times, custom vars, recursive nest). Wire MAP_CHUNK still uses
+/// one colon level of bare ids derived via [`ComplexObject::rebuild_wire_from_slots`].
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct NestedHelper {
+    pub id: ObjectId,
+    pub uses_remaining: i32,
+    /// Haxe `livingOwners` (player instance ids).
+    pub living_owners: Vec<i32>,
+    /// Haxe `ownersByPlayerAccount` (account ids; graves).
+    pub owners_by_account: Vec<i32>,
+    /// Haxe `creationTimeInTicks` proxy (sim seconds).
+    pub creation_time: f32,
+    /// Haxe `timeToChange` seconds.
+    pub time_to_change: f32,
+    /// Haxe custom `hits` (animal / bow).
+    pub hits: f32,
+    /// Haxe custom `coins`.
+    pub coins: f32,
+    /// Haxe custom `text`.
+    pub text: String,
+    /// Haxe custom `externId` (locks/keys).
+    pub extern_id: i32,
+    /// Haxe custom `countObj` (fort materials).
+    pub count_obj: f32,
+    /// Recursive nested contained (multi-level on disk; wire shows one level).
+    pub contained: Vec<NestedHelper>,
+}
+
+impl NestedHelper {
+    /// Bare id slot with no meta (OLW2 id-only equivalence).
+    pub fn id_only(id: ObjectId) -> Self {
+        Self {
+            id,
+            ..Default::default()
+        }
+    }
+
+    /// Id + multi-use remaining (Haxe `numberOfUses` on body objects).
+    pub fn with_uses(id: ObjectId, uses_remaining: i32) -> Self {
+        Self {
+            id,
+            uses_remaining: if id == 0 { 0 } else { uses_remaining.max(0) },
+            ..Default::default()
+        }
+    }
+
+    /// Build a one-level nest tree from wire ids (sub-ids under this slot).
+    pub fn from_wire(id: ObjectId, nested_ids: &[ObjectId]) -> Self {
+        Self {
+            id,
+            contained: nested_ids.iter().copied().map(Self::id_only).collect(),
+            ..Default::default()
+        }
+    }
+
+    /// True when any field beyond bare id / empty contained is set.
+    pub fn has_extra_meta(&self) -> bool {
+        self.uses_remaining != 0
+            || !self.living_owners.is_empty()
+            || !self.owners_by_account.is_empty()
+            || self.creation_time != 0.0
+            || self.time_to_change != 0.0
+            || self.hits != 0.0
+            || self.coins != 0.0
+            || !self.text.is_empty()
+            || self.extern_id != 0
+            || self.count_obj != 0.0
+            || self.contained.iter().any(|c| c.has_extra_meta() || !c.contained.is_empty())
+    }
+
+    /// Empty body slot (Haxe `readObjectHelper([0])`).
+    pub fn empty() -> Self {
+        Self::id_only(0)
+    }
+
+    /// True when this is an empty/null body slot.
+    pub fn is_empty(&self) -> bool {
+        self.id == 0 || self.id == crate::NESTED_NULL_ID
+    }
+
+    /// Stamp creation + optional decay timer (mirror of [`ComplexObject::stamp_time`]).
+    pub fn stamp_time(&mut self, sim_time: f32, time_to_change: f32) {
+        self.creation_time = sim_time;
+        self.time_to_change = time_to_change.max(0.0);
+    }
+}
+
 /// Sparse complex state for multi-use / containers (Haxe ObjectHelper subset).
 #[derive(Debug, Clone, PartialEq)]
 pub struct ComplexObject {
     pub base_id: ObjectId,
     /// Remaining uses for multi-use objects (0 = N/A).
     pub uses_remaining: i32,
-    /// Contained object ids (positive = container slots).
+    /// Contained object ids (positive = container slots). Wire / runtime source of truth.
     pub contained: Vec<ObjectId>,
     /// One level of nesting: `nested[i]` is sub-items of `contained[i]`.
     /// Empty vec = no nesting (wire uses commas only). Parallel length when used.
     ///
-    /// **Persist:** OLW2 writes nested; OLW1 loads empty nested.
+    /// **Persist:** OLW2 writes nested ids; OLW3 prefers [`Self::slots`] recursive meta.
     pub nested: Vec<Vec<ObjectId>>,
-    /// Lineage / account owner id if any.
+    /// Lineage / player owner id if any (primary; also first of `living_owners` when set).
     pub owner_id: i32,
+    /// Haxe `livingOwners` — multi-owner living player ids.
+    pub living_owners: Vec<i32>,
+    /// Haxe `ownersByPlayerAccount` — account ids (graves / ownership).
+    pub owners_by_account: Vec<i32>,
     /// Haxe `creationTimeInTicks` proxy — sim seconds when helper was created/refreshed.
     pub creation_time: f32,
     /// Haxe `timeToChange` — seconds until auto-transition (0 = none / permanent hold).
     pub time_to_change: f32,
+    /// Haxe custom `hits`.
+    pub hits: f32,
+    /// Haxe custom `coins`.
+    pub coins: f32,
+    /// Haxe custom `text`.
+    pub text: String,
+    /// Haxe custom `externId`.
+    pub extern_id: i32,
+    /// Haxe custom `countObj`.
+    pub count_obj: f32,
+    /// Haxe `ObjectHelper.groundObject` — flat id left under this object when it moves
+    /// (water drift / animals). `0` = none. **OLW3** persists; earlier versions drop it.
+    pub ground_id: ObjectId,
+    /// Full recursive contained meta (Haxe `containedObjects` / WriteToFile).
+    /// Empty = id-only via `contained`/`nested` (OLW1/OLW2 semantics).
+    /// When non-empty and parallel to `contained`, save/load preserves per-slot meta.
+    pub slots: Vec<NestedHelper>,
 }
 
 impl ComplexObject {
@@ -97,34 +218,34 @@ impl ComplexObject {
             contained: Vec::new(),
             nested: Vec::new(),
             owner_id: 0,
+            living_owners: Vec::new(),
+            owners_by_account: Vec::new(),
             creation_time: 0.0,
             time_to_change: 0.0,
+            hits: 0.0,
+            coins: 0.0,
+            text: String::new(),
+            extern_id: 0,
+            count_obj: 0.0,
+            ground_id: 0,
+            slots: Vec::new(),
         }
     }
 
     pub fn with_uses(base_id: ObjectId, uses: i32) -> Self {
-        Self {
-            base_id,
-            uses_remaining: uses,
-            contained: Vec::new(),
-            nested: Vec::new(),
-            owner_id: 0,
-            creation_time: 0.0,
-            time_to_change: 0.0,
-        }
+        let mut h = Self::new_simple(base_id);
+        h.uses_remaining = uses;
+        h
     }
 
     /// Place a simple object owned by `owner_id` (lineage / player id).
     pub fn with_owner(base_id: ObjectId, owner_id: i32) -> Self {
-        Self {
-            base_id,
-            uses_remaining: 0,
-            contained: Vec::new(),
-            nested: Vec::new(),
-            owner_id,
-            creation_time: 0.0,
-            time_to_change: 0.0,
+        let mut h = Self::new_simple(base_id);
+        h.owner_id = owner_id;
+        if owner_id != 0 {
+            h.living_owners = vec![owner_id];
         }
+        h
     }
 
     pub fn is_complex(&self) -> bool {
@@ -132,7 +253,16 @@ impl ComplexObject {
             || !self.contained.is_empty()
             || !self.nested.is_empty()
             || self.owner_id != 0
+            || !self.living_owners.is_empty()
+            || !self.owners_by_account.is_empty()
             || self.time_to_change > 0.0
+            || self.hits != 0.0
+            || self.coins != 0.0
+            || !self.text.is_empty()
+            || self.extern_id != 0
+            || self.count_obj != 0.0
+            || self.ground_id != 0
+            || !self.slots.is_empty()
     }
 
     /// Haxe `timeUntillChange` — remaining seconds (0 if no timer).
@@ -156,8 +286,90 @@ impl ComplexObject {
     }
 
     /// True when this helper records a non-zero owner matching `p_id`.
+    ///
+    /// Checks `owner_id` and Haxe `livingOwners`.
     pub fn is_owner(&self, p_id: i32) -> bool {
-        self.owner_id != 0 && self.owner_id == p_id
+        if p_id == 0 {
+            return false;
+        }
+        (self.owner_id != 0 && self.owner_id == p_id) || self.living_owners.contains(&p_id)
+    }
+
+    /// Derive `contained` + one-level `nested` ids from recursive [`Self::slots`].
+    ///
+    /// Haxe: `toString` only emits one colon nest level under each contained id.
+    pub fn rebuild_wire_from_slots(&mut self) {
+        if self.slots.is_empty() {
+            return;
+        }
+        self.contained = self.slots.iter().map(|s| s.id).collect();
+        let mut nested: Vec<Vec<ObjectId>> = self
+            .slots
+            .iter()
+            .map(|s| s.contained.iter().map(|c| c.id).collect())
+            .collect();
+        if nested.iter().all(|s| s.is_empty()) {
+            nested.clear();
+        }
+        self.nested = nested;
+    }
+
+    /// Build recursive [`Self::slots`] from wire `contained`/`nested` when slots empty.
+    ///
+    /// Used by OLW3 save so id-only containers still write a full helper tree.
+    pub fn synthesize_slots_from_wire(&mut self) {
+        if !self.slots.is_empty() || self.contained.is_empty() {
+            return;
+        }
+        self.slots = self
+            .contained
+            .iter()
+            .enumerate()
+            .map(|(i, &id)| {
+                let nest = self.nested.get(i).map(|v| v.as_slice()).unwrap_or(&[]);
+                NestedHelper::from_wire(id, nest)
+            })
+            .collect();
+    }
+
+    /// Keep `slots` parallel to `contained` after put/take when slots are tracked.
+    pub fn sync_slots_len_after_contained_change(&mut self) {
+        if self.slots.is_empty() {
+            return;
+        }
+        // Truncate extras
+        if self.slots.len() > self.contained.len() {
+            self.slots.truncate(self.contained.len());
+        }
+        // Grow with id-only slots for new contained ids
+        while self.slots.len() < self.contained.len() {
+            let id = self.contained[self.slots.len()];
+            self.slots.push(NestedHelper::id_only(id));
+        }
+        // Align top-level ids
+        for (i, s) in self.slots.iter_mut().enumerate() {
+            s.id = self.contained[i];
+        }
+        // Align one-level nested ids when nested rows exist
+        if !self.nested.is_empty() {
+            for (i, s) in self.slots.iter_mut().enumerate() {
+                let nest = self.nested.get(i).map(|v| v.as_slice()).unwrap_or(&[]);
+                // Preserve deeper meta when counts match; else rebuild one level.
+                if s.contained.len() == nest.len()
+                    && s.contained.iter().zip(nest.iter()).all(|(c, &id)| c.id == id)
+                {
+                    continue;
+                }
+                // Try preserve meta by id order when lengths match loosely
+                if s.contained.len() == nest.len() {
+                    for (c, &id) in s.contained.iter_mut().zip(nest.iter()) {
+                        c.id = id;
+                    }
+                } else {
+                    s.contained = nest.iter().copied().map(NestedHelper::id_only).collect();
+                }
+            }
+        }
     }
 
     /// Haxe `ObjectHelper.toString` / `MapData.stringID` for map cells.
@@ -173,6 +385,75 @@ impl ComplexObject {
             encode_map_object_string_nested(self.base_id, &self.contained, &self.nested)
         }
     }
+}
+
+/// Haxe `ObjectHelper.TransformToDummy` — rebuild multi-use dummy id from uses.
+///
+/// On disk, Haxe stores **parent** id + `numberOfUses`; load maps to the correct
+/// dummy sprite id. `last_use_object` / `undo_last_use_object` match ObjectData
+/// (0 = unused). `dummy_ids[uses-1]` is the dummy for partial uses.
+///
+/// Returns `(resolved_id, clamped_uses)`.
+// Haxe: ObjectHelper.TransformToDummy
+pub fn transform_to_dummy(
+    id: ObjectId,
+    number_of_uses: i32,
+    num_uses: i32,
+    last_use_object: ObjectId,
+    undo_last_use_object: ObjectId,
+    is_dummy: bool,
+    dummy_parent: ObjectId,
+    dummy_ids: &[ObjectId],
+) -> (ObjectId, i32) {
+    // Resolve to parent if already a dummy description.
+    let mut object_id = id;
+    let mut uses = number_of_uses;
+    let parent_num_uses = if is_dummy && dummy_parent != 0 {
+        // Caller should pass parent's num_uses; when is_dummy, id may be dummy.
+        num_uses
+    } else {
+        num_uses
+    };
+
+    if parent_num_uses < 2 && undo_last_use_object == 0 {
+        return (object_id, uses);
+    }
+
+    if uses < 1 {
+        if last_use_object != 0 {
+            return (last_use_object, 1);
+        }
+        uses = 1;
+    }
+
+    if uses > parent_num_uses || (uses > 1 && undo_last_use_object != 0) {
+        if undo_last_use_object != 0 {
+            return (undo_last_use_object, 1);
+        }
+        uses = parent_num_uses;
+    }
+
+    if uses == parent_num_uses || undo_last_use_object != 0 {
+        // Full uses → parent base id.
+        if is_dummy && dummy_parent != 0 {
+            object_id = dummy_parent;
+        }
+        // else keep id (already parent)
+        return (object_id, uses);
+    }
+
+    // Partial uses → dummy_ids[uses - 1]
+    let idx = (uses as usize).saturating_sub(1);
+    if let Some(&did) = dummy_ids.get(idx) {
+        return (did, uses);
+    }
+    // Missing dummy table entry: keep parent id.
+    let base = if is_dummy && dummy_parent != 0 {
+        dummy_parent
+    } else {
+        object_id
+    };
+    (base, uses)
 }
 
 /// Encode object + optional contained list as Haxe map-cell object string (flat).
@@ -598,6 +879,10 @@ impl World {
         if !helper.nested.is_empty() {
             helper.nested.push(Vec::new());
         }
+        // Keep recursive slots parallel when tracking full meta (OLW3).
+        if !helper.slots.is_empty() {
+            helper.slots.push(NestedHelper::id_only(item));
+        }
         // Refresh time-in-container clock (Haxe creationTime on helper mutation).
         if sim_time > 0.0 || time_to_change > 0.0 {
             helper.stamp_time(sim_time, time_to_change);
@@ -645,14 +930,32 @@ impl World {
             return false;
         }
         subs.push(item);
+        // Mirror into recursive slots when tracking full meta.
+        if slot < helper.slots.len() {
+            helper.slots[slot].contained.push(NestedHelper::id_only(item));
+        }
         self.set_object_complex(tx, ty, helper);
         true
     }
 
     /// Remove contained item at slot (or last if slot is None). Returns item id.
     ///
-    /// Nested sub-items under that slot are discarded (held is a single id in sim).
+    /// Prefer [`Self::container_take_helper`] when the taken object may have nested
+    /// sub-items (held NestedHelper on player body — NESTED-CLOTHING-PERSIST).
     pub fn container_take(&mut self, tx: i32, ty: i32, slot: Option<usize>) -> Option<ObjectId> {
+        self.container_take_helper(tx, ty, slot).map(|h| h.id)
+    }
+
+    /// Remove contained slot as a full [`NestedHelper`] (preserves nest + meta).
+    ///
+    /// Haxe: taking from map container into hands keeps `ObjectHelper.containedObjects`.
+    /// // Haxe: TransitionHelper container remove → setHeldObject (nest preserved)
+    pub fn container_take_helper(
+        &mut self,
+        tx: i32,
+        ty: i32,
+        slot: Option<usize>,
+    ) -> Option<NestedHelper> {
         let (tx, ty) = self.wrap_tile(tx, ty);
         let mut helper = self.helpers.remove(&(tx, ty))?;
         if helper.contained.is_empty() {
@@ -665,15 +968,22 @@ impl World {
             return None;
         }
         let item = helper.contained.remove(idx);
-        if idx < helper.nested.len() {
-            helper.nested.remove(idx);
-        }
+        let nest_ids = if idx < helper.nested.len() {
+            helper.nested.remove(idx)
+        } else {
+            Vec::new()
+        };
+        let taken = if idx < helper.slots.len() {
+            helper.slots.remove(idx)
+        } else {
+            NestedHelper::from_wire(item, &nest_ids)
+        };
         // Drop empty nesting so wire stays flat (`base,c0,c1`).
         if helper.nested.iter().all(|s| s.is_empty()) {
             helper.nested.clear();
         }
         self.set_object_complex(tx, ty, helper);
-        Some(item)
+        Some(taken)
     }
 
     /// Take a nested sub-item under `contained[slot]` (one level deep).
@@ -703,6 +1013,9 @@ impl World {
             return None;
         }
         let item = helper.nested[slot].remove(idx);
+        if slot < helper.slots.len() && idx < helper.slots[slot].contained.len() {
+            helper.slots[slot].contained.remove(idx);
+        }
         if helper.nested.iter().all(|s| s.is_empty()) {
             helper.nested.clear();
         }
@@ -722,19 +1035,11 @@ mod tests {
         assert_eq!(w.get_object(10, 20), 33);
         assert!(w.get_helper(10, 20).is_none());
 
-        w.set_object_complex(
-            11,
-            21,
-            ComplexObject {
-                base_id: 391,
-                uses_remaining: 3,
-                contained: vec![33, 40],
-                nested: Vec::new(),
-                owner_id: 42,
-                creation_time: 0.0,
-                time_to_change: 0.0,
-            },
-        );
+        let mut h = ComplexObject::new_simple(391);
+        h.uses_remaining = 3;
+        h.contained = vec![33, 40];
+        h.owner_id = 42;
+        w.set_object_complex(11, 21, h);
         assert_eq!(w.get_object(11, 21), 391);
         let h = w.get_helper(11, 21).unwrap();
         assert_eq!(h.uses_remaining, 3);
@@ -746,15 +1051,8 @@ mod tests {
     fn map_object_string_encodes_contained() {
         assert_eq!(encode_map_object_string(33, &[]), "33");
         assert_eq!(encode_map_object_string(391, &[33, 40]), "391,33,40");
-        let h = ComplexObject {
-            base_id: 391,
-            uses_remaining: 0,
-            contained: vec![33, 40],
-            nested: Vec::new(),
-            owner_id: 0,
-            creation_time: 0.0,
-            time_to_change: 0.0,
-        };
+        let mut h = ComplexObject::new_simple(391);
+        h.contained = vec![33, 40];
         assert_eq!(h.to_map_string_id(), "391,33,40");
 
         let mut w = World::new(64, 64, false);
@@ -780,15 +1078,9 @@ mod tests {
             "391,33:100:101,40"
         );
 
-        let h = ComplexObject {
-            base_id: 391,
-            uses_remaining: 0,
-            contained: vec![33, 40],
-            nested: nested.clone(),
-            owner_id: 0,
-            creation_time: 0.0,
-            time_to_change: 0.0,
-        };
+        let mut h = ComplexObject::new_simple(391);
+        h.contained = vec![33, 40];
+        h.nested = nested.clone();
         assert!(h.is_complex());
         assert_eq!(h.to_map_string_id(), "391,33:100:101,40");
 
@@ -816,6 +1108,26 @@ mod tests {
         assert_eq!(pb, 10);
         assert_eq!(pc, vec![20, 30]);
         assert_eq!(pn, vec![vec![1], vec![2, 3]]);
+    }
+
+    #[test]
+    fn container_take_helper_preserves_nest() {
+        let mut w = World::new(16, 16, false);
+        w.set_object(1, 1, 391);
+        assert!(w.container_put(1, 1, 292, 4));
+        assert!(w.container_put_nested(1, 1, 0, 100, 4));
+        assert!(w.container_put_nested(1, 1, 0, 101, 4));
+        // Promote wire nest into slots so take_helper returns full tree.
+        if let Some(mut h) = w.helpers.remove(&(1, 1)) {
+            h.synthesize_slots_from_wire();
+            w.set_object_complex(1, 1, h);
+        }
+        let taken = w.container_take_helper(1, 1, Some(0)).unwrap();
+        assert_eq!(taken.id, 292);
+        assert_eq!(
+            taken.contained.iter().map(|c| c.id).collect::<Vec<_>>(),
+            vec![100, 101]
+        );
     }
 
     #[test]
@@ -886,5 +1198,67 @@ mod tests {
         w.set_object(5, 5, 33);
         assert!(!w.is_owner(5, 5, 99));
         assert!(!ComplexObject::new_simple(33).is_owner(0));
+    }
+
+    #[test]
+    fn ground_id_keeps_helper() {
+        let mut h = ComplexObject::new_simple(33);
+        h.ground_id = 99;
+        assert!(h.is_complex());
+        let mut w = World::new(32, 32, false);
+        w.set_object_complex(1, 1, h);
+        assert_eq!(w.get_helper(1, 1).unwrap().ground_id, 99);
+        assert_eq!(w.get_object(1, 1), 33);
+    }
+
+    /// Haxe: ObjectHelper.TransformToDummy — partial uses → dummy id table.
+    #[test]
+    fn transform_to_dummy_partial_and_full_uses() {
+        // num_uses=5, dummy_ids for uses 1..4
+        let dummies = [1001, 1002, 1003, 1004];
+        // Full uses → base parent
+        assert_eq!(
+            transform_to_dummy(50, 5, 5, 0, 0, false, 0, &dummies),
+            (50, 5)
+        );
+        // 3 uses → dummy_ids[2]
+        assert_eq!(
+            transform_to_dummy(50, 3, 5, 0, 0, false, 0, &dummies),
+            (1003, 3)
+        );
+        // uses < 1 + last_use → last_use object, uses=1
+        assert_eq!(
+            transform_to_dummy(50, 0, 5, 99, 0, false, 0, &dummies),
+            (99, 1)
+        );
+        // Dummy id on disk with full uses → parent
+        assert_eq!(
+            transform_to_dummy(1003, 5, 5, 0, 0, true, 50, &dummies),
+            (50, 5)
+        );
+        // Single-use object: no-op
+        assert_eq!(
+            transform_to_dummy(33, 1, 1, 0, 0, false, 0, &[]),
+            (33, 1)
+        );
+    }
+
+    #[test]
+    fn rebuild_wire_from_slots_one_level() {
+        let mut h = ComplexObject::new_simple(391);
+        h.slots = vec![
+            NestedHelper {
+                id: 292,
+                uses_remaining: 2,
+                creation_time: 1.5,
+                contained: vec![NestedHelper::id_only(100), NestedHelper::id_only(101)],
+                ..Default::default()
+            },
+            NestedHelper::id_only(40),
+        ];
+        h.rebuild_wire_from_slots();
+        assert_eq!(h.contained, vec![292, 40]);
+        assert_eq!(h.nested, vec![vec![100, 101], vec![]]);
+        assert_eq!(h.to_map_string_id(), "391,292:100:101,40");
     }
 }

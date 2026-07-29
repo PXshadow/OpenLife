@@ -216,6 +216,19 @@ impl NpcActivityLog {
     }
 
     pub fn push(&self, mut ev: NpcActivityEvent) {
+        // Surface decisions in ol-server.log so operators can follow AI live.
+        info!(
+            conn_id = ev.conn_id,
+            p_id = ev.p_id,
+            kind = ev.kind.as_str(),
+            age = format!("{:.1}", ev.age),
+            food = format!("{:.1}", ev.food),
+            x = ev.x,
+            y = ev.y,
+            held = ev.held_id,
+            detail = %ev.detail,
+            "npc activity"
+        );
         if ev.wall_unix_ms == 0 {
             ev.wall_unix_ms = Self::wall_ms();
         }
@@ -357,9 +370,10 @@ mod tests {
     #[test]
     fn craft_loop_detection() {
         let mut t = NpcStuckTracker::default();
-        t.note_craft_key("0+36".into());
-        t.note_craft_key("0+36".into());
-        t.note_craft_key("0+36".into());
+        // craft_loop requires five identical keys in a row (allows multi-step walks).
+        for _ in 0..5 {
+            t.note_craft_key("0+36".into());
+        }
         assert!(t.craft_loop());
     }
 

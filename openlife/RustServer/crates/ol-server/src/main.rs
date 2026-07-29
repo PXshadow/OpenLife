@@ -16,15 +16,21 @@ mod selfplay;
 mod npc_ai;
 mod npc_activity;
 mod world_boot;
+// Haxe: AiHandler / AIProvider env secrets (AI-HANDLER llm_prompt + AI-PROVIDER scaffold)
+mod ai_llm_env;
+// Haxe: AIProvider.callAi HTTP MiniMax/Anthropic (AI-PROVIDER llm_http)
+mod ai_provider;
 
-use ol_config::ServerConfig;
-use ol_content::{load_content, resolve_content_path, ContentDb};
+use ol_config::{HotReloadTracker, LiveSettings, ServerConfig};
+use ol_content::{load_prefer_cache, resolve_content_path, ContentDb};
 use ol_metrics::Counters;
 use ol_net::{run_game_listener, NetConfig, OutboundHub};
 use ol_sim::{
-    build_reverse_craft_graph_capped, load_accounts, load_lineages, run_sim_loop_with_views,
-    save_accounts, save_lineages, AccountBook, AnimalSnapshot, AnimalWorld, PrestigeSnapshot,
-    SocialState, TreasurySnapshot, TwinRegistry, WeatherSnapshot,
+    build_reverse_craft_graph_capped, load_accounts, load_lineages, load_score_entries,
+    load_players, load_war_posse, new_llm_speech_io_share, run_sim_loop_with_views, save_accounts, save_lineages,
+    save_players, save_score_entries, save_war_posse, write_food_statistics, write_object_counts, AccountBook, AnimalSnapshot, AnimalWorld,
+    PlayersSnapshot, PrestigeSnapshot, SimBootLive, SocialState, TreasurySnapshot, TwinRegistry,
+    WarPosseSnapshot, WeatherSnapshot, ObjectCountsSnapshot, WorldFoodStats,
 };
 use ol_web::{serve as serve_web, WebState};
 use std::io::Write;
@@ -251,6 +257,12 @@ async fn main() {
         }
     };
 
+    // Haxe: ServerSettings.AiApi* / AIProvider.IsLLMActivated — env only, never server.toml
+    let llm_env = ai_llm_env::LlmEnvConfig::from_env();
+    info!(status = %llm_env.debug_status(), "LLM env loaded");
+    // AI-LLM-HTTP-DRAIN: shared job/result queues (sim ↔ HTTP worker)
+    let llm_speech_share = new_llm_speech_io_share();
+
     let counters = Arc::new(Counters::new());
     counters.mark_start_now();
     let restart_t0 = std::time::Instant::now();
@@ -260,7 +272,8 @@ async fn main() {
     let content_path = resolve_content_path(&cfg.content_path);
     let mut boot_objects_ms = 0u64;
     let mut boot_transitions_ms = 0u64;
-    let content = match load_content(&content_path) {
+    // Prefer OLC1/OLT1 under content/cache when valid (CONTENT_BINARY shared layout).
+    let content = match load_prefer_cache(&content_path) {
         Ok(db) => {
             boot_objects_ms = db.load_objects_ms;
             boot_transitions_ms = db.load_transitions_ms;
@@ -342,7 +355,7 @@ async fn main() {
     let accounts_path = cfg.accounts_save_path();
     let acc_t0 = std::time::Instant::now();
     let shared_accounts = Arc::new(RwLock::new({
-        if accounts_path.exists() {
+        let mut book = if accounts_path.exists() {
             match load_accounts(&accounts_path) {
                 Ok(b) => {
                     info!(
@@ -367,7 +380,37 @@ async fn main() {
                 "no account save — empty AccountBook"
             );
             AccountBook::default()
+        };
+        // Haxe ScoreEntry TODO save-to-disk — SES1 after OLA1 (OLA1 clears score_entries).
+        // // Haxe: ScoreEntry.hx L6 TODO save to disk
+        let ses_path = cfg.score_entries_save_path();
+        match load_score_entries(&mut book, &ses_path) {
+            Ok(()) if ses_path.exists() => {
+                info!(
+                    path = %ses_path.display(),
+                    entries = book
+                        .by_email
+                        .values()
+                        .map(|r| r.score_entries.len())
+                        .sum::<usize>(),
+                    "loaded score entries (SES1)"
+                );
+            }
+            Ok(()) => {
+                info!(
+                    path = %ses_path.display(),
+                    "no score-entry save — queues empty"
+                );
+            }
+            Err(e) => {
+                warn!(
+                    error = %e,
+                    path = %ses_path.display(),
+                    "score-entry load failed; queues empty"
+                );
+            }
         }
+        book
     }));
     let boot_accounts_ms = acc_t0.elapsed().as_millis() as u64;
     let boot_total_ms = restart_t0.elapsed().as_millis() as u64;
@@ -396,6 +439,71 @@ async fn main() {
         Arc::new(RwLock::new(Vec::new()));
     let env_view: ol_sim::EnvView = Arc::new(RwLock::new(ol_sim::EnvSnapshot::default()));
     let weather_view = Arc::new(RwLock::new(WeatherSnapshot::default()));
+    // SOCIAL-WAR-PERSIST: WPS1 session war/posse (Haxe had no disk).
+    let shared_war_posse = Arc::new(RwLock::new({
+        let wps_path = cfg.war_posse_save_path();
+        match load_war_posse(&wps_path) {
+            Ok(snap) => {
+                let (wars, posse_edges) = snap.counts();
+                if wps_path.exists() {
+                    info!(
+                        path = %wps_path.display(),
+                        wars,
+                        posse_edges,
+                        "loaded war/posse (WPS1)"
+                    );
+                } else {
+                    info!(
+                        path = %wps_path.display(),
+                        "no war/posse save — empty session maps"
+                    );
+                }
+                snap
+            }
+            Err(e) => {
+                warn!(
+                    error = %e,
+                    path = %wps_path.display(),
+                    "war/posse load failed; empty session maps"
+                );
+                WarPosseSnapshot::default()
+            }
+        }
+    }));
+    // PLAYERS-BIN: sticky living roster (Haxe WritePlayers / ReadPlayers).
+    let shared_players = Arc::new(RwLock::new({
+        let plb_path = cfg.players_save_path();
+        match load_players(&plb_path) {
+            Ok(snap) => {
+                if plb_path.exists() {
+                    info!(
+                        path = %plb_path.display(),
+                        count = snap.len(),
+                        next_p_id = snap.next_player_id,
+                        "loaded players (PLB1)"
+                    );
+                } else {
+                    info!(
+                        path = %plb_path.display(),
+                        "no players save — empty sticky roster"
+                    );
+                }
+                snap
+            }
+            Err(e) => {
+                warn!(
+                    error = %e,
+                    path = %plb_path.display(),
+                    "players load failed; empty sticky roster"
+                );
+                PlayersSnapshot::new()
+            }
+        }
+    }));
+    // FOODSTATS-DISK: session WorldFoodStats mirror for FoodStats.txt (write-only dump).
+    let shared_world_food = Arc::new(RwLock::new(WorldFoodStats::new()));
+    // OBJECTCOUNTS-LIVE: session object census mirror for ObjectCounts.txt (write-only dump).
+    let shared_object_counts = Arc::new(RwLock::new(ObjectCountsSnapshot::new()));
     // Seed account web view from boot-loaded book so /api/accounts works before first tick.
     let account_view = Arc::new(RwLock::new(shared_accounts.read().unwrap().snapshot()));
     let prestige_view = Arc::new(RwLock::new(PrestigeSnapshot::default()));
@@ -416,6 +524,21 @@ async fn main() {
         web = %cfg.web_addr(),
         "Open Life Reborn server starting"
     );
+
+    // CONFIG-SETTINGS: shared live knobs (sim hot-reload writes; NPC / tasks read).
+    let live0 = cfg.live_settings();
+    let live_share: Arc<RwLock<LiveSettings>> = Arc::new(RwLock::new(live0.clone()));
+    if live0.settings_hot_reload {
+        info!(
+            every_ticks = live0.settings_reload_every_ticks,
+            path = %config_path.display(),
+            season_secs = live0.season_length_secs,
+            eternal_winter = live0.eternal_winter,
+            "settings hot-reload enabled (Haxe ReadServerSettings)"
+        );
+    } else {
+        info!("settings hot-reload disabled in config");
+    }
 
     let mut handles = Vec::new();
 
@@ -447,14 +570,14 @@ async fn main() {
             cfg.required_version
         };
         let client_version_strict = cfg.client_version_strict;
-        // Twin peer list from config (stub registry only — no network I/O).
+        // Twin peer list from config (TWIN-MULTI-SERVER: also live-reloaded via LiveSettings).
         let twins = TwinRegistry::from_endpoints(
             cfg.twin_peers
                 .iter()
                 .map(|p| (p.host.clone(), p.port)),
         );
         if !twins.is_empty() {
-            info!(count = twins.len(), "twin peers seeded from config (stub)");
+            info!(count = twins.len(), "twin peers seeded from config");
         }
         if (sim_speed - 1.0).abs() > f32::EPSILON {
             info!(sim_speed, "time dilation sim_speed from config");
@@ -486,45 +609,73 @@ async fn main() {
             }
         }));
         let ops_view = Arc::clone(&ops_series_view);
+        let live_share_sim = Arc::clone(&live_share);
+        let hot_tracker = HotReloadTracker::new(&config_path, cfg.clone());
+        let boot_live = SimBootLive {
+            hot_reload: Some(hot_tracker),
+            live_share: Some(live_share_sim),
+            season_length_secs: live0.season_length_secs,
+            eternal_winter: live0.eternal_winter,
+            // SOCIAL-WAR-PERSIST: WPS1 share for sim seed + autosave mirror
+            war_posse_share: Some(Arc::clone(&shared_war_posse)),
+            // PLAYERS-BIN: PLB1 sticky roster for sim seed + autosave mirror
+            players_share: Some(Arc::clone(&shared_players)),
+            // FOODSTATS-DISK: FoodStats.txt autosave mirror
+            world_food_share: Some(Arc::clone(&shared_world_food)),
+            // OBJECTCOUNTS-LIVE: ObjectCounts.txt autosave mirror
+            object_counts_share: Some(Arc::clone(&shared_object_counts)),
+            // AI-LLM-HTTP-DRAIN: speech job/result bridge for call_ai_async worker
+            llm_speech_share: Some(Arc::clone(&llm_speech_share)),
+        };
         let death_for_sim = Arc::clone(&death_log);
-        handles.push(tokio::spawn(async move {
-            run_sim_loop_with_views(
-                intent_rx,
-                counters,
-                hz,
-                sim_speed,
-                required_version,
-                client_version_strict,
-                content,
-                world,
-                outbound,
-                Some(views),
-                Some(env),
-                Some(social),
-                Some(weather),
-                Some(accounts),
-                Some(prestige),
-                Some(lineages),
-                Some(animals),
-                Some(animals_live),
-                Some(treasury),
-                Some(shared_acc),
-                twins,
-                Some(save_req),
-                timed_movement,
-                move_jump,
-                Some(ops_view),
-                ops_every,
-                ops_flush,
-                intent_budget,
-                broadcast_all,
-                Some(death_for_sim),
-                Some(shutdown_exit),
-                shutdown_cd,
-                shutdown_ap,
-            )
-            .await;
-        }));
+        // Run sim on a dedicated OS thread so heavy tick work cannot starve the
+        // multi-thread Tokio runtime (web HTTP + game TCP accept/SN must stay responsive).
+        let rt = tokio::runtime::Handle::current();
+        std::thread::Builder::new()
+            .name("ol-sim".into())
+            .spawn(move || {
+                rt.block_on(async move {
+                    run_sim_loop_with_views(
+                        intent_rx,
+                        counters,
+                        hz,
+                        sim_speed,
+                        required_version,
+                        client_version_strict,
+                        content,
+                        world,
+                        outbound,
+                        Some(views),
+                        Some(env),
+                        Some(social),
+                        Some(weather),
+                        Some(accounts),
+                        Some(prestige),
+                        Some(lineages),
+                        Some(animals),
+                        Some(animals_live),
+                        Some(treasury),
+                        Some(shared_acc),
+                        twins,
+                        Some(save_req),
+                        timed_movement,
+                        move_jump,
+                        Some(ops_view),
+                        ops_every,
+                        ops_flush,
+                        intent_budget,
+                        broadcast_all,
+                        Some(death_for_sim),
+                        Some(shutdown_exit),
+                        shutdown_cd,
+                        shutdown_ap,
+                        Some(boot_live),
+                    )
+                    .await;
+                });
+            })
+            .expect("spawn ol-sim thread");
+        info!("sim loop on dedicated OS thread (ol-sim) — web/game net stay on Tokio workers");
     }
 
     // Ops journal: delta append (~5 min) + shared watermark for shutdown flush.
@@ -565,6 +716,28 @@ async fn main() {
         }));
     }
 
+    // AI-LLM-HTTP-DRAIN: Haxe respondToPlayerAsync Thread → callAi → logToFile → result apply
+    if let Some((params, limit, log_base)) = ai_provider::try_drain_params_from_env(&llm_env) {
+        let share = Arc::clone(&llm_speech_share);
+        handles.push(tokio::spawn(async move {
+            ai_provider::run_llm_speech_http_drain(share, params, limit, log_base).await;
+        }));
+        info!("AI-LLM-HTTP-DRAIN worker spawned");
+    } else {
+        info!("AI-LLM-HTTP-DRAIN idle (LLM inactive / no AI_API_KEY)");
+    }
+
+    // Shared reverse craft graph for self-play + NPC multi-step GetOrCraft (AI-CRAFT-NPC-ENQUEUE).
+    // Cap from server.toml `craft_graph_seed_cap` keeps boot fast on large content.
+    let craft_cap = cfg.craft_graph_cap();
+    let craft_graph = Arc::new(build_reverse_craft_graph_capped(&content, craft_cap));
+    info!(
+        products = craft_graph.product_count(),
+        edges = craft_graph.edge_count(),
+        cap = craft_cap,
+        "reverse craft graph ready (selfplay + npc)"
+    );
+
     // AI NPC scheduler + activity log (RAM ring, flush every 30s).
     let npc_activity = Arc::new(npc_activity::NpcActivityLog::new(
         cfg.save_directory.join("npc_activity.journal"),
@@ -589,23 +762,26 @@ async fn main() {
         }));
     }
     {
-        let npc_cfg = npc_ai::NpcConfig {
-            enabled: cfg.npc_enabled,
-            min: cfg.npc_min,
-            max: cfg.npc_max,
-            think_period_ticks: cfg.ai_think_period_ticks,
-            observe_radius: cfg.ai_observe_radius,
-            craft_radius: cfg.ai_craft_radius,
-        };
+        // NPC knobs from live_share each ~200 ms wake (same-tick as sim hot-reload write).
+        // Haxe: NumberOfAis / MinNumberOfAis static Reflect updates mid-session.
+        let live_for_npc = Arc::clone(&live_share);
         let intent_tx = intent_tx.clone();
         let world = Arc::clone(&shared_world);
         let content = Arc::clone(&content);
         let views = Arc::clone(&player_views);
         let counters = Arc::clone(&counters);
         let activity = Arc::clone(&npc_activity);
+        let craft_graph_npc = Arc::clone(&craft_graph);
         handles.push(tokio::spawn(async move {
             npc_ai::run_npc_scheduler(
-                npc_cfg, intent_tx, world, content, views, counters, activity,
+                live_for_npc,
+                intent_tx,
+                world,
+                content,
+                views,
+                counters,
+                activity,
+                craft_graph_npc,
             )
             .await;
         }));
@@ -622,6 +798,17 @@ async fn main() {
         let save_path = cfg.world_save_path();
         let lineage_save = cfg.lineage_save_path();
         let accounts_save = cfg.accounts_save_path();
+        let score_entries_save = cfg.score_entries_save_path();
+        let war_posse = Arc::clone(&shared_war_posse);
+        let war_posse_save = cfg.war_posse_save_path();
+        let players_share = Arc::clone(&shared_players);
+        let players_save = cfg.players_save_path();
+        let world_food_share = Arc::clone(&shared_world_food);
+        let food_stats_save = cfg.food_stats_save_path();
+        let content_for_food = Arc::clone(&content);
+        let object_counts_share = Arc::clone(&shared_object_counts);
+        let object_counts_save = cfg.object_counts_save_path();
+        let content_for_counts = Arc::clone(&content);
         handles.push(tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(1));
             interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
@@ -669,6 +856,100 @@ async fn main() {
                         "accounts autosaved"
                     );
                 }
+                // SES1 prestige queue (Haxe ScoreEntry disk TODO).
+                if let Err(e) = save_score_entries(&accounts_snap, &score_entries_save) {
+                    warn!(error = %e, "score-entry autosave failed");
+                } else {
+                    any_ok = true;
+                    info!(
+                        path = %score_entries_save.display(),
+                        "score entries autosaved (SES1)"
+                    );
+                }
+                // WPS1 session war/posse (SOCIAL-WAR-PERSIST).
+                let war_posse_snap = war_posse.read().unwrap().clone();
+                if let Err(e) = save_war_posse(&war_posse_snap, &war_posse_save) {
+                    warn!(error = %e, "war/posse autosave failed");
+                } else {
+                    any_ok = true;
+                    let (wars, posse_edges) = war_posse_snap.counts();
+                    info!(
+                        path = %war_posse_save.display(),
+                        wars,
+                        posse_edges,
+                        "war/posse autosaved (WPS1)"
+                    );
+                }
+                // PLB1 sticky living players (PLAYERS-BIN / clothing_held_disk).
+                let players_snap = players_share.read().unwrap().clone();
+                if let Err(e) = save_players(&players_snap, &players_save) {
+                    warn!(error = %e, "players autosave failed");
+                } else {
+                    any_ok = true;
+                    info!(
+                        path = %players_save.display(),
+                        count = players_snap.len(),
+                        next_p_id = players_snap.next_player_id,
+                        "players autosaved (PLB1)"
+                    );
+                }
+                // FOODSTATS-DISK: Haxe WorldMap.writeFoodStatistics → FoodStats.txt
+                let food_snap = world_food_share.read().unwrap().clone();
+                let content_names = Arc::clone(&content_for_food);
+                if let Err(e) = write_food_statistics(&food_snap, &food_stats_save, |id| {
+                    content_names
+                        .get(id)
+                        .map(|d| {
+                            if d.name.is_empty() {
+                                d.description.clone()
+                            } else {
+                                d.name.clone()
+                            }
+                        })
+                        .unwrap_or_default()
+                }) {
+                    warn!(error = %e, "food stats autosave failed");
+                } else {
+                    any_ok = true;
+                    info!(
+                        path = %food_stats_save.display(),
+                        foods = food_snap.eaten_values.len(),
+                        "food stats autosaved (FoodStats.txt)"
+                    );
+                }
+                // OBJECTCOUNTS-LIVE: Haxe TraceCountObjectsToDisk → ObjectCounts.txt
+                let counts_snap = object_counts_share.read().unwrap().clone();
+                let content_names = Arc::clone(&content_for_counts);
+                if let Err(e) = write_object_counts(
+                    &counts_snap.current_counts,
+                    &counts_snap.original_counts,
+                    &object_counts_save,
+                    |id| {
+                        content_names
+                            .get(id)
+                            .map(|d| {
+                                if d.description.is_empty() {
+                                    if d.name.is_empty() {
+                                        String::new()
+                                    } else {
+                                        d.name.clone()
+                                    }
+                                } else {
+                                    d.description.clone()
+                                }
+                            })
+                            .unwrap_or_default()
+                    },
+                ) {
+                    warn!(error = %e, "object counts autosave failed");
+                } else {
+                    any_ok = true;
+                    info!(
+                        path = %object_counts_save.display(),
+                        objects = counts_snap.current_counts.len(),
+                        "object counts autosaved (ObjectCounts.txt)"
+                    );
+                }
                 if any_ok {
                     counters
                         .autosaves
@@ -693,6 +974,8 @@ async fn main() {
             account_view: Arc::clone(&account_view),
             prestige_view: Arc::clone(&prestige_view),
             lineage_view: Arc::clone(&lineage_view),
+            // FOODSTATS-WEB: same WorldFoodShare as FoodStats.txt autosave (live eaten %).
+            food_view: Arc::clone(&shared_world_food),
             animal_view: Arc::clone(&animal_view),
             treasury_view: Arc::clone(&treasury_view),
             ops_series: Arc::clone(&ops_series_view),
@@ -705,18 +988,8 @@ async fn main() {
         }));
     }
 
-    // Shared reverse craft graph for self-play craft planning (Farmer/Smith).
-    // Cap from server.toml `craft_graph_seed_cap` keeps boot fast on large content.
-    let craft_cap = cfg.craft_graph_cap();
-    let craft_graph = Arc::new(build_reverse_craft_graph_capped(&content, craft_cap));
-    info!(
-        products = craft_graph.product_count(),
-        edges = craft_graph.edge_count(),
-        cap = craft_cap,
-        "selfplay: reverse craft graph ready"
-    );
-
     // Self-play agents for development / viewer (config: selfplay_enabled, selfplay_agents 1–3).
+    // craft_graph built earlier (shared with NPC multi-step GetOrCraft enqueue).
     if cfg.selfplay_enabled {
         let n_agents = cfg.selfplay_agent_count();
         info!(n_agents, "spawning self-play agents");
@@ -896,6 +1169,100 @@ async fn main() {
                 path = %cfg.accounts_save_path().display(),
                 count = accounts.len(),
                 "accounts saved on shutdown"
+            );
+        }
+        if let Err(e) = save_score_entries(&*accounts, cfg.score_entries_save_path()) {
+            warn!(error = %e, "score-entry shutdown save failed");
+        } else {
+            info!(
+                path = %cfg.score_entries_save_path().display(),
+                "score entries saved on shutdown (SES1)"
+            );
+        }
+    }
+    {
+        let snap = shared_war_posse.read().unwrap().clone();
+        if let Err(e) = save_war_posse(&snap, cfg.war_posse_save_path()) {
+            warn!(error = %e, "war/posse shutdown save failed");
+        } else {
+            let (wars, posse_edges) = snap.counts();
+            info!(
+                path = %cfg.war_posse_save_path().display(),
+                wars,
+                posse_edges,
+                "war/posse saved on shutdown (WPS1)"
+            );
+        }
+    }
+    {
+        let snap = shared_players.read().unwrap().clone();
+        if let Err(e) = save_players(&snap, cfg.players_save_path()) {
+            warn!(error = %e, "players shutdown save failed");
+        } else {
+            info!(
+                path = %cfg.players_save_path().display(),
+                count = snap.len(),
+                next_p_id = snap.next_player_id,
+                "players saved on shutdown (PLB1)"
+            );
+        }
+    }
+    {
+        // FOODSTATS-DISK: final FoodStats.txt (Haxe writeFoodStatistics on save).
+        let snap = shared_world_food.read().unwrap().clone();
+        let path = cfg.food_stats_save_path();
+        if let Err(e) = write_food_statistics(&snap, &path, |id| {
+            content
+                .get(id)
+                .map(|d| {
+                    if d.name.is_empty() {
+                        d.description.clone()
+                    } else {
+                        d.name.clone()
+                    }
+                })
+                .unwrap_or_default()
+        }) {
+            warn!(error = %e, "food stats shutdown save failed");
+        } else {
+            info!(
+                path = %path.display(),
+                foods = snap.eaten_values.len(),
+                "food stats saved on shutdown (FoodStats.txt)"
+            );
+        }
+    }
+    {
+        // OBJECTCOUNTS-LIVE: final ObjectCounts.txt (Haxe TraceCountObjectsToDisk on save).
+        let snap = shared_object_counts.read().unwrap().clone();
+        let path = cfg.object_counts_save_path();
+        if let Err(e) = write_object_counts(
+            &snap.current_counts,
+            &snap.original_counts,
+            &path,
+            |id| {
+                content
+                    .get(id)
+                    .map(|d| {
+                        if d.description.is_empty() {
+                            if d.name.is_empty() {
+                                String::new()
+                            } else {
+                                d.name.clone()
+                            }
+                        } else {
+                            d.description.clone()
+                        }
+                    })
+                    .unwrap_or_default()
+            },
+        ) {
+            warn!(error = %e, "object counts shutdown save failed");
+        } else {
+            info!(
+                path = %path.display(),
+                objects = snap.current_counts.len(),
+                "object counts saved on shutdown (ObjectCounts.txt)"
             );
         }
     }

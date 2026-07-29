@@ -16,9 +16,15 @@ use ol_content::ContentDb;
 use ol_metrics::Counters;
 use ol_net::NetIntent;
 use ol_sim::{
-    is_grassland, is_walkable, next_step, pick_goal_ext, pick_goal_smith_craft, pick_smith_goal,
-    AnimalWorld, Goal, PlayerSnapshot, Profession, ReverseCraftGraph, ANIMAL_THREAT_RANGE,
-    FARMER_TARGET_ID, HUNT_RANGE, SMITH_IRON_ID, SMITH_TARGET_ID,
+    apply_job_flags_to_live_input, consider_animals_for_goto, force_drop_at_feet,
+    infer_baker_pipeline_stage, infer_smith_stage_from_have, is_grassland, is_walkable, next_step,
+    next_step_consider_animals, pick_baker_goal, pick_farmer_goal, pick_goal_ext,
+    pick_goal_from_live_sensors, pick_smith_profession_goal, scan_world_radius,
+    self_clothing_raw_payload, smart_drop_held_from_sensors, update_is_hungry, AnimalWorld,
+    CloseDeadlyAnimal, DropHeldSensorExtras, FarmProfession, Goal, LiveSensorInput, PlayerSnapshot,
+    Profession, ProfessionStickySnapshot, ReverseCraftGraph, ShortCraftLiveIntent,
+    ANIMAL_THREAT_RANGE, BAKER_TARGET_ID, DEADLY_ANIMAL_SEARCH_DIST, FARMER_TARGET_ID, HUNT_RANGE,
+    MIN_AGE_TO_EAT, SMITH_IRON_ID, SMITH_TARGET_ID,
 };
 use ol_world::World;
 use rand::{Rng, SeedableRng};
@@ -79,6 +85,42 @@ impl SelfplayAgent {
     }
 }
 
+/// Map selfplay profession role → sticky snapshot for ladder job sensors.
+// Haxe: assignedProfession / lastProfession for farm/smith/baker
+fn selfplay_sticky_for_profession(profession: Profession, age: f32) -> ProfessionStickySnapshot {
+    match profession {
+        Profession::Farmer => ProfessionStickySnapshot {
+            farm_assigned: Some(FarmProfession::BasicFarmer),
+            farm_last: Some(FarmProfession::BasicFarmer),
+            age,
+            ..Default::default()
+        },
+        Profession::Smith => ProfessionStickySnapshot {
+            smith_assigned: true,
+            smith_last: true,
+            age,
+            ..Default::default()
+        },
+        Profession::Baker => ProfessionStickySnapshot {
+            baker_assigned: true,
+            baker_last: true,
+            age,
+            ..Default::default()
+        },
+        Profession::Shepherd => ProfessionStickySnapshot {
+            shepherd_assigned: true,
+            shepherd_last: true,
+            age,
+            ..Default::default()
+        },
+        // Forager/Hunter/Explorer/Potter: age-rotated or dedicated sticky elsewhere.
+        _ => ProfessionStickySnapshot {
+            age,
+            ..Default::default()
+        },
+    }
+}
+
 pub async fn run_selfplay_agent(
     agent: SelfplayAgent,
     intent_tx: tokio::sync::mpsc::Sender<NetIntent>,
@@ -110,6 +152,8 @@ pub async fn run_selfplay_agent(
     let mut stuck_use_count = 0u32;
     let mut tick: u64 = 0;
     let mut saw_alive = false;
+    // Haxe `AiBase.isHungry` hysteresis across ticks (AI-PRIO-LIVE).
+    let mut was_hungry = false;
     // After successful USE, skip act for waitingTime analog (ms).
     let mut post_use_wait_until: Option<std::time::Instant> = None;
 
@@ -185,9 +229,17 @@ pub async fn run_selfplay_agent(
 
         let held = snap.as_ref().map(|p| p.held_id).unwrap_or(0);
         let food = snap.as_ref().map(|p| p.food).unwrap_or(10.0);
+        let food_max = snap.as_ref().map(|p| p.food_max).unwrap_or(20.0);
+        let age = snap.as_ref().map(|p| p.age).unwrap_or(20.0);
+        let heat = snap.as_ref().map(|p| p.heat).unwrap_or(0.5);
+        // held_by > 0 ⇒ being carried; mother presence via held_by when young (partial).
+        let held_by = snap.as_ref().map(|p| p.held_by).unwrap_or(0);
+        let has_mother = held_by > 0 && age < MIN_AGE_TO_EAT;
         let nearby_food = has_nearby_food(&world, &content, x, y);
-        // Prefer live AnimalWorld (Arc share from sim); fall back to map name-scan.
-        let (animal_threat, animal_prey_near, animal_flee_away) = sense_animals(&animals, x, y);
+        // Prefer live AnimalWorld GetCloseDeadlyAnimal (moves²); fall back to Chebyshev + map.
+        let deadly = sense_deadly_animal(&animals, x, y);
+        let (animal_threat_cheby, animal_prey_near, animal_flee_away) =
+            sense_animals(&animals, x, y);
         let animal_prey_adjacent = sense_prey_adjacent(&animals, x, y);
         let map_threat = has_nearby_named(&world, &content, x, y, &["wolf"]);
         let map_prey_adj = has_nearby_named_range(
@@ -198,7 +250,8 @@ pub async fn run_selfplay_agent(
             &["rabbit", "boar", "deer", "hare"],
             HUNT_RANGE,
         );
-        let threat_near = animal_threat || map_threat;
+        let animal_threat = deadly.is_some() || animal_threat_cheby || map_threat;
+        let threat_near = animal_threat;
         let prey_adjacent = animal_prey_adjacent || map_prey_adj;
         let standing_biome = {
             let w = world.read().unwrap();
@@ -209,38 +262,96 @@ pub async fn run_selfplay_agent(
         if held != 0 {
             have.insert(held);
         }
-        let mut goal = if profession == Profession::Smith {
-            pick_goal_smith_craft(
-                profession,
-                held,
+        // Prefer live ladder when threat / mother / superbad heat (AI-PRIO-LIVE).
+        let use_live_ladder = threat_near || has_mother || heat < 0.1 || heat > 0.9;
+        let mut goal = if use_live_ladder {
+            let deadly_animal = deadly
+                .map(|d| (d.x, d.y, d.dist_quad))
+                .or_else(|| {
+                    if animal_threat_cheby || map_threat {
+                        // Outside moves² but Chebyshev/map still sees wolf — force near dist.
+                        Some((x, y, 50.0))
+                    } else {
+                        None
+                    }
+                });
+            let mut input = LiveSensorInput {
+                held_id: held,
                 food,
+                food_max,
+                was_hungry, // previous-tick hysteresis input
+                age,
+                heat,
+                has_mother,
+                follow_player: has_mother,
                 nearby_food,
-                threat_near,
-                prey_adjacent,
-                on_grassland,
-                &craft_graph,
-                &have,
-                SMITH_IRON_ID,
-            )
+                deadly_animal,
+                held_by_other: held_by > 0 && age < MIN_AGE_TO_EAT,
+                ..Default::default()
+            };
+            // NPC-CRAFT-LADDER: job sensors from sticky profession role (selfplay has no
+            // Player.farm_profession — map Profession → assigned sticky snapshot).
+            // Haxe: assignedProfession / lastProfession → AssignedJob / AgeRotatedJob
+            let sticky = selfplay_sticky_for_profession(profession, age);
+            apply_job_flags_to_live_input(&mut input, &sticky);
+            let (rung, g, bundle) =
+                pick_goal_from_live_sensors(&input, profession, prey_adjacent, on_grassland);
+            was_hungry = bundle.is_hungry;
+            if tick % 11 == 1 {
+                push_log(
+                    &log,
+                    &format!(
+                        "[{}] t{tick} LIVE_SENSORS rung={} goal={} threat={threat_near} mother={has_mother} heat={heat:.2} food={food:.1}/{food_max:.1}",
+                        agent.label,
+                        rung.as_label(),
+                        g.as_label(),
+                    ),
+                );
+            }
+            g
         } else {
-            pick_goal_ext(
-                profession,
-                held,
-                food,
-                nearby_food,
-                threat_near,
-                prey_adjacent,
-                on_grassland,
-                0,
-            )
+            // Keep hungry hysteresis even on thin pick_goal_* path.
+            was_hungry = update_is_hungry(was_hungry, food, food_max, held);
+            if matches!(profession, Profession::Smith | Profession::Baker) {
+                let smith_stage = if profession == Profession::Smith {
+                    infer_smith_stage_from_have(&have)
+                } else {
+                    0.0
+                };
+                ol_sim::pick_goal_smith_craft_at_stage(
+                    profession,
+                    held,
+                    food,
+                    nearby_food,
+                    threat_near,
+                    prey_adjacent,
+                    on_grassland,
+                    &craft_graph,
+                    &have,
+                    SMITH_IRON_ID,
+                    smith_stage,
+                )
+            } else {
+                pick_goal_ext(
+                    profession,
+                    held,
+                    food,
+                    nearby_food,
+                    threat_near,
+                    prey_adjacent,
+                    on_grassland,
+                    0,
+                )
+            }
         };
         // Evidence: Hunter (and others) flee real AnimalWorld wolves.
         if matches!(goal, Goal::Flee) && animal_threat && tick % 5 == 1 {
             push_log(
                 &log,
                 &format!(
-                    "[{}] t{tick} FLEE animal_threat wolf range={ANIMAL_THREAT_RANGE} food={food:.1} at ({x},{y})",
-                    agent.label
+                    "[{}] t{tick} FLEE animal_threat deadly={} cheby_range={ANIMAL_THREAT_RANGE} food={food:.1} at ({x},{y})",
+                    agent.label,
+                    deadly.is_some(),
                 ),
             );
         }
@@ -267,6 +378,7 @@ pub async fn run_selfplay_agent(
         // Smith: expand want via products_using(iron) → first smith product / path.
         let craft_want = match (profession, goal) {
             (Profession::Farmer, _) => Some(FARMER_TARGET_ID),
+            (Profession::Baker, _) => Some(BAKER_TARGET_ID),
             (Profession::Smith, _) => {
                 // Prefer first product from iron reverse edges, else default.
                 let targets = ol_sim::smith_product_targets(&craft_graph, SMITH_IRON_ID);
@@ -283,17 +395,35 @@ pub async fn run_selfplay_agent(
         if let Some(want) = craft_want {
             // Prefer intermediate ingredients when seeking the product.
             if matches!(goal, Goal::SeekObject(w) if w == want)
-                || matches!(profession, Profession::Farmer | Profession::Smith)
+                || matches!(profession, Profession::Farmer | Profession::Smith | Profession::Baker)
                     && matches!(goal, Goal::SeekObject(_) | Goal::Explore | Goal::Idle)
                     && held == 0
             {
                 if profession == Profession::Smith {
-                    goal = pick_smith_goal(&craft_graph, &have, SMITH_IRON_ID);
+                    // AI-JOB-SMITH: infer stage from held/have so ladder advances past ore
+                    let smith_stage = infer_smith_stage_from_have(&have);
+                    goal = pick_smith_profession_goal(&craft_graph, &have, smith_stage);
                     if tick % 8 == 0 {
                         push_log(
                             &log,
                             &format!(
-                                "[{}] t{tick} smith-iron-plan want={want} goal={goal:?}",
+                                "[{}] t{tick} smith-iron-plan want={want} stage={smith_stage} goal={goal:?}",
+                                agent.label
+                            ),
+                        );
+                    }
+                } else if profession == Profession::Farmer {
+                    // Haxe: AI-JOB-FARM pipeline + reverse-craft intermediates (not only 242).
+                    goal = pick_farmer_goal(&craft_graph, &have);
+                } else if profession == Profession::Baker {
+                    // Haxe: AI-JOB-BAKER oven/pie/bread pipeline (stage from inventory)
+                    let baker_stage = infer_baker_pipeline_stage(&have);
+                    goal = pick_baker_goal(&craft_graph, &have, baker_stage);
+                    if tick % 8 == 0 {
+                        push_log(
+                            &log,
+                            &format!(
+                                "[{}] t{tick} baker-plan want={want} stage={baker_stage:.1} goal={goal:?}",
                                 agent.label
                             ),
                         );
@@ -315,7 +445,7 @@ pub async fn run_selfplay_agent(
                     }
                 } else if matches!(goal, Goal::Explore | Goal::Idle) && held == 0 {
                     // No path yet — still bias toward profession product.
-                    if matches!(profession, Profession::Farmer | Profession::Smith) {
+                    if matches!(profession, Profession::Farmer | Profession::Smith | Profession::Baker) {
                         goal = Goal::SeekObject(want);
                     }
                 }
@@ -426,25 +556,138 @@ pub async fn run_selfplay_agent(
                     }
                     // else keep holding and walk toward partner (handled below).
                 } else {
-                    // Prefer drop into nearby container, else empty ground.
-                    let drop_at = find_container_neighbor(&world, &content, x, y)
-                        .or_else(|| find_empty_neighbor(&world, x, y));
-                    if let Some((tx, ty)) = drop_at {
-                        let _ = intent_tx
-                            .send(NetIntent::Drop {
-                                conn_id,
-                                x: tx,
-                                y: ty,
-                                c: None,
-                            })
-                            .await;
-                        push_log(
-                            &log,
-                            &format!(
-                                "[{}] t{tick} DROP held={held} at ({tx},{ty})",
-                                agent.label
-                            ),
-                        );
+                    // Haxe: dropHeldObject smart — peels at feet; else container/empty (DROP-HELD-LIVE)
+                    let tiles = {
+                        let w = world.read().unwrap();
+                        scan_world_radius(&w, Some(content.as_ref()), x, y, 12)
+                    };
+                    let max_home = if force_drop_at_feet(held) { 1.0 } else { 40.0 };
+                    // PREFER-SHORT-WAIT: pass agent moving if known; selfplay agents are usually stationary
+                    let agent_moving = false;
+                    let intent = smart_drop_held_from_sensors(
+                        held,
+                        1,
+                        x,
+                        y,
+                        x,
+                        y,
+                        food,
+                        agent_moving,
+                        false,
+                        max_home,
+                        &tiles,
+                        DropHeldSensorExtras::default(),
+                    );
+                    match intent {
+                        ShortCraftLiveIntent::DropAt { x: tx, y: ty } => {
+                            let _ = intent_tx
+                                .send(NetIntent::Drop {
+                                    conn_id,
+                                    x: tx,
+                                    y: ty,
+                                    c: None,
+                                })
+                                .await;
+                            push_log(
+                                &log,
+                                &format!(
+                                    "[{}] t{tick} SMART-DROP held={held} at ({tx},{ty})",
+                                    agent.label
+                                ),
+                            );
+                        }
+                        ShortCraftLiveIntent::UseAt { x: tx, y: ty, .. }
+                        | ShortCraftLiveIntent::UseOnEmptyGround { x: tx, y: ty, .. } => {
+                            let _ = intent_tx
+                                .send(NetIntent::Use {
+                                    conn_id,
+                                    x: tx,
+                                    y: ty,
+                                    id: None,
+                                    index: None,
+                                })
+                                .await;
+                            push_log(
+                                &log,
+                                &format!(
+                                    "[{}] t{tick} SMART-DROP-USE held={held} at ({tx},{ty})",
+                                    agent.label
+                                ),
+                            );
+                        }
+                        ShortCraftLiveIntent::SelfClothing { slot } => {
+                            let _ = intent_tx
+                                .send(NetIntent::Raw {
+                                    conn_id,
+                                    tag: "SELF".into(),
+                                    payload: self_clothing_raw_payload(slot),
+                                })
+                                .await;
+                            push_log(
+                                &log,
+                                &format!(
+                                    "[{}] t{tick} SMART-SELF clothing slot={slot} held={held}",
+                                    agent.label
+                                ),
+                            );
+                        }
+                        ShortCraftLiveIntent::Goto { x: tx, y: ty } => {
+                            if let Some((dx, dy)) = {
+                                let w = world.read().unwrap();
+                                next_step(&w, x, y, tx, ty, &|nx, ny| {
+                                    is_walkable(&w, &content, nx, ny)
+                                })
+                            } {
+                                let _ = intent_tx
+                                    .send(NetIntent::Move {
+                                        conn_id,
+                                        xs: x,
+                                        ys: y,
+                                        deltas: vec![(dx, dy)],
+                                        seq: None,
+                                    })
+                                    .await;
+                                push_log(
+                                    &log,
+                                    &format!(
+                                        "[{}] t{tick} SMART-DROP-GOTO held={held} toward ({tx},{ty})",
+                                        agent.label
+                                    ),
+                                );
+                            }
+                        }
+                        // Haxe: isMoving return true — hold tick, no feet-drop fallback (PREFER-SHORT-WAIT)
+                        ShortCraftLiveIntent::Wait => {
+                            push_log(
+                                &log,
+                                &format!(
+                                    "[{}] t{tick} SMART-DROP-WAIT held={held} busy_moving",
+                                    agent.label
+                                ),
+                            );
+                        }
+                        _ => {
+                            // Fallback: container neighbor then empty ground.
+                            let drop_at = find_container_neighbor(&world, &content, x, y)
+                                .or_else(|| find_empty_neighbor(&world, x, y));
+                            if let Some((tx, ty)) = drop_at {
+                                let _ = intent_tx
+                                    .send(NetIntent::Drop {
+                                        conn_id,
+                                        x: tx,
+                                        y: ty,
+                                        c: None,
+                                    })
+                                    .await;
+                                push_log(
+                                    &log,
+                                    &format!(
+                                        "[{}] t{tick} DROP held={held} at ({tx},{ty})",
+                                        agent.label
+                                    ),
+                                );
+                            }
+                        }
                     }
                 }
             }
@@ -545,13 +788,21 @@ pub async fn run_selfplay_agent(
                 // Always keep moving so agents stay visible.
                 random_step(&mut rng)
             } else {
-                // Pathfind around blocks_walking objects; gates/doors stay walkable.
+                // Pathfind around blocks_walking; SeekFood uses animal dual-pass footprints.
+                // Haxe: gotoAdv considerAnimals for food walk (AI-GOTO-FOOD)
+                let food_store = snap.as_ref().map(|p| p.food).unwrap_or(0.0);
+                let seek_food = matches!(goal, Goal::SeekFood);
                 let step = {
                     let w = world.read().unwrap();
                     let content = content.clone();
-                    next_step(&w, x, y, tx, ty, &|nx, ny| {
-                        is_walkable(&w, &content, nx, ny)
-                    })
+                    if seek_food {
+                        let consider = consider_animals_for_goto(true, 0.0, food_store);
+                        next_step_consider_animals(&w, &content, x, y, tx, ty, consider)
+                    } else {
+                        next_step(&w, x, y, tx, ty, &|nx, ny| {
+                            is_walkable(&w, &content, nx, ny)
+                        })
+                    }
                 };
                 step.unwrap_or_else(|| {
                     let dx = (tx - x).signum();
@@ -1138,6 +1389,18 @@ fn sense_animals(
     (threat, prey, flee)
 }
 
+/// Haxe `GetCloseDeadlyAnimal` against live AnimalWorld (moves² filter).
+fn sense_deadly_animal(
+    animals: &Arc<RwLock<AnimalWorld>>,
+    x: i32,
+    y: i32,
+) -> Option<CloseDeadlyAnimal> {
+    let Ok(aw) = animals.read() else {
+        return None;
+    };
+    aw.get_close_deadly_animal(x, y, DEADLY_ANIMAL_SEARCH_DIST)
+}
+
 /// True when live prey is within [`HUNT_RANGE`] (adjacent for `SAY HUNT`).
 fn sense_prey_adjacent(animals: &Arc<RwLock<AnimalWorld>>, x: i32, y: i32) -> bool {
     let Ok(aw) = animals.read() else {
@@ -1318,6 +1581,25 @@ mod tests {
             num_slots: 0,
             floor: false,
         dummy_ids: Vec::new(),
+        use_chance: 0.0,
+        speed_mult: 1.0,
+        winter_decay_factor: 0.0,
+        spring_regrow_factor: 0.0,
+        decay_factor: 1.0,
+        decays_to_obj: 0,
+        r_value: 0.0,
+        clothing: "n".into(),
+        counts_or_grows_as: 0,
+        crafting_steps: 0,
+        use_distance: 1,
+        deadly_distance: 0.0,
+        moves: 0,
+        damage: 0.0,
+        damage_protection_factor: 1.0,
+        wound_factor: 0.5,
+        male: false,
+        contain_size: 0.0,
+        slot_size: 1.0,
         }
     }
 

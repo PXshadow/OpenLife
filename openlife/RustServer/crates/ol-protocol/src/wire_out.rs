@@ -115,6 +115,13 @@ pub fn format_dying(p_id: i32, sick: bool) -> String {
     }
 }
 
+/// HE — HEALED (Haxe `ClientTag.HEALED` / natural hit recovery).
+// Haxe: TimeHelper.updateFoodAndDoHealing L935–937
+// C-SS-WOUND-HEAL
+pub fn format_healed(p_id: i32) -> String {
+    format_server_message("HE", &[&p_id.to_string()])
+}
+
 /// LR — LEARNED_TOOL_REPORT (Haxe `sendLearnedTool` / protocol).
 /// One data line: space-separated object ids (`tool_id tool_id ... tool_id`).
 /// Empty `tool_ids` yields `LR\n#` (callers usually skip empty).
@@ -193,7 +200,14 @@ pub fn format_weather_status(kind: &str, drain_mult: f32) -> String {
     format_server_message("WS", &[&format!("{kind} {drain_mult:.2}")])
 }
 
-/// GV — grave placed note (server extension / death marker).
+/// GRAVE — Haxe `Connection.SendGraveInfoToAll`.
+/// Wire: `x y creator_p_id` (birth-relative coords for the recipient).
+/// // Haxe: Connection.SendGraveInfoToAll
+pub fn format_grave_info(x: i32, y: i32, creator_p_id: i32) -> String {
+    format_server_message("GRAVE", &[&format!("{x} {y} {creator_p_id}")])
+}
+
+/// GV — legacy grave-placed note (server extension; prefer [`format_grave_info`]).
 /// `x y object_id p_id`.
 pub fn format_grave_place(x: i32, y: i32, object_id: i32, p_id: i32) -> String {
     format_server_message(
@@ -224,6 +238,32 @@ pub fn format_curse_token_change(count: i32) -> String {
 /// Wire: `CS\n{excess}\n#`
 pub fn format_curse_score_change(excess: i32) -> String {
     format_server_message("CS", &[&excess.to_string()])
+}
+
+/// CR — CRAVING (Haxe `ClientTag.CRAVING`).
+///
+/// Wire: `CR\n{food_id} {bonus}\n#`
+/// Tells the player which food they currently crave and yum-multiplier bonus.
+pub fn format_craving(food_id: i32, bonus: i32) -> String {
+    format_server_message("CR", &[&format!("{food_id} {bonus}")])
+}
+
+/// PO — PLAYER_OUT_OF_RANGE (Haxe `ClientTag.PLAYER_OUT_OF_RANGE` / `Connection.sendToMePlayerInfo`).
+///
+/// Wire: `PO\n{p_id} [p_id …]\n#`
+/// Used when a known player is too far for PU **and** is not the viewer's top leader
+/// (LEADER-RANGE: top leader still gets PU so vanilla `/LEADER` does not break).
+// Haxe: Connection.sendToMePlayerInfo L429
+pub fn format_player_out_of_range(p_ids: &[i32]) -> String {
+    if p_ids.is_empty() {
+        return format_server_message("PO", &[]);
+    }
+    let line = p_ids
+        .iter()
+        .map(|id| id.to_string())
+        .collect::<Vec<_>>()
+        .join(" ");
+    format_server_message("PO", &[&line])
 }
 
 #[cfg(test)]
@@ -326,6 +366,13 @@ mod tests {
     }
 
     #[test]
+    fn healed_shape() {
+        // Haxe: ClientTag.HEALED ['${player.p_id}']
+        // C-SS-WOUND-HEAL
+        assert_eq!(format_healed(7), "HE\n7\n#");
+    }
+
+    #[test]
     fn learned_tool_report_shape() {
         // Protocol: LR\ntool_id tool_id ...\n#
         assert_eq!(format_learned_tool_report(&[334]), "LR\n334\n#");
@@ -349,6 +396,7 @@ mod tests {
     fn weather_and_grave_shapes() {
         assert_eq!(format_weather_status("rain", 1.02), "WS\nrain 1.02\n#");
         assert_eq!(format_grave_place(1, 2, 0, 7), "GV\n1 2 0 7\n#");
+        assert_eq!(format_grave_info(1, 2, 7), "GRAVE\n1 2 7\n#");
     }
 
     #[test]
@@ -365,5 +413,19 @@ mod tests {
         assert_eq!(format_curse_token_change(1), "CX\n1\n#");
         assert_eq!(format_curse_score_change(3), "CS\n3\n#");
         assert_eq!(format_curse_token_change(0), "CX\n0\n#");
+    }
+
+    #[test]
+    fn craving_wire_shape() {
+        assert_eq!(format_craving(2143, 3), "CR\n2143 3\n#");
+        assert_eq!(format_craving(0, 0), "CR\n0 0\n#");
+    }
+
+    #[test]
+    fn player_out_of_range_po_shape() {
+        // Haxe: send(PLAYER_OUT_OF_RANGE, ['${playerToSend.p_id}'])
+        assert_eq!(format_player_out_of_range(&[42]), "PO\n42\n#");
+        assert_eq!(format_player_out_of_range(&[1, 2, 3]), "PO\n1 2 3\n#");
+        assert_eq!(format_player_out_of_range(&[]), "PO\n#");
     }
 }

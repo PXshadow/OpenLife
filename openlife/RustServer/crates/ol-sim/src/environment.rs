@@ -132,6 +132,12 @@ pub struct Environment {
     pub hour_of_day: f32,
     /// Real seconds for a full 24-hour game day (default 240s).
     pub day_length: f32,
+    /// Haxe `TimeHelper.SeasonHardness` (operational; post-square on hard Winter/Summer).
+    // Haxe: TimeHelper.SeasonHardness
+    pub season_hardness: f32,
+    /// Haxe `TimeHelper.SeasonText` for AI soul prompts (e.g. `"A hard  Winter"` / `"Spring"`).
+    // Haxe: TimeHelper.SeasonText
+    pub season_text: String,
 }
 
 impl Default for Environment {
@@ -146,6 +152,8 @@ impl Default for Environment {
             cold_factor: 1.0,
             hour_of_day: 12.0,
             day_length: 240.0,
+            season_hardness: 1.0,
+            season_text: "Spring".into(),
         }
     }
 }
@@ -176,9 +184,18 @@ impl Environment {
     }
 
     /// Force season (`SAY SETSEASON`); resets season elapsed and recomputes temp.
+    /// Mild season text (hardness 1.0) — live DoSeason roll overwrites hardness/text.
     pub fn set_season(&mut self, season: Season) {
         self.season = season;
         self.season_elapsed = 0.0;
+        self.season_hardness = 1.0;
+        // Mild display name; hard/very-hard prefixes only after DoSeason reseed.
+        self.season_text = match season {
+            Season::Spring => "Spring".into(),
+            Season::Summer => "Summer".into(),
+            Season::Autumn => "Autumn".into(),
+            Season::Winter => "Winter".into(),
+        };
         self.recompute_temperature();
     }
 

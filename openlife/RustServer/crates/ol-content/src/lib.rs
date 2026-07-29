@@ -1,11 +1,23 @@
-//! Content loading from OneLifeData7-style text files.
+//! Content loading from OneLifeData7-style text files + OLC1/OLT1 binary cache.
 //!
-//! Phase B: load a subset of object definitions. Full transition graph later.
+//! Binary layout shared with RustClient (`CONTENT_BINARY.md`). Text remains
+//! authoring SoT; `load_prefer_cache` prefers `cache/olc1_objects.bin` +
+//! `olt1_transitions.bin` when valid.
 
 #![forbid(unsafe_code)]
 
+mod binary_cache;
+mod prob_set;
+
+pub use binary_cache::{
+    cache_dir_for, finish_cache_boot, load_from_cache, load_olc1, load_olt1, load_prefer_cache,
+    OLC1_FORMAT_MAX, OLC1_MAGIC, OLT1_FORMAT_MAX, OLT1_MAGIC,
+};
+pub use prob_set::ProbSetCategory;
+use prob_set::load_category_tables;
+
 use rayon::prelude::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -20,6 +32,8 @@ pub enum ContentError {
     BadObject { path: String, msg: String },
     #[error("content path not found: {0}")]
     MissingRoot(String),
+    #[error("binary cache: {0}")]
+    Binary(String),
 }
 
 /// Minimal object definition needed by the server (expand over time).
@@ -47,6 +61,52 @@ pub struct ObjectDef {
     /// Synthetic multi-use dummy ids for uses `1..num_uses-1` (Haxe `dummyObjects`).
     /// Index `uses - 1` → dummy id. Full `num_uses` uses the base [`Self::id`].
     pub dummy_ids: Vec<i32>,
+    /// Haxe `ObjectData.useChance` — probabilistic use skip (tool durability).
+    /// Second value on `numUses=N,chance` line; 0 = always consume a use.
+    pub use_chance: f32,
+    /// Haxe `ObjectData.speedMult` — move/water-drift multiplier (default 1).
+    pub speed_mult: f32,
+    /// Haxe `ObjectData.winterDecayFactor` — wild-food winter multi-use decay (0 = none).
+    pub winter_decay_factor: f32,
+    /// Haxe `ObjectData.springRegrowFactor` — spring multi-use regrow (0 = none).
+    pub spring_regrow_factor: f32,
+    /// Haxe `ObjectData.decayFactor` (default 1; ≤0 disables long-term decay).
+    pub decay_factor: f32,
+    /// Haxe `ObjectData.decaysToObj` (0 → trash pit 618 for permanent objects).
+    pub decays_to_obj: i32,
+    /// Haxe `ObjectData.rValue` — wall/floor insulation; non-clothing + rValue>0 ⇒ wall.
+    pub r_value: f32,
+    /// Haxe `ObjectData.clothing` (`"n"` = not clothing).
+    pub clothing: String,
+    /// Haxe `ObjectData.countsOrGrowsAs` (0 = count as own / parent id).
+    pub counts_or_grows_as: i32,
+    /// Haxe `ObjectData.carftingSteps` (craft depth; 0 natural; used in decay tech factor).
+    pub crafting_steps: i32,
+    /// Haxe `ObjectData.useDistance` — USE/DROP Chebyshev-style squared range (min 1).
+    pub use_distance: i32,
+    /// Haxe `ObjectData.deadlyDistance` — combat / ranged min-range (tiles, float).
+    pub deadly_distance: f32,
+    /// Haxe `ObjectData.moves` — animal walk class (`>0` ⇒ isAnimal; often from time-move).
+    pub moves: i32,
+    /// Haxe `ObjectData.damage` — weapon/animal hit damage (and wound bleed DPS).
+    /// Default 0; ServerSettings.PatchObjectData sets combat values.
+    pub damage: f32,
+    /// Haxe `ObjectData.damageProtectionFactor` — held protection (1 = none).
+    pub damage_protection_factor: f32,
+    /// Haxe `ObjectData.woundFactor` — wound when `food_store_max < not_reduced * factor`.
+    /// Default 0.5; Rattle Snake patched to 0.98.
+    pub wound_factor: f32,
+    /// Haxe `ObjectData.male` — person sex (`true` = male). Default false.
+    /// // Haxe: ObjectData.male
+    pub male: bool,
+    /// Haxe `ObjectData.containSize` — how large this object is when stored in a container.
+    /// Gate: `containSize > container.slotSize` refuses put. Default 0.
+    /// // Haxe: ObjectData.containSize / ObjectHelper.canBePlacedIn
+    pub contain_size: f32,
+    /// Haxe `ObjectData.slotSize` — max containSize accepted by this container's slots.
+    /// Text key is `slotsSize=`. Default 1.
+    /// // Haxe: ObjectData.slotSize
+    pub slot_size: f32,
 }
 
 impl ObjectDef {
@@ -66,6 +126,25 @@ impl ObjectDef {
             num_slots: 0,
             floor: false,
             dummy_ids: Vec::new(),
+            use_chance: 0.0,
+            speed_mult: 1.0,
+            winter_decay_factor: 0.0,
+            spring_regrow_factor: 0.0,
+            decay_factor: 1.0,
+            decays_to_obj: 0,
+            r_value: 0.0,
+            clothing: "n".into(),
+            counts_or_grows_as: 0,
+            crafting_steps: 0,
+            use_distance: 1,
+            deadly_distance: 0.0,
+            moves: 0,
+            damage: 0.0,
+            damage_protection_factor: 1.0,
+            wound_factor: 0.5,
+            male: false,
+            contain_size: 0.0,
+            slot_size: 1.0,
         }
     }
 
@@ -73,9 +152,58 @@ impl ObjectDef {
         self.num_slots > 0
     }
 
+    /// Haxe `ObjectHelper.canBePlacedIn` size gate only: `containSize <= container.slotSize`.
+    /// // Haxe: ObjectHelper.canBePlacedIn containSize/slotSize
+    #[inline]
+    pub fn contain_fits_in_container(&self, container: &ObjectDef) -> bool {
+        self.contain_size <= container.slot_size
+    }
+
+    /// Haxe `ObjectData.isAnimal` — `moves > 0` and not Mosquito Swarm 2156.
+    // Haxe: ObjectData.isAnimal
+    #[inline]
+    pub fn is_animal(&self) -> bool {
+        self.moves > 0 && self.id != 2156
+    }
+
+    /// Haxe clamp: `useDistance < 1 → 1`.
+    // Haxe: TransitionHelper.checkIfNotMovingAndCloseEnough useDistance clamp
+    #[inline]
+    pub fn effective_use_distance(&self) -> i32 {
+        if self.use_distance < 1 {
+            1
+        } else {
+            self.use_distance
+        }
+    }
+
     /// True when this object is floor-only (Haxe `floor=1`).
     pub fn is_floor(&self) -> bool {
         self.floor
+    }
+
+    /// Haxe `ObjectData.isClothing` — clothing does not start with `n`.
+    #[inline]
+    pub fn is_clothing(&self) -> bool {
+        !self.clothing.is_empty() && !self.clothing.starts_with('n')
+    }
+
+    /// Haxe `ObjectData.isWall` — not clothing and rValue > 0.
+    #[inline]
+    pub fn is_wall(&self) -> bool {
+        !self.is_clothing() && self.r_value > 0.0
+    }
+
+    /// Haxe `ObjectData.getInsulation` for ground/wall/floor (non-clothing returns `rValue`).
+    ///
+    /// Clothing on the ground is rare for IsProtected; treat as 0 (Haxe: `isClothing ? 0`).
+    #[inline]
+    pub fn insulation_for_protection(&self) -> f32 {
+        if self.is_clothing() {
+            0.0
+        } else {
+            self.r_value
+        }
     }
 }
 
@@ -97,27 +225,77 @@ pub struct Transition {
     pub move_dist: i32,
     /// Field 8: desired animal step radius (`desiredMoveDist`). Default 0 → use `move_dist`.
     pub desired_move_dist: i32,
+    /// Field 3: Haxe `actorMinUseFraction` (1 = actor must be full).
+    pub actor_min_use_fraction: f32,
+    /// Field 4: Haxe `targetMinUseFraction` (1 = target must be full).
+    pub target_min_use_fraction: f32,
+    /// Haxe `switchNumberOfUses` — set by ServerSettings patches, not file data.
+    pub switch_number_of_uses: bool,
+    /// Haxe `targetNumberOfUses` — force uses after transform (`-1` = unset).
+    pub target_number_of_uses: i32,
+    /// Haxe `TransitionData.isPickupOrDrop` — horse cart / grave basket nest swap on USE.
+    /// Not in transition files; set by ServerSettings.PatchTransitions.
+    pub is_pickup_or_drop: bool,
 }
 
 /// Loaded game content tables (immutable after load; share via Arc).
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ContentDb {
     pub objects: HashMap<i32, ObjectDef>,
     /// Primary non-last-use transitions keyed by (actor, target).
     pub transitions: HashMap<(i32, i32), Transition>,
     /// Last-use actor and/or target transitions (Haxe LA / LT / L filenames).
     pub transitions_last_use: HashMap<(i32, i32), Transition>,
+    /// Max-use target transitions (Haxe `maxUseTransitions` — well site full → complete).
+    pub transitions_max_use: HashMap<(i32, i32), Transition>,
     pub transition_count: usize,
     pub last_use_transition_count: usize,
     pub data_version: i32,
     /// biome_id → (object ids with mapChance, total chance) for natural gen.
     pub biome_spawn: HashMap<i32, BiomeSpawnTable>,
     /// target object id → auto-decay transition (actor typically −1).
+    /// Includes hour-based decays (`auto_decay_seconds < 0`) and move transitions.
     pub auto_decays: HashMap<i32, Transition>,
+    /// Haxe `ObjectData.secondTimeOutcome` / `secondTimeOutcomeTimeToChange`
+    /// (ServerSettings patches: goose pond chain, rabbit holes, …).
+    /// Map: object id → (new_id, seconds threshold per full map cycle).
+    pub second_time_outcomes: HashMap<i32, (i32, f32)>,
     /// Dummy object id → parent base id (Haxe `dummyParent`).
     pub dummy_parent: HashMap<i32, i32>,
     /// Category parent id → member object ids (non-pattern only for expansion).
     pub categories: HashMap<i32, Vec<i32>>,
+    /// Haxe `Category` with `probSet=true` (TransformTarget weighted random outcomes).
+    pub prob_sets: HashMap<i32, ProbSetCategory>,
+    /// Haxe `ObjectData.person` race color for person objects (Black=1 Brown=3 White=4 Ginger=6).
+    /// Only non-zero races are stored (TH-MULTI-POLISH loved biome lookup).
+    pub person_race: HashMap<i32, i32>,
+    /// Haxe `TransitionData.aiShouldIgnore` — (actor, target) craft-AI ignore edges.
+    ///
+    /// Side-table (not a per-Transition file field): set by
+    /// [`apply_default_ai_should_ignore_patches`] from ServerSettings.PatchTransitions.
+    /// Primary (and dual primary+last-use) ignores for reverse-graph craft filters.
+    // Haxe: TransitionData.aiShouldIgnore + ServerSettings.PatchTransitions
+    pub ai_should_ignore: HashSet<(i32, i32)>,
+    /// Haxe last-use-only `aiShouldIgnore` edges (e.g. pond water LA/LT).
+    ///
+    /// Not loaded into reverse craft graph (primary water-fill stays craftable);
+    /// used by last-use transition lookup / meta builders.
+    // Haxe: getTransition(a,t,false,true) aiShouldIgnore only (pond 141/142)
+    pub ai_should_ignore_last_use: HashSet<(i32, i32)>,
+    /// Haxe `ObjectData.alternativeTransitionOutcome` (ServerSettings patches).
+    /// // Haxe: ObjectData.alternativeTransitionOutcome
+    /// // TH-ALT-OUTCOME
+    pub alt_outcomes_object: HashMap<i32, Vec<i32>>,
+    /// Haxe `TransitionData.alternativeTransitionOutcome` (ServerSettings patches).
+    /// // Haxe: TransitionData.alternativeTransitionOutcome
+    /// // TH-ALT-OUTCOME
+    pub alt_outcomes_transition: HashMap<(i32, i32), Vec<i32>>,
+    /// Haxe `ObjectData.fortificationObjId`.
+    /// // TH-ALT-OUTCOME
+    pub fortification_obj_id: HashMap<i32, i32>,
+    /// Haxe `ObjectData.fortificationValue`.
+    /// // TH-ALT-OUTCOME
+    pub fortification_value: HashMap<i32, f32>,
     /// Load timing (ms) — set by [`load_content`].
     pub load_objects_ms: u64,
     pub load_transitions_ms: u64,
@@ -132,6 +310,13 @@ pub struct BiomeSpawnTable {
     pub entries: Vec<(i32, f32)>,
 }
 
+/// Object file parse result: def + Haxe `person` race (0 = not a person).
+#[derive(Debug, Clone)]
+pub struct ParsedObject {
+    pub def: ObjectDef,
+    pub person: i32,
+}
+
 impl ContentDb {
     pub fn get(&self, id: i32) -> Option<&ObjectDef> {
         self.objects.get(&id)
@@ -139,6 +324,52 @@ impl ContentDb {
 
     pub fn object_count(&self) -> usize {
         self.objects.len()
+    }
+
+    /// Haxe `ObjectData.person` for a person object id (po_id). 0 if not a person.
+    #[inline]
+    pub fn person_color(&self, object_id: i32) -> i32 {
+        self.person_race.get(&object_id).copied().unwrap_or(0)
+    }
+
+    /// Haxe L1260–1261: transition alt list if non-empty, else new-target object list
+    /// (and dummy parent base). Also falls back to current target id tables.
+    // Haxe: TransitionHelper alternativeTransitionOutcome resolve
+    // TH-ALT-OUTCOME
+    pub fn alternative_outcomes_for(
+        &self,
+        actor_id: i32,
+        target_id: i32,
+        new_target_id: i32,
+    ) -> &[i32] {
+        if let Some(v) = self.alt_outcomes_transition.get(&(actor_id, target_id)) {
+            if !v.is_empty() {
+                return v.as_slice();
+            }
+        }
+        let base = self.resolve_base_id(new_target_id);
+        if let Some(v) = self.alt_outcomes_object.get(&new_target_id) {
+            if !v.is_empty() {
+                return v.as_slice();
+            }
+        }
+        if base != new_target_id {
+            if let Some(v) = self.alt_outcomes_object.get(&base) {
+                if !v.is_empty() {
+                    return v.as_slice();
+                }
+            }
+        }
+        let tbase = self.resolve_base_id(target_id);
+        if let Some(v) = self.alt_outcomes_object.get(&target_id) {
+            if !v.is_empty() {
+                return v.as_slice();
+            }
+        }
+        self.alt_outcomes_object
+            .get(&tbase)
+            .map(|v| v.as_slice())
+            .unwrap_or(&[])
     }
 
     /// Resolve dummy multi-use id → base object id (Haxe `dummyParent`).
@@ -198,6 +429,63 @@ impl ContentDb {
                 .or_else(|| self.find_transition_last_use(actor, target))
         }
     }
+
+    /// Haxe `GetTransition(..., maxUseTarget=true)` — complete when reverse at max uses.
+    #[inline]
+    pub fn find_transition_max_use(&self, actor: i32, target: i32) -> Option<&Transition> {
+        let a = self.resolve_base_id(actor);
+        let t = self.resolve_base_id(target);
+        self.transitions_max_use.get(&(a, t))
+    }
+
+    /// Haxe `TransitionData.aiShouldIgnore` for craft-AI edge `(actor, target)`.
+    ///
+    /// Checks primary table only (reverse-graph / default craft path).
+    // Haxe: TransitionData.aiShouldIgnore
+    #[inline]
+    pub fn transition_ai_should_ignore(&self, actor: i32, target: i32) -> bool {
+        let a = self.resolve_base_id(actor);
+        let t = self.resolve_base_id(target);
+        self.ai_should_ignore.contains(&(a, t))
+    }
+
+    /// Haxe `aiShouldIgnore` with last-use vs primary distinction.
+    ///
+    /// When `last_use`, primary **or** last-use-only tables match (Haxe GetTransition
+    /// with lastUse flags). Primary-only ignores always apply.
+    // Haxe: TransitionData.aiShouldIgnore + lastUseActor/Target maps
+    #[inline]
+    pub fn transition_ai_should_ignore_ex(
+        &self,
+        actor: i32,
+        target: i32,
+        last_use: bool,
+    ) -> bool {
+        let a = self.resolve_base_id(actor);
+        let t = self.resolve_base_id(target);
+        if self.ai_should_ignore.contains(&(a, t)) {
+            return true;
+        }
+        last_use && self.ai_should_ignore_last_use.contains(&(a, t))
+    }
+}
+
+/// Scan object text for Haxe `person=N` race field.
+pub fn parse_person_from_text(text: &str) -> i32 {
+    for line in text.lines() {
+        for part in line.split(',') {
+            if let Some(rest) = part.trim().strip_prefix("person=") {
+                return rest
+                    .split(|c| c == ',' || c == '#')
+                    .next()
+                    .unwrap_or(rest)
+                    .trim()
+                    .parse()
+                    .unwrap_or(0);
+            }
+        }
+    }
+    0
 }
 
 /// Load all `objects/*.txt` under a OneLifeData7 root (or skip if missing).
@@ -238,22 +526,25 @@ pub fn load_content(root: impl AsRef<Path>) -> Result<ContentDb, ContentError> {
         paths.push(path);
     }
 
-    let results: Vec<Result<ObjectDef, ContentError>> = paths
+    let results: Vec<Result<ParsedObject, ContentError>> = paths
         .par_iter()
-        .map(|path| load_object_file(path))
+        .map(|path| load_object_file_full(path))
         .collect();
 
     let mut loaded = 0u32;
     let mut errors = 0u32;
     for res in results {
         match res {
-            Ok(def) => {
+            Ok(ParsedObject { def, person }) => {
                 if def.map_chance > 0.0 && !def.biomes.is_empty() {
                     for &b in &def.biomes {
                         let table = db.biome_spawn.entry(b).or_default();
                         table.total_chance += def.map_chance;
                         table.entries.push((def.id, def.map_chance));
                     }
+                }
+                if person != 0 {
+                    db.person_race.insert(def.id, person);
                 }
                 db.objects.insert(def.id, def);
                 loaded += 1;
@@ -262,6 +553,26 @@ pub fn load_content(root: impl AsRef<Path>) -> Result<ContentDb, ContentError> {
                 errors += 1;
                 debug!(error = %e, "skip object");
             }
+        }
+    }
+
+    // Fill person_race if load_object_file_full stub left person=0 (parallel re-scan).
+    if db.person_race.is_empty() {
+        let races: Vec<(i32, i32)> = paths
+            .par_iter()
+            .filter_map(|path| {
+                let text = fs::read_to_string(path).ok()?;
+                let person = parse_person_from_text(&text);
+                if person == 0 {
+                    return None;
+                }
+                let stem = path.file_stem()?.to_str()?;
+                let id: i32 = stem.parse().ok()?;
+                Some((id, person))
+            })
+            .collect();
+        for (id, p) in races {
+            db.person_race.insert(id, p);
         }
     }
 
@@ -275,6 +586,7 @@ pub fn load_content(root: impl AsRef<Path>) -> Result<ContentDb, ContentError> {
         errors,
         biomes_with_spawns = db.biome_spawn.len(),
         dummies = db.dummy_parent.len(),
+        persons = db.person_race.len(),
         version = db.data_version,
         ms = objects_ms,
         root = %root.display(),
@@ -286,6 +598,30 @@ pub fn load_content(root: impl AsRef<Path>) -> Result<ContentDb, ContentError> {
     let t1 = Instant::now();
     load_transitions_into(&mut db, &root.join("transitions"))?;
     expand_category_transitions(&mut db);
+    // Haxe TransitionImporter.changeToolTransitions (after category expand).
+    change_tool_transitions(&mut db);
+    // Haxe ServerSettings.PatchObjectData secondTimeOutcome chains.
+    apply_default_second_time_outcomes(&mut db);
+    // Haxe ServerSettings.PatchObjectData decaysToObj / decayFactor / countsOrGrowsAs / rValue.
+    apply_default_decay_object_patches(&mut db);
+    // CLOTHING-CONTAIN-SIZE: ServerSettings.PatchObjectData containSize / containable.
+    apply_default_contain_size_patches(&mut db);
+    // TH-MULTI-POLISH: ServerSettings useChance + switchNumberOfUses patches.
+    apply_default_use_chance_patches(&mut db);
+    apply_default_switch_number_of_uses_patches(&mut db);
+    // TH-HORSE: ServerSettings.PatchTransitions horse cart pickup/drop + tire fixes.
+    apply_default_horse_transition_patches(&mut db);
+    // TH-ALT-OUTCOME: alternativeTransitionOutcome + fortification tables.
+    apply_default_alternative_outcome_patches(&mut db);
+    // C-SS-AI-IGNORE: ServerSettings.PatchTransitions aiShouldIgnore table.
+    apply_default_ai_should_ignore_patches(&mut db);
+    // IS-CLOSE / action_range: weapon useDistance + deadlyDistance + animal moves.
+    apply_default_weapon_range_patches(&mut db);
+    // Haxe PatchObjectData animal deadlyDistance = AnimalDeadlyDistanceFactor (0.5).
+    apply_default_animal_deadly_distance_patches(&mut db);
+    // WEAPON-WOUND-TRANS: damage / woundFactor / protection + wound bleed DPS.
+    apply_default_combat_damage_patches(&mut db);
+    apply_animal_moves_from_transitions(&mut db);
     db.load_transitions_ms = t1.elapsed().as_millis() as u64;
     db.load_total_ms = t0.elapsed().as_millis() as u64;
 
@@ -295,7 +631,9 @@ pub fn load_content(root: impl AsRef<Path>) -> Result<ContentDb, ContentError> {
         transitions_ms = db.load_transitions_ms,
         objects = db.object_count(),
         transitions = db.transition_count,
+        ai_should_ignore = db.ai_should_ignore.len(),
         categories = db.categories.len(),
+        prob_sets = db.prob_sets.len(),
         "content ready (timed)"
     );
 
@@ -339,590 +677,13 @@ fn assign_multi_use_dummies(db: &mut ContentDb, root: &Path) {
 }
 
 /// Load `categories/*.txt` (Haxe Category). Pattern categories stored but not expanded.
-fn load_categories_into(db: &mut ContentDb, dir: &Path) {
-    if !dir.is_dir() {
-        return;
-    }
-    let mut n = 0usize;
-    for entry in fs::read_dir(dir).into_iter().flatten().flatten() {
-        let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("txt") {
-            continue;
-        }
-        let Ok(text) = fs::read_to_string(&path) else {
-            continue;
-        };
-        let mut parent = 0i32;
-        let mut pattern = false;
-        let mut members = Vec::new();
-        let mut in_objects = false;
-        for line in text.lines() {
-            let line = line.trim().trim_end_matches('\r');
-            if line.is_empty() {
-                continue;
-            }
-            if !in_objects {
-                if let Some(rest) = line.strip_prefix("parentID=") {
-                    parent = rest.parse().unwrap_or(0);
-                } else if line == "pattern" || line.starts_with("pattern=") {
-                    pattern = true;
-                } else if line.starts_with("numObjects=") {
-                    in_objects = true;
-                }
-                continue;
-            }
-            // member lines: "34" or "34 0.5"
-            let id_s = line.split_whitespace().next().unwrap_or("");
-            if let Ok(id) = id_s.parse::<i32>() {
-                members.push(id);
-            }
-        }
-        if parent != 0 && !pattern && !members.is_empty() {
-            db.categories.insert(parent, members);
-            n += 1;
-        }
-    }
-    info!(categories = n, "content categories loaded (non-pattern)");
+/// Also loads `probSet` categories for [`crate::` TransformTarget] weighted outcomes.
+pub(crate) fn load_categories_into(db: &mut ContentDb, dir: &Path) {
+    let (cats, probs, _) = load_category_tables(dir);
+    db.categories = cats;
+    db.prob_sets = probs;
 }
 
-/// Haxe `createAndaddCategoryTransitions` — expand actor/target category parents
-/// into concrete member transitions (e.g. `@ Shallow Digger` 722 → sharp stone 34).
-fn expand_category_transitions(db: &mut ContentDb) {
-    if db.categories.is_empty() {
-        return;
-    }
-    let base: Vec<Transition> = db
-        .transitions
-        .values()
-        .cloned()
-        .chain(db.transitions_last_use.values().cloned())
-        .collect();
-    let mut added = 0usize;
-    for t in base {
-        let actor_cat = db.categories.get(&t.actor_id).cloned();
-        let target_cat = db.categories.get(&t.target_id).cloned();
-        match (actor_cat, target_cat) {
-            (Some(actors), None) => {
-                for aid in actors {
-                    let mut nt = t.clone();
-                    if nt.new_actor_id == t.actor_id {
-                        nt.new_actor_id = aid;
-                    }
-                    nt.actor_id = aid;
-                    if insert_expanded(db, nt) {
-                        added += 1;
-                    }
-                }
-            }
-            (None, Some(targets)) => {
-                for tid in targets {
-                    let mut nt = t.clone();
-                    if nt.new_target_id == t.target_id {
-                        nt.new_target_id = tid;
-                    }
-                    nt.target_id = tid;
-                    if insert_expanded(db, nt) {
-                        added += 1;
-                    }
-                }
-            }
-            (Some(actors), Some(targets)) => {
-                for aid in &actors {
-                    for tid in &targets {
-                        let mut nt = t.clone();
-                        if nt.new_actor_id == t.actor_id {
-                            nt.new_actor_id = *aid;
-                        }
-                        if nt.new_target_id == t.target_id {
-                            nt.new_target_id = *tid;
-                        }
-                        nt.actor_id = *aid;
-                        nt.target_id = *tid;
-                        if insert_expanded(db, nt) {
-                            added += 1;
-                        }
-                    }
-                }
-            }
-            (None, None) => {}
-        }
-    }
-    db.transition_count = db.transitions.len();
-    db.last_use_transition_count = db.transitions_last_use.len();
-    info!(added, "content category transitions expanded");
-}
-
-fn insert_expanded(db: &mut ContentDb, t: Transition) -> bool {
-    let key = (t.actor_id, t.target_id);
-    if t.last_use_actor || t.last_use_target {
-        if db.transitions_last_use.contains_key(&key) {
-            return false;
-        }
-        db.transitions_last_use.insert(key, t);
-    } else {
-        if db.transitions.contains_key(&key) {
-            return false;
-        }
-        db.transitions.insert(key, t);
-    }
-    true
-}
-
-fn load_transitions_into(db: &mut ContentDb, dir: &Path) -> Result<(), ContentError> {
-    if !dir.is_dir() {
-        warn!(path = %dir.display(), "transitions directory missing");
-        return Ok(());
-    }
-
-    let mut paths = Vec::new();
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) == Some("txt") {
-            paths.push(path);
-        }
-    }
-
-    let results: Vec<Result<Transition, ContentError>> = paths
-        .par_iter()
-        .map(|path| load_transition_file(path))
-        .collect();
-
-    let mut loaded = 0usize;
-    let mut loaded_last_use = 0usize;
-    let mut errors = 0u32;
-
-    for res in results {
-        match res {
-            Ok(t) => {
-                // Auto-decay / animal move: actor -1 (TIME).
-                if t.auto_decay_seconds > 0.0 && t.actor_id < 0 {
-                    db.auto_decays.insert(t.target_id, t.clone());
-                }
-                // Also index pure animal-move transitions (autoDecaySeconds may be used).
-                if t.actor_id < 0 && t.move_dist > 0 {
-                    db.auto_decays
-                        .entry(t.target_id)
-                        .or_insert_with(|| t.clone());
-                }
-                if t.last_use_actor || t.last_use_target {
-                    db.transitions_last_use
-                        .insert((t.actor_id, t.target_id), t);
-                    loaded_last_use += 1;
-                } else {
-                    db.transitions.insert((t.actor_id, t.target_id), t);
-                    loaded += 1;
-                }
-            }
-            Err(e) => {
-                errors += 1;
-                debug!(error = %e, "skip transition");
-            }
-        }
-    }
-
-    db.transition_count = loaded;
-    db.last_use_transition_count = loaded_last_use;
-    info!(
-        loaded,
-        loaded_last_use,
-        errors,
-        path = %dir.display(),
-        "content transitions loaded"
-    );
-    Ok(())
-}
-
-/// Parse `actor_target.txt` or `actor_target_LA.txt` / `_LT` / `_L`.
-pub fn load_transition_file(path: &Path) -> Result<Transition, ContentError> {
-    let stem = path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .ok_or_else(|| ContentError::BadObject {
-            path: path.display().to_string(),
-            msg: "bad filename".into(),
-        })?;
-    let parts: Vec<&str> = stem.split('_').collect();
-    if parts.len() < 2 {
-        return Err(ContentError::BadObject {
-            path: path.display().to_string(),
-            msg: "filename needs actor_target".into(),
-        });
-    }
-    let actor_id: i32 = parts[0].parse().map_err(|_| ContentError::BadObject {
-        path: path.display().to_string(),
-        msg: "bad actor id".into(),
-    })?;
-    let target_id: i32 = parts[1].parse().map_err(|_| ContentError::BadObject {
-        path: path.display().to_string(),
-        msg: "bad target id".into(),
-    })?;
-    let flag = parts.get(2).copied().unwrap_or("");
-    let last_use_actor = flag == "LA";
-    let last_use_target = flag == "LT" || flag == "L";
-
-    let text = fs::read_to_string(path)?;
-    let line = text.lines().next().unwrap_or("").trim();
-    let data: Vec<&str> = line.split_whitespace().collect();
-    if data.len() < 2 {
-        return Err(ContentError::BadObject {
-            path: path.display().to_string(),
-            msg: "need at least newActor newTarget".into(),
-        });
-    }
-
-    let parse_i = |i: usize, default: i32| -> i32 {
-        data.get(i).and_then(|s| s.parse().ok()).unwrap_or(default)
-    };
-    let parse_f = |i: usize| -> f32 {
-        data.get(i).and_then(|s| s.parse().ok()).unwrap_or(0.0)
-    };
-    let parse_b = |i: usize| -> bool { data.get(i).map(|s| *s == "1").unwrap_or(false) };
-
-    Ok(Transition {
-        actor_id,
-        target_id,
-        new_actor_id: parse_i(0, 0),
-        new_target_id: parse_i(1, 0),
-        last_use_actor,
-        last_use_target,
-        auto_decay_seconds: parse_f(2),
-        reverse_use_actor: parse_b(5),
-        reverse_use_target: parse_b(6),
-        no_use_actor: parse_b(9),
-        no_use_target: parse_b(10),
-        move_dist: parse_i(7, 0),
-        desired_move_dist: parse_i(8, 0),
-    })
-}
-
-/// Parse a single object description file (OHOL / Open Life line-oriented format).
-///
-/// First line may be bare `33` or `id=100`. Second line is description when present.
-pub fn load_object_file(path: &Path) -> Result<ObjectDef, ContentError> {
-    let text = fs::read_to_string(path)?;
-    let mut lines = text.lines().peekable();
-
-    let id_line = lines.next().ok_or_else(|| ContentError::BadObject {
-        path: path.display().to_string(),
-        msg: "empty file".into(),
-    })?;
-    let id_raw = id_line.trim();
-    let id: i32 = id_raw
-        .strip_prefix("id=")
-        .unwrap_or(id_raw)
-        .trim()
-        .parse()
-        .map_err(|_| ContentError::BadObject {
-            path: path.display().to_string(),
-            msg: format!("bad id line: {id_line}"),
-        })?;
-
-    let mut def = ObjectDef::empty(id);
-
-    // Description is the next non-key=value line (bare name), if any.
-    if let Some(peek) = lines.peek() {
-        let t = peek.trim();
-        if !t.is_empty() && !t.contains('=') {
-            let desc = lines.next().unwrap().to_string();
-            def.description = desc.clone();
-            def.name = description_to_name(&desc);
-        }
-    }
-
-    for line in lines {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        // Keys may be embedded in comma-joined groups: permanent=1,minPickupAge=3
-        for part in line.split(',') {
-            let part = part.trim();
-            if let Some(rest) = part.strip_prefix("containable=") {
-                def.containable = rest.starts_with('1') || rest.eq_ignore_ascii_case("true");
-            } else if let Some(rest) = part.strip_prefix("permanent=") {
-                def.permanent = rest.starts_with('1') || rest.eq_ignore_ascii_case("true");
-            } else if let Some(rest) = part.strip_prefix("blocksWalking=") {
-                def.blocks_walking = rest.starts_with('1') || rest.eq_ignore_ascii_case("true");
-            } else if let Some(rest) = part.strip_prefix("foodValue=") {
-                def.food_value = rest.parse().unwrap_or(0);
-            } else if let Some(rest) = part.strip_prefix("heatValue=") {
-                def.heat_value = rest.parse().unwrap_or(0.0);
-            } else if let Some(rest) = part.strip_prefix("numUses=") {
-                let num = rest.split(|c| c == ',' || c == '#').next().unwrap_or(rest);
-                def.num_uses = num.parse().unwrap_or(0);
-            } else if let Some(rest) = part.strip_prefix("numSlots=") {
-                // numSlots=4#timeStretch=1.000000
-                let num = rest.split(|c| c == ',' || c == '#').next().unwrap_or(rest);
-                def.num_slots = num.parse().unwrap_or(0);
-            } else if let Some(rest) = part.strip_prefix("floor=") {
-                // floor=1 — floor-only objects (roads, stone floors); not ground placeables.
-                def.floor = rest.starts_with('1') || rest.eq_ignore_ascii_case("true");
-            } else if let Some(rest) = part.strip_prefix("mapChance=") {
-                // mapChance=1.000000#biomes_0,3,4,5  (biomes may span later commas —
-                // re-parse full line segment after mapChance= when '#' present)
-                // Prefer full line when this part looks truncated.
-                let full = if line.contains("mapChance=") {
-                    line.split("mapChance=")
-                        .nth(1)
-                        .unwrap_or(rest)
-                } else {
-                    rest
-                };
-                let (chance_s, rest2) = if let Some(i) = full.find('#') {
-                    (&full[..i], Some(&full[i + 1..]))
-                } else {
-                    (full.split(',').next().unwrap_or(full), None)
-                };
-                def.map_chance = chance_s.trim().parse().unwrap_or(0.0);
-                if let Some(r) = rest2 {
-                    let biomes_part = r
-                        .strip_prefix("biomes_")
-                        .or_else(|| r.strip_prefix("biomes="))
-                        .unwrap_or(r);
-                    // Stop at next known key if present on same line.
-                    let biomes_part = biomes_part
-                        .split("heatValue=")
-                        .next()
-                        .unwrap_or(biomes_part)
-                        .trim_end_matches(',')
-                        .trim();
-                    def.biomes = biomes_part
-                        .split(|c| c == ',' || c == ' ')
-                        .filter_map(|s| {
-                            let s = s.trim();
-                            if s.is_empty() {
-                                None
-                            } else {
-                                s.parse().ok()
-                            }
-                        })
-                        .collect();
-                }
-            }
-        }
-    }
-
-    Ok(def)
-}
-
-fn description_to_name(desc: &str) -> String {
-    // OHOL: "Wild Gooseberry# just picked"
-    let base = desc.split('#').next().unwrap_or(desc).trim();
-    base.to_string()
-}
-
-/// Try default content locations relative to cwd / common sibling path.
-pub fn resolve_content_path(configured: &Path) -> PathBuf {
-    if configured.exists() {
-        return configured.to_path_buf();
-    }
-    let candidates = [
-        PathBuf::from("content/OneLifeData7"),
-        PathBuf::from("../OpenLife/OneLifeData7"),
-        PathBuf::from(r"C:\OhOl\OpenLife\OneLifeData7"),
-    ];
-    for c in candidates {
-        if c.exists() {
-            return c;
-        }
-    }
-    configured.to_path_buf()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::io::Write;
-
-    #[test]
-    fn parse_minimal_object() {
-        let dir = std::env::temp_dir().join("ol_content_test_obj");
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("33.txt");
-        let mut f = fs::File::create(&path).unwrap();
-        writeln!(f, "33").unwrap();
-        writeln!(f, "Gooseberry# wild").unwrap();
-        writeln!(f, "foodValue=3").unwrap();
-        writeln!(f, "containable=1").unwrap();
-        let def = load_object_file(&path).unwrap();
-        assert_eq!(def.id, 33);
-        assert_eq!(def.name, "Gooseberry");
-        assert_eq!(def.food_value, 3);
-        assert!(def.containable);
-        assert!(!def.floor);
-        let _ = fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn parse_floor_flag() {
-        let dir = std::env::temp_dir().join("ol_content_test_floor");
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("1596.txt");
-        let mut f = fs::File::create(&path).unwrap();
-        writeln!(f, "id=1596").unwrap();
-        writeln!(f, "Stone Road# groundOnly").unwrap();
-        writeln!(f, "floor=1").unwrap();
-        writeln!(f, "permanent=0").unwrap();
-        let def = load_object_file(&path).unwrap();
-        assert_eq!(def.id, 1596);
-        assert!(def.floor);
-        assert!(def.is_floor());
-        assert_eq!(def.name, "Stone Road");
-        let _ = fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn parse_openlife_id_prefix_and_map_chance() {
-        let dir = std::env::temp_dir().join("ol_content_test_obj_id");
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("100.txt");
-        let mut f = fs::File::create(&path).unwrap();
-        writeln!(f, "id=100").unwrap();
-        writeln!(f, "White Pine Tree with Needles").unwrap();
-        writeln!(f, "containable=0").unwrap();
-        writeln!(f, "permanent=1,minPickupAge=3").unwrap();
-        writeln!(f, "blocksWalking=1,leftBlockingRadius=0").unwrap();
-        writeln!(f, "mapChance=1.000000#biomes_0,3").unwrap();
-        writeln!(f, "numUses=5,1.000000").unwrap();
-        writeln!(f, "numSlots=0#timeStretch=1.000000").unwrap();
-        let def = load_object_file(&path).unwrap();
-        assert_eq!(def.id, 100);
-        assert_eq!(def.name, "White Pine Tree with Needles");
-        assert!(def.permanent);
-        assert!(def.blocks_walking);
-        assert!((def.map_chance - 1.0).abs() < 1e-5);
-        assert_eq!(def.biomes, vec![0, 3]);
-        assert_eq!(def.num_uses, 5);
-        assert_eq!(def.num_slots, 0);
-        let _ = fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn name_from_description() {
-        assert_eq!(description_to_name("Stone Hoe# tool"), "Stone Hoe");
-    }
-
-    #[test]
-    fn parse_transition_file() {
-        let dir = std::env::temp_dir().join("ol_content_test_tr");
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("0_33.txt");
-        let mut f = fs::File::create(&path).unwrap();
-        // bare hand on object 33 → newActor 34 newTarget 32 ...
-        writeln!(f, "34 32 0 0.000000 0.000000 0 0 0 0 0 0").unwrap();
-        let t = load_transition_file(&path).unwrap();
-        assert_eq!(t.actor_id, 0);
-        assert_eq!(t.target_id, 33);
-        assert_eq!(t.new_actor_id, 34);
-        assert_eq!(t.new_target_id, 32);
-        assert!(!t.last_use_target);
-        let _ = fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn parse_last_use_transition_filename() {
-        let dir = std::env::temp_dir().join("ol_content_test_lt");
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("0_109_LT.txt");
-        let mut f = fs::File::create(&path).unwrap();
-        writeln!(f, "0 0 0 0 0 0 0 0 0 0 0").unwrap();
-        let t = load_transition_file(&path).unwrap();
-        assert!(t.last_use_target);
-        assert!(!t.last_use_actor);
-        let _ = fs::remove_dir_all(&dir);
-    }
-
-    /// Goldens from real OneLifeData7 transition files (Haxe TransitionImporter shape).
-    /// Skips if neither local content junction nor OhOl data tree is present.
-    #[test]
-    fn category_expands_shallow_digger_to_sharp_stone() {
-        // Requires full content tree (skip if absent).
-        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../content/OneLifeData7");
-        if !root.is_dir() {
-            return;
-        }
-        let db = load_content(&root).expect("load content");
-        // Category 722 (@ Shallow Digger) contains 34 Sharp Stone.
-        // Transition 722+36 → 722+39 expands to 34+36 → 34+39.
-        assert!(
-            db.find_transition(34, 36).is_some(),
-            "sharp stone on seeding wild carrot must resolve via category 722"
-        );
-        let t = db.find_transition(34, 36).unwrap();
-        assert_eq!(t.new_target_id, 39, "dug wild carrot");
-        // Dummy ids allocated for multi-use objects like stone pile 661.
-        let pile = db.get(661).expect("stone pile");
-        assert!(pile.num_uses >= 2);
-        assert_eq!(pile.dummy_ids.len(), (pile.num_uses - 1) as usize);
-        assert_eq!(db.wire_id_for_uses(661, pile.num_uses), 661);
-        assert_ne!(db.wire_id_for_uses(661, 1), 661);
-        assert_eq!(
-            db.resolve_base_id(db.wire_id_for_uses(661, 1)),
-            661
-        );
-    }
-
-    #[test]
-    fn real_data_transition_goldens() {
-        let roots = [
-            PathBuf::from("content/OneLifeData7"),
-            PathBuf::from(r"C:\OhOl\OpenLife\OneLifeData7"),
-            PathBuf::from(r"C:\OhOl\OpenLifeReborn\content\OneLifeData7"),
-        ];
-        let root = roots.into_iter().find(|p| p.join("transitions").is_dir());
-        let Some(root) = root else {
-            eprintln!("skip real_data_transition_goldens — no OneLifeData7");
-            return;
-        };
-        let cases = [
-            ("0_63.txt", 0, 63, 64, 48),
-            ("0_242.txt", 0, 242, 223, 242),
-            ("0_36.txt", 0, 36, 395, 404),
-        ];
-        for (file, actor, target, new_a, new_t) in cases {
-            let path = root.join("transitions").join(file);
-            assert!(path.is_file(), "missing {path:?}");
-            let tr = load_transition_file(&path).expect(file);
-            assert_eq!(tr.actor_id, actor, "{file} actor");
-            assert_eq!(tr.target_id, target, "{file} target");
-            assert_eq!(tr.new_actor_id, new_a, "{file} new_actor");
-            assert_eq!(tr.new_target_id, new_t, "{file} new_target");
-            assert!(!tr.last_use_actor && !tr.last_use_target, "{file} not last-use");
-        }
-        // Full load: find_transition must match goldens (Haxe lookup path).
-        let db = load_content(&root).expect("load_content");
-        assert!(db.object_count() > 100);
-        assert!(db.transition_count > 100);
-        for &(_, a, t, na, nt) in &cases {
-            let tr = db
-                .find_transition(a, t)
-                .unwrap_or_else(|| panic!("missing transition {a}+{t}"));
-            assert_eq!(tr.new_actor_id, na);
-            assert_eq!(tr.new_target_id, nt);
-        }
-        // Timing fields populated on load.
-        assert!(db.load_objects_ms > 0 || db.load_total_ms > 0);
-        assert!(db.load_transitions_ms > 0 || db.transition_count == 0);
-    }
-
-    #[test]
-    fn fixture_transition_matches_haxe_filename_parse() {
-        // Mirrors Haxe: stem actor_target, line "newActor newTarget …"
-        let dir = std::env::temp_dir().join("ol_content_golden_0_63");
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("0_63.txt");
-        let mut f = fs::File::create(&path).unwrap();
-        writeln!(f, "64 48 0").unwrap();
-        let t = load_transition_file(&path).unwrap();
-        assert_eq!((t.actor_id, t.target_id, t.new_actor_id, t.new_target_id), (0, 63, 64, 48));
-        let _ = fs::remove_dir_all(&dir);
-    }
-}
+include!("ai_should_ignore_patches.inc.rs");
+include!("alt_outcome_patches.inc.rs");
+include!("lib_tail.inc.rs");

@@ -1,0 +1,54 @@
+# Local playtest instance — alternate ports so default 8005/8080 stay free.
+# Usage (from RustServer cwd):
+#   target\debug\ol-server.exe server-playtest.toml
+#   target\release\ol-server.exe server-playtest.toml
+
+game_port = 8015
+web_port = 8090
+bind = "127.0.0.1"
+max_players = 32
+required_version = 437
+client_version_strict = false
+content_path = "content/OneLifeData7"
+challenge_len = 48
+tick_hz = 20
+sim_speed = 1.0
+enable_game_net = true
+enable_web = true
+
+# Local/dev clients: skip remote ticket server
+verify_ohol_ticket = false
+ticket_verify_url = "https://onehouronelife.com/ticketServer/server.php"
+
+map_png_path = "maps/mysteraV1Test.png"
+save_directory = "SaveFiles/playtest8015"
+generate_map_if_missing = true
+force_regenerate_map = false
+natural_object_density = 0.4
+
+selfplay_enabled = false
+selfplay_agents = 0
+craft_graph_seed_cap = 50000
+twin_peers = []
+
+timed_movement = true
+move_jump_max_chebyshev = 2
+intent_drain_budget = 64
+ops_sample_every_ticks = 100
+ops_flush_secs = 300
+ops_journal_path = "SaveFiles/playtest8015/ops_metrics.journal"
+
+npc_enabled = false
+npc_min = 0
+npc_max = 0
+ai_think_period_ticks = 10
+ai_observe_radius = 16
+ai_craft_radius = 50
+broadcast_all_updates = false
+shutdown_countdown_secs = 3
+shutdown_apocalypse_secs = 3
+
+eternal_winter = false
+season_duration_years = 7.5
+settings_hot_reload = true
+settings_reload_every_ticks = 200

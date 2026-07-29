@@ -26,6 +26,17 @@
 5. Before publishing this folder:  
    `rg -i "api[_-]?key|sk-|xai-|password\s*=" --glob '!content/**'`  
    and review `git status` for `.env` / `SaveFiles` / `auth.json`.
+6. Haxe `ServerSettings.AiApiKey` / `Secret` are **SecretOmit** in `ol-config` field map — they must never appear in `server.toml` dumps.
+
+## What to commit vs ignore (scripts)
+
+| Keep in git | Leave local / gitignored |
+|-------------|--------------------------|
+| `scripts/start-server.ps1`, `stop-server.ps1`, `watch-server.ps1` | `scripts/patch_*.py`, `fix_*.py`, `apply_*.py` (one-shot port edits) |
+| `crates/**/src/**/*.rs`, `build.rs`, `Cargo.toml`, `server.toml` | `crates/**/_patch_*`, `_apply_*`, `build_ai_*.rs` agent injectors, `*.rs.txt` snippets |
+| `docs/port/*.md` (port kit when you stage it) | `SaveFiles/`, `target/`, `content/OneLifeData7/`, `.env`, `.grok/` |
+
+One-shot agent scripts are **not** required for further development or `cargo test` once their edits are already in the Rust sources. They are ignored so they are not published by accident; delete locally anytime.
 
 ## Removed from this copy (vs OpenLifeReborn)
 

@@ -1,0 +1,18 @@
+# Local cargo config for faster Open Life Rust server builds (Windows MSVC).
+# Checked into the repo so all agents/workflows share the same linker.
+
+[build]
+# Prefer more parallelism when cargo auto-detect under-counts (optional override).
+# jobs = 8
+
+[target.x86_64-pc-windows-msvc]
+# rust-lld links large debug binaries much faster than link.exe for this tree.
+linker = "rust-lld"
+
+[alias]
+# Quick typecheck without linking a full server binary.
+ck = "check -p ol-server"
+# Sim-focused check (main compile cost).
+cksim = "check -p ol-sim"
+# Focused lib tests (still heavy first compile).
+tsim = "test -p ol-sim --lib"
