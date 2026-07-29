@@ -673,7 +673,7 @@ fn sprite_hit_at_screen(
     sprites.get_sprite_hit(sprite_id, u, v)
 }
 
-/// Rest poses + parent chain (no anim sample — hover lite).
+/// Rest poses + Jason parent chain (no anim sample — hover lite).
 fn rest_sprite_poses(def: &ClientObjectDef) -> (Vec<f32>, Vec<f32>, Vec<f32>, Vec<bool>) {
     let n = def.sprites.len();
     let mut ox = vec![0.0f32; n];
@@ -686,46 +686,63 @@ fn rest_sprite_poses(def: &ClientObjectDef) -> (Vec<f32>, Vec<f32>, Vec<f32>, Ve
         orot[si] = spr.rot;
         posed[si] = true;
     }
-    for si in 0..n {
-        if !posed[si] {
-            continue;
-        }
-        if def.sprites[si].parent < 0 {
-            apply_parent_chain(si, &def.sprites, &mut ox, &mut oy, &mut orot, &posed);
-        }
-    }
+    // Identity deltas → Jason walk-up is a no-op; keep algorithm parity with render.rs.
+    apply_jason_parent_chain_hover(&def.sprites, &mut ox, &mut oy, &mut orot);
     (ox, oy, orot, posed)
 }
 
-/// Same transform as `render::apply_parent_chain` (Haxe Object.transformChild).
-fn apply_parent_chain(
-    parent_i: usize,
+/// Same algorithm as `render::apply_jason_parent_chain` (animationBank.cpp ~2505–2625).
+fn apply_jason_parent_chain_hover(
     sprites: &[ObjectSprite],
     ox: &mut [f32],
     oy: &mut [f32],
     orot: &mut [f32],
-    vis: &[bool],
 ) {
-    for i in 0..sprites.len() {
-        if sprites[i].parent != parent_i as i32 || !vis[i] {
-            continue;
+    let n = sprites.len();
+    if n == 0 {
+        return;
+    }
+    let mut dx = vec![0.0f32; n];
+    let mut dy = vec![0.0f32; n];
+    let mut drot = vec![0.0f32; n];
+    for i in 0..n {
+        dx[i] = ox[i] - sprites[i].x;
+        dy[i] = oy[i] - sprites[i].y;
+        drot[i] = orot[i] - sprites[i].rot;
+    }
+    for i in 0..n {
+        let mut sx = ox[i];
+        let mut sy = oy[i];
+        let mut rot = orot[i];
+        let mut next = sprites[i].parent;
+        while next >= 0 {
+            let p = next as usize;
+            if p >= n {
+                break;
+            }
+            let pdrot = drot[p];
+            if pdrot.abs() > 1e-12 {
+                let angle = -pdrot * std::f32::consts::TAU;
+                rot += pdrot;
+                let (s, c) = (-angle).sin_cos();
+                sx += c * dx[p] - s * dy[p];
+                sy += s * dx[p] + c * dy[p];
+                let cox = sx - sprites[p].x;
+                let coy = sy - sprites[p].y;
+                let (s2, c2) = angle.sin_cos();
+                let nox = c2 * cox - s2 * coy;
+                let noy = s2 * cox + c2 * coy;
+                sx += nox - cox;
+                sy += noy - coy;
+            } else {
+                sx += dx[p];
+                sy += dy[p];
+            }
+            next = sprites[p].parent;
         }
-        let p_rest_x = sprites[parent_i].x;
-        let p_rest_y = sprites[parent_i].y;
-        let p_rest_rot = sprites[parent_i].rot;
-        let pdx = ox[parent_i] - p_rest_x;
-        let pdy = oy[parent_i] - p_rest_y;
-        let drot = orot[parent_i] - p_rest_rot;
-        let cx = ox[i] - p_rest_x;
-        let cy = oy[i] - p_rest_y;
-        let angle = drot * std::f32::consts::TAU;
-        let (s, c) = angle.sin_cos();
-        let rx = cx * c - cy * s;
-        let ry = cx * s + cy * c;
-        ox[i] = p_rest_x + pdx + rx;
-        oy[i] = p_rest_y + pdy + ry;
-        orot[i] += drot;
-        apply_parent_chain(i, sprites, ox, oy, orot, vis);
+        ox[i] = sx;
+        oy[i] = sy;
+        orot[i] = rot;
     }
 }
 

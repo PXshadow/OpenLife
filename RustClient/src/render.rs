@@ -2066,15 +2066,11 @@ impl SceneRenderer {
             posed[si] = true;
         }
 
-        // Parent transform — include non-drawn posed layers so hand chain stays valid
-        for si in 0..n {
-            if !posed[si] {
-                continue;
-            }
-            if def.sprites[si].parent < 0 {
-                apply_parent_chain(si, &def.sprites, &mut ox, &mut oy, &mut orot, &posed);
-            }
-        }
+        // C++ animationBank.cpp ~2529–2533 + ~2505–2625:
+        // workingDelta = individual pose − rest; then walk *up* parent chain
+        // adding each ancestor's local delta (with compound rot), not Haxe
+        // re-parent. Age-invisible layers still contribute deltas as parents.
+        apply_jason_parent_chain(&def.sprites, &mut ox, &mut oy, &mut orot);
 
         // HoldingPos from hand (hideClosestArm==0) or body (≠0) — C++ drawObjectAnim
         // Rideable: hideAllLimbs true but hideClosestArm still 0 → hand attach is returned,
@@ -2625,42 +2621,87 @@ fn push_map_object_draw_items(
     }
 }
 
-/// Haxe `Object.transformChild`: re-parent animated children under parents.
-fn apply_parent_chain(
-    parent_i: usize,
+/// C++ `drawObjectAnim` parent-chain compound (animationBank.cpp ~2505–2625).
+///
+/// After individual layer poses are stored in `ox/oy/orot`:
+/// - `workingDeltaPos[i] = posed[i] - rest[i]`
+/// - `workingDeltaRot[i] = posedRot[i] - restRot[i]`
+/// For each sprite, walk `parent` links and accumulate ancestors' **local**
+/// deltas (not already-compounded parent world poses).
+///
+/// When `workingDeltaRot[parent] != 0`:
+/// ```text
+/// angle = -2π · dRot
+/// pos += rotate(parentDeltaPos, -angle)
+/// childOff = pos - parentRest
+/// pos += rotate(childOff, angle) - childOff
+/// rot += dRot
+/// ```
+/// Else: `pos += parentDeltaPos`.
+fn apply_jason_parent_chain(
     sprites: &[crate::content::ObjectSprite],
     ox: &mut [f32],
     oy: &mut [f32],
     orot: &mut [f32],
-    vis: &[bool],
 ) {
-    for i in 0..sprites.len() {
-        if sprites[i].parent != parent_i as i32 || !vis[i] {
-            continue;
-        }
-        // Rest poses
-        let p_rest_x = sprites[parent_i].x;
-        let p_rest_y = sprites[parent_i].y;
-        let p_rest_rot = sprites[parent_i].rot;
-        // Parent displacement from rest
-        let pdx = ox[parent_i] - p_rest_x;
-        let pdy = oy[parent_i] - p_rest_y;
-        let drot = orot[parent_i] - p_rest_rot;
-
-        // Child relative to parent rest
-        let cx = ox[i] - p_rest_x;
-        let cy = oy[i] - p_rest_y;
-        // Rotate relative offset by parent delta rot (turns → rad)
-        let angle = drot * std::f32::consts::TAU;
-        let (s, c) = angle.sin_cos();
-        let rx = cx * c - cy * s;
-        let ry = cx * s + cy * c;
-        ox[i] = p_rest_x + pdx + rx;
-        oy[i] = p_rest_y + pdy + ry;
-        orot[i] += drot;
-
-        apply_parent_chain(i, sprites, ox, oy, orot, vis);
+    let n = sprites.len();
+    if n == 0 {
+        return;
     }
+    // Local deltas from rest (C++ workingDelta*) — frozen before compounding.
+    let mut dx = vec![0.0f32; n];
+    let mut dy = vec![0.0f32; n];
+    let mut drot = vec![0.0f32; n];
+    for i in 0..n {
+        dx[i] = ox[i] - sprites[i].x;
+        dy[i] = oy[i] - sprites[i].y;
+        drot[i] = orot[i] - sprites[i].rot;
+    }
+
+    for i in 0..n {
+        let mut sx = ox[i];
+        let mut sy = oy[i];
+        let mut rot = orot[i];
+        let mut next = sprites[i].parent;
+        while next >= 0 {
+            let p = next as usize;
+            if p >= n {
+                break;
+            }
+            let pdrot = drot[p];
+            if pdrot.abs() > 1e-12 {
+                // C++: angle = -2π * workingDeltaRot[parent]
+                let angle = -pdrot * std::f32::consts::TAU;
+                rot += pdrot;
+
+                // pos += rotate(parentDelta, -angle)
+                let (rx, ry) = rotate2(dx[p], dy[p], -angle);
+                sx += rx;
+                sy += ry;
+
+                // arm-length: rotate (pos - parentRest) by angle
+                let cox = sx - sprites[p].x;
+                let coy = sy - sprites[p].y;
+                let (nox, noy) = rotate2(cox, coy, angle);
+                sx += nox - cox;
+                sy += noy - coy;
+            } else {
+                sx += dx[p];
+                sy += dy[p];
+            }
+            next = sprites[p].parent;
+        }
+        ox[i] = sx;
+        oy[i] = sy;
+        orot[i] = rot;
+    }
+}
+
+#[inline]
+fn rotate2(x: f32, y: f32, angle: f32) -> (f32, f32) {
+    // C++ minorGems doublePair::rotate — standard 2D rotation.
+    let (s, c) = angle.sin_cos();
+    (c * x - s * y, s * x + c * y)
 }
 
 // Re-export biome_color for tests / callers
@@ -3256,7 +3297,77 @@ mod tests {
         );
     }
 
-    /// Center-anchor Y must use **+ay** in Y-up object space (Haxe `dy += -inCenterY`).
+    /// Jason parent walk-up with nonzero parent rot (animationBank ~2599–2622).
+    #[test]
+    fn jason_parent_chain_matches_cpp_rot_formula() {
+        // Parent rest (0,0) rot 0; posed at (10,0) with drot=0.25 turns.
+        // Child rest (0,20) rot 0; posed same (no local anim).
+        let sprites = vec![
+            ObjectSprite {
+                x: 0.0,
+                y: 0.0,
+                rot: 0.0,
+                parent: -1,
+                ..Default::default()
+            },
+            ObjectSprite {
+                x: 0.0,
+                y: 20.0,
+                rot: 0.0,
+                parent: 0,
+                ..Default::default()
+            },
+        ];
+        let mut ox = vec![10.0f32, 0.0];
+        let mut oy = vec![0.0f32, 20.0];
+        let mut orot = vec![0.25f32, 0.0];
+        apply_jason_parent_chain(&sprites, &mut ox, &mut oy, &mut orot);
+
+        // Hand-eval C++:
+        // parent delta pos=(10,0), drot=0.25
+        // angle = -2π*0.25 = -π/2
+        // child starts (0,20)
+        // pos += rotate((10,0), -angle)=rotate((10,0), +π/2)=(0,10) → (0,30)
+        // childOff = (0,30)-(0,0)=(0,30)
+        // rotate(childOff, angle)=rotate((0,30), -π/2)=(30,0)
+        // pos += (30,0)-(0,30) → (0,30)+(30,-30)=(30,0)
+        // rot = 0 + 0.25
+        assert!(
+            (ox[1] - 30.0).abs() < 1e-3 && (oy[1] - 0.0).abs() < 1e-3,
+            "child after Jason chain expected (30,0), got ({},{})",
+            ox[1],
+            oy[1]
+        );
+        assert!((orot[1] - 0.25).abs() < 1e-4, "child rot accumulates parent drot");
+        // Parent unchanged (no ancestors)
+        assert!((ox[0] - 10.0).abs() < 1e-4 && (oy[0] - 0.0).abs() < 1e-4);
+    }
+
+    /// Zero-rot parent chain = sum of local deltas (Jason else branch).
+    #[test]
+    fn jason_parent_chain_translate_only() {
+        let sprites = vec![
+            ObjectSprite {
+                x: 0.0,
+                y: 0.0,
+                parent: -1,
+                ..Default::default()
+            },
+            ObjectSprite {
+                x: 5.0,
+                y: 10.0,
+                parent: 0,
+                ..Default::default()
+            },
+        ];
+        let mut ox = vec![3.0f32, 5.0]; // parent delta (3,0); child no local delta
+        let mut oy = vec![0.0f32, 10.0];
+        let mut orot = vec![0.0f32, 0.0];
+        apply_jason_parent_chain(&sprites, &mut ox, &mut oy, &mut orot);
+        assert!((ox[1] - 8.0).abs() < 1e-4 && (oy[1] - 10.0).abs() < 1e-4);
+    }
+
+    /// Center-anchor Y must use **+ay** in Y-up object space (SpriteGL posY + offset.y).
     /// Wrong sign floats hair above the head and opens a neck gap on person 19.
     #[test]
     fn center_anchor_y_sign_keeps_hair_on_head() {

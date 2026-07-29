@@ -146,7 +146,8 @@ Mouth skip when any emot has `mouthEmot != 0`.
 - [x] Age body/head offsets (`ageControl.cpp`); exclusive age end bound.
 - [x] Behind-player sprites under player; front permanent/non-perm/wall after.
 - [x] Max zoom still full figure (`ZOOM_MAX` integration test).
-- [x] **centerAnchor Y sign**: geometric = `(pos.x - ax, pos.y + ay)` in Y-up (Haxe `tile.dy += -inCenterY`); wrong `-ay` floats hair and opens neck gap.
+- [x] **centerAnchor Y sign**: geometric = `(pos.x - ax, pos.y + ay)` in Y-up (`SpriteGL` `posY + offset.y`); wrong `-ay` floats hair and opens neck gap.
+- [x] **Parent chain = Jason walk-up** on local `workingDelta` (not Haxe re-parent); see `JASON_PLAYER_DRAW_AUDIT.md`.
 
 ---
 
