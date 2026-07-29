@@ -23,6 +23,7 @@ This folder is the **AI + human overview** of how the Open Life / OHOL **Rust cl
 | Source | Use for |
 |--------|---------|
 | C++ `LivingLifePage` + banks | Gameplay / wire parity |
+| [JASON_PLAYER_DRAW.md](JASON_PLAYER_DRAW.md) | Person/clothing/map **draw order** (C++ anchors) |
 | Haxe Open Life client | Fast load, BinPack atlas, bake patterns |
 | `protocol.txt` | Wire framing and message shapes |
 | This tree’s Rust modules | What we actually ship |

@@ -111,15 +111,73 @@ pub fn select_packs_for_player(o: &LiveObject) -> PlayerAnimSelection {
     }
 }
 
-/// Head/body object-space anchors after person pose (for PE emotion layers).
+/// Head/body/feet object-space anchors after person pose (Jason clothing attach + PE).
+///
+/// // C++ animationBank: animHeadPos / animBodyPos / foot spritePos + clothingOffset
 #[derive(Debug, Clone, Copy, Default)]
 struct PersonAnchors {
     head: Option<(f32, f32, f32)>, // x, y, rot turns
     body: Option<(f32, f32, f32)>,
+    front_foot: Option<(f32, f32, f32)>,
+    back_foot: Option<(f32, f32, f32)>,
     /// Head + `mainEyesOffset` (rotated by head rot) for PE `eyeEmot` (P3#19).
     eyes: Option<(f32, f32, f32)>,
     /// True when person has eyes for emot placement this age.
     has_eyes: bool,
+}
+
+/// Jason clothing slot → body-part anchor (animationBank clothing passes).
+///
+/// Slot: 0=hat, 1=tunic, 2=frontShoe, 3=backShoe, 4=bottom, 5=backpack.
+fn clothing_anchor_for_slot(
+    anchors: &PersonAnchors,
+    slot_i: usize,
+) -> Option<(f32, f32, f32)> {
+    match slot_i {
+        0 => anchors.head.or(anchors.body), // hat → head
+        1 | 4 | 5 => anchors.body.or(anchors.head), // tunic / bottom / backpack
+        2 => anchors.front_foot.or(anchors.body), // front shoe
+        3 => anchors.back_foot.or(anchors.body), // back shoe
+        _ => anchors.body.or(anchors.head),
+    }
+}
+
+/// Screen position for worn clothing: animated body-part + **rotated** clothingOffset.
+///
+/// // C++ animationBank ~2773–2796 / hat ~3555–3569:
+/// // if flipH: offset.x *= -1; rotate(offset, ±2π·partRot); cPos = flippedPart + offset + inPos
+fn clothing_screen_pos(
+    person_sx: f32,
+    person_sy: f32,
+    part: (f32, f32, f32),
+    clothing_offset: (f32, f32),
+    scale: f32,
+    flip: bool,
+) -> (f32, f32) {
+    let (ax, ay, ar) = part;
+    let mut ox = clothing_offset.0;
+    let mut oy = clothing_offset.1;
+    if flip {
+        ox = -ox;
+    }
+    // C++: rotate clothingOffset by body-part rot before adding to part pos.
+    if ar.abs() > 1e-8 {
+        let angle = if flip {
+            ar * std::f32::consts::TAU
+        } else {
+            -ar * std::f32::consts::TAU
+        };
+        let (s, c) = angle.sin_cos();
+        let rx = ox * c - oy * s;
+        let ry = ox * s + oy * c;
+        ox = rx;
+        oy = ry;
+    }
+    // Anchors stored unflipped; Jason flips part.x when inFlipH before adding offset.
+    let part_x = if flip { -ax } else { ax };
+    let cx = person_sx + (part_x + ox) * scale;
+    let cy = person_sy - (ay + oy) * scale;
+    (cx, cy)
 }
 
 /// Object design units per world tile (Haxe GRID / C++ CELL_D).
@@ -543,7 +601,8 @@ enum SpriteLayerFilter {
 }
 
 struct YSortItem {
-    /// Higher y draws later (in front) when screen Y grows down from world-up.
+    /// World tile Y. Jason draws **high Y first** (north → south) so southern
+    /// objects/players paint over northern ones (`LivingLifePage` yEnd→yStart).
     sort_y: i32,
     layer: DrawLayer,
     kind: DrawKind,
@@ -868,9 +927,11 @@ impl SceneRenderer {
                 });
             }
         }
+        // C++ LivingLifePage ~8215/8261: `for (y = yEnd; y >= yStart; y--)` — high Y first.
+        // Then within a row, layer order (BehindPlayer < Player < Front*).
         items.sort_by(|a, b| {
-            a.sort_y
-                .cmp(&b.sort_y)
+            b.sort_y
+                .cmp(&a.sort_y)
                 .then_with(|| a.layer.cmp(&b.layer))
         });
 
@@ -1046,7 +1107,9 @@ impl SceneRenderer {
                         }
                     }
 
-                    let (holding_pos, person_anchors) = self.draw_object_with_pack(
+                    // Person + interleaved worn clothing (Jason: body clothes under
+                    // top back arm; shoes on feet; hat after all body sprites).
+                    let (holding_pos, person_anchors) = self.draw_object_with_pack_ex(
                         fb,
                         content,
                         sprites,
@@ -1057,14 +1120,17 @@ impl SceneRenderer {
                         person_sy,
                         flip,
                         holding,
-                        false, // worn
+                        false, // worn (person not clothing)
                         hide_closest_arm,
                         hide_all_limbs,
                         SpriteLayerFilter::All,
                         hide_mouth,
+                        Some(clothing_draw.as_slice()),
                     );
 
-                    // L-EMOT: bodyEmot under clothing (C++ under top arm / tunic)
+                    // L-EMOT: bodyEmot under clothing was drawn mid-arm in C++; here
+                    // after person+clothes so body emote still sits on the figure.
+                    // (Full mid-arm PE interleave residual if bodyEmot must under tunic.)
                     self.draw_emotion_layers(
                         fb,
                         content,
@@ -1078,75 +1144,6 @@ impl SceneRenderer {
                         flip,
                         EmotDrawPhase::Body,
                     );
-
-                    // ClothingSet — dual-fade clocks match person (C++ clothingAnimType)
-                    // worn=true → hide invisWorn layers on clothing sprites.
-                    // Contained (backpack/quiver/…) at clothing `slot_pos` so soft-FB open
-                    // matches hit-test (P1#6; was hit-test-only after P1#5).
-                    // // C++: drawObjectAnim clothing + clothingContained at slotPos
-                    let cloth_anim_type = select_clothing_anim_type(person_pack.anim_type);
-                    for &(_slot_i, cloth_id, ref cloth_raw) in &clothing_draw {
-                        let (ox, oy) = content
-                            .get(cloth_id)
-                            .map(|d| d.clothing_offset)
-                            .unwrap_or((0.0, 0.0));
-                        let cx = person_sx + ox * scale * flip_s;
-                        let cy = person_sy - oy * scale;
-                        let mut cloth_pack = clothing_pack_from_person(&person_pack, cloth_id);
-                        let _ = self.draw_object_with_pack(
-                            fb,
-                            content,
-                            sprites,
-                            anims,
-                            &mut cloth_pack,
-                            age,
-                            cx,
-                            cy,
-                            flip,
-                            false,
-                            true, // worn
-                            0,
-                            false,
-                            SpriteLayerFilter::All,
-                            false,
-                        );
-                        // Contained in this worn clothing container (hover_pick offsets).
-                        let contained = crate::client_map::parse_object_raw_contained(cloth_raw);
-                        if contained.is_empty() {
-                            continue;
-                        }
-                        let slots = content
-                            .get(cloth_id)
-                            .map(|d| d.slot_pos.clone())
-                            .unwrap_or_default();
-                        for (i, child) in contained.iter().enumerate() {
-                            if child.id <= 0 {
-                                continue;
-                            }
-                            let (mut sox, mut soy) =
-                                slots.get(i).copied().unwrap_or((0.0, (i as f32) * 8.0));
-                            let mut slot_pack =
-                                clothing_pack_from_person(&person_pack, cloth_id);
-                            let slot_s = sample_slot_pack(anims, &mut slot_pack, i);
-                            sox += slot_s.x;
-                            soy += slot_s.y;
-                            let csx = cx + sox * scale * flip_s;
-                            let csy = cy - soy * scale;
-                            self.draw_object_stack(
-                                fb,
-                                content,
-                                sprites,
-                                anims,
-                                child,
-                                cloth_anim_type,
-                                age,
-                                csx,
-                                csy,
-                                flip,
-                                SpriteLayerFilter::All,
-                            );
-                        }
-                    }
 
                     // L-EMOT: eye/face/mouth/other after clothing base
                     self.draw_emotion_layers(
@@ -1820,6 +1817,9 @@ impl SceneRenderer {
     ///
     /// // C++: drawObjectAnimPacked working pos/rot/fade blend + hideClosestArm
     /// // Haxe: Object.update single-record only — dual fade is Jason parity
+    ///
+    /// `worn_clothing`: optional `(slot_i, cloth_id, raw)` list drawn **interleaved**
+    /// with person sprites (Jason: body clothes under top back arm; shoes on feet; hat last).
     fn draw_object_with_pack(
         &self,
         fb: &mut Framebuffer,
@@ -1838,6 +1838,46 @@ impl SceneRenderer {
         sprite_filter: SpriteLayerFilter,
         // P3#19: skip person mouth sprite when PE `mouthEmot` is active (C++).
         hide_mouth: bool,
+    ) -> (HoldingPos, PersonAnchors) {
+        self.draw_object_with_pack_ex(
+            fb,
+            content,
+            sprites,
+            anims,
+            pack,
+            age,
+            screen_x,
+            screen_y,
+            flip,
+            holding,
+            worn,
+            hide_closest_arm,
+            hide_all_limbs,
+            sprite_filter,
+            hide_mouth,
+            None,
+        )
+    }
+
+    fn draw_object_with_pack_ex(
+        &self,
+        fb: &mut Framebuffer,
+        content: &ClientContent,
+        sprites: &mut SpriteBank,
+        anims: &mut AnimBank,
+        pack: &mut ObjectAnimPack,
+        age: f32,
+        screen_x: f32,
+        screen_y: f32,
+        flip: bool,
+        holding: bool,
+        worn: bool,
+        hide_closest_arm: i32,
+        hide_all_limbs: bool,
+        sprite_filter: SpriteLayerFilter,
+        hide_mouth: bool,
+        /// Person worn clothing slots to interleave (Jason animationBank order).
+        worn_clothing: Option<&[(usize, i32, String)]>,
     ) -> (HoldingPos, PersonAnchors) {
         let object_id = pack.object_id;
         let scale = (self.camera.zoom / GRID).max(0.05);
@@ -1895,6 +1935,29 @@ impl SceneRenderer {
         } else {
             None
         };
+        let front_foot_idx = if def.person != 0 {
+            Some(def.front_foot_index(age))
+        } else {
+            None
+        };
+        let back_foot_idx = if def.person != 0 {
+            Some(def.back_foot_index(age))
+        } else {
+            None
+        };
+        // C++ topBackArmIndex = last of backArmIndices — body clothes draw under it.
+        let top_back_arm_idx = if def.person != 0 {
+            let arms = def.back_arm_indices(age);
+            arms.last().copied()
+        } else {
+            None
+        };
+        // Rest poses for C++ getAgeHeadOffset / getAgeBodyOffset.
+        let head_rest = head_idx.map(|i| def.sprite_rest_pos(i)).unwrap_or((0.0, 0.0));
+        let body_rest = body_idx.map(|i| def.sprite_rest_pos(i)).unwrap_or((0.0, 0.0));
+        let front_foot_rest = front_foot_idx
+            .map(|i| def.sprite_rest_pos(i))
+            .unwrap_or((0.0, 0.0));
 
         // Evaluate base object-space poses (+ dual-anim sample), then parent hierarchy.
         // Pose is computed even for layers we skip drawing (hand HoldingPos needs hand pose
@@ -1909,27 +1972,28 @@ impl SceneRenderer {
         let mut posed = vec![false; n];
         let mut draw = vec![true; n];
 
+        // Pose ALL sprites first (Jason computes workingSpritePos for every layer,
+        // then skips drawing age-invisible ones). Skipping pose on age-gated parents
+        // broke the parent chain and left only orphan limbs/hat visible.
         for (si, spr) in def.sprites.iter().enumerate() {
-            if !spr.visible_at_age(age) {
-                draw[si] = false;
-                continue;
-            }
             // Tall-object layer filter (C++ prepareToSkipSprites / spriteBehindPlayer)
             match sprite_filter {
                 SpriteLayerFilter::All => {}
                 SpriteLayerFilter::BehindPlayerOnly if !spr.behind_player => {
                     draw[si] = false;
-                    continue;
                 }
                 SpriteLayerFilter::NotBehindPlayer if spr.behind_player => {
                     draw[si] = false;
-                    continue;
                 }
                 _ => {}
             }
-            // Draw-skip flags (pose still evaluated below when posed)
+            // Draw-skip flags — pose still computed so children keep parent chain.
             // P4#25: C++ spriteSkipDrawing from setupSpriteUseVis (multi-use stages)
             if spr.skip_drawing {
+                draw[si] = false;
+            }
+            // C++ isSpriteVisibleAtAge — skip drawing aging layer entirely (~2575)
+            if def.person != 0 && !spr.visible_at_age(age) {
                 draw[si] = false;
             }
             if holding && spr.invis_holding {
@@ -1967,6 +2031,19 @@ impl SceneRenderer {
             let sample = sample_sprite_pack(anims, pack, si);
             let mut px = spr.x + sample.x;
             let mut py = spr.y + sample.y;
+            // C++ ageControl: head/body rest offset for babies / elders before parent chain.
+            if def.person != 0 {
+                if head_idx == Some(si) {
+                    let (dx, dy) =
+                        crate::content::age_head_offset(age, head_rest, body_rest, front_foot_rest);
+                    px += dx;
+                    py += dy;
+                } else if body_idx == Some(si) {
+                    let (dx, dy) = crate::content::age_body_offset(age, body_rest.1);
+                    px += dx;
+                    py += dy;
+                }
+            }
             // spr.rot is turns; sample.rot treated as turns (animParam subset)
             let rot = spr.rot + sample.rot;
             // C++: if rotCenterOffset nonzero, adjust spritePos so pivot is correct
@@ -2026,7 +2103,7 @@ impl SceneRenderer {
                     }
                 }
             }
-            // Head/body anchors for PE emotion object layers
+            // Head/body/feet anchors for PE + Jason clothing attach
             if let Some(hi) = head_idx {
                 if posed[hi] {
                     anchors.head = Some((ox[hi], oy[hi], orot[hi]));
@@ -2037,12 +2114,28 @@ impl SceneRenderer {
                     anchors.body = Some((ox[bi], oy[bi], orot[bi]));
                 }
             }
+            if let Some(fi) = front_foot_idx {
+                if posed[fi] {
+                    anchors.front_foot = Some((ox[fi], oy[fi], orot[fi]));
+                }
+            }
+            if let Some(bi) = back_foot_idx {
+                if posed[bi] {
+                    anchors.back_foot = Some((ox[bi], oy[bi], orot[bi]));
+                }
+            }
             // Fallback: if head index missing, use body for face layers.
             if anchors.head.is_none() {
                 anchors.head = anchors.body;
             }
             if anchors.body.is_none() {
                 anchors.body = anchors.head;
+            }
+            if anchors.front_foot.is_none() {
+                anchors.front_foot = anchors.body;
+            }
+            if anchors.back_foot.is_none() {
+                anchors.back_foot = anchors.front_foot.or(anchors.body);
             }
             // P3#19: eyes anchor = posed head + rotated mainEyesOffset
             // // C++: cPos = animHeadPos + rotate(mainEyesOffset, -2π·headRot)
@@ -2058,49 +2151,235 @@ impl SceneRenderer {
             }
         }
 
-        for (si, spr) in def.sprites.iter().enumerate() {
-            if !posed[si] || !draw[si] {
-                continue;
-            }
-            let Some(rect) = sprites.ensure(spr.sprite_id) else {
-                continue;
+        // Jason: body clothes under top back arm *before* that arm sprite is blitted.
+        let draw_body_clothes = |fb: &mut Framebuffer,
+                                 sprites: &mut SpriteBank,
+                                 anims: &mut AnimBank,
+                                 anchors: &PersonAnchors,
+                                 person_pack: &ObjectAnimPack| {
+            let Some(list) = worn_clothing else {
+                return;
             };
-            let page = &sprites.pages()[rect.atlas_index];
-            // Center-anchor offset (C++ centerAnchor / Haxe inCenter)
-            let ax = rect.center_anchor_x as f32;
-            let ay = rect.center_anchor_y as f32;
-            let px = ox[si] - ax;
-            let py = oy[si] - ay;
+            // bottom(4), tunic(1), backpack(5) — animationBank ~2958–3071
+            for &slot in &[4usize, 1, 5] {
+                if let Some((_, cid, raw)) = list.iter().find(|(s, _, _)| *s == slot) {
+                    Self::draw_one_worn_clothing(
+                        self,
+                        fb,
+                        content,
+                        sprites,
+                        anims,
+                        person_pack,
+                        anchors,
+                        *slot,
+                        *cid,
+                        raw,
+                        screen_x,
+                        screen_y,
+                        scale,
+                        flip,
+                        age,
+                    );
+                }
+            }
+        };
+        let draw_shoe = |fb: &mut Framebuffer,
+                         sprites: &mut SpriteBank,
+                         anims: &mut AnimBank,
+                         anchors: &PersonAnchors,
+                         person_pack: &ObjectAnimPack,
+                         slot: usize| {
+            let Some(list) = worn_clothing else {
+                return;
+            };
+            if let Some((_, cid, raw)) = list.iter().find(|(s, _, _)| *s == slot) {
+                Self::draw_one_worn_clothing(
+                    self,
+                    fb,
+                    content,
+                    sprites,
+                    anims,
+                    person_pack,
+                    anchors,
+                    slot,
+                    *cid,
+                    raw,
+                    screen_x,
+                    screen_y,
+                    scale,
+                    flip,
+                    age,
+                );
+            }
+        };
 
-            // Screen: flip X when facing left
-            let dx = screen_x + px * scale * if flip { -1.0 } else { 1.0 };
-            let dy = screen_y - py * scale;
-            let mut h_flip = spr.h_flip ^ flip;
-            if rect.no_flip {
-                h_flip = spr.h_flip; // ignore facing flip when NoFlip
+        for (si, spr) in def.sprites.iter().enumerate() {
+            // Body clothes under top of back arm (before arm blit).
+            if def.person != 0 && top_back_arm_idx == Some(si) {
+                draw_body_clothes(fb, sprites, anims, &anchors, pack);
             }
-            let mut rot = orot[si];
-            if flip {
-                rot = -rot;
+
+            if posed[si] && draw[si] {
+                if let Some(rect) = sprites.ensure(spr.sprite_id) {
+                    let page = &sprites.pages()[rect.atlas_index];
+                    // Center-anchor offset (C++ centerAnchor / Haxe inCenter)
+                    let ax = rect.center_anchor_x as f32;
+                    let ay = rect.center_anchor_y as f32;
+                    let px = ox[si] - ax;
+                    let py = oy[si] - ay;
+
+                    // Screen: flip X when facing left
+                    let dx = screen_x + px * scale * if flip { -1.0 } else { 1.0 };
+                    let dy = screen_y - py * scale;
+                    let mut h_flip = spr.h_flip ^ flip;
+                    if rect.no_flip {
+                        h_flip = spr.h_flip; // ignore facing flip when NoFlip
+                    }
+                    let mut rot = orot[si];
+                    if flip {
+                        rot = -rot;
+                    }
+                    fb.blit_sprite(
+                        &page.pixels,
+                        page.width,
+                        rect.rect.x,
+                        rect.rect.y,
+                        rect.width,
+                        rect.height,
+                        dx,
+                        dy,
+                        scale,
+                        h_flip,
+                        [spr.r, spr.g, spr.b],
+                        rot,
+                        rect.multiplicative_blend,
+                        ofade[si],
+                    );
+                }
             }
-            fb.blit_sprite(
-                &page.pixels,
-                page.width,
-                rect.rect.x,
-                rect.rect.y,
-                rect.width,
-                rect.height,
-                dx,
-                dy,
-                scale,
-                h_flip,
-                [spr.r, spr.g, spr.b],
-                rot,
-                rect.multiplicative_blend,
-                ofade[si],
+
+            // Shoes on top of feet (after foot sprite).
+            if def.person != 0 && back_foot_idx == Some(si) {
+                draw_shoe(fb, sprites, anims, &anchors, pack, 3); // backShoe
+            }
+            if def.person != 0 && front_foot_idx == Some(si) {
+                draw_shoe(fb, sprites, anims, &anchors, pack, 2); // frontShoe
+            }
+        }
+
+        // Hat on top of everything (Jason ~3549 after sprite loop).
+        if def.person != 0 {
+            if let Some(list) = worn_clothing {
+                if let Some((_, cid, raw)) = list.iter().find(|(s, _, _)| *s == 0) {
+                    Self::draw_one_worn_clothing(
+                        self,
+                        fb,
+                        content,
+                        sprites,
+                        anims,
+                        pack,
+                        &anchors,
+                        0,
+                        *cid,
+                        raw,
+                        screen_x,
+                        screen_y,
+                        scale,
+                        flip,
+                        age,
+                    );
+                }
+            }
+        }
+
+        // If no top back arm (no arms), still draw body clothes after all body layers.
+        if def.person != 0 && top_back_arm_idx.is_none() && worn_clothing.is_some() {
+            draw_body_clothes(fb, sprites, anims, &anchors, pack);
+        }
+
+        (holding_out, anchors)
+    }
+
+    /// Draw one worn clothing object + contained at Jason body-part attach pos.
+    fn draw_one_worn_clothing(
+        &self,
+        fb: &mut Framebuffer,
+        content: &ClientContent,
+        sprites: &mut SpriteBank,
+        anims: &mut AnimBank,
+        person_pack: &ObjectAnimPack,
+        anchors: &PersonAnchors,
+        slot_i: usize,
+        cloth_id: i32,
+        cloth_raw: &str,
+        person_sx: f32,
+        person_sy: f32,
+        scale: f32,
+        flip: bool,
+        age: f32,
+    ) {
+        if cloth_id <= 0 {
+            return;
+        }
+        let (ox, oy) = content
+            .get(cloth_id)
+            .map(|d| d.clothing_offset)
+            .unwrap_or((0.0, 0.0));
+        let part = clothing_anchor_for_slot(anchors, slot_i).unwrap_or((0.0, 0.0, 0.0));
+        let (cx, cy) = clothing_screen_pos(person_sx, person_sy, part, (ox, oy), scale, flip);
+        let mut cloth_pack = clothing_pack_from_person(person_pack, cloth_id);
+        let _ = self.draw_object_with_pack(
+            fb,
+            content,
+            sprites,
+            anims,
+            &mut cloth_pack,
+            age,
+            cx,
+            cy,
+            flip,
+            false,
+            true, // worn
+            0,
+            false,
+            SpriteLayerFilter::All,
+            false,
+        );
+        let contained = crate::client_map::parse_object_raw_contained(cloth_raw);
+        if contained.is_empty() {
+            return;
+        }
+        let flip_s = if flip { -1.0 } else { 1.0 };
+        let slots = content
+            .get(cloth_id)
+            .map(|d| d.slot_pos.clone())
+            .unwrap_or_default();
+        let cloth_anim_type = select_clothing_anim_type(person_pack.anim_type);
+        for (i, child) in contained.iter().enumerate() {
+            if child.id <= 0 {
+                continue;
+            }
+            let (mut sox, mut soy) = slots.get(i).copied().unwrap_or((0.0, (i as f32) * 8.0));
+            let mut slot_pack = clothing_pack_from_person(person_pack, cloth_id);
+            let slot_s = sample_slot_pack(anims, &mut slot_pack, i);
+            sox += slot_s.x;
+            soy += slot_s.y;
+            let csx = cx + sox * scale * flip_s;
+            let csy = cy - soy * scale;
+            self.draw_object_stack(
+                fb,
+                content,
+                sprites,
+                anims,
+                child,
+                cloth_anim_type,
+                age,
+                csx,
+                csy,
+                flip,
+                SpriteLayerFilter::All,
             );
         }
-        (holding_out, anchors)
     }
 
     /// Draw PE emotion object layers at person head/body anchors.
@@ -2894,8 +3173,9 @@ mod tests {
     }
 
     #[test]
-    fn ysort_higher_y_player_overwrites() {
-        // Player at higher world y is drawn later → overwrites shared screen pixels.
+    fn ysort_higher_y_drawn_first_southern_overwrites() {
+        // Jason: high world Y drawn first; low Y later → southern player overwrites north.
+        // Red at y=1 (north), blue at y=0 (south). Blue must still be visible after red.
         let mut scene = SceneRenderer::default();
         scene.ground = GroundBank::new();
         scene.camera.x = 0.5;
@@ -2943,18 +3223,31 @@ mod tests {
         sprites.ensure_rgba(902, &solid_sprite(48, 48, [0, 0, 255, 255]), None);
         let mut anims = AnimBank::new(".");
         let mut world = LiveWorld::new();
-        let pu_lo = sample_pu(1, 10, 0, 0, 0);
-        let pu_hi = sample_pu(2, 11, 0, 1, 0);
-        world.apply_pu(&pu_lo);
-        world.apply_pu(&pu_hi);
+        // id1 red at y=1 (north), id2 blue at y=0 (south)
+        let pu_north = sample_pu(1, 10, 0, 1, 0);
+        let pu_south = sample_pu(2, 11, 0, 0, 0);
+        world.apply_pu(&pu_north);
+        world.apply_pu(&pu_south);
         let mut fb = Framebuffer::new(128, 128);
         scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
-        // Center-ish should prefer blue (higher y = player 2) if they overlap
         let blue = count_near(&fb, [0, 0, 255]);
         let red = count_near(&fb, [255, 0, 0]);
         assert!(blue > 0 || red > 0, "players should paint");
-        // With ysort, higher-y (blue) should not be completely under red
-        assert!(blue > 0, "higher-y player must leave blue pixels");
+        // Southern (lower y) drawn later → blue must remain
+        assert!(blue > 0, "southern (low-y) player must leave blue pixels after northern red");
+    }
+
+    #[test]
+    fn clothing_offset_rotates_with_body_part() {
+        // Non-zero part rot must move clothing attach away from pure offset translate.
+        let part = (10.0f32, 20.0, 0.25); // quarter turn
+        let off = (8.0f32, 0.0);
+        let (x0, y0) = clothing_screen_pos(100.0, 100.0, (10.0, 20.0, 0.0), off, 1.0, false);
+        let (x1, y1) = clothing_screen_pos(100.0, 100.0, part, off, 1.0, false);
+        assert!(
+            (x0 - x1).abs() > 1.0 || (y0 - y1).abs() > 1.0,
+            "rotated offset must change attach pos: flat=({x0},{y0}) rot=({x1},{y1})"
+        );
     }
 
     #[test]

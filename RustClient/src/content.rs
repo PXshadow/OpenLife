@@ -96,17 +96,21 @@ impl Default for ObjectSprite {
 
 impl ObjectSprite {
     /// Visible for player age (years). `-1` range means always.
+    /// C++ `isSpriteVisibleAtAge` (objectBank.cpp ~6337): exclusive end bound.
     pub fn visible_at_age(&self, age: f32) -> bool {
         let a0 = self.age_start;
         let a1 = self.age_end;
         if a0 < 0.0 && a1 < 0.0 {
             return true;
         }
-        if a0 >= 0.0 && age < a0 {
-            return false;
-        }
-        if a1 >= 0.0 && age > a1 {
-            return false;
+        // C++: if either bound set, reject age < start OR age >= end
+        if a0 >= 0.0 || a1 >= 0.0 {
+            if a0 >= 0.0 && age < a0 {
+                return false;
+            }
+            if a1 >= 0.0 && age >= a1 {
+                return false;
+            }
         }
         true
     }
@@ -823,6 +827,68 @@ impl ClientObjectDef {
         self.body_part_index(age, |s| s.is_front_foot)
     }
 
+    /// Rest-pose (x,y) of body-part index, or (0,0).
+    pub fn sprite_rest_pos(&self, index: usize) -> (f32, f32) {
+        self.sprites
+            .get(index)
+            .map(|s| (s.x, s.y))
+            .unwrap_or((0.0, 0.0))
+    }
+}
+
+/// C++ `babyBodyDownFactor` (`ageControl.cpp` / settings default 0.75).
+pub const BABY_BODY_DOWN_FACTOR: f32 = 0.75;
+/// C++ `babyHeadDownFactor` (default 0.6).
+pub const BABY_HEAD_DOWN_FACTOR: f32 = 0.6;
+/// C++ `oldHeadDownFactor` (default 0.35).
+pub const OLD_HEAD_DOWN_FACTOR: f32 = 0.35;
+/// C++ `oldHeadForwardFactor` (default 2).
+pub const OLD_HEAD_FORWARD_FACTOR: f32 = 2.0;
+
+/// C++ `getAgeBodyOffset` — shift person body down when age < 20.
+///
+/// // C++ ageControl.cpp ~84–99
+pub fn age_body_offset(age: f32, body_sprite_pos_y: f32) -> (f32, f32) {
+    if age < 0.0 {
+        return (0.0, 0.0);
+    }
+    if age < 20.0 {
+        let max_body = body_sprite_pos_y;
+        let y_offset = ((20.0 - age) / 20.0) * BABY_BODY_DOWN_FACTOR * max_body;
+        return (0.0, -y_offset.round());
+    }
+    (0.0, 0.0)
+}
+
+/// C++ `getAgeHeadOffset` — baby head down; old age head down + forward.
+///
+/// // C++ ageControl.cpp ~41–79
+pub fn age_head_offset(
+    age: f32,
+    head_pos: (f32, f32),
+    body_pos: (f32, f32),
+    front_foot_pos: (f32, f32),
+) -> (f32, f32) {
+    if age < 0.0 {
+        return (0.0, 0.0);
+    }
+    if age < 20.0 {
+        let max_head = head_pos.1 - body_pos.1;
+        let y_offset = ((20.0 - age) / 20.0) * BABY_HEAD_DOWN_FACTOR * max_head;
+        return (0.0, -y_offset.round());
+    }
+    if age >= 40.0 {
+        let age_c = age.min(60.0);
+        let max_head = head_pos.1 - body_pos.1;
+        let vert = ((age_c - 40.0) / 20.0) * OLD_HEAD_DOWN_FACTOR * max_head;
+        let foot_offset = front_foot_pos.0 - head_pos.0;
+        let forward = ((age_c - 40.0) / 20.0) * OLD_HEAD_FORWARD_FACTOR * foot_offset;
+        return (forward.round(), -vert.round());
+    }
+    (0.0, 0.0)
+}
+
+impl ClientObjectDef {
     /// C++ `getEyesIndex` — top-most eyes layer visible at age, or `None` if missing.
     ///
     /// // C++ returns 0 when none; drawObjectAnim then maps 0 → -1 for emotes
@@ -2173,6 +2239,36 @@ mod tests {
         assert!(!shelf.side_access);
         assert!(shelf.no_back_access);
         assert!(shelf.description.contains("+noBackAccess") || shelf.name.contains("+noBackAccess"));
+    }
+
+    #[test]
+    fn age_body_and_head_offsets_match_jason() {
+        // Baby age 0: full body down by 0.75 * bodyY
+        let (bx, by) = age_body_offset(0.0, 40.0);
+        assert_eq!(bx, 0.0);
+        assert!((by - (-0.75 * 40.0)).abs() < 0.01);
+        // Adult: no body offset
+        assert_eq!(age_body_offset(25.0, 40.0), (0.0, 0.0));
+        // Head baby
+        let (hx, hy) = age_head_offset(0.0, (0.0, 80.0), (0.0, 40.0), (0.0, 0.0));
+        assert_eq!(hx, 0.0);
+        assert!(hy < 0.0);
+        // Head adult
+        assert_eq!(
+            age_head_offset(30.0, (0.0, 80.0), (0.0, 40.0), (10.0, 0.0)),
+            (0.0, 0.0)
+        );
+    }
+
+    #[test]
+    fn sprite_age_end_is_exclusive_like_cpp() {
+        let mut s = ObjectSprite::default();
+        s.age_start = 12.0;
+        s.age_end = 17.0;
+        assert!(!s.visible_at_age(11.0));
+        assert!(s.visible_at_age(12.0));
+        assert!(s.visible_at_age(16.9));
+        assert!(!s.visible_at_age(17.0)); // C++ age >= end
     }
 
     /// P3#23: C++ `setupWall` — floorHugging / +wall / -wall / +frontWall.
