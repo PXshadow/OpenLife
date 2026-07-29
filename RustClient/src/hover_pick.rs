@@ -575,10 +575,11 @@ fn object_sprites_hit_at(
         let Some(rect) = sprites.ensure(spr.sprite_id) else {
             continue;
         };
+        // Match render.rs: geometric = (pos.x - ax, pos.y + ay) in Y-up object space.
         let ax = rect.center_anchor_x as f32;
         let ay = rect.center_anchor_y as f32;
         let px = ox[si] - ax;
-        let py = oy[si] - ay;
+        let py = oy[si] + ay;
         let dx = screen_x + px * scale * if flip { -1.0 } else { 1.0 };
         let dy = screen_y - py * scale;
         let mut h_flip = spr.h_flip ^ flip;

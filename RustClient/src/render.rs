@@ -2224,11 +2224,15 @@ impl SceneRenderer {
             if posed[si] && draw[si] {
                 if let Some(rect) = sprites.ensure(spr.sprite_id) {
                     let page = &sprites.pages()[rect.atlas_index];
-                    // Center-anchor offset (C++ centerAnchor / Haxe inCenter)
+                    // Center-anchor (C++ setSpriteCenterOffset / Haxe inCenter).
+                    // Object space is Y-up; screen is Y-down. Haxe does:
+                    //   elem.y = worldY - sprite.y;  tile.dy += -inCenterYOffset
+                    // so geometric center is at object (pos.x - ax, pos.y + ay)
+                    // before the Y flip — i.e. add ay in object Y, subtract ax in X.
                     let ax = rect.center_anchor_x as f32;
                     let ay = rect.center_anchor_y as f32;
                     let px = ox[si] - ax;
-                    let py = oy[si] - ay;
+                    let py = oy[si] + ay;
 
                     // Screen: flip X when facing left
                     let dx = screen_x + px * scale * if flip { -1.0 } else { 1.0 };
@@ -3249,6 +3253,32 @@ mod tests {
         assert!(
             (x0 - x1).abs() > 1.0 || (y0 - y1).abs() > 1.0,
             "rotated offset must change attach pos: flat=({x0},{y0}) rot=({x1},{y1})"
+        );
+    }
+
+    /// Center-anchor Y must use **+ay** in Y-up object space (Haxe `dy += -inCenterY`).
+    /// Wrong sign floats hair above the head and opens a neck gap on person 19.
+    #[test]
+    fn center_anchor_y_sign_keeps_hair_on_head() {
+        // Synthetic: head at y=100, hair at y=120 with anchorY=-20.
+        // Correct geometric hair Y = 120 + (-20) = 100 → same as head → no gap.
+        // Wrong (subtract ay): 120 - (-20) = 140 → hair 40 units above head.
+        let head_oy = 100.0f32;
+        let hair_oy = 120.0f32;
+        let hair_ay = -20.0f32;
+        let head_ay = 0.0f32;
+        let scale = 1.0f32;
+        let sy = 200.0f32;
+        let head_screen = sy - (head_oy + head_ay) * scale;
+        let hair_screen = sy - (hair_oy + hair_ay) * scale;
+        assert!(
+            (head_screen - hair_screen).abs() < 1.0,
+            "hair+head screen Y must match with +ay anchor, head={head_screen} hair={hair_screen}"
+        );
+        let wrong_hair = sy - (hair_oy - hair_ay) * scale;
+        assert!(
+            (wrong_hair - head_screen).abs() > 30.0,
+            "documenting the old bug: wrong sign separates hair"
         );
     }
 
