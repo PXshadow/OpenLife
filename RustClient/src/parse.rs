@@ -1049,9 +1049,48 @@ pub fn parse_fd_message(body: &str) -> Option<FlightDest> {
     })
 }
 
-/// FL (FLIP): player ids that just flipped facing.
-pub fn parse_fl_message(body: &str) -> Vec<i32> {
-    parse_id_list_message(body)
+/// One FL (FLIP) line: `player_id facingLeft` (Jason LivingLifePage ~14992).
+///
+/// `facing_left != 0` → face left (`holdingFlip = true`); else face right.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FlipUpdate {
+    pub player_id: i32,
+    /// C++ `facingLeft` from `sscanf "%d %d"`.
+    pub facing_left: bool,
+}
+
+/// FL (FLIP): one or more `id facingLeft` data lines.
+pub fn parse_fl_message(body: &str) -> Vec<FlipUpdate> {
+    data_lines(body)
+        .filter_map(|line| {
+            let mut it = line.split_whitespace();
+            let player_id: i32 = it.next()?.parse().ok()?;
+            // Legacy: bare id → treat as toggle-left (compat with id-only lists).
+            let facing_left = match it.next() {
+                Some(s) => s.parse::<i32>().ok()? != 0,
+                None => true,
+            };
+            Some(FlipUpdate {
+                player_id,
+                facing_left,
+            })
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod flip_tests {
+    use super::*;
+
+    #[test]
+    fn parse_fl_id_and_facing_left() {
+        let v = parse_fl_message("FL\n7 1\n8 0\n#");
+        assert_eq!(v.len(), 2);
+        assert_eq!(v[0].player_id, 7);
+        assert!(v[0].facing_left);
+        assert_eq!(v[1].player_id, 8);
+        assert!(!v[1].facing_left);
+    }
 }
 
 /// CR (CRAVING): `food_id bonus` (protocol: craving food id + yum bonus).
@@ -1135,7 +1174,7 @@ pub enum InboundMessage {
     CurseScore(CurseScoreChange),
     ValleySpacing(ValleySpacing),
     FlightDest(FlightDest),
-    Flip(Vec<i32>),
+    Flip(Vec<FlipUpdate>),
     Craving(Craving),
     PosseJoin(Vec<i32>),
     MonumentCall(MonumentCall),

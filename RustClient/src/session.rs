@@ -136,7 +136,7 @@ pub enum SessionEvent {
     CurseScore(CurseScoreChange),
     ValleySpacing(ValleySpacing),
     FlightDest(FlightDest),
-    Flip(Vec<i32>),
+    Flip(Vec<crate::parse::FlipUpdate>),
     Craving(Craving),
     PosseJoin(Vec<i32>),
     MonumentCall(MonumentCall),
@@ -264,6 +264,10 @@ pub struct ClientSession {
     pub(crate) multi_move_chunks: Vec<Vec<PathDelta>>,
     /// Ultimate click goal while multi-MOVE (or repath) is armed.
     pub(crate) multi_move_goal: Option<(i32, i32)>,
+    /// C++ `lastFlipSent` (true = last FLIP was face-left).
+    last_flip_sent: bool,
+    /// C++ `lastFlipSendTime` — throttle FLIP spam (~2s).
+    last_flip_send_time: Instant,
     /// C++: `timeLastMessageSent` — any client→server write (incl. LOGIN / KA / FORCE).
     last_tx: Instant,
     /// Wall time of last successful server→client read (any bytes).
@@ -376,6 +380,8 @@ impl ClientSession {
             player_action_pending: false,
             multi_move_chunks: Vec::new(),
             multi_move_goal: None,
+            last_flip_sent: false,
+            last_flip_send_time: Instant::now(),
             last_tx: Instant::now(),
             last_rx: Instant::now(),
             ka_idle: Duration::from_secs(KA_IDLE_SECS),
@@ -788,6 +794,7 @@ impl ClientSession {
     pub fn step_move_pos(&mut self, wall_dt: f64) {
         self.move_state.step_current_pos(wall_dt);
         self.sync_our_live_motion();
+        self.maybe_send_flip();
     }
 
     /// Mirror [`MoveState`] into our [`LiveObject`] for draw/anim (C++ currentPos / onPath).
@@ -795,19 +802,66 @@ impl ClientSession {
         let Some(oid) = self.our_id else {
             return;
         };
+        let in_motion = self.move_state.in_motion;
+        let (cx, cy) = (
+            self.move_state.current_pos_x as f32,
+            self.move_state.current_pos_y as f32,
+        );
+        let dir_x = if in_motion {
+            self.move_state_facing_dx()
+        } else {
+            0.0
+        };
         let Some(o) = self.world.get_mut(oid) else {
             return;
         };
-        if self.move_state.in_motion {
+        if in_motion {
             o.moving = true;
-            o.set_display_pos(
-                self.move_state.current_pos_x as f32,
-                self.move_state.current_pos_y as f32,
-            );
+            o.set_display_pos(cx, cy);
+            // Face move direction when |Δx| is substantial (Jason ~22789).
+            if dir_x.abs() > 0.5 {
+                o.set_holding_flip(dir_x < 0.0);
+            }
         } else if !o.moving {
             // Idle: keep display on grid unless remote path still active.
             o.set_display_pos(o.x as f32, o.y as f32);
         }
+    }
+
+    /// Unit-ish X direction of current path segment (for facing).
+    fn move_state_facing_dx(&self) -> f64 {
+        let path = &self.move_state.path_to_dest;
+        if path.len() < 2 {
+            return 0.0;
+        }
+        let (cx, cy) = (
+            self.move_state.current_pos_x,
+            self.move_state.current_pos_y,
+        );
+        // Find nearest segment and its dx
+        let mut best = 0.0f64;
+        let mut best_d2 = f64::MAX;
+        for w in path.windows(2) {
+            let (x0, y0) = (w[0].0 as f64, w[0].1 as f64);
+            let (x1, y1) = (w[1].0 as f64, w[1].1 as f64);
+            let dx = x1 - x0;
+            let dy = y1 - y0;
+            let len2 = dx * dx + dy * dy;
+            let u = if len2 > 1e-12 {
+                ((cx - x0) * dx + (cy - y0) * dy) / len2
+            } else {
+                0.0
+            }
+            .clamp(0.0, 1.0);
+            let px = x0 + dx * u;
+            let py = y0 + dy * u;
+            let d2 = (cx - px) * (cx - px) + (cy - py) * (cy - py);
+            if d2 < best_d2 {
+                best_d2 = d2;
+                best = dx;
+            }
+        }
+        best
     }
 
     /// Mark our LiveObject as moving when we send MOVE (before server PM arrives).
@@ -819,7 +873,42 @@ impl ClientSession {
                     self.move_state.current_pos_x as f32,
                     self.move_state.current_pos_y as f32,
                 );
+                // Face first path step with |dx| > 0.5
+                let deltas: Vec<(i32, i32)> = self
+                    .move_state
+                    .path_to_dest
+                    .windows(2)
+                    .map(|w| (w[1].0 - w[0].0, w[1].1 - w[0].1))
+                    .collect();
+                o.apply_facing_from_path_deltas(&deltas);
             }
+        }
+    }
+
+    /// Send FLIP if our holdingFlip changed (throttled like C++ ~2s).
+    ///
+    /// Wire: `FLIP x y#` with a tile beside us in look direction (Jason ~23287).
+    pub fn maybe_send_flip(&mut self) {
+        let Some(oid) = self.our_id else {
+            return;
+        };
+        let Some(o) = self.world.get(oid) else {
+            return;
+        };
+        let flip = o.holding_flip();
+        if flip == self.last_flip_sent {
+            return;
+        }
+        if self.last_flip_send_time.elapsed() < Duration::from_secs(2) {
+            return;
+        }
+        let (x, y) = (o.x, o.y);
+        let offset = if flip { -1 } else { 1 };
+        let msg = crate::actions::encode_flip(x + offset, y);
+        if self.send_raw(&msg).is_ok() {
+            self.last_flip_sent = flip;
+            self.last_flip_send_time = Instant::now();
+            self.last_tx = Instant::now();
         }
     }
 
@@ -1139,7 +1228,11 @@ impl ClientSession {
             }
             InboundMessage::ValleySpacing(v) => Ok(SessionEvent::ValleySpacing(v)),
             InboundMessage::FlightDest(f) => Ok(SessionEvent::FlightDest(f)),
-            InboundMessage::Flip(v) => Ok(SessionEvent::Flip(v)),
+            InboundMessage::Flip(v) => {
+                // C++ FLIP: set holdingFlip when not mid-path (LivingLifePage ~14992).
+                self.world.apply_flips(&v);
+                Ok(SessionEvent::Flip(v))
+            }
             InboundMessage::Craving(c) => Ok(SessionEvent::Craving(c)),
             InboundMessage::PosseJoin(v) => Ok(SessionEvent::PosseJoin(v)),
             InboundMessage::MonumentCall(m) => Ok(SessionEvent::MonumentCall(m)),

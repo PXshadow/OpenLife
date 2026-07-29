@@ -11,6 +11,13 @@ pub fn encode_ka(x: i32, y: i32) -> String {
     format!("KA {x} {y}#")
 }
 
+/// `FLIP x y#` — tell server our facing changed (C++ ~23287–23307).
+///
+/// `x/y` are a tile next to us in the look direction (xd±1, yd), not a facing flag.
+pub fn encode_flip(x: i32, y: i32) -> String {
+    format!("FLIP {x} {y}#")
+}
+
 /// `USE x y#` or `USE x y id#` or `USE x y id i#`.
 ///
 /// Official client always appends `id` when the click target has `destID > 0`

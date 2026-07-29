@@ -374,7 +374,8 @@ fn run_loading_boot(app: &mut ClientAppState) -> anyhow::Result<BootBanks> {
     rgba_to_u32(&fb.pixels, &mut buf);
     let _ = window.update_with_buffer(&buf, FB_W, FB_H);
 
-    // Present on each progress tick (minifb needs pump; we present every stage update).
+    // Present on each progress tick. Bake phases call this often so the window
+    // is not stuck on a frozen "rebake" frame for minutes.
     let last_state = std::cell::RefCell::new(initial);
     let mut present = |state: &LoadingState| {
         *last_state.borrow_mut() = state.clone();
@@ -382,10 +383,19 @@ fn run_loading_boot(app: &mut ClientAppState) -> anyhow::Result<BootBanks> {
         draw_loading_progress(&mut fb, state);
         rgba_to_u32(&fb.pixels, &mut buf);
         let pct = (state.overall_fraction * 100.0).round() as i32;
-        window.set_title(&format!(
-            "Open Life — Loading {pct}%  [{}]",
-            state.stage.name()
-        ));
+        let detail = if state.label.is_empty() {
+            state.stage.name().to_string()
+        } else {
+            // Keep title short; full detail is on the soft-FB bar label.
+            let d = state.label.as_str();
+            if d.len() > 48 {
+                format!("{}…", &d[..45])
+            } else {
+                d.to_string()
+            }
+        };
+        window.set_title(&format!("Open Life — Loading {pct}%  [{detail}]"));
+        // Pump events so Windows does not mark the app "Not Responding" during long stages.
         let _ = window.update_with_buffer(&buf, FB_W, FB_H);
     };
 

@@ -726,7 +726,8 @@ impl LiveObject {
         Self {
             id: pu.player_id,
             display_id: pu.display_id,
-            facing: pu.facing,
+            // C++ holdingFlip from facingOverride: 1=right, -1=left; 0→default right.
+            facing: if pu.facing < 0 { -1 } else { 1 },
             action: pu.action,
             action_target_x: pu.action_target_x,
             action_target_y: pu.action_target_y,
@@ -746,6 +747,8 @@ impl LiveObject {
             age: pu.age,
             age_rate: pu.age_rate,
             last_age_set: std::time::Instant::now(),
+            // Wire facing is override 1/-1/0; map to holdingFlip immediately.
+            // (from_pu sets facing from pu below; re-apply override semantics)
             move_speed: pu.move_speed,
             clothing: ClothingSet::parse(&pu.clothing_set),
             just_ate: pu.just_ate,
@@ -821,6 +824,9 @@ impl LiveObject {
             return;
         }
         let old_held = self.held_id;
+        // C++: facingOverride==0 keeps existing holdingFlip (unless held-origin dir).
+        let keep_flip = pu.facing == 0;
+        let prev_flip = self.holding_flip();
         let name = self.name.take();
         let lineage = self.lineage.take();
         let emot = self.last_emot_index;
@@ -865,6 +871,17 @@ impl LiveObject {
         let speech_is_curse_tag = self.speech_is_curse_tag;
         let curse_tag_idle_sec = self.curse_tag_idle_sec;
         *self = Self::from_pu(pu);
+        if keep_flip {
+            self.set_holding_flip(prev_flip);
+        }
+        // held_origin can also set flip (Jason ~18445–18459)
+        if pu.held_origin_valid {
+            if pu.held_origin_x > self.x {
+                self.set_holding_flip(false);
+            } else if pu.held_origin_x < self.x {
+                self.set_holding_flip(true);
+            }
+        }
         self.name = name;
         self.lineage = lineage;
         self.last_emot_index = emot;
@@ -1291,6 +1308,39 @@ impl LiveObject {
     pub fn current_age(&self) -> f32 {
         let elapsed = self.last_age_set.elapsed().as_secs_f32();
         self.age + self.age_rate * elapsed
+    }
+
+    /// C++ `holdingFlip`: true = face left (draw flipH). Stored as `facing < 0`.
+    #[inline]
+    pub fn holding_flip(&self) -> bool {
+        self.facing < 0
+    }
+
+    /// Set face left/right (C++ `holdingFlip`).
+    #[inline]
+    pub fn set_holding_flip(&mut self, face_left: bool) {
+        self.facing = if face_left { -1 } else { 1 };
+    }
+
+    /// PU `facingOverride`: 1 = right, -1 = left, 0 = no change (Jason ~18452).
+    pub fn apply_facing_override(&mut self, facing_override: i32) {
+        if facing_override == 1 {
+            self.set_holding_flip(false);
+        } else if facing_override == -1 {
+            self.set_holding_flip(true);
+        }
+        // 0: leave holdingFlip as-is (caller may already have motion facing).
+    }
+
+    /// Face first path step with |dx| > 0.5 (Jason move-dir facing ~22789).
+    pub fn apply_facing_from_path_deltas(&mut self, deltas: &[(i32, i32)]) {
+        for &(dx, dy) in deltas {
+            let _ = dy;
+            if (dx as f32).abs() > 0.5 {
+                self.set_holding_flip(dx < 0);
+                return;
+            }
+        }
     }
 
     /// Extra anim index for pack select (`None` if baby age or no gesture).
@@ -1916,10 +1966,146 @@ impl LiveWorld {
                 o.y = m.ys;
                 o.display_x = m.xs as f32;
                 o.display_y = m.ys as f32;
+                // Face first substantial X step (Jason holdingFlip from move dir).
+                o.apply_facing_from_path_deltas(&m.deltas);
             }
         }
     }
 
+    /// C++ FL message: set `holdingFlip` / facing when not mid-path.
+    pub fn apply_flips(&mut self, flips: &[crate::parse::FlipUpdate]) {
+        for f in flips {
+            if let Some(o) = self.players.get_mut(&f.player_id) {
+                if o.moving {
+                    continue; // C++: `! o->inMotion`
+                }
+                o.set_holding_flip(f.facing_left);
+            }
+        }
+    }
+
+    /// Advance remote (and non-local) path display along last PM (Jason currentPos).
+    ///
+    /// Without this, remotes stay at path origin with walk anim — feet thrash in place.
+    pub fn step_remote_path_display(&mut self, wall_dt: f32, our_id: Option<i32>) {
+        if wall_dt <= 0.0 {
+            return;
+        }
+        let ids = self.living_ids();
+        for id in ids {
+            if our_id == Some(id) {
+                continue; // local uses MoveState
+            }
+            let Some(o) = self.players.get_mut(&id) else {
+                continue;
+            };
+            if !o.moving {
+                continue;
+            }
+            let Some(m) = o.last_move.clone() else {
+                continue;
+            };
+            if m.deltas.is_empty() || m.total_sec <= 1e-6 {
+                continue;
+            }
+            // Path cells: origin + cumulative deltas
+            let mut path: Vec<(f32, f32)> = Vec::with_capacity(m.deltas.len() + 1);
+            path.push((m.xs as f32, m.ys as f32));
+            for &(dx, dy) in &m.deltas {
+                path.push((m.xs as f32 + dx as f32, m.ys as f32 + dy as f32));
+            }
+            // Arc length (diag = √2)
+            let mut seglen = Vec::with_capacity(path.len().saturating_sub(1));
+            let mut total = 0.0f32;
+            for i in 1..path.len() {
+                let dx = path[i].0 - path[i - 1].0;
+                let dy = path[i].1 - path[i - 1].1;
+                let len = (dx * dx + dy * dy).sqrt().max(1e-6);
+                seglen.push(len);
+                total += len;
+            }
+            if total <= 1e-6 {
+                continue;
+            }
+            let speed = total / m.total_sec; // tiles/sec
+            let step = speed * wall_dt;
+            // Project current display onto path distance, advance by step
+            let mut traveled = project_onto_path(o.display_x, o.display_y, &path, &seglen);
+            traveled = (traveled + step).min(total);
+            let (nx, ny, dir_x) = point_on_path(traveled, &path, &seglen);
+            o.display_x = nx;
+            o.display_y = ny;
+            // Face walk direction when |dir_x| is substantial (Jason ~22789).
+            if dir_x.abs() > 0.5 {
+                o.set_holding_flip(dir_x < 0.0);
+            }
+            if traveled >= total - 1e-4 {
+                // Path complete locally until done_moving PU
+                o.x = path.last().map(|p| p.0.round() as i32).unwrap_or(o.x);
+                o.y = path.last().map(|p| p.1.round() as i32).unwrap_or(o.y);
+            }
+        }
+    }
+}
+
+/// Distance along polyline of the closest projection of (x,y).
+fn project_onto_path(x: f32, y: f32, path: &[(f32, f32)], seglen: &[f32]) -> f32 {
+    if path.len() < 2 || seglen.is_empty() {
+        return 0.0;
+    }
+    let mut best_d2 = f32::MAX;
+    let mut best_t = 0.0f32;
+    let mut acc = 0.0f32;
+    for i in 0..seglen.len() {
+        let (x0, y0) = path[i];
+        let (x1, y1) = path[i + 1];
+        let dx = x1 - x0;
+        let dy = y1 - y0;
+        let len2 = dx * dx + dy * dy;
+        let u = if len2 > 1e-12 {
+            ((x - x0) * dx + (y - y0) * dy) / len2
+        } else {
+            0.0
+        }
+        .clamp(0.0, 1.0);
+        let px = x0 + dx * u;
+        let py = y0 + dy * u;
+        let d2 = (x - px) * (x - px) + (y - py) * (y - py);
+        if d2 < best_d2 {
+            best_d2 = d2;
+            best_t = acc + seglen[i] * u;
+        }
+        acc += seglen[i];
+    }
+    best_t
+}
+
+/// Point + unit-ish dir_x at distance `t` along path.
+fn point_on_path(t: f32, path: &[(f32, f32)], seglen: &[f32]) -> (f32, f32, f32) {
+    if path.is_empty() {
+        return (0.0, 0.0, 0.0);
+    }
+    if path.len() == 1 || seglen.is_empty() {
+        return (path[0].0, path[0].1, 0.0);
+    }
+    let mut rem = t.max(0.0);
+    for i in 0..seglen.len() {
+        let len = seglen[i];
+        if rem <= len || i + 1 == seglen.len() {
+            let u = if len > 1e-6 { (rem / len).clamp(0.0, 1.0) } else { 1.0 };
+            let (x0, y0) = path[i];
+            let (x1, y1) = path[i + 1];
+            let dx = x1 - x0;
+            let dy = y1 - y0;
+            return (x0 + dx * u, y0 + dy * u, dx);
+        }
+        rem -= len;
+    }
+    let last = *path.last().unwrap();
+    (last.0, last.1, 0.0)
+}
+
+impl LiveWorld {
     /// Step all living players' anim packs (frame counters + fade).
     ///
     /// P3#22: also steps action wiggle / baby wiggle / drop offset.
@@ -1955,8 +2141,8 @@ impl LiveWorld {
                 display,
                 age,
                 held_id,
-                x,
-                y,
+                pos_x,
+                pos_y,
                 cur_anim,
                 cur_held,
                 old_frame,
@@ -1971,8 +2157,9 @@ impl LiveWorld {
                     if o.display_id > 0 { o.display_id } else { 19 },
                     o.current_age(),
                     o.held_id,
-                    o.x,
-                    o.y,
+                    // Fractional display for stereo pan (Jason currentPos / camera vector).
+                    o.display_x,
+                    o.display_y,
                     o.anim.cur_anim,
                     o.anim.cur_held_anim,
                     o.anim.animation_frame_count,
@@ -2008,8 +2195,8 @@ impl LiveWorld {
                     cur_anim,
                     old_frame,
                     new_frame,
-                    x as f32,
-                    y as f32,
+                    pos_x,
+                    pos_y,
                     1.0, // frf already baked into frame deltas
                     id,
                     self.our_id,
@@ -2027,8 +2214,8 @@ impl LiveWorld {
                     cur_held,
                     old_held_frame,
                     new_held_frame,
-                    x as f32,
-                    y as f32,
+                    pos_x,
+                    pos_y,
                     1.0,
                     id,
                     self.our_id,

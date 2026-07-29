@@ -269,6 +269,9 @@ fn client_object_to_olc1(def: &ClientObjectDef) -> Olc1Record {
         cloth_x: def.clothing_offset.0,
         cloth_y: def.clothing_offset.1,
         num_slots: def.num_slots,
+        // OLC1 v8 trailer; client object def does not store these yet.
+        contain_size: 0.0,
+        slot_size: 1.0,
         slot_pos: def.slot_pos.clone(),
         sprites,
         dummy_ids: def.dummy_ids.clone(),
@@ -961,16 +964,38 @@ pub fn cache_dir_for(root: &Path) -> PathBuf {
 /// Sound index scans `src/sounds/*.{aiff,ogg}` only (OLSN — no PCM).
 /// Sprite meta scans `src/sprites/{id}.txt` (+ TGA header w/h; OLS1 — no pixels).
 pub fn bake_content(src: impl AsRef<Path>, out_dir: impl AsRef<Path>) -> Result<BakeResult, String> {
+    bake_content_with_progress(src, out_dir, None)
+}
+
+/// Full content bake with optional loading UI ticks between phases.
+pub fn bake_content_with_progress(
+    src: impl AsRef<Path>,
+    out_dir: impl AsRef<Path>,
+    mut on_progress: crate::load_progress::ProgressCb<'_>,
+) -> Result<BakeResult, String> {
+    use crate::load_progress::{report_stage, LoadStage};
+
     let src = src.as_ref();
     let out_dir = out_dir.as_ref();
     let total0 = Instant::now();
     let mut timings = BakeTimings::default();
 
+    let tick = |frac: f32, detail: &str, on_progress: &mut crate::load_progress::ProgressCb<'_>| {
+        report_stage(
+            LoadStage::Content,
+            frac.clamp(0.0, 0.99),
+            Some(detail),
+            crate::load_progress::reborrow_cb(on_progress),
+        );
+    };
+
+    tick(0.08, "bake: text objects…", &mut on_progress);
     let t0 = Instant::now();
     let mut db = ClientContent::load_from_dir(src)?;
     timings.text_load = t0.elapsed();
 
     // C++ order: autoGenerateUsedObjects then autoGenerateVariableObjects.
+    tick(0.22, "bake: multi-use / variable dummies…", &mut on_progress);
     let t0 = Instant::now();
     assign_multi_use_dummies(&mut db);
     assign_variable_dummies(&mut db);
@@ -993,6 +1018,7 @@ pub fn bake_content(src: impl AsRef<Path>, out_dir: impl AsRef<Path>) -> Result<
 
     fs::create_dir_all(out_dir).map_err(|e| e.to_string())?;
 
+    tick(0.35, "bake: OLC1 objects…", &mut on_progress);
     let t0 = Instant::now();
     let olc1 = write_olc1(&db);
     timings.olc1 = t0.elapsed();
@@ -1000,30 +1026,37 @@ pub fn bake_content(src: impl AsRef<Path>, out_dir: impl AsRef<Path>) -> Result<
     // switchNumberOfUses already applied in `load_from_dir`; re-apply is idempotent.
     apply_default_switch_number_of_uses_patches(&mut db);
 
+    tick(0.45, "bake: OLT1 transitions…", &mut on_progress);
     let t0 = Instant::now();
     let olt1 = write_olt1(&db);
     timings.olt1 = t0.elapsed();
 
+    tick(0.55, "bake: OLA1 animations…", &mut on_progress);
     let t0 = Instant::now();
     let (ola1, anim_count) = bake_ola1_from_dir(src, db.data_version as u32)?;
     timings.ola1 = t0.elapsed();
 
+    tick(0.65, "bake: OLG1 ground…", &mut on_progress);
     let t0 = Instant::now();
     let (olg1, ground_count) = bake_olg1_from_roots(Some(src), db.data_version as u32);
     timings.olg1 = t0.elapsed();
 
+    tick(0.72, "bake: OLO1 overlays…", &mut on_progress);
     let t0 = Instant::now();
     let (olo1, overlay_count) = bake_olo1_from_root(src, db.data_version as u32);
     timings.olo1 = t0.elapsed();
 
+    tick(0.80, "bake: OLSN sounds…", &mut on_progress);
     let t0 = Instant::now();
     let (olsn, sound_count) = bake_olsn_from_dir(src, db.data_version as u32)?;
     timings.olsn = t0.elapsed();
 
+    tick(0.88, "bake: OLS1 sprite meta…", &mut on_progress);
     let t0 = Instant::now();
     let (ols1, sprite_count) = bake_ols1_from_dir(src, db.data_version as u32)?;
     timings.ols1 = t0.elapsed();
 
+    tick(0.94, "bake: write cache…", &mut on_progress);
     let t0 = Instant::now();
     let olc1_path = out_dir.join("olc1_objects.bin");
     let olt1_path = out_dir.join("olt1_transitions.bin");
@@ -1276,60 +1309,35 @@ pub fn load_prefer_cache_with_progress(
     let tree_ver = read_data_version(root);
     let cache = cache_dir_for(root);
     let olc1_path = cache.join("olc1_objects.bin");
-    let olt1_path = cache.join("olt1_transitions.bin");
+
+    // 1) Prefer existing cache if it **loads**. Older OLC1/OLT1 formats are still
+    //    valid (shared parse accepts v1..=current). Do **not** force a multi-minute
+    //    rebake only because format < OLC1_FORMAT_VERSION — that freezes the loading
+    //    UI on "rebake" with no intermediate ticks.
     if olc1_path.exists() {
-        let fmt_stale = fs::read(&olc1_path)
-            .ok()
-            .and_then(|b| peek_olc1_format(&b))
-            .map(|f| f < OLC1_FORMAT_VERSION)
-            .unwrap_or(false);
-        // P4#28: rebuild once when OLT1 lacks category-expanded flag so load
-        // can skip re-expand (payload still correct without rebuild).
-        let olt1_expand_stale = fs::read(&olt1_path)
-            .map(|b| olt1_lacks_category_expanded(&b))
-            .unwrap_or(false);
-        if !fmt_stale && !olt1_expand_stale {
-            match load_from_cache(&cache, tree_ver) {
-                Ok(db) => {
-                    report_stage(
-                        LoadStage::Content,
-                        1.0,
-                        Some("cache"),
-                        crate::load_progress::reborrow_cb(&mut on_progress),
-                    );
-                    return Ok(db);
-                }
-                Err(_e) => {}
-            }
-        }
-        // Stale format, unexpanded OLT1, version mismatch, or sha1 fail → rebuild once.
-        report_stage(
-            LoadStage::Content,
-            0.35,
-            Some("rebake"),
-            crate::load_progress::reborrow_cb(&mut on_progress),
-        );
-        if root.join("objects").is_dir() && bake_content(root, &cache).is_ok() {
-            if let Ok(db) = load_from_cache(&cache, tree_ver) {
+        match load_from_cache(&cache, tree_ver) {
+            Ok(db) => {
+                let fmt = fs::read(&olc1_path)
+                    .ok()
+                    .and_then(|b| peek_olc1_format(&b))
+                    .unwrap_or(0);
+                let detail = if fmt > 0 && fmt < OLC1_FORMAT_VERSION {
+                    format!("cache v{fmt} (ok)")
+                } else {
+                    "cache".into()
+                };
                 report_stage(
                     LoadStage::Content,
                     1.0,
-                    Some("rebaked"),
+                    Some(&detail),
                     crate::load_progress::reborrow_cb(&mut on_progress),
                 );
                 return Ok(db);
             }
-            if let Ok(db) = load_from_cache(&cache, None) {
-                report_stage(
-                    LoadStage::Content,
-                    1.0,
-                    Some("rebaked"),
-                    crate::load_progress::reborrow_cb(&mut on_progress),
-                );
-                return Ok(db);
+            Err(_e) => {
+                // fall through: try loose data_version match ignore
             }
         }
-        // Last resort: load existing blob even if format is older.
         if let Ok(db) = load_from_cache(&cache, None) {
             report_stage(
                 LoadStage::Content,
@@ -1339,24 +1347,40 @@ pub fn load_prefer_cache_with_progress(
             );
             return Ok(db);
         }
-    } else if root.join("objects").is_dir() {
+        // Cache present but unreadable → rebuild with phase progress.
         report_stage(
             LoadStage::Content,
-            0.25,
-            Some("bake"),
+            0.1,
+            Some("rebake (cache unreadable)"),
             crate::load_progress::reborrow_cb(&mut on_progress),
         );
-        if bake_content(root, &cache).is_ok() {
-            if let Ok(db) = load_from_cache(&cache, tree_ver) {
+        if root.join("objects").is_dir()
+            && bake_content_with_progress(root, &cache, crate::load_progress::reborrow_cb(&mut on_progress))
+                .is_ok()
+        {
+            if let Ok(db) = load_from_cache(&cache, tree_ver).or_else(|_| load_from_cache(&cache, None))
+            {
                 report_stage(
                     LoadStage::Content,
                     1.0,
-                    Some("baked"),
+                    Some("rebaked"),
                     crate::load_progress::reborrow_cb(&mut on_progress),
                 );
                 return Ok(db);
             }
-            if let Ok(db) = load_from_cache(&cache, None) {
+        }
+    } else if root.join("objects").is_dir() {
+        report_stage(
+            LoadStage::Content,
+            0.05,
+            Some("bake (no cache)"),
+            crate::load_progress::reborrow_cb(&mut on_progress),
+        );
+        if bake_content_with_progress(root, &cache, crate::load_progress::reborrow_cb(&mut on_progress))
+            .is_ok()
+        {
+            if let Ok(db) = load_from_cache(&cache, tree_ver).or_else(|_| load_from_cache(&cache, None))
+            {
                 report_stage(
                     LoadStage::Content,
                     1.0,
@@ -1688,9 +1712,10 @@ mod tests {
         db.objects.insert(418, wolf);
 
         let bytes = write_olc1(&db);
+        // Write path always emits current OLC1 format (v8+); v7 fields still round-trip.
         assert_eq!(
             u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
-            OLC1_FORMAT_VERSION_V7
+            OLC1_FORMAT_VERSION
         );
         let mut db2 = ClientContent::new();
         load_olc1(&bytes, &mut db2).unwrap();

@@ -813,6 +813,9 @@ impl SceneRenderer {
             );
             let frf = (dt * 60.0).clamp(0.0, 4.0);
             world.tick_speech(dt, frf);
+            // Remote PM path interp + facing (local uses MoveState).
+            let our = world.our_id;
+            world.step_remote_path_display(dt, our);
             world.step_anims_with_sounds(
                 anims,
                 &mut self.sounds,
@@ -1005,7 +1008,8 @@ impl SceneRenderer {
                     let display = if o.display_id > 0 { o.display_id } else { 19 };
                     // C++ computeCurrentAge: base + ageRate × (now − lastAgeSetTime)
                     let age = o.current_age();
-                    let flip = o.facing < 0;
+                    // C++ holdingFlip: true = face left (draw flipH).
+                    let flip = o.holding_flip();
                     let holding = o.held_id != 0;
                     let held_id = o.held_id;
                     // P3#22: capture before later mut borrows of world.

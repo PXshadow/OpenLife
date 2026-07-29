@@ -1207,10 +1207,12 @@ fn read_data_version_u32(root: &Path) -> Option<u32> {
 //      LivingLifePage.cpp `getVectorFromCamera` (map − lastScreenViewCenter/CELL_D);
 //      minorGems playSoundSprite constant-power stereo (sin/cos of pan·π/2).
 
-/// C++ `maxAudibleDistance` (tiles).
-pub const MAX_AUDIBLE_DISTANCE: f32 = 16.0;
-/// C++ `minFadeStartDistance` (tiles) — used inside the sigmoid knee.
-pub const MIN_FADE_START_DISTANCE: f32 = 1.5;
+/// Max audible range in tiles (play request: silence beyond 50).
+///
+/// C++ default is 16; we use 50 for softer far falloff with full mute past edge.
+pub const MAX_AUDIBLE_DISTANCE: f32 = 50.0;
+/// Distance where fade knee begins (tiles). C++ uses 1.5; scale gently for 50-tile range.
+pub const MIN_FADE_START_DISTANCE: f32 = 4.0;
 /// C++ `reverbContstant` — floor on reverb mix.
 pub const REVERB_CONSTANT: f32 = 0.1;
 
@@ -1268,17 +1270,18 @@ pub fn volume_pan_reverb(vector_x: f32, vector_y: f32) -> Option<SoundPlacement>
     if volume_scale > 1.0 {
         volume_scale = 1.0;
     }
-    // Pan from X only; clamp to screen edges (±5 tiles), map to [3,13]/16.
+    // Stereo pan from X only: left (−) → pan 0, right (+) → pan 1.
+    // Wider than C++ ±5 so left/right of camera still pan clearly out to far range.
     let mut x_pan = vector_x;
-    if x_pan > 5.0 {
-        x_pan = 5.0;
+    const PAN_CLAMP: f32 = 12.0;
+    if x_pan > PAN_CLAMP {
+        x_pan = PAN_CLAMP;
     }
-    if x_pan < -5.0 {
-        x_pan = -5.0;
+    if x_pan < -PAN_CLAMP {
+        x_pan = -PAN_CLAMP;
     }
-    x_pan += 5.0; // 0..10
-    x_pan += 3.0; // 3..13
-    let pan = x_pan / 16.0;
+    // Map [-PAN_CLAMP, +PAN_CLAMP] → [0, 1]
+    let pan = (x_pan + PAN_CLAMP) / (2.0 * PAN_CLAMP);
     // reverbMix = (1-c)*(1-volume) + c  (always a bit of reverb)
     let reverb_mix = (1.0 - REVERB_CONSTANT) * (1.0 - volume_scale) + REVERB_CONSTANT;
     Some(SoundPlacement {
@@ -2778,18 +2781,22 @@ mod tests {
 
     #[test]
     fn volume_pan_center_and_edges() {
-        // On-camera: full-ish volume, pan near center (8/16 = 0.5).
+        // On-camera: full-ish volume, pan center.
         let p = volume_pan_reverb(0.0, 0.0).expect("audible");
         assert!(p.volume > 0.9, "vol {}", p.volume);
         assert!((p.pan - 0.5).abs() < 0.02, "pan {}", p.pan);
         assert!((p.reverb_mix - REVERB_CONSTANT).abs() < 0.05);
 
         // Right of camera: pan > 0.5
-        let right = volume_pan_reverb(5.0, 0.0).unwrap();
-        assert!(right.pan > 0.7, "pan {}", right.pan);
+        let right = volume_pan_reverb(6.0, 0.0).unwrap();
+        assert!(right.pan > 0.6, "pan {}", right.pan);
         // Left
-        let left = volume_pan_reverb(-5.0, 0.0).unwrap();
-        assert!(left.pan < 0.3, "pan {}", left.pan);
+        let left = volume_pan_reverb(-6.0, 0.0).unwrap();
+        assert!(left.pan < 0.4, "pan {}", left.pan);
+        // Farther → quieter
+        let near = volume_pan_reverb(2.0, 0.0).unwrap().volume;
+        let mid = volume_pan_reverb(20.0, 0.0).unwrap().volume;
+        assert!(mid < near, "distance falloff near={near} mid={mid}");
 
         // Beyond max: silent
         assert!(volume_pan_reverb(MAX_AUDIBLE_DISTANCE + 1.0, 0.0).is_none());
