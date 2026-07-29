@@ -1876,7 +1876,7 @@ impl SceneRenderer {
         hide_all_limbs: bool,
         sprite_filter: SpriteLayerFilter,
         hide_mouth: bool,
-        /// Person worn clothing slots to interleave (Jason animationBank order).
+        // Person worn clothing slots to interleave (Jason animationBank order).
         worn_clothing: Option<&[(usize, i32, String)]>,
     ) -> (HoldingPos, PersonAnchors) {
         let object_id = pack.object_id;
@@ -1992,8 +1992,10 @@ impl SceneRenderer {
             if spr.skip_drawing {
                 draw[si] = false;
             }
-            // C++ isSpriteVisibleAtAge — skip drawing aging layer entirely (~2575)
-            if def.person != 0 && !spr.visible_at_age(age) {
+            // C++ isSpriteVisibleAtAge — skip drawing age-out-of-range layers (~2575).
+            // Person path always passes real age; non-person draws still honor sprite
+            // age bounds when an age is supplied (unit tests + multi-stage content).
+            if !spr.visible_at_age(age) {
                 draw[si] = false;
             }
             if holding && spr.invis_holding {
@@ -2171,7 +2173,7 @@ impl SceneRenderer {
                         anims,
                         person_pack,
                         anchors,
-                        *slot,
+                        slot,
                         *cid,
                         raw,
                         screen_x,
@@ -3247,6 +3249,110 @@ mod tests {
         assert!(
             (x0 - x1).abs() > 1.0 || (y0 - y1).abs() > 1.0,
             "rotated offset must change attach pos: flat=({x0},{y0}) rot=({x1},{y1})"
+        );
+    }
+
+    /// Jason: bottom/tunic/backpack under topBackArm — arm must paint *over* tunic.
+    #[test]
+    fn body_clothes_under_top_back_arm() {
+        let mut content = ClientContent::new();
+        // Person: body (red) then back-hand arm (blue). Arm is topBackArmIndex.
+        content.objects.insert(
+            19,
+            ClientObjectDef {
+                id: 19,
+                person: 1,
+                sprites: vec![
+                    ObjectSprite {
+                        sprite_id: 501,
+                        x: 0.0,
+                        y: 0.0,
+                        parent: -1,
+                        is_body: true,
+                        r: 1.0,
+                        g: 1.0,
+                        b: 1.0,
+                        age_start: -1.0,
+                        age_end: -1.0,
+                        ..Default::default()
+                    },
+                    ObjectSprite {
+                        sprite_id: 502,
+                        x: 0.0,
+                        y: 0.0,
+                        parent: 0, // chain to body → back arm indices
+                        invis_holding: true, // marks as hand for limb walk
+                        r: 1.0,
+                        g: 1.0,
+                        b: 1.0,
+                        age_start: -1.0,
+                        age_end: -1.0,
+                        ..Default::default()
+                    },
+                ],
+                ..Default::default()
+            },
+        );
+        // Tunic: large green square at same attach (body).
+        content.objects.insert(
+            200,
+            ClientObjectDef {
+                id: 200,
+                clothing: 't',
+                clothing_offset: (0.0, 0.0),
+                sprites: vec![ObjectSprite {
+                    sprite_id: 503,
+                    x: 0.0,
+                    y: 0.0,
+                    parent: -1,
+                    r: 1.0,
+                    g: 1.0,
+                    b: 1.0,
+                    age_start: -1.0,
+                    age_end: -1.0,
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        );
+        let mut sprites = SpriteBank::with_atlas_size(".", 256);
+        sprites.ensure_rgba(501, &solid_sprite(20, 20, [255, 0, 0, 255]), None);
+        sprites.ensure_rgba(502, &solid_sprite(20, 20, [0, 0, 255, 255]), None);
+        // Larger green so it would fully cover arm if drawn last
+        sprites.ensure_rgba(503, &solid_sprite(28, 28, [0, 255, 0, 255]), None);
+        let mut anims = AnimBank::new(".");
+        let mut pack = ObjectAnimPack::single(19, crate::anim_bank::ANIM_GROUND, 0.0);
+        let scene = SceneRenderer::default();
+        let mut fb = Framebuffer::new(64, 64);
+        let worn = vec![(1usize, 200i32, String::new())]; // tunic slot
+        let _ = scene.draw_object_with_pack_ex(
+            &mut fb,
+            &content,
+            &mut sprites,
+            &mut anims,
+            &mut pack,
+            20.0,
+            32.0,
+            32.0,
+            false,
+            false,
+            false,
+            0,
+            false,
+            SpriteLayerFilter::All,
+            false,
+            Some(worn.as_slice()),
+        );
+        let blue = count_near(&fb, [0, 0, 255]);
+        let green = count_near(&fb, [0, 255, 0]);
+        assert!(blue > 0, "top back arm (blue) must paint");
+        assert!(green > 0, "tunic (green) must paint");
+        // Center of figure: arm drawn after tunic → blue remains over green.
+        let i = ((32u32 * 64 + 32) * 4) as usize;
+        let (r, g, b) = (fb.pixels[i], fb.pixels[i + 1], fb.pixels[i + 2]);
+        assert!(
+            b > 200 && r < 50 && g < 50,
+            "center must be top-back-arm blue over tunic, got rgb=({r},{g},{b}) blue={blue} green={green}"
         );
     }
 
