@@ -168,7 +168,7 @@ pub struct PlayerUpdate {
     pub x: i32,
     pub y: i32,
     pub age: f32,
-    /// Seconds per year of aging.
+    /// Years per second (C++ `ageRate` = `1/invAgeRate`). Not the raw wire field.
     pub age_rate: f32,
     pub move_speed: f32,
     /// `hat;tunic;front_shoe;back_shoe;bottom;backpack` (each slot may be container).
@@ -254,7 +254,19 @@ pub fn parse_pu_line(line: &str) -> Option<PlayerUpdate> {
     let x: i32 = parts[14].parse().ok()?;
     let y: i32 = parts[15].parse().ok()?;
     let age: f32 = parts.get(16).and_then(|s| s.parse().ok()).unwrap_or(0.0);
-    let age_rate: f32 = parts.get(17).and_then(|s| s.parse().ok()).unwrap_or(0.0);
+    // C++ PU field is **invAgeRate** (seconds per year, default 60), then
+    // `o.ageRate = 1.0 / invAgeRate` years/sec (LivingLifePage.cpp ~17764–17866).
+    // Storing invAgeRate as age_rate made age leap ~60 years/sec → ageRange
+    // layers past 999 vanished and only body+head stayed visible.
+    let inv_age_rate: f32 = parts
+        .get(17)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(60.0);
+    let age_rate: f32 = if inv_age_rate.abs() > 1e-12 {
+        1.0 / inv_age_rate
+    } else {
+        0.0
+    };
     let move_speed: f32 = parts.get(18).and_then(|s| s.parse().ok()).unwrap_or(0.0);
     let clothing_set = parts.get(19).unwrap_or(&"0;0;0;0;0;0").to_string();
     let just_ate = parts

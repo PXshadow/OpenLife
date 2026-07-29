@@ -1003,8 +1003,8 @@ impl SceneRenderer {
                     let sx = sx0 + wox * scale0;
                     let sy = sy0 - woy * scale0;
                     let display = if o.display_id > 0 { o.display_id } else { 19 };
-                    // Age advances with age_rate for ageRange sprites
-                    let age = o.age + o.age_rate * self.time;
+                    // C++ computeCurrentAge: base + ageRate × (now − lastAgeSetTime)
+                    let age = o.current_age();
                     let flip = o.facing < 0;
                     let holding = o.held_id != 0;
                     let held_id = o.held_id;
@@ -1297,7 +1297,7 @@ impl SceneRenderer {
                             hold_sx += wig * scale;
                         }
                         if let Some(baby) = world.get(baby_id) {
-                            let baby_age = baby.age + baby.age_rate * self.time;
+                            let baby_age = baby.current_age();
                             let baby_display =
                                 if baby.display_id > 0 { baby.display_id } else { 19 };
                             // Animate with adult's held track (C++ curHeldAnim).
@@ -1512,7 +1512,7 @@ impl SceneRenderer {
             }
             // Age for hunger-slip thresholds (baby / elder gates).
             if let Some(o) = world.our() {
-                self.hud.age_years = o.age;
+                self.hud.age_years = o.current_age();
             }
             // &mut: C++ updates mOldArrows / mCurrentArrowI inside draw.
             draw_hud_if_visible(fb, &mut self.hud, &self.hud_sprites);

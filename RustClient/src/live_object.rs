@@ -600,8 +600,12 @@ pub struct LiveObject {
     /// for local player from [`crate::move_state::MoveState`]; equals `(x,y)` when idle.
     pub display_x: f32,
     pub display_y: f32,
+    /// Age in years at [`last_age_set`] (C++ `LiveObject.age` base).
     pub age: f32,
+    /// Years per second (C++ `ageRate` = `1/invAgeRate` from PU).
     pub age_rate: f32,
+    /// Wall clock when `age`/`age_rate` were last set from PU (C++ `lastAgeSetTime`).
+    pub last_age_set: std::time::Instant,
     pub move_speed: f32,
     pub clothing: ClothingSet,
     pub just_ate: bool,
@@ -741,6 +745,7 @@ impl LiveObject {
             display_y: pu.y as f32,
             age: pu.age,
             age_rate: pu.age_rate,
+            last_age_set: std::time::Instant::now(),
             move_speed: pu.move_speed,
             clothing: ClothingSet::parse(&pu.clothing_set),
             just_ate: pu.just_ate,
@@ -1279,11 +1284,20 @@ impl LiveObject {
         )
     }
 
+    /// C++ `computeCurrentAgeNoOverride`: base age + ageRate × elapsed since PU.
+    ///
+    /// // LivingLifePage.cpp ~1498–1505
+    #[inline]
+    pub fn current_age(&self) -> f32 {
+        let elapsed = self.last_age_set.elapsed().as_secs_f32();
+        self.age + self.age_rate * elapsed
+    }
+
     /// Extra anim index for pack select (`None` if baby age or no gesture).
     ///
     /// // C++: block extra anim for age < 1 so crying is not overridden
     pub fn resolved_emot_extra(&self) -> Option<i32> {
-        if self.age < 1.0 {
+        if self.current_age() < 1.0 {
             return None;
         }
         self.emot_extra_index
@@ -1378,7 +1392,7 @@ impl LiveObject {
         let ex = bank.and_then(|b| b.extra_anim_for(e.emot_index));
         self.emot_extra_index = ex;
         if let Some(ex_idx) = ex {
-            if self.age >= 1.0 {
+            if self.current_age() >= 1.0 {
                 if self.emot_extra_anim_type == ANIM_EXTRA_B {
                     // First / odd PE after init → EXTRA (slot A)
                     self.emot_extra_anim_type = ANIM_EXTRA;
@@ -1955,7 +1969,7 @@ impl LiveWorld {
                 o.sync_anim_packs(bank);
                 (
                     if o.display_id > 0 { o.display_id } else { 19 },
-                    o.age,
+                    o.current_age(),
                     o.held_id,
                     o.x,
                     o.y,

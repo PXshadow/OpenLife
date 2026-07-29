@@ -33,7 +33,7 @@ impl DeathSummary {
             .unwrap_or_else(|| "Unknown".into());
         Self {
             name,
-            age_years: o.age,
+            age_years: o.current_age(),
             reason: o.delete_reason.clone(),
         }
     }

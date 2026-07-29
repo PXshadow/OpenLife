@@ -943,7 +943,7 @@ fn run_session_from_boot(
         if let Some((mx, my)) = safe_mouse_pos(&window) {
             scene.hud.set_pointer(mx as f32, my as f32);
             hover = if let Some(me) = session.world.our() {
-                let age = me.age + me.age_rate * scene.time;
+                let age = me.current_age();
                 let worn = WornClothingPickTarget {
                     tile_x: me.x,
                     tile_y: me.y,
@@ -1694,7 +1694,7 @@ fn run_session_gpu(
                     }
 
                     hover = if let Some(me) = session.world.our() {
-                        let age = me.age + me.age_rate * scene.time;
+                        let age = me.current_age();
                         let worn = WornClothingPickTarget {
                             tile_x: me.x,
                             tile_y: me.y,
