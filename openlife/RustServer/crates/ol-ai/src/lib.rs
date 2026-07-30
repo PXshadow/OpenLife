@@ -1,19 +1,24 @@
-//! Open Life AI — pure decisions + interfaces (no `SimState` mutation).
+//! Open Life AI — pure decisions (no `SimState` mutation).
 //!
-//! ## Architecture ([`docs/design/OL_AI_SPLIT.md`](../../docs/design/OL_AI_SPLIT.md))
+//! ## Interfaces ([`ol_ai_api`])
 //!
-//! - **Commands:** humans and AI share [`ol_net::NetIntent`] via [`PlayerCommands`].
-//! - **Reads:** [`WorldView`], [`PlayerView`], [`FoodSearch`] (default radius **30**).
-//! - **Pure modules (Phase 3):** craft graph/value/plan, path-reach maps, goals/ladder, professions.
+//! - **Write:** [`PlayerWriteInterface`] → [`ol_net::NetIntent`] (same as human clients)
+//! - **Read:** [`PlayerReadInterface`] / [`WorldView`] / [`PlayerView`] / [`FoodSearch`]
+//!   (default best-food radius **30**)
+//!
+//! This crate holds pure craft/goals/profession modules. Traits live in **`ol-ai-api`**
+//! so later MainAI / helpers can depend on a tiny API without pulling pure AI bulk.
 //!
 //! Live world scans and `apply_intent` stay in `ol-sim` / `ol-server`.
 
 #![forbid(unsafe_code)]
 
-mod commands;
-mod food_search;
-mod player_view;
-mod world_view;
+// ── Interfaces re-exported from ol-ai-api (Phase A) ─────────────────────────
+pub use ol_ai_api::{
+    chebyshev, BestFoodHit, BestFoodQuery, CommandSink, FoodSearch, IntentSink, PlayerCommands,
+    PlayerReadHandles, PlayerReadInterface, PlayerView, PlayerWriteInterface, WorldView,
+    DEFAULT_FOOD_SEARCH_RADIUS,
+};
 
 // ── Pure AI decision modules (moved from ol-sim) ───────────────────────────
 pub mod craft_graph;
@@ -29,11 +34,6 @@ pub mod baker_profession;
 pub mod fire_food_profession;
 pub mod pottery_profession;
 pub mod shepherd_profession;
-
-pub use commands::{IntentSink, PlayerCommands};
-pub use food_search::{BestFoodHit, BestFoodQuery, FoodSearch, DEFAULT_FOOD_SEARCH_RADIUS};
-pub use player_view::PlayerView;
-pub use world_view::WorldView;
 
 // Convenient re-exports (stable API for ol-sim / ol-server)
 pub use ai_goals::{
@@ -67,12 +67,6 @@ pub use craft_value::{
     DEFAULT_WALK_SPEED, INTERACTION_SEC,
 };
 
-/// Chebyshev distance on a plane (no wrap). For wrap maps, adapters fold coords first.
-#[inline]
-pub fn chebyshev(ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
-    (ax - bx).abs().max((ay - by).abs())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -80,7 +74,7 @@ mod tests {
 
     struct VecSink(Vec<NetIntent>);
 
-    impl IntentSink for VecSink {
+    impl CommandSink for VecSink {
         fn push(&mut self, intent: NetIntent) -> bool {
             self.0.push(intent);
             true
@@ -88,44 +82,17 @@ mod tests {
     }
 
     #[test]
-    fn chebyshev_basic() {
-        assert_eq!(chebyshev(0, 0, 3, 4), 4);
-        assert_eq!(chebyshev(10, 10, 10, 10), 0);
+    fn reexport_write_interface() {
+        let mut sink = VecSink(Vec::new());
+        sink.use_at(7, 1, 2, Some(100), None);
+        assert_eq!(sink.0.len(), 1);
     }
 
     #[test]
     fn food_query_default_radius_30() {
-        let q = BestFoodQuery {
-            conn_id: 1,
-            ..Default::default()
-        };
+        let q = BestFoodQuery::new(1);
         assert_eq!(q.max_dist, DEFAULT_FOOD_SEARCH_RADIUS);
         assert_eq!(q.max_dist, 30);
-    }
-
-    #[test]
-    fn player_commands_emit_net_intent() {
-        let mut sink = VecSink(Vec::new());
-        sink.use_at(7, 1, 2, Some(100), None);
-        sink.drop_at(7, 1, 2, None);
-        sink.move_path(7, 0, 0, &[(1, 0), (0, 1)], Some(3));
-        sink.say_raw(7, "SAY", "hello");
-        assert_eq!(sink.0.len(), 4);
-        match &sink.0[0] {
-            NetIntent::Use {
-                conn_id,
-                x,
-                y,
-                id,
-                index,
-            } => {
-                assert_eq!(*conn_id, 7);
-                assert_eq!((*x, *y), (1, 2));
-                assert_eq!(*id, Some(100));
-                assert!(index.is_none());
-            }
-            _ => panic!("expected Use"),
-        }
     }
 
     #[test]

@@ -1,7 +1,11 @@
 # Split AI out of `ol-sim` (design)
 
-**Status:** Phase 1–2 **partial** — `ol-ai` crate + sim adapters (`WorldView`/`FoodSearch`/`PlayerView`) + NPC food scan default **r=30** + `PlayerCommands` helpers on intent channel. Phase 3: move pure profession modules into `ol-ai`.  
-**Goal:** faster incremental builds + same command path as human clients + clean world/food query APIs
+**Status:** **Phase A done** (2026-07-30) — see **`PHASE_A_PLAYER_INTERFACES.md`**.  
+- Crate **`ol-ai-api`**: `PlayerWriteInterface` + `PlayerReadInterface` (+ `WorldView` / `PlayerView` / `FoodSearch`, best-food default **r=30**)  
+- `ol-ai` re-exports API; pure modules stay in `ol-ai`  
+- `ol-sim` `ai_adapters` implements read; NPC write/food uses the interfaces  
+
+**Goal:** faster incremental builds + same write path as human clients + fast AI read path
 
 ---
 

@@ -12,7 +12,10 @@ use crate::npc_activity::{
 use ol_config::{gameplay_defaults, LiveSettings};
 use ol_content::ContentDb;
 use ol_metrics::{Counters, ScopeTimer};
-use ol_ai::{IntentSink, PlayerCommands, DEFAULT_FOOD_SEARCH_RADIUS};
+use ol_ai::{
+    BestFoodHit, BestFoodQuery, CommandSink, FoodSearch, PlayerWriteInterface,
+    DEFAULT_FOOD_SEARCH_RADIUS,
+};
 use ol_net::NetIntent;
 use ol_sim::{
     apply_food_goto_fail, apply_path_filters_to_tiles, basic_farmer_weight_from_runtime,
@@ -45,16 +48,16 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tracing::{debug, info, warn};
 
-/// `NetIntent` sink for NPC → same channel as human clients (OL-AI-SPLIT).
-struct NpcIntentTx<'a>(&'a tokio::sync::mpsc::Sender<NetIntent>);
+/// Command sink for NPC → same channel as human clients ([`PlayerWriteInterface`]).
+struct NpcWriteTx<'a>(&'a tokio::sync::mpsc::Sender<NetIntent>);
 
-impl IntentSink for NpcIntentTx<'_> {
+impl CommandSink for NpcWriteTx<'_> {
     fn push(&mut self, intent: NetIntent) -> bool {
         self.0.try_send(intent).is_ok()
     }
 }
 
-/// Enqueue USE via [`PlayerCommands`] (identical to human client intent).
+/// Enqueue USE via [`PlayerWriteInterface`] (identical to human client command).
 #[inline]
 fn npc_use_at(
     intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
@@ -64,10 +67,10 @@ fn npc_use_at(
     id: Option<i32>,
     index: Option<i32>,
 ) -> bool {
-    NpcIntentTx(intent_tx).use_at(conn_id, x, y, id, index)
+    NpcWriteTx(intent_tx).use_at(conn_id, x, y, id, index)
 }
 
-/// Enqueue MOVE via [`PlayerCommands`].
+/// Enqueue MOVE via [`PlayerWriteInterface`].
 #[inline]
 fn npc_move_path(
     intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
@@ -77,7 +80,30 @@ fn npc_move_path(
     deltas: &[(i32, i32)],
     seq: Option<i32>,
 ) -> bool {
-    NpcIntentTx(intent_tx).move_path(conn_id, xs, ys, deltas, seq)
+    NpcWriteTx(intent_tx).move_path(conn_id, xs, ys, deltas, seq)
+}
+
+/// Enqueue DROP via [`PlayerWriteInterface`].
+#[inline]
+fn npc_drop_at(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    conn_id: u64,
+    x: i32,
+    y: i32,
+    clothing_slot: Option<i32>,
+) -> bool {
+    NpcWriteTx(intent_tx).drop_at(conn_id, x, y, clothing_slot)
+}
+
+/// Enqueue raw SAY/JUMP/… via [`PlayerWriteInterface`].
+#[inline]
+fn npc_say_raw(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    conn_id: u64,
+    tag: &str,
+    payload: &str,
+) -> bool {
+    NpcWriteTx(intent_tx).say_raw(conn_id, tag, payload)
 }
 
 /// Max tiles per NPC MOVE commit.
@@ -585,13 +611,54 @@ fn food_at(content: &ContentDb, id: i32) -> i32 {
     content.get(id).map(|d| d.food_value).unwrap_or(0)
 }
 
-/// Find nearest edible ground object (food_value > 0), skipping path-reach blocks.
+/// NPC-thread [`FoodSearch`]: nearest edible in a pre-scanned nearby list.
 ///
 /// Candidates must already be gathered within [`DEFAULT_FOOD_SEARCH_RADIUS`] (30)
-/// tiles (see SeekFood `scan_world_radius`). Full `FoodSearch`/`search_best_food_full`
-/// lives on the sim writer path via `ol_sim::best_food_for_ai`.
+/// tiles (see SeekFood `scan_world_radius`). Sim-thread full scoring is
+/// [`ol_sim::best_food_for_ai`] / [`ol_sim::SimPlayerRead`].
 // Haxe: SearchBestFood skips isObjectNotReachable / isObjectWithHostilePath
-// OL-AI-SPLIT: FoodSearch surface (default r=30)
+// Phase A: FoodSearch / PlayerReadInterface surface (default r=30)
+struct NpcNearbyFoodSearch<'a> {
+    content: &'a ContentDb,
+    nearby: &'a [NearbyObj],
+    px: i32,
+    py: i32,
+    path_reach: Option<&'a AiPathReachMaps>,
+}
+
+impl FoodSearch for NpcNearbyFoodSearch<'_> {
+    fn best_food(&self, q: BestFoodQuery) -> Option<BestFoodHit> {
+        let r = if q.max_dist > 0 {
+            q.max_dist
+        } else {
+            DEFAULT_FOOD_SEARCH_RADIUS
+        };
+        let o = self
+            .nearby
+            .iter()
+            .filter(|o| food_at(self.content, o.id) > 0)
+            .filter(|o| {
+                let d = (o.x - self.px).abs().max((o.y - self.py).abs());
+                d <= r
+            })
+            .filter(|o| {
+                self.path_reach
+                    .map(|m| !m.blocks_target(o.x, o.y, None))
+                    .unwrap_or(true)
+            })
+            .min_by_key(|o| (o.x - self.px).abs().max((o.y - self.py).abs()))?;
+        let fv = food_at(self.content, o.id);
+        Some(BestFoodHit {
+            x: o.x,
+            y: o.y,
+            food_id: o.id,
+            score: fv as f32,
+            is_yum: false,
+        })
+    }
+}
+
+/// Find nearest edible ground object via [`FoodSearch`] (default r=30).
 fn nearest_food(
     content: &ContentDb,
     nearby: &[NearbyObj],
@@ -599,21 +666,24 @@ fn nearest_food(
     py: i32,
     path_reach: Option<&AiPathReachMaps>,
 ) -> Option<NearbyObj> {
-    let r = DEFAULT_FOOD_SEARCH_RADIUS;
+    let search = NpcNearbyFoodSearch {
+        content,
+        nearby,
+        px,
+        py,
+        path_reach,
+    };
+    // conn_id unused for nearby scan; radius default 30.
+    let hit = search.best_food_default(0)?;
     nearby
         .iter()
-        .filter(|o| food_at(content, o.id) > 0)
-        .filter(|o| {
-            let d = (o.x - px).abs().max((o.y - py).abs());
-            d <= r
-        })
-        .filter(|o| {
-            path_reach
-                .map(|m| !m.blocks_target(o.x, o.y, None))
-                .unwrap_or(true)
-        })
-        .min_by_key(|o| (o.x - px).abs().max((o.y - py).abs()))
+        .find(|o| o.x == hit.x && o.y == hit.y)
         .copied()
+        .or(Some(NearbyObj {
+            id: hit.food_id,
+            x: hit.x,
+            y: hit.y,
+        }))
 }
 
 
@@ -971,14 +1041,8 @@ fn npc_run_is_picking_up_food(
         }
         IsPickingupFoodPlan::Remv { x, y, index } => {
             let payload = format!("{x} {y} {index}");
-            if intent_tx
-                .try_send(NetIntent::Raw {
-                    conn_id,
-                    tag: "REMV".into(),
-                    payload,
-                })
-                .is_ok()
-            {
+            // PlayerWriteInterface: same Raw path as human clients
+            if npc_say_raw(intent_tx, conn_id, "REMV", &payload) {
                 // Keep sticky until next-tick settle (Haxe clears only after known done).
                 // Haxe: isPickingupFood ~8694–8704
                 st.food_goto.pending_food_xy = Some((x, y));
@@ -1031,15 +1095,8 @@ fn npc_run_is_picking_up_food(
             ))
         }
         IsPickingupFoodPlan::DropOnFood { x, y } => {
-            if intent_tx
-                .try_send(NetIntent::Drop {
-                    conn_id,
-                    x,
-                    y,
-                    c: None,
-                })
-                .is_ok()
-            {
+            // PlayerWriteInterface: same Drop command as human clients
+            if npc_drop_at(intent_tx, conn_id, x, y, None) {
                 // Keep sticky until settle confirms success/fail.
                 st.food_goto.pending_food_xy = Some((x, y));
                 st.food_goto.pending_food_container = false;

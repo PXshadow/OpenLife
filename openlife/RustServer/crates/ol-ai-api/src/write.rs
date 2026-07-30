@@ -1,20 +1,21 @@
-//! Player-facing commands — **same wire path as human clients**.
+//! **PlayerWriteInterface** — shared write path for humans and AI.
 //!
-//! All methods build [`ol_net::NetIntent`] and push to an [`IntentSink`].
-//! AI never mutates the world here; the sim applies intents on the sole-writer path.
+//! All methods build [`ol_net::NetIntent`] and push to a [`CommandSink`].
+//! The sim sole-writer applies intents; this trait never mutates the world.
 
 use ol_net::NetIntent;
 
-/// Where AI / tests enqueue intents (e.g. `mpsc::Sender::try_send` wrapper).
-pub trait IntentSink {
+/// Where commands are enqueued (e.g. `mpsc::Sender::try_send` wrapper).
+pub trait CommandSink {
     /// Returns `false` if the sink is full / closed (same idea as `try_send` fail).
     fn push(&mut self, intent: NetIntent) -> bool;
 }
 
-/// Shared command surface for humans (net layer) and AI (this crate).
+/// Shared **write** surface for human clients and AI.
 ///
 /// Default methods all produce [`NetIntent`] variants that `apply_intent` already handles.
-pub trait PlayerCommands: IntentSink {
+/// Prefer this name over the old `PlayerCommands` alias.
+pub trait PlayerWriteInterface: CommandSink {
     /// USE at world tile (optional object id / container index).
     fn use_at(
         &mut self,
@@ -62,12 +63,22 @@ pub trait PlayerCommands: IntentSink {
     }
 
     /// Raw protocol line (SAY, JUMP, SELF, …) — same as client `Raw` intent.
-    fn say_raw(&mut self, conn_id: u64, tag: impl Into<String>, payload: impl Into<String>) -> bool {
+    fn say_raw(
+        &mut self,
+        conn_id: u64,
+        tag: impl Into<String>,
+        payload: impl Into<String>,
+    ) -> bool {
         self.push(NetIntent::Raw {
             conn_id,
             tag: tag.into(),
             payload: payload.into(),
         })
+    }
+
+    /// SAY text (convenience over [`Self::say_raw`]).
+    fn say(&mut self, conn_id: u64, text: impl Into<String>) -> bool {
+        self.say_raw(conn_id, "SAY", text)
     }
 
     /// Keep-alive / position hint (rarely used by AI).
@@ -76,5 +87,5 @@ pub trait PlayerCommands: IntentSink {
     }
 }
 
-// Blanket: any IntentSink gets the command helpers.
-impl<T: IntentSink> PlayerCommands for T {}
+// Blanket: any CommandSink gets the write helpers.
+impl<T: CommandSink> PlayerWriteInterface for T {}

@@ -107,6 +107,7 @@ mod wire_fields;
 mod yum;
 
 // --- Port residual modules (wired for compile; keep alphabetical) ---
+mod ai_adapters;
 mod ai_follow_walk;
 mod ai_path_reach;
 mod ai_say_helper;
@@ -527,6 +528,11 @@ pub use pathfind::{
 pub use player::{
     clothing_slot_for_object, ClothingSlot, Player, PlayerSnapshot, BACKPACK_MAX, NOTES_MAX,
     NOTE_TEXT_MAX, TITLE_TEXT_MAX,
+};
+// Phase A: ol-ai-api read adapters (PlayerReadInterface / FoodSearch / WorldView)
+pub use ai_adapters::{
+    best_food_for_ai, best_food_for_ai_radius, PlayerRef, PlayerSnapshotView, SimFoodSearch,
+    SimPlayerRead, WorldViewRef,
 };
 pub use poll::{parse_vote_choice, PollState, VoteChoice};
 pub use posse::{format_posse_join, PosseState};

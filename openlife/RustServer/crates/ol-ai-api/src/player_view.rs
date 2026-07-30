@@ -1,4 +1,4 @@
-//! Read-only view of one living body for AI decisions.
+//! Read-only view of one living body (part of [`crate::PlayerReadInterface`]).
 
 /// Snapshot-style player sensors. Adapters fill from `Player` / `PlayerSnapshot`.
 pub trait PlayerView {

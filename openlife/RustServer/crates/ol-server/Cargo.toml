@@ -18,6 +18,7 @@ ol-net.workspace = true
 ol-web.workspace = true
 ol-sim.workspace = true
 ol-ai.workspace = true
+ol-ai-api.workspace = true
 ol-content.workspace = true
 ol-world.workspace = true
 tracing.workspace = true

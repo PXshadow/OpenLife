@@ -1,4 +1,4 @@
-//! Fast read-only world access for AI think ticks.
+//! Fast read-only world access (part of [`crate::PlayerReadInterface`]).
 
 /// Cheap map queries. Implementors should avoid heavy locks on the hot path
 /// (prefer `RwLock` read guards, snapshots, or resident-chunk lookups).

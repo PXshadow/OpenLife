@@ -1,0 +1,10 @@
+[package]
+name = "ol-ai-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Player write/read interfaces shared by human clients and AI (traits + DTOs only)"
+publish = false
+
+[dependencies]
+ol-net.workspace = true

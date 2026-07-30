@@ -1,4 +1,5 @@
 //! Best-food query for a player (Haxe `SearchBestFood` surface).
+//! Part of [`crate::PlayerReadInterface`].
 
 /// Default Chebyshev search radius in tiles (product default for AI food seek).
 pub const DEFAULT_FOOD_SEARCH_RADIUS: i32 = 30;
@@ -48,7 +49,8 @@ pub struct BestFoodHit {
 
 /// Find the best edible for a player within a radius.
 ///
-/// Implementors wrap live `search_best_food*` / content / yum state in `ol-sim`.
+/// Implementors wrap live `search_best_food*` / content / yum state in `ol-sim`,
+/// or a lighter nearby scan on the NPC thread (still r=30 by default).
 pub trait FoodSearch {
     fn best_food(&self, q: BestFoodQuery) -> Option<BestFoodHit>;
 

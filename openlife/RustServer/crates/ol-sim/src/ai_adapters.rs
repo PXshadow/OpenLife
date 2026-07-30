@@ -1,20 +1,24 @@
-//! Adapters: `ol-ai` traits ← live sim/world (OL-AI-SPLIT Phase 2).
+//! Adapters: `ol-ai-api` traits ← live sim/world (Phase A).
 //!
-//! AI decisions stay in `ol-ai` (or npc_ai using traits). This module only
-//! implements read/search surfaces so AI never needs a second mutation path.
+//! - **Write:** AI uses [`ol_ai_api::PlayerWriteInterface`] → `NetIntent` (not this file).
+//! - **Read:** [`WorldView`] / [`PlayerView`] / [`FoodSearch`] / [`PlayerReadInterface`].
+//!
+//! Full Haxe `SearchBestFood` (`search_best_food_live.inc.rs`) is not always
+//! `include!`d in `lib.rs` yet; [`SimFoodSearch`] uses a correct **ground**
+//! scan at default radius 30 so the interface is real and NPC-ready. When the
+//! live include is wired, upgrade [`SimFoodSearch::best_food`] to call it.
 
 use crate::player::PlayerSnapshot;
-use crate::search_best_food::AiFoodSearchFlags;
-use crate::{search_best_food_full, Player, SimState};
-use ol_ai::{
-    BestFoodHit as AiBestFoodHit, BestFoodQuery, FoodSearch, PlayerView, WorldView,
-    DEFAULT_FOOD_SEARCH_RADIUS,
+use crate::{Player, SimState};
+use ol_ai_api::{
+    BestFoodHit as ApiBestFoodHit, BestFoodQuery, FoodSearch, PlayerReadInterface, PlayerView,
+    WorldView, DEFAULT_FOOD_SEARCH_RADIUS,
 };
 use ol_world::World;
 
 // ── World ───────────────────────────────────────────────────────────────────
 
-/// [`WorldView`] over a borrowed [`World`].
+/// [`WorldView`] over a borrowed [`World`] (caller holds the `RwLock` read guard).
 pub struct WorldViewRef<'a>(pub &'a World);
 
 impl WorldView for WorldViewRef<'_> {
@@ -48,7 +52,6 @@ impl WorldView for WorldViewRef<'_> {
     ) {
         let (x0, x1) = if x0 <= x1 { (x0, x1) } else { (x1, x0) };
         let (y0, y1) = if y0 <= y1 { (y0, y1) } else { (y1, y0) };
-        // Cap scan area to avoid AI think blowups ( ~200² max ).
         let max_side = 200;
         let x1 = x1.min(x0.saturating_add(max_side));
         let y1 = y1.min(y0.saturating_add(max_side));
@@ -124,7 +127,6 @@ impl PlayerView for PlayerSnapshotView<'_> {
         self.0.held_id
     }
     fn home(&self) -> (i32, i32) {
-        // home_x/y from AI-JOB-SMITH-RESID snapshot; (0,0) is a valid home — always use fields.
         (self.0.home_x, self.0.home_y)
     }
     fn clothing(&self) -> [i32; 6] {
@@ -140,41 +142,66 @@ impl PlayerView for PlayerSnapshotView<'_> {
 
 // ── Food search ─────────────────────────────────────────────────────────────
 
-/// Live Haxe `SearchBestFood` via [`search_best_food_full`].
+/// Live best-food via ground scan on [`SimState`] (default radius **30**).
 ///
-/// Default radius is [`DEFAULT_FOOD_SEARCH_RADIUS`] (30) when query uses defaults.
+/// Phase A: nearest edible ground tile by Chebyshev, preferring higher
+/// `food_value`. Container / yum / path-reach full parity lands when
+/// `search_best_food_live.inc.rs` is included in `lib.rs`.
 pub struct SimFoodSearch<'a> {
     pub state: &'a SimState,
-    /// When true, use AI seed/danger gates; when false, human/DisplayBestFood style.
+    /// Reserved for AI seed/danger gates when full SearchBestFood is wired.
     pub ai: bool,
 }
 
 impl FoodSearch for SimFoodSearch<'_> {
-    fn best_food(&self, q: BestFoodQuery) -> Option<AiBestFoodHit> {
+    fn best_food(&self, q: BestFoodQuery) -> Option<ApiBestFoodHit> {
+        let _ = self.ai;
+        let p = self.state.players.get(&q.conn_id)?;
+        if p.deleted {
+            return None;
+        }
         let radius = if q.max_dist > 0 {
             q.max_dist
         } else {
             DEFAULT_FOOD_SEARCH_RADIUS
         };
-        let flags = if self.ai {
-            Some(AiFoodSearchFlags::default())
-        } else {
-            None
-        };
-        let hit = search_best_food_full(self.state, q.conn_id, radius, None, flags, false)?;
-        Some(AiBestFoodHit {
-            x: hit.tx,
-            y: hit.ty,
-            food_id: hit.food_id,
-            score: hit.scored_food_value,
-            // Positive scored food value is a soft yum/meh signal for AI policy.
-            is_yum: hit.scored_food_value > hit.food_value as f32,
+        let (px, py) = (p.x, p.y);
+        let world = self.state.world.read().ok()?;
+        let mut best: Option<(i32, i32, i32, i32, i32)> = None; // dist, -fv, x, y, food_id
+        for dy in -radius..=radius {
+            for dx in -radius..=radius {
+                let x = px + dx;
+                let y = py + dy;
+                let id = world.get_object(x, y);
+                if id == 0 {
+                    continue;
+                }
+                let base = self.state.content.resolve_base_id(id);
+                let Some(def) = self.state.content.get(base) else {
+                    continue;
+                };
+                if def.food_value <= 0 {
+                    continue;
+                }
+                let dist = dx.abs().max(dy.abs());
+                let key = (dist, -def.food_value, x, y, base);
+                if best.map(|b| key < b).unwrap_or(true) {
+                    best = Some(key);
+                }
+            }
+        }
+        best.map(|(dist, neg_fv, x, y, food_id)| ApiBestFoodHit {
+            x,
+            y,
+            food_id,
+            score: (-neg_fv) as f32 / (1.0 + dist as f32),
+            is_yum: false,
         })
     }
 }
 
 /// Convenience: AI food search with default radius 30.
-pub fn best_food_for_ai(state: &SimState, conn_id: u64) -> Option<AiBestFoodHit> {
+pub fn best_food_for_ai(state: &SimState, conn_id: u64) -> Option<ApiBestFoodHit> {
     SimFoodSearch { state, ai: true }.best_food_default(conn_id)
 }
 
@@ -183,14 +210,177 @@ pub fn best_food_for_ai_radius(
     state: &SimState,
     conn_id: u64,
     max_dist: i32,
-) -> Option<AiBestFoodHit> {
+) -> Option<ApiBestFoodHit> {
     SimFoodSearch { state, ai: true }.best_food(BestFoodQuery::with_radius(conn_id, max_dist))
+}
+
+// ── Combined PlayerReadInterface (sim-thread) ───────────────────────────────
+
+/// Full [`PlayerReadInterface`] over live [`SimState`] for one connection.
+///
+/// Implements world/player/food by locking / indexing `state` per call so we
+/// never need to hold a `World` guard across the façade.
+pub struct SimPlayerRead<'a> {
+    pub state: &'a SimState,
+    pub conn_id: u64,
+}
+
+impl SimPlayerRead<'_> {
+    pub fn new(state: &SimState, conn_id: u64) -> Option<SimPlayerRead<'_>> {
+        let p = state.players.get(&conn_id)?;
+        if p.deleted {
+            return None;
+        }
+        Some(SimPlayerRead { state, conn_id })
+    }
+}
+
+impl WorldView for SimPlayerRead<'_> {
+    fn width_height(&self) -> (i32, i32) {
+        self.state
+            .world
+            .read()
+            .map(|w| (w.width_tiles, w.height_tiles))
+            .unwrap_or((0, 0))
+    }
+
+    fn wrap(&self) -> bool {
+        self.state.world.read().map(|w| w.wrap).unwrap_or(false)
+    }
+
+    fn object_at(&self, x: i32, y: i32) -> i32 {
+        self.state
+            .world
+            .read()
+            .map(|w| w.get_object(x, y))
+            .unwrap_or(0)
+    }
+
+    fn biome_at(&self, x: i32, y: i32) -> u8 {
+        self.state
+            .world
+            .read()
+            .map(|w| w.get_biome(x, y))
+            .unwrap_or(0)
+    }
+
+    fn floor_at(&self, x: i32, y: i32) -> i32 {
+        self.state
+            .world
+            .read()
+            .map(|w| w.get_floor(x, y) as i32)
+            .unwrap_or(0)
+    }
+
+    fn for_each_object_in_rect(
+        &self,
+        x0: i32,
+        y0: i32,
+        x1: i32,
+        y1: i32,
+        f: &mut dyn FnMut(i32, i32, i32),
+    ) {
+        if let Ok(w) = self.state.world.read() {
+            WorldViewRef(&w).for_each_object_in_rect(x0, y0, x1, y1, f);
+        }
+    }
+}
+
+impl PlayerView for SimPlayerRead<'_> {
+    fn conn_id(&self) -> u64 {
+        self.conn_id
+    }
+    fn p_id(&self) -> i32 {
+        self.state
+            .players
+            .get(&self.conn_id)
+            .map(|p| p.p_id)
+            .unwrap_or(0)
+    }
+    fn pos(&self) -> (i32, i32) {
+        self.state
+            .players
+            .get(&self.conn_id)
+            .map(|p| (p.x, p.y))
+            .unwrap_or((0, 0))
+    }
+    fn age(&self) -> f32 {
+        self.state
+            .players
+            .get(&self.conn_id)
+            .map(|p| p.age)
+            .unwrap_or(0.0)
+    }
+    fn food(&self) -> (f32, f32) {
+        self.state
+            .players
+            .get(&self.conn_id)
+            .map(|p| (p.food, p.food_max))
+            .unwrap_or((0.0, 0.0))
+    }
+    fn held_id(&self) -> i32 {
+        self.state
+            .players
+            .get(&self.conn_id)
+            .map(|p| p.held_id)
+            .unwrap_or(0)
+    }
+    fn home(&self) -> (i32, i32) {
+        self.state
+            .players
+            .get(&self.conn_id)
+            .map(|p| (p.home_x, p.home_y))
+            .unwrap_or((0, 0))
+    }
+    fn clothing(&self) -> [i32; 6] {
+        self.state
+            .players
+            .get(&self.conn_id)
+            .map(|p| p.clothing_parent_ids())
+            .unwrap_or([0; 6])
+    }
+    fn deleted(&self) -> bool {
+        self.state
+            .players
+            .get(&self.conn_id)
+            .map(|p| p.deleted)
+            .unwrap_or(true)
+    }
+    fn is_moving(&self) -> bool {
+        self.state
+            .players
+            .get(&self.conn_id)
+            .map(|p| p.moving || p.move_path.is_some())
+            .unwrap_or(false)
+    }
+}
+
+impl FoodSearch for SimPlayerRead<'_> {
+    fn best_food(&self, q: BestFoodQuery) -> Option<ApiBestFoodHit> {
+        SimFoodSearch {
+            state: self.state,
+            ai: true,
+        }
+        .best_food(q)
+    }
+}
+
+impl PlayerReadInterface for SimPlayerRead<'_> {
+    fn world(&self) -> &dyn WorldView {
+        self
+    }
+    fn self_player(&self) -> &dyn PlayerView {
+        self
+    }
+    fn food_search(&self) -> &dyn FoodSearch {
+        self
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ol_ai::FoodSearch;
+    use ol_ai_api::FoodSearch;
 
     #[test]
     fn food_query_radius_default_constant() {

@@ -766,7 +766,15 @@ dependencies = [
 name = "ol-ai"
 version = "0.1.0"
 dependencies = [
+ "ol-ai-api",
  "ol-content",
+ "ol-net",
+]
+
+[[package]]
+name = "ol-ai-api"
+version = "0.1.0"
+dependencies = [
  "ol-net",
 ]
 
@@ -825,6 +833,7 @@ name = "ol-server"
 version = "0.1.0"
 dependencies = [
  "ol-ai",
+ "ol-ai-api",
  "ol-config",
  "ol-content",
  "ol-metrics",
@@ -848,6 +857,7 @@ dependencies = [
  "byteorder",
  "flate2",
  "ol-ai",
+ "ol-ai-api",
  "ol-config",
  "ol-content",
  "ol-metrics",

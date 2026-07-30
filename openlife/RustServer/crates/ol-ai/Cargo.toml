@@ -3,10 +3,11 @@ name = "ol-ai"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "NPC / AI decisions — interfaces only; acts via NetIntent like human clients"
+description = "NPC / AI pure decisions — acts via PlayerWriteInterface (ol-ai-api); reads via PlayerReadInterface"
 publish = false
 
 [dependencies]
+ol-ai-api.workspace = true
 ol-net.workspace = true
 ol-content.workspace = true
 
