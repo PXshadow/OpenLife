@@ -1269,10 +1269,11 @@ fn find_object_id_near(
     best.map(|(_, tx, ty, id)| (tx, ty, id))
 }
 
-/// Scan radius `r` (Chebyshev) for the object with the highest content `food_value`.
+/// Scan radius `r` for best food using **shared** SearchBestFood pure scoring.
 ///
-/// Ties break toward closer tiles. Skips `avoid` so agents unstick from a single bush.
-/// Used by Forager [`Goal::SeekFood`] for clear food preference.
+/// Skips `avoid` so agents unstick from a single bush. Same scorer as NPC hungry
+/// seek and live `search_best_food_full` (`ol_player_helper::pick_best_search_food`).
+/// Used by Forager [`Goal::SeekFood`].
 fn find_best_food(
     world: &Arc<RwLock<World>>,
     content: &ContentDb,
@@ -1281,9 +1282,12 @@ fn find_best_food(
     r: i32,
     avoid: Option<(i32, i32)>,
 ) -> Option<(i32, i32, i32)> {
+    use ol_player_helper::{
+        pick_best_search_food, AiFoodSearchFlags, ProcessFoodOpts, SearchFoodCand,
+    };
     let w = world.read().unwrap();
-    // best: (food_value, -chebyshev, tx, ty, id)
-    let mut best: Option<(i32, i32, i32, i32, i32)> = None;
+    let mut cands: Vec<SearchFoodCand> = Vec::new();
+    let mut stock: Vec<(i32, i32, i32, i32)> = Vec::new();
     for oy in -r..=r {
         for ox in -r..=r {
             let tx = x + ox;
@@ -1295,21 +1299,37 @@ fn find_best_food(
             if id == 0 {
                 continue;
             }
-            let fv = content.get(id).map(|d| d.food_value).unwrap_or(0);
-            if fv <= 0 {
+            let base = content.resolve_base_id(id);
+            let Some(def) = content.get(base) else {
+                continue;
+            };
+            let uses = if def.num_uses > 0 { def.num_uses } else { 1 };
+            stock.push((tx, ty, base, uses));
+            if def.food_value <= 0 {
                 continue;
             }
-            let dist = ox.abs().max(oy.abs());
-            let key = (fv, -dist);
-            if best
-                .map(|b| key > (b.0, b.1))
-                .unwrap_or(true)
-            {
-                best = Some((fv, -dist, tx, ty, id));
-            }
+            cands.push(SearchFoodCand {
+                parent_id: base,
+                food_id: base,
+                food_value: def.food_value,
+                tx,
+                ty,
+                count_eaten: 0.0,
+                number_of_uses: uses,
+                index_in_container: -1,
+                is_dangerous: false,
+                not_reachable: false,
+                food_factor: 1.0,
+            });
         }
     }
-    best.map(|(_, _, tx, ty, id)| (tx, ty, id))
+    drop(w);
+    // Neutral stomach so pure gates still rank by distance/value/seed rules.
+    let mut opts = ProcessFoodOpts::human(x, y, 5.0, 40.0, 0);
+    opts.ai = Some(AiFoodSearchFlags::default());
+    let (idx, _score) = pick_best_search_food(&cands, &opts, &stock)?;
+    let c = &cands[idx];
+    Some((c.tx, c.ty, c.food_id))
 }
 
 /// True when tile object is multi-use and nearly exhausted (`uses_remaining` in 1..=2).

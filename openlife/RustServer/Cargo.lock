@@ -862,6 +862,7 @@ dependencies = [
  "ol-content",
  "ol-metrics",
  "ol-net",
+ "ol-player-helper",
  "ol-protocol",
  "ol-sim",
  "ol-web",

@@ -17,6 +17,9 @@ use ol_ai::{
     DEFAULT_FOOD_SEARCH_RADIUS,
 };
 use ol_net::NetIntent;
+use ol_player_helper::{
+    pick_best_search_food, to_best_hit, AiFoodSearchFlags, ProcessFoodOpts, SearchFoodCand,
+};
 use ol_sim::{
     apply_food_goto_fail, apply_path_filters_to_tiles, basic_farmer_weight_from_runtime,
     collect_deadly_animal_blocked_around, consider_animals_for_goto, evaluate_nearby_crafts,
@@ -611,18 +614,20 @@ fn food_at(content: &ContentDb, id: i32) -> i32 {
     content.get(id).map(|d| d.food_value).unwrap_or(0)
 }
 
-/// NPC-thread [`FoodSearch`]: nearest edible in a pre-scanned nearby list.
+/// NPC-thread [`FoodSearch`]: scores a pre-scanned nearby list with the **same**
+/// pure SearchBestFood scorer as players (`ol_player_helper::pick_best_search_food`).
 ///
-/// Candidates must already be gathered within [`DEFAULT_FOOD_SEARCH_RADIUS`] (30)
-/// tiles (see SeekFood `scan_world_radius`). Sim-thread full scoring is
-/// [`ol_sim::best_food_for_ai`] / [`ol_sim::SimPlayerRead`].
-// Haxe: SearchBestFood skips isObjectNotReachable / isObjectWithHostilePath
-// Phase A: FoodSearch / PlayerReadInterface surface (default r=30)
+/// Candidates must already be gathered within radius (SeekFood uses
+/// [`DEFAULT_FOOD_SEARCH_RADIUS`] = 30). Full world+container scan on the sim
+/// writer uses [`ol_sim::search_best_food_full`] / [`ol_sim::best_food_for_ai`].
+// Haxe: SearchBestFood processFood scoring; isObjectNotReachable skip
 struct NpcNearbyFoodSearch<'a> {
     content: &'a ContentDb,
     nearby: &'a [NearbyObj],
     px: i32,
     py: i32,
+    food_store: f32,
+    food_store_max: f32,
     path_reach: Option<&'a AiPathReachMaps>,
 }
 
@@ -633,37 +638,71 @@ impl FoodSearch for NpcNearbyFoodSearch<'_> {
         } else {
             DEFAULT_FOOD_SEARCH_RADIUS
         };
-        let o = self
-            .nearby
-            .iter()
-            .filter(|o| food_at(self.content, o.id) > 0)
-            .filter(|o| {
-                let d = (o.x - self.px).abs().max((o.y - self.py).abs());
-                d <= r
-            })
-            .filter(|o| {
-                self.path_reach
-                    .map(|m| !m.blocks_target(o.x, o.y, None))
-                    .unwrap_or(true)
-            })
-            .min_by_key(|o| (o.x - self.px).abs().max((o.y - self.py).abs()))?;
-        let fv = food_at(self.content, o.id);
+        let mut cands: Vec<SearchFoodCand> = Vec::new();
+        let mut stock_tiles: Vec<(i32, i32, i32, i32)> = Vec::new();
+        for o in self.nearby {
+            let d = (o.x - self.px).abs().max((o.y - self.py).abs());
+            if d > r {
+                continue;
+            }
+            let base = self.content.resolve_base_id(o.id);
+            let Some(def) = self.content.get(base) else {
+                continue;
+            };
+            let uses = if def.num_uses > 0 { def.num_uses } else { 1 };
+            stock_tiles.push((o.x, o.y, base, uses));
+            let fv = food_at(self.content, o.id);
+            if fv <= 0 {
+                continue;
+            }
+            let not_reachable = self
+                .path_reach
+                .map(|m| m.blocks_target(o.x, o.y, None))
+                .unwrap_or(false);
+            cands.push(SearchFoodCand {
+                parent_id: base,
+                food_id: base,
+                food_value: fv,
+                tx: o.x,
+                ty: o.y,
+                count_eaten: 0.0, // snapshot lacks full hasEatenMap; pure gates still apply
+                number_of_uses: uses,
+                index_in_container: -1,
+                is_dangerous: false,
+                not_reachable,
+                food_factor: 1.0,
+            });
+        }
+        let mut opts = ProcessFoodOpts::human(
+            self.px,
+            self.py,
+            self.food_store,
+            self.food_store_max,
+            0,
+        );
+        // AI hungry seek: seed/danger gates like SimFoodSearch(ai=true)
+        opts.ai = Some(AiFoodSearchFlags::default());
+        let (idx, score) = pick_best_search_food(&cands, &opts, &stock_tiles)?;
+        let cand = &cands[idx];
+        let hit = to_best_hit(cand, &score, self.px, self.py);
         Some(BestFoodHit {
-            x: o.x,
-            y: o.y,
-            food_id: o.id,
-            score: fv as f32,
-            is_yum: false,
+            x: hit.tx,
+            y: hit.ty,
+            food_id: hit.food_id,
+            score: hit.scored_food_value,
+            is_yum: hit.scored_food_value > hit.food_value as f32,
         })
     }
 }
 
-/// Find nearest edible ground object via [`FoodSearch`] (default r=30).
+/// Find best edible ground object via shared SearchBestFood pure scoring (r=30).
 fn nearest_food(
     content: &ContentDb,
     nearby: &[NearbyObj],
     px: i32,
     py: i32,
+    food_store: f32,
+    food_store_max: f32,
     path_reach: Option<&AiPathReachMaps>,
 ) -> Option<NearbyObj> {
     let search = NpcNearbyFoodSearch {
@@ -671,9 +710,10 @@ fn nearest_food(
         nearby,
         px,
         py,
+        food_store,
+        food_store_max,
         path_reach,
     };
-    // conn_id unused for nearby scan; radius default 30.
     let hit = search.best_food_default(0)?;
     nearby
         .iter()
@@ -741,10 +781,12 @@ fn resolve_npc_food_target(
     nearby: &[NearbyObj],
     px: i32,
     py: i32,
+    food_store: f32,
+    food_store_max: f32,
     path_reach: &AiPathReachMaps,
     food_goto: &mut NpcFoodGotoState,
 ) -> Option<StickyFoodTarget> {
-    // Container sticky: ground tile is basket/etc (food_value often 0) â€” validate via sticky parent.
+    // Container sticky: ground tile is basket/etc (food_value often 0) — validate via sticky parent.
     // Haxe: isEatableCheckAgain; container indexInContainer > -1 still often true (TODO in Haxe)
     let sticky_tile = food_goto.sticky_food.map(|s| {
         if s.in_container() {
@@ -761,10 +803,17 @@ fn resolve_npc_food_target(
         }
     });
     let (sticky_id, sticky_fv) = sticky_tile.unwrap_or((0, 0));
-    // Ground nearest only (container slots need SearchBestFood live â€” residual).
-    let cand = nearest_food(content, nearby, px, py, Some(path_reach)).map(|f| {
-        StickyFoodTarget::new(f.x, f.y, f.id)
-    });
+    // Shared pure SearchBestFood scoring on nearby scan (containers residual on NPC thread).
+    let cand = nearest_food(
+        content,
+        nearby,
+        px,
+        py,
+        food_store,
+        food_store_max,
+        Some(path_reach),
+    )
+    .map(|f| StickyFoodTarget::new(f.x, f.y, f.id));
     let resolved = resolve_sticky_food(food_goto.sticky_food, sticky_id, sticky_fv, cand);
     food_goto.sticky_food = resolved;
     resolved
@@ -1437,6 +1486,8 @@ pub async fn run_npc_scheduler(
                         &nearby,
                         p.x,
                         p.y,
+                        p.food,
+                        p.food_max,
                         &st.path_reach,
                         &mut st.food_goto,
                     ) {
@@ -1681,6 +1732,8 @@ pub async fn run_npc_scheduler(
                     &nearby,
                     p.x,
                     p.y,
+                    p.food,
+                    p.food_max,
                     &st.path_reach,
                     &mut st.food_goto,
                 ) {

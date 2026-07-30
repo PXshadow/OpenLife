@@ -158,6 +158,7 @@ mod handling_fire;
 mod get_or_craft;
 mod short_craft_intent;
 mod search_best_food;
+mod search_best_food_live;
 mod fire_food_rung;
 mod is_picking_up_food;
 // --- end residual modules ---
@@ -529,11 +530,13 @@ pub use player::{
     clothing_slot_for_object, ClothingSlot, Player, PlayerSnapshot, BACKPACK_MAX, NOTES_MAX,
     NOTE_TEXT_MAX, TITLE_TEXT_MAX,
 };
-// Phase A: ol-ai-api read adapters (PlayerReadInterface / FoodSearch / WorldView)
+// Phase A/B: ol-ai-api read adapters (PlayerReadInterface / FoodSearch / WorldView)
 pub use ai_adapters::{
-    best_food_for_ai, best_food_for_ai_radius, PlayerRef, PlayerSnapshotView, SimFoodSearch,
-    SimPlayerRead, WorldViewRef,
+    best_food_for_ai, best_food_for_ai_radius, best_food_for_player, PlayerRef,
+    PlayerSnapshotView, SimFoodSearch, SimPlayerRead, WorldViewRef,
 };
+// Live SearchBestFood (players + AI share one scan + pure scoring)
+pub use search_best_food_live::{search_best_food_full, search_best_food_nearby};
 pub use poll::{parse_vote_choice, PollState, VoteChoice};
 pub use posse::{format_posse_join, PosseState};
 pub use prestige::{
@@ -2230,12 +2233,35 @@ pub fn food_objects_list(state: &SimState) -> Vec<i32> {
         .collect()
 }
 
-/// Nearby best food for craving (stub until search_best_food live wire).
+/// Nearby best food for craving + displayFood branch.
+///
+/// Uses the **same** live SearchBestFood as AI (`search_best_food_full` with
+/// human flags / Haxe default radius 40). No separate scan implementation.
+// Haxe: SearchBestFood for craving nearby + DisplayBestFood candidate
 pub fn nearby_best_for_craving(
-    _state: &SimState,
-    _conn_id: u64,
+    state: &SimState,
+    conn_id: u64,
 ) -> Option<crate::yum::NearbyBestFood> {
-    None
+    use crate::search_best_food::SEARCH_BEST_FOOD_RADIUS;
+    let hit = search_best_food_full(
+        state,
+        conn_id,
+        SEARCH_BEST_FOOD_RADIUS,
+        None,
+        None, // human / DisplayBestFood — no AI seed gates
+        false,
+    )?;
+    let count_eaten = state
+        .players
+        .get(&conn_id)
+        .map(|p| p.yum.get_count_eaten(hit.food_id))
+        .unwrap_or(0.0);
+    Some(crate::yum::NearbyBestFood {
+        food_id: hit.food_id,
+        count_eaten,
+        tx: hit.tx,
+        ty: hit.ty,
+    })
 }
 
 /// Deterministic craving RNG hooks (Haxe Math.random residual).

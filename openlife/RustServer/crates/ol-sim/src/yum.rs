@@ -620,8 +620,13 @@ pub fn should_display_best_food(
 }
 
 // ---------------------------------------------------------------------------
-// SearchBestFood scoring (pure candidate pick)
+// SearchBestFood scoring (compat shims → full pure scorer preferred)
 // ---------------------------------------------------------------------------
+//
+// Prefer `ol_player_helper::process_food` / `crate::search_best_food_full` for
+// live paths (players + AI). The helpers below stay for existing unit tests and
+// call sites that build `FoodCandidate` lists; they do **not** replace the full
+// SearchBestFood implementation.
 
 /// One food candidate for AI / display search.
 #[derive(Debug, Clone, Copy)]
@@ -637,6 +642,7 @@ pub struct FoodCandidate {
 /// Score one food for SearchBestFood-style pick with live YumBonus (higher is better).
 ///
 /// Simplified from Haxe `processFood` without goose/carrot special cases.
+/// Live production code should use `search_best_food_full` / `process_food`.
 // Haxe: AiHelper.processFood isYum = countEaten < ServerSettings.YumBonus
 pub fn score_food_candidate_ex(
     c: &FoodCandidate,

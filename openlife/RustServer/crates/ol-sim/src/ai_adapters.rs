@@ -9,15 +9,13 @@
 //! live include is wired, upgrade [`SimFoodSearch::best_food`] to call it.
 
 use crate::player::PlayerSnapshot;
+use crate::search_best_food_live::search_best_food_full;
 use crate::{Player, SimState};
 use ol_ai_api::{
     BestFoodHit as ApiBestFoodHit, BestFoodQuery, FoodSearch, PlayerReadInterface, PlayerView,
     WorldView, DEFAULT_FOOD_SEARCH_RADIUS,
 };
-use ol_player_helper::{
-    pick_best_search_food, to_best_hit, AiFoodSearchFlags, ProcessFoodOpts, SearchFoodCand,
-    starving_factor,
-};
+use ol_player_helper::AiFoodSearchFlags;
 use ol_world::World;
 
 // ── World ───────────────────────────────────────────────────────────────────
@@ -146,11 +144,13 @@ impl PlayerView for PlayerSnapshotView<'_> {
 
 // ── Food search ─────────────────────────────────────────────────────────────
 
-/// Live best-food via ground scan + **PlayerHelper** pure `process_food` scoring.
+/// Live best-food via **shared** [`search_best_food_full`] (players + AI).
 ///
-/// Default radius **30** ([`DEFAULT_FOOD_SEARCH_RADIUS`]). Containers / full
-/// Haxe conservation scan improve when `search_best_food_live.inc.rs` is
-/// included; scoring gates already match pure SearchBestFood.
+/// - `ai = true`: AI seed/danger gates (`AiFoodSearchFlags`)
+/// - `ai = false`: human / DisplayBestFood / craving path (no AI seed gates)
+///
+/// Default radius **30** for AI interface; human craving uses radius **40**
+/// via [`crate::nearby_best_for_craving`] (Haxe SearchBestFood default).
 pub struct SimFoodSearch<'a> {
     pub state: &'a SimState,
     /// When true, enable AI seed/danger gates in pure scoring.
@@ -159,85 +159,17 @@ pub struct SimFoodSearch<'a> {
 
 impl FoodSearch for SimFoodSearch<'_> {
     fn best_food(&self, q: BestFoodQuery) -> Option<ApiBestFoodHit> {
-        let p = self.state.players.get(&q.conn_id)?;
-        if p.deleted {
-            return None;
-        }
         let radius = if q.max_dist > 0 {
             q.max_dist
         } else {
             DEFAULT_FOOD_SEARCH_RADIUS
         };
-        let (px, py) = (p.x, p.y);
-        let world = self.state.world.read().ok()?;
-        let (map_w, map_h, wrap) = (world.width_tiles, world.height_tiles, world.wrap);
-
-        // Build pure candidates from ground tiles in radius (Phase B).
-        let mut cands: Vec<SearchFoodCand> = Vec::new();
-        let mut stock_tiles: Vec<(i32, i32, i32, i32)> = Vec::new();
-        for dy in -radius..=radius {
-            for dx in -radius..=radius {
-                let x = px + dx;
-                let y = py + dy;
-                let id = world.get_object(x, y);
-                if id == 0 {
-                    continue;
-                }
-                let base = self.state.content.resolve_base_id(id);
-                let Some(def) = self.state.content.get(base) else {
-                    continue;
-                };
-                let uses = world
-                    .get_helper(x, y)
-                    .map(|h| {
-                        if h.uses_remaining > 0 {
-                            h.uses_remaining
-                        } else if def.num_uses > 0 {
-                            def.num_uses
-                        } else {
-                            1
-                        }
-                    })
-                    .unwrap_or(1)
-                    .max(1);
-                stock_tiles.push((x, y, base, uses));
-                if def.food_value <= 0 {
-                    continue;
-                }
-                let count_eaten = p.yum.get_count_eaten(base);
-                let not_reachable = p.ai_path_reach.not_reachable.contains_key(&(x, y))
-                    || self.state.blocked_by_ai.contains_key(&(x, y));
-                cands.push(SearchFoodCand {
-                    parent_id: base,
-                    food_id: base,
-                    food_value: def.food_value,
-                    tx: x,
-                    ty: y,
-                    count_eaten,
-                    number_of_uses: uses,
-                    index_in_container: -1,
-                    is_dangerous: false,
-                    not_reachable,
-                    food_factor: 1.0,
-                });
-            }
-        }
-        drop(world);
-
-        let mut opts = ProcessFoodOpts::human(px, py, p.food, p.food_max, p.yum.currently_craving);
-        opts.starving_factor = starving_factor(p.food);
-        opts.map_w = map_w;
-        opts.map_h = map_h;
-        opts.wrap = wrap;
-        opts.ai = if self.ai {
+        let ai_flags = if self.ai {
             Some(AiFoodSearchFlags::default())
         } else {
             None
         };
-
-        let (idx, score) = pick_best_search_food(&cands, &opts, &stock_tiles)?;
-        let cand = &cands[idx];
-        let hit = to_best_hit(cand, &score, px, py);
+        let hit = search_best_food_full(self.state, q.conn_id, radius, None, ai_flags, false)?;
         Some(ApiBestFoodHit {
             x: hit.tx,
             y: hit.ty,
@@ -251,6 +183,11 @@ impl FoodSearch for SimFoodSearch<'_> {
 /// Convenience: AI food search with default radius 30.
 pub fn best_food_for_ai(state: &SimState, conn_id: u64) -> Option<ApiBestFoodHit> {
     SimFoodSearch { state, ai: true }.best_food_default(conn_id)
+}
+
+/// Convenience: human / DisplayBestFood search (no AI seed gates), default radius 30.
+pub fn best_food_for_player(state: &SimState, conn_id: u64) -> Option<ApiBestFoodHit> {
+    SimFoodSearch { state, ai: false }.best_food_default(conn_id)
 }
 
 /// Convenience: AI food search with explicit Chebyshev radius.
