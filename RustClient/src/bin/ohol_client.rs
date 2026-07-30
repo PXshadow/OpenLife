@@ -1845,17 +1845,24 @@ fn run_offline_with_banks(
     let mut age_slider_drag = false;
     let initial_skin = skins.get(skin_idx).map(|(id, _)| *id).unwrap_or(19);
 
-    // Offline demo map: every default biome (0–6) as a vertical strip so ground
-    // sheets / soft borders can be compared side-by-side (Jason ground_0..ground_6).
-    // Layout: 21×14 → strip width 3 cells per biome (0..6 left→right).
-    const MAP_W: i32 = 21;
+    // Offline demo map: default land sheets (0–6) plus Open Life specials
+    // (Haxe BiomeTag): 13=shallow water, 9=deep ocean, 21=mountain peak.
+    // Vertical strips left→right so soft borders / underfill colors compare easily.
+    const OFFLINE_BIOMES: &[u8] = &[
+        0, 1, 2, 3, 4, 5, 6, // ground_0..6 sheets
+        13,                  // PASSABLERIVER — shallow / walkable water
+        9,                   // OCEAN — deep water
+        21,                  // SNOWINGREY — mountain
+    ];
+    const STRIP_W: i32 = 3;
     const MAP_H: i32 = 14;
-    const STRIP_W: i32 = 3; // biomes 0..6 use x/3
-    let player_x = MAP_W / 2; // center strip ≈ biome 3
+    let map_w = OFFLINE_BIOMES.len() as i32 * STRIP_W;
+    // Stand on grass (first strip), not water/mountain.
+    let player_x = STRIP_W / 2;
     let player_y = MAP_H / 2;
     let mut map = ClientMap::new();
     let h = MapChunkHeader {
-        size_x: MAP_W,
+        size_x: map_w,
         size_y: MAP_H,
         x: 0,
         y: 0,
@@ -1864,12 +1871,14 @@ fn run_offline_with_banks(
     };
     let mut plain = String::new();
     for y in 0..MAP_H {
-        for x in 0..MAP_W {
-            let biome = (x / STRIP_W).clamp(0, 6) as u8;
-            // Sparse trees for depth; keep player cell clear of a blocking stack.
+        for x in 0..map_w {
+            let bi = (x / STRIP_W).clamp(0, OFFLINE_BIOMES.len() as i32 - 1) as usize;
+            let biome = OFFLINE_BIOMES[bi];
+            // Sparse trees only on land biomes 0–6; keep player cell clear.
+            let is_land = biome <= 6;
             let obj = if (x, y) == (player_x, player_y) {
                 0
-            } else if (x + y * 3) % 11 == 0 {
+            } else if is_land && (x + y * 3) % 11 == 0 {
                 33
             } else {
                 0
@@ -1879,7 +1888,8 @@ fn run_offline_with_banks(
     }
     let _ = map.apply_mc_plaintext(&h, plain.trim());
     eprintln!(
-        "offline map: {MAP_W}×{MAP_H} vertical strips biomes 0–6 (width {STRIP_W}), player at ({player_x},{player_y})"
+        "offline map: {map_w}×{MAP_H} strips biomes {:?} (w={STRIP_W}), player at ({player_x},{player_y})",
+        OFFLINE_BIOMES
     );
     let mut world = LiveWorld::new();
     // PU: id=1 display=skin age=20 (invAgeRate 1e9 → age_rate ~0)
@@ -1914,8 +1924,8 @@ fn run_offline_with_banks(
         y: player_y as f32,
         zoom: 36.0,
     };
-    // Settings applied after ClientAppState::from_env below; seed default until then.
-    scene.ground_brightness = 0.0;
+    // Settings applied after ClientAppState::from_env below; seed original-client default.
+    scene.ground_brightness = 1.0;
     scene.sync_hud(
         Some(&FoodChange {
             food_store: 8,

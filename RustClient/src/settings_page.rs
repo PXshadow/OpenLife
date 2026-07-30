@@ -85,7 +85,7 @@ pub struct SettingsPage {
     ///   (`dst *= clamp(texture + 0.15)` with additive texture coloring).
     /// - **0.0 (0%)** = pre-fix dark path (`dst *= texture * 0.15`).
     ///
-    /// Default is **0.0** so existing sessions keep the darker look until raised.
+    /// Default is **1.0** (original-client brightness).
     pub brightness: f32,
     /// Soft vs GPU present (takes effect on next client start). Default: GPU.
     pub graphics_mode: GraphicsMode,
@@ -226,8 +226,8 @@ impl Default for SettingsPage {
             show_fps: true,
             debug: false,
             zoom: ZOOM_DEFAULT,
-            // Keep pre-fix dark ground until the user raises toward original (100%).
-            brightness: 0.0,
+            // Original Jason ground overlay brightness.
+            brightness: 1.0,
             graphics_mode: GraphicsMode::Gpu,
             audio_enabled: true,
             fullscreen: false,
@@ -1497,11 +1497,11 @@ mod tests {
     }
 
     #[test]
-    fn brightness_default_is_legacy_dark() {
-        // 0% = pre-fix dark overlay; 100% = original Jason client.
-        assert!((SettingsPage::default().brightness - 0.0).abs() < 1e-6);
-        let p = SettingsPage::parse_ini("brightness=100\n");
-        assert!((p.brightness - 1.0).abs() < 1e-6);
+    fn brightness_default_is_original_client() {
+        // 100% = original Jason client; 0% = legacy dark overlay.
+        assert!((SettingsPage::default().brightness - 1.0).abs() < 1e-6);
+        let p = SettingsPage::parse_ini("brightness=0\n");
+        assert!((p.brightness - 0.0).abs() < 1e-6);
         let p = SettingsPage::parse_ini("brightness=0.5\n");
         assert!((p.brightness - 0.5).abs() < 1e-6);
     }

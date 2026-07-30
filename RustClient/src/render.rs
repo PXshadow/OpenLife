@@ -31,7 +31,8 @@ use crate::content::{
 };
 use crate::emotion::EmotionBank;
 use crate::ground_sprites::{
-    biome_color, biome_plate_color, unknown_biome_draw_color, GroundBank,
+    biome_color, biome_plate_color, unknown_biome_draw_color, unknown_sheet_draw_tint,
+    GroundBank,
 };
 use crate::hud::{draw_hud_if_visible, draw_speech_bubble, HudState, HudSprites};
 use crate::live_object::{home_dir_index, LiveObject, LiveWorld, SaysPointerMarker};
@@ -705,7 +706,8 @@ pub struct SceneRenderer {
     /// Ground overlay brightness 0..1 (settings `brightness`).
     ///
     /// - **1.0** = original Jason mult (`dst *= clamp(tex + 0.15)`)
-    /// - **0.0** = legacy dark mult (`dst *= tex * 0.15`) — scene default matches settings default
+    /// - **0.0** = legacy dark mult (`dst *= tex * 0.15`)
+    /// Default **1.0** matches SettingsPage / original client.
     pub ground_brightness: f32,
 }
 
@@ -721,8 +723,7 @@ impl Default for SceneRenderer {
             draw_hud: true,
             emotions: EmotionBank::new(),
             sounds: crate::sound_bank::SoundBank::new("."),
-            // Match SettingsPage default (legacy dark until user raises to 100%).
-            ground_brightness: 0.0,
+            ground_brightness: 1.0,
         }
     }
 }
@@ -1738,8 +1739,8 @@ impl SceneRenderer {
     /// Jason full-view mult + add overlay after floors (~7629–7727).
     ///
     /// Mult pass is blended by [`Self::ground_brightness`] (settings 0–100%):
-    /// - **1.0** = original: additive texture coloring → `dst *= clamp(tex + 0.15)`
-    /// - **0.0** = legacy dark: `dst *= tex * 0.15` (pre-fix look; default)
+    /// - **1.0** = original (default): additive texture coloring → `dst *= clamp(tex + 0.15)`
+    /// - **0.0** = legacy dark: `dst *= tex * 0.15`
     /// Add pass: additive blend with `setDrawColor(1,1,1, addAmount=0.25)`.
     fn draw_ground_screen_overlay(&mut self, fb: &mut Framebuffer) {
         // Need at least overlay 0 for size.
@@ -2000,7 +2001,8 @@ impl SceneRenderer {
         biome: u8,
     ) {
         let tint = if used_unknown && !self.ground.has_biome_sheet(biome) {
-            Some(unknown_biome_draw_color(biome as i32))
+            // Open Life water/mountain: Haxe map colors; else Jason getXYRandom.
+            Some(unknown_sheet_draw_tint(biome))
         } else {
             None
         };

@@ -120,15 +120,22 @@ pub fn ground_tile_mod(v: i32) -> i32 {
 /// average). Unknown / out-of-range biomes use the `ground_U` (cache 99999) midtone
 /// Ã¢â‚¬â€ C++ still draws the unknown sheet, then multiplies by [`unknown_biome_draw_color`].
 pub fn biome_color(biome: u8) -> [u8; 4] {
-    // Center averages from OneLifeGameSourceData/groundTileCache square TGAs.
+    // 0–6: center averages from OneLifeGameSourceData/groundTileCache square TGAs.
+    // Special Open Life biomes (no ground_N.tga): Haxe `BiomeMapColor` underfill
+    // (Biome.hx) until unknown-sheet + getXYRandom tint is used.
     match biome {
-        0 => [102, 145, 55, 255],  // grass
+        0 => [102, 145, 55, 255],  // grass / GREEN
         1 => [123, 95, 82, 255],   // swamp
         2 => [227, 150, 25, 255],  // yellow prairie
-        3 => [57, 50, 44, 255],    // dark
-        4 => [255, 255, 255, 255], // polar white
-        5 => [126, 99, 57, 255],   // badlands
-        6 => [19, 48, 3, 255],     // deep green
+        3 => [57, 50, 44, 255],    // dark / GREY
+        4 => [255, 255, 255, 255], // polar white / SNOW
+        5 => [126, 99, 57, 255],   // badlands / DESERT
+        6 => [19, 48, 3, 255],     // deep green / JUNGLE
+        // Haxe BiomeTag specials (map PNG colors from Biome.hx):
+        9 => [0, 64, 128, 255],    // OCEAN — deep water (COCEAN FF004080)
+        13 => [0, 232, 255, 255],  // PASSABLERIVER — shallow water (CPASSABLERIVER)
+        17 => [0, 128, 255, 255],  // RIVER — non-walkable water (CRIVER)
+        21 => [64, 64, 64, 255],   // SNOWINGREY — mountain peak (CSNOWINGREY)
         // ground_U / biome_99999 midtone before getXYRandom multiply
         _ => [237, 236, 236, 255],
     }
@@ -159,13 +166,27 @@ pub fn unknown_biome_draw_color(biome_id: i32) -> [u8; 4] {
     [r, g, b, 255]
 }
 
-/// Underfill / plate color for a map biome byte: known sheet midtones, or the
-/// Jason random tint of the unknown sheet for missing biomes.
+/// True for biomes with a fixed table color (land sheets or Open Life specials).
+pub fn has_table_biome_color(biome: u8) -> bool {
+    matches!(biome, 0..=6 | 9 | 13 | 15 | 17 | 21)
+}
+
+/// Underfill / plate color for a map biome byte: known sheet midtones, Open Life
+/// special map colors (water / mountain), or Jason random tint for true unknowns.
 pub fn biome_plate_color(biome: u8, has_sheet: bool) -> [u8; 4] {
-    if has_sheet {
+    if has_sheet || has_table_biome_color(biome) {
         biome_color(biome)
     } else {
-        // Approximate underfill with the random multiply color (full tint of mid grey).
+        unknown_biome_draw_color(biome as i32)
+    }
+}
+
+/// Draw multiply tint when falling back to the unknown ground sheet.
+/// Open Life specials use Haxe map colors; others use Jason `getXYRandom`.
+pub fn unknown_sheet_draw_tint(biome: u8) -> [u8; 4] {
+    if has_table_biome_color(biome) && biome > 6 {
+        biome_color(biome)
+    } else {
         unknown_biome_draw_color(biome as i32)
     }
 }
