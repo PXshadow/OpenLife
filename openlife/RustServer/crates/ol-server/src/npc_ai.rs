@@ -17,6 +17,7 @@ use ol_ai::{
     DEFAULT_FOOD_SEARCH_RADIUS,
 };
 use ol_net::NetIntent;
+use ol_main_ai::{plan_hungry_food, ThinkPlan, ThinkSensors};
 use ol_player_helper::{
     pick_best_search_food, to_best_hit, AiFoodSearchFlags, ProcessFoodOpts, SearchFoodCand,
 };
@@ -803,17 +804,41 @@ fn resolve_npc_food_target(
         }
     });
     let (sticky_id, sticky_fv) = sticky_tile.unwrap_or((0, 0));
-    // Shared pure SearchBestFood scoring on nearby scan (containers residual on NPC thread).
-    let cand = nearest_food(
+    // MainAI + shared SearchBestFood pure scoring (same default r=40 as players).
+    let search = NpcNearbyFoodSearch {
         content,
         nearby,
         px,
         py,
         food_store,
         food_store_max,
-        Some(path_reach),
-    )
-    .map(|f| StickyFoodTarget::new(f.x, f.y, f.id));
+        path_reach: Some(path_reach),
+    };
+    let sensors = ThinkSensors {
+        conn_id: 0,
+        x: px,
+        y: py,
+        food_store,
+        food_store_max,
+        held_id: 0,
+        moving: false,
+    };
+    let cand = match plan_hungry_food(&search, &sensors) {
+        ThinkPlan::SeekFood { tx, ty, food_id }
+        | ThinkPlan::UseFoodTile { tx, ty, food_id } => {
+            Some(StickyFoodTarget::new(tx, ty, food_id))
+        }
+        ThinkPlan::Idle => nearest_food(
+            content,
+            nearby,
+            px,
+            py,
+            food_store,
+            food_store_max,
+            Some(path_reach),
+        )
+        .map(|f| StickyFoodTarget::new(f.x, f.y, f.id)),
+    };
     let resolved = resolve_sticky_food(food_goto.sticky_food, sticky_id, sticky_fv, cand);
     food_goto.sticky_food = resolved;
     resolved

@@ -1,0 +1,12 @@
+[package]
+name = "ol-main-ai"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "MainAI: high-level think plans using PlayerWrite/Read interfaces only"
+publish = false
+
+[dependencies]
+ol-ai-api.workspace = true
+ol-ai-helper.workspace = true
+ol-net.workspace = true

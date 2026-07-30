@@ -19,6 +19,7 @@ ol-web.workspace = true
 ol-sim.workspace = true
 ol-ai.workspace = true
 ol-ai-api.workspace = true
+ol-main-ai.workspace = true
 ol-player-helper.workspace = true
 ol-content.workspace = true
 ol-world.workspace = true

@@ -1,14 +1,15 @@
 # Split AI out of `ol-sim` (design)
 
-**Status:** **Phase A–C done** (2026-07-30) —  
-`PHASE_A_PLAYER_INTERFACES.md`, `PHASE_B_PLAYER_HELPER.md`, `PHASE_C_AI_HELPER_CRAFTING.md`.  
+**Status:** **Phase A–D foundation** (2026-07-30) —  
+`PHASE_A_*` … `PHASE_D_MAIN_AI.md`.  
 
-- **`ol-ai-api`**: write + read interfaces (best-food r=30)  
+- **`ol-ai-api`**: write + read interfaces (best-food default **r=40**)  
 - **`ol-player-helper`**: shared pure food/geom/eat gates  
 - **`ol-ai-crafting`**: craft graph/plan/value  
 - **`ol-ai-helper`**: goals, ladder, path-reach, profession pure SMs  
-- **`ol-ai`**: façade re-exports (stable import path)  
-- `ol-sim` adapters + NPC write/food via interfaces  
+- **`ol-main-ai`**: high-level `ThinkPlan` / hungry food over interfaces  
+- **`ol-ai`**: façade re-exports  
+- `ol-sim` `search_best_food_full` shared by player yum + AI  
 
 **Goal:** faster incremental builds + same write path as human clients + fast AI read path
 

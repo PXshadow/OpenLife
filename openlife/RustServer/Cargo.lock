@@ -820,6 +820,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ol-main-ai"
+version = "0.1.0"
+dependencies = [
+ "ol-ai-api",
+ "ol-ai-helper",
+ "ol-net",
+]
+
+[[package]]
 name = "ol-metrics"
 version = "0.1.0"
 
@@ -860,6 +869,7 @@ dependencies = [
  "ol-ai-api",
  "ol-config",
  "ol-content",
+ "ol-main-ai",
  "ol-metrics",
  "ol-net",
  "ol-player-helper",

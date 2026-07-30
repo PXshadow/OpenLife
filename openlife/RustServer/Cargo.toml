@@ -11,6 +11,7 @@ members = [
     "crates/ol-ai-crafting",
     "crates/ol-ai-helper",
     "crates/ol-ai",
+    "crates/ol-main-ai",
     "crates/ol-player-helper",
     "crates/ol-binary",
     "crates/ol-content",
@@ -38,6 +39,7 @@ ol-ai-api = { path = "crates/ol-ai-api" }
 ol-ai-crafting = { path = "crates/ol-ai-crafting" }
 ol-ai-helper = { path = "crates/ol-ai-helper" }
 ol-ai = { path = "crates/ol-ai" }
+ol-main-ai = { path = "crates/ol-main-ai" }
 ol-player-helper = { path = "crates/ol-player-helper" }
 ol-binary = { path = "crates/ol-binary" }
 ol-content = { path = "crates/ol-content" }
