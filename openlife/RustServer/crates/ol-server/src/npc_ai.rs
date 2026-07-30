@@ -1042,7 +1042,7 @@ fn npc_run_is_picking_up_food(
         IsPickingupFoodPlan::Remv { x, y, index } => {
             let payload = format!("{x} {y} {index}");
             // PlayerWriteInterface: same Raw path as human clients
-            if npc_say_raw(intent_tx, conn_id, "REMV", &payload) {
+            if npc_say_raw(&intent_tx, conn_id, "REMV", &payload) {
                 // Keep sticky until next-tick settle (Haxe clears only after known done).
                 // Haxe: isPickingupFood ~8694â€“8704
                 st.food_goto.pending_food_xy = Some((x, y));
@@ -1063,7 +1063,7 @@ fn npc_run_is_picking_up_food(
             ))
         }
         IsPickingupFoodPlan::Use { x, y } => {
-            if npc_use_at(intent_tx, conn_id, x, y, None, None)
+            if npc_use_at(&intent_tx, conn_id, x, y, None, None)
             {
                 // Async apply; settle next tick marks 30s if still empty + tile food.
                 // Haxe: isPickingupFood ~8694â€“8704 (no optimistic clear)
@@ -1088,7 +1088,7 @@ fn npc_run_is_picking_up_food(
         }
         IsPickingupFoodPlan::DropOnFood { x, y } => {
             // PlayerWriteInterface: same Drop command as human clients
-            if npc_drop_at(intent_tx, conn_id, x, y, None) {
+            if npc_drop_at(&intent_tx, conn_id, x, y, None) {
                 // Keep sticky until settle confirms success/fail.
                 st.food_goto.pending_food_xy = Some((x, y));
                 st.food_goto.pending_food_container = false;
@@ -1124,7 +1124,7 @@ fn npc_emit_drop_or_walk(
         ShortCraftLiveIntent::DropAt { x, y } => {
             let dist = (x - p.x).abs().max((y - p.y).abs());
             if dist <= 1 {
-                if npc_drop_at(intent_tx, conn_id, x, y, None)
+                if npc_drop_at(&intent_tx, conn_id, x, y, None)
                 {
                     return Some((
                         NpcActivityKind::SeekFood,
@@ -1163,7 +1163,7 @@ fn npc_emit_drop_or_walk(
         } => {
             let dist = (x - p.x).abs().max((y - p.y).abs());
             if dist <= 1 {
-                if npc_use_at(intent_tx, conn_id, x, y, None, None)
+                if npc_use_at(&intent_tx, conn_id, x, y, None, None)
                 {
                     return Some((
                         NpcActivityKind::SeekFood,
@@ -1966,7 +1966,7 @@ pub async fn run_npc_scheduler(
                             } => {
                                 let dist = (x - p.x).abs().max((y - p.y).abs());
                                 if dist <= 1 {
-                                    if npc_use_at(intent_tx, conn_id, x, y, None, None)
+                                    if npc_use_at(&intent_tx, conn_id, x, y, None, None)
                                     {
                                         kind = NpcActivityKind::Craft;
                                         detail = format!(
@@ -2028,7 +2028,7 @@ pub async fn run_npc_scheduler(
                             ShortCraftLiveIntent::UseOnEmptyGround { x, y, held } => {
                                 let dist = (x - p.x).abs().max((y - p.y).abs());
                                 if dist <= 1 {
-                                    if npc_use_at(intent_tx, conn_id, x, y, None, None)
+                                    if npc_use_at(&intent_tx, conn_id, x, y, None, None)
                                     {
                                         kind = NpcActivityKind::Craft;
                                         detail = format!(
@@ -2083,7 +2083,7 @@ pub async fn run_npc_scheduler(
                             ShortCraftLiveIntent::DropAt { x, y } => {
                                 let dist = (x - p.x).abs().max((y - p.y).abs());
                                 if dist <= 1 {
-                                    if npc_drop_at(intent_tx, conn_id, x, y, None)
+                                    if npc_drop_at(&intent_tx, conn_id, x, y, None)
                                     {
                                         kind = NpcActivityKind::Craft;
                                         detail = format!(
@@ -2219,7 +2219,7 @@ pub async fn run_npc_scheduler(
                                         let dist =
                                             (x - p.x).abs().max((y - p.y).abs());
                                         if dist <= 1 {
-                                            if npc_use_at(intent_tx, conn_id, x, y, None, None)
+                                            if npc_use_at(&intent_tx, conn_id, x, y, None, None)
                                             {
                                                 kind = NpcActivityKind::Craft;
                                                 detail = format!(
@@ -2290,7 +2290,7 @@ pub async fn run_npc_scheduler(
                                             // PickupLoose maps to DropAt on object tile
                                             // (swap/pickup). Empty-hand USE when DropAt
                                             // is pile residual is rare here â€” Prefer DROP.
-                                            if npc_drop_at(intent_tx, conn_id, x, y, None)
+                                            if npc_drop_at(&intent_tx, conn_id, x, y, None)
                                             {
                                                 kind = NpcActivityKind::Craft;
                                                 detail = format!(
@@ -2514,7 +2514,7 @@ pub async fn run_npc_scheduler(
                     ShortCraftLiveIntent::DropAt { x, y } => {
                         let dist = (x - p.x).abs().max((y - p.y).abs());
                         if dist <= 1 {
-                            if npc_drop_at(intent_tx, conn_id, x, y, None)
+                            if npc_drop_at(&intent_tx, conn_id, x, y, None)
                             {
                                 kind = NpcActivityKind::Craft;
                                 detail = format!("smart_drop_feet held={} @{},{}", p.held_id, x, y);
@@ -2548,7 +2548,7 @@ pub async fn run_npc_scheduler(
                     }
                     ShortCraftLiveIntent::UseAt { x, y, .. }
                     | ShortCraftLiveIntent::UseOnEmptyGround { x, y, .. } => {
-                        if npc_use_at(intent_tx, conn_id, x, y, None, None)
+                        if npc_use_at(&intent_tx, conn_id, x, y, None, None)
                         {
                             kind = NpcActivityKind::Craft;
                             detail = format!("smart_drop_use held={} @{},{}", p.held_id, x, y);
