@@ -109,6 +109,12 @@ pub struct ObjectDef {
     pub slot_size: f32,
 }
 
+impl Default for ObjectDef {
+    fn default() -> Self {
+        Self::empty(0)
+    }
+}
+
 impl ObjectDef {
     pub fn empty(id: i32) -> Self {
         Self {
@@ -236,6 +242,31 @@ pub struct Transition {
     /// Haxe `TransitionData.isPickupOrDrop` — horse cart / grave basket nest swap on USE.
     /// Not in transition files; set by ServerSettings.PatchTransitions.
     pub is_pickup_or_drop: bool,
+}
+
+impl Default for Transition {
+    fn default() -> Self {
+        Self {
+            actor_id: 0,
+            target_id: 0,
+            new_actor_id: 0,
+            new_target_id: 0,
+            last_use_actor: false,
+            last_use_target: false,
+            auto_decay_seconds: 0.0,
+            reverse_use_actor: false,
+            reverse_use_target: false,
+            no_use_actor: false,
+            no_use_target: false,
+            move_dist: 0,
+            desired_move_dist: 0,
+            actor_min_use_fraction: 0.0,
+            target_min_use_fraction: 0.0,
+            switch_number_of_uses: false,
+            target_number_of_uses: -1,
+            is_pickup_or_drop: false,
+        }
+    }
 }
 
 /// Loaded game content tables (immutable after load; share via Arc).

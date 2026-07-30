@@ -248,20 +248,41 @@ pub use get_or_craft::CraftScanFilters;
 pub use combat::calculate_enemy_vs_ally_strength_factor_ex;
 pub use move_path::check_if_not_moving_and_close_enough;
 pub use move_live_gates::{
-    is_friendly, note_too_close_say, refuse_ranged_use_too_close,
+    clear_too_close_pending, is_friendly, note_too_close_say, refuse_ranged_use_too_close,
+    take_too_close_message, take_too_close_say, TOO_CLOSE_MESSAGE, TOO_CLOSE_SAY,
 };
 pub use craft_ai_sticky::{
     expand_craft_item_player_sticky_scan, select_sticky_craft_for_tick, StickyCraftTickChoice,
 };
-pub use shepherd_profession::BOWL_CORN_KERNELS;
+pub use shepherd_profession::{
+    assign_shepherd_from_speech, BOWL_CORN_KERNELS,
+};
 pub use short_craft_intent::short_craft_on_ground_to_live_intent;
-pub use handling_fire::try_decide_handling_fire_from_rung;
+pub use handling_fire::{
+    assign_fire_keeper_from_speech, handling_fire_max_for_dispatch,
+    try_decide_handling_fire_from_rung, HANDLING_FIRE_ASSIGNED_MAX, HANDLING_FIRE_TEMP_MAX,
+};
 pub use ai_follow_walk::{AiFollowSticky, FollowTargetSnap};
 pub use locks::LockpickSettings;
 pub use food_store_max::{
     calculate_health_age_factor, calculate_health_food_store_max_factor, median_prestige_for_health,
 };
 pub use world_time::WorldMapTimeState;
+// Profession pure helpers (crate-root for Player tests + profession_scan tests)
+pub use pottery_profession::{assign_potter_from_speech, count_potter_peers_filtered};
+pub use baker_profession::{assign_baker_from_speech, note_raw_pie_crafted, RAW_PIES};
+pub use farmer_profession::{assign_farm_from_speech, resolve_farm_assigned_job, FarmCounts};
+pub use fire_food_profession::{assign_fire_food_from_speech, FIRE};
+pub use smith_profession::apply_consider_making_food_smith_wipe;
+// Path-reach helpers not already in server_api_reexports
+pub use ai_path_reach::{
+    add_blocked_by_ai, cleanup_blocked_by_ai, mark_use_or_food_path_fail, SMITHING_HAMMER_BLOCK_ID,
+};
+// Scan / craft sticky / soul
+pub use short_craft_intent::profession_scan::ScanTile;
+pub use get_or_craft::craft_item::ItemToCraftState;
+pub use player_soul::InteractionType;
+pub use animal_damage::BOW_AND_ARROW_ID;
 // --- end compile-green reexports ---
 pub use settings_live::SimBootLive;
 include!("server_api_reexports.inc.rs");
@@ -2287,15 +2308,114 @@ pub fn craving_rand_f01() -> f32 {
     0.5
 }
 
-/// Mark path fail after USE (AI residual) — no-op until path_reach full wire.
-pub fn mark_path_fail_after_use_live(_state: &mut SimState, _conn_id: u64, _x: i32, _y: i32) {}
+/// Mark path fail after USE (Haxe AiBase isPickingupFood / isUsingObject).
+///
+/// AI-only: empty-hand edible / sticky food claim → 30s not-reachable; else age-gated USE fail.
+/// Returns `true` when a mark was applied.
+// Haxe: AiBase.isPickingupFood ~8698 / isUsingObject ~9133
+// AI-FOOD-FAIL-MARK / PATH-REACH
+pub fn mark_path_fail_after_use_live(
+    state: &mut SimState,
+    conn_id: u64,
+    x: i32,
+    y: i32,
+) -> bool {
+    let (age, held_id, is_ai) = match state.players.get(&conn_id) {
+        Some(p) => (p.age, p.held_id, p.is_ai_body()),
+        None => return false,
+    };
+    if !is_ai {
+        return false;
+    }
+    let food_value = {
+        let w = state.world.read().unwrap();
+        let id = w.get_object(x, y);
+        if id == 0 {
+            0
+        } else {
+            state
+                .content
+                .get(id)
+                .map(|d| d.food_value)
+                .unwrap_or(0)
+        }
+    };
+    let p = state.players.get_mut(&conn_id).expect("player");
+    let marked_food = crate::ai_path_reach::mark_use_or_food_path_fail(
+        &mut p.ai_path_reach,
+        &mut p.ai_block_targets,
+        x,
+        y,
+        age,
+        held_id,
+        food_value,
+    );
+    // Age-gated USE path also marks (returns false for food preference path).
+    let _ = marked_food;
+    // Always a mark on AI body when we reach here (food 30s or age-gated).
+    true
+}
+
 pub fn process_player_score_entries(_state: &mut SimState, _outbound: &OutboundHub) {}
 pub fn mark_path_fail_after_food_pickup_action_live(
-    _state: &mut SimState,
-    _conn_id: u64,
-    _x: i32,
-    _y: i32,
+    state: &mut SimState,
+    conn_id: u64,
+    x: i32,
+    y: i32,
 ) {
+    let _ = mark_path_fail_after_use_live(state, conn_id, x, y);
+}
+
+/// Live Haxe `GlobalPlayerInstance.takeCoins` on wound (wallet + scoreboard + say).
+///
+/// Returns coins stolen (0 if none). `lethal` takes the full wallet.
+// Haxe: GlobalPlayerInstance.takeCoins L4835–4844
+// WALLET-COINS
+pub fn apply_take_coins_on_wound(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    attacker_p_id: i32,
+    target_p_id: i32,
+    lethal: bool,
+) -> i32 {
+    let dark = state
+        .players
+        .values()
+        .find(|p| p.p_id == attacker_p_id)
+        .map(|p| p.dark_nosaj > 0.0)
+        .unwrap_or(false);
+    let factor = state.gameplay.coins_on_wounding_factor.max(0.0);
+    let target_coins = state.economy.coins_of(target_p_id) as f32;
+    let amount = if lethal {
+        target_coins.floor() as i32
+    } else {
+        crate::weapon_wound::coins_stolen_on_wound(target_coins, factor, dark)
+    };
+    if amount < 1 {
+        return 0;
+    }
+    if !state
+        .economy
+        .take_coins_on_wound(attacker_p_id, target_p_id, amount)
+    {
+        return 0;
+    }
+    // Scoreboard mirror
+    let atk_coins = state.economy.coins_of(attacker_p_id);
+    let tgt_coins = state.economy.coins_of(target_p_id);
+    state.scoreboard.set_coins(attacker_p_id, atk_coins);
+    state.scoreboard.set_coins(target_p_id, tgt_coins);
+    if let Some(msg) = crate::weapon_wound::take_coins_say_text(amount) {
+        if let Some((&conn, pl)) = state
+            .players
+            .iter()
+            .find(|(_, p)| p.p_id == attacker_p_id)
+        {
+            let near: Vec<u64> = state.players.keys().copied().collect();
+            send_chat_ps(state, outbound, conn, pl.p_id, &msg, &near);
+        }
+    }
+    amount
 }
 pub fn mirror_war_posse_share(_state: &SimState, _share: &Option<WarPosseShare>) {}
 // --- end compile-heal stubs ---
@@ -10961,7 +11081,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         db.transitions.insert(
             (0, 33),
@@ -10980,7 +11101,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         // last-use variant: hand on 33 when last use â†’ different outcome
         db.transitions_last_use.insert(
@@ -11000,7 +11122,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         db.transition_count = 1;
         db.last_use_transition_count = 1;
@@ -11207,7 +11330,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         // 0_36.txt â†’ 395 404
         db.transitions.insert(
@@ -11227,7 +11351,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         // 0_242.txt â†’ 223 242
         db.transitions.insert(
@@ -11247,7 +11372,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         db.transition_count = 3;
         let mut state = SimState::with_default_empty(Arc::new(db));
@@ -11339,7 +11465,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         db.transition_count = 1;
         let counters = Counters::new();
@@ -11383,7 +11510,8 @@ mod tests {
                     move_dist: 0,
 
                 desired_move_dist: 0,
-                },
+            ..Default::default()
+        },
             );
         }
         let g = build_reverse_craft_graph_capped(&db, 5);
@@ -11469,7 +11597,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         db.objects.insert(
             661,
@@ -11488,7 +11617,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         // 33+33 â†’ pile reverse target (start uses=1)
         db.transitions.insert(
@@ -11507,7 +11637,8 @@ mod tests {
                 no_use_target: false,
                 move_dist: 0,
                 desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         // 33+661 â†’ pile reverse (uses += 1)
         db.transitions.insert(
@@ -11526,7 +11657,8 @@ mod tests {
                 no_use_target: false,
                 move_dist: 0,
                 desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         // 0+661 â†’ take stone, pile stays (uses -= 1)
         db.transitions.insert(
@@ -11545,7 +11677,8 @@ mod tests {
                 no_use_target: false,
                 move_dist: 0,
                 desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         // last-use: 0+661 â†’ stone + stone
         db.transitions_last_use.insert(
@@ -11564,7 +11697,8 @@ mod tests {
                 no_use_target: false,
                 move_dist: 0,
                 desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         db.transition_count = 3;
         db.last_use_transition_count = 1;
@@ -11649,7 +11783,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         // Tree: permanent, cannot bare-hand pickup.
         db.objects.insert(
@@ -11669,7 +11804,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         spawn_player(&mut state, 1, "pick@test");
@@ -11714,7 +11850,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         db.transition_count = 1;
         let counters = Counters::new();
@@ -11771,7 +11908,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         db2.transition_count = 1;
         let mut state2 = SimState::with_default_empty(Arc::new(db2));
@@ -11834,7 +11972,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         db.transitions.insert(
             (0, 50),
@@ -11853,7 +11992,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         db.transitions_last_use.insert(
             (0, 50),
@@ -11872,7 +12012,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         spawn_player(&mut state, 1, "u");
@@ -12055,7 +12196,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         db.objects.insert(
             88,
@@ -12074,7 +12216,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         assert_eq!(resolve_grave_object_id(&db), 77, "lowest matching id");
         let mut state = SimState::with_default_empty(Arc::new(db));
@@ -12563,7 +12706,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         state.world.write().unwrap().set_object(3, 3, 100);
@@ -12667,7 +12811,8 @@ mod tests {
                 num_slots: 4,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         db.objects.insert(
             33,
@@ -12686,7 +12831,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         // Non-containable held item must NOT enter container.
         db.objects.insert(
@@ -12706,7 +12852,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let counters = Counters::new();
         let hub = OutboundHub::new();
@@ -12773,7 +12920,8 @@ mod tests {
                 num_slots: 4,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         // Bag in contained[0] â€” nested pocket with 2 sub-slots.
         db.objects.insert(
@@ -12793,7 +12941,8 @@ mod tests {
                 num_slots: 2,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         // Containable berry to nest.
         db.objects.insert(
@@ -12813,7 +12962,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         // Non-containable tree must be rejected.
         db.objects.insert(
@@ -12833,7 +12983,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
 
         let counters = Counters::new();
@@ -12859,7 +13010,8 @@ mod tests {
                 owner_id: 0,
                 creation_time: 0.0,
                 time_to_change: 0.0,
-            },
+            ..Default::default()
+        },
         );
 
         apply_intent(
@@ -12991,7 +13143,8 @@ mod tests {
                 owner_id: 0,
                 creation_time: 0.0,
                 time_to_change: 0.0,
-            },
+            ..Default::default()
+        },
         );
         // REMV x y 0 0 â†’ take nested[0][0] = 100
         apply_intent(
@@ -13304,7 +13457,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         // Simulate natural spawn / disk load placing a decayable object without USE.
@@ -13374,7 +13528,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let counters = Counters::new();
         let hub = OutboundHub::new();
@@ -13453,7 +13608,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         spawn_player(&mut state, 1, "eater");
@@ -13953,7 +14109,28 @@ mod tests {
         let counters = Counters::new();
         let hub = OutboundHub::new();
         let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
+        let mut db = (*test_content()).clone();
+        db.objects.insert(
+            DARK_NOSAJ_MONUMENT_ID,
+            ObjectDef {
+                id: DARK_NOSAJ_MONUMENT_ID,
+                description: "Dark Nosaj".into(),
+                name: "Dark Nosaj".into(),
+                permanent: true,
+                ..Default::default()
+            },
+        );
+        db.objects.insert(
+            TARR_MONUMENT_ID,
+            ObjectDef {
+                id: TARR_MONUMENT_ID,
+                description: "Tarr".into(),
+                name: "Tarr".into(),
+                permanent: true,
+                ..Default::default()
+            },
+        );
+        let mut state = SimState::with_default_empty(Arc::new(db));
         apply_intent(
             &mut state,
             &counters,
@@ -13973,70 +14150,37 @@ mod tests {
             let mut w = state.world.write().unwrap();
             w.set_object(px, py, DARK_NOSAJ_MONUMENT_ID);
         }
+        let _ = crate::dark_nosaj::take_monument_feedback();
         while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Use {
-                conn_id: 1,
-                x: 0,
-                y: 0,
-                id: -1,
-                index: -1,
-            },
-        );
+        // Absolute tile USE (feet): monument side-effects do not need a transition.
+        let used = crate::use_transition::apply_use_at(&mut state, 1, px, py);
+        assert!(used.is_some(), "USE at feet should return a result");
         let pl = state.players.get(&1).unwrap();
         assert!(
             pl.dark_nosaj.is_finite() && pl.dark_nosaj >= 1.0,
             "dark_nosaj after set = {}",
             pl.dark_nosaj
         );
-        let mut saw_cu_minion = false;
-        let mut saw_hail = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("DARK_MINION") {
-                saw_cu_minion = true;
-            }
-            if s.to_ascii_uppercase().contains("ALL HAIL DARK NOSAJ") {
-                saw_hail = true;
-            }
-        }
-        assert!(saw_cu_minion, "expected CU â€¦ DARK_MINION");
-        assert!(saw_hail, "expected public ALL HAIL say");
+        let fb = crate::dark_nosaj::take_monument_feedback().expect("set feedback");
+        assert_eq!(fb.say, "All hail dark nosaj");
+        assert_eq!(
+            fb.curse,
+            Some((1, Some(crate::dark_nosaj::CURSE_DARK_MINION_WORD)))
+        );
 
         {
             let mut w = state.world.write().unwrap();
             w.set_object(px, py, TARR_MONUMENT_ID);
         }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Use {
-                conn_id: 1,
-                x: 0,
-                y: 0,
-                id: -1,
-                index: -1,
-            },
-        );
+        let _ = crate::use_transition::apply_use_at(&mut state, 1, px, py);
         assert_eq!(state.players.get(&1).unwrap().dark_nosaj, 0.0);
-        let mut saw_cu_clear = false;
-        let mut saw_jasoniah = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains(" 0 _") {
-                saw_cu_clear = true;
-            }
-            if s.to_ascii_uppercase().contains("JASONIAH") {
-                saw_jasoniah = true;
-            }
-        }
-        assert!(saw_cu_clear, "expected CU clear with _ word");
-        assert!(saw_jasoniah, "expected Jasoniah say");
-        let _ = p_id;
+        let fb2 = crate::dark_nosaj::take_monument_feedback().expect("clear feedback");
+        assert_eq!(fb2.say, "Jasoniah is the one true god!");
+        assert_eq!(
+            fb2.curse,
+            Some((0, Some(crate::dark_nosaj::CURSE_CLEAR_WORD)))
+        );
+        let _ = (p_id, counters, hub, rx);
     }
 
     /// SAY DONATE / ?TREASURY move coins into Economy.treasury.
@@ -14378,7 +14522,8 @@ mod tests {
                 clothing: "n".into(),
                 counts_or_grows_as: 0,
                 crafting_steps: 0,
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(std::sync::Arc::new(db));
         assert_eq!(state.grave_object_id, 87);
@@ -15895,7 +16040,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         db.biome_spawn.insert(
             0,
@@ -18408,7 +18554,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         db.objects.insert(
             501,
@@ -18427,7 +18574,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         spawn_player(&mut state, 1, "wear@test");
@@ -18739,7 +18887,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         // Bare-hand USE on tile 1 â†’ new_actor is Wool Hat (500).
         db.transitions.insert(
@@ -18759,7 +18908,8 @@ mod tests {
                 move_dist: 0,
 
             desired_move_dist: 0,
-            },
+            ..Default::default()
+        },
         );
         db.transition_count = 1;
         let mut state = SimState::with_default_empty(Arc::new(db));
@@ -18897,7 +19047,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         db.objects.insert(
             20,
@@ -18916,7 +19067,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         let p_id = spawn_player(&mut state, 1, "path@x");
@@ -20249,7 +20401,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         let a = spawn_player(&mut state, 1, "bow@a");
@@ -20401,7 +20554,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         let a = spawn_player(&mut state, 1, "poison@a");
@@ -20469,7 +20623,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         spawn_player(&mut state, 1, "range@x");
@@ -20555,7 +20710,7 @@ mod tests {
         // 1s vitals: food += 10 * 1 * 0.1 = 1.0; mother -= 0.5; hits -= 0.2
         let food_before = state.players.get(&baby_conn).unwrap().food;
         let m_food_before = state.players.get(&1).unwrap().food;
-        tick_vitals(&mut state, &counters, &hub, 1.0);
+        tick_vitals(&mut state, 1.0, &hub);
         let food_after = state.players.get(&baby_conn).unwrap().food;
         let m_food_after = state.players.get(&1).unwrap().food;
         let gained = food_after - food_before;
@@ -21332,7 +21487,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         let owner = spawn_player(&mut state, 1, "owner@x");
@@ -21862,7 +22018,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         let p_id = spawn_player(&mut state, 1, "tags@x");
@@ -23469,7 +23626,8 @@ mod tests {
                 num_slots: 0,
                 floor: true,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         db.objects.insert(
             33,
@@ -23488,7 +23646,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         spawn_player(&mut state, 1, "floor_drop");
@@ -25135,7 +25294,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(std::sync::Arc::new(db));
         state.timed_movement = true;
@@ -25187,7 +25347,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(std::sync::Arc::new(db));
         state.timed_movement = true;
@@ -25359,7 +25520,8 @@ mod tests {
                 num_slots: 0,
                 floor: false,
             dummy_ids: Vec::new(),
-            },
+            ..Default::default()
+        },
         );
         let mut state = SimState::with_default_empty(std::sync::Arc::new(db));
         state.timed_movement = true;

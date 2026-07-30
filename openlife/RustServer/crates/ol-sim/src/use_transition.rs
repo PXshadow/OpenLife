@@ -2532,13 +2532,13 @@ mod tests {
             p.food = 2.0;
             p.food_max = 40.0;
         }
-        assert_eq!(crate::try_eat_held(&mut state, 1), Ok(true));
+        assert!(crate::try_eat_held(&mut state, 1));
         {
             let p = state.players.get(&1).unwrap();
             assert_eq!(p.held_id, 1251);
             assert_eq!(p.held_uses, 1);
         }
-        assert_eq!(crate::try_eat_held(&mut state, 1), Ok(true));
+        assert!(crate::try_eat_held(&mut state, 1));
         {
             let p = state.players.get(&1).unwrap();
             assert_eq!(p.held_id, 235);
@@ -2561,7 +2561,7 @@ mod tests {
             p.food = 2.0;
             p.food_max = 40.0;
         }
-        assert_eq!(crate::try_eat_held(&mut state, 1), Ok(true));
+        assert!(crate::try_eat_held(&mut state, 1));
         let p = state.players.get(&1).unwrap();
         assert_eq!(p.held_id, 0);
         assert_eq!(p.held_uses, 0);

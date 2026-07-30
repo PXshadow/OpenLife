@@ -210,6 +210,12 @@ pub struct ComplexObject {
     pub slots: Vec<NestedHelper>,
 }
 
+impl Default for ComplexObject {
+    fn default() -> Self {
+        Self::new_simple(0)
+    }
+}
+
 impl ComplexObject {
     pub fn new_simple(base_id: ObjectId) -> Self {
         Self {
