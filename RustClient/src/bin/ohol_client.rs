@@ -36,6 +36,7 @@ use minifb::{
 use ohol_headless::account_page::{
     AccountAction, AccountKey, ClientAppState, ClientScreen,
 };
+// AccountKey used for nested Settings → Account form typing.
 use ohol_headless::settings_page::GraphicsMode;
 use ohol_headless::anim_bank::AnimBank;
 use ohol_headless::client_map::ClientMap;
@@ -941,9 +942,9 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
         match action {
             AccountAction::Quit => return Ok(None),
             AccountAction::Connect => {
-                // Single loading UI is run_loading_boot (next step). No flash screen here.
+                // Single loading UI is run_init_boot (next step). No flash screen here.
                 let cfg = app.begin_connect();
-                eprintln!("account: connect → loading banks (one loading window)");
+                eprintln!("account: connect → single init window");
                 return Ok(Some(cfg));
             }
             AccountAction::OpenSettings => {
@@ -952,6 +953,10 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
                     esc_f3.mark_opened();
                     eprintln!("settings: opened from Settings button");
                 }
+            }
+            AccountAction::Back | AccountAction::Saved => {
+                // Nested form only — boot path should not hit these.
+                app.return_to_settings_from_account();
             }
             AccountAction::None => {}
         }
@@ -1010,6 +1015,45 @@ enum SettingsLoop {
     Restart,
     /// Jump to Account form (from Settings → Account settings row).
     OpenAccount,
+}
+
+/// Keyboard for nested Account form (no char queue — caller drains that).
+fn pump_account_keys(window: &Window, app: &mut ClientAppState) -> AccountAction {
+    let shift = window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift);
+    let mut action = AccountAction::None;
+    if window.is_key_pressed(Key::Tab, KeyRepeat::No) {
+        action = app.account.on_key(AccountKey::Tab { shift });
+    }
+    if window.is_key_pressed(Key::Enter, KeyRepeat::No)
+        || window.is_key_pressed(Key::NumPadEnter, KeyRepeat::No)
+    {
+        action = app.account.on_key(AccountKey::Enter);
+    }
+    if window.is_key_pressed(Key::Escape, KeyRepeat::No) {
+        action = app.account.on_key(AccountKey::Escape);
+    }
+    if window.is_key_pressed(Key::Backspace, KeyRepeat::Yes) {
+        let _ = app.account.on_key(AccountKey::Backspace);
+    }
+    if window.is_key_pressed(Key::Delete, KeyRepeat::Yes) {
+        let _ = app.account.on_key(AccountKey::Delete);
+    }
+    if window.is_key_pressed(Key::Left, KeyRepeat::Yes) {
+        let _ = app.account.on_key(AccountKey::Left);
+    }
+    if window.is_key_pressed(Key::Right, KeyRepeat::Yes) {
+        let _ = app.account.on_key(AccountKey::Right);
+    }
+    if window.is_key_pressed(Key::Home, KeyRepeat::No) {
+        let _ = app.account.on_key(AccountKey::Home);
+    }
+    if window.is_key_pressed(Key::End, KeyRepeat::No) {
+        let _ = app.account.on_key(AccountKey::End);
+    }
+    if window.is_key_pressed(Key::F2, KeyRepeat::No) {
+        let _ = app.account.on_key(AccountKey::ToggleSecretMode);
+    }
+    action
 }
 
 /// Process Settings keyboard + mouse; Back leaves Settings (Account or Playing).
@@ -1151,6 +1195,10 @@ fn run_session_from_boot(
         soft_play_window_opts(app.settings.fullscreen),
     )?;
     window.set_target_fps(60);
+    let chars: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
+    window.set_input_callback(Box::new(CharQueue {
+        chars: Rc::clone(&chars),
+    }));
     let mut buf = vec![0u32; FB_W * FB_H];
     let mut last = Instant::now();
     let mut pan = (0.0f32, 0.0f32);
@@ -1161,6 +1209,7 @@ fn run_session_from_boot(
     let mut last_status = String::new();
     let mut fps = FpsMeter::new("live");
     let settings_hud = HudSprites::with_default_roots(Some(&root));
+    let mut was_lmb_account = false;
 
     // Volume/mute on both banks: scene.sounds drives draw/anim SFX; session for net hooks.
     app.settings.apply_to_banks(Some(&mut session.sounds), None);
@@ -1223,14 +1272,9 @@ fn run_session_from_boot(
                     restart_client_process();
                 }
                 SettingsLoop::OpenAccount => {
-                    // Mid-play: Account form is boot-only. Keep playing + status hint.
-                    let _ = app.settings.save_default();
-                    app.leave_settings();
+                    app.enter_account_from_settings();
                     was_lmb_settings = false;
-                    log_status(
-                        &mut last_status,
-                        "Account settings: restart client or disable auto-connect",
-                    );
+                    log_status(&mut last_status, "Account settings");
                 }
                 SettingsLoop::Continue => {
                     // Live-preview zoom + SFX loudness while adjusting.
@@ -1281,6 +1325,72 @@ fn run_session_from_boot(
                 }
             }
             if app.screen.is_settings() {
+                continue;
+            }
+        }
+
+        // Nested Account form (from Settings → Account settings).
+        if app.screen.is_account() {
+            app.account.step(dt);
+            {
+                let mut q = chars.borrow_mut();
+                for u in q.drain(..) {
+                    if let Some(c) = char::from_u32(u) {
+                        let _ = app.account.on_key(AccountKey::Char(c));
+                    }
+                }
+            }
+            let mut action = pump_account_keys(&window, &mut app);
+            let lmb = window.get_mouse_down(MouseButton::Left);
+            if lmb && !was_lmb_account {
+                if let Some((mx, my)) = safe_mouse_pos(&window) {
+                    let a = app.account.on_pointer_down(
+                        mx,
+                        my,
+                        FB_W as f32,
+                        FB_H as f32,
+                        Some(&settings_hud),
+                    );
+                    if a != AccountAction::None {
+                        action = a;
+                    }
+                }
+            }
+            was_lmb_account = lmb;
+            match action {
+                AccountAction::Back | AccountAction::Saved => {
+                    app.return_to_settings_from_account();
+                    was_lmb_account = false;
+                    log_status(&mut last_status, "Account saved");
+                }
+                AccountAction::OpenSettings => {
+                    let _ = app.enter_settings();
+                }
+                AccountAction::Connect => {
+                    // Mid-session: save endpoint only (reconnect next boot).
+                    app.account.remember_current_server();
+                    app.return_to_settings_from_account();
+                    log_status(&mut last_status, "Account saved (reconnect next boot)");
+                }
+                AccountAction::Quit | AccountAction::None => {}
+            }
+            if app.screen.is_account() {
+                let saved_hl = scene.highlight_tile.take();
+                scene.draw(
+                    &mut fb,
+                    &mut session.map,
+                    &mut session.world,
+                    &session.content,
+                    &mut sprites,
+                    &mut anims,
+                    dt,
+                );
+                scene.highlight_tile = saved_hl;
+                app.account.draw_overlay(&mut fb, Some(&settings_hud));
+                window.set_title(&window_title("Account", "Esc=Back to Settings"));
+                rgba_to_u32(&fb.pixels, &mut buf);
+                window.update_with_buffer(&buf, FB_W, FB_H)?;
+                fps.on_presented(dt);
                 continue;
             }
         }
@@ -1800,6 +1910,10 @@ fn run_offline_with_banks(
         soft_window_opts(),
     )?;
     window.set_target_fps(60);
+    let chars: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
+    window.set_input_callback(Box::new(CharQueue {
+        chars: Rc::clone(&chars),
+    }));
     let mut buf = vec![0u32; FB_W * FB_H];
 
     let mut app = ClientAppState::from_env();
@@ -1808,6 +1922,7 @@ fn run_offline_with_banks(
     let mut hover = HoverPick::default();
     let mut fps = FpsMeter::new("offline");
     let mut was_lmb = false;
+    let mut was_lmb_account = false;
     let mut esc_f3 = EscF3Edge::default();
     let mut pending_open = false;
     let mut pending_close = false;
@@ -1847,9 +1962,7 @@ fn run_offline_with_banks(
                 SettingsLoop::Left | SettingsLoop::Continue => {}
                 SettingsLoop::Restart => restart_client_process(),
                 SettingsLoop::OpenAccount => {
-                    // Offline has no Account form loop — keep offline + status.
-                    let _ = app.settings.save_default();
-                    app.leave_settings();
+                    app.enter_account_from_settings();
                 }
             }
             was_lmb = was_settings_lmb;
@@ -1885,6 +1998,65 @@ fn run_offline_with_banks(
                         pending_close = true;
                     }
                 }
+                continue;
+            }
+        }
+
+        // Nested Account form from Settings.
+        if app.screen.is_account() {
+            app.account.step(dt);
+            {
+                let mut q = chars.borrow_mut();
+                for u in q.drain(..) {
+                    if let Some(c) = char::from_u32(u) {
+                        let _ = app.account.on_key(AccountKey::Char(c));
+                    }
+                }
+            }
+            let mut action = pump_account_keys(&window, &mut app);
+            let lmb = window.get_mouse_down(MouseButton::Left);
+            if lmb && !was_lmb_account {
+                if let Some((mx, my)) = safe_mouse_pos(&window) {
+                    let a = app.account.on_pointer_down(
+                        mx,
+                        my,
+                        FB_W as f32,
+                        FB_H as f32,
+                        Some(&settings_hud),
+                    );
+                    if a != AccountAction::None {
+                        action = a;
+                    }
+                }
+            }
+            was_lmb_account = lmb;
+            match action {
+                AccountAction::Back | AccountAction::Saved | AccountAction::Connect => {
+                    app.return_to_settings_from_account();
+                    was_lmb_account = false;
+                }
+                AccountAction::OpenSettings => {
+                    let _ = app.enter_settings();
+                }
+                AccountAction::Quit | AccountAction::None => {}
+            }
+            if app.screen.is_account() {
+                let saved_hl = scene.highlight_tile.take();
+                scene.draw(
+                    &mut fb,
+                    &mut map,
+                    &mut world,
+                    &content,
+                    &mut sprites,
+                    &mut anims,
+                    dt,
+                );
+                scene.highlight_tile = saved_hl;
+                app.account.draw_overlay(&mut fb, Some(&settings_hud));
+                window.set_title(&window_title("Account", "offline Esc=Back"));
+                rgba_to_u32(&fb.pixels, &mut buf);
+                window.update_with_buffer(&buf, FB_W, FB_H)?;
+                fps.on_presented(dt);
                 continue;
             }
         }
@@ -2142,9 +2314,11 @@ fn run_session_gpu(
     let mut lmb = false;
     let mut rmb = false;
     let mut was_lmb_settings = false;
+    let mut was_lmb_account = false;
     let mut esc_f3 = EscF3Edge::default();
     let mut cursor = (FB_W as f32 * 0.5, FB_H as f32 * 0.5);
     let mut scroll_y = 0.0f32;
+    let mut typed_chars: Vec<char> = Vec::new();
     let settings_hud = HudSprites::with_default_roots(Some(&root));
     let fbw = FB_W as u32;
     let fbh = FB_H as u32;
@@ -2197,6 +2371,11 @@ fn run_session_gpu(
                     MouseScrollDelta::LineDelta(_, y) => scroll_y += y,
                     MouseScrollDelta::PixelDelta(p) => scroll_y += (p.y as f32) * 0.01,
                 },
+                WindowEvent::ReceivedCharacter(c) => {
+                    if !c.is_control() {
+                        typed_chars.push(c);
+                    }
+                }
                 _ => {}
             },
             Event::MainEventsCleared => {
@@ -2308,11 +2487,9 @@ fn run_session_gpu(
                             restart_client_process();
                         }
                         SettingsAction::OpenAccount => {
-                            let _ = app.settings.save_default();
-                            app.leave_settings();
+                            app.enter_account_from_settings();
                             was_lmb_settings = false;
-                            last_status =
-                                "Account settings: restart with OHOL_AUTO_CONNECT=0".into();
+                            last_status = "Account settings".into();
                         }
                         SettingsAction::Applied | SettingsAction::None => {}
                     }
@@ -2330,6 +2507,85 @@ fn run_session_gpu(
                         ohol_headless::render::ZOOM_MIN,
                         ohol_headless::render::ZOOM_MAX,
                     );
+                } else if app.screen.is_account() {
+                    app.account.step(dt);
+                    for c in typed_chars.drain(..) {
+                        let _ = app.account.on_key(AccountKey::Char(c));
+                    }
+                    let shift = keys_down.contains(&VirtualKeyCode::LShift)
+                        || keys_down.contains(&VirtualKeyCode::RShift);
+                    let mut action = AccountAction::None;
+                    if keys_pressed.contains(&VirtualKeyCode::Tab) {
+                        action = app.account.on_key(AccountKey::Tab { shift });
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Return) {
+                        action = app.account.on_key(AccountKey::Enter);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Escape) {
+                        action = app.account.on_key(AccountKey::Escape);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Back) {
+                        let _ = app.account.on_key(AccountKey::Backspace);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Delete) {
+                        let _ = app.account.on_key(AccountKey::Delete);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Left) {
+                        let _ = app.account.on_key(AccountKey::Left);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Right) {
+                        let _ = app.account.on_key(AccountKey::Right);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Home) {
+                        let _ = app.account.on_key(AccountKey::Home);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::End) {
+                        let _ = app.account.on_key(AccountKey::End);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::F2) {
+                        let _ = app.account.on_key(AccountKey::ToggleSecretMode);
+                    }
+                    if lmb && !was_lmb_account {
+                        let a = app.account.on_pointer_down(
+                            cursor.0,
+                            cursor.1,
+                            FB_W as f32,
+                            FB_H as f32,
+                            Some(&settings_hud),
+                        );
+                        if a != AccountAction::None {
+                            action = a;
+                        }
+                    }
+                    was_lmb_account = lmb;
+                    match action {
+                        AccountAction::Back
+                        | AccountAction::Saved
+                        | AccountAction::Connect => {
+                            app.return_to_settings_from_account();
+                            was_lmb_account = false;
+                            last_status = "Account saved".into();
+                        }
+                        AccountAction::OpenSettings => {
+                            let _ = app.enter_settings();
+                        }
+                        AccountAction::Quit | AccountAction::None => {}
+                    }
+                    if app.screen.is_account() {
+                        let saved_hl = scene.highlight_tile.take();
+                        scene.draw(
+                            &mut fb,
+                            &mut session.map,
+                            &mut session.world,
+                            &session.content,
+                            &mut sprites,
+                            &mut anims,
+                            dt,
+                        );
+                        scene.highlight_tile = saved_hl;
+                        app.account.draw_overlay(&mut fb, Some(&settings_hud));
+                        window.set_title(&window_title("Account", "Esc=Back to Settings"));
+                    }
                 } else if app.screen.is_death() {
                     if keys_pressed.contains(&VirtualKeyCode::R)
                         || keys_pressed.contains(&VirtualKeyCode::Return)

@@ -44,7 +44,8 @@ pub mod tga;
 pub mod wire_log;
 
 pub use account_page::{
-    AccountAction, AccountFocus, AccountKey, AccountPage, ClientAppState, ClientScreen, SecretMode,
+    AccountAction, AccountFocus, AccountKey, AccountPage, ClientAppState, ClientScreen,
+    SecretMode, ServerEndpoint, LOCAL_SERVER_HOST, LOCAL_SERVER_PORT, MAX_RECENT_SERVERS,
 };
 pub use settings_page::{
     draw_settings_screen, restart_client_process, settings_key_command, ClientSettings,

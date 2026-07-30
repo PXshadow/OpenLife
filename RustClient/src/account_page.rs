@@ -64,13 +64,56 @@ impl ClientScreen {
     }
 }
 
+/// Local server always listed first in recent endpoints.
+pub const LOCAL_SERVER_HOST: &str = "127.0.0.1";
+pub const LOCAL_SERVER_PORT: u16 = 8005;
+/// Max recent server slots shown (includes local as first).
+pub const MAX_RECENT_SERVERS: usize = 5;
+/// Persisted recent host:port list (cwd).
+pub const RECENT_SERVERS_FILE: &str = "ohol_recent_servers.ini";
+
+/// One server endpoint for recent list / connect.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ServerEndpoint {
+    pub host: String,
+    pub port: u16,
+}
+
+impl ServerEndpoint {
+    pub fn local() -> Self {
+        Self {
+            host: LOCAL_SERVER_HOST.into(),
+            port: LOCAL_SERVER_PORT,
+        }
+    }
+
+    pub fn label(&self) -> String {
+        format!("{}:{}", self.host, self.port)
+    }
+
+    pub fn is_local(&self) -> bool {
+        let h = self.host.trim().to_ascii_lowercase();
+        (h == "127.0.0.1" || h == "localhost" || h == "::1") && self.port == LOCAL_SERVER_PORT
+    }
+
+    pub fn same_as(&self, host: &str, port: u16) -> bool {
+        self.host.trim().eq_ignore_ascii_case(host.trim()) && self.port == port
+    }
+}
+
 /// Which field has keyboard focus on the account form.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AccountFocus {
     Email,
     /// Account key **or** password (single secret line; see [`AccountPage::secret_mode`]).
     Secret,
+    Host,
+    Port,
+    /// Recent server slot 0..MAX_RECENT_SERVERS-1
+    Recent(u8),
     Connect,
+    /// Nested form only: save + return to Settings.
+    Back,
 }
 
 /// Whether the secret field maps to account key or password on Connect.
@@ -87,10 +130,14 @@ pub enum AccountAction {
     None,
     /// User wants to leave the client (Esc with no usable creds).
     Quit,
-    /// Build config and start login (Enter / Connect / Esc-with-creds).
+    /// Build config and start login (Enter / Connect).
     Connect,
-    /// Open Settings page (F3).
+    /// Open Settings page (F3) — boot account only.
     OpenSettings,
+    /// Nested from Settings: return to Settings (Esc / Back).
+    Back,
+    /// Nested: saved host/email without full reconnect.
+    Saved,
 }
 
 /// Editable account form state + soft-FB layout.
@@ -100,9 +147,11 @@ pub struct AccountPage {
     /// Account key **or** password text shown in the secret field.
     pub secret: String,
     pub secret_mode: SecretMode,
-    /// Host / port carried into [`SessionConfig`] (from env; not edited on form).
+    /// Host / port carried into [`SessionConfig`] (editable on form).
     pub host: String,
     pub port: u16,
+    /// Text buffer for port field (synced with [`Self::port`] on blur/apply).
+    pub port_text: String,
     pub tutorial_number: i32,
     pub reconnect: bool,
     pub pad_email_to_80: bool,
@@ -119,16 +168,21 @@ pub struct AccountPage {
     pub caret_t: f32,
     /// Cursor index within the focused text field (char index).
     pub caret: usize,
+    /// Recent servers: **local first**, then last-used (max [`MAX_RECENT_SERVERS`]).
+    pub recent_servers: Vec<ServerEndpoint>,
+    /// True when opened from Settings (Esc/Back returns to Settings, not open Settings).
+    pub opened_from_settings: bool,
 }
 
 impl Default for AccountPage {
     fn default() -> Self {
-        Self {
+        let mut p = Self {
             email: String::new(),
             secret: String::new(),
             secret_mode: SecretMode::AccountKey,
-            host: "127.0.0.1".into(),
-            port: 8005,
+            host: LOCAL_SERVER_HOST.into(),
+            port: LOCAL_SERVER_PORT,
+            port_text: LOCAL_SERVER_PORT.to_string(),
             tutorial_number: 0,
             reconnect: false,
             pad_email_to_80: true,
@@ -140,7 +194,11 @@ impl Default for AccountPage {
             status: String::new(),
             caret_t: 0.0,
             caret: 0,
-        }
+            recent_servers: vec![ServerEndpoint::local()],
+            opened_from_settings: false,
+        };
+        p.load_recent_servers();
+        p
     }
 }
 
@@ -165,6 +223,7 @@ impl AccountPage {
         if let Some(port_s) = get("OHOL_PORT") {
             if let Ok(n) = port_s.parse::<u16>() {
                 p.port = n;
+                p.port_text = n.to_string();
             }
         }
         if let Some(e) = get("OHOL_EMAIL") {
@@ -191,12 +250,130 @@ impl AccountPage {
         }
         p.caret = p.email.chars().count();
         p.focus = AccountFocus::Email;
+        p.load_recent_servers();
+        p.remember_current_server(); // ensure env host appears in list
         if p.has_usable_creds() {
-            p.status = "Enter=Connect  Esc=Settings  Tab=field  F3=Settings".into();
+            p.status = "Enter=Connect  ·  Esc=Settings  ·  click a server to switch".into();
         } else {
-            p.status = "Enter email + key/password  Tab=field  Esc=Settings".into();
+            p.status = "Email + key/password  ·  pick a server  ·  Esc=Settings".into();
         }
         p
+    }
+
+    /// Parse port_text into `port` (fallback 8005).
+    pub fn sync_port_from_text(&mut self) {
+        let n = self
+            .port_text
+            .trim()
+            .parse::<u16>()
+            .unwrap_or(LOCAL_SERVER_PORT);
+        self.port = if n == 0 { LOCAL_SERVER_PORT } else { n };
+        self.port_text = self.port.to_string();
+    }
+
+    /// Apply host/port from a recent slot.
+    pub fn apply_recent(&mut self, index: usize) {
+        if let Some(ep) = self.recent_servers.get(index).cloned() {
+            self.host = ep.host;
+            self.port = ep.port;
+            self.port_text = ep.port.to_string();
+            self.status = format!("Server → {}:{}", self.host, self.port);
+            // Move selected to “last used” (local always stays first).
+            self.remember_current_server();
+        }
+    }
+
+    /// Insert/update current host:port in recent list (local always index 0).
+    pub fn remember_current_server(&mut self) {
+        self.sync_port_from_text();
+        let current = ServerEndpoint {
+            host: self.host.trim().to_string(),
+            port: self.port,
+        };
+        if current.host.is_empty() {
+            return;
+        }
+        // Drop duplicates of current (except we'll re-insert).
+        self.recent_servers
+            .retain(|e| !e.same_as(&current.host, current.port) && !e.is_local());
+        // Local first
+        let mut out = vec![ServerEndpoint::local()];
+        // If current is not local, it's the most recently used non-local.
+        if !current.is_local() {
+            out.push(current);
+        }
+        for e in self.recent_servers.drain(..) {
+            if out.len() >= MAX_RECENT_SERVERS {
+                break;
+            }
+            if e.is_local() {
+                continue;
+            }
+            if out.iter().any(|x| x.same_as(&e.host, e.port)) {
+                continue;
+            }
+            out.push(e);
+        }
+        self.recent_servers = out;
+        let _ = self.save_recent_servers();
+    }
+
+    pub fn load_recent_servers(&mut self) {
+        let path = std::path::Path::new(RECENT_SERVERS_FILE);
+        let mut list = vec![ServerEndpoint::local()];
+        if let Ok(text) = std::fs::read_to_string(path) {
+            for raw in text.lines() {
+                let line = raw.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+                let (host, port_s) = if let Some((h, p)) = line.split_once(':') {
+                    (h.trim(), p.trim())
+                } else if let Some((h, p)) = line.split_once('=') {
+                    if h.trim().eq_ignore_ascii_case("server") {
+                        // server=host:port
+                        if let Some((hh, pp)) = p.trim().split_once(':') {
+                            (hh.trim(), pp.trim())
+                        } else {
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
+                } else {
+                    continue;
+                };
+                let Ok(port) = port_s.parse::<u16>() else {
+                    continue;
+                };
+                if host.is_empty() || port == 0 {
+                    continue;
+                }
+                let ep = ServerEndpoint {
+                    host: host.to_string(),
+                    port,
+                };
+                if ep.is_local() {
+                    continue;
+                }
+                if list.iter().any(|x| x.same_as(&ep.host, ep.port)) {
+                    continue;
+                }
+                list.push(ep);
+                if list.len() >= MAX_RECENT_SERVERS {
+                    break;
+                }
+            }
+        }
+        self.recent_servers = list;
+    }
+
+    pub fn save_recent_servers(&self) -> std::io::Result<()> {
+        let mut body = String::from("# Open Life recent servers (local first, then last used)\n");
+        for ep in &self.recent_servers {
+            body.push_str(&format!("{}:{}\n", ep.host, ep.port));
+        }
+        std::fs::write(RECENT_SERVERS_FILE, body)
     }
 
     /// True when the form has enough to attempt a login (email and/or secret).
@@ -241,9 +418,15 @@ impl AccountPage {
         // (`ClientSession::set_read_timeout` after ACCEPTED), not for TCP connect.
         let connect_read = self.read_timeout.max(Duration::from_secs(8));
         let connect_write = self.write_timeout.max(Duration::from_secs(5));
+        let port = self
+            .port_text
+            .trim()
+            .parse::<u16>()
+            .unwrap_or(self.port)
+            .max(1);
         SessionConfig {
-            host: self.host.clone(),
-            port: self.port,
+            host: self.host.trim().to_string(),
+            port,
             email,
             password,
             account_key,
@@ -260,7 +443,9 @@ impl AccountPage {
         match self.focus {
             AccountFocus::Email => Some(self.email.as_str()),
             AccountFocus::Secret => Some(self.secret.as_str()),
-            AccountFocus::Connect => None,
+            AccountFocus::Host => Some(self.host.as_str()),
+            AccountFocus::Port => Some(self.port_text.as_str()),
+            AccountFocus::Connect | AccountFocus::Back | AccountFocus::Recent(_) => None,
         }
     }
 
@@ -271,23 +456,42 @@ impl AccountPage {
         }
     }
 
-    /// Cycle Email → Secret → Connect → Email.
+    fn focus_order(&self) -> Vec<AccountFocus> {
+        let mut v = vec![
+            AccountFocus::Email,
+            AccountFocus::Secret,
+            AccountFocus::Host,
+            AccountFocus::Port,
+        ];
+        for i in 0..self.recent_servers.len().min(MAX_RECENT_SERVERS) {
+            v.push(AccountFocus::Recent(i as u8));
+        }
+        v.push(AccountFocus::Connect);
+        if self.opened_from_settings {
+            v.push(AccountFocus::Back);
+        }
+        v
+    }
+
+    /// Cycle fields.
     pub fn focus_next(&mut self) {
-        self.focus = match self.focus {
-            AccountFocus::Email => AccountFocus::Secret,
-            AccountFocus::Secret => AccountFocus::Connect,
-            AccountFocus::Connect => AccountFocus::Email,
-        };
+        if matches!(self.focus, AccountFocus::Port) {
+            self.sync_port_from_text();
+        }
+        let order = self.focus_order();
+        let i = order.iter().position(|&f| f == self.focus).unwrap_or(0);
+        self.focus = order[(i + 1) % order.len()];
         self.caret = self.focused_text().map(|s| s.chars().count()).unwrap_or(0);
     }
 
     /// Cycle reverse.
     pub fn focus_prev(&mut self) {
-        self.focus = match self.focus {
-            AccountFocus::Email => AccountFocus::Connect,
-            AccountFocus::Secret => AccountFocus::Email,
-            AccountFocus::Connect => AccountFocus::Secret,
-        };
+        if matches!(self.focus, AccountFocus::Port) {
+            self.sync_port_from_text();
+        }
+        let order = self.focus_order();
+        let i = order.iter().position(|&f| f == self.focus).unwrap_or(0);
+        self.focus = order[(i + order.len() - 1) % order.len()];
         self.caret = self.focused_text().map(|s| s.chars().count()).unwrap_or(0);
     }
 
@@ -299,21 +503,28 @@ impl AccountPage {
         };
     }
 
+    fn focused_text_mut(&mut self) -> Option<&mut String> {
+        match self.focus {
+            AccountFocus::Email => Some(&mut self.email),
+            AccountFocus::Secret => Some(&mut self.secret),
+            AccountFocus::Host => Some(&mut self.host),
+            AccountFocus::Port => Some(&mut self.port_text),
+            AccountFocus::Connect | AccountFocus::Back | AccountFocus::Recent(_) => None,
+        }
+    }
+
     /// Insert a typed character into the focused field (ignores control chars).
     pub fn type_char(&mut self, ch: char) {
         if ch.is_control() || ch == '\u{7f}' {
             return;
         }
-        // Soft limit so soft-FB field doesn't explode.
         const MAX_FIELD: usize = 128;
-        if matches!(self.focus, AccountFocus::Connect) {
+        if matches!(self.focus, AccountFocus::Port) && !ch.is_ascii_digit() {
             return;
         }
         let caret = self.caret;
-        let text = match self.focus {
-            AccountFocus::Email => &mut self.email,
-            AccountFocus::Secret => &mut self.secret,
-            AccountFocus::Connect => return,
+        let Some(text) = self.focused_text_mut() else {
+            return;
         };
         if text.chars().count() >= MAX_FIELD {
             return;
@@ -326,17 +537,12 @@ impl AccountPage {
     }
 
     pub fn backspace(&mut self) {
-        if matches!(self.focus, AccountFocus::Connect) {
-            return;
-        }
         let caret = self.caret;
         if caret == 0 {
             return;
         }
-        let text = match self.focus {
-            AccountFocus::Email => &mut self.email,
-            AccountFocus::Secret => &mut self.secret,
-            AccountFocus::Connect => return,
+        let Some(text) = self.focused_text_mut() else {
+            return;
         };
         let mut chars: Vec<char> = text.chars().collect();
         let i = caret.min(chars.len());
@@ -348,20 +554,52 @@ impl AccountPage {
     }
 
     pub fn delete_forward(&mut self) {
-        if matches!(self.focus, AccountFocus::Connect) {
-            return;
-        }
         let caret = self.caret;
-        let text = match self.focus {
-            AccountFocus::Email => &mut self.email,
-            AccountFocus::Secret => &mut self.secret,
-            AccountFocus::Connect => return,
+        let Some(text) = self.focused_text_mut() else {
+            return;
         };
         let mut chars: Vec<char> = text.chars().collect();
         let i = caret.min(chars.len());
         if i < chars.len() {
             chars.remove(i);
             *text = chars.into_iter().collect();
+        }
+    }
+
+    /// Activate focused control (Enter / click).
+    fn activate_focus(&mut self) -> AccountAction {
+        match self.focus {
+            AccountFocus::Connect => {
+                self.sync_port_from_text();
+                self.remember_current_server();
+                if self.opened_from_settings {
+                    self.status = format!(
+                        "Saved {}:{} — reconnect next boot / Connect from Account at start",
+                        self.host, self.port
+                    );
+                    AccountAction::Saved
+                } else {
+                    AccountAction::Connect
+                }
+            }
+            AccountFocus::Back => AccountAction::Back,
+            AccountFocus::Recent(i) => {
+                self.apply_recent(i as usize);
+                AccountAction::None
+            }
+            AccountFocus::Email
+            | AccountFocus::Secret
+            | AccountFocus::Host
+            | AccountFocus::Port => {
+                // Enter on field → Connect / Save
+                self.sync_port_from_text();
+                self.remember_current_server();
+                if self.opened_from_settings {
+                    AccountAction::Saved
+                } else {
+                    AccountAction::Connect
+                }
+            }
         }
     }
 
@@ -376,17 +614,15 @@ impl AccountPage {
                 }
                 AccountAction::None
             }
-            AccountKey::Enter => {
-                if self.focus == AccountFocus::Connect || self.focus != AccountFocus::Connect {
-                    // Enter always Connect (task: Enter=Connect).
-                    AccountAction::Connect
-                } else {
-                    AccountAction::Connect
-                }
-            }
+            AccountKey::Enter => self.activate_focus(),
             AccountKey::Escape => {
-                // Product UX: Esc opens Settings (same as F3). Quit via window close.
-                AccountAction::OpenSettings
+                if self.opened_from_settings {
+                    self.sync_port_from_text();
+                    AccountAction::Back
+                } else {
+                    // Boot: Esc opens Settings (same as F3).
+                    AccountAction::OpenSettings
+                }
             }
             AccountKey::Backspace => {
                 self.backspace();
@@ -442,7 +678,7 @@ impl AccountPage {
         account_layout(fb_w, fb_h)
     }
 
-    /// LMB press in soft-FB coords: select text fields (with caret) or Connect.
+    /// LMB press in soft-FB coords: fields, servers, Connect / Back / Settings.
     pub fn on_pointer_down(
         &mut self,
         mx: f32,
@@ -452,249 +688,297 @@ impl AccountPage {
         sprites: Option<&HudSprites>,
     ) -> AccountAction {
         let layout = Self::layout(fb_w, fb_h);
+        let scale = 0.95f32;
         if layout.email.contains(mx, my) {
             self.focus = AccountFocus::Email;
-            self.caret = caret_index_at_x(
-                sprites,
-                &self.email,
-                layout.email.x + 8.0,
-                mx,
-                1.6 * 0.85,
-            );
+            self.caret = caret_index_at_x(sprites, &self.email, layout.email.x + 8.0, mx, scale);
             self.clamp_caret();
             return AccountAction::None;
         }
         if layout.secret.contains(mx, my) {
             self.focus = AccountFocus::Secret;
             let display = mask_secret(&self.secret, self.secret_mode);
-            self.caret = caret_index_at_x(
-                sprites,
-                &display,
-                layout.secret.x + 8.0,
-                mx,
-                1.6 * 0.85,
-            );
-            // Password mask uses same char count as secret.
-            self.caret = self.caret.min(self.secret.chars().count());
+            self.caret = caret_index_at_x(sprites, &display, layout.secret.x + 8.0, mx, scale)
+                .min(self.secret.chars().count());
             self.clamp_caret();
             return AccountAction::None;
         }
+        if layout.host.contains(mx, my) {
+            self.focus = AccountFocus::Host;
+            self.caret = caret_index_at_x(sprites, &self.host, layout.host.x + 8.0, mx, scale);
+            self.clamp_caret();
+            return AccountAction::None;
+        }
+        if layout.port.contains(mx, my) {
+            self.focus = AccountFocus::Port;
+            self.caret =
+                caret_index_at_x(sprites, &self.port_text, layout.port.x + 8.0, mx, scale);
+            self.clamp_caret();
+            return AccountAction::None;
+        }
+        for (i, r) in layout.recent.iter().enumerate() {
+            if r.contains(mx, my) {
+                self.focus = AccountFocus::Recent(i as u8);
+                self.apply_recent(i);
+                return AccountAction::None;
+            }
+        }
         if layout.connect.contains(mx, my) {
             self.focus = AccountFocus::Connect;
-            return AccountAction::Connect;
+            return self.activate_focus();
         }
-        if layout.settings.contains(mx, my) {
+        if self.opened_from_settings {
+            if let Some(back) = layout.back {
+                if back.contains(mx, my) {
+                    self.focus = AccountFocus::Back;
+                    return AccountAction::Back;
+                }
+            }
+        } else if layout.settings.contains(mx, my) {
             return AccountAction::OpenSettings;
         }
         AccountAction::None
     }
 
-    /// Soft-FB draw (pencilFont TGA via `sprites` when present, else 5×7).
+    /// Soft-FB draw — solid page (boot Account).
     pub fn draw(&self, fb: &mut Framebuffer, sprites: Option<&HudSprites>) {
-        let w = fb.width as f32;
-        let h = fb.height as f32;
-        // Modern semi-transparent grey / black glass (opaque soft-FB approx).
-        fb.clear([10, 11, 14, 255]);
-        fb.fill_rect(0, 0, w as i32, 40, [8, 9, 12, 255]);
-        fb.fill_rect(0, h as i32 - 36, w as i32, 36, [8, 9, 12, 255]);
-        // Card
-        let card_w = 460.0f32;
-        let card_h = 320.0f32;
-        let card_x = ((w - card_w) * 0.5).round() as i32;
-        let card_y = ((h - card_h) * 0.5 - 10.0).round() as i32;
-        // Shadow + rim + glass panel
-        fb.fill_rect(card_x + 8, card_y + 10, card_w as i32, card_h as i32, [0, 0, 0, 130]);
-        fb.fill_rect(card_x - 1, card_y - 1, card_w as i32 + 2, card_h as i32 + 2, [55, 60, 72, 180]);
-        fb.fill_rect(card_x, card_y, card_w as i32, card_h as i32, [22, 24, 30, 240]);
-        fb.fill_rect(card_x, card_y, card_w as i32, 4, [90, 150, 210, 255]);
-        fb.fill_rect(card_x, card_y + 4, card_w as i32, 1, [40, 48, 60, 255]);
+        self.draw_inner(fb, sprites, true);
+    }
 
-        let ink = [230, 235, 245, 255];
-        let ink_dim = [140, 150, 168, 255];
-        let focus_bg = [38, 48, 64, 255];
-        let field_bg = [16, 18, 24, 255];
-        let btn_bg = [45, 110, 75, 255];
-        let btn_focus = [65, 150, 95, 255];
-        let scale = 1.6f32;
+    /// Glass overlay (Settings → Account over world).
+    pub fn draw_overlay(&self, fb: &mut Framebuffer, sprites: Option<&HudSprites>) {
+        self.draw_inner(fb, sprites, false);
+    }
 
-        let title_x = w * 0.5;
-        let title_y = card_y as f32 + 28.0;
-        draw_text(fb, sprites, "OPEN LIFE", title_x, title_y, scale * 1.2, [100, 180, 220, 255], true);
-        draw_text(
+    fn draw_inner(&self, fb: &mut Framebuffer, sprites: Option<&HudSprites>, solid: bool) {
+        use crate::ui_font::draw_ui_text;
+        let _ = sprites;
+        let w = fb.width as i32;
+        let h = fb.height as i32;
+        if solid {
+            fb.clear([14, 16, 20, 255]);
+        }
+        fb.fill_rect(0, 0, w, h, [0, 0, 0, if solid { 40 } else { 150 }]);
+
+        let layout = account_layout(fb.width as f32, fb.height as f32);
+        let panel = layout.panel;
+        let px = panel.x as i32;
+        let py = panel.y as i32;
+        let pw = panel.w as i32;
+        let ph = panel.h as i32;
+        let cx = fb.width as f32 * 0.5;
+
+        fb.fill_rect(px + 10, py + 14, pw, ph, [0, 0, 0, 100]);
+        fb.fill_rect(px, py, pw, ph, [28, 32, 40, 230]);
+        fb.fill_rect(px, py, pw, 2, [255, 255, 255, 40]);
+        fb.fill_rect(px, py, pw, 3, [96, 165, 250, 255]);
+
+        let white = [236, 240, 248, 255];
+        let dim = [148, 158, 176, 255];
+        let accent = [125, 195, 255, 255];
+        let title = if self.opened_from_settings {
+            "Account and server"
+        } else {
+            "Account"
+        };
+        draw_ui_text(fb, title, cx, panel.y + 28.0, 24.0, accent, true);
+        draw_ui_text(
             fb,
-            sprites,
-            "Account",
-            title_x,
-            title_y + 22.0,
-            scale * 0.9,
-            ink_dim,
+            "Login credentials and server connection",
+            cx,
+            panel.y + 50.0,
+            12.0,
+            dim,
             true,
         );
 
-        let label_x = card_x as f32 + 28.0;
-        let field_x = card_x as f32 + 28.0;
-        let field_w = card_w - 56.0;
-        let field_h = 28.0;
-
-        // Email
-        let email_y = card_y as f32 + 80.0;
-        draw_text(fb, sprites, "Email", label_x, email_y - 14.0, scale * 0.75, ink_dim, false);
-        let email_focused = self.focus == AccountFocus::Email;
-        fb.fill_rect(
-            field_x as i32,
-            email_y as i32,
-            field_w as i32,
-            field_h as i32,
-            if email_focused { focus_bg } else { field_bg },
-        );
-        // border
-        draw_field_border(fb, field_x, email_y, field_w, field_h, email_focused);
-        let email_show = if self.email.is_empty() && !email_focused {
-            ""
-        } else {
-            &self.email
-        };
-        draw_text(
-            fb,
-            sprites,
-            email_show,
-            field_x + 8.0,
-            email_y + field_h * 0.5,
-            scale * 0.85,
-            ink,
-            false,
-        );
-        if email_focused {
-            draw_caret(
-                fb,
-                sprites,
-                email_show,
-                field_x + 8.0,
-                email_y + field_h * 0.5,
-                scale * 0.85,
-                self.caret,
-                self.caret_t,
-            );
-        }
-
-        // Secret
-        let secret_y = email_y + 52.0;
+        self.draw_field(fb, "Email", &self.email, layout.email, self.focus == AccountFocus::Email);
         let secret_label = match self.secret_mode {
-            SecretMode::AccountKey => "Account key  (F2=password)",
-            SecretMode::Password => "Password  (F2=account key)",
+            SecretMode::AccountKey => "Account key (F2 = password)",
+            SecretMode::Password => "Password (F2 = account key)",
         };
-        draw_text(
+        let secret_disp = mask_secret(&self.secret, self.secret_mode);
+        self.draw_field(
             fb,
-            sprites,
             secret_label,
-            label_x,
-            secret_y - 14.0,
-            scale * 0.75,
-            ink_dim,
-            false,
+            &secret_disp,
+            layout.secret,
+            self.focus == AccountFocus::Secret,
         );
-        let secret_focused = self.focus == AccountFocus::Secret;
-        fb.fill_rect(
-            field_x as i32,
-            secret_y as i32,
-            field_w as i32,
-            field_h as i32,
-            if secret_focused { focus_bg } else { field_bg },
-        );
-        draw_field_border(fb, field_x, secret_y, field_w, field_h, secret_focused);
-        let secret_display = mask_secret(&self.secret, self.secret_mode);
-        draw_text(
+        self.draw_field(fb, "Host", &self.host, layout.host, self.focus == AccountFocus::Host);
+        self.draw_field(
             fb,
-            sprites,
-            &secret_display,
-            field_x + 8.0,
-            secret_y + field_h * 0.5,
-            scale * 0.85,
-            ink,
+            "Port",
+            &self.port_text,
+            layout.port,
+            self.focus == AccountFocus::Port,
+        );
+
+        draw_ui_text(
+            fb,
+            "Servers (local first - click to switch)",
+            layout.recent_label_x,
+            layout.recent_label_y,
+            12.0,
+            dim,
             false,
         );
-        if secret_focused {
-            draw_caret(
+        for (i, r) in layout.recent.iter().enumerate() {
+            let Some(ep) = self.recent_servers.get(i) else {
+                break;
+            };
+            let focused = self.focus == AccountFocus::Recent(i as u8);
+            let active = ep.same_as(&self.host, self.port);
+            let bg = if focused {
+                [50, 70, 100, 220]
+            } else if active {
+                [36, 72, 110, 210]
+            } else {
+                [32, 36, 46, 200]
+            };
+            fb.fill_rect(r.x as i32, r.y as i32, r.w as i32, r.h as i32, bg);
+            if active {
+                fb.fill_rect(r.x as i32, r.y as i32, 3, r.h as i32, accent);
+            }
+            let tag = if ep.is_local() {
+                format!("Local  {}", ep.label())
+            } else {
+                format!("Recent {}", ep.label())
+            };
+            draw_ui_text(
                 fb,
-                sprites,
-                &secret_display,
-                field_x + 8.0,
-                secret_y + field_h * 0.5,
-                scale * 0.85,
-                self.caret,
-                self.caret_t,
+                &tag,
+                r.x + 12.0,
+                r.y + r.h * 0.5,
+                13.0,
+                if active || focused { white } else { dim },
+                false,
             );
         }
 
-        // Connect + Settings buttons (layout must match `account_layout`).
-        let layout = account_layout(w, h);
-        let btn_focused = self.focus == AccountFocus::Connect;
+        let connect_label = if self.opened_from_settings {
+            "Save"
+        } else {
+            "Connect"
+        };
+        let c_focus = self.focus == AccountFocus::Connect;
         fb.fill_rect(
             layout.connect.x as i32,
             layout.connect.y as i32,
             layout.connect.w as i32,
             layout.connect.h as i32,
-            if btn_focused { btn_focus } else { btn_bg },
+            if c_focus {
+                [55, 140, 90, 255]
+            } else {
+                [40, 110, 70, 240]
+            },
         );
-        draw_text(
+        draw_ui_text(
             fb,
-            sprites,
-            "Connect",
+            connect_label,
             layout.connect.x + layout.connect.w * 0.5,
             layout.connect.y + layout.connect.h * 0.5,
-            scale * 0.95,
-            [250, 250, 245, 255],
-            true,
-        );
-        let settings_bg = [55, 95, 145, 255];
-        fb.fill_rect(
-            layout.settings.x as i32,
-            layout.settings.y as i32,
-            layout.settings.w as i32,
-            layout.settings.h as i32,
-            settings_bg,
-        );
-        // Top accent on Settings button
-        fb.fill_rect(
-            layout.settings.x as i32,
-            layout.settings.y as i32,
-            layout.settings.w as i32,
-            2,
-            [120, 180, 230, 255],
-        );
-        draw_text(
-            fb,
-            sprites,
-            "Settings",
-            layout.settings.x + layout.settings.w * 0.5,
-            layout.settings.y + layout.settings.h * 0.5,
-            scale * 0.95,
-            [250, 250, 245, 255],
+            15.0,
+            white,
             true,
         );
 
-        // Host line + status
-        let host_line = format!("{}:{}   Esc/F3=Settings", self.host, self.port);
-        draw_text(
-            fb,
-            sprites,
-            &host_line,
-            title_x,
-            layout.connect.y + 48.0,
-            scale * 0.7,
-            ink_dim,
-            true,
-        );
-        if !self.status.is_empty() {
-            draw_text(
+        if self.opened_from_settings {
+            if let Some(back) = layout.back {
+                let b_focus = self.focus == AccountFocus::Back;
+                fb.fill_rect(
+                    back.x as i32,
+                    back.y as i32,
+                    back.w as i32,
+                    back.h as i32,
+                    if b_focus {
+                        [60, 70, 90, 230]
+                    } else {
+                        [40, 44, 54, 200]
+                    },
+                );
+                draw_ui_text(
+                    fb,
+                    "Back",
+                    back.x + back.w * 0.5,
+                    back.y + back.h * 0.5,
+                    15.0,
+                    white,
+                    true,
+                );
+            }
+        } else {
+            fb.fill_rect(
+                layout.settings.x as i32,
+                layout.settings.y as i32,
+                layout.settings.w as i32,
+                layout.settings.h as i32,
+                [50, 90, 140, 240],
+            );
+            draw_ui_text(
                 fb,
-                sprites,
-                &self.status,
-                title_x,
-                card_y as f32 + card_h - 22.0,
-                scale * 0.7,
-                [180, 190, 210, 255],
+                "Settings",
+                layout.settings.x + layout.settings.w * 0.5,
+                layout.settings.y + layout.settings.h * 0.5,
+                15.0,
+                white,
                 true,
+            );
+        }
+
+        if !self.status.is_empty() {
+            draw_ui_text(fb, &self.status, cx, panel.y + panel.h - 28.0, 12.0, dim, true);
+        }
+        let help = if self.opened_from_settings {
+            "Tab fields  |  click server  |  Save  |  Esc=Back"
+        } else {
+            "Tab fields  |  click server  |  Enter=Connect  |  Esc=Settings"
+        };
+        draw_ui_text(fb, help, cx, panel.y + panel.h - 12.0, 11.0, [110, 120, 140, 255], true);
+    }
+
+    fn draw_field(
+        &self,
+        fb: &mut Framebuffer,
+        label: &str,
+        value: &str,
+        rect: AccountHitRect,
+        focused: bool,
+    ) {
+        use crate::ui_font::draw_ui_text;
+        let dim = [148, 158, 176, 255];
+        let white = [236, 240, 248, 255];
+        draw_ui_text(fb, label, rect.x, rect.y - 12.0, 11.0, dim, false);
+        fb.fill_rect(
+            rect.x as i32,
+            rect.y as i32,
+            rect.w as i32,
+            rect.h as i32,
+            if focused {
+                [38, 48, 64, 255]
+            } else {
+                [18, 20, 26, 255]
+            },
+        );
+        draw_field_border(fb, rect.x, rect.y, rect.w, rect.h, focused);
+        draw_ui_text(
+            fb,
+            value,
+            rect.x + 10.0,
+            rect.y + rect.h * 0.5,
+            14.0,
+            white,
+            false,
+        );
+        if focused && self.caret_t <= 0.5 {
+            let prefix: String = value.chars().take(self.caret).collect();
+            let cw = crate::ui_font::measure_ui_text(&prefix, 14.0);
+            fb.fill_rect(
+                (rect.x + 10.0 + cw) as i32,
+                (rect.y + 6.0) as i32,
+                2,
+                (rect.h - 12.0) as i32,
+                [240, 240, 250, 255],
             );
         }
     }
@@ -704,7 +988,6 @@ impl AccountPage {
     /// Prefer [`crate::load_progress::draw_loading_progress`] when a
     /// [`crate::load_progress::LoadingState`] is available (P5#36).
     pub fn draw_loading(fb: &mut Framebuffer, sprites: Option<&HudSprites>, msg: &str) {
-        // Soft bar at 0% with connect detail — full stages use load_progress draw.
         let mut state = crate::load_progress::LoadingState::for_stage(
             crate::load_progress::LoadStage::Content,
             0.0,
@@ -714,7 +997,7 @@ impl AccountPage {
             state.label = msg.to_string();
         }
         crate::load_progress::draw_loading_progress(fb, &state);
-        let _ = sprites; // reserved if pencil atlas desired later
+        let _ = sprites;
     }
 
     /// Draw P5#36 loading bar + label from a live [`LoadingState`].
@@ -753,58 +1036,114 @@ impl AccountHitRect {
 }
 
 /// Hit targets for Account page mouse interaction.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AccountLayout {
+    pub panel: AccountHitRect,
     pub email: AccountHitRect,
     pub secret: AccountHitRect,
+    pub host: AccountHitRect,
+    pub port: AccountHitRect,
+    pub recent: Vec<AccountHitRect>,
+    pub recent_label_x: f32,
+    pub recent_label_y: f32,
     pub connect: AccountHitRect,
-    /// Settings button (Esc/F3 alternate; always mouse-reachable).
+    /// Settings button (boot path).
     pub settings: AccountHitRect,
+    /// Back button (nested from Settings).
+    pub back: Option<AccountHitRect>,
 }
 
 fn account_layout(fb_w: f32, fb_h: f32) -> AccountLayout {
-    let card_w = 420.0f32;
-    let card_h = 280.0f32;
-    let card_x = ((fb_w - card_w) * 0.5).round();
-    let card_y = ((fb_h - card_h) * 0.5 - 20.0).round();
-    let field_x = card_x + 28.0;
-    let field_w = card_w - 56.0;
-    let field_h = 28.0;
-    let email_y = card_y + 80.0;
-    let secret_y = email_y + 52.0;
+    let panel_w = (fb_w * 0.72).clamp(480.0, 620.0);
+    let panel_h = (fb_h * 0.92).clamp(440.0, 520.0);
+    let panel_x = ((fb_w - panel_w) * 0.5).round();
+    let panel_y = ((fb_h - panel_h) * 0.5).round();
+    let field_x = panel_x + 36.0;
+    let field_w = panel_w - 72.0;
+    let field_h = 30.0;
+    let mut y = panel_y + 78.0;
+    let email = AccountHitRect {
+        x: field_x,
+        y,
+        w: field_w,
+        h: field_h,
+    };
+    y += 52.0;
+    let secret = AccountHitRect {
+        x: field_x,
+        y,
+        w: field_w,
+        h: field_h,
+    };
+    y += 52.0;
+    let host_w = field_w * 0.68;
+    let port_w = field_w * 0.28;
+    let host = AccountHitRect {
+        x: field_x,
+        y,
+        w: host_w,
+        h: field_h,
+    };
+    let port = AccountHitRect {
+        x: field_x + field_w - port_w,
+        y,
+        w: port_w,
+        h: field_h,
+    };
+    y += 48.0;
+    let recent_label_x = field_x;
+    let recent_label_y = y;
+    y += 16.0;
+    let mut recent = Vec::new();
+    let row_h = 26.0f32;
+    for _ in 0..MAX_RECENT_SERVERS {
+        recent.push(AccountHitRect {
+            x: field_x,
+            y,
+            w: field_w,
+            h: row_h,
+        });
+        y += row_h + 6.0;
+    }
+    y += 8.0;
     let btn_w = 140.0f32;
-    let btn_h = 34.0f32;
-    let title_x = fb_w * 0.5;
-    let gap = 12.0f32;
-    let pair_w = btn_w * 2.0 + gap;
-    let connect_x = title_x - pair_w * 0.5;
-    let settings_x = connect_x + btn_w + gap;
-    let btn_y = secret_y + 48.0;
+    let btn_h = 36.0f32;
+    let gap = 14.0f32;
+    let connect = AccountHitRect {
+        x: field_x,
+        y,
+        w: btn_w,
+        h: btn_h,
+    };
+    let settings = AccountHitRect {
+        x: field_x + btn_w + gap,
+        y,
+        w: btn_w,
+        h: btn_h,
+    };
+    let back = Some(AccountHitRect {
+        x: field_x + btn_w + gap,
+        y,
+        w: btn_w,
+        h: btn_h,
+    });
     AccountLayout {
-        email: AccountHitRect {
-            x: field_x,
-            y: email_y,
-            w: field_w,
-            h: field_h,
+        panel: AccountHitRect {
+            x: panel_x,
+            y: panel_y,
+            w: panel_w,
+            h: panel_h,
         },
-        secret: AccountHitRect {
-            x: field_x,
-            y: secret_y,
-            w: field_w,
-            h: field_h,
-        },
-        connect: AccountHitRect {
-            x: connect_x,
-            y: btn_y,
-            w: btn_w,
-            h: btn_h,
-        },
-        settings: AccountHitRect {
-            x: settings_x,
-            y: btn_y,
-            w: btn_w,
-            h: btn_h,
-        },
+        email,
+        secret,
+        host,
+        port,
+        recent,
+        recent_label_x,
+        recent_label_y,
+        connect,
+        settings,
+        back,
     }
 }
 
@@ -990,6 +1329,8 @@ impl ClientAppState {
     }
 
     pub fn begin_connect(&mut self) -> SessionConfig {
+        self.account.sync_port_from_text();
+        self.account.remember_current_server();
         self.screen = ClientScreen::Loading;
         self.loading_msg = format!(
             "Connecting {}:{}…",
@@ -1061,7 +1402,7 @@ impl ClientAppState {
         };
     }
 
-    /// From Settings → Account page to edit email / key (keeps settings_return).
+    /// From Settings → Account form (email / key / server). Keeps `settings_return`.
     pub fn enter_account_from_settings(&mut self) {
         if self.screen != ClientScreen::Settings {
             return;
@@ -1069,10 +1410,44 @@ impl ClientAppState {
         self.settings.clamp();
         self.settings.apply_runtime_globals();
         let _ = self.settings.save_default();
-        // Next leave_settings from Account→Settings→Back returns to original return target.
+        self.account.opened_from_settings = true;
+        self.account.load_recent_servers();
+        self.account.remember_current_server();
+        self.account.focus = AccountFocus::Email;
+        self.account.caret = self.account.email.chars().count();
+        self.account.port_text = self.account.port.to_string();
+        self.account.status =
+            "Edit login or pick a server — Save applies, Esc returns to Settings".into();
         self.screen = ClientScreen::Account;
-        self.account.status = "Account settings — Esc/F3 back to Settings  Enter=Connect".into();
         eprintln!("account: opened from Settings");
+    }
+
+    /// Nested Account form → Settings (does not clear `settings_return`).
+    pub fn return_to_settings_from_account(&mut self) {
+        if self.screen != ClientScreen::Account {
+            return;
+        }
+        self.account.sync_port_from_text();
+        self.account.remember_current_server();
+        self.account.opened_from_settings = false;
+        self.settings.sync_endpoint_from(
+            &self.account.host,
+            self.account.port,
+            &self.account.email,
+        );
+        self.settings.status = format!(
+            "Account · {}:{} · {}",
+            self.account.host,
+            self.account.port,
+            if self.account.email.is_empty() {
+                "(no email)"
+            } else {
+                self.account.email.as_str()
+            }
+        );
+        self.settings.focus = crate::settings_page::SettingsFocus::AccountSettings;
+        self.screen = ClientScreen::Settings;
+        eprintln!("settings: returned from Account form");
     }
 
     /// Apply volume/mute to optional banks (P5#39).
@@ -1188,9 +1563,25 @@ mod tests {
         page.type_char('K');
         assert_eq!(page.secret, "K");
         page.on_key(AccountKey::Tab { shift: false });
-        assert_eq!(page.focus, AccountFocus::Connect);
+        assert_eq!(page.focus, AccountFocus::Host);
         page.on_key(AccountKey::Tab { shift: false });
-        assert_eq!(page.focus, AccountFocus::Email);
+        assert_eq!(page.focus, AccountFocus::Port);
+    }
+
+    #[test]
+    fn recent_local_first_and_remember() {
+        let mut page = AccountPage::default();
+        page.recent_servers = vec![ServerEndpoint::local()];
+        page.host = "play.example.com".into();
+        page.port = 9001;
+        page.port_text = "9001".into();
+        page.remember_current_server();
+        assert!(page.recent_servers[0].is_local());
+        assert_eq!(page.recent_servers[1].host, "play.example.com");
+        assert_eq!(page.recent_servers[1].port, 9001);
+        page.apply_recent(0);
+        assert_eq!(page.host, LOCAL_SERVER_HOST);
+        assert_eq!(page.port, LOCAL_SERVER_PORT);
     }
 
     #[test]
@@ -1234,15 +1625,22 @@ mod tests {
 
     #[test]
     fn draw_account_page_marks_pixels() {
-        let mut fb = Framebuffer::new(320, 240);
+        let mut fb = Framebuffer::new(640, 480);
         let page = AccountPage {
             email: "a@b.c".into(),
             secret: "KEY".into(),
             ..AccountPage::default()
         };
         page.draw(&mut fb, None);
-        let n = fb.count_non_color([210, 200, 175, 255]);
+        let n = fb.count_non_color([14, 16, 20, 255]);
         assert!(n > 100, "expected form chrome, got {n} non-bg pixels");
+    }
+
+    #[test]
+    fn nested_account_esc_backs_to_settings() {
+        let mut page = AccountPage::default();
+        page.opened_from_settings = true;
+        assert_eq!(page.on_key(AccountKey::Escape), AccountAction::Back);
     }
 
     #[test]
