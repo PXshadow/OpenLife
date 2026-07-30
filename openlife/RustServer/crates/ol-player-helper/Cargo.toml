@@ -1,0 +1,10 @@
+[package]
+name = "ol-player-helper"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared pure helpers for AI and player/sim code (food scoring, geometry, eat gates)"
+publish = false
+
+[dependencies]
+ol-ai-api.workspace = true

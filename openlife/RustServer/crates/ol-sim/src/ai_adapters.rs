@@ -14,6 +14,10 @@ use ol_ai_api::{
     BestFoodHit as ApiBestFoodHit, BestFoodQuery, FoodSearch, PlayerReadInterface, PlayerView,
     WorldView, DEFAULT_FOOD_SEARCH_RADIUS,
 };
+use ol_player_helper::{
+    pick_best_search_food, to_best_hit, AiFoodSearchFlags, ProcessFoodOpts, SearchFoodCand,
+    starving_factor,
+};
 use ol_world::World;
 
 // ── World ───────────────────────────────────────────────────────────────────
@@ -142,20 +146,19 @@ impl PlayerView for PlayerSnapshotView<'_> {
 
 // ── Food search ─────────────────────────────────────────────────────────────
 
-/// Live best-food via ground scan on [`SimState`] (default radius **30**).
+/// Live best-food via ground scan + **PlayerHelper** pure `process_food` scoring.
 ///
-/// Phase A: nearest edible ground tile by Chebyshev, preferring higher
-/// `food_value`. Container / yum / path-reach full parity lands when
-/// `search_best_food_live.inc.rs` is included in `lib.rs`.
+/// Default radius **30** ([`DEFAULT_FOOD_SEARCH_RADIUS`]). Containers / full
+/// Haxe conservation scan improve when `search_best_food_live.inc.rs` is
+/// included; scoring gates already match pure SearchBestFood.
 pub struct SimFoodSearch<'a> {
     pub state: &'a SimState,
-    /// Reserved for AI seed/danger gates when full SearchBestFood is wired.
+    /// When true, enable AI seed/danger gates in pure scoring.
     pub ai: bool,
 }
 
 impl FoodSearch for SimFoodSearch<'_> {
     fn best_food(&self, q: BestFoodQuery) -> Option<ApiBestFoodHit> {
-        let _ = self.ai;
         let p = self.state.players.get(&q.conn_id)?;
         if p.deleted {
             return None;
@@ -167,7 +170,11 @@ impl FoodSearch for SimFoodSearch<'_> {
         };
         let (px, py) = (p.x, p.y);
         let world = self.state.world.read().ok()?;
-        let mut best: Option<(i32, i32, i32, i32, i32)> = None; // dist, -fv, x, y, food_id
+        let (map_w, map_h, wrap) = (world.width_tiles, world.height_tiles, world.wrap);
+
+        // Build pure candidates from ground tiles in radius (Phase B).
+        let mut cands: Vec<SearchFoodCand> = Vec::new();
+        let mut stock_tiles: Vec<(i32, i32, i32, i32)> = Vec::new();
         for dy in -radius..=radius {
             for dx in -radius..=radius {
                 let x = px + dx;
@@ -180,22 +187,63 @@ impl FoodSearch for SimFoodSearch<'_> {
                 let Some(def) = self.state.content.get(base) else {
                     continue;
                 };
+                let uses = world
+                    .get_helper(x, y)
+                    .map(|h| {
+                        if h.uses_remaining > 0 {
+                            h.uses_remaining
+                        } else if def.num_uses > 0 {
+                            def.num_uses
+                        } else {
+                            1
+                        }
+                    })
+                    .unwrap_or(1)
+                    .max(1);
+                stock_tiles.push((x, y, base, uses));
                 if def.food_value <= 0 {
                     continue;
                 }
-                let dist = dx.abs().max(dy.abs());
-                let key = (dist, -def.food_value, x, y, base);
-                if best.map(|b| key < b).unwrap_or(true) {
-                    best = Some(key);
-                }
+                let count_eaten = p.yum.get_count_eaten(base);
+                let not_reachable = p.ai_path_reach.not_reachable.contains_key(&(x, y))
+                    || self.state.blocked_by_ai.contains_key(&(x, y));
+                cands.push(SearchFoodCand {
+                    parent_id: base,
+                    food_id: base,
+                    food_value: def.food_value,
+                    tx: x,
+                    ty: y,
+                    count_eaten,
+                    number_of_uses: uses,
+                    index_in_container: -1,
+                    is_dangerous: false,
+                    not_reachable,
+                    food_factor: 1.0,
+                });
             }
         }
-        best.map(|(dist, neg_fv, x, y, food_id)| ApiBestFoodHit {
-            x,
-            y,
-            food_id,
-            score: (-neg_fv) as f32 / (1.0 + dist as f32),
-            is_yum: false,
+        drop(world);
+
+        let mut opts = ProcessFoodOpts::human(px, py, p.food, p.food_max, p.yum.currently_craving);
+        opts.starving_factor = starving_factor(p.food);
+        opts.map_w = map_w;
+        opts.map_h = map_h;
+        opts.wrap = wrap;
+        opts.ai = if self.ai {
+            Some(AiFoodSearchFlags::default())
+        } else {
+            None
+        };
+
+        let (idx, score) = pick_best_search_food(&cands, &opts, &stock_tiles)?;
+        let cand = &cands[idx];
+        let hit = to_best_hit(cand, &score, px, py);
+        Some(ApiBestFoodHit {
+            x: hit.tx,
+            y: hit.ty,
+            food_id: hit.food_id,
+            score: hit.scored_food_value,
+            is_yum: hit.scored_food_value > hit.food_value as f32,
         })
     }
 }

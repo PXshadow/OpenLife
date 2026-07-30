@@ -9,6 +9,7 @@ members = [
     "crates/ol-sim",
     "crates/ol-ai-api",
     "crates/ol-ai",
+    "crates/ol-player-helper",
     "crates/ol-binary",
     "crates/ol-content",
     "crates/ol-world",
@@ -33,6 +34,7 @@ ol-web = { path = "crates/ol-web" }
 ol-sim = { path = "crates/ol-sim" }
 ol-ai-api = { path = "crates/ol-ai-api" }
 ol-ai = { path = "crates/ol-ai" }
+ol-player-helper = { path = "crates/ol-player-helper" }
 ol-binary = { path = "crates/ol-binary" }
 ol-content = { path = "crates/ol-content" }
 ol-world = { path = "crates/ol-world" }
