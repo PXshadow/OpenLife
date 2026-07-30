@@ -34,6 +34,7 @@ pub mod render;
 pub mod rmb_action;
 pub mod session;
 pub mod settings_page;
+pub mod secrets;
 pub mod ui_font;
 pub mod music_bank;
 pub mod overlay_bank;
@@ -245,4 +246,5 @@ pub use parse::{
 };
 pub use session::{SessionConfig, SessionEvent, connect_and_login, connect_and_login_logged};
 pub use tags::{ALL_SERVER_TAGS, ServerTag};
+pub use secrets::{redact_email, redact_login_wire, redact_note};
 pub use wire_log::WireLog;

@@ -354,11 +354,11 @@ fn main() -> anyhow::Result<()> {
 
     eprintln!(
         "account: connect email={} key={} host={}:{}",
-        cfg.email,
+        ohol_headless::redact_email(&cfg.email),
         if cfg.account_key.is_empty() {
-            "(none)"
+            "none"
         } else {
-            "(set)"
+            "set"
         },
         cfg.host,
         cfg.port
@@ -721,7 +721,9 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
         {
             eprintln!(
                 "account: OHOL_AUTO_CONNECT → {}:{} email={}",
-                cfg.host, cfg.port, cfg.email
+                cfg.host,
+                cfg.port,
+                ohol_headless::redact_email(&cfg.email)
             );
             return Ok(Some(cfg));
         }

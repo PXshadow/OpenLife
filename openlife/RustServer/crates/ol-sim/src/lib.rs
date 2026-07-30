@@ -710,8 +710,22 @@ pub fn player_is_fertile(state: &SimState, p: &Player) -> bool {
     is_fertile(p.deleted, p.age, player_is_female(state, p))
 }
 
-/// Known local playtest account â€” unique name + distinct skin so clients know the server.
-const PLAYTEST_EMAIL_NEEDLE: &str = "76561198032560680";
+/// Optional playtest identity: set `OHOL_PLAYTEST_EMAIL` (substring match, e.g. Steam id).
+/// No hard-coded account emails in source — keeps PII/secrets out of the tree.
+fn playtest_email_needle() -> Option<String> {
+    std::env::var("OHOL_PLAYTEST_EMAIL")
+        .ok()
+        .map(|s| s.trim().to_ascii_lowercase())
+        .filter(|s| !s.is_empty())
+}
+
+fn email_is_playtest(email: &str) -> bool {
+    let Some(needle) = playtest_email_needle() else {
+        return false;
+    };
+    email.to_ascii_lowercase().contains(&needle)
+}
+
 const PLAYTEST_FIRST_NAME: &str = "GROKPLAY";
 /// Family name embeds the server crate version so the client always shows which build.
 fn playtest_family_name() -> String {
@@ -7147,7 +7161,7 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
                 p.age = 14.0;
                 p.email = email.to_string();
                 p.has_mc = false;
-                if email.to_ascii_lowercase().contains(PLAYTEST_EMAIL_NEEDLE) {
+                if email_is_playtest(email) {
                     p.first_name = PLAYTEST_FIRST_NAME.into();
                     p.family_name = playtest_family_name();
                     p.display_object_id = PLAYTEST_SKIN_OBJECT;
@@ -7165,8 +7179,8 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
         state.next_player_id = p_id + 1;
     }
     let mut p = Player::new(p_id, conn_id, email);
-    if email.to_ascii_lowercase().contains(PLAYTEST_EMAIL_NEEDLE) {
-        // Distinct identity for the headless/playtest Steam account + server version.
+    if email_is_playtest(email) {
+        // Distinct identity when OHOL_PLAYTEST_EMAIL matches + server version.
         p.first_name = PLAYTEST_FIRST_NAME.into();
         p.family_name = playtest_family_name();
         p.display_object_id = PLAYTEST_SKIN_OBJECT;
@@ -7227,7 +7241,7 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
         w.touch_radius(p.x, p.y, 1);
     }
     let display = p.display_name();
-    let is_playtest = email.to_ascii_lowercase().contains(PLAYTEST_EMAIL_NEEDLE);
+    let is_playtest = email_is_playtest(email);
     state.accounts.on_spawn(email, p_id, &display);
     state.players.insert(conn_id, p);
     if let Some(mid) = mother_link {

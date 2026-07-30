@@ -1,10 +1,14 @@
 ﻿//! Append-only wire transcript: every client→server and server→client message.
+//!
+//! LOGIN / RLOGIN lines are redacted (email + HMAC) so transcripts are safer to share.
 
 use std::fs::{File, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::secrets::{is_login_wire_line, redact_login_wire, redact_note};
 
 /// Thread-safe transcript writer.
 #[derive(Debug)]
@@ -43,7 +47,8 @@ impl WireLog {
     }
 
     pub fn note(&self, text: &str) {
-        let _ = self.write_line(&format!("# {text}"));
+        let safe = redact_note(text);
+        let _ = self.write_line(&format!("# {safe}"));
     }
 
     pub fn tx(&self, message: &str) {
@@ -51,6 +56,11 @@ impl WireLog {
             message.to_string()
         } else {
             format!("{message}#")
+        };
+        let shown = if is_login_wire_line(&shown) {
+            redact_login_wire(&shown)
+        } else {
+            shown
         };
         let flat = shown.replace('\n', "\\n");
         let _ = self.write_line(&format!("{} TX {}", now_ms(), flat));

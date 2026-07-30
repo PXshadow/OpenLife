@@ -19,6 +19,11 @@ SERVER_MOVE_FEEDBACK.md
 /logs/
 *.log
 logs/
+wire-*.log
+**/wire-*.log
+# Any stray env dumps
+.env.*
+!.env.example
 
 # Sniped / playtest desktop screenshots (any folder under client)
 playtest_screens/
