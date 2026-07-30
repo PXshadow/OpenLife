@@ -618,7 +618,7 @@ fn food_at(content: &ContentDb, id: i32) -> i32 {
 /// pure SearchBestFood scorer as players (`ol_player_helper::pick_best_search_food`).
 ///
 /// Candidates must already be gathered within radius (SeekFood uses
-/// [`DEFAULT_FOOD_SEARCH_RADIUS`] = 30). Full world+container scan on the sim
+/// [`DEFAULT_FOOD_SEARCH_RADIUS`] = 40). Full world+container scan on the sim
 /// writer uses [`ol_sim::search_best_food_full`] / [`ol_sim::best_food_for_ai`].
 // Haxe: SearchBestFood processFood scoring; isObjectNotReachable skip
 struct NpcNearbyFoodSearch<'a> {
@@ -695,7 +695,7 @@ impl FoodSearch for NpcNearbyFoodSearch<'_> {
     }
 }
 
-/// Find best edible ground object via shared SearchBestFood pure scoring (r=30).
+/// Find best edible ground object via shared SearchBestFood pure scoring (r=40).
 fn nearest_food(
     content: &ContentDb,
     nearby: &[NearbyObj],

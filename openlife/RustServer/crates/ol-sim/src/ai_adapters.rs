@@ -149,8 +149,7 @@ impl PlayerView for PlayerSnapshotView<'_> {
 /// - `ai = true`: AI seed/danger gates (`AiFoodSearchFlags`)
 /// - `ai = false`: human / DisplayBestFood / craving path (no AI seed gates)
 ///
-/// Default radius **30** for AI interface; human craving uses radius **40**
-/// via [`crate::nearby_best_for_craving`] (Haxe SearchBestFood default).
+/// Default radius **40** ([`DEFAULT_FOOD_SEARCH_RADIUS`]) for AI and players.
 pub struct SimFoodSearch<'a> {
     pub state: &'a SimState,
     /// When true, enable AI seed/danger gates in pure scoring.
@@ -180,12 +179,12 @@ impl FoodSearch for SimFoodSearch<'_> {
     }
 }
 
-/// Convenience: AI food search with default radius 30.
+/// Convenience: AI food search with default radius 40.
 pub fn best_food_for_ai(state: &SimState, conn_id: u64) -> Option<ApiBestFoodHit> {
     SimFoodSearch { state, ai: true }.best_food_default(conn_id)
 }
 
-/// Convenience: human / DisplayBestFood search (no AI seed gates), default radius 30.
+/// Convenience: human / DisplayBestFood search (no AI seed gates), default radius 40.
 pub fn best_food_for_player(state: &SimState, conn_id: u64) -> Option<ApiBestFoodHit> {
     SimFoodSearch { state, ai: false }.best_food_default(conn_id)
 }
@@ -369,8 +368,8 @@ mod tests {
 
     #[test]
     fn food_query_radius_default_constant() {
-        assert_eq!(DEFAULT_FOOD_SEARCH_RADIUS, 30);
+        assert_eq!(DEFAULT_FOOD_SEARCH_RADIUS, 40);
         let q = BestFoodQuery::new(1);
-        assert_eq!(q.max_dist, 30);
+        assert_eq!(q.max_dist, 40);
     }
 }

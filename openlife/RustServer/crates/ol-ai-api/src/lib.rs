@@ -82,10 +82,10 @@ mod tests {
     }
 
     #[test]
-    fn food_query_default_radius_30() {
+    fn food_query_default_radius_40() {
         let q = BestFoodQuery::new(1);
         assert_eq!(q.max_dist, DEFAULT_FOOD_SEARCH_RADIUS);
-        assert_eq!(q.max_dist, 30);
+        assert_eq!(q.max_dist, 40);
     }
 
     #[test]

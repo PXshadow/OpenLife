@@ -31,7 +31,7 @@ impl<'a> PlayerReadHandles<'a> {
         }
     }
 
-    /// Best food for the focal player at default radius **30**.
+    /// Best food for the focal player at default radius **40**.
     pub fn best_food_default(&self) -> Option<BestFoodHit> {
         self.food.best_food_default(self.player.conn_id())
     }
@@ -65,7 +65,7 @@ pub trait PlayerReadInterface {
         PlayerReadHandles::new(self.world(), self.self_player(), self.food_search())
     }
 
-    /// Best food for this body, default radius **30**.
+    /// Best food for this body, default radius **40**.
     fn best_food_default(&self) -> Option<BestFoodHit> {
         self.as_handles().best_food_default()
     }

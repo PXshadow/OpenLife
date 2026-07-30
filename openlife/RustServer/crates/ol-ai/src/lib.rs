@@ -85,7 +85,7 @@ mod tests {
     }
 
     #[test]
-    fn food_radius_30() {
-        assert_eq!(DEFAULT_FOOD_SEARCH_RADIUS, 30);
+    fn food_radius_40() {
+        assert_eq!(DEFAULT_FOOD_SEARCH_RADIUS, 40);
     }
 }

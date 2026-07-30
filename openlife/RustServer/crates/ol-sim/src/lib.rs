@@ -2236,17 +2236,17 @@ pub fn food_objects_list(state: &SimState) -> Vec<i32> {
 /// Nearby best food for craving + displayFood branch.
 ///
 /// Uses the **same** live SearchBestFood as AI (`search_best_food_full` with
-/// human flags / Haxe default radius 40). No separate scan implementation.
+/// human flags / shared default radius 40). No separate scan implementation.
 // Haxe: SearchBestFood for craving nearby + DisplayBestFood candidate
 pub fn nearby_best_for_craving(
     state: &SimState,
     conn_id: u64,
 ) -> Option<crate::yum::NearbyBestFood> {
-    use crate::search_best_food::SEARCH_BEST_FOOD_RADIUS;
+    use ol_ai_api::DEFAULT_FOOD_SEARCH_RADIUS;
     let hit = search_best_food_full(
         state,
         conn_id,
-        SEARCH_BEST_FOOD_RADIUS,
+        DEFAULT_FOOD_SEARCH_RADIUS,
         None,
         None, // human / DisplayBestFood — no AI seed gates
         false,

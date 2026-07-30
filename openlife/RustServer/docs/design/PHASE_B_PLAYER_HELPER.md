@@ -44,9 +44,9 @@ ol-server (NPC FoodSearch → SimFoodSearch / NpcNearbyFoodSearch)
 
 Still via `PlayerReadInterface` / `FoodSearch`:
 
-- API default: `ol_ai_api::DEFAULT_FOOD_SEARCH_RADIUS` = **30**
+- API default: `ol_ai_api::DEFAULT_FOOD_SEARCH_RADIUS` = **40**
 - Sim adapter: `best_food_for_ai` / `SimPlayerRead::best_food_default`
-- NPC thread: `NpcNearbyFoodSearch` (pre-scanned nearby) still r=30
+- NPC thread: `NpcNearbyFoodSearch` (pre-scanned nearby) r=40
 
 ## Next (Phase C)
 

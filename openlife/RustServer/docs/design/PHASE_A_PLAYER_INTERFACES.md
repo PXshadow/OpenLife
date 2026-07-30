@@ -30,7 +30,7 @@ ol-server     NPC: write via PlayerWriteInterface; food via FoodSearch r=30
    - `PlayerWriteInterface` / `CommandSink`
    - `PlayerReadInterface` + `PlayerReadHandles`
    - `WorldView`, `PlayerView`, `FoodSearch`
-   - `BestFoodQuery` / `BestFoodHit`, `DEFAULT_FOOD_SEARCH_RADIUS = 30`
+   - `BestFoodQuery` / `BestFoodHit`, `DEFAULT_FOOD_SEARCH_RADIUS = 40`
 
 2. **`ol-ai`** re-exports the API; local trait modules removed.
 

@@ -45,8 +45,8 @@ pub const RIPE_ONIONS_ID: i32 = 2854;
 /// CountCloseObjects radius for carrot/corn stock checks (Haxe r=20).
 pub const FOOD_STOCK_COUNT_RADIUS: i32 = 20;
 
-/// Default SearchBestFood radius (Haxe default 40).
-pub const SEARCH_BEST_FOOD_RADIUS: i32 = 40;
+/// Default SearchBestFood radius (same as [`ol_ai_api::DEFAULT_FOOD_SEARCH_RADIUS`] = 40).
+pub const SEARCH_BEST_FOOD_RADIUS: i32 = ol_ai_api::DEFAULT_FOOD_SEARCH_RADIUS;
 
 /// IsDangerous scan radius around food tile (Haxe default 4).
 pub const FOOD_DANGER_RADIUS: i32 = 4;
