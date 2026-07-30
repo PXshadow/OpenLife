@@ -77,7 +77,7 @@ const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Build-time stamp from build.rs (seconds since epoch) — proves newest binary.
 const CLIENT_BUILD_STAMP: &str = env!("OHOL_BUILD_STAMP");
 /// What we are actively fixing / working on (shown in every window title).
-const CLIENT_FOCUS: &str = "one boot screen + glass settings UI";
+const CLIENT_FOCUS: &str = "offline age + skin picker";
 
 /// Prefix for all window titles so you can see version + current work.
 fn title_prefix() -> String {
@@ -1832,6 +1832,16 @@ fn run_offline_with_banks(
         let m = sprites.ensure_meta(sid);
         Some(m.tag.clone())
     });
+    let skins = collect_offline_person_skins(&content);
+    eprintln!("offline: {} person skins for picker", skins.len());
+    let mut skin_idx = skins
+        .iter()
+        .position(|(id, _)| *id == 19)
+        .unwrap_or(0);
+    let mut demo_age = 20.0f32;
+    let mut age_slider_drag = false;
+    let initial_skin = skins.get(skin_idx).map(|(id, _)| *id).unwrap_or(19);
+
     let mut map = ClientMap::new();
     let h = MapChunkHeader {
         size_x: 20,
@@ -1857,14 +1867,17 @@ fn run_offline_with_banks(
     }
     let _ = map.apply_mc_plaintext(&h, plain.trim());
     let mut world = LiveWorld::new();
-    if let Some(pu) = parse_pu_line(
-        "1 19 0 0 0 0 33 0 0 0 -1 0.5 1 0 10 10 20.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 0",
-    ) {
+    // PU: id=1 display=skin age=20 (invAgeRate 1e9 → age_rate ~0), stand at 10,10
+    let pu_line = format!(
+        "1 {initial_skin} 0 0 0 0 33 0 0 0 -1 0.5 1 0 10 10 {demo_age:.1} 999999999 3.75 0;0;0;0;0;0 0 0 -1 0 0"
+    );
+    if let Some(pu) = parse_pu_line(&pu_line) {
         world.apply_pu(&pu);
         world.set_our_id(1);
     }
-    let mut preload = vec![19, 33, 144];
-    if let Some(def) = content.get(19) {
+    apply_offline_player_look(&mut world, initial_skin, demo_age, &content, &mut sprites);
+    let mut preload = vec![initial_skin, 33, 144];
+    if let Some(def) = content.get(initial_skin) {
         for s in &def.sprites {
             preload.push(s.sprite_id);
         }
@@ -2079,35 +2092,87 @@ fn run_offline_with_banks(
                     .clamp(ohol_headless::render::ZOOM_MIN, ohol_headless::render::ZOOM_MAX);
             }
         }
+
+        // Offline demo panel: age slider + skin select (mouse).
+        let layout = offline_demo_panel_layout(FB_W as f32, FB_H as f32);
         let lmb = window.get_mouse_down(MouseButton::Left);
+        let lmb_press = lmb && !was_lmb;
+        let mut over_panel = false;
+        if let Some((mx, my)) = safe_mouse_pos(&window) {
+            over_panel = layout.panel.contains(mx, my);
+            if age_slider_drag && lmb {
+                let t = ((mx - layout.age_track.x) / layout.age_track.w).clamp(0.0, 1.0);
+                demo_age = t * 60.0;
+                apply_offline_player_look(
+                    &mut world,
+                    skins.get(skin_idx).map(|(id, _)| *id).unwrap_or(19),
+                    demo_age,
+                    &content,
+                    &mut sprites,
+                );
+            } else if lmb_press {
+                if layout.age_track.contains(mx, my) || layout.age_row.contains(mx, my) {
+                    age_slider_drag = true;
+                    let t = ((mx - layout.age_track.x) / layout.age_track.w).clamp(0.0, 1.0);
+                    demo_age = t * 60.0;
+                    apply_offline_player_look(
+                        &mut world,
+                        skins.get(skin_idx).map(|(id, _)| *id).unwrap_or(19),
+                        demo_age,
+                        &content,
+                        &mut sprites,
+                    );
+                } else if layout.skin_prev.contains(mx, my) && !skins.is_empty() {
+                    skin_idx = (skin_idx + skins.len() - 1) % skins.len();
+                    let sid = skins[skin_idx].0;
+                    apply_offline_player_look(
+                        &mut world, sid, demo_age, &content, &mut sprites,
+                    );
+                } else if layout.skin_next.contains(mx, my) && !skins.is_empty() {
+                    skin_idx = (skin_idx + 1) % skins.len();
+                    let sid = skins[skin_idx].0;
+                    apply_offline_player_look(
+                        &mut world, sid, demo_age, &content, &mut sprites,
+                    );
+                }
+            }
+            if !lmb {
+                age_slider_drag = false;
+            }
+        } else if !lmb {
+            age_slider_drag = false;
+        }
         was_lmb = lmb;
 
-        // Offline: hitMap hover (no session actions).
-        if let Some((mx, my)) = safe_mouse_pos(&window) {
-            hover = update_scene_hover(
-                &mut scene,
-                &map,
-                &content,
-                &mut sprites,
-                mx,
-                my,
-                FB_W as u32,
-                FB_H as u32,
-            );
+        // Offline: hitMap hover (no session actions) — skip when using the panel.
+        if !over_panel {
+            if let Some((mx, my)) = safe_mouse_pos(&window) {
+                hover = update_scene_hover(
+                    &mut scene,
+                    &map,
+                    &content,
+                    &mut sprites,
+                    mx,
+                    my,
+                    FB_W as u32,
+                    FB_H as u32,
+                );
+            }
         }
+        let skin_label = skins
+            .get(skin_idx)
+            .map(|(id, n)| format!("{n} (#{id})"))
+            .unwrap_or_else(|| "skin?".into());
         let hit = if hover.hit_map { "hit" } else { "tile" };
         window.set_title(&window_title(
             "Offline",
             &format!(
-                "{:.0} FPS | zoom {:.0} | ({},{}) id={} [{}] Esc=Settings",
+                "{:.0} FPS | age {:.0} | {skin_label} | Esc=Settings",
                 fps.fps(),
-                scene.camera.zoom,
-                hover.tile.0,
-                hover.tile.1,
-                hover.object_id,
-                hit
+                demo_age,
             ),
         ));
+        let _ = hit;
         let saved_hl = scene.highlight_tile.take();
         scene.draw(
             &mut fb,
@@ -2119,7 +2184,18 @@ fn run_offline_with_banks(
             dt,
         );
         scene.highlight_tile = saved_hl;
-        draw_hover_outline(&mut fb, &scene.camera, hover);
+        if !over_panel {
+            draw_hover_outline(&mut fb, &scene.camera, hover);
+        }
+        draw_offline_demo_panel(
+            &mut fb,
+            &layout,
+            demo_age,
+            &skin_label,
+            skins.len(),
+            skin_idx,
+            age_slider_drag,
+        );
         rgba_to_u32(&fb.pixels, &mut buf);
         window.update_with_buffer(&buf, FB_W, FB_H)?;
         fps.on_presented(dt);
@@ -2142,6 +2218,298 @@ fn run_offline_with_banks(
 fn log_status(last: &mut String, msg: &str) {
     eprintln!("{msg}");
     *last = msg.chars().take(48).collect();
+}
+
+// ── Offline demo: age slider + person skin picker ────────────────────────────
+
+#[derive(Clone, Copy)]
+struct OfflineHit {
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+}
+
+impl OfflineHit {
+    fn contains(self, px: f32, py: f32) -> bool {
+        px >= self.x && px < self.x + self.w && py >= self.y && py < self.y + self.h
+    }
+}
+
+struct OfflineDemoPanelLayout {
+    panel: OfflineHit,
+    age_row: OfflineHit,
+    age_track: OfflineHit,
+    skin_prev: OfflineHit,
+    skin_next: OfflineHit,
+    skin_label: OfflineHit,
+}
+
+fn offline_demo_panel_layout(fb_w: f32, fb_h: f32) -> OfflineDemoPanelLayout {
+    let _ = fb_w;
+    let panel_w = 320.0f32;
+    let panel_h = 118.0f32;
+    let panel_x = 12.0f32;
+    let panel_y = fb_h - panel_h - 12.0;
+    let pad = 14.0f32;
+    let age_y = panel_y + 36.0;
+    let track_w = panel_w - pad * 2.0 - 56.0;
+    let track_h = 12.0f32;
+    let skin_y = panel_y + 72.0;
+    let btn = 28.0f32;
+    OfflineDemoPanelLayout {
+        panel: OfflineHit {
+            x: panel_x,
+            y: panel_y,
+            w: panel_w,
+            h: panel_h,
+        },
+        age_row: OfflineHit {
+            x: panel_x + pad,
+            y: age_y - 4.0,
+            w: panel_w - pad * 2.0,
+            h: 22.0,
+        },
+        age_track: OfflineHit {
+            x: panel_x + pad,
+            y: age_y,
+            w: track_w,
+            h: track_h,
+        },
+        skin_prev: OfflineHit {
+            x: panel_x + pad,
+            y: skin_y,
+            w: btn,
+            h: btn,
+        },
+        skin_next: OfflineHit {
+            x: panel_x + panel_w - pad - btn,
+            y: skin_y,
+            w: btn,
+            h: btn,
+        },
+        skin_label: OfflineHit {
+            x: panel_x + pad + btn + 6.0,
+            y: skin_y,
+            w: panel_w - pad * 2.0 - btn * 2.0 - 12.0,
+            h: btn,
+        },
+    }
+}
+
+/// Base person objects for the offline skin picker (not clothing dummies).
+fn collect_offline_person_skins(content: &ClientContent) -> Vec<(i32, String)> {
+    let mut out: Vec<(i32, String)> = content
+        .objects
+        .iter()
+        .filter_map(|(&id, def)| {
+            if def.person == 0 {
+                return None;
+            }
+            if def.dummy_parent != 0 || def.variable_dummy_parent != 0 {
+                return None;
+            }
+            // Prefer named Female/Male skins; still keep other base persons.
+            let name = if def.name.trim().is_empty() {
+                format!("#{id}")
+            } else {
+                def.name.trim().to_string()
+            };
+            Some((id, name))
+        })
+        .collect();
+    out.sort_by(|a, b| a.0.cmp(&b.0));
+    if out.is_empty() {
+        out.push((19, "Female001".into()));
+    }
+    out
+}
+
+fn apply_offline_player_look(
+    world: &mut LiveWorld,
+    display_id: i32,
+    age_years: f32,
+    content: &ClientContent,
+    sprites: &mut SpriteBank,
+) {
+    let age = age_years.clamp(0.0, 60.0);
+    let our_id = world.our().map(|o| o.id);
+    if let Some(id) = our_id {
+        if let Some(o) = world.get_mut(id) {
+            o.display_id = display_id;
+            o.age = age;
+            // Freeze aging while the offline slider owns the value.
+            o.age_rate = 0.0;
+            o.last_age_set = Instant::now();
+            // Keep idle ground anim on skin change.
+            o.moving = false;
+        }
+    }
+    // Warm sprites for the new person so limbs appear immediately.
+    if let Some(def) = content.get(display_id) {
+        let mut ids: Vec<i32> = def.sprites.iter().map(|s| s.sprite_id).collect();
+        ids.push(display_id);
+        sprites.preload(ids);
+    }
+}
+
+fn draw_offline_demo_panel(
+    fb: &mut Framebuffer,
+    layout: &OfflineDemoPanelLayout,
+    age: f32,
+    skin_label: &str,
+    skin_count: usize,
+    skin_idx: usize,
+    age_drag: bool,
+) {
+    use ohol_headless::ui_font::draw_ui_text;
+    let p = layout.panel;
+    // Glass panel
+    fb.fill_rect(
+        p.x as i32 + 4,
+        p.y as i32 + 6,
+        p.w as i32,
+        p.h as i32,
+        [0, 0, 0, 100],
+    );
+    fb.fill_rect(p.x as i32, p.y as i32, p.w as i32, p.h as i32, [24, 28, 36, 230]);
+    fb.fill_rect(p.x as i32, p.y as i32, p.w as i32, 3, [96, 165, 250, 255]);
+
+    let white = [236, 240, 248, 255];
+    let dim = [148, 158, 176, 255];
+    let accent = [110, 185, 225, 255];
+
+    draw_ui_text(
+        fb,
+        "Offline demo",
+        p.x + 14.0,
+        p.y + 18.0,
+        14.0,
+        accent,
+        false,
+    );
+
+    // Age label + value
+    draw_ui_text(
+        fb,
+        &format!("Age  {:.0}", age.clamp(0.0, 60.0)),
+        layout.age_track.x,
+        layout.age_track.y - 12.0,
+        12.0,
+        dim,
+        false,
+    );
+    let t = (age / 60.0).clamp(0.0, 1.0);
+    let tr = layout.age_track;
+    fb.fill_rect(
+        tr.x as i32,
+        tr.y as i32,
+        tr.w as i32,
+        tr.h as i32,
+        [40, 44, 54, 255],
+    );
+    let fill_w = (tr.w * t).round() as i32;
+    if fill_w > 0 {
+        fb.fill_rect(
+            tr.x as i32,
+            tr.y as i32,
+            fill_w,
+            tr.h as i32,
+            if age_drag {
+                [90, 170, 230, 255]
+            } else {
+                [70, 140, 190, 255]
+            },
+        );
+    }
+    let kx = tr.x + tr.w * t - 5.0;
+    fb.fill_rect(
+        kx.round() as i32,
+        (tr.y - 3.0) as i32,
+        10,
+        tr.h as i32 + 6,
+        white,
+    );
+    draw_ui_text(
+        fb,
+        "0",
+        tr.x,
+        tr.y + tr.h + 10.0,
+        10.0,
+        dim,
+        false,
+    );
+    draw_ui_text(
+        fb,
+        "60",
+        tr.x + tr.w - 14.0,
+        tr.y + tr.h + 10.0,
+        10.0,
+        dim,
+        false,
+    );
+
+    // Skin select
+    draw_ui_text(
+        fb,
+        &format!(
+            "Skin  {}/{}",
+            if skin_count == 0 { 0 } else { skin_idx + 1 },
+            skin_count
+        ),
+        layout.skin_prev.x,
+        layout.skin_prev.y - 12.0,
+        12.0,
+        dim,
+        false,
+    );
+    // Prev / next buttons
+    for (hit, label) in [
+        (layout.skin_prev, "<"),
+        (layout.skin_next, ">"),
+    ] {
+        fb.fill_rect(
+            hit.x as i32,
+            hit.y as i32,
+            hit.w as i32,
+            hit.h as i32,
+            [48, 58, 74, 255],
+        );
+        draw_ui_text(
+            fb,
+            label,
+            hit.x + hit.w * 0.5,
+            hit.y + hit.h * 0.5,
+            16.0,
+            white,
+            true,
+        );
+    }
+    // Label box (select display)
+    let lab = layout.skin_label;
+    fb.fill_rect(
+        lab.x as i32,
+        lab.y as i32,
+        lab.w as i32,
+        lab.h as i32,
+        [18, 22, 30, 255],
+    );
+    // Truncate long names for display.
+    let shown = if skin_label.chars().count() > 22 {
+        let s: String = skin_label.chars().take(20).collect();
+        format!("{s}…")
+    } else {
+        skin_label.to_string()
+    };
+    draw_ui_text(
+        fb,
+        &shown,
+        lab.x + lab.w * 0.5,
+        lab.y + lab.h * 0.5,
+        12.0,
+        white,
+        true,
+    );
 }
 
 /// Present one soft-FB loading frame (P5#36).
