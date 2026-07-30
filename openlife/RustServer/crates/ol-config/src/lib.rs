@@ -117,8 +117,17 @@ pub struct ServerConfig {
     pub npc_min: u32,
     /// Adaptive AI population ceiling (Haxe `NumberOfAis`).
     pub npc_max: u32,
-    /// Each NPC thinks every N ticks (stagger by p_id).
+    /// Each NPC thinks every N ticks (stagger by p_id). Fallback floor when
+    /// class reaction times are used (see `ai_reaction_time*`).
     pub ai_think_period_ticks: u32,
+    /// Haxe `AiReactionTime` — Commoner AI react delay (seconds).
+    pub ai_reaction_time: f32,
+    /// Haxe `AiReactionTimeSerf`.
+    pub ai_reaction_time_serf: f32,
+    /// Haxe `AiReactionTimeNoble` (+ King/Emperor).
+    pub ai_reaction_time_noble: f32,
+    /// Haxe `AiReactionTimeFactorIfAngry` — multiplies reaction while angry.
+    pub ai_reaction_time_factor_if_angry: f32,
     /// Observation radius (tiles) for AI brain snapshot.
     pub ai_observe_radius: i32,
     /// When true, MX/PU fan-out to all connected clients (ignore distance).
@@ -457,6 +466,10 @@ impl Default for ServerConfig {
             npc_min: 3,
             npc_max: 40,
             ai_think_period_ticks: 10,
+            ai_reaction_time: gameplay_defaults::AI_REACTION_TIME,
+            ai_reaction_time_serf: gameplay_defaults::AI_REACTION_TIME_SERF,
+            ai_reaction_time_noble: gameplay_defaults::AI_REACTION_TIME_NOBLE,
+            ai_reaction_time_factor_if_angry: gameplay_defaults::AI_REACTION_TIME_FACTOR_IF_ANGRY,
             ai_observe_radius: 16,
             broadcast_all_updates: true,
             shutdown_countdown_secs: 3,
@@ -587,6 +600,14 @@ pub struct LiveSettings {
     pub npc_min: u32,
     pub npc_max: u32,
     pub ai_think_period_ticks: u32,
+    /// Haxe `AiReactionTime` (Commoner seconds).
+    pub ai_reaction_time: f32,
+    /// Haxe `AiReactionTimeSerf`.
+    pub ai_reaction_time_serf: f32,
+    /// Haxe `AiReactionTimeNoble`.
+    pub ai_reaction_time_noble: f32,
+    /// Haxe `AiReactionTimeFactorIfAngry`.
+    pub ai_reaction_time_factor_if_angry: f32,
     pub ai_observe_radius: i32,
     pub ai_craft_radius: i32,
     pub settings_hot_reload: bool,
@@ -932,6 +953,22 @@ impl ServerConfig {
             npc_min: self.npc_min,
             npc_max: self.npc_max.max(self.npc_min),
             ai_think_period_ticks: self.ai_think_period_ticks.max(1),
+            ai_reaction_time: sanitize_positive_or(
+                self.ai_reaction_time,
+                gameplay_defaults::AI_REACTION_TIME,
+            ),
+            ai_reaction_time_serf: sanitize_positive_or(
+                self.ai_reaction_time_serf,
+                gameplay_defaults::AI_REACTION_TIME_SERF,
+            ),
+            ai_reaction_time_noble: sanitize_positive_or(
+                self.ai_reaction_time_noble,
+                gameplay_defaults::AI_REACTION_TIME_NOBLE,
+            ),
+            ai_reaction_time_factor_if_angry: sanitize_positive_or(
+                self.ai_reaction_time_factor_if_angry,
+                gameplay_defaults::AI_REACTION_TIME_FACTOR_IF_ANGRY,
+            ),
             ai_observe_radius: self.ai_observe_radius.max(4),
             ai_craft_radius: self.ai_craft_radius.max(8),
             settings_hot_reload: self.settings_hot_reload,
@@ -1269,6 +1306,23 @@ impl ServerConfig {
         push(
             "ai_think_period_ticks",
             old.ai_think_period_ticks != new.ai_think_period_ticks,
+        );
+        push(
+            "ai_reaction_time",
+            (old.ai_reaction_time - new.ai_reaction_time).abs() > f32::EPSILON,
+        );
+        push(
+            "ai_reaction_time_serf",
+            (old.ai_reaction_time_serf - new.ai_reaction_time_serf).abs() > f32::EPSILON,
+        );
+        push(
+            "ai_reaction_time_noble",
+            (old.ai_reaction_time_noble - new.ai_reaction_time_noble).abs() > f32::EPSILON,
+        );
+        push(
+            "ai_reaction_time_factor_if_angry",
+            (old.ai_reaction_time_factor_if_angry - new.ai_reaction_time_factor_if_angry).abs()
+                > f32::EPSILON,
         );
         push(
             "ai_observe_radius",
@@ -1673,6 +1727,10 @@ impl ServerConfig {
             "npc_min",
             "npc_max",
             "ai_think_period_ticks",
+            "ai_reaction_time",
+            "ai_reaction_time_serf",
+            "ai_reaction_time_noble",
+            "ai_reaction_time_factor_if_angry",
             "ai_observe_radius",
             "ai_craft_radius",
             "settings_hot_reload",

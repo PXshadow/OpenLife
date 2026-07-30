@@ -54,9 +54,15 @@ ops_journal_path = "SaveFiles/ops_metrics.journal"
 npc_enabled = true
 npc_min = 3
 npc_max = 3
-# Scheduler wakes every 200ms; think every N wakes per NPC (~4s at 20).
-# Was 10 (~2s) which re-issued MOVE almost every think after short paths finished.
+# Scheduler wakes every 200ms. Primary AI cadence is class reaction time (Haxe AiBase.time).
+# ai_think_period_ticks remains as a legacy stagger/cleanup scale, not the main gate.
 ai_think_period_ticks = 20
+# Haxe AiReactionTime / Serf / Noble (seconds between full AI thinks).
+# Commoner=0.5, Serf=0.7 (slower), Noble=0.2 (faster). Angry multiplies by factor.
+ai_reaction_time = 0.5
+ai_reaction_time_serf = 0.7
+ai_reaction_time_noble = 0.2
+ai_reaction_time_factor_if_angry = 0.2
 ai_observe_radius = 16
 ai_craft_radius = 50
 # Always send PU/MX to all connected players (ignore distance).

@@ -9,7 +9,7 @@
 use crate::npc_activity::{
     NpcActivityEvent, NpcActivityKind, NpcActivityLog, NpcStuckTracker,
 };
-use ol_config::LiveSettings;
+use ol_config::{gameplay_defaults, LiveSettings};
 use ol_content::ContentDb;
 use ol_metrics::{Counters, ScopeTimer};
 use ol_ai::{IntentSink, PlayerCommands, DEFAULT_FOOD_SEARCH_RADIUS};
@@ -31,12 +31,12 @@ use ol_sim::{
     DropHeldSensorExtras, FarmProfession, FarmProfessionRuntime, FarmTaskState,
     FireFoodProfessionRuntime, FireKeeperProfessionRuntime, GotoObjPlan, GotoPathOutcome,
     IsPickingupFoodInput, IsPickingupFoodPlan, LastGotoObj, NearbyObj, NpcProfessionPeerRow,
-    PlayerSnapshot, PotterProfessionRuntime, PriorityRung, ProfessionScanInput, ProfessionScanKind,
-    ProfessionStickySnapshot, ReverseCraftGraph, ShepherdProfessionRuntime, ShortCraftLiveIntent,
-    SmithProfessionRuntime, SteelChiselFamilyTable, StickyFoodTarget, BAKER_SCAN_RADIUS,
-    DEFAULT_CRAFT_RADIUS, DEFAULT_PROFESSION_SCAN_RADIUS, DEFAULT_WALK_SPEED, FIRE_FOOD_HOME_RADIUS,
-    GOTO_COLLISION_RAD, HANDLING_FIRE_COUNT_RADIUS, INTERACTION_SEC, MAX_AGE, MIN_AGE_TO_EAT,
-    POTTERY_SCAN_RADIUS, SHEPHERD_SHORTCRAFT_RADIUS, SMITH_SCAN_RADIUS,
+    PlayerSnapshot, PotterProfessionRuntime, PrestigeClass, PriorityRung, ProfessionScanInput,
+    ProfessionScanKind, ProfessionStickySnapshot, ReverseCraftGraph, ShepherdProfessionRuntime,
+    ShortCraftLiveIntent, SmithProfessionRuntime, SteelChiselFamilyTable, StickyFoodTarget,
+    BAKER_SCAN_RADIUS, DEFAULT_CRAFT_RADIUS, DEFAULT_PROFESSION_SCAN_RADIUS, DEFAULT_WALK_SPEED,
+    FIRE_FOOD_HOME_RADIUS, GOTO_COLLISION_RAD, HANDLING_FIRE_COUNT_RADIUS, INTERACTION_SEC, MAX_AGE,
+    MIN_AGE_TO_EAT, POTTERY_SCAN_RADIUS, SHEPHERD_SHORTCRAFT_RADIUS, SMITH_SCAN_RADIUS,
 };
 use ol_world::World;
 use std::collections::HashMap;
@@ -202,6 +202,39 @@ fn npc_try_walk_to(
         .is_ok()
 }
 
+/// Walk + record sticky goal so mid-path thinks do not replan unless target invalid.
+fn npc_try_walk_to_sticky(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    px: i32,
+    py: i32,
+    gx: i32,
+    gy: i32,
+    food_store: f32,
+    expected_parent_id: i32,
+    label: impl Into<String>,
+) -> bool {
+    let ok = npc_try_walk_to(
+        intent_tx,
+        world,
+        content,
+        conn_id,
+        px,
+        py,
+        gx,
+        gy,
+        food_store,
+        st.food_goto.did_not_reach_food,
+    );
+    if ok {
+        set_sticky_move(st, gx, gy, expected_parent_id, label);
+    }
+    ok
+}
+
 /// Dual-pass Goto fail mark: animal-only block → hostile_path 20s; else not_reachable 90s.
 // Haxe: AiHelper.gotoAdv ~1116–1141
 fn npc_mark_goto_path_fail(
@@ -275,8 +308,24 @@ impl Default for NpcFoodGotoState {
     }
 }
 
+/// Sticky MOVE intent while path is in progress (Haxe useTarget / expectedUseTarget).
+///
+/// While moving, AI does **not** replan unless this goal becomes invalid
+/// (object parent id changed / gone). Pure walks (`expected_parent_id == 0`)
+/// stay valid until the path finishes.
+// Haxe: AiBase.useTarget + expectedUseTarget; isUsingItem target-changed → CancleUse
+#[derive(Debug, Clone)]
+struct NpcStickyMove {
+    gx: i32,
+    gy: i32,
+    /// World parent id expected at goal; `0` = walk-only (no object check).
+    expected_parent_id: i32,
+    /// Short label for activity log.
+    label: String,
+}
+
 /// Per-NPC sticky profession task state for ladder scan (Haxe AiBase profession fields).
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct NpcProfessionState {
     farm_task: FarmTaskState,
     farm_rt: FarmProfessionRuntime,
@@ -297,6 +346,39 @@ struct NpcProfessionState {
     /// AI-CRAFT-NPC-ENQUEUE: sticky multi-step craftItem state (failedCraftings / itemToCraft).
     // Haxe: AiBase.itemToCraft + failedCraftings across GetOrCraftItem / craftItem ticks
     craft_rt: CraftAiRuntime,
+    /// Haxe `AiBase.time` — reaction cooldown (seconds). Think only when ≤ 0.
+    // Haxe: AiBase.time / doTimeStuff
+    think_time_sec: f32,
+    /// Haxe `lineage.prestigeClass` for reaction time selection.
+    // Haxe: PrestigeClass Serf / Commoner / Noble
+    prestige_class: PrestigeClass,
+    /// True once role prestige class has been assigned for this body.
+    class_assigned: bool,
+    /// Active MOVE goal — validated while `PlayerSnapshot.moving`.
+    sticky_move: Option<NpcStickyMove>,
+}
+
+impl Default for NpcProfessionState {
+    fn default() -> Self {
+        Self {
+            farm_task: FarmTaskState::default(),
+            farm_rt: FarmProfessionRuntime::default(),
+            smith_rt: SmithProfessionRuntime::default(),
+            baker_rt: BakerProfessionRuntime::default(),
+            baker_task: BakerTaskState::default(),
+            shepherd_rt: ShepherdProfessionRuntime::default(),
+            pottery_rt: PotterProfessionRuntime::default(),
+            fire_rt: FireFoodProfessionRuntime::default(),
+            fire_keeper_rt: FireKeeperProfessionRuntime::default(),
+            path_reach: AiPathReachMaps::default(),
+            food_goto: NpcFoodGotoState::default(),
+            craft_rt: CraftAiRuntime::default(),
+            think_time_sec: 0.0,
+            prestige_class: PrestigeClass::Commoner,
+            class_assigned: false,
+            sticky_move: None,
+        }
+    }
 }
 
 /// Reserved NPC conn id base (above self-play).
@@ -308,6 +390,14 @@ pub struct NpcConfig {
     pub min: u32,
     pub max: u32,
     pub think_period_ticks: u32,
+    /// Haxe `AiReactionTime` (Commoner seconds).
+    pub reaction_time: f32,
+    /// Haxe `AiReactionTimeSerf`.
+    pub reaction_time_serf: f32,
+    /// Haxe `AiReactionTimeNoble`.
+    pub reaction_time_noble: f32,
+    /// Haxe `AiReactionTimeFactorIfAngry`.
+    pub reaction_time_factor_if_angry: f32,
     pub observe_radius: i32,
     pub craft_radius: i32,
 }
@@ -319,6 +409,10 @@ impl Default for NpcConfig {
             min: 3,
             max: 40,
             think_period_ticks: 10,
+            reaction_time: gameplay_defaults::AI_REACTION_TIME,
+            reaction_time_serf: gameplay_defaults::AI_REACTION_TIME_SERF,
+            reaction_time_noble: gameplay_defaults::AI_REACTION_TIME_NOBLE,
+            reaction_time_factor_if_angry: gameplay_defaults::AI_REACTION_TIME_FACTOR_IF_ANGRY,
             observe_radius: 16,
             craft_radius: DEFAULT_CRAFT_RADIUS,
         }
@@ -335,9 +429,30 @@ impl NpcConfig {
             min: live.npc_min,
             max: live.npc_max.max(live.npc_min),
             think_period_ticks: live.ai_think_period_ticks.max(1),
+            reaction_time: live.ai_reaction_time.max(0.05),
+            reaction_time_serf: live.ai_reaction_time_serf.max(0.05),
+            reaction_time_noble: live.ai_reaction_time_noble.max(0.05),
+            reaction_time_factor_if_angry: live.ai_reaction_time_factor_if_angry.max(0.05),
             observe_radius: live.ai_observe_radius.max(4),
             craft_radius: live.ai_craft_radius.max(8),
         }
+    }
+
+    /// Haxe class-based reaction delay (seconds).
+    // Haxe: AiBase.doTimeStuffHelper reactionTime by prestigeClass
+    pub fn reaction_for_class(&self, class: PrestigeClass, angry: bool) -> f32 {
+        let mut t = if class.is_noble_or_more() {
+            self.reaction_time_noble
+        } else if matches!(class, PrestigeClass::Serf) {
+            self.reaction_time_serf
+        } else {
+            // Commoner / NotSet
+            self.reaction_time
+        };
+        if angry {
+            t *= self.reaction_time_factor_if_angry;
+        }
+        t.max(0.05)
     }
 }
 
@@ -347,6 +462,77 @@ fn profession_for_index(i: u32) -> CraftProfession {
         1 => CraftProfession::Farmer,
         _ => CraftProfession::Hunter,
     }
+}
+
+/// Assign prestige class for permanent NPCs (demo diversity + Haxe parity testing).
+/// Forager→Serf, Farmer→Commoner, Hunter→Noble.
+// Haxe: lineage.prestigeClass at birth (account score); NPCs get role-mapped class
+fn prestige_class_for_npc_index(i: u32) -> PrestigeClass {
+    match i % 3 {
+        0 => PrestigeClass::Serf,
+        1 => PrestigeClass::Commoner,
+        _ => PrestigeClass::Noble,
+    }
+}
+
+/// Haxe milkweed family may change 50→51→52 without cancelling use.
+// Haxe: AiBase.isUsingItem milkweed exception
+fn is_milkweed_family(parent_id: i32) -> bool {
+    matches!(parent_id, 50 | 51 | 52)
+}
+
+/// Resolve base parent id for sticky object checks.
+fn sticky_parent_id(content: &ContentDb, id: i32) -> i32 {
+    if id == 0 {
+        0
+    } else {
+        content.resolve_base_id(id)
+    }
+}
+
+/// True if sticky MOVE goal is still valid (Haxe isStillExpectedItem / expectedUseTarget).
+// Haxe: AiHelper.isStillExpectedItem; AiBase expectedUseTarget.parentId
+fn sticky_move_still_valid(
+    world: &World,
+    content: &ContentDb,
+    sticky: &NpcStickyMove,
+) -> bool {
+    if sticky.expected_parent_id == 0 {
+        // Pure walk: valid until path completes (moving flag clears).
+        return true;
+    }
+    let id = world.get_object(sticky.gx, sticky.gy);
+    if id == 0 {
+        return false;
+    }
+    let parent = sticky_parent_id(content, id);
+    if parent == sticky.expected_parent_id {
+        return true;
+    }
+    // Milkweed may flower/fruit mid-walk without invalidating.
+    if is_milkweed_family(parent) && is_milkweed_family(sticky.expected_parent_id) {
+        return true;
+    }
+    false
+}
+
+fn set_sticky_move(
+    st: &mut NpcProfessionState,
+    gx: i32,
+    gy: i32,
+    expected_parent_id: i32,
+    label: impl Into<String>,
+) {
+    st.sticky_move = Some(NpcStickyMove {
+        gx,
+        gy,
+        expected_parent_id,
+        label: label.into(),
+    });
+}
+
+fn clear_sticky_move(st: &mut NpcProfessionState) {
+    st.sticky_move = None;
 }
 
 /// Sticky snapshot for NPC craft profession roles (multi-profession scan).
@@ -1108,6 +1294,8 @@ pub async fn run_npc_scheduler(
         let think_period = cfg.think_period_ticks.max(1);
         let radius = cfg.observe_radius.max(4);
         let craft_radius = cfg.craft_radius.max(8).min(80);
+        // Scheduler wake dt (matches sleep above). Haxe doTimeStuff(timePassedInSeconds).
+        const SCHED_DT_SEC: f32 = 0.2;
 
         // Floor population (login missing agents up to min).
         while active < min {
@@ -1280,9 +1468,28 @@ pub async fn run_npc_scheduler(
 
         for i in 0..active {
             let conn_id = NPC_CONN_BASE + i as u64;
-            if (tick as u32 + i) % think_period != 0 {
-                continue;
+            // Ensure prestige class for reaction timing (Forager=Serf, Farmer=Commoner, Hunter=Noble).
+            {
+                let st = profession_state.entry(conn_id).or_default();
+                // Re-assert role class if still default Commoner and never assigned.
+                if !st.class_assigned {
+                    st.prestige_class = prestige_class_for_npc_index(i);
+                    st.class_assigned = true;
+                }
             }
+
+            // Haxe: AiBase.time -= timePassedInSeconds; if (time > 0) return
+            {
+                let st = profession_state.entry(conn_id).or_default();
+                st.think_time_sec -= SCHED_DT_SEC;
+                if st.think_time_sec > 1.0 {
+                    st.think_time_sec = 1.0;
+                }
+                if st.think_time_sec > 0.0 {
+                    continue;
+                }
+            }
+
             let timer = ScopeTimer::start();
             let snap = player_views
                 .read()
@@ -1318,14 +1525,55 @@ pub async fn run_npc_scheduler(
                         email,
                         client_tag: "client_npc".into(),
                     });
+                    if let Some(st) = profession_state.get_mut(&conn_id) {
+                        clear_sticky_move(st);
+                        st.think_time_sec = 0.0;
+                        st.class_assigned = false;
+                    }
                 }
                 continue;
             }
             tracker.was_deleted = false;
             tracker.note_position(p.x, p.y);
 
+            // Haxe: time += reactionTime (class-based Serf/Commoner/Noble)
+            {
+                let st = profession_state.entry(conn_id).or_default();
+                let angry = false; // residual: isAngryOrTerrified
+                st.think_time_sec += cfg.reaction_for_class(st.prestige_class, angry);
+            }
+
+            // Haxe: if (!movedOneTile && isMoving()) return — don't replan mid-path
+            // unless sticky goal invalid (target parent changed / gone).
             if p.moving {
-                continue;
+                let (still_valid, sticky_label) = {
+                    let st = profession_state.entry(conn_id).or_default();
+                    match st.sticky_move.clone() {
+                        None => (true, String::new()),
+                        Some(ref sticky) => {
+                            let w = world.read().unwrap();
+                            let ok = sticky_move_still_valid(&w, &content, sticky);
+                            (ok, sticky.label.clone())
+                        }
+                    }
+                };
+                if still_valid {
+                    continue;
+                }
+                if let Some(st) = profession_state.get_mut(&conn_id) {
+                    clear_sticky_move(st);
+                }
+                log_ev(
+                    &activity,
+                    conn_id,
+                    &p,
+                    NpcActivityKind::StuckCycle,
+                    0,
+                    0,
+                    format!("sticky_invalid interrupt was={sticky_label}"),
+                );
+            } else if let Some(st) = profession_state.get_mut(&conn_id) {
+                clear_sticky_move(st);
             }
 
             let profession = profession_for_index(i);
@@ -2474,22 +2722,29 @@ pub async fn run_npc_scheduler(
                             format!("blacklist craft {key} dist={dist}"),
                         );
                     } else {
-                        // Multi-step path (NPC_PATH_MAX_STEPS) so timed_movement stays
-                        // moving across thinks — not 1-tile stutter spam.
+                        // Multi-step path + sticky goal (Haxe useTarget while moving).
                         let walked = {
                             let w = world.read().unwrap();
                             let st = profession_state.entry(conn_id).or_default();
-                            npc_try_walk_to(
+                            let goal_obj = if gx == best.actor_x && gy == best.actor_y {
+                                best.actor_id
+                            } else {
+                                best.target_id
+                            };
+                            let expect = sticky_parent_id(&content, goal_obj);
+                            npc_try_walk_to_sticky(
                                 &intent_tx,
                                 &w,
                                 &content,
+                                st,
                                 conn_id,
                                 p.x,
                                 p.y,
                                 gx,
                                 gy,
                                 p.food,
-                                st.food_goto.did_not_reach_food,
+                                expect,
+                                format!("walk_craft {key}"),
                             )
                         };
                         if walked {
@@ -2575,17 +2830,19 @@ pub async fn run_npc_scheduler(
                 let walked = {
                     let w = world.read().unwrap();
                     let st = profession_state.entry(conn_id).or_default();
-                    npc_try_walk_to(
+                    npc_try_walk_to_sticky(
                         &intent_tx,
                         &w,
                         &content,
+                        st,
                         conn_id,
                         p.x,
                         p.y,
                         gx,
                         gy,
                         p.food,
-                        st.food_goto.did_not_reach_food,
+                        0, // pure walk — no object invalidation mid-path
+                        format!("explore {gx},{gy}"),
                     )
                 };
                 if walked {
@@ -2687,6 +2944,9 @@ mod tests {
             ai_think_period_ticks: 5,
             ai_observe_radius: 12,
             ai_craft_radius: 40,
+            ai_reaction_time: 0.5,
+            ai_reaction_time_serf: 0.7,
+            ai_reaction_time_noble: 0.2,
             ..Default::default()
         }
         .live_settings();
@@ -2697,6 +2957,9 @@ mod tests {
         assert_eq!(cfg.think_period_ticks, 5);
         assert_eq!(cfg.observe_radius, 12);
         assert_eq!(cfg.craft_radius, 40);
+        assert!((cfg.reaction_time - 0.5).abs() < f32::EPSILON);
+        assert!((cfg.reaction_time_serf - 0.7).abs() < f32::EPSILON);
+        assert!((cfg.reaction_time_noble - 0.2).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -2710,5 +2973,40 @@ mod tests {
         // LiveSettings already clamps max >= min; from_live also guards.
         let cfg = NpcConfig::from_live(&live);
         assert!(cfg.max >= cfg.min);
+    }
+
+    #[test]
+    fn reaction_time_by_prestige_class_haxe() {
+        let cfg = NpcConfig::default();
+        // Haxe: Serf 0.7, Commoner 0.5, Noble 0.2
+        assert!((cfg.reaction_for_class(PrestigeClass::Serf, false) - 0.7).abs() < 0.01);
+        assert!((cfg.reaction_for_class(PrestigeClass::Commoner, false) - 0.5).abs() < 0.01);
+        assert!((cfg.reaction_for_class(PrestigeClass::Noble, false) - 0.2).abs() < 0.01);
+        assert!((cfg.reaction_for_class(PrestigeClass::King, false) - 0.2).abs() < 0.01);
+        // Angry multiplies by 0.2
+        assert!((cfg.reaction_for_class(PrestigeClass::Commoner, true) - 0.1).abs() < 0.01);
+    }
+
+    #[test]
+    fn prestige_class_for_npc_roles() {
+        assert_eq!(prestige_class_for_npc_index(0), PrestigeClass::Serf);
+        assert_eq!(prestige_class_for_npc_index(1), PrestigeClass::Commoner);
+        assert_eq!(prestige_class_for_npc_index(2), PrestigeClass::Noble);
+    }
+
+    #[test]
+    fn sticky_walk_only_always_valid() {
+        // expected_parent_id == 0 → pure walk, valid regardless of world contents.
+        let sticky = NpcStickyMove {
+            gx: 10,
+            gy: 10,
+            expected_parent_id: 0,
+            label: "walk".into(),
+        };
+        assert_eq!(sticky.expected_parent_id, 0);
+        // milkweed family helper
+        assert!(is_milkweed_family(50));
+        assert!(is_milkweed_family(51));
+        assert!(!is_milkweed_family(36));
     }
 }

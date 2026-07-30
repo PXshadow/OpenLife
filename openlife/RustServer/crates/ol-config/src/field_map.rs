@@ -307,6 +307,18 @@ pub mod gameplay_defaults {
     // Haxe: ServerSettings.AISpeedFactorNoble = 1
     // C-SS-MORE-BATCH5
     pub const AI_SPEED_FACTOR_NOBLE: f32 = 1.0;
+    /// Haxe `AiReactionTime` — Commoner minimum AI react delay (seconds).
+    // Haxe: ServerSettings.AiReactionTime = 0.5
+    pub const AI_REACTION_TIME: f32 = 0.5;
+    /// Haxe `AiReactionTimeSerf`.
+    // Haxe: ServerSettings.AiReactionTimeSerf = 0.7
+    pub const AI_REACTION_TIME_SERF: f32 = 0.7;
+    /// Haxe `AiReactionTimeNoble` (+ King/Emperor).
+    // Haxe: ServerSettings.AiReactionTimeNoble = 0.2
+    pub const AI_REACTION_TIME_NOBLE: f32 = 0.2;
+    /// Haxe `AiReactionTimeFactorIfAngry` — multiplies reaction while angry/terrified.
+    // Haxe: ServerSettings.AiReactionTimeFactorIfAngry = 0.2
+    pub const AI_REACTION_TIME_FACTOR_IF_ANGRY: f32 = 0.2;
 }
 
 // ---------------------------------------------------------------------------
@@ -798,18 +810,23 @@ pub const CRITICAL_FIELD_MAP: &[FieldEntry] = &[
     },
     FieldEntry {
         haxe_name: "AiReactionTime",
-        rust_path: "ol-server npc think period proxy",
-        home: SettingsHome::ModuleConst,
+        rust_path: "server.toml ai_reaction_time / LiveSettings (Commoner)",
+        home: SettingsHome::Live,
     },
     FieldEntry {
         haxe_name: "AiReactionTimeSerf",
-        rust_path: "ol-sim module const (class mult)",
-        home: SettingsHome::ModuleConst,
+        rust_path: "server.toml ai_reaction_time_serf / LiveSettings",
+        home: SettingsHome::Live,
     },
     FieldEntry {
         haxe_name: "AiReactionTimeNoble",
-        rust_path: "ol-sim module const (class mult)",
-        home: SettingsHome::ModuleConst,
+        rust_path: "server.toml ai_reaction_time_noble / LiveSettings",
+        home: SettingsHome::Live,
+    },
+    FieldEntry {
+        haxe_name: "AiReactionTimeFactorIfAngry",
+        rust_path: "server.toml ai_reaction_time_factor_if_angry / LiveSettings",
+        home: SettingsHome::Live,
     },
     FieldEntry {
         haxe_name: "ChanceForDomesticAnimalDyingFactor",
