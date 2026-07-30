@@ -7,6 +7,7 @@
 
 # Local client settings (volume/zoom/host/email if ever persisted) — never commit
 ohol_client_settings.ini
+ohol_recent_servers.ini
 *client_settings*.ini
 *client*settings*.ini
 settings.local.ini
