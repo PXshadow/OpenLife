@@ -1,11 +1,13 @@
-//! **AiHelper** — pure AI decision utilities (goals, ladder, path-reach).
+//! **AiHelper** — pure AI decision utilities (goals, ladder).
 //!
+//! Path-reach maps live in **`ol-ai-pathing`** (re-exported here for stable paths).
 //! Profession state machines live in **`ol-ai-professions`** (no reverse dep).
 
 #![forbid(unsafe_code)]
 
 pub mod ai_goals;
-pub mod ai_path_reach;
+/// Path-reach / blocked-by-AI maps (owned by `ol-ai-pathing`).
+pub use ol_ai_pathing::ai_path_reach;
 
 pub use ai_goals::{
     age_job_index, age_rotated_job_kind, age_rotated_job_sequence, apply_escape_to_sensors,
@@ -28,7 +30,7 @@ pub use ai_goals::{
     HUNGRY_ENTER_FRAC, HUNGRY_FOOD, HUNGRY_LEAVE_FRAC, MAX_CHILD_AGE_BREASTFEED, MIN_AGE_TO_EAT,
     PLAYER_TARGET_SEARCH_DIST, SMITHING_HAMMER_ID, SMITH_IRON_ID, SMITH_TARGET_ID,
 };
-pub use ai_path_reach::{
+pub use ol_ai_pathing::{
     AiPathReachMaps, AiStickyBlockTargets, StickyFoodTarget, BLOCKED_BY_AI_DEFAULT_SECS,
     HOSTILE_PATH_DEFAULT_SECS, NOT_REACHABLE_DEFAULT_SECS, NOT_REACHABLE_FOOD_SECS,
 };

@@ -3,12 +3,13 @@ name = "ol-ai"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "AI façade: profession SMs + re-exports of ol-ai-api / helper / crafting"
+description = "AI façade: profession SMs + re-exports of ol-ai-api / helper / pathing / crafting"
 publish = false
 
 [dependencies]
 ol-ai-api.workspace = true
 ol-ai-helper.workspace = true
+ol-ai-pathing.workspace = true
 ol-ai-crafting.workspace = true
 ol-ai-professions.workspace = true
 ol-net.workspace = true

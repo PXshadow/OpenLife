@@ -769,6 +769,7 @@ dependencies = [
  "ol-ai-api",
  "ol-ai-crafting",
  "ol-ai-helper",
+ "ol-ai-pathing",
  "ol-ai-professions",
  "ol-content",
  "ol-net",
@@ -793,8 +794,13 @@ name = "ol-ai-helper"
 version = "0.1.0"
 dependencies = [
  "ol-ai-crafting",
+ "ol-ai-pathing",
  "ol-content",
 ]
+
+[[package]]
+name = "ol-ai-pathing"
+version = "0.1.0"
 
 [[package]]
 name = "ol-ai-professions"

@@ -1,11 +1,12 @@
-//! Open Life AI façade — re-exports helper / crafting / professions / interfaces.
+//! Open Life AI façade — re-exports helper / pathing / crafting / professions / interfaces.
 //!
 //! ## Layout
 //!
 //! | Crate | Role |
 //! |-------|------|
 //! | [`ol_ai_api`] | `PlayerWriteInterface` / `PlayerReadInterface` |
-//! | [`ol_ai_helper`] | Goals, ladder, path-reach |
+//! | [`ol_ai_helper`] | Goals, priority ladder |
+//! | [`ol_ai_pathing`] | Path-reach / blockedByAI maps |
 //! | [`ol_ai_crafting`] | Craft graph / plan / value |
 //! | [`ol_ai_professions`] | Profession pure SMs + craft goal expand |
 //! | [`ol_main_ai`] | High-level ThinkPlan (separate crate) |
@@ -20,9 +21,8 @@ pub use ol_ai_api::{
     DEFAULT_FOOD_SEARCH_RADIUS,
 };
 
-// ── AiHelper ────────────────────────────────────────────────────────────────
+// ── AiHelper (goals / ladder) ───────────────────────────────────────────────
 pub use ol_ai_helper::ai_goals;
-pub use ol_ai_helper::ai_path_reach;
 pub use ol_ai_helper::{
     age_job_index, age_rotated_job_kind, age_rotated_job_sequence, apply_escape_to_sensors,
     baby_hungry_follow_tiles, check_is_hungry_and_eat_effects, child_with_mother_follow_tiles,
@@ -34,17 +34,22 @@ pub use ol_ai_helper::{
     resolve_escape_threat, resolve_priority_rung, sensors_from_ext, sensors_from_ext_ex,
     sensors_from_simple, should_attempt_escape, skip_escape_for_hunt, smith_product_targets,
     threat_is_far_for_temp, threat_quad_from_deadly, update_is_hungry, wounded_follow_tiles,
-    AgeRotatedJobKind, AiPathReachMaps, AiStickyBlockTargets, CloseDeadlyPlayer, ClosePlayerTarget,
-    DeadlyPlayerCandidate, EscapeContext, EscapeSideEffects, EscapeThreat, Goal, HungryEatEffects,
-    LiveSensorBundle, LiveSensorExtras, LiveSensorInput, PlayerTargetCandidate, PriorityBand,
-    PriorityRung, PrioritySensors, Profession, StickyFoodTarget, BLUE_MASK_HOME_QUAD_MAX,
-    BLOCKED_BY_AI_DEFAULT_SECS, DEADLY_PLAYER_ANGRY_ACTIVE, DEADLY_PLAYER_SEARCH_DIST,
+    AgeRotatedJobKind, CloseDeadlyPlayer, ClosePlayerTarget, DeadlyPlayerCandidate, EscapeContext,
+    EscapeSideEffects, EscapeThreat, Goal, HungryEatEffects, LiveSensorBundle, LiveSensorExtras,
+    LiveSensorInput, PlayerTargetCandidate, PriorityBand, PriorityRung, PrioritySensors,
+    Profession, BLUE_MASK_HOME_QUAD_MAX, DEADLY_PLAYER_ANGRY_ACTIVE, DEADLY_PLAYER_SEARCH_DIST,
     DEADLY_PLAYER_SEARCH_DIST_AI, DEVIL_MASK_ID, ESCAPE_ANGRY_TIME_IGNORE,
     ESCAPE_DID_NOT_REACH_FOOD_MAX, ESCAPE_DIST, ESCAPE_FOOD_CRIT_SKIP, ESCAPE_HUNT_MIN_AGE,
-    ESCAPE_PLAYER_DIST_MAX, EXILE_HOME_QUAD_DANGER, GOBLIN_MASK_ID, HOSTILE_PATH_DEFAULT_SECS,
-    HUNGRY_ENTER_FLOOR, HUNGRY_ENTER_FRAC, HUNGRY_FOOD, HUNGRY_LEAVE_FRAC, MAX_CHILD_AGE_BREASTFEED,
-    MIN_AGE_TO_EAT, NOT_REACHABLE_DEFAULT_SECS, NOT_REACHABLE_FOOD_SECS, PLAYER_TARGET_SEARCH_DIST,
-    SMITHING_HAMMER_ID, SMITH_IRON_ID, SMITH_TARGET_ID,
+    ESCAPE_PLAYER_DIST_MAX, EXILE_HOME_QUAD_DANGER, GOBLIN_MASK_ID, HUNGRY_ENTER_FLOOR,
+    HUNGRY_ENTER_FRAC, HUNGRY_FOOD, HUNGRY_LEAVE_FRAC, MAX_CHILD_AGE_BREASTFEED, MIN_AGE_TO_EAT,
+    PLAYER_TARGET_SEARCH_DIST, SMITHING_HAMMER_ID, SMITH_IRON_ID, SMITH_TARGET_ID,
+};
+
+// ── Pathing (path-reach / blockedByAI) ──────────────────────────────────────
+pub use ol_ai_pathing::ai_path_reach;
+pub use ol_ai_pathing::{
+    AiPathReachMaps, AiStickyBlockTargets, StickyFoodTarget, BLOCKED_BY_AI_DEFAULT_SECS,
+    HOSTILE_PATH_DEFAULT_SECS, NOT_REACHABLE_DEFAULT_SECS, NOT_REACHABLE_FOOD_SECS,
 };
 
 // ── Crafting ────────────────────────────────────────────────────────────────
@@ -66,7 +71,7 @@ pub use ol_ai_professions::professions;
 pub use ol_ai_professions::shepherd_profession;
 pub use ol_ai_professions::smith_profession;
 pub use ol_ai_professions::{
-    pick_goal_smith_craft, pick_goal_smith_craft_at_stage, is_grassland, is_fishing_biome,
+    is_fishing_biome, is_grassland, pick_goal_smith_craft, pick_goal_smith_craft_at_stage,
 };
 
 #[cfg(test)]
@@ -95,5 +100,12 @@ mod tests {
     #[test]
     fn food_radius_40() {
         assert_eq!(DEFAULT_FOOD_SEARCH_RADIUS, 40);
+    }
+
+    #[test]
+    fn path_reach_from_pathing_crate() {
+        let mut m = AiPathReachMaps::new();
+        m.add_not_reachable(1, 2, 0.0);
+        assert!(!m.is_empty());
     }
 }

@@ -1,0 +1,10 @@
+[package]
+name = "ol-ai-pathing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AI pure path-reach maps: not-reachable, hostile-path, blockedByAI sticky"
+publish = false
+
+[dependencies]
+# std-only pure maps; no ol-ai-helper / content deps

@@ -3,9 +3,10 @@ name = "ol-ai-helper"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "AI pure helpers: goals, priority ladder, path-reach maps, profession types"
+description = "AI pure helpers: goals, priority ladder; re-exports path-reach from ol-ai-pathing"
 publish = false
 
 [dependencies]
 ol-ai-crafting.workspace = true
+ol-ai-pathing.workspace = true
 ol-content.workspace = true
