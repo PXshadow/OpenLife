@@ -2425,8 +2425,11 @@ mod tests {
         {
             let p = state.players.get_mut(&1).unwrap();
             p.set_held(152, 0);
+            // Absolute world origin + birth=pos so NetIntent tiles are not birth-shifted.
             p.x = 0;
             p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
             p.connected = true;
             p.age = 20.0;
         }
@@ -2436,6 +2439,7 @@ mod tests {
         let counters = Counters::new();
         let hub = OutboundHub::new();
         let mut rx = hub.register(1);
+        // Absolute world tile (1,0) — birth is 0 so resolve_net_intent_tile is identity.
         apply_intent(
             &mut state,
             &counters,

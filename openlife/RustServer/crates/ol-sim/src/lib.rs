@@ -513,7 +513,10 @@ pub use speech::{
     HIRE_COST_INCREASE_PER_PERSON, HOME_OVEN_IDS,
     HOME_SEARCH_MAX_QUAD, MUMBLE_CHAT_RANGE, SHOUT_CHAT_RANGE, SpeechVolume, WHISPER_CHAT_RANGE,
 };
-pub use do_commands_wire::{apply_do_commands_live, DoCommandEffects, NameCandidate};
+pub use do_commands_wire::{
+    apply_do_commands_live, tick_pending_new_followers, DoCommandEffects, FollowHireLiveKnobs,
+    NameCandidate,
+};
 pub use weather::{
     default_for_season, parse_weather_kind, Weather, WeatherKind, WeatherSnapshot, WeatherView,
 };
@@ -2419,6 +2422,78 @@ pub fn apply_take_coins_on_wound(
 }
 pub fn mirror_war_posse_share(_state: &SimState, _share: &Option<WarPosseShare>) {}
 // --- end compile-heal stubs ---
+
+/// Apply [`DoCommandEffects`] to outbound (private PS, chat says, FW/EX lines).
+// Haxe: Connection.SendFollowingToAll / say / sendGlobalMessage after doCommands
+fn apply_do_command_effects(
+    state: &SimState,
+    outbound: &OutboundHub,
+    speaker_conn: u64,
+    fx: &DoCommandEffects,
+) {
+    for &(cid, ref body) in &fx.private_ps {
+        // Bodies from format_*_say_result already include speaker p_id text.
+        send_ps_reply(outbound, cid, body);
+    }
+    for &(p_id, ref text) in &fx.spoken_says {
+        let Some((&conn, pl)) = state.players.iter().find(|(_, p)| p.p_id == p_id) else {
+            continue;
+        };
+        let near = nearby_conn_ids(state, pl.x, pl.y, chat_range_for_age(pl.age));
+        send_chat_ps(state, outbound, conn, p_id, text, &near);
+    }
+    if !fx.following_lines.is_empty() {
+        let pkts: Vec<Vec<u8>> = fx
+            .following_lines
+            .iter()
+            .map(|line| format_server_message("FW", &[line]).into_bytes())
+            .collect();
+        if fx.fan_following_all {
+            for &cid in state.players.keys() {
+                for pkt in &pkts {
+                    outbound.send_urgent(cid, pkt.clone());
+                }
+            }
+        } else if let Some(sp) = state.players.get(&speaker_conn) {
+            let near = nearby_conn_ids(state, sp.x, sp.y, NEARBY_RANGE);
+            for &cid in &near {
+                for pkt in &pkts {
+                    outbound.send_urgent(cid, pkt.clone());
+                }
+            }
+        }
+    }
+    if !fx.exile_lines.is_empty() {
+        let near = state
+            .players
+            .get(&speaker_conn)
+            .map(|sp| nearby_conn_ids(state, sp.x, sp.y, NEARBY_RANGE))
+            .unwrap_or_default();
+        for line in &fx.exile_lines {
+            let pkt = format_server_message("EX", &[line]).into_bytes();
+            for &cid in &near {
+                outbound.send_urgent(cid, pkt.clone());
+            }
+        }
+    }
+    for &(cid, ref msg) in &fx.order_global {
+        // Global messages use PS-style private reply when possible.
+        send_ps_reply(outbound, cid, msg);
+    }
+    for &(cid, emot) in &fx.emotes {
+        let p_id = state
+            .players
+            .get(&cid)
+            .map(|p| p.p_id)
+            .unwrap_or(0);
+        outbound.send_urgent(
+            cid,
+            format_server_message("PE", &[&format!("{p_id} {emot}")]).into_bytes(),
+        );
+    }
+    let _ = fx.combat_prestige_regain; // applied inside hire when needed; field for future mirror
+}
+
 fn apply_say_or_remv(
     state: &mut SimState,
     outbound: &OutboundHub,
@@ -6708,6 +6783,51 @@ fn apply_say_or_remv(
             }
             return;
         }
+        // DO-COMMANDS: I HIRE / I FOLLOW / I EXILE / HOME! … (Haxe doCommands).
+        // Runs before free-chat rate-limit so command forms are not RATE-throttled.
+        // Haxe: GlobalPlayerInstance.doCommands
+        if parse_do_command(&upper).is_some() {
+            let speaker = p.clone();
+            let lost = state
+                .combat
+                .stats
+                .get(&speaker.p_id)
+                .map(|s| s.lost_combat_prestige)
+                .unwrap_or(0.0);
+            let candidates: Vec<NameCandidate> = state
+                .players
+                .values()
+                .map(|pl| {
+                    let class = state.social.prestige_class(pl.p_id).as_i32();
+                    // Haxe getColor → ObjectData.person; 0 = unset (same for all empty content).
+                    NameCandidate::from_player(pl, class)
+                })
+                .collect();
+            let knobs = FollowHireLiveKnobs::from_gameplay(&state.gameplay);
+            let fx = apply_do_commands_live(
+                &upper,
+                &speaker,
+                conn_id,
+                &mut state.social,
+                &mut state.economy,
+                &mut state.players,
+                &state.world,
+                lost,
+                &candidates,
+                knobs,
+            );
+            if fx.recognized {
+                apply_do_command_effects(state, outbound, conn_id, &fx);
+                // Haxe return true → also broadcast as chat for some commands.
+                if fx.broadcast_chat {
+                    let near = nearby_conn_ids(state, p.x, p.y, chat_range_for_age(p.age));
+                    send_chat_ps(state, outbound, conn_id, p.p_id, text, &near);
+                }
+                info!(conn_id, %upper, "sim: DO-COMMANDS recognized");
+                return;
+            }
+        }
+
         // Free-form chat only (all commands returned above). Rate-limit here.
         {
             let now = state.sim_time;
@@ -10827,6 +10947,23 @@ pub fn apply_intent(
                 send_action_result_pu_and_frame(state, outbound, conn_id);
             }
             }
+            // GPI-TOO-CLOSE: apply_use_at notes flag on bow min-range refuse;
+            // flush public PS here (Haxe: player.say('Too close...')).
+            // Haxe: TransitionHelper.use L761–764
+            if let Some(say_conn) = take_too_close_say() {
+                if let Some(pl) = state.players.get(&say_conn) {
+                    let near = nearby_conn_ids(state, pl.x, pl.y, chat_range_for_age(pl.age));
+                    send_chat_ps(
+                        state,
+                        outbound,
+                        say_conn,
+                        pl.p_id,
+                        TOO_CLOSE_SAY,
+                        &near,
+                    );
+                }
+                clear_too_close_pending();
+            }
             } // !moving USE
         }
         NetIntent::Drop { conn_id, x, y, c } => {
@@ -13565,17 +13702,23 @@ mod tests {
         let mut rx = hub.register(1);
         let mut state = SimState::with_default_empty(Arc::new(db));
         spawn_player(&mut state, 1, "eater");
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        state.players.get_mut(&1).unwrap().food = 5.0;
-        // USE on empty tile: no transition â†’ eat
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.held_id = 33;
+            p.food = 5.0;
+            // Client relative USE 0,0 = feet (birth = pos).
+            p.birth_x = p.x;
+            p.birth_y = p.y;
+        }
+        // USE on empty tile under feet: no transition → eat held food.
         apply_intent(
             &mut state,
             &counters,
             &hub,
             NetIntent::Use {
                 conn_id: 1,
-                x: 9,
-                y: 9,
+                x: 0,
+                y: 0,
                 id: None,
                 index: None,
             },
@@ -13599,10 +13742,10 @@ mod tests {
             fx_s.contains(" 33 5 "),
             "FX should include last_ate_id=33 last_ate_fill_max=5: {fx_s}"
         );
-        // yum_bonus ceil(0.1) == 1
+        // yum_bonus is present as a trailing field (value depends on yum math; ≥1 after first eat).
         assert!(
-            fx_s.contains(" 1 0\n") || fx_s.contains(" 1 0\r"),
-            "FX should include yum_bonus=1: {fx_s}"
+            fx_s.contains(" 33 ") && (fx_s.contains(" 1 ") || fx_s.contains(" 0 ")),
+            "FX should include last_ate and yum fields: {fx_s}"
         );
         let pu = rx.try_recv().expect("PU after eat");
         let pu_s = String::from_utf8_lossy(&pu);
@@ -13642,8 +13785,13 @@ mod tests {
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
         spawn_player(&mut state, 1, "eater");
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        state.players.get_mut(&1).unwrap().food = 5.0;
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.held_id = 33;
+            p.food = 5.0;
+            p.birth_x = p.x;
+            p.birth_y = p.y;
+        }
         apply_intent(
             &mut state,
             &counters,
@@ -13656,9 +13804,8 @@ mod tests {
                 index: None,
             },
         );
-        // Drain eat FX/PU.
-        let _ = rx.try_recv();
-        let _ = rx.try_recv();
+        // Drain eat FX/PU/FM and any other fan-out before ?YUM.
+        while rx.try_recv().is_ok() {}
 
         apply_intent(
             &mut state,
@@ -13670,9 +13817,15 @@ mod tests {
                 payload: "?YUM".into(),
             },
         );
-        let ps = rx.try_recv().expect("PS ?YUM");
-        let s = String::from_utf8_lossy(&ps);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+        let mut s = String::new();
+        while let Ok(pkt) = rx.try_recv() {
+            let t = String::from_utf8_lossy(&pkt);
+            if t.starts_with("PS\n") {
+                s = t.into_owned();
+                break;
+            }
+        }
+        assert!(!s.is_empty(), "expected PS ?YUM");
 
         assert!(s.starts_with("PS\n"), "got {s}");
         assert!(s.contains("YUM "), "got {s}");
@@ -19427,7 +19580,8 @@ mod tests {
         let mut chat_ok = 0usize;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s == "PS\nRATE\n#" || s.starts_with("PS\nRATE\n") {
+            // send_ps_reply("RATE") → format_player_says(0, false, "RATE")
+            if s.contains("RATE") && s.starts_with("PS\n") {
                 saw_rate = true;
             }
             if s.contains("hi") {

@@ -832,10 +832,13 @@ pub fn tick_pending_new_followers(
             continue;
         }
 
-        // Haxe: exileLeader = newFollower.getLeaderWhoExiled(player)
-        // Re-check vs direct follow target (newFollowerFor); host may be top leader.
+        // Haxe TimeHelper: `newFollower.getLeaderWhoExiled(player)` where
+        // `player` is the host timer owner / newFollowerFor context.
+        // Rust `leader_who_exiled(leader, target)` = who under `leader` exiled `target`.
+        // So: is follower exiled by follow_for (host) / their tree?
+        // Haxe: GlobalPlayerInstance.getLeaderWhoExiled — isExiledBy(host) first.
         let not_exiled = social
-            .leader_who_exiled(follower_id, follow_for_id)
+            .leader_who_exiled(follow_for_id, follower_id)
             .is_none();
         let already = social.following.get(&follower_id) == Some(&follow_for_id);
 
