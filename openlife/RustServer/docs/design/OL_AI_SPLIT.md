@@ -107,11 +107,11 @@ Bridge: `goal_from_rung` / `pick_goal_from_ladder` map rungs → stable `Goal`s 
 | Module in sim | Extracted crate | Dedupe |
 |---------------|-----------------|--------|
 | `ai_path_reach.rs` | `ol-ai-pathing` | **done** — thin `pub use` re-export |
-| `craft_graph.rs` / `craft_value.rs` | `ol-ai-crafting` | **done** — thin `pub use` re-export |
-| `priority_ladder.rs` | (inside `ol-ai-helper`) | hash-identical; re-export next |
-| `ai_goals.rs` | `ol-ai-helper` | **diverged** — merge carefully |
-| `*_profession.rs` pure SMs | `ol-ai-professions` | **diverged** — live sticky still sim |
-| `craft_topdown` / `get_or_craft` / `profession_scan` | still sim | later MainAI / scan crate |
+| `craft_graph.rs` / `craft_value.rs` / `craft_plan.rs` | `ol-ai-crafting` | **done** — thin `pub use` re-export |
+| `ai_goals.rs` + `priority_ladder` | `ol-ai-helper` (+ `goal_expand` from professions) | **done** — thin re-export |
+| `*_profession.rs` pure SMs + `professions` + `fire_food_rung` | `ol-ai-professions` | **done** — thin re-export |
+| `craft_topdown` / `get_or_craft` / `profession_scan` / `handling_fire` | still sim | later MainAI / scan crate |
+| Live sticky on `Player` + `npc_ai` schedule | still sim/server | by design |
 
 ---
 
