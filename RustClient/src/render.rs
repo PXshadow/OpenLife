@@ -901,12 +901,12 @@ impl SceneRenderer {
         let tile_px = self.camera.zoom.max(4.0).round() as i32;
 
         // --- Pass 1: ground biomes (C++ LivingLifePage ~7151–7390) ---
-        // Soft 2×CELL_D tiles blend biome borders; square CELL_D interior when
-        // left/above/diag share biome. C++ iterates y high→low (draw order).
+        // Soft 2×CELL_D tiles (soft alpha edges) blend borders; square CELL_D
+        // fills **exact cell rects** when left/above/diag share biome (Jason).
         //
-        // Two sub-passes so zoom never flashes clear-color “black gaps”:
-        //   1) solid abutting biome plates for every cell (cheap, no TGA)
-        //   2) soft/square sprites on top (may lazy-load TGA mid-zoom)
+        // Underfill plates only where we still need a base (loading / soft edges).
+        // Drawing full-cell plates under **offset** square tiles made a visible
+        // grid (half-cell gap of plate around every square).
         let y0 = cy - half_h;
         let y1 = cy + half_h;
         let x0 = cx - half_w;
@@ -916,13 +916,15 @@ impl SceneRenderer {
                 let biome = map.get_or_empty(tx, ty).biome;
                 let (px, py, tw, th) =
                     tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
-                // Solid plate covers 100% of the cell; abutting edges → no seams.
-                // Jason: known biomes use sheet midtones; missing sets use random
-                // unknown-sheet tint (getXYRandom) so plate matches the soft/square draw.
                 let has_sheet = self.ground.has_biome_sheet(biome);
+                // Always underfill: soft border tiles have transparent edges; plates
+                // must match sheet midtones so no hard grid shows through.
                 fb.fill_rect(px, py, tw, th, biome_plate_color(biome, has_sheet));
             }
         }
+        // Soft tiles first (under), then square interiors on top (C++ order is
+        // per-cell either-or; drawing soft under then square on interior also
+        // hides soft-edge seams inside a solid biome).
         for ty in (y0..=y1).rev() {
             for tx in x0..=x1 {
                 self.draw_ground_cell(fb, map, tx, ty);
@@ -1600,15 +1602,18 @@ impl SceneRenderer {
     /// One map cell of ground **sprites** (C++ LivingLifePage ground pass).
     /// Solid plates were already painted in pass 1a (no black seams while TGAs load).
     ///
-    /// - **Square tile** when left, above (`y+1`), and diagonal (`x+1,y+1`) share
+    /// - **Square tile** when left (`x-1`), above (`y+1`), and diag (`x-1,y+1`) share
     ///   this biome — C++ `squareTiles` interior (LivingLifePage ~7345–7356).
+    ///   Drawn into the **exact** [`tile_screen_rect`] (no soft offset) so interiors
+    ///   abut with zero gaps — avoids a visible grid of underfill plates.
     /// - Else **soft 2×CELL_D tile** with soft alpha edges so biome borders blend.
+    ///   C++ centers soft sprites with **+CELL_D/4 X, −CELL_D/4 Y** (~0.25 tiles)
+    ///   so neighbors heavily overlap.
     /// - **Missing biome sheet** → C++ unknown `ground_U` / cache 99999 + random
     ///   `getXYRandom` multiply color (~7205–7213).
     ///
     /// Per-cell Haxe `ground_tN` overlays are **not** drawn here: Jason C++ instead
     /// multiplies full-screen overlay sprites after floors (LivingLifePage ~7629+).
-    /// The old per-cell Haxe path painted two repeating “strange” tiles every 8 cells.
     fn draw_ground_cell(
         &mut self,
         fb: &mut Framebuffer,
@@ -1619,41 +1624,91 @@ impl SceneRenderer {
         let tile = map.get_or_empty(tx, ty);
         let biome = tile.biome;
 
-        // Neighbor biomes: missing cells ⇒ "different" (C++ OOB = -1 ≠ b).
+        // C++ neighbor sample for square-tile decision (OOB ⇒ different biome).
+        // left = (x-1,y), up = (x,y+1), diag = (x-1,y+1) toward the NW already-drawn side.
         let left_same = map.get(tx - 1, ty).map(|t| t.biome == biome).unwrap_or(false);
         let above_same = map.get(tx, ty + 1).map(|t| t.biome == biome).unwrap_or(false);
         let diag_same = map
-            .get(tx + 1, ty + 1)
+            .get(tx - 1, ty + 1)
             .map(|t| t.biome == biome)
             .unwrap_or(false);
 
-        // C++ pos offset: +32 X, −32 Y in object units (CELL_D/4) to center overlaps.
-        const OFF: f32 = 0.25;
-        let wx = tx as f32 + 0.5 + OFF;
-        let wy = ty as f32 + 0.5 - OFF;
-        let (sx, sy) = self.world_to_screen(wx, wy, fb.width, fb.height);
-
         let use_square = left_same && above_same && diag_same;
-        let drawn = if use_square {
-            // Interior: C++ squareTiles[setY][setX] at cell center (CELL_D).
-            self.ground
-                .ensure_square_or_unknown(biome, tx, ty)
-                .map(|(gt, unk)| {
-                    self.blit_ground_centered_tinted(fb, &gt, sx, sy, 1.0, 0, unk, biome);
-                    true
-                })
-                .unwrap_or(false)
+        if use_square {
+            // Interior: squareTiles — flush to cell edges (Jason CELL_D, no soft offset).
+            let (px, py, tw, th) =
+                tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
+            if let Some((gt, unk)) = self.ground.ensure_square_or_unknown(biome, tx, ty) {
+                self.blit_ground_cell_rect_tinted(fb, &gt, px, py, tw, th, unk, biome);
+            } else if let Some((gt, unk)) = self.ground.ensure_tile_or_unknown(biome, tx, ty) {
+                // Fallback soft if square TGA missing — still flush-fill the cell.
+                self.blit_ground_cell_rect_tinted(fb, &gt, px, py, tw, th, unk, biome);
+            }
         } else {
-            // Soft 2×CELL_D — overdraw +1px so float zoom never flashes clear between cells.
-            self.ground
-                .ensure_tile_or_unknown(biome, tx, ty)
-                .map(|(gt, unk)| {
-                    self.blit_ground_centered_tinted(fb, &gt, sx, sy, 2.0, 1, unk, biome);
-                    true
-                })
-                .unwrap_or(false)
+            // Soft 2×CELL_D with Jason half-cell offset so borders blend over neighbors.
+            // Object units: +CELL_D/4 X, −CELL_D/4 Y → +0.25 / −0.25 tiles from center.
+            const OFF: f32 = 0.25;
+            let wx = tx as f32 + 0.5 + OFF;
+            let wy = ty as f32 + 0.5 - OFF;
+            let (sx, sy) = self.world_to_screen(wx, wy, fb.width, fb.height);
+            if let Some((gt, unk)) = self.ground.ensure_tile_or_unknown(biome, tx, ty) {
+                // 2 cells + 1px overdraw — soft edges cover the plate underfill.
+                self.blit_ground_centered_tinted(fb, &gt, sx, sy, 2.0, 1, unk, biome);
+            }
+        }
+    }
+
+    /// Fill exact screen rect with a ground atlas tile (square interior path).
+    fn blit_ground_cell_rect_tinted(
+        &self,
+        fb: &mut Framebuffer,
+        gt: &crate::ground_sprites::GroundTileRect,
+        x0: i32,
+        y0: i32,
+        tw: i32,
+        th: i32,
+        used_unknown: bool,
+        biome: u8,
+    ) {
+        let tint = if used_unknown && !self.ground.has_biome_sheet(biome) {
+            Some(unknown_biome_draw_color(biome as i32))
+        } else {
+            None
         };
-        let _ = drawn;
+        let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(gt) else {
+            return;
+        };
+        let dw = tw.max(1);
+        let dh = th.max(1);
+        // Overdraw 1px into neighbors so float floor edges never flash plate lines.
+        if let Some(t) = tint {
+            fb.blit_rect_scaled_multiply(
+                pix,
+                atlas_w,
+                sx as i32,
+                sy as i32,
+                sw,
+                sh,
+                x0 - 1,
+                y0 - 1,
+                dw + 2,
+                dh + 2,
+                t,
+            );
+        } else {
+            fb.blit_rect_scaled(
+                pix,
+                atlas_w,
+                sx as i32,
+                sy as i32,
+                sw,
+                sh,
+                x0 - 1,
+                y0 - 1,
+                dw + 2,
+                dh + 2,
+            );
+        }
     }
 
     /// Soft/square ground blit; when `used_unknown` and the map biome has no sheet,
