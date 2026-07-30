@@ -36,21 +36,21 @@ pub fn apply_twin_join(
             send_ps_reply(
                 outbound,
                 conn_id,
-                &format!("{p_id} TWINJOIN FAIL bad_count"),
+                &format!("{p_id}/0 TWINJOIN FAIL bad_count"),
             );
         }
         TwinJoinOutcome::EmptyCode => {
             send_ps_reply(
                 outbound,
                 conn_id,
-                &format!("{p_id} TWINJOIN FAIL empty_code"),
+                &format!("{p_id}/0 TWINJOIN FAIL empty_code"),
             );
         }
         TwinJoinOutcome::CountMismatch { expected } => {
             send_ps_reply(
                 outbound,
                 conn_id,
-                &format!("{p_id} TWINJOIN FAIL count_mismatch expected={expected}"),
+                &format!("{p_id}/0 TWINJOIN FAIL count_mismatch expected={expected}"),
             );
         }
     }

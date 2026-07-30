@@ -5194,7 +5194,7 @@ fn apply_say_or_remv(
                 }
                 info!(conn_id, p_id, object_id, "sim: HARVEST OK");
             }
-            let line = format!("{p_id} HARVEST {}", result.wire_suffix());
+            let line = format!("{p_id}/0 HARVEST {}", result.wire_suffix());
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
@@ -5212,7 +5212,7 @@ fn apply_say_or_remv(
                 }
                 info!(conn_id, p_id, object_id, "sim: FISH OK");
             }
-            let line = format!("{p_id} FISH {}", result.wire_suffix());
+            let line = format!("{p_id}/0 FISH {}", result.wire_suffix());
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
@@ -5233,7 +5233,7 @@ fn apply_say_or_remv(
                 }
                 info!(conn_id, p_id, object_id, "sim: MINE OK");
             }
-            let line = format!("{p_id} MINE {}", result.wire_suffix());
+            let line = format!("{p_id}/0 MINE {}", result.wire_suffix());
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
@@ -5251,7 +5251,7 @@ fn apply_say_or_remv(
                 }
                 info!(conn_id, p_id, object_id, "sim: DIG OK");
             }
-            let line = format!("{p_id} DIG {}", result.wire_suffix());
+            let line = format!("{p_id}/0 DIG {}", result.wire_suffix());
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
@@ -5269,7 +5269,7 @@ fn apply_say_or_remv(
                 }
                 info!(conn_id, p_id, object_id, "sim: CHOP OK");
             }
-            let line = format!("{p_id} CHOP {}", result.wire_suffix());
+            let line = format!("{p_id}/0 CHOP {}", result.wire_suffix());
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
@@ -5674,9 +5674,9 @@ fn apply_say_or_remv(
             if let Some((p_id, before, food, food_max)) = result {
                 let gained = food - before;
                 let line = if gained > 0.0 {
-                    format!("{p_id} WATER OK food={food:.2}/{food_max:.2}")
+                    format!("{p_id}/0 WATER OK food={food:.2}/{food_max:.2}")
                 } else {
-                    format!("{p_id} WATER OK full food={food:.2}/{food_max:.2}")
+                    format!("{p_id}/0 WATER OK full food={food:.2}/{food_max:.2}")
                 };
                 send_ps_reply(outbound, conn_id, &line);
                 state.publish_player_view(conn_id);
@@ -5702,7 +5702,7 @@ fn apply_say_or_remv(
             if let Some((p_id, r, held_id, x, y, age)) = result {
                 match r {
                     Ok(id) => {
-                        let line = format!("{p_id} STRIP {} {id} OK", slot.as_str());
+                        let line = format!("{p_id}/0 STRIP {} {id} OK", slot.as_str());
                         send_ps_reply(outbound, conn_id, &line);
                         state.publish_player_view(conn_id);
                         let spd = state
@@ -5729,7 +5729,7 @@ fn apply_say_or_remv(
                         info!(conn_id, slot = slot.as_str(), id, "sim: STRIP clothing");
                     }
                     Err(e) => {
-                        let line = format!("{p_id} STRIP FAIL {e}");
+                        let line = format!("{p_id}/0 STRIP FAIL {e}");
                         send_ps_reply(outbound, conn_id, &line);
                     }
                 }
@@ -5774,7 +5774,7 @@ fn apply_say_or_remv(
                                 slot.as_str()
                             )
                         } else {
-                            format!("{p_id} WEAR {} {id} OK", slot.as_str())
+                            format!("{p_id}/0 WEAR {} {id} OK", slot.as_str())
                         };
                         send_ps_reply(outbound, conn_id, &line);
                         state.publish_player_view(conn_id);
@@ -5802,7 +5802,7 @@ fn apply_say_or_remv(
                         info!(conn_id, slot = slot.as_str(), id, prev, "sim: WEAR clothing");
                     }
                     Err(e) => {
-                        let line = format!("{p_id} WEAR FAIL {e}");
+                        let line = format!("{p_id}/0 WEAR FAIL {e}");
                         send_ps_reply(outbound, conn_id, &line);
                     }
                 }
@@ -5838,12 +5838,12 @@ fn apply_say_or_remv(
             if let Some((p_id, r, n)) = result {
                 match r {
                     Ok(text) => {
-                        let line = format!("{p_id} FORGET {n}/{NOTES_MAX} OK {text}");
+                        let line = format!("{p_id}/0 FORGET {n}/{NOTES_MAX} OK {text}");
                         send_ps_reply(outbound, conn_id, &line);
                         info!(conn_id, n, "sim: FORGET personal journal");
                     }
                     Err(e) => {
-                        let line = format!("{p_id} FORGET FAIL {e}");
+                        let line = format!("{p_id}/0 FORGET FAIL {e}");
                         send_ps_reply(outbound, conn_id, &line);
                     }
                 }
@@ -5863,12 +5863,12 @@ fn apply_say_or_remv(
             if let Some((p_id, r)) = result {
                 match r {
                     Ok(title) => {
-                        let line = format!("{p_id} TITLE OK {title}");
+                        let line = format!("{p_id}/0 TITLE OK {title}");
                         send_ps_reply(outbound, conn_id, &line);
                         info!(conn_id, %title, "sim: TITLE set");
                     }
                     Err(e) => {
-                        let line = format!("{p_id} TITLE FAIL {e}");
+                        let line = format!("{p_id}/0 TITLE FAIL {e}");
                         send_ps_reply(outbound, conn_id, &line);
                     }
                 }
@@ -5892,12 +5892,12 @@ fn apply_say_or_remv(
             if let Some((p_id, r, n)) = result {
                 match r {
                     Ok(_) => {
-                        let line = format!("{p_id} NOTE {n}/{NOTES_MAX} OK");
+                        let line = format!("{p_id}/0 NOTE {n}/{NOTES_MAX} OK");
                         send_ps_reply(outbound, conn_id, &line);
                         info!(conn_id, n, "sim: NOTE personal journal");
                     }
                     Err(e) => {
-                        let line = format!("{p_id} NOTE FAIL {e}");
+                        let line = format!("{p_id}/0 NOTE FAIL {e}");
                         send_ps_reply(outbound, conn_id, &line);
                     }
                 }
@@ -5924,7 +5924,7 @@ fn apply_say_or_remv(
             if let Some((p_id, r, held_id, x, y, age)) = result {
                 match r {
                     Ok(id) => {
-                        let line = format!("{p_id} STORE {id} OK");
+                        let line = format!("{p_id}/0 STORE {id} OK");
                         send_ps_reply(outbound, conn_id, &line);
                         state.publish_player_view(conn_id);
                         let spd = state
@@ -5951,7 +5951,7 @@ fn apply_say_or_remv(
                         info!(conn_id, id, "sim: STORE to backpack");
                     }
                     Err(e) => {
-                        let line = format!("{p_id} STORE FAIL {e}");
+                        let line = format!("{p_id}/0 STORE FAIL {e}");
                         send_ps_reply(outbound, conn_id, &line);
                     }
                 }
@@ -5978,7 +5978,7 @@ fn apply_say_or_remv(
             if let Some((p_id, r, held_id, x, y, age)) = result {
                 match r {
                     Ok(id) => {
-                        let line = format!("{p_id} TAKE {i} {id} OK");
+                        let line = format!("{p_id}/0 TAKE {i} {id} OK");
                         send_ps_reply(outbound, conn_id, &line);
                         state.publish_player_view(conn_id);
                         let spd = state
@@ -6005,7 +6005,7 @@ fn apply_say_or_remv(
                         info!(conn_id, i, id, "sim: TAKE from backpack");
                     }
                     Err(e) => {
-                        let line = format!("{p_id} TAKE {i} FAIL {e}");
+                        let line = format!("{p_id}/0 TAKE {i} FAIL {e}");
                         send_ps_reply(outbound, conn_id, &line);
                     }
                 }
@@ -6026,9 +6026,9 @@ fn apply_say_or_remv(
             let placed = scatter_dropall(state, conn_id);
             let n = placed.len();
             let line = if n == 0 {
-                format!("{p_id} DROPALL OK n=0")
+                format!("{p_id}/0 DROPALL OK n=0")
             } else {
-                format!("{p_id} DROPALL OK n={n}")
+                format!("{p_id}/0 DROPALL OK n={n}")
             };
             send_ps_reply(outbound, conn_id, &line);
             state.publish_player_view(conn_id);
@@ -6078,13 +6078,13 @@ fn apply_say_or_remv(
                 return;
             }
             let Some(slot_i) = slot_raw.filter(|&s| s >= 0) else {
-                let line = format!("{p_id} PUTNEST FAIL BAD");
+                let line = format!("{p_id}/0 PUTNEST FAIL BAD");
                 send_ps_reply(outbound, conn_id, &line);
                 return;
             };
             let slot = slot_i as usize;
             if held == 0 {
-                let line = format!("{p_id} PUTNEST FAIL EMPTY");
+                let line = format!("{p_id}/0 PUTNEST FAIL EMPTY");
                 send_ps_reply(outbound, conn_id, &line);
                 return;
             }
@@ -6095,7 +6095,7 @@ fn apply_say_or_remv(
                 .map(|d| d.containable)
                 .unwrap_or(false);
             if !held_ok {
-                let line = format!("{p_id} PUTNEST FAIL CONTAIN");
+                let line = format!("{p_id}/0 PUTNEST FAIL CONTAIN");
                 send_ps_reply(outbound, conn_id, &line);
                 return;
             }
@@ -6130,7 +6130,7 @@ fn apply_say_or_remv(
                 if let Some(pl) = state.players.get_mut(&conn_id) {
                     pl.held_id = 0;
                 }
-                let line = format!("{p_id} PUTNEST {slot} {held} OK");
+                let line = format!("{p_id}/0 PUTNEST {slot} {held} OK");
                 send_ps_reply(outbound, conn_id, &line);
                 state.publish_player_view(conn_id);
                 let tile = state.world.read().unwrap().get_object(x, y);
@@ -6140,7 +6140,7 @@ fn apply_say_or_remv(
                 }
                 info!(conn_id, x, y, slot, held, "sim: PUTNEST into nested pocket");
             } else {
-                let line = format!("{p_id} PUTNEST {slot} FAIL");
+                let line = format!("{p_id}/0 PUTNEST {slot} FAIL");
                 send_ps_reply(outbound, conn_id, &line);
             }
             return;
@@ -6259,11 +6259,11 @@ fn apply_say_or_remv(
             }
             state.scoreboard.set_name(p_id, &display_name);
             state.accounts.ensure(&email).last_name = display_name.clone();
-            let nm_line = format!("{p_id} {display_name}");
+            let nm_line = format!("{p_id}/0 {display_name}");
             let nm = format_server_message("NM", &[&nm_line]).into_bytes();
             let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
             send_nearby(outbound, &near, nm);
-            let line = format!("{p_id} RENAME OK {display_name}");
+            let line = format!("{p_id}/0 RENAME OK {display_name}");
             send_ps_reply(outbound, conn_id, &line);
             state.publish_player_view(conn_id);
             info!(conn_id, p_id, name = %display_name, "sim: RENAME");
@@ -6289,7 +6289,7 @@ fn apply_say_or_remv(
                 state.push_event(format_death_event(p_id, DeathCause::Suicide));
                 state.afk.remove(p_id);
                 state.publish_player_view(conn_id);
-                let line = format!("{p_id} DIE OK");
+                let line = format!("{p_id}/0 DIE OK");
                 send_ps_reply(outbound, conn_id, &line);
                 info!(conn_id, p_id, "sim: SAY DIE reason_suicide");
             }
@@ -6465,7 +6465,7 @@ fn apply_say_or_remv(
                 Some(w) if w != 0 => state.craft_graph.format_plan_query(w, &have, 6),
                 _ => "PLAN FAIL".into(),
             };
-            let line = format!("{p_id} {reply}");
+            let line = format!("{p_id}/0 {reply}");
             send_ps_reply(outbound, conn_id, &line);
             info!(conn_id, %line, "sim: PLAN");
             return;
@@ -6483,7 +6483,7 @@ fn apply_say_or_remv(
                 .unwrap_or((p.p_id, p.held_id));
             let product = arg.filter(|&id| id != 0).unwrap_or(held);
             let reply = state.craft_graph.format_recipe_query(product);
-            let line = format!("{p_id} {reply}");
+            let line = format!("{p_id}/0 {reply}");
             send_ps_reply(outbound, conn_id, &line);
             info!(conn_id, %line, "sim: RECIPE");
             return;
@@ -6505,7 +6505,7 @@ fn apply_say_or_remv(
                 .unwrap_or((p.p_id, p.held_id));
             let item = arg.filter(|&id| id != 0).unwrap_or(held);
             let reply = state.craft_graph.format_nextcraft_query(item);
-            let line = format!("{p_id} {reply}");
+            let line = format!("{p_id}/0 {reply}");
             send_ps_reply(outbound, conn_id, &line);
             info!(conn_id, %line, "sim: NEXTCRAFT");
             return;
@@ -6553,7 +6553,7 @@ fn apply_say_or_remv(
                 0,
             );
             let reply = format_seeking_query(goal);
-            let line = format!("{p_id} {reply}");
+            let line = format!("{p_id}/0 {reply}");
             send_ps_reply(outbound, conn_id, &line);
             info!(conn_id, %line, "sim: SEEKING");
             return;
@@ -6568,7 +6568,7 @@ fn apply_say_or_remv(
             let (sx, sy, p_id) = (p.x, p.y, p.p_id);
             let line = match (gx, gy) {
                 (Some(gx), Some(gy)) if sx == gx && sy == gy => {
-                    format!("{p_id} PATH 0 0")
+                    format!("{p_id}/0 PATH 0 0")
                 }
                 (Some(gx), Some(gy)) => {
                     let content = state.content.clone();
@@ -6582,11 +6582,11 @@ fn apply_say_or_remv(
                         })
                     };
                     match step {
-                        Some((dx, dy)) => format!("{p_id} PATH {dx} {dy}"),
-                        None => format!("{p_id} PATH FAIL"),
+                        Some((dx, dy)) => format!("{p_id}/0 PATH {dx} {dy}"),
+                        None => format!("{p_id}/0 PATH FAIL"),
                     }
                 }
-                _ => format!("{p_id} PATH FAIL"),
+                _ => format!("{p_id}/0 PATH FAIL"),
             };
             send_ps_reply(outbound, conn_id, &line);
             info!(conn_id, %line, "sim: PATH");
@@ -6612,11 +6612,11 @@ fn apply_say_or_remv(
                         })
                     };
                     match n {
-                        Some(n) => format!("{p_id} STEPS {n}"),
-                        None => format!("{p_id} STEPS FAIL"),
+                        Some(n) => format!("{p_id}/0 STEPS {n}"),
+                        None => format!("{p_id}/0 STEPS FAIL"),
                     }
                 }
-                _ => format!("{p_id} STEPS FAIL"),
+                _ => format!("{p_id}/0 STEPS FAIL"),
             };
             send_ps_reply(outbound, conn_id, &line);
             info!(conn_id, %line, "sim: STEPS");
@@ -6638,7 +6638,7 @@ fn apply_say_or_remv(
                 })
             };
             let yn = if ok { "yes" } else { "no" };
-            let line = format!("{p_id} WALKABLE {yn}");
+            let line = format!("{p_id}/0 WALKABLE {yn}");
             send_ps_reply(outbound, conn_id, &line);
             info!(conn_id, dx, dy, ok, "sim: WALKABLE");
             return;
@@ -6649,7 +6649,7 @@ fn apply_say_or_remv(
                 p.x, p.y, p.home_x, p.home_y, p.p_id, p.held_id, p.age,
             );
             if sx == hx && sy == hy {
-                let line = format!("{p_id} GOHOME {sx} {sy} OK");
+                let line = format!("{p_id}/0 GOHOME {sx} {sy} OK");
                 send_ps_reply(outbound, conn_id, &line);
                 return;
             }
@@ -8861,7 +8861,7 @@ pub fn tick_vitals_with_metrics(
         if nearby.is_empty() {
             continue;
         }
-        let line = format!("{p_id} {YAWN_EMOT_INDEX}");
+        let line = format!("{p_id}/0 {YAWN_EMOT_INDEX}");
         let pe = format_server_message("PE", &[&line]).into_bytes();
         send_nearby(outbound, &nearby, pe);
         debug!(p_id, x, y, n = nearby.len(), "sim: PE AFK yawn");
@@ -8882,7 +8882,7 @@ pub fn tick_vitals_with_metrics(
         if nearby.is_empty() {
             continue;
         }
-        let line = format!("{p_id} {HUNGER_EMOT_INDEX}");
+        let line = format!("{p_id}/0 {HUNGER_EMOT_INDEX}");
         let pe = format_server_message("PE", &[&line]).into_bytes();
         send_nearby(outbound, &nearby, pe);
         debug!(p_id, x, y, n = nearby.len(), "sim: PE hunger emote");
@@ -8892,7 +8892,7 @@ pub fn tick_vitals_with_metrics(
         if nearby.is_empty() {
             continue;
         }
-        let line = format!("{p_id} {SLEEP_EMOT_INDEX}");
+        let line = format!("{p_id}/0 {SLEEP_EMOT_INDEX}");
         let pe = format_server_message("PE", &[&line]).into_bytes();
         send_nearby(outbound, &nearby, pe);
         debug!(p_id, x, y, n = nearby.len(), "sim: PE sleep/snore emote");
@@ -9696,12 +9696,15 @@ pub fn arm_decays_for_loaded_world(state: &mut SimState) {
     info!(armed, w, h, "auto-decay armed for loaded/generated world");
 }
 
-/// Try to eat held food (Haxe-style: held edible, no tile transition needed).
-/// Returns true if food was consumed.
+/// Eat held food. Multi-use follows Haxe `DoChangeNumberOfUsesOnActorManual`
+/// (`idHasChanged=false`, `reverseUse=false`, last-use target `-1`).
+///
+/// Returns true if edible food was consumed (yum fill applied).
+// Haxe: GlobalPlayerInstance eat ~3219–3224
 pub fn try_eat_held(state: &mut SimState, conn_id: u64) -> bool {
-    let held = match state.players.get(&conn_id) {
-        Some(p) => p.held_id,
-        None => return false,
+    let (held, uses) = match state.players.get(&conn_id) {
+        Some(p) if !p.deleted => (p.held_id, p.held_uses),
+        _ => return false,
     };
     if held == 0 {
         return false;
@@ -9713,13 +9716,39 @@ pub fn try_eat_held(state: &mut SimState, conn_id: u64) -> bool {
         return false;
     }
     let base = def.food_value as f32;
+    let num_uses = def.num_uses.max(0);
+
+    // Haxe: DoChangeNumberOfUsesOnActorManual(player, false, false, -1)
+    let mut out = multi_use::change_number_of_uses_on_actor(
+        held, held, uses, num_uses, false, false,
+    );
+    if out.held_id != 0 && out.held_uses == 0 {
+        if let Some(new_id) =
+            use_transition::tool_last_use_new_actor(&state.content, out.held_id, -1)
+        {
+            out.held_id = new_id;
+            out.held_uses = 0;
+        } else {
+            // Manual returned false → setHeldObject(null)
+            out.held_id = 0;
+            out.held_uses = 0;
+        }
+    }
+
     if let Some(p) = state.players.get_mut(&conn_id) {
         let fill_before = p.food.ceil() as i32;
         let gain = p.yum.eat(held, base, fill_before);
-        p.held_id = 0;
         p.food = (p.food + gain).min(p.food_max);
-        // Learning tools when eating isn't typical â€” learn held craft tools on use instead.
-        info!(conn_id, held, gain, food = p.food, "sim: ate food");
+        p.set_held(out.held_id, out.held_uses);
+        info!(
+            conn_id,
+            held,
+            gain,
+            food = p.food,
+            new_held = out.held_id,
+            new_uses = out.held_uses,
+            "sim: ate food"
+        );
         true
     } else {
         false
@@ -12454,7 +12483,7 @@ mod tests {
         state.environment.day_length = 10_000.0;
 
         let expected_pe =
-            format_server_message("PE", &[&format!("{p_id} {HUNGER_EMOT_INDEX}")]);
+            format_server_message("PE", &[&format!("{p_id}/0 {HUNGER_EMOT_INDEX}")]);
 
         // Under interval: no PE yet (and total sim time stays under HX interval).
         tick_vitals(&mut state, 7.0, &hub);
@@ -13427,7 +13456,7 @@ mod tests {
             if s.starts_with("PS\n") && s.contains("TIME ") {
                 saw = true;
                 assert!(
-                    s.contains(&format!("{p_id} {expected}")),
+                    s.contains(&format!("{p_id}/0 {expected}")),
                     "PS line should embed hour_of_day + day_phase: {s}"
                 );
                 assert!(s.contains("19.25"), "got {s}");
@@ -13643,6 +13672,8 @@ mod tests {
         );
         let ps = rx.try_recv().expect("PS ?YUM");
         let s = String::from_utf8_lossy(&ps);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(s.starts_with("PS\n"), "got {s}");
         assert!(s.contains("YUM "), "got {s}");
         assert!(s.contains("bonus="), "got {s}");
@@ -13682,15 +13713,17 @@ mod tests {
         );
         let ps = rx.try_recv().expect("PS ?TOOLS");
         let s = String::from_utf8_lossy(&ps);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(s.starts_with("PS\n"), "got {s}");
         assert!(
-            s.contains(&format!("{p_id} TOOLS ")),
+            s.contains(&format!("{p_id}/0 TOOLS ")),
             "expected p_id + TOOLS, got {s}"
         );
         assert!(s.contains(&expected_slots), "wire_slots missing, got {s}");
         assert!(s.contains("learned=2"), "learned count missing, got {s}");
         assert!(
-            s.contains(&format!("{p_id} {expected_reply}")),
+            s.contains(&format!("{p_id}/0 {expected_reply}")),
             "got {s}"
         );
 
@@ -13707,6 +13740,8 @@ mod tests {
         );
         let ps2 = rx.try_recv().expect("PS TOOLS");
         let s2 = String::from_utf8_lossy(&ps2);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(s2.contains("TOOLS 2 1000 learned=2"), "got {s2}");
     }
 
@@ -15941,7 +15976,7 @@ mod tests {
         let mut saw_denied = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} VOGSET DENIED")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 VOGSET DENIED")) {
                 saw_denied = true;
             }
         }
@@ -15966,7 +16001,7 @@ mod tests {
         let mut saw_mx = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} VOGSET 5 6 33 OK")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 VOGSET 5 6 33 OK")) {
                 saw_ok = true;
             }
             if s.starts_with("MX\n") && s.contains("5 6") && s.contains(" 33 ") {
@@ -15992,7 +16027,7 @@ mod tests {
         let mut saw_fail = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} VOGSET FAIL")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 VOGSET FAIL")) {
                 saw_fail = true;
             }
         }
@@ -16073,7 +16108,7 @@ mod tests {
         let mut saw_mx = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} REGEN OK 0 0 33")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 REGEN OK 0 0 33")) {
                 saw_ok = true;
             }
             if s.starts_with("MX\n") && s.contains("0 0") && s.contains(" 33 ") {
@@ -16131,7 +16166,7 @@ mod tests {
         let mut saw_fail = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} REGEN FAIL no_spawn")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 REGEN FAIL no_spawn")) {
                 saw_fail = true;
             }
         }
@@ -16164,7 +16199,7 @@ mod tests {
         let mut saw_denied = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} CLEAROBJ DENIED")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 CLEAROBJ DENIED")) {
                 saw_denied = true;
             }
         }
@@ -16188,7 +16223,7 @@ mod tests {
         let mut saw_mx = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} CLEAROBJ OK 0 0")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 CLEAROBJ OK 0 0")) {
                 saw_ok = true;
             }
             if s.starts_with("MX\n") && s.contains("0 0") && s.contains(" 0 ") {
@@ -16224,7 +16259,7 @@ mod tests {
         let mut saw_denied = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} FILL DENIED")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 FILL DENIED")) {
                 saw_denied = true;
             }
         }
@@ -16248,7 +16283,7 @@ mod tests {
         let mut saw_mx = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} FILL OK 0 0 floor=1")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 FILL OK 0 0 floor=1")) {
                 saw_ok = true;
             }
             if s.starts_with("MX\n") && s.contains("0 0 1 ") {
@@ -16482,7 +16517,7 @@ mod tests {
             if s.starts_with("PS\n") && s.contains("HELP ") {
                 saw = true;
                 assert!(
-                    s.contains(&format!("{p_id} {expected}")),
+                    s.contains(&format!("{p_id}/0 {expected}")),
                     "PS should embed help list: {s}"
                 );
                 assert!(s.contains("?WHO"), "got {s}");
@@ -16506,7 +16541,7 @@ mod tests {
         let mut saw_bare = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} HELP ")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 HELP ")) {
                 saw_bare = true;
                 assert!(s.contains("?WHO"), "got {s}");
                 assert!(s.contains("SHOUT"), "got {s}");
@@ -16556,7 +16591,7 @@ mod tests {
             if s.starts_with("PS\n") && s.contains("NAME ") {
                 saw = true;
                 assert!(
-                    s.contains(&format!("{p_id} {expected}")),
+                    s.contains(&format!("{p_id}/0 {expected}")),
                     "PS should embed display_name: {s}"
                 );
                 assert!(s.contains("ADAM SMITH"), "got {s}");
@@ -16584,7 +16619,7 @@ mod tests {
         let mut saw_bare = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} NAME ")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 NAME ")) {
                 saw_bare = true;
                 assert!(s.contains("EVE SNOW"), "got {s}");
             }
@@ -16634,7 +16669,7 @@ mod tests {
             if s.starts_with("PS\n") && s.contains("FOOD ") {
                 saw = true;
                 assert!(
-                    s.contains(&format!("{p_id} {expected}")),
+                    s.contains(&format!("{p_id}/0 {expected}")),
                     "PS should embed food food_max: {s}"
                 );
                 assert!(s.contains("7.25 20.00"), "got {s}");
@@ -16662,7 +16697,7 @@ mod tests {
         let mut saw_bare = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} FOOD ")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 FOOD ")) {
                 saw_bare = true;
                 assert!(s.contains("15.50 18.00"), "got {s}");
             }
@@ -16708,7 +16743,7 @@ mod tests {
             if s.starts_with("PS\n") && s.contains("AGE ") {
                 saw = true;
                 assert!(
-                    s.contains(&format!("{p_id} {expected}")),
+                    s.contains(&format!("{p_id}/0 {expected}")),
                     "PS should embed age: {s}"
                 );
                 assert!(s.contains("27.50"), "got {s}");
@@ -16735,7 +16770,7 @@ mod tests {
         let mut saw_bare = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} AGE ")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 AGE ")) {
                 saw_bare = true;
                 assert!(s.contains("0.00"), "got {s}");
             }
@@ -16805,7 +16840,7 @@ mod tests {
             if s.starts_with("PS\n") && s.contains("STATUS ") {
                 saw = true;
                 assert!(
-                    s.contains(&format!("{p_id} {expected}")),
+                    s.contains(&format!("{p_id}/0 {expected}")),
                     "PS should embed combined status: {s}"
                 );
                 assert!(s.contains("7.25"), "food in reply: {s}");
@@ -16859,10 +16894,10 @@ mod tests {
         let mut saw_bare = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} STATUS ")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 STATUS ")) {
                 saw_bare = true;
                 assert!(
-                    s.contains(&format!("{p_id} {bare_expected}")),
+                    s.contains(&format!("{p_id}/0 {bare_expected}")),
                     "got {s}"
                 );
             }
@@ -16954,7 +16989,7 @@ mod tests {
             if s.starts_with("PS\n") && s.contains("HEART ") {
                 saw_heart = true;
                 assert!(
-                    s.contains(&format!("{p_id} HEART 3.50 22.00")),
+                    s.contains(&format!("{p_id}/0 HEART 3.50 22.00")),
                     "got {s}"
                 );
             }
@@ -17216,7 +17251,7 @@ mod tests {
             if s.starts_with("PS\n") && s.contains("WHERE ") {
                 saw = true;
                 assert!(
-                    s.contains(&format!("{p_id} {expected}")),
+                    s.contains(&format!("{p_id}/0 {expected}")),
                     "PS should embed x y biome food age: {s}"
                 );
                 assert!(s.contains("7 -3 5 12.50 20.00"), "got {s}");
@@ -17239,7 +17274,7 @@ mod tests {
         let mut saw_bare = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} WHERE ")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 WHERE ")) {
                 saw_bare = true;
                 assert!(s.contains("7 -3 5 12.50 20.00"), "got {s}");
             }
@@ -17326,7 +17361,7 @@ mod tests {
             let s = String::from_utf8_lossy(&pkt);
             if s.starts_with("PS\n") && s.contains("WHO ") {
                 saw_q = true;
-                assert!(s.contains(&format!("{a} WHO ")), "got {s}");
+                assert!(s.contains(&format!("{a}/0 WHO ")), "got {s}");
                 assert!(s.contains(&format!("{a} {name_a}")), "got {s}");
                 assert!(s.contains(&format!("{b} {name_b}")), "got {s}");
             }
@@ -17351,7 +17386,7 @@ mod tests {
             let s = String::from_utf8_lossy(&pkt);
             if s.starts_with("PS\n") && s.contains("WHO ") {
                 saw_bare = true;
-                assert!(s.contains(&format!("{a} WHO ")), "got {s}");
+                assert!(s.contains(&format!("{a}/0 WHO ")), "got {s}");
             }
         }
         assert!(saw_bare, "expected PS WHO reply");
@@ -17490,7 +17525,7 @@ mod tests {
             let s = String::from_utf8_lossy(&pkt);
             if s.starts_with("PS\n") && s.contains("LOG ") {
                 saw = true;
-                assert!(s.contains(&format!("{a} LOG ")), "got {s}");
+                assert!(s.contains(&format!("{a}/0 LOG ")), "got {s}");
                 assert!(s.contains(&newest), "got {s}");
             }
         }
@@ -17699,7 +17734,7 @@ mod tests {
         let mut saw_none = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} WJOURNAL none")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 WJOURNAL none")) {
                 saw_none = true;
             }
         }
@@ -17732,7 +17767,7 @@ mod tests {
         let mut saw_entry = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} WJOURNAL 4 5 99 11")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 WJOURNAL 4 5 99 11")) {
                 saw_entry = true;
             }
         }
@@ -17769,7 +17804,7 @@ mod tests {
         let mut saw_denied = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} SAVE DENIED")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 SAVE DENIED")) {
                 saw_denied = true;
             }
         }
@@ -17792,7 +17827,7 @@ mod tests {
         let mut saw_deferred = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} SAVE deferred")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 SAVE deferred")) {
                 saw_deferred = true;
             }
         }
@@ -17818,7 +17853,7 @@ mod tests {
         let mut saw_ok = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id} SAVE OK")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 SAVE OK")) {
                 saw_ok = true;
             }
         }
@@ -17911,6 +17946,8 @@ mod tests {
         );
         let empty = rx.try_recv().expect("PS ?HELD empty");
         let empty_s = String::from_utf8_lossy(&empty);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(empty_s.starts_with("PS\n"), "got {empty_s}");
         assert!(empty_s.contains("HELD 0"), "got {empty_s}");
         assert!(
@@ -17932,6 +17969,8 @@ mod tests {
         );
         let named = rx.try_recv().expect("PS HELD named");
         let named_s = String::from_utf8_lossy(&named);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(named_s.starts_with("PS\n"), "got {named_s}");
         assert!(
             named_s.contains("HELD 33 Gooseberry"),
@@ -17952,6 +17991,8 @@ mod tests {
         );
         let unk = rx.try_recv().expect("PS ?HELD unknown");
         let unk_s = String::from_utf8_lossy(&unk);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(unk_s.contains("HELD 9999"), "got {unk_s}");
         assert!(
             !unk_s.contains("HELD 9999 "),
@@ -17991,6 +18032,8 @@ mod tests {
         );
         let msg = rx.try_recv().expect("PS CLOTHES");
         let s = String::from_utf8_lossy(&msg);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(s.starts_with("PS\n"), "got {s}");
         assert!(
             s.contains("CLOTHES hat=55 chest=66 shoes=77"),
@@ -18048,6 +18091,8 @@ mod tests {
         );
         let inv = rx.try_recv().expect("PS INV");
         let inv_s = String::from_utf8_lossy(&inv);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(
             inv_s.contains(&format!("INV 1/{BACKPACK_MAX} 33")),
             "got {inv_s}"
@@ -18154,8 +18199,10 @@ mod tests {
         );
         let empty = rx.try_recv().expect("PS empty NOTES");
         let empty_s = String::from_utf8_lossy(&empty);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(
-            empty_s.contains(&format!("{p_id} NOTES 0/{NOTES_MAX}")),
+            empty_s.contains(&format!("{p_id}/0 NOTES 0/{NOTES_MAX}")),
             "got {empty_s}"
         );
 
@@ -18171,8 +18218,10 @@ mod tests {
         );
         let ack = rx.try_recv().expect("PS NOTE OK");
         let ack_s = String::from_utf8_lossy(&ack);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(
-            ack_s.contains(&format!("{p_id} NOTE 1/{NOTES_MAX} OK")),
+            ack_s.contains(&format!("{p_id}/0 NOTE 1/{NOTES_MAX} OK")),
             "got {ack_s}"
         );
         assert_eq!(
@@ -18244,6 +18293,8 @@ mod tests {
         );
         let list = rx.try_recv().expect("PS NOTES list");
         let list_s = String::from_utf8_lossy(&list);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(
             list_s.contains(&format!("NOTES {NOTES_MAX}/{NOTES_MAX}"))
                 && list_s.contains("0:found water"),
@@ -18273,8 +18324,10 @@ mod tests {
         );
         let empty = rx.try_recv().expect("PS empty MEMORY/NOTES");
         let empty_s = String::from_utf8_lossy(&empty);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(
-            empty_s.contains(&format!("{p_id} NOTES 0/{NOTES_MAX}")),
+            empty_s.contains(&format!("{p_id}/0 NOTES 0/{NOTES_MAX}")),
             "got {empty_s}"
         );
 
@@ -18290,8 +18343,10 @@ mod tests {
         );
         let ack = rx.try_recv().expect("PS REMEMBER/NOTE OK");
         let ack_s = String::from_utf8_lossy(&ack);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(
-            ack_s.contains(&format!("{p_id} NOTE 1/{NOTES_MAX} OK")),
+            ack_s.contains(&format!("{p_id}/0 NOTE 1/{NOTES_MAX} OK")),
             "got {ack_s}"
         );
         assert_eq!(
@@ -18326,8 +18381,10 @@ mod tests {
         );
         let forget = rx.try_recv().expect("PS FORGET OK");
         let forget_s = String::from_utf8_lossy(&forget);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(
-            forget_s.contains(&format!("{p_id} FORGET 1/{NOTES_MAX} OK berries")),
+            forget_s.contains(&format!("{p_id}/0 FORGET 1/{NOTES_MAX} OK berries")),
             "got {forget_s}"
         );
         assert_eq!(
@@ -18348,6 +18405,8 @@ mod tests {
         );
         let list = rx.try_recv().expect("PS MEMORY list");
         let list_s = String::from_utf8_lossy(&list);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(
             list_s.contains(&format!("NOTES 1/{NOTES_MAX}")) && list_s.contains("0:river east"),
             "got {list_s}"
@@ -18429,8 +18488,10 @@ mod tests {
         );
         let ok = rx.try_recv().expect("PS TITLE OK");
         let ok_s = String::from_utf8_lossy(&ok);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(
-            ok_s.contains(&format!("{p_id} TITLE OK Scout")),
+            ok_s.contains(&format!("{p_id}/0 TITLE OK Scout")),
             "got {ok_s}"
         );
         assert_eq!(state.players.get(&1).unwrap().title, "Scout");
@@ -18448,8 +18509,10 @@ mod tests {
         );
         let name = rx.try_recv().expect("PS NAME with title");
         let name_s = String::from_utf8_lossy(&name);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(
-            name_s.contains(&format!("{p_id} NAME ADA SNOW | Scout")),
+            name_s.contains(&format!("{p_id}/0 NAME ADA SNOW | Scout")),
             "got {name_s}"
         );
         // NM / display_name stays first last without title.
@@ -18505,6 +18568,8 @@ mod tests {
         assert!((p.food - 11.0).abs() < 1e-5, "food +1, got {}", p.food);
         let msg = rx.try_recv().expect("PS WATER");
         let s = String::from_utf8_lossy(&msg);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(s.contains("WATER OK food=11.00"), "got {s}");
 
         // Cap at food_max.
@@ -19098,7 +19163,7 @@ mod tests {
             let mut saw = false;
             while let Ok(pkt) = rx.try_recv() {
                 let s = String::from_utf8_lossy(&pkt);
-                if s.contains(&format!("{p_id} {expect}")) {
+                if s.contains(&format!("{p_id}/0 {expect}")) {
                     saw = true;
                 }
             }
@@ -19122,7 +19187,7 @@ mod tests {
         let mut path_line = None;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if let Some(idx) = s.find(&format!("{p_id} PATH ")) {
+            if let Some(idx) = s.find(&format!("{p_id}/0 PATH ")) {
                 path_line = Some(s[idx..].lines().next().unwrap_or("").to_string());
             }
         }
@@ -19150,7 +19215,7 @@ mod tests {
         let mut saw_steps = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.contains(&format!("{p_id} STEPS 2")) {
+            if s.contains(&format!("{p_id}/0 STEPS 2")) {
                 saw_steps = true;
             }
         }
@@ -19169,7 +19234,7 @@ mod tests {
         );
         let mut saw_zero = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} PATH 0 0")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 PATH 0 0")) {
                 saw_zero = true;
             }
         }
@@ -19196,7 +19261,7 @@ mod tests {
         );
         let mut saw_fail = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} PATH FAIL")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 PATH FAIL")) {
                 saw_fail = true;
             }
         }
@@ -19214,7 +19279,7 @@ mod tests {
         );
         let mut saw_steps_fail = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} STEPS FAIL")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 STEPS FAIL")) {
                 saw_steps_fail = true;
             }
         }
@@ -19463,7 +19528,7 @@ mod tests {
         state.environment.day_length = 10_000.0;
         state.environment.hour_of_day = 12.0;
 
-        let expected_pe = format_server_message("PE", &[&format!("{p_id} {SLEEP_EMOT_INDEX}")]);
+        let expected_pe = format_server_message("PE", &[&format!("{p_id}/0 {SLEEP_EMOT_INDEX}")]);
         let is_sleep_pe = |pkt: &[u8]| pkt == expected_pe.as_bytes();
 
         tick_vitals(&mut state, SLEEP_EMOT_INTERVAL_SECS - 1.0, &hub);
@@ -19808,7 +19873,7 @@ mod tests {
         let expected = format_swim_query(BIOME_OCEAN);
         let mut saw_q = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} {expected}")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected}")) {
                 saw_q = true;
             }
         }
@@ -19839,7 +19904,7 @@ mod tests {
         assert_eq!(state.world.read().unwrap().get_object(2, 3), 0);
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} BUILD OK fence=0")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 BUILD OK fence=0")) {
                 saw = true;
             }
         }
@@ -19886,7 +19951,7 @@ mod tests {
         );
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} CLAIM 4 5 OK")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 CLAIM 4 5 OK")) {
                 saw = true;
             }
         }
@@ -19907,7 +19972,7 @@ mod tests {
         );
         let mut saw_fail = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} CLAIM 0 0 FAIL")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 CLAIM 0 0 FAIL")) {
                 saw_fail = true;
             }
         }
@@ -21599,7 +21664,7 @@ mod tests {
                 payload: "YAWN".into(),
             },
         );
-        let expected = format_server_message("PE", &[&format!("{p_id} {YAWN_EMOT_INDEX}")]);
+        let expected = format_server_message("PE", &[&format!("{p_id}/0 {YAWN_EMOT_INDEX}")]);
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
             if pkt == expected.as_bytes() {
@@ -21653,7 +21718,7 @@ mod tests {
             state.event_log
         );
         let expected_pe =
-            format_server_message("PE", &[&format!("{p_id} {YAWN_EMOT_INDEX}")]);
+            format_server_message("PE", &[&format!("{p_id}/0 {YAWN_EMOT_INDEX}")]);
         let mut saw_yawn = false;
         while let Ok(pkt) = rx.try_recv() {
             if pkt == expected_pe.as_bytes() {
@@ -21692,7 +21757,7 @@ mod tests {
             let s = String::from_utf8_lossy(&pkt);
             if s.starts_with("PS\n") && s.contains("AFK ") && s.contains("status=warn") {
                 saw = true;
-                assert!(s.contains(&format!("{p_id} AFK ")), "{s}");
+                assert!(s.contains(&format!("{p_id}/0 AFK ")), "{s}");
             }
         }
         assert!(saw, "expected PS ?AFK with status=warn");
@@ -21988,8 +22053,10 @@ mod tests {
         );
         let ps = rx.try_recv().expect("PS ?HEX");
         let s = String::from_utf8_lossy(&ps);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(
-            s.contains(&format!("{p_id} HEX 9 004080")),
+            s.contains(&format!("{p_id}/0 HEX 9 004080")),
             "got {s}"
         );
     }
@@ -22037,7 +22104,9 @@ mod tests {
         );
         let ps0 = rx.try_recv().expect("PS ?TAGS empty");
         let s0 = String::from_utf8_lossy(&ps0);
-        assert!(s0.contains(&format!("{p_id} TAGS 0")), "got {s0}");
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
+        assert!(s0.contains(&format!("{p_id}/0 TAGS 0")), "got {s0}");
 
         state.players.get_mut(&1).unwrap().held_id = 55;
         state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
@@ -22054,7 +22123,9 @@ mod tests {
         );
         let ps1 = rx.try_recv().expect("PS TAGS held");
         let s1 = String::from_utf8_lossy(&ps1);
-        assert!(s1.contains(&format!("{p_id} TAGS 55")), "got {s1}");
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
+        assert!(s1.contains(&format!("{p_id}/0 TAGS 55")), "got {s1}");
         assert!(s1.contains("name=Stakes"), "got {s1}");
         assert!(s1.contains("tags=+tool"), "got {s1}");
         assert_eq!(
@@ -22083,13 +22154,10 @@ mod tests {
                 payload: "PING".into(),
             },
         );
-        let expected = format_server_message(
-            "PS",
-            &[&format!(
-                "{} {}",
-                state.players.get(&1).unwrap().p_id,
-                SimState::format_ping_query(12.5)
-            )],
+        let expected = format_player_says(
+            state.players.get(&1).unwrap().p_id,
+            false,
+            &SimState::format_ping_query(12.5),
         );
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
@@ -22213,7 +22281,7 @@ mod tests {
         assert_eq!(expected, "TICK 42 3.50");
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} {expected}")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected}")) {
                 saw = true;
             }
         }
@@ -22244,7 +22312,7 @@ mod tests {
         assert!(state.paused);
         let mut saw_pause = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} PAUSED")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 PAUSED")) {
                 saw_pause = true;
             }
         }
@@ -22263,7 +22331,7 @@ mod tests {
         assert!(!state.paused);
         let mut saw_resume = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} RESUMED")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 RESUMED")) {
                 saw_resume = true;
             }
         }
@@ -22454,7 +22522,7 @@ mod tests {
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.contains(&format!("{p_id} STAGE adult")) {
+            if s.contains(&format!("{p_id}/0 STAGE adult")) {
                 saw = true;
             }
         }
@@ -22547,7 +22615,7 @@ mod tests {
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.contains(&format!("{p_id} {expected_body}")) {
+            if s.contains(&format!("{p_id}/0 {expected_body}")) {
                 saw = true;
             }
         }
@@ -22586,7 +22654,7 @@ mod tests {
         assert_eq!(expected, "WARM bonus=1.00");
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} {expected}")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected}")) {
                 saw = true;
             }
         }
@@ -22623,7 +22691,7 @@ mod tests {
         );
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} {expected}")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected}")) {
                 saw = true;
             }
         }
@@ -22658,7 +22726,7 @@ mod tests {
         assert_eq!(expected, "WEIGHT 4 items");
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} {expected}")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected}")) {
                 saw = true;
             }
         }
@@ -22846,7 +22914,7 @@ mod tests {
         assert!(expected.contains("warm=0.030"), "{expected}");
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} {expected}")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected}")) {
                 saw = true;
             }
         }
@@ -22878,7 +22946,7 @@ mod tests {
         assert!(body.contains("products=2") && body.contains("edges=2"), "{body}");
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} {body}")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {body}")) {
                 saw = true;
             }
         }
@@ -22918,7 +22986,7 @@ mod tests {
         let mut plan_line = None;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.contains(&format!("{p_id} PLAN 5")) {
+            if s.contains(&format!("{p_id}/0 PLAN 5")) {
                 plan_line = Some(s.into_owned());
             }
         }
@@ -22943,7 +23011,7 @@ mod tests {
         );
         let mut saw_have = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} PLAN 5 HAVE")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 PLAN 5 HAVE")) {
                 saw_have = true;
             }
         }
@@ -22964,7 +23032,7 @@ mod tests {
         );
         let mut saw_fail = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} PLAN 99 FAIL")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 PLAN 99 FAIL")) {
                 saw_fail = true;
             }
         }
@@ -22987,7 +23055,7 @@ mod tests {
         assert_eq!(expected_trans, "TRANS count=1 last_use=1");
         let mut saw_trans = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} {expected_trans}")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected_trans}")) {
                 saw_trans = true;
             }
         }
@@ -23008,7 +23076,7 @@ mod tests {
         );
         let mut saw_idle = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} SEEKING IDLE")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 SEEKING IDLE")) {
                 saw_idle = true;
             }
         }
@@ -23030,7 +23098,7 @@ mod tests {
         let mut saw_farm = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.contains(&format!("{p_id} SEEKING SEEKOBJECT {FARMER_TARGET_ID}")) {
+            if s.contains(&format!("{p_id}/0 SEEKING SEEKOBJECT {FARMER_TARGET_ID}")) {
                 saw_farm = true;
             }
         }
@@ -23065,7 +23133,7 @@ mod tests {
         );
         let mut saw_recipe = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} RECIPE 3 1+2")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 RECIPE 3 1+2")) {
                 saw_recipe = true;
             }
         }
@@ -23085,7 +23153,7 @@ mod tests {
         );
         let mut saw_next = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} NEXTCRAFT 3 5")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 NEXTCRAFT 3 5")) {
                 saw_next = true;
             }
         }
@@ -23105,7 +23173,7 @@ mod tests {
         );
         let mut saw_arg = false;
         while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id} RECIPE 5 3+4")) {
+            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 RECIPE 5 3+4")) {
                 saw_arg = true;
             }
         }
@@ -23286,8 +23354,10 @@ mod tests {
         );
         let ps = rx.try_recv().expect("PS COUNT");
         let s = String::from_utf8_lossy(&ps);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(s.starts_with("PS\n"), "got {s}");
-        assert!(s.contains(&format!("{p_id} COUNT 2")), "got {s}");
+        assert!(s.contains(&format!("{p_id}/0 COUNT 2")), "got {s}");
 
         while rx.try_recv().is_ok() {}
         apply_intent(
@@ -23302,6 +23372,8 @@ mod tests {
         );
         let ps2 = rx.try_recv().expect("PS ?COUNT");
         let s2 = String::from_utf8_lossy(&ps2);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(s2.contains("COUNT 2"), "got {s2}");
     }
 
@@ -23369,7 +23441,9 @@ mod tests {
         );
         let ps = rx.try_recv().expect("PS NEAR");
         let s = String::from_utf8_lossy(&ps);
-        assert!(s.contains(&format!("{a} {expected}")), "got {s}");
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
+        assert!(s.contains(&format!("{a}/0 {expected}")), "got {s}");
         assert!(s.contains(&a.to_string()) && s.contains(&b.to_string()), "got {s}");
     }
 
@@ -23420,7 +23494,9 @@ mod tests {
         );
         let ps = rx.try_recv().expect("PS DIST");
         let s = String::from_utf8_lossy(&ps);
-        assert!(s.contains(&format!("{a} DIST {b} 5")), "got {s}");
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
+        assert!(s.contains(&format!("{a}/0 DIST {b} 5")), "got {s}");
 
         while rx.try_recv().is_ok() {}
         apply_intent(
@@ -23435,6 +23511,8 @@ mod tests {
         );
         let ps2 = rx.try_recv().expect("PS DIST fail");
         let s2 = String::from_utf8_lossy(&ps2);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(s2.contains("DIST 999 FAIL"), "got {s2}");
 
         while rx.try_recv().is_ok() {}
@@ -23450,6 +23528,8 @@ mod tests {
         );
         let ps3 = rx.try_recv().expect("PS bare DIST");
         let s3 = String::from_utf8_lossy(&ps3);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(s3.contains("DIST 0 FAIL"), "got {s3}");
     }
 
@@ -23486,8 +23566,10 @@ mod tests {
         );
         let ps = rx.try_recv().expect("PS BIOME");
         let s = String::from_utf8_lossy(&ps);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(
-            s.contains(&format!("{p_id} BIOME 5 desert DBAC4D")),
+            s.contains(&format!("{p_id}/0 BIOME 5 desert DBAC4D")),
             "got {s}"
         );
 
@@ -23505,6 +23587,8 @@ mod tests {
         );
         let ps2 = rx.try_recv().expect("PS ?BIOME");
         let s2 = String::from_utf8_lossy(&ps2);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(s2.contains("BIOME 21 mountain 404040"), "got {s2}");
     }
 
@@ -23533,7 +23617,9 @@ mod tests {
         );
         let ps = rx.try_recv().expect("PS FLOOR");
         let s = String::from_utf8_lossy(&ps);
-        assert!(s.contains(&format!("{p_id} FLOOR 0")), "got {s}");
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
+        assert!(s.contains(&format!("{p_id}/0 FLOOR 0")), "got {s}");
 
         state.world.write().unwrap().set_floor(2, 2, 1596);
         while rx.try_recv().is_ok() {}
@@ -23549,6 +23635,8 @@ mod tests {
         );
         let ps2 = rx.try_recv().expect("PS ?FLOOR");
         let s2 = String::from_utf8_lossy(&ps2);
+        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
+
         assert!(s2.contains("FLOOR 1596"), "got {s2}");
     }
 
@@ -23589,7 +23677,7 @@ mod tests {
             let s = String::from_utf8_lossy(&pkt);
             if s.starts_with("PS\n") && s.contains("FORGETTOOLS OK") {
                 saw_ps = true;
-                assert!(s.contains(&format!("{p_id} FORGETTOOLS OK")), "got {s}");
+                assert!(s.contains(&format!("{p_id}/0 FORGETTOOLS OK")), "got {s}");
                 assert!(s.contains("TOOLS 0 1000 learned=0"), "got {s}");
             }
             if s.starts_with("TS\n") {

@@ -1338,7 +1338,9 @@ mod tests {
         worker.email = "npc-w@local".into();
         set_class(&mut social, 1, "BOSS", crate::prestige::PrestigeClass::Noble);
         set_class(&mut social, 2, "WORKER", crate::prestige::PrestigeClass::Serf);
-        let cands = vec![cand(&boss, 1), cand(&worker, 1)];
+        // NameCandidate.prestige_class drives hire cost (Haxe lineage on hiree).
+        // Noble=2 / Commoner=1 / Serf=0 — must match set_class above.
+        let cands = vec![cand(&boss, 2), cand(&worker, 0)];
         players.insert(1, boss.clone());
         players.insert(2, worker);
         let world = Arc::new(RwLock::new(World::new(32, 32, false)));
@@ -1359,7 +1361,7 @@ mod tests {
             &cands,
             knobs,
         );
-        assert_eq!(economy.coins_of(1), 70); // 100 - 30
+        assert_eq!(economy.coins_of(1), 70); // 100 - 30 (Serf hiree, same color)
         assert_eq!(economy.coins_of(2), 30);
     }
 
@@ -1403,9 +1405,10 @@ mod tests {
         // Same person race → only attack breaks friendly (not color).
         // Different person race would also ×2; here force via attack only + color ×2 path:
         // isFriendly false AND different color → ×2.
-        let mut boss_c = cand(&boss, 1);
+        // Serf=0 for hire cost prestige mult (matches set_class below).
+        let mut boss_c = cand(&boss, 0);
         boss_c.person_color = 4; // White
-        let mut worker_c = cand(&worker, 1);
+        let mut worker_c = cand(&worker, 0);
         worker_c.person_color = 1; // Black — foreign color
         let cands = vec![boss_c, worker_c, cand(&top, 0)];
         players.insert(1, boss.clone());
@@ -1458,9 +1461,10 @@ mod tests {
         worker.email = "npc-w@local".into();
         worker.display_object_id = 200;
         // Same person race → no foreign-color ×2 despite different display ids.
-        let mut boss_c = cand(&boss, 1);
+        // Serf=0 prestige mult (matches set_class).
+        let mut boss_c = cand(&boss, 0);
         boss_c.person_color = 4;
-        let mut worker_c = cand(&worker, 1);
+        let mut worker_c = cand(&worker, 0);
         worker_c.person_color = 4;
         let cands = vec![boss_c, worker_c];
         players.insert(1, boss.clone());
