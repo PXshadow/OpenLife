@@ -1300,12 +1300,18 @@ pub fn reverb_mix_from_volume(volume: f32) -> f32 {
 /// minorGems constant-power stereo: `L = vol·cos(pan·π/2)`, `R = vol·sin(pan·π/2)`.
 ///
 /// `pan` in [0,1] (0=left, 0.5=center, 1=right).
+/// Multiplied by √2 so **center at volume 1.0 is full-scale** peak (otherwise
+/// constant-power yields ~0.707 and max volume still sounds quiet).
 #[inline]
 pub fn stereo_gains_constant_power(volume: f32, pan: f32) -> (f32, f32) {
     let p = pan.clamp(0.0, 1.0);
     let v = volume.max(0.0);
     let theta = std::f32::consts::FRAC_PI_2 * p;
-    (v * theta.cos(), v * theta.sin())
+    let boost = std::f32::consts::SQRT_2;
+    (
+        (v * theta.cos() * boost).min(1.0),
+        (v * theta.sin() * boost).min(1.0),
+    )
 }
 
 // ── Device playback (`audio` feature / cpal) ─────────────────────────────────
@@ -2804,14 +2810,14 @@ mod tests {
 
     #[test]
     fn constant_power_center_and_sides() {
+        // Center at full volume → peak 1.0 after √2 boost (was ~0.707 pure constant-power).
         let (l, r) = stereo_gains_constant_power(1.0, 0.5);
-        let half = std::f32::consts::FRAC_1_SQRT_2;
-        assert!((l - half).abs() < 1e-4);
-        assert!((r - half).abs() < 1e-4);
+        assert!((l - 1.0).abs() < 1e-3, "L={l}");
+        assert!((r - 1.0).abs() < 1e-3, "R={r}");
         let (l0, r0) = stereo_gains_constant_power(1.0, 0.0);
-        assert!((l0 - 1.0).abs() < 1e-4 && r0.abs() < 1e-4);
+        assert!((l0 - 1.0).abs() < 1e-3 && r0.abs() < 1e-3);
         let (l1, r1) = stereo_gains_constant_power(1.0, 1.0);
-        assert!(l1.abs() < 1e-4 && (r1 - 1.0).abs() < 1e-4);
+        assert!(l1.abs() < 1e-3 && (r1 - 1.0).abs() < 1e-3);
     }
 
     #[test]

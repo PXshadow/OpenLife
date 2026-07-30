@@ -34,6 +34,7 @@ pub mod render;
 pub mod rmb_action;
 pub mod session;
 pub mod settings_page;
+pub mod ui_font;
 pub mod music_bank;
 pub mod overlay_bank;
 pub mod sound_bank;
@@ -46,8 +47,9 @@ pub use account_page::{
     AccountAction, AccountFocus, AccountKey, AccountPage, ClientAppState, ClientScreen, SecretMode,
 };
 pub use settings_page::{
-    draw_settings_screen, settings_key_command, ClientSettings, GraphicsMode, SettingsAction,
-    SettingsFocus, SettingsKey, SettingsPage, CLIENT_SETTINGS_FILE,
+    draw_settings_screen, restart_client_process, settings_key_command, ClientSettings,
+    GraphicsMode, SettingsAction, SettingsFocus, SettingsHitRect, SettingsKey, SettingsPage,
+    SettingsRowHit, CLIENT_SETTINGS_FILE,
 };
 pub use play_snapshot::{
     draw_snapshot_button, snapshot_button_hit, write_play_snapshot, PlaySnapshot,

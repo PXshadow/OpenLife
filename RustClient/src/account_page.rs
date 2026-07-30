@@ -192,9 +192,9 @@ impl AccountPage {
         p.caret = p.email.chars().count();
         p.focus = AccountFocus::Email;
         if p.has_usable_creds() {
-            p.status = "Enter=Connect  Esc=skip  Tab=field  F3=Settings".into();
+            p.status = "Enter=Connect  Esc=Settings  Tab=field  F3=Settings".into();
         } else {
-            p.status = "Enter email + key/password  Tab=field  F3=Settings".into();
+            p.status = "Enter email + key/password  Tab=field  Esc=Settings".into();
         }
         p
     }
@@ -385,11 +385,8 @@ impl AccountPage {
                 }
             }
             AccountKey::Escape => {
-                if self.creds_present_for_skip() {
-                    AccountAction::Connect
-                } else {
-                    AccountAction::Quit
-                }
+                // Product UX: Esc opens Settings (same as F3). Quit via window close.
+                AccountAction::OpenSettings
             }
             AccountKey::Backspace => {
                 self.backspace();
@@ -440,33 +437,89 @@ impl AccountPage {
         self.clamp_caret();
     }
 
+    /// Soft-FB layout for mouse hit-tests (matches [`Self::draw`]).
+    pub fn layout(fb_w: f32, fb_h: f32) -> AccountLayout {
+        account_layout(fb_w, fb_h)
+    }
+
+    /// LMB press in soft-FB coords: select text fields (with caret) or Connect.
+    pub fn on_pointer_down(
+        &mut self,
+        mx: f32,
+        my: f32,
+        fb_w: f32,
+        fb_h: f32,
+        sprites: Option<&HudSprites>,
+    ) -> AccountAction {
+        let layout = Self::layout(fb_w, fb_h);
+        if layout.email.contains(mx, my) {
+            self.focus = AccountFocus::Email;
+            self.caret = caret_index_at_x(
+                sprites,
+                &self.email,
+                layout.email.x + 8.0,
+                mx,
+                1.6 * 0.85,
+            );
+            self.clamp_caret();
+            return AccountAction::None;
+        }
+        if layout.secret.contains(mx, my) {
+            self.focus = AccountFocus::Secret;
+            let display = mask_secret(&self.secret, self.secret_mode);
+            self.caret = caret_index_at_x(
+                sprites,
+                &display,
+                layout.secret.x + 8.0,
+                mx,
+                1.6 * 0.85,
+            );
+            // Password mask uses same char count as secret.
+            self.caret = self.caret.min(self.secret.chars().count());
+            self.clamp_caret();
+            return AccountAction::None;
+        }
+        if layout.connect.contains(mx, my) {
+            self.focus = AccountFocus::Connect;
+            return AccountAction::Connect;
+        }
+        if layout.settings.contains(mx, my) {
+            return AccountAction::OpenSettings;
+        }
+        AccountAction::None
+    }
+
     /// Soft-FB draw (pencilFont TGA via `sprites` when present, else 5×7).
     pub fn draw(&self, fb: &mut Framebuffer, sprites: Option<&HudSprites>) {
         let w = fb.width as f32;
         let h = fb.height as f32;
-        // Warm parchment background (product-page feel).
-        fb.clear([210, 200, 175, 255]);
+        // Modern semi-transparent grey / black glass (opaque soft-FB approx).
+        fb.clear([10, 11, 14, 255]);
+        fb.fill_rect(0, 0, w as i32, 40, [8, 9, 12, 255]);
+        fb.fill_rect(0, h as i32 - 36, w as i32, 36, [8, 9, 12, 255]);
         // Card
-        let card_w = 420.0f32;
-        let card_h = 260.0f32;
+        let card_w = 460.0f32;
+        let card_h = 320.0f32;
         let card_x = ((w - card_w) * 0.5).round() as i32;
-        let card_y = ((h - card_h) * 0.5 - 20.0).round() as i32;
-        fb.fill_rect(card_x - 4, card_y - 4, (card_w as i32) + 8, (card_h as i32) + 8, [
-            80, 70, 50, 255,
-        ]);
-        fb.fill_rect(card_x, card_y, card_w as i32, card_h as i32, [235, 228, 205, 255]);
+        let card_y = ((h - card_h) * 0.5 - 10.0).round() as i32;
+        // Shadow + rim + glass panel
+        fb.fill_rect(card_x + 8, card_y + 10, card_w as i32, card_h as i32, [0, 0, 0, 130]);
+        fb.fill_rect(card_x - 1, card_y - 1, card_w as i32 + 2, card_h as i32 + 2, [55, 60, 72, 180]);
+        fb.fill_rect(card_x, card_y, card_w as i32, card_h as i32, [22, 24, 30, 240]);
+        fb.fill_rect(card_x, card_y, card_w as i32, 4, [90, 150, 210, 255]);
+        fb.fill_rect(card_x, card_y + 4, card_w as i32, 1, [40, 48, 60, 255]);
 
-        let ink = [20, 18, 14, 255];
-        let ink_dim = [90, 80, 60, 255];
-        let focus_bg = [255, 250, 220, 255];
-        let field_bg = [250, 245, 230, 255];
-        let btn_bg = [90, 120, 70, 255];
-        let btn_focus = [120, 160, 90, 255];
+        let ink = [230, 235, 245, 255];
+        let ink_dim = [140, 150, 168, 255];
+        let focus_bg = [38, 48, 64, 255];
+        let field_bg = [16, 18, 24, 255];
+        let btn_bg = [45, 110, 75, 255];
+        let btn_focus = [65, 150, 95, 255];
         let scale = 1.6f32;
 
         let title_x = w * 0.5;
         let title_y = card_y as f32 + 28.0;
-        draw_text(fb, sprites, "OPEN LIFE", title_x, title_y, scale * 1.2, ink, true);
+        draw_text(fb, sprites, "OPEN LIFE", title_x, title_y, scale * 1.2, [100, 180, 220, 255], true);
         draw_text(
             fb,
             sprites,
@@ -573,38 +626,61 @@ impl AccountPage {
             );
         }
 
-        // Connect button
-        let btn_w = 140.0f32;
-        let btn_h = 34.0f32;
-        let btn_x = title_x - btn_w * 0.5;
-        let btn_y = secret_y + 48.0;
+        // Connect + Settings buttons (layout must match `account_layout`).
+        let layout = account_layout(w, h);
         let btn_focused = self.focus == AccountFocus::Connect;
         fb.fill_rect(
-            btn_x as i32,
-            btn_y as i32,
-            btn_w as i32,
-            btn_h as i32,
+            layout.connect.x as i32,
+            layout.connect.y as i32,
+            layout.connect.w as i32,
+            layout.connect.h as i32,
             if btn_focused { btn_focus } else { btn_bg },
         );
         draw_text(
             fb,
             sprites,
             "Connect",
-            title_x,
-            btn_y + btn_h * 0.5,
+            layout.connect.x + layout.connect.w * 0.5,
+            layout.connect.y + layout.connect.h * 0.5,
+            scale * 0.95,
+            [250, 250, 245, 255],
+            true,
+        );
+        let settings_bg = [55, 95, 145, 255];
+        fb.fill_rect(
+            layout.settings.x as i32,
+            layout.settings.y as i32,
+            layout.settings.w as i32,
+            layout.settings.h as i32,
+            settings_bg,
+        );
+        // Top accent on Settings button
+        fb.fill_rect(
+            layout.settings.x as i32,
+            layout.settings.y as i32,
+            layout.settings.w as i32,
+            2,
+            [120, 180, 230, 255],
+        );
+        draw_text(
+            fb,
+            sprites,
+            "Settings",
+            layout.settings.x + layout.settings.w * 0.5,
+            layout.settings.y + layout.settings.h * 0.5,
             scale * 0.95,
             [250, 250, 245, 255],
             true,
         );
 
         // Host line + status
-        let host_line = format!("{}:{}", self.host, self.port);
+        let host_line = format!("{}:{}   Esc/F3=Settings", self.host, self.port);
         draw_text(
             fb,
             sprites,
             &host_line,
             title_x,
-            btn_y + 48.0,
+            layout.connect.y + 48.0,
             scale * 0.7,
             ink_dim,
             true,
@@ -615,9 +691,9 @@ impl AccountPage {
                 sprites,
                 &self.status,
                 title_x,
-                card_y as f32 + card_h - 18.0,
+                card_y as f32 + card_h - 22.0,
                 scale * 0.7,
-                ink_dim,
+                [180, 190, 210, 255],
                 true,
             );
         }
@@ -661,6 +737,112 @@ impl AccountPage {
 
 
 
+/// Axis-aligned hit rect (soft-FB pixels) for account form widgets.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AccountHitRect {
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+}
+
+impl AccountHitRect {
+    pub fn contains(self, px: f32, py: f32) -> bool {
+        px >= self.x && px < self.x + self.w && py >= self.y && py < self.y + self.h
+    }
+}
+
+/// Hit targets for Account page mouse interaction.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AccountLayout {
+    pub email: AccountHitRect,
+    pub secret: AccountHitRect,
+    pub connect: AccountHitRect,
+    /// Settings button (Esc/F3 alternate; always mouse-reachable).
+    pub settings: AccountHitRect,
+}
+
+fn account_layout(fb_w: f32, fb_h: f32) -> AccountLayout {
+    let card_w = 420.0f32;
+    let card_h = 280.0f32;
+    let card_x = ((fb_w - card_w) * 0.5).round();
+    let card_y = ((fb_h - card_h) * 0.5 - 20.0).round();
+    let field_x = card_x + 28.0;
+    let field_w = card_w - 56.0;
+    let field_h = 28.0;
+    let email_y = card_y + 80.0;
+    let secret_y = email_y + 52.0;
+    let btn_w = 140.0f32;
+    let btn_h = 34.0f32;
+    let title_x = fb_w * 0.5;
+    let gap = 12.0f32;
+    let pair_w = btn_w * 2.0 + gap;
+    let connect_x = title_x - pair_w * 0.5;
+    let settings_x = connect_x + btn_w + gap;
+    let btn_y = secret_y + 48.0;
+    AccountLayout {
+        email: AccountHitRect {
+            x: field_x,
+            y: email_y,
+            w: field_w,
+            h: field_h,
+        },
+        secret: AccountHitRect {
+            x: field_x,
+            y: secret_y,
+            w: field_w,
+            h: field_h,
+        },
+        connect: AccountHitRect {
+            x: connect_x,
+            y: btn_y,
+            w: btn_w,
+            h: btn_h,
+        },
+        settings: AccountHitRect {
+            x: settings_x,
+            y: btn_y,
+            w: btn_w,
+            h: btn_h,
+        },
+    }
+}
+
+/// Char index under click `mx` for a left-aligned field starting at `field_left`.
+fn caret_index_at_x(
+    sprites: Option<&HudSprites>,
+    text: &str,
+    field_left: f32,
+    mx: f32,
+    scale: f32,
+) -> usize {
+    if mx <= field_left {
+        return 0;
+    }
+    let chars: Vec<char> = text.chars().collect();
+    if chars.is_empty() {
+        return 0;
+    }
+    let mut best = chars.len();
+    for i in 0..=chars.len() {
+        let prefix: String = chars[..i].iter().collect();
+        let w = measure_text(sprites, &prefix, scale);
+        let edge = field_left + w;
+        if mx < edge {
+            // Pick closer of i-1 and i by midpoint.
+            if i == 0 {
+                return 0;
+            }
+            let prev: String = chars[..i - 1].iter().collect();
+            let w_prev = measure_text(sprites, &prev, scale);
+            let mid = field_left + (w_prev + w) * 0.5;
+            return if mx < mid { i - 1 } else { i };
+        }
+        best = i;
+    }
+    best
+}
+
 /// Abstract keys so the lib stays free of minifb.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccountKey {
@@ -695,9 +877,9 @@ fn mask_secret(secret: &str, mode: SecretMode) -> String {
 
 fn draw_field_border(fb: &mut Framebuffer, x: f32, y: f32, w: f32, h: f32, focused: bool) {
     let c = if focused {
-        [60, 100, 40, 255]
+        [100, 180, 220, 255]
     } else {
-        [120, 110, 90, 255]
+        [70, 80, 95, 255]
     };
     let xi = x as i32;
     let yi = y as i32;
@@ -832,11 +1014,18 @@ impl ClientAppState {
     }
 
     /// Enter Settings from Account or Playing (P5#39).
+    ///
+    /// Returns `true` when the screen transition happened. Idempotent when already
+    /// on Settings (`false`). Logs a one-line reason when blocked (Death/Loading).
     pub fn enter_settings(&mut self) -> bool {
         if self.screen == ClientScreen::Settings {
             return false;
         }
         if !matches!(self.screen, ClientScreen::Account | ClientScreen::Playing) {
+            eprintln!(
+                "settings: cannot open from screen={} (need account|playing)",
+                self.screen.as_str()
+            );
             return false;
         }
         self.settings_return = self.screen;
@@ -846,9 +1035,14 @@ impl ClientAppState {
             &self.account.email,
         );
         self.settings.focus = crate::settings_page::SettingsFocus::SoundVolume;
-        self.settings.status = "Tab=row  Left/Right=adjust  +/-=zoom  Esc=Back".into();
+        self.settings.status =
+            "Mouse · Tab=row · [Account settings] · Esc=Back".into();
         self.settings.apply_runtime_globals();
         self.screen = ClientScreen::Settings;
+        eprintln!(
+            "settings: opened (return={})",
+            self.settings_return.as_str()
+        );
         true
     }
 
@@ -865,6 +1059,20 @@ impl ClientAppState {
             ClientScreen::Account => ClientScreen::Account,
             _ => ClientScreen::Account,
         };
+    }
+
+    /// From Settings → Account page to edit email / key (keeps settings_return).
+    pub fn enter_account_from_settings(&mut self) {
+        if self.screen != ClientScreen::Settings {
+            return;
+        }
+        self.settings.clamp();
+        self.settings.apply_runtime_globals();
+        let _ = self.settings.save_default();
+        // Next leave_settings from Account→Settings→Back returns to original return target.
+        self.screen = ClientScreen::Account;
+        self.account.status = "Account settings — Esc/F3 back to Settings  Enter=Connect".into();
+        eprintln!("account: opened from Settings");
     }
 
     /// Apply volume/mute to optional banks (P5#39).
@@ -986,12 +1194,12 @@ mod tests {
     }
 
     #[test]
-    fn enter_connects_escape_skips_with_creds() {
+    fn enter_connects_escape_opens_settings() {
         let mut page = AccountPage::default();
-        // No creds → Esc quits
-        assert_eq!(page.on_key(AccountKey::Escape), AccountAction::Quit);
+        // Esc → Settings (same as F3); window close to quit.
+        assert_eq!(page.on_key(AccountKey::Escape), AccountAction::OpenSettings);
         page.email = "e@x".into();
-        assert_eq!(page.on_key(AccountKey::Escape), AccountAction::Connect);
+        assert_eq!(page.on_key(AccountKey::Escape), AccountAction::OpenSettings);
         assert_eq!(page.on_key(AccountKey::Enter), AccountAction::Connect);
     }
 
@@ -1077,5 +1285,76 @@ mod tests {
 
         crate::sound_bank::set_sfx_muted(false);
         crate::sound_bank::set_music_muted(false);
+    }
+
+    #[test]
+    fn mouse_selects_textfields_and_connect() {
+        let mut page = AccountPage::default();
+        page.email = "hello@test".into();
+        page.secret = "key123".into();
+        let fb_w = 960.0;
+        let fb_h = 540.0;
+        let layout = AccountPage::layout(fb_w, fb_h);
+
+        // Click email field → focus Email, caret somewhere in text.
+        let a = page.on_pointer_down(
+            layout.email.x + 20.0,
+            layout.email.y + 10.0,
+            fb_w,
+            fb_h,
+            None,
+        );
+        assert_eq!(a, AccountAction::None);
+        assert_eq!(page.focus, AccountFocus::Email);
+        assert!(page.caret <= page.email.chars().count());
+
+        // Click secret field.
+        let a = page.on_pointer_down(
+            layout.secret.x + 10.0,
+            layout.secret.y + 10.0,
+            fb_w,
+            fb_h,
+            None,
+        );
+        assert_eq!(a, AccountAction::None);
+        assert_eq!(page.focus, AccountFocus::Secret);
+
+        // Click Connect.
+        let a = page.on_pointer_down(
+            layout.connect.x + layout.connect.w * 0.5,
+            layout.connect.y + layout.connect.h * 0.5,
+            fb_w,
+            fb_h,
+            None,
+        );
+        assert_eq!(a, AccountAction::Connect);
+        assert_eq!(page.focus, AccountFocus::Connect);
+
+        // Click Settings button.
+        let a = page.on_pointer_down(
+            layout.settings.x + layout.settings.w * 0.5,
+            layout.settings.y + layout.settings.h * 0.5,
+            fb_w,
+            fb_h,
+            None,
+        );
+        assert_eq!(a, AccountAction::OpenSettings);
+    }
+
+    #[test]
+    fn enter_settings_from_account_and_playing() {
+        let mut app = ClientAppState::default();
+        assert!(app.screen.is_account());
+        assert!(app.enter_settings());
+        assert!(app.screen.is_settings());
+        // Already open — no-op
+        assert!(!app.enter_settings());
+        app.leave_settings();
+        assert!(app.screen.is_account());
+        app.enter_playing();
+        assert!(app.enter_settings());
+        assert!(app.screen.is_settings());
+        app.leave_settings();
+        assert!(app.screen.is_playing());
     }
 }

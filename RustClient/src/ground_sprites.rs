@@ -1,13 +1,13 @@
 //! Ground biome tiles + overlay sheets (C++ `groundSprites` / Haxe `Render.loadGround`).
 //!
 //! - **Soft biome tiles (C++ `tiles[][]`):** `groundTileCache/biome_{id}_x{i}_y{j}.tga`
-//!   — **2×CELL_D** (256²) with soft alpha edges for biome-border blending
-//!   (`LivingLifePage.cpp` ~7358–7388).
-//! - **Square tiles (C++ `squareTiles[][]`):** `…_square.tga` — **CELL_D** (128²) solid
-//!   interior when left/above/diag neighbors share the biome (~7345–7356).
+//!   Ã¢â‚¬â€ **2Ãƒâ€”CELL_D** (256Ã‚Â²) with soft alpha edges for biome-border blending
+//!   (`LivingLifePage.cpp` ~7358Ã¢â‚¬â€œ7388).
+//! - **Square tiles (C++ `squareTiles[][]`):** `Ã¢â‚¬Â¦_square.tga` Ã¢â‚¬â€ **CELL_D** (128Ã‚Â²) solid
+//!   interior when left/above/diag neighbors share the biome (~7345Ã¢â‚¬â€œ7356).
 //! - **Overlays:** `graphics/ground_t{N}.tga` (Haxe `Resource.groundOverlay`).
 //! - **OLG1:** binary presence index (paths + dims) so load skips miss probes and
-//!   multi-root scans; pixels stay lazy TGA — **default play path**.
+//!   multi-root scans; pixels stay lazy TGA Ã¢â‚¬â€ **default play path**.
 //! - **OLGA (optional):** full multi-page ground atlas dump (Haxe `SaveGroundData.bin` +
 //!   `ground.png` analogue). Bake via [`bake_olga_to_dir`] / CLI `--bake-ground-atlas`;
 //!   load via [`GroundBank::load_olga`] / [`GroundBank::load_prefer_atlas_cache`].
@@ -33,12 +33,12 @@ pub const CELL_D: i32 = 128;
 /// Atlas page size for packed ground tiles (multi-page when full; Haxe uses one `MAX_TEXTURE`).
 pub const GROUND_ATLAS: i32 = 2048;
 
-/// OLG1 magic — ground tile / overlay index cache.
+/// OLG1 magic Ã¢â‚¬â€ ground tile / overlay index cache.
 pub const OLG1_MAGIC: &[u8; 4] = b"OLG1";
 /// OLG1 format version (fixed meta + dense path records).
 pub const OLG1_FORMAT_VERSION: u32 = 1;
 
-/// OLGA magic — full multi-page ground atlas (optional SaveGroundData-style dump).
+/// OLGA magic Ã¢â‚¬â€ full multi-page ground atlas (optional SaveGroundData-style dump).
 pub const OLGA_MAGIC: &[u8; 4] = b"OLGA";
 /// OLGA format version (tile rects + raw RGBA pages).
 pub const OLGA_FORMAT_VERSION: u32 = 1;
@@ -55,7 +55,7 @@ pub const OLG1_KIND_UNKNOWN: u8 = 2;
 const OLG1_F_HAS_SQUARE: u8 = 1 << 0;
 const OLG1_F_EXISTS: u8 = 1 << 1;
 
-/// Default tile grid (C++ / Haxe 4×4 variation).
+/// Default tile grid (C++ / Haxe 4Ãƒâ€”4 variation).
 pub const GROUND_TILES_WIDE: u16 = 4;
 pub const GROUND_TILES_HIGH: u16 = 4;
 /// Haxe packs overlays `ground_t0`..`ground_t3`.
@@ -83,7 +83,7 @@ pub fn ground_map_key_unknown(tile_x: i32, tile_y: i32) -> i32 {
 
 /// Haxe overlay slot for world tile, if an overlay should be drawn.
 ///
-/// Haxe `addGround`: when `abs(x % 4) == 0` (and `abs(y % 0) == 0` — always true),
+/// Haxe `addGround`: when `abs(x % 4) == 0` (and `abs(y % 0) == 0` Ã¢â‚¬â€ always true),
 /// `index = abs(x % 8) + abs(y % 8) * 2` into the first 4 packed overlays.
 pub fn ground_overlay_slot(tile_x: i32, tile_y: i32) -> Option<u8> {
     if abs_mod(tile_x, 4) != 0 {
@@ -107,22 +107,64 @@ fn abs_mod(v: i32, m: i32) -> i32 {
     }
 }
 
-/// Biome flat colors matched to typical `ground_N.tga` midtones (underfill + missing TGA).
-/// Tuned so solid plates don't flash as neon grids under soft-edge tiles.
+/// Biome flat colors matched to `ground_N.tga` / `groundTileCache` midtones
+/// (underfill while soft/square TGAs load). Same hue family as Jason C++ sheets.
+///
+/// Sampled from live `OneLifeGameSourceData/groundTileCache` square tiles (center
+/// average). Unknown / out-of-range biomes use the `ground_U` (cache 99999) midtone
+/// Ã¢â‚¬â€ C++ still draws the unknown sheet, then multiplies by [`unknown_biome_draw_color`].
 pub fn biome_color(biome: u8) -> [u8; 4] {
+    // Center averages from OneLifeGameSourceData/groundTileCache square TGAs.
     match biome {
-        0 => [98, 132, 62, 255],   // grass green
-        1 => [168, 150, 78, 255],  // swamp / yellow-green
-        2 => [58, 88, 48, 255],    // jungle dark
-        3 => [198, 172, 118, 255], // desert sand
-        4 => [158, 162, 168, 255], // arctic grey
-        5 => [62, 102, 148, 255],  // water
-        6 => [220, 228, 236, 255], // snow
-        _ => [72, 96, 58, 255],    // same as CLEAR_RGBA earth
+        0 => [102, 145, 55, 255],  // grass
+        1 => [123, 95, 82, 255],   // swamp
+        2 => [227, 150, 25, 255],  // yellow prairie
+        3 => [57, 50, 44, 255],    // dark
+        4 => [255, 255, 255, 255], // polar white
+        5 => [126, 99, 57, 255],   // badlands
+        6 => [19, 48, 3, 255],     // deep green
+        // ground_U / biome_99999 midtone before getXYRandom multiply
+        _ => [237, 236, 236, 255],
     }
 }
 
-/// Slight per-tile dither so flat biomes still show Haxe-style 4×4 variation.
+/// C++ `getXYRandom` / `xxTweakedHash2D` (seeds 0) Ã¢â‚¬â€ returns 0..1.
+///
+/// Used when a biome has no `ground_N.tga` set: Jason tints the unknown sheet with
+/// `setDrawColor(getXYRandom(b,b), getXYRandom(b,b+100), getXYRandom(b,b+300), 1)`.
+pub fn get_xy_random(x: i32, y: i32) -> f32 {
+    const XX_PRIME32_2: u32 = 2_246_822_519;
+    const XX_PRIME32_3: u32 = 3_266_489_917;
+    const XX_PRIME32_5: u32 = 374_761_393;
+    let mut h32 = (x as u32).wrapping_add(XX_PRIME32_5);
+    h32 = h32.wrapping_add((y as u32).wrapping_mul(XX_PRIME32_3));
+    h32 = h32.wrapping_mul(XX_PRIME32_2);
+    h32 ^= h32 >> 13;
+    h32 = h32.wrapping_mul(XX_PRIME32_3);
+    h32 ^= h32 >> 16;
+    (h32 as f64 / 4_294_967_295.0_f64) as f32
+}
+
+/// C++ random draw color for biomes that fall through to the unknown ground sheet.
+pub fn unknown_biome_draw_color(biome_id: i32) -> [u8; 4] {
+    let r = (get_xy_random(biome_id, biome_id).clamp(0.0, 1.0) * 255.0).round() as u8;
+    let g = (get_xy_random(biome_id, biome_id + 100).clamp(0.0, 1.0) * 255.0).round() as u8;
+    let b = (get_xy_random(biome_id, biome_id + 300).clamp(0.0, 1.0) * 255.0).round() as u8;
+    [r, g, b, 255]
+}
+
+/// Underfill / plate color for a map biome byte: known sheet midtones, or the
+/// Jason random tint of the unknown sheet for missing biomes.
+pub fn biome_plate_color(biome: u8, has_sheet: bool) -> [u8; 4] {
+    if has_sheet {
+        biome_color(biome)
+    } else {
+        // Approximate underfill with the random multiply color (full tint of mid grey).
+        unknown_biome_draw_color(biome as i32)
+    }
+}
+
+/// Slight per-tile dither so flat biomes still show Haxe-style 4Ãƒâ€”4 variation.
 pub fn biome_color_varied(biome: u8, tile_x: i32, tile_y: i32) -> [u8; 4] {
     let mut c = biome_color(biome);
     let idx = ground_variation_index(biome, tile_x, tile_y);
@@ -222,16 +264,16 @@ pub struct GroundBank {
     /// Search roots: content dir, game source data, etc.
     roots: Vec<PathBuf>,
     pages: Vec<GroundPage>,
-    /// Soft (2×CELL_D) tiles — variation index (`biome*16 + x%4 + y%4*4`).
+    /// Soft (2Ãƒâ€”CELL_D) tiles Ã¢â‚¬â€ variation index (`biome*16 + x%4 + y%4*4`).
     tiles: HashMap<i32, GroundTileRect>,
-    /// Square (CELL_D) tiles — same index, from `*_square.tga`.
+    /// Square (CELL_D) tiles Ã¢â‚¬â€ same index, from `*_square.tga`.
     square_tiles: HashMap<i32, GroundTileRect>,
     /// Overlay sheet rects keyed by overlay id 0..N-1 (`graphics/ground_tN`).
     overlays: HashMap<u8, GroundTileRect>,
     missing: HashMap<i32, ()>,
     missing_square: HashMap<i32, ()>,
     missing_overlays: HashMap<u8, ()>,
-    /// OLG1 presence index (bank_key → entry). Empty ⇒ full disk probe.
+    /// OLG1 presence index (bank_key Ã¢â€ â€™ entry). Empty Ã¢â€¡â€™ full disk probe.
     index: HashMap<i32, GroundIndexEntry>,
     /// Overlay entries by overlay id.
     overlay_index: HashMap<u8, GroundIndexEntry>,
@@ -418,13 +460,149 @@ impl GroundBank {
         ))
     }
 
-    /// Ensure soft (2×CELL_D) tile for biome/tile coords — C++ `tiles[setY][setX]`.
+    /// True when this bank has (or can load) soft tiles for `biome` (not unknown-only).
+    ///
+    /// C++ `groundSprites[b] != NULL` Ã¢â‚¬â€ missing sets use the unknown `ground_U` sheet.
+    pub fn has_biome_sheet(&self, biome: u8) -> bool {
+        if biome as i32 == UNKNOWN_BIOME_CACHE_ID {
+            return self.has_unknown_sheet();
+        }
+        let base = biome as i32 * 16;
+        // Any of the 4Ãƒâ€”4 variations known present or already packed.
+        for i in 0..16 {
+            let k = base + i;
+            if self.tiles.contains_key(&k) {
+                return true;
+            }
+            if let Some(ent) = self.index.get(&k) {
+                if ent.exists {
+                    return true;
+                }
+            }
+        }
+        // No OLG1 yet: allow disk probe path (ensure will try).
+        if !self.index_loaded {
+            return true;
+        }
+        // Index loaded but no entries for this biome Ã¢â€ â€™ no sheet.
+        self.biome_tile_count == 0
+    }
+
+    /// True when unknown-biome (`99999`) tiles are available.
+    pub fn has_unknown_sheet(&self) -> bool {
+        for i in 0..16 {
+            let k = UNKNOWN_BIOME_CACHE_ID + i;
+            if self.tiles.contains_key(&k) {
+                return true;
+            }
+            if let Some(ent) = self.index.get(&k) {
+                if ent.exists {
+                    return true;
+                }
+            }
+        }
+        !self.index_loaded || self.biome_tile_count == 0
+    }
+
+    /// Ensure soft (2Ãƒâ€”CELL_D) tile for biome/tile coords Ã¢â‚¬â€ C++ `tiles[setY][setX]`.
     pub fn ensure_tile(&mut self, biome: u8, tile_x: i32, tile_y: i32) -> Option<GroundTileRect> {
         let index = ground_variation_index(biome, tile_x, tile_y);
         self.ensure_index(biome, index)
     }
 
-    /// Ensure square (CELL_D) tile — C++ `squareTiles[setY][setX]` (interior same-biome).
+    /// Soft tile for a biome, or C++ unknown sheet (`biome_99999_*` / `ground_U`) on miss.
+    ///
+    /// Returns `(rect, used_unknown)`. Caller multiplies unknown draws by
+    /// [`unknown_biome_draw_color`] when the biome itself had no sheet.
+    pub fn ensure_tile_or_unknown(
+        &mut self,
+        biome: u8,
+        tile_x: i32,
+        tile_y: i32,
+    ) -> Option<(GroundTileRect, bool)> {
+        if self.has_biome_sheet(biome) {
+            if let Some(r) = self.ensure_tile(biome, tile_x, tile_y) {
+                return Some((r, false));
+            }
+        }
+        self.ensure_unknown_tile(tile_x, tile_y).map(|r| (r, true))
+    }
+
+    /// Square interior tile, or unknown square/soft on miss.
+    pub fn ensure_square_or_unknown(
+        &mut self,
+        biome: u8,
+        tile_x: i32,
+        tile_y: i32,
+    ) -> Option<(GroundTileRect, bool)> {
+        if self.has_biome_sheet(biome) {
+            if let Some(r) = self.ensure_square_tile(biome, tile_x, tile_y) {
+                return Some((r, false));
+            }
+            // Square miss but soft present Ã¢â‚¬â€ C++ still has squareTiles; fall soft for that set.
+            if let Some(r) = self.ensure_tile(biome, tile_x, tile_y) {
+                return Some((r, false));
+            }
+        }
+        // Unknown path: prefer square unknown, else soft unknown.
+        let x = abs_mod(tile_x, 4);
+        let y = abs_mod(tile_y, 4);
+        let index = UNKNOWN_BIOME_CACHE_ID + x + y * 4;
+        if let Some(r) = self.square_tiles.get(&index) {
+            return Some((*r, true));
+        }
+        // Try packing unknown square via cache id 99999.
+        if let Some(r) = self.ensure_square_tile_for_cache_id(UNKNOWN_BIOME_CACHE_ID, tile_x, tile_y)
+        {
+            return Some((r, true));
+        }
+        self.ensure_unknown_tile(tile_x, tile_y).map(|r| (r, true))
+    }
+
+    fn ensure_square_tile_for_cache_id(
+        &mut self,
+        cache_id: i32,
+        tile_x: i32,
+        tile_y: i32,
+    ) -> Option<GroundTileRect> {
+        let bx = abs_mod(tile_x, 4);
+        let by = abs_mod(tile_y, 4);
+        let index = cache_id + bx + by * 4;
+        if let Some(r) = self.square_tiles.get(&index) {
+            return Some(*r);
+        }
+        if self.missing_square.contains_key(&index) {
+            return None;
+        }
+        let rel = format!("groundTileCache/biome_{cache_id}_x{bx}_y{by}_square.tga");
+        let path = match self.resolve_rel(&rel) {
+            Some(p) => p,
+            None => {
+                self.missing_square.insert(index, ());
+                return None;
+            }
+        };
+        let img = match load_tga_path(&path) {
+            Ok(i) => i,
+            Err(_) => {
+                self.missing_square.insert(index, ());
+                return None;
+            }
+        };
+        match self.pack_image(&img.pixels, img.width, img.height) {
+            Some(gt) => {
+                self.square_tiles.insert(index, gt);
+                self.any_loaded = true;
+                Some(gt)
+            }
+            None => {
+                self.missing_square.insert(index, ());
+                None
+            }
+        }
+    }
+
+    /// Ensure square (CELL_D) tile Ã¢â‚¬â€ C++ `squareTiles[setY][setX]` (interior same-biome).
     pub fn ensure_square_tile(
         &mut self,
         biome: u8,
@@ -448,7 +626,7 @@ impl GroundBank {
         let rel = format!("groundTileCache/biome_{cache_id}_x{bx}_y{by}_square.tga");
         // Prefer square file; fall back to soft tile scaled by caller if missing.
         if self.resolve_rel(&rel).is_none() {
-            // OLG1 may mark has_square — still probe disk via resolve.
+            // OLG1 may mark has_square Ã¢â‚¬â€ still probe disk via resolve.
             if self.index_loaded {
                 if let Some(ent) = self.index.get(&index) {
                     if !ent.has_square {
@@ -503,7 +681,7 @@ impl GroundBank {
                 let rel = ent.rel_path.clone();
                 return self.pack_tile_from_rel(index, &rel);
             }
-            // Indexed bank but this key absent → treat as missing (no multi-root probe).
+            // Indexed bank but this key absent Ã¢â€ â€™ treat as missing (no multi-root probe).
             // Fall through only when index empty of biome tiles entirely.
             if self.biome_tile_count > 0 {
                 self.missing.insert(index, ());
@@ -582,7 +760,7 @@ impl GroundBank {
         self.pack_overlay_from_rel(id, &rel)
     }
 
-    /// Preload all known overlays from index (or ids 0..3). Cheap — only 4 sheets.
+    /// Preload all known overlays from index (or ids 0..3). Cheap Ã¢â‚¬â€ only 4 sheets.
     pub fn preload_overlays(&mut self) -> usize {
         let ids: Vec<u8> = if !self.overlay_index.is_empty() {
             let mut v: Vec<u8> = self.overlay_index.keys().copied().collect();
@@ -896,7 +1074,7 @@ impl GroundBank {
     }
 }
 
-/// Decode runtime bank key → (kind, id, tile_x, tile_y) for synthetic index rows.
+/// Decode runtime bank key Ã¢â€ â€™ (kind, id, tile_x, tile_y) for synthetic index rows.
 fn decode_bank_key(k: i32) -> (u8, i32, u8, u8) {
     if k >= UNKNOWN_BIOME_CACHE_ID {
         let off = k - UNKNOWN_BIOME_CACHE_ID;
@@ -918,7 +1096,7 @@ impl Default for GroundBank {
     }
 }
 
-// ── OLG1 binary ──────────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ OLG1 binary Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 /// Fixed meta after the 24-byte OL* header.
 #[derive(Debug, Clone, Copy)]
@@ -997,7 +1175,7 @@ pub fn write_olg1(entries: &[GroundIndexEntry], data_version: u32) -> Vec<u8> {
     out
 }
 
-/// Parse OLG1 → (data_version, entries, meta).
+/// Parse OLG1 Ã¢â€ â€™ (data_version, entries, meta).
 pub fn load_olg1(data: &[u8]) -> Result<(u32, Vec<GroundIndexEntry>, Olg1Meta), String> {
     if data.len() < 24 + 8 {
         return Err("OLG1 too short".into());
@@ -1082,7 +1260,7 @@ pub fn default_ground_roots(content_root: Option<&Path>) -> Vec<PathBuf> {
         roots.push(c.to_path_buf());
         if let Some(parent) = c.parent() {
             roots.push(parent.to_path_buf());
-            // e.g. content/OneLifeData7 → OpenLife sibling game data
+            // e.g. content/OneLifeData7 Ã¢â€ â€™ OpenLife sibling game data
             if let Some(gp) = parent.parent() {
                 roots.push(gp.join("OneLifeGameSourceData"));
             }
@@ -1097,7 +1275,7 @@ pub fn default_ground_roots(content_root: Option<&Path>) -> Vec<PathBuf> {
         .collect()
 }
 
-/// Scan roots for overlays + biome tiles → index entries.
+/// Scan roots for overlays + biome tiles Ã¢â€ â€™ index entries.
 pub fn scan_ground_index(roots: &[PathBuf]) -> Vec<GroundIndexEntry> {
     let mut out = Vec::new();
 
@@ -1235,7 +1413,7 @@ pub fn bake_olg1_to_dir(
     Ok((bytes.len(), count))
 }
 
-// ── OLGA binary (optional full multi-atlas dump) ─────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ OLGA binary (optional full multi-atlas dump) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 /// Stats from an OLGA bake (includes wall-clock timings for bake vs later load compare).
 #[derive(Debug, Clone, Copy, Default)]
@@ -1357,7 +1535,7 @@ fn write_olga_from_bank(bank: &GroundBank, data_version: u32) -> Vec<u8> {
     out
 }
 
-/// Parse OLGA → (data_version, tiles, overlays, pages).
+/// Parse OLGA Ã¢â€ â€™ (data_version, tiles, overlays, pages).
 fn load_olga(
     data: &[u8],
 ) -> Result<
@@ -1485,7 +1663,7 @@ fn load_olga(
 /// Bake full multi-page ground atlas (OLGA) from content / game-data roots.
 ///
 /// Scans index, packs all existing TGA tiles, returns OLGA bytes + stats.
-/// Large output (tens of MB with full OHOL groundTileCache) — optional path only.
+/// Large output (tens of MB with full OHOL groundTileCache) Ã¢â‚¬â€ optional path only.
 pub fn bake_olga_from_roots(
     content_root: Option<&Path>,
     data_version: u32,
@@ -1540,6 +1718,110 @@ pub fn bake_olga_to_dir(
 mod tests {
     use super::*;
 
+    fn sample_square_midtone(path: &Path) -> Option<(u8, u8, u8)> {
+        let img = load_tga_path(path).ok()?;
+        let w = img.width as usize;
+        let h = img.height as usize;
+        let cx = w / 2;
+        let cy = h / 2;
+        let mut r = 0u64;
+        let mut g = 0u64;
+        let mut bl = 0u64;
+        let mut n = 0u64;
+        for y in (cy.saturating_sub(16))..(cy + 16).min(h) {
+            for x in (cx.saturating_sub(16))..(cx + 16).min(w) {
+                let i = (y * w + x) * 4;
+                if i + 2 >= img.pixels.len() {
+                    continue;
+                }
+                r += img.pixels[i] as u64;
+                g += img.pixels[i + 1] as u64;
+                bl += img.pixels[i + 2] as u64;
+                n += 1;
+            }
+        }
+        if n == 0 {
+            return None;
+        }
+        Some(((r / n) as u8, (g / n) as u8, (bl / n) as u8))
+    }
+
+    #[test]
+    fn sample_live_square_midtones_for_biome_color_table() {
+        // Documents Jason sheet midtones used by `biome_color`. Soft-fail if game data absent.
+        let game = PathBuf::from(r"C:\OhOl\OpenLife\OneLifeGameSourceData\groundTileCache");
+        if !game.is_dir() {
+            return;
+        }
+        let mut samples = Vec::new();
+        for b in 0u8..=6 {
+            let p = game.join(format!("biome_{b}_x0_y0_square.tga"));
+            if let Some(rgb) = sample_square_midtone(&p) {
+                samples.push((b, rgb));
+            }
+        }
+        // Sanity: grass (0) should be greener than desert (3) typically; all finite.
+        assert!(!samples.is_empty(), "expected groundTileCache square samples");
+        for (b, (ar, ag, ab)) in samples {
+            let table = biome_color(b);
+            // Underfill must track sheet midtones so borders blend (tolerance for dither).
+            assert!(
+                (ar as i32 - table[0] as i32).abs() < 48
+                    && (ag as i32 - table[1] as i32).abs() < 48
+                    && (ab as i32 - table[2] as i32).abs() < 48,
+                "biome {b} midtone ({ar},{ag},{ab}) vs table {:?}",
+                table
+            );
+        }
+        if let Some((ar, ag, ab)) =
+            sample_square_midtone(&game.join("biome_99999_x0_y0_square.tga"))
+        {
+            let table = biome_color(255);
+            assert!(
+                (ar as i32 - table[0] as i32).abs() < 48
+                    && (ag as i32 - table[1] as i32).abs() < 48
+                    && (ab as i32 - table[2] as i32).abs() < 48,
+                "unknown midtone ({ar},{ag},{ab}) vs table {:?}",
+                table
+            );
+        }
+    }
+
+    #[test]
+    fn get_xy_random_deterministic_and_unit_interval() {
+        let a = get_xy_random(3, 3);
+        let b = get_xy_random(3, 103);
+        let c = get_xy_random(3, 303);
+        assert!((0.0..=1.0).contains(&a));
+        assert!((0.0..=1.0).contains(&b));
+        assert!((0.0..=1.0).contains(&c));
+        assert_eq!(get_xy_random(3, 3), a);
+        // Distinct channels for unknown tint (usually).
+        let col = unknown_biome_draw_color(7);
+        assert_eq!(col[3], 255);
+    }
+
+    #[test]
+    fn unknown_fallback_when_biome_sheet_missing() {
+        let game = PathBuf::from(r"C:\OhOl\OpenLife\OneLifeGameSourceData");
+        if !game.join("groundTileCache").is_dir() {
+            return;
+        }
+        let mut bank = GroundBank::with_default_roots(Some(&game));
+        let _ = bank.scan_index_from_disk();
+        // Known biome 0 should have a soft tile.
+        assert!(bank.has_biome_sheet(0));
+        assert!(bank.ensure_tile(0, 1, 2).is_some());
+        // Absurd biome id Ã¢â€ â€™ no sheet Ã¢â€ â€™ unknown 99999 soft tile.
+        assert!(!bank.has_biome_sheet(200));
+        let (gt, unk) = bank.ensure_tile_or_unknown(200, 1, 2).expect("unknown soft");
+        assert!(unk);
+        assert!(gt.width > 0 && gt.height > 0);
+        // Square path also falls back.
+        let (_sq, unk2) = bank.ensure_square_or_unknown(200, 0, 0).expect("unknown square/soft");
+        assert!(unk2);
+    }
+
     #[test]
     fn variation_index_matches_haxe() {
         // Haxe: id*16 + abs(x%4) + abs(y%4)*4
@@ -1549,7 +1831,7 @@ mod tests {
         assert_eq!(ground_variation_index(1, 0, 0), 16);
         assert_eq!(ground_variation_index(2, 3, 2), 2 * 16 + 3 + 2 * 4);
         // negative coords
-        assert_eq!(ground_variation_index(0, -1, 0), 3); // -1 % 4 → 3
+        assert_eq!(ground_variation_index(0, -1, 0), 3); // -1 % 4 Ã¢â€ â€™ 3
         assert_eq!(ground_variation_index(0, 0, -1), 12);
         assert_eq!(ground_map_key_biome(0, 0, 0), 4);
         assert_eq!(ground_map_key_unknown(1, 2), 99999 + 1 + 2 * 4);
@@ -1559,7 +1841,7 @@ mod tests {
     fn overlay_slot_haxe() {
         assert_eq!(ground_overlay_slot(0, 0), Some(0));
         assert_eq!(ground_overlay_slot(0, 1), Some(2));
-        assert_eq!(ground_overlay_slot(4, 0), None); // x%8==4 → idx>=4
+        assert_eq!(ground_overlay_slot(4, 0), None); // x%8==4 Ã¢â€ â€™ idx>=4
         assert_eq!(ground_overlay_slot(1, 0), None); // x%4 != 0
         assert_eq!(ground_overlay_slot(8, 0), Some(0));
     }
@@ -1877,3 +2159,5 @@ mod tests {
         }
     }
 }
+
+

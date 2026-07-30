@@ -7,7 +7,7 @@
 //! Boot: **Account** soft-FB form (P5#37) prefilled from `.env` / `OHOL_*`,
 //! then **Loading** progress (P5#36 / C++ LoadingPage) across prefer_cache banks,
 //! then live world. Enter=Connect, Esc=skip when creds present, Tab=field, F2=key/password,
-//! **F3=Settings** (P5#39: Graphics GPU/Soft, Audio on/off, volumes, FPS).
+//! **Esc/F3=Settings** (P5#39: Graphics GPU/Soft, Audio on/off, volumes, FPS).
 //! Headless `ohol-headless` CLI flags are unchanged (`OHOL_LOAD_PROGRESS=1` logs stages).
 //!
 //! In-world controls:
@@ -20,7 +20,7 @@
 //! - Hover uses soft-FB hitMap (`get_sprite_hit`) for object id + worn clothing
 //! - Title bar shows rolling FPS; logs FPS after first presented frame, then every 30s
 //! - **Death** (P5#38): on our delete PU → death page; **R/Enter** rebirth reconnect, **Esc** quit
-//! - **Settings** (P5#39): F3 from Account or Playing; Tab/arrows, Left/Right adjust, Esc/Back
+//! - **Settings** (P5#39): **Esc or F3** from Account or Playing; Tab/arrows, mouse, Esc/Back
 //! - **Debug tools** (settings.debug): **F9** or bottom-right **SNAP** → play snapshot under `logs/snapshots/`
 //!
 //! Offline demo if server unavailable.
@@ -34,7 +34,7 @@ use minifb::{
 };
 
 use ohol_headless::account_page::{
-    AccountAction, AccountKey, AccountPage, ClientAppState, ClientScreen,
+    AccountAction, AccountKey, ClientAppState, ClientScreen,
 };
 use ohol_headless::settings_page::GraphicsMode;
 use ohol_headless::anim_bank::AnimBank;
@@ -46,7 +46,7 @@ use ohol_headless::client_screen::{
     death_key_command, draw_death_screen, note_our_death_if_any, rebirth_session_config, DeathKey,
     ScreenCommand,
 };
-use ohol_headless::settings_page::{SettingsAction, SettingsKey};
+use ohol_headless::settings_page::{restart_client_process, SettingsAction, SettingsKey};
 use ohol_headless::play_snapshot::{
     draw_snapshot_button, snapshot_button_hit, write_play_snapshot, SnapshotViewExtras,
 };
@@ -59,7 +59,7 @@ use ohol_headless::hud::HudSprites;
 use ohol_headless::live_object::{LiveWorld, CLOTHING_SLOT_NAMES};
 use ohol_headless::load_bench::resolve_content_root;
 use ohol_headless::load_progress::{
-    boot_load_prefer_cache, draw_loading_progress, BootBanks, LoadStage, LoadingState,
+    boot_load_prefer_cache, draw_loading_progress, LoadStage, LoadingState,
 };
 use ohol_headless::music_bank::MusicBank;
 use ohol_headless::parse::{FoodChange, HeatChange, LoginOutcome, MapChunkHeader, parse_pu_line};
@@ -70,6 +70,125 @@ use ohol_headless::sprite_bank::SpriteBank;
 
 const FB_W: usize = 960;
 const FB_H: usize = 540;
+
+/// Cargo package version (bump in Cargo.toml when shipping).
+const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Build-time stamp from build.rs (seconds since epoch) — proves newest binary.
+const CLIENT_BUILD_STAMP: &str = env!("OHOL_BUILD_STAMP");
+/// What we are actively fixing / working on (shown in every window title).
+const CLIENT_FOCUS: &str = "one boot screen + glass settings UI";
+
+/// Prefix for all window titles so you can see version + current work.
+fn title_prefix() -> String {
+    format!("Open Life v{CLIENT_VERSION} b{CLIENT_BUILD_STAMP} [{CLIENT_FOCUS}]")
+}
+
+fn window_title(screen: &str, extra: &str) -> String {
+    if extra.is_empty() {
+        format!("{} — {}", title_prefix(), screen)
+    } else {
+        format!("{} — {} | {}", title_prefix(), screen, extra)
+    }
+}
+
+/// Rising-edge detector for Esc / F3 (more reliable than minifb `is_key_pressed`
+/// alone when the frame loop skips a pump).
+///
+/// After Settings is **opened** with Esc/F3, call [`EscF3Edge::mark_opened`] so the
+/// same physical hold cannot also **close** Settings (classic open+instant-close bug).
+#[derive(Debug, Default, Clone, Copy)]
+struct EscF3Edge {
+    was_esc: bool,
+    was_f3: bool,
+    /// Ignore edges until Esc and F3 are both released (set after open).
+    wait_release: bool,
+}
+
+impl EscF3Edge {
+    /// `true` when Esc or F3 just went down this frame (and not blocked by wait_release).
+    fn edge(&mut self, esc_down: bool, f3_down: bool) -> bool {
+        if self.wait_release {
+            if !esc_down && !f3_down {
+                self.wait_release = false;
+            }
+            self.was_esc = esc_down;
+            self.was_f3 = f3_down;
+            return false;
+        }
+        let hit = (esc_down && !self.was_esc) || (f3_down && !self.was_f3);
+        self.was_esc = esc_down;
+        self.was_f3 = f3_down;
+        hit
+    }
+
+    /// Call immediately after opening Settings with Esc/F3 (or any open that must not
+    /// re-trigger close from a still-held Esc).
+    fn mark_opened(&mut self) {
+        self.wait_release = true;
+    }
+}
+
+/// Windows physical key state (works when minifb misses WM_KEYDOWN for Esc/F3).
+#[cfg(windows)]
+mod win_keys {
+    #[link(name = "user32")]
+    unsafe extern "system" {
+        fn GetAsyncKeyState(v_key: i32) -> i16;
+    }
+    pub const VK_ESCAPE: i32 = 0x1B;
+    pub const VK_F3: i32 = 0x72;
+    #[inline]
+    pub fn down(vk: i32) -> bool {
+        unsafe { (GetAsyncKeyState(vk) as u16) & 0x8000 != 0 }
+    }
+}
+
+/// True if Esc is currently held (minifb **or** Win32 GetAsyncKeyState fallback).
+fn esc_held(window: &Window) -> bool {
+    let via_mf = window.is_key_down(Key::Escape)
+        || window.is_key_pressed(Key::Escape, KeyRepeat::No)
+        || window.get_keys().contains(&Key::Escape)
+        || window.get_keys_pressed(KeyRepeat::No).contains(&Key::Escape);
+    #[cfg(windows)]
+    {
+        // Async state does not need &mut Window (minifb is_active does).
+        return via_mf || win_keys::down(win_keys::VK_ESCAPE);
+    }
+    #[cfg(not(windows))]
+    {
+        via_mf
+    }
+}
+
+/// True if F3 is currently held (minifb **or** Win32 GetAsyncKeyState fallback).
+fn f3_held(window: &Window) -> bool {
+    let via_mf = window.is_key_down(Key::F3)
+        || window.is_key_pressed(Key::F3, KeyRepeat::No)
+        || window.get_keys().contains(&Key::F3)
+        || window.get_keys_pressed(KeyRepeat::No).contains(&Key::F3);
+    #[cfg(windows)]
+    {
+        return via_mf || win_keys::down(win_keys::VK_F3);
+    }
+    #[cfg(not(windows))]
+    {
+        via_mf
+    }
+}
+
+/// Windows scancodes when winit `virtual_keycode` is None (GPU path only).
+#[cfg(feature = "gpu")]
+fn virtual_key_from_scancode(scancode: u32) -> Option<winit::event::VirtualKeyCode> {
+    use winit::event::VirtualKeyCode;
+    // Hardware scan codes (Set 1) used by winit on Windows.
+    match scancode {
+        0x01 => Some(VirtualKeyCode::Escape),
+        0x3D => Some(VirtualKeyCode::F3), // F3
+        0x0F => Some(VirtualKeyCode::Tab),
+        0x1C => Some(VirtualKeyCode::Return),
+        _ => None,
+    }
+}
 
 /// Soft minifb: **1×** buffer size (960×540) — loading/account/windowed play.
 /// (X2 made UI look “zoomed” and the play window huge.)
@@ -205,6 +324,13 @@ impl InputCallback for CharQueue {
 fn main() -> anyhow::Result<()> {
     let t_start = Instant::now();
     let _ = dotenvy::dotenv();
+    eprintln!(
+        "client: {}  exe={}",
+        title_prefix(),
+        std::env::current_exe()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|_| "?".into())
+    );
     // P5#37: Account soft-FB form → SessionConfig → connect (headless CLI unchanged).
     let mut app = ClientAppState::from_env();
     // Graphic timeouts for live play (same as prior hard-coded client defaults).
@@ -237,48 +363,40 @@ fn main() -> anyhow::Result<()> {
         cfg.port
     );
 
-    // P5#36: soft-FB LoadingPage-style bank boot before TCP login.
-    let t_load0 = Instant::now();
-    let boot = match run_loading_boot(&mut app) {
-        Ok(b) => b,
-        Err(e) => {
-            eprintln!("loading failed: {e} — offline demo without full boot");
-            return run_offline();
-        }
-    };
-    let loading_secs = t_load0.elapsed().as_secs_f64();
-    eprintln!(
-        "loading: done objects={} transitions={} binary_cache={}",
-        boot.content.objects.len(),
-        boot.content.transitions.len(),
-        boot.used_binary_cache
-    );
+    // Single init window: load content banks + try server connect + status.
+    // Then one main window (live or offline). No second loading flash.
+    let t_boot0 = Instant::now();
+    let outcome = run_init_boot(&mut app, &cfg)?;
+    let boot_secs = t_boot0.elapsed().as_secs_f64();
 
-    let t_connect0 = Instant::now();
-    match ClientSession::connect_with_content(&cfg, boot.content) {
-        Ok(mut session) if matches!(session.login, LoginOutcome::Accepted) => {
-            let connect_secs = t_connect0.elapsed().as_secs_f64();
-            // Prefer boot sounds (OLSN index already warm; aiff_opens==0).
-            session.sounds = boot.sounds;
+    match outcome {
+        InitOutcome::Live {
+            mut session,
+            sprites,
+            anims,
+            loading_secs,
+            connect_secs,
+        } => {
             eprintln!(
                 "connected objects={} map pending",
                 session.content.objects.len()
             );
             eprintln!(
-                "controls: LMB walk/use/self | RMB/Q drop/remv | 1-6 clothing | WASD pan | +/- or mouse-wheel zoom | F3 settings | Esc quit"
+                "controls: LMB walk/use/self | RMB/Q drop/remv | 1-6 clothing | WASD pan | +/- or mouse-wheel zoom | Esc/F3 settings"
             );
             eprintln!("death: R/Enter rebirth · Esc quit (after our player dies)");
             app.settings.apply_runtime_globals();
             session.sounds.set_loudness(app.settings.sound_volume);
             session.sounds.set_muted(app.settings.sound_muted);
-            // Short polls for the soft-FB frame loop. 30ms blocked idle FPS at ~2–3
-            // when the software renderer is already heavy; 1ms keeps WouldBlock snappy
-            // without busy-spinning on Windows (0 often means infinite SO_RCVTIMEO).
             let _ = session.set_read_timeout(Some(Duration::from_millis(1)));
             app.enter_playing();
-            let to_play_secs = t_start.elapsed().as_secs_f64();
-            log_startup_timings(account_secs, loading_secs, connect_secs, to_play_secs, true);
-            // Live path reuses pre-booted sprite/anim meta via set_content_root + light preload.
+            log_startup_timings(
+                account_secs,
+                loading_secs,
+                connect_secs,
+                t_start.elapsed().as_secs_f64(),
+                true,
+            );
             match app.settings.graphics_mode {
                 GraphicsMode::Gpu => {
                     eprintln!(
@@ -287,17 +405,25 @@ fn main() -> anyhow::Result<()> {
                         FB_H,
                         app.settings.fullscreen
                     );
-                    run_session_gpu(session, boot.sprites, boot.anims, cfg, app)
+                    run_session_gpu(session, sprites, anims, cfg, app)
                 }
                 GraphicsMode::Soft => {
                     eprintln!("graphics: Soft minifb present (CPU buffer)");
-                    run_session_from_boot(session, boot.sprites, boot.anims, cfg, app)
+                    run_session_from_boot(session, sprites, anims, cfg, app)
                 }
             }
         }
-        Ok(mut session) => {
-            let connect_secs = t_connect0.elapsed().as_secs_f64();
-            eprintln!("login: {:?} — offline demo", session.login);
+        InitOutcome::Offline {
+            content,
+            sprites,
+            anims,
+            ground,
+            sounds,
+            loading_secs,
+            connect_secs,
+            status,
+        } => {
+            eprintln!("{status}");
             log_startup_timings(
                 account_secs,
                 loading_secs,
@@ -305,24 +431,33 @@ fn main() -> anyhow::Result<()> {
                 t_start.elapsed().as_secs_f64(),
                 false,
             );
-            session.sounds = boot.sounds;
-            run_offline_from_boot(boot.sprites, boot.anims, session.content)
-        }
-        Err(e) => {
-            let connect_secs = t_connect0.elapsed().as_secs_f64();
-            eprintln!("connect failed: {e} — offline demo");
-            log_startup_timings(
-                account_secs,
-                loading_secs,
-                connect_secs,
-                t_start.elapsed().as_secs_f64(),
-                false,
+            eprintln!(
+                "timing: boot_window={boot_secs:.3}s (single init screen)"
             );
-            // Content already consumed into failed connect; offline reloads via run_offline.
-            let _ = (boot.sprites, boot.anims, boot.ground, boot.music);
-            run_offline()
+            run_offline_with_banks(content, sprites, anims, ground, sounds)
         }
     }
+}
+
+/// Result of the single init window (load + connect).
+enum InitOutcome {
+    Live {
+        session: ClientSession,
+        sprites: SpriteBank,
+        anims: AnimBank,
+        loading_secs: f64,
+        connect_secs: f64,
+    },
+    Offline {
+        content: ClientContent,
+        sprites: SpriteBank,
+        anims: AnimBank,
+        ground: ohol_headless::ground_sprites::GroundBank,
+        sounds: ohol_headless::sound_bank::SoundBank,
+        loading_secs: f64,
+        connect_secs: f64,
+        status: String,
+    },
 }
 
 /// Log account / loading / connect / total-to-play timings (stderr + logs file).
@@ -357,28 +492,69 @@ fn log_startup_timings(
     }
 }
 
-/// Soft-FB progressive bank load (C++ LoadingPage). Returns prefer_cache banks.
-fn run_loading_boot(app: &mut ClientAppState) -> anyhow::Result<BootBanks> {
+/// Present a status line on the shared init loading screen (same window as bank load).
+fn present_init_status(
+    window: &mut Window,
+    fb: &mut Framebuffer,
+    buf: &mut [u32],
+    title: &str,
+    detail: &str,
+    fraction: f32,
+) {
+    let mut state = if fraction >= 0.99 {
+        LoadingState::finished()
+    } else {
+        LoadingState::for_stage(LoadStage::Content, fraction.clamp(0.0, 1.0), Some(detail))
+    };
+    state.label = detail.into();
+    if fraction >= 0.99 {
+        state.overall_fraction = 1.0;
+        state.done = true;
+    }
+    draw_loading_progress(fb, &state);
+    // Extra status under bar (connect result).
+    ohol_headless::ui_font::draw_ui_text(
+        fb,
+        title,
+        FB_W as f32 * 0.5,
+        FB_H as f32 * 0.78,
+        16.0,
+        [200, 210, 230, 255],
+        true,
+    );
+    rgba_to_u32(&fb.pixels, buf);
+    window.set_title(&window_title("Starting", detail));
+    let _ = window.update_with_buffer(buf, FB_W, FB_H);
+}
+
+/// One init window: load banks + try server connect + show connected/offline.
+/// Main play/offline is a separate window after this returns.
+fn run_init_boot(app: &mut ClientAppState, cfg: &SessionConfig) -> anyhow::Result<InitOutcome> {
     app.screen = ClientScreen::Loading;
-    app.loading_msg = "prefer_cache…".into();
+    app.loading_msg = "starting…".into();
 
     let root = resolve_content_root(None).map_err(anyhow::Error::msg)?;
     let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
-    let mut window = Window::new("Open Life — Loading", FB_W, FB_H, soft_window_opts())?;
+    let mut window = Window::new(
+        &window_title("Starting", "loading…"),
+        FB_W,
+        FB_H,
+        soft_window_opts(),
+    )?;
     window.set_target_fps(60);
     let mut buf = vec![0u32; FB_W * FB_H];
 
-    // Initial frame so the window is not blank while first stage runs.
-    let initial = LoadingState::for_stage(LoadStage::Content, 0.0, Some("starting"));
-    draw_loading_progress(&mut fb, &initial);
-    rgba_to_u32(&fb.pixels, &mut buf);
-    let _ = window.update_with_buffer(&buf, FB_W, FB_H);
+    present_init_status(
+        &mut window,
+        &mut fb,
+        &mut buf,
+        "Open Life",
+        "Loading content…",
+        0.02,
+    );
 
-    // Present on each progress tick. Bake phases call this often so the window
-    // is not stuck on a frozen "rebake" frame for minutes.
-    let last_state = std::cell::RefCell::new(initial);
+    let t_load0 = Instant::now();
     let mut present = |state: &LoadingState| {
-        *last_state.borrow_mut() = state.clone();
         app.loading_msg = state.label.clone();
         draw_loading_progress(&mut fb, state);
         rgba_to_u32(&fb.pixels, &mut buf);
@@ -386,7 +562,6 @@ fn run_loading_boot(app: &mut ClientAppState) -> anyhow::Result<BootBanks> {
         let detail = if state.label.is_empty() {
             state.stage.name().to_string()
         } else {
-            // Keep title short; full detail is on the soft-FB bar label.
             let d = state.label.as_str();
             if d.len() > 48 {
                 format!("{}…", &d[..45])
@@ -394,31 +569,150 @@ fn run_loading_boot(app: &mut ClientAppState) -> anyhow::Result<BootBanks> {
                 d.to_string()
             }
         };
-        window.set_title(&format!("Open Life — Loading {pct}%  [{detail}]"));
-        // Pump events so Windows does not mark the app "Not Responding" during long stages.
+        window.set_title(&window_title("Starting", &format!("{pct}% {detail}")));
         let _ = window.update_with_buffer(&buf, FB_W, FB_H);
     };
 
     let banks = {
         let mut cb = |s: &LoadingState| present(s);
-        boot_load_prefer_cache(&root, Some(&mut cb)).map_err(anyhow::Error::msg)?
+        match boot_load_prefer_cache(&root, Some(&mut cb)) {
+            Ok(b) => b,
+            Err(e) => {
+                present_init_status(
+                    &mut window,
+                    &mut fb,
+                    &mut buf,
+                    "Load failed",
+                    &e,
+                    0.0,
+                );
+                std::thread::sleep(Duration::from_millis(800));
+                return Err(anyhow::Error::msg(e));
+            }
+        }
     };
+    let loading_secs = t_load0.elapsed().as_secs_f64();
+    eprintln!(
+        "loading: done objects={} transitions={} binary_cache={}",
+        banks.content.objects.len(),
+        banks.content.transitions.len(),
+        banks.used_binary_cache
+    );
 
-    // Final "Ready" frame
-    let done = LoadingState::finished();
-    present(&done);
-    Ok(banks)
+    // Same window: connecting…
+    let host_line = format!("Connecting to {}:{}…", cfg.host, cfg.port);
+    present_init_status(
+        &mut window,
+        &mut fb,
+        &mut buf,
+        "Connecting",
+        &host_line,
+        0.92,
+    );
+    eprintln!("connect: try {}:{} …", cfg.host, cfg.port);
+
+    let t_connect0 = Instant::now();
+    let content = banks.content;
+    let sprites = banks.sprites;
+    let anims = banks.anims;
+    let ground = banks.ground;
+    let sounds = banks.sounds;
+    let _music = banks.music;
+
+    match ClientSession::connect_with_content(cfg, content) {
+        Ok(mut session) if matches!(session.login, LoginOutcome::Accepted) => {
+            let connect_secs = t_connect0.elapsed().as_secs_f64();
+            session.sounds = sounds;
+            present_init_status(
+                &mut window,
+                &mut fb,
+                &mut buf,
+                "Connected",
+                &format!("Online · {}:{}", cfg.host, cfg.port),
+                1.0,
+            );
+            std::thread::sleep(Duration::from_millis(350));
+            // Drop init window before main play window.
+            drop(window);
+            Ok(InitOutcome::Live {
+                session,
+                sprites,
+                anims,
+                loading_secs,
+                connect_secs,
+            })
+        }
+        Ok(session) => {
+            let connect_secs = t_connect0.elapsed().as_secs_f64();
+            let status = format!("Offline · login {:?}", session.login);
+            present_init_status(
+                &mut window,
+                &mut fb,
+                &mut buf,
+                "Offline",
+                &status,
+                1.0,
+            );
+            std::thread::sleep(Duration::from_millis(500));
+            drop(window);
+            Ok(InitOutcome::Offline {
+                content: session.content,
+                sprites,
+                anims,
+                ground,
+                sounds,
+                loading_secs,
+                connect_secs,
+                status,
+            })
+        }
+        Err(e) => {
+            let connect_secs = t_connect0.elapsed().as_secs_f64();
+            let status = format!("Offline · connect failed");
+            present_init_status(
+                &mut window,
+                &mut fb,
+                &mut buf,
+                "Offline",
+                &format!("{e}"),
+                1.0,
+            );
+            eprintln!("connect failed: {e}");
+            std::thread::sleep(Duration::from_millis(500));
+            drop(window);
+            // Content was moved into connect attempt — reload content only (banks stay warm).
+            // connect_with_content consumes content on all paths; rebuild from root meta.
+            let content = ClientContent::load_default_locations().unwrap_or_default();
+            Ok(InitOutcome::Offline {
+                content,
+                sprites,
+                anims,
+                ground,
+                sounds,
+                loading_secs,
+                connect_secs,
+                status,
+            })
+        }
+    }
 }
 
 /// Account form loop. Returns `Some(SessionConfig)` on Connect, `None` on Quit.
 fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionConfig>> {
-    // Automated playtest: skip form when creds present (OHOL_AUTO_CONNECT=1/true).
-    let auto = std::env::var("OHOL_AUTO_CONNECT")
-        .map(|v| {
-            let t = v.trim();
-            t == "1" || t.eq_ignore_ascii_case("true") || t.eq_ignore_ascii_case("yes")
-        })
-        .unwrap_or(false);
+    // Default **on** when unset (launcher / .env default). Set OHOL_AUTO_CONNECT=0 to force form.
+    // Selftest always shows Account so Settings UI can be verified.
+    let selftest_boot = std::env::var_os("OHOL_SETTINGS_SELFTEST").is_some();
+    let auto = !selftest_boot
+        && std::env::var("OHOL_AUTO_CONNECT")
+            .map(|v| {
+                let t = v.trim();
+                !(t.is_empty()
+                    || t == "0"
+                    || t.eq_ignore_ascii_case("false")
+                    || t.eq_ignore_ascii_case("no")
+                    || t.eq_ignore_ascii_case("off"))
+            })
+            .unwrap_or(true);
     if auto {
         let cfg = app.account.build_session_config();
         if !cfg.email.is_empty()
@@ -430,7 +724,11 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
             );
             return Ok(Some(cfg));
         }
-        eprintln!("account: OHOL_AUTO_CONNECT set but creds incomplete — showing form");
+        eprintln!("account: OHOL_AUTO_CONNECT on but creds incomplete — showing form");
+    } else if selftest_boot {
+        eprintln!("account: selftest — showing Account form (auto-connect skipped)");
+    } else {
+        eprintln!("account: OHOL_AUTO_CONNECT=0 — showing Account form");
     }
 
     let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
@@ -448,36 +746,136 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
     let mut fps = FpsMeter::new("account");
 
     eprintln!(
-        "account page: Tab field | Enter Connect | Esc skip-if-creds | F2 key/password | F3 Settings | type to edit"
+        "account page: mouse select fields | Tab field | Enter Connect | Esc/F3 Settings | F2 key/password | type to edit"
     );
+
+    let mut was_lmb_account = false;
+    let mut esc_f3 = EscF3Edge::default();
+    // Key actions are sampled **after** update_with_buffer (minifb pumps WM_* then).
+    // Pending flags apply on the next loop iteration so Esc/F3 always register.
+    let mut pending_open_settings = false;
+    let mut pending_close_settings = false;
+    // Automated self-test: open Settings after first present, verify, exit.
+    let selftest = std::env::var_os("OHOL_SETTINGS_SELFTEST").is_some();
+    let mut selftest_frames: u32 = 0;
+    let mut selftest_opened = false;
 
     while window.is_open() {
         let dt = last.elapsed().as_secs_f32().min(0.05);
         last = Instant::now();
 
-        // P5#39 Settings overlay from Account (F3)
+        // Apply key edges detected after last frame's message pump.
+        let mut suppress_settings_close = false;
+        if pending_open_settings {
+            pending_open_settings = false;
+            if app.screen.is_account() {
+                if app.enter_settings() {
+                    suppress_settings_close = true;
+                    esc_f3.mark_opened();
+                    eprintln!("settings: opened from key/mouse (offline-ok)");
+                }
+            }
+        }
+        if pending_close_settings {
+            pending_close_settings = false;
+            if app.screen.is_settings() {
+                app.leave_settings();
+                was_lmb_account = false;
+                eprintln!("settings: closed from Esc");
+            }
+        }
+
+        // Self-test: force open without needing a real key (verifies draw + state).
+        if selftest && !selftest_opened && selftest_frames >= 5 {
+            if app.enter_settings() {
+                suppress_settings_close = true;
+                esc_f3.mark_opened();
+                selftest_opened = true;
+                eprintln!("selftest: enter_settings OK screen={}", app.screen.as_str());
+            } else {
+                eprintln!(
+                    "selftest: FAIL enter_settings from screen={}",
+                    app.screen.as_str()
+                );
+                return Ok(None);
+            }
+        }
+
+        // P5#39 Settings overlay from Account (works without server connection).
         if app.screen.is_settings() {
-            match handle_settings_keys(&window, app) {
-                SettingsLoop::Left => {}
+            match handle_settings_input(
+                &window,
+                app,
+                &mut was_lmb_account,
+                suppress_settings_close,
+                false, // Esc close handled via pending_close after pump (release-gate)
+            ) {
+                SettingsLoop::Left => {
+                    was_lmb_account = false;
+                }
+                SettingsLoop::Restart => {
+                    restart_client_process();
+                }
+                SettingsLoop::OpenAccount => {
+                    app.enter_account_from_settings();
+                    was_lmb_account = false;
+                }
                 SettingsLoop::Continue => {
                     app.settings.draw(&mut fb, Some(&hud));
                     rgba_to_u32(&fb.pixels, &mut buf);
-                    let title = if app.settings.show_fps {
-                        format!(
-                            "Open Life — Settings ({:.0} FPS)  Esc=Back | SFX {:.0}% Music {:.0}%",
+                    let title = window_title(
+                        "Settings",
+                        &format!(
+                            "{:.0} FPS Esc=Back SFX {:.0}%",
                             fps.fps(),
                             app.settings.sound_volume * 100.0,
-                            app.settings.music_volume * 100.0
-                        )
-                    } else {
-                        "Open Life — Settings  Esc=Back".into()
-                    };
+                        ),
+                    );
                     window.set_title(&title);
                     window.update_with_buffer(&buf, FB_W, FB_H)?;
                     fps.on_presented(dt);
+                    // After pump: Esc edge → close next frame (blocked until key release).
+                    let esc = esc_held(&window);
+                    let f3 = f3_held(&window);
+                    let edge = esc_f3.edge(esc, f3);
+                    if edge {
+                        eprintln!(
+                            "input: {} (settings screen)",
+                            if f3 { "F3" } else { "ESC" }
+                        );
+                        if !suppress_settings_close {
+                            pending_close_settings = true;
+                        }
+                    }
+                    if selftest && selftest_opened {
+                        let dark = fb
+                            .pixels
+                            .chunks_exact(4)
+                            .filter(|c| c[0] < 80 && c[1] < 90 && c[2] < 100)
+                            .count();
+                        eprintln!(
+                            "selftest: settings frame title='{title}' dark_px={dark}"
+                        );
+                        if dark > 10_000 {
+                            eprintln!("selftest: PASS settings visible");
+                            return Ok(None);
+                        }
+                        selftest_frames = selftest_frames.saturating_add(1);
+                        if selftest_frames > 30 {
+                            eprintln!("selftest: FAIL settings not painted (dark_px={dark})");
+                            return Ok(None);
+                        }
+                    }
                     continue;
                 }
             }
+            if app.screen.is_settings() {
+                continue;
+            }
+        }
+
+        if selftest {
+            selftest_frames = selftest_frames.saturating_add(1);
         }
 
         app.account.step(dt);
@@ -501,9 +899,6 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
         {
             action = app.account.on_key(AccountKey::Enter);
         }
-        if window.is_key_pressed(Key::Escape, KeyRepeat::No) {
-            action = app.account.on_key(AccountKey::Escape);
-        }
         if window.is_key_pressed(Key::Backspace, KeyRepeat::Yes) {
             let _ = app.account.on_key(AccountKey::Backspace);
         }
@@ -525,32 +920,38 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
         if window.is_key_pressed(Key::F2, KeyRepeat::No) {
             let _ = app.account.on_key(AccountKey::ToggleSecretMode);
         }
-        if window.is_key_pressed(Key::F3, KeyRepeat::No) {
-            action = app.account.on_key(AccountKey::OpenSettings);
-        }
 
-        if window.get_mouse_down(MouseButton::Left) {
+        let lmb = window.get_mouse_down(MouseButton::Left);
+        if lmb && !was_lmb_account {
             if let Some((mx, my)) = safe_mouse_pos(&window) {
-                let cx = FB_W as f32 * 0.5;
-                let cy = FB_H as f32 * 0.5 + 60.0;
-                if (mx - cx).abs() < 70.0 && (my - cy).abs() < 24.0 {
-                    action = AccountAction::Connect;
+                let a = app.account.on_pointer_down(
+                    mx,
+                    my,
+                    FB_W as f32,
+                    FB_H as f32,
+                    Some(&hud),
+                );
+                if a != AccountAction::None {
+                    action = a;
                 }
             }
         }
+        was_lmb_account = lmb;
 
         match action {
             AccountAction::Quit => return Ok(None),
             AccountAction::Connect => {
+                // Single loading UI is run_loading_boot (next step). No flash screen here.
                 let cfg = app.begin_connect();
-                AccountPage::draw_loading(&mut fb, Some(&hud), &app.loading_msg);
-                rgba_to_u32(&fb.pixels, &mut buf);
-                let _ = window.update_with_buffer(&buf, FB_W, FB_H);
-                window.set_title("Open Life — Loading");
+                eprintln!("account: connect → loading banks (one loading window)");
                 return Ok(Some(cfg));
             }
             AccountAction::OpenSettings => {
-                let _ = app.enter_settings();
+                if app.enter_settings() {
+                    suppress_settings_close = true;
+                    esc_f3.mark_opened();
+                    eprintln!("settings: opened from Settings button");
+                }
             }
             AccountAction::None => {}
         }
@@ -559,18 +960,45 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
             break;
         }
         if app.screen.is_settings() {
+            app.settings.draw(&mut fb, Some(&hud));
+            rgba_to_u32(&fb.pixels, &mut buf);
+            window.set_title(&window_title("Settings", "Esc=Back"));
+            window.update_with_buffer(&buf, FB_W, FB_H)?;
+            fps.on_presented(dt);
+            // Sample keys after pump for close next frame (release-gate).
+            let esc = esc_held(&window);
+            let f3 = f3_held(&window);
+            if esc_f3.edge(esc, f3) && !suppress_settings_close {
+                eprintln!(
+                    "input: {} (close settings)",
+                    if f3 { "F3" } else { "ESC" }
+                );
+                pending_close_settings = true;
+            }
             continue;
         }
 
         app.account.draw(&mut fb, Some(&hud));
         rgba_to_u32(&fb.pixels, &mut buf);
-        window.set_title(&format!(
-            "Open Life — Account ({:.0} FPS)  [{}]",
-            fps.fps(),
-            ClientScreen::Account.as_str()
+        window.set_title(&window_title(
+            "Account",
+            &format!("{:.0} FPS F3/Esc=Settings", fps.fps()),
         ));
         window.update_with_buffer(&buf, FB_W, FB_H)?;
         fps.on_presented(dt);
+
+        // AFTER message pump (+ Win32 async fallback): Esc/F3 open Settings next frame.
+        let esc = esc_held(&window);
+        let f3 = f3_held(&window);
+        if esc_f3.edge(esc, f3) {
+            pending_open_settings = true;
+            eprintln!(
+                "input: {} open Settings (active={} screen={})",
+                if f3 { "F3" } else { "ESC" },
+                window.is_active(),
+                app.screen.as_str()
+            );
+        }
     }
     Ok(None)
 }
@@ -579,10 +1007,26 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
 enum SettingsLoop {
     Continue,
     Left,
+    Restart,
+    /// Jump to Account form (from Settings → Account settings row).
+    OpenAccount,
 }
 
-/// Process Settings keys; Back leaves Settings (Account or Playing).
-fn handle_settings_keys(window: &Window, app: &mut ClientAppState) -> SettingsLoop {
+/// Process Settings keyboard + mouse; Back leaves Settings (Account or Playing).
+///
+/// `suppress_close`: true on the same frame Settings was just opened with Esc/F3 so
+/// that key is not immediately treated as Back (minifb can still report the press
+/// before the next `update_with_buffer` pump).
+///
+/// `close_edge`: optional rising-edge for Esc (from [`EscF3Edge`]); when `None`,
+/// falls back to `is_key_pressed` / `is_key_down` checks.
+fn handle_settings_input(
+    window: &Window,
+    app: &mut ClientAppState,
+    was_lmb: &mut bool,
+    suppress_close: bool,
+    close_edge: bool,
+) -> SettingsLoop {
     let shift = window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift);
     let mut key = SettingsKey::Other;
     if window.is_key_pressed(Key::Key1, KeyRepeat::No) {
@@ -612,13 +1056,54 @@ fn handle_settings_keys(window: &Window, app: &mut ClientAppState) -> SettingsLo
         || window.is_key_pressed(Key::Space, KeyRepeat::No)
     {
         key = SettingsKey::Enter;
-    } else if window.is_key_pressed(Key::Escape, KeyRepeat::No)
-        || window.is_key_pressed(Key::B, KeyRepeat::No)
+    } else if !suppress_close
+        && (close_edge || window.is_key_pressed(Key::B, KeyRepeat::No))
     {
+        // B = Back. Esc is handled only via EscF3Edge + release-gate after pump
+        // (never is_key_pressed here — that caused open+instant-close on Esc hold).
         key = SettingsKey::Escape;
     }
 
-    match app.settings.on_key(key) {
+    let mut action = app.settings.on_key(key);
+
+    // Mouse: click toggles / restart / back; drag volume & zoom sliders.
+    // On the open frame, ignore mouse entirely so a held click cannot instantly Back.
+    let lmb = window.get_mouse_down(MouseButton::Left);
+    if !suppress_close {
+        if let Some((mx, my)) = safe_mouse_pos(window) {
+            if lmb && !*was_lmb {
+                let a = app
+                    .settings
+                    .on_pointer_down(mx, my, FB_W as f32, FB_H as f32);
+                if a != SettingsAction::None {
+                    action = a;
+                }
+            } else if lmb && *was_lmb && app.settings.slider_drag.is_some() {
+                let a = app
+                    .settings
+                    .on_pointer_drag(mx, FB_W as f32, FB_H as f32);
+                if a != SettingsAction::None {
+                    action = a;
+                }
+            }
+        }
+    }
+    if !lmb {
+        app.settings.on_pointer_up();
+    }
+    *was_lmb = lmb;
+
+    // Never leave on the same frame we opened (keyboard or mouse).
+    if suppress_close
+        && matches!(
+            action,
+            SettingsAction::Back | SettingsAction::Restart | SettingsAction::OpenAccount
+        )
+    {
+        action = SettingsAction::None;
+    }
+
+    match action {
         SettingsAction::None => SettingsLoop::Continue,
         SettingsAction::Applied => {
             app.settings.apply_runtime_globals();
@@ -628,6 +1113,8 @@ fn handle_settings_keys(window: &Window, app: &mut ClientAppState) -> SettingsLo
             app.leave_settings();
             SettingsLoop::Left
         }
+        SettingsAction::Restart => SettingsLoop::Restart,
+        SettingsAction::OpenAccount => SettingsLoop::OpenAccount,
     }
 }
 
@@ -679,46 +1166,117 @@ fn run_session_from_boot(
     app.settings.apply_to_banks(Some(&mut session.sounds), None);
     app.settings.apply_to_banks(Some(&mut scene.sounds), None);
 
+    let mut was_lmb_settings = false;
+    let mut esc_f3 = EscF3Edge::default();
+    let mut pending_open_settings = false;
+    let mut pending_close_settings = false;
+
     while window.is_open() {
         let dt = last.elapsed().as_secs_f32().min(0.05);
         last = Instant::now();
 
+        // Pending open/close from previous frame's post-pump key sample.
+        let mut suppress_settings_close = false;
+        if pending_open_settings {
+            pending_open_settings = false;
+            if app.screen.is_playing() {
+                if app.enter_settings() {
+                    suppress_settings_close = true;
+                    esc_f3.mark_opened();
+                    eprintln!("settings: opened in play (key)");
+                }
+            }
+        }
+        if pending_close_settings {
+            pending_close_settings = false;
+            if app.screen.is_settings() {
+                app.leave_settings();
+                was_lmb_settings = false;
+                eprintln!("settings: closed in play (key)");
+            }
+        }
+
         // ── P5#39 Settings ───────────────────────────────────────────────
         if app.screen.is_settings() {
-            match handle_settings_keys(&window, &mut app) {
+            match handle_settings_input(
+                &window,
+                &mut app,
+                &mut was_lmb_settings,
+                suppress_settings_close,
+                false,
+            ) {
                 SettingsLoop::Left => {
+                    // Apply volume/mute to BOTH banks (scene = anim SFX).
                     app.apply_settings_to_banks(Some(&mut session.sounds), None);
+                    app.apply_settings_to_banks(Some(&mut scene.sounds), None);
                     // Apply zoom when leaving settings (also persisted by leave_settings).
                     scene.camera.zoom = app.settings.zoom.clamp(
                         ohol_headless::render::ZOOM_MIN,
                         ohol_headless::render::ZOOM_MAX,
                     );
+                    was_lmb_settings = false;
+                }
+                SettingsLoop::Restart => {
+                    app.apply_settings_to_banks(Some(&mut session.sounds), None);
+                    app.apply_settings_to_banks(Some(&mut scene.sounds), None);
+                    let _ = app.settings.save_default();
+                    restart_client_process();
+                }
+                SettingsLoop::OpenAccount => {
+                    // Mid-play: Account form is boot-only. Keep playing + status hint.
+                    let _ = app.settings.save_default();
+                    app.leave_settings();
+                    was_lmb_settings = false;
+                    log_status(
+                        &mut last_status,
+                        "Account settings: restart client or disable auto-connect",
+                    );
                 }
                 SettingsLoop::Continue => {
-                    // Live-preview zoom while adjusting the slider.
+                    // Live-preview zoom + SFX loudness while adjusting.
                     scene.camera.zoom = app.settings.zoom.clamp(
                         ohol_headless::render::ZOOM_MIN,
                         ohol_headless::render::ZOOM_MAX,
                     );
-                    app.settings.draw(&mut fb, Some(&settings_hud));
-                    let title = if app.settings.show_fps {
-                        format!(
-                            "Open Life — Settings ({:.0} FPS)  Esc=Back | Zoom {:.0} | SFX {:.0}%",
+                    app.apply_settings_to_banks(Some(&mut session.sounds), None);
+                    app.apply_settings_to_banks(Some(&mut scene.sounds), None);
+                    // World under glass settings overlay.
+                    let saved_hl = scene.highlight_tile.take();
+                    scene.draw(
+                        &mut fb,
+                        &mut session.map,
+                        &mut session.world,
+                        &session.content,
+                        &mut sprites,
+                        &mut anims,
+                        dt,
+                    );
+                    scene.highlight_tile = saved_hl;
+                    app.settings.draw_overlay(&mut fb, Some(&settings_hud));
+                    let title = window_title(
+                        "Settings",
+                        &format!(
+                            "{:.0} FPS Esc=Back Zoom {:.0} SFX {:.0}%",
                             fps.fps(),
                             app.settings.zoom,
                             app.settings.sound_volume * 100.0,
-                        )
-                    } else {
-                        format!(
-                            "Open Life — Settings  Esc=Back | Zoom {:.0} | SFX {:.0}%",
-                            app.settings.zoom,
-                            app.settings.sound_volume * 100.0,
-                        )
-                    };
+                        ),
+                    );
                     window.set_title(&title);
                     rgba_to_u32(&fb.pixels, &mut buf);
                     window.update_with_buffer(&buf, FB_W, FB_H)?;
                     fps.on_presented(dt);
+                    let esc = esc_held(&window);
+                    let f3 = f3_held(&window);
+                    if esc_f3.edge(esc, f3) {
+                        eprintln!(
+                            "input: {} (play settings)",
+                            if f3 { "F3" } else { "ESC" }
+                        );
+                        if !suppress_settings_close {
+                            pending_close_settings = true;
+                        }
+                    }
                     continue;
                 }
             }
@@ -785,14 +1343,17 @@ fn run_session_from_boot(
                     &ohol_headless::DeathSummary::new("Unknown", 0.0, None),
                 );
             }
-            window.set_title(&format!(
-                "Open Life — Death ({:.0} FPS)  R/Enter=Rebirth Esc=Quit | {}",
-                fps.fps(),
-                if last_status.is_empty() {
-                    "you died"
-                } else {
-                    &last_status
-                }
+            window.set_title(&window_title(
+                "Death",
+                &format!(
+                    "{:.0} FPS R/Enter=Rebirth Esc=Quit | {}",
+                    fps.fps(),
+                    if last_status.is_empty() {
+                        "you died"
+                    } else {
+                        last_status.as_str()
+                    }
+                ),
             ));
             rgba_to_u32(&fb.pixels, &mut buf);
             window.update_with_buffer(&buf, FB_W, FB_H)?;
@@ -800,13 +1361,7 @@ fn run_session_from_boot(
             continue;
         }
 
-        // Playing: F3 or Esc → Settings (close window to quit).
-        if window.is_key_pressed(Key::F3, KeyRepeat::No)
-            || window.is_key_pressed(Key::Escape, KeyRepeat::No)
-        {
-            let _ = app.enter_settings();
-            continue;
-        }
+        // Esc/F3 → Settings handled at top of loop (with suppress_close).
 
         if window.is_key_pressed(Key::Left, KeyRepeat::Yes) || window.is_key_down(Key::A) {
             pan.0 -= 0.4;
@@ -992,7 +1547,7 @@ fn run_session_from_boot(
             }
             let clothing_slot = hover.clothing_slot;
             let hit_slot = hover.contained_slot;
-            // Don't path on SNAP button clicks when debug tools are on.
+            // Don't path on SNAP button clicks.
             let on_snap_btn = app.settings.debug
                 && safe_mouse_pos(&window)
                     .map(|(mx, my)| {
@@ -1121,56 +1676,46 @@ fn run_session_from_boot(
         } else {
             last_status.as_str()
         };
-        let title = if app.settings.show_fps {
-            format!(
-                "Open Life ({:.0} FPS) | {rx_label} | {status} | F3=Settings{dbg}",
+        let title = window_title(
+            "Play",
+            &format!(
+                "{:.0} FPS | {rx_label} | {status} | Esc=Settings{dbg}",
                 fps.fps(),
-            )
-        } else {
-            format!("Open Life | {rx_label} | {status} | F3=Settings{dbg}")
-        };
+            ),
+        );
         window.set_title(&title);
         rgba_to_u32(&fb.pixels, &mut buf);
         window.update_with_buffer(&buf, FB_W, FB_H)?;
         fps.on_presented(dt);
+
+        // AFTER pump: Esc/F3 → open Settings next frame (Win32 async fallback).
+        let esc = esc_held(&window);
+        let f3 = f3_held(&window);
+        if esc_f3.edge(esc, f3) {
+            pending_open_settings = true;
+            eprintln!(
+                "input: {} open Settings (play active={})",
+                if f3 { "F3" } else { "ESC" },
+                window.is_active()
+            );
+        }
     }
     Ok(())
 }
 
-/// Offline demo after a rejected login; banks already warmed by [`run_loading_boot`].
-fn run_offline_from_boot(
-    _sprites: SpriteBank,
-    _anims: AnimBank,
-    _content: ClientContent,
+/// Offline demo using banks already loaded by the single init window (no second loading screen).
+fn run_offline_with_banks(
+    mut content: ClientContent,
+    mut sprites: SpriteBank,
+    mut anims: AnimBank,
+    ground: ohol_headless::ground_sprites::GroundBank,
+    sounds: ohol_headless::sound_bank::SoundBank,
 ) -> anyhow::Result<()> {
-    // Re-enter offline with its own progress path so the window/demo stays self-contained.
-    // Meta banks were already indexed during boot (warm OS page cache).
-    run_offline()
-}
-
-fn run_offline() -> anyhow::Result<()> {
-    eprintln!("offline demo — content + sprites + animation + food/heat HUD + hitMap hover");
-    // P5#36: soft-FB loading before world demo.
-    let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
-    let mut window =
-        Window::new("Open Life Rust Client — Loading", FB_W, FB_H, soft_window_opts())?;
-    window.set_target_fps(60);
-    let mut buf = vec![0u32; FB_W * FB_H];
-
-    let mut content = {
-        let mut on_progress = |state: &LoadingState| {
-            let _ = present_loading(&mut window, &mut fb, &mut buf, state);
-        };
-        ClientContent::load_default_locations_with_progress(Some(&mut on_progress))
-            .unwrap_or_default()
-    };
+    eprintln!("offline demo — using boot banks (no second loading screen)");
     let root = content
         .root
         .clone()
         .unwrap_or_else(|| std::path::PathBuf::from("."));
-    let (mut sprites, mut anims, mut scene) =
-        load_graphics_with_progress(&root, false, &mut window, &mut fb, &mut buf)?;
-    // P3#19: PE eyeEmot placement needs Eyes/Mouth tags + mainEyesOffset
     content.setup_eyes_and_mouth(|sid| {
         let m = sprites.ensure_meta(sid);
         Some(m.tag.clone())
@@ -1206,7 +1751,6 @@ fn run_offline() -> anyhow::Result<()> {
         world.apply_pu(&pu);
         world.set_our_id(1);
     }
-    // Preload person + stone sprites from content defs
     let mut preload = vec![19, 33, 144];
     if let Some(def) = content.get(19) {
         for s in &def.sprites {
@@ -1220,12 +1764,16 @@ fn run_offline() -> anyhow::Result<()> {
     }
     sprites.preload(preload);
 
+    let mut scene = SceneRenderer::default();
+    scene.set_content_root(Some(&root));
+    scene.ground = ground;
+    scene.sounds = sounds;
+    scene.hud_sprites = HudSprites::with_default_roots(Some(&root));
     scene.camera = Camera {
         x: 10.0,
         y: 10.0,
         zoom: 36.0,
     };
-    // Offline demo vitals so food/heat chrome is visible without a server.
     scene.sync_hud(
         Some(&FoodChange {
             food_store: 8,
@@ -1243,13 +1791,104 @@ fn run_offline() -> anyhow::Result<()> {
             indoor_bonus: 0.0,
         }),
     );
-    // Window / fb / buf already open from loading screen — enter offline loop.
+
+    let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
+    let mut window = Window::new(
+        &window_title("Offline", "Esc=Settings"),
+        FB_W,
+        FB_H,
+        soft_window_opts(),
+    )?;
+    window.set_target_fps(60);
+    let mut buf = vec![0u32; FB_W * FB_H];
+
+    let mut app = ClientAppState::from_env();
+    app.enter_playing();
     let mut last = Instant::now();
     let mut hover = HoverPick::default();
     let mut fps = FpsMeter::new("offline");
-    while window.is_open() && !window.is_key_down(Key::Escape) {
+    let mut was_lmb = false;
+    let mut esc_f3 = EscF3Edge::default();
+    let mut pending_open = false;
+    let mut pending_close = false;
+    let settings_hud = HudSprites::with_default_roots(Some(&root));
+    eprintln!("offline: Esc/F3 opens Settings (no server needed)");
+
+    while window.is_open() {
         let dt = last.elapsed().as_secs_f32().min(0.05);
         last = Instant::now();
+
+        let mut suppress_close = false;
+        if pending_open {
+            pending_open = false;
+            if app.enter_settings() {
+                suppress_close = true;
+                esc_f3.mark_opened();
+                eprintln!("settings: opened offline");
+            }
+        }
+        if pending_close {
+            pending_close = false;
+            if app.screen.is_settings() {
+                app.leave_settings();
+                eprintln!("settings: closed offline");
+            }
+        }
+
+        if app.screen.is_settings() {
+            let mut was_settings_lmb = was_lmb;
+            match handle_settings_input(
+                &window,
+                &mut app,
+                &mut was_settings_lmb,
+                suppress_close,
+                false,
+            ) {
+                SettingsLoop::Left | SettingsLoop::Continue => {}
+                SettingsLoop::Restart => restart_client_process(),
+                SettingsLoop::OpenAccount => {
+                    // Offline has no Account form loop — keep offline + status.
+                    let _ = app.settings.save_default();
+                    app.leave_settings();
+                }
+            }
+            was_lmb = was_settings_lmb;
+            if app.screen.is_settings() {
+                // Dimmed offline world + glass settings.
+                let saved_hl = scene.highlight_tile.take();
+                scene.draw(
+                    &mut fb,
+                    &mut map,
+                    &mut world,
+                    &content,
+                    &mut sprites,
+                    &mut anims,
+                    dt,
+                );
+                scene.highlight_tile = saved_hl;
+                app.settings.draw_overlay(&mut fb, Some(&settings_hud));
+                window.set_title(&window_title(
+                    "Settings",
+                    &format!("offline Esc=Back | {:.0} FPS", fps.fps()),
+                ));
+                rgba_to_u32(&fb.pixels, &mut buf);
+                window.update_with_buffer(&buf, FB_W, FB_H)?;
+                fps.on_presented(dt);
+                let esc = esc_held(&window);
+                let f3 = f3_held(&window);
+                if esc_f3.edge(esc, f3) {
+                    eprintln!(
+                        "input: {} (offline settings)",
+                        if f3 { "F3" } else { "ESC" }
+                    );
+                    if !suppress_close {
+                        pending_close = true;
+                    }
+                }
+                continue;
+            }
+        }
+
         // Offline zoom: +/− / numpad / mouse wheel (same as live play).
         if window.is_key_down(Key::Equal) || window.is_key_down(Key::NumPadPlus) {
             scene.camera.zoom = (scene.camera.zoom * 1.03)
@@ -1266,6 +1905,9 @@ fn run_offline() -> anyhow::Result<()> {
                     .clamp(ohol_headless::render::ZOOM_MIN, ohol_headless::render::ZOOM_MAX);
             }
         }
+        let lmb = window.get_mouse_down(MouseButton::Left);
+        was_lmb = lmb;
+
         // Offline: hitMap hover (no session actions).
         if let Some((mx, my)) = safe_mouse_pos(&window) {
             hover = update_scene_hover(
@@ -1280,14 +1922,17 @@ fn run_offline() -> anyhow::Result<()> {
             );
         }
         let hit = if hover.hit_map { "hit" } else { "tile" };
-        window.set_title(&format!(
-            "Open Life (offline) — {:.0} FPS | zoom {:.0} | ({},{}) id={} [{}]",
-            fps.fps(),
-            scene.camera.zoom,
-            hover.tile.0,
-            hover.tile.1,
-            hover.object_id,
-            hit
+        window.set_title(&window_title(
+            "Offline",
+            &format!(
+                "{:.0} FPS | zoom {:.0} | ({},{}) id={} [{}] Esc=Settings",
+                fps.fps(),
+                scene.camera.zoom,
+                hover.tile.0,
+                hover.tile.1,
+                hover.object_id,
+                hit
+            ),
         ));
         let saved_hl = scene.highlight_tile.take();
         scene.draw(
@@ -1304,6 +1949,18 @@ fn run_offline() -> anyhow::Result<()> {
         rgba_to_u32(&fb.pixels, &mut buf);
         window.update_with_buffer(&buf, FB_W, FB_H)?;
         fps.on_presented(dt);
+
+        // AFTER pump: Esc/F3 open Settings next frame (Win32 async fallback).
+        let esc = esc_held(&window);
+        let f3 = f3_held(&window);
+        if esc_f3.edge(esc, f3) {
+            pending_open = true;
+            eprintln!(
+                "input: {} open Settings (offline active={})",
+                if f3 { "F3" } else { "ESC" },
+                window.is_active()
+            );
+        }
     }
     Ok(())
 }
@@ -1484,6 +2141,8 @@ fn run_session_gpu(
     let mut keys_pressed = std::collections::HashSet::<VirtualKeyCode>::new();
     let mut lmb = false;
     let mut rmb = false;
+    let mut was_lmb_settings = false;
+    let mut esc_f3 = EscF3Edge::default();
     let mut cursor = (FB_W as f32 * 0.5, FB_H as f32 * 0.5);
     let mut scroll_y = 0.0f32;
     let settings_hud = HudSprites::with_default_roots(Some(&root));
@@ -1503,7 +2162,11 @@ fn run_session_gpu(
                     }
                 }
                 WindowEvent::KeyboardInput { input, .. } => {
-                    if let Some(code) = input.virtual_keycode {
+                    // Prefer virtual_keycode; fall back to hardware scancode (Escape/F3).
+                    let code = input
+                        .virtual_keycode
+                        .or_else(|| virtual_key_from_scancode(input.scancode));
+                    if let Some(code) = code {
                         match input.state {
                             ElementState::Pressed => {
                                 keys_down.insert(code);
@@ -1543,47 +2206,126 @@ fn run_session_gpu(
                 let dt = last.elapsed().as_secs_f32().min(0.05);
                 last = Instant::now();
 
-                if keys_pressed.contains(&VirtualKeyCode::Escape)
-                    || keys_pressed.contains(&VirtualKeyCode::F3)
-                {
+                // Rising-edge Esc/F3 from keys_down (and keys_pressed this frame).
+                let esc_down = keys_down.contains(&VirtualKeyCode::Escape)
+                    || keys_pressed.contains(&VirtualKeyCode::Escape);
+                let f3_down = keys_down.contains(&VirtualKeyCode::F3)
+                    || keys_pressed.contains(&VirtualKeyCode::F3);
+                let esc_f3_edge = esc_f3.edge(esc_down, f3_down);
+
+                // Esc/F3: open from Playing, or close when already in Settings.
+                // mark_opened blocks same-hold close until both keys are released.
+                let mut suppress_settings_close = false;
+                if esc_f3_edge {
                     if app.screen.is_settings() {
                         app.leave_settings();
+                        app.apply_settings_to_banks(Some(&mut session.sounds), None);
+                        app.apply_settings_to_banks(Some(&mut scene.sounds), None);
                         scene.camera.zoom = app.settings.zoom.clamp(
                             ohol_headless::render::ZOOM_MIN,
                             ohol_headless::render::ZOOM_MAX,
                         );
+                        was_lmb_settings = false;
                     } else if app.screen.is_playing() {
-                        let _ = app.enter_settings();
+                        if app.enter_settings() {
+                            suppress_settings_close = true;
+                            esc_f3.mark_opened();
+                        }
                     }
                 }
+                let _lmb_press = lmb && !was_lmb;
 
                 if app.screen.is_settings() {
+                    let mut action = SettingsAction::None;
                     if keys_pressed.contains(&VirtualKeyCode::Tab) {
-                        let _ = app.settings.on_key(SettingsKey::Tab {
+                        action = app.settings.on_key(SettingsKey::Tab {
                             shift: keys_down.contains(&VirtualKeyCode::LShift)
                                 || keys_down.contains(&VirtualKeyCode::RShift),
                         });
                     }
                     if keys_pressed.contains(&VirtualKeyCode::Up) {
-                        let _ = app.settings.on_key(SettingsKey::Up);
+                        action = app.settings.on_key(SettingsKey::Up);
                     }
                     if keys_pressed.contains(&VirtualKeyCode::Down) {
-                        let _ = app.settings.on_key(SettingsKey::Down);
+                        action = app.settings.on_key(SettingsKey::Down);
                     }
                     if keys_pressed.contains(&VirtualKeyCode::Left)
                         || keys_pressed.contains(&VirtualKeyCode::Minus)
                     {
-                        let _ = app.settings.on_key(SettingsKey::Left);
+                        action = app.settings.on_key(SettingsKey::Left);
                     }
                     if keys_pressed.contains(&VirtualKeyCode::Right)
                         || keys_pressed.contains(&VirtualKeyCode::Equals)
                     {
-                        let _ = app.settings.on_key(SettingsKey::Right);
+                        action = app.settings.on_key(SettingsKey::Right);
                     }
-                    if keys_pressed.contains(&VirtualKeyCode::Return) {
-                        let _ = app.settings.on_key(SettingsKey::Enter);
+                    if keys_pressed.contains(&VirtualKeyCode::Return)
+                        || keys_pressed.contains(&VirtualKeyCode::Space)
+                    {
+                        action = app.settings.on_key(SettingsKey::Enter);
                     }
-                    app.settings.draw(&mut fb, Some(&settings_hud));
+                    if keys_pressed.contains(&VirtualKeyCode::Key1) {
+                        action = app.settings.on_key(SettingsKey::ToggleAudio);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Key2) {
+                        action = app.settings.on_key(SettingsKey::ToggleMusic);
+                    }
+                    // B = Back (Esc handled above as toggle with release-gate).
+                    if !suppress_settings_close && keys_pressed.contains(&VirtualKeyCode::B) {
+                        action = app.settings.on_key(SettingsKey::Escape);
+                    }
+                    // Mouse click/drag for all settings controls.
+                    if lmb && !was_lmb_settings {
+                        let a = app.settings.on_pointer_down(
+                            cursor.0,
+                            cursor.1,
+                            FB_W as f32,
+                            FB_H as f32,
+                        );
+                        if a != SettingsAction::None {
+                            action = a;
+                        }
+                    } else if lmb && was_lmb_settings && app.settings.slider_drag.is_some() {
+                        let a =
+                            app.settings
+                                .on_pointer_drag(cursor.0, FB_W as f32, FB_H as f32);
+                        if a != SettingsAction::None {
+                            action = a;
+                        }
+                    }
+                    if !lmb {
+                        app.settings.on_pointer_up();
+                    }
+                    was_lmb_settings = lmb;
+
+                    match action {
+                        SettingsAction::Back => {
+                            app.leave_settings();
+                            was_lmb_settings = false;
+                        }
+                        SettingsAction::Restart => {
+                            let _ = app.settings.save_default();
+                            restart_client_process();
+                        }
+                        SettingsAction::OpenAccount => {
+                            let _ = app.settings.save_default();
+                            app.leave_settings();
+                            was_lmb_settings = false;
+                            last_status =
+                                "Account settings: restart with OHOL_AUTO_CONNECT=0".into();
+                        }
+                        SettingsAction::Applied | SettingsAction::None => {}
+                    }
+                    app.apply_settings_to_banks(Some(&mut session.sounds), None);
+                    app.apply_settings_to_banks(Some(&mut scene.sounds), None);
+                    if app.screen.is_settings() {
+                        // Dimmed world + glass card (world was drawn last frame; redraw light).
+                        app.settings.draw_overlay(&mut fb, Some(&settings_hud));
+                        window.set_title(&window_title(
+                            "Settings",
+                            &format!("Esc=Back | SFX {:.0}%", app.settings.sound_volume * 100.0),
+                        ));
+                    }
                     scene.camera.zoom = app.settings.zoom.clamp(
                         ohol_headless::render::ZOOM_MIN,
                         ohol_headless::render::ZOOM_MAX,
@@ -1821,15 +2563,23 @@ fn run_session_gpu(
                     } else {
                         format!("rx {rx_ago:.0}s ago")
                     };
-                    window.set_title(&format!(
-                        "Open Life GPU ({:.0} FPS) | {rx_label} | {} | F3=Settings",
-                        fps.fps(),
-                        if last_status.is_empty() {
-                            "play"
-                        } else {
-                            last_status.as_str()
-                        }
+                    window.set_title(&window_title(
+                        "Play GPU",
+                        &format!(
+                            "{:.0} FPS | {rx_label} | {} | Esc=Settings",
+                            fps.fps(),
+                            if last_status.is_empty() {
+                                "play"
+                            } else {
+                                last_status.as_str()
+                            }
+                        ),
                     ));
+                }
+                // Keep LMB edge state even when Settings/Death stole the frame.
+                if !app.screen.is_playing() {
+                    was_lmb = lmb;
+                    was_rmb = rmb;
                 }
 
                 // Stretch soft-FB → full window present buffer (fills entire client area).

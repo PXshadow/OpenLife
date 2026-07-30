@@ -1,6 +1,6 @@
 [package]
 name = "ohol-headless"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 publish = false
 description = "One Hour One Life / Open Life Rust client (headless + optional GPU)"
@@ -43,5 +43,7 @@ cpal = { version = "0.15", optional = true }
 ## Pure-Rust OGG Vorbis decode for music beds (`music/music_NN.ogg`). Lazy on ensure/play only —
 ## boot index scan never calls lewton. Justified: only min pure-Rust Vorbis decoder; no C deps.
 lewton = "0.10"
+## Settings / Account UI text (system Segoe UI / Arial). Soft-FB raster only.
+fontdue = "0.9"
 
 [dev-dependencies]

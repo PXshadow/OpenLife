@@ -30,7 +30,9 @@ use crate::content::{
     ClientObjectDef, HoldingPos, SpriteCenterInfo,
 };
 use crate::emotion::EmotionBank;
-use crate::ground_sprites::{biome_color, GroundBank};
+use crate::ground_sprites::{
+    biome_color, biome_plate_color, unknown_biome_draw_color, GroundBank,
+};
 use crate::hud::{draw_hud_if_visible, draw_speech_bubble, HudState, HudSprites};
 use crate::live_object::{home_dir_index, LiveObject, LiveWorld, SaysPointerMarker};
 use crate::parse::{FoodChange, HeatChange};
@@ -515,6 +517,51 @@ impl Framebuffer {
         dst_w: i32,
         dst_h: i32,
     ) {
+        self.blit_rect_scaled_tint(
+            atlas, atlas_w, src_x, src_y, src_w, src_h, dst_x, dst_y, dst_w, dst_h, [1.0, 1.0, 1.0],
+        );
+    }
+
+    /// Like [`Self::blit_rect_scaled`] but multiplies RGB by `tint_rgba` (C++
+    /// `setDrawColor` for unknown biomes — `getXYRandom` channels 0..1).
+    pub fn blit_rect_scaled_multiply(
+        &mut self,
+        atlas: &[u8],
+        atlas_w: u32,
+        src_x: i32,
+        src_y: i32,
+        src_w: u32,
+        src_h: u32,
+        dst_x: i32,
+        dst_y: i32,
+        dst_w: i32,
+        dst_h: i32,
+        tint_rgba: [u8; 4],
+    ) {
+        let tint = [
+            tint_rgba[0] as f32 / 255.0,
+            tint_rgba[1] as f32 / 255.0,
+            tint_rgba[2] as f32 / 255.0,
+        ];
+        self.blit_rect_scaled_tint(
+            atlas, atlas_w, src_x, src_y, src_w, src_h, dst_x, dst_y, dst_w, dst_h, tint,
+        );
+    }
+
+    fn blit_rect_scaled_tint(
+        &mut self,
+        atlas: &[u8],
+        atlas_w: u32,
+        src_x: i32,
+        src_y: i32,
+        src_w: u32,
+        src_h: u32,
+        dst_x: i32,
+        dst_y: i32,
+        dst_w: i32,
+        dst_h: i32,
+        tint: [f32; 3],
+    ) {
         if dst_w <= 0 || dst_h <= 0 || src_w == 0 || src_h == 0 {
             return;
         }
@@ -526,7 +573,7 @@ impl Framebuffer {
             for dx in 0..dst_w {
                 let u = dx * sw / dst_w;
                 if let Some(px) =
-                    sample_atlas(atlas, atlas_w, src_x, src_y, src_w, src_h, u, v, [1.0, 1.0, 1.0])
+                    sample_atlas(atlas, atlas_w, src_x, src_y, src_w, src_h, u, v, tint)
                 {
                     self.put(dst_x + dx, dst_y + dy, px);
                 }
@@ -870,7 +917,10 @@ impl SceneRenderer {
                 let (px, py, tw, th) =
                     tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
                 // Solid plate covers 100% of the cell; abutting edges → no seams.
-                fb.fill_rect(px, py, tw, th, biome_color(biome));
+                // Jason: known biomes use sheet midtones; missing sets use random
+                // unknown-sheet tint (getXYRandom) so plate matches the soft/square draw.
+                let has_sheet = self.ground.has_biome_sheet(biome);
+                fb.fill_rect(px, py, tw, th, biome_plate_color(biome, has_sheet));
             }
         }
         for ty in (y0..=y1).rev() {
@@ -1384,15 +1434,6 @@ impl SceneRenderer {
                         }
                     }
 
-                    if world.our_id == Some(id) {
-                        fb.fill_rect(
-                            person_sx as i32 - 3,
-                            person_sy as i32 - 3,
-                            6,
-                            6,
-                            [255, 255, 0, 255],
-                        );
-                    }
                 }
             }
         }
@@ -1560,8 +1601,14 @@ impl SceneRenderer {
     /// Solid plates were already painted in pass 1a (no black seams while TGAs load).
     ///
     /// - **Square tile** when left, above (`y+1`), and diagonal (`x+1,y+1`) share
-    ///   this biome — C++ pixel-fill optimization for interior.
+    ///   this biome — C++ `squareTiles` interior (LivingLifePage ~7345–7356).
     /// - Else **soft 2×CELL_D tile** with soft alpha edges so biome borders blend.
+    /// - **Missing biome sheet** → C++ unknown `ground_U` / cache 99999 + random
+    ///   `getXYRandom` multiply color (~7205–7213).
+    ///
+    /// Per-cell Haxe `ground_tN` overlays are **not** drawn here: Jason C++ instead
+    /// multiplies full-screen overlay sprites after floors (LivingLifePage ~7629+).
+    /// The old per-cell Haxe path painted two repeating “strange” tiles every 8 cells.
     fn draw_ground_cell(
         &mut self,
         fb: &mut Framebuffer,
@@ -1587,29 +1634,52 @@ impl SceneRenderer {
         let (sx, sy) = self.world_to_screen(wx, wy, fb.width, fb.height);
 
         let use_square = left_same && above_same && diag_same;
-        if use_square {
-            // Interior: solid plate from pass 1 already covers the cell (Jason square
-            // interior). Skip TGA blit — largest FPS win while keeping seamless fill.
-            // Soft-edge cells (below) still use 2× ground sprites for biome blends.
+        let drawn = if use_square {
+            // Interior: C++ squareTiles[setY][setX] at cell center (CELL_D).
+            self.ground
+                .ensure_square_or_unknown(biome, tx, ty)
+                .map(|(gt, unk)| {
+                    self.blit_ground_centered_tinted(fb, &gt, sx, sy, 1.0, 0, unk, biome);
+                    true
+                })
+                .unwrap_or(false)
         } else {
             // Soft 2×CELL_D — overdraw +1px so float zoom never flashes clear between cells.
-            if let Some(gt) = self.ground.ensure_tile(biome, tx, ty) {
-                self.blit_ground_centered_overdraw(fb, &gt, sx, sy, 2.0, 1);
-            }
-        }
+            self.ground
+                .ensure_tile_or_unknown(biome, tx, ty)
+                .map(|(gt, unk)| {
+                    self.blit_ground_centered_tinted(fb, &gt, sx, sy, 2.0, 1, unk, biome);
+                    true
+                })
+                .unwrap_or(false)
+        };
+        let _ = drawn;
+    }
 
-        // Haxe/C++ ground overlay pass on select cells (only when bank has overlays).
-        if self.ground.has_overlays() {
-            if let Some(ov) = self.ground.ensure_overlay_for_tile(tx, ty) {
-                let (x0, y0, tw, th) =
-                    tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
-                self.blit_ground_rect(fb, &ov, x0, y0, tw, th);
-            }
-        }
+    /// Soft/square ground blit; when `used_unknown` and the map biome has no sheet,
+    /// multiply RGB by Jason’s random unknown tint (C++ `setDrawColor(getXYRandom…)`).
+    fn blit_ground_centered_tinted(
+        &self,
+        fb: &mut Framebuffer,
+        gt: &crate::ground_sprites::GroundTileRect,
+        cx: f32,
+        cy: f32,
+        cells: f32,
+        pad: i32,
+        used_unknown: bool,
+        biome: u8,
+    ) {
+        let tint = if used_unknown && !self.ground.has_biome_sheet(biome) {
+            Some(unknown_biome_draw_color(biome as i32))
+        } else {
+            None
+        };
+        self.blit_ground_centered_overdraw_tint(fb, gt, cx, cy, cells, pad, tint);
     }
 
     /// Blit ground sprite into an exact screen rect (square / overlay).
     /// Samples the atlas page in-place (no per-tile allocation).
+    #[allow(dead_code)] // reserved for C++ full-screen mult overlay path
     fn blit_ground_rect(
         &self,
         fb: &mut Framebuffer,
@@ -1637,6 +1707,7 @@ impl SceneRenderer {
     }
 
     /// Soft-edge ground: center at `(sx,sy)`, cover `cells` tiles, plus `pad` pixels overdraw.
+    #[allow(dead_code)] // thin wrapper; tinted path used by draw_ground_cell
     fn blit_ground_centered_overdraw(
         &self,
         fb: &mut Framebuffer,
@@ -1645,6 +1716,19 @@ impl SceneRenderer {
         cy: f32,
         cells: f32,
         pad: i32,
+    ) {
+        self.blit_ground_centered_overdraw_tint(fb, gt, cx, cy, cells, pad, None);
+    }
+
+    fn blit_ground_centered_overdraw_tint(
+        &self,
+        fb: &mut Framebuffer,
+        gt: &crate::ground_sprites::GroundTileRect,
+        cx: f32,
+        cy: f32,
+        cells: f32,
+        pad: i32,
+        tint: Option<[u8; 4]>,
     ) {
         let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(gt) else {
             return;
@@ -1657,18 +1741,34 @@ impl SceneRenderer {
         let y1 = (cy + half).ceil() as i32 + pad;
         let dw = (x1 - x0).max(1);
         let dh = (y1 - y0).max(1);
-        fb.blit_rect_scaled(
-            pix,
-            atlas_w,
-            sx as i32,
-            sy as i32,
-            sw,
-            sh,
-            x0,
-            y0,
-            dw,
-            dh,
-        );
+        if let Some(t) = tint {
+            fb.blit_rect_scaled_multiply(
+                pix,
+                atlas_w,
+                sx as i32,
+                sy as i32,
+                sw,
+                sh,
+                x0,
+                y0,
+                dw,
+                dh,
+                t,
+            );
+        } else {
+            fb.blit_rect_scaled(
+                pix,
+                atlas_w,
+                sx as i32,
+                sy as i32,
+                sw,
+                sh,
+                x0,
+                y0,
+                dw,
+                dh,
+            );
+        }
     }
 
     /// Draw object and its contained children at slot positions.
