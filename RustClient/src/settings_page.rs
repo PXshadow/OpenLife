@@ -79,6 +79,14 @@ pub struct SettingsPage {
     pub debug: bool,
     /// Screen pixels per world tile (camera zoom). Persist + apply on play.
     pub zoom: f32,
+    /// Ground overlay brightness 0..1 (UI 0–100%).
+    ///
+    /// - **1.0 (100%)** = original Jason client mult formula  
+    ///   (`dst *= clamp(texture + 0.15)` with additive texture coloring).
+    /// - **0.0 (0%)** = pre-fix dark path (`dst *= texture * 0.15`).
+    ///
+    /// Default is **0.0** so existing sessions keep the darker look until raised.
+    pub brightness: f32,
     /// Soft vs GPU present (takes effect on next client start). Default: GPU.
     pub graphics_mode: GraphicsMode,
     /// Master device audio on/off (default **on**). Off skips cpal; volumes/mutes still apply when on.
@@ -109,6 +117,8 @@ pub enum SettingsFocus {
     SoundVolume,
     MusicVolume,
     Zoom,
+    /// Ground overlay brightness (0% = legacy dark, 100% = original client).
+    Brightness,
     Graphics,
     Audio,
     Fullscreen,
@@ -124,10 +134,11 @@ pub enum SettingsFocus {
 }
 
 impl SettingsFocus {
-    const ALL: [SettingsFocus; 13] = [
+    const ALL: [SettingsFocus; 14] = [
         SettingsFocus::SoundVolume,
         SettingsFocus::MusicVolume,
         SettingsFocus::Zoom,
+        SettingsFocus::Brightness,
         SettingsFocus::Graphics,
         SettingsFocus::Audio,
         SettingsFocus::Fullscreen,
@@ -215,6 +226,8 @@ impl Default for SettingsPage {
             show_fps: true,
             debug: false,
             zoom: ZOOM_DEFAULT,
+            // Keep pre-fix dark ground until the user raises toward original (100%).
+            brightness: 0.0,
             graphics_mode: GraphicsMode::Gpu,
             audio_enabled: true,
             fullscreen: false,
@@ -238,6 +251,12 @@ impl SettingsPage {
         self.sound_volume = self.sound_volume.clamp(0.0, 1.0);
         self.music_volume = self.music_volume.clamp(0.0, 1.0);
         self.zoom = self.zoom.clamp(ZOOM_MIN, ZOOM_MAX);
+        self.brightness = self.brightness.clamp(0.0, 1.0);
+    }
+
+    /// Normalized 0..1 brightness (same as stored field after clamp).
+    pub fn brightness_slider_t(&self) -> f32 {
+        self.brightness.clamp(0.0, 1.0)
     }
 
     /// Snapshot current graphics/fullscreen as the live process baseline.
@@ -294,6 +313,11 @@ impl SettingsPage {
             }
             if std::env::var_os("OHOL_ZOOM").is_none() {
                 s.zoom = file.zoom;
+            }
+            if std::env::var_os("OHOL_BRIGHTNESS").is_none()
+                && std::env::var_os("OHOL_GROUND_BRIGHTNESS").is_none()
+            {
+                s.brightness = file.brightness;
             }
             if std::env::var_os("OHOL_GRAPHICS").is_none()
                 && std::env::var_os("OHOL_RENDERER").is_none()
@@ -377,6 +401,11 @@ impl SettingsPage {
                 s.zoom = n;
             }
         }
+        if let Some(v) = get("OHOL_BRIGHTNESS").or_else(|| get("OHOL_GROUND_BRIGHTNESS")) {
+            if let Some(n) = parse_volume(&v) {
+                s.brightness = n;
+            }
+        }
         if let Some(v) = get("OHOL_GRAPHICS").or_else(|| get("OHOL_RENDERER")) {
             if let Some(m) = GraphicsMode::from_str_loose(&v) {
                 s.graphics_mode = m;
@@ -456,6 +485,7 @@ impl SettingsPage {
              show_fps={}\n\
              debug={}\n\
              zoom={:.3}\n\
+             brightness={:.3}\n\
              graphics={}\n\
              audio={}\n\
              fullscreen={}\n",
@@ -466,6 +496,7 @@ impl SettingsPage {
             if self.show_fps { "1" } else { "0" },
             if self.debug { "1" } else { "0" },
             self.zoom.clamp(ZOOM_MIN, ZOOM_MAX),
+            self.brightness.clamp(0.0, 1.0),
             self.graphics_mode.as_str(),
             if self.audio_enabled { "1" } else { "0" },
             if self.fullscreen { "1" } else { "0" },
@@ -502,6 +533,11 @@ impl SettingsPage {
                 "zoom" | "camera_zoom" | "view_zoom" => {
                     if let Ok(n) = v.parse::<f32>() {
                         s.zoom = n;
+                    }
+                }
+                "brightness" | "ground_brightness" | "overlay_brightness" => {
+                    if let Some(n) = parse_volume(v) {
+                        s.brightness = n;
                     }
                 }
                 "graphics" | "graphics_mode" | "renderer" | "render" => {
@@ -610,7 +646,10 @@ impl SettingsPage {
                 }
                 SettingsFocus::Back => SettingsAction::Back,
                 SettingsFocus::Restart => self.try_restart_action(),
-                SettingsFocus::SoundVolume | SettingsFocus::MusicVolume | SettingsFocus::Zoom => {
+                SettingsFocus::SoundVolume
+                | SettingsFocus::MusicVolume
+                | SettingsFocus::Zoom
+                | SettingsFocus::Brightness => {
                     self.apply_runtime_globals();
                     SettingsAction::Applied
                 }
@@ -736,6 +775,10 @@ impl SettingsPage {
                 self.zoom = ZOOM_MIN + t * (ZOOM_MAX - ZOOM_MIN);
                 self.status = format!("Zoom {:.0} px/tile", self.zoom);
             }
+            SettingsFocus::Brightness => {
+                self.brightness = t;
+                self.status = brightness_status(self.brightness);
+            }
             _ => {}
         }
         self.clamp();
@@ -808,7 +851,10 @@ impl SettingsPage {
                 self.status = "Opening Account…".into();
                 SettingsAction::OpenAccount
             }
-            SettingsFocus::SoundVolume | SettingsFocus::MusicVolume | SettingsFocus::Zoom => {
+            SettingsFocus::SoundVolume
+            | SettingsFocus::MusicVolume
+            | SettingsFocus::Zoom
+            | SettingsFocus::Brightness => {
                 // Row click without slider: focus only (drag track to change).
                 SettingsAction::None
             }
@@ -831,6 +877,10 @@ impl SettingsPage {
                 let step_z = ((ZOOM_MAX - ZOOM_MIN) * 0.1).max(1.0);
                 self.zoom = (self.zoom + step_z * dir as f32).clamp(ZOOM_MIN, ZOOM_MAX);
                 self.status = format!("Zoom {:.0} px/tile  (+/- or Left/Right)", self.zoom);
+            }
+            SettingsFocus::Brightness => {
+                self.brightness = (self.brightness + step * dir as f32).clamp(0.0, 1.0);
+                self.status = brightness_status(self.brightness);
             }
             SettingsFocus::Graphics if dir != 0 => {
                 self.graphics_mode = self.graphics_mode.cycle();
@@ -925,6 +975,17 @@ fn parse_volume(s: &str) -> Option<f32> {
     }
 }
 
+fn brightness_status(t: f32) -> String {
+    let pct = (t.clamp(0.0, 1.0) * 100.0).round();
+    if pct >= 99.5 {
+        "Brightness 100% (original client)".into()
+    } else if pct <= 0.5 {
+        "Brightness 0% (legacy dark overlay)".into()
+    } else {
+        format!("Brightness {pct:.0}%  (100% = original client)")
+    }
+}
+
 /// Soft-FB horizontal slider (track + fill + knob). `t` is 0..1.
 fn draw_settings_slider(fb: &mut Framebuffer, cx: f32, y: f32, t: f32, focused: bool) {
     let track_w = SETTINGS_SLIDER_W as i32;
@@ -959,7 +1020,8 @@ fn draw_settings_slider(fb: &mut Framebuffer, cx: f32, y: f32, t: f32, focused: 
 /// Shared vertical layout for draw + hit tests (web-card style).
 fn settings_panel_geom(fb_w: f32, fb_h: f32) -> (f32, f32, f32, f32, f32) {
     let panel_w = (fb_w * 0.62).clamp(400.0, 560.0);
-    let panel_h = (fb_h * 0.90).clamp(400.0, 500.0);
+    // Tall enough for volume/zoom/brightness sliders + toggles + account/restart.
+    let panel_h = (fb_h * 0.94).clamp(420.0, 560.0);
     let panel_x = (fb_w - panel_w) * 0.5;
     let panel_y = (fb_h - panel_h) * 0.5;
     let cx = fb_w * 0.5;
@@ -977,7 +1039,10 @@ fn settings_layout_hits(fb_w: f32, fb_h: f32) -> Vec<SettingsRowHit> {
     for &row in &SettingsFocus::ALL {
         let has_slider = matches!(
             row,
-            SettingsFocus::SoundVolume | SettingsFocus::MusicVolume | SettingsFocus::Zoom
+            SettingsFocus::SoundVolume
+                | SettingsFocus::MusicVolume
+                | SettingsFocus::Zoom
+                | SettingsFocus::Brightness
         );
         let is_btn = matches!(
             row,
@@ -1099,7 +1164,10 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
         let label_h = if is_btn { 28.0 } else { 20.0 };
         let has_slider = matches!(
             row,
-            SettingsFocus::SoundVolume | SettingsFocus::MusicVolume | SettingsFocus::Zoom
+            SettingsFocus::SoundVolume
+                | SettingsFocus::MusicVolume
+                | SettingsFocus::Zoom
+                | SettingsFocus::Brightness
         );
         let slider_h = if has_slider { 16.0 } else { 6.0 };
 
@@ -1113,6 +1181,10 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
                 format!("{:.0}%", page.music_volume * 100.0),
             ),
             SettingsFocus::Zoom => ("Zoom".to_string(), format!("{:.0} px/tile", page.zoom)),
+            SettingsFocus::Brightness => (
+                "Brightness".to_string(),
+                format!("{:.0}%", page.brightness * 100.0),
+            ),
             SettingsFocus::Graphics => {
                 let flag = if page.graphics_mode != page.runtime_graphics {
                     " · restart"
@@ -1283,6 +1355,7 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
             SettingsFocus::SoundVolume => Some(page.sound_volume.clamp(0.0, 1.0)),
             SettingsFocus::MusicVolume => Some(page.music_volume.clamp(0.0, 1.0)),
             SettingsFocus::Zoom => Some(page.zoom_slider_t()),
+            SettingsFocus::Brightness => Some(page.brightness_slider_t()),
             _ => None,
         };
         if let Some(t) = slider_t {
@@ -1412,6 +1485,7 @@ mod tests {
             music_muted: false,
             show_fps: false,
             zoom: 48.0,
+            brightness: 0.75,
             ..SettingsPage::default()
         };
         let p = SettingsPage::parse_ini(&s.serialize_ini());
@@ -1419,6 +1493,17 @@ mod tests {
         assert!((p.music_volume - 0.25).abs() < 0.001);
         assert!(p.sound_muted && !p.music_muted && !p.show_fps);
         assert!((p.zoom - 48.0).abs() < 0.001);
+        assert!((p.brightness - 0.75).abs() < 0.001);
+    }
+
+    #[test]
+    fn brightness_default_is_legacy_dark() {
+        // 0% = pre-fix dark overlay; 100% = original Jason client.
+        assert!((SettingsPage::default().brightness - 0.0).abs() < 1e-6);
+        let p = SettingsPage::parse_ini("brightness=100\n");
+        assert!((p.brightness - 1.0).abs() < 1e-6);
+        let p = SettingsPage::parse_ini("brightness=0.5\n");
+        assert!((p.brightness - 0.5).abs() < 1e-6);
     }
 
     #[test]

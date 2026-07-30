@@ -380,6 +380,25 @@ impl Framebuffer {
         self.pixels[i + 3] = 255;
     }
 
+    /// C++ additive blend (ground overlay lighten pass).
+    pub fn put_additive(&mut self, x: i32, y: i32, rgba: [u8; 4]) {
+        if x < 0 || y < 0 || x >= self.width as i32 || y >= self.height as i32 {
+            return;
+        }
+        if rgba[3] == 0 {
+            return;
+        }
+        let i = ((y as u32 * self.width + x as u32) * 4) as usize;
+        let a = rgba[3] as u32;
+        for c in 0..3 {
+            let dst = self.pixels[i + c] as u32;
+            let src = rgba[c] as u32;
+            let v = dst + (src * a) / 255;
+            self.pixels[i + c] = v.min(255) as u8;
+        }
+        self.pixels[i + 3] = 255;
+    }
+
     pub fn fill_rect(&mut self, x: i32, y: i32, w: i32, h: i32, rgba: [u8; 4]) {
         for dy in 0..h {
             for dx in 0..w {
@@ -683,6 +702,11 @@ pub struct SceneRenderer {
     pub emotions: EmotionBank,
     /// OLSN sound bank for anim SoundAnimParam / footstep (**L-SOUND-TRIG**).
     pub sounds: crate::sound_bank::SoundBank,
+    /// Ground overlay brightness 0..1 (settings `brightness`).
+    ///
+    /// - **1.0** = original Jason mult (`dst *= clamp(tex + 0.15)`)
+    /// - **0.0** = legacy dark mult (`dst *= tex * 0.15`) — scene default matches settings default
+    pub ground_brightness: f32,
 }
 
 impl Default for SceneRenderer {
@@ -697,6 +721,8 @@ impl Default for SceneRenderer {
             draw_hud: true,
             emotions: EmotionBank::new(),
             sounds: crate::sound_bank::SoundBank::new("."),
+            // Match SettingsPage default (legacy dark until user raises to 100%).
+            ground_brightness: 0.0,
         }
     }
 }
@@ -901,12 +927,7 @@ impl SceneRenderer {
         let tile_px = self.camera.zoom.max(4.0).round() as i32;
 
         // --- Pass 1: ground biomes (C++ LivingLifePage ~7151–7390) ---
-        // Soft 2×CELL_D tiles (soft alpha edges) blend borders; square CELL_D
-        // fills **exact cell rects** when left/above/diag share biome (Jason).
-        //
-        // Underfill plates only where we still need a base (loading / soft edges).
-        // Drawing full-cell plates under **offset** square tiles made a visible
-        // grid (half-cell gap of plate around every square).
+        // Spec: docs/port/GROUND_DRAW_CPP.md — wholeSheet + soft/square, no cell underfill.
         let y0 = cy - half_h;
         let y1 = cy + half_h;
         let x0 = cx - half_w;
@@ -914,42 +935,84 @@ impl SceneRenderer {
         for ty in y0..=y1 {
             for tx in x0..=x1 {
                 let biome = map.get_or_empty(tx, ty).biome;
-                let (px, py, tw, th) =
-                    tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
-                let has_sheet = self.ground.has_biome_sheet(biome);
-                // Always underfill: soft border tiles have transparent edges; plates
-                // must match sheet midtones so no hard grid shows through.
-                fb.fill_rect(px, py, tw, th, biome_plate_color(biome, has_sheet));
+                if !self.ground.has_biome_sheet(biome) {
+                    let (px, py, tw, th) =
+                        tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
+                    fb.fill_rect(px, py, tw, th, biome_plate_color(biome, false));
+                }
             }
         }
-        // Soft tiles first (under), then square interiors on top (C++ order is
-        // per-cell either-or; drawing soft under then square on interior also
-        // hides soft-edge seams inside a solid biome).
+        // C++ mMapCellDrawnFlags — skip cells already covered by wholeSheet.
+        let mut ground_drawn: std::collections::HashSet<(i32, i32)> =
+            std::collections::HashSet::new();
         for ty in (y0..=y1).rev() {
             for tx in x0..=x1 {
-                self.draw_ground_cell(fb, map, tx, ty);
+                if ground_drawn.contains(&(tx, ty)) {
+                    continue;
+                }
+                let biome = map.get_or_empty(tx, ty).biome;
+                // wholeSheet when variation corner (setX=setY=0) and region is uniform.
+                let set_x = crate::ground_sprites::ground_tile_mod(tx);
+                let set_y = crate::ground_sprites::ground_tile_mod(ty);
+                if set_x == 0 && set_y == 0 {
+                    if let Some((gt, tw, th)) = self.ground.ensure_whole_sheet(biome) {
+                        if self.biome_region_allows_whole_sheet(map, tx, ty, tw, th, biome) {
+                            self.blit_whole_sheet(fb, &gt, tx, ty, tw, th, biome);
+                            for dy in 0..th as i32 {
+                                for dx in 0..tw as i32 {
+                                    // C++ marks y, y-1, … y-th+1 (south = decreasing y).
+                                    ground_drawn.insert((tx + dx, ty - dy));
+                                }
+                            }
+                            continue;
+                        }
+                    }
+                }
+                self.draw_ground_cell(fb, map, content, tx, ty);
             }
         }
 
-        // --- Pass 2: y-sorted floors, map objects, players ---
-        // Haxe: ysort by bounds.yMax
-        // C++: per-row Floor → behind-player sprites → drawBehindPlayer → players → front objects
+        // --- Pass 2a: floors only (C++ draws floors before ground overlay) ---
+        let mut floor_items: Vec<(i32, i32, i32)> = Vec::new();
+        for ty in (cy - half_h)..=(cy + half_h) {
+            for tx in (cx - half_w)..=(cx + half_w) {
+                let tile = map.get_or_empty(tx, ty);
+                if tile.floor_id != 0 {
+                    floor_items.push((ty, tx, tile.floor_id));
+                }
+            }
+        }
+        // High Y first (same as C++).
+        floor_items.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
+        for (ty, tx, floor_id) in floor_items {
+            let (sx, sy) =
+                self.world_to_screen(tx as f32 + 0.5, ty as f32 + 0.5, fb.width, fb.height);
+            if content.get(floor_id).map(|d| !d.sprites.is_empty()).unwrap_or(false) {
+                self.draw_object(
+                    fb, content, sprites, anims, floor_id, 0, -1, 20.0, sx, sy, false, false,
+                );
+            } else {
+                let (x0, y0, tw, th) =
+                    tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
+                fb.fill_rect(
+                    x0 + 2,
+                    y0 + 2,
+                    (tw - 4).max(1),
+                    (th - 4).max(1),
+                    [120, 100, 80, 200],
+                );
+            }
+        }
+
+        // --- Pass 2b: Jason full-view ground overlay (after floors) ~7629 ---
+        self.draw_ground_screen_overlay(fb);
+
+        // --- Pass 3: y-sorted map objects + players (floors already drawn) ---
         let mut items: Vec<YSortItem> = Vec::new();
 
         for ty in (cy - half_h)..=(cy + half_h) {
             for tx in (cx - half_w)..=(cx + half_w) {
                 let tile = map.get_or_empty(tx, ty);
-                if tile.floor_id != 0 {
-                    items.push(YSortItem {
-                        sort_y: ty,
-                        layer: DrawLayer::Floor,
-                        kind: DrawKind::Floor {
-                            tx,
-                            ty,
-                            floor_id: tile.floor_id,
-                        },
-                    });
-                }
                 if tile.object_id > 0 {
                     // L-RENDER tall-object: split behind/front relative to players.
                     // // C++: drawBehindPlayer + anySpritesBehindPlayer / prepareToSkipSprites
@@ -992,25 +1055,8 @@ impl SceneRenderer {
 
         for item in items {
             match item.kind {
-                DrawKind::Floor { tx, ty, floor_id } => {
-                    let (sx, sy) =
-                        self.world_to_screen(tx as f32 + 0.5, ty as f32 + 0.5, fb.width, fb.height);
-                    // Floor as object sprites when known; else brown plate
-                    if content.get(floor_id).map(|d| !d.sprites.is_empty()).unwrap_or(false) {
-                        self.draw_object(
-                            fb, content, sprites, anims, floor_id, 0, -1, 20.0, sx, sy, false, false,
-                        );
-                    } else {
-                        let (x0, y0, tw, th) =
-                            tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
-                        fb.fill_rect(
-                            x0 + 2,
-                            y0 + 2,
-                            (tw - 4).max(1),
-                            (th - 4).max(1),
-                            [120, 100, 80, 200],
-                        );
-                    }
+                DrawKind::Floor { .. } => {
+                    // Floors already drawn before ground overlay.
                 }
                 DrawKind::MapObject {
                     tx,
@@ -1599,115 +1645,344 @@ impl SceneRenderer {
         }
     }
 
-    /// One map cell of ground **sprites** (C++ LivingLifePage ground pass).
-    /// Solid plates were already painted in pass 1a (no black seams while TGAs load).
+    /// C++ `isCoveredByFloor` — floor present and not `noCover`.
+    fn is_covered_by_floor(
+        map: &crate::client_map::ClientMap,
+        content: &ClientContent,
+        tx: i32,
+        ty: i32,
+    ) -> bool {
+        let f = map.get(tx, ty).map(|t| t.floor_id).unwrap_or(0);
+        if f <= 0 {
+            return false;
+        }
+        // C++: !getObject(fID)->noCover — we treat floors as covering unless marked.
+        if let Some(def) = content.get(f) {
+            if def.description.to_ascii_lowercase().contains("nocover") {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// C++ wholeSheet region test (~7249–7277): sheet cells + 1-cell border same biome.
+    fn biome_region_allows_whole_sheet(
+        &self,
+        map: &crate::client_map::ClientMap,
+        tx: i32,
+        ty: i32,
+        tw: u32,
+        th: u32,
+        biome: u8,
+    ) -> bool {
+        let tw = tw as i32;
+        let th = th as i32;
+        // C++: nY from y+1 down to y-numTilesHigh, nX from x-1 to x+numTilesWide
+        for n_y in (ty - th)..=(ty + 1) {
+            for n_x in (tx - 1)..=(tx + tw) {
+                let b = map.get(n_x, n_y).map(|t| t.biome);
+                // OOB / missing treated as different (C++ nB = -1)
+                if b != Some(biome) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    /// C++ `drawSprite(wholeSheet, sheetPos)` — center of block from (tx,ty) south/east.
+    fn blit_whole_sheet(
+        &self,
+        fb: &mut Framebuffer,
+        gt: &crate::ground_sprites::GroundTileRect,
+        tx: i32,
+        ty: i32,
+        tw: u32,
+        th: u32,
+        biome: u8,
+    ) {
+        // First cell pos (C++ +32/-32): (tx+0.25, ty-0.25)
+        // lastCorner: + (tw-1, -(th-1)) tiles (C++ y-up south = decreasing y)
+        let wx0 = tx as f32 + 0.25;
+        let wy0 = ty as f32 - 0.25;
+        let wx1 = wx0 + (tw.saturating_sub(1) as f32);
+        let wy1 = wy0 - (th.saturating_sub(1) as f32);
+        let cx = (wx0 + wx1) * 0.5;
+        let cy = (wy0 + wy1) * 0.5;
+        let (sx, sy) = self.world_to_screen(cx, cy, fb.width, fb.height);
+        let used_unknown = !self.ground.has_biome_sheet(biome);
+        let half_w = self.camera.zoom * tw.max(1) as f32 * 0.5;
+        let half_h = self.camera.zoom * th.max(1) as f32 * 0.5;
+        let x0 = (sx - half_w).floor() as i32;
+        let y0 = (sy - half_h).floor() as i32;
+        let dw = ((sx + half_w).ceil() as i32 - x0).max(1);
+        let dh = ((sy + half_h).ceil() as i32 - y0).max(1);
+        let tint = if used_unknown {
+            Some(unknown_biome_draw_color(biome as i32))
+        } else {
+            None
+        };
+        if let Some((pix, atlas_w, src_x, src_y, sw, sh)) = self.ground.page_tile(gt) {
+            if let Some(t) = tint {
+                fb.blit_rect_scaled_multiply(
+                    pix, atlas_w, src_x as i32, src_y as i32, sw, sh, x0, y0, dw, dh, t,
+                );
+            } else {
+                fb.blit_rect_scaled(
+                    pix, atlas_w, src_x as i32, src_y as i32, sw, sh, x0, y0, dw, dh,
+                );
+            }
+        }
+    }
+
+    /// Jason full-view mult + add overlay after floors (~7629–7727).
     ///
-    /// - **Square tile** when left (`x-1`), above (`y+1`), and diag (`x-1,y+1`) share
-    ///   this biome — C++ `squareTiles` interior (LivingLifePage ~7345–7356).
-    ///   Drawn into the **exact** [`tile_screen_rect`] (no soft offset) so interiors
-    ///   abut with zero gaps — avoids a visible grid of underfill plates.
-    /// - Else **soft 2×CELL_D tile** with soft alpha edges so biome borders blend.
-    ///   C++ centers soft sprites with **+CELL_D/4 X, −CELL_D/4 Y** (~0.25 tiles)
-    ///   so neighbors heavily overlap.
-    /// - **Missing biome sheet** → C++ unknown `ground_U` / cache 99999 + random
-    ///   `getXYRandom` multiply color (~7205–7213).
-    ///
-    /// Per-cell Haxe `ground_tN` overlays are **not** drawn here: Jason C++ instead
-    /// multiplies full-screen overlay sprites after floors (LivingLifePage ~7629+).
+    /// Mult pass is blended by [`Self::ground_brightness`] (settings 0–100%):
+    /// - **1.0** = original: additive texture coloring → `dst *= clamp(tex + 0.15)`
+    /// - **0.0** = legacy dark: `dst *= tex * 0.15` (pre-fix look; default)
+    /// Add pass: additive blend with `setDrawColor(1,1,1, addAmount=0.25)`.
+    fn draw_ground_screen_overlay(&mut self, fb: &mut Framebuffer) {
+        // Need at least overlay 0 for size.
+        let Some((ow, oh)) = self.ground.overlay_pixel_size(0) else {
+            return;
+        };
+        if ow == 0 || oh == 0 {
+            return;
+        }
+        // Preload t0..t3
+        for t in 0..4u8 {
+            let _ = self.ground.ensure_overlay(t);
+        }
+        // Overlay native pixels are screen-locked in C++ object units.
+        // Map: object pixels → soft-FB using zoom/CELL_D scale.
+        let scale = (self.camera.zoom / GRID).max(0.05);
+        let ground_w_tile = ow as f32 * scale;
+        let ground_h_tile = oh as f32 * scale;
+        let ground_w = ground_w_tile * 2.0;
+        let ground_h = ground_h_tile * 2.0;
+
+        // Snap grid to camera center (C++ lastScreenViewCenter → screen mid).
+        let cam_sx = fb.width as f32 * 0.5;
+        let cam_sy = fb.height as f32 * 0.5;
+        let ground_center_x = (cam_sx / ground_w).round() * ground_w;
+        let ground_center_y = (cam_sy / ground_h).round() * ground_h;
+
+        // LivingLifePage.cpp globals
+        const MULT_AMOUNT: f32 = 0.15;
+        const ADD_AMOUNT: f32 = 0.25;
+
+        // Multiplicative + additive-texture-coloring pass (texture wash).
+        for gy in -1i32..=1 {
+            for gx in -1i32..=1 {
+                let pos_x = ground_center_x + gx as f32 * ground_w;
+                let pos_y = ground_center_y + gy as f32 * ground_h;
+                for t in 0..4u8 {
+                    let Some(gt) = self.ground.ensure_overlay(t) else {
+                        continue;
+                    };
+                    let mut px = pos_x;
+                    let mut py = pos_y;
+                    if t % 2 == 0 {
+                        px -= ground_w_tile * 0.5;
+                    } else {
+                        px += ground_w_tile * 0.5;
+                    }
+                    // C++ y-up: t<2 → +halfH, t>=2 → −halfH. Soft-FB is y-down → flip.
+                    if t < 2 {
+                        py -= ground_h_tile * 0.5;
+                    } else {
+                        py += ground_h_tile * 0.5;
+                    }
+                    self.blit_overlay_mult(
+                        fb,
+                        &gt,
+                        px,
+                        py,
+                        ground_w_tile,
+                        ground_h_tile,
+                        MULT_AMOUNT,
+                        self.ground_brightness,
+                    );
+                }
+            }
+        }
+
+        // Additive lighten pass. C++ writes `pos += 512` then overwrites pos from
+        // groundCenterPos again, so the 512 offset is dead — match that.
+        for gy in -1i32..=1 {
+            for gx in -1i32..=1 {
+                let pos_x = ground_center_x + gx as f32 * ground_w;
+                let pos_y = ground_center_y + gy as f32 * ground_h;
+                for t in 0..4u8 {
+                    let Some(gt) = self.ground.ensure_overlay(t) else {
+                        continue;
+                    };
+                    let mut px = pos_x;
+                    let mut py = pos_y;
+                    if t % 2 == 0 {
+                        px -= ground_w_tile * 0.5;
+                    } else {
+                        px += ground_w_tile * 0.5;
+                    }
+                    if t < 2 {
+                        py -= ground_h_tile * 0.5;
+                    } else {
+                        py += ground_h_tile * 0.5;
+                    }
+                    self.blit_overlay_add(fb, &gt, px, py, ground_w_tile, ground_h_tile, ADD_AMOUNT);
+                }
+            }
+        }
+    }
+
+    fn blit_overlay_mult(
+        &self,
+        fb: &mut Framebuffer,
+        gt: &crate::ground_sprites::GroundTileRect,
+        cx: f32,
+        cy: f32,
+        dw: f32,
+        dh: f32,
+        mult_amount: f32,
+        brightness: f32,
+    ) {
+        let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(gt) else {
+            return;
+        };
+        let x0 = (cx - dw * 0.5).floor() as i32;
+        let y0 = (cy - dh * 0.5).floor() as i32;
+        let dst_w = dw.round().max(1.0) as i32;
+        let dst_h = dh.round().max(1.0) as i32;
+        let sw_i = sw as i32;
+        let sh_i = sh as i32;
+        // 0 = legacy dark (tex * mult), 1 = original (clamp(tex + mult)).
+        let t = brightness.clamp(0.0, 1.0);
+        for dy in 0..dst_h {
+            let v = dy * sh_i / dst_h.max(1);
+            for dx in 0..dst_w {
+                let u = dx * sw_i / dst_w.max(1);
+                let si = (((sy as i32 + v) as u32 * atlas_w + (sx as i32 + u) as u32) * 4) as usize;
+                if si + 3 >= pix.len() {
+                    continue;
+                }
+                let a = pix[si + 3];
+                if a < 8 {
+                    continue;
+                }
+                let mut out = [0u8; 3];
+                for c in 0..3 {
+                    let tex = pix[si + c] as f32 / 255.0;
+                    let legacy = tex * mult_amount;
+                    let original = (tex + mult_amount).clamp(0.0, 1.0);
+                    let f = legacy * (1.0 - t) + original * t;
+                    out[c] = (f.clamp(0.0, 1.0) * 255.0).round() as u8;
+                }
+                fb.put_multiplicative(x0 + dx, y0 + dy, [out[0], out[1], out[2], a]);
+            }
+        }
+    }
+
+    fn blit_overlay_add(
+        &self,
+        fb: &mut Framebuffer,
+        gt: &crate::ground_sprites::GroundTileRect,
+        cx: f32,
+        cy: f32,
+        dw: f32,
+        dh: f32,
+        add_amount: f32,
+    ) {
+        let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(gt) else {
+            return;
+        };
+        let x0 = (cx - dw * 0.5).floor() as i32;
+        let y0 = (cy - dh * 0.5).floor() as i32;
+        let dst_w = dw.round().max(1.0) as i32;
+        let dst_h = dh.round().max(1.0) as i32;
+        let sw_i = sw as i32;
+        let sh_i = sh as i32;
+        let add_a = (add_amount * 255.0).round().clamp(0.0, 255.0) as u8;
+        for dy in 0..dst_h {
+            let v = dy * sh_i / dst_h.max(1);
+            for dx in 0..dst_w {
+                let u = dx * sw_i / dst_w.max(1);
+                let si = (((sy as i32 + v) as u32 * atlas_w + (sx as i32 + u) as u32) * 4) as usize;
+                if si + 3 >= pix.len() {
+                    continue;
+                }
+                let src_a = pix[si + 3] as u32;
+                if src_a < 8 {
+                    continue;
+                }
+                // C++ additive with setDrawColor(1,1,1,addAmount): scale alpha.
+                let a = ((src_a * add_a as u32) / 255) as u8;
+                fb.put_additive(
+                    x0 + dx,
+                    y0 + dy,
+                    [pix[si], pix[si + 1], pix[si + 2], a],
+                );
+            }
+        }
+    }
+
+    /// One map cell of ground **sprites** (C++ LivingLifePage ~7309–7390).
+    /// Full rules: `docs/port/GROUND_DRAW_CPP.md`.
     fn draw_ground_cell(
         &mut self,
         fb: &mut Framebuffer,
         map: &crate::client_map::ClientMap,
+        content: &ClientContent,
         tx: i32,
         ty: i32,
     ) {
         let tile = map.get_or_empty(tx, ty);
         let biome = tile.biome;
 
-        // C++ neighbor sample for square-tile decision (OOB ⇒ different biome).
-        // left = (x-1,y), up = (x,y+1), diag = (x-1,y+1) toward the NW already-drawn side.
+        // C++ LivingLifePage.cpp ~7317–7326:
+        // leftB = (x-1,y), aboveB = (x,y+1), diagB = (x+1,y+1)  [above-RIGHT]
         let left_same = map.get(tx - 1, ty).map(|t| t.biome == biome).unwrap_or(false);
         let above_same = map.get(tx, ty + 1).map(|t| t.biome == biome).unwrap_or(false);
         let diag_same = map
-            .get(tx - 1, ty + 1)
+            .get(tx + 1, ty + 1)
             .map(|t| t.biome == biome)
             .unwrap_or(false);
 
+        let wx = tx as f32 + 0.25;
+        let wy = ty as f32 - 0.25;
+        let (sx, sy) = self.world_to_screen(wx, wy, fb.width, fb.height);
+
         let use_square = left_same && above_same && diag_same;
         if use_square {
-            // Interior: squareTiles — flush to cell edges (Jason CELL_D, no soft offset).
-            let (px, py, tw, th) =
-                tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
+            // Skip if floors fully cover 2×2 (at, R, B, BR) — C++ ~7353–7356.
+            let floor_at = Self::is_covered_by_floor(map, content, tx, ty);
+            let floor_r = Self::is_covered_by_floor(map, content, tx + 1, ty);
+            let floor_b = Self::is_covered_by_floor(map, content, tx, ty - 1);
+            let floor_br = Self::is_covered_by_floor(map, content, tx + 1, ty - 1);
+            if floor_at && floor_r && floor_b && floor_br {
+                return;
+            }
             if let Some((gt, unk)) = self.ground.ensure_square_or_unknown(biome, tx, ty) {
-                self.blit_ground_cell_rect_tinted(fb, &gt, px, py, tw, th, unk, biome);
+                self.blit_ground_centered_tinted(fb, &gt, sx, sy, 1.0, 0, unk, biome);
             } else if let Some((gt, unk)) = self.ground.ensure_tile_or_unknown(biome, tx, ty) {
-                // Fallback soft if square TGA missing — still flush-fill the cell.
-                self.blit_ground_cell_rect_tinted(fb, &gt, px, py, tw, th, unk, biome);
+                self.blit_ground_centered_tinted(fb, &gt, sx, sy, 2.0, 0, unk, biome);
             }
         } else {
-            // Soft 2×CELL_D with Jason half-cell offset so borders blend over neighbors.
-            // Object units: +CELL_D/4 X, −CELL_D/4 Y → +0.25 / −0.25 tiles from center.
-            const OFF: f32 = 0.25;
-            let wx = tx as f32 + 0.5 + OFF;
-            let wy = ty as f32 + 0.5 - OFF;
-            let (sx, sy) = self.world_to_screen(wx, wy, fb.width, fb.height);
+            // Soft: skip if 3×3 floors cover completely — C++ ~7385–7389.
+            let mut all_floor = true;
+            'floor3: for dy in -1i32..=1 {
+                for dx in -1i32..=1 {
+                    if !Self::is_covered_by_floor(map, content, tx + dx, ty + dy) {
+                        all_floor = false;
+                        break 'floor3;
+                    }
+                }
+            }
+            if all_floor {
+                return;
+            }
             if let Some((gt, unk)) = self.ground.ensure_tile_or_unknown(biome, tx, ty) {
-                // 2 cells + 1px overdraw — soft edges cover the plate underfill.
-                self.blit_ground_centered_tinted(fb, &gt, sx, sy, 2.0, 1, unk, biome);
+                self.blit_ground_centered_tinted(fb, &gt, sx, sy, 2.0, 0, unk, biome);
             }
-        }
-    }
-
-    /// Fill exact screen rect with a ground atlas tile (square interior path).
-    fn blit_ground_cell_rect_tinted(
-        &self,
-        fb: &mut Framebuffer,
-        gt: &crate::ground_sprites::GroundTileRect,
-        x0: i32,
-        y0: i32,
-        tw: i32,
-        th: i32,
-        used_unknown: bool,
-        biome: u8,
-    ) {
-        let tint = if used_unknown && !self.ground.has_biome_sheet(biome) {
-            Some(unknown_biome_draw_color(biome as i32))
-        } else {
-            None
-        };
-        let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(gt) else {
-            return;
-        };
-        let dw = tw.max(1);
-        let dh = th.max(1);
-        // Overdraw 1px into neighbors so float floor edges never flash plate lines.
-        if let Some(t) = tint {
-            fb.blit_rect_scaled_multiply(
-                pix,
-                atlas_w,
-                sx as i32,
-                sy as i32,
-                sw,
-                sh,
-                x0 - 1,
-                y0 - 1,
-                dw + 2,
-                dh + 2,
-                t,
-            );
-        } else {
-            fb.blit_rect_scaled(
-                pix,
-                atlas_w,
-                sx as i32,
-                sy as i32,
-                sw,
-                sh,
-                x0 - 1,
-                y0 - 1,
-                dw + 2,
-                dh + 2,
-            );
         }
     }
 

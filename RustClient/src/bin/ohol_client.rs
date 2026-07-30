@@ -77,7 +77,7 @@ const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Build-time stamp from build.rs (seconds since epoch) — proves newest binary.
 const CLIENT_BUILD_STAMP: &str = env!("OHOL_BUILD_STAMP");
 /// What we are actively fixing / working on (shown in every window title).
-const CLIENT_FOCUS: &str = "offline age + skin picker";
+const CLIENT_FOCUS: &str = "Jason ground wholeSheet + overlay";
 
 /// Prefix for all window titles so you can see version + current work.
 fn title_prefix() -> String {
@@ -1184,11 +1184,12 @@ fn run_session_from_boot(
     });
     let mut scene = SceneRenderer::default();
     scene.set_content_root(Some(&root));
-    // Restore persisted zoom (settings.ini / OHOL_ZOOM).
+    // Restore persisted zoom / brightness (settings.ini / OHOL_*).
     scene.camera.zoom = app.settings.zoom.clamp(
         ohol_headless::render::ZOOM_MIN,
         ohol_headless::render::ZOOM_MAX,
     );
+    scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
     let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
     let mut window = Window::new(
         "Open Life Rust Client",
@@ -1260,11 +1261,12 @@ fn run_session_from_boot(
                     // Apply volume/mute to BOTH banks (scene = anim SFX).
                     app.apply_settings_to_banks(Some(&mut session.sounds), None);
                     app.apply_settings_to_banks(Some(&mut scene.sounds), None);
-                    // Apply zoom when leaving settings (also persisted by leave_settings).
+                    // Apply zoom/brightness when leaving settings (also persisted by leave_settings).
                     scene.camera.zoom = app.settings.zoom.clamp(
                         ohol_headless::render::ZOOM_MIN,
                         ohol_headless::render::ZOOM_MAX,
                     );
+                    scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
                     was_lmb_settings = false;
                 }
                 SettingsLoop::Restart => {
@@ -1279,11 +1281,12 @@ fn run_session_from_boot(
                     log_status(&mut last_status, "Account settings");
                 }
                 SettingsLoop::Continue => {
-                    // Live-preview zoom + SFX loudness while adjusting.
+                    // Live-preview zoom, brightness + SFX loudness while adjusting.
                     scene.camera.zoom = app.settings.zoom.clamp(
                         ohol_headless::render::ZOOM_MIN,
                         ohol_headless::render::ZOOM_MAX,
                     );
+                    scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
                     app.apply_settings_to_banks(Some(&mut session.sounds), None);
                     app.apply_settings_to_banks(Some(&mut scene.sounds), None);
                     // World under glass settings overlay.
@@ -1842,22 +1845,31 @@ fn run_offline_with_banks(
     let mut age_slider_drag = false;
     let initial_skin = skins.get(skin_idx).map(|(id, _)| *id).unwrap_or(19);
 
+    // Offline demo map: every default biome (0–6) as a vertical strip so ground
+    // sheets / soft borders can be compared side-by-side (Jason ground_0..ground_6).
+    // Layout: 21×14 → strip width 3 cells per biome (0..6 left→right).
+    const MAP_W: i32 = 21;
+    const MAP_H: i32 = 14;
+    const STRIP_W: i32 = 3; // biomes 0..6 use x/3
+    let player_x = MAP_W / 2; // center strip ≈ biome 3
+    let player_y = MAP_H / 2;
     let mut map = ClientMap::new();
     let h = MapChunkHeader {
-        size_x: 20,
-        size_y: 20,
+        size_x: MAP_W,
+        size_y: MAP_H,
         x: 0,
         y: 0,
         binary_raw_size: None,
         binary_compressed_size: None,
     };
     let mut plain = String::new();
-    for y in 0..20 {
-        for x in 0..20 {
-            let biome = if (x * 3 + y) % 11 == 0 { 3 } else { 0 };
-            let obj = if (x, y) == (10, 10) {
-                33
-            } else if (x + y) % 9 == 0 {
+    for y in 0..MAP_H {
+        for x in 0..MAP_W {
+            let biome = (x / STRIP_W).clamp(0, 6) as u8;
+            // Sparse trees for depth; keep player cell clear of a blocking stack.
+            let obj = if (x, y) == (player_x, player_y) {
+                0
+            } else if (x + y * 3) % 11 == 0 {
                 33
             } else {
                 0
@@ -1866,10 +1878,13 @@ fn run_offline_with_banks(
         }
     }
     let _ = map.apply_mc_plaintext(&h, plain.trim());
+    eprintln!(
+        "offline map: {MAP_W}×{MAP_H} vertical strips biomes 0–6 (width {STRIP_W}), player at ({player_x},{player_y})"
+    );
     let mut world = LiveWorld::new();
-    // PU: id=1 display=skin age=20 (invAgeRate 1e9 → age_rate ~0), stand at 10,10
+    // PU: id=1 display=skin age=20 (invAgeRate 1e9 → age_rate ~0)
     let pu_line = format!(
-        "1 {initial_skin} 0 0 0 0 33 0 0 0 -1 0.5 1 0 10 10 {demo_age:.1} 999999999 3.75 0;0;0;0;0;0 0 0 -1 0 0"
+        "1 {initial_skin} 0 0 0 0 33 0 0 0 -1 0.5 1 0 {player_x} {player_y} {demo_age:.1} 999999999 3.75 0;0;0;0;0;0 0 0 -1 0 0"
     );
     if let Some(pu) = parse_pu_line(&pu_line) {
         world.apply_pu(&pu);
@@ -1895,10 +1910,12 @@ fn run_offline_with_banks(
     scene.sounds = sounds;
     scene.hud_sprites = HudSprites::with_default_roots(Some(&root));
     scene.camera = Camera {
-        x: 10.0,
-        y: 10.0,
+        x: player_x as f32,
+        y: player_y as f32,
         zoom: 36.0,
     };
+    // Settings applied after ClientAppState::from_env below; seed default until then.
+    scene.ground_brightness = 0.0;
     scene.sync_hud(
         Some(&FoodChange {
             food_store: 8,
@@ -1933,6 +1950,11 @@ fn run_offline_with_banks(
 
     let mut app = ClientAppState::from_env();
     app.enter_playing();
+    scene.camera.zoom = app.settings.zoom.clamp(
+        ohol_headless::render::ZOOM_MIN,
+        ohol_headless::render::ZOOM_MAX,
+    );
+    scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
     let mut last = Instant::now();
     let mut hover = HoverPick::default();
     let mut fps = FpsMeter::new("offline");
@@ -1942,7 +1964,10 @@ fn run_offline_with_banks(
     let mut pending_open = false;
     let mut pending_close = false;
     let settings_hud = HudSprites::with_default_roots(Some(&root));
-    eprintln!("offline: Esc/F3 opens Settings (no server needed)");
+    eprintln!(
+        "offline: Esc/F3 opens Settings (no server needed); brightness {:.0}% (100%=original)",
+        app.settings.brightness * 100.0
+    );
 
     while window.is_open() {
         let dt = last.elapsed().as_secs_f32().min(0.05);
@@ -1974,7 +1999,13 @@ fn run_offline_with_banks(
                 suppress_close,
                 false,
             ) {
-                SettingsLoop::Left | SettingsLoop::Continue => {}
+                SettingsLoop::Left | SettingsLoop::Continue => {
+                    scene.camera.zoom = app.settings.zoom.clamp(
+                        ohol_headless::render::ZOOM_MIN,
+                        ohol_headless::render::ZOOM_MAX,
+                    );
+                    scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
+                }
                 SettingsLoop::Restart => restart_client_process(),
                 SettingsLoop::OpenAccount => {
                     app.enter_account_from_settings();
@@ -2630,6 +2661,7 @@ fn run_session_gpu(
         ohol_headless::render::ZOOM_MIN,
         ohol_headless::render::ZOOM_MAX,
     );
+    scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
     // Same soft-FB size as soft path (960×540) — GPU only scales/presents.
     let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
     app.settings.apply_to_banks(Some(&mut session.sounds), None);
@@ -2774,6 +2806,7 @@ fn run_session_gpu(
                             ohol_headless::render::ZOOM_MIN,
                             ohol_headless::render::ZOOM_MAX,
                         );
+                        scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
                         was_lmb_settings = false;
                     } else if app.screen.is_playing() {
                         if app.enter_settings() {
@@ -2865,6 +2898,11 @@ fn run_session_gpu(
                     }
                     app.apply_settings_to_banks(Some(&mut session.sounds), None);
                     app.apply_settings_to_banks(Some(&mut scene.sounds), None);
+                    scene.camera.zoom = app.settings.zoom.clamp(
+                        ohol_headless::render::ZOOM_MIN,
+                        ohol_headless::render::ZOOM_MAX,
+                    );
+                    scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
                     if app.screen.is_settings() {
                         // Dimmed world + glass card (world was drawn last frame; redraw light).
                         app.settings.draw_overlay(&mut fb, Some(&settings_hud));
@@ -2873,10 +2911,6 @@ fn run_session_gpu(
                             &format!("Esc=Back | SFX {:.0}%", app.settings.sound_volume * 100.0),
                         ));
                     }
-                    scene.camera.zoom = app.settings.zoom.clamp(
-                        ohol_headless::render::ZOOM_MIN,
-                        ohol_headless::render::ZOOM_MAX,
-                    );
                 } else if app.screen.is_account() {
                     app.account.step(dt);
                     for c in typed_chars.drain(..) {

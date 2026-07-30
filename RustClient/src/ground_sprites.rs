@@ -107,6 +107,12 @@ fn abs_mod(v: i32, m: i32) -> i32 {
     }
 }
 
+/// C++ `tileX % numTiles` (4×4 sheet) with negative fix — public for wholeSheet corner test.
+#[inline]
+pub fn ground_tile_mod(v: i32) -> i32 {
+    abs_mod(v, GROUND_TILES_WIDE as i32)
+}
+
 /// Biome flat colors matched to `ground_N.tga` / `groundTileCache` midtones
 /// (underfill while soft/square TGAs load). Same hue family as Jason C++ sheets.
 ///
@@ -270,9 +276,14 @@ pub struct GroundBank {
     square_tiles: HashMap<i32, GroundTileRect>,
     /// Overlay sheet rects keyed by overlay id 0..N-1 (`graphics/ground_tN`).
     overlays: HashMap<u8, GroundTileRect>,
+    /// Full biome sheet (`ground/ground_N.tga` / `graphics/ground_N.tga`) for wholeSheet stamp.
+    whole_sheets: HashMap<i32, GroundTileRect>,
+    /// Cells wide/high for each whole sheet (pixels / CELL_D).
+    whole_sheet_tiles: HashMap<i32, (u32, u32)>,
     missing: HashMap<i32, ()>,
     missing_square: HashMap<i32, ()>,
     missing_overlays: HashMap<u8, ()>,
+    missing_whole: HashMap<i32, ()>,
     /// OLG1 presence index (bank_key Ã¢â€ â€™ entry). Empty Ã¢â€¡â€™ full disk probe.
     index: HashMap<i32, GroundIndexEntry>,
     /// Overlay entries by overlay id.
@@ -296,9 +307,12 @@ impl GroundBank {
             tiles: HashMap::new(),
             square_tiles: HashMap::new(),
             overlays: HashMap::new(),
+            whole_sheets: HashMap::new(),
+            whole_sheet_tiles: HashMap::new(),
             missing: HashMap::new(),
             missing_square: HashMap::new(),
             missing_overlays: HashMap::new(),
+            missing_whole: HashMap::new(),
             index: HashMap::new(),
             overlay_index: HashMap::new(),
             index_loaded: false,
@@ -758,6 +772,76 @@ impl GroundBank {
         }
         let rel = format!("graphics/ground_t{id}.tga");
         self.pack_overlay_from_rel(id, &rel)
+    }
+
+    /// C++ `wholeSheet` — full `ground_N.tga` (typically 4×4 cells = 512²).
+    ///
+    /// Returns `(atlas rect, tiles_wide, tiles_high)`.
+    pub fn ensure_whole_sheet(&mut self, biome: u8) -> Option<(GroundTileRect, u32, u32)> {
+        let key = biome as i32;
+        if let Some(gt) = self.whole_sheets.get(&key) {
+            let dims = self.whole_sheet_tiles.get(&key).copied().unwrap_or((4, 4));
+            return Some((*gt, dims.0, dims.1));
+        }
+        if self.missing_whole.contains_key(&key) {
+            return None;
+        }
+        let candidates = [
+            format!("ground/ground_{biome}.tga"),
+            format!("graphics/ground_{biome}.tga"),
+            format!("ground_{biome}.tga"),
+        ];
+        let mut path = None;
+        for rel in &candidates {
+            if let Some(p) = self.resolve_rel(rel) {
+                path = Some(p);
+                break;
+            }
+        }
+        // Unknown biome sheet
+        if path.is_none() && !self.has_biome_sheet(biome) {
+            for rel in ["ground/ground_U.tga", "graphics/ground_U.tga", "ground_U.tga"] {
+                if let Some(p) = self.resolve_rel(rel) {
+                    path = Some(p);
+                    break;
+                }
+            }
+        }
+        let Some(path) = path else {
+            self.missing_whole.insert(key, ());
+            return None;
+        };
+        let img = match load_tga_path(&path) {
+            Ok(i) => i,
+            Err(_) => {
+                self.missing_whole.insert(key, ());
+                return None;
+            }
+        };
+        if img.width == 0 || img.height == 0 {
+            self.missing_whole.insert(key, ());
+            return None;
+        }
+        let tw = (img.width / CELL_D as u32).max(1);
+        let th = (img.height / CELL_D as u32).max(1);
+        match self.pack_image(&img.pixels, img.width, img.height) {
+            Some(gt) => {
+                self.whole_sheets.insert(key, gt);
+                self.whole_sheet_tiles.insert(key, (tw, th));
+                self.any_loaded = true;
+                Some((gt, tw, th))
+            }
+            None => {
+                self.missing_whole.insert(key, ());
+                None
+            }
+        }
+    }
+
+    /// Pixel size of overlay sprite `id` (for Jason screen overlay spacing).
+    pub fn overlay_pixel_size(&mut self, id: u8) -> Option<(u32, u32)> {
+        let gt = self.ensure_overlay(id)?;
+        Some((gt.width, gt.height))
     }
 
     /// Preload all known overlays from index (or ids 0..3). Cheap Ã¢â‚¬â€ only 4 sheets.
