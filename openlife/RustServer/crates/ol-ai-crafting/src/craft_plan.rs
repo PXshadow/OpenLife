@@ -1,6 +1,6 @@
 //! Format reverse-craft plans for SAY PLAN.
 
-use crate::craft_graph::ReverseCraftGraph;
+use crate::craft_graph::ReverseCraftGraph; // same crate
 // OL-AI-SPLIT: moved from ol-sim
 
 /// `PLAN id a+b; c+d` or `PLAN id none`.

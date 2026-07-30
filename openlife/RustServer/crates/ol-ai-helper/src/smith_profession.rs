@@ -1,11 +1,11 @@
-//! Haxe: `AiBase` smith profession family (chunks **AI-JOB-SMITH** / **LIVE**).
+﻿//! Haxe: `AiBase` smith profession family (chunks **AI-JOB-SMITH** / **LIVE**).
 //!
 //! Pure decision helpers for:
 //! - `hasOrBecomeProfession('SMITH')` with **max one smith** hard cap
-//! - Speech `SMITH!` → assigned job
-//! - `GetForge` id priority (Firing 304 → Charcoal 305 → Forge 303)
+//! - Speech `SMITH!` â†’ assigned job
+//! - `GetForge` id priority (Firing 304 â†’ Charcoal 305 â†’ Forge 303)
 //! - `prepareSmithingTools` stage ladder (iron / steel / hammer prep)
-//! - `doSmithing` product sequence (pick → shovel → hoe → … → knife)
+//! - `doSmithing` product sequence (pick â†’ shovel â†’ hoe â†’ â€¦ â†’ knife)
 //! - Live apply: [`smith_action_apply`] / [`smith_action_short_craft_apply`] /
 //!   [`do_pottery_on_fire`] / [`apply_consider_making_food_smith_wipe`]
 //!
@@ -13,20 +13,20 @@
 //! [`SmithAction`]s via [`SmithApply`] (USE/DROP/craft) and spatial helpers.
 //!
 //! Existing thin reverse-craft path: [`crate::ai_goals::pick_smith_goal`] /
-//! `smith_product_targets` — this module adds the full profession stage SM.
+//! `smith_product_targets` â€” this module adds the full profession stage SM.
 //!
 //! **Intentional delta:** Haxe `prepareSmithingTools` lists the steel/crucible
 //! block textually before the wrought-iron block, but stage labels imply
-//! ore (2) → wrought (3) → crucible (3.5) → steel (4). Pure SM runs iron
+//! ore (2) â†’ wrought (3) â†’ crucible (3.5) â†’ steel (4). Pure SM runs iron
 //! stock while `stage < 3` **before** the steel path so the stage machine is
 //! reachable (Haxe order makes iron nearly dead when `countSteel < 1`).
 
 use std::collections::{HashMap, HashSet};
 
 use crate::ai_goals::{Goal, SMITH_IRON_ID, SMITH_TARGET_ID, SMITHING_HAMMER_ID};
-use crate::craft_graph::ReverseCraftGraph;
+use ol_ai_crafting::craft_graph::ReverseCraftGraph;
 
-// ── Object ids (OHOL / OpenLife content; Haxe comments in AiBase) ───────────
+// â”€â”€ Object ids (OHOL / OpenLife content; Haxe comments in AiBase) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Forge (cold).
 pub const FORGE: i32 = 303;
@@ -152,7 +152,7 @@ pub const DEFAULT_MAX_CLAY_BOWLS: i32 = 3;
 pub const DEFAULT_MAX_CLAY_PLATES: i32 = 3;
 pub const DEFAULT_MAX_CLAY_CROCKS: i32 = 2;
 /// Default max clay nozzles (bellows / forge air; content has no LimitObject).
-// Haxe: L2946 TODO — no aiCraftMax; keep small stock
+// Haxe: L2946 TODO â€” no aiCraftMax; keep small stock
 pub const DEFAULT_MAX_CLAY_NOZZLES: i32 = 2;
 /// Haxe `CalculateQuadDistanceToObject` threshold for drop-near goto (~893).
 pub const CRAFT_DROP_GOTO_QUAD_DIST: i32 = 5;
@@ -167,9 +167,9 @@ pub const IRON_ORE_COUNT_RADIUS: i32 = 20;
 pub const STEEL_COUNT_RADIUS: i32 = 15;
 /// Critical shortCraft bloom radius (Haxe shortCraft r=5).
 pub const BLOOM_SHORTCRAFT_RADIUS: i32 = 5;
-/// Crucible tongs → firing forge shortCraft radius (Haxe r=10).
+/// Crucible tongs â†’ firing forge shortCraft radius (Haxe r=10).
 pub const TONGS_FORGE_SHORTCRAFT_RADIUS: i32 = 10;
-/// Charcoal basket → forge shortCraft radius (Haxe r=30).
+/// Charcoal basket â†’ forge shortCraft radius (Haxe r=30).
 pub const CHARCOAL_FORGE_SHORTCRAFT_RADIUS: i32 = 30;
 /// Default drop distance for GetCraftAndDropItemsCloseToObj near forge.
 pub const DROP_NEAR_FORGE_DIST: i32 = 5;
@@ -183,17 +183,17 @@ pub fn smith_radius_table() -> &'static [(i32, &'static str)] {
         (IRON_ORE_COUNT_RADIUS, "iron/ore forge"),
         (STEEL_COUNT_RADIUS, "steel/crucible"),
         (BLOOM_SHORTCRAFT_RADIUS, "bloom shortCraft"),
-        (TONGS_FORGE_SHORTCRAFT_RADIUS, "tongs→forge"),
-        (CHARCOAL_FORGE_SHORTCRAFT_RADIUS, "charcoal→forge"),
+        (TONGS_FORGE_SHORTCRAFT_RADIUS, "tongsâ†’forge"),
+        (CHARCOAL_FORGE_SHORTCRAFT_RADIUS, "charcoalâ†’forge"),
         (DROP_NEAR_FORGE_DIST, "drop near forge"),
     ]
 }
 
-/// Haxe `ServerSettings.objectIdArrays[455]` seed — any parentId whose description
+/// Haxe `ServerSettings.objectIdArrays[455]` seed â€” any parentId whose description
 /// contains `"Chisel"` is pushed at content load. Static seed always counted;
 /// full content scan via [`collect_steel_chisel_family_ids`] /
 /// [`steel_chisel_family_from_content`] extends via [`SmithCounts::chisel_family_extra`].
-// Haxe: ServerSettings.PatchObjectData ~612–616; AiBase.doSmithing ~3869
+// Haxe: ServerSettings.PatchObjectData ~612â€“616; AiBase.doSmithing ~3869
 pub const STEEL_CHISEL_FAMILY: &[i32] = &[
     STEEL_CHISEL,          // 455
     STEEL_CHISEL_FLAT,     // 451 on flat rock
@@ -211,7 +211,7 @@ pub fn is_steel_chisel_family_description(description: &str) -> bool {
 ///
 /// Always includes [`STEEL_CHISEL_FAMILY`] seed first, then every `(parent_id, desc)`
 /// pair whose description contains `"Chisel"`.
-// Haxe: ServerSettings.PatchObjectData ~612–616
+// Haxe: ServerSettings.PatchObjectData ~612â€“616
 pub fn collect_steel_chisel_family_ids<'a, I>(objects: I) -> Vec<i32>
 where
     I: IntoIterator<Item = (i32, &'a str)>,
@@ -259,7 +259,7 @@ pub fn steel_chisel_family_from_content(db: &ol_content::ContentDb) -> Vec<i32> 
 ///
 /// Call once per content load (npc scheduler boot / sim boot) instead of
 /// re-scanning every profession tick.
-// Haxe: ServerSettings.PatchObjectData ~612–616 objectIdArrays[455]
+// Haxe: ServerSettings.PatchObjectData ~612â€“616 objectIdArrays[455]
 // AI-JOB-SMITH-RESID / chisel content cache
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct SteelChiselFamilyTable {
@@ -301,7 +301,7 @@ pub fn peer_home_coords(
 }
 
 /// Haxe `isWounded()` for peer count when only held-object wound flag is known
-/// (snapshot lacks hiddenWound alias — treat content wound as wounded).
+/// (snapshot lacks hiddenWound alias â€” treat content wound as wounded).
 // Haxe: GlobalPlayerInstance.isWounded; AiBase.countProfession skips wounded
 // AI-JOB-SMITH-RESID / peer wound fidelity
 #[inline]
@@ -314,7 +314,7 @@ pub const DROP_NEAR_FORGE_IDS: &[i32] = &[
     289, 290, 327, 326, 319, 320, 441, 568, 311, 308,
 ];
 
-// ── Profession key ─────────────────────────────────────────────────────────
+// â”€â”€ Profession key â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Canonical Haxe profession string for smith.
 pub const SMITH_PROFESSION_KEY: &str = "SMITH";
@@ -329,11 +329,11 @@ pub fn parse_smith_profession_speech(text: &str) -> bool {
     prof.eq_ignore_ascii_case("SMITH")
 }
 
-// ── Runtime / stage ────────────────────────────────────────────────────────
+// â”€â”€ Runtime / stage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Sticky last + assigned + stage weight for SMITH.
 ///
-/// Haxe `this.profession['SMITH']` is a float stage (0, 1.5, 2, 3, 3.5, 4…12).
+/// Haxe `this.profession['SMITH']` is a float stage (0, 1.5, 2, 3, 3.5, 4â€¦12).
 /// Store on AI session / player AI state across ticks (live wire residual).
 #[derive(Debug, Clone, PartialEq)]
 pub struct SmithProfessionRuntime {
@@ -365,9 +365,9 @@ impl SmithProfessionRuntime {
         self.stage = 0.0;
     }
 
-    /// Haxe `isConsideringMakingFood`: `profession['SMITH']=0` and last→Eating
+    /// Haxe `isConsideringMakingFood`: `profession['SMITH']=0` and lastâ†’Eating
     /// (unless last was FOODSERVER).
-    // Haxe: AiBase.isConsideringMakingFood ~8482–8485
+    // Haxe: AiBase.isConsideringMakingFood ~8482â€“8485
     pub fn wipe_on_eat(&mut self, last_was_foodserver: bool) {
         self.stage = 0.0;
         if !last_was_foodserver {
@@ -385,14 +385,14 @@ pub fn count_smith_peers(peer_count_with_last_smith: f32) -> f32 {
 }
 
 /// One AI peer for pure `countProfession('SMITH')` filtering.
-// Haxe: AiBase.countProfession ~1284–1308
+// Haxe: AiBase.countProfession ~1284â€“1308
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SmithPeerSnapshot {
     pub deleted: bool,
     pub age: f32,
     pub is_wounded: bool,
     pub food_store: f32,
-    /// Haxe `ai.playerToFollow != null` — following another player excludes from count.
+    /// Haxe `ai.playerToFollow != null` â€” following another player excludes from count.
     pub has_player_to_follow: bool,
     /// Same home tile as the counting AI (`home.tx/ty` match).
     pub same_home: bool,
@@ -525,7 +525,7 @@ pub fn smith_peer_count_from_npc_rows(
 }
 
 /// Apply eat-path profession wipe (stage 0 + clear sticky unless FOODSERVER).
-// Haxe: AiBase.isConsideringMakingFood ~8482–8485
+// Haxe: AiBase.isConsideringMakingFood ~8482â€“8485
 pub fn wipe_smith_on_eat(runtime: &mut SmithProfessionRuntime, last_was_foodserver: bool) {
     runtime.wipe_on_eat(last_was_foodserver);
 }
@@ -533,10 +533,10 @@ pub fn wipe_smith_on_eat(runtime: &mut SmithProfessionRuntime, last_was_foodserv
 /// Haxe `hasOrBecomeProfession('SMITH', max)` with **hard max one smith**.
 ///
 /// Special rule (Haxe ~4481): if any peer already has lastProfession SMITH
-/// (`count > 0`), refuse — even when `max` would allow more.
+/// (`count > 0`), refuse â€” even when `max` would allow more.
 ///
 /// - Sticky: if already last smith, keep and return true.
-/// - `max < 0`: high priority — do job without assigning (always true).
+/// - `max < 0`: high priority â€” do job without assigning (always true).
 // Haxe: AiBase.hasOrBecomeProfession ~4466 + SMITH special case
 pub fn has_or_become_smith(
     runtime: &mut SmithProfessionRuntime,
@@ -572,9 +572,9 @@ pub fn resolve_smith_assigned_job(runtime: &SmithProfessionRuntime) -> bool {
     runtime.is_assigned_smith || runtime.is_last_smith
 }
 
-// ── Forge selection ────────────────────────────────────────────────────────
+// â”€â”€ Forge selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/// Ordered forge parent ids: Firing → Charcoal → cold Forge.
+/// Ordered forge parent ids: Firing â†’ Charcoal â†’ cold Forge.
 // Haxe: AiBase.GetForge ~3644
 pub fn forge_id_priority() -> &'static [i32] {
     &[FIRING_FORGE, FORGE_WITH_CHARCOAL, FORGE]
@@ -606,10 +606,10 @@ pub fn chebyshev(ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
     (ax - bx).abs().max((ay - by).abs())
 }
 
-/// Haxe `GetForge`: priority 304→305→303, closest within [`FORGE_SEARCH_RADIUS`] of home.
+/// Haxe `GetForge`: priority 304â†’305â†’303, closest within [`FORGE_SEARCH_RADIUS`] of home.
 ///
 /// Among matches of the first priority that has any candidate in range, pick closest.
-// Haxe: AiBase.GetForge ~3644–3656
+// Haxe: AiBase.GetForge ~3644â€“3656
 pub fn pick_forge_near_home(
     home_x: i32,
     home_y: i32,
@@ -684,12 +684,12 @@ pub fn is_steel_crucible_count_id(id: i32) -> bool {
     )
 }
 
-// ── World counts snapshot ──────────────────────────────────────────────────
+// â”€â”€ World counts snapshot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Close-object counts near home/forge (Haxe CountCloseObjects / countCurrentObject).
 #[derive(Debug, Clone, Default)]
 pub struct SmithCounts {
-    /// Object parent id → count (piles expanded by caller if needed).
+    /// Object parent id â†’ count (piles expanded by caller if needed).
     pub by_id: HashMap<i32, i32>,
     /// Held object parent id (0 empty).
     pub held_id: i32,
@@ -769,7 +769,7 @@ pub struct MapObj {
 
 /// Fill [`SmithCounts`] from a mock map snapshot (unit tests / thin tick).
 ///
-/// - Forge: [`pick_forge_near_home`] → `forge_parent_id`
+/// - Forge: [`pick_forge_near_home`] â†’ `forge_parent_id`
 /// - Flat/stone: count within [`FLAT_STONE_COUNT_RADIUS`] of home
 /// - Iron/ore/wrought: count within [`IRON_ORE_COUNT_RADIUS`] of forge (or home if no forge)
 /// - Steel/crucible family: count within [`STEEL_COUNT_RADIUS`] of forge (Haxe TODO r=15)
@@ -846,22 +846,22 @@ pub fn fill_smith_counts_from_map_ex(
     counts
 }
 
-// ── Actions ────────────────────────────────────────────────────────────────
+// â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/// Pure decision output — execution is AI-CRAFT / shortCraft wiring.
+/// Pure decision output â€” execution is AI-CRAFT / shortCraft wiring.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SmithAction {
     /// Nothing to do in this step.
     None,
     /// Haxe `shortCraft(actor, target)`.
     ShortCraft { actor: i32, target: i32 },
-    /// Haxe `shortCraftOnGround(target)` — empty-hands use on ground object.
+    /// Haxe `shortCraftOnGround(target)` â€” empty-hands use on ground object.
     ShortCraftOnGround { target: i32 },
-    /// Haxe `craftItem(objectId)` — produce / obtain object.
+    /// Haxe `craftItem(objectId)` â€” produce / obtain object.
     CraftItem { object_id: i32 },
     /// Haxe `GetCraftAndDropItemsCloseToObj(forge, id, want, dist)`.
     CraftAndDropNearForge { object_id: i32, want_count: i32 },
-    /// Forge not firing + kiln hot → chain to `doPotteryOnFire` (AI-JOB-POTTER).
+    /// Forge not firing + kiln hot â†’ chain to `doPotteryOnFire` (AI-JOB-POTTER).
     DeferPottery,
     /// No forge / cannot become smith / job refuse.
     Abort,
@@ -878,16 +878,16 @@ impl SmithAction {
     }
 }
 
-// ── Critical shortCrafts (high priority, also outside full doSmithing) ─────
+// â”€â”€ Critical shortCrafts (high priority, also outside full doSmithing) â”€â”€â”€â”€â”€
 
-/// Haxe critical smith shortCrafts before assigned job (~617–621).
+/// Haxe critical smith shortCrafts before assigned job (~617â€“621).
 ///
 /// Order:
 /// 1. Hammer 441 + Hot Iron Bloom 309 (when hammer stock/held)
 /// 2. Stone 33 + Hot Iron Bloom 309 (fallback when no hammer)
 /// 3. Unforged crucible tongs 320 + Firing Forge 304 (if not holding hammer)
 /// 4. Basket of Charcoal 298 + Forge 303
-// Haxe: AiBase.doTimeStuffHelper ~617–621
+// Haxe: AiBase.doTimeStuffHelper ~617â€“621
 pub fn critical_smith_shortcrafts(held_id: i32, counts: &SmithCounts) -> SmithAction {
     if counts.get(HOT_IRON_BLOOM_FLAT) > 0 {
         // Prefer hammer when held or nearby; else stone fallback (Haxe second try).
@@ -921,14 +921,14 @@ pub fn critical_smith_shortcrafts(held_id: i32, counts: &SmithCounts) -> SmithAc
     SmithAction::None
 }
 
-// ── prepareSmithingTools ───────────────────────────────────────────────────
+// â”€â”€ prepareSmithingTools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Haxe `prepareSmithingTools` pure body.
 ///
 /// Mutates `runtime.stage` as Haxe advances `profession['SMITH']`.
 ///
-/// Order (see module delta): shortCrafts → flat/stone → **iron (stage&lt;3)** →
-/// steel/crucible → hammer (stage&lt;5).
+/// Order (see module delta): shortCrafts â†’ flat/stone â†’ **iron (stage&lt;3)** â†’
+/// steel/crucible â†’ hammer (stage&lt;5).
 // Haxe: AiBase.prepareSmithingTools ~3659
 pub fn prepare_smithing_tools(
     counts: &SmithCounts,
@@ -940,7 +940,7 @@ pub fn prepare_smithing_tools(
     let held = counts.held_id;
 
     // Smithing Hammer + Hot Iron Bloom on Flat Rock; stone fallback when no hammer.
-    // Haxe: prepareSmithingTools shortCraft(441,309) then shortCraft(33,309) ~3667–3670
+    // Haxe: prepareSmithingTools shortCraft(441,309) then shortCraft(33,309) ~3667â€“3670
     if counts.get(HOT_IRON_BLOOM_FLAT) > 0 {
         if held == SMITHING_HAMMER || counts.get(SMITHING_HAMMER) > 0 {
             return SmithAction::ShortCraft {
@@ -966,7 +966,7 @@ pub fn prepare_smithing_tools(
     }
 
     // Pottery fallthrough when forge not firing and not holding stone/hammer.
-    // Haxe: prepareSmithingTools ~3675–3680 → doPotteryOnFire()
+    // Haxe: prepareSmithingTools ~3675â€“3680 â†’ doPotteryOnFire()
     if forge_id != FIRING_FORGE
         && held != STONE
         && held != SMITHING_HAMMER
@@ -1037,7 +1037,7 @@ pub fn prepare_smithing_tools(
 
     let count_steel = counts.get(STEEL_INGOT);
 
-    // ── Iron before steel while stage < 3 (intentional delta; see module docs) ──
+    // â”€â”€ Iron before steel while stage < 3 (intentional delta; see module docs) â”€â”€
     // Haxe: AiBase.prepareSmithingTools wrought iron block ~3769
     if runtime.stage < 3.0 {
         let mut iron = counts.get(WROUGHT_IRON);
@@ -1066,7 +1066,7 @@ pub fn prepare_smithing_tools(
 
     // Steel / crucible path (Haxe when countSteel < 1 || forged crucible present)
     if count_steel < 1 || count_forged_crucible > 0 {
-        // Cool Steel Crucible in Wooden Tongs — Haxe shortCraftOnGround(324) ~3725
+        // Cool Steel Crucible in Wooden Tongs â€” Haxe shortCraftOnGround(324) ~3725
         if counts.get(COOL_CRUCIBLE_TONGS) > 0 {
             return SmithAction::ShortCraftOnGround {
                 target: COOL_CRUCIBLE_TONGS,
@@ -1117,12 +1117,12 @@ pub fn prepare_smithing_tools(
     SmithAction::None
 }
 
-// ── doSmithing product ladder ──────────────────────────────────────────────
+// â”€â”€ doSmithing product ladder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/// Haxe `doSmithing` product ladder pure body (stages 6…12 then knife).
+/// Haxe `doSmithing` product ladder pure body (stages 6â€¦12 then knife).
 ///
 /// Resets stage to 0 after knife stock is present.
-// Haxe: AiBase.doSmithing ~3824–3906
+// Haxe: AiBase.doSmithing ~3824â€“3906
 pub fn do_smithing_products(
     counts: &SmithCounts,
     runtime: &mut SmithProfessionRuntime,
@@ -1179,7 +1179,7 @@ pub fn do_smithing_products(
         runtime.stage = 8.0;
     }
 
-    // Steel Chisel 455 — family count (Haxe objectIdArrays[455])
+    // Steel Chisel 455 â€” family count (Haxe objectIdArrays[455])
     if runtime.stage < 9.0 {
         if counts.count_steel_chisel_stock() < 1 {
             return SmithAction::CraftItem {
@@ -1265,7 +1265,7 @@ pub fn do_smithing(
     }
 
     // Surface prepare result including DeferPottery (is_some() excludes defer).
-    // Haxe: prepareSmithingTools → doPotteryOnFire when kiln firing + cold forge
+    // Haxe: prepareSmithingTools â†’ doPotteryOnFire when kiln firing + cold forge
     let prep = prepare_smithing_tools(counts, runtime);
     match prep {
         SmithAction::None => {}
@@ -1276,20 +1276,20 @@ pub fn do_smithing(
 }
 
 /// Haxe `doTimeStuffHelper` call slots that invoke smith work.
-// Haxe: early sticky ~609; critical ~617–621; assigned ~724–725; mid ~770; low ~811; elder collect ~6004
+// Haxe: early sticky ~609; critical ~617â€“621; assigned ~724â€“725; mid ~770; low ~811; elder collect ~6004
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SmithJobSlot {
-    /// `lastProfession == SMITH` early high-prio → `doSmithing()` max=1.
+    /// `lastProfession == SMITH` early high-prio â†’ `doSmithing()` max=1.
     EarlySticky,
     /// Critical shortCrafts only (bloom / tongs / charcoal).
     CriticalShortCraft,
-    /// AssignedJob / sticky assigned path → `doSmithing(100)`.
+    /// AssignedJob / sticky assigned path â†’ `doSmithing(100)`.
     Assigned,
-    /// Mid sticky `lastProfession == SMITH` → `doSmithing()` max=1.
+    /// Mid sticky `lastProfession == SMITH` â†’ `doSmithing()` max=1.
     MidSticky,
     /// Open low-priority `doSmithing()` max=1.
     LowPriority,
-    /// Collecting helper age>40 → `doSmithing(1)`.
+    /// Collecting helper age>40 â†’ `doSmithing(1)`.
     ElderCollect,
 }
 
@@ -1302,7 +1302,7 @@ impl SmithJobSlot {
             | Self::MidSticky
             | Self::LowPriority
             | Self::ElderCollect => 1,
-            Self::CriticalShortCraft => 0, // N/A — shortCraft only
+            Self::CriticalShortCraft => 0, // N/A â€” shortCraft only
         }
     }
 
@@ -1402,7 +1402,7 @@ pub fn decide_smith_job_for_slot(
     }
 }
 
-// ── Pipeline seek / craft graph ────────────────────────────────────────────
+// â”€â”€ Pipeline seek / craft graph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Ordered smith product + intermediate ids (stage ladder seek order).
 pub fn smith_pipeline_targets() -> &'static [i32] {
@@ -1482,7 +1482,7 @@ pub fn smith_action_to_goal(action: SmithAction) -> Goal {
         SmithAction::None | SmithAction::Abort => Goal::SeekObject(SMITH_TARGET_ID),
         // Seek target for USE; actor seek is handled by short_craft_apply when not held.
         SmithAction::ShortCraft { target, .. } => Goal::SeekObject(target),
-        // Cool crucible 324 etc. — ground-use path (not CraftItem).
+        // Cool crucible 324 etc. â€” ground-use path (not CraftItem).
         SmithAction::ShortCraftOnGround { target } => Goal::SeekObject(target),
         SmithAction::CraftItem { object_id } => Goal::SeekObject(object_id),
         SmithAction::CraftAndDropNearForge { object_id, .. } => Goal::SeekObject(object_id),
@@ -1490,7 +1490,7 @@ pub fn smith_action_to_goal(action: SmithAction) -> Goal {
     }
 }
 
-// ── Live tick I/O apply (AI-JOB-SMITH-LIVE) ─────────────────────────────────
+// â”€â”€ Live tick I/O apply (AI-JOB-SMITH-LIVE) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Pure next step after a [`SmithAction`] (shortCraft / craft / drop / pottery).
 ///
@@ -1502,25 +1502,25 @@ pub enum SmithApply {
     None,
     /// Job refuse (no forge / cannot become).
     Abort,
-    /// Held matches actor → `useHeldObjOnTarget`.
+    /// Held matches actor â†’ `useHeldObjOnTarget`.
     UseOnTarget { actor: i32, target: i32 },
-    /// actorId == 0 and hands not empty → drop first.
+    /// actorId == 0 and hands not empty â†’ drop first.
     DropHeld,
-    /// Need actor — `GetOrCraftItem` / seek.
+    /// Need actor â€” `GetOrCraftItem` / seek.
     SeekOrCraftActor { actor: i32 },
-    /// Holding ground-use object → use on empty tile (shortCraftOnGround held path).
+    /// Holding ground-use object â†’ use on empty tile (shortCraftOnGround held path).
     UseOnEmptyGround { held: i32 },
     /// Need to hold ground-use object first (`GetItem`).
     SeekOrGetGroundActor { target: i32 },
     /// craftItem / reverse-craft residual (seek-only until AI-CRAFT apply).
     CraftItem { object_id: i32 },
-    /// Holding craft-and-drop object, too far from forge → goto forge.
+    /// Holding craft-and-drop object, too far from forge â†’ goto forge.
     GotoForgeForDrop { object_id: i32 },
-    /// Holding object near forge → `dropHeldObject` near forge.
+    /// Holding object near forge â†’ `dropHeldObject` near forge.
     DropNearForge { object_id: i32 },
-    /// Object exists near forge — pickup then re-enter drop path.
+    /// Object exists near forge â€” pickup then re-enter drop path.
     PickupNearForge { object_id: i32 },
-    /// DeferPottery with no pottery body step — seek kiln.
+    /// DeferPottery with no pottery body step â€” seek kiln.
     DeferPottery,
     /// Hungry work cost refused the shortCraft.
     RefuseHungryCost,
@@ -1538,7 +1538,7 @@ impl SmithApply {
 }
 
 /// Haxe floor-place actor ids allowed without a transition (Pine Needles / Boards / Cut Stones).
-// Haxe: AiBase.checkHungryWorkCostById ~1424–1425
+// Haxe: AiBase.checkHungryWorkCostById ~1424â€“1425
 pub const FLOOR_PLACE_ACTOR_IDS: [i32; 3] = [96, 470, 881];
 
 /// Pure resolution of Haxe `checkHungryWorkCostById` inputs (no ContentDb).
@@ -1599,7 +1599,7 @@ pub fn check_hungry_work_cost_lookup(
         {
             return true;
         }
-        // No transition and no special allow → refuse (Haxe returns false).
+        // No transition and no special allow â†’ refuse (Haxe returns false).
         return false;
     }
     check_hungry_work_cost_by_id(food_store, lookup.transition_hungry_cost)
@@ -1609,7 +1609,7 @@ pub fn check_hungry_work_cost_lookup(
 ///
 /// Caller supplies transition `totalHungryWorkCost` (0 = free / unknown allow).
 /// For floor/container when transition missing, use [`check_hungry_work_cost_lookup`].
-// Haxe: AiBase.checkHungryWorkCostById ~1441–1450
+// Haxe: AiBase.checkHungryWorkCostById ~1441â€“1450
 pub fn check_hungry_work_cost_by_id(food_store: f32, transition_hungry_cost: f32) -> bool {
     if transition_hungry_cost > 0.0 && food_store < transition_hungry_cost + 1.0 {
         return false;
@@ -1727,7 +1727,7 @@ impl SmithApplyInput {
     }
 }
 
-/// Full pure apply for a [`SmithAction`] → live USE/DROP/craft intent.
+/// Full pure apply for a [`SmithAction`] â†’ live USE/DROP/craft intent.
 // Haxe: shortCraft / shortCraftOnGround / craftItem / GetCraftAndDrop / doPotteryOnFire
 pub fn smith_action_apply(action: SmithAction, inp: &SmithApplyInput) -> SmithApply {
     match action {
@@ -1796,7 +1796,7 @@ pub fn smith_action_apply(action: SmithAction, inp: &SmithApplyInput) -> SmithAp
     }
 }
 
-// ── doPotteryOnFire pure body (smith DeferPottery fallthrough) ─────────────
+// â”€â”€ doPotteryOnFire pure body (smith DeferPottery fallthrough) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Counts for pure [`do_pottery_on_fire`] (Haxe countCurrentObject(s) + CountCloseObjects).
 // Haxe: AiBase.doPotteryOnFire ~2908
@@ -1938,14 +1938,14 @@ pub fn fill_pottery_on_fire_counts_from_map(
 
 /// Haxe `doPotteryOnFire` pure decision body (smith prepare fallthrough).
 ///
-/// Order: fired bowl tongs under max → plate tongs → crock tongs →
-/// **other potter crafts (L2946)** → adobe+kiln.
+/// Order: fired bowl tongs under max â†’ plate tongs â†’ crock tongs â†’
+/// **other potter crafts (L2946)** â†’ adobe+kiln.
 /// Bowl gate ports Haxe FIX as-is (`countBowl < countCloseBowls`); wet-bowl
 /// path restored under L2946 residual crafts.
-// Haxe: AiBase.doPotteryOnFire ~2908–2953
-// Haxe: L2946 `// TODO make other potter stuff` → AI-POTTER-L2946
+// Haxe: AiBase.doPotteryOnFire ~2908â€“2953
+// Haxe: L2946 `// TODO make other potter stuff` â†’ AI-POTTER-L2946
 pub fn do_pottery_on_fire(c: &PotteryOnFireCounts) -> SmithAction {
-    // Wooden Tongs with Fired Bowl 283 — Haxe FIX bowl limit uses close count.
+    // Wooden Tongs with Fired Bowl 283 â€” Haxe FIX bowl limit uses close count.
     // Port-as-is: countBowl < maxBowls && countBowl < countCloseBowls
     if c.count_bowl < c.max_bowls && c.count_bowl < c.count_close_bowl {
         return SmithAction::CraftItem {
@@ -1968,7 +1968,7 @@ pub fn do_pottery_on_fire(c: &PotteryOnFireCounts) -> SmithAction {
         };
     }
 
-    // ── AI-POTTER-L2946 / Haxe L2946 other potter crafts ───────────────────
+    // â”€â”€ AI-POTTER-L2946 / Haxe L2946 other potter crafts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // (slot is before adobe fuel in Haxe; adobe moved below residual crafts)
 
     // Wet-bowl fire path (Haxe original commented gate before FIX):
@@ -1979,7 +1979,7 @@ pub fn do_pottery_on_fire(c: &PotteryOnFireCounts) -> SmithAction {
         };
     }
 
-    // Shape wet crock: Wet Clay Bowl 233 + Wet Clay Bowl 233 → Wet Clay Crock 1216
+    // Shape wet crock: Wet Clay Bowl 233 + Wet Clay Bowl 233 â†’ Wet Clay Crock 1216
     // Content: transitions/233_233.txt. Enables crock firing when wet bowls exist.
     let crock_stock = c.count_crock + c.count_wet_crock;
     if crock_stock < c.max_crock && c.count_wet_bowl >= 2 {
@@ -2012,7 +2012,7 @@ pub fn do_pottery_on_fire(c: &PotteryOnFireCounts) -> SmithAction {
 }
 
 /// Resolve DeferPottery through pottery body, else return action unchanged.
-// Haxe: prepareSmithingTools → doPotteryOnFire()
+// Haxe: prepareSmithingTools â†’ doPotteryOnFire()
 pub fn resolve_smith_defer_pottery(
     action: SmithAction,
     pottery: &PotteryOnFireCounts,
@@ -2026,10 +2026,10 @@ pub fn resolve_smith_defer_pottery(
     action
 }
 
-// ── isConsideringMakingFood SMITH wipe wire ────────────────────────────────
+// â”€â”€ isConsideringMakingFood SMITH wipe wire â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Haxe age/hungry gate before profession wipe in `isConsideringMakingFood`.
-// Haxe: AiBase.isConsideringMakingFood ~8476–8485
+// Haxe: AiBase.isConsideringMakingFood ~8476â€“8485
 pub fn should_wipe_smith_on_consider_food(
     age: f32,
     is_hungry: bool,
@@ -2049,7 +2049,7 @@ pub fn should_wipe_smith_on_consider_food(
 /// Apply SMITH wipe when hungry path considers making food.
 ///
 /// Returns true when wipe ran (stage 0 + clear last unless FOODSERVER).
-// Haxe: AiBase.isConsideringMakingFood ~8482–8485
+// Haxe: AiBase.isConsideringMakingFood ~8482â€“8485
 pub fn apply_consider_making_food_smith_wipe(
     runtime: &mut SmithProfessionRuntime,
     age: f32,
@@ -2087,7 +2087,7 @@ pub fn smith_peer_snapshot(
     }
 }
 
-// ── Ladder bridge (AI-JOB-SMITH-WIRE / LIVE) ────────────────────────────────
+// â”€â”€ Ladder bridge (AI-JOB-SMITH-WIRE / LIVE) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Job-band rungs that should run smith decide when profession / open job applies.
 // Haxe: doTimeStuffHelper assigned / mid / low / craft slots + early sticky ~609
@@ -2107,11 +2107,11 @@ pub fn smith_job_rung_label(rung_label: &str) -> bool {
 
 /// Map a priority-ladder label to a [`SmithJobSlot`].
 ///
-/// - `EARLY_STICKY_SMITH` → EarlySticky (Haxe lastProfession==SMITH before critical ~609)
-/// - `ASSIGNED_JOB` → Assigned (maxPeople 100)
-/// - `MID_PRIORITY_TASKS` → MidSticky (needs last/assigned)
-/// - `CRITICAL_CRAFT` / `CRITICAL_MISC` → CriticalShortCraft
-/// - `LOW_PRIORITY_WORK` / `AGE_ROTATED_JOB` / `CRAFT_QUEUE` → LowPriority (open become)
+/// - `EARLY_STICKY_SMITH` â†’ EarlySticky (Haxe lastProfession==SMITH before critical ~609)
+/// - `ASSIGNED_JOB` â†’ Assigned (maxPeople 100)
+/// - `MID_PRIORITY_TASKS` â†’ MidSticky (needs last/assigned)
+/// - `CRITICAL_CRAFT` / `CRITICAL_MISC` â†’ CriticalShortCraft
+/// - `LOW_PRIORITY_WORK` / `AGE_ROTATED_JOB` / `CRAFT_QUEUE` â†’ LowPriority (open become)
 // Haxe: doTimeStuffHelper smith call sites
 pub fn smith_slot_for_rung(rung_label: &str) -> Option<SmithJobSlot> {
     match rung_label {
@@ -2127,7 +2127,7 @@ pub fn smith_slot_for_rung(rung_label: &str) -> Option<SmithJobSlot> {
 }
 
 /// Apply speech `SMITH!` / assigned profession token onto sticky runtime.
-// Haxe: AiBase speech endsWith("!") → assignedProfession = 'SMITH'
+// Haxe: AiBase speech endsWith("!") â†’ assignedProfession = 'SMITH'
 pub fn assign_smith_from_speech(runtime: &mut SmithProfessionRuntime, text: &str) -> bool {
     if !parse_smith_profession_speech(text) {
         return false;
@@ -2173,11 +2173,11 @@ pub fn try_decide_smith_from_rung(
     ))
 }
 
-/// Compose fill → decide → goal for live tick / ladder consumers (pure).
+/// Compose fill â†’ decide â†’ goal for live tick / ladder consumers (pure).
 ///
 /// Returns `None` when rung is not a smith band (caller keeps thin
 /// `SeekObject(SMITH_TARGET_ID)`). On decide maps via [`smith_action_to_goal`].
-// Haxe: AssignedJob/sticky/open → doSmithing + shortCraft/craftItem seek
+// Haxe: AssignedJob/sticky/open â†’ doSmithing + shortCraft/craftItem seek
 pub fn smith_goal_from_map_and_rung(
     profession_is_smith: bool,
     rung_label: &str,
@@ -2231,7 +2231,7 @@ pub fn smith_goal_from_counts_and_rung(
 /// Walks the product ladder downward so held/nearby stock advances the seek stage.
 pub fn infer_smith_stage_from_have(have: &HashSet<i32>) -> f32 {
     if have.contains(&KNIFE) {
-        return 0.0; // ladder complete → cycle reset
+        return 0.0; // ladder complete â†’ cycle reset
     }
     if have.contains(&STEEL_BLADE_BLANK) {
         return 12.0;
@@ -2281,7 +2281,7 @@ pub fn infer_smith_stage_from_have(have: &HashSet<i32>) -> f32 {
     0.0
 }
 
-// ── Tests ──────────────────────────────────────────────────────────────────
+// â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 #[cfg(test)]
 mod tests {
@@ -2302,10 +2302,10 @@ mod tests {
     #[test]
     fn has_or_become_smith_max_one_and_sticky() {
         let mut rt = SmithProfessionRuntime::default();
-        // Peer already smith → hard refuse even with max 2
+        // Peer already smith â†’ hard refuse even with max 2
         assert!(!has_or_become_smith(&mut rt, 2, 1.0, 0.0));
         assert!(!rt.is_last_smith);
-        // No peers → become
+        // No peers â†’ become
         assert!(has_or_become_smith(&mut rt, 1, 0.0, 0.0));
         assert!(rt.is_last_smith);
         assert!(rt.stage >= 1.0);
@@ -2381,7 +2381,7 @@ mod tests {
             is_last_smith: true,
             ..Default::default()
         };
-        // Flat rocks + stone present; stage < 3 → iron ore first (delta order)
+        // Flat rocks + stone present; stage < 3 â†’ iron ore first (delta order)
         let c = counts_with(
             &[(FLAT_ROCK, 2), (STONE, 1), (WROUGHT_IRON, 0), (IRON_ORE, 0)],
             Some(FORGE),
@@ -2393,7 +2393,7 @@ mod tests {
                 object_id: IRON_ORE
             }
         );
-        // Ore stocked → wrought iron
+        // Ore stocked â†’ wrought iron
         let mut rt = SmithProfessionRuntime {
             stage: 1.0,
             is_last_smith: true,
@@ -2421,7 +2421,7 @@ mod tests {
             is_last_smith: true,
             ..Default::default()
         };
-        // No hammer stock → stone fallback
+        // No hammer stock â†’ stone fallback
         let c = counts_with(&[(HOT_IRON_BLOOM_FLAT, 1)], Some(FIRING_FORGE), 0);
         assert_eq!(
             prepare_smithing_tools(&c, &mut rt),
@@ -2430,7 +2430,7 @@ mod tests {
                 target: HOT_IRON_BLOOM_FLAT
             }
         );
-        // Hammer nearby → prefer hammer
+        // Hammer nearby â†’ prefer hammer
         let c = counts_with(
             &[(HOT_IRON_BLOOM_FLAT, 1), (SMITHING_HAMMER, 1)],
             Some(FIRING_FORGE),
@@ -2638,7 +2638,7 @@ mod tests {
 
     #[test]
     fn critical_shortcrafts_and_drop_near_forge_ids() {
-        // No hammer → stone fallback
+        // No hammer â†’ stone fallback
         let c = counts_with(&[(HOT_IRON_BLOOM_FLAT, 1)], Some(FIRING_FORGE), 0);
         assert_eq!(
             critical_smith_shortcrafts(0, &c),
@@ -2739,7 +2739,7 @@ mod tests {
 
     #[test]
     fn chisel_content_scan_extends_family_and_stock() {
-        // Haxe: description.contains('Chisel') → objectIdArrays[455]
+        // Haxe: description.contains('Chisel') â†’ objectIdArrays[455]
         assert!(is_steel_chisel_family_description("Steel Chisel"));
         assert!(is_steel_chisel_family_description("Oiled File Blank with Chisel"));
         assert!(is_steel_chisel_family_description("Dug Big Rock with Chisel"));
@@ -2765,7 +2765,7 @@ mod tests {
         assert!(extras.contains(&9999));
         assert!(!extras.contains(&STEEL_CHISEL));
 
-        // Content-scan extra 9999 counts as stock → skip craft 455
+        // Content-scan extra 9999 counts as stock â†’ skip craft 455
         let mut rt = SmithProfessionRuntime {
             stage: 8.0,
             is_last_smith: true,
@@ -2796,7 +2796,7 @@ mod tests {
 
     #[test]
     fn npc_smith_peer_rows_max_one_population() {
-        // Two sticky smiths at same home → count 1 for self not in set of peers...
+        // Two sticky smiths at same home â†’ count 1 for self not in set of peers...
         // rows include self + peer; count excludes self.
         let rows = [
             NpcSmithPeerRow {
@@ -2839,7 +2839,7 @@ mod tests {
                 age: 30.0,
                 food_store: 5.0,
                 deleted: false,
-                has_player_to_follow: true, // following → excluded
+                has_player_to_follow: true, // following â†’ excluded
                 is_wounded: false,
                 last_is_smith: true,
             },
@@ -2873,7 +2873,7 @@ mod tests {
             NpcSmithPeerRow::from_snapshot_fields(
                 1, 10, 10, 25.0, 5.0, false, false, false, true, false,
             ),
-            // Wounded sticky smith at same home — must not count
+            // Wounded sticky smith at same home â€” must not count
             NpcSmithPeerRow::from_snapshot_fields(
                 2, 10, 10, 30.0, 5.0, false, false, true, true, false,
             ),
@@ -2899,7 +2899,7 @@ mod tests {
             smith_peer_count_from_npc_rows(&rows, 1, 10, 10, 3.0, 60.0),
             2.0
         );
-        // Two same-home sticky smiths → second has_or_become false
+        // Two same-home sticky smiths â†’ second has_or_become false
         let mut rt = SmithProfessionRuntime::default();
         let peers = smith_peer_count_from_npc_rows(&rows, 99, 10, 10, 3.0, 60.0);
         assert!(peers >= 1.0);
@@ -3121,7 +3121,7 @@ mod tests {
         assert_eq!(infer_smith_stage_from_have(&have), 6.0);
         let g = ReverseCraftGraph::default();
         let goal = pick_smith_profession_goal(&g, &have, 5.0);
-        // stage >= 5 and pick missing would want pick at stage < 6 — have pick so shovel
+        // stage >= 5 and pick missing would want pick at stage < 6 â€” have pick so shovel
         assert_eq!(goal, Goal::SeekObject(SHOVEL));
     }
 
@@ -3132,7 +3132,7 @@ mod tests {
             is_last_smith: true,
             ..Default::default()
         };
-        // Iron done (stage >= 3); no steel → crucibles
+        // Iron done (stage >= 3); no steel â†’ crucibles
         let c = counts_with(
             &[
                 (FLAT_ROCK, 2),
@@ -3179,7 +3179,7 @@ mod tests {
         );
     }
 
-    // ── AI-JOB-SMITH-WIRE live-tick bridge tests ───────────────────────────
+    // â”€â”€ AI-JOB-SMITH-WIRE live-tick bridge tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     #[test]
     fn do_smithing_surfaces_defer_pottery() {
@@ -3213,12 +3213,12 @@ mod tests {
 
         let c = counts_with(&[(FLAT_ROCK, 2), (STONE, 1)], Some(FORGE), 0);
 
-        // Assigned without assigned/last → None from slot gate (returns None action)
+        // Assigned without assigned/last â†’ None from slot gate (returns None action)
         let mut rt = SmithProfessionRuntime::default();
         let a = try_decide_smith_from_rung(true, "ASSIGNED_JOB", &c, &mut rt, 0.0, 0.0, 20.0);
         assert_eq!(a, Some(SmithAction::None));
 
-        // Assigned with speech assign → full job (max 100)
+        // Assigned with speech assign â†’ full job (max 100)
         let mut rt = SmithProfessionRuntime::default();
         assert!(assign_smith_from_speech(&mut rt, "SMITH!"));
         assert!(rt.is_assigned_smith && rt.is_last_smith);
@@ -3227,7 +3227,7 @@ mod tests {
         let a = a.unwrap();
         assert!(a.is_some() || a == SmithAction::None);
 
-        // MidSticky without last/assigned → None action
+        // MidSticky without last/assigned â†’ None action
         let mut rt = SmithProfessionRuntime::default();
         let a = try_decide_smith_from_rung(true, "MID_PRIORITY_TASKS", &c, &mut rt, 0.0, 0.0, 20.0);
         assert_eq!(a, Some(SmithAction::None));
@@ -3241,12 +3241,12 @@ mod tests {
         let a = try_decide_smith_from_rung(true, "MID_PRIORITY_TASKS", &c, &mut rt, 0.0, 0.0, 20.0);
         assert!(a.is_some());
 
-        // Non-smith profession + assigned rung → no decide
+        // Non-smith profession + assigned rung â†’ no decide
         let mut rt = SmithProfessionRuntime::default();
         assert!(try_decide_smith_from_rung(false, "ASSIGNED_JOB", &c, &mut rt, 0.0, 0.0, 20.0)
             .is_none());
 
-        // Escape rung → None
+        // Escape rung â†’ None
         assert!(try_decide_smith_from_rung(true, "ESCAPE", &c, &mut rt, 0.0, 0.0, 20.0).is_none());
     }
 
@@ -3386,7 +3386,7 @@ mod tests {
             stage: 5.0,
             ..Default::default()
         };
-        // Stocked through hammer; products want pick → stage stays 5 until pick present
+        // Stocked through hammer; products want pick â†’ stage stays 5 until pick present
         let c = counts_with(
             &[
                 (FLAT_ROCK, 2),
@@ -3427,11 +3427,11 @@ mod tests {
         assert!(rt.is_last_smith);
     }
 
-    // ── AI-JOB-SMITH-LIVE action apply / pottery / eat wipe ─────────────────
+    // â”€â”€ AI-JOB-SMITH-LIVE action apply / pottery / eat wipe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     #[test]
     fn smith_action_short_craft_apply_hammer_bloom_and_charcoal() {
-        // Holding hammer → UseOnTarget for 441+309
+        // Holding hammer â†’ UseOnTarget for 441+309
         let a = SmithAction::ShortCraft {
             actor: SMITHING_HAMMER,
             target: HOT_IRON_BLOOM_FLAT,
@@ -3443,7 +3443,7 @@ mod tests {
                 target: HOT_IRON_BLOOM_FLAT
             })
         );
-        // Not holding stone → seek stone for 33+309
+        // Not holding stone â†’ seek stone for 33+309
         let a = SmithAction::ShortCraft {
             actor: STONE,
             target: HOT_IRON_BLOOM_FLAT,
@@ -3467,7 +3467,7 @@ mod tests {
                 target: FORGE
             })
         );
-        // actor 0 → DropHeld when holding something
+        // actor 0 â†’ DropHeld when holding something
         let a = SmithAction::ShortCraft {
             actor: 0,
             target: WROUGHT_IRON_FLAT,
@@ -3476,7 +3476,7 @@ mod tests {
             smith_action_short_craft_apply(a, WROUGHT_IRON, 0, -1),
             Some(crate::farmer_profession::ShortCraftApply::DropHeld)
         );
-        // Non-short → None
+        // Non-short â†’ None
         assert!(smith_action_short_craft_apply(
             SmithAction::CraftItem {
                 object_id: STEEL_AXE
@@ -3523,7 +3523,7 @@ mod tests {
             }
         );
         inp.held_id = FLAT_ROCK;
-        inp.quad_dist_to_forge = 10; // > 5 → goto
+        inp.quad_dist_to_forge = 10; // > 5 â†’ goto
         assert_eq!(
             smith_action_apply(drop, &inp),
             SmithApply::GotoForgeForDrop {
@@ -3589,7 +3589,7 @@ mod tests {
             }
         );
         pot.count_bowl = 2;
-        pot.count_close_bowl = 2; // not bowl < close → skip
+        pot.count_close_bowl = 2; // not bowl < close â†’ skip
         pot.count_wet_plate = 1;
         pot.count_plate = 0;
         assert_eq!(
@@ -3685,7 +3685,7 @@ mod tests {
         ));
         assert_eq!(rt.stage, 0.0);
         assert!(rt.is_last_smith);
-        // Non-hungry without target → no wipe
+        // Non-hungry without target â†’ no wipe
         rt.stage = 5.0;
         assert!(!apply_consider_making_food_smith_wipe(
             &mut rt, 20.0, false, false, 3.0, false
@@ -3716,7 +3716,7 @@ mod tests {
             20.0,
         );
         assert!(a.is_some());
-        // Without sticky last → None action (gate)
+        // Without sticky last â†’ None action (gate)
         let mut rt2 = SmithProfessionRuntime::default();
         assert_eq!(
             try_decide_smith_from_rung(true, "EARLY_STICKY_SMITH", &c, &mut rt2, 0.0, 0.0, 20.0),
@@ -3791,7 +3791,7 @@ mod tests {
             }
         );
 
-        // Wet crock shaping 233+233 when under crock max and ≥2 wet bowls
+        // Wet crock shaping 233+233 when under crock max and â‰¥2 wet bowls
         pot.count_wet_bowl = 2;
         pot.count_bowl = 3;
         pot.max_bowls = 3;
@@ -3855,7 +3855,7 @@ mod tests {
             0.0,
             41.0,
         );
-        // age>40 may Abort if peer cap or become; with empty peers becomes + forge → prep
+        // age>40 may Abort if peer cap or become; with empty peers becomes + forge â†’ prep
         assert!(a.is_some() || matches!(a, SmithAction::Abort | SmithAction::None));
     }
 }

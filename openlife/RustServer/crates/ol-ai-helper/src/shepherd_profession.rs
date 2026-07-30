@@ -1,8 +1,8 @@
-//! Haxe: `AiBase` shepherd / sheep-herding profession family (chunk **AI-SHEPHERD**).
+﻿//! Haxe: `AiBase` shepherd / sheep-herding profession family (chunk **AI-SHEPHERD**).
 //!
 //! Pure decision helpers for:
 //! - `hasOrBecomeProfession('SHEPHERD')` with max-people + sticky last
-//! - Speech `SHEPHERD!` → assigned job
+//! - Speech `SHEPHERD!` â†’ assigned job
 //! - `isSheepHerding(maxProfession, maxAnimal)` body sequence
 //! - `doFeedLambsAndCalfs` early mid-priority helper
 //! - shared farm fallthrough: compost / plant carrots / keepBushesAlive / plant corn
@@ -29,7 +29,7 @@ use crate::farmer_profession::{
     FarmTaskState, DYING_BUSH,
 };
 
-// ── Object ids (OHOL / OpenLife content; Haxe comments in AiBase) ───────────
+// â”€â”€ Object ids (OHOL / OpenLife content; Haxe comments in AiBase) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Hungry Mouflon Lamb (doFeedLambsAndCalfs uses 603, not 604).
 // Haxe: AiBase.doFeedLambsAndCalfs ~5682
@@ -84,7 +84,7 @@ pub const FEED_LAMBS_CALFS_ANIMAL_CAP: i32 = 10;
 /// Canonical Haxe profession string for shepherd.
 pub const SHEPHERD_PROFESSION_KEY: &str = "SHEPHERD";
 
-// ── Profession speech / runtime ────────────────────────────────────────────
+// â”€â”€ Profession speech / runtime â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Parse speech / assigned profession tokens for shepherd.
 ///
@@ -266,7 +266,7 @@ pub fn shepherd_max_people_for_dispatch(is_assigned_job: bool) -> i32 {
     }
 }
 
-// ── World counts snapshot ──────────────────────────────────────────────────
+// â”€â”€ World counts snapshot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Close-object counts for sheep/cow/goose herding near home.
 #[derive(Debug, Clone, Default)]
@@ -327,9 +327,9 @@ pub fn shepherd_counts_from_nearby(
     c
 }
 
-// ── Actions / results ──────────────────────────────────────────────────────
+// â”€â”€ Actions / results â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/// Pure decision output — execution is craft / shortCraft wiring.
+/// Pure decision output â€” execution is craft / shortCraft wiring.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShepherdAction {
     /// Nothing to do in this step.
@@ -349,7 +349,7 @@ impl ShepherdAction {
 }
 
 /// Full `isSheepHerding` pure outcome (action + Haxe bool + profession clear).
-// Haxe: AiBase.isSheepHerding ~1820–1918
+// Haxe: AiBase.isSheepHerding ~1820â€“1918
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SheepHerdingResult {
     pub action: ShepherdAction,
@@ -384,7 +384,7 @@ impl SheepHerdingResult {
         }
     }
 
-    /// Haxe `if (handleMilk()) return false` — action runs, outer bool is false.
+    /// Haxe `if (handleMilk()) return false` â€” action runs, outer bool is false.
     // Haxe: AiBase.isSheepHerding ~1838
     pub fn milk_quirk(action: ShepherdAction) -> Self {
         Self {
@@ -415,13 +415,13 @@ fn farm_to_shepherd(a: FarmAction) -> ShepherdAction {
     }
 }
 
-// ── handleMilk (ungated for shepherd) ──────────────────────────────────────
+// â”€â”€ handleMilk (ungated for shepherd) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Haxe `handleMilk` pure body **without** baker milk-stock gate.
 ///
 /// Crafts Whole Milk Pouch 4081 from zero when count &lt; 3 (Haxe first step).
-/// Skim-milk bucket shortCrafts are commented in Haxe — skipped.
-// Haxe: AiBase.handleMilk ~1774–1817
+/// Skim-milk bucket shortCrafts are commented in Haxe â€” skipped.
+// Haxe: AiBase.handleMilk ~1774â€“1817
 pub fn handle_milk_for_shepherd(counts: &ShepherdCounts) -> ShepherdAction {
     let pouch = counts.get_with_held(MILK_POUCH);
     if pouch < 3 {
@@ -458,7 +458,7 @@ pub fn handle_milk_for_shepherd(counts: &ShepherdCounts) -> ShepherdAction {
     ShepherdAction::None
 }
 
-// ── countCorn ──────────────────────────────────────────────────────────────
+// â”€â”€ countCorn â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Haxe `countCorn` pure sum: dried/cob/kernels + dumped/pile; held only for
 /// 1115 / 1120 / 1247 (not 4106 / 4107).
@@ -477,10 +477,10 @@ pub fn count_corn(counts: &ShepherdCounts) -> i32 {
     n
 }
 
-// ── fillBerryBowlIfNeeded (held path only; Haxe TODO early return) ─────────
+// â”€â”€ fillBerryBowlIfNeeded (held path only; Haxe TODO early return) â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/// Haxe `fillBerryBowlIfNeeded` — only held 253→bush; BOWLFILLER path dead after TODO.
-// Haxe: AiBase.fillBerryBowlIfNeeded ~4224–4246
+/// Haxe `fillBerryBowlIfNeeded` â€” only held 253â†’bush; BOWLFILLER path dead after TODO.
+// Haxe: AiBase.fillBerryBowlIfNeeded ~4224â€“4246
 pub fn fill_berry_bowl_for_shepherd(counts: &ShepherdCounts) -> ShepherdAction {
     if counts.held_id != BOWL_GOOSEBERRIES {
         return ShepherdAction::None;
@@ -500,7 +500,7 @@ pub fn fill_berry_bowl_for_shepherd(counts: &ShepherdCounts) -> ShepherdAction {
     ShepherdAction::None
 }
 
-// ── shortCraft emit when target present ────────────────────────────────────
+// â”€â”€ shortCraft emit when target present â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 fn try_short(counts: &ShepherdCounts, actor: i32, target: i32) -> Option<ShepherdAction> {
     if counts.get(target) > 0 {
@@ -531,23 +531,23 @@ fn try_feed(
     Some(ShepherdAction::ShortCraft { actor, target })
 }
 
-// ── isSheepHerding ─────────────────────────────────────────────────────────
+// â”€â”€ isSheepHerding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Haxe `isSheepHerding(maxProfession, maxAnimal)` pure state machine.
 ///
 /// Sequence (port-as-is):
 /// 1. hasOrBecomeProfession SHEPHERD
 /// 2. lambs 258+604 / 258+542 when sheep &lt; maxAnimal
-/// 3. handleMilk → **return false quirk** if milk acted
+/// 3. handleMilk â†’ **return false quirk** if milk acted
 /// 4. calves 1247+1462/1459 (hasCornSeeds), empty bucket + milk cow
 /// 5. doComposting, doPlantCarrots(1,5), age-gated keepBushesAlive
 /// 6. feed shorn 576 / sheep 575 when under max
 /// 7. doPlantCorn(2,5)
 /// 8. goose egg/goose incubator when maxAnimal&gt;5 and countCorn gates
-/// 9. knife + dead cow; cow feed when count≤5 and countCorn&gt;3
+/// 9. knife + dead cow; cow feed when countâ‰¤5 and countCorn&gt;3
 /// 10. fillBerryBowlIfNeeded (held only)
 /// 11. profession SHEPHERD = 0; return false
-// Haxe: AiBase.isSheepHerding ~1820–1918
+// Haxe: AiBase.isSheepHerding ~1820â€“1918
 pub fn is_sheep_herding(
     runtime: &mut ShepherdProfessionRuntime,
     counts: &ShepherdCounts,
@@ -592,7 +592,7 @@ pub fn is_sheep_herding(
         return SheepHerdingResult::acted(a);
     }
 
-    // doComposting (dung gate commented in Haxe — always try)
+    // doComposting (dung gate commented in Haxe â€” always try)
     let farm = counts.as_farm_counts();
     let compost = farm_to_shepherd(do_composting(&farm, farm_task));
     if compost.is_some() {
@@ -623,7 +623,7 @@ pub fn is_sheep_herding(
             return SheepHerdingResult::acted(a);
         }
     }
-    // Knife kill excess sheep when count>5: commented in Haxe — skip
+    // Knife kill excess sheep when count>5: commented in Haxe â€” skip
 
     let corn_plant = farm_to_shepherd(do_plant_corn(2, 5, &farm, farm_task));
     if corn_plant.is_some() {
@@ -642,7 +642,7 @@ pub fn is_sheep_herding(
         }
     }
 
-    // Domestic Goose count → craft incubator 1263
+    // Domestic Goose count â†’ craft incubator 1263
     let goose = counts.get(DOMESTIC_GOOSE);
     if max_animal > 5 && goose < 5 {
         return SheepHerdingResult::acted(ShepherdAction::CraftItem {
@@ -688,12 +688,12 @@ pub fn apply_sheep_herding_result(
     }
 }
 
-// ── doFeedLambsAndCalfs ────────────────────────────────────────────────────
+// â”€â”€ doFeedLambsAndCalfs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Haxe `doFeedLambsAndCalfs(maxPeople)` pure early mid-priority body.
 ///
 /// Uses **603** Hungry Mouflon Lamb (not 604). Caps sheep/cow feeds at 10.
-// Haxe: AiBase.doFeedLambsAndCalfs ~5666–5713
+// Haxe: AiBase.doFeedLambsAndCalfs ~5666â€“5713
 pub fn do_feed_lambs_and_calfs(
     runtime: &mut ShepherdProfessionRuntime,
     counts: &ShepherdCounts,
@@ -734,11 +734,11 @@ pub fn do_feed_lambs_and_calfs(
         }
     }
 
-    // craft Domestic Sheep / Domestic Mouflon commented in Haxe — skip
+    // craft Domestic Sheep / Domestic Mouflon commented in Haxe â€” skip
     ShepherdAction::None
 }
 
-// ── Baker mid alignment ────────────────────────────────────────────────────
+// â”€â”€ Baker mid alignment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Expand baker mid `isSheepHerding(2,5)` pure steps (lambs + milk quirk + calves).
 ///
@@ -758,7 +758,7 @@ pub fn sheep_herding_steps_for_baker(
             return Some(a);
         }
     }
-    // Milk path — baker still stock-gates in handle_milk; here surface shortCrafts only
+    // Milk path â€” baker still stock-gates in handle_milk; here surface shortCrafts only
     // when whipped/cream present (no craft-from-zero in baker mid).
     if counts.get(WHIPPED_CREAM) > 0 || counts.held_id == WHIPPED_CREAM {
         return Some(ShepherdAction::ShortCraft {
@@ -794,9 +794,9 @@ pub fn sheep_herding_steps_for_baker(
     None
 }
 
-// ── Goal / shortCraft apply helpers ────────────────────────────────────────
+// â”€â”€ Goal / shortCraft apply helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/// Map shepherd action → AI Goal for ladder residual.
+/// Map shepherd action â†’ AI Goal for ladder residual.
 // Haxe: seek sheep / cow / craft target
 pub fn shepherd_action_to_goal(action: ShepherdAction) -> Goal {
     match action {
@@ -845,7 +845,7 @@ pub fn try_decide_shepherd_from_rung(
 // AI-SHEPHERD-MID: makeStuff / basic-farm mid / pick_shepherd_goal
 include!("shepherd_mid_sites.inc.rs");
 
-// ── Tests ──────────────────────────────────────────────────────────────────
+// â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 #[cfg(test)]
 mod tests {
@@ -861,7 +861,7 @@ mod tests {
         let mut rt = ShepherdProfessionRuntime::default();
         let c = counts(&[]);
         let mut task = FarmTaskState::default();
-        // max=1, peer_count>=1, not sticky → refuse
+        // max=1, peer_count>=1, not sticky â†’ refuse
         let r = is_sheep_herding(&mut rt, &c, &mut task, 1, 10, 1.0, 0.0);
         assert!(matches!(r.action, ShepherdAction::Abort));
         assert!(!r.haxe_return);
@@ -910,7 +910,7 @@ mod tests {
     #[test]
     fn is_sheep_herding_handle_milk_return_false_quirk_when_milk_stock_active() {
         let mut rt = ShepherdProfessionRuntime::default();
-        // No lambs; pouch < 3 → milk craft; Haxe returns false
+        // No lambs; pouch < 3 â†’ milk craft; Haxe returns false
         let c = counts(&[(DOMESTIC_SHEEP, 20)]); // over max so no lamb path
         let mut task = FarmTaskState::default();
         let r = is_sheep_herding(&mut rt, &c, &mut task, 1, 10, 0.0, 1.0);
@@ -967,12 +967,12 @@ mod tests {
             is_last_shepherd: true,
             ..Default::default()
         };
-        // milk done; no calves/cow; compost stock empty → compost first
+        // milk done; no calves/cow; compost stock empty â†’ compost first
         let mut c = counts(&[(DOMESTIC_SHEEP, 20)]);
         c.set(MILK_POUCH, 3);
         c.set(BUTTERED_BREAD, 1);
         c.set(BOWL_OF_BUTTER, 1);
-        c.age = 20.0; // round(20/5)=4 even → bushes eligible after compost/carrots
+        c.age = 20.0; // round(20/5)=4 even â†’ bushes eligible after compost/carrots
         let mut task = FarmTaskState::default();
         let r = is_sheep_herding(&mut rt, &c, &mut task, 1, 10, 0.0, 0.0);
         assert!(r.haxe_return);
@@ -983,9 +983,9 @@ mod tests {
             }
         );
 
-        // compost done (stock > 3 exit) + low carrots → plant carrots
+        // compost done (stock > 3 exit) + low carrots â†’ plant carrots
         let mut c2 = c.clone();
-        c2.set(COMPOSTING_PILE, 5); // stock high → composting idle
+        c2.set(COMPOSTING_PILE, 5); // stock high â†’ composting idle
         let mut task2 = FarmTaskState {
             composting: 0.0,
             ..Default::default()
@@ -993,7 +993,7 @@ mod tests {
         // force composting exit
         task2.composting = 0.0;
         let r2 = is_sheep_herding(&mut rt, &c2, &mut task2, 1, 10, 0.0, 0.0);
-        // stock 5 → composting flag 0, returns None from compost; carrots stock 0 → plant
+        // stock 5 â†’ composting flag 0, returns None from compost; carrots stock 0 â†’ plant
         assert_eq!(
             r2.action,
             ShepherdAction::CraftItem {
@@ -1001,7 +1001,7 @@ mod tests {
             }
         );
 
-        // carrots full + dying bush + even age → bushes
+        // carrots full + dying bush + even age â†’ bushes
         let mut c3 = c2.clone();
         // carrot stock high
         c3.set(DRY_PLANTED_CARROTS, 10);
@@ -1012,12 +1012,12 @@ mod tests {
             carrot_planter: 0.0,
             ..Default::default()
         };
-        // stock carrots via wet/dry planted — carrot_stock_units
+        // stock carrots via wet/dry planted â€” carrot_stock_units
         // set many carrots
         use crate::farmer_profession::CARROT;
         c3.set(CARROT, 20);
         let r3 = is_sheep_herding(&mut rt, &c3, &mut task3, 1, 10, 0.0, 0.0);
-        // may hit shorn/sheep feed or plant corn or bushes — ensure bushes when even age + dying
+        // may hit shorn/sheep feed or plant corn or bushes â€” ensure bushes when even age + dying
         // After compost none + carrots none (stock>=5) + bushes
         assert!(
             matches!(
@@ -1298,7 +1298,7 @@ mod tests {
                 max_profession: 2
             }
         );
-        // Full Haxe order: sharpie → bake → farm → sheep → fire
+        // Full Haxe order: sharpie â†’ bake â†’ farm â†’ sheep â†’ fire
         assert_eq!(
             make_stuff_ordered(MakeStuffInputs {
                 sharpie_has_work: true,
@@ -1346,7 +1346,7 @@ mod tests {
             make_stuff_try(&c, &mut task, true, false, true, true),
             MakeStuffAction::DeferSharpieFood
         );
-        // No sharpie plant → basic farming mid defer (empty map still DeferSheep)
+        // No sharpie plant â†’ basic farming mid defer (empty map still DeferSheep)
         let c2 = FarmCounts::default();
         assert_eq!(
             make_stuff_try(&c2, &mut task, true, false, true, true),
@@ -1390,7 +1390,7 @@ mod tests {
 
     #[test]
     fn make_stuff_try_bodies_prefers_bake_before_farm_sheep_fire() {
-        // AI-MAKE-STUFF: doBaking has work → DeferBaking before farm/sheep/fire
+        // AI-MAKE-STUFF: doBaking has work â†’ DeferBaking before farm/sheep/fire
         use crate::baker_profession::{
             BakeCounts, BakerProfessionRuntime, BakerTaskState, CLAY_PLATE, HOT_OVEN, RAW_PIES,
         };
@@ -1403,7 +1403,7 @@ mod tests {
             ..Default::default()
         };
         let mut baker_task = BakerTaskState::default();
-        // Hot oven + raw pie + plate → do_baking has work
+        // Hot oven + raw pie + plate â†’ do_baking has work
         let mut bake = BakeCounts {
             oven_parent_id: Some(HOT_OVEN),
             held_uses: 1,

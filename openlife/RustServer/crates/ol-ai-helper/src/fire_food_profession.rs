@@ -1,11 +1,11 @@
-//! Haxe: `AiBase.makeFireFood` pure body (chunk **AI-MAKE-STUFF** / `make_fire_bake`).
+﻿//! Haxe: `AiBase.makeFireFood` pure body (chunk **AI-MAKE-STUFF** / `make_fire_bake`).
 //!
 //! Closes residual after **AI-SHEPHERD-MID**: `makeStuff` step 5 (`makeFireFood(2)`)
 //! and standalone fire-food maker profession sticky.
 //!
 //! Pure decision helpers for:
 //! - `hasOrBecomeProfession('FIREFOODMAKER')` with max-people + sticky last
-//! - Speech `FIREFOOD!` / `FIREFOODMAKER!` → assigned job
+//! - Speech `FIREFOOD!` / `FIREFOODMAKER!` â†’ assigned job
 //! - Hot-coals cook ladder (mutton, goose, rabbit, pork bowl, beans, kindling/stew)
 //! - Fire craft when no fireplace; unskew cooked rabbit/goose on ground
 //! - Omelette / second-fire / raw mutton-pork-goose-bean stock gates
@@ -16,7 +16,7 @@
 //! Residual: full `makePopcornIfNeeded` BowlFiller peer pick (pure stock craft only);
 //! late hungry/isHandlingFire makeFireFood(1/2/3) outside assigned/makeStuff.
 //!
-//! **AI-FIREFOOD-RUNG**: assigned/last FIREFOODMAKER → `makeFireFood(100)` via
+//! **AI-FIREFOOD-RUNG**: assigned/last FIREFOODMAKER â†’ `makeFireFood(100)` via
 //! `ProfessionScanKind::FireFood` + `try_decide_fire_food_from_rung`.
 
 use std::collections::HashMap;
@@ -26,7 +26,7 @@ use crate::baker_profession::{
     CLAY_PLATE, COOKED_MUTTON, KINDLING, RAW_MUTTON, RAW_STEW_POT, SOAKING_BEANS,
 };
 
-// ── Object ids (OHOL / OpenLife content; Haxe comments in AiBase.makeFireFood) ─
+// â”€â”€ Object ids (OHOL / OpenLife content; Haxe comments in AiBase.makeFireFood) â”€
 
 /// Hot Coals 85.
 // Haxe: AiBase.makeFireFood ~4339
@@ -40,7 +40,7 @@ pub const LARGE_FAST_FIRE: i32 = 83;
 /// Large Slow Fire 346.
 // Haxe: AiHelper.GetCloseFire ~2130
 pub const LARGE_SLOW_FIRE: i32 = 346;
-/// Cooked Rabbit (skewered) 186 — unskew via shortCraftOnGround.
+/// Cooked Rabbit (skewered) 186 â€” unskew via shortCraftOnGround.
 // Haxe: AiBase.makeFireFood ~4324
 pub const COOKED_RABBIT_SKEWERED: i32 = 186;
 /// Cooked Rabbit 197.
@@ -77,7 +77,7 @@ pub const COOL_FLAT_ROCK: i32 = 1284;
 /// Cold Goose Egg 1262.
 pub const COLD_GOOSE_EGG: i32 = 1262;
 /// Omelette 1285.
-// Haxe: AiBase.makeFireFood ~4380 (note: Haxe countOmelette uses plate id 236 — ported as-is)
+// Haxe: AiBase.makeFireFood ~4380 (note: Haxe countOmelette uses plate id 236 â€” ported as-is)
 pub const OMELETTE: i32 = 1285;
 /// Bowl of Cooked Beans 1292.
 pub const COOKED_BEANS: i32 = 1292;
@@ -100,7 +100,7 @@ pub const FIRE_FOOD_ASSIGNED_MAX_PEOPLE: i32 = 100;
 /// Canonical Haxe profession string.
 pub const FIRE_FOOD_PROFESSION_KEY: &str = "FIREFOODMAKER";
 
-// ── Profession speech / runtime ────────────────────────────────────────────
+// â”€â”€ Profession speech / runtime â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Parse speech / assigned profession tokens for fire-food maker.
 ///
@@ -267,7 +267,7 @@ pub fn resolve_fire_food_assigned_job(runtime: &FireFoodProfessionRuntime) -> bo
     runtime.is_assigned_fire_food || runtime.is_last_fire_food
 }
 
-// ── Counts / actions ───────────────────────────────────────────────────────
+// â”€â”€ Counts / actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Close-object counts for makeFireFood (home radius + held).
 // Haxe: countCurrentObject / CountCloseObjects family
@@ -284,7 +284,7 @@ pub struct FireFoodCounts {
     pub has_fire_place: bool,
     /// Haxe `hotCoals == firePlace` (same ObjectHelper). Normally false when ids differ;
     /// kindling-on-coals only when true; stew pot when coals exist and this is false.
-    // Haxe: AiBase.makeFireFood ~4356–4359
+    // Haxe: AiBase.makeFireFood ~4356â€“4359
     pub hot_coals_is_fire_place: bool,
     /// Second fire 82 near home excluding firePlace (Haxe exclude firePlace).
     pub has_second_fire: bool,
@@ -358,7 +358,7 @@ pub fn count_done_goose(counts: &FireFoodCounts) -> i32 {
     counts.sum(&[COOKED_GOOSE_SKEWERED, COOKED_GOOSE])
 }
 
-/// Haxe countOmelette uses `countCurrentObject(236)` (plates) — intentional bug port.
+/// Haxe countOmelette uses `countCurrentObject(236)` (plates) â€” intentional bug port.
 // Haxe: AiBase.makeFireFood ~4378 `countOmelette = countCurrentObject(236)`
 pub fn count_omelette_haxe_bug(counts: &FireFoodCounts) -> i32 {
     counts.get(CLAY_PLATE)
@@ -372,7 +372,7 @@ pub fn make_popcorn_if_needed(counts: &FireFoodCounts) -> FireFoodAction {
     }
     let mut count = counts.get_with_held(POPCORN);
     count += counts.get_with_held(POPPING_CORN);
-    // Haxe also counts near player tile — pure uses home+held only
+    // Haxe also counts near player tile â€” pure uses home+held only
     if count > 0 {
         return FireFoodAction::None;
     }
@@ -385,7 +385,7 @@ pub fn make_popcorn_if_needed(counts: &FireFoodCounts) -> FireFoodAction {
 }
 
 /// Full pure `makeFireFood(maxPeople)` body.
-// Haxe: AiBase.makeFireFood ~4315–4424
+// Haxe: AiBase.makeFireFood ~4315â€“4424
 pub fn make_fire_food(
     counts: &FireFoodCounts,
     runtime: &mut FireFoodProfessionRuntime,
@@ -398,7 +398,7 @@ pub fn make_fire_food(
     }
 
     // Unskew cooked rabbit / goose on ground
-    // Haxe: shortCraftOnGround(186) / (517) ~4324–4325
+    // Haxe: shortCraftOnGround(186) / (517) ~4324â€“4325
     if counts.get_with_held(COOKED_RABBIT_SKEWERED) > 0 || counts.held_id == COOKED_RABBIT_SKEWERED
     {
         // Prefer on-ground when map has skewered cooked rabbit (held handled as ground too)
@@ -421,7 +421,7 @@ pub fn make_fire_food(
     let count_done_r_goose = count_done_goose(counts);
 
     // Hot coals cook ladder
-    // Haxe: ~4341–4359
+    // Haxe: ~4341â€“4359
     if counts.has_hot_coals {
         if count_done_mutton < 3 {
             if counts.get(RAW_MUTTON) > 0 || counts.held_id == RAW_MUTTON {
@@ -479,8 +479,8 @@ pub fn make_fire_food(
         }
     }
 
-    // No fire place → craft Fire 82
-    // Haxe: ~4362–4363
+    // No fire place â†’ craft Fire 82
+    // Haxe: ~4362â€“4363
     if !counts.has_fire_place {
         return FireFoodAction::CraftItem { object_id: FIRE };
     }
@@ -507,7 +507,7 @@ pub fn make_fire_food(
         return popcorn;
     }
 
-    // 0 + Cool Flat Rock → ashes
+    // 0 + Cool Flat Rock â†’ ashes
     if counts.get(COOL_FLAT_ROCK) > 0 {
         return FireFoodAction::ShortCraft {
             actor: 0,
@@ -538,11 +538,11 @@ pub fn make_fire_food(
 
     if count_raw_fire_food >= needed_raw && !counts.has_hot_coals && need_coals {
         // Second fire 82 excluding firePlace; else craft Fire
-        // Haxe: ~4395–4398
+        // Haxe: ~4395â€“4398
         if !counts.has_second_fire {
             return FireFoodAction::CraftItem { object_id: FIRE };
         }
-        // Second fire exists — continue to stock crafts (coals will appear from fire)
+        // Second fire exists â€” continue to stock crafts (coals will appear from fire)
     }
 
     // Raw Stew Pot craftItemMax when corn seeds
@@ -554,7 +554,7 @@ pub fn make_fire_food(
     }
 
     // Raw Mutton if mutton family < 2
-    // Haxe: ~4407–4408
+    // Haxe: ~4407â€“4408
     let count_mutton = counts.sum(&[COOKED_MUTTON, RAW_MUTTON]);
     if count_mutton < 2 {
         return FireFoodAction::CraftItem {
@@ -563,7 +563,7 @@ pub fn make_fire_food(
     }
 
     // Raw Pork if pork food < 2
-    // Haxe: ~4411–4412
+    // Haxe: ~4411â€“4412
     let count_pork_food = counts.sum(&[RAW_PORK, BOWL_CARNITAS]);
     if count_pork_food < 2 {
         return FireFoodAction::CraftItem {
@@ -580,7 +580,7 @@ pub fn make_fire_food(
     }
 
     // Soaking beans when bean seeds and bean food < 2
-    // Haxe: ~4418–4419
+    // Haxe: ~4418â€“4419
     let count_bean_food = counts.sum(&[SOAKING_BEANS, COOKED_BEANS]);
     if count_bean_food < 2 && counts.has_bean_seeds {
         return FireFoodAction::CraftItem {
@@ -594,7 +594,7 @@ pub fn make_fire_food(
     FireFoodAction::None
 }
 
-/// Map action → self-play goal.
+/// Map action â†’ self-play goal.
 pub fn fire_food_action_to_goal(action: FireFoodAction) -> Goal {
     match action {
         FireFoodAction::None | FireFoodAction::Abort => Goal::SeekObject(FIRE),
@@ -695,7 +695,7 @@ pub fn fill_fire_food_counts_from_map(
 
     c.has_hot_coals = has_coals;
     c.has_fire_place = has_fire_place;
-    // Coals and fire place are different object ids → never same ObjectHelper
+    // Coals and fire place are different object ids â†’ never same ObjectHelper
     c.hot_coals_is_fire_place = false;
     // Second fire: another Fire 82 when firePlace is some fire object
     c.has_second_fire = fire_82_count >= 2 || (has_fire_place && has_fire_82 && fire_82_count >= 1 && {
@@ -707,8 +707,8 @@ pub fn fill_fire_food_counts_from_map(
     });
     // Simpler: if fire place exists and there's a Fire 82 distinct from sole firePlace
     // When only one FIRE and fire place is FIRE, second is false.
-    // When fire place is large fire + any FIRE 82 → second true.
-    // When two FIRE 82 → second true.
+    // When fire place is large fire + any FIRE 82 â†’ second true.
+    // When two FIRE 82 â†’ second true.
     if fire_82_count >= 2 {
         c.has_second_fire = true;
     } else if fire_82_count == 1 {
@@ -831,7 +831,7 @@ mod tests {
         );
         // At done rabbit >= 5, skip rabbit cook
         c.set(COOKED_RABBIT, 5);
-        // no other coal work → fall through past coals
+        // no other coal work â†’ fall through past coals
         let a = make_fire_food(&c, &mut r, 2, 0.0, 0.0);
         assert!(!matches!(
             a,
@@ -850,7 +850,7 @@ mod tests {
         c.has_hot_coals = true;
         c.has_fire_place = true;
         c.hot_coals_is_fire_place = false;
-        // stew path needs stew; without stew and without kindling match → fallthrough
+        // stew path needs stew; without stew and without kindling match â†’ fallthrough
         let a = make_fire_food(&c, &mut r, 2, 0.0, 0.0);
         assert!(!matches!(
             a,
@@ -949,8 +949,8 @@ mod tests {
         ]);
         c.has_fire_place = true;
         c.has_hot_coals = false;
-        // mutton family = 5 cooked only → countMutton >= 2, skip mutton craft
-        // pork < 2 → craft raw pork
+        // mutton family = 5 cooked only â†’ countMutton >= 2, skip mutton craft
+        // pork < 2 â†’ craft raw pork
         assert_eq!(
             make_fire_food(&c, &mut r, 2, 0.0, 0.0),
             FireFoodAction::CraftItem {

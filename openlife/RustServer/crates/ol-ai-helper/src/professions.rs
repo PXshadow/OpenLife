@@ -1,4 +1,4 @@
-//! Lite profession actions: `SAY HARVEST` / `FISH` / `MINE` / `DIG` / `CHOP`.
+﻿//! Lite profession actions: `SAY HARVEST` / `FISH` / `MINE` / `DIG` / `CHOP`.
 //!
 //! Biome-gated gather with a shared 5s cooldown (caller tracks
 //! `last_prof_action_time` on the player body).
@@ -71,7 +71,7 @@ pub enum ProfActionResult {
 }
 
 impl ProfActionResult {
-    /// Suffix after `HARVEST` / `FISH` / … for private PS body.
+    /// Suffix after `HARVEST` / `FISH` / â€¦ for private PS body.
     pub fn wire_suffix(self) -> String {
         match self {
             Self::Ok { object_id } => format!("OK id={object_id}"),
@@ -195,7 +195,7 @@ fn gate_common(
     Ok(())
 }
 
-/// `SAY HARVEST`: empty hands + grassland → food-like id (first berry / food / 33).
+/// `SAY HARVEST`: empty hands + grassland â†’ food-like id (first berry / food / 33).
 pub fn try_harvest(
     held_id: i32,
     biome: u8,
@@ -214,7 +214,7 @@ pub fn try_harvest(
     }
 }
 
-/// `SAY FISH`: empty hands + ocean/river → fish placeholder.
+/// `SAY FISH`: empty hands + ocean/river â†’ fish placeholder.
 pub fn try_fish(
     held_id: i32,
     biome: u8,
@@ -232,7 +232,7 @@ pub fn try_fish(
     }
 }
 
-/// `SAY MINE`: empty hands + mountain (standing or adj) → stone placeholder.
+/// `SAY MINE`: empty hands + mountain (standing or adj) â†’ stone placeholder.
 pub fn try_mine(
     held_id: i32,
     last_prof_action_time: f32,
@@ -250,7 +250,7 @@ pub fn try_mine(
     }
 }
 
-/// `SAY DIG`: empty hands + swamp → clay placeholder.
+/// `SAY DIG`: empty hands + swamp â†’ clay placeholder.
 pub fn try_dig(
     held_id: i32,
     biome: u8,
@@ -268,7 +268,7 @@ pub fn try_dig(
     }
 }
 
-/// `SAY CHOP`: empty hands + jungle/yellow → wood placeholder.
+/// `SAY CHOP`: empty hands + jungle/yellow â†’ wood placeholder.
 pub fn try_chop(
     held_id: i32,
     biome: u8,
@@ -352,7 +352,7 @@ mod tests {
         assert_eq!(r, ProfActionResult::Ok { object_id: 33 });
         assert_eq!(r.wire_suffix(), "OK id=33");
 
-        // No berry name but food present → lowest food id.
+        // No berry name but food present â†’ lowest food id.
         let mut food_only = ContentDb::default();
         food_only.objects.insert(44, obj(44, "Carrot", 2));
         food_only.objects.insert(50, obj(50, "Onion", 1));
@@ -361,7 +361,7 @@ mod tests {
             ProfActionResult::Ok { object_id: 44 }
         );
 
-        // Empty content → fallback 33.
+        // Empty content â†’ fallback 33.
         assert_eq!(
             try_harvest(0, GRASSLAND_BIOME, -10.0, 0.0, &ContentDb::default()),
             ProfActionResult::Ok {

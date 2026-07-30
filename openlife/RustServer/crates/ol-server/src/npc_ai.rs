@@ -1,10 +1,10 @@
-//! Basic AI NPC scheduler (Haxe `AiBase.RunAi` shape — single thread).
+﻿//! Basic AI NPC scheduler (Haxe `AiBase.RunAi` shape â€” single thread).
 //!
-//! Priority: eat if hungry → seek food → **profession ladder scan** (farm/smith/baker/
-//! pottery/shepherd shortCraft USE/DROP) → craft (bottom-up valuation) → explore.
+//! Priority: eat if hungry â†’ seek food â†’ **profession ladder scan** (farm/smith/baker/
+//! pottery/shepherd shortCraft USE/DROP) â†’ craft (bottom-up valuation) â†’ explore.
 //! Activity logged in RAM and flushed every 30s ([`npc_activity`]).
 //!
-//! // Haxe: ServerAi.doTimeStuff → AiBase.doTimeStuffHelper AssignedJob / AgeRotatedJob
+//! // Haxe: ServerAi.doTimeStuff â†’ AiBase.doTimeStuffHelper AssignedJob / AgeRotatedJob
 
 use crate::npc_activity::{
     NpcActivityEvent, NpcActivityKind, NpcActivityLog, NpcStuckTracker,
@@ -48,7 +48,7 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tracing::{debug, info, warn};
 
-/// Command sink for NPC → same channel as human clients ([`PlayerWriteInterface`]).
+/// Command sink for NPC â†’ same channel as human clients ([`PlayerWriteInterface`]).
 struct NpcWriteTx<'a>(&'a tokio::sync::mpsc::Sender<NetIntent>);
 
 impl CommandSink for NpcWriteTx<'_> {
@@ -95,7 +95,7 @@ fn npc_drop_at(
     NpcWriteTx(intent_tx).drop_at(conn_id, x, y, clothing_slot)
 }
 
-/// Enqueue raw SAY/JUMP/… via [`PlayerWriteInterface`].
+/// Enqueue raw SAY/JUMP/â€¦ via [`PlayerWriteInterface`].
 #[inline]
 fn npc_say_raw(
     intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
@@ -108,9 +108,9 @@ fn npc_say_raw(
 
 /// Max tiles per NPC MOVE commit.
 ///
-/// Walk speed ≈ 3.75 tiles/s → 16 steps ≈ 4.3s, spanning ≥1 think skip when
-/// `ai_think_period_ticks` is 15–20 (3–4s). While `PlayerSnapshot.moving` is
-/// true the scheduler skips that NPC — fewer accepts, less log spam.
+/// Walk speed â‰ˆ 3.75 tiles/s â†’ 16 steps â‰ˆ 4.3s, spanning â‰¥1 think skip when
+/// `ai_think_period_ticks` is 15â€“20 (3â€“4s). While `PlayerSnapshot.moving` is
+/// true the scheduler skips that NPC â€” fewer accepts, less log spam.
 const NPC_PATH_MAX_STEPS: usize = 16;
 
 /// Animal-aware first step toward goal (Haxe Goto + CreateCollisionChunk animals).
@@ -261,8 +261,8 @@ fn npc_try_walk_to_sticky(
     ok
 }
 
-/// Dual-pass Goto fail mark: animal-only block → hostile_path 20s; else not_reachable 90s.
-// Haxe: AiHelper.gotoAdv ~1116–1141
+/// Dual-pass Goto fail mark: animal-only block â†’ hostile_path 20s; else not_reachable 90s.
+// Haxe: AiHelper.gotoAdv ~1116â€“1141
 fn npc_mark_goto_path_fail(
     path_reach: &mut AiPathReachMaps,
     world: &World,
@@ -282,14 +282,14 @@ fn npc_mark_goto_path_fail(
 
 
 /// PATH-REACH-MERGE: pull Player.ai_path_reach into NPC maps (max timers).
-// Haxe: single AiBase maps — Rust dual ownership → merge each think
+// Haxe: single AiBase maps â€” Rust dual ownership â†’ merge each think
 // PATH-REACH-MERGE / dual_map_merge
 fn pull_player_path_reach(st: &mut NpcProfessionState, snap: &PlayerSnapshot) {
     merge_path_reach_maps(&mut st.path_reach, &snap.ai_path_reach);
 }
 
 /// PATH-REACH-MERGE: push NPC maps into player_views for tick_vitals absorb.
-// Haxe: AiBase L85–86 single maps
+// Haxe: AiBase L85â€“86 single maps
 fn push_npc_path_reach_to_views(
     player_views: &Arc<RwLock<HashMap<u64, PlayerSnapshot>>>,
     conn_id: u64,
@@ -314,7 +314,7 @@ struct NpcFoodGotoState {
     last_goto_dist: f32,
     did_not_reach_food: f32,
     /// Async food USE/DROP/REMV tile awaiting apply result (AI-FOOD-FAIL-MARK).
-    // Haxe: isPickingupFood use/remove/drop returns false sync → mark 30s
+    // Haxe: isPickingupFood use/remove/drop returns false sync â†’ mark 30s
     pending_food_xy: Option<(i32, i32)>,
     /// Pending was container REMV (basket food_value often 0 on ground id).
     // Haxe: isInContainer remove path ~8684
@@ -339,7 +339,7 @@ impl Default for NpcFoodGotoState {
 /// While moving, AI does **not** replan unless this goal becomes invalid
 /// (object parent id changed / gone). Pure walks (`expected_parent_id == 0`)
 /// stay valid until the path finishes.
-// Haxe: AiBase.useTarget + expectedUseTarget; isUsingItem target-changed → CancleUse
+// Haxe: AiBase.useTarget + expectedUseTarget; isUsingItem target-changed â†’ CancleUse
 #[derive(Debug, Clone)]
 struct NpcStickyMove {
     gx: i32,
@@ -364,7 +364,7 @@ struct NpcProfessionState {
     /// AI-HANDLING-FIRE: FIREKEEPER sticky (isHandlingFire).
     fire_keeper_rt: FireKeeperProfessionRuntime,
     /// PATH-REACH: Haxe AiBase notReachableObjects / objectsWithHostilePath (npc-local).
-    // Haxe: AiBase L85–86; AiHelper.gotoAdv fail → addNotReachable / addHostilePath
+    // Haxe: AiBase L85â€“86; AiHelper.gotoAdv fail â†’ addNotReachable / addHostilePath
     path_reach: AiPathReachMaps,
     /// AI-GOTO-FOOD: sticky foodTarget + lastGotoObj + didNotReachFood.
     // Haxe: AiBase.foodTarget / lastGotoObj / didNotReachFood
@@ -372,7 +372,7 @@ struct NpcProfessionState {
     /// AI-CRAFT-NPC-ENQUEUE: sticky multi-step craftItem state (failedCraftings / itemToCraft).
     // Haxe: AiBase.itemToCraft + failedCraftings across GetOrCraftItem / craftItem ticks
     craft_rt: CraftAiRuntime,
-    /// Haxe `AiBase.time` — reaction cooldown (seconds). Think only when ≤ 0.
+    /// Haxe `AiBase.time` â€” reaction cooldown (seconds). Think only when â‰¤ 0.
     // Haxe: AiBase.time / doTimeStuff
     think_time_sec: f32,
     /// Haxe `lineage.prestigeClass` for reaction time selection.
@@ -380,7 +380,7 @@ struct NpcProfessionState {
     prestige_class: PrestigeClass,
     /// True once role prestige class has been assigned for this body.
     class_assigned: bool,
-    /// Active MOVE goal — validated while `PlayerSnapshot.moving`.
+    /// Active MOVE goal â€” validated while `PlayerSnapshot.moving`.
     sticky_move: Option<NpcStickyMove>,
 }
 
@@ -446,7 +446,7 @@ impl Default for NpcConfig {
 }
 
 impl NpcConfig {
-    /// Map live hot-reload knobs → NPC scheduler config.
+    /// Map live hot-reload knobs â†’ NPC scheduler config.
     ///
     /// // Haxe: ServerSettings.NumberOfAis / MinNumberOfAis (static Reflect update same-tick)
     pub fn from_live(live: &LiveSettings) -> Self {
@@ -491,7 +491,7 @@ fn profession_for_index(i: u32) -> CraftProfession {
 }
 
 /// Assign prestige class for permanent NPCs (demo diversity + Haxe parity testing).
-/// Forager→Serf, Farmer→Commoner, Hunter→Noble.
+/// Foragerâ†’Serf, Farmerâ†’Commoner, Hunterâ†’Noble.
 // Haxe: lineage.prestigeClass at birth (account score); NPCs get role-mapped class
 fn prestige_class_for_npc_index(i: u32) -> PrestigeClass {
     match i % 3 {
@@ -501,7 +501,7 @@ fn prestige_class_for_npc_index(i: u32) -> PrestigeClass {
     }
 }
 
-/// Haxe milkweed family may change 50→51→52 without cancelling use.
+/// Haxe milkweed family may change 50â†’51â†’52 without cancelling use.
 // Haxe: AiBase.isUsingItem milkweed exception
 fn is_milkweed_family(parent_id: i32) -> bool {
     matches!(parent_id, 50 | 51 | 52)
@@ -688,7 +688,7 @@ fn nearest_food(
 
 
 /// After prior food USE/DROP/REMV was sent, mark 30s if still empty-handed and tile food.
-// Haxe: isPickingupFood done==false → addNotReachableObject(food, 30) (AI-FOOD-FAIL-MARK)
+// Haxe: isPickingupFood done==false â†’ addNotReachableObject(food, 30) (AI-FOOD-FAIL-MARK)
 fn settle_npc_pending_food_action(
     content: &ContentDb,
     nearby: &[NearbyObj],
@@ -710,8 +710,8 @@ fn settle_npc_pending_food_action(
     let tile_still_food =
         pending_food_tile_still_actionable(ground_fv, pending_container, tile_id);
     if p.held_id != 0 {
-        // Async success: picked something up — clear sticky + reset didNotReachFood.
-        // Haxe: ~8703–8704 (only after done==true; Rust settles next tick)
+        // Async success: picked something up â€” clear sticky + reset didNotReachFood.
+        // Haxe: ~8703â€“8704 (only after done==true; Rust settles next tick)
         st.food_goto.did_not_reach_food = food_pickup_action_success_reset();
         st.food_goto.sticky_food = None;
         st.food_goto.last_goto = None;
@@ -728,7 +728,7 @@ fn settle_npc_pending_food_action(
         st.food_goto.last_goto = None;
         st.food_goto.last_goto_dist = -1.0;
     } else if !tile_still_food {
-        // Tile gone (someone ate it) — clear sticky without mark.
+        // Tile gone (someone ate it) â€” clear sticky without mark.
         st.food_goto.sticky_food = None;
         st.food_goto.did_not_reach_food = food_pickup_action_success_reset();
     }
@@ -744,7 +744,7 @@ fn resolve_npc_food_target(
     path_reach: &AiPathReachMaps,
     food_goto: &mut NpcFoodGotoState,
 ) -> Option<StickyFoodTarget> {
-    // Container sticky: ground tile is basket/etc (food_value often 0) — validate via sticky parent.
+    // Container sticky: ground tile is basket/etc (food_value often 0) â€” validate via sticky parent.
     // Haxe: isEatableCheckAgain; container indexInContainer > -1 still often true (TODO in Haxe)
     let sticky_tile = food_goto.sticky_food.map(|s| {
         if s.in_container() {
@@ -761,7 +761,7 @@ fn resolve_npc_food_target(
         }
     });
     let (sticky_id, sticky_fv) = sticky_tile.unwrap_or((0, 0));
-    // Ground nearest only (container slots need SearchBestFood live — residual).
+    // Ground nearest only (container slots need SearchBestFood live â€” residual).
     let cand = nearest_food(content, nearby, px, py, Some(path_reach)).map(|f| {
         StickyFoodTarget::new(f.x, f.y, f.id)
     });
@@ -781,7 +781,7 @@ fn food_meta(content: &ContentDb, id: i32) -> (bool, i32) {
 
 /// Emit dropHeld / USE / DROP / REMV / walk for full isPickingupFood SM.
 /// Returns true when the tick is consumed (Haxe return true).
-// Haxe: AiBase.isPickingupFood ~8610–8706 (AI-PICKUP-FOOD)
+// Haxe: AiBase.isPickingupFood ~8610â€“8706 (AI-PICKUP-FOOD)
 fn npc_run_is_picking_up_food(
     content: &ContentDb,
     world: &Arc<RwLock<World>>,
@@ -863,7 +863,7 @@ fn npc_run_is_picking_up_food(
         ) {
             return Some(out);
         }
-        // dropHeld returned none — continue SM with held still in hand
+        // dropHeld returned none â€” continue SM with held still in hand
         drop_would = false;
         plan = plan_is_picking_up_food(&IsPickingupFoodInput::from_sticky(
             food,
@@ -988,7 +988,7 @@ fn npc_run_is_picking_up_food(
             }
         }
         IsPickingupFoodPlan::DropHeldPlayer => {
-            // Residual: PlayerSnapshot lacks holding_player_id — treat as busy.
+            // Residual: PlayerSnapshot lacks holding_player_id â€” treat as busy.
             Some((
                 NpcActivityKind::SeekFood,
                 "drop_held_player_residual".into(),
@@ -1030,7 +1030,7 @@ fn npc_run_is_picking_up_food(
             ) {
                 return Some(out);
             }
-            // Can't drop — mark food fail 30s (can't USE/REMV with hands full)
+            // Can't drop â€” mark food fail 30s (can't USE/REMV with hands full)
             mark_food_path_fail(&mut st.path_reach, food.x, food.y);
             st.food_goto.sticky_food = None;
             Some((
@@ -1044,7 +1044,7 @@ fn npc_run_is_picking_up_food(
             // PlayerWriteInterface: same Raw path as human clients
             if npc_say_raw(intent_tx, conn_id, "REMV", &payload) {
                 // Keep sticky until next-tick settle (Haxe clears only after known done).
-                // Haxe: isPickingupFood ~8694–8704
+                // Haxe: isPickingupFood ~8694â€“8704
                 st.food_goto.pending_food_xy = Some((x, y));
                 st.food_goto.pending_food_container = true;
                 return Some((
@@ -1053,7 +1053,7 @@ fn npc_run_is_picking_up_food(
                     500,
                 ));
             }
-            // try_send fail → 30s
+            // try_send fail â†’ 30s
             mark_food_path_fail(&mut st.path_reach, x, y);
             st.food_goto.sticky_food = None;
             Some((
@@ -1063,18 +1063,10 @@ fn npc_run_is_picking_up_food(
             ))
         }
         IsPickingupFoodPlan::Use { x, y } => {
-            if intent_tx
-                .try_send(NetIntent::Use {
-                    conn_id,
-                    x,
-                    y,
-                    id: None,
-                    index: None,
-                })
-                .is_ok()
+            if npc_use_at(intent_tx, conn_id, x, y, None, None)
             {
                 // Async apply; settle next tick marks 30s if still empty + tile food.
-                // Haxe: isPickingupFood ~8694–8704 (no optimistic clear)
+                // Haxe: isPickingupFood ~8694â€“8704 (no optimistic clear)
                 st.food_goto.pending_food_xy = Some((x, y));
                 st.food_goto.pending_food_container = food.in_container();
                 return Some((
@@ -1132,14 +1124,7 @@ fn npc_emit_drop_or_walk(
         ShortCraftLiveIntent::DropAt { x, y } => {
             let dist = (x - p.x).abs().max((y - p.y).abs());
             if dist <= 1 {
-                if intent_tx
-                    .try_send(NetIntent::Drop {
-                        conn_id,
-                        x,
-                        y,
-                        c: None,
-                    })
-                    .is_ok()
+                if npc_drop_at(intent_tx, conn_id, x, y, None)
                 {
                     return Some((
                         NpcActivityKind::SeekFood,
@@ -1178,15 +1163,7 @@ fn npc_emit_drop_or_walk(
         } => {
             let dist = (x - p.x).abs().max((y - p.y).abs());
             if dist <= 1 {
-                if intent_tx
-                    .try_send(NetIntent::Use {
-                        conn_id,
-                        x,
-                        y,
-                        id: None,
-                        index: None,
-                    })
-                    .is_ok()
+                if npc_use_at(intent_tx, conn_id, x, y, None, None)
                 {
                     return Some((
                         NpcActivityKind::SeekFood,
@@ -1317,15 +1294,15 @@ pub async fn run_npc_scheduler(
     let mut active: u32 = 0;
     let mut target_pop: u32 = 0;
     let mut stuck_map: HashMap<u64, NpcStuckTracker> = HashMap::new();
-    /// conn → (craft_key, remaining_cooldown_thinks)
+    /// conn â†’ (craft_key, remaining_cooldown_thinks)
     let mut craft_blacklist: HashMap<u64, HashMap<String, u32>> = HashMap::new();
-    /// conn → (target_xy, best_dist_seen) for progress tracking
+    /// conn â†’ (target_xy, best_dist_seen) for progress tracking
     let mut craft_progress: HashMap<u64, ((i32, i32), i32)> = HashMap::new();
-    /// conn → sticky farm/smith/baker task state for profession ladder scan.
+    /// conn â†’ sticky farm/smith/baker task state for profession ladder scan.
     let mut profession_state: HashMap<u64, NpcProfessionState> = HashMap::new();
     let mut announced = false;
     // AI-JOB-SMITH-RESID: load-time objectIdArrays[455] Chisel cache (PatchObjectData once)
-    // Haxe: ServerSettings.PatchObjectData ~612–616
+    // Haxe: ServerSettings.PatchObjectData ~612â€“616
     let chisel_table = SteelChiselFamilyTable::from_content(content.as_ref());
     let chisel_family_extra = chisel_table.extras.clone();
 
@@ -1334,7 +1311,7 @@ pub async fn run_npc_scheduler(
         tick = tick.wrapping_add(1);
         activity.try_flush();
 
-        // Same-wake as sim hot-reload: LiveSettings → NpcConfig (no outer 2 s copy).
+        // Same-wake as sim hot-reload: LiveSettings â†’ NpcConfig (no outer 2 s copy).
         let cfg = live_share
             .read()
             .map(|g| NpcConfig::from_live(&g))
@@ -1442,7 +1419,7 @@ pub async fn run_npc_scheduler(
                     collect_nearby(&w, p.x, p.y, radius)
                 };
                 // PATH-REACH-MERGE: pull once per takeover think (food + explore arms).
-                // Haxe: AiBase single maps always current; dual ownership → pull each think
+                // Haxe: AiBase single maps always current; dual ownership â†’ pull each think
                 // PATH-REACH-MERGE / dual_map_merge
                 {
                     let st = profession_state.entry(conn_id).or_default();
@@ -1515,8 +1492,8 @@ pub async fn run_npc_scheduler(
                     }
                 }
                 // PATH-REACH-MERGE: push takeover food/walk marks for tick_vitals absorb
-                // (was missing — AI-TAKEOVER never wrote into player_views before)
-                // Haxe: AiBase L85–86 single maps
+                // (was missing â€” AI-TAKEOVER never wrote into player_views before)
+                // Haxe: AiBase L85â€“86 single maps
                 if let Some(st) = profession_state.get(&conn_id) {
                     push_npc_path_reach_to_views(&player_views, conn_id, &st.path_reach);
                 }
@@ -1600,7 +1577,7 @@ pub async fn run_npc_scheduler(
                 st.think_time_sec += cfg.reaction_for_class(st.prestige_class, angry);
             }
 
-            // Haxe: if (!movedOneTile && isMoving()) return — don't replan mid-path
+            // Haxe: if (!movedOneTile && isMoving()) return â€” don't replan mid-path
             // unless sticky goal invalid (target parent changed / gone).
             if p.moving {
                 let (still_valid, sticky_label) = {
@@ -1660,7 +1637,7 @@ pub async fn run_npc_scheduler(
             };
 
             // PATH-REACH-MERGE: pull Player marks once per think (all arms incl. explore/craft).
-            // Haxe: single AiBase maps always current; dual ownership → pull each think
+            // Haxe: single AiBase maps always current; dual ownership â†’ pull each think
             // PATH-REACH-MERGE / dual_map_merge
             {
                 let st = profession_state.entry(conn_id).or_default();
@@ -1675,7 +1652,7 @@ pub async fn run_npc_scheduler(
 
             // --- 1. Eat held food if hungry ---
             if !acted && hungry && p.held_id != 0 && food_at(&content, p.held_id) > 0 {
-                // USE on self-tile fails transition → sim try_eat_held.
+                // USE on self-tile fails transition â†’ sim try_eat_held.
                 if intent_tx
                     .try_send(NetIntent::Use {
                         conn_id,
@@ -1720,7 +1697,7 @@ pub async fn run_npc_scheduler(
                         kind = k;
                         detail = d;
                         game_ms = ms;
-                        // Helper Some ⇒ Haxe isPickingupFood return true (tick consumed)
+                        // Helper Some â‡’ Haxe isPickingupFood return true (tick consumed)
                         acted = true;
                     }
                 }
@@ -1794,7 +1771,7 @@ pub async fn run_npc_scheduler(
             }
 
             // --- 2b. Profession ladder scan (NPC-CRAFT-LADDER) ---
-            // Haxe: AssignedJob / AgeRotatedJob → doBasicFarming/doSmithing/doBaking → USE/DROP
+            // Haxe: AssignedJob / AgeRotatedJob â†’ doBasicFarming/doSmithing/doBaking â†’ USE/DROP
             // Escape/food bands already handled above; only when not hungry-starving.
             // AI-FOLLOW-WALK: follow holds tick above when far from sticky target
             if !acted && !starving && !hungry {
@@ -1837,7 +1814,7 @@ pub async fn run_npc_scheduler(
                         let w = world.read().unwrap();
                         let raw =
                             scan_world_radius(&w, Some(content.as_ref()), home_x, home_y, scan_r);
-                        // Haxe: blockedByAI — peer AI craft/use claims
+                        // Haxe: blockedByAI â€” peer AI craft/use claims
                         let mut peer_blocked_by_ai: HashMap<(i32, i32), f32> = HashMap::new();
                         for (cid, ((tx, ty), _)) in craft_progress.iter() {
                             if *cid != conn_id {
@@ -1958,7 +1935,7 @@ pub async fn run_npc_scheduler(
                         is_assigned_job: sticky.has_assigned_job(),
                         // PREFER-SHORT-WAIT (npc usually skips when p.moving; keep field)
                         is_moving: p.moving,
-                        // AI-HANDLING-FIRE: Season==Winter → Fire 82 kindling first (npc residual false)
+                        // AI-HANDLING-FIRE: Season==Winter â†’ Fire 82 kindling first (npc residual false)
                         is_winter: false,
                         // Load-time objectIdArrays[455] cache (not re-scanned each tick)
                         chisel_family_extra: chisel_family_extra.clone(),
@@ -1989,15 +1966,7 @@ pub async fn run_npc_scheduler(
                             } => {
                                 let dist = (x - p.x).abs().max((y - p.y).abs());
                                 if dist <= 1 {
-                                    if intent_tx
-                                        .try_send(NetIntent::Use {
-                                            conn_id,
-                                            x,
-                                            y,
-                                            id: None,
-                                            index: None,
-                                        })
-                                        .is_ok()
+                                    if npc_use_at(intent_tx, conn_id, x, y, None, None)
                                     {
                                         kind = NpcActivityKind::Craft;
                                         detail = format!(
@@ -2040,7 +2009,7 @@ pub async fn run_npc_scheduler(
                                             acted = true;
                     } else {
                                         // PATH-REACH / AI-ANIMAL-GOTO: dual-pass hostile vs notReachable
-                                        // Haxe: AiHelper.gotoAdv ~1116–1141
+                                        // Haxe: AiHelper.gotoAdv ~1116â€“1141
                                         let w = world.read().unwrap();
                                         npc_mark_goto_path_fail(
                                             &mut st.path_reach,
@@ -2059,15 +2028,7 @@ pub async fn run_npc_scheduler(
                             ShortCraftLiveIntent::UseOnEmptyGround { x, y, held } => {
                                 let dist = (x - p.x).abs().max((y - p.y).abs());
                                 if dist <= 1 {
-                                    if intent_tx
-                                        .try_send(NetIntent::Use {
-                                            conn_id,
-                                            x,
-                                            y,
-                                            id: None,
-                                            index: None,
-                                        })
-                                        .is_ok()
+                                    if npc_use_at(intent_tx, conn_id, x, y, None, None)
                                     {
                                         kind = NpcActivityKind::Craft;
                                         detail = format!(
@@ -2122,14 +2083,7 @@ pub async fn run_npc_scheduler(
                             ShortCraftLiveIntent::DropAt { x, y } => {
                                 let dist = (x - p.x).abs().max((y - p.y).abs());
                                 if dist <= 1 {
-                                    if intent_tx
-                                        .try_send(NetIntent::Drop {
-                                            conn_id,
-                                            x,
-                                            y,
-                                            c: None,
-                                        })
-                                        .is_ok()
+                                    if npc_drop_at(intent_tx, conn_id, x, y, None)
                                     {
                                         kind = NpcActivityKind::Craft;
                                         detail = format!(
@@ -2186,7 +2140,7 @@ pub async fn run_npc_scheduler(
                             | ShortCraftLiveIntent::CraftItem { .. } => {
                                 // AI-CRAFT-NPC-ENQUEUE: multi-step GetOrCraft + craftItem expand
                                 // with path-reach CraftScanFilters (hostile/unreachable/blockedByAI).
-                                // Haxe: AiBase.GetOrCraftItem → craftItem → useTarget / dropTarget
+                                // Haxe: AiBase.GetOrCraftItem â†’ craftItem â†’ useTarget / dropTarget
                                 // Residuals closed: live pile_id (getPileObjId), ScanTile.num_slots,
                                 // ignoreFullPiles full multi-use tiles, peer blockedByAI merge.
                                 let staging = result.intent;
@@ -2265,15 +2219,7 @@ pub async fn run_npc_scheduler(
                                         let dist =
                                             (x - p.x).abs().max((y - p.y).abs());
                                         if dist <= 1 {
-                                            if intent_tx
-                                                .try_send(NetIntent::Use {
-                                                    conn_id,
-                                                    x,
-                                                    y,
-                                                    id: None,
-                                                    index: None,
-                                                })
-                                                .is_ok()
+                                            if npc_use_at(intent_tx, conn_id, x, y, None, None)
                                             {
                                                 kind = NpcActivityKind::Craft;
                                                 detail = format!(
@@ -2343,15 +2289,8 @@ pub async fn run_npc_scheduler(
                                         if dist <= 1 && is_drop {
                                             // PickupLoose maps to DropAt on object tile
                                             // (swap/pickup). Empty-hand USE when DropAt
-                                            // is pile residual is rare here — Prefer DROP.
-                                            if intent_tx
-                                                .try_send(NetIntent::Drop {
-                                                    conn_id,
-                                                    x,
-                                                    y,
-                                                    c: None,
-                                                })
-                                                .is_ok()
+                                            // is pile residual is rare here â€” Prefer DROP.
+                                            if npc_drop_at(intent_tx, conn_id, x, y, None)
                                             {
                                                 kind = NpcActivityKind::Craft;
                                                 detail = format!(
@@ -2438,7 +2377,7 @@ pub async fn run_npc_scheduler(
                                                 }
                                             }
                                         }
-                                    // Residual SeekOrCraft / CraftItem / None → fall through
+                                    // Residual SeekOrCraft / CraftItem / None â†’ fall through
                                     // to craft_value / explore
                                     _ => {}
                                 }
@@ -2511,7 +2450,7 @@ pub async fn run_npc_scheduler(
                                     }
                                 }
                             }
-                            // Haxe: storeInQuiver → self(0,0,5) (DROP-HELD-LIVE)
+                            // Haxe: storeInQuiver â†’ self(0,0,5) (DROP-HELD-LIVE)
                             ShortCraftLiveIntent::SelfClothing { slot } => {
                                 if intent_tx
                                     .try_send(NetIntent::Raw {
@@ -2530,7 +2469,7 @@ pub async fn run_npc_scheduler(
                                     acted = true;
                                 }
                             }
-                            // Haxe: isMoving / dropHeld return true — hold tick (PREFER-SHORT-WAIT)
+                            // Haxe: isMoving / dropHeld return true â€” hold tick (PREFER-SHORT-WAIT)
                             ShortCraftLiveIntent::Wait => {
                                 kind = NpcActivityKind::Craft;
                                 detail = format!(
@@ -2547,7 +2486,7 @@ pub async fn run_npc_scheduler(
             }
 
             // --- 2c. Smart dropHeld for peels/chips at feet (DROP-HELD-LIVE residual) ---
-            // Haxe: force dropOnStart=false for Banana Peel / Sharp Stone / Flint Chip…
+            // Haxe: force dropOnStart=false for Banana Peel / Sharp Stone / Flint Chipâ€¦
             if !acted && !starving && p.held_id != 0 && force_drop_at_feet(p.held_id) {
                 let tiles = {
                     let w = world.read().unwrap();
@@ -2565,7 +2504,7 @@ pub async fn run_npc_scheduler(
                     p.x,
                     p.y,
                     p.food,
-                    p.moving, // PREFER-SHORT-WAIT: isMoving → BusyMoving → Wait
+                    p.moving, // PREFER-SHORT-WAIT: isMoving â†’ BusyMoving â†’ Wait
                     false,
                     1.0, // drop close to player
                     &tiles,
@@ -2575,14 +2514,7 @@ pub async fn run_npc_scheduler(
                     ShortCraftLiveIntent::DropAt { x, y } => {
                         let dist = (x - p.x).abs().max((y - p.y).abs());
                         if dist <= 1 {
-                            if intent_tx
-                                .try_send(NetIntent::Drop {
-                                    conn_id,
-                                    x,
-                                    y,
-                                    c: None,
-                                })
-                                .is_ok()
+                            if npc_drop_at(intent_tx, conn_id, x, y, None)
                             {
                                 kind = NpcActivityKind::Craft;
                                 detail = format!("smart_drop_feet held={} @{},{}", p.held_id, x, y);
@@ -2616,15 +2548,7 @@ pub async fn run_npc_scheduler(
                     }
                     ShortCraftLiveIntent::UseAt { x, y, .. }
                     | ShortCraftLiveIntent::UseOnEmptyGround { x, y, .. } => {
-                        if intent_tx
-                            .try_send(NetIntent::Use {
-                                conn_id,
-                                x,
-                                y,
-                                id: None,
-                                index: None,
-                            })
-                            .is_ok()
+                        if npc_use_at(intent_tx, conn_id, x, y, None, None)
                         {
                             kind = NpcActivityKind::Craft;
                             detail = format!("smart_drop_use held={} @{},{}", p.held_id, x, y);
@@ -2632,7 +2556,7 @@ pub async fn run_npc_scheduler(
                             acted = true;
                         }
                     }
-                    // Haxe: isMoving return true — hold tick (PREFER-SHORT-WAIT)
+                    // Haxe: isMoving return true â€” hold tick (PREFER-SHORT-WAIT)
                     ShortCraftLiveIntent::Wait => {
                         kind = NpcActivityKind::Craft;
                         detail = format!("smart_drop_wait_busy held={}", p.held_id);
@@ -2753,7 +2677,7 @@ pub async fn run_npc_scheduler(
                         {
                             kind = NpcActivityKind::Craft;
                             detail = format!(
-                                "use craft {}→{}/{} score={:.1}",
+                                "use craft {}â†’{}/{} score={:.1}",
                                 key, best.new_actor_id, best.new_target_id, best.net_score
                             );
                             game_ms = (best.time_cost_sec * 1000.0) as u32;
@@ -2898,7 +2822,7 @@ pub async fn run_npc_scheduler(
                         gx,
                         gy,
                         p.food,
-                        0, // pure walk — no object invalidation mid-path
+                        0, // pure walk â€” no object invalidation mid-path
                         format!("explore {gx},{gy}"),
                     )
                 };
@@ -2917,7 +2841,7 @@ pub async fn run_npc_scheduler(
 
             tracker.note_action(&detail);
             // Stuck nudge only when this think did **not** already commit a MOVE.
-            // Double-MOVE in one think (walk + stuck) was inflating accepts ~2×
+            // Double-MOVE in one think (walk + stuck) was inflating accepts ~2Ã—
             // and cancelling multi-step paths mid-commit.
             let already_moved = detail.contains("walk")
                 || detail.starts_with("explore")
@@ -3053,7 +2977,7 @@ mod tests {
 
     #[test]
     fn sticky_walk_only_always_valid() {
-        // expected_parent_id == 0 → pure walk, valid regardless of world contents.
+        // expected_parent_id == 0 â†’ pure walk, valid regardless of world contents.
         let sticky = NpcStickyMove {
             gx: 10,
             gy: 10,

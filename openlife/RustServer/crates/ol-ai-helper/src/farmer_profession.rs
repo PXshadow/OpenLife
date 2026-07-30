@@ -1,8 +1,8 @@
-//! Haxe: `AiBase` farmer profession family (chunk **AI-JOB-FARM** / **AI-JOB-FARM-LIVE**).
+﻿//! Haxe: `AiBase` farmer profession family (chunk **AI-JOB-FARM** / **AI-JOB-FARM-LIVE**).
 //!
 //! Pure decision helpers for:
 //! - `hasOrBecomeProfession` / sticky `lastProfession` + [`Player`](crate::Player) fields
-//! - Speech `FARMER!` / `WHEAT!` / `CARROT!` → [`assign_farm_from_speech`]
+//! - Speech `FARMER!` / `WHEAT!` / `CARROT!` â†’ [`assign_farm_from_speech`]
 //! - `keepBushesAlive` / `doPlant` / harvest / water / soil / rows / compost hysteresis
 //! - Job sequences: basic / carrot / berry / advanced farming
 //! - Pure [`short_craft_apply`] edges for ShortCraft USE/drop/seek
@@ -13,11 +13,11 @@
 use std::collections::HashMap;
 
 use crate::ai_goals::priority_ladder::age_job_index;
-use crate::craft_graph::ReverseCraftGraph;
+use ol_ai_crafting::craft_graph::ReverseCraftGraph;
 use crate::ai_goals::{Goal, FARMER_TARGET_ID};
 use std::collections::HashSet;
 
-// ── Object ids (OHOL / OpenLife content; Haxe comments) ─────────────────────
+// â”€â”€ Object ids (OHOL / OpenLife content; Haxe comments) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Bowl of Water (watering actor).
 pub const BOWL_OF_WATER: i32 = 382;
@@ -195,7 +195,7 @@ pub const OCEAN_BIOME: u8 = 9;
 /// Home-radius used by most farm count helpers (Haxe 30).
 pub const FARM_HOME_RADIUS: i32 = 30;
 
-// ── Profession keys ────────────────────────────────────────────────────────
+// â”€â”€ Profession keys â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Haxe `profession` / `assignedProfession` / `lastProfession` farm keys.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -239,10 +239,10 @@ impl FarmProfession {
     }
 }
 
-/// Haxe speech `PROF!` aliases → assigned farm profession.
+/// Haxe speech `PROF!` aliases â†’ assigned farm profession.
 ///
-/// - `FARMER!` / `WHEAT!` → BASICFARMER
-/// - `CARROT!` → CARROTFARMER
+/// - `FARMER!` / `WHEAT!` â†’ BASICFARMER
+/// - `CARROT!` â†’ CARROTFARMER
 /// - raw keys accepted if they match a farm profession
 // Haxe: AiBase speech endsWith("!") ~4950
 pub fn parse_farm_profession_speech(text: &str) -> Option<FarmProfession> {
@@ -265,12 +265,12 @@ pub fn parse_farm_profession_speech(text: &str) -> Option<FarmProfession> {
     }
 }
 
-// ── Task state (Haxe `taskState` map subset) ────────────────────────────────
+// â”€â”€ Task state (Haxe `taskState` map subset) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Mutable farm hysteresis flags (Haxe `this.taskState[...]`).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct FarmTaskState {
-    /// SoilMaker: enter ≤3 soil-units, exit ≥10.
+    /// SoilMaker: enter â‰¤3 soil-units, exit â‰¥10.
     pub soil_maker: f32,
     /// Composting: enter when stock &lt;1, exit when &gt;3.
     pub composting: f32,
@@ -303,7 +303,7 @@ impl FarmTaskState {
     }
 }
 
-// ── Profession assignment / caps ───────────────────────────────────────────
+// â”€â”€ Profession assignment / caps â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Sticky last + assigned + per-key weight (Haxe `profession` map).
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -314,9 +314,9 @@ pub struct FarmProfessionRuntime {
     pub weights: HashMap<FarmProfession, f32>,
 }
 
-/// Apply speech `FARMER!` / `WHEAT!` / `CARROT!` / `ROW!` / `SOIL!` / `WATER!` / …
+/// Apply speech `FARMER!` / `WHEAT!` / `CARROT!` / `ROW!` / `SOIL!` / `WATER!` / â€¦
 /// onto sticky runtime (assigned + last + weight=1).
-// Haxe: AiBase speech endsWith("!") → assignedProfession farm keys
+// Haxe: AiBase speech endsWith("!") â†’ assignedProfession farm keys
 pub fn assign_farm_from_speech(runtime: &mut FarmProfessionRuntime, text: &str) -> bool {
     let Some(job) = parse_farm_profession_speech(text) else {
         return false;
@@ -341,7 +341,7 @@ pub fn count_profession_ok(
 /// Haxe `hasOrBecomeProfession(profession, max)`.
 ///
 /// - Sticky: if `last_profession == want`, keep and return true.
-/// - `max < 0`: high priority — do job without assigning (always true).
+/// - `max < 0`: high priority â€” do job without assigning (always true).
 /// - Else: if `peer_count >= max + was_idle` refuse; else assign weight=1 and sticky last.
 // Haxe: AiBase.hasOrBecomeProfession ~4466
 pub fn has_or_become_profession(
@@ -370,7 +370,7 @@ pub fn has_or_become_profession(
 }
 
 /// Map assigned/last profession strings into a farm job for AssignedJob dispatch.
-// Haxe: AiBase.doTimeStuffHelper assignedProfession block ~696–714
+// Haxe: AiBase.doTimeStuffHelper assignedProfession block ~696â€“714
 pub fn assigned_job_farm_profession(
     assigned: Option<&str>,
     last: Option<&str>,
@@ -389,8 +389,8 @@ pub fn resolve_farm_assigned_job(runtime: &FarmProfessionRuntime) -> Option<Farm
         .or(runtime.last_profession)
 }
 
-/// Age-rotated farm slots only: 0 → BerryFarmer, 1 → BasicFarmer (others non-farm).
-// Haxe: jobByAge % 5 → berry / basic / bake / pottery / sheep ~793–801
+/// Age-rotated farm slots only: 0 â†’ BerryFarmer, 1 â†’ BasicFarmer (others non-farm).
+// Haxe: jobByAge % 5 â†’ berry / basic / bake / pottery / sheep ~793â€“801
 pub fn age_rotated_farm_profession(age: f32) -> Option<FarmProfession> {
     match age_job_index(age) {
         0 => Some(FarmProfession::BerryFarmer),
@@ -399,12 +399,12 @@ pub fn age_rotated_farm_profession(age: f32) -> Option<FarmProfession> {
     }
 }
 
-// ── World counts snapshot ──────────────────────────────────────────────────
+// â”€â”€ World counts snapshot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Close-object counts near home (Haxe `CountCloseObjects` / `countCurrentObject`).
 #[derive(Debug, Clone, Default)]
 pub struct FarmCounts {
-    /// Object parent id → count (piles already expanded by caller if needed).
+    /// Object parent id â†’ count (piles already expanded by caller if needed).
     pub by_id: HashMap<i32, i32>,
     /// Held object parent id (0 empty).
     pub held_id: i32,
@@ -434,16 +434,16 @@ impl FarmCounts {
     }
 }
 
-// ── Actions ────────────────────────────────────────────────────────────────
+// â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/// Pure decision output — execution is AI-CRAFT / shortCraft wiring.
+/// Pure decision output â€” execution is AI-CRAFT / shortCraft wiring.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FarmAction {
     /// Nothing to do in this step.
     None,
     /// Haxe `shortCraft(actor, target)`.
     ShortCraft { actor: i32, target: i32 },
-    /// Haxe `craftItem(objectId)` — produce / obtain object.
+    /// Haxe `craftItem(objectId)` â€” produce / obtain object.
     CraftItem { object_id: i32 },
     /// Refuse job (e.g. carrots cap, snow row).
     Abort,
@@ -452,7 +452,7 @@ pub enum FarmAction {
     /// `doAdvancedFarming(max)` (not the sheep peer-cap, which is always 1).
     /// Caller should set `profession['BASICFARMER']=1` (see
     /// [`apply_basic_farmer_weight_side_effect`]).
-    // Haxe: AiBase.doBasicFarming ~2400–2413 (AI-SHEPHERD-MID / AI-FARM-STICKY)
+    // Haxe: AiBase.doBasicFarming ~2400â€“2413 (AI-SHEPHERD-MID / AI-FARM-STICKY)
     DeferSheepHerding { max_profession: i32 },
     /// Haxe `doAdvancedFarming(max)` after late plants / makeSharpieFood.
     // Haxe: AiBase.doBasicFarming ~2413 (AI-SHEPHERD-MID)
@@ -503,20 +503,20 @@ pub fn basic_farmer_weight_from_runtime(runtime: &FarmProfessionRuntime) -> f32 
         .unwrap_or(1.0)
 }
 
-// ── shortCraft pure apply edges (AI-JOB-FARM-LIVE / CRAFT-LIVE-IO) ──────────
+// â”€â”€ shortCraft pure apply edges (AI-JOB-FARM-LIVE / CRAFT-LIVE-IO) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Pure shortCraft next step (Haxe `shortCraftOnTarget` without world I/O).
 // Haxe: AiBase.shortCraftOnTarget ~2721
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShortCraftApply {
-    /// Held matches actor → `useHeldObjOnTarget`.
+    /// Held matches actor â†’ `useHeldObjOnTarget`.
     UseOnTarget { actor: i32, target: i32 },
-    /// `actorId == 0` and hands not empty → drop first.
+    /// `actorId == 0` and hands not empty â†’ drop first.
     DropHeld,
-    /// Need actor object — seek / `GetOrCraftItem` (`craft_if_needed` = Haxe flag).
+    /// Need actor object â€” seek / `GetOrCraftItem` (`craft_if_needed` = Haxe flag).
     SeekOrCraftActor {
         actor: i32,
-        /// Haxe `craftActorIfNeeded` — false → seek only, do not craft graph.
+        /// Haxe `craftActorIfNeeded` â€” false â†’ seek only, do not craft graph.
         craft_if_needed: bool,
     },
     /// Prefer weak skewer 852 when actor is skewer 139 (caller may re-enter).
@@ -539,7 +539,7 @@ pub struct ShortCraftInput {
     pub target_uses: i32,
     /// Biome under target tile (snow/ocean refuse for soil/hoe).
     pub target_biome: Option<u8>,
-    /// Haxe `hasCarrotSeeds` — when false, refuse low-use carrot row 400.
+    /// Haxe `hasCarrotSeeds` â€” when false, refuse low-use carrot row 400.
     pub has_carrot_seeds: bool,
     /// Nearby count of transition `newActor` (only if `max_new_actor > 0`).
     /// Include held when held == newActorID via [`new_actor_count_with_held`].
@@ -577,7 +577,7 @@ impl ShortCraftInput {
 }
 
 /// Haxe maxNewActor count: `CountCloseObjects(newActor) + (held == newActor ? 1 : 0)`.
-// Haxe: AiBase.shortCraftOnTarget ~2755–2756
+// Haxe: AiBase.shortCraftOnTarget ~2755â€“2756
 pub fn new_actor_count_with_held(near_count: i32, held_id: i32, new_actor_id: i32) -> i32 {
     if new_actor_id != 0 && held_id == new_actor_id {
         near_count.saturating_add(1)
@@ -588,8 +588,8 @@ pub fn new_actor_count_with_held(near_count: i32, held_id: i32, new_actor_id: i3
 
 /// Pure `shortCraftOnTarget` decision edges (single pass; no weak-skewer re-entry).
 ///
-/// Order matches Haxe: hungry cost → weak-skewer prefer → snow/ocean → carrot-row
-/// seed → maxNewActor → held match USE → actor0 DROP → seek/craft actor.
+/// Order matches Haxe: hungry cost â†’ weak-skewer prefer â†’ snow/ocean â†’ carrot-row
+/// seed â†’ maxNewActor â†’ held match USE â†’ actor0 DROP â†’ seek/craft actor.
 // Haxe: AiBase.shortCraftOnTarget ~2721
 pub fn short_craft_apply(inp: ShortCraftInput) -> ShortCraftApply {
     let actor = inp.actor_id;
@@ -604,12 +604,12 @@ pub fn short_craft_apply(inp: ShortCraftInput) -> ShortCraftApply {
         return ShortCraftApply::RefuseHungry;
     }
 
-    // Skewer 139 → Weak Skewer 852 FIX (Haxe tries weak first with craftActor=false).
+    // Skewer 139 â†’ Weak Skewer 852 FIX (Haxe tries weak first with craftActor=false).
     if inp.try_weak_skewer_first && actor == SKEWER {
         return ShortCraftApply::PreferWeakSkewer;
     }
 
-    // Bowl of Soil 1137 + Hardened Row 848 — refuse snow/ocean.
+    // Bowl of Soil 1137 + Hardened Row 848 â€” refuse snow/ocean.
     if actor == BOWL_OF_SOIL && target == HARDENED_ROW {
         if let Some(b) = inp.target_biome {
             if hardened_row_biome_refused(b) {
@@ -617,7 +617,7 @@ pub fn short_craft_apply(inp: ShortCraftInput) -> ShortCraftApply {
             }
         }
     }
-    // Stone Hoe 850 / Steel Hoe 857 + Fertile Soil 1138 — refuse snow/ocean.
+    // Stone Hoe 850 / Steel Hoe 857 + Fertile Soil 1138 â€” refuse snow/ocean.
     if (actor == STONE_HOE || actor == STEEL_HOE) && target == FERTILE_SOIL {
         if let Some(b) = inp.target_biome {
             if hardened_row_biome_refused(b) {
@@ -632,7 +632,7 @@ pub fn short_craft_apply(inp: ShortCraftInput) -> ShortCraftApply {
     }
 
     // maxNewActor: refuse when nearby newActor count already at cap.
-    // Haxe: TODO count maxNewActor at home vs current pos — port uses caller count.
+    // Haxe: TODO count maxNewActor at home vs current pos â€” port uses caller count.
     if inp.max_new_actor > 0 && inp.new_actor_count >= inp.max_new_actor {
         return ShortCraftApply::Refuse;
     }
@@ -653,7 +653,7 @@ pub fn short_craft_apply(inp: ShortCraftInput) -> ShortCraftApply {
 ///
 /// When actor is Skewer 139, tries Weak Skewer 852 first (`craftActor=false`);
 /// on success returns that result, else continues with 139.
-// Haxe: AiBase.shortCraftOnTarget ~2730–2731
+// Haxe: AiBase.shortCraftOnTarget ~2730â€“2731
 pub fn short_craft_apply_resolved(inp: ShortCraftInput) -> ShortCraftApply {
     let first = short_craft_apply(inp);
     if first != ShortCraftApply::PreferWeakSkewer {
@@ -735,7 +735,7 @@ pub fn farm_action_short_craft_apply_ex(
     }
 }
 
-// ── Watering transition table (Bowl of Water 382 + dry) ────────────────────
+// â”€â”€ Watering transition table (Bowl of Water 382 + dry) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Default wet product for Bowl of Water + dry planted id.
 ///
@@ -784,9 +784,9 @@ pub fn do_watering_on(
     }
 }
 
-// ── Plant hysteresis ───────────────────────────────────────────────────────
+// â”€â”€ Plant hysteresis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/// Haxe `doPlant(min, max, toPlantId, toCountIds)` — shared `CornPlanter` taskState.
+/// Haxe `doPlant(min, max, toPlantId, toCountIds)` â€” shared `CornPlanter` taskState.
 // Haxe: AiBase.doPlant ~2558
 pub fn do_plant(
     min_planted: i32,
@@ -839,7 +839,7 @@ pub fn corn_stage_count(counts: &FarmCounts) -> i32 {
         + counts.sum(&[WET_PLANTED_CORN, CORN_SPROUT, CORN_PLANT])
 }
 
-/// Carrot effective stock (carrots + 4× planted).
+/// Carrot effective stock (carrots + 4Ã— planted).
 // Haxe: doPlantCarrots count = carrots + 4 * planted
 pub fn carrot_stock_units(counts: &FarmCounts) -> i32 {
     let planted = counts.get(WET_PLANTED_CARROTS) + counts.get(DRY_PLANTED_CARROTS);
@@ -899,7 +899,7 @@ pub fn do_plant_corn(min: i32, max: i32, counts: &FarmCounts, task: &mut FarmTas
     )
 }
 
-// ── Harvest ────────────────────────────────────────────────────────────────
+// â”€â”€ Harvest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Haxe `doHarvestCorn(min, max)`.
 // Haxe: AiBase.doHarvestCorn ~2422
@@ -990,10 +990,10 @@ pub fn do_harvest_wheat(
     FarmAction::None
 }
 
-// ── Soil / compost / rows ──────────────────────────────────────────────────
+// â”€â”€ Soil / compost / rows â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/// Soil-unit metric: 2× pile + fertile + deep rows.
-// Haxe: doPrepareSoil count ~2003–2008
+/// Soil-unit metric: 2Ã— pile + fertile + deep rows.
+// Haxe: doPrepareSoil count ~2003â€“2008
 pub fn soil_unit_count(counts: &FarmCounts) -> i32 {
     2 * counts.get(FERTILE_SOIL_PILE) + counts.get(FERTILE_SOIL) + counts.get(DEEP_TILLED_ROW)
 }
@@ -1005,13 +1005,13 @@ pub fn do_prepare_soil(
     task: &mut FarmTaskState,
     has_profession: bool,
 ) -> FarmAction {
-    // Dung → wet compost first.
+    // Dung â†’ wet compost first.
     if counts.get(SHOVEL_OF_DUNG) > 0 || true {
         // Prefer shortCraft when either side may exist; pure path: always offer if not blocked.
         // Callers with zero of both still may craft later; match Haxe order:
         // shortCraft(900,625) then shortCraftOnGround(336)
     }
-    // Offer dung→compost when wet compost present or always attempt (execution no-ops if missing).
+    // Offer dungâ†’compost when wet compost present or always attempt (execution no-ops if missing).
     // For pure tests we only emit when useful signals exist.
     if counts.get(WET_COMPOST) > 0 {
         return FarmAction::ShortCraft {
@@ -1020,7 +1020,7 @@ pub fn do_prepare_soil(
         };
     }
     if counts.get(BASKET_OF_SOIL) > 0 {
-        // shortCraftOnGround(336) — model as craft use of held basket of soil.
+        // shortCraftOnGround(336) â€” model as craft use of held basket of soil.
         return FarmAction::CraftItem {
             object_id: BASKET_OF_SOIL,
         };
@@ -1040,7 +1040,7 @@ pub fn do_prepare_soil(
         return FarmAction::None;
     }
     if counts.held_id == BASKET {
-        // Basket + soil source → Basket of Soil (multi-target craft).
+        // Basket + soil source â†’ Basket of Soil (multi-target craft).
         return FarmAction::CraftItem {
             object_id: BASKET_OF_SOIL,
         };
@@ -1061,7 +1061,7 @@ pub fn update_soil_maker_hysteresis(count: i32, task: &mut FarmTaskState) {
 }
 
 /// Haxe `doComposting` + wet-compost 625 recount (AI-SHEPHERD-MID residual).
-// Haxe: AiBase.doComposting ~2056–2083
+// Haxe: AiBase.doComposting ~2056â€“2083
 pub fn do_composting(counts: &FarmCounts, task: &mut FarmTaskState) -> FarmAction {
     // Haxe: countCompost += Math.ceil(fertilePile / 2)
     let pile = counts.get(FERTILE_SOIL_PILE);
@@ -1103,7 +1103,7 @@ pub fn hardened_row_biome_refused(biome: u8) -> bool {
     biome == SNOW_BIOME || biome == OCEAN_BIOME
 }
 
-/// Haxe `doPrepareRows` core priority: soil → shallow → deep hoe.
+/// Haxe `doPrepareRows` core priority: soil â†’ shallow â†’ deep hoe.
 // Haxe: AiBase.doPrepareRows ~2086
 pub fn do_prepare_rows(
     counts: &FarmCounts,
@@ -1119,7 +1119,7 @@ pub fn do_prepare_rows(
         }
     }
     // Haxe: if (keepBushesAlive()) return true;
-    // shortCraft no-ops without target 389 — pure only interrupts when dying present.
+    // shortCraft no-ops without target 389 â€” pure only interrupts when dying present.
     let bushes = keep_bushes_alive(counts);
     if bushes.is_some() && counts.get(DYING_BUSH) > 0 {
         return bushes;
@@ -1226,19 +1226,19 @@ pub fn do_prepare_rows(
         }
     }
 
-    // Low bowls → pottery deferred (returns None here)
+    // Low bowls â†’ pottery deferred (returns None here)
     let mut bowls = counts.get(CLAY_BOWL);
     if counts.held_id == CLAY_BOWL {
         bowls += 1;
     }
     if deep < 6 && bowls < 1 {
-        // Signal pottery need via Abort? Prefer None — doPottery is separate profession.
+        // Signal pottery need via Abort? Prefer None â€” doPottery is separate profession.
         return FarmAction::None;
     }
     FarmAction::None
 }
 
-// ── Job sequences ──────────────────────────────────────────────────────────
+// â”€â”€ Job sequences â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Haxe `doCarrotFarming`.
 // Haxe: AiBase.doCarrotFarming ~1944
@@ -1364,7 +1364,7 @@ pub fn keep_bushes_alive(counts: &FarmCounts) -> FarmAction {
 
 /// Haxe `doCriticalStuff` farm-related slice (age-gated bushes + basic + carrot).
 ///
-/// Floors / cleanup / watering(1) / bake / pottery are out of scope here — callers
+/// Floors / cleanup / watering(1) / bake / pottery are out of scope here â€” callers
 /// chain those professions separately. `basic_ok` / `carrot_ok` are results of
 /// `hasOrBecomeProfession(..., max=1)` for the critical path.
 // Haxe: AiBase.doCriticalStuff ~6072 farm tails (bushes / basic / carrot)
@@ -1543,7 +1543,7 @@ pub fn do_advanced_farming_step(
         };
     }
     if bowl_count < 1 {
-        // Pottery gate — signal via None (doPottery external)
+        // Pottery gate â€” signal via None (doPottery external)
         return FarmAction::None;
     }
     match plant_id {
@@ -1632,7 +1632,7 @@ pub fn do_advanced_farming_step(
             )
         }
         DRY_PLANTED_SQUASH => {
-            // Haxe: doPlanSquash commented out — skip
+            // Haxe: doPlanSquash commented out â€” skip
             FarmAction::None
         }
         DRY_PLANTED_ONIONS | WET_PLANTED_ONIONS => {
@@ -1813,19 +1813,19 @@ pub fn do_basic_farming(
         return p;
     }
     // Haxe: this.profession['BASICFARMER'] = 1; isSheepHerding(1);
-    // then late plants → doAdvancedFarming(maxProfession).
+    // then late plants â†’ doAdvancedFarming(maxProfession).
     // AI-SHEPHERD-MID mid call site; max_profession carried for advanced expand.
-    // Haxe: AiBase.doBasicFarming ~2400–2413
+    // Haxe: AiBase.doBasicFarming ~2400â€“2413
     FarmAction::DeferSheepHerding { max_profession }
 }
 
 /// Pure Haxe `makeSharpieFood` (wild carrot / burdock + sharp stone).
 ///
 /// Returns `CraftItem` for GetOrCraft sharp stone or dug product when source plant present.
-// Haxe: AiBase.makeSharpieFood ~4096–4118
+// Haxe: AiBase.makeSharpieFood ~4096â€“4118
 pub fn make_sharpie_food(counts: &FarmCounts) -> FarmAction {
     let holding_sharp = counts.held_id == SHARP_STONE;
-    // Seeding Wild Carrot 36 → sharp stone 34 / Dug Wild Carrot 39
+    // Seeding Wild Carrot 36 â†’ sharp stone 34 / Dug Wild Carrot 39
     if counts.get(SEEDING_WILD_CARROT) > 0 {
         if !holding_sharp {
             // Haxe: GetOrCraftItem(34)
@@ -1838,7 +1838,7 @@ pub fn make_sharpie_food(counts: &FarmCounts) -> FarmAction {
             object_id: DUG_WILD_CARROT,
         };
     }
-    // Burdock 804 → sharp stone / Dug Burdock 806
+    // Burdock 804 â†’ sharp stone / Dug Burdock 806
     if counts.get(BURDOCK) > 0 {
         if !holding_sharp {
             return FarmAction::CraftItem {
@@ -1853,7 +1853,7 @@ pub fn make_sharpie_food(counts: &FarmCounts) -> FarmAction {
 }
 
 /// Haxe `doAdvancedFarming` body after `hasOrBecomeProfession` succeeded.
-// Haxe: AiBase.doAdvancedFarming ~3909–3958 (partial: rows + potato + rotation plant)
+// Haxe: AiBase.doAdvancedFarming ~3909â€“3958 (partial: rows + potato + rotation plant)
 pub fn do_advanced_farming(
     counts: &FarmCounts,
     task: &mut FarmTaskState,
@@ -1875,9 +1875,9 @@ pub fn do_advanced_farming(
 
 /// Haxe `doBasicFarming` tail after mid `isSheepHerding(1)` fallthrough.
 ///
-/// Order: late wheat(15,30) → late corn(8,12) → age&lt;20 makeSharpieFood →
+/// Order: late wheat(15,30) â†’ late corn(8,12) â†’ age&lt;20 makeSharpieFood â†’
 /// defer advanced farming (caller expands / clears BASICFARMER).
-// Haxe: AiBase.doBasicFarming ~2408–2419 (AI-SHEPHERD-MID)
+// Haxe: AiBase.doBasicFarming ~2408â€“2419 (AI-SHEPHERD-MID)
 pub fn do_basic_farming_after_sheep(
     counts: &FarmCounts,
     task: &mut FarmTaskState,
@@ -1905,7 +1905,7 @@ pub fn do_basic_farming_after_sheep(
 }
 
 /// Expand [`FarmAction::DeferAdvancedFarming`]: try advanced body, else clear BASICFARMER.
-// Haxe: AiBase.doBasicFarming ~2413–2415
+// Haxe: AiBase.doBasicFarming ~2413â€“2415
 pub fn expand_advanced_farming_or_clear(
     counts: &FarmCounts,
     task: &mut FarmTaskState,
@@ -1963,7 +1963,7 @@ pub fn decide_farm_job(
     }
 }
 
-// ── Self-play / craft graph farmer pipeline ────────────────────────────────
+// â”€â”€ Self-play / craft graph farmer pipeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Intermediate + product ids the farmer pipeline cares about (seek order).
 pub fn farmer_pipeline_targets() -> &'static [i32] {
@@ -2005,7 +2005,7 @@ pub fn pick_farmer_goal(graph: &ReverseCraftGraph, have: &HashSet<i32>) -> Goal 
 // Haxe: AiHelper.CountCloseObjects farm spatial (AI-JOB-FARM-WIRE / farm_spatial)
 include!("farm_spatial_inc.rs");
 
-// ── Tests ──────────────────────────────────────────────────────────────────
+// â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 #[cfg(test)]
 mod tests {
@@ -2026,7 +2026,7 @@ mod tests {
     #[test]
     fn has_or_become_profession_respects_max_and_sticky_last_profession() {
         let mut rt = FarmProfessionRuntime::default();
-        // Cap 1, peer already has job → refuse
+        // Cap 1, peer already has job â†’ refuse
         assert!(!has_or_become_profession(
             &mut rt,
             FarmProfession::BasicFarmer,
@@ -2034,7 +2034,7 @@ mod tests {
             1.0,
             0.0
         ));
-        // No peers → become
+        // No peers â†’ become
         assert!(has_or_become_profession(
             &mut rt,
             FarmProfession::BasicFarmer,
@@ -2111,7 +2111,7 @@ mod tests {
             true,
             BASIC_FARM_ASSIGNED_MAX_PROFESSION,
         );
-        // basic farming with ripe wheat → harvest chain craft 224
+        // basic farming with ripe wheat â†’ harvest chain craft 224
         assert_eq!(
             a,
             FarmAction::CraftItem {
@@ -2123,7 +2123,7 @@ mod tests {
     #[test]
     fn do_plant_hysteresis_min_max_task_state_for_wheat_ids() {
         let mut task = FarmTaskState::default();
-        // Below min → enter planter, craft dry wheat
+        // Below min â†’ enter planter, craft dry wheat
         let counts = counts_with(&[(DRY_PLANTED_WHEAT, 0)]);
         let a = do_plant_wheat(2, 5, &counts, &mut task);
         assert!(task.corn_planter >= 1.0);
@@ -2133,7 +2133,7 @@ mod tests {
                 object_id: DRY_PLANTED_WHEAT
             }
         );
-        // At/above max → exit and none (shared CornPlanter quirk)
+        // At/above max â†’ exit and none (shared CornPlanter quirk)
         let counts = counts_with(&[
             (DRY_PLANTED_WHEAT, 2),
             (RIPE_WHEAT, 3), // total stage 5
@@ -2141,7 +2141,7 @@ mod tests {
         let a = do_plant_wheat(2, 5, &counts, &mut task);
         assert_eq!(task.corn_planter, 0.0);
         assert_eq!(a, FarmAction::None);
-        // Between min and max with flag off → none
+        // Between min and max with flag off â†’ none
         task.corn_planter = 0.0;
         let counts = counts_with(&[(DRY_PLANTED_WHEAT, 3)]);
         let a = do_plant_wheat(2, 5, &counts, &mut task);
@@ -2151,17 +2151,17 @@ mod tests {
     #[test]
     fn do_watering_on_requires_dry_count_and_bowl_water_transition() {
         let mut task = FarmTaskState::default();
-        // No dry → none, flag cleared
+        // No dry â†’ none, flag cleared
         assert_eq!(
             do_watering_on(DRY_PLANTED_CARROTS, 3, 0, Some(WET_PLANTED_CARROTS), &mut task),
             FarmAction::None
         );
-        // dry=2 < min=3 and not latched → none
+        // dry=2 < min=3 and not latched â†’ none
         assert_eq!(
             do_watering_on(DRY_PLANTED_CARROTS, 3, 2, Some(WET_PLANTED_CARROTS), &mut task),
             FarmAction::None
         );
-        // dry >= min → craft wet
+        // dry >= min â†’ craft wet
         assert_eq!(
             do_watering_on(DRY_PLANTED_CARROTS, 3, 3, Some(WET_PLANTED_CARROTS), &mut task),
             FarmAction::CraftItem {
@@ -2169,7 +2169,7 @@ mod tests {
             }
         );
         assert!(task.watering_flag(DRY_PLANTED_CARROTS) >= 1.0);
-        // No transition → none
+        // No transition â†’ none
         let mut task2 = FarmTaskState::default();
         assert_eq!(
             do_watering_on(99999, 1, 5, None, &mut task2),
@@ -2186,7 +2186,7 @@ mod tests {
     #[test]
     fn do_harvest_wheat_chain_224_225_226_stops_at_max() {
         let mut task = FarmTaskState::default();
-        // Ripe → craft 224
+        // Ripe â†’ craft 224
         let c = counts_with(&[(RIPE_WHEAT, 1)]);
         assert_eq!(
             do_harvest_wheat(1, 4, &c, &mut task),
@@ -2194,7 +2194,7 @@ mod tests {
                 object_id: HARVESTED_WHEAT
             }
         );
-        // Harvested → sheaf
+        // Harvested â†’ sheaf
         let c = counts_with(&[(HARVESTED_WHEAT, 1)]);
         assert_eq!(
             do_harvest_wheat(1, 4, &c, &mut task),
@@ -2202,7 +2202,7 @@ mod tests {
                 object_id: WHEAT_SHEAF
             }
         );
-        // Sheaf → threshed
+        // Sheaf â†’ threshed
         let c = counts_with(&[(WHEAT_SHEAF, 1)]);
         assert_eq!(
             do_harvest_wheat(1, 4, &c, &mut task),
@@ -2210,7 +2210,7 @@ mod tests {
                 object_id: THRESHED_WHEAT
             }
         );
-        // At max threshed → stop (flag 1)
+        // At max threshed â†’ stop (flag 1)
         let c = counts_with(&[(THRESHED_WHEAT, 4)]);
         assert_eq!(do_harvest_wheat(1, 4, &c, &mut task), FarmAction::None);
         assert!(task.wheat_harvester > 0.0);
@@ -2258,7 +2258,7 @@ mod tests {
             row_maker: 1.0,
             ..Default::default()
         };
-        // No rows → craft shallow (or soil on hard)
+        // No rows â†’ craft shallow (or soil on hard)
         let c = counts_with(&[(HARDENED_ROW, 2)]);
         let a = do_prepare_rows(&c, &mut task, true, false);
         assert_eq!(
@@ -2311,7 +2311,7 @@ mod tests {
                 object_id: BASKET_OF_SOIL
             }
         );
-        // Inactive → none
+        // Inactive â†’ none
         task.soil_maker = 0.0;
         let c = counts_with(&[(FERTILE_SOIL_PILE, 6)]); // 2*6=12 units
         assert_eq!(do_prepare_soil(&c, &mut task, true), FarmAction::None);
@@ -2320,7 +2320,7 @@ mod tests {
     #[test]
     fn do_composting_crafts_790_when_stock_low() {
         let mut task = FarmTaskState::default();
-        let c = FarmCounts::default(); // stock 0 → enter composting
+        let c = FarmCounts::default(); // stock 0 â†’ enter composting
         assert_eq!(
             do_composting(&c, &mut task),
             FarmAction::CraftItem {
@@ -2390,7 +2390,7 @@ mod tests {
                 max_profession: 2
             }
         );
-        // Assigned BASICFARMER: doBasicFarming(100) → advanced max 100
+        // Assigned BASICFARMER: doBasicFarming(100) â†’ advanced max 100
         assert_eq!(
             do_basic_farming(&c, &mut task, true, BASIC_FARM_ASSIGNED_MAX_PROFESSION),
             FarmAction::DeferSheepHerding {
@@ -2438,7 +2438,7 @@ mod tests {
             corn_planter: 0.0,
             ..Default::default()
         };
-        // Late wheat/corn caps already met → skip plants → sharpie none → advanced
+        // Late wheat/corn caps already met â†’ skip plants â†’ sharpie none â†’ advanced
         let c = counts_with(&[(DRY_PLANTED_WHEAT, 30), (DRY_PLANTED_CORN, 12)]);
         assert_eq!(
             do_basic_farming_after_sheep(&c, &mut task, 15.0, 2),
@@ -2446,7 +2446,7 @@ mod tests {
                 max_profession: 2
             }
         );
-        // Age ≥20 skips sharpie even when burdock present (still past late plant caps)
+        // Age â‰¥20 skips sharpie even when burdock present (still past late plant caps)
         let c_burdock = counts_with(&[
             (DRY_PLANTED_WHEAT, 30),
             (DRY_PLANTED_CORN, 12),
@@ -2458,14 +2458,14 @@ mod tests {
                 max_profession: 2
             }
         );
-        // Age <20 + burdock → makeSharpieFood (need sharp stone)
+        // Age <20 + burdock â†’ makeSharpieFood (need sharp stone)
         assert_eq!(
             do_basic_farming_after_sheep(&c_burdock, &mut task, 15.0, 2),
             FarmAction::CraftItem {
                 object_id: SHARP_STONE
             }
         );
-        // Holding sharp + burdock → dug burdock
+        // Holding sharp + burdock â†’ dug burdock
         let mut c_hold = c_burdock.clone();
         c_hold.held_id = SHARP_STONE;
         assert_eq!(
@@ -2474,12 +2474,12 @@ mod tests {
                 object_id: DUG_BURDOCK
             }
         );
-        // Expand advanced with soil/rows already idle → clear BASICFARMER
+        // Expand advanced with soil/rows already idle â†’ clear BASICFARMER
         // High soil units + deep rows so prepare_rows/soil hysteresis stay off.
         let c_adv = counts_with(&[
             (FERTILE_SOIL_PILE, 6),
             (DEEP_TILLED_ROW, 12),
-            (CLAY_BOWL, 0), // bowl gate → advanced step None → clear
+            (CLAY_BOWL, 0), // bowl gate â†’ advanced step None â†’ clear
         ]);
         task.soil_maker = 0.0;
         task.row_maker = 3.0;
@@ -2518,7 +2518,7 @@ mod tests {
         // Enough soil/rows so prepare_rows/soil short-circuit (Haxe checks cap after rows).
         let c = counts_with(&[
             (CARROT, 11),
-            (FERTILE_SOIL_PILE, 6), // 2*6=12 soil units → SoilMaker off
+            (FERTILE_SOIL_PILE, 6), // 2*6=12 soil units â†’ SoilMaker off
             (DEEP_TILLED_ROW, 12),  // RowMaker deep done
             (SHALLOW_TILLED_ROW, 0),
         ]);
@@ -2567,7 +2567,7 @@ mod tests {
     #[test]
     fn age_job_index_0_berry_1_basic_farm_mapping() {
         // age_job_index: round(age/5) % 5
-        // age 0 → 0 berry; age 5 → 1 basic
+        // age 0 â†’ 0 berry; age 5 â†’ 1 basic
         assert_eq!(
             age_rotated_farm_profession(0.0),
             Some(FarmProfession::BerryFarmer)
@@ -2604,9 +2604,9 @@ mod tests {
     #[test]
     fn selfplay_farmer_seeks_intermediate_ingredient_for_242() {
         let mut g = ReverseCraftGraph::new();
-        // 228 + 0 → 242 (fake path for test)
+        // 228 + 0 â†’ 242 (fake path for test)
         g.insert(228, 0, 242, 0);
-        // 1138 + 850 → 228
+        // 1138 + 850 â†’ 228
         g.insert(1138, 850, 228, 0);
         let have = HashSet::new();
         let goal = pick_farmer_goal(&g, &have);
@@ -2634,7 +2634,7 @@ mod tests {
             false,
             false,
         );
-        // Ladder maps Job band → SeekObject(farmer wheat) until Goal::Job lands.
+        // Ladder maps Job band â†’ SeekObject(farmer wheat) until Goal::Job lands.
         assert_eq!(g, Goal::SeekObject(FARMER_TARGET_ID));
         let g = goal_from_rung(
             PriorityRung::AgeRotatedJob,
@@ -2671,7 +2671,7 @@ mod tests {
         );
     }
 
-    // ── AI-JOB-FARM-WIRE / farm_spatial ────────────────────────────────────
+    // â”€â”€ AI-JOB-FARM-WIRE / farm_spatial â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     #[test]
     fn fill_farm_counts_map_radius_and_piles() {
@@ -2707,7 +2707,7 @@ mod tests {
         assert_eq!(count_close_objects_at(0, 0, CARROT, 30, &objs), 1);
         assert_eq!(count_corn_seeds_near(0, 0, 1115, &objs), 3);
         assert_eq!(count_corn_seeds_near(0, 0, 0, &objs), 2);
-        // Haxe countCorn: held only for 1115/1120/1247 — not 4106/4107
+        // Haxe countCorn: held only for 1115/1120/1247 â€” not 4106/4107
         assert_eq!(count_corn_seeds_near(0, 0, 4106, &objs), 2);
         assert_eq!(count_corn_seeds_near(0, 0, 4107, &objs), 2);
         assert_eq!(count_with_held(2, CARROT, CARROT), 3);
@@ -2715,7 +2715,7 @@ mod tests {
 
     #[test]
     fn count_close_objects_pile_parent_and_specials() {
-        // Pile parent ≠ obj_id: contributes numberOfUses only when count_piles
+        // Pile parent â‰  obj_id: contributes numberOfUses only when count_piles
         let objs = [
             FarmMapObj::simple(CARROT, 1, 0),
             FarmMapObj::pile(9999, 2, 0, 5), // pile form of carrot (table)
@@ -2729,7 +2729,7 @@ mod tests {
             count_close_objects_with_piles(0, 0, CARROT, 30, &objs, table),
             1 + 5
         );
-        // Without pile table → only direct parent matches
+        // Without pile table â†’ only direct parent matches
         assert_eq!(count_close_objects_at(0, 0, CARROT, 30, &objs), 1);
 
         // obj 233: count_piles forced false even if pile table provided
@@ -2753,7 +2753,7 @@ mod tests {
 
     #[test]
     fn count_close_objects_haxe_square_vs_chebyshev() {
-        // Haxe exclusive end: [tx-r, tx+r) — high edge excluded; low edge included
+        // Haxe exclusive end: [tx-r, tx+r) â€” high edge excluded; low edge included
         let at_high = [FarmMapObj::simple(CARROT, 10, 0)];
         let at_low = [FarmMapObj::simple(CARROT, -10, 0)];
         let at_corner = [FarmMapObj::simple(CARROT, 10, 10)];
@@ -2772,7 +2772,7 @@ mod tests {
     fn count_close_objects_ignored_floor_skip() {
         // Origin on bear skin rug 656: non-food non-permanent skipped
         let objs = [
-            FarmMapObj::simple(CARROT, 1, 0), // non-food default → skip
+            FarmMapObj::simple(CARROT, 1, 0), // non-food default â†’ skip
             FarmMapObj::simple(RIPE_WHEAT, 2, 0).food(), // food kept
             FarmMapObj::simple(FERTILE_SOIL, 3, 0).permanent(), // permanent kept
         ];
@@ -2831,7 +2831,7 @@ mod tests {
             FarmMapObj::simple(FERTILE_SOIL, 1, 0),
             FarmMapObj::simple(DEEP_TILLED_ROW, 2, 0),
         ];
-        // fill piles as uses=2 on one tile → get(pile)=2; soil = 2*2 + 1 + 1 = 6
+        // fill piles as uses=2 on one tile â†’ get(pile)=2; soil = 2*2 + 1 + 1 = 6
         assert_eq!(soil_units_from_map(0, 0, &objs), 6);
     }
 
@@ -2936,7 +2936,7 @@ mod tests {
         );
         assert_eq!(farm_radius_table()[0].0, FARM_COUNT_RADIUS);
 
-        // Map fill → try_decide → farm_action_to_goal (ladder composition)
+        // Map fill â†’ try_decide â†’ farm_action_to_goal (ladder composition)
         let ripe = [FarmMapObj::simple(RIPE_WHEAT, 1, 0)];
         let mut task3 = FarmTaskState::default();
         let g = farm_goal_from_map_and_rung(
@@ -2956,7 +2956,7 @@ mod tests {
         .unwrap();
         assert_eq!(g, Goal::SeekObject(HARVESTED_WHEAT));
 
-        // Dry planted wheat ≥3 with planter latched → watering CraftItem(wet)
+        // Dry planted wheat â‰¥3 with planter latched â†’ watering CraftItem(wet)
         let mut task_w = FarmTaskState::default();
         task_w.corn_planter = 1.0;
         let water_counts = counts_with(&[(DRY_PLANTED_WHEAT, 3)]);
@@ -2972,7 +2972,7 @@ mod tests {
             Goal::SeekObject(WET_PLANTED_WHEAT)
         );
 
-        // ESCAPE band → None composition
+        // ESCAPE band â†’ None composition
         let mut task4 = FarmTaskState::default();
         assert!(farm_goal_from_map_and_rung(
             Some(FarmProfession::BasicFarmer),
@@ -3001,11 +3001,11 @@ mod tests {
         assert_eq!(g5, Goal::SeekObject(HARVESTED_WHEAT));
     }
 
-    // ── AI-JOB-FARM-LIVE ────────────────────────────────────────────────────
+    // â”€â”€ AI-JOB-FARM-LIVE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     #[test]
     fn keep_bushes_alive_emits_short_craft_when_below_min() {
-        // Haxe: keepBushesAlive — bush sum <20 → shortCraft(1137,389); >=20 None
+        // Haxe: keepBushesAlive â€” bush sum <20 â†’ shortCraft(1137,389); >=20 None
         let low = counts_with(&[(DOMESTIC_BUSH, 5), (DRY_DOMESTIC_BUSH, 2)]);
         assert_eq!(keep_bushes_alive_count(&low), 7);
         assert_eq!(
@@ -3036,7 +3036,7 @@ mod tests {
         let mut task = FarmTaskState::default();
         let low_no_dying = counts_with(&[(DOMESTIC_BUSH, 1)]);
         let a_rows = do_prepare_rows(&low_no_dying, &mut task, true, false);
-        // No dying → keepBushes does not block; may craft shallow row etc.
+        // No dying â†’ keepBushes does not block; may craft shallow row etc.
         assert_ne!(
             a_rows,
             FarmAction::ShortCraft {
@@ -3079,7 +3079,7 @@ mod tests {
 
     #[test]
     fn short_craft_apply_edges_snow_skewer_carrot_max() {
-        // Held matches → UseOnTarget
+        // Held matches â†’ UseOnTarget
         let on_target = short_craft_apply(ShortCraftInput {
             try_weak_skewer_first: false,
             ..ShortCraftInput::basic(BOWL_OF_SOIL, BOWL_OF_SOIL, DYING_BUSH)
@@ -3091,7 +3091,7 @@ mod tests {
                 target: DYING_BUSH,
             }
         );
-        // Missing actor → seek
+        // Missing actor â†’ seek
         let seek = short_craft_apply(ShortCraftInput {
             try_weak_skewer_first: false,
             ..ShortCraftInput::basic(0, BOWL_OF_SOIL, DYING_BUSH)
@@ -3103,7 +3103,7 @@ mod tests {
                 craft_if_needed: true,
             }
         );
-        // actor 0, hands full → drop
+        // actor 0, hands full â†’ drop
         let drop = short_craft_apply(ShortCraftInput {
             try_weak_skewer_first: false,
             ..ShortCraftInput::basic(CARROT, 0, CARROT_ROW)
@@ -3190,7 +3190,7 @@ mod tests {
 
     #[test]
     fn do_critical_farm_slice_age_gated_bushes_and_basic() {
-        // age 10 → round(10/5)=2 even → keepBushes when dying present
+        // age 10 â†’ round(10/5)=2 even â†’ keepBushes when dying present
         let mut task = FarmTaskState::default();
         let c = counts_with(&[(DOMESTIC_BUSH, 1), (DYING_BUSH, 1)]);
         assert_eq!(
@@ -3200,7 +3200,7 @@ mod tests {
                 target: DYING_BUSH,
             }
         );
-        // age 5 → round(5/5)=1 odd → skip keepBushes; basic with ripe wheat
+        // age 5 â†’ round(5/5)=1 odd â†’ skip keepBushes; basic with ripe wheat
         let mut task2 = FarmTaskState::default();
         let wheat = counts_with(&[(RIPE_WHEAT, 2)]);
         assert_eq!(

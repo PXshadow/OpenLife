@@ -6,8 +6,8 @@
 //! [`priority_ladder`] (chunk **AI-PRIO**). This module keeps the thin
 //! self-play `pick_goal*` API used by `ol-server` selfplay/NPC loops.
 
-use crate::craft_graph::ReverseCraftGraph;
 use crate::professions::is_grassland;
+use ol_ai_crafting::craft_graph::ReverseCraftGraph;
 use std::collections::HashSet;
 
 // Haxe: AiBase.doTimeStuffHelper priority ladder (AI-PRIO / priority_ladder)

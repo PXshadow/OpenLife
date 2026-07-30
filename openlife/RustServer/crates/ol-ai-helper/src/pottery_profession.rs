@@ -1,8 +1,8 @@
-//! Haxe: `AiBase` potter profession family (chunk **AI-POTTER** / **pottery_job**).
+﻿//! Haxe: `AiBase` potter profession family (chunk **AI-POTTER** / **pottery_job**).
 //!
 //! Pure decision helpers for:
 //! - `hasOrBecomeProfession('POTTER')` with max-people + sticky last
-//! - Speech `POTTER!` → assigned job
+//! - Speech `POTTER!` â†’ assigned job
 //! - Kiln selection (`GetKiln` priority + firing-first in `doPottery`)
 //! - Stage ladder (`profession['POTTER']` 0/2/3/10)
 //! - `doPottery` / `doPotteryHelper` shortCraft sequence
@@ -12,8 +12,8 @@
 //! No world I/O: callers supply counts / kiln parent and apply returned
 //! [`PotteryAction`]s via craft/shortCraft and spatial helpers.
 //!
-//! **AI-POTTER-RESID**: EmptyBasketAtHome dropIsAUse=false → empty-hand DROP extract;
-//! wet-nozzle cleanup shortCraft(285,285) / shortCraft(0,2110) (Haxe cleanUp ~L1031–1041).
+//! **AI-POTTER-RESID**: EmptyBasketAtHome dropIsAUse=false â†’ empty-hand DROP extract;
+//! wet-nozzle cleanup shortCraft(285,285) / shortCraft(0,2110) (Haxe cleanUp ~L1031â€“1041).
 //! **AI-POTTER-L2946** other crafts in shared `do_pottery_on_fire` (wet-bowl fire,
 //! wet-crock 233+233 shape, clay nozzle 296) + fired nozzle tongs shortCraftOnGround
 //! + smith live DeferPottery pottery fill.
@@ -21,7 +21,7 @@
 use std::collections::HashMap;
 
 use crate::ai_goals::{Goal, POTTER_TARGET_ID};
-use crate::craft_graph::ReverseCraftGraph;
+use ol_ai_crafting::craft_graph::ReverseCraftGraph;
 use crate::smith_profession::{
     do_pottery_on_fire, PotteryOnFireCounts, SmithAction, ADOBE, BIG_CHARCOAL_PILE, CLAY_BOWL,
     CLAY_CROCK, CLAY_NOZZLE, CLAY_PLATE, CROCK_WITH_SQUASH, DEFAULT_MAX_CLAY_BOWLS,
@@ -31,7 +31,7 @@ use crate::smith_profession::{
     WET_CROCK_TONGS, WET_NOZZLE_TONGS, WET_PLATE_TONGS,
 };
 
-// ── Object ids (OHOL / OpenLife content; Haxe comments in AiBase) ───────────
+// â”€â”€ Object ids (OHOL / OpenLife content; Haxe comments in AiBase) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Adobe Kiln (cold).
 // Haxe: AiBase.GetKiln / doPottery ~238
@@ -58,8 +58,8 @@ pub const CLAY_DEPOSIT: i32 = 125;
 pub const CLAY_PIT: i32 = 409;
 /// Pile of Clay.
 pub const PILE_OF_CLAY: i32 = 3905;
-/// Clay with Nozzle (empty-hand USE → Wet Clay Nozzle).
-// Haxe: AiBase.cleanUp shortCraft(0, 2110) ~L1040–1041
+/// Clay with Nozzle (empty-hand USE â†’ Wet Clay Nozzle).
+// Haxe: AiBase.cleanUp shortCraft(0, 2110) ~L1040â€“1041
 pub const CLAY_WITH_NOZZLE: i32 = 2110;
 // Clay Bowl/Plate/Fired tongs ids live in smith_profession; use CLAY_BOWL etc. via imports above.
 
@@ -75,7 +75,7 @@ pub const POTTER_ASSIGNED_MAX_PEOPLE: i32 = 100;
 pub const POTTER_CRITICAL_MAX_PEOPLE: i32 = -2;
 /// Craft search radius override in doPottery (Haxe maxSearchRadius = 30).
 pub const POTTERY_CRAFT_SEARCH_RADIUS: i32 = 30;
-/// gatherClay home quad distance ≤100 for "close to home".
+/// gatherClay home quad distance â‰¤100 for "close to home".
 // Haxe: distanceToHome <= 100 (quad)
 pub const GATHER_CLAY_HOME_QUAD: i32 = 100;
 /// gatherClay far-from-home loose clay scan (quad > 225).
@@ -100,7 +100,7 @@ pub const CLAY_WITH_NOZZLE_SEARCH_RADIUS: i32 = 20;
 /// Canonical Haxe profession string for potter.
 pub const POTTER_PROFESSION_KEY: &str = "POTTER";
 
-// ── Profession speech / runtime ────────────────────────────────────────────
+// â”€â”€ Profession speech / runtime â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Parse speech / assigned profession tokens for potter.
 ///
@@ -115,11 +115,11 @@ pub fn parse_potter_profession_speech(text: &str) -> bool {
 /// Sticky last + assigned + stage weight for POTTER.
 ///
 /// Haxe `this.profession['POTTER']` stages used in doPotteryHelper:
-/// - `0` — idle / stock full / finished fallthrough
-/// - `1` — just became potter (`hasOrBecomeProfession`)
-/// - `2` — stop gathering clay; shape pottery first
-/// - `3` — shaping wet bowls/plates from clay/pile
-/// - `10` — firing / on-fire path
+/// - `0` â€” idle / stock full / finished fallthrough
+/// - `1` â€” just became potter (`hasOrBecomeProfession`)
+/// - `2` â€” stop gathering clay; shape pottery first
+/// - `3` â€” shaping wet bowls/plates from clay/pile
+/// - `10` â€” firing / on-fire path
 #[derive(Debug, Clone, PartialEq)]
 pub struct PotterProfessionRuntime {
     pub is_last_potter: bool,
@@ -274,10 +274,10 @@ pub fn resolve_potter_assigned_job(runtime: &PotterProfessionRuntime) -> bool {
     runtime.is_assigned_potter || runtime.is_last_potter
 }
 
-// ── Kiln selection ─────────────────────────────────────────────────────────
+// â”€â”€ Kiln selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/// Ordered kiln parent ids for `GetKiln` (wood-filled → cold → firing → sealed…).
-// Haxe: AiBase.GetKiln ~2781–2795
+/// Ordered kiln parent ids for `GetKiln` (wood-filled â†’ cold â†’ firing â†’ sealedâ€¦).
+// Haxe: AiBase.GetKiln ~2781â€“2795
 pub fn kiln_id_priority() -> &'static [i32] {
     &[
         WOOD_FILLED_KILN,
@@ -289,7 +289,7 @@ pub fn kiln_id_priority() -> &'static [i32] {
 }
 
 /// Kiln parents used when firing-path already checked (doPottery mid: wood/cold only).
-// Haxe: doPotteryHelper after firing check ~2831–2834
+// Haxe: doPotteryHelper after firing check ~2831â€“2834
 pub fn kiln_id_priority_after_fire_check() -> &'static [i32] {
     &[WOOD_FILLED_KILN, ADOBE_KILN]
 }
@@ -320,14 +320,14 @@ pub fn potter_chebyshev(ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
     (ax - bx).abs().max((ay - by).abs())
 }
 
-/// Quad distance (dx²+dy²) matching Haxe `CalculateQuadDistanceToObject`.
+/// Quad distance (dxÂ²+dyÂ²) matching Haxe `CalculateQuadDistanceToObject`.
 pub fn potter_quad_dist(ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
     let dx = ax - bx;
     let dy = ay - by;
     dx * dx + dy * dy
 }
 
-/// Haxe `GetKiln`: priority wood-filled→cold→firing→sealed, closest in radius of home.
+/// Haxe `GetKiln`: priority wood-filledâ†’coldâ†’firingâ†’sealed, closest in radius of home.
 // Haxe: AiBase.GetKiln ~2781
 pub fn pick_kiln_near_home(
     home_x: i32,
@@ -377,8 +377,8 @@ pub fn pick_kiln_by_priority(
     None
 }
 
-/// Closest firing kiln (282) near home — early doPottery gate.
-// Haxe: GetClosestObjectToPosition(…, 282, 20)
+/// Closest firing kiln (282) near home â€” early doPottery gate.
+// Haxe: GetClosestObjectToPosition(â€¦, 282, 20)
 pub fn pick_firing_kiln_near_home(
     home_x: i32,
     home_y: i32,
@@ -469,7 +469,7 @@ pub fn apply_clay_source_to_gather_input(
 /// Empty-basket drop near deposit stages the basket as dropTarget (Haxe dropIsAUse path).
 ///
 /// Live layer should treat [`PotteryAction::DropHeld`] of basket adjacent to deposit as
-/// “place basket then dig” staging, not a free-form drop away from the pit.
+/// â€œplace basket then digâ€ staging, not a free-form drop away from the pit.
 // Haxe: AiBase.gatherClay L2992 dropHeldObject(0) near deposit (empty basket staging)
 pub fn empty_basket_drop_is_deposit_staging(
     held_id: i32,
@@ -482,19 +482,19 @@ pub fn empty_basket_drop_is_deposit_staging(
 /// EmptyBasketAtHome with empty hands uses DROP extract (not USE pickup whole basket).
 ///
 /// Haxe sets `dropIsAUse = false` + `dropTarget = basket` so `isDropingItem` calls
-/// `myPlayer.drop` → `DoContainerStuffOnObj` takes first contained (clay).
-// Haxe: AiBase.gatherClay L3013–3014 TODO empty basket ??? (dropIsAUse=false)
+/// `myPlayer.drop` â†’ `DoContainerStuffOnObj` takes first contained (clay).
+// Haxe: AiBase.gatherClay L3013â€“3014 TODO empty basket ??? (dropIsAUse=false)
 pub fn empty_basket_at_home_is_drop_extract(held_id: i32) -> bool {
     held_id == 0
 }
 
 /// Haxe `cleanUp` wet-nozzle residual (outside L2946 pottery-on-fire TODO).
 ///
-/// 1. `shortCraft(285, 285)` when ≥2 ground wet nozzles, or ≥1 ground + holding 285  
+/// 1. `shortCraft(285, 285)` when â‰¥2 ground wet nozzles, or â‰¥1 ground + holding 285  
 /// 2. else `shortCraft(0, 2110)` when Clay with Nozzle is present  
 ///
 /// Age `% 3` gate stays with the general cleanUp caller; pottery SM may call freely.
-// Haxe: AiBase.cleanUp ~L1031–1041
+// Haxe: AiBase.cleanUp ~L1031â€“1041
 pub fn wet_nozzle_cleanup_action(
     count_wet_nozzle_ground: i32,
     held_id: i32,
@@ -519,7 +519,7 @@ pub fn wet_nozzle_cleanup_action(
     None
 }
 
-// ── World counts ───────────────────────────────────────────────────────────
+// â”€â”€ World counts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Close-object counts near home/kiln for pottery decisions.
 #[derive(Debug, Clone, Default)]
@@ -702,9 +702,9 @@ pub fn fill_pottery_counts_from_map(
     c
 }
 
-// ── Actions ────────────────────────────────────────────────────────────────
+// â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/// Pure decision output — execution is AI-CRAFT / shortCraft / spatial wiring.
+/// Pure decision output â€” execution is AI-CRAFT / shortCraft / spatial wiring.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PotteryAction {
     /// Nothing to do this step.
@@ -733,7 +733,7 @@ pub enum PotteryAction {
     UseOnClayDeposit,
     /// Use held clay on basket.
     UseOnBasket,
-    /// Pickup basket (full → home, empty → fill).
+    /// Pickup basket (full â†’ home, empty â†’ fill).
     PickupBasket,
     /// Empty basket at home (set dropTarget basket).
     EmptyBasketAtHome,
@@ -816,15 +816,15 @@ pub fn pottery_on_fire_counts_from_pottery(c: &PotteryCounts) -> PotteryOnFireCo
 }
 
 /// Haxe `doPotteryOnFire` pure body (potter module entry).
-// Haxe: AiBase.doPotteryOnFire ~2908–2953
+// Haxe: AiBase.doPotteryOnFire ~2908â€“2953
 pub fn do_pottery_on_fire_action(c: &PotteryCounts) -> PotteryAction {
     smith_pottery_action_to_pottery(do_pottery_on_fire(&pottery_on_fire_counts_from_pottery(c)))
 }
 
-// ── Needed clay math ───────────────────────────────────────────────────────
+// â”€â”€ Needed clay math â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Bowls/plates needed vs max, including wet stock; clay needed capped at 6.
-// Haxe: doPotteryHelper neededBowls/Plates/Clay ~2874–2880
+// Haxe: doPotteryHelper neededBowls/Plates/Clay ~2874â€“2880
 pub fn needed_pottery_clay(c: &PotteryCounts) -> (i32, i32, i32) {
     let mut count_bowl = c.count_bowl() + c.count_wet_bowl();
     let mut count_plate = c.count_plate() + c.count_wet_plate();
@@ -852,21 +852,21 @@ pub fn needed_pottery_clay(c: &PotteryCounts) -> (i32, i32, i32) {
     if needed_clay > NEEDED_CLAY_CAP {
         needed_clay = NEEDED_CLAY_CAP;
     }
-    // silence unused mut if we don't reassign — keep parity with Haxe locals
+    // silence unused mut if we don't reassign â€” keep parity with Haxe locals
     let _ = (&mut count_bowl, &mut count_plate);
     (needed_bowls, needed_plates, needed_clay)
 }
 
-// ── gatherClay pure ────────────────────────────────────────────────────────
+// â”€â”€ gatherClay pure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Spatial inputs for pure [`gather_clay`].
-// Haxe: AiBase.gatherClay ~2956–3097
+// Haxe: AiBase.gatherClay ~2956â€“3097
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GatherClayInput {
     /// Player world x/y.
     pub player_x: i32,
     pub player_y: i32,
-    /// Home (or kiln when kiln != null — Haxe reassigns home = kiln).
+    /// Home (or kiln when kiln != null â€” Haxe reassigns home = kiln).
     pub home_x: i32,
     pub home_y: i32,
     pub held_id: i32,
@@ -882,7 +882,7 @@ pub struct GatherClayInput {
     pub basket_with_clay_near_player: bool,
     /// Empty basket near deposit (fill path).
     pub empty_basket_near_deposit: bool,
-    /// Full basket only at deposit r=5 (player may be far) — still pickup.
+    /// Full basket only at deposit r=5 (player may be far) â€” still pickup.
     // Haxe: basket from deposit search with containedObjects.length > 2
     pub full_basket_near_deposit: bool,
     /// Full basket (contained > 2) among basket targets.
@@ -914,7 +914,7 @@ impl Default for GatherClayInput {
 }
 
 /// Pure `gatherClay` decision body.
-// Haxe: AiBase.gatherClay ~2956–3097
+// Haxe: AiBase.gatherClay ~2956â€“3097
 pub fn gather_clay(inp: &GatherClayInput) -> PotteryAction {
     let dist_home = potter_quad_dist(inp.player_x, inp.player_y, inp.home_x, inp.home_y);
     let _dist_deposit = if inp.has_clay_deposit {
@@ -922,8 +922,8 @@ pub fn gather_clay(inp: &GatherClayInput) -> PotteryAction {
     } else {
         -1
     };
-    // Haxe uses CalculateQuadDistance but compares to 1 for "adjacent" via helper —
-    // live layer uses tile adjacency; pure uses chebyshev ≤1 for deposit.
+    // Haxe uses CalculateQuadDistance but compares to 1 for "adjacent" via helper â€”
+    // live layer uses tile adjacency; pure uses chebyshev â‰¤1 for deposit.
     let deposit_adj = inp.has_clay_deposit
         && potter_chebyshev(inp.player_x, inp.player_y, inp.deposit_x, inp.deposit_y) <= 1;
 
@@ -939,12 +939,12 @@ pub fn gather_clay(inp: &GatherClayInput) -> PotteryAction {
             }
             return PotteryAction::GotoHome;
         }
-        // empty basket → drop near deposit
+        // empty basket â†’ drop near deposit
         if !inp.has_clay_deposit {
             return PotteryAction::None;
         }
         if deposit_adj {
-            // Haxe: dropHeldObject(0) — stage basket at deposit feet
+            // Haxe: dropHeldObject(0) â€” stage basket at deposit feet
             return PotteryAction::DropHeld {
                 allow_piles: false,
                 max_distance_to_home: 0,
@@ -966,7 +966,7 @@ pub fn gather_clay(inp: &GatherClayInput) -> PotteryAction {
         return PotteryAction::EmptyBasketAtHome;
     }
 
-    // Full basket near player or deposit → pickup to bring home
+    // Full basket near player or deposit â†’ pickup to bring home
     // Haxe: basket != null && contained > 2 (includes deposit-only full when player far)
     if inp.basket_full
         && (inp.basket_with_clay_near_player
@@ -1016,14 +1016,14 @@ pub fn gather_clay(inp: &GatherClayInput) -> PotteryAction {
         return PotteryAction::None;
     }
 
-    // No basket → GetOrCraft basket 292
+    // No basket â†’ GetOrCraft basket 292
     let has_any_basket = inp.basket_with_clay_near_player
         || inp.empty_basket_near_deposit
         || inp.basket_with_clay_near_home
         || inp.basket_full
         || inp.full_basket_near_deposit;
     // Haxe: basket null after searches near deposit / player
-    // When holding nothing and no basket nearby → craft basket
+    // When holding nothing and no basket nearby â†’ craft basket
     if !has_any_basket {
         return PotteryAction::SeekOrCraft {
             object_id: BASKET,
@@ -1047,14 +1047,14 @@ pub fn gather_clay(inp: &GatherClayInput) -> PotteryAction {
     PotteryAction::UseOnClayDeposit
 }
 
-// ── doPottery pure body ────────────────────────────────────────────────────
+// â”€â”€ doPottery pure body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Full `doPottery` / `doPotteryHelper` pure body.
 ///
 /// Mutates `runtime.stage` like Haxe `profession['POTTER']`.
 /// Optional `gather` input enables clay-gather branch; `None` skips gather
 /// (returns seek clay deposit when stage needs clay).
-// Haxe: AiBase.doPottery / doPotteryHelper ~2798–2905
+// Haxe: AiBase.doPottery / doPotteryHelper ~2798â€“2905
 pub fn do_pottery(
     counts: &PotteryCounts,
     runtime: &mut PotterProfessionRuntime,
@@ -1107,8 +1107,8 @@ pub fn do_pottery(
         };
     }
 
-    // AI-POTTER-RESID: cleanUp wet-nozzle residual (Haxe ~L1031–1041, outside L2946)
-    // Count ground 285 only (not tongs 295) — matches CountCloseObjects(home, 285, 20).
+    // AI-POTTER-RESID: cleanUp wet-nozzle residual (Haxe ~L1031â€“1041, outside L2946)
+    // Count ground 285 only (not tongs 295) â€” matches CountCloseObjects(home, 285, 20).
     if let Some(a) = wet_nozzle_cleanup_action(
         counts.get(WET_CLAY_NOZZLE),
         counts.held_id,
@@ -1117,7 +1117,7 @@ pub fn do_pottery(
         return a;
     }
 
-    // Firing kiln → stage 10 + doPotteryOnFire
+    // Firing kiln â†’ stage 10 + doPotteryOnFire
     if counts.firing_kiln {
         runtime.stage = 10.0;
         let on_fire = do_pottery_on_fire_action(counts);
@@ -1194,7 +1194,7 @@ pub fn do_pottery(
         };
     }
 
-    // Stock full → clear profession stage
+    // Stock full â†’ clear profession stage
     if counts.count_bowl() >= max_b && counts.count_plate() >= max_p {
         runtime.stage = 0.0;
         return PotteryAction::None;
@@ -1218,7 +1218,7 @@ pub fn do_pottery(
 
     runtime.stage = 3.0;
 
-    // Stone + wet bowl → wet plate when need plates and more bowls than plates
+    // Stone + wet bowl â†’ wet plate when need plates and more bowls than plates
     let count_bowl_eff = counts.count_bowl() + counts.count_wet_bowl();
     let count_plate_eff = counts.count_plate() + counts.count_wet_plate();
     if needed_plates > 0 && count_bowl_eff > count_plate_eff {
@@ -1234,7 +1234,7 @@ pub fn do_pottery(
         };
     }
 
-    // AI-POTTER-L2946: shape wet crock (233+233) when under crock max and ≥2 wet bowls.
+    // AI-POTTER-L2946: shape wet crock (233+233) when under crock max and â‰¥2 wet bowls.
     // Content transitions/233_233.txt; feeds doPotteryOnFire crock fire path.
     let max_c = if counts.max_crock > 0 {
         counts.max_crock
@@ -1260,7 +1260,7 @@ pub fn do_pottery(
 }
 
 /// Decide potter job for age-rotated / assigned dispatch.
-// Haxe: AssignedJob POTTER → doPottery(100); jobByAge==3 → doPottery()
+// Haxe: AssignedJob POTTER â†’ doPottery(100); jobByAge==3 â†’ doPottery()
 pub fn decide_potter_job(
     counts: &PotteryCounts,
     runtime: &mut PotterProfessionRuntime,
@@ -1279,7 +1279,7 @@ pub fn decide_potter_job(
     )
 }
 
-/// Max people for dispatch (assigned → 100, else 1).
+/// Max people for dispatch (assigned â†’ 100, else 1).
 pub fn potter_max_people_for_dispatch(is_assigned_job: bool) -> i32 {
     if is_assigned_job {
         POTTER_ASSIGNED_MAX_PEOPLE
@@ -1331,7 +1331,7 @@ pub fn try_decide_potter_from_rung(
     }
 }
 
-/// Map [`PotteryAction`] → high-level [`Goal`].
+/// Map [`PotteryAction`] â†’ high-level [`Goal`].
 pub fn pottery_action_to_goal(action: PotteryAction) -> Goal {
     match action {
         PotteryAction::None | PotteryAction::Abort => Goal::SeekObject(POTTER_TARGET_ID),
@@ -1445,7 +1445,7 @@ pub fn potter_radius_table() -> &'static [(i32, &'static str)] {
 
 include!("pottery_action_apply.inc.rs");
 
-// ── Tests ──────────────────────────────────────────────────────────────────
+// â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 #[cfg(test)]
 mod tests {
@@ -1573,7 +1573,7 @@ mod tests {
         c.firing_kiln = true;
         c.count_close_bowl = 5;
         c.max_bowls = 3;
-        // count_bowl 0 < max and < close → craft fired bowl tongs
+        // count_bowl 0 < max and < close â†’ craft fired bowl tongs
         let mut rt = PotterProfessionRuntime {
             is_last_potter: true,
             stage: 2.0,
@@ -1633,9 +1633,9 @@ mod tests {
         let mut c = counts_basic();
         c.set(CLAY, 5);
         c.count_clay_on_floor = 5;
-        // One wet bowl only — ≥2 wet bowls prefer L2946 crock shape (233+233) first.
+        // One wet bowl only â€” â‰¥2 wet bowls prefer L2946 crock shape (233+233) first.
         c.set(WET_CLAY_BOWL, 1);
-        c.set(CLAY_BOWL, 1); // bowl_eff=2 > plate_eff=0 still prefers stone→wet plate
+        c.set(CLAY_BOWL, 1); // bowl_eff=2 > plate_eff=0 still prefers stoneâ†’wet plate
         c.max_bowls = 3;
         c.max_plates = 3;
         let mut rt = PotterProfessionRuntime {
@@ -1656,7 +1656,7 @@ mod tests {
     #[test]
     fn do_pottery_pile_of_clay_when_floor_short() {
         let mut c = counts_basic();
-        c.set(CLAY, 5); // clay stock ≥4 so stage→2 without gather
+        c.set(CLAY, 5); // clay stock â‰¥4 so stageâ†’2 without gather
         c.count_clay_on_floor = 0;
         c.max_bowls = 3;
         c.max_plates = 3;
@@ -1775,7 +1775,7 @@ mod tests {
 
     #[test]
     fn gather_clay_full_basket_deposit_only_pickup() {
-        // Player far; full basket only at deposit → still PickupBasket
+        // Player far; full basket only at deposit â†’ still PickupBasket
         let inp = GatherClayInput {
             player_x: 0,
             player_y: 0,
@@ -1858,11 +1858,11 @@ mod tests {
         let mut c = counts_basic();
         c.firing_kiln = true;
         c.max_bowls = 0; // force skip bowl craft: count_bowl < max fails if max 0?
-        // max 0: count_bowl(0) < 0 is false — skip bowl
+        // max 0: count_bowl(0) < 0 is false â€” skip bowl
         c.max_bowls = 0;
         c.max_plates = 0;
         c.max_crock = 0;
-        // coal 0 < 3 && firing → adobe+kiln
+        // coal 0 < 3 && firing â†’ adobe+kiln
         assert_eq!(
             do_pottery_on_fire_action(&c),
             PotteryAction::ShortCraft {
@@ -1992,7 +1992,7 @@ mod tests {
         let s = pick_closest_clay_source(0, 0, &cands).unwrap();
         assert_eq!(s.parent_id, CLAY_PIT);
         assert_eq!((s.x, s.y), (5, 0));
-        // Equal distance → prefer deposit
+        // Equal distance â†’ prefer deposit
         let tie = [
             ClaySourceCandidate {
                 parent_id: CLAY_PIT,
@@ -2046,11 +2046,11 @@ mod tests {
 
     #[test]
     fn empty_basket_at_home_drop_extract_and_gather() {
-        // Haxe L3013: empty hands → dropIsAUse=false DROP extract, not USE whole basket
+        // Haxe L3013: empty hands â†’ dropIsAUse=false DROP extract, not USE whole basket
         assert!(empty_basket_at_home_is_drop_extract(0));
         assert!(!empty_basket_at_home_is_drop_extract(CLAY));
         assert!(!empty_basket_at_home_is_drop_extract(BASKET));
-        // gatherClay: close home + basket with clay → EmptyBasketAtHome when empty hands
+        // gatherClay: close home + basket with clay â†’ EmptyBasketAtHome when empty hands
         let inp = GatherClayInput {
             player_x: 0,
             player_y: 0,
@@ -2064,7 +2064,7 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(gather_clay(&inp), PotteryAction::EmptyBasketAtHome);
-        // holding something first → DropHeld maxDist 1 allow piles
+        // holding something first â†’ DropHeld maxDist 1 allow piles
         let mut held = inp;
         held.held_id = STONE;
         assert_eq!(
@@ -2079,7 +2079,7 @@ mod tests {
 
     #[test]
     fn wet_nozzle_cleanup_merge_and_clay_with_nozzle() {
-        // Haxe cleanUp ~L1031–1036: merge when count>1
+        // Haxe cleanUp ~L1031â€“1036: merge when count>1
         assert_eq!(
             wet_nozzle_cleanup_action(2, 0, false),
             Some(PotteryAction::ShortCraft {
@@ -2095,7 +2095,7 @@ mod tests {
                 target: WET_CLAY_NOZZLE,
             })
         );
-        // single ground, empty hands → no merge; try 2110
+        // single ground, empty hands â†’ no merge; try 2110
         assert_eq!(
             wet_nozzle_cleanup_action(1, 0, true),
             Some(PotteryAction::ShortCraft {

@@ -1,0 +1,11 @@
+[package]
+name = "ol-ai-helper"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AI pure helpers: goals, priority ladder, path-reach maps, profession types"
+publish = false
+
+[dependencies]
+ol-ai-crafting.workspace = true
+ol-content.workspace = true

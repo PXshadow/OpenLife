@@ -1,20 +1,20 @@
-// Haxe: AiBase makeStuff / doBasicFarming mid sheep sites (AI-SHEPHERD-MID + AI-MAKE-STUFF)
+﻿// Haxe: AiBase makeStuff / doBasicFarming mid sheep sites (AI-SHEPHERD-MID + AI-MAKE-STUFF)
 // Included from shepherd_profession.rs
 
 /// Haxe `makeStuff` pure step order (AI-SHEPHERD-MID / AI-MAKE-STUFF).
-// Haxe: AiBase.makeStuff ~4074–4094
+// Haxe: AiBase.makeStuff ~4074â€“4094
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MakeStuffAction {
     None,
     /// Haxe `makeSharpieFood` head
     DeferSharpieFood,
-    /// Haxe `doBaking(max)` — body in baker_profession (AI-MAKE-STUFF)
+    /// Haxe `doBaking(max)` â€” body in baker_profession (AI-MAKE-STUFF)
     DeferBaking { max_profession: i32 },
-    /// doBasicFarming(max) — farm action (may be DeferSheepHerding mid)
+    /// doBasicFarming(max) â€” farm action (may be DeferSheepHerding mid)
     BasicFarming { max_profession: i32 },
     /// isSheepHerding(max) after basic farm fallthrough
     SheepHerding { max_profession: i32 },
-    /// Haxe `makeFireFood(max)` — body in fire_food_profession (AI-MAKE-STUFF)
+    /// Haxe `makeFireFood(max)` â€” body in fire_food_profession (AI-MAKE-STUFF)
     DeferFireFood { max_profession: i32 },
 }
 
@@ -46,9 +46,9 @@ pub struct MakeStuffInputs {
 
 /// Pure `makeStuff` decision from explicit head flags (full Haxe order).
 ///
-/// Order: makeSharpieFood → doBaking(2) → doBasicFarming(2) → isSheepHerding(2)
-/// → makeFireFood(2).
-// Haxe: AiBase.makeStuff ~4074–4083
+/// Order: makeSharpieFood â†’ doBaking(2) â†’ doBasicFarming(2) â†’ isSheepHerding(2)
+/// â†’ makeFireFood(2).
+// Haxe: AiBase.makeStuff ~4074â€“4083
 pub fn make_stuff_ordered(inp: MakeStuffInputs) -> MakeStuffAction {
     if inp.sharpie_has_work {
         return MakeStuffAction::DeferSharpieFood;
@@ -78,7 +78,7 @@ pub fn make_stuff_ordered(inp: MakeStuffInputs) -> MakeStuffAction {
 
 /// Pure `makeStuff` decision: first applicable step.
 ///
-/// When `include_residual_defers` is false, only farm → sheep are considered
+/// When `include_residual_defers` is false, only farm â†’ sheep are considered
 /// (sharpie/bake/fire heads left to caller). When true, residual fire is
 /// emitted only after farm+sheep fallthrough (sharpie/bake still need
 /// [`make_stuff_ordered`] with explicit flags, or [`make_stuff_try`]).
@@ -111,11 +111,11 @@ pub fn make_stuff_try(
     sheep_has_work: bool,
     fire_has_work: bool,
 ) -> MakeStuffAction {
-    // 1) makeSharpieFood (ungated by age in makeStuff — Haxe has no age gate here)
+    // 1) makeSharpieFood (ungated by age in makeStuff â€” Haxe has no age gate here)
     if crate::farmer_profession::make_sharpie_food(farm_counts).is_some() {
         return MakeStuffAction::DeferSharpieFood;
     }
-    // 2) doBaking(2) — flag path; prefer [`make_stuff_try_bodies`] for pure body
+    // 2) doBaking(2) â€” flag path; prefer [`make_stuff_try_bodies`] for pure body
     if baking_has_work {
         return MakeStuffAction::DeferBaking {
             max_profession: MAKE_STUFF_FARM_MAX_PEOPLE,
@@ -139,7 +139,7 @@ pub fn make_stuff_try(
             max_profession: MAKE_STUFF_SHEEP_MAX_PEOPLE,
         };
     }
-    // 5) makeFireFood(2) — flag path; prefer [`make_stuff_try_bodies`]
+    // 5) makeFireFood(2) â€” flag path; prefer [`make_stuff_try_bodies`]
     if fire_has_work {
         return MakeStuffAction::DeferFireFood {
             max_profession: MAKE_STUFF_FARM_MAX_PEOPLE,
@@ -193,8 +193,8 @@ pub fn make_stuff_fire_has_work(
 
 /// Full pure makeStuff expand evaluating bake + fire bodies (AI-MAKE-STUFF).
 ///
-/// Order: sharpie → doBaking(2) → doBasicFarming(2) → isSheepHerding(2) → makeFireFood(2).
-// Haxe: AiBase.makeStuff ~4074–4083
+/// Order: sharpie â†’ doBaking(2) â†’ doBasicFarming(2) â†’ isSheepHerding(2) â†’ makeFireFood(2).
+// Haxe: AiBase.makeStuff ~4074â€“4083
 pub fn make_stuff_try_bodies(
     farm_counts: &crate::farmer_profession::FarmCounts,
     farm_task: &mut FarmTaskState,
@@ -293,7 +293,7 @@ pub fn basic_farm_mid_try_sheep(
 /// Thin reverse-craft / inventory bias for Profession::Shepherd.
 // Haxe: self-play SeekObject domestic sheep / lamb feed pipeline
 pub fn pick_shepherd_goal(
-    graph: &crate::craft_graph::ReverseCraftGraph,
+    graph: &ol_ai_crafting::craft_graph::ReverseCraftGraph,
     have: &std::collections::HashSet<i32>,
 ) -> Goal {
     for &id in &[

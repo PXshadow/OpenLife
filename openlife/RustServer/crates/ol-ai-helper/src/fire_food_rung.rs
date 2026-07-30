@@ -1,7 +1,7 @@
-//! AI-FIREFOOD-RUNG: assigned/last FIREFOODMAKER → makeFireFood(100) ladder bridge.
+﻿//! AI-FIREFOOD-RUNG: assigned/last FIREFOODMAKER â†’ makeFireFood(100) ladder bridge.
 //!
 //! Haxe: `assignedProfession == 'FIREFOODMAKER' || lastProfession == 'FIREFOODMAKER'`
-//! → `makeFireFood(100)` in `AiBase.doTimeStuffHelper` ~754–756.
+//! â†’ `makeFireFood(100)` in `AiBase.doTimeStuffHelper` ~754â€“756.
 
 use crate::fire_food_profession::{
     fire_food_max_people_for_dispatch, make_fire_food, FireFoodAction, FireFoodCounts,
@@ -9,7 +9,7 @@ use crate::fire_food_profession::{
 };
 
 /// Ladder rung labels that may run makeFireFood (assigned/last job band).
-// Haxe: doTimeStuffHelper FIREFOODMAKER assigned/last ~754–756
+// Haxe: doTimeStuffHelper FIREFOODMAKER assigned/last ~754â€“756
 pub fn fire_food_job_rung_label(rung_label: &str) -> bool {
     matches!(
         rung_label,
@@ -23,10 +23,10 @@ pub fn fire_food_job_rung_label(rung_label: &str) -> bool {
     )
 }
 
-/// Thin ladder bridge: assigned/last FIREFOODMAKER → pure `make_fire_food`.
+/// Thin ladder bridge: assigned/last FIREFOODMAKER â†’ pure `make_fire_food`.
 ///
 /// `is_assigned_job` or rung `ASSIGNED_JOB` selects maxPeople **100** (Haxe makeFireFood(100)).
-// Haxe: assignedProfession == 'FIREFOODMAKER' || lastProfession == 'FIREFOODMAKER' → makeFireFood(100)
+// Haxe: assignedProfession == 'FIREFOODMAKER' || lastProfession == 'FIREFOODMAKER' â†’ makeFireFood(100)
 pub fn try_decide_fire_food_from_rung(
     profession_is_sticky: bool,
     rung_label: &str,
