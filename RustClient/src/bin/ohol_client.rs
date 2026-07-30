@@ -1845,20 +1845,20 @@ fn run_offline_with_banks(
     let mut age_slider_drag = false;
     let initial_skin = skins.get(skin_idx).map(|(id, _)| *id).unwrap_or(19);
 
-    // Offline demo map: default land sheets (0–6) plus Open Life specials
-    // (Haxe BiomeTag): 13=shallow water, 9=deep ocean, 21=mountain peak.
-    // Vertical strips left→right so soft borders / underfill colors compare easily.
+    // Offline demo map: compact biome bands with the player in the center so
+    // every land sheet (0–6) + shallow water / deep ocean / mountain is on screen.
+    // Haxe BiomeTag: 13=PASSABLERIVER, 9=OCEAN, 21=SNOWINGREY.
     const OFFLINE_BIOMES: &[u8] = &[
         0, 1, 2, 3, 4, 5, 6, // ground_0..6 sheets
         13,                  // PASSABLERIVER — shallow / walkable water
         9,                   // OCEAN — deep water
         21,                  // SNOWINGREY — mountain
     ];
-    const STRIP_W: i32 = 3;
-    const MAP_H: i32 = 14;
+    const STRIP_W: i32 = 2; // narrow bands so all fit around the player
+    const MAP_H: i32 = 8;
     let map_w = OFFLINE_BIOMES.len() as i32 * STRIP_W;
-    // Stand on grass (first strip), not water/mountain.
-    let player_x = STRIP_W / 2;
+    // Player at map center (on whichever strip is middle — usually desert/jungle).
+    let player_x = map_w / 2;
     let player_y = MAP_H / 2;
     let mut map = ClientMap::new();
     let h = MapChunkHeader {
@@ -1919,10 +1919,11 @@ fn run_offline_with_banks(
     scene.ground = ground;
     scene.sounds = sounds;
     scene.hud_sprites = HudSprites::with_default_roots(Some(&root));
+    // Pull back a bit so ~all narrow bands are visible around the player.
     scene.camera = Camera {
-        x: player_x as f32,
-        y: player_y as f32,
-        zoom: 36.0,
+        x: player_x as f32 + 0.5,
+        y: player_y as f32 + 0.5,
+        zoom: 28.0,
     };
     // Settings applied after ClientAppState::from_env below; seed original-client default.
     scene.ground_brightness = 1.0;
@@ -1960,10 +1961,15 @@ fn run_offline_with_banks(
 
     let mut app = ClientAppState::from_env();
     app.enter_playing();
-    scene.camera.zoom = app.settings.zoom.clamp(
-        ohol_headless::render::ZOOM_MIN,
-        ohol_headless::render::ZOOM_MAX,
-    );
+    // Cap offline start zoom so all compact biome bands stay on-screen around the player.
+    scene.camera.zoom = app
+        .settings
+        .zoom
+        .clamp(
+            ohol_headless::render::ZOOM_MIN,
+            ohol_headless::render::ZOOM_MAX,
+        )
+        .min(32.0);
     scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
     let mut last = Instant::now();
     let mut hover = HoverPick::default();

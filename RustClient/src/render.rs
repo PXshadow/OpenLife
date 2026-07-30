@@ -448,25 +448,37 @@ impl Framebuffer {
 
         // No rotation: nearest-neighbor axis-aligned (Jason pixel sprites; fast path).
         // Bilinear was ~4× cost and tanked play to ~1 FPS on soft ground + objects.
+        // Clip to FB so high zoom (large dwi/dhi) stays O(screen), not O(zoom²).
         if rot_turns.abs() < 1e-5 {
             let ox = dst_cx as i32 - dwi / 2;
             let oy = dst_cy as i32 - dhi / 2;
-            for dy in 0..dhi {
-                for dx in 0..dwi {
+            let fb_w = self.width as i32;
+            let fb_h = self.height as i32;
+            let clip_x0 = ox.max(0);
+            let clip_y0 = oy.max(0);
+            let clip_x1 = (ox + dwi).min(fb_w);
+            let clip_y1 = (oy + dhi).min(fb_h);
+            if clip_x0 >= clip_x1 || clip_y0 >= clip_y1 {
+                return;
+            }
+            for py in clip_y0..clip_y1 {
+                let dy = py - oy;
+                let v = dy * src_h as i32 / dhi.max(1);
+                for px in clip_x0..clip_x1 {
+                    let dx = px - ox;
                     let u = if h_flip {
                         src_w as i32 - 1 - (dx * src_w as i32 / dwi.max(1))
                     } else {
                         dx * src_w as i32 / dwi.max(1)
                     };
-                    let v = dy * src_h as i32 / dhi.max(1);
-                    if let Some(px) =
+                    if let Some(c) =
                         sample_atlas(atlas, atlas_w, src_x, src_y, src_w, src_h, u, v, tint)
                     {
-                        let px = apply_alpha(px);
+                        let c = apply_alpha(c);
                         if multiplicative {
-                            self.put_multiplicative(ox + dx, oy + dy, px);
+                            self.put_multiplicative(px, py, c);
                         } else {
-                            self.put(ox + dx, oy + dy, px);
+                            self.put(px, py, c);
                         }
                     }
                 }
@@ -585,17 +597,43 @@ impl Framebuffer {
         if dst_w <= 0 || dst_h <= 0 || src_w == 0 || src_h == 0 {
             return;
         }
-        // Fixed-point nearest for speed.
+        // Clip to FB first so high zoom (huge dest rects) stays O(screen) not O(zoom²).
+        let fb_w = self.width as i32;
+        let fb_h = self.height as i32;
+        let clip_x0 = dst_x.max(0);
+        let clip_y0 = dst_y.max(0);
+        let clip_x1 = (dst_x + dst_w).min(fb_w);
+        let clip_y1 = (dst_y + dst_h).min(fb_h);
+        if clip_x0 >= clip_x1 || clip_y0 >= clip_y1 {
+            return;
+        }
         let sw = src_w as i32;
         let sh = src_h as i32;
-        for dy in 0..dst_h {
+        let identity_tint = (tint[0] - 1.0).abs() < 1e-4
+            && (tint[1] - 1.0).abs() < 1e-4
+            && (tint[2] - 1.0).abs() < 1e-4;
+        for py in clip_y0..clip_y1 {
+            let dy = py - dst_y;
             let v = dy * sh / dst_h;
-            for dx in 0..dst_w {
+            for px in clip_x0..clip_x1 {
+                let dx = px - dst_x;
                 let u = dx * sw / dst_w;
-                if let Some(px) =
+                if identity_tint {
+                    if let Some(c) =
+                        sample_atlas(atlas, atlas_w, src_x, src_y, src_w, src_h, u, v, [1.0, 1.0, 1.0])
+                    {
+                        // In-bounds after clip — skip put()'s bounds check path.
+                        let i = ((py as u32 * self.width + px as u32) * 4) as usize;
+                        if c[3] == 255 {
+                            self.pixels[i..i + 4].copy_from_slice(&c);
+                        } else if c[3] > 0 {
+                            self.put(px, py, c);
+                        }
+                    }
+                } else if let Some(c) =
                     sample_atlas(atlas, atlas_w, src_x, src_y, src_w, src_h, u, v, tint)
                 {
-                    self.put(dst_x + dx, dst_y + dy, px);
+                    self.put(px, py, c);
                 }
             }
         }
@@ -1738,7 +1776,10 @@ impl SceneRenderer {
 
     /// Jason full-view mult + add overlay after floors (~7629–7727).
     ///
-    /// Mult pass is blended by [`Self::ground_brightness`] (settings 0–100%):
+    /// **Screen-space O(W×H)** — not 3×3×4 huge zoomed blits (those hit ~1 FPS at
+    /// max zoom when each `ground_tN` is 1024×(zoom/128) soft-FB pixels).
+    ///
+    /// Mult pass blended by [`Self::ground_brightness`] (settings 0–100%):
     /// - **1.0** = original (default): additive texture coloring → `dst *= clamp(tex + 0.15)`
     /// - **0.0** = legacy dark: `dst *= tex * 0.15`
     /// Add pass: additive blend with `setDrawColor(1,1,1, addAmount=0.25)`.
@@ -1750,15 +1791,19 @@ impl SceneRenderer {
         if ow == 0 || oh == 0 {
             return;
         }
-        // Preload t0..t3
+        // Preload t0..t3 (rects by value; sample via page_tile in the pixel loop).
+        let mut rects: [Option<crate::ground_sprites::GroundTileRect>; 4] = [None; 4];
         for t in 0..4u8 {
-            let _ = self.ground.ensure_overlay(t);
+            rects[t as usize] = self.ground.ensure_overlay(t);
         }
-        // Overlay native pixels are screen-locked in C++ object units.
-        // Map: object pixels → soft-FB using zoom/CELL_D scale.
+        if rects.iter().all(|r| r.is_none()) {
+            return;
+        }
+
+        // Overlay native size is in object units; scale to soft-FB with zoom/CELL_D.
         let scale = (self.camera.zoom / GRID).max(0.05);
-        let ground_w_tile = ow as f32 * scale;
-        let ground_h_tile = oh as f32 * scale;
+        let ground_w_tile = (ow as f32 * scale).max(1.0);
+        let ground_h_tile = (oh as f32 * scale).max(1.0);
         let ground_w = ground_w_tile * 2.0;
         let ground_h = ground_h_tile * 2.0;
 
@@ -1767,147 +1812,124 @@ impl SceneRenderer {
         let cam_sy = fb.height as f32 * 0.5;
         let ground_center_x = (cam_sx / ground_w).round() * ground_w;
         let ground_center_y = (cam_sy / ground_h).round() * ground_h;
+        // Origin of the 2×2 tile pack for the snapped cell (top-left of t0/t2).
+        let origin_x = ground_center_x - ground_w_tile;
+        let origin_y = ground_center_y - ground_h_tile;
 
-        // LivingLifePage.cpp globals
         const MULT_AMOUNT: f32 = 0.15;
         const ADD_AMOUNT: f32 = 0.25;
+        let brightness = self.ground_brightness.clamp(0.0, 1.0);
+        let mult_add_u8 = (MULT_AMOUNT * 255.0).round() as i32; // ~38
+        let add_a = (ADD_AMOUNT * 255.0).round().clamp(0.0, 255.0) as u32;
+        let fb_w = fb.width as i32;
+        let fb_h = fb.height as i32;
+        let period_w = ground_w.max(1.0);
+        let period_h = ground_h.max(1.0);
+        let tile_w = ground_w_tile.max(1.0);
+        let tile_h = ground_h_tile.max(1.0);
 
-        // Multiplicative + additive-texture-coloring pass (texture wash).
-        for gy in -1i32..=1 {
-            for gx in -1i32..=1 {
-                let pos_x = ground_center_x + gx as f32 * ground_w;
-                let pos_y = ground_center_y + gy as f32 * ground_h;
-                for t in 0..4u8 {
-                    let Some(gt) = self.ground.ensure_overlay(t) else {
-                        continue;
-                    };
-                    let mut px = pos_x;
-                    let mut py = pos_y;
-                    if t % 2 == 0 {
-                        px -= ground_w_tile * 0.5;
-                    } else {
-                        px += ground_w_tile * 0.5;
-                    }
-                    // C++ y-up: t<2 → +halfH, t>=2 → −halfH. Soft-FB is y-down → flip.
-                    if t < 2 {
-                        py -= ground_h_tile * 0.5;
-                    } else {
-                        py += ground_h_tile * 0.5;
-                    }
-                    self.blit_overlay_mult(
-                        fb,
-                        &gt,
-                        px,
-                        py,
-                        ground_w_tile,
-                        ground_h_tile,
-                        MULT_AMOUNT,
-                        self.ground_brightness,
-                    );
+        // --- Mult pass: one sample per FB pixel ---
+        for py in 0..fb_h {
+            let ly = (py as f32 - origin_y).rem_euclid(period_h);
+            let half_y = if ly < tile_h { 0u8 } else { 1u8 };
+            let v_f = if half_y == 0 {
+                ly / tile_h
+            } else {
+                (ly - tile_h) / tile_h
+            };
+            for px in 0..fb_w {
+                let lx = (px as f32 - origin_x).rem_euclid(period_w);
+                let half_x = if lx < tile_w { 0u8 } else { 1u8 };
+                let u_f = if half_x == 0 {
+                    lx / tile_w
+                } else {
+                    (lx - tile_w) / tile_w
+                };
+                // t: even=left, odd=right; t<2 top, t>=2 bottom (y-down layout).
+                let t = half_x + half_y * 2;
+                let Some(gt) = rects[t as usize] else {
+                    continue;
+                };
+                let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(&gt) else {
+                    continue;
+                };
+                if sw == 0 || sh == 0 {
+                    continue;
                 }
-            }
-        }
-
-        // Additive lighten pass. C++ writes `pos += 512` then overwrites pos from
-        // groundCenterPos again, so the 512 offset is dead — match that.
-        for gy in -1i32..=1 {
-            for gx in -1i32..=1 {
-                let pos_x = ground_center_x + gx as f32 * ground_w;
-                let pos_y = ground_center_y + gy as f32 * ground_h;
-                for t in 0..4u8 {
-                    let Some(gt) = self.ground.ensure_overlay(t) else {
-                        continue;
-                    };
-                    let mut px = pos_x;
-                    let mut py = pos_y;
-                    if t % 2 == 0 {
-                        px -= ground_w_tile * 0.5;
-                    } else {
-                        px += ground_w_tile * 0.5;
-                    }
-                    if t < 2 {
-                        py -= ground_h_tile * 0.5;
-                    } else {
-                        py += ground_h_tile * 0.5;
-                    }
-                    self.blit_overlay_add(fb, &gt, px, py, ground_w_tile, ground_h_tile, ADD_AMOUNT);
-                }
-            }
-        }
-    }
-
-    fn blit_overlay_mult(
-        &self,
-        fb: &mut Framebuffer,
-        gt: &crate::ground_sprites::GroundTileRect,
-        cx: f32,
-        cy: f32,
-        dw: f32,
-        dh: f32,
-        mult_amount: f32,
-        brightness: f32,
-    ) {
-        let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(gt) else {
-            return;
-        };
-        let x0 = (cx - dw * 0.5).floor() as i32;
-        let y0 = (cy - dh * 0.5).floor() as i32;
-        let dst_w = dw.round().max(1.0) as i32;
-        let dst_h = dh.round().max(1.0) as i32;
-        let sw_i = sw as i32;
-        let sh_i = sh as i32;
-        // 0 = legacy dark (tex * mult), 1 = original (clamp(tex + mult)).
-        let t = brightness.clamp(0.0, 1.0);
-        for dy in 0..dst_h {
-            let v = dy * sh_i / dst_h.max(1);
-            for dx in 0..dst_w {
-                let u = dx * sw_i / dst_w.max(1);
-                let si = (((sy as i32 + v) as u32 * atlas_w + (sx as i32 + u) as u32) * 4) as usize;
+                let u = ((u_f.clamp(0.0, 0.999) * sw as f32) as u32).min(sw - 1);
+                let v = ((v_f.clamp(0.0, 0.999) * sh as f32) as u32).min(sh - 1);
+                let si = ((sy + v) * atlas_w + (sx + u)) as usize * 4;
                 if si + 3 >= pix.len() {
                     continue;
                 }
-                let a = pix[si + 3];
+                let a = pix[si + 3] as u32;
                 if a < 8 {
                     continue;
                 }
-                let mut out = [0u8; 3];
-                for c in 0..3 {
-                    let tex = pix[si + c] as f32 / 255.0;
-                    let legacy = tex * mult_amount;
-                    let original = (tex + mult_amount).clamp(0.0, 1.0);
-                    let f = legacy * (1.0 - t) + original * t;
-                    out[c] = (f.clamp(0.0, 1.0) * 255.0).round() as u8;
+                let di = ((py as u32 * fb.width + px as u32) * 4) as usize;
+                // Fast path: brightness 100% → original clamp(tex + multAmount).
+                if brightness >= 0.999 {
+                    for c in 0..3 {
+                        let src = (pix[si + c] as i32 + mult_add_u8).clamp(0, 255) as u32;
+                        let dst = fb.pixels[di + c] as u32;
+                        let mul = (dst * src) / 255;
+                        fb.pixels[di + c] = if a >= 250 {
+                            mul as u8
+                        } else {
+                            ((mul * a + dst * (255 - a)) / 255) as u8
+                        };
+                    }
+                } else {
+                    let t_b = brightness;
+                    for c in 0..3 {
+                        let tex = pix[si + c] as f32 / 255.0;
+                        let legacy = tex * MULT_AMOUNT;
+                        let original = (tex + MULT_AMOUNT).clamp(0.0, 1.0);
+                        let f = legacy * (1.0 - t_b) + original * t_b;
+                        let src = (f.clamp(0.0, 1.0) * 255.0).round() as u32;
+                        let dst = fb.pixels[di + c] as u32;
+                        let mul = (dst * src) / 255;
+                        fb.pixels[di + c] = if a >= 250 {
+                            mul as u8
+                        } else {
+                            ((mul * a + dst * (255 - a)) / 255) as u8
+                        };
+                    }
                 }
-                fb.put_multiplicative(x0 + dx, y0 + dy, [out[0], out[1], out[2], a]);
+                fb.pixels[di + 3] = 255;
             }
         }
-    }
 
-    fn blit_overlay_add(
-        &self,
-        fb: &mut Framebuffer,
-        gt: &crate::ground_sprites::GroundTileRect,
-        cx: f32,
-        cy: f32,
-        dw: f32,
-        dh: f32,
-        add_amount: f32,
-    ) {
-        let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(gt) else {
-            return;
-        };
-        let x0 = (cx - dw * 0.5).floor() as i32;
-        let y0 = (cy - dh * 0.5).floor() as i32;
-        let dst_w = dw.round().max(1.0) as i32;
-        let dst_h = dh.round().max(1.0) as i32;
-        let sw_i = sw as i32;
-        let sh_i = sh as i32;
-        let add_a = (add_amount * 255.0).round().clamp(0.0, 255.0) as u8;
-        for dy in 0..dst_h {
-            let v = dy * sh_i / dst_h.max(1);
-            for dx in 0..dst_w {
-                let u = dx * sw_i / dst_w.max(1);
-                let si = (((sy as i32 + v) as u32 * atlas_w + (sx as i32 + u) as u32) * 4) as usize;
+        // --- Additive lighten pass (same UV mapping; α = addAmount) ---
+        for py in 0..fb_h {
+            let ly = (py as f32 - origin_y).rem_euclid(period_h);
+            let half_y = if ly < tile_h { 0u8 } else { 1u8 };
+            let v_f = if half_y == 0 {
+                ly / tile_h
+            } else {
+                (ly - tile_h) / tile_h
+            };
+            for px in 0..fb_w {
+                let lx = (px as f32 - origin_x).rem_euclid(period_w);
+                let half_x = if lx < tile_w { 0u8 } else { 1u8 };
+                let u_f = if half_x == 0 {
+                    lx / tile_w
+                } else {
+                    (lx - tile_w) / tile_w
+                };
+                let t = half_x + half_y * 2;
+                let Some(gt) = rects[t as usize] else {
+                    continue;
+                };
+                let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(&gt) else {
+                    continue;
+                };
+                if sw == 0 || sh == 0 {
+                    continue;
+                }
+                let u = ((u_f.clamp(0.0, 0.999) * sw as f32) as u32).min(sw - 1);
+                let v = ((v_f.clamp(0.0, 0.999) * sh as f32) as u32).min(sh - 1);
+                let si = ((sy + v) * atlas_w + (sx + u)) as usize * 4;
                 if si + 3 >= pix.len() {
                     continue;
                 }
@@ -1915,13 +1937,17 @@ impl SceneRenderer {
                 if src_a < 8 {
                     continue;
                 }
-                // C++ additive with setDrawColor(1,1,1,addAmount): scale alpha.
-                let a = ((src_a * add_a as u32) / 255) as u8;
-                fb.put_additive(
-                    x0 + dx,
-                    y0 + dy,
-                    [pix[si], pix[si + 1], pix[si + 2], a],
-                );
+                let a = (src_a * add_a) / 255;
+                if a == 0 {
+                    continue;
+                }
+                let di = ((py as u32 * fb.width + px as u32) * 4) as usize;
+                for c in 0..3 {
+                    let dst = fb.pixels[di + c] as u32;
+                    let src = pix[si + c] as u32;
+                    fb.pixels[di + c] = (dst + (src * a) / 255).min(255) as u8;
+                }
+                fb.pixels[di + 3] = 255;
             }
         }
     }
