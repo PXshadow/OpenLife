@@ -23,7 +23,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::ai_goals::{Goal, BAKER_TARGET_ID};
+use ol_ai_helper::ai_goals::{Goal, BAKER_TARGET_ID};
 use ol_ai_crafting::craft_graph::ReverseCraftGraph;
 use crate::farmer_profession::{
     in_count_close_square, is_ignored_floor, short_craft_apply, AI_IGNORED_FLOOR_IDS,
@@ -1768,7 +1768,7 @@ pub fn bake_action_to_goal(action: BakeAction) -> Goal {
         | BakeAction::DeferPlantCarrots
         | BakeAction::DeferHarvestWheat
         | BakeAction::DeferPlantWheat
-        | BakeAction::DeferPlantBeans => Goal::SeekObject(crate::ai_goals::FARMER_TARGET_ID),
+        | BakeAction::DeferPlantBeans => Goal::SeekObject(ol_ai_helper::ai_goals::FARMER_TARGET_ID),
         BakeAction::DeferSheepHerding => Goal::SeekObject(DOMESTIC_SHEEP),
         BakeAction::DeferBerryBowl => Goal::SeekObject(BOWL_GOOSEBERRIES),
         BakeAction::DeferSeatsCleanup => Goal::SeekObject(BOWL_TOMATO_SEEDS),

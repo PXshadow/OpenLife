@@ -18,7 +18,7 @@
 
 use std::collections::HashMap;
 
-use crate::ai_goals::Goal;
+use ol_ai_helper::ai_goals::Goal;
 use crate::baker_profession::{
     BOWL_BERRIES_CARROT, BOWL_GOOSEBERRIES, BOWL_OF_BUTTER, BOWL_OF_CREAM, BUTTERED_BREAD,
     DOMESTIC_BUSH, DOMESTIC_LAMB, DOMESTIC_SHEEP, HUNGRY_DOMESTIC_LAMB, KNIFE, MILK_POUCH, SKEWER,

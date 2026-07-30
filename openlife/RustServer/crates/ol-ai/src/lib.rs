@@ -1,15 +1,15 @@
-//! Open Life AI façade — re-exports helper / crafting / write-read interfaces.
+//! Open Life AI façade — re-exports helper / crafting / professions / interfaces.
 //!
-//! ## Phase C layout
+//! ## Layout
 //!
 //! | Crate | Role |
 //! |-------|------|
 //! | [`ol_ai_api`] | `PlayerWriteInterface` / `PlayerReadInterface` |
-//! | [`ol_ai_helper`] | Goals, ladder, path-reach, profession pure SMs |
+//! | [`ol_ai_helper`] | Goals, ladder, path-reach |
 //! | [`ol_ai_crafting`] | Craft graph / plan / value |
+//! | [`ol_ai_professions`] | Profession pure SMs + craft goal expand |
+//! | [`ol_main_ai`] | High-level ThinkPlan (separate crate) |
 //! | **this crate** | Stable `ol_ai::*` path for server + sim |
-//!
-//! Live world I/O stays in `ol-sim` / `ol-server`.
 
 #![forbid(unsafe_code)]
 
@@ -23,11 +23,6 @@ pub use ol_ai_api::{
 // ── AiHelper ────────────────────────────────────────────────────────────────
 pub use ol_ai_helper::ai_goals;
 pub use ol_ai_helper::ai_path_reach;
-pub use ol_ai_helper::professions;
-pub use ol_ai_helper::{
-    baker_profession, farmer_profession, fire_food_profession, fire_food_rung, pottery_profession,
-    shepherd_profession, smith_profession,
-};
 pub use ol_ai_helper::{
     age_job_index, age_rotated_job_kind, age_rotated_job_sequence, apply_escape_to_sensors,
     baby_hungry_follow_tiles, check_is_hungry_and_eat_effects, child_with_mother_follow_tiles,
@@ -35,11 +30,11 @@ pub use ol_ai_helper::{
     escape_target_xy, fill_live_sensors, get_close_deadly_player, get_close_player_target,
     goal_from_rung, is_child_and_has_mother, is_child_and_has_mother_ex, is_deadly_player_candidate,
     is_hungry_simple, is_moving_to_player_needed, is_superbad_temp, ordered_follow_max_tiles,
-    pick_goal_from_ladder, pick_goal_from_live_sensors, pick_goal_with_sensors, player_quad_dist,
+    pick_goal, pick_goal_ext, pick_goal_with_biome, pick_smith_goal, player_quad_dist,
     resolve_escape_threat, resolve_priority_rung, sensors_from_ext, sensors_from_ext_ex,
-    sensors_from_simple, should_attempt_escape, skip_escape_for_hunt, threat_is_far_for_temp,
-    threat_quad_from_deadly, update_is_hungry, wounded_follow_tiles, AgeRotatedJobKind,
-    AiPathReachMaps, AiStickyBlockTargets, CloseDeadlyPlayer, ClosePlayerTarget,
+    sensors_from_simple, should_attempt_escape, skip_escape_for_hunt, smith_product_targets,
+    threat_is_far_for_temp, threat_quad_from_deadly, update_is_hungry, wounded_follow_tiles,
+    AgeRotatedJobKind, AiPathReachMaps, AiStickyBlockTargets, CloseDeadlyPlayer, ClosePlayerTarget,
     DeadlyPlayerCandidate, EscapeContext, EscapeSideEffects, EscapeThreat, Goal, HungryEatEffects,
     LiveSensorBundle, LiveSensorExtras, LiveSensorInput, PlayerTargetCandidate, PriorityBand,
     PriorityRung, PrioritySensors, Profession, StickyFoodTarget, BLUE_MASK_HOME_QUAD_MAX,
@@ -47,18 +42,31 @@ pub use ol_ai_helper::{
     DEADLY_PLAYER_SEARCH_DIST_AI, DEVIL_MASK_ID, ESCAPE_ANGRY_TIME_IGNORE,
     ESCAPE_DID_NOT_REACH_FOOD_MAX, ESCAPE_DIST, ESCAPE_FOOD_CRIT_SKIP, ESCAPE_HUNT_MIN_AGE,
     ESCAPE_PLAYER_DIST_MAX, EXILE_HOME_QUAD_DANGER, GOBLIN_MASK_ID, HOSTILE_PATH_DEFAULT_SECS,
-    HUNGRY_ENTER_FLOOR, HUNGRY_ENTER_FRAC, HUNGRY_LEAVE_FRAC, MAX_CHILD_AGE_BREASTFEED,
+    HUNGRY_ENTER_FLOOR, HUNGRY_ENTER_FRAC, HUNGRY_FOOD, HUNGRY_LEAVE_FRAC, MAX_CHILD_AGE_BREASTFEED,
     MIN_AGE_TO_EAT, NOT_REACHABLE_DEFAULT_SECS, NOT_REACHABLE_FOOD_SECS, PLAYER_TARGET_SEARCH_DIST,
-    SMITHING_HAMMER_ID,
+    SMITHING_HAMMER_ID, SMITH_IRON_ID, SMITH_TARGET_ID,
 };
 
-// ── AiCraftingHelper ────────────────────────────────────────────────────────
+// ── Crafting ────────────────────────────────────────────────────────────────
 pub use ol_ai_crafting::craft_graph;
 pub use ol_ai_crafting::craft_plan;
 pub use ol_ai_crafting::craft_value;
 pub use ol_ai_crafting::{
     CraftOption, CraftProfession, NearbyObj, ReverseCraftGraph, ABUNDANCE_SOFT_CAP,
     DEFAULT_CRAFT_RADIUS, DEFAULT_WALK_SPEED, INTERACTION_SEC,
+};
+
+// ── Professions ─────────────────────────────────────────────────────────────
+pub use ol_ai_professions::baker_profession;
+pub use ol_ai_professions::farmer_profession;
+pub use ol_ai_professions::fire_food_profession;
+pub use ol_ai_professions::fire_food_rung;
+pub use ol_ai_professions::pottery_profession;
+pub use ol_ai_professions::professions;
+pub use ol_ai_professions::shepherd_profession;
+pub use ol_ai_professions::smith_profession;
+pub use ol_ai_professions::{
+    pick_goal_smith_craft, pick_goal_smith_craft_at_stage, is_grassland, is_fishing_biome,
 };
 
 #[cfg(test)]

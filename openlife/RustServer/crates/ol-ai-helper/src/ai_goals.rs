@@ -6,9 +6,14 @@
 //! [`priority_ladder`] (chunk **AI-PRIO**). This module keeps the thin
 //! self-play `pick_goal*` API used by `ol-server` selfplay/NPC loops.
 
-use crate::professions::is_grassland;
 use ol_ai_crafting::craft_graph::ReverseCraftGraph;
 use std::collections::HashSet;
+
+/// Grassland biome id (Haxe GREEN) — kept local so helper does not depend on profession crate.
+#[inline]
+fn is_grassland(biome: u8) -> bool {
+    biome == 0
+}
 
 // Haxe: AiBase.doTimeStuffHelper priority ladder (AI-PRIO / priority_ladder)
 // OL-AI-SPLIT: sibling file in ol-ai/src/
@@ -309,115 +314,9 @@ pub fn pick_goal_with_biome(
     )
 }
 
-/// Craft-aware goal pick: smith iron products, farmer pipeline, baker pie/oven pipeline.
-///
-/// Smith uses stage `0.0` — prefer [`pick_goal_smith_craft_at_stage`] when
-/// [`crate::SmithProfessionRuntime::stage`] is sticky.
-pub fn pick_goal_smith_craft(
-    profession: Profession,
-    held_id: i32,
-    food: f32,
-    nearby_food: bool,
-    threat_near: bool,
-    prey_adjacent: bool,
-    on_grassland: bool,
-    graph: &ReverseCraftGraph,
-    have: &HashSet<i32>,
-    iron_id: i32,
-) -> Goal {
-    pick_goal_smith_craft_at_stage(
-        profession,
-        held_id,
-        food,
-        nearby_food,
-        threat_near,
-        prey_adjacent,
-        on_grassland,
-        graph,
-        have,
-        iron_id,
-        0.0,
-    )
-}
-
-/// Like [`pick_goal_smith_craft`] with smith profession stage (Haxe `profession['SMITH']`).
-// Haxe: doSmithing stage ladder + pick_smith_profession_goal
-pub fn pick_goal_smith_craft_at_stage(
-    profession: Profession,
-    held_id: i32,
-    food: f32,
-    nearby_food: bool,
-    threat_near: bool,
-    prey_adjacent: bool,
-    on_grassland: bool,
-    graph: &ReverseCraftGraph,
-    have: &HashSet<i32>,
-    iron_id: i32,
-    smith_stage: f32,
-) -> Goal {
-    let g = pick_goal_ext(
-        profession,
-        held_id,
-        food,
-        nearby_food,
-        threat_near,
-        prey_adjacent,
-        on_grassland,
-        0,
-    );
-    if profession == Profession::Smith && matches!(g, Goal::SeekObject(_)) {
-        // AI-JOB-SMITH: stage-aware pipeline then iron reverse-craft fallback
-        let _ = iron_id;
-        return crate::smith_profession::pick_smith_profession_goal(graph, have, smith_stage);
-    }
-    // Also expand smith when base would Explore/Idle with empty hands and fed.
-    if profession == Profession::Smith
-        && held_id == 0
-        && food > HUNGRY_FOOD
-        && matches!(g, Goal::Explore | Goal::Idle | Goal::SeekObject(_))
-        && !threat_near
-    {
-        return crate::smith_profession::pick_smith_profession_goal(graph, have, smith_stage);
-    }
-    // Farmer: expand toward crop pipeline intermediates via reverse craft (AI-JOB-FARM).
-    if profession == Profession::Farmer
-        && held_id == 0
-        && food > HUNGRY_FOOD
-        && matches!(g, Goal::SeekObject(_) | Goal::Explore | Goal::Idle)
-        && !threat_near
-    {
-        return crate::farmer_profession::pick_farmer_goal(graph, have);
-    }
-    // Baker: oven / pie / bread pipeline (AI-JOB-BAKER); stage inferred from inventory.
-    if profession == Profession::Baker
-        && held_id == 0
-        && food > HUNGRY_FOOD
-        && matches!(g, Goal::SeekObject(_) | Goal::Explore | Goal::Idle)
-        && !threat_near
-    {
-        let stage = crate::baker_profession::infer_baker_pipeline_stage(have);
-        return crate::baker_profession::pick_baker_goal(graph, have, stage);
-    }
-    // Potter: clay bowl/plate pipeline (AI-POTTER).
-    if profession == Profession::Potter
-        && held_id == 0
-        && food > HUNGRY_FOOD
-        && matches!(g, Goal::SeekObject(_) | Goal::Explore | Goal::Idle)
-        && !threat_near
-    {
-        return crate::pottery_profession::pick_potter_goal(graph, have);
-    }
-    // Shepherd: sheep / lamb / milk pipeline (AI-SHEPHERD-MID).
-    if profession == Profession::Shepherd
-        && held_id == 0
-        && food > HUNGRY_FOOD
-        && matches!(g, Goal::SeekObject(_) | Goal::Explore | Goal::Idle)
-        && !threat_near
-    {
-        return crate::shepherd_profession::pick_shepherd_goal(graph, have);
-    }
-    g
-}
+// Craft-aware profession expansion lives in `ol-ai-professions::goal_expand`
+// (`pick_goal_smith_craft` / `pick_goal_smith_craft_at_stage`) to avoid a
+// helper ↔ professions dependency cycle.
 
 #[cfg(test)]
 mod tests {
@@ -725,85 +624,7 @@ mod tests {
         }
     }
 
-    #[test]
-    fn pick_goal_smith_craft_expands_products_using() {
-        let g = iron_smith_graph();
-        let empty = HashSet::new();
-        let goal = pick_goal_smith_craft(
-            Profession::Smith,
-            0,
-            15.0,
-            false,
-            false,
-            false,
-            false,
-            &g,
-            &empty,
-            SMITH_IRON_ID,
-        );
-        // Stage-0 pipeline prefers iron ore before reverse-craft products.
-        assert!(matches!(goal, Goal::SeekObject(_)), "got {goal:?}");
-        assert_eq!(
-            pick_goal_smith_craft(
-                Profession::Smith,
-                0,
-                1.0,
-                false,
-                false,
-                false,
-                false,
-                &g,
-                &empty,
-                SMITH_IRON_ID,
-            ),
-            Goal::SeekFood
-        );
-        // Stage 5+ seeks mining pick path (not iron ore 290).
-        let stage5 = pick_goal_smith_craft_at_stage(
-            Profession::Smith,
-            0,
-            15.0,
-            false,
-            false,
-            false,
-            false,
-            &g,
-            &empty,
-            SMITH_IRON_ID,
-            5.0,
-        );
-        match stage5 {
-            Goal::SeekObject(id) => {
-                assert_ne!(id, 290, "stage5+ must not seek iron ore");
-                // 684 pick, or reverse-craft ingredients (314 iron / 441 hammer)
-                assert!(
-                    id == 684 || id == 314 || id == 441,
-                    "stage5 expected pick path, got {id}"
-                );
-            }
-            o => panic!("expected SeekObject, got {o:?}"),
-        }
-    }
-
-    #[test]
-    fn pick_goal_smith_craft_expands_baker_pipeline() {
-        let g = ReverseCraftGraph::new();
-        let empty = HashSet::new();
-        let goal = pick_goal_smith_craft(
-            Profession::Baker,
-            0,
-            15.0,
-            false,
-            false,
-            false,
-            false,
-            &g,
-            &empty,
-            SMITH_IRON_ID,
-        );
-        // Empty inventory → stage 0 wants clay plate first
-        assert_eq!(goal, Goal::SeekObject(236)); // CLAY_PLATE
-    }
+    // pick_goal_smith_craft* expansion tests live in ol-ai-professions::goal_expand
 
     #[test]
     fn empty_craft_graph_smith_falls_back_to_default() {

@@ -1,0 +1,12 @@
+[package]
+name = "ol-ai-professions"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AI profession pure state machines (smith/farm/baker/potter/shepherd/fire)"
+publish = false
+
+[dependencies]
+ol-ai-helper.workspace = true
+ol-ai-crafting.workspace = true
+ol-content.workspace = true

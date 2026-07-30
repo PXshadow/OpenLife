@@ -10,6 +10,7 @@ publish = false
 ol-ai-api.workspace = true
 ol-ai-helper.workspace = true
 ol-ai-crafting.workspace = true
+ol-ai-professions.workspace = true
 ol-net.workspace = true
 ol-content.workspace = true
 

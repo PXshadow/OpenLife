@@ -20,7 +20,7 @@
 
 use std::collections::HashMap;
 
-use crate::ai_goals::{Goal, POTTER_TARGET_ID};
+use ol_ai_helper::ai_goals::{Goal, POTTER_TARGET_ID};
 use ol_ai_crafting::craft_graph::ReverseCraftGraph;
 use crate::smith_profession::{
     do_pottery_on_fire, PotteryOnFireCounts, SmithAction, ADOBE, BIG_CHARCOAL_PILE, CLAY_BOWL,

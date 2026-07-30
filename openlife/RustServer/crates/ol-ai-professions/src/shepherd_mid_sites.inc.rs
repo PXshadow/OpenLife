@@ -313,5 +313,5 @@ pub fn pick_shepherd_goal(
             return Goal::SeekObject(id);
         }
     }
-    Goal::SeekObject(crate::ai_goals::SHEPHERD_TARGET_ID)
+    Goal::SeekObject(ol_ai_helper::ai_goals::SHEPHERD_TARGET_ID)
 }

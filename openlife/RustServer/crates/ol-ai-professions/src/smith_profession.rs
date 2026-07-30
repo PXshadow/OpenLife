@@ -12,7 +12,7 @@
 //! No world I/O: callers supply counts / forge parent id and apply returned
 //! [`SmithAction`]s via [`SmithApply`] (USE/DROP/craft) and spatial helpers.
 //!
-//! Existing thin reverse-craft path: [`crate::ai_goals::pick_smith_goal`] /
+//! Existing thin reverse-craft path: [`ol_ai_helper::ai_goals::pick_smith_goal`] /
 //! `smith_product_targets` â€” this module adds the full profession stage SM.
 //!
 //! **Intentional delta:** Haxe `prepareSmithingTools` lists the steel/crucible
@@ -23,7 +23,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::ai_goals::{Goal, SMITH_IRON_ID, SMITH_TARGET_ID, SMITHING_HAMMER_ID};
+use ol_ai_helper::ai_goals::{Goal, SMITH_IRON_ID, SMITH_TARGET_ID, SMITHING_HAMMER_ID};
 use ol_ai_crafting::craft_graph::ReverseCraftGraph;
 
 // â”€â”€ Object ids (OHOL / OpenLife content; Haxe comments in AiBase) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1471,7 +1471,7 @@ pub fn pick_smith_profession_goal(
         }
         return Goal::SeekObject(want);
     }
-    crate::ai_goals::pick_smith_goal(graph, have, SMITH_IRON_ID)
+    ol_ai_helper::ai_goals::pick_smith_goal(graph, have, SMITH_IRON_ID)
 }
 
 /// Map a [`SmithAction`] into a high-level [`Goal`] for self-play / thin tick.

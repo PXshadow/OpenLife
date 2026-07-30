@@ -1,4 +1,4 @@
-﻿//! Lite profession actions: `SAY HARVEST` / `FISH` / `MINE` / `DIG` / `CHOP`.
+//! Lite profession actions: `SAY HARVEST` / `FISH` / `MINE` / `DIG` / `CHOP`.
 //!
 //! Biome-gated gather with a shared 5s cooldown (caller tracks
 //! `last_prof_action_time` on the player body).

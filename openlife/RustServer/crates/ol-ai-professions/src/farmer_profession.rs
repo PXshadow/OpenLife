@@ -12,9 +12,9 @@
 
 use std::collections::HashMap;
 
-use crate::ai_goals::priority_ladder::age_job_index;
+use ol_ai_helper::ai_goals::priority_ladder::age_job_index;
 use ol_ai_crafting::craft_graph::ReverseCraftGraph;
-use crate::ai_goals::{Goal, FARMER_TARGET_ID};
+use ol_ai_helper::ai_goals::{Goal, FARMER_TARGET_ID};
 use std::collections::HashSet;
 
 // â”€â”€ Object ids (OHOL / OpenLife content; Haxe comments) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2010,10 +2010,10 @@ include!("farm_spatial_inc.rs");
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ai_goals::priority_ladder::{
+    use ol_ai_helper::ai_goals::priority_ladder::{
         goal_from_rung, PriorityRung,
     };
-    use crate::ai_goals::Profession;
+    use ol_ai_helper::ai_goals::Profession;
 
     fn counts_with(pairs: &[(i32, i32)]) -> FarmCounts {
         let mut c = FarmCounts::default();

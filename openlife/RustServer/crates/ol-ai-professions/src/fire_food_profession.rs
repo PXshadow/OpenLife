@@ -21,7 +21,7 @@
 
 use std::collections::HashMap;
 
-use crate::ai_goals::Goal;
+use ol_ai_helper::ai_goals::Goal;
 use crate::baker_profession::{
     CLAY_PLATE, COOKED_MUTTON, KINDLING, RAW_MUTTON, RAW_STEW_POT, SOAKING_BEANS,
 };
