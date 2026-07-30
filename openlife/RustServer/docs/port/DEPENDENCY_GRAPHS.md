@@ -104,15 +104,34 @@ flowchart TB
   SRV --> CFG[ol-config]
   SRV --> WLD[ol-world]
   SRV --> CNT[ol-content]
+  SRV --> AI[ol-ai façade]
+  SRV --> MAIN[ol-main-ai]
   SIM --> WLD
   SIM --> CNT
   SIM --> PROTO[ol-protocol]
   SIM --> NET
+  SIM --> AI
+  SIM --> PH[ol-player-helper]
+  AI --> API[ol-ai-api]
+  AI --> HELP[ol-ai-helper]
+  AI --> PATH[ol-ai-pathing]
+  AI --> CRAFT[ol-ai-crafting]
+  AI --> PROF[ol-ai-professions]
+  HELP --> PATH
+  HELP --> CRAFT
+  PROF --> HELP
+  PROF --> CRAFT
+  MAIN --> API
+  MAIN --> HELP
+  MAIN --> PH
+  PH --> API
   NET --> PROTO
   WEB --> SIM
   WEB --> WLD
   SIM --> MET[ol-metrics]
 ```
+
+See also `docs/design/OL_AI_SPLIT.md` for AI crate roles and dedupe status.
 
 ---
 

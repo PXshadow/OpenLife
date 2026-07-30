@@ -15,6 +15,8 @@ ol-protocol.workspace = true
 ol-config.workspace = true
 ol-ai.workspace = true
 ol-ai-api.workspace = true
+ol-ai-pathing.workspace = true
+ol-ai-crafting.workspace = true
 ol-player-helper.workspace = true
 tracing.workspace = true
 tokio = { version = "1", features = ["sync", "time", "macros", "rt"] }

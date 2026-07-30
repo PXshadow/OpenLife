@@ -28,9 +28,18 @@ apply_plan(write: &mut impl PlayerWriteInterface, sensors, plan) -> bool
 
 - NPC sticky food adopt: `plan_hungry_food` + `NpcNearbyFoodSearch` (pure SearchBestFood scorer, r=40)
 - Full profession ladder / multi-step path still in `npc_ai` (not fully moved)
+- Pure path maps: `ol-ai-pathing` (façade `ol_ai::ai_path_reach`); live Player fields still in sim
+
+## Crate context (post Phase C+)
+
+```text
+ol-main-ai → ol-ai-api, ol-ai-helper, ol-player-helper
+npc_ai (ol-server) → ol-main-ai + ol-ai façade + ol-sim live APIs
+```
 
 ## Next
 
-- Expand `ThinkPlan` for craft / profession rungs
-- Move more of the NPC ladder into `think()` and leave ol-server as schedule + `apply_plan` only
-- Phase E: `ol-ai-llm` apply-plan → write interface
+- Expand `ThinkPlan` for craft / profession rungs  
+- Move more of the NPC ladder into `think()` and leave ol-server as schedule + `apply_plan` only  
+- Phase E: `ol-ai-llm` apply-plan → write interface  
+- Phase F: finish sim pure-module re-export dedupe (see `OL_AI_SPLIT.md`)

@@ -10,15 +10,23 @@
 
 ```
 ol-server (bin)
-  ├─ ol-sim          simulation + intents + pure modules
-  ├─ ol-net          TCP, login bootstrap, outbound hub, ticket
-  ├─ ol-protocol     parse/format wire tags
-  ├─ ol-world        World grid, generate, OLW1/v2, journal
-  ├─ ol-content      objects/transitions/categories load
-  ├─ ol-config       server.toml / env
-  ├─ ol-web          HTTP viewer + APIs
-  ├─ ol-metrics      counters / ops series hooks
-  └─ (content/)      OneLifeData7 on disk
+  ├─ ol-sim            simulation + intents + live AI sticky / adapters
+  ├─ ol-ai             AI façade (re-exports below)
+  │    ├─ ol-ai-api         PlayerWrite/Read interfaces, FoodSearch (r=40)
+  │    ├─ ol-ai-pathing     pure path-reach / blockedByAI maps
+  │    ├─ ol-ai-helper      Goal + priority ladder
+  │    ├─ ol-ai-crafting    craft graph / plan / value
+  │    └─ ol-ai-professions pure profession SMs
+  ├─ ol-main-ai        ThinkPlan / plan_hungry_food over interfaces
+  ├─ ol-player-helper  shared pure food scoring / eat gates
+  ├─ ol-net            TCP, login bootstrap, outbound hub, ticket
+  ├─ ol-protocol       parse/format wire tags
+  ├─ ol-world          World grid, generate, OLW1/v2, journal
+  ├─ ol-content        objects/transitions/categories load
+  ├─ ol-config         server.toml / env
+  ├─ ol-web            HTTP viewer + APIs
+  ├─ ol-metrics        counters / ops series hooks
+  └─ (content/)        OneLifeData7 on disk
 ```
 
 | Crate | Responsibility |
@@ -27,11 +35,21 @@ ol-server (bin)
 | `ol-net` | Accept, per-conn tasks, `OutboundHub`, ticket verify |
 | `ol-content` | Parallel load of object/transition defs |
 | `ol-world` | `World` tiles, biome gen, OLW save/load (v1/v2), journal |
-| `ol-sim` | **All game rules**: `SimState`, `apply_intent`, ticks, modules |
-| `ol-server` | Glue: boot, tick loop, self-play, NPC threads, config |
+| `ol-sim` | **Sole world writer**: `SimState`, `apply_intent`, ticks; live AI adapters |
+| `ol-ai-api` | Write/read traits + best-food DTOs (humans and AI share writes via NetIntent) |
+| `ol-ai-pathing` | Pure not-reachable / hostile / blockedByAI timers |
+| `ol-ai-helper` | Goals + Haxe priority ladder sensors |
+| `ol-ai-crafting` | Reverse craft graph + value scoring |
+| `ol-ai-professions` | Pure profession state machines |
+| `ol-ai` | Façade re-exports (`ol_ai::*` stable for server/sim) |
+| `ol-main-ai` | High-level think plans over interfaces |
+| `ol-player-helper` | Shared pure SearchBestFood / yum gates |
+| `ol-server` | Glue: boot, tick loop, self-play, NPC scheduler, config |
 | `ol-web` | `/viewer`, `/api/*`, lineage pages |
 | `ol-config` | Typed config from `server.toml` |
 | `ol-metrics` | Metrics helpers |
+
+**AI split design:** `docs/design/OL_AI_SPLIT.md`
 
 ---
 

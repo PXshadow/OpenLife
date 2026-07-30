@@ -36,9 +36,16 @@ cargo test -p ol-sim --lib -- <filter>
 
 ## Structural cost (harder fixes)
 
-- `crates/ol-sim/src/lib.rs` is **~1.5 MB** — dominant compile unit.
+- `crates/ol-sim/src/lib.rs` is **~0.9–1.5 MB** — dominant compile unit.
 - `ol-sim/build.rs` + many `build_*.rs` re-check/patch sources on rebuilds.
-- Long-term: split `ol-sim` into smaller crates (`ol-sim-ai`, `ol-sim-combat`, …) or shrink `lib.rs` via modules without mega-include tests.
+- **AI pure policy** already lives in smaller crates (edit without full sim when not shadowed):
+  - `ol-ai-pathing` — path-reach maps
+  - `ol-ai-helper` — goals + priority ladder
+  - `ol-ai-crafting` — craft graph/value
+  - `ol-ai-professions` — profession pure SMs
+  - `ol-ai-api` / `ol-player-helper` / `ol-main-ai`
+- **Win condition:** `ol-sim` re-exports pure modules (`pub use ol_ai_pathing::…`) so rustc does not typecheck duplicate multi-kLOC copies on every sim change. Path-reach + craft_graph/value are first re-export targets (`docs/design/OL_AI_SPLIT.md`).
+- Long-term: split remaining mega-sim concerns (`ol-sim-combat`, …) or shrink `lib.rs` via modules without mega-include tests.
 
 ## First build after these settings
 

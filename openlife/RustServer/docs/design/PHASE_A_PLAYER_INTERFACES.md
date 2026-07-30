@@ -21,7 +21,7 @@ Deprecated aliases (compat): `PlayerCommands` = `PlayerWriteInterface`, `IntentS
 ol-ai-api     traits + DTOs only  (→ ol-net)
 ol-ai         pure AI + re-exports ol-ai-api
 ol-sim        implements read adapters (ai_adapters.rs)
-ol-server     NPC: write via PlayerWriteInterface; food via FoodSearch r=30
+ol-server     NPC: write via PlayerWriteInterface; food via FoodSearch r=40
 ```
 
 ## What landed
@@ -32,17 +32,17 @@ ol-server     NPC: write via PlayerWriteInterface; food via FoodSearch r=30
    - `WorldView`, `PlayerView`, `FoodSearch`
    - `BestFoodQuery` / `BestFoodHit`, `DEFAULT_FOOD_SEARCH_RADIUS = 40`
 
-2. **`ol-ai`** re-exports the API; local trait modules removed.
+2. **`ol-ai`** re-exports the API; local trait modules removed. (Later: façade also re-exports helper / pathing / crafting / professions.)
 
 3. **`ol-sim/src/ai_adapters.rs`** (now `mod` + `pub use`)
    - `WorldViewRef`, `PlayerRef`, `PlayerSnapshotView`
-   - `SimFoodSearch` / `best_food_for_ai` (ground scan r=30)
+   - `SimFoodSearch` / `best_food_for_ai` (ground scan; default r=40)
    - `SimPlayerRead` implements full `PlayerReadInterface`
 
 4. **`npc_ai`**
    - `NpcWriteTx` implements write interface
    - `NpcNearbyFoodSearch` implements `FoodSearch` for pre-scanned nearby tiles
-   - Seek food uses `best_food_default` (radius 30)
+   - Seek food uses `best_food_default` (radius **40**)
    - USE/MOVE/DROP/REMV helpers go through write interface
 
 ## Hard rules (enforced by structure)
