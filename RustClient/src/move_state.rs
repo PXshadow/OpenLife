@@ -116,6 +116,13 @@ pub struct MoveState {
     pub max_waypoint_path_length: i32,
     /// C++ `isAutoClick` for one path plan (close-hold throw / auto-walk).
     pub path_auto_click: bool,
+    /// C++ `currentPathStep` — index of the segment start in `path_to_dest`.
+    pub current_path_step: usize,
+    /// C++ `currentMoveDirection` (unit).
+    pub move_dir_x: f64,
+    pub move_dir_y: f64,
+    /// C++ `numFramesOnCurrentStep`.
+    pub frames_on_step: u32,
 }
 
 impl Default for MoveState {
@@ -143,6 +150,10 @@ impl Default for MoveState {
             // C++ default when arming close-hold throw (pathfind::DEFAULT_MAX_WAYPOINT_PATH_LENGTH).
             max_waypoint_path_length: 10,
             path_auto_click: false,
+            current_path_step: 0,
+            move_dir_x: 1.0,
+            move_dir_y: 0.0,
+            frames_on_step: 0,
         }
     }
 }
@@ -236,6 +247,10 @@ impl MoveState {
         self.path_dist_traveled = 0.0;
         self.path_total_length = 0.0;
         self.path_speed = 0.0;
+        self.current_path_step = 0;
+        self.frames_on_step = 0;
+        self.move_dir_x = 1.0;
+        self.move_dir_y = 0.0;
     }
 
     /// Begin path interpolation from the first cell of `path_to_dest`.
@@ -257,22 +272,137 @@ impl MoveState {
             .filter(|s| *s > 0.0)
             .unwrap_or(BASE_PATH_SPEED);
         self.path_speed = sp;
+        self.current_path_step = 0;
+        self.frames_on_step = 0;
+        if self.path_to_dest.len() >= 2 {
+            let (dx, dy) = Self::seg_dir(self.path_to_dest[0], self.path_to_dest[1]);
+            self.move_dir_x = dx;
+            self.move_dir_y = dy;
+        }
     }
 
-    /// Advance fractional `currentPos` along the active path (C++ per-frame path step lite).
+    fn seg_dir(a: (i32, i32), b: (i32, i32)) -> (f64, f64) {
+        let dx = (b.0 - a.0) as f64;
+        let dy = (b.1 - a.1) as f64;
+        let len = (dx * dx + dy * dy).sqrt();
+        if len < 1e-9 {
+            (1.0, 0.0)
+        } else {
+            (dx / len, dy / len)
+        }
+    }
+
+    fn count_remaining_turns(path: &[(i32, i32)], from_step: usize) -> i32 {
+        if path.len() < 3 || from_step + 1 >= path.len() {
+            return 0;
+        }
+        let mut last = (
+            path[from_step + 1].0 - path[from_step].0,
+            path[from_step + 1].1 - path[from_step].1,
+        );
+        let mut n = 0;
+        let last_i = path.len() - 1;
+        for p in (from_step + 1)..last_i {
+            let dir = (path[p + 1].0 - path[p].0, path[p + 1].1 - path[p].1);
+            if dir != last {
+                n += 1;
+                last = dir;
+            }
+        }
+        n
+    }
+
+    /// Advance fractional `currentPos` (C++ per-frame path step + turn smoothing).
     ///
-    /// Linear along path cells (no turn-smoothing / circling fix). Sufficient for
-    /// `findClosestPathSpot` mid-move repath origin.
+    /// Steers `currentMoveDirection` toward the next cell so 90° corners round
+    /// instead of cutting the chord, and snaps sharp on double-backs / high speed
+    /// so the player cannot circle a corner forever (LivingLifePage ~22708–22814).
     pub fn step_current_pos(&mut self, wall_dt: f64) {
         if !self.in_motion || self.path_to_dest.len() < 2 || self.path_speed <= 0.0 || wall_dt <= 0.0
         {
             return;
         }
-        self.path_dist_traveled =
-            (self.path_dist_traveled + self.path_speed * wall_dt).min(self.path_total_length);
-        let (px, py) = Self::position_along_path(&self.path_to_dest, self.path_dist_traveled);
-        self.current_pos_x = px;
-        self.current_pos_y = py;
+        const PATH_STEP_DIST_FACTOR: f64 = 0.2;
+        let path = &self.path_to_dest;
+        let n = path.len();
+        if self.current_path_step + 1 >= n {
+            self.current_pos_x = path[n - 1].0 as f64;
+            self.current_pos_y = path[n - 1].1 as f64;
+            self.path_dist_traveled = self.path_total_length;
+            return;
+        }
+        let speed = self.path_speed * wall_dt;
+        let frf = (wall_dt * 60.0).clamp(0.2, 4.0);
+        let mut step = self.current_path_step.min(n - 2);
+        let mut end = (path[step + 1].0 as f64, path[step + 1].1 as f64);
+        let dist = |ax: f64, ay: f64, bx: f64, by: f64| {
+            let dx = bx - ax;
+            let dy = by - ay;
+            (dx * dx + dy * dy).sqrt()
+        };
+        while dist(self.current_pos_x, self.current_pos_y, end.0, end.1) <= speed && step + 2 < n {
+            step += 1;
+            self.frames_on_step = 0;
+            end = (path[step + 1].0 as f64, path[step + 1].1 as f64);
+        }
+        let mut dir_x = end.0 - self.current_pos_x;
+        let mut dir_y = end.1 - self.current_pos_y;
+        let dlen = (dir_x * dir_x + dir_y * dir_y).sqrt();
+        if dlen > 1e-9 {
+            dir_x /= dlen;
+            dir_y /= dlen;
+        }
+        let mut turn = if step + 2 >= n { 0.5 } else { 0.35 };
+        if self.path_speed > 4.0 {
+            turn *= self.path_speed / 4.0;
+        }
+        let dot = dir_x * self.move_dir_x + dir_y * self.move_dir_y;
+        if dot >= 0.0 {
+            let mx = self.move_dir_x + dir_x * turn * frf;
+            let my = self.move_dir_y + dir_y * turn * frf;
+            let ml = (mx * mx + my * my).sqrt();
+            if ml > 1e-9 {
+                self.move_dir_x = mx / ml;
+                self.move_dir_y = my / ml;
+            }
+        } else {
+            self.move_dir_x = dir_x;
+            self.move_dir_y = dir_y;
+        }
+        if (self.frames_on_step as f64) * speed * frf > 2.0 || self.path_speed * frf > 12.0 {
+            self.move_dir_x = dir_x;
+            self.move_dir_y = dir_y;
+        }
+        self.frames_on_step = self.frames_on_step.saturating_add(1);
+        let start = (path[step].0 as f64, path[step].1 as f64);
+        if step + 2 < n {
+            self.current_pos_x += self.move_dir_x * speed;
+            self.current_pos_y += self.move_dir_y * speed;
+            if PATH_STEP_DIST_FACTOR
+                * dist(self.current_pos_x, self.current_pos_y, start.0, start.1)
+                > dist(self.current_pos_x, self.current_pos_y, end.0, end.1)
+            {
+                step += 1;
+                self.frames_on_step = 0;
+            }
+        } else {
+            let left = dist(self.current_pos_x, self.current_pos_y, end.0, end.1);
+            if left <= speed {
+                self.current_pos_x = end.0;
+                self.current_pos_y = end.1;
+                step = n - 2;
+            } else {
+                self.current_pos_x += self.move_dir_x * speed;
+                self.current_pos_y += self.move_dir_y * speed;
+            }
+        }
+        self.current_path_step = step.min(n - 2);
+        self.path_dist_traveled = distance_along_path_nearest(
+            path,
+            self.current_pos_x,
+            self.current_pos_y,
+        )
+        .clamp(0.0, self.path_total_length.max(0.0));
     }
 
     /// Integer hint from fractional currentPos (`lrint` of each axis).
@@ -308,9 +438,7 @@ impl MoveState {
         let prev_pos = (self.current_pos_x, self.current_pos_y);
         self.path_to_dest = path;
         self.path_total_length = len;
-        self.path_speed = len / total_sec as f64;
         if keep_progress {
-            // Approximate distance already covered: nearest projection by walking segs.
             let path_max = self.path_total_length.max(0.0);
             self.path_dist_traveled =
                 distance_along_path_nearest(&self.path_to_dest, prev_pos.0, prev_pos.1)
@@ -323,7 +451,27 @@ impl MoveState {
             self.path_dist_traveled = 0.0;
             self.current_pos_x = xs as f64;
             self.current_pos_y = ys as f64;
+            self.current_path_step = 0;
+            self.frames_on_step = 0;
         }
+        let mut acc = 0.0;
+        let mut step_i = 0usize;
+        for w in self.path_to_dest.windows(2) {
+            let seg = if w[0].0 != w[1].0 && w[0].1 != w[1].1 {
+                PATH_DIAG_LEN
+            } else {
+                1.0
+            };
+            if acc + seg >= self.path_dist_traveled {
+                break;
+            }
+            acc += seg;
+            step_i += 1;
+        }
+        self.current_path_step = step_i.min(self.path_to_dest.len().saturating_sub(2));
+        let turns = Self::count_remaining_turns(&self.path_to_dest, self.current_path_step);
+        let eta = (total_sec as f64 + 0.08 * turns as f64).max(0.1);
+        self.path_speed = len / eta;
     }
 
     /// Encode and apply a MOVE: increments seq, sets in_motion, validates deltas.
@@ -713,6 +861,28 @@ mod tests {
         assert_eq!(line, "MOVE -5 3 @2 1 0 2 1 2 2#");
         // no double spaces
         assert!(!line.contains("  "));
+    }
+
+    #[test]
+    fn turn_smoothing_rounds_corner_without_circling() {
+        let mut st = MoveState::new(0, 0);
+        st.send_move(&[
+            PathDelta { x: 2, y: 0 },
+            PathDelta { x: 2, y: 2 },
+        ])
+        .unwrap();
+        assert_eq!(st.path_to_dest, vec![(0, 0), (2, 0), (2, 2)]);
+        for _ in 0..240 {
+            st.step_current_pos(1.0 / 60.0);
+        }
+        let dx = (st.current_pos_x - 2.0).abs();
+        let dy = (st.current_pos_y - 2.0).abs();
+        assert!(
+            dx < 0.35 && dy < 0.35,
+            "should settle near dest, got ({}, {})",
+            st.current_pos_x,
+            st.current_pos_y
+        );
     }
 
     #[test]

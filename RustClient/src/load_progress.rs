@@ -11,6 +11,7 @@
 //! // C++: LoadingPage::{setCurrentPhase,setCurrentProgress,draw}
 
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use crate::anim_bank::AnimBank;
 use crate::content::ClientContent;
@@ -20,6 +21,7 @@ use crate::music_bank::MusicBank;
 use crate::render::Framebuffer;
 use crate::sound_bank::SoundBank;
 use crate::sprite_bank::SpriteBank;
+use crate::tga::{load_tga_path, RgbaImage};
 
 /// Ordered boot stages (equal weight in overall fraction).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -384,10 +386,71 @@ pub fn fractions_monotonic(events: &[LoadingState]) -> bool {
 
 // ── soft-FB draw ─────────────────────────────────────────────────────────────
 
+/// Official `graphics/loading.tga` (or loading2/3) behind the progress bar.
+fn loading_tga_chrome() -> Option<&'static RgbaImage> {
+    static CACHE: OnceLock<Option<RgbaImage>> = OnceLock::new();
+    CACHE
+        .get_or_init(|| {
+            let mut roots = Vec::new();
+            if let Ok(p) = std::env::var("OHOL_GAME_DATA") {
+                if !p.is_empty() {
+                    roots.push(PathBuf::from(p));
+                }
+            }
+            roots.push(PathBuf::from(r"C:\OhOl\OpenLife\OneLifeGameSourceData"));
+            roots.push(PathBuf::from(r"C:\OhOl\OpenLife\OneLifeData7"));
+            for root in &roots {
+                for name in ["loading.tga", "loading2.tga", "loading3.tga"] {
+                    let candidates = [
+                        root.join("graphics").join(name),
+                        root.join(name),
+                        root.join("gameSource").join("graphics").join(name),
+                    ];
+                    for p in candidates {
+                        if p.is_file() {
+                            if let Ok(img) = load_tga_path(&p) {
+                                if img.width > 0 && img.height > 0 {
+                                    return Some(img);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            None
+        })
+        .as_ref()
+}
+
+fn blit_loading_tga(fb: &mut Framebuffer, img: &RgbaImage) {
+    let w = fb.width as i32;
+    let h = fb.height as i32;
+    if w < 8 || h < 8 || img.width == 0 || img.height == 0 {
+        return;
+    }
+    let fit = (w as f32 * 0.92 / img.width as f32).min(h as f32 * 0.92 / img.height as f32);
+    let scale = fit.max(0.1);
+    let dw = (img.width as f32 * scale).max(1.0) as i32;
+    let dh = (img.height as f32 * scale).max(1.0) as i32;
+    let ox = w / 2 - dw / 2;
+    let oy = h / 2 - dh / 2;
+    for dy in 0..dh {
+        for dx in 0..dw {
+            let u = (dx * img.width as i32 / dw.max(1)).clamp(0, img.width as i32 - 1) as u32;
+            let v = (dy * img.height as i32 / dh.max(1)).clamp(0, img.height as i32 - 1) as u32;
+            let px = img.pixel(u, v);
+            if px[3] == 0 {
+                continue;
+            }
+            fb.put(ox + dx, oy + dy, px);
+        }
+    }
+}
+
 /// Draw loading bar + label into a soft framebuffer (dark boot screen).
 ///
-/// C++ `LoadingPage::draw`: "LOADING" title, phase name, white-border progress bar.
-/// Used by `ohol-client` before the live world loop.
+/// C++ `LoadingPage::draw`: loading.tga chrome, "LOADING" title, phase name,
+/// white-border progress bar. Used by `ohol-client` before the live world loop.
 pub fn draw_loading_progress(fb: &mut Framebuffer, state: &LoadingState) {
     // Near-black navy background (C++ LoadingPage dark field).
     fb.clear([16, 16, 24, 255]);
@@ -395,6 +458,10 @@ pub fn draw_loading_progress(fb: &mut Framebuffer, state: &LoadingState) {
     let h = fb.height as i32;
     if w < 8 || h < 8 {
         return;
+    }
+
+    if let Some(img) = loading_tga_chrome() {
+        blit_loading_tga(fb, img);
     }
 
     let scale = (w.min(h) as f32 / 540.0).clamp(0.75, 2.0);

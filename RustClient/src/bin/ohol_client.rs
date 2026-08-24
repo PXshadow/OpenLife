@@ -16,7 +16,7 @@
 //! - RMB or Q → DROP held / REMV from container under cursor
 //! - Keys **1–6** → clothing slots 0..5 (held→`DROP c`; bare→`SELF c` remove; Shift→`SREMV`)
 //! - Click/hover worn clothing sprites (soft-FB hitMap) → same as keys for that slot
-//! - T → `SAY 0 0 HI#` (L-SAY smoke)
+//! - Enter or `/` → say field (C++ `mSayField`); `/FPS` `/DIE` `/PING` `/FAM` …
 //! - Hover uses soft-FB hitMap (`get_sprite_hit`) for object id + worn clothing
 //! - Title bar shows rolling FPS; logs FPS after first presented frame, then every 30s
 //! - **Death** (P5#38): on our delete PU → death page; **R/Enter** rebirth reconnect, **Esc** quit
@@ -41,7 +41,8 @@ use ohol_headless::settings_page::GraphicsMode;
 use ohol_headless::anim_bank::AnimBank;
 use ohol_headless::client_map::ClientMap;
 use ohol_headless::click_tile::{
-    click_drop_clothing, click_remove_clothing, click_sremv_clothing, walk_or_use_tile_hold,
+    click_drop_clothing, click_kill, click_remove_clothing, click_sremv_clothing,
+    walk_or_use_tile_hold,
 };
 use ohol_headless::client_screen::{
     death_key_command, draw_death_screen, note_our_death_if_any, rebirth_session_config, DeathKey,
@@ -53,10 +54,10 @@ use ohol_headless::play_snapshot::{
 };
 use ohol_headless::content::ClientContent;
 use ohol_headless::hover_pick::{
-    draw_hover_outline, update_scene_hover, update_scene_hover_with_clothing, HoverPick,
-    WornClothingPickTarget,
+    draw_hover_outline, hover_tip_and_grave, update_scene_hover, update_scene_hover_with_clothing,
+    HoverPick, HoverTipInput, WornClothingPickTarget,
 };
-use ohol_headless::hud::HudSprites;
+use ohol_headless::hud::{draw_pencil_string, HudSprites};
 use ohol_headless::live_object::{LiveWorld, CLOTHING_SLOT_NAMES};
 use ohol_headless::load_bench::resolve_content_root;
 use ohol_headless::load_progress::{
@@ -77,7 +78,7 @@ const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Build-time stamp from build.rs (seconds since epoch) — proves newest binary.
 const CLIENT_BUILD_STAMP: &str = env!("OHOL_BUILD_STAMP");
 /// What we are actively fixing / working on (shown in every window title).
-const CLIENT_FOCUS: &str = "Jason ground wholeSheet + overlay";
+const CLIENT_FOCUS: &str = "polish: reverb, HUD fonts, loading.tga, fullscreen recreate";
 
 /// Prefix for all window titles so you can see version + current work.
 fn title_prefix() -> String {
@@ -221,6 +222,72 @@ fn soft_play_window_opts(fullscreen: bool) -> WindowOptions {
     }
 }
 
+fn new_soft_window(
+    title: &str,
+    fullscreen: bool,
+    play: bool,
+    chars: Option<&Rc<RefCell<Vec<u32>>>>,
+) -> anyhow::Result<Window> {
+    let opts = if play {
+        soft_play_window_opts(fullscreen)
+    } else if fullscreen {
+        soft_play_window_opts(true)
+    } else {
+        soft_window_opts()
+    };
+    let mut w = Window::new(title, FB_W, FB_H, opts)?;
+    w.set_target_fps(60);
+    if let Some(chars) = chars {
+        w.set_input_callback(Box::new(CharQueue {
+            chars: Rc::clone(chars),
+        }));
+    }
+    Ok(w)
+}
+
+fn apply_hover_from_session(
+    scene: &mut SceneRenderer,
+    session: &ohol_headless::session::ClientSession,
+    hover: HoverPick,
+) -> Option<(i32, i32)> {
+    let input = HoverTipInput {
+        pick: hover,
+        map: &session.map,
+        content: &session.content,
+        world: &session.world,
+        our_id: session.our_id,
+        bad_biome_names: &session.bad_biome_names,
+        graves: &session.graves,
+        grave_olds: &session.grave_olds,
+        owners: &session.owner_lists,
+    };
+    let (tip, grave) = hover_tip_and_grave(&input);
+    scene.hud.hover_tip = tip;
+    grave
+}
+
+fn apply_hover_offline(
+    scene: &mut SceneRenderer,
+    map: &ohol_headless::client_map::ClientMap,
+    content: &ohol_headless::content::ClientContent,
+    world: &ohol_headless::live_object::LiveWorld,
+    hover: HoverPick,
+) {
+    let input = HoverTipInput {
+        pick: hover,
+        map,
+        content,
+        world,
+        our_id: world.our().map(|o| o.id),
+        bad_biome_names: &[],
+        graves: &[],
+        grave_olds: &[],
+        owners: &[],
+    };
+    let (tip, _) = hover_tip_and_grave(&input);
+    scene.hud.hover_tip = tip;
+}
+
 /// Safe mouse position in **soft-FB coordinates** (FB_W×FB_H).
 ///
 /// minifb `get_mouse_pos` only undoes Scale, not Stretch resize (upstream TODO).
@@ -322,6 +389,123 @@ impl InputCallback for CharQueue {
     }
 }
 
+/// C++ `mSayField` — Enter or `/` to talk; slash commands never go as SAY.
+struct PlaySayField {
+    focused: bool,
+    text: String,
+}
+
+impl PlaySayField {
+    fn new() -> Self {
+        Self {
+            focused: false,
+            text: String::new(),
+        }
+    }
+
+    fn push_char(&mut self, c: char) {
+        if c.is_control() {
+            return;
+        }
+        if !self.focused {
+            if c == '/' {
+                self.focused = true;
+                self.text = "/".into();
+            }
+            return;
+        }
+        if self.text.len() < 80 {
+            self.text.push(c);
+        }
+    }
+
+    fn backspace(&mut self) {
+        if self.focused {
+            self.text.pop();
+        }
+    }
+
+    /// Enter while unfocused → start typing; while focused → submit (maybe empty).
+    fn enter(&mut self) -> Option<String> {
+        if !self.focused {
+            self.focused = true;
+            self.text.clear();
+            return None;
+        }
+        let out = self.text.trim().to_string();
+        self.focused = false;
+        self.text.clear();
+        if out.is_empty() {
+            None
+        } else {
+            Some(out)
+        }
+    }
+
+    fn cancel(&mut self) -> bool {
+        if self.focused {
+            self.focused = false;
+            self.text.clear();
+            true
+        } else {
+            false
+        }
+    }
+
+    fn draw(&self, fb: &mut Framebuffer, fb_w: u32, fb_h: u32) {
+        if !self.focused {
+            return;
+        }
+        let shown = if self.text.is_empty() {
+            "> _".to_string()
+        } else {
+            format!("> {}_", self.text)
+        };
+        let x = fb_w as f32 * 0.5;
+        let y = fb_h as f32 - 28.0;
+        draw_pencil_string(fb, &shown, x, y, 2.0, [20, 20, 20, 255], true);
+    }
+}
+
+fn draw_slash_overlays(fb: &mut Framebuffer, session: &ClientSession, fps: f32) {
+    let mut y = 10.0;
+    if session.show_fps_overlay {
+        draw_pencil_string(
+            fb,
+            &format!("{fps:.0} FPS"),
+            12.0,
+            y,
+            2.0,
+            [20, 20, 20, 255],
+            false,
+        );
+        y += 16.0;
+    }
+    if session.show_net_overlay {
+        draw_pencil_string(
+            fb,
+            &format!("MSG IN {} OUT {}", session.messages_in, session.messages_out),
+            12.0,
+            y,
+            1.5,
+            [20, 20, 20, 255],
+            false,
+        );
+        y += 14.0;
+    }
+    if let Some(ms) = session.last_ping_ms {
+        draw_pencil_string(
+            fb,
+            &format!("PING {ms:.0} MS"),
+            12.0,
+            y,
+            1.5,
+            [20, 20, 20, 255],
+            false,
+        );
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     let t_start = Instant::now();
     let _ = dotenvy::dotenv();
@@ -375,6 +559,7 @@ fn main() -> anyhow::Result<()> {
             mut session,
             sprites,
             anims,
+            music,
             loading_secs,
             connect_secs,
         } => {
@@ -406,11 +591,11 @@ fn main() -> anyhow::Result<()> {
                         FB_H,
                         app.settings.fullscreen
                     );
-                    run_session_gpu(session, sprites, anims, cfg, app)
+                    run_session_gpu(session, sprites, anims, music, cfg, app)
                 }
                 GraphicsMode::Soft => {
                     eprintln!("graphics: Soft minifb present (CPU buffer)");
-                    run_session_from_boot(session, sprites, anims, cfg, app)
+                    run_session_from_boot(session, sprites, anims, music, cfg, app)
                 }
             }
         }
@@ -420,6 +605,7 @@ fn main() -> anyhow::Result<()> {
             anims,
             ground,
             sounds,
+            music,
             loading_secs,
             connect_secs,
             status,
@@ -435,7 +621,7 @@ fn main() -> anyhow::Result<()> {
             eprintln!(
                 "timing: boot_window={boot_secs:.3}s (single init screen)"
             );
-            run_offline_with_banks(content, sprites, anims, ground, sounds)
+            run_offline_with_banks(content, sprites, anims, ground, sounds, music)
         }
     }
 }
@@ -446,6 +632,7 @@ enum InitOutcome {
         session: ClientSession,
         sprites: SpriteBank,
         anims: AnimBank,
+        music: MusicBank,
         loading_secs: f64,
         connect_secs: f64,
     },
@@ -455,6 +642,7 @@ enum InitOutcome {
         anims: AnimBank,
         ground: ohol_headless::ground_sprites::GroundBank,
         sounds: ohol_headless::sound_bank::SoundBank,
+        music: MusicBank,
         loading_secs: f64,
         connect_secs: f64,
         status: String,
@@ -618,12 +806,13 @@ fn run_init_boot(app: &mut ClientAppState, cfg: &SessionConfig) -> anyhow::Resul
     let anims = banks.anims;
     let ground = banks.ground;
     let sounds = banks.sounds;
-    let _music = banks.music;
+    let music = banks.music;
 
     match ClientSession::connect_with_content(cfg, content) {
         Ok(mut session) if matches!(session.login, LoginOutcome::Accepted) => {
             let connect_secs = t_connect0.elapsed().as_secs_f64();
             session.sounds = sounds;
+            session.skip_emot_ttl_in_step = true;
             present_init_status(
                 &mut window,
                 &mut fb,
@@ -639,6 +828,7 @@ fn run_init_boot(app: &mut ClientAppState, cfg: &SessionConfig) -> anyhow::Resul
                 session,
                 sprites,
                 anims,
+                music,
                 loading_secs,
                 connect_secs,
             })
@@ -662,6 +852,7 @@ fn run_init_boot(app: &mut ClientAppState, cfg: &SessionConfig) -> anyhow::Resul
                 anims,
                 ground,
                 sounds,
+                music,
                 loading_secs,
                 connect_secs,
                 status,
@@ -690,6 +881,7 @@ fn run_init_boot(app: &mut ClientAppState, cfg: &SessionConfig) -> anyhow::Resul
                 anims,
                 ground,
                 sounds,
+                music,
                 loading_secs,
                 connect_secs,
                 status,
@@ -819,9 +1011,30 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
                 SettingsLoop::Restart => {
                     restart_client_process();
                 }
+                SettingsLoop::ApplyFullscreen => {
+                    match new_soft_window(
+                        "Open Life — Account",
+                        app.settings.fullscreen,
+                        false,
+                        Some(&chars),
+                    ) {
+                        Ok(w) => {
+                            window = w;
+                            app.settings.runtime_fullscreen = app.settings.fullscreen;
+                            eprintln!(
+                                "settings: fullscreen {} (window recreate)",
+                                if app.settings.fullscreen { "on" } else { "off" }
+                            );
+                        }
+                        Err(e) => eprintln!("settings: fullscreen recreate failed: {e}"),
+                    }
+                }
                 SettingsLoop::OpenAccount => {
                     app.enter_account_from_settings();
                     was_lmb_account = false;
+                }
+                SettingsLoop::OpenReview => {
+                    let _ = app.enter_review();
                 }
                 SettingsLoop::Continue => {
                     app.settings.draw(&mut fb, Some(&hud));
@@ -881,13 +1094,131 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
             selftest_frames = selftest_frames.saturating_add(1);
         }
 
+        if app.screen.is_twin() {
+            {
+                let mut q = chars.borrow_mut();
+                for u in q.drain(..) {
+                    if let Some(c) = char::from_u32(u) {
+                        let _ = app.twin.on_key(ohol_headless::TwinKey::Char(c));
+                    }
+                }
+            }
+            let shift = window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift);
+            let mut taction = ohol_headless::TwinAction::None;
+            if window.is_key_pressed(Key::Tab, KeyRepeat::No) {
+                taction = app.twin.on_key(ohol_headless::TwinKey::Tab { shift });
+            }
+            if window.is_key_pressed(Key::Enter, KeyRepeat::No)
+                || window.is_key_pressed(Key::NumPadEnter, KeyRepeat::No)
+            {
+                taction = app.twin.on_key(ohol_headless::TwinKey::Enter);
+            }
+            if window.is_key_pressed(Key::Escape, KeyRepeat::No) {
+                taction = app.twin.on_key(ohol_headless::TwinKey::Escape);
+            }
+            if window.is_key_pressed(Key::Backspace, KeyRepeat::Yes) {
+                let _ = app.twin.on_key(ohol_headless::TwinKey::Backspace);
+            }
+            let lmb = window.get_mouse_down(MouseButton::Left);
+            if lmb && !was_lmb_account {
+                if let Some((mx, my)) = safe_mouse_pos(&window) {
+                    let a = app.twin.on_pointer_down(mx, my, FB_W as f32, FB_H as f32);
+                    if a != ohol_headless::TwinAction::None {
+                        taction = a;
+                    }
+                }
+            }
+            was_lmb_account = lmb;
+            match taction {
+                ohol_headless::TwinAction::Login => {
+                    let cfg = app.begin_connect();
+                    eprintln!("twin: login code party={}", app.twin.party_label());
+                    return Ok(Some(cfg));
+                }
+                ohol_headless::TwinAction::Cancel => {
+                    app.screen = ClientScreen::Account;
+                    app.account.status = "Twin login cancelled.".into();
+                }
+                ohol_headless::TwinAction::None => {}
+            }
+            app.twin.draw(&mut fb, Some(&hud));
+            rgba_to_u32(&fb.pixels, &mut buf);
+            window.set_title(&window_title("Twins", app.twin.party_label()));
+            window.update_with_buffer(&buf, FB_W, FB_H)?;
+            fps.on_presented(dt);
+            continue;
+        }
+
+        if app.screen.is_review() {
+            {
+                let mut q = chars.borrow_mut();
+                for u in q.drain(..) {
+                    if let Some(c) = char::from_u32(u) {
+                        let _ = app.review.on_key(ohol_headless::ReviewKey::Char(c));
+                    }
+                }
+            }
+            let shift = window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift);
+            let mut raction = ohol_headless::ReviewAction::None;
+            if window.is_key_pressed(Key::Tab, KeyRepeat::No) {
+                raction = app.review.on_key(ohol_headless::ReviewKey::Tab { shift });
+            }
+            if window.is_key_pressed(Key::Enter, KeyRepeat::No) {
+                raction = app.review.on_key(ohol_headless::ReviewKey::Enter);
+            }
+            if window.is_key_pressed(Key::Escape, KeyRepeat::No) {
+                raction = ohol_headless::ReviewAction::Back;
+            }
+            if window.is_key_pressed(Key::Key1, KeyRepeat::No) {
+                raction = app.review.on_key(ohol_headless::ReviewKey::Digit1);
+            }
+            if window.is_key_pressed(Key::Key2, KeyRepeat::No) {
+                raction = app.review.on_key(ohol_headless::ReviewKey::Digit2);
+            }
+            if window.is_key_pressed(Key::Backspace, KeyRepeat::Yes) {
+                let _ = app.review.on_key(ohol_headless::ReviewKey::Backspace);
+            }
+            let lmb = window.get_mouse_down(MouseButton::Left);
+            if lmb && !was_lmb_account {
+                if let Some((mx, my)) = safe_mouse_pos(&window) {
+                    let a = app.review.on_pointer_down(mx, my, FB_W as f32, FB_H as f32);
+                    if a != ohol_headless::ReviewAction::None {
+                        raction = a;
+                    }
+                }
+            }
+            was_lmb_account = lmb;
+            match raction {
+                ohol_headless::ReviewAction::Back => app.leave_review(),
+                ohol_headless::ReviewAction::OpenUrl => {
+                    if let Some(u) = app.review.active_url() {
+                        match ohol_headless::open_http_url(u) {
+                            Ok(()) => app.review.status = format!("Opened {u}"),
+                            Err(e) => app.review.status = e,
+                        }
+                    }
+                }
+                ohol_headless::ReviewAction::None => {}
+            }
+            app.review.draw(&mut fb, Some(&hud));
+            rgba_to_u32(&fb.pixels, &mut buf);
+            window.set_title(&window_title("Community", ""));
+            window.update_with_buffer(&buf, FB_W, FB_H)?;
+            fps.on_presented(dt);
+            continue;
+        }
+
         app.account.step(dt);
 
         {
             let mut q = chars.borrow_mut();
             for u in q.drain(..) {
                 if let Some(c) = char::from_u32(u) {
-                    let _ = app.account.on_key(AccountKey::Char(c));
+                    if app.screen.is_settings() {
+                        let _ = app.settings.on_key(SettingsKey::Char(c));
+                    } else {
+                        let _ = app.account.on_key(AccountKey::Char(c));
+                    }
                 }
             }
         }
@@ -956,6 +1287,12 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
                     eprintln!("settings: opened from Settings button");
                 }
             }
+            AccountAction::OpenTwin => {
+                let _ = app.enter_twin();
+            }
+            AccountAction::OpenReview => {
+                let _ = app.enter_review();
+            }
             AccountAction::Back | AccountAction::Saved => {
                 // Nested form only — boot path should not hit these.
                 app.return_to_settings_from_account();
@@ -1015,8 +1352,11 @@ enum SettingsLoop {
     Continue,
     Left,
     Restart,
+    /// Recreate the minifb window for fullscreen (in-process).
+    ApplyFullscreen,
     /// Jump to Account form (from Settings → Account settings row).
     OpenAccount,
+    OpenReview,
 }
 
 /// Keyboard for nested Account form (no char queue — caller drains that).
@@ -1143,7 +1483,10 @@ fn handle_settings_input(
     if suppress_close
         && matches!(
             action,
-            SettingsAction::Back | SettingsAction::Restart | SettingsAction::OpenAccount
+            SettingsAction::Back
+                | SettingsAction::Restart
+                | SettingsAction::ApplyFullscreen
+                | SettingsAction::OpenAccount
         )
     {
         action = SettingsAction::None;
@@ -1160,7 +1503,9 @@ fn handle_settings_input(
             SettingsLoop::Left
         }
         SettingsAction::Restart => SettingsLoop::Restart,
+        SettingsAction::ApplyFullscreen => SettingsLoop::ApplyFullscreen,
         SettingsAction::OpenAccount => SettingsLoop::OpenAccount,
+        SettingsAction::OpenReview => SettingsLoop::OpenReview,
     }
 }
 
@@ -1171,6 +1516,7 @@ fn run_session_from_boot(
     mut session: ClientSession,
     mut sprites: SpriteBank,
     mut anims: AnimBank,
+    music: MusicBank,
     cfg: SessionConfig,
     mut app: ClientAppState,
 ) -> anyhow::Result<()> {
@@ -1184,6 +1530,7 @@ fn run_session_from_boot(
     });
     let mut scene = SceneRenderer::default();
     scene.set_content_root(Some(&root));
+    scene.music = music;
     // Restore persisted zoom / brightness (settings.ini / OHOL_*).
     scene.camera.zoom = app.settings.zoom.clamp(
         ohol_headless::render::ZOOM_MIN,
@@ -1213,10 +1560,19 @@ fn run_session_from_boot(
     let mut fps = FpsMeter::new("live");
     let settings_hud = HudSprites::with_default_roots(Some(&root));
     let mut was_lmb_account = false;
+    let mut say = PlaySayField::new();
 
-    // Volume/mute on both banks: scene.sounds drives draw/anim SFX; session for net hooks.
-    app.settings.apply_to_banks(Some(&mut session.sounds), None);
-    app.settings.apply_to_banks(Some(&mut scene.sounds), None);
+    // Volume/mute: scene.sounds = anim SFX; session = net hooks; scene.music = bed.
+    app.settings
+        .apply_to_banks(Some(&mut session.sounds), Some(&mut scene.music));
+    app.settings
+        .apply_to_banks(Some(&mut scene.sounds), Some(&mut scene.music));
+    // Kick age-matched bed once we have a player (draw also steps each frame).
+    if let Some(me) = session.world.our() {
+        let _ = scene
+            .music
+            .restart_music(me.current_age() as f64, me.age_rate.max(1e-9) as f64, true);
+    }
 
     let mut was_lmb_settings = false;
     let mut esc_f3 = EscF3Edge::default();
@@ -1232,7 +1588,9 @@ fn run_session_from_boot(
         if pending_open_settings {
             pending_open_settings = false;
             if app.screen.is_playing() {
-                if app.enter_settings() {
+                if say.cancel() {
+                    // Esc while typing — close say field, don't open Settings.
+                } else if app.enter_settings() {
                     suppress_settings_close = true;
                     esc_f3.mark_opened();
                     eprintln!("settings: opened in play (key)");
@@ -1258,9 +1616,9 @@ fn run_session_from_boot(
                 false,
             ) {
                 SettingsLoop::Left => {
-                    // Apply volume/mute to BOTH banks (scene = anim SFX).
-                    app.apply_settings_to_banks(Some(&mut session.sounds), None);
-                    app.apply_settings_to_banks(Some(&mut scene.sounds), None);
+                    // Apply volume/mute to SFX + music banks.
+                    app.apply_settings_to_banks(Some(&mut session.sounds), Some(&mut scene.music));
+                    app.apply_settings_to_banks(Some(&mut scene.sounds), Some(&mut scene.music));
                     // Apply zoom/brightness when leaving settings (also persisted by leave_settings).
                     scene.camera.zoom = app.settings.zoom.clamp(
                         ohol_headless::render::ZOOM_MIN,
@@ -1270,26 +1628,59 @@ fn run_session_from_boot(
                     was_lmb_settings = false;
                 }
                 SettingsLoop::Restart => {
-                    app.apply_settings_to_banks(Some(&mut session.sounds), None);
-                    app.apply_settings_to_banks(Some(&mut scene.sounds), None);
+                    app.apply_settings_to_banks(Some(&mut session.sounds), Some(&mut scene.music));
+                    app.apply_settings_to_banks(Some(&mut scene.sounds), Some(&mut scene.music));
                     let _ = app.settings.save_default();
+                    if app.settings.graphics_mode == GraphicsMode::Gpu
+                        && app.settings.runtime_graphics == GraphicsMode::Soft
+                    {
+                        app.settings.capture_runtime_baseline();
+                        drop(window);
+                        return run_session_gpu(session, sprites, anims, scene.music, cfg, app);
+                    }
                     restart_client_process();
+                }
+                SettingsLoop::ApplyFullscreen => {
+                    match new_soft_window(
+                        "Open Life Rust Client",
+                        app.settings.fullscreen,
+                        true,
+                        Some(&chars),
+                    ) {
+                        Ok(w) => {
+                            window = w;
+                            app.settings.runtime_fullscreen = app.settings.fullscreen;
+                            eprintln!(
+                                "settings: fullscreen {} (window recreate)",
+                                if app.settings.fullscreen { "on" } else { "off" }
+                            );
+                        }
+                        Err(e) => eprintln!("settings: fullscreen recreate failed: {e}"),
+                    }
                 }
                 SettingsLoop::OpenAccount => {
                     app.enter_account_from_settings();
                     was_lmb_settings = false;
                     log_status(&mut last_status, "Account settings");
                 }
+                SettingsLoop::OpenReview => {
+                    let _ = app.enter_review();
+                }
                 SettingsLoop::Continue => {
-                    // Live-preview zoom, brightness + SFX loudness while adjusting.
+                    // Live-preview zoom, brightness + SFX/music loudness while adjusting.
                     scene.camera.zoom = app.settings.zoom.clamp(
                         ohol_headless::render::ZOOM_MIN,
                         ohol_headless::render::ZOOM_MAX,
                     );
                     scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
-                    app.apply_settings_to_banks(Some(&mut session.sounds), None);
-                    app.apply_settings_to_banks(Some(&mut scene.sounds), None);
+                    app.apply_settings_to_banks(Some(&mut session.sounds), Some(&mut scene.music));
+                    app.apply_settings_to_banks(Some(&mut scene.sounds), Some(&mut scene.music));
                     // World under glass settings overlay.
+                    if let Some((gx, gy)) =
+                        apply_hover_from_session(&mut scene, &session, hover)
+                    {
+                        let _ = session.request_grave(gx, gy);
+                    }
                     let saved_hl = scene.highlight_tile.take();
                     scene.draw(
                         &mut fb,
@@ -1371,6 +1762,12 @@ fn run_session_from_boot(
                 AccountAction::OpenSettings => {
                     let _ = app.enter_settings();
                 }
+                AccountAction::OpenTwin => {
+                    let _ = app.enter_twin();
+                }
+                AccountAction::OpenReview => {
+                    let _ = app.enter_review();
+                }
                 AccountAction::Connect => {
                     // Mid-session: save endpoint only (reconnect next boot).
                     app.account.remember_current_server();
@@ -1380,6 +1777,11 @@ fn run_session_from_boot(
                 AccountAction::Quit | AccountAction::None => {}
             }
             if app.screen.is_account() {
+                if let Some((gx, gy)) =
+                    apply_hover_from_session(&mut scene, &session, hover)
+                {
+                    let _ = session.request_grave(gx, gy);
+                }
                 let saved_hl = scene.highlight_tile.take();
                 scene.draw(
                     &mut fb,
@@ -1400,6 +1802,65 @@ fn run_session_from_boot(
             }
         }
 
+        if app.screen.is_review() {
+            {
+                let mut q = chars.borrow_mut();
+                for u in q.drain(..) {
+                    if let Some(c) = char::from_u32(u) {
+                        let _ = app.review.on_key(ohol_headless::ReviewKey::Char(c));
+                    }
+                }
+            }
+            let shift = window.is_key_down(Key::LeftShift) || window.is_key_down(Key::RightShift);
+            let mut raction = ohol_headless::ReviewAction::None;
+            if window.is_key_pressed(Key::Tab, KeyRepeat::No) {
+                raction = app.review.on_key(ohol_headless::ReviewKey::Tab { shift });
+            }
+            if window.is_key_pressed(Key::Enter, KeyRepeat::No) {
+                raction = app.review.on_key(ohol_headless::ReviewKey::Enter);
+            }
+            if window.is_key_pressed(Key::Escape, KeyRepeat::No) {
+                raction = ohol_headless::ReviewAction::Back;
+            }
+            if window.is_key_pressed(Key::Key1, KeyRepeat::No) {
+                raction = app.review.on_key(ohol_headless::ReviewKey::Digit1);
+            }
+            if window.is_key_pressed(Key::Key2, KeyRepeat::No) {
+                raction = app.review.on_key(ohol_headless::ReviewKey::Digit2);
+            }
+            if window.is_key_pressed(Key::Backspace, KeyRepeat::Yes) {
+                let _ = app.review.on_key(ohol_headless::ReviewKey::Backspace);
+            }
+            let lmb = window.get_mouse_down(MouseButton::Left);
+            if lmb && !was_lmb {
+                if let Some((mx, my)) = safe_mouse_pos(&window) {
+                    let a = app.review.on_pointer_down(mx, my, FB_W as f32, FB_H as f32);
+                    if a != ohol_headless::ReviewAction::None {
+                        raction = a;
+                    }
+                }
+            }
+            was_lmb = lmb;
+            match raction {
+                ohol_headless::ReviewAction::Back => app.leave_review(),
+                ohol_headless::ReviewAction::OpenUrl => {
+                    if let Some(u) = app.review.active_url() {
+                        match ohol_headless::open_http_url(u) {
+                            Ok(()) => app.review.status = format!("Opened {u}"),
+                            Err(e) => app.review.status = e,
+                        }
+                    }
+                }
+                ohol_headless::ReviewAction::None => {}
+            }
+            app.review.draw(&mut fb, Some(&settings_hud));
+            rgba_to_u32(&fb.pixels, &mut buf);
+            window.set_title(&window_title("Community", ""));
+            window.update_with_buffer(&buf, FB_W, FB_H)?;
+            fps.on_presented(dt);
+            continue;
+        }
+
         // ── P5#38 Death page ─────────────────────────────────────────────
         if app.screen.is_death() {
             let mut dkey = DeathKey::Other;
@@ -1413,6 +1874,10 @@ fn run_session_from_boot(
             }
             if window.is_key_pressed(Key::Escape, KeyRepeat::No) {
                 dkey = DeathKey::Quit;
+            }
+            if window.is_key_pressed(Key::C, KeyRepeat::No) {
+                let _ = app.enter_review();
+                continue;
             }
             match death_key_command(app.screen, dkey) {
                 ScreenCommand::Quit => break,
@@ -1478,17 +1943,53 @@ fn run_session_from_boot(
 
         // Esc/F3 → Settings handled at top of loop (with suppress_close).
 
-        if window.is_key_pressed(Key::Left, KeyRepeat::Yes) || window.is_key_down(Key::A) {
-            pan.0 -= 0.4;
+        {
+            let mut q = chars.borrow_mut();
+            for u in q.drain(..) {
+                if let Some(c) = char::from_u32(u) {
+                    say.push_char(c);
+                }
+            }
         }
-        if window.is_key_pressed(Key::Right, KeyRepeat::Yes) || window.is_key_down(Key::D) {
-            pan.0 += 0.4;
+        if window.is_key_pressed(Key::Backspace, KeyRepeat::Yes) {
+            say.backspace();
         }
-        if window.is_key_pressed(Key::Up, KeyRepeat::Yes) || window.is_key_down(Key::W) {
-            pan.1 += 0.4;
+        if window.is_key_pressed(Key::Enter, KeyRepeat::No)
+            || window.is_key_pressed(Key::NumPadEnter, KeyRepeat::No)
+        {
+            if let Some(text) = say.enter() {
+                match session.send_say(&text) {
+                    Ok(line) if !line.is_empty() => {
+                        if session.force_disconnect {
+                            log_status(&mut last_status, "disconnect");
+                            break;
+                        }
+                        log_status(&mut last_status, &line);
+                    }
+                    Ok(_) => {}
+                    Err(e) => log_status(&mut last_status, &format!("SAY {e}")),
+                }
+            }
         }
-        if window.is_key_pressed(Key::Down, KeyRepeat::Yes) || window.is_key_down(Key::S) {
-            pan.1 -= 0.4;
+
+        if session.force_disconnect {
+            log_status(&mut last_status, "disconnect");
+            break;
+        }
+
+        if !say.focused {
+            if window.is_key_pressed(Key::Left, KeyRepeat::Yes) || window.is_key_down(Key::A) {
+                pan.0 -= 0.4;
+            }
+            if window.is_key_pressed(Key::Right, KeyRepeat::Yes) || window.is_key_down(Key::D) {
+                pan.0 += 0.4;
+            }
+            if window.is_key_pressed(Key::Up, KeyRepeat::Yes) || window.is_key_down(Key::W) {
+                pan.1 += 0.4;
+            }
+            if window.is_key_pressed(Key::Down, KeyRepeat::Yes) || window.is_key_down(Key::S) {
+                pan.1 -= 0.4;
+            }
         }
         // Play-window zoom: +/− (main + numpad) and mouse wheel — not only Settings.
         if window.is_key_down(Key::Equal) || window.is_key_down(Key::NumPadPlus) {
@@ -1571,8 +2072,8 @@ fn run_session_from_boot(
         let rmb = window.get_mouse_down(MouseButton::Right);
         // Edge before was_lmb update — used for debug SNAP button hit.
         let lmb_press = lmb && !was_lmb;
-        let drop_key = window.is_key_pressed(Key::Q, KeyRepeat::No);
-        if window.is_key_pressed(Key::T, KeyRepeat::No) {
+        let drop_key = !say.focused && window.is_key_pressed(Key::Q, KeyRepeat::No);
+        if !say.focused && window.is_key_pressed(Key::T, KeyRepeat::No) {
             match session.send_say("HI") {
                 Ok(line) => log_status(&mut last_status, &format!("SAY {line}")),
                 Err(e) => log_status(&mut last_status, &format!("SAY err {e}")),
@@ -1588,7 +2089,7 @@ fn run_session_from_boot(
             Key::Key6,
         ];
         for (slot, key) in clothing_keys.iter().enumerate() {
-            if !window.is_key_pressed(*key, KeyRepeat::No) {
+            if say.focused || !window.is_key_pressed(*key, KeyRepeat::No) {
                 continue;
             }
             let slot = slot as i32;
@@ -1696,21 +2197,35 @@ fn run_session_from_boot(
                 }
             }
             if (rmb && !was_rmb) || drop_key {
-                match click_rmb_tile_ex(
-                    &mut session,
-                    hover.tile.0,
-                    hover.tile.1,
-                    clothing_slot,
-                    hit_slot,
-                ) {
-                    Ok(r) => log_status(
-                        &mut last_status,
-                        &format!(
-                            "RMB/Q ({},{}) {}",
-                            hover.tile.0, hover.tile.1, r.label()
+                // C++ SHIFT+modClick deadly → KILL (no auto-walk).
+                let mut did_kill = false;
+                if shift && rmb && !was_rmb {
+                    match click_kill(&mut session, hover.tile.0, hover.tile.1, None) {
+                        Ok(Some(line)) => {
+                            log_status(&mut last_status, &format!("KILL {line}"));
+                            did_kill = true;
+                        }
+                        Ok(None) => {}
+                        Err(e) => log_status(&mut last_status, &format!("KILL err {e:?}")),
+                    }
+                }
+                if !did_kill {
+                    match click_rmb_tile_ex(
+                        &mut session,
+                        hover.tile.0,
+                        hover.tile.1,
+                        clothing_slot,
+                        hit_slot,
+                    ) {
+                        Ok(r) => log_status(
+                            &mut last_status,
+                            &format!(
+                                "RMB/Q ({},{}) {}",
+                                hover.tile.0, hover.tile.1, r.label()
+                            ),
                         ),
-                    ),
-                    Err(e) => log_status(&mut last_status, &format!("RMB err {e:?}")),
+                        Err(e) => log_status(&mut last_status, &format!("RMB err {e:?}")),
+                    }
                 }
             }
             was_lmb = lmb;
@@ -1726,6 +2241,9 @@ fn run_session_from_boot(
             dying,
         );
 
+        if let Some((gx, gy)) = apply_hover_from_session(&mut scene, &session, hover) {
+            let _ = session.request_grave(gx, gy);
+        }
         let saved_hl = scene.highlight_tile.take();
         scene.draw(
             &mut fb,
@@ -1738,6 +2256,8 @@ fn run_session_from_boot(
         );
         scene.highlight_tile = saved_hl;
         draw_hover_outline(&mut fb, &scene.camera, hover);
+        say.draw(&mut fb, FB_W as u32, FB_H as u32);
+        draw_slash_overlays(&mut fb, &session, fps.fps());
 
         // Debug play-snapshot tools (settings.debug): F9 or SNAP button.
         if app.settings.debug {
@@ -1825,6 +2345,7 @@ fn run_offline_with_banks(
     mut anims: AnimBank,
     ground: ohol_headless::ground_sprites::GroundBank,
     sounds: ohol_headless::sound_bank::SoundBank,
+    music: MusicBank,
 ) -> anyhow::Result<()> {
     eprintln!("offline demo — using boot banks (no second loading screen)");
     let root = content
@@ -1918,6 +2439,7 @@ fn run_offline_with_banks(
     scene.set_content_root(Some(&root));
     scene.ground = ground;
     scene.sounds = sounds;
+    scene.music = music;
     scene.hud_sprites = HudSprites::with_default_roots(Some(&root));
     // Pull back a bit so ~all narrow bands are visible around the player.
     scene.camera = Camera {
@@ -1971,6 +2493,11 @@ fn run_offline_with_banks(
         )
         .min(32.0);
     scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
+    app.settings
+        .apply_to_banks(Some(&mut scene.sounds), Some(&mut scene.music));
+    let _ = scene
+        .music
+        .restart_music(demo_age as f64, 0.05, true);
     let mut last = Instant::now();
     let mut hover = HoverPick::default();
     let mut fps = FpsMeter::new("offline");
@@ -2023,13 +2550,35 @@ fn run_offline_with_banks(
                     scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
                 }
                 SettingsLoop::Restart => restart_client_process(),
+                SettingsLoop::ApplyFullscreen => {
+                    match new_soft_window(
+                        "Open Life — Offline",
+                        app.settings.fullscreen,
+                        true,
+                        Some(&chars),
+                    ) {
+                        Ok(w) => {
+                            window = w;
+                            app.settings.runtime_fullscreen = app.settings.fullscreen;
+                            eprintln!(
+                                "settings: fullscreen {} (window recreate)",
+                                if app.settings.fullscreen { "on" } else { "off" }
+                            );
+                        }
+                        Err(e) => eprintln!("settings: fullscreen recreate failed: {e}"),
+                    }
+                }
                 SettingsLoop::OpenAccount => {
                     app.enter_account_from_settings();
+                }
+                SettingsLoop::OpenReview => {
+                    let _ = app.enter_review();
                 }
             }
             was_lmb = was_settings_lmb;
             if app.screen.is_settings() {
                 // Dimmed offline world + glass settings.
+                apply_hover_offline(&mut scene, &map, &content, &world, hover);
                 let saved_hl = scene.highlight_tile.take();
                 scene.draw(
                     &mut fb,
@@ -2100,9 +2649,16 @@ fn run_offline_with_banks(
                 AccountAction::OpenSettings => {
                     let _ = app.enter_settings();
                 }
+                AccountAction::OpenTwin => {
+                    let _ = app.enter_twin();
+                }
+                AccountAction::OpenReview => {
+                    let _ = app.enter_review();
+                }
                 AccountAction::Quit | AccountAction::None => {}
             }
             if app.screen.is_account() {
+                apply_hover_offline(&mut scene, &map, &content, &world, hover);
                 let saved_hl = scene.highlight_tile.take();
                 scene.draw(
                     &mut fb,
@@ -2220,6 +2776,7 @@ fn run_offline_with_banks(
             ),
         ));
         let _ = hit;
+        apply_hover_offline(&mut scene, &map, &content, &world, hover);
         let saved_hl = scene.highlight_tile.take();
         scene.draw(
             &mut fb,
@@ -2595,7 +3152,7 @@ fn load_graphics_with_progress(
         )?;
     }
 
-    let (sprites, anims, ground, sounds) = {
+    let (sprites, anims, ground, sounds, music) = {
         let mut on_progress = |state: &LoadingState| {
             let _ = present_loading(window, fb, buf, state);
         };
@@ -2610,9 +3167,9 @@ fn load_graphics_with_progress(
 
         let sounds = SoundBank::load_prefer_cache_with_progress(root, Some(&mut on_progress));
 
-        let _music = MusicBank::load_prefer_cache_with_progress(root, Some(&mut on_progress));
+        let music = MusicBank::load_prefer_cache_with_progress(root, Some(&mut on_progress));
 
-        (sprites, anims, ground, sounds)
+        (sprites, anims, ground, sounds, music)
     };
 
     let mut scene = SceneRenderer::default();
@@ -2620,6 +3177,7 @@ fn load_graphics_with_progress(
     scene.hud_sprites = HudSprites::with_default_roots(Some(root));
     scene.emotions = EmotionBank::load_from_content_root(root);
     scene.sounds = sounds;
+    scene.music = music;
 
     present_loading(window, fb, buf, &LoadingState::finished())?;
     Ok((sprites, anims, scene))
@@ -2652,6 +3210,7 @@ fn run_session_gpu(
     mut session: ClientSession,
     mut sprites: SpriteBank,
     mut anims: AnimBank,
+    music: MusicBank,
     cfg: SessionConfig,
     mut app: ClientAppState,
 ) -> anyhow::Result<()> {
@@ -2673,6 +3232,7 @@ fn run_session_gpu(
     });
     let mut scene = SceneRenderer::default();
     scene.set_content_root(Some(&root));
+    scene.music = music;
     scene.camera.zoom = app.settings.zoom.clamp(
         ohol_headless::render::ZOOM_MIN,
         ohol_headless::render::ZOOM_MAX,
@@ -2680,8 +3240,15 @@ fn run_session_gpu(
     scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
     // Same soft-FB size as soft path (960×540) — GPU only scales/presents.
     let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
-    app.settings.apply_to_banks(Some(&mut session.sounds), None);
-    app.settings.apply_to_banks(Some(&mut scene.sounds), None);
+    app.settings
+        .apply_to_banks(Some(&mut session.sounds), Some(&mut scene.music));
+    app.settings
+        .apply_to_banks(Some(&mut scene.sounds), Some(&mut scene.music));
+    if let Some(me) = session.world.our() {
+        let _ = scene
+            .music
+            .restart_music(me.current_age() as f64, me.age_rate.max(1e-9) as f64, true);
+    }
     let want_fullscreen = app.settings.fullscreen;
 
     let event_loop = EventLoop::new();
@@ -2702,15 +3269,15 @@ fn run_session_gpu(
         wb.build(&event_loop)
             .map_err(|e| anyhow::anyhow!("window: {e}"))?
     };
-    // pixels integer-scales its buffer → letterbox on non-integer ratios.
-    // Keep soft-FB at FB_W×FB_H for draw, but size the *present* buffer to the
-    // window and nearest-stretch each frame so tiles always fill the monitor.
+    // Soft-FB stays FB_W×FB_H; pixels buffer matches soft-FB; **wgpu scales**
+    // to the window surface (true GPU present — no CPU stretch every frame).
     let mut pixels = {
         let win_size = window.inner_size();
         let pw = win_size.width.max(1);
         let ph = win_size.height.max(1);
         let surface = SurfaceTexture::new(pw, ph, &window);
-        Pixels::new(pw, ph, surface).map_err(|e| anyhow::anyhow!("pixels/wgpu: {e}"))?
+        Pixels::new(FB_W as u32, FB_H as u32, surface)
+            .map_err(|e| anyhow::anyhow!("pixels/wgpu: {e}"))?
     };
     pixels.clear_color(pixels::wgpu::Color {
         r: 72.0 / 255.0,
@@ -2737,6 +3304,7 @@ fn run_session_gpu(
     let mut cursor = (FB_W as f32 * 0.5, FB_H as f32 * 0.5);
     let mut scroll_y = 0.0f32;
     let mut typed_chars: Vec<char> = Vec::new();
+    let mut say = PlaySayField::new();
     let settings_hud = HudSprites::with_default_roots(Some(&root));
     let fbw = FB_W as u32;
     let fbh = FB_H as u32;
@@ -2749,8 +3317,8 @@ fn run_session_gpu(
                 WindowEvent::Resized(size) => {
                     if size.width > 0 && size.height > 0 {
                         // Surface + present buffer match window → 1:1 present (no letterbox).
+                        // Surface follows window; buffer stays soft-FB sized (GPU scale).
                         let _ = pixels.resize_surface(size.width, size.height);
-                        let _ = pixels.resize_buffer(size.width, size.height);
                     }
                 }
                 WindowEvent::KeyboardInput { input, .. } => {
@@ -2814,7 +3382,9 @@ fn run_session_gpu(
                 // mark_opened blocks same-hold close until both keys are released.
                 let mut suppress_settings_close = false;
                 if esc_f3_edge {
-                    if app.screen.is_settings() {
+                    if app.screen.is_playing() && say.cancel() {
+                        // Esc closes say field first.
+                    } else if app.screen.is_settings() {
                         app.leave_settings();
                         app.apply_settings_to_banks(Some(&mut session.sounds), None);
                         app.apply_settings_to_banks(Some(&mut scene.sounds), None);
@@ -2905,10 +3475,30 @@ fn run_session_gpu(
                             let _ = app.settings.save_default();
                             restart_client_process();
                         }
+                        SettingsAction::ApplyFullscreen => {
+                            let _ = app.settings.save_default();
+                            if app.settings.fullscreen {
+                                window.set_fullscreen(Some(
+                                    winit::window::Fullscreen::Borderless(None),
+                                ));
+                                window.set_decorations(false);
+                            } else {
+                                window.set_fullscreen(None);
+                                window.set_decorations(true);
+                                window.set_inner_size(LogicalSize::new(
+                                    FB_W as f64,
+                                    FB_H as f64,
+                                ));
+                            }
+                            app.settings.runtime_fullscreen = app.settings.fullscreen;
+                        }
                         SettingsAction::OpenAccount => {
                             app.enter_account_from_settings();
                             was_lmb_settings = false;
                             last_status = "Account settings".into();
+                        }
+                        SettingsAction::OpenReview => {
+                            let _ = app.enter_review();
                         }
                         SettingsAction::Applied | SettingsAction::None => {}
                     }
@@ -2989,9 +3579,20 @@ fn run_session_gpu(
                         AccountAction::OpenSettings => {
                             let _ = app.enter_settings();
                         }
+                        AccountAction::OpenTwin => {
+                            let _ = app.enter_twin();
+                        }
+                        AccountAction::OpenReview => {
+                            let _ = app.enter_review();
+                        }
                         AccountAction::Quit | AccountAction::None => {}
                     }
                     if app.screen.is_account() {
+                        if let Some((gx, gy)) =
+                            apply_hover_from_session(&mut scene, &session, hover)
+                        {
+                            let _ = session.request_grave(gx, gy);
+                        }
                         let saved_hl = scene.highlight_tile.take();
                         scene.draw(
                             &mut fb,
@@ -3037,6 +3638,30 @@ fn run_session_gpu(
                         draw_death_screen(&mut fb, summary);
                     }
                 } else {
+                    for c in typed_chars.drain(..) {
+                        say.push_char(c);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Back) {
+                        say.backspace();
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Return)
+                        || keys_pressed.contains(&VirtualKeyCode::NumpadEnter)
+                    {
+                        if let Some(text) = say.enter() {
+                            match session.send_say(&text) {
+                                Ok(line) if !line.is_empty() => {
+                                    log_status(&mut last_status, &line);
+                                }
+                                Ok(_) => {}
+                                Err(e) => log_status(&mut last_status, &format!("SAY {e}")),
+                            }
+                        }
+                    }
+                    if session.force_disconnect {
+                        log_status(&mut last_status, "disconnect");
+                        *control_flow = ControlFlow::Exit;
+                    }
+                    if !say.focused {
                     if keys_down.contains(&VirtualKeyCode::A)
                         || keys_down.contains(&VirtualKeyCode::Left)
                     {
@@ -3056,6 +3681,7 @@ fn run_session_gpu(
                         || keys_down.contains(&VirtualKeyCode::Down)
                     {
                         pan.1 -= 0.4;
+                    }
                     }
                     if keys_down.contains(&VirtualKeyCode::Equals)
                         || keys_down.contains(&VirtualKeyCode::NumpadAdd)
@@ -3187,21 +3813,41 @@ fn run_session_gpu(
                     }
                     let rmb_press = rmb && !was_rmb;
                     if rmb_press || keys_pressed.contains(&VirtualKeyCode::Q) {
-                        match click_rmb_tile_ex(
-                            &mut session,
-                            hover.tile.0,
-                            hover.tile.1,
-                            hover.clothing_slot,
-                            hover.contained_slot,
-                        ) {
-                            Ok(r) => log_status(
-                                &mut last_status,
-                                &format!("RMB {:?}", r),
-                            ),
-                            Err(e) => log_status(&mut last_status, &format!("RMB {e:?}")),
+                        let shift = keys_down.contains(&VirtualKeyCode::LShift)
+                            || keys_down.contains(&VirtualKeyCode::RShift);
+                        let mut did_kill = false;
+                        if shift && rmb_press {
+                            match click_kill(&mut session, hover.tile.0, hover.tile.1, None)
+                            {
+                                Ok(Some(line)) => {
+                                    log_status(&mut last_status, &format!("KILL {line}"));
+                                    did_kill = true;
+                                }
+                                Ok(None) => {}
+                                Err(e) => {
+                                    log_status(&mut last_status, &format!("KILL err {e:?}"))
+                                }
+                            }
+                        }
+                        if !did_kill {
+                            match click_rmb_tile_ex(
+                                &mut session,
+                                hover.tile.0,
+                                hover.tile.1,
+                                hover.clothing_slot,
+                                hover.contained_slot,
+                            ) {
+                                Ok(r) => log_status(
+                                    &mut last_status,
+                                    &format!("RMB {:?}", r),
+                                ),
+                                Err(e) => {
+                                    log_status(&mut last_status, &format!("RMB {e:?}"))
+                                }
+                            }
                         }
                     }
-                    if keys_pressed.contains(&VirtualKeyCode::T) {
+                    if !say.focused && keys_pressed.contains(&VirtualKeyCode::T) {
                         match session.send_say("HI") {
                             Ok(_) => log_status(&mut last_status, "SAY HI"),
                             Err(e) => log_status(&mut last_status, &format!("SAY {e}")),
@@ -3218,6 +3864,11 @@ fn run_session_gpu(
                         session.excess_curse_points,
                         dying,
                     );
+                    if let Some((gx, gy)) =
+                        apply_hover_from_session(&mut scene, &session, hover)
+                    {
+                        let _ = session.request_grave(gx, gy);
+                    }
                     let saved_hl = scene.highlight_tile.take();
                     scene.draw(
                         &mut fb,
@@ -3230,6 +3881,8 @@ fn run_session_gpu(
                     );
                     scene.highlight_tile = saved_hl;
                     draw_hover_outline(&mut fb, &scene.camera, hover);
+                    say.draw(&mut fb, fbw, fbh);
+                    draw_slash_overlays(&mut fb, &session, fps.fps());
 
                     let rx_ago = session.secs_since_last_rx();
                     let rx_label = if rx_ago < 0.05 {
@@ -3258,24 +3911,11 @@ fn run_session_gpu(
                     was_rmb = rmb;
                 }
 
-                // Stretch soft-FB → full window present buffer (fills entire client area).
-                let win = window.inner_size();
-                let pw = win.width.max(1);
-                let ph = win.height.max(1);
+                // Upload soft-FB; wgpu scales to the window (Settings → GPU present).
                 let frame = pixels.frame_mut();
-                if frame.len() == (pw as usize) * (ph as usize) * 4 {
-                    ohol_headless::stretch_rgba_nearest(
-                        &fb.pixels,
-                        FB_W as u32,
-                        FB_H as u32,
-                        frame,
-                        pw,
-                        ph,
-                    );
-                } else if frame.len() == fb.pixels.len() {
+                if frame.len() == fb.pixels.len() {
                     rgba_copy_frame(&fb.pixels, frame);
                 } else {
-                    // Size mismatch mid-resize — clear to earth void.
                     for px in frame.chunks_exact_mut(4) {
                         px.copy_from_slice(&[72, 96, 58, 255]);
                     }

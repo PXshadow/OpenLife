@@ -108,21 +108,87 @@ pub const DEFAULT_EMOT_DURATION_SEC: f32 = 10.0;
 
 /// How typed speech maps to a client→server line (C++ say-field submit).
 ///
-/// // C++: LivingLifePage ~27071–27090 — `/` commands never go as SAY;
-/// // exact emotion trigger → `EMOT 0 0 N#`; other `/` stay local.
+/// // C++: LivingLifePage ~27071–27340 — `/` commands never go as SAY;
+/// // exact emotion trigger → `EMOT 0 0 N#`; named slash commands run locally
+/// // (and sometimes send DIE/PING/LEAD/…); leftover `/filter` is hint text.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SpeechOutbound {
     /// Normal chat → `SAY 0 0 text#`.
     Say(String),
     /// Exact emotion trigger → `EMOT 0 0 index#`.
     Emot { index: i32, line: String },
-    /// Slash command that is not an emote (fps/die/… residual) — no wire.
+    /// Named `/FPS` `/DIE` … (C++ `commandTyped`); not SAY.
+    Slash(SlashCommand),
+    /// Empty submit, or `/` with no filter — no wire.
     LocalOnly,
+}
+
+/// C++ `commandTyped` keys from `languages/English.txt` (case-insensitive).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SlashCommand {
+    /// `/FPS` — toggle on-screen FPS overlay (`showFPS`).
+    Fps,
+    /// `/NET` — toggle net overlay (`showNet`).
+    Net,
+    /// `/DIE` — baby suicide; session sends `DIE 0 0#` only if age < 2.
+    Die,
+    /// `/PING` — `PING 0 0 N#` + show RTT.
+    Ping,
+    /// `/DISCONNECT` — force-close the socket (`forceDisconnect`).
+    Disconnect,
+    /// `/FAM` — overhead `+FAMILY+` on genetic family.
+    Family,
+    /// `/LEADER` — `LEAD 0 0#` + `+LEADER+` labels on the chain.
+    Leader,
+    /// `/FOLLOWER` — `+FOLLOWER+` labels + count message.
+    Follower,
+    /// `/ALLY` — `+ALLY+` labels + count message.
+    Ally,
+    /// `/UNFOLLOW` — `UNFOL 0 0#`.
+    Unfollow,
+    /// `/MOTHER` — `MOTH 0 0#` (C++ `motherCommand`; no English.txt row).
+    Mother,
+    /// `/PROP` / `/PROPERTY` — `PROP 0 0#`.
+    Property,
+    /// `ORDER,` leftover — `ORDR 0 0#`.
+    Order,
+    /// Other `/text` — C++ hint filter string (not SAY).
+    HintFilter(String),
+}
+
+/// Match C++ `commandTyped` against English translations (`/FPS`, `/DIE`, …).
+///
+/// Exact length match except leftover `/filter` → [`SlashCommand::HintFilter`].
+pub fn parse_slash_command(text: &str) -> Option<SlashCommand> {
+    let trimmed = text.trim();
+    if !trimmed.starts_with('/') {
+        return None;
+    }
+    if trimmed == "/" {
+        return None;
+    }
+    let upper = trimmed.to_ascii_uppercase();
+    Some(match upper.as_str() {
+        "/FPS" => SlashCommand::Fps,
+        "/NET" => SlashCommand::Net,
+        "/DIE" => SlashCommand::Die,
+        "/PING" => SlashCommand::Ping,
+        "/DISCONNECT" => SlashCommand::Disconnect,
+        "/FAM" | "/FAMILY" => SlashCommand::Family,
+        "/LEADER" => SlashCommand::Leader,
+        "/FOLLOWER" => SlashCommand::Follower,
+        "/ALLY" => SlashCommand::Ally,
+        "/UNFOLLOW" => SlashCommand::Unfollow,
+        "/MOTHER" => SlashCommand::Mother,
+        "/PROP" | "/PROPERTY" => SlashCommand::Property,
+        "/ORDER" | "ORDER," | "/ORDER," => SlashCommand::Order,
+        _ => SlashCommand::HintFilter(trimmed[1..].trim().to_string()),
+    })
 }
 
 /// Pure classify: speech text + bank → outbound kind (no I/O).
 ///
-/// // C++: if text starts with `/` then getEmotionIndex else SAY path
+/// // C++: if text starts with `/` then getEmotionIndex else commandTyped / SAY
 pub fn classify_speech_outbound(text: &str, bank: &EmotionBank) -> SpeechOutbound {
     let trimmed = text.trim();
     if trimmed.is_empty() {
@@ -135,8 +201,10 @@ pub fn classify_speech_outbound(text: &str, bank: &EmotionBank) -> SpeechOutboun
         };
     }
     if trimmed.starts_with('/') {
-        // C++: slash commands are not sent as SAY (local fps/net/die/…).
-        return SpeechOutbound::LocalOnly;
+        return match parse_slash_command(trimmed) {
+            Some(cmd) => SpeechOutbound::Slash(cmd),
+            None => SpeechOutbound::LocalOnly,
+        };
     }
     SpeechOutbound::Say(crate::actions::encode_say(0, 0, trimmed))
 }
@@ -346,10 +414,26 @@ mod tests {
         }
         assert_eq!(
             classify_speech_outbound("/fps", &bank),
+            SpeechOutbound::Slash(SlashCommand::Fps)
+        );
+        assert_eq!(
+            classify_speech_outbound("/DIE", &bank),
+            SpeechOutbound::Slash(SlashCommand::Die)
+        );
+        assert_eq!(
+            classify_speech_outbound("/ping", &bank),
+            SpeechOutbound::Slash(SlashCommand::Ping)
+        );
+        match classify_speech_outbound("/hintme", &bank) {
+            SpeechOutbound::Slash(SlashCommand::HintFilter(s)) => assert_eq!(s, "hintme"),
+            other => panic!("expected HintFilter, got {other:?}"),
+        }
+        assert_eq!(
+            classify_speech_outbound("", &bank),
             SpeechOutbound::LocalOnly
         );
         assert_eq!(
-            classify_speech_outbound("", &bank),
+            classify_speech_outbound("/", &bank),
             SpeechOutbound::LocalOnly
         );
     }

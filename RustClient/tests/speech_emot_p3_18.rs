@@ -4,7 +4,7 @@
 //! the pure table + wire encode paths without a live server.
 
 use ohol_headless::{
-    classify_speech_outbound, encode_emot, encode_say, EmotionBank, SpeechOutbound,
+    classify_speech_outbound, encode_emot, encode_say, EmotionBank, SlashCommand, SpeechOutbound,
 };
 
 fn sample_bank() -> EmotionBank {
@@ -43,7 +43,7 @@ fn classify_routes_emot_say_local() {
     }
     assert_eq!(
         classify_speech_outbound("/fps", &bank),
-        SpeechOutbound::LocalOnly
+        SpeechOutbound::Slash(SlashCommand::Fps)
     );
 }
 

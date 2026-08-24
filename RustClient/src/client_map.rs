@@ -133,6 +133,47 @@ fn parse_plus_chain(s: &str) -> ObjectStackNode {
     node
 }
 
+/// C++ `mMapMoveOffsets` / `mMapMoveSpeeds` — sliding map objects (thrown / move-trans).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct MapMoveState {
+    /// Offset from cell center in **tiles** (C++ CELL_D units / CELL_D).
+    pub offset_x: f32,
+    pub offset_y: f32,
+    /// Speed in tiles/sec (C++ speed was object-units/sec; we store tile units).
+    pub speed: f32,
+}
+
+impl MapMoveState {
+    pub fn is_moving(self) -> bool {
+        self.speed > 1e-6
+            && (self.offset_x.abs() > 1e-5 || self.offset_y.abs() > 1e-5)
+    }
+}
+
+/// C++ `ExtraMapObject` — mover drawn separately while dest stays occupied.
+///
+/// // LivingLifePage MX ~17074–17094: leave dest object in place; slide `object_id`
+/// into `dest_*`; on arrival replace dest with `dest_object_*`.
+#[derive(Debug, Clone)]
+pub struct ExtraMovingObject {
+    pub object_id: i32,
+    pub dest_x: i32,
+    pub dest_y: i32,
+    pub dest_object_id: i32,
+    pub dest_object_raw: String,
+    pub offset_x: f32,
+    pub offset_y: f32,
+    pub speed: f32,
+    pub flip: bool,
+}
+
+impl ExtraMovingObject {
+    pub fn is_moving(&self) -> bool {
+        self.speed > 1e-6
+            && (self.offset_x.abs() > 1e-5 || self.offset_y.abs() > 1e-5)
+    }
+}
+
 /// Sparse client map keyed by absolute (wire/world) tile coordinates.
 #[derive(Debug, Clone, Default)]
 pub struct ClientMap {
@@ -148,6 +189,12 @@ pub struct ClientMap {
     pub anim_frame_count: HashMap<(i32, i32), f32>,
     /// C++ `mMapFloorAnimationFrameCount`.
     pub floor_anim_frame_count: HashMap<(i32, i32), f32>,
+    /// C++ `mMapMoveOffsets` + `mMapMoveSpeeds` per cell.
+    pub move_state: HashMap<(i32, i32), MapMoveState>,
+    /// C++ `mMapTileFlips` — true = face left (draw flipH).
+    pub tile_flips: HashMap<(i32, i32), bool>,
+    /// C++ `mMapExtraMovingObjects` (+ dest world pos / dest object ids).
+    pub extra_moving: Vec<ExtraMovingObject>,
 }
 
 impl ClientMap {
@@ -183,13 +230,151 @@ impl ClientMap {
         self.tiles.insert((x, y), tile);
     }
 
+    /// Start / update a sliding map object (C++ `mMapMoveSpeeds[mapI] = speed`).
+    ///
+    /// `offset_*` are in tiles from the destination cell (object appears offset
+    /// toward the old cell and slides to 0).
+    pub fn set_map_move(&mut self, x: i32, y: i32, offset_x: f32, offset_y: f32, speed: f32) {
+        if speed <= 1e-6 {
+            self.move_state.remove(&(x, y));
+            return;
+        }
+        self.move_state.insert(
+            (x, y),
+            MapMoveState {
+                offset_x,
+                offset_y,
+                speed,
+            },
+        );
+    }
+
+    pub fn map_move(&self, x: i32, y: i32) -> MapMoveState {
+        self.move_state.get(&(x, y)).copied().unwrap_or_default()
+    }
+
+    pub fn tile_flip(&self, x: i32, y: i32) -> bool {
+        self.tile_flips.get(&(x, y)).copied().unwrap_or(false)
+    }
+
+    /// C++ ~17066–17070: face right when moving east / E-W special; left when west.
+    pub fn set_tile_flip_from_move(&mut self, x: i32, y: i32, old_true_x: f32) {
+        if (x as f32) > old_true_x {
+            self.tile_flips.insert((x, y), false);
+        } else if (x as f32) < old_true_x {
+            self.tile_flips.insert((x, y), true);
+        }
+    }
+
+    /// C++ per-frame map move step — cell slides + ExtraMapObject slides.
+    pub fn step_map_moves(&mut self, dt: f32) {
+        if dt <= 1e-8 {
+            return;
+        }
+        let keys: Vec<(i32, i32)> = self.move_state.keys().copied().collect();
+        for k in keys {
+            let Some(m) = self.move_state.get_mut(&k) else {
+                continue;
+            };
+            if m.speed <= 1e-6 {
+                self.move_state.remove(&k);
+                continue;
+            }
+            let len = (m.offset_x * m.offset_x + m.offset_y * m.offset_y).sqrt();
+            let step = m.speed * dt;
+            if len <= step || len < 1e-5 {
+                self.move_state.remove(&k);
+                // Keep facing after settle (C++ leaves mMapTileFlips).
+                continue;
+            }
+            let s = step / len;
+            m.offset_x -= m.offset_x * s;
+            m.offset_y -= m.offset_y * s;
+        }
+        // Extra movers (C++ ~13712)
+        let mut i = 0;
+        while i < self.extra_moving.len() {
+            let e = &mut self.extra_moving[i];
+            if e.speed <= 1e-6 {
+                self.finish_extra_moving(i);
+                continue;
+            }
+            let len = (e.offset_x * e.offset_x + e.offset_y * e.offset_y).sqrt();
+            let step = e.speed * dt;
+            if len <= step || len < 1e-5 {
+                self.finish_extra_moving(i);
+                continue;
+            }
+            let s = step / len;
+            e.offset_x -= e.offset_x * s;
+            e.offset_y -= e.offset_y * s;
+            i += 1;
+        }
+    }
+
+    fn finish_extra_moving(&mut self, index: usize) {
+        let Some(e) = self.extra_moving.get(index).cloned() else {
+            return;
+        };
+        let entry = self
+            .tiles
+            .entry((e.dest_x, e.dest_y))
+            .or_insert_with(MapTile::empty);
+        entry.object_id = e.dest_object_id;
+        entry.object_raw = e.dest_object_raw;
+        if e.flip {
+            self.tile_flips.insert((e.dest_x, e.dest_y), true);
+        } else {
+            self.tile_flips.insert((e.dest_x, e.dest_y), false);
+        }
+        self.extra_moving.remove(index);
+    }
+
     /// Apply one MX change (floor + object; biome unchanged unless we have no tile).
+    ///
+    /// Moving MX (`old_x old_y speed`): C++ `mMapMoveOffsets/Speeds` — object slides
+    /// from old true pos into the new cell. If dest was occupied, C++ ExtraMapObject
+    /// path: leave dest occupant, draw mover as extra until arrival.
     pub fn apply_mx(&mut self, ch: &MapChange) {
-        let old_obj = self
+        let (old_obj, old_raw) = self
             .tiles
             .get(&(ch.x, ch.y))
-            .map(|t| t.object_id)
-            .unwrap_or(0);
+            .map(|t| (t.object_id, t.object_raw.clone()))
+            .unwrap_or((0, "0".into()));
+
+        // Moving into occupied dest → ExtraMapObject (C++ ~17074).
+        if let (Some(ox), Some(oy), Some(speed)) = (ch.old_x, ch.old_y, ch.speed) {
+            if old_obj > 0 && ch.object_id > 0 && speed > 1e-6 {
+                let old_off = self.map_move(ox, oy);
+                let old_true_x = ox as f32 + old_off.offset_x;
+                let old_true_y = oy as f32 + old_off.offset_y;
+                // Floor may still update; keep previous occupant on the cell.
+                let entry = self.tiles.entry((ch.x, ch.y)).or_insert_with(MapTile::empty);
+                entry.floor_id = ch.floor_id;
+                entry.object_id = old_obj;
+                entry.object_raw = old_raw;
+                if let Some(src) = self.tiles.get_mut(&(ox, oy)) {
+                    src.object_id = 0;
+                    src.object_raw = "0".into();
+                }
+                self.move_state.remove(&(ox, oy));
+                self.tile_flips.remove(&(ox, oy));
+                let flip = (ch.x as f32) < old_true_x;
+                self.extra_moving.push(ExtraMovingObject {
+                    object_id: ch.object_id,
+                    dest_x: ch.x,
+                    dest_y: ch.y,
+                    dest_object_id: ch.object_id,
+                    dest_object_raw: ch.object_id_raw.clone(),
+                    offset_x: old_true_x - ch.x as f32,
+                    offset_y: old_true_y - ch.y as f32,
+                    speed: speed.max(0.0),
+                    flip,
+                });
+                return;
+            }
+        }
+
         let entry = self.tiles.entry((ch.x, ch.y)).or_insert_with(MapTile::empty);
         entry.floor_id = ch.floor_id;
         entry.object_id = ch.object_id;
@@ -198,21 +383,84 @@ impl ClientMap {
         if old_obj == 0 && ch.object_id > 0 && !ch.is_moving() {
             self.anim_frame_count.insert((ch.x, ch.y), 0.0);
         }
-        // Moving objects: clear old tile object when provided.
-        if let (Some(ox), Some(oy)) = (ch.old_x, ch.old_y) {
-            if (ox, oy) != (ch.x, ch.y) {
+        // Moving into empty (or same-cell): clear source, set slide on dest.
+        if let (Some(ox), Some(oy), Some(speed)) = (ch.old_x, ch.old_y, ch.speed) {
+            if (ox, oy) != (ch.x, ch.y) || speed > 1e-6 {
+                let old_off = self.map_move(ox, oy);
+                let old_true_x = ox as f32 + old_off.offset_x;
+                let old_true_y = oy as f32 + old_off.offset_y;
                 if let Some(old) = self.tiles.get_mut(&(ox, oy)) {
                     old.object_id = 0;
                     old.object_raw = "0".into();
                 }
-                self.anim_frame_count.remove(&(ox, oy));
+                if let Some(fc) = self.anim_frame_count.remove(&(ox, oy)) {
+                    self.anim_frame_count.insert((ch.x, ch.y), fc);
+                }
+                self.move_state.remove(&(ox, oy));
+                self.tile_flips.remove(&(ox, oy));
+                self.set_map_move(
+                    ch.x,
+                    ch.y,
+                    old_true_x - ch.x as f32,
+                    old_true_y - ch.y as f32,
+                    speed.max(0.0),
+                );
+                self.set_tile_flip_from_move(ch.x, ch.y, old_true_x);
             }
+        } else if !ch.is_moving() {
+            self.move_state.remove(&(ch.x, ch.y));
         }
     }
 
     pub fn apply_mx_many(&mut self, changes: &[MapChange]) {
         for ch in changes {
             self.apply_mx(ch);
+        }
+    }
+
+    /// MX apply plus C++ moveTrans polish: source visual rewrite + E-W (move 6/7) no-flip.
+    pub fn apply_mx_many_with_content(
+        &mut self,
+        changes: &[MapChange],
+        content: &crate::content::ClientContent,
+    ) {
+        for ch in changes {
+            self.apply_mx_with_content(ch, content);
+        }
+    }
+
+    fn apply_mx_with_content(&mut self, ch: &MapChange, content: &crate::content::ClientContent) {
+        // Visual object while moving: decay/move trans may replace source id (~16958).
+        let mut vis = ch.clone();
+        if vis.is_moving() {
+            if let (Some(ox), Some(oy)) = (vis.old_x, vis.old_y) {
+                let src_id = self.get(ox, oy).map(|t| t.object_id).unwrap_or(0);
+                if src_id > 0 {
+                    if let Some(tr) = content.find_transition(-1, src_id) {
+                        if tr.move_dist > 0 && tr.new_target_id > 0 {
+                            vis.object_id = tr.new_target_id;
+                            if vis.object_id_raw.parse::<i32>().is_ok() {
+                                vis.object_id_raw = tr.new_target_id.to_string();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        self.apply_mx(&vis);
+        // move 6/7 (E-W) → force no flip (~17066, ~17125).
+        let dest_id = vis.object_id;
+        if dest_id > 0 {
+            if let Some(tr) = content.find_transition(-1, dest_id) {
+                if tr.move_dist == 6 || tr.move_dist == 7 {
+                    self.tile_flips.insert((vis.x, vis.y), false);
+                    if let Some(e) = self.extra_moving.last_mut() {
+                        if e.dest_x == vis.x && e.dest_y == vis.y {
+                            e.flip = false;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -344,11 +592,60 @@ mod tests {
     fn mx_updates_and_moves() {
         let mut m = ClientMap::new();
         m.set(0, 0, MapTile::parse_cell("1:0:50"));
+        // Move from (0,0) → (1,0) at 3.75 cells/sec.
         let ch = parse_mx_line("1 0 0 50 0 0 0 3.75").unwrap();
         assert!(ch.is_moving());
         m.apply_mx(&ch);
         assert_eq!(m.get(1, 0).unwrap().object_id, 50);
         assert_eq!(m.get(0, 0).unwrap().object_id, 0);
+        let mv = m.map_move(1, 0);
+        assert!(mv.is_moving());
+        assert!((mv.offset_x - (-1.0)).abs() < 1e-4, "offset_x={}", mv.offset_x);
+        assert!(mv.offset_y.abs() < 1e-4);
+        assert!((mv.speed - 3.75).abs() < 1e-4);
+        // Step toward dest (~0.27 tiles in 1/60s * 3.75 ≈ 0.0625)
+        m.step_map_moves(1.0 / 60.0);
+        let mv2 = m.map_move(1, 0);
+        assert!(mv2.offset_x > -1.0 && mv2.offset_x < 0.0);
+        // Finish slide
+        for _ in 0..120 {
+            m.step_map_moves(1.0 / 60.0);
+        }
+        assert!(!m.map_move(1, 0).is_moving());
+        // Eastward dest from west origin → face right (flip=false).
+        assert!(!m.tile_flip(1, 0));
+    }
+
+    #[test]
+    fn mx_move_west_sets_tile_flip() {
+        let mut m = ClientMap::new();
+        m.set(5, 0, MapTile::parse_cell("1:0:418"));
+        // (5,0) → (4,0): moving west
+        let ch = parse_mx_line("4 0 0 418 -1 5 0 1.00").unwrap();
+        m.apply_mx(&ch);
+        assert!(m.tile_flip(4, 0), "westward move should flipH");
+        assert!((m.map_move(4, 0).offset_x - 1.0).abs() < 1e-4);
+    }
+
+    #[test]
+    fn mx_move_into_occupied_uses_extra_moving() {
+        let mut m = ClientMap::new();
+        m.set(0, 0, MapTile::parse_cell("1:0:418")); // wolf
+        m.set(1, 0, MapTile::parse_cell("1:0:33")); // stone already at dest
+        // Wolf moves onto stone cell
+        let ch = parse_mx_line("1 0 0 418 -1 0 0 2.00").unwrap();
+        m.apply_mx(&ch);
+        assert_eq!(m.get(1, 0).unwrap().object_id, 33, "dest occupant stays");
+        assert_eq!(m.get(0, 0).unwrap().object_id, 0, "source cleared");
+        assert_eq!(m.extra_moving.len(), 1);
+        assert_eq!(m.extra_moving[0].object_id, 418);
+        assert!((m.extra_moving[0].offset_x - (-1.0)).abs() < 1e-4);
+        // Finish slide → dest becomes wolf
+        for _ in 0..120 {
+            m.step_map_moves(1.0 / 60.0);
+        }
+        assert!(m.extra_moving.is_empty());
+        assert_eq!(m.get(1, 0).unwrap().object_id, 418);
     }
 
     #[test]

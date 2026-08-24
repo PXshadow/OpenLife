@@ -1,4 +1,4 @@
-//! OLC1 object bank binary format (v1..=v8).
+//! OLC1 object bank binary format (v1..=v9).
 
 use crate::io::{
     parse_blob_header, push_f32, push_i32, push_str_u16, push_u16, push_u32, push_u8, read_f32,
@@ -8,10 +8,11 @@ use crate::io::{
 /// OLC1 magic — object bank cache.
 pub const OLC1_MAGIC: &[u8; 4] = b"OLC1";
 
-/// OLC1 write path format (v8 = contain_size / slot_size trailer).
+/// OLC1 write path format (v9 = per-sprite `only_when_worn` trailer).
 ///
 /// // Haxe: ObjectData.containSize + slotSize; text keys containSize / slotsSize
-pub const OLC1_FORMAT_VERSION: u32 = 8;
+/// // C++ `spriteInvisibleWhenWorn == 2` packed as v9 extra sprite flags.
+pub const OLC1_FORMAT_VERSION: u32 = 9;
 pub const OLC1_FORMAT_VERSION_V1: u32 = 1;
 pub const OLC1_FORMAT_VERSION_V2: u32 = 2;
 pub const OLC1_FORMAT_VERSION_V3: u32 = 3;
@@ -20,6 +21,7 @@ pub const OLC1_FORMAT_VERSION_V5: u32 = 5;
 pub const OLC1_FORMAT_VERSION_V6: u32 = 6;
 pub const OLC1_FORMAT_VERSION_V7: u32 = 7;
 pub const OLC1_FORMAT_VERSION_V8: u32 = 8;
+pub const OLC1_FORMAT_VERSION_V9: u32 = 9;
 
 // Object flags (OLC1 record).
 pub const OBJ_F_PERMANENT: u32 = 1 << 0;
@@ -58,6 +60,8 @@ pub struct Olc1Sprite {
     pub rot: f32,
     /// Packed sprite flags + body-part nibble (bits 5–7).
     pub flags: u8,
+    /// C++ `spriteInvisibleWhenWorn == 2` (OLC1 format ≥ 9 trailer; not in `flags`).
+    pub only_when_worn: bool,
     pub age_start: f32,
     pub age_end: f32,
     pub r: f32,
@@ -82,8 +86,30 @@ impl Olc1Sprite {
     pub fn behind_player(&self) -> bool {
         self.flags & SPR_F_BEHIND_PLAYER != 0
     }
+    pub fn only_when_worn(&self) -> bool {
+        self.only_when_worn
+    }
     pub fn body_part(&self) -> u8 {
         (self.flags & SPR_BODY_PART_MASK) >> SPR_BODY_PART_SHIFT
+    }
+}
+
+impl Default for Olc1Sprite {
+    fn default() -> Self {
+        Self {
+            sprite_id: 0,
+            x: 0.0,
+            y: 0.0,
+            rot: 0.0,
+            flags: 0,
+            only_when_worn: false,
+            age_start: -1.0,
+            age_end: -1.0,
+            r: 1.0,
+            g: 1.0,
+            b: 1.0,
+            parent: -1,
+        }
     }
 }
 
@@ -329,6 +355,13 @@ pub fn read_olc1_record(data: &[u8], off: &mut usize, format: u32) -> Result<Olc
         (0.0, 1.0)
     };
 
+    if format >= OLC1_FORMAT_VERSION_V9 {
+        for spr in sprites.iter_mut() {
+            let extra = read_u8(data, off)?;
+            spr.only_when_worn = extra & 1 != 0;
+        }
+    }
+
     Ok(Olc1Record {
         id,
         name,
@@ -382,6 +415,7 @@ fn read_olc1_sprite(data: &[u8], off: &mut usize) -> Result<Olc1Sprite, String> 
         y: read_f32(data, off)?,
         rot: read_f32(data, off)?,
         flags: read_u8(data, off)?,
+        only_when_worn: false,
         age_start: read_f32(data, off)?,
         age_end: read_f32(data, off)?,
         r: read_f32(data, off)?,
@@ -391,7 +425,7 @@ fn read_olc1_sprite(data: &[u8], off: &mut usize) -> Result<Olc1Sprite, String> 
     })
 }
 
-/// Write one OLC1 record at current write-path format (v8 trailers always present).
+/// Write one OLC1 record at current write-path format (v9 trailers always present).
 pub fn write_olc1_record(out: &mut Vec<u8>, def: &Olc1Record) {
     push_i32(out, def.id);
     push_str_u16(out, &def.name);
@@ -476,6 +510,10 @@ pub fn write_olc1_record(out: &mut Vec<u8>, def: &Olc1Record) {
     // Haxe: ObjectData.containSize / slotSize
     push_f32(out, def.contain_size);
     push_f32(out, def.slot_size);
+    // format 9 — per-sprite only_when_worn (C++ invisWorn=2)
+    for s in &def.sprites {
+        push_u8(out, if s.only_when_worn { 1 } else { 0 });
+    }
 }
 
 fn write_olc1_sprite(out: &mut Vec<u8>, s: &Olc1Sprite) {

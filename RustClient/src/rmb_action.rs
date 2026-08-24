@@ -42,6 +42,8 @@ impl RmbClickResult {
                     "USE"
                 } else if r.action_line.starts_with("SELF ") {
                     "SELF"
+                } else if r.action_line.starts_with("KILL ") {
+                    "KILL"
                 } else {
                     "ACT"
                 }
@@ -110,6 +112,7 @@ pub fn click_rmb_tile_ex(
         match click_tile_mod_ex(session, tile_x, tile_y, true, hit_slot, clothing_slot)? {
             WalkOrUseResult::Object(r) => return Ok(RmbClickResult::Object(r)),
             WalkOrUseResult::Ground(r) => return Ok(RmbClickResult::Ground(r)),
+            WalkOrUseResult::Kill { .. } => return Ok(RmbClickResult::NoOp),
         }
     }
     let tile = session.map.get(tile_x, tile_y);
@@ -121,6 +124,7 @@ pub fn click_rmb_tile_ex(
     match click_tile_mod(session, tile_x, tile_y, true, hit_slot)? {
         WalkOrUseResult::Object(r) => Ok(RmbClickResult::Object(r)),
         WalkOrUseResult::Ground(r) => Ok(RmbClickResult::Ground(r)),
+        WalkOrUseResult::Kill { .. } => Ok(RmbClickResult::NoOp),
     }
 }
 
@@ -363,6 +367,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         session.content.objects.insert(
             125,
@@ -444,6 +449,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         session.content.objects.insert(
             125,
@@ -497,6 +503,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         session.content.objects.insert(
             125,
@@ -533,6 +540,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         session.content.objects.insert(
             200,

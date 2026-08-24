@@ -6,7 +6,7 @@
 //! C++: `LivingLifePage.h` `LiveObject` + PU handler in `LivingLifePage.cpp`.
 //! Haxe: `PlayerInstance` / nearby player table.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use crate::anim_bank::{
     is_extra_anim_type, AnimBank, ANIM_EXTRA, ANIM_EXTRA_B, ANIM_GROUND, ANIM_HELD,
@@ -27,6 +27,26 @@ use crate::parse::{
 #[inline]
 pub fn speech_hold_sec(text: &str) -> f32 {
     3.0 + text.len() as f32 / 5.0
+}
+
+/// C++ `getSpokenNumber` lite — small integers as words, else decimal.
+pub fn spoken_count(n: i32) -> String {
+    match n {
+        0 => "zero".into(),
+        1 => "one".into(),
+        2 => "two".into(),
+        3 => "three".into(),
+        4 => "four".into(),
+        5 => "five".into(),
+        6 => "six".into(),
+        7 => "seven".into(),
+        8 => "eight".into(),
+        9 => "nine".into(),
+        10 => "ten".into(),
+        11 => "eleven".into(),
+        12 => "twelve".into(),
+        _ => n.to_string(),
+    }
 }
 
 /// C++ fade step: `speechFade -= 0.05 * frameRateFactor` after ETA.
@@ -315,7 +335,24 @@ impl HomePosStack {
         from_x: f32,
         from_y: f32,
     ) -> (Option<usize>, Option<String>) {
-        let Some(p) = self.active_home() else {
+        Self::dir_label_for(self.active_home(), from_x, from_y)
+    }
+
+    /// Ancient homeland compass (C++ `getHomeDir(..., j=1)` / homeSlip2).
+    pub fn ancient_dir_and_label(
+        &self,
+        from_x: f32,
+        from_y: f32,
+    ) -> (Option<usize>, Option<String>) {
+        Self::dir_label_for(self.ancient_pos(), from_x, from_y)
+    }
+
+    fn dir_label_for(
+        p: Option<&HomePos>,
+        from_x: f32,
+        from_y: f32,
+    ) -> (Option<usize>, Option<String>) {
+        let Some(p) = p else {
             return (None, None);
         };
         let dir = home_dir_index(from_x, from_y, p.x as f32, p.y as f32);
@@ -328,6 +365,8 @@ impl HomePosStack {
             } else {
                 Some("MAP".to_string())
             }
+        } else if p.ancient {
+            Some("OLD".to_string())
         } else {
             None
         };
@@ -613,6 +652,14 @@ pub struct LiveObject {
     pub responsible_id: i32,
     pub held_yum: bool,
     pub held_learned: bool,
+    /// C++ `chasingUs` — posse hunting our player (OSS draws `! !`). Posse wire postponed.
+    pub chasing_us: bool,
+    /// C++ `isGeneticFamily` — `+FAMILY+` PS; skip extra family bubble spam.
+    pub is_genetic_family: bool,
+    /// C++ `killMode` — we sent KILL this click; stay in kill intent until PU/weapon drop.
+    pub kill_mode: bool,
+    /// C++ `killWithID` — held deadly object id when `kill_mode` started.
+    pub kill_with_id: i32,
     /// Present while server still tracks the life; cleared on delete PU.
     pub on_screen: bool,
     pub out_of_range: bool,
@@ -692,6 +739,20 @@ pub struct LiveObject {
     pub speech_is_curse_tag: bool,
     /// Seconds since last curse-tag display (C++ `curTime - lastCurseTagDisplayTime`).
     pub curse_tag_idle_sec: f32,
+    /// C++ `speechIsOverheadLabel` — `/FAM` `/LEADER` labels (not spoken SAY).
+    pub speech_is_overhead_label: bool,
+    /// C++ `followingID` from FW (`-1` = follows no one).
+    pub following_id: i32,
+    /// C++ `personalLeadershipColor` index from FW (wrapped badge color).
+    pub leadership_color_index: i32,
+    /// C++ `exiledByIDs` from EX.
+    pub exiled_by_ids: Vec<i32>,
+    /// C++ `warPeaceStatus`: -1 war, 0 neutral, 1 peace (from WR vs our Eve).
+    pub war_peace_status: i32,
+    /// C++ `pendingReceivedMessages` — PU/PM/MX/FX held until this walk ends.
+    pub pending_received_messages: VecDeque<String>,
+    /// C++ `somePendingMessageIsMoreMovement` — held PM is waiting.
+    pub some_pending_is_more_movement: bool,
 }
 
 /// Soft-FB speech ink RGB from speaker curse / dying state.
@@ -756,6 +817,10 @@ impl LiveObject {
             responsible_id: pu.responsible_id,
             held_yum: pu.held_yum,
             held_learned: pu.held_learned,
+            chasing_us: false,
+            is_genetic_family: false,
+            kill_mode: false,
+            kill_with_id: 0,
             on_screen: !pu.deleted,
             out_of_range: false,
             deleted: pu.deleted,
@@ -804,6 +869,13 @@ impl LiveObject {
             // Start "aged" so first 15s tic can fire after CU without waiting forever
             // from birth; actual display resets idle to 0.
             curse_tag_idle_sec: MAX_CURSE_TAG_DISPLAY_GAP + 1.0,
+            speech_is_overhead_label: false,
+            following_id: -1,
+            leadership_color_index: -1,
+            exiled_by_ids: Vec::new(),
+            war_peace_status: 0,
+            pending_received_messages: VecDeque::new(),
+            some_pending_is_more_movement: false,
         }
     }
 
@@ -870,6 +942,17 @@ impl LiveObject {
         let curse_name = self.curse_name.take();
         let speech_is_curse_tag = self.speech_is_curse_tag;
         let curse_tag_idle_sec = self.curse_tag_idle_sec;
+        let speech_is_overhead_label = self.speech_is_overhead_label;
+        let following_id = self.following_id;
+        let leadership_color_index = self.leadership_color_index;
+        let exiled_by_ids = std::mem::take(&mut self.exiled_by_ids);
+        let war_peace_status = self.war_peace_status;
+        let pending_received_messages = std::mem::take(&mut self.pending_received_messages);
+        let some_pending_is_more_movement = self.some_pending_is_more_movement;
+        let chasing_us = self.chasing_us;
+        let is_genetic_family = self.is_genetic_family;
+        let kill_mode = self.kill_mode;
+        let kill_with_id = self.kill_with_id;
         *self = Self::from_pu(pu);
         if keep_flip {
             self.set_holding_flip(prev_flip);
@@ -918,6 +1001,18 @@ impl LiveObject {
         self.curse_name = curse_name;
         self.speech_is_curse_tag = speech_is_curse_tag;
         self.curse_tag_idle_sec = curse_tag_idle_sec;
+        self.speech_is_overhead_label = speech_is_overhead_label;
+        self.following_id = following_id;
+        self.leadership_color_index = leadership_color_index;
+        self.exiled_by_ids = exiled_by_ids;
+        self.war_peace_status = war_peace_status;
+        self.pending_received_messages = pending_received_messages;
+        self.some_pending_is_more_movement = some_pending_is_more_movement;
+        self.chasing_us = chasing_us;
+        self.is_genetic_family = is_genetic_family;
+        // C++ killMode lasts while still holding the same deadly object.
+        self.kill_mode = kill_mode && kill_with_id > 0 && pu.held_id == kill_with_id;
+        self.kill_with_id = if self.kill_mode { kill_with_id } else { 0 };
         self.out_of_range = false;
         // C++ / Jason: only clear on-path when done_moving or force; intermediate PUs
         // (held, clothing, justAte) must not snap anim back to ground mid-walk.
@@ -1310,6 +1405,56 @@ impl LiveObject {
         self.age + self.age_rate * elapsed
     }
 
+    /// C++ `showPlayerLabel` — overhead `+FAMILY+` / `+LEADER+` / … (not SAY).
+    pub fn show_player_label(&mut self, text: &str) {
+        self.current_speech = Some(text.to_string());
+        self.speech_fade = 1.0;
+        self.speech_ttl_remaining = Some(speech_hold_sec(text));
+        self.speech_is_overhead_label = true;
+        self.speech_is_curse = false;
+        self.speech_is_curse_tag = false;
+    }
+
+    /// C++ PU hold: other player still interpolating a path, PU is post-move
+    /// (`done_moving > 0`) or we already have messages queued.
+    ///
+    /// // LivingLifePage.cpp ~18154–18233
+    pub fn should_hold_pu(&self, pu: &PlayerUpdate, our_id: Option<i32>) -> bool {
+        if pu.deleted || pu.force {
+            return false;
+        }
+        if our_id == Some(self.id) {
+            return false;
+        }
+        // C++ `currentSpeed != 0` — only while still interpolating a path.
+        if !self.moving {
+            return false;
+        }
+        pu.done_moving_seq_num > 0 || !self.pending_received_messages.is_empty()
+    }
+
+    /// Truncate `last_move` so interpolation ends at `(dest_x, dest_y)` if on path.
+    pub fn truncate_path_to(&mut self, dest_x: i32, dest_y: i32) {
+        let Some(m) = self.last_move.as_mut() else {
+            return;
+        };
+        let mut cells = Vec::with_capacity(m.deltas.len() + 1);
+        cells.push((m.xs, m.ys));
+        for &(dx, dy) in &m.deltas {
+            cells.push((m.xs + dx, m.ys + dy));
+        }
+        if cells.last() == Some(&(dest_x, dest_y)) {
+            return;
+        }
+        if let Some(idx) = cells.iter().rposition(|&c| c == (dest_x, dest_y)) {
+            if idx == 0 {
+                m.deltas.clear();
+            } else {
+                m.deltas.truncate(idx);
+            }
+        }
+    }
+
     /// C++ `holdingFlip`: true = face left (draw flipH). Stored as `facing < 0`.
     #[inline]
     pub fn holding_flip(&self) -> bool {
@@ -1476,8 +1621,11 @@ impl LiveObject {
             return;
         }
         // C++ skips displaying +FAMILY+ when already talking; still no bubble spam.
-        if text == "+FAMILY+" && self.current_speech.is_some() {
-            return;
+        if text == "+FAMILY+" {
+            self.is_genetic_family = true;
+            if self.current_speech.is_some() {
+                return;
+            }
         }
         self.speech_is_curse = ps.is_curse;
         // C++: force curse name into babble when gap > 15s (skip famSpeech / curses).
@@ -1504,6 +1652,39 @@ impl LiveObject {
         self.speech_fade = 1.0;
         self.speech_ttl_remaining = Some(speech_hold_sec(&text));
         self.speech_is_curse_tag = is_tag;
+    }
+
+    /// C++ PLAYER_SAYS `*map` suffix: " — N meters away" / "M years ago".
+    ///
+    /// Distance in tiles (≥5). Years = floor(map_age_seconds * age_rate).
+    pub fn append_map_distance_speech(
+        &mut self,
+        map_x: i32,
+        map_y: i32,
+        map_age_seconds: Option<i32>,
+    ) {
+        let dx = map_x as f32 - self.x as f32;
+        let dy = map_y as f32 - self.y as f32;
+        let d = (dx * dx + dy * dy).sqrt();
+        if d < 5.0 {
+            return;
+        }
+        let Some(speech) = self.current_speech.as_mut() else {
+            return;
+        };
+        let meters = spoken_count(d.round() as i32);
+        speech.push_str(&format!(" - {meters} meters away"));
+        if let Some(age_sec) = map_age_seconds {
+            let years = ((age_sec as f32) * self.age_rate.max(0.0)).floor() as i32;
+            if years > 0 {
+                let y = spoken_count(years);
+                if years == 1 {
+                    speech.push_str(&format!(" {y} year ago"));
+                } else {
+                    speech.push_str(&format!(" {y} years ago"));
+                }
+            }
+        }
     }
 
     /// Tick speech hold + fade + curse-tag reinsert / 15s tic (P3#16).
@@ -1608,6 +1789,11 @@ impl LiveWorld {
         ids
     }
 
+    /// Living (non-deleted) players in arbitrary hash order.
+    pub fn iter_living(&self) -> impl Iterator<Item = &LiveObject> {
+        self.players.values().filter(|o| !o.deleted)
+    }
+
     /// Apply one PU line. Returns whether the object is newly inserted.
     ///
     /// Also maintains `held_by_adult_id` from adult `held_id < 0` (C++ ~19824).
@@ -1616,9 +1802,36 @@ impl LiveWorld {
     pub fn apply_pu(&mut self, pu: &PlayerUpdate) -> bool {
         // Baby PU while still marked held + done_moving → drop handoff (C++ ~19242).
         if !pu.deleted && pu.done_moving_seq_num > 0 {
-            if let Some(existing) = self.players.get_mut(&pu.player_id) {
-                if existing.held_by_adult_id != -1 {
-                    existing.begin_drop_from_arms(pu.x as f32, pu.y as f32);
+            let adult_id = self
+                .players
+                .get(&pu.player_id)
+                .map(|o| o.held_by_adult_id)
+                .unwrap_or(-1);
+            if adult_id != -1 {
+                let (held_anim, held_frame) = self
+                    .players
+                    .get(&adult_id)
+                    .map(|a| {
+                        (
+                            a.anim.cur_held_anim,
+                            a.anim.held_animation_frame_count,
+                        )
+                    })
+                    .unwrap_or((crate::anim_bank::ANIM_HELD, 0.0));
+                if let Some(existing) = self.players.get_mut(&pu.player_id) {
+                    existing.begin_drop_from_arms_with_adult(
+                        pu.x as f32,
+                        pu.y as f32,
+                        held_anim,
+                        held_frame,
+                    );
+                }
+                // C++ ~19306: adult holdingID = 0 after drop.
+                if let Some(adult) = self.players.get_mut(&adult_id) {
+                    if adult.held_id == -pu.player_id {
+                        adult.held_id = 0;
+                        adult.held_id_raw = "0".into();
+                    }
                 }
             }
         }
@@ -1668,14 +1881,30 @@ impl LiveWorld {
     ///
     /// When a baby is released, arm drop-offset slide from last held raw pos.
     fn clear_held_by_adult(&mut self, adult_id: i32, keep_baby: Option<i32>) {
-        for o in self.players.values_mut() {
-            if o.held_by_adult_id == adult_id {
-                if keep_baby != Some(o.id) {
-                    let gx = o.x as f32;
-                    let gy = o.y as f32;
-                    // Sets held_by_adult_id = -1; uses raw pos when known.
-                    o.begin_drop_from_arms(gx, gy);
-                }
+        let (held_anim, held_frame) = self
+            .players
+            .get(&adult_id)
+            .map(|a| {
+                (
+                    a.anim.cur_held_anim,
+                    a.anim.held_animation_frame_count,
+                )
+            })
+            .unwrap_or((crate::anim_bank::ANIM_HELD, 0.0));
+        let ids: Vec<i32> = self
+            .players
+            .values()
+            .filter(|o| o.held_by_adult_id == adult_id && keep_baby != Some(o.id))
+            .map(|o| o.id)
+            .collect();
+        for id in ids {
+            let (gx, gy) = self
+                .players
+                .get(&id)
+                .map(|o| (o.x as f32, o.y as f32))
+                .unwrap_or((0.0, 0.0));
+            if let Some(o) = self.players.get_mut(&id) {
+                o.begin_drop_from_arms_with_adult(gx, gy, held_anim, held_frame);
             }
         }
     }
@@ -1746,7 +1975,12 @@ impl LiveWorld {
                     held_learned: false,
                     deleted: false,
                     delete_reason: None,
+                    raw_line: String::new(),
                 });
+                stub.chasing_us = false;
+                stub.is_genetic_family = false;
+                stub.kill_mode = false;
+                stub.kill_with_id = 0;
                 stub.name = Some(display);
                 stub.on_screen = false;
                 self.players.insert(n.player_id, stub);
@@ -1831,6 +2065,13 @@ impl LiveWorld {
             self.apply_says_pointer(ps);
             if let Some(o) = self.players.get_mut(&ps.player_id) {
                 o.apply_says(ps);
+                if let Some(map) = &ps.map {
+                    o.append_map_distance_speech(
+                        map.x,
+                        map.y,
+                        map.map_age_seconds,
+                    );
+                }
             }
         }
     }
@@ -2040,12 +2281,181 @@ impl LiveWorld {
                 o.set_holding_flip(dir_x < 0.0);
             }
             if traveled >= total - 1e-4 {
-                // Path complete locally until done_moving PU
+                // Path complete locally — C++ currentSpeed = 0 then playPending.
                 o.x = path.last().map(|p| p.0.round() as i32).unwrap_or(o.x);
                 o.y = path.last().map(|p| p.1.round() as i32).unwrap_or(o.y);
+                o.display_x = o.x as f32;
+                o.display_y = o.y as f32;
+                o.moving = false;
             }
         }
     }
+
+    /// C++ FOLLOWING (FW) — `followingID` + leader badge color.
+    pub fn apply_following(&mut self, rows: &[crate::parse::FollowingRow]) {
+        for r in rows {
+            if let Some(fo) = self.players.get_mut(&r.follower_id) {
+                fo.following_id = if r.leader_id != 0 { r.leader_id } else { -1 };
+            }
+            if r.leader_id > 0 && r.leader_color_index >= 0 {
+                if let Some(lo) = self.players.get_mut(&r.leader_id) {
+                    lo.leadership_color_index = r.leader_color_index;
+                }
+            }
+        }
+    }
+
+    /// C++ EXILED (EX) — `exiler_id == -1` clears the target's list.
+    pub fn apply_exiled(&mut self, rows: &[crate::parse::ExiledRow]) {
+        for r in rows {
+            if let Some(to) = self.players.get_mut(&r.target_id) {
+                if r.exiler_id == -1 {
+                    to.exiled_by_ids.clear();
+                } else if r.exiler_id > 0 && !to.exiled_by_ids.contains(&r.exiler_id) {
+                    to.exiled_by_ids.push(r.exiler_id);
+                }
+            }
+        }
+    }
+
+    /// C++ WAR_REPORT vs our Eve lineage — mark other-line players war/peace.
+    pub fn apply_war_report(&mut self, rows: &[crate::parse::WarReportRow]) {
+        for o in self.players.values_mut() {
+            o.war_peace_status = 0;
+        }
+        let our_eve = self
+            .our()
+            .and_then(|o| o.lineage.as_ref().map(|l| l.eve_id))
+            .unwrap_or(0);
+        if our_eve <= 0 {
+            return;
+        }
+        for r in rows {
+            if r.status == 0 || r.eve_id_a <= 0 || r.eve_id_b <= 0 {
+                continue;
+            }
+            let other = if r.eve_id_a == our_eve {
+                r.eve_id_b
+            } else if r.eve_id_b == our_eve {
+                r.eve_id_a
+            } else {
+                continue;
+            };
+            for o in self.players.values_mut() {
+                if o.lineage.as_ref().map(|l| l.eve_id) == Some(other) {
+                    o.war_peace_status = r.status;
+                }
+            }
+        }
+    }
+
+    /// C++ TOOL_EXPERTS — nearby experts flash `+` speech for 3s.
+    pub fn apply_tool_experts(&mut self, ids: &[i32]) {
+        for &id in ids {
+            if let Some(o) = self.players.get_mut(&id) {
+                o.current_speech = Some("+".into());
+                o.speech_fade = 1.0;
+                o.speech_ttl_remaining = Some(3.0);
+                o.speech_is_curse = false;
+                o.speech_is_curse_tag = false;
+                o.speech_is_overhead_label = true;
+            }
+        }
+    }
+
+    /// Walk `following_id` from `id` up to Eve/top (C++ `getOurLeadershipChain`).
+    pub fn leadership_chain(&self, id: i32) -> Vec<i32> {
+        let mut chain = Vec::new();
+        let mut cur = self.get(id).map(|o| o.following_id).unwrap_or(-1);
+        while cur > 0 && !chain.contains(&cur) {
+            chain.push(cur);
+            cur = self.get(cur).map(|o| o.following_id).unwrap_or(-1);
+        }
+        chain
+    }
+
+    /// Top of the following chain (C++ `getTopLeader`).
+    pub fn top_leader_id(&self, id: i32) -> i32 {
+        self.leadership_chain(id).last().copied().unwrap_or(-1)
+    }
+
+    /// True if `test_id` follows `leader_id` (directly or through the chain).
+    pub fn is_follower_of(&self, leader_id: i32, test_id: i32) -> bool {
+        if leader_id <= 0 || test_id <= 0 || leader_id == test_id {
+            return false;
+        }
+        self.leadership_chain(test_id).contains(&leader_id)
+    }
+
+    /// C++ `isExiled(viewer, target)` — viewer's chain exiled the target, or vice versa.
+    pub fn is_exiled(&self, viewer_id: i32, target_id: i32) -> bool {
+        let Some(target) = self.get(target_id) else {
+            return false;
+        };
+        if target.exiled_by_ids.contains(&viewer_id) {
+            return true;
+        }
+        for &ex in &target.exiled_by_ids {
+            if self.leadership_chain(viewer_id).contains(&ex) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Drain `pendingReceivedMessages` for players who are no longer interpolating.
+    ///
+    /// // C++ `playPendingReceivedMessages` when `currentSpeed == 0`
+    pub fn drain_pending_for_idle(&mut self, our_id: Option<i32>, our_in_motion: bool) -> Vec<String> {
+        let mut out = Vec::new();
+        let ids: Vec<i32> = self.players.keys().copied().collect();
+        for id in ids {
+            let still_moving = if our_id == Some(id) {
+                our_in_motion
+            } else {
+                self.players.get(&id).map(|o| o.moving).unwrap_or(false)
+            };
+            if still_moving {
+                continue;
+            }
+            if let Some(o) = self.players.get_mut(&id) {
+                if o.pending_received_messages.is_empty() {
+                    continue;
+                }
+                out.extend(o.pending_received_messages.drain(..));
+                o.some_pending_is_more_movement = false;
+            }
+        }
+        out
+    }
+
+    /// C++ `playPendingReceivedMessagesRegardingOthers` on delete.
+    pub fn drain_pending_regarding_others(&mut self, player_id: i32) -> Vec<String> {
+        let Some(o) = self.players.get_mut(&player_id) else {
+            return Vec::new();
+        };
+        let mut ready = Vec::new();
+        for msg in o.pending_received_messages.drain(..) {
+            let about_self = (msg.starts_with("PU") || msg.starts_with("PM"))
+                && first_id_after_tag(&msg) == Some(player_id);
+            if !about_self {
+                ready.push(msg);
+            }
+        }
+        o.some_pending_is_more_movement = false;
+        ready
+    }
+}
+
+fn first_id_after_tag(msg: &str) -> Option<i32> {
+    let mut lines = msg.lines();
+    let _tag = lines.next()?;
+    lines
+        .next()?
+        .split_whitespace()
+        .next()?
+        .parse()
+        .ok()
 }
 
 /// Distance along polyline of the closest projection of (x,y).
@@ -2314,6 +2724,29 @@ mod tests {
     }
 
     #[test]
+    fn family_speech_sets_genetic_family_flag() {
+        let mut w = LiveWorld::new();
+        w.apply_pu(&parse_pu_line(&sample_pu_line(5, 0, 0, 0)).unwrap());
+        w.apply_says(&[crate::parse::parse_ps_line("5/0 +FAMILY+").unwrap()]);
+        assert!(w.get(5).unwrap().is_genetic_family);
+        assert_eq!(w.get(5).unwrap().current_speech.as_deref(), Some("+FAMILY+"));
+        // Second FAMILY while talking: keep flag, no new bubble overwrite skip.
+        w.apply_says(&[crate::parse::parse_ps_line("5/0 +FAMILY+").unwrap()]);
+        assert!(w.get(5).unwrap().is_genetic_family);
+    }
+
+    #[test]
+    fn map_ps_appends_meters_away() {
+        let mut w = LiveWorld::new();
+        w.apply_pu(&parse_pu_line(&sample_pu_line(5, 0, 0, 0)).unwrap());
+        let ps = crate::parse::parse_ps_line("5/0 HOME *map 20 0 0").unwrap();
+        w.apply_says(&[ps]);
+        let s = w.get(5).unwrap().current_speech.as_deref().unwrap_or("");
+        assert!(s.contains("meters away"), "got {s}");
+        assert!(s.contains("HOME"), "got {s}");
+    }
+
+    #[test]
     fn pe_permanent_and_ttl_and_extra_from_bank() {
         use crate::emotion::EmotionBank;
 
@@ -2441,6 +2874,7 @@ mod tests {
             eta_sec: 1.0,
             trunc: 1,
             deltas: vec![(1, 0)],
+            raw_line: String::new(),
         }]);
         let o = w.get(9).unwrap();
         assert!(o.moving);
@@ -2464,6 +2898,7 @@ mod tests {
             eta_sec: 2.0,
             trunc: 0,
             deltas: vec![(2, 0)],
+            raw_line: String::new(),
         }]);
         {
             let o = w.get_mut(3).unwrap();
@@ -2821,9 +3256,18 @@ mod tests {
         w.apply_says(&[ps]);
         {
             let o = w.get(38499).unwrap();
-            assert_eq!(o.current_speech.as_deref(), Some(":SPECIAL SPOT"));
+            // C++ PLAYER_SAYS *map suffix: meters away + years ago (map 13,6 from 0,0).
+            let speech = o.current_speech.as_deref().unwrap_or("");
             assert!(
-                !o.current_speech.as_ref().unwrap().contains("*map"),
+                speech.starts_with(":SPECIAL SPOT"),
+                "bubble stem, got {speech:?}"
+            );
+            assert!(
+                speech.contains("meters away"),
+                "map distance suffix, got {speech:?}"
+            );
+            assert!(
+                !speech.contains("*map"),
                 "bubble must not contain pointer tokens"
             );
         }
@@ -3085,10 +3529,12 @@ mod tests {
                 b.held_by_drop_offset_x != 0.0 || b.held_by_drop_offset_y != 0.0,
                 "drop offset armed"
             );
-            // Handoff anim: held → ground mid-fade
-            assert_eq!(b.anim.last_anim, ANIM_HELD);
-            assert_eq!(b.anim.cur_anim, ANIM_GROUND);
-            assert!((b.anim.last_anim_fade - 1.0).abs() < 1e-6);
+            // Handoff anim: adult held-track clocks copied → ground fade
+            assert_eq!(b.anim.last_anim, crate::anim_bank::ANIM_HELD);
+            assert_eq!(b.anim.cur_anim, crate::anim_bank::ANIM_GROUND);
+            assert!((b.anim.last_anim_fade - 1.0).abs() < 1e-4);
+            // Adult no longer holding
+            assert_eq!(w.get(10).unwrap().held_id, 0);
             let (dx, dy) = b.draw_pos_tiles();
             assert!((dx - (b.x as f32 + b.held_by_drop_offset_x)).abs() < 1e-6);
             assert!((dy - (b.y as f32 + b.held_by_drop_offset_y)).abs() < 1e-6);
@@ -3116,5 +3562,78 @@ mod tests {
             assert!(y < 4.0 && y > 0.0);
             assert!(o.held_pos_override);
         }
+    }
+
+    #[test]
+    fn hold_other_pu_until_remote_path_finishes() {
+        let mut w = LiveWorld::new();
+        w.set_our_id(1);
+        w.apply_pu(&parse_pu_line(&sample_pu_line(1, 0, 0, 0)).unwrap());
+        w.apply_pu(&parse_pu_line(&sample_pu_line(2, 0, 0, 0)).unwrap());
+        w.apply_moves_start(&[PlayerMoveStart {
+            player_id: 2,
+            xs: 0,
+            ys: 0,
+            total_sec: 1.0,
+            eta_sec: 1.0,
+            trunc: 0,
+            deltas: vec![(2, 0)],
+            raw_line: String::new(),
+        }]);
+        assert!(w.get(2).unwrap().moving);
+        // done_moving PU with a new held item — C++ holds this until walk ends.
+        let held_pu = parse_pu_line(
+            "2 19 0 0 0 0 33 0 0 0 -1 0.50 2 0 2 0 20.00 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 0",
+        )
+        .unwrap();
+        assert_eq!(held_pu.held_id, 33);
+        assert!(held_pu.done_moving_seq_num > 0);
+        assert!(w.get(2).unwrap().should_hold_pu(&held_pu, Some(1)));
+        assert!(!w.get(1).unwrap().should_hold_pu(&held_pu, Some(1)));
+        w.get_mut(2)
+            .unwrap()
+            .pending_received_messages
+            .push_back(format!("PU\n{}\n#", held_pu.raw_line));
+        // Held item must not snap onto the walker yet.
+        assert_eq!(w.get(2).unwrap().held_id, 0);
+        w.step_remote_path_display(2.0, Some(1));
+        assert!(!w.get(2).unwrap().moving, "local path complete");
+        let drained = w.drain_pending_for_idle(Some(1), false);
+        assert_eq!(drained.len(), 1);
+        assert!(drained[0].starts_with("PU"));
+        w.apply_pu(&held_pu);
+        assert_eq!(w.get(2).unwrap().held_id, 33);
+    }
+
+    #[test]
+    fn following_and_exile_and_labels() {
+        let mut w = LiveWorld::new();
+        w.set_our_id(1);
+        w.apply_pu(&parse_pu_line(&sample_pu_line(1, 0, 0, 0)).unwrap());
+        w.apply_pu(&parse_pu_line(&sample_pu_line(2, 1, 0, 0)).unwrap());
+        w.apply_pu(&parse_pu_line(&sample_pu_line(3, 2, 0, 0)).unwrap());
+        w.apply_following(&[crate::parse::FollowingRow {
+            follower_id: 1,
+            leader_id: 2,
+            leader_color_index: 3,
+        }]);
+        w.apply_following(&[crate::parse::FollowingRow {
+            follower_id: 2,
+            leader_id: 3,
+            leader_color_index: 1,
+        }]);
+        assert_eq!(w.get(1).unwrap().following_id, 2);
+        assert_eq!(w.leadership_chain(1), vec![2, 3]);
+        assert_eq!(w.top_leader_id(1), 3);
+        assert!(w.is_follower_of(2, 1));
+        assert!(w.is_follower_of(3, 1));
+        w.apply_exiled(&[crate::parse::ExiledRow {
+            target_id: 2,
+            exiler_id: 1,
+        }]);
+        assert!(w.is_exiled(1, 2));
+        w.get_mut(2).unwrap().show_player_label("+LEADER+");
+        assert_eq!(w.get(2).unwrap().current_speech.as_deref(), Some("+LEADER+"));
+        assert!(w.get(2).unwrap().speech_is_overhead_label);
     }
 }

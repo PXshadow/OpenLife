@@ -52,7 +52,8 @@ use sha1::{Digest, Sha1};
 use crate::anim_bank::bake_ola1_from_dir;
 use crate::content::{
     apply_default_switch_number_of_uses_patches, apply_object_description_tags,
-    apply_sprite_use_vis, description_has_var_numeral, parse_variable_dollar_count,
+    auto_clone_reverse_last_use, apply_sprite_use_vis, description_has_var_numeral,
+    parse_variable_dollar_count,
     var_object_label, var_object_numeral, variable_target_is_hidden, ClientContent,
     ClientObjectDef, ClientTransition, ObjectSprite,
 };
@@ -65,7 +66,7 @@ use crate::sprite_bank::bake_ols1_from_dir;
 pub use ol_binary::{
     olt1_lacks_category_expanded, peek_blob_flags, OLC1_FORMAT_VERSION, OLC1_FORMAT_VERSION_V1,
     OLC1_FORMAT_VERSION_V2, OLC1_FORMAT_VERSION_V3, OLC1_FORMAT_VERSION_V4, OLC1_FORMAT_VERSION_V5,
-    OLC1_FORMAT_VERSION_V6, OLC1_FORMAT_VERSION_V7, OLC1_MAGIC, OLT1_FORMAT_VERSION,
+    OLC1_FORMAT_VERSION_V6, OLC1_FORMAT_VERSION_V7, OLC1_FORMAT_VERSION_V9, OLC1_MAGIC, OLT1_FORMAT_VERSION,
     OLT1_FORMAT_VERSION_V1, OLT1_F_CATEGORY_EXPANDED, OLT1_MAGIC,
 };
 
@@ -314,6 +315,7 @@ fn client_sprite_to_bin(s: &ObjectSprite) -> BinSprite {
     if s.invis_worn {
         sf |= SPR_F_INVIS_WORN;
     }
+    // only_when_worn is a v9 extra flag, not packed in `sf`.
     if s.behind_slots {
         sf |= SPR_F_BEHIND_SLOTS;
     }
@@ -338,6 +340,7 @@ fn client_sprite_to_bin(s: &ObjectSprite) -> BinSprite {
         y: s.y,
         rot: s.rot,
         flags: sf,
+        only_when_worn: s.only_when_worn,
         age_start: s.age_start,
         age_end: s.age_end,
         r: s.r,
@@ -348,7 +351,7 @@ fn client_sprite_to_bin(s: &ObjectSprite) -> BinSprite {
 }
 
 /// Load OLC1 into a new / existing [`ClientContent`] (replaces objects, sets data_version).
-/// Accepts format 1..=7. Runtime-materializes multi-use + variable dummy object records.
+/// Accepts format 1..=9. Runtime-materializes multi-use + variable dummy object records.
 pub fn load_olc1(data: &[u8], db: &mut ClientContent) -> Result<u32, String> {
     let blob = parse_olc1(data)?;
     let fmt = blob.header.format;
@@ -440,6 +443,7 @@ fn olc1_to_client_object(rec: Olc1Record) -> ClientObjectDef {
         contain_offset: (0, 0),
         held_in_hand: rec.flags & OBJ_F_HELD_IN_HAND != 0,
         rideable: rec.flags & OBJ_F_RIDEABLE != 0,
+        hide_rider: false, // recovered from +hideRider in apply_object_description_tags
         side_access: rec.flags & OBJ_F_SIDE_ACCESS != 0,
         no_back_access: rec.flags & OBJ_F_NO_BACK_ACCESS != 0,
         clothing: rec.clothing as char,
@@ -452,6 +456,8 @@ fn olc1_to_client_object(rec: Olc1Record) -> ClientObjectDef {
         variable_dummy_ids: rec.variable_dummy_ids,
         variable_dummy_parent: 0,
         is_variable_hidden: false,
+        road_parent_id: -1,
+        use_var_serial_numbers: false,
         creation_sound: rec.creation_sound,
         using_sound: rec.using_sound,
         eating_sound: rec.eating_sound,
@@ -487,10 +493,10 @@ fn bin_sprite_to_client(s: &BinSprite) -> ObjectSprite {
         g: s.g,
         b: s.b,
         parent: s.parent,
+        no_flip_x: s.x,
         invis_holding: s.invis_holding(),
         invis_worn: s.invis_worn(),
-        // only_when_worn (invisWorn=2) not in OLC1 sprite flags — residual text-path.
-        only_when_worn: false,
+        only_when_worn: s.only_when_worn,
         behind_slots: s.behind_slots(),
         behind_player: s.behind_player(),
         is_body: part == SPR_PART_BODY,
@@ -780,8 +786,8 @@ fn next_free_object_id(db: &ClientContent) -> i32 {
 /// description `$N` → `- ?`. Materializes dummy records with letter or numeral labels.
 ///
 /// // C++: `autoGenerateVariableObjects` + `reAddObject`
-/// // TODO: `setupNumericSprites` for `+varNumeral` (needs sprite-bank Numeral# tags)
-/// // TODO: `getNextVarSerialNumberChild` / `+varSerialNumber` instance cycling
+/// Numeral layers: [`crate::content::setup_numeric_sprites_all`] after sprite tags.
+/// Serial cycle: [`ClientContent::next_var_serial_child`].
 pub fn assign_variable_dummies(db: &mut ClientContent) {
     // Drop previously materialized variable dummies.
     let stale: Vec<i32> = db
@@ -991,7 +997,18 @@ pub fn bake_content_with_progress(
 
     tick(0.08, "bake: text objects…", &mut on_progress);
     let t0 = Instant::now();
-    let mut db = ClientContent::load_from_dir(src)?;
+    let mut db = {
+        let mut object_tick = |i: usize, n: usize| {
+            let frac = 0.08 + 0.12 * (i as f32 / n.max(1) as f32);
+            report_stage(
+                LoadStage::Content,
+                frac.clamp(0.0, 0.22),
+                Some(&format!("bake: objects {i}/{n}")),
+                crate::load_progress::reborrow_cb(&mut on_progress),
+            );
+        };
+        ClientContent::load_from_dir_with_object_progress(src, Some(&mut object_tick))?
+    };
     timings.text_load = t0.elapsed();
 
     // C++ order: autoGenerateUsedObjects then autoGenerateVariableObjects.
@@ -1025,6 +1042,7 @@ pub fn bake_content_with_progress(
 
     // switchNumberOfUses already applied in `load_from_dir`; re-apply is idempotent.
     apply_default_switch_number_of_uses_patches(&mut db);
+    auto_clone_reverse_last_use(&mut db);
 
     tick(0.45, "bake: OLT1 transitions…", &mut on_progress);
     let t0 = Instant::now();
@@ -1278,6 +1296,7 @@ pub fn load_from_cache(
     }
     // Legacy OLT1 without bit7 still gets dough/masa switch patches.
     apply_default_switch_number_of_uses_patches(&mut db);
+    auto_clone_reverse_last_use(&mut db);
     Ok(db)
 }
 

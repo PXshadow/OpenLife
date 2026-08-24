@@ -59,6 +59,8 @@ pub struct ObjectSprite {
     pub use_appear: bool,
     /// C++ `spriteSkipDrawing` — per-use / per-dummy hide (from [`setup_sprite_use_vis`]).
     pub skip_drawing: bool,
+    /// C++ `spriteNoFlipXPos` — X used when the object is drawn flipped (numerals).
+    pub no_flip_x: f32,
 }
 
 impl Default for ObjectSprite {
@@ -90,6 +92,7 @@ impl Default for ObjectSprite {
             use_vanish: false,
             use_appear: false,
             skip_drawing: false,
+            no_flip_x: 0.0,
         }
     }
 }
@@ -301,6 +304,8 @@ pub struct ClientObjectDef {
     pub held_in_hand: bool,
     /// Rideable vehicle. C++ `rideable` (heldInHand=2 in object files).
     pub rideable: bool,
+    /// C++ `+hideRider` — skip drawing the person while riding this vehicle.
+    pub hide_rider: bool,
     /// Clothing role: `n` none, `h` hat, `t` tunic, `s` shoe, `b` bottom, `p` backpack.
     pub clothing: char,
     /// Worn clothing attachment offset. C++ `clothingOffset`.
@@ -324,6 +329,10 @@ pub struct ClientObjectDef {
     pub variable_dummy_parent: i32,
     /// C++ `isVariableHidden` — `$N` appears after `#` comment (label not shown in UI).
     pub is_variable_hidden: bool,
+    /// C++ `roadParentID` from `+roadN` (`-1` = not a road family).
+    pub road_parent_id: i32,
+    /// C++ `useVarSerialNumbers` from `+varSerialNumber`.
+    pub use_var_serial_numbers: bool,
     /// C++ `creationSound` — raw SoundUsage from `sounds=` CSV part 0.
     pub creation_sound: String,
     /// C++ `usingSound` — raw SoundUsage from `sounds=` CSV part 1 (also floor footstep).
@@ -392,6 +401,7 @@ impl Default for ClientObjectDef {
             contain_offset: (0, 0),
             held_in_hand: false,
             rideable: false,
+            hide_rider: false,
             clothing: 'n',
             clothing_offset: (0.0, 0.0),
             num_slots: 0,
@@ -402,6 +412,8 @@ impl Default for ClientObjectDef {
             variable_dummy_ids: Vec::new(),
             variable_dummy_parent: 0,
             is_variable_hidden: false,
+            road_parent_id: -1,
+            use_var_serial_numbers: false,
             creation_sound: String::new(),
             using_sound: String::new(),
             eating_sound: String::new(),
@@ -479,6 +491,85 @@ pub fn var_object_numeral(in_number: i32, in_max: i32) -> String {
 /// C++ `+varNumeral` description tag — use numeric labels instead of A/B/C.
 pub fn description_has_var_numeral(description: &str) -> bool {
     description.contains("+varNumeral")
+}
+
+/// C++ `setupNumericSprites` — hide unused `Numeral#N` sprites; pad + flip-swap digits.
+///
+/// `sprite_tag(id)` should return the sprite bank tag (e.g. `Numeral#3`).
+/// Hidden numeral layers get [`ObjectSprite::skip_drawing`]; visible digits swap
+/// X into [`ObjectSprite::no_flip_x`] so a flipped object still reads left-to-right.
+pub fn setup_numeric_sprites(
+    obj: &mut ClientObjectDef,
+    in_number: i32,
+    in_max: i32,
+    sprite_tag: &mut impl FnMut(i32) -> Option<String>,
+) {
+    // Collect Numeral#d sprite indices grouped by digit, sorted by rest X.
+    let mut numerical: [Vec<(f32, usize)>; 10] = Default::default();
+    let tags: Vec<Option<String>> = obj
+        .sprites
+        .iter()
+        .map(|s| sprite_tag(s.sprite_id))
+        .collect();
+    for (i, spr) in obj.sprites.iter_mut().enumerate() {
+        spr.no_flip_x = spr.x;
+        let Some(tag) = tags[i].as_deref() else {
+            continue;
+        };
+        let Some(key) = tag.find("Numeral#") else {
+            continue;
+        };
+        let rest = &tag[key + "Numeral#".len()..];
+        let d: i32 = rest
+            .chars()
+            .take_while(|c| c.is_ascii_digit())
+            .collect::<String>()
+            .parse()
+            .unwrap_or(-1);
+        if (0..10).contains(&d) {
+            numerical[d as usize].push((spr.x, i));
+            spr.skip_drawing = true; // hide until selected
+        }
+    }
+    for list in numerical.iter_mut() {
+        list.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+    }
+
+    let mut digits = Vec::new();
+    let mut num_left = in_number.max(0);
+    if num_left == 0 {
+        digits.push(0);
+    }
+    while num_left > 0 {
+        digits.insert(0, num_left % 10);
+        num_left /= 10;
+    }
+    // Pad with leading zeros until 10^width >= in_max
+    while {
+        let w = digits.len() as u32;
+        10i32.saturating_pow(w) < in_max.max(1)
+    } {
+        digits.insert(0, 0);
+    }
+
+    let mut visible_idx = Vec::new();
+    for (place, &d) in digits.iter().enumerate() {
+        if let Some(&(_, sprite_i)) = numerical[d as usize].get(place) {
+            if let Some(spr) = obj.sprites.get_mut(sprite_i) {
+                spr.skip_drawing = false;
+            }
+            visible_idx.push(sprite_i);
+        }
+    }
+    let n = visible_idx.len();
+    for i in 0..n / 2 {
+        let a = visible_idx[i];
+        let b = visible_idx[n - 1 - i];
+        let xa = obj.sprites[a].x;
+        let xb = obj.sprites[b].x;
+        obj.sprites[a].no_flip_x = xb;
+        obj.sprites[b].no_flip_x = xa;
+    }
 }
 
 /// C++ `isVariableHidden` — true when `$N` (or `- ?` after rewrite) sits after `#`.
@@ -616,6 +707,20 @@ pub fn apply_object_description_tags(def: &mut ClientObjectDef) {
     };
     if hay.contains("eveHomeMarker") {
         def.home_marker = true;
+    }
+    // C++ LivingLifePage: +hideRider skips person draw while mounted.
+    def.hide_rider = hay.contains("+hideRider") || hay.contains("+hiderider");
+    def.use_var_serial_numbers = hay.contains("+varSerialNumber");
+    def.road_parent_id = -1;
+    if let Some(pos) = hay.find("+road") {
+        let rest = &hay[pos + 5..];
+        let digits: String = rest
+            .chars()
+            .take_while(|c| c.is_ascii_digit() || *c == '-')
+            .collect();
+        if let Ok(n) = digits.parse::<i32>() {
+            def.road_parent_id = n;
+        }
     }
     setup_wall(def);
 }
@@ -1168,6 +1273,8 @@ pub struct ClientContent {
     /// `transitions` / `transitions_last_use` (text expand or baked OLT1 flag).
     /// Written as OLT1 header [`crate::content_binary::OLT1_F_CATEGORY_EXPANDED`].
     pub transitions_category_expanded: bool,
+    /// C++ `SerialCountRecord.numInstancesCreated` per variable-dummy parent.
+    pub var_serial_created: HashMap<i32, u32>,
 }
 
 impl ClientContent {
@@ -1190,6 +1297,85 @@ impl ClientContent {
         for def in self.objects.values_mut() {
             if def.person != 0 {
                 def.setup_eyes_and_mouth(&mut sprite_tag);
+            }
+        }
+        self.setup_numeric_sprites_all(&mut sprite_tag);
+    }
+
+    /// C++ `sameRoadClass` — same floor, or shared/parent `+roadN`.
+    pub fn same_road_class(&self, floor_a: i32, floor_b: i32) -> bool {
+        if floor_a <= 0 || floor_b <= 0 {
+            return false;
+        }
+        if floor_a == floor_b {
+            return true;
+        }
+        let a_p = self.get(floor_a).map(|o| o.road_parent_id).unwrap_or(-1);
+        let b_p = self.get(floor_b).map(|o| o.road_parent_id).unwrap_or(-1);
+        a_p == floor_b || b_p == floor_a || (a_p != -1 && a_p == b_p)
+    }
+
+    /// C++ `getNextVarSerialNumberChild` — cycle `variableDummyIDs` for `+varSerialNumber`.
+    pub fn next_var_serial_child(&mut self, id: i32) -> i32 {
+        let parent_id = self
+            .objects
+            .get(&id)
+            .map(|d| {
+                if d.variable_dummy_parent != 0 {
+                    d.variable_dummy_parent
+                } else {
+                    id
+                }
+            })
+            .unwrap_or(id);
+        let (use_serial, dummies) = match self.objects.get(&parent_id) {
+            Some(p) => (p.use_var_serial_numbers, p.variable_dummy_ids.clone()),
+            None => return id,
+        };
+        if !use_serial || dummies.is_empty() {
+            return id;
+        }
+        let n = dummies.len();
+        let count = self.var_serial_created.entry(parent_id).or_insert(0);
+        let idx = (*count as usize) % n;
+        *count += 1;
+        dummies[idx]
+    }
+
+    /// C++ `setupNumericSprites` for every `+varNumeral` variable dummy.
+    pub fn setup_numeric_sprites_all(
+        &mut self,
+        sprite_tag: &mut impl FnMut(i32) -> Option<String>,
+    ) {
+        let dummy_ids: Vec<i32> = self
+            .objects
+            .values()
+            .filter(|d| d.variable_dummy_parent != 0 && description_has_var_numeral(&d.description))
+            .map(|d| d.id)
+            .collect();
+        let mut jobs = Vec::new();
+        for id in dummy_ids {
+            let Some(d) = self.objects.get(&id) else {
+                continue;
+            };
+            let parent_id = d.variable_dummy_parent;
+            let Some(parent) = self.objects.get(&parent_id) else {
+                continue;
+            };
+            let max = parent.variable_dummy_ids.len() as i32;
+            let Some(number) = parent
+                .variable_dummy_ids
+                .iter()
+                .position(|&x| x == id)
+                .map(|i| i as i32 + 1)
+            else {
+                continue;
+            };
+            jobs.push((id, number, max.max(1)));
+        }
+        for (id, number, max) in jobs {
+            if let Some(def) = self.objects.get_mut(&id) {
+                setup_numeric_sprites(def, number, max, sprite_tag);
             }
         }
     }
@@ -1386,6 +1572,7 @@ impl ClientContent {
         );
         self.categories = bank;
         self.transitions_category_expanded = true;
+        auto_clone_reverse_last_use(self);
         added
     }
 
@@ -1423,6 +1610,14 @@ impl ClientContent {
     ///
     /// Loads categories and expands member transitions when `categories/` is present.
     pub fn load_from_dir(root: impl AsRef<Path>) -> Result<Self, String> {
+        Self::load_from_dir_with_object_progress(root, None)
+    }
+
+    /// Text load with optional per-file ticks (bake / loading bar mid-rebake).
+    pub fn load_from_dir_with_object_progress(
+        root: impl AsRef<Path>,
+        on_objects: Option<&mut dyn FnMut(usize, usize)>,
+    ) -> Result<Self, String> {
         let root = root.as_ref();
         let mut db = Self {
             root: Some(root.to_path_buf()),
@@ -1436,16 +1631,15 @@ impl ClientContent {
         }
         let obj_dir = root.join("objects");
         if obj_dir.is_dir() {
-            load_objects_dir(&obj_dir, &mut db.objects)?;
+            load_objects_dir_with_progress(&obj_dir, &mut db.objects, on_objects)?;
         }
         let tr_dir = root.join("transitions");
         if tr_dir.is_dir() {
             load_transitions_dir(&tr_dir, &mut db)?;
         }
-        // C-CAT + C-TRANS: lite member expand + pattern second pass (once at load).
         db.maybe_load_categories_from_root(root);
-        // Haxe ServerSettings switchNumberOfUses patches (dough/masa-on-table).
         apply_default_switch_number_of_uses_patches(&mut db);
+        auto_clone_reverse_last_use(&mut db);
         Ok(db)
     }
 
@@ -1518,9 +1712,17 @@ impl ClientContent {
     }
 }
 
-fn load_objects_dir(dir: &Path, out: &mut HashMap<i32, ClientObjectDef>) -> Result<(), String> {
-    let entries = fs::read_dir(dir).map_err(|e| e.to_string())?;
-    for ent in entries.flatten() {
+fn load_objects_dir_with_progress(
+    dir: &Path,
+    out: &mut HashMap<i32, ClientObjectDef>,
+    mut on_progress: Option<&mut dyn FnMut(usize, usize)>,
+) -> Result<(), String> {
+    let entries: Vec<_> = fs::read_dir(dir)
+        .map_err(|e| e.to_string())?
+        .flatten()
+        .collect();
+    let total = entries.len().max(1);
+    for (i, ent) in entries.into_iter().enumerate() {
         let path = ent.path();
         if path.extension().and_then(|e| e.to_str()) != Some("txt") {
             continue;
@@ -1539,6 +1741,11 @@ fn load_objects_dir(dir: &Path, out: &mut HashMap<i32, ClientObjectDef>) -> Resu
         let text = fs::read_to_string(&path).map_err(|e| e.to_string())?;
         if let Some(def) = parse_object_txt(id, &text) {
             out.insert(id, def);
+        }
+        if i % 200 == 0 {
+            if let Some(cb) = on_progress.as_mut() {
+                cb(i + 1, total);
+            }
         }
     }
     Ok(())
@@ -1949,6 +2156,7 @@ pub fn parse_object_txt(id: i32, text: &str) -> Option<ClientObjectDef> {
                         let mut it = v.split(',');
                         s.x = it.next().and_then(|t| t.parse().ok()).unwrap_or(0.0);
                         s.y = it.next().and_then(|t| t.parse().ok()).unwrap_or(0.0);
+                        s.no_flip_x = s.x;
                     }
                 }
                 "rot" => {
@@ -2101,6 +2309,37 @@ pub fn insert_transition_record(db: &mut ClientContent, t: ClientTransition) -> 
 /// Haxe dough/masa-on-table `switchNumberOfUses = true` patches.
 ///
 /// // Haxe: ServerSettings (keys match server `apply_default_switch_number_of_uses_patches`)
+/// Haxe reverseUseActor/Target last-use auto-clone.
+///
+/// A non-last-use transition with reverse-use flags also needs a last-use
+/// record so depleted dummies follow the reverse path (TransitionImporter).
+pub fn auto_clone_reverse_last_use(db: &mut ClientContent) {
+    let src: Vec<ClientTransition> = db
+        .transitions
+        .values()
+        .filter(|t| {
+            (t.reverse_use_actor || t.reverse_use_target)
+                && !t.last_use_actor
+                && !t.last_use_target
+        })
+        .cloned()
+        .collect();
+    for t in src {
+        if t.reverse_use_actor {
+            let mut c = t.clone();
+            c.last_use_actor = true;
+            let key = (c.actor_id, c.target_id);
+            db.transitions_last_use.entry(key).or_insert(c);
+        }
+        if t.reverse_use_target {
+            let mut c = t.clone();
+            c.last_use_target = true;
+            let key = (c.actor_id, c.target_id);
+            db.transitions_last_use.entry(key).or_insert(c);
+        }
+    }
+}
+
 pub fn apply_default_switch_number_of_uses_patches(db: &mut ClientContent) {
     const KEYS: &[(i32, i32)] = &[(252, 3371), (235, 4086), (1300, 3371), (235, 4090)];
     for &key in KEYS {
@@ -2261,6 +2500,136 @@ mod tests {
     }
 
     #[test]
+    fn setup_numeric_sprites_hides_and_flip_swaps() {
+        let mut obj = ClientObjectDef::default();
+        obj.sprites = vec![
+            ObjectSprite {
+                sprite_id: 1,
+                x: 0.0,
+                no_flip_x: 0.0,
+                ..Default::default()
+            },
+            ObjectSprite {
+                sprite_id: 2,
+                x: 10.0,
+                no_flip_x: 10.0,
+                ..Default::default()
+            },
+            ObjectSprite {
+                sprite_id: 3,
+                x: 20.0,
+                no_flip_x: 20.0,
+                ..Default::default()
+            },
+        ];
+        // Two copies of digit 1 (places 0 and 1) plus unused 0.
+        setup_numeric_sprites(&mut obj, 11, 99, &mut |id| match id {
+            1 => Some("Numeral#1".into()),
+            2 => Some("Numeral#1".into()),
+            3 => Some("Numeral#0".into()),
+            _ => None,
+        });
+        assert!(!obj.sprites[0].skip_drawing, "place-0 digit 1 shown");
+        assert!(!obj.sprites[1].skip_drawing, "place-1 digit 1 shown");
+        assert!(obj.sprites[2].skip_drawing, "unused 0 hidden");
+        // Flip-swap X of the two visible digits.
+        assert!((obj.sprites[0].no_flip_x - 10.0).abs() < 1e-5);
+        assert!((obj.sprites[1].no_flip_x - 0.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn same_road_class_and_var_serial_cycle() {
+        let mut c = ClientContent::default();
+        c.objects.insert(
+            5,
+            ClientObjectDef {
+                id: 5,
+                road_parent_id: -1,
+                ..Default::default()
+            },
+        );
+        c.objects.insert(
+            6,
+            ClientObjectDef {
+                id: 6,
+                road_parent_id: 5,
+                ..Default::default()
+            },
+        );
+        c.objects.insert(
+            7,
+            ClientObjectDef {
+                id: 7,
+                road_parent_id: 5,
+                ..Default::default()
+            },
+        );
+        c.objects.insert(
+            9,
+            ClientObjectDef {
+                id: 9,
+                road_parent_id: 99,
+                ..Default::default()
+            },
+        );
+        assert!(c.same_road_class(5, 5));
+        assert!(c.same_road_class(5, 6));
+        assert!(c.same_road_class(6, 7));
+        assert!(!c.same_road_class(6, 9));
+        assert!(!c.same_road_class(0, 5));
+
+        c.objects.insert(
+            10,
+            ClientObjectDef {
+                id: 10,
+                use_var_serial_numbers: true,
+                variable_dummy_ids: vec![11, 12, 13],
+                ..Default::default()
+            },
+        );
+        c.objects.insert(
+            11,
+            ClientObjectDef {
+                id: 11,
+                variable_dummy_parent: 10,
+                ..Default::default()
+            },
+        );
+        assert_eq!(c.next_var_serial_child(10), 11);
+        assert_eq!(c.next_var_serial_child(10), 12);
+        assert_eq!(c.next_var_serial_child(11), 13);
+        assert_eq!(c.next_var_serial_child(10), 11);
+        let plain = ClientObjectDef {
+            id: 20,
+            use_var_serial_numbers: false,
+            ..Default::default()
+        };
+        c.objects.insert(20, plain);
+        assert_eq!(c.next_var_serial_child(20), 20);
+    }
+
+    #[test]
+    fn reverse_use_auto_clones_last_use_record() {
+        let mut db = ClientContent::default();
+        db.transitions.insert(
+            (1, 2),
+            ClientTransition {
+                actor_id: 1,
+                target_id: 2,
+                new_actor_id: 3,
+                new_target_id: 4,
+                reverse_use_actor: true,
+                ..Default::default()
+            },
+        );
+        auto_clone_reverse_last_use(&mut db);
+        let cloned = db.transitions_last_use.get(&(1, 2)).expect("cloned");
+        assert!(cloned.last_use_actor);
+        assert!(cloned.reverse_use_actor);
+        assert_eq!(cloned.new_target_id, 4);
+    }
+
+    #[test]
     fn sprite_age_end_is_exclusive_like_cpp() {
         let mut s = ObjectSprite::default();
         s.age_start = 12.0;
@@ -2269,6 +2638,20 @@ mod tests {
         assert!(s.visible_at_age(12.0));
         assert!(s.visible_at_age(16.9));
         assert!(!s.visible_at_age(17.0)); // C++ age >= end
+    }
+
+    #[test]
+    fn hide_rider_tag_from_description() {
+        let d = parse_object_txt(
+            900,
+            "id=900\nHorse Cart# +hideRider\nheldInHand=2\n",
+        )
+        .expect("parse");
+        assert!(d.rideable);
+        assert!(d.hide_rider);
+        let d2 = parse_object_txt(901, "id=901\nCart\nheldInHand=2\n").expect("parse");
+        assert!(d2.rideable);
+        assert!(!d2.hide_rider);
     }
 
     /// P3#23: C++ `setupWall` — floorHugging / +wall / -wall / +frontWall.

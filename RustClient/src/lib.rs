@@ -5,6 +5,8 @@
 
 pub mod account_page;
 pub mod actions;
+pub mod review_page;
+pub mod twin_page;
 pub mod anim_bank;
 pub mod anim_draw;
 pub mod binpack;
@@ -48,6 +50,11 @@ pub use account_page::{
     AccountAction, AccountFocus, AccountKey, AccountPage, ClientAppState, ClientScreen,
     SecretMode, ServerEndpoint, LOCAL_SERVER_HOST, LOCAL_SERVER_PORT, MAX_RECENT_SERVERS,
 };
+pub use twin_page::{TwinAction, TwinFocus, TwinKey, TwinPage};
+pub use review_page::{
+    open_http_url, ReviewAction, ReviewFocus, ReviewKey, ReviewPage, DEFAULT_COMMUNITY_SITE,
+    DEFAULT_DISCORD_URL,
+};
 pub use settings_page::{
     draw_settings_screen, restart_client_process, settings_key_command, ClientSettings,
     GraphicsMode, SettingsAction, SettingsFocus, SettingsHitRect, SettingsKey, SettingsPage,
@@ -58,8 +65,10 @@ pub use play_snapshot::{
     SnapshotViewExtras, DEFAULT_SNAPSHOT_DIR, SNAPSHOT_FORMAT, SNAPSHOT_MAGIC,
 };
 pub use actions::{
-    ObjectAction, encode_baby, encode_drop, encode_emot, encode_force, encode_jump, encode_ka,
-    encode_remv, encode_say, encode_self, encode_sremv, encode_swap, encode_ubaby, encode_use,
+    ObjectAction, encode_baby, encode_die, encode_drop, encode_emot, encode_force, encode_jump,
+    encode_ka, encode_kill, encode_lead, encode_moth, encode_ordr, encode_ping, encode_prop,
+    encode_remv, encode_say, encode_self, encode_sremv, encode_swap, encode_ubaby, encode_unfol,
+    encode_use, get_say_limit, truncate_say_text,
 };
 pub use anim_bank::{
     bake_ola1_from_dir, load_ola1, load_ola1_with_version, parse_anim_filename, parse_animation_txt,
@@ -78,11 +87,13 @@ pub use anim_draw::{
 };
 pub use binpack::{BinPack, Rect as PackRect};
 pub use click_tile::{
-    apply_click_gates, can_execute_action_at, click_drop, click_drop_clothing, click_object,
+    apply_click_gates, can_execute_action_at, click_drop, click_drop_clothing, click_kill,
+    click_object,
     click_remv, click_remv_hit, click_remove_clothing, click_self, click_sremv_clothing,
     click_swap, click_tile, click_tile_mod, click_tile_mod_ex, click_tile_with, click_use,
     clothing_slot_for_object, hold_walk_or_use_tile, is_grid_adjacent, is_self_tile,
-    maybe_close_hold_throw, our_clothing, path_start_tile, plan_click_tile, plan_click_tile_chunks,
+    maybe_close_hold_throw, nearest_kill_target, our_clothing, path_start_tile, plan_click_tile,
+    plan_click_tile_chunks,
     plan_click_tile_chunks_goal, plan_click_tile_chunks_with, plan_stand_for_object,
     plan_stand_for_object_ex, resolve_clothing_equip_slot, resolve_hold_click_dest,
     resolve_use_object_id, select_self_action, select_self_action_ex, select_tile_action,
@@ -106,8 +117,10 @@ pub use category_bank::{
 };
 pub use content::{
     apply_default_switch_number_of_uses_patches, apply_object_description_tags,
+    auto_clone_reverse_last_use,
     apply_sprite_use_vis, arm_holding_parameters, compute_held_draw_pos, compute_held_draw_pos_ex,
     description_has_var_numeral, eyes_anchor_from_head, get_object_center_offset,
+    setup_numeric_sprites,
     get_object_center_offset_simple, insert_normal_or_max_use, insert_transition_record,
     parse_contain_offset_tags, parse_object_sounds_csv, parse_variable_dollar_count,
     rotate_offset_turns, setup_sprite_use_vis, sound_usage_is_blank, target_remains,
@@ -123,11 +136,12 @@ pub use content_binary::{
     read_data_version, write_olc1, write_olt1, BakeResult, BakeTimings, ContentManifest,
     ManifestBlob, OLC1_FORMAT_VERSION, OLC1_FORMAT_VERSION_V1, OLC1_FORMAT_VERSION_V2,
     OLC1_FORMAT_VERSION_V3, OLC1_FORMAT_VERSION_V4, OLC1_FORMAT_VERSION_V5,
-    OLC1_FORMAT_VERSION_V6, OLC1_FORMAT_VERSION_V7, OLC1_MAGIC,
+    OLC1_FORMAT_VERSION_V6, OLC1_FORMAT_VERSION_V7, OLC1_FORMAT_VERSION_V9, OLC1_MAGIC,
     OLT1_FORMAT_VERSION, OLT1_FORMAT_VERSION_V1, OLT1_F_CATEGORY_EXPANDED, OLT1_MAGIC,
 };
 pub use emotion::{
-    classify_speech_outbound, Emotion, EmotionBank, SpeechOutbound, DEFAULT_EMOT_DURATION_SEC,
+    classify_speech_outbound, parse_slash_command, Emotion, EmotionBank, SlashCommand,
+    SpeechOutbound, DEFAULT_EMOT_DURATION_SEC,
 };
 pub use load_bench::{
     bench_full, bench_graphics_load, bench_headless_load, resolve_content_root, write_report,
@@ -150,7 +164,8 @@ pub use ground_sprites::{
 pub use hover_pick::{
     draw_hover_outline, map_stack_index_to_hit_slot, pick_at_screen, pick_at_screen_with_clothing,
     pick_worn_clothing_slot, resolve_hit_slot, update_scene_hover,
-    update_scene_hover_with_clothing, HoverPick, WornClothingPickTarget,
+    update_scene_hover_with_clothing, hover_biome_name, hover_tip_and_grave, HoverPick,
+    HoverTipInput, WornClothingPickTarget,
 };
 pub use hud::{
     ate_screen_pos, curse_token_screen_pos, draw_food_heat_hud, draw_hud_if_visible,
@@ -212,7 +227,7 @@ pub use sound_bank::{
     both_same_use_parent, clothing_added_id, clothing_slot_contained_count,
     description_has_off_screen_sound, get_object_parent, get_vector_from_camera, get_volume_and_pan,
     handle_anim_sound, handle_anim_sound_ex, is_less_used_than, is_sprite_subset, load_olsn,
-    maybe_register_off_screen_sound, mix_voices_f32, parse_off_screen_sound_flags, parse_sound_usage,
+    maybe_register_off_screen_sound, mix_reverb_into_pcm, mix_voices_f32, parse_off_screen_sound_flags, parse_sound_usage,
     peek_aiff_header, play_clothing_change_sound, play_clothing_contained_fill_sound,
     play_contained_slot_change_sound, play_container_fill_using_sound, play_creation_sound_at_if,
     play_creation_sound_if, play_drop_settle_sound, play_footstep, play_mx_change_sounds,
@@ -239,10 +254,12 @@ pub use parse::{
     parse_login_outcome, parse_ls_message, parse_mc_header, parse_ms_message, parse_mx_line,
     parse_mx_message, parse_nm_message, parse_pe_message, parse_pm_line, parse_pm_message,
     parse_ps_line, parse_ps_message, parse_pu_line, parse_pu_message, parse_sn, Craving,
-    CurseScoreChange, CurseTokenChange, CursedPlayer, DyingPlayer, FlightDest, FoodChange,
-    GlobalMessage, HeatChange, InboundMessage, Lineage, LocationSays, LoginOutcome, MapChange,
-    MapChunkHeader, MonumentCall, PlayerEmot, PlayerMoveStart, PlayerName, PlayerSays, PlayerUpdate,
-    SaysMapPointer, SaysTargetLabel, ServerHello, ValleySpacing,
+    CurseScoreChange, CurseTokenChange, CursedPlayer, DyingPlayer, ExiledRow, FlightDest,
+    FollowingRow, FoodChange, GlobalMessage, Grave, GraveMove, GraveOld, HeatChange, Homeland,
+    InboundMessage, Lineage, LocationSays, LoginOutcome, MapChange, MapChunkHeader, MonumentCall,
+    OwnerList, PhotoSignature, PlayerEmot, PlayerMoveStart, PlayerName, PlayerSays, PlayerUpdate,
+    RocketAccount, RocketRide, SaysMapPointer, SaysTargetLabel, ServerHello, StatueInfo, ToolSlots,
+    ValleySpacing, VogUpdate, WarReportRow,
 };
 pub use session::{SessionConfig, SessionEvent, connect_and_login, connect_and_login_logged};
 pub use tags::{ALL_SERVER_TAGS, ServerTag};

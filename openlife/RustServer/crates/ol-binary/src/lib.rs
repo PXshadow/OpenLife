@@ -26,7 +26,8 @@ pub use olc1::{
     OBJ_F_DRAW_BEHIND_PLAYER, OBJ_F_FLOOR, OBJ_F_FLOOR_HUGGING, OBJ_F_HELD_IN_HAND, OBJ_F_NO_BACK_ACCESS,
     OBJ_F_PERMANENT, OBJ_F_RIDEABLE, OBJ_F_SIDE_ACCESS, OLC1_FORMAT_VERSION, OLC1_FORMAT_VERSION_V1,
     OLC1_FORMAT_VERSION_V2, OLC1_FORMAT_VERSION_V3, OLC1_FORMAT_VERSION_V4, OLC1_FORMAT_VERSION_V5,
-    OLC1_FORMAT_VERSION_V6, OLC1_FORMAT_VERSION_V7, OLC1_FORMAT_VERSION_V8, OLC1_MAGIC, SPR_BODY_PART_MASK, SPR_BODY_PART_SHIFT,
+    OLC1_FORMAT_VERSION_V6, OLC1_FORMAT_VERSION_V7, OLC1_FORMAT_VERSION_V8, OLC1_FORMAT_VERSION_V9,
+    OLC1_MAGIC, SPR_BODY_PART_MASK, SPR_BODY_PART_SHIFT,
     SPR_F_BEHIND_PLAYER, SPR_F_BEHIND_SLOTS, SPR_F_H_FLIP, SPR_F_INVIS_HOLDING, SPR_F_INVIS_WORN,
     SPR_PART_BACK_FOOT, SPR_PART_BODY, SPR_PART_FRONT_FOOT, SPR_PART_HEAD, SPR_PART_NONE,
 };
@@ -37,7 +38,7 @@ pub use olt1::{
     TR_F_NO_USE_TARGET, TR_F_REVERSE_USE_ACTOR, TR_F_REVERSE_USE_TARGET, TR_F_SWITCH_NUMBER_OF_USES,
 };
 
-/// Parse a full OLC1 blob into header + records (format 1..=7).
+/// Parse a full OLC1 blob into header + records (format 1..=9).
 pub fn parse_olc1(data: &[u8]) -> Result<Olc1Blob, String> {
     olc1::parse_olc1(data)
 }
@@ -152,7 +153,7 @@ mod tests {
         assert_eq!(&bytes[0..4], OLC1_MAGIC);
         let blob = parse_olc1(&bytes).unwrap();
         assert_eq!(blob.header.format, OLC1_FORMAT_VERSION);
-        assert_eq!(blob.header.format, OLC1_FORMAT_VERSION_V8);
+        assert_eq!(blob.header.format, OLC1_FORMAT_VERSION_V9);
         assert_eq!(blob.records.len(), 1);
         let o = &blob.records[0];
         assert_eq!(o.id, 55);
@@ -176,10 +177,29 @@ mod tests {
         rec.slot_size = 0.5;
         let bytes = encode_olc1(1, 0, &[rec]);
         let blob = parse_olc1(&bytes).unwrap();
-        assert_eq!(blob.header.format, OLC1_FORMAT_VERSION_V8);
+        assert_eq!(blob.header.format, OLC1_FORMAT_VERSION_V9);
         let o = &blob.records[0];
         assert!((o.contain_size - 2.0).abs() < 1e-5);
         assert!((o.slot_size - 0.5).abs() < 1e-5);
+    }
+
+    #[test]
+    fn olc1_v9_only_when_worn_roundtrip() {
+        let mut rec = sample_rec();
+        rec.sprites = vec![Olc1Sprite {
+            sprite_id: 42,
+            x: 1.5,
+            y: -2.0,
+            only_when_worn: true,
+            ..Olc1Sprite::default()
+        }];
+        let bytes = encode_olc1(1, 0, &[rec]);
+        let blob = parse_olc1(&bytes).unwrap();
+        assert_eq!(blob.header.format, OLC1_FORMAT_VERSION_V9);
+        let spr = &blob.records[0].sprites[0];
+        assert_eq!(spr.sprite_id, 42);
+        assert!(spr.only_when_worn);
+        assert!((spr.x - 1.5).abs() < 1e-5);
     }
 
     #[test]

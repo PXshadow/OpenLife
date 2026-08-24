@@ -259,6 +259,10 @@ pub struct OffScreenSoundEvent {
     pub red: bool,
     /// Single special char after `offScreenSound_` (non-red).
     pub special_char: Option<char>,
+    /// Fade 1→0 after [`Self::fade_eta`] (C++ `fade` / `fadeETATime`).
+    pub fade: f32,
+    /// Wall time when fade-out begins (default +4s from register).
+    pub fade_eta: std::time::Instant,
 }
 
 /// Sound bank: OLSN index at boot, lazy AIFF on [`SoundBank::ensure`].
@@ -288,6 +292,8 @@ pub struct SoundBank {
     last_played_cap: usize,
     /// Most recent stereo pan 0..1 (0=left, 0.5=center, 1=right). Headless + audio.
     pub last_pan: f32,
+    /// Last spatial [`SoundPlacement::reverb_mix`] (C++ wet reverbCache amount).
+    pub last_reverb_mix: f32,
     /// Listener / camera center in **world tiles** (C++ `lastScreenViewCenter / CELL_D`).
     /// Used by [`Self::play_usage_at`] / [`Self::play_id_at`] for pan + distance.
     pub listener_x: f32,
@@ -316,6 +322,7 @@ impl SoundBank {
             last_played: Vec::new(),
             last_played_cap: 64,
             last_pan: 0.5,
+            last_reverb_mix: REVERB_CONSTANT,
             listener_x: 0.0,
             listener_y: 0.0,
             last_off_screen: Vec::new(),
@@ -381,9 +388,29 @@ impl SoundBank {
             map_y,
             red,
             special_char,
+            fade: 1.0,
+            // C++ inFadeSec = 4
+            fade_eta: std::time::Instant::now() + std::time::Duration::from_secs(4),
         });
         while self.last_off_screen.len() > self.last_off_screen_cap {
             self.last_off_screen.remove(0);
+        }
+    }
+
+    /// C++ `drawOffScreenSounds` fade step — drop when fade ≤ 0.
+    pub fn step_off_screen_sounds(&mut self, frf: f32) {
+        let now = std::time::Instant::now();
+        let mut i = 0;
+        while i < self.last_off_screen.len() {
+            let s = &mut self.last_off_screen[i];
+            if now >= s.fade_eta {
+                s.fade -= 0.05 * frf;
+                if s.fade <= 0.0 {
+                    self.last_off_screen.remove(i);
+                    continue;
+                }
+            }
+            i += 1;
         }
     }
 
@@ -718,6 +745,17 @@ impl SoundBank {
     /// Play path AIFF with explicit stereo gains (lazy ensure).
     /// Master [`Self::loudness`] / [`Self::muted`] (P5#39) apply here.
     pub fn play_path_stereo(&mut self, rel: &str, left_gain: f32, right_gain: f32) -> bool {
+        self.play_path_stereo_reverb(rel, left_gain, right_gain, 0.0)
+    }
+
+    /// Path play with C++ `reverbMix` wet comb (0 = dry).
+    pub fn play_path_stereo_reverb(
+        &mut self,
+        rel: &str,
+        left_gain: f32,
+        right_gain: f32,
+        reverb_mix: f32,
+    ) -> bool {
         let (left_gain, right_gain) = self.apply_master_gains(left_gain, right_gain);
         #[cfg(feature = "audio")]
         {
@@ -730,11 +768,16 @@ impl SoundBank {
             if self.muted || (left_gain <= 0.0 && right_gain <= 0.0) {
                 return true;
             }
-            play_pcm_samples_stereo(&samples, rate, left_gain, right_gain)
+            if reverb_mix < 0.02 {
+                play_pcm_samples_stereo(&samples, rate, left_gain, right_gain)
+            } else {
+                let wet = mix_reverb_into_pcm(&samples, reverb_mix);
+                play_pcm_samples_stereo(&wet, rate, left_gain, right_gain)
+            }
         }
         #[cfg(not(feature = "audio"))]
         {
-            let _ = (left_gain, right_gain);
+            let _ = (left_gain, right_gain, reverb_mix);
             self.ensure_path(rel).is_some()
         }
     }
@@ -749,8 +792,9 @@ impl SoundBank {
             return false;
         };
         let combined = (place.volume * volume_tweak).clamp(0.0, 1.0);
+        self.last_reverb_mix = place.reverb_mix;
         let (l, r) = stereo_gains_constant_power(combined, place.pan);
-        let ok = self.play_path_stereo(rel, l, r);
+        let ok = self.play_path_stereo_reverb(rel, l, r, place.reverb_mix);
         if ok {
             self.last_pan = place.pan;
             self.record_played_spatial(rel, place.pan);
@@ -814,6 +858,17 @@ impl SoundBank {
     /// Master [`Self::loudness`] / [`Self::muted`] (P5#39) scale device gains.
     /// Mute skips the device queue but still ensures PCM so headless triggers pass.
     pub fn play_id_stereo(&mut self, id: i32, left_gain: f32, right_gain: f32) -> bool {
+        self.play_id_stereo_reverb(id, left_gain, right_gain, 0.0)
+    }
+
+    /// Id play with C++ `reverbMix` wet comb (0 = dry).
+    pub fn play_id_stereo_reverb(
+        &mut self,
+        id: i32,
+        left_gain: f32,
+        right_gain: f32,
+        reverb_mix: f32,
+    ) -> bool {
         if id < 0 {
             return false;
         }
@@ -830,11 +885,16 @@ impl SoundBank {
                 // Decode path still warm; no device voice.
                 return true;
             }
-            play_pcm_samples_stereo(&samples, rate, left_gain, right_gain)
+            if reverb_mix < 0.02 {
+                play_pcm_samples_stereo(&samples, rate, left_gain, right_gain)
+            } else {
+                let wet = mix_reverb_into_pcm(&samples, reverb_mix);
+                play_pcm_samples_stereo(&wet, rate, left_gain, right_gain)
+            }
         }
         #[cfg(not(feature = "audio"))]
         {
-            let _ = (left_gain, right_gain);
+            let _ = (left_gain, right_gain, reverb_mix);
             self.ensure(id).is_some()
         }
     }
@@ -843,17 +903,16 @@ impl SoundBank {
     ///
     /// Returns `false` when beyond audible range (C++ skips) or id missing.
     /// Sets [`Self::last_pan`] on success (even without `audio` feature).
-    /// `reverb_mix` is computed for placement (wet reverb samples residual).
+    /// `reverb_mix` is mixed into PCM on the wet path (C++ reverbCache).
     pub fn play_id_at(&mut self, id: i32, volume_tweak: f32, map_x: f32, map_y: f32) -> bool {
         let (vx, vy) = get_vector_from_camera(map_x, map_y, self.listener_x, self.listener_y);
         let Some(place) = volume_pan_reverb(vx, vy) else {
             return false;
         };
         let combined = (place.volume * volume_tweak).clamp(0.0, 1.0);
-        // Dry path only until reverbCache wet sprites exist (C++ reverbDisabled).
-        let _ = place.reverb_mix;
+        self.last_reverb_mix = place.reverb_mix;
         let (l, r) = stereo_gains_constant_power(combined, place.pan);
-        let ok = self.play_id_stereo(id, l, r);
+        let ok = self.play_id_stereo_reverb(id, l, r, place.reverb_mix);
         if ok {
             self.last_pan = place.pan;
         }
@@ -1297,6 +1356,39 @@ pub fn reverb_mix_from_volume(volume: f32) -> f32 {
     (1.0 - REVERB_CONSTANT) * (1.0 - volume.clamp(0.0, 1.0)) + REVERB_CONSTANT
 }
 
+/// Mix dry PCM with a short comb-filter wet path (C++ reverbCache / `reverbMix`).
+///
+/// `mix` 0 = dry, 1 = fully wet. Jason convolves with a hall impulse; this is a
+/// 4-comb Schroeder stand-in so far sounds bloom instead of staying dry.
+/// Each comb has its own delay line so stacked taps do not read their own sum.
+pub fn mix_reverb_into_pcm(src: &[i16], mix: f32) -> Vec<i16> {
+    let mix = mix.clamp(0.0, 1.0);
+    if src.is_empty() || mix < 0.02 {
+        return src.to_vec();
+    }
+    let n = src.len();
+    let delays = [661usize, 881, 1103, 1301];
+    let decays = [0.77f32, 0.73, 0.69, 0.65];
+    let mut wet = vec![0.0f32; n];
+    for (&d, &decay) in delays.iter().zip(decays.iter()) {
+        let mut buf = vec![0.0f32; n];
+        for i in 0..n {
+            let delayed = if i >= d { buf[i - d] } else { 0.0 };
+            buf[i] = src[i] as f32 + decay * delayed;
+            wet[i] += buf[i];
+        }
+    }
+    let inv = 1.0 / delays.len() as f32;
+    let dry_g = 1.0 - mix;
+    src.iter()
+        .enumerate()
+        .map(|(i, &d)| {
+            let v = d as f32 * dry_g + wet[i] * inv * mix;
+            v.round().clamp(-32768.0, 32767.0) as i16
+        })
+        .collect()
+}
+
 /// minorGems constant-power stereo: `L = vol·cos(pan·π/2)`, `R = vol·sin(pan·π/2)`.
 ///
 /// `pan` in [0,1] (0=left, 0.5=center, 1=right).
@@ -1341,6 +1433,16 @@ pub fn mix_voices_f32(
     }
     let frames = out.len() / channels;
     let dev_r = device_rate as f64;
+    // Sentinel: empty + tag_music → fade out all music beds (crossfade).
+    if voices.iter().any(|v| v.tag_music && v.samples.is_empty()) {
+        let fade_rate = 1.0 / (0.4 * device_rate as f32).max(1.0);
+        for v in voices.iter_mut() {
+            if v.tag_music && !v.samples.is_empty() {
+                v.fade_out_rate = fade_rate;
+            }
+        }
+        voices.retain(|v| !(v.tag_music && v.samples.is_empty()));
+    }
     for f in 0..frames {
         let mut acc_l = 0.0f32;
         let mut acc_r = 0.0f32;
@@ -1348,6 +1450,16 @@ pub fn mix_voices_f32(
             let n = v.samples.len();
             if n == 0 || v.pos >= n as f64 {
                 return false;
+            }
+            if v.fade_out_rate > 0.0 {
+                v.fade_mul = (v.fade_mul - v.fade_out_rate).max(0.0);
+                if v.fade_mul <= 1e-4 {
+                    return false;
+                }
+            } else if v.fade_in_samples > 0.0 && v.pos < v.fade_in_samples {
+                v.fade_mul = (v.pos / v.fade_in_samples) as f32;
+            } else if v.fade_in_samples > 0.0 {
+                v.fade_mul = 1.0;
             }
             let i = v.pos as usize;
             let frac = (v.pos - i as f64) as f32;
@@ -1357,7 +1469,7 @@ pub fn mix_voices_f32(
             } else {
                 s0
             };
-            let s = s0 + (s1 - s0) * frac;
+            let s = (s0 + (s1 - s0) * frac) * v.fade_mul;
             acc_l += s * v.left_gain;
             acc_r += s * v.right_gain;
             v.pos += v.src_rate as f64 / dev_r;
@@ -1399,6 +1511,14 @@ pub struct MixVoice {
     pub right_gain: f32,
     /// Fractional sample index into `samples`.
     pub pos: f64,
+    /// Music bed (age OGG) vs SFX — used for crossfade.
+    pub tag_music: bool,
+    /// Linear fade-in length in **source** samples (0 = already full).
+    pub fade_in_samples: f64,
+    /// Per output-frame subtract from [`Self::fade_mul`] (0 = none).
+    pub fade_out_rate: f32,
+    /// Current envelope 0..1.
+    pub fade_mul: f32,
 }
 
 impl MixVoice {
@@ -1411,6 +1531,10 @@ impl MixVoice {
             left_gain: l,
             right_gain: r,
             pos: 0.0,
+            tag_music: false,
+            fade_in_samples: 0.0,
+            fade_out_rate: 0.0,
+            fade_mul: 1.0,
         }
     }
 }
@@ -1450,16 +1574,48 @@ pub fn play_pcm_samples_stereo(
     left_gain: f32,
     right_gain: f32,
 ) -> bool {
+    play_pcm_samples_stereo_ex(samples, sample_rate, left_gain, right_gain, false, 0.0)
+}
+
+/// Queue PCM; `music` tags the voice for bed crossfade; `fade_in_sec` ramps in.
+pub fn play_pcm_samples_stereo_ex(
+    samples: &[i16],
+    sample_rate: u32,
+    left_gain: f32,
+    right_gain: f32,
+    music: bool,
+    fade_in_sec: f32,
+) -> bool {
     if samples.is_empty() || sample_rate == 0 {
         return false;
     }
-    device::play(samples, sample_rate, left_gain, right_gain)
+    device::play_ex(samples, sample_rate, left_gain, right_gain, music, fade_in_sec)
+}
+
+/// Start fading out currently playing music beds (~0.4s).
+pub fn fade_out_music_beds() {
+    device::fade_out_music();
 }
 
 #[cfg(not(feature = "audio"))]
 pub fn play_pcm_samples(_samples: &[i16], _sample_rate: u32, _volume: f32) -> bool {
     false
 }
+
+#[cfg(not(feature = "audio"))]
+pub fn play_pcm_samples_stereo_ex(
+    _samples: &[i16],
+    _sample_rate: u32,
+    _left_gain: f32,
+    _right_gain: f32,
+    _music: bool,
+    _fade_in_sec: f32,
+) -> bool {
+    false
+}
+
+#[cfg(not(feature = "audio"))]
+pub fn fade_out_music_beds() {}
 
 #[cfg(not(feature = "audio"))]
 pub fn play_pcm_samples_stereo(
@@ -1626,23 +1782,59 @@ mod device {
     }
 
     pub fn play(samples: &[i16], sample_rate: u32, left_gain: f32, right_gain: f32) -> bool {
+        play_ex(samples, sample_rate, left_gain, right_gain, false, 0.0)
+    }
+
+    pub fn play_ex(
+        samples: &[i16],
+        sample_rate: u32,
+        left_gain: f32,
+        right_gain: f32,
+        music: bool,
+        fade_in_sec: f32,
+    ) -> bool {
         // Force silent queue path: Settings → Audio off, or `OHOL_AUDIO_DISABLE`.
-        // SFX mute is applied in SoundBank before this call; music uses music_muted.
         if !super::audio_device_allowed() {
             QUEUED.fetch_add(1, Ordering::Relaxed);
             return true;
         }
+        let fade_in_samples = if music && fade_in_sec > 0.0 {
+            fade_in_sec as f64 * sample_rate as f64
+        } else {
+            0.0
+        };
         let voice = MixVoice {
             samples: Arc::new(samples.to_vec()),
             src_rate: sample_rate,
             left_gain,
             right_gain,
             pos: 0.0,
+            tag_music: music,
+            fade_in_samples,
+            fade_out_rate: 0.0,
+            fade_mul: if fade_in_samples > 0.0 { 0.0 } else { 1.0 },
         };
-        // Best-effort send; if channel dead, still count as handled (decode ok).
         let _ = sender().send(voice);
         QUEUED.fetch_add(1, Ordering::Relaxed);
         true
+    }
+
+    pub fn fade_out_music() {
+        if !super::audio_device_allowed() {
+            return;
+        }
+        let sentinel = MixVoice {
+            samples: Arc::new(Vec::new()),
+            src_rate: 0,
+            left_gain: 0.0,
+            right_gain: 0.0,
+            pos: 0.0,
+            tag_music: true,
+            fade_in_samples: 0.0,
+            fade_out_rate: 0.0,
+            fade_mul: 0.0,
+        };
+        let _ = sender().send(sentinel);
     }
 }
 
@@ -1857,10 +2049,30 @@ pub fn step_map_ground_anims_with_sounds(
     frame_delta: f32,
     our_id: Option<i32>,
 ) -> usize {
+    step_map_ground_anims_with_sounds_cull(bank, anims, content, map, frame_delta, our_id, None)
+}
+
+/// Same as [`step_map_ground_anims_with_sounds`] but only tiles in `cull` AABB
+/// (inclusive). C++ steps visible map cells; skip off-screen for CPU.
+pub fn step_map_ground_anims_with_sounds_cull(
+    bank: &mut SoundBank,
+    anims: &mut AnimBank,
+    content: &ClientContent,
+    map: &mut ClientMap,
+    frame_delta: f32,
+    our_id: Option<i32>,
+    cull: Option<(i32, i32, i32, i32)>,
+) -> usize {
     if frame_delta <= 0.0 {
         return 0;
     }
-    let coords: Vec<(i32, i32)> = map.tile_coords().collect();
+    let coords: Vec<(i32, i32)> = map
+        .tile_coords()
+        .filter(|(x, y)| match cull {
+            None => true,
+            Some((x0, y0, x1, y1)) => *x >= x0 && *x <= x1 && *y >= y0 && *y <= y1,
+        })
+        .collect();
     let mut n = 0usize;
     for (x, y) in coords {
         let tile = match map.get(x, y) {
@@ -2716,6 +2928,26 @@ mod tests {
     }
 
     #[test]
+    fn mix_voices_music_fade_in() {
+        let samples = std::sync::Arc::new(vec![32767i16, 32767]);
+        let mut voices = vec![MixVoice {
+            samples,
+            src_rate: 2,
+            left_gain: 1.0,
+            right_gain: 1.0,
+            pos: 0.0,
+            tag_music: true,
+            fade_in_samples: 2.0,
+            fade_out_rate: 0.0,
+            fade_mul: 0.0,
+        }];
+        let mut out = [0.0f32; 4];
+        mix_voices_f32(&mut out, 2, &mut voices, 2);
+        // First frame pos=0 → fade_mul ~0
+        assert!(out[0].abs() < 0.05, "fade-in start {}", out[0]);
+    }
+
+    #[test]
     fn mix_voices_mono_to_stereo_volume() {
         // Full-scale with equal L/R gains 0.5 → ±0.5 both channels.
         let samples = std::sync::Arc::new(vec![32767i16, -32768]);
@@ -2725,6 +2957,10 @@ mod tests {
             left_gain: 0.5,
             right_gain: 0.5,
             pos: 0.0,
+            tag_music: false,
+            fade_in_samples: 0.0,
+            fade_out_rate: 0.0,
+            fade_mul: 1.0,
         }];
         // device_rate == src_rate → one src sample per frame
         let mut out = [0.0f32; 4]; // 2 frames × 2 ch
@@ -2746,6 +2982,10 @@ mod tests {
             left_gain: 1.0,
             right_gain: 0.0,
             pos: 0.0,
+            tag_music: false,
+            fade_in_samples: 0.0,
+            fade_out_rate: 0.0,
+            fade_mul: 1.0,
         }];
         let mut out = [0.0f32; 2];
         mix_voices_f32(&mut out, 2, &mut voices, 1);
@@ -2758,6 +2998,10 @@ mod tests {
             left_gain: 0.0,
             right_gain: 1.0,
             pos: 0.0,
+            tag_music: false,
+            fade_in_samples: 0.0,
+            fade_out_rate: 0.0,
+            fade_mul: 1.0,
         }];
         mix_voices_f32(&mut out, 2, &mut voices, 1);
         assert!(out[0].abs() < 0.02, "L {}", out[0]);
@@ -2806,6 +3050,33 @@ mod tests {
 
         // Beyond max: silent
         assert!(volume_pan_reverb(MAX_AUDIBLE_DISTANCE + 1.0, 0.0).is_none());
+        // Farther → wetter reverb (C++ reverbMix = (1-c)*(1-vol)+c)
+        let far = volume_pan_reverb(20.0, 0.0).unwrap();
+        assert!(far.reverb_mix > p.reverb_mix, "far reverb {}", far.reverb_mix);
+    }
+
+    #[test]
+    fn mix_reverb_pcm_dry_identity_and_wet_echo() {
+        let src = vec![1000i16; 2000];
+        let dry = mix_reverb_into_pcm(&src, 0.0);
+        assert_eq!(dry, src);
+        let mut impulse = vec![0i16; 2000];
+        impulse[0] = 20000;
+        let wet = mix_reverb_into_pcm(&impulse, 1.0);
+        assert_ne!(wet, impulse);
+        assert!(wet[661].abs() > 0, "first comb tap");
+    }
+
+    #[test]
+    fn play_id_at_records_last_reverb_mix() {
+        let mut bank = SoundBank::new(".");
+        bank.set_listener(0.0, 0.0);
+        // Missing id: still writes placement mix before ensure fails.
+        let _ = bank.play_id_at(1, 1.0, 0.0, 0.0);
+        assert!((bank.last_reverb_mix - REVERB_CONSTANT).abs() < 0.05);
+        let near = bank.last_reverb_mix;
+        let _ = bank.play_id_at(1, 1.0, 18.0, 0.0);
+        assert!(bank.last_reverb_mix > near);
     }
 
     #[test]

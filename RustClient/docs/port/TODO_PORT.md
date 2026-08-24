@@ -4,7 +4,7 @@
 **Hub / how it works:** [README.md](README.md) · **Playable bar:** [PORT_COMPLETE.md](PORT_COMPLETE.md) · **Modules:** [ARCHITECTURE_RUST_CLIENT.md](ARCHITECTURE_RUST_CLIENT.md)  
 **Also:** [FILE_MATRIX.md](FILE_MATRIX.md) · [CONTENT_BINARY.md](CONTENT_BINARY.md) · server kit separate (`RustServer/docs/port`).
 
-Last updated: **2026-07-27**  
+Last updated: **2026-08-24**  
 **Priority automation:** **FINISHED** — all Missing-work P1–P5 rows (#1–#40) are **DONE** / **DONE-NA**. No open finish slots; do not launch more finish workflows (scheduler idle).  
 **Workflow names:** see [README.md §6](README.md#6-workflows-automation) (do not re-list every run here).
 
@@ -20,49 +20,49 @@ Priority Missing-work table (**P1–P5**) is **fully closed** (all rows DONE / D
 | # | Item | Area | Notes |
 |---|------|------|--------|
 | 1 | ~~**Real device sound playback**~~ | L-SOUND-TRIG / C-SND | **DONE** — optional `--features audio` (cpal); dedicated `ohol-audio` thread; `mix_voices_f32` mono→all-ch linear resample (32 voices); soft-fail / `OHOL_AUDIO_DISABLE`; boot OLSN index-only (`aiff_opens==0`); `play_id`/`play_usage` unchanged headless. Music OGG beds: **P3#24 DONE**. |
-| 2 | ~~**Stereo pan / camera vector**~~ | L-SOUND-TRIG | **DONE** — C++ `getVectorFromCamera` + `getVolumeAndPan` (sigmoid distance, X pan→[0,1]) + constant-power L/R (`cos/sin`); `MixVoice` left/right gains in `mix_voices_f32`; `play_usage_at` / `play_id_at` + listener (SceneRenderer camera / session); `handle_anim_sound` spatial; dry path only (`reverb_mix` computed; wet reverbCache residual). `play_id`/`play_usage` center. Optional: wire MX/PU event sounds to map coords for pan. |
-| 3 | ~~**HUD residual (play-visible)**~~ | L-HUD | **DONE** — slip slide/wiggle + `hunger.aiff` oneshot/pulse; C++ `homePosStack` (permanent homeMarker MX + temp PS priority + person track); FX `responsible_id` defer while feeder `moving` then flush; pencilFont/yum/hunger slips/home arrows/temp tip already strong. Residual: true object names on last-ate; optional chrome binary cache; music suppress on starve; dual home slip (ancient) draw |
+| 2 | ~~**Stereo pan / camera vector**~~ | L-SOUND-TRIG | **DONE** — C++ `getVectorFromCamera` + `getVolumeAndPan` + constant-power L/R; `play_usage_at` / `play_id_at`; **wet reverb** 4-comb mix on spatial plays (`mix_reverb_into_pcm`, `reverbMix = (1-c)*(1-vol)+c`). `play_id`/`play_usage` center dry. |
+| 3 | ~~**HUD residual (play-visible)**~~ | L-HUD | **DONE** — slips + last-ate names + starve music + ancient homeSlip2 + **OLHU format 2** (`olhu_hud.bin` strips **+ pencil/handwriting fonts**). |
 | 4 | ~~**Worn clothing soft-FB hitMap**~~ | L-ACT | **DONE** — `pick_worn_clothing_slot` / `pick_at_screen_with_clothing`; LMB/RMB via `walk_or_use_tile_ex` / `click_rmb_tile_ex`; magenta outline; keys 1–6 still work |
 | 5 | ~~**Contained SREMV `hit_slot` pick**~~ | L-ACT | **DONE** — soft-FB `HoverPick.contained_slot` via contained sprite hitMap (`slot_pos` reverse draw order); map REMV + clothing SREMV; `walk_or_use_tile_ex` / `click_rmb_tile_ex` / hold pass `hit_slot`; GUI LMB/RMB + orange outline |
-| 6 | ~~**Container slot UX**~~ | L-ACT | **DONE** — full open/take/put for map containers + clothing bags: empty → `REMV x y i#` (`hit_slot`); held → USE / DROP into (modClick; LMB free-slot put); clothing bag put `DROP c` + LMB soft-FB contained take `SREMV c i`; soft-FB draws worn clothing contained at `slot_pos`; path-to-adjacent; tests `container_slot_ux_*` / clothing-contained draw / worn LMB SREMV; residual: SHIFT/CTRL clothing polish, behindSlots interleave (contained on top of all clothing layers) |
+| 6 | ~~**Container slot UX**~~ | L-ACT | **DONE** — take/put/path + behindSlots. **SHIFT+RMB = KILL** (C++ deadly); clothing keys 1–6 + SHIFT = SREMV. C++ `pointerDown` has no CTRL clothing branch (ctrl-v chat paste only). Residual: none for clothing modifiers |
 | 7 | ~~**Continuous mouse-hold / blocked-tile slide**~~ | L-ACT | **DONE** — `slide_blocked_click_dest` / `walk_or_use_tile_hold`; LMB hold repath + major-axis slide after `MIN_MOUSE_DOWN_FRAMES`; ground-only while held; gates respected; ohol-client wired |
-| 8 | ~~**Fractional `currentPos` for path start**~~ | L-MOVE | **DONE** — `MoveState::{current_pos_x/y, step_current_pos, closest_path_spot}` (`lrint` + path snap); PM `total_sec` speed; `path_start_tile` / hold-slide origin; session `step_anims`/`step_move_pos`; residual: turn-smoothing / camera draw pos polish |
+| 8 | ~~**Fractional `currentPos` for path start**~~ | L-MOVE | **DONE** — fractional `currentPos` + **C++ turn-smoothing / no-circling** (`currentMoveDirection`, last-segment turnFactor 0.5, high-speed sharp turns). |
 
 ### P2 — Path / world fidelity
 
 | # | Item | Area | Notes |
 |---|------|------|--------|
-| 9 | ~~**Bad-biome edge routing / rideable `ignoreBad`**~~ | pathfind | **DONE** — `PathFindOpts` + `find_path_ex` / BB parse; floor-less BB biomes block; edge entry; same-biome walk; rideable `ignore_bad`; session `bad_biomes` from BB; click_tile / stand plan; hold `isAutoClick` via `path_find_opts_with` / `click_tile_with` / `plan_click_tile_chunks_with`; session BB integration tests; residual: HUD `mBadBiomeNames` display-only |
-| 10 | ~~**useWaypoint two-leg pathFind**~~ | pathfind | **DONE** — C++-faithful two-leg (`shared blocked map`; both legs must reach; `pathLength>maxWaypointPathLength` → rewrite dest to waypoint; fail → direct); `find_path_via_waypoint_ex` / `find_path_with_waypoint_ex` + `MoveState::{use_waypoint,arm_waypoint}`; ground `plan_click_tile_chunks_goal`/`click_tile_with`; stand `plan_stand_for_object_with_opts_wp`/`click_object`; multi-MOVE `eff_goal`; close-hold AABB throw (1..4 tiles, throw len 4); unit + click_tile tests (length threshold + two-leg routes); residual: road auto-walk + waypoint edge polish (minor) |
+| 9 | ~~**Bad-biome edge routing / rideable `ignoreBad`**~~ | pathfind | **DONE** — BB pathing + **full hover tip** (you/others/objects/graves/owners/eat-drink/war; `GRAVE x y#` query). |
+| 10 | ~~**useWaypoint two-leg pathFind**~~ | pathfind | **DONE** — C++-faithful two-leg; **road auto-walk** (`same_road_class` / `+roadN` / rideable floor continue ~5 tiles, `isAutoClick`). |
 | 11 | ~~**Multi-MOVE closest-fallback → ultimate goal repath**~~ | multi_move | **DONE** — on `done_moving` after hop short of goal: `continue_multi_move` repaths toward `multi_move_goal` (window clamp / closest-fallback), arms next MOVE before flush; world dest sync; tests far-goal chain + stuck closest |
 | 12 | ~~**`mMapGlobalOffset` sendX/sendY**~~ | L-ACT | **DONE-NA** — storage frame == wire frame; identity `MapGlobalOffset::ZERO` + `encode_move_with_offset`; [MAP_GLOBAL_OFFSET.md](MAP_GLOBAL_OFFSET.md) |
-| 13 | ~~**Contained MX using-on-fill / offScreenSound**~~ | L-SOUND-TRIG | **DONE** — Contained MX using-on-fill / offScreenSound (L-SOUND-TRIG v6): MX fill using + contained-slot creation/using-on-fill (multi-use less-used); clothing bag fill PU; spatial `play_usage_at`; OSS register anim+held creation (skip self); 39 sound_bank tests + self-check OK. Residual: soft-FB OSS edge-arrow draw. |
-| 14 | ~~**Map object ground-anim sounds**~~ | L-SOUND-TRIG | **DONE** — `ClientMap::{anim,floor}_frame_count` + `step_map_ground_anims_with_sounds` (ground/floor SoundAnimParam via `handle_anim_sound_ex`); wired in `session.step_anims`; OLSN still lazy; headless period/oneshot tests. Residual: moving-map-object anim type, draw-path-only culling. |
+| 13 | ~~**Contained MX using-on-fill / offScreenSound**~~ | L-SOUND-TRIG | **DONE** — MX fill + OSS edge chalk; `chasing_us` → `! !` (**posse wire postponed**). **KILL** outbound: `KILL x y [id]#`, SHIFT+RMB deadly, `kill_mode`/`kill_with_id`. |
+| 14 | ~~**Map object ground-anim sounds**~~ | L-SOUND-TRIG | **DONE** — map/floor anim clocks + **view AABB cull** (`step_map_ground_anims_with_sounds_cull`). Residual: none for this slice |
 
 ### P3 — Presentation polish
 
 | # | Item | Area | Notes |
 |---|------|------|--------|
 | 15 | ~~**Speech chalkBlot / handwritingFont TGA**~~ | L-SAY | **DONE** — `chalkBlot.tga` white-sprite + `font_handwriting_32_32.tga` atlas; tiled multi-hit blots; 5×7 fallback |
-| 16 | ~~**Speech curse-tag reinsert / 15s tic**~~ | L-SAY | **DONE** — CU parse/apply, curse-tag reinsert after non-tag bubble clear, 15s nervous tic, babble wrap when gap>15s; **purple soft-FB ink** (`speech_text_rgb` / `draw_speech_bubble_colored`) for successful curse + white cursed speakers / dying; **`mCurseSound`** lazy `otherSounds/curseChime.aiff` via `SoundBank::play_curse_sound_at` on PS isCurse. Residual: `+FAMILY+` `isGeneticFamily` flag (display skip already present) |
-| 17 | ~~**PS map-pointer / `*label` UI**~~ | L-SAY | **DONE** — `LiveWorld.says_pointers` stores PS `*map`/`*label` + TTL (`map_age_seconds` or speech hold; expert +120s); soft-FB map-spot pins + label markers; HUD home-arrow + `map_pointer_label`; bubble = stripped spoken only; 410 lib tests + self-check. Residual: meters-away/years-ago speech rewrite; permanent home stack / map-drop `temporaryExpireETA`; temp-home priority trump; overhead person labels ↔ temp-home ETA; `*photo` metadata |
-| 18 | ~~**Speech → emote `getEmotionIndex`**~~ | L-EMOT | **DONE** — `EmotionBank::get_emotion_index` (exact trigger) + `classify_speech_outbound` + `encode_emot`; `session.send_say` routes `/happy`→`EMOT 0 0 N#`, plain→SAY, other `/`→local; residual: local fps/die commands, age speech truncate |
-| 19 | ~~**PE eyes offset / extraB / emot creation sounds**~~ | L-EMOT | **DONE** — eyes offset + `ANIM_EXTRA_B` PE toggle (dual-fade A/B) + mouth-skip when `mouthEmot` + creation/decay SoundUsage on PE apply/clear (lazy OLSN). 420 lib tests + `ohol-headless --self-check` OK. Residual: OSS edge-arrow soft-FB (L-SOUND); avoid double PE-TTL tick if both `session.step_anims` and `SceneRenderer.draw` per frame. |
-| 20 | ~~**Rideable person-under-vehicle draw order**~~ | L-RENDER | **DONE** — C++ LivingLifePage rideable path: vehicle at person pos (not hand HoldingPos); order behind vehicle → rider/clothes/emotes → front vehicle; ridingOffset ≈ −heldOffset; tests `rideable_person_under_vehicle_draw_order` + `rideable_vehicle_at_person_pos_not_hand`. Residual: age body offset polish, hideRider, held-contained on vehicle |
-| 21 | ~~**`getObjectCenterOffset` / hideClosestArm ±1**~~ | L-RENDER | **DONE** — `get_object_center_offset` (widest + CCW rot + containOffsetX/Y + only-when-worn skip); non-person held subtract in `compute_held_draw_pos_ex`; SceneRenderer sprite-bank alpha bbox; `arm_holding_parameters` 0/−2/rideable + draw hide ±1/body HoldingPos; residual: OLC1 `only_when_worn` bit (text path OK) |
-| 22 | ~~**Action wiggle / baby-held handoff anim**~~ | L-ANIM-DRAW | **DONE** — action-wiggle cosine bounce on person/held draw; BW+JUMP baby arm-wiggle; baby put-down `heldByDropOffset` + held→ground pack handoff; `heldPosOverride` pick-up slide; soft-FB skips held babies / draws at adult HoldingPos. 435 lib tests + self-check OK. Residual: young-baby lie-down rot while drop settles; adult held-track clock copy on drop; draw-path frf for heldPos step |
-| 23 | ~~**wallLayer / frontWall sub-order**~~ | L-RENDER | **DONE** — C++ `setupWall` (`floorHugging`/`+wall`/`-wall`/`+frontWall`) on `ClientObjectDef`; front DrawLayer sub-order permanent non-wall → non-permanent → wall → frontWall after players; OLC1 `floorHugging` flag bit11; tests `setup_wall_layer_*` + `wall_layer_front_wall_sub_order` + `front_object_draw_layer_ordering`. Residual: moving-map / flying-held interleave |
-| 24 | ~~**Music OGG / `music_NN.ogg` bed**~~ | C-SND | **DONE** — `music_bank.rs`: lazy `music/music_NN.ogg` index (boot `ogg_opens==0`); age-block select (`next_music_block` / C++ musicPlayer2); **lewton** Vorbis decode only on `ensure`/`play_block`; mono mixdown → existing cpal mixer under `--features audio`; synthetic + optional real-tree tests. Residual: continuous `stepMusicPlayer` age-async crossfade / suppression stack / musicHeadroom wire into session. |
+| 16 | ~~**Speech curse-tag reinsert / 15s tic**~~ | L-SAY | **DONE** — curse tic + purple ink + **`is_genetic_family`** from `+FAMILY+`. Residual: none for this slice |
+| 17 | ~~**PS map-pointer / `*label` UI**~~ | L-SAY | **DONE** — map/label markers + **meters-away / years-ago** speech rewrite. Residual: `*photo` metadata (photo pipeline postponed) |
+| 18 | ~~**Speech → emote `getEmotionIndex`**~~ | L-EMOT | **DONE** — `get_emotion_index` + `classify_speech_outbound` + slash cmds; **age `getSayLimit` truncate** on SAY. |
+| 19 | ~~**PE eyes offset / extraB / emot creation sounds**~~ | L-EMOT | **DONE** — extraB + mouth skip + OSS arrows + **`skip_emot_ttl_in_step`** so GUI draw owns PE TTL. Residual: none for this slice |
+| 20 | ~~**Rideable person-under-vehicle draw order**~~ | L-RENDER | **DONE** — rideable draw order + hideRider + held contained; **age head/body offset** on person sprites (clothing inherits body/head anchors). |
+| 21 | ~~**`getObjectCenterOffset` / hideClosestArm ±1**~~ | L-RENDER | **DONE** — center offset + hideClosestArm; **OLC1 v9** per-sprite `only_when_worn` trailer (`invisWorn==2`). |
+| 22 | ~~**Action wiggle / baby-held handoff anim**~~ | L-ANIM-DRAW | **DONE** — wiggle + baby jump + drop offset + young-baby lie + **adult held-track clock copy** on drop (`curHeldAnim`/`heldAnimationFrameCount`). Residual: none for this slice |
+| 23 | ~~**wallLayer / frontWall sub-order**~~ | L-RENDER | **DONE** — FlyingHeld + map move + ExtraMapObject + **moveTrans visual rewrite / move 6–7 no-flip**. Residual: none for this slice |
+| 24 | ~~**Music OGG / `music_NN.ogg` bed**~~ | C-SND | **DONE** — step_music + starve suppress + headroom + **0.4s music bed crossfade** (fade-out old / fade-in new). Residual: none for this slice |
 
 ### P4 — Content / engine backlog
 
 | # | Item | Area | Notes |
 |---|------|------|--------|
 | 25 | ~~**`setupSpriteUseVis` / per-use `spriteSkipDrawing` on dummies**~~ | C-OBJ | **DONE** — C++ `setupSpriteUseVis` ported; multi-use dummies progressive `spriteSkipDrawing`; parse `useVanishIndex`/`useAppearIndex`; OLC1 **v5+** use-vis trailer (write **v6**); draw/hit respect `skip_drawing`; residual: golden vis CI vs OneLifeData7 |
-| 26 | ~~**`variableDummyIDs` generation**~~ | C-OBJ | **DONE** — `assign_variable_dummies` / `materialize_variable_dummy_object_records` (C++ `$N` + letter/numeral labels + parent `- ?`); OLC1 **v6** lists; multi-use then variable id order; residual: `setupNumericSprites`, `+varSerialNumber` cycle |
+| 26 | ~~**`variableDummyIDs` generation**~~ | C-OBJ | **DONE** — variable dummies + **`setupNumericSprites`** (`Numeral#N` hide/show + no-flip X swap) + **`+varSerialNumber`** `next_var_serial_child`. |
 | 27 | ~~**Category editor mutators**~~ | C-CAT | **DONE** — in-memory C++ mutators: add/remove/move members, pattern/probSet flags, `set_member_weight`/`make_weight_uniform`/`auto_adjust_weights`, reverse move; `format_category_txt` serialize; play path unchanged (no disk). Residual: disk `saveCategoryToDisk` optional editor I/O |
 | 28 | ~~**Bake expanded OLT1 (skip re-expand on load)**~~ | C-TRANS | **DONE** — `OLT1_F_CATEGORY_EXPANDED` header flag; bake after lite+pattern expand; load skips re-expand (bank-only for pick); legacy re-expands; prefer_cache rebakes once if flag absent |
-| 29 | ~~**OLT1 `transitions_max_use` / switch tables**~~ | C-TRANS | **DONE** — OLT1 `transitions_max_use` + `switch_number_of_uses` server parity (text load, category expand, bake, load); Haxe `targetRemains` pair split; OLT1 bit6/bit7; ServerSettings dough/masa patches. Residual: reverse-use last-use auto-clone; optional live golden max_use count |
+| 29 | ~~**OLT1 `transitions_max_use` / switch tables**~~ | C-TRANS | **DONE** — max-use + switch patches + **reverse-use last-use auto-clone**. |
 | 30 | ~~**Shared client/server OLC\* crate**~~ | content | **DONE** — `ol-binary` shared crate (`RustServer/crates/ol-binary`): pure OLC1 v1–6 / OLT1 v1–2 DTO parse+encode (zero deps). Client `content_binary` + server `ol-content::binary_cache` both map DTOs. Server OLT1 bit6→`transitions_max_use` / bit7→`switch_number_of_uses`; OLC1 format max raised to v6 (sprites/sounds skipped). Residual: OLA1/OLG1/OLO1/OLSN/OLS1 still client-local; server `finish_cache_boot` always re-expands categories (safe, not skip-on-flag) |
 | 31 | ~~**OLS1 written by `bake_content`**~~ | C-SPR | **DONE** — `bake_content` writes `ols1_sprites.bin` + manifest; `SpriteBank::load_prefer_cache` rebakes if missing/stale; pixel pages → **P4#40 OLSA** (optional) |
 | 32 | ~~**Full SaveGroundData multi-atlas dump**~~ | C-GRND | **DONE** — optional **OLGA** multi-page full ground atlas (`olga_ground_atlas.bin`): pack-all + write/load rects+RGBA pages; CLI `--bake-ground-atlas`; `GroundBank::load_prefer_atlas_cache`. Default play path remains **OLG1** index + lazy TGA; `bake_content` omits OLGA by design (size). Residual: Haxe unknown-biome white-pixel recolor tints not packed; C++ per-biome `GroundSpriteSet` sheets not mirrored (Rust multi-page BinPack); raw RGBA single-file ≠ Haxe `ground.png`+`SaveGroundData.bin` serializer |
@@ -75,16 +75,16 @@ Priority Missing-work table (**P1–P5**) is **fully closed** (all rows DONE / D
 
 | # | Item | Notes |
 |---|------|--------|
-| 36 | ~~**Loading progress UI**~~ | **DONE** (C-LOAD) — `load_progress` stages+fraction; prefer_cache hooks; `boot_load_prefer_cache`; soft-FB C++ LoadingPage bar; ohol-client Account→Loading→Playing via `connect_with_content`; `OHOL_LOAD_PROGRESS=1` headless/load_bench; lazy OLSN/TGA/OGG preserved. 10 load_progress + 30 load_* tests + self-check OK. Residual: async soft-FB mid-rebake (stage-boundary only); loading.tga chrome. No new deps. |
+| 36 | ~~**Loading progress UI**~~ | **DONE** (C-LOAD) — stages + prefer_cache; loading.tga; **object-file ticks during rebake**. |
 | 37 | ~~**Account page**~~ | **DONE** — soft-FB `AccountPage` + `ClientScreen::{Account,Loading,Playing,Death,Settings}`; prefill `OHOL_*`/`.env`; Enter=Connect / Esc skip-if-creds / Tab field / F2 key↔password; builds `SessionConfig` → login; headless CLI flags unchanged; tests `account_page::*`. No new crates. |
 | 38 | ~~**Death / rebirth pages**~~ | **DONE** — `ClientScreen::Death` + `DeathSummary` (name/age/reason); Playing→Death on our delete PU (`note_our_death_if_any`); soft-FB `draw_death_screen`; R/Enter full reconnect LOGIN rebirth (`rebirth_session_config`); Esc quit; `ohol-client` wired; headless probes unchanged; unit tests `client_screen::*` |
-| 39 | ~~**Settings page**~~ | **DONE** — soft-FB `SettingsPage` on `ClientScreen::Settings` (SFX/music volume+mute, show FPS, credential/env display; edit stays on Account); env + `ohol_client_settings.ini` prefill; apply SoundBank/MusicBank + mute atomics; F3 Account/Playing + Esc from Playing; Esc/B back best-effort save; `ohol-client` wired; headless CLI unchanged. Residual: session MusicBank continuous bed step mid-play; minifb fullscreen recreate; optional C++ chrome. No new crates. |
+| 39 | ~~**Settings page**~~ | **DONE** — fullscreen in-process; **Soft→GPU in-process**; GPU→Soft still process-restarts (winit `EventLoop::run` never returns). |
 
 ### Deferred / non-goals (do not schedule)
 
 | Item | Why |
 |------|-----|
-| readyPending mid-move PU hold | Intentional deferral |
+| readyPending mid-move PU hold | **DONE** — other-player PU/PM/MX/FX held on `LiveObject.pending_received_messages` while interpolating; drain via `ready_pending` before socket (C++ `readyPendingReceivedMessages`) |
 | Full editor suite / drawZoomView | Not required to play |
 | Photo pipeline | Low priority |
 | Pixel-perfect GL / wgpu | Soft FB first |
@@ -99,10 +99,10 @@ Priority Missing-work table (**P1–P5**) is **fully closed** (all rows DONE / D
 |------|------|---------|---------|
 | Headless binary + self-check | ■■■ | | |
 | LOGIN / RLOGIN / HMAC | ■■■ | | |
-| MOVE wire + seq + mid-move + FM batch | ■■■ | ■ readyPending mid-move | |
+| MOVE wire + seq + mid-move + FM batch | ■■■ | | readyPending **DONE** |
 | USE/DROP/REMV/SELF encode | ■■■ | | path-to-adjacent + sideAccess/noBackAccess + food self-tile + modClick + multi-MOVE + **clothing-ux DROP c 0..5** + **worn soft-FB hitMap** + **contained hit_slot** + **container take/put** **DONE** |
 | Parse PU/PM/SN | ■■■ | | |
-| Full ClientTag surface | ■■■ | | secondary still Known |
+| Full ClientTag surface | ■■■ | | GV/GM/GO/OW/FW/EX/HL/LR/TE/TS/WR/VU/PH/ST/RR/RA/BB typed |
 | LiveObject apply | ■■ | ■ | |
 | Client map MC/MX | ■■ | ■ | |
 | Content banks + binary cache | OLC1 v6 / OLT1 v2 / OLA1 / OLS1 / OLG1 / OLO1 / OLSN + **OLGA/OLSA opt** + **ol-binary** + cats/dummies/max-use | numeral sprites / serial cycle | — |
@@ -146,9 +146,9 @@ Priority Missing-work table (**P1–P5**) is **fully closed** (all rows DONE / D
 - [x] Own path truncation cancels pending action (`dest_truncated` + `on_own_path_truncated`)  
 - [x] Artificial FORCE when `destTruncated` + PU pos mismatch (C++ ~18031)  
 - [x] Baby-held interrupt cancels our `nextAction` (C++ ~19845)  
-- [ ] readyPendingReceivedMessages mid-move hold (C++ parity; deferred)  
+- [x] readyPendingReceivedMessages mid-move hold (C++ parity)  
 - [x] FM frame batching (C++ `waitForFrameMessages`) — post-ACCEPTED buffer until FM; MC/PONG/FD/PH pass-through; empty FM ignored; post-FM bytes stay in pending; multi-PU expands after batch release; optional `SessionEvent::Frame` after drain  
-- [ ] PHOTO_SIGNATURE typed `SessionEvent` (tag pass-through only today)  
+- [x] PHOTO_SIGNATURE typed `SessionEvent` (photo pipeline still deferred)  
 - [x] Full logout/reset path wiring `logout_reset` + `clear_frame_batching`  
 - [x] KA timing like official (`maybe_send_ka` / `KA_IDLE_SECS=15` / `last_tx`)
 
@@ -232,7 +232,7 @@ Priority Missing-work table (**P1–P5**) is **fully closed** (all rows DONE / D
 | Pixel-perfect GL quirks | Prefer clean GPU path |
 | Wire mouse pick via hitMap | `get_sprite_hit` ready; soft FB / headless N/A |
 | C-SPR async/remap/bake/SHA1/pixel-pages | Deferred; runtime TGA+atlas+OLS1 meta sufficient |
-| readyPendingReceivedMessages mid-move hold | Deferred (other-player PU hold while path plays) |
+| readyPendingReceivedMessages mid-move hold | **DONE** (other-player PU hold while path plays) |
 | Non-zero `mMapGlobalOffset` | **DONE-NA** — wire frame == storage |
 
 ---
@@ -262,6 +262,8 @@ Start at **P3 presentation polish** (P2 complete through #14 sound residuals) un
 
 | Date | Note |
 |------|------|
+| 2026-08-24 | **Remaining play residuals (except postponed)**: full hover tip (you/others/objects/graves/owners); C++ currentPos turn-smoothing; reverse-use last-use auto-clone; rebake object-file loading ticks; Soft→GPU without exec. Still postponed: posse, photo. Non-goal: true GPU world draw. |
+| 2026-08-24 | **Polish leftovers (all)**: wet reverb comb mix on spatial SFX; OLHU **v2 fonts**; `setupNumericSprites` + `+varSerialNumber`; `getSayLimit` SAY truncate; bad-biome HUD hover names; rideable road auto-walk; age body/head offset (already on parent chain; clothing via anchors); OLC1 **v9** `only_when_worn`; `loading.tga` chrome; minifb/GPU fullscreen in-process (graphics backend still restarts). Posse chase + photo still postponed. |
 | 2026-07-27 | **P5#39 Settings page** (**DONE**): soft-FB `SettingsPage` live on `ClientScreen` graph — SFX/music volume+mute, show FPS, credential/env display (edit stays on Account); env + `ohol_client_settings.ini` prefill; apply SoundBank/MusicBank + mute atomics; F3 Account/Playing and Esc from Playing open Settings; Esc/B back with best-effort save; `ohol-client` wired; headless CLI unchanged; no new crates. Focused settings tests + client_screen death tests + self-check OK; ohol-client builds. Residual: session-held MusicBank continuous bed step not re-applied mid-play (SFX applied on enter/leave Settings); minifb fullscreen live toggle needs window recreate (display hint only); optional C++ SettingsPage chrome (borderless, half-frame, hide UI). Files: `settings_page.rs`, `account_page.rs`, `client_screen.rs`, `sound_bank.rs`, `music_bank.rs`, `bin/ohol_client.rs`, `lib.rs`, `main.rs`, port docs. |
 | 2026-07-28 | **P5#38 Death / rebirth pages** (**DONE**): `client_screen.rs` — `DeathSummary` (name/age/reason), `note_our_death_if_any` Playing→`ClientScreen::Death`, soft-FB `draw_death_screen`, R/Enter → full reconnect LOGIN (`rebirth_session_config`), Esc quit; `ohol-client` death branch in live loop; headless probes unchanged. Tests `client_screen::*`. No new crates. Files: `client_screen.rs`, `account_page.rs` (app.death), `ohol_client.rs`, `lib.rs`, port docs. |
 | 2026-07-28 | **P5#37 Account page** (**DONE**): `account_page.rs` — `ClientScreen` graph (Account/Loading/Playing/Death/Settings), soft-FB form (email + account key/password, pencilFont), env/`.env` prefill, Enter=Connect / Esc skip-if-creds / Tab / F2 mode, `build_session_config` → `ohol-client` login; headless CLI flags unchanged. Tests screen state + config build. No new crates. Files: `account_page.rs`, `ohol_client.rs`, `lib.rs`, `client_screen.rs` (shared graph), port docs. |

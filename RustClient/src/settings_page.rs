@@ -14,6 +14,7 @@ use crate::account_page::ClientScreen;
 use crate::hud::HudSprites;
 use crate::music_bank::MusicBank;
 use crate::render::{Framebuffer, ZOOM_DEFAULT, ZOOM_MAX, ZOOM_MIN};
+use crate::review_page::{DEFAULT_COMMUNITY_SITE, DEFAULT_DISCORD_URL};
 use crate::sound_bank::SoundBank;
 use crate::ui_font::{draw_ui_text, measure_ui_text};
 
@@ -22,9 +23,11 @@ pub const CLIENT_SETTINGS_FILE: &str = "ohol_client_settings.ini";
 
 /// How the windowed client presents pixels.
 ///
-/// - **Gpu** — soft-FB scene still authored on CPU, presented via **wgpu/`pixels`**
-///   (texture upload + GPU scale). Faster present, smoother upscale; default when available.
-/// - **Soft** — classic minifb CPU buffer path (debug / fallback).
+/// Scene is **always** soft-FB authored on CPU (`SceneRenderer`). This setting only
+/// chooses how that buffer reaches the screen (takes effect after **Restart**).
+///
+/// - **Gpu** — upload via **wgpu/`pixels`**, hardware scale/fill (default).
+/// - **Soft** — minifb CPU buffer present (debug / fallback).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum GraphicsMode {
     /// GPU-accelerated present (default).
@@ -54,8 +57,8 @@ impl GraphicsMode {
 
     pub fn label(self) -> &'static str {
         match self {
-            GraphicsMode::Gpu => "GPU present",
-            GraphicsMode::Soft => "Soft (CPU)",
+            GraphicsMode::Gpu => "GPU present (wgpu)",
+            GraphicsMode::Soft => "Soft present (CPU)",
         }
     }
 
@@ -108,6 +111,10 @@ pub struct SettingsPage {
     pub runtime_fullscreen: bool,
     /// While LMB-dragging a volume/zoom slider (mouse UI).
     pub slider_drag: Option<SettingsFocus>,
+    /// Community website shown on the Review page.
+    pub community_site: String,
+    /// Discord invite shown on the Review page.
+    pub discord_url: String,
 }
 
 pub type ClientSettings = SettingsPage;
@@ -126,6 +133,10 @@ pub enum SettingsFocus {
     MusicMute,
     ShowFps,
     Debug,
+    CommunitySite,
+    DiscordUrl,
+    /// Open community / review links page.
+    OpenReview,
     /// Open Account page (email / key) for editing credentials.
     AccountSettings,
     /// Re-exec client when graphics/fullscreen differ from process runtime.
@@ -134,7 +145,7 @@ pub enum SettingsFocus {
 }
 
 impl SettingsFocus {
-    const ALL: [SettingsFocus; 14] = [
+    const ALL: [SettingsFocus; 17] = [
         SettingsFocus::SoundVolume,
         SettingsFocus::MusicVolume,
         SettingsFocus::Zoom,
@@ -146,6 +157,9 @@ impl SettingsFocus {
         SettingsFocus::MusicMute,
         SettingsFocus::ShowFps,
         SettingsFocus::Debug,
+        SettingsFocus::CommunitySite,
+        SettingsFocus::DiscordUrl,
+        SettingsFocus::OpenReview,
         SettingsFocus::AccountSettings,
         SettingsFocus::Restart,
         SettingsFocus::Back,
@@ -198,6 +212,8 @@ pub enum SettingsKey {
     Minus,
     Enter,
     Escape,
+    Char(char),
+    Backspace,
     Other,
 }
 
@@ -206,10 +222,14 @@ pub enum SettingsAction {
     None,
     Back,
     Applied,
-    /// User requested process restart (graphics/fullscreen apply).
+    /// User requested process restart (graphics backend change).
     Restart,
+    /// Fullscreen flag changed — recreate the play window in-process (no exec).
+    ApplyFullscreen,
     /// Jump to Account page to edit email / key.
     OpenAccount,
+    /// Open community / review links.
+    OpenReview,
 }
 
 /// Slider track width (must match [`draw_settings_slider`]).
@@ -242,11 +262,38 @@ impl Default for SettingsPage {
             runtime_graphics: GraphicsMode::Gpu,
             runtime_fullscreen: false,
             slider_drag: None,
+            community_site: DEFAULT_COMMUNITY_SITE.into(),
+            discord_url: DEFAULT_DISCORD_URL.into(),
         }
     }
 }
 
 impl SettingsPage {
+    fn type_url_char(&mut self, ch: char) {
+        if ch.is_control() {
+            return;
+        }
+        let text = match self.focus {
+            SettingsFocus::CommunitySite => &mut self.community_site,
+            SettingsFocus::DiscordUrl => &mut self.discord_url,
+            _ => return,
+        };
+        if text.chars().count() >= 200 {
+            return;
+        }
+        text.push(ch);
+        self.status = "URL edited — Esc saves".into();
+    }
+
+    fn url_backspace(&mut self) {
+        let text = match self.focus {
+            SettingsFocus::CommunitySite => &mut self.community_site,
+            SettingsFocus::DiscordUrl => &mut self.discord_url,
+            _ => return,
+        };
+        text.pop();
+    }
+
     pub fn clamp(&mut self) {
         self.sound_volume = self.sound_volume.clamp(0.0, 1.0);
         self.music_volume = self.music_volume.clamp(0.0, 1.0);
@@ -488,7 +535,9 @@ impl SettingsPage {
              brightness={:.3}\n\
              graphics={}\n\
              audio={}\n\
-             fullscreen={}\n",
+             fullscreen={}\n\
+             community_site={}\n\
+             discord_url={}\n",
             self.sound_volume.clamp(0.0, 1.0),
             self.music_volume.clamp(0.0, 1.0),
             if self.sound_muted { "1" } else { "0" },
@@ -500,6 +549,8 @@ impl SettingsPage {
             self.graphics_mode.as_str(),
             if self.audio_enabled { "1" } else { "0" },
             if self.fullscreen { "1" } else { "0" },
+            self.community_site.trim(),
+            self.discord_url.trim(),
         )
     }
 
@@ -549,6 +600,16 @@ impl SettingsPage {
                     s.audio_enabled = env_truthy(Some(v));
                 }
                 "fullscreen" | "full_screen" | "fs" => s.fullscreen = env_truthy(Some(v)),
+                "community_site" | "website" | "review_site" => {
+                    if !v.is_empty() {
+                        s.community_site = v.to_string();
+                    }
+                }
+                "discord_url" | "discord" => {
+                    if !v.is_empty() {
+                        s.discord_url = v.to_string();
+                    }
+                }
                 _ => {}
             }
         }
@@ -558,6 +619,14 @@ impl SettingsPage {
 
     pub fn on_key(&mut self, key: SettingsKey) -> SettingsAction {
         match key {
+            SettingsKey::Char(c) => {
+                self.type_url_char(c);
+                SettingsAction::None
+            }
+            SettingsKey::Backspace => {
+                self.url_backspace();
+                SettingsAction::None
+            }
             SettingsKey::Escape | SettingsKey::Back => SettingsAction::Back,
             SettingsKey::ToggleAudio => {
                 self.sound_muted = !self.sound_muted;
@@ -673,6 +742,11 @@ impl SettingsPage {
                     self.status = self.fullscreen_change_status();
                     SettingsAction::Applied
                 }
+                SettingsFocus::CommunitySite | SettingsFocus::DiscordUrl => SettingsAction::None,
+                SettingsFocus::OpenReview => {
+                    self.status = "Opening community links…".into();
+                    SettingsAction::OpenReview
+                }
                 SettingsFocus::AccountSettings => {
                     self.status = "Opening Account…".into();
                     SettingsAction::OpenAccount
@@ -685,7 +759,7 @@ impl SettingsPage {
     fn graphics_change_status(&self) -> String {
         if self.graphics_mode != self.runtime_graphics {
             format!(
-                "Graphics: {} — press Restart to apply",
+                "Graphics: {} — press Restart to apply (Soft→GPU in-process)",
                 self.graphics_mode.label()
             )
         } else {
@@ -703,12 +777,18 @@ impl SettingsPage {
     }
 
     fn try_restart_action(&mut self) -> SettingsAction {
-        if self.needs_restart() {
+        if self.graphics_mode != self.runtime_graphics {
             self.clamp();
             self.apply_runtime_globals();
             let _ = self.save_default();
             self.status = "Restarting…".into();
             SettingsAction::Restart
+        } else if self.fullscreen != self.runtime_fullscreen {
+            self.clamp();
+            self.apply_runtime_globals();
+            let _ = self.save_default();
+            self.status = "Applying fullscreen…".into();
+            SettingsAction::ApplyFullscreen
         } else {
             self.status = "No restart needed".into();
             SettingsAction::None
@@ -851,6 +931,8 @@ impl SettingsPage {
                 self.status = "Opening Account…".into();
                 SettingsAction::OpenAccount
             }
+            SettingsFocus::OpenReview => SettingsAction::OpenReview,
+            SettingsFocus::CommunitySite | SettingsFocus::DiscordUrl => SettingsAction::None,
             SettingsFocus::SoundVolume
             | SettingsFocus::MusicVolume
             | SettingsFocus::Zoom
@@ -951,6 +1033,15 @@ impl SettingsPage {
     }
 }
 
+fn truncate_url(s: &str, max: usize) -> String {
+    let t = s.trim();
+    if t.chars().count() <= max {
+        t.to_string()
+    } else {
+        format!("{}…", t.chars().take(max.saturating_sub(1)).collect::<String>())
+    }
+}
+
 fn env_truthy(v: Option<&str>) -> bool {
     match v {
         Some(s) => {
@@ -1046,7 +1137,10 @@ fn settings_layout_hits(fb_w: f32, fb_h: f32) -> Vec<SettingsRowHit> {
         );
         let is_btn = matches!(
             row,
-            SettingsFocus::AccountSettings | SettingsFocus::Restart | SettingsFocus::Back
+            SettingsFocus::AccountSettings
+                | SettingsFocus::OpenReview
+                | SettingsFocus::Restart
+                | SettingsFocus::Back
         );
         let label_h = if is_btn { 28.0 } else { 20.0 };
         let slider_h = if has_slider { 16.0 } else { 6.0 };
@@ -1159,7 +1253,10 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
         let focused = page.focus == row;
         let is_btn = matches!(
             row,
-            SettingsFocus::AccountSettings | SettingsFocus::Restart | SettingsFocus::Back
+            SettingsFocus::AccountSettings
+                | SettingsFocus::OpenReview
+                | SettingsFocus::Restart
+                | SettingsFocus::Back
         );
         let label_h = if is_btn { 28.0 } else { 20.0 };
         let has_slider = matches!(
@@ -1251,6 +1348,18 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
                 } else {
                     "Off".to_string()
                 },
+            ),
+            SettingsFocus::CommunitySite => (
+                "Website".to_string(),
+                truncate_url(&page.community_site, 36),
+            ),
+            SettingsFocus::DiscordUrl => (
+                "Discord".to_string(),
+                truncate_url(&page.discord_url, 36),
+            ),
+            SettingsFocus::OpenReview => (
+                "Community / Review".to_string(),
+                "Open links".to_string(),
             ),
             SettingsFocus::AccountSettings => {
                 let email = if page.email.trim().is_empty() {
@@ -1641,6 +1750,11 @@ mod tests {
         s.graphics_mode = s.runtime_graphics;
         s.fullscreen = !s.runtime_fullscreen;
         assert!(s.needs_restart());
+        s.focus = SettingsFocus::Restart;
+        assert_eq!(
+            s.on_key(SettingsKey::Enter),
+            SettingsAction::ApplyFullscreen
+        );
         s.fullscreen = s.runtime_fullscreen;
         assert!(!s.needs_restart());
         s.focus = SettingsFocus::Restart;

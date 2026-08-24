@@ -92,6 +92,18 @@ pub fn encode_force(x: i32, y: i32) -> String {
     format!("FORCE {x} {y}#")
 }
 
+/// `KILL x y#` / `KILL x y id#` — deadly object used toward a square / player.
+///
+/// C++ `LivingLifePage::pointerDown` (~25550): SHIFT+modClick with
+/// `deadlyDistance > 0` sends KILL immediately (with optional target player id),
+/// then enters `killMode` without auto-walking.
+pub fn encode_kill(x: i32, y: i32, target_player_id: Option<i32>) -> String {
+    match target_player_id {
+        Some(id) if id > 0 => format!("KILL {x} {y} {id}#"),
+        _ => format!("KILL {x} {y}#"),
+    }
+}
+
 /// `JUMP x y#` — baby jump-out of arms / ground wiggle (protocol ignores x/y).
 ///
 /// C++ `LivingLifePage::pointerDown` sends `"JUMP 0 0#"` when held by adult or
@@ -100,10 +112,40 @@ pub fn encode_jump(x: i32, y: i32) -> String {
     format!("JUMP {x} {y}#")
 }
 
+/// C++ `getSayLimit` (`commonSource/sayLimit.cpp`).
+///
+/// Baby: `floor(age)+1` until 8; ages 8–16 rise on a sigmoid to 66; then
+/// `16 + (age-16)/2 + 50` (cap grows ~1 char per 2 years).
+pub fn get_say_limit(age: f32) -> usize {
+    let floor_age = age.max(0.0).floor() as i32;
+    let mut say_cap = floor_age + 1;
+    const ADULT_BASE: i32 = 50;
+    if floor_age >= 16 {
+        say_cap = 16 + (floor_age - 16) / 2 + ADULT_BASE;
+    } else if floor_age >= 8 {
+        let extra = floor_age - 8;
+        if extra > 0 {
+            let sixteen_limit = ADULT_BASE + 16;
+            let full_increase = sixteen_limit - 9;
+            let fraction = extra as f64 / 8.0;
+            let hardness = 12.0;
+            let curved = 1.0 / (1.0 + 2.0_f64.powf(-hardness * (fraction - 0.5)));
+            say_cap = 9 + (full_increase as f64 * curved).floor() as i32;
+        }
+    }
+    say_cap.max(1) as usize
+}
+
+/// Truncate spoken text to [`get_say_limit`] (C++ `mSayField` max length).
+pub fn truncate_say_text(text: &str, age: f32) -> String {
+    let cap = get_say_limit(age);
+    let t = text.replace('#', " ");
+    t.chars().take(cap).collect()
+}
+
 /// `SAY x y text#` — spoken text; x/y ignored by server but required (usually 0 0).
 ///
-/// Text must not contain `#`. Official client truncates by age speech limit;
-/// headless sends the string as provided (caller truncates if needed).
+/// Text must not contain `#`. Callers should run [`truncate_say_text`] for live age.
 pub fn encode_say(x: i32, y: i32, text: &str) -> String {
     let text = text.replace('#', " ");
     format!("SAY {x} {y} {text}#")
@@ -115,6 +157,41 @@ pub fn encode_say(x: i32, y: i32, text: &str) -> String {
 /// x/y ignored (usually 0 0). Index is row in `emotionWords` / `emotionObjects`.
 pub fn encode_emot(x: i32, y: i32, emot_index: i32) -> String {
     format!("EMOT {x} {y} {emot_index}#")
+}
+
+/// `DIE x y#` — baby suicide (C++ `/DIE` when `computeCurrentAge < 2`).
+pub fn encode_die(x: i32, y: i32) -> String {
+    format!("DIE {x} {y}#")
+}
+
+/// `PING x y unique_id#` — RTT probe (C++ `/PING`).
+pub fn encode_ping(x: i32, y: i32, unique_id: i32) -> String {
+    format!("PING {x} {y} {unique_id}#")
+}
+
+/// `LEAD x y#` — request leadership chain (C++ `/LEADER`).
+pub fn encode_lead(x: i32, y: i32) -> String {
+    format!("LEAD {x} {y}#")
+}
+
+/// `UNFOL x y#` — stop following (C++ `/UNFOLLOW`).
+pub fn encode_unfol(x: i32, y: i32) -> String {
+    format!("UNFOL {x} {y}#")
+}
+
+/// `MOTH x y#` — ask mother location (C++ `/MOTHER`).
+pub fn encode_moth(x: i32, y: i32) -> String {
+    format!("MOTH {x} {y}#")
+}
+
+/// `PROP x y#` — property query (C++ `/PROP`).
+pub fn encode_prop(x: i32, y: i32) -> String {
+    format!("PROP {x} {y}#")
+}
+
+/// `ORDR x y#` — order followers (C++ `ORDER,`).
+pub fn encode_ordr(x: i32, y: i32) -> String {
+    format!("ORDR {x} {y}#")
 }
 
 /// High-level object action kinds the headless client can queue/send.
@@ -162,6 +239,12 @@ pub enum ObjectAction {
         clothing_slot: i32,
         player_id: Option<i32>,
     },
+    /// `KILL x y [id]#`
+    Kill {
+        x: i32,
+        y: i32,
+        target_player_id: Option<i32>,
+    },
 }
 
 impl ObjectAction {
@@ -199,6 +282,11 @@ impl ObjectAction {
                 clothing_slot,
                 player_id,
             } => encode_ubaby(*x, *y, *clothing_slot, *player_id),
+            Self::Kill {
+                x,
+                y,
+                target_player_id,
+            } => encode_kill(*x, *y, *target_player_id),
         }
     }
 
@@ -212,6 +300,7 @@ impl ObjectAction {
             | Self::Sremv { x, y, .. }
             | Self::Swap { x, y }
             | Self::Baby { x, y, .. }
+            | Self::Kill { x, y, .. }
             | Self::Ubaby { x, y, .. } => (*x, *y),
         }
     }
@@ -310,6 +399,8 @@ mod tests {
         assert_eq!(encode_force(10, 20), "FORCE 10 20#");
         assert_eq!(encode_jump(0, 0), "JUMP 0 0#");
         assert_eq!(encode_jump(1, 2), "JUMP 1 2#");
+        assert_eq!(encode_kill(3, 4, None), "KILL 3 4#");
+        assert_eq!(encode_kill(3, 4, Some(99)), "KILL 3 4 99#");
     }
 
     #[test]
@@ -342,6 +433,21 @@ mod tests {
         assert_eq!(encode_emot(0, 0, 0), "EMOT 0 0 0#");
         assert_eq!(encode_emot(0, 0, 12), "EMOT 0 0 12#");
         assert_eq!(encode_emot(1, 2, 5), "EMOT 1 2 5#");
+    }
+
+    #[test]
+    fn say_limit_matches_cpp_curve() {
+        assert_eq!(get_say_limit(0.0), 1);
+        assert_eq!(get_say_limit(1.9), 2);
+        assert_eq!(get_say_limit(7.0), 8);
+        assert_eq!(get_say_limit(8.0), 9);
+        // Adult: 16 + (age-16)/2 + 50
+        assert_eq!(get_say_limit(16.0), 66);
+        assert_eq!(get_say_limit(18.0), 67);
+        let baby = truncate_say_text("HELLO WORLD THIS IS LONG", 0.0);
+        assert_eq!(baby, "H");
+        let hash = truncate_say_text("hi#there", 16.0);
+        assert!(!hash.contains('#'));
     }
 
     #[test]

@@ -158,6 +158,21 @@ mod tests {
     }
 
     #[test]
+    fn encode_login_twin_appends_sha1_and_count() {
+        let line = encode_login(&LoginParams {
+            email: "a@b.c",
+            challenge: "x",
+            pad_email_to_80: false,
+            twin_code: Some("apple river stone"),
+            twin_count: 2,
+            ..LoginParams::default()
+        });
+        let hash = sha1_hex(b"apple river stone");
+        assert!(line.contains(&hash), "{line}");
+        assert!(line.contains(&format!(" {hash} 2#")), "{line}");
+    }
+
+    #[test]
     fn encode_rlogin() {
         let line = encode_login(&LoginParams {
             reconnect: true,

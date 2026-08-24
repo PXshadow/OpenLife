@@ -76,7 +76,7 @@ Payload: dense length-prefixed records (section table optional later for mmap).
 
 ---
 
-## 4. OLC1 — objects (format 6 write; v1–v6 load)
+## 4. OLC1 — objects (format 9 write; v1–v9 load)
 
 Per object record (dense, after 24-byte header):
 
@@ -122,6 +122,9 @@ u16 n_use_appear; repeat n: i32 sprite_index   # C++ useAppearIndex sparse
 # Runtime only (not stored): ObjectSprite.skip_drawing from setup_sprite_use_vis
 # --- format ≥ 6 trailer (variableDummyIDs) ---
 u16 n_variable_dummies; repeat n: i32 dummy_id
+# --- format ≥ 7: deadly_distance f32, use_distance i32, moves i32 ---
+# --- format ≥ 8: contain_size f32, slot_size f32 ---
+# --- format ≥ 9: per-sprite u8 extra (bit0 = only_when_worn / invisWorn==2) ---
 ```
 
 **ObjectSprite:**

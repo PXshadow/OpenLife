@@ -4,8 +4,11 @@ use std::io::{self, Read};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::time::{Duration, Instant};
 
-use crate::actions::{ObjectAction, encode_jump, encode_ka};
-use crate::emotion::{SpeechOutbound, classify_speech_outbound};
+use crate::actions::{
+    ObjectAction, encode_die, encode_jump, encode_ka, encode_kill, encode_lead, encode_moth,
+    encode_ordr, encode_ping, encode_prop, encode_unfol,
+};
+use crate::emotion::{SlashCommand, SpeechOutbound, classify_speech_outbound};
 use crate::client_map::ClientMap;
 use crate::content::ClientContent;
 use crate::emotion::EmotionBank;
@@ -15,14 +18,16 @@ use crate::login::{LoginParams, encode_login};
 use crate::map_global_offset::MapGlobalOffset;
 use crate::move_state::{MoveError, MoveState, PathDelta};
 use crate::parse::{
-    Craving, CurseScoreChange, CurseTokenChange, DyingPlayer, FlightDest, FoodChange,
-    GlobalMessage, HeatChange, InboundMessage, Lineage, LocationSays, LoginOutcome, MapChange,
-    MapChunkHeader, MonumentCall, PlayerEmot, PlayerMoveStart, PlayerName, PlayerSays,
-    PlayerUpdate, ServerHello, ValleySpacing, parse_inbound, parse_login_outcome, parse_sn,
+    Craving, CurseScoreChange, CurseTokenChange, DyingPlayer, ExiledRow, FlightDest, FollowingRow,
+    FoodChange, GlobalMessage, Grave, GraveMove, GraveOld, HeatChange, Homeland, InboundMessage,
+    Lineage, LocationSays, LoginOutcome, MapChange, MapChunkHeader, MonumentCall, OwnerList,
+    PhotoSignature, PlayerEmot, PlayerMoveStart, PlayerName, PlayerSays, PlayerUpdate,
+    RocketAccount, RocketRide, ServerHello, StatueInfo, ToolSlots, ValleySpacing, VogUpdate,
+    WarReportRow, parse_inbound, parse_login_outcome, parse_sn,
 };
 use crate::tags::ServerTag;
 use crate::wire_log::WireLog;
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 
 // ---------------------------------------------------------------------------
@@ -71,6 +76,10 @@ pub struct SessionConfig {
     pub password: String,
     pub account_key: String,
     pub tutorial_number: i32,
+    /// Raw twin code (hashed SHA1 on the LOGIN wire). `None` = solo birth.
+    pub twin_code: Option<String>,
+    /// Party size when `twin_code` is set: 2/3/4, or **0** = same family (C++).
+    pub twin_count: i32,
     pub reconnect: bool,
     pub client_tag: String,
     pub pad_email_to_80: bool,
@@ -87,6 +96,8 @@ impl Default for SessionConfig {
             password: "x".into(),
             account_key: String::new(),
             tutorial_number: 0,
+            twin_code: None,
+            twin_count: 0,
             reconnect: false,
             client_tag: crate::login::DEFAULT_CLIENT_TAG.into(),
             pad_email_to_80: true,
@@ -141,6 +152,23 @@ pub enum SessionEvent {
     PosseJoin(Vec<i32>),
     MonumentCall(MonumentCall),
     Ghost(Vec<i32>),
+    Grave(Grave),
+    GraveMove(GraveMove),
+    GraveOld(GraveOld),
+    OwnerList(OwnerList),
+    Following(Vec<FollowingRow>),
+    Exiled(Vec<ExiledRow>),
+    Homeland(Homeland),
+    LearnedTools(Vec<i32>),
+    ToolExperts(Vec<i32>),
+    ToolSlots(ToolSlots),
+    WarReport(Vec<WarReportRow>),
+    VogUpdate(VogUpdate),
+    PhotoSignature(PhotoSignature),
+    StatueInfo(StatueInfo),
+    RocketRide(Vec<RocketRide>),
+    RocketAccount(RocketAccount),
+    BadBiomes(Vec<u8>),
     /// CM header only (inflate failed); successful CM never surfaces here.
     Compressed {
         raw_size: usize,
@@ -193,6 +221,23 @@ impl SessionEvent {
             Self::PosseJoin(_) => "PJ",
             Self::MonumentCall(_) => "MN",
             Self::Ghost(_) => "GH",
+            Self::Grave(_) => "GV",
+            Self::GraveMove(_) => "GM",
+            Self::GraveOld(_) => "GO",
+            Self::OwnerList(_) => "OW",
+            Self::Following(_) => "FW",
+            Self::Exiled(_) => "EX",
+            Self::Homeland(_) => "HL",
+            Self::LearnedTools(_) => "LR",
+            Self::ToolExperts(_) => "TE",
+            Self::ToolSlots(_) => "TS",
+            Self::WarReport(_) => "WR",
+            Self::VogUpdate(_) => "VU",
+            Self::PhotoSignature(_) => "PH",
+            Self::StatueInfo(_) => "ST",
+            Self::RocketRide(_) => "RR",
+            Self::RocketAccount(_) => "RA",
+            Self::BadBiomes(_) => "BB",
             Self::Compressed { .. } => "CM",
             Self::Other(s) => s.lines().next().unwrap_or("?"),
         }
@@ -207,6 +252,8 @@ pub struct ClientSession {
     pending: VecDeque<FramedMessage>,
     /// Extra session events queued from multi-line messages (e.g. multi-PU).
     pending_events: VecDeque<SessionEvent>,
+    /// C++ `readyPendingReceivedMessages` — drained before the socket.
+    ready_pending: VecDeque<String>,
     /// C++: `waitForFrameMessages` — after ACCEPTED, hold gameplay tags until FM.
     wait_for_frame_messages: bool,
     /// C++: `serverFrameMessages` — non-pass-through frames buffered until FM.
@@ -235,8 +282,43 @@ pub struct ClientSession {
     ///
     /// // C++ LivingLifePage FOOD_CHANGE ~21867–21881: push onto pendingReceivedMessages
     deferred_fx: Vec<(i32, FoodChange)>,
-    /// Last HX applied.
+    /// Last HX applied (heat also mirrored from our PU — C++ `LiveObject.heat`).
     pub heat: Option<HeatChange>,
+    /// C++ `showFPS` overlay toggled by `/FPS`.
+    pub show_fps_overlay: bool,
+    /// C++ `showNet` overlay toggled by `/NET`.
+    pub show_net_overlay: bool,
+    /// C++ `showPing` — last `/PING` RTT in milliseconds (`None` until PONG).
+    pub last_ping_ms: Option<f32>,
+    /// C++ `forceDisconnect` from `/DISCONNECT`.
+    pub force_disconnect: bool,
+    /// C++ leftover `/filter` hint string.
+    pub hint_filter: Option<String>,
+    last_ping_sent: i32,
+    waiting_for_pong: bool,
+    ping_sent_at: Option<Instant>,
+    /// C++ `mGraveInfo`.
+    pub graves: Vec<Grave>,
+    /// C++ `mGraveInfo` old-person records from GO.
+    pub grave_olds: Vec<GraveOld>,
+    /// Tiles we already sent `GRAVE x y#` for (avoid spam).
+    grave_requested: HashSet<(i32, i32)>,
+    /// C++ `homelands`.
+    pub homelands: Vec<Homeland>,
+    /// C++ `mOwnerInfo`.
+    pub owner_lists: Vec<OwnerList>,
+    /// Learned tool object ids (LR).
+    pub learned_tools: HashSet<i32>,
+    /// C++ `usedToolSlots` / `totalToolSlots`.
+    pub tool_slots: Option<ToolSlots>,
+    /// Last PHOTO_SIGNATURE (typed; photo pipeline itself is deferred).
+    pub photo_signature: Option<PhotoSignature>,
+    /// Last VOG camera tile.
+    pub vog_pos: Option<(i32, i32)>,
+    /// Count of inbound messages this session (for `/NET` overlay).
+    pub messages_in: u64,
+    /// Count of outbound messages this session.
+    pub messages_out: u64,
     /// Last curse token count (CX).
     pub curse_tokens: Option<i32>,
     /// Last excess curse points (CS) — L-HUD residual.
@@ -247,12 +329,16 @@ pub struct ClientSession {
     pub map: ClientMap,
     /// C++ `mBadBiomeIndices` from login `BB` / BAD_BIOMES (path edge routing).
     pub bad_biomes: Vec<u8>,
+    /// C++ `mBadBiomeNames` — paired with [`Self::bad_biomes`] (HUD hover).
+    pub bad_biome_names: Vec<(u8, String)>,
     /// Optional content tables (objects/transitions) for blocking/food.
     pub content: ClientContent,
     /// PE emotion table (`contentSettings/emotionObjects.ini`) — **L-EMOT**.
     pub emotions: EmotionBank,
     /// OLSN sound index + lazy AIFF (**L-SOUND-TRIG** / C-SND).
     pub sounds: crate::sound_bank::SoundBank,
+    /// When true, [`Self::step_anims`] skips PE TTL (GUI `SceneRenderer::draw` owns it).
+    pub skip_emot_ttl_in_step: bool,
     /// Queued object action (LivingLifePage `nextActionMessageToSend`) — sent only when
     /// not mid-MOVE / not awaiting FORCE (protocol: USE/DROP/REMV ignored in motion).
     pending_action: Option<ObjectAction>,
@@ -336,6 +422,7 @@ impl ClientSession {
             frames: FrameReader::new(),
             pending: VecDeque::new(),
             pending_events: VecDeque::new(),
+            ready_pending: VecDeque::new(),
             wait_for_frame_messages: false,
             server_frame_messages: VecDeque::new(),
             server_frame_ready: false,
@@ -354,11 +441,31 @@ impl ClientSession {
             food: None,
             deferred_fx: Vec::new(),
             heat: None,
+            show_fps_overlay: false,
+            show_net_overlay: false,
+            last_ping_ms: None,
+            force_disconnect: false,
+            hint_filter: None,
+            last_ping_sent: 0,
+            waiting_for_pong: false,
+            ping_sent_at: None,
+            graves: Vec::new(),
+            grave_olds: Vec::new(),
+            grave_requested: HashSet::new(),
+            homelands: Vec::new(),
+            owner_lists: Vec::new(),
+            learned_tools: HashSet::new(),
+            tool_slots: None,
+            photo_signature: None,
+            vog_pos: None,
+            messages_in: 0,
+            messages_out: 0,
             curse_tokens: None,
             excess_curse_points: None,
             world: LiveWorld::new(),
             map: ClientMap::new(),
             bad_biomes: Vec::new(),
+            bad_biome_names: Vec::new(),
             content: match preloaded_content {
                 Some(c) => c,
                 None => {
@@ -376,6 +483,7 @@ impl ClientSession {
             },
             emotions: EmotionBank::new(), // filled after content loads below
             sounds: crate::sound_bank::SoundBank::new("."),
+            skip_emot_ttl_in_step: false,
             pending_action: None,
             player_action_pending: false,
             multi_move_chunks: Vec::new(),
@@ -450,8 +558,8 @@ impl ClientSession {
             account_key: &cfg.account_key,
             challenge: &hello.challenge,
             tutorial_number: cfg.tutorial_number,
-            twin_code: None,
-            twin_count: 0,
+            twin_code: cfg.twin_code.as_deref(),
+            twin_count: cfg.twin_count,
             pad_email_to_80: cfg.pad_email_to_80,
         });
         session.send_raw(&login_line)?;
@@ -551,6 +659,12 @@ impl ClientSession {
     /// messages are buffered until an FM end-of-frame marker, then drained in order so one
     /// client step applies a full server timestep together.
     pub fn poll_event(&mut self) -> io::Result<SessionEvent> {
+        // C++ getNextServerMessage: promote idle players' pending, then play
+        // readyPendingReceivedMessages **before** the socket / FM batch.
+        self.promote_ready_pending();
+        if let Some(body) = self.ready_pending.pop_front() {
+            return self.dispatch_body(body);
+        }
         // 1) Prefer already-ready session events (multi-line PU split, etc.).
         if let Some(ev) = self.pending_events.pop_front() {
             return Ok(ev);
@@ -680,6 +794,7 @@ impl ClientSession {
         self.clear_frame_batching();
         self.pending.clear();
         self.pending_events.clear();
+        self.ready_pending.clear();
         self.pending_action = None;
         self.player_action_pending = false;
         self.multi_move_chunks.clear();
@@ -690,6 +805,23 @@ impl ClientSession {
         self.food = None;
         self.deferred_fx.clear();
         self.heat = None;
+        self.show_fps_overlay = false;
+        self.show_net_overlay = false;
+        self.last_ping_ms = None;
+        self.force_disconnect = false;
+        self.hint_filter = None;
+        self.last_ping_sent = 0;
+        self.waiting_for_pong = false;
+        self.ping_sent_at = None;
+        self.graves.clear();
+        self.grave_olds.clear();
+        self.grave_requested.clear();
+        self.homelands.clear();
+        self.owner_lists.clear();
+        self.learned_tools.clear();
+        self.tool_slots = None;
+        self.photo_signature = None;
+        self.vog_pos = None;
         self.curse_tokens = None;
         self.excess_curse_points = None;
         self.world = LiveWorld::new();
@@ -754,14 +886,17 @@ impl ClientSession {
         } else if let Some(me) = self.world.our() {
             self.sounds.set_listener(me.x as f32, me.y as f32);
         }
-        // P3#19: PE temporary TTL + decay sounds (also in SceneRenderer::draw)
-        let decay = self.world.tick_emots(wall_dt as f32);
-        crate::sound_bank::play_emot_decay_for_targets(
-            &mut self.sounds,
-            &self.content,
-            &self.emotions,
-            &decay,
-        );
+        // P3#19: PE TTL. GUI `SceneRenderer::draw` also ticks; skip here when
+        // `skip_emot_ttl_in_step` so both paths in one frame don't double-decay.
+        if !self.skip_emot_ttl_in_step {
+            let decay = self.world.tick_emots(wall_dt as f32);
+            crate::sound_bank::play_emot_decay_for_targets(
+                &mut self.sounds,
+                &self.content,
+                &self.emotions,
+                &decay,
+            );
+        }
         self.world.step_anims_with_sounds(
             bank,
             &mut self.sounds,
@@ -792,9 +927,111 @@ impl ClientSession {
     /// Call each frame for headless / GUI. Also invoked from [`Self::step_anims`].
     /// Syncs local [`LiveObject`] display pos + `moving` for Jason walk anim select.
     pub fn step_move_pos(&mut self, wall_dt: f64) {
+        let was_moving = self.move_state.in_motion;
         self.move_state.step_current_pos(wall_dt);
         self.sync_our_live_motion();
+        self.world
+            .step_remote_path_display(wall_dt as f32, self.our_id);
         self.maybe_send_flip();
+        if was_moving && !self.move_state.in_motion {
+            let _ = self.maybe_road_auto_walk();
+        }
+    }
+
+    /// C++ LivingLifePage ~22900 — continue along a rideable road after a ground walk ends.
+    fn maybe_road_auto_walk(&mut self) -> Result<(), crate::move_state::MoveError> {
+        if self.pending_action.is_some() || self.player_action_pending {
+            return Ok(());
+        }
+        let path = self.move_state.path_to_dest.clone();
+        if path.len() < 2 {
+            return Ok(());
+        }
+        let prev = path[path.len() - 2];
+        let fin = path[path.len() - 1];
+        let floor = self.map.get(fin.0, fin.1).map(|t| t.floor_id).unwrap_or(0);
+        let prev_floor = self.map.get(prev.0, prev.1).map(|t| t.floor_id).unwrap_or(0);
+        if floor <= 0 || !self.content.same_road_class(prev_floor, floor) {
+            return Ok(());
+        }
+        if !self.content.get(floor).map(|o| o.rideable).unwrap_or(false) {
+            return Ok(());
+        }
+        let mut x_dir = fin.0 - prev.0;
+        let mut y_dir = fin.1 - prev.1;
+        if x_dir.abs() > 1 {
+            x_dir = x_dir.signum();
+        }
+        if y_dir.abs() > 1 {
+            y_dir = y_dir.signum();
+        }
+        let mut next = fin;
+        next.0 += x_dir;
+        next.1 += y_dir;
+        let mut len = 0;
+        if self.is_same_road(floor, fin, x_dir, y_dir) {
+            while len < 5 && self.is_same_road(floor, next, x_dir, y_dir) {
+                next.0 += x_dir;
+                next.1 += y_dir;
+                len += 1;
+            }
+        } else {
+            next = fin;
+            let last = (x_dir, y_dir);
+            let mut dirs: Vec<(i32, i32)> = [
+                (1, 1),
+                (1, 0),
+                (1, -1),
+                (-1, 1),
+                (-1, 0),
+                (-1, -1),
+                (0, 1),
+                (0, -1),
+            ]
+            .into_iter()
+            .filter(|&p| p != last && p != (-last.0, -last.1))
+            .collect();
+            dirs.sort_by_key(|&p| {
+                let dx = (p.0 - last.0) as i32;
+                let dy = (p.1 - last.1) as i32;
+                dx * dx + dy * dy
+            });
+            let mut found = false;
+            for &(dx, dy) in dirs.iter().take(6) {
+                if self.is_same_road(floor, fin, dx, dy) {
+                    x_dir = dx;
+                    y_dir = dy;
+                    found = true;
+                    break;
+                }
+            }
+            if found {
+                next.0 += x_dir;
+                next.1 += y_dir;
+                while len < 5 && self.is_same_road(floor, next, x_dir, y_dir) {
+                    next.0 += x_dir;
+                    next.1 += y_dir;
+                    len += 1;
+                }
+            }
+        }
+        if next == fin {
+            return Ok(());
+        }
+        self.move_state.path_auto_click = true;
+        let r = crate::click_tile::click_tile_with(self, next.0, next.1, true);
+        self.move_state.path_auto_click = false;
+        r.map(|_| ())
+    }
+
+    fn is_same_road(&self, floor: i32, pos: (i32, i32), dx: i32, dy: i32) -> bool {
+        let nx = pos.0 + dx;
+        let ny = pos.1 + dy;
+        let nf = self.map.get(nx, ny).map(|t| t.floor_id).unwrap_or(0);
+        if !self.content.same_road_class(nf, floor) {
+            return false;
+        }
+        !crate::pathfind::cell_blocks_walking(&self.map, Some(&self.content), nx, ny)
     }
 
     /// Mirror [`MoveState`] into our [`LiveObject`] for draw/anim (C++ currentPos / onPath).
@@ -943,6 +1180,7 @@ impl ClientSession {
 
     fn dispatch_body(&mut self, body: String) -> io::Result<SessionEvent> {
         // C++: LivingLifePage message switch; Haxe: Engine.message(ClientTag, …)
+        self.messages_in = self.messages_in.saturating_add(1);
         let inbound = parse_inbound(&body);
         match inbound {
             InboundMessage::PlayerUpdates(list) => {
@@ -951,6 +1189,13 @@ impl ClientSession {
                 }
                 let mut events = Vec::with_capacity(list.len());
                 for pu in list {
+                    if self.try_hold_pu(&pu) {
+                        continue;
+                    }
+                    if pu.deleted {
+                        let extra = self.world.drain_pending_regarding_others(pu.player_id);
+                        self.ready_pending.extend(extra);
+                    }
                     // L-SOUND-TRIG: clothing / drop settle / held creation before apply
                     // (need previous LiveObject clothing + held).
                     self.play_pu_sounds(&pu);
@@ -969,6 +1214,9 @@ impl ClientSession {
                         self.maybe_bind_our_player(&pu);
                     }
                     let is_ours = self.our_id == Some(pu.player_id);
+                    if is_ours && !pu.deleted {
+                        self.note_our_heat(pu.heat);
+                    }
                     let mut force_ack_sent = None;
                     if is_ours && !pu.deleted {
                         // Snapshot before move_state may clear in_motion on done_moving.
@@ -1075,6 +1323,10 @@ impl ClientSession {
                         force_ack_sent,
                     });
                 }
+                // Entire PU was held for later (readyPending) — no event this tick.
+                if events.is_empty() {
+                    return Ok(SessionEvent::Other(body));
+                }
                 // Emit first now; queue the rest so multi-line PU is not collapsed.
                 let mut iter = events.into_iter();
                 let first = iter.next().unwrap();
@@ -1082,6 +1334,18 @@ impl ClientSession {
                 Ok(first)
             }
             InboundMessage::PlayerMovesStart(v) => {
+                let mut play = Vec::new();
+                for m in &v {
+                    if self.try_hold_pm(m) {
+                        continue;
+                    }
+                    play.push(m.clone());
+                }
+                if play.is_empty() && !v.is_empty() {
+                    // Entire PM was held — still surface an empty-ish event? Skip apply.
+                    return Ok(SessionEvent::PlayerMovesStart(v));
+                }
+                let v = if play.is_empty() { v } else { play };
                 self.world.apply_moves_start(&v);
                 // C++ ~20139–20506: own truncated PM replaces path and cancels nextAction.
                 // Also refine fractional currentPos speed from PM total_sec (L-MOVE).
@@ -1112,21 +1376,32 @@ impl ClientSession {
                 Ok(SessionEvent::MapChunk(h))
             }
             InboundMessage::MapChanges(v) => {
+                let mut play = Vec::new();
+                for ch in v {
+                    if self.try_hold_mx(&ch) {
+                        continue;
+                    }
+                    play.push(ch);
+                }
                 // L-SOUND-TRIG: creation / decay on MX (C++ LivingLifePage ~17138+)
-                self.play_mx_sounds(&v);
+                self.play_mx_sounds(&play);
                 // L-HUD: our homeMarker stake → homePosStack (C++ ~17238)
-                self.apply_home_marker_mx(&v);
-                self.map.apply_mx_many(&v);
-                Ok(SessionEvent::MapChanges(v))
+                self.apply_home_marker_mx(&play);
+                self.map.apply_mx_many_with_content(&play, &self.content);
+                Ok(SessionEvent::MapChanges(play))
             }
             InboundMessage::FoodChange(f) => {
-                // C++ ~21867: defer FX while feeder still has mid-walk pending.
-                // Soft-FB proxy: responsible player currently `moving` (no readyPending).
+                // C++ ~21867: hold FX on feeder's pendingReceivedMessages when they
+                // already have messages queued (mid-walk PU hold). Also keep the
+                // older moving-only defer as a fallback.
                 if f.responsible_id > 0 {
-                    if let Some(o) = self.world.get(f.responsible_id) {
+                    if let Some(o) = self.world.get_mut(f.responsible_id) {
+                        if !o.pending_received_messages.is_empty() {
+                            o.pending_received_messages.push_back(body);
+                            return Ok(SessionEvent::FoodChange(f));
+                        }
                         if o.moving {
                             self.deferred_fx.push((f.responsible_id, f.clone()));
-                            // Do not update session.food yet — chrome waits for feeder settle.
                             return Ok(SessionEvent::FoodChange(f));
                         }
                     }
@@ -1136,6 +1411,11 @@ impl ClientSession {
             }
             InboundMessage::HeatChange(h) => {
                 self.heat = Some(h.clone());
+                if let Some(oid) = self.our_id {
+                    if let Some(o) = self.world.get_mut(oid) {
+                        o.heat = h.heat;
+                    }
+                }
                 Ok(SessionEvent::HeatChange(h))
             }
             InboundMessage::PlayerSays(v) => {
@@ -1180,6 +1460,13 @@ impl ClientSession {
                 Ok(SessionEvent::PlayerEmot(v))
             }
             InboundMessage::PlayerOutOfRange(v) => {
+                for &id in &v {
+                    if let Some(o) = self.world.get_mut(id) {
+                        let msgs: Vec<String> = o.pending_received_messages.drain(..).collect();
+                        o.some_pending_is_more_movement = false;
+                        self.ready_pending.extend(msgs);
+                    }
+                }
                 self.world.apply_out_of_range(&v);
                 Ok(SessionEvent::PlayerOutOfRange(v))
             }
@@ -1216,7 +1503,16 @@ impl ClientSession {
             }
             InboundMessage::Apocalypse => Ok(SessionEvent::Apocalypse),
             InboundMessage::ApocalypseDone => Ok(SessionEvent::ApocalypseDone),
-            InboundMessage::Pong(id) => Ok(SessionEvent::Pong(id)),
+            InboundMessage::Pong(id) => {
+                if self.waiting_for_pong {
+                    if let Some(t0) = self.ping_sent_at {
+                        self.last_ping_ms = Some(t0.elapsed().as_secs_f32() * 1000.0);
+                    }
+                    self.waiting_for_pong = false;
+                    self.ping_sent_at = None;
+                }
+                Ok(SessionEvent::Pong(id))
+            }
             InboundMessage::GlobalMessage(m) => Ok(SessionEvent::GlobalMessage(m)),
             InboundMessage::CurseTokens(c) => {
                 self.curse_tokens = Some(c.curse_token_count);
@@ -1237,15 +1533,112 @@ impl ClientSession {
             InboundMessage::PosseJoin(v) => Ok(SessionEvent::PosseJoin(v)),
             InboundMessage::MonumentCall(m) => Ok(SessionEvent::MonumentCall(m)),
             InboundMessage::Ghost(v) => Ok(SessionEvent::Ghost(v)),
+            InboundMessage::Grave(g) => {
+                self.graves.retain(|x| !(x.x == g.x && x.y == g.y));
+                self.graves.push(g.clone());
+                Ok(SessionEvent::Grave(g))
+            }
+            InboundMessage::GraveMove(m) => {
+                if let Some(idx) = self
+                    .graves
+                    .iter()
+                    .rposition(|g| g.x == m.xs && g.y == m.ys)
+                {
+                    self.graves[idx].x = m.xd;
+                    self.graves[idx].y = m.yd;
+                    let g = self.graves.remove(idx);
+                    self.graves.insert(0, g);
+                    if !m.swap_dest {
+                        let mut seen = false;
+                        self.graves.retain(|g| {
+                            if g.x == m.xd && g.y == m.yd {
+                                if !seen {
+                                    seen = true;
+                                    true
+                                } else {
+                                    false
+                                }
+                            } else {
+                                true
+                            }
+                        });
+                    }
+                }
+                Ok(SessionEvent::GraveMove(m))
+            }
+            InboundMessage::GraveOld(g) => {
+                self.graves.retain(|x| !(x.x == g.x && x.y == g.y));
+                self.graves.push(Grave {
+                    x: g.x,
+                    y: g.y,
+                    player_id: g.player_id,
+                });
+                self.grave_olds.retain(|x| !(x.x == g.x && x.y == g.y));
+                self.grave_olds.push(g.clone());
+                Ok(SessionEvent::GraveOld(g))
+            }
+            InboundMessage::OwnerList(o) => {
+                self.owner_lists.retain(|x| !(x.x == o.x && x.y == o.y));
+                self.owner_lists.push(o.clone());
+                Ok(SessionEvent::OwnerList(o))
+            }
+            InboundMessage::Following(v) => {
+                self.world.apply_following(&v);
+                Ok(SessionEvent::Following(v))
+            }
+            InboundMessage::Exiled(v) => {
+                self.world.apply_exiled(&v);
+                Ok(SessionEvent::Exiled(v))
+            }
+            InboundMessage::Homeland(h) => {
+                if let Some(existing) = self
+                    .homelands
+                    .iter_mut()
+                    .find(|x| x.x == h.x && x.y == h.y)
+                {
+                    existing.family_name = h.family_name.clone();
+                } else {
+                    self.homelands.push(h.clone());
+                }
+                Ok(SessionEvent::Homeland(h))
+            }
+            InboundMessage::LearnedTools(ids) => {
+                for id in &ids {
+                    self.learned_tools.insert(*id);
+                }
+                Ok(SessionEvent::LearnedTools(ids))
+            }
+            InboundMessage::ToolExperts(ids) => {
+                self.world.apply_tool_experts(&ids);
+                Ok(SessionEvent::ToolExperts(ids))
+            }
+            InboundMessage::ToolSlots(t) => {
+                self.tool_slots = Some(t.clone());
+                Ok(SessionEvent::ToolSlots(t))
+            }
+            InboundMessage::WarReport(v) => {
+                self.world.apply_war_report(&v);
+                Ok(SessionEvent::WarReport(v))
+            }
+            InboundMessage::VogUpdate(v) => {
+                self.vog_pos = Some((v.x, v.y));
+                Ok(SessionEvent::VogUpdate(v))
+            }
+            InboundMessage::PhotoSignature(p) => {
+                self.photo_signature = Some(p.clone());
+                Ok(SessionEvent::PhotoSignature(p))
+            }
+            InboundMessage::StatueInfo(s) => Ok(SessionEvent::StatueInfo(s)),
+            InboundMessage::RocketRide(v) => Ok(SessionEvent::RocketRide(v)),
+            InboundMessage::RocketAccount(a) => Ok(SessionEvent::RocketAccount(a)),
+            InboundMessage::BadBiomes(ids) => {
+                self.apply_bad_biomes_message(&body);
+                Ok(SessionEvent::BadBiomes(ids))
+            }
             InboundMessage::Compressed(h) => Ok(SessionEvent::Compressed {
                 raw_size: h.binary_raw_size,
                 compressed_size: h.binary_compressed_size,
             }),
-            InboundMessage::Known { tag, .. } if tag == ServerTag::Bb => {
-                // C++ BAD_BIOMES: replace mBadBiomeIndices for pathfind edge routing.
-                self.apply_bad_biomes_message(&body);
-                Ok(SessionEvent::Other(body))
-            }
             InboundMessage::Known { .. } | InboundMessage::Unknown { .. } => {
                 Ok(SessionEvent::Other(body))
             }
@@ -1254,7 +1647,289 @@ impl ClientSession {
 
     /// Apply server `BB` body into [`Self::bad_biomes`] (C++ `mBadBiomeIndices`).
     pub fn apply_bad_biomes_message(&mut self, body: &str) {
-        self.bad_biomes = crate::pathfind::parse_bad_biome_ids(body);
+        self.bad_biome_names = crate::pathfind::parse_bad_biomes(body);
+        self.bad_biomes = self.bad_biome_names.iter().map(|(id, _)| *id).collect();
+    }
+
+    /// C++ hover `mBadBiomeNames` for a biome id, if it is on the BB list.
+    pub fn bad_biome_name(&self, biome: u8) -> Option<&str> {
+        self.bad_biome_names
+            .iter()
+            .find(|(id, _)| *id == biome)
+            .map(|(_, n)| n.as_str())
+    }
+
+    /// C++ `readyPendingReceivedMessages` fill from idle players' queues.
+    fn promote_ready_pending(&mut self) {
+        let extra = self
+            .world
+            .drain_pending_for_idle(self.our_id, self.move_state.in_motion);
+        self.ready_pending.extend(extra);
+    }
+
+    /// Mirror PU/HX heat onto session + our LiveObject (HUD reads session.heat).
+    fn note_our_heat(&mut self, heat: f32) {
+        let heat = heat.clamp(0.0, 1.0);
+        match &mut self.heat {
+            Some(h) => h.heat = heat,
+            None => {
+                self.heat = Some(HeatChange {
+                    heat,
+                    food_time: 0.0,
+                    indoor_bonus: 0.0,
+                });
+            }
+        }
+        if let Some(oid) = self.our_id {
+            if let Some(o) = self.world.get_mut(oid) {
+                o.heat = heat;
+            }
+        }
+    }
+
+    /// Hold other-player PU until their local walk finishes (C++ ~18154).
+    fn try_hold_pu(&mut self, pu: &PlayerUpdate) -> bool {
+        if pu.deleted {
+            return false;
+        }
+        let our = self.our_id;
+        let msg = format!("PU\n{}\n#", pu.raw_line);
+        let (adult, adult_pending) = self
+            .world
+            .get(pu.player_id)
+            .map(|o| (o.held_by_adult_id, o.held_by_adult_pending_id))
+            .unwrap_or((-1, -1));
+        for aid in [adult, adult_pending] {
+            if aid <= 0 {
+                continue;
+            }
+            let has = self
+                .world
+                .get(aid)
+                .map(|a| !a.pending_received_messages.is_empty())
+                .unwrap_or(false);
+            if has {
+                if let Some(a) = self.world.get_mut(aid) {
+                    a.pending_received_messages.push_back(msg.clone());
+                    return true;
+                }
+            }
+        }
+        if pu.responsible_id > 0 && pu.responsible_id != pu.player_id {
+            let has = self
+                .world
+                .get(pu.responsible_id)
+                .map(|r| !r.pending_received_messages.is_empty())
+                .unwrap_or(false);
+            if has {
+                if let Some(r) = self.world.get_mut(pu.responsible_id) {
+                    r.pending_received_messages.push_back(msg.clone());
+                    return true;
+                }
+            }
+        }
+        let Some(existing) = self.world.get_mut(pu.player_id) else {
+            return false;
+        };
+        if !existing.should_hold_pu(pu, our) {
+            return false;
+        }
+        if pu.done_moving_seq_num > 0 {
+            existing.truncate_path_to(pu.x, pu.y);
+        }
+        existing.pending_received_messages.push_back(msg);
+        true
+    }
+
+    /// Hold PM if this player already has pending messages (C++ ~20042).
+    fn try_hold_pm(&mut self, m: &PlayerMoveStart) -> bool {
+        let Some(existing) = self.world.get_mut(m.player_id) else {
+            return false;
+        };
+        if existing.pending_received_messages.is_empty() {
+            return false;
+        }
+        existing.some_pending_is_more_movement = true;
+        existing
+            .pending_received_messages
+            .push_back(format!("PM\n{}\n#", m.raw_line));
+        true
+    }
+
+    /// Hold MX caused by a player who has pending messages (C++ ~16703).
+    fn try_hold_mx(&mut self, ch: &MapChange) -> bool {
+        let mut rid = ch.player_id;
+        if rid < -1 {
+            rid = -rid;
+        }
+        if rid <= 0 {
+            return false;
+        }
+        let Some(o) = self.world.get_mut(rid) else {
+            return false;
+        };
+        if o.pending_received_messages.is_empty() {
+            return false;
+        }
+        o.pending_received_messages
+            .push_back(format!("MX\n{}\n#", ch.raw_line));
+        true
+    }
+
+    /// C++ slash-command side effects (`/FPS` `/DIE` `/PING` …).
+    fn apply_slash(&mut self, cmd: SlashCommand) -> io::Result<String> {
+        match cmd {
+            SlashCommand::Fps => {
+                self.show_fps_overlay = !self.show_fps_overlay;
+                Ok(if self.show_fps_overlay {
+                    "FPS ON".into()
+                } else {
+                    "FPS OFF".into()
+                })
+            }
+            SlashCommand::Net => {
+                self.show_net_overlay = !self.show_net_overlay;
+                Ok(if self.show_net_overlay {
+                    "NET ON".into()
+                } else {
+                    "NET OFF".into()
+                })
+            }
+            SlashCommand::Die => {
+                let age = self
+                    .world
+                    .our()
+                    .map(|o| o.current_age())
+                    .unwrap_or(99.0);
+                if age < 2.0 {
+                    let line = encode_die(0, 0);
+                    self.send_raw(&line)?;
+                    Ok(line)
+                } else {
+                    Ok(String::new())
+                }
+            }
+            SlashCommand::Ping => {
+                self.last_ping_sent += 1;
+                self.waiting_for_pong = true;
+                self.ping_sent_at = Some(Instant::now());
+                self.last_ping_ms = None;
+                let line = encode_ping(0, 0, self.last_ping_sent);
+                self.send_raw(&line)?;
+                Ok(line)
+            }
+            SlashCommand::Disconnect => {
+                self.force_disconnect = true;
+                Ok("DISCONNECT".into())
+            }
+            SlashCommand::Family => {
+                let ids: Vec<i32> = self
+                    .world
+                    .living_ids()
+                    .into_iter()
+                    .filter(|&id| {
+                        self.world
+                            .get(id)
+                            .map(|o| o.is_genetic_family)
+                            .unwrap_or(false)
+                    })
+                    .collect();
+                for id in ids {
+                    if let Some(o) = self.world.get_mut(id) {
+                        o.show_player_label("+FAMILY+");
+                    }
+                }
+                Ok("/FAM".into())
+            }
+            SlashCommand::Leader => {
+                let line = encode_lead(0, 0);
+                self.send_raw(&line)?;
+                if let Some(oid) = self.our_id {
+                    let chain = self.world.leadership_chain(oid);
+                    for id in chain {
+                        if let Some(o) = self.world.get_mut(id) {
+                            o.show_player_label("+LEADER+");
+                        }
+                    }
+                }
+                Ok(line)
+            }
+            SlashCommand::Follower => {
+                let our = self.our_id.unwrap_or(-1);
+                let ids: Vec<i32> = self
+                    .world
+                    .living_ids()
+                    .into_iter()
+                    .filter(|&id| self.world.is_follower_of(our, id))
+                    .collect();
+                let n = ids.len();
+                for id in ids {
+                    if let Some(o) = self.world.get_mut(id) {
+                        o.show_player_label("+FOLLOWER+");
+                    }
+                }
+                Ok(match n {
+                    0 => "YOU HAVE NO FOLLOWERS.".into(),
+                    1 => "YOU HAVE ONLY ONE FOLLOWER.".into(),
+                    n => format!("YOU HAVE {n} FOLLOWERS."),
+                })
+            }
+            SlashCommand::Ally => {
+                let our = self.our_id.unwrap_or(-1);
+                let our_top = self.world.top_leader_id(our);
+                let ids: Vec<i32> = self
+                    .world
+                    .living_ids()
+                    .into_iter()
+                    .filter(|&id| {
+                        id != our
+                            && self.world.top_leader_id(id) == our_top
+                            && our_top > 0
+                            && !self.world.is_exiled(our, id)
+                            && !self.world.is_exiled(id, our)
+                    })
+                    .collect();
+                let n = ids.len();
+                for id in ids {
+                    if let Some(o) = self.world.get_mut(id) {
+                        o.show_player_label("+ALLY+");
+                    }
+                }
+                Ok(match n {
+                    0 => "YOU HAVE NO ALLIES.".into(),
+                    1 => "YOU HAVE ONLY ONE ALLY.".into(),
+                    n => format!("YOU HAVE {n} ALLIES."),
+                })
+            }
+            SlashCommand::Unfollow => {
+                let line = encode_unfol(0, 0);
+                self.send_raw(&line)?;
+                Ok(line)
+            }
+            SlashCommand::Mother => {
+                let line = encode_moth(0, 0);
+                self.send_raw(&line)?;
+                Ok(line)
+            }
+            SlashCommand::Property => {
+                let line = encode_prop(0, 0);
+                self.send_raw(&line)?;
+                Ok(line)
+            }
+            SlashCommand::Order => {
+                let line = encode_ordr(0, 0);
+                self.send_raw(&line)?;
+                Ok(line)
+            }
+            SlashCommand::HintFilter(s) => {
+                self.hint_filter = if s.is_empty() { None } else { Some(s.clone()) };
+                Ok(if s.is_empty() {
+                    String::new()
+                } else {
+                    format!("FILTER {s}")
+                })
+            }
+        }
     }
 
     /// C++ rideable `ignoreBad`: holding a rideable vehicle.
@@ -1338,6 +2013,7 @@ impl ClientSession {
     pub fn send_raw(&mut self, message: &str) -> io::Result<()> {
         // C++ sendToServerSocket updates timeLastMessageSent on every outbound line.
         self.last_tx = Instant::now();
+        self.messages_out = self.messages_out.saturating_add(1);
         if let Some(log) = &self.wire_log {
             log.tx(message);
         }
@@ -1370,20 +2046,36 @@ impl ClientSession {
         self.send_raw(&encode_ka(0, 0))
     }
 
+    /// C++ `GRAVE x y#` when hovering an unknown origGrave.
+    pub fn request_grave(&mut self, x: i32, y: i32) -> io::Result<()> {
+        if !self.grave_requested.insert((x, y)) {
+            return Ok(());
+        }
+        self.send_raw(&format!("GRAVE {x} {y}#"))
+    }
+
     /// Send typed speech: normal text → `SAY`; exact emotion trigger → `EMOT`.
     ///
-    /// // C++ LivingLifePage say-field submit (~27071–27090):
+    /// // C++ LivingLifePage say-field submit (~27071–27340):
     /// // `/happy` etc. → getEmotionIndex → `EMOT 0 0 N#` (not SAY).
-    /// // Other `/` commands stay local (fps/die residual) — no wire.
+    /// // Named `/FPS` `/DIE` … run locally and may send DIE/PING/LEAD/….
     /// // Plain speech → `SAY 0 0 text#` (allowed mid-MOVE).
     ///
-    /// Returns the wire line sent, or empty string when local-only / empty.
+    /// Returns the wire line sent, a local slash status string, or empty.
     pub fn send_say(&mut self, text: &str) -> io::Result<String> {
         match classify_speech_outbound(text, &self.emotions) {
-            SpeechOutbound::Say(line) | SpeechOutbound::Emot { line, .. } => {
+            SpeechOutbound::Say(_) => {
+                let age = self.world.our().map(|o| o.current_age()).unwrap_or(16.0);
+                let clipped = crate::actions::truncate_say_text(text.trim(), age);
+                let line = crate::actions::encode_say(0, 0, &clipped);
                 self.send_raw(&line)?;
                 Ok(line)
             }
+            SpeechOutbound::Emot { line, .. } => {
+                self.send_raw(&line)?;
+                Ok(line)
+            }
+            SpeechOutbound::Slash(cmd) => self.apply_slash(cmd),
             SpeechOutbound::LocalOnly => Ok(String::new()),
         }
     }
@@ -1827,11 +2519,28 @@ impl ClientSession {
         Ok(line)
     }
 
-    /// Our player's age from last PU (no client age-rate clock yet).
+    /// `KILL x y [id]#` — SHIFT+modClick deadly intent (C++ ~25550). Immediate send.
+    ///
+    /// Sets our `kill_mode` / `kill_with_id`. Does not queue behind MOVE.
+    pub fn send_kill(&mut self, x: i32, y: i32, target_player_id: Option<i32>) -> io::Result<String> {
+        let sx = self.map_global_offset.send_x(x);
+        let sy = self.map_global_offset.send_y(y);
+        let line = encode_kill(sx, sy, target_player_id);
+        self.send_raw(&line)?;
+        if let Some(oid) = self.our_id {
+            if let Some(o) = self.world.get_mut(oid) {
+                o.kill_mode = true;
+                o.kill_with_id = o.held_id.max(0);
+            }
+        }
+        Ok(line)
+    }
+
+    /// Our player's current age (C++ `computeCurrentAge`).
     pub fn our_age(&self) -> Option<f32> {
         self.our_id
             .and_then(|id| self.world.get(id))
-            .map(|o| o.age)
+            .map(|o| o.current_age())
     }
 
     /// C++ `heldByAdultID != -1` for our live object.
@@ -3214,6 +3923,119 @@ mod tests {
         assert!(!session.move_state.awaiting_force_ack);
         assert_eq!(session.move_state.last_move_sequence_number, 1);
         assert!(session.last_map_chunk().is_none());
+        let _ = handle.join();
+    }
+
+    #[test]
+    fn our_pu_heat_feeds_session_heat_without_hx() {
+        let pu = "PU\n\
+7 100 1 0 0 0 0 0 0 0 -1 0.25 1 0 16 15 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n";
+        let bodies = vec![
+            framed_text("MC\n32 30 0 0\n0 0\n"),
+            framed_text(pu),
+            framed_text("FM\n"),
+        ];
+        let (port, handle) = login_then_peer(bodies);
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        for _ in 0..12 {
+            match session.poll_event() {
+                Ok(SessionEvent::Frame) => break,
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        assert_eq!(session.our_id, Some(7));
+        let h = session.heat.expect("PU heat must fill session.heat");
+        assert!((h.heat - 0.25).abs() < 1e-5);
+        assert!((session.world.get(7).unwrap().heat - 0.25).abs() < 1e-5);
+        let _ = handle.join();
+    }
+
+    #[test]
+    fn holds_other_player_done_moving_pu_until_path_ends() {
+        // Bind us at (16,15); other player 8 starts a walk then a done_moving PU
+        // with a new held id must not apply until their local interpolation ends.
+        let bind = "PU\n\
+7 100 1 0 0 0 0 0 0 0 -1 0.5 1 0 16 15 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n\
+8 100 1 0 0 0 0 0 0 0 -1 0.5 0 0 16 16 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n";
+        let pm = "PM\n8 16 16 2.0 2.0 0 4 0\n";
+        let done_pu = "PU\n\
+8 100 1 0 0 0 33 0 0 0 -1 0.5 1 0 20 16 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n";
+        let bodies = vec![
+            framed_text("MC\n32 30 0 0\n0 0\n"),
+            framed_text(bind),
+            framed_text(pm),
+            framed_text("FM\n"),
+            framed_text(done_pu),
+            framed_text("FM\n"),
+        ];
+        let (port, handle) = login_then_peer(bodies);
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        for _ in 0..20 {
+            match session.poll_event() {
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        assert_eq!(session.our_id, Some(7));
+        let other = session.world.get(8).expect("other player");
+        assert!(other.moving, "PM should mark moving");
+        assert_eq!(other.held_id, 0, "done_moving PU must be held mid-walk");
+        assert!(
+            !other.pending_received_messages.is_empty(),
+            "PU queued on LiveObject"
+        );
+        // Finish the 4-tile / 2s path.
+        session.step_move_pos(2.5);
+        assert!(
+            !session.world.get(8).unwrap().moving,
+            "remote path complete"
+        );
+        // Next poll promotes pending → apply held PU.
+        let mut saw = false;
+        for _ in 0..8 {
+            match session.poll_event() {
+                Ok(SessionEvent::PlayerUpdate { pu, .. }) if pu.player_id == 8 => {
+                    saw = true;
+                    break;
+                }
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        assert!(saw, "held PU plays after path complete");
+        assert_eq!(session.world.get(8).unwrap().held_id, 33);
+        let _ = handle.join();
+    }
+
+    #[test]
+    fn slash_fps_die_ping_classify_and_apply() {
+        let (port, handle) = login_then_peer(vec![
+            framed_text("MC\n32 30 0 0\n0 0\n"),
+            framed_text(
+                "PU\n7 100 1 0 0 0 0 0 0 0 -1 0.5 1 0 16 15 0.5 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n",
+            ),
+            framed_text("FM\n"),
+        ]);
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        for _ in 0..12 {
+            match session.poll_event() {
+                Ok(SessionEvent::Frame) => break,
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        assert!(session.our_id.is_some());
+        assert!(session.world.our().unwrap().current_age() < 2.0);
+        assert_eq!(session.send_say("/fps").unwrap(), "FPS ON");
+        assert!(session.show_fps_overlay);
+        assert_eq!(session.send_say("/FPS").unwrap(), "FPS OFF");
+        let die = session.send_say("/die").unwrap();
+        assert_eq!(die, "DIE 0 0#");
+        let ping = session.send_say("/ping").unwrap();
+        assert!(ping.starts_with("PING 0 0 "));
+        assert_eq!(session.send_say("/disconnect").unwrap(), "DISCONNECT");
+        assert!(session.force_disconnect);
         let _ = handle.join();
     }
 }

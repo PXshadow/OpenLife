@@ -1819,6 +1819,87 @@ pub fn hold_walk_or_use_tile(
 pub enum WalkOrUseResult {
     Ground(ClickTileResult),
     Object(ObjectClickResult),
+    /// SHIFT+modClick deadly intent (`KILL x y [id]#`).
+    Kill { line: String, target_id: Option<i32> },
+}
+
+/// C++ kill-click (~25031–25582): SHIFT + modClick + deadly held.
+///
+/// Sends `KILL` immediately (optional player id). Returns `None` if this is not
+/// a kill attempt (no deadly, or a weapon trans exists on the dest object).
+pub fn click_kill(
+    session: &mut ClientSession,
+    tile_x: i32,
+    tile_y: i32,
+    hit_player_id: Option<i32>,
+) -> Result<Option<String>, MoveError> {
+    apply_click_gates(session)?;
+    let held = our_held_id(session);
+    if held <= 0 {
+        return Ok(None);
+    }
+    let deadly = session
+        .content
+        .get(held)
+        .map(|d| d.deadly_distance > 0.0)
+        .unwrap_or(false);
+    if !deadly {
+        return Ok(None);
+    }
+    let dest_id = session
+        .map
+        .get(tile_x, tile_y)
+        .map(|t| t.object_id)
+        .unwrap_or(0);
+    if dest_id > 0 && session.content.find_transition(held, dest_id).is_some() {
+        // Weapon works on this object — not a person-kill.
+        return Ok(None);
+    }
+    let our = session.our_id.unwrap_or(-1);
+    let target = match hit_player_id {
+        Some(id) if id > 0 && id != our => Some(id),
+        _ => nearest_kill_target(&session.world, our, tile_x, tile_y),
+    };
+    if let Some(tid) = target {
+        if let Some(o) = session.world.get(tid) {
+            if o.held_by_adult_id != -1 {
+                return Ok(None); // C++: don't kill ghost of held baby
+            }
+        }
+    }
+    let line = session
+        .send_kill(tile_x, tile_y, target)
+        .map_err(|_| MoveError::EmptyPath)?;
+    Ok(Some(line))
+}
+
+/// Closest other living player to `(tx,ty)` within 8 tiles (C++ closest person search).
+pub fn nearest_kill_target(world: &crate::live_object::LiveWorld, our_id: i32, tx: i32, ty: i32) -> Option<i32> {
+    let mut best: Option<(i32, f32)> = None;
+    for id in world.living_ids() {
+        if id == our_id {
+            continue;
+        }
+        let Some(o) = world.get(id) else { continue };
+        if o.out_of_range || o.deleted {
+            continue;
+        }
+        if o.held_by_adult_id != -1 {
+            continue;
+        }
+        let dx = o.x - tx;
+        let dy = o.y - ty;
+        let d2 = (dx * dx + dy * dy) as f32;
+        if d2 > 64.0 {
+            continue; // >8 tiles
+        }
+        match best {
+            None => best = Some((id, d2)),
+            Some((_, bd)) if d2 < bd => best = Some((id, d2)),
+            _ => {}
+        }
+    }
+    best.map(|(id, _)| id)
 }
 
 /// True when player dest `(px,py)` may flush a pending action aimed at `(tx,ty)`.
@@ -2128,13 +2209,38 @@ mod tests {
             for body in bodies {
                 sock.write_all(&body).unwrap();
             }
-            thread::sleep(Duration::from_millis(150));
+            // Keep the socket open for follow-up MOVE/USE (hold repath, etc.).
+            thread::sleep(Duration::from_millis(2000));
         });
         (port, handle)
     }
 
     fn empty_tile() -> MapTile {
         MapTile::empty()
+    }
+
+    #[test]
+    fn nearest_kill_target_picks_closest_other() {
+        let mut w = crate::live_object::LiveWorld::new();
+        let a = crate::parse::parse_pu_line(
+            "1 19 0 0 0 0 0 0 0 0 -1 0.5 1 0 0 0 20.0 0.05 3.75 0;0;0;0;0;0 0 0 -1 0 0",
+        )
+        .unwrap();
+        let b = crate::parse::parse_pu_line(
+            "2 19 0 0 0 0 0 0 0 0 -1 0.5 1 0 3 0 20.0 0.05 3.75 0;0;0;0;0;0 0 0 -1 0 0",
+        )
+        .unwrap();
+        let c = crate::parse::parse_pu_line(
+            "3 19 0 0 0 0 0 0 0 0 -1 0.5 1 0 8 0 20.0 0.05 3.75 0;0;0;0;0;0 0 0 -1 0 0",
+        )
+        .unwrap();
+        w.apply_pu(&a);
+        w.apply_pu(&b);
+        w.apply_pu(&c);
+        w.set_our_id(1);
+        assert_eq!(nearest_kill_target(&w, 1, 0, 0), Some(2));
+        assert_eq!(nearest_kill_target(&w, 1, 8, 0), Some(3));
+        assert!(nearest_kill_target(&w, 1, 40, 40).is_none());
     }
 
     fn tile_with(oid: i32, contained: &str) -> MapTile {
@@ -2611,6 +2717,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         match walk_or_use_tile_ex(&mut session, 6, 5, -1, 1).unwrap() {
             WalkOrUseResult::Object(r) => {
@@ -2767,6 +2874,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         // Player (2,2) → container (8,8): must MOVE then queue REMV 8 8 1#
         match walk_or_use_tile_ex(&mut session, 8, 8, -1, 1).unwrap() {
@@ -2828,6 +2936,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         // LMB put (no USE transition) → DROP into; far stand → path-to-adjacent.
         match walk_or_use_tile_ex(&mut session, 7, 3, -1, -1).unwrap() {
@@ -2903,6 +3012,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         match walk_or_use_tile_ex(&mut session, 6, 5, -1, 0).unwrap() {
             WalkOrUseResult::Object(r) => {
@@ -2989,6 +3099,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         let r = click_remv_hit(&mut session, 6, 5, -1, 2).unwrap();
         assert_eq!(r.action_line, "REMV 6 5 2#");
@@ -3229,6 +3340,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         match walk_or_use_tile(&mut session, 6, 5).unwrap() {
             WalkOrUseResult::Object(r) => {
@@ -3236,7 +3348,9 @@ mod tests {
                 assert_eq!(r.action_line, "USE 6 5 40#");
                 assert!(session.player_action_pending);
             }
-            WalkOrUseResult::Ground(_) => panic!("expected object USE"),
+            WalkOrUseResult::Ground(_) | WalkOrUseResult::Kill { .. } => {
+                panic!("expected object USE")
+            }
         }
         // Simulate post-action PU clearing playerActionPending before next click.
         session.player_action_pending = false;
@@ -3246,7 +3360,9 @@ mod tests {
                 assert_eq!(r.goal, (8, 5));
                 assert!(r.reached_goal);
             }
-            WalkOrUseResult::Object(_) => panic!("expected ground MOVE"),
+            WalkOrUseResult::Object(_) | WalkOrUseResult::Kill { .. } => {
+                panic!("expected ground MOVE")
+            }
         }
         let _ = handle.join();
     }
@@ -3279,7 +3395,7 @@ mod tests {
                 assert_eq!(r.action_line, "DROP 6 5 -1#");
                 assert!(r.action_sent || r.already_adjacent);
             }
-            WalkOrUseResult::Ground(_) => panic!("expected DROP action"),
+            WalkOrUseResult::Ground(_) | WalkOrUseResult::Kill { .. } => panic!("expected DROP action"),
         }
         let _ = handle.join();
     }
@@ -3397,13 +3513,14 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         match click_tile_mod(&mut session, 6, 5, true, -1).unwrap() {
             WalkOrUseResult::Object(r) => {
                 assert_eq!(r.action_line, "SWAP 6 5#");
                 assert!(r.action_sent || r.already_adjacent);
             }
-            WalkOrUseResult::Ground(_) => panic!("expected SWAP"),
+            WalkOrUseResult::Ground(_) | WalkOrUseResult::Kill { .. } => panic!("expected SWAP"),
         }
         let _ = handle.join();
     }
@@ -3445,12 +3562,13 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         match click_tile_mod(&mut session, 6, 5, true, -1).unwrap() {
             WalkOrUseResult::Object(r) => {
                 assert_eq!(r.action_line, "DROP 6 5 -1#");
             }
-            WalkOrUseResult::Ground(_) => panic!("expected DROP into container"),
+            WalkOrUseResult::Ground(_) | WalkOrUseResult::Kill { .. } => panic!("expected DROP into container"),
         }
         let _ = handle.join();
     }
@@ -3493,6 +3611,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         // Playtest: empty hand + modClick/RMB on container → REMV.
         match click_tile_mod(&mut session, 6, 5, true, -1).unwrap() {
@@ -3503,7 +3622,7 @@ mod tests {
                     r.action_line
                 );
             }
-            WalkOrUseResult::Ground(_) => panic!("expected REMV"),
+            WalkOrUseResult::Ground(_) | WalkOrUseResult::Kill { .. } => panic!("expected REMV"),
         }
         // Permanent container with no bare-hand trans: LMB also REMV (C++ ~26104).
         session.player_action_pending = false;
@@ -3515,7 +3634,7 @@ mod tests {
                     r.action_line
                 );
             }
-            WalkOrUseResult::Ground(_) => panic!("expected object action"),
+            WalkOrUseResult::Ground(_) | WalkOrUseResult::Kill { .. } => panic!("expected object action"),
         }
         let _ = handle.join();
     }
@@ -3557,12 +3676,13 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         match walk_or_use_tile(&mut session, 6, 5).unwrap() {
             WalkOrUseResult::Object(r) => {
                 assert_eq!(r.action_line, "USE 6 5 99#");
             }
-            WalkOrUseResult::Ground(_) => panic!("expected LMB USE"),
+            WalkOrUseResult::Ground(_) | WalkOrUseResult::Kill { .. } => panic!("expected LMB USE"),
         }
         let _ = handle.join();
     }
@@ -3812,6 +3932,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         let r = click_use(&mut session, 14, 10, Some(77), None).unwrap();
         assert!(r.moved);
@@ -3888,6 +4009,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         let content = content_with(
             vec![ClientObjectDef {
@@ -3931,6 +4053,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         // Walls on W, E, S only — leave N open.
         for &(x, y) in &[(4, 5), (6, 5), (5, 4)] {
@@ -3944,6 +4067,7 @@ mod tests {
                 old_x: None,
                 old_y: None,
                 speed: None,
+            raw_line: String::new(),
             });
         }
         let content = content_with(
@@ -3991,6 +4115,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         let content = content_with(
             vec![
@@ -4060,6 +4185,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         let r = click_use(&mut session, 5, 5, Some(706), None).unwrap();
         assert!(r.moved);
@@ -4286,6 +4412,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         }
     }
 
@@ -4474,6 +4601,7 @@ mod tests {
                 );
             }
             WalkOrUseResult::Object(r) => panic!("hold must not USE: {r:?}"),
+            WalkOrUseResult::Kill { .. } => panic!("hold must not KILL"),
         }
         let _ = handle.join();
     }
@@ -4521,7 +4649,9 @@ mod tests {
                 assert_eq!(g.goal, (9, 5), "goal should be slid past wall");
                 assert!(g.move_line.starts_with("MOVE "));
             }
-            WalkOrUseResult::Object(_) => panic!("expected ground MOVE after slide"),
+            WalkOrUseResult::Object(_) | WalkOrUseResult::Kill { .. } => {
+                panic!("expected ground MOVE after slide")
+            }
         }
         let _ = handle.join();
         let tx = captured.lock().unwrap().clone();
@@ -4773,6 +4903,7 @@ mod tests {
             old_x: None,
             old_y: None,
             speed: None,
+            raw_line: String::new(),
         });
         let content = content_with(
             vec![ClientObjectDef {

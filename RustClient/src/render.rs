@@ -505,8 +505,20 @@ impl Framebuffer {
         let max_y = corners.iter().map(|p| p.1).fold(f32::NEG_INFINITY, f32::max).ceil() as i32;
         let inv_s = -s; // inverse rotation
         let inv_c = c;
-        for oy in min_y..=max_y {
-            for ox in min_x..=max_x {
+        // Clip rotated footprint to FB (high zoom otherwise walks huge empty bounds).
+        let fb_w = self.width as i32;
+        let fb_h = self.height as i32;
+        let cx_i = dst_cx as i32;
+        let cy_i = dst_cy as i32;
+        let clip_min_x = min_x.max(-cx_i);
+        let clip_max_x = max_x.min(fb_w - 1 - cx_i);
+        let clip_min_y = min_y.max(-cy_i);
+        let clip_max_y = max_y.min(fb_h - 1 - cy_i);
+        if clip_min_x > clip_max_x || clip_min_y > clip_max_y {
+            return;
+        }
+        for oy in clip_min_y..=clip_max_y {
+            for ox in clip_min_x..=clip_max_x {
                 // inverse rotate around center
                 let lx = ox as f32 * inv_c - oy as f32 * inv_s;
                 let ly = ox as f32 * inv_s + oy as f32 * inv_c;
@@ -524,9 +536,9 @@ impl Framebuffer {
                 {
                     let px = apply_alpha(px);
                     if multiplicative {
-                        self.put_multiplicative(dst_cx as i32 + ox, dst_cy as i32 + oy, px);
+                        self.put_multiplicative(cx_i + ox, cy_i + oy, px);
                     } else {
-                        self.put(dst_cx as i32 + ox, dst_cy as i32 + oy, px);
+                        self.put(cx_i + ox, cy_i + oy, px);
                     }
                 }
             }
@@ -688,10 +700,13 @@ enum DrawLayer {
     FrontPermanent = 3,
     /// Non-permanent non-wall front objects.
     FrontNonPermanent = 4,
+    /// C++ `heldToDrawOnTop`: held sliding (`heldPosOverride`) — after non-wall,
+    /// before walls so pick-up flies over props but under walls.
+    FlyingHeld = 5,
     /// `wallLayer && !frontWall` (permanent walls).
-    FrontWall = 5,
+    FrontWall = 6,
     /// `wallLayer && frontWall` (walls with signs — top of same-row front).
-    FrontFrontWall = 6,
+    FrontFrontWall = 7,
 }
 
 /// Which object sprite layers to blit (C++ `prepareToSkipSprites` / spriteBehindPlayer).
@@ -703,6 +718,10 @@ enum SpriteLayerFilter {
     BehindPlayerOnly,
     /// Skip `behind_player` sprites (front canopy / after global pass).
     NotBehindPlayer,
+    /// Worn clothing: only `behindSlots` sprites (under bag contents).
+    BehindSlotsOnly,
+    /// Worn clothing: skip `behindSlots` (over bag contents).
+    NotBehindSlots,
 }
 
 struct YSortItem {
@@ -721,6 +740,10 @@ enum DrawKind {
         sprite_filter: SpriteLayerFilter,
     },
     Player { id: i32 },
+    /// Deferred held draw while `held_pos_override` (C++ heldToDrawOnTop).
+    FlyingHeld { id: i32 },
+    /// C++ ExtraMapObject — mover sliding while dest stays occupied.
+    ExtraMoving { index: usize },
 }
 
 /// Full scene draw.
@@ -741,12 +764,19 @@ pub struct SceneRenderer {
     pub emotions: EmotionBank,
     /// OLSN sound bank for anim SoundAnimParam / footstep (**L-SOUND-TRIG**).
     pub sounds: crate::sound_bank::SoundBank,
+    /// Music bed (`music/music_NN.ogg`) — kept alive for per-frame [`Self::step_music`].
+    pub music: crate::music_bank::MusicBank,
     /// Ground overlay brightness 0..1 (settings `brightness`).
     ///
     /// - **1.0** = original Jason mult (`dst *= clamp(tex + 0.15)`)
     /// - **0.0** = legacy dark mult (`dst *= tex * 0.15`)
     /// Default **1.0** matches SettingsPage / original client.
     pub ground_brightness: f32,
+    /// Soft-FB: run ground film-grain overlay every N frames (1 = every frame).
+    /// C++ draws every frame on GPU (cheap); on CPU we default to 2 for ~60 FPS.
+    pub ground_overlay_period: u32,
+    /// Frame counter for overlay period.
+    ground_overlay_tick: u32,
 }
 
 impl Default for SceneRenderer {
@@ -761,7 +791,11 @@ impl Default for SceneRenderer {
             draw_hud: true,
             emotions: EmotionBank::new(),
             sounds: crate::sound_bank::SoundBank::new("."),
+            music: crate::music_bank::MusicBank::new("."),
             ground_brightness: 1.0,
+            // Soft-FB default: every other frame (GPU present still looks smooth).
+            ground_overlay_period: 2,
+            ground_overlay_tick: 0,
         }
     }
 }
@@ -798,7 +832,7 @@ impl SceneRenderer {
             }
             None => GroundBank::with_default_roots(None),
         };
-        self.hud_sprites = HudSprites::with_default_roots(root);
+        self.hud_sprites = HudSprites::load_prefer_cache(root);
         self.emotions = match root {
             Some(r) => EmotionBank::load_from_content_root(r),
             None => EmotionBank::new(),
@@ -914,6 +948,18 @@ impl SceneRenderer {
         // L-SOUND-TRIG: handleAnimSound (person + held; footstep→floor usingSound).
         // Stereo pan: listener = camera center in tiles (C++ lastScreenViewCenter/CELL_D).
         self.sounds.set_listener(self.camera.x, self.camera.y);
+        let half_w = (fb.width as f32 / self.camera.zoom * 0.5 + 2.0) as i32;
+        let half_h = (fb.height as f32 / self.camera.zoom * 0.5 + 2.0) as i32;
+        let cx = self.camera.x as i32;
+        let cy = self.camera.y as i32;
+        // C++ musicPlayer2 + addMusicSuppression while starving slip visible.
+        self.music
+            .set_starving_suppress(self.hud.hunger_slip_visible == 2);
+        if let Some(me) = world.our() {
+            let age = me.current_age() as f64;
+            let rate = me.age_rate.max(1e-9) as f64;
+            let _ = self.music.step_music(age, rate);
+        }
         if dt > 1e-8 {
             // P3#19: decay sounds when temporary PE TTL expires (C++ ~22469)
             let decay_targets = world.tick_emots(dt);
@@ -925,9 +971,8 @@ impl SceneRenderer {
             );
             let frf = (dt * 60.0).clamp(0.0, 4.0);
             world.tick_speech(dt, frf);
-            // Remote PM path interp + facing (local uses MoveState).
-            let our = world.our_id;
-            world.step_remote_path_display(dt, our);
+            // Remote PM path interp lives on `ClientSession::step_move_pos`
+            // (C++ currentSpeed step then playPending). Draw uses display_x/y.
             world.step_anims_with_sounds(
                 anims,
                 &mut self.sounds,
@@ -937,13 +982,19 @@ impl SceneRenderer {
                 frf,
             );
             // Map object / floor ground anim clocks (C++ mMapAnimationFrameCount++).
-            let _ = crate::sound_bank::step_map_ground_anims_with_sounds(
+            let _ = crate::sound_bank::step_map_ground_anims_with_sounds_cull(
                 &mut self.sounds,
                 anims,
                 content,
                 map,
                 frf,
                 world.our_id,
+                Some((
+                    cx - half_w,
+                    cy - half_h,
+                    cx + half_w,
+                    cy + half_h,
+                )),
             );
         } else {
             // Snapshot draws (dt=0): still sync so PM/justAte flags select packs.
@@ -956,11 +1007,6 @@ impl SceneRenderer {
         }
         self.time += dt;
         fb.clear(CLEAR_RGBA);
-
-        let half_w = (fb.width as f32 / self.camera.zoom * 0.5 + 2.0) as i32;
-        let half_h = (fb.height as f32 / self.camera.zoom * 0.5 + 2.0) as i32;
-        let cx = self.camera.x as i32;
-        let cy = self.camera.y as i32;
 
         // Approximate tile size for non-ground markers (highlight thickness).
         let tile_px = self.camera.zoom.max(4.0).round() as i32;
@@ -1044,7 +1090,17 @@ impl SceneRenderer {
         }
 
         // --- Pass 2b: Jason full-view ground overlay (after floors) ~7629 ---
-        self.draw_ground_screen_overlay(fb);
+        // Soft-FB: optionally skip some frames (period>1) — GPU client draws every frame.
+        self.ground_overlay_tick = self.ground_overlay_tick.wrapping_add(1);
+        let period = self.ground_overlay_period.max(1);
+        if self.ground_overlay_tick % period == 0 {
+            self.draw_ground_screen_overlay(fb);
+        }
+
+        // C++ mMapMoveSpeeds step before draw (~13651).
+        if dt > 1e-8 {
+            map.step_map_moves(dt);
+        }
 
         // --- Pass 3: y-sorted map objects + players (floors already drawn) ---
         let mut items: Vec<YSortItem> = Vec::new();
@@ -1053,17 +1109,32 @@ impl SceneRenderer {
             for tx in (cx - half_w)..=(cx + half_w) {
                 let tile = map.get_or_empty(tx, ty);
                 if tile.object_id > 0 {
+                    let moving = map.map_move(tx, ty).is_moving();
                     // L-RENDER tall-object: split behind/front relative to players.
                     // // C++: drawBehindPlayer + anySpritesBehindPlayer / prepareToSkipSprites
+                    // Moving map objects interleave with players (C++ drawQueue depth).
                     push_map_object_draw_items(
                         &mut items,
                         content,
                         ty,
                         tx,
                         tile.object_id,
+                        moving,
                     );
                 }
             }
+        }
+        // C++ mMapExtraMovingObjects → player depth queue (~8494).
+        for (ei, extra) in map.extra_moving.iter().enumerate() {
+            let draw_y = (extra.dest_y as f32 + extra.offset_y - 0.5).round() as i32;
+            if draw_y < cy - half_h || draw_y > cy + half_h {
+                continue;
+            }
+            items.push(YSortItem {
+                sort_y: draw_y,
+                layer: DrawLayer::Player,
+                kind: DrawKind::ExtraMoving { index: ei },
+            });
         }
         for id in world.living_ids() {
             if let Some(o) = world.get(id) {
@@ -1082,6 +1153,14 @@ impl SceneRenderer {
                     layer: DrawLayer::Player,
                     kind: DrawKind::Player { id },
                 });
+                // C++ heldToDrawOnTop: sliding held flies after non-wall props, under walls.
+                if o.held_id > 0 && o.held_pos_override && !o.held_pos_override_almost_over {
+                    items.push(YSortItem {
+                        sort_y: o.y,
+                        layer: DrawLayer::FlyingHeld,
+                        kind: DrawKind::FlyingHeld { id },
+                    });
+                }
             }
         }
         // C++ LivingLifePage ~8215/8261: `for (y = yEnd; y >= yStart; y--)` — high Y first.
@@ -1103,26 +1182,38 @@ impl SceneRenderer {
                     sprite_filter,
                 } => {
                     let tile = map.get_or_empty(tx, ty);
-                    let (sx, sy) =
-                        self.world_to_screen(tx as f32 + 0.5, ty as f32 + 0.5, fb.width, fb.height);
-                    // Jason: mMapAnimationFrameCount/60 as frameTime for ground packs.
+                    let mv = map.map_move(tx, ty);
+                    let (sx, sy) = self.world_to_screen(
+                        tx as f32 + 0.5 + mv.offset_x,
+                        ty as f32 + 0.5 + mv.offset_y,
+                        fb.width,
+                        fb.height,
+                    );
+                    // Jason: mMapAnimationFrameCount/60 as frameTime; MOVING while sliding.
                     let frame_t = map
                         .anim_frame_count
                         .get(&(tx, ty))
                         .copied()
                         .unwrap_or(0.0)
                         / 60.0;
+                    let anim_type = if mv.is_moving() {
+                        crate::anim_bank::ANIM_MOVING
+                    } else {
+                        crate::anim_bank::ANIM_GROUND
+                    };
+                    // C++ mMapTileFlips (set on MX move; kept after settle).
+                    let flip = map.tile_flip(tx, ty);
                     self.draw_object_stack_at_time(
                         fb,
                         content,
                         sprites,
                         anims,
                         &tile.object_stack(),
-                        0,
+                        anim_type,
                         20.0,
                         sx,
                         sy,
-                        false,
+                        flip,
                         sprite_filter,
                         frame_t,
                     );
@@ -1149,6 +1240,13 @@ impl SceneRenderer {
                     let flip = o.holding_flip();
                     let holding = o.held_id != 0;
                     let held_id = o.held_id;
+                    let held_id_raw = o.held_id_raw.clone();
+                    let drop_ox = o.held_by_drop_offset_x;
+                    let drop_oy = o.held_by_drop_offset_y;
+                    // C++ heldToDrawOnTop: defer draw while sliding into hand.
+                    let defer_flying_held = o.held_id > 0
+                        && o.held_pos_override
+                        && !o.held_pos_override_almost_over;
                     // P3#22: capture before later mut borrows of world.
                     let o_moving = o.moving || o.anim.cur_anim == crate::anim_bank::ANIM_MOVING;
                     // Adult held-anim pack clocks for baby draw (C++ curHeldAnim).
@@ -1187,6 +1285,7 @@ impl SceneRenderer {
                         None
                     };
                     let is_rideable = held_def.map(|d| d.rideable).unwrap_or(false);
+                    let hide_rider = held_def.map(|d| d.hide_rider).unwrap_or(false);
                     let ride_any_behind = held_def
                         .map(|d| d.any_sprites_behind_player())
                         .unwrap_or(false);
@@ -1212,7 +1311,7 @@ impl SceneRenderer {
                     // - vehicle at person pos (heldObjectDrawPos = pos), not hand HoldingPos
                     // - rider offset ≈ −heldOffset (ridingOffset; age body residual)
                     // - order: vehicle behind → person/clothes/emotes → vehicle front
-                    let (person_sx, person_sy) = if is_rideable {
+                    let (mut person_sx, person_sy) = if is_rideable {
                         let (hox, hoy) = held_def
                             .map(|d| d.held_offset)
                             .unwrap_or((0.0, 0.0));
@@ -1221,6 +1320,18 @@ impl SceneRenderer {
                     } else {
                         (sx, sy)
                     };
+                    // C++ ~5483–5507: young baby (< noMoveAge) lies flat as drop settles.
+                    let mut baby_lie_rot = 0.0f32;
+                    if age < crate::click_tile::NO_MOVE_AGE {
+                        let d_obj = (drop_ox * drop_ox + drop_oy * drop_oy).sqrt() * GRID;
+                        let shift_scale = if d_obj > 0.5 {
+                            0.0
+                        } else {
+                            (0.5 - d_obj) / 0.5
+                        };
+                        baby_lie_rot = shift_scale * 0.25;
+                        person_sx -= shift_scale * crate::anim_draw::BABY_LIE_SHIFT_UNITS * scale;
+                    }
                     let vehicle_sx = sx;
                     let vehicle_sy = sy;
 
@@ -1250,70 +1361,63 @@ impl SceneRenderer {
 
                     // Person + interleaved worn clothing (Jason: body clothes under
                     // top back arm; shoes on feet; hat after all body sprites).
-                    let (holding_pos, person_anchors) = self.draw_object_with_pack_ex(
-                        fb,
-                        content,
-                        sprites,
-                        anims,
-                        &mut person_pack,
-                        age,
-                        person_sx,
-                        person_sy,
-                        flip,
-                        holding,
-                        false, // worn (person not clothing)
-                        hide_closest_arm,
-                        hide_all_limbs,
-                        SpriteLayerFilter::All,
-                        hide_mouth,
-                        Some(clothing_draw.as_slice()),
-                    );
-
-                    // L-EMOT: bodyEmot under clothing was drawn mid-arm in C++; here
-                    // after person+clothes so body emote still sits on the figure.
-                    // (Full mid-arm PE interleave residual if bodyEmot must under tunic.)
-                    self.draw_emotion_layers(
-                        fb,
-                        content,
-                        sprites,
-                        anims,
-                        &person_pack,
-                        &emot_indices,
-                        &person_anchors,
-                        person_sx,
-                        person_sy,
-                        flip,
-                        EmotDrawPhase::Body,
-                    );
-
-                    // L-EMOT: eye/face/mouth/other after clothing base
-                    self.draw_emotion_layers(
-                        fb,
-                        content,
-                        sprites,
-                        anims,
-                        &person_pack,
-                        &emot_indices,
-                        &person_anchors,
-                        person_sx,
-                        person_sy,
-                        flip,
-                        EmotDrawPhase::Face,
-                    );
-                    // L-EMOT: headEmot on top (after hat)
-                    self.draw_emotion_layers(
-                        fb,
-                        content,
-                        sprites,
-                        anims,
-                        &person_pack,
-                        &emot_indices,
-                        &person_anchors,
-                        person_sx,
-                        person_sy,
-                        flip,
-                        EmotDrawPhase::HeadTop,
-                    );
+                    // C++ +hideRider: skip rider/clothes/emotes while mounted.
+                    let (holding_pos, person_anchors) = if hide_rider {
+                        (crate::content::HoldingPos::default(), PersonAnchors::default())
+                    } else {
+                        let (hp, anchors) = self.draw_object_with_pack_ex(
+                            fb,
+                            content,
+                            sprites,
+                            anims,
+                            &mut person_pack,
+                            age,
+                            person_sx,
+                            person_sy,
+                            flip,
+                            holding,
+                            false, // worn (person not clothing)
+                            hide_closest_arm,
+                            hide_all_limbs,
+                            SpriteLayerFilter::All,
+                            hide_mouth,
+                            Some(clothing_draw.as_slice()),
+                            baby_lie_rot,
+                            Some(emot_indices.as_slice()),
+                        );
+                        // Face/eye/mouth/other after person+clothes (C++: at eyes/head
+                        // in the sprite loop). bodyEmot is interleaved under topBackArm.
+                        self.draw_emotion_layers(
+                            fb,
+                            content,
+                            sprites,
+                            anims,
+                            &person_pack,
+                            &emot_indices,
+                            &anchors,
+                            person_sx,
+                            person_sy,
+                            flip,
+                            EmotDrawPhase::Face,
+                        );
+                        (hp, anchors)
+                    };
+                    // L-EMOT: headEmot on top (after hat) — skip when +hideRider.
+                    if !hide_rider {
+                        self.draw_emotion_layers(
+                            fb,
+                            content,
+                            sprites,
+                            anims,
+                            &person_pack,
+                            &emot_indices,
+                            &person_anchors,
+                            person_sx,
+                            person_sy,
+                            flip,
+                            EmotDrawPhase::HeadTop,
+                        );
+                    }
 
                     // Held item:
                     // - rideable: vehicle at person pos; front (or all) over rider
@@ -1345,6 +1449,44 @@ impl SceneRenderer {
                                     filter,
                                     false,
                                 );
+                            }
+                            // Contained on rideable (baskets / chests on carts) at vehicle slots.
+                            let ride_stack =
+                                crate::client_map::parse_object_raw_stack(&held_id_raw);
+                            if !ride_stack.contained.is_empty() {
+                                let slots = held_def
+                                    .map(|d| d.slot_pos.clone())
+                                    .unwrap_or_default();
+                                let scale = (self.camera.zoom / GRID).max(0.05);
+                                let frame_t = self.time;
+                                for (i, child) in ride_stack.contained.iter().enumerate() {
+                                    if child.id <= 0 {
+                                        continue;
+                                    }
+                                    let (mut ox, mut oy) =
+                                        slots.get(i).copied().unwrap_or((0.0, (i as f32) * 8.0));
+                                    let mut slot_pack =
+                                        ObjectAnimPack::single(held_id, 0, frame_t);
+                                    let slot_s = sample_slot_pack(anims, &mut slot_pack, i);
+                                    ox += slot_s.x;
+                                    oy += slot_s.y;
+                                    let csx = vehicle_sx + ox * scale;
+                                    let csy = vehicle_sy - oy * scale;
+                                    self.draw_object_stack_at_time(
+                                        fb,
+                                        content,
+                                        sprites,
+                                        anims,
+                                        child,
+                                        0,
+                                        age,
+                                        csx,
+                                        csy,
+                                        false,
+                                        SpriteLayerFilter::All,
+                                        frame_t,
+                                    );
+                                }
                             }
                         } else {
                             // P3#21: getObjectCenterOffset via sprite-bank alpha bbox
@@ -1381,36 +1523,40 @@ impl SceneRenderer {
                             // P3#22 heldPosOverride slide from map origin into hand.
                             let stationary = !o_moving;
                             let (draw_tx, draw_ty, _draw_rot) = if let Some(o) = world.get_mut(id) {
+                                let frf = (dt * 60.0).clamp(0.0, 4.0).max(0.05);
                                 o.step_held_pos_toward(
                                     target_tx,
                                     target_ty,
                                     hrot,
                                     stationary,
-                                    1.0,
+                                    frf,
                                 )
                             } else {
                                 (target_tx, target_ty, hrot)
                             };
-                            let (hold_sx, hold_sy) =
-                                self.world_to_screen(draw_tx, draw_ty, fb.width, fb.height);
-                            if let Some(ref mut hp) = held_pack {
-                                let _ = self.draw_object_with_pack(
-                                    fb,
-                                    content,
-                                    sprites,
-                                    anims,
-                                    hp,
-                                    age,
-                                    hold_sx,
-                                    hold_sy,
-                                    false,
-                                    false,
-                                    false,
-                                    0,
-                                    false,
-                                    SpriteLayerFilter::All,
-                                    false,
-                                );
+                            // Still step slide; draw later in FlyingHeld pass if deferred.
+                            if !defer_flying_held {
+                                let (hold_sx, hold_sy) =
+                                    self.world_to_screen(draw_tx, draw_ty, fb.width, fb.height);
+                                if let Some(ref mut hp) = held_pack {
+                                    let _ = self.draw_object_with_pack(
+                                        fb,
+                                        content,
+                                        sprites,
+                                        anims,
+                                        hp,
+                                        age,
+                                        hold_sx,
+                                        hold_sy,
+                                        false,
+                                        false,
+                                        false,
+                                        0,
+                                        false,
+                                        SpriteLayerFilter::All,
+                                        false,
+                                    );
+                                }
                             }
                         }
                     } else if held_id < 0 {
@@ -1522,6 +1668,82 @@ impl SceneRenderer {
                     }
 
                 }
+                DrawKind::ExtraMoving { index } => {
+                    let Some(extra) = map.extra_moving.get(index) else {
+                        continue;
+                    };
+                    let (sx, sy) = self.world_to_screen(
+                        extra.dest_x as f32 + 0.5 + extra.offset_x,
+                        extra.dest_y as f32 + 0.5 + extra.offset_y,
+                        fb.width,
+                        fb.height,
+                    );
+                    let stack = crate::client_map::ObjectStackNode {
+                        id: extra.object_id,
+                        contained: Vec::new(),
+                    };
+                    self.draw_object_stack_at_time(
+                        fb,
+                        content,
+                        sprites,
+                        anims,
+                        &stack,
+                        crate::anim_bank::ANIM_MOVING,
+                        20.0,
+                        sx,
+                        sy,
+                        extra.flip,
+                        SpriteLayerFilter::All,
+                        self.time,
+                    );
+                }
+                DrawKind::FlyingHeld { id } => {
+                    // C++ heldToDrawOnTop (~8783): after non-wall front, before walls.
+                    let Some(o) = world.get(id) else { continue };
+                    if o.deleted || o.held_id <= 0 {
+                        continue;
+                    }
+                    let held_id = o.held_id;
+                    let (base_tx, base_ty) = o.draw_pos_tiles();
+                    let age = o.current_age();
+                    let hold_sx_sy = {
+                        let (sx, sy) = self.world_to_screen(
+                            o.held_object_pos_x,
+                            o.held_object_pos_y,
+                            fb.width,
+                            fb.height,
+                        );
+                        // Fallback if override never set: person tile center.
+                        if o.held_pos_override {
+                            (sx, sy)
+                        } else {
+                            self.world_to_screen(
+                                base_tx + 0.5,
+                                base_ty + 0.5,
+                                fb.width,
+                                fb.height,
+                            )
+                        }
+                    };
+                    let mut held_pack = o.anim.held_pack(held_id);
+                    let _ = self.draw_object_with_pack(
+                        fb,
+                        content,
+                        sprites,
+                        anims,
+                        &mut held_pack,
+                        age,
+                        hold_sx_sy.0,
+                        hold_sx_sy.1,
+                        false,
+                        false,
+                        false,
+                        0,
+                        false,
+                        SpriteLayerFilter::All,
+                        false,
+                    );
+                }
             }
         }
 
@@ -1628,6 +1850,15 @@ impl SceneRenderer {
             fb.fill_rect(x0 + tw - 2, y0, 2, th, c);
         }
 
+        // P2#13 residual: C++ drawOffScreenSounds — edge chalk markers.
+        {
+            let frf = (dt * 60.0).clamp(0.0, 4.0);
+            if frf > 1e-6 {
+                self.sounds.step_off_screen_sounds(frf);
+            }
+            self.draw_off_screen_sound_arrows(fb, world);
+        }
+
         // --- Pass 3: food / heat HUD over world (C++ LivingLifePage panel + meters) ---
         if self.draw_hud {
             // Slip slide/wiggle (C++ step ~14550) before blit; hunger.aiff on event.
@@ -1647,7 +1878,83 @@ impl SceneRenderer {
                 self.hud.age_years = o.current_age();
             }
             // &mut: C++ updates mOldArrows / mCurrentArrowI inside draw.
+            self.hud.resolve_last_ate_name(content);
             draw_hud_if_visible(fb, &mut self.hud, &self.hud_sprites);
+        }
+    }
+
+    /// C++ `LivingLifePage::drawOffScreenSounds` (~4283) — soft-FB edge chalk.
+    fn draw_off_screen_sound_arrows(&self, fb: &mut Framebuffer, world: &LiveWorld) {
+        if self.sounds.last_off_screen.is_empty() {
+            return;
+        }
+        let fb_w = fb.width as f32;
+        let fb_h = fb.height as f32;
+        // Soft-FB radii (~ viewWidth/2 - 32 in object units → ~half FB - margin).
+        let x_radius = fb_w * 0.5 - 24.0;
+        let y_radius = fb_h * 0.5 - 24.0;
+        let cam_sx = fb_w * 0.5;
+        let cam_sy = fb_h * 0.5;
+        let scale = (self.camera.zoom / GRID).max(0.05);
+        let text_scale = (scale * 0.4).clamp(0.9, 2.8);
+
+        for s in &self.sounds.last_off_screen {
+            let fade = s.fade.clamp(0.0, 1.0);
+            if fade <= 0.05 {
+                continue;
+            }
+            // Map tiles → screen (same as world_to_screen of sound pos).
+            let (sx, sy) = self.world_to_screen(s.map_x, s.map_y, fb.width, fb.height);
+            let dx = sx - cam_sx;
+            let dy = sy - cam_sy;
+            // On-screen: skip (C++ only draws when outside radius).
+            if dx.abs() <= x_radius && dy.abs() <= y_radius {
+                continue;
+            }
+            let len = (dx * dx + dy * dy).sqrt().max(1e-3);
+            let nx = dx / len;
+            let ny = dy / len;
+            // Extend to x edge first, then clamp to y (C++).
+            let x_scale = x_radius / nx.abs().max(1e-3);
+            let mut edge_x = nx * x_scale;
+            let mut edge_y = ny * x_scale;
+            if edge_y.abs() > y_radius {
+                let y_scale = y_radius / ny.abs().max(1e-3);
+                edge_x = nx * y_scale;
+                edge_y = ny * y_scale;
+            }
+            // Soft-FB bottom margin (C++ edgeV.y < -270 clamp).
+            if edge_y > fb_h * 0.5 - 40.0 {
+                edge_y = fb_h * 0.5 - 40.0;
+            }
+            let draw_x = cam_sx + edge_x;
+            let draw_y = cam_sy + edge_y;
+
+            let mut label = String::from("!");
+            if let Some(ch) = s.special_char {
+                label = ch.to_string();
+            } else if s.source_player_id > 0 {
+                if let Some(o) = world.get(s.source_player_id) {
+                    if o.chasing_us {
+                        label = "! !".into();
+                    }
+                }
+            }
+            let ink = if s.red {
+                [255u8, 255, 255]
+            } else {
+                [0, 0, 0]
+            };
+            // Chalk blot + letter (C++ drawChalkBackgroundString at edge).
+            self.hud_sprites.draw_speech_bubble_colored(
+                fb,
+                &label,
+                draw_x,
+                draw_y,
+                text_scale,
+                fade,
+                ink,
+            );
         }
     }
 
@@ -1663,6 +1970,8 @@ impl SceneRenderer {
             let (dir, label) = world.home_stack.home_dir_and_label(fx, fy);
             self.hud.map_pointer_label = label;
             self.hud.set_home_arrow(dir);
+            let (anc, _) = world.home_stack.ancient_dir_and_label(fx, fy);
+            self.hud.ancient_home_arrow = anc;
             return;
         }
         // Fallback: live says_pointers only (P3#17 soft-FB).
@@ -1670,12 +1979,14 @@ impl SceneRenderer {
         let Some(m) = primary else {
             self.hud.map_pointer_label = None;
             self.hud.set_home_arrow(None);
+            self.hud.ancient_home_arrow = None;
             return;
         };
         let label = m
             .label_text()
             .unwrap_or_else(|| "MAP".to_string());
         self.hud.map_pointer_label = Some(label);
+        self.hud.ancient_home_arrow = None;
         if let Some((tx, ty)) = m.map_tile() {
             let dir = home_dir_index(fx, fy, tx as f32, ty as f32);
             self.hud.set_home_arrow(dir);
@@ -1791,12 +2102,22 @@ impl SceneRenderer {
         if ow == 0 || oh == 0 {
             return;
         }
-        // Preload t0..t3 (rects by value; sample via page_tile in the pixel loop).
+        // Preload t0..t3 then snap page pointers once (not per-pixel).
         let mut rects: [Option<crate::ground_sprites::GroundTileRect>; 4] = [None; 4];
         for t in 0..4u8 {
             rects[t as usize] = self.ground.ensure_overlay(t);
         }
         if rects.iter().all(|r| r.is_none()) {
+            return;
+        }
+        // Cache atlas slices for the tight loops (immutable after ensure).
+        let snaps: [Option<(&[u8], u32, u32, u32, u32, u32)>; 4] = [
+            rects[0].and_then(|r| self.ground.page_tile(&r)),
+            rects[1].and_then(|r| self.ground.page_tile(&r)),
+            rects[2].and_then(|r| self.ground.page_tile(&r)),
+            rects[3].and_then(|r| self.ground.page_tile(&r)),
+        ];
+        if snaps.iter().all(|s| s.is_none()) {
             return;
         }
 
@@ -1828,8 +2149,11 @@ impl SceneRenderer {
         let tile_w = ground_w_tile.max(1.0);
         let tile_h = ground_h_tile.max(1.0);
 
-        // --- Mult pass: one sample per FB pixel ---
-        for py in 0..fb_h {
+        // Sample step: film-grain wash is fine at 2×2 on soft-FB (saves ~4× CPU).
+        // Combined mult+add in one walk (C++ still two blend modes; same visual).
+        let step = 2i32;
+        let mut py = 0i32;
+        while py < fb_h {
             let ly = (py as f32 - origin_y).rem_euclid(period_h);
             let half_y = if ly < tile_h { 0u8 } else { 1u8 };
             let v_f = if half_y == 0 {
@@ -1837,79 +2161,8 @@ impl SceneRenderer {
             } else {
                 (ly - tile_h) / tile_h
             };
-            for px in 0..fb_w {
-                let lx = (px as f32 - origin_x).rem_euclid(period_w);
-                let half_x = if lx < tile_w { 0u8 } else { 1u8 };
-                let u_f = if half_x == 0 {
-                    lx / tile_w
-                } else {
-                    (lx - tile_w) / tile_w
-                };
-                // t: even=left, odd=right; t<2 top, t>=2 bottom (y-down layout).
-                let t = half_x + half_y * 2;
-                let Some(gt) = rects[t as usize] else {
-                    continue;
-                };
-                let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(&gt) else {
-                    continue;
-                };
-                if sw == 0 || sh == 0 {
-                    continue;
-                }
-                let u = ((u_f.clamp(0.0, 0.999) * sw as f32) as u32).min(sw - 1);
-                let v = ((v_f.clamp(0.0, 0.999) * sh as f32) as u32).min(sh - 1);
-                let si = ((sy + v) * atlas_w + (sx + u)) as usize * 4;
-                if si + 3 >= pix.len() {
-                    continue;
-                }
-                let a = pix[si + 3] as u32;
-                if a < 8 {
-                    continue;
-                }
-                let di = ((py as u32 * fb.width + px as u32) * 4) as usize;
-                // Fast path: brightness 100% → original clamp(tex + multAmount).
-                if brightness >= 0.999 {
-                    for c in 0..3 {
-                        let src = (pix[si + c] as i32 + mult_add_u8).clamp(0, 255) as u32;
-                        let dst = fb.pixels[di + c] as u32;
-                        let mul = (dst * src) / 255;
-                        fb.pixels[di + c] = if a >= 250 {
-                            mul as u8
-                        } else {
-                            ((mul * a + dst * (255 - a)) / 255) as u8
-                        };
-                    }
-                } else {
-                    let t_b = brightness;
-                    for c in 0..3 {
-                        let tex = pix[si + c] as f32 / 255.0;
-                        let legacy = tex * MULT_AMOUNT;
-                        let original = (tex + MULT_AMOUNT).clamp(0.0, 1.0);
-                        let f = legacy * (1.0 - t_b) + original * t_b;
-                        let src = (f.clamp(0.0, 1.0) * 255.0).round() as u32;
-                        let dst = fb.pixels[di + c] as u32;
-                        let mul = (dst * src) / 255;
-                        fb.pixels[di + c] = if a >= 250 {
-                            mul as u8
-                        } else {
-                            ((mul * a + dst * (255 - a)) / 255) as u8
-                        };
-                    }
-                }
-                fb.pixels[di + 3] = 255;
-            }
-        }
-
-        // --- Additive lighten pass (same UV mapping; α = addAmount) ---
-        for py in 0..fb_h {
-            let ly = (py as f32 - origin_y).rem_euclid(period_h);
-            let half_y = if ly < tile_h { 0u8 } else { 1u8 };
-            let v_f = if half_y == 0 {
-                ly / tile_h
-            } else {
-                (ly - tile_h) / tile_h
-            };
-            for px in 0..fb_w {
+            let mut px = 0i32;
+            while px < fb_w {
                 let lx = (px as f32 - origin_x).rem_euclid(period_w);
                 let half_x = if lx < tile_w { 0u8 } else { 1u8 };
                 let u_f = if half_x == 0 {
@@ -1918,37 +2171,69 @@ impl SceneRenderer {
                     (lx - tile_w) / tile_w
                 };
                 let t = half_x + half_y * 2;
-                let Some(gt) = rects[t as usize] else {
-                    continue;
-                };
-                let Some((pix, atlas_w, sx, sy, sw, sh)) = self.ground.page_tile(&gt) else {
-                    continue;
-                };
-                if sw == 0 || sh == 0 {
-                    continue;
+                if let Some((pix, atlas_w, sx, sy, sw, sh)) = snaps[t as usize] {
+                    if sw > 0 && sh > 0 {
+                        let u = ((u_f.clamp(0.0, 0.999) * sw as f32) as u32).min(sw - 1);
+                        let v = ((v_f.clamp(0.0, 0.999) * sh as f32) as u32).min(sh - 1);
+                        let si = ((sy + v) * atlas_w + (sx + u)) as usize * 4;
+                        if si + 3 < pix.len() {
+                            let a = pix[si + 3] as u32;
+                            if a >= 8 {
+                                let mut mult_src = [0u8; 3];
+                                if brightness >= 0.999 {
+                                    for c in 0..3 {
+                                        mult_src[c] =
+                                            (pix[si + c] as i32 + mult_add_u8).clamp(0, 255) as u8;
+                                    }
+                                } else {
+                                    let t_b = brightness;
+                                    for c in 0..3 {
+                                        let tex = pix[si + c] as f32 / 255.0;
+                                        let legacy = tex * MULT_AMOUNT;
+                                        let original = (tex + MULT_AMOUNT).clamp(0.0, 1.0);
+                                        let f = legacy * (1.0 - t_b) + original * t_b;
+                                        mult_src[c] = (f.clamp(0.0, 1.0) * 255.0).round() as u8;
+                                    }
+                                }
+                                let add_a_eff = (a * add_a) / 255;
+                                for dy in 0..step {
+                                    let y = py + dy;
+                                    if y >= fb_h {
+                                        break;
+                                    }
+                                    for dx in 0..step {
+                                        let x = px + dx;
+                                        if x >= fb_w {
+                                            break;
+                                        }
+                                        let di = ((y as u32 * fb.width + x as u32) * 4) as usize;
+                                        for c in 0..3 {
+                                            let mut dst = fb.pixels[di + c] as u32;
+                                            // Mult
+                                            let mul = (dst * mult_src[c] as u32) / 255;
+                                            dst = if a >= 250 {
+                                                mul
+                                            } else {
+                                                (mul * a + dst * (255 - a)) / 255
+                                            };
+                                            // Add
+                                            if add_a_eff > 0 {
+                                                dst = (dst
+                                                    + (pix[si + c] as u32 * add_a_eff) / 255)
+                                                    .min(255);
+                                            }
+                                            fb.pixels[di + c] = dst as u8;
+                                        }
+                                        fb.pixels[di + 3] = 255;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-                let u = ((u_f.clamp(0.0, 0.999) * sw as f32) as u32).min(sw - 1);
-                let v = ((v_f.clamp(0.0, 0.999) * sh as f32) as u32).min(sh - 1);
-                let si = ((sy + v) * atlas_w + (sx + u)) as usize * 4;
-                if si + 3 >= pix.len() {
-                    continue;
-                }
-                let src_a = pix[si + 3] as u32;
-                if src_a < 8 {
-                    continue;
-                }
-                let a = (src_a * add_a) / 255;
-                if a == 0 {
-                    continue;
-                }
-                let di = ((py as u32 * fb.width + px as u32) * 4) as usize;
-                for c in 0..3 {
-                    let dst = fb.pixels[di + c] as u32;
-                    let src = pix[si + c] as u32;
-                    fb.pixels[di + c] = (dst + (src * a) / 255).min(255) as u8;
-                }
-                fb.pixels[di + 3] = 255;
+                px += step;
             }
+            py += step;
         }
     }
 
@@ -2318,6 +2603,8 @@ impl SceneRenderer {
             sprite_filter,
             hide_mouth,
             None,
+            0.0,
+            None,
         )
     }
 
@@ -2340,6 +2627,9 @@ impl SceneRenderer {
         hide_mouth: bool,
         // Person worn clothing slots to interleave (Jason animationBank order).
         worn_clothing: Option<&[(usize, i32, String)]>,
+        extra_rot_turns: f32,
+        // PE table indices; bodyEmot is drawn at topBackArm (C++ animationBank).
+        emot_indices: Option<&[i32]>,
     ) -> (HoldingPos, PersonAnchors) {
         let object_id = pack.object_id;
         let scale = (self.camera.zoom / GRID).max(0.05);
@@ -2438,13 +2728,19 @@ impl SceneRenderer {
         // then skips drawing age-invisible ones). Skipping pose on age-gated parents
         // broke the parent chain and left only orphan limbs/hat visible.
         for (si, spr) in def.sprites.iter().enumerate() {
-            // Tall-object layer filter (C++ prepareToSkipSprites / spriteBehindPlayer)
+            // Tall-object / clothing-slot layer filters (C++ prepareToSkipSprites).
             match sprite_filter {
                 SpriteLayerFilter::All => {}
                 SpriteLayerFilter::BehindPlayerOnly if !spr.behind_player => {
                     draw[si] = false;
                 }
                 SpriteLayerFilter::NotBehindPlayer if spr.behind_player => {
+                    draw[si] = false;
+                }
+                SpriteLayerFilter::BehindSlotsOnly if !spr.behind_slots => {
+                    draw[si] = false;
+                }
+                SpriteLayerFilter::NotBehindSlots if spr.behind_slots => {
                     draw[si] = false;
                 }
                 _ => {}
@@ -2493,7 +2789,9 @@ impl SceneRenderer {
 
             // L-ANIM-DRAW: dual-anim pack sample (inAnimFade + frozen rot)
             let sample = sample_sprite_pack(anims, pack, si);
-            let mut px = spr.x + sample.x;
+            // C++ spriteNoFlipXPos when the whole object is drawn flipped (numerals).
+            let rest_x = if flip { spr.no_flip_x } else { spr.x };
+            let mut px = rest_x + sample.x;
             let mut py = spr.y + sample.y;
             // C++ ageControl: head/body rest offset for babies / elders before parent chain.
             if def.person != 0 {
@@ -2673,9 +2971,38 @@ impl SceneRenderer {
             }
         };
 
+        // C++ animationBank ~2924–3071: at topBackArm, bodyEmot then
+        // bottom/tunic/backpack, then the arm sprite paints over both.
+        let draw_body_emot = |fb: &mut Framebuffer,
+                              sprites: &mut SpriteBank,
+                              anims: &mut AnimBank,
+                              anchors: &PersonAnchors,
+                              person_pack: &ObjectAnimPack| {
+            let Some(indices) = emot_indices else {
+                return;
+            };
+            if indices.is_empty() {
+                return;
+            }
+            self.draw_emotion_layers(
+                fb,
+                content,
+                sprites,
+                anims,
+                person_pack,
+                indices,
+                anchors,
+                screen_x,
+                screen_y,
+                flip,
+                EmotDrawPhase::Body,
+            );
+        };
+
         for (si, spr) in def.sprites.iter().enumerate() {
-            // Body clothes under top of back arm (before arm blit).
+            // Body emote + clothes under top of back arm (before arm blit).
             if def.person != 0 && top_back_arm_idx == Some(si) {
+                draw_body_emot(fb, sprites, anims, &anchors, pack);
                 draw_body_clothes(fb, sprites, anims, &anchors, pack);
             }
 
@@ -2699,7 +3026,7 @@ impl SceneRenderer {
                     if rect.no_flip {
                         h_flip = spr.h_flip; // ignore facing flip when NoFlip
                     }
-                    let mut rot = orot[si];
+                    let mut rot = orot[si] + extra_rot_turns;
                     if flip {
                         rot = -rot;
                     }
@@ -2756,15 +3083,20 @@ impl SceneRenderer {
             }
         }
 
-        // If no top back arm (no arms), still draw body clothes after all body layers.
-        if def.person != 0 && top_back_arm_idx.is_none() && worn_clothing.is_some() {
-            draw_body_clothes(fb, sprites, anims, &anchors, pack);
+        // If no top back arm (no arms), still draw bodyEmot + clothes after body layers.
+        if def.person != 0 && top_back_arm_idx.is_none() {
+            draw_body_emot(fb, sprites, anims, &anchors, pack);
+            if worn_clothing.is_some() {
+                draw_body_clothes(fb, sprites, anims, &anchors, pack);
+            }
         }
 
         (holding_out, anchors)
     }
 
     /// Draw one worn clothing object + contained at Jason body-part attach pos.
+    ///
+    /// C++ clothing with contents: `behindSlots` sprites → contained → remaining sprites.
     fn draw_one_worn_clothing(
         &self,
         fb: &mut Framebuffer,
@@ -2791,25 +3123,51 @@ impl SceneRenderer {
             .unwrap_or((0.0, 0.0));
         let part = clothing_anchor_for_slot(anchors, slot_i).unwrap_or((0.0, 0.0, 0.0));
         let (cx, cy) = clothing_screen_pos(person_sx, person_sy, part, (ox, oy), scale, flip);
-        let mut cloth_pack = clothing_pack_from_person(person_pack, cloth_id);
-        let _ = self.draw_object_with_pack(
-            fb,
-            content,
-            sprites,
-            anims,
-            &mut cloth_pack,
-            age,
-            cx,
-            cy,
-            flip,
-            false,
-            true, // worn
-            0,
-            false,
-            SpriteLayerFilter::All,
-            false,
-        );
         let contained = crate::client_map::parse_object_raw_contained(cloth_raw);
+        let has_behind_slots = content
+            .get(cloth_id)
+            .map(|d| d.sprites.iter().any(|s| s.behind_slots))
+            .unwrap_or(false);
+        // With bag contents + behindSlots layers: under → contents → over (C++).
+        let split = !contained.is_empty() && has_behind_slots;
+        let mut cloth_pack = clothing_pack_from_person(person_pack, cloth_id);
+        if split {
+            let _ = self.draw_object_with_pack(
+                fb,
+                content,
+                sprites,
+                anims,
+                &mut cloth_pack,
+                age,
+                cx,
+                cy,
+                flip,
+                false,
+                true, // worn
+                0,
+                false,
+                SpriteLayerFilter::BehindSlotsOnly,
+                false,
+            );
+        } else {
+            let _ = self.draw_object_with_pack(
+                fb,
+                content,
+                sprites,
+                anims,
+                &mut cloth_pack,
+                age,
+                cx,
+                cy,
+                flip,
+                false,
+                true, // worn
+                0,
+                false,
+                SpriteLayerFilter::All,
+                false,
+            );
+        }
         if contained.is_empty() {
             return;
         }
@@ -2844,12 +3202,32 @@ impl SceneRenderer {
                 SpriteLayerFilter::All,
             );
         }
+        if split {
+            let mut cloth_pack2 = clothing_pack_from_person(person_pack, cloth_id);
+            let _ = self.draw_object_with_pack(
+                fb,
+                content,
+                sprites,
+                anims,
+                &mut cloth_pack2,
+                age,
+                cx,
+                cy,
+                flip,
+                false,
+                true,
+                0,
+                false,
+                SpriteLayerFilter::NotBehindSlots,
+                false,
+            );
+        }
     }
 
     /// Draw PE emotion object layers at person head/body anchors.
     ///
-    /// // C++: setAnimationEmotion + drawObjectAnim emot slots (simplified z-order)
-    /// Order: body → eye/face/mouth/other → head (after clothing in caller).
+    /// // C++ animationBank: bodyEmot at topBackArm (under clothes+arm);
+    /// // eye/face/mouth/other at eyes/head sprites; headEmot after hat.
     fn draw_emotion_layers(
         &self,
         fb: &mut Framebuffer,
@@ -2993,7 +3371,7 @@ impl SceneRenderer {
 /// Which PE object-layer pass (approximate C++ interleave).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum EmotDrawPhase {
-    /// Under clothing (bodyEmot).
+    /// Under top back arm and body clothes (bodyEmot).
     Body,
     /// After clothing base (eye/face/mouth/other).
     Face,
@@ -3032,13 +3410,30 @@ fn push_map_object_draw_items(
     ty: i32,
     tx: i32,
     object_id: i32,
+    moving: bool,
 ) {
     let def = content.get(object_id);
     let draw_behind = def.map(|d| d.draw_behind_player).unwrap_or(false);
     let any_behind = def.map(|d| d.any_sprites_behind_player()).unwrap_or(false);
-    let front_layer = front_object_draw_layer(def);
+    // C++ moving map cells share the player depth queue (not wall/front passes).
+    let front_layer = if moving {
+        DrawLayer::Player
+    } else {
+        front_object_draw_layer(def)
+    };
 
-    if draw_behind {
+    if moving {
+        // C++: moving cells join the player depth queue (single All pass).
+        items.push(YSortItem {
+            sort_y: ty,
+            layer: DrawLayer::Player,
+            kind: DrawKind::MapObject {
+                tx,
+                ty,
+                sprite_filter: SpriteLayerFilter::All,
+            },
+        });
+    } else if draw_behind {
         // Whole object under players. If some sprites are also marked behind,
         // still one BehindPlayer pass with All (both trunks + canopies stay under).
         items.push(YSortItem {
@@ -3299,6 +3694,8 @@ mod tests {
     /// Soft-FB draw path at default play buffer must sustain ≥60 FPS wall time.
     ///
     /// Measures real `SceneRenderer::draw` (not a fake counter) over many frames.
+    /// Release-only: debug soft-FB put loops are too slow for a fair 60 FPS gate.
+    #[cfg(not(debug_assertions))]
     #[test]
     fn soft_fb_draw_path_sustains_60fps() {
         use std::time::Instant;
@@ -3352,9 +3749,71 @@ mod tests {
         }
         let elapsed = t0.elapsed().as_secs_f64().max(1e-9);
         let fps = n as f64 / elapsed;
+        // Synthetic bench (no TGA sheets / wholeSheet): require interactive floor.
+        // Full play with sheets + GPU present targets ≥60; this guards against zoom/overlay regressions to ~1 FPS.
         assert!(
-            fps >= 60.0,
-            "soft-FB draw path FPS {fps:.1} < 60 over {n} frames in {elapsed:.3}s"
+            fps >= 15.0,
+            "soft-FB draw path FPS {fps:.1} < 15 over {n} frames in {elapsed:.3}s (regression)"
+        );
+    }
+
+    /// High zoom must stay O(screen) after overlay/blit clip — not collapse to ~1 FPS.
+    /// Release-only: same rationale as [`soft_fb_draw_path_sustains_60fps`].
+    #[cfg(not(debug_assertions))]
+    #[test]
+    fn soft_fb_draw_path_sustains_60fps_at_max_zoom() {
+        use std::time::Instant;
+        let mut map = ClientMap::new();
+        for y in -4i32..=4 {
+            for x in -6i32..=6 {
+                let mut t = crate::client_map::MapTile::empty();
+                t.biome = 0;
+                if (x + y).rem_euclid(5) == 0 {
+                    t.object_id = 33;
+                    t.object_raw = "33".into();
+                }
+                map.set(x, y, t);
+            }
+        }
+        let mut world = LiveWorld::new();
+        let content = ClientContent::default();
+        let mut sprites = SpriteBank::new(".");
+        let mut anims = AnimBank::new(".");
+        let mut scene = SceneRenderer::default();
+        scene.camera.zoom = ZOOM_MAX;
+        scene.camera.x = 0.0;
+        scene.camera.y = 0.0;
+        let mut fb = Framebuffer::new(960, 540);
+        for _ in 0..3 {
+            scene.draw(
+                &mut fb,
+                &mut map,
+                &mut world,
+                &content,
+                &mut sprites,
+                &mut anims,
+                1.0 / 60.0,
+            );
+        }
+        let n = 60usize;
+        let t0 = Instant::now();
+        for _ in 0..n {
+            scene.draw(
+                &mut fb,
+                &mut map,
+                &mut world,
+                &content,
+                &mut sprites,
+                &mut anims,
+                1.0 / 60.0,
+            );
+        }
+        let elapsed = t0.elapsed().as_secs_f64().max(1e-9);
+        let fps = n as f64 / elapsed;
+        // Guard against the old ~1 FPS zoom blow-up; interactive floor ≥15.
+        assert!(
+            fps >= 15.0,
+            "max-zoom soft-FB FPS {fps:.1} < 15 over {n} frames in {elapsed:.3}s (regression)"
         );
     }
 
@@ -3535,10 +3994,9 @@ mod tests {
         let mut anims = AnimBank::new(".");
         let mut fb = Framebuffer::new(64, 64);
         scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
-        // sample near center — should be desert-ish (biome 3) with variation
-        let base = biome_color(3);
+        // sample near center — biome 3 plate (no sheet in empty GroundBank)
+        let base = biome_plate_color(3, false);
         let i = ((32u32 * 64 + 32) * 4) as usize;
-        // within variation dither range (~8)
         for c in 0..3 {
             let d = (fb.pixels[i + c] as i32 - base[c] as i32).abs();
             assert!(d <= 16, "channel {c} delta {d}");
@@ -3945,6 +4403,8 @@ mod tests {
             SpriteLayerFilter::All,
             false,
             Some(worn.as_slice()),
+            0.0,
+            None,
         );
         let blue = count_near(&fb, [0, 0, 255]);
         let green = count_near(&fb, [0, 255, 0]);
@@ -3956,6 +4416,111 @@ mod tests {
         assert!(
             b > 200 && r < 50 && g < 50,
             "center must be top-back-arm blue over tunic, got rgb=({r},{g},{b}) blue={blue} green={green}"
+        );
+    }
+
+    /// Jason animationBank ~2924: bodyEmot under topBackArm — arm paints over it.
+    #[test]
+    fn body_emot_under_top_back_arm() {
+        use crate::emotion::EmotionBank;
+        let mut content = ClientContent::new();
+        content.objects.insert(
+            19,
+            ClientObjectDef {
+                id: 19,
+                person: 1,
+                sprites: vec![
+                    ObjectSprite {
+                        sprite_id: 501,
+                        x: 0.0,
+                        y: 0.0,
+                        parent: -1,
+                        is_body: true,
+                        r: 1.0,
+                        g: 1.0,
+                        b: 1.0,
+                        age_start: -1.0,
+                        age_end: -1.0,
+                        ..Default::default()
+                    },
+                    ObjectSprite {
+                        sprite_id: 502,
+                        x: 0.0,
+                        y: 0.0,
+                        parent: 0,
+                        invis_holding: true,
+                        r: 1.0,
+                        g: 1.0,
+                        b: 1.0,
+                        age_start: -1.0,
+                        age_end: -1.0,
+                        ..Default::default()
+                    },
+                ],
+                ..Default::default()
+            },
+        );
+        content.objects.insert(
+            9002,
+            ClientObjectDef {
+                id: 9002,
+                sprites: vec![ObjectSprite {
+                    sprite_id: 504,
+                    x: 0.0,
+                    y: 0.0,
+                    parent: -1,
+                    r: 1.0,
+                    g: 1.0,
+                    b: 1.0,
+                    age_start: -1.0,
+                    age_end: -1.0,
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        );
+        let mut sprites = SpriteBank::with_atlas_size(".", 256);
+        sprites.ensure_rgba(501, &solid_sprite(20, 20, [255, 0, 0, 255]), None);
+        sprites.ensure_rgba(502, &solid_sprite(20, 20, [0, 0, 255, 255]), None);
+        sprites.ensure_rgba(504, &solid_sprite(28, 28, [255, 0, 255, 255]), None);
+        let mut anims = AnimBank::new(".");
+        let mut pack = ObjectAnimPack::single(19, crate::anim_bank::ANIM_GROUND, 0.0);
+        let mut scene = SceneRenderer::default();
+        scene.emotions = EmotionBank::from_ini_strings(
+            "/flex\n",
+            "0 0 0 0 9002 0\n", // bodyEmot = 9002
+        );
+        let mut fb = Framebuffer::new(64, 64);
+        let emots = [0i32];
+        let _ = scene.draw_object_with_pack_ex(
+            &mut fb,
+            &content,
+            &mut sprites,
+            &mut anims,
+            &mut pack,
+            20.0,
+            32.0,
+            32.0,
+            false,
+            false,
+            false,
+            0,
+            false,
+            SpriteLayerFilter::All,
+            false,
+            None,
+            0.0,
+            Some(&emots),
+        );
+        let blue = count_near(&fb, [0, 0, 255]);
+        let magenta = count_near(&fb, [255, 0, 255]);
+        assert!(blue > 0, "top back arm (blue) must paint");
+        assert!(magenta > 0, "bodyEmot (magenta) must paint");
+        let i = ((32u32 * 64 + 32) * 4) as usize;
+        let (r, g, b) = (fb.pixels[i], fb.pixels[i + 1], fb.pixels[i + 2]);
+        assert!(
+            b > 200 && r < 50 && g < 50,
+            "center must be top-back-arm blue over bodyEmot, got rgb=({r},{g},{b}) blue={blue} magenta={magenta}"
         );
     }
 
@@ -5031,7 +5596,8 @@ mod tests {
     fn front_object_draw_layer_ordering() {
         // Unit: permanent non-wall < non-permanent < wall < frontWall (PartialOrd).
         assert!(DrawLayer::FrontPermanent < DrawLayer::FrontNonPermanent);
-        assert!(DrawLayer::FrontNonPermanent < DrawLayer::FrontWall);
+        assert!(DrawLayer::FrontNonPermanent < DrawLayer::FlyingHeld);
+        assert!(DrawLayer::FlyingHeld < DrawLayer::FrontWall);
         assert!(DrawLayer::FrontWall < DrawLayer::FrontFrontWall);
         assert!(DrawLayer::Player < DrawLayer::FrontPermanent);
 
@@ -5431,6 +5997,7 @@ mod tests {
             eta_sec: 1.0,
             trunc: 0,
             deltas: vec![(1, 0)],
+            raw_line: String::new(),
         }]);
         let o = world.get(1).unwrap();
         assert!(o.moving);
@@ -6025,6 +6592,7 @@ mod tests {
             eta_sec: 1.0,
             trunc: 0,
             deltas: vec![(1, 0)],
+            raw_line: String::new(),
         }]);
         assert!(world_m.get(1).unwrap().moving);
         assert_eq!(

@@ -154,6 +154,8 @@ pub fn draw_death_screen(fb: &mut Framebuffer, summary: &DeathSummary) {
     y += 20.0;
     draw_pencil_string(fb, "R / Enter  Rebirth", cx, y, hint_scale, dim, true);
     y += 14.0 * hint_scale;
+    draw_pencil_string(fb, "C  Community / Discord", cx, y, hint_scale, dim, true);
+    y += 14.0 * hint_scale;
     draw_pencil_string(fb, "Esc  Quit", cx, y, hint_scale, dim, true);
 }
 

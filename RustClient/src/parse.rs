@@ -182,6 +182,8 @@ pub struct PlayerUpdate {
     pub deleted: bool,
     /// `reason_disconnected` / `reason_hunger` / `reason_killed_N` / …
     pub delete_reason: Option<String>,
+    /// Original data line (for readyPending re-queue: `PU\n{raw}\n#`).
+    pub raw_line: String,
 }
 
 /// Parse one data line of a `PU` message into a [`PlayerUpdate`].
@@ -248,6 +250,7 @@ pub fn parse_pu_line(line: &str) -> Option<PlayerUpdate> {
             held_learned: false,
             deleted: true,
             delete_reason,
+            raw_line: line.trim().to_string(),
         });
     }
 
@@ -316,6 +319,7 @@ pub fn parse_pu_line(line: &str) -> Option<PlayerUpdate> {
         held_learned,
         deleted: false,
         delete_reason: None,
+        raw_line: line.trim().to_string(),
     })
 }
 
@@ -347,6 +351,8 @@ pub struct PlayerMoveStart {
     pub eta_sec: f32,
     pub trunc: i32,
     pub deltas: Vec<(i32, i32)>,
+    /// Original data line (for readyPending re-queue: `PM\n{raw}\n#`).
+    pub raw_line: String,
 }
 
 pub fn parse_pm_line(line: &str) -> Option<PlayerMoveStart> {
@@ -376,6 +382,7 @@ pub fn parse_pm_line(line: &str) -> Option<PlayerMoveStart> {
         eta_sec,
         trunc,
         deltas,
+        raw_line: line.trim().to_string(),
     })
 }
 
@@ -459,6 +466,8 @@ pub struct MapChange {
     pub old_x: Option<i32>,
     pub old_y: Option<i32>,
     pub speed: Option<f32>,
+    /// Original data line (for readyPending re-queue: `MX\n{raw}\n#`).
+    pub raw_line: String,
 }
 
 impl MapChange {
@@ -503,6 +512,7 @@ pub fn parse_mx_line(line: &str) -> Option<MapChange> {
         old_x,
         old_y,
         speed,
+        raw_line: line.trim().to_string(),
     })
 }
 
@@ -1137,6 +1147,372 @@ pub fn parse_gh_message(body: &str) -> Vec<i32> {
     parse_id_list_message(body)
 }
 
+/// GV (GRAVE): `x y p_id`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Grave {
+    pub x: i32,
+    pub y: i32,
+    pub player_id: i32,
+}
+
+pub fn parse_gv_message(body: &str) -> Option<Grave> {
+    let line = first_data_line(body)?;
+    let mut p = line.split_whitespace();
+    Some(Grave {
+        x: p.next()?.parse().ok()?,
+        y: p.next()?.parse().ok()?,
+        player_id: p.next()?.parse().ok()?,
+    })
+}
+
+/// GM (GRAVE_MOVE): `xs ys xd yd [swap_dest]`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GraveMove {
+    pub xs: i32,
+    pub ys: i32,
+    pub xd: i32,
+    pub yd: i32,
+    pub swap_dest: bool,
+}
+
+pub fn parse_gm_message(body: &str) -> Option<GraveMove> {
+    let line = first_data_line(body)?;
+    let mut p = line.split_whitespace();
+    Some(GraveMove {
+        xs: p.next()?.parse().ok()?,
+        ys: p.next()?.parse().ok()?,
+        xd: p.next()?.parse().ok()?,
+        yd: p.next()?.parse().ok()?,
+        swap_dest: p.next().and_then(|s| s.parse::<i32>().ok()).unwrap_or(0) != 0,
+    })
+}
+
+/// GO (GRAVE_OLD): `x y p_id po_id death_age name mother_id … [eve=id]`
+#[derive(Debug, Clone, PartialEq)]
+pub struct GraveOld {
+    pub x: i32,
+    pub y: i32,
+    pub player_id: i32,
+    pub display_id: i32,
+    pub death_age: f32,
+    pub name: String,
+    pub lineage: Vec<i32>,
+    pub eve_id: i32,
+}
+
+pub fn parse_go_message(body: &str) -> Option<GraveOld> {
+    let line = first_data_line(body)?;
+    let parts: Vec<&str> = line.split_whitespace().collect();
+    if parts.len() < 6 {
+        return None;
+    }
+    let mut eve_id = 0;
+    let mut lineage = Vec::new();
+    let mut ntok = parts.len();
+    if let Some(last) = parts.last() {
+        if let Some(rest) = last.strip_prefix("eve=") {
+            eve_id = rest.parse().ok()?;
+            ntok -= 1;
+        }
+    }
+    for t in &parts[6..ntok] {
+        if let Ok(id) = t.parse::<i32>() {
+            lineage.push(id);
+        }
+    }
+    let name = parts[5].replace('_', " ");
+    if eve_id == 0 {
+        eve_id = *lineage.last().unwrap_or(&0);
+    }
+    Some(GraveOld {
+        x: parts[0].parse().ok()?,
+        y: parts[1].parse().ok()?,
+        player_id: parts[2].parse().ok()?,
+        display_id: parts[3].parse().ok()?,
+        death_age: parts[4].parse().ok()?,
+        name,
+        lineage,
+        eve_id,
+    })
+}
+
+/// OW (OWNER_LIST): `x y p_id p_id …`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OwnerList {
+    pub x: i32,
+    pub y: i32,
+    pub owner_ids: Vec<i32>,
+}
+
+pub fn parse_ow_message(body: &str) -> Option<OwnerList> {
+    let line = first_data_line(body)?;
+    let mut p = line.split_whitespace();
+    let x: i32 = p.next()?.parse().ok()?;
+    let y: i32 = p.next()?.parse().ok()?;
+    let owner_ids: Vec<i32> = p.filter_map(|t| t.parse().ok()).filter(|&id| id > 0).collect();
+    Some(OwnerList { x, y, owner_ids })
+}
+
+/// One FW (FOLLOWING) row: `follower_id leader_id leader_color_index`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FollowingRow {
+    pub follower_id: i32,
+    pub leader_id: i32,
+    pub leader_color_index: i32,
+}
+
+pub fn parse_fw_message(body: &str) -> Vec<FollowingRow> {
+    let mut out = Vec::new();
+    for line in data_lines(body) {
+        let mut p = line.split_whitespace();
+        let Some(f) = p.next().and_then(|s| s.parse().ok()) else {
+            continue;
+        };
+        let Some(l) = p.next().and_then(|s| s.parse().ok()) else {
+            continue;
+        };
+        let c = p.next().and_then(|s| s.parse().ok()).unwrap_or(-1);
+        out.push(FollowingRow {
+            follower_id: f,
+            leader_id: l,
+            leader_color_index: c,
+        });
+    }
+    out
+}
+
+/// One EX (EXILED) row: `exile_target_id exiler_id` (`exiler_id == -1` clears).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExiledRow {
+    pub target_id: i32,
+    pub exiler_id: i32,
+}
+
+pub fn parse_ex_message(body: &str) -> Vec<ExiledRow> {
+    let mut out = Vec::new();
+    for line in data_lines(body) {
+        let mut p = line.split_whitespace();
+        let Some(t) = p.next().and_then(|s| s.parse().ok()) else {
+            continue;
+        };
+        let Some(e) = p.next().and_then(|s| s.parse().ok()) else {
+            continue;
+        };
+        out.push(ExiledRow {
+            target_id: t,
+            exiler_id: e,
+        });
+    }
+    out
+}
+
+/// HL (HOMELAND): `x y family_name` (`0` = expired)
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Homeland {
+    pub x: i32,
+    pub y: i32,
+    pub family_name: Option<String>,
+}
+
+pub fn parse_hl_message(body: &str) -> Option<Homeland> {
+    let line = first_data_line(body)?;
+    let mut p = line.split_whitespace();
+    let x: i32 = p.next()?.parse().ok()?;
+    let y: i32 = p.next()?.parse().ok()?;
+    let fam = p.next().unwrap_or("0");
+    let family_name = if fam == "0" {
+        None
+    } else {
+        Some(fam.replace('_', " "))
+    };
+    Some(Homeland { x, y, family_name })
+}
+
+/// LR (LEARNED_TOOL_REPORT): tool object ids.
+pub fn parse_lr_message(body: &str) -> Vec<i32> {
+    parse_id_list_message(body)
+        .into_iter()
+        .filter(|&id| id > 0)
+        .collect()
+}
+
+/// TE (TOOL_EXPERTS): nearby player ids who already learned the held tool.
+pub fn parse_te_message(body: &str) -> Vec<i32> {
+    parse_id_list_message(body)
+        .into_iter()
+        .filter(|&id| id > 0)
+        .collect()
+}
+
+/// TS (TOOL_SLOTS): `used total`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToolSlots {
+    pub used: i32,
+    pub total: i32,
+}
+
+pub fn parse_ts_message(body: &str) -> Option<ToolSlots> {
+    let line = first_data_line(body)?;
+    let mut p = line.split_whitespace();
+    Some(ToolSlots {
+        used: p.next()?.parse().ok()?,
+        total: p.next()?.parse().ok()?,
+    })
+}
+
+/// One WR (WAR_REPORT) row: `eve_id_a eve_id_b status` (`war` / `peace`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WarReportRow {
+    pub eve_id_a: i32,
+    pub eve_id_b: i32,
+    /// -1 war, 1 peace, 0 other.
+    pub status: i32,
+}
+
+pub fn parse_wr_message(body: &str) -> Vec<WarReportRow> {
+    let mut out = Vec::new();
+    for line in data_lines(body) {
+        let mut p = line.split_whitespace();
+        let Some(a) = p.next().and_then(|s| s.parse().ok()) else {
+            continue;
+        };
+        let Some(b) = p.next().and_then(|s| s.parse().ok()) else {
+            continue;
+        };
+        let st = p.next().unwrap_or("neutral");
+        let status = match st {
+            "war" => -1,
+            "peace" => 1,
+            _ => 0,
+        };
+        out.push(WarReportRow {
+            eve_id_a: a,
+            eve_id_b: b,
+            status,
+        });
+    }
+    out
+}
+
+/// VU (VOG_UPDATE): `x y`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VogUpdate {
+    pub x: i32,
+    pub y: i32,
+}
+
+pub fn parse_vu_message(body: &str) -> Option<VogUpdate> {
+    let line = first_data_line(body)?;
+    let mut p = line.split_whitespace();
+    Some(VogUpdate {
+        x: p.next()?.parse().ok()?,
+        y: p.next()?.parse().ok()?,
+    })
+}
+
+/// PH (PHOTO_SIGNATURE): `x y signature`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PhotoSignature {
+    pub x: i32,
+    pub y: i32,
+    pub signature: String,
+}
+
+pub fn parse_ph_message(body: &str) -> Option<PhotoSignature> {
+    let line = first_data_line(body)?;
+    let mut p = line.split_whitespace();
+    Some(PhotoSignature {
+        x: p.next()?.parse().ok()?,
+        y: p.next()?.parse().ok()?,
+        signature: p.next().unwrap_or("NO_SIG").to_string(),
+    })
+}
+
+/// ST (STATUE_INFO): `x y display_id age statue_age name clothing final_words`
+#[derive(Debug, Clone, PartialEq)]
+pub struct StatueInfo {
+    pub x: i32,
+    pub y: i32,
+    pub display_id: i32,
+    pub age: f32,
+    pub statue_age: f32,
+    pub name: String,
+    pub clothing_set: String,
+    pub final_words: String,
+}
+
+pub fn parse_st_message(body: &str) -> Option<StatueInfo> {
+    let line = first_data_line(body)?;
+    let mut p = line.split_whitespace();
+    Some(StatueInfo {
+        x: p.next()?.parse().ok()?,
+        y: p.next()?.parse().ok()?,
+        display_id: p.next()?.parse().ok()?,
+        age: p.next()?.parse().ok()?,
+        statue_age: p.next()?.parse().ok()?,
+        name: p.next().unwrap_or("~").replace('_', " "),
+        clothing_set: p.next().unwrap_or("0;0;0;0;0;0").to_string(),
+        final_words: p.next().unwrap_or("~").replace('_', " "),
+    })
+}
+
+/// One RR (ROCKET_RIDE) row: `p_id o_id`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RocketRide {
+    pub player_id: i32,
+    pub object_id: i32,
+}
+
+pub fn parse_rr_message(body: &str) -> Vec<RocketRide> {
+    let mut out = Vec::new();
+    for line in data_lines(body) {
+        let mut p = line.split_whitespace();
+        let Some(pid) = p.next().and_then(|s| s.parse().ok()) else {
+            continue;
+        };
+        let Some(oid) = p.next().and_then(|s| s.parse().ok()) else {
+            continue;
+        };
+        out.push(RocketRide {
+            player_id: pid,
+            object_id: oid,
+        });
+    }
+    out
+}
+
+/// RA (ROCKET_ACCOUNT): `steam_key account_url`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RocketAccount {
+    pub steam_key: String,
+    pub account_url: String,
+}
+
+pub fn parse_ra_message(body: &str) -> Option<RocketAccount> {
+    let line = first_data_line(body)?;
+    let mut p = line.split_whitespace();
+    Some(RocketAccount {
+        steam_key: p.next()?.to_string(),
+        account_url: p.next().unwrap_or("").to_string(),
+    })
+}
+
+/// BB (BAD_BIOMES): biome ids (names ignored for pathfind).
+pub fn parse_bb_message(body: &str) -> Vec<u8> {
+    let mut out = Vec::new();
+    for line in data_lines(body) {
+        let Some(id_s) = line.split_whitespace().next() else {
+            continue;
+        };
+        if let Ok(id) = id_s.parse::<i32>() {
+            if (0..=255).contains(&id) {
+                out.push(id as u8);
+            }
+        }
+    }
+    out
+}
+
 // ---------------------------------------------------------------------------
 // InboundMessage — unified parse table
 // ---------------------------------------------------------------------------
@@ -1179,6 +1555,23 @@ pub enum InboundMessage {
     PosseJoin(Vec<i32>),
     MonumentCall(MonumentCall),
     Ghost(Vec<i32>),
+    Grave(Grave),
+    GraveMove(GraveMove),
+    GraveOld(GraveOld),
+    OwnerList(OwnerList),
+    Following(Vec<FollowingRow>),
+    Exiled(Vec<ExiledRow>),
+    Homeland(Homeland),
+    LearnedTools(Vec<i32>),
+    ToolExperts(Vec<i32>),
+    ToolSlots(ToolSlots),
+    WarReport(Vec<WarReportRow>),
+    VogUpdate(VogUpdate),
+    PhotoSignature(PhotoSignature),
+    StatueInfo(StatueInfo),
+    RocketRide(Vec<RocketRide>),
+    RocketAccount(RocketAccount),
+    BadBiomes(Vec<u8>),
     /// Recognized tag without a dedicated structured parser yet (payload kept).
     Known {
         tag: ServerTag,
@@ -1234,6 +1627,23 @@ impl InboundMessage {
             Self::PosseJoin(_) => ServerTag::Pj,
             Self::MonumentCall(_) => ServerTag::Mn,
             Self::Ghost(_) => ServerTag::Gh,
+            Self::Grave(_) => ServerTag::Gv,
+            Self::GraveMove(_) => ServerTag::Gm,
+            Self::GraveOld(_) => ServerTag::Go,
+            Self::OwnerList(_) => ServerTag::Ow,
+            Self::Following(_) => ServerTag::Fw,
+            Self::Exiled(_) => ServerTag::Ex,
+            Self::Homeland(_) => ServerTag::Hl,
+            Self::LearnedTools(_) => ServerTag::Lr,
+            Self::ToolExperts(_) => ServerTag::Te,
+            Self::ToolSlots(_) => ServerTag::Ts,
+            Self::WarReport(_) => ServerTag::Wr,
+            Self::VogUpdate(_) => ServerTag::Vu,
+            Self::PhotoSignature(_) => ServerTag::Ph,
+            Self::StatueInfo(_) => ServerTag::St,
+            Self::RocketRide(_) => ServerTag::Rr,
+            Self::RocketAccount(_) => ServerTag::Ra,
+            Self::BadBiomes(_) => ServerTag::Bb,
             Self::Known { tag, .. } => *tag,
             Self::Unknown { .. } => return None,
         })
@@ -1376,6 +1786,83 @@ pub fn parse_inbound(body: &str) -> InboundMessage {
             },
         },
         ServerTag::Gh => InboundMessage::Ghost(parse_gh_message(body)),
+        ServerTag::Gv => match parse_gv_message(body) {
+            Some(g) => InboundMessage::Grave(g),
+            None => InboundMessage::Known {
+                tag,
+                body: body.to_string(),
+            },
+        },
+        ServerTag::Gm => match parse_gm_message(body) {
+            Some(g) => InboundMessage::GraveMove(g),
+            None => InboundMessage::Known {
+                tag,
+                body: body.to_string(),
+            },
+        },
+        ServerTag::Go => match parse_go_message(body) {
+            Some(g) => InboundMessage::GraveOld(g),
+            None => InboundMessage::Known {
+                tag,
+                body: body.to_string(),
+            },
+        },
+        ServerTag::Ow => match parse_ow_message(body) {
+            Some(o) => InboundMessage::OwnerList(o),
+            None => InboundMessage::Known {
+                tag,
+                body: body.to_string(),
+            },
+        },
+        ServerTag::Fw => InboundMessage::Following(parse_fw_message(body)),
+        ServerTag::Ex => InboundMessage::Exiled(parse_ex_message(body)),
+        ServerTag::Hl => match parse_hl_message(body) {
+            Some(h) => InboundMessage::Homeland(h),
+            None => InboundMessage::Known {
+                tag,
+                body: body.to_string(),
+            },
+        },
+        ServerTag::Lr => InboundMessage::LearnedTools(parse_lr_message(body)),
+        ServerTag::Te => InboundMessage::ToolExperts(parse_te_message(body)),
+        ServerTag::Ts => match parse_ts_message(body) {
+            Some(t) => InboundMessage::ToolSlots(t),
+            None => InboundMessage::Known {
+                tag,
+                body: body.to_string(),
+            },
+        },
+        ServerTag::Wr => InboundMessage::WarReport(parse_wr_message(body)),
+        ServerTag::Vu => match parse_vu_message(body) {
+            Some(v) => InboundMessage::VogUpdate(v),
+            None => InboundMessage::Known {
+                tag,
+                body: body.to_string(),
+            },
+        },
+        ServerTag::Ph => match parse_ph_message(body) {
+            Some(p) => InboundMessage::PhotoSignature(p),
+            None => InboundMessage::Known {
+                tag,
+                body: body.to_string(),
+            },
+        },
+        ServerTag::St => match parse_st_message(body) {
+            Some(s) => InboundMessage::StatueInfo(s),
+            None => InboundMessage::Known {
+                tag,
+                body: body.to_string(),
+            },
+        },
+        ServerTag::Rr => InboundMessage::RocketRide(parse_rr_message(body)),
+        ServerTag::Ra => match parse_ra_message(body) {
+            Some(r) => InboundMessage::RocketAccount(r),
+            None => InboundMessage::Known {
+                tag,
+                body: body.to_string(),
+            },
+        },
+        ServerTag::Bb => InboundMessage::BadBiomes(parse_bb_message(body)),
         other => InboundMessage::Known {
             tag: other,
             body: body.to_string(),
@@ -1693,5 +2180,52 @@ mod tests {
         assert_eq!((cr.food_id, cr.bonus), (31, 2));
         let mn = parse_mn_message("MN\n4 5 999\n").unwrap();
         assert_eq!(mn.object_id, 999);
+    }
+
+    #[test]
+    fn parse_remaining_server_tags() {
+        let gv = parse_gv_message("GV\n10 20 7\n").unwrap();
+        assert_eq!((gv.x, gv.y, gv.player_id), (10, 20, 7));
+        let gm = parse_gm_message("GM\n1 2 3 4 1\n").unwrap();
+        assert!(gm.swap_dest && gm.xd == 3);
+        let go = parse_go_message("GO\n0 0 9 19 12.5 Alice 8 1 eve=1\n").unwrap();
+        assert_eq!(go.name, "Alice");
+        assert_eq!(go.eve_id, 1);
+        let ow = parse_ow_message("OW\n5 6 7 8\n").unwrap();
+        assert_eq!(ow.owner_ids, vec![7, 8]);
+        let fw = parse_fw_message("FW\n2 3 1\n4 -1 0\n");
+        assert_eq!(fw[0].leader_id, 3);
+        let ex = parse_ex_message("EX\n9 -1\n9 3\n");
+        assert_eq!(ex[0].exiler_id, -1);
+        let hl = parse_hl_message("HL\n1 2 Smith\n").unwrap();
+        assert_eq!(hl.family_name.as_deref(), Some("Smith"));
+        assert!(parse_hl_message("HL\n1 2 0\n").unwrap().family_name.is_none());
+        assert_eq!(parse_lr_message("LR\n33 44\n"), vec![33, 44]);
+        assert_eq!(parse_te_message("TE\n7 8\n"), vec![7, 8]);
+        let ts = parse_ts_message("TS\n2 6\n").unwrap();
+        assert_eq!((ts.used, ts.total), (2, 6));
+        let wr = parse_wr_message("WR\n1 2 war\n3 4 peace\n");
+        assert_eq!(wr[0].status, -1);
+        assert_eq!(wr[1].status, 1);
+        let vu = parse_vu_message("VU\n11 12\n").unwrap();
+        assert_eq!((vu.x, vu.y), (11, 12));
+        let ph = parse_ph_message("PH\n0 0 abc\n").unwrap();
+        assert_eq!(ph.signature, "abc");
+        assert!(matches!(
+            parse_inbound("GV\n1 2 3\n"),
+            InboundMessage::Grave(_)
+        ));
+        assert!(matches!(
+            parse_inbound("FW\n1 2 0\n"),
+            InboundMessage::Following(ref v) if v.len() == 1
+        ));
+        assert!(matches!(
+            parse_inbound("BB\n0 GROUND\n"),
+            InboundMessage::BadBiomes(_)
+        ));
+        assert_eq!(
+            parse_inbound("HL\n0 0 0\n").tag(),
+            Some(ServerTag::Hl)
+        );
     }
 }

@@ -97,10 +97,10 @@ Rust: `PersonAnchors` post-chain; `clothing_screen_pos` flip+rotate; interleave 
 Jason: `getArmHoldingParameters`, HoldingPos from back hand or body;  
 rideable person-under-vehicle with behind/front split; PE body under arm / face after hat.
 
-Rust: same hooks; PE still simplified vs mid-arm bodyEmot interleave (residual).
+Rust: same hooks; **bodyEmot** at `topBackArm` (under clothes + arm) like C++.
 
 ## Residual (not body-assembly)
 
-- Full PE mid-arm bodyEmot interleave
-- Frozen-arm full-layer anim override detail
-- Pixel-identical OpenGL filtering
+- Face/eye/mouth/other still after the person+clothes pass (C++ draws them at eyes/head sprites, before hat). **headEmot** after hat matches.
+- Rideable **frozenArm** keeps drawing arm sprites (C++ freezes anim clocks on those layers rather than skipping them). HoldingPos for rideable is still hand (`hideClosestArm==0`).
+- Pixel-identical OpenGL filtering / subpixel (soft-FB nearest blit)

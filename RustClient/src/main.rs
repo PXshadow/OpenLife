@@ -46,6 +46,8 @@ fn usage() {
   ohol-headless --bake-ground-atlas    optional full multi-page OLGA ground dump
   ohol-headless --bake-sprite-atlas    optional full multi-page OLSA sprite dump
   ohol-headless --bench-load           time headless + graphics content load
+  ohol-headless --bench-fps            soft-FB SceneRenderer FPS (real content)
+  ohol-headless --bench-present        Soft vs GPU present-path CPU cost (no window)
   ohol-headless --probe-move           login, MOVE, wait for PM/PU
   ohol-headless --probe-actions        encode/send USE/DROP/REMV/SELF
   ohol-headless --probe-play           MOVE + SAY + USE playtest
@@ -76,6 +78,24 @@ fn main() -> ExitCode {
     if args.iter().any(|a| a == "-h" || a == "--help") {
         usage();
         return ExitCode::SUCCESS;
+    }
+    if args.iter().any(|a| a == "--bench-fps") {
+        return match run_bench_fps(&args) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(e) => {
+                eprintln!("bench-fps: {e}");
+                ExitCode::FAILURE
+            }
+        };
+    }
+    if args.iter().any(|a| a == "--bench-present") {
+        return match run_bench_present(&args) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(e) => {
+                eprintln!("bench-present: {e}");
+                ExitCode::FAILURE
+            }
+        };
     }
     if args.iter().any(|a| a == "--bake-content") {
         return match run_bake_content(&args) {
@@ -339,6 +359,241 @@ fn run_snapshot(args: &[String]) -> anyhow::Result<PathBuf> {
 }
 
 /// Time headless + graphics content load (OLC1/OLT1/OLA1 + sprites).
+/// Compare Soft vs GPU **present-path** CPU work (no window / no wgpu device).
+///
+/// Scene authoring is identical either way. This isolates:
+/// - Soft: pack RGBA8 → u32 ARGB (minifb path)
+/// - GPU: nearest-stretch soft-FB → typical window size (pre-upload work in ohol-client)
+fn run_bench_present(args: &[String]) -> anyhow::Result<()> {
+    use ohol_headless::render::{stretch_rgba_nearest, Framebuffer, CLEAR_RGBA};
+
+    let fb_w = 960u32;
+    let fb_h = 540u32;
+    let win_w = flag_value(args, "--win-w")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(1920u32);
+    let win_h = flag_value(args, "--win-h")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(1080u32);
+    let n = flag_value(args, "--frames")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(240usize);
+
+    let mut fb = Framebuffer::new(fb_w, fb_h);
+    fb.clear(CLEAR_RGBA);
+    // Noise so stretch/pack cannot be optimized away as constant fill.
+    for (i, p) in fb.pixels.chunks_exact_mut(4).enumerate() {
+        let v = (i as u8).wrapping_mul(17);
+        p[0] = v;
+        p[1] = v.wrapping_add(40);
+        p[2] = v.wrapping_add(80);
+        p[3] = 255;
+    }
+
+    let mut soft_buf = vec![0u32; (fb_w * fb_h) as usize];
+    let t0 = Instant::now();
+    for _ in 0..n {
+        // Same packing as ohol_client soft present (`rgba_to_u32`).
+        let rgba = &fb.pixels;
+        let out = &mut soft_buf[..];
+        let m = out.len().min(rgba.len() / 4);
+        for i in 0..m {
+            let o = i * 4;
+            let r = rgba[o] as u32;
+            let g = rgba[o + 1] as u32;
+            let b = rgba[o + 2] as u32;
+            out[i] = (255 << 24) | (r << 16) | (g << 8) | b;
+        }
+        std::hint::black_box(&soft_buf[0]);
+    }
+    let soft_elapsed = t0.elapsed().as_secs_f64().max(1e-9);
+    let soft_fps = n as f64 / soft_elapsed;
+    let soft_ms = (soft_elapsed / n as f64) * 1000.0;
+
+    let mut gpu_dst = vec![0u8; (win_w * win_h * 4) as usize];
+    let t1 = Instant::now();
+    for _ in 0..n {
+        stretch_rgba_nearest(&fb.pixels, fb_w, fb_h, &mut gpu_dst, win_w, win_h);
+        std::hint::black_box(&gpu_dst[0]);
+    }
+    let gpu_elapsed = t1.elapsed().as_secs_f64().max(1e-9);
+    let gpu_fps = n as f64 / gpu_elapsed;
+    let gpu_ms = (gpu_elapsed / n as f64) * 1000.0;
+
+    // Ideal GPU path (current ohol-client): memcpy soft-FB → present buffer, wgpu scales.
+    let mut gpu_copy = vec![0u8; fb.pixels.len()];
+    let t2 = Instant::now();
+    for _ in 0..n {
+        gpu_copy.copy_from_slice(&fb.pixels);
+        std::hint::black_box(&gpu_copy[0]);
+    }
+    let copy_elapsed = t2.elapsed().as_secs_f64().max(1e-9);
+    let copy_fps = n as f64 / copy_elapsed;
+    let copy_ms = (copy_elapsed / n as f64) * 1000.0;
+
+    eprintln!("bench-present: soft-FB {fb_w}x{fb_h} → present paths ({n} frames)");
+    eprintln!(
+        "bench-present: Soft (RGBA→u32 pack)              → {soft_fps:.0} FPS ({soft_ms:.3} ms/frame)"
+    );
+    eprintln!(
+        "bench-present: GPU memcpy (wgpu scales window)  → {copy_fps:.0} FPS ({copy_ms:.3} ms/frame) [+ wgpu upload/draw]"
+    );
+    eprintln!(
+        "bench-present: old CPU stretch→{win_w}x{win_h}     → {gpu_fps:.0} FPS ({gpu_ms:.3} ms/frame) [avoided now]"
+    );
+    eprintln!(
+        "bench-present: Settings → Graphics: \"GPU present (wgpu)\" vs \"Soft present (CPU)\" — Restart to apply"
+    );
+    eprintln!(
+        "bench-present: note — scene author soft-FB is shared (~50–70 FPS, see --bench-fps); present is rarely the limiter"
+    );
+    Ok(())
+}
+
+/// Soft-FB SceneRenderer FPS with real prefer_cache content (prints numbers).
+///
+/// This is the honest play-path authoring cost (CPU soft-FB). GPU present only
+/// uploads/scales the buffer; it does not remove this cost.
+fn run_bench_fps(args: &[String]) -> anyhow::Result<()> {
+    use ohol_headless::anim_bank::AnimBank;
+    use ohol_headless::client_map::{ClientMap, MapTile};
+    use ohol_headless::content::ClientContent;
+    use ohol_headless::ground_sprites::GroundBank;
+    use ohol_headless::live_object::LiveWorld;
+    use ohol_headless::parse::parse_pu_line;
+    use ohol_headless::render::{
+        Framebuffer, SceneRenderer, ZOOM_DEFAULT, ZOOM_MAX,
+    };
+    use ohol_headless::sprite_bank::SpriteBank;
+
+    let root = resolve_content_root(flag_value(args, "--src").map(Path::new))
+        .map_err(|e| anyhow::anyhow!(e))?;
+    eprintln!("bench-fps: content root {}", root.display());
+    let t0 = Instant::now();
+    let content = ClientContent::load_prefer_cache(&root).map_err(|e| anyhow::anyhow!(e))?;
+    let mut anims = AnimBank::load_prefer_cache(&root);
+    let mut sprites = SpriteBank::load_prefer_cache(&root);
+    let mut ground = GroundBank::load_prefer_cache(&root);
+    let _ = ground.preload_overlays();
+    eprintln!(
+        "bench-fps: load {:.2}s objects={} anim={} sprites_meta={}",
+        t0.elapsed().as_secs_f64(),
+        content.objects.len(),
+        anims.len(),
+        sprites.meta_count()
+    );
+    sprites.preload([19, 33, 144]);
+
+    let mut map = ClientMap::new();
+    for y in -8i32..=8 {
+        for x in -12i32..=12 {
+            let mut t = MapTile::empty();
+            // Large same-biome plateaus → wholeSheet path like real play.
+            t.biome = if y < -2 {
+                0
+            } else if y > 2 {
+                2
+            } else {
+                3
+            };
+            if (x + y * 2).rem_euclid(8) == 0 {
+                t.object_id = 33;
+                t.object_raw = "33".into();
+            }
+            map.set(x, y, t);
+        }
+    }
+    let mut world = LiveWorld::new();
+    // Minimal our-player so music/emote paths are warm.
+    let pu = parse_pu_line(
+        "1 19 0 0 0 0 0 0 0 0 -1 0.5 0 0 0 0 20.0 0.05 3.75 0;0;0;0;0;0 0 0 -1 0 0",
+    )
+    .ok_or_else(|| anyhow::anyhow!("bad fixture PU"))?;
+    world.apply_pu(&pu);
+    world.set_our_id(1);
+
+    let mut scene = SceneRenderer::default();
+    scene.set_content_root(Some(&root));
+    scene.ground = ground;
+    scene.draw_hud = false; // isolate world draw cost
+    // Measure both every-frame overlay and soft-FB period=2 (play default).
+    scene.ground_overlay_period = 1;
+    scene.camera.x = 0.0;
+    scene.camera.y = 0.0;
+    let mut fb = Framebuffer::new(960, 540);
+
+    let measure = |scene: &mut SceneRenderer,
+                   map: &mut ClientMap,
+                   world: &mut LiveWorld,
+                   sprites: &mut SpriteBank,
+                   anims: &mut AnimBank,
+                   content: &ClientContent,
+                   fb: &mut Framebuffer,
+                   zoom: f32,
+                   label: &str| {
+        scene.camera.zoom = zoom;
+        for _ in 0..8 {
+            scene.draw(fb, map, world, content, sprites, anims, 1.0 / 60.0);
+        }
+        let n = 120usize;
+        let t0 = Instant::now();
+        for _ in 0..n {
+            scene.draw(fb, map, world, content, sprites, anims, 1.0 / 60.0);
+        }
+        let elapsed = t0.elapsed().as_secs_f64().max(1e-9);
+        let fps = n as f64 / elapsed;
+        let ms = (elapsed / n as f64) * 1000.0;
+        eprintln!("bench-fps: {label} zoom={zoom:.0} → {fps:.1} FPS ({ms:.2} ms/frame, {n} frames)");
+        fps
+    };
+
+    let fps_def = measure(
+        &mut scene,
+        &mut map,
+        &mut world,
+        &mut sprites,
+        &mut anims,
+        &content,
+        &mut fb,
+        ZOOM_DEFAULT,
+        "default overlay=every",
+    );
+    let fps_max = measure(
+        &mut scene,
+        &mut map,
+        &mut world,
+        &mut sprites,
+        &mut anims,
+        &content,
+        &mut fb,
+        ZOOM_MAX,
+        "max_zoom overlay=every",
+    );
+    scene.ground_overlay_period = 2;
+    let fps_play = measure(
+        &mut scene,
+        &mut map,
+        &mut world,
+        &mut sprites,
+        &mut anims,
+        &content,
+        &mut fb,
+        ZOOM_DEFAULT,
+        "default overlay=1/2 (play)",
+    );
+    eprintln!(
+        "bench-fps: summary every={:.1}/{:.1} play_period2={:.1} (target ≥60)",
+        fps_def, fps_max, fps_play
+    );
+    eprintln!(
+        "bench-fps: note — Jason C++ uses OpenGL (GPU quads); soft-FB is CPU per-pixel. GPU present only scales the buffer."
+    );
+    if fps_play < 20.0 {
+        anyhow::bail!("play soft-FB FPS {fps_play:.1} < 20 — too heavy");
+    }
+    Ok(())
+}
+
 fn run_bench_load(args: &[String]) -> anyhow::Result<()> {
     let src = flag_value(args, "--src").map(Path::new);
     let root = resolve_content_root(src).map_err(|e| anyhow::anyhow!(e))?;

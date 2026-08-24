@@ -117,6 +117,8 @@ pub struct MusicBank {
     last_played_cap: usize,
     /// Whether music bed is considered started (C++ `musicStarted`).
     pub started: bool,
+    /// Wall time when the current bed was last queued (loop when duration elapses).
+    last_started: Option<std::time::Instant>,
     /// Current age / rate after [`Self::restart_music`].
     pub age: f64,
     pub age_rate: f64,
@@ -124,6 +126,10 @@ pub struct MusicBank {
     pub current_block: Option<u32>,
     /// P5#39 settings: when true, [`Self::play_block`] no-ops.
     pub muted: bool,
+    /// C++ `addMusicSuppression` stack (starving, etc.). >0 silences bed.
+    pub suppress_count: i32,
+    /// C++ `musicHeadroom` — leave room for SFX (0.15 → music at 85% of slider).
+    pub headroom: f32,
 }
 
 impl MusicBank {
@@ -139,10 +145,13 @@ impl MusicBank {
             last_played: Vec::new(),
             last_played_cap: 16,
             started: false,
+            last_started: None,
             age: 0.0,
             age_rate: 0.0,
             current_block: None,
             muted: false,
+            suppress_count: 0,
+            headroom: 0.15,
         }
     }
 
@@ -151,7 +160,23 @@ impl MusicBank {
         self.muted = muted;
         if muted {
             self.started = false;
+            self.last_started = None;
         }
+    }
+
+    /// C++ `addMusicSuppression` / `removeMusicSuppression`.
+    pub fn set_starving_suppress(&mut self, starving: bool) {
+        if starving {
+            if self.suppress_count < 1 {
+                self.suppress_count = 1;
+            }
+        } else if self.suppress_count > 0 {
+            self.suppress_count = 0;
+        }
+    }
+
+    pub fn is_suppressed(&self) -> bool {
+        self.suppress_count > 0
     }
 
     pub fn is_muted(&self) -> bool {
@@ -247,6 +272,7 @@ impl MusicBank {
     pub fn stop(&mut self) {
         self.started = false;
         self.current_block = None;
+        self.last_started = None;
     }
 
     /// C++ `restartMusic(age, ageRate, forceNow)` — select age block; optionally
@@ -272,6 +298,48 @@ impl MusicBank {
     /// Play bed for age (force now). Returns block on successful fire.
     pub fn play_for_age(&mut self, age: f64, age_rate: f64) -> Option<u32> {
         self.restart_music(age, age_rate, true)
+    }
+
+    /// C++ `stepMusicPlayer` lite — keep the age-matched bed playing.
+    ///
+    /// - Picks [`next_music_block`] from live age / age rate.
+    /// - Starts or switches beds when the block changes or music is not started.
+    /// - Re-queues when the current bed's duration has elapsed (simple loop).
+    /// - No-ops when muted / music_muted / loudness 0.
+    pub fn step_music(&mut self, age: f64, age_rate: f64) -> Option<u32> {
+        if self.muted || crate::sound_bank::music_muted() || self.is_suppressed() {
+            return None;
+        }
+        if self.loudness <= 1e-5 {
+            return None;
+        }
+        self.age = age;
+        self.age_rate = age_rate;
+        let want = next_music_block(age, age_rate);
+        let block_changed = self.current_block != Some(want);
+        let need_start = !self.started || self.current_block.is_none();
+        let need_loop = if !block_changed && !need_start {
+            if let Some(t0) = self.last_started {
+                let dur = self
+                    .pcm
+                    .get(&want)
+                    .map(|p| p.duration_secs())
+                    .filter(|d| *d > 0.05)
+                    .unwrap_or(30.0);
+                t0.elapsed().as_secs_f64() >= dur * 0.98
+            } else {
+                true
+            }
+        } else {
+            false
+        };
+        if need_start || block_changed || need_loop {
+            if self.play_block(want) {
+                return Some(want);
+            }
+            return None;
+        }
+        Some(want)
     }
 
     /// Ensure OGG is decoded; returns mono PCM or None (missing / bad).
@@ -365,10 +433,10 @@ impl MusicBank {
     /// - When [`crate::sound_bank::music_muted`] (P5#39 Settings / C++ `musicOff`), skips
     ///   device queue but still records `last_played` for headless tests.
     pub fn play_block(&mut self, block: u32) -> bool {
-        if self.muted || block == 0 {
+        if self.muted || self.is_suppressed() || block == 0 {
             return false;
         }
-        let vol = self.loudness.clamp(0.0, 1.0);
+        let vol = (self.loudness * (1.0 - self.headroom.clamp(0.0, 0.9))).clamp(0.0, 1.0);
         let (samples, rate) = {
             let Some(p) = self.ensure(block) else {
                 return false;
@@ -378,8 +446,12 @@ impl MusicBank {
         #[cfg(feature = "audio")]
         {
             if !crate::sound_bank::music_muted() {
-                // Device path soft-fails (no device / OHOL_AUDIO_DISABLE) but still true.
-                let _ = crate::sound_bank::play_pcm_samples(&samples, rate, vol);
+                // Crossfade: fade previous bed, fade-in new (~0.4s).
+                crate::sound_bank::fade_out_music_beds();
+                let (l, r) = crate::sound_bank::stereo_gains_constant_power(vol, 0.5);
+                let _ = crate::sound_bank::play_pcm_samples_stereo_ex(
+                    &samples, rate, l, r, true, 0.4,
+                );
             }
         }
         #[cfg(not(feature = "audio"))]
@@ -389,6 +461,7 @@ impl MusicBank {
         self.record_played(block);
         self.current_block = Some(block);
         self.started = true;
+        self.last_started = Some(std::time::Instant::now());
         true
     }
 
@@ -586,6 +659,43 @@ mod tests {
         bank.stop();
         assert!(!bank.started);
         assert!(bank.current_block.is_none());
+    }
+
+    #[test]
+    fn starving_suppress_blocks_play() {
+        let mut bank = MusicBank::new(".");
+        let samples: Vec<i16> = (0..64).map(|i| i as i16).collect();
+        assert!(bank.ensure_pcm(1, 22050, samples).is_some());
+        bank.set_starving_suppress(true);
+        assert!(bank.is_suppressed());
+        assert!(!bank.play_block(1));
+        assert!(bank.step_music(0.0, 0.0).is_none());
+        bank.set_starving_suppress(false);
+        assert!(bank.play_block(1));
+    }
+
+    #[test]
+    fn step_music_starts_and_switches_age_block() {
+        let mut bank = MusicBank::new(".");
+        // Block 1 for young age, block 3 for older — inject both.
+        let samples: Vec<i16> = (0..128).map(|i| i as i16).collect();
+        assert!(bank.ensure_pcm(1, 22050, samples.clone()).is_some());
+        assert!(bank.ensure_pcm(3, 22050, samples).is_some());
+        // age 0 → block 1
+        assert_eq!(bank.step_music(0.0, 0.0), Some(1));
+        assert_eq!(bank.current_block, Some(1));
+        assert!(bank.started);
+        // Same block: no re-fire (last_played stays one entry unless loop)
+        bank.clear_last_played();
+        assert_eq!(bank.step_music(1.0, 0.0), Some(1));
+        assert!(bank.last_played.is_empty(), "same block should not re-queue");
+        // Jump to age that maps to block 3 (ceil(12/5)=3)
+        assert_eq!(bank.step_music(12.0, 0.0), Some(3));
+        assert_eq!(bank.current_block, Some(3));
+        assert_eq!(bank.last_played, vec![3]);
+        // Mute stops stepping
+        bank.set_muted(true);
+        assert!(bank.step_music(12.0, 0.0).is_none());
     }
 
     #[test]

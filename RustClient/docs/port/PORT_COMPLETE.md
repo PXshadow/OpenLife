@@ -29,7 +29,7 @@ This file answers only: **can you live a life on a compatible server with this c
 | Item | Doc |
 |------|-----|
 | In-row residuals (reverb, music step, chrome, …) | notes on DONE rows in TODO |
-| readyPending mid-move PU hold | TODO deferred |
+| readyPending mid-move PU hold | **DONE** |
 | Photo / full editor / wgpu | non-goals |
 
 ---

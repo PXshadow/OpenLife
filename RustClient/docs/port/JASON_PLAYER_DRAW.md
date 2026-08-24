@@ -141,6 +141,7 @@ Mouth skip when any emot has `mouthEmot != 0`.
 - [x] Clothing attach to **head/body/foot animated positions** (not feet-only).
 - [x] **clothingOffset rotated by body-part rot** (and flipX) before attach (`animationBank` cPos).
 - [x] Clothing **interleaved**: bottom/tunic/backpack under topBackArm; shoes on feet; hat after body sprites.
+- [x] **bodyEmot** at topBackArm (under clothes + arm); headEmot after hat.
 - [x] Clothing draw order: shoes/tunic/bottom/backpack/hat with contained.
 - [x] Full age-visible person layers paint (pose all layers; age only skips draw).
 - [x] Age body/head offsets (`ageControl.cpp`); exclusive age end bound.

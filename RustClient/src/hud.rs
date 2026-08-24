@@ -2,11 +2,11 @@
 //!
 //! C++: `LivingLifePage` hunger boxes + temp arrows
 //! (`hungerBoxes.tga`, `hungerBoxFills.tga`, `tempArrows.tga`, …).
-//! Residual chrome: pencilFont / pencilErased TGAs, yumSlip1–4, full/hungry/
-//! starving slips (slide + wiggle + hunger.aiff), homeArrows, home-pos stack
-//! wire, temp-meter food_time tip, FX `responsible_id` deferral (session).
-//! L-SAY / P3#15: chalkBlot + handwritingFont TGAs for speech bubbles
-//! (C++ `drawChalkBackgroundString`); 5×7 pencil glyphs when TGAs missing.
+//! Residual chrome: yumSlip1–4, full/hungry/starving slips (slide + wiggle +
+//! hunger.aiff), homeArrows, home-pos stack wire, temp-meter food_time tip,
+//! FX `responsible_id` deferral (session).
+//! Fonts (pencil / pencil-erased / handwriting) load from OLHU format-2 cache
+//! or TGA; 5×7 glyphs when missing.
 //! Wire: FX (`FoodChange`) + HX (`HeatChange`) already applied on session;
 //! this module turns those fields into screen-space draw + max-capacity peaks.
 //!
@@ -14,7 +14,7 @@
 //! Assets live under `OneLifeGameSourceData/graphics/` (not OLC1 content).
 //! Prefer real `graphics/*.tga` when present; procedural fallback otherwise.
 //!
-//! Chrome is **not** OLC1/OLT1 — TGA (or procedural) only. Soft-FB only; min deps.
+//! Chrome is **not** OLC1/OLT1 — OLHU cache / TGA / procedural. Soft-FB only; min deps.
 
 use std::path::{Path, PathBuf};
 
@@ -271,6 +271,8 @@ pub struct HudState {
     pub old_last_ate: Vec<OldHudText>,
     /// Solid home-arrow index 0..7 (`getHomeDir`); `None` = no home marker.
     pub home_arrow: Option<usize>,
+    /// C++ homeSlip2 / `getHomeDir(..., j=1)` ancient homeland.
+    pub ancient_home_arrow: Option<usize>,
     /// Erased trail fades for each home arrow frame (C++ `HomeArrow.fade`).
     pub home_arrow_fades: [f32; NUM_HOME_ARROWS],
     /// P3#17: pencil label under home arrows (`MAP` / `BABY` / `LEAD` / …).
@@ -286,6 +288,8 @@ pub struct HudState {
     pub pointer_valid: bool,
     /// Approximate age years for hunger-slip thresholds (adult default).
     pub age_years: f32,
+    /// C++ `mBadBiomeNames` / object tip at screen-center (empty = none).
+    pub hover_tip: Option<String>,
 }
 
 impl Default for HudState {
@@ -326,6 +330,7 @@ impl Default for HudState {
             current_last_ate_string: None,
             old_last_ate: Vec::new(),
             home_arrow: None,
+            ancient_home_arrow: None,
             home_arrow_fades: [0.0; NUM_HOME_ARROWS],
             map_pointer_label: None,
             hide_gui: false,
@@ -333,7 +338,27 @@ impl Default for HudState {
             pointer_y: 0.0,
             pointer_valid: false,
             age_years: 20.0,
+            hover_tip: None,
         }
+    }
+}
+
+/// First token of object name/description without `#tags` (C++ HUD last-ate string).
+pub fn object_hud_name(def: &crate::content::ClientObjectDef) -> String {
+    let raw = if def.name.is_empty() {
+        def.description.as_str()
+    } else {
+        def.name.as_str()
+    };
+    let token = raw
+        .split(|c: char| c == '#' || c == '\n')
+        .next()
+        .unwrap_or("")
+        .trim();
+    if token.is_empty() {
+        format!("#{}", def.id)
+    } else {
+        token.to_string()
     }
 }
 
@@ -387,7 +412,7 @@ impl HudState {
             self.set_yum_slip_multiplier(self.yum_multiplier, 0);
         }
 
-        // Last-ate label + erased stack (object name stand-in = `#id`).
+        // Last-ate label — `#id` until [`Self::resolve_last_ate_name`] (content names).
         let new_ate = if f.last_ate_id > 0 {
             Some(format!("#{}", f.last_ate_id))
         } else {
@@ -410,6 +435,22 @@ impl HudState {
 
         self.recompute_hunger_slip();
         self.visible = true;
+    }
+
+    /// Replace `#id` last-ate stand-in with object display name (C++ getObject description).
+    pub fn resolve_last_ate_name(&mut self, content: &crate::content::ClientContent) {
+        if self.last_ate_id <= 0 {
+            return;
+        }
+        let name = content
+            .get(self.last_ate_id)
+            .map(object_hud_name)
+            .unwrap_or_else(|| format!("#{}", self.last_ate_id));
+        if self.current_last_ate_string.as_deref() == Some(name.as_str()) {
+            return;
+        }
+        // Don't push fade stack — this is the same eat event, just resolved.
+        self.current_last_ate_string = Some(name);
     }
 
     /// C++ yum multiplier slip flip — hide old slot, show new at hide.y−36.
@@ -1182,6 +1223,202 @@ impl HudSprites {
         Self::load_from_roots(&roots)
     }
 
+    /// Prefer `cache/olhu_hud.bin` (sliced HUD chrome + fonts); else TGA then write cache.
+    pub fn load_prefer_cache(content_root: Option<&Path>) -> Self {
+        let cache = content_root
+            .map(|c| c.join("cache").join("olhu_hud.bin"))
+            .filter(|p| p.exists());
+        if let Some(p) = cache {
+            if let Ok(mut s) = Self::load_olhu(&p) {
+                if s.pencil_font.is_none() && s.handwriting_font.is_none() {
+                    // Format-1 cache: overlay fonts from TGA and rewrite as v2.
+                    let tga = Self::with_default_roots(content_root);
+                    s.pencil_font = tga.pencil_font;
+                    s.pencil_font_erased = tga.pencil_font_erased;
+                    s.handwriting_font = tga.handwriting_font;
+                    s.pencil_from_disk = tga.pencil_from_disk;
+                    s.handwriting_from_disk = tga.handwriting_from_disk;
+                    if tga.chalk_from_disk {
+                        s.chalk_blot = tga.chalk_blot;
+                        s.chalk_from_disk = true;
+                    }
+                    let _ = s.write_olhu(&p);
+                }
+                return s;
+            }
+        }
+        let s = Self::with_default_roots(content_root);
+        if s.from_disk {
+            if let Some(root) = content_root {
+                let dir = root.join("cache");
+                let _ = std::fs::create_dir_all(&dir);
+                let _ = s.write_olhu(&dir.join("olhu_hud.bin"));
+            }
+        }
+        s
+    }
+
+    pub const OLHU_MAGIC: [u8; 4] = *b"OLHU";
+    /// Format 2 = strip groups + pencil / pencil-erased / handwriting font atlases.
+    pub const OLHU_FORMAT: u32 = 2;
+    pub const OLHU_FORMAT_V1: u32 = 1;
+
+    /// Write sliced strip sprites + HUD fonts for fast boot (format 2).
+    pub fn write_olhu(&self, path: &Path) -> std::io::Result<()> {
+        use std::io::Write;
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&Self::OLHU_MAGIC);
+        buf.extend_from_slice(&Self::OLHU_FORMAT.to_le_bytes());
+        buf.extend_from_slice(&1u32.to_le_bytes()); // data_version
+        let groups: [(&str, &[HudStripSprite]); 12] = [
+            ("hunger_boxes", &self.hunger_boxes),
+            ("hunger_fills", &self.hunger_fills),
+            ("hunger_boxes_erased", &self.hunger_boxes_erased),
+            ("hunger_fills_erased", &self.hunger_fills_erased),
+            ("temp_arrows", &self.temp_arrows),
+            ("temp_arrows_erased", &self.temp_arrows_erased),
+            ("hunger_dashes", &self.hunger_dashes),
+            ("hunger_dashes_erased", &self.hunger_dashes_erased),
+            ("hunger_bars", &self.hunger_bars),
+            ("hunger_bars_erased", &self.hunger_bars_erased),
+            ("home_arrows", &self.home_arrows),
+            ("home_arrows_erased", &self.home_arrows_erased),
+        ];
+        buf.extend_from_slice(&(groups.len() as u32).to_le_bytes());
+        for (name, sprs) in groups {
+            let nb = name.as_bytes();
+            buf.extend_from_slice(&(nb.len() as u16).to_le_bytes());
+            buf.extend_from_slice(nb);
+            buf.extend_from_slice(&(sprs.len() as u32).to_le_bytes());
+            for s in sprs {
+                buf.extend_from_slice(&s.width.to_le_bytes());
+                buf.extend_from_slice(&s.height.to_le_bytes());
+                buf.extend_from_slice(&(s.pixels.len() as u32).to_le_bytes());
+                buf.extend_from_slice(&s.pixels);
+            }
+        }
+        let fonts: [(&str, Option<&PencilFontAtlas>); 3] = [
+            ("pencil", self.pencil_font.as_ref()),
+            ("pencil_erased", self.pencil_font_erased.as_ref()),
+            ("handwriting", self.handwriting_font.as_ref()),
+        ];
+        let n_fonts = fonts.iter().filter(|(_, f)| f.is_some()).count() as u32;
+        buf.extend_from_slice(&n_fonts.to_le_bytes());
+        for (name, font) in fonts {
+            if let Some(font) = font {
+                write_olhu_font(&mut buf, name, font);
+            }
+        }
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let mut f = std::fs::File::create(path)?;
+        f.write_all(&buf)?;
+        Ok(())
+    }
+
+    pub fn load_olhu(path: &Path) -> std::io::Result<Self> {
+        let buf = std::fs::read(path)?;
+        if buf.len() < 16 || buf[0..4] != Self::OLHU_MAGIC {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "bad OLHU magic",
+            ));
+        }
+        let fmt = u32::from_le_bytes(buf[4..8].try_into().unwrap());
+        if fmt < Self::OLHU_FORMAT_V1 || fmt > Self::OLHU_FORMAT {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "OLHU format",
+            ));
+        }
+        let mut o = 16usize;
+        let n_groups = u32::from_le_bytes(buf[12..16].try_into().unwrap()) as usize;
+        let mut s = Self::procedural();
+        s.from_disk = true;
+        for _ in 0..n_groups {
+            if o + 2 > buf.len() {
+                break;
+            }
+            let nlen = u16::from_le_bytes(buf[o..o + 2].try_into().unwrap()) as usize;
+            o += 2;
+            if o + nlen + 4 > buf.len() {
+                break;
+            }
+            let name = std::str::from_utf8(&buf[o..o + nlen]).unwrap_or("");
+            o += nlen;
+            let nspr = u32::from_le_bytes(buf[o..o + 4].try_into().unwrap()) as usize;
+            o += 4;
+            let mut sprs = Vec::with_capacity(nspr);
+            for _ in 0..nspr {
+                if o + 12 > buf.len() {
+                    break;
+                }
+                let w = u32::from_le_bytes(buf[o..o + 4].try_into().unwrap());
+                let h = u32::from_le_bytes(buf[o + 4..o + 8].try_into().unwrap());
+                let plen = u32::from_le_bytes(buf[o + 8..o + 12].try_into().unwrap()) as usize;
+                o += 12;
+                if o + plen > buf.len() {
+                    break;
+                }
+                sprs.push(HudStripSprite {
+                    width: w,
+                    height: h,
+                    pixels: buf[o..o + plen].to_vec(),
+                });
+                o += plen;
+            }
+            match name {
+                "hunger_boxes" => s.hunger_boxes = sprs,
+                "hunger_fills" => s.hunger_fills = sprs,
+                "hunger_boxes_erased" => s.hunger_boxes_erased = sprs,
+                "hunger_fills_erased" => s.hunger_fills_erased = sprs,
+                "temp_arrows" => s.temp_arrows = sprs,
+                "temp_arrows_erased" => s.temp_arrows_erased = sprs,
+                "hunger_dashes" => s.hunger_dashes = sprs,
+                "hunger_dashes_erased" => s.hunger_dashes_erased = sprs,
+                "hunger_bars" => s.hunger_bars = sprs,
+                "hunger_bars_erased" => s.hunger_bars_erased = sprs,
+                "home_arrows" => s.home_arrows = sprs,
+                "home_arrows_erased" => s.home_arrows_erased = sprs,
+                _ => {}
+            }
+        }
+        if fmt >= 2 && o + 4 <= buf.len() {
+            let n_fonts = u32::from_le_bytes(buf[o..o + 4].try_into().unwrap()) as usize;
+            o += 4;
+            for _ in 0..n_fonts {
+                if o + 2 > buf.len() {
+                    break;
+                }
+                let nlen = u16::from_le_bytes(buf[o..o + 2].try_into().unwrap()) as usize;
+                o += 2;
+                if o + nlen > buf.len() {
+                    break;
+                }
+                let name = std::str::from_utf8(&buf[o..o + nlen]).unwrap_or("");
+                o += nlen;
+                if let Some(font) = read_olhu_font(&buf, &mut o) {
+                    match name {
+                        "pencil" => {
+                            s.pencil_font = Some(font);
+                            s.pencil_from_disk = true;
+                        }
+                        "pencil_erased" => {
+                            s.pencil_font_erased = Some(font);
+                        }
+                        "handwriting" => {
+                            s.handwriting_font = Some(font);
+                            s.handwriting_from_disk = true;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+        Ok(s)
+    }
+
     pub fn load_from_roots(roots: &[PathBuf]) -> Self {
         let mut s = Self::procedural();
         s.roots = roots.to_vec();
@@ -1342,6 +1579,94 @@ impl HudSprites {
             draw_pencil_string(fb, text, x, y, scale, col, align_center);
         }
     }
+}
+
+fn write_olhu_font(buf: &mut Vec<u8>, name: &str, font: &PencilFontAtlas) {
+    let nb = name.as_bytes();
+    buf.extend_from_slice(&(nb.len() as u16).to_le_bytes());
+    buf.extend_from_slice(nb);
+    buf.extend_from_slice(&font.cell_w.to_le_bytes());
+    buf.extend_from_slice(&font.cell_h.to_le_bytes());
+    buf.extend_from_slice(&font.char_spacing.to_le_bytes());
+    buf.extend_from_slice(&font.space_width.to_le_bytes());
+    buf.extend_from_slice(&font.base_scale.to_le_bytes());
+    for i in 0..256 {
+        match font.glyphs.get(i).and_then(|g| g.as_ref()) {
+            Some(g) => {
+                buf.push(1);
+                buf.extend_from_slice(&(g.pixels.len() as u32).to_le_bytes());
+                buf.extend_from_slice(&g.pixels);
+            }
+            None => buf.push(0),
+        }
+    }
+    for i in 0..256 {
+        buf.extend_from_slice(&font.left_edge[i].to_le_bytes());
+    }
+    for i in 0..256 {
+        buf.extend_from_slice(&font.char_width[i].to_le_bytes());
+    }
+}
+
+fn read_olhu_font(buf: &[u8], o: &mut usize) -> Option<PencilFontAtlas> {
+    if *o + 20 > buf.len() {
+        return None;
+    }
+    let cell_w = u32::from_le_bytes(buf[*o..*o + 4].try_into().ok()?);
+    let cell_h = u32::from_le_bytes(buf[*o + 4..*o + 8].try_into().ok()?);
+    let char_spacing = i32::from_le_bytes(buf[*o + 8..*o + 12].try_into().ok()?);
+    let space_width = i32::from_le_bytes(buf[*o + 12..*o + 16].try_into().ok()?);
+    let base_scale = f32::from_le_bytes(buf[*o + 16..*o + 20].try_into().ok()?);
+    *o += 20;
+    let mut glyphs = Vec::with_capacity(256);
+    for _ in 0..256 {
+        if *o >= buf.len() {
+            return None;
+        }
+        let present = buf[*o];
+        *o += 1;
+        if present == 0 {
+            glyphs.push(None);
+            continue;
+        }
+        if *o + 4 > buf.len() {
+            return None;
+        }
+        let plen = u32::from_le_bytes(buf[*o..*o + 4].try_into().ok()?) as usize;
+        *o += 4;
+        if *o + plen > buf.len() {
+            return None;
+        }
+        glyphs.push(Some(HudStripSprite {
+            width: cell_w,
+            height: cell_h,
+            pixels: buf[*o..*o + plen].to_vec(),
+        }));
+        *o += plen;
+    }
+    if *o + 256 * 8 > buf.len() {
+        return None;
+    }
+    let mut left_edge = [0i32; 256];
+    let mut char_width = [cell_w as i32; 256];
+    for i in 0..256 {
+        left_edge[i] = i32::from_le_bytes(buf[*o..*o + 4].try_into().ok()?);
+        *o += 4;
+    }
+    for i in 0..256 {
+        char_width[i] = i32::from_le_bytes(buf[*o..*o + 4].try_into().ok()?);
+        *o += 4;
+    }
+    Some(PencilFontAtlas {
+        cell_w,
+        cell_h,
+        glyphs,
+        left_edge,
+        char_width,
+        char_spacing,
+        space_width,
+        base_scale,
+    })
 }
 
 fn find_graphics_tga(roots: &[PathBuf], name: &str) -> Option<RgbaImage> {
@@ -1873,6 +2198,15 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
                 blit_centered(fb, spr, hx, hy, s);
             }
         }
+        // C++ homeSlip2 (j=1): ancient homeland, offset +71 design-x (30−(-41)).
+        if let Some(dir) = state.ancient_home_arrow {
+            let ax = cx + (HOME_ARROW_ORIGIN_X + 71.0) * s;
+            let ay = hy;
+            let di = dir % NUM_HOME_ARROWS;
+            if let Some(spr) = sprites.home_arrows.get(di) {
+                blit_centered_mode(fb, spr, ax, ay, s, false, 0.85);
+            }
+        }
         // Pencil label under arrow strip (`MAP` / `BABY` / `LEAD` / …).
         if let Some(ref lab) = state.map_pointer_label {
             if !lab.is_empty() {
@@ -2039,12 +2373,16 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
         );
     }
 
-    // Temp-meter hover tip (food_time / indoor_bonus).
+    // Temp-meter hover tip (food_time / indoor_bonus) wins over biome/object tip.
+    let tip_x = cx;
+    let tip_y = cy + TIP_ORIGIN_Y_BELOW * s;
     if state.pointer_over_temp_meter(fb.width, fb.height) {
         if let Some(tip) = state.temp_meter_tip_text() {
-            let tip_x = cx;
-            let tip_y = cy + TIP_ORIGIN_Y_BELOW * s;
             sprites.draw_hud_text(fb, &tip, tip_x, tip_y, s, [0, 0, 0, 255], true, false);
+        }
+    } else if let Some(tip) = state.hover_tip.as_deref() {
+        if !tip.is_empty() {
+            sprites.draw_hud_text(fb, tip, tip_x, tip_y, s, [0, 0, 0, 255], true, false);
         }
     }
 }
@@ -2370,6 +2708,84 @@ mod tests {
         assert_eq!(hud.yum_slip_number, 3);
         assert!(hud.pointer_over_temp_meter(1280, 720));
         assert!(hud.temp_meter_tip_text().is_some());
+    }
+
+    #[test]
+    fn olhu_roundtrip_strips() {
+        let s = HudSprites::procedural();
+        let dir = std::env::temp_dir().join("ohol_olhu_test");
+        let _ = std::fs::create_dir_all(&dir);
+        let p = dir.join("olhu_hud.bin");
+        s.write_olhu(&p).expect("write");
+        let loaded = HudSprites::load_olhu(&p).expect("load");
+        assert_eq!(loaded.hunger_boxes.len(), NUM_HUNGER_BOX_SPRITES);
+        assert_eq!(
+            loaded.hunger_boxes[0].pixels.len(),
+            s.hunger_boxes[0].pixels.len()
+        );
+        assert_eq!(loaded.home_arrows.len(), NUM_HOME_ARROWS);
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn olhu_roundtrip_fonts() {
+        let mut s = HudSprites::procedural();
+        let mut glyphs = vec![None; 256];
+        glyphs[b'A' as usize] = Some(HudStripSprite::solid(2, 2, [255, 255, 255, 255]));
+        let font = PencilFontAtlas {
+            cell_w: 2,
+            cell_h: 2,
+            glyphs,
+            left_edge: [0; 256],
+            char_width: [2; 256],
+            char_spacing: 1,
+            space_width: 2,
+            base_scale: 1.0,
+        };
+        s.pencil_font = Some(font.clone());
+        s.handwriting_font = Some(font);
+        s.pencil_from_disk = true;
+        s.handwriting_from_disk = true;
+        let dir = std::env::temp_dir().join("ohol_olhu_font_test");
+        let _ = std::fs::create_dir_all(&dir);
+        let p = dir.join("olhu_hud.bin");
+        s.write_olhu(&p).expect("write");
+        let loaded = HudSprites::load_olhu(&p).expect("load");
+        assert!(loaded.pencil_font.is_some());
+        assert!(loaded.handwriting_font.is_some());
+        assert!(loaded.pencil_from_disk);
+        let a = loaded.pencil_font.as_ref().unwrap();
+        assert_eq!(a.cell_w, 2);
+        assert!(a.glyphs[b'A' as usize].is_some());
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn hover_tip_draws_when_set() {
+        let mut hud = HudState::new();
+        hud.visible = true;
+        hud.food_capacity = 1;
+        hud.hover_tip = Some("MOUNTAIN".into());
+        let sprites = HudSprites::procedural();
+        let mut fb = Framebuffer::new(320, 180);
+        fb.clear([20, 20, 24, 255]);
+        draw_food_heat_hud(&mut fb, &mut hud, &sprites);
+        assert!(fb.count_non_color([20, 20, 24, 255]) > 0);
+    }
+
+    #[test]
+    fn last_ate_resolves_object_name() {
+        let mut hud = HudState::new();
+        hud.apply_fx(&sample_fx(8, 12));
+        assert_eq!(hud.current_last_ate_string.as_deref(), Some("#31"));
+        let mut content = crate::content::ClientContent::default();
+        let mut def = crate::content::ClientObjectDef::default();
+        def.id = 31;
+        def.name = "Wild Onion#food".into();
+        def.description = "Wild Onion#food".into();
+        content.objects.insert(31, def);
+        hud.resolve_last_ate_name(&content);
+        assert_eq!(hud.current_last_ate_string.as_deref(), Some("Wild Onion"));
     }
 
     #[test]

@@ -15,7 +15,7 @@ Rust root: `C:\OhOl\OpenLife\RustClient\src\`
 | ID | C++ | ~LOC | Rust target | Status | Notes |
 |----|-----|------|-------------|--------|-------|
 | C-GAME | `game.cpp` | 2300 | `main` + `ohol_client` + `ClientScreen` | PARTIAL | page graph Account/Loading/Playing/Death/Settings; headless CLI unchanged |
-| C-LOAD | `LoadingPage.*` | 40+ | `load_progress` | **DONE→strong (P5#36)** | stages + prefer_cache hooks; soft-FB bar; `OHOL_LOAD_PROGRESS=1` |
+| C-LOAD | `LoadingPage.*` | 40+ | `load_progress` | **DONE→strong (P5#36)** | stages + prefer_cache; soft-FB bar + loading.tga chrome; `OHOL_LOAD_PROGRESS=1` |
 | C-ACC | `ExistingAccountPage.*` | 700 | `account_page.rs` + ohol-client boot | **DONE→v1 (P5#37)** | soft-FB email + key/password; env prefill; Connect → SessionConfig; Esc skip-if-creds; headless CLI flags kept |
 | C-LIVE | `LivingLifePage.cpp/.h` | 25k / 900 | `session` + `live_object` + `render` | **DONE→strong** | play path; not line-faithful dump of 25k LOC |
 | C-MSG | `message.cpp` | 55 | frame helpers | DONE | `frame.rs` |
@@ -28,12 +28,12 @@ Rust root: `C:\OhOl\OpenLife\RustClient\src\`
 
 | ID | C++ | ~LOC | Rust | Status |
 |----|-----|------|------|--------|
-| C-OBJ | `objectBank.cpp` | 6415 | `content.rs` + OLC1 | **PARTIAL→stronger** | text + OLC1 **v6** + dummies; sim fields + wide radii + drawBehind + **heldInHand/rideable** + **body/head/foot indices** + **sideAccess/noBackAccess** + **getObjectCenterOffset/containOffset (P3#21)** + **setupSpriteUseVis (P4#25)** + **variableDummyIDs (P4#26)**; residual: numeral sprites / serial cycle / golden dummy CI |
+| C-OBJ | `objectBank.cpp` | 6415 | `content.rs` + OLC1 | **PARTIAL→stronger** | text + OLC1 **v9** (`only_when_worn`) + dummies + **setupNumericSprites** + **+varSerialNumber** / `same_road_class`; residual: golden dummy CI |
 | C-SPR | `spriteBank.cpp` | 1833 | `sprite_bank` + `tga` + `binpack` OLS1 + **OLSA (P4#40)** | **DONE→strong** | TGA+txt meta, Haxe atlas pack, OLS1 v2 (bbox+author), alpha hitMap+expandMap×3; soft-FB hover uses `get_sprite_hit`; optional **OLSA** full multi-page dump (`olsa_sprite_atlas.bin`, sealed pages, `--bake-sprite-atlas`) |
 | C-ANIM | `animationBank.cpp` | 3825 | `anim_bank.rs` + OLA1 | **DONE→stronger** | full SpriteAnimParam text parse; OLA1 R/W (format 1 unchanged); bake; extras `7xN`; C++ `processFrameTimeWithPauses` + fade hardness+0.25; rot_center; fade α blit; `sample_slot`; ground2 alias; load_prefer_cache sha1/data_version; dual-anim/`inAnimFade`/frozen-rot/reseed runtime → **L-ANIM-DRAW DONE→stronger**; SoundAnimParam+footstep→floor via **L-SOUND-TRIG v2**; open residuals: authorTag not in OLA1, golden vs OneLifeData7, JenkinsRandomSource reseed |
 | C-TRANS | `transitionBank.cpp` | 2860 | `content.rs` + OLT1 + `category_bank` expand + **`ol-binary`** | **DONE→stronger** | OLT1 v2 full fields + last-use + **max-use** maps; **lite+pattern category expand**; **find_ptrans** / **find_ptrans_max_use**; **P4#28** expanded bake; **P4#29** `transitions_max_use` + `switch_number_of_uses` (OLT1 bit6/bit7 + ServerSettings patches); **P4#30** shared server load; residual: reverse-use last-use auto-clone |
 | C-CAT | `categoryBank.cpp` | 785 | `category_bank.rs` | **DONE→stronger** | `CategoryRecord` + reverse map; lite member expand + **pattern second pass** (index-pair); **pick_from_prob_set** / find_ptrans; load `categories/*.txt` into `load_from_dir` + `load_from_cache` (bank-only when OLT1 expanded **P4#28**); tests 722, 1790/1802 C+P, 3221; editor mutators **P4#27** |
-| C-SND | `soundBank.cpp` | 1741 | `sound_bank.rs` + OLSN + `music_bank.rs` | **DONE→v4** | OLSN index bake/load; lazy mono-16 AIFF (Haxe @54); SoundUsage parse; SFX OGG index-only; **optional `audio`→cpal** device mixer + **stereo pan**; **P3#24 music bed** (`music/music_NN.ogg` lazy index + **lewton** decode on ensure, mono→device); open: wet reverbCache; music step/suppress session wire |
+| C-SND | `soundBank.cpp` | 1741 | `sound_bank.rs` + OLSN + `music_bank.rs` | **DONE→v5** | OLSN + stereo pan + **wet reverb comb** on spatial plays; music OGG bed |
 | C-GRND | `groundSprites.cpp` | 412 | `ground_sprites.rs` + OLG1 + **OLGA (P4#32)** | **DONE→v1+atlas** | Haxe 4×4 var index + TGA pack; OLG1 index bake/load (default); optional OLGA multi-page full dump; `graphics/ground_tN` overlays; lazy TGA; flat color fallback; residual: Haxe unknown recolor / C++ per-biome sheet layout |
 | C-OVL | `overlayBank.cpp` | 386 | `overlay_bank.rs` + OLO1 | **DONE→v1** | disk/OLO1 id-tag-path index at boot; `get_overlay` + `ensure_image` lazy TGA; `bake_content` → `olo1_overlays.bin`; no eager Image+sprite dump; **out of scope:** editor `addOverlay`/`deleteOverlayFromBank`, thumbnailSprite mult-blit, OverlayPickable/EditorImportPage |
 | C-FC | `folderCache.cpp` | 417 | replaced by CONTENT_BINARY | NA→design |
@@ -46,9 +46,9 @@ Rust root: `C:\OhOl\OpenLife\RustClient\src\`
 
 | ID | Topic | Status |
 |----|-------|--------|
-| L-NET-PARSE | all inbound tags | **DONE→strong** (`tags.rs` + `parse_inbound`; full PU; CM inflate; multi-PU; MS/CX/CS/VS/FD/FL/CR/PJ/MN/GH; PS `*map`; rest Known) |
+| L-NET-PARSE | all inbound tags | **DONE** (`tags.rs` + `parse_inbound`; full PU; CM inflate; multi-PU; MS/CX/CS/VS/FD/FL/CR/PJ/MN/GH; GV/GM/GO/OW/FW/EX/HL/LR/TE/TS/WR/VU/PH/ST/RR/RA/BB; PS `*map`) |
 | L-LIVEOBJ | LiveObject fields + apply PU | **DONE** (`live_object.rs` + `session.world`; anim pack state) |
-| L-MOVE | path, PM, FORCE, KA mid-move | **PARTIAL→stronger** | FM batching **DONE**; FORCE cancel+ack + done_moving flush **DONE**; KA 15s **DONE**; `logout_reset` **DONE**; trunc-cancel + artificial FORCE + baby-held cancel **DONE**; **fractional currentPos** / `findClosestPathSpot` **DONE** (P1#8); remaining: readyPending mid-move hold (deferred) |
+| L-MOVE | path, PM, FORCE, KA mid-move | **DONE** | FM batching **DONE**; FORCE cancel+ack + done_moving flush **DONE**; KA 15s **DONE**; `logout_reset` **DONE**; trunc-cancel + artificial FORCE + baby-held cancel **DONE**; **fractional currentPos** / `findClosestPathSpot` **DONE** (P1#8); **readyPending mid-move PU/PM/MX/FX hold** **DONE** |
 | L-MAP | MC + MX + biomes/floors | **DONE** (`client_map.rs`; MC zlib + MX) |
 | L-ACT | USE/DROP/REMV queue + click_tile + path-to-adjacent | **DONE→stronger** | queue + ground `click_tile` + object `click_object`/`walk_or_use_tile`; **click_gates**; **modClick** DROP/SWAP/REMV + multi-MOVE repath before flush (`multi_move_ext`); hitMap hover + RMB; **sideAccess/noBackAccess + food self-tile** (`plan_stand_for_object_ex`); **clothing-ux** DROP c 0..5 / self-tile equip / keys 1–6 / `send_sremv` + **worn soft-FB hitMap** (`pick_worn_clothing_slot`) + **contained hit_slot** (`HoverPick.contained_slot` → REMV/SREMV `i`) + **container_slot_ux** (map REMV/DROP/USE; clothing bag DROP put + LMB SREMV take; soft-FB clothing contained draw); **mouse-hold slide** (`slide_blocked_click_dest` / `walk_or_use_tile_hold`); **fractional currentPos** path start (**P1#8**); **bad-biome edge / rideable ignoreBad** (**P2#9**); **useWaypoint two-leg** (**P2#10**); **multi-MOVE ultimate repath** (**P2#11**); open: SHIFT/CTRL clothing polish |
 | L-SAY | PS/LS/SAY | **PARTIAL→stronger** | parse + pointers + session apply to LiveObject/`location_speech`; TTL `3+len/5` + fade `0.05*frf`; chalkBlot+handwritingFont TGA (P3#15) w/ 5×7 fallback; `send_say` + ohol-client T; **P3#16 curse-tag reinsert / 15s tic + CU** DONE; **P3#17 map-pointer / `*label` UI** DONE (soft-FB pin + HUD arrow/label); open: +FAMILY+ flags, photo meta, age-speech truncate (speech→emote **P3#18 DONE**) |
@@ -71,8 +71,8 @@ Rust root: `C:\OhOl\OpenLife\RustClient\src\`
 | U-REBIRTH | `RebirthChoicePage` | **DONE→v1 (P5#38)** | `client_screen.rs` DeathSummary + soft-FB; Playing→Death; R/Enter LOGIN reconnect |
 | U-FINAL | `FinalMessagePage` | **DONE→v1 (P5#38)** | folded into Death summary page (name/age/reason) |
 | U-SET | `SettingsPage` | **DONE→v1 (P5#39)** | `settings_page.rs` soft-FB SettingsPage; SFX/music vol+mute+show FPS; env/ini; F3 Account/Playing; Esc/Back; apply to banks |
-| U-TWIN | `TwinPage` | MISSING |
-| U-REVIEW | `ReviewPage` | MISSING |
+| U-TWIN | `TwinPage` | **DONE** | `twin_page.rs` — code + twins/triplets/quads/same-family; LOGIN sha1+count |
+| U-REVIEW | `ReviewPage` | **DONE** | Community links (OLR site + Discord), URLs in Settings |
 | U-AUTO | `AutoUpdatePage` | NA (own updater later) |
 | U-EDITORS | `Editor*Page` | NA (not for play) |
 
@@ -141,7 +141,7 @@ Rust root: `C:\OhOl\OpenLife\RustClient\src\`
 5. ~~**C-OBJ + C-TRANS** — content load text → then OLC1/OLT1 bake~~  
 6. ~~**C-SPR + H-PACK** — TGA + BinPack atlas + sprite meta + OLS1 meta~~  
 7. ~~**FM batching**~~ done  
-8. ~~**L-MOVE force_flush_logout_ka**~~ FORCE/flush/KA/logout + trunc/artificial FORCE **DONE** (readyPending deferred)  
+8. ~~**L-MOVE force_flush_logout_ka**~~ FORCE/flush/KA/logout + trunc/artificial FORCE **DONE** (readyPending **DONE**)  
 9. ~~**H-BAKE + CONTENT_BINARY** baker (OLC1/OLT1)~~ **DONE→v1** (format 2 write, materialize dummies, auto-rebuild)  
 10. ~~**C-ANIM / ola1_anim_binary**~~ **DONE→stronger** (OLA1 fmt1 + full param parse + bake + sample/draw fidelity)  
 11. ~~**Server `ol-content` load_from_cache**~~ **DONE** (`binary_cache` + prefer_cache; OLC1 v3 sim fields keep prefer-cache on binary)  

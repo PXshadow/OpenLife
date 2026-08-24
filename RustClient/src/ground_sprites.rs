@@ -515,9 +515,10 @@ impl GroundBank {
                 }
             }
         }
-        // No OLG1 yet: allow disk probe path (ensure will try).
+        // No OLG1 yet: allow disk probe when search roots exist.
+        // Empty banks (tests / missing content) must report no sheet so plate colors fill.
         if !self.index_loaded {
-            return true;
+            return !self.roots.is_empty();
         }
         // Index loaded but no entries for this biome Ã¢â€ â€™ no sheet.
         self.biome_tile_count == 0

@@ -25,6 +25,10 @@ pub enum ClientScreen {
     Death,
     /// Settings (P5#39) — options in `ClientAppState::settings`.
     Settings,
+    /// Twin code + party size (C++ TwinPage).
+    Twin,
+    /// Community links (site + Discord).
+    Review,
 }
 
 impl ClientScreen {
@@ -35,6 +39,8 @@ impl ClientScreen {
             Self::Playing => "playing",
             Self::Death => "death",
             Self::Settings => "settings",
+            Self::Twin => "twin",
+            Self::Review => "review",
         }
     }
 
@@ -56,6 +62,14 @@ impl ClientScreen {
 
     pub fn is_settings(self) -> bool {
         matches!(self, Self::Settings)
+    }
+
+    pub fn is_twin(self) -> bool {
+        matches!(self, Self::Twin)
+    }
+
+    pub fn is_review(self) -> bool {
+        matches!(self, Self::Review)
     }
 
     /// Historical stub check — all product screens are live after P5#39.
@@ -114,6 +128,7 @@ pub enum AccountFocus {
     Connect,
     /// Nested form only: save + return to Settings.
     Back,
+    Twins,
 }
 
 /// Whether the secret field maps to account key or password on Connect.
@@ -138,6 +153,10 @@ pub enum AccountAction {
     Back,
     /// Nested: saved host/email without full reconnect.
     Saved,
+    /// Open Twin page (C++ TwinPage).
+    OpenTwin,
+    /// Open community / review links.
+    OpenReview,
 }
 
 /// Editable account form state + soft-FB layout.
@@ -431,6 +450,8 @@ impl AccountPage {
             password,
             account_key,
             tutorial_number: self.tutorial_number,
+            twin_code: None,
+            twin_count: 0,
             reconnect: self.reconnect,
             pad_email_to_80: self.pad_email_to_80,
             read_timeout: connect_read,
@@ -445,7 +466,10 @@ impl AccountPage {
             AccountFocus::Secret => Some(self.secret.as_str()),
             AccountFocus::Host => Some(self.host.as_str()),
             AccountFocus::Port => Some(self.port_text.as_str()),
-            AccountFocus::Connect | AccountFocus::Back | AccountFocus::Recent(_) => None,
+            AccountFocus::Connect
+            | AccountFocus::Back
+            | AccountFocus::Twins
+            | AccountFocus::Recent(_) => None,
         }
     }
 
@@ -467,6 +491,9 @@ impl AccountPage {
             v.push(AccountFocus::Recent(i as u8));
         }
         v.push(AccountFocus::Connect);
+        if !self.opened_from_settings {
+            v.push(AccountFocus::Twins);
+        }
         if self.opened_from_settings {
             v.push(AccountFocus::Back);
         }
@@ -509,7 +536,10 @@ impl AccountPage {
             AccountFocus::Secret => Some(&mut self.secret),
             AccountFocus::Host => Some(&mut self.host),
             AccountFocus::Port => Some(&mut self.port_text),
-            AccountFocus::Connect | AccountFocus::Back | AccountFocus::Recent(_) => None,
+            AccountFocus::Connect
+            | AccountFocus::Back
+            | AccountFocus::Twins
+            | AccountFocus::Recent(_) => None,
         }
     }
 
@@ -583,6 +613,7 @@ impl AccountPage {
                 }
             }
             AccountFocus::Back => AccountAction::Back,
+            AccountFocus::Twins => AccountAction::OpenTwin,
             AccountFocus::Recent(i) => {
                 self.apply_recent(i as usize);
                 AccountAction::None
@@ -722,6 +753,10 @@ impl AccountPage {
                 self.apply_recent(i);
                 return AccountAction::None;
             }
+        }
+        if layout.twins.contains(mx, my) && !self.opened_from_settings {
+            self.focus = AccountFocus::Twins;
+            return AccountAction::OpenTwin;
         }
         if layout.connect.contains(mx, my) {
             self.focus = AccountFocus::Connect;
@@ -908,6 +943,27 @@ impl AccountPage {
                 );
             }
         } else {
+            let t_focus = self.focus == AccountFocus::Twins;
+            fb.fill_rect(
+                layout.twins.x as i32,
+                layout.twins.y as i32,
+                layout.twins.w as i32,
+                layout.twins.h as i32,
+                if t_focus {
+                    [70, 110, 80, 255]
+                } else {
+                    [45, 90, 70, 240]
+                },
+            );
+            draw_ui_text(
+                fb,
+                "Twins",
+                layout.twins.x + layout.twins.w * 0.5,
+                layout.twins.y + layout.twins.h * 0.5,
+                15.0,
+                white,
+                true,
+            );
             fb.fill_rect(
                 layout.settings.x as i32,
                 layout.settings.y as i32,
@@ -1047,6 +1103,8 @@ pub struct AccountLayout {
     pub recent_label_x: f32,
     pub recent_label_y: f32,
     pub connect: AccountHitRect,
+    /// Twin page button (boot path).
+    pub twins: AccountHitRect,
     /// Settings button (boot path).
     pub settings: AccountHitRect,
     /// Back button (nested from Settings).
@@ -1106,17 +1164,23 @@ fn account_layout(fb_w: f32, fb_h: f32) -> AccountLayout {
         y += row_h + 6.0;
     }
     y += 8.0;
-    let btn_w = 140.0f32;
+    let btn_w = 120.0f32;
     let btn_h = 36.0f32;
-    let gap = 14.0f32;
+    let gap = 12.0f32;
     let connect = AccountHitRect {
         x: field_x,
         y,
         w: btn_w,
         h: btn_h,
     };
-    let settings = AccountHitRect {
+    let twins = AccountHitRect {
         x: field_x + btn_w + gap,
+        y,
+        w: btn_w,
+        h: btn_h,
+    };
+    let settings = AccountHitRect {
+        x: field_x + (btn_w + gap) * 2.0,
         y,
         w: btn_w,
         h: btn_h,
@@ -1142,6 +1206,7 @@ fn account_layout(fb_w: f32, fb_h: f32) -> AccountLayout {
         recent_label_x,
         recent_label_y,
         connect,
+        twins,
         settings,
         back,
     }
@@ -1297,6 +1362,10 @@ pub struct ClientAppState {
     pub settings: crate::settings_page::SettingsPage,
     /// Screen restored when leaving Settings (Account or Playing).
     pub settings_return: ClientScreen,
+    pub twin: crate::twin_page::TwinPage,
+    pub review: crate::review_page::ReviewPage,
+    /// Screen restored when leaving Review.
+    pub review_return: ClientScreen,
 }
 
 impl Default for ClientAppState {
@@ -1308,6 +1377,9 @@ impl Default for ClientAppState {
             death: None,
             settings: crate::settings_page::SettingsPage::default(),
             settings_return: ClientScreen::Account,
+            twin: crate::twin_page::TwinPage::default(),
+            review: crate::review_page::ReviewPage::default(),
+            review_return: ClientScreen::Account,
         }
     }
 }
@@ -1318,6 +1390,8 @@ impl ClientAppState {
         let mut settings = crate::settings_page::SettingsPage::from_env();
         settings.sync_endpoint_from(&account.host, account.port, &account.email);
         settings.apply_runtime_globals();
+        let mut review = crate::review_page::ReviewPage::default();
+        review.sync_from_settings(&settings.community_site, &settings.discord_url);
         Self {
             screen: ClientScreen::Account,
             account,
@@ -1325,6 +1399,9 @@ impl ClientAppState {
             death: None,
             settings,
             settings_return: ClientScreen::Account,
+            twin: crate::twin_page::TwinPage::default(),
+            review,
+            review_return: ClientScreen::Account,
         }
     }
 
@@ -1338,7 +1415,17 @@ impl ClientAppState {
         );
         self.account.status = "Connecting…".into();
         self.death = None;
-        self.account.build_session_config()
+        let mut cfg = self.account.build_session_config();
+        let code = self.twin.trimmed_code();
+        if !code.is_empty() {
+            cfg.twin_code = Some(code);
+            cfg.twin_count = self.twin.twin_count;
+            self.loading_msg = format!(
+                "Waiting for {}…",
+                self.twin.party_label()
+            );
+        }
+        cfg
     }
 
     pub fn enter_playing(&mut self) {
@@ -1362,7 +1449,10 @@ impl ClientAppState {
         if self.screen == ClientScreen::Settings {
             return false;
         }
-        if !matches!(self.screen, ClientScreen::Account | ClientScreen::Playing) {
+        if !matches!(
+            self.screen,
+            ClientScreen::Account | ClientScreen::Playing | ClientScreen::Twin | ClientScreen::Review
+        ) {
             eprintln!(
                 "settings: cannot open from screen={} (need account|playing)",
                 self.screen.as_str()
@@ -1397,6 +1487,8 @@ impl ClientAppState {
         let _ = self.settings.save_default();
         self.screen = match self.settings_return {
             ClientScreen::Playing => ClientScreen::Playing,
+            ClientScreen::Twin => ClientScreen::Twin,
+            ClientScreen::Review => ClientScreen::Review,
             ClientScreen::Account => ClientScreen::Account,
             _ => ClientScreen::Account,
         };
@@ -1420,6 +1512,44 @@ impl ClientAppState {
             "Edit login or pick a server — Save applies, Esc returns to Settings".into();
         self.screen = ClientScreen::Account;
         eprintln!("account: opened from Settings");
+    }
+
+    pub fn enter_twin(&mut self) -> bool {
+        if matches!(self.screen, ClientScreen::Loading | ClientScreen::Playing) {
+            return false;
+        }
+        if self.twin.code.trim().is_empty() {
+            self.twin.generate();
+        }
+        self.screen = ClientScreen::Twin;
+        true
+    }
+
+    pub fn enter_review(&mut self) -> bool {
+        if self.screen == ClientScreen::Loading {
+            return false;
+        }
+        self.review_return = self.screen;
+        self.review
+            .sync_from_settings(&self.settings.community_site, &self.settings.discord_url);
+        self.screen = ClientScreen::Review;
+        true
+    }
+
+    pub fn leave_review(&mut self) {
+        if self.screen != ClientScreen::Review {
+            return;
+        }
+        self.settings.community_site = self.review.site_url.trim().to_string();
+        self.settings.discord_url = self.review.discord_url.trim().to_string();
+        let _ = self.settings.save_default();
+        self.screen = match self.review_return {
+            ClientScreen::Death => ClientScreen::Death,
+            ClientScreen::Settings => ClientScreen::Settings,
+            ClientScreen::Playing => ClientScreen::Playing,
+            ClientScreen::Twin => ClientScreen::Twin,
+            _ => ClientScreen::Account,
+        };
     }
 
     /// Nested Account form → Settings (does not clear `settings_return`).

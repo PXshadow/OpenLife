@@ -26,7 +26,7 @@
 |-------|------|
 | `/happy` (exact trigger) | `EMOT 0 0 0#` |
 | `HELLO` | `SAY 0 0 HELLO#` |
-| `/fps` (slash, not emote) | *(none — local only)* |
+| `/fps` (slash, not emote) | *local `/FPS` overlay toggle* |
 
 ## Residual (P3#19) — **DONE**
 

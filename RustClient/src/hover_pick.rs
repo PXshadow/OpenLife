@@ -11,7 +11,8 @@
 
 use crate::client_map::{parse_object_raw_contained, ClientMap};
 use crate::content::{ClientContent, ClientObjectDef, ObjectSprite};
-use crate::live_object::ClothingSet;
+use crate::live_object::{ClothingSet, LiveObject, LiveWorld};
+use crate::parse::{Grave, GraveOld, OwnerList};
 use crate::render::{Camera, Framebuffer, SceneRenderer, GRID};
 use crate::sprite_bank::SpriteBank;
 
@@ -390,6 +391,228 @@ pub fn update_scene_hover_with_clothing(
     );
     scene.highlight_tile = Some(pick.tile);
     pick
+}
+
+/// C++ `mBadBiomeNames` hover tip — floor-less BB biome under cursor.
+///
+/// Clothing / other-person picks hide the biome name (C++ clears `mCurMouseOverBiome`).
+/// A floor on the tile also suppresses it. Object hits on floor-less bad biomes still
+/// show the biome (C++ zeros `mCurMouseOverID` when the biome is on the BB list).
+pub fn hover_biome_name(
+    pick: HoverPick,
+    map: &ClientMap,
+    bad_biome_names: &[(u8, String)],
+) -> Option<String> {
+    if pick.is_clothing() || pick.object_id < 0 {
+        return None;
+    }
+    let tile = map.get(pick.tile.0, pick.tile.1)?;
+    if tile.floor_id != 0 {
+        return None;
+    }
+    bad_biome_names
+        .iter()
+        .find(|(id, _)| *id == tile.biome)
+        .map(|(_, n)| n.clone())
+}
+
+/// Inputs for C++ `mCurrentDes` hover tip (LivingLifePage ~11028–11390).
+pub struct HoverTipInput<'a> {
+    pub pick: HoverPick,
+    pub map: &'a ClientMap,
+    pub content: &'a ClientContent,
+    pub world: &'a LiveWorld,
+    pub our_id: Option<i32>,
+    pub bad_biome_names: &'a [(u8, String)],
+    pub graves: &'a [Grave],
+    pub grave_olds: &'a [GraveOld],
+    pub owners: &'a [OwnerList],
+}
+
+/// Hover string + optional `GRAVE x y#` query when an unknown origGrave is under the cursor.
+pub fn hover_tip_and_grave(input: &HoverTipInput<'_>) -> (Option<String>, Option<(i32, i32)>) {
+    let pick = input.pick;
+    if pick.is_clothing() || pick.is_contained() {
+        return (object_tip(input.content, pick.object_id), None);
+    }
+    if let Some(name) = hover_biome_name(pick, input.map, input.bad_biome_names) {
+        return (Some(name), None);
+    }
+    if pick.object_id > 0 {
+        let (text, grave) = object_or_grave_tip(input, pick.object_id, pick.tile);
+        return (text, grave);
+    }
+    if let Some(p) = player_on_tile(input.world, pick.tile) {
+        return (Some(player_tip(input, p)), None);
+    }
+    (None, None)
+}
+
+fn strip_desc(raw: &str) -> String {
+    raw.split('#')
+        .next()
+        .unwrap_or("")
+        .trim()
+        .to_string()
+}
+
+fn object_tip(content: &ClientContent, id: i32) -> Option<String> {
+    let def = content.get(id)?;
+    let raw = if def.name.is_empty() {
+        def.description.as_str()
+    } else {
+        def.name.as_str()
+    };
+    let name = strip_desc(raw);
+    if name.is_empty() {
+        None
+    } else {
+        Some(name)
+    }
+}
+
+fn object_or_grave_tip(
+    input: &HoverTipInput<'_>,
+    id: i32,
+    tile: (i32, i32),
+) -> (Option<String>, Option<(i32, i32)>) {
+    let Some(def) = input.content.get(id) else {
+        return (None, None);
+    };
+    let hay = format!("{} {}", def.name, def.description);
+    if hay.contains("origGrave") {
+        if let Some(go) = input
+            .grave_olds
+            .iter()
+            .rev()
+            .find(|g| g.x == tile.0 && g.y == tile.1)
+        {
+            let base = strip_desc(&def.description);
+            let who = if go.name.trim().is_empty() {
+                "someone".to_string()
+            } else {
+                go.name.replace('_', " ")
+            };
+            let years = go.death_age.max(0.0).round() as i32;
+            let died = if years <= 0 {
+                String::new()
+            } else if years == 1 {
+                " - died 1 year ago".into()
+            } else {
+                format!(" - died {years} years ago")
+            };
+            let text = if base.is_empty() {
+                format!("grave of {who}{died}")
+            } else {
+                format!("{base} of {who}{died}")
+            };
+            return (Some(text), None);
+        }
+        let known_gv = input.graves.iter().any(|g| g.x == tile.0 && g.y == tile.1);
+        if known_gv {
+            return (object_tip(input.content, id), None);
+        }
+        return (None, Some(tile));
+    }
+    let mut text = object_tip(input.content, id).unwrap_or_default();
+    if let Some(ow) = input.owners.iter().rev().find(|o| o.x == tile.0 && o.y == tile.1) {
+        if !ow.owner_ids.is_empty() {
+            let who = owner_label(input, &ow.owner_ids);
+            text = format!("{text} of {who}");
+        }
+    }
+    (Some(text), None)
+}
+
+fn owner_label(input: &HoverTipInput<'_>, ids: &[i32]) -> String {
+    if let Some(oid) = input.our_id {
+        if ids.contains(&oid) {
+            return "YOU".into();
+        }
+    }
+    for id in ids {
+        if let Some(p) = input.world.get(*id) {
+            if let Some(n) = p.name.as_deref() {
+                let n = n.trim();
+                if !n.is_empty() {
+                    return n.replace('_', " ");
+                }
+            }
+        }
+    }
+    "someone".into()
+}
+
+fn player_on_tile<'a>(world: &'a LiveWorld, tile: (i32, i32)) -> Option<&'a LiveObject> {
+    let mut best: Option<&LiveObject> = None;
+    for o in world.iter_living() {
+        if o.held_by_adult_id >= 0 {
+            continue;
+        }
+        let tx = o.display_x.round() as i32;
+        let ty = o.display_y.round() as i32;
+        if tx == tile.0 && ty == tile.1 {
+            best = Some(o);
+            break;
+        }
+    }
+    best
+}
+
+fn player_tip(input: &HoverTipInput<'_>, p: &LiveObject) -> String {
+    let is_self = input.our_id == Some(p.id);
+    if is_self {
+        let mut des = if p.held_id > 0 {
+            if let Some(def) = input.content.get(p.held_id) {
+                if def.food_value > 0 {
+                    let key = if def.description.contains("+drink") || def.name.contains("+drink") {
+                        "DRINK"
+                    } else {
+                        "EAT"
+                    };
+                    format!("{key} {}", object_tip(input.content, p.held_id).unwrap_or_default())
+                } else if p.dying || p.sick {
+                    format!(
+                        "YOU WITH {}",
+                        object_tip(input.content, p.held_id).unwrap_or_default()
+                    )
+                } else {
+                    String::new()
+                }
+            } else {
+                String::new()
+            }
+        } else {
+            String::new()
+        };
+        if des.is_empty() {
+            des = "YOU".into();
+            if let Some(n) = p.name.as_deref() {
+                let n = n.trim();
+                if !n.is_empty() {
+                    des = format!("YOU - {n}");
+                }
+            }
+        }
+        return des;
+    }
+    let mut des = p
+        .name
+        .as_deref()
+        .map(|n| n.replace('_', " "))
+        .filter(|n| !n.trim().is_empty())
+        .unwrap_or_else(|| "unrelated".into());
+    if p.war_peace_status < 0 {
+        des = format!("{des} - at war");
+    } else if p.war_peace_status > 0 {
+        des = format!("{des} - at peace");
+    }
+    if (p.dying || p.sick) && p.held_id > 0 {
+        if let Some(name) = object_tip(input.content, p.held_id) {
+            des = format!("{des} - with {name}");
+        }
+    }
+    des
 }
 
 /// Draw tile outline: cyan object / yellow empty / magenta clothing slot.
@@ -1187,5 +1410,130 @@ mod tests {
         assert_eq!(p.hit_slot(), 0);
         // Soft-FB wins even when stack override provided.
         assert_eq!(p.hit_slot_or_stack(4), 0);
+    }
+
+    #[test]
+    fn hover_biome_name_on_floorless_bad_tile() {
+        let mut map = ClientMap::new();
+        map.set(
+            3,
+            4,
+            MapTile {
+                biome: 21,
+                floor_id: 0,
+                object_id: 0,
+                ..Default::default()
+            },
+        );
+        map.set(
+            5,
+            5,
+            MapTile {
+                biome: 21,
+                floor_id: 88,
+                object_id: 0,
+                ..Default::default()
+            },
+        );
+        let names = vec![(21u8, "MOUNTAIN".into()), (9u8, "OCEAN".into())];
+        let empty = HoverPick::empty((3, 4));
+        assert_eq!(
+            hover_biome_name(empty, &map, &names).as_deref(),
+            Some("MOUNTAIN")
+        );
+        let floored = HoverPick::empty((5, 5));
+        assert!(hover_biome_name(floored, &map, &names).is_none());
+        let clothed = HoverPick {
+            tile: (3, 4),
+            object_id: 10,
+            hit_map: true,
+            clothing_slot: 1,
+            contained_slot: -1,
+        };
+        assert!(hover_biome_name(clothed, &map, &names).is_none());
+    }
+
+    #[test]
+    fn hover_tip_object_and_self_and_grave_query() {
+        let mut map = ClientMap::new();
+        map.set(
+            1,
+            1,
+            MapTile {
+                object_id: 50,
+                biome: 0,
+                floor_id: 0,
+                ..Default::default()
+            },
+        );
+        let mut content = ClientContent::new();
+        content.objects.insert(
+            50,
+            ClientObjectDef {
+                id: 50,
+                name: "Sharp Stone#tool".into(),
+                description: "Sharp Stone#tool".into(),
+                ..Default::default()
+            },
+        );
+        content.objects.insert(
+            70,
+            ClientObjectDef {
+                id: 70,
+                name: "Grave# origGrave".into(),
+                description: "Grave# origGrave".into(),
+                ..Default::default()
+            },
+        );
+        let world = LiveWorld::new();
+        let input = HoverTipInput {
+            pick: HoverPick {
+                tile: (1, 1),
+                object_id: 50,
+                hit_map: true,
+                clothing_slot: -1,
+                contained_slot: -1,
+            },
+            map: &map,
+            content: &content,
+            world: &world,
+            our_id: Some(1),
+            bad_biome_names: &[],
+            graves: &[],
+            grave_olds: &[],
+            owners: &[],
+        };
+        let (tip, grave) = hover_tip_and_grave(&input);
+        assert_eq!(tip.as_deref(), Some("Sharp Stone"));
+        assert!(grave.is_none());
+
+        map.set(
+            2,
+            2,
+            MapTile {
+                object_id: 70,
+                ..Default::default()
+            },
+        );
+        let input = HoverTipInput {
+            pick: HoverPick {
+                tile: (2, 2),
+                object_id: 70,
+                hit_map: true,
+                clothing_slot: -1,
+                contained_slot: -1,
+            },
+            map: &map,
+            content: &content,
+            world: &world,
+            our_id: Some(1),
+            bad_biome_names: &[],
+            graves: &[],
+            grave_olds: &[],
+            owners: &[],
+        };
+        let (tip, grave) = hover_tip_and_grave(&input);
+        assert!(tip.is_none());
+        assert_eq!(grave, Some((2, 2)));
     }
 }
