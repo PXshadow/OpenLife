@@ -168,7 +168,7 @@ pub use hover_pick::{
     HoverTipInput, WornClothingPickTarget,
 };
 pub use hud::{
-    ate_screen_pos, curse_token_screen_pos, draw_food_heat_hud, draw_hud_if_visible,
+    ate_screen_pos, craving_hud_line, curse_token_screen_pos, draw_food_heat_hud, draw_hud_if_visible,
     draw_pencil_string, draw_speech_bubble, draw_speech_bubble_colored, draw_speech_bubble_with,
     glyph5x7, hud_scale, hunger_box_screen_pos, pencil_string_width, temp_arrow_screen_pos,
     yum_screen_pos, HudState, HudStripSprite, HudSprites, HungerSoundEvent, OldArrow, OldHudText,

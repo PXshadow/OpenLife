@@ -78,7 +78,7 @@ Priority Missing-work table (**P1–P5**) is **fully closed** (all rows DONE / D
 | 36 | ~~**Loading progress UI**~~ | **DONE** (C-LOAD) — stages + prefer_cache; loading.tga; **object-file ticks during rebake**. |
 | 37 | ~~**Account page**~~ | **DONE** — soft-FB `AccountPage` + `ClientScreen::{Account,Loading,Playing,Death,Settings}`; prefill `OHOL_*`/`.env`; Enter=Connect / Esc skip-if-creds / Tab field / F2 key↔password; builds `SessionConfig` → login; headless CLI flags unchanged; tests `account_page::*`. No new crates. |
 | 38 | ~~**Death / rebirth pages**~~ | **DONE** — `ClientScreen::Death` + `DeathSummary` (name/age/reason); Playing→Death on our delete PU (`note_our_death_if_any`); soft-FB `draw_death_screen`; R/Enter full reconnect LOGIN rebirth (`rebirth_session_config`); Esc quit; `ohol-client` wired; headless probes unchanged; unit tests `client_screen::*` |
-| 39 | ~~**Settings page**~~ | **DONE** — fullscreen in-process; **Soft→GPU in-process**; GPU→Soft still process-restarts (winit `EventLoop::run` never returns). |
+| 39 | ~~**Settings page**~~ | **DONE** — fullscreen in-process; **Soft→GPU and GPU→Soft in-process** (`EventLoopExtRunReturn`). |
 
 ### Deferred / non-goals (do not schedule)
 
@@ -90,6 +90,8 @@ Priority Missing-work table (**P1–P5**) is **fully closed** (all rows DONE / D
 | Pixel-perfect GL / wgpu | Soft FB first |
 | C++ folderCache byte format | Replaced by OLC\* binaries |
 | Non-zero `mMapGlobalOffset` local maps | **DONE-NA** — client stores wire coords; no float-tile path ([MAP_GLOBAL_OFFSET.md](MAP_GLOBAL_OFFSET.md)) |
+| Life-token remaining count (account page) | Not needed — `NO_LIFE_TOKENS` still rejects login |
+| Learned tools / tool slots HUD (`LR`/`TS`) | Not needed — tags parsed and stored, not drawn |
 
 ---
 
@@ -262,6 +264,7 @@ Start at **P3 presentation polish** (P2 complete through #14 sound residuals) un
 
 | Date | Note |
 |------|------|
+| 2026-08-29 | **Play residuals:** PE eyes/face before hat; rideable frozenArm clocks (moving t=0); leadership wrap/badge + exile X; craving HUD; apocalypse additive fade; GPU→Soft in-process (`run_return`). Out of scope: life-token count, tool-slots HUD. Still postponed: posse, photo. |
 | 2026-08-24 | **Remaining play residuals (except postponed)**: full hover tip (you/others/objects/graves/owners); C++ currentPos turn-smoothing; reverse-use last-use auto-clone; rebake object-file loading ticks; Soft→GPU without exec. Still postponed: posse, photo. Non-goal: true GPU world draw. |
 | 2026-08-24 | **Polish leftovers (all)**: wet reverb comb mix on spatial SFX; OLHU **v2 fonts**; `setupNumericSprites` + `+varSerialNumber`; `getSayLimit` SAY truncate; bad-biome HUD hover names; rideable road auto-walk; age body/head offset (already on parent chain; clothing via anchors); OLC1 **v9** `only_when_worn`; `loading.tga` chrome; minifb/GPU fullscreen in-process (graphics backend still restarts). Posse chase + photo still postponed. |
 | 2026-07-27 | **P5#39 Settings page** (**DONE**): soft-FB `SettingsPage` live on `ClientScreen` graph — SFX/music volume+mute, show FPS, credential/env display (edit stays on Account); env + `ohol_client_settings.ini` prefill; apply SoundBank/MusicBank + mute atomics; F3 Account/Playing and Esc from Playing open Settings; Esc/B back with best-effort save; `ohol-client` wired; headless CLI unchanged; no new crates. Focused settings tests + client_screen death tests + self-check OK; ohol-client builds. Residual: session-held MusicBank continuous bed step not re-applied mid-play (SFX applied on enter/leave Settings); minifb fullscreen live toggle needs window recreate (display hint only); optional C++ SettingsPage chrome (borderless, half-frame, hide UI). Files: `settings_page.rs`, `account_page.rs`, `client_screen.rs`, `sound_bank.rs`, `music_bank.rs`, `bin/ohol_client.rs`, `lib.rs`, `main.rs`, port docs. |

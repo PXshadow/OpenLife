@@ -42,6 +42,8 @@ pub struct ObjectAnimPack {
     pub extra_index_b: i32,
     /// Set true if frozen-rot was applied to any layer during sample.
     pub frozen_rot_used: bool,
+    /// Per-sprite RGB multiply (C++ `spriteColorOverride` for leadership badges).
+    pub sprite_tint: [f32; 3],
 }
 
 impl ObjectAnimPack {
@@ -60,6 +62,7 @@ impl ObjectAnimPack {
             extra_index: -1,
             extra_index_b: -1,
             frozen_rot_used: false,
+            sprite_tint: [1.0, 1.0, 1.0],
         }
     }
 }
@@ -303,6 +306,7 @@ impl AnimDrawState {
             extra_index: self.extra_index,
             extra_index_b: self.extra_index_b,
             frozen_rot_used: false,
+            sprite_tint: [1.0, 1.0, 1.0],
         }
     }
 
@@ -340,6 +344,7 @@ impl AnimDrawState {
             extra_index: -1,
             extra_index_b: -1,
             frozen_rot_used: false,
+            sprite_tint: [1.0, 1.0, 1.0],
         }
     }
 
@@ -478,6 +483,7 @@ pub fn clothing_pack_from_person(person: &ObjectAnimPack, cloth_id: i32) -> Obje
         extra_index: -1,
         extra_index_b: -1,
         frozen_rot_used: false,
+        sprite_tint: person.sprite_tint,
     }
 }
 
@@ -996,8 +1002,9 @@ fn sample_layer_pack(
     let anim_fade = pack.anim_fade.clamp(0.0, 1.0);
     let target_w = 1.0 - anim_fade;
 
-    // Frozen-arm full-layer override deferred (needs front/back arm indices from
-    // objectBank). Pack fields `frozen_arm_type` are retained for limb-hide pass.
+    // Frozen-arm layer override is applied in `draw_object_with_pack_ex` (arm
+    // indices live on the object def). C++ swaps those layers to the moving
+    // record at frameTime=0.
 
     let cur_ft = cur_use.frame_time(pack.frame_time);
     let tgt_ft = tgt_use.frame_time(pack.fade_target_frame_time);
@@ -1101,9 +1108,6 @@ fn sample_layer_pack(
     }
 
     rot += rock;
-
-    let _ = pack.frozen_arm_type; // retained for limb-hide pass
-    let _ = pack.frozen_arm_fade_target_type;
 
     AnimSample {
         x,
@@ -1256,6 +1260,7 @@ mod tests {
             extra_index: 0,
             extra_index_b: 1,
             frozen_rot_used: false,
+            sprite_tint: [1.0, 1.0, 1.0],
         };
         let s = sample_sprite_pack(&mut bank, &mut pack, 0);
         assert!(
@@ -1354,6 +1359,7 @@ mod tests {
             extra_index: -1,
             extra_index_b: -1,
             frozen_rot_used: false,
+            sprite_tint: [1.0, 1.0, 1.0],
         };
         let s = sample_sprite_pack(&mut bank, &mut pack, 0);
         assert!(
@@ -1400,6 +1406,7 @@ mod tests {
             extra_index: -1,
             extra_index_b: -1,
             frozen_rot_used: false,
+            sprite_tint: [1.0, 1.0, 1.0],
         };
         let s = sample_sprite_pack(&mut bank, &mut pack, 0);
         assert!(pack.frozen_rot_used);
@@ -1472,6 +1479,7 @@ mod tests {
             extra_index: -1,
             extra_index_b: -1,
             frozen_rot_used: false,
+            sprite_tint: [1.0, 1.0, 1.0],
         };
         let c = clothing_pack_from_person(&person, 55);
         assert_eq!(c.object_id, 55);
@@ -1499,6 +1507,26 @@ mod tests {
         assert_eq!(s.last_anim, ANIM_EATING);
         assert!(s.future_stack.is_empty());
         assert!((s.last_anim_fade - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn frozen_arm_types_match_cpp_rideable() {
+        assert_eq!(
+            frozen_arm_types(true, ANIM_MOVING, ANIM_MOVING),
+            (ANIM_MOVING, ANIM_MOVING)
+        );
+        assert_eq!(
+            frozen_arm_types(true, ANIM_GROUND, ANIM_GROUND),
+            (ANIM_END, ANIM_END)
+        );
+        assert_eq!(
+            frozen_arm_types(false, ANIM_MOVING, ANIM_MOVING),
+            (ANIM_END, ANIM_END)
+        );
+        assert_eq!(
+            frozen_arm_types(true, ANIM_EXTRA, ANIM_GROUND),
+            (ANIM_MOVING, ANIM_END)
+        );
     }
 
     #[test]

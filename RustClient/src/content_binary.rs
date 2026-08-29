@@ -1297,6 +1297,7 @@ pub fn load_from_cache(
     // Legacy OLT1 without bit7 still gets dough/masa switch patches.
     apply_default_switch_number_of_uses_patches(&mut db);
     auto_clone_reverse_last_use(&mut db);
+    db.load_leadership_badges();
     Ok(db)
 }
 

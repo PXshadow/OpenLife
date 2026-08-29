@@ -745,6 +745,18 @@ pub struct LiveObject {
     pub following_id: i32,
     /// C++ `personalLeadershipColor` index from FW (wrapped badge color).
     pub leadership_color_index: i32,
+    /// C++ `leadershipLevel` (follower-chain depth). Rebuilt by [`LiveWorld::update_leadership`].
+    pub leadership_level: i32,
+    /// C++ `highestLeaderID` (`-1` = none).
+    pub highest_leader_id: i32,
+    /// C++ `hasBadge`.
+    pub has_badge: bool,
+    /// C++ `isExiled` as seen by us (our id or our leaders exiled them).
+    pub is_exiled_view: bool,
+    /// C++ `isDubious` — follows an exiled leader.
+    pub is_dubious: bool,
+    /// C++ `badgeColor` RGB 0..1 (from highest leader's personal color).
+    pub badge_color: [f32; 3],
     /// C++ `exiledByIDs` from EX.
     pub exiled_by_ids: Vec<i32>,
     /// C++ `warPeaceStatus`: -1 war, 0 neutral, 1 peace (from WR vs our Eve).
@@ -753,6 +765,35 @@ pub struct LiveObject {
     pub pending_received_messages: VecDeque<String>,
     /// C++ `somePendingMessageIsMoreMovement` — held PM is waiting.
     pub some_pending_is_more_movement: bool,
+}
+
+/// C++ `badgeColors` (LivingLifePage ~13348) — 17 distinct leadership wrap colors.
+const BADGE_COLORS: [[f32; 3]; 17] = [
+    [0.902, 0.098, 0.294], // #e6194B
+    [0.235, 0.706, 0.294], // #3cb44b
+    [1.000, 0.882, 0.098], // #ffe119
+    [0.263, 0.388, 0.847], // #4363d8
+    [0.961, 0.510, 0.192], // #f58231
+    [0.259, 0.831, 0.957], // #42d4f4
+    [0.941, 0.196, 0.902], // #f032e6
+    [0.980, 0.745, 0.745], // #fabebe
+    [0.275, 0.600, 0.565], // #469990
+    [0.902, 0.745, 1.000], // #e6beff
+    [0.604, 0.388, 0.141], // #9A6324
+    [1.000, 0.980, 0.784], // #fffac8
+    [0.502, 0.000, 0.000], // #800000
+    [0.667, 1.000, 0.765], // #aaffc3
+    [0.000, 0.000, 0.459], // #000075
+    [0.663, 0.663, 0.663], // #a9a9a9
+    [1.000, 1.000, 1.000], // #ffffff
+];
+
+fn badge_color_rgb(index: i32) -> [f32; 3] {
+    if index < 0 {
+        return [1.0, 1.0, 1.0];
+    }
+    let n = BADGE_COLORS.len() as i32;
+    BADGE_COLORS[(index % n) as usize]
 }
 
 /// Soft-FB speech ink RGB from speaker curse / dying state.
@@ -872,6 +913,12 @@ impl LiveObject {
             speech_is_overhead_label: false,
             following_id: -1,
             leadership_color_index: -1,
+            leadership_level: 0,
+            highest_leader_id: -1,
+            has_badge: false,
+            is_exiled_view: false,
+            is_dubious: false,
+            badge_color: [1.0, 1.0, 1.0],
             exiled_by_ids: Vec::new(),
             war_peace_status: 0,
             pending_received_messages: VecDeque::new(),
@@ -945,6 +992,12 @@ impl LiveObject {
         let speech_is_overhead_label = self.speech_is_overhead_label;
         let following_id = self.following_id;
         let leadership_color_index = self.leadership_color_index;
+        let leadership_level = self.leadership_level;
+        let highest_leader_id = self.highest_leader_id;
+        let has_badge = self.has_badge;
+        let is_exiled_view = self.is_exiled_view;
+        let is_dubious = self.is_dubious;
+        let badge_color = self.badge_color;
         let exiled_by_ids = std::mem::take(&mut self.exiled_by_ids);
         let war_peace_status = self.war_peace_status;
         let pending_received_messages = std::mem::take(&mut self.pending_received_messages);
@@ -1004,6 +1057,12 @@ impl LiveObject {
         self.speech_is_overhead_label = speech_is_overhead_label;
         self.following_id = following_id;
         self.leadership_color_index = leadership_color_index;
+        self.leadership_level = leadership_level;
+        self.highest_leader_id = highest_leader_id;
+        self.has_badge = has_badge;
+        self.is_exiled_view = is_exiled_view;
+        self.is_dubious = is_dubious;
+        self.badge_color = badge_color;
         self.exiled_by_ids = exiled_by_ids;
         self.war_peace_status = war_peace_status;
         self.pending_received_messages = pending_received_messages;
@@ -2303,6 +2362,7 @@ impl LiveWorld {
                 }
             }
         }
+        self.update_leadership();
     }
 
     /// C++ EXILED (EX) — `exiler_id == -1` clears the target's list.
@@ -2316,6 +2376,130 @@ impl LiveWorld {
                 }
             }
         }
+        self.update_leadership();
+    }
+
+    /// C++ `LivingLifePage::updateLeadership` (~27769) — levels, badge, exile/dubious.
+    pub fn update_leadership(&mut self) {
+        let ids: Vec<i32> = self.players.keys().copied().collect();
+        for id in &ids {
+            if let Some(o) = self.players.get_mut(id) {
+                o.leadership_level = 0;
+                o.highest_leader_id = -1;
+                o.has_badge = false;
+                o.is_exiled_view = false;
+                o.is_dubious = false;
+                o.badge_color = [1.0, 1.0, 1.0];
+            }
+        }
+        let mut change = true;
+        while change {
+            change = false;
+            for id in &ids {
+                let following = self.players.get(id).map(|o| o.following_id).unwrap_or(-1);
+                let level = self.players.get(id).map(|o| o.leadership_level).unwrap_or(0);
+                if following != -1 {
+                    if let Some(l) = self.players.get_mut(&following) {
+                        if l.leadership_level <= level {
+                            l.leadership_level = level + 1;
+                            change = true;
+                        }
+                    }
+                }
+            }
+        }
+        for id in &ids {
+            let mut next = self.players.get(id).map(|o| o.following_id).unwrap_or(-1);
+            let mut highest = -1;
+            let mut guard = 0;
+            while next != -1 && guard < 64 {
+                guard += 1;
+                if self.players.contains_key(&next) {
+                    highest = next;
+                    next = self.players.get(&next).map(|l| l.following_id).unwrap_or(-1);
+                } else {
+                    break;
+                }
+            }
+            if let Some(o) = self.players.get_mut(id) {
+                o.highest_leader_id = highest;
+            }
+        }
+        let our_id = self.our_id.unwrap_or(-1);
+        let our_chain = self.our_leadership_chain();
+        for id in &ids {
+            let exiled_by = self
+                .players
+                .get(id)
+                .map(|o| o.exiled_by_ids.clone())
+                .unwrap_or_default();
+            let is_ex = exiled_by
+                .iter()
+                .any(|&e| e == our_id || our_chain.contains(&e));
+            if let Some(o) = self.players.get_mut(id) {
+                o.is_exiled_view = is_ex;
+            }
+        }
+        for id in &ids {
+            if self.players.get(id).map(|o| o.is_exiled_view).unwrap_or(false) {
+                continue;
+            }
+            let mut next = self.players.get(id).map(|o| o.following_id).unwrap_or(-1);
+            let mut dubious = false;
+            let mut guard = 0;
+            while next != -1 && guard < 64 {
+                guard += 1;
+                match self.players.get(&next) {
+                    Some(l) if l.is_exiled_view => {
+                        dubious = true;
+                        break;
+                    }
+                    Some(l) => next = l.following_id,
+                    None => break,
+                }
+            }
+            if let Some(o) = self.players.get_mut(id) {
+                o.is_dubious = dubious;
+            }
+        }
+        for id in ids {
+            let highest = self.players.get(&id).map(|o| o.highest_leader_id).unwrap_or(-1);
+            let level = self.players.get(&id).map(|o| o.leadership_level).unwrap_or(0);
+            let own_idx = self
+                .players
+                .get(&id)
+                .map(|o| o.leadership_color_index)
+                .unwrap_or(-1);
+            let color_idx = if highest != -1 {
+                self.players
+                    .get(&highest)
+                    .map(|l| l.leadership_color_index)
+                    .unwrap_or(own_idx)
+            } else {
+                own_idx
+            };
+            let color = badge_color_rgb(color_idx);
+            if let Some(o) = self.players.get_mut(&id) {
+                o.has_badge = highest != -1 || level > 0;
+                o.badge_color = color;
+            }
+        }
+    }
+
+    /// Chain of leaders above us (C++ `getOurLeadershipChain`).
+    fn our_leadership_chain(&self) -> Vec<i32> {
+        let mut chain = Vec::new();
+        let Some(our) = self.our_id else {
+            return chain;
+        };
+        let mut next = self.players.get(&our).map(|o| o.following_id).unwrap_or(-1);
+        let mut guard = 0;
+        while next != -1 && guard < 64 {
+            guard += 1;
+            chain.push(next);
+            next = self.players.get(&next).map(|o| o.following_id).unwrap_or(-1);
+        }
+        chain
     }
 
     /// C++ WAR_REPORT vs our Eve lineage — mark other-line players war/peace.
@@ -3627,6 +3811,11 @@ mod tests {
         assert_eq!(w.top_leader_id(1), 3);
         assert!(w.is_follower_of(2, 1));
         assert!(w.is_follower_of(3, 1));
+        // 1 follows 2 follows 3 → 3 is top leader (level 2), wrap on everyone in the chain.
+        assert!(w.get(1).unwrap().has_badge);
+        assert!(w.get(3).unwrap().has_badge);
+        assert_eq!(w.get(1).unwrap().highest_leader_id, 3);
+        assert_eq!(w.get(3).unwrap().leadership_color_index, 1);
         w.apply_exiled(&[crate::parse::ExiledRow {
             target_id: 2,
             exiler_id: 1,

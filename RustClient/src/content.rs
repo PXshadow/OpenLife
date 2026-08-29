@@ -1275,6 +1275,10 @@ pub struct ClientContent {
     pub transitions_category_expanded: bool,
     /// C++ `SerialCountRecord.numInstancesCreated` per variable-dummy parent.
     pub var_serial_created: HashMap<i32, u32>,
+    /// C++ `mLeadershipBadges[3]` from `badgeObjects` / `HalfX` / `FullX` ini lists.
+    pub leadership_badges: [Vec<i32>; 3],
+    /// C++ `mFullXObjectID` (`fullX` setting) — exile X when no tunic.
+    pub full_x_object_id: i32,
 }
 
 impl ClientContent {
@@ -1603,6 +1607,73 @@ impl ClientContent {
         }
     }
 
+    /// C++ `badgeObjects` / `badgeObjectsHalfX` / `badgeObjectsFullX` + `fullX`.
+    pub fn load_leadership_badges(&mut self) {
+        let Some(root) = self.root.clone() else {
+            return;
+        };
+        let dirs = [
+            root.join("contentSettings"),
+            root.join("settings"),
+            root.join("gameSource").join("settings"),
+        ];
+        let names = [
+            "badgeObjects.ini",
+            "badgeObjectsHalfX.ini",
+            "badgeObjectsFullX.ini",
+        ];
+        for (i, name) in names.iter().enumerate() {
+            for dir in &dirs {
+                let path = dir.join(name);
+                if path.is_file() {
+                    if let Ok(raw) = fs::read_to_string(&path) {
+                        self.leadership_badges[i] = raw
+                            .split_whitespace()
+                            .filter_map(|t| t.parse::<i32>().ok())
+                            .filter(|&n| n > 0)
+                            .collect();
+                        break;
+                    }
+                }
+            }
+        }
+        for dir in &dirs {
+            let path = dir.join("fullX.ini");
+            if path.is_file() {
+                if let Ok(raw) = fs::read_to_string(&path) {
+                    if let Some(n) = raw
+                        .split_whitespace()
+                        .find_map(|t| t.parse::<i32>().ok())
+                    {
+                        self.full_x_object_id = n;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    /// C++ `getBadgeObjectID` — index 0 normal / 1 dubious / 2 exiled, by leadership level.
+    pub fn badge_object_id(&self, level: i32, dubious: bool, exiled: bool) -> i32 {
+        let idx = if exiled {
+            2
+        } else if dubious {
+            1
+        } else {
+            0
+        };
+        let list = &self.leadership_badges[idx];
+        if list.is_empty() {
+            return 0;
+        }
+        let lv = level.max(0) as usize;
+        if lv < list.len() {
+            list[lv]
+        } else {
+            *list.last().unwrap_or(&0)
+        }
+    }
+
     /// Load from a OneLifeData7-style root (has `objects/`, `transitions/`).
     /// Does **not** assign multi-use dummies; call
     /// [`crate::content_binary::assign_multi_use_dummies`] or use
@@ -1638,6 +1709,7 @@ impl ClientContent {
             load_transitions_dir(&tr_dir, &mut db)?;
         }
         db.maybe_load_categories_from_root(root);
+        db.load_leadership_badges();
         apply_default_switch_number_of_uses_patches(&mut db);
         auto_clone_reverse_last_use(&mut db);
         Ok(db)

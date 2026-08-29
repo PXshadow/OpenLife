@@ -97,10 +97,11 @@ Rust: `PersonAnchors` post-chain; `clothing_screen_pos` flip+rotate; interleave 
 Jason: `getArmHoldingParameters`, HoldingPos from back hand or body;  
 rideable person-under-vehicle with behind/front split; PE body under arm / face after hat.
 
-Rust: same hooks; **bodyEmot** at `topBackArm` (under clothes + arm) like C++.
+Rust: same hooks; **bodyEmot** at `topBackArm`; **eyeEmot** on eyes sprite; **face/mouth/other** on head **before hat**; **headEmot** after hat. Rideable **frozenArm** samples the moving record at frameTime=0 on arm layers (sprites still drawn; legs hidden). HoldingPos for rideable is still hand (`hideClosestArm==0`) — vehicle draw ignores it.
 
 ## Residual (not body-assembly)
 
-- Face/eye/mouth/other still after the person+clothes pass (C++ draws them at eyes/head sprites, before hat). **headEmot** after hat matches.
-- Rideable **frozenArm** keeps drawing arm sprites (C++ freezes anim clocks on those layers rather than skipping them). HoldingPos for rideable is still hand (`hideClosestArm==0`).
-- Pixel-identical OpenGL filtering / subpixel (soft-FB nearest blit)
+- Pixel-identical OpenGL filtering / subpixel (soft-FB nearest blit) — non-goal
+- Anim `randomStartPhase` uses a per-object hash stand-in (C++ session-global Jenkins RNG)
+- Life-token remaining count on the account page — **out of scope**
+- Learned-tools / tool-slots HUD (`LR`/`TS`) — **out of scope** (parsed, not drawn)

@@ -22,7 +22,7 @@
 use crate::anim_bank::AnimBank;
 use crate::anim_draw::{
     clothing_pack_from_person, sample_slot_pack, sample_sprite_pack, select_clothing_anim_type,
-    select_held_anim_type, select_player_anim_type, ObjectAnimPack,
+    select_held_anim_type, select_player_anim_type, ObjectAnimPack, ANIM_END,
 };
 use crate::client_map::{ClientMap, ObjectStackNode};
 use crate::content::{
@@ -408,6 +408,15 @@ impl Framebuffer {
         }
     }
 
+    /// Additive full-rect (C++ apocalypse white overlay).
+    pub fn fill_rect_additive(&mut self, x: i32, y: i32, w: i32, h: i32, rgba: [u8; 4]) {
+        for dy in 0..h {
+            for dx in 0..w {
+                self.put_additive(x + dx, y + dy, rgba);
+            }
+        }
+    }
+
     /// Blit a subrect from atlas page into framebuffer with scale / flip / optional rotation.
     ///
     /// `rot_turns`: rotation in turns (1.0 = 360°). C++/Haxe sprite `rot` + anim rot.
@@ -777,6 +786,10 @@ pub struct SceneRenderer {
     pub ground_overlay_period: u32,
     /// Frame counter for overlay period.
     ground_overlay_tick: u32,
+    /// C++ `apocalypseInProgress` — white additive fade over the world (HUD on top).
+    pub apocalypse_in_progress: bool,
+    /// C++ `apocalypseDisplayProgress` 0..1 over ~6 seconds.
+    pub apocalypse_progress: f32,
 }
 
 impl Default for SceneRenderer {
@@ -796,6 +809,8 @@ impl Default for SceneRenderer {
             // Soft-FB default: every other frame (GPU present still looks smooth).
             ground_overlay_period: 2,
             ground_overlay_tick: 0,
+            apocalypse_in_progress: false,
+            apocalypse_progress: 0.0,
         }
     }
 }
@@ -886,6 +901,17 @@ impl SceneRenderer {
             self.hud.apply_excess_curse_points(p);
         }
         self.hud.dying = dying;
+    }
+
+    /// C++ AP starts a 6s additive white fade; AD clears it.
+    pub fn sync_apocalypse(&mut self, in_progress: bool) {
+        if in_progress && !self.apocalypse_in_progress {
+            self.apocalypse_progress = 0.0;
+        }
+        self.apocalypse_in_progress = in_progress;
+        if !in_progress {
+            self.apocalypse_progress = 0.0;
+        }
     }
 
     /// Clear HUD vitals (logout / death). Call after [`ClientSession::logout_reset`].
@@ -1263,6 +1289,23 @@ impl SceneRenderer {
                     // before later world.get_mut for frozen-rot notes.
                     // Order: backShoe, bottom, tunic, backpack, frontShoe, hat (C++ clothing).
                     const CLOTHING_DRAW_ORDER: [usize; 6] = [3, 4, 1, 5, 2, 0];
+                    let has_tunic = o.clothing.slot_id(1) > 0;
+                    let badge_draw: Option<(i32, [f32; 3])> = if o.has_badge && has_tunic {
+                        let bid = content.badge_object_id(
+                            o.leadership_level,
+                            o.is_dubious,
+                            o.is_exiled_view,
+                        );
+                        if bid > 0 {
+                            Some((bid, o.badge_color))
+                        } else {
+                            None
+                        }
+                    } else if o.is_exiled_view && content.full_x_object_id > 0 {
+                        Some((content.full_x_object_id, [1.0, 1.0, 1.0]))
+                    } else {
+                        None
+                    };
                     let clothing_draw: Vec<(usize, i32, String)> = CLOTHING_DRAW_ORDER
                         .iter()
                         .filter_map(|&slot_i| {
@@ -1384,22 +1427,10 @@ impl SceneRenderer {
                             Some(clothing_draw.as_slice()),
                             baby_lie_rot,
                             Some(emot_indices.as_slice()),
+                            badge_draw,
                         );
-                        // Face/eye/mouth/other after person+clothes (C++: at eyes/head
-                        // in the sprite loop). bodyEmot is interleaved under topBackArm.
-                        self.draw_emotion_layers(
-                            fb,
-                            content,
-                            sprites,
-                            anims,
-                            &person_pack,
-                            &emot_indices,
-                            &anchors,
-                            person_sx,
-                            person_sy,
-                            flip,
-                            EmotDrawPhase::Face,
-                        );
+                        // Face/eye/mouth/other are interleaved at eyes/head in
+                        // draw_object_with_pack_ex (before hat). bodyEmot at topBackArm.
                         (hp, anchors)
                     };
                     // L-EMOT: headEmot on top (after hat) — skip when +hideRider.
@@ -1879,7 +1910,34 @@ impl SceneRenderer {
             }
             // &mut: C++ updates mOldArrows / mCurrentArrowI inside draw.
             self.hud.resolve_last_ate_name(content);
+            // World fade (C++ ~9720) then HUD/craving on top (~10521).
+            if self.apocalypse_in_progress {
+                if dt > 1e-8 {
+                    self.apocalypse_progress =
+                        (self.apocalypse_progress + dt / 6.0).min(1.0);
+                }
+                let a = (self.apocalypse_progress.clamp(0.0, 1.0) * 255.0) as u8;
+                fb.fill_rect_additive(
+                    0,
+                    0,
+                    fb.width as i32,
+                    fb.height as i32,
+                    [255, 255, 255, a],
+                );
+            }
             draw_hud_if_visible(fb, &mut self.hud, &self.hud_sprites);
+        } else if self.apocalypse_in_progress {
+            if dt > 1e-8 {
+                self.apocalypse_progress = (self.apocalypse_progress + dt / 6.0).min(1.0);
+            }
+            let a = (self.apocalypse_progress.clamp(0.0, 1.0) * 255.0) as u8;
+            fb.fill_rect_additive(
+                0,
+                0,
+                fb.width as i32,
+                fb.height as i32,
+                [255, 255, 255, a],
+            );
         }
     }
 
@@ -2605,6 +2663,7 @@ impl SceneRenderer {
             None,
             0.0,
             None,
+            None,
         )
     }
 
@@ -2630,6 +2689,8 @@ impl SceneRenderer {
         extra_rot_turns: f32,
         // PE table indices; bodyEmot is drawn at topBackArm (C++ animationBank).
         emot_indices: Option<&[i32]>,
+        // Leadership wrap / exile X (C++ setAnimationBadge at topBackArm).
+        badge: Option<(i32, [f32; 3])>,
     ) -> (HoldingPos, PersonAnchors) {
         let object_id = pack.object_id;
         let scale = (self.camera.zoom / GRID).max(0.05);
@@ -2657,12 +2718,12 @@ impl SceneRenderer {
         }
 
         // Limb index sets for person hide (C++ getFrontArmIndices / getBackArmIndices)
-        let front_arm = if def.person != 0 && (hide_closest_arm != 0 || hide_all_limbs) {
+        let front_arm = if def.person != 0 {
             def.front_arm_indices(age)
         } else {
             Vec::new()
         };
-        let back_arm = if def.person != 0 && (hide_closest_arm != 0 || hide_all_limbs) {
+        let back_arm = if def.person != 0 {
             def.back_arm_indices(age)
         } else {
             Vec::new()
@@ -2699,8 +2760,12 @@ impl SceneRenderer {
         };
         // C++ topBackArmIndex = last of backArmIndices — body clothes draw under it.
         let top_back_arm_idx = if def.person != 0 {
-            let arms = def.back_arm_indices(age);
-            arms.last().copied()
+            back_arm.last().copied()
+        } else {
+            None
+        };
+        let eyes_idx = if def.person != 0 {
+            def.eyes_index(age)
         } else {
             None
         };
@@ -2787,8 +2852,24 @@ impl SceneRenderer {
                 }
             }
 
-            // L-ANIM-DRAW: dual-anim pack sample (inAnimFade + frozen rot)
-            let sample = sample_sprite_pack(anims, pack, si);
+            // L-ANIM-DRAW: dual-anim pack sample (inAnimFade + frozen rot).
+            // C++ animationBank ~2148: arm layers use frozenArm anim at frameTime=0.
+            let sample = if pack.frozen_arm_type != ANIM_END
+                && (front_arm.contains(&si) || back_arm.contains(&si))
+            {
+                let mut arm_pack = pack.clone();
+                arm_pack.anim_type = pack.frozen_arm_type;
+                arm_pack.frame_time = 0.0;
+                arm_pack.fade_target_type = pack.frozen_arm_fade_target_type;
+                arm_pack.fade_target_frame_time = 0.0;
+                if arm_pack.fade_target_type == ANIM_END {
+                    arm_pack.anim_fade = 1.0;
+                    arm_pack.fade_target_type = arm_pack.anim_type;
+                }
+                sample_sprite_pack(anims, &mut arm_pack, si)
+            } else {
+                sample_sprite_pack(anims, pack, si)
+            };
             // C++ spriteNoFlipXPos when the whole object is drawn flipped (numerals).
             let rest_x = if flip { spr.no_flip_x } else { spr.x };
             let mut px = rest_x + sample.x;
@@ -2998,12 +3079,76 @@ impl SceneRenderer {
                 EmotDrawPhase::Body,
             );
         };
+        let draw_pe = |fb: &mut Framebuffer,
+                       sprites: &mut SpriteBank,
+                       anims: &mut AnimBank,
+                       anchors: &PersonAnchors,
+                       person_pack: &ObjectAnimPack,
+                       phase: EmotDrawPhase| {
+            let Some(indices) = emot_indices else {
+                return;
+            };
+            if indices.is_empty() {
+                return;
+            }
+            self.draw_emotion_layers(
+                fb,
+                content,
+                sprites,
+                anims,
+                person_pack,
+                indices,
+                anchors,
+                screen_x,
+                screen_y,
+                flip,
+                phase,
+            );
+        };
+        let draw_badge = |fb: &mut Framebuffer,
+                          sprites: &mut SpriteBank,
+                          anims: &mut AnimBank,
+                          anchors: &PersonAnchors,
+                          person_pack: &ObjectAnimPack| {
+            let Some((bid, tint)) = badge else {
+                return;
+            };
+            if bid <= 0 {
+                return;
+            }
+            let (ox, oy) = content
+                .get(bid)
+                .map(|d| d.clothing_offset)
+                .unwrap_or((0.0, 0.0));
+            let part = clothing_anchor_for_slot(anchors, 1).unwrap_or((0.0, 0.0, 0.0));
+            let (cx, cy) = clothing_screen_pos(screen_x, screen_y, part, (ox, oy), scale, flip);
+            let mut pack = clothing_pack_from_person(person_pack, bid);
+            pack.sprite_tint = tint;
+            let _ = self.draw_object_with_pack(
+                fb,
+                content,
+                sprites,
+                anims,
+                &mut pack,
+                age,
+                cx,
+                cy,
+                flip,
+                false,
+                true,
+                0,
+                false,
+                SpriteLayerFilter::All,
+                false,
+            );
+        };
 
         for (si, spr) in def.sprites.iter().enumerate() {
-            // Body emote + clothes under top of back arm (before arm blit).
+            // Body emote + clothes + badge under top of back arm (before arm blit).
             if def.person != 0 && top_back_arm_idx == Some(si) {
                 draw_body_emot(fb, sprites, anims, &anchors, pack);
                 draw_body_clothes(fb, sprites, anims, &anchors, pack);
+                draw_badge(fb, sprites, anims, &anchors, pack);
             }
 
             if posed[si] && draw[si] {
@@ -3030,6 +3175,7 @@ impl SceneRenderer {
                     if flip {
                         rot = -rot;
                     }
+                    let tint = pack.sprite_tint;
                     fb.blit_sprite(
                         &page.pixels,
                         page.width,
@@ -3041,12 +3187,19 @@ impl SceneRenderer {
                         dy,
                         scale,
                         h_flip,
-                        [spr.r, spr.g, spr.b],
+                        [spr.r * tint[0], spr.g * tint[1], spr.b * tint[2]],
                         rot,
                         rect.multiplicative_blend,
                         ofade[si],
                     );
                 }
+            }
+
+            if def.person != 0 && eyes_idx == Some(si) {
+                draw_pe(fb, sprites, anims, &anchors, pack, EmotDrawPhase::Eyes);
+            }
+            if def.person != 0 && head_idx == Some(si) {
+                draw_pe(fb, sprites, anims, &anchors, pack, EmotDrawPhase::Face);
             }
 
             // Shoes on top of feet (after foot sprite).
@@ -3089,6 +3242,7 @@ impl SceneRenderer {
             if worn_clothing.is_some() {
                 draw_body_clothes(fb, sprites, anims, &anchors, pack);
             }
+            draw_badge(fb, sprites, anims, &anchors, pack);
         }
 
         (holding_out, anchors)
@@ -3282,16 +3436,9 @@ impl SceneRenderer {
                         }
                     }
                 }
-                EmotDrawPhase::Face => {
-                    let head = anchors.head.or(anchors.body);
-                    let Some((hx, hy, _hr)) = head else {
-                        continue;
-                    };
-                    let (head_sx, head_sy) = to_screen(hx, hy);
-                    // P3#19: eyeEmot at head+mainEyesOffset (C++ animHeadPos+offset)
-                    // // C++ only draws eyeEmot when eyesIndex is valid (!= -1)
+                EmotDrawPhase::Eyes => {
                     if em.eye_emot > 0 && anchors.has_eyes {
-                        let (ex, ey, _) = anchors.eyes.unwrap_or((hx, hy, 0.0));
+                        let (ex, ey, _) = anchors.eyes.or(anchors.head).unwrap_or((0.0, 0.0, 0.0));
                         let (esx, esy) = to_screen(ex, ey);
                         let mut pack = clothing_pack_from_person(person_pack, em.eye_emot);
                         let _ = self.draw_object_with_pack(
@@ -3309,9 +3456,16 @@ impl SceneRenderer {
                             0,
                             false,
                             SpriteLayerFilter::All,
-                        false,
+                            false,
                         );
                     }
+                }
+                EmotDrawPhase::Face => {
+                    let head = anchors.head.or(anchors.body);
+                    let Some((hx, hy, _hr)) = head else {
+                        continue;
+                    };
+                    let (head_sx, head_sy) = to_screen(hx, hy);
                     // face / mouth / other at head (C++ face uses animHeadPos always)
                     for slot in [em.face_emot, em.mouth_emot, em.other_emot] {
                         if slot <= 0 {
@@ -3373,7 +3527,9 @@ impl SceneRenderer {
 enum EmotDrawPhase {
     /// Under top back arm and body clothes (bodyEmot).
     Body,
-    /// After clothing base (eye/face/mouth/other).
+    /// On the eyes sprite (eyeEmot).
+    Eyes,
+    /// On the head sprite before hat (face/mouth/other).
     Face,
     /// After hat (headEmot).
     HeadTop,
@@ -4405,6 +4561,7 @@ mod tests {
             Some(worn.as_slice()),
             0.0,
             None,
+            None,
         );
         let blue = count_near(&fb, [0, 0, 255]);
         let green = count_near(&fb, [0, 255, 0]);
@@ -4511,6 +4668,7 @@ mod tests {
             None,
             0.0,
             Some(&emots),
+            None,
         );
         let blue = count_near(&fb, [0, 0, 255]);
         let magenta = count_near(&fb, [255, 0, 255]);

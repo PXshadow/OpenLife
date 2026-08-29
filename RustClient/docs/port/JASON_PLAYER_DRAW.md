@@ -87,11 +87,11 @@ drawObjectAnim(clothing, clothingAnimType, cPos, worn=true, cont[])
 1. Person sprites bottom→top (age gates, parent chain, skip worn/invis flags).
 2. When **back foot** drawn: compute backShoePos; later draw shoe on foot.
 3. When **body** drawn: compute tunic/bottom/backpack positions.
-4. When **top back arm**: bodyEmot; draw **bottom → tunic → backpack** (under top of back arm).
-5. When **front foot**: front shoe.
-6. After all person sprites: **hat on head**.
-7. **headEmot** after hat.
-8. Eyes/mouth/other emotes at head/eyes anchors during head/eyes layers.
+4. When **top back arm**: bodyEmot; draw **bottom → tunic → backpack**; leadership **badge** (or exile X); then the arm sprite.
+5. When **eyes** sprite: **eyeEmot**. When **head** sprite: face/mouth/other.
+6. When **front foot**: front shoe.
+7. After all person sprites: **hat on head**.
+8. **headEmot** after hat.
 
 **Worn flags:** `spriteInvisibleWhenWorn == 1` skip if worn; `== 2` skip if not worn (~2740–2753).
 
@@ -141,7 +141,9 @@ Mouth skip when any emot has `mouthEmot != 0`.
 - [x] Clothing attach to **head/body/foot animated positions** (not feet-only).
 - [x] **clothingOffset rotated by body-part rot** (and flipX) before attach (`animationBank` cPos).
 - [x] Clothing **interleaved**: bottom/tunic/backpack under topBackArm; shoes on feet; hat after body sprites.
-- [x] **bodyEmot** at topBackArm (under clothes + arm); headEmot after hat.
+- [x] **bodyEmot** at topBackArm (under clothes + arm); eye/face/mouth/other at eyes/head before hat; headEmot after hat.
+- [x] Rideable **frozenArm**: arm layers sample moving anim at frameTime=0.
+- [x] Leadership wrap/badge (`setAnimationBadge`) + exile full-X.
 - [x] Clothing draw order: shoes/tunic/bottom/backpack/hat with contained.
 - [x] Full age-visible person layers paint (pose all layers; age only skips draw).
 - [x] Age body/head offsets (`ageControl.cpp`); exclusive age end bound.

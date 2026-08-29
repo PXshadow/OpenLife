@@ -323,6 +323,10 @@ pub struct ClientSession {
     pub curse_tokens: Option<i32>,
     /// Last excess curse points (CS) — L-HUD residual.
     pub excess_curse_points: Option<i32>,
+    /// C++ `mCravingMessage` from CR.
+    pub craving: Option<Craving>,
+    /// C++ `apocalypseInProgress`.
+    pub apocalypse_in_progress: bool,
     /// Lasting player entities (C++ LiveObject table) — **L-LIVEOBJ**.
     pub world: LiveWorld,
     /// Client map from MC/MX — **L-MAP**.
@@ -462,6 +466,8 @@ impl ClientSession {
             messages_out: 0,
             curse_tokens: None,
             excess_curse_points: None,
+            craving: None,
+            apocalypse_in_progress: false,
             world: LiveWorld::new(),
             map: ClientMap::new(),
             bad_biomes: Vec::new(),
@@ -824,6 +830,8 @@ impl ClientSession {
         self.vog_pos = None;
         self.curse_tokens = None;
         self.excess_curse_points = None;
+        self.craving = None;
+        self.apocalypse_in_progress = false;
         self.world = LiveWorld::new();
         self.map = ClientMap::new();
         // Keep last_move_sequence semantics of a fresh birth (1) after full reset.
@@ -1501,8 +1509,14 @@ impl ClientSession {
                 }
                 Ok(SessionEvent::Login(o))
             }
-            InboundMessage::Apocalypse => Ok(SessionEvent::Apocalypse),
-            InboundMessage::ApocalypseDone => Ok(SessionEvent::ApocalypseDone),
+            InboundMessage::Apocalypse => {
+                self.apocalypse_in_progress = true;
+                Ok(SessionEvent::Apocalypse)
+            }
+            InboundMessage::ApocalypseDone => {
+                self.apocalypse_in_progress = false;
+                Ok(SessionEvent::ApocalypseDone)
+            }
             InboundMessage::Pong(id) => {
                 if self.waiting_for_pong {
                     if let Some(t0) = self.ping_sent_at {
@@ -1529,7 +1543,10 @@ impl ClientSession {
                 self.world.apply_flips(&v);
                 Ok(SessionEvent::Flip(v))
             }
-            InboundMessage::Craving(c) => Ok(SessionEvent::Craving(c)),
+            InboundMessage::Craving(c) => {
+                self.craving = Some(c.clone());
+                Ok(SessionEvent::Craving(c))
+            }
             InboundMessage::PosseJoin(v) => Ok(SessionEvent::PosseJoin(v)),
             InboundMessage::MonumentCall(m) => Ok(SessionEvent::MonumentCall(m)),
             InboundMessage::Ghost(v) => Ok(SessionEvent::Ghost(v)),

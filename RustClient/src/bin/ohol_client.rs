@@ -78,7 +78,15 @@ const CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Build-time stamp from build.rs (seconds since epoch) — proves newest binary.
 const CLIENT_BUILD_STAMP: &str = env!("OHOL_BUILD_STAMP");
 /// What we are actively fixing / working on (shown in every window title).
-const CLIENT_FOCUS: &str = "polish: reverb, HUD fonts, loading.tga, fullscreen recreate";
+const CLIENT_FOCUS: &str = "leader badge, craving HUD, apocalypse, frozenArm, PE face";
+
+fn sync_scene_play_extras(scene: &mut SceneRenderer, session: &ClientSession) {
+    let craving = session.craving.as_ref().map(|c| {
+        ohol_headless::craving_hud_line(&session.content, c.food_id, c.bonus)
+    });
+    scene.hud.apply_craving(craving);
+    scene.sync_apocalypse(session.apocalypse_in_progress);
+}
 
 /// Prefix for all window titles so you can see version + current work.
 fn title_prefix() -> String {
@@ -2240,6 +2248,7 @@ fn run_session_from_boot(
             session.excess_curse_points,
             dying,
         );
+        sync_scene_play_extras(&mut scene, &session);
 
         if let Some((gx, gy)) = apply_hover_from_session(&mut scene, &session, hover) {
             let _ = session.request_grave(gx, gy);
@@ -3220,6 +3229,7 @@ fn run_session_gpu(
         ElementState, Event, MouseButton as WMouse, MouseScrollDelta, VirtualKeyCode, WindowEvent,
     };
     use winit::event_loop::{ControlFlow, EventLoop};
+    use winit::platform::run_return::EventLoopExtRunReturn;
     use winit::window::WindowBuilder;
 
     let root = session.content.root.clone().unwrap_or_else(|| {
@@ -3251,7 +3261,7 @@ fn run_session_gpu(
     }
     let want_fullscreen = app.settings.fullscreen;
 
-    let event_loop = EventLoop::new();
+    let mut event_loop = EventLoop::new();
     let window = {
         // Windowed: original comfortable size (960×540). Fullscreen: borderless monitor.
         let mut wb = WindowBuilder::new().with_title("Open Life (GPU present)");
@@ -3309,7 +3319,8 @@ fn run_session_gpu(
     let fbw = FB_W as u32;
     let fbh = FB_H as u32;
 
-    event_loop.run(move |event, _, control_flow| {
+    let mut switch_to_soft = false;
+    event_loop.run_return(|event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
         match event {
             Event::WindowEvent { event, .. } => match event {
@@ -3473,7 +3484,12 @@ fn run_session_gpu(
                         }
                         SettingsAction::Restart => {
                             let _ = app.settings.save_default();
-                            restart_client_process();
+                            if app.settings.graphics_mode == GraphicsMode::Soft {
+                                switch_to_soft = true;
+                                *control_flow = ControlFlow::Exit;
+                            } else {
+                                restart_client_process();
+                            }
                         }
                         SettingsAction::ApplyFullscreen => {
                             let _ = app.settings.save_default();
@@ -3864,6 +3880,7 @@ fn run_session_gpu(
                         session.excess_curse_points,
                         dying,
                     );
+                    sync_scene_play_extras(&mut scene, &session);
                     if let Some((gx, gy)) =
                         apply_hover_from_session(&mut scene, &session, hover)
                     {
@@ -3929,4 +3946,12 @@ fn run_session_gpu(
             _ => {}
         }
     });
+    drop(pixels);
+    drop(window);
+    if switch_to_soft {
+        app.settings.capture_runtime_baseline();
+        eprintln!("graphics: GPU → Soft in-process");
+        return run_session_from_boot(session, sprites, anims, scene.music, cfg, app);
+    }
+    Ok(())
 }

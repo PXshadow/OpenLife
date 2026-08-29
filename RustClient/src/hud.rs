@@ -290,6 +290,8 @@ pub struct HudState {
     pub age_years: f32,
     /// C++ `mBadBiomeNames` / object tip at screen-center (empty = none).
     pub hover_tip: Option<String>,
+    /// C++ craving sheet (`setNewCraving`) — `CRAVING: NAME (+N)`.
+    pub craving_text: Option<String>,
 }
 
 impl Default for HudState {
@@ -339,8 +341,18 @@ impl Default for HudState {
             pointer_valid: false,
             age_years: 20.0,
             hover_tip: None,
+            craving_text: None,
         }
     }
+}
+
+/// C++ `setNewCraving` sheet text: `CRAVING: NAME (+bonus)`.
+pub fn craving_hud_line(content: &crate::content::ClientContent, food_id: i32, bonus: i32) -> String {
+    let name = content
+        .get(food_id)
+        .map(object_hud_name)
+        .unwrap_or_else(|| format!("#{food_id}"));
+    format!("CRAVING: {} (+{bonus})", name.to_ascii_uppercase())
 }
 
 /// First token of object name/description without `#tags` (C++ HUD last-ate string).
@@ -838,6 +850,14 @@ impl HudState {
     pub fn apply_excess_curse_points(&mut self, points: i32) {
         self.excess_curse_points = points.max(0);
         if points > 0 {
+            self.visible = true;
+        }
+    }
+
+    /// C++ `setNewCraving` — uppercase food name + yum bonus.
+    pub fn apply_craving(&mut self, text: Option<String>) {
+        self.craving_text = text.filter(|s| !s.is_empty());
+        if self.craving_text.is_some() {
             self.visible = true;
         }
     }
@@ -2358,6 +2378,23 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
         let label = format!("#{}", state.last_ate_id);
         sprites.draw_hud_text(fb, &label, ate_x, ate_y, s, [0, 0, 0, 255], false, false);
     }
+    // C++ craving sheets (handwriting on hint paper, above chat). Soft-FB: line under last-ate.
+    if let Some(ref craving) = state.craving_text {
+        if !craving.is_empty() {
+            let (cx_c, cy_c) = ate_screen_pos(fb.width, fb.height);
+            sprites.draw_hud_text(
+                fb,
+                craving,
+                cx_c,
+                cy_c - 22.0 * s,
+                (s * 0.85).max(0.7),
+                [20, 20, 18, 255],
+                true,
+                false,
+            );
+        }
+    }
+
     if state.last_ate_fill_max > 0 {
         draw_hunger_max_fill_line(
             fb,
@@ -2460,6 +2497,23 @@ mod tests {
         assert_eq!(hud.max_food_capacity, 12, "peak capacity retained");
         assert_eq!(hud.yum_bonus, 2);
         assert!(hud.visible);
+    }
+
+    #[test]
+    fn craving_hud_line_uppercases_name() {
+        let mut content = crate::content::ClientContent::new();
+        content.objects.insert(
+            31,
+            crate::content::ClientObjectDef {
+                id: 31,
+                name: "Cooked Meat".into(),
+                ..Default::default()
+            },
+        );
+        assert_eq!(
+            craving_hud_line(&content, 31, 3),
+            "CRAVING: COOKED MEAT (+3)"
+        );
     }
 
     #[test]
