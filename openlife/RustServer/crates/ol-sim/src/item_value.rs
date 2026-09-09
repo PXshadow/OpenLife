@@ -76,23 +76,9 @@ const QUALITY_MASTER: &[&str] = &[
     "divine",
 ];
 const QUALITY_FINE: &[&str] = &[
-    "steel",
-    "sharp",
-    "fine",
-    "tempered",
-    "honed",
-    "polished",
-    "refined",
-    "hardened",
+    "steel", "sharp", "fine", "tempered", "honed", "polished", "refined", "hardened",
 ];
-const QUALITY_FAIR: &[&str] = &[
-    "iron",
-    "copper",
-    "bronze",
-    "brass",
-    "metal",
-    "forged",
-];
+const QUALITY_FAIR: &[&str] = &["iron", "copper", "bronze", "brass", "metal", "forged"];
 const QUALITY_CRUDE: &[&str] = &[
     "flint",
     "stone",
@@ -147,10 +133,9 @@ pub fn tool_quality_from_name(name: &str) -> ToolQuality {
 pub fn name_looks_like_tool(name: &str) -> bool {
     let n = name.to_ascii_lowercase();
     const HINTS: &[&str] = &[
-        "axe", "knife", "sword", "pick", "shovel", "hoe", "hammer", "chisel",
-        "saw", "blade", "tool", "adze", "mallet", "scythe", "sickle", "spear",
-        "bow", "arrow", "club", "mace", "lance", "file", "awl", "needle",
-        "tongs", "shear", "shears", "pliers",
+        "axe", "knife", "sword", "pick", "shovel", "hoe", "hammer", "chisel", "saw", "blade",
+        "tool", "adze", "mallet", "scythe", "sickle", "spear", "bow", "arrow", "club", "mace",
+        "lance", "file", "awl", "needle", "tongs", "shear", "shears", "pliers",
     ];
     HINTS.iter().any(|h| n.contains(h))
 }
@@ -217,16 +202,7 @@ const RARITY_EPIC: &[&str] = &[
     "enchanted",
 ];
 const RARITY_RARE: &[&str] = &[
-    "rare",
-    "gold",
-    "golden",
-    "silver",
-    "jewel",
-    "gem",
-    "ruby",
-    "emerald",
-    "sapphire",
-    "pearl",
+    "rare", "gold", "golden", "silver", "jewel", "gem", "ruby", "emerald", "sapphire", "pearl",
     "ivory",
 ];
 const RARITY_UNCOMMON: &[&str] = &[
@@ -244,28 +220,8 @@ const RARITY_UNCOMMON: &[&str] = &[
 ];
 /// Common-material / wildcraft signals (only used when no higher hit).
 const RARITY_COMMON_HINTS: &[&str] = &[
-    "berry",
-    "grass",
-    "dirt",
-    "mud",
-    "stick",
-    "twig",
-    "leaf",
-    "straw",
-    "clay",
-    "sand",
-    "water",
-    "snow",
-    "ice",
-    "stone",
-    "rock",
-    "wood",
-    "wooden",
-    "branch",
-    "bark",
-    "seed",
-    "sprout",
-    "weed",
+    "berry", "grass", "dirt", "mud", "stick", "twig", "leaf", "straw", "clay", "sand", "water",
+    "snow", "ice", "stone", "rock", "wood", "wooden", "branch", "bark", "seed", "sprout", "weed",
 ];
 
 /// Infer object rarity from display name keywords.
@@ -614,7 +570,10 @@ mod tests {
             ToolQuality::Broken
         );
         assert_eq!(tool_quality_from_name("Rusty Axe"), ToolQuality::Broken);
-        assert_eq!(tool_quality_from_name("Cracked Flint Knife"), ToolQuality::Broken);
+        assert_eq!(
+            tool_quality_from_name("Cracked Flint Knife"),
+            ToolQuality::Broken
+        );
     }
 
     #[test]
@@ -627,10 +586,7 @@ mod tests {
             tool_quality_from_name("Legendary Sword"),
             ToolQuality::Master
         );
-        assert_eq!(
-            tool_quality_from_name("Steel Axe"),
-            ToolQuality::Fine
-        );
+        assert_eq!(tool_quality_from_name("Steel Axe"), ToolQuality::Fine);
         assert_eq!(
             tool_quality_from_name("Sharp Flint Knife"),
             ToolQuality::Fine
@@ -678,18 +634,30 @@ mod tests {
     #[test]
     fn rarity_bands_from_name() {
         assert_eq!(object_rarity_from_name("Stick"), ObjectRarity::Common);
-        assert_eq!(object_rarity_from_name("Wild Gooseberry"), ObjectRarity::Common);
+        assert_eq!(
+            object_rarity_from_name("Wild Gooseberry"),
+            ObjectRarity::Common
+        );
         assert_eq!(object_rarity_from_name("Iron Ore"), ObjectRarity::Uncommon);
-        assert_eq!(object_rarity_from_name("Steel Blade"), ObjectRarity::Uncommon);
+        assert_eq!(
+            object_rarity_from_name("Steel Blade"),
+            ObjectRarity::Uncommon
+        );
         assert_eq!(object_rarity_from_name("Gold Coin"), ObjectRarity::Rare);
         assert_eq!(object_rarity_from_name("Silver Ring"), ObjectRarity::Rare);
         assert_eq!(object_rarity_from_name("Diamond"), ObjectRarity::Epic);
-        assert_eq!(object_rarity_from_name("Enchanted Crystal"), ObjectRarity::Epic);
+        assert_eq!(
+            object_rarity_from_name("Enchanted Crystal"),
+            ObjectRarity::Epic
+        );
         assert_eq!(
             object_rarity_from_name("Legendary Artifact"),
             ObjectRarity::Legendary
         );
-        assert_eq!(object_rarity_from_name("Dragon Scale"), ObjectRarity::Legendary);
+        assert_eq!(
+            object_rarity_from_name("Dragon Scale"),
+            ObjectRarity::Legendary
+        );
         assert_eq!(object_rarity_from_name(""), ObjectRarity::Common);
     }
 
@@ -716,20 +684,14 @@ mod tests {
         // Common + depth 10 → Rare
         assert_eq!(object_rarity_with_depth("Basket", 10), ObjectRarity::Rare);
         // Already Rare + depth 6 → Epic
-        assert_eq!(
-            object_rarity_with_depth("Gold Coin", 6),
-            ObjectRarity::Epic
-        );
+        assert_eq!(object_rarity_with_depth("Gold Coin", 6), ObjectRarity::Epic);
         // Cap at Legendary
         assert_eq!(
             object_rarity_with_depth("Legendary Sword", 99),
             ObjectRarity::Legendary
         );
         // No bump under threshold
-        assert_eq!(
-            object_rarity_with_depth("Basket", 5),
-            ObjectRarity::Common
-        );
+        assert_eq!(object_rarity_with_depth("Basket", 5), ObjectRarity::Common);
     }
 
     // --- recipe cost ---
@@ -767,10 +729,7 @@ mod tests {
             estimate_direct_recipe_cost(0, &[(1, 2)]),
             RecipeCost::empty()
         );
-        assert_eq!(
-            estimate_direct_recipe_cost(9, &[]),
-            RecipeCost::leaf(9)
-        );
+        assert_eq!(estimate_direct_recipe_cost(9, &[]), RecipeCost::leaf(9));
         let d = estimate_direct_recipe_cost(10, &[(1, 2), (1, 3)]);
         assert_eq!(d.steps, 1);
         assert_eq!(d.unique_ingredients, 3); // 1,2,3
@@ -812,10 +771,7 @@ mod tests {
             format_rarity_query(1, Some("Stick")),
             "RARITY 1 tier=Common score=0"
         );
-        assert_eq!(
-            format_rarity_query(2, None),
-            "RARITY 2 tier=Common score=0"
-        );
+        assert_eq!(format_rarity_query(2, None), "RARITY 2 tier=Common score=0");
         let d = format_rarity_query_with_depth(4, Some("Basket"), 6);
         assert_eq!(d, "RARITY 4 tier=Uncommon score=1 depth=6");
         assert_eq!(format_rarity_query_with_depth(0, Some("x"), 9), "RARITY 0");

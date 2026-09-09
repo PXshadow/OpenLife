@@ -54,7 +54,7 @@ cargo test -p ol-sim --lib -- smith_profession:: player_snapshot_includes npc_pe
 
 ## Remaining gaps
 
-- Live USE/DROP I/O polish (parent AI-JOB-SMITH-LIVE residual)
-- Snapshot lacks hiddenWound alias (wound = any content wound on held)
-- Player/sim path still re-scans chisel family each profession tick (npc cached)
-- Ladder still uses single primary-kind peer_count for all steps (same as player path)
+- Live USE/DROP I/O polish → **DONE 2026-09-04** (GetCraftAndDrop scan fill)
+- Snapshot lacks hiddenWound alias → **DONE** (`is_hidden_wound`)
+- Player/sim path still re-scans chisel family each profession tick → **SMITH-CHISEL-PLAYER-CACHE DONE** (`SimState.steel_chisel_family`)
+- Ladder still uses single primary-kind peer_count for all steps (same as player path) → **SMITH-LADDER-PEER-KIND DONE** (`peer_counts_by_kind_from_state`)

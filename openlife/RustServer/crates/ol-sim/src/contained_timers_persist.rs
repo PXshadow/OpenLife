@@ -174,7 +174,11 @@ pub fn rearm_stats(
             for (i, &(_cr, tt)) in ts.iter().enumerate() {
                 if tt > 0.0 {
                     // Prefer counting from slot meta when present.
-                    if h.slots.get(i).map(|s| s.time_to_change > 0.0).unwrap_or(true) {
+                    if h.slots
+                        .get(i)
+                        .map(|s| s.time_to_change > 0.0)
+                        .unwrap_or(true)
+                    {
                         stats.with_persisted_ttc += 1;
                     }
                 }

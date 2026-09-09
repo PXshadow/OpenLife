@@ -1,0 +1,11 @@
+[package]
+name = "ol-move-rules"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Pure MoveHelper speed/range/wrap/jump helpers (no SimState mutation)"
+publish = false
+
+[dependencies]
+ol-content.workspace = true
+ol-world.workspace = true

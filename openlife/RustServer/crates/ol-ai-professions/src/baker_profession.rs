@@ -1027,6 +1027,57 @@ pub fn fill_berry_bowl_if_needed(counts: &BakeCounts) -> BakeAction {
     BakeAction::DeferBerryBowl
 }
 
+/// Mid `fillBerryBowlIfNeeded(true)` searchDistance (onlyFillHeldBowl).
+// Haxe: AiBase.fillBerryBowlIfNeeded distance = 20 ~4226
+pub const FILL_BERRY_HELD_SEARCH_DIST: i32 = 20;
+/// Ladder label for mid `fillBerryBowlIfNeeded(true)` onlyFillHeld.
+// Haxe: AiBase.doTimeStuffHelper ~627
+pub const FILL_BERRY_HELD_RUNG: &str = "FILL_BERRY_HELD";
+/// Haxe `berryBushesIds` [30, 391].
+// Haxe: AiBase.fillBerryBowlIfNeeded ~4222
+pub const BERRY_BUSH_IDS: [i32; 2] = [WILD_BUSH, DOMESTIC_BUSH];
+
+/// Sensors for mid `fillBerryBowlIfNeeded(true)`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FillBerryBowlHeldInput {
+    pub held_id: i32,
+    pub held_uses: i32,
+    pub held_num_uses: i32,
+    /// Closest wild/domestic bush (x, y, parent_id).
+    pub bush: Option<(i32, i32, i32)>,
+}
+
+/// Mid onlyFillHeld berry action.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FillBerryBowlHeldAction {
+    None,
+    UseHeldOnBush { x: i32, y: i32, bush_id: i32 },
+}
+
+impl FillBerryBowlHeldAction {
+    pub fn is_some(self) -> bool {
+        !matches!(self, Self::None)
+    }
+}
+
+/// Haxe `fillBerryBowlIfNeeded(true)` — held Bowl of Gooseberries 253 on closest bush r=20.
+///
+/// Full bowl (`numberOfUses >= numUses`) and missing bush are no-ops. Pickup/BOWLFILLER
+/// is dead (`return false` TODO after onlyFillHeld).
+// Haxe: AiBase.fillBerryBowlIfNeeded ~4224 onlyFillHeldBowl=true
+pub fn fill_berry_bowl_held_if_needed(inp: &FillBerryBowlHeldInput) -> FillBerryBowlHeldAction {
+    if inp.held_id != BOWL_GOOSEBERRIES {
+        return FillBerryBowlHeldAction::None;
+    }
+    if inp.held_num_uses > 0 && inp.held_uses >= inp.held_num_uses {
+        return FillBerryBowlHeldAction::None;
+    }
+    let Some((x, y, bush_id)) = inp.bush else {
+        return FillBerryBowlHeldAction::None;
+    };
+    FillBerryBowlHeldAction::UseHeldOnBush { x, y, bush_id }
+}
+
 /// makeSeatsAndCleanUp pure gate.
 ///
 /// - Hungry â†’ no-op
@@ -2207,6 +2258,44 @@ mod tests {
         rt.is_assigned_baker = false;
         rt.is_last_baker = true;
         assert!(resolve_baker_assigned_job(&rt));
+    }
+
+    #[test]
+    fn fill_berry_bowl_held_if_needed_uses_closest_bush() {
+        // Haxe fillBerryBowlIfNeeded(true): held 253 + bush r=20.
+        let mut inp = FillBerryBowlHeldInput {
+            held_id: BOWL_GOOSEBERRIES,
+            held_uses: 1,
+            held_num_uses: 5,
+            bush: Some((2, 0, WILD_BUSH)),
+        };
+        assert_eq!(
+            fill_berry_bowl_held_if_needed(&inp),
+            FillBerryBowlHeldAction::UseHeldOnBush {
+                x: 2,
+                y: 0,
+                bush_id: WILD_BUSH
+            }
+        );
+        inp.held_uses = 5;
+        assert_eq!(
+            fill_berry_bowl_held_if_needed(&inp),
+            FillBerryBowlHeldAction::None
+        );
+        inp.held_uses = 1;
+        inp.bush = None;
+        assert_eq!(
+            fill_berry_bowl_held_if_needed(&inp),
+            FillBerryBowlHeldAction::None
+        );
+        inp.held_id = 0;
+        inp.bush = Some((1, 0, DOMESTIC_BUSH));
+        assert_eq!(
+            fill_berry_bowl_held_if_needed(&inp),
+            FillBerryBowlHeldAction::None
+        );
+        assert_eq!(FILL_BERRY_HELD_RUNG, "FILL_BERRY_HELD");
+        assert_eq!(FILL_BERRY_HELD_SEARCH_DIST, 20);
     }
 
     #[test]

@@ -4,8 +4,8 @@
 //! When on, paths are accepted into [`MovePath`], advanced by `speed * dt` each tick,
 //! and broadcast as PM on accept.
 
-use crate::player::Player;
 use crate::pathfind::is_walkable;
+use crate::player::Player;
 use crate::WALK_MOVE_SPEED;
 use ol_content::ContentDb;
 use ol_world::World;
@@ -69,6 +69,9 @@ pub enum MoveReject {
     /// Haxe world-wrap CancleMovement already applied (VOG+force); ignore in handler.
     // Haxe: MoveHelper.moveHelper L550-586
     WorldWrapped,
+    /// HIT-BLOCK-NONALLY-MOVE: close armed non-ally (`getClosePlayer` 1.5).
+    // Haxe: GlobalPlayerInstance.killHelper L4369 TODO
+    CloseHostileWeapon,
 }
 
 impl MoveReject {
@@ -85,6 +88,7 @@ impl MoveReject {
             Self::TooYoung => "too_young",
             Self::JumpRateLimited => "jump_rate_limited",
             Self::WorldWrapped => "world_wrapped",
+            Self::CloseHostileWeapon => "close_hostile_weapon",
         }
     }
 
@@ -107,6 +111,16 @@ impl MoveReject {
     pub fn cancel_with_vog(self) -> bool {
         matches!(self, Self::EmptyPath | Self::WorldWrapped)
     }
+
+    /// Haxe `CancleMovement` sets `waitForForce` for these rejects (not age/soft/silent).
+    // Haxe: MoveHelper.CancleMovement L698–705
+    #[inline]
+    pub fn arms_wait_for_force(self) -> bool {
+        matches!(
+            self,
+            Self::JumpTooFar | Self::BlockedStart | Self::EmptyPath | Self::JumpRateLimited
+        )
+    }
 }
 
 /// `true` when the player has an active path.
@@ -122,76 +136,11 @@ pub fn resolve_move_seq(player: &Player, client_seq: Option<i32>) -> i32 {
         .unwrap_or_else(|| player.done_moving_seq.saturating_add(1).max(1))
 }
 
-/// Haxe clamp: `useDistance < 1 → 1` (empty hands / missing content → adjacency).
-// Haxe: TransitionHelper.checkIfNotMovingAndCloseEnough
-#[inline]
-pub fn effective_use_distance(use_distance: i32) -> i32 {
-    if use_distance < 1 {
-        1
-    } else {
-        use_distance
-    }
-}
-
-/// Squared-Euclidean range check (Haxe `isClose` without map wrap).
-///
-/// With default `use_distance = 1`, diagonal tiles fail (`2 ≰ 1`).
-/// Prefer [`in_use_range_ex`] when map wrap is known (Haxe always wraps).
-// Haxe: GlobalPlayerInstance.isClose → AiHelper.CalculateDistance
-#[inline]
-pub fn in_use_range(px: i32, py: i32, tx: i32, ty: i32, use_distance: i32) -> bool {
-    in_use_range_ex(px, py, tx, ty, use_distance, 0, 0, false)
-}
-
-/// Squared-Euclidean USE/DROP range with optional torus wrap.
-// Haxe: GlobalPlayerInstance.isClose + AiHelper.CalculateDistance
-#[inline]
-pub fn in_use_range_ex(
-    px: i32,
-    py: i32,
-    tx: i32,
-    ty: i32,
-    use_distance: i32,
-    map_w: i32,
-    map_h: i32,
-    wrap: bool,
-) -> bool {
-    let d = effective_use_distance(use_distance) as f64;
-    let max_sq = d * d;
-    crate::move_live_gates::calculate_distance_sq(px, py, tx, ty, map_w, map_h, wrap) <= max_sq
-}
-
-/// Haxe `TransitionHelper.checkIfNotMovingAndCloseEnough`.
-///
-/// Returns `true` when the player may USE/DROP/REMV: not moving and within
-/// held `useDistance` (clamped to ≥1) of the target tile.
-// Haxe: TransitionHelper.checkIfNotMovingAndCloseEnough
-#[inline]
-pub fn check_if_not_moving_and_close_enough(
-    moving: bool,
-    px: i32,
-    py: i32,
-    tx: i32,
-    ty: i32,
-    held_use_distance: i32,
-    map_w: i32,
-    map_h: i32,
-    wrap: bool,
-) -> bool {
-    if moving {
-        return false;
-    }
-    in_use_range_ex(
-        px,
-        py,
-        tx,
-        ty,
-        held_use_distance,
-        map_w,
-        map_h,
-        wrap,
-    )
-}
+// Pure range / isClose — canonical in `ol-move-rules` (OL-MOVE-RULES peel).
+pub use ol_move_rules::{
+    check_if_not_moving_and_close_enough, effective_use_distance, in_use_range, in_use_range_ex,
+    is_close,
+};
 
 /// Path length over accepted deltas (cardinal 1.0, diagonal √2).
 pub fn calculate_length(deltas: &[(i32, i32)]) -> f32 {
@@ -318,11 +267,7 @@ pub fn build_move_path(
         DEFAULT_MOVE_SPEED
     };
     let length = calculate_length(&accepted);
-    let total_sec = if length > 0.0 {
-        length / speed
-    } else {
-        0.0
-    };
+    let total_sec = if length > 0.0 { length / speed } else { 0.0 };
     let original_waypoints = steps_to_client_path_deltas(&accepted);
     MovePath {
         start_x,
@@ -506,19 +451,35 @@ pub fn movement_age_allowed_ex(age_years: f32, min_movement_age_in_sec: f32) -> 
 /// True while human MOVE must be ignored (`waitForForce` and elapsed < timeout).
 // Haxe: MoveHelper.moveHelper L526-537
 #[inline]
-pub fn still_waiting_for_force(
-    wait_for_force: bool,
-    time_last_force: f32,
-    sim_time: f32,
-) -> bool {
+pub fn still_waiting_for_force(wait_for_force: bool, time_last_force: f32, sim_time: f32) -> bool {
     wait_for_force && (sim_time - time_last_force) < WAIT_FOR_FORCE_SECS
+}
+
+/// Haxe `receivedForce`: coords must match server tile or wait is left set.
+// Haxe: MoveHelper.receivedForce L432–438
+#[inline]
+pub fn received_force_matches(server_x: i32, server_y: i32, force_x: i32, force_y: i32) -> bool {
+    server_x == force_x && server_y == force_y
 }
 
 /// Haxe jump rate gate: `ceil(jumpedTiles) >= MaxJumpsPerTenSec`.
 // Haxe: MoveHelper.moveHelper L608
 #[inline]
 pub fn jump_rate_limited(jumped_tiles: f32) -> bool {
-    jumped_tiles.ceil() >= MAX_JUMPS_PER_TEN_SEC
+    jump_rate_limited_ex(jumped_tiles, MAX_JUMPS_PER_TEN_SEC)
+}
+
+/// Live-knob jump rate gate (Haxe `MaxJumpsPerTenSec`).
+// Haxe: ServerSettings.MaxJumpsPerTenSec
+// SETTINGS-LONG-TAIL
+#[inline]
+pub fn jump_rate_limited_ex(jumped_tiles: f32, max_jumps: f32) -> bool {
+    let cap = if max_jumps.is_finite() && max_jumps >= 0.0 {
+        max_jumps
+    } else {
+        MAX_JUMPS_PER_TEN_SEC
+    };
+    jumped_tiles.ceil() >= cap
 }
 
 /// Apply Haxe jump exhaustion + jumpedTiles accrual after accepting a client start snap.
@@ -571,10 +532,23 @@ pub fn apply_jump_cost_ex(
 // Haxe: TimeHelper L360
 #[inline]
 pub fn decay_jumped_tiles(jumped_tiles: f32, dt: f32) -> f32 {
+    decay_jumped_tiles_ex(jumped_tiles, dt, MAX_JUMPS_PER_TEN_SEC)
+}
+
+/// Live-knob jumpedTiles decay (Haxe `MaxJumpsPerTenSec`).
+// Haxe: TimeHelper L360 / ServerSettings.MaxJumpsPerTenSec
+// SETTINGS-LONG-TAIL
+#[inline]
+pub fn decay_jumped_tiles_ex(jumped_tiles: f32, dt: f32, max_jumps: f32) -> f32 {
     if jumped_tiles <= 0.0 || dt <= 0.0 {
         return jumped_tiles.max(0.0);
     }
-    (jumped_tiles - dt * MAX_JUMPS_PER_TEN_SEC * 0.1).max(0.0)
+    let cap = if max_jumps.is_finite() && max_jumps >= 0.0 {
+        max_jumps
+    } else {
+        MAX_JUMPS_PER_TEN_SEC
+    };
+    (jumped_tiles - dt * cap * 0.1).max(0.0)
 }
 
 /// Haxe `OpenDoors`: closed springy door parent/id → open id.
@@ -809,7 +783,7 @@ mod tests {
         // held use_distance=5: (3,4) → 25 <= 25
         assert!(in_use_range(0, 0, 3, 4, 5));
         assert!(!in_use_range(0, 0, 4, 4, 5)); // 32 > 25
-        // clamp: use_distance 0 treated as 1
+                                               // clamp: use_distance 0 treated as 1
         assert!(in_use_range(0, 0, 1, 0, 0));
         assert!(!in_use_range(0, 0, 1, 1, 0));
     }
@@ -1058,26 +1032,29 @@ mod tests {
                 num_uses: 0,
                 num_slots: 0,
                 floor: false,
-            dummy_ids: Vec::new(),
-            use_chance: 0.0,
-            speed_mult: 1.0,
-            winter_decay_factor: 0.0,
-            spring_regrow_factor: 0.0,
-            decay_factor: 1.0,
-            decays_to_obj: 0,
-            r_value: 0.0,
-            clothing: "n".into(),
-            counts_or_grows_as: 0,
-            crafting_steps: 0,
-            use_distance: 1,
-            deadly_distance: 0.0,
-            moves: 0,
-            damage: 0.0,
-            damage_protection_factor: 1.0,
-            wound_factor: 0.5,
-            male: false,
-            contain_size: 0.0,
-            slot_size: 1.0,
+                dummy_ids: Vec::new(),
+                use_chance: 0.0,
+                speed_mult: 1.0,
+                winter_decay_factor: 0.0,
+                spring_regrow_factor: 0.0,
+                decay_factor: 1.0,
+                decays_to_obj: 0,
+                r_value: 0.0,
+                clothing: "n".into(),
+                counts_or_grows_as: 0,
+                crafting_steps: 0,
+                use_distance: 1,
+                deadly_distance: 0.0,
+                moves: 0,
+                damage: 0.0,
+                damage_protection_factor: 1.0,
+                wound_factor: 0.5,
+                male: false,
+                contain_size: 0.0,
+                slot_size: 1.0,
+                prestige_factor: 0.5,
+                extra_prestige_factor: 0.0,
+                min_pickup_age: 0,
             },
         );
         let mut w = World::new(32, 32, false);
@@ -1122,6 +1099,8 @@ mod tests {
         assert!(still_waiting_for_force(true, 10.0, 11.5));
         assert!(!still_waiting_for_force(true, 10.0, 12.0));
         assert!(!still_waiting_for_force(false, 10.0, 10.5));
+        assert!(received_force_matches(3, 4, 3, 4));
+        assert!(!received_force_matches(3, 4, 3, 5));
     }
 
     #[test]
@@ -1137,6 +1116,8 @@ mod tests {
         assert!(jump_rate_limited(9.1)); // ceil 10 ≥ 10
         assert!(jump_rate_limited(10.0));
         assert!(!jump_rate_limited(9.0)); // ceil 9 < 10
+        assert!(jump_rate_limited_ex(4.1, 5.0));
+        assert!(!jump_rate_limited_ex(4.0, 5.0));
         let (exh, jt, exhausted) = apply_jump_cost(0.0, 0.0, 20.0, 4.0, true);
         assert!((exh - 4.0 * EXHAUSTION_ON_JUMP).abs() < 1e-5);
         assert!(!exhausted);
@@ -1144,7 +1125,7 @@ mod tests {
         let (_exh2, jt2, exh_flag) = apply_jump_cost(11.0, 0.0, 20.0, 2.0, true);
         assert!(exh_flag); // 11 + cost > food_max/2
         assert!((jt2 - 2.0).abs() < 1e-5); // full quad when exhausted
-        // C-SS-MORE-BATCH5 live ExhaustionOnJump=0.1
+                                           // C-SS-MORE-BATCH5 live ExhaustionOnJump=0.1
         let (exh_live, _, _) = apply_jump_cost_ex(0.0, 0.0, 20.0, 4.0, true, 0.1);
         assert!((exh_live - 0.4).abs() < 1e-5);
     }
@@ -1155,6 +1136,14 @@ mod tests {
         // 10 - 1 * 10 * 0.1 = 9
         assert!((d - 9.0).abs() < 1e-5);
         assert_eq!(decay_jumped_tiles(0.0, 1.0), 0.0);
+        let live = decay_jumped_tiles_ex(10.0, 1.0, 5.0);
+        assert!((live - 9.5).abs() < 1e-5);
+    }
+
+    #[test]
+    fn decay_jumped_tiles_ex_uses_live_cap() {
+        assert!((decay_jumped_tiles_ex(10.0, 1.0, 5.0) - 9.5).abs() < 1e-5);
+        assert!((decay_jumped_tiles_ex(10.0, 1.0, 10.0) - 9.0).abs() < 1e-5);
     }
 
     #[test]
@@ -1168,9 +1157,16 @@ mod tests {
     #[test]
     fn move_reject_silent_and_soft() {
         assert!(MoveReject::WaitForForce.is_silent());
+        assert!(MoveReject::JumpTooFar.arms_wait_for_force());
+        assert!(MoveReject::BlockedStart.arms_wait_for_force());
+        assert!(!MoveReject::TooYoung.arms_wait_for_force());
+        assert!(!MoveReject::WaitForForce.arms_wait_for_force());
         assert!(!MoveReject::JumpTooFar.is_silent());
         assert!(MoveReject::TooYoung.is_soft_reject());
         assert!(!MoveReject::EmptyPath.is_soft_reject());
+        assert!(!MoveReject::CloseHostileWeapon.is_silent());
+        assert!(!MoveReject::CloseHostileWeapon.arms_wait_for_force());
+        assert_eq!(MoveReject::CloseHostileWeapon.as_str(), "close_hostile_weapon");
     }
 
     // --- MOVE-MIDPATH / calculateNewPos ---
@@ -1246,7 +1242,10 @@ mod tests {
     fn fold_relative_around_world_one_fold_per_axis() {
         // No fold inside (-w, w)
         assert_eq!(fold_relative_around_world(0, 0, 100, 80), (0, 0, false));
-        assert_eq!(fold_relative_around_world(99, -79, 100, 80), (99, -79, false));
+        assert_eq!(
+            fold_relative_around_world(99, -79, 100, 80),
+            (99, -79, false)
+        );
         // >= width / <= -width
         assert_eq!(fold_relative_around_world(100, 0, 100, 80), (0, 0, true));
         assert_eq!(fold_relative_around_world(150, 0, 100, 80), (50, 0, true));

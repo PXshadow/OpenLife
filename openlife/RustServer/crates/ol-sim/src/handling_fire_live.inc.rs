@@ -20,13 +20,14 @@ pub fn handling_fire_profession_scan_tick(
             y: t.y,
         })
         .collect();
-    // Haxe: getBestAiForObjByProfession sticky/weight/peer heuristic (multi-peer dist residual)
-    let is_best = fire_keeper.weight > 0.0
-        || fire_keeper.is_last_fire_keeper
-        || fire_keeper.is_assigned_fire_keeper
-        || inp.peer_count < 1.0;
+    // Haxe: getBestAiForObjByProfession('FIREKEEPER', home|firePlace) distance pick
     // Haxe: TimeHelper.Season == Winter → kindling first on Fire 82
-    let sensors = crate::handling_fire_sensors_from_map(
+    let sticky = if inp.fire_place_id != 0 {
+        Some((inp.fire_place_x, inp.fire_place_y))
+    } else {
+        None
+    };
+    let sensors = crate::handling_fire_sensors_from_map_ex(
         &map,
         inp.held_id,
         inp.player_x,
@@ -36,11 +37,13 @@ pub fn handling_fire_profession_scan_tick(
         inp.is_winter,
         inp.target_reachable,
         false,
-        is_best,
-        is_best,
+        inp.is_best_fire_keeper_at_home,
+        inp.is_best_fire_keeper_at_fire,
         inp.peer_count,
         inp.was_idle,
+        sticky,
     );
+    fire_keeper.fire_place_touched = true;
     let fire_map: Vec<crate::FireFoodMapObj> = tiles
         .iter()
         .filter(|t| t.parent_id != 0)
@@ -68,6 +71,7 @@ pub fn handling_fire_profession_scan_tick(
                 | crate::shepherd_profession::BOWL_CORN_COB
         )
     });
+    fire_counts.is_best_bowl_filler = inp.is_best_bowl_filler;
     let Some(action) = crate::try_decide_handling_fire_from_rung(
         inp.profession_is_sticky,
         rung_label,
@@ -240,6 +244,7 @@ pub fn late_make_fire_food_scan_tick(
                 | crate::shepherd_profession::BOWL_CORN_COB
         )
     });
+    counts.is_best_bowl_filler = inp.is_best_bowl_filler;
     // Haxe: late ~833 / hungry ~8594 / critical ~6107 all use maxPeople=1
     let path = if inp.is_hungry {
         crate::FireFoodDispatchPath::Hungry
@@ -252,4 +257,89 @@ pub fn late_make_fire_food_scan_tick(
         return ProfessionScanTickResult::none();
     }
     fire_food_action_to_live_intent(tiles, inp, action)
+}
+
+/// Roster for Haxe `getBestAiForObjByProfession('FIREKEEPER', obj)`.
+///
+/// `has_fire_keeper` is profession **weight > 0**, not lastProfession.
+// Haxe: AiBase.getBestAiForObjByProfession ~1311 profession[name] > 0
+pub fn fire_keeper_peers_from_state(
+    state: &SimState,
+    obj_x: i32,
+    obj_y: i32,
+    self_home_x: i32,
+    self_home_y: i32,
+) -> Vec<crate::FireKeeperPeer> {
+    let following = &state.social.following;
+    state
+        .players
+        .values()
+        .map(|p| {
+            let combat = state.combat.wound_of(p.p_id) > 0;
+            let wounded =
+                peer_roster_flags_for_player(p, &state.content, combat, Some(following)).is_wounded;
+            let (ohx, ohy) = if p.home_x != 0 || p.home_y != 0 {
+                (p.home_x, p.home_y)
+            } else {
+                (p.x, p.y)
+            };
+            let dx = (p.x - obj_x) as f32;
+            let dy = (p.y - obj_y) as f32;
+            crate::FireKeeperPeer {
+                p_id: p.p_id,
+                quad_dist_to_obj: dx * dx + dy * dy,
+                deleted: p.deleted,
+                age: p.age,
+                is_wounded: wounded,
+                food_store: p.food,
+                same_home: ohx == self_home_x && ohy == self_home_y,
+                has_fire_keeper: p.fire_keeper_profession.weight > 0.0,
+            }
+        })
+        .collect()
+}
+
+/// True when `self_p_id` wins Haxe FIREKEEPER distance pick vs `obj`.
+// Haxe: getBestAiForObjByProfession('FIREKEEPER', obj); isHandlingFire ~1100 / ~1134
+pub fn is_self_best_fire_keeper_from_state(
+    state: &SimState,
+    self_p_id: i32,
+    obj_x: i32,
+    obj_y: i32,
+    self_home_x: i32,
+    self_home_y: i32,
+) -> bool {
+    let min_age =
+        if state.gameplay.min_age_to_eat.is_finite() && state.gameplay.min_age_to_eat >= 0.0 {
+            state.gameplay.min_age_to_eat
+        } else {
+            MIN_AGE_TO_EAT
+        };
+    let peers = fire_keeper_peers_from_state(state, obj_x, obj_y, self_home_x, self_home_y);
+    crate::is_self_best_fire_keeper_for_obj(self_p_id, &peers, min_age, MAX_AGE)
+}
+
+/// Home + firePlace best-AI flags for [`ProfessionScanInput`].
+// Haxe: isHandlingFire ~1100 home; ~1134 firePlace (skipped when urgent)
+pub fn best_fire_keeper_flags_from_state(
+    state: &SimState,
+    self_p_id: i32,
+    home_x: i32,
+    home_y: i32,
+    fire_place_id: i32,
+    fire_place_x: i32,
+    fire_place_y: i32,
+) -> (bool, bool) {
+    let at_home = is_self_best_fire_keeper_from_state(
+        state, self_p_id, home_x, home_y, home_x, home_y,
+    );
+    let (fx, fy) = if fire_place_id != 0 {
+        (fire_place_x, fire_place_y)
+    } else {
+        (home_x, home_y)
+    };
+    let at_fire = is_self_best_fire_keeper_from_state(
+        state, self_p_id, fx, fy, home_x, home_y,
+    );
+    (at_home, at_fire)
 }

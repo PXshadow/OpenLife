@@ -1,12 +1,15 @@
-//! Multi-step **craftItem** / **craftItemHelper** world craft (AI-CRAFT-MULTI + **AI-CRAFT-TOPDOWN** + **AI-CRAFT-DUAL**).
+//! Multi-step **craftItem** / **craftItemHelper** world craft (AI-CRAFT-MULTI + **AI-CRAFT-TOPDOWN** + **AI-CRAFT-DUAL** + **AI-CRAFT-LIVE-MORE** + **AI-CRAFT-MULTI-SPECIALS**).
 //!
 //! Ports Haxe `AiBase.craftItem` / `craftItemHelper` / `searchBestObjectForCrafting`
 //! against reverse-graph + world object snapshot, with top-down `DoTransitionSearch`
 //! filters and hostile/unreachable scan gates ([`craft_topdown`]).
 //!
-//! Includes craftItemHelper specials first cut: water/soil retarget, berry-pie gate,
+//! Includes craftItemHelper specials: water/soil retarget, berry-pie gate,
 //! bowl fill anti-loops, forge flat-rock / clay-bowl bias, TIME actor wait, sticky
-//! [`CraftAiRuntime`] for multi-tick fail+itemToCraft state.
+//! [`CraftAiRuntime`] for multi-tick fail+itemToCraft state. Specials GetClosest
+//! and GetCraftAndDrop pickup honor [`CraftScanFilters`]; interrupted
+//! `countDone < count` re-queues onto [`CraftAiRuntime::crafting_tasks`]
+//! (**AI-CRAFT-MULTI-RESID**).
 //!
 //! Haxe anchors:
 //! - `AiBase.craftItem` ~6611–6644
@@ -18,6 +21,9 @@
 //! - forge SMITH gate ids 304/305/303
 //! - craftItemHelper specials ~6750–7037 (water, soil, forge, bowls, TIME)
 //! - dual-center searchCurrentPosition + pile*1.5 / r=6 re-anchor ~7050–7242 (AI-CRAFT-DUAL)
+//! - GetCraftAndDropItemsCloseToObj adze/froe/goose/kindling + fillBucket residual (AI-CRAFT-LIVE-MORE)
+//! - `ServerSettings.InitWaterSourceIds` → WaterSourceIds / BucketWaterSourceIds (AI-CRAFT-MULTI-SPECIALS)
+//! - specials GetClosest + CraftAiRuntime.craftingTasks (AI-CRAFT-MULTI-RESID)
 
 use std::collections::{HashMap, HashSet};
 
@@ -31,10 +37,11 @@ mod craft_topdown;
 #[allow(unused_imports)]
 pub use craft_topdown::{
     auto_decay_time_base_seconds, closest_craft_obj_filtered, craft_obj_passes_scan_filters,
-    craft_trans_meta_map_from_content, do_transition_search_skip_reason, effective_ai_should_ignore,
-    hardened_row_forces_hoe_soil_ignore, search_best_object_for_crafting_topdown,
-    should_skip_craft_edge, should_skip_transition_top_down, time_transition_exceeds_ai_ignore,
-    CraftObjectIndex, CraftScanFilters, CraftTopDownOpts, CraftTransMeta, TransSkipReason,
+    craft_trans_meta_map_from_content, do_transition_search_skip_reason,
+    effective_ai_should_ignore, hardened_row_forces_hoe_soil_ignore,
+    search_best_object_for_crafting_topdown, should_skip_craft_edge,
+    should_skip_transition_top_down, time_transition_exceeds_ai_ignore, CraftObjectIndex,
+    CraftScanFilters, CraftTopDownOpts, CraftTransMeta, TransSkipReason,
     AI_CRAFT_MIN_COUNT_RADIUS_CAP, AI_IGNORE_TIME_TRANSITIONS_LONGER_THAN, HARDENED_ROW, STEEL_HOE,
     STONE_HOE,
 };
@@ -115,9 +122,10 @@ pub const SOIL_TARGET_IDS: [i32; 2] = [FERTILE_SOIL_PILE, FERTILE_SOIL];
 // Haxe: allowedOnFlatRockIds
 pub const ALLOWED_ON_FLAT_ROCK_NEAR_FORGE: [i32; 5] = [308, 2217, 329, 1525, 2293];
 
-/// Default water sources when `ServerSettings.WaterSourceIds` not yet ported.
+/// Default water sources when `ServerSettings.WaterSourceIds` is empty / not loaded.
 /// Wells from profession_scan `WELL_IDS` (Deep 663 / Shallow 662) — callers can
-/// pass fuller lists via [`CraftLiveExpandOpts::water_source_ids`].
+/// pass fuller lists via [`CraftLiveExpandOpts::water_source_ids`] from
+/// [`init_water_source_ids`] / [`init_water_source_ids_from_content`].
 // Haxe: ServerSettings.WaterSourceIds (transition-derived)
 pub const DEFAULT_WATER_SOURCE_IDS: [i32; 2] = [663, 662];
 
@@ -318,13 +326,28 @@ impl FailedCraftings {
     }
 
     pub fn remaining_wait_sec(&self, product_id: i32, now_sec: f64) -> f64 {
+        self.remaining_wait_sec_ex(product_id, now_sec, AI_TIME_TO_WAIT_IF_CRAFTING_FAILED_SEC)
+    }
+
+    /// Live wait override (Haxe `AiTimeToWaitIfCraftingFailed`).
+    // SETTINGS-LONG-TAIL
+    pub fn remaining_wait_sec_ex(&self, product_id: i32, now_sec: f64, wait_sec: f64) -> f64 {
+        let wait = if wait_sec.is_finite() && wait_sec >= 0.0 {
+            wait_sec
+        } else {
+            AI_TIME_TO_WAIT_IF_CRAFTING_FAILED_SEC
+        };
         match self.last_fail_sec.get(&product_id) {
             Some(&t) => {
                 let passed = now_sec - t;
-                (AI_TIME_TO_WAIT_IF_CRAFTING_FAILED_SEC - passed).max(0.0)
+                (wait - passed).max(0.0)
             }
             None => 0.0,
         }
+    }
+
+    pub fn is_cooling_down_ex(&self, product_id: i32, now_sec: f64, wait_sec: f64) -> bool {
+        self.remaining_wait_sec_ex(product_id, now_sec, wait_sec) > 0.0
     }
 
     pub fn record_fail(&mut self, product_id: i32, now_sec: f64) {
@@ -339,7 +362,7 @@ impl FailedCraftings {
 // ── Sticky multi-tick craft runtime (Haxe Player.itemToCraft + failedCraftings) ─
 
 /// Persistent craft state for an AI/NPC across ticks.
-// Haxe: AiBase.itemToCraft + failedCraftings + lastActorId + calledCraftItem
+// Haxe: AiBase.itemToCraft + failedCraftings + lastActorId + calledCraftItem + craftingTasks
 #[derive(Debug, Clone, Default)]
 pub struct CraftAiRuntime {
     pub item: ItemToCraftState,
@@ -348,6 +371,9 @@ pub struct CraftAiRuntime {
     pub last_actor_id: i32,
     /// Haxe `calledCraftItem` recursion guard for GetCraftAndDrop specials.
     pub called_craft_item: bool,
+    /// Haxe `craftingTasks` — interrupted / queued product ids (NPC sticky shell).
+    // Haxe: AiBase.craftingTasks
+    pub crafting_tasks: Vec<i32>,
 }
 
 impl CraftAiRuntime {
@@ -385,18 +411,110 @@ impl CraftAiRuntime {
     pub fn clear_tick_guard(&mut self) {
         self.called_craft_item = false;
     }
+
+    /// Mark recursion guard after GetCraftAndDrop specials (Haxe `calledCraftItem = true`).
+    // Haxe: craftItemHelper calledCraftItem = true before GetCraftAndDrop
+    pub fn note_called_craft_item_from_decision(&mut self, decision: CraftItemDecision) {
+        if matches!(
+            decision,
+            CraftItemDecision::GotoDropAnchor { .. }
+                | CraftItemDecision::DropNearAnchor { .. }
+                | CraftItemDecision::SeekIngredient { .. }
+                | CraftItemDecision::PickupActor { .. }
+        ) {
+            self.called_craft_item = true;
+        }
+    }
+
+    /// Haxe `addTask(taskId, atEnd)` — skip `<1` and duplicates.
+    // Haxe: AiBase.addTask
+    pub fn add_task(&mut self, task_id: i32, at_end: bool) {
+        if task_id < 1 {
+            return;
+        }
+        if self.crafting_tasks.contains(&task_id) {
+            return;
+        }
+        if at_end {
+            self.crafting_tasks.push(task_id);
+        } else {
+            self.crafting_tasks.insert(0, task_id);
+        }
+    }
+
+    /// Prepare sticky for a new `product_id` (re-queue interrupted prior product).
+    ///
+    /// No-ops when `item.product_id` already matches (PlayerCraftAi prepare already
+    /// reset) so player + runtime queues are not double-filled.
+    // Haxe: craftItemHelper when itemToCraft.itemToCraft.parentId != objId ~6677–6690
+    pub fn prepare_for_product(&mut self, product_id: i32) {
+        let prev = self.item.product_id;
+        if prev > 0 && prev != product_id {
+            // Interrupted unfinished craft → re-queue prior product.
+            if self.item.count_done < self.item.count {
+                self.add_task(prev, true);
+            }
+        }
+        if product_id > 0 && self.item.product_id != product_id {
+            self.item.reset_for_product(product_id);
+        }
+    }
+
+    /// Pop next queued craft task and bind [`ItemToCraftState`] via reset.
+    // Haxe: craftingTasks.shift + craftItem
+    pub fn take_next_crafting_task(&mut self) -> Option<i32> {
+        if self.crafting_tasks.is_empty() {
+            return None;
+        }
+        let id = self.crafting_tasks.remove(0);
+        self.item.reset_for_product(id);
+        Some(id)
+    }
+
+    /// Unfinished sticky product (`product_id > 0 && (count <= 0 || count_done < count)`).
+    // Haxe: itemToCraftId > 0 && itemToCraft.countDone < itemToCraft.count
+    pub fn should_continue_unfinished(&self) -> bool {
+        if self.item.product_id <= 0 {
+            return false;
+        }
+        if self.item.count <= 0 {
+            return true;
+        }
+        self.item.count_done < self.item.count
+    }
 }
 
 /// Live expand options for multi-step craft on the tick path.
 // Haxe: home / hasOrBecomeProfession('SMITH') / TimeHelper ticks / WaterSourceIds
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CraftLiveExpandOpts {
     pub home: Option<(i32, i32)>,
     pub is_or_can_smith: bool,
     pub now_sec: f64,
-    /// Optional override; when empty, [`DEFAULT_WATER_SOURCE_IDS`] is used.
-    /// Not stored as slice (Copy) — use `water_sources_override` via sticky path.
-    pub use_default_water_sources: bool,
+    /// Haxe `ServerSettings.WaterSourceIds` from [`init_water_source_ids`].
+    /// Empty → [`DEFAULT_WATER_SOURCE_IDS`] via [`Self::effective_water_source_ids`].
+    pub water_source_ids: Vec<i32>,
+    /// Haxe `ServerSettings.BucketWaterSourceIds` from [`init_water_source_ids`].
+    /// Empty → [`DEFAULT_BUCKET_WATER_SOURCE_IDS`] via [`Self::effective_bucket_water_source_ids`].
+    pub bucket_water_source_ids: Vec<i32>,
+    /// Haxe `AiTimeToWaitIfCraftingFailed`.
+    // SETTINGS-LONG-TAIL
+    pub ai_time_to_wait_if_crafting_failed_sec: f64,
+    /// Haxe `AiMaxSearchRadius`.
+    // SETTINGS-LONG-TAIL
+    pub ai_max_search_radius: i32,
+    /// Haxe `AiMaxSearchIncrement`.
+    // SETTINGS-LONG-TAIL
+    pub ai_max_search_increment: i32,
+    /// Haxe `AiIgnoreTimeTransitionsLongerThen`.
+    // SETTINGS-LONG-TAIL
+    pub ai_ignore_time_transitions_longer_then: f32,
+    /// From `ContentDb` (`craft_trans_meta_map_from_content`).
+    pub trans_meta: Option<HashMap<(i32, i32), CraftTransMeta>>,
+    /// Haxe `ObjectData.aiCraftMax`.
+    pub ai_craft_max: HashMap<i32, i32>,
+    /// Haxe `ObjectData.aiCraftMin`.
+    pub ai_craft_min: HashMap<i32, i32>,
 }
 
 impl Default for CraftLiveExpandOpts {
@@ -405,7 +523,15 @@ impl Default for CraftLiveExpandOpts {
             home: None,
             is_or_can_smith: true,
             now_sec: 0.0,
-            use_default_water_sources: true,
+            water_source_ids: Vec::new(),
+            bucket_water_source_ids: Vec::new(),
+            ai_time_to_wait_if_crafting_failed_sec: AI_TIME_TO_WAIT_IF_CRAFTING_FAILED_SEC,
+            ai_max_search_radius: AI_MAX_SEARCH_RADIUS,
+            ai_max_search_increment: AI_MAX_SEARCH_INCREMENT,
+            ai_ignore_time_transitions_longer_then: AI_IGNORE_TIME_TRANSITIONS_LONGER_THAN,
+            trans_meta: None,
+            ai_craft_max: HashMap::new(),
+            ai_craft_min: HashMap::new(),
         }
     }
 }
@@ -425,13 +551,40 @@ impl CraftLiveExpandOpts {
         self.now_sec = now_sec;
         self
     }
+
+    /// Set transition-derived water + bucket source ids (Haxe InitWaterSourceIds result).
+    pub fn with_water_source_ids(mut self, water: Vec<i32>, bucket: Vec<i32>) -> Self {
+        self.water_source_ids = water;
+        self.bucket_water_source_ids = bucket;
+        self
+    }
+
+    /// Copy LimitTransitions / PatchTransitions AI gates from content.
+    pub fn with_content_craft_gates(mut self, content: &ol_content::ContentDb) -> Self {
+        self.trans_meta = Some(craft_trans_meta_map_from_content(content));
+        self.ai_craft_max = content.ai_craft_max.clone();
+        self.ai_craft_min = content.ai_craft_min.clone();
+        self
+    }
+
+    /// Effective bowl/pouch water sources for [`retarget_water_source`].
+    #[inline]
+    pub fn effective_water_source_ids(&self) -> &[i32] {
+        effective_water_source_ids(&self.water_source_ids)
+    }
+
+    /// Effective bucket water sources for [`fill_bucket_if_needed_apply`].
+    #[inline]
+    pub fn effective_bucket_water_source_ids(&self) -> &[i32] {
+        effective_bucket_water_source_ids(&self.bucket_water_source_ids)
+    }
 }
 
 // ── Inputs ──────────────────────────────────────────────────────────────────
 
 /// Live context for one craftItem tick.
 // Haxe: craftItemHelper(objId, maxDistance, onlyHome) + player/home
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CraftItemInput {
     pub product_id: i32,
     /// Haxe `maxDistance` override for `maxSearchRadius` when > 0.
@@ -455,6 +608,22 @@ pub struct CraftItemInput {
     pub last_actor_id: i32,
     /// Haxe `calledCraftItem` — skip recursive GetCraftAndDrop specials when true.
     pub called_craft_item: bool,
+    /// Haxe `AiTimeToWaitIfCraftingFailed`.
+    // SETTINGS-LONG-TAIL
+    pub ai_wait_failed_sec: f64,
+    /// Haxe `AiMaxSearchRadius` when `max_distance` is unset.
+    // SETTINGS-LONG-TAIL
+    pub ai_max_search_radius: i32,
+    /// Haxe `AiMaxSearchIncrement`.
+    // SETTINGS-LONG-TAIL
+    pub ai_search_increment: i32,
+    /// Haxe `AiIgnoreTimeTransitionsLongerThen`.
+    // SETTINGS-LONG-TAIL
+    pub ai_ignore_time_transitions_longer_then: f32,
+    /// Haxe `ObjectData.aiCraftMax`.
+    pub ai_craft_max: HashMap<i32, i32>,
+    /// Haxe `ObjectData.aiCraftMin`.
+    pub ai_craft_min: HashMap<i32, i32>,
 }
 
 impl CraftItemInput {
@@ -473,6 +642,12 @@ impl CraftItemInput {
             is_or_can_smith: true,
             last_actor_id: -1,
             called_craft_item: false,
+            ai_wait_failed_sec: AI_TIME_TO_WAIT_IF_CRAFTING_FAILED_SEC,
+            ai_max_search_radius: AI_MAX_SEARCH_RADIUS,
+            ai_search_increment: AI_MAX_SEARCH_INCREMENT,
+            ai_ignore_time_transitions_longer_then: AI_IGNORE_TIME_TRANSITIONS_LONGER_THAN,
+            ai_craft_max: HashMap::new(),
+            ai_craft_min: HashMap::new(),
         }
     }
 
@@ -516,6 +691,12 @@ impl CraftItemInput {
             .with_last_actor(runtime.last_actor_id);
         inp.is_or_can_smith = opts.is_or_can_smith;
         inp.called_craft_item = runtime.called_craft_item;
+        inp.ai_wait_failed_sec = opts.ai_time_to_wait_if_crafting_failed_sec;
+        inp.ai_max_search_radius = opts.ai_max_search_radius;
+        inp.ai_search_increment = opts.ai_max_search_increment;
+        inp.ai_ignore_time_transitions_longer_then = opts.ai_ignore_time_transitions_longer_then;
+        inp.ai_craft_max = opts.ai_craft_max.clone();
+        inp.ai_craft_min = opts.ai_craft_min.clone();
         if let Some((hx, hy)) = opts.home {
             inp = inp.with_home(hx, hy);
         }
@@ -574,17 +755,9 @@ pub enum CraftItemDecision {
     // Haxe: dropHeldObject when Empty is needed
     DropHeldForEmpty,
     /// Pickup loose actor (Haxe dropTarget = transActor).
-    PickupActor {
-        object_id: i32,
-        x: i32,
-        y: i32,
-    },
+    PickupActor { object_id: i32, x: i32, y: i32 },
     /// Empty-hand USE on pile to get actor.
-    UsePileForActor {
-        pile_id: i32,
-        x: i32,
-        y: i32,
-    },
+    UsePileForActor { pile_id: i32, x: i32, y: i32 },
     /// Holding something; must drop before pickup (Haxe considerDropHeldObject).
     DropHeldThenPickup {
         actor_id: i32,
@@ -605,6 +778,12 @@ pub enum CraftItemDecision {
     DeferPottery,
     /// Wait for time-transition target (actor id -1).
     WaitTime,
+    /// GetCraftAndDrop: walk toward drop anchor while holding whichObj (quadDist > 5).
+    // Haxe: GetCraftAndDropItemsCloseToObj gotoObj(target)
+    GotoDropAnchor { target_x: i32, target_y: i32 },
+    /// GetCraftAndDrop: drop held whichObj near anchor.
+    // Haxe: dropHeldObject(5, target)
+    DropNearAnchor { target_x: i32, target_y: i32 },
 }
 
 impl CraftItemDecision {
@@ -619,6 +798,8 @@ impl CraftItemDecision {
                 | Self::AlreadyHave { .. }
                 | Self::SeekIngredient { .. }
                 | Self::ShortCraftOnGround { .. }
+                | Self::GotoDropAnchor { .. }
+                | Self::DropNearAnchor { .. }
         )
     }
 }
@@ -633,6 +814,7 @@ pub fn craft_chebyshev(ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
 /// Closest matching parent_id within `max_r` of `(from_x, from_y)`.
 ///
 /// When `exclude` is set, skip that tile (for second-closest sheep/cow).
+/// Unfiltered wrapper — prefer [`closest_craft_obj_filtered`] on live AI paths.
 // Haxe: GetClosestObject* / secondObject
 pub fn closest_craft_obj(
     objs: &[CraftWorldObj],
@@ -642,34 +824,15 @@ pub fn closest_craft_obj(
     max_r: i32,
     exclude: Option<(i32, i32)>,
 ) -> Option<CraftWorldObj> {
-    if parent_id <= 0 {
-        return None;
-    }
-    let max_r = max_r.max(0);
-    let mut best: Option<(i32, CraftWorldObj)> = None;
-    for o in objs {
-        if o.parent_id != parent_id {
-            continue;
-        }
-        if let Some((ex, ey)) = exclude {
-            if o.x == ex && o.y == ey {
-                continue;
-            }
-        }
-        let d = craft_chebyshev(from_x, from_y, o.x, o.y);
-        if d > max_r {
-            continue;
-        }
-        match best {
-            None => best = Some((d, *o)),
-            Some((bd, bo)) => {
-                if d < bd || (d == bd && (o.y < bo.y || (o.y == bo.y && o.x < bo.x))) {
-                    best = Some((d, *o));
-                }
-            }
-        }
-    }
-    best.map(|(_, o)| o)
+    closest_craft_obj_filtered(
+        objs,
+        parent_id,
+        from_x,
+        from_y,
+        max_r,
+        exclude,
+        &CraftScanFilters::default(),
+    )
 }
 
 /// Second-closest of `parent_id` (Haxe sheep/cow deadly-actor special).
@@ -680,8 +843,36 @@ pub fn second_closest_craft_obj(
     from_y: i32,
     max_r: i32,
 ) -> Option<CraftWorldObj> {
-    let first = closest_craft_obj(objs, parent_id, from_x, from_y, max_r, None)?;
-    closest_craft_obj(objs, parent_id, from_x, from_y, max_r, Some((first.x, first.y)))
+    second_closest_craft_obj_filtered(
+        objs,
+        parent_id,
+        from_x,
+        from_y,
+        max_r,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// Second-closest of `parent_id` skipping scan-blocked tiles.
+// Haxe: GetClosestObject* secondObject + isObjectNotReachable
+pub fn second_closest_craft_obj_filtered(
+    objs: &[CraftWorldObj],
+    parent_id: i32,
+    from_x: i32,
+    from_y: i32,
+    max_r: i32,
+    filters: &CraftScanFilters<'_>,
+) -> Option<CraftWorldObj> {
+    let first = closest_craft_obj_filtered(objs, parent_id, from_x, from_y, max_r, None, filters)?;
+    closest_craft_obj_filtered(
+        objs,
+        parent_id,
+        from_x,
+        from_y,
+        max_r,
+        Some((first.x, first.y)),
+        filters,
+    )
 }
 
 /// Closest object whose parent_id is in `ids` within `max_r` of `(from_x, from_y)`.
@@ -693,6 +884,26 @@ pub fn closest_craft_obj_by_ids(
     from_y: i32,
     max_r: i32,
 ) -> Option<CraftWorldObj> {
+    closest_craft_obj_by_ids_filtered(
+        objs,
+        ids,
+        from_x,
+        from_y,
+        max_r,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// Closest of `ids` with hostile / notReachable / full-pile scan filters.
+// Haxe: GetClosestObjectToPositionByIdsHelper isObjectNotReachable / hostile
+pub fn closest_craft_obj_by_ids_filtered(
+    objs: &[CraftWorldObj],
+    ids: &[i32],
+    from_x: i32,
+    from_y: i32,
+    max_r: i32,
+    filters: &CraftScanFilters<'_>,
+) -> Option<CraftWorldObj> {
     if ids.is_empty() {
         return None;
     }
@@ -700,6 +911,9 @@ pub fn closest_craft_obj_by_ids(
     let mut best: Option<(i32, CraftWorldObj)> = None;
     for o in objs {
         if !ids.contains(&o.parent_id) {
+            continue;
+        }
+        if !craft_obj_passes_scan_filters(o, filters) {
             continue;
         }
         let d = craft_chebyshev(from_x, from_y, o.x, o.y);
@@ -730,6 +944,32 @@ pub fn closest_craft_obj_min_anchor_dist(
     anchor_y: i32,
     min_anchor_dist: i32,
 ) -> Option<CraftWorldObj> {
+    closest_craft_obj_min_anchor_dist_filtered(
+        objs,
+        parent_id,
+        from_x,
+        from_y,
+        max_r,
+        anchor_x,
+        anchor_y,
+        min_anchor_dist,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// [`closest_craft_obj_min_anchor_dist`] skipping scan-blocked tiles.
+// Haxe: GetClosestObjectToTarget + isObjectNotReachable
+pub fn closest_craft_obj_min_anchor_dist_filtered(
+    objs: &[CraftWorldObj],
+    parent_id: i32,
+    from_x: i32,
+    from_y: i32,
+    max_r: i32,
+    anchor_x: i32,
+    anchor_y: i32,
+    min_anchor_dist: i32,
+    filters: &CraftScanFilters<'_>,
+) -> Option<CraftWorldObj> {
     if parent_id <= 0 {
         return None;
     }
@@ -738,6 +978,9 @@ pub fn closest_craft_obj_min_anchor_dist(
     let mut best: Option<(i32, CraftWorldObj)> = None;
     for o in objs {
         if o.parent_id != parent_id {
+            continue;
+        }
+        if !craft_obj_passes_scan_filters(o, filters) {
             continue;
         }
         let d_from = craft_chebyshev(from_x, from_y, o.x, o.y);
@@ -787,9 +1030,24 @@ pub fn closest_forge_craft(
     from_y: i32,
     max_r: i32,
 ) -> Option<CraftWorldObj> {
+    closest_forge_craft_filtered(objs, from_x, from_y, max_r, &CraftScanFilters::default())
+}
+
+/// [`closest_forge_craft`] skipping scan-blocked tiles.
+// Haxe: GetForge + isObjectNotReachable
+pub fn closest_forge_craft_filtered(
+    objs: &[CraftWorldObj],
+    from_x: i32,
+    from_y: i32,
+    max_r: i32,
+    filters: &CraftScanFilters<'_>,
+) -> Option<CraftWorldObj> {
     // Prefer firing → charcoal → cold (lower index in FORGE_IDS is higher priority).
     let mut best: Option<(usize, i32, CraftWorldObj)> = None;
     for o in objs {
+        if !craft_obj_passes_scan_filters(o, filters) {
+            continue;
+        }
         let Some(prio) = FORGE_IDS.iter().position(|&id| id == o.parent_id) else {
             continue;
         };
@@ -822,13 +1080,37 @@ pub fn retarget_water_source(
     max_r: i32,
     water_source_ids: &[i32],
 ) -> Option<CraftWorldObj> {
+    retarget_water_source_ex(
+        objs,
+        actor_id,
+        target_id,
+        from_x,
+        from_y,
+        max_r,
+        water_source_ids,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// [`retarget_water_source`] skipping notReachable / hostile / full-pile tiles.
+// Haxe: GetClosestObjectToPositionByIds(myPlayer, waterSourceIds)
+pub fn retarget_water_source_ex(
+    objs: &[CraftWorldObj],
+    actor_id: i32,
+    target_id: i32,
+    from_x: i32,
+    from_y: i32,
+    max_r: i32,
+    water_source_ids: &[i32],
+    filters: &CraftScanFilters<'_>,
+) -> Option<CraftWorldObj> {
     if actor_id != CLAY_BOWL && actor_id != EMPTY_WATER_POUCH {
         return None;
     }
     if water_source_ids.is_empty() || !water_source_ids.contains(&target_id) {
         return None;
     }
-    closest_craft_obj_by_ids(objs, water_source_ids, from_x, from_y, max_r)
+    closest_craft_obj_by_ids_filtered(objs, water_source_ids, from_x, from_y, max_r, filters)
 }
 
 /// Soil retarget: Clay Bowl prefers closest Fertile Soil Pile / Fertile Soil within 30.
@@ -840,10 +1122,37 @@ pub fn retarget_soil_for_clay_bowl(
     from_x: i32,
     from_y: i32,
 ) -> Option<CraftWorldObj> {
+    retarget_soil_for_clay_bowl_ex(
+        objs,
+        actor_id,
+        target_id,
+        from_x,
+        from_y,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// [`retarget_soil_for_clay_bowl`] skipping scan-blocked tiles.
+// Haxe: GetClosestObjectToPositionByIds(myPlayer, soilTargets, 30)
+pub fn retarget_soil_for_clay_bowl_ex(
+    objs: &[CraftWorldObj],
+    actor_id: i32,
+    target_id: i32,
+    from_x: i32,
+    from_y: i32,
+    filters: &CraftScanFilters<'_>,
+) -> Option<CraftWorldObj> {
     if actor_id != CLAY_BOWL || !SOIL_TARGET_IDS.contains(&target_id) {
         return None;
     }
-    closest_craft_obj_by_ids(objs, &SOIL_TARGET_IDS, from_x, from_y, SOIL_RETARGET_R)
+    closest_craft_obj_by_ids_filtered(
+        objs,
+        &SOIL_TARGET_IDS,
+        from_x,
+        from_y,
+        SOIL_RETARGET_R,
+        filters,
+    )
 }
 
 /// Berry pie crust gate: block 253+264 when raw/cooked berry pie count > 1.
@@ -894,15 +1203,12 @@ pub fn bowl_fill_pickup_blocked(
         }
     }
     // Bowl of Dry Beans 1176
-    if held_id != BOWL_OF_DRY_BEANS
-        && actor_id == BOWL_OF_DRY_BEANS
-        && target_id != DRY_BEAN_PLANTS
+    if held_id != BOWL_OF_DRY_BEANS && actor_id == BOWL_OF_DRY_BEANS && target_id != DRY_BEAN_PLANTS
     {
         if actor_id == last_actor_id {
             return true;
         }
-        let plants =
-            count_craft_objs_near(objs, &[DRY_BEAN_PLANTS], from_x, from_y, max_r);
+        let plants = count_craft_objs_near(objs, &[DRY_BEAN_PLANTS], from_x, from_y, max_r);
         if plants < 1 {
             return true;
         }
@@ -920,10 +1226,31 @@ pub fn retarget_flat_rock_near_forge(
     player_x: i32,
     player_y: i32,
 ) -> Option<Result<CraftWorldObj, ()>> {
+    retarget_flat_rock_near_forge_ex(
+        objs,
+        actor_id,
+        target_id,
+        player_x,
+        player_y,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// [`retarget_flat_rock_near_forge`] skipping scan-blocked forge/rock tiles.
+// Haxe: GetForge + GetClosestObjectToTarget(player, forge, 291, 30, 3)
+pub fn retarget_flat_rock_near_forge_ex(
+    objs: &[CraftWorldObj],
+    actor_id: i32,
+    target_id: i32,
+    player_x: i32,
+    player_y: i32,
+    filters: &CraftScanFilters<'_>,
+) -> Option<Result<CraftWorldObj, ()>> {
     if target_id != FLAT_ROCK || ALLOWED_ON_FLAT_ROCK_NEAR_FORGE.contains(&actor_id) {
         return None;
     }
-    let forge = closest_forge_craft(objs, player_x, player_y, FORGE_BIAS_SEARCH_R)?;
+    let forge =
+        closest_forge_craft_filtered(objs, player_x, player_y, FORGE_BIAS_SEARCH_R, filters)?;
     if craft_chebyshev(player_x, player_y, forge.x, forge.y) > FORGE_NEAR_CHEBYSHEV {
         // Haxe uses dist to forge from player via CalculateQuadDistance; only acts when close.
         // When forge far, leave target alone.
@@ -931,7 +1258,7 @@ pub fn retarget_flat_rock_near_forge(
     }
     // Also only when the current target is near the forge.
     // (Haxe: if forge close to player, retarget flat rock away from forge.)
-    match closest_craft_obj_min_anchor_dist(
+    match closest_craft_obj_min_anchor_dist_filtered(
         objs,
         FLAT_ROCK,
         player_x,
@@ -940,6 +1267,7 @@ pub fn retarget_flat_rock_near_forge(
         forge.x,
         forge.y,
         FORGE_BIAS_MIN_DIST,
+        filters,
     ) {
         Some(o) => Some(Ok(o)),
         None => Some(Err(())),
@@ -957,10 +1285,35 @@ pub fn retarget_clay_bowl_away_from_forge(
     player_x: i32,
     player_y: i32,
 ) -> Option<Result<CraftWorldObj, ()>> {
+    retarget_clay_bowl_away_from_forge_ex(
+        objs,
+        actor_id,
+        actor_x,
+        actor_y,
+        actor_held,
+        player_x,
+        player_y,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// [`retarget_clay_bowl_away_from_forge`] skipping scan-blocked bowls/forges.
+// Haxe: GetClosestObjectToTarget(player, forge, 235, 30, 3)
+pub fn retarget_clay_bowl_away_from_forge_ex(
+    objs: &[CraftWorldObj],
+    actor_id: i32,
+    actor_x: i32,
+    actor_y: i32,
+    actor_held: bool,
+    player_x: i32,
+    player_y: i32,
+    filters: &CraftScanFilters<'_>,
+) -> Option<Result<CraftWorldObj, ()>> {
     if actor_id != CLAY_BOWL || actor_held {
         return None;
     }
-    let forge = closest_forge_craft(objs, player_x, player_y, FORGE_BIAS_SEARCH_R)?;
+    let forge =
+        closest_forge_craft_filtered(objs, player_x, player_y, FORGE_BIAS_SEARCH_R, filters)?;
     if craft_chebyshev(player_x, player_y, forge.x, forge.y) > FORGE_NEAR_CHEBYSHEV {
         return None;
     }
@@ -968,7 +1321,7 @@ pub fn retarget_clay_bowl_away_from_forge(
     if craft_chebyshev(actor_x, actor_y, forge.x, forge.y) >= FORGE_BIAS_MIN_DIST {
         return None;
     }
-    match closest_craft_obj_min_anchor_dist(
+    match closest_craft_obj_min_anchor_dist_filtered(
         objs,
         CLAY_BOWL,
         player_x,
@@ -977,6 +1330,7 @@ pub fn retarget_clay_bowl_away_from_forge(
         forge.x,
         forge.y,
         FORGE_BIAS_MIN_DIST,
+        filters,
     ) {
         Some(o) => Some(Ok(o)),
         None => Some(Err(())),
@@ -993,13 +1347,41 @@ pub fn fire_bow_needs_kindling(
     target_y: i32,
     called_craft_item: bool,
 ) -> bool {
+    fire_bow_needs_kindling_ex(
+        objs,
+        actor_id,
+        target_id,
+        target_x,
+        target_y,
+        called_craft_item,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// [`fire_bow_needs_kindling`] ignoring scan-blocked kindling/tinder.
+// Haxe: GetCraftAndDropItemsCloseToObj + GetClosestObjectToTarget
+pub fn fire_bow_needs_kindling_ex(
+    objs: &[CraftWorldObj],
+    actor_id: i32,
+    target_id: i32,
+    target_x: i32,
+    target_y: i32,
+    called_craft_item: bool,
+    filters: &CraftScanFilters<'_>,
+) -> bool {
     if called_craft_item || actor_id != FIRE_BOW_DRILL || target_id != LONG_STRAIGHT_SHAFT {
         return false;
     }
-    let kindling = closest_craft_obj(objs, KINDLING, target_x, target_y, 10, None);
-    let tinder = closest_craft_obj(objs, JUNIPER_TINDER, target_x, target_y, 10, None);
+    let kindling =
+        closest_craft_obj_filtered(objs, KINDLING, target_x, target_y, 10, None, filters);
+    let tinder =
+        closest_craft_obj_filtered(objs, JUNIPER_TINDER, target_x, target_y, 10, None, filters);
     kindling.is_none() && tinder.is_none()
 }
+
+// Haxe: GetCraftAndDropItemsCloseToObj + craftItemHelper specials (AI-CRAFT-LIVE-MORE)
+// Haxe: ServerSettings.InitWaterSourceIds (AI-CRAFT-MULTI-SPECIALS)
+include!("craft_and_drop.inc.rs");
 
 // ── Have-set builder ────────────────────────────────────────────────────────
 
@@ -1222,8 +1604,17 @@ fn resolve_pair(
     pile_id_for: Option<&dyn Fn(i32) -> i32>,
 ) -> Option<CraftTransPair> {
     // Actor: empty hands / TIME / held / ground / pile
-    let (ax, ay, actor_held, actor_from_pile, pile_id, actor_ok) =
-        resolve_side(actor_id, objs, held_id, player_x, player_y, home, radius, pile_id_for, None);
+    let (ax, ay, actor_held, actor_from_pile, pile_id, actor_ok) = resolve_side(
+        actor_id,
+        objs,
+        held_id,
+        player_x,
+        player_y,
+        home,
+        radius,
+        pile_id_for,
+        None,
+    );
 
     if !actor_ok {
         return None;
@@ -1260,8 +1651,16 @@ fn resolve_pair(
     let distance = dist_player_actor + dist_actor_target;
 
     // Preserve TIME (-1) / PLAYER (-2); clamp only loose ground ids.
-    let out_actor = if actor_id < 0 { actor_id } else { actor_id.max(0) };
-    let out_target = if target_id < 0 { target_id } else { target_id.max(0) };
+    let out_actor = if actor_id < 0 {
+        actor_id
+    } else {
+        actor_id.max(0)
+    };
+    let out_target = if target_id < 0 {
+        target_id
+    } else {
+        target_id.max(0)
+    };
 
     Some(CraftTransPair {
         actor_id: out_actor,
@@ -1407,12 +1806,17 @@ pub fn craft_item_helper_with_meta(
         pile_id_for,
         meta_by_edge,
         CraftScanFilters::default(),
+        &DEFAULT_WATER_SOURCE_IDS,
     )
 }
 
 /// Full craftItemHelper: meta + live path-reach / hostile / full-pile scan filters.
+///
+/// `water_source_ids` is Haxe `ServerSettings.WaterSourceIds` (empty →
+/// [`DEFAULT_WATER_SOURCE_IDS`] via [`effective_water_source_ids`]).
 // Haxe: craftItemHelper + addObjectsForCrafting isObjectNotReachable
 // Haxe: GetClosestObject* isObjectWithHostilePath (AI-CRAFT-LIVE-RESID)
+// Haxe: ServerSettings.WaterSourceIds retarget (AI-CRAFT-MULTI-SPECIALS)
 pub fn craft_item_helper_ex(
     objs: &[CraftWorldObj],
     inp: &CraftItemInput,
@@ -1422,6 +1826,7 @@ pub fn craft_item_helper_ex(
     pile_id_for: Option<&dyn Fn(i32) -> i32>,
     meta_by_edge: Option<&HashMap<(i32, i32), CraftTransMeta>>,
     scan: CraftScanFilters<'_>,
+    water_source_ids: &[i32],
 ) -> CraftItemDecision {
     let product_id = inp.product_id;
     if product_id <= 0 {
@@ -1429,7 +1834,7 @@ pub fn craft_item_helper_ex(
     }
 
     // Failed crafting cooldown.
-    if failed.is_cooling_down(product_id, inp.now_sec) {
+    if failed.is_cooling_down_ex(product_id, inp.now_sec, inp.ai_wait_failed_sec) {
         return CraftItemDecision::Cooldown;
     }
 
@@ -1439,7 +1844,11 @@ pub fn craft_item_helper_ex(
         max_r = inp.max_distance;
     }
     if max_r < 1 {
-        max_r = AI_MAX_SEARCH_RADIUS;
+        max_r = if inp.ai_max_search_radius >= 1 {
+            inp.ai_max_search_radius
+        } else {
+            AI_MAX_SEARCH_RADIUS
+        };
     }
 
     // Product change → reset sticky (Haxe re-init IntemToCraft fields).
@@ -1462,10 +1871,8 @@ pub fn craft_item_helper_ex(
         if inp.held_id == aid && aid > 0 {
             // Target still expected: tile still has target id (or accept sticky).
             // Skip sticky USE when target tile is path-blocked (notReachable/hostile).
-            let tile_blocked = !craft_obj_passes_scan_filters(
-                &CraftWorldObj::simple(tid.max(0), tx, ty),
-                &scan,
-            );
+            let tile_blocked =
+                !craft_obj_passes_scan_filters(&CraftWorldObj::simple(tid.max(0), tx, ty), &scan);
             let still = !tile_blocked
                 && (objs
                     .iter()
@@ -1524,10 +1931,11 @@ pub fn craft_item_helper_ex(
     // Search best multi-step pair (AI-CRAFT-TOPDOWN + path-reach scan filters).
     // Haxe: searchBestObjectForCrafting + DoTransitionSearch lastActor/Target undo
     // Haxe: addObjectsForCrafting isObjectNotReachable / GetClosest hostile
-    let craft_index = CraftObjectIndex::from_objs(objs, None);
-    let exists_row = objs.iter().any(|o| {
-        o.parent_id == HARDENED_ROW && craft_obj_passes_scan_filters(o, &scan)
-    });
+    let craft_index = CraftObjectIndex::from_objs(objs, None)
+        .with_ai_craft_limits(&inp.ai_craft_max, &inp.ai_craft_min);
+    let exists_row = objs
+        .iter()
+        .any(|o| o.parent_id == HARDENED_ROW && craft_obj_passes_scan_filters(o, &scan));
     let product_pile = pile_id_for.map(|f| f(product_id)).unwrap_or(-1);
     let mut topdown_opts = CraftTopDownOpts::default()
         .with_last(state.last_actor_id, state.last_target_id)
@@ -1535,7 +1943,9 @@ pub fn craft_item_helper_ex(
         .with_pile(product_pile)
         .with_index(&craft_index)
         .with_search_current(state.search_current_position)
-        .with_scan(scan);
+        .with_scan(scan)
+        .with_search_increment(inp.ai_search_increment)
+        .with_ignore_time_longer_then(inp.ai_ignore_time_transitions_longer_then);
     if let Some(map) = meta_by_edge {
         topdown_opts = topdown_opts.with_meta_map(map);
     }
@@ -1609,37 +2019,81 @@ pub fn craft_item_helper_ex(
 
     // Berry pie crust gate (253 + 264 blocked when pie count > 1).
     // Haxe: craftItemHelper ~6751–6756
-    if berry_pie_crust_blocked(
-        actor_id,
-        target_id,
-        objs,
-        inp.player_x,
-        inp.player_y,
-        max_r,
-    ) {
+    if berry_pie_crust_blocked(actor_id, target_id, objs, inp.player_x, inp.player_y, max_r) {
         return CraftItemDecision::Failed;
     }
 
-    // Fire bow + shaft → need kindling/tinder near shaft first (residual of GetCraftAndDrop).
+    // Bring targets to tool: Steel Adze/Froe + Butt Log (GetCraftAndDrop).
+    // Haxe: craftItemHelper ~6761–6771
+    if let Some(d) = adze_froe_butt_log_craft_and_drop_ex(
+        objs,
+        actor_id,
+        target_id,
+        actor_x,
+        actor_y,
+        inp.held_id,
+        inp.player_x,
+        inp.player_y,
+        inp.called_craft_item,
+        product_id,
+        &scan,
+    ) {
+        return d;
+    }
+
+    // Domestic Goose empty-hand: Steel Axe near stump (GetCraftAndDrop).
+    // Haxe: craftItemHelper ~6773–6781
+    if actor_id == 0 && target_id == DOMESTIC_GOOSE && !inp.called_craft_item {
+        if closest_craft_obj_filtered(
+            objs,
+            STUMP,
+            inp.player_x,
+            inp.player_y,
+            GOOSE_STUMP_SEARCH_R,
+            None,
+            &scan,
+        )
+        .is_none()
+        {
+            return CraftItemDecision::Failed;
+        }
+        if let Some(d) = goose_axe_near_stump_craft_and_drop_ex(
+            objs,
+            actor_id,
+            target_id,
+            inp.held_id,
+            inp.player_x,
+            inp.player_y,
+            inp.called_craft_item,
+            product_id,
+            &scan,
+        ) {
+            return d;
+        }
+    }
+
+    // Fire bow + shaft → GetCraftAndDrop kindling then tinder near shaft.
     // Haxe: craftItemHelper ~6890–6902
-    if fire_bow_needs_kindling(
+    if let Some(d) = fire_bow_kindling_craft_and_drop_ex(
         objs,
         actor_id,
         target_id,
         target_x,
         target_y,
+        inp.held_id,
+        inp.player_x,
+        inp.player_y,
         inp.called_craft_item,
+        product_id,
+        &scan,
     ) {
-        return CraftItemDecision::SeekIngredient {
-            ingredient_id: KINDLING,
-            for_product: product_id,
-        };
+        return d;
     }
 
     // Soil retarget for Clay Bowl.
     // Haxe: craftItemHelper ~6784–6793
     if let Some(soil) =
-        retarget_soil_for_clay_bowl(objs, actor_id, target_id, inp.player_x, inp.player_y)
+        retarget_soil_for_clay_bowl_ex(objs, actor_id, target_id, inp.player_x, inp.player_y, &scan)
     {
         target_id = soil.parent_id;
         target_x = soil.x;
@@ -1648,7 +2102,14 @@ pub fn craft_item_helper_ex(
 
     // Flat Rock near forge: forbidden actor retarget or fail.
     // Haxe: craftItemHelper ~6795–6816
-    match retarget_flat_rock_near_forge(objs, actor_id, target_id, inp.player_x, inp.player_y) {
+    match retarget_flat_rock_near_forge_ex(
+        objs,
+        actor_id,
+        target_id,
+        inp.player_x,
+        inp.player_y,
+        &scan,
+    ) {
         Some(Ok(rock)) => {
             target_id = rock.parent_id;
             target_x = rock.x;
@@ -1660,7 +2121,7 @@ pub fn craft_item_helper_ex(
 
     // Clay Bowl not taken from next to forge.
     // Haxe: craftItemHelper ~6818–6835
-    match retarget_clay_bowl_away_from_forge(
+    match retarget_clay_bowl_away_from_forge_ex(
         objs,
         actor_id,
         actor_x,
@@ -1668,6 +2129,7 @@ pub fn craft_item_helper_ex(
         actor_held,
         inp.player_x,
         inp.player_y,
+        &scan,
     ) {
         Some(Ok(bowl)) => {
             actor_x = bowl.x;
@@ -1695,9 +2157,9 @@ pub fn craft_item_helper_ex(
     }
 
     // Water-source retarget (Clay Bowl / Empty Water Pouch → closest well/water).
-    // Haxe: craftItemHelper ~6905–6962
-    let water_ids = &DEFAULT_WATER_SOURCE_IDS;
-    if let Some(w) = retarget_water_source(
+    // Haxe: craftItemHelper ~6905–6962 ServerSettings.WaterSourceIds
+    let water_ids = effective_water_source_ids(water_source_ids);
+    if let Some(w) = retarget_water_source_ex(
         objs,
         actor_id,
         target_id,
@@ -1705,6 +2167,7 @@ pub fn craft_item_helper_ex(
         inp.player_y,
         max_r,
         water_ids,
+        &scan,
     ) {
         target_id = w.parent_id;
         target_x = w.x;
@@ -1746,9 +2209,14 @@ pub fn craft_item_helper_ex(
     let second_close = [575, 576, 1458];
     if deadly.contains(&actor_id) && second_close.contains(&target_id) {
         let base = home.unwrap_or((inp.player_x, inp.player_y));
-        if let Some(sec) =
-            second_closest_craft_obj(objs, target_id, base.0, base.1, 30.max(max_r.min(30)))
-        {
+        if let Some(sec) = second_closest_craft_obj_filtered(
+            objs,
+            target_id,
+            base.0,
+            base.1,
+            30.max(max_r.min(30)),
+            &scan,
+        ) {
             target_x = sec.x;
             target_y = sec.y;
             target_id = sec.parent_id;
@@ -1883,14 +2351,9 @@ pub fn craft_item_with_runtime_scan(
     pile_id_for: Option<&dyn Fn(i32) -> i32>,
     scan: CraftScanFilters<'_>,
 ) -> CraftItemDecision {
-    let inp = CraftItemInput::from_runtime(
-        product_id,
-        player_x,
-        player_y,
-        held_id,
-        opts,
-        runtime,
-    );
+    // Haxe: craftItemHelper product-change addTask when countDone < count ~6677
+    runtime.prepare_for_product(product_id);
+    let inp = CraftItemInput::from_runtime(product_id, player_x, player_y, held_id, opts, runtime);
     let decision = craft_item_helper_ex(
         objs,
         &inp,
@@ -1898,10 +2361,14 @@ pub fn craft_item_with_runtime_scan(
         &mut runtime.failed,
         graph,
         pile_id_for,
-        None,
+        opts.trans_meta.as_ref(),
         scan,
+        opts.effective_water_source_ids(),
     );
     runtime.note_craft_done(decision);
+    // After note_craft_done clears the guard: re-arm when GetCraftAndDrop staged
+    // a recursive craft (Haxe calledCraftItem = true around GetCraftAndDrop).
+    runtime.note_called_craft_item_from_decision(decision);
     decision
 }
 
@@ -1964,16 +2431,25 @@ pub fn craft_item_decision_to_live_intent(
             actor_id: 0,
         },
 
-        CraftItemDecision::SeekIngredient {
-            ingredient_id, ..
-        } => ShortCraftLiveIntent::SeekOrCraft {
-            actor: ingredient_id,
-            craft_if_needed: true,
-        },
+        CraftItemDecision::SeekIngredient { ingredient_id, .. } => {
+            ShortCraftLiveIntent::SeekOrCraft {
+                actor: ingredient_id,
+                craft_if_needed: true,
+            }
+        }
 
         CraftItemDecision::ShortCraftOnGround { object_id } => {
             ShortCraftLiveIntent::SeekGroundActor { target: object_id }
         }
+
+        CraftItemDecision::GotoDropAnchor { target_x, target_y } => ShortCraftLiveIntent::Goto {
+            x: target_x,
+            y: target_y,
+        },
+        CraftItemDecision::DropNearAnchor { target_x, target_y } => ShortCraftLiveIntent::DropAt {
+            x: target_x,
+            y: target_y,
+        },
     }
 }
 
@@ -1993,7 +2469,7 @@ pub fn resolve_craft_item_live(
         ShortCraftLiveIntent::CraftItem { object_id } => object_id,
         other => return other,
     };
-    let mut inp = *inp;
+    let mut inp = inp.clone();
     inp.product_id = object_id;
     let decision = craft_item(objs, &inp, state, failed, graph, pile_id_for);
     craft_item_decision_to_live_intent(decision, empty_drop)
@@ -2022,6 +2498,7 @@ pub fn craft_world_from_get_or_craft(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     fn sample_graph() -> ReverseCraftGraph {
         let mut g = ReverseCraftGraph::new();
@@ -2038,6 +2515,8 @@ mod tests {
         assert!(failed.is_cooling_down(99, 110.0));
         assert!(!failed.is_cooling_down(99, 116.0));
         assert!(!failed.is_cooling_down(1, 110.0));
+        assert!(failed.is_cooling_down_ex(99, 110.0, 15.0));
+        assert!(!failed.is_cooling_down_ex(99, 110.0, 5.0));
     }
 
     #[test]
@@ -2064,7 +2543,11 @@ mod tests {
             CraftItemDecision::PickupActor { object_id, .. } => {
                 assert!(object_id == 1 || object_id == 2);
             }
-            CraftItemDecision::UseOnTarget { actor_id, target_id, .. } => {
+            CraftItemDecision::UseOnTarget {
+                actor_id,
+                target_id,
+                ..
+            } => {
                 // if somehow empty held and actor 0 — shouldn't for 1+2
                 assert!(actor_id == 1 || actor_id == 2);
                 assert!(target_id == 1 || target_id == 2);
@@ -2072,7 +2555,9 @@ mod tests {
             other => panic!("expected pickup or use, got {other:?}"),
         }
         assert_eq!(state.product_id, 5);
-        assert!(state.trans_target_id.is_some() || matches!(d, CraftItemDecision::PickupActor { .. }));
+        assert!(
+            state.trans_target_id.is_some() || matches!(d, CraftItemDecision::PickupActor { .. })
+        );
     }
 
     #[test]
@@ -2121,7 +2606,12 @@ mod tests {
                 for_product,
             } => {
                 assert_eq!(for_product, 5);
-                assert!(ingredient_id == 1 || ingredient_id == 2 || ingredient_id == 3 || ingredient_id == 4);
+                assert!(
+                    ingredient_id == 1
+                        || ingredient_id == 2
+                        || ingredient_id == 3
+                        || ingredient_id == 4
+                );
             }
             CraftItemDecision::Failed => {
                 assert!(failed.is_cooling_down(5, 50.0));
@@ -2312,17 +2802,7 @@ mod tests {
             CraftWorldObj::simple(1, 20, 0),
             CraftWorldObj::simple(2, 21, 0),
         ];
-        let pair = search_best_object_for_crafting(
-            3,
-            &objs,
-            0,
-            0,
-            0,
-            None,
-            60,
-            &g,
-            None,
-        );
+        let pair = search_best_object_for_crafting(3, &objs, 0, 0, 0, None, 60, &g, None);
         assert!(pair.is_some());
         let p = pair.unwrap();
         assert_eq!(p.actor_id, 1);
@@ -2336,15 +2816,7 @@ mod tests {
             CraftWorldObj::simple(999, 40, 0),
             CraftWorldObj::simple(663, 5, 0),
         ];
-        let ret = retarget_water_source(
-            &objs,
-            CLAY_BOWL,
-            999,
-            0,
-            0,
-            60,
-            &[663, 662, 999],
-        );
+        let ret = retarget_water_source(&objs, CLAY_BOWL, 999, 0, 0, 60, &[663, 662, 999]);
         assert_eq!(ret.map(|o| o.parent_id), Some(663));
         assert_eq!(ret.map(|o| o.x), Some(5));
     }
@@ -2476,10 +2948,7 @@ mod tests {
             5,
             false
         ));
-        let with_k = vec![
-            shaft,
-            CraftWorldObj::simple(KINDLING, 6, 5),
-        ];
+        let with_k = vec![shaft, CraftWorldObj::simple(KINDLING, 6, 5)];
         assert!(!fire_bow_needs_kindling(
             &with_k,
             FIRE_BOW_DRILL,
@@ -2496,51 +2965,21 @@ mod tests {
         let mut runtime = CraftAiRuntime::new();
         let opts = CraftLiveExpandOpts::default().with_now(100.0);
         // No ingredients → fail records cooldown
-        let d1 = craft_item_with_runtime(
-            &[],
-            5,
-            0,
-            0,
-            0,
-            &opts,
-            &mut runtime,
-            &g,
-            None,
-        );
+        let d1 = craft_item_with_runtime(&[], 5, 0, 0, 0, &opts, &mut runtime, &g, None);
         assert!(matches!(
             d1,
             CraftItemDecision::Failed | CraftItemDecision::SeekIngredient { .. }
         ));
         // Within 15s → Cooldown
         let opts2 = CraftLiveExpandOpts::default().with_now(110.0);
-        let d2 = craft_item_with_runtime(
-            &[],
-            5,
-            0,
-            0,
-            0,
-            &opts2,
-            &mut runtime,
-            &g,
-            None,
-        );
+        let d2 = craft_item_with_runtime(&[], 5, 0, 0, 0, &opts2, &mut runtime, &g, None);
         // SeekIngredient does not record fail; Failed does. Ensure fail path recorded.
         if matches!(d1, CraftItemDecision::Failed) {
             assert_eq!(d2, CraftItemDecision::Cooldown);
         } else {
             // If seek, force-record fail to prove sticky map
             runtime.failed.record_fail(5, 100.0);
-            let d3 = craft_item_with_runtime(
-                &[],
-                5,
-                0,
-                0,
-                0,
-                &opts2,
-                &mut runtime,
-                &g,
-                None,
-            );
+            let d3 = craft_item_with_runtime(&[], 5, 0, 0, 0, &opts2, &mut runtime, &g, None);
             assert_eq!(d3, CraftItemDecision::Cooldown);
         }
     }
@@ -2664,6 +3103,51 @@ mod tests {
     }
 
     #[test]
+    fn craft_live_opts_water_ids_retarget_pond() {
+        // InitWaterSourceIds-derived list includes pond 511; defaults would miss it.
+        let mut g = ReverseCraftGraph::new();
+        g.insert(CLAY_BOWL, 511, BOWL_OF_WATER, 0);
+        g.insert(CLAY_BOWL, 663, BOWL_OF_WATER, 0);
+        let objs = vec![
+            CraftWorldObj::simple(511, 2, 0),
+            CraftWorldObj::simple(663, 30, 0),
+        ];
+        let mut runtime = CraftAiRuntime::new();
+        let (water, bucket) = init_water_source_ids([
+            (CLAY_BOWL, 511, BOWL_OF_WATER),
+            (CLAY_BOWL, 663, BOWL_OF_WATER),
+            (EMPTY_BUCKET, 511, FULL_BUCKET_WATER),
+        ]);
+        let opts = CraftLiveExpandOpts::default().with_water_source_ids(water, bucket);
+        assert_eq!(opts.effective_water_source_ids(), &[511, 663]);
+        assert_eq!(opts.effective_bucket_water_source_ids(), &[511]);
+        let d = craft_item_with_runtime(
+            &objs,
+            BOWL_OF_WATER,
+            0,
+            0,
+            CLAY_BOWL,
+            &opts,
+            &mut runtime,
+            &g,
+            None,
+        );
+        match d {
+            CraftItemDecision::UseOnTarget {
+                actor_id,
+                target_id,
+                target_x,
+                ..
+            } => {
+                assert_eq!(actor_id, CLAY_BOWL);
+                assert_eq!(target_id, 511);
+                assert_eq!(target_x, 2);
+            }
+            other => panic!("expected UseOnTarget on pond 511, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn home_opts_set_start_location_via_runtime() {
         let g = sample_graph();
         let objs = vec![
@@ -2686,17 +3170,7 @@ mod tests {
         ];
         let mut runtime = CraftAiRuntime::new();
         let opts = CraftLiveExpandOpts::default().with_smith(false);
-        let d = craft_item_with_runtime(
-            &objs,
-            9000,
-            0,
-            0,
-            308,
-            &opts,
-            &mut runtime,
-            &g,
-            None,
-        );
+        let d = craft_item_with_runtime(&objs, 9000, 0, 0, 308, &opts, &mut runtime, &g, None);
         assert_eq!(d, CraftItemDecision::NeedSmithProfession);
     }
 
@@ -2727,6 +3201,7 @@ mod tests {
             None,
             None,
             scan,
+            &DEFAULT_WATER_SOURCE_IDS,
         );
         match d {
             CraftItemDecision::UseOnTarget {
@@ -2768,6 +3243,7 @@ mod tests {
             None,
             None,
             scan,
+            &DEFAULT_WATER_SOURCE_IDS,
         );
         assert!(
             matches!(
@@ -2800,10 +3276,175 @@ mod tests {
             None,
             None,
             scan,
+            &DEFAULT_WATER_SOURCE_IDS,
         );
         assert!(
             !matches!(d, CraftItemDecision::AlreadyHave { .. }),
             "blocked product must not AlreadyHave, got {d:?}"
         );
+    }
+
+    /// Water retarget skips a closer blocked well (AI-CRAFT-MULTI-RESID).
+    // Haxe: GetClosestObjectToPositionByIds isObjectNotReachable
+    #[test]
+    fn water_retarget_skips_blocked_well_picks_alt() {
+        let objs = vec![
+            CraftWorldObj::simple(663, 2, 0),
+            CraftWorldObj::simple(663, 8, 0),
+        ];
+        let mut blocked = HashSet::new();
+        blocked.insert((2, 0));
+        let scan = CraftScanFilters::new().with_blocked(&blocked);
+        let ret = retarget_water_source_ex(
+            &objs,
+            CLAY_BOWL,
+            663,
+            0,
+            0,
+            60,
+            &DEFAULT_WATER_SOURCE_IDS,
+            &scan,
+        );
+        assert_eq!(ret.map(|o| (o.parent_id, o.x)), Some((663, 8)));
+        // Unfiltered still prefers the blocked closer well.
+        let unf = retarget_water_source(&objs, CLAY_BOWL, 663, 0, 0, 60, &DEFAULT_WATER_SOURCE_IDS);
+        assert_eq!(unf.map(|o| o.x), Some(2));
+    }
+
+    /// Soil retarget skips blocked pile, picks loose soil.
+    // Haxe: GetClosestObjectToPositionByIds(soilTargets, 30, myPlayer)
+    #[test]
+    fn soil_retarget_skips_blocked_pile() {
+        let objs = vec![
+            CraftWorldObj::simple(FERTILE_SOIL_PILE, 4, 0),
+            CraftWorldObj::simple(FERTILE_SOIL, 20, 0),
+        ];
+        let mut blocked = HashSet::new();
+        blocked.insert((4, 0));
+        let scan = CraftScanFilters::new().with_blocked(&blocked);
+        let ret = retarget_soil_for_clay_bowl_ex(&objs, CLAY_BOWL, FERTILE_SOIL, 0, 0, &scan);
+        assert_eq!(ret.map(|o| o.parent_id), Some(FERTILE_SOIL));
+        let mut all = HashSet::new();
+        all.insert((4, 0));
+        all.insert((20, 0));
+        let scan_all = CraftScanFilters::new().with_blocked(&all);
+        assert!(retarget_soil_for_clay_bowl_ex(
+            &objs,
+            CLAY_BOWL,
+            FERTILE_SOIL_PILE,
+            0,
+            0,
+            &scan_all
+        )
+        .is_none());
+    }
+
+    /// Helper water specials must not undo path-filtered pair search.
+    // Haxe: craftItemHelper water retarget uses GetClosest with myPlayer
+    #[test]
+    fn helper_water_retarget_skips_blocked_well() {
+        let mut g = ReverseCraftGraph::new();
+        g.insert(CLAY_BOWL, 663, BOWL_OF_WATER, 0);
+        let objs = vec![
+            CraftWorldObj::simple(663, 2, 0),
+            CraftWorldObj::simple(663, 8, 0),
+        ];
+        let mut blocked = HashSet::new();
+        blocked.insert((2, 0));
+        let scan = CraftScanFilters::new().with_blocked(&blocked);
+        let mut state = ItemToCraftState::new(BOWL_OF_WATER);
+        let mut failed = FailedCraftings::new();
+        let inp = CraftItemInput::basic(BOWL_OF_WATER, 0, 0).with_held(CLAY_BOWL);
+        let d = craft_item_helper_ex(
+            &objs,
+            &inp,
+            &mut state,
+            &mut failed,
+            &g,
+            None,
+            None,
+            scan,
+            &DEFAULT_WATER_SOURCE_IDS,
+        );
+        match d {
+            CraftItemDecision::UseOnTarget {
+                actor_id,
+                target_id,
+                target_x,
+                target_y,
+            } => {
+                assert_eq!((actor_id, target_id), (CLAY_BOWL, 663));
+                assert_eq!((target_x, target_y), (8, 0));
+            }
+            other => panic!("expected UseOnTarget on free well, got {other:?}"),
+        }
+    }
+
+    /// NPC runtime re-queues unfinished countDone on product switch.
+    // Haxe: craftItemHelper ~6677–6679 addTask
+    #[test]
+    fn runtime_prepare_requeues_unfinished_count_done() {
+        let mut rt = CraftAiRuntime::new();
+        rt.item = ItemToCraftState::new(7);
+        rt.item.count = 2;
+        rt.item.count_done = 1;
+        rt.prepare_for_product(11);
+        assert!(rt.crafting_tasks.contains(&7));
+        assert_eq!(rt.item.product_id, 11);
+        assert_eq!(rt.item.count_done, 0);
+        assert_eq!(rt.take_next_crafting_task(), Some(7));
+        assert_eq!(rt.item.product_id, 7);
+        assert!(rt.crafting_tasks.is_empty());
+    }
+
+    #[test]
+    fn runtime_prepare_skips_requeue_when_finished() {
+        let mut rt = CraftAiRuntime::new();
+        rt.item = ItemToCraftState::new(7);
+        rt.item.count = 1;
+        rt.item.count_done = 1;
+        rt.prepare_for_product(11);
+        assert!(!rt.crafting_tasks.contains(&7));
+        assert_eq!(rt.item.product_id, 11);
+    }
+
+    #[test]
+    fn runtime_prepare_no_requeue_when_count_zero_uninit() {
+        let mut rt = CraftAiRuntime::new();
+        rt.item.product_id = 7;
+        rt.item.count = 0;
+        rt.item.count_done = 0;
+        rt.prepare_for_product(11);
+        // 0 < 0 is false — uninitialized IntemToCraft does not queue.
+        assert!(rt.crafting_tasks.is_empty());
+        assert_eq!(rt.item.product_id, 11);
+    }
+
+    #[test]
+    fn craft_item_with_runtime_scan_product_switch_requeues() {
+        let g = ReverseCraftGraph::new();
+        let mut runtime = CraftAiRuntime::new();
+        runtime.item = ItemToCraftState::new(7);
+        runtime.item.count = 2;
+        runtime.item.count_done = 1;
+        let opts = CraftLiveExpandOpts::default();
+        let _d = craft_item_with_runtime_scan(
+            &[],
+            11,
+            0,
+            0,
+            0,
+            &opts,
+            &mut runtime,
+            &g,
+            None,
+            CraftScanFilters::default(),
+        );
+        assert!(runtime.crafting_tasks.contains(&7));
+        assert_eq!(runtime.item.product_id, 11);
+        assert_eq!(runtime.item.count_done, 0);
+        // New product just reset: count=1, count_done=0 → unfinished for the NEW id.
+        assert_eq!(runtime.item.count, 1);
+        assert!(runtime.should_continue_unfinished());
     }
 }

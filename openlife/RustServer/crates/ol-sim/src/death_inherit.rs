@@ -15,9 +15,7 @@ use crate::accounts::AccountBook;
 use crate::ally::AllyState;
 use crate::economy::{Economy, INHERIT_COINS_FACTOR};
 use crate::prestige::PrestigeClass;
-use crate::relations::{
-    is_close_relative, is_leadership_ally, is_same_family, living_children_of,
-};
+use crate::relations::{is_close_relative, is_leadership_ally, is_same_family, living_children_of};
 use crate::score::Scoreboard;
 use crate::social::SocialState;
 use ol_world::ComplexObject;
@@ -257,6 +255,16 @@ pub fn add_owner_to_helper(h: &mut ComplexObject, p_id: i32) {
     }
 }
 
+/// Haxe `ObjectHelper.createOwnerString` — leading space per living owner id.
+// Haxe: ObjectHelper.createOwnerString L711–718
+pub fn create_owner_string(living_owners: &[i32]) -> String {
+    let mut s = String::new();
+    for id in living_owners {
+        s.push_str(&format!(" {id}"));
+    }
+    s
+}
+
 /// Haxe `InheritOwnership`: remove dead player; if no owners left and they had a
 /// follow-leader, transfer sole ownership to that leader.
 ///
@@ -290,10 +298,7 @@ pub fn format_ownership_events(deceased: i32, transfers: &[OwnershipTransfer]) -
         .iter()
         .map(|t| {
             if t.new_owner != 0 {
-                format!(
-                    "INHERIT_OWN {deceased} {} {} -> {}",
-                    t.x, t.y, t.new_owner
-                )
+                format!("INHERIT_OWN {deceased} {} {} -> {}", t.x, t.y, t.new_owner)
             } else {
                 format!("INHERIT_OWN {deceased} {} {} unowned", t.x, t.y)
             }
@@ -473,11 +478,12 @@ pub fn format_leader_succession_event(dead: i32, succ: &LeaderSuccession) -> Opt
     ))
 }
 
-/// Tag grave with deceased living owner + account soul key (Haxe account.graves push subset).
+/// Tag grave with deceased living owner + Haxe `ownersByPlayerAccount` id.
 ///
-/// Uses `living_owners` for player id and `owners_by_account` with a stable
-/// non-zero token from email (FNV-ish hash) so next-life rewire can find it.
-pub fn stamp_grave_soul(grave: &mut ComplexObject, deceased_p_id: i32, email: &str) {
+/// `account_id` is numeric [`crate::accounts::AccountRecord::id`] (OLA2). `0` skips
+/// the account list. Legacy OLW files may still hold FNV [`account_soul_token`]s.
+// Haxe: ObjectHelper.ownersByPlayerAccount.push(player.account.id)
+pub fn stamp_grave_soul(grave: &mut ComplexObject, deceased_p_id: i32, account_id: i32) {
     if deceased_p_id != 0 && !grave.living_owners.contains(&deceased_p_id) {
         // Haxe still lists the dead as owner until InitObjectHelpersAfterRead.
         grave.living_owners.push(deceased_p_id);
@@ -485,13 +491,40 @@ pub fn stamp_grave_soul(grave: &mut ComplexObject, deceased_p_id: i32, email: &s
     if grave.owner_id == 0 {
         grave.owner_id = deceased_p_id;
     }
-    let token = account_soul_token(email);
-    if token != 0 && !grave.owners_by_account.contains(&token) {
-        grave.owners_by_account.push(token);
+    add_account_owner_to_helper(grave, account_id);
+}
+
+/// Haxe `ownersByPlayerAccount.push(account.id)`.
+// Haxe: ObjectHelper.addOwner L678
+pub fn add_account_owner_to_helper(h: &mut ComplexObject, account_id: i32) {
+    if account_id != 0 && !h.owners_by_account.contains(&account_id) {
+        h.owners_by_account.push(account_id);
     }
 }
 
-/// Stable non-zero i32 token from email (soul / account id proxy; not persisted OLA1 id).
+/// Numeric `PlayerAccount.id` when assigned; else legacy FNV email token.
+// Haxe: PlayerAccount.id
+pub fn account_id_for_email(accounts: &AccountBook, email: &str) -> i32 {
+    let id = accounts.get(email).map(|r| r.id).unwrap_or(0);
+    if id > 0 {
+        id
+    } else {
+        account_soul_token(email)
+    }
+}
+
+/// Ensure the account exists, then return its numeric id (Haxe GetOrCreate).
+// Haxe: PlayerAccount.GetOrCreatePlayerAccount
+pub fn account_id_ensure(accounts: &mut AccountBook, email: &str) -> i32 {
+    let id = accounts.ensure(email).id;
+    if id > 0 {
+        id
+    } else {
+        account_soul_token(email)
+    }
+}
+
+/// Stable non-zero i32 token from email (legacy OLW graves before OLA2 numeric ids).
 pub fn account_soul_token(email: &str) -> i32 {
     let e = crate::accounts::normalize_email(email);
     if e.is_empty() {
@@ -735,6 +768,8 @@ mod tests {
     fn ownership_transfers_to_follow_leader() {
         let mut a = ComplexObject::with_owner(100, 1);
         let mut b = ComplexObject::with_owner(101, 1);
+        assert_eq!(create_owner_string(&[7, 9]), " 7 9");
+        assert_eq!(create_owner_string(&[]), "");
         add_owner_to_helper(&mut b, 9); // co-owned — stay with 9
         let mut helpers: Vec<((i32, i32), &mut ComplexObject)> =
             vec![((2, 3), &mut a), ((4, 5), &mut b)];
@@ -811,12 +846,21 @@ mod tests {
     }
 
     #[test]
-    fn stamp_grave_soul_sets_account_token() {
+    fn stamp_grave_soul_sets_account_id() {
         let mut g = ComplexObject::new_simple(87);
-        stamp_grave_soul(&mut g, 42, "Hero@X.com");
+        stamp_grave_soul(&mut g, 42, 7);
         assert!(g.living_owners.contains(&42));
         assert_eq!(g.owner_id, 42);
-        assert_eq!(g.owners_by_account.len(), 1);
-        assert_eq!(g.owners_by_account[0], account_soul_token("hero@x.com"));
+        assert_eq!(g.owners_by_account, vec![7]);
+    }
+
+    #[test]
+    fn account_id_for_email_prefers_numeric_id() {
+        let mut book = AccountBook::default();
+        book.ensure("Hero@X.com");
+        let id = book.get("hero@x.com").unwrap().id;
+        assert!(id > 0);
+        assert_eq!(account_id_for_email(&book, "Hero@X.com"), id);
+        assert_ne!(id, account_soul_token("hero@x.com"));
     }
 }

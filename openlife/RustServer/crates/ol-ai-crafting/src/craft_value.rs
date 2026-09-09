@@ -423,6 +423,10 @@ mod tests {
             switch_number_of_uses: false,
             target_number_of_uses: -1,
             is_pickup_or_drop: false,
+            hungry_work_cost: 0.0,
+            hungry_work_temperature: -1.0,
+            coin_cost: 0,
+            is_forbidden: false,
             },
         );
         db.objects.insert(

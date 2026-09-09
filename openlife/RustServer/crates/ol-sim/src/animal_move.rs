@@ -21,6 +21,23 @@ pub const CHANCE_PASS_BLOCKING_BIOME: f32 = 0.03;
 /// Haxe `ServerSettings.chancePreferredBiome` (0.8).
 pub const CHANCE_PREFERRED_BIOME: f32 = 0.8;
 
+/// Live animal-move chance knobs (pass blocking biome / preferred biome).
+// SETTINGS-LONG-TAIL
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AnimalMoveChanceKnobs {
+    pub pass_blocking_biome: f32,
+    pub preferred_biome: f32,
+}
+
+impl Default for AnimalMoveChanceKnobs {
+    fn default() -> Self {
+        Self {
+            pass_blocking_biome: CHANCE_PASS_BLOCKING_BIOME,
+            preferred_biome: CHANCE_PREFERRED_BIOME,
+        }
+    }
+}
+
 /// Pack-alert radius (Haxe `GetClosestObjectToPosition(..., 20, animal)`).
 pub const PACK_ALERT_RANGE: i32 = 20;
 
@@ -41,9 +58,7 @@ pub const CHASING_ANIMAL_IDS: &[i32] = &[420, 1438, 632, 635, 637];
 pub const ANIMALS_DONT_CHASE: &[i32] = &[1323, 1328, 1435, 1436, 764];
 
 /// Haxe `ObjectData.IsBoneGrave` id table.
-pub const BONE_GRAVE_IDS: &[i32] = &[
-    87, 88, 89, 356, 357, 1920, 3051, 3052, 3195, 3196, 752,
-];
+pub const BONE_GRAVE_IDS: &[i32] = &[87, 88, 89, 356, 357, 1920, 3051, 3052, 3195, 3196, 752];
 
 /// Name substrings that **do not** block animal pathing even when `blocksWalking=1`
 /// (Haxe `CalculateNonBlockedTarget` exemptions).
@@ -120,7 +135,11 @@ pub fn object_blocks_animal_path(content: &ContentDb, object_id: i32) -> bool {
 }
 
 /// Haxe `CanAnimalEndUpHere` (end tile must not block walking; prefer non-movers).
-pub fn can_animal_end_up_here(content: &ContentDb, object_id: i32, rabbit_empty_only: bool) -> bool {
+pub fn can_animal_end_up_here(
+    content: &ContentDb,
+    object_id: i32,
+    rabbit_empty_only: bool,
+) -> bool {
     if rabbit_empty_only && object_id != 0 {
         return false;
     }
@@ -175,10 +194,21 @@ pub fn is_spawning_in(content: &ContentDb, object_id: i32, biome_id: u8) -> bool
 /// soft (preferred | GREEN | YELLOW) → `chancePreferredBiome`;
 /// hard → `(chance + 4) / 5`.
 pub fn chance_preferred_biome(is_not_hard_biome: bool) -> f32 {
-    if is_not_hard_biome {
-        CHANCE_PREFERRED_BIOME
+    chance_preferred_biome_ex(is_not_hard_biome, CHANCE_PREFERRED_BIOME)
+}
+
+/// Live `chancePreferredBiome` override.
+// SETTINGS-LONG-TAIL
+pub fn chance_preferred_biome_ex(is_not_hard_biome: bool, chance: f32) -> f32 {
+    let c = if chance.is_finite() && chance >= 0.0 {
+        chance
     } else {
-        (CHANCE_PREFERRED_BIOME + 4.0) / 5.0
+        CHANCE_PREFERRED_BIOME
+    };
+    if is_not_hard_biome {
+        c
+    } else {
+        (c + 4.0) / 5.0
     }
 }
 
@@ -265,12 +295,7 @@ pub fn get_closest_bone_grave(
 /// Scan world for bone-grave object tiles (fallback when no cursedGraves map).
 ///
 /// Limited to axis-aligned box around `(cx,cy)` with Chebyshev `radius` for cost.
-pub fn collect_bone_graves_near(
-    world: &World,
-    cx: i32,
-    cy: i32,
-    radius: i32,
-) -> Vec<(i32, i32)> {
+pub fn collect_bone_graves_near(world: &World, cx: i32, cy: i32, radius: i32) -> Vec<(i32, i32)> {
     let ww = world.width_tiles;
     let wh = world.height_tiles;
     let r = radius.max(0);
@@ -414,6 +439,32 @@ pub fn calculate_non_blocked_target<R: Rng>(
     to_y: i32,
     rabbit_empty_only: bool,
 ) -> Option<(i32, i32)> {
+    calculate_non_blocked_target_ex(
+        world,
+        content,
+        rng,
+        from_x,
+        from_y,
+        to_x,
+        to_y,
+        rabbit_empty_only,
+        CHANCE_PASS_BLOCKING_BIOME,
+    )
+}
+
+/// Live `ChanceThatAnimalsCanPassBlockingBiome` override.
+// SETTINGS-LONG-TAIL
+pub fn calculate_non_blocked_target_ex<R: Rng>(
+    world: &World,
+    content: &ContentDb,
+    rng: &mut R,
+    from_x: i32,
+    from_y: i32,
+    to_x: i32,
+    to_y: i32,
+    rabbit_empty_only: bool,
+    pass_blocking_biome: f32,
+) -> Option<(i32, i32)> {
     let mut tmp_x = from_x;
     let mut tmp_y = from_y;
     let mut last_ok: Option<(i32, i32)> = None;
@@ -434,9 +485,14 @@ pub fn calculate_non_blocked_target<R: Rng>(
         }
 
         let mut biome_block = is_biome_blocking(world, tmp_x, tmp_y);
-        if biome_block && CHANCE_PASS_BLOCKING_BIOME > 0.0 {
+        let pass = if pass_blocking_biome.is_finite() && pass_blocking_biome >= 0.0 {
+            pass_blocking_biome
+        } else {
+            CHANCE_PASS_BLOCKING_BIOME
+        };
+        if biome_block && pass > 0.0 {
             // Haxe: isBiomeBlocking = randomFloat() > chance  → often still blocked
-            biome_block = rng.gen::<f32>() > CHANCE_PASS_BLOCKING_BIOME;
+            biome_block = rng.gen::<f32>() > pass;
         }
 
         let obj = world.get_object(tmp_x, tmp_y);
@@ -481,6 +537,36 @@ pub fn pick_animal_destination<R: Rng>(
         move_dist,
         rabbit_empty_only,
         None,
+        AnimalMoveChanceKnobs::default(),
+    )
+}
+
+/// Live chance knobs for [`pick_animal_destination`].
+// SETTINGS-LONG-TAIL
+pub fn pick_animal_destination_ex<R: Rng>(
+    world: &World,
+    content: &ContentDb,
+    rng: &mut R,
+    from_x: i32,
+    from_y: i32,
+    world_w: i32,
+    world_h: i32,
+    move_dist: i32,
+    rabbit_empty_only: bool,
+    knobs: AnimalMoveChanceKnobs,
+) -> Option<(i32, i32)> {
+    pick_animal_destination_steered(
+        world,
+        content,
+        rng,
+        from_x,
+        from_y,
+        world_w,
+        world_h,
+        move_dist,
+        rabbit_empty_only,
+        None,
+        knobs,
     )
 }
 
@@ -497,6 +583,7 @@ pub fn pick_animal_destination_steered<R: Rng>(
     move_dist: i32,
     rabbit_empty_only: bool,
     steer: Option<AnimalSteer>,
+    knobs: AnimalMoveChanceKnobs,
 ) -> Option<(i32, i32)> {
     let move_dist = move_dist.clamp(1, 6);
     let mut max_iterations: i32 = 20;
@@ -544,7 +631,7 @@ pub fn pick_animal_destination_steered<R: Rng>(
             false
         };
         let not_hard = is_not_hard_biome(target_biome, is_preferred);
-        let chance_pref = chance_preferred_biome(not_hard);
+        let chance_pref = chance_preferred_biome_ex(not_hard, knobs.preferred_biome);
 
         // Haxe: skip non-preferred first 5 tries with chancePreferredBiome
         if !is_preferred && i < 5 && rng.gen::<f32>() <= chance_pref {
@@ -553,7 +640,7 @@ pub fn pick_animal_destination_steered<R: Rng>(
         }
 
         // Path trim (Haxe CalculateNonBlockedTarget)
-        let Some((px, py)) = calculate_non_blocked_target(
+        let Some((px, py)) = calculate_non_blocked_target_ex(
             world,
             content,
             rng,
@@ -562,6 +649,7 @@ pub fn pick_animal_destination_steered<R: Rng>(
             to_x,
             to_y,
             rabbit_empty_only,
+            knobs.pass_blocking_biome,
         ) else {
             i += 1;
             continue;
@@ -712,6 +800,8 @@ mod tests {
     fn chance_preferred_hard_biome_boosted() {
         assert!((chance_preferred_biome(true) - 0.8).abs() < 1e-6);
         assert!((chance_preferred_biome(false) - 0.96).abs() < 1e-6);
+        assert!((chance_preferred_biome_ex(true, 0.5) - 0.5).abs() < 1e-6);
+        assert!((chance_preferred_biome_ex(false, 0.5) - 0.9).abs() < 1e-6);
     }
 
     #[test]
@@ -947,6 +1037,7 @@ mod tests {
                 3,
                 false,
                 Some(steer),
+                AnimalMoveChanceKnobs::default(),
             ) {
                 samples += 1;
                 let q = quad_distance(25, 15, px, py);
@@ -996,6 +1087,7 @@ mod tests {
                 3,
                 false,
                 Some(steer),
+                AnimalMoveChanceKnobs::default(),
             ) {
                 n += 1;
                 if quad_distance(20, 10, px, py) < quad_distance(20, 10, 10, 10) {
@@ -1050,7 +1142,17 @@ mod tests {
         for seed in 0..20u64 {
             let mut s_rng = StdRng::seed_from_u64(seed);
             if let Some((px, _py)) = pick_animal_destination_steered(
-                &w, &db, &mut s_rng, 0, 0, 12, 4, 6, false, Some(steer),
+                &w,
+                &db,
+                &mut s_rng,
+                0,
+                0,
+                12,
+                4,
+                6,
+                false,
+                Some(steer),
+                AnimalMoveChanceKnobs::default(),
             ) {
                 assert!(
                     px < 4,

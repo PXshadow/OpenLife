@@ -20,8 +20,11 @@ use crate::relations::{get_top_leader, is_ally, is_same_family};
 use crate::social::{format_following_for_player, SocialState};
 use crate::SimState;
 use ol_net::OutboundHub;
-use ol_protocol::{format_player_says, format_server_message};
+use ol_protocol::{format_player_emot, format_player_says, format_server_message};
 use std::collections::HashSet;
+
+/// Haxe TimeHelper age-10 child public say (already upper).
+pub const AGE10_CHILD_FOLLOW_SAY: &str = "I FOLLOW MY FATHER!";
 
 // Haxe: Connection.sendMapLocation text1/text2 pairs
 pub const MOTHER_TEXT1: &str = "MOTHER";
@@ -305,12 +308,7 @@ fn collect_family_candidates(state: &SimState, viewer_p_id: i32) -> Vec<SocialPi
 }
 
 /// Speak count privately (Haxe `toSelf = true` forms: `?ALLY`, `?F`, `?FAM`).
-fn speak_count_private(
-    outbound: &OutboundHub,
-    conn_id: u64,
-    viewer_p_id: i32,
-    say: &str,
-) {
+fn speak_count_private(outbound: &OutboundHub, conn_id: u64, viewer_p_id: i32, say: &str) {
     let ps = format_player_says(viewer_p_id, false, say);
     outbound.send(conn_id, ps.into_bytes());
     outbound.send(conn_id, format_server_message("FM", &[]).into_bytes());
@@ -529,11 +527,12 @@ pub fn send_baby_map_pin_to_parent(
         return;
     };
     // C-SS-MIN-AGE-AI: live MinAgeToEat (Haxe ServerSettings.MinAgeToEat)
-    let min_age = if state.gameplay.min_age_to_eat.is_finite() && state.gameplay.min_age_to_eat >= 0.0 {
-        state.gameplay.min_age_to_eat
-    } else {
-        MIN_AGE_TO_EAT_YEARS
-    };
+    let min_age =
+        if state.gameplay.min_age_to_eat.is_finite() && state.gameplay.min_age_to_eat >= 0.0 {
+            state.gameplay.min_age_to_eat
+        } else {
+            MIN_AGE_TO_EAT_YEARS
+        };
     if baby.age >= min_age {
         return;
     }
@@ -622,10 +621,7 @@ pub fn send_to_me_all_followings(state: &SimState, outbound: &OutboundHub, conn_
         return;
     }
     let refs: Vec<&str> = lines.iter().map(|s| s.as_str()).collect();
-    outbound.send(
-        conn_id,
-        format_server_message("FW", &refs).into_bytes(),
-    );
+    outbound.send(conn_id, format_server_message("FW", &refs).into_bytes());
 }
 
 /// Parse social pin SAY commands handled here (not LEADER-RANGE).
@@ -687,13 +683,11 @@ pub fn apply_social_pin_say(
 ) -> Option<String> {
     match kind {
         SocialPinSay::AllyExcited => {
-            let (_, pub_say) =
-                apply_count_and_display_ally(state, outbound, conn_id, true, true);
+            let (_, pub_say) = apply_count_and_display_ally(state, outbound, conn_id, true, true);
             pub_say
         }
         SocialPinSay::AllyPlain => {
-            let (_, pub_say) =
-                apply_count_and_display_ally(state, outbound, conn_id, false, false);
+            let (_, pub_say) = apply_count_and_display_ally(state, outbound, conn_id, false, false);
             pub_say
         }
         SocialPinSay::FollowerPrivate => {
@@ -711,13 +705,11 @@ pub fn apply_social_pin_say(
             pub_say
         }
         SocialPinSay::FamilyPrivate => {
-            let (_, pub_say) =
-                apply_count_and_display_family(state, outbound, conn_id, true);
+            let (_, pub_say) = apply_count_and_display_family(state, outbound, conn_id, true);
             pub_say
         }
         SocialPinSay::FamilyPublic => {
-            let (_, pub_say) =
-                apply_count_and_display_family(state, outbound, conn_id, false);
+            let (_, pub_say) = apply_count_and_display_family(state, outbound, conn_id, false);
             pub_say
         }
         SocialPinSay::Human => {
@@ -769,10 +761,58 @@ pub fn father_refollow_eligible(
     following.get(&child_p_id).copied() == Some(mid)
 }
 
+/// Haxe `father.say('MY $text ${player.name} FOLLOWS ME NOW!', true)`.
+pub fn format_age10_father_follow_say(child_is_male: bool, child_name: &str) -> String {
+    let kind = if child_is_male { "SON" } else { "DAUGHTER" };
+    format!("MY {kind} {child_name} FOLLOWS ME NOW!")
+}
+
+#[cfg(test)]
+thread_local! {
+    static AGE10_RAND_OVERRIDE: std::cell::Cell<Option<f32>> =
+        const { std::cell::Cell::new(None) };
+}
+
+fn age10_father_rand01() -> f32 {
+    #[cfg(test)]
+    {
+        if let Some(v) = AGE10_RAND_OVERRIDE.with(|c| c.get()) {
+            return v;
+        }
+    }
+    rand::random::<f32>()
+}
+
+/// Tests: force the TimeHelper `randomFloat` used on the age-10 cross.
+#[cfg(test)]
+pub fn set_test_age10_rand(v: Option<f32>) {
+    AGE10_RAND_OVERRIDE.with(|c| c.set(v));
+}
+
+/// Vitals entry: trueAge just crossed 10. Sex from live body; RNG as Haxe.
+// Haxe: TimeHelper L780-805
+pub fn try_age10_father_refollow_on_cross(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    child_conn: u64,
+) -> bool {
+    let is_male = match state.players.get(&child_conn) {
+        Some(p) if !p.deleted => !crate::player_is_female(state, p),
+        _ => return false,
+    };
+    try_age10_father_refollow(
+        state,
+        outbound,
+        child_conn,
+        is_male,
+        age10_father_rand01(),
+    )
+}
+
 /// Live: on trueAge cross 10, maybe re-follow father and emit LEADER/FOLLOWER pins.
 ///
 /// Returns true when re-follow applied.
-// Haxe: TimeHelper L780–805
+// Haxe: TimeHelper L780-805
 pub fn try_age10_father_refollow(
     state: &mut SimState,
     outbound: &OutboundHub,
@@ -825,7 +865,17 @@ pub fn try_age10_father_refollow(
     // Emit LEADER pin to child (father) + FOLLOWER pin to father (child).
     // Haxe: player.connection.sendMapLocation(father, 'LEADER', 'leader');
     //       father.connection.sendMapLocation(player, 'FOLLOWER', 'follower');
-    let (father_conn, father_xy, child_xy, child_p, father_p, child_birth, father_birth) = {
+    let (
+        father_conn,
+        father_xy,
+        child_xy,
+        child_p,
+        father_p,
+        child_birth,
+        father_birth,
+        child_name,
+        child_age,
+    ) = {
         let child = state.players.get(&child_conn);
         let father = state.players.values().find(|p| p.p_id == fid && !p.deleted);
         match (child, father) {
@@ -837,14 +887,13 @@ pub fn try_age10_father_refollow(
                 f.p_id,
                 (c.birth_x, c.birth_y),
                 (f.birth_x, f.birth_y),
+                c.first_name.clone(),
+                c.age,
             ),
             _ => return true, // follow applied even if pin skip
         }
     };
-    let (rel_x, rel_y) = (
-        father_xy.0 - child_birth.0,
-        father_xy.1 - child_birth.1,
-    );
+    let (rel_x, rel_y) = (father_xy.0 - child_birth.0, father_xy.1 - child_birth.1);
     send_map_location_pin(
         outbound,
         child_conn,
@@ -856,10 +905,7 @@ pub fn try_age10_father_refollow(
         rel_y,
         true,
     );
-    let (rel_x2, rel_y2) = (
-        child_xy.0 - father_birth.0,
-        child_xy.1 - father_birth.1,
-    );
+    let (rel_x2, rel_y2) = (child_xy.0 - father_birth.0, child_xy.1 - father_birth.1);
     send_map_location_pin(
         outbound,
         father_conn,
@@ -871,7 +917,47 @@ pub fn try_age10_father_refollow(
         rel_y2,
         true,
     );
+    // Haxe: player.say('I FOLLOW MY FATHER!'); public
+    let near = crate::nearby_conn_ids(
+        state,
+        child_xy.0,
+        child_xy.1,
+        crate::say_close_range(state, child_age),
+    );
+    crate::send_chat_ps(
+        state,
+        outbound,
+        child_conn,
+        child_p,
+        AGE10_CHILD_FOLLOW_SAY,
+        &near,
+    );
+    // Haxe: father.say('MY SON/DAUGHTER NAME FOLLOWS ME NOW!', true); private
+    let father_say = format_age10_father_follow_say(is_male, &child_name);
+    crate::send_ps_reply(outbound, father_conn, &format!("{father_p}/0 {father_say}"));
+    // Haxe: father.doEmote(Emote.hubba); player.doEmote(Emote.happy);
+    emit_named_emote(state, outbound, child_p, child_xy.0, child_xy.1, "HAPPY");
+    emit_named_emote(state, outbound, father_p, father_xy.0, father_xy.1, "HUBBA");
     true
+}
+
+fn emit_named_emote(
+    state: &SimState,
+    outbound: &OutboundHub,
+    p_id: i32,
+    x: i32,
+    y: i32,
+    name: &str,
+) {
+    let Some(e) = crate::emotes::emote_by_name(name) else {
+        return;
+    };
+    let near = crate::nearby_conn_ids(state, x, y, crate::nearby_range(state));
+    let pe = format_player_emot(p_id, e.index).into_bytes();
+    crate::send_nearby(outbound, &near, pe);
+    for &cid in &near {
+        crate::send_frame(outbound, cid);
+    }
 }
 
 /// Relative map coords for a follow-request FOLLOWER pin (birth-origin transform).
@@ -993,10 +1079,7 @@ mod tests {
 
     #[test]
     fn social_pin_name_prefers_lineage_first_token() {
-        assert_eq!(
-            social_pin_name("ADA", Some("LINA SNOW")),
-            "LINA"
-        );
+        assert_eq!(social_pin_name("ADA", Some("LINA SNOW")), "LINA");
         assert_eq!(social_pin_name("ADA", None), "ADA");
         assert_eq!(social_pin_name("ADA", Some("")), "ADA");
     }
@@ -1040,5 +1123,13 @@ mod tests {
             Some(2),
             true
         ));
+        assert_eq!(
+            format_age10_father_follow_say(true, "KID"),
+            "MY SON KID FOLLOWS ME NOW!"
+        );
+        assert_eq!(
+            format_age10_father_follow_say(false, "ADA"),
+            "MY DAUGHTER ADA FOLLOWS ME NOW!"
+        );
     }
 }

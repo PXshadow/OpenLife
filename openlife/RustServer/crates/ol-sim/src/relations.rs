@@ -262,12 +262,18 @@ pub fn is_leadership_ally(following: &HashMap<i32, i32>, a: i32, b: i32) -> bool
     top_leader(following, a) == top_leader(following, b)
 }
 
+/// Haxe L4525 TODO: just-exiled pair still counts as ally for this many sim seconds.
+/// Duration is unspecified in Haxe; 30s is the combat recency window.
+pub const RECENT_EXILE_ALLY_SECS: f32 = 30.0;
+
 /// Haxe `isAlly`: same top leader via full [`get_top_leader`] (exile + deleted).
 ///
 /// Used by **PRESTIGE-ALLY-COST** / kill after mid-hit exile so multi-hop followers
 /// stop counting as allies once the attacker has exiled them (Haxe L4540).
-// Haxe: GlobalPlayerInstance.isAlly
-// PRESTIGE-ALLY-COST
+/// **RECENT-EXILE-ALLY:** a just-exiled pair (either direction) still counts as
+/// ally until [`RECENT_EXILE_ALLY_SECS`] after the stamp.
+// Haxe: GlobalPlayerInstance.isAlly + L4525 TODO
+// PRESTIGE-ALLY-COST / RECENT-EXILE-ALLY
 pub fn is_ally(
     following: &HashMap<i32, i32>,
     social: &SocialState,
@@ -279,8 +285,58 @@ pub fn is_ally(
         return false;
     }
     // Haxe: this.getTopLeader() == target.getTopLeader() (null == null → true)
-    get_top_leader(following, social, deleted, a, None)
+    if get_top_leader(following, social, deleted, a, None)
         == get_top_leader(following, social, deleted, b, None)
+    {
+        return true;
+    }
+    // Haxe L4525: count as ally if exile happened not long ago (both sides).
+    social.recent_exile_between(a, b, RECENT_EXILE_ALLY_SECS)
+}
+
+/// Haxe `ExileIfClose(attacker, victim)`: each ally of the victim within
+/// `MaxDistanceToAutoExileAttacker` of the attacker (exact quad distance) exiles
+/// the attacker. Haxe compares **squared** Euclidean distance to the linear
+/// setting (15) — port-as-is.
+// Haxe: GlobalPlayerInstance.ExileIfClose L2151–2159; kill L4486
+pub fn exile_if_close(
+    following: &HashMap<i32, i32>,
+    social: &mut SocialState,
+    positions: &[(i32, i32, i32)],
+    deleted: &std::collections::HashSet<i32>,
+    attacker_id: i32,
+    victim_id: i32,
+    max_quad: f32,
+    map_w: i32,
+    map_h: i32,
+    wrap: bool,
+) -> usize {
+    let Some(&(_, ax, ay)) = positions.iter().find(|(id, _, _)| *id == attacker_id) else {
+        return 0;
+    };
+    let max_q = if max_quad.is_finite() && max_quad >= 0.0 {
+        max_quad
+    } else {
+        15.0
+    };
+    let mut n = 0usize;
+    for &(pid, px, py) in positions {
+        if pid == attacker_id || pid == 0 {
+            continue;
+        }
+        if !is_ally(following, social, deleted, pid, victim_id) {
+            continue;
+        }
+        let q = ol_move_rules::calculate_exact_quad_distance_f(
+            px as f64, py as f64, ax as f64, ay as f64, map_w, map_h, wrap,
+        ) as f32;
+        if q > max_q {
+            continue;
+        }
+        social.exile(pid, attacker_id);
+        n += 1;
+    }
+    n
 }
 
 /// Infer relation from lineage mother_id fields.
@@ -362,10 +418,8 @@ mod tests {
         let mut s = SocialState::default();
         s.lineages.insert(1, LineageNode::eve(1, "Mom"));
         let mom = s.lineages.get(&1).unwrap().clone();
-        s.lineages
-            .insert(2, LineageNode::with_mother(2, "A", &mom));
-        s.lineages
-            .insert(3, LineageNode::with_mother(3, "B", &mom));
+        s.lineages.insert(2, LineageNode::with_mother(2, "A", &mom));
+        s.lineages.insert(3, LineageNode::with_mother(3, "B", &mom));
         assert_eq!(relation_of(&s, 2, 1), Relation::Mother);
         assert_eq!(relation_of(&s, 1, 2), Relation::Child);
         assert_eq!(relation_of(&s, 2, 3), Relation::Sibling);
@@ -414,10 +468,8 @@ mod tests {
         let mut s = SocialState::default();
         s.lineages.insert(1, LineageNode::eve(1, "Mom"));
         let mom = s.lineages.get(&1).unwrap().clone();
-        s.lineages
-            .insert(2, LineageNode::with_mother(2, "A", &mom));
-        s.lineages
-            .insert(3, LineageNode::with_mother(3, "B", &mom));
+        s.lineages.insert(2, LineageNode::with_mother(2, "A", &mom));
+        s.lineages.insert(3, LineageNode::with_mother(3, "B", &mom));
         let mut living = HashMap::new();
         living.insert(2, true);
         living.insert(3, false);
@@ -432,14 +484,8 @@ mod tests {
         assert!(!is_leadership_ally(&following, 2, 9));
 
         let empty_del = std::collections::HashSet::new();
-        assert_eq!(
-            get_top_leader(&following, &s, &empty_del, 2, None),
-            Some(1)
-        );
-        assert_eq!(
-            get_top_leader(&following, &s, &empty_del, 1, None),
-            Some(1)
-        );
+        assert_eq!(get_top_leader(&following, &s, &empty_del, 2, None), Some(1));
+        assert_eq!(get_top_leader(&following, &s, &empty_del, 1, None), Some(1));
         assert!(is_ally(&following, &s, &empty_del, 2, 3));
     }
 
@@ -513,5 +559,67 @@ mod tests {
             is_ally(&following, &s, &empty, 10, 11),
             "peer exile does not break shared top leader"
         );
+    }
+
+    /// RECENT-EXILE-ALLY: just-exiled multi-hop pair still isAlly (both sides).
+    // Haxe: GPI L4525 TODO
+    #[test]
+    fn is_ally_recent_exile_still_ally_both_sides() {
+        use std::collections::HashSet;
+        let mut s = SocialState::default();
+        s.sim_time = 10.0;
+        let mut following = HashMap::new();
+        following.insert(3, 2);
+        following.insert(2, 1);
+        let empty = HashSet::new();
+        s.exile(1, 3);
+        assert!(
+            is_ally(&following, &s, &empty, 1, 3),
+            "recent exile (exiler→target) still ally"
+        );
+        assert!(
+            is_ally(&following, &s, &empty, 3, 1),
+            "recent exile both sides"
+        );
+        s.sim_time = 10.0 + RECENT_EXILE_ALLY_SECS + 0.1;
+        assert!(
+            !is_ally(&following, &s, &empty, 1, 3),
+            "stale exile is not ally"
+        );
+        assert!(!is_ally(&following, &s, &empty, 3, 1));
+    }
+
+    /// Persist / direct `exiles` insert has no recency stamp.
+    #[test]
+    fn is_ally_unstamped_exile_is_stale() {
+        use std::collections::HashSet;
+        let mut s = SocialState::default();
+        s.sim_time = 10.0;
+        let mut following = HashMap::new();
+        following.insert(3, 2);
+        following.insert(2, 1);
+        s.exiles.entry(1).or_default().insert(3);
+        let empty = HashSet::new();
+        assert!(!is_ally(&following, &s, &empty, 1, 3));
+    }
+
+    #[test]
+    fn exile_if_close_allies_exile_attacker_within_quad() {
+        use std::collections::HashSet;
+        let mut s = SocialState::default();
+        let mut following = HashMap::new();
+        following.insert(2, 1); // witness ally of victim 3 under leader 1
+        following.insert(3, 1); // victim
+        following.insert(9, 1);
+        let empty = HashSet::new();
+        // attacker 8 at (0,0); witness 2 at (2,2) quad=8 <= 15; far 9 at (10,10) quad=200
+        let pos = vec![(8, 0, 0), (2, 2, 2), (3, 0, 1), (9, 10, 10)];
+        let n = exile_if_close(
+            &following, &mut s, &pos, &empty, 8, 3, 15.0, 100, 100, false,
+        );
+        assert_eq!(n, 2, "witness + victim (Haxe: target also exiles attacker)");
+        assert!(s.is_exiled_by(2, 8));
+        assert!(s.is_exiled_by(3, 8));
+        assert!(!s.is_exiled_by(9, 8));
     }
 }

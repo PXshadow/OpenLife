@@ -7,15 +7,54 @@
 //!   cactus 761@desert, garlic 4251@grey
 //! - TODO L1122 "spawn eve in jungle with bananaplants" — implemented as
 //!   stronger banana pool pick + jungle biome fitness bonus
+//! - TODO L1184 "consider deadly animals" — fitness penalty when wolf/boar
+//!   (`deadlyDistance > 0` / `GetCloseDeadlyAnimal` search) is close
 //! - `getCloseSpecialBiomePersonColor` L1387–1439
 //!
 //! Pure rules + thin world scan helpers (`collect_eve_food_sites` / `find_eve_spawn`).
 
+use crate::animals::DEADLY_ANIMAL_SEARCH_DIST;
 use crate::player::multi_use::{
     BIOME_DESERT, BIOME_GREY, BIOME_JUNGLE, BIOME_SNOW, PERSON_BLACK, PERSON_BROWN, PERSON_GINGER,
     PERSON_WHITE,
 };
 use ol_world::World;
+
+/// Wolf (Haxe `AnimalKind` / PatchObjectData deadlyDistance).
+pub const EVE_DEADLY_WOLF: i32 = 418;
+/// Shot Wolf.
+pub const EVE_DEADLY_SHOT_WOLF: i32 = 420;
+/// Wild Boar.
+pub const EVE_DEADLY_BOAR: i32 = 1323;
+/// Wild Boar with Piglet.
+pub const EVE_DEADLY_BOAR_PIGLET: i32 = 1328;
+
+/// Map ids that are deadly animals for Eve spawn (Haxe `isAnimal && deadlyDistance > 0`).
+///
+/// Matches `AnimalKind::is_deadly_for_ai` (wolf/boar) plus patched combat animals.
+/// Mosquito Swarm 2156 is not `isAnimal` / not `isDeadlyAnimal`.
+// Haxe: ObjectData.isDeadlyAnimal; AiHelper.IsDangerousHelper / GetCloseDeadlyAnimal
+pub fn is_eve_deadly_animal_id(object_id: i32) -> bool {
+    matches!(
+        object_id,
+        EVE_DEADLY_WOLF
+            | EVE_DEADLY_SHOT_WOLF
+            | EVE_DEADLY_BOAR
+            | EVE_DEADLY_BOAR_PIGLET
+            | 764
+            | 628
+            | 631
+            | 653
+            | 4762
+            | 632
+            | 635
+            | 637
+            | 1435
+            | 1438
+            | 1436
+            | 1440
+    )
+}
 
 /// Wild Gooseberry Bush — primary berry start pool.
 pub const EVE_BERRY_BUSH: i32 = 30;
@@ -288,12 +327,14 @@ pub fn use_fixed_starting_spawn(spawn_at_last_dead: bool, counts: &EveFoodPoolCo
 /// total = fitness / sumDistHumans
 /// ```
 /// Jungle banana bonus (TODO preference): +0.5 fitness when banana on jungle tile.
-// Haxe: spawnAsEve location scoring loop
+/// Deadly animals (TODO L1184): same divisor bump as a blocking grave.
+// Haxe: spawnAsEve location scoring loop + TODO consider deadly animals
 pub fn eve_location_fitness(
     site: &EveFoodSite,
     player_xy: &[(i32, i32)],
     has_close_blocking_grave: bool,
     has_close_nonblocking_grave: bool,
+    has_close_deadly_animal: bool,
 ) -> f32 {
     let mut fitness = 1.0 + site.uses.max(0) as f32;
     if has_close_nonblocking_grave {
@@ -310,6 +351,10 @@ pub fn eve_location_fitness(
     if has_close_blocking_grave {
         sum_dist_humans += 1.0;
     }
+    // Haxe GPI L1184 TODO consider deadly animals — same weight as blocking grave.
+    if has_close_deadly_animal {
+        sum_dist_humans += 1.0;
+    }
     for &(px, py) in player_xy {
         let dx = (px - site.x) as f32;
         let dy = (py - site.y) as f32;
@@ -319,6 +364,36 @@ pub fn eve_location_fitness(
     }
 
     fitness / sum_dist_humans.max(1e-6)
+}
+
+/// True when a deadly animal (wolf/boar/…) is within GetCloseDeadlyAnimal search.
+///
+/// Chebyshev `<= DEADLY_ANIMAL_SEARCH_DIST` (Haxe default searchDistance 6).
+// Haxe: AiHelper.GetCloseDeadlyAnimal searchDistance=6; IsDangerousHelper radius=4
+pub fn eve_tile_has_close_deadly_animal(
+    get_object: impl Fn(i32, i32) -> i32,
+    x: i32,
+    y: i32,
+) -> bool {
+    eve_tile_has_close_deadly_animal_ex(get_object, x, y, DEADLY_ANIMAL_SEARCH_DIST)
+}
+
+/// Same as [`eve_tile_has_close_deadly_animal`] with an explicit Chebyshev radius.
+pub fn eve_tile_has_close_deadly_animal_ex(
+    get_object: impl Fn(i32, i32) -> i32,
+    x: i32,
+    y: i32,
+    search: i32,
+) -> bool {
+    let r = search.max(0);
+    for dy in -r..=r {
+        for dx in -r..=r {
+            if is_eve_deadly_animal_id(get_object(x + dx, y + dy)) {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// Pick best site among up to `samples` random draws from `pool_sites`.
@@ -332,6 +407,7 @@ pub fn pick_best_eve_site(
     mut index_fn: impl FnMut(usize) -> usize,
     grave_blocking: impl Fn(i32, i32) -> bool,
     grave_nonblocking: impl Fn(i32, i32) -> bool,
+    deadly_animal: impl Fn(i32, i32) -> bool,
 ) -> Option<EveFoodSite> {
     if pool_sites.is_empty() {
         return None;
@@ -344,7 +420,8 @@ pub fn pick_best_eve_site(
         let site = pool_sites[idx];
         let block = grave_blocking(site.x, site.y);
         let nonblock = grave_nonblocking(site.x, site.y);
-        let fit = eve_location_fitness(&site, player_xy, block, nonblock);
+        let deadly = deadly_animal(site.x, site.y);
+        let fit = eve_location_fitness(&site, player_xy, block, nonblock, deadly);
         match best {
             Some((_, b)) if b >= fit => {}
             _ => best = Some((site, fit)),
@@ -373,6 +450,7 @@ pub fn resolve_eve_spawn_site(
     index_fn: impl FnMut(usize) -> usize,
     grave_blocking: impl Fn(i32, i32) -> bool,
     grave_nonblocking: impl Fn(i32, i32) -> bool,
+    deadly_animal: impl Fn(i32, i32) -> bool,
 ) -> Option<EveFoodSite> {
     let counts = EveFoodPoolCounts::from_sites(sites);
     if use_fixed_starting_spawn(spawn_at_last_dead, &counts) {
@@ -390,6 +468,7 @@ pub fn resolve_eve_spawn_site(
         index_fn,
         grave_blocking,
         grave_nonblocking,
+        deadly_animal,
     )
 }
 
@@ -541,7 +620,31 @@ pub const MAX_PLAYERS_BEFORE_STARTING_AS_CHILD: usize = 0;
 // Haxe: GetNumberLifingPlayers() <= MaxPlayersBeforeStartingAsChild
 #[inline]
 pub fn allow_human_ai_eve_cross(living_players: usize) -> bool {
-    living_players <= MAX_PLAYERS_BEFORE_STARTING_AS_CHILD
+    allow_human_ai_eve_cross_ex(living_players, MAX_PLAYERS_BEFORE_STARTING_AS_CHILD as i32)
+}
+
+/// Live-knob variant of [`allow_human_ai_eve_cross`]. Negative max never crosses.
+// Haxe: ServerSettings.MaxPlayersBeforeStartingAsChild
+#[inline]
+pub fn allow_human_ai_eve_cross_ex(living_players: usize, max_players: i32) -> bool {
+    if max_players < 0 {
+        return false;
+    }
+    living_players <= max_players as usize
+}
+
+#[cfg(test)]
+mod live_knob_tests {
+    use super::*;
+
+    #[test]
+    fn allow_cross_live_max_players() {
+        assert!(allow_human_ai_eve_cross(0));
+        assert!(!allow_human_ai_eve_cross(1));
+        assert!(allow_human_ai_eve_cross_ex(1, 1));
+        assert!(!allow_human_ai_eve_cross_ex(2, 1));
+        assert!(!allow_human_ai_eve_cross_ex(0, -1));
+    }
 }
 
 /// Resolve last Eve/Adam partner for this birth (own pool, else optional cross).
@@ -608,7 +711,10 @@ pub fn apply_eve_pair_slot_update(
 /// Drop last-slot when the living player is gone (Haxe birth: deleted → null).
 // Haxe: birth L974–975
 #[inline]
-pub fn clear_deleted_last_eve(slot: Option<LastEveSlot>, still_alive: impl FnOnce(i32) -> bool) -> Option<LastEveSlot> {
+pub fn clear_deleted_last_eve(
+    slot: Option<LastEveSlot>,
+    still_alive: impl FnOnce(i32) -> bool,
+) -> Option<LastEveSlot> {
     match slot {
         Some(s) if still_alive(s.p_id) => Some(s),
         _ => None,
@@ -617,7 +723,8 @@ pub fn clear_deleted_last_eve(slot: Option<LastEveSlot>, still_alive: impl FnOnc
 
 // ── Race person object + Eve identity ────────────────────────────────────────
 
-/// Haxe `ServerSettings.StartingEveAge`.
+/// Haxe `ServerSettings.StartingEveAge` default (live path: `GameplayKnobs.starting_eve_age`).
+// SETTINGS-LONG-TAIL
 pub const STARTING_EVE_AGE: f32 = 14.0;
 /// Haxe `ServerSettings.ChanceForFemaleChild` (founder uses `>= 0.5` ⇒ female).
 pub const CHANCE_FOR_FEMALE_CHILD: f32 = 0.6;
@@ -629,6 +736,93 @@ pub const BURIED_GRAVE_ID: i32 = 1011;
 #[inline]
 pub fn founder_eve_is_female(chance_for_female: f32) -> bool {
     chance_for_female >= 0.5
+}
+
+/// Haxe spawnAsChild: `ChanceForFemaleChild > rand`.
+// Haxe: GlobalPlayerInstance.spawnAsChild L1316
+#[inline]
+pub fn child_is_female(chance_for_female: f32, rand01: f32) -> bool {
+    let c = if chance_for_female.is_finite() {
+        chance_for_female
+    } else {
+        CHANCE_FOR_FEMALE_CHILD
+    };
+    c > rand01
+}
+
+/// Haxe spawnAsChild other-color-than-mom roll.
+// Haxe: GlobalPlayerInstance.spawnAsChild L1321
+#[inline]
+pub fn other_color_than_mom(
+    close_to_wrong_special_biome: bool,
+    chance_other: f32,
+    chance_wrong_biome: f32,
+    rand01: f32,
+) -> bool {
+    let c = if close_to_wrong_special_biome {
+        chance_wrong_biome
+    } else {
+        chance_other
+    };
+    let c = if c.is_finite() { c } else { 0.0 };
+    c > rand01
+}
+
+/// Haxe `getCloseColor` — Ginger 6 → White 4 → Brown 3 → Black 1.
+// Haxe: GlobalPlayerInstance.getCloseColor L1377–1384
+pub fn get_close_color(color: i32, colder: bool) -> i32 {
+    match color {
+        6 => 4,
+        4 => {
+            if colder {
+                6
+            } else {
+                3
+            }
+        }
+        3 => {
+            if colder {
+                4
+            } else {
+                1
+            }
+        }
+        1 => 3,
+        _ => -1,
+    }
+}
+
+/// Child race color after the other-color-than-mom roll (Haxe spawnAsChild).
+// Haxe: GlobalPlayerInstance.spawnAsChild L1289–1312
+pub fn pick_child_person_color(
+    mother_color: i32,
+    close_special_biome_person_color: i32,
+    chance_other: f32,
+    chance_wrong_biome: f32,
+    rand_other: f32,
+    rand_colder: f32,
+) -> i32 {
+    let close_to_wrong = close_special_biome_person_color > 0
+        && mother_color != close_special_biome_person_color;
+    if !other_color_than_mom(
+        close_to_wrong,
+        chance_other,
+        chance_wrong_biome,
+        rand_other,
+    ) {
+        return mother_color;
+    }
+    let colder = if close_to_wrong {
+        close_special_biome_person_color > mother_color
+    } else {
+        rand_colder > 0.5
+    };
+    let next = get_close_color(mother_color, colder);
+    if next > 0 {
+        next
+    } else {
+        mother_color
+    }
 }
 
 /// Haxe pairmate sex is opposite of last Eve/Adam.
@@ -663,11 +857,30 @@ pub fn pick_person_object_from_list(ids: &[i32], index: usize) -> Option<i32> {
 /// Collect person object ids for a race color + sex from content tables.
 ///
 /// Skips descriptions containing "Jason" (Haxe CreatePersonArray filter).
-/// Sex from name/description heuristic (ObjectData.male not loaded in content yet).
+/// Sex from `ObjectData.male` when `object_male` returns `Some`; else name heuristic.
 // Haxe: ObjectData.CreatePersonArray + femaleByRaceObjectData / maleByRaceObjectData
+// PLAYER-MALE
 pub fn collect_person_ids_for_race(
     person_race: &std::collections::HashMap<i32, i32>,
     object_name_desc: impl Fn(i32) -> (String, String),
+    race_color: i32,
+    want_female: bool,
+) -> Vec<i32> {
+    collect_person_ids_for_race_ex(
+        person_race,
+        object_name_desc,
+        |_| None,
+        race_color,
+        want_female,
+    )
+}
+
+/// Like [`collect_person_ids_for_race`] with optional `ObjectDef.male` per id.
+// PLAYER-MALE
+pub fn collect_person_ids_for_race_ex(
+    person_race: &std::collections::HashMap<i32, i32>,
+    object_name_desc: impl Fn(i32) -> (String, String),
+    object_male: impl Fn(i32) -> Option<bool>,
     race_color: i32,
     want_female: bool,
 ) -> Vec<i32> {
@@ -684,7 +897,7 @@ pub fn collect_person_ids_for_race(
             if name.contains("Jason") || desc.contains("Jason") {
                 return None;
             }
-            let female = crate::person_looks_female(id, &name, &desc);
+            let female = crate::person_is_female(id, &name, &desc, object_male(id));
             if female == want_female {
                 Some(id)
             } else {
@@ -833,6 +1046,16 @@ pub fn find_eve_spawn_with_rng_graves(
         &mut index_fn,
         |x, y| account_has_close_blocking_grave(x, y, &bone, mw, mh, wrap),
         |x, y| account_has_close_nonblocking_grave(x, y, &stone, mw, mh, wrap),
+        |x, y| {
+            eve_tile_has_close_deadly_animal(
+                |tx, ty| {
+                    let (wx, wy) = world.wrap_tile(tx, ty);
+                    world.get_object(wx, wy)
+                },
+                x,
+                y,
+            )
+        },
     ) {
         return (site.x, site.y);
     }
@@ -846,7 +1069,14 @@ pub fn find_eve_spawn(
     player_xy: &[(i32, i32)],
     fallback: (i32, i32),
 ) -> (i32, i32) {
-    find_eve_spawn_for_account(world, prefer, player_xy, fallback, EveSpawnOpts::default(), &[])
+    find_eve_spawn_for_account(
+        world,
+        prefer,
+        player_xy,
+        fallback,
+        EveSpawnOpts::default(),
+        &[],
+    )
 }
 
 /// Live Eve spawn with opts + account graves (SpwanAtLastDead / grave fitness).
@@ -887,11 +1117,7 @@ pub fn eve_person_color_at(world: &World, x: i32, y: i32) -> i32 {
 
 /// Person color via caller biome source (Haxe `originalBiome=true` → getOriginalBiomeId).
 // Haxe: getCloseSpecialBiomePersonColor(x, y, originalBiome=true)
-pub fn eve_person_color_with_biome(
-    get_biome: impl Fn(i32, i32) -> u8,
-    x: i32,
-    y: i32,
-) -> i32 {
+pub fn eve_person_color_with_biome(get_biome: impl Fn(i32, i32) -> u8, x: i32, y: i32) -> i32 {
     get_close_special_biome_person_color(get_biome, x, y, 200)
 }
 
@@ -971,10 +1197,7 @@ mod tests {
             cactus: 0,
             wild_garlic: 0,
         };
-        assert_eq!(
-            select_eve_food_pool(&counts, 1, false),
-            EveFoodPool::Banana
-        );
+        assert_eq!(select_eve_food_pool(&counts, 1, false), EveFoodPool::Banana);
         assert_eq!(select_eve_food_pool(&counts, 0, false), EveFoodPool::Berry);
     }
 
@@ -986,15 +1209,9 @@ mod tests {
             ..Default::default()
         };
         // prefer + banana>10 → rand 0 also banana
-        assert_eq!(
-            select_eve_food_pool(&counts, 0, true),
-            EveFoodPool::Banana
-        );
+        assert_eq!(select_eve_food_pool(&counts, 0, true), EveFoodPool::Banana);
         // without prefer, rand 0 stays berry
-        assert_eq!(
-            select_eve_food_pool(&counts, 0, false),
-            EveFoodPool::Berry
-        );
+        assert_eq!(select_eve_food_pool(&counts, 0, false), EveFoodPool::Berry);
     }
 
     #[test]
@@ -1004,10 +1221,7 @@ mod tests {
             banana: 3,
             ..Default::default()
         };
-        assert_eq!(
-            select_eve_food_pool(&counts, 0, false),
-            EveFoodPool::Banana
-        );
+        assert_eq!(select_eve_food_pool(&counts, 0, false), EveFoodPool::Banana);
     }
 
     #[test]
@@ -1032,9 +1246,9 @@ mod tests {
         let jungle_banana = site(50, 50, 2142, 3, JUNGLE_BIOME, EveFoodPool::Banana);
         let plain_banana = site(50, 50, 2142, 3, 0, EveFoodPool::Banana);
         let near_human = site(1, 1, 30, 3, 0, EveFoodPool::Berry);
-        let far = eve_location_fitness(&jungle_banana, &[(0, 0)], false, false);
-        let plain = eve_location_fitness(&plain_banana, &[(0, 0)], false, false);
-        let crowded = eve_location_fitness(&near_human, &[(0, 0)], false, false);
+        let far = eve_location_fitness(&jungle_banana, &[(0, 0)], false, false, false);
+        let plain = eve_location_fitness(&plain_banana, &[(0, 0)], false, false, false);
+        let crowded = eve_location_fitness(&near_human, &[(0, 0)], false, false, false);
         assert!(far > plain, "jungle bonus far={far} plain={plain}");
         assert!(far > crowded, "far={far} crowded={crowded}");
     }
@@ -1057,6 +1271,7 @@ mod tests {
             },
             |_, _| false,
             |_, _| false,
+            |_, _| false,
         )
         .unwrap();
         assert_eq!(best.uses, 5);
@@ -1074,6 +1289,7 @@ mod tests {
             1,
             5,
             |_| 0,
+            |_, _| false,
             |_, _| false,
             |_, _| false,
         )
@@ -1104,6 +1320,7 @@ mod tests {
             1, // banana pool
             10,
             |_| 0,
+            |_, _| false,
             |_, _| false,
             |_, _| false,
         )
@@ -1205,8 +1422,14 @@ mod tests {
         let (ai2, _) = apply_eve_pair_slot_update(true, ai, human, r1, b);
         assert!(ai2.is_none(), "pair clears last AI slot");
         // Pairmate sex is opposite of partner.
-        assert!(!pairmate_eve_is_female(true), "partner female → pairmate male");
-        assert!(pairmate_eve_is_female(false), "partner male → pairmate female");
+        assert!(
+            !pairmate_eve_is_female(true),
+            "partner female → pairmate male"
+        );
+        assert!(
+            pairmate_eve_is_female(false),
+            "partner male → pairmate female"
+        );
         assert_eq!(eve_adam_first_name(true), "EVE");
         assert_eq!(eve_adam_first_name(false), "ADAM");
     }
@@ -1230,8 +1453,7 @@ mod tests {
             person_color: PERSON_BLACK,
             is_female: true,
         };
-        let (ai, hum) =
-            apply_eve_pair_slot_update(true, None, Some(human), r, self_slot);
+        let (ai, hum) = apply_eve_pair_slot_update(true, None, Some(human), r, self_slot);
         assert!(ai.is_none());
         assert!(hum.is_none());
     }
@@ -1252,9 +1474,9 @@ mod tests {
     #[test]
     fn fitness_blocking_grave_lowers_score() {
         let site = site(0, 0, 30, 2, 0, EveFoodPool::Berry);
-        let good = eve_location_fitness(&site, &[], false, false);
-        let bad = eve_location_fitness(&site, &[], true, false);
-        let boost = eve_location_fitness(&site, &[], false, true);
+        let good = eve_location_fitness(&site, &[], false, false, false);
+        let bad = eve_location_fitness(&site, &[], true, false, false);
+        let boost = eve_location_fitness(&site, &[], false, true, false);
         assert!(bad < good, "blocking grave lowers fitness");
         assert!(boost > good, "nonblocking grave raises fitness");
     }
@@ -1294,6 +1516,7 @@ mod tests {
             },
             |x, y| x == 0 && y == 0, // blocking at first site
             |_, _| false,
+            |_, _| false,
         )
         .unwrap();
         assert_eq!((best.x, best.y), (50, 50));
@@ -1325,6 +1548,31 @@ mod tests {
             pick_eve_race_person_object(&race, name_desc, 0, true, 0),
             None
         );
+        // PLAYER-MALE: ObjectDef.male wins over Female/Male names.
+        let males_flag = collect_person_ids_for_race_ex(
+            &race,
+            name_desc,
+            |id| match id {
+                100 => Some(true),
+                101 => Some(false),
+                _ => None,
+            },
+            PERSON_BROWN,
+            false,
+        );
+        assert_eq!(males_flag, vec![100]);
+        let females_flag = collect_person_ids_for_race_ex(
+            &race,
+            name_desc,
+            |id| match id {
+                100 => Some(true),
+                101 => Some(false),
+                _ => None,
+            },
+            PERSON_BROWN,
+            true,
+        );
+        assert_eq!(females_flag, vec![101]);
     }
 
     #[test]
@@ -1345,6 +1593,26 @@ mod tests {
         assert!(founder_eve_is_female(0.6));
         assert!(founder_eve_is_female(0.5));
         assert!(!founder_eve_is_female(0.4));
+        assert!(child_is_female(0.6, 0.5));
+        assert!(!child_is_female(0.6, 0.6));
+        assert_eq!(get_close_color(6, false), 4);
+        assert_eq!(get_close_color(4, true), 6);
+        assert_eq!(get_close_color(4, false), 3);
+        assert_eq!(get_close_color(3, true), 4);
+        assert_eq!(get_close_color(3, false), 1);
+        assert_eq!(get_close_color(1, false), 3);
+        assert_eq!(
+            pick_child_person_color(3, 0, 0.2, 0.3, 0.9, 0.0),
+            3,
+            "no other-color roll keeps mother"
+        );
+        assert_eq!(
+            pick_child_person_color(3, 1, 0.2, 0.9, 0.1, 0.0),
+            1,
+            "wrong-biome + colder (biome id > mother) → Black"
+        );
+        assert!(other_color_than_mom(false, 0.2, 0.3, 0.1));
+        assert!(!other_color_than_mom(false, 0.2, 0.3, 0.2));
         assert!((STARTING_EVE_AGE - 14.0).abs() < 1e-6);
     }
 
@@ -1365,7 +1633,68 @@ mod tests {
             |_| 0,
             |_, _| false,
             |_, _| false,
+            |_, _| false,
         )
         .is_none());
+    }
+
+    #[test]
+    fn fitness_deadly_animal_lowers_score() {
+        let site = site(0, 0, 30, 2, 0, EveFoodPool::Berry);
+        let clear = eve_location_fitness(&site, &[], false, false, false);
+        let wolf = eve_location_fitness(&site, &[], false, false, true);
+        let boar = eve_location_fitness(&site, &[], false, false, true);
+        assert!(wolf < clear, "wolf={wolf} clear={clear}");
+        assert!(boar < clear, "boar={boar} clear={clear}");
+        assert!((wolf - boar).abs() < 1e-6);
+    }
+
+    #[test]
+    fn is_eve_deadly_animal_wolf_boar_not_rabbit() {
+        assert!(is_eve_deadly_animal_id(EVE_DEADLY_WOLF));
+        assert!(is_eve_deadly_animal_id(EVE_DEADLY_SHOT_WOLF));
+        assert!(is_eve_deadly_animal_id(EVE_DEADLY_BOAR));
+        assert!(is_eve_deadly_animal_id(EVE_DEADLY_BOAR_PIGLET));
+        assert!(!is_eve_deadly_animal_id(3566)); // Fleeing Rabbit
+        assert!(!is_eve_deadly_animal_id(2156)); // Mosquito
+        assert!(!is_eve_deadly_animal_id(EVE_BERRY_BUSH));
+    }
+
+    #[test]
+    fn tile_has_close_wolf_or_boar() {
+        let mut w = World::new(32, 32, false);
+        w.set_object(5, 5, EVE_DEADLY_WOLF);
+        assert!(eve_tile_has_close_deadly_animal(|x, y| w.get_object(x, y), 5, 5));
+        assert!(eve_tile_has_close_deadly_animal(|x, y| w.get_object(x, y), 6, 5));
+        assert!(!eve_tile_has_close_deadly_animal(|x, y| w.get_object(x, y), 20, 20));
+        w.set_object(5, 5, 0);
+        w.set_object(4, 6, EVE_DEADLY_BOAR);
+        assert!(eve_tile_has_close_deadly_animal(|x, y| w.get_object(x, y), 5, 5));
+        w.set_object(4, 6, 3566);
+        assert!(!eve_tile_has_close_deadly_animal(|x, y| w.get_object(x, y), 5, 5));
+    }
+
+    #[test]
+    fn pick_best_prefers_clear_over_nearby_wolf() {
+        let sites = vec![
+            site(0, 0, 30, 3, 0, EveFoodPool::Berry),
+            site(50, 50, 30, 3, 0, EveFoodPool::Berry),
+        ];
+        let mut step = 0usize;
+        let best = pick_best_eve_site(
+            &sites,
+            &[],
+            4,
+            |_| {
+                let i = step % 2;
+                step += 1;
+                i
+            },
+            |_, _| false,
+            |_, _| false,
+            |x, y| x == 0 && y == 0, // wolf next to first site
+        )
+        .unwrap();
+        assert_eq!((best.x, best.y), (50, 50));
     }
 }

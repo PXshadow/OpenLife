@@ -20,7 +20,8 @@ use ol_sim::{
     infer_baker_pipeline_stage, infer_smith_stage_from_have, is_grassland, is_walkable, next_step,
     next_step_consider_animals, pick_baker_goal, pick_farmer_goal, pick_goal_ext,
     pick_goal_from_live_sensors, pick_smith_profession_goal, scan_world_radius,
-    self_clothing_raw_payload, smart_drop_held_from_sensors, update_is_hungry, AnimalWorld,
+    quiver_from_clothing_snapshot, self_clothing_raw_payload, smart_drop_held_from_sensors_ex,
+    update_is_hungry, AnimalWorld,
     CloseDeadlyAnimal, DropHeldSensorExtras, FarmProfession, Goal, LiveSensorInput, PlayerSnapshot,
     Profession, ProfessionStickySnapshot, ReverseCraftGraph, ShortCraftLiveIntent,
     ANIMAL_THREAT_RANGE, BAKER_TARGET_ID, DEADLY_ANIMAL_SEARCH_DIST, FARMER_TARGET_ID, HUNT_RANGE,
@@ -564,9 +565,15 @@ pub async fn run_selfplay_agent(
                     let max_home = if force_drop_at_feet(held) { 1.0 } else { 40.0 };
                     // PREFER-SHORT-WAIT: pass agent moving if known; selfplay agents are usually stationary
                     let agent_moving = false;
-                    let intent = smart_drop_held_from_sensors(
+                    let mut drop_extras = DropHeldSensorExtras::default();
+                    if let Some(ref p) = snap {
+                        drop_extras.quiver =
+                            quiver_from_clothing_snapshot(&p.clothing, &p.clothing_uses);
+                        drop_extras.held_contains_clay = p.held_contains_clay;
+                    }
+                    let intent = smart_drop_held_from_sensors_ex(
                         held,
-                        1,
+                        snap.as_ref().map(|p| p.held_uses.max(1)).unwrap_or(1),
                         x,
                         y,
                         x,
@@ -576,7 +583,8 @@ pub async fn run_selfplay_agent(
                         false,
                         max_home,
                         &tiles,
-                        DropHeldSensorExtras::default(),
+                        drop_extras,
+                        Some(content.as_ref()),
                     );
                     match intent {
                         ShortCraftLiveIntent::DropAt { x: tx, y: ty } => {
@@ -1066,6 +1074,7 @@ async fn login_and_spawn(
             reconnect: false,
             email: agent.email.clone(),
             client_tag: agent.client_tag.clone(),
+            client_ip: String::new(),
         })
         .await;
     push_log(
@@ -1620,6 +1629,9 @@ mod tests {
         male: false,
         contain_size: 0.0,
         slot_size: 1.0,
+        prestige_factor: 0.5,
+        extra_prestige_factor: 0.0,
+        min_pickup_age: 0,
         }
     }
 

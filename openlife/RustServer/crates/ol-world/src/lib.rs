@@ -16,8 +16,8 @@ mod persist;
 mod postload_owners;
 
 pub use biome::{
-    biome_from_rgba, biome_speed, is_biome_blocking, BiomeId, GREEN, OCEAN, PASSABLE_RIVER, RIVER,
-    SNOWINGREY,
+    biome_from_rgba, biome_speed, is_biome_blocking, BiomeId, DESERT, GREEN, OCEAN, PASSABLE_RIVER,
+    RIVER, SNOWINGREY,
 };
 pub use generate::{
     generate_from_png, pick_biome_spawn, place_natural_object, spawn_natural_objects,
@@ -34,6 +34,7 @@ pub use persist::{
 pub use postload_owners::{
     apply_helper_postload, apply_helper_postload_simple, description_is_owned, helper_creator_player_id,
     helper_has_owner_lists, helper_is_grave, helper_is_owned, init_object_helpers_after_read,
+    is_helper_to_be_deleted, object_data_is_owned, should_keep_object_helper,
     init_object_helpers_after_read_simple, name_looks_like_grave, rewire_living_owners,
     rewire_living_owners_status, strip_account_owners_for_deleted, GraveAccountLink,
     LineageOwnsLink, LivingOwnerStatus, PlayerOwningLink, PostloadHelperResult,
@@ -683,6 +684,29 @@ impl World {
         self.helpers.get(&(tx, ty))
     }
 
+    /// Haxe `WorldMap.deleteObjectHelperIfUseless` — drop helper, keep map object id.
+    ///
+    /// Returns true when the helper was removed. Owned gates (`+owned` / owner lists)
+    /// are kept even if otherwise unused.
+    // Haxe: WorldMap.deleteObjectHelperIfUseless L535–583
+    pub fn delete_object_helper_if_useless(
+        &mut self,
+        tx: i32,
+        ty: i32,
+        description: &str,
+        num_uses: i32,
+    ) -> bool {
+        let (tx, ty) = self.wrap_tile(tx, ty);
+        let Some(h) = self.helpers.get(&(tx, ty)) else {
+            return false;
+        };
+        if !crate::is_helper_to_be_deleted(h, description, num_uses) {
+            return false;
+        }
+        self.helpers.remove(&(tx, ty));
+        true
+    }
+
     /// True if the tile has a complex helper owned by `p_id`.
     pub fn is_owner(&self, tx: i32, ty: i32, p_id: i32) -> bool {
         self.get_helper(tx, ty)
@@ -1188,6 +1212,52 @@ mod tests {
         let mut w = World::new(100, 50, true);
         w.set_object(0, 0, 7);
         assert_eq!(w.get_object(100, 50), 7);
+    }
+
+    #[test]
+    fn owned_gate_helper_is_not_dropped() {
+        // Property Gate 2962 +owned: keep even with empty owner lists (Haxe isOwned).
+        let gate = ComplexObject::new_simple(2962);
+        assert!(should_keep_object_helper(
+            &gate,
+            "Property Gate# +owned +causeAutoOrientH",
+            1
+        ));
+        assert!(!is_helper_to_be_deleted(
+            &gate,
+            "Property Gate# +owned +causeAutoOrientH",
+            1
+        ));
+        let follower = ComplexObject::new_simple(4729);
+        assert!(should_keep_object_helper(
+            &follower,
+            "Follower Gate# +followerOwned",
+            1
+        ));
+        // Owner list without +owned (DoOwnerShip / TODO keep owners).
+        let listed = ComplexObject::with_owner(1851, 42);
+        assert!(should_keep_object_helper(&listed, "Fence Gate# +wall", 1));
+        // Useless basket is dropped.
+        let basket = ComplexObject::new_simple(292);
+        assert!(is_helper_to_be_deleted(&basket, "Basket", 1));
+
+        let mut w = World::new(32, 32, false);
+        w.set_object_complex(1, 1, listed);
+        assert!(w.get_helper(1, 1).is_some());
+        assert!(!w.delete_object_helper_if_useless(1, 1, "Fence Gate# +wall", 1));
+        assert!(w.get_helper(1, 1).is_some());
+        assert_eq!(w.get_object(1, 1), 1851);
+
+        w.set_object(2, 2, 2962);
+        w.helpers.insert((2, 2), ComplexObject::new_simple(2962));
+        assert!(!w.delete_object_helper_if_useless(2, 2, "Property Gate# +owned", 1));
+        assert!(w.get_helper(2, 2).is_some());
+
+        w.set_object(3, 3, 292);
+        w.helpers.insert((3, 3), ComplexObject::new_simple(292));
+        assert!(w.delete_object_helper_if_useless(3, 3, "Basket", 1));
+        assert!(w.get_helper(3, 3).is_none());
+        assert_eq!(w.get_object(3, 3), 292);
     }
 
     #[test]

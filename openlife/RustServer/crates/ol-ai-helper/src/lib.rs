@@ -18,7 +18,8 @@ pub use ai_goals::{
     is_hungry_simple, is_moving_to_player_needed, is_superbad_temp, ordered_follow_max_tiles,
     pick_goal, pick_goal_ext, pick_goal_with_biome, pick_smith_goal, player_quad_dist,
     resolve_escape_threat, resolve_priority_rung, sensors_from_ext, sensors_from_ext_ex,
-    sensors_from_simple, should_attempt_escape, skip_escape_for_hunt, smith_product_targets,
+    sensors_from_simple, should_attempt_escape, should_handle_death, skip_escape_for_hunt,
+    smith_product_targets,
     threat_is_far_for_temp, threat_quad_from_deadly, update_is_hungry, wounded_follow_tiles,
     AgeRotatedJobKind, CloseDeadlyPlayer, ClosePlayerTarget, DeadlyPlayerCandidate, EscapeContext,
     EscapeSideEffects, EscapeThreat, Goal, HungryEatEffects, LiveSensorBundle, LiveSensorExtras,
@@ -27,7 +28,8 @@ pub use ai_goals::{
     DEADLY_PLAYER_SEARCH_DIST_AI, DEVIL_MASK_ID, ESCAPE_ANGRY_TIME_IGNORE,
     ESCAPE_DID_NOT_REACH_FOOD_MAX, ESCAPE_DIST, ESCAPE_FOOD_CRIT_SKIP, ESCAPE_HUNT_MIN_AGE,
     ESCAPE_PLAYER_DIST_MAX, EXILE_HOME_QUAD_DANGER, GOBLIN_MASK_ID, HUNGRY_ENTER_FLOOR,
-    HUNGRY_ENTER_FRAC, HUNGRY_FOOD, HUNGRY_LEAVE_FRAC, MAX_CHILD_AGE_BREASTFEED, MIN_AGE_TO_EAT,
+    HANDLE_DEATH_AGE_OFFSET, HANDLE_DEATH_MAX_AGE_DEFAULT, HUNGRY_ENTER_FRAC, HUNGRY_FOOD,
+    HUNGRY_LEAVE_FRAC, MAX_CHILD_AGE_BREASTFEED, MIN_AGE_TO_EAT,
     PLAYER_TARGET_SEARCH_DIST, SMITHING_HAMMER_ID, SMITH_IRON_ID, SMITH_TARGET_ID,
 };
 pub use ol_ai_pathing::{

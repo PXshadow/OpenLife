@@ -326,6 +326,9 @@ mod tests {
         male: false,
         contain_size: 0.0,
         slot_size: 1.0,
+        prestige_factor: 0.5,
+        extra_prestige_factor: 0.0,
+        min_pickup_age: 0,
         }
     }
 

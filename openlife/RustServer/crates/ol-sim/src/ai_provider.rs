@@ -83,10 +83,7 @@ mod tests {
         let body = build_call_request_body("hi", AI_DEFAULT_MODEL_DEFAULT, 64);
         assert!(body.contains("hi"));
         assert!(body.contains("interactiv"));
-        let t = parse_provider_response(
-            r#"{"content":[{"type":"text","text":"ok"}]}"#,
-        )
-        .unwrap();
+        let t = parse_provider_response(r#"{"content":[{"type":"text","text":"ok"}]}"#).unwrap();
         assert_eq!(t, "ok");
     }
 

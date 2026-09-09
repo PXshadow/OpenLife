@@ -60,6 +60,8 @@ pub enum NetIntent {
         reconnect: bool,
         email: String,
         client_tag: String,
+        /// Peer IP for loginHelper IP account / spam gates (empty = skip).
+        client_ip: String,
     },
     KeepAlive {
         conn_id: u64,
@@ -95,6 +97,23 @@ pub enum NetIntent {
     Disconnected {
         conn_id: u64,
     },
+}
+
+impl NetIntent {
+    pub fn login(
+        conn_id: u64,
+        reconnect: bool,
+        email: impl Into<String>,
+        client_tag: impl Into<String>,
+    ) -> Self {
+        Self::Login {
+            conn_id,
+            reconnect,
+            email: email.into(),
+            client_tag: client_tag.into(),
+            client_ip: String::new(),
+        }
+    }
 }
 
 impl NetIntent {
@@ -157,6 +176,10 @@ async fn handle_connection(
     counters: &Counters,
     intent_tx: IntentTx,
 ) -> Result<(), NetError> {
+    let client_ip = socket
+        .peer_addr()
+        .map(|a| a.ip().to_string())
+        .unwrap_or_default();
     // Disable Nagle so small LS/PS/PM packets are not delayed/coalesced.
     if let Err(e) = socket.set_nodelay(true) {
         warn!(conn_id, error = %e, "set_nodelay failed");
@@ -358,6 +381,7 @@ async fn handle_connection(
                                     reconnect,
                                     email,
                                     client_tag,
+                                    client_ip: client_ip.clone(),
                                 };
                                 if intent_tx.send(intent).await.is_err() {
                                     return Ok(());
@@ -402,12 +426,14 @@ fn command_to_intent(conn_id: u64, cmd: ClientCommand) -> NetIntent {
             reconnect: false,
             email: l.email,
             client_tag: l.client_tag,
+            client_ip: String::new(),
         },
         ClientCommand::RLogin(l) => NetIntent::Login {
             conn_id,
             reconnect: true,
             email: l.email,
             client_tag: l.client_tag,
+            client_ip: String::new(),
         },
         ClientCommand::Ka { x, y } => NetIntent::KeepAlive { conn_id, x, y },
         ClientCommand::Use { x, y, id, index } => NetIntent::Use {

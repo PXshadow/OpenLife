@@ -195,16 +195,8 @@ pub fn tick_container_helper_timers(
         };
         let prior_uses = if slot_uses > 0 { slot_uses } else { uses };
 
-        let outcome = do_time_for_contained(
-            content,
-            cid,
-            cr,
-            tt,
-            sim_time,
-            rng.gen(),
-            rng.gen(),
-            uses,
-        );
+        let outcome =
+            do_time_for_contained(content, cid, cr, tt, sim_time, rng.gen(), rng.gen(), uses);
 
         match outcome {
             ContainedTimeOutcome::NoTransition => {
@@ -267,12 +259,8 @@ pub fn tick_container_helper_timers(
                         slot.creation_time = creation;
                         slot.time_to_change = ttc;
                         slot.uses_remaining = out_uses;
-                        let _ = tick_nested_helpers_deep(
-                            content,
-                            &mut slot.contained,
-                            sim_time,
-                            rng,
-                        );
+                        let _ =
+                            tick_nested_helpers_deep(content, &mut slot.contained, sim_time, rng);
                         new_contained.push(new_id);
                         new_timers.push((creation, ttc));
                         new_slots.push(slot);
@@ -319,6 +307,10 @@ mod tests {
             switch_number_of_uses: false,
             target_number_of_uses: -1,
             is_pickup_or_drop: false,
+            hungry_work_cost: 0.0,
+            hungry_work_temperature: -1.0,
+            coin_cost: 0,
+            is_forbidden: false,
         }
     }
 

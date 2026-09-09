@@ -27,20 +27,31 @@ use ol_net::OutboundHub;
 pub mod craft_item;
 
 pub use craft_item::{
-    closest_craft_obj, craft_chebyshev, craft_have_set, craft_have_set_ex_filtered, craft_item,
-    craft_item_decision_to_live_intent, craft_item_helper, craft_item_helper_ex,
-    craft_item_max_needed, craft_item_with_runtime, craft_item_with_runtime_scan,
-    craft_world_from_get_or_craft, craft_world_objs_from_ids, first_missing_ingredient,
-    reanchor_craft_actor_near_target_filtered, resolve_craft_item_live,
-    search_best_object_for_crafting, search_best_object_for_crafting_ex,
+    adze_froe_butt_log_craft_and_drop, adze_froe_butt_log_craft_and_drop_ex, closest_craft_obj,
+    closest_craft_obj_by_ids_filtered, closest_craft_obj_dual_center_filtered,
+    closest_craft_obj_filtered, closest_craft_obj_from_anchor,
+    closest_craft_obj_from_anchor_filtered, craft_and_drop_to_decision, craft_chebyshev,
+    craft_have_set, craft_have_set_ex_filtered, craft_item, craft_item_decision_to_live_intent,
+    craft_item_helper, craft_item_helper_ex, craft_item_max_needed, craft_item_with_runtime,
+    craft_item_with_runtime_scan, craft_quad_dist, craft_world_from_get_or_craft,
+    craft_world_objs_from_ids, effective_bucket_water_source_ids, effective_water_source_ids,
+    fill_bucket_if_needed_apply, fill_bucket_if_needed_apply_ex, fire_bow_kindling_craft_and_drop,
+    fire_bow_kindling_craft_and_drop_ex, fire_bow_needs_kindling, first_missing_ingredient,
+    get_craft_and_drop_items_close_to_obj, get_craft_and_drop_items_close_to_obj_ex,
+    goose_axe_near_stump_craft_and_drop, goose_axe_near_stump_craft_and_drop_ex,
+    init_water_source_ids, init_water_source_ids_from_content,
+    reanchor_craft_actor_near_target_filtered, resolve_craft_item_live, retarget_water_source,
+    retarget_water_source_ex, search_best_object_for_crafting, search_best_object_for_crafting_ex,
     search_best_object_for_crafting_topdown, second_closest_craft_obj,
-    closest_craft_obj_dual_center_filtered, closest_craft_obj_filtered,
-    should_skip_transition_top_down, CraftAiRuntime, CraftItemDecision, CraftItemInput,
-    CraftLiveExpandOpts, CraftObjectIndex, CraftScanFilters, CraftTopDownOpts, CraftTransMeta,
-    CraftTransPair, CraftWorldObj, FailedCraftings, ItemToCraftState, TransSkipReason,
+    second_closest_craft_obj_filtered, should_skip_transition_top_down, CraftAiRuntime,
+    CraftAndDropApply, CraftItemDecision, CraftItemInput, CraftLiveExpandOpts, CraftObjectIndex,
+    CraftScanFilters, CraftTopDownOpts, CraftTransMeta, CraftTransPair, CraftWorldObj,
+    FailedCraftings, FillBucketApply, ItemToCraftState, TransSkipReason, ADZE_FROE_LOG_DIST,
     AI_CRAFT_MIN_RADIUS, AI_IGNORE_TIME_TRANSITIONS_LONGER_THAN, AI_MAX_SEARCH_INCREMENT,
-    AI_MAX_SEARCH_RADIUS, AI_TIME_TO_WAIT_IF_CRAFTING_FAILED_SEC, DEFAULT_WATER_SOURCE_IDS,
-    FORGE_IDS, HARDENED_ROW,
+    AI_MAX_SEARCH_RADIUS, AI_TIME_TO_WAIT_IF_CRAFTING_FAILED_SEC, BOWL_OF_WATER, BUTT_LOG,
+    CRAFT_DROP_GOTO_QUAD_DIST, DEFAULT_BUCKET_WATER_SOURCE_IDS, DEFAULT_WATER_SOURCE_IDS,
+    DOMESTIC_GOOSE, EMPTY_BUCKET, FORGE_IDS, HARDENED_ROW, KINDLING, STEEL_ADZE, STEEL_AXE,
+    STEEL_FROE, STUMP,
 };
 
 // ── Constants (Haxe literals) ───────────────────────────────────────────────
@@ -182,17 +193,9 @@ pub enum GetOrCraftResult {
     /// Player still moving — Haxe returns true without re-staging.
     BusyMoving,
     /// Loose object → Haxe `dropTarget = obj` (pickup via DROP on tile).
-    PickupLoose {
-        x: i32,
-        y: i32,
-        object_id: i32,
-    },
+    PickupLoose { x: i32, y: i32, object_id: i32 },
     /// Pile only → Haxe `dropIsAUse` / `useTarget = pile` (USE empty-handed).
-    UseOnPile {
-        x: i32,
-        y: i32,
-        pile_id: i32,
-    },
+    UseOnPile { x: i32, y: i32, pile_id: i32 },
     /// Pile or container while holding — must drop held first then re-enter.
     // Haxe: (usePile || numSlots>0) && dropHeldObject()
     NeedEmptyHand {
@@ -208,9 +211,7 @@ pub enum GetOrCraftResult {
     },
     /// craft=true and missing (no leaf or no graph) → multi-step craftItem staging.
     // Haxe: craftItem(objId) — expand via AI-CRAFT-MULTI `craft_item_helper`
-    CraftItem {
-        object_id: i32,
-    },
+    CraftItem { object_id: i32 },
     /// Not found and craft=false, or obj_id invalid.
     None,
 }
@@ -243,10 +244,7 @@ pub fn get_or_craft_chebyshev(ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
 /// `TransitionImporter.GetTransition`. Returns `new_target` of the self+self
 /// pile transition when the empty-hand undo yields the original id; else `-1`.
 // Haxe: ObjectData.getPileObjId ~1531–1538
-pub fn get_pile_obj_id(
-    obj_id: i32,
-    get_trans: &dyn Fn(i32, i32) -> Option<(i32, i32)>,
-) -> i32 {
+pub fn get_pile_obj_id(obj_id: i32, get_trans: &dyn Fn(i32, i32) -> Option<(i32, i32)>) -> i32 {
     if obj_id <= 0 {
         return -1;
     }
@@ -585,15 +583,13 @@ pub fn get_or_craft_result_to_live_intent(
             Some((x, y)) => ShortCraftLiveIntent::DropAt { x, y },
             None => ShortCraftLiveIntent::None,
         },
-        GetOrCraftResult::SeekIngredient {
-            ingredient_id, ..
-        } => ShortCraftLiveIntent::SeekOrCraft {
-            actor: ingredient_id,
-            craft_if_needed: true,
-        },
-        GetOrCraftResult::CraftItem { object_id } => {
-            ShortCraftLiveIntent::CraftItem { object_id }
+        GetOrCraftResult::SeekIngredient { ingredient_id, .. } => {
+            ShortCraftLiveIntent::SeekOrCraft {
+                actor: ingredient_id,
+                craft_if_needed: true,
+            }
         }
+        GetOrCraftResult::CraftItem { object_id } => ShortCraftLiveIntent::CraftItem { object_id },
     }
 }
 
@@ -634,7 +630,9 @@ pub fn expand_craft_item_live(
         home,
         is_or_can_smith,
         now_sec,
-        use_default_water_sources: true,
+        water_source_ids: Vec::new(),
+        bucket_water_source_ids: Vec::new(),
+        ..Default::default()
     };
     expand_craft_item_live_opts(
         object_id,
@@ -716,6 +714,10 @@ pub fn expand_craft_item_live_opts_scan(
             .with_held(held_id)
             .with_now(opts.now_sec);
         inp.is_or_can_smith = opts.is_or_can_smith;
+        inp.ai_wait_failed_sec = opts.ai_time_to_wait_if_crafting_failed_sec;
+        inp.ai_max_search_radius = opts.ai_max_search_radius;
+        inp.ai_search_increment = opts.ai_max_search_increment;
+        inp.ai_ignore_time_transitions_longer_then = opts.ai_ignore_time_transitions_longer_then;
         if let Some((hx, hy)) = opts.home {
             inp = inp.with_home(hx, hy);
         }
@@ -728,6 +730,7 @@ pub fn expand_craft_item_live_opts_scan(
             Some(&pile),
             None,
             scan,
+            opts.effective_water_source_ids(),
         )
     };
     craft_item_decision_to_live_intent(decision, empty_drop)

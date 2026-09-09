@@ -187,13 +187,16 @@ mod tests {
 
     #[test]
     fn key_value_object_lines() {
-        assert_eq!(
-            parse_key_value("foodValue=3"),
-            Some(("foodValue", "3"))
-        );
+        assert_eq!(parse_key_value("foodValue=3"), Some(("foodValue", "3")));
         assert_eq!(parse_key_i32("foodValue=3"), Some(("foodValue", 3)));
-        assert_eq!(parse_key_i32("mapChance=1.000000#biomes_0,3"), Some(("mapChance", 1)));
-        assert_eq!(parse_key_f32("speedMult=1.500000"), Some(("speedMult", 1.5)));
+        assert_eq!(
+            parse_key_i32("mapChance=1.000000#biomes_0,3"),
+            Some(("mapChance", 1))
+        );
+        assert_eq!(
+            parse_key_f32("speedMult=1.500000"),
+            Some(("speedMult", 1.5))
+        );
         assert_eq!(
             parse_key_i32("permanent=1,minPickupAge=3"),
             Some(("permanent", 1))

@@ -1,8 +1,9 @@
 //! GPI-DEATH-POLISH + GPI-PLACE-GRAVE — death helper + placeGrave richness.
 //!
 //! Haxe `GlobalPlayerInstance.doDeathHelper` order (subset):
-//! 1. [`choose_new_leader`](crate::death_inherit::choose_new_leader)
-//! 2. [`place_grave_for_player`] / placeGrave (this module)
+//! 1. [`apply_death_hold_detach`] drop held player / Baby Bones 1920 in carrier arms
+//! 2. [`choose_new_leader`](crate::death_inherit::choose_new_leader)
+//! 3. [`place_grave_for_player`] / placeGrave (this module)
 //! 3. InheritOwnership on world helpers (+ refresh `Player.owning`)
 //! 4. [`apply_inherit_coins`](crate::death_inherit::apply_inherit_coins) (+ grave residual)
 //! 5. [`create_score_entry_for_dead_relative`](crate::score_entry) (SCORE-ENTRY)
@@ -19,10 +20,11 @@ pub use place_object_impl::{
     place_object_near, place_object_with_rng, place_random_offset, place_search_candidate,
     place_search_distance_step, transform_placed_object_id, transition_result_fits_container,
     transition_result_fits_container_from_content, try_place_flat_on_world, try_place_kind,
-    PlaceObjectOpts, PlaceObjectResult, TryPlaceKind, HORSE_DRAWN_CART_ID, HORSE_DRAWN_TIRE_CART_ID,
-    PLACE_DROP_WALLS_AFTER, PLACE_MAX_ATTEMPTS,
+    PlaceObjectOpts, PlaceObjectResult, TryPlaceKind, HORSE_DRAWN_CART_ID,
+    HORSE_DRAWN_TIRE_CART_ID, PLACE_DROP_WALLS_AFTER, PLACE_MAX_ATTEMPTS,
 };
 
+use crate::animal_move::is_bone_grave;
 use crate::death_inherit::{
     add_owner_to_helper, apply_inherit_coins, choose_new_leader, count_leadership_power,
     format_inherit_events, format_leader_succession_event, format_ownership_events,
@@ -33,18 +35,21 @@ use crate::player::ClothingSlot;
 use crate::relations::root_eve_id;
 use crate::score_entry::{
     create_score_entry_for_dead_relative, DeadRelativePlayer, MotherLineNode,
-    ANCESTOR_PRESTIGE_FACTOR,
 };
-use crate::animal_move::is_bone_grave;
 use crate::SimState;
 use ol_content::ContentDb;
 use ol_net::OutboundHub;
-use ol_protocol::format_grave_info;
+use ol_protocol::{
+    format_grave_info, format_grave_old, format_grave_old_line, format_owner_list,
+};
 use ol_world::ComplexObject;
 use std::collections::{HashMap, HashSet};
 
 // ── Haxe grave object ids (ObjectData / placeGrave) ─────────────────────────
 
+/// Haxe `1920` Baby Bones — held in carrier arms when a held player dies.
+// Haxe: ObjectData Baby Bones; GPI.doDeathHelper L4014 TODO
+pub const BABY_BONES_ID: i32 = 1920;
 /// Haxe `3053` Baby Bone Pile — age &lt; MinAgeToEat.
 pub const BABY_BONE_PILE_ID: i32 = 3053;
 /// Haxe `752` Murder Grave — adult holding a wound object.
@@ -67,46 +72,9 @@ pub struct PlaceGraveResult {
 
 // ── Pure select / wound helpers ─────────────────────────────────────────────
 
-/// Haxe `ObjectHelper.isWound` — description contains Wound / Snake Bite / Hog Cut.
-/// // Haxe: ObjectHelper.isWound
-pub fn is_wound_description(description: &str) -> bool {
-    let d = description;
-    d.contains("Snake Bite") || d.contains("Hog Cut") || d.contains("Wound")
-}
-
-/// Haxe `ObjectHelper.isArrowWound` — description contains `"Arrow Wound"`.
-// Haxe: ObjectHelper.isArrowWound
-#[inline]
-pub fn is_arrow_wound_description(description: &str) -> bool {
-    description.contains("Arrow Wound")
-}
-
-/// Content-backed wound check for a held object id (`0` = empty → not a wound).
-pub fn is_wound_object(content: &ContentDb, object_id: i32) -> bool {
-    if object_id == 0 {
-        return false;
-    }
-    content
-        .objects
-        .get(&object_id)
-        .map(|o| is_wound_description(&o.description) || is_wound_description(&o.name))
-        .unwrap_or(false)
-}
-
-/// Content-backed arrow-wound check (`0` = empty → false).
-// Haxe: ObjectHelper.isArrowWound
-pub fn is_arrow_wound_object(content: &ContentDb, object_id: i32) -> bool {
-    if object_id == 0 {
-        return false;
-    }
-    content
-        .objects
-        .get(&object_id)
-        .map(|o| {
-            is_arrow_wound_description(&o.description) || is_arrow_wound_description(&o.name)
-        })
-        .unwrap_or(false)
-}
+pub use ol_combat_rules::{
+    is_arrow_wound_description, is_arrow_wound_object, is_wound_description, is_wound_object,
+};
 
 /// Haxe `placeGrave` grave id selection: baby 3053 / murder 752 / fresh 87.
 /// // Haxe: GlobalPlayerInstance.placeGrave (age + heldObject.isWound)
@@ -162,7 +130,11 @@ pub fn format_grave_place_log(x: i32, y: i32, creator_p_id: i32) -> String {
 // ── Placement helpers (PLACE-OBJECT free_tile_search) ────────────────────────
 
 fn object_containable(content: &ContentDb, id: i32) -> bool {
-    content.objects.get(&id).map(|o| o.containable).unwrap_or(false)
+    content
+        .objects
+        .get(&id)
+        .map(|o| o.containable)
+        .unwrap_or(false)
 }
 
 /// Place grave complex via full Haxe PlaceObject free-tile / wall / biome search.
@@ -173,8 +145,7 @@ fn place_grave_on_map(
     cy: i32,
     grave: ComplexObject,
 ) -> Option<(i32, i32)> {
-    place_complex_object(state, cx, cy, grave, PlaceObjectOpts::grave_or_held())
-        .map(|r| (r.x, r.y))
+    place_complex_object(state, cx, cy, grave, PlaceObjectOpts::grave_or_held()).map(|r| (r.x, r.y))
 }
 
 // ── Public placeGrave port ──────────────────────────────────────────────────
@@ -195,12 +166,9 @@ pub fn place_grave_with_soul(
         return;
     }
     let mut grave = ComplexObject::new_simple(grave_id);
-    stamp_grave_soul(&mut grave, p_id, email);
-    state
-        .world
-        .write()
-        .unwrap()
-        .set_object_complex(x, y, grave);
+    let aid = crate::death_inherit::account_id_ensure(&mut state.accounts, email);
+    stamp_grave_soul(&mut grave, p_id, aid);
+    state.world.write().unwrap().set_object_complex(x, y, grave);
     state.record_world_change(x, y, grave_id);
     state.specials.insert(x, y, SpecialKind::Grave);
     // Haxe: account.graves push (session; rewired by InitObjectHelpersAfterRead)
@@ -322,7 +290,8 @@ pub fn place_grave_for_conn(state: &mut SimState, conn_id: u64) -> Option<PlaceG
 
     let mut grave = ComplexObject::new_simple(grave_id);
     grave.contained = contained.clone();
-    stamp_grave_soul(&mut grave, p_id, &email);
+    let aid = crate::death_inherit::account_id_ensure(&mut state.accounts, &email);
+    stamp_grave_soul(&mut grave, p_id, aid);
 
     let (gx, gy) = place_grave_on_map(state, cx, cy, grave)?;
     state.specials.insert(gx, gy, SpecialKind::Grave);
@@ -357,6 +326,137 @@ pub fn send_grave_info_to_all(
     }
 }
 
+/// Haxe `getFullName(true)` for GO: spaces → `_`; empty name is `~`.
+// Haxe: Lineage.getFullName L526–533; protocol GRAVE_OLD name
+pub fn grave_old_underscored_name(name: &str, class_name: &str) -> String {
+    let n = name.trim();
+    if n.is_empty() {
+        return "~".into();
+    }
+    let full = if class_name.is_empty() {
+        n.to_string()
+    } else {
+        format!("{n} {class_name}")
+    };
+    full.replace(' ', "_")
+}
+
+/// Haxe `Lineage.getDeadSince` — floor((sim_time − deathTime) / 60 years).
+// Haxe: Lineage.getDeadSince L536–540 (seconds / 60)
+pub fn grave_dead_since_years(sim_time: f32, death_sim_time: f32) -> i32 {
+    let secs = (sim_time - death_sim_time).max(0.0);
+    (secs / crate::age_curves::SECONDS_PER_YEAR).floor() as i32
+}
+
+/// Client `GRAVE x y` → GO (`sendGraveInfoHelper`). Silent if no creator lineage.
+// Haxe: Connection.sendGraveInfoHelper L1317–1329
+pub fn send_grave_old_query(
+    state: &crate::SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+    client_x: i32,
+    client_y: i32,
+    world_x: i32,
+    world_y: i32,
+) {
+    let creator = {
+        let Ok(world) = state.world.read() else {
+            return;
+        };
+        let Some(h) = world.get_helper(world_x, world_y) else {
+            return;
+        };
+        if !h.living_owners.is_empty() {
+            h.living_owners[0]
+        } else {
+            h.owner_id
+        }
+    };
+    if creator <= 0 {
+        return;
+    }
+    let Some(node) = state.social.lineages.get(&creator) else {
+        return;
+    };
+    let po_id = if node.po_id > 0 {
+        node.po_id
+    } else {
+        state
+            .players
+            .values()
+            .find(|p| p.p_id == creator)
+            .map(crate::person_object_id)
+            .unwrap_or(0)
+    };
+    let dead = grave_dead_since_years(state.sim_time, node.death_sim_time);
+    let name = grave_old_underscored_name(&node.name, node.prestige_class.class_name());
+    let lineage = crate::social::create_lineage_string(&state.social.lineages, creator, false);
+    let body = format_grave_old_line(client_x, client_y, creator, po_id, dead, &name, &lineage);
+    outbound.send(conn_id, format_grave_old(&body).into_bytes());
+}
+
+/// Client `OWNER x y` → OW (`sendOwners`). Silent if no owners and not `isOwned`.
+/// Unowned `+owned` / `+tempOwned` / `+followerOwned` tiles claim the querier.
+// Haxe: Connection.sendOwners L1236–1258
+pub fn send_owners_query(
+    state: &mut crate::SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+    client_x: i32,
+    client_y: i32,
+    world_x: i32,
+    world_y: i32,
+) {
+    let Some(p) = state.players.get(&conn_id) else {
+        return;
+    };
+    if p.deleted {
+        return;
+    }
+    let p_id = p.p_id;
+    let obj_id = match state.world.read() {
+        Ok(w) => w.get_object(world_x, world_y),
+        Err(_) => return,
+    };
+    if obj_id == 0 {
+        return;
+    }
+    let desc = state
+        .content
+        .get(obj_id)
+        .map(|d| {
+            if d.description.is_empty() {
+                d.name.clone()
+            } else {
+                d.description.clone()
+            }
+        })
+        .unwrap_or_default();
+    let is_owned = ol_world::object_data_is_owned(&desc);
+    let owners = {
+        let mut world = match state.world.write() {
+            Ok(w) => w,
+            Err(_) => return,
+        };
+        let mut helper = world
+            .get_helper(world_x, world_y)
+            .cloned()
+            .unwrap_or_else(|| ComplexObject::new_simple(obj_id));
+        if helper.living_owners.is_empty() {
+            if !is_owned {
+                return;
+            }
+            add_owner_to_helper(&mut helper, p_id);
+            world.set_object_complex(world_x, world_y, helper.clone());
+        }
+        helper.living_owners.clone()
+    };
+    outbound.send(
+        conn_id,
+        format_owner_list(client_x, client_y, &owners).into_bytes(),
+    );
+}
+
 /// Place grave (if resolvable) then leave remaining death loot for scatter.
 ///
 /// When `outbound` is `Some`, fans out Haxe `GRAVE` to connected clients.
@@ -386,6 +486,58 @@ pub fn place_grave_on_death_pid(
     place_grave_on_death(state, outbound, conn)
 }
 
+/// Haxe `doDeathHelper` L4001–4015: drop a held player; if **this** body was held,
+/// detach and put Baby Bones in the carrier's hands (Haxe TODO L4014).
+// Haxe: GlobalPlayerInstance.doDeathHelper L4001-4015
+pub fn apply_death_hold_detach(state: &mut SimState, deceased_p_id: i32) {
+    let (holding_id, held_by, dx, dy) = match state.players.values().find(|p| p.p_id == deceased_p_id)
+    {
+        Some(p) => (p.holding_player_id, p.held_by, p.x, p.y),
+        None => return,
+    };
+    // Dying carrier: dropPlayer onto the death tile (Haxe dropPlayer(this.x, this.y)).
+    if holding_id != 0 {
+        if let Some(p) = state.players.values_mut().find(|p| p.p_id == deceased_p_id) {
+            let _ = p.release_holding();
+        }
+        if let Some(baby) = state
+            .players
+            .values_mut()
+            .find(|p| p.p_id == holding_id && !p.deleted)
+        {
+            baby.held_by = 0;
+            baby.x = dx;
+            baby.y = dy;
+        }
+    }
+    // Dying held body: detach, then Baby Bones 1920 in carrier arms (not empty).
+    if held_by != 0 {
+        if let Some(p) = state.players.values_mut().find(|p| p.p_id == deceased_p_id) {
+            p.held_by = 0;
+        }
+        if let Some(carrier) = state
+            .players
+            .values_mut()
+            .find(|p| p.p_id == held_by && !p.deleted)
+        {
+            if carrier.holding_player_id == deceased_p_id {
+                let _ = carrier.release_holding();
+            }
+            carrier.set_held(BABY_BONES_ID, 0);
+        }
+    }
+}
+
+/// Next Eve origin from a death tile (Haxe `ServerSettings.startingGx/Gy`).
+///
+/// Session-only (Haxe mutates statics; not written back to ServerSettings.txt).
+/// [`SimState::spawn_x`] / [`SimState::spawn_y`] is the Eve fallback.
+// Haxe: GlobalPlayerInstance.doDeathHelper L3995–3996
+pub fn stamp_starting_gx_from_death(state: &mut SimState, death_tx: i32, death_ty: i32) {
+    state.spawn_x = death_tx;
+    state.spawn_y = death_ty;
+}
+
 /// Full Haxe-shaped death inheritance polish for one deceased player.
 ///
 /// Call after the body is marked deleted and (when applicable) after the grave
@@ -393,16 +545,51 @@ pub fn place_grave_on_death_pid(
 ///
 /// // Haxe: GlobalPlayerInstance.doDeathHelper
 pub fn apply_death_polish(state: &mut SimState, deceased_p_id: i32) {
-    let (deceased_email, death_xy, follow_leader, owning_tiles) = {
+    // Haxe L3995–3996 reads this.tx/ty before dropPlayer / held detach.
+    let death_origin = state
+        .players
+        .values()
+        .find(|p| p.p_id == deceased_p_id)
+        .map(|p| (p.x, p.y));
+    apply_death_hold_detach(state, deceased_p_id);
+    let (deceased_email, death_xy, follow_leader, owning_tiles, age_years, true_age_years, death_reason, killed_by) = {
         let p = state.players.values().find(|p| p.p_id == deceased_p_id);
         let email = p
             .map(|p| p.email.clone())
             .unwrap_or_else(|| format!("pid{deceased_p_id}@inherit.local"));
-        let xy = p.map(|p| (p.x, p.y));
+        let xy = death_origin.or_else(|| p.map(|p| (p.x, p.y)));
         let follow = state.social.following.get(&deceased_p_id).copied();
         let owning = p.map(|p| p.owning.clone()).unwrap_or_default();
-        (email, xy, follow, owning)
+        let age = p.map(|p| p.age).unwrap_or(0.0);
+        let true_age = p.map(|p| p.true_age).unwrap_or(0.0);
+        let reason = p
+            .and_then(|p| p.death_reason.clone())
+            .unwrap_or_default();
+        let killed_by = p
+            .map(|p| p.last_player_attacked_me_id)
+            .unwrap_or(0);
+        (email, xy, follow, owning, age, true_age, reason, killed_by)
     };
+    // LINEAGE-24H / REP / COINS: Haxe doDeathHelper deathTime + reputation + coins
+    // snapshot *before* InheritCoins.
+    // Haxe: GPI.doDeathHelper L3977–3983
+    let lost_combat = state
+        .combat
+        .stats
+        .get(&deceased_p_id)
+        .map(|s| s.lost_combat_prestige)
+        .unwrap_or(0.0);
+    let coins = state.economy.coins_of(deceased_p_id) as f32;
+    state.social.stamp_lineage_death(
+        deceased_p_id,
+        state.sim_time,
+        &death_reason,
+        age_years,
+        true_age_years,
+        lost_combat,
+        coins,
+        killed_by,
+    );
 
     // ── ChooseNewLeader (Haxe doDeathHelper before placeGrave) ─────────────
     // Haxe: GlobalPlayerInstance.ChooseNewLeader / countLeadershipPower
@@ -439,6 +626,12 @@ pub fn apply_death_polish(state: &mut SimState, deceased_p_id: i32) {
         if let Some(line) = format_leader_succession_event(deceased_p_id, &succ) {
             state.push_event(line);
         }
+    }
+
+    // STARTING-GX-DEATH: after ChooseNewLeader, before placeGrave/dropPlayer.
+    // Haxe: GlobalPlayerInstance.doDeathHelper L3995–3996
+    if let Some((gx, gy)) = death_xy {
+        stamp_starting_gx_from_death(state, gx, gy);
     }
 
     // ── InheritOwnership (Haxe player.owning + world helpers scan) ─────────
@@ -523,7 +716,8 @@ pub fn apply_death_polish(state: &mut SimState, deceased_p_id: i32) {
         })
     });
     if let Some(ref mut g) = grave_helper {
-        stamp_grave_soul(g, deceased_p_id, &deceased_email);
+        let aid = crate::death_inherit::account_id_ensure(&mut state.accounts, &deceased_email);
+        stamp_grave_soul(g, deceased_p_id, aid);
     }
 
     let mut ctx = InheritContext {
@@ -571,7 +765,13 @@ fn apply_dead_relative_score_entry(state: &mut SimState, deceased_p_id: i32, dec
                     p.first_name.clone()
                 }
             })
-            .or_else(|| state.social.lineages.get(&deceased_p_id).map(|n| n.name.clone()))
+            .or_else(|| {
+                state
+                    .social
+                    .lineages
+                    .get(&deceased_p_id)
+                    .map(|n| n.name.clone())
+            })
             .unwrap_or_else(|| format!("P{deceased_p_id}"));
         let family = p
             .map(|p| p.family_name.clone())
@@ -636,7 +836,9 @@ fn apply_dead_relative_score_entry(state: &mut SimState, deceased_p_id: i32, dec
         m
     };
 
-    let mut seed = deceased_p_id.wrapping_mul(1103515245).wrapping_add(state.sim_time.to_bits() as i32);
+    let mut seed = deceased_p_id
+        .wrapping_mul(1103515245)
+        .wrapping_add(state.sim_time.to_bits() as i32);
     let entry = create_score_entry_for_dead_relative(
         &player,
         &|id| {
@@ -653,7 +855,7 @@ fn apply_dead_relative_score_entry(state: &mut SimState, deceased_p_id: i32, dec
             let u = (seed as u32 >> 8) as f32 / 16_777_216.0;
             u.clamp(0.0, 0.999_999)
         },
-        ANCESTOR_PRESTIGE_FACTOR,
+        state.gameplay.ancestor_prestige_factor,
     );
     if let Some(e) = entry {
         state.accounts.push_score_entry(e);
@@ -688,6 +890,85 @@ mod tests {
         o.containable = containable;
         o.permanent = permanent;
         o
+    }
+
+    #[test]
+    fn grave_old_name_and_dead_since() {
+        assert_eq!(grave_old_underscored_name("", "Commoner"), "~");
+        assert_eq!(
+            grave_old_underscored_name("Ada Snow", "Commoner"),
+            "Ada_Snow_Commoner"
+        );
+        assert_eq!(grave_dead_since_years(180.0, 0.0), 3);
+        assert_eq!(grave_dead_since_years(60.0, 60.0), 0);
+    }
+
+    /// BABY-BONES-ARMS: held death puts Baby Bones 1920 in the carrier's hands.
+    // Haxe: GPI.doDeathHelper L4014 TODO
+    #[test]
+    fn held_baby_death_places_bones_in_carrier_arms() {
+        let mut state = SimState::with_default_empty(Arc::new(ContentDb::default()));
+        {
+            use crate::player::Player;
+            let mut mom = Player::new(1, 1, "mom@bones");
+            mom.holding_player_id = 2;
+            mom.x = 3;
+            mom.y = 4;
+            state.players.insert(1, mom);
+            let mut baby = Player::new(2, 2, "baby@bones");
+            baby.held_by = 1;
+            baby.age = 0.5;
+            baby.deleted = true;
+            baby.x = 3;
+            baby.y = 4;
+            state.players.insert(2, baby);
+        }
+        apply_death_polish(&mut state, 2);
+        let mom = state.players.get(&1).unwrap();
+        assert_eq!(mom.held_id, BABY_BONES_ID);
+        assert_eq!(mom.holding_player_id, 0);
+        assert_eq!(state.players.get(&2).unwrap().held_by, 0);
+    }
+
+    /// BABY-BONES-ARMS: unheld death must not hand bones to a bystander.
+    #[test]
+    fn unheld_death_does_not_give_bystander_bones() {
+        let mut state = SimState::with_default_empty(Arc::new(ContentDb::default()));
+        {
+            use crate::player::Player;
+            let mut by = Player::new(1, 1, "by@bones");
+            by.x = 3;
+            by.y = 4;
+            state.players.insert(1, by);
+            let mut other = Player::new(2, 2, "die@bones");
+            other.deleted = true;
+            other.x = 3;
+            other.y = 4;
+            state.players.insert(2, other);
+        }
+        apply_death_polish(&mut state, 2);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(state.players.get(&1).unwrap().holding_player_id, 0);
+    }
+
+    /// STARTING-GX-DEATH: death tile becomes next Eve `spawn_x/y` (Haxe startingGx/Gy).
+    // Haxe: GPI.doDeathHelper L3995–3996
+    #[test]
+    fn death_stamps_starting_gx_gy_for_next_eve() {
+        let mut state = SimState::with_default_empty(Arc::new(ContentDb::default()));
+        state.spawn_x = 235;
+        state.spawn_y = 150;
+        {
+            use crate::player::Player;
+            let mut p = Player::new(2, 2, "die@gx");
+            p.deleted = true;
+            p.x = 12;
+            p.y = 34;
+            state.players.insert(2, p);
+        }
+        apply_death_polish(&mut state, 2);
+        assert_eq!(state.spawn_x, 12, "startingGx = death tx");
+        assert_eq!(state.spawn_y, 34, "startingGy = death ty");
     }
 
     #[test]
@@ -789,8 +1070,7 @@ mod tests {
         let mut db = ContentDb::default();
         db.objects
             .insert(87, def(87, "Fresh Grave", "+origGrave", false, true));
-        db.objects
-            .insert(33, def(33, "Berry", "food", true, false));
+        db.objects.insert(33, def(33, "Berry", "food", true, false));
         db.objects
             .insert(40, def(40, "Hat", "clothing", true, false));
         let mut state = SimState::with_default_empty(Arc::new(db));
@@ -838,10 +1118,8 @@ mod tests {
             .insert(752, def(752, "Murder Grave", "+origGrave", false, true));
         db.objects
             .insert(87, def(87, "Fresh Grave", "+origGrave", false, true));
-        db.objects.insert(
-            560,
-            def(560, "Knife Wound", "Knife Wound", false, false),
-        );
+        db.objects
+            .insert(560, def(560, "Knife Wound", "Knife Wound", false, false));
         let mut state = SimState::with_default_empty(Arc::new(db));
         {
             use crate::player::Player;
@@ -912,6 +1190,10 @@ mod tests {
                 switch_number_of_uses: false,
                 target_number_of_uses: -1,
                 is_pickup_or_drop: false,
+                hungry_work_cost: 0.0,
+                hungry_work_temperature: -1.0,
+                coin_cost: 0,
+                is_forbidden: false,
             },
         );
         let mut state = SimState::with_default_empty(Arc::new(db));
@@ -942,8 +1224,7 @@ mod tests {
         // Cow may have been swallowed into grave if non-permanent — 127 is permanent.
         assert!(
             found_cow
-                || w
-                    .get_helper(res.x, res.y)
+                || w.get_helper(res.x, res.y)
                     .map(|g| g.contained.contains(&127))
                     .unwrap_or(false),
             "rope death transition should place newTarget 127"

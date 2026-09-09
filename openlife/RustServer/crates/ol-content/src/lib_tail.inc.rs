@@ -1,3 +1,6 @@
+/// Importer helpers (category expand, changeToolTransitions, animal moves).
+/// Haxe `PatchObjectData` / `PatchTransitions` live in [`crate::patches`].
+///
 /// Haxe `createAndaddCategoryTransitions` — expand actor/target category parents
 /// into concrete member transitions (e.g. `@ Shallow Digger` 722 → sharp stone 34).
 pub(crate) fn expand_category_transitions(db: &mut ContentDb) {
@@ -69,177 +72,6 @@ fn target_remains(t: &Transition) -> bool {
     t.target_id >= 0 && t.target_id == t.new_target_id
 }
 
-/// Haxe `ServerSettings` secondTimeOutcome patches (goose pond, rabbits, …).
-///
-/// Only inserts when the object id exists in `db.objects` (or always for known
-/// ids so unit tests / partial loads can opt-in by inserting outcomes manually).
-pub fn apply_default_second_time_outcomes(db: &mut ContentDb) {
-    // (object_id, outcome_id, seconds)
-    // Haxe ServerSettings.PatchObjectData subset used by DoSecondTimeOutcome.
-    const PATCHES: &[(i32, i32, f32)] = &[
-        (141, 142, 30.0),           // Canada Goose Pond → swimming
-        (142, 1261, 60.0 * 10.0),   // swimming → with Egg
-        (1261, 142, 60.0 * 4.0),    // with Egg → swimming
-        (511, 142, 60.0 * 60.0 * 24.0), // Pond → goose swimming
-        (164, 173, 90.0),           // Rabbit Hole out,single → Family Hole out
-        (173, 3566, 90.0),          // Family Hole out → Fleeing Rabbit
-        (1438, 1435, 30.0 * 60.0),  // Shot Bison → Bison
-        (1440, 1436, 30.0 * 60.0),  // Shot Bison with Calf → Bison
-    ];
-    for &(id, out, secs) in PATCHES {
-        db.second_time_outcomes.entry(id).or_insert((out, secs));
-    }
-}
-
-/// Haxe `ServerSettings.AnimalDecayFactor`.
-const ANIMAL_DECAY_FACTOR: f32 = 0.05;
-/// Haxe `ServerSettings.ObjDecayFactorForPermanentObjs` (used when patch divides by it).
-const OBJ_DECAY_FACTOR_FOR_PERMANENT: f32 = 0.2;
-
-/// Haxe `ServerSettings.PatchObjectData` weapon `useDistance` / `deadlyDistance` (IS-CLOSE).
-///
-/// Safe if id missing. Binary cache may still carry object-file values; patches
-/// keep bows at range 5 and deadly 4 so USE min-range works.
-// Haxe: ServerSettings.PatchObjectData deadlyDistance weapons + object-file useDistance
-pub fn apply_default_weapon_range_patches(db: &mut ContentDb) {
-    // (id, use_distance, deadly_distance) — None = leave field unchanged.
-    const PATCHES: &[(i32, Option<i32>, Option<f32>)] = &[
-        (152, Some(5), Some(4.0)),  // Bow and Arrow
-        (1624, Some(5), Some(4.0)), // Bow and Arrow with Note
-        (749, Some(5), Some(4.0)),  // Bloody Yew Bow
-        (560, None, Some(1.5)),     // Knife
-        (3047, None, Some(1.5)),    // War Sword
-        (750, None, Some(1.5)),     // Bloody Knife
-        (3048, None, Some(1.5)),    // Bloody War Sword
-    ];
-    for &(id, use_d, deadly) in PATCHES {
-        if let Some(d) = db.objects.get_mut(&id) {
-            if let Some(u) = use_d {
-                d.use_distance = u;
-            }
-            if let Some(dd) = deadly {
-                d.deadly_distance = dd;
-            }
-        }
-    }
-}
-
-/// Haxe `ServerSettings.AnimalDeadlyDistanceFactor` (default 0.5).
-/// How close an animal must be to land a hit (`ObjectData.deadlyDistance`).
-// Haxe: ServerSettings.AnimalDeadlyDistanceFactor
-pub const ANIMAL_DEADLY_DISTANCE_FACTOR: f32 = 0.5;
-
-/// Haxe `ServerSettings.PatchObjectData` animal `deadlyDistance = AnimalDeadlyDistanceFactor`.
-///
-/// Object files often store `deadlyDistance=1`; boot overwrites combat animals to 0.5.
-/// Safe if id missing. Complements damage patches in `apply_default_combat_damage_patches`.
-// Haxe: ServerSettings.PatchObjectData animal deadlyDistance
-pub fn apply_default_animal_deadly_distance_patches(db: &mut ContentDb) {
-    // Same animal ids as combat damage table (+ any deadly-only).
-    const ANIMAL_IDS: &[i32] = &[
-        418,  // Wolf
-        420,  // Shot Wolf
-        764,  // Rattle Snake
-        1323, // Wild Boar
-        1328, // Wild Boar with Piglet
-        628,  // Grizzly
-        631,  // Hungry Grizzly
-        653,  // Hungry Grizzly attacking
-        4762, // Sleepy Grizzly
-        632,  // Shot Grizzly 1
-        635,  // Shot Grizzly 2
-        637,  // Shot Grizzly 3
-        1435, // Bison
-        1438, // Shot Bison
-        1436, // Bison with Calf
-        1440, // Shot Bison with Calf
-        2156, // Mosquito Swarm
-    ];
-    for &id in ANIMAL_IDS {
-        if let Some(d) = db.objects.get_mut(&id) {
-            d.deadly_distance = ANIMAL_DEADLY_DISTANCE_FACTOR;
-        }
-    }
-}
-
-/// Haxe `ServerSettings.PatchObjectData` combat `damage` / `woundFactor` / protection.
-///
-/// Subset used by DoDamage weapon+0 wound path + animal damage + bleed DPS tables.
-/// Safe if id missing (binary cache / partial loads).
-// Haxe: ServerSettings.PatchObjectData damage / woundFactor
-pub fn apply_default_combat_damage_patches(db: &mut ContentDb) {
-    // (id, damage, wound_factor override Option, damage_protection Option)
-    // Weapons
-    const WEAPON_DMG: &[(i32, f32, Option<f32>)] = &[
-        (560, 5.0, Some(0.8)),   // Knife damage + protection
-        (750, 5.0, Some(0.8)),   // Bloody Knife
-        (3047, 6.0, Some(0.8)),  // War Sword
-        (3048, 6.0, Some(0.8)),  // Bloody War Sword
-        (152, 9.0, None),        // Bow and Arrow
-        (1624, 12.0, None),      // Bow and Arrow with Note
-    ];
-    for &(id, dmg, prot) in WEAPON_DMG {
-        if let Some(d) = db.objects.get_mut(&id) {
-            d.damage = dmg;
-            if let Some(p) = prot {
-                d.damage_protection_factor = p;
-            }
-        }
-    }
-    // Animals (deadlyDistance via apply_default_animal_deadly_distance_patches)
-    const ANIMAL_DMG: &[(i32, f32, Option<f32>)] = &[
-        (418, 3.0, None),   // Wolf
-        (420, 5.0, None),   // Shot Wolf
-        (764, 2.0, Some(0.98)), // Rattle Snake + woundFactor
-        (1323, 3.0, None),  // Wild Boar
-        (1328, 5.0, None),  // Wild Boar with Piglet
-        (628, 5.0, None),   // Grizzly
-        (631, 6.0, None),   // Hungry Grizzly
-        (653, 6.0, None),   // Hungry Grizzly attacking
-        (4762, 5.0, None),  // Sleepy Grizzly
-        (632, 6.0, None),   // Shot Grizzly 1
-        (635, 7.0, None),   // Shot Grizzly 2
-        (637, 8.0, None),   // Shot Grizzly 3
-        (1435, 2.0, None),  // Bison
-        (1438, 5.0, None),  // Shot Bison
-        (1436, 4.0, None),  // Bison with Calf
-        (1440, 6.0, None),  // Shot Bison with Calf
-        (2156, 1.0, None),  // Mosquito Swarm
-    ];
-    for &(id, dmg, wound_f) in ANIMAL_DMG {
-        if let Some(d) = db.objects.get_mut(&id) {
-            d.damage = dmg;
-            if let Some(wf) = wound_f {
-                d.wound_factor = wf;
-            }
-        }
-    }
-    // Wound bleed DPS (objectData.damage per sec) — residual EXHAUSTION-WOUND wire
-    const WOUND_BLEED: &[(i32, f32)] = &[
-        (3816, 0.1),  // Gushing Knife Wound
-        (797, 0.05),  // Stable Knife Wound
-        (1380, 0.03), // Clean Knife Wound
-        (1625, 0.07), // Note Arrow Wound
-        (798, 0.06),  // Arrow Wound
-        (1365, 0.04), // Embedded Arrowhead Wound
-        (1367, 0.06), // Extracted Arrowhead Wound
-        (3817, 0.1),  // Gushing Empty Arrow Wound
-        (1366, 0.03), // Empty Arrow Wound
-        (1382, 0.03), // Clean Arrow Wound
-        (1363, 0.05), // Bite Wound
-        (1381, 0.03), // Clean Bite Wound
-        (1377, 0.1),  // Snake Bite
-        (1384, 0.05), // Clean Snake Bite
-        (1364, 0.05), // Hog Cut
-        (1383, 0.03), // Clean Hog Cut
-    ];
-    for &(id, dmg) in WOUND_BLEED {
-        if let Some(d) = db.objects.get_mut(&id) {
-            d.damage = dmg;
-        }
-    }
-}
-
 /// Set `ObjectData.moves` from auto-decay / time-move transitions (`move_dist > 0`).
 ///
 /// Haxe sets `animal.objectData.moves` during `doAnimalMovement`; stamping from
@@ -267,63 +99,6 @@ pub fn apply_animal_moves_from_transitions(db: &mut ContentDb) {
         }
     }
 }
-
-/// Haxe `ServerSettings.PatchObjectData` useChance overrides (subset; safe if id missing).
-pub fn apply_default_use_chance_patches(db: &mut ContentDb) {
-    const PATCHES: &[(i32, f32)] = &[
-        (4144, 0.8),
-        (502, 0.05),
-        (857, 0.02),
-        (850, 0.1),
-        (511, 0.5),
-        (1261, 0.5),
-        (141, 0.5),
-        (142, 0.5),
-        (143, 0.5),
-        (662, 0.1),
-        (944, 0.5),
-        (3957, 1.0),
-        (542, 0.1),
-        (604, 0.1),
-        (602, 0.2),
-        (4213, 0.66),
-        (600, 0.66),
-        (1459, 0.2),
-        (1462, 0.2),
-        (1485, 0.2),
-    ];
-    for &(id, chance) in PATCHES {
-        if let Some(d) = db.objects.get_mut(&id) {
-            d.use_chance = chance;
-        }
-    }
-}
-
-/// Haxe dough/masa-on-table `switchNumberOfUses = true` patches.
-pub fn apply_default_switch_number_of_uses_patches(db: &mut ContentDb) {
-    const KEYS: &[(i32, i32)] = &[(252, 3371), (235, 4086), (1300, 3371), (235, 4090)];
-    for &key in KEYS {
-        if let Some(t) = db.transitions.get_mut(&key) {
-            t.switch_number_of_uses = true;
-        }
-    }
-}
-
-/// Haxe `TransitionImporter.changeToolTransitions` — rewrite same-actor `newActorID`
-/// via tool table `(newActor, -1)` last-use-actor first, then non-last-use.
-///
-/// Portable water / fill paths often keep `newActor == actor` (empty bowl) in files;
-/// the real filled id lives on `newActor + -1` (e.g. Clay Bowl 235 → Bowl of Water 382).
-///
-/// **Skipped** (Haxe filters):
-/// - `actorID != newActorID` — EMPTY+Cold Bowl `0+1021` (actor changes)
-/// - `targetID < 1` — player / empty / TIME-style targets
-/// - actor `numUses > 1` — multi-use tools (hoe piles)
-/// - actor `2170` Rubber Ball (Haxe TODO special-case)
-/// - `newActorID == 0` — clear-hand outcomes
-///
-/// Returns count of transitions whose `new_actor_id` changed.
-// Haxe: TransitionImporter.changeToolTransitions
 pub fn change_tool_transitions(db: &mut ContentDb) -> usize {
     let mut rewritten = 0usize;
 
@@ -406,374 +181,6 @@ fn rewrite_one_tool_transition(db: &mut ContentDb, key: (i32, i32), in_last_use:
     }
     false
 }
-
-/// Haxe `ServerSettings.PatchTransitions` horse cart mount/dismount subset.
-///
-/// Marks cart pickups as `is_pickup_or_drop`, fixes tire-cart rubber preserve,
-/// synthetic riding-horse put-down `770+0→0+1421`, hitch tire cart, escaped timers.
-/// Safe for partial unit-test DBs (mutates only existing transitions / inserts synthetic).
-// Haxe: ServerSettings.PatchTransitions (horse block ~2129–2236)
-pub fn apply_default_horse_transition_patches(db: &mut ContentDb) {
-    // Pickup/drop nest-swap flags (carts + grave baskets).
-    const PICKUP_DROP_KEYS: &[(i32, i32)] = &[
-        (0, 1422), // Escaped Horse-Drawn Cart just released
-        (0, 780),  // Escaped Horse-Drawn Cart
-        (0, 779),  // Hitched Horse-Drawn Cart
-        (0, 3161), // Escaped Horse-Drawn Tire Cart just released
-        (0, 3157), // Escaped Horse-Drawn Tire Cart
-        (0, 3159), // Hitched Horse-Drawn Tire Cart
-        (1618, -1), // Written Paper
-        (292, 87),  // Basket + Fresh Grave
-        (292, 88),  // Basket + Grave
-        (292, 89),  // Basket + Old Grave
-        (292, 357), // Basket + Bone Pile
-        (356, -1),  // Basket of Bones put-down
-    ];
-    for &key in PICKUP_DROP_KEYS {
-        if let Some(t) = db.transitions.get_mut(&key) {
-            t.is_pickup_or_drop = true;
-        }
-    }
-
-    // Synthetic: Riding Horse put-down on empty ground (770+0 = 0+1421).
-    // Haxe also uses 770+-1 from content; this covers target id 0 lookups.
-    let key_770_0 = (770, 0);
-    if !db.transitions.contains_key(&key_770_0) {
-        db.transitions.insert(
-            key_770_0,
-            Transition {
-                actor_id: 770,
-                target_id: 0,
-                new_actor_id: 0,
-                new_target_id: 1421,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-                desired_move_dist: 0,
-                actor_min_use_fraction: 0.0,
-                target_min_use_fraction: 0.0,
-                switch_number_of_uses: false,
-                target_number_of_uses: -1,
-                is_pickup_or_drop: false,
-            },
-        );
-        db.transition_count = db.transition_count.saturating_add(1);
-    }
-
-    // Tire cart put-down: 3158+-1 → 0+3161 (preserve rubber, not 1422).
-    if let Some(t) = db.transitions.get_mut(&(3158, -1)) {
-        t.new_target_id = 3161;
-    }
-    // Tire cart pickups: empty + escaped tire → hold 3158 not 778.
-    if let Some(t) = db.transitions.get_mut(&(0, 3161)) {
-        t.new_actor_id = 3158;
-        t.is_pickup_or_drop = true;
-    }
-    if let Some(t) = db.transitions.get_mut(&(0, 3157)) {
-        t.new_actor_id = 3158;
-        t.is_pickup_or_drop = true;
-    }
-    // Escaped tire just-released → escaped tire auto-decay.
-    if let Some(t) = db.auto_decays.get_mut(&3161) {
-        t.new_target_id = 3157;
-        t.auto_decay_seconds = 20.0;
-    }
-    if let Some(t) = db.transitions.get_mut(&(-1, 3161)) {
-        t.new_target_id = 3157;
-        t.auto_decay_seconds = 20.0;
-    }
-    // Escaped tire cart move soften.
-    if let Some(t) = db.auto_decays.get_mut(&3157) {
-        t.move_dist = 2;
-    }
-    if let Some(t) = db.transitions.get_mut(&(-1, 3157)) {
-        t.move_dist = 2;
-    }
-    // Hitch tire cart.
-    if let Some(t) = db.transitions.get_mut(&(3158, 4154)) {
-        t.new_target_id = 3159;
-    }
-    if let Some(t) = db.transitions.get_mut(&(3158, 550)) {
-        t.new_target_id = 3159;
-    }
-    // Escaped cart / horse release timers + move.
-    if let Some(t) = db.auto_decays.get_mut(&1422) {
-        t.auto_decay_seconds = 15.0;
-    }
-    if let Some(t) = db.transitions.get_mut(&(-1, 1422)) {
-        t.auto_decay_seconds = 15.0;
-    }
-    if let Some(t) = db.auto_decays.get_mut(&780) {
-        t.move_dist = 2;
-    }
-    if let Some(t) = db.transitions.get_mut(&(-1, 780)) {
-        t.move_dist = 2;
-    }
-    if let Some(t) = db.auto_decays.get_mut(&1421) {
-        t.auto_decay_seconds = 20.0;
-    }
-    if let Some(t) = db.transitions.get_mut(&(-1, 1421)) {
-        t.auto_decay_seconds = 20.0;
-    }
-    if let Some(t) = db.auto_decays.get_mut(&775) {
-        t.move_dist = 3;
-    }
-    if let Some(t) = db.transitions.get_mut(&(-1, 775)) {
-        t.move_dist = 3;
-    }
-}
-
-/// Haxe `ServerSettings.PatchObjectData` long-term decay product / factor / alias / rValue.
-///
-/// Only mutates objects that exist in `db.objects` (safe for partial unit-test DBs).
-pub fn apply_default_decay_object_patches(db: &mut ContentDb) {
-    // (id, decays_to, decay_factor_or_nan, counts_or_grows_as_or_0, r_value_or_nan)
-    // decay_factor NaN = leave; r_value NaN = leave; counts 0 = leave.
-
-    // Floors / roads
-    patch_decay(db, 1596, Some(291), Some(0.1), None, None); // Stone Road → Flat Rock
-    patch_decay(db, 884, Some(881), Some(0.1), None, None); // Stone Floor → Cut Stones
-    patch_decay(db, 888, Some(884), Some(1.0), None, None); // Bear Skin Rug → Stone Floor
-    patch_decay(db, 3290, None, Some(0.1), None, None); // Pine Floor
-    patch_decay(db, 898, Some(1853), Some(0.02), None, None); // Ancient Stone Floor → Cut Stones
-
-    // Stone walls → Cut Stones pile 1853
-    for id in [885, 886, 887] {
-        patch_decay(db, id, Some(1853), Some(0.2), None, None);
-    }
-    // Ancient stone walls
-    for id in [895, 896, 897] {
-        patch_decay(db, id, Some(1853), Some(0.02), None, None);
-    }
-    // Pine walls / doors → Pine Needles 96
-    for id in [111, 112, 113, 115, 116, 117, 119, 3308, 3309, 3310] {
-        patch_decay(db, id, Some(96), Some(2.0), None, None);
-    }
-    patch_decay(db, 119, None, None, None, Some(0.2)); // Open Pine Door H
-    patch_decay(db, 117, None, None, None, Some(0.2)); // Open Pine Door V
-
-    // Adobe walls → cracking variants
-    patch_decay(db, 154, Some(889), None, None, None);
-    patch_decay(db, 155, Some(891), None, None, None);
-    patch_decay(db, 156, Some(890), None, None, None);
-
-    // Plaster walls → adobe + slow decay + high rValue
-    patch_decay(db, 1883, Some(154), Some(0.2), None, Some(0.98));
-    patch_decay(db, 1884, Some(156), Some(0.2), None, Some(0.98));
-    patch_decay(db, 1885, Some(155), Some(0.2), None, Some(0.98));
-
-    // Wooden doors → boards; open doors low rValue
-    patch_decay(db, 876, Some(470), None, None, None);
-    patch_decay(db, 878, Some(470), None, None, Some(0.2));
-    patch_decay(db, 877, Some(470), None, None, None);
-    patch_decay(db, 879, Some(470), None, None, Some(0.2));
-
-    // Wall shelves (containers-as-walls)
-    patch_decay(db, 3240, Some(434), Some(0.2), None, Some(0.98));
-    patch_decay(db, 3241, Some(1885), Some(0.2), None, Some(0.98));
-    patch_decay(db, 3242, Some(3065), Some(0.2), None, Some(0.98));
-
-    // Wooden chest decay chain (decayFactor /= permanent factor → net 5× base before permanent mult)
-    let chest_boost = 1.0 / OBJ_DECAY_FACTOR_FOR_PERMANENT;
-    for id in [986, 987, 4910, 2740, 434] {
-        if let Some(d) = db.objects.get_mut(&id) {
-            d.decay_factor = chest_boost;
-        }
-    }
-    patch_decay(db, 986, Some(4910), None, None, None);
-    patch_decay(db, 987, Some(4910), None, None, None);
-    patch_decay(db, 4910, Some(2740), None, None, None);
-    patch_decay(db, 2740, Some(434), None, None, None);
-    patch_decay(db, 434, Some(470), None, None, None);
-    patch_decay(db, 470, Some(847), None, None, None); // Boards → Broken Skewer
-    patch_decay(db, 292, Some(860), None, None, None); // Basket → Broken Basket
-    patch_decay(db, 204, Some(183), None, None, None); // Two Rabbit Furs → Fur
-    patch_decay(db, 4063, Some(132), None, None, None); // Yew pile → branch
-    patch_decay(db, 1121, Some(235), None, None, None); // Popcorn → Clay Bowl
-    patch_decay(db, 625, Some(1101), None, None, None); // Wet Compost → Fertile Soil Pile
-    patch_decay(db, 858, Some(862), None, None, None); // Broken Steel Tool → no wood
-    patch_decay(db, 917, Some(862), None, None, None); // Key
-    patch_decay(db, 1003, Some(862), None, None, None); // Lock Removal Key
-
-    // Never-decay monuments / piles
-    for id in [2709, 3112, 3961, 1598, 1837] {
-        if let Some(d) = db.objects.get_mut(&id) {
-            d.decay_factor = -1.0;
-        }
-    }
-
-    // Well → Natural Spring
-    patch_decay(db, 662, Some(3030), Some(0.1), None, None);
-    // Forge → Adobe Kiln
-    patch_decay(db, 303, Some(238), None, None, None);
-
-    // Cart / horse decay chains
-    patch_decay(db, 484, Some(483), None, None, None); // Hand Cart → Wheelbarrow
-    patch_decay(db, 483, Some(471), None, None, None); // Wheelbarrow → Sledge
-    patch_decay(db, 3157, Some(780), None, None, None);
-    patch_decay(db, 780, Some(775), None, None, None);
-    patch_decay(db, 775, Some(769), None, None, None);
-    patch_decay(db, 3159, Some(779), Some(ANIMAL_DECAY_FACTOR), None, None);
-    patch_decay(db, 779, Some(774), Some(ANIMAL_DECAY_FACTOR), None, None);
-    patch_decay(db, 774, Some(4154), Some(ANIMAL_DECAY_FACTOR), None, None);
-
-    // Domestic animals → dead variants
-    for &(id, to) in &[
-        (1458, 1900),
-        (1488, 1900),
-        (1454, 1900),
-        (1489, 1900),
-        (1459, 1487),
-        (1462, 1487),
-        (1485, 1487),
-        (575, 595),
-        (4213, 595),
-        (600, 595),
-        (576, 597),
-        (542, 606),
-        (604, 606),
-        (418, 422),
-        (420, 421),
-    ] {
-        patch_decay(db, id, Some(to), Some(ANIMAL_DECAY_FACTOR), None, None);
-    }
-
-    // Iron vein aliases + strip/mine → Cut Stones
-    patch_decay(db, 942, None, None, Some(3961), None); // Muddy Iron counts as vein
-    for &(id, factor) in &[
-        (3944, 0.1),
-        (3957, 0.1),
-        (3956, 0.1),
-        (943, 0.1),
-        (3958, 0.1),
-        (944, 0.1),
-        (3959, 0.1),
-        (3960, 0.1),
-        (945, 0.5),
-        (3130, 0.1),
-        (3129, 0.1),
-        (3131, 0.1),
-    ] {
-        patch_decay(db, id, Some(881), Some(factor), Some(3961), None);
-    }
-
-    // Mango tree
-    patch_decay(db, 1875, Some(1876), Some(0.1), None, None);
-    patch_decay(db, 1876, None, Some(0.1), None, None);
-
-    // Bear cave variants count as bear cave
-    patch_decay(db, 650, None, None, Some(630), None);
-    patch_decay(db, 647, None, None, Some(630), None);
-
-    // Seasonal stone / flint defaults when content has no decaysTo
-    // 33 Stone, 34 Sharp Stone, 135 Flint Chip, 848 Hardened Row — leave content defaults;
-    // snow path uses decays_to_obj when set.
-}
-
-/// Haxe `ServerSettings.PatchObjectData` containSize / containable force-patches.
-///
-/// Description rules run over every loaded object; id table overrides follow.
-/// Safe if an id is missing from the db.
-// Haxe: ServerSettings.PatchObjectData L633–758 containSize/containable
-pub fn apply_default_contain_size_patches(db: &mut ContentDb) {
-    // Description-based (smithing / glass / tools).
-    // Haxe: "on Flat Rock" | "flat rock" | Mechanism | Blowpipe | Crucible | Shears
-    let ids: Vec<i32> = db.objects.keys().copied().collect();
-    for id in ids {
-        let Some(obj) = db.objects.get_mut(&id) else {
-            continue;
-        };
-        let desc = obj.description.as_str();
-        // Allow for smithing — place on table sized containers.
-        if desc.contains("on Flat Rock") || desc.contains("flat rock") {
-            obj.contain_size = 2.0;
-            obj.containable = true;
-        }
-        if desc.contains("Mechanism") {
-            obj.contain_size = 2.0;
-            obj.containable = true;
-        }
-        if desc.contains("Blowpipe") {
-            obj.contain_size = 2.0;
-            obj.containable = true;
-        }
-        // Crucible but not "in Wooden …"
-        if desc.contains("Crucible") && !desc.contains("in Wooden") {
-            obj.contain_size = 2.0;
-            obj.containable = true;
-        }
-        if desc.contains("Shears") {
-            obj.permanent = false;
-            obj.contain_size = 1.0;
-            obj.containable = true;
-        }
-    }
-
-    // Explicit id force-patches (override description defaults).
-    // Haxe: ObjectData.getObjectData(N).containSize / containable
-    const ID_PATCHES: &[(i32, f32)] = &[
-        (0, 1.0),    // Empty
-        (356, 2.0),  // Basket of Bones
-        (2188, 2.0), // Drum Sticks on Plate
-        (2192, 1.0), // Turkey Leg Bone
-        (2191, 1.0), // Turkey Drumstick
-        (319, 2.0),  // Unforged Sealed Steel Crucible
-        (321, 2.0),  // Hot Forged Steel Crucible
-        (322, 2.0),  // Forged Steel Crucible
-        (325, 2.0),  // Crucible with Steel
-        (1528, 2.0), // Quenching Spring Steel
-        (2574, 2.0), // Molten Glass
-        (2578, 2.0), // Cool Glass
-        (2573, 2.0), // Soda Lime Glass Batch
-        (300, 2.0),  // Big Charcoal Pile
-        (301, 2.0),  // Small Charcoal Pile
-        (302, 1.0),  // Charcoal
-    ];
-    for &(id, size) in ID_PATCHES {
-        patch_contain_size(db, id, size, true);
-    }
-}
-
-/// Set contain_size + containable on one object if present.
-// Haxe: ObjectData.getObjectData(id).containSize / containable
-fn patch_contain_size(db: &mut ContentDb, id: i32, contain_size: f32, containable: bool) {
-    let Some(d) = db.objects.get_mut(&id) else {
-        return;
-    };
-    d.contain_size = contain_size;
-    d.containable = containable;
-}
-
-fn patch_decay(
-    db: &mut ContentDb,
-    id: i32,
-    decays_to: Option<i32>,
-    decay_factor: Option<f32>,
-    counts_or_grows_as: Option<i32>,
-    r_value: Option<f32>,
-) {
-    let Some(d) = db.objects.get_mut(&id) else {
-        return;
-    };
-    if let Some(to) = decays_to {
-        d.decays_to_obj = to;
-    }
-    if let Some(f) = decay_factor {
-        d.decay_factor = f;
-    }
-    if let Some(c) = counts_or_grows_as {
-        d.counts_or_grows_as = c;
-    }
-    if let Some(r) = r_value {
-        d.r_value = r;
-    }
-}
-
 /// Insert non-last-use transition; Haxe double-transition maxUse handling.
 fn insert_normal_or_max_use(db: &mut ContentDb, t: Transition) -> bool {
     let key = (t.actor_id, t.target_id);
@@ -940,6 +347,10 @@ pub fn load_transition_file(path: &Path) -> Result<Transition, ContentError> {
         switch_number_of_uses: false,
         target_number_of_uses: -1,
         is_pickup_or_drop: false,
+        hungry_work_cost: 0.0,
+        hungry_work_temperature: -1.0,
+        coin_cost: 0,
+        is_forbidden: false,
     })
 }
 
@@ -999,6 +410,9 @@ pub fn load_object_file(path: &Path) -> Result<ObjectDef, ContentError> {
                 def.containable = rest.starts_with('1') || rest.eq_ignore_ascii_case("true");
             } else if let Some(rest) = part.strip_prefix("permanent=") {
                 def.permanent = rest.starts_with('1') || rest.eq_ignore_ascii_case("true");
+            } else if let Some(rest) = part.strip_prefix("minPickupAge=") {
+                // Haxe: ObjectData.minPickupAge (same comma group as permanent=)
+                def.min_pickup_age = rest.trim().parse().unwrap_or(0);
             } else if let Some(rest) = part.strip_prefix("blocksWalking=") {
                 def.blocks_walking = rest.starts_with('1') || rest.eq_ignore_ascii_case("true");
             } else if let Some(rest) = part.strip_prefix("foodValue=") {
@@ -1303,6 +717,18 @@ mod tests {
         let _ = fs::remove_dir_all(&dir);
     }
 
+    // Haxe: ServerSettings.PatchObjectData L1774–1776 minPickupAge
+    // MIN-PICKUP-AGE
+    #[test]
+    fn apply_min_pickup_age_patches_bow_knife() {
+        let mut db = ContentDb::default();
+        db.objects.insert(151, ObjectDef::empty(151));
+        db.objects.insert(560, ObjectDef::empty(560));
+        apply_default_min_pickup_age_patches(&mut db);
+        assert_eq!(db.get(151).unwrap().min_pickup_age, 5, "Yew Bow last write");
+        assert_eq!(db.get(560).unwrap().min_pickup_age, 2, "Knife");
+    }
+
     // Haxe: ServerSettings.PatchObjectData damage / woundFactor
     #[test]
     fn apply_combat_damage_patches_knife_snake_wound() {
@@ -1369,6 +795,10 @@ mod tests {
                 switch_number_of_uses: false,
                 target_number_of_uses: -1,
                 is_pickup_or_drop: false,
+                hungry_work_cost: 0.0,
+                hungry_work_temperature: -1.0,
+                coin_cost: 0,
+                is_forbidden: false,
             },
         );
         apply_animal_moves_from_transitions(&mut db);
@@ -1393,6 +823,44 @@ mod tests {
         assert!((m.deadly_distance - 0.5).abs() < 1e-5);
         assert!(!m.is_animal());
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    // Haxe: ServerSettings.PatchObjectData 2156 mapChance*=0.3 + SWAMP biomes
+    // MOSQUITO-MAPCHANCE
+    #[test]
+    fn mosquito_map_chance_swamp_rebuilds_biome_spawn() {
+        let mut db = ContentDb::default();
+        let mut moz = ObjectDef::empty(MOSQUITO_SWARM_OBJECT_ID);
+        moz.map_chance = 1.0;
+        moz.biomes = vec![6]; // JUNGLE only before patch
+        db.objects.insert(MOSQUITO_SWARM_OBJECT_ID, moz);
+        // Seed a decoy entry so rebuild must replace, not append.
+        db.biome_spawn.insert(
+            6,
+            BiomeSpawnTable {
+                total_chance: 1.0,
+                entries: vec![(MOSQUITO_SWARM_OBJECT_ID, 1.0)],
+            },
+        );
+        apply_default_mosquito_map_chance_patches(&mut db);
+        let m = db.get(MOSQUITO_SWARM_OBJECT_ID).unwrap();
+        assert!((m.map_chance - MOSQUITO_MAP_CHANCE_FACTOR).abs() < 1e-5);
+        assert!(m.biomes.contains(&BIOME_TAG_SWAMP));
+        assert!(m.biomes.contains(&6));
+        let jungle = db.biome_spawn.get(&6).expect("jungle spawn");
+        assert!((jungle.total_chance - MOSQUITO_MAP_CHANCE_FACTOR).abs() < 1e-5);
+        assert_eq!(jungle.entries, vec![(MOSQUITO_SWARM_OBJECT_ID, MOSQUITO_MAP_CHANCE_FACTOR)]);
+        let swamp = db.biome_spawn.get(&BIOME_TAG_SWAMP).expect("swamp spawn");
+        assert!((swamp.total_chance - MOSQUITO_MAP_CHANCE_FACTOR).abs() < 1e-5);
+        assert_eq!(
+            swamp.entries,
+            vec![(MOSQUITO_SWARM_OBJECT_ID, MOSQUITO_MAP_CHANCE_FACTOR)]
+        );
+        // Idempotent: second apply must not re-scale mapChance or dup SWAMP.
+        apply_default_mosquito_map_chance_patches(&mut db);
+        let m2 = db.get(MOSQUITO_SWARM_OBJECT_ID).unwrap();
+        assert_eq!(m2.biomes.iter().filter(|&&b| b == BIOME_TAG_SWAMP).count(), 1);
+        assert!((m2.map_chance - MOSQUITO_MAP_CHANCE_FACTOR).abs() < 1e-5);
     }
 
     // Haxe: ObjectData.useDistance clamp + isAnimal mosquito exclusion
@@ -1454,6 +922,7 @@ mod tests {
         assert_eq!(def.id, 100);
         assert_eq!(def.name, "White Pine Tree with Needles");
         assert!(def.permanent);
+        assert_eq!(def.min_pickup_age, 3);
         assert!(def.blocks_walking);
         assert!((def.map_chance - 1.0).abs() < 1e-5);
         assert_eq!(def.biomes, vec![0, 3]);
@@ -1487,7 +956,56 @@ mod tests {
         assert!(def.is_wall());
         assert!(!def.is_clothing());
         assert!((def.insulation_for_protection() - 0.9).abs() < 1e-5);
+        assert!((def.get_insulation() - 0.9).abs() < 1e-5);
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn clothing_get_insulation_and_heat_protection() {
+        // Haxe: ObjectData.parts h/t/b/p=0.4 s=0.2; getInsulation / getHeatProtection
+        let mut hat = ObjectDef::empty(1);
+        hat.clothing = "h".into();
+        hat.r_value = 1.0;
+        assert!((hat.get_insulation() - 0.4).abs() < 1e-5);
+        assert!((hat.get_heat_protection() - 0.0).abs() < 1e-5);
+
+        let mut tunic = ObjectDef::empty(2);
+        tunic.clothing = "t".into();
+        tunic.r_value = 0.5;
+        assert!((tunic.get_insulation() - 0.2).abs() < 1e-5);
+        assert!((tunic.get_heat_protection() - 0.2).abs() < 1e-5);
+
+        let mut shoes = ObjectDef::empty(3);
+        shoes.clothing = "s".into();
+        shoes.r_value = 0.0;
+        assert!((shoes.get_insulation() - 0.2).abs() < 1e-5);
+        assert!((shoes.get_heat_protection() - 0.2).abs() < 1e-5);
+
+        let mut pack = ObjectDef::empty(4);
+        pack.clothing = "p".into();
+        pack.r_value = 0.5;
+        assert!((pack.get_insulation() - 0.2).abs() < 1e-5);
+        assert_eq!(pack.get_heat_protection(), 0.0);
+
+        let mut padded = ObjectDef::empty(5);
+        padded.clothing = "  h  ".into();
+        padded.r_value = 1.0;
+        assert!((padded.get_insulation() - 0.4).abs() < 1e-5);
+        assert_eq!(clothing_part_weight("hat"), None);
+    }
+
+    #[test]
+    fn clothing_get_prestige_factor_slot_weight() {
+        let mut hat = ObjectDef::empty(1);
+        hat.clothing = "h".into();
+        assert!((hat.get_prestige_factor() - 0.2).abs() < 1e-5);
+        hat.prestige_factor = 1.5;
+        assert!((hat.get_prestige_factor() - 0.6).abs() < 1e-5);
+        let none = ObjectDef::empty(2);
+        assert_eq!(none.get_prestige_factor(), 0.0);
+        let mut shoes = ObjectDef::empty(3);
+        shoes.clothing = "s".into();
+        assert!((shoes.get_prestige_factor() - 0.1).abs() < 1e-5);
     }
 
     #[test]
@@ -1508,6 +1026,13 @@ mod tests {
         let cow = db.get(1458).unwrap();
         assert_eq!(cow.decays_to_obj, 1900);
         assert!((cow.decay_factor - 0.05).abs() < 1e-5);
+        assert!(is_animal_decay_factor_id(1458));
+        assert!(is_animal_decay_factor_id(418));
+        assert!(!is_animal_decay_factor_id(885));
+        apply_animal_decay_factor_patches(&mut db, 0.2);
+        let cow = db.get(1458).unwrap();
+        assert!((cow.decay_factor - 0.2).abs() < 1e-5);
+        assert_eq!(cow.decays_to_obj, 1900);
     }
 
     fn bare_tr(a: i32, t: i32, na: i32, nt: i32) -> Transition {
@@ -1530,6 +1055,10 @@ mod tests {
             switch_number_of_uses: false,
             target_number_of_uses: -1,
             is_pickup_or_drop: false,
+            hungry_work_cost: 0.0,
+            hungry_work_temperature: -1.0,
+            coin_cost: 0,
+            is_forbidden: false,
         }
     }
 

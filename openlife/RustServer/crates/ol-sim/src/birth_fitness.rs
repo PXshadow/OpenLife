@@ -12,7 +12,33 @@
 use crate::prestige::{calculate_class_boni, PrestigeClass};
 
 /// Eve/Adam wild birth chance when no suitable mother (Haxe).
+/// Live path: `GameplayKnobs.eve_or_adam_birth_chance` (this const is the fallback).
 pub const EVE_OR_ADAM_BIRTH_CHANCE: f32 = 0.025;
+
+/// Haxe: `(SpawnAiAsEve || isHuman) && EveOrAdamBirthChance > rand`
+///
+/// `rand01` is 0..1. `no_mother` forces Eve (Rust `spawn_player`).
+/// Chance is sanitized like live knobs (finite && >= 0, else compiled 0.025).
+pub fn eve_or_adam_birth(
+    rand01: f32,
+    chance: f32,
+    spawn_ai_as_eve: bool,
+    is_human: bool,
+    no_mother: bool,
+) -> bool {
+    if no_mother {
+        return true;
+    }
+    if !(spawn_ai_as_eve || is_human) {
+        return false;
+    }
+    let chance = if chance.is_finite() && chance >= 0.0 {
+        chance
+    } else {
+        EVE_OR_ADAM_BIRTH_CHANCE
+    };
+    chance > rand01
+}
 
 /// Mother fertile max (years) — matches `age_curves::FERTILE_MAX` (Haxe inclusive).
 pub const MOTHER_FERTILE_MAX: f32 = 42.0;
@@ -101,10 +127,43 @@ pub fn mother_fitness(m: &MotherView, c: &ChildView) -> f32 {
     mother_fitness_ex(m, c, MOTHER_FERTILE_MIN, MOTHER_FERTILE_MAX)
 }
 
+/// Live spawn birth knobs (LittleKidsPerMother + AI/human mali).
+// Haxe: ServerSettings.LittleKidsPerMother / AiMotherBirthMaliForHumanChild / HumanMotherBirthMaliForAiChild
+// SETTINGS-KNOB-TAIL
+#[derive(Debug, Clone, Copy)]
+pub struct BirthSpawnKnobs {
+    pub little_kids_per_mother: i32,
+    pub ai_mother_birth_mali_for_human_child: f32,
+    pub human_mother_birth_mali_for_ai_child: f32,
+}
+
+impl Default for BirthSpawnKnobs {
+    fn default() -> Self {
+        Self {
+            little_kids_per_mother: 3,
+            ai_mother_birth_mali_for_human_child: 3.0,
+            human_mother_birth_mali_for_ai_child: 1.0,
+        }
+    }
+}
+
 /// Live Min/MaxAgeFertile variant of [`mother_fitness`].
 // Haxe: CalculateMotherFitness + ServerSettings.MinAgeFertile / MaxAgeFertile
 // C-SS-MORE-BATCH4
 pub fn mother_fitness_ex(m: &MotherView, c: &ChildView, min_age: f32, max_age: f32) -> f32 {
+    mother_fitness_with_birth_knobs(m, c, min_age, max_age, &BirthSpawnKnobs::default())
+}
+
+/// [`mother_fitness_ex`] plus LittleKidsPerMother reject and AI/human birth mali.
+// Haxe: CalculateParentChildFitness LittleKidsPerMother + CalculateMotherFitness mali
+// SETTINGS-KNOB-TAIL
+pub fn mother_fitness_with_birth_knobs(
+    m: &MotherView,
+    c: &ChildView,
+    min_age: f32,
+    max_age: f32,
+    knobs: &BirthSpawnKnobs,
+) -> f32 {
     if m.deleted || !m.is_female || !m.is_human {
         return 0.0;
     }
@@ -112,6 +171,11 @@ pub fn mother_fitness_ex(m: &MotherView, c: &ChildView, min_age: f32, max_age: f
         return 0.0;
     }
     if m.has_close_blocking_grave {
+        return 0.0;
+    }
+    if knobs.little_kids_per_mother > 0
+        && m.little_kids_count >= knobs.little_kids_per_mother as u32
+    {
         return 0.0;
     }
 
@@ -166,6 +230,25 @@ pub fn mother_fitness_ex(m: &MotherView, c: &ChildView, min_age: f32, max_age: f
     // Cross-species soft pen.
     if !c.is_human {
         fit *= 0.5;
+    }
+
+    // Haxe CalculateMotherFitness: subtract AI/human birth mali.
+    // SETTINGS-KNOB-TAIL
+    if m.is_human && !c.is_human {
+        let mali = if knobs.human_mother_birth_mali_for_ai_child.is_finite() {
+            knobs.human_mother_birth_mali_for_ai_child.max(0.0)
+        } else {
+            1.0
+        };
+        fit -= mali;
+    }
+    if !m.is_human && c.is_human {
+        let mali = if knobs.ai_mother_birth_mali_for_human_child.is_finite() {
+            knobs.ai_mother_birth_mali_for_human_child.max(0.0)
+        } else {
+            3.0
+        };
+        fit -= mali;
     }
 
     fit.max(0.0)
@@ -336,16 +419,16 @@ mod tests {
         let fit_common = mother_fitness(&commoner, &child_serf);
 
         // same +2, noble−serf −3, commoner–serf 0
-        assert!(
-            fit_same > fit_common,
-            "same={fit_same} common={fit_common}"
-        );
+        assert!(fit_same > fit_common, "same={fit_same} common={fit_common}");
         assert!(
             fit_common > fit_noble,
             "common={fit_common} noble={fit_noble}"
         );
         // Noble↔Serf still eligible if base mult keeps score > 0 (base ~0.95 − 3 < 0 → 0).
-        assert_eq!(fit_noble, 0.0, "noble-serf mali zeros multiplicative~1 base");
+        assert_eq!(
+            fit_noble, 0.0,
+            "noble-serf mali zeros multiplicative~1 base"
+        );
         assert!((fit_same - fit_common - CLASS_BONI_SAME).abs() < 0.05);
         let _ = CLASS_BONI_NOBLE_SERF;
     }
@@ -368,9 +451,7 @@ mod tests {
         };
 
         // Serf child: same-class Serf mother beats Noble (Noble−Serf −3 → 0).
-        assert!(
-            mother_fitness(&serf_m, &child_serf) > mother_fitness(&noble_m, &child_serf)
-        );
+        assert!(mother_fitness(&serf_m, &child_serf) > mother_fitness(&noble_m, &child_serf));
         // Commoner child: Noble and Serf both get 0 boni; base equal → equal fitness.
         let ns = mother_fitness(&serf_m, &child_common);
         let nn = mother_fitness(&noble_m, &child_common);
@@ -385,6 +466,23 @@ mod tests {
         m.children_birth_mali = 0.5;
         let b = mother_fitness(&m, &c);
         assert!(b < a);
+    }
+
+    #[test]
+    fn little_kids_per_mother_hard_rejects() {
+        let c = human_child();
+        let mut m = healthy_mother();
+        m.little_kids_count = 3;
+        let knobs = BirthSpawnKnobs::default();
+        assert_eq!(
+            mother_fitness_with_birth_knobs(&m, &c, MOTHER_FERTILE_MIN, MOTHER_FERTILE_MAX, &knobs),
+            0.0
+        );
+        m.little_kids_count = 2;
+        assert!(
+            mother_fitness_with_birth_knobs(&m, &c, MOTHER_FERTILE_MIN, MOTHER_FERTILE_MAX, &knobs)
+                > 0.0
+        );
     }
 
     #[test]
@@ -463,6 +561,29 @@ mod tests {
     #[test]
     fn eve_chance_constant() {
         assert!((EVE_OR_ADAM_BIRTH_CHANCE - 0.025).abs() < 1e-6);
+    }
+
+    #[test]
+    fn eve_or_adam_birth_no_mother_forces_eve() {
+        assert!(eve_or_adam_birth(0.99, 0.0, false, false, true));
+        assert!(eve_or_adam_birth(0.0, 0.0, false, false, true));
+    }
+
+    #[test]
+    fn eve_or_adam_birth_ai_default_skips_roll() {
+        // Default SpawnAiAsEve=false: AI/NPC does not take the Eve roll.
+        assert!(!eve_or_adam_birth(0.0, 1.0, false, false, false));
+    }
+
+    #[test]
+    fn eve_or_adam_birth_ai_spawn_ai_as_eve_roll() {
+        assert!(eve_or_adam_birth(0.0, 1.0, true, false, false));
+        assert!(!eve_or_adam_birth(0.5, 0.025, true, false, false));
+    }
+
+    #[test]
+    fn eve_or_adam_birth_human_takes_roll_without_spawn_ai() {
+        assert!(eve_or_adam_birth(0.0, 1.0, false, true, false));
     }
 
     #[test]

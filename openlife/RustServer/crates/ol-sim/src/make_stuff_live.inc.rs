@@ -66,14 +66,25 @@ pub fn make_stuff_scan_tick(
             }
         }
     }
-    // 3) doBasicFarming(2) including mid isSheepHerding(1) + after_sheep tail
-    // Haxe: AiBase.makeStuff ~4080
-    // Haxe: makeStuff → doBasicFarming(2)
-    let farm = crate::do_basic_farming(
+    // 3) doBasicFarming(2) including mid doWatering(3) + isSheepHerding(1) + after_sheep
+    // Haxe: AiBase.makeStuff ~4080 / doBasicFarming ~2395
+    let has_basic = has_or_become_profession(
+        farm_rt,
+        FarmProfession::BasicFarmer,
+        crate::BASIC_FARM_DEFAULT_MAX_PROFESSION,
+        farm_scan_peer_count(inp, FarmProfession::BasicFarmer),
+        inp.was_idle,
+    );
+    let farm = crate::do_basic_farming_ex(
         &farm_counts,
         farm_task,
-        true,
+        has_basic,
         crate::BASIC_FARM_DEFAULT_MAX_PROFESSION,
+        Some((
+            farm_rt,
+            farm_scan_peer_count(inp, FarmProfession::WaterBringer),
+            inp.was_idle,
+        )),
     );
     if farm.is_some() {
         let r = farm_action_to_live_intent(tiles, inp, farm, farm_rt);
@@ -133,6 +144,7 @@ pub fn make_stuff_scan_tick(
             )
         });
         fire_counts.has_corn_seeds = has_corn;
+        fire_counts.is_best_bowl_filler = inp.is_best_bowl_filler;
         let action = crate::make_fire_food(
             &fire_counts,
             fire_rt,
@@ -214,21 +226,14 @@ pub fn fire_food_action_to_live_intent(
                     crate::FIRE_FOOD_HOME_RADIUS,
                 )
             });
-            let new_actor_count = tiles
-                .iter()
-                .filter(|t| t.parent_id == actor)
-                .filter(|t| {
-                    scan_chebyshev(inp.player_x, inp.player_y, t.x, t.y)
-                        <= crate::FIRE_FOOD_HOME_RADIUS
-                })
-                .count() as i32;
+            let new_actor_count = short_craft_scan_new_actor_count(tiles, inp, actor, target);
             let apply = bake_action_short_craft_apply_ex(
                 BakeAction::ShortCraft { actor, target },
                 inp.held_id,
                 new_actor_count,
                 -1,
                 inp.food_store,
-                inp.transition_hungry_cost,
+                short_craft_pair_hungry_cost(inp, actor, target),
             )
             .unwrap_or(ShortCraftApply::Refuse);
             if matches!(apply, ShortCraftApply::RefuseHungry) {

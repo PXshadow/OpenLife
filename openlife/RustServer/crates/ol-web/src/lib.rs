@@ -1039,7 +1039,12 @@ ul{{padding-left:1.2rem}}
 <p><strong>id</strong> {id} · <strong>generation</strong> {gen}<br/>
 <strong>mother</strong> {mother} · <strong>father</strong> {father}<br/>
 <strong>prestige</strong> {prestige:.1} ({pclass})<br/>
-<strong>age</strong> {age} · <strong>food</strong> {food} · <strong>pos</strong> {pos}
+<strong>prestige from</strong> eating {from_eating:.1} · children {from_children:.1} · grandkids {from_grandkids:.1}<br/>
+<strong></strong> parents {from_parents:.1} · siblings {from_siblings:.1} · followers {from_followers:.1} · wealth {from_wealth:.1}<br/>
+<strong>eve</strong> {eve} · <strong>alive</strong> {alive}<br/>
+<strong>age</strong> {age} · <strong>food</strong> {food} · <strong>pos</strong> {pos}<br/>
+<strong>last said</strong> {last_said}<br/>
+<strong>death</strong> {death}
 </p>
 </div>
 </div>
@@ -1062,6 +1067,29 @@ Face sprites from free OneLifeData7 <code>faces/</code> when present (safe basen
         father = father,
         prestige = e.prestige,
         pclass = html_escape(&e.prestige_class),
+        from_eating = e.prestige_from_eating,
+        from_children = e.prestige_from_children,
+        from_grandkids = e.prestige_from_grandkids,
+        from_parents = e.prestige_from_parents,
+        from_siblings = e.prestige_from_siblings,
+        from_followers = e.prestige_from_followers,
+        from_wealth = e.prestige_from_wealth,
+        eve = if e.my_eve_id > 0 {
+            format!("<a href=\"/character?id={}\">#{}</a>", e.my_eve_id, e.my_eve_id)
+        } else {
+            "—".into()
+        },
+        alive = if e.alive { "yes" } else { "no" },
+        last_said = if e.last_said.is_empty() {
+            "—".into()
+        } else {
+            html_escape(&e.last_said)
+        },
+        death = if e.death_reason.is_empty() {
+            "—".into()
+        } else {
+            format!("{} @ {:.0}s age {:.1}", html_escape(&e.death_reason), e.death_sim_time, e.age_at_death)
+        },
         age = age_s,
         food = food_s,
         pos = pos_s,

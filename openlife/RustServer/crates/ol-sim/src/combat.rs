@@ -19,7 +19,8 @@
 //! - `resolve_hit_full` applies hits + exhaustion recompute death (`food_max < 0`)
 
 use crate::food_store_max::{
-    apply_damage_food_pipe, calculate_not_reduced_food_store_max, DEATH_WITH_FOOD_STORE_MAX,
+    apply_damage_food_pipe_ex, calculate_not_reduced_food_store_max, FoodStoreMaxKnobs,
+    DEATH_WITH_FOOD_STORE_MAX,
 };
 use crate::move_live_gates::calculate_distance_sq;
 use crate::prestige::PrestigeClass;
@@ -106,6 +107,90 @@ pub fn cursed_make_damage_mul(attacker_is_cursed: bool, factor: f32) -> f32 {
         factor
     } else {
         CURSED_MAKE_DAMAGE_FACTOR
+    }
+}
+
+/// Haxe `ServerSettings.EveDamageFactor` — Eve/Adam DoDamage mult (default 1).
+// Haxe: ServerSettings.EveDamageFactor = 1
+// SETTINGS-LONG-TAIL
+pub const EVE_DAMAGE_FACTOR: f32 = 1.0;
+
+/// Damage mult when this body is Eve/Adam (else 1.0). Live factor override.
+// Haxe: GlobalPlayerInstance.DoDamage L4630 / L4667
+// SETTINGS-LONG-TAIL
+#[inline]
+pub fn eve_damage_mul(is_eve_or_adam: bool, factor: f32) -> f32 {
+    if !is_eve_or_adam {
+        return 1.0;
+    }
+    if factor.is_finite() && factor >= 0.0 {
+        factor
+    } else {
+        EVE_DAMAGE_FACTOR
+    }
+}
+
+/// Haxe applies EveDamageFactor to attacker (if any) and again to the target.
+// Haxe: DoDamage L4630 attacker × L4667 target
+#[inline]
+pub fn eve_pair_damage_mul(attacker_is_eve: bool, target_is_eve: bool, factor: f32) -> f32 {
+    eve_damage_mul(attacker_is_eve, factor) * eve_damage_mul(target_is_eve, factor)
+}
+
+/// Haxe `ServerSettings.TargetWoundedDamageFactor` — already-wounded target DoDamage.
+// Haxe: ServerSettings.TargetWoundedDamageFactor = 0.2
+// SETTINGS-LONG-TAIL
+pub const TARGET_WOUNDED_DAMAGE_FACTOR: f32 = 0.2;
+
+/// Damage mult when target `isWounded()` (held wound ≠ hidden). Else 1.0.
+// Haxe: GlobalPlayerInstance.DoDamage L4669
+// SETTINGS-LONG-TAIL
+#[inline]
+pub fn target_wounded_damage_mul(target_is_wounded: bool, factor: f32) -> f32 {
+    if !target_is_wounded {
+        return 1.0;
+    }
+    if factor.is_finite() && factor >= 0.0 {
+        factor
+    } else {
+        TARGET_WOUNDED_DAMAGE_FACTOR
+    }
+}
+
+/// Haxe `ServerSettings.MaleDamageFactor` — male attacker DoDamage.
+// Haxe: ServerSettings.MaleDamageFactor = 1.2
+// SETTINGS-LONG-TAIL
+pub const MALE_DAMAGE_FACTOR: f32 = 1.2;
+
+/// Damage mult when attacker `isMale()` (else 1.0). Live factor override.
+// Haxe: GlobalPlayerInstance.DoDamage L4623
+// SETTINGS-LONG-TAIL
+#[inline]
+pub fn male_damage_mul(attacker_is_male: bool, factor: f32) -> f32 {
+    if !attacker_is_male {
+        return 1.0;
+    }
+    if factor.is_finite() && factor >= 0.0 {
+        factor
+    } else {
+        MALE_DAMAGE_FACTOR
+    }
+}
+
+/// Haxe `ServerSettings.WeaponDamageFactor` — player-attacker DoDamage.
+// Haxe: ServerSettings.WeaponDamageFactor = 1
+// SETTINGS-LONG-TAIL
+pub const WEAPON_DAMAGE_FACTOR: f32 = 1.0;
+
+/// Damage mult for HIT `attacker != null` weapon branch. Live factor override.
+// Haxe: GlobalPlayerInstance.DoDamage L4590
+// SETTINGS-LONG-TAIL
+#[inline]
+pub fn weapon_damage_mul(factor: f32) -> f32 {
+    if factor.is_finite() && factor >= 0.0 {
+        factor
+    } else {
+        WEAPON_DAMAGE_FACTOR
     }
 }
 
@@ -582,20 +667,9 @@ impl CombatState {
         max_range: i32,
     ) -> HitResult {
         self.resolve_hit_damaged(
-            killer,
-            target,
-            killer_x,
-            killer_y,
-            target_x,
-            target_y,
-            legal,
-            max_range,
+            killer, target, killer_x, killer_y, target_x, target_y, legal, max_range,
             1.0, // default bare-hand damage path uses wound stacks primarily
-            0.0,
-            0.0,
-            1.0,
-            20.0,
-            0,
+            0.0, 0.0, 1.0, 20.0, 0,
             0.5, // fixed mid roll for deterministic tests / simple path
         )
         .0
@@ -657,13 +731,7 @@ impl CombatState {
 
     /// DoDamage-style hit with hits + exhaustion recompute for combat death.
     ///
-    /// - Caps damage with [`calculate_not_reduced_food_store_max`]
-    /// - Accumulates hits (if `real_damage`) and returns exhaustion/food_max after pipe
-    /// - Kill when wound ≥ threshold, hits ≥ [`HITS_KILL_THRESHOLD`], or
-    ///   recomputed `food_store_max < 0` (Haxe DoDamage)
-    ///
-    /// Caller must apply `exhaustion_after` / `food_store_max` onto the target
-    /// [`crate::player::Player`] (and attacker combat exhaustion cost separately).
+    /// Module [`FoodStoreMaxKnobs::default`]. Live HIT uses [`Self::resolve_hit_full_ex`].
     // Haxe: GlobalPlayerInstance.DoDamage + calculateFoodStoreMax
     #[allow(clippy::too_many_arguments)]
     pub fn resolve_hit_full(
@@ -688,12 +756,73 @@ impl CombatState {
         health_factor: f32,
         real_damage: bool,
     ) -> (HitResult, f32, DamagePipeSnapshot) {
+        self.resolve_hit_full_ex(
+            killer,
+            target,
+            killer_x,
+            killer_y,
+            target_x,
+            target_y,
+            legal,
+            max_range,
+            org_damage,
+            clothing_insulation,
+            floor_insulation,
+            weapon_protection,
+            weapon_id,
+            rng01,
+            target_age,
+            target_food,
+            target_exhaustion,
+            health_factor,
+            real_damage,
+            FoodStoreMaxKnobs::default(),
+        )
+    }
+
+    /// [`Self::resolve_hit_full`] with live GrownUp/NewBorn/OldAge food-max knobs.
+    ///
+    /// - Caps damage with [`calculate_not_reduced_food_store_max`]
+    /// - Accumulates hits (if `real_damage`) and returns exhaustion/food_max after pipe
+    /// - Kill when wound ≥ threshold, hits ≥ [`HITS_KILL_THRESHOLD`], or
+    ///   recomputed `food_store_max < 0` (Haxe DoDamage)
+    ///
+    /// Caller must apply `exhaustion_after` / `food_store_max` onto the target
+    /// [`crate::player::Player`] (and attacker combat exhaustion cost separately).
+    // Haxe: GlobalPlayerInstance.DoDamage + calculateFoodStoreMax + ServerSettings.*FoodStoreMax
+    // C-SS-AGE-FOOD-COMBAT
+    #[allow(clippy::too_many_arguments)]
+    pub fn resolve_hit_full_ex(
+        &mut self,
+        killer: i32,
+        target: i32,
+        killer_x: i32,
+        killer_y: i32,
+        target_x: i32,
+        target_y: i32,
+        legal: bool,
+        max_range: i32,
+        org_damage: f32,
+        clothing_insulation: f32,
+        floor_insulation: f32,
+        weapon_protection: f32,
+        weapon_id: i32,
+        rng01: f32,
+        target_age: f32,
+        target_food: f32,
+        target_exhaustion: f32,
+        health_factor: f32,
+        real_damage: bool,
+        knobs: FoodStoreMaxKnobs,
+    ) -> (HitResult, f32, DamagePipeSnapshot) {
         let empty = DamagePipeSnapshot::default();
         if killer == target {
             return (HitResult::Miss, 0.0, empty);
         }
-        let dist = Self::chebyshev(killer_x, killer_y, target_x, target_y);
-        if dist > max_range {
+        // Haxe `isClose` / killHelper exactQuad: dx²+dy² <= max_range² (not Chebyshev)
+        let dx = killer_x - target_x;
+        let dy = killer_y - target_y;
+        if dx * dx + dy * dy > max_range * max_range {
             return (HitResult::Miss, 0.0, empty);
         }
         let base = Self::roll_base_damage(org_damage, rng01);
@@ -706,7 +835,7 @@ impl CombatState {
         // Haxe: cap vs calculateNotReducedFoodStoreMax, not live reduced max
         let damage = Self::cap_damage_default(raw);
         let hits_before = self.hits_of(target);
-        let pipe = apply_damage_food_pipe(
+        let pipe = apply_damage_food_pipe_ex(
             target_age,
             target_food,
             hits_before,
@@ -714,6 +843,7 @@ impl CombatState {
             damage,
             health_factor,
             real_damage,
+            knobs,
         );
         if real_damage {
             self.apply_hits(target, damage, weapon_id);
@@ -885,16 +1015,18 @@ mod tests {
     fn ally_strength_live_radius_excludes_mid_range() {
         let players = [player(2, 3, 0, 100.0, true, true, false, true)];
         // Default radius 5 includes dx=3
-        let f_def =
-            calculate_enemy_vs_ally_strength_factor(0, 0, &players, true, 100, 100, false);
+        let f_def = calculate_enemy_vs_ally_strength_factor(0, 0, &players, true, 100, 100, false);
         assert!(f_def > 1.0);
         // Radius 1 excludes dx=3
-        let f_tight = calculate_enemy_vs_ally_strength_factor_ex(
-            0, 0, &players, true, 100, 100, false, 1.0,
-        );
+        let f_tight =
+            calculate_enemy_vs_ally_strength_factor_ex(0, 0, &players, true, 100, 100, false, 1.0);
         assert!((f_tight - 1.0).abs() < 1e-5);
-        assert!(!is_close_for_ally_strength_ex(0, 0, 3, 0, 100, 100, false, 1.0));
-        assert!(is_close_for_ally_strength_ex(0, 0, 3, 0, 100, 100, false, 5.0));
+        assert!(!is_close_for_ally_strength_ex(
+            0, 0, 3, 0, 100, 100, false, 1.0
+        ));
+        assert!(is_close_for_ally_strength_ex(
+            0, 0, 3, 0, 100, 100, false, 5.0
+        ));
     }
 
     #[test]
@@ -906,8 +1038,8 @@ mod tests {
     #[test]
     fn make_angry_close_allies_only() {
         let players = [
-            player(1, 0, 0, 20.0, false, true, true, true),  // self ally
-            player(2, 1, 0, 20.0, false, true, true, true),  // close ally
+            player(1, 0, 0, 20.0, false, true, true, true), // self ally
+            player(2, 1, 0, 20.0, false, true, true, true), // close ally
             player(3, 2, 0, 20.0, false, false, false, false), // close non-ally
             player(4, 10, 0, 20.0, false, true, true, true), // far ally
         ];
@@ -952,17 +1084,23 @@ mod tests {
         let mut c = CombatState::default();
         assert_eq!(c.prestige_class(1), PrestigeClass::Serf);
         c.stats_mut(1).prestige = 60.0;
-        assert_eq!(c.stats.get(&1).unwrap().prestige_class(), PrestigeClass::Noble);
+        assert_eq!(
+            c.stats.get(&1).unwrap().prestige_class(),
+            PrestigeClass::Noble
+        );
     }
 
     #[test]
     fn hit_out_of_range_is_miss() {
         let mut c = CombatState::default();
-        // Chebyshev 3 > KILL_RANGE 2
+        // squared 9 > KILL_RANGE² 4
         let r = c.resolve_hit(1, 2, 0, 0, 3, 0, true, KILL_RANGE);
         assert_eq!(r, HitResult::Miss);
         assert_eq!(c.wound_of(2), 0);
         assert_eq!(c.stats.get(&1).map(|s| s.kills).unwrap_or(0), 0);
+        // Chebyshev 2 would hit (2,2); isClose d=2 is 8 > 4 → miss
+        let r2 = c.resolve_hit(1, 2, 0, 0, 2, 2, true, KILL_RANGE);
+        assert_eq!(r2, HitResult::Miss);
     }
 
     #[test]
@@ -1050,7 +1188,7 @@ mod tests {
     fn bow_hit_reaches_distance_8() {
         let mut c = CombatState::default();
         let range = 8; // bow
-        // Distance 5 misses with default, hits with bow.
+                       // Distance 5 misses with default, hits with bow.
         assert_eq!(
             c.resolve_hit(1, 2, 0, 0, 5, 0, true, KILL_RANGE),
             HitResult::Miss
@@ -1094,17 +1232,15 @@ mod tests {
     fn damaged_hit_applies_hits_and_clothing() {
         let mut c = CombatState::default();
         // High clothing + shield → less damage than bare.
-        let (r_bare, d_bare) = c.resolve_hit_damaged(
-            1, 2, 0, 0, 0, 0, true, 2, 4.0, 0.0, 0.0, 1.0, 20.0, 99, 1.0,
-        );
+        let (r_bare, d_bare) =
+            c.resolve_hit_damaged(1, 2, 0, 0, 0, 0, true, 2, 4.0, 0.0, 0.0, 1.0, 20.0, 99, 1.0);
         assert!(matches!(r_bare, HitResult::Wound(1)));
         assert!(d_bare > 0.0);
         let hits_bare = c.hits_of(2);
 
         let mut c2 = CombatState::default();
-        let (_r, d_arm) = c2.resolve_hit_damaged(
-            1, 2, 0, 0, 0, 0, true, 2, 4.0, 1.5, 0.5, 0.5, 20.0, 99, 1.0,
-        );
+        let (_r, d_arm) =
+            c2.resolve_hit_damaged(1, 2, 0, 0, 0, 0, true, 2, 4.0, 1.5, 0.5, 0.5, 20.0, 99, 1.0);
         assert!(d_arm < d_bare, "clothing+shield must reduce damage");
         assert!(c2.hits_of(2) < hits_bare);
     }
@@ -1114,9 +1250,8 @@ mod tests {
         let mut c = CombatState::default();
         // Pre-load hits so one capped strike (11) crosses HITS_KILL_THRESHOLD (12).
         c.apply_hits(2, 2.0, 0);
-        let (r, d) = c.resolve_hit_damaged(
-            1, 2, 0, 0, 0, 0, true, 2, 30.0, 0.0, 0.0, 1.0, 20.0, 5, 1.0,
-        );
+        let (r, d) =
+            c.resolve_hit_damaged(1, 2, 0, 0, 0, 0, true, 2, 30.0, 0.0, 0.0, 1.0, 20.0, 5, 1.0);
         assert_eq!(r, HitResult::Kill);
         assert!(d > 0.0);
         assert_eq!(c.stats.get(&1).unwrap().kills, 1);
@@ -1159,22 +1294,59 @@ mod tests {
         assert_eq!(r, HitResult::Kill);
     }
 
+    /// C-SS-AGE-FOOD-COMBAT: live NewBornFoodStoreMax changes DoDamage food_max.
+    // Haxe: ServerSettings.NewBornFoodStoreMax
+    #[test]
+    fn resolve_hit_full_ex_live_newborn_food_max() {
+        let knobs = crate::food_store_max::FoodStoreMaxKnobs {
+            newborn: 8.0,
+            ..crate::food_store_max::FoodStoreMaxKnobs::default()
+        };
+        let mut c = CombatState::default();
+        let (_r, d, snap) = c.resolve_hit_full_ex(
+            1, 2, 0, 0, 0, 0, true, 2, 4.0, 0.0, 0.0, 1.0, 99, 1.0, 0.0, 4.0, 0.0, 1.0, true,
+            knobs,
+        );
+        // rng01=1 → roll = org/2 + org = 6
+        assert!((d - 6.0).abs() < 1e-4);
+        let expected = crate::food_store_max_from_parts_ex(
+            0.0,
+            4.0,
+            snap.hits_after,
+            snap.exhaustion_after,
+            1.0,
+            knobs,
+        );
+        assert!((snap.food_store_max - expected).abs() < 1e-4);
+        let default_max = crate::food_store_max_from_parts(
+            0.0,
+            4.0,
+            snap.hits_after,
+            snap.exhaustion_after,
+            1.0,
+        );
+        assert!(
+            (snap.food_store_max - default_max).abs() > 0.5,
+            "live newborn 8 vs default 4: live={} default={}",
+            snap.food_store_max,
+            default_max
+        );
+    }
+
     #[test]
     fn ally_factor_halves_org_damage_path() {
         // Same roll: org 4 * 0.5 vs org 4 * 1.0 → half applied before protection.
         let mut c_half = CombatState::default();
         let org = 4.0 * resolve_ally_damage_factor(true, 1.0);
-        let (_, d_half) = c_half.resolve_hit_damaged(
-            1, 2, 0, 0, 0, 0, true, 2, org, 0.0, 0.0, 1.0, 40.0, 1, 1.0,
-        );
+        let (_, d_half) =
+            c_half.resolve_hit_damaged(1, 2, 0, 0, 0, 0, true, 2, org, 0.0, 0.0, 1.0, 40.0, 1, 1.0);
         let mut c_full = CombatState::default();
-        let (_, d_full) = c_full.resolve_hit_damaged(
-            1, 2, 0, 0, 0, 0, true, 2, 4.0, 0.0, 0.0, 1.0, 40.0, 1, 1.0,
-        );
+        let (_, d_full) =
+            c_full.resolve_hit_damaged(1, 2, 0, 0, 0, 0, true, 2, 4.0, 0.0, 0.0, 1.0, 40.0, 1, 1.0);
         assert!((d_half * 2.0 - d_full).abs() < 1e-4);
     }
 
-    /// C-SS-MORE-BATCH4: cursed receive/make damage muls.
+    /// C-SS-MORE-BATCH4 + SETTINGS-LONG-TAIL: cursed receive/make damage muls (HIT org_damage).
     // Haxe: GlobalPlayerInstance.DoDamage L4628-4629
     #[test]
     fn cursed_damage_mul_defaults_and_live() {
@@ -1192,6 +1364,62 @@ mod tests {
             * cursed_receive_damage_mul(true, CURSED_RECEIVE_DAMAGE_FACTOR)
             * cursed_make_damage_mul(true, CURSED_MAKE_DAMAGE_FACTOR);
         assert!((org - 1.2).abs() < 1e-4);
+    }
+
+    /// SETTINGS-LONG-TAIL: Eve/Adam DoDamage muls (attacker and target each apply).
+    // Haxe: GlobalPlayerInstance.DoDamage L4630 / L4667
+    #[test]
+    fn eve_damage_mul_defaults_and_live() {
+        assert!((eve_damage_mul(false, 0.5) - 1.0).abs() < 1e-6);
+        assert!((eve_damage_mul(true, 0.5) - 0.5).abs() < 1e-6);
+        assert!((eve_damage_mul(true, 1.0) - 1.0).abs() < 1e-6);
+        assert!((eve_damage_mul(true, f32::NAN) - EVE_DAMAGE_FACTOR).abs() < 1e-6);
+        assert!((eve_pair_damage_mul(true, false, 0.5) - 0.5).abs() < 1e-6);
+        assert!((eve_pair_damage_mul(false, true, 0.5) - 0.5).abs() < 1e-6);
+        assert!((eve_pair_damage_mul(true, true, 0.5) - 0.25).abs() < 1e-6);
+        assert!((eve_pair_damage_mul(false, false, 0.5) - 1.0).abs() < 1e-6);
+        let org = 4.0 * eve_pair_damage_mul(true, true, 0.5);
+        assert!((org - 1.0).abs() < 1e-4);
+    }
+
+    /// SETTINGS-LONG-TAIL: wounded target DoDamage mul (Haxe isWounded).
+    // Haxe: GlobalPlayerInstance.DoDamage L4669
+    #[test]
+    fn target_wounded_damage_mul_defaults_and_live() {
+        assert!((target_wounded_damage_mul(false, 0.2) - 1.0).abs() < 1e-6);
+        assert!((target_wounded_damage_mul(true, 0.2) - 0.2).abs() < 1e-6);
+        assert!((target_wounded_damage_mul(true, 0.5) - 0.5).abs() < 1e-6);
+        assert!((target_wounded_damage_mul(true, 0.0) - 0.0).abs() < 1e-6);
+        assert!(
+            (target_wounded_damage_mul(true, f32::NAN) - TARGET_WOUNDED_DAMAGE_FACTOR).abs() < 1e-6
+        );
+        let org = 4.0 * target_wounded_damage_mul(true, TARGET_WOUNDED_DAMAGE_FACTOR);
+        assert!((org - 0.8).abs() < 1e-4);
+    }
+
+    /// SETTINGS-LONG-TAIL: male attacker DoDamage mul (Haxe isMale).
+    // Haxe: GlobalPlayerInstance.DoDamage L4623
+    #[test]
+    fn male_damage_mul_defaults_and_live() {
+        assert!((male_damage_mul(false, 1.2) - 1.0).abs() < 1e-6);
+        assert!((male_damage_mul(true, 1.2) - 1.2).abs() < 1e-6);
+        assert!((male_damage_mul(true, 2.0) - 2.0).abs() < 1e-6);
+        assert!((male_damage_mul(true, 0.0) - 0.0).abs() < 1e-6);
+        assert!((male_damage_mul(true, f32::NAN) - MALE_DAMAGE_FACTOR).abs() < 1e-6);
+        let org = 4.0 * male_damage_mul(true, MALE_DAMAGE_FACTOR);
+        assert!((org - 4.8).abs() < 1e-4);
+    }
+
+    /// SETTINGS-LONG-TAIL: player-attacker WeaponDamageFactor (Haxe default 1).
+    // Haxe: GlobalPlayerInstance.DoDamage L4590
+    #[test]
+    fn weapon_damage_mul_defaults_and_live() {
+        assert!((weapon_damage_mul(1.0) - 1.0).abs() < 1e-6);
+        assert!((weapon_damage_mul(1.5) - 1.5).abs() < 1e-6);
+        assert!((weapon_damage_mul(0.0) - 0.0).abs() < 1e-6);
+        assert!((weapon_damage_mul(f32::NAN) - WEAPON_DAMAGE_FACTOR).abs() < 1e-6);
+        let org = 4.0 * weapon_damage_mul(WEAPON_DAMAGE_FACTOR);
+        assert!((org - 4.0).abs() < 1e-4);
     }
 
     #[test]

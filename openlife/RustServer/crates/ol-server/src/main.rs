@@ -27,7 +27,7 @@ use ol_metrics::Counters;
 use ol_net::{run_game_listener, NetConfig, OutboundHub};
 use ol_sim::{
     build_reverse_craft_graph_capped, load_accounts, load_lineages, load_score_entries,
-    load_players, load_war_posse, new_llm_speech_io_share, run_sim_loop_with_views, save_accounts, save_lineages,
+    load_players, load_war_posse, new_blocked_by_ai_share, new_llm_speech_io_share, run_sim_loop_with_views, save_accounts, save_lineages,
     save_players, save_score_entries, save_war_posse, write_food_statistics, write_object_counts, AccountBook, AnimalSnapshot, AnimalWorld,
     PlayersSnapshot, PrestigeSnapshot, SimBootLive, SocialState, TreasurySnapshot, TwinRegistry,
     WarPosseSnapshot, WeatherSnapshot, ObjectCountsSnapshot, WorldFoodStats,
@@ -262,6 +262,8 @@ async fn main() {
     info!(status = %llm_env.debug_status(), "LLM env loaded");
     // AI-LLM-HTTP-DRAIN: shared job/result queues (sim ↔ HTTP worker)
     let llm_speech_share = new_llm_speech_io_share();
+    // NPC-SCAN-FULL: live blockedByAI share (sim rebuild ↔ NPC think thread)
+    let blocked_by_ai_share = new_blocked_by_ai_share();
 
     let counters = Arc::new(Counters::new());
     counters.mark_start_now();
@@ -626,6 +628,8 @@ async fn main() {
             object_counts_share: Some(Arc::clone(&shared_object_counts)),
             // AI-LLM-HTTP-DRAIN: speech job/result bridge for call_ai_async worker
             llm_speech_share: Some(Arc::clone(&llm_speech_share)),
+            // NPC-SCAN-FULL: live blockedByAI for NPC isObjectNotReachable OR
+            blocked_by_ai_share: Some(Arc::clone(&blocked_by_ai_share)),
         };
         let death_for_sim = Arc::clone(&death_log);
         // Run sim on a dedicated OS thread so heavy tick work cannot starve the
@@ -772,6 +776,9 @@ async fn main() {
         let counters = Arc::clone(&counters);
         let activity = Arc::clone(&npc_activity);
         let craft_graph_npc = Arc::clone(&craft_graph);
+        let blocked_for_npc = Arc::clone(&blocked_by_ai_share);
+        let env_for_npc = Arc::clone(&env_view);
+        let animals_for_npc = Arc::clone(&animals_share);
         handles.push(tokio::spawn(async move {
             npc_ai::run_npc_scheduler(
                 live_for_npc,
@@ -782,6 +789,9 @@ async fn main() {
                 counters,
                 activity,
                 craft_graph_npc,
+                blocked_for_npc,
+                env_for_npc,
+                animals_for_npc,
             )
             .await;
         }));

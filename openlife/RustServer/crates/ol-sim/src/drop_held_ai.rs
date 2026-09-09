@@ -254,9 +254,7 @@ impl DropHeldDecision {
             Self::SelfClothing { slot } => ShortCraftLiveIntent::SelfClothing { slot },
             // Haxe: shortCraft(actor, target, …, craftActor) when target not tile-resolved
             Self::PreferShortCraft {
-                actor,
-                craft_actor,
-                ..
+                actor, craft_actor, ..
             } => ShortCraftLiveIntent::SeekOrCraft {
                 actor,
                 craft_if_needed: craft_actor,
@@ -474,10 +472,8 @@ impl QuiverClothing {
                 _ => {}
             }
         }
-        let has_quiver = q.empty_quiver
-            || q.arrow_quiver
-            || q.empty_quiver_with_bow
-            || q.quiver_with_bow;
+        let has_quiver =
+            q.empty_quiver || q.arrow_quiver || q.empty_quiver_with_bow || q.quiver_with_bow;
         q.can_add = has_quiver && can_add_to_quiver(q.quiver_uses, q.quiver_num_uses);
         q
     }
@@ -1007,8 +1003,7 @@ fn best_empty_or_container_drop(
             Some((bs, bd, bo, _)) => {
                 if score < bs
                     || (score == bs
-                        && (cheb < bd
-                            || (cheb == bd && (ey < bo.y || (ey == bo.y && ex < bo.x)))))
+                        && (cheb < bd || (cheb == bd && (ey < bo.y || (ey == bo.y && ex < bo.x)))))
                 {
                     best = Some((score, cheb, empty, false));
                 }
@@ -1019,7 +1014,43 @@ fn best_empty_or_container_drop(
     best.map(|(_, _, t, is_c)| (t, is_c))
 }
 
+/// Haxe `shortCraftOnTarget` CountCloseObjects radius for maxNewActor.
+// Haxe: AiBase.shortCraftOnTarget ~2755 CountCloseObjects(..., 30)
+pub const SHORT_CRAFT_NEW_ACTOR_COUNT_RADIUS: i32 = 30;
+
+/// Haxe `GetTransition(actor, target).newActorID`.
+// Haxe: TransitionImporter.GetTransition(actorId, target.parentId)
+pub fn short_craft_transition_new_actor(
+    content: &ol_content::ContentDb,
+    actor: i32,
+    target: i32,
+) -> Option<i32> {
+    content.find_transition(actor, target).map(|t| t.new_actor_id)
+}
+
+/// Nearby `newActor` count + held match (Haxe maxNewActor gate).
+// Haxe: CountCloseObjects(newActorID, 30) + (held == newActorID)
+pub fn count_short_craft_new_actor(
+    tiles: &[ScanTile],
+    px: i32,
+    py: i32,
+    held_id: i32,
+    new_actor_id: i32,
+) -> i32 {
+    let near = count_near(tiles, px, py, new_actor_id, SHORT_CRAFT_NEW_ACTOR_COUNT_RADIUS);
+    crate::farmer_profession::new_actor_count_with_held(near, held_id, new_actor_id)
+}
+
+/// True when maxNewActor > 0 and nearby newActor is already at cap.
+// Haxe: if (countActor >= maxNewActor) return false
+pub fn max_new_actor_refuses(max_new_actor: i32, new_actor_count: i32) -> bool {
+    max_new_actor > 0 && new_actor_count >= max_new_actor
+}
+
 /// Prefer shortCraft if target id exists in scan within `max_search`.
+///
+/// When `max_new_actor > 0` and `content` has a transition, count
+/// `trans.newActorID` (r=30) and skip if at cap (Haxe shortCraftOnTarget).
 fn prefer_short_if_present(
     tiles: &[ScanTile],
     actor: i32,
@@ -1029,22 +1060,44 @@ fn prefer_short_if_present(
     max_search: i32,
     craft_actor: bool,
     max_new_actor: i32,
+    held_id: i32,
+    content: Option<&ol_content::ContentDb>,
 ) -> Option<DropHeldDecision> {
-    if closest_by_parent_id(tiles, target, from_x, from_y, max_search).is_some() {
-        return Some(DropHeldDecision::PreferShortCraft {
-            actor,
-            target,
-            max_search,
-            craft_actor,
-            max_new_actor,
-        });
+    if closest_by_parent_id(tiles, target, from_x, from_y, max_search).is_none() {
+        return None;
     }
-    None
+    if max_new_actor > 0 {
+        if let Some(db) = content {
+            if let Some(new_id) = short_craft_transition_new_actor(db, actor, target) {
+                let count = count_short_craft_new_actor(tiles, from_x, from_y, held_id, new_id);
+                if max_new_actor_refuses(max_new_actor, count) {
+                    return None;
+                }
+            }
+        }
+    }
+    Some(DropHeldDecision::PreferShortCraft {
+        actor,
+        target,
+        max_search,
+        craft_actor,
+        max_new_actor,
+    })
 }
 
-/// Core pure dropHeldObject planner.
+/// Core pure dropHeldObject planner (no content → maxNewActor gate skipped).
 // Haxe: AiBase.dropHeldObject ~5267–5649
 pub fn drop_held_object(inp: DropHeldInput, tiles: &[ScanTile]) -> DropHeldDecision {
+    drop_held_object_ex(inp, tiles, None)
+}
+
+/// dropHeldObject with ContentDb for `GetTransition(...).newActorID` maxNewActor.
+// Haxe: AiBase.shortCraftOnTarget ~2749 CountCloseObjects(trans.newActorID, 30)
+pub fn drop_held_object_ex(
+    inp: DropHeldInput,
+    tiles: &[ScanTile],
+    content: Option<&ol_content::ContentDb>,
+) -> DropHeldDecision {
     let held = inp.held_id;
     if held <= 0 {
         return DropHeldDecision::None;
@@ -1070,7 +1123,7 @@ pub fn drop_held_object(inp: DropHeldInput, tiles: &[ScanTile]) -> DropHeldDecis
         return d;
     }
 
-    if let Some(d) = special_held_actions(inp, tiles) {
+    if let Some(d) = special_held_actions(inp, tiles, content) {
         return d;
     }
 
@@ -1104,14 +1157,9 @@ pub fn drop_held_object(inp: DropHeldInput, tiles: &[ScanTile]) -> DropHeldDecis
             };
             if dist_q > 400 {
                 // Haxe: prefer basket containing clay [126], else any basket
-                if let Some(b) = closest_with_contains(
-                    tiles,
-                    BASKET,
-                    inp.player_x,
-                    inp.player_y,
-                    10,
-                    CLAY,
-                ) {
+                if let Some(b) =
+                    closest_with_contains(tiles, BASKET, inp.player_x, inp.player_y, 10, CLAY)
+                {
                     return DropHeldDecision::UseAt {
                         x: b.x,
                         y: b.y,
@@ -1160,10 +1208,7 @@ pub fn drop_held_object(inp: DropHeldInput, tiles: &[ScanTile]) -> DropHeldDecis
                 return DropHeldDecision::DropAt { x: ex, y: ey };
             }
             if let Some(sw) = closest_switch_tile(tiles, kx, ky, held, 20) {
-                return DropHeldDecision::DropAt {
-                    x: sw.x,
-                    y: sw.y,
-                };
+                return DropHeldDecision::DropAt { x: sw.x, y: sw.y };
             }
         }
     }
@@ -1221,10 +1266,7 @@ pub fn drop_held_object(inp: DropHeldInput, tiles: &[ScanTile]) -> DropHeldDecis
                 return DropHeldDecision::DropAt { x: ex, y: ey };
             }
             if let Some(sw) = closest_switch_tile(tiles, target_x, target_y, held, 20) {
-                return DropHeldDecision::DropAt {
-                    x: sw.x,
-                    y: sw.y,
-                };
+                return DropHeldDecision::DropAt { x: sw.x, y: sw.y };
             }
         }
     }
@@ -1308,13 +1350,7 @@ pub fn drop_held_object(inp: DropHeldInput, tiles: &[ScanTile]) -> DropHeldDecis
                 search_distance,
                 0, // rely on tile.num_uses when known
             )
-            .and_then(|t| {
-                if t.is_full_uses() {
-                    None
-                } else {
-                    Some(t)
-                }
-            });
+            .and_then(|t| if t.is_full_uses() { None } else { Some(t) });
         }
 
         if new_drop.is_none() && pile_id > 0 {
@@ -1366,16 +1402,10 @@ pub fn drop_held_object(inp: DropHeldInput, tiles: &[ScanTile]) -> DropHeldDecis
 
         if let Some(t) = new_drop {
             if t.parent_id > 0 && t.parent_id == inp.last_new_target_id {
-                let opts =
-                    ClosestEmptyOpts::for_held(held, inp.anchors.home_x, inp.anchors.home_y);
-                new_drop = closest_empty_tile_ex(
-                    tiles,
-                    target_x,
-                    target_y,
-                    DROP_HELD_MAX_SEARCH,
-                    opts,
-                )
-                .map(|(x, y)| ScanTile::empty(x, y, 0, 0));
+                let opts = ClosestEmptyOpts::for_held(held, inp.anchors.home_x, inp.anchors.home_y);
+                new_drop =
+                    closest_empty_tile_ex(tiles, target_x, target_y, DROP_HELD_MAX_SEARCH, opts)
+                        .map(|(x, y)| ScanTile::empty(x, y, 0, 0));
                 drop_in_container = false;
             }
         }
@@ -1422,48 +1452,50 @@ pub fn drop_held_object(inp: DropHeldInput, tiles: &[ScanTile]) -> DropHeldDecis
 pub const SKEWERED_RABBIT: i32 = 185;
 
 /// Special-case shortCraft / useHeld before spatial drop.
-fn special_held_actions(inp: DropHeldInput, tiles: &[ScanTile]) -> Option<DropHeldDecision> {
+fn special_held_actions(
+    inp: DropHeldInput,
+    tiles: &[ScanTile],
+    content: Option<&ol_content::ContentDb>,
+) -> Option<DropHeldDecision> {
     let held = inp.held_id;
     let px = inp.player_x;
     let py = inp.player_y;
+    let prefer = |actor, target, max_search, craft_actor, max_new_actor| {
+        prefer_short_if_present(
+            tiles,
+            actor,
+            target,
+            px,
+            py,
+            max_search,
+            craft_actor,
+            max_new_actor,
+            held,
+            content,
+        )
+    };
 
     // Haxe: considerDropHeldObject — Skewered Rabbit 185 + Hot Coals 85
     if held == SKEWERED_RABBIT {
-        if let Some(d) =
-            prefer_short_if_present(tiles, SKEWERED_RABBIT, HOT_COALS, px, py, 20, false, i32::MAX)
-        {
+        if let Some(d) = prefer(SKEWERED_RABBIT, HOT_COALS, 20, false, i32::MAX) {
             return Some(d);
         }
     }
 
     if held == RAW_MUTTON {
-        if let Some(d) =
-            prefer_short_if_present(tiles, RAW_MUTTON, HOT_ADOBE_OVEN, px, py, 10, false, 4)
-        {
+        if let Some(d) = prefer(RAW_MUTTON, HOT_ADOBE_OVEN, 10, false, 4) {
             return Some(d);
         }
-        if let Some(d) = prefer_short_if_present(tiles, RAW_MUTTON, HOT_COALS, px, py, 10, false, 4)
-        {
+        if let Some(d) = prefer(RAW_MUTTON, HOT_COALS, 10, false, 4) {
             return Some(d);
         }
     }
 
     if held == BOWL_OF_SOIL {
-        if let Some(d) =
-            prefer_short_if_present(tiles, BOWL_OF_SOIL, DYING_BUSH, px, py, 15, false, i32::MAX)
-        {
+        if let Some(d) = prefer(BOWL_OF_SOIL, DYING_BUSH, 15, false, i32::MAX) {
             return Some(d);
         }
-        if let Some(d) = prefer_short_if_present(
-            tiles,
-            BOWL_OF_SOIL,
-            HARDENED_ROW,
-            px,
-            py,
-            15,
-            false,
-            i32::MAX,
-        ) {
+        if let Some(d) = prefer(BOWL_OF_SOIL, HARDENED_ROW, 15, false, i32::MAX) {
             return Some(d);
         }
     }
@@ -1471,47 +1503,23 @@ fn special_held_actions(inp: DropHeldInput, tiles: &[ScanTile]) -> Option<DropHe
     if held == STONE_HOE && inp.food_store > 3.0 && inp.max_distance_to_home > 5.0 {
         let baskets = count_near(tiles, px, py, BASKET, 30);
         if baskets > 15 {
-            if let Some(d) =
-                prefer_short_if_present(tiles, STONE_HOE, BASKET, px, py, 15, true, i32::MAX)
-            {
+            if let Some(d) = prefer(STONE_HOE, BASKET, 15, true, i32::MAX) {
                 return Some(d);
             }
         }
-        if let Some(d) = prefer_short_if_present(
-            tiles,
-            STONE_HOE,
-            SHALLOW_TILLED_ROW,
-            px,
-            py,
-            15,
-            true,
-            i32::MAX,
-        ) {
+        if let Some(d) = prefer(STONE_HOE, SHALLOW_TILLED_ROW, 15, true, i32::MAX) {
             return Some(d);
         }
-        if let Some(d) =
-            prefer_short_if_present(tiles, STONE_HOE, FERTILE_SOIL, px, py, 15, true, i32::MAX)
-        {
+        if let Some(d) = prefer(STONE_HOE, FERTILE_SOIL, 15, true, i32::MAX) {
             return Some(d);
         }
     }
 
     if held == STEEL_HOE && inp.food_store > 2.0 && inp.max_distance_to_home > 5.0 {
-        if let Some(d) = prefer_short_if_present(
-            tiles,
-            STEEL_HOE,
-            SHALLOW_TILLED_ROW,
-            px,
-            py,
-            15,
-            false,
-            i32::MAX,
-        ) {
+        if let Some(d) = prefer(STEEL_HOE, SHALLOW_TILLED_ROW, 15, false, i32::MAX) {
             return Some(d);
         }
-        if let Some(d) =
-            prefer_short_if_present(tiles, STEEL_HOE, FERTILE_SOIL, px, py, 15, false, i32::MAX)
-        {
+        if let Some(d) = prefer(STEEL_HOE, FERTILE_SOIL, 15, false, i32::MAX) {
             return Some(d);
         }
     }
@@ -1565,31 +1573,13 @@ fn special_held_actions(inp: DropHeldInput, tiles: &[ScanTile]) -> Option<DropHe
     }
 
     if held == HOT_IRON_BLOOM_TONGS {
-        if let Some(d) = prefer_short_if_present(
-            tiles,
-            HOT_IRON_BLOOM_TONGS,
-            FLAT_ROCK,
-            px,
-            py,
-            10,
-            false,
-            i32::MAX,
-        ) {
+        if let Some(d) = prefer(HOT_IRON_BLOOM_TONGS, FLAT_ROCK, 10, false, i32::MAX) {
             return Some(d);
         }
     }
 
     if held == SHOVEL_OF_DUNG && inp.max_distance_to_home > 5.0 {
-        if let Some(d) = prefer_short_if_present(
-            tiles,
-            SHOVEL_OF_DUNG,
-            WET_COMPOST,
-            px,
-            py,
-            20,
-            false,
-            i32::MAX,
-        ) {
+        if let Some(d) = prefer(SHOVEL_OF_DUNG, WET_COMPOST, 20, false, i32::MAX) {
             return Some(d);
         }
     }
@@ -1598,16 +1588,7 @@ fn special_held_actions(inp: DropHeldInput, tiles: &[ScanTile]) -> Option<DropHe
         let count_wheat = count_near(tiles, px, py, RIPE_WHEAT, 20)
             + count_near(tiles, px, py, DRY_PLANTED_WHEAT, 20);
         if count_wheat < 10 {
-            if let Some(d) = prefer_short_if_present(
-                tiles,
-                BOWL_OF_WHEAT,
-                DEEP_TILLED_ROW,
-                px,
-                py,
-                20,
-                false,
-                i32::MAX,
-            ) {
+            if let Some(d) = prefer(BOWL_OF_WHEAT, DEEP_TILLED_ROW, 20, false, i32::MAX) {
                 return Some(d);
             }
         }
@@ -1647,10 +1628,7 @@ fn closest_switch_tile(
 
 /// Fill forge/kiln/well anchors from a scan around home when not pre-set.
 // Haxe: GetForge / GetKiln / getCloseWell
-pub fn fill_anchors_from_scan(
-    mut anchors: DropHeldAnchors,
-    tiles: &[ScanTile],
-) -> DropHeldAnchors {
+pub fn fill_anchors_from_scan(mut anchors: DropHeldAnchors, tiles: &[ScanTile]) -> DropHeldAnchors {
     if anchors.forge_xy().is_none() {
         if let Some(t) = tiles
             .iter()
@@ -1707,7 +1685,14 @@ pub fn consider_drop_held_object(
 ) -> bool {
     matches!(
         consider_drop_held_decision(
-            held_id, player_x, player_y, home_x, home_y, goto_x, goto_y, &[]
+            held_id,
+            player_x,
+            player_y,
+            home_x,
+            home_y,
+            goto_x,
+            goto_y,
+            &[]
         ),
         Some(_)
     )
@@ -1726,17 +1711,7 @@ pub fn consider_drop_held_decision(
     tiles: &[ScanTile],
 ) -> Option<DropHeldDecision> {
     consider_drop_held_decision_ex(
-        held_id,
-        1,
-        player_x,
-        player_y,
-        home_x,
-        home_y,
-        goto_x,
-        goto_y,
-        tiles,
-        false,
-        0,
+        held_id, 1, player_x, player_y, home_x, home_y, goto_x, goto_y, tiles, false, 0,
     )
 }
 
@@ -1765,8 +1740,7 @@ pub fn consider_drop_held_decision_ex(
         return Some(DropHeldDecision::None); // signal: run dropHeldObject
     }
     // Haxe: UseUpDough() ~5203 — before fire/oven/forge interrupt tables
-    let plate_available =
-        closest_by_parent_id(tiles, CLAY_PLATE, player_x, player_y, 10).is_some();
+    let plate_available = closest_by_parent_id(tiles, CLAY_PLATE, player_x, player_y, 10).is_some();
     if let Some(d) = use_up_dough(UseUpDoughInput {
         held_id,
         held_uses,
@@ -1788,6 +1762,8 @@ pub fn consider_drop_held_decision_ex(
             20,
             false,
             i32::MAX,
+            held_id,
+            None,
         ) {
             return Some(d);
         }
@@ -1953,7 +1929,17 @@ pub fn drop_held_input_from_sensors(
 /// Pure dropHeldObject then resolve PreferShortCraft → UseAt when target in scan.
 // Haxe: dropHeldObject + shortCraft resolve before USE
 pub fn plan_drop_held_live(inp: DropHeldInput, tiles: &[ScanTile]) -> DropHeldDecision {
-    let d = drop_held_object(inp, tiles);
+    plan_drop_held_live_ex(inp, tiles, None)
+}
+
+/// Like [`plan_drop_held_live`] with content for maxNewActor `trans.newActorID`.
+// Haxe: shortCraftOnTarget GetTransition + CountCloseObjects(newActorID, 30)
+pub fn plan_drop_held_live_ex(
+    inp: DropHeldInput,
+    tiles: &[ScanTile],
+    content: Option<&ol_content::ContentDb>,
+) -> DropHeldDecision {
+    let d = drop_held_object_ex(inp, tiles, content);
     resolve_prefer_short_craft(d, tiles, inp.player_x, inp.player_y)
 }
 
@@ -1963,7 +1949,16 @@ pub fn smart_drop_held_to_live_intent(
     inp: DropHeldInput,
     tiles: &[ScanTile],
 ) -> ShortCraftLiveIntent {
-    plan_drop_held_live(inp, tiles).to_live_intent()
+    smart_drop_held_to_live_intent_ex(inp, tiles, None)
+}
+
+/// Like [`smart_drop_held_to_live_intent`] with content maxNewActor gate.
+pub fn smart_drop_held_to_live_intent_ex(
+    inp: DropHeldInput,
+    tiles: &[ScanTile],
+    content: Option<&ol_content::ContentDb>,
+) -> ShortCraftLiveIntent {
+    plan_drop_held_live_ex(inp, tiles, content).to_live_intent()
 }
 
 /// Profession-tick convenience: sensors + allow_piles → live intent.
@@ -1982,6 +1977,40 @@ pub fn smart_drop_held_from_sensors(
     tiles: &[ScanTile],
     extras: DropHeldSensorExtras,
 ) -> ShortCraftLiveIntent {
+    smart_drop_held_from_sensors_ex(
+        held_id,
+        held_uses,
+        player_x,
+        player_y,
+        home_x,
+        home_y,
+        food_store,
+        is_moving,
+        allow_all_piles,
+        max_distance_to_home,
+        tiles,
+        extras,
+        None,
+    )
+}
+
+/// Like [`smart_drop_held_from_sensors`] with ContentDb maxNewActor count.
+// Haxe: shortCraftOnTarget trans.newActorID CountCloseObjects r=30
+pub fn smart_drop_held_from_sensors_ex(
+    held_id: i32,
+    held_uses: i32,
+    player_x: i32,
+    player_y: i32,
+    home_x: i32,
+    home_y: i32,
+    food_store: f32,
+    is_moving: bool,
+    allow_all_piles: bool,
+    max_distance_to_home: f32,
+    tiles: &[ScanTile],
+    extras: DropHeldSensorExtras,
+    content: Option<&ol_content::ContentDb>,
+) -> ShortCraftLiveIntent {
     let inp = drop_held_input_from_sensors(
         held_id,
         held_uses,
@@ -1996,7 +2025,7 @@ pub fn smart_drop_held_from_sensors(
         tiles,
         extras,
     );
-    smart_drop_held_to_live_intent(inp, tiles)
+    smart_drop_held_to_live_intent_ex(inp, tiles, content)
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────
@@ -2028,10 +2057,7 @@ mod tests {
         let tiles = empty_grid(0, 0, 2);
         let mut inp = DropHeldInput::basic(33, 0, 0, 0, 0);
         inp.is_wound = true;
-        assert_eq!(
-            drop_held_object(inp, &tiles),
-            DropHeldDecision::RefuseWound
-        );
+        assert_eq!(drop_held_object(inp, &tiles), DropHeldDecision::RefuseWound);
     }
 
     #[test]
@@ -2388,11 +2414,7 @@ mod tests {
                 .with_uses(3)
                 .with_num_uses(3),
         );
-        tiles.push(
-            ScanTile::simple(9999, 3, 0)
-                .with_uses(1)
-                .with_num_uses(3),
-        );
+        tiles.push(ScanTile::simple(9999, 3, 0).with_uses(1).with_num_uses(3));
         let mut inp = DropHeldInput::basic(33, 0, 0, 0, 0);
         inp.pile_id = 9999;
         inp.max_distance_to_home = 1.0;
@@ -2468,7 +2490,10 @@ mod tests {
                 d,
                 DropHeldDecision::DropAt { x, y }
                     if (x - 10).abs() <= 4 && (y - 10).abs() <= 4
-            ) || matches!(d, DropHeldDecision::BusyMoving | DropHeldDecision::Goto { .. }),
+            ) || matches!(
+                d,
+                DropHeldDecision::BusyMoving | DropHeldDecision::Goto { .. }
+            ),
             "got {d:?}"
         );
         // When player is ON forge and not moving, should place on adjacent empty
@@ -2491,19 +2516,8 @@ mod tests {
         // Dough with plate + extra uses interrupts goto even though 252 is oven-near.
         let mut tiles = empty_grid(0, 0, 8);
         tiles.push(ScanTile::simple(CLAY_PLATE, 2, 0));
-        let d = consider_drop_held_decision_ex(
-            BOWL_OF_DOUGH,
-            3,
-            0,
-            0,
-            0,
-            0,
-            50,
-            50,
-            &tiles,
-            false,
-            0,
-        );
+        let d =
+            consider_drop_held_decision_ex(BOWL_OF_DOUGH, 3, 0, 0, 0, 0, 50, 50, &tiles, false, 0);
         assert!(
             matches!(
                 d,
@@ -2600,18 +2614,7 @@ mod tests {
         extras.quiver = q;
         let tiles = empty_grid(0, 0, 2);
         let intent = smart_drop_held_from_sensors(
-            YEW_BOW,
-            1,
-            0,
-            0,
-            0,
-            0,
-            20.0,
-            false,
-            false,
-            40.0,
-            &tiles,
-            extras,
+            YEW_BOW, 1, 0, 0, 0, 0, 20.0, false, false, 40.0, &tiles, extras,
         );
         assert_eq!(
             intent,
@@ -2872,5 +2875,147 @@ mod tests {
             })
         );
         assert_eq!(clothing_ids_snapshot(&[1, 2, 3]), [1, 2, 3, 0, 0, 0]);
+    }
+
+    fn mutton_cook_db() -> ol_content::ContentDb {
+        use ol_content::{ContentDb, Transition};
+        let mut db = ContentDb::default();
+        db.transitions.insert(
+            (RAW_MUTTON, HOT_ADOBE_OVEN),
+            Transition {
+                actor_id: RAW_MUTTON,
+                target_id: HOT_ADOBE_OVEN,
+                new_actor_id: COOKED_MUTTON,
+                new_target_id: HOT_ADOBE_OVEN,
+                ..Default::default()
+            },
+        );
+        db.transitions.insert(
+            (RAW_MUTTON, HOT_COALS),
+            Transition {
+                actor_id: RAW_MUTTON,
+                target_id: HOT_COALS,
+                new_actor_id: COOKED_MUTTON,
+                new_target_id: HOT_COALS,
+                ..Default::default()
+            },
+        );
+        db
+    }
+
+    #[test]
+    fn max_new_actor_refuses_at_cap() {
+        assert!(!max_new_actor_refuses(-1, 99));
+        assert!(!max_new_actor_refuses(0, 99));
+        assert!(!max_new_actor_refuses(4, 3));
+        assert!(max_new_actor_refuses(4, 4));
+        assert!(max_new_actor_refuses(4, 5));
+    }
+
+    #[test]
+    fn count_short_craft_new_actor_radius_and_held() {
+        let mut tiles = empty_grid(0, 0, 32);
+        tiles.push(ScanTile::simple(COOKED_MUTTON, 1, 0));
+        tiles.push(ScanTile::simple(COOKED_MUTTON, 2, 0));
+        tiles.push(ScanTile::simple(COOKED_MUTTON, 31, 0)); // Chebyshev 31 > 30
+        assert_eq!(
+            count_short_craft_new_actor(&tiles, 0, 0, RAW_MUTTON, COOKED_MUTTON),
+            2
+        );
+        assert_eq!(
+            count_short_craft_new_actor(&tiles, 0, 0, COOKED_MUTTON, COOKED_MUTTON),
+            3
+        );
+        assert_eq!(count_short_craft_new_actor(&tiles, 0, 0, RAW_MUTTON, 0), 0);
+        let db = mutton_cook_db();
+        assert_eq!(
+            short_craft_transition_new_actor(&db, RAW_MUTTON, HOT_ADOBE_OVEN),
+            Some(COOKED_MUTTON)
+        );
+        assert_eq!(short_craft_transition_new_actor(&db, RAW_MUTTON, 9999), None);
+    }
+
+    #[test]
+    fn mutton_oven_max_new_actor_counts_transition_new_actor() {
+        // Haxe: CountCloseObjects(trans.newActorID=570, 30) >= 4 → shortCraft false
+        let db = mutton_cook_db();
+        let mut tiles = empty_grid(5, 5, 8);
+        tiles.push(ScanTile::simple(HOT_ADOBE_OVEN, 8, 5));
+        for i in 0..4 {
+            tiles.push(ScanTile::simple(COOKED_MUTTON, 5 + i, 6));
+        }
+        let inp = DropHeldInput::basic(RAW_MUTTON, 5, 5, 0, 0);
+        let d = drop_held_object_ex(inp, &tiles, Some(&db));
+        assert!(
+            !matches!(
+                d,
+                DropHeldDecision::PreferShortCraft {
+                    actor: RAW_MUTTON,
+                    target: HOT_ADOBE_OVEN,
+                    ..
+                }
+            ),
+            "cap must skip PreferShortCraft, got {d:?}"
+        );
+        let resolved = plan_drop_held_live_ex(inp, &tiles, Some(&db));
+        assert!(
+            !matches!(
+                resolved,
+                DropHeldDecision::UseAt {
+                    actor_id: RAW_MUTTON,
+                    target_id: HOT_ADOBE_OVEN,
+                    ..
+                }
+            ),
+            "cap must not USE oven, got {resolved:?}"
+        );
+
+        let mut under = empty_grid(5, 5, 8);
+        under.push(ScanTile::simple(HOT_ADOBE_OVEN, 8, 5));
+        for i in 0..3 {
+            under.push(ScanTile::simple(COOKED_MUTTON, 5 + i, 6));
+        }
+        let d2 = drop_held_object_ex(inp, &under, Some(&db));
+        assert!(
+            matches!(
+                d2,
+                DropHeldDecision::PreferShortCraft {
+                    actor: RAW_MUTTON,
+                    target: HOT_ADOBE_OVEN,
+                    max_new_actor: 4,
+                    ..
+                }
+            ),
+            "under cap must PreferShortCraft, got {d2:?}"
+        );
+
+        let d3 = drop_held_object(inp, &tiles);
+        assert!(
+            matches!(
+                d3,
+                DropHeldDecision::PreferShortCraft {
+                    target: HOT_ADOBE_OVEN,
+                    ..
+                }
+            ),
+            "no content skips gate, got {d3:?}"
+        );
+
+        let mut raw_tiles = empty_grid(5, 5, 8);
+        raw_tiles.push(ScanTile::simple(HOT_ADOBE_OVEN, 8, 5));
+        for i in 0..4 {
+            raw_tiles.push(ScanTile::simple(RAW_MUTTON, 5 + i, 6));
+        }
+        let d4 = drop_held_object_ex(inp, &raw_tiles, Some(&db));
+        assert!(
+            matches!(
+                d4,
+                DropHeldDecision::PreferShortCraft {
+                    target: HOT_ADOBE_OVEN,
+                    ..
+                }
+            ),
+            "count trans.newActor (cooked) not actor (raw), got {d4:?}"
+        );
     }
 }

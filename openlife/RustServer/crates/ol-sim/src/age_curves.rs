@@ -151,9 +151,7 @@ pub fn format_age_curve_query(age: f32) -> String {
     let fm = food_max_for_age(a);
     let dm = food_drain_mult_for_age(a);
     let fert = if is_fertile_age(a) { 1 } else { 0 };
-    format!(
-        "AGECURVE age={a:.2} food_max={fm:.2} drain={dm:.2} fertile={fert}"
-    )
+    format!("AGECURVE age={a:.2} food_max={fm:.2} drain={dm:.2} fertile={fert}")
 }
 
 #[cfg(test)]
@@ -213,7 +211,7 @@ mod tests {
         assert!(!is_fertile_age(50.0));
         assert_eq!(fertility_curve(10.0), 0.0);
         assert_eq!(fertility_curve(14.0), 0.0); // t=0 → bump 0
-        // Mid window ~28
+                                                // Mid window ~28
         let mid = fertility_curve(28.0);
         assert!(mid > 0.9);
         assert!(fertility_curve(20.0) > 0.0);

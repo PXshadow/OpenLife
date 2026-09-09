@@ -1,0 +1,10 @@
+[package]
+name = "ol-temperature"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Pure body-heat / ideal temperature helpers (no SimState)"
+publish = false
+
+[dependencies]
+

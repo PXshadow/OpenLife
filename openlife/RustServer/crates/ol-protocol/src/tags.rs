@@ -20,7 +20,11 @@ pub enum ClientTag {
     Die,
     Grave,
     Owner,
+    /// Leader position request (Haxe ServerTag.LEAD).
+    Lead,
     Force,
+    /// Stationary facing flip (Haxe ServerTag.FLIP → client `FL`).
+    Flip,
     Ping,
     Vogs,
     Vogn,
@@ -57,7 +61,9 @@ impl ClientTag {
             Self::Die => "DIE",
             Self::Grave => "GRAVE",
             Self::Owner => "OWNER",
+            Self::Lead => "LEAD",
             Self::Force => "FORCE",
+            Self::Flip => "FLIP",
             Self::Ping => "PING",
             Self::Vogs => "VOGS",
             Self::Vogn => "VOGN",
@@ -93,7 +99,9 @@ impl ClientTag {
             "DIE" => Self::Die,
             "GRAVE" => Self::Grave,
             "OWNER" => Self::Owner,
+            "LEAD" => Self::Lead,
             "FORCE" => Self::Force,
+            "FLIP" => Self::Flip,
             "PING" => Self::Ping,
             "VOGS" => Self::Vogs,
             "VOGN" => Self::Vogn,
@@ -163,10 +171,20 @@ pub enum ServerTag {
     Te,
     /// PONG — reply to client PING (echo unique_id)
     Pong,
+    /// FL — PLAYER_FLIP (Haxe ClientTag.FLIP = "FL")
+    Fl,
     /// CRAVING — food_id bonus after eat (Haxe ClientTag.CRAVING)
     Cr,
     // Keep extending as needed
 }
+
+/// Vanilla OneLife `VS` / `VALLEY_SPACING` (`y_spacing y_offset` from birth 0,0).
+///
+/// Open Life does **not** send or apply this tag. Haxe `Connection.sendMapChunk`
+/// left the send commented (`TODO what is this for?`); the Haxe client case is
+/// also a no-op. See `ol-sim::map_chunk`.
+pub const VALLEY_SPACING_TAG: &str = "VS";
+pub const VALLEY_SPACING_UNSUPPORTED: bool = true;
 
 impl ServerTag {
     pub fn as_str(self) -> &'static str {
@@ -201,6 +219,7 @@ impl ServerTag {
             Self::Ts => "TS",
             Self::Te => "TE",
             Self::Pong => "PONG",
+            Self::Fl => "FL",
             Self::Cr => "CR",
         }
     }
@@ -237,6 +256,7 @@ impl ServerTag {
             "TS" => Self::Ts,
             "TE" => Self::Te,
             "PONG" => Self::Pong,
+            "FL" => Self::Fl,
             "CR" => Self::Cr,
             _ => return None,
         })
@@ -269,7 +289,9 @@ mod tests {
 
     #[test]
     fn client_tags_roundtrip() {
-        for s in ["LOGIN", "USE", "DROP", "KA", "SAY", "KILL"] {
+        for s in [
+            "LOGIN", "USE", "DROP", "KA", "SAY", "KILL", "LEAD", "OWNER", "GRAVE", "FLIP",
+        ] {
             let t = ClientTag::parse(s).unwrap();
             assert_eq!(t.as_str(), s);
         }
@@ -296,6 +318,14 @@ mod tests {
             format_photo_signature(10, 20, PHOTO_DENIED_SIGNATURE),
             "PH\n10 20 DENIED\n#"
         );
+    }
+
+    #[test]
+    fn flip_server_tag_and_format() {
+        assert_eq!(ServerTag::parse("FL"), Some(ServerTag::Fl));
+        assert_eq!(ServerTag::Fl.as_str(), "FL");
+        assert_eq!(crate::format_player_flip(7, true), "FL\n7 true\n#");
+        assert_eq!(crate::format_player_flip(7, false), "FL\n7 false\n#");
     }
 
     #[test]

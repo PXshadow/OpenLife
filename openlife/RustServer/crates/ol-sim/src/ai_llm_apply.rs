@@ -9,7 +9,9 @@
 //! Continuous follow walk pure helpers: [`ai_follow_walk`] (**AI-FOLLOW-WALK**).
 //! Scripted sayHelper is crate-root [`crate::ai_say_helper`] (**AI-SAY-HELPER**).
 
-use crate::ai_handler::{set_waiting_time_min, ApplyAiResponsePlan, AI_EMOTE_SECONDS, LlmSpeechRuntime};
+use crate::ai_handler::{
+    set_waiting_time_min, ApplyAiResponsePlan, LlmSpeechRuntime, AI_EMOTE_SECONDS,
+};
 use crate::craft_ai_sticky::PlayerCraftAi;
 
 // Haxe: AiBase.isMovingToPlayer continuous follow (AI-FOLLOW-WALK / continuous_follow)
@@ -29,10 +31,10 @@ pub use ai_say_helper::*;
 /// Haxe `findObjectByCommand` special name → id table.
 // Haxe: GlobalPlayerInstance.findObjectByCommand HORSEX/PIE/BAKE/SHOE/ETERNAL
 pub const MAKE_ITEM_ALIASES: &[(&str, i32)] = &[
-    ("HORSEX", 779),   // Hitched Horse-Drawn Cart
-    ("PIE", 265),      // Raw Berry Pie
-    ("BAKE", 272),     // Cooked Berry Pie
-    ("SHOE", 203),     // Rabbit Fur Shoe
+    ("HORSEX", 779), // Hitched Horse-Drawn Cart
+    ("PIE", 265),    // Raw Berry Pie
+    ("BAKE", 272),   // Cooked Berry Pie
+    ("SHOE", 203),   // Rabbit Fur Shoe
     ("SHOES", 203),
     ("ETERNAL", 1407), // Fire Tut_only burns forever
 ];
@@ -59,7 +61,11 @@ pub fn resolve_make_item_alias(search_upper: &str) -> Option<i32> {
 
 /// Haxe `ObjectData.GetObjectByName` order: exact → prefix/suffix → contains.
 // Haxe: ObjectData.GetObjectByName
-pub fn get_object_by_name_like<'a, I>(entries: I, search: &str, search_from_end: bool) -> Option<i32>
+pub fn get_object_by_name_like<'a, I>(
+    entries: I,
+    search: &str,
+    search_from_end: bool,
+) -> Option<i32>
 where
     I: IntoIterator<Item = (i32, &'a str)>,
 {

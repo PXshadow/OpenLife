@@ -54,6 +54,33 @@ pub fn evaluate_loved_food_extra(
     hits_before: f32,
     rng01: f32,
 ) -> LovedFoodWire {
+    evaluate_loved_food_extra_ex(
+        content,
+        person_display_id,
+        actor_id,
+        reverse_use_target,
+        original_target,
+        target_after,
+        hits_before,
+        rng01,
+        LOVED_FOOD_USE_CHANCE,
+    )
+}
+
+/// Live-knob variant of [`evaluate_loved_food_extra`].
+// Haxe: ServerSettings.LovedFoodUseChance
+// SETTINGS-LONG-TAIL
+pub fn evaluate_loved_food_extra_ex(
+    content: &ContentDb,
+    person_display_id: i32,
+    actor_id: i32,
+    reverse_use_target: bool,
+    original_target: i32,
+    target_after: i32,
+    hits_before: f32,
+    rng01: f32,
+    base_chance: f32,
+) -> LovedFoodWire {
     let mut out = LovedFoodWire {
         got_extra: false,
         hits: hits_before,
@@ -67,16 +94,18 @@ pub fn evaluate_loved_food_extra(
     if !is_loved_plant_target(person, original_target) {
         return out;
     }
-    let chance = loved_food_effective_chance(LOVED_FOOD_USE_CHANCE, hits_before);
+    let chance_knob = if base_chance.is_finite() && base_chance >= 0.0 {
+        base_chance
+    } else {
+        LOVED_FOOD_USE_CHANCE
+    };
+    let chance = loved_food_effective_chance(chance_knob, hits_before);
     if !loved_food_extra_hit(chance, rng01) {
         return out;
     }
     out.got_extra = true;
     out.hits = hits_before + 1.0;
-    let num_after = content
-        .get(target_after)
-        .map(|d| d.num_uses)
-        .unwrap_or(0);
+    let num_after = content.get(target_after).map(|d| d.num_uses).unwrap_or(0);
     match loved_food_extra_target_outcome(num_after) {
         LovedFoodExtraTarget::KeepTransformedNoUse => {
             out.force_no_use = true;
@@ -172,6 +201,15 @@ mod tests {
         let w = evaluate_loved_food_extra(&db, 19, 0, false, 2142, 0, 5.0, 0.9);
         assert!(!w.got_extra);
         assert!((w.hits - 5.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn live_loved_food_use_chance_zero_always_extra() {
+        let mut db = ContentDb::default();
+        db.objects.insert(2142, ObjectDef::empty(2142));
+        db.person_race.insert(19, PERSON_BROWN);
+        let w = evaluate_loved_food_extra_ex(&db, 19, 0, false, 2142, 0, 0.0, 0.1, 0.0);
+        assert!(w.got_extra);
     }
 
     #[test]

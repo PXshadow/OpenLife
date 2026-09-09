@@ -10,16 +10,16 @@
 //! No world I/O: callers supply fire sensors + peer flags and apply returned
 //! [`HandlingFireAction`]s (or expand nested makeFireFood via [`expand_handling_fire_action`]).
 //!
-//! Residual: kiln doPotteryOnFire commented Haxe; straw-on-ashes commented; full live
-//! `Player.fire_place` sticky tile coords beyond scan tick; BowlFiller popcorn peer.
+//! Residual: kiln doPotteryOnFire commented Haxe; straw-on-ashes commented.
+//! **FIRE-PLACE-STICKY** + **FIRE-BEST-AI** + **FIRE-CRAFT-R30** live.
 
 use crate::ai_goals::Goal;
 use crate::baker_profession::KINDLING;
-use crate::get_or_craft::craft_item::LONG_STRAIGHT_SHAFT;
 use crate::fire_food_profession::{
     make_fire_food, FireFoodAction, FireFoodCounts, FireFoodProfessionRuntime, FIRE, HOT_COALS,
     LARGE_FAST_FIRE, LARGE_SLOW_FIRE,
 };
+use crate::get_or_craft::craft_item::LONG_STRAIGHT_SHAFT;
 
 // ── Object ids (OHOL / OpenLife; Haxe comments in AiBase.isHandlingFire) ─────
 
@@ -86,6 +86,9 @@ pub const MAKE_FIRE_FOOD_NEAR_COALS_MAX: i32 = 2;
 /// Nested makeFireFood max when firePlace is Hot Coals.
 // Haxe: isHandlingFire makeFireFood(3) ~1151
 pub const MAKE_FIRE_FOOD_HOT_COALS_PLACE_MAX: i32 = 3;
+/// Haxe `itemToCraft.maxSearchRadius=30` around nested makeFireFood(3).
+// Haxe: AiBase.isHandlingFire ~1149–1152
+pub const FIRE_CRAFT_HOT_COALS_SEARCH_RADIUS: i32 = 30;
 /// Late doTimeStuffHelper makeFireFood(1).
 // Haxe: ~833
 pub const MAKE_FIRE_FOOD_LATE_MAX: i32 = 1;
@@ -149,6 +152,16 @@ pub struct FireKeeperProfessionRuntime {
     pub is_assigned_fire_keeper: bool,
     /// Haxe `this.profession['FIREKEEPER']` weight (0 idle / 1 active).
     pub weight: f32,
+    /// This tick ran GetCloseFire / isHandlingFire (write `Player.ai_fire_place_*`).
+    // Haxe: myPlayer.firePlace = GetCloseFire
+    pub fire_place_touched: bool,
+    /// Haxe isHandlingFire fallthrough `myPlayer.firePlace = null`.
+    // Haxe: AiBase.isHandlingFire ~1222
+    pub give_up_fire_place: bool,
+    /// This tick's nested makeFireFood(3) craft wrap (`Some(30)`). Copied to
+    /// `itemToCraft.maxSearchRadius` then taken.
+    // Haxe: isHandlingFire ~1149–1152; restore only if makeFireFood returns false
+    pub craft_search_radius_override: Option<i32>,
 }
 
 impl Default for FireKeeperProfessionRuntime {
@@ -157,6 +170,9 @@ impl Default for FireKeeperProfessionRuntime {
             is_last_fire_keeper: false,
             is_assigned_fire_keeper: false,
             weight: 0.0,
+            fire_place_touched: false,
+            give_up_fire_place: false,
+            craft_search_radius_override: None,
         }
     }
 }
@@ -276,6 +292,51 @@ pub fn get_close_fire(
         }
     }
     None
+}
+
+/// Sticky fire tile if still occupied, else [`get_close_fire`] + tile refresh.
+///
+/// Haxe `isHandlingFire` always GetCloseFire then `getObjectHelper` at that tile.
+/// Persisted `Player.firePlace` coords are reused when the tile still has an object
+/// so a tended fire is not swapped for a different home fire mid-job.
+// Haxe: GetCloseFire + getObjectHelper(firePlace.tx, ty) ~1084 / ~1118
+pub fn resolve_fire_place(
+    map: &[HandlingFireMapObj],
+    home_x: i32,
+    home_y: i32,
+    maxdist: i32,
+    sticky_xy: Option<(i32, i32)>,
+) -> Option<(i32, i32, i32)> {
+    if let Some((sx, sy)) = sticky_xy {
+        if let Some(o) = map.iter().find(|o| o.x == sx && o.y == sy && o.parent_id > 0) {
+            return Some((o.parent_id, sx, sy));
+        }
+    }
+    let (id, x, y) = get_close_fire(map, home_x, home_y, maxdist)?;
+    let obj_id = map
+        .iter()
+        .find(|o| o.x == x && o.y == y)
+        .map(|o| o.parent_id)
+        .unwrap_or(id);
+    Some((obj_id, x, y))
+}
+
+/// Haxe firePlace write: GetCloseFire result, or null on isHandlingFire give-up.
+// Haxe: myPlayer.firePlace = firePlace ~1085; = null ~1222
+pub fn commit_fire_place(resolved: Option<(i32, i32, i32)>, give_up: bool) -> (i32, i32, i32) {
+    if give_up {
+        (0, 0, 0)
+    } else {
+        resolved.unwrap_or((0, 0, 0))
+    }
+}
+
+/// GPI `firePlace` stick (HOME! / isHandlingFire / makeFireFood).
+// Haxe: GlobalPlayerInstance.firePlace
+pub fn write_player_fire_place(p: &mut crate::Player, id: i32, x: i32, y: i32) {
+    p.ai_fire_place_id = id;
+    p.ai_fire_place_x = x;
+    p.ai_fire_place_y = y;
 }
 
 /// Closest object id near (ox,oy) within radius (player-relative for near coals).
@@ -417,19 +478,32 @@ impl Default for HandlingFireSensors {
 pub enum HandlingFireAction {
     None,
     /// Nested makeFireFood(max) — expand via [`expand_handling_fire_action`].
-    MakeFireFood { max_people: i32 },
+    MakeFireFood {
+        max_people: i32,
+    },
     /// Nested doBaking(2) when hot oven near player.
     // Haxe: doBaking(2) ~1093
-    DoBaking { max_people: i32 },
+    DoBaking {
+        max_people: i32,
+    },
     /// CraftItem(id).
-    CraftItem { object_id: i32 },
+    CraftItem {
+        object_id: i32,
+    },
     /// shortCraftOnTarget(actor, firePlace) — target is fire place object id.
-    ShortCraftOnFire { actor: i32, fire_object_id: i32 },
+    ShortCraftOnFire {
+        actor: i32,
+        fire_object_id: i32,
+    },
     /// Held object use on fire place (kindling on hot coals).
     // Haxe: useHeldObjOnTarget(firePlace) ~1155
-    UseHeldOnFire { fire_object_id: i32 },
+    UseHeldOnFire {
+        fire_object_id: i32,
+    },
     /// GetOrCraftItem(id) — kindling / etc.
-    GetOrCraft { object_id: i32 },
+    GetOrCraft {
+        object_id: i32,
+    },
 }
 
 impl HandlingFireAction {
@@ -455,11 +529,46 @@ pub fn handling_fire_sensors_from_map(
     fire_keeper_peer_count: f32,
     was_idle: f32,
 ) -> HandlingFireSensors {
-    let close = get_close_fire(map, home_x, home_y, GET_CLOSE_FIRE_MAXDIST);
+    handling_fire_sensors_from_map_ex(
+        map,
+        held_id,
+        player_x,
+        player_y,
+        home_x,
+        home_y,
+        is_winter,
+        fire_reachable,
+        fire_hostile_path,
+        is_best_at_home,
+        is_best_at_fire,
+        fire_keeper_peer_count,
+        was_idle,
+        None,
+    )
+}
+
+/// Like [`handling_fire_sensors_from_map`] with sticky `Player.firePlace` tile.
+// Haxe: FIRE-PLACE-STICKY / GetCloseFire then getObjectHelper
+pub fn handling_fire_sensors_from_map_ex(
+    map: &[HandlingFireMapObj],
+    held_id: i32,
+    player_x: i32,
+    player_y: i32,
+    home_x: i32,
+    home_y: i32,
+    is_winter: bool,
+    fire_reachable: bool,
+    fire_hostile_path: bool,
+    is_best_at_home: bool,
+    is_best_at_fire: bool,
+    fire_keeper_peer_count: f32,
+    was_idle: f32,
+    sticky_xy: Option<(i32, i32)>,
+) -> HandlingFireSensors {
+    let close = resolve_fire_place(map, home_x, home_y, GET_CLOSE_FIRE_MAXDIST, sticky_xy);
     let (fire_place_id, fire_place_x, fire_place_y) = close.unwrap_or((0, home_x, home_y));
-    // Haxe: objAtPlace = getObjectHelper(firePlace) — pure uses same parent id
+    // Haxe: objAtPlace = getObjectHelper(firePlace)
     let obj_at_place_id = if fire_place_id != 0 {
-        // Prefer object at exact fire tile if present
         map.iter()
             .find(|o| o.x == fire_place_x && o.y == fire_place_y)
             .map(|o| o.parent_id)
@@ -467,9 +576,14 @@ pub fn handling_fire_sensors_from_map(
     } else {
         0
     };
-    let coals_near_player =
-        closest_object_near(map, player_x, player_y, HOT_COALS, HANDLING_FIRE_NEAR_RADIUS)
-            .is_some();
+    let coals_near_player = closest_object_near(
+        map,
+        player_x,
+        player_y,
+        HOT_COALS,
+        HANDLING_FIRE_NEAR_RADIUS,
+    )
+    .is_some();
     let hot_oven_near_player = closest_object_near(
         map,
         player_x,
@@ -478,24 +592,48 @@ pub fn handling_fire_sensors_from_map(
         HANDLING_FIRE_NEAR_RADIUS,
     )
     .is_some();
-    let shaft_home = closest_object_near(map, home_x, home_y, LONG_STRAIGHT_SHAFT, SHAFT_HOME_RADIUS)
-        .is_some();
-    let shaft_player =
-        closest_object_near(map, player_x, player_y, LONG_STRAIGHT_SHAFT, SHAFT_PLAYER_RADIUS)
-            .is_some();
+    let shaft_home =
+        closest_object_near(map, home_x, home_y, LONG_STRAIGHT_SHAFT, SHAFT_HOME_RADIUS).is_some();
+    let shaft_player = closest_object_near(
+        map,
+        player_x,
+        player_y,
+        LONG_STRAIGHT_SHAFT,
+        SHAFT_PLAYER_RADIUS,
+    )
+    .is_some();
     let fx = fire_place_x;
     let fy = fire_place_y;
-    let count_skewer =
-        count_close_with_held(map, fx, fy, SKEWER_FOR_FIRE, HANDLING_FIRE_COUNT_RADIUS, held_id);
-    let count_weak_skewer =
-        count_close_with_held(map, fx, fy, WEAK_SKEWER, HANDLING_FIRE_COUNT_RADIUS, held_id);
+    let count_skewer = count_close_with_held(
+        map,
+        fx,
+        fy,
+        SKEWER_FOR_FIRE,
+        HANDLING_FIRE_COUNT_RADIUS,
+        held_id,
+    );
+    let count_weak_skewer = count_close_with_held(
+        map,
+        fx,
+        fy,
+        WEAK_SKEWER,
+        HANDLING_FIRE_COUNT_RADIUS,
+        held_id,
+    );
     // Haxe: count pile 300; held 298 bumps count for basket shortCraft gate
-    let mut count_charcoal_pile =
-        count_close_with_held(map, fx, fy, BIG_CHARCOAL_PILE, HANDLING_FIRE_COUNT_RADIUS, 0);
+    let mut count_charcoal_pile = count_close_with_held(
+        map,
+        fx,
+        fy,
+        BIG_CHARCOAL_PILE,
+        HANDLING_FIRE_COUNT_RADIUS,
+        0,
+    );
     if held_id == BASKET_OF_CHARCOAL {
         count_charcoal_pile += 1;
     }
-    let count_butt = count_close_with_held(map, fx, fy, BUTT_LOG, HANDLING_FIRE_COUNT_RADIUS, held_id);
+    let count_butt =
+        count_close_with_held(map, fx, fy, BUTT_LOG, HANDLING_FIRE_COUNT_RADIUS, held_id);
     let count_chopped =
         count_close_with_held(map, fx, fy, CHOPPED_TREE, HANDLING_FIRE_COUNT_RADIUS, 0);
     let count_firewood =
@@ -536,6 +674,8 @@ pub fn is_handling_fire(
     max_profession: i32,
 ) -> HandlingFireAction {
     let _ = max_profession; // Haxe param reserved; urgent uses fixed max=3
+    fire_keeper.give_up_fire_place = false;
+    fire_keeper.craft_search_radius_override = None;
 
     // Hot Coals near player → makeFireFood(2)
     // Haxe: ~1088–1089
@@ -564,6 +704,8 @@ pub fn is_handling_fire(
             }
             return HandlingFireAction::CraftItem { object_id: FIRE };
         }
+        // Haxe getBestAiForObjByProfession: this.profession['FIREKEEPER']=0 when another wins
+        fire_keeper.weight = 0.0;
         return HandlingFireAction::None;
     }
 
@@ -593,6 +735,8 @@ pub fn is_handling_fire(
             sensors.was_idle,
         );
     if !is_urgent && !sensors.is_best_fire_keeper_at_fire {
+        // Haxe getBestAiForObjByProfession: this.profession['FIREKEEPER']=0 when another wins
+        fire_keeper.weight = 0.0;
         return HandlingFireAction::None;
     }
     if is_urgent || sensors.is_best_fire_keeper_at_fire {
@@ -603,6 +747,8 @@ pub fn is_handling_fire(
     // Hot Coals 85
     // Haxe: ~1147–1166
     if obj_id == HOT_COALS {
+        // Haxe: tmpSearchRadius; itemToCraft.maxSearchRadius=30; makeFireFood(3)
+        fire_keeper.craft_search_radius_override = Some(FIRE_CRAFT_HOT_COALS_SEARCH_RADIUS);
         // Prefer nested makeFireFood(3) first (caller expands; if empty, continue below)
         // Returned as action so expand_handling_fire_action can fall through.
         return HandlingFireAction::MakeFireFood {
@@ -649,9 +795,10 @@ pub fn is_handling_fire(
         return is_handling_fire_fire_fuel_tail(sensors);
     }
 
-    // Fallthrough: clear caring (caller may null fire_place)
+    // Fallthrough: clear caring + null firePlace
     // Haxe: myPlayer.firePlace = null; return false ~1222–1224
     fire_keeper.clear_weight();
+    fire_keeper.give_up_fire_place = true;
     HandlingFireAction::None
 }
 
@@ -768,6 +915,48 @@ fn fire_food_action_to_handling(a: FireFoodAction) -> HandlingFireAction {
     }
 }
 
+/// Copy nested makeFireFood(3) wrap onto `itemToCraft.maxSearchRadius`, then take.
+///
+/// Haxe keeps 30 when makeFireFood returns true (think tick ends). Restore already
+/// cleared the flag when makeFireFood returned false (kindling GetOrCraft).
+// Haxe: isHandlingFire ~1149–1152
+pub fn apply_fire_craft_search_radius_override(
+    fire_keeper: &mut FireKeeperProfessionRuntime,
+    max_search_radius: &mut i32,
+) {
+    if let Some(r) = fire_keeper.craft_search_radius_override.take() {
+        *max_search_radius = r;
+    }
+}
+
+/// Haxe restore `tmpSearchRadius` when nested makeFireFood(3) returns false.
+// Haxe: isHandlingFire ~1151–1152
+fn restore_fire_craft_radius_if_make_fire_food_empty(
+    fire_keeper: &mut FireKeeperProfessionRuntime,
+    raw: HandlingFireAction,
+    expanded: HandlingFireAction,
+) {
+    let was_hot_coals_wrap = matches!(
+        raw,
+        HandlingFireAction::MakeFireFood {
+            max_people: MAKE_FIRE_FOOD_HOT_COALS_PLACE_MAX
+        }
+    );
+    if !was_hot_coals_wrap {
+        return;
+    }
+    // Success maps to CraftItem / ShortCraftOnFire (keep 30). Empty → kindling
+    // GetOrCraft / UseHeld / None (restore).
+    if matches!(
+        expanded,
+        HandlingFireAction::GetOrCraft { .. }
+            | HandlingFireAction::UseHeldOnFire { .. }
+            | HandlingFireAction::None
+    ) {
+        fire_keeper.craft_search_radius_override = None;
+    }
+}
+
 /// Full pure decision: is_handling_fire + expand nested makeFireFood.
 // Haxe: isHandlingFire with makeFireFood nested returns
 pub fn is_handling_fire_full(
@@ -780,14 +969,16 @@ pub fn is_handling_fire_full(
     was_idle: f32,
 ) -> HandlingFireAction {
     let raw = is_handling_fire(sensors, fire_keeper, max_profession);
-    expand_handling_fire_action(
+    let expanded = expand_handling_fire_action(
         raw,
         sensors,
         fire_food_counts,
         fire_food_rt,
         peer_count,
         was_idle,
-    )
+    );
+    restore_fire_craft_radius_if_make_fire_food_empty(fire_keeper, raw, expanded);
+    expanded
 }
 
 /// Late / hungry / critical residual makeFireFood(1).
@@ -821,10 +1012,7 @@ pub fn handling_fire_job_rung_label(rung_label: &str) -> bool {
 
 /// Max profession for isHandlingFire from rung / assigned flag.
 // Haxe: isHandlingFire() / (2) / (100)
-pub fn handling_fire_max_for_dispatch(
-    is_assigned_fire_keeper: bool,
-    rung_label: &str,
-) -> i32 {
+pub fn handling_fire_max_for_dispatch(is_assigned_fire_keeper: bool, rung_label: &str) -> i32 {
     if is_assigned_fire_keeper || rung_label == "ASSIGNED_JOB" {
         HANDLING_FIRE_ASSIGNED_MAX
     } else if rung_label == "TEMPERATURE" {
@@ -876,9 +1064,7 @@ pub fn handling_fire_action_to_goal(action: HandlingFireAction) -> Goal {
         HandlingFireAction::MakeFireFood { .. } => Goal::SeekObject(HOT_COALS),
         HandlingFireAction::DoBaking { .. } => Goal::SeekObject(HOT_ADOBE_OVEN),
         HandlingFireAction::CraftItem { object_id } => Goal::SeekObject(object_id),
-        HandlingFireAction::ShortCraftOnFire {
-            fire_object_id, ..
-        }
+        HandlingFireAction::ShortCraftOnFire { fire_object_id, .. }
         | HandlingFireAction::UseHeldOnFire { fire_object_id } => Goal::SeekObject(fire_object_id),
         HandlingFireAction::GetOrCraft { object_id } => Goal::SeekObject(object_id),
     }
@@ -886,6 +1072,8 @@ pub fn handling_fire_action_to_goal(action: HandlingFireAction) -> Goal {
 
 /// Pure best-AI gate: self wins when no peer has FIREKEEPER weight, or self has weight
 /// and is closest (caller supplies self_is_closest among eligible).
+///
+/// Live handling-fire uses [`is_self_best_fire_keeper_for_obj`] (Haxe distance pick).
 // Haxe: getBestAiForObjByProfession('FIREKEEPER', obj) ~1311
 pub fn is_self_best_fire_keeper(
     self_weight: f32,
@@ -899,6 +1087,79 @@ pub fn is_self_best_fire_keeper(
         return true;
     }
     false
+}
+
+/// One AI for Haxe `getBestAiForObjByProfession('FIREKEEPER', home|firePlace)`.
+// Haxe: AiBase.getBestAiForObjByProfession ~1311
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FireKeeperPeer {
+    pub p_id: i32,
+    /// Squared Euclidean distance to home or firePlace (no torus wrap).
+    pub quad_dist_to_obj: f32,
+    pub deleted: bool,
+    pub age: f32,
+    pub is_wounded: bool,
+    pub food_store: f32,
+    pub same_home: bool,
+    /// Haxe `profession['FIREKEEPER'] > 0` (weight, not lastProfession).
+    pub has_fire_keeper: bool,
+}
+
+impl FireKeeperPeer {
+    fn eligible(self, min_age_to_eat: f32, max_age: f32) -> bool {
+        if self.deleted {
+            return false;
+        }
+        if self.age < min_age_to_eat {
+            return false;
+        }
+        if self.age > max_age - 2.0 {
+            return false;
+        }
+        if self.is_wounded {
+            return false;
+        }
+        if self.food_store < 2.0 {
+            return false;
+        }
+        if !self.same_home {
+            return false;
+        }
+        true
+    }
+}
+
+/// Haxe `getBestAiForObjByProfession('FIREKEEPER', obj)` — true when `self` wins.
+///
+/// Others without FIREKEEPER weight are skipped. Self without weight is included
+/// with +100 quad. Closest remaining candidate is assigned.
+// Haxe: AiBase.getBestAiForObjByProfession ~1311; isHandlingFire ~1100 / ~1134
+pub fn is_self_best_fire_keeper_for_obj(
+    self_p_id: i32,
+    peers: &[FireKeeperPeer],
+    min_age_to_eat: f32,
+    max_age: f32,
+) -> bool {
+    let mut best_id: Option<i32> = None;
+    let mut best_dist = f32::MAX;
+    for p in peers {
+        if !p.eligible(min_age_to_eat, max_age) {
+            continue;
+        }
+        if !p.has_fire_keeper && p.p_id != self_p_id {
+            continue;
+        }
+        let mut dist = p.quad_dist_to_obj;
+        if !p.has_fire_keeper {
+            dist += 100.0;
+        }
+        if best_id.is_some() && dist >= best_dist {
+            continue;
+        }
+        best_dist = dist;
+        best_id = Some(p.p_id);
+    }
+    best_id == Some(self_p_id)
 }
 
 #[cfg(test)]
@@ -940,10 +1201,7 @@ mod tests {
             fire_food_max_people_for_path(FireFoodDispatchPath::HandlingHotCoalsPlace),
             3
         );
-        assert_eq!(
-            fire_food_max_people_for_path(FireFoodDispatchPath::Late),
-            1
-        );
+        assert_eq!(fire_food_max_people_for_path(FireFoodDispatchPath::Late), 1);
         assert_eq!(
             fire_food_max_people_for_path(FireFoodDispatchPath::Hungry),
             1
@@ -978,6 +1236,53 @@ mod tests {
         let g = get_close_fire(&map, 0, 0, 20).unwrap();
         assert_eq!(g.0, LARGE_FAST_FIRE);
         assert_eq!(g.1, 2);
+    }
+
+    #[test]
+    fn resolve_fire_place_prefers_sticky_tile() {
+        // FIRE-PLACE-STICKY: keep tended Fire 82 even if Large Fast Fire exists
+        let map = [
+            HandlingFireMapObj {
+                parent_id: LARGE_FAST_FIRE,
+                x: 0,
+                y: 0,
+            },
+            HandlingFireMapObj {
+                parent_id: FIRE,
+                x: 5,
+                y: 5,
+            },
+        ];
+        let g = resolve_fire_place(&map, 0, 0, 20, Some((5, 5))).unwrap();
+        assert_eq!(g, (FIRE, 5, 5));
+        let search = resolve_fire_place(&map, 0, 0, 20, None).unwrap();
+        assert_eq!(search.0, LARGE_FAST_FIRE);
+        let gone = resolve_fire_place(&map, 0, 0, 20, Some((9, 9))).unwrap();
+        assert_eq!(gone.0, LARGE_FAST_FIRE);
+        assert_eq!(commit_fire_place(Some((FIRE, 5, 5)), true), (0, 0, 0));
+        assert_eq!(commit_fire_place(Some((FIRE, 5, 5)), false), (FIRE, 5, 5));
+        assert_eq!(commit_fire_place(None, false), (0, 0, 0));
+    }
+
+    #[test]
+    fn is_handling_fire_fallthrough_gives_up_place() {
+        let mut fk = rt();
+        let s = HandlingFireSensors {
+            fire_place_id: 86, // Ashes
+            obj_at_place_id: 86,
+            is_best_fire_keeper_at_fire: true,
+            ..Default::default()
+        };
+        assert_eq!(is_handling_fire(&s, &mut fk, 1), HandlingFireAction::None);
+        assert!(fk.give_up_fire_place);
+        let s2 = HandlingFireSensors {
+            fire_place_id: LARGE_FAST_FIRE,
+            obj_at_place_id: LARGE_FAST_FIRE,
+            is_best_fire_keeper_at_fire: true,
+            ..Default::default()
+        };
+        assert_eq!(is_handling_fire(&s2, &mut fk, 1), HandlingFireAction::None);
+        assert!(!fk.give_up_fire_place);
     }
 
     #[test]
@@ -1121,6 +1426,8 @@ mod tests {
                 object_id: KINDLING
             }
         );
+        // Haxe restore tmpSearchRadius when makeFireFood(3) returns false
+        assert_eq!(fk.craft_search_radius_override, None);
         // Held kindling → use on fire
         let s2 = HandlingFireSensors {
             held_id: KINDLING,
@@ -1133,6 +1440,87 @@ mod tests {
                 fire_object_id: HOT_COALS
             }
         );
+        assert_eq!(fk.craft_search_radius_override, None);
+    }
+
+    #[test]
+    fn hot_coals_make_fire_food_3_sets_craft_r30() {
+        // FIRE-CRAFT-R30: wrap only around nested makeFireFood(3), not near-coals (2)
+        let mut fk = rt();
+        let s = HandlingFireSensors {
+            fire_place_id: HOT_COALS,
+            obj_at_place_id: HOT_COALS,
+            is_best_fire_keeper_at_fire: true,
+            coals_near_player: false,
+            ..Default::default()
+        };
+        let a = is_handling_fire(&s, &mut fk, 1);
+        assert_eq!(
+            a,
+            HandlingFireAction::MakeFireFood {
+                max_people: MAKE_FIRE_FOOD_HOT_COALS_PLACE_MAX
+            }
+        );
+        assert_eq!(
+            fk.craft_search_radius_override,
+            Some(FIRE_CRAFT_HOT_COALS_SEARCH_RADIUS)
+        );
+        let mut fk2 = rt();
+        let near = HandlingFireSensors {
+            coals_near_player: true,
+            ..Default::default()
+        };
+        let a2 = is_handling_fire(&near, &mut fk2, 1);
+        assert_eq!(
+            a2,
+            HandlingFireAction::MakeFireFood {
+                max_people: MAKE_FIRE_FOOD_NEAR_COALS_MAX
+            }
+        );
+        assert_eq!(fk2.craft_search_radius_override, None);
+    }
+
+    #[test]
+    fn hot_coals_make_fire_food_3_success_keeps_r30() {
+        // Haxe: makeFireFood(3) true → keep maxSearchRadius=30 (no restore)
+        let mut fk = rt();
+        let mut fr = food_rt();
+        let s = HandlingFireSensors {
+            fire_place_id: HOT_COALS,
+            obj_at_place_id: HOT_COALS,
+            is_best_fire_keeper_at_fire: true,
+            coals_near_player: false,
+            ..Default::default()
+        };
+        // has_hot_coals + has_fire_place; no raws → CraftItem RAW_MUTTON
+        let c = fire_food_counts_from_nearby(
+            &[],
+            0,
+            false,
+            false,
+            false,
+            true,
+            true,
+            false,
+            false,
+        );
+        let a = is_handling_fire_full(&s, &mut fk, &c, &mut fr, 1, 0.0, 0.0);
+        assert!(
+            matches!(
+                a,
+                HandlingFireAction::CraftItem { .. } | HandlingFireAction::ShortCraftOnFire { .. }
+            ),
+            "makeFireFood(3) should act {:?}",
+            a
+        );
+        assert_eq!(
+            fk.craft_search_radius_override,
+            Some(FIRE_CRAFT_HOT_COALS_SEARCH_RADIUS)
+        );
+        let mut r = 60i32;
+        apply_fire_craft_search_radius_override(&mut fk, &mut r);
+        assert_eq!(r, FIRE_CRAFT_HOT_COALS_SEARCH_RADIUS);
+        assert_eq!(fk.craft_search_radius_override, None);
     }
 
     #[test]
@@ -1177,6 +1565,7 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(is_handling_fire(&s, &mut fk, 1), HandlingFireAction::None);
+        assert_eq!(fk.weight, 0.0);
     }
 
     #[test]
@@ -1195,23 +1584,11 @@ mod tests {
         );
         c.has_hot_coals = true;
         c.has_fire_place = true;
-        let a = make_fire_food_late_or_hungry(
-            &c,
-            &mut fr,
-            FireFoodDispatchPath::Hungry,
-            0.0,
-            0.0,
-        );
+        let a = make_fire_food_late_or_hungry(&c, &mut fr, FireFoodDispatchPath::Hungry, 0.0, 0.0);
         assert!(a.is_some());
         // peer cap at max=1: second peer blocks new
         let mut fr2 = food_rt();
-        let a2 = make_fire_food_late_or_hungry(
-            &c,
-            &mut fr2,
-            FireFoodDispatchPath::Late,
-            1.0,
-            0.0,
-        );
+        let a2 = make_fire_food_late_or_hungry(&c, &mut fr2, FireFoodDispatchPath::Late, 1.0, 0.0);
         assert!(matches!(a2, FireFoodAction::Abort));
     }
 
@@ -1225,7 +1602,8 @@ mod tests {
             coals_near_player: true,
             ..Default::default()
         };
-        let c = fire_food_counts_from_nearby(&[], 0, false, false, false, false, false, false, false);
+        let c =
+            fire_food_counts_from_nearby(&[], 0, false, false, false, false, false, false, false);
         let a = try_decide_handling_fire_from_rung(
             false,
             "MID_PRIORITY_TASKS",
@@ -1260,6 +1638,94 @@ mod tests {
         assert!(is_self_best_fire_keeper(0.0, true, false));
         assert!(!is_self_best_fire_keeper(0.0, true, true));
         assert!(!is_self_best_fire_keeper(1.0, false, true));
+    }
+
+    fn fire_peer(p_id: i32, dist: f32, has: bool, same_home: bool) -> FireKeeperPeer {
+        FireKeeperPeer {
+            p_id,
+            quad_dist_to_obj: dist,
+            deleted: false,
+            age: 20.0,
+            is_wounded: false,
+            food_store: 10.0,
+            same_home,
+            has_fire_keeper: has,
+        }
+    }
+
+    #[test]
+    fn self_is_best_fire_keeper_when_no_peer_has_weight() {
+        // Haxe: others without FIREKEEPER skipped; self +100 still only candidate
+        let self_p = fire_peer(1, 4.0, false, true);
+        let other = fire_peer(2, 1.0, false, true);
+        assert!(is_self_best_fire_keeper_for_obj(1, &[self_p, other], 3.0, 60.0));
+    }
+
+    #[test]
+    fn closer_fire_keeper_peer_wins_distance_pick() {
+        let self_p = fire_peer(1, 16.0, false, true);
+        let other = fire_peer(2, 1.0, true, true);
+        assert!(!is_self_best_fire_keeper_for_obj(
+            1,
+            &[self_p, other],
+            3.0,
+            60.0
+        ));
+        assert!(is_self_best_fire_keeper_for_obj(
+            2,
+            &[self_p, other],
+            3.0,
+            60.0
+        ));
+    }
+
+    #[test]
+    fn fire_keeper_distance_pick_skips_other_home_and_ineligible() {
+        let self_p = fire_peer(1, 25.0, false, true);
+        let mut other = fire_peer(2, 1.0, true, false);
+        assert!(is_self_best_fire_keeper_for_obj(
+            1,
+            &[self_p, other],
+            3.0,
+            60.0
+        ));
+        other.same_home = true;
+        other.is_wounded = true;
+        assert!(is_self_best_fire_keeper_for_obj(
+            1,
+            &[self_p, other],
+            3.0,
+            60.0
+        ));
+        other.is_wounded = false;
+        other.food_store = 1.0;
+        assert!(is_self_best_fire_keeper_for_obj(
+            1,
+            &[self_p, other],
+            3.0,
+            60.0
+        ));
+        other.food_store = 10.0;
+        other.age = 59.0; // MaxAge-2 = 58
+        assert!(is_self_best_fire_keeper_for_obj(
+            1,
+            &[self_p, other],
+            3.0,
+            60.0
+        ));
+    }
+
+    #[test]
+    fn not_best_at_home_zeros_fire_keeper_weight() {
+        let mut fk = rt();
+        fk.weight = 1.0;
+        let s = HandlingFireSensors {
+            fire_place_id: 0,
+            is_best_fire_keeper_at_home: false,
+            ..Default::default()
+        };
+        assert_eq!(is_handling_fire(&s, &mut fk, 1), HandlingFireAction::None);
+        assert_eq!(fk.weight, 0.0);
     }
 
     #[test]
@@ -1353,5 +1819,9 @@ mod tests {
             }
         );
         assert!(fk2.is_last_fire_keeper);
+        assert_eq!(
+            fk2.craft_search_radius_override,
+            Some(FIRE_CRAFT_HOT_COALS_SEARCH_RADIUS)
+        );
     }
 }

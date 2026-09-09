@@ -106,12 +106,18 @@ flowchart TB
   SRV --> CNT[ol-content]
   SRV --> AI[ol-ai façade]
   SRV --> MAIN[ol-main-ai]
+  CNT --> BIN[ol-binary]
+  WLD --> CNT
   SIM --> WLD
   SIM --> CNT
   SIM --> PROTO[ol-protocol]
   SIM --> NET
+  SIM --> CFG
   SIM --> AI
   SIM --> PH[ol-player-helper]
+  SIM --> MOVE[ol-move-rules]
+  MOVE --> CNT
+  MOVE --> WLD
   AI --> API[ol-ai-api]
   AI --> HELP[ol-ai-helper]
   AI --> PATH[ol-ai-pathing]
@@ -131,7 +137,7 @@ flowchart TB
   SIM --> MET[ol-metrics]
 ```
 
-See also `docs/design/OL_AI_SPLIT.md` for AI crate roles and dedupe status.
+Haxe file → crate: [`../ARCHITECTURE.md`](../ARCHITECTURE.md) §3.1. AI roles: `docs/design/OL_AI_SPLIT.md`.
 
 ---
 

@@ -4,7 +4,7 @@
 //! feeder yum prestige share, age/ill gates, drugs fever resist, post-eat emotes,
 //! and responsible_id for FX/PU.
 //!
-//! Live path: `feed_other_full_eat` in `lib.rs` (include / build wire).
+//! Live path: `try_do_eating` in `food_eating.rs` (UBABY + SAY FEED/NURSE).
 
 /// Haxe feed-other feeder yum prestige share (`gainedPrestige * 0.2`).
 // Haxe: GlobalPlayerInstance.doEating L3151–3152
@@ -90,13 +90,7 @@ pub fn apply_drugs_fever_resistance(
     } else {
         r
     };
-    let new_ttc = fever_time_to_change.map(|t| {
-        if t.is_finite() {
-            t * (1.0 - r)
-        } else {
-            t
-        }
-    });
+    let new_ttc = fever_time_to_change.map(|t| if t.is_finite() { t * (1.0 - r) } else { t });
     (new_count, new_ttc)
 }
 
@@ -210,14 +204,8 @@ mod tests {
     fn feeder_may_eat_or_feed_age_and_ill_gates() {
         assert!(feeder_may_eat_or_feed_default(3.0, false).is_ok());
         assert!(feeder_may_eat_or_feed_default(20.0, false).is_ok());
-        assert_eq!(
-            feeder_may_eat_or_feed_default(2.9, false),
-            Err("too young")
-        );
-        assert_eq!(
-            feeder_may_eat_or_feed_default(20.0, true),
-            Err("too ill")
-        );
+        assert_eq!(feeder_may_eat_or_feed_default(2.9, false), Err("too young"));
+        assert_eq!(feeder_may_eat_or_feed_default(20.0, true), Err("too ill"));
         // allow_if_ill=true permits fevered feeder
         assert!(feeder_may_eat_or_feed(20.0, true, 3.0, true).is_ok());
         // age gate still wins when allow_if_ill

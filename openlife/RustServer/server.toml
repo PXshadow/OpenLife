@@ -10,6 +10,10 @@ required_version = 437
 # When true, LOGIN with a numeric client_tag that mismatches required_version is hard-rejected
 # (PS reject message + no player spawn). Default false = soft-log only.
 client_version_strict = false
+# Haxe lastVanillaID: highest vanilla object id. < 1 (default -1) = mapping off.
+# last_vanilla_id = -1
+# Haxe OpenLifeClientName: LOGIN client_tag substring that keeps raw OpenLife ids.
+# open_life_client_name = "OpenLife"
 content_path = "content/OneLifeData7"
 challenge_len = 48
 tick_hz = 20
@@ -74,6 +78,11 @@ shutdown_countdown_secs = 3
 shutdown_apocalypse_secs = 3
 
 # --- CONFIG-SETTINGS (Haxe ServerSettings + TimeHelper.ReadServerSettings) ---
+# Live-editable while the server runs. Every `settings_reload_every_ticks` sim ticks
+# (~200 @ 20 Hz = 10s, same cadence as Haxe), the server checks whether this file's
+# mtime changed and re-reads it if so (Haxe re-reads every beat; Rust skips when
+# unchanged). Omitted keys use compiled Haxe defaults — same idea as Haxe lines
+# prefixed `**default**` that readFromFile skips.
 # Live-editable while server runs (mtime change + every settings_reload_every_ticks).
 # Haxe EternalWinter — force Winter season while true.
 eternal_winter = false
@@ -110,6 +119,230 @@ yum_bonus = 5.0
 # Haxe ChanceForOffspring / ChanceForAnimalDying — animal pop rolls.
 chance_for_offspring = 0.00005
 chance_for_animal_dying = 0.00005
+# Haxe BiomeAnimalHitChance (0 = biome animals almost never hit).
+biome_animal_hit_chance = 0.0
+# Haxe StartingEveAge — Eve/Adam spawn age / trueAge (years).
+starting_eve_age = 14.0
+# Haxe EveOrAdamBirthChance — synthetic/NPC Eve vs mother spawn roll. Default 0.025.
+eve_or_adam_birth_chance = 0.025
+# Haxe SpawnAiAsEve — AIs/NPCs may take that Eve roll even if a mother exists. Default false.
+spawn_ai_as_eve = false
+# Haxe ObjDecayChance / FloorDecayChance — long-term decay rolls.
+obj_decay_chance = 0.00005
+floor_decay_chance = 0.00001
+# Haxe ObjRespawnChance — RespawnObjects per empty original tile. Default 0.00006.
+obj_respawn_chance = 0.00006
+# Haxe GrowBackPlantsIncreaseIfLowPopulation — spring original-plant boost if current < original/2. Default 2.
+grow_back_plants_increase_if_low_population = 2.0
+# Haxe GrowBackOriginalPlantsFactor — spring original-plant roll multiplier. Default 0.02.
+grow_back_original_plants_factor = 0.02
+# Haxe SpringWildFoodRegrowChance — per-season spring chance recompute. Default 1.
+spring_wild_food_regrow_chance = 1.0
+# Haxe WinterWildFoodDecayChance — per-season winter chance recompute. Default 1.5.
+winter_wild_food_decay_chance = 1.5
+# Haxe HotSeasonTemperatureFactor — scale positive season impact on tile temp. Default 0.75.
+hot_season_temperature_factor = 0.75
+# Haxe ColdSeasonTemperatureFactor — scale negative season impact on tile temp. Default 0.75.
+cold_season_temperature_factor = 0.75
+# Haxe CursedGraveTime — extra hours of decay per overflowing sharp stone.
+cursed_grave_time = 12.0
+# Haxe AnimalDecayFactor — horse-cart / domestic / wolf long-term decayFactor.
+animal_decay_factor = 0.05
+# Haxe ObjDecayFactorForPermanentObjs — extra multiplier for permanent objects.
+obj_decay_factor_for_permanent = 0.2
+# Haxe ObjDecayFactorForFood — extra multiplier for food objects. Default 2.
+obj_decay_factor_for_food = 2.0
+# Haxe ObjDecayFactorForClothing — extra multiplier for clothing. Default 2.
+obj_decay_factor_for_clothing = 2.0
+# Haxe ObjDecayFactorForWalls — extra multiplier for walls. Default 0.2.
+obj_decay_factor_for_walls = 0.2
+# Haxe ObjDecayFactorPerTechLevel — tech / (tech + craft steps). Default 10.
+obj_decay_factor_per_tech_level = 10.0
+# Haxe DecayFactorInDeepWater — OCEAN/RIVER object decay. Default 5.
+decay_factor_in_deep_water = 5.0
+# Haxe DecayFactorInMountain — SNOWINGREY object decay. Default 3.
+decay_factor_in_mountain = 3.0
+# Haxe DecayFactorInWalkableWater — PASSABLE_RIVER object decay. Default 2.
+decay_factor_in_walkable_water = 2.0
+# Haxe DecayFactorInJungle — JUNGLE / BIOME_BORDER_JUNGLE object decay. Default 2.
+decay_factor_in_jungle = 2.0
+# Haxe DecayFactorInSwamp — SWAMP object decay. Default 2.
+decay_factor_in_swamp = 2.0
+# Haxe ScoreFactor — EMA of this life prestige into account score.
+score_factor = 0.2
+# Haxe AncestorPrestigeFactor — dead prestige × factor → ancestor.
+ancestor_prestige_factor = 0.2
+# Haxe DisplayScoreFactor — multiply prestige shown in GM / last-life.
+display_score_factor = 1.0
+# Haxe DisplayScoreOn — extra age-58 / last-life prestige GMs. Default true.
+display_score_on = true
+# Haxe MaxCoinsPerChest — wallet store cap into open/unlocked chest. Default 200.
+max_coins_per_chest = 200
+# Haxe MaxCoinsPerPouch — wallet store cap into empty water pouch. Default 50.
+max_coins_per_pouch = 50
+# Haxe ChanceForFemaleChild — spawnAsChild roll; Eve founder uses >= 0.5. Default 0.6.
+chance_for_female_child = 0.6
+# Haxe ChanceForOtherChildColor. Default 0.2.
+chance_for_other_child_color = 0.2
+# Haxe ChanceForOtherChildColorIfCloseToWrongSpecialBiome. Default 0.3.
+chance_for_other_child_color_if_close_to_wrong_special_biome = 0.3
+# Haxe LittleKidsPerMother — mother fitness hard-reject. Default 3.
+little_kids_per_mother = 3
+# Haxe NewChildExhaustionForMother. Default 0.
+new_child_exhaustion_for_mother = 0.0
+# Haxe AiMotherBirthMaliForHumanChild. Default 3.
+ai_mother_birth_mali_for_human_child = 3.0
+# Haxe HumanMotherBirthMaliForAiChild. Default 1.
+human_mother_birth_mali_for_ai_child = 1.0
+# Haxe SpwanAtLastDead (typo Spwan) — Eve origin is last-death startingGx/Gy. Default false.
+spawn_at_last_dead = false
+# Haxe TemperatureOwnTileRate — tile lerp toward biome+season per sec. Default 0.05.
+temperature_own_tile_rate = 0.05
+# Haxe TemperatureBalanceRate — neighbor thermal diffusion per sec. Default 0.9.
+temperature_balance_rate = 0.9
+# Haxe TemperatureLocalHeatFactor — fire/ice heatValue scale on tiles. Default 0.005.
+temperature_local_heat_factor = 0.005
+# Haxe AverageSeasonTemperatureImpact — DoSeason base magnitude. Default 0.2.
+average_season_temperature_impact = 0.2
+# Haxe AiTotalScoreFactor — AI account totalScore scale.
+ai_total_score_factor = 0.8
+# Haxe OldGraveDecayMali — prestige mali when Old Grave (89) decays unburied.
+old_grave_decay_mali = 20.0
+# Haxe MaxDistanceToBeConsideredAsClose (2000000 = all players). 24 = local PU cull.
+max_distance_close = 24
+# Haxe MaxDistanceToBeConsideredAsCloseForMapChanges — MX radius.
+max_distance_map_changes = 10
+# Haxe MaxDistanceToBeConsideredAsCloseForSay — adult SAY radius.
+max_distance_say = 20
+# Haxe MaxDistanceToAutoExileAttacker — compared to exact quad distance (not Chebyshev).
+max_distance_auto_exile_attacker = 15
+# Haxe SendMoveEveryXTicks — periodic sendToMeAllClosePlayers(false). -1 = off; 90 = every 90 ticks.
+send_move_every_x_ticks = -1
+# Haxe MaxDistanceToBeConsideredAsCoseForMovement (typo Cose) — PM fan radius.
+max_distance_cose_for_movement = 30
+# Haxe MaxDistanceToBeConsideredAsCloseForSayAi — AI sayHelper hear radius.
+max_distance_say_ai = 20.0
+# Haxe SpeedWithBothShoes — walk bonus when both shoes (not horse/car).
+speed_with_both_shoes = 1.1
+# Haxe AgingFactorWhileStarvingToDeath — youth ×factor, adult ×1/factor when food < 0.
+aging_factor_while_starving = 0.5
+# Haxe GrownUpAge — youth/adult split for starve aging + child food use.
+grown_up_age = 14.0
+# Haxe FoodUseChildFaktor — child foodDecay when age < GrownUpAge and food > 0. Default 1 = no-op.
+food_use_child_faktor = 1.0
+# Haxe AIFoodUseFactorSerf/Commoner/Noble — AI foodDecay class mult (King/Emperor stay 1).
+ai_food_use_factor_serf = 0.8
+ai_food_use_factor_commoner = 0.9
+ai_food_use_factor_noble = 1.0
+# Haxe EveFoodUseFactor — unwounded Eve/Adam foodDecay. Default 1 = no-op.
+eve_food_use_factor = 1.0
+# Haxe AgingFactorHumanBornToAi / AgingFactorAiBornToHuman — infant aging if mother is opposite.
+aging_factor_human_born_to_ai = 3.0
+aging_factor_ai_born_to_human = 1.5
+# Haxe EveDamageFactor — Eve/Adam attacker and target DoDamage. Default 1 = no-op.
+eve_damage_factor = 1.0
+# Haxe TargetWoundedDamageFactor — already-wounded target DoDamage (held wound ≠ hidden).
+target_wounded_damage_factor = 0.2
+# Haxe MaleDamageFactor — male attacker DoDamage (isMale / ObjectData.male). Default 1.2.
+male_damage_factor = 1.2
+# Haxe AnimalDamageFactor — animal DoDamage (attacker == null). Default 1.5.
+animal_damage_factor = 1.5
+# Haxe AnimalDamageFactorInWinter — extra animal DoDamage in winter. Default 2.
+animal_damage_factor_in_winter = 2.0
+# Haxe AnimalDamageFactorIfAttacked — extra animal DoDamage when animal.hits > 0. Default 1.5.
+animal_damage_factor_if_attacked = 1.5
+# Haxe WeaponDamageFactor — player-attacker DoDamage (attacker != null). Default 1.
+weapon_damage_factor = 1.0
+# Haxe GraveBlockingDistance — bone-grave curse radius. Default 40.
+grave_blocking_distance = 40.0
+# Haxe MaxPlayersBeforeActivatingGraveCurse (0 = always when near). Default 0.
+max_players_before_activating_grave_curse = 0
+# Haxe CombatAngryTimeBeforeAttack — spawn angryTime + UpdateEmotes soft combat. Default 5.
+combat_angry_time_before_attack = 5.0
+# Haxe AiTimeToWaitIfCraftingFailed — failedCraftings cooldown seconds. Default 15.
+ai_time_to_wait_if_crafting_failed = 15.0
+# Haxe AiMaxSearchRadius / AiMaxSearchIncrement — craftItem search expand. Default 60 / 30.
+ai_max_search_radius = 60
+ai_max_search_increment = 30
+# Haxe AiIgnoreTimeTransitionsLongerThen — skip long autoDecay craft edges. Default 120.
+ai_ignore_time_transitions_longer_then = 120.0
+# Haxe AlternativeOutcomePercentIncreasePerHit / HitsDecreaseOnSucess — USE alt-outcome. Default 10 / 5.
+alternative_outcome_percent_increase_per_hit = 10.0
+alternative_outcome_hits_decrease_on_success = 5.0
+# Haxe ChanceThatAnimalsCanPassBlockingBiome / chancePreferredBiome. Default 0.03 / 0.8.
+chance_animals_pass_blocking_biome = 0.03
+chance_preferred_biome = 0.8
+# Haxe CloseGraveSpeedMali — curse-active calculateSpeed mali. Default 0.9.
+close_grave_speed_mali = 0.9
+# Haxe TemperatureSpeedImpact — calculateSpeed heat/cold impact. Default 1.
+temperature_speed_impact = 1.0
+# Haxe MinSpeedReductionPerContainedObj — contained calculateObjSpeedMult upper clamp. Default 0.98.
+min_speed_reduction_per_contained_obj = 0.98
+# Haxe LovedFoodUseChance — bare-hand loved-plant extra harvest. Default 0.5.
+loved_food_use_chance = 0.5
+# Haxe TemperatureReductionPerDrinking / MaxStoredWater — SELF drink(). Default 0.5 / 1.
+temperature_reduction_per_drinking = 0.5
+max_stored_water = 1.0
+# Haxe MaxJumpsPerTenSec — MOVE jump rate-limit + jumpedTiles decay. Default 10.
+max_jumps_per_ten_sec = 10.0
+# Haxe TemperatureImpactPerSec / IfGood / InWaterFactor — body heat step. Default 0.03 / 0.06 / 1.5.
+temperature_impact_per_sec = 0.03
+temperature_impact_per_sec_if_good = 0.06
+temperature_in_water_factor = 1.5
+# Haxe TemperatureImpactBelow / ColorFactor — super-hot/cold person thresholds. Default 0.6 / 0.5.
+temperature_impact_below = 0.6
+temperature_impact_color_factor = 0.5
+# Haxe AllowEatingOrFeedingIfIll — yellow-fever eat/feed gate. Default false.
+allow_eating_or_feeding_if_ill = false
+# Haxe ResistanceAgainstFeverForEatingMushrooms — isDrugs post-eat fever resist. Default 0.2.
+resistance_against_fever_for_eating_mushrooms = 0.2
+# Haxe ExhaustionYellowFeverPerSec — yellow-fever food drain (*2). Default 0.1.
+exhaustion_yellow_fever_per_sec = 0.1
+# Haxe Min/MaxHealthFoodStoreMaxFactor — health food-max mali/boni. Default 0.8 / 1.2.
+min_health_food_store_max_factor = 0.8
+max_health_food_store_max_factor = 1.2
+# Haxe Min/MaxHealthAgingFactor — health aging mali/boni. Default 0.5 / 2.
+min_health_aging_factor = 0.5
+max_health_aging_factor = 2.0
+# Haxe MinHealthPerYear — medianPrestige floor ×30. Default 1.
+min_health_per_year = 1.0
+# Haxe MaxAge — health-factor + food-capacity old-age band. Default 60.
+max_age = 60.0
+# Haxe AnimalDeadlyDistanceFactor — animal HIT range (tiles). Default 0.5.
+animal_deadly_distance_factor = 0.5
+# Haxe ChanceForAnimalDyingFactorIfInLovedBiome — preferred-biome die roll. Default 0.1.
+chance_for_animal_dying_factor_if_in_loved_biome = 0.1
+# Haxe OffspringFactorIfAnimalPopIsLow / MaxOffspringFactor — low-pop birth boost / pop cap. Default 10 / 1.
+offspring_factor_if_animal_pop_is_low = 10.0
+max_offspring_factor = 1.0
+# Haxe OffspringFactorLowAnimalPopulationBelow — low-pop birth threshold. Default 0.2.
+offspring_factor_low_animal_population_below = 0.2
+# Haxe MaxAgeForAllowingClothAndPrickupFromOthers — HOLD/doBaby target age. Default 10.
+max_age_for_allowing_cloth_and_pickup_from_others = 10.0
+# Haxe MaxAgeForAllowingDie — SAY/client DIE allowed while age <= this. Default 2.
+max_age_for_allowing_die = 2.0
+# Haxe PrestigeCostForDie — account.score must be >= this; subtracted on DIE. Default 0.
+prestige_cost_for_die = 0.0
+# Haxe StartingFamilyName — DoNaming I AM "found new family" gate. Default SNOW.
+starting_family_name = "SNOW"
+# Haxe StartingName — DoNaming YOU ARE only if target first name is this. Default SPOON.
+starting_name = "SPOON"
+# Haxe FoundFamilyNeededPrestige — DoNaming I AM found-new prestige gate. Default 50.
+found_family_needed_prestige = 50.0
+# Haxe FoundFamilyCost — coins required and subtracted on found-new family. Default 10.
+found_family_cost = 10.0
+# Haxe FoundFamilyNeededFollowers — DoNaming I AM found-new same-family follower gate. Default 4.
+found_family_needed_followers = 4
+# Haxe FoundFamilyBreakAllianceChance — AI foundFamily I FOLLOW ME roll. Default 0.5.
+found_family_break_alliance_chance = 0.5
+# Haxe PickupExhaustionGain — HOLD exhaustion add. Default 0.2.
+pickup_exhaustion_gain = 0.2
+# Haxe PickupFeedingFoodRestore — HOLD baby food grant. Default 1.5.
+pickup_feeding_food_restore = 1.5
+# Haxe DeathWithFoodStoreMax — starve/wound death line. Default -0.1.
+death_with_food_store_max = -0.1
+# Haxe FoodStoreMaxReductionWhileStarvingToDeath. Default 5.
+food_store_max_reduction_while_starving = 5.0
 # Haxe HungryWorkCost — stored live (AI craft gates next wire).
 hungry_work_cost = 5.0
 # Haxe BirthPrestigeFactor — spawn yum_multiplier seed.

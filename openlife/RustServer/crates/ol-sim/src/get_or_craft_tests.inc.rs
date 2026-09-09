@@ -752,6 +752,7 @@ fn npc_enqueue_ex_pile_id_uses_pile_form() {
         &pile_for,
         None,
         None,
+        None,
     );
     assert_eq!(
         resolved,
@@ -792,6 +793,7 @@ fn npc_enqueue_ex_full_pile_tiles_skipped_in_multi_step() {
         &|_| 0,
         None,
         Some(&full),
+        None,
     );
     match resolved {
         ShortCraftLiveIntent::DropAt { x, y } => {
@@ -867,4 +869,60 @@ fn full_pile_tiles_from_scan_collects_full_uses() {
     assert!(full.contains(&(1, 0)));
     assert!(!full.contains(&(2, 0)));
     assert!(!full.contains(&(3, 0)));
+}
+
+/// Nonempty basket is skipped in craft closest (Haxe addObjectsForCrafting).
+// Haxe: numSlots > 0 && containedObjects.length > 0 continue
+#[test]
+fn nonempty_container_tiles_from_scan_collects() {
+    use crate::{nonempty_container_tiles_from_scan, ScanTile};
+    let tiles = vec![
+        ScanTile::simple(292, 1, 0)
+            .with_num_slots(4)
+            .with_contained_count(2),
+        ScanTile::simple(292, 2, 0)
+            .with_num_slots(4)
+            .with_contained_count(0),
+        ScanTile::simple(33, 3, 0),
+    ];
+    let set = nonempty_container_tiles_from_scan(&tiles);
+    assert!(set.contains(&(1, 0)));
+    assert!(!set.contains(&(2, 0)));
+    assert!(!set.contains(&(3, 0)));
+}
+
+/// Multi-step craft skips actor sitting in a nonempty container tile.
+#[test]
+fn npc_enqueue_ex_nonempty_container_skipped_in_multi_step() {
+    let g = sample_graph();
+    let objs = vec![
+        GetOrCraftWorldObj::simple(1, 1, 0),
+        GetOrCraftWorldObj::simple(1, 6, 0),
+        GetOrCraftWorldObj::simple(2, 7, 0),
+    ];
+    let mut boxes = HashSet::new();
+    boxes.insert((1, 0));
+    let opts = CraftLiveExpandOpts::default();
+    let resolved = npc_enqueue_get_or_craft_ex(
+        ShortCraftLiveIntent::CraftItem { object_id: 3 },
+        &objs,
+        0,
+        0,
+        0,
+        false,
+        Some((0, 1)),
+        Some(&g),
+        &opts,
+        None,
+        &|_| 0,
+        None,
+        None,
+        Some(&boxes),
+    );
+    match resolved {
+        ShortCraftLiveIntent::DropAt { x, y } | ShortCraftLiveIntent::UseAt { x, y, .. } => {
+            assert_ne!((x, y), (1, 0), "nonempty container must not be picked");
+        }
+        other => panic!("expected wire staging, got {other:?}"),
+    }
 }

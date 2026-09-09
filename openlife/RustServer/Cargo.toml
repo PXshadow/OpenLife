@@ -15,6 +15,13 @@ members = [
     "crates/ol-ai",
     "crates/ol-main-ai",
     "crates/ol-player-helper",
+    "crates/ol-move-rules",
+    "crates/ol-transition-rules",
+    "crates/ol-combat-rules",
+    "crates/ol-identity",
+    "crates/ol-social-rules",
+    "crates/ol-food-eating",
+    "crates/ol-temperature",
     "crates/ol-binary",
     "crates/ol-content",
     "crates/ol-world",
@@ -45,7 +52,15 @@ ol-ai-professions = { path = "crates/ol-ai-professions" }
 ol-ai = { path = "crates/ol-ai" }
 ol-main-ai = { path = "crates/ol-main-ai" }
 ol-player-helper = { path = "crates/ol-player-helper" }
+ol-move-rules = { path = "crates/ol-move-rules" }
+ol-transition-rules = { path = "crates/ol-transition-rules" }
+ol-combat-rules = { path = "crates/ol-combat-rules" }
+ol-identity = { path = "crates/ol-identity" }
+ol-social-rules = { path = "crates/ol-social-rules" }
+ol-food-eating = { path = "crates/ol-food-eating" }
+ol-temperature = { path = "crates/ol-temperature" }
 ol-binary = { path = "crates/ol-binary" }
+byteorder = "1"
 ol-content = { path = "crates/ol-content" }
 ol-world = { path = "crates/ol-world" }
 thiserror = "2"

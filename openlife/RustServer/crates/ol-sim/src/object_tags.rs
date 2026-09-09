@@ -181,9 +181,7 @@ pub fn format_held_tags_query(held_id: i32, description: Option<&str>) -> String
         Some(raw) if !raw.trim().is_empty() => {
             let summary = format_object_tags_summary(raw);
             // Strip leading `OBJTAGS ` so chat reads `TAGS id name=…`.
-            let body = summary
-                .strip_prefix("OBJTAGS ")
-                .unwrap_or(summary.as_str());
+            let body = summary.strip_prefix("OBJTAGS ").unwrap_or(summary.as_str());
             format!("TAGS {held_id} {body}")
         }
         _ => format!("TAGS {held_id}"),

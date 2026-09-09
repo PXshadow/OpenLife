@@ -87,6 +87,14 @@ pub fn description_is_owned(description: &str) -> bool {
     description.to_ascii_lowercase().contains("+owned")
 }
 
+/// Haxe `ObjectData.isOwned` (PatchObjectData: `+owned` / `+tempOwned` / `+followerOwned`).
+// Haxe: ServerSettings PatchObjectData L689–691; sendOwners L1245
+#[inline]
+pub fn object_data_is_owned(description: &str) -> bool {
+    let d = description.to_ascii_lowercase();
+    d.contains("+owned") || d.contains("+tempowned") || d.contains("+followerowned")
+}
+
 /// True when helper is owned for post-load rewire (Haxe `isOwned()` on description).
 ///
 /// Does **not** use living_owners alone — content without `+owned` is a no-op path
@@ -99,7 +107,39 @@ pub fn helper_is_owned(description: &str) -> bool {
 /// True when helper has any owner lists (disk signal; not Haxe isOwned gate).
 #[inline]
 pub fn helper_has_owner_lists(co: &ComplexObject) -> bool {
-    co.owner_id != 0 || !co.living_owners.is_empty()
+    co.owner_id != 0 || !co.living_owners.is_empty() || !co.owners_by_account.is_empty()
+}
+
+/// Haxe `ObjectHelper.isHelperToBeDeleted` + WorldMap L537 TODO (keep owners / gates).
+///
+/// Drop only when uses are full/empty, no timer, no container, no groundObject,
+/// not `+owned`/`+tempOwned`/`+followerOwned`, no owner lists, not a grave,
+/// and hits/coins/externId/text are empty.
+// Haxe: ObjectHelper.isHelperToBeDeleted L620–634; WorldMap.deleteObjectHelperIfUseless L535–537
+pub fn is_helper_to_be_deleted(helper: &ComplexObject, description: &str, num_uses: i32) -> bool {
+    let id = helper.base_id;
+    let uses = helper.uses_remaining;
+    let mut to_delete = uses == num_uses || uses < 1 || id < 1;
+    to_delete = to_delete
+        && helper.time_to_change == 0.0
+        && helper.contained.is_empty()
+        && helper.ground_id == 0;
+    // Haxe L630 isOwned / isFollowerOwned / isGrave; L537 TODO keep owner lists (gates).
+    to_delete = to_delete
+        && !object_data_is_owned(description)
+        && !helper_has_owner_lists(helper)
+        && !name_looks_like_grave("", description);
+    to_delete
+        && (helper.hits == 0.0 || id < 1)
+        && helper.coins <= 0.0
+        && helper.extern_id == 0
+        && helper.text.is_empty()
+}
+
+/// Inverse of [`is_helper_to_be_deleted`].
+#[inline]
+pub fn should_keep_object_helper(helper: &ComplexObject, description: &str, num_uses: i32) -> bool {
+    !is_helper_to_be_deleted(helper, description, num_uses)
 }
 
 /// True when helper is a grave for post-load account wiring.
@@ -419,9 +459,36 @@ mod tests {
     #[test]
     fn description_owned_gate() {
         assert!(description_is_owned("Chest +owned"));
+        assert!(object_data_is_owned("Gate +owned"));
+        assert!(object_data_is_owned("Fence +tempOwned"));
+        assert!(object_data_is_owned("Door +followerOwned"));
+        assert!(!object_data_is_owned("Basket"));
         assert!(description_is_owned("x +OWNED y"));
         assert!(!description_is_owned("Chest"));
         assert!(!helper_is_owned("Basket"));
+    }
+
+    #[test]
+    fn helper_to_be_deleted_keeps_owned_gate() {
+        let gate = ComplexObject::new_simple(2962);
+        assert!(!is_helper_to_be_deleted(
+            &gate,
+            "Property Gate# +owned",
+            1
+        ));
+        assert!(should_keep_object_helper(
+            &gate,
+            "Property Gate# +owned",
+            1
+        ));
+        let mut listed = ComplexObject::new_simple(1851);
+        listed.living_owners.push(7);
+        assert!(!is_helper_to_be_deleted(&listed, "Fence Gate", 1));
+        assert!(is_helper_to_be_deleted(
+            &ComplexObject::new_simple(292),
+            "Basket",
+            1
+        ));
     }
 
     #[test]

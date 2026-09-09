@@ -104,9 +104,6 @@ mod tests {
     #[test]
     fn clean_record_query() {
         let c = CrimeState::default();
-        assert_eq!(
-            c.format_crime_query(1),
-            "CRIME thefts=0 prestige_lost=0.0"
-        );
+        assert_eq!(c.format_crime_query(1), "CRIME thefts=0 prestige_lost=0.0");
     }
 }

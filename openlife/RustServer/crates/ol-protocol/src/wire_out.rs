@@ -71,6 +71,15 @@ pub fn format_baby_wiggle(p_id: i32) -> String {
     format_server_message("BW", &[&p_id.to_string()])
 }
 
+/// Vanilla OneLife `VS` / VALLEY_SPACING after MAP_CHUNK.
+///
+/// Open Life does **not** emit this. Haxe never sent it (commented in
+/// `Connection.sendMapChunk`). See [`crate::VALLEY_SPACING_TAG`].
+#[allow(dead_code)]
+pub fn valley_spacing_unsupported() -> bool {
+    crate::VALLEY_SPACING_UNSUPPORTED
+}
+
 /// LS — LOCATION_SAYS (Haxe `ClientTag.LOCATION_SAYS`).
 ///
 /// Wire data line: `x y [text…]`.
@@ -165,6 +174,13 @@ pub fn format_player_emot(p_id: i32, emot_index: i32) -> String {
     format_server_message("PE", &[&format!("{p_id} {emot_index}")])
 }
 
+/// FL — PLAYER_FLIP (Haxe `Connection.flip`). `p_id true|false`.
+// Haxe: Connection.flip L862–872 (`face_left = x < player.x`)
+pub fn format_player_flip(p_id: i32, face_left: bool) -> String {
+    let left = if face_left { "true" } else { "false" };
+    format_server_message("FL", &[&format!("{p_id} {left}")])
+}
+
 /// PM — PLAYER_MOVES_START body fields (Haxe `generateRelativeMoveUpdateString`).
 ///
 /// Wire shape: `p_id targetX targetY total_sec eta trunc dx0 dy0 …`
@@ -205,6 +221,39 @@ pub fn format_weather_status(kind: &str, drain_mult: f32) -> String {
 /// // Haxe: Connection.SendGraveInfoToAll
 pub fn format_grave_info(x: i32, y: i32, creator_p_id: i32) -> String {
     format_server_message("GRAVE", &[&format!("{x} {y} {creator_p_id}")])
+}
+
+/// GO — GRAVE_OLD. Reply to client `GRAVE x y` (`sendGraveInfoHelper`).
+///
+/// Body: `x y p_id po_id death_age underscored_name mother_id ... eve_id eve=eve_id`
+// Haxe: Connection.sendGraveInfoHelper L1317–1329; protocol GRAVE_OLD (GO)
+pub fn format_grave_old(body: &str) -> String {
+    format_server_message("GO", &[body])
+}
+
+/// Build a GRAVE_OLD data line (trailing space before lineage matches Haxe).
+// Haxe: Connection.sendGraveInfoHelper message interpolation
+pub fn format_grave_old_line(
+    x: i32,
+    y: i32,
+    p_id: i32,
+    po_id: i32,
+    death_age: i32,
+    underscored_name: &str,
+    lineage: &str,
+) -> String {
+    format!("{x} {y} {p_id} {po_id} {death_age} {underscored_name} {lineage}")
+}
+
+/// OW — OWNER_LIST. Reply to client `OWNER x y` (`sendOwners`).
+/// Wire: `x y p_id p_id ...`
+// Haxe: Connection.sendOwners L1236–1258; ClientTag.OWNER_LIST
+pub fn format_owner_list(x: i32, y: i32, owners: &[i32]) -> String {
+    let mut line = format!("{x} {y}");
+    for id in owners {
+        line.push_str(&format!(" {id}"));
+    }
+    format_server_message("OW", &[&line])
 }
 
 /// GV — legacy grave-placed note (server extension; prefer [`format_grave_info`]).
@@ -269,6 +318,12 @@ pub fn format_player_out_of_range(p_ids: &[i32]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn valley_spacing_is_unsupported_in_open_life() {
+        assert!(valley_spacing_unsupported());
+        assert_eq!(crate::VALLEY_SPACING_TAG, "VS");
+    }
 
     #[test]
     fn ls_pos_debug_is_bare_xy_only() {
@@ -397,6 +452,10 @@ mod tests {
         assert_eq!(format_weather_status("rain", 1.02), "WS\nrain 1.02\n#");
         assert_eq!(format_grave_place(1, 2, 0, 7), "GV\n1 2 0 7\n#");
         assert_eq!(format_grave_info(1, 2, 7), "GRAVE\n1 2 7\n#");
+        assert_eq!(
+            format_grave_old(&format_grave_old_line(1, 2, 7, 19, 3, "Ada_Snow_Commoner", "")),
+            "GO\n1 2 7 19 3 Ada_Snow_Commoner \n#"
+        );
     }
 
     #[test]
@@ -406,6 +465,8 @@ mod tests {
             "FW\n2 5 1\n#"
         );
         assert_eq!(format_exile_wire(7, 5), "EX\n7 5\n#");
+        assert_eq!(format_owner_list(3, 4, &[7, 9]), "OW\n3 4 7 9\n#");
+        assert_eq!(format_owner_list(1, 1, &[]), "OW\n1 1\n#");
     }
 
     #[test]

@@ -2,12 +2,18 @@
 //!
 //! Net enqueues [`ol_net::NetIntent`] and reads world under RwLock for MC.
 //! After mutations, sim pushes wire packets via [`ol_net::OutboundHub`].
+//!
+//! **Tests:** [`lib_tests.rs`](lib_tests.rs) — `cargo test -p ol-sim --lib`.
+//! That file is not compiled on `cargo check` / `cargo build`.
+//! Formula tests live in `ol-food-eating`, `ol-combat-rules`, `ol-move-rules`, …
 
 #![forbid(unsafe_code)]
 
 mod account_persist;
 mod accounts;
+mod admin_commands;
 mod admin_env;
+mod angry_tick;
 mod afk;
 mod age_curves;
 mod age_stage;
@@ -27,13 +33,13 @@ mod death_inherit;
 mod death_polish;
 mod postload_wire;
 // Haxe: ServerSettings.readFromFile / TimeHelper.ReadServerSettings (CONFIG-SETTINGS)
-mod settings_live;
-mod death_log;
 mod biomes_query;
 mod chunk_tier;
 mod clothing_cmds;
 mod combat;
 mod craft_graph;
+mod death_log;
+mod settings_live;
 // Haxe: AiBase.itemToCraft + failedCraftings sticky on Player (AI-CRAFT-STICKY)
 mod craft_ai_sticky;
 mod craft_value;
@@ -48,6 +54,7 @@ mod emote_limit;
 mod environment;
 mod feed;
 // Haxe: GlobalPlayerInstance.doEating feed-other (FEED-OTHER-YUM)
+mod birth_fitness;
 mod feed_other_yum;
 mod fertility;
 mod fire;
@@ -56,48 +63,50 @@ mod heal;
 mod hunt;
 mod move_notes;
 mod move_path;
-mod birth_fitness;
 // Haxe: GPI.spawnAsEve food plants + jungle banana (EVE-BANANA)
 mod eve_spawn;
 mod leadership;
 mod lineage_persist;
+mod chest_coins;
 mod locks;
 mod look;
 mod map_chunk;
+mod vanilla_id;
 mod markers;
 // Haxe: Connection.sendMapLocation MOTHER/BABY/FOLLOWER/HUMAN/ALLY/FAM (MAP-LOCATION-PINS)
 mod map_location_pins;
 mod mumble;
-mod mute;
 mod mutation;
+mod mute;
+mod naming;
 mod object_tags;
+mod pathfind;
 mod permissions;
+mod player;
 mod poison;
+mod poll;
+mod posse;
+mod prestige;
 mod professions;
 mod queries_extra;
 mod relations;
 mod reputation;
+mod score;
 mod shove;
 mod sit;
-mod treasury;
-mod weapons;
-mod naming;
-mod pathfind;
-mod player;
-mod poll;
-mod posse;
-mod prestige;
-mod score;
 mod skills;
 mod snow;
 mod social;
 mod speech;
+mod treasury;
+mod weapons;
 // Haxe: GlobalPlayerInstance.doCommands (DO-COMMANDS / say_commands)
 mod do_commands_wire;
 mod tools;
 mod tutorial;
-mod twins;
 mod twin_heart;
+mod twins;
+pub(crate) mod spawn_queue;
 mod version_gate;
 mod war;
 // SOCIAL-WAR-PERSIST: WPS1 war/posse session disk (war_posse_disk)
@@ -112,21 +121,38 @@ mod ai_follow_walk;
 mod ai_path_reach;
 mod ai_say_helper;
 mod ai_takeover;
+mod alt_outcome;
 mod animal_damage;
 mod animal_pop;
 mod baker_profession;
+mod cleanup_profession;
+mod clothing_craft;
 mod clothing_transitions;
 mod contained_timers_persist;
 mod day_phase_names;
 mod emotes;
 mod farmer_profession;
 mod fever_pe;
+mod fire_food_profession;
+mod fire_food_rung;
 mod follow_hire_knobs;
+mod food_eating;
 mod food_fill;
 mod food_store_max;
+mod get_or_craft;
+mod handling_fire;
+mod handle_death;
+mod handle_temperature;
+mod handling_graves;
+mod hunting;
+mod cutting_wood;
+mod collecting;
+mod feeding_player;
+mod remove_from_container;
 mod health_prestige;
 mod heat_ideal;
 mod horse_mount;
+mod is_picking_up_food;
 mod item_value;
 mod jump_bw;
 mod leader_range;
@@ -142,65 +168,180 @@ mod nested_body;
 mod object_counts_share;
 mod place_object;
 mod player_soul;
+mod player_tick;
 mod players_persist;
 mod pottery_profession;
 mod score_entry;
+// Haxe: TimeHelper age-58 prestige GM (SCORE-AGE-58)
+mod score_age;
+mod search_best_food;
+mod search_best_food_live;
 mod shepherd_profession;
+mod short_craft_intent;
 mod smith_profession;
 mod teleport_cmd;
-mod alt_outcome;
+mod temperature_handler;
 mod use_transition;
 mod weapon_wound;
 mod world_food_stats;
 mod world_time;
-mod fire_food_profession;
-mod handling_fire;
-mod get_or_craft;
-mod short_craft_intent;
-mod search_best_food;
-mod search_best_food_live;
-mod fire_food_rung;
-mod is_picking_up_food;
 // --- end residual modules ---
 // OBJECTCOUNTS-LIVE: ObjectCounts autosave share
+pub use health_prestige::{
+    clothing_extra_prestige_factor, clothing_prestige_factor, clothing_prestige_factor_ex,
+    clothing_prestige_factor_from_content, coins_from_prestige_count, is_eve_or_adam_name,
+    prestige_fan_deltas, prestige_fan_deltas_ex, PrestigeFanDelta, PRESTIGE_LEADER_CHAIN_DEPTH,
+};
 pub use object_counts_share::{ObjectCountsShare, ObjectCountsSnapshot};
-pub use health_prestige::{clothing_prestige_factor, clothing_prestige_factor_ex, prestige_fan_deltas, prestige_fan_deltas_ex, coins_from_prestige_count, PrestigeFanDelta};
 // --- Port residual crate-root reexports (minimal + profession runtimes) ---
-pub use ai_handler::{LlmSpeechIoShare, LlmSpeechRuntime, new_llm_speech_io_share};
-pub use animal_damage::is_holding_weapon;
+pub use ai_handler::{
+    new_llm_speech_io_share, take_completed_llm_results_from_share, LlmSpeechIoShare, LlmSpeechJob,
+    LlmSpeechResult, LlmSpeechRuntime,
+};
+// Haxe: TimeHelper doAnimalMovement offspring / die-in-place / failedMoves (TIME-ANIMAL-OFFSPRING)
+pub use animal_damage::{
+    accelerate_animal_flee, biome_animal_damage_misses, biome_animals_for_loved_biome,
+    clothing_has_quiver, effective_escape_factor, first_player_on_path, is_animal_deadly_for_me,
+    is_animal_not_deadly_for_me, is_holding_weapon, make_animals_run_away, org_animal_damage,
+    org_animal_damage_ex, register_animal_hit, resolve_animal_path_damage,
+    resolve_animal_path_damage_ex, try_animal_escape_roll, weapon_escape_factor,
+    AnimalDamageFactorKnobs, AnimalDamageHit, AnimalDeadlyForMeInput, DamageTarget, EscapeAttempt,
+    EscapeRoll, ANIMAL_DAMAGE_FACTOR, ANIMAL_DAMAGE_FACTOR_IF_ATTACKED,
+    ANIMAL_DAMAGE_FACTOR_IN_WINTER, ANIMAL_DEADLY_DISTANCE, BIOME_ANIMAL_HIT_CHANCE_DEFAULT,
+    DEFAULT_ANIMAL_ESCAPE_FACTOR, RUN_AWAY_SEARCH_DISTANCE,
+};
+pub use animal_pop::{
+    accumulate_failed_moves, apply_low_pop_offspring_boost, apply_overpop_dying_boost,
+    apply_rabbit_wrong_place_dying, can_die_pop_fraction, chance_for_animal_dying,
+    chance_for_offspring, compute_dying_chance, compute_offspring_chance, count_close_same_parent,
+    failed_moves_kills, has_close_same_parent, lonely_death_override, natural_death_allowed,
+    offspring_pop_allows, resolve_failed_move, resolve_pop_on_dest, roll_natural_death,
+    roll_offspring, PopMoveOutcome, CAN_DIE_POP_FRACTION_DEFAULT,
+    CAN_DIE_POP_FRACTION_RABBIT_WRONG, CHANCE_FOR_ANIMAL_DYING,
+    CHANCE_FOR_ANIMAL_DYING_FACTOR_IF_IN_LOVED_BIOME, CHANCE_FOR_OFFSPRING,
+    FAILED_MOVES_DEATH_THRESHOLD, MAX_OFFSPRING_FACTOR, MIN_CURRENT_POP_FOR_NATURAL_DEATH,
+    OFFSPRING_FACTOR_IF_POP_LOW, OFFSPRING_FACTOR_LOW_POP_BELOW, OFFSPRING_MIN_SEPARATION,
+};
 pub use baker_profession::{BakerProfessionRuntime, BakerTaskState};
-pub use farmer_profession::{FarmProfessionRuntime, FarmTaskState, BASIC_FARM_ASSIGNED_MAX_PROFESSION, BASIC_FARM_DEFAULT_MAX_PROFESSION};
+pub use clothing_craft::{
+    add_home_cloth_id, fill_up_quiver_search_radius, has_or_become_tailor, is_fill_up_quiver_plan,
+    parse_tailor_profession_speech, plan_assigned_tailor_clothing, plan_clothing_craft_tick,
+    plan_fill_up_quiver, plan_high_priority_clothing, plan_low_priority_clothing,
+    plan_medium_priority_clothing, plan_quiver_arrow_precursors, person_color_from_race,
+    tailor_max_for_dispatch, ClothingCraftInput, ClothingCraftPlan, HomeClothStock, PersonColor,
+    HOME_LOOM_RADIUS, LOOM, TAILOR_ASSIGNED_MAX, TAILOR_DEFAULT_MAX, TAILOR_PROFESSION_KEY,
+    TAILOR_SCAN_RADIUS,
+};
+pub use farmer_profession::{
+    FarmProfessionRuntime, FarmTaskState, BASIC_FARM_ASSIGNED_MAX_PROFESSION,
+    BASIC_FARM_DEFAULT_MAX_PROFESSION,
+};
 // Haxe: AiBase smith profession (AI-JOB-SMITH / AI-JOB-SMITH-WIRE)
+pub use fire_food_profession::{FireFoodAction, FireFoodProfessionRuntime, FIRE_FOOD_HOME_RADIUS};
+pub use fire_food_rung::try_decide_fire_food_from_rung;
+pub use food_store_max::{
+    biome_love_factor, food_store_max_from_parts, food_store_max_from_parts_ex,
+    MIN_HEALTH_MEDIAN_PRESTIGE,
+};
 pub use smith_profession::{
-    assign_smith_from_speech, chebyshev, count_smith_peers_filtered, critical_smith_shortcrafts,
-    decide_smith_job, decide_smith_job_for_slot, do_smithing, do_smithing_products,
-    fill_smith_counts_from_map, forge_id_priority, has_or_become_smith, infer_smith_stage_from_have,
-    is_forge_id, is_steel_crucible_count_id, parse_smith_profession_speech, pick_forge_near_home,
-    pick_forge_parent, pick_smith_profession_goal, prepare_smithing_tools,
+    assign_smith_from_speech, chebyshev, content_pair_hungry_work_cost,
+    count_smith_peers_filtered, critical_smith_shortcrafts, decide_smith_job,
+    decide_smith_job_for_slot, do_smithing, do_smithing_products, fill_smith_counts_from_map,
+    forge_id_priority, has_or_become_smith, infer_smith_stage_from_have, is_forge_id,
+    is_steel_crucible_count_id, object_hungry_work, parse_smith_profession_speech,
+    pick_forge_near_home, pick_forge_parent, pick_smith_profession_goal, prepare_smithing_tools,
     resolve_smith_assigned_job, smith_action_to_goal, smith_goal_from_counts_and_rung,
     smith_goal_from_map_and_rung, smith_job_rung_label, smith_job_slot_priority,
-    smith_pipeline_targets, smith_slot_for_rung, try_decide_smith_from_rung, wipe_smith_on_eat,
-    ForgeCandidate, MapObj, SmithAction, SmithCounts, SmithJobSlot, SmithPeerSnapshot,
-    SmithProfessionRuntime, BASKET_OF_CHARCOAL, FIRING_FORGE, FIRING_KILN, FLAT_ROCK,
-    FLAT_STONE_COUNT_RADIUS, FORGE, FORGE_SEARCH_RADIUS, FORGE_WITH_CHARCOAL, IRON_ORE,
+    smith_pipeline_targets, smith_slot_for_rung, total_hungry_work_cost, try_decide_smith_from_rung,
+    wipe_smith_on_eat, ForgeCandidate, MapObj, SmithAction, SmithCounts, SmithJobSlot,
+    SmithPeerSnapshot, SmithProfessionRuntime, BASKET_OF_CHARCOAL, FIRING_FORGE, FIRING_KILN,
+    FLAT_ROCK, FLAT_STONE_COUNT_RADIUS, FORGE, FORGE_SEARCH_RADIUS, FORGE_WITH_CHARCOAL, IRON_ORE,
     IRON_ORE_COUNT_RADIUS, SHEARS, SMITHING_HAMMER, SMITH_PROFESSION_KEY, STEEL_AXE,
     STEEL_CHISEL_FAMILY, STEEL_COUNT_RADIUS, STEEL_HOE, STEEL_INGOT, STEEL_MINING_PICK, STONE,
     WROUGHT_IRON,
 };
-pub use fire_food_rung::try_decide_fire_food_from_rung;
-pub use fire_food_profession::{FireFoodAction, FireFoodProfessionRuntime, FIRE_FOOD_HOME_RADIUS};
-pub use food_store_max::{food_store_max_from_parts, food_store_max_from_parts_ex, MIN_HEALTH_MEDIAN_PRESTIGE};
-pub use handling_fire::{FireFoodDispatchPath, FireKeeperProfessionRuntime, HandlingFireAction, HandlingFireMapObj, handling_fire_sensors_from_map, make_fire_food_late_or_hungry};
+// Canonical homes (do not mix): temperature ≠ food eating ≠ world_time
+pub use handling_fire::{
+    apply_fire_craft_search_radius_override, commit_fire_place, handling_fire_sensors_from_map,
+    handling_fire_sensors_from_map_ex, is_self_best_fire_keeper_for_obj,
+    make_fire_food_late_or_hungry, resolve_fire_place, write_player_fire_place,
+    FireFoodDispatchPath, FireKeeperPeer, FireKeeperProfessionRuntime, HandlingFireAction,
+    HandlingFireMapObj, FIRE_CRAFT_HOT_COALS_SEARCH_RADIUS, GET_CLOSE_FIRE_MAXDIST,
+};
+pub use handle_death::{
+    handle_death_after_graves_miss, handle_death_last_profession, handle_death_say,
+    handle_death_should_go_home, plan_handle_death, wipe_jobs_assign_grave_keeper, HandleDeathAction,
+    HandleDeathPlan, HANDLE_DEATH_GO_HOME_TILES, HANDLE_DEATH_HOME_GRAVE_QUAD,
+    HANDLE_DEATH_SAY_GOODBYE, HANDLE_DEATH_SAY_JASONIAH, HANDLE_DEATH_TIME_BUMP,
+};
+pub use handle_temperature::{
+    count_little_kids, fail_warm_clear_place, get_close_biome, is_water_held, need_cooling,
+    need_warming, plan_handle_temperature, HandleTemperatureAction, HandleTemperatureInput,
+    HandleTemperaturePlan, COOL_BIOMES, GET_CLOSE_BIOME_DIST, HANDLE_TEMP_ARRIVE_QUAD,
+    HANDLE_TEMP_DRINK_HEAT, HANDLE_TEMP_FIRE_HEAT_MIN, HANDLE_TEMP_KINDLING,
+    HANDLE_TEMP_KINDLING_AGE, HANDLE_TEMP_LARGE_FAST_FIRE, HANDLE_TEMP_RELAX_TIME,
+    HANDLE_TEMP_SAY_DRINK, WARM_BIOMES,
+};
+pub use remove_from_container::{
+    advance_remove_from_container, is_still_expected_item, stage_remove_item_from_container,
+    RemoveFromContainerAdvance, RemoveFromContainerStaging,
+};
+pub use handling_graves::{
+    assign_grave_keeper_from_speech, handling_graves_sensors_from_map,
+    is_self_best_grave_keeper_for_obj, pick_grave, GraveKeeperPeer, GraveKeeperProfessionRuntime,
+    HandlingGravesAction, HandlingGravesMapObj, GRAVE_KEEPER_PROFESSION_KEY, GRAVE_SEARCH_RADIUS,
+};
+pub use hunting::{
+    assign_hunter_from_speech, has_or_become_hunter, hunting_max_for_dispatch, is_hunting,
+    resolve_hunter_assigned_job, try_decide_hunting_from_rung, HunterProfessionRuntime,
+    HuntingAction, HuntingSensors,
+    FIREBRAND, HUNTER_PROFESSION_KEY, HUNTING_ASSIGNED_MAX, HUNTING_DEFAULT_MAX,
+    HUNTING_HOME_QUAD, HUNTING_MID_MIN_AGE, HUNTING_SHORTCRAFT_RADIUS, HUNT_KNIFE,
+    MOSQUITO_SWARM, MOSQUITO_SWARM_JUST_BIT, RATTLE_SNAKE,
+};
+pub use cutting_wood::{
+    assign_lumberjack_from_speech, cutting_wood_max_for_dispatch, has_or_become_lumberjack,
+    is_cutting_wood, resolve_lumberjack_assigned_job, try_decide_cutting_wood_from_rung,
+    CuttingWoodAction, CuttingWoodSensors, LumberjackProfessionRuntime, CUTTING_WOOD_ASSIGNED_MAX,
+    CUTTING_WOOD_DEFAULT_MAX, CUTTING_WOOD_SCAN_RADIUS, FIREWOOD, LUMBERJACK_PROFESSION_KEY,
+    LUMBER_BUTT_LOG,
+};
+pub use collecting::{
+    assign_collector_from_speech, collecting_max_for_dispatch, has_or_become_collector,
+    is_collecting, resolve_collector_assigned_job, try_decide_collecting_from_rung,
+    CollectingAction, CollectingSensors, CollectorProfessionRuntime, COLLECTING_ASSIGNED_MAX,
+    COLLECTING_DEFAULT_MAX, COLLECTING_SCAN_RADIUS, COLLECTOR_PROFESSION_KEY, COLLECT_KINDLING,
+};
+pub use feeding_player::{
+    assign_foodserver_from_speech, foodserver_max_for_dispatch, has_or_become_foodserver,
+    is_feeding_player_in_need, mid_feed_has_starving_target, mid_feed_sensor_flags,
+    pick_close_starving_player, resolve_foodserver_assigned_job, smith_blocks_mid_feed,
+    try_decide_feeding_player_from_rung, FeedingPlayerAction, FeedingPlayerSensors,
+    FoodServerProfessionRuntime, StarvingCand, FOODSERVER_ASSIGNED_MAX, FOODSERVER_DEFAULT_MAX,
+    FOODSERVER_FOOD_SEARCH_RADIUS, FOODSERVER_PROFESSION_KEY, STARVING_SEARCH_DIST,
+};
 pub use leadership::direct_follow_leader;
-pub use move_speed::VitalsSpeedLiveKnobs;
-pub use player_soul::{person_looks_female, PlayerSoul, SoulView};
+pub use move_speed::{
+    apply_calculate_speed_full, apply_calculate_speed_full_live, contained_obj_speed_mult,
+    half_penalty_for_strong, has_both_shoes, held_nest_speed_product, held_nest_speed_product_ex,
+    held_object_speed_mult, is_horse_or_car, shoe_pair_ids, speed_prestige_class,
+    VitalsSpeedInput, VitalsSpeedLiveKnobs,
+};
+pub use player_soul::{
+    is_super_cold_for_person, is_super_hot_for_person, person_looks_female, PlayerSoul, SoulView,
+};
+pub use player_tick::{HAXE_DO_TIME_STUFF_FOR_PLAYER, HAXE_DO_WORLD_MAP_TIME_STUFF};
 pub use players_persist::PlayersShare;
 pub use pottery_profession::PotterProfessionRuntime;
 pub use shepherd_profession::ShepherdProfessionRuntime;
 pub use short_craft_intent::{
-    drop_held_live_intent_actionable, live_intent_is_wait, smart_drop_held_profession,
-    smart_drop_held_profession_ex,
-    ShortCraftLiveIntent,
+    apply_player_remove_from_container_tick, drop_held_live_intent_actionable, live_intent_is_wait,
+    smart_drop_held_profession, smart_drop_held_profession_ex, smart_drop_held_profession_ex_content,
+    ShortCraftLiveIntent, UseHeldAdvance, UseHeldStaging,
+};
+pub use temperature_handler::{
+    apply_balance_temperature_area, plan_temp_place_goto, update_player_temperature,
+    HAXE_TEMPERATURE_HANDLER,
 };
 // Haxe: AiBase.itemToCraft / failedCraftings / itemToCraftId (AI-CRAFT-STICKY / craft_runtime)
 pub use craft_ai_sticky::{
@@ -209,94 +350,126 @@ pub use craft_ai_sticky::{
 };
 
 pub use accounts::format_account_statistics_html;
-pub use world_food_stats::{
-    apply_world_food_factors, format_food_statistics_html, format_lineage_ages_html, format_lineage_death_reason_html, generate_lineage_statistics,
-    format_lineage_statistics_html, super_meh_extra_food_value, super_meh_food_max_is_deadly, super_meh_trade, SuperMehTrade,
-    WorldFoodShare, WorldFoodStats,
-};
-pub use yum::{
-    can_eat_obj_ex, compute_eat_full, dont_change_craving, loved_food_ids_for_person_color,
-    refuse_self_eat_super_meh,
-};
+pub use ai_say_helper::{go_home_goal_xy, go_home_move_target};
 pub use ai_follow_walk::{
-    apply_follow_sticky_clear, decide_follow_walk, follow_seed, plan_follow_sticky_clear_ex,
-    truncate_follow_path_steps, FollowWalkDecision, FOLLOW_PATH_STEP_CAP,
+    apply_follow_sticky_clear, decide_follow_walk, follow_seed, plan_ally_up,
+    plan_follow_sticky_clear_ex, plan_found_family, should_skip_ally_up_if_hired,
+    truncate_follow_path_steps, FollowWalkDecision, FoundFamilyPlan, FOLLOW_PATH_STEP_CAP,
+    FOUND_FAMILY_COST, FOUND_FAMILY_NEEDED_FOLLOWERS, FOUND_FAMILY_NEEDED_PRESTIGE,
+};
+pub use ai_goals::priority_ladder::{
+    age_rotated_job_sequence, sensors_from_ext_ex, should_handle_death, AgeRotatedJobKind,
+    LiveSensorExtras, LiveSensorInput, HANDLE_DEATH_AGE_OFFSET, HANDLE_DEATH_MAX_AGE_DEFAULT,
 };
 pub use animals::AnimalMovementTick;
 pub use baker_profession::do_baking;
 pub use craft_ai_sticky::apply_sticky_flags_to_craft_sensors;
-pub use get_or_craft::CraftLiveExpandOpts;
 pub use death_polish::is_wound_object;
-pub use short_craft_intent::drop_held_ai::{HOT_ADOBE_OVEN, HOT_COALS};
-pub use farmer_profession::{do_basic_farming, do_basic_farming_after_sheep, farm_counts_from_nearby};
+pub use farmer_profession::{
+    do_basic_farming, do_basic_farming_after_sheep, do_basic_farming_ex, farm_counts_from_nearby,
+};
 pub use fertility::is_fertile_ex;
 pub use fire_food_profession::{
-    count_fire_food_peers_filtered, fill_fire_food_counts_from_map, make_fire_food,
-    FireFoodMapObj, FireFoodPeerSnapshot,
+    count_fire_food_peers_filtered, fill_fire_food_counts_from_map, is_self_best_bowl_filler,
+    make_fire_food, BowlFillerPeer, FireFoodMapObj, FireFoodPeerSnapshot,
     FIRE_FOOD_ASSIGNED_MAX_PEOPLE, FIRE_FOOD_MAKE_STUFF_MAX_PEOPLE,
 };
+pub use get_or_craft::{
+    init_water_source_ids, init_water_source_ids_from_content, CraftLiveExpandOpts,
+    AI_IGNORE_TIME_TRANSITIONS_LONGER_THAN, AI_MAX_SEARCH_INCREMENT, AI_MAX_SEARCH_RADIUS,
+    AI_TIME_TO_WAIT_IF_CRAFTING_FAILED_SEC, DEFAULT_BUCKET_WATER_SOURCE_IDS,
+    DEFAULT_WATER_SOURCE_IDS,
+};
 pub use player_soul::{email_looks_ai, person_is_female};
-pub use ai_goals::priority_ladder::{LiveSensorInput, age_rotated_job_sequence, sensors_from_ext_ex, LiveSensorExtras, AgeRotatedJobKind};
-pub use reputation::{compute_hit_reputation, HitReputationInput, DEVIL_MASK_CLOTHING_ID};
+pub use reputation::{
+    compute_hit_reputation, compute_hit_reputation_with_factors, format_prestige_cost_global_message,
+    HitReputationInput, DEVIL_MASK_CLOTHING_ID,
+};
+pub use short_craft_intent::drop_held_ai::{HOT_ADOBE_OVEN, HOT_COALS};
+pub use world_food_stats::{
+    apply_world_food_factors, format_food_statistics_html, format_lineage_ages_html,
+    format_lineage_death_reason_html, format_lineage_statistics_html, generate_lineage_statistics,
+    super_meh_extra_food_value, super_meh_food_max_is_deadly, super_meh_trade, SuperMehTrade,
+    WorldFoodShare, WorldFoodStats,
+};
+pub use yum::{
+    can_eat_obj_ex, compute_eat_full, dont_change_craving, loved_biome_for_person_color,
+    loved_food_ids_for_person_color, refuse_self_eat_super_meh,
+};
 pub const MAKE_STUFF_FARM_MAX_PEOPLE: i32 = FIRE_FOOD_MAKE_STUFF_MAX_PEOPLE;
 pub use ai_goals::{POTTER_TARGET_ID, SHEPHERD_TARGET_ID};
-
 
 pub use get_or_craft::CraftScanFilters;
 
 // --- compile-green reexports (missing crate-root symbols) ---
+pub use ai_follow_walk::{AiFollowSticky, FollowTargetSnap};
 pub use combat::calculate_enemy_vs_ally_strength_factor_ex;
-pub use move_path::check_if_not_moving_and_close_enough;
-pub use move_live_gates::{
-    clear_too_close_pending, is_friendly, note_too_close_say, refuse_ranged_use_too_close,
-    take_too_close_message, take_too_close_say, TOO_CLOSE_MESSAGE, TOO_CLOSE_SAY,
-};
 pub use craft_ai_sticky::{
-    expand_craft_item_player_sticky_scan, select_sticky_craft_for_tick, StickyCraftTickChoice,
+    expand_craft_item_player_sticky_scan, requeue_runtime_task_on_fail,
+    select_runtime_sticky_craft_for_tick, select_sticky_craft_for_tick, StickyCraftTickChoice,
 };
-pub use shepherd_profession::{
-    assign_shepherd_from_speech, BOWL_CORN_KERNELS,
+pub use food_store_max::{
+    calculate_health_age_factor, calculate_health_age_factor_ex, calculate_health_factor,
+    calculate_health_food_store_max_factor, calculate_health_food_store_max_factor_ex,
+    median_prestige_for_health, median_prestige_for_health_ex,
 };
-pub use short_craft_intent::short_craft_on_ground_to_live_intent;
 pub use handling_fire::{
     assign_fire_keeper_from_speech, handling_fire_max_for_dispatch,
     try_decide_handling_fire_from_rung, HANDLING_FIRE_ASSIGNED_MAX, HANDLING_FIRE_TEMP_MAX,
 };
-pub use ai_follow_walk::{AiFollowSticky, FollowTargetSnap};
+pub use handling_graves::try_decide_handling_graves_from_rung;
 pub use locks::LockpickSettings;
-pub use food_store_max::{
-    calculate_health_age_factor, calculate_health_food_store_max_factor, median_prestige_for_health,
+pub use move_live_gates::{
+    clear_too_close_pending, is_friendly, kill_in_deadly_range, note_too_close_say,
+    refuse_ranged_kill_too_close, refuse_ranged_use_too_close, take_too_close_message,
+    take_too_close_say, take_too_close_say_for, KILL_DEADLY_RANGE_SLACK, TOO_CLOSE_MESSAGE,
+    TOO_CLOSE_SAY,
 };
+pub use move_path::check_if_not_moving_and_close_enough;
+pub use shepherd_profession::{assign_shepherd_from_speech, BOWL_CORN_KERNELS};
+pub use short_craft_intent::short_craft_on_ground_to_live_intent;
 pub use world_time::WorldMapTimeState;
 // Profession pure helpers (crate-root for Player tests + profession_scan tests)
-pub use pottery_profession::{assign_potter_from_speech, count_potter_peers_filtered};
 pub use baker_profession::{assign_baker_from_speech, note_raw_pie_crafted, RAW_PIES};
 pub use farmer_profession::{assign_farm_from_speech, resolve_farm_assigned_job, FarmCounts};
 pub use fire_food_profession::{assign_fire_food_from_speech, FIRE};
+pub use pottery_profession::{assign_potter_from_speech, count_potter_peers_filtered};
 pub use smith_profession::apply_consider_making_food_smith_wipe;
 // Path-reach helpers not already in server_api_reexports
 pub use ai_path_reach::{
-    add_blocked_by_ai, cleanup_blocked_by_ai, mark_use_or_food_path_fail, SMITHING_HAMMER_BLOCK_ID,
+    add_blocked_by_ai, cleanup_blocked_by_ai, mark_use_or_food_path_fail, merge_blocked_by_ai_max,
+    mirror_blocked_by_ai_share, preserve_view_path_reach_on_publish, SMITHING_HAMMER_BLOCK_ID,
+    BLOCKED_BY_AI_DEFAULT_SECS,
 };
 // Scan / craft sticky / soul
-pub use short_craft_intent::profession_scan::ScanTile;
+pub use animal_damage::BOW_AND_ARROW_ID;
 pub use get_or_craft::craft_item::ItemToCraftState;
 pub use player_soul::InteractionType;
-pub use animal_damage::BOW_AND_ARROW_ID;
+pub use short_craft_intent::profession_scan::{
+    count_tailor_profession_from_rows, gather_clay_input_from_scan, home_cloth_stock_from_world,
+    home_has_loom_from_world, potter_peers_from_players,
+    pottery_action_to_live_intent, pottery_counts_from_scan, pottery_map_from_scan,
+    pottery_profession_scan_tick, quiver_can_add_from_slots, shepherd_action_to_live_intent,
+    shepherd_profession_scan_tick, ScanTile, POTTERY_SCAN_RADIUS,
+};
 // --- end compile-green reexports ---
 pub use settings_live::SimBootLive;
 include!("server_api_reexports.inc.rs");
 
 // --- end residual reexports ---
 
-pub use move_path::{
-    advance_path, build_move_path, calculate_length, chebyshev as move_chebyshev,
-    client_path_deltas_to_steps, format_pm_body, steps_to_client_path_deltas,
-    in_use_range, is_moving, quad_dist as move_quad_dist, resolve_move_seq, round2,
-    truncate_walkable, MovePath, MoveReject, DEFAULT_MOVE_SPEED, MAX_MOVE_QUAD_JUMP_BEFORE_FORCE,
-};
 pub use birth_fitness::{
-    father_fitness, mother_fitness, ChildView, FatherView, MotherView, EVE_OR_ADAM_BIRTH_CHANCE,
+    eve_or_adam_birth, father_fitness, mother_fitness, mother_fitness_with_birth_knobs,
+    BirthSpawnKnobs, ChildView, FatherView, MotherView, EVE_OR_ADAM_BIRTH_CHANCE,
+};
+pub use move_path::{
+    advance_path, apply_jump_cost_ex, build_move_path, calculate_length,
+    chebyshev as move_chebyshev, client_path_deltas_to_steps, decay_jumped_tiles_ex,
+    format_pm_body, in_use_range, in_use_range_ex, is_moving, jump_quad_with_floor,
+    jump_rate_limited_ex, quad_dist as move_quad_dist, received_force_matches, resolve_move_seq,
+    round2, still_waiting_for_force,
+    steps_to_client_path_deltas, truncate_walkable, MovePath, MoveReject, DEFAULT_MOVE_SPEED,
+    MAX_MOVE_QUAD_JUMP_BEFORE_FORCE,
 };
 // Haxe: GlobalPlayerInstance.spawnAsEve + ClearStartLocations (EVE-BANANA / jungle_spawn)
 pub use eve_spawn::{
@@ -314,62 +487,28 @@ pub use accounts::{
 pub use admin_env::{
     end_apoc, parse_season, set_hour, set_season, set_weather, start_apoc, weather_kind_name,
 };
-pub use afk::{
-    format_afk_query, AfkBook, AFK_WARN_REMAINING_SECS, DEFAULT_AFK_SECS,
-};
-pub use death_log::{DeathLog, DeathRecord};
+pub use afk::{format_afk_query, AfkBook, AFK_WARN_REMAINING_SECS, DEFAULT_AFK_SECS};
 pub use age_stage::{format_stage_query, AgeStage};
-pub use biome_colors::{
-    biome_id_from_name, biome_id_from_rgb, color_for_biome, format_biome_colors_query,
-    format_hex_query, name_for_biome, BiomeColorEntry, Rgb, BIOME_COLORS,
-};
-pub use death_cause::{
-    combat_death, combat_death_wire, food_death_wire, format_cause_query, format_death_event,
-    format_death_event_tag, hunger_death_wire, killed_by_object_wire,
-    parse_killed_object_id, DeathCause,
-};
-pub use death_inherit::{
-    account_soul_token, add_owner_to_helper, apply_inherit_coins, apply_inherit_ownership_on_helpers,
-    choose_new_leader, count_leadership_power, format_inherit_events, format_leader_succession_event,
-    format_ownership_events, remove_owner_from_helper, stamp_grave_soul, InheritContext,
-    InheritTransfer, LeaderSuccession, OwnershipTransfer,
-};
-pub use death_polish::{apply_death_polish, place_grave_with_soul};
-pub use economy::INHERIT_COINS_FACTOR;
-pub use mute::{format_mute_query, parse_mute_command, should_hear, MuteBook};
-pub use object_tags::{
-    format_held_tags_query, format_object_tags_summary, parse_object_description, plus_tags_only,
-    ObjectDescription,
-};
-pub use wire_fields::{
-    extract_hash_frames, format_csv_i32, format_xy, parse_csv_i32, parse_i32_list, parse_key_f32,
-    parse_key_i32, parse_key_value, parse_xy, parse_xy_exact, parse_xyz, split_tokens,
-    strip_line_comment,
-};
-pub use reputation::{
-    format_reputation_query, is_dangerous_lost_combat, label_from_lost_combat,
-    label_from_reputation, lost_combat_from_reputation, reputation_from_lost_combat,
-    ReputationBook, ReputationLabel,
-};
-pub use version_gate::{
-    check_client_version, format_version_gate_query, format_version_reject_message,
-    format_version_reject_ps, parse_version_token, should_hard_reject_login, versions_compatible,
-    VersionGatePolicy, VersionGateResult, DEFAULT_REQUIRED_VERSION,
-};
-pub use gestation_tick::{due_mothers, format_twin_party_ready, format_twin_wait_ps, poll_twin_timeouts};
 pub use ai_goals::{
-    age_job_index, format_seeking_query, goal_from_rung, is_child_and_has_mother,
-    is_hungry_simple, parse_profession_token, pick_goal, pick_goal_ext, pick_goal_from_ladder,
+    age_job_index, format_seeking_query, goal_from_rung, is_child_and_has_mother, is_hungry_simple,
+    parse_profession_token, pick_goal, pick_goal_ext, pick_goal_from_ladder,
     pick_goal_from_live_sensors, pick_goal_smith_craft, pick_goal_smith_craft_at_stage,
-    pick_smith_goal, resolve_priority_rung, sensors_from_simple,
-    smith_product_targets, update_is_hungry, Goal, PriorityBand, PriorityRung, PrioritySensors,
-    Profession, BAKER_TARGET_ID, FARMER_TARGET_ID, HUNGRY_FOOD, HUNGRY_ENTER_FLOOR, HUNGRY_ENTER_FRAC,
-    HUNGRY_LEAVE_FRAC, MIN_AGE_TO_EAT, SMITH_IRON_ID, SMITH_TARGET_ID, SMITHING_HAMMER_ID,
+    pick_smith_goal, resolve_priority_rung, sensors_from_simple, smith_product_targets,
+    update_is_hungry, Goal, PriorityBand, PriorityRung, PrioritySensors, Profession,
+    BAKER_TARGET_ID, FARMER_TARGET_ID, HUNGRY_ENTER_FLOOR, HUNGRY_ENTER_FRAC, HUNGRY_FOOD,
+    HUNGRY_LEAVE_FRAC, MIN_AGE_TO_EAT, SMITHING_HAMMER_ID, SMITH_IRON_ID, SMITH_TARGET_ID,
 };
 pub use ally::AllyState;
 pub use animals::{
     Animal, AnimalKind, AnimalSnapshot, AnimalView, AnimalWorld, AnimalWorldShare,
     ANIMAL_THREAT_RANGE,
+};
+pub use apocalypse::{
+    Apocalypse, ApocalypsePhase, APOC_FOOD_DRAIN_MULT, DEFAULT_ACTIVE_SECS, DEFAULT_WARNING_SECS,
+};
+pub use biome_colors::{
+    biome_id_from_name, biome_id_from_rgb, color_for_biome, format_biome_colors_query,
+    format_hex_query, name_for_biome, BiomeColorEntry, Rgb, BIOME_COLORS,
 };
 pub use biomes_query::{format_biomes_query, is_listed_bad_biome, BadBiomeEntry, BAD_BIOMES};
 pub use chunk_tier::{
@@ -377,12 +516,15 @@ pub use chunk_tier::{
     ChunkTier,
 };
 pub use combat::{
-ally_strength_blocks_pickup, calculate_enemy_vs_ally_strength_factor, close_ally_ids_for_anger,
-combat_strength, is_close_for_ally_strength, resolve_ally_damage_factor, AllyStrengthPlayer,
-CombatState, CombatStats, HitResult, ALLY_CONSIDERED_CLOSE, ALLY_ON_ALLY_DAMAGE_FACTOR,
-ALLY_STRENGTH_BASE, ALLY_STRENGTH_FACTOR_CAP, ALLY_STRENGTH_TOO_LOW_FOR_PICKUP_DEFAULT,
-FOOD_MAX_DEATH, HITS_KILL_THRESHOLD, KILL_RANGE, MAX_WOUND, WOUND_BLEED_DRAIN,
-WOUND_KILL_THRESHOLD,
+    ally_strength_blocks_pickup, calculate_enemy_vs_ally_strength_factor, close_ally_ids_for_anger,
+    combat_strength, cursed_make_damage_mul, cursed_receive_damage_mul, eve_damage_mul,
+    eve_pair_damage_mul, is_close_for_ally_strength, male_damage_mul, resolve_ally_damage_factor,
+    resolve_unarmed_ally_hit_gate, target_wounded_damage_mul, unarmed_ally_first_hit_messages,
+    weapon_damage_mul, AllyStrengthPlayer, CombatState, CombatStats, HitResult,
+    UnarmedAllyHitGate, ALLY_CONSIDERED_CLOSE, ALLY_ON_ALLY_DAMAGE_FACTOR, ALLY_STRENGTH_BASE,
+    ALLY_STRENGTH_FACTOR_CAP, ALLY_STRENGTH_TOO_LOW_FOR_PICKUP_DEFAULT, EVE_DAMAGE_FACTOR,
+    FOOD_MAX_DEATH, HITS_KILL_THRESHOLD, KILL_RANGE, MALE_DAMAGE_FACTOR, MAX_WOUND,
+    TARGET_WOUNDED_DAMAGE_FACTOR, WEAPON_DAMAGE_FACTOR, WOUND_BLEED_DRAIN, WOUND_KILL_THRESHOLD,
 };
 pub use craft_graph::ReverseCraftGraph;
 pub use craft_value::{
@@ -391,17 +533,72 @@ pub use craft_value::{
     ABUNDANCE_SOFT_CAP, DEFAULT_CRAFT_RADIUS, DEFAULT_WALK_SPEED, INTERACTION_SEC,
 };
 pub use crime::{classify_take, CrimeState, TakeLegality, THEFT_PRESTIGE_PENALTY};
-pub use emote_limit::{EmoteRateLimiter, EMOTE_RATE_MAX, EMOTE_RATE_WINDOW_SECS};
-pub use mumble::MUMBLE_RANGE;
-pub use shove::{
-    can_pull_to, is_adjacent as shove_is_adjacent, pull_dest, push_dest, resolve_push,
-    PushOutcome, BLESS_PRESTIGE, CUTE_EMOT_INDEX, KISS_ALLY_PRESTIGE, LOVE_EMOT_INDEX,
-    MAD_EMOT_INDEX, SHOVE_RANGE, SLAP_WOUND, THANK_PRESTIGE,
+pub use death_cause::{
+    combat_death, combat_death_wire, food_death_wire, format_cause_query, format_death_event,
+    format_death_event_tag, hunger_death_wire, killed_by_object_wire, parse_killed_object_id,
+    DeathCause,
 };
-pub use sit::{SIT_BLOCKS_MOVE, SIT_FOOD_DRAIN_MULT};
+pub use death_inherit::{
+    account_id_ensure, account_id_for_email, account_soul_token, add_account_owner_to_helper,
+    add_owner_to_helper, apply_inherit_coins,
+    apply_inherit_ownership_on_helpers, choose_new_leader, count_leadership_power,
+    format_inherit_events, format_leader_succession_event, format_ownership_events,
+    remove_owner_from_helper, stamp_grave_soul, InheritContext, InheritTransfer, LeaderSuccession,
+    OwnershipTransfer,
+};
+pub use death_log::{DeathLog, DeathRecord};
+pub use death_polish::{
+    apply_death_polish, place_grave_with_soul, stamp_starting_gx_from_death, BABY_BONES_ID,
+};
+pub use drain_est::{estimate_food_drain, DrainEstimate};
+pub use economy::INHERIT_COINS_FACTOR;
+pub use emote_limit::{EmoteRateLimiter, EMOTE_RATE_MAX, EMOTE_RATE_WINDOW_SECS};
+pub use fire::{FireState, FireTile, DEFAULT_FIRE_SECS, FIRE_FOOD_DRAIN};
+pub use gestation_tick::{
+    due_mothers, format_twin_party_ready, format_twin_wait_ps, poll_twin_timeouts,
+};
 pub use heal::{format_wound_query, name_looks_like_heal, try_heal, HealResult};
 pub use hunt::{
-    hunt_nearest, HuntResult, HUNT_DAMAGE, HUNT_KILL_PRESTIGE, HUNT_MEAT_OBJECT_ID, HUNT_RANGE,
+    hunt_nearest, jungle_biome_love_for_mosquito, moskito_damage_factor_from_love,
+    scale_damage_by_moskito_factor, HuntResult, HUNT_DAMAGE, HUNT_KILL_PRESTIGE,
+    HUNT_MEAT_OBJECT_ID, HUNT_RANGE,
+};
+pub use leadership::{
+    follower_count, format_leader_query, is_leader, rank_leaders, LeaderEntry, LEADER_QUERY_LIMIT,
+};
+pub use locks::LockState;
+pub use look::format_look;
+pub use move_live_gates::{
+    calculate_close_blocking_grave_fitness, calculate_distance_sq,
+    close_hostile_weapon_speed_active, format_cursed_message, has_close_blocking_grave,
+    has_close_hostile_with_weapon, is_close_use_exact, is_friendly_ally_only, resolve_grave_curse,
+    ClosePlayerCandidate, GraveCurseTransition, BLOCKING_GRAVE_FITNESS_CAP,
+    BLOCKING_GRAVE_FITNESS_THRESHOLD, CLOSE_ENEMY_WEAPON_DISTANCE, COMBAT_ANGRY_TIME_BEFORE_ATTACK,
+    CURSE_CLEAR_EMOTE_INDEX, CURSE_CLEAR_SAY, CURSE_ENTER_EMOTE_INDEX, CURSE_ENTER_SAY,
+    GRAVE_BLOCKING_DISTANCE, GRAVE_CURSE_CLEAR_DISTANCE_MULT,
+    MAX_PLAYERS_BEFORE_ACTIVATING_GRAVE_CURSE,
+};
+pub use move_notes::{
+    ballast_speed_mult, compose_move_speed, compose_move_speed_with_floor, floor_counts_as_road,
+    floor_road_biome_factor, floor_road_factor_at, floor_speed_mult, format_speed_query,
+    format_weight_query, scan_path_road_and_biome, soften_contained_speed_on_floor,
+    soften_held_speed_on_floor, tile_biome_speed, weight_item_count, PathRoadScan,
+    BALLAST_PER_ITEM, INITIAL_PLAYER_MOVE_SPEED, MIN_BIOME_SPEED_FACTOR, ROAD_SPEED_THRESHOLD,
+};
+pub use mumble::MUMBLE_RANGE;
+pub use mutation::{SpecialIndex, SpecialKind};
+pub use mute::{format_mute_query, parse_mute_command, should_hear, MuteBook};
+pub use object_tags::{
+    format_held_tags_query, format_object_tags_summary, parse_object_description, plus_tags_only,
+    ObjectDescription,
+};
+pub use permissions::{check_owned_access, format_lock_query, Access};
+pub use poison::{name_looks_like_poison, should_sicken_on_feed};
+pub use postload_wire::{
+    account_token_index, apply_grave_account_link, apply_init_object_helpers_after_read,
+    apply_player_owning_link, content_grave_meta, description_is_orig_grave,
+    player_alive_for_postload, rebuild_account_graves_from_world, rebuild_player_owning_from_world,
+    PostloadWireStats,
 };
 pub use professions::{
     collect_food_ids, is_chop_biome, is_fishing_biome, is_grassland, is_mountain_biome, is_swamp,
@@ -411,144 +608,148 @@ pub use professions::{
     MOUNTAIN_BIOME, OCEAN_BIOME, PASSABLE_RIVER_BIOME, PROF_ACTION_COOLDOWN_SECS, RIVER_BIOME,
     STONE_PLACEHOLDER_ID, SWAMP_BIOME, WOOD_PLACEHOLDER_ID, YELLOW_BIOME,
 };
-pub use leadership::{
-    follower_count, format_leader_query, is_leader, rank_leaders, LeaderEntry, LEADER_QUERY_LIMIT,
-};
-pub use postload_wire::{
-apply_grave_account_link, apply_init_object_helpers_after_read,
-apply_player_owning_link, content_grave_meta, description_is_orig_grave,
-player_alive_for_postload, rebuild_account_graves_from_world,
-rebuild_player_owning_from_world, account_token_index, PostloadWireStats,
-};
-pub use mutation::{SpecialIndex, SpecialKind};
-pub use fire::{FireState, FireTile, DEFAULT_FIRE_SECS, FIRE_FOOD_DRAIN};
-pub use locks::LockState;
-pub use drain_est::{estimate_food_drain, DrainEstimate};
-pub use move_live_gates::{
-    calculate_close_blocking_grave_fitness, calculate_distance_sq,
-    close_hostile_weapon_speed_active, format_cursed_message,
-    has_close_blocking_grave, has_close_hostile_with_weapon,
-    is_close_use_exact, is_friendly_ally_only, resolve_grave_curse,
-    ClosePlayerCandidate, GraveCurseTransition, BLOCKING_GRAVE_FITNESS_CAP,
-    BLOCKING_GRAVE_FITNESS_THRESHOLD, CLOSE_ENEMY_WEAPON_DISTANCE,
-    COMBAT_ANGRY_TIME_BEFORE_ATTACK, CURSE_CLEAR_EMOTE_INDEX,
-    CURSE_CLEAR_SAY, CURSE_ENTER_EMOTE_INDEX, CURSE_ENTER_SAY,
-    GRAVE_BLOCKING_DISTANCE, GRAVE_CURSE_CLEAR_DISTANCE_MULT,
-    MAX_PLAYERS_BEFORE_ACTIVATING_GRAVE_CURSE,
-};
-pub use move_notes::{
-    ballast_speed_mult, compose_move_speed, compose_move_speed_with_floor,
-    floor_counts_as_road, floor_road_biome_factor, floor_road_factor_at, floor_speed_mult,
-    format_speed_query, format_weight_query, scan_path_road_and_biome,
-    soften_contained_speed_on_floor, soften_held_speed_on_floor, tile_biome_speed,
-    weight_item_count, PathRoadScan, BALLAST_PER_ITEM, INITIAL_PLAYER_MOVE_SPEED,
-    MIN_BIOME_SPEED_FACTOR, ROAD_SPEED_THRESHOLD,
-};
-pub use permissions::{check_owned_access, format_lock_query, Access};
-pub use look::format_look;
-pub use poison::{name_looks_like_poison, should_sicken_on_feed};
 pub use queries_extra::{
     biome_name, chebyshev as query_chebyshev, format_biome_query, format_biome_query_with_hex,
     format_count_query, format_dist_query, format_floor_query, format_near_query,
     format_save_denied, format_save_reply, format_wjournal_query,
 };
 pub use relations::{
-    format_children_query, format_gen_query, format_relation_query, is_close_relative, is_eve,
-    is_leadership_ally, is_same_family, living_children_of, relation_of, root_eve_id, top_leader,
-    Relation,
+    exile_if_close, format_children_query, format_gen_query, format_relation_query, is_ally,
+    is_close_relative, is_eve, is_leadership_ally, is_same_family, living_children_of, relation_of,
+    root_eve_id, top_leader, Relation, RECENT_EXILE_ALLY_SECS,
 };
+pub use reputation::{
+    format_reputation_query, is_dangerous_lost_combat, label_from_lost_combat,
+    label_from_reputation, lost_combat_from_reputation, reputation_from_lost_combat,
+    ReputationBook, ReputationLabel,
+};
+pub use shove::{
+    can_pull_to, is_adjacent as shove_is_adjacent, pull_dest, push_dest, resolve_push, PushOutcome,
+    BLESS_PRESTIGE, CUTE_EMOT_INDEX, KISS_ALLY_PRESTIGE, LOVE_EMOT_INDEX, MAD_EMOT_INDEX,
+    SHOVE_RANGE, SLAP_WOUND, THANK_PRESTIGE,
+};
+pub use sit::{SIT_BLOCKS_MOVE, SIT_FOOD_DRAIN_MULT};
+pub use skills::{SkillBook, SkillState, SkillTrack, XP_PER_CRAFT};
+pub use snow::{SnowCover, SNOW_FOOD_EXTRA, SNOW_MOVE_FACTOR};
 pub use treasury::{
     donate as treasury_donate, format_treasury_query, pay_from_treasury, tax, TreasurySnapshot,
     TreasuryView,
 };
-pub use weapons::{
-bloody_weapon_after_strike, bloody_weapon_id_for, bloody_weapon_speed_mult,
-weapon_bloody_time_to_change, format_range_query, held_damage_protection_factor,
-is_bloody_weapon, is_never_drop_weapon, make_weapon_bloody_if_needed, weapon_damage,
-weapon_range, BloodyWeaponTransform, BLOODY_KNIFE_ID, BLOODY_WAR_SWORD_ID,
-BLOODY_WEAPON_MAKE_TTC, DEFAULT_WEAPON_DAMAGE, KNIFE_ID, WAR_SWORD_ID,
-WEAPON_COOLDOWN_FACTOR, WEAPON_COOLDOWN_FACTOR_IF_WOUNDING,
-};
-pub use skills::{SkillBook, SkillState, SkillTrack, XP_PER_CRAFT};
-pub use snow::{SnowCover, SNOW_FOOD_EXTRA, SNOW_MOVE_FACTOR};
 pub use tutorial::{TutorialProgress, TutorialState, TIPS};
-pub use apocalypse::{
-    Apocalypse, ApocalypsePhase, APOC_FOOD_DRAIN_MULT, DEFAULT_ACTIVE_SECS, DEFAULT_WARNING_SECS,
+pub use version_gate::{
+    check_client_version, format_version_gate_query, format_version_reject_message,
+    format_version_reject_ps, parse_version_token, should_hard_reject_login, versions_compatible,
+    VersionGatePolicy, VersionGateResult, DEFAULT_REQUIRED_VERSION,
+};
+pub use weapons::{
+    bloody_weapon_after_strike, bloody_weapon_id_for, bloody_weapon_speed_mult, format_range_query,
+    held_damage_protection_factor,
+    make_weapon_bloody_if_needed, weapon_bloody_time_to_change, weapon_damage, weapon_range,
+    BloodyWeaponTransform, BLOODY_KNIFE_ID, BLOODY_WAR_SWORD_ID, BLOODY_WEAPON_MAKE_TTC,
+    DEFAULT_WEAPON_DAMAGE, KNIFE_ID, WAR_SWORD_ID, WEAPON_COOLDOWN_FACTOR,
+    WEAPON_COOLDOWN_FACTOR_IF_WOUNDING,
+};
+pub use wire_fields::{
+    extract_hash_frames, format_csv_i32, format_xy, parse_csv_i32, parse_i32_list, parse_key_f32,
+    parse_key_i32, parse_key_value, parse_xy, parse_xy_exact, parse_xyz, split_tokens,
+    strip_line_comment,
 };
 // Haxe: doEating feed-other feeder prestige share (FEED-OTHER-YUM)
-pub use feed_other_yum::{
-    feed_other_feeder_prestige_delta, FEED_OTHER_FEEDER_PRESTIGE_SHARE,
-};
-pub use feed::{
-    apply_feed_amounts, breastfeed_tick, can_breastfeed, can_feed, can_nurse_age,
-    can_pickup_breastfeed_age, can_pickup_player_ages, get_max_child_feeding,
-    name_looks_like_food, nurse_hits_heal, pickup_feed_amounts, should_set_follow_on_hold,
-    FEED_RANGE, FOOD_RESTORE_FACTOR_WHILE_FEEDING, MAX_AGE_FOR_PICKUP_FROM_OTHERS,
-    MAX_CHILD_AGE_BREAST_FEEDING, MIN_MAX_CHILD_FEEDING, NURSE_HITS_HEAL_PER_SEC,
-    PICKUP_EXHAUSTION_GAIN, PICKUP_FEEDING_FOOD_RESTORE,
-};
-pub use fertility::{
-    age_fertile, is_fertile, FertilityState, BIRTH_COOLDOWN_SECS, FERTILE_MAX_AGE,
-    FERTILE_MIN_AGE, GESTATION_SECS,
+pub use account_persist::{
+    load_accounts, save_accounts, ACCOUNT_FORMAT_VERSION, DEFAULT_ACCOUNT_FILE,
 };
 pub use curse::{
     compute_excess, format_curse_score_change, format_curse_token_change, CursePlayer, CurseState,
     CURSE_THRESHOLD, DEFAULT_CURSE_TOKENS,
 };
 pub use debt_book::DebtBook;
+pub use do_commands_wire::{
+    apply_do_commands_live, apply_do_commands_live_ex, tick_pending_new_followers,
+    DoCommandEffects, FollowHireLiveKnobs, NameCandidate,
+};
 pub use economy::{Economy, Wallet};
 pub use environment::{
     biome_food_multiplier, clothing_temp_bonus, format_biomefood_query, format_swim_query,
-    format_warm_query, is_swim_biome, EnvSnapshot, EnvView, Environment, Season,
-    BIOME_OCEAN, BIOME_RIVER, OCEAN_RIVER_FOOD_DRAIN_MULT,
+    format_warm_query, is_swim_biome, EnvSnapshot, EnvView, Environment, Season, BIOME_OCEAN,
+    BIOME_RIVER, OCEAN_RIVER_FOOD_DRAIN_MULT,
 };
-pub use speech::{
-    chat_range_for_age as speech_chat_range_for_age, closest_owned_tile, compute_hire_cost,
-    do_command_broadcasts_chat, extract_command_name, find_player_by_name, format_exile_say_result,
-    format_follow_say_result, format_give_say_result, format_hire_say_result,
-    format_home_bang_result, format_order_global, format_own_this_result, format_redeem_say_result,
-    hire_age_ok, hire_angry_ok, hire_class_ok, is_follow_self_name, is_home_oven_id,
-    parse_do_command, parse_own_this_name, parse_roman_coin_amount, pick_nearest_home_oven,
-    ADULT_CHAT_RANGE, MAX_DISTANCE_CLOSE_FOR_SAY, DoCommand, HIRE_COST,
-    HIRE_COST_INCREASE_PER_PERSON, HOME_OVEN_IDS,
-    HOME_SEARCH_MAX_QUAD, MUMBLE_CHAT_RANGE, SHOUT_CHAT_RANGE, SpeechVolume, WHISPER_CHAT_RANGE,
+pub use feed::{
+    apply_feed_amounts, breastfeed_tick, can_breastfeed, can_feed, can_nurse_age,
+    can_pickup_baby_distance, can_pickup_breastfeed_age, can_pickup_player_ages,
+    can_pickup_player_ages_ex,
+    get_max_child_feeding, name_looks_like_food, nurse_hits_heal, pickup_feed_amounts,
+    is_droppable_on_baby_pickup, needs_force_drop_nested_hold, pickup_feed_amounts_ex,
+    should_set_follow_on_hold, FEED_RANGE,
+    FOOD_RESTORE_FACTOR_WHILE_FEEDING, MAX_AGE_FOR_PICKUP_FROM_OTHERS,
+    MAX_CHILD_AGE_BREAST_FEEDING, MIN_MAX_CHILD_FEEDING, NURSE_HITS_HEAL_PER_SEC,
+    PICKUP_EXHAUSTION_GAIN, PICKUP_FEEDING_FOOD_RESTORE,
 };
-pub use do_commands_wire::{
-    apply_do_commands_live, tick_pending_new_followers, DoCommandEffects, FollowHireLiveKnobs,
-    NameCandidate,
-};
-pub use weather::{
-    default_for_season, parse_weather_kind, Weather, WeatherKind, WeatherSnapshot, WeatherView,
-};
-pub use account_persist::{
-    load_accounts, save_accounts, ACCOUNT_FORMAT_VERSION, DEFAULT_ACCOUNT_FILE,
+pub use feed_other_yum::{feed_other_feeder_prestige_delta, FEED_OTHER_FEEDER_PRESTIGE_SHARE};
+pub use fertility::{
+    age_fertile, is_fertile, FertilityState, BIRTH_COOLDOWN_SECS, FERTILE_MAX_AGE, FERTILE_MIN_AGE,
+    GESTATION_SECS,
 };
 pub use lineage_persist::{
     load_lineages, save_lineages, DEFAULT_LINEAGE_FILE, LINEAGE_FORMAT_VERSION,
 };
+pub use ol_identity::{
+    dead_since_minutes, lineage_archive_path, lineage_can_be_deleted, lineage_keep_minutes,
+    plan_lineage_deletes, save_lineage_map_pruned, LINEAGE_DELETE_AGE_FACTOR,
+};
 pub use map_chunk::{
-    build_chunk_plaintext, build_map_chunk_packet, build_region_object_ids,
-    compress_chunk_plaintext, format_map_chunk_header, format_map_chunk_message_prefix,
+    build_chunk_plaintext, build_chunk_plaintext_mapped, build_map_chunk_packet,
+    build_map_chunk_packet_mapped, build_region_object_ids, compress_chunk_plaintext,
+    format_map_chunk_header, format_map_chunk_message_prefix,
 };
 pub use markers::{MapMarker, MarkerKind, MarkerState};
-pub use naming::{pick_random_name, FAMILY_NAMES, FIRST_NAMES};
+pub use naming::{
+    build_name_index, get_family_name_from_list, get_first_name_from_list,
+    get_first_name_from_list_gender, get_name_from_index, get_name_from_list, get_name_token,
+    is_iam_family_say, is_you_are_say, load_name_index_from_text, pick_random_name,
+    pick_you_are_target, plan_do_naming_iam, plan_do_naming_you_are,
+    plan_do_naming_you_are_ex_gender,
+    should_migrate_found_family_follower, DoNamingIam, DoNamingYouAre, NameIndex, FAMILY_NAMES,
+    FEMALE_FIRST_NAMES, FIRST_NAMES, MALE_FIRST_NAMES, STARTING_FAMILY_NAME, STARTING_NAME,
+    YOU_ARE_CLOSE_TILES,
+};
+pub use speech::{
+    apply_new_home_if_needed, chat_range_for_age as speech_chat_range_for_age, closest_owned_tile,
+    compute_hire_cost, count_home_population, do_command_broadcasts_chat, extract_command_name,
+    find_player_by_name, format_exile_say_result, format_follow_say_result, format_give_say_result,
+    format_hire_say_result, format_home_bang_result, format_order_global, format_own_this_result,
+    format_redeem_say_result, hire_age_ok, hire_angry_ok, hire_class_ok, hire_need_coins_say,
+    home_oven_biome_allowed as speech_home_oven_biome_allowed, home_oven_scored_quad,
+    home_search_biome, home_search_oven_tuple, is_follow_self_name, is_home_oven_id,
+    is_still_home_object, parse_do_command, parse_own_this_name, parse_roman_coin_amount,
+    pick_nearest_home_oven, search_new_home, search_new_home_ex, search_new_home_if_needed,
+    search_new_home_if_needed_ex, should_assign_new_home,
+    should_search_new_home, DoCommand, SpeechVolume, ADOBE_OVEN, ADOBE_RUBBLE_HOME,
+    ADULT_CHAT_RANGE, AI_MIGRATE_VILLAGE_POPULATION_SIZE, HIRE_COST, HIRE_COST_INCREASE_PER_PERSON,
+    HOME_OVEN_IDS, HOME_POP_MAX_AGE_MINUS_2, HOME_POP_STARVING_FACTOR, HOME_SEARCH_LOCAL_RADIUS,
+    HOME_SEARCH_MAX_QUAD, HOME_SEARCH_SWAMP_BIOME, MAX_DISTANCE_CLOSE_FOR_SAY, MUMBLE_CHAT_RANGE,
+    SHOUT_CHAT_RANGE, WHISPER_CHAT_RANGE,
+};
+pub use weather::{
+    default_for_season, parse_weather_kind, Weather, WeatherKind, WeatherSnapshot, WeatherView,
+};
 
 // Haxe: AiHandler.hx LLM path (AI-HANDLER / S-AIH llm_prompt) â€” pure rate limit, prompt, parse, log, chunk
 pub use ai_handler::{
-    api_key_from_env, api_url_from_env, append_conversation_log, build_prompt,
-    chat_response_with, check_if_should_do_command, collapse_response_newlines,
-    contains_any_separator, conversation_log_path, default_model_from_env, ensure_log_dir,
-    format_conversation_log_entry, format_date_string, get_command_context, get_emote_id,
-    get_rate_limit, get_relationship_info, is_llm_activated, is_network_error,
-    plan_respond_to_player, plan_response_chunks, parse_ai_response, process_llm_response_for_say,
-    split_response, wait_time_for_chars, AiCallRateLimit, AiResponseActions, ChatResponseOutcome,
-    ParsedAiResponse, PromptParts, RelationshipView, RespondProcessResult, RespondToPlayerPlan,
-    AI_API_KEY_NOT_SET, AI_CALLS_PER_HOUR_DEFAULT, AI_CHAT_MAX_ATTEMPTS,
-    AI_CONVERSATION_LOG_BASE_DEFAULT, AI_RATE_WINDOW_SECS, AI_RESPONSE_MAX_SPLITS,
-    AI_RESPONSE_SEPARATORS, AI_WAIT_TIME_PER_100_CHARS_DEFAULT, MAX_AI_RESPONSE_PER_SAY_DEFAULT,
+    api_key_from_env, api_url_from_env, append_conversation_log, build_prompt, chat_response_with,
+    check_if_should_do_command, collapse_response_newlines, contains_any_separator,
+    conversation_log_path, default_model_from_env, ensure_log_dir, format_conversation_log_entry,
+    format_date_string, get_command_context, get_emote_id, get_rate_limit, get_relationship_info,
+    is_llm_activated, is_network_error, parse_ai_response, plan_respond_to_player,
+    plan_response_chunks, process_llm_response_for_say, split_response, wait_time_for_chars,
+    AiCallRateLimit, AiResponseActions, ChatResponseOutcome, ParsedAiResponse, PromptParts,
+    RelationshipView, RespondProcessResult, RespondToPlayerPlan, AI_API_KEY_NOT_SET,
+    AI_CALLS_PER_HOUR_DEFAULT, AI_CHAT_MAX_ATTEMPTS, AI_CONVERSATION_LOG_BASE_DEFAULT,
+    AI_RATE_WINDOW_SECS, AI_RESPONSE_MAX_SPLITS, AI_RESPONSE_SEPARATORS,
+    AI_WAIT_TIME_PER_100_CHARS_DEFAULT, MAX_AI_RESPONSE_PER_SAY_DEFAULT,
 };
 pub use pathfind::{
-    find_path, is_walkable, is_walkable_for_player, name_is_gate_or_door, next_step, path_steps,
+    find_path, find_path_new, find_path_new_with_budget, is_walkable, is_walkable_for_player,
+    name_is_gate_or_door, next_step, next_step_new, path_steps,
 };
 pub use player::{
     clothing_slot_for_object, ClothingSlot, Player, PlayerSnapshot, BACKPACK_MAX, NOTES_MAX,
@@ -556,11 +757,11 @@ pub use player::{
 };
 // Phase A/B: ol-ai-api read adapters (PlayerReadInterface / FoodSearch / WorldView)
 pub use ai_adapters::{
-    best_food_for_ai, best_food_for_ai_radius, best_food_for_player, PlayerRef,
-    PlayerSnapshotView, SimFoodSearch, SimPlayerRead, WorldViewRef,
+    best_food_for_ai, best_food_for_ai_radius, best_food_for_player, PlayerRef, PlayerSnapshotView,
+    SimFoodSearch, SimPlayerRead, WorldViewRef,
 };
 // Live SearchBestFood (players + AI share one scan + pure scoring)
-pub use search_best_food_live::{search_best_food_full, search_best_food_nearby};
+pub use ol_protocol::{format_baby_wiggle, format_dying};
 pub use poll::{parse_vote_choice, PollState, VoteChoice};
 pub use posse::{format_posse_join, PosseState};
 pub use prestige::{
@@ -574,42 +775,42 @@ pub use score::{
     compute_score, PrestigePlayerRow, PrestigeSnapshot, PrestigeView, ScoreEntry, Scoreboard,
     SCORE_PER_DEATH, SCORE_PER_KILL,
 };
+pub use search_best_food_live::{search_best_food_full, search_best_food_nearby};
 pub use social::{
-    format_exile_line, format_following_line, LineageEntryView, LineageNode, LineageSnapshot,
-    LineageView, SocialState,
+    create_lineage_string, format_exile_line, format_following_line, format_name_lineage_body,
+    format_player_nm_line_ex, lineage_get_full_name, resolved_family_name, LineageEntryView,
+    LineageNode, LineageSnapshot, LineageView, SocialState,
 };
 pub use tools::ToolSlots;
 pub use twin_heart::{
-    format_twin_heart_ps, format_twin_timeout_ps, format_twin_wait_ps_code,
-    is_murder_death_reason, TwinHeartLinks, BROKEN_HEART_WOUND_STACKS,
-    TWIN_WAIT_TIMEOUT_SECS,
+    format_twin_heart_ps, format_twin_timeout_ps, format_twin_wait_ps_code, is_murder_death_reason,
+    TwinHeartLinks, BROKEN_HEART_WOUND_STACKS, TWIN_WAIT_TIMEOUT_SECS,
 };
 pub use twins::{
-    TwinJoinOutcome, TwinPeer, TwinRegistry, TwinWaitQueue, TwinWaiter, ReadyTwinParty,
+    ReadyTwinParty, TwinJoinOutcome, TwinPeer, TwinRegistry, TwinWaitQueue, TwinWaiter,
     TWIN_COUNT_MAX, TWIN_COUNT_MIN,
 };
-pub use war::{
-    format_war_report, pair_key, WarState, STATUS_ALLIANCE, STATUS_PEACE, STATUS_WAR,
-};
+pub use war::{format_war_report, pair_key, WarState, STATUS_ALLIANCE, STATUS_PEACE, STATUS_WAR};
 pub use war_posse_persist::{
     apply_war_posse_snapshot, capture_war_posse_snapshot, load_war_posse, save_war_posse,
     WarPosseShare, WarPosseSnapshot, DEFAULT_WAR_POSSE_FILE, WAR_POSSE_FORMAT_VERSION,
 };
 pub use yum::YumState;
-pub use ol_protocol::{format_baby_wiggle, format_dying};
 
 use ol_content::ContentDb;
 use ol_metrics::Counters;
-use ol_net::{OutboundHub, NetIntent};
+use ol_net::{NetIntent, OutboundHub};
 use ol_protocol::{
     format_food_change, format_frame, format_heat_change, format_learned_tool_report,
     format_location_says, format_map_change, format_map_change_moving, format_photo_signature,
-    format_player_emot, format_player_says,
-    format_player_update_line, format_player_update_line_eat, format_player_update_line_full,
-    format_pong, format_server_message, format_vog_update, ClientTag, PHOTO_DENIED_SIGNATURE,
+    format_player_emot, format_player_flip, format_player_says, format_player_update_line,
+    format_player_update_line_eat, format_player_update_line_eat_responsible,
+    format_player_update_line_full, format_pong,
+    format_server_message, format_vog_update, ClientTag, PHOTO_DENIED_SIGNATURE,
 };
 use ol_world::{
-    place_natural_object, pick_biome_spawn, ComplexObject, JournalEntry, World, WorldJournal,
+    pick_biome_spawn, place_natural_object, ComplexObject, JournalEntry, NestedHelper, World,
+    WorldJournal,
 };
 use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -633,6 +834,18 @@ pub enum ShutdownPhase {
     Countdown,
     /// Apocalypse signal displayed; waiting then exit flag.
     ApocalypseHold,
+}
+
+/// Haxe `ObjectData.blocksRemove` (ServerSettings patches Closed/Locked Wooden Chest 987/988).
+#[inline]
+pub fn object_blocks_remove_id(id: i32) -> bool {
+    ol_player_helper::container_blocks_remove(id)
+}
+
+/// Resolve dummy parent then [`object_blocks_remove_id`].
+#[inline]
+pub fn object_blocks_remove(content: &ContentDb, id: i32) -> bool {
+    object_blocks_remove_id(content.resolve_base_id(id))
 }
 
 pub const FOOD_USE_PER_SEC: f32 = 0.10;
@@ -678,10 +891,12 @@ pub const STARVING_FOOD_THRESHOLD: f32 = 5.0;
 /// Sim-time seconds between BW/DY emissions while age&lt;3 and food&lt;5.
 pub const VITALS_EMIT_INTERVAL_SECS: f32 = 5.0;
 /// Food below which living players emit a PE hunger emote on a timer.
+/// Separate from Haxe `UpdateEmotes` starving PE 31 (`food_store < 0`).
+// FEVER-HUNGER-PE
 pub const HUNGER_EMOT_FOOD_THRESHOLD: f32 = 3.0;
 /// Sim-time seconds between PE hunger emotes while food&lt;3.
 pub const HUNGER_EMOT_INTERVAL_SECS: f32 = 8.0;
-/// PE emot index for hunger (Haxe `Emote.mad` = 1).
+/// PE emot index for hunger (Haxe `Emote.mad` = 1). Not starving(31).
 pub const HUNGER_EMOT_INDEX: i32 = 1;
 /// PE emot index while sleeping (soft snore proxy; Haxe has no dedicated sleep emote).
 /// Uses `Emote.sad` = 3 as a calm closed-eyes face for nearby awareness.
@@ -707,25 +922,25 @@ pub fn person_object_id(p: &Player) -> i32 {
     }
 }
 
-/// Live female check for fertility / mother fitness (Haxe `isFemale`).
+/// Haxe `ObjectData.getObjectData(po_id).male == false`.
 ///
-/// When content has a person race (`person` â‰  0) or an explicit `male=1` flag,
-/// use Haxe `ObjectData.male` (`!male` â‡’ female). Otherwise fall back to the
-/// name/description heuristic (`person_looks_female`).
+/// When the person object is in content, **always** use `ObjectDef.male`
+/// (including `male=0` females). Missing def falls back to the display-id
+/// / name heuristic (`person_looks_female`).
+// Haxe: GlobalPlayerInstance.isFemale / isMale
+// PLAYER-MALE
+pub fn content_person_is_female(content: &ContentDb, po_id: i32) -> bool {
+    match content.get(po_id) {
+        Some(def) => !def.male,
+        None => person_looks_female(po_id, "", ""),
+    }
+}
+
+/// Live female check for fertility / mother fitness (Haxe `isFemale`).
 // Haxe: GlobalPlayerInstance.isFemale / ObjectData.male
-// TWIN-PARTY-RESID: ObjectData.male flag
+// PLAYER-MALE
 pub fn player_is_female(state: &SimState, p: &Player) -> bool {
-    let po = person_object_id(p);
-    let Some(def) = state.content.get(po) else {
-        return person_looks_female(po, "", "");
-    };
-    let race = state.content.person_color(po);
-    let content_male = if race != 0 || def.male {
-        Some(def.male)
-    } else {
-        None
-    };
-    person_is_female(po, def.name.as_str(), def.description.as_str(), content_male)
+    content_person_is_female(&state.content, person_object_id(p))
 }
 
 /// Full Haxe `isFertile` for a live player.
@@ -757,8 +972,100 @@ fn playtest_family_name() -> String {
 }
 /// Male005 â€” distinct from default Female001 (19).
 const PLAYTEST_SKIN_OBJECT: i32 = 352;
-/// Haxe-style interest radius for MX/PU fan-out (Chebyshev tiles).
+/// Fallback PU/MX interest radius when live max_distance_close is unset.
 pub const NEARBY_RANGE: i32 = 24;
+
+/// Live Haxe `MaxDistanceToBeConsideredAsClose` (PU). `0` → [`NEARBY_RANGE`].
+#[inline]
+pub fn nearby_range(state: &SimState) -> i32 {
+    let v = state.gameplay.max_distance_close;
+    if v > 0 {
+        v
+    } else {
+        NEARBY_RANGE
+    }
+}
+
+/// Live Haxe `MaxDistanceToBeConsideredAsCloseForMapChanges` (MX).
+#[inline]
+pub fn mx_range(state: &SimState) -> i32 {
+    let v = state.gameplay.max_distance_map_changes;
+    if v > 0 {
+        v
+    } else {
+        10
+    }
+}
+
+/// Live Haxe `MaxDistanceToBeConsideredAsCoseForMovement` (PM fan). `0` → 30.
+// Haxe: ServerSettings.MaxDistanceToBeConsideredAsCoseForMovement = 30
+// SETTINGS-LONG-TAIL
+#[inline]
+pub fn movement_range(state: &SimState) -> i32 {
+    let v = state.gameplay.max_distance_cose_for_movement;
+    if v > 0 {
+        v
+    } else {
+        30
+    }
+}
+
+/// Live Haxe `MaxDistanceToBeConsideredAsCloseForSayAi` (AI sayHelper). `<= 0` → 20.
+// Haxe: ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi = 20
+// SETTINGS-LONG-TAIL
+#[inline]
+pub fn ai_say_range(state: &SimState) -> f32 {
+    let v = state.gameplay.max_distance_say_ai;
+    if v.is_finite() && v > 0.0 {
+        v
+    } else {
+        crate::ai_handler::MAX_DISTANCE_SAY_AI
+    }
+}
+
+/// Haxe `AiBase.say` / `sayHelper` entry: AIs that hear this human SAY.
+///
+/// Distance uses live [`ai_say_range`] (CloseForSayAi), not adult CloseForSay.
+// Haxe: Connection.sendSayToAllClose → AiBase.sayHelper L4733–4734
+// SETTINGS-LONG-TAIL
+pub fn live_collect_ai_speech_hearers(
+    state: &SimState,
+    speaker_conn: u64,
+    text: &str,
+) -> Vec<crate::ai_handler::AiSpeechHearer> {
+    use crate::ai_handler::{collect_ai_speech_hearers, AiSpeechPlayerView};
+    use crate::ai_takeover::player_is_ai;
+    let Some(speaker) = state.players.get(&speaker_conn) else {
+        return Vec::new();
+    };
+    if speaker.deleted {
+        return Vec::new();
+    }
+    let speaker_view = AiSpeechPlayerView {
+        conn_id: speaker_conn,
+        p_id: speaker.p_id,
+        x: speaker.x,
+        y: speaker.y,
+        name: speaker.first_name.clone(),
+        is_ai: player_is_ai(speaker.connected, speaker.ai_controlled, &speaker.email),
+        age: speaker.age,
+    };
+    let others: Vec<AiSpeechPlayerView> = state
+        .players
+        .iter()
+        .filter(|(_, p)| !p.deleted)
+        .map(|(&cid, p)| AiSpeechPlayerView {
+            conn_id: cid,
+            p_id: p.p_id,
+            x: p.x,
+            y: p.y,
+            name: p.first_name.clone(),
+            is_ai: player_is_ai(p.connected, p.ai_controlled, &p.email),
+            age: p.age,
+        })
+        .collect();
+    collect_ai_speech_hearers(&speaker_view, text, &others, ai_say_range(state))
+}
 /// Larger Chebyshev radius for `SAY SHOUT <text>` PS fan-out.
 pub const SHOUT_RANGE: i32 = 48;
 /// Soft Chebyshev radius for `SAY MUMBLE <text>` PS fan-out ([`MUMBLE_RANGE`]).
@@ -767,18 +1074,32 @@ pub const MUMBLE_SAY_RANGE: i32 = MUMBLE_RANGE;
 /// Chat PS fan-out radius by speaker age.
 ///
 /// Haxe `sendSayToAllClose` uses `MaxDistanceToBeConsideredAsCloseForSay` (20) for adults.
-/// Young soft scale is product-only; adults/elders â†’ [`ADULT_CHAT_RANGE`] (not [`NEARBY_RANGE`]).
+/// Young soft scale is product-only; adults/elders → [`ADULT_CHAT_RANGE`] (not [`NEARBY_RANGE`]).
+/// Distance metric is Haxe `isClose` squared-Euclidean (not Chebyshev).
 /// // Haxe: ServerSettings.MaxDistanceToBeConsideredAsCloseForSay = 20
-/// // PO-MAX-DISTANCE
+/// // PO-MAX-DISTANCE / CONN-SAY-EUCLID
 pub fn chat_range_for_age(age: f32) -> i32 {
+    chat_range_for_age_ex(age, ADULT_CHAT_RANGE)
+}
+
+/// Adult radius from live `MaxDistanceToBeConsideredAsCloseForSay`.
+pub fn chat_range_for_age_ex(age: f32, adult_range: i32) -> i32 {
     if age < 3.0 {
         8
     } else if age < 10.0 {
         16
     } else {
-        ADULT_CHAT_RANGE
+        adult_range.max(1)
     }
 }
+
+/// Live CloseForSay radius for a speaker (`GameplayKnobs.max_distance_say`).
+// Haxe: Connection.sendSayToAllClose + isClose Euclidean
+// CONN-SAY-EUCLID
+pub fn say_close_range(state: &SimState, age: f32) -> i32 {
+    chat_range_for_age_ex(age, state.gameplay.max_distance_say)
+}
+
 /// Resend MAP_CHUNK when player moved this many tiles from last MC center (Haxe).
 pub const MC_RESEND_THRESHOLD: i32 = 10;
 pub const MC_WIDTH: i32 = 32;
@@ -995,6 +1316,15 @@ pub struct SimState {
     pub fertility: FertilityState,
     /// Optional reverse craft graph for AI (empty until seeded from content).
     pub craft_graph: ReverseCraftGraph,
+    /// Haxe `ServerSettings.WaterSourceIds` from InitWaterSourceIds (empty → defaults).
+    // Haxe: ServerSettings.WaterSourceIds / InitWaterSourceIds
+    pub water_source_ids: Vec<i32>,
+    /// Haxe `ServerSettings.BucketWaterSourceIds` from InitWaterSourceIds (empty → defaults).
+    // Haxe: ServerSettings.BucketWaterSourceIds
+    pub bucket_water_source_ids: Vec<i32>,
+    /// Haxe `objectIdArrays[455]` Chisel family (PatchObjectData once at load).
+    // Haxe: ServerSettings.PatchObjectData ~612; npc SteelChiselFamilyTable::from_content
+    pub steel_chisel_family: crate::SteelChiselFamilyTable,
     /// Sparse animal sim (wander stub).
     pub animals: AnimalWorld,
     /// Directed ally / friend links.
@@ -1002,10 +1332,10 @@ pub struct SimState {
     /// Session yes/no poll (`SAY POLL` / `VOTE` / `?POLL`).
     pub poll: PollState,
     /// Multi-server twin peer list (**stub only** â€” no network I/O).
-pub twins: TwinRegistry,
-/// Twin-code birth waiting queue (protocol twin_code_hash / twin_count).
-/// // Haxe: Connection.loginHelper TODO twins â€” product queue
-pub twin_wait: TwinWaitQueue,
+    pub twins: TwinRegistry,
+    /// Twin-code birth waiting queue (protocol twin_code_hash / twin_count).
+    /// // Haxe: Connection.loginHelper TODO twins â€” product queue
+    pub twin_wait: TwinWaitQueue,
     /// Same-server twin party heart-link after birth (murder â†’ broken heart).
     /// // OHOL twins plan #10; TWIN-PARTY-RESID
     pub twin_heart: TwinHeartLinks,
@@ -1089,6 +1419,11 @@ pub twin_wait: TwinWaitQueue,
     pub last_lock_wait_us: u32,
     /// Haxe WorldMap time (long-term / soul / postload).
     pub world_map_time: crate::world_time::WorldMapTimeState,
+    /// Haxe `DoWorldLongTermTimeStuff` step + original-object census.
+    pub long_term: crate::long_term::LongTermState,
+    /// Haxe `lastAiEveOrAdam` / `lastHumanEveOrAdam` for spawnAsEve pairing.
+    pub last_ai_eve: Option<crate::eve_spawn::LastEveSlot>,
+    pub last_human_eve: Option<crate::eve_spawn::LastEveSlot>,
     /// Base season duration seconds (settings_live).
     pub season_duration_base_secs: f32,
     /// Eternal winter override.
@@ -1100,11 +1435,29 @@ pub twin_wait: TwinWaitQueue,
     pub ai_chat_memory_max_entries: usize,
     /// Haxe CalculateBlockedByAi sticky map (conn -> blocked positions).
     pub blocked_by_ai: HashMap<(i32, i32), f32>,
+    /// NPC-SCAN-FULL: outer share of `blocked_by_ai` for the NPC think thread.
+    pub blocked_by_ai_share: Option<crate::ai_path_reach::BlockedByAiShare>,
+    /// AI-LLM-FAN: pending LLM speech jobs for HTTP drain.
+    pub llm_speech_jobs: Vec<crate::ai_handler::LlmSpeechJob>,
+    /// AI-LLM-FAN: completed LLM responses ready for chunk SAY / memory apply.
+    pub llm_speech_results: Vec<crate::ai_handler::LlmSpeechResult>,
+    /// AI-LLM-HTTP-DRAIN: optional outer share for ol-server HTTP worker.
+    pub llm_speech_io: Option<crate::ai_handler::LlmSpeechIoShare>,
+    /// Full-server LOGIN policy (Haxe loginHelper TODOs).
+    pub spawn_queue: crate::spawn_queue::SpawnQueueBook,
+    /// Haxe `ServerSettings.lastVanillaID` (`< 1` = mapping off).
+    // Haxe: ServerSettings.lastVanillaID = -1
+    pub last_vanilla_id: i32,
+    /// Haxe `ServerSettings.OpenLifeClientName`.
+    // Haxe: ServerSettings.OpenLifeClientName = "OpenLife"
+    pub open_life_client_name: String,
 }
 
 impl SimState {
     pub fn new(world: Arc<RwLock<World>>, content: Arc<ContentDb>) -> Self {
         let grave_object_id = resolve_grave_object_id(&content);
+        // Haxe PatchObjectData objectIdArrays[455] once at load (not per profession tick)
+        let steel_chisel_family = crate::SteelChiselFamilyTable::from_content(&content);
         Self {
             world,
             content,
@@ -1141,11 +1494,14 @@ impl SimState {
             weather: Weather::default(),
             fertility: FertilityState::default(),
             craft_graph: ReverseCraftGraph::default(),
+            water_source_ids: Vec::new(),
+            bucket_water_source_ids: Vec::new(),
+            steel_chisel_family,
             animals: AnimalWorld::default(),
             allies: AllyState::default(),
             poll: PollState::default(),
             twins: TwinRegistry::default(),
-twin_wait: TwinWaitQueue::default(),
+            twin_wait: TwinWaitQueue::default(),
             twin_heart: TwinHeartLinks::default(),
             specials: SpecialIndex::default(),
             skills: SkillState::default(),
@@ -1189,12 +1545,22 @@ twin_wait: TwinWaitQueue::default(),
             world_food: WorldFoodStats::new(),
             gameplay: crate::settings_live::GameplayKnobs::default(),
             world_map_time: crate::world_time::WorldMapTimeState::default(),
+            long_term: crate::long_term::LongTermState::default(),
+            last_ai_eve: None,
+            last_human_eve: None,
             season_duration_base_secs: 604800.0,
             eternal_winter: false,
             lockpick_settings: crate::locks::LockpickSettings::default(),
-            ai_memory_max_entries: 64,
-            ai_chat_memory_max_entries: 32,
+            ai_memory_max_entries: crate::player_soul::AI_MEMORY_MAX_ENTRIES,
+            ai_chat_memory_max_entries: crate::player_soul::AI_CHAT_MEMORY_MAX_ENTRIES,
             blocked_by_ai: HashMap::new(),
+            blocked_by_ai_share: None,
+            llm_speech_jobs: Vec::new(),
+            llm_speech_results: Vec::new(),
+            llm_speech_io: None,
+            spawn_queue: crate::spawn_queue::SpawnQueueBook::default(),
+            last_vanilla_id: -1,
+            open_life_client_name: "OpenLife".into(),
         }
     }
 
@@ -1301,10 +1667,7 @@ twin_wait: TwinWaitQueue::default(),
             .players
             .values()
             .filter(|p| {
-                p.connected
-                    && !p.deleted
-                    && (p.x - x).abs() <= range
-                    && (p.y - y).abs() <= range
+                p.connected && !p.deleted && (p.x - x).abs() <= range && (p.y - y).abs() <= range
             })
             .map(|p| p.p_id)
             .collect();
@@ -1606,7 +1969,9 @@ twin_wait: TwinWaitQueue::default(),
         }
         if let Some(view) = &self.account_view {
             if let Ok(mut g) = view.write() {
-                *g = self.accounts.snapshot();
+                *g = self
+                    .accounts
+                    .snapshot_ex(self.gameplay.ai_total_score_factor);
             }
         }
         if let Some(view) = &self.prestige_view {
@@ -1657,15 +2022,33 @@ twin_wait: TwinWaitQueue::default(),
             let refs: Vec<&str> = exiles.iter().map(|s| s.as_str()).collect();
             out.push(format_server_message("EX", &refs).into_bytes());
         }
-        // Personal heat/season hint (HX heat food_time indoor_bonus).
-        let biome = self
-            .players
-            .values()
-            .find(|p| p.p_id == for_p_id)
-            .map(|p| self.world.read().unwrap().get_biome(p.x, p.y))
-            .unwrap_or(0);
-        let heat = self.environment.temperature_at_biome(biome);
-        out.push(format_heat_change(heat, 0.0, 0.0).into_bytes());
+        // Personal heat/season hint (HX heat food_time indoor_bonus=0).
+        // Haxe: HEAT_CHANGE after updateTemperature — body heat + foodDrainTime.
+        let (hx_heat, hx_food_time) = if let Some(p) = self.players.values().find(|p| p.p_id == for_p_id)
+        {
+            let color = self.content.person_color(person_object_id(p));
+            let (_, food_time) = crate::temperature_handler::player_heat_food_drain(
+                p.heat,
+                color,
+                self.gameplay.food_use_per_second,
+                self.gameplay.temperature_hits_damage_factor,
+                self.gameplay.temperature_exhaustion_damage_factor,
+                self.gameplay.temperature_impact_below,
+                self.gameplay.temperature_impact_color_factor,
+            );
+            (p.heat, food_time)
+        } else {
+            let (_, food_time) = crate::heat_ideal::heat_food_drain_time(
+                0.5,
+                false,
+                false,
+                self.gameplay.food_use_per_second,
+                self.gameplay.temperature_hits_damage_factor,
+                self.gameplay.temperature_exhaustion_damage_factor,
+            );
+            (0.5, food_time)
+        };
+        out.push(format_heat_change(hx_heat, hx_food_time, 0.0).into_bytes());
         // Tool slots + learned tools (LR) + name for this player.
         if let Some(p) = self.players.values().find(|p| p.p_id == for_p_id) {
             let ts = p.tools.wire_slots();
@@ -1674,7 +2057,13 @@ twin_wait: TwinWaitQueue::default(),
                 let ids = p.tools.learned_ids_sorted();
                 out.push(format_learned_tool_report(&ids).into_bytes());
             }
-            let nm = format!("{} {}", p.p_id, p.display_name());
+            let nm = format_player_nm_line_ex(
+                &self.social.lineages,
+                p.p_id,
+                &p.first_name,
+                &p.family_name,
+                p.is_ai_body(),
+            );
             out.push(format_server_message("NM", &[&nm]).into_bytes());
         }
         out
@@ -1701,11 +2090,7 @@ twin_wait: TwinWaitQueue::default(),
             .values()
             .filter(|p| p.connected && !p.deleted)
             .map(|p| {
-                let score = self
-                    .scoreboard
-                    .entry(p.p_id)
-                    .map(|e| e.score)
-                    .unwrap_or(0);
+                let score = self.scoreboard.entry(p.p_id).map(|e| e.score).unwrap_or(0);
                 (p.p_id, score)
             })
             .collect();
@@ -1749,7 +2134,8 @@ twin_wait: TwinWaitQueue::default(),
             .map(|p| self.player_prestige(p.p_id).max(0.0))
             .collect();
         if vals.is_empty() {
-            self.median_prestige = MIN_HEALTH_MEDIAN_PRESTIGE;
+            self.median_prestige =
+                median_prestige_for_health_ex(0.0, self.gameplay.min_health_per_year);
             return;
         }
         vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
@@ -1759,19 +2145,34 @@ twin_wait: TwinWaitQueue::default(),
         } else {
             vals[mid]
         };
-        self.median_prestige = median_prestige_for_health(med);
+        self.median_prestige =
+            median_prestige_for_health_ex(med, self.gameplay.min_health_per_year);
     }
 
     /// Haxe CalculateHealthFoodStoreMaxFactor for a living player.
     pub fn player_health_food_store_max_factor(&self, p_id: i32, true_age: f32) -> f32 {
         let yum = self.player_prestige(p_id);
-        calculate_health_food_store_max_factor(yum, self.median_prestige, true_age)
+        calculate_health_food_store_max_factor_ex(
+            yum,
+            self.median_prestige,
+            true_age,
+            self.gameplay.max_health_food_store_max_factor,
+            self.gameplay.min_health_food_store_max_factor,
+            self.gameplay.max_age,
+        )
     }
 
     /// Haxe CalculateHealthAgeFactor for a living player.
     pub fn player_health_age_factor(&self, p_id: i32, true_age: f32) -> f32 {
         let yum = self.player_prestige(p_id);
-        calculate_health_age_factor(yum, self.median_prestige, true_age)
+        calculate_health_age_factor_ex(
+            yum,
+            self.median_prestige,
+            true_age,
+            self.gameplay.max_health_aging_factor,
+            self.gameplay.min_health_aging_factor,
+            self.gameplay.max_age,
+        )
     }
     /// Haxe PlayerSoul-style first-person prestige info wire string.
     pub fn player_prestige_info(&self, p_id: i32) -> String {
@@ -1787,6 +2188,20 @@ twin_wait: TwinWaitQueue::default(),
         Self::new(Arc::new(RwLock::new(World::new(512, 512, true))), content)
     }
 
+    /// Player view for NPC/selfplay: body snapshot + combat `lostCombatPrestige`.
+    // Haxe: GlobalPlayerInstance.lostCombatPrestige on GetCloseDeadlyPlayer
+    fn snapshot_player_for_views(&self, p: &Player, prev: Option<&PlayerSnapshot>) -> PlayerSnapshot {
+        let mut s = p.snapshot();
+        if let Some(st) = self.combat.stats.get(&p.p_id) {
+            s.lost_combat_prestige = st.lost_combat_prestige;
+        }
+        if let Some(old) = prev {
+            crate::preserve_view_path_reach_on_publish(&mut s.ai_path_reach, Some(&old.ai_path_reach));
+            preserve_food_goto_on_publish(&mut s, old);
+        }
+        s
+    }
+
     pub fn publish_player_view(&self, conn_id: u64) {
         let Some(views) = &self.player_views else {
             return;
@@ -1795,7 +2210,8 @@ twin_wait: TwinWaitQueue::default(),
             return;
         };
         if let Ok(mut g) = views.write() {
-            g.insert(conn_id, p.snapshot());
+            let prev = g.get(&conn_id).cloned();
+            g.insert(conn_id, self.snapshot_player_for_views(p, prev.as_ref()));
         }
     }
 
@@ -1804,10 +2220,11 @@ twin_wait: TwinWaitQueue::default(),
             return;
         };
         if let Ok(mut g) = views.write() {
+            let prev = g.clone();
             g.clear();
             for (cid, p) in &self.players {
                 // Keep deleted snapshots so self-play / viewer can detect death.
-                g.insert(*cid, p.snapshot());
+                g.insert(*cid, self.snapshot_player_for_views(p, prev.get(cid)));
             }
         }
     }
@@ -1823,10 +2240,64 @@ twin_wait: TwinWaitQueue::default(),
     }
 }
 
-/// Conn ids of players within Chebyshev `range` of (x,y), including self if present.
+/// Keep NPC-pushed foodTarget / lastGoto / didNotReachFood across Player republish.
+// Haxe: AiBase.foodTarget / lastGotoObj / didNotReachFood (single maps)
+fn preserve_food_goto_on_publish(new: &mut PlayerSnapshot, prev: &PlayerSnapshot) {
+    if prev.ai_did_not_reach_food > new.ai_did_not_reach_food {
+        new.ai_did_not_reach_food = prev.ai_did_not_reach_food;
+    }
+    if prev.ai_last_goto_obj_id != 0 && new.ai_last_goto_obj_id == 0 {
+        new.ai_last_goto_obj_id = prev.ai_last_goto_obj_id;
+        new.ai_last_goto_obj_x = prev.ai_last_goto_obj_x;
+        new.ai_last_goto_obj_y = prev.ai_last_goto_obj_y;
+        new.ai_last_goto_obj_distance = prev.ai_last_goto_obj_distance;
+    }
+    if prev.ai_sticky_food_id != 0 && new.ai_sticky_food_id == 0 {
+        new.ai_sticky_food_id = prev.ai_sticky_food_id;
+        new.ai_sticky_food_x = prev.ai_sticky_food_x;
+        new.ai_sticky_food_y = prev.ai_sticky_food_y;
+    }
+}
+
+/// Absorb NPC view sticky into Player (PATH-REACH + foodTarget).
+// Haxe: AiBase single maps — dual ownership merge each tick
+fn absorb_npc_ai_sticky_from_views(state: &mut SimState) {
+    let Some(views) = &state.player_views else {
+        return;
+    };
+    let Ok(g) = views.read() else {
+        return;
+    };
+    for (cid, snap) in g.iter() {
+        let Some(p) = state.players.get_mut(cid) else {
+            continue;
+        };
+        crate::merge_path_reach_maps(&mut p.ai_path_reach, &snap.ai_path_reach);
+        if snap.ai_did_not_reach_food > p.ai_did_not_reach_food {
+            p.ai_did_not_reach_food = snap.ai_did_not_reach_food;
+        }
+        if snap.ai_last_goto_obj_id != 0 {
+            p.ai_last_goto_obj_id = snap.ai_last_goto_obj_id;
+            p.ai_last_goto_obj_x = snap.ai_last_goto_obj_x;
+            p.ai_last_goto_obj_y = snap.ai_last_goto_obj_y;
+            p.ai_last_goto_obj_distance = snap.ai_last_goto_obj_distance;
+        }
+        if snap.ai_sticky_food_id != 0 {
+            p.ai_sticky_food_id = snap.ai_sticky_food_id;
+            p.ai_sticky_food_x = snap.ai_sticky_food_x;
+            p.ai_sticky_food_y = snap.ai_sticky_food_y;
+        }
+    }
+}
+
+/// Conn ids of players within Haxe `isClose` of (x,y) (`quadDist <= range²`).
+///
+/// Connection PU/MX/PM fans use squared-Euclidean + torus wrap (`CalculateDistance`),
+/// not Chebyshev. `range <= 0` → all connected (Haxe clamp-off).
 ///
 /// When [`SimState::broadcast_all_updates`] is true, returns **all** connected
 /// non-deleted players (setting for full PU/MX fan-out regardless of distance).
+// Haxe: Connection.send*ToAllClosePlayers + GlobalPlayerInstance.isClose
 pub fn nearby_conn_ids(state: &SimState, x: i32, y: i32, range: i32) -> Vec<u64> {
     if state.broadcast_all_updates {
         return state
@@ -1836,17 +2307,54 @@ pub fn nearby_conn_ids(state: &SimState, x: i32, y: i32, range: i32) -> Vec<u64>
             .map(|(c, _)| *c)
             .collect();
     }
+    let (mw, mh, wrap) = match state.world.read() {
+        Ok(w) => (w.width_tiles, w.height_tiles, w.wrap),
+        Err(_) => (0, 0, false),
+    };
     state
         .players
         .iter()
         .filter(|(_, p)| {
             p.connected
                 && !p.deleted
-                && (p.x - x).abs() <= range
-                && (p.y - y).abs() <= range
+                && crate::leadership::is_close_pu_wrap(p.x, p.y, x, y, range, mw, mh, wrap)
         })
         .map(|(c, _)| *c)
         .collect()
+}
+
+/// Haxe `ExileIfClose(attacker, victim)` after kill/HIT — live max quad distance.
+fn apply_exile_if_close(state: &mut SimState, attacker_id: i32, victim_id: i32) {
+    let (mw, mh, wrap) = {
+        let w = state.world.read().unwrap();
+        (w.width_tiles, w.height_tiles, w.wrap)
+    };
+    let deleted: std::collections::HashSet<i32> = state
+        .players
+        .values()
+        .filter(|p| p.deleted)
+        .map(|p| p.p_id)
+        .collect();
+    let positions: Vec<(i32, i32, i32)> = state
+        .players
+        .values()
+        .filter(|p| !p.deleted)
+        .map(|p| (p.p_id, p.x, p.y))
+        .collect();
+    let following = state.social.following.clone();
+    state.social.sim_time = state.sim_time;
+    crate::relations::exile_if_close(
+        &following,
+        &mut state.social,
+        &positions,
+        &deleted,
+        attacker_id,
+        victim_id,
+        state.gameplay.max_distance_auto_exile_attacker as f32,
+        mw,
+        mh,
+        wrap,
+    );
 }
 
 fn send_nearby(outbound: &OutboundHub, conn_ids: &[u64], packet: Vec<u8>) {
@@ -1862,6 +2370,193 @@ fn send_frame(outbound: &OutboundHub, conn_id: u64) {
     outbound.send_urgent(conn_id, format_frame().into_bytes());
 }
 
+/// After SAY MARK: fan LOCATION_SAYS (`LS`) at the pin (birth-relative) + FRAME.
+///
+/// Speaker always gets `LS`. Close humans (Haxe `SendLocationToAllClose` r=20)
+/// get the same text at *their* relative coords. MarkerState stays self-only.
+/// Social MOTHER/LEADER pins stay on `map_location_pins` PS.
+// Haxe: Connection.SendLocationToAllClose + ClientTag.LOCATION_SAYS
+fn fan_custom_mark_location_says(
+    state: &SimState,
+    outbound: &OutboundHub,
+    speaker_conn: u64,
+    world_x: i32,
+    world_y: i32,
+    label: &str,
+) {
+    let text = MarkerState::custom_mark_ls_text(label);
+    let mut ids = nearby_conn_ids(state, world_x, world_y, markers::LOCATION_SAYS_CLOSE_RANGE);
+    if !ids.contains(&speaker_conn) {
+        ids.push(speaker_conn);
+    }
+    for cid in ids {
+        // Haxe SendLocationToAllClose iterates human connections only.
+        if cid >= 9_000_000 {
+            continue;
+        }
+        let Some(viewer) = state.players.get(&cid) else {
+            continue;
+        };
+        if viewer.deleted || !viewer.connected {
+            continue;
+        }
+        let (rx, ry) = viewer.world_to_client(world_x, world_y);
+        outbound.send_urgent(cid, format_location_says(rx, ry, &text).into_bytes());
+        send_frame(outbound, cid);
+    }
+}
+
+/// Haxe doCommandHelper post-command: `heldObject.text` → PLAYER_SAYS + FRAME.
+/// Extra `}` is a Haxe format bug, port-as-is. Actor connection only.
+// Haxe: TransitionHelper.doCommandHelper L390–394
+// READ-WRITING
+fn note_ai_block_after_command(state: &mut SimState, conn_id: u64, tx: i32, ty: i32) {
+    let held = state
+        .players
+        .get(&conn_id)
+        .map(|p| p.held_id)
+        .unwrap_or(0);
+    crate::use_transition::note_block_target_for_ai_after_command(state, conn_id, tx, ty, held);
+}
+
+fn finish_remv_command_side_effects(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+    tx: i32,
+    ty: i32,
+) {
+    maybe_send_held_writing_ps(state, outbound, conn_id);
+    note_ai_block_after_command(state, conn_id, tx, ty);
+}
+
+fn maybe_send_held_writing_ps(state: &SimState, outbound: &OutboundHub, conn_id: u64) {
+    if crate::use_transition::take_skip_held_writing_read() {
+        return;
+    }
+    let Some(p) = state.players.get(&conn_id) else {
+        return;
+    };
+    if p.deleted {
+        return;
+    }
+    let Some(text) = p
+        .held_helper
+        .as_ref()
+        .map(|h| h.text.as_str())
+        .filter(|t| !t.is_empty())
+    else {
+        return;
+    };
+    let line = crate::use_transition::format_held_writing_ps_line(p.p_id, p.is_cursed, text);
+    send_ps_reply(outbound, conn_id, &line);
+}
+
+/// Haxe `GlobalPlayerInstance.jump` — payload xy is **ignored**.
+///
+/// Not held → PU + BW (baby) + FRAME. Held → `dropPlayer` at carrier tile
+/// (blocked tile keeps the hold).
+// Haxe: GPI.jump L5098–5120; dropPlayerHelper L5041–5085
+fn apply_player_jump(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
+    let Some(p) = state.players.get(&conn_id) else {
+        return;
+    };
+    let p_id = p.p_id;
+    let held_by = p.held_by;
+    let baby_age = p.age;
+
+    if held_by != 0 {
+        let mother_pos = state.players.values().find_map(|pl| {
+            if pl.p_id == held_by && pl.holding_player_id == p_id {
+                Some((pl.x, pl.y))
+            } else {
+                None
+            }
+        });
+        if let Some((mx, my)) = mother_pos {
+            let (dx, dy, drop_ok) = {
+                let world = state.world.read().unwrap();
+                let (wx, wy) = ol_move_rules::wrap_tile(
+                    mx,
+                    my,
+                    world.width_tiles,
+                    world.height_tiles,
+                    world.wrap,
+                );
+                let ok = crate::pathfind::is_walkable(&world, &state.content, wx, wy);
+                (wx, wy, ok)
+            };
+            if drop_ok {
+                if let Some(mother) = state
+                    .players
+                    .values_mut()
+                    .find(|pl| pl.p_id == held_by && pl.holding_player_id == p_id)
+                {
+                    mother.release_holding();
+                }
+                if let Some(pl) = state.players.get_mut(&conn_id) {
+                    pl.held_by = 0;
+                    pl.x = dx;
+                    pl.y = dy;
+                    pl.done_moving_seq = pl.done_moving_seq.saturating_add(1);
+                }
+            }
+        }
+    }
+
+    if let Some(p) = state.players.get(&conn_id) {
+        let spd = player_move_speed(state, p);
+        let pu = format_player_update_line(
+            p.p_id,
+            person_object_id(p),
+            p.held_id,
+            p.x,
+            p.y,
+            p.age,
+            spd,
+            p.done_moving_seq.max(1),
+        );
+        let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
+        send_nearby(
+            outbound,
+            &near,
+            format_server_message("PU", &[&pu]).into_bytes(),
+        );
+        if baby_age < BABY_AGE_THRESHOLD {
+            send_nearby(outbound, &near, format_baby_wiggle(p.p_id).into_bytes());
+        }
+        for &cid in &near {
+            send_frame(outbound, cid);
+        }
+        info!(conn_id, p_id = p.p_id, "sim: JUMP PU");
+    }
+    if held_by != 0 {
+        if let Some(m) = state.players.values().find(|pl| pl.p_id == held_by) {
+            let spd = player_move_speed(state, m);
+            let pu = format_player_update_line(
+                m.p_id,
+                person_object_id(m),
+                m.held_id,
+                m.x,
+                m.y,
+                m.age,
+                spd,
+                m.done_moving_seq.max(1),
+            );
+            let near = nearby_conn_ids(state, m.x, m.y, nearby_range(state));
+            send_nearby(
+                outbound,
+                &near,
+                format_server_message("PU", &[&pu]).into_bytes(),
+            );
+            for &cid in &near {
+                send_frame(outbound, cid);
+            }
+        }
+    }
+    state.publish_player_view(conn_id);
+}
+
 /// Private/query PS in **protocol form** `p_id/0 text` + FRAME.
 ///
 /// Protocol (`protocol.txt` PLAYER_SAYS): each data line is **`p_id/isCurse text`**.
@@ -1871,7 +2566,7 @@ fn send_frame(outbound: &OutboundHub, conn_id: u64) {
 /// - protocol lines `"p_id/0 textâ€¦"` (slash already present)
 /// - legacy sim lines `"p_id textâ€¦"` (space, no slash) â€” rewritten to `/0`
 /// - bare tokens like `"RATE"` â€” emitted as `0/0 RATE` so the slash parse always works
-fn send_ps_reply(outbound: &OutboundHub, conn_id: u64, line: &str) {
+pub(crate) fn send_ps_reply(outbound: &OutboundHub, conn_id: u64, line: &str) {
     let line = line.trim();
     let pkt = if let Some((head, rest)) = line.split_once(' ') {
         if head.contains('/') {
@@ -1940,6 +2635,51 @@ fn send_chat_ps(
     }
 }
 
+/// Emit public PS `TOO CLOSE...` for `conn_id` (Haxe sayHelper uppercased).
+// Haxe: TransitionHelper.use L762 / GlobalPlayerInstance.killHelper L4424
+fn emit_too_close_ps(state: &SimState, outbound: &OutboundHub, conn_id: u64) {
+    let Some(pl) = state.players.get(&conn_id) else {
+        return;
+    };
+    let near = nearby_conn_ids(state, pl.x, pl.y, say_close_range(state, pl.age));
+    send_chat_ps(state, outbound, conn_id, pl.p_id, TOO_CLOSE_SAY, &near);
+}
+
+/// Drain pending too-close public say for this conn (GPI-TOO-CLOSE).
+///
+/// Uses [`take_too_close_say_for`] so a foreign/stale note cannot suppress or
+/// mis-route the acting player's PS (stabilizes live USE tests under load).
+// Haxe: player.say('Too close...') → PLAYER_SAYS + FRAME
+pub fn maybe_too_close_say_feedback(state: &SimState, outbound: &OutboundHub, conn_id: u64) {
+    if !take_too_close_say_for(conn_id) {
+        return;
+    }
+    emit_too_close_ps(state, outbound, conn_id);
+    // Drop debug message channel when we drained this conn's say.
+    let _ = take_too_close_message();
+}
+
+/// Haxe hungry-work `doEmote` after USE pay/refuse (biomeRelief / homesick).
+// Haxe: TransitionHelper L1230 / L1241 / L1252
+fn maybe_hungry_work_emote_feedback(state: &SimState, outbound: &OutboundHub, conn_id: u64) {
+    let Some((cid, index)) = crate::use_transition::take_hungry_work_emote() else {
+        return;
+    };
+    if cid != conn_id {
+        crate::use_transition::note_hungry_work_emote(cid, index);
+        return;
+    }
+    let Some(p) = state.players.get(&conn_id) else {
+        return;
+    };
+    let pe = format_player_emot(p.p_id, index).into_bytes();
+    let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
+    send_nearby(outbound, &near, pe);
+    for &nid in &near {
+        send_frame(outbound, nid);
+    }
+}
+
 /// Normal SAY / SHOUT / MUMBLE PS fan-out: skip muted listeners and DEAF players.
 ///
 /// Whispers use a private path: muted listeners are skipped; DEAF does not block
@@ -1990,25 +2730,38 @@ pub fn maybe_send_map_chunk(state: &mut SimState, outbound: &OutboundHub, conn_i
 
 /// Always send MAP_CHUNK centered on the player (login / SAY MAPFORCE).
 pub fn force_send_map_chunk(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
-    let Some(p) = state.players.get(&conn_id) else {
-        return;
+    let (x, y, wire_cx, wire_cy) = {
+        let Some(p) = state.players.get(&conn_id) else {
+            return;
+        };
+        if p.deleted {
+            return;
+        }
+        let (x, y) = (p.x, p.y);
+        let (wire_cx, wire_cy) = p.world_to_client(x, y);
+        (x, y, wire_cx, wire_cy)
     };
-    if p.deleted {
-        return;
-    }
-    let (x, y) = (p.x, p.y);
-    let (wire_cx, wire_cy) = p.world_to_client(x, y);
+    let patch = crate::vanilla_id::should_patch_conn(state, conn_id);
+    let last_v = state.last_vanilla_id;
+    let content = std::sync::Arc::clone(&state.content);
     let mc = {
         let w = state.world.read().unwrap();
-        crate::map_chunk::build_map_chunk_packet_ex(
-            &w,
-            x,
-            y,
-            wire_cx,
-            wire_cy,
-            MC_WIDTH,
-            MC_HEIGHT,
-        )
+        if patch {
+            crate::map_chunk::build_map_chunk_packet_mapped(
+                &w,
+                x,
+                y,
+                wire_cx,
+                wire_cy,
+                MC_WIDTH,
+                MC_HEIGHT,
+                |id| content.map_id_to_vanilla_id(id, last_v),
+            )
+        } else {
+            crate::map_chunk::build_map_chunk_packet_ex(
+                &w, x, y, wire_cx, wire_cy, MC_WIDTH, MC_HEIGHT,
+            )
+        }
     };
     if let Some(p) = state.players.get_mut(&conn_id) {
         p.last_mc_x = x;
@@ -2047,6 +2800,114 @@ pub fn refresh_chunk_tier_counts(state: &mut SimState) {
     state.chunk_cold = c;
 }
 
+/// Haxe `GPI.isBlocked` for `dropPlayerHelper` (held player's tile).
+///
+/// `blocksWalking` (no gate/door exception) then biome; boat on water is open.
+// Haxe: GlobalPlayerInstance.isBlocked L6201–6213
+fn drop_player_tile_blocked(state: &SimState, x: i32, y: i32, held_object_id: i32) -> bool {
+    let world = match state.world.read() {
+        Ok(w) => w,
+        Err(_) => return true,
+    };
+    let obj = world.get_object(x, y);
+    if obj != 0 && state.content.get(obj).map(|d| d.blocks_walking).unwrap_or(false) {
+        return true;
+    }
+    if ol_move_rules::object_is_boat(&state.content, held_object_id) {
+        let biome = world.get_biome(x, y);
+        if ol_move_rules::is_water_biome(biome) {
+            return false;
+        }
+    }
+    crate::animal_move::is_biome_blocking(&world, x, y)
+}
+
+/// Haxe `GPI.dropPlayerHelper` — put held player on tile `x,y` (no packets).
+///
+/// Close range 1 (squared Euclidean + wrap). Blocked tile keeps the hold.
+/// Returns dropped baby `conn_id`.
+// Haxe: GPI.dropPlayerHelper L5041–5085
+pub(crate) fn drop_held_player_at(
+    state: &mut SimState,
+    conn_id: u64,
+    x: i32,
+    y: i32,
+) -> Option<u64> {
+    let Some(p) = state.players.get(&conn_id) else {
+        return None;
+    };
+    if p.deleted {
+        return None;
+    }
+    let baby_p_id = p.holding_player_id;
+    if baby_p_id == 0 {
+        return None;
+    }
+    let (px, py) = (p.x, p.y);
+    let (mw, mh, wrap) = match state.world.read() {
+        Ok(w) => (w.width_tiles, w.height_tiles, w.wrap),
+        Err(_) => (0, 0, false),
+    };
+    let (dx, dy) = ol_move_rules::wrap_tile(x, y, mw, mh, wrap);
+    // Haxe isClose(x, y, 1) — default DROP/SWAP click must be adjacent (not diagonal).
+    if !in_use_range_ex(px, py, dx, dy, 1, mw, mh, wrap) {
+        return None;
+    }
+    let (baby_conn, baby_held) = state.players.iter().find_map(|(&c, pl)| {
+        if pl.p_id == baby_p_id && !pl.deleted {
+            Some((c, pl.held_id))
+        } else {
+            None
+        }
+    })?;
+    if drop_player_tile_blocked(state, dx, dy, baby_held) {
+        return None;
+    }
+    if let Some(carrier) = state.players.get_mut(&conn_id) {
+        let _ = carrier.release_holding();
+        carrier.held_id = 0;
+    }
+    if let Some(baby) = state.players.get_mut(&baby_conn) {
+        baby.held_by = 0;
+        baby.x = dx;
+        baby.y = dy;
+        baby.done_moving_seq = baby.done_moving_seq.saturating_add(1);
+    }
+    state.publish_player_view(conn_id);
+    state.publish_player_view(baby_conn);
+    info!(conn_id, baby_p_id, x = dx, y = dy, "sim: dropPlayer");
+    Some(baby_conn)
+}
+
+/// Haxe `GPI.dropPlayer` / `dropPlayerHelper` — put held player on tile `x,y`.
+///
+/// Shared by DROP and SWAP (`GPI.drop` / `GPI.swap` when `heldPlayer != null`).
+// Haxe: GPI.dropPlayer L5022–5038; dropPlayerHelper L5041–5085
+fn apply_drop_player(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+    x: i32,
+    y: i32,
+) -> bool {
+    let Some(p) = state.players.get(&conn_id) else {
+        return false;
+    };
+    if p.deleted {
+        return false;
+    }
+    if p.holding_player_id == 0 {
+        send_player_update_and_frame(state, outbound, conn_id);
+        return false;
+    }
+    let Some(baby_conn) = drop_held_player_at(state, conn_id, x, y) else {
+        return false;
+    };
+    send_player_update_and_frame(state, outbound, conn_id);
+    send_player_update_and_frame(state, outbound, baby_conn);
+    true
+}
+
 /// DROP on empty ground or into container (Haxe DROP x y [c]).
 ///
 /// Floor-only objects (`ObjectDef.floor`) are **not** placed on the ground object
@@ -2059,22 +2920,131 @@ pub fn apply_drop(
     y: i32,
     c: Option<i32>,
 ) {
-    if let Some(p) = state.players.get(&conn_id) {
-        if p.deleted {
-            return;
+    // Haxe doCommandHelper: neverDrop then isWound then killMode then ally then own-grave.
+    // NEVER-DROP-CMD
+    if crate::use_transition::refuse_never_drop_command(state, conn_id) {
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+    // WOUND-CMD
+    let hidden_wound_cleared =
+        crate::use_transition::clear_hidden_wound_for_command(state, conn_id);
+    if crate::use_transition::refuse_wound_command(state, conn_id) {
+        if let Some(s) = crate::use_transition::wound_held_countdown_say(state, conn_id) {
+            send_ps_reply(outbound, conn_id, &s);
         }
-        if is_moving(p) {
-            send_player_update_and_frame(state, outbound, conn_id);
-            return;
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+    // KILLMODE-DROP
+    if crate::use_transition::refuse_kill_mode_command(state, conn_id) {
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+    // ALLY-PICKUP-DROP
+    if crate::use_transition::refuse_ally_pickup_command(state, conn_id, x, y) {
+        send_ps_reply(outbound, conn_id, "Too many hostile people...");
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+    // GRAVE-TOUCH-DROP
+    if crate::use_transition::refuse_own_grave_command(state, conn_id, x, y) {
+        send_ps_reply(outbound, conn_id, "Its my grave...");
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+    // Haxe doCommandHelper: Rubber Ball 2170 + Paper 1615 clears text/hits.
+    // CLEAR-WRITING
+    {
+        let held = state.players.get(&conn_id).map(|p| p.held_id).unwrap_or(0);
+        let tile = state.world.read().unwrap().get_object(x, y);
+        crate::use_transition::apply_clear_writing_at(state, x, y, held, tile);
+    }
+    'cmd: {
+    // Haxe GPI.drop: heldPlayer → dropPlayer(x,y) before object/clothing DROP.
+    if state
+        .players
+        .get(&conn_id)
+        .map(|p| !p.deleted && p.holding_player_id != 0)
+        .unwrap_or(false)
+    {
+        apply_drop_player(state, outbound, conn_id, x, y);
+        break 'cmd;
+    }
+    let drop_gate = state.players.get(&conn_id).map(|p| {
+        (
+            p.deleted,
+            is_moving(p),
+            p.x,
+            p.y,
+            p.held_id,
+        )
+    });
+    if let Some((deleted, moving, px, py, held_id)) = drop_gate {
+        if deleted {
+            break 'cmd;
         }
-        if !in_use_range(p.x, p.y, x, y, 1) {
+        // Haxe TransitionHelper.drop: clothingIndex ≥ 0 → doPlaceObjInClothing(isDrop)
+        // before not-moving / close-enough (worn clothing is on self, not a map tile).
+        if let Some(slot) = c.filter(|&i| i >= 0) {
+            let content = state.content.clone();
+            let applied = state
+                .players
+                .get_mut(&conn_id)
+                .map(|p| {
+                    clothing_cmds::apply_place_obj_in_clothing(p, &content, slot, true).is_ok()
+                })
+                .unwrap_or(false);
+            if applied {
+                state.publish_player_view(conn_id);
+                info!(conn_id, slot, "sim: DROP into clothing");
+            }
             send_player_update_and_frame(state, outbound, conn_id);
-            return;
+            break 'cmd;
+        }
+        // Haxe TransitionHelper.drop minPickupAge (after clothing, before isClose).
+        // MIN-PICKUP-AGE
+        if let Some(say) =
+            crate::use_transition::refuse_min_pickup_age_drop(state, conn_id, x, y)
+        {
+            if !say.is_empty() {
+                send_ps_reply(outbound, conn_id, &say);
+            }
+            send_player_update_and_frame(state, outbound, conn_id);
+            break 'cmd;
+        }
+        // Haxe: TransitionHelper.checkIfNotMovingAndCloseEnough (held useDistance + wrap)
+        let held_use_distance = state
+            .content
+            .get(held_id)
+            .map(|d| d.use_distance)
+            .unwrap_or(1);
+        let (mw, mh, wrap) = {
+            let w = state.world.read().unwrap();
+            (w.width_tiles, w.height_tiles, w.wrap)
+        };
+        if !check_if_not_moving_and_close_enough(
+            moving,
+            px,
+            py,
+            x,
+            y,
+            held_use_distance,
+            mw,
+            mh,
+            wrap,
+        ) {
+            send_player_update_and_frame(state, outbound, conn_id);
+            break 'cmd;
         }
     }
     let held = state.players.get(&conn_id).map(|p| p.held_id).unwrap_or(0);
     if held == 0 {
-        return;
+        // Hidden-wound DROP cleared hands; PU so the client sees empty held.
+        if hidden_wound_cleared {
+            send_player_update_and_frame(state, outbound, conn_id);
+        }
+        break 'cmd;
     }
     // Floor-only: skip ground place (do not put roads/floors on object layer).
     if state
@@ -2084,8 +3054,7 @@ pub fn apply_drop(
         .unwrap_or(false)
     {
         info!(conn_id, x, y, held, "sim: DROP skipped floor-only object");
-        let _ = c;
-        return;
+        break 'cmd;
     }
     let tile = state.world.read().unwrap().get_object(x, y);
 
@@ -2102,7 +3071,7 @@ pub fn apply_drop(
             .get(held)
             .map(|d| d.containable)
             .unwrap_or(false);
-        if slots > 0 && held_ok {
+        if slots > 0 && held_ok && !object_blocks_remove(&state.content, tile) {
             // Haxe-style time-in-container: stamp sim_time on put; permanent
             // containers keep contents across OLW2 saves (nested + creation_time).
             let sim_t = state.sim_time;
@@ -2129,8 +3098,7 @@ pub fn apply_drop(
                 state.publish_player_view(conn_id);
                 info!(conn_id, x, y, held, tile, "sim: DROP into container");
                 send_drop_result(state, outbound, conn_id, x, y, tile);
-                let _ = c;
-                return;
+                break 'cmd;
             }
         }
         // Occupied non-container: try USE-style stack transition (stone on stone â†’ pile).
@@ -2147,31 +3115,29 @@ pub fn apply_drop(
                     "sim: DROP stacked via USE transition"
                 );
                 state.publish_player_view(conn_id);
-                let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+                let near = nearby_conn_ids(state, x, y, nearby_range(state));
                 for pkt in packets_after_use(state, conn_id, &r) {
-                    for &cid in &near {
-                        outbound.send_urgent(cid, pkt.clone());
-                    }
+                    crate::vanilla_id::send_nearby_maybe_mx(
+                        state, outbound, &near, pkt, true,
+                    );
                 }
                 send_frame(outbound, conn_id);
-                let _ = c;
-                return;
+                break 'cmd;
             }
         }
         // Still blocked â€” unstick client immediately.
         send_player_update_and_frame(state, outbound, conn_id);
-        let _ = c;
-        return;
+        break 'cmd;
     }
 
     if tile == 0 {
         // Record lineage/player ownership on place (Haxe ObjectHelper.owner).
         let owner_id = state.players.get(&conn_id).map(|p| p.p_id).unwrap_or(0);
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(x, y, ComplexObject::with_owner(held, owner_id));
+        state.world.write().unwrap().set_object_complex(
+            x,
+            y,
+            ComplexObject::with_owner(held, owner_id),
+        );
         state.record_world_change(x, y, held);
         if let Some(p) = state.players.get_mut(&conn_id) {
             p.held_id = 0;
@@ -2187,6 +3153,106 @@ pub fn apply_drop(
         info!(conn_id, x, y, held, owner_id, "sim: DROP placed");
         send_drop_result(state, outbound, conn_id, x, y, held);
     }
+    } // 'cmd
+    // READ-WRITING: after DROP body (Haxe still reads if drop() failed).
+    maybe_send_held_writing_ps(state, outbound, conn_id);
+    // AI-BLOCK-CMD: Haxe blockTargetForAi after DROP switch.
+    note_ai_block_after_command(state, conn_id, x, y);
+}
+
+/// Haxe `GPI.swap` / `TransitionHelper.swapHandAndFloorObject`.
+///
+/// Holding a player → `dropPlayer`. Else swap held with non-permanent tile
+/// (put-down ground transform when `held + -1` has `newActorID==0`).
+// Haxe: GPI.swap L1725; TransitionHelper.swap L498; swapHandAndFloorObject L671
+fn apply_swap(state: &mut SimState, outbound: &OutboundHub, conn_id: u64, x: i32, y: i32) {
+    // Haxe doCommandHelper: neverDrop then isWound then killMode then ally then own-grave.
+    // NEVER-DROP-CMD
+    if crate::use_transition::refuse_never_drop_command(state, conn_id) {
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+    // WOUND-CMD
+    crate::use_transition::clear_hidden_wound_for_command(state, conn_id);
+    if crate::use_transition::refuse_wound_command(state, conn_id) {
+        if let Some(s) = crate::use_transition::wound_held_countdown_say(state, conn_id) {
+            send_ps_reply(outbound, conn_id, &s);
+        }
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+    // KILLMODE-DROP
+    if crate::use_transition::refuse_kill_mode_command(state, conn_id) {
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+    // ALLY-PICKUP-DROP
+    if crate::use_transition::refuse_ally_pickup_command(state, conn_id, x, y) {
+        send_ps_reply(outbound, conn_id, "Too many hostile people...");
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+    // GRAVE-TOUCH-DROP
+    if crate::use_transition::refuse_own_grave_command(state, conn_id, x, y) {
+        send_ps_reply(outbound, conn_id, "Its my grave...");
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+    // Haxe doCommandHelper: Rubber Ball 2170 + Paper 1615 clears text/hits.
+    // CLEAR-WRITING
+    {
+        let held = state.players.get(&conn_id).map(|p| p.held_id).unwrap_or(0);
+        let tile = state.world.read().unwrap().get_object(x, y);
+        crate::use_transition::apply_clear_writing_at(state, x, y, held, tile);
+    }
+    'cmd: {
+    let Some(p) = state.players.get(&conn_id) else {
+        break 'cmd;
+    };
+    if p.deleted {
+        break 'cmd;
+    }
+    if p.holding_player_id != 0 {
+        apply_drop_player(state, outbound, conn_id, x, y);
+        break 'cmd;
+    }
+    let tile = state.world.read().unwrap().get_object(x, y);
+    if tile != 0 {
+        let permanent = state.content.get(tile).map(|d| d.permanent).unwrap_or(false);
+        if permanent {
+            send_player_update_and_frame(state, outbound, conn_id);
+            break 'cmd;
+        }
+    }
+    let held = p.held_id;
+    let place_id = ol_transition_rules::put_down_ground_id(&state.content, held).unwrap_or(held);
+    let owner_id = p.p_id;
+    let tile_helper = state.world.read().unwrap().get_helper(x, y).cloned();
+    {
+        let mut world = state.world.write().unwrap();
+        world.set_object_complex(x, y, ComplexObject::with_owner(place_id, owner_id));
+    }
+    if let Some(pl) = state.players.get_mut(&conn_id) {
+        pl.held_id = tile;
+        pl.held_helper = if tile == 0 {
+            None
+        } else if let Some(h) = tile_helper {
+            Some(crate::horse_mount::complex_to_nested(&h))
+        } else {
+            Some(NestedHelper::id_only(tile))
+        };
+    }
+    if place_id != 0 {
+        schedule_decay(state, x, y, place_id);
+        state.record_world_change(x, y, place_id);
+    }
+    state.publish_player_view(conn_id);
+    info!(conn_id, x, y, held, tile, place_id, "sim: SWAP");
+    send_drop_result(state, outbound, conn_id, x, y, place_id);
+    } // 'cmd
+    maybe_send_held_writing_ps(state, outbound, conn_id);
+    // AI-BLOCK-CMD: Haxe blockTargetForAi after SWAP switch.
+    note_ai_block_after_command(state, conn_id, x, y);
 }
 
 /// DROP reply: MX+PU **urgent** + **FM** (same speed class as USE).
@@ -2201,11 +3267,9 @@ fn send_drop_result(
     y: i32,
     placed: i32,
 ) {
-    let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+    let near = nearby_conn_ids(state, x, y, nearby_range(state));
     for pkt in packets_after_drop(state, conn_id, x, y, placed) {
-        for &cid in &near {
-            outbound.send_urgent(cid, pkt.clone());
-        }
+        crate::vanilla_id::send_nearby_maybe_mx(state, outbound, &near, pkt, true);
     }
     send_frame(outbound, conn_id);
 }
@@ -2261,14 +3325,20 @@ pub fn is_close_say(upper: &str) -> bool {
 
 // --- Compile-heal stubs for partial CRAVING / path residual wires ---
 /// List content food object ids (craving pool).
+///
+/// Haxe `CreateFoodObjectArray`: walk `importedObjectData` (id-sorted, no dummies)
+/// and push `foodValue >= 1`. HashMap iteration is unordered — sort + skip dummies.
+// Haxe: ObjectBake.objectList sort + ObjectData.CreateFoodObjectArray
 pub fn food_objects_list(state: &SimState) -> Vec<i32> {
-    state
+    let mut ids: Vec<i32> = state
         .content
         .objects
         .iter()
-        .filter(|(_, d)| d.food_value > 0)
+        .filter(|(id, d)| d.food_value >= 1 && !state.content.dummy_parent.contains_key(id))
         .map(|(id, _)| *id)
-        .collect()
+        .collect();
+    ids.sort_unstable();
+    ids
 }
 
 /// Nearby best food for craving + displayFood branch.
@@ -2317,12 +3387,7 @@ pub fn craving_rand_f01() -> f32 {
 /// Returns `true` when a mark was applied.
 // Haxe: AiBase.isPickingupFood ~8698 / isUsingObject ~9133
 // AI-FOOD-FAIL-MARK / PATH-REACH
-pub fn mark_path_fail_after_use_live(
-    state: &mut SimState,
-    conn_id: u64,
-    x: i32,
-    y: i32,
-) -> bool {
+pub fn mark_path_fail_after_use_live(state: &mut SimState, conn_id: u64, x: i32, y: i32) -> bool {
     let (age, held_id, is_ai) = match state.players.get(&conn_id) {
         Some(p) => (p.age, p.held_id, p.is_ai_body()),
         None => return false,
@@ -2336,11 +3401,7 @@ pub fn mark_path_fail_after_use_live(
         if id == 0 {
             0
         } else {
-            state
-                .content
-                .get(id)
-                .map(|d| d.food_value)
-                .unwrap_or(0)
+            state.content.get(id).map(|d| d.food_value).unwrap_or(0)
         }
     };
     let p = state.players.get_mut(&conn_id).expect("player");
@@ -2409,11 +3470,7 @@ pub fn apply_take_coins_on_wound(
     state.scoreboard.set_coins(attacker_p_id, atk_coins);
     state.scoreboard.set_coins(target_p_id, tgt_coins);
     if let Some(msg) = crate::weapon_wound::take_coins_say_text(amount) {
-        if let Some((&conn, pl)) = state
-            .players
-            .iter()
-            .find(|(_, p)| p.p_id == attacker_p_id)
-        {
+        if let Some((&conn, pl)) = state.players.iter().find(|(_, p)| p.p_id == attacker_p_id) {
             let near: Vec<u64> = state.players.keys().copied().collect();
             send_chat_ps(state, outbound, conn, pl.p_id, &msg, &near);
         }
@@ -2421,6 +3478,25 @@ pub fn apply_take_coins_on_wound(
     amount
 }
 pub fn mirror_war_posse_share(_state: &SimState, _share: &Option<WarPosseShare>) {}
+
+/// Mirror sticky living roster (incl. Economy coins) for PLB1 autosave.
+// Haxe: GlobalPlayerInstance.WritePlayers
+// WALLET-PERSIST-RESTORE
+pub fn mirror_players_share(state: &SimState, share: &Option<crate::PlayersShare>) {
+    let Some(share) = share else {
+        return;
+    };
+    let snap = crate::players_persist::capture_players_snapshot(
+        &state.players,
+        &state.social,
+        state.next_player_id,
+        |pid| state.economy.coins_of(pid) as f32,
+        false,
+    );
+    if let Ok(mut g) = share.write() {
+        *g = snap;
+    }
+}
 // --- end compile-heal stubs ---
 
 /// Apply [`DoCommandEffects`] to outbound (private PS, chat says, FW/EX lines).
@@ -2439,7 +3515,7 @@ fn apply_do_command_effects(
         let Some((&conn, pl)) = state.players.iter().find(|(_, p)| p.p_id == p_id) else {
             continue;
         };
-        let near = nearby_conn_ids(state, pl.x, pl.y, chat_range_for_age(pl.age));
+        let near = nearby_conn_ids(state, pl.x, pl.y, say_close_range(state, pl.age));
         send_chat_ps(state, outbound, conn, p_id, text, &near);
     }
     if !fx.following_lines.is_empty() {
@@ -2455,7 +3531,7 @@ fn apply_do_command_effects(
                 }
             }
         } else if let Some(sp) = state.players.get(&speaker_conn) {
-            let near = nearby_conn_ids(state, sp.x, sp.y, NEARBY_RANGE);
+            let near = nearby_conn_ids(state, sp.x, sp.y, nearby_range(state));
             for &cid in &near {
                 for pkt in &pkts {
                     outbound.send_urgent(cid, pkt.clone());
@@ -2467,7 +3543,7 @@ fn apply_do_command_effects(
         let near = state
             .players
             .get(&speaker_conn)
-            .map(|sp| nearby_conn_ids(state, sp.x, sp.y, NEARBY_RANGE))
+            .map(|sp| nearby_conn_ids(state, sp.x, sp.y, nearby_range(state)))
             .unwrap_or_default();
         for line in &fx.exile_lines {
             let pkt = format_server_message("EX", &[line]).into_bytes();
@@ -2481,17 +3557,101 @@ fn apply_do_command_effects(
         send_ps_reply(outbound, cid, msg);
     }
     for &(cid, emot) in &fx.emotes {
-        let p_id = state
-            .players
-            .get(&cid)
-            .map(|p| p.p_id)
-            .unwrap_or(0);
+        let p_id = state.players.get(&cid).map(|p| p.p_id).unwrap_or(0);
         outbound.send_urgent(
             cid,
             format_server_message("PE", &[&format!("{p_id} {emot}")]).into_bytes(),
         );
     }
     let _ = fx.combat_prestige_regain; // applied inside hire when needed; field for future mirror
+}
+
+/// Haxe Connection.die MaxAgeForAllowingDie / PrestigeCostForDie.
+/// Ok(()) = allowed. Prestige gate still applies; score is **not** debited on /DIE
+/// (Haxe TODO L840). Err(&'static str) = toSelf say (uppercase).
+// Haxe: Connection.die L826–840
+fn try_allow_voluntary_die(
+    state: &mut SimState,
+    conn_id: u64,
+) -> Option<Result<(), &'static str>> {
+    let (age, email) = {
+        let p = state.players.get(&conn_id)?;
+        if p.deleted {
+            return None;
+        }
+        (p.age, p.email.clone())
+    };
+    let max_age = {
+        let v = state.gameplay.max_age_for_allowing_die;
+        if v.is_finite() && v >= 0.0 {
+            v
+        } else {
+            ol_config::gameplay_defaults::MAX_AGE_FOR_ALLOWING_DIE
+        }
+    };
+    // Haxe: `if (player.age > ServerSettings.MaxAgeForAllowingDie)`
+    if age > max_age {
+        return Some(Err("IM TOO OLD TO DIE"));
+    }
+    let cost = {
+        let v = state.gameplay.prestige_cost_for_die;
+        if v.is_finite() && v >= 0.0 {
+            v
+        } else {
+            ol_config::gameplay_defaults::PRESTIGE_COST_FOR_DIE
+        }
+    };
+    if state.accounts.ensure(&email).score < cost {
+        return Some(Err("I HAVE TOO LESS PRESTIGE"));
+    }
+    // Haxe TODO L840: dont lower score if /DIE is used
+    Some(Ok(()))
+}
+
+/// Shared SAY DIE / client DIE suicide after age+prestige gates.
+/// `emit_die_ok`: SAY DIE emits `{p_id}/0 DIE OK`; client DIE tag does not.
+fn apply_voluntary_die(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    counters: &Counters,
+    conn_id: u64,
+    emit_die_ok: bool,
+) {
+    match try_allow_voluntary_die(state, conn_id) {
+        None => return,
+        Some(Err(msg)) => {
+            if let Some(pl) = state.players.get(&conn_id) {
+                send_ps_reply(outbound, conn_id, &format!("{}/0 {msg}", pl.p_id));
+            }
+            return;
+        }
+        Some(Ok(())) => {}
+    }
+    let died = state.players.get_mut(&conn_id).map(|pl| {
+        if pl.deleted {
+            return None;
+        }
+        pl.deleted = true;
+        pl.death_reason = Some(DeathCause::Suicide.wire_tag().into());
+        pl.sleeping = false;
+        pl.sitting = false;
+        Some(pl.p_id)
+    });
+    if let Some(Some(p_id)) = died {
+        scatter_backpack_on_death(state, conn_id);
+        apply_death_inheritance(state, p_id);
+        counters.deaths.fetch_add(1, Ordering::Relaxed);
+        state.scoreboard.record_death(p_id);
+        state.push_event(format_death_event(p_id, DeathCause::Suicide));
+        state.afk.remove(p_id);
+        state.publish_player_view(conn_id);
+        if emit_die_ok {
+            send_ps_reply(outbound, conn_id, &format!("{p_id}/0 DIE OK"));
+            info!(conn_id, p_id, "sim: SAY DIE reason_suicide");
+        } else {
+            info!(conn_id, "sim: DIE");
+        }
+    }
 }
 
 fn apply_say_or_remv(
@@ -2516,6 +3676,15 @@ fn apply_say_or_remv(
         // Activity touch for AFK (skip ?AFK so status reflects true idle).
         if upper != "?AFK" && upper != "AFK" {
             touch_afk_activity(state, conn_id);
+        }
+        // Haxe AllowDebugCommmands + DoDebugCommands (!S secret + gated admin SAY).
+        if crate::admin_commands::try_admin_say(state, outbound, conn_id, text) {
+            return;
+        }
+        // Haxe doServerCommand !TCG / !TV (CURSED-GRAVE-TELEPORT).
+        // TCG-LIVE-WIRE
+        if crate::teleport_cmd::try_apply_teleport_bang(state, outbound, conn_id, &upper) {
+            return;
         }
         // ?STAGE / STAGE â€” infant/child/adult/elder.
         if upper == "?STAGE" || upper == "STAGE" {
@@ -2557,7 +3726,11 @@ fn apply_say_or_remv(
             let (tx, ty) = (p.x + dx, p.y + dy);
             let (biome, floor, obj) = {
                 let w = state.world.read().unwrap();
-                (w.get_biome(tx, ty), w.get_floor(tx, ty), w.get_object(tx, ty))
+                (
+                    w.get_biome(tx, ty),
+                    w.get_floor(tx, ty),
+                    w.get_object(tx, ty),
+                )
             };
             let name = state
                 .content
@@ -2645,13 +3818,9 @@ fn apply_say_or_remv(
                     .and_then(|s| s.parse::<i32>().ok())
                     .unwrap_or(0)
             };
-            let line = format!("{} {}", p.p_id, e);
-            let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
-            send_nearby(
-                outbound,
-                &near,
-                format_server_message("PE", &[&line]).into_bytes(),
-            );
+            let pe = format_player_emot(p.p_id, e).into_bytes();
+            let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
+            send_nearby(outbound, &near, pe);
             // PE is applied only after FRAME on official clients once waitForFrameMessages.
             for &cid in &near {
                 send_frame(outbound, cid);
@@ -2905,7 +4074,7 @@ fn apply_say_or_remv(
                             .copied()
                             .unwrap_or(0);
                         let line = format_following_line(p.p_id, leader, color);
-                        let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
+                        let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
                         send_nearby(
                             outbound,
                             &near,
@@ -2923,9 +4092,10 @@ fn apply_say_or_remv(
         if upper.starts_with("EXILE ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target) = rest.parse::<i32>() {
+                state.social.sim_time = state.sim_time;
                 state.social.exile(p.p_id, target);
                 let line = format_exile_line(target, p.p_id);
-                let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
+                let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
                 send_nearby(
                     outbound,
                     &near,
@@ -2944,12 +4114,7 @@ fn apply_say_or_remv(
             if ok {
                 // Keep scoreboard coins/score in sync after pay.
                 for id in [p.p_id, to] {
-                    let coins = state
-                        .economy
-                        .wallets
-                        .get(&id)
-                        .map(|w| w.coins)
-                        .unwrap_or(0);
+                    let coins = state.economy.wallets.get(&id).map(|w| w.coins).unwrap_or(0);
                     state.scoreboard.set_coins(id, coins);
                 }
             }
@@ -2972,12 +4137,7 @@ fn apply_say_or_remv(
             let ok = state.economy.gift(p.p_id, to, amount);
             if ok {
                 for id in [p.p_id, to] {
-                    let coins = state
-                        .economy
-                        .wallets
-                        .get(&id)
-                        .map(|w| w.coins)
-                        .unwrap_or(0);
+                    let coins = state.economy.wallets.get(&id).map(|w| w.coins).unwrap_or(0);
                     state.scoreboard.set_coins(id, coins);
                 }
             }
@@ -3002,12 +4162,8 @@ fn apply_say_or_remv(
                 match state.debts.record_loan(p.p_id, to, amount) {
                     Ok(()) => {
                         for id in [p.p_id, to] {
-                            let coins = state
-                                .economy
-                                .wallets
-                                .get(&id)
-                                .map(|w| w.coins)
-                                .unwrap_or(0);
+                            let coins =
+                                state.economy.wallets.get(&id).map(|w| w.coins).unwrap_or(0);
                             state.scoreboard.set_coins(id, coins);
                         }
                         true
@@ -3044,12 +4200,8 @@ fn apply_say_or_remv(
                 match state.debts.repay(p.p_id, to, pay) {
                     Ok(applied) if applied == pay => {
                         for id in [p.p_id, to] {
-                            let coins = state
-                                .economy
-                                .wallets
-                                .get(&id)
-                                .map(|w| w.coins)
-                                .unwrap_or(0);
+                            let coins =
+                                state.economy.wallets.get(&id).map(|w| w.coins).unwrap_or(0);
                             state.scoreboard.set_coins(id, coins);
                         }
                         true
@@ -3122,12 +4274,7 @@ fn apply_say_or_remv(
                         offerer.trade_offer = None;
                     }
                     for id in [from_id, accepter] {
-                        let coins = state
-                            .economy
-                            .wallets
-                            .get(&id)
-                            .map(|w| w.coins)
-                            .unwrap_or(0);
+                        let coins = state.economy.wallets.get(&id).map(|w| w.coins).unwrap_or(0);
                         state.scoreboard.set_coins(id, coins);
                     }
                 }
@@ -3173,6 +4320,15 @@ fn apply_say_or_remv(
             let reply = state.scoreboard.format_highscore_text(&prestiges, 10);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
+            return;
+        }
+        // Haxe doCommands !L / ?L / !DL / ?DL — personal leader pin/power (not ranking).
+        if let Some((direct, with_map, with_power)) =
+            crate::leader_range::parse_leader_personal_command(&upper)
+        {
+            crate::leader_range::apply_leader_query(
+                state, outbound, conn_id, direct, with_map, with_power,
+            );
             return;
         }
         if upper == "?LEADERBOARD" || upper.starts_with("?LEAD") {
@@ -3331,10 +4487,7 @@ fn apply_say_or_remv(
                 conn_id,
                 format_server_message("TS", &[&ts_wire]).into_bytes(),
             );
-            outbound.send(
-                conn_id,
-                format_learned_tool_report(&[]).into_bytes(),
-            );
+            outbound.send(conn_id, format_learned_tool_report(&[]).into_bytes());
             return;
         }
         // ?LOG / ?JOURNAL â€” last N session events (JOURNAL is an alias for LOG).
@@ -3366,7 +4519,11 @@ fn apply_say_or_remv(
             state.publish_player_view(conn_id);
             // Close marker on urgent lane â†’ net task flushes then drops TCP.
             outbound.close(conn_id);
-            info!(conn_id, p_id = p.p_id, "sim: !CLOSE â€” client disconnect only");
+            info!(
+                conn_id,
+                p_id = p.p_id,
+                "sim: !CLOSE â€” client disconnect only"
+            );
             return;
         }
         // !shutdown / SHUTDOWN â€” orderly: countdown â†’ save â†’ AP â†’ exit (whole process).
@@ -3390,7 +4547,7 @@ fn apply_say_or_remv(
             let line = format!("{} SHUTDOWN OK in={:.0}s", p.p_id, secs);
             send_ps_reply(outbound, conn_id, &line);
             // Also echo as nearby chat so the speaker sees acknowledgement.
-            let near = nearby_conn_ids(state, p.x, p.y, chat_range_for_age(p.age));
+            let near = nearby_conn_ids(state, p.x, p.y, say_close_range(state, p.age));
             {
                 let _ps = format!("{} {}", p.p_id, msg);
                 send_nearby_ps_lines(outbound, &near, &_ps);
@@ -3459,8 +4616,7 @@ fn apply_say_or_remv(
         if upper == "BIOME" || upper == "?BIOME" {
             let biome = state.world.read().unwrap().get_biome(p.x, p.y);
             let hex = color_for_biome(biome).map(|c| c.to_hex());
-            let reply =
-                format_biome_query_with_hex(biome, biome_name(biome), hex.as_deref());
+            let reply = format_biome_query_with_hex(biome, biome_name(biome), hex.as_deref());
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
@@ -3475,11 +4631,12 @@ fn apply_say_or_remv(
         }
         // TAGS / ?TAGS â€” parse description tags of the held object.
         if upper == "TAGS" || upper == "?TAGS" {
-            let held_id = state.players.get(&conn_id).map(|pl| pl.held_id).unwrap_or(0);
-            let desc = state
-                .content
-                .get(held_id)
-                .map(|d| d.description.as_str());
+            let held_id = state
+                .players
+                .get(&conn_id)
+                .map(|pl| pl.held_id)
+                .unwrap_or(0);
+            let desc = state.content.get(held_id).map(|d| d.description.as_str());
             let reply = format_held_tags_query(held_id, desc);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
@@ -3600,9 +4757,8 @@ fn apply_say_or_remv(
                     p.godmode,
                     p.deaf,
                 ));
-            let reply = SimState::format_flags_query(
-                sleeping, sick, sitting, riding, holding, god, deaf,
-            );
+            let reply =
+                SimState::format_flags_query(sleeping, sick, sitting, riding, holding, god, deaf);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
             return;
@@ -3615,10 +4771,7 @@ fn apply_say_or_remv(
             } else {
                 (p.food, p.food_max)
             };
-            let line = format!(
-                "{} BOOST OK food={:.2} max={:.2}",
-                p.p_id, food, food_max
-            );
+            let line = format!("{} BOOST OK food={:.2} max={:.2}", p.p_id, food, food_max);
             send_ps_reply(outbound, conn_id, &line);
             info!(conn_id, food, "sim: BOOST");
             return;
@@ -3636,7 +4789,11 @@ fn apply_say_or_remv(
             return;
         }
         if upper == "GODMODE" || upper.starts_with("GODMODE ") {
-            let arg = text.split_whitespace().nth(1).unwrap_or("").to_ascii_lowercase();
+            let arg = text
+                .split_whitespace()
+                .nth(1)
+                .unwrap_or("")
+                .to_ascii_lowercase();
             let god = if let Some(pl) = state.players.get_mut(&conn_id) {
                 match arg.as_str() {
                     "on" | "1" | "true" => pl.godmode = true,
@@ -3701,11 +4858,13 @@ fn apply_say_or_remv(
                 }
             }
             let floor = state.world.read().unwrap().get_floor(x, y) as i32;
-            let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
-            send_nearby(
+            let near = nearby_conn_ids(state, x, y, mx_range(state));
+            crate::vanilla_id::send_nearby_maybe_mx(
+                state,
                 outbound,
                 &near,
                 format_map_change(x, y, floor, obj, p.p_id).into_bytes(),
+                false,
             );
             let line = format!("{} VOGSET {x} {y} {obj} OK", p.p_id);
             send_ps_reply(outbound, conn_id, &line);
@@ -3752,11 +4911,13 @@ fn apply_say_or_remv(
                 }
             }
             let floor = state.world.read().unwrap().get_floor(x, y) as i32;
-            let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
-            send_nearby(
+            let near = nearby_conn_ids(state, x, y, mx_range(state));
+            crate::vanilla_id::send_nearby_maybe_mx(
+                state,
                 outbound,
                 &near,
                 format_map_change(x, y, floor, obj, p.p_id).into_bytes(),
+                false,
             );
             let line = format!("{} REGEN OK {x} {y} {obj}", p.p_id);
             send_ps_reply(outbound, conn_id, &line);
@@ -3782,11 +4943,13 @@ fn apply_say_or_remv(
             schedule_decay(state, x, y, 0);
             state.specials.remove(x, y);
             let floor = state.world.read().unwrap().get_floor(x, y) as i32;
-            let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
-            send_nearby(
+            let near = nearby_conn_ids(state, x, y, mx_range(state));
+            crate::vanilla_id::send_nearby_maybe_mx(
+                state,
                 outbound,
                 &near,
                 format_map_change(x, y, floor, 0, p.p_id).into_bytes(),
+                false,
             );
             let line = format!("{} CLEAROBJ OK {x} {y}", p.p_id);
             send_ps_reply(outbound, conn_id, &line);
@@ -3809,11 +4972,13 @@ fn apply_say_or_remv(
             let y = p.y;
             state.world.write().unwrap().set_floor(x, y, 1);
             let obj = state.world.read().unwrap().get_object(x, y);
-            let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
-            send_nearby(
+            let near = nearby_conn_ids(state, x, y, mx_range(state));
+            crate::vanilla_id::send_nearby_maybe_mx(
+                state,
                 outbound,
                 &near,
                 format_map_change(x, y, 1, obj, p.p_id).into_bytes(),
+                false,
             );
             let line = format!("{} FILL OK {x} {y} floor=1", p.p_id);
             send_ps_reply(outbound, conn_id, &line);
@@ -3824,7 +4989,7 @@ fn apply_say_or_remv(
             // POSSE <p_id> â€” join posse of target; POSSE 0 â€” leave all.
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
-                let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
+                let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
                 if target_id == 0 {
                     let _had = state.posse.clear(p.p_id);
                     let line = format!("{} POSSE 0 OK", p.p_id);
@@ -3855,11 +5020,7 @@ fn apply_say_or_remv(
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
                 let ok = state.war.declare_war(p.p_id, target_id);
-                let status = if ok {
-                    STATUS_WAR
-                } else {
-                    STATUS_PEACE
-                };
+                let status = if ok { STATUS_WAR } else { STATUS_PEACE };
                 let line = format!(
                     "{} WAR {} {} {}",
                     p.p_id,
@@ -3867,12 +5028,14 @@ fn apply_say_or_remv(
                     status,
                     if ok { "OK" } else { "FAIL" }
                 );
-                let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
+                let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
                 send_nearby_ps_lines(outbound, &near, &line);
                 if ok {
                     state.push_event(format!("WAR {} {}", p.p_id, target_id));
                     // Optional scoreboard touch: ensure both parties have rows.
-                    state.scoreboard.ensure_player(p.p_id, format!("P{}", p.p_id));
+                    state
+                        .scoreboard
+                        .ensure_player(p.p_id, format!("P{}", p.p_id));
                     state
                         .scoreboard
                         .ensure_player(target_id, format!("P{target_id}"));
@@ -3892,10 +5055,7 @@ fn apply_say_or_remv(
                     && state.posse.has_target(target_id, p.p_id);
                 let prestige = state.player_prestige(p.p_id);
                 let line = if both_in_posse {
-                    format!(
-                        "{} RAID {} OK prestige={:.2}",
-                        p.p_id, target_id, prestige
-                    )
+                    format!("{} RAID {} OK prestige={:.2}", p.p_id, target_id, prestige)
                 } else {
                     format!("{} RAID {} FAIL", p.p_id, target_id)
                 };
@@ -3918,7 +5078,7 @@ fn apply_say_or_remv(
                     STATUS_PEACE,
                     if ok { "OK" } else { "FAIL" }
                 );
-                let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
+                let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
                 send_nearby_ps_lines(outbound, &near, &line);
                 if ok {
                     let wr = format_war_report(p.p_id, target_id, STATUS_PEACE);
@@ -3933,6 +5093,15 @@ fn apply_say_or_remv(
                 let killer_id = p.p_id;
                 let killer_x = p.x;
                 let killer_y = p.y;
+                let held_id = p.held_id;
+                // Haxe kill(): this.killMode = true; target.lastPlayerAttackedMe = this
+                if let Some(kp) = state.players.get_mut(&conn_id) {
+                    kp.kill_mode = true;
+                    kp.last_attacked_player_id = target_id;
+                }
+                if let Some(tp) = state.players.values_mut().find(|x| x.p_id == target_id) {
+                    tp.last_player_attacked_me_id = killer_id;
+                }
                 // Range gate (Chebyshev): online targets beyond KILL_RANGE miss.
                 // Offline / unknown targets still allow one-shot resolve_kill (prestige only).
                 let target_pos = state
@@ -3941,11 +5110,51 @@ fn apply_say_or_remv(
                     .find(|x| x.p_id == target_id && !x.deleted)
                     .map(|tp| (tp.x, tp.y));
                 if let Some((tx, ty)) = target_pos {
-                    let dist = CombatState::chebyshev(killer_x, killer_y, tx, ty);
-                    if dist > KILL_RANGE {
+                    // Haxe killHelper L4420-4428: bow deadly>1.9 + exact≤1.5 → PU + Too close...
+                    let held_deadly = state
+                        .content
+                        .get(held_id)
+                        .map(|d| d.deadly_distance)
+                        .unwrap_or(0.0);
+                    let (mw, mh, wrap) = {
+                        let w = state.world.read().unwrap();
+                        (w.width_tiles, w.height_tiles, w.wrap)
+                    };
+                    if refuse_ranged_kill_too_close(
+                        held_deadly,
+                        killer_x as f64,
+                        killer_y as f64,
+                        tx as f64,
+                        ty as f64,
+                        mw,
+                        mh,
+                        wrap,
+                    ) {
+                        send_action_result_pu_and_frame(state, outbound, conn_id);
+                        note_too_close_say(conn_id);
+                        maybe_too_close_say_feedback(state, outbound, conn_id);
+                        return;
+                    }
+                    // Haxe isClose: squared Euclidean vs KILL_RANGE (not Chebyshev)
+                    if !in_use_range(killer_x, killer_y, tx, ty, KILL_RANGE) {
                         let line = format!("{} KILL {} MISS range", killer_id, target_id);
                         send_ps_reply(outbound, conn_id, &line);
                         return;
+                    }
+                }
+                // Haxe: ExileIfClose(this, targetPlayer) before DoDamage
+                apply_exile_if_close(state, killer_id, target_id);
+                // Haxe kill() CombatExhaustionCostPerAttack on attacker.
+                // SETTINGS-LONG-TAIL
+                {
+                    let cost = state.gameplay.combat_exhaustion_cost_per_attack;
+                    let cost = if cost.is_finite() && cost >= 0.0 {
+                        cost
+                    } else {
+                        crate::food_store_max::COMBAT_EXHAUSTION_COST_PER_ATTACK
+                    };
+                    if let Some(kp) = state.players.get_mut(&conn_id) {
+                        kp.exhaustion += cost;
                     }
                 }
                 let legal = state.social.is_exiled_by(killer_id, target_id)
@@ -3960,13 +5169,9 @@ fn apply_say_or_remv(
                     state.combat.clear_wound(target_id);
                     // Combat reputation (â‰  prestige): illegal guilt / legal recover.
                     if legal {
-                        state
-                            .reputation
-                            .apply_legal_hit(killer_id, target_id, 0.2);
+                        state.reputation.apply_legal_hit(killer_id, target_id, 0.2);
                     } else {
-                        state
-                            .reputation
-                            .apply_illegal_hit(killer_id, 1.0, 1.0);
+                        state.reputation.apply_illegal_hit(killer_id, 1.0, 1.0);
                     }
                     // Keep lineage prestige/class in sync with combat prestige.
                     state.sync_lineage_prestige_from_combat(killer_id);
@@ -3996,7 +5201,7 @@ fn apply_say_or_remv(
                     state.push_event(format_death_event_tag(target_id, &death_reason));
                     state.afk.remove(target_id);
                     let line = format!("{} KILLED {} legal={}", killer_id, target_id, legal);
-                    let near = nearby_conn_ids(state, killer_x, killer_y, NEARBY_RANGE);
+                    let near = nearby_conn_ids(state, killer_x, killer_y, nearby_range(state));
                     send_nearby_ps_lines(outbound, &near, &line);
                 }
             }
@@ -4074,7 +5279,7 @@ fn apply_say_or_remv(
                             }
                             state.publish_player_view(conn_id);
                             state.publish_player_view(t_conn);
-                            let near = nearby_conn_ids(state, ax, ay, NEARBY_RANGE);
+                            let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
                             // PU for actor + target after position change.
                             if let Some(ap) = state.players.get(&conn_id) {
                                 let spd = player_move_speed(state, ap);
@@ -4086,7 +5291,7 @@ fn apply_say_or_remv(
                                     ap.y,
                                     actor_age,
                                     spd,
-                                ap.done_moving_seq.max(1),
+                                    ap.done_moving_seq.max(1),
                                 );
                                 send_nearby(
                                     outbound,
@@ -4104,7 +5309,7 @@ fn apply_say_or_remv(
                                     tp.y,
                                     t_age,
                                     spd,
-                                tp.done_moving_seq.max(1),
+                                    tp.done_moving_seq.max(1),
                                 );
                                 send_nearby(
                                     outbound,
@@ -4188,7 +5393,7 @@ fn apply_say_or_remv(
                                     tp.y = wy;
                                 }
                                 state.publish_player_view(t_conn);
-                                let near = nearby_conn_ids(state, ax, ay, NEARBY_RANGE);
+                                let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
                                 if let Some(tp) = state.players.get(&t_conn) {
                                     let spd = player_move_speed(state, tp);
                                     let pu = format_player_update_line(
@@ -4199,7 +5404,7 @@ fn apply_say_or_remv(
                                         tp.y,
                                         t_age,
                                         spd,
-                                    tp.done_moving_seq.max(1),
+                                        tp.done_moving_seq.max(1),
                                     );
                                     send_nearby(
                                         outbound,
@@ -4213,7 +5418,7 @@ fn apply_say_or_remv(
                     }
                 };
                 if line.contains(" OK ") {
-                    let near = nearby_conn_ids(state, ax, ay, NEARBY_RANGE);
+                    let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
                     send_nearby_ps_lines(outbound, &near, &line);
                 } else {
                     send_ps_reply(outbound, conn_id, &line);
@@ -4253,7 +5458,7 @@ fn apply_say_or_remv(
                                 state.sync_lineage_prestige_from_combat(actor_id);
                                 prest_note = KISS_ALLY_PRESTIGE;
                             }
-                            let near = nearby_conn_ids(state, ax, ay, NEARBY_RANGE);
+                            let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
                             // PE cute/love on the kisser.
                             let pe = format_server_message(
                                 "PE",
@@ -4271,7 +5476,7 @@ fn apply_say_or_remv(
                     }
                 };
                 if line.contains(" OK") {
-                    let near = nearby_conn_ids(state, ax, ay, NEARBY_RANGE);
+                    let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
                     send_nearby_ps_lines(outbound, &near, &line);
                 } else {
                     send_ps_reply(outbound, conn_id, &line);
@@ -4313,7 +5518,7 @@ fn apply_say_or_remv(
                     }
                 };
                 if line.contains(" OK") {
-                    let near = nearby_conn_ids(state, ax, ay, NEARBY_RANGE);
+                    let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
                     send_nearby_ps_lines(outbound, &near, &line);
                 } else {
                     send_ps_reply(outbound, conn_id, &line);
@@ -4356,7 +5561,7 @@ fn apply_say_or_remv(
                     )
                 };
                 if line.contains(" OK") {
-                    let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
+                    let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
                     send_nearby_ps_lines(outbound, &near, &line);
                 } else {
                     send_ps_reply(outbound, conn_id, &line);
@@ -4406,7 +5611,7 @@ fn apply_say_or_remv(
                     }
                 };
                 if line.contains(" OK") {
-                    let near = nearby_conn_ids(state, ax, ay, NEARBY_RANGE);
+                    let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
                     send_nearby_ps_lines(outbound, &near, &line);
                 } else {
                     send_ps_reply(outbound, conn_id, &line);
@@ -4438,7 +5643,7 @@ fn apply_say_or_remv(
                         if dist > SHOVE_RANGE {
                             format!("{actor_id} HUG {target_id} FAIL range")
                         } else {
-                            let near = nearby_conn_ids(state, ax, ay, NEARBY_RANGE);
+                            let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
                             let pe = format_server_message(
                                 "PE",
                                 &[&format!("{actor_id} {LOVE_EMOT_INDEX}")],
@@ -4449,7 +5654,7 @@ fn apply_say_or_remv(
                     }
                 };
                 if line.contains(" OK") {
-                    let near = nearby_conn_ids(state, ax, ay, NEARBY_RANGE);
+                    let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
                     send_nearby_ps_lines(outbound, &near, &line);
                 } else {
                     send_ps_reply(outbound, conn_id, &line);
@@ -4482,7 +5687,7 @@ fn apply_say_or_remv(
                             format!("{actor_id} SLAP {target_id} FAIL range")
                         } else {
                             let ally = state.allies.is_mutual_or_either(actor_id, target_id);
-                            let near = nearby_conn_ids(state, ax, ay, NEARBY_RANGE);
+                            let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
                             // PE mad on the slapper (Haxe Emote.mad).
                             let pe = format_server_message(
                                 "PE",
@@ -4499,7 +5704,7 @@ fn apply_say_or_remv(
                     }
                 };
                 if line.contains(" OK") {
-                    let near = nearby_conn_ids(state, ax, ay, NEARBY_RANGE);
+                    let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
                     send_nearby_ps_lines(outbound, &near, &line);
                 } else {
                     send_ps_reply(outbound, conn_id, &line);
@@ -4508,149 +5713,12 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // HIT <p_id> â€” Haxe doDamage: weapon damage + clothing protection + wounds.
-        // Weapon range from held object name (bow=8, sword/knife=2, spear=3, default KILL_RANGE).
+        // HIT <p_id> — Haxe doDamage: weapon damage + clothing protection + wounds.
+        // Weapon range: deadlyDistance float (+0.1), else name table (bow=8, default KILL_RANGE).
         if upper.starts_with("HIT ") {
             let rest = text.split_whitespace().nth(1).unwrap_or("");
             if let Ok(target_id) = rest.parse::<i32>() {
-                let killer_id = p.p_id;
-                let killer_x = p.x;
-                let killer_y = p.y;
-                let held_id = p.held_id;
-                let held_name = held_object_name(state, held_id);
-                let max_range = weapon_range(held_id, &held_name);
-                let org_damage = weapon_damage(held_id, &held_name);
-                let target_info = state.players.values().find(|x| x.p_id == target_id && !x.deleted).map(|tp| {
-                    (
-                        tp.x,
-                        tp.y,
-                        tp.food_max,
-                        clothing_temp_bonus(tp.hat, tp.chest, tp.shoes),
-                        tp.held_id,
-                    )
-                });
-                let Some((tx, ty, t_food_max, cloth_insul, t_held)) = target_info else {
-                    let line = format!("{} HIT {} FAIL offline", killer_id, target_id);
-                    send_ps_reply(outbound, conn_id, &line);
-                    return;
-                };
-                let t_held_name = held_object_name(state, t_held);
-                let weapon_prot = held_damage_protection_factor(t_held, &t_held_name);
-                // Floor insulation proxy: non-zero floor â†’ 0.3 (Haxe floor.getInsulation subset).
-                let floor_insul = {
-                    let w = state.world.read().unwrap();
-                    if w.get_floor(tx, ty) != 0 {
-                        0.3
-                    } else {
-                        0.0
-                    }
-                };
-                let legal = state.social.is_exiled_by(killer_id, target_id)
-                    || state
-                        .social
-                        .following
-                        .get(&killer_id)
-                        .map(|leader| state.social.is_exiled_by(*leader, target_id))
-                        .unwrap_or(false);
-                let rng01 = rand::random::<f32>();
-                let (result, dmg) = state.combat.resolve_hit_damaged(
-                    killer_id,
-                    target_id,
-                    killer_x,
-                    killer_y,
-                    tx,
-                    ty,
-                    legal,
-                    max_range,
-                    org_damage,
-                    cloth_insul,
-                    floor_insul,
-                    weapon_prot,
-                    t_food_max,
-                    held_id,
-                    rng01,
-                );
-                let near = nearby_conn_ids(state, killer_x, killer_y, NEARBY_RANGE);
-                match result {
-                    HitResult::Miss => {
-                        let line = format!("{} HIT {} MISS", killer_id, target_id);
-                        send_ps_reply(outbound, conn_id, &line);
-                    }
-                    HitResult::Wound(w) => {
-                        // Reduce food_max (HP) by damage (Haxe food_store_max from hits).
-                        // Haxe DoDamage: angryTime -= damage on both parties.
-                        if let Some(tp) =
-                            state.players.values_mut().find(|x| x.p_id == target_id)
-                        {
-                            tp.food_max = (tp.food_max - dmg).max(FOOD_MAX_DEATH);
-                            if tp.food > tp.food_max {
-                                tp.food = tp.food_max;
-                            }
-                            tp.angry_time -= dmg;
-                        }
-                        if let Some(kp) =
-                            state.players.values_mut().find(|x| x.p_id == killer_id)
-                        {
-                            kp.angry_time -= dmg;
-                        }
-                        let line = format!(
-                            "{} HIT {} WOUND {} dmg={:.1}",
-                            killer_id, target_id, w, dmg
-                        );
-                        send_nearby_ps_lines(outbound, &near, &line);
-                        // Wound PE emote (Haxe Emote.mad) on the target to nearby.
-                        let pe = format_server_message(
-                            "PE",
-                            &[&format!("{target_id} {HUNGER_EMOT_INDEX}")],
-                        );
-                        send_nearby(outbound, &near, pe.into_bytes());
-                        // DY dying indicator while wounded (Haxe SendDyingToAll).
-                        send_nearby(
-                            outbound,
-                            &near,
-                            format_dying(target_id, false).into_bytes(),
-                        );
-                    }
-                    HitResult::Kill => {
-                        if legal {
-                            state
-                                .reputation
-                                .apply_legal_hit(killer_id, target_id, 0.2);
-                        } else {
-                            state
-                                .reputation
-                                .apply_illegal_hit(killer_id, 1.0, 1.0);
-                        }
-                        state.sync_lineage_prestige_from_combat(killer_id);
-                        state.sync_lineage_prestige_from_combat(target_id);
-                        state.scoreboard.record_kill(killer_id, target_id);
-                        state.refresh_living_prestige_classes();
-                        let death_reason = combat_death_wire(legal, held_id);
-                        if let Some(tp) =
-                            state.players.values_mut().find(|x| x.p_id == target_id)
-                        {
-                            tp.deleted = true;
-                            tp.death_reason = Some(death_reason.clone());
-                        }
-                        scatter_backpack_on_death_pid(state, target_id);
-                        apply_death_inheritance(state, target_id);
-                        counters.deaths.fetch_add(1, Ordering::Relaxed);
-                        state.push_event(format_death_event_tag(target_id, &death_reason));
-                        state.afk.remove(target_id);
-                        // COMBAT-BLOODY: kill path longWeaponCoolDown.
-                        apply_bloody_weapon_transform(
-                            state,
-                            killer_id,
-                            held_id,
-                            BloodyApplyMode::Strike { long_wounding: true },
-                        );
-                        let line = format!(
-                            "{} HIT {} KILL legal={} dmg={:.1}",
-                            killer_id, target_id, legal, dmg
-                        );
-                        send_nearby_ps_lines(outbound, &near, &line);
-                    }
-                }
+                apply_hit_on_player(state, outbound, counters, conn_id, target_id, 1.0, true);
             }
             return;
         }
@@ -4667,7 +5735,7 @@ fn apply_say_or_remv(
                 send_ps_reply(outbound, conn_id, &line);
                 return;
             }
-            let (held_is_food, held_food_value) = resolve_held_food(state, held_id);
+            let (held_is_food, _held_food_value) = resolve_held_food(state, held_id);
             let target_info = state.players.iter().find_map(|(&tc, tp)| {
                 if tp.p_id == baby_p_id && !tp.deleted {
                     Some((tc, tp.food, tp.food_max, tp.age))
@@ -4700,7 +5768,7 @@ fn apply_say_or_remv(
                                 state.publish_player_view(conn_id);
                                 state.publish_player_view(t_conn);
                                 let near =
-                                    nearby_conn_ids(state, feeder_x, feeder_y, NEARBY_RANGE);
+                                    nearby_conn_ids(state, feeder_x, feeder_y, nearby_range(state));
                                 let new_food = state
                                     .players
                                     .get(&t_conn)
@@ -4723,31 +5791,36 @@ fn apply_say_or_remv(
                         send_ps_reply(outbound, conn_id, &line);
                         return;
                     }
-                    let (new_food, leftover) =
-                        apply_feed_amounts(held_food_value, t_food, t_max);
-                    let transferred = held_food_value - leftover;
-                    if transferred <= 0.0 {
-                        let line = format!("{} {} FAIL full", feeder_id, upper);
-                        send_ps_reply(outbound, conn_id, &line);
-                    } else {
-                        if let Some(feeder) = state.players.get_mut(&conn_id) {
-                            feeder.held_id = 0;
-                        }
-                        if let Some(tp) = state.players.get_mut(&t_conn) {
-                            tp.food = new_food;
-                        }
+                    // FEED-OTHER-EAT: Haxe doEating fill (compute_eat_full × world × starving).
+                    if try_do_eating(state, conn_id, t_conn) {
                         state.publish_player_view(conn_id);
                         state.publish_player_view(t_conn);
-                        let near = nearby_conn_ids(state, feeder_x, feeder_y, NEARBY_RANGE);
+                        let near = nearby_conn_ids(state, feeder_x, feeder_y, nearby_range(state));
                         if let Some(tp) = state.players.get(&t_conn) {
                             let fx = food_change_for_player(state, tp);
                             send_nearby(outbound, &near, fx.into_bytes());
                         }
+                        let new_food = state
+                            .players
+                            .get(&t_conn)
+                            .map(|tp| tp.food)
+                            .unwrap_or(t_food);
                         let line = format!(
                             "{} {} {} OK food={:.2}",
                             feeder_id, upper, baby_p_id, new_food
                         );
                         send_nearby_ps_lines(outbound, &near, &line);
+                        flush_eat_emotes(state, outbound);
+                    } else {
+                        let full = state
+                            .players
+                            .get(&t_conn)
+                            .map(|tp| tp.food >= tp.food_max)
+                            .unwrap_or(false);
+                        let why = if full { "full" } else { "refuse" };
+                        let line = format!("{} {} FAIL {}", feeder_id, upper, why);
+                        send_ps_reply(outbound, conn_id, &line);
+                        flush_eat_emotes(state, outbound);
                     }
                 }
             }
@@ -4763,7 +5836,7 @@ fn apply_say_or_remv(
                 let held_id = p.held_id;
                 let holding_baby = p.holding_player_id;
                 // Resolve food-ness: content food_value > 0, or name heuristic.
-                let (held_is_food, held_food_value) = resolve_held_food(state, held_id);
+                let (held_is_food, _held_food_value) = resolve_held_food(state, held_id);
                 let target_info = state.players.iter().find_map(|(&tc, tp)| {
                     if tp.p_id == target_id && tp.connected && !tp.deleted {
                         Some((tc, tp.x, tp.y, tp.deleted, tp.food, tp.food_max))
@@ -4791,30 +5864,21 @@ fn apply_say_or_remv(
                 };
                 match result {
                     Ok((t_conn, t_food, t_max)) => {
-                        let (new_food, leftover) =
-                            apply_feed_amounts(held_food_value, t_food, t_max);
-                        let transferred = held_food_value - leftover;
-                        if transferred <= 0.0 {
-                            let line = format!("{} FEED {} FAIL full", feeder_id, target_id);
-                            send_ps_reply(outbound, conn_id, &line);
-                        } else {
+                        let _ = (t_food, t_max);
+                        // FEED-OTHER-EAT: Haxe doEating (compute_eat_full × world × starving).
+                        if try_do_eating(state, conn_id, t_conn) {
                             // Poisoned food: apply sick to target on successful FEED.
                             let held_name = held_object_name(state, held_id);
-                            let apply_sick =
-                                should_sicken_on_feed(&held_name, held_is_food);
-                            // Consume held food item (discrete object); update target food.
-                            if let Some(feeder) = state.players.get_mut(&conn_id) {
-                                feeder.held_id = 0;
-                            }
-                            if let Some(tp) = state.players.get_mut(&t_conn) {
-                                tp.food = new_food;
-                                if apply_sick {
+                            let apply_sick = should_sicken_on_feed(&held_name, held_is_food);
+                            if apply_sick {
+                                if let Some(tp) = state.players.get_mut(&t_conn) {
                                     tp.sick = true;
                                 }
                             }
                             state.publish_player_view(conn_id);
                             state.publish_player_view(t_conn);
-                            let near = nearby_conn_ids(state, feeder_x, feeder_y, NEARBY_RANGE);
+                            let near =
+                                nearby_conn_ids(state, feeder_x, feeder_y, nearby_range(state));
                             // PU for feeder (empty hands) + target food change FX.
                             if let Some(feeder) = state.players.get(&conn_id) {
                                 let spd = player_move_speed(state, feeder);
@@ -4826,7 +5890,7 @@ fn apply_say_or_remv(
                                     feeder.y,
                                     feeder.age,
                                     spd,
-                                feeder.done_moving_seq.max(1),
+                                    feeder.done_moving_seq.max(1),
                                 );
                                 send_nearby(
                                     outbound,
@@ -4838,15 +5902,18 @@ fn apply_say_or_remv(
                                 let fx = food_change_for_player(state, tp);
                                 send_nearby(outbound, &near, fx.into_bytes());
                                 let spd = player_move_speed(state, tp);
-                                let pu = format_player_update_line(
+                                let pu = format_player_update_line_eat_responsible(
                                     tp.p_id,
-                                    person_object_id(&p),
+                                    person_object_id(tp),
                                     tp.held_id,
                                     tp.x,
                                     tp.y,
                                     tp.age,
                                     spd,
-                                tp.done_moving_seq.max(1),
+                                    tp.yum.just_ate_flag(),
+                                    tp.yum.just_ate_id,
+                                    tp.yum.responsible_id,
+                                    tp.done_moving_seq.max(1),
                                 );
                                 send_nearby(
                                     outbound,
@@ -4854,18 +5921,31 @@ fn apply_say_or_remv(
                                     format_server_message("PU", &[&pu]).into_bytes(),
                                 );
                             }
+                            let new_food = state
+                                .players
+                                .get(&t_conn)
+                                .map(|tp| tp.food)
+                                .unwrap_or(t_food);
                             let line = if apply_sick {
                                 format!(
                                     "{} FEED {} OK food={:.2} sick",
                                     feeder_id, target_id, new_food
                                 )
                             } else {
-                                format!(
-                                    "{} FEED {} OK food={:.2}",
-                                    feeder_id, target_id, new_food
-                                )
+                                format!("{} FEED {} OK food={:.2}", feeder_id, target_id, new_food)
                             };
                             send_nearby_ps_lines(outbound, &near, &line);
+                            flush_eat_emotes(state, outbound);
+                        } else {
+                            let full = state
+                                .players
+                                .get(&t_conn)
+                                .map(|tp| tp.food >= tp.food_max)
+                                .unwrap_or(false);
+                            let why = if full { "full" } else { "refuse" };
+                            let line = format!("{} FEED {} FAIL {}", feeder_id, target_id, why);
+                            send_ps_reply(outbound, conn_id, &line);
+                            flush_eat_emotes(state, outbound);
                         }
                     }
                     Err(reason) => {
@@ -4894,8 +5974,8 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // ?LEADER â€” follow-graph leadership ranking.
-        if upper == "?LEADER" || upper == "LEADER" {
+        // LEADER — follow-graph ranking (`?LEADER` is personal via parse_leader_personal_command).
+        if upper == "LEADER" {
             let reply = format_leader_query(&state.social.following, LEADER_QUERY_LIMIT);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
@@ -4924,7 +6004,11 @@ fn apply_say_or_remv(
             // Free heal for testing when hands empty; consume heal item when held.
             let require = held != 0;
             let result = try_heal(&mut state.combat, p.p_id, is_heal || held == 0, require);
-            let cmd = if upper == "BANDAGE" { "BANDAGE" } else { "HEAL" };
+            let cmd = if upper == "BANDAGE" {
+                "BANDAGE"
+            } else {
+                "HEAL"
+            };
             let line = match result {
                 HealResult::Healed { previous } => {
                     if is_heal {
@@ -4992,12 +6076,7 @@ fn apply_say_or_remv(
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
             let ok = state.allies.add(p.p_id, to).is_ok();
-            let line = format!(
-                "{} ALLY {} {}",
-                p.p_id,
-                to,
-                if ok { "OK" } else { "FAIL" }
-            );
+            let line = format!("{} ALLY {} {}", p.p_id, to, if ok { "OK" } else { "FAIL" });
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
@@ -5057,7 +6136,7 @@ fn apply_say_or_remv(
         }
         // ?WEIGHT â€” held + backpack item count (ballast for move speed).
         if upper == "?WEIGHT" || upper == "WEIGHT" {
-            let n = weight_item_count(p.held_id, p.backpack.len());
+            let n = weight_item_count(p.held_id, p.backpack_cargo_len());
             let reply = format_weight_query(n);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
@@ -5135,11 +6214,7 @@ fn apply_say_or_remv(
             return;
         }
         // ?ANIMALS / ?FAUNA â€” wild animal counts by kind.
-        if upper == "?ANIMALS"
-            || upper == "ANIMALS"
-            || upper == "?FAUNA"
-            || upper == "FAUNA"
-        {
+        if upper == "?ANIMALS" || upper == "ANIMALS" || upper == "?FAUNA" || upper == "FAUNA" {
             let reply = state.animals.format_query();
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
@@ -5151,13 +6226,7 @@ fn apply_say_or_remv(
             let held_id = p.held_id;
             let hx = p.x;
             let hy = p.y;
-            let result = hunt_nearest(
-                &mut state.animals,
-                hx,
-                hy,
-                HUNT_RANGE,
-                HUNT_DAMAGE,
-            );
+            let result = hunt_nearest(&mut state.animals, hx, hy, HUNT_RANGE, HUNT_DAMAGE);
             let line = match result {
                 HuntResult::Miss => {
                     info!(conn_id, hunter_id, "sim: HUNT MISS");
@@ -5173,7 +6242,9 @@ fn apply_say_or_remv(
                         state,
                         hunter_id,
                         held_id,
-                        BloodyApplyMode::Animal { deadly: kind.is_deadly() },
+                        BloodyApplyMode::Animal {
+                            deadly: kind.is_deadly(),
+                        },
                     );
                     info!(
                         conn_id,
@@ -5202,7 +6273,9 @@ fn apply_say_or_remv(
                         state,
                         hunter_id,
                         held_id,
-                        BloodyApplyMode::Animal { deadly: kind.is_deadly() },
+                        BloodyApplyMode::Animal {
+                            deadly: kind.is_deadly(),
+                        },
                     );
                     // Clear map object where the animal stood (Haxe removes animal tile).
                     let oid = kind.object_id();
@@ -5213,16 +6286,20 @@ fn apply_say_or_remv(
                         }
                         w.get_floor(ax, ay) as i32
                     };
-                    let near = nearby_conn_ids(state, ax, ay, NEARBY_RANGE);
+                    let near = nearby_conn_ids(state, ax, ay, mx_range(state));
                     for &cid in &near {
-                        if let Some(v) = state.players.get(&cid) {
-                            let (rx, ry) = v.world_to_client(ax, ay);
-                            outbound.send_urgent(
-                                cid,
-                                format_map_change(rx, ry, floor, 0, -1).into_bytes(),
-                            );
-                            send_frame(outbound, cid);
-                        }
+                        let Some((rx, ry)) = state.players.get(&cid).map(|v| v.world_to_client(ax, ay))
+                        else {
+                            continue;
+                        };
+                        outbound.send_urgent(
+                            cid,
+                            crate::vanilla_id::format_map_change_for_conn(
+                                state, cid, rx, ry, floor, 0, -1,
+                            )
+                            .into_bytes(),
+                        );
+                        send_frame(outbound, cid);
                     }
                     // Meat object id 0 is a content placeholder; only equip when non-zero.
                     if HUNT_MEAT_OBJECT_ID != 0 {
@@ -5257,8 +6334,7 @@ fn apply_say_or_remv(
         // HARVEST / FISH / MINE / DIG / CHOP â€” lite profession actions (5s shared cooldown).
         if upper == "HARVEST" {
             let p_id = p.p_id;
-            let (hx, hy, held, last_prof) =
-                (p.x, p.y, p.held_id, p.last_prof_action_time);
+            let (hx, hy, held, last_prof) = (p.x, p.y, p.held_id, p.last_prof_action_time);
             let biome = state.world.read().unwrap().get_biome(hx, hy);
             let sim_time = state.sim_time;
             let result = try_harvest(held, biome, last_prof, sim_time, &state.content);
@@ -5275,8 +6351,7 @@ fn apply_say_or_remv(
         }
         if upper == "FISH" {
             let p_id = p.p_id;
-            let (hx, hy, held, last_prof) =
-                (p.x, p.y, p.held_id, p.last_prof_action_time);
+            let (hx, hy, held, last_prof) = (p.x, p.y, p.held_id, p.last_prof_action_time);
             let biome = state.world.read().unwrap().get_biome(hx, hy);
             let sim_time = state.sim_time;
             let result = try_fish(held, biome, last_prof, sim_time);
@@ -5293,8 +6368,7 @@ fn apply_say_or_remv(
         }
         if upper == "MINE" {
             let p_id = p.p_id;
-            let (hx, hy, held, last_prof) =
-                (p.x, p.y, p.held_id, p.last_prof_action_time);
+            let (hx, hy, held, last_prof) = (p.x, p.y, p.held_id, p.last_prof_action_time);
             let mountain_near = {
                 let w = state.world.read().unwrap();
                 mountain_adjacent(hx, hy, |x, y| w.get_biome(x, y))
@@ -5314,8 +6388,7 @@ fn apply_say_or_remv(
         }
         if upper == "DIG" {
             let p_id = p.p_id;
-            let (hx, hy, held, last_prof) =
-                (p.x, p.y, p.held_id, p.last_prof_action_time);
+            let (hx, hy, held, last_prof) = (p.x, p.y, p.held_id, p.last_prof_action_time);
             let biome = state.world.read().unwrap().get_biome(hx, hy);
             let sim_time = state.sim_time;
             let result = try_dig(held, biome, last_prof, sim_time);
@@ -5332,8 +6405,7 @@ fn apply_say_or_remv(
         }
         if upper == "CHOP" {
             let p_id = p.p_id;
-            let (hx, hy, held, last_prof) =
-                (p.x, p.y, p.held_id, p.last_prof_action_time);
+            let (hx, hy, held, last_prof) = (p.x, p.y, p.held_id, p.last_prof_action_time);
             let biome = state.world.read().unwrap().get_biome(hx, hy);
             let sim_time = state.sim_time;
             let result = try_chop(held, biome, last_prof, sim_time);
@@ -5401,7 +6473,10 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        if upper.starts_with("WEATHER ") || upper.starts_with("SETWEATHER ") || upper == "SETWEATHER" {
+        if upper.starts_with("WEATHER ")
+            || upper.starts_with("SETWEATHER ")
+            || upper == "SETWEATHER"
+        {
             let mut it = text.split_whitespace();
             let _ = it.next();
             let kind_tok = it.next().unwrap_or("");
@@ -5498,15 +6573,15 @@ fn apply_say_or_remv(
                 if !state.mutes.should_deliver(target_id, speaker_p_id) {
                     info!(
                         conn_id,
-                        target_id,
-                        speaker_p_id,
-                        "sim: WHISPER dropped (muted)"
+                        target_id, speaker_p_id, "sim: WHISPER dropped (muted)"
                     );
                     return;
                 }
-                if let Some((&target_conn, _)) = state.players.iter().find(|(_, pl)| {
-                    pl.p_id == target_id && pl.connected && !pl.deleted
-                }) {
+                if let Some((&target_conn, _)) = state
+                    .players
+                    .iter()
+                    .find(|(_, pl)| pl.p_id == target_id && pl.connected && !pl.deleted)
+                {
                     // Protocol: PS p_id/0 text + FM (private whisper still uses same wire).
                     send_ps_reply(
                         outbound,
@@ -5530,7 +6605,9 @@ fn apply_say_or_remv(
         if upper == "BIRTH" {
             let sim_t = state.sim_time;
             let female = player_is_female(state, &p);
-            let fert = state.fertility.can_birth_full(p.p_id, p.age, sim_t, p.deleted, female);
+            let fert = state
+                .fertility
+                .can_birth_full(p.p_id, p.age, sim_t, p.deleted, female);
             if let Err(reason) = fert {
                 let line = format!("{} BIRTH FAIL {reason}", p.p_id);
                 send_ps_reply(outbound, conn_id, &line);
@@ -5548,12 +6625,9 @@ fn apply_say_or_remv(
                     let line = format!("{} BIRTH {baby_p_id} OK", p.p_id);
                     send_ps_reply(outbound, conn_id, &line);
                     // Push new LN line to mother (minimal; full fan-out later).
-                    if let Some(node) = state.social.lineages.get(&baby_p_id) {
-                        let ln = node.wire_line();
-                        outbound.send(
-                            conn_id,
-                            format_server_message("LN", &[&ln]).into_bytes(),
-                        );
+                    if state.social.lineages.contains_key(&baby_p_id) {
+                        let ln = create_lineage_string(&state.social.lineages, baby_p_id, true);
+                        outbound.send(conn_id, format_server_message("LN", &[&ln]).into_bytes());
                     }
                 }
                 None => {
@@ -5568,7 +6642,9 @@ fn apply_say_or_remv(
         if upper == "GESTATE" {
             let sim_t = state.sim_time;
             let female = player_is_female(state, &p);
-            let fert = state.fertility.can_birth_full(p.p_id, p.age, sim_t, p.deleted, female);
+            let fert = state
+                .fertility
+                .can_birth_full(p.p_id, p.age, sim_t, p.deleted, female);
             if let Err(reason) = fert {
                 let line = format!("{} GESTATE FAIL {reason}", p.p_id);
                 send_ps_reply(outbound, conn_id, &line);
@@ -5590,120 +6666,16 @@ fn apply_say_or_remv(
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
             let mother_p_id = p.p_id;
-            let mother_age = p.age;
-            let (mx, my) = (p.x, p.y);
-            let ok = if baby_p_id != 0
-                && state
-                    .players
-                    .get(&conn_id)
-                    .map(|pl| pl.can_hold_baby())
-                    .unwrap_or(false)
-            {
-                // Haxe doBaby: not deleted, free of heldBy, age gates, adjacent.
-                state.players.values().any(|pl| {
-                    pl.p_id == baby_p_id
-                        && !pl.deleted
-                        && pl.held_by == 0
-                        && can_pickup_player_ages(mother_age, pl.age)
-                        && (pl.x - mx).abs().max((pl.y - my).abs()) <= 1
-                })
-            } else {
-                false
-            };
+            let ok = apply_do_baby_hold(state, outbound, conn_id, baby_p_id);
             if ok {
-                // Apply links after the immutable borrow ends.
-                if let Some(pl) = state.players.get_mut(&conn_id) {
-                    pl.start_holding(baby_p_id);
-                    // Haxe: exhaustion += PickupExhaustionGain
-                    pl.exhaustion += PICKUP_EXHAUSTION_GAIN;
-                }
-                if let Some(baby) = state.players.values_mut().find(|pl| pl.p_id == baby_p_id) {
-                    baby.held_by = mother_p_id;
-                    baby.x = mx;
-                    baby.y = my;
-                }
-                // Haxe doBaby: pickup feeding when fertile mother + age < MaxChildAge.
-                // FERTILITY-TWINS: full isFertile (female + age)
-                // BREASTFEED-EDGES: strict < for pickup (not <= continuous)
-                let mother_fertile = state
-                    .players
-                    .get(&conn_id)
-                    .map(|pl| player_is_fertile(state, pl))
-                    .unwrap_or(false);
-                let baby_age = state
-                    .players
-                    .values()
-                    .find(|pl| pl.p_id == baby_p_id)
-                    .map(|b| b.age)
-                    .unwrap_or(99.0);
-                if mother_fertile && can_pickup_breastfeed_age(baby_age) {
-                    let (b_food, b_max) = state
-                        .players
-                        .values()
-                        .find(|pl| pl.p_id == baby_p_id)
-                        .map(|b| (b.food, b.food_max))
-                        .unwrap_or((0.0, 20.0));
-                    let (to_baby, from_m) = pickup_feed_amounts(b_food, b_max);
-                    if to_baby > 0.0 {
-                        if let Some(pl) = state.players.get_mut(&conn_id) {
-                            pl.food -= from_m; // Haxe no floor
-                        }
-                        if let Some(baby) =
-                            state.players.values_mut().find(|pl| pl.p_id == baby_p_id)
-                        {
-                            let cap = get_max_child_feeding(baby.food_max);
-                            baby.food = (baby.food + to_baby).min(cap);
-                        }
-                        info!(
-                            conn_id,
-                            baby_p_id,
-                            to_baby,
-                            from_m,
-                            "sim: HOLD pickup breastfeed"
-                        );
-                    }
-                }
-                // Haxe: setFollowPlayer when no follow or non-fertile follow + fertile picker
-                {
-                    let has_follow = state.social.following.contains_key(&baby_p_id);
-                    let follow_fertile = state
-                        .social
-                        .following
-                        .get(&baby_p_id)
-                        .and_then(|&fid| {
-                            state
-                                .players
-                                .values()
-                                .find(|pl| pl.p_id == fid)
-                                .map(|pl| player_is_fertile(state, pl))
-                        })
-                        .unwrap_or(false);
-                    if should_set_follow_on_hold(has_follow, follow_fertile, mother_fertile) {
-                        let _ = state.social.set_follow(baby_p_id, mother_p_id);
-                    }
-                }
-                // Haxe: heldPlayer.doEmote(Emote.happy) when can breastfeed after hold
-                let m_food = state
-                    .players
-                    .get(&conn_id)
-                    .map(|pl| pl.food)
-                    .unwrap_or(0.0);
-                let m_age = state
-                    .players
-                    .get(&conn_id)
-                    .map(|pl| pl.age)
-                    .unwrap_or(0.0);
-                if can_breastfeed(m_age, m_food, mother_fertile, baby_age, true) {
-                    let near = nearby_conn_ids(state, mx, my, NEARBY_RANGE);
-                    let pe = format_player_emot(baby_p_id, 0).into_bytes(); // Emote.happy = 0
-                    send_nearby(outbound, &near, pe);
-                }
                 let line = format!("{} HOLD {baby_p_id} OK", mother_p_id);
                 send_ps_reply(outbound, conn_id, &line);
                 info!(conn_id, baby_p_id, "sim: HOLD baby");
             } else {
                 let line = format!("{} HOLD FAIL", mother_p_id);
                 send_ps_reply(outbound, conn_id, &line);
+                // Haxe doBaby: always PU+FRAME on fail so the client does not stick.
+                send_player_update_and_frame(state, outbound, conn_id);
             }
             return;
         }
@@ -5793,9 +6765,9 @@ fn apply_say_or_remv(
                             y,
                             age,
                             spd,
-                        1,
+                            1,
                         );
-                        let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+                        let near = nearby_conn_ids(state, x, y, nearby_range(state));
                         send_nearby(
                             outbound,
                             &near,
@@ -5815,7 +6787,11 @@ fn apply_say_or_remv(
         if upper.starts_with("WEAR ") || upper == "WEAR" {
             let slot_tok = text.split_whitespace().nth(1);
             let explicit = slot_tok.and_then(ClothingSlot::parse);
-            let held_id = state.players.get(&conn_id).map(|pl| pl.held_id).unwrap_or(0);
+            let held_id = state
+                .players
+                .get(&conn_id)
+                .map(|pl| pl.held_id)
+                .unwrap_or(0);
             let inferred = if held_id != 0 {
                 state
                     .content
@@ -5844,10 +6820,7 @@ fn apply_say_or_remv(
                 match r {
                     Ok((id, prev)) => {
                         let line = if prev != 0 {
-                            format!(
-                                "{p_id} WEAR {} {id} OK swap={prev}",
-                                slot.as_str()
-                            )
+                            format!("{p_id} WEAR {} {id} OK swap={prev}", slot.as_str())
                         } else {
                             format!("{p_id}/0 WEAR {} {id} OK", slot.as_str())
                         };
@@ -5866,15 +6839,21 @@ fn apply_say_or_remv(
                             y,
                             age,
                             spd,
-                        1,
+                            1,
                         );
-                        let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+                        let near = nearby_conn_ids(state, x, y, nearby_range(state));
                         send_nearby(
                             outbound,
                             &near,
                             format_server_message("PU", &[&pu]).into_bytes(),
                         );
-                        info!(conn_id, slot = slot.as_str(), id, prev, "sim: WEAR clothing");
+                        info!(
+                            conn_id,
+                            slot = slot.as_str(),
+                            id,
+                            prev,
+                            "sim: WEAR clothing"
+                        );
                     }
                     Err(e) => {
                         let line = format!("{p_id}/0 WEAR FAIL {e}");
@@ -5893,11 +6872,7 @@ fn apply_say_or_remv(
             return;
         }
         // NOTES / ?NOTES / MEMORY / ?MEMORY â€” personal journal list (max NOTES_MAX).
-        if upper == "NOTES"
-            || upper == "?NOTES"
-            || upper == "MEMORY"
-            || upper == "?MEMORY"
-        {
+        if upper == "NOTES" || upper == "?NOTES" || upper == "MEMORY" || upper == "?MEMORY" {
             if let Some(pl) = state.players.get(&conn_id) {
                 let line = format!("{} {}", pl.p_id, pl.notes_report());
                 send_ps_reply(outbound, conn_id, &line);
@@ -5981,7 +6956,11 @@ fn apply_say_or_remv(
         }
         // HELD / ?HELD â€” held object id + content name when known.
         if upper == "HELD" || upper == "?HELD" {
-            let held_id = state.players.get(&conn_id).map(|pl| pl.held_id).unwrap_or(0);
+            let held_id = state
+                .players
+                .get(&conn_id)
+                .map(|pl| pl.held_id)
+                .unwrap_or(0);
             let reply = state.format_held_query(held_id);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
@@ -5989,13 +6968,10 @@ fn apply_say_or_remv(
         }
         // STORE â€” move held object into backpack if space.
         if upper == "STORE" {
-            let result = state
-                .players
-                .get_mut(&conn_id)
-                .map(|pl| {
-                    let r = pl.store_to_backpack();
-                    (pl.p_id, r, pl.held_id, pl.x, pl.y, pl.age)
-                });
+            let result = state.players.get_mut(&conn_id).map(|pl| {
+                let r = pl.store_to_backpack();
+                (pl.p_id, r, pl.held_id, pl.x, pl.y, pl.age)
+            });
             if let Some((p_id, r, held_id, x, y, age)) = result {
                 match r {
                     Ok(id) => {
@@ -6015,9 +6991,9 @@ fn apply_say_or_remv(
                             y,
                             age,
                             spd,
-                        1,
+                            1,
                         );
-                        let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+                        let near = nearby_conn_ids(state, x, y, nearby_range(state));
                         send_nearby(
                             outbound,
                             &near,
@@ -6069,9 +7045,9 @@ fn apply_say_or_remv(
                             y,
                             age,
                             spd,
-                        1,
+                            1,
                         );
-                        let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+                        let near = nearby_conn_ids(state, x, y, nearby_range(state));
                         send_nearby(
                             outbound,
                             &near,
@@ -6089,9 +7065,10 @@ fn apply_say_or_remv(
         }
         // DROPALL â€” scatter held + backpack onto empty tiles near the player (no death).
         if upper == "DROPALL" {
-            let meta = state.players.get(&conn_id).map(|pl| {
-                (pl.p_id, pl.x, pl.y, pl.age, pl.deleted)
-            });
+            let meta = state
+                .players
+                .get(&conn_id)
+                .map(|pl| (pl.p_id, pl.x, pl.y, pl.age, pl.deleted));
             let Some((p_id, x, y, age, deleted)) = meta else {
                 return;
             };
@@ -6117,17 +7094,9 @@ fn apply_say_or_remv(
                 .get(&conn_id)
                 .map(|pl| pl.held_id)
                 .unwrap_or(0);
-            let pu = format_player_update_line(
-                p_id,
-                DEFAULT_PERSON_OBJECT,
-                held_id,
-                x,
-                y,
-                age,
-                spd,
-            1,
-            );
-            let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+            let pu =
+                format_player_update_line(p_id, DEFAULT_PERSON_OBJECT, held_id, x, y, age, spd, 1);
+            let near = nearby_conn_ids(state, x, y, nearby_range(state));
             send_nearby(
                 outbound,
                 &near,
@@ -6143,9 +7112,10 @@ fn apply_say_or_remv(
                 .split_whitespace()
                 .nth(1)
                 .and_then(|s| s.parse::<i32>().ok());
-            let meta = state.players.get(&conn_id).map(|pl| {
-                (pl.p_id, pl.x, pl.y, pl.held_id, pl.deleted)
-            });
+            let meta = state
+                .players
+                .get(&conn_id)
+                .map(|pl| (pl.p_id, pl.x, pl.y, pl.held_id, pl.deleted));
             let Some((p_id, x, y, held, deleted)) = meta else {
                 return;
             };
@@ -6171,6 +7141,12 @@ fn apply_say_or_remv(
                 .unwrap_or(false);
             if !held_ok {
                 let line = format!("{p_id}/0 PUTNEST FAIL CONTAIN");
+                send_ps_reply(outbound, conn_id, &line);
+                return;
+            }
+            let feet_id = state.world.read().unwrap().get_object(x, y);
+            if object_blocks_remove(&state.content, feet_id) {
+                let line = format!("{p_id}/0 PUTNEST FAIL BLOCK");
                 send_ps_reply(outbound, conn_id, &line);
                 return;
             }
@@ -6209,9 +7185,11 @@ fn apply_say_or_remv(
                 send_ps_reply(outbound, conn_id, &line);
                 state.publish_player_view(conn_id);
                 let tile = state.world.read().unwrap().get_object(x, y);
-                let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+                let near = nearby_conn_ids(state, x, y, nearby_range(state));
                 for pkt in packets_after_drop(state, conn_id, x, y, tile) {
-                    send_nearby(outbound, &near, pkt);
+                    crate::vanilla_id::send_nearby_maybe_mx(
+                        state, outbound, &near, pkt, false,
+                    );
                 }
                 info!(conn_id, x, y, slot, held, "sim: PUTNEST into nested pocket");
             } else {
@@ -6230,9 +7208,11 @@ fn apply_say_or_remv(
                     let line = format!("{} CRAFT OK skill_lvl={lvl}", p.p_id);
                     send_ps_reply(outbound, conn_id, &line);
                     state.publish_player_view(conn_id);
-                    let near = nearby_conn_ids(state, r.x, r.y, NEARBY_RANGE);
+                    let near = nearby_conn_ids(state, r.x, r.y, nearby_range(state));
                     for pkt in packets_after_use(state, conn_id, &r) {
-                        send_nearby(outbound, &near, pkt);
+                        crate::vanilla_id::send_nearby_maybe_mx(
+                            state, outbound, &near, pkt, false,
+                        );
                     }
                     info!(
                         conn_id,
@@ -6310,7 +7290,7 @@ fn apply_say_or_remv(
             };
             let first = first_raw.to_ascii_uppercase();
             let last_opt = parts.next().map(|s| s.to_ascii_uppercase());
-            let (p_id, x, y, display_name, email) = {
+            let (p_id, x, y, display_name, email, first_name, family_name, is_ai) = {
                 let Some(pl) = state.players.get_mut(&conn_id) else {
                     return;
                 };
@@ -6327,6 +7307,9 @@ fn apply_say_or_remv(
                     pl.y,
                     pl.display_name(),
                     pl.email.clone(),
+                    pl.first_name.clone(),
+                    pl.family_name.clone(),
+                    pl.is_ai_body(),
                 )
             };
             if let Some(node) = state.social.lineages.get_mut(&p_id) {
@@ -6334,9 +7317,16 @@ fn apply_say_or_remv(
             }
             state.scoreboard.set_name(p_id, &display_name);
             state.accounts.ensure(&email).last_name = display_name.clone();
-            let nm_line = format!("{p_id}/0 {display_name}");
+            // Haxe sendNameToAll: p_id first getFullName(true, true)
+            let nm_line = format_player_nm_line_ex(
+                &state.social.lineages,
+                p_id,
+                &first_name,
+                &family_name,
+                is_ai,
+            );
             let nm = format_server_message("NM", &[&nm_line]).into_bytes();
-            let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+            let near = nearby_conn_ids(state, x, y, nearby_range(state));
             send_nearby(outbound, &near, nm);
             let line = format!("{p_id}/0 RENAME OK {display_name}");
             send_ps_reply(outbound, conn_id, &line);
@@ -6344,30 +7334,9 @@ fn apply_say_or_remv(
             info!(conn_id, p_id, name = %display_name, "sim: RENAME");
             return;
         }
-        // DIE â€” voluntary death (reason_suicide); also available as client DIE tag.
+        // DIE — voluntary death (reason_suicide); also available as client DIE tag.
         if upper == "DIE" {
-            let died = state.players.get_mut(&conn_id).map(|pl| {
-                if pl.deleted {
-                    return None;
-                }
-                pl.deleted = true;
-                pl.death_reason = Some(DeathCause::Suicide.wire_tag().into());
-                pl.sleeping = false;
-                pl.sitting = false;
-                Some(pl.p_id)
-            });
-            if let Some(Some(p_id)) = died {
-                scatter_backpack_on_death(state, conn_id);
-                apply_death_inheritance(state, p_id);
-                counters.deaths.fetch_add(1, Ordering::Relaxed);
-                state.scoreboard.record_death(p_id);
-                state.push_event(format_death_event(p_id, DeathCause::Suicide));
-                state.afk.remove(p_id);
-                state.publish_player_view(conn_id);
-                let line = format!("{p_id}/0 DIE OK");
-                send_ps_reply(outbound, conn_id, &line);
-                info!(conn_id, p_id, "sim: SAY DIE reason_suicide");
-            }
+            apply_voluntary_die(state, outbound, counters, conn_id, true);
             return;
         }
         // LASTUSE / LAST_USE â€” force last-use transition table on the next USE
@@ -6495,7 +7464,7 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // MARK <label> â€” custom map marker at current tile for self (LOCATION_SAYS style).
+        // MARK <label> -- custom map marker at current tile for self (LOCATION_SAYS).
         if upper.starts_with("MARK ") || upper == "MARK" {
             let label = text
                 .split_once(char::is_whitespace)
@@ -6513,15 +7482,13 @@ fn apply_say_or_remv(
                 .add_custom_marker(pid, px, py, label.clone(), pid);
             let line = format!("{pid} MARK {px} {py} {label}");
             send_ps_reply(outbound, conn_id, &line);
+            fan_custom_mark_location_says(state, outbound, conn_id, px, py, &label);
             info!(conn_id, x = px, y = py, %label, "sim: MARK custom");
             return;
         }
         // PLAN <object_id> â€” reverse craft ingredient path (leafâ†’root actor+target).
         if upper.starts_with("PLAN ") || upper == "PLAN" {
-            let want: Option<i32> = text
-                .split_whitespace()
-                .nth(1)
-                .and_then(|s| s.parse().ok());
+            let want: Option<i32> = text.split_whitespace().nth(1).and_then(|s| s.parse().ok());
             let (p_id, held, backpack) = state
                 .players
                 .get(&conn_id)
@@ -6547,10 +7514,7 @@ fn apply_say_or_remv(
         }
         // RECIPE [id] â€” ingredients_for held (or arg) as product.
         if upper.starts_with("RECIPE ") || upper == "RECIPE" || upper == "?RECIPE" {
-            let arg: Option<i32> = text
-                .split_whitespace()
-                .nth(1)
-                .and_then(|s| s.parse().ok());
+            let arg: Option<i32> = text.split_whitespace().nth(1).and_then(|s| s.parse().ok());
             let (p_id, held) = state
                 .players
                 .get(&conn_id)
@@ -6569,10 +7533,7 @@ fn apply_say_or_remv(
             || upper == "?NEXTCRAFT"
             || upper == "NEXT CRAFT"
         {
-            let arg: Option<i32> = text
-                .split_whitespace()
-                .nth(1)
-                .and_then(|s| s.parse().ok());
+            let arg: Option<i32> = text.split_whitespace().nth(1).and_then(|s| s.parse().ok());
             let (p_id, held) = state
                 .players
                 .get(&conn_id)
@@ -6589,8 +7550,7 @@ fn apply_say_or_remv(
         // Default profession Forager; optional token FARMER/SMITH/HUNTER/â€¦
         if upper.starts_with("SEEKING ") || upper == "SEEKING" || upper == "?SEEKING" {
             let token = text.split_whitespace().nth(1).unwrap_or("");
-            let profession =
-                parse_profession_token(token).unwrap_or(Profession::Forager);
+            let profession = parse_profession_token(token).unwrap_or(Profession::Forager);
             let (p_id, held, food, px, py) = state
                 .players
                 .get(&conn_id)
@@ -6720,9 +7680,8 @@ fn apply_say_or_remv(
         }
         // GOHOME â€” pathfind one step toward home, or teleport one cardinal step.
         if upper == "GOHOME" {
-            let (sx, sy, hx, hy, p_id, held, age) = (
-                p.x, p.y, p.home_x, p.home_y, p.p_id, p.held_id, p.age,
-            );
+            let (sx, sy, hx, hy, p_id, held, age) =
+                (p.x, p.y, p.home_x, p.home_y, p.p_id, p.held_id, p.age);
             if sx == hx && sy == hy {
                 let line = format!("{p_id}/0 GOHOME {sx} {sy} OK");
                 send_ps_reply(outbound, conn_id, &line);
@@ -6763,9 +7722,9 @@ fn apply_say_or_remv(
                         np.y,
                         age,
                         spd,
-                    np.done_moving_seq.max(1),
+                        np.done_moving_seq.max(1),
                     );
-                    let near = nearby_conn_ids(state, np.x, np.y, NEARBY_RANGE);
+                    let near = nearby_conn_ids(state, np.x, np.y, nearby_range(state));
                     send_nearby(
                         outbound,
                         &near,
@@ -6783,6 +7742,14 @@ fn apply_say_or_remv(
             }
             return;
         }
+        // I AM <family> (no !) — Haxe NamingHelper.DoNaming before doCommands.
+        // Haxe: NamingHelper.DoNaming L43; GPI.say L2111 (AI-NAMING-IAM)
+        match apply_do_naming_iam_live(state, outbound, conn_id, text) {
+            crate::naming::DoNamingIam::Reject { .. } => return,
+            crate::naming::DoNamingIam::Apply { .. } | crate::naming::DoNamingIam::NotNaming => {}
+        }
+        let _ = apply_do_naming_you_are_live(state, outbound, conn_id, text);
+
         // DO-COMMANDS: I HIRE / I FOLLOW / I EXILE / HOME! … (Haxe doCommands).
         // Runs before free-chat rate-limit so command forms are not RATE-throttled.
         // Haxe: GlobalPlayerInstance.doCommands
@@ -6804,7 +7771,10 @@ fn apply_say_or_remv(
                 })
                 .collect();
             let knobs = FollowHireLiveKnobs::from_gameplay(&state.gameplay);
-            let fx = apply_do_commands_live(
+            let oven_tiles: Vec<(i32, i32)> =
+                state.world_map_time.ovens.values().copied().collect();
+            let original_biomes = state.world_map_time.original_biomes.clone();
+            let fx = apply_do_commands_live_ex(
                 &upper,
                 &speaker,
                 conn_id,
@@ -6815,12 +7785,14 @@ fn apply_say_or_remv(
                 lost,
                 &candidates,
                 knobs,
+                &oven_tiles,
+                &original_biomes,
             );
             if fx.recognized {
                 apply_do_command_effects(state, outbound, conn_id, &fx);
                 // Haxe return true → also broadcast as chat for some commands.
                 if fx.broadcast_chat {
-                    let near = nearby_conn_ids(state, p.x, p.y, chat_range_for_age(p.age));
+                    let near = nearby_conn_ids(state, p.x, p.y, say_close_range(state, p.age));
                     send_chat_ps(state, outbound, conn_id, p.p_id, text, &near);
                 }
                 info!(conn_id, %upper, "sim: DO-COMMANDS recognized");
@@ -6861,13 +7833,25 @@ fn apply_say_or_remv(
         } else if upper.starts_with("MUMBLE ") || upper == "MUMBLE" {
             MUMBLE_SAY_RANGE
         } else {
-            chat_range_for_age(p.age)
+            say_close_range(state, p.age)
         };
         let speaker_p_id = p.p_id;
         // Protocol: `PS\np_id/0 text\n#` then `FM` (official client holds PS until FRAME).
         let near = nearby_conn_ids(state, p.x, p.y, range);
         send_chat_ps(state, outbound, conn_id, speaker_p_id, chat_body, &near);
+        // Haxe: GPI.say `this.lineage.lastSaid = text` (OLN4 persist)
+        if let Some(n) = state.social.lineages.get_mut(&speaker_p_id) {
+            n.last_said = chat_body.to_string();
+        }
         info!(conn_id, text = %chat_body, range, "sim: SAY chat (PS/0 + FM)");
+        // Haxe: Connection.sendSayToAllClose → each AI AiBase.say / sayHelper
+        // Distance: MaxDistanceToBeConsideredAsCloseForSayAi (not CloseForSay).
+        // SETTINGS-LONG-TAIL / AI-SAY-HELPER-FAN (before LLM fallback)
+        // Haxe: AiBase.sayHelper L4755–4970 then LLM L4971–5001
+        let scripted_handled = fan_out_ai_say_scripted(state, outbound, conn_id, chat_body);
+        // Haxe: AiBase.sayHelper LLM fallback after scripted (skip handled)
+        // AI-LLM-FAN
+        fan_out_ai_speech_llm(state, outbound, conn_id, chat_body, &scripted_handled);
         return;
     }
     if tag.eq_ignore_ascii_case("REMV") {
@@ -6881,14 +7865,81 @@ fn apply_say_or_remv(
         let y: i32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
         let slot = parts.next().and_then(|s| s.parse::<i32>().ok());
         let sub_raw = parts.next().and_then(|s| s.parse::<i32>().ok());
+        // Haxe doCommandHelper: holding a player drops at feet and refuses (before neverDrop).
+        // HOLDING-PLAYER-CMD
+        if let Some((px, py)) = state.players.get(&conn_id).and_then(|p| {
+            if !p.deleted && p.holding_player_id != 0 {
+                Some((p.x, p.y))
+            } else {
+                None
+            }
+        }) {
+            apply_drop_player(state, outbound, conn_id, px, py);
+            return;
+        }
+        // Haxe doCommandHelper: neverDrop then isWound then killMode then ally then own-grave.
+        // NEVER-DROP-CMD
+        if crate::use_transition::refuse_never_drop_command(state, conn_id) {
+            send_player_update_and_frame(state, outbound, conn_id);
+            return;
+        }
+        // WOUND-CMD
+        crate::use_transition::clear_hidden_wound_for_command(state, conn_id);
+        if crate::use_transition::refuse_wound_command(state, conn_id) {
+            if let Some(s) = crate::use_transition::wound_held_countdown_say(state, conn_id) {
+                send_ps_reply(outbound, conn_id, &s);
+            }
+            send_player_update_and_frame(state, outbound, conn_id);
+            return;
+        }
+        // KILLMODE-DROP
+        if crate::use_transition::refuse_kill_mode_command(state, conn_id) {
+            send_player_update_and_frame(state, outbound, conn_id);
+            return;
+        }
+        // ALLY-PICKUP-DROP
+        if crate::use_transition::refuse_ally_pickup_command(state, conn_id, x, y) {
+            send_ps_reply(outbound, conn_id, "Too many hostile people...");
+            send_player_update_and_frame(state, outbound, conn_id);
+            return;
+        }
+        // GRAVE-TOUCH-REMV
+        if crate::use_transition::refuse_own_grave_command(state, conn_id, x, y) {
+            send_ps_reply(outbound, conn_id, "Its my grave...");
+            send_player_update_and_frame(state, outbound, conn_id);
+            return;
+        }
         if let Some(pl) = state.players.get(&conn_id) {
-            if is_moving(pl) || !in_use_range(pl.x, pl.y, x, y, 1) {
+            let moving = is_moving(pl);
+            let (px, py) = (pl.x, pl.y);
+            let (mw, mh, wrap) = {
+                let w = state.world.read().unwrap();
+                (w.width_tiles, w.height_tiles, w.wrap)
+            };
+            // Haxe: checkIfNotMovingAndCloseEnough — empty hands clamp useDistance to 1
+            if moving || !in_use_range_ex(px, py, x, y, 1, mw, mh, wrap) {
                 send_player_update_and_frame(state, outbound, conn_id);
+                finish_remv_command_side_effects(state, outbound, conn_id, x, y);
                 return;
             }
         }
         let hands = state.players.get(&conn_id).map(|p| p.held_id).unwrap_or(-1);
         if hands != 0 {
+            finish_remv_command_side_effects(state, outbound, conn_id, x, y);
+            return;
+        }
+        // Haxe: removeObj / DoContainerStuffOnObj — blocksRemove (closed/locked chest).
+        let container_id = state.world.read().unwrap().get_object(x, y);
+        if object_blocks_remove(&state.content, container_id) {
+            send_player_update_and_frame(state, outbound, conn_id);
+            finish_remv_command_side_effects(state, outbound, conn_id, x, y);
+            return;
+        }
+        // Haxe TransitionHelper.removeObj minPickupAge multi-use (L1716–1719).
+        // MIN-PICKUP-AGE
+        if crate::use_transition::refuse_min_pickup_age_remv(state, conn_id, x, y) {
+            send_player_update_and_frame(state, outbound, conn_id);
+            finish_remv_command_side_effects(state, outbound, conn_id, x, y);
             return;
         }
         // Ownership theft check (Haxe illegal take subset).
@@ -6911,22 +7962,20 @@ fn apply_say_or_remv(
         let peek_id = {
             let world = state.world.read().unwrap();
             match (slot, sub_raw) {
-                (Some(s), Some(j)) if s >= 0 => {
-                    world.get_helper(x, y).and_then(|hh| {
-                        let si = s as usize;
-                        if j < 0 {
-                            hh.nested
-                                .get(si)
-                                .and_then(|n| n.last().copied())
-                                .or_else(|| hh.contained.get(si).copied())
-                        } else {
-                            hh.nested
-                                .get(si)
-                                .and_then(|n| n.get(j as usize).copied())
-                                .or_else(|| hh.contained.get(si).copied())
-                        }
-                    })
-                }
+                (Some(s), Some(j)) if s >= 0 => world.get_helper(x, y).and_then(|hh| {
+                    let si = s as usize;
+                    if j < 0 {
+                        hh.nested
+                            .get(si)
+                            .and_then(|n| n.last().copied())
+                            .or_else(|| hh.contained.get(si).copied())
+                    } else {
+                        hh.nested
+                            .get(si)
+                            .and_then(|n| n.get(j as usize).copied())
+                            .or_else(|| hh.contained.get(si).copied())
+                    }
+                }),
                 (Some(s), None) if s >= 0 => world
                     .get_helper(x, y)
                     .and_then(|h| h.contained.get(s as usize).copied()),
@@ -6936,14 +7985,16 @@ fn apply_say_or_remv(
             }
         };
         if let Some(pid) = peek_id {
-            if state
-                .content
-                .get(pid)
-                .map(|d| d.permanent)
-                .unwrap_or(false)
-            {
-                info!(conn_id, x, y, id = pid, "sim: REMV blocked permanent contained");
+            if state.content.get(pid).map(|d| d.permanent).unwrap_or(false) {
+                info!(
+                    conn_id,
+                    x,
+                    y,
+                    id = pid,
+                    "sim: REMV blocked permanent contained"
+                );
                 send_player_update_and_frame(state, outbound, conn_id);
+                finish_remv_command_side_effects(state, outbound, conn_id, x, y);
                 return;
             }
         }
@@ -6952,20 +8003,12 @@ fn apply_say_or_remv(
             match (slot, sub_raw) {
                 // Nested pocket take: REMV x y slot sub  (sub < 0 â†’ last)
                 (Some(s), Some(j)) if s >= 0 => {
-                    let sub = if j < 0 {
-                        None
-                    } else {
-                        Some(j as usize)
-                    };
+                    let sub = if j < 0 { None } else { Some(j as usize) };
                     world.container_take_nested(x, y, s as usize, sub)
                 }
                 // Top-level: REMV x y [i]  (i < 0 â†’ last)
                 (Some(s), None) => {
-                    let idx = if s < 0 {
-                        None
-                    } else {
-                        Some(s as usize)
-                    };
+                    let idx = if s < 0 { None } else { Some(s as usize) };
                     world.container_take(x, y, idx)
                 }
                 (None, _) => world.container_take(x, y, None),
@@ -6979,10 +8022,12 @@ fn apply_say_or_remv(
             }
             state.publish_player_view(conn_id);
             info!(conn_id, x, y, id, "sim: REMV from container");
-            let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+            let near = nearby_conn_ids(state, x, y, nearby_range(state));
             let tile = state.world.read().unwrap().get_object(x, y);
             for pkt in packets_after_drop(state, conn_id, x, y, tile) {
-                send_nearby(outbound, &near, pkt);
+                crate::vanilla_id::send_nearby_maybe_mx(
+                    state, outbound, &near, pkt, false,
+                );
             }
             if let Some(p) = state.players.get(&conn_id) {
                 let spd = player_move_speed(state, p);
@@ -7003,6 +8048,7 @@ fn apply_say_or_remv(
                 );
             }
         }
+        finish_remv_command_side_effects(state, outbound, conn_id, x, y);
     }
 }
 
@@ -7015,179 +8061,16 @@ pub struct UseResult {
     pub applied: bool,
     pub x: i32,
     pub y: i32,
+    /// GPI-TOO-CLOSE: Haxe bow min-range refuse (`say('Too close...')`).
+    pub ranged_too_close: bool,
 }
 
-pub fn apply_use_at(
-    state: &mut SimState,
-    conn_id: u64,
-    tx: i32,
-    ty: i32,
-) -> Option<UseResult> {
-    let player = state.players.get(&conn_id)?;
-    if player.deleted {
-        return None;
-    }
-    let actor = player.held_id;
-    let (px, py) = (player.x, player.y);
-    if is_moving(player) {
-        return Some(UseResult {
-            actor_before: actor,
-            target_before: 0,
-            actor_after: actor,
-            target_after: 0,
-            applied: false,
-            x: tx,
-            y: ty,
-        });
-    }
-
-    let (target, uses_remaining) = {
-        let w = state.world.read().unwrap();
-        let target = w.get_object(tx, ty);
-        let uses = w
-            .get_helper(tx, ty)
-            .map(|h| h.uses_remaining)
-            .unwrap_or(0);
-        (target, uses)
-    };
-
-    if !in_use_range(px, py, tx, ty, 1) {
-        return Some(UseResult {
-            actor_before: actor,
-            target_before: target,
-            actor_after: actor,
-            target_after: target,
-            applied: false,
-            x: tx,
-            y: ty,
-        });
-    }
-
-    // Haxe multi-use: when one use left, prefer last-use transition table.
-    let prefer_last =
-        state.prefer_last_use || player.force_last_use || uses_remaining == 1;
-
-    // Prefer content transition (actor, target). If none, Haxe falls back to
-    // bare-hand pickup: empty hands + non-permanent ground object â†’ swap.
-    let tr = state
-        .content
-        .find_transition_prefer(actor, target, prefer_last)
-        .cloned();
-
-    let (actor_after, target_after, reverse_target, from_transition) = if let Some(ref tr) = tr {
-        (
-            tr.new_actor_id,
-            tr.new_target_id,
-            tr.reverse_use_target,
-            true,
-        )
-    } else if actor == 0 && target != 0 {
-        // Haxe `swapHandAndFloorObject` â€” empty hands, non-permanent ground.
-        let permanent = state
-            .content
-            .get(target)
-            .map(|d| d.permanent)
-            .unwrap_or(false);
-        if permanent {
-            return Some(UseResult {
-                actor_before: actor,
-                target_before: target,
-                actor_after: actor,
-                target_after: target,
-                applied: false,
-                x: tx,
-                y: ty,
-            });
-        }
-        (target, 0, false, false)
-    } else if actor != 0 && target != 0 {
-        // Held object on non-permanent ground with no transition â†’ swap both
-        // (put down held, pick up target). Permanent ground refuses.
-        let tgt_perm = state
-            .content
-            .get(target)
-            .map(|d| d.permanent)
-            .unwrap_or(false);
-        let act_perm = state
-            .content
-            .get(actor)
-            .map(|d| d.permanent)
-            .unwrap_or(false);
-        if tgt_perm || act_perm {
-            return Some(UseResult {
-                actor_before: actor,
-                target_before: target,
-                actor_after: actor,
-                target_after: target,
-                applied: false,
-                x: tx,
-                y: ty,
-            });
-        }
-        // Swap hand â†” floor.
-        (target, actor, false, false)
-    } else {
-        return Some(UseResult {
-            actor_before: actor,
-            target_before: target,
-            actor_after: actor,
-            target_after: target,
-            applied: false,
-            x: tx,
-            y: ty,
-        });
-    };
-
-    {
-        let mut w = state.world.write().unwrap();
-        place_after_use(
-            &mut w,
-            &state.content,
-            tx,
-            ty,
-            target,
-            target_after,
-            uses_remaining,
-            reverse_target,
-            from_transition,
-        );
-    }
-    // Final base id on the tile after USE (simple or complex).
-    state.record_world_change(tx, ty, target_after);
-    schedule_decay(state, tx, ty, target_after);
-    // Equip clothing-like new_actor into hat/chest/shoes when content names match.
-    let equip_slot = if actor_after != 0 {
-        state
-            .content
-            .get(actor_after)
-            .and_then(|def| clothing_slot_for_object(&def.name, &def.description))
-    } else {
-        None
-    };
-    if let Some(p) = state.players.get_mut(&conn_id) {
-        p.held_id = actor_after;
-        p.force_last_use = false;
-        // Learn tools when interacting with non-zero actor or target.
-        if actor != 0 {
-            p.tools.learn(actor);
-        }
-        if target != 0 {
-            p.tools.learn(target);
-        }
-        if let Some(slot) = equip_slot {
-            p.set_clothing(slot, actor_after);
-        }
-    }
-
-    Some(UseResult {
-        actor_before: actor,
-        target_before: target,
-        actor_after,
-        target_after,
-        applied: true,
-        x: tx,
-        y: ty,
-    })
+/// Apply USE at world tile — sole live path is `use_transition::apply_use_at`
+/// (nest swap / horse hitch / locks / multi-use). Do not reintroduce a parallel
+/// simplified USE here; that dropped ComplexObject cargo (HORSE-HITCH-NEST).
+#[inline]
+pub fn apply_use_at(state: &mut SimState, conn_id: u64, tx: i32, ty: i32) -> Option<UseResult> {
+    use_transition::apply_use_at(state, conn_id, tx, ty)
 }
 
 /// Place post-USE tile state with Haxe `DoChangeNumberOfUsesOnTarget` semantics.
@@ -7266,10 +8149,7 @@ fn place_after_use(
 fn wire_object_at(state: &SimState, x: i32, y: i32) -> i32 {
     let w = state.world.read().unwrap();
     let base = w.get_object(x, y);
-    let uses = w
-        .get_helper(x, y)
-        .map(|h| h.uses_remaining)
-        .unwrap_or(0);
+    let uses = w.get_helper(x, y).map(|h| h.uses_remaining).unwrap_or(0);
     let uses = if uses > 0 {
         uses
     } else {
@@ -7303,26 +8183,47 @@ pub fn packets_after_use(state: &SimState, conn_id: u64, r: &UseResult) -> Vec<V
     let mut out = Vec::new();
     // Transform / pickup / harvest â€” not a drop.
     let responsible = -p.p_id;
-    out.push(
-        format_map_change(mx, my, floor, wire_obj, responsible).into_bytes(),
-    );
+    out.push(format_map_change(mx, my, floor, wire_obj, responsible).into_bytes());
     let spd = player_move_speed(state, p);
-    let pu = format_player_update_line(
-        p.p_id,
-        person_object_id(p),
-        p.held_id,
-        px,
-        py,
-        p.age,
-        spd,
-        p.done_moving_seq.max(1),
-    );
+    // HORSE-EAT-FX: doEating PU carries just_ate / last_ate / responsible_id.
+    let pu = if p.yum.just_ate {
+        format_player_update_line_eat_responsible(
+            p.p_id,
+            person_object_id(p),
+            p.held_id,
+            px,
+            py,
+            p.age,
+            spd,
+            p.yum.just_ate_flag(),
+            p.yum.just_ate_id,
+            p.yum.responsible_id,
+            p.done_moving_seq.max(1),
+        )
+    } else {
+        format_player_update_line(
+            p.p_id,
+            person_object_id(p),
+            p.held_id,
+            px,
+            py,
+            p.age,
+            spd,
+            p.done_moving_seq.max(1),
+        )
+    };
     out.push(format_server_message("PU", &[&pu]).into_bytes());
     out.push(food_change_for_player(state, p).into_bytes());
     out
 }
 
-pub fn packets_after_drop(state: &SimState, conn_id: u64, x: i32, y: i32, placed: i32) -> Vec<Vec<u8>> {
+pub fn packets_after_drop(
+    state: &SimState,
+    conn_id: u64,
+    x: i32,
+    y: i32,
+    placed: i32,
+) -> Vec<Vec<u8>> {
     let Some(p) = state.players.get(&conn_id) else {
         return vec![];
     };
@@ -7387,9 +8288,58 @@ pub fn find_playable_spawn(world: &World, prefer: (i32, i32)) -> (i32, i32) {
     (px.rem_euclid(ww), py.rem_euclid(hh))
 }
 
+/// Eve/wild spawn: food plants unless `SpwanAtLastDead` (fallback `spawn_x/y`).
+// Haxe: ServerSettings.SpwanAtLastDead + spawnAsEve gx/gy
+// SETTINGS-KNOB-TAIL
+fn eve_spawn_xy(state: &SimState) -> (i32, i32) {
+    let w = state.world.read().unwrap();
+    let fallback = find_playable_spawn(&w, (state.spawn_x, state.spawn_y));
+    let player_xy: Vec<(i32, i32)> = state
+        .players
+        .values()
+        .filter(|pl| !pl.deleted)
+        .map(|pl| (pl.x, pl.y))
+        .collect();
+    let opts = EveSpawnOpts {
+        spawn_at_last_dead: state.gameplay.spawn_at_last_dead,
+        ..EveSpawnOpts::default()
+    };
+    crate::eve_spawn::find_eve_spawn_for_account(
+        &w, fallback, &player_xy, fallback, opts, &[],
+    )
+}
+
+/// Pick a race/sex person object from content tables, if any.
+// Haxe: ObjectData.femaleByRaceObjectData / maleByRaceObjectData
+fn pick_spawn_person_object(
+    state: &SimState,
+    race_color: i32,
+    want_female: bool,
+) -> Option<i32> {
+    if race_color <= 0 {
+        return None;
+    }
+    let idx = rand::random::<u32>() as usize;
+    crate::eve_spawn::pick_eve_race_person_object(
+        &state.content.person_race,
+        |id| {
+            state
+                .content
+                .get(id)
+                .map(|d| (d.name.clone(), d.description.clone()))
+                .unwrap_or_default()
+        },
+        race_color,
+        want_female,
+        idx,
+    )
+}
+
 pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     // Revive deleted player on re-login (self-play / reconnect).
     if state.players.contains_key(&conn_id) {
+        let eve_age = state.gameplay.starting_eve_age;
+        let angry0 = state.gameplay.combat_angry_time_before_attack_live();
         if let Some(p) = state.players.get_mut(&conn_id) {
             if p.deleted {
                 p.deleted = false;
@@ -7398,7 +8348,11 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
                 p.food_max = MAX_FOOD;
                 p.held_id = 0;
                 p.death_reason = None;
-                p.age = 14.0;
+                // Haxe: spawnAsEve age = trueAge = ServerSettings.StartingEveAge
+                p.age = eve_age;
+                p.true_age = eve_age;
+                // Haxe: GPI.angryTime = ServerSettings.CombatAngryTimeBeforeAttack
+                p.angry_time = angry0;
                 p.email = email.to_string();
                 p.has_mc = false;
                 if email_is_playtest(email) {
@@ -7445,10 +8399,18 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     let is_synthetic = conn_id >= 9_000_000; // self-play / NPC reserved bands
     let (sx, sy) = if is_synthetic {
         let no_mother = pick_best_mother_p_id(state).is_none();
-        let eve = rand::random::<f32>() < EVE_OR_ADAM_BIRTH_CHANCE || no_mother;
+        let chance = state.gameplay.eve_or_adam_birth_chance;
+        let spawn_ai = state.gameplay.spawn_ai_as_eve;
+        let is_human = false; // this branch is synthetic NPC/self-play
+        let eve = eve_or_adam_birth(
+            rand::random::<f32>(),
+            chance,
+            spawn_ai,
+            is_human,
+            no_mother,
+        );
         if eve {
-            let w = state.world.read().unwrap();
-            find_playable_spawn(&w, (state.spawn_x, state.spawn_y))
+            eve_spawn_xy(state)
         } else if let Some(mid) = pick_best_mother_p_id(state) {
             mother_link = Some(mid);
             if let Some(m) = state.players.values().find(|pl| pl.p_id == mid) {
@@ -7462,9 +8424,42 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
             find_playable_spawn(&w, (state.spawn_x, state.spawn_y))
         }
     } else {
-        // Human TCP: always bootstrap-aligned spawn.
-        let w = state.world.read().unwrap();
-        find_playable_spawn(&w, (state.spawn_x, state.spawn_y))
+        // Human TCP: Eve/wild spawn (food plants unless SpwanAtLastDead).
+        eve_spawn_xy(state)
+    };
+    let mut eve_pair: Option<crate::eve_spawn::EvePairResolve> = None;
+    let (sx, sy) = if mother_link.is_none() {
+        let living = state.players.values().filter(|pl| !pl.deleted).count();
+        let last_ai = crate::eve_spawn::clear_deleted_last_eve(state.last_ai_eve, |id| {
+            state
+                .players
+                .values()
+                .any(|pl| pl.p_id == id && !pl.deleted)
+        });
+        let last_human = crate::eve_spawn::clear_deleted_last_eve(state.last_human_eve, |id| {
+            state
+                .players
+                .values()
+                .any(|pl| pl.p_id == id && !pl.deleted)
+        });
+        let allow = crate::eve_spawn::allow_human_ai_eve_cross_ex(
+            living,
+            state.gameplay.max_players_before_starting_as_child,
+        );
+        let resolve = crate::eve_spawn::resolve_eve_pair_partner(
+            is_synthetic,
+            last_ai,
+            last_human,
+            allow,
+        );
+        eve_pair = Some(resolve);
+        if let Some(partner) = resolve.partner {
+            (partner.x, partner.y)
+        } else {
+            (sx, sy)
+        }
+    } else {
+        (sx, sy)
     };
     p.x = sx;
     p.y = sy;
@@ -7473,9 +8468,30 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     p.set_birth_origin(sx, sy);
     p.home_x = sx;
     p.home_y = sy;
+    // Haxe spawnAsEve: ChanceForFemaleChild founder / opposite pairmate + biome race.
+    // SETTINGS-KNOB-TAIL
+    if !email_is_playtest(email) && mother_link.is_none() {
+        let female = match eve_pair.as_ref().and_then(|r| r.partner) {
+            Some(partner) => crate::eve_spawn::pairmate_eve_is_female(partner.is_female),
+            None => crate::eve_spawn::founder_eve_is_female(
+                state.gameplay.chance_for_female_child,
+            ),
+        };
+        let color = {
+            let w = state.world.read().unwrap();
+            eve_person_color_at(&w, sx, sy)
+        };
+        if let Some(id) = pick_spawn_person_object(state, color, female) {
+            p.display_object_id = id;
+        }
+    }
     p.food = START_FOOD;
     p.food_max = MAX_FOOD;
-    p.age = 14.0;
+    // Haxe: spawnAsEve `age = ServerSettings.StartingEveAge; this.trueAge = ServerSettings.StartingEveAge`
+    p.age = state.gameplay.starting_eve_age;
+    p.true_age = state.gameplay.starting_eve_age;
+    // Haxe: GPI.angryTime = ServerSettings.CombatAngryTimeBeforeAttack
+    p.angry_time = state.gameplay.combat_angry_time_before_attack_live();
     {
         let mut w = state.world.write().unwrap();
         w.touch_radius(p.x, p.y, 1);
@@ -7488,8 +8504,52 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
         attach_fitness_mother_lineage(state, p_id, &display, mid, sx, sy);
     } else {
         // Eve/Adam wild birth: root lineage (Haxe EveOrAdam).
-        state.social.ensure_lineage(p_id, &display);
+        // Haxe: Lineage.new birthTime = TimeHelper.tick
+        state
+            .social
+            .ensure_lineage_born_at(p_id, &display, state.sim_time);
+        let fam = state
+            .players
+            .get(&conn_id)
+            .map(|pl| pl.family_name.clone())
+            .unwrap_or_default();
+        state.social.stamp_lineage_family_name(p_id, &fam);
         state.push_event(format!("EVE {p_id}"));
+    }
+    let po = state
+        .players
+        .get(&conn_id)
+        .map(person_object_id)
+        .unwrap_or(-1);
+    state.social.stamp_lineage_po_id(p_id, po);
+    let account_id = state.accounts.get(email).map(|r| r.id).unwrap_or(0);
+    state.social.stamp_lineage_account_id(p_id, account_id);
+    if let Some(resolve) = eve_pair {
+        let po = state
+            .players
+            .get(&conn_id)
+            .map(person_object_id)
+            .unwrap_or(0);
+        let female = !state.content.get(po).map(|d| d.male).unwrap_or(false);
+        let self_slot = crate::eve_spawn::LastEveSlot {
+            p_id,
+            x: sx,
+            y: sy,
+            person_color: 0,
+            is_female: female,
+        };
+        let (ai, human) = crate::eve_spawn::apply_eve_pair_slot_update(
+            is_synthetic,
+            state.last_ai_eve,
+            state.last_human_eve,
+            resolve,
+            self_slot,
+        );
+        state.last_ai_eve = ai;
+        state.last_human_eve = human;
+        if let Some(partner) = resolve.partner {
+            let _ = state.social.set_follow(p_id, partner.p_id);
+        }
     }
     // Playtest convenience: place pickable stones + a nearby wolf so ground pickup
     // and animal MX walks are observable next to the client spawn.
@@ -7524,11 +8584,7 @@ fn seed_playtest_local_objects(state: &mut SimState, sx: i32, sy: i32) {
     let wy = sy + 1;
     let (px, py) = find_empty_animal_tile(state, wx, wy);
     // Avoid duplicating if a wolf already sits on that tile.
-    let already = state
-        .animals
-        .animals
-        .iter()
-        .any(|a| a.x == px && a.y == py);
+    let already = state.animals.animals.iter().any(|a| a.x == px && a.y == py);
     if !already {
         state.animals.spawn(AnimalKind::Wolf, px, py);
         let oid = AnimalKind::Wolf.object_id();
@@ -7555,6 +8611,12 @@ fn touch_afk_activity(state: &mut SimState, conn_id: u64) {
     state.afk.touch(p_id, now);
 }
 
+include!("twin_party_live.inc.rs");
+// AI-FOLLOW-WALK continuous follow + ally Goto pathfind
+include!("ai_follow_walk_live.inc.rs");
+include!("ai_say_helper_live.inc.rs");
+include!("ai_llm_fan_live.inc.rs");
+
 /// Minimal birth: create a baby player linked to the mother.
 ///
 /// - `age = 0`, `food = START_FOOD` (10)
@@ -7562,10 +8624,6 @@ fn touch_afk_activity(state: &mut SimState, conn_id: u64) {
 /// - lineage `mother_id` set; mother map marker for the baby
 ///
 /// Returns baby `p_id`, or `None` if mother missing/deleted.
-include!("twin_party_live.inc.rs");
-// AI-FOLLOW-WALK continuous follow + ally Goto pathfind
-include!("ai_follow_walk_live.inc.rs");
-
 pub fn spawn_child(state: &mut SimState, mother_conn: u64) -> Option<i32> {
     let mother = state.players.get(&mother_conn)?.clone();
     if mother.deleted {
@@ -7595,9 +8653,39 @@ pub fn spawn_child(state: &mut SimState, mother_conn: u64) -> Option<i32> {
     baby.set_birth_origin(mother.x, mother.y);
     baby.home_x = mother.home_x;
     baby.home_y = mother.home_y;
+    // Haxe: child inherits mother warmPlace/coldPlace (father fallback unused here).
+    baby.warm_place = mother.warm_place;
+    baby.cold_place = mother.cold_place;
     baby.food = START_FOOD;
     baby.food_max = MAX_FOOD;
     baby.age = 0.0;
+    // Haxe: GPI.angryTime = ServerSettings.CombatAngryTimeBeforeAttack
+    baby.angry_time = state.gameplay.combat_angry_time_before_attack_live();
+    // Haxe spawnAsChild: ChanceForFemaleChild + other-color-than-mom race pick.
+    // SETTINGS-KNOB-TAIL
+    {
+        let want_female = crate::eve_spawn::child_is_female(
+            state.gameplay.chance_for_female_child,
+            rand::random::<f32>(),
+        );
+        let mother_color = state.content.person_color(person_object_id(&mother));
+        let close = {
+            let w = state.world.read().unwrap();
+            eve_person_color_at(&w, baby.x, baby.y)
+        };
+        let color = crate::eve_spawn::pick_child_person_color(
+            mother_color,
+            close,
+            state.gameplay.chance_for_other_child_color,
+            state.gameplay.chance_for_other_child_color_if_close_to_wrong_special_biome,
+            rand::random::<f32>(),
+            rand::random::<f32>(),
+        );
+        let race = if color > 0 { color } else { mother_color };
+        if let Some(id) = pick_spawn_person_object(state, race, want_female) {
+            baby.display_object_id = id;
+        }
+    }
     // Synthetic: no live TCP; still "connected" for sim queries.
     baby.connected = true;
 
@@ -7616,7 +8704,11 @@ pub fn spawn_child(state: &mut SimState, mother_conn: u64) -> Option<i32> {
         .cloned()
         .unwrap_or_else(|| LineageNode::eve(mother.p_id, mother_name));
     let child_name = format!("{} {}", baby.first_name, baby.family_name);
-    let child_node = LineageNode::with_mother(baby_p_id, child_name, &mother_node);
+    let mut child_node = LineageNode::with_mother(baby_p_id, child_name, &mother_node);
+    child_node.stamp_birth(state.sim_time);
+    child_node.stamp_po_id(person_object_id(&baby));
+    let account_id = state.accounts.ensure(&baby.email).id;
+    child_node.stamp_account_id(account_id);
     state.social.lineages.insert(baby_p_id, child_node);
 
     state
@@ -7628,6 +8720,16 @@ pub fn spawn_child(state: &mut SimState, mother_conn: u64) -> Option<i32> {
         baby.held_by = mother.p_id;
         if let Some(m) = state.players.get_mut(&mother_conn) {
             m.start_holding(baby_p_id);
+        }
+    }
+    // Haxe: mother.exhaustion += NewChildExhaustionForMother
+    // SETTINGS-KNOB-TAIL
+    {
+        let add = state.gameplay.new_child_exhaustion_for_mother;
+        if add.is_finite() && add != 0.0 {
+            if let Some(m) = state.players.get_mut(&mother_conn) {
+                m.exhaustion = (m.exhaustion + add).max(0.0);
+            }
         }
     }
 
@@ -7683,11 +8785,7 @@ pub fn set_player_position_respecting_path(
 const BIOME_MOUNTAIN: u8 = 21;
 
 /// Force PU+FM unstick (cancel MovePath if any).
-pub fn send_player_update_and_frame(
-    state: &mut SimState,
-    outbound: &OutboundHub,
-    conn_id: u64,
-) {
+pub fn send_player_update_and_frame(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
     send_forced_player_update(state, outbound, conn_id, None);
 }
 
@@ -7695,11 +8793,7 @@ pub fn send_player_update_and_frame(
 ///
 /// Used after USE/DROP that fail or succeed so the client is not stuck with a
 /// stale mid-action wait and does not desync MOVE sequence numbers.
-pub fn send_action_result_pu_and_frame(
-    state: &mut SimState,
-    outbound: &OutboundHub,
-    conn_id: u64,
-) {
+pub fn send_action_result_pu_and_frame(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
     let Some(p) = state.players.get(&conn_id).cloned() else {
         return;
     };
@@ -7708,7 +8802,14 @@ pub fn send_action_result_pu_and_frame(
     }
     let spd = player_move_speed(state, &p);
     let seq = p.done_moving_seq.max(1);
-    let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
+    // CONN-PU-LEADER-FAN: far followers of this subject still get the PU body.
+    let near = leader_range::nearby_conn_ids_for_player_update(
+        state,
+        p.x,
+        p.y,
+        p.p_id,
+        nearby_range(state),
+    );
     let mut recipients = near;
     if !recipients.contains(&conn_id) {
         recipients.push(conn_id);
@@ -7730,10 +8831,7 @@ pub fn send_action_result_pu_and_frame(
             seq,
         );
         // Urgent so USE is not stuck behind AI PU/MX flood.
-        outbound.send_urgent(
-            cid,
-            format_server_message("PU", &[&pu]).into_bytes(),
-        );
+        outbound.send_urgent(cid, format_server_message("PU", &[&pu]).into_bytes());
     }
     outbound.send_urgent(conn_id, format_server_message("FM", &[]).into_bytes());
 }
@@ -7772,7 +8870,14 @@ pub fn send_forced_player_update(
         return;
     };
     let spd = player_move_speed(state, &p);
-    let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
+    // CONN-PU-LEADER-FAN: far followers of this subject still get the PU body.
+    let near = leader_range::nearby_conn_ids_for_player_update(
+        state,
+        p.x,
+        p.y,
+        p.p_id,
+        nearby_range(state),
+    );
     let mut recipients = near;
     if !recipients.contains(&conn_id) {
         recipients.push(conn_id);
@@ -7804,10 +8909,7 @@ pub fn send_forced_player_update(
             -1,
             p.done_moving_seq.max(1),
         );
-        outbound.send(
-            cid,
-            format_server_message("PU", &[&pu]).into_bytes(),
-        );
+        outbound.send(cid, format_server_message("PU", &[&pu]).into_bytes());
     }
     // FRAME unsticks the acting client only (Haxe also sends FRAME to that connection).
     outbound.send(conn_id, format_server_message("FM", &[]).into_bytes());
@@ -7837,9 +8939,33 @@ pub fn pick_best_mother_p_id(state: &SimState) -> Option<i32> {
         is_human: true,
         prestige_class: PrestigeClass::Commoner as u8,
     };
+    let min_eat = state.gameplay.min_age_to_eat;
+    let kid_rows: Vec<(i32, f32, bool, Option<i32>, Option<i32>)> = state
+        .players
+        .values()
+        .map(|pl| {
+            let lin = state.social.lineages.get(&pl.p_id);
+            (
+                pl.p_id,
+                pl.age,
+                pl.deleted,
+                lin.and_then(|n| n.mother_id),
+                lin.and_then(|n| n.father_id),
+            )
+        })
+        .collect();
+    let knobs = BirthSpawnKnobs {
+        little_kids_per_mother: state.gameplay.little_kids_per_mother,
+        ai_mother_birth_mali_for_human_child: state.gameplay.ai_mother_birth_mali_for_human_child,
+        human_mother_birth_mali_for_ai_child: state.gameplay.human_mother_birth_mali_for_ai_child,
+    };
+    let min_age = state.gameplay.min_age_fertile;
+    let max_age = state.gameplay.max_age_fertile;
     let mut best: Option<(i32, f32)> = None;
     for p in state.players.values() {
-        if p.deleted || !crate::birth_fitness::is_mother_age_fertile(p.age) {
+        if p.deleted
+            || !crate::birth_fitness::is_mother_age_fertile_ex(p.age, min_age, max_age)
+        {
             continue;
         }
         let mali = state
@@ -7848,6 +8974,7 @@ pub fn pick_best_mother_p_id(state: &SimState) -> Option<i32> {
             .get(&p.p_id)
             .map(|r| r.children_birth_mali)
             .unwrap_or(0.0);
+        let little = count_little_kids(p.p_id, min_eat, &kid_rows);
         let m = MotherView {
             deleted: false,
             is_female: true,
@@ -7867,9 +8994,9 @@ pub fn pick_best_mother_p_id(state: &SimState) -> Option<i32> {
             has_close_nonblocking_grave: false,
             has_close_blocking_grave: false,
             is_human: true,
-            little_kids_count: 0,
+            little_kids_count: little.max(0) as u32,
         };
-        let fit = mother_fitness(&m, &child);
+        let fit = mother_fitness_with_birth_knobs(&m, &child, min_age, max_age, &knobs);
         if fit <= 0.0 {
             continue;
         }
@@ -7986,6 +9113,24 @@ pub fn attach_fitness_mother_lineage(
         .cloned()
         .unwrap_or_else(|| LineageNode::eve(mother_p_id, mother_name));
     let mut child_node = LineageNode::with_mother(child_p_id, child_display, &mother_node);
+    child_node.stamp_birth(state.sim_time);
+    let po = state
+        .players
+        .values()
+        .find(|pl| pl.p_id == child_p_id)
+        .map(person_object_id)
+        .unwrap_or(-1);
+    child_node.stamp_po_id(po);
+    let child_email = state
+        .players
+        .values()
+        .find(|pl| pl.p_id == child_p_id)
+        .map(|pl| pl.email.clone())
+        .unwrap_or_default();
+    if !child_email.is_empty() {
+        let aid = state.accounts.ensure(&child_email).id;
+        child_node.stamp_account_id(aid);
+    }
     let father_id = pick_best_father_p_id(state, mother_p_id);
     if let Some(fid) = father_id {
         child_node.father_id = Some(fid);
@@ -8013,6 +9158,1027 @@ pub fn attach_fitness_mother_lineage(
 /// Prefer birth-relative when that lands nearer the body; otherwise treat the
 /// raw coords as world so AI is not stuck on `jump_too_far` after double-adding birth.
 // Haxe: client MOVE/USE absolute after birth; Rust AI uses world snapshots
+/// Haxe `GetPlayerAt` — exact id match, else closest within maxDist=1.5 of world tile.
+// Haxe: GlobalPlayerInstance.GetPlayerAt L2899
+fn find_player_at_for_kill(state: &SimState, wx: i32, wy: i32, player_id: i32, skip_id: i32) -> Option<i32> {
+    if player_id > 0 {
+        return state
+            .players
+            .values()
+            .find(|p| p.p_id == player_id && !p.deleted)
+            .map(|p| p.p_id);
+    }
+    let mut best_id = None;
+    let mut best = 1.5f64 * 1.5;
+    for p in state.players.values() {
+        if p.deleted || p.p_id == skip_id {
+            continue;
+        }
+        let dx = (p.x - wx) as f64;
+        let dy = (p.y - wy) as f64;
+        let q = dx * dx + dy * dy;
+        if q <= best {
+            best = q;
+            best_id = Some(p.p_id);
+        }
+    }
+    best_id
+}
+
+/// Haxe `GetPlayerAt` returning conn_id (exact `p_id` if `player_id > 0`, else closest ≤ 1.5).
+// Haxe: GlobalPlayerInstance.GetPlayerAt L2898–2924
+fn find_player_at_conn(state: &SimState, wx: i32, wy: i32, player_id: i32) -> Option<u64> {
+    if player_id > 0 {
+        return state
+            .players
+            .iter()
+            .find(|(_, p)| p.p_id == player_id && !p.deleted)
+            .map(|(c, _)| *c);
+    }
+    let (mw, mh, wrap) = match state.world.read() {
+        Ok(w) => (w.width_tiles, w.height_tiles, w.wrap),
+        Err(_) => (0, 0, false),
+    };
+    let mut best: Option<u64> = None;
+    let mut best_q = 1.5f64 * 1.5;
+    for (&cid, p) in &state.players {
+        if p.deleted {
+            continue;
+        }
+        let (dx, dy) = ol_move_rules::wrap_delta(wx, wy, p.x, p.y, mw, mh, wrap);
+        let q = (dx as f64) * (dx as f64) + (dy as f64) * (dy as f64);
+        if q <= best_q {
+            best_q = q;
+            best = Some(cid);
+        }
+    }
+    best
+}
+
+/// Haxe `doBabyHelper` — pick up `baby_p_id` into carrier `conn_id`.
+///
+/// Shared by SAY `HOLD` and protocol `BABY x y [id]`.
+// Haxe: GlobalPlayerInstance.doBabyHelper L4954–5044
+fn apply_do_baby_hold(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+    baby_p_id: i32,
+) -> bool {
+    if baby_p_id <= 0 {
+        return false;
+    }
+    if let Some(p) = state.players.get_mut(&conn_id) {
+        if p.is_holding_hidden_wound() {
+            p.clear_held();
+        }
+    }
+    let pickup_max_age = state
+        .gameplay
+        .max_age_for_allowing_cloth_and_pickup_from_others;
+    let pickup_exh = state.gameplay.pickup_exhaustion_gain;
+    let pickup_restore = state.gameplay.pickup_feeding_food_restore;
+    let Some(carrier) = state.players.get(&conn_id) else {
+        return false;
+    };
+    if !carrier.can_hold_baby() {
+        return false;
+    }
+    let mother_p_id = carrier.p_id;
+    let mother_age = carrier.age;
+    let (mx, my) = (carrier.x, carrier.y);
+    let Some((baby_conn, baby_age, mut baby_held, baby_holding)) =
+        state.players.iter().find_map(|(&c, pl)| {
+            if pl.p_id == baby_p_id && !pl.deleted && pl.held_by == 0 {
+                Some((c, pl.age, pl.held_id, pl.holding_player_id))
+            } else {
+                None
+            }
+        })
+    else {
+        return false;
+    };
+    if !can_pickup_player_ages_ex(mother_age, baby_age, pickup_max_age) {
+        return false;
+    }
+    let baby_xy = state
+        .players
+        .get(&baby_conn)
+        .map(|b| (b.x, b.y))
+        .unwrap_or((mx, my));
+    if !can_pickup_baby_distance(mx as f32, my as f32, baby_xy.0 as f32, baby_xy.1 as f32) {
+        return false;
+    }
+    // Haxe: if target.heldPlayer != null → target.dropPlayer(this.x, this.y); else refuse.
+    if needs_force_drop_nested_hold(baby_holding) {
+        let _ = apply_drop_player(state, outbound, baby_conn, mx, my);
+        if state
+            .players
+            .get(&baby_conn)
+            .map(|b| b.holding_player_id)
+            .unwrap_or(0)
+            != 0
+        {
+            return false;
+        }
+        baby_held = state
+            .players
+            .get(&baby_conn)
+            .map(|b| b.held_id)
+            .unwrap_or(0);
+    }
+    // Haxe: droppable held of target → PlaceObject(carrier.tx, ty, held, false).
+    let baby_wound = crate::is_wound_object(&state.content, baby_held);
+    if is_droppable_on_baby_pickup(baby_held, baby_wound) {
+        if baby_held != 0 {
+            let obj = ComplexObject::with_owner(baby_held, baby_p_id);
+            if let Some(res) = crate::place_object::place_object(
+                state,
+                mx,
+                my,
+                obj,
+                crate::place_object::PlaceObjectOpts::default(),
+            ) {
+                schedule_decay(state, res.x, res.y, baby_held);
+            }
+        }
+        if let Some(b) = state.players.get_mut(&baby_conn) {
+            b.clear_held();
+        }
+    }
+    if let Some(pl) = state.players.get_mut(&conn_id) {
+        pl.start_holding(baby_p_id);
+        pl.exhaustion += pickup_exh;
+    }
+    if let Some(baby) = state.players.get_mut(&baby_conn) {
+        baby.held_by = mother_p_id;
+        baby.x = mx;
+        baby.y = my;
+    }
+    let mother_fertile = state
+        .players
+        .get(&conn_id)
+        .map(|pl| player_is_fertile(state, pl))
+        .unwrap_or(false);
+    if mother_fertile && can_pickup_breastfeed_age(baby_age) {
+        let (b_food, b_max) = state
+            .players
+            .get(&baby_conn)
+            .map(|b| (b.food, b.food_max))
+            .unwrap_or((0.0, 20.0));
+        let (to_baby, from_m) = pickup_feed_amounts_ex(b_food, b_max, pickup_restore);
+        if to_baby > 0.0 {
+            if let Some(pl) = state.players.get_mut(&conn_id) {
+                pl.food -= from_m;
+            }
+            if let Some(baby) = state.players.get_mut(&baby_conn) {
+                let cap = get_max_child_feeding(baby.food_max);
+                baby.food = (baby.food + to_baby).min(cap);
+            }
+            info!(
+                conn_id,
+                baby_p_id, to_baby, from_m, "sim: doBaby pickup breastfeed"
+            );
+        }
+    }
+    {
+        let has_follow = state.social.following.contains_key(&baby_p_id);
+        let follow_fertile = state
+            .social
+            .following
+            .get(&baby_p_id)
+            .and_then(|&fid| {
+                state
+                    .players
+                    .values()
+                    .find(|pl| pl.p_id == fid)
+                    .map(|pl| player_is_fertile(state, pl))
+            })
+            .unwrap_or(false);
+        if should_set_follow_on_hold(has_follow, follow_fertile, mother_fertile) {
+            let _ = state.social.set_follow(baby_p_id, mother_p_id);
+        }
+    }
+    let m_food = state.players.get(&conn_id).map(|pl| pl.food).unwrap_or(0.0);
+    let m_age = state.players.get(&conn_id).map(|pl| pl.age).unwrap_or(0.0);
+    if can_breastfeed(m_age, m_food, mother_fertile, baby_age, true) {
+        let near = nearby_conn_ids(state, mx, my, nearby_range(state));
+        let pe = format_player_emot(baby_p_id, 0).into_bytes();
+        send_nearby(outbound, &near, pe);
+    }
+    state.publish_player_view(conn_id);
+    state.publish_player_view(baby_conn);
+    send_player_update_and_frame(state, outbound, conn_id);
+    send_player_update_and_frame(state, outbound, baby_conn);
+    true
+}
+
+/// Haxe `GPI.doBaby` — Raw `BABY x y [id]`. Fail always PU+FRAME (client unstick).
+// Haxe: GlobalPlayerInstance.doBaby L4910–4926
+fn apply_baby(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+    x: i32,
+    y: i32,
+    player_id: i32,
+) {
+    let Some(from) = state.players.get(&conn_id) else {
+        return;
+    };
+    if from.deleted {
+        return;
+    }
+    let (wx, wy) = resolve_net_intent_tile(from, x, y);
+    let Some(baby_conn) = find_player_at_conn(state, wx, wy, player_id) else {
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    };
+    let baby_p_id = match state.players.get(&baby_conn) {
+        Some(b) if !b.deleted => b.p_id,
+        _ => {
+            send_player_update_and_frame(state, outbound, conn_id);
+            return;
+        }
+    };
+    if apply_do_baby_hold(state, outbound, conn_id, baby_p_id) {
+        info!(conn_id, baby_p_id, x, y, "sim: BABY pickup");
+    } else {
+        send_player_update_and_frame(state, outbound, conn_id);
+    }
+}
+
+/// Haxe `doOnOtherHelper`: feed if slot < 0, then cloth, then wound-heal transition.
+// Haxe: GlobalPlayerInstance.doOnOtherHelper L2828–2891
+fn apply_ubaby(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+    x: i32,
+    y: i32,
+    clothing_slot: i32,
+    player_id: i32,
+) {
+    let Some(from) = state.players.get(&conn_id) else {
+        return;
+    };
+    if from.deleted {
+        return;
+    }
+    if from.held_id < 0 {
+        send_ps_reply(outbound, conn_id, "need to drop held");
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+    let (wx, wy) = resolve_net_intent_tile(from, x, y);
+    let Some(to_conn) = find_player_at_conn(state, wx, wy, player_id) else {
+        send_ps_reply(outbound, conn_id, "no one found");
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    };
+    let (from_xy, to_xy, held, to_ill) = {
+        let from = state.players.get(&conn_id).unwrap();
+        let to = match state.players.get(&to_conn) {
+            Some(t) if !t.deleted => t,
+            _ => {
+                send_ps_reply(outbound, conn_id, "no one found");
+                send_player_update_and_frame(state, outbound, conn_id);
+                return;
+            }
+        };
+        (
+            (from.x, from.y),
+            (to.x, to.y),
+            from.held_id,
+            to.fever.is_some(),
+        )
+    };
+    if crate::horse_mount::is_drugs(held) && !to_ill {
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+    let (mw, mh, wrap) = match state.world.read() {
+        Ok(w) => (w.width_tiles, w.height_tiles, w.wrap),
+        Err(_) => (0, 0, false),
+    };
+    // Haxe isCloseToPlayer default distance=1 (squared Euclidean + wrap).
+    if !in_use_range_ex(from_xy.0, from_xy.1, to_xy.0, to_xy.1, 1, mw, mh, wrap) {
+        send_ps_reply(outbound, conn_id, "too far away");
+        send_player_update_and_frame(state, outbound, conn_id);
+        return;
+    }
+
+    if clothing_slot < 0 && try_do_eating(state, conn_id, to_conn) {
+        send_held_eat_result(state, outbound, to_conn);
+        send_player_update_and_frame(state, outbound, conn_id);
+        info!(conn_id, to_conn, clothing_slot, "sim: UBABY feed");
+        return;
+    }
+    flush_eat_emotes(state, outbound);
+
+    let max_age = state
+        .gameplay
+        .max_age_for_allowing_cloth_and_pickup_from_others;
+    let content = state.content.clone();
+    let cloth_ok = if conn_id == to_conn {
+        state
+            .players
+            .get_mut(&conn_id)
+            .and_then(|p| {
+                clothing_cmds::apply_switch_cloths(p, &content, clothing_slot)
+                    .ok()
+                    .map(|(_, _, say)| say)
+            })
+    } else if let Some(mut from_p) = state.players.remove(&conn_id) {
+        let r = state.players.get_mut(&to_conn).and_then(|to_p| {
+            clothing_cmds::apply_switch_cloths_on_other(
+                &mut from_p,
+                to_p,
+                &content,
+                clothing_slot,
+                max_age,
+            )
+            .ok()
+            .map(|(_, _, say)| say)
+        });
+        state.players.insert(conn_id, from_p);
+        r
+    } else {
+        None
+    };
+    if let Some(say) = cloth_ok {
+        state.publish_player_view(conn_id);
+        state.publish_player_view(to_conn);
+        if let Some(msg) = say {
+            send_ps_reply(outbound, conn_id, msg);
+        }
+        send_player_update_and_frame(state, outbound, conn_id);
+        send_player_update_and_frame(state, outbound, to_conn);
+        info!(conn_id, to_conn, clothing_slot, "sim: UBABY cloth");
+        return;
+    }
+
+    // Haxe: target isWounded → GetTrans(held, target.held)
+    let (from_held, to_held, to_wounded, from_p_id, to_p_id) = match (
+        state.players.get(&conn_id),
+        state.players.get(&to_conn),
+    ) {
+        (Some(f), Some(t)) => (
+            f.held_id,
+            t.held_id,
+            t.is_wounded_held(crate::is_wound_object(&state.content, t.held_id)),
+            f.p_id,
+            t.p_id,
+        ),
+        _ => {
+            send_player_update_and_frame(state, outbound, conn_id);
+            return;
+        }
+    };
+    if to_wounded {
+        if let Some(tr) = state.content.find_transition(from_held, to_held) {
+            let new_actor = tr.new_actor_id;
+            let new_target = tr.new_target_id;
+            if let Some(t) = state.players.get_mut(&to_conn) {
+                t.hidden_wound = None;
+                if new_target == 0 {
+                    t.clear_held();
+                } else {
+                    t.set_held(new_target, 0);
+                }
+            }
+            if let Some(f) = state.players.get_mut(&conn_id) {
+                if new_actor == 0 {
+                    f.clear_held();
+                } else {
+                    f.set_held(new_actor, 0);
+                }
+            }
+            let near = nearby_conn_ids(state, from_xy.0, from_xy.1, nearby_range(state));
+            for pid in [from_p_id, to_p_id] {
+                let pe = format_player_emot(pid, 0).into_bytes(); // Emote.happy
+                send_nearby(outbound, &near, pe);
+            }
+            for &cid in &near {
+                send_frame(outbound, cid);
+            }
+            state.publish_player_view(conn_id);
+            state.publish_player_view(to_conn);
+            send_player_update_and_frame(state, outbound, conn_id);
+            send_player_update_and_frame(state, outbound, to_conn);
+            info!(conn_id, to_conn, "sim: UBABY heal");
+            return;
+        }
+    }
+
+    send_player_update_and_frame(state, outbound, conn_id);
+}
+
+/// Haxe `Emote.shock` (emotionWords index).
+const KILL_SHOCK_EMOT_INDEX: i32 = 15;
+/// Haxe `Emote.murderFace`.
+const KILL_MURDERFACE_EMOT_INDEX: i32 = 16;
+
+/// Haxe killHelper unarmed-ally first-hit warn / second-hit exile.
+/// Returns `true` when the caller must refuse damage (warn path).
+// Haxe: GlobalPlayerInstance.killHelper L4454-4482
+fn apply_unarmed_ally_kill_gate(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+    killer_id: i32,
+    target_id: i32,
+    prev_last_attacked: i32,
+    target_held_id: i32,
+) -> bool {
+    state.social.sim_time = state.sim_time;
+    let deleted: std::collections::HashSet<i32> = state
+        .players
+        .values()
+        .filter(|pl| pl.deleted)
+        .map(|pl| pl.p_id)
+        .collect();
+    let target_is_ally = is_ally(
+        &state.social.following,
+        &state.social,
+        &deleted,
+        killer_id,
+        target_id,
+    );
+    let t_held_name = held_object_name(state, target_held_id);
+    let target_holding_weapon = is_holding_weapon(target_held_id, &t_held_name);
+    let is_follower = state.social.is_follower_from(target_id, killer_id);
+    match resolve_unarmed_ally_hit_gate(
+        target_is_ally,
+        target_holding_weapon,
+        prev_last_attacked,
+        target_id,
+        is_follower,
+    ) {
+        UnarmedAllyHitGate::WarnAndRefuse { is_follower } => {
+            if let Some(kp) = state.players.get_mut(&conn_id) {
+                kp.last_attacked_player_id = target_id;
+            }
+            send_action_result_pu_and_frame(state, outbound, conn_id);
+            let t_name = state
+                .players
+                .values()
+                .find(|pl| pl.p_id == target_id)
+                .map(|pl| pl.display_name())
+                .unwrap_or_default();
+            let (say, gm) = unarmed_ally_first_hit_messages(&t_name, is_follower);
+            let say_up = say.to_uppercase();
+            send_ps_reply(outbound, conn_id, &format!("{killer_id}/0 {say_up}"));
+            let gm_wire = crate::score_entry::format_global_message_text(&gm);
+            outbound.send(
+                conn_id,
+                format_server_message("GM", &[&gm_wire]).into_bytes(),
+            );
+            send_frame(outbound, conn_id);
+            true
+        }
+        UnarmedAllyHitGate::ExileThenProceed => {
+            state.social.sim_time = state.sim_time;
+            state.social.exile(killer_id, target_id);
+            false
+        }
+        UnarmedAllyHitGate::Proceed => false,
+    }
+}
+
+/// Haxe `killHelper` L4368 TODO: stop movement if hit.
+///
+/// CancleMovement at the target's **server** tile + forced PU. Only a connecting
+/// DoDamage (Wound / Kill) cancels; miss / too-far / ally-warn must not.
+// Haxe: GlobalPlayerInstance.killHelper L4368
+fn cancel_target_path_on_connecting_hit(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    target_id: i32,
+) {
+    let Some(conn_id) = state.players.iter().find_map(|(&cid, p)| {
+        if p.p_id == target_id && !p.deleted && (p.moving || p.move_path.is_some()) {
+            Some(cid)
+        } else {
+            None
+        }
+    }) else {
+        return;
+    };
+    cancel_movement(state, outbound, conn_id, 0, false);
+}
+
+/// SAY HIT / protocol KILL damage path (Haxe `DoDamage` after killHelper gates).
+///
+/// `distance_factor` is Haxe `2/(clickQuad+2)` (1.0 for SAY HIT).
+/// `charge_combat_exhaustion` is false when killHelper already charged the attacker.
+fn apply_hit_on_player(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    counters: &Counters,
+    conn_id: u64,
+    target_id: i32,
+    distance_factor: f32,
+    charge_combat_exhaustion: bool,
+) {
+    let Some(p) = state.players.get(&conn_id).cloned() else {
+        return;
+    };
+    if p.deleted {
+        return;
+    }
+    let killer_id = p.p_id;
+    let killer_x = p.x;
+    let killer_y = p.y;
+    let (killer_ex, killer_ey) = p.exact_xy();
+    let held_id = p.held_id;
+    let prev_last_attacked = p.last_attacked_player_id;
+    if let Some(tp) = state.players.values_mut().find(|x| x.p_id == target_id) {
+        tp.last_player_attacked_me_id = killer_id;
+    }
+    let held_name = held_object_name(state, held_id);
+    let held_deadly_for_range = state
+        .content
+        .get(held_id)
+        .map(|d| d.deadly_distance)
+        .unwrap_or(0.0);
+    // Haxe killHelper max = deadlyDistance (float). Name table is fallback for SAY HIT.
+    let max_range = if held_deadly_for_range > 0.1 {
+        held_deadly_for_range.max(1.0).ceil() as i32
+    } else {
+        weapon_range(held_id, &held_name)
+    };
+    let killer_is_eve = crate::food_store_max::is_eve_or_adam_name(&p.first_name);
+    let killer_is_male = !player_is_female(state, &p);
+    let killer_is_cursed = p.is_cursed;
+    let death_line = state.gameplay.death_with_food_store_max_live();
+    let mut org_damage = weapon_damage(held_id, &held_name);
+    let dist_mul = if distance_factor.is_finite() && distance_factor > 0.0 {
+        distance_factor
+    } else {
+        1.0
+    };
+    let target_info = state
+        .players
+        .values()
+        .find(|x| x.p_id == target_id && !x.deleted)
+        .map(|tp| {
+            (
+                tp.x,
+                tp.y,
+                tp.food,
+                tp.age,
+                tp.exhaustion,
+                tp.true_age,
+                clothing_temp_bonus(tp.hat, tp.chest, tp.shoes),
+                tp.held_id,
+                tp.first_name.clone(),
+                tp.is_wounded_held(crate::is_wound_object(&state.content, tp.held_id)),
+                tp.is_cursed,
+            )
+        });
+    let Some((
+        tx,
+        ty,
+        t_food,
+        t_age,
+        t_exh,
+        t_true_age,
+        cloth_insul,
+        t_held,
+        t_first,
+        t_wounded,
+        t_cursed,
+    )) = target_info
+    else {
+        let line = format!("{} HIT {} FAIL offline", killer_id, target_id);
+        send_ps_reply(outbound, conn_id, &line);
+        return;
+    };
+    let (target_ex, target_ey) = state
+        .players
+        .values()
+        .find(|x| x.p_id == target_id)
+        .map(|tp| tp.exact_xy())
+        .unwrap_or((tx as f64, ty as f64));
+    // Haxe killHelper L4420-4428: bow deadly>1.9 + isCloseToPlayerUseExact 1.5
+    // → PLAYER_UPDATE + public say('Too close...') (no animal gate).
+    let held_deadly = state
+        .content
+        .get(held_id)
+        .map(|d| d.deadly_distance)
+        .unwrap_or(0.0);
+    let (mw, mh, wrap) = {
+        let w = state.world.read().unwrap();
+        (w.width_tiles, w.height_tiles, w.wrap)
+    };
+    if refuse_ranged_kill_too_close(
+        held_deadly,
+        killer_ex,
+        killer_ey,
+        target_ex,
+        target_ey,
+        mw,
+        mh,
+        wrap,
+    ) {
+        send_action_result_pu_and_frame(state, outbound, conn_id);
+        note_too_close_say(conn_id);
+        maybe_too_close_say_feedback(state, outbound, conn_id);
+        return;
+    }
+    // Haxe: exactQuadDistance > deadlyDistance² + 0.1 → too far (HIT MISS for SAY).
+    if held_deadly_for_range > 0.1
+        && !kill_in_deadly_range(
+            killer_ex,
+            killer_ey,
+            target_ex,
+            target_ey,
+            held_deadly_for_range,
+            mw,
+            mh,
+            wrap,
+        )
+    {
+        let line = format!("{} HIT {} MISS", killer_id, target_id);
+        send_ps_reply(outbound, conn_id, &line);
+        return;
+    }
+    // Haxe killHelper L4454-4482: unarmed ally first-hit warn / second exile.
+    if apply_unarmed_ally_kill_gate(
+        state,
+        outbound,
+        conn_id,
+        killer_id,
+        target_id,
+        prev_last_attacked,
+        t_held,
+    ) {
+        return;
+    }
+    if let Some(kp) = state.players.get_mut(&conn_id) {
+        kp.last_attacked_player_id = target_id;
+    }
+    let t_held_name = held_object_name(state, t_held);
+    let weapon_prot = held_damage_protection_factor(t_held, &t_held_name);
+    // Floor insulation proxy: non-zero floor → 0.3 (Haxe floor.getInsulation subset).
+    let floor_insul = {
+        let w = state.world.read().unwrap();
+        if w.get_floor(tx, ty) != 0 {
+            0.3
+        } else {
+            0.0
+        }
+    };
+    // Haxe: ExileIfClose(this, targetPlayer) before DoDamage
+    apply_exile_if_close(state, killer_id, target_id);
+    // Haxe kill() CombatExhaustionCostPerAttack on attacker.
+    // SETTINGS-LONG-TAIL
+    if charge_combat_exhaustion {
+        let cost = state.gameplay.combat_exhaustion_cost_per_attack;
+        let cost = if cost.is_finite() && cost >= 0.0 {
+            cost
+        } else {
+            crate::food_store_max::COMBAT_EXHAUSTION_COST_PER_ATTACK
+        };
+        if let Some(kp) = state.players.get_mut(&conn_id) {
+            kp.exhaustion += cost;
+        }
+    }
+    let legal = state.social.is_exiled_by(killer_id, target_id)
+        || state
+            .social
+            .following
+            .get(&killer_id)
+            .map(|leader| state.social.is_exiled_by(*leader, target_id))
+            .unwrap_or(false);
+    let rng01 = rand::random::<f32>();
+    // Haxe: DoDamage WeaponDamageFactor when attacker != null (L4590)
+    org_damage *= weapon_damage_mul(state.gameplay.weapon_damage_factor);
+    org_damage *= male_damage_mul(killer_is_male, state.gameplay.male_damage_factor);
+    org_damage *= cursed_receive_damage_mul(t_cursed, state.gameplay.cursed_receive_damage_factor);
+    org_damage *= cursed_make_damage_mul(killer_is_cursed, state.gameplay.cursed_make_damage_factor);
+    org_damage *= eve_pair_damage_mul(
+        killer_is_eve,
+        crate::food_store_max::is_eve_or_adam_name(&t_first),
+        state.gameplay.eve_damage_factor,
+    );
+    org_damage *= target_wounded_damage_mul(t_wounded, state.gameplay.target_wounded_damage_factor);
+    // Haxe: damage *= distanceFactor (killHelper click-tile).
+    org_damage *= dist_mul;
+    let health_f = state.player_health_food_store_max_factor(target_id, t_true_age);
+    let knobs = state.gameplay.food_store_max_knobs();
+    let (result, dmg, snap) = state.combat.resolve_hit_full_ex(
+        killer_id,
+        target_id,
+        killer_x,
+        killer_y,
+        tx,
+        ty,
+        legal,
+        max_range,
+        org_damage,
+        cloth_insul,
+        floor_insul,
+        weapon_prot,
+        held_id,
+        rng01,
+        t_age,
+        t_food,
+        t_exh,
+        health_f,
+        true,
+        knobs,
+    );
+    let near = nearby_conn_ids(state, killer_x, killer_y, nearby_range(state));
+    match result {
+        HitResult::Miss => {
+            let line = format!("{} HIT {} MISS", killer_id, target_id);
+            send_ps_reply(outbound, conn_id, &line);
+        }
+        HitResult::Wound(w) => {
+            apply_weapon_zero_wound_hit(
+                state,
+                outbound,
+                killer_id,
+                target_id,
+                held_id,
+                snap.food_store_max,
+                snap.combat_lethal,
+            );
+            cancel_target_path_on_connecting_hit(state, outbound, target_id);
+            if let Some(tp) = state.players.values_mut().find(|x| x.p_id == target_id) {
+                // Haxe DoDamage: exhaustion += damage; food_store_max = calculateFoodStoreMax()
+                tp.food_max = snap.food_store_max.max(death_line);
+                tp.exhaustion = snap.exhaustion_after;
+                if tp.food > tp.food_max {
+                    tp.food = tp.food_max;
+                }
+                tp.angry_time -= dmg;
+            }
+            if let Some(kp) = state.players.values_mut().find(|x| x.p_id == killer_id) {
+                kp.angry_time -= dmg;
+            }
+            let t_weapon = is_holding_weapon(t_held, &t_held_name);
+            apply_connecting_hit_reputation(
+                state,
+                outbound,
+                killer_id,
+                target_id,
+                dmg,
+                t_weapon,
+            );
+            let line = format!("{} HIT {} WOUND {} dmg={:.1}", killer_id, target_id, w, dmg);
+            send_nearby_ps_lines(outbound, &near, &line);
+            let pe = format_server_message("PE", &[&format!("{target_id} {HUNGER_EMOT_INDEX}")]);
+            send_nearby(outbound, &near, pe.into_bytes());
+            send_nearby(outbound, &near, format_dying(target_id, false).into_bytes());
+        }
+        HitResult::Kill => {
+            let t_weapon = is_holding_weapon(t_held, &t_held_name);
+            apply_connecting_hit_reputation(
+                state,
+                outbound,
+                killer_id,
+                target_id,
+                dmg,
+                t_weapon,
+            );
+            if legal {
+                state.reputation.apply_legal_hit(killer_id, target_id, 0.2);
+            } else {
+                state.reputation.apply_illegal_hit(killer_id, 1.0, 1.0);
+            }
+            state.sync_lineage_prestige_from_combat(killer_id);
+            state.sync_lineage_prestige_from_combat(target_id);
+            state.scoreboard.record_kill(killer_id, target_id);
+            state.refresh_living_prestige_classes();
+            let death_reason = combat_death_wire(legal, held_id);
+            apply_weapon_zero_wound_hit(
+                state,
+                outbound,
+                killer_id,
+                target_id,
+                held_id,
+                snap.food_store_max,
+                true,
+            );
+            cancel_target_path_on_connecting_hit(state, outbound, target_id);
+            if let Some(tp) = state.players.values_mut().find(|x| x.p_id == target_id) {
+                tp.food_max = snap.food_store_max;
+                tp.exhaustion = snap.exhaustion_after;
+                tp.deleted = true;
+                tp.death_reason = Some(death_reason.clone());
+            }
+            scatter_backpack_on_death_pid(state, target_id);
+            apply_death_inheritance(state, target_id);
+            counters.deaths.fetch_add(1, Ordering::Relaxed);
+            state.push_event(format_death_event_tag(target_id, &death_reason));
+            state.afk.remove(target_id);
+            apply_bloody_weapon_transform(
+                state,
+                killer_id,
+                held_id,
+                BloodyApplyMode::Strike {
+                    long_wounding: true,
+                },
+            );
+            let line = format!(
+                "{} HIT {} KILL legal={} dmg={:.1}",
+                killer_id, target_id, legal, dmg
+            );
+            send_nearby_ps_lines(outbound, &near, &line);
+        }
+    }
+}
+
+/// Protocol `KILL x y [id]` — Haxe `killHelper` (not SAY HIT).
+// Haxe: GlobalPlayerInstance.killHelper L4366
+fn apply_protocol_kill(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    counters: &Counters,
+    conn_id: u64,
+    payload: &str,
+) {
+    touch_afk_activity(state, conn_id);
+    let mut parts = payload.split_whitespace();
+    let x: i32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let y: i32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let player_id: i32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(-1);
+    let Some(p) = state.players.get(&conn_id).cloned() else {
+        return;
+    };
+    if p.deleted {
+        return;
+    }
+    let (wx, wy) = resolve_net_intent_tile(&p, x, y);
+    let skip = p.p_id;
+    let Some(target_id) = find_player_at_for_kill(state, wx, wy, player_id, skip) else {
+        send_action_result_pu_and_frame(state, outbound, conn_id);
+        return;
+    };
+    if let Some(kp) = state.players.get_mut(&conn_id) {
+        kp.kill_mode = true;
+    }
+    // Haxe: SendEmoteToAll(target, shock)
+    if let Some(tp) = state
+        .players
+        .values()
+        .find(|pl| pl.p_id == target_id && !pl.deleted)
+    {
+        let near = nearby_conn_ids(state, tp.x, tp.y, nearby_range(state));
+        let pe = format_player_emot(target_id, KILL_SHOCK_EMOT_INDEX).into_bytes();
+        send_nearby(outbound, &near, pe);
+        for &cid in &near {
+            send_frame(outbound, cid);
+        }
+    }
+    // Haxe: exhaustion += CombatExhaustionCostPerAttack (even if later gates fail)
+    {
+        let cost = state.gameplay.combat_exhaustion_cost_per_attack;
+        let cost = if cost.is_finite() && cost >= 0.0 {
+            cost
+        } else {
+            crate::food_store_max::COMBAT_EXHAUSTION_COST_PER_ATTACK
+        };
+        if let Some(kp) = state.players.get_mut(&conn_id) {
+            kp.exhaustion += cost;
+        }
+    }
+    if let Some(tp) = state.players.values_mut().find(|pl| pl.p_id == target_id) {
+        tp.last_player_attacked_me_id = skip;
+    }
+    let (k_angry, t_angry, held_id, killer_x, killer_y, killer_ex, killer_ey, prev_last) = {
+        let kp = state.players.get(&conn_id);
+        let tp = state.players.values().find(|pl| pl.p_id == target_id);
+        let (kex, key) = kp.map(|p| p.exact_xy()).unwrap_or((0.0, 0.0));
+        (
+            kp.map(|p| p.angry_time).unwrap_or(0.0),
+            tp.map(|p| p.angry_time).unwrap_or(0.0),
+            kp.map(|p| p.held_id).unwrap_or(0),
+            kp.map(|p| p.x).unwrap_or(0),
+            kp.map(|p| p.y).unwrap_or(0),
+            kex,
+            key,
+            kp.map(|p| p.last_attacked_player_id).unwrap_or(0),
+        )
+    };
+    // Haxe: both angryTime > 0 → PU + "N more seconds..."
+    if k_angry > 0.0 && t_angry > 0.0 {
+        send_action_result_pu_and_frame(state, outbound, conn_id);
+        let n = k_angry.min(t_angry).ceil();
+        if let Some(pl) = state.players.get(&conn_id) {
+            let near = nearby_conn_ids(state, pl.x, pl.y, say_close_range(state, pl.age));
+            send_chat_ps(
+                state,
+                outbound,
+                conn_id,
+                pl.p_id,
+                &format!("{n} more seconds..."),
+                &near,
+            );
+        }
+        return;
+    }
+    let held_deadly = state
+        .content
+        .get(held_id)
+        .map(|d| d.deadly_distance)
+        .unwrap_or(0.0);
+    let (mw, mh, wrap) = {
+        let w = state.world.read().unwrap();
+        (w.width_tiles, w.height_tiles, w.wrap)
+    };
+    let Some(tp) = state
+        .players
+        .values()
+        .find(|pl| pl.p_id == target_id && !pl.deleted)
+        .map(|pl| (pl.x, pl.y, pl.exact_xy(), pl.held_id))
+    else {
+        send_action_result_pu_and_frame(state, outbound, conn_id);
+        return;
+    };
+    let (tx, ty, (target_ex, target_ey), t_held) = tp;
+    if refuse_ranged_kill_too_close(
+        held_deadly,
+        killer_ex,
+        killer_ey,
+        target_ex,
+        target_ey,
+        mw,
+        mh,
+        wrap,
+    ) {
+        send_action_result_pu_and_frame(state, outbound, conn_id);
+        note_too_close_say(conn_id);
+        maybe_too_close_say_feedback(state, outbound, conn_id);
+        return;
+    }
+    // Haxe: exactQuadDistance > deadlyDistance² + 0.1 → PU (not HIT MISS)
+    if !kill_in_deadly_range(
+        killer_ex,
+        killer_ey,
+        target_ex,
+        target_ey,
+        held_deadly,
+        mw,
+        mh,
+        wrap,
+    ) {
+        send_action_result_pu_and_frame(state, outbound, conn_id);
+        return;
+    }
+    // Haxe click-tile: CalculateDistance(x, y, target.tx-gx, target.ty-gy)
+    let (tcx, tcy) = state
+        .players
+        .get(&conn_id)
+        .map(|kp| kp.world_to_client(tx, ty))
+        .unwrap_or((tx, ty));
+    let quad = crate::move_live_gates::calculate_distance_sq(x, y, tcx, tcy, mw, mh, wrap);
+    let distance_factor = 2.0 / (quad + 2.0);
+    if distance_factor < 0.3 {
+        send_action_result_pu_and_frame(state, outbound, conn_id);
+        return;
+    }
+    if apply_unarmed_ally_kill_gate(
+        state,
+        outbound,
+        conn_id,
+        skip,
+        target_id,
+        prev_last,
+        t_held,
+    ) {
+        return;
+    }
+    // Haxe: SendEmoteToAll(this, murderFace)
+    {
+        let near = nearby_conn_ids(state, killer_x, killer_y, nearby_range(state));
+        let pe = format_player_emot(skip, KILL_MURDERFACE_EMOT_INDEX).into_bytes();
+        send_nearby(outbound, &near, pe);
+        for &cid in &near {
+            send_frame(outbound, cid);
+        }
+    }
+    apply_hit_on_player(
+        state,
+        outbound,
+        counters,
+        conn_id,
+        target_id,
+        distance_factor as f32,
+        false,
+    );
+}
+
+/// Resolve NetIntent tile coords to **world** tiles.
+///
+/// Human TCP clients send **birth-relative** coords (vanilla `m.x += birthPos`).
+/// NPC / self-play AI often enqueues **world** tiles from `PlayerSnapshot.x/y`.
+/// Prefer birth-relative when that lands nearer the body; otherwise treat the
+/// raw coords as world so AI is not stuck on `jump_too_far` after double-adding birth.
+// Haxe: client MOVE/USE absolute after birth; Rust AI uses world snapshots
 fn resolve_net_intent_tile(p: &Player, x: i32, y: i32) -> (i32, i32) {
     let from_client = p.client_to_world(x, y);
     // No birth offset → both interpretations match.
@@ -8028,6 +10194,60 @@ fn resolve_net_intent_tile(p: &Player, x: i32, y: i32) -> (i32, i32) {
     }
 }
 
+/// Haxe `MoveHelper.receivedForce` — clear `waitForForce` when FORCE xy matches body.
+// Haxe: MoveHelper.receivedForce L432–438
+fn apply_received_force(state: &mut SimState, conn_id: u64, x: i32, y: i32) {
+    let Some(p) = state.players.get(&conn_id) else {
+        return;
+    };
+    if p.deleted {
+        return;
+    }
+    let (wx, wy) = resolve_net_intent_tile(p, x, y);
+    if !received_force_matches(p.x, p.y, wx, wy) {
+        return;
+    }
+    if let Some(pl) = state.players.get_mut(&conn_id) {
+        pl.wait_for_force = false;
+    }
+}
+
+/// Haxe `Connection.flip` — `FLIP x y` fans `FL p_id true|false` to nearby.
+/// `face_left` is `x < player.x` after birth-relative → world resolve.
+// Haxe: Connection.flip L862–872
+fn apply_player_flip(state: &mut SimState, outbound: &OutboundHub, conn_id: u64, x: i32, y: i32) {
+    let Some(p) = state.players.get(&conn_id) else {
+        return;
+    };
+    if p.deleted {
+        return;
+    }
+    let (wx, _wy) = resolve_net_intent_tile(p, x, y);
+    let face_left = wx < p.x;
+    let p_id = p.p_id;
+    let px = p.x;
+    let py = p.y;
+    let near = nearby_conn_ids(state, px, py, nearby_range(state));
+    if near.is_empty() {
+        return;
+    }
+    let pkt = format_player_flip(p_id, face_left).into_bytes();
+    send_nearby(outbound, &near, pkt);
+}
+
+/// Haxe `CancleMovement` — humans ignore MOVE until FORCE / 2s timeout.
+// Haxe: MoveHelper.CancleMovement L702–705 (`isHuman`)
+fn arm_human_wait_for_force(state: &mut SimState, conn_id: u64) {
+    let sim_t = state.sim_time;
+    if let Some(p) = state.players.get_mut(&conn_id) {
+        if p.deleted || !p.is_human_body() {
+            return;
+        }
+        p.wait_for_force = true;
+        p.time_last_force = sim_t;
+    }
+}
+
 pub fn apply_move_path_start(
     state: &mut SimState,
     outbound: &OutboundHub,
@@ -8039,11 +10259,7 @@ pub fn apply_move_path_start(
 ) -> Result<(), MoveReject> {
     // Baby MOVE while held â†’ jump out of arms (user: drop if they move out).
     // Haxe prefers JUMP; we also honor MOVE as an explicit leave.
-    let held_by = state
-        .players
-        .get(&conn_id)
-        .map(|p| p.held_by)
-        .unwrap_or(0);
+    let held_by = state.players.get(&conn_id).map(|p| p.held_by).unwrap_or(0);
     if held_by != 0 {
         let baby_p_id = state.players.get(&conn_id).map(|p| p.p_id).unwrap_or(0);
         if let Some(mother) = state
@@ -8056,7 +10272,10 @@ pub fn apply_move_path_start(
         if let Some(pl) = state.players.get_mut(&conn_id) {
             pl.held_by = 0;
         }
-        info!(conn_id, baby_p_id, held_by, "sim: baby MOVE drop out of arms");
+        info!(
+            conn_id,
+            baby_p_id, held_by, "sim: baby MOVE drop out of arms"
+        );
         state.publish_player_view(conn_id);
     }
     let (px, py, deleted, sleeping, sitting) = {
@@ -8072,6 +10291,23 @@ pub fn apply_move_path_start(
     if SIT_BLOCKS_MOVE && sitting {
         return Err(MoveReject::Sitting);
     }
+    // HIT-BLOCK-NONALLY-MOVE: Haxe killHelper L4369 TODO (Haxe only slows).
+    // Same close/ally/weapon sensors as speed mali; angryTime is mali-only.
+    if player_has_close_armed_nonally(state, conn_id) {
+        return Err(MoveReject::CloseHostileWeapon);
+    }
+    // Haxe: ignore MOVE until FORCE ack or ~2s timeout.
+    {
+        let p = state.players.get(&conn_id).ok_or(MoveReject::NoPlayer)?;
+        if still_waiting_for_force(p.wait_for_force, p.time_last_force, state.sim_time) {
+            return Err(MoveReject::WaitForForce);
+        }
+    }
+    if let Some(p) = state.players.get_mut(&conn_id) {
+        if p.wait_for_force {
+            p.wait_for_force = false;
+        }
+    }
     // Haxe MoveHelper.moveHelper:
     //   if isBlocked(clientStart) || quadDist > MaxMovementQuadJumpDistanceBeforeForce(5)
     //     â†’ CancleMovement (no snap).
@@ -8086,8 +10322,8 @@ pub fn apply_move_path_start(
         // Too far: caller force-PU at **server** position (Haxe CancleMovement).
         return Err(MoveReject::JumpTooFar);
     }
-    // Haxe checks isBlocked(client xs,ys) before mutating â€” keep server tile on reject.
-    {
+    // Haxe checks isBlocked(client xs,ys) before mutating — keep server tile on reject.
+    let start_floor = {
         let world = state.world.read().unwrap();
         let (sx, sy) = world.wrap_tile(xs, ys);
         if biome_blocks_move(world.get_biome(sx, sy))
@@ -8095,11 +10331,45 @@ pub fn apply_move_path_start(
         {
             return Err(MoveReject::BlockedStart);
         }
+        world.get_floor(sx, sy)
+    };
+    let mut jump_exhausted_say = false;
+    if jump_quad > 0 {
+        // Haxe MoveHelper L606-626: MaxJumpsPerTenSec gate + ExhaustionOnJump.
+        // SETTINGS-LONG-TAIL
+        let (jumped, food_max, exhaustion, is_human, max_jumps, exh_on_jump) = {
+            let p = state.players.get(&conn_id).ok_or(MoveReject::NoPlayer)?;
+            (
+                p.jumped_tiles,
+                p.food_max,
+                p.exhaustion,
+                !p.is_ai_body(),
+                state.gameplay.max_jumps_per_ten_sec,
+                state.gameplay.exhaustion_on_jump,
+            )
+        };
+        if jump_rate_limited_ex(jumped, max_jumps) {
+            return Err(MoveReject::JumpRateLimited);
+        }
+        let effective = jump_quad_with_floor(jump_quad as f64, start_floor as i32);
+        let (new_exh, new_jt, exhausted) = apply_jump_cost_ex(
+            exhaustion,
+            jumped,
+            food_max,
+            effective,
+            is_human,
+            exh_on_jump,
+        );
+        jump_exhausted_say = crate::jump_bw::jump_should_say_exhausted(exhausted);
+        if let Some(p) = state.players.get_mut(&conn_id) {
+            p.exhaustion = new_exh;
+            p.jumped_tiles = new_jt;
+        }
     }
     let (start_x, start_y) = if jump_quad == 0 {
         (px, py)
     } else {
-        // Accept client position (Haxe positionChanged â€” no CancleMovement).
+        // Accept client position (Haxe positionChanged — no CancleMovement).
         if let Some(p) = state.players.get_mut(&conn_id) {
             p.move_path = None;
             p.moving = false;
@@ -8113,6 +10383,9 @@ pub fn apply_move_path_start(
         );
         (xs, ys)
     };
+    if jump_exhausted_say {
+        send_ps_reply(outbound, conn_id, crate::jump_bw::JUMP_EXHAUSTED_SAY);
+    }
     // Mid-path replace: clear residual path when start tile already matches.
     if let Some(p) = state.players.get_mut(&conn_id) {
         if p.move_path.is_some() {
@@ -8143,7 +10416,7 @@ pub fn apply_move_path_start(
     let (speed, seq) = {
         let p = state.players.get(&conn_id).ok_or(MoveReject::NoPlayer)?;
         let seq = resolve_move_seq(p, client_seq);
-        let ballast = weight_item_count(p.held_id, p.backpack.len());
+        let ballast = weight_item_count(p.held_id, p.backpack_cargo_len());
         let base = compose_move_speed(
             p.riding,
             &state.weather,
@@ -8154,16 +10427,50 @@ pub fn apply_move_path_start(
             ballast,
         );
         // Haxe calculateSpeed(p, p.tx, p.ty, fullPathHasRoad)
+        let heat = p.heat;
+        let is_ai = p.is_ai_body();
+        let class = speed_prestige_class(state.player_prestige_class(p.p_id));
+        let is_strong = class.is_strong();
+        let (left_shoe, right_shoe) = shoe_pair_ids(
+            p.shoes,
+            p.clothing_helpers[2].as_ref().map(|h| h.id),
+            p.clothing_helpers[3].as_ref().map(|h| h.id),
+        );
+        let held_sm = held_object_speed_mult(&state.content, p.held_id);
+        let on_horse = is_horse_or_car(held_sm);
+        let (curse_active, close_hostile) = live_move_speed_gates(state, p);
+        // C-SS-MORE-BATCH5 + SETTINGS-LONG-TAIL: live vitals + contained clamp
+        let speed_knobs = state.gameplay.vitals_speed_live_knobs();
+        let vitals = VitalsSpeedInput {
+            has_both_shoes: has_both_shoes(left_shoe, right_shoe),
+            on_horse_or_car: on_horse,
+            current_food_store_max: p.food_max,
+            heat,
+            curse_active,
+            close_hostile_with_weapon: close_hostile,
+            is_ai,
+            prestige_class: class,
+            is_strong,
+            held_nest_product: held_nest_speed_product_ex(
+                &state.content,
+                p.held_helper.as_ref(),
+                speed_knobs.min_speed_reduction_per_contained_obj,
+            ),
+        };
         let world = state.world.read().unwrap();
-        let floor_factor = floor_road_factor_at(
+        let speed = apply_calculate_speed_full_live(
             &world,
             &state.content,
             start_x,
             start_y,
+            base,
             full_path_has_road,
-            false,
+            p.held_id,
+            &p.backpack,
+            p.clothing_helpers[5].as_ref(),
+            &vitals,
+            &speed_knobs,
         );
-        let speed = base * floor_factor;
         (speed, seq)
     };
     let path = build_move_path(
@@ -8179,7 +10486,10 @@ pub fn apply_move_path_start(
     // PM wire uses start-relative waypoint deltas (client form), not per-step.
     let wire_deltas = steps_to_client_path_deltas(&accepted);
     let p_id = {
-        let p = state.players.get_mut(&conn_id).ok_or(MoveReject::NoPlayer)?;
+        let p = state
+            .players
+            .get_mut(&conn_id)
+            .ok_or(MoveReject::NoPlayer)?;
         p.move_path = Some(path);
         p.moving = true;
         p.p_id
@@ -8187,7 +10497,9 @@ pub fn apply_move_path_start(
     // S-MOVE-LIVE-GATES: mutate is_cursed + CU/PE/say on enter/clear.
     apply_grave_curse_live_gates(state, outbound, conn_id);
     // Per-viewer birth-relative PM (Haxe transformX/Y for each connection).
-    let near = nearby_conn_ids(state, start_x, start_y, NEARBY_RANGE);
+    // Haxe: Connection.SendMoveUpdateToAllClosePlayers uses CoseForMovement (30).
+    // SETTINGS-LONG-TAIL
+    let near = nearby_conn_ids(state, start_x, start_y, movement_range(state));
     let mut recipients: Vec<u64> = near;
     if !recipients.contains(&conn_id) {
         recipients.push(conn_id);
@@ -8198,15 +10510,8 @@ pub fn apply_move_path_start(
             .get(&cid)
             .map(|v| v.world_to_client(start_x, start_y))
             .unwrap_or((start_x, start_y));
-        let pm = ol_protocol::format_player_moves_start(
-            p_id,
-            rx,
-            ry,
-            total,
-            total,
-            trunc,
-            &wire_deltas,
-        );
+        let pm =
+            ol_protocol::format_player_moves_start(p_id, rx, ry, total, total, trunc, &wire_deltas);
         // Official client holds PM until FM (waitForFrameMessages after ACCEPTED).
         outbound.send_urgent(cid, pm.into_bytes());
         send_frame(outbound, cid);
@@ -8276,18 +10581,9 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
         let result = {
             let world = state.world.read().unwrap();
             let content = &state.content;
-            advance_path(
-                &mut path,
-                &mut x,
-                &mut y,
-                dt,
-                tick,
-                &wrap_fn,
-                &|nx, ny| {
-                    biome_blocks_move(world.get_biome(nx, ny))
-                        || !is_walkable(&world, content, nx, ny)
-                },
-            )
+            advance_path(&mut path, &mut x, &mut y, dt, tick, &wrap_fn, &|nx, ny| {
+                biome_blocks_move(world.get_biome(nx, ny)) || !is_walkable(&world, content, nx, ny)
+            })
         };
         if !result.commits.is_empty() {
             state.world.write().unwrap().touch_radius(x, y, 1);
@@ -8325,7 +10621,7 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
             if let Some(p) = state.players.get(&conn_id).cloned() {
                 let spd = player_move_speed(state, &p);
                 // Must emit the path seq (not hardcoded 1) so client matches MOVE @seq.
-                let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
+                let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
                 for &cid in &near {
                     let (rx, ry) = state
                         .players
@@ -8353,10 +10649,7 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
                         p.done_moving_seq.max(1),
                     );
                     // PU then FM so official clients flush the move-complete update.
-                    outbound.send_urgent(
-                        cid,
-                        format_server_message("PU", &[&pu]).into_bytes(),
-                    );
+                    outbound.send_urgent(cid, format_server_message("PU", &[&pu]).into_bytes());
                     send_frame(outbound, cid);
                 }
             }
@@ -8390,6 +10683,7 @@ pub fn cancel_movement(
         conn_id,
         if seq > 0 { Some(seq) } else { None },
     );
+    arm_human_wait_for_force(state, conn_id);
     state.publish_player_view(conn_id);
 }
 
@@ -8423,6 +10717,9 @@ pub fn apply_move_deltas_with_seq(
         .map(|p| p.deleted || p.sleeping || (SIT_BLOCKS_MOVE && p.sitting))
         .unwrap_or(true)
     {
+        return false;
+    }
+    if player_has_close_armed_nonally(state, conn_id) {
         return false;
     }
     let (origin_x, origin_y) = state
@@ -8522,14 +10819,15 @@ pub fn apply_move_deltas_with_seq(
 ///
 /// When `food < HUNGER_EMOT_FOOD_THRESHOLD` (and still alive), once every
 /// [`HUNGER_EMOT_INTERVAL_SECS`] of sim time, send PE hunger emote
-/// ([`HUNGER_EMOT_INDEX`]) to connections within [`NEARBY_RANGE`].
+/// ([`HUNGER_EMOT_INDEX`] = mad/1) to connections within [`NEARBY_RANGE`].
+/// Not Haxe starving PE 31 (`food_store < 0`); Rust death is `food < 0`.
 ///
 /// While [`Player::sleeping`], once every [`SLEEP_EMOT_INTERVAL_SECS`] of sim time,
 /// send PE sleep/snore emote ([`SLEEP_EMOT_INDEX`]) to connections within
 /// [`NEARBY_RANGE`].
 ///
 /// Every [`HX_EMIT_INTERVAL_SECS`] of sim time, send HX (`format_heat_change`) to
-/// each living player using body `Player::heat` (from `tile_temps` ambient).
+/// each living player using body `Player::heat` + Haxe `foodDrainTime` (indoor 0).
 ///
 /// AFK: when idle â‰¥ [`DEFAULT_AFK_SECS`] since last activity touch, the player is
 /// considered AFK (no kick yet). On the tick that first crosses the threshold,
@@ -8544,9 +10842,7 @@ pub fn apply_move_deltas_with_seq(
 // Haxe: AiBase.CalculateBlockedByAi ~222â€“239 (each AI frame)
 // BLOCKED-BY-AI
 pub fn rebuild_blocked_by_ai_live(state: &mut SimState) {
-    use crate::ai_path_reach::{
-        apply_rebuild_blocked_by_ai_from_sticky, StickyBlockBodyRow,
-    };
+    use crate::ai_path_reach::{apply_rebuild_blocked_by_ai_from_sticky, StickyBlockBodyRow};
     let sim_time = state.sim_time;
     let bodies: Vec<StickyBlockBodyRow> = state
         .players
@@ -8563,6 +10859,9 @@ pub fn rebuild_blocked_by_ai_live(state: &mut SimState) {
         })
         .collect();
     apply_rebuild_blocked_by_ai_from_sticky(&mut state.blocked_by_ai, sim_time, &bodies);
+    if let Some(share) = state.blocked_by_ai_share.clone() {
+        crate::ai_path_reach::mirror_blocked_by_ai_share(&share, &state.blocked_by_ai);
+    }
 }
 
 /// Note sticky food/use/drop claim from a shortCraft live intent (before USE/DROP).
@@ -8577,22 +10876,28 @@ pub fn note_ai_block_targets_from_live_intent(
     use crate::ShortCraftLiveIntent;
     let (mut kind, x, y, target_hint) = match intent {
         ShortCraftLiveIntent::UseAt {
-            x,
-            y,
-            target_id,
-            ..
+            x, y, target_id, ..
         } => (StickyBlockIntentKind::Use, x, y, target_id),
         ShortCraftLiveIntent::UseOnEmptyGround { x, y, .. } => {
             (StickyBlockIntentKind::Use, x, y, 0)
         }
         ShortCraftLiveIntent::DropAt { x, y } => (StickyBlockIntentKind::Drop, x, y, 0),
+        ShortCraftLiveIntent::StageRemoveFromContainer {
+            x,
+            y,
+            expected_parent,
+        } => (
+            StickyBlockIntentKind::RemoveFromContainer,
+            x,
+            y,
+            expected_parent,
+        ),
+        ShortCraftLiveIntent::Remv { x, y } => {
+            (StickyBlockIntentKind::RemoveFromContainer, x, y, 0)
+        }
         _ => return,
     };
-    let held_id = state
-        .players
-        .get(&conn_id)
-        .map(|p| p.held_id)
-        .unwrap_or(0);
+    let held_id = state.players.get(&conn_id).map(|p| p.held_id).unwrap_or(0);
     let (parent_id, number_of_uses, is_animal, food_value, held_new_target_id) = {
         let world = match state.world.read() {
             Ok(w) => w,
@@ -8655,6 +10960,79 @@ pub fn tick_vitals(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
     tick_vitals_with_metrics(state, dt, outbound, None);
 }
 
+/// Haxe `TimeHelper.UpdateEmotes` live PE ladder (`tick % 30`).
+/// Starving PE 31 needs `food < 0`; living players never reach that (death first).
+/// Living hunger face is PE 1 (`HUNGER_EMOT_*`), not this ladder.
+// Haxe: TimeHelper.DoTimeStuffForPlayer L251 + UpdateEmotes L631
+// FEVER-HUNGER-PE
+fn apply_update_emotes_tick(state: &mut SimState, outbound: &OutboundHub) {
+    if !crate::fever_pe::should_update_emotes_this_tick(state.tick) {
+        return;
+    }
+    let sim_time = state.sim_time;
+    let min_age = state.gameplay.min_age_to_eat;
+    let angry_before = state.gameplay.combat_angry_time_before_attack_live();
+    let snapshots: Vec<(u64, i32, i32, i32, crate::fever_pe::UpdateEmotesInput)> = state
+        .players
+        .iter()
+        .filter(|(_, p)| !p.deleted)
+        .map(|(&cid, p)| {
+            let held_name = held_object_name(state, p.held_id);
+            let holding_weapon = is_holding_weapon(p.held_id, &held_name);
+            let is_wounded = p.is_wounded_held(crate::is_wound_object(&state.content, p.held_id));
+            let attacker_mutual_weapon = {
+                let aid = p.last_player_attacked_me_id;
+                aid > 0
+                    && state.players.values().any(|o| {
+                        o.p_id == aid
+                            && !o.deleted
+                            && o.last_attacked_player_id == p.p_id
+                            && is_holding_weapon(o.held_id, &held_object_name(state, o.held_id))
+                    })
+            };
+            let po = person_object_id(p);
+            let color = state.content.person_color(po);
+            let inp = crate::fever_pe::UpdateEmotesInput {
+                is_wounded,
+                angry_time: p.angry_time,
+                holding_weapon,
+                attacker_mutual_weapon,
+                has_yellow_fever: crate::nested_body::is_yellow_fever(p.fever.as_ref()),
+                is_super_hot: crate::player_soul::is_super_hot_for_person(p.heat, color),
+                is_super_cold: crate::player_soul::is_super_cold_for_person(p.heat, color),
+                food_store: p.food,
+                age: p.age,
+                min_age_to_eat: min_age,
+                combat_angry_before_attack: angry_before,
+                secs_since_ambient_emote: crate::fever_pe::secs_since_ambient_emote(
+                    sim_time,
+                    p.last_time_emote_send,
+                ),
+            };
+            (cid, p.p_id, p.x, p.y, inp)
+        })
+        .collect();
+    for (cid, p_id, x, y, inp) in snapshots {
+        let plan = crate::fever_pe::resolve_update_emotes(&inp);
+        if plan.stamp_ambient_timer {
+            if let Some(p) = state.players.get_mut(&cid) {
+                p.last_time_emote_send = sim_time;
+            }
+        }
+        if plan.emotes.is_empty() {
+            continue;
+        }
+        let near = nearby_conn_ids(state, x, y, nearby_range(state));
+        if near.is_empty() {
+            continue;
+        }
+        for e in plan.emotes {
+            let pe = format_player_emot(p_id, e).into_bytes();
+            send_nearby(outbound, &near, pe);
+        }
+    }
+}
+
 /// Like [`tick_vitals`], optionally recording death counts into process metrics.
 ///
 /// Time dilation: `dt` is multiplied by [`SimState::sim_speed`] (clamped â‰¥ 0).
@@ -8675,13 +11053,78 @@ pub fn tick_vitals_with_metrics(
     };
     let dt = dt * speed;
     state.sim_time += dt;
+    // LINEAGE-ARCHIVE: autosave clone of social needs now_sim for WriteAllLineages prune.
+    state.social.sim_time = state.sim_time;
     // Snapshot positions for temperature (avoid borrow clash with players mut).
-    let pos: Vec<(u64, i32, i32)> = state
+    let color_by_pid: HashMap<i32, i32> = state
+        .players
+        .values()
+        .filter(|p| !p.deleted)
+        .map(|p| (p.p_id, state.content.person_color(person_object_id(p))))
+        .collect();
+    let heat_by_pid: HashMap<i32, f32> = state
+        .players
+        .values()
+        .filter(|p| !p.deleted)
+        .map(|p| (p.p_id, p.heat))
+        .collect();
+    let pos: Vec<(
+        u64,
+        i32,
+        i32,
+        f32,
+        [i32; 6],
+        i32,
+        i32,
+        Option<i32>,
+        Option<i32>,
+        Option<f32>,
+        f32,
+        Option<(i32, i32)>,
+        Option<(i32, i32)>,
+    )> = state
         .players
         .iter()
         .filter(|(_, p)| !p.deleted)
-        .map(|(c, p)| (*c, p.x, p.y))
+        .map(|(c, p)| {
+            let color = color_by_pid.get(&p.p_id).copied().unwrap_or(0);
+            let node = state.social.lineages.get(&p.p_id);
+            let mother_c = node
+                .and_then(|n| n.mother_id)
+                .and_then(|id| color_by_pid.get(&id).copied());
+            let father_c = node
+                .and_then(|n| n.father_id)
+                .and_then(|id| color_by_pid.get(&id).copied());
+            let holder_heat = if p.held_by != 0 {
+                heat_by_pid.get(&p.held_by).copied()
+            } else {
+                None
+            };
+            (
+                *c,
+                p.x,
+                p.y,
+                p.heat,
+                p.clothing_parent_ids(),
+                p.held_id,
+                color,
+                mother_c,
+                father_c,
+                holder_heat,
+                p.stored_water,
+                p.warm_place,
+                p.cold_place,
+            )
+        })
         .collect();
+    let impact_per_sec = state.gameplay.temperature_impact_per_sec;
+    let impact_if_good = state.gameplay.temperature_impact_per_sec_if_good;
+    let water_factor = state.gameplay.temperature_in_water_factor;
+    let food_use_base = state.gameplay.food_use_per_second;
+    let hits_factor = state.gameplay.temperature_hits_damage_factor;
+    let exh_factor = state.gameplay.temperature_exhaustion_damage_factor;
+    let impact_below = state.gameplay.temperature_impact_below;
+    let color_factor = state.gameplay.temperature_impact_color_factor;
     // Per-player food drain/sec =
     //   (FOOD_USE_PER_SEC * biome_mult * day_night_mult * apoc_mult
     //    + TEMP_FOOD_EXTRA [halved indoors] [+ DESERT_EXTRA when desert & hot])
@@ -8692,15 +11135,95 @@ pub fn tick_vitals_with_metrics(
     let mut food_drain: HashMap<u64, f32> = HashMap::new();
     // conn_id â†’ biome temperature (reuse for periodic HX).
     let mut heat_by_conn: HashMap<u64, f32> = HashMap::new();
+    let mut food_time_by_conn: HashMap<u64, f32> = HashMap::new();
+    let mut heat_updates: Vec<(
+        u64,
+        f32,
+        f32,
+        f32,
+        Option<(i32, i32)>,
+        Option<(i32, i32)>,
+        f32,
+        f32,
+    )> = Vec::new();
+    let mut biome_by_cid: HashMap<u64, u8> = HashMap::new();
     {
         let world = state.world.read().unwrap();
-        for (cid, x, y) in pos {
+        let season_impact = state
+            .gameplay
+            .scale_season_temperature_impact(state.environment.season_temperature_impact);
+        for (
+            cid,
+            x,
+            y,
+            heat,
+            clothing_ids,
+            held_id,
+            color,
+            mother_c,
+            father_c,
+            holder_heat,
+            stored_water,
+            warm_place,
+            cold_place,
+        ) in pos
+        {
             let biome = world.get_biome(x, y);
-            let t = state.environment.temperature_at_biome(biome);
-            heat_by_conn.insert(cid, t);
+            let floor = world.get_floor(x, y) as i32;
+            let love = biome_love_factor(biome as i32, floor, color, mother_c, father_c);
+            let extras = map_temp_player::TempAmbientExtras {
+                person_color: color,
+                biome_love_factor: love,
+                held_by_heat: holder_heat,
+                warm_place,
+                cold_place,
+            };
+            let (new_heat, ambient, places) = map_temp_player::update_player_temperature_ex(
+                &world,
+                &state.content,
+                &mut state.world_map_time,
+                x,
+                y,
+                season_impact,
+                dt,
+                heat,
+                &clothing_ids,
+                impact_per_sec,
+                impact_if_good,
+                water_factor,
+                state.gameplay.hot_season_temperature_factor,
+                state.gameplay.cold_season_temperature_factor,
+                held_id,
+                map_temp_player::ClothingTempKnobs::default(),
+                extras,
+            );
+            let dt_temp = dt.clamp(0.0, map_temp_player::PLAYER_TEMP_TIME_PASSED_CAP);
+            let (new_heat, stored) =
+                map_temp_player::apply_stored_water_cool(new_heat, stored_water, dt_temp);
+            let (food_use, food_time) = crate::temperature_handler::player_heat_food_drain(
+                new_heat,
+                color,
+                food_use_base,
+                hits_factor,
+                exh_factor,
+                impact_below,
+                color_factor,
+            );
+            heat_updates.push((
+                cid,
+                new_heat,
+                ambient,
+                stored,
+                places.warm,
+                places.cold,
+                food_use,
+                food_time,
+            ));
+            heat_by_conn.insert(cid, new_heat);
+            food_time_by_conn.insert(cid, food_time);
+            biome_by_cid.insert(cid, biome);
+            let t = ambient;
             let mult = biome_food_multiplier(biome);
-            // Extreme temps cost extra food (on top of biome / day-night / apoc multipliers).
-            // Indoor stub: floor id != 0 â†’ half TEMP_FOOD_EXTRA.
             let indoor = world.get_floor(x, y) != 0;
             let mut extra = if t < 0.25 || t > 0.75 {
                 if indoor {
@@ -8711,16 +11234,25 @@ pub fn tick_vitals_with_metrics(
             } else {
                 0.0
             };
-            // Desert (biome 5) heat: additional additive drain when hot.
+            extra += crate::heat_ideal::heat_food_extra(new_heat);
             if biome == 5 && t > 0.75 {
                 extra += DESERT_EXTRA;
             }
-            // Weather multiplies base drain; clothing warmth reduces additive temp extra.
             let weather_mult = state.weather.food_drain_mult();
             food_drain.insert(
                 cid,
                 FOOD_USE_PER_SEC * mult * day_night * apoc_mult * weather_mult + extra,
             );
+        }
+    }
+    for (cid, heat, ambient, stored, warm, cold, food_use, _food_time) in heat_updates {
+        if let Some(p) = state.players.get_mut(&cid) {
+            p.heat = heat;
+            p.last_temperature = ambient;
+            p.stored_water = stored;
+            p.warm_place = warm;
+            p.cold_place = cold;
+            p.food_use_per_second = food_use;
         }
     }
 
@@ -8802,17 +11334,191 @@ pub fn tick_vitals_with_metrics(
         .collect();
 
     let mut dead = Vec::new();
+    // trueAge just crossed 10 (Haxe TimeHelper father re-follow).
+    let mut age10_father: Vec<u64> = Vec::new();
+    // trueAge just crossed 58 (Haxe TimeHelper life-nears-end prestige GM).
+    let mut age58_score: Vec<u64> = Vec::new();
     // (p_id, x, y, sick) for starving-infant BW + DY fan-out after the mut borrow ends.
     let mut vitals_emits: Vec<(i32, i32, i32, bool)> = Vec::new();
     // (p_id, x, y) for PE hunger emote fan-out after the mut borrow ends.
     let mut hunger_emots: Vec<(i32, i32, i32)> = Vec::new();
     // (p_id, x, y) for PE sleep/snore emote fan-out after the mut borrow ends.
     let mut sleep_emots: Vec<(i32, i32, i32)> = Vec::new();
+    let ageing_secs = state.gameplay.ageing_seconds_per_year;
+    let starve_aging = state.gameplay.aging_factor_while_starving;
+    let max_jumps = state.gameplay.max_jumps_per_ten_sec;
+    let yf_exh = state.gameplay.exhaustion_yellow_fever_per_sec;
+    let grown_up_age = state.gameplay.grown_up_age;
+    let child_food_faktor = state.gameplay.food_use_child_faktor;
+    let ai_food_serf = state.gameplay.ai_food_use_factor_serf;
+    let ai_food_commoner = state.gameplay.ai_food_use_factor_commoner;
+    let ai_food_noble = state.gameplay.ai_food_use_factor_noble;
+    let eve_food_faktor = state.gameplay.eve_food_use_factor;
+    let min_age_eat = state.gameplay.min_age_to_eat;
+    let human_born_ai = state.gameplay.aging_factor_human_born_to_ai;
+    let ai_born_human = state.gameplay.aging_factor_ai_born_to_human;
+    let birth_aging_by_cid: HashMap<u64, f32> = state
+        .players
+        .iter()
+        .filter(|(_, p)| !p.deleted)
+        .map(|(&cid, p)| {
+            let mother_is_ai = state
+                .social
+                .lineages
+                .get(&p.p_id)
+                .and_then(|n| n.mother_id)
+                .and_then(|m| {
+                    state
+                        .players
+                        .values()
+                        .find(|q| q.p_id == m)
+                        .map(|q| q.is_ai_body())
+                });
+            (
+                cid,
+                crate::food_store_max::birth_cross_species_aging_mult_live(
+                    p.age,
+                    !p.is_ai_body(),
+                    mother_is_ai,
+                    min_age_eat,
+                    human_born_ai,
+                    ai_born_human,
+                ),
+            )
+        })
+        .collect();
+    let ai_class_by_cid: HashMap<u64, (bool, PrestigeClass)> = state
+        .players
+        .iter()
+        .filter(|(_, p)| !p.deleted)
+        .map(|(&cid, p)| (cid, (p.is_ai_body(), state.player_prestige_class(p.p_id))))
+        .collect();
+    let eve_gate_by_cid: HashMap<u64, (bool, bool)> = state
+        .players
+        .iter()
+        .filter(|(_, p)| !p.deleted)
+        .map(|(&cid, p)| {
+            (
+                cid,
+                (
+                    crate::food_store_max::is_eve_or_adam_name(&p.first_name),
+                    p.is_wounded_held(crate::is_wound_object(&state.content, p.held_id)),
+                ),
+            )
+        })
+        .collect();
+    // Haxe TimeHelper angryTime: moreAngry = killMode || last attacker holding weapon.
+    let holding_weapon_by_pid: HashMap<i32, bool> = state
+        .players
+        .values()
+        .filter(|p| !p.deleted)
+        .map(|p| {
+            let name = held_object_name(state, p.held_id);
+            (p.p_id, is_holding_weapon(p.held_id, &name))
+        })
+        .collect();
+    let pos_by_pid: HashMap<i32, (i32, i32)> = state
+        .players
+        .values()
+        .filter(|p| !p.deleted)
+        .map(|p| (p.p_id, (p.x, p.y)))
+        .collect();
+    let lost_combat_by_pid: HashMap<i32, f32> = state
+        .players
+        .values()
+        .filter(|p| !p.deleted)
+        .map(|p| {
+            (
+                p.p_id,
+                state
+                    .combat
+                    .stats
+                    .get(&p.p_id)
+                    .map(|s| s.lost_combat_prestige)
+                    .unwrap_or(0.0),
+            )
+        })
+        .collect();
+    let angry_min = state.gameplay.combat_angry_time_minimum_live();
+    let angry_before = state.gameplay.combat_angry_time_before_attack_live();
+    let restore_per_year = state.gameplay.combat_reputation_restore_per_year;
+    let mut combat_restore: Vec<(i32, f32)> = Vec::new();
     for (cid, p) in state.players.iter_mut() {
         if p.deleted {
             continue;
         }
-        p.age += AGE_YEARS_PER_SEC * dt;
+        // Haxe TimeHelper.updateAge: trueAge wall-clock; display age × ageingFactor.
+        // SETTINGS-LONG-TAIL AgingFactorWhileStarvingToDeath / GrownUpAge
+        let health_age_f = health_age_by_cid.get(cid).copied().unwrap_or(1.0);
+        let age_step = crate::food_store_max::age_step_from_health_live(
+            dt,
+            p.age,
+            p.food,
+            health_age_f,
+            birth_aging_by_cid.get(cid).copied().unwrap_or(1.0),
+            ageing_secs,
+            starve_aging,
+            grown_up_age,
+        );
+        let prev_true_age = p.true_age;
+        p.true_age += age_step.true_age_delta;
+        p.age += age_step.age_delta;
+        p.age_r = age_step.age_r;
+        if crate::map_location_pins::crossed_true_age_year(prev_true_age, p.true_age, 10) {
+            age10_father.push(*cid);
+        }
+        if crate::map_location_pins::crossed_true_age_year(
+            prev_true_age,
+            p.true_age,
+            crate::score_age::SCORE_AGE_YEAR,
+        ) {
+            age58_score.push(*cid);
+        }
+        // Haxe TimeHelper jumpedTiles decay × MaxJumpsPerTenSec × 0.1 / s.
+        // SETTINGS-LONG-TAIL
+        p.jumped_tiles = decay_jumped_tiles_ex(p.jumped_tiles, dt, max_jumps);
+        // Haxe TimeHelper: moreAngry from killMode / last attacker *before* far-clear.
+        // ANGRY-TIME-MIN
+        let last_attacker = p.last_player_attacked_me_id;
+        let more_angry = p.kill_mode
+            || (last_attacker != 0
+                && holding_weapon_by_pid
+                    .get(&last_attacker)
+                    .copied()
+                    .unwrap_or(false));
+        let biome = biome_by_cid.get(cid).copied().unwrap_or(0);
+        p.angry_time = crate::angry_tick::tick_angry_time(
+            p.angry_time,
+            dt,
+            more_angry,
+            biome,
+            angry_min,
+            angry_before,
+        );
+        // Haxe TimeHelper: lastPlayerAttackedMe null when quadDist > 100 (after angry tick).
+        if last_attacker != 0 {
+            match pos_by_pid.get(&last_attacker) {
+                Some(&(ax, ay)) => {
+                    let dx = (p.x - ax) as f32;
+                    let dy = (p.y - ay) as f32;
+                    if dx * dx + dy * dy > 100.0 {
+                        p.last_player_attacked_me_id = 0;
+                    }
+                }
+                None => p.last_player_attacked_me_id = 0,
+            }
+        }
+        let lost = lost_combat_by_pid.get(&p.p_id).copied().unwrap_or(0.0);
+        let restore = crate::reputation::combat_reputation_restore_delta_ex(
+            p.angry_time,
+            lost,
+            p.dark_nosaj,
+            dt,
+            restore_per_year,
+        );
+        if restore > 0.0 {
+            combat_restore.push((p.p_id, restore));
+        }
         // Old age death before hunger (age > 120 â†’ reason_age).
         if p.age > MAX_AGE {
             p.deleted = true;
@@ -8824,10 +11530,28 @@ pub fn tick_vitals_with_metrics(
             dead.push(*cid);
             continue;
         }
-        let mut drain = food_drain
+        let mut drain = food_drain.get(cid).copied().unwrap_or(FOOD_USE_PER_SEC);
+        // Haxe: age < GrownUpAge && food_store > 0 → × FoodUseChildFaktor
+        // SETTINGS-LONG-TAIL
+        drain *= crate::food_store_max::child_food_use_mult(
+            p.age,
+            p.food,
+            grown_up_age,
+            child_food_faktor,
+        );
+        // Haxe: isAi → × AIFoodUseFactorSerf/Commoner/Noble (King/Emperor/NotSet stay 1)
+        // SETTINGS-LONG-TAIL
+        let (is_ai, class) = ai_class_by_cid
             .get(cid)
             .copied()
-            .unwrap_or(FOOD_USE_PER_SEC);
+            .unwrap_or((false, PrestigeClass::Commoner));
+        drain *= crate::food_store_max::ai_class_food_use_mult(
+            is_ai,
+            class,
+            ai_food_serf,
+            ai_food_commoner,
+            ai_food_noble,
+        );
         if p.age > OLD_AGE_THRESHOLD {
             drain *= OLD_AGE_FOOD_DRAIN_MULT;
         }
@@ -8853,6 +11577,16 @@ pub fn tick_vitals_with_metrics(
         if let Some(&extra) = hazard_by_cid.get(cid) {
             drain += extra;
         }
+        // Haxe: isEveOrAdam && !isWounded → × EveFoodUseFactor (after extras)
+        // SETTINGS-LONG-TAIL
+        let (is_eve, wounded) = eve_gate_by_cid.get(cid).copied().unwrap_or((false, false));
+        drain *= crate::food_store_max::eve_food_use_mult(is_eve, wounded, eve_food_faktor);
+        if crate::nested_body::is_yellow_fever(p.fever.as_ref()) {
+            drain += crate::food_store_max::yellow_fever_food_drain_ex(1.0, yf_exh);
+            let held_by = p.held_by != 0;
+            p.heat =
+                (p.heat + crate::food_store_max::yellow_fever_heat_delta(dt, held_by)).min(1.0);
+        }
         p.food -= drain * dt;
         // Starving infant: accumulate emit timer; fire BW+DY every ~5s sim time.
         if p.age < BABY_AGE_THRESHOLD
@@ -8867,7 +11601,8 @@ pub fn tick_vitals_with_metrics(
         } else {
             p.vitals_emit_timer = 0.0;
         }
-        // Low food: PE hunger emote every ~8s sim time.
+        // Living hunger PE 1 every ~8s (not Haxe starving PE 31).
+        // FEVER-HUNGER-PE
         if p.food < HUNGER_EMOT_FOOD_THRESHOLD && p.food >= DEATH_FOOD_THRESHOLD {
             p.hunger_emot_timer += dt;
             if p.hunger_emot_timer >= HUNGER_EMOT_INTERVAL_SECS {
@@ -8901,6 +11636,14 @@ pub fn tick_vitals_with_metrics(
             p.sleep_emot_timer = 0.0;
             dead.push(*cid);
         }
+    }
+    // Haxe TimeHelper L780-805: trueAge 10 father re-follow + say + emote + pins.
+    for cid in age10_father {
+        crate::map_location_pins::try_age10_father_refollow_on_cross(state, outbound, cid);
+    }
+    // Haxe TimeHelper L808-839: trueAge 58 life-nears-end prestige GM.
+    for cid in age58_score {
+        crate::score_age::try_age58_score_gm_on_cross(state, outbound, cid);
     }
     // Haxe TimeHelper â†’ ScoreEntry.ProcessScoreEntry (trueAge % 5 == 0).
     process_player_score_entries(state, outbound);
@@ -8957,6 +11700,20 @@ pub fn tick_vitals_with_metrics(
             }
         }
     }
+    // Haxe TimeHelper: lostCombatPrestige restore after angryTime step.
+    for (pid, delta) in combat_restore {
+        let before = state
+            .combat
+            .stats
+            .get(&pid)
+            .map(|s| s.lost_combat_prestige)
+            .unwrap_or(0.0);
+        let after = (before - delta).max(0.0);
+        if let Some(s) = state.combat.stats.get_mut(&pid) {
+            s.lost_combat_prestige = after;
+        }
+        state.reputation.set_from_lost_combat(pid, after);
+    }
     // AFK mark + optional PE yawn when idle first crosses DEFAULT_AFK_SECS.
     let mut afk_yawns: Vec<(i32, i32, i32)> = Vec::new();
     {
@@ -8977,17 +11734,16 @@ pub fn tick_vitals_with_metrics(
     }
     for (p_id, x, y) in &afk_yawns {
         state.push_event(format!("AFK {p_id}"));
-        let nearby = nearby_conn_ids(state, *x, *y, NEARBY_RANGE);
+        let nearby = nearby_conn_ids(state, *x, *y, nearby_range(state));
         if nearby.is_empty() {
             continue;
         }
-        let line = format!("{p_id}/0 {YAWN_EMOT_INDEX}");
-        let pe = format_server_message("PE", &[&line]).into_bytes();
+        let pe = format_player_emot(*p_id, YAWN_EMOT_INDEX).into_bytes();
         send_nearby(outbound, &nearby, pe);
         debug!(p_id, x, y, n = nearby.len(), "sim: PE AFK yawn");
     }
     for (p_id, x, y, sick) in vitals_emits {
-        let nearby = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+        let nearby = nearby_conn_ids(state, x, y, nearby_range(state));
         if nearby.is_empty() {
             continue;
         }
@@ -8995,10 +11751,17 @@ pub fn tick_vitals_with_metrics(
         let dy = format_dying(p_id, sick).into_bytes();
         send_nearby(outbound, &nearby, bw);
         send_nearby(outbound, &nearby, dy);
-        debug!(p_id, x, y, sick, n = nearby.len(), "sim: BW+DY starving infant");
+        debug!(
+            p_id,
+            x,
+            y,
+            sick,
+            n = nearby.len(),
+            "sim: BW+DY starving infant"
+        );
     }
     for (p_id, x, y) in hunger_emots {
-        let nearby = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+        let nearby = nearby_conn_ids(state, x, y, nearby_range(state));
         if nearby.is_empty() {
             continue;
         }
@@ -9008,7 +11771,7 @@ pub fn tick_vitals_with_metrics(
         debug!(p_id, x, y, n = nearby.len(), "sim: PE hunger emote");
     }
     for (p_id, x, y) in sleep_emots {
-        let nearby = nearby_conn_ids(state, x, y, NEARBY_RANGE);
+        let nearby = nearby_conn_ids(state, x, y, nearby_range(state));
         if nearby.is_empty() {
             continue;
         }
@@ -9017,6 +11780,8 @@ pub fn tick_vitals_with_metrics(
         send_nearby(outbound, &nearby, pe);
         debug!(p_id, x, y, n = nearby.len(), "sim: PE sleep/snore emote");
     }
+    // Haxe TimeHelper.UpdateEmotes on tick % 30 (wound/fever/starving/combat/ambient).
+    apply_update_emotes_tick(state, outbound);
     // Periodic HX heat packets (Haxe HEAT_CHANGE) to each living player.
     state.hx_emit_timer += dt;
     if state.hx_emit_timer >= HX_EMIT_INTERVAL_SECS {
@@ -9026,7 +11791,8 @@ pub fn tick_vitals_with_metrics(
             if dead.contains(cid) {
                 continue;
             }
-            let pkt = format_heat_change(*heat, 0.0, 0.0).into_bytes();
+            let food_time = food_time_by_conn.get(cid).copied().unwrap_or(0.0);
+            let pkt = format_heat_change(*heat, food_time, 0.0).into_bytes();
             outbound.send(*cid, pkt);
         }
         debug!(n = heat_by_conn.len(), "sim: HX heat to players");
@@ -9094,17 +11860,8 @@ pub fn tick_vitals_with_metrics(
         scatter_backpack_on_death(state, cid);
         // Fold session score into soft account (no SQL) before inheritance zeros wallet.
         if let Some(pl) = state.players.get(&cid) {
-            let score = state
-                .scoreboard
-                .entry(p_id)
-                .map(|e| e.score)
-                .unwrap_or(0);
-            let kills = state
-                .combat
-                .stats
-                .get(&p_id)
-                .map(|s| s.kills)
-                .unwrap_or(0);
+            let score = state.scoreboard.entry(p_id).map(|e| e.score).unwrap_or(0);
+            let kills = state.combat.stats.get(&p_id).map(|s| s.kills).unwrap_or(0);
             let deaths = state
                 .combat
                 .stats
@@ -9118,6 +11875,45 @@ pub fn tick_vitals_with_metrics(
                 .get(&p_id)
                 .map(|w| w.coins)
                 .unwrap_or(0);
+            // Haxe: PlayerAccount.ChangeScore (yum_multiplier EMA via ScoreFactor)
+            let life_score = state
+                .social
+                .lineages
+                .get(&p_id)
+                .map(|n| n.prestige)
+                .filter(|p| p.is_finite())
+                .unwrap_or(score as f32);
+            let is_female = content_person_is_female(&state.content, person_object_id(pl));
+            let founder_id = crate::social::lineage_eve_id(&state.social.lineages, p_id);
+            let dynasty_id = state
+                .social
+                .lineages
+                .get(&p_id)
+                .map(|n| n.dynasty_id())
+                .unwrap_or(0);
+            let dynasty_account_id = if dynasty_id > 0 {
+                state
+                    .social
+                    .lineages
+                    .get(&dynasty_id)
+                    .map(|n| n.account_id)
+                    .unwrap_or(0)
+            } else {
+                0
+            };
+            let player_account_id = state.accounts.get(&pl.email).map(|r| r.id).unwrap_or(0);
+            let is_dynasty_founder =
+                dynasty_id > 0 && dynasty_account_id > 0 && player_account_id == dynasty_account_id;
+            state.accounts.change_score_ex(
+                &pl.email,
+                life_score,
+                is_female,
+                state.gameplay.score_factor,
+                founder_id,
+                founder_id == p_id,
+                dynasty_id,
+                is_dynasty_founder,
+            );
             state
                 .accounts
                 .on_death(&pl.email, score, kills, deaths, coins);
@@ -9144,27 +11940,152 @@ pub fn tick_vitals_with_metrics(
             continue;
         };
         if let Some(baby_p_id) = spawn_child(state, mc) {
-            if let Some(node) = state.social.lineages.get(&baby_p_id) {
-                let ln = node.wire_line();
+            if state.social.lineages.contains_key(&baby_p_id) {
+                let ln = create_lineage_string(&state.social.lineages, baby_p_id, true);
                 outbound.send(mc, format_server_message("LN", &[&ln]).into_bytes());
             }
             let line = format!("{mother_id} BIRTH {baby_p_id} OK");
             send_ps_reply(outbound, mc, &line);
             info!(
                 mother_conn = mc,
-                mother_id,
-                baby_p_id,
-                "sim: gestation due spawn_child"
+                mother_id, baby_p_id, "sim: gestation due spawn_child"
             );
         }
     }
+    tick_world_after_players(state, outbound, dt, counters);
+}
+
+/// Haxe `DoWorldMapTimeStuff` + `DoWorldLongTermTimeStuff` (Y-band per tick) + MX.
+fn apply_live_world_time_bands(state: &mut SimState, outbound: &OutboundHub) {
+    let season = state.environment.season;
+    let season_is_spring = matches!(season, Season::Spring);
+    let season_is_winter = matches!(season, Season::Winter);
+    let season_is_summer = matches!(season, Season::Summer);
+    let season_impact = state.environment.season_temperature_impact;
+    let season_length = state.environment.season_length;
+    let season_hardness = state.environment.season_hardness;
+    let sim_time = state.sim_time;
+    let spring_c = state.gameplay.spring_wild_food_regrow_chance;
+    let winter_c = state.gameplay.winter_wild_food_decay_chance;
+    let hot_f = state.gameplay.hot_season_temperature_factor;
+    let cold_f = state.gameplay.cold_season_temperature_factor;
+    let own_tile = state.gameplay.temperature_own_tile_rate;
+    let bal_rate = state.gameplay.temperature_balance_rate;
+    let local_heat_f = state.gameplay.temperature_local_heat_factor;
+    let season_impact = state
+        .gameplay
+        .scale_season_temperature_impact(season_impact);
+    let decay_knobs = state.gameplay.decay_chance_knobs();
+    let mut rng = rand::thread_rng();
+
+    let map_changes = {
+        let mut w = state.world.write().unwrap();
+        crate::world_time::do_world_map_time_stuff_ex2(
+            &mut w,
+            &state.content,
+            &mut state.world_map_time,
+            season_is_spring,
+            season_is_winter,
+            season_impact,
+            season_length,
+            sim_time,
+            season_hardness,
+            &mut rng,
+            spring_c,
+            winter_c,
+            hot_f,
+            cold_f,
+            own_tile,
+            bal_rate,
+            local_heat_f,
+        )
+    };
+    for ch in &map_changes {
+        let floor = state.world.read().unwrap().get_floor(ch.x, ch.y) as i32;
+        let near = nearby_conn_ids(state, ch.x, ch.y, nearby_range(state));
+        if ch.moving {
+            let floor_o = state.world.read().unwrap().get_floor(ch.from_x, ch.from_y) as i32;
+            let leftover = state.world.read().unwrap().get_object(ch.from_x, ch.from_y);
+            crate::vanilla_id::send_nearby_maybe_mx(
+                state,
+                outbound,
+                &near,
+                format_map_change_moving(
+                    ch.x,
+                    ch.y,
+                    floor,
+                    ch.new_object_id,
+                    -1,
+                    ch.from_x,
+                    ch.from_y,
+                    1.0,
+                )
+                .into_bytes(),
+                false,
+            );
+            crate::vanilla_id::send_nearby_maybe_mx(
+                state,
+                outbound,
+                &near,
+                format_map_change(ch.from_x, ch.from_y, floor_o, leftover, -1).into_bytes(),
+                false,
+            );
+        } else {
+            crate::vanilla_id::send_nearby_maybe_mx(
+                state,
+                outbound,
+                &near,
+                format_map_change(ch.x, ch.y, floor, ch.new_object_id, 0).into_bytes(),
+                false,
+            );
+        }
+    }
+
+    let lt_changes = {
+        let mut w = state.world.write().unwrap();
+        crate::long_term::do_world_long_term_time_stuff_ex(
+            &mut w,
+            &state.content,
+            &mut state.long_term,
+            season_is_spring,
+            season_is_winter,
+            season_is_summer,
+            sim_time,
+            &mut rng,
+            decay_knobs,
+        )
+    };
+    for ch in &lt_changes {
+        let near = nearby_conn_ids(state, ch.x, ch.y, nearby_range(state));
+        crate::vanilla_id::send_nearby_maybe_mx(
+            state,
+            outbound,
+            &near,
+            format_map_change(ch.x, ch.y, ch.floor_id, ch.object_id, 0).into_bytes(),
+            false,
+        );
+    }
+}
+
+/// World-time slice after player vitals (map decay, animals, season, AI follow).
+///
+/// Not player eat / body heat / age — those stay in [`tick_vitals_with_metrics`].
+/// Haxe `DoTimeStuff` ran this in the same function; Rust keeps a named step.
+pub fn tick_world_after_players(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    dt: f32,
+    counters: Option<&Counters>,
+) {
     let decayed = tick_auto_decays(state, dt);
     for &(x, y, new_id) in &decayed {
         let floor = state.world.read().unwrap().get_floor(x, y) as i32;
         let mx = format_map_change(x, y, floor, new_id, 0).into_bytes();
-        let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
-        send_nearby(outbound, &near, mx);
+        let near = nearby_conn_ids(state, x, y, nearby_range(state));
+        crate::vanilla_id::send_nearby_maybe_mx(state, outbound, &near, mx, false);
     }
+    // Haxe TimeHelper.DoTimeStuff: DoWorldMapTimeStuff then DoWorldLongTermTimeStuff
+    apply_live_world_time_bands(state, outbound);
     // Timed animal wander (Haxe doAnimalMovement / SendAnimalMoveUpdateToAllClosePlayers):
     // place map objects walk with MX old_x old_y speed + clear origin + FM per viewer.
     let moves = tick_animals_dt(state, dt);
@@ -9194,32 +12115,40 @@ pub fn tick_vitals_with_metrics(
         // Fan-out birth-relative MX per human viewer (not absolute world coords).
         let near = nearby_conn_ids(state, nx, ny, NEARBY_RANGE.max(32));
         for &cid in &near {
-            let Some(viewer) = state.players.get(&cid) else {
+            let Some((rx_o, ry_o, rx_n, ry_n)) = state.players.get(&cid).and_then(|viewer| {
+                if viewer.deleted || !viewer.connected {
+                    return None;
+                }
+                let (rx_o, ry_o) = viewer.world_to_client(ox, oy);
+                let (rx_n, ry_n) = viewer.world_to_client(nx, ny);
+                Some((rx_o, ry_o, rx_n, ry_n))
+            }) else {
                 continue;
             };
-            if viewer.deleted || !viewer.connected {
-                continue;
-            }
-            let (rx_o, ry_o) = viewer.world_to_client(ox, oy);
-            let (rx_n, ry_n) = viewer.world_to_client(nx, ny);
             // Dest: object arrives from old tile with speed (Haxe sendMapUpdateForMoving).
             outbound.send_urgent(
                 cid,
-                format_map_change_moving(
-                    rx_n, ry_n, floor_n, animal_obj, -1, rx_o, ry_o, speed,
+                crate::vanilla_id::format_map_change_moving_for_conn(
+                    state, cid, rx_n, ry_n, floor_n, animal_obj, -1, rx_o, ry_o, speed,
                 )
                 .into_bytes(),
             );
             // Origin: clear (or leftover ground) without motion params.
             outbound.send_urgent(
                 cid,
-                format_map_change(rx_o, ry_o, floor_o, leftover_o, -1).into_bytes(),
+                crate::vanilla_id::format_map_change_for_conn(
+                    state, cid, rx_o, ry_o, floor_o, leftover_o, -1,
+                )
+                .into_bytes(),
             );
             send_frame(outbound, cid);
         }
     }
     if !moves.is_empty() {
         debug!(n = moves.len(), "sim: animal timed wander MX+FM fan-out");
+        // Haxe DoAnimalDamage after each animal move (path cells + deadlyDistance).
+        // MOSQUITO-MAPCHANCE: BiomeAnimalHitChance / isAnimalNotDeadlyForMe miss gate.
+        apply_animal_path_damages(state, outbound, &moves, counters);
     }
     // Living prestige class refresh from online scoreboard ranks.
     state.prestige_refresh_timer += dt;
@@ -9235,7 +12164,9 @@ pub fn tick_vitals_with_metrics(
         }
     } else if state.scoreboard.season_tag.is_empty() {
         // Bind current season tag without wiping (first tick after boot).
-        let _ = state.scoreboard.on_season_change(state.environment.season.as_str());
+        let _ = state
+            .scoreboard
+            .on_season_change(state.environment.season.as_str());
     }
     state.apocalypse.tick(dt);
     // Orderly !shutdown machine.
@@ -9247,6 +12178,22 @@ pub fn tick_vitals_with_metrics(
     }
     // Chunk interest tiers for metrics / SAY ?CHUNKS.
     refresh_chunk_tier_counts(state);
+    // AI-LLM-FAN: import HTTP results, apply chunks, export jobs
+    // Haxe: AiHandler.respondToPlayerAsync onSuccess + sendResponseInChunks
+    tick_llm_speech_wire(state, outbound);
+    // PATH-REACH / AI-GOTO-FOOD: absorb NPC-pushed maps + food sticky before publish.
+    absorb_npc_ai_sticky_from_views(state);
+    // PATH-REACH: cleanup personal maps (Haxe cleanupBlockedObjects each reaction).
+    // Haxe: AiBase.cleanupBlockedObjectsHelper ~6264
+    for p in state.players.values_mut() {
+        p.ai_path_reach.cleanup(dt);
+    }
+    // BLOCKED-BY-AI: wipe+rebuild global blockedByAI from sticky food/use/drop/block.
+    // Haxe: AiBase.CalculateBlockedByAi ~222 each AI frame
+    rebuild_blocked_by_ai_live(state);
+    // AI-FOLLOW-WALK: continuous isMovingToPlayer walk toward ai_follow_p_id
+    // Haxe: AiBase.doTimeStuffHelper isMovingToPlayer after LLM sticky
+    tick_ai_follow_walk(state, outbound);
     state.publish_web_snapshots();
     // Publish vitals so viewer food/age bars update.
     state.publish_all_player_views();
@@ -9317,9 +12264,147 @@ pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> Vec<(i32, i32, i32)> {
         if current != expect_id {
             continue;
         }
+        // Haxe: ScoreEntry.CreateScoreEntryIfGrave before applying the time transition.
+        // Haxe: TimeHelper.doTimeTransitionHelper ~2149
+        if expect_id == crate::score_entry::OLD_GRAVE_OBJECT_ID {
+            let (owner_email, creator_p_id, cname, cfamily) = {
+                let w = state.world.read().unwrap();
+                let owner = w.get_helper(x, y).map(|h| h.owner_id).unwrap_or(0);
+                let email = if owner != 0 {
+                    state
+                        .players
+                        .values()
+                        .find(|p| p.p_id == owner)
+                        .map(|p| p.email.clone())
+                        .or_else(|| {
+                            state
+                                .accounts
+                                .by_email
+                                .values()
+                                .find(|a| a.last_p_id == owner)
+                                .map(|a| a.email.clone())
+                        })
+                } else {
+                    None
+                };
+                let (nm, fam) = state
+                    .players
+                    .values()
+                    .find(|p| p.p_id == owner)
+                    .map(|p| (Some(p.first_name.clone()), Some(p.family_name.clone())))
+                    .unwrap_or((None, None));
+                (email, owner, nm, fam)
+            };
+            if let Some(e) = crate::score_entry::create_score_entry_if_grave_ex(
+                expect_id,
+                owner_email.as_deref(),
+                creator_p_id,
+                cname.as_deref(),
+                cfamily.as_deref(),
+                state.gameplay.old_grave_decay_mali,
+            ) {
+                state.accounts.push_score_entry(e);
+            }
+        }
         let Some(tr) = state.content.auto_decays.get(&expect_id).cloned() else {
             continue;
         };
+        // Haxe: doTimeTransitionHelper contained overflow — +20s (+ CursedGraveTime if sharp stone), pop, no transform.
+        let overflow = {
+            let w = state.world.read().unwrap();
+            let helper = w.get_helper(x, y);
+            let contained_len = helper.map(|h| h.contained.len()).unwrap_or(0);
+            let popped_id = helper
+                .and_then(|h| h.contained.last().copied())
+                .unwrap_or(0);
+            let num_slots = state
+                .content
+                .get(tr.new_target_id)
+                .map(|d| d.num_slots)
+                .unwrap_or(0);
+            crate::world_time::container_overflow_delay_ex(
+                contained_len,
+                num_slots,
+                popped_id,
+                state.gameplay.cursed_grave_time,
+            )
+        };
+        if let Some((delay, popped_id)) = overflow {
+            let delay = if delay.is_finite() && delay > 0.0 {
+                delay
+            } else {
+                20.0
+            };
+            state.pending_decays.insert(key, (expect_id, delay));
+            {
+                let mut w = state.world.write().unwrap();
+                if let Some(mut helper) = w.get_helper(x, y).cloned() {
+                    if helper.contained.last().copied() == Some(popped_id) {
+                        helper.contained.pop();
+                        if helper.nested.len() > helper.contained.len() {
+                            helper.nested.truncate(helper.contained.len());
+                        }
+                        w.set_object_complex(x, y, helper);
+                    }
+                }
+            }
+            // Haxe: WorldMap.PlaceObject(tx, ty, containedObject) — allowReplace false
+            // TIME-OVERFLOW-PLACE
+            if let Some(res) = crate::place_object::place_object_by_id(
+                state,
+                x,
+                y,
+                popped_id,
+                crate::place_object::PlaceObjectOpts::default(),
+            ) {
+                changed.push((res.x, res.y, popped_id));
+            }
+            // Haxe TimeHelper: Sharp Stone overflow → CreateScoreEntryForCursedGrave
+            // SCORE-MALI
+            if popped_id == crate::world_time::SHARP_STONE_ID {
+                let (owner_email, creator_p_id, cname, cfamily) = {
+                    let w = state.world.read().unwrap();
+                    let owner = w.get_helper(x, y).map(|h| h.owner_id).unwrap_or(0);
+                    let email = if owner != 0 {
+                        state
+                            .players
+                            .values()
+                            .find(|p| p.p_id == owner)
+                            .map(|p| p.email.clone())
+                            .or_else(|| {
+                                state
+                                    .accounts
+                                    .by_email
+                                    .values()
+                                    .find(|a| a.last_p_id == owner)
+                                    .map(|a| a.email.clone())
+                            })
+                    } else {
+                        None
+                    };
+                    let (nm, fam) = state
+                        .players
+                        .values()
+                        .find(|p| p.p_id == owner)
+                        .map(|p| (Some(p.first_name.clone()), Some(p.family_name.clone())))
+                        .unwrap_or((None, None));
+                    (email, owner, nm, fam)
+                };
+                if let Some(email) = owner_email {
+                    let rec = state.accounts.ensure(&email);
+                    crate::score_entry::create_score_entry_for_cursed_grave_ex(
+                        &mut rec.score_entries,
+                        &email,
+                        creator_p_id,
+                        creator_p_id,
+                        cname.as_deref(),
+                        cfamily.as_deref(),
+                        state.gameplay.cursed_grave_mali,
+                    );
+                }
+            }
+            continue;
+        }
         {
             let mut w = state.world.write().unwrap();
             place_after_use(
@@ -9338,7 +12423,13 @@ pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> Vec<(i32, i32, i32)> {
         // Chain further decays on the new object.
         schedule_decay(state, x, y, tr.new_target_id);
         changed.push((x, y, tr.new_target_id));
-        debug!(x, y, from = expect_id, to = tr.new_target_id, "auto-decay applied");
+        debug!(
+            x,
+            y,
+            from = expect_id,
+            to = tr.new_target_id,
+            "auto-decay applied"
+        );
     }
     changed
 }
@@ -9401,10 +12492,21 @@ pub fn build_reverse_craft_graph_capped(content: &ContentDb, cap: usize) -> Reve
 
 /// Populate [`SimState::craft_graph`] from content transitions (normal + last-use).
 ///
+/// Also runs Haxe `ServerSettings.InitWaterSourceIds` into
+/// [`SimState::water_source_ids`] / [`SimState::bucket_water_source_ids`]
+/// and caches [`SimState::steel_chisel_family`] (`objectIdArrays[455]`).
+///
 /// Caps at [`CRAFT_GRAPH_SEED_CAP`] total inserts for fast restart. Safe to call
 /// once after content is attached; empty ContentDb yields an empty graph.
 pub fn seed_craft_graph_from_content(state: &mut SimState) {
     state.craft_graph = build_reverse_craft_graph(&state.content);
+    // Haxe: ServerSettings.InitWaterSourceIds after PatchTransitions
+    let (water, bucket) =
+        crate::get_or_craft::craft_item::init_water_source_ids_from_content(&state.content);
+    state.water_source_ids = water;
+    state.bucket_water_source_ids = bucket;
+    // Haxe: PatchObjectData objectIdArrays[455] once — not per profession tick
+    state.steel_chisel_family = crate::SteelChiselFamilyTable::from_content(&state.content);
 }
 
 /// Spawn rabbits/wolves/boars near play area when the animal world is empty.
@@ -9436,6 +12538,9 @@ pub fn spawn_default_animals(state: &mut SimState) {
         (AnimalKind::Wolf, sx + 18, sy + 13),
         (AnimalKind::Boar, sx + 8, sy + 3),
         (AnimalKind::Boar, sx + 20, sy + 10),
+        // COMBAT-MOSQUITO-KIND / MOSQUITO-MAPCHANCE: jungle/swamp swarm seeds.
+        (AnimalKind::Mosquito, sx + 5, sy + 6),
+        (AnimalKind::Mosquito, sx - 4, sy + 8),
     ];
     for &(kind, x, y) in seeds {
         let (px, py) = find_empty_animal_tile(state, x, y);
@@ -9448,9 +12553,7 @@ pub fn spawn_default_animals(state: &mut SimState) {
     }
     info!(
         n = state.animals.animals.len(),
-        sx,
-        sy,
-        "sim: default animals spawned on map near play area"
+        sx, sy, "sim: default animals spawned on map near play area"
     );
 }
 
@@ -9510,16 +12613,20 @@ fn apply_animal_pop_map_events(
         let floor = state.world.read().unwrap().get_floor(death.x, death.y) as i32;
         let near = nearby_conn_ids(state, death.x, death.y, NEARBY_RANGE.max(32));
         for &cid in &near {
-            let Some(viewer) = state.players.get(&cid) else {
+            let Some((rx, ry)) = state.players.get(&cid).and_then(|viewer| {
+                if viewer.deleted || !viewer.connected {
+                    return None;
+                }
+                Some(viewer.world_to_client(death.x, death.y))
+            }) else {
                 continue;
             };
-            if viewer.deleted || !viewer.connected {
-                continue;
-            }
-            let (rx, ry) = viewer.world_to_client(death.x, death.y);
             outbound.send_urgent(
                 cid,
-                format_map_change(rx, ry, floor, new_id, -1).into_bytes(),
+                crate::vanilla_id::format_map_change_for_conn(
+                    state, cid, rx, ry, floor, new_id, -1,
+                )
+                .into_bytes(),
             );
             send_frame(outbound, cid);
         }
@@ -9536,16 +12643,20 @@ fn apply_animal_pop_map_events(
         let obj = state.world.read().unwrap().get_object(birth.x, birth.y);
         let near = nearby_conn_ids(state, birth.x, birth.y, NEARBY_RANGE.max(32));
         for &cid in &near {
-            let Some(viewer) = state.players.get(&cid) else {
+            let Some((rx, ry)) = state.players.get(&cid).and_then(|viewer| {
+                if viewer.deleted || !viewer.connected {
+                    return None;
+                }
+                Some(viewer.world_to_client(birth.x, birth.y))
+            }) else {
                 continue;
             };
-            if viewer.deleted || !viewer.connected {
-                continue;
-            }
-            let (rx, ry) = viewer.world_to_client(birth.x, birth.y);
             outbound.send_urgent(
                 cid,
-                format_map_change(rx, ry, floor, obj, -1).into_bytes(),
+                crate::vanilla_id::format_map_change_for_conn(
+                    state, cid, rx, ry, floor, obj, -1,
+                )
+                .into_bytes(),
             );
             send_frame(outbound, cid);
         }
@@ -9564,7 +12675,10 @@ pub fn tick_animals(state: &mut SimState) -> Vec<(i32, AnimalKind, i32, i32, i32
 /// - Targets: random in move radius, prefer empty tiles
 /// - Path: step-wise toward target; trees/plants do **not** block; walls do;
 ///   ocean / mountain / deep river biomes block (with 3% pass chance)
-pub fn tick_animals_dt(state: &mut SimState, dt: f32) -> Vec<(i32, AnimalKind, i32, i32, i32, i32)> {
+pub fn tick_animals_dt(
+    state: &mut SimState,
+    dt: f32,
+) -> Vec<(i32, AnimalKind, i32, i32, i32, i32)> {
     let (ww, wh) = {
         let w = state.world.read().unwrap();
         (w.width_tiles, w.height_tiles)
@@ -9590,6 +12704,10 @@ pub fn tick_animals_dt(state: &mut SimState, dt: f32) -> Vec<(i32, AnimalKind, i
             .unwrap_or_else(|| AnimalWorld::wander_interval(kind))
     };
     let mut rng = rand::thread_rng();
+    let move_knobs = animal_move::AnimalMoveChanceKnobs {
+        pass_blocking_biome: state.gameplay.chance_animals_pass_blocking_biome,
+        preferred_biome: state.gameplay.chance_preferred_biome,
+    };
     state.animals.tick_wander_timed_ex(
         &mut rng,
         dt,
@@ -9623,19 +12741,265 @@ pub fn tick_animals_dt(state: &mut SimState, dt: f32) -> Vec<(i32, AnimalKind, i
                     .unwrap_or_else(|| AnimalWorld::move_radius(kind))
             };
             let rabbit = matches!(kind, AnimalKind::Rabbit);
-            animal_move::pick_animal_destination(
-                &w,
-                &content,
-                rng,
-                ox,
-                oy,
-                ww,
-                wh,
-                rad,
-                rabbit,
+            animal_move::pick_animal_destination_ex(
+                &w, &content, rng, ox, oy, ww, wh, rad, rabbit, move_knobs,
             )
         },
     )
+}
+
+/// Haxe `TimeHelper.DoAnimalDamage` — after animal wander, hurt first player on path.
+///
+/// Includes Haxe `DoDamage` biome-animal miss gate (`BiomeAnimalHitChance` /
+/// `isAnimalNotDeadlyForMe`) before rolling path damage.
+// Haxe: TimeHelper.DoAnimalDamage / GlobalPlayerInstance.DoDamage ~4573–4584
+// MOSQUITO-MAPCHANCE
+pub(crate) fn apply_animal_path_damages(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    moves: &[(i32, AnimalKind, i32, i32, i32, i32)],
+    counters: Option<&Counters>,
+) {
+    let season = state.environment.season;
+    let targets: Vec<DamageTarget> = state
+        .players
+        .values()
+        .filter(|p| !p.deleted && p.held_by == 0)
+        .map(|p| DamageTarget {
+            p_id: p.p_id,
+            x: p.x,
+            y: p.y,
+        })
+        .collect();
+    if targets.is_empty() {
+        return;
+    }
+    let death_line = state.gameplay.death_with_food_store_max_live();
+    for &(aid, kind, ox, oy, nx, ny) in moves {
+        let profile = kind.combat_profile_ex(state.gameplay.animal_deadly_distance_factor);
+        if profile.damage <= 0.0 || profile.deadly_distance <= 0.0 {
+            continue;
+        }
+        let animal_hits = state.animals.get(aid).map(|a| a.hits).unwrap_or(0.0);
+        let animal_parent_id = kind.object_id();
+        // Haxe DoDamage attacker==null: biome escape before damage roll.
+        let miss_rng = rand::random::<f32>();
+        let mut skipped = false;
+        for t in &targets {
+            let Some(pl) = state.players.values().find(|p| p.p_id == t.p_id) else {
+                continue;
+            };
+            // Only gate the player who would be hit on this path.
+            let on_path = first_player_on_path(
+                ox,
+                oy,
+                nx,
+                ny,
+                profile.deadly_distance,
+                std::slice::from_ref(t),
+            );
+            if on_path.is_none() {
+                continue;
+            }
+            let person_color = state.content.person_color(person_object_id(pl));
+            let loved_biome = loved_biome_for_person_color(person_color).unwrap_or(-1);
+            let loved_animals = biome_animals_for_loved_biome(loved_biome);
+            let (player_biome, animal_biome, floor_p, floor_a) = {
+                let w = state.world.read().unwrap();
+                (
+                    i32::from(w.get_biome(pl.x, pl.y)),
+                    i32::from(w.get_biome(nx, ny)),
+                    i32::from(w.get_floor(pl.x, pl.y)),
+                    i32::from(w.get_floor(nx, ny)),
+                )
+            };
+            let player_love = biome_love_factor(player_biome, floor_p, person_color, None, None);
+            let animal_love = biome_love_factor(animal_biome, floor_a, person_color, None, None);
+            let held_name = held_object_name(state, pl.held_id);
+            let holding = is_holding_weapon(pl.held_id, &held_name);
+            let not_deadly = is_animal_not_deadly_for_me(AnimalDeadlyForMeInput {
+                deadly_distance: profile.deadly_distance,
+                damage: profile.damage,
+                is_animal: kind.is_deadly_animal(),
+                check_if_animal: false,
+                animal_hits,
+                holding_weapon: holding,
+                animal_parent_id,
+                loved_biome_animal_ids: loved_animals,
+                player_tile_biome_love: player_love,
+                animal_tile_biome_love: animal_love,
+            });
+            if biome_animal_damage_misses(
+                not_deadly,
+                miss_rng,
+                state.gameplay.biome_animal_hit_chance,
+            ) {
+                // Haxe: displayBiomeAnimal one-shot private say (toSelf=true).
+                // Haxe: GlobalPlayerInstance.DoDamage ~4578–4580
+                let conn_id = pl.conn_id;
+                let p_id = pl.p_id;
+                let animal_name = state
+                    .content
+                    .get(animal_parent_id)
+                    .map(|d| d.name.clone())
+                    .filter(|n| !n.is_empty())
+                    .unwrap_or_else(|| kind.label().to_string());
+                if let Some(p) = state.players.get_mut(&conn_id) {
+                    if p.display_biome_animal {
+                        p.display_biome_animal = false;
+                        let line = format!("{p_id}/0 im save here from {animal_name}...");
+                        send_ps_reply(outbound, conn_id, &line);
+                    }
+                }
+                skipped = true;
+                break;
+            }
+        }
+        if skipped {
+            continue;
+        }
+        let rng01 = rand::random::<f32>();
+        let Some(hit) = resolve_animal_path_damage_ex(
+            kind,
+            animal_hits,
+            ox,
+            oy,
+            nx,
+            ny,
+            season,
+            &targets,
+            |pid| {
+                let Some(pl) = state.players.values().find(|p| p.p_id == pid) else {
+                    return (0.0, 0.0, 1.0, 20.0);
+                };
+                let cloth = clothing_temp_bonus(pl.hat, pl.chest, pl.shoes);
+                let floor = {
+                    let w = state.world.read().unwrap();
+                    if w.get_floor(pl.x, pl.y) != 0 {
+                        0.3
+                    } else {
+                        0.0
+                    }
+                };
+                let wprot =
+                    held_damage_protection_factor(pl.held_id, &held_object_name(state, pl.held_id));
+                (cloth, floor, wprot, pl.food_max)
+            },
+            rng01,
+            state.gameplay.animal_damage_factor_knobs(),
+            state.gameplay.animal_deadly_distance_factor,
+        ) else {
+            continue;
+        };
+        let mut dmg = hit.applied_damage;
+        // COMBAT-MOSQUITO-KIND: non-real mosquito damage scales by jungle love.
+        if matches!(kind, AnimalKind::Mosquito) {
+            if let Some(pl) = state.players.values().find(|p| p.p_id == hit.target_p_id) {
+                let person_color = state.content.person_color(person_object_id(pl));
+                let floor = {
+                    let w = state.world.read().unwrap();
+                    i32::from(w.get_floor(pl.x, pl.y))
+                };
+                let yf = pl.yellowfever_count;
+                let factor =
+                    moskito_damage_factor_from_love(floor, person_color, None, None, yf, 1.0);
+                dmg = scale_damage_by_moskito_factor(dmg, factor);
+            }
+        }
+        // Haxe: DoDamage attacker==null still × EveDamageFactor on the target (L4667)
+        // SETTINGS-LONG-TAIL
+        if let Some(pl) = state.players.values().find(|p| p.p_id == hit.target_p_id) {
+            dmg *= eve_damage_mul(
+                crate::food_store_max::is_eve_or_adam_name(&pl.first_name),
+                state.gameplay.eve_damage_factor,
+            );
+            // Haxe: DoDamage L4669 TargetWoundedDamageFactor (attacker==null still)
+            // SETTINGS-LONG-TAIL
+            dmg *= target_wounded_damage_mul(
+                pl.is_wounded_held(crate::is_wound_object(&state.content, pl.held_id)),
+                state.gameplay.target_wounded_damage_factor,
+            );
+        }
+        if dmg <= 0.0 {
+            continue;
+        }
+        let target_id = hit.target_p_id;
+        let weapon_id = kind.object_id();
+        let hits_before = state.combat.hits_of(target_id);
+        let (tx, ty, age, food, exh, true_age) = state
+            .players
+            .values()
+            .find(|p| p.p_id == target_id)
+            .map(|p| (p.x, p.y, p.age, p.food, p.exhaustion, p.true_age))
+            .unwrap_or((nx, ny, 20.0, 10.0, 0.0, 20.0));
+        let health_f = state.player_health_food_store_max_factor(target_id, true_age);
+        let knobs = state.gameplay.food_store_max_knobs();
+        // Haxe DoDamage (attacker==null): hits += dmg, exhaustion += dmg, calculateFoodStoreMax
+        // ANIMAL-DAMAGE-FOOD-PIPE / C-SS-AGE-FOOD
+        let pipe = crate::food_store_max::apply_damage_food_pipe_ex(
+            age,
+            food,
+            hits_before,
+            exh,
+            dmg,
+            health_f,
+            true,
+            knobs,
+        );
+        let total_hits = state.combat.apply_hits(target_id, dmg, weapon_id);
+        let wound = state.combat.apply_wound(target_id, 1);
+        let lethal = wound >= WOUND_KILL_THRESHOLD
+            || total_hits >= HITS_KILL_THRESHOLD
+            || pipe.combat_lethal;
+        let near = nearby_conn_ids(state, tx, ty, nearby_range(state));
+        if lethal {
+            if let Some(tp) = state.players.values_mut().find(|x| x.p_id == target_id) {
+                tp.food_max = pipe.food_store_max;
+                tp.exhaustion = pipe.exhaustion_after;
+                tp.deleted = true;
+                tp.death_reason = Some(DeathCause::Killed.wire_tag().into());
+            }
+            scatter_backpack_on_death_pid(state, target_id);
+            apply_death_inheritance(state, target_id);
+            state.combat.clear_hits(target_id);
+            if let Some(c) = counters {
+                c.deaths.fetch_add(1, Ordering::Relaxed);
+            }
+            state.push_event(format_death_event(target_id, DeathCause::Killed));
+            state.afk.remove(target_id);
+            let line = format!("{target_id} ANIMAL_KILL {} dmg={:.1}", kind.label(), dmg);
+            send_nearby_ps_lines(outbound, &near, &line);
+            info!(
+                target_id,
+                animal_id = aid,
+                kind = kind.label(),
+                dmg,
+                "sim: animal path kill"
+            );
+        } else if let Some(tp) = state.players.values_mut().find(|x| x.p_id == target_id) {
+            tp.food_max = pipe.food_store_max.max(death_line);
+            tp.exhaustion = pipe.exhaustion_after;
+            if tp.food > tp.food_max {
+                tp.food = tp.food_max;
+            }
+            let line = format!(
+                "{target_id} ANIMAL_HIT {} dmg={:.1} wound={wound}",
+                kind.label(),
+                dmg
+            );
+            send_nearby_ps_lines(outbound, &near, &line);
+            let pe = format_server_message("PE", &[&format!("{target_id} {HUNGER_EMOT_INDEX}")]);
+            send_nearby(outbound, &near, pe.into_bytes());
+            send_nearby(outbound, &near, format_dying(target_id, false).into_bytes());
+            info!(
+                target_id,
+                animal_id = aid,
+                kind = kind.label(),
+                dmg,
+                "sim: animal path damage"
+            );
+        }
+    }
 }
 
 /// Resolve whether held object is food and its feed value (content or name heuristic).
@@ -9676,16 +13040,18 @@ fn player_wears_clothing_id(p: &Player, id: i32) -> bool {
 
 /// REPUTATION-HIT: apply Haxe kill post-DoDamage `lostCombatPrestige` on a connecting hit.
 ///
-/// Updates [`SimState::reputation`] and mirrors into `combat.stats.lost_combat_prestige`
-/// for AI deadly-player scans. Prestige/health speech residual (addHealthAndPrestige / GM).
-// Haxe: GlobalPlayerInstance.kill attackWasLegit / lostCombatPrestige after DoDamage
+/// Updates [`SimState::reputation`] and mirrors into `combat.stats.lost_combat_prestige`.
+/// Category `prestigeCost` also debits yum/prestige (`addHealthAndPrestige(-cost, false)`)
+/// and sends the attacker GM unless Devil Mask is worn.
+// Haxe: GlobalPlayerInstance.kill L4504–4561
+// HIT-PRESTIGE-COST
 fn apply_connecting_hit_reputation(
     state: &mut SimState,
+    outbound: &OutboundHub,
     killer_id: i32,
     target_id: i32,
     damage: f32,
     target_holding_weapon: bool,
-    target_is_ally: bool,
 ) {
     if !damage.is_finite() || damage <= 0.0 {
         return;
@@ -9699,7 +13065,9 @@ fn apply_connecting_hit_reputation(
         let tp = state.players.values().find(|p| p.p_id == target_id);
         let true_age = tp.map(|p| p.true_age).unwrap_or(20.0);
         let cursed = tp.map(|p| p.is_cursed).unwrap_or(false);
-        let display = tp.map(|p| person_object_id(p)).unwrap_or(DEFAULT_PERSON_OBJECT);
+        let display = tp
+            .map(|p| person_object_id(p))
+            .unwrap_or(DEFAULT_PERSON_OBJECT);
         let red = state
             .players
             .values()
@@ -9708,12 +13076,21 @@ fn apply_connecting_hit_reputation(
             .unwrap_or(false);
         (true_age, cursed, display, red)
     };
-    let (name, desc) = state
-        .content
-        .get(target_display)
-        .map(|d| (d.name.as_str(), d.description.as_str()))
-        .unwrap_or(("", ""));
-    let target_is_female = person_looks_female(target_display, name, desc);
+    let target_is_female = content_person_is_female(&state.content, target_display);
+    let deleted: std::collections::HashSet<i32> = state
+        .players
+        .values()
+        .filter(|pl| pl.deleted)
+        .map(|pl| pl.p_id)
+        .collect();
+    state.social.sim_time = state.sim_time;
+    let target_is_ally = is_ally(
+        &state.social.following,
+        &state.social,
+        &deleted,
+        killer_id,
+        target_id,
+    );
     let input = HitReputationInput {
         damage,
         target_lost_combat: target_lost,
@@ -9727,8 +13104,13 @@ fn apply_connecting_hit_reputation(
         target_is_cursed,
         attacker_has_red_mask: has_red_mask,
     };
-    let delta = compute_hit_reputation(&input);
-    state.reputation.apply_hit_delta(killer_id, target_id, &delta);
+    let delta = compute_hit_reputation_with_factors(
+        &input,
+        &state.gameplay.prestige_cost_factors(),
+    );
+    state
+        .reputation
+        .apply_hit_delta(killer_id, target_id, &delta);
     // Mirror Haxe GPI.lostCombatPrestige for combat stats / AI
     if delta.attacker_lost_delta != 0.0 {
         let s = state.combat.stats_mut(killer_id);
@@ -9738,36 +13120,197 @@ fn apply_connecting_hit_reputation(
         let s = state.combat.stats_mut(target_id);
         s.lost_combat_prestige += delta.target_lost_delta;
     }
+    // Haxe: lostCombatPrestige += prestigeCost already in delta; yum debit + GM skip Devil Mask.
+    if delta.prestige_cost > 0.0 && !has_red_mask {
+        crate::food_eating::apply_add_health_and_prestige_by_pid(
+            state,
+            killer_id,
+            -delta.prestige_cost,
+        );
+        let t_name = state
+            .players
+            .values()
+            .find(|p| p.p_id == target_id)
+            .map(|p| p.display_name())
+            .unwrap_or_default();
+        if let Some(msg) = format_prestige_cost_global_message(
+            delta.prestige_cost,
+            delta.prestige_cost_category,
+            &t_name,
+        ) {
+            if let Some((&conn, _)) = state.players.iter().find(|(_, p)| p.p_id == killer_id) {
+                let gm_wire = crate::score_entry::format_global_message_text(&msg);
+                outbound.send(
+                    conn,
+                    format_server_message("GM", &[&gm_wire]).into_bytes(),
+                );
+                send_frame(outbound, conn);
+            }
+        }
+    }
+}
+
+/// Haxe DoDamage weapon+0 wound branch: PlaceObject prior held / ground wound, then equip.
+// Haxe: GlobalPlayerInstance.DoDamage L4722–4762 PlaceObject
+// PLACE-OBJECT-SPILL / WEAPON-WOUND-TRANS
+fn apply_weapon_zero_wound_hit(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    killer_id: i32,
+    target_id: i32,
+    weapon_id: i32,
+    food_store_max: f32,
+    combat_lethal: bool,
+) {
+    if weapon_id == 0 {
+        return;
+    }
+    let weapon_parent = state.content.resolve_base_id(weapon_id);
+    let not_red = crate::food_store_max::calculate_not_reduced_food_store_max_ex(
+        state.gameplay.grown_up_food_store_max,
+    );
+    let Some((
+        tx,
+        ty,
+        target_conn,
+        prior_held,
+        holding_player_id,
+        already_wounded,
+        held_is_arrow,
+        both_shoes,
+    )) = state.players.iter().find(|(_, p)| p.p_id == target_id && !p.deleted).map(|(&cid, tp)| {
+        let (left_shoe, right_shoe) = shoe_pair_ids(
+            tp.shoes,
+            tp.clothing_helpers[2].as_ref().map(|h| h.id),
+            tp.clothing_helpers[3].as_ref().map(|h| h.id),
+        );
+        (
+            tp.x,
+            tp.y,
+            cid,
+            tp.held_id,
+            tp.holding_player_id,
+            tp.is_wounded_held(crate::is_wound_object(&state.content, tp.held_id)),
+            crate::weapon_wound::is_arrow_wound_object(&state.content, tp.held_id),
+            has_both_shoes(left_shoe, right_shoe),
+        )
+    }) else {
+        return;
+    };
+    let plan = crate::weapon_wound::plan_weapon_zero_wound_from_content(
+        &state.content,
+        weapon_id,
+        weapon_parent,
+        food_store_max,
+        not_red,
+        both_shoes,
+        already_wounded,
+        held_is_arrow,
+        prior_held,
+        holding_player_id,
+        combat_lethal,
+    );
+    match plan.victim_action {
+        crate::weapon_wound::WoundVictimAction::EquipHeld {
+            wound_id,
+            drop_prior_held,
+            drop_held_baby,
+            take_coins,
+        } => {
+            if drop_held_baby {
+                let _ = apply_drop_player(state, outbound, target_conn, tx, ty);
+            }
+            if drop_prior_held != 0 {
+                let _ = crate::place_object::place_object_by_id(
+                    state,
+                    tx,
+                    ty,
+                    drop_prior_held,
+                    crate::place_object::PlaceObjectOpts::default(),
+                );
+            }
+            if let Some(tp) = state
+                .players
+                .values_mut()
+                .find(|p| p.p_id == target_id && !p.deleted)
+            {
+                let health_f = 1.0;
+                let ctx =
+                    crate::weapon_wound::set_held_wound_ctx_for(&state.content, wound_id, health_f);
+                crate::nested_body::player_set_held_object(
+                    tp,
+                    NestedHelper::id_only(wound_id),
+                    ctx,
+                );
+            }
+            if take_coins {
+                apply_take_coins_on_wound(state, outbound, killer_id, target_id, combat_lethal);
+            }
+        }
+        crate::weapon_wound::WoundVictimAction::GroundPlace {
+            wound_id,
+            time_to_change,
+            allow_replace,
+        } => {
+            if let Some(res) = crate::place_object::place_object_by_id(
+                state,
+                tx,
+                ty,
+                wound_id,
+                crate::place_object::PlaceObjectOpts {
+                    allow_replace,
+                    consider_walls: false,
+                },
+            ) {
+                if let Ok(mut w) = state.world.write() {
+                    if let Some(h) = w.helpers.get_mut(&(res.x, res.y)) {
+                        h.time_to_change = time_to_change;
+                    } else if wound_id != 0 {
+                        let mut c = ComplexObject::new_simple(wound_id);
+                        c.time_to_change = time_to_change;
+                        w.set_object_complex(res.x, res.y, c);
+                    }
+                }
+                schedule_decay(state, res.x, res.y, wound_id);
+            }
+        }
+        crate::weapon_wound::WoundVictimAction::MosquitoFeverCandidate { .. }
+        | crate::weapon_wound::WoundVictimAction::None => {}
+    }
 }
 
 /// How to apply a bloody-weapon transform (COMBAT-BLOODY).
 #[derive(Debug, Clone, Copy)]
 enum BloodyApplyMode {
-/// Haxe `makeWeaponBloodyIfNeeded` â€” deadly animal only, ttc=3.
-Animal { deadly: bool },
-/// Haxe DoDamage strike path â€” cool-down factors.
-Strike { long_wounding: bool },
+    /// Haxe `makeWeaponBloodyIfNeeded` â€” deadly animal only, ttc=3.
+    Animal { deadly: bool },
+    /// Haxe DoDamage strike path â€” cool-down factors.
+    Strike { long_wounding: bool },
 }
 
 /// Apply bloody weapon id + held_helper timeToChange to player by p_id.
 // Haxe: makeWeaponBloodyIfNeeded / DoDamage setHeldObject(bloodyWeapon)
 fn apply_bloody_weapon_transform(
-state: &mut SimState,
-p_id: i32,
-held_id: i32,
-mode: BloodyApplyMode,
+    state: &mut SimState,
+    p_id: i32,
+    held_id: i32,
+    mode: BloodyApplyMode,
 ) -> bool {
-let xf = match mode {
-BloodyApplyMode::Animal { deadly } => make_weapon_bloody_if_needed(held_id, deadly),
-BloodyApplyMode::Strike { long_wounding } => {
-bloody_weapon_after_strike(held_id, long_wounding)
-}
-};
-let Some(xf) = xf else {
-return false;
-};
-let sim_t = state.sim_time;
-let Some(pl) = state.players.values_mut().find(|p| p.p_id == p_id && !p.deleted) else {
+    let xf = match mode {
+        BloodyApplyMode::Animal { deadly } => make_weapon_bloody_if_needed(held_id, deadly),
+        BloodyApplyMode::Strike { long_wounding } => {
+            bloody_weapon_after_strike(held_id, long_wounding)
+        }
+    };
+    let Some(xf) = xf else {
+        return false;
+    };
+    let sim_t = state.sim_time;
+    let Some(pl) = state
+        .players
+        .values_mut()
+        .find(|p| p.p_id == p_id && !p.deleted)
+    else {
         return false;
     };
     let uses = pl.held_uses;
@@ -9816,64 +13359,8 @@ pub fn arm_decays_for_loaded_world(state: &mut SimState) {
     info!(armed, w, h, "auto-decay armed for loaded/generated world");
 }
 
-/// Eat held food. Multi-use follows Haxe `DoChangeNumberOfUsesOnActorManual`
-/// (`idHasChanged=false`, `reverseUse=false`, last-use target `-1`).
-///
-/// Returns true if edible food was consumed (yum fill applied).
-// Haxe: GlobalPlayerInstance eat ~3219–3224
-pub fn try_eat_held(state: &mut SimState, conn_id: u64) -> bool {
-    let (held, uses) = match state.players.get(&conn_id) {
-        Some(p) if !p.deleted => (p.held_id, p.held_uses),
-        _ => return false,
-    };
-    if held == 0 {
-        return false;
-    }
-    let Some(def) = state.content.get(held) else {
-        return false;
-    };
-    if def.food_value <= 0 {
-        return false;
-    }
-    let base = def.food_value as f32;
-    let num_uses = def.num_uses.max(0);
-
-    // Haxe: DoChangeNumberOfUsesOnActorManual(player, false, false, -1)
-    let mut out = multi_use::change_number_of_uses_on_actor(
-        held, held, uses, num_uses, false, false,
-    );
-    if out.held_id != 0 && out.held_uses == 0 {
-        if let Some(new_id) =
-            use_transition::tool_last_use_new_actor(&state.content, out.held_id, -1)
-        {
-            out.held_id = new_id;
-            out.held_uses = 0;
-        } else {
-            // Manual returned false → setHeldObject(null)
-            out.held_id = 0;
-            out.held_uses = 0;
-        }
-    }
-
-    if let Some(p) = state.players.get_mut(&conn_id) {
-        let fill_before = p.food.ceil() as i32;
-        let gain = p.yum.eat(held, base, fill_before);
-        p.food = (p.food + gain).min(p.food_max);
-        p.set_held(out.held_id, out.held_uses);
-        info!(
-            conn_id,
-            held,
-            gain,
-            food = p.food,
-            new_held = out.held_id,
-            new_uses = out.held_uses,
-            "sim: ate food"
-        );
-        true
-    } else {
-        false
-    }
-}
+// Food eating lives in `food_eating` (not temperature / world_time).
+pub use food_eating::{apply_eat_health_prestige, try_do_eating, try_eat_held};
 
 /// Self-craft: apply transition for held object with target `0` (empty / special).
 ///
@@ -9900,6 +13387,7 @@ pub fn try_craft(state: &mut SimState, conn_id: u64) -> Option<UseResult> {
             applied: false,
             x,
             y,
+            ranged_too_close: false,
         });
     }
 
@@ -9912,6 +13400,7 @@ pub fn try_craft(state: &mut SimState, conn_id: u64) -> Option<UseResult> {
             applied: false,
             x,
             y,
+            ranged_too_close: false,
         });
     };
 
@@ -9966,6 +13455,7 @@ pub fn try_craft(state: &mut SimState, conn_id: u64) -> Option<UseResult> {
         applied: true,
         x,
         y,
+        ranged_too_close: false,
     })
 }
 
@@ -10001,42 +13491,40 @@ fn live_move_speed_gates(state: &SimState, p: &Player) -> (bool, bool) {
         (w.width_tiles, w.height_tiles, w.wrap)
     };
     let graves = account_blocking_grave_tiles(state, &p.email);
-    let near = has_close_blocking_grave(
-        p.x,
-        p.y,
-        &graves,
-        GRAVE_BLOCKING_DISTANCE,
-        mw,
-        mh,
-        wrap,
-    );
+    let (grave_dist, grave_cap) = state.gameplay.grave_curse_live_knobs();
+    let near = has_close_blocking_grave(p.x, p.y, &graves, grave_dist, mw, mh, wrap);
     let near_clear = has_close_blocking_grave(
         p.x,
         p.y,
         &graves,
-        GRAVE_BLOCKING_DISTANCE * GRAVE_CURSE_CLEAR_DISTANCE_MULT,
+        grave_dist * GRAVE_CURSE_CLEAR_DISTANCE_MULT,
         mw,
         mh,
         wrap,
     );
     let living = living_player_count(state);
-    let (curse_mali, _new_cursed, _trans) = resolve_grave_curse(
-        p.is_cursed,
-        near,
-        near_clear,
-        living,
-        MAX_PLAYERS_BEFORE_ACTIVATING_GRAVE_CURSE,
-    );
+    let (curse_mali, _new_cursed, _trans) =
+        resolve_grave_curse(p.is_cursed, near, near_clear, living, grave_cap);
 
     // Close hostile with weapon (getClosePlayer 1.5 hostile+weapon).
+    let has_close = has_close_armed_nonally(state, p.p_id, p.x, p.y);
+    let close_hostile = close_hostile_weapon_speed_active(p.angry_time, has_close);
+    (curse_mali, close_hostile)
+}
+
+/// Candidates for Haxe `getClosePlayer(..., hostile=true, hasWeapon=true)`.
+fn close_hostile_weapon_candidates(
+    state: &SimState,
+    observer_p_id: i32,
+) -> Vec<ClosePlayerCandidate> {
     let mut cands: Vec<ClosePlayerCandidate> = Vec::new();
     for other in state.players.values() {
-        if other.deleted || other.p_id == p.p_id {
+        if other.deleted || other.p_id == observer_p_id {
             continue;
         }
         let name = held_object_name(state, other.held_id);
         let holding_weapon = is_holding_weapon(other.held_id, &name);
-        let is_ally = state.allies.is_mutual_or_either(p.p_id, other.p_id);
+        let is_ally = state.allies.is_mutual_or_either(observer_p_id, other.p_id);
         cands.push(ClosePlayerCandidate {
             p_id: other.p_id,
             x: other.x,
@@ -10048,24 +13536,36 @@ fn live_move_speed_gates(state: &SimState, p: &Player) -> (bool, bool) {
             is_friendly: is_friendly_ally_only(is_ally),
         });
     }
-    let has_close = has_close_hostile_with_weapon(
-        p.x,
-        p.y,
-        p.p_id,
+    cands
+}
+
+/// True when a close armed **non-ally** is in the speed-mali distance window.
+/// HIT-BLOCK-NONALLY-MOVE uses this without the angryTime mali extra.
+// Haxe: GlobalPlayerInstance.getClosePlayer(1.5, true, true)
+fn has_close_armed_nonally(state: &SimState, observer_p_id: i32, ox: i32, oy: i32) -> bool {
+    let cands = close_hostile_weapon_candidates(state, observer_p_id);
+    has_close_hostile_with_weapon(
+        ox,
+        oy,
+        observer_p_id,
         &cands,
         CLOSE_ENEMY_WEAPON_DISTANCE,
-    );
-    let close_hostile = close_hostile_weapon_speed_active(p.angry_time, has_close);
-    (curse_mali, close_hostile)
+    )
+}
+
+fn player_has_close_armed_nonally(state: &SimState, conn_id: u64) -> bool {
+    let Some(p) = state.players.get(&conn_id) else {
+        return false;
+    };
+    if p.deleted {
+        return false;
+    }
+    has_close_armed_nonally(state, p.p_id, p.x, p.y)
 }
 
 /// Apply Haxe `isCursed` enter/clear + CU/PE/private say when state flips.
 // Haxe: MoveHelper.calculateSpeed + Connection.SendCurseToAll
-fn apply_grave_curse_live_gates(
-    state: &mut SimState,
-    outbound: &OutboundHub,
-    conn_id: u64,
-) {
+fn apply_grave_curse_live_gates(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
     let Some(p) = state.players.get(&conn_id).cloned() else {
         return;
     };
@@ -10077,32 +13577,20 @@ fn apply_grave_curse_live_gates(
         (w.width_tiles, w.height_tiles, w.wrap)
     };
     let graves = account_blocking_grave_tiles(state, &p.email);
-    let near = has_close_blocking_grave(
-        p.x,
-        p.y,
-        &graves,
-        GRAVE_BLOCKING_DISTANCE,
-        mw,
-        mh,
-        wrap,
-    );
+    let (grave_dist, grave_cap) = state.gameplay.grave_curse_live_knobs();
+    let near = has_close_blocking_grave(p.x, p.y, &graves, grave_dist, mw, mh, wrap);
     let near_clear = has_close_blocking_grave(
         p.x,
         p.y,
         &graves,
-        GRAVE_BLOCKING_DISTANCE * GRAVE_CURSE_CLEAR_DISTANCE_MULT,
+        grave_dist * GRAVE_CURSE_CLEAR_DISTANCE_MULT,
         mw,
         mh,
         wrap,
     );
     let living = living_player_count(state);
-    let (_mali, new_cursed, trans) = resolve_grave_curse(
-        p.is_cursed,
-        near,
-        near_clear,
-        living,
-        MAX_PLAYERS_BEFORE_ACTIVATING_GRAVE_CURSE,
-    );
+    let (_mali, new_cursed, trans) =
+        resolve_grave_curse(p.is_cursed, near, near_clear, living, grave_cap);
     if matches!(trans, GraveCurseTransition::None) && new_cursed == p.is_cursed {
         return;
     }
@@ -10117,7 +13605,7 @@ fn apply_grave_curse_live_gates(
             let cu = format_cursed_message(p_id, 1);
             outbound.broadcast(cu.into_bytes());
             let pe = format_player_emot(p_id, CURSE_ENTER_EMOTE_INDEX);
-            let near_ids = nearby_conn_ids(state, px, py, NEARBY_RANGE);
+            let near_ids = nearby_conn_ids(state, px, py, nearby_range(state));
             send_nearby(outbound, &near_ids, pe.into_bytes());
             outbound.send(
                 conn_id,
@@ -10128,7 +13616,7 @@ fn apply_grave_curse_live_gates(
             let cu = format_cursed_message(p_id, 0);
             outbound.broadcast(cu.into_bytes());
             let pe = format_player_emot(p_id, CURSE_CLEAR_EMOTE_INDEX);
-            let near_ids = nearby_conn_ids(state, px, py, NEARBY_RANGE);
+            let near_ids = nearby_conn_ids(state, px, py, nearby_range(state));
             send_nearby(outbound, &near_ids, pe.into_bytes());
             outbound.send(
                 conn_id,
@@ -10139,11 +13627,12 @@ fn apply_grave_curse_live_gates(
     }
 }
 
-/// Reported move speed for PU / FX from ride + weather + snow + fire + ballast + floor/road/biome.
+/// Reported move speed for PU / FX from ride + weather + snow + fire + ballast + calculateSpeed.
 ///
-/// Haxe `MoveHelper.calculateSpeed` floor/road portion (standing: `fullPathHasRoad=true`).
+/// Haxe `MoveHelper.calculateSpeed` (standing: `fullPathHasRoad=true`) including held/nest,
+/// shoes, vitals, grave curse mali, and close-enemy weapon mali.
 fn player_move_speed(state: &SimState, p: &Player) -> f32 {
-    let ballast = weight_item_count(p.held_id, p.backpack.len());
+    let ballast = weight_item_count(p.held_id, p.backpack_cargo_len());
     let base = compose_move_speed(
         p.riding,
         &state.weather,
@@ -10153,10 +13642,61 @@ fn player_move_speed(state: &SimState, p: &Player) -> f32 {
         p.y,
         ballast,
     );
-    // Standing / report path: Haxe default fullPathHasRoad = true.
+    let heat = p.heat;
+    let is_ai = p.is_ai_body();
+    let class = speed_prestige_class(state.player_prestige_class(p.p_id));
+    // Haxe MoveHelper L162 TODO: half contained penalty for strong = Noble+.
+    let is_strong = class.is_strong();
+    let (left_shoe, right_shoe) = shoe_pair_ids(
+        p.shoes,
+        p.clothing_helpers[2].as_ref().map(|h| h.id),
+        p.clothing_helpers[3].as_ref().map(|h| h.id),
+    );
+    let held_sm = held_object_speed_mult(&state.content, p.held_id);
+    let on_horse = is_horse_or_car(held_sm);
+    let (curse_active, close_hostile) = live_move_speed_gates(state, p);
+    // SETTINGS-LONG-TAIL: live SpeedWithBothShoes + contained clamp + other vitals knobs
+    let speed_knobs = state.gameplay.vitals_speed_live_knobs();
+    let vitals = VitalsSpeedInput {
+        has_both_shoes: has_both_shoes(left_shoe, right_shoe),
+        on_horse_or_car: on_horse,
+        current_food_store_max: p.food_max,
+        heat,
+        curse_active,
+        close_hostile_with_weapon: close_hostile,
+        is_ai,
+        prestige_class: class,
+        is_strong,
+        held_nest_product: held_nest_speed_product_ex(
+            &state.content,
+            p.held_helper.as_ref(),
+            speed_knobs.min_speed_reduction_per_contained_obj,
+        ),
+    };
     let world = state.world.read().unwrap();
-    let floor_factor = floor_road_factor_at(&world, &state.content, p.x, p.y, true, false);
-    base * floor_factor
+    apply_calculate_speed_full_live(
+        &world,
+        &state.content,
+        p.x,
+        p.y,
+        base,
+        true, // standing / report: Haxe default fullPathHasRoad
+        p.held_id,
+        &p.backpack,
+        p.clothing_helpers[5].as_ref(),
+        &vitals,
+        &speed_knobs,
+    )
+}
+
+/// Haxe `Math.ceil(yum_multiplier)` for FX FoodChange (prestige).
+// Haxe: GlobalPlayerInstance.sendFoodUpdate L3037
+fn ceil_yum_multiplier(prestige: f32) -> i32 {
+    if prestige.is_finite() {
+        prestige.ceil() as i32
+    } else {
+        0
+    }
 }
 
 /// FX food-change line from current player vitals + yum state + composed move speed.
@@ -10167,10 +13707,68 @@ fn food_change_for_player(state: &SimState, p: &Player) -> String {
         p.yum.just_ate_id,
         p.yum.last_ate_fill_max,
         player_move_speed(state, p),
-        -1,
+        p.yum.responsible_id,
         p.yum.yum_bonus_ceil(),
-        0,
+        ceil_yum_multiplier(state.player_prestige(p.p_id)),
     )
+}
+
+/// After `try_eat_held`: FX + eat PU (just_ate) + FM. Haxe `doEating` sendFoodUpdate + PU.
+fn send_held_eat_result(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
+    state.publish_player_view(conn_id);
+    if let Some(p) = state.players.get(&conn_id) {
+        let fx = food_change_for_player(state, p);
+        let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
+        for &cid in &near {
+            outbound.send_urgent(cid, fx.clone().into_bytes());
+        }
+        let spd = player_move_speed(state, p);
+        let (px, py) = p.world_to_client(p.x, p.y);
+        let pu = format_player_update_line_eat_responsible(
+            p.p_id,
+            person_object_id(&p),
+            p.held_id,
+            px,
+            py,
+            p.age,
+            spd,
+            p.yum.just_ate_flag(),
+            p.yum.just_ate_id,
+            p.yum.responsible_id,
+            p.done_moving_seq.max(1),
+        );
+        for &cid in &near {
+            outbound.send_urgent(cid, format_server_message("PU", &[&pu]).into_bytes());
+        }
+    }
+    if let Some(p) = state.players.get_mut(&conn_id) {
+        p.yum.clear_just_ate_flag();
+    }
+    flush_eat_emotes(state, outbound);
+    outbound.send_urgent(conn_id, format_server_message("FM", &[]).into_bytes());
+}
+
+/// Haxe doEating post-eat PE (eater miam/happy/ill/sad; feeder happy on craving).
+// Haxe: GlobalPlayerInstance.doEating L3239–3245
+// FEED-OTHER-EMOTE
+fn flush_eat_emotes(state: &SimState, outbound: &OutboundHub) {
+    for (cid, index) in crate::food_eating::take_eat_emotes() {
+        let Some(p) = state.players.get(&cid) else {
+            continue;
+        };
+        if p.deleted {
+            continue;
+        }
+        let pe = format_player_emot(p.p_id, index).into_bytes();
+        let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
+        send_nearby(outbound, &near, pe);
+        for &nid in &near {
+            send_frame(outbound, nid);
+        }
+    }
+    for (cid, text) in crate::food_eating::take_eat_says() {
+        send_ps_reply(outbound, cid, &text);
+    }
 }
 
 pub async fn run_sim_loop(
@@ -10208,7 +13806,7 @@ pub async fn run_sim_loop(
         None,
         TwinRegistry::default(),
         None,
-            false,
+        false,
         2,
         None,
         100,
@@ -10271,9 +13869,13 @@ pub async fn run_sim_loop_with_views(
     // Optional boot wiring (war/posse share, live settings, LLM share, …).
     boot_live: Option<settings_live::SimBootLive>,
 ) {
-    let war_posse_share: Option<WarPosseShare> = boot_live
-        .as_ref()
-        .and_then(|b| b.war_posse_share.clone());
+    let mut boot_live = boot_live;
+    let war_posse_share: Option<WarPosseShare> =
+        boot_live.as_ref().and_then(|b| b.war_posse_share.clone());
+    let players_share: Option<crate::PlayersShare> =
+        boot_live.as_ref().and_then(|b| b.players_share.clone());
+    let live_share = boot_live.as_ref().and_then(|b| b.live_share.clone());
+    let mut hot_reload = boot_live.as_mut().and_then(|b| b.hot_reload.take());
     let mut state = SimState::new(world, content);
     state.timed_movement = timed_movement;
     state.broadcast_all_updates = broadcast_all_updates;
@@ -10289,7 +13891,10 @@ pub async fn run_sim_loop_with_views(
         let (sx, sy) = find_eve_spawn(&w, fallback, &[], fallback);
         state.spawn_x = sx;
         state.spawn_y = sy;
-        info!(sx, sy, "sim: playable spawn point ready (Eve food / grassland)");
+        info!(
+            sx,
+            sy, "sim: playable spawn point ready (Eve food / grassland)"
+        );
     }
     state.sim_speed = if sim_speed.is_finite() && sim_speed >= 0.0 {
         sim_speed
@@ -10347,12 +13952,63 @@ pub async fn run_sim_loop_with_views(
             "sim: loaded accounts from shared book"
         );
     }
+    // PLAYERS-BIN: sticky roster + WALLET-PERSIST-RESTORE (Haxe ReadPlayers coins).
+    if let Some(ref share) = players_share {
+        let snap = share.read().unwrap().clone();
+        if !snap.is_empty() {
+            let n = crate::players_persist::apply_players_snapshot(
+                &snap,
+                &mut state.players,
+                &mut state.social,
+                &mut state.next_player_id,
+                &mut state.economy,
+                &mut state.combat,
+            );
+            for (&pid, w) in &state.economy.wallets {
+                state.scoreboard.set_coins(pid, w.coins);
+            }
+            state.recompute_median_prestige();
+            info!(n, "sim: loaded sticky players from PLB1");
+        }
+    }
     // Natural spawn / OLW load never went through USE â€” arm decay timers now.
     arm_decays_for_loaded_world(&mut state);
     // Reverse craft graph from content transitions (capped for boot speed).
     seed_craft_graph_from_content(&mut state);
     // Seed a few wild animals near play area for AI / viewer if none loaded.
     spawn_default_animals(&mut state);
+    // CONFIG-SETTINGS: apply server.toml live knobs at boot (Haxe readFromFile at start).
+    // Omitted TOML keys keep compiled defaults — analog of Haxe `**default**` skip.
+    if let Some(ref tracker) = hot_reload {
+        let report = settings_live::apply_live_settings(&mut state, tracker.last_live());
+        if let Some(ref share) = live_share {
+            if let Ok(mut g) = share.write() {
+                *g = tracker.last_live().clone();
+            }
+        }
+        if !report.keys.is_empty() {
+            info!(
+                keys = ?report.keys,
+                "sim: server.toml live settings applied at boot"
+            );
+        }
+    }
+    // AI-LLM-HTTP-DRAIN / AI-LLM-FAN: outer HTTP job/result share
+    if let Some(share) = boot_live
+        .as_ref()
+        .and_then(|b| b.llm_speech_share.clone())
+    {
+        state.llm_speech_io = Some(share);
+        info!("sim: AI-LLM-HTTP-DRAIN speech I/O share attached");
+    }
+    // NPC-SCAN-FULL: live blockedByAI share for the NPC think thread
+    if let Some(share) = boot_live
+        .as_ref()
+        .and_then(|b| b.blocked_by_ai_share.clone())
+    {
+        state.blocked_by_ai_share = Some(share);
+        info!("sim: NPC-SCAN-FULL blockedByAI share attached");
+    }
     // Publish immediately so self-play Arc share sees wolves before first vitals tick.
     state.publish_web_snapshots();
 
@@ -10396,6 +14052,7 @@ pub async fn run_sim_loop_with_views(
                         *shared.write().unwrap() = state.accounts.clone();
                     }
                     mirror_war_posse_share(&state, &war_posse_share);
+                    mirror_players_share(&state, &players_share);
                     info!("intent channel closed; sim stopping");
                     return;
                 }
@@ -10408,10 +14065,8 @@ pub async fn run_sim_loop_with_views(
             apply_intent(&mut state, &counters, &outbound, intent);
             let elapsed = tm.elapsed();
             ops.on_intent(elapsed);
-            counters.record_client_intent(
-                cid,
-                elapsed.as_micros().min(u128::from(u32::MAX)) as u64,
-            );
+            counters
+                .record_client_intent(cid, elapsed.as_micros().min(u128::from(u32::MAX)) as u64);
             if cid < 9_000_000 {
                 human_work = true;
                 if elapsed.as_millis() >= 50 {
@@ -10455,10 +14110,7 @@ pub async fn run_sim_loop_with_views(
                 // Spoken text = absolute x,y as one token so the bubble is visible.
                 let label = format!("{wx},{wy}");
                 // LS then FM â€” official client will not show LS until FRAME.
-                outbound.send_urgent(
-                    cid,
-                    format_location_says(rx, ry, &label).into_bytes(),
-                );
+                outbound.send_urgent(cid, format_location_says(rx, ry, &label).into_bytes());
                 // Arc<OutboundHub> in the sim loop â€” borrow for send_frame.
                 send_frame(outbound.as_ref(), cid);
             }
@@ -10519,6 +14171,7 @@ pub async fn run_sim_loop_with_views(
                                 *shared.write().unwrap() = state.accounts.clone();
                             }
                             mirror_war_posse_share(&state, &war_posse_share);
+                            mirror_players_share(&state, &players_share);
                             info!("intent channel closed; sim stopping");
                             return;
                         }
@@ -10550,6 +14203,15 @@ pub async fn run_sim_loop_with_views(
         }
 
         let dt = tick_time * catch_up_steps as f32;
+        // Haxe TimeHelper: every N ticks, re-read settings if the file changed.
+        if let Some(ref mut tracker) = hot_reload {
+            settings_live::poll_and_apply_live_settings(&mut state, tracker, live_share.as_ref());
+        }
+        settings_live::enforce_eternal_winter(&mut state);
+        // Haxe TimeHelper.DoTimeStuff L132-135: SendMoveEveryXTicks > 0 →
+        // sendToMeAllClosePlayers(false, false) for each connection.
+        // SETTINGS-LONG-TAIL
+        leader_range::maybe_refresh_close_players(&state, &outbound);
         tick_move_paths(&mut state, dt, &outbound);
         tick_vitals_with_metrics(&mut state, dt, &outbound, Some(&counters));
 
@@ -10604,6 +14266,7 @@ pub async fn run_sim_loop_with_views(
                 *shared.write().unwrap() = state.accounts.clone();
             }
             mirror_war_posse_share(&state, &war_posse_share);
+            mirror_players_share(&state, &players_share);
         }
 
         if state.tick.saturating_sub(last_skip_log) >= 200 {
@@ -10640,6 +14303,7 @@ pub fn apply_intent(
             reconnect,
             email,
             client_tag,
+            client_ip,
         } => {
             // Version gate: numeric client_tag is treated as data version.
             // Soft-log by default; hard-reject (PS + no spawn) when
@@ -10682,13 +14346,98 @@ pub fn apply_intent(
                     );
                 }
             }
+            // SPAWN-QUEUE-POLICY: Haxe loginHelper MaxPlayers + TODOs L135–138
+            {
+                use crate::spawn_queue::{
+                    count_living_humans_ais, cull_ai_slots, incoming_is_human_conn,
+                    spawn_queue_decide, SpawnQueueBook, SpawnQueueDecision, SpawnQueueInput,
+                };
+                let now = state.sim_time;
+                state.spawn_queue.note_login_attempt(&client_ip, now);
+                if let Some(p) = state.players.get(&conn_id) {
+                    if p.deleted {
+                        state.spawn_queue.note_life_end(&p.email, p.age);
+                    }
+                }
+                let (living_humans, living_ais) = count_living_humans_ais(&state.players);
+                let already_living = state
+                    .players
+                    .get(&conn_id)
+                    .map(|p| !p.deleted)
+                    .unwrap_or(false);
+                let is_new_account = state.accounts.get(&email).is_none();
+                let rec_score = state
+                    .accounts
+                    .get(&email)
+                    .map(|r| {
+                        if r.score > 0.0 {
+                            r.score
+                        } else {
+                            r.total_score as f32
+                        }
+                    })
+                    .unwrap_or(0.0);
+                let inp = SpawnQueueInput {
+                    max_players: state.spawn_queue.max_players,
+                    living_humans,
+                    living_ais,
+                    npc_min: state.spawn_queue.npc_min,
+                    incoming_is_human: incoming_is_human_conn(conn_id),
+                    already_living,
+                    account_score: rec_score,
+                    last_seen_ago_secs: state.spawn_queue.last_seen_ago(&email, now),
+                    last_life_age: state.spawn_queue.last_life_age(&email),
+                    client_ip: client_ip.clone(),
+                    is_new_account,
+                    new_accounts_today_from_ip: state
+                        .spawn_queue
+                        .new_accounts_today_from_ip(&client_ip),
+                    new_accounts_today_total: state.spawn_queue.total_new_accounts_today(),
+                    recent_logins_from_ip: state
+                        .spawn_queue
+                        .recent_logins_from_ip(&client_ip, now),
+                };
+                match spawn_queue_decide(&inp) {
+                    SpawnQueueDecision::Allow => {}
+                    SpawnQueueDecision::AllowCullAi { cull } => {
+                        let n = cull_ai_slots(state, cull);
+                        info!(conn_id, culled = n, "sim: spawn queue culled AIs");
+                    }
+                    other => {
+                        outbound.send(
+                            conn_id,
+                            format_server_message("REJECTED", &[]).into_bytes(),
+                        );
+                        warn!(
+                            conn_id,
+                            %email,
+                            ?other,
+                            "sim: spawn queue rejected login"
+                        );
+                        return;
+                    }
+                }
+                if is_new_account && !client_ip.trim().is_empty() {
+                    let day = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|d| SpawnQueueBook::unix_day(d.as_secs()))
+                        .unwrap_or(0);
+                    state.spawn_queue.note_new_account(&client_ip, day);
+                }
+                state.spawn_queue.note_seen(&email, now);
+            }
             let p_id = spawn_player(state, conn_id, &email);
+            if let Some(p) = state.players.get_mut(&conn_id) {
+                p.client_tag = client_tag.clone();
+            }
             counters.logins.fetch_add(1, Ordering::Relaxed);
             let name = email.split('@').next().unwrap_or("NEWBORN");
-            state.social.ensure_lineage(p_id, name);
+            state
+                .social
+                .ensure_lineage_born_at(p_id, name, state.sim_time);
             state.combat.stats_mut(p_id);
             state.economy.add_coins(p_id, 5); // starting coins
-            // Curse tokens (OneLife starts with 1); scoreboard row + starting coin score.
+                                              // Curse tokens (OneLife starts with 1); scoreboard row + starting coin score.
             state.curses.ensure(p_id);
             let display = state
                 .players
@@ -10722,7 +14471,13 @@ pub fn apply_intent(
                 let spd = player_move_speed(state, pl);
                 let (rx, ry) = pl.world_to_client(pl.x, pl.y);
                 let po = person_object_id(pl);
-                let nm_line = format!("{} {} {}", pl.p_id, pl.first_name, pl.family_name);
+                let nm_line = format_player_nm_line_ex(
+                    &state.social.lineages,
+                    pl.p_id,
+                    &pl.first_name,
+                    &pl.family_name,
+                    pl.is_ai_body(),
+                );
                 outbound.send_urgent(
                     conn_id,
                     format_server_message("NM", &[&nm_line]).into_bytes(),
@@ -10747,10 +14502,7 @@ pub fn apply_intent(
                     -1,
                     pl.done_moving_seq.max(1),
                 );
-                outbound.send_urgent(
-                    conn_id,
-                    format_server_message("PU", &[&pu]).into_bytes(),
-                );
+                outbound.send_urgent(conn_id, format_server_message("PU", &[&pu]).into_bytes());
                 outbound.send_urgent(conn_id, format_server_message("FM", &[]).into_bytes());
                 info!(
                     conn_id,
@@ -10764,6 +14516,9 @@ pub fn apply_intent(
                     "sim: post-login NM+PU+FM (force, urgent)"
                 );
             }
+            // PO-FAR-PLAYERS: Haxe Connection.SendToMeAllClosePlayers(player, true)
+            // Haxe: Connection.hx L271
+            leader_range::send_to_me_all_close_players(state, outbound, conn_id, true);
             // MAP-LOCATION-PINS: Haxe Connection L281 mother map pin
             // Haxe: sendMapLocation(mother, 'MOTHER', 'leader')
             map_location_pins::send_mother_map_pin_on_login(state, outbound, conn_id);
@@ -10805,28 +14560,52 @@ pub fn apply_intent(
                         // Success: PM only (apply_move_path_start). No force PU snap-back.
                         // NPC band floods INFO at 1+ accepts/sec; keep human clients visible.
                         if conn_id >= 9_000_000 {
-                            debug!(conn_id, steps = deltas.len(), ?seq, "sim: MOVE path accepted");
+                            debug!(
+                                conn_id,
+                                steps = deltas.len(),
+                                ?seq,
+                                "sim: MOVE path accepted"
+                            );
                         } else {
-                            info!(conn_id, steps = deltas.len(), ?seq, "sim: MOVE path accepted");
+                            info!(
+                                conn_id,
+                                steps = deltas.len(),
+                                ?seq,
+                                "sim: MOVE path accepted"
+                            );
                         }
                     }
                     Err(e) => {
-                        // Haxe CancleMovement: force PU at **server** pos with client seq.
-                        if conn_id >= 9_000_000 {
-                            debug!(conn_id, reason = e.as_str(), "sim: MOVE path rejected");
+                        // Haxe waitForForce: silent ignore (no second CancleMovement).
+                        if e.is_silent() {
+                            debug!(conn_id, reason = e.as_str(), "sim: MOVE ignored");
                         } else {
-                            warn!(conn_id, reason = e.as_str(), "sim: MOVE path rejected");
+                            // Haxe CancleMovement: force PU at **server** pos with client seq.
+                            if conn_id >= 9_000_000 {
+                                debug!(conn_id, reason = e.as_str(), "sim: MOVE path rejected");
+                            } else {
+                                warn!(conn_id, reason = e.as_str(), "sim: MOVE path rejected");
+                            }
+                            send_forced_player_update(state, outbound, conn_id, seq);
+                            if e.arms_wait_for_force() {
+                                arm_human_wait_for_force(state, conn_id);
+                            }
                         }
-                        send_forced_player_update(state, outbound, conn_id, seq);
                     }
                 }
             } else if apply_move_deltas_with_seq(state, conn_id, xs, ys, &deltas, seq) {
                 maybe_send_map_chunk(state, outbound, conn_id);
                 state.publish_player_view(conn_id);
                 if let Some(p) = state.players.get(&conn_id).cloned() {
-                    info!(conn_id, x = p.x, y = p.y, steps = deltas.len(), "sim: MOVE done");
+                    info!(
+                        conn_id,
+                        x = p.x,
+                        y = p.y,
+                        steps = deltas.len(),
+                        "sim: MOVE done"
+                    );
                     let spd = player_move_speed(state, &p);
-                    let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
+                    let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
                     for &cid in &near {
                         let (rx, ry) = state
                             .players
@@ -10841,12 +14620,9 @@ pub fn apply_intent(
                             ry,
                             p.age,
                             spd,
-                        p.done_moving_seq.max(1),
+                            p.done_moving_seq.max(1),
                         );
-                        outbound.send(
-                            cid,
-                            format_server_message("PU", &[&pu]).into_bytes(),
-                        );
+                        outbound.send(cid, format_server_message("PU", &[&pu]).into_bytes());
                     }
                 }
             } else {
@@ -10868,102 +14644,94 @@ pub fn apply_intent(
                 .get(&conn_id)
                 .map(|p| resolve_net_intent_tile(p, x, y))
                 .unwrap_or((x, y));
-            if state.players.get(&conn_id).map(|p| is_moving(p)).unwrap_or(false) {
-                // Keep real done_moving_seq â€” do not force-bump mid-walk.
+            if state
+                .players
+                .get(&conn_id)
+                .map(|p| is_moving(p))
+                .unwrap_or(false)
+            {
+                // Haxe: USE while moving is refused; unstick (force PU+FM, no eat).
+                if let Some(p) = state.players.get_mut(&conn_id) {
+                    p.move_path = None;
+                    p.moving = false;
+                }
                 send_action_result_pu_and_frame(state, outbound, conn_id);
                 state.publish_player_view(conn_id);
+                // Haxe use() moving refuse is inside the switch — still read held text.
+                maybe_send_held_writing_ps(state, outbound, conn_id);
             } else {
-            match apply_use_at(state, conn_id, x, y) {
-            Some(r) if r.applied => {
-                info!(
-                    conn_id,
-                    x,
-                    y,
-                    actor = r.actor_before,
-                    target = r.target_before,
-                    new_actor = r.actor_after,
-                    new_target = r.target_after,
-                    "sim: USE applied"
-                );
-                counters.crafts.fetch_add(1, Ordering::Relaxed);
-                state.publish_player_view(conn_id);
-                let near = nearby_conn_ids(state, x, y, NEARBY_RANGE);
-                for pkt in packets_after_use(state, conn_id, &r) {
-                    for &cid in &near {
-                        outbound.send_urgent(cid, pkt.clone());
-                    }
-                }
-                outbound.send_urgent(conn_id, format_server_message("FM", &[]).into_bytes());
-            }
-            Some(r) => {
-                if try_eat_held(state, conn_id) {
-                    state.publish_player_view(conn_id);
-                    if let Some(p) = state.players.get(&conn_id) {
-                        let fx = food_change_for_player(state, p);
-                        let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
-                        for &cid in &near {
-                            outbound.send_urgent(cid, fx.clone().into_bytes());
-                        }
-                        let spd = player_move_speed(state, p);
-                        let (px, py) = p.world_to_client(p.x, p.y);
-                        let pu = format_player_update_line_eat(
-                            p.p_id,
-                            person_object_id(&p),
-                            p.held_id,
-                            px,
-                            py,
-                            p.age,
-                            spd,
-                            p.yum.just_ate_flag(),
-                            p.yum.just_ate_id,
-                            p.done_moving_seq.max(1),
+                let use_ranged_too_close = match apply_use_at(state, conn_id, x, y) {
+                    Some(r) if r.applied => {
+                        info!(
+                            conn_id,
+                            x,
+                            y,
+                            actor = r.actor_before,
+                            target = r.target_before,
+                            new_actor = r.actor_after,
+                            new_target = r.target_after,
+                            "sim: USE applied"
                         );
-                        for &cid in &near {
-                            outbound.send_urgent(
-                                cid,
-                                format_server_message("PU", &[&pu]).into_bytes(),
+                        counters.crafts.fetch_add(1, Ordering::Relaxed);
+                        state.publish_player_view(conn_id);
+                        let near = nearby_conn_ids(state, x, y, nearby_range(state));
+                        for pkt in packets_after_use(state, conn_id, &r) {
+                            crate::vanilla_id::send_nearby_maybe_mx(
+                                state, outbound, &near, pkt, true,
                             );
                         }
+                        // HORSE-EAT-FX: clear just_ate after eat PU fan-out (Haxe post-PU).
+                        if let Some(p) = state.players.get_mut(&conn_id) {
+                            p.yum.clear_just_ate_flag();
+                        }
+                        // HORSE-EAT-EMOTE: doEating PE queued by mount-eat (and other USE eat).
+                        flush_eat_emotes(state, outbound);
+                        outbound
+                            .send_urgent(conn_id, format_server_message("FM", &[]).into_bytes());
+                        false
                     }
-                    if let Some(p) = state.players.get_mut(&conn_id) {
-                        p.yum.clear_just_ate_flag();
+                    Some(r) => {
+                        let too_close = r.ranged_too_close;
+                        if try_eat_held(state, conn_id) {
+                            send_held_eat_result(state, outbound, conn_id);
+                        } else {
+                            debug!(
+                                conn_id,
+                                x,
+                                y,
+                                actor = r.actor_before,
+                                target = r.target_before,
+                                "sim: USE no transition â€” unstick PU+FM (keep seq)"
+                            );
+                            state.publish_player_view(conn_id);
+                            flush_eat_emotes(state, outbound);
+                            send_action_result_pu_and_frame(state, outbound, conn_id);
+                        }
+                        too_close
                     }
-                    outbound.send_urgent(conn_id, format_server_message("FM", &[]).into_bytes());
+                    None => {
+                        warn!(conn_id, "sim: USE without player");
+                        send_action_result_pu_and_frame(state, outbound, conn_id);
+                        false
+                    }
+                };
+                // HOLDING-PLAYER-CMD: baby PU after feet drop (carrier unstick already sent).
+                if let Some(baby_conn) = crate::use_transition::take_held_player_drop_baby() {
+                    send_player_update_and_frame(state, outbound, baby_conn);
+                }
+                // GPI-TOO-CLOSE: UseResult.ranged_too_close is authoritative for USE
+                // (avoids thread-local note races). Pending note still drained for
+                // debug message channel + kill-style note_too_close_say callers.
+                // Haxe: TransitionHelper.use L761–764
+                maybe_hungry_work_emote_feedback(state, outbound, conn_id);
+                if use_ranged_too_close {
+                    emit_too_close_ps(state, outbound, conn_id);
+                    clear_too_close_pending();
                 } else {
-                    debug!(
-                        conn_id,
-                        x,
-                        y,
-                        actor = r.actor_before,
-                        target = r.target_before,
-                        "sim: USE no transition â€” unstick PU+FM (keep seq)"
-                    );
-                    state.publish_player_view(conn_id);
-                    send_action_result_pu_and_frame(state, outbound, conn_id);
+                    maybe_too_close_say_feedback(state, outbound, conn_id);
                 }
-            }
-            None => {
-                warn!(conn_id, "sim: USE without player");
-                send_action_result_pu_and_frame(state, outbound, conn_id);
-            }
-            }
-            // GPI-TOO-CLOSE: apply_use_at notes flag on bow min-range refuse;
-            // flush public PS here (Haxe: player.say('Too close...')).
-            // Haxe: TransitionHelper.use L761–764
-            if let Some(say_conn) = take_too_close_say() {
-                if let Some(pl) = state.players.get(&say_conn) {
-                    let near = nearby_conn_ids(state, pl.x, pl.y, chat_range_for_age(pl.age));
-                    send_chat_ps(
-                        state,
-                        outbound,
-                        say_conn,
-                        pl.p_id,
-                        TOO_CLOSE_SAY,
-                        &near,
-                    );
-                }
-                clear_too_close_pending();
-            }
+                // READ-WRITING: post-command heldObject.text → PS (skip early refuses).
+                maybe_send_held_writing_ps(state, outbound, conn_id);
             } // !moving USE
         }
         NetIntent::Drop { conn_id, x, y, c } => {
@@ -11002,11 +14770,7 @@ pub fn apply_intent(
                     );
                     match outcome {
                         TwinJoinOutcome::Waiting { have, need } => {
-                            send_ps_reply(
-                                outbound,
-                                conn_id,
-                                &format_twin_wait_ps(have, need),
-                            );
+                            send_ps_reply(outbound, conn_id, &format_twin_wait_ps(have, need));
                         }
                         TwinJoinOutcome::Ready(party) => {
                             process_ready_twin_party(state, outbound, party);
@@ -11026,26 +14790,11 @@ pub fn apply_intent(
                     touch_afk_activity(state, conn_id);
                 }
                 apply_say_or_remv(state, outbound, counters, conn_id, &tag, &payload);
+            } else if tag.eq_ignore_ascii_case("KILL") {
+                apply_protocol_kill(state, outbound, counters, conn_id, &payload);
             } else if tag.eq_ignore_ascii_case("DIE") {
                 touch_afk_activity(state, conn_id);
-                let died_id = state.players.get_mut(&conn_id).map(|p| {
-                    if p.deleted {
-                        return None;
-                    }
-                    p.deleted = true;
-                    p.death_reason = Some(DeathCause::Suicide.wire_tag().into());
-                    Some(p.p_id)
-                });
-                if let Some(Some(p_id)) = died_id {
-                    scatter_backpack_on_death(state, conn_id);
-                    apply_death_inheritance(state, p_id);
-                    counters.deaths.fetch_add(1, Ordering::Relaxed);
-                    state.scoreboard.record_death(p_id);
-                    state.push_event(format_death_event(p_id, DeathCause::Suicide));
-                    state.afk.remove(p_id);
-                    state.publish_player_view(conn_id);
-                    info!(conn_id, "sim: DIE");
-                }
+                apply_voluntary_die(state, outbound, counters, conn_id, false);
             } else if tag.eq_ignore_ascii_case("EMOT") {
                 touch_afk_activity(state, conn_id);
                 // EMOT x y e â†’ PE player_id emot_index (emote rate limit, not SAY).
@@ -11068,7 +14817,7 @@ pub fn apply_intent(
                     .and_then(|s| s.parse::<i32>().ok())
                     .unwrap_or(0);
                 let line = format!("{} {}", p.p_id, e);
-                let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
+                let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
                 send_nearby(
                     outbound,
                     &near,
@@ -11077,61 +14826,20 @@ pub fn apply_intent(
                 for &cid in &near {
                     send_frame(outbound, cid);
                 }
-            } else if tag.eq_ignore_ascii_case("JUMP") {
+            } else if tag.eq_ignore_ascii_case("SWAP") {
                 touch_afk_activity(state, conn_id);
-                // JUMP x y â€” baby jump-out / wiggle, or position refresh + PU note.
-                // Haxe: if held, drop from arms; else PU + wiggle. Always emit PU.
                 let mut parts = payload.split_whitespace();
                 let x = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
                 let y = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-                set_player_position(state, conn_id, x, y);
-                // Baby jump out of mother's arms (held_by link).
-                let (p_id, held_by) = state
+                let (x, y) = state
                     .players
                     .get(&conn_id)
-                    .map(|p| (p.p_id, p.held_by))
-                    .unwrap_or((0, 0));
-                if held_by != 0 {
-                    if let Some(mother) = state
-                        .players
-                        .values_mut()
-                        .find(|pl| pl.p_id == held_by && pl.holding_player_id == p_id)
-                    {
-                        mother.release_holding();
-                    }
-                    if let Some(pl) = state.players.get_mut(&conn_id) {
-                        pl.held_by = 0;
-                    }
-                }
-                if let Some(p) = state.players.get(&conn_id) {
-                    let spd = player_move_speed(state, p);
-                    let pu = format_player_update_line(
-                        p.p_id,
-                        person_object_id(&p),
-                        p.held_id,
-                        p.x,
-                        p.y,
-                        p.age,
-                        spd,
-                    p.done_moving_seq.max(1),
-                    );
-                    let near = nearby_conn_ids(state, p.x, p.y, NEARBY_RANGE);
-                    send_nearby(
-                        outbound,
-                        &near,
-                        format_server_message("PU", &[&pu]).into_bytes(),
-                    );
-                    // Immobile baby wiggle note (Haxe sendWiggle / BW).
-                    if p.age < BABY_AGE_THRESHOLD {
-                        send_nearby(
-                            outbound,
-                            &near,
-                            format_baby_wiggle(p.p_id).into_bytes(),
-                        );
-                    }
-                    info!(conn_id, p_id = p.p_id, "sim: JUMP PU");
-                }
-                state.publish_player_view(conn_id);
+                    .map(|p| resolve_net_intent_tile(p, x, y))
+                    .unwrap_or((x, y));
+                apply_swap(state, outbound, conn_id, x, y);
+            } else if tag.eq_ignore_ascii_case("JUMP") {
+                touch_afk_activity(state, conn_id);
+                apply_player_jump(state, outbound, conn_id);
             } else if tag.eq_ignore_ascii_case("PING") {
                 // PING x y unique_id â†’ PONG unique_id (x,y ignored; protocol.txt).
                 // Net maps ClientCommand::Ping to payload=unique_id only.
@@ -11171,6 +14879,228 @@ pub fn apply_intent(
                 };
                 info!(conn_id, %tag, x, y, %payload, "sim: VOG (no-op ACK)");
                 outbound.send(conn_id, format_vog_update(x, y).into_bytes());
+            } else if tag.eq_ignore_ascii_case("SELF") {
+                // Haxe GlobalPlayerInstance.doSelf: drink → eat if clothingSlot<0 → clothing
+                // SETTINGS-LONG-TAIL drink knobs
+                touch_afk_activity(state, conn_id);
+                let mut parts = payload.split_whitespace();
+                let _sx = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let _sy = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let clothing_slot = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(-1);
+                let content = state.content.clone();
+                let temp_reduction = state.gameplay.temperature_reduction_per_drinking;
+                let max_stored_water = state.gameplay.max_stored_water;
+                let mut say_line: Option<String> = None;
+                let mut applied = false;
+                let mut ate = false;
+                let drink_ok = if let Some(p) = state.players.get_mut(&conn_id) {
+                    if p.deleted {
+                        false
+                    } else if p.held_id < 0 {
+                        false
+                    } else {
+                        if p.is_holding_hidden_wound() {
+                            p.clear_held();
+                        }
+                        clothing_cmds::apply_drink_self_ex(
+                            p,
+                            &content,
+                            temp_reduction,
+                            max_stored_water,
+                        )
+                    }
+                } else {
+                    false
+                };
+                if drink_ok {
+                    applied = true;
+                } else if clothing_slot < 0 && try_eat_held(state, conn_id) {
+                    ate = true;
+                    applied = true;
+                } else if let Some(p) = state.players.get_mut(&conn_id) {
+                    if !p.deleted {
+                        match clothing_cmds::apply_self_clothing_after_drink(
+                            p,
+                            &content,
+                            clothing_slot,
+                        ) {
+                            Ok((_path, say)) => {
+                                if let Some(s) = say {
+                                    say_line = Some(s.to_string());
+                                }
+                                applied = true;
+                            }
+                            Err(_) => {}
+                        }
+                    }
+                }
+                if ate {
+                    send_held_eat_result(state, outbound, conn_id);
+                    info!(conn_id, clothing_slot, "sim: SELF eat");
+                } else {
+                    flush_eat_emotes(state, outbound);
+                    if applied {
+                        state.publish_player_view(conn_id);
+                        if let Some(msg) = say_line {
+                            send_ps_reply(outbound, conn_id, &msg);
+                        }
+                    }
+                    send_player_update_and_frame(state, outbound, conn_id);
+                    info!(conn_id, clothing_slot, applied, "sim: SELF clothing");
+                }
+            } else if tag.eq_ignore_ascii_case("SREMV") {
+                // Haxe specialRemove / specialRemoveHelper (TH-CLOTHING-MATRIX)
+                touch_afk_activity(state, conn_id);
+                // SREMV x y c i#
+                let mut parts = payload.split_whitespace();
+                let _x = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let _y = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let clothing_slot = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(-1);
+                let index = parts.next().and_then(|s| s.parse::<i32>().ok());
+                let ok = state
+                    .players
+                    .get_mut(&conn_id)
+                    .map(|p| {
+                        clothing_cmds::apply_sremv_from_clothing(p, clothing_slot, index).is_ok()
+                    })
+                    .unwrap_or(false);
+                if ok {
+                    state.publish_player_view(conn_id);
+                    info!(conn_id, clothing_slot, ?index, "sim: SREMV from clothing");
+                }
+                send_player_update_and_frame(state, outbound, conn_id);
+            } else if tag.eq_ignore_ascii_case("FORCE") {
+                // Haxe MoveHelper.receivedForce: FORCE x y
+                touch_afk_activity(state, conn_id);
+                let mut parts = payload.split_whitespace();
+                let x = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let y = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                apply_received_force(state, conn_id, x, y);
+            } else if tag.eq_ignore_ascii_case("FLIP") {
+                // Haxe Connection.flip: FLIP x y → FL p_id true|false
+                touch_afk_activity(state, conn_id);
+                let mut parts = payload.split_whitespace();
+                let x = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let y = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                apply_player_flip(state, outbound, conn_id, x, y);
+            } else if tag.eq_ignore_ascii_case("LEAD") {
+                // Haxe Connection.sendLeader: LEAD → map pin (no power say)
+                touch_afk_activity(state, conn_id);
+                crate::leader_range::apply_leader_query(
+                    state, outbound, conn_id, false, true, false,
+                );
+            } else if tag.eq_ignore_ascii_case("OWNER") {
+                // Haxe Connection.sendOwners: OWNER x y → OW
+                touch_afk_activity(state, conn_id);
+                let mut parts = payload.split_whitespace();
+                let x = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let y = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let (wx, wy) = state
+                    .players
+                    .get(&conn_id)
+                    .map(|p| resolve_net_intent_tile(p, x, y))
+                    .unwrap_or((x, y));
+                death_polish::send_owners_query(state, outbound, conn_id, x, y, wx, wy);
+            } else if tag.eq_ignore_ascii_case("GRAVE") {
+                // Haxe Connection.sendGraveInfo: GRAVE x y → GO (GRAVE_OLD)
+                touch_afk_activity(state, conn_id);
+                let mut parts = payload.split_whitespace();
+                let x = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let y = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let (wx, wy) = state
+                    .players
+                    .get(&conn_id)
+                    .map(|p| resolve_net_intent_tile(p, x, y))
+                    .unwrap_or((x, y));
+                death_polish::send_grave_old_query(state, outbound, conn_id, x, y, wx, wy);
+            } else if tag.eq_ignore_ascii_case("BABY") {
+                // Haxe GPI.doBaby: BABY x y [id]
+                touch_afk_activity(state, conn_id);
+                let mut parts = payload.split_whitespace();
+                let x = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let y = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let player_id = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(-1);
+                apply_baby(state, outbound, conn_id, x, y, player_id);
+            } else if tag.eq_ignore_ascii_case("UBABY") {
+                // Haxe GPI.doOnOther: UBABY x y i [id]
+                touch_afk_activity(state, conn_id);
+                let mut parts = payload.split_whitespace();
+                let x = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let y = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(0);
+                let clothing_slot = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(-1);
+                let player_id = parts
+                    .next()
+                    .and_then(|s| s.parse::<i32>().ok())
+                    .unwrap_or(-1);
+                apply_ubaby(
+                    state,
+                    outbound,
+                    conn_id,
+                    x,
+                    y,
+                    clothing_slot,
+                    player_id,
+                );
             } else {
                 touch_afk_activity(state, conn_id);
                 debug!(conn_id, %tag, %payload, "sim: raw intent");
@@ -11198,14731 +15128,9 @@ pub fn apply_intent(
     }
 }
 
+/// Writer integration tests live in [`lib_tests.rs`](lib_tests.rs).
+///
+/// `cargo test -p ol-sim --lib` — this file is **not** compiled on `cargo check` / `cargo build`.
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use ol_content::{ContentDb, ObjectDef, Transition};
-
-    #[test]
-    fn normalize_say_strips_client_coords() {
-        assert_eq!(normalize_say_text("hello"), "hello");
-        assert_eq!(normalize_say_text("0 0 !shutdown"), "!shutdown");
-        assert_eq!(normalize_say_text("-1 2 !CLOSE"), "!CLOSE");
-        assert_eq!(normalize_say_text("  5 5 HELP  "), "HELP");
-        assert_eq!(normalize_say_text("!shutdown"), "!shutdown");
-    }
-
-    #[test]
-    fn shutdown_say_matches() {
-        assert!(is_shutdown_say("!SHUTDOWN"));
-        // !CLOSE is client-only disconnect, not server shutdown.
-        assert!(!is_shutdown_say("!CLOSE"));
-        assert!(is_close_say("!CLOSE"));
-        assert!(is_close_say("CLOSE!"));
-        // contains() also matches pre-normalize form (defense in depth).
-        assert!(is_shutdown_say("0 0 !SHUTDOWN"));
-        assert!(is_shutdown_say(
-            &normalize_say_text("0 0 !shutdown").to_uppercase()
-        ));
-        assert!(is_shutdown_say("SHUTDOWN"));
-        assert!(!is_shutdown_say("HELLO"));
-    }
-
-    fn test_content() -> Arc<ContentDb> {
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            33,
-            ObjectDef {
-                id: 33,
-                description: "Gooseberry".into(),
-                name: "Gooseberry".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 3,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        db.transitions.insert(
-            (0, 33),
-            Transition {
-                actor_id: 0,
-                target_id: 33,
-                new_actor_id: 34,
-                new_target_id: 0,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        // last-use variant: hand on 33 when last use â†’ different outcome
-        db.transitions_last_use.insert(
-            (0, 33),
-            Transition {
-                actor_id: 0,
-                target_id: 33,
-                new_actor_id: 99,
-                new_target_id: 1,
-                last_use_actor: false,
-                last_use_target: true,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        db.transition_count = 1;
-        db.last_use_transition_count = 1;
-        Arc::new(db)
-    }
-
-    // AI-FOOD-FAIL-MARK: live Player.ai_path_reach 30s on empty-hand edible USE fail
-    #[test]
-    fn mark_path_fail_after_use_live_food_30s() {
-        let mut state = SimState::with_default_empty(test_content());
-        let _ = spawn_player(&mut state, 42, "npc@ai.local");
-        {
-            let p = state.players.get_mut(&42).expect("p");
-            p.x = 0;
-            p.y = 0;
-            p.held_id = 0;
-            p.age = 20.0;
-        }
-        {
-            let mut w = state.world.write().unwrap();
-            w.set_object(1, 0, 33);
-        }
-        assert!(mark_path_fail_after_use_live(&mut state, 42, 1, 0));
-        let p = state.players.get(&42).expect("p");
-        assert!(
-            (p.ai_path_reach.not_reachable[&(1, 0)] - crate::NOT_REACHABLE_FOOD_SECS).abs() < 0.01,
-            "food USE fail should mark 30s not_reachable"
-        );
-        let _ = spawn_player(&mut state, 43, "human@test");
-        {
-            let p = state.players.get_mut(&43).expect("p");
-            p.held_id = 0;
-            p.age = 20.0;
-        }
-        assert!(!mark_path_fail_after_use_live(&mut state, 43, 1, 0));
-    }
-
-    #[test]
-    fn baby_wiggle_and_dying_formatters() {
-        assert_eq!(SimState::format_baby_wiggle(42), "BW\n42\n#");
-        assert_eq!(format_baby_wiggle(42), "BW\n42\n#");
-        assert_eq!(SimState::format_dying(7, false), "DY\n7\n#");
-        assert_eq!(SimState::format_dying(7, true), "DY\n7 1\n#");
-        assert_eq!(format_dying(9, true), "DY\n9 1\n#");
-    }
-
-    #[test]
-    fn social_bootstrap_sends_lr_when_tools_learned() {
-        // Haxe LEARNED_TOOL_REPORT = "LR"; LINEAGE = "LN" (not LR).
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 3, "tools@test");
-        state.social.ensure_lineage(p_id, "TOOLS");
-        {
-            let p = state.players.get_mut(&3).expect("player");
-            p.tools.learn(334);
-            p.tools.learn(12);
-        }
-        let pkts = state.social_bootstrap_packets(p_id);
-        let texts: Vec<String> = pkts
-            .iter()
-            .map(|b| String::from_utf8_lossy(b).into_owned())
-            .collect();
-        // Lineage uses LN, not LR.
-        assert!(
-            texts.iter().any(|t| t.starts_with("LN\n")),
-            "expected LN lineage packet, got {texts:?}"
-        );
-        // Learned tools LR with sorted ids.
-        let lr = texts
-            .iter()
-            .find(|t| t.starts_with("LR\n"))
-            .expect("expected LR learned-tools packet");
-        assert_eq!(lr, "LR\n12 334\n#");
-        // TS reflects used count.
-        assert!(
-            texts.iter().any(|t| t == "TS\n2 1000\n#" || t.starts_with("TS\n2 ")),
-            "expected TS with used=2, got {texts:?}"
-        );
-    }
-
-    #[test]
-    fn social_bootstrap_omits_lr_when_no_learned_tools() {
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 4, "empty@test");
-        let pkts = state.social_bootstrap_packets(p_id);
-        let texts: Vec<String> = pkts
-            .iter()
-            .map(|b| String::from_utf8_lossy(b).into_owned())
-            .collect();
-        assert!(
-            texts.iter().all(|t| !t.starts_with("LR\n")),
-            "empty learned set must not send LR, got {texts:?}"
-        );
-        assert!(texts.iter().any(|t| t.starts_with("TS\n")));
-    }
-
-    #[test]
-    fn login_intent_bootstrap_includes_lr_for_reconnect_style_state() {
-        // After spawn, inject learned tools then re-run bootstrap path as login does.
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(9);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 9,
-                reconnect: false,
-                email: "lr@test".into(),
-                client_tag: "client_test".into(),
-            },
-        );
-        // Drain first login packets (no LR yet).
-        while rx.try_recv().is_ok() {}
-
-        // Simulate tools already known (e.g. restored life / mid-session) and re-bootstrap.
-        let p_id = state.players.get(&9).unwrap().p_id;
-        state.players.get_mut(&9).unwrap().tools.learn(99);
-        for pkt in state.social_bootstrap_packets(p_id) {
-            hub.send(9, pkt);
-        }
-        let mut saw_lr = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.as_ref() == "LR\n99\n#" {
-                saw_lr = true;
-            }
-        }
-        assert!(saw_lr, "bootstrap after learn must emit LR");
-    }
-
-    #[test]
-    fn spawn_and_login_intent() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 7,
-                reconnect: false,
-                email: "a@b.c".into(),
-                client_tag: "client_test".into(),
-            },
-        );
-        assert_eq!(state.logins, 1);
-        assert_eq!(counters.snapshot().logins, 1);
-        assert!(state.players.get(&7).is_some());
-    }
-
-    /// Metrics: death counter increments on SAY DIE and hunger death.
-    #[test]
-    fn metrics_death_counter_on_die_and_hunger() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "d@x");
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "DIE".into(),
-            },
-        );
-        assert_eq!(counters.snapshot().deaths, 1);
-
-        // Hunger death path (vitals metrics): food must go below DEATH_FOOD_THRESHOLD (0).
-        let counters2 = Counters::new();
-        let mut state2 = SimState::with_default_empty(test_content());
-        spawn_player(&mut state2, 2, "h@x");
-        state2.players.get_mut(&2).unwrap().food = -0.1;
-        tick_vitals_with_metrics(&mut state2, 0.01, &hub, Some(&counters2));
-        assert!(state2.players.get(&2).unwrap().deleted);
-        assert_eq!(counters2.snapshot().deaths, 1);
-    }
-
-    /// Haxe-aligned USE outcomes from real OneLifeData7 goldens (0_63, 0_36, 0_242).
-    /// TransitionImporter: filename actor_target.txt, first line newActor newTarget â€¦
-    #[test]
-    fn use_applies_haxe_style_transition_goldens() {
-        let mut db = ContentDb::default();
-        // 0_63.txt â†’ 64 48 0  (hand + maple branch tree)
-        db.transitions.insert(
-            (0, 63),
-            Transition {
-                actor_id: 0,
-                target_id: 63,
-                new_actor_id: 64,
-                new_target_id: 48,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        // 0_36.txt â†’ 395 404
-        db.transitions.insert(
-            (0, 36),
-            Transition {
-                actor_id: 0,
-                target_id: 36,
-                new_actor_id: 395,
-                new_target_id: 404,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        // 0_242.txt â†’ 223 242
-        db.transitions.insert(
-            (0, 242),
-            Transition {
-                actor_id: 0,
-                target_id: 242,
-                new_actor_id: 223,
-                new_target_id: 242,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        db.transition_count = 3;
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "golden@t");
-        set_player_position(&mut state, 1, 10, 10);
-        state.players.get_mut(&1).unwrap().held_id = 0;
-
-        // Case 1: maple branch
-        state.world.write().unwrap().set_object(10, 10, 63);
-        let r = apply_use_at(&mut state, 1, 10, 10).unwrap();
-        assert!(r.applied, "0_63 should apply");
-        assert_eq!((r.actor_after, r.target_after), (64, 48));
-        assert_eq!(state.players.get(&1).unwrap().held_id, 64);
-        assert_eq!(state.world.read().unwrap().get_object(10, 10), 48);
-
-        // Case 2: seeding wild carrot (clear held)
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        state.world.write().unwrap().set_object(10, 11, 36);
-        set_player_position(&mut state, 1, 10, 11);
-        let r = apply_use_at(&mut state, 1, 10, 11).unwrap();
-        assert!(r.applied, "0_36 should apply");
-        assert_eq!((r.actor_after, r.target_after), (395, 404));
-
-        // Case 3: ripe wheat
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        state.world.write().unwrap().set_object(11, 11, 242);
-        set_player_position(&mut state, 1, 11, 11);
-        let r = apply_use_at(&mut state, 1, 11, 11).unwrap();
-        assert!(r.applied, "0_242 should apply");
-        assert_eq!((r.actor_after, r.target_after), (223, 242));
-
-        // Moving blocks USE (Haxe checkIfNotMovingAndCloseEnough)
-        state.players.get_mut(&1).unwrap().moving = true;
-        state.players.get_mut(&1).unwrap().move_path =
-            Some(build_move_path(11, 11, vec![(1, 0)], 3.75, 1, 0, 0));
-        state.world.write().unwrap().set_object(11, 11, 63);
-        let r = apply_use_at(&mut state, 1, 11, 11).unwrap();
-        assert!(!r.applied);
-    }
-
-    /// SAY LASTUSE sets force_last_use; next USE prefers last-use table.
-    #[test]
-    fn say_lastuse_forces_last_use_transition() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "u");
-        set_player_position(&mut state, 1, 1, 1);
-        state.world.write().unwrap().set_object(1, 1, 33);
-        assert!(!state.players.get(&1).unwrap().force_last_use);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "LASTUSE".into(),
-            },
-        );
-        assert!(state.players.get(&1).unwrap().force_last_use);
-        let r = apply_use_at(&mut state, 1, 1, 1).unwrap();
-        assert!(r.applied);
-        // last-use (0,33) â†’ (99,1) in test_content
-        assert_eq!(r.actor_after, 99);
-        assert_eq!(r.target_after, 1);
-        // force flag cleared after applied USE
-        assert!(!state.players.get(&1).unwrap().force_last_use);
-    }
-
-    /// Successful SAY CRAFT increments crafts metric.
-    #[test]
-    fn metrics_craft_counter_on_say_craft() {
-        let mut db = ContentDb::default();
-        db.transitions.insert(
-            (34, 0),
-            Transition {
-                actor_id: 34,
-                target_id: 0,
-                new_actor_id: 99,
-                new_target_id: 0,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        db.transition_count = 1;
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "c@x");
-        state.players.get_mut(&1).unwrap().held_id = 34;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "CRAFT".into(),
-            },
-        );
-        assert_eq!(counters.snapshot().crafts, 1);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 99);
-    }
-
-    /// Craft graph seed respects explicit cap.
-    #[test]
-    fn build_reverse_craft_graph_respects_cap() {
-        let mut db = ContentDb::default();
-        for i in 1..=20 {
-            db.transitions.insert(
-                (i, 0),
-                Transition {
-                    actor_id: i,
-                    target_id: 0,
-                    new_actor_id: i + 100,
-                    new_target_id: 0,
-                    last_use_actor: false,
-                    last_use_target: false,
-                    auto_decay_seconds: 0.0,
-                    reverse_use_actor: false,
-                    reverse_use_target: false,
-                    no_use_actor: false,
-                    no_use_target: false,
-                    move_dist: 0,
-
-                desired_move_dist: 0,
-            ..Default::default()
-        },
-            );
-        }
-        let g = build_reverse_craft_graph_capped(&db, 5);
-        // At most 5 transitions seeded â†’ at most 5 product edges.
-        assert!(g.edge_count() <= 5);
-        assert!(g.product_count() <= 5);
-        assert!(g.product_count() >= 1);
-    }
-
-    #[test]
-    fn spawn_player_assigns_non_empty_names() {
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "u@test");
-        let p = state.players.get(&1).expect("spawned");
-        assert!(!p.first_name.is_empty());
-        assert!(!p.family_name.is_empty());
-        assert!(FIRST_NAMES.contains(&p.first_name.as_str()));
-        assert!(FAMILY_NAMES.contains(&p.family_name.as_str()));
-        // Not derived from email alone.
-        assert_ne!(p.first_name, "U");
-        assert_ne!(p.first_name, "U@TEST");
-    }
-
-    #[test]
-    fn use_mutates_shared_world_and_mx_packets() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "u@test");
-        set_player_position(&mut state, 1, 5, 5);
-        state.world.write().unwrap().set_object(5, 5, 33);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Use {
-                conn_id: 1,
-                x: 5,
-                y: 5,
-                id: None,
-                index: None,
-            },
-        );
-        assert_eq!(state.world.read().unwrap().get_object(5, 5), 0);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 34);
-
-        // Outbound MX then PU then FX â€” MX uses -(p_id) for transforms (not drop).
-        let mx = rx.try_recv().expect("MX packet");
-        let mx_s = String::from_utf8_lossy(&mx);
-        assert!(mx_s.starts_with("MX\n"));
-        assert!(mx_s.contains("5 5 0 0"), "got {mx_s}");
-        // player_id_for_conn(1)=2 â†’ responsible -2
-        assert!(
-            mx_s.contains(" 0 -2\n") || mx_s.contains("0 -2\n#") || mx_s.contains("0 -2"),
-            "transform MX must use -p_id (got {mx_s})"
-        );
-        let pu = rx.try_recv().expect("PU");
-        assert!(String::from_utf8_lossy(&pu).starts_with("PU\n"));
-        let fx = rx.try_recv().expect("FX");
-        assert!(String::from_utf8_lossy(&fx).starts_with("FX\n"));
-    }
-
-    /// Stone pile: reverse-use starts at 1; taking decrements; last take uses LT.
-    #[test]
-    fn stone_pile_uses_start_at_one_and_decrement() {
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            33,
-            ObjectDef {
-                id: 33,
-                description: "Stone".into(),
-                name: "Stone".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        db.objects.insert(
-            661,
-            ObjectDef {
-                id: 661,
-                description: "Stone Pile".into(),
-                name: "Stone Pile".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 9,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        // 33+33 â†’ pile reverse target (start uses=1)
-        db.transitions.insert(
-            (33, 33),
-            Transition {
-                actor_id: 33,
-                target_id: 33,
-                new_actor_id: 0,
-                new_target_id: 661,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: true,
-                no_use_actor: true,
-                no_use_target: false,
-                move_dist: 0,
-                desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        // 33+661 â†’ pile reverse (uses += 1)
-        db.transitions.insert(
-            (33, 661),
-            Transition {
-                actor_id: 33,
-                target_id: 661,
-                new_actor_id: 0,
-                new_target_id: 661,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: true,
-                no_use_actor: true,
-                no_use_target: false,
-                move_dist: 0,
-                desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        // 0+661 â†’ take stone, pile stays (uses -= 1)
-        db.transitions.insert(
-            (0, 661),
-            Transition {
-                actor_id: 0,
-                target_id: 661,
-                new_actor_id: 33,
-                new_target_id: 661,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: true,
-                no_use_target: false,
-                move_dist: 0,
-                desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        // last-use: 0+661 â†’ stone + stone
-        db.transitions_last_use.insert(
-            (0, 661),
-            Transition {
-                actor_id: 0,
-                target_id: 661,
-                new_actor_id: 33,
-                new_target_id: 33,
-                last_use_actor: false,
-                last_use_target: true,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: true,
-                no_use_target: false,
-                move_dist: 0,
-                desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        db.transition_count = 3;
-        db.last_use_transition_count = 1;
-
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "pile@test");
-        set_player_position(&mut state, 1, 5, 5);
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        state.world.write().unwrap().set_object(5, 5, 33);
-
-        // First pile: uses = 1 (not 9).
-        let r = apply_use_at(&mut state, 1, 5, 5).unwrap();
-        assert!(r.applied);
-        assert_eq!(r.target_after, 661);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
-        let uses = state
-            .world
-            .read()
-            .unwrap()
-            .get_helper(5, 5)
-            .map(|h| h.uses_remaining)
-            .unwrap_or(-1);
-        assert_eq!(uses, 1, "new pile must start at 1 use, got {uses}");
-
-        // Add another stone â†’ uses = 2.
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        let r = apply_use_at(&mut state, 1, 5, 5).unwrap();
-        assert!(r.applied);
-        let uses = state
-            .world
-            .read()
-            .unwrap()
-            .get_helper(5, 5)
-            .map(|h| h.uses_remaining)
-            .unwrap_or(-1);
-        assert_eq!(uses, 2, "add stone should increment uses to 2");
-
-        // Take one â†’ uses = 1, hold stone.
-        let r = apply_use_at(&mut state, 1, 5, 5).unwrap();
-        assert!(r.applied);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
-        let uses = state
-            .world
-            .read()
-            .unwrap()
-            .get_helper(5, 5)
-            .map(|h| h.uses_remaining)
-            .unwrap_or(-1);
-        assert_eq!(uses, 1, "take must decrement pile uses");
-
-        // Last take (uses=1 â†’ prefer LT) â†’ stone + stone on ground.
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        let r = apply_use_at(&mut state, 1, 5, 5).unwrap();
-        assert!(r.applied);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
-        assert_eq!(
-            state.world.read().unwrap().get_object(5, 5),
-            33,
-            "last take leaves single stone"
-        );
-    }
-
-    /// Bare-hand USE on non-permanent ground object with no transition â†’ pickup (Haxe swap).
-    #[test]
-    fn bare_hand_pickup_swaps_ground_object() {
-        let mut db = ContentDb::default();
-        // Stick: non-permanent, no (0,stick) transition â†’ bare-hand swap.
-        db.objects.insert(
-            99,
-            ObjectDef {
-                id: 99,
-                description: "Stick".into(),
-                name: "Stick".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        // Tree: permanent, cannot bare-hand pickup.
-        db.objects.insert(
-            100,
-            ObjectDef {
-                id: 100,
-                description: "Tree".into(),
-                name: "Tree".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: true,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "pick@test");
-        set_player_position(&mut state, 1, 2, 2);
-        state.world.write().unwrap().set_object(2, 2, 99);
-        let r = apply_use_at(&mut state, 1, 2, 2).unwrap();
-        assert!(r.applied, "bare-hand pickup should apply");
-        assert_eq!(r.actor_after, 99);
-        assert_eq!(r.target_after, 0);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 99);
-        assert_eq!(state.world.read().unwrap().get_object(2, 2), 0);
-
-        // Permanent refuses pickup.
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        state.world.write().unwrap().set_object(2, 3, 100);
-        set_player_position(&mut state, 1, 2, 3);
-        let r2 = apply_use_at(&mut state, 1, 2, 3).unwrap();
-        assert!(!r2.applied);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
-        assert_eq!(state.world.read().unwrap().get_object(2, 3), 100);
-    }
-
-    /// `try_craft` / `SAY CRAFT` applies `find_transition(held, 0)` (USE-on-empty).
-    #[test]
-    fn try_craft_applies_held_target_zero_transition() {
-        let mut db = ContentDb::default();
-        // Fake recipe: hold 100 on empty â†’ hold 101, place 200 under feet.
-        db.transitions.insert(
-            (100, 0),
-            Transition {
-                actor_id: 100,
-                target_id: 0,
-                new_actor_id: 101,
-                new_target_id: 200,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        db.transition_count = 1;
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "craft@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.held_id = 100;
-            p.x = 3;
-            p.y = 4;
-        }
-
-        let r = try_craft(&mut state, 1).expect("player exists");
-        assert!(r.applied);
-        assert_eq!(r.actor_before, 100);
-        assert_eq!(r.target_before, 0);
-        assert_eq!(r.actor_after, 101);
-        assert_eq!(r.target_after, 200);
-        assert_eq!(r.x, 3);
-        assert_eq!(r.y, 4);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 101);
-        assert_eq!(state.world.read().unwrap().get_object(3, 4), 200);
-
-        // No recipe for held 999 â†’ fail without mutating.
-        state.players.get_mut(&1).unwrap().held_id = 999;
-        let r2 = try_craft(&mut state, 1).unwrap();
-        assert!(!r2.applied);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 999);
-
-        // Empty hands â†’ not applied.
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        let r3 = try_craft(&mut state, 1).unwrap();
-        assert!(!r3.applied);
-
-        // Wire path: SAY CRAFT with a valid (held, 0) recipe.
-        // Re-seed content: player still on (3,4) with object 200; craft leaves ground alone when new_target=0.
-        let mut db2 = ContentDb::default();
-        db2.transitions.insert(
-            (50, 0),
-            Transition {
-                actor_id: 50,
-                target_id: 0,
-                new_actor_id: 51,
-                new_target_id: 0,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        db2.transition_count = 1;
-        let mut state2 = SimState::with_default_empty(Arc::new(db2));
-        spawn_player(&mut state2, 1, "craft2@test");
-        state2.players.get_mut(&1).unwrap().held_id = 50;
-        apply_intent(
-            &mut state2,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "CRAFT".into(),
-            },
-        );
-        assert_eq!(state2.players.get(&1).unwrap().held_id, 51);
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("CRAFT OK") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_ok, "expected PS CRAFT OK");
-    }
-
-    #[test]
-    fn last_use_transition_preferred_when_flagged() {
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "u");
-        set_player_position(&mut state, 1, 1, 1);
-        state.prefer_last_use = true;
-        state.world.write().unwrap().set_object(1, 1, 33);
-        let r = apply_use_at(&mut state, 1, 1, 1).unwrap();
-        assert!(r.applied);
-        assert_eq!(r.actor_after, 99);
-        assert_eq!(r.target_after, 1);
-        assert_eq!(state.world.read().unwrap().get_object(1, 1), 1);
-    }
-
-    #[test]
-    fn multi_use_decrements_then_last_use() {
-        use ol_world::ComplexObject;
-        // Object 50: multi-use berry; normal USE keeps id 50, last-use â†’ 0
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            50,
-            ObjectDef {
-                id: 50,
-                description: "Berry Bush".into(),
-                name: "Berry Bush".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 3,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        db.transitions.insert(
-            (0, 50),
-            Transition {
-                actor_id: 0,
-                target_id: 50,
-                new_actor_id: 33,
-                new_target_id: 50, // same id while uses remain
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        db.transitions_last_use.insert(
-            (0, 50),
-            Transition {
-                actor_id: 0,
-                target_id: 50,
-                new_actor_id: 33,
-                new_target_id: 0,
-                last_use_actor: false,
-                last_use_target: true,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "u");
-        state.world.write().unwrap().set_object_complex(
-            0,
-            0,
-            ComplexObject::with_uses(50, 3),
-        );
-
-        let r1 = apply_use_at(&mut state, 1, 0, 0).unwrap();
-        assert!(r1.applied);
-        assert_eq!(r1.target_after, 50);
-        assert_eq!(
-            state.world.read().unwrap().get_helper(0, 0).unwrap().uses_remaining,
-            2
-        );
-        // Drop held berry so next USE is bare hand again.
-        state.players.get_mut(&1).unwrap().held_id = 0;
-
-        let r2 = apply_use_at(&mut state, 1, 0, 0).unwrap();
-        assert_eq!(
-            state.world.read().unwrap().get_helper(0, 0).unwrap().uses_remaining,
-            1
-        );
-        assert_eq!(r2.target_after, 50);
-        state.players.get_mut(&1).unwrap().held_id = 0;
-
-        // uses==1 â†’ last-use table â†’ empty tile
-        let r3 = apply_use_at(&mut state, 1, 0, 0).unwrap();
-        assert_eq!(r3.target_after, 0);
-        assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
-        assert!(state.world.read().unwrap().get_helper(0, 0).is_none());
-    }
-
-    #[test]
-    fn mc_reads_live_world_after_place() {
-        let state = SimState::with_default_empty(test_content());
-        state.world.write().unwrap().set_object(0, 0, 33);
-        let w = state.world.read().unwrap();
-        let ids = build_region_object_ids(&w, 0, 0, 2, 1);
-        assert_eq!(ids[0], 33);
-        let pkt = build_map_chunk_packet(&w, 0, 0, 4, 4);
-        assert!(pkt.starts_with(b"MC\n"));
-        let plain = build_chunk_plaintext(&w, 0, 0, 1, 1);
-        assert!(plain.contains("33"));
-    }
-
-    #[test]
-    fn move_deltas_update_position() {
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "u");
-        // Client path deltas are **start-relative** waypoints (protocol.txt), not steps.
-        // From (10,20): (1,0)â†’(11,20), (2,0)â†’(12,20), (2,1)â†’(12,21).
-        assert!(apply_move_deltas(
-            &mut state,
-            1,
-            10,
-            20,
-            &[(1, 0), (2, 0), (2, 1)]
-        ));
-        let p = state.players.get(&1).unwrap();
-        assert_eq!((p.x, p.y), (12, 21));
-    }
-
-    #[test]
-    fn birth_origin_set_on_spawn_and_client_coords() {
-        let mut state = SimState::with_default_empty(test_content());
-        // Prefer fixed spawn so we can assert birth.
-        state.spawn_x = 100;
-        state.spawn_y = 200;
-        spawn_player(&mut state, 1, "eve@test");
-        let p = state.players.get(&1).unwrap();
-        assert_eq!((p.birth_x, p.birth_y), (p.x, p.y));
-        // Wire (0,0) is birth; +1 east is world birth+1.
-        let (wx, wy) = p.client_to_world(0, 0);
-        assert_eq!((wx, wy), (p.birth_x, p.birth_y));
-        let (wx, wy) = p.client_to_world(2, 0);
-        assert_eq!((wx, wy), (p.birth_x + 2, p.birth_y));
-        let (cx, cy) = p.world_to_client(p.x, p.y);
-        assert_eq!((cx, cy), (0, 0));
-    }
-
-    /// MOVE into mountain wall (biome 21 / SNOWINGREY) is rejected; position unchanged.
-    #[test]
-    fn move_blocked_into_mountain_biome() {
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "climber@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 0;
-            p.y = 0;
-        }
-        // Target tile is mountain (SNOWINGREY = 21).
-        state.world.write().unwrap().set_biome(1, 0, BIOME_MOUNTAIN);
-        assert!(!apply_move_deltas(&mut state, 1, 0, 0, &[(1, 0)]));
-        let p = state.players.get(&1).unwrap();
-        assert_eq!((p.x, p.y), (0, 0));
-        // Adjacent green tile still walkable.
-        state.world.write().unwrap().set_biome(0, 1, 0);
-        assert!(apply_move_deltas(&mut state, 1, 0, 0, &[(0, 1)]));
-        assert_eq!((state.players.get(&1).unwrap().x, state.players.get(&1).unwrap().y), (0, 1));
-    }
-
-    #[test]
-    fn food_and_age_tick_can_kill() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "starve");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
-            p.age = 20.0;
-        }
-        tick_vitals(&mut state, 1.0, &hub);
-        let p = state.players.get(&1).unwrap();
-        assert!(p.deleted);
-        assert_eq!(p.death_reason.as_deref(), Some("reason_hunger"));
-    }
-
-    /// Death clears held item and scatters it to a neighbor; body tile stays empty without Grave.
-    #[test]
-    fn death_clears_held() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        assert_eq!(state.grave_object_id, 0, "test_content has no Grave");
-        spawn_player(&mut state, 1, "carry@die");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.held_id = 33;
-            p.food = 0.05;
-            p.age = 20.0;
-            p.x = 7;
-            p.y = 8;
-        }
-        tick_vitals(&mut state, 1.0, &hub);
-        let p = state.players.get(&1).unwrap();
-        assert!(p.deleted);
-        assert_eq!(p.held_id, 0, "death must clear held");
-        assert_eq!(p.death_reason.as_deref(), Some("reason_hunger"));
-        assert_eq!(
-            state.world.read().unwrap().get_object(7, 8),
-            0,
-            "no grave object when content has no Grave (held scatters to ring first)"
-        );
-        // Held should be on a ring-1 tile near death.
-        let mut found_held = false;
-        let w = state.world.read().unwrap();
-        for dy in -1..=1 {
-            for dx in -1..=1 {
-                if dx == 0 && dy == 0 {
-                    continue;
-                }
-                if w.get_object(7 + dx, 8 + dy) == 33 {
-                    found_held = true;
-                }
-            }
-        }
-        assert!(found_held, "held item 33 should scatter near death tile");
-    }
-
-    /// Content object named Grave resolves non-zero id and is placed on hunger death.
-    #[test]
-    fn death_places_grave_when_content_has_grave() {
-        let hub = OutboundHub::new();
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            77,
-            ObjectDef {
-                id: 77,
-                description: "stone grave".into(),
-                name: "Grave".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        db.objects.insert(
-            88,
-            ObjectDef {
-                id: 88,
-                description: "another".into(),
-                name: "Old Grave".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        assert_eq!(resolve_grave_object_id(&db), 77, "lowest matching id");
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        assert_eq!(state.grave_object_id, 77);
-        spawn_player(&mut state, 1, "bury@me");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
-            p.age = 20.0;
-            p.x = 3;
-            p.y = 4;
-        }
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!(state.players.get(&1).unwrap().deleted);
-        assert_eq!(state.world.read().unwrap().get_object(3, 4), 77);
-        assert_eq!(
-            state.specials.count(SpecialKind::Grave),
-            1,
-            "grave indexed as special"
-        );
-    }
-
-    /// age > 60 multiplies food drain by OLD_AGE_FOOD_DRAIN_MULT (1.5Ã—).
-    #[test]
-    fn old_age_increases_food_drain() {
-        let hub = OutboundHub::new();
-        let mut young = SimState::with_default_empty(test_content());
-        let mut old = SimState::with_default_empty(test_content());
-        spawn_player(&mut young, 1, "young");
-        spawn_player(&mut old, 1, "old");
-        // Neutral env so only base + old-age mult apply.
-        for s in [&mut young, &mut old] {
-            s.environment.temperature = 0.5;
-            s.environment.season_length = 10_000.0;
-            s.environment.day_length = 10_000.0;
-            s.environment.hour_of_day = 12.0;
-        }
-        young.players.get_mut(&1).unwrap().age = 30.0;
-        // Start just above threshold so one tick stays > 60.
-        old.players.get_mut(&1).unwrap().age = OLD_AGE_THRESHOLD + 0.1;
-
-        let food0 = young.players.get(&1).unwrap().food;
-        assert_eq!(food0, old.players.get(&1).unwrap().food);
-
-        tick_vitals(&mut young, 1.0, &hub);
-        tick_vitals(&mut old, 1.0, &hub);
-
-        let young_lost = food0 - young.players.get(&1).unwrap().food;
-        let old_lost = food0 - old.players.get(&1).unwrap().food;
-        assert!(
-            (young_lost - FOOD_USE_PER_SEC).abs() < 1e-4,
-            "young drain: lost={young_lost}"
-        );
-        let expected_old = FOOD_USE_PER_SEC * OLD_AGE_FOOD_DRAIN_MULT;
-        assert!(
-            (old_lost - expected_old).abs() < 1e-4,
-            "old drain: lost={old_lost} expected={expected_old}"
-        );
-        assert!(old_lost > young_lost);
-    }
-
-    /// age â‰¤ 60 does not get the old-age food drain multiplier.
-    #[test]
-    fn at_old_age_threshold_no_extra_drain() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "edge");
-        state.environment.temperature = 0.5;
-        state.environment.season_length = 10_000.0;
-        state.environment.day_length = 10_000.0;
-        state.environment.hour_of_day = 12.0;
-        // After +AGE_YEARS_PER_SEC still â‰¤ 60 if we start low enough... use age that
-        // ends exactly at threshold after tick (strict > required for mult).
-        let p = state.players.get_mut(&1).unwrap();
-        p.age = OLD_AGE_THRESHOLD - AGE_YEARS_PER_SEC;
-        let food0 = p.food;
-
-        tick_vitals(&mut state, 1.0, &hub);
-        let p = state.players.get(&1).unwrap();
-        assert!((p.age - OLD_AGE_THRESHOLD).abs() < 1e-4);
-        let lost = food0 - p.food;
-        assert!(
-            (lost - FOOD_USE_PER_SEC).abs() < 1e-4,
-            "at threshold age, no 1.5Ã—: lost={lost}"
-        );
-    }
-
-    /// age > 120 deletes the player with death_reason reason_age.
-    #[test]
-    fn age_death_over_max_sets_reason_age() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "elder");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.age = MAX_AGE; // one tick of aging pushes past 120
-            p.food = 20.0; // not hunger
-        }
-        tick_vitals(&mut state, 1.0, &hub);
-        let p = state.players.get(&1).unwrap();
-        assert!(p.deleted);
-        assert!(p.age > MAX_AGE);
-        assert_eq!(p.death_reason.as_deref(), Some("reason_age"));
-    }
-
-    /// Exactly age == 120 after tick does not die of age (strict >).
-    #[test]
-    fn at_max_age_not_yet_dead() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "almost");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.age = MAX_AGE - AGE_YEARS_PER_SEC;
-            p.food = 20.0;
-        }
-        tick_vitals(&mut state, 1.0, &hub);
-        let p = state.players.get(&1).unwrap();
-        assert!(!p.deleted);
-        assert!((p.age - MAX_AGE).abs() < 1e-4);
-        assert!(p.death_reason.is_none());
-    }
-
-    /// Every ~10s sim time, tick_vitals sends HX heat from body heat (tile path).
-    #[test]
-    fn tick_vitals_emits_hx_heat_every_interval() {
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "heat@test");
-        state.environment.temperature = 0.5;
-        state.environment.season_length = 10_000.0;
-        state.environment.day_length = 10_000.0;
-        state.hx_emit_timer = 0.0;
-
-        // Under interval: no HX yet.
-        tick_vitals(&mut state, 9.0, &hub);
-        assert!(
-            rx.try_recv().is_err(),
-            "no HX before HX_EMIT_INTERVAL_SECS"
-        );
-
-        // Expected heat is biome temp *before* the emit tick (HX reads env pre-tick).
-        let (px, py) = {
-            let p = state.players.get(&1).unwrap();
-            (p.x, p.y)
-        };
-        let biome = state.world.read().unwrap().get_biome(px, py);
-        let expected_heat = state.environment.temperature_at_biome(biome);
-        let expected = format_heat_change(expected_heat, 0.0, 0.0);
-
-        // Cross interval: HX with biome temperature.
-        tick_vitals(&mut state, 1.5, &hub);
-        let mut saw_hx = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.as_ref() == expected {
-                saw_hx = true;
-            }
-        }
-        assert!(saw_hx, "expected HX packet {expected}");
-        // Timer reset; not firing again immediately.
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!(
-            rx.try_recv().is_err(),
-            "no second HX before another full interval"
-        );
-    }
-
-    /// Starving infant (age&lt;3, food&lt;5) emits BW and DY to nearby after ~5s sim time.
-    #[test]
-    fn tick_vitals_emits_baby_wiggle_and_dying_for_starving_infant() {
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "baby@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.age = 1.0;
-            p.food = 4.0;
-            p.vitals_emit_timer = 0.0;
-        }
-        // Neutral temp / long day so drain is predictable and player stays alive.
-        state.environment.temperature = 0.5;
-        state.environment.season_length = 10_000.0;
-        state.environment.day_length = 10_000.0;
-
-        // Under interval: no emit yet.
-        tick_vitals(&mut state, 4.0, &hub);
-        assert!(
-            rx.try_recv().is_err(),
-            "no BW/DY before VITALS_EMIT_INTERVAL_SECS"
-        );
-
-        // Cross interval: BW + DY should arrive for self (nearby includes self).
-        tick_vitals(&mut state, 1.5, &hub);
-        let mut saw_bw = false;
-        let mut saw_dy = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.as_ref() == format_baby_wiggle(p_id) {
-                saw_bw = true;
-            }
-            if s.as_ref() == format_dying(p_id, false) {
-                saw_dy = true;
-            }
-        }
-        assert!(saw_bw, "expected BW packet for starving infant p_id={p_id}");
-        assert!(saw_dy, "expected DY packet for starving infant p_id={p_id}");
-        // Timer reset; not firing again immediately.
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!(
-            rx.try_recv().is_err(),
-            "no second emit before another full interval"
-        );
-    }
-
-    /// Low food (food&lt;3) emits PE hunger emote to nearby after ~8s sim time.
-    #[test]
-    fn tick_vitals_emits_pe_hunger_emote_when_food_low() {
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "hungry@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.age = 20.0;
-            p.food = 2.5;
-            p.hunger_emot_timer = 0.0;
-        }
-        // Neutral temp / long day so drain is predictable and player stays alive.
-        state.environment.temperature = 0.5;
-        state.environment.season_length = 10_000.0;
-        state.environment.day_length = 10_000.0;
-
-        let expected_pe =
-            format_server_message("PE", &[&format!("{p_id}/0 {HUNGER_EMOT_INDEX}")]);
-
-        // Under interval: no PE yet (and total sim time stays under HX interval).
-        tick_vitals(&mut state, 7.0, &hub);
-        assert!(
-            rx.try_recv().is_err(),
-            "no PE before HUNGER_EMOT_INTERVAL_SECS"
-        );
-
-        // Cross interval: PE hunger emote to self (nearby includes self).
-        tick_vitals(&mut state, 1.5, &hub);
-        let mut saw_pe = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).as_ref() == expected_pe {
-                saw_pe = true;
-            }
-        }
-        assert!(saw_pe, "expected PE hunger packet {expected_pe}");
-        // Timer reset; not firing again immediately.
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!(
-            rx.try_recv().is_err(),
-            "no second PE before another full interval"
-        );
-        // Above threshold: no PE even after a full interval (keep total < HX window).
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 5.0;
-            p.hunger_emot_timer = HUNGER_EMOT_INTERVAL_SECS; // would fire if still hungry
-        }
-        // Only advance a little so we don't hit HX; food is high so PE must not fire.
-        tick_vitals(&mut state, 0.1, &hub);
-        assert!(
-            rx.try_recv().is_err(),
-            "no PE when food >= HUNGER_EMOT_FOOD_THRESHOLD"
-        );
-        assert_eq!(
-            state.players.get(&1).unwrap().hunger_emot_timer,
-            0.0,
-            "hunger timer cleared when food is sufficient"
-        );
-    }
-
-    /// Snow biome food drain > green at the same extreme base temperature
-    /// (both receive TEMP_FOOD_EXTRA; snow also has a higher biome multiplier).
-    #[test]
-    fn snow_biome_drains_food_faster_than_green_at_temp_extremes() {
-        let mut snow = SimState::with_default_empty(test_content());
-        let mut green = SimState::with_default_empty(test_content());
-        spawn_player(&mut snow, 1, "snow");
-        spawn_player(&mut green, 1, "green");
-
-        // Same extreme base temp so both tiles hit TEMP_FOOD_EXTRA.
-        snow.environment.temperature = 0.0;
-        green.environment.temperature = 0.0;
-        // Avoid season tick shifting temps mid-comparison.
-        snow.environment.season_length = 10_000.0;
-        green.environment.season_length = 10_000.0;
-
-        let (sx, sy) = {
-            let p = snow.players.get(&1).unwrap();
-            (p.x, p.y)
-        };
-        let (gx, gy) = {
-            let p = green.players.get(&1).unwrap();
-            (p.x, p.y)
-        };
-        snow.world.write().unwrap().set_biome(sx, sy, 4); // snow
-        green.world.write().unwrap().set_biome(gx, gy, 0); // green
-
-        let food0 = snow.players.get(&1).unwrap().food;
-        assert_eq!(food0, green.players.get(&1).unwrap().food);
-
-        let hub = OutboundHub::new();
-        tick_vitals(&mut snow, 1.0, &hub);
-        tick_vitals(&mut green, 1.0, &hub);
-
-        let snow_food = snow.players.get(&1).unwrap().food;
-        let green_food = green.players.get(&1).unwrap().food;
-        assert!(
-            snow_food < green_food,
-            "snow should drain faster: snow={snow_food} green={green_food}"
-        );
-        // Expected rates: green 0.10*1.0+0.05=0.15, snow 0.10*1.25+0.05=0.175
-        let snow_lost = food0 - snow_food;
-        let green_lost = food0 - green_food;
-        assert!((green_lost - (FOOD_USE_PER_SEC + TEMP_FOOD_EXTRA)).abs() < 1e-4);
-        assert!(
-            (snow_lost - (FOOD_USE_PER_SEC * biome_food_multiplier(4) + TEMP_FOOD_EXTRA)).abs()
-                < 1e-4
-        );
-    }
-
-    /// Desert (biome 5) at high temp applies TEMP_FOOD_EXTRA + DESERT_EXTRA (0.02)
-    /// on top of the desert biome food multiplier (1.10).
-    #[test]
-    fn desert_high_temp_applies_desert_extra() {
-        let mut desert = SimState::with_default_empty(test_content());
-        let mut green = SimState::with_default_empty(test_content());
-        spawn_player(&mut desert, 1, "desert");
-        spawn_player(&mut green, 1, "green");
-
-        // High base temp so both hit TEMP_FOOD_EXTRA (t > 0.75); desert also +0.15 biome heat.
-        desert.environment.temperature = 0.80;
-        green.environment.temperature = 0.80;
-        desert.environment.season_length = 10_000.0;
-        green.environment.season_length = 10_000.0;
-
-        let (dx, dy) = {
-            let p = desert.players.get(&1).unwrap();
-            (p.x, p.y)
-        };
-        let (gx, gy) = {
-            let p = green.players.get(&1).unwrap();
-            (p.x, p.y)
-        };
-        desert.world.write().unwrap().set_biome(dx, dy, 5); // desert
-        green.world.write().unwrap().set_biome(gx, gy, 0); // green
-
-        let food0 = desert.players.get(&1).unwrap().food;
-        assert_eq!(food0, green.players.get(&1).unwrap().food);
-
-        // Confirm effective temps are hot enough for the extras.
-        let d_t = desert.environment.temperature_at_biome(5);
-        let g_t = green.environment.temperature_at_biome(0);
-        assert!(d_t > 0.75, "desert heat {d_t}");
-        assert!(g_t > 0.75, "green heat {g_t}");
-
-        let hub = OutboundHub::new();
-        tick_vitals(&mut desert, 1.0, &hub);
-        tick_vitals(&mut green, 1.0, &hub);
-
-        let desert_food = desert.players.get(&1).unwrap().food;
-        let green_food = green.players.get(&1).unwrap().food;
-        assert!(
-            desert_food < green_food,
-            "desert should drain faster: desert={desert_food} green={green_food}"
-        );
-
-        // green: 0.10*1.0 + 0.05 = 0.15
-        // desert: 0.10*1.10 + 0.05 + 0.02 = 0.18
-        let desert_lost = food0 - desert_food;
-        let green_lost = food0 - green_food;
-        assert!((green_lost - (FOOD_USE_PER_SEC + TEMP_FOOD_EXTRA)).abs() < 1e-4);
-        let expected_desert = FOOD_USE_PER_SEC * biome_food_multiplier(5)
-            + TEMP_FOOD_EXTRA
-            + DESERT_EXTRA;
-        assert!(
-            (desert_lost - expected_desert).abs() < 1e-4,
-            "desert_lost={desert_lost} expected={expected_desert}"
-        );
-        assert_eq!(DESERT_EXTRA, 0.02);
-        assert!(biome_food_multiplier(5) > 1.0);
-    }
-
-    #[test]
-    fn drop_places_and_emits_mx() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "u");
-        set_player_position(&mut state, 1, 2, 3);
-        state.players.get_mut(&1).unwrap().held_id = 34;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Drop {
-                conn_id: 1,
-                x: 2,
-                y: 3,
-                c: None,
-            },
-        );
-        assert_eq!(state.world.read().unwrap().get_object(2, 3), 34);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
-        let mx = rx.try_recv().expect("drop MX");
-        assert!(String::from_utf8_lossy(&mx).contains("MX\n2 3"));
-    }
-
-    #[test]
-    fn drop_sets_owner_id() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "owner@test");
-        set_player_position(&mut state, 1, 4, 5);
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        apply_drop(&mut state, &hub, 1, 4, 5, None);
-        assert_eq!(state.world.read().unwrap().get_object(4, 5), 33);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
-        let world = state.world.read().unwrap();
-        let h = world.get_helper(4, 5).expect("DROP stores owner helper");
-        assert_eq!(h.owner_id, p_id);
-        assert!(h.is_owner(p_id));
-        assert!(!h.is_owner(p_id + 99));
-        assert!(world.is_owner(4, 5, p_id));
-        assert!(!world.is_owner(4, 5, 0));
-    }
-
-    #[test]
-    fn nearby_mx_reaches_second_player() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx_a = hub.register(1);
-        let mut rx_b = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "a");
-        spawn_player(&mut state, 2, "b");
-        state.players.get_mut(&1).unwrap().x = 1;
-        state.players.get_mut(&1).unwrap().y = 1;
-        state.players.get_mut(&2).unwrap().x = 2;
-        state.players.get_mut(&2).unwrap().y = 2;
-        state.world.write().unwrap().set_object(1, 1, 33);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Use {
-                conn_id: 1,
-                x: 1,
-                y: 1,
-                id: None,
-                index: None,
-            },
-        );
-        let mx_a = rx_a.try_recv().expect("actor MX");
-        assert!(String::from_utf8_lossy(&mx_a).starts_with("MX\n"));
-        let mx_b = rx_b.try_recv().expect("nearby MX");
-        assert!(String::from_utf8_lossy(&mx_b).starts_with("MX\n"));
-    }
-
-    #[test]
-    fn auto_decay_transforms_object() {
-        let mut db = ContentDb::default();
-        db.auto_decays.insert(
-            100,
-            Transition {
-                actor_id: -1,
-                target_id: 100,
-                new_actor_id: 0,
-                new_target_id: 101,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 1.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        state.world.write().unwrap().set_object(3, 3, 100);
-        schedule_decay(&mut state, 3, 3, 100);
-        assert!(state.pending_decays.contains_key(&(3, 3)));
-        tick_auto_decays(&mut state, 0.5);
-        assert_eq!(state.world.read().unwrap().get_object(3, 3), 100);
-        tick_auto_decays(&mut state, 0.6);
-        assert_eq!(state.world.read().unwrap().get_object(3, 3), 101);
-    }
-
-    #[test]
-    fn map_chunk_sent_when_player_moves_far() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "walker");
-        // First move: needs MC (has_mc false)
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Move {
-                conn_id: 1,
-                xs: 0,
-                ys: 0,
-                deltas: vec![(1, 0)],
-                seq: None,
-},
-        );
-        let mut saw_mc = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if pkt.starts_with(b"MC\n") {
-                saw_mc = true;
-            }
-        }
-        assert!(saw_mc, "first MOVE should send MC");
-        assert!(state.players.get(&1).unwrap().has_mc);
-
-        // Small step: no new MC
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Move {
-                conn_id: 1,
-                xs: 1,
-                ys: 0,
-                deltas: vec![(1, 0)],
-                seq: None,
-},
-        );
-        let mut mc2 = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if pkt.starts_with(b"MC\n") {
-                mc2 = true;
-            }
-        }
-        assert!(!mc2, "near move should not resend MC");
-
-        // Far step: new MC
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Move {
-                conn_id: 1,
-                xs: 2,
-                ys: 0,
-                deltas: vec![(MC_RESEND_THRESHOLD + 1, 0)],
-                seq: None,
-},
-        );
-        let mut mc3 = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if pkt.starts_with(b"MC\n") {
-                mc3 = true;
-            }
-        }
-        assert!(mc3, "far MOVE should resend MC");
-    }
-
-    #[test]
-    fn drop_into_container_and_remv() {
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            391,
-            ObjectDef {
-                id: 391,
-                description: "Basket".into(),
-                name: "Basket".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: vec![],
-                num_uses: 0,
-                num_slots: 4,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        db.objects.insert(
-            33,
-            ObjectDef {
-                id: 33,
-                description: "Berry".into(),
-                name: "Berry".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 2,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: vec![],
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        // Non-containable held item must NOT enter container.
-        db.objects.insert(
-            100,
-            ObjectDef {
-                id: 100,
-                description: "Tree".into(),
-                name: "Tree".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: true,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: vec![],
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "c");
-        set_player_position(&mut state, 1, 5, 5);
-        state.world.write().unwrap().set_object(5, 5, 391);
-
-        // Reject non-containable into basket.
-        state.players.get_mut(&1).unwrap().held_id = 100;
-        apply_drop(&mut state, &hub, 1, 5, 5, None);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 100);
-        assert!(state.world.read().unwrap().get_helper(5, 5).is_none());
-
-        // Accept containable berry.
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        apply_drop(&mut state, &hub, 1, 5, 5, None);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
-        assert_eq!(
-            state.world.read().unwrap().get_helper(5, 5).unwrap().contained,
-            vec![33]
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "REMV".into(),
-                payload: "5 5 0".into(),
-            },
-        );
-        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
-        assert!(state
-            .world
-            .read()
-            .unwrap()
-            .get_helper(5, 5)
-            .map(|h| h.contained.is_empty())
-            .unwrap_or(true));
-    }
-
-    /// SAY PUTNEST <slot> â€” put held into nested pocket of contained[slot] under feet.
-    #[test]
-    fn say_putnest_nested_pocket_drop() {
-        use ol_world::ComplexObject;
-
-        let mut db = ContentDb::default();
-        // Basket under feet (container with top-level slots).
-        db.objects.insert(
-            391,
-            ObjectDef {
-                id: 391,
-                description: "Basket".into(),
-                name: "Basket".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: vec![],
-                num_uses: 0,
-                num_slots: 4,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        // Bag in contained[0] â€” nested pocket with 2 sub-slots.
-        db.objects.insert(
-            292,
-            ObjectDef {
-                id: 292,
-                description: "Bag".into(),
-                name: "Bag".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: vec![],
-                num_uses: 0,
-                num_slots: 2,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        // Containable berry to nest.
-        db.objects.insert(
-            33,
-            ObjectDef {
-                id: 33,
-                description: "Berry".into(),
-                name: "Berry".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 2,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: vec![],
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        // Non-containable tree must be rejected.
-        db.objects.insert(
-            100,
-            ObjectDef {
-                id: 100,
-                description: "Tree".into(),
-                name: "Tree".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: true,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: vec![],
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "nest@test");
-        // Player stands on basket that already holds a bag in slot 0.
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 3;
-            p.y = 4;
-            p.held_id = 33;
-        }
-        state.world.write().unwrap().set_object_complex(
-            3,
-            4,
-            ComplexObject {
-                base_id: 391,
-                uses_remaining: 0,
-                contained: vec![292],
-                nested: Vec::new(),
-                owner_id: 0,
-                creation_time: 0.0,
-                time_to_change: 0.0,
-            ..Default::default()
-        },
-        );
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PUTNEST 0".into(),
-            },
-        );
-        assert_eq!(state.players.get(&1).unwrap().held_id, 0, "hands empty after PUTNEST");
-        let h = state.world.read().unwrap().get_helper(3, 4).unwrap().clone();
-        assert_eq!(h.contained, vec![292]);
-        assert_eq!(h.nested, vec![vec![33]]);
-        assert_eq!(h.to_map_string_id(), "391,292:33");
-
-        let mut saw_ok = false;
-        while let Ok(msg) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&msg);
-            if s.contains("PUTNEST 0 33 OK") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_ok, "expected PS PUTNEST 0 33 OK");
-
-        // Second berry into same pocket.
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PUTNEST 0".into(),
-            },
-        );
-        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
-        assert_eq!(
-            state.world.read().unwrap().get_helper(3, 4).unwrap().nested,
-            vec![vec![33, 33]]
-        );
-
-        // Full pocket (num_slots=2) rejects third put; hands keep item.
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PUTNEST 0".into(),
-            },
-        );
-        assert_eq!(state.players.get(&1).unwrap().held_id, 33, "full pocket keeps held");
-
-        // Non-containable rejected.
-        state.players.get_mut(&1).unwrap().held_id = 100;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PUTNEST 0".into(),
-            },
-        );
-        assert_eq!(state.players.get(&1).unwrap().held_id, 100);
-
-        // Bad slot index.
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PUTNEST 9".into(),
-            },
-        );
-        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
-
-        // Missing slot arg.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PUTNEST".into(),
-            },
-        );
-        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
-
-        // HELP lists PUTNEST.
-        assert!(
-            SimState::format_help_query().contains("PUTNEST"),
-            "HELP should list PUTNEST"
-        );
-    }
-
-    /// REMV x y slot sub â€” pocket-style nested take from contained[slot].nested[sub].
-    #[test]
-    fn remv_nested_pocket_take() {
-        use ol_world::ComplexObject;
-
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "c");
-        set_player_position(&mut state, 1, 7, 7);
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        // Basket with bag (292) holding berries (100,101) as nested sub-items.
-        state.world.write().unwrap().set_object_complex(
-            7,
-            7,
-            ComplexObject {
-                base_id: 391,
-                uses_remaining: 0,
-                contained: vec![292],
-                nested: vec![vec![100, 101]],
-                owner_id: 0,
-                creation_time: 0.0,
-                time_to_change: 0.0,
-            ..Default::default()
-        },
-        );
-        // REMV x y 0 0 â†’ take nested[0][0] = 100
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "REMV".into(),
-                payload: "7 7 0 0".into(),
-            },
-        );
-        assert_eq!(state.players.get(&1).unwrap().held_id, 100);
-        assert_eq!(
-            state.world.read().unwrap().get_helper(7, 7).unwrap().nested,
-            vec![vec![101]]
-        );
-        // Empty hands, take last nested under slot 0 (sub -1)
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "REMV".into(),
-                payload: "7 7 0 -1".into(),
-            },
-        );
-        assert_eq!(state.players.get(&1).unwrap().held_id, 101);
-        let h = state.world.read().unwrap().get_helper(7, 7).unwrap().clone();
-        assert!(h.nested.is_empty());
-        assert_eq!(h.contained, vec![292]);
-        assert_eq!(h.to_map_string_id(), "391,292");
-    }
-
-    /// DO-COMMANDS: I FOLLOW ME unfollows; I EXILE by name; I GIVE roman coins.
-    #[test]
-    fn say_do_commands_follow_exile_give() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let _rx1 = hub.register(1);
-        let _rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "alice@x");
-        spawn_player(&mut state, 2, "bob@x");
-        {
-            let a = state.players.get_mut(&1).unwrap();
-            a.first_name = "ALICE".into();
-            a.x = 0;
-            a.y = 0;
-        }
-        {
-            let b = state.players.get_mut(&2).unwrap();
-            b.first_name = "BOB".into();
-            b.x = 1;
-            b.y = 0;
-        }
-        let alice = state.players.get(&1).unwrap().p_id;
-        let bob = state.players.get(&2).unwrap().p_id;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: format!("FOLLOW {alice}"),
-            },
-        );
-        assert_eq!(state.social.following.get(&bob), Some(&alice));
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "I FOLLOW ME".into(),
-            },
-        );
-        assert!(!state.social.following.contains_key(&bob));
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "I EXILE BOB".into(),
-            },
-        );
-        assert!(state.social.is_exiled_by(alice, bob));
-        state.economy.add_coins(alice, 20);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "I GIVE BOB XII".into(),
-            },
-        );
-        assert_eq!(state.economy.coins_of(alice), 8);
-        assert_eq!(state.economy.coins_of(bob), 12);
-    }
-
-    /// DO-COMMANDS: I HIRE AI by name with coin cost.
-    #[test]
-    fn say_do_commands_hire_ai() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let _rx1 = hub.register(1);
-        let _rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "boss@x");
-        spawn_player(&mut state, 2, "npc-worker@local");
-        {
-            let a = state.players.get_mut(&1).unwrap();
-            a.first_name = "BOSS".into();
-            a.x = 0;
-            a.y = 0;
-            a.age = 20.0;
-        }
-        {
-            let b = state.players.get_mut(&2).unwrap();
-            b.first_name = "WORKER".into();
-            b.x = 1;
-            b.y = 0;
-            b.age = 20.0;
-            b.ai_controlled = true;
-            b.connected = false;
-            b.email = "npc-worker@local".into();
-        }
-        let boss = state.players.get(&1).unwrap().p_id;
-        let worker = state.players.get(&2).unwrap().p_id;
-        state.economy.add_coins(boss, 100);
-        state.social.set_lineage_prestige_class(boss, crate::prestige::PrestigeClass::Commoner);
-        state.social.set_lineage_prestige_class(worker, crate::prestige::PrestigeClass::Commoner);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "I HIRE WORKER".into(),
-            },
-        );
-        assert_eq!(state.social.following.get(&worker), Some(&boss));
-        assert_eq!(state.social.hired_boss(worker), boss);
-        assert!(state.economy.coins_of(boss) < 100);
-        assert!(state.economy.coins_of(worker) > 0);
-    }
-
-    /// DO-COMMANDS: HOME! finds nearby oven and sets home.
-    #[test]
-    fn say_do_commands_home_bang_oven() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let _rx1 = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "home@x");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 10;
-            p.y = 10;
-            p.home_x = 0;
-            p.home_y = 0;
-        }
-        {
-            let mut w = state.world.write().unwrap();
-            w.set_object(12, 10, 237);
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "HOME!".into(),
-            },
-        );
-        let p = state.players.get(&1).unwrap();
-        assert_eq!((p.home_x, p.home_y), (12, 10));
-    }
-
-    #[test]
-    fn follow_exile_kill_and_season_query() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "leader@x");
-        spawn_player(&mut state, 2, "follower@x");
-        let leader = state.players.get(&1).unwrap().p_id;
-        let follower = state.players.get(&2).unwrap().p_id;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: format!("FOLLOW {leader}"),
-            },
-        );
-        assert_eq!(state.social.following.get(&follower), Some(&leader));
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("EXILE {follower}"),
-            },
-        );
-        assert!(state.social.is_exiled_by(leader, follower));
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("KILL {follower}"),
-            },
-        );
-        assert!(state.players.get(&2).unwrap().deleted);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?TEMP".into(),
-            },
-        );
-        let mut saw_temp = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("TEMP") || s.contains("SPRING") || s.contains("KILLED") {
-                saw_temp = true;
-            }
-        }
-        assert!(saw_temp);
-    }
-
-    #[test]
-    fn say_time_query_returns_hour_and_day_phase() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "clock@x");
-        state.environment.hour_of_day = 19.25;
-        // Freeze clock so tick side effects cannot drift the reply mid-test.
-        state.environment.day_length = 10_000.0;
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?TIME".into(),
-            },
-        );
-
-        let expected = state.environment.time_query_text();
-        assert_eq!(expected, "TIME 19.25 DUSK");
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("TIME ") {
-                saw = true;
-                assert!(
-                    s.contains(&format!("{p_id}/0 {expected}")),
-                    "PS line should embed hour_of_day + day_phase: {s}"
-                );
-                assert!(s.contains("19.25"), "got {s}");
-                assert!(s.contains("DUSK"), "got {s}");
-            }
-        }
-        assert!(saw, "expected PS ?TIME reply with hour_of_day and day_phase");
-    }
-
-    #[test]
-    fn arm_decays_after_world_load_path() {
-        let mut db = ContentDb::default();
-        db.auto_decays.insert(
-            55,
-            Transition {
-                actor_id: -1,
-                target_id: 55,
-                new_actor_id: 0,
-                new_target_id: 56,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 2.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        // Simulate natural spawn / disk load placing a decayable object without USE.
-        state.world.write().unwrap().set_object(7, 8, 55);
-        assert!(state.pending_decays.is_empty());
-        arm_decays_for_loaded_world(&mut state);
-        assert_eq!(
-            state.pending_decays.get(&(7, 8)).copied(),
-            Some((55, 2.0))
-        );
-        // DROP path also arms decay.
-        spawn_player(&mut state, 1, "d");
-        set_player_position(&mut state, 1, 1, 1);
-        state.players.get_mut(&1).unwrap().held_id = 55;
-        let hub = OutboundHub::new();
-        apply_drop(&mut state, &hub, 1, 1, 1, None);
-        assert_eq!(
-            state.pending_decays.get(&(1, 1)).copied(),
-            Some((55, 2.0))
-        );
-    }
-
-    #[test]
-    fn drop_records_world_journal() {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("ol_sim_journal_{nanos}.journal"));
-        let _ = std::fs::remove_file(&path);
-
-        let mut state = SimState::with_default_empty(test_content())
-            .with_journal(Arc::new(Mutex::new(WorldJournal::open(&path))));
-        state.tick = 7;
-        spawn_player(&mut state, 1, "j");
-        set_player_position(&mut state, 1, 4, 5);
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        let hub = OutboundHub::new();
-        apply_drop(&mut state, &hub, 1, 4, 5, None);
-        assert_eq!(state.world.read().unwrap().get_object(4, 5), 33);
-
-        let entries = WorldJournal::open(&path).load_all().unwrap();
-        assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0], JournalEntry::new(4, 5, 33, 7));
-
-        let _ = std::fs::remove_file(&path);
-    }
-
-    #[test]
-    fn eat_held_food_on_failed_use() {
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            33,
-            ObjectDef {
-                id: 33,
-                description: "Gooseberry".into(),
-                name: "Gooseberry".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 5,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "eater");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.held_id = 33;
-            p.food = 5.0;
-            // Client relative USE 0,0 = feet (birth = pos).
-            p.birth_x = p.x;
-            p.birth_y = p.y;
-        }
-        // USE on empty tile under feet: no transition → eat held food.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Use {
-                conn_id: 1,
-                x: 0,
-                y: 0,
-                id: None,
-                index: None,
-            },
-        );
-        let p = state.players.get(&1).unwrap();
-        assert_eq!(p.held_id, 0);
-        // YUM multiplies first-of-kind food (5 * 1.5 + bonus) â†’ > base 5.
-        assert!(p.food > 5.0 + 4.9);
-        assert_eq!(p.yum.just_ate_id, 33);
-        assert_eq!(p.yum.last_ate_fill_max, 5);
-        assert_eq!(p.yum.history.len(), 1);
-        // Flag cleared after PU fan-out; last_ate_id retained.
-        assert!(!p.yum.just_ate);
-
-        // FX then PU must carry just_ate / last_ate_id / yum_bonus.
-        let fx = rx.try_recv().expect("FX after eat");
-        let fx_s = String::from_utf8_lossy(&fx);
-        assert!(fx_s.starts_with("FX\n"), "got {fx_s}");
-        // food_store food_capacity last_ate_id last_ate_fill_max ... yum_bonus yum_multiplier
-        assert!(
-            fx_s.contains(" 33 5 "),
-            "FX should include last_ate_id=33 last_ate_fill_max=5: {fx_s}"
-        );
-        // yum_bonus is present as a trailing field (value depends on yum math; ≥1 after first eat).
-        assert!(
-            fx_s.contains(" 33 ") && (fx_s.contains(" 1 ") || fx_s.contains(" 0 ")),
-            "FX should include last_ate and yum fields: {fx_s}"
-        );
-        let pu = rx.try_recv().expect("PU after eat");
-        let pu_s = String::from_utf8_lossy(&pu);
-        assert!(pu_s.starts_with("PU\n"), "got {pu_s}");
-        // clothing just_ate last_ate responsible yum learned
-        assert!(
-            pu_s.contains(" 1 33 -1 "),
-            "PU should include just_ate=1 last_ate=33: {pu_s}"
-        );
-    }
-
-    #[test]
-    fn say_yum_returns_bonus_and_history_len() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            33,
-            ObjectDef {
-                id: 33,
-                description: "Gooseberry".into(),
-                name: "Gooseberry".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 5,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "eater");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.held_id = 33;
-            p.food = 5.0;
-            p.birth_x = p.x;
-            p.birth_y = p.y;
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Use {
-                conn_id: 1,
-                x: 9,
-                y: 9,
-                id: None,
-                index: None,
-            },
-        );
-        // Drain eat FX/PU/FM and any other fan-out before ?YUM.
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?YUM".into(),
-            },
-        );
-        let mut s = String::new();
-        while let Ok(pkt) = rx.try_recv() {
-            let t = String::from_utf8_lossy(&pkt);
-            if t.starts_with("PS\n") {
-                s = t.into_owned();
-                break;
-            }
-        }
-        assert!(!s.is_empty(), "expected PS ?YUM");
-
-        assert!(s.starts_with("PS\n"), "got {s}");
-        assert!(s.contains("YUM "), "got {s}");
-        assert!(s.contains("bonus="), "got {s}");
-        assert!(s.contains("history=1"), "got {s}");
-        let p = state.players.get(&1).unwrap();
-        assert!(s.contains(&format!("bonus={}", p.yum.yum_bonus)), "got {s}");
-    }
-
-    /// SAY ?TOOLS returns tools.wire_slots (used total) and learned count via private PS.
-    #[test]
-    fn say_tools_query_returns_wire_slots_and_learned_count() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "tools_q");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.tools.learn(334);
-            p.tools.learn(12);
-            p.tools.learn(334); // duplicate â€” still 2 learned
-        }
-        let expected_slots = state.players.get(&1).unwrap().tools.wire_slots();
-        let expected_reply = state.players.get(&1).unwrap().tools.query_text();
-        assert_eq!(expected_slots, "2 1000");
-        assert_eq!(expected_reply, "TOOLS 2 1000 learned=2");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?TOOLS".into(),
-            },
-        );
-        let ps = rx.try_recv().expect("PS ?TOOLS");
-        let s = String::from_utf8_lossy(&ps);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s.starts_with("PS\n"), "got {s}");
-        assert!(
-            s.contains(&format!("{p_id}/0 TOOLS ")),
-            "expected p_id + TOOLS, got {s}"
-        );
-        assert!(s.contains(&expected_slots), "wire_slots missing, got {s}");
-        assert!(s.contains("learned=2"), "learned count missing, got {s}");
-        assert!(
-            s.contains(&format!("{p_id}/0 {expected_reply}")),
-            "got {s}"
-        );
-
-        // Bare TOOLS alias also works.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "TOOLS".into(),
-            },
-        );
-        let ps2 = rx.try_recv().expect("PS TOOLS");
-        let s2 = String::from_utf8_lossy(&ps2);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s2.contains("TOOLS 2 1000 learned=2"), "got {s2}");
-    }
-
-    #[test]
-    fn score_updates_on_kill_pay_and_queries() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        // Login path registers scoreboard + starting coins.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "alice@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "bob@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-        assert_eq!(state.scoreboard.entry(a).unwrap().coins, 5);
-        // PAY a -> b
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("PAY {b} 2"),
-            },
-        );
-        assert_eq!(state.scoreboard.entry(a).unwrap().coins, 3);
-        assert_eq!(state.scoreboard.entry(b).unwrap().coins, 7);
-        // KILL
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("KILL {b}"),
-            },
-        );
-        assert_eq!(state.scoreboard.entry(a).unwrap().kills, 1);
-        assert_eq!(state.scoreboard.entry(b).unwrap().deaths, 1);
-        assert!(state.scoreboard.entry(a).unwrap().score > state.scoreboard.entry(b).unwrap().score);
-        // Drain prior PS noise.
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?SCORE".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?LEADERBOARD".into(),
-            },
-        );
-        let mut saw_score = false;
-        let mut saw_lb = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("SCORE") && s.contains('K') {
-                saw_score = true;
-            }
-            if s.contains("LEADERBOARD") {
-                saw_lb = true;
-            }
-        }
-        assert!(saw_score, "expected PS ?SCORE reply");
-        assert!(saw_lb, "expected PS ?LEADERBOARD reply");
-    }
-
-    /// Season change resets scoreboard kills/deaths/season_bonus; coins stay.
-    #[test]
-    fn setseason_resets_scoreboard_season_leaderboard() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "a@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "b@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-        // Seed seasonal combat stats + bonus.
-        state.scoreboard.record_kill(a, b);
-        state.scoreboard.add_season_bonus(a, 30);
-        let coins_a = state.scoreboard.entry(a).unwrap().coins;
-        assert_eq!(state.scoreboard.entry(a).unwrap().kills, 1);
-        assert_eq!(state.scoreboard.entry(a).unwrap().season_bonus, 30);
-        assert_eq!(state.environment.season, Season::Spring);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SETSEASON SUMMER".into(),
-            },
-        );
-        assert_eq!(state.environment.season, Season::Summer);
-        assert_eq!(state.scoreboard.season_tag, "SUMMER");
-        assert_eq!(state.scoreboard.entry(a).unwrap().kills, 0);
-        assert_eq!(state.scoreboard.entry(b).unwrap().deaths, 0);
-        assert_eq!(state.scoreboard.entry(a).unwrap().season_bonus, 0);
-        assert_eq!(state.scoreboard.entry(a).unwrap().coins, coins_a);
-        assert_eq!(state.scoreboard.entry(a).unwrap().score, coins_a);
-    }
-
-    /// Natural season rollover via tick_vitals also resets the season board.
-    #[test]
-    fn tick_vitals_season_rollover_resets_scoreboard() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let a = spawn_player(&mut state, 1, "a@x");
-        let b = spawn_player(&mut state, 2, "b@x");
-        state.scoreboard.ensure_player(a, "Alice");
-        state.scoreboard.ensure_player(b, "Bob");
-        state.scoreboard.set_coins(a, 9);
-        state.scoreboard.record_kill(a, b);
-        state.scoreboard.add_season_bonus(a, 15);
-        // Bind current season without wipe.
-        let _ = state.scoreboard.on_season_change(state.environment.season.as_str());
-        assert_eq!(state.scoreboard.entry(a).unwrap().kills, 1);
-
-        state.environment.season_length = 1.0;
-        state.environment.season_elapsed = 0.0;
-        tick_vitals(&mut state, 1.1, &hub);
-
-        assert_eq!(state.environment.season, Season::Summer);
-        assert_eq!(state.scoreboard.season_tag, "SUMMER");
-        assert_eq!(state.scoreboard.entry(a).unwrap().kills, 0);
-        assert_eq!(state.scoreboard.entry(a).unwrap().season_bonus, 0);
-        assert_eq!(state.scoreboard.entry(a).unwrap().coins, 9);
-        assert_eq!(state.scoreboard.entry(a).unwrap().score, 9);
-    }
-
-    /// SAY ?HIGHSCORE ranks by prestige, not scoreboard score.
-    #[test]
-    fn say_highscore_top_by_prestige() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "low@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "high@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let low = state.players.get(&1).unwrap().p_id;
-        let high = state.players.get(&2).unwrap().p_id;
-        // Give low player more *score* but less prestige.
-        state.scoreboard.set_coins(low, 100);
-        state.scoreboard.set_coins(high, 1);
-        state.combat.stats_mut(low).prestige = 2.0;
-        state.combat.stats_mut(high).prestige = 55.0;
-        // Lineage prestige preferred when present â€” clear path via combat only.
-        state.social.lineages.remove(&low);
-        state.social.lineages.remove(&high);
-
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?HIGHSCORE".into(),
-            },
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("HIGHSCORE") {
-                saw = true;
-                // High prestige first even though lower score/coins.
-                let pos_high = s.find("55.0").or_else(|| s.find("=55"));
-                let pos_low = s.find("2.0").or_else(|| s.find("=2"));
-                assert!(
-                    pos_high.is_some() && pos_low.is_some(),
-                    "expected both prestiges in {s}"
-                );
-                assert!(
-                    pos_high.unwrap() < pos_low.unwrap(),
-                    "high prestige should rank first: {s}"
-                );
-            }
-        }
-        assert!(saw, "expected PS ?HIGHSCORE reply");
-        let _ = (low, high);
-    }
-
-    /// SAY TRADE sets Player.trade_offer; SAY ACCEPT transfers via economy.
-    #[test]
-    fn say_trade_sets_offer_accept_transfers_coins() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "trader@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "buyer@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-        assert_eq!(state.scoreboard.entry(a).unwrap().coins, 5);
-        assert_eq!(state.scoreboard.entry(b).unwrap().coins, 5);
-        assert!(state.players.get(&1).unwrap().trade_offer.is_none());
-
-        // TRADE does not move coins yet.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("TRADE {b} 3"),
-            },
-        );
-        assert_eq!(
-            state.players.get(&1).unwrap().trade_offer,
-            Some((b, 3)),
-            "TRADE must store (target, amount)"
-        );
-        assert_eq!(state.scoreboard.entry(a).unwrap().coins, 5);
-        assert_eq!(state.scoreboard.entry(b).unwrap().coins, 5);
-        assert_eq!(
-            state.economy.wallets.get(&a).map(|w| w.coins),
-            Some(5)
-        );
-
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        // ACCEPT by target transfers coins and clears offer.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "ACCEPT".into(),
-            },
-        );
-        assert!(
-            state.players.get(&1).unwrap().trade_offer.is_none(),
-            "offer cleared after successful ACCEPT"
-        );
-        assert_eq!(state.economy.wallets.get(&a).map(|w| w.coins), Some(2));
-        assert_eq!(state.economy.wallets.get(&b).map(|w| w.coins), Some(8));
-        assert_eq!(state.scoreboard.entry(a).unwrap().coins, 2);
-        assert_eq!(state.scoreboard.entry(b).unwrap().coins, 8);
-
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("ACCEPT") && s.contains("OK") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_ok, "expected PS ACCEPT â€¦ OK for accepter");
-    }
-
-    /// WALLET-COINS: live `apply_take_coins_on_wound` wallet + scoreboard + say.
-    // Haxe: GlobalPlayerInstance.takeCoins
-    #[test]
-    fn wallet_take_coins_on_wound_live_helper() {
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let _rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        let attacker = spawn_player(&mut state, 1, "atk@wallet");
-        let target = spawn_player(&mut state, 2, "vic@wallet");
-        state.players.get_mut(&1).unwrap().x = 10;
-        state.players.get_mut(&1).unwrap().y = 10;
-        state.players.get_mut(&2).unwrap().x = 11;
-        state.players.get_mut(&2).unwrap().y = 10;
-        state.economy.wallet_mut(attacker).coins = 0;
-        state.economy.wallet_mut(target).coins = 10;
-        state.scoreboard.set_coins(attacker, 0);
-        state.scoreboard.set_coins(target, 10);
-        while rx1.try_recv().is_ok() {}
-        let stole = apply_take_coins_on_wound(&mut state, &hub, attacker, target, false);
-        assert_eq!(stole, 6, "floor(10*0.5)+1");
-        assert_eq!(state.economy.coins_of(attacker), 6);
-        assert_eq!(state.economy.coins_of(target), 4);
-        assert_eq!(state.scoreboard.entry(attacker).unwrap().coins, 6);
-        assert_eq!(state.scoreboard.entry(target).unwrap().coins, 4);
-        let mut saw_say = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("Got 6 coins!") {
-                saw_say = true;
-            }
-        }
-        assert!(saw_say, "expected Got 6 coins! PS");
-        assert_eq!(
-            apply_take_coins_on_wound(&mut state, &hub, attacker, target, false),
-            3
-        ); // floor(4*0.5)+1 = 3
-        assert_eq!(state.economy.coins_of(target), 1);
-        state.economy.wallet_mut(target).coins = 5;
-        let d = apply_take_coins_on_wound(&mut state, &hub, attacker, target, true);
-        assert_eq!(d, 5);
-        assert_eq!(state.economy.coins_of(target), 0);
-    }
-
-    /// DARK-NOSAJ: live USE set/clear mutates Player.dark_nosaj + CU word wire.
-    // Haxe: TransitionHelper L144â€“185 + Connection.SendCurseToAll
-    #[test]
-    fn dark_nosaj_use_live_set_clear_wire() {
-        use crate::dark_nosaj::{DARK_NOSAJ_MONUMENT_ID, TARR_MONUMENT_ID};
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut db = (*test_content()).clone();
-        db.objects.insert(
-            DARK_NOSAJ_MONUMENT_ID,
-            ObjectDef {
-                id: DARK_NOSAJ_MONUMENT_ID,
-                description: "Dark Nosaj".into(),
-                name: "Dark Nosaj".into(),
-                permanent: true,
-                ..Default::default()
-            },
-        );
-        db.objects.insert(
-            TARR_MONUMENT_ID,
-            ObjectDef {
-                id: TARR_MONUMENT_ID,
-                description: "Tarr".into(),
-                name: "Tarr".into(),
-                permanent: true,
-                ..Default::default()
-            },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "dark@nosaj".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let (px, py, p_id) = {
-            let p = state.players.get(&1).unwrap();
-            (p.x, p.y, p.p_id)
-        };
-        {
-            let mut w = state.world.write().unwrap();
-            w.set_object(px, py, DARK_NOSAJ_MONUMENT_ID);
-        }
-        let _ = crate::dark_nosaj::take_monument_feedback();
-        while rx.try_recv().is_ok() {}
-        // Absolute tile USE (feet): monument side-effects do not need a transition.
-        let used = crate::use_transition::apply_use_at(&mut state, 1, px, py);
-        assert!(used.is_some(), "USE at feet should return a result");
-        let pl = state.players.get(&1).unwrap();
-        assert!(
-            pl.dark_nosaj.is_finite() && pl.dark_nosaj >= 1.0,
-            "dark_nosaj after set = {}",
-            pl.dark_nosaj
-        );
-        let fb = crate::dark_nosaj::take_monument_feedback().expect("set feedback");
-        assert_eq!(fb.say, "All hail dark nosaj");
-        assert_eq!(
-            fb.curse,
-            Some((1, Some(crate::dark_nosaj::CURSE_DARK_MINION_WORD)))
-        );
-
-        {
-            let mut w = state.world.write().unwrap();
-            w.set_object(px, py, TARR_MONUMENT_ID);
-        }
-        let _ = crate::use_transition::apply_use_at(&mut state, 1, px, py);
-        assert_eq!(state.players.get(&1).unwrap().dark_nosaj, 0.0);
-        let fb2 = crate::dark_nosaj::take_monument_feedback().expect("clear feedback");
-        assert_eq!(fb2.say, "Jasoniah is the one true god!");
-        assert_eq!(
-            fb2.curse,
-            Some((0, Some(crate::dark_nosaj::CURSE_CLEAR_WORD)))
-        );
-        let _ = (p_id, counters, hub, rx);
-    }
-
-    /// SAY DONATE / ?TREASURY move coins into Economy.treasury.
-    #[test]
-    fn say_donate_and_treasury_query() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "giver@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        assert_eq!(state.economy.treasury, 0);
-        assert_eq!(state.economy.wallets.get(&a).map(|w| w.coins), Some(5));
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "DONATE 3".into(),
-            },
-        );
-        assert_eq!(state.economy.treasury, 3);
-        assert_eq!(state.economy.wallets.get(&a).map(|w| w.coins), Some(2));
-        assert_eq!(state.scoreboard.entry(a).unwrap().coins, 2);
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?TREASURY".into(),
-            },
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("TREASURY 3") {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected PS TREASURY 3");
-    }
-
-    /// SAY TAX only succeeds for leaders (inbound followers).
-    #[test]
-    fn say_tax_requires_leader() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "boss@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "follower@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-
-        // Not a leader yet â€” TAX fails.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "TAX 2".into(),
-            },
-        );
-        assert_eq!(state.economy.treasury, 0);
-        assert_eq!(state.economy.wallets.get(&a).map(|w| w.coins), Some(5));
-
-        // b follows a â†’ a is leader.
-        state.social.following.insert(b, a);
-        assert!(is_leader(&state.social.following, a));
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "TAX 2".into(),
-            },
-        );
-        assert_eq!(state.economy.treasury, 2);
-        assert_eq!(state.economy.wallets.get(&a).map(|w| w.coins), Some(3));
-
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "TAX 2".into(),
-            },
-        );
-        // Second tax still ok.
-        assert_eq!(state.economy.treasury, 4);
-    }
-
-    /// On death, coins go to mother if online; otherwise treasury.
-    #[test]
-    fn death_inheritance_to_mother_or_treasury() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        // Mother online.
-        let mother = spawn_player(&mut state, 1, "mom@x");
-        let child = spawn_player(&mut state, 2, "kid@x");
-        state.social.ensure_lineage(mother, "MOM");
-        let mother_node = state.social.lineages.get(&mother).unwrap().clone();
-        state
-            .social
-            .lineages
-            .insert(child, LineageNode::with_mother(child, "KID", &mother_node));
-        // GPI-DEATH: mother needs past-actions credit to inherit (Haxe coinsInherited).
-        state.accounts.ensure("mom@x").coins_inherited = 20.0;
-        state.economy.add_coins(child, 10);
-        state.economy.add_coins(mother, 1);
-        {
-            let p = state.players.get_mut(&2).unwrap();
-            p.food = 0.05;
-            p.age = 20.0;
-        }
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!(state.players.get(&2).unwrap().deleted);
-        assert_eq!(state.economy.wallets.get(&child).map(|w| w.coins), Some(0));
-        assert_eq!(
-            state.economy.wallets.get(&mother).map(|w| w.coins),
-            Some(11)
-        );
-        assert_eq!(state.economy.treasury, 0);
-
-        // Eve with coins, no mother â†’ treasury.
-        let eve = spawn_player(&mut state, 3, "eve@x");
-        state
-            .social
-            .lineages
-            .insert(eve, LineageNode::eve(eve, "EVE"));
-        state.economy.add_coins(eve, 7);
-        {
-            let p = state.players.get_mut(&3).unwrap();
-            p.food = 0.05;
-            p.age = 20.0;
-        }
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!(state.players.get(&3).unwrap().deleted);
-        assert_eq!(state.economy.wallets.get(&eve).map(|w| w.coins), Some(0));
-        assert_eq!(state.economy.treasury, 7);
-    }
-
-    /// GPI-DEATH: leftover coins after no past-actions go equally to living children.
-    #[test]
-    fn death_inheritance_splits_to_children() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let mom = spawn_player(&mut state, 1, "parent@x");
-        let a = spawn_player(&mut state, 2, "a@x");
-        let b = spawn_player(&mut state, 3, "b@x");
-        state.social.lineages.insert(mom, LineageNode::eve(mom, "P"));
-        let node = state.social.lineages.get(&mom).unwrap().clone();
-        state
-            .social
-            .lineages
-            .insert(a, LineageNode::with_mother(a, "A", &node));
-        state
-            .social
-            .lineages
-            .insert(b, LineageNode::with_mother(b, "B", &node));
-        state.economy.add_coins(mom, 10);
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
-            p.age = 20.0;
-        }
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!(state.players.get(&1).unwrap().deleted);
-        assert_eq!(state.economy.coins_of(mom), 0);
-        assert_eq!(state.economy.coins_of(a), 5);
-        assert_eq!(state.economy.coins_of(b), 5);
-    }
-
-    /// GPI-DEATH: hunger death with wounded_by uses reason_killed_<id>.
-    #[test]
-
-    /// GPI-DEATH-POLISH: starving while holding a baby â†’ reason_nursing_hunger.
-    #[test]
-    fn death_polish_nursing_hunger_emit() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let mom = spawn_player(&mut state, 1, "nurse@x");
-        let baby = spawn_player(&mut state, 2, "baby@x");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
-            p.age = 20.0;
-            p.holding_player_id = baby;
-        }
-        {
-            let b = state.players.get_mut(&2).unwrap();
-            b.age = 1.0;
-            b.food = 5.0;
-        }
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!(state.players.get(&1).unwrap().deleted);
-        assert_eq!(
-            state.players.get(&1).unwrap().death_reason.as_deref(),
-            Some("reason_nursing_hunger")
-        );
-        assert!(state
-            .event_log
-            .iter()
-            .any(|e| e == &format!("DEATH {mom} reason_nursing_hunger")));
-    }
-
-    /// GPI-DEATH-POLISH: ChooseNewLeader reassigns direct followers.
-    #[test]
-    fn death_polish_choose_new_leader() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let leader = spawn_player(&mut state, 1, "lead@x");
-        let a = spawn_player(&mut state, 2, "a@x");
-        let b = spawn_player(&mut state, 3, "b@x");
-        state.social.following.insert(a, leader);
-        state.social.following.insert(b, leader);
-        state.social.lineages.insert(a, LineageNode::eve(a, "A"));
-        state.social.lineages.insert(b, LineageNode::eve(b, "B"));
-        state.social.set_lineage_prestige(a, 5.0);
-        state.social.set_lineage_prestige(b, 50.0);
-        state.economy.add_coins(leader, 1);
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
-            p.age = 20.0;
-        }
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!(state.players.get(&1).unwrap().deleted);
-        assert_eq!(state.social.following.get(&a), Some(&b));
-        assert!(!state.social.following.contains_key(&b));
-        assert!(state
-            .event_log
-            .iter()
-            .any(|e| e.starts_with(&format!("LEADER_DIE {leader} {b}"))));
-    }
-
-    /// GPI-DEATH-POLISH: sole-owned property transfers to follow leader.
-    #[test]
-    fn death_polish_inherit_ownership() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let dead = spawn_player(&mut state, 1, "own@x");
-        let leader = spawn_player(&mut state, 2, "boss@x");
-        state.social.following.insert(dead, leader);
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(5, 6, ol_world::ComplexObject::with_owner(33, dead));
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
-            p.age = 20.0;
-            p.x = 0;
-            p.y = 0;
-        }
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!(state.players.get(&1).unwrap().deleted);
-        let h = state.world.read().unwrap().get_helper(5, 6).cloned().expect("helper");
-        assert!(h.is_owner(leader), "leader inherits sole property");
-        assert!(!h.is_owner(dead));
-        assert!(state.event_log.iter().any(|e| e.contains("INHERIT_OWN")));
-    }
-
-    /// GPI-DEATH-POLISH: residual coins stored on grave when no kids.
-    #[test]
-    fn death_polish_grave_coins_residual() {
-        let hub = OutboundHub::new();
-        let mut db = test_content().as_ref().clone();
-        db.objects.insert(
-            87,
-            ol_content::ObjectDef {
-                id: 87,
-                description: "fresh grave".into(),
-                name: "Grave".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-                dummy_ids: Vec::new(),
-                use_chance: 0.0,
-                speed_mult: 1.0,
-                winter_decay_factor: 0.0,
-                spring_regrow_factor: 0.0,
-                decay_factor: 1.0,
-                decays_to_obj: 0,
-                r_value: 0.0,
-                clothing: "n".into(),
-                counts_or_grows_as: 0,
-                crafting_steps: 0,
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(std::sync::Arc::new(db));
-        assert_eq!(state.grave_object_id, 87);
-        let eve = spawn_player(&mut state, 1, "eve@grave");
-        state.economy.add_coins(eve, 12);
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
-            p.age = 20.0;
-            p.x = 4;
-            p.y = 5;
-        }
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!(state.players.get(&1).unwrap().deleted);
-        assert_eq!(state.economy.treasury, 0, "residual goes to grave not treasury");
-        let g = state.world.read().unwrap().get_helper(4, 5).cloned().expect("grave helper");
-        assert!((g.coins - 12.0).abs() < 1e-4, "coins on grave={}", g.coins);
-        assert!(g.owners_by_account.contains(&account_soul_token("eve@grave")));
-        assert!(state.event_log.iter().any(|e| e.contains("INHERIT") && e.contains("grave")));
-    }
-
-    fn hunger_death_uses_wounded_by_reason() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "wounded@x");
-        state.combat.apply_hits(p_id, 1.0, 752);
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = -0.01;
-            p.age = 20.0;
-        }
-        tick_vitals(&mut state, 0.1, &hub);
-        assert!(state.players.get(&1).unwrap().deleted);
-        assert_eq!(
-            state.players.get(&1).unwrap().death_reason.as_deref(),
-            Some("reason_killed_752")
-        );
-        assert!(state
-            .event_log
-            .iter()
-            .any(|e| e == &format!("DEATH {p_id} reason_killed_752")));
-    }
-
-    /// ACCEPT with no matching offer fails; invalid TRADE rejected.
-    #[test]
-    fn say_accept_without_offer_fails_and_trade_validates() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "a@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "b@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "ACCEPT".into(),
-            },
-        );
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("ACCEPT") && s.contains("FAIL") {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail, "ACCEPT with no offer must FAIL");
-        assert_eq!(state.scoreboard.entry(a).unwrap().coins, 5);
-        assert_eq!(state.scoreboard.entry(b).unwrap().coins, 5);
-
-        // Self-trade / zero amount rejected.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("TRADE {a} 1"),
-            },
-        );
-        assert!(
-            state.players.get(&1).unwrap().trade_offer.is_none(),
-            "self TRADE must not set offer"
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("TRADE {b} 0"),
-            },
-        );
-        assert!(
-            state.players.get(&1).unwrap().trade_offer.is_none(),
-            "zero-amount TRADE must not set offer"
-        );
-
-        // Insufficient funds: offer stays, transfer fails.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("TRADE {b} 100"),
-            },
-        );
-        assert_eq!(
-            state.players.get(&1).unwrap().trade_offer,
-            Some((b, 100))
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "ACCEPT".into(),
-            },
-        );
-        assert_eq!(
-            state.players.get(&1).unwrap().trade_offer,
-            Some((b, 100)),
-            "failed ACCEPT leaves offer pending"
-        );
-        assert_eq!(state.scoreboard.entry(a).unwrap().coins, 5);
-        assert_eq!(state.scoreboard.entry(b).unwrap().coins, 5);
-    }
-
-    /// SAY GIFT moves coins without trade prestige (unlike PAY/transfer).
-    #[test]
-    fn say_gift_transfers_without_trade_prestige() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let a = spawn_player(&mut state, 1, "giver@x");
-        let b = spawn_player(&mut state, 2, "giftee@x");
-        // Seed wallets without trade prestige so gift path is easy to assert.
-        state.economy.wallet_mut(a).coins = 10;
-        state.economy.wallet_mut(b).coins = 0;
-        state.scoreboard.set_coins(a, 10);
-        state.scoreboard.set_coins(b, 0);
-        let tp_a0 = state.economy.wallets.get(&a).map(|w| w.trade_prestige).unwrap_or(0.0);
-        let tp_b0 = state.economy.wallets.get(&b).map(|w| w.trade_prestige).unwrap_or(0.0);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("GIFT {b} 3"),
-            },
-        );
-        assert_eq!(state.economy.wallets.get(&a).map(|w| w.coins), Some(7));
-        assert_eq!(state.economy.wallets.get(&b).map(|w| w.coins), Some(3));
-        assert_eq!(state.scoreboard.entry(a).unwrap().coins, 7);
-        assert_eq!(state.scoreboard.entry(b).unwrap().coins, 3);
-        assert_eq!(
-            state.economy.wallets.get(&a).map(|w| w.trade_prestige),
-            Some(tp_a0)
-        );
-        assert_eq!(
-            state.economy.wallets.get(&b).map(|w| w.trade_prestige),
-            Some(tp_b0)
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("GIFT") && s.contains("OK") {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected PS GIFT â€¦ OK");
-
-        // Insufficient funds fails without changing balances.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("GIFT {b} 99"),
-            },
-        );
-        assert_eq!(state.economy.wallets.get(&a).map(|w| w.coins), Some(7));
-    }
-
-    /// SAY LOAN records DebtBook and moves coins; SAY REPAY clears debt.
-    #[test]
-    fn say_loan_and_repay_tracks_debt_map() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        let lender = spawn_player(&mut state, 1, "lender@x");
-        let borrower = spawn_player(&mut state, 2, "borrower@x");
-        // Seed without add_coins prestige side-effects.
-        state.economy.wallet_mut(lender).coins = 10;
-        state.economy.wallet_mut(borrower).coins = 0;
-        state.scoreboard.set_coins(lender, 10);
-        state.scoreboard.set_coins(borrower, 0);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("LOAN {borrower} 4"),
-            },
-        );
-        assert_eq!(state.economy.wallets.get(&lender).map(|w| w.coins), Some(6));
-        assert_eq!(
-            state.economy.wallets.get(&borrower).map(|w| w.coins),
-            Some(4)
-        );
-        assert_eq!(state.debts.owed(borrower, lender), 4);
-        assert_eq!(state.scoreboard.entry(lender).unwrap().coins, 6);
-        assert_eq!(state.scoreboard.entry(borrower).unwrap().coins, 4);
-
-        // Partial repay.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: format!("REPAY {lender} 1"),
-            },
-        );
-        assert_eq!(state.debts.owed(borrower, lender), 3);
-        assert_eq!(
-            state.economy.wallets.get(&borrower).map(|w| w.coins),
-            Some(3)
-        );
-        assert_eq!(state.economy.wallets.get(&lender).map(|w| w.coins), Some(7));
-
-        // Full remaining repay (omit amount).
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: format!("REPAY {lender}"),
-            },
-        );
-        assert_eq!(state.debts.owed(borrower, lender), 0);
-        assert_eq!(
-            state.economy.wallets.get(&borrower).map(|w| w.coins),
-            Some(0)
-        );
-        assert_eq!(state.economy.wallets.get(&lender).map(|w| w.coins), Some(10));
-
-        // ?DEBT query.
-        while rx2.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "?DEBT".into(),
-            },
-        );
-        let mut saw_debt = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("DEBT") && s.contains("owe=0") {
-                saw_debt = true;
-            }
-        }
-        assert!(saw_debt, "expected PS ?DEBT with owe=0");
-
-        // HELP lists new commands.
-        let help = SimState::format_help_query();
-        assert!(help.contains("LOAN"), "HELP should list LOAN");
-        assert!(help.contains("REPAY"), "HELP should list REPAY");
-        assert!(help.contains("GIFT"), "HELP should list GIFT");
-        assert!(help.contains("?DEBT"), "HELP should list ?DEBT");
-    }
-
-    #[test]
-    fn apoc_query_and_active_food_drain() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "apoc");
-        // Neutral temp so TEMP_FOOD_EXTRA stays off; freeze season/day shifts.
-        state.environment.temperature = 0.5;
-        state.environment.season_length = 10_000.0;
-        state.environment.day_length = 10_000.0;
-        state.environment.hour_of_day = 12.0;
-        state.apocalypse.warning_duration = 1.0;
-        state.apocalypse.active_duration = 10.0;
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?APOC".into(),
-            },
-        );
-        let mut saw_idle = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("APOC IDLE") {
-                saw_idle = true;
-            }
-        }
-        assert!(saw_idle, "expected ?APOC IDLE reply");
-
-        state.apocalypse.trigger();
-        // Drain through warning into active.
-        tick_vitals(&mut state, 1.0, &hub);
-        assert_eq!(state.apocalypse.phase, ApocalypsePhase::Active);
-
-        let food_before = state.players.get(&1).unwrap().food;
-        tick_vitals(&mut state, 1.0, &hub);
-        let food_after = state.players.get(&1).unwrap().food;
-        let lost = food_before - food_after;
-        let expected = FOOD_USE_PER_SEC * APOC_FOOD_DRAIN_MULT;
-        assert!(
-            (lost - expected).abs() < 1e-4,
-            "active apoc drain: lost={lost} expected={expected}"
-        );
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?APOC".into(),
-            },
-        );
-        let mut saw_active = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("APOC ACTIVE") {
-                saw_active = true;
-            }
-        }
-        assert!(saw_active, "expected ?APOC ACTIVE reply");
-    }
-
-    /// SAY STARTAPOC / ENDAPOC force apocalypse for testing (no admin).
-    #[test]
-    fn say_startapoc_endapoc() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "apoc_cmd@x");
-        assert_eq!(state.apocalypse.phase, ApocalypsePhase::Idle);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "STARTAPOC".into(),
-            },
-        );
-        assert_eq!(state.apocalypse.phase, ApocalypsePhase::Warning);
-        let mut saw_warning = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("APOC WARNING") {
-                saw_warning = true;
-            }
-        }
-        assert!(saw_warning, "expected STARTAPOC PS with APOC WARNING");
-
-        // Advance into Active, then ENDAPOC resets to Idle.
-        state.apocalypse.warning_duration = 1.0;
-        state.apocalypse.countdown = 0.0;
-        state.apocalypse.tick(0.1);
-        assert_eq!(state.apocalypse.phase, ApocalypsePhase::Active);
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "ENDAPOC".into(),
-            },
-        );
-        assert_eq!(state.apocalypse.phase, ApocalypsePhase::Idle);
-        assert_eq!(state.apocalypse.food_drain_multiplier(), 1.0);
-        let mut saw_idle = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("APOC IDLE") {
-                saw_idle = true;
-            }
-        }
-        assert!(saw_idle, "expected ENDAPOC PS with APOC IDLE");
-    }
-
-    /// SAY SETSEASON SPRING|SUMMER|AUTUMN|WINTER forces season.
-    #[test]
-    fn say_setseason() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "season@x");
-        assert_eq!(state.environment.season, Season::Spring);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SETSEASON WINTER".into(),
-            },
-        );
-        assert_eq!(state.environment.season, Season::Winter);
-        assert_eq!(state.environment.season_elapsed, 0.0);
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("WINTER") {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected SETSEASON PS with WINTER");
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SETSEASON NOPE".into(),
-            },
-        );
-        assert_eq!(state.environment.season, Season::Winter);
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("SETSEASON FAIL") {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail, "expected SETSEASON FAIL for bad token");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SETSEASON SUMMER".into(),
-            },
-        );
-        assert_eq!(state.environment.season, Season::Summer);
-    }
-
-    /// SAY SETHOUR <0-23> forces day hour.
-    #[test]
-    fn say_sethour() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "hour@x");
-        state.environment.hour_of_day = 12.0;
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SETHOUR 0".into(),
-            },
-        );
-        assert!((state.environment.hour_of_day - 0.0).abs() < 1e-6);
-        assert_eq!(state.environment.day_phase().as_str(), "NIGHT");
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("TIME ") && s.contains("NIGHT") {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected SETHOUR PS with TIME + NIGHT");
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SETHOUR 19".into(),
-            },
-        );
-        assert!((state.environment.hour_of_day - 19.0).abs() < 1e-6);
-        assert_eq!(state.environment.day_phase().as_str(), "DUSK");
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SETHOUR 99".into(),
-            },
-        );
-        assert!((state.environment.hour_of_day - 19.0).abs() < 1e-6);
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("SETHOUR FAIL") {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail, "expected SETHOUR FAIL for out-of-range");
-    }
-
-    /// SAY WEATHER / SETWEATHER sets kind (already present; ensure set path works).
-    #[test]
-    fn say_weather_set() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "wx@x");
-        assert_eq!(state.weather.kind, crate::weather::WeatherKind::Clear);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "WEATHER rain 45".into(),
-            },
-        );
-        assert_eq!(state.weather.kind, crate::weather::WeatherKind::Rain);
-        assert!((state.weather.remaining_secs - 45.0).abs() < 1e-4);
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("WEATHER") && s.contains("rain") {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected WEATHER set PS reply");
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SETWEATHER storm 30".into(),
-            },
-        );
-        assert_eq!(state.weather.kind, crate::weather::WeatherKind::Storm);
-        assert!((state.weather.remaining_secs - 30.0).abs() < 1e-4);
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "WEATHER bogos".into(),
-            },
-        );
-        assert_eq!(state.weather.kind, crate::weather::WeatherKind::Storm);
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("WEATHER FAIL") {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail, "expected WEATHER FAIL bad_kind");
-    }
-
-    /// SAY SEED respawns default animals only when the animal world is empty.
-    #[test]
-    fn say_seed_animals_if_empty() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "seed@x");
-        assert!(state.animals.animals.is_empty());
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SEED".into(),
-            },
-        );
-        assert_eq!(state.animals.animals.len(), 7);
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("SEED OK") && s.contains("animals=7") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_ok, "expected SEED OK animals=7");
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SEED".into(),
-            },
-        );
-        assert_eq!(state.animals.animals.len(), 7, "second SEED must not double-spawn");
-        let mut saw_skip = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("SEED SKIP") {
-                saw_skip = true;
-            }
-        }
-        assert!(saw_skip, "expected SEED SKIP when animals already present");
-    }
-
-    #[test]
-    fn curse_token_score_and_query() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "alice@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "bob@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-        // Login seeds one curse token and sends CX.
-        assert_eq!(state.curses.tokens(a), DEFAULT_CURSE_TOKENS);
-        let mut saw_cx_login = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("CX\n") {
-                saw_cx_login = true;
-            }
-        }
-        assert!(saw_cx_login, "expected CX on login");
-        while rx2.try_recv().is_ok() {}
-
-        assert!(state.curses.curse_player(a, b));
-        assert_eq!(state.curses.tokens(a), 0);
-        assert_eq!(state.curses.score(b), 1);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?CURSE".into(),
-            },
-        );
-        let mut saw_ps = false;
-        let mut saw_cx = false;
-        let mut saw_cs = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("CURSE tokens=0") {
-                saw_ps = true;
-            }
-            if s.starts_with("CX\n") {
-                saw_cx = true;
-                assert!(s.contains("0"));
-            }
-            if s.starts_with("CS\n") {
-                saw_cs = true;
-            }
-        }
-        assert!(saw_ps, "expected PS ?CURSE reply");
-        assert!(saw_cx, "expected CX token wire");
-        assert!(saw_cs, "expected CS score wire");
-    }
-
-    #[test]
-    fn posse_join_query_and_clear() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "alice@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "bob@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-        assert!(!state.posse.has_target(a, b));
-
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("POSSE {b}"),
-            },
-        );
-        assert!(state.posse.has_target(a, b));
-
-        let mut saw_posse_ps = false;
-        let mut saw_pj = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("POSSE") && s.contains("OK") {
-                saw_posse_ps = true;
-            }
-            if s.starts_with("PJ\n") && s.contains(&format!("{a} {b}")) {
-                saw_pj = true;
-            }
-        }
-        assert!(saw_posse_ps, "expected PS POSSE OK reply");
-        assert!(saw_pj, "expected PJ posse join wire");
-
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?POSSE".into(),
-            },
-        );
-        let mut saw_list = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("POSSE") && s.contains(&format!("{b}")) {
-                saw_list = true;
-            }
-        }
-        assert!(saw_list, "expected PS ?POSSE list with target");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "POSSE 0".into(),
-            },
-        );
-        assert!(!state.posse.has_target(a, b));
-        assert_eq!(state.posse.target_count(a), 0);
-    }
-
-    #[test]
-    fn war_declare_query_and_peace() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "alice@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "bob@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-        assert!(!state.war.is_at_war(a, b));
-
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("WAR {b}"),
-            },
-        );
-        assert!(state.war.is_at_war(a, b));
-        assert!(state.war.is_at_war(b, a));
-
-        let mut saw_war_ps = false;
-        let mut saw_wr = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("WAR") && s.contains("OK") {
-                saw_war_ps = true;
-            }
-            if s.starts_with("WR\n") && s.contains(STATUS_WAR) {
-                saw_wr = true;
-            }
-        }
-        assert!(saw_war_ps, "expected PS WAR OK reply");
-        assert!(saw_wr, "expected WR war report");
-
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?WAR".into(),
-            },
-        );
-        let mut saw_list = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("WAR") && s.contains(&format!("{a}")) && s.contains(&format!("{b}")) {
-                saw_list = true;
-            }
-        }
-        assert!(saw_list, "expected PS ?WAR list with pair");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("PEACE {b}"),
-            },
-        );
-        assert!(!state.war.is_at_war(a, b));
-        assert_eq!(state.war.status(a, b), STATUS_PEACE);
-        // War declare ensures scoreboard rows (optional soft scoreboard).
-        assert!(state.scoreboard.entry(a).is_some());
-        assert!(state.scoreboard.entry(b).is_some());
-    }
-
-    /// SAY ?GEN returns LineageNode.generation; birth child is gen+1.
-    #[test]
-    fn say_gen_lineage_depth() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "gen@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let mother = state.players.get(&1).unwrap().p_id;
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?GEN".into(),
-            },
-        );
-        let mut saw_gen0 = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("GEN {mother} 0")) {
-                saw_gen0 = true;
-            }
-        }
-        assert!(saw_gen0, "founder should be GEN 0");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "BIRTH".into(),
-            },
-        );
-        let baby_conn = 1u64 + BABY_CONN_OFFSET;
-        let baby_id = state.players.get(&baby_conn).unwrap().p_id;
-        assert_eq!(
-            state.social.lineages.get(&baby_id).map(|n| n.generation),
-            Some(1)
-        );
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("?GEN {baby_id}"),
-            },
-        );
-        let mut saw_gen1 = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("GEN {baby_id} 1")) {
-                saw_gen1 = true;
-            }
-        }
-        assert!(saw_gen1, "baby should be GEN 1");
-    }
-
-    /// SAY ?FAMILY lists online players with the same family_name.
-    #[test]
-    fn say_family_lists_same_family_name() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "fam1@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "fam2@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-        // Force shared family name.
-        {
-            let fa = state.players.get(&1).unwrap().family_name.clone();
-            if let Some(p) = state.players.get_mut(&2) {
-                p.family_name = fa;
-            }
-        }
-        let family = state.players.get(&1).unwrap().family_name.clone();
-        assert!(!family.is_empty());
-
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?FAMILY".into(),
-            },
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("FAMILY ") {
-                saw = true;
-                assert!(s.contains(&family), "got {s}");
-                assert!(s.contains(&format!("{a} ")), "got {s}");
-                assert!(s.contains(&format!("{b} ")), "got {s}");
-            }
-        }
-        assert!(saw, "expected PS ?FAMILY reply");
-    }
-
-    /// SAY ?REL marks EVE when mother_id is None; children show mother without self-EVE.
-    #[test]
-    fn say_rel_eve_detection() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "eve@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        assert!(is_eve(&state.social, a));
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?REL".into(),
-            },
-        );
-        let mut saw_eve = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("EVE") {
-                saw_eve = true;
-                assert!(s.contains(&format!("REL {a} {a} EVE")), "got {s}");
-            }
-        }
-        assert!(saw_eve, "expected PS ?REL EVE for founder");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "BIRTH".into(),
-            },
-        );
-        let baby_conn = 1u64 + BABY_CONN_OFFSET;
-        let baby_id = state.players.get(&baby_conn).unwrap().p_id;
-        assert!(!is_eve(&state.social, baby_id));
-        let rel = format_relation_query(&state.social, baby_id, a);
-        assert!(rel.contains("mother"));
-        assert!(rel.contains("EVE"), "Eve mother should mark EVE: {rel}");
-    }
-
-    /// SAY RAID requires mutual posse; prestige note only (no kill / death).
-    #[test]
-    fn say_raid_posse_prestige_note_only() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "raider@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "target@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-
-        // Without mutual posse â†’ FAIL.
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("RAID {b}"),
-            },
-        );
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("RAID") && s.contains("FAIL") {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail, "expected RAID FAIL without posse");
-        assert!(!state.players.get(&2).unwrap().deleted);
-
-        // Mutual posse â†’ OK prestige note; no death.
-        state.posse.add_posse(a, b);
-        state.posse.add_posse(b, a);
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("RAID {b}"),
-            },
-        );
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("RAID") && s.contains("OK") && s.contains("prestige=") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_ok, "expected RAID OK prestige note");
-        assert!(!state.players.get(&2).unwrap().deleted);
-        assert_eq!(
-            state.combat.stats.get(&b).map(|s| s.deaths).unwrap_or(0),
-            0
-        );
-        assert!(
-            state
-                .event_log
-                .iter()
-                .any(|e| e == &format!("RAID {a} {b}")),
-            "expected RAID event"
-        );
-    }
-
-    #[test]
-    fn ping_raw_replies_pong() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "ping@x");
-        while rx.try_recv().is_ok() {}
-
-        // Net maps Ping â†’ payload = unique_id only.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "PING".into(),
-                payload: "uid42".into(),
-            },
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.as_ref() == "PONG\nuid42\n#" {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected PONG echo of unique_id");
-
-        // Full wire-shaped payload still echoes last token (unique_id).
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "PING".into(),
-                payload: "10 20 full_uid".into(),
-            },
-        );
-        let mut saw_full = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.as_ref() == "PONG\nfull_uid\n#" {
-                saw_full = true;
-            }
-        }
-        assert!(saw_full, "expected PONG from x y unique_id payload");
-    }
-
-    #[test]
-    fn photo_and_vog_raw_ack() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "photo@x");
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "PHOTO".into(),
-                payload: "10 20 1".into(),
-            },
-        );
-        let mut saw_ph = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PH\n") && s.contains("10 20") && s.contains(PHOTO_DENIED_SIGNATURE) {
-                saw_ph = true;
-            }
-        }
-        assert!(saw_ph, "expected PH deny ACK for PHOTO");
-
-        // SAY SNAP â€” same deny as PHOTO (coords from args).
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SNAP 10 20 1".into(),
-            },
-        );
-        let mut saw_snap = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PH\n") && s.contains("10 20") && s.contains(PHOTO_DENIED_SIGNATURE) {
-                saw_snap = true;
-            }
-        }
-        assert!(saw_snap, "expected PH deny ACK for SAY SNAP");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "VOGS".into(),
-                payload: "301 14".into(),
-            },
-        );
-        let mut saw_vu = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s == "VU\n301 14\n#" {
-                saw_vu = true;
-            }
-        }
-        assert!(saw_vu, "expected VU ACK for VOGS");
-    }
-
-    /// SAY VOGSET requires godmode; with flag sets object on tile + MC + PS OK.
-    #[test]
-    fn say_vogset_godmode_sets_tile() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "vog@x");
-        while rx.try_recv().is_ok() {}
-
-        // Without godmode â†’ DENIED, tile unchanged.
-        assert!(!state.players.get(&1).unwrap().godmode);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "VOGSET 5 6 33".into(),
-            },
-        );
-        assert_eq!(state.world.read().unwrap().get_object(5, 6), 0);
-        let mut saw_denied = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 VOGSET DENIED")) {
-                saw_denied = true;
-            }
-        }
-        assert!(saw_denied, "expected VOGSET DENIED without godmode");
-
-        // Enable godmode and set tile.
-        state.players.get_mut(&1).unwrap().godmode = true;
-        while rx.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "VOGSET 5 6 33".into(),
-            },
-        );
-        assert_eq!(state.world.read().unwrap().get_object(5, 6), 33);
-        let mut saw_ok = false;
-        let mut saw_mx = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 VOGSET 5 6 33 OK")) {
-                saw_ok = true;
-            }
-            if s.starts_with("MX\n") && s.contains("5 6") && s.contains(" 33 ") {
-                saw_mx = true;
-            }
-        }
-        assert!(saw_ok, "expected VOGSET OK PS");
-        assert!(saw_mx, "expected map-change MX after VOGSET");
-
-        // Malformed args â†’ FAIL.
-        while rx.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "VOGSET 1 2".into(),
-            },
-        );
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 VOGSET FAIL")) {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail, "expected VOGSET FAIL for incomplete args");
-
-        // Clear tile with obj=0.
-        while rx.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "VOGSET 5 6 0".into(),
-            },
-        );
-        assert_eq!(state.world.read().unwrap().get_object(5, 6), 0);
-    }
-
-    /// SAY REGEN places weighted natural object from content.biome_spawn when tile empty.
-    #[test]
-    fn say_regen_places_biome_spawn_when_empty() {
-        use ol_content::BiomeSpawnTable;
-
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            33,
-            ObjectDef {
-                id: 33,
-                description: "Gooseberry".into(),
-                name: "Gooseberry".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 3,
-                heat_value: 0.0,
-                map_chance: 1.0,
-                biomes: vec![0],
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        db.biome_spawn.insert(
-            0,
-            BiomeSpawnTable {
-                total_chance: 1.0,
-                entries: vec![(33, 1.0)],
-            },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        let p_id = spawn_player(&mut state, 1, "regen@x");
-        // Spawn at (0,0); biome defaults to 0.
-        assert_eq!(state.players.get(&1).unwrap().x, 0);
-        assert_eq!(state.players.get(&1).unwrap().y, 0);
-        assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "REGEN".into(),
-            },
-        );
-        assert_eq!(state.world.read().unwrap().get_object(0, 0), 33);
-        let mut saw_ok = false;
-        let mut saw_mx = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 REGEN OK 0 0 33")) {
-                saw_ok = true;
-            }
-            if s.starts_with("MX\n") && s.contains("0 0") && s.contains(" 33 ") {
-                saw_mx = true;
-            }
-        }
-        assert!(saw_ok, "expected REGEN OK PS");
-        assert!(saw_mx, "expected MX after REGEN");
-
-        // Second REGEN on non-empty tile â†’ SKIP.
-        while rx.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "REGEN".into(),
-            },
-        );
-        assert_eq!(state.world.read().unwrap().get_object(0, 0), 33);
-        let mut saw_skip = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("REGEN SKIP not_empty") {
-                saw_skip = true;
-            }
-        }
-        assert!(saw_skip, "expected REGEN SKIP when not empty");
-    }
-
-    /// SAY REGEN FAIL when biome has no spawn table.
-    #[test]
-    fn say_regen_fails_without_biome_spawn() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "regen2@x");
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "REGEN".into(),
-            },
-        );
-        assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 REGEN FAIL no_spawn")) {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail, "expected REGEN FAIL no_spawn");
-    }
-
-    /// SAY CLEAROBJ requires godmode; clears object under feet + MX.
-    #[test]
-    fn say_clearobj_godmode_clears_tile() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "clr@x");
-        state.world.write().unwrap().set_object(0, 0, 33);
-        while rx.try_recv().is_ok() {}
-
-        // Without godmode â†’ DENIED.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "CLEAROBJ".into(),
-            },
-        );
-        assert_eq!(state.world.read().unwrap().get_object(0, 0), 33);
-        let mut saw_denied = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 CLEAROBJ DENIED")) {
-                saw_denied = true;
-            }
-        }
-        assert!(saw_denied, "expected CLEAROBJ DENIED");
-
-        state.players.get_mut(&1).unwrap().godmode = true;
-        while rx.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "CLEAROBJ".into(),
-            },
-        );
-        assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
-        let mut saw_ok = false;
-        let mut saw_mx = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 CLEAROBJ OK 0 0")) {
-                saw_ok = true;
-            }
-            if s.starts_with("MX\n") && s.contains("0 0") && s.contains(" 0 ") {
-                saw_mx = true;
-            }
-        }
-        assert!(saw_ok, "expected CLEAROBJ OK");
-        assert!(saw_mx, "expected MX after CLEAROBJ");
-    }
-
-    /// SAY FILL requires godmode; sets floor under feet to 1.
-    #[test]
-    fn say_fill_godmode_sets_floor_one() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "fill@x");
-        assert_eq!(state.world.read().unwrap().get_floor(0, 0), 0);
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "FILL".into(),
-            },
-        );
-        assert_eq!(state.world.read().unwrap().get_floor(0, 0), 0);
-        let mut saw_denied = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 FILL DENIED")) {
-                saw_denied = true;
-            }
-        }
-        assert!(saw_denied, "expected FILL DENIED");
-
-        state.players.get_mut(&1).unwrap().godmode = true;
-        while rx.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "FILL".into(),
-            },
-        );
-        assert_eq!(state.world.read().unwrap().get_floor(0, 0), 1);
-        let mut saw_ok = false;
-        let mut saw_mx = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 FILL OK 0 0 floor=1")) {
-                saw_ok = true;
-            }
-            if s.starts_with("MX\n") && s.contains("0 0 1 ") {
-                saw_mx = true;
-            }
-        }
-        assert!(saw_ok, "expected FILL OK");
-        assert!(saw_mx, "expected MX with floor=1 after FILL");
-    }
-
-    #[test]
-    fn say_global_broadcasts_gm() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        let p1 = spawn_player(&mut state, 1, "g1@x");
-        spawn_player(&mut state, 2, "g2@x");
-        // GLOBAL requires noble+ prestige (combat threshold â‰¥ 50).
-        state.combat.stats_mut(p1).prestige = 50.0;
-        if let Some(n) = state.social.lineages.get_mut(&p1) {
-            n.set_prestige(50.0);
-        }
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "GLOBAL hello world".into(),
-            },
-        );
-
-        let expected = format_server_message("GM", &["hello world"]);
-        let mut saw1 = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s == expected || s.starts_with("GM\n") {
-                saw1 = true;
-            }
-        }
-        let mut saw2 = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s == expected || s.starts_with("GM\n") {
-                saw2 = true;
-            }
-        }
-        assert!(saw1, "conn 1 expected GM global packet");
-        assert!(saw2, "conn 2 expected GM global packet (broadcast)");
-
-        // Direct helper path.
-        while rx1.try_recv().is_ok() {}
-        broadcast_global(&hub, "direct");
-        let mut saw_direct = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt) == format_server_message("GM", &["direct"]) {
-                saw_direct = true;
-            }
-        }
-        assert!(saw_direct, "broadcast_global should push GM");
-    }
-
-    /// PO-MAX-DISTANCE: adult normal SAY uses CloseForSay 20 (not NEARBY_RANGE 24).
-    // Haxe: Connection.sendSayToAllClose + ServerSettings.MaxDistanceToBeConsideredAsCloseForSay
-    #[test]
-    fn say_adult_close_for_say_range_twenty() {
-        assert_eq!(ADULT_CHAT_RANGE, 20);
-        assert_eq!(MAX_DISTANCE_CLOSE_FOR_SAY, 20);
-        assert_eq!(chat_range_for_age(25.0), 20);
-        assert_ne!(ADULT_CHAT_RANGE, NEARBY_RANGE);
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "near@x");
-        spawn_player(&mut state, 2, "mid@x");
-        // Chebyshev 22: inside old NEARBY 24, outside CloseForSay 20.
-        set_player_position(&mut state, 1, 0, 0);
-        set_player_position(&mut state, 2, 22, 0);
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.age = 25.0;
-        }
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "hello close-for-say".into(),
-            },
-        );
-        let mut far_mid = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("hello close-for-say") {
-                far_mid = true;
-            }
-        }
-        assert!(
-            !far_mid,
-            "adult SAY must not reach cheby 22 when CloseForSay=20"
-        );
-        // Within 20 must still hear.
-        set_player_position(&mut state, 2, 20, 0);
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "edge twenty".into(),
-            },
-        );
-        let mut near_ok = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("edge twenty") {
-                near_ok = true;
-            }
-        }
-        assert!(near_ok, "adult SAY must reach cheby 20");
-    }
-
-    /// `SAY SHOUT <text>` fans out PS at [`SHOUT_RANGE`] (48), past normal nearby.
-    #[test]
-    fn say_shout_uses_larger_nearby_range() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "near@x");
-        spawn_player(&mut state, 2, "far@x");
-        // Beyond ADULT_CHAT_RANGE (20) / NEARBY_RANGE (24) but within SHOUT_RANGE (48).
-        set_player_position(&mut state, 1, 0, 0);
-        set_player_position(&mut state, 2, 30, 0);
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "hello soft".into(),
-            },
-        );
-        let mut far_soft = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("hello soft") {
-                far_soft = true;
-            }
-        }
-        assert!(!far_soft, "normal SAY must not reach beyond ADULT_CHAT_RANGE/CloseForSay");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SHOUT hello loud".into(),
-            },
-        );
-        let mut far_shout = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("SHOUT hello loud") {
-                far_shout = true;
-            }
-        }
-        assert!(far_shout, "SHOUT PS should reach within SHOUT_RANGE");
-        // Speaker also receives their own PS fan-out.
-        let mut self_shout = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("SHOUT hello loud") {
-                self_shout = true;
-            }
-        }
-        assert!(self_shout, "speaker should receive SHOUT PS");
-    }
-
-    /// SAY ?HELP / HELP returns short list of supported commands via private PS (no SQL).
-    #[test]
-    fn say_help_returns_short_command_list() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "help@x");
-
-        let expected = SimState::format_help_query();
-        assert!(expected.starts_with("HELP "), "got {expected}");
-        // Spot-check a few well-known commands appear in the short list.
-        for cmd in ["?WHO", "?WHERE", "?FOOD", "?AGE", "?NAME", "?HELD", "FOLLOW", "SHOUT"] {
-            assert!(
-                expected.contains(cmd),
-                "help list should mention {cmd}: {expected}"
-            );
-        }
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?HELP".into(),
-            },
-        );
-
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("HELP ") {
-                saw = true;
-                assert!(
-                    s.contains(&format!("{p_id}/0 {expected}")),
-                    "PS should embed help list: {s}"
-                );
-                assert!(s.contains("?WHO"), "got {s}");
-                assert!(s.contains("?WHERE"), "got {s}");
-            }
-        }
-        assert!(saw, "expected PS ?HELP reply with command list");
-
-        // Bare HELP also works (private PS only).
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "HELP".into(),
-            },
-        );
-        let mut saw_bare = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 HELP ")) {
-                saw_bare = true;
-                assert!(s.contains("?WHO"), "got {s}");
-                assert!(s.contains("SHOUT"), "got {s}");
-            }
-        }
-        assert!(saw_bare, "expected PS bare HELP reply");
-
-        // Pure formatter unit check (no wire).
-        assert_eq!(SimState::format_help_query(), expected);
-        assert!(!expected.contains(';'), "help list is space-separated tokens");
-    }
-
-    /// SAY ?NAME / NAME returns display_name via private PS (no SQL).
-    #[test]
-    fn say_name_returns_display_name() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "name@x");
-
-        // Deterministic name so the reply is exact.
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.first_name = "ADAM".into();
-            p.family_name = "SMITH".into();
-        }
-        let display = state.players.get(&1).unwrap().display_name();
-        assert_eq!(display, "ADAM SMITH");
-        let expected = SimState::format_name_query(&display);
-        assert_eq!(expected, "NAME ADAM SMITH");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?NAME".into(),
-            },
-        );
-
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("NAME ") {
-                saw = true;
-                assert!(
-                    s.contains(&format!("{p_id}/0 {expected}")),
-                    "PS should embed display_name: {s}"
-                );
-                assert!(s.contains("ADAM SMITH"), "got {s}");
-            }
-        }
-        assert!(saw, "expected PS ?NAME reply with display_name");
-
-        // Bare NAME also works (private PS only).
-        while rx.try_recv().is_ok() {}
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.first_name = "EVE".into();
-            p.family_name = "SNOW".into();
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "NAME".into(),
-            },
-        );
-        let mut saw_bare = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 NAME ")) {
-                saw_bare = true;
-                assert!(s.contains("EVE SNOW"), "got {s}");
-            }
-        }
-        assert!(saw_bare, "expected PS bare NAME reply");
-
-        // Pure formatter unit check (no wire).
-        assert_eq!(SimState::format_name_query("A B"), "NAME A B");
-        assert_eq!(
-            SimState::format_name_query(&Player::new(9, 9, "x@y").display_name()),
-            format!("NAME {}", Player::new(9, 9, "x@y").display_name())
-        );
-    }
-
-    /// SAY ?FOOD / FOOD returns food and food_max via private PS (no SQL).
-    #[test]
-    fn say_food_returns_food_and_food_max() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "food@x");
-
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 7.25;
-            p.food_max = 20.0;
-        }
-
-        let expected = SimState::format_food_query(7.25, 20.0);
-        assert_eq!(expected, "FOOD 7.25 20.00");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?FOOD".into(),
-            },
-        );
-
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("FOOD ") {
-                saw = true;
-                assert!(
-                    s.contains(&format!("{p_id}/0 {expected}")),
-                    "PS should embed food food_max: {s}"
-                );
-                assert!(s.contains("7.25 20.00"), "got {s}");
-            }
-        }
-        assert!(saw, "expected PS ?FOOD reply with food and food_max");
-
-        // Bare FOOD also works (private PS only).
-        while rx.try_recv().is_ok() {}
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 15.5;
-            p.food_max = 18.0;
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "FOOD".into(),
-            },
-        );
-        let mut saw_bare = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 FOOD ")) {
-                saw_bare = true;
-                assert!(s.contains("15.50 18.00"), "got {s}");
-            }
-        }
-        assert!(saw_bare, "expected PS bare FOOD reply");
-
-        // Pure formatter unit check (no wire).
-        assert_eq!(SimState::format_food_query(0.0, MAX_FOOD), "FOOD 0.00 20.00");
-        assert_eq!(SimState::format_food_query(START_FOOD, MAX_FOOD), "FOOD 10.00 20.00");
-    }
-
-    /// SAY ?AGE / AGE returns age via private PS (no SQL).
-    #[test]
-    fn say_age_returns_age() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "age@x");
-
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.age = 27.5;
-        }
-
-        let expected = SimState::format_age_query(27.5);
-        assert_eq!(expected, "AGE 27.50");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?AGE".into(),
-            },
-        );
-
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("AGE ") {
-                saw = true;
-                assert!(
-                    s.contains(&format!("{p_id}/0 {expected}")),
-                    "PS should embed age: {s}"
-                );
-                assert!(s.contains("27.50"), "got {s}");
-            }
-        }
-        assert!(saw, "expected PS ?AGE reply with age");
-
-        // Bare AGE also works (private PS only).
-        while rx.try_recv().is_ok() {}
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.age = 0.0;
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "AGE".into(),
-            },
-        );
-        let mut saw_bare = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 AGE ")) {
-                saw_bare = true;
-                assert!(s.contains("0.00"), "got {s}");
-            }
-        }
-        assert!(saw_bare, "expected PS bare AGE reply");
-
-        // Pure formatter unit check (no wire).
-        assert_eq!(SimState::format_age_query(14.0), "AGE 14.00");
-        assert_eq!(SimState::format_age_query(MAX_AGE), "AGE 120.00");
-    }
-
-    /// SAY ?STATUS / STATUS: food age held prestige class wound sleep sick sit.
-    #[test]
-    fn say_status_combines_food_age_held_prestige_class() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "status@x");
-
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 7.25;
-            p.age = 27.5;
-            p.held_id = 33; // Gooseberry in test_content
-            p.sleeping = true;
-            p.sick = false;
-            p.sitting = true;
-        }
-        state.combat.apply_wound(p_id, 2);
-        // Lineage prestige preferred by player_prestige / player_prestige_class.
-        // spawn_player alone does not ensure lineage (LOGIN does); ensure here.
-        state.social.ensure_lineage(p_id, "Status Tester");
-        state.social.set_lineage_prestige(p_id, 55.0);
-        assert_eq!(
-            state.player_prestige_class(p_id),
-            PrestigeClass::Noble
-        );
-
-        let expected = SimState::format_status_query(
-            7.25,
-            27.5,
-            33,
-            55.0,
-            PrestigeClass::Noble,
-            2,
-            true,
-            false,
-            true,
-        );
-        assert_eq!(expected, "STATUS 7.25 27.50 33 55.00 noble 2 1 0 1");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?STATUS".into(),
-            },
-        );
-
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("STATUS ") {
-                saw = true;
-                assert!(
-                    s.contains(&format!("{p_id}/0 {expected}")),
-                    "PS should embed combined status: {s}"
-                );
-                assert!(s.contains("7.25"), "food in reply: {s}");
-                assert!(s.contains("27.50"), "age in reply: {s}");
-                assert!(s.contains(" 33 "), "held in reply: {s}");
-                assert!(s.contains("55.00"), "prestige in reply: {s}");
-                assert!(s.contains("noble"), "class in reply: {s}");
-                assert!(s.contains(" 2 1 0 1"), "wound sleep sick sit: {s}");
-            }
-        }
-        assert!(
-            saw,
-            "expected PS ?STATUS reply with food age held prestige class wound flags"
-        );
-
-        // Bare STATUS also works (private PS only); empty hands â†’ held 0; serf at 0 prestige.
-        while rx.try_recv().is_ok() {}
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 10.0;
-            p.age = 14.0;
-            p.held_id = 0;
-            p.sleeping = false;
-            p.sick = false;
-            p.sitting = false;
-        }
-        state.combat.clear_wound(p_id);
-        state.social.set_lineage_prestige(p_id, 0.0);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "STATUS".into(),
-            },
-        );
-        let bare_expected = SimState::format_status_query(
-            10.0,
-            14.0,
-            0,
-            0.0,
-            PrestigeClass::Serf,
-            0,
-            false,
-            false,
-            false,
-        );
-        assert_eq!(bare_expected, "STATUS 10.00 14.00 0 0.00 serf 0 0 0 0");
-        let mut saw_bare = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 STATUS ")) {
-                saw_bare = true;
-                assert!(
-                    s.contains(&format!("{p_id}/0 {bare_expected}")),
-                    "got {s}"
-                );
-            }
-        }
-        assert!(saw_bare, "expected PS bare STATUS reply");
-
-        // Pure formatter unit checks (no wire / no SQL).
-        assert_eq!(
-            SimState::format_status_query(
-                0.0, 0.0, 0, 0.0, PrestigeClass::Serf, 0, false, false, false
-            ),
-            "STATUS 0.00 0.00 0 0.00 serf 0 0 0 0"
-        );
-        assert_eq!(
-            SimState::format_status_query(
-                20.0, 120.0, 9999, 200.0, PrestigeClass::Emperor, 5, true, true, true
-            ),
-            "STATUS 20.00 120.00 9999 200.00 emperor 5 1 1 1"
-        );
-        assert_eq!(
-            SimState::format_status_query(
-                5.5,
-                30.0,
-                1,
-                12.4,
-                PrestigeClass::from_prestige(12.4),
-                1,
-                false,
-                true,
-                false,
-            ),
-            "STATUS 5.50 30.00 1 12.40 commoner 1 0 1 0"
-        );
-        assert_eq!(
-            SimState::format_status_query(
-                1.0, 2.0, 0, 0.0, PrestigeClass::Serf, 3, true, true, true
-            ),
-            "STATUS 1.00 2.00 0 0.00 serf 3 1 1 1"
-        );
-    }
-
-    /// SAY ?HEART, CLEAR/RESET YUM, BOOST, GODMODE, ?FLAGS.
-    #[test]
-    fn say_heart_yum_clear_boost_godmode_flags() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "vitals@x");
-
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 3.5;
-            p.food_max = 20.0;
-            p.age = 22.0;
-            let _ = p.yum.eat(33, 3.0, 3);
-            let _ = p.yum.eat(40, 3.0, 6);
-            p.sleeping = true;
-            p.sick = true;
-            p.sitting = false;
-            p.riding = true;
-            p.holding_player_id = 99;
-            p.godmode = false;
-        }
-
-        assert_eq!(SimState::format_heart_query(3.5, 22.0), "HEART 3.50 22.00");
-        assert_eq!(
-            SimState::format_flags_query(true, true, false, true, true, false, false),
-            "FLAGS sleeping=1 sick=1 sitting=0 riding=1 holding=1 god=0 deaf=0"
-        );
-        assert_eq!(SimState::format_godmode_query(false), "GODMODE off");
-        assert_eq!(SimState::format_godmode_query(true), "GODMODE on");
-        assert_eq!(SimState::boost_food(3.5, 20.0), 8.5);
-        assert_eq!(SimState::boost_food(18.0, 20.0), 20.0);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?HEART".into(),
-            },
-        );
-        let mut saw_heart = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("HEART ") {
-                saw_heart = true;
-                assert!(
-                    s.contains(&format!("{p_id}/0 HEART 3.50 22.00")),
-                    "got {s}"
-                );
-            }
-        }
-        assert!(saw_heart, "expected PS ?HEART");
-
-        while rx.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?FLAGS".into(),
-            },
-        );
-        let mut saw_flags = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("FLAGS ") {
-                saw_flags = true;
-                assert!(s.contains("sleeping=1"), "got {s}");
-                assert!(s.contains("sick=1"), "got {s}");
-                assert!(s.contains("sitting=0"), "got {s}");
-                assert!(s.contains("riding=1"), "got {s}");
-                assert!(s.contains("holding=1"), "got {s}");
-                assert!(s.contains("god=0"), "got {s}");
-                assert!(s.contains("deaf=0"), "got {s}");
-            }
-        }
-        assert!(saw_flags, "expected PS ?FLAGS");
-
-        while rx.try_recv().is_ok() {}
-        assert!(!state.players.get(&1).unwrap().yum.history.is_empty());
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "CLEAR YUM".into(),
-            },
-        );
-        {
-            let yum = &state.players.get(&1).unwrap().yum;
-            assert!(yum.history.is_empty());
-            assert_eq!(yum.yum_bonus, 0.0);
-        }
-        let mut saw_clear = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("YUM CLEAR OK") {
-                saw_clear = true;
-                assert!(s.contains("history=0"), "got {s}");
-            }
-        }
-        assert!(saw_clear, "expected PS CLEAR YUM");
-
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            let _ = p.yum.eat(33, 3.0, 0);
-        }
-        while rx.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "RESET YUM".into(),
-            },
-        );
-        assert!(state.players.get(&1).unwrap().yum.history.is_empty());
-        let mut saw_reset = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("YUM CLEAR OK") {
-                saw_reset = true;
-            }
-        }
-        assert!(saw_reset, "expected PS RESET YUM");
-
-        while rx.try_recv().is_ok() {}
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 3.5;
-            p.food_max = 20.0;
-        }
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "BOOST".into(),
-            },
-        );
-        assert!((state.players.get(&1).unwrap().food - 8.5).abs() < 1e-4);
-        let mut saw_boost = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("BOOST OK") {
-                saw_boost = true;
-                assert!(s.contains("food=8.50"), "got {s}");
-            }
-        }
-        assert!(saw_boost, "expected PS BOOST");
-
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 18.0;
-        }
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "BOOST".into(),
-            },
-        );
-        assert!((state.players.get(&1).unwrap().food - 20.0).abs() < 1e-4);
-
-        while rx.try_recv().is_ok() {}
-        assert!(!state.players.get(&1).unwrap().godmode);
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "GODMODE".into(),
-            },
-        );
-        assert!(state.players.get(&1).unwrap().godmode);
-        let mut saw_god_on = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("GODMODE on") {
-                saw_god_on = true;
-            }
-        }
-        assert!(saw_god_on, "expected GODMODE on after toggle");
-
-        while rx.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?GODMODE".into(),
-            },
-        );
-        let mut saw_god_q = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("GODMODE on") {
-                saw_god_q = true;
-            }
-        }
-        assert!(saw_god_q, "expected ?GODMODE on");
-
-        while rx.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "GODMODE OFF".into(),
-            },
-        );
-        assert!(!state.players.get(&1).unwrap().godmode);
-        let mut saw_god_off = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("GODMODE off") {
-                saw_god_off = true;
-            }
-        }
-        assert!(saw_god_off, "expected GODMODE off");
-
-        while rx.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "FLAGS".into(),
-            },
-        );
-        let mut saw_flags2 = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("FLAGS ") {
-                saw_flags2 = true;
-                assert!(s.contains("god=0"), "got {s}");
-            }
-        }
-        assert!(saw_flags2, "expected bare FLAGS");
-    }
-
-    /// SAY ?WHERE / WHERE returns x y biome food age via private PS.
-    #[test]
-    fn say_where_returns_x_y_biome_food_age() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "where@x");
-
-        // Known tile + vitals so the reply is deterministic.
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 7;
-            p.y = -3;
-            p.food = 12.5;
-            p.age = 20.0;
-        }
-        state.world.write().unwrap().set_biome(7, -3, 5); // desert
-
-        let expected = SimState::format_where_query(7, -3, 5, 12.5, 20.0);
-        assert_eq!(expected, "WHERE 7 -3 5 12.50 20.00");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?WHERE".into(),
-            },
-        );
-
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("WHERE ") {
-                saw = true;
-                assert!(
-                    s.contains(&format!("{p_id}/0 {expected}")),
-                    "PS should embed x y biome food age: {s}"
-                );
-                assert!(s.contains("7 -3 5 12.50 20.00"), "got {s}");
-            }
-        }
-        assert!(saw, "expected PS ?WHERE reply with x y biome food age");
-
-        // Bare WHERE also works (private PS only).
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "WHERE".into(),
-            },
-        );
-        let mut saw_bare = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 WHERE ")) {
-                saw_bare = true;
-                assert!(s.contains("7 -3 5 12.50 20.00"), "got {s}");
-            }
-        }
-        assert!(saw_bare, "expected PS bare WHERE reply");
-    }
-
-    /// SAY ?WHO / WHO lists online (connected, not deleted) p_ids + display names via PS.
-    #[test]
-    fn say_who_lists_online_player_ids_and_names() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        assert_eq!(state.format_who_query(), "WHO none");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "who_a@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "who_b@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-        let name_a = state.players.get(&1).unwrap().display_name();
-        let name_b = state.players.get(&2).unwrap().display_name();
-
-        let q = state.format_who_query();
-        assert!(q.starts_with("WHO "), "got {q}");
-        assert!(q.contains(&format!("{a} {name_a}")), "got {q}");
-        assert!(q.contains(&format!("{b} {name_b}")), "got {q}");
-        // Sorted by p_id: lower id appears first.
-        let pos_a = q.find(&format!("{a} ")).unwrap();
-        let pos_b = q.find(&format!("{b} ")).unwrap();
-        if a < b {
-            assert!(pos_a < pos_b, "expected sorted by p_id: {q}");
-        } else {
-            assert!(pos_b < pos_a, "expected sorted by p_id: {q}");
-        }
-
-        // Deleted / disconnected are excluded.
-        state.players.get_mut(&2).unwrap().deleted = true;
-        let q_del = state.format_who_query();
-        assert!(q_del.contains(&format!("{a} {name_a}")), "got {q_del}");
-        assert!(!q_del.contains(&format!("{b} ")), "deleted should be absent: {q_del}");
-        state.players.get_mut(&2).unwrap().deleted = false;
-        state.players.get_mut(&2).unwrap().connected = false;
-        let q_dc = state.format_who_query();
-        assert!(!q_dc.contains(&format!("{b} ")), "disconnected should be absent: {q_dc}");
-        state.players.get_mut(&2).unwrap().connected = true;
-
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?WHO".into(),
-            },
-        );
-        let mut saw_q = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("WHO ") {
-                saw_q = true;
-                assert!(s.contains(&format!("{a}/0 WHO ")), "got {s}");
-                assert!(s.contains(&format!("{a} {name_a}")), "got {s}");
-                assert!(s.contains(&format!("{b} {name_b}")), "got {s}");
-            }
-        }
-        assert!(saw_q, "expected PS ?WHO reply");
-
-        // Bare WHO also works (no nearby fan-out â€” private PS only).
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "WHO".into(),
-            },
-        );
-        let mut saw_bare = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("WHO ") {
-                saw_bare = true;
-                assert!(s.contains(&format!("{a}/0 WHO ")), "got {s}");
-            }
-        }
-        assert!(saw_bare, "expected PS WHO reply");
-        // Target alone receives reply â€” not fan-out to other conns.
-        let mut leaked = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("WHO ") {
-                leaked = true;
-            }
-        }
-        assert!(!leaked, "WHO reply must not PS-fan to other players");
-    }
-
-    /// event_log records deaths/births/wars (max 100); SAY ?LOG returns last 5.
-    #[test]
-    fn event_log_death_birth_war_and_say_log() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        assert!(state.event_log.is_empty());
-        assert_eq!(state.format_event_log_query(), "LOG none");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "log@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "log2@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-
-        // Birth
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "BIRTH".into(),
-            },
-        );
-        assert!(
-            state.event_log.iter().any(|e| e.starts_with("BIRTH ") && e.contains(&format!("mother={a}"))),
-            "expected BIRTH event, got {:?}",
-            state.event_log
-        );
-
-        // War
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("WAR {b}"),
-            },
-        );
-        assert!(
-            state.event_log.iter().any(|e| e == &format!("WAR {a} {b}")),
-            "expected WAR event, got {:?}",
-            state.event_log
-        );
-
-        // Death via KILL
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("KILL {b}"),
-            },
-        );
-        assert!(
-            state
-                .event_log
-                .iter()
-                .any(|e| e.starts_with(&format!("DEATH {b} "))),
-            "expected DEATH event, got {:?}",
-            state.event_log
-        );
-
-        // Ring buffer max EVENT_LOG_MAX: push 125 â†’ keep last 100 (E25..=E124).
-        state.event_log.clear();
-        for i in 0..(EVENT_LOG_MAX + 25) {
-            state.push_event(format!("E{i}"));
-        }
-        assert_eq!(state.event_log.len(), EVENT_LOG_MAX);
-        assert_eq!(state.event_log.front().map(String::as_str), Some("E25"));
-        let newest = format!("E{}", EVENT_LOG_MAX + 24);
-        assert_eq!(state.event_log.back().map(String::as_str), Some(newest.as_str()));
-
-        // format_event_log_query returns last EVENT_LOG_QUERY_LAST.
-        let q = state.format_event_log_query();
-        assert!(q.starts_with("LOG "));
-        let first_of_last = EVENT_LOG_MAX + 24 + 1 - EVENT_LOG_QUERY_LAST;
-        for i in first_of_last..=(EVENT_LOG_MAX + 24) {
-            assert!(q.contains(&format!("E{i}")), "query missing E{i}: {q}");
-        }
-        // Oldest retained must not appear in last-5 query.
-        assert!(!q.contains("E25"), "query should not include oldest: {q}");
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?LOG".into(),
-            },
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("LOG ") {
-                saw = true;
-                assert!(s.contains(&format!("{a}/0 LOG ")), "got {s}");
-                assert!(s.contains(&newest), "got {s}");
-            }
-        }
-        assert!(saw, "expected PS ?LOG reply");
-
-        // JOURNAL is an alias for the same event-log ring buffer.
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?JOURNAL".into(),
-            },
-        );
-        let mut saw_journal = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("LOG ") {
-                saw_journal = true;
-                assert!(s.contains(&newest), "got {s}");
-            }
-        }
-        assert!(saw_journal, "expected PS ?JOURNAL (=LOG) reply");
-    }
-
-    /// SAY POLL creates event-log line; VOTE yes|no tallies; ?POLL returns results.
-    #[test]
-    fn say_poll_vote_and_query() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "poll1@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "poll2@x".into(),
-                client_tag: "t".into(),
-            },
-        );
-        let a = state.players.get(&1).unwrap().p_id;
-        let b = state.players.get(&2).unwrap().p_id;
-
-        assert_eq!(state.poll.format_query(), "POLL none");
-
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "POLL Build wall?".into(),
-            },
-        );
-        assert!(
-            state
-                .event_log
-                .iter()
-                .any(|e| e == &format!("POLL {a} Build wall?")),
-            "expected POLL event, got {:?}",
-            state.event_log
-        );
-        assert!(state.poll.is_active());
-        let mut saw_poll_ok = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("POLL OK") {
-                saw_poll_ok = true;
-                assert!(s.contains("Build wall?"), "got {s}");
-            }
-        }
-        assert!(saw_poll_ok, "expected PS POLL OK");
-
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "VOTE yes".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "VOTE no".into(),
-            },
-        );
-        assert_eq!(state.poll.counts(), (1, 1));
-        assert_eq!(state.poll.vote_of(a), Some(VoteChoice::Yes));
-        assert_eq!(state.poll.vote_of(b), Some(VoteChoice::No));
-
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?POLL".into(),
-            },
-        );
-        let mut saw_q = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("POLL yes=") {
-                saw_q = true;
-                assert!(s.contains("yes=1"), "got {s}");
-                assert!(s.contains("no=1"), "got {s}");
-                assert!(s.contains("q=Build wall?"), "got {s}");
-            }
-        }
-        assert!(saw_q, "expected PS ?POLL results");
-
-        // Empty POLL fails; VOTE without choice fails; revote updates tallies.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "POLL".into(),
-            },
-        );
-        assert!(state.poll.is_active(), "empty POLL must not clear active");
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "VOTE maybe".into(),
-            },
-        );
-        assert_eq!(state.poll.counts(), (1, 1));
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "VOTE yes".into(),
-            },
-        );
-        assert_eq!(state.poll.counts(), (2, 0));
-    }
-
-    /// Pure-ish: no journal Arc â†’ WJOURNAL none; shared journal peeks last entry.
-    #[test]
-    fn wjournal_none_or_last_entry() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        assert_eq!(state.format_wjournal_query(), "WJOURNAL none");
-        assert_eq!(format_wjournal_query(None), "WJOURNAL none");
-        assert_eq!(
-            format_wjournal_query(Some((1, 2, 33, 9))),
-            "WJOURNAL 1 2 33 9"
-        );
-
-        let p_id = spawn_player(&mut state, 1, "wj@x");
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?WJOURNAL".into(),
-            },
-        );
-        let mut saw_none = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 WJOURNAL none")) {
-                saw_none = true;
-            }
-        }
-        assert!(saw_none, "expected WJOURNAL none without journal Arc");
-
-        // Attach journal + record one place â†’ last entry summary.
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("ol_sim_wjournal_{nanos}.journal"));
-        let _ = std::fs::remove_file(&path);
-        state.journal = Some(Arc::new(Mutex::new(WorldJournal::open(&path))));
-        state.tick = 11;
-        state.record_world_change(4, 5, 99);
-        assert_eq!(state.format_wjournal_query(), "WJOURNAL 4 5 99 11");
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "WJOURNAL".into(),
-            },
-        );
-        let mut saw_entry = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 WJOURNAL 4 5 99 11")) {
-                saw_entry = true;
-            }
-        }
-        assert!(saw_entry, "expected WJOURNAL last entry PS");
-        let _ = std::fs::remove_file(&path);
-    }
-
-    /// SAVE: non-operator DENIED; operator deferred without Arc; OK when hook Arc present.
-    #[test]
-    fn say_save_operator_and_deferred() {
-        assert_eq!(format_save_reply(true), "SAVE OK");
-        assert_eq!(format_save_reply(false), "SAVE deferred");
-        assert_eq!(format_save_denied(), "SAVE DENIED");
-
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "save@x");
-        assert!(!state.players.get(&1).unwrap().godmode);
-
-        // Non-operator â†’ DENIED
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SAVE".into(),
-            },
-        );
-        let mut saw_denied = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 SAVE DENIED")) {
-                saw_denied = true;
-            }
-        }
-        assert!(saw_denied, "expected SAVE DENIED without godmode");
-
-        // Operator, no hook Arc â†’ deferred
-        state.players.get_mut(&1).unwrap().godmode = true;
-        assert_eq!(state.request_force_save(), "SAVE deferred");
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SAVE".into(),
-            },
-        );
-        let mut saw_deferred = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 SAVE deferred")) {
-                saw_deferred = true;
-            }
-        }
-        assert!(saw_deferred, "expected SAVE deferred without hook Arc");
-
-        // Operator + hook Arc â†’ sets flag + SAVE OK
-        let flag = Arc::new(AtomicBool::new(false));
-        state = state.with_save_request(Arc::clone(&flag));
-        // re-spawn not needed; player still in map... wait, with_save_request consumes state
-        // but we reassigned â€” players should still be there since with_save_request only sets field.
-        assert!(state.players.get(&1).unwrap().godmode);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?SAVE".into(),
-            },
-        );
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 SAVE OK")) {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_ok, "expected SAVE OK with hook Arc");
-        assert!(
-            flag.load(Ordering::Relaxed),
-            "force-save flag should be set"
-        );
-    }
-
-    #[test]
-    fn birth_sets_lineage_mother_and_age_zero() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let mother_p_id = spawn_player(&mut state, 1, "mother@x");
-        state.social.ensure_lineage(mother_p_id, "MOTHER");
-        // Move mother so marker coords are non-default.
-        set_player_position(&mut state, 1, 12, 34);
-        let before_next = state.next_player_id;
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "BIRTH".into(),
-            },
-        );
-
-        let baby_conn = 1u64 + BABY_CONN_OFFSET;
-        let baby = state
-            .players
-            .get(&baby_conn)
-            .expect("baby player at mother_conn + BABY_CONN_OFFSET");
-        assert_eq!(baby.age, 0.0, "baby age must be 0");
-        assert_eq!(baby.food, START_FOOD, "baby food must be 10");
-        assert_eq!(baby.p_id, before_next);
-        assert_eq!(baby.x, 12);
-        assert_eq!(baby.y, 34);
-        assert_eq!(state.next_player_id, before_next + 1);
-
-        let node = state
-            .social
-            .lineages
-            .get(&baby.p_id)
-            .expect("baby lineage");
-        assert_eq!(node.mother_id, Some(mother_p_id));
-        assert_eq!(node.generation, 1);
-
-        let markers = state.markers.wire_lines_for(baby.p_id);
-        assert!(
-            markers.iter().any(|m| m.contains("12 34") && m.contains("MOTHER")),
-            "expected mother marker for baby, got {markers:?}"
-        );
-
-        // Direct API path also works.
-        let baby2_id = spawn_child(&mut state, 1).expect("second birth");
-        let node2 = state.social.lineages.get(&baby2_id).unwrap();
-        assert_eq!(node2.mother_id, Some(mother_p_id));
-        let baby2 = state
-            .players
-            .values()
-            .find(|p| p.p_id == baby2_id)
-            .unwrap();
-        assert_eq!(baby2.age, 0.0);
-    }
-
-    /// SAY ?HELD / HELD returns held_id and content object name when known.
-    #[test]
-    fn say_held_reports_id_and_content_name() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "held@test");
-
-        // Empty hands.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?HELD".into(),
-            },
-        );
-        let empty = rx.try_recv().expect("PS ?HELD empty");
-        let empty_s = String::from_utf8_lossy(&empty);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(empty_s.starts_with("PS\n"), "got {empty_s}");
-        assert!(empty_s.contains("HELD 0"), "got {empty_s}");
-        assert!(
-            !empty_s.contains("HELD 0 "),
-            "empty hands must not append a name: {empty_s}"
-        );
-
-        // Holding known object 33 (Gooseberry in test_content).
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "HELD".into(),
-            },
-        );
-        let named = rx.try_recv().expect("PS HELD named");
-        let named_s = String::from_utf8_lossy(&named);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(named_s.starts_with("PS\n"), "got {named_s}");
-        assert!(
-            named_s.contains("HELD 33 Gooseberry"),
-            "got {named_s}"
-        );
-
-        // Unknown object id â†’ id only (no content name).
-        state.players.get_mut(&1).unwrap().held_id = 9999;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?HELD".into(),
-            },
-        );
-        let unk = rx.try_recv().expect("PS ?HELD unknown");
-        let unk_s = String::from_utf8_lossy(&unk);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(unk_s.contains("HELD 9999"), "got {unk_s}");
-        assert!(
-            !unk_s.contains("HELD 9999 "),
-            "unknown id must not invent a name: {unk_s}"
-        );
-
-        // Pure formatter unit check (no wire).
-        assert_eq!(state.format_held_query(0), "HELD 0");
-        assert_eq!(state.format_held_query(33), "HELD 33 Gooseberry");
-        assert_eq!(state.format_held_query(9999), "HELD 9999");
-    }
-
-    /// Clothing slots start empty; set_clothing + SAY CLOTHES report ids.
-    #[test]
-    fn clothing_slots_set_and_say_clothes() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "clothes@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            assert_eq!((p.hat, p.chest, p.shoes), (0, 0, 0));
-            p.set_clothing(ClothingSlot::Hat, 55);
-            p.set_clothing(ClothingSlot::Chest, 66);
-            p.set_clothing(ClothingSlot::Shoes, 77);
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "CLOTHES".into(),
-            },
-        );
-        let msg = rx.try_recv().expect("PS CLOTHES");
-        let s = String::from_utf8_lossy(&msg);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s.starts_with("PS\n"), "got {s}");
-        assert!(
-            s.contains("CLOTHES hat=55 chest=66 shoes=77"),
-            "got {s}"
-        );
-    }
-
-    /// SAY STORE / INV / TAKE move held into backpack (max 8) and back to hands.
-    #[test]
-    fn say_store_inv_take_backpack() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "bp@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            assert!(p.backpack.is_empty());
-            p.held_id = 33;
-        }
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "STORE".into(),
-            },
-        );
-        {
-            let p = state.players.get(&1).unwrap();
-            assert_eq!(p.held_id, 0);
-            assert_eq!(p.backpack, vec![33]);
-        }
-        let mut saw_store = false;
-        while let Ok(msg) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&msg);
-            if s.contains("STORE 33 OK") {
-                saw_store = true;
-            }
-        }
-        assert!(saw_store, "expected PS STORE 33 OK");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "INV".into(),
-            },
-        );
-        let inv = rx.try_recv().expect("PS INV");
-        let inv_s = String::from_utf8_lossy(&inv);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(
-            inv_s.contains(&format!("INV 1/{BACKPACK_MAX} 33")),
-            "got {inv_s}"
-        );
-
-        // Empty STORE fails.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "STORE".into(),
-            },
-        );
-        let fail = rx.try_recv().expect("PS STORE FAIL");
-        assert!(
-            String::from_utf8_lossy(&fail).contains("STORE FAIL EMPTY"),
-            "got {}",
-            String::from_utf8_lossy(&fail)
-        );
-        // Drain any PU from earlier.
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "TAKE 0".into(),
-            },
-        );
-        {
-            let p = state.players.get(&1).unwrap();
-            assert_eq!(p.held_id, 33);
-            assert!(p.backpack.is_empty());
-        }
-        let mut saw_take = false;
-        while let Ok(msg) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&msg);
-            if s.contains("TAKE 0 33 OK") {
-                saw_take = true;
-            }
-        }
-        assert!(saw_take, "expected PS TAKE 0 33 OK");
-    }
-
-    /// Backpack rejects a 9th STORE (max BACKPACK_MAX).
-    #[test]
-    fn say_store_backpack_max_eight() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "bpfull@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.backpack = (1..=BACKPACK_MAX as i32).collect();
-            p.held_id = 999;
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "STORE".into(),
-            },
-        );
-        let p = state.players.get(&1).unwrap();
-        assert_eq!(p.held_id, 999);
-        assert_eq!(p.backpack.len(), BACKPACK_MAX);
-        let msg = rx.try_recv().expect("PS STORE FAIL");
-        assert!(
-            String::from_utf8_lossy(&msg).contains("STORE FAIL FULL"),
-            "got {}",
-            String::from_utf8_lossy(&msg)
-        );
-    }
-
-    /// SAY NOTE / ?NOTES personal journal (max NOTES_MAX).
-    #[test]
-    fn say_note_and_notes_query() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "note@test");
-        let p_id = state.players.get(&1).unwrap().p_id;
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?NOTES".into(),
-            },
-        );
-        let empty = rx.try_recv().expect("PS empty NOTES");
-        let empty_s = String::from_utf8_lossy(&empty);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(
-            empty_s.contains(&format!("{p_id}/0 NOTES 0/{NOTES_MAX}")),
-            "got {empty_s}"
-        );
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "NOTE found water".into(),
-            },
-        );
-        let ack = rx.try_recv().expect("PS NOTE OK");
-        let ack_s = String::from_utf8_lossy(&ack);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(
-            ack_s.contains(&format!("{p_id}/0 NOTE 1/{NOTES_MAX} OK")),
-            "got {ack_s}"
-        );
-        assert_eq!(
-            state.players.get(&1).unwrap().notes,
-            vec!["found water".to_string()]
-        );
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "NOTE".into(),
-            },
-        );
-        let fail_empty = rx.try_recv().expect("PS NOTE FAIL EMPTY");
-        assert!(
-            String::from_utf8_lossy(&fail_empty).contains("NOTE FAIL EMPTY"),
-            "got {}",
-            String::from_utf8_lossy(&fail_empty)
-        );
-
-        // Fill to capacity (advance sim_time so SAY rate limit does not block).
-        for i in 2..=NOTES_MAX {
-            state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-            apply_intent(
-                &mut state,
-                &counters,
-                &hub,
-                NetIntent::Raw {
-                    conn_id: 1,
-                    tag: "SAY".into(),
-                    payload: format!("NOTE n{i}"),
-                },
-            );
-            let _ = rx.try_recv();
-        }
-        assert_eq!(state.players.get(&1).unwrap().notes.len(), NOTES_MAX);
-
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "NOTE overflow".into(),
-            },
-        );
-        let full = rx.try_recv().expect("PS NOTE FAIL FULL");
-        assert!(
-            String::from_utf8_lossy(&full).contains("NOTE FAIL FULL"),
-            "got {}",
-            String::from_utf8_lossy(&full)
-        );
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "NOTES".into(),
-            },
-        );
-        let list = rx.try_recv().expect("PS NOTES list");
-        let list_s = String::from_utf8_lossy(&list);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(
-            list_s.contains(&format!("NOTES {NOTES_MAX}/{NOTES_MAX}"))
-                && list_s.contains("0:found water"),
-            "got {list_s}"
-        );
-    }
-
-    /// SAY REMEMBER / FORGET / ?MEMORY aliases for NOTE journal; FORGET pops last.
-    #[test]
-    fn say_remember_forget_and_memory_query() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "mem@test");
-        let p_id = state.players.get(&1).unwrap().p_id;
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?MEMORY".into(),
-            },
-        );
-        let empty = rx.try_recv().expect("PS empty MEMORY/NOTES");
-        let empty_s = String::from_utf8_lossy(&empty);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(
-            empty_s.contains(&format!("{p_id}/0 NOTES 0/{NOTES_MAX}")),
-            "got {empty_s}"
-        );
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "REMEMBER river east".into(),
-            },
-        );
-        let ack = rx.try_recv().expect("PS REMEMBER/NOTE OK");
-        let ack_s = String::from_utf8_lossy(&ack);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(
-            ack_s.contains(&format!("{p_id}/0 NOTE 1/{NOTES_MAX} OK")),
-            "got {ack_s}"
-        );
-        assert_eq!(
-            state.players.get(&1).unwrap().notes,
-            vec!["river east".to_string()]
-        );
-
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "REMEMBER berries".into(),
-            },
-        );
-        let _ = rx.try_recv();
-        assert_eq!(state.players.get(&1).unwrap().notes.len(), 2);
-
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "FORGET".into(),
-            },
-        );
-        let forget = rx.try_recv().expect("PS FORGET OK");
-        let forget_s = String::from_utf8_lossy(&forget);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(
-            forget_s.contains(&format!("{p_id}/0 FORGET 1/{NOTES_MAX} OK berries")),
-            "got {forget_s}"
-        );
-        assert_eq!(
-            state.players.get(&1).unwrap().notes,
-            vec!["river east".to_string()]
-        );
-
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "MEMORY".into(),
-            },
-        );
-        let list = rx.try_recv().expect("PS MEMORY list");
-        let list_s = String::from_utf8_lossy(&list);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(
-            list_s.contains(&format!("NOTES 1/{NOTES_MAX}")) && list_s.contains("0:river east"),
-            "got {list_s}"
-        );
-
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "FORGET".into(),
-            },
-        );
-        let _ = rx.try_recv();
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "FORGET".into(),
-            },
-        );
-        let fail = rx.try_recv().expect("PS FORGET FAIL EMPTY");
-        assert!(
-            String::from_utf8_lossy(&fail).contains("FORGET FAIL EMPTY"),
-            "got {}",
-            String::from_utf8_lossy(&fail)
-        );
-    }
-
-    /// SAY TITLE sets personal title; ?NAME includes it after `|`.
-    #[test]
-    fn say_title_and_name_shows_title() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "title@test");
-        let p_id = state.players.get(&1).unwrap().p_id;
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.first_name = "ADA".into();
-            p.family_name = "SNOW".into();
-        }
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "TITLE".into(),
-            },
-        );
-        let fail = rx.try_recv().expect("PS TITLE FAIL EMPTY");
-        assert!(
-            String::from_utf8_lossy(&fail).contains("TITLE FAIL EMPTY"),
-            "got {}",
-            String::from_utf8_lossy(&fail)
-        );
-
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "TITLE Scout".into(),
-            },
-        );
-        let ok = rx.try_recv().expect("PS TITLE OK");
-        let ok_s = String::from_utf8_lossy(&ok);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(
-            ok_s.contains(&format!("{p_id}/0 TITLE OK Scout")),
-            "got {ok_s}"
-        );
-        assert_eq!(state.players.get(&1).unwrap().title, "Scout");
-
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?NAME".into(),
-            },
-        );
-        let name = rx.try_recv().expect("PS NAME with title");
-        let name_s = String::from_utf8_lossy(&name);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(
-            name_s.contains(&format!("{p_id}/0 NAME ADA SNOW | Scout")),
-            "got {name_s}"
-        );
-        // NM / display_name stays first last without title.
-        assert_eq!(
-            state.players.get(&1).unwrap().display_name(),
-            "ADA SNOW"
-        );
-
-        // Truncation
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        let long: String = "z".repeat(TITLE_TEXT_MAX + 15);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("TITLE {long}"),
-            },
-        );
-        let _ = rx.try_recv();
-        assert_eq!(
-            state.players.get(&1).unwrap().title.chars().count(),
-            TITLE_TEXT_MAX
-        );
-    }
-
-    /// SAY WATER boosts food by +1 (capped at food_max).
-    #[test]
-    fn say_water_food_boost() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "water@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 10.0;
-            p.food_max = 20.0;
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "WATER".into(),
-            },
-        );
-        let p = state.players.get(&1).unwrap();
-        assert!((p.food - 11.0).abs() < 1e-5, "food +1, got {}", p.food);
-        let msg = rx.try_recv().expect("PS WATER");
-        let s = String::from_utf8_lossy(&msg);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s.contains("WATER OK food=11.00"), "got {s}");
-
-        // Cap at food_max.
-        state.players.get_mut(&1).unwrap().food = 20.0;
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "WATER".into(),
-            },
-        );
-        assert!((state.players.get(&1).unwrap().food - 20.0).abs() < 1e-5);
-        let full = rx.try_recv().expect("PS WATER full");
-        assert!(
-            String::from_utf8_lossy(&full).contains("WATER OK full"),
-            "got {}",
-            String::from_utf8_lossy(&full)
-        );
-    }
-
-    /// SAY STRIP / WEAR move clothing â†” hands.
-    #[test]
-    fn say_wear_and_strip_clothing() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            500,
-            ObjectDef {
-                id: 500,
-                description: "Wool Hat".into(),
-                name: "Wool Hat".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        db.objects.insert(
-            501,
-            ObjectDef {
-                id: 501,
-                description: "Linen Shirt".into(),
-                name: "Linen Shirt".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "wear@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.held_id = 500;
-            p.hat = 0;
-        }
-        while rx.try_recv().is_ok() {}
-
-        // WEAR without slot: infer hat from name.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "WEAR".into(),
-            },
-        );
-        {
-            let p = state.players.get(&1).unwrap();
-            assert_eq!(p.hat, 500);
-            assert_eq!(p.held_id, 0);
-        }
-        let mut saw_wear = false;
-        while let Ok(msg) = rx.try_recv() {
-            if String::from_utf8_lossy(&msg).contains("WEAR hat 500 OK") {
-                saw_wear = true;
-            }
-        }
-        assert!(saw_wear, "expected WEAR hat 500 OK");
-
-        // STRIP hat â†’ hands.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "STRIP hat".into(),
-            },
-        );
-        {
-            let p = state.players.get(&1).unwrap();
-            assert_eq!(p.hat, 0);
-            assert_eq!(p.held_id, 500);
-        }
-        let mut saw_strip = false;
-        while let Ok(msg) = rx.try_recv() {
-            if String::from_utf8_lossy(&msg).contains("STRIP hat 500 OK") {
-                saw_strip = true;
-            }
-        }
-        assert!(saw_strip, "expected STRIP hat 500 OK");
-
-        // Explicit WEAR chest with shirt; swap previous.
-        state.players.get_mut(&1).unwrap().held_id = 501;
-        state.players.get_mut(&1).unwrap().chest = 99;
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "WEAR chest".into(),
-            },
-        );
-        {
-            let p = state.players.get(&1).unwrap();
-            assert_eq!(p.chest, 501);
-            assert_eq!(p.held_id, 99);
-        }
-        let mut saw_swap = false;
-        while let Ok(msg) = rx.try_recv() {
-            if String::from_utf8_lossy(&msg).contains("WEAR chest 501 OK swap=99") {
-                saw_swap = true;
-            }
-        }
-        assert!(saw_swap, "expected WEAR chest swap");
-
-        // STRIP with full hands fails.
-        state.players.get_mut(&1).unwrap().hat = 500;
-        // held already 99
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "STRIP hat".into(),
-            },
-        );
-        let fail = rx.try_recv().expect("STRIP FAIL");
-        assert!(
-            String::from_utf8_lossy(&fail).contains("STRIP FAIL HANDS"),
-            "got {}",
-            String::from_utf8_lossy(&fail)
-        );
-    }
-
-    /// Death scatters held + clothing + backpack onto empty neighboring tiles.
-    #[test]
-    fn death_scatters_backpack_on_ground() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "scatter@die");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 50;
-            p.y = 50;
-            p.backpack = vec![33, 34, 35];
-            p.held_id = 99;
-            p.hat = 40;
-            p.chest = 41;
-            p.shoes = 42;
-            p.food = 0.05;
-            p.age = 20.0;
-        }
-        // Occupy death tile so first scatter prefers neighbors.
-        state.world.write().unwrap().set_object(50, 50, 1);
-
-        tick_vitals(&mut state, 1.0, &hub);
-
-        let p = state.players.get(&1).unwrap();
-        assert!(p.deleted);
-        assert!(p.backpack.is_empty(), "backpack drained on death");
-        assert_eq!(p.held_id, 0);
-        assert_eq!(p.hat, 0);
-        assert_eq!(p.chest, 0);
-        assert_eq!(p.shoes, 0);
-
-        let mut found = Vec::new();
-        let w = state.world.read().unwrap();
-        for dy in -2..=2 {
-            for dx in -2..=2 {
-                if dx == 0 && dy == 0 {
-                    continue;
-                }
-                let id = w.get_object(50 + dx, 50 + dy);
-                if matches!(id, 33 | 34 | 35 | 99 | 40 | 41 | 42) {
-                    found.push(id);
-                }
-            }
-        }
-        found.sort();
-        assert_eq!(
-            found,
-            vec![33, 34, 35, 40, 41, 42, 99],
-            "held+clothing+backpack scattered near death"
-        );
-        assert_eq!(w.get_object(50, 50), 1, "occupied death tile untouched");
-        drop(w);
-
-        // Event log records SCATTER (7 loot pieces).
-        let saw = state
-            .event_log
-            .iter()
-            .any(|e| e.contains("SCATTER") && e.contains("n=7"));
-        assert!(saw, "expected SCATTER event, log={:?}", state.event_log);
-
-        // Pure offset helper: ring 1 then (0,0).
-        let off = death_scatter_offsets(1);
-        assert!(off.contains(&(1, 0)));
-        assert!(off.contains(&(0, 1)));
-        assert_eq!(*off.last().unwrap(), (0, 0));
-    }
-
-    /// SAY DROPALL scatters held+backpack without death; clothing stays.
-    #[test]
-    fn say_dropall_scatters_held_and_backpack() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "dropall@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 30;
-            p.y = 30;
-            p.held_id = 55;
-            p.hat = 77;
-            p.backpack = vec![66, 67];
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "DROPALL".into(),
-            },
-        );
-        let p = state.players.get(&1).unwrap();
-        assert!(!p.deleted, "DROPALL must not kill");
-        assert_eq!(p.held_id, 0);
-        assert!(p.backpack.is_empty());
-        assert_eq!(p.hat, 77, "clothing kept on DROPALL");
-
-        let mut found = Vec::new();
-        {
-            let w = state.world.read().unwrap();
-            for dy in -DEATH_SCATTER_RADIUS..=DEATH_SCATTER_RADIUS {
-                for dx in -DEATH_SCATTER_RADIUS..=DEATH_SCATTER_RADIUS {
-                    let id = w.get_object(30 + dx, 30 + dy);
-                    if matches!(id, 55 | 66 | 67) {
-                        found.push(id);
-                    }
-                }
-            }
-        }
-        found.sort();
-        assert_eq!(found, vec![55, 66, 67], "held+backpack on ground");
-
-        let mut saw_ok = false;
-        while let Ok(msg) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&msg);
-            if s.contains("DROPALL OK n=3") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_ok, "expected DROPALL OK n=3");
-
-        // Empty DROPALL reports n=0.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "DROPALL".into(),
-            },
-        );
-        let empty = rx.try_recv().expect("PS DROPALL empty");
-        assert!(
-            String::from_utf8_lossy(&empty).contains("DROPALL OK n=0"),
-            "got {}",
-            String::from_utf8_lossy(&empty)
-        );
-    }
-
-    /// SAY DIE also scatters a full backpack (drop-on-ground fallback).
-    #[test]
-    fn say_die_scatters_full_backpack() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "bpdie@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 20;
-            p.y = 20;
-            p.backpack = (1..=BACKPACK_MAX as i32).map(|i| 100 + i).collect();
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "DIE".into(),
-            },
-        );
-        let p = state.players.get(&1).unwrap();
-        assert!(p.deleted);
-        assert!(p.backpack.is_empty());
-        let mut n = 0;
-        let w = state.world.read().unwrap();
-        for dy in -DEATH_SCATTER_RADIUS..=DEATH_SCATTER_RADIUS {
-            for dx in -DEATH_SCATTER_RADIUS..=DEATH_SCATTER_RADIUS {
-                let id = w.get_object(20 + dx, 20 + dy);
-                if (101..=100 + BACKPACK_MAX as i32).contains(&id) {
-                    n += 1;
-                }
-            }
-        }
-        assert_eq!(n, BACKPACK_MAX, "full backpack scattered on SAY DIE");
-    }
-
-    /// USE whose new_actor name contains "hat" assigns the hat slot.
-    #[test]
-    fn use_equips_clothing_like_new_actor() {
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            500,
-            ObjectDef {
-                id: 500,
-                description: "Wool Hat".into(),
-                name: "Wool Hat".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        // Bare-hand USE on tile 1 â†’ new_actor is Wool Hat (500).
-        db.transitions.insert(
-            (0, 1),
-            Transition {
-                actor_id: 0,
-                target_id: 1,
-                new_actor_id: 500,
-                new_target_id: 0,
-                last_use_actor: false,
-                last_use_target: false,
-                auto_decay_seconds: 0.0,
-                reverse_use_actor: false,
-                reverse_use_target: false,
-                no_use_actor: false,
-                no_use_target: false,
-                move_dist: 0,
-
-            desired_move_dist: 0,
-            ..Default::default()
-        },
-        );
-        db.transition_count = 1;
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "hat@test");
-        state.world.write().unwrap().set_object(2, 2, 1);
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 2;
-            p.y = 2;
-            p.held_id = 0;
-            p.hat = 0;
-        }
-        let r = apply_use_at(&mut state, 1, 2, 2).expect("use");
-        assert!(r.applied);
-        assert_eq!(r.actor_after, 500);
-        let p = state.players.get(&1).unwrap();
-        assert_eq!(p.held_id, 500);
-        assert_eq!(p.hat, 500);
-        assert_eq!(p.chest, 0);
-        assert_eq!(p.shoes, 0);
-    }
-
-    /// SAY HOME stores current tile on Player.home_x / home_y.
-    #[test]
-    fn say_home_sets_home_position() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "home@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 15;
-            p.y = 27;
-            // Different from spawn so we can detect the set.
-            p.home_x = 0;
-            p.home_y = 0;
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "HOME".into(),
-            },
-        );
-        let p = state.players.get(&1).unwrap();
-        assert_eq!((p.home_x, p.home_y), (15, 27));
-        assert_eq!((p.x, p.y), (15, 27));
-    }
-
-    /// SAY MARK <label> pins a custom MarkerState entry at current pos for self.
-    #[test]
-    fn say_mark_adds_custom_marker_for_self() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "mark@test");
-        let p_id = {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 42;
-            p.y = 17;
-            p.p_id
-        };
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "MARK campfire".into(),
-            },
-        );
-        let lines = state.markers.wire_lines_for(p_id);
-        assert!(
-            lines.iter().any(|m| m == "42 17 ! campfire"),
-            "expected custom marker for self, got {lines:?}"
-        );
-        let list = state.markers.markers.get(&p_id).expect("self markers");
-        assert_eq!(list.len(), 1);
-        assert_eq!(list[0].kind, MarkerKind::Custom);
-        assert_eq!(list[0].owner_p_id, p_id);
-        assert_eq!(list[0].label, "campfire");
-        // Confirm PS ack, not generic chat broadcast only.
-        let mut saw_ack = false;
-        while let Ok(msg) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&msg);
-            if s.contains("MARK 42 17 campfire") {
-                saw_ack = true;
-            }
-        }
-        assert!(saw_ack, "expected PS MARK ack");
-        // Bare MARK without label fails and does not add a marker.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "MARK".into(),
-            },
-        );
-        assert_eq!(
-            state.markers.markers.get(&p_id).map(|v| v.len()),
-            Some(1),
-            "empty MARK must not add another marker"
-        );
-    }
-
-    /// SAY PATH / STEPS / WALKABLE pathfind chat probes (gate exception + blocks).
-    #[test]
-    fn say_path_steps_walkable() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            10,
-            ObjectDef {
-                id: 10,
-                description: "Stone Wall".into(),
-                name: "Stone Wall".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: true,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        db.objects.insert(
-            20,
-            ObjectDef {
-                id: 20,
-                description: "Vertical Gate".into(),
-                name: "Vertical Gate".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: true,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        let p_id = spawn_player(&mut state, 1, "path@x");
-        set_player_position(&mut state, 1, 0, 0);
-        {
-            let mut w = state.world.write().unwrap();
-            w.set_object(1, 0, 10); // wall east
-            w.set_object(0, 1, 20); // gate south (walkable by name exception)
-        }
-
-        // WALKABLE: wall no, gate yes, empty yes.
-        for (payload, expect) in [
-            ("WALKABLE 1 0", "WALKABLE no"),
-            ("WALKABLE 0 1", "WALKABLE yes"),
-            ("WALKABLE 0 0", "WALKABLE yes"),
-        ] {
-            apply_intent(
-                &mut state,
-                &counters,
-                &hub,
-                NetIntent::Raw {
-                    conn_id: 1,
-                    tag: "SAY".into(),
-                    payload: payload.into(),
-                },
-            );
-            let mut saw = false;
-            while let Ok(pkt) = rx.try_recv() {
-                let s = String::from_utf8_lossy(&pkt);
-                if s.contains(&format!("{p_id}/0 {expect}")) {
-                    saw = true;
-                }
-            }
-            assert!(saw, "expected PS containing {expect} for {payload}");
-        }
-
-        // Reset SAY rate window (5 / 10s) before more probes.
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-
-        // PATH around wall toward (2,0): first step must not be into wall (1,0).
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PATH 2 0".into(),
-            },
-        );
-        let mut path_line = None;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if let Some(idx) = s.find(&format!("{p_id}/0 PATH ")) {
-                path_line = Some(s[idx..].lines().next().unwrap_or("").to_string());
-            }
-        }
-        let path_line = path_line.expect("PATH reply");
-        assert!(
-            !path_line.contains("PATH FAIL"),
-            "open detour should succeed: {path_line}"
-        );
-        assert!(
-            !path_line.contains("PATH 1 0"),
-            "must not step into wall: {path_line}"
-        );
-
-        // STEPS to (0,2) via gate corridor should be finite.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "STEPS 0 2".into(),
-            },
-        );
-        let mut saw_steps = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains(&format!("{p_id}/0 STEPS 2")) {
-                saw_steps = true;
-            }
-        }
-        assert!(saw_steps, "STEPS 0 2 should be 2 through gate");
-
-        // Already at goal.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PATH 0 0".into(),
-            },
-        );
-        let mut saw_zero = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 PATH 0 0")) {
-                saw_zero = true;
-            }
-        }
-        assert!(saw_zero);
-
-        // Seal player so goal is unreachable â†’ FAIL.
-        {
-            let mut w = state.world.write().unwrap();
-            w.set_object(1, 0, 10);
-            w.set_object(-1, 0, 10);
-            w.set_object(0, 1, 10);
-            w.set_object(0, -1, 10);
-        }
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PATH 5 5".into(),
-            },
-        );
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 PATH FAIL")) {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail, "boxed-in player should PATH FAIL");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "STEPS 5 5".into(),
-            },
-        );
-        let mut saw_steps_fail = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 STEPS FAIL")) {
-                saw_steps_fail = true;
-            }
-        }
-        assert!(saw_steps_fail);
-    }
-
-    /// SAY GOHOME moves one step toward home (pathfind or cardinal teleport).
-    #[test]
-    fn say_gohome_steps_toward_home() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "gohome@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 0;
-            p.y = 0;
-            p.home_x = 5;
-            p.home_y = 0;
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "GOHOME".into(),
-            },
-        );
-        let p = state.players.get(&1).unwrap();
-        // One step east toward home_x=5.
-        assert_eq!((p.x, p.y), (1, 0));
-        assert_eq!((p.home_x, p.home_y), (5, 0));
-    }
-
-    /// SAY SLEEP sets Player.sleeping; SAY WAKE clears it.
-    #[test]
-    fn say_sleep_and_wake_toggle_sleeping() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "sleep@test");
-        assert!(!state.players.get(&1).unwrap().sleeping);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SLEEP".into(),
-            },
-        );
-        assert!(state.players.get(&1).unwrap().sleeping);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "WAKE".into(),
-            },
-        );
-        assert!(!state.players.get(&1).unwrap().sleeping);
-    }
-
-    /// MOVE is rejected while sleeping; works again after WAKE.
-    #[test]
-    fn move_blocked_while_sleeping() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "sleeper@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 0;
-            p.y = 0;
-        }
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SLEEP".into(),
-            },
-        );
-        assert!(!apply_move_deltas(&mut state, 1, 0, 0, &[(1, 0)]));
-        assert_eq!((state.players.get(&1).unwrap().x, state.players.get(&1).unwrap().y), (0, 0));
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "WAKE".into(),
-            },
-        );
-        assert!(apply_move_deltas(&mut state, 1, 0, 0, &[(1, 0)]));
-        assert_eq!((state.players.get(&1).unwrap().x, state.players.get(&1).unwrap().y), (1, 0));
-    }
-
-    /// SAY is capped at 5 per 10 sim seconds; excess returns `PS RATE`.
-    #[test]
-    fn say_rate_limited_to_five_per_ten_sim_seconds() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "chatty@test");
-        while rx.try_recv().is_ok() {}
-
-        for i in 0..SAY_RATE_MAX {
-            apply_intent(
-                &mut state,
-                &counters,
-                &hub,
-                NetIntent::Raw {
-                    conn_id: 1,
-                    tag: "SAY".into(),
-                    payload: format!("hi{i}"),
-                },
-            );
-        }
-        // Sixth SAY in the same sim-time window is rejected.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "spam".into(),
-            },
-        );
-        let mut saw_rate = false;
-        let mut chat_ok = 0usize;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            // send_ps_reply("RATE") → format_player_says(0, false, "RATE")
-            if s.contains("RATE") && s.starts_with("PS\n") {
-                saw_rate = true;
-            }
-            if s.contains("hi") {
-                chat_ok += 1;
-            }
-            assert!(
-                !s.contains("spam"),
-                "rate-limited SAY must not broadcast chat: {s}"
-            );
-        }
-        assert!(saw_rate, "expected PS RATE on 6th SAY");
-        assert_eq!(chat_ok, SAY_RATE_MAX, "first {SAY_RATE_MAX} SAYs should chat");
-        assert_eq!(
-            state.players.get(&1).unwrap().last_say_times.len(),
-            SAY_RATE_MAX
-        );
-
-        // After the window elapses, SAY is allowed again.
-        tick_vitals(&mut state, SAY_RATE_WINDOW_SECS, &hub);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "again".into(),
-            },
-        );
-        let mut saw_again = false;
-        let mut saw_rate_after = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("again") {
-                saw_again = true;
-            }
-            if s.contains("RATE") {
-                saw_rate_after = true;
-            }
-        }
-        assert!(saw_again, "SAY should work after window");
-        assert!(!saw_rate_after, "should not RATE after window elapsed");
-    }
-
-    /// While sleeping, food drain is halved (SLEEP_FOOD_DRAIN_MULT = 0.5).
-    #[test]
-    fn sleeping_halves_food_drain() {
-        let hub = OutboundHub::new();
-        let mut awake = SimState::with_default_empty(test_content());
-        let mut asleep = SimState::with_default_empty(test_content());
-        spawn_player(&mut awake, 1, "awake");
-        spawn_player(&mut asleep, 1, "asleep");
-        for s in [&mut awake, &mut asleep] {
-            s.environment.temperature = 0.5;
-            s.environment.season_length = 10_000.0;
-            s.environment.day_length = 10_000.0;
-            s.environment.hour_of_day = 12.0;
-        }
-        asleep.players.get_mut(&1).unwrap().sleeping = true;
-
-        let food0 = awake.players.get(&1).unwrap().food;
-        assert_eq!(food0, asleep.players.get(&1).unwrap().food);
-
-        tick_vitals(&mut awake, 1.0, &hub);
-        tick_vitals(&mut asleep, 1.0, &hub);
-
-        let awake_lost = food0 - awake.players.get(&1).unwrap().food;
-        let asleep_lost = food0 - asleep.players.get(&1).unwrap().food;
-        assert!(
-            (awake_lost - FOOD_USE_PER_SEC).abs() < 1e-4,
-            "awake drain: lost={awake_lost}"
-        );
-        let expected_sleep = FOOD_USE_PER_SEC * SLEEP_FOOD_DRAIN_MULT;
-        assert!(
-            (asleep_lost - expected_sleep).abs() < 1e-4,
-            "sleep drain: lost={asleep_lost} expected={expected_sleep}"
-        );
-        assert!(asleep_lost < awake_lost);
-    }
-
-    /// While sleeping, PE sleep/snore emote fires every SLEEP_EMOT_INTERVAL_SECS.
-    #[test]
-    fn tick_vitals_emits_pe_sleep_emote_while_sleeping() {
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "snore@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.sleeping = true;
-            p.food = 10.0;
-            p.sleep_emot_timer = 0.0;
-        }
-        // Neutral vitals so hunger PE does not fire (HX may still emit â€” ignore non-PE).
-        state.environment.temperature = 0.5;
-        state.environment.season_length = 10_000.0;
-        state.environment.day_length = 10_000.0;
-        state.environment.hour_of_day = 12.0;
-
-        let expected_pe = format_server_message("PE", &[&format!("{p_id}/0 {SLEEP_EMOT_INDEX}")]);
-        let is_sleep_pe = |pkt: &[u8]| pkt == expected_pe.as_bytes();
-
-        tick_vitals(&mut state, SLEEP_EMOT_INTERVAL_SECS - 1.0, &hub);
-        let mut early_pe = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if is_sleep_pe(&pkt) {
-                early_pe = true;
-            }
-        }
-        assert!(!early_pe, "no sleep PE before SLEEP_EMOT_INTERVAL_SECS");
-
-        tick_vitals(&mut state, 1.5, &hub);
-        let mut saw_pe = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if is_sleep_pe(&pkt) {
-                saw_pe = true;
-            }
-        }
-        assert!(saw_pe, "expected PE sleep packet {expected_pe}");
-
-        // Wake clears timer and stops PE.
-        state.players.get_mut(&1).unwrap().sleeping = false;
-        tick_vitals(&mut state, SLEEP_EMOT_INTERVAL_SECS + 1.0, &hub);
-        let mut saw_after_wake = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if is_sleep_pe(&pkt) {
-                saw_after_wake = true;
-            }
-        }
-        assert!(!saw_after_wake, "no sleep PE after wake");
-    }
-
-    /// Floor id != 0 halves TEMP_FOOD_EXTRA (indoor shelter stub).
-    #[test]
-    fn indoor_floor_halves_temp_food_extra() {
-        let hub = OutboundHub::new();
-        let mut outdoor = SimState::with_default_empty(test_content());
-        let mut indoor = SimState::with_default_empty(test_content());
-        spawn_player(&mut outdoor, 1, "out");
-        spawn_player(&mut indoor, 1, "in");
-        for s in [&mut outdoor, &mut indoor] {
-            s.environment.temperature = 0.0; // extreme cold â†’ TEMP_FOOD_EXTRA
-            s.environment.season_length = 10_000.0;
-            s.environment.day_length = 10_000.0;
-            s.environment.hour_of_day = 12.0;
-        }
-        let (ix, iy) = {
-            let p = indoor.players.get(&1).unwrap();
-            (p.x, p.y)
-        };
-        indoor.world.write().unwrap().set_floor(ix, iy, 1); // any non-zero floor
-
-        let food0 = outdoor.players.get(&1).unwrap().food;
-        assert_eq!(food0, indoor.players.get(&1).unwrap().food);
-
-        tick_vitals(&mut outdoor, 1.0, &hub);
-        tick_vitals(&mut indoor, 1.0, &hub);
-
-        let out_lost = food0 - outdoor.players.get(&1).unwrap().food;
-        let in_lost = food0 - indoor.players.get(&1).unwrap().food;
-        let expected_out = FOOD_USE_PER_SEC + TEMP_FOOD_EXTRA;
-        let expected_in = FOOD_USE_PER_SEC + TEMP_FOOD_EXTRA * 0.5;
-        assert!(
-            (out_lost - expected_out).abs() < 1e-4,
-            "outdoor: lost={out_lost} expected={expected_out}"
-        );
-        assert!(
-            (in_lost - expected_in).abs() < 1e-4,
-            "indoor: lost={in_lost} expected={expected_in}"
-        );
-        assert!(in_lost < out_lost);
-    }
-
-    /// SAY RENAME changes display name and emits NM to nearby.
-    #[test]
-    fn say_rename_updates_name_and_sends_nm() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        let p1 = spawn_player(&mut state, 1, "rename@test");
-        let _p2 = spawn_player(&mut state, 2, "near@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 0;
-            p.y = 0;
-            p.first_name = "OLD".into();
-            p.family_name = "NAME".into();
-        }
-        {
-            let p = state.players.get_mut(&2).unwrap();
-            p.x = 1;
-            p.y = 0;
-        }
-        state.social.ensure_lineage(p1, "OLD NAME");
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "RENAME Ada Snow".into(),
-            },
-        );
-
-        let p = state.players.get(&1).unwrap();
-        assert_eq!(p.first_name, "ADA");
-        assert_eq!(p.family_name, "SNOW");
-        assert_eq!(p.display_name(), "ADA SNOW");
-        assert_eq!(
-            state.social.lineages.get(&p1).map(|n| n.name.as_str()),
-            Some("ADA SNOW")
-        );
-
-        let expected_nm = format_server_message("NM", &[&format!("{p1} ADA SNOW")]);
-        let mut saw_nm1 = false;
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if pkt == expected_nm.as_bytes() {
-                saw_nm1 = true;
-            }
-            if s.contains("RENAME OK ADA SNOW") {
-                saw_ok = true;
-            }
-        }
-        let mut saw_nm2 = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            if pkt == expected_nm.as_bytes() {
-                saw_nm2 = true;
-            }
-        }
-        assert!(saw_ok, "expected RENAME OK PS");
-        assert!(saw_nm1, "renamer receives NM");
-        assert!(saw_nm2, "nearby receives NM");
-    }
-
-    /// SAY DIE voluntary death with reason_suicide.
-    #[test]
-    fn say_die_sets_reason_suicide() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "die@test");
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "DIE".into(),
-            },
-        );
-        let p = state.players.get(&1).unwrap();
-        assert!(p.deleted);
-        assert_eq!(p.death_reason.as_deref(), Some("reason_suicide"));
-        assert!(
-            state
-                .event_log
-                .iter()
-                .any(|e| e.contains(&format!("DEATH {p_id} reason_suicide"))),
-            "event_log: {:?}",
-            state.event_log
-        );
-    }
-
-    /// SAY SICK sets Player.sick; SAY CURE clears it.
-    #[test]
-    fn say_sick_and_cure_toggle_sick() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "sick@test");
-        assert!(!state.players.get(&1).unwrap().sick);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SICK".into(),
-            },
-        );
-        assert!(state.players.get(&1).unwrap().sick);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "CURE".into(),
-            },
-        );
-        assert!(!state.players.get(&1).unwrap().sick);
-    }
-
-    /// SAY RIDE sets Player.riding + move_speed note; SAY DISMOUNT clears.
-    #[test]
-    fn say_ride_and_dismount_toggle_riding() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "ride@test");
-        while rx.try_recv().is_ok() {}
-        assert!(!state.players.get(&1).unwrap().riding);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "RIDE".into(),
-            },
-        );
-        assert!(state.players.get(&1).unwrap().riding);
-        let mut saw_ride_note = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("RIDE OK") && s.contains(&format!("move_speed={RIDE_MOVE_SPEED:.2}")) {
-                saw_ride_note = true;
-            }
-        }
-        assert!(saw_ride_note, "expected PS RIDE OK move_speed note");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "DISMOUNT".into(),
-            },
-        );
-        assert!(!state.players.get(&1).unwrap().riding);
-        let mut saw_dismount_note = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("DISMOUNT OK")
-                && s.contains(&format!("move_speed={WALK_MOVE_SPEED:.2}"))
-            {
-                saw_dismount_note = true;
-            }
-        }
-        assert!(saw_dismount_note, "expected PS DISMOUNT OK move_speed note");
-    }
-
-    /// SAY MOUNT is an alias for RIDE (sets riding + RIDE OK move_speed note).
-    #[test]
-    fn say_mount_aliases_ride() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "mount@test");
-        while rx.try_recv().is_ok() {}
-        assert!(!state.players.get(&1).unwrap().riding);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "MOUNT".into(),
-            },
-        );
-        assert!(state.players.get(&1).unwrap().riding);
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("RIDE OK") && s.contains(&format!("move_speed={RIDE_MOVE_SPEED:.2}")) {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected PS RIDE OK from MOUNT alias");
-    }
-
-    /// SAY SWIM / ?SWIM report ocean wet + food_mult (extra drain already in vitals).
-    #[test]
-    fn say_swim_and_query_note_ocean_food_drain() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "swim@test");
-        set_player_position(&mut state, 1, 0, 0);
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_biome(0, 0, BIOME_OCEAN);
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SWIM".into(),
-            },
-        );
-        let mut saw_swim = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("SWIM OK")
-                && s.contains(&format!("biome={BIOME_OCEAN}"))
-                && s.contains("wet=1")
-                && s.contains(&format!("food_mult={OCEAN_RIVER_FOOD_DRAIN_MULT:.2}"))
-            {
-                saw_swim = true;
-            }
-        }
-        assert!(saw_swim, "expected PS SWIM OK ocean note");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?SWIM".into(),
-            },
-        );
-        let expected = format_swim_query(BIOME_OCEAN);
-        let mut saw_q = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected}")) {
-                saw_q = true;
-            }
-        }
-        assert!(saw_q, "expected PS {p_id} {expected}");
-    }
-
-    /// SAY BUILD is a fence placeholder (object id 0 â€” no place).
-    #[test]
-    fn say_build_fence_placeholder() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "build@test");
-        set_player_position(&mut state, 1, 2, 3);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "BUILD".into(),
-            },
-        );
-        // No object placed (fence id 0 placeholder).
-        assert_eq!(state.world.read().unwrap().get_object(2, 3), 0);
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 BUILD OK fence=0")) {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected BUILD OK fence=0");
-    }
-
-    /// SAY CLAIM sets owner_id on object under feet without locking.
-    #[test]
-    fn say_claim_sets_owner_without_lock() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "claim@test");
-        set_player_position(&mut state, 1, 4, 5);
-        {
-            let mut w = state.world.write().unwrap();
-            w.set_object(4, 5, 99);
-        }
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "CLAIM".into(),
-            },
-        );
-        assert_eq!(
-            state
-                .world
-                .read()
-                .unwrap()
-                .get_helper(4, 5)
-                .map(|h| h.owner_id),
-            Some(p_id)
-        );
-        assert!(
-            !state.locks.is_locked(4, 5),
-            "CLAIM must not lock the tile"
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 CLAIM 4 5 OK")) {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected CLAIM 4 5 OK");
-
-        // Empty tile â†’ FAIL.
-        set_player_position(&mut state, 1, 0, 0);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "CLAIM".into(),
-            },
-        );
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 CLAIM 0 0 FAIL")) {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail, "expected CLAIM FAIL on empty tile");
-    }
-
-    /// While sick, food drain is multiplied by SICK_FOOD_DRAIN_MULT (1.3).
-    #[test]
-    fn sick_increases_food_drain() {
-        let hub = OutboundHub::new();
-        let mut healthy = SimState::with_default_empty(test_content());
-        let mut ill = SimState::with_default_empty(test_content());
-        spawn_player(&mut healthy, 1, "healthy");
-        spawn_player(&mut ill, 1, "ill");
-        for s in [&mut healthy, &mut ill] {
-            s.environment.temperature = 0.5;
-            s.environment.season_length = 10_000.0;
-            s.environment.day_length = 10_000.0;
-            s.environment.hour_of_day = 12.0;
-        }
-        ill.players.get_mut(&1).unwrap().sick = true;
-
-        let food0 = healthy.players.get(&1).unwrap().food;
-        assert_eq!(food0, ill.players.get(&1).unwrap().food);
-
-        tick_vitals(&mut healthy, 1.0, &hub);
-        tick_vitals(&mut ill, 1.0, &hub);
-
-        let healthy_lost = food0 - healthy.players.get(&1).unwrap().food;
-        let ill_lost = food0 - ill.players.get(&1).unwrap().food;
-        assert!(
-            (healthy_lost - FOOD_USE_PER_SEC).abs() < 1e-4,
-            "healthy drain: lost={healthy_lost}"
-        );
-        let expected_sick = FOOD_USE_PER_SEC * SICK_FOOD_DRAIN_MULT;
-        assert!(
-            (ill_lost - expected_sick).abs() < 1e-4,
-            "sick drain: lost={ill_lost} expected={expected_sick}"
-        );
-        assert!(ill_lost > healthy_lost);
-    }
-
-    /// Starving sick infant emits DY with isSick flag (`p_id 1`).
-    #[test]
-    fn tick_vitals_dying_uses_sick_flag_when_food_low() {
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "sickbaby@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.age = 1.0;
-            p.food = 4.0;
-            p.sick = true;
-            p.vitals_emit_timer = 0.0;
-        }
-        state.environment.temperature = 0.5;
-        state.environment.season_length = 10_000.0;
-        state.environment.day_length = 10_000.0;
-
-        tick_vitals(&mut state, VITALS_EMIT_INTERVAL_SECS + 0.5, &hub);
-        let mut saw_dy_sick = false;
-        let mut saw_dy_plain = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.as_ref() == format_dying(p_id, true) {
-                saw_dy_sick = true;
-            }
-            if s.as_ref() == format_dying(p_id, false) {
-                saw_dy_plain = true;
-            }
-        }
-        assert!(
-            saw_dy_sick,
-            "expected DY with isSick for sick starving infant p_id={p_id}"
-        );
-        assert!(
-            !saw_dy_plain,
-            "must not emit plain DY when player is sick"
-        );
-    }
-
-    /// `SAY EMOTE <n>` emits PE `player_id n` to nearby (alias for EMOT), not PS chat.
-    #[test]
-    fn say_emote_emits_pe_to_nearby() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut rx3 = hub.register(3);
-        let mut state = SimState::with_default_empty(test_content());
-        let p1 = spawn_player(&mut state, 1, "emoter@x");
-        spawn_player(&mut state, 2, "near@x");
-        spawn_player(&mut state, 3, "far@x");
-        set_player_position(&mut state, 1, 0, 0);
-        set_player_position(&mut state, 2, 5, 0); // within NEARBY_RANGE
-        set_player_position(&mut state, 3, 100, 0); // beyond NEARBY_RANGE
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-        while rx3.try_recv().is_ok() {}
-
-        let emot_n = 3;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("EMOTE {emot_n}"),
-            },
-        );
-
-        let expected_pe = format_server_message("PE", &[&format!("{p1} {emot_n}")]);
-        let mut saw1 = false;
-        let mut saw_ps1 = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.as_ref() == expected_pe {
-                saw1 = true;
-            }
-            if s.starts_with("PS\n") {
-                saw_ps1 = true;
-            }
-        }
-        let mut saw2 = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            if String::from_utf8_lossy(&pkt).as_ref() == expected_pe {
-                saw2 = true;
-            }
-        }
-        assert!(saw1, "emoter must receive PE {expected_pe}");
-        assert!(saw2, "nearby conn must receive PE {expected_pe}");
-        assert!(!saw_ps1, "SAY EMOTE must not broadcast PS chat");
-        assert!(
-            rx3.try_recv().is_err(),
-            "far conn must not receive PE outside NEARBY_RANGE"
-        );
-
-        // Missing index defaults to 0 (same as EMOT).
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "EMOTE".into(),
-            },
-        );
-        let expected0 = format_server_message("PE", &[&format!("{p1} 0")]);
-        let mut saw0 = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).as_ref() == expected0 {
-                saw0 = true;
-            }
-        }
-        assert!(saw0, "SAY EMOTE with no index should emit PE â€¦ 0");
-    }
-
-    /// PE/EMOTE rate limit is independent of SAY: max 3 per 10 sim-seconds.
-    #[test]
-    fn say_emote_rate_limited_separately_from_say() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "e@x");
-        state.sim_time = 0.0;
-        while rx.try_recv().is_ok() {}
-
-        for i in 0..3 {
-            apply_intent(
-                &mut state,
-                &counters,
-                &hub,
-                NetIntent::Raw {
-                    conn_id: 1,
-                    tag: "SAY".into(),
-                    payload: format!("EMOTE {i}"),
-                },
-            );
-        }
-        // Fourth emote in window â†’ EMOTE RATE (not SAY RATE).
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "EMOTE 9".into(),
-            },
-        );
-        let mut saw_rate = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("EMOTE RATE") {
-                saw_rate = true;
-            }
-            assert!(
-                !s.starts_with("PE\n"),
-                "fourth emote must not emit PE: {s}"
-            );
-        }
-        assert!(saw_rate, "expected PS EMOTE RATE on 4th emote");
-
-        // SAY chat still allowed (separate window).
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "hello".into(),
-            },
-        );
-        let mut saw_say = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).starts_with("PS\n") {
-                saw_say = true;
-            }
-        }
-        assert!(saw_say, "SAY chat must not be blocked by emote limit");
-    }
-
-    /// Reverse craft graph seeds from content transitions (capped).
-    #[test]
-    fn seed_craft_graph_from_content_transitions() {
-        let mut state = SimState::with_default_empty(test_content());
-        assert_eq!(state.craft_graph.product_count(), 0);
-        seed_craft_graph_from_content(&mut state);
-        // test_content has (0,33)â†’(34,0) and last-use (0,33)â†’(99,1)
-        assert!(
-            state.craft_graph.product_count() >= 1,
-            "expected products after seed"
-        );
-        assert!(
-            state.craft_graph.ingredients_for(34).is_some()
-                || state.craft_graph.ingredients_for(99).is_some(),
-            "seeded reverse edges for known products"
-        );
-    }
-
-    /// SAY ?LEADER / ?WOUND / ?BIOMES / ALLY pure query paths.
-    #[test]
-    fn say_leader_wound_biomes_ally_queries() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p1 = spawn_player(&mut state, 1, "a@x");
-        let p2 = spawn_player(&mut state, 2, "b@x");
-        state.social.set_follow(p2, p1).unwrap();
-        state.combat.apply_wound(p1, 2);
-        while rx.try_recv().is_ok() {}
-
-        for payload in ["?LEADER", "?WOUND", "?BIOMES", "?ALLY"] {
-            apply_intent(
-                &mut state,
-                &counters,
-                &hub,
-                NetIntent::Raw {
-                    conn_id: 1,
-                    tag: "SAY".into(),
-                    payload: payload.into(),
-                },
-            );
-        }
-        let mut texts = Vec::new();
-        while let Ok(pkt) = rx.try_recv() {
-            texts.push(String::from_utf8_lossy(&pkt).into_owned());
-        }
-        let joined = texts.join("|");
-        assert!(joined.contains("LEADER"), "got {joined}");
-        assert!(joined.contains("WOUND"), "got {joined}");
-        assert!(joined.contains("BIOMES"), "got {joined}");
-        assert!(joined.contains("ALLY"), "got {joined}");
-        assert!(joined.contains("21:MOUNTAIN") || joined.contains("MOUNTAIN"), "got {joined}");
-
-        // ALLY add + HEAL (advance sim_time past SAY rate window).
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("ALLY {p2}"),
-            },
-        );
-        assert!(state.allies.is_ally(p1, p2));
-
-        // HEAL free when hands empty
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "HEAL".into(),
-            },
-        );
-        assert_eq!(state.combat.wound_of(p1), 0);
-    }
-
-    /// SAY WHISPER <p_id> <text> delivers PS only to the target connection (two hubs).
-    #[test]
-    fn say_whisper_sends_ps_only_to_target() {
-        let counters = Counters::new();
-        // Two hubs: whisperer and target each register on a shared outbound hub.
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        let p1 = spawn_player(&mut state, 1, "whisperer@x");
-        let p2 = spawn_player(&mut state, 2, "listener@x");
-        // Place far apart so normal nearby chat would not reach â€” whisper must still work.
-        state.players.get_mut(&1).unwrap().x = 0;
-        state.players.get_mut(&1).unwrap().y = 0;
-        state.players.get_mut(&2).unwrap().x = 500;
-        state.players.get_mut(&2).unwrap().y = 500;
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("WHISPER {p2} secret hello"),
-            },
-        );
-
-        let expected = format_player_says(p1, false, "secret hello");
-        let mut saw_target = false;
-        let mut saw_fm = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s == expected || (s.starts_with("PS\n") && s.contains(&format!("{p1}/0 secret hello"))) {
-                saw_target = true;
-            }
-            if s.starts_with("FM\n") || s == "FM\n#" || s.trim() == "FM\n#" {
-                saw_fm = true;
-            }
-            if s.starts_with("FM") {
-                saw_fm = true;
-            }
-        }
-        assert!(saw_target, "target conn must receive whisper PS as p_id/0 text");
-        assert!(saw_fm, "whisper PS must be followed by FM for official clients");
-
-        let mut saw_sender = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("secret hello") {
-                saw_sender = true;
-            }
-        }
-        assert!(!saw_sender, "whisperer must not receive own whisper PS");
-
-        // Offline / unknown p_id: no PS to either hub.
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "WHISPER 99999 nobody hears".into(),
-            },
-        );
-        assert!(rx1.try_recv().is_err(), "offline whisper: no PS on hub1");
-        assert!(rx2.try_recv().is_err(), "offline whisper: no PS on hub2");
-    }
-
-    /// SAY HIT applies wounds then kills at threshold; KILL remains one-shot.
-    #[test]
-    fn say_hit_wounds_then_kills_kill_one_shot() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        let a = spawn_player(&mut state, 1, "hit@a");
-        let b = spawn_player(&mut state, 2, "hit@b");
-        state.social.ensure_lineage(a, "A");
-        state.social.ensure_lineage(b, "B");
-        // Adjacent for range.
-        state.players.get_mut(&1).unwrap().x = 0;
-        state.players.get_mut(&1).unwrap().y = 0;
-        state.players.get_mut(&2).unwrap().x = 1;
-        state.players.get_mut(&2).unwrap().y = 0;
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("HIT {b}"),
-            },
-        );
-        assert_eq!(state.combat.wound_of(b), 1);
-        assert!(!state.players.get(&2).unwrap().deleted);
-
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("HIT {b}"),
-            },
-        );
-        assert_eq!(state.combat.wound_of(b), 2);
-
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("HIT {b}"),
-            },
-        );
-        assert!(state.players.get(&2).unwrap().deleted, "third hit kills");
-        assert_eq!(state.combat.stats.get(&a).map(|s| s.kills), Some(1));
-
-        // Fresh target: KILL is still one-shot.
-        let mut rx3 = hub.register(3);
-        let c = spawn_player(&mut state, 3, "hit@c");
-        state.players.get_mut(&3).unwrap().x = 0;
-        state.players.get_mut(&3).unwrap().y = 1;
-        while rx3.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("KILL {c}"),
-            },
-        );
-        assert!(state.players.get(&3).unwrap().deleted, "KILL one-shot");
-        assert_eq!(state.combat.wound_of(c), 0);
-    }
-
-    /// SAY HIT uses weapon_range from held name; bow reaches dist 5, bare hands miss.
-    #[test]
-    fn say_hit_uses_weapon_range_from_held() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            200,
-            ObjectDef {
-                id: 200,
-                description: "Long Bow".into(),
-                name: "Long Bow".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        let a = spawn_player(&mut state, 1, "bow@a");
-        let b = spawn_player(&mut state, 2, "bow@b");
-        state.social.ensure_lineage(a, "A");
-        state.social.ensure_lineage(b, "B");
-        state.players.get_mut(&1).unwrap().x = 0;
-        state.players.get_mut(&1).unwrap().y = 0;
-        // Dist 5: beyond KILL_RANGE(2), within bow(8).
-        state.players.get_mut(&2).unwrap().x = 5;
-        state.players.get_mut(&2).unwrap().y = 0;
-
-        // Bare hands: miss.
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("HIT {b}"),
-            },
-        );
-        assert_eq!(state.combat.wound_of(b), 0, "bare hands miss at dist 5");
-        let mut miss_ps = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("HIT") && s.contains("MISS") {
-                miss_ps = true;
-            }
-        }
-        assert!(miss_ps, "expected HIT MISS with bare hands");
-
-        // Hold bow: hit lands.
-        state.players.get_mut(&1).unwrap().held_id = 200;
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("HIT {b}"),
-            },
-        );
-        assert_eq!(state.combat.wound_of(b), 1, "bow hits at dist 5");
-    }
-
-    /// Successful SAY HIT emits PE mad (index 1) for the wounded target to nearby.
-    #[test]
-    fn say_hit_emits_pe_mad_on_wound() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        let a = spawn_player(&mut state, 1, "pe@a");
-        let b = spawn_player(&mut state, 2, "pe@b");
-        state.social.ensure_lineage(a, "A");
-        state.social.ensure_lineage(b, "B");
-        state.players.get_mut(&1).unwrap().x = 0;
-        state.players.get_mut(&1).unwrap().y = 0;
-        state.players.get_mut(&2).unwrap().x = 1;
-        state.players.get_mut(&2).unwrap().y = 0;
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("HIT {b}"),
-            },
-        );
-        assert_eq!(state.combat.wound_of(b), 1);
-        let expected_pe =
-            format_server_message("PE", &[&format!("{b} {HUNGER_EMOT_INDEX}")]);
-        let mut saw_pe = false;
-        for rx in [&mut rx1, &mut rx2] {
-            while let Ok(pkt) = rx.try_recv() {
-                if String::from_utf8_lossy(&pkt) == expected_pe {
-                    saw_pe = true;
-                }
-            }
-        }
-        assert!(saw_pe, "expected PE mad on wound target, want {expected_pe}");
-    }
-
-    /// SAY BANDAGE is an alias of HEAL (clears wounds when hands empty).
-    #[test]
-    fn say_bandage_aliases_heal() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p1 = spawn_player(&mut state, 1, "bandage@x");
-        state.combat.apply_wound(p1, 2);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "BANDAGE".into(),
-            },
-        );
-        assert_eq!(state.combat.wound_of(p1), 0);
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("BANDAGE OK") {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected BANDAGE OK PS");
-    }
-
-    /// FEED with held name containing "poison" applies sick to target.
-    #[test]
-    fn say_feed_poison_applies_sick() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            77,
-            ObjectDef {
-                id: 77,
-                description: "Poison Berry".into(),
-                name: "Poison Berry".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 2,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        let a = spawn_player(&mut state, 1, "poison@a");
-        let b = spawn_player(&mut state, 2, "poison@b");
-        state.players.get_mut(&1).unwrap().x = 0;
-        state.players.get_mut(&1).unwrap().y = 0;
-        state.players.get_mut(&1).unwrap().held_id = 77;
-        state.players.get_mut(&2).unwrap().x = 1;
-        state.players.get_mut(&2).unwrap().y = 0;
-        state.players.get_mut(&2).unwrap().food = 10.0;
-        assert!(!state.players.get(&2).unwrap().sick);
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("FEED {b}"),
-            },
-        );
-        assert!(
-            state.players.get(&2).unwrap().sick,
-            "poison FEED should set target sick"
-        );
-        assert!(
-            state.players.get(&2).unwrap().food > 10.0,
-            "food still transferred"
-        );
-        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
-        let mut saw_sick = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("sick") {
-                saw_sick = true;
-            }
-        }
-        assert!(saw_sick, "expected FEED OK â€¦ sick in PS");
-        let _ = a;
-    }
-
-    /// SAY ?RANGE reports weapon_range for current held object.
-    #[test]
-    fn say_range_query_for_held_weapon() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            201,
-            ObjectDef {
-                id: 201,
-                description: "Wooden Spear".into(),
-                name: "Wooden Spear".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "range@x");
-
-        // Bare hands: default KILL_RANGE.
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?RANGE".into(),
-            },
-        );
-        let mut bare = String::new();
-        while let Ok(pkt) = rx.try_recv() {
-            bare.push_str(&String::from_utf8_lossy(&pkt));
-        }
-        assert!(
-            bare.contains(&format!("RANGE {KILL_RANGE}")),
-            "bare hands range, got {bare}"
-        );
-
-        // Spear: range 3.
-        state.players.get_mut(&1).unwrap().held_id = 201;
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?RANGE".into(),
-            },
-        );
-        let mut spear = String::new();
-        while let Ok(pkt) = rx.try_recv() {
-            spear.push_str(&String::from_utf8_lossy(&pkt));
-        }
-        assert!(spear.contains("RANGE 3"), "spear range, got {spear}");
-        assert!(
-            spear.contains("held=Wooden Spear"),
-            "spear name, got {spear}"
-        );
-    }
-
-    /// BREASTFEED-EDGES: continuous nurse factor 10 + hits heal at food cap.
-    #[test]
-    fn breastfeed_edges_continuous_factor_and_hits() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let _rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let mother = spawn_player(&mut state, 1, "mom@bf");
-        state.players.get_mut(&1).unwrap().age = 20.0;
-        state.players.get_mut(&1).unwrap().food = 10.0;
-        // Force female person object for is_fertile
-        state.players.get_mut(&1).unwrap().display_object_id = 19;
-        let baby_id = spawn_child(&mut state, 1).expect("baby");
-        let baby_conn = state
-            .players
-            .iter()
-            .find(|(_, p)| p.p_id == baby_id)
-            .map(|(&c, _)| c)
-            .expect("baby conn");
-        {
-            let m = state.players.get_mut(&1).unwrap();
-            m.start_holding(baby_id);
-            m.food = 10.0;
-        }
-        state.players.get_mut(&baby_conn).unwrap().held_by = mother;
-        state.players.get_mut(&baby_conn).unwrap().food = 5.0;
-        state.players.get_mut(&baby_conn).unwrap().food_max = 20.0;
-        state.players.get_mut(&baby_conn).unwrap().age = 1.0;
-        state.combat.apply_hits(baby_id, 1.0, 0);
-        let hits_before = state.combat.hits_of(baby_id);
-        assert!(hits_before > 0.0);
-
-        // 1s vitals: food += 10 * 1 * 0.1 = 1.0; mother -= 0.5; hits -= 0.2
-        let food_before = state.players.get(&baby_conn).unwrap().food;
-        let m_food_before = state.players.get(&1).unwrap().food;
-        tick_vitals(&mut state, 1.0, &hub);
-        let food_after = state.players.get(&baby_conn).unwrap().food;
-        let m_food_after = state.players.get(&1).unwrap().food;
-        let gained = food_after - food_before;
-        // Allow normal food drain on both; nurse transfer is large vs drain
-        assert!(
-            gained > 0.5,
-            "baby should gain ~1 food from factor-10 nurse, gained {gained}"
-        );
-        assert!(
-            m_food_after < m_food_before - 0.2,
-            "mother should lose half of transfer, {m_food_before} -> {m_food_after}"
-        );
-        let hits_after = state.combat.hits_of(baby_id);
-        assert!(
-            hits_after < hits_before,
-            "hits heal while nursing: {hits_before} -> {hits_after}"
-        );
-    }
-
-    /// BREASTFEED-EDGES: HOLD pickup restore + exhaustion + follow + age < 6.
-    #[test]
-    fn breastfeed_edges_hold_pickup_exhaustion_follow() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let mother = spawn_player(&mut state, 1, "mom@hold");
-        state.players.get_mut(&1).unwrap().age = 20.0;
-        state.players.get_mut(&1).unwrap().food = 10.0;
-        state.players.get_mut(&1).unwrap().display_object_id = 19;
-        let baby_id = spawn_child(&mut state, 1).expect("baby");
-        let baby_conn = state
-            .players
-            .iter()
-            .find(|(_, p)| p.p_id == baby_id)
-            .map(|(&c, _)| c)
-            .expect("baby conn");
-        {
-            let b = state.players.get_mut(&baby_conn).unwrap();
-            b.age = 1.0;
-            b.food = 0.0;
-            b.x = 0;
-            b.y = 0;
-            b.held_by = 0;
-        }
-        state.players.get_mut(&1).unwrap().x = 0;
-        state.players.get_mut(&1).unwrap().y = 0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("HOLD {baby_id}"),
-            },
-        );
-        let m = state.players.get(&1).unwrap();
-        assert_eq!(m.holding_player_id, baby_id, "mother holds baby");
-        assert!(
-            (m.exhaustion - PICKUP_EXHAUSTION_GAIN).abs() < 1e-5,
-            "exhaustion gain, got {}",
-            m.exhaustion
-        );
-        let b = state.players.get(&baby_conn).unwrap();
-        assert_eq!(b.held_by, mother);
-        assert!(
-            b.food >= PICKUP_FEEDING_FOOD_RESTORE - 0.01,
-            "pickup feed restore, got {}",
-            b.food
-        );
-        assert_eq!(
-            state.social.following.get(&baby_id),
-            Some(&mother),
-            "baby follows mother"
-        );
-        let _ = mother; // silence
-    }
-
-    /// BREASTFEED-EDGES: age == 6 continuous OK; pickup age == 6 no restore.
-    #[test]
-    fn breastfeed_edges_age_six_boundary() {
-        assert!(can_nurse_age(6.0));
-        assert!(!can_pickup_breastfeed_age(6.0));
-        assert!(can_pickup_player_ages(20.0, 5.0));
-        assert!(!can_pickup_player_ages(20.0, 10.0));
-        let (to, _) = breastfeed_tick(1.0, FOOD_USE_PER_SEC, 0.0, 20.0);
-        assert!((to - FOOD_RESTORE_FACTOR_WHILE_FEEDING * FOOD_USE_PER_SEC).abs() < 1e-5);
-        assert!((get_max_child_feeding(2.0) - 4.0).abs() < 1e-5);
-    }
-
-    /// SAY NURSE / FEED while holding baby transfers held food to the baby.
-    #[test]
-    fn say_nurse_feeds_held_baby() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let mother = spawn_player(&mut state, 1, "mom@x");
-        // Adult mother.
-        state.players.get_mut(&1).unwrap().age = 20.0;
-        // Spawn baby via API.
-        let baby_id = spawn_child(&mut state, 1).expect("baby");
-        let baby_conn = state
-            .players
-            .iter()
-            .find(|(_, p)| p.p_id == baby_id)
-            .map(|(&c, _)| c)
-            .expect("baby conn");
-        // Hold baby + food.
-        {
-            let m = state.players.get_mut(&1).unwrap();
-            m.start_holding(baby_id);
-            m.held_id = 33; // gooseberry-ish food in test_content
-        }
-        state.players.get_mut(&baby_conn).unwrap().held_by = mother;
-        state.players.get_mut(&baby_conn).unwrap().food = 5.0;
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "NURSE".into(),
-            },
-        );
-        let baby = state.players.get(&baby_conn).unwrap();
-        assert!(baby.food > 5.0, "baby food increased, got {}", baby.food);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 0, "food consumed");
-
-        // FEED alone while holding also works.
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        state.players.get_mut(&baby_conn).unwrap().food = 6.0;
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "FEED".into(),
-            },
-        );
-        assert!(state.players.get(&baby_conn).unwrap().food > 6.0);
-    }
-
-    /// Default animal spawn + wander + ?ANIMALS query.
-    #[test]
-    fn animals_spawn_wander_and_query() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "zoo@x");
-        assert!(state.animals.animals.is_empty());
-        spawn_default_animals(&mut state);
-        assert_eq!(state.animals.animals.len(), 7);
-        let snap = state.animals.snapshot();
-        assert_eq!(snap.rabbit, 3);
-        assert_eq!(snap.wolf, 2);
-        assert_eq!(snap.boar, 2);
-        let before: Vec<(i32, i32)> = state.animals.animals.iter().map(|a| (a.x, a.y)).collect();
-        // Force wander ticks until someone moves (or many attempts).
-        for _ in 0..40 {
-            tick_animals(&mut state);
-        }
-        let after: Vec<(i32, i32)> = state.animals.animals.iter().map(|a| (a.x, a.y)).collect();
-        assert_ne!(before, after, "expected at least one animal to wander");
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?ANIMALS".into(),
-            },
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("ANIMALS")
-                && s.contains("rabbit=")
-                && s.contains("wolf=")
-                && s.contains("boar=")
-            {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected ?ANIMALS PS reply with kind counts");
-
-        // ?FAUNA is an alias for ?ANIMALS.
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?FAUNA".into(),
-            },
-        );
-        let mut saw_fauna = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("ANIMALS") && s.contains("total=") {
-                saw_fauna = true;
-            }
-        }
-        assert!(saw_fauna, "expected ?FAUNA â†’ ANIMALS PS reply");
-    }
-
-    /// SAY HUNT damages adjacent animals; kill grants meat placeholder + prestige.
-    #[test]
-    fn say_hunt_hit_and_kill_adjacent() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "hunter@x");
-        let (px, py, p_id) = {
-            let p = state.players.get(&1).unwrap();
-            (p.x, p.y, p.p_id)
-        };
-        // Adjacent rabbit (default hp 5 = one HUNT_DAMAGE kill).
-        let rabbit_id = state.animals.spawn(AnimalKind::Rabbit, px + 1, py);
-        // Far wolf should not be hit while rabbit is nearer.
-        state.animals.spawn(AnimalKind::Wolf, px + 10, py + 10);
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "HUNT".into(),
-            },
-        );
-        let mut saw_kill = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("HUNT KILL") && s.contains("rabbit") && s.contains("meat=0") {
-                saw_kill = true;
-            }
-        }
-        assert!(saw_kill, "expected HUNT KILL rabbit with meat placeholder");
-        assert!(
-            state.animals.animals.iter().all(|a| a.id != rabbit_id),
-            "rabbit should be removed on kill"
-        );
-        let prest = state
-            .combat
-            .stats
-            .get(&p_id)
-            .map(|s| s.prestige)
-            .unwrap_or(0.0);
-        assert!(
-            (prest - HUNT_KILL_PRESTIGE).abs() < 1e-5,
-            "prestige should gain {HUNT_KILL_PRESTIGE}, got {prest}"
-        );
-
-        // No adjacent animal â†’ MISS
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "HUNT".into(),
-            },
-        );
-        let mut saw_miss = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("HUNT MISS") {
-                saw_miss = true;
-            }
-        }
-        assert!(saw_miss, "expected HUNT MISS when no adjacent animal");
-
-        // Multi-hit wolf (hp 20) â†’ HIT then later KILL
-        state.animals.animals.clear();
-        let wolf_id = state.animals.spawn(AnimalKind::Wolf, px, py);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "HUNT".into(),
-            },
-        );
-        let mut saw_hit = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("HUNT HIT") && s.contains("wolf") && s.contains("hp=") {
-                saw_hit = true;
-            }
-        }
-        assert!(saw_hit, "expected HUNT HIT on wolf");
-        assert_eq!(
-            state.animals.animals.iter().find(|a| a.id == wolf_id).map(|a| a.hp),
-            Some(20 - HUNT_DAMAGE)
-        );
-    }
-
-    /// SAY HARVEST / FISH / MINE / DIG / CHOP: biome-gated professions, shared 5s cooldown.
-    #[test]
-    fn say_harvest_fish_mine_profession_actions() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "pro@x");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 10;
-            p.y = 10;
-            p.held_id = 0;
-        }
-        // Grassland under feet (default 0); harvest berry/food id 33 from test_content.
-        state.world.write().unwrap().set_biome(10, 10, GRASSLAND_BIOME);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "HARVEST".into(),
-            },
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("HARVEST OK") && s.contains("id=33") {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected HARVEST OK id=33 on grassland");
-        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
-        let t_after_harvest = state.players.get(&1).unwrap().last_prof_action_time;
-        assert!(
-            (t_after_harvest - state.sim_time).abs() < 1e-5,
-            "last_prof_action_time should update on success"
-        );
-        // Shared cooldown: immediate FISH fails even on wrong biome path uses COOLDOWN first.
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        state.world.write().unwrap().set_biome(10, 10, OCEAN_BIOME);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "FISH".into(),
-            },
-        );
-        let mut saw_cd = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("FISH FAIL COOLDOWN") {
-                saw_cd = true;
-            }
-        }
-        assert!(saw_cd, "expected FISH FAIL COOLDOWN within 5s");
-        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
-
-        // Advance past cooldown â†’ FISH on ocean gives placeholder.
-        state.sim_time += PROF_ACTION_COOLDOWN_SECS;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "FISH".into(),
-            },
-        );
-        let mut saw_fish = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("FISH OK") && s.contains(&format!("id={FISH_PLACEHOLDER_ID}")) {
-                saw_fish = true;
-            }
-        }
-        assert!(saw_fish, "expected FISH OK with fish placeholder");
-        assert_eq!(
-            state.players.get(&1).unwrap().held_id,
-            FISH_PLACEHOLDER_ID
-        );
-
-        // MINE: clear hands, mountain adjacent, past cooldown.
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        state.sim_time += PROF_ACTION_COOLDOWN_SECS;
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_biome(11, 10, MOUNTAIN_BIOME);
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_biome(10, 10, GRASSLAND_BIOME);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "MINE".into(),
-            },
-        );
-        let mut saw_mine = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("MINE OK") && s.contains(&format!("id={STONE_PLACEHOLDER_ID}")) {
-                saw_mine = true;
-            }
-        }
-        assert!(saw_mine, "expected MINE OK with stone placeholder");
-        assert_eq!(
-            state.players.get(&1).unwrap().held_id,
-            STONE_PLACEHOLDER_ID
-        );
-
-        // DIG on swamp.
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        state.sim_time += PROF_ACTION_COOLDOWN_SECS;
-        state.world.write().unwrap().set_biome(10, 10, SWAMP_BIOME);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "DIG".into(),
-            },
-        );
-        let mut saw_dig = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("DIG OK") && s.contains(&format!("id={CLAY_PLACEHOLDER_ID}")) {
-                saw_dig = true;
-            }
-        }
-        assert!(saw_dig, "expected DIG OK with clay placeholder");
-        assert_eq!(
-            state.players.get(&1).unwrap().held_id,
-            CLAY_PLACEHOLDER_ID
-        );
-
-        // CHOP on jungle/yellow.
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        state.sim_time += PROF_ACTION_COOLDOWN_SECS;
-        state.world.write().unwrap().set_biome(10, 10, JUNGLE_BIOME);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "CHOP".into(),
-            },
-        );
-        let mut saw_chop = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("CHOP OK") && s.contains(&format!("id={WOOD_PLACEHOLDER_ID}")) {
-                saw_chop = true;
-            }
-        }
-        assert!(saw_chop, "expected CHOP OK with wood placeholder");
-        assert_eq!(
-            state.players.get(&1).unwrap().held_id,
-            WOOD_PLACEHOLDER_ID
-        );
-
-        // Hands full â†’ FAIL HANDS (after cooldown advance).
-        state.sim_time += PROF_ACTION_COOLDOWN_SECS;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "HARVEST".into(),
-            },
-        );
-        let mut saw_hands = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("HARVEST FAIL HANDS") {
-                saw_hands = true;
-            }
-        }
-        assert!(saw_hands, "expected HARVEST FAIL HANDS when holding wood");
-        let _ = p_id;
-    }
-
-    /// Living prestige refresh assigns percentile classes onto lineage nodes.
-    #[test]
-    fn living_prestige_refresh_updates_lineage_classes() {
-        let mut state = SimState::with_default_empty(test_content());
-        let ids: Vec<i32> = (1..=5)
-            .map(|i| {
-                let p = spawn_player(&mut state, i as u64, &format!("p{i}@x"));
-                state.social.ensure_lineage(p, &format!("P{i}"));
-                state.scoreboard.ensure_player(p, format!("P{i}"));
-                // Distinct scores via coins.
-                state.scoreboard.set_coins(p, i * 10);
-                p
-            })
-            .collect();
-        state.refresh_living_prestige_classes();
-        // Lowest score â†’ Serf-ish; highest â†’ higher class for n=5.
-        let low = state.social.prestige_class(ids[0]);
-        let high = state.social.prestige_class(ids[4]);
-        assert_eq!(low, PrestigeClass::Serf);
-        assert!(
-            high as u8 > low as u8,
-            "high score should rank above low: low={low:?} high={high:?}"
-        );
-
-        // tick_vitals path fires after timer.
-        state.prestige_refresh_timer = LIVING_PRESTIGE_REFRESH_SECS - 0.1;
-        // Bump lowest player's score to top and refresh via tick.
-        state.scoreboard.set_coins(ids[0], 999);
-        let hub = OutboundHub::new();
-        tick_vitals(&mut state, 0.2, &hub);
-        let now_top = state.social.prestige_class(ids[0]);
-        assert!(
-            now_top as u8 >= PrestigeClass::Noble as u8
-                || now_top as u8 > PrestigeClass::Serf as u8,
-            "score leader class should rise after refresh, got {now_top:?}"
-        );
-    }
-
-    /// tick_vitals advances animal wander on interval.
-    #[test]
-    fn tick_vitals_animal_wander_interval() {
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_default_animals(&mut state);
-        let hub = OutboundHub::new();
-        let before = state.animals.animals[0].x + state.animals.animals[0].y * 1000;
-        // Advance past several wander intervals.
-        for _ in 0..30 {
-            tick_vitals(&mut state, ANIMAL_WANDER_INTERVAL_SECS, &hub);
-        }
-        let moved = state.animals.animals.iter().any(|a| {
-            // Not all may move, but positions must stay in-bounds.
-            a.x >= 0 && a.y >= 0
-        });
-        assert!(moved);
-        let _ = before; // seed-dependent motion; in-bounds check is the hard assert
-    }
-
-    #[test]
-    fn build_reverse_craft_graph_matches_seed() {
-        let content = test_content();
-        let g = build_reverse_craft_graph(&content);
-        assert!(g.product_count() >= 1);
-        assert!(
-            g.ingredients_for(34).is_some() || g.ingredients_for(99).is_some()
-        );
-        let have = std::collections::HashSet::new();
-        // seek ingredient for a known product when hands empty
-        if let Some(want) = [34, 99].into_iter().find(|id| g.ingredients_for(*id).is_some()) {
-            let s = g.seek_ingredient_for(want, &have);
-            assert!(s.is_some(), "expected seek ingredient for {want}");
-        }
-    }
-
-    /// SAY GESTATE starts timed pregnancy; tick_vitals auto-spawns when due.
-    #[test]
-    fn say_gestate_and_tick_spawns_baby() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let mother_id = spawn_player(&mut state, 1, "gest@x");
-        state.players.get_mut(&1).unwrap().age = 20.0;
-        set_player_position(&mut state, 1, 5, 6);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "GESTATE".into(),
-            },
-        );
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("GESTATE OK") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_ok, "expected GESTATE OK PS");
-        assert!(
-            state
-                .fertility
-                .by_mother
-                .get(&mother_id)
-                .and_then(|r| r.gestating_until)
-                .is_some()
-        );
-        // No baby yet.
-        assert!(
-            !state
-                .players
-                .values()
-                .any(|p| p.p_id != mother_id && p.age < 1.0)
-        );
-
-        // Advance past gestation.
-        tick_vitals(&mut state, GESTATION_SECS + 0.5, &hub);
-        let baby = state
-            .players
-            .values()
-            .find(|p| p.p_id != mother_id && p.age < 1.0);
-        assert!(baby.is_some(), "expected baby after gestation due");
-        let baby = baby.unwrap();
-        assert_eq!(baby.x, 5);
-        assert_eq!(baby.y, 6);
-        assert!(
-            state
-                .event_log
-                .iter()
-                .any(|e| e.starts_with("BIRTH ") && e.contains(&format!("mother={mother_id}"))),
-            "event_log: {:?}",
-            state.event_log
-        );
-        // Second GESTATE blocked by cooldown.
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "GESTATE".into(),
-            },
-        );
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("GESTATE FAIL COOLDOWN") {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail, "expected GESTATE FAIL COOLDOWN after birth");
-    }
-
-    /// SAY IGNITE aliases FIRE; SAY EXTINGUISH clears fire under feet.
-    #[test]
-    fn say_ignite_and_extinguish() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "fire@x");
-        set_player_position(&mut state, 1, 3, 4);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "IGNITE".into(),
-            },
-        );
-        assert!(state.fire.is_burning(3, 4));
-        let mut saw_fire = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("FIRE 3 4 OK") {
-                saw_fire = true;
-            }
-        }
-        assert!(saw_fire);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "EXTINGUISH".into(),
-            },
-        );
-        assert!(!state.fire.is_burning(3, 4));
-        let mut saw_ext = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("EXTINGUISH 3 4 OK") {
-                saw_ext = true;
-            }
-        }
-        assert!(saw_ext);
-
-        // Second extinguish fails.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "EXTINGUISH".into(),
-            },
-        );
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("EXTINGUISH FAIL") {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail);
-    }
-
-    /// SAY LOCK / UNLOCK set owner on gate under feet; walkability respects lock.
-    #[test]
-    fn say_lock_unlock_owned_gate() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            50,
-            ObjectDef {
-                id: 50,
-                description: "Pine Door".into(),
-                name: "Pine Door".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: true,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        let owner = spawn_player(&mut state, 1, "owner@x");
-        let stranger = spawn_player(&mut state, 2, "str@x");
-        set_player_position(&mut state, 1, 1, 1);
-        {
-            let mut w = state.world.write().unwrap();
-            w.set_object(1, 1, 50);
-        }
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "LOCK".into(),
-            },
-        );
-        assert_eq!(
-            state.world.read().unwrap().get_helper(1, 1).map(|h| h.owner_id),
-            Some(owner)
-        );
-        let mut saw_lock = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("LOCK 1 1 OK") {
-                saw_lock = true;
-            }
-        }
-        assert!(saw_lock);
-
-        let content = state.content.clone();
-        let allies = state.allies.clone();
-        assert!(is_walkable_for_player(
-            &state.world.read().unwrap(),
-            &content,
-            1,
-            1,
-            owner,
-            &|a, b| allies.is_mutual_or_either(a, b)
-        ));
-        assert!(!is_walkable_for_player(
-            &state.world.read().unwrap(),
-            &content,
-            1,
-            1,
-            stranger,
-            &|a, b| allies.is_mutual_or_either(a, b)
-        ));
-        // Ally may pass.
-        state.allies.add(stranger, owner).unwrap();
-        let allies = state.allies.clone();
-        assert!(is_walkable_for_player(
-            &state.world.read().unwrap(),
-            &content,
-            1,
-            1,
-            stranger,
-            &|a, b| allies.is_mutual_or_either(a, b)
-        ));
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "UNLOCK".into(),
-            },
-        );
-        assert_eq!(
-            state
-                .world
-                .read()
-                .unwrap()
-                .get_helper(1, 1)
-                .map(|h| h.owner_id)
-                .unwrap_or(0),
-            0
-        );
-        assert!(is_walkable_for_player(
-            &state.world.read().unwrap(),
-            &content,
-            1,
-            1,
-            stranger,
-            &|_, _| false
-        ));
-    }
-
-    /// SAY YAWN emits PE player_id 2 (yawn emote index).
-    #[test]
-    fn say_yawn_emits_pe_2() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "yawn@x");
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "YAWN".into(),
-            },
-        );
-        let expected = format_server_message("PE", &[&format!("{p_id}/0 {YAWN_EMOT_INDEX}")]);
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if pkt == expected.as_bytes() {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected PE {p_id} 2 for YAWN");
-    }
-
-    /// Spawn + MOVE touch AfkBook; idle past DEFAULT_AFK_SECS marks AFK + PE yawn.
-    #[test]
-    fn afk_book_touch_and_vitals_yawn() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "afk@x");
-        // Plenty of food so hunger death does not fire before AFK.
-        state.players.get_mut(&1).unwrap().food = 10_000.0;
-        assert!(
-            state.afk.last_activity(p_id).is_some(),
-            "spawn should touch AFK book"
-        );
-        // MOVE resets idle stamp to current sim_time.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Move {
-                conn_id: 1,
-                xs: 0,
-                ys: 0,
-                deltas: vec![(1, 0)],
-                seq: None,
-},
-        );
-        let t0 = state.afk.last_activity(p_id).unwrap();
-        assert_eq!(t0, state.sim_time);
-        while rx.try_recv().is_ok() {}
-
-        // Cross AFK threshold in one vitals step (no intervening activity).
-        let dt = DEFAULT_AFK_SECS + 1.0;
-        tick_vitals(&mut state, dt, &hub);
-        assert!(
-            state.afk.is_afk_default(p_id, state.sim_time),
-            "should be AFK after idle > 600s"
-        );
-        assert!(
-            state.event_log.iter().any(|e| e == &format!("AFK {p_id}")),
-            "expected AFK event, got {:?}",
-            state.event_log
-        );
-        let expected_pe =
-            format_server_message("PE", &[&format!("{p_id}/0 {YAWN_EMOT_INDEX}")]);
-        let mut saw_yawn = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if pkt == expected_pe.as_bytes() {
-                saw_yawn = true;
-            }
-        }
-        assert!(saw_yawn, "expected optional PE yawn when becoming AFK");
-    }
-
-    /// SAY ?AFK returns idle/remain/status without resetting the AFK book.
-    #[test]
-    fn say_afk_query_reports_status() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "afkq@x");
-        state.players.get_mut(&1).unwrap().food = 10_000.0;
-        // Force idle into warn window (remain â‰¤ 60).
-        state.afk.touch(p_id, 0.0);
-        state.sim_time = DEFAULT_AFK_SECS - 30.0;
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?AFK".into(),
-            },
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("AFK ") && s.contains("status=warn") {
-                saw = true;
-                assert!(s.contains(&format!("{p_id}/0 AFK ")), "{s}");
-            }
-        }
-        assert!(saw, "expected PS ?AFK with status=warn");
-        // Query must not touch (would reset idle to sim_time).
-        assert_eq!(state.afk.last_activity(p_id), Some(0.0));
-    }
-
-    /// Death paths push format_death_event tags via DeathCause.
-    #[test]
-    fn death_events_use_death_cause_tags() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "diecause@x");
-        state.players.get_mut(&1).unwrap().food = 0.0;
-        // food == 0 is not < DEATH_FOOD_THRESHOLD (0.0); force slightly negative path:
-        state.players.get_mut(&1).unwrap().food = -0.01;
-        tick_vitals(&mut state, 0.1, &hub);
-        assert!(
-            state
-                .event_log
-                .iter()
-                .any(|e| e == &format_death_event(p_id, DeathCause::Hunger)),
-            "expected hunger death event, got {:?}",
-            state.event_log
-        );
-        assert_eq!(
-            state.players.get(&1).unwrap().death_reason.as_deref(),
-            Some(DeathCause::Hunger.wire_tag())
-        );
-    }
-
-    /// Suicide increments scoreboard deaths.
-    #[test]
-    fn say_die_increments_scoreboard_deaths() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "suicide@x");
-        state.scoreboard.ensure_player(p_id, "Suzy");
-        state.scoreboard.set_coins(p_id, 20);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "DIE".into(),
-            },
-        );
-        let e = state.scoreboard.entry(p_id).unwrap();
-        assert_eq!(e.deaths, 1);
-        assert_eq!(e.score, 20 - SCORE_PER_DEATH);
-        assert_eq!(counters.deaths.load(Ordering::Relaxed), 1);
-    }
-
-    /// compose_move_speed is used for FX food change (fire slows reported speed).
-    #[test]
-    fn food_change_uses_compose_move_speed() {
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "spd@x");
-        set_player_position(&mut state, 1, 2, 2);
-        let p = state.players.get(&1).unwrap().clone();
-        let base = food_change_for_player(&state, &p);
-        assert!(
-            base.contains(&format!("{WALK_MOVE_SPEED:.2}")),
-            "base FX should use walk speed: {base}"
-        );
-        state.fire.ignite(2, 2, 10.0, 1.0);
-        let p = state.players.get(&1).unwrap().clone();
-        let slow = food_change_for_player(&state, &p);
-        let expected = compose_move_speed(
-            false,
-            &state.weather,
-            &state.snow,
-            &state.fire,
-            2,
-            2,
-            0,
-        );
-        assert!(
-            slow.contains(&format!("{expected:.2}")),
-            "fire FX should use composed speed {expected:.2}: {slow}"
-        );
-        assert_ne!(base, slow);
-    }
-
-    /// Login intent force-sends MAP_CHUNK and marks has_mc.
-    #[test]
-    fn login_sends_map_chunk() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(3);
-        let mut state = SimState::with_default_empty(test_content());
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 3,
-                reconnect: false,
-                email: "mc@login".into(),
-                client_tag: "test".into(),
-            },
-        );
-        let mut saw_mc = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if pkt.starts_with(b"MC\n") {
-                saw_mc = true;
-            }
-        }
-        assert!(saw_mc, "login should force-send MC");
-        let p = state.players.get(&3).unwrap();
-        assert!(p.has_mc);
-        assert_eq!((p.last_mc_x, p.last_mc_y), (p.x, p.y));
-    }
-
-    /// SAY MAPFORCE always resends MC even when already has_mc and near last center.
-    #[test]
-    fn say_mapforce_forces_mc_resend() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "force@mc");
-        force_send_map_chunk(&mut state, &hub, 1);
-        assert!(state.players.get(&1).unwrap().has_mc);
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "MAPFORCE".into(),
-            },
-        );
-        let mut saw_mc = false;
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if pkt.starts_with(b"MC\n") {
-                saw_mc = true;
-            }
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("MAPFORCE OK") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_mc, "MAPFORCE must resend MC");
-        assert!(saw_ok, "MAPFORCE must ACK via PS");
-    }
-
-    /// Vitals tick updates SimState chunk tier counts; ?CHUNKS reads them.
-    #[test]
-    fn vitals_tracks_chunk_tiers_and_chunks_query() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "chunks@x");
-        assert_eq!(state.chunk_hot, 0);
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!(
-            state.chunk_hot + state.chunk_warm + state.chunk_cold > 0,
-            "vitals should populate chunk tier counts"
-        );
-        let (h, w, c) = (state.chunk_hot, state.chunk_warm, state.chunk_cold);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?CHUNKS".into(),
-            },
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("CHUNKS") && s.contains(&format!("hot={h}")) {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected ?CHUNKS with hot={h} warm={w} cold={c}");
-    }
-
-    /// AnimalWorld::nearby_threat for AI (wolf within 5).
-    #[test]
-    fn animal_nearby_threat_for_ai() {
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "prey@x");
-        let (px, py) = {
-            let p = state.players.get(&1).unwrap();
-            (p.x, p.y)
-        };
-        assert!(!state.animals.nearby_threat(px, py, ANIMAL_THREAT_RANGE));
-        state.animals.spawn(AnimalKind::Wolf, px + 5, py);
-        assert!(state.animals.nearby_threat(px, py, ANIMAL_THREAT_RANGE));
-        assert!(!state.animals.nearby_threat(px, py, 4));
-        // Rabbit is not a threat
-        state.animals.animals.clear();
-        state.animals.spawn(AnimalKind::Rabbit, px, py);
-        assert!(!state.animals.nearby_threat(px, py, ANIMAL_THREAT_RANGE));
-    }
-
-    /// SAY LOOK dx dy reports biome + object under relative tile.
-    #[test]
-    fn say_look_reports_biome_and_object() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "look@x");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 10;
-            p.y = 10;
-        }
-        state.world.write().unwrap().set_object(12, 11, 33);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "LOOK 2 1".into(),
-            },
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            // format_look: LOOK dx dy biome=â€¦ floor=â€¦ obj=33 â€¦
-            if s.contains("LOOK") && s.contains("obj=33") {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected LOOK with obj=33");
-        // wire_fields::parse_xy drives LOOK coords (negative offsets).
-        assert_eq!(parse_xy(" -1  2"), Some((-1, 2)));
-        while rx.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "LOOK -1 0".into(),
-            },
-        );
-        let mut saw_neg = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("LOOK -1 0") {
-                saw_neg = true;
-            }
-        }
-        assert!(saw_neg, "expected LOOK -1 0 via parse_xy");
-    }
-
-    /// SAY ?HEX reports map-PNG color for biome under feet.
-    #[test]
-    fn say_hex_reports_biome_color_under_feet() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "hex@x");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 4;
-            p.y = 5;
-        }
-        state.world.write().unwrap().set_biome(4, 5, 9); // ocean
-        assert_eq!(format_hex_query(9), "HEX 9 004080");
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?HEX".into(),
-            },
-        );
-        let ps = rx.try_recv().expect("PS ?HEX");
-        let s = String::from_utf8_lossy(&ps);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(
-            s.contains(&format!("{p_id}/0 HEX 9 004080")),
-            "got {s}"
-        );
-    }
-
-    /// SAY ?TAGS parses held object description tags.
-    #[test]
-    fn say_tags_reports_held_object_tags() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            55,
-            ObjectDef {
-                id: 55,
-                description: "Stakes# +tool".into(),
-                name: "Stakes".into(),
-                containable: false,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: Vec::new(),
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        let p_id = spawn_player(&mut state, 1, "tags@x");
-        while rx.try_recv().is_ok() {}
-        // Empty hands
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?TAGS".into(),
-            },
-        );
-        let ps0 = rx.try_recv().expect("PS ?TAGS empty");
-        let s0 = String::from_utf8_lossy(&ps0);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s0.contains(&format!("{p_id}/0 TAGS 0")), "got {s0}");
-
-        state.players.get_mut(&1).unwrap().held_id = 55;
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "TAGS".into(),
-            },
-        );
-        let ps1 = rx.try_recv().expect("PS TAGS held");
-        let s1 = String::from_utf8_lossy(&ps1);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s1.contains(&format!("{p_id}/0 TAGS 55")), "got {s1}");
-        assert!(s1.contains("name=Stakes"), "got {s1}");
-        assert!(s1.contains("tags=+tool"), "got {s1}");
-        assert_eq!(
-            format_held_tags_query(55, Some("Stakes# +tool")),
-            "TAGS 55 name=Stakes tags=+tool cat=- dummy=0"
-        );
-    }
-
-    /// SAY PING returns PS PONG with sim_time; client PING tag still works.
-    #[test]
-    fn say_ping_returns_pong_with_sim_time() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "ping@say");
-        state.sim_time = 12.5;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PING".into(),
-            },
-        );
-        let expected = format_player_says(
-            state.players.get(&1).unwrap().p_id,
-            false,
-            &SimState::format_ping_query(12.5),
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt) == expected {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected SAY PING â†’ {expected}");
-        // Client PING tag still echoes unique_id.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "PING".into(),
-                payload: "tok99".into(),
-            },
-        );
-        let mut saw_wire = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt) == "PONG\ntok99\n#" {
-                saw_wire = true;
-            }
-        }
-        assert!(saw_wire, "client PING tag still replies wire PONG");
-    }
-
-    /// `sim_speed` multiplies vitals `dt` (time dilation).
-    #[test]
-    fn sim_speed_multiplies_tick_vitals_dt() {
-        let hub = OutboundHub::new();
-        let mut normal = SimState::with_default_empty(test_content());
-        let mut fast = SimState::with_default_empty(test_content());
-        spawn_player(&mut normal, 1, "spd@n");
-        spawn_player(&mut fast, 1, "spd@f");
-        {
-            let p = normal.players.get_mut(&1).unwrap();
-            p.food = 50.0;
-            p.age = 20.0;
-        }
-        {
-            let p = fast.players.get_mut(&1).unwrap();
-            p.food = 50.0;
-            p.age = 20.0;
-        }
-        normal.sim_speed = 1.0;
-        fast.sim_speed = 2.0;
-        tick_vitals(&mut normal, 1.0, &hub);
-        tick_vitals(&mut fast, 1.0, &hub);
-        assert!(
-            (normal.sim_time - 1.0).abs() < 1e-4,
-            "1x speed sim_time={}",
-            normal.sim_time
-        );
-        assert!(
-            (fast.sim_time - 2.0).abs() < 1e-4,
-            "2x speed sim_time={}",
-            fast.sim_time
-        );
-        let age_n = normal.players.get(&1).unwrap().age;
-        let age_f = fast.players.get(&1).unwrap().age;
-        assert!(
-            age_f > age_n + 1e-5,
-            "2x speed should age faster: {age_f} vs {age_n}"
-        );
-        let food_n = normal.players.get(&1).unwrap().food;
-        let food_f = fast.players.get(&1).unwrap().food;
-        assert!(
-            food_f < food_n - 1e-5,
-            "2x speed should drain food faster: {food_f} vs {food_n}"
-        );
-    }
-
-    /// `paused` skips vitals (sim_time / food frozen).
-    #[test]
-    fn paused_skips_tick_vitals() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "pause@v");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.food = 40.0;
-            p.age = 25.0;
-        }
-        state.paused = true;
-        tick_vitals(&mut state, 5.0, &hub);
-        assert_eq!(state.sim_time, 0.0, "paused must not advance sim_time");
-        let p = state.players.get(&1).unwrap();
-        assert!((p.food - 40.0).abs() < 1e-5, "paused food unchanged");
-        assert!((p.age - 25.0).abs() < 1e-5, "paused age unchanged");
-        // Resume advances again.
-        state.paused = false;
-        tick_vitals(&mut state, 1.0, &hub);
-        assert!((state.sim_time - 1.0).abs() < 1e-4);
-        assert!(state.players.get(&1).unwrap().food < 40.0);
-    }
-
-    /// SAY ?TICK reports tick and sim_time via private PS.
-    #[test]
-    fn say_tick_reports_tick_and_sim_time() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "tick@q");
-        state.tick = 42;
-        state.sim_time = 3.5;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?TICK".into(),
-            },
-        );
-        let expected = SimState::format_tick_query(42, 3.5);
-        assert_eq!(expected, "TICK 42 3.50");
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected}")) {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected PS with {p_id} {expected}");
-    }
-
-    /// SAY PAUSE / RESUME toggles paused flag and replies via PS.
-    #[test]
-    fn say_pause_resume_sets_paused_flag() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "pause@say");
-        assert!(!state.paused);
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PAUSE".into(),
-            },
-        );
-        assert!(state.paused);
-        let mut saw_pause = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 PAUSED")) {
-                saw_pause = true;
-            }
-        }
-        assert!(saw_pause, "expected PAUSED PS");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "RESUME".into(),
-            },
-        );
-        assert!(!state.paused);
-        let mut saw_resume = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 RESUMED")) {
-                saw_resume = true;
-            }
-        }
-        assert!(saw_resume, "expected RESUMED PS");
-    }
-
-    /// JUMP client tag emits PU (player update) to nearby; babies also get BW wiggle.
-    #[test]
-    fn jump_emits_pu_note() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "jump@x");
-        set_player_position(&mut state, 1, 3, 4);
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "JUMP".into(),
-                payload: "5 6".into(),
-            },
-        );
-        let p = state.players.get(&1).unwrap();
-        assert_eq!((p.x, p.y), (5, 6));
-        let mut saw_pu = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PU\n") && s.contains(&format!("{p_id} ")) {
-                saw_pu = true;
-            }
-        }
-        assert!(saw_pu, "JUMP must emit PU note to nearby");
-    }
-
-    /// Baby JUMP also emits BW wiggle packet.
-    #[test]
-    fn jump_baby_emits_bw_wiggle() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "babyjump@x");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.age = 1.0;
-        }
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "JUMP".into(),
-                payload: "0 0".into(),
-            },
-        );
-        let expected_bw = format_baby_wiggle(p_id);
-        let mut saw_bw = false;
-        let mut saw_pu = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.as_ref() == expected_bw {
-                saw_bw = true;
-            }
-            if s.starts_with("PU\n") {
-                saw_pu = true;
-            }
-        }
-        assert!(saw_pu, "baby JUMP must still emit PU");
-        assert!(saw_bw, "baby JUMP must emit BW wiggle");
-    }
-
-    /// JUMP while held clears held_by / mother holding link.
-    #[test]
-    fn jump_releases_held_baby_from_mother() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let mother = spawn_player(&mut state, 1, "mom@jump");
-        let baby_conn = 2u64;
-        let baby = spawn_player(&mut state, baby_conn, "baby@jump");
-        {
-            let m = state.players.get_mut(&1).unwrap();
-            m.start_holding(baby);
-            m.x = 0;
-            m.y = 0;
-        }
-        {
-            let b = state.players.get_mut(&baby_conn).unwrap();
-            b.age = 0.5;
-            b.held_by = mother;
-            b.x = 0;
-            b.y = 0;
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: baby_conn,
-                tag: "JUMP".into(),
-                payload: "0 0".into(),
-            },
-        );
-        assert_eq!(state.players.get(&baby_conn).unwrap().held_by, 0);
-        assert_eq!(state.players.get(&1).unwrap().holding_player_id, 0);
-        let _ = mother;
-    }
-
-    /// `SAY MUMBLE <text>` fans out PS at [`MUMBLE_RANGE`] (4), not full nearby.
-    #[test]
-    fn say_mumble_uses_short_range() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut rx3 = hub.register(3);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "m0@x");
-        spawn_player(&mut state, 2, "mnear@x");
-        spawn_player(&mut state, 3, "mfar@x");
-        set_player_position(&mut state, 1, 0, 0);
-        set_player_position(&mut state, 2, 3, 0); // within MUMBLE_RANGE=4
-        set_player_position(&mut state, 3, 10, 0); // beyond mumble, within normal
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-        while rx3.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "MUMBLE soft words".into(),
-            },
-        );
-        let mut near_got = false;
-        let mut far_got = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("MUMBLE soft words") {
-                near_got = true;
-            }
-        }
-        while let Ok(pkt) = rx3.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("MUMBLE soft words") {
-                far_got = true;
-            }
-        }
-        assert!(near_got, "MUMBLE should reach within range 4");
-        assert!(!far_got, "MUMBLE must not reach beyond MUMBLE_RANGE");
-        let mut self_got = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("MUMBLE soft words") {
-                self_got = true;
-            }
-        }
-        assert!(self_got, "speaker should receive MUMBLE PS");
-    }
-
-    /// SAY ?STAGE returns infant/child/adult/elder for age brackets.
-    #[test]
-    fn say_stage_query_returns_life_stage() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "stage@x");
-        // Adult default age 14.
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?STAGE".into(),
-            },
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains(&format!("{p_id}/0 STAGE adult")) {
-                saw = true;
-            }
-        }
-        assert!(saw, "default spawn age should report STAGE adult");
-
-        state.players.get_mut(&1).unwrap().age = 2.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "STAGE".into(),
-            },
-        );
-        let mut saw_infant = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("STAGE infant") {
-                saw_infant = true;
-            }
-        }
-        assert!(saw_infant, "age 2 â†’ infant");
-
-        state.players.get_mut(&1).unwrap().age = 10.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?STAGE".into(),
-            },
-        );
-        let mut saw_child = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("STAGE child") {
-                saw_child = true;
-            }
-        }
-        assert!(saw_child, "age 10 â†’ child");
-
-        state.players.get_mut(&1).unwrap().age = 70.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?STAGE".into(),
-            },
-        );
-        let mut saw_elder = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("STAGE elder") {
-                saw_elder = true;
-            }
-        }
-        assert!(saw_elder, "age 70 â†’ elder");
-    }
-
-    /// SAY ?BIOMEFOOD reports standing biome food-drain multiplier.
-    #[test]
-    fn say_biomefood_query() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "biome@food");
-        set_player_position(&mut state, 1, 0, 0);
-        // Force snow biome under player.
-        state.world.write().unwrap().set_biome(0, 0, 4);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?BIOMEFOOD".into(),
-            },
-        );
-        let expected_body = format_biomefood_query(4);
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains(&format!("{p_id}/0 {expected_body}")) {
-                saw = true;
-            }
-        }
-        assert!(
-            saw,
-            "expected PS with {p_id} {expected_body}"
-        );
-    }
-
-    /// SAY ?WARM reports clothing_temp_bonus for equipped slots.
-    #[test]
-    fn say_warm_query_reports_clothing_temp_bonus() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "warm@x");
-        {
-            let pl = state.players.get_mut(&1).unwrap();
-            pl.hat = 10;
-            pl.chest = 20;
-            pl.shoes = 0;
-        }
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?WARM".into(),
-            },
-        );
-        let expected = format_warm_query(10, 20, 0);
-        assert_eq!(expected, "WARM bonus=1.00");
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected}")) {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected PS with {p_id} {expected}");
-    }
-
-    /// SAY ?SPEED reports compose_move_speed for the speaker.
-    #[test]
-    fn say_speed_query_reports_compose_move_speed() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "speed@x");
-        set_player_position(&mut state, 1, 0, 0);
-        state.players.get_mut(&1).unwrap().riding = true;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?SPEED".into(),
-            },
-        );
-        let pl = state.players.get(&1).unwrap().clone();
-        let speed = player_move_speed(&state, &pl);
-        let expected = format_speed_query(speed);
-        assert!(
-            expected.contains(&format!("{RIDE_MOVE_SPEED:.2}")),
-            "riding should report ride speed: {expected}"
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected}")) {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected PS with {p_id} {expected}");
-    }
-
-    /// SAY ?WEIGHT reports held + backpack item count.
-    #[test]
-    fn say_weight_query_reports_held_and_backpack_count() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "weight@x");
-        {
-            let pl = state.players.get_mut(&1).unwrap();
-            pl.held_id = 33;
-            pl.backpack = vec![10, 20, 30];
-        }
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?WEIGHT".into(),
-            },
-        );
-        let expected = format_weight_query(4); // 1 held + 3 pack
-        assert_eq!(expected, "WEIGHT 4 items");
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected}")) {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected PS with {p_id} {expected}");
-    }
-
-    /// Haxe calculateSpeed: swamp biome 0.9 slows without floor.
-    #[test]
-    fn player_move_speed_swamp_slows_without_floor() {
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "swamp@x");
-        set_player_position(&mut state, 1, 2, 2);
-        {
-            let mut w = state.world.write().unwrap();
-            w.set_floor(2, 2, 0);
-            w.set_biome(2, 2, 1); // SWAMP
-        }
-        let p = state.players.get(&1).unwrap().clone();
-        let spd = player_move_speed(&state, &p);
-        let expected = WALK_MOVE_SPEED * 0.9;
-        assert!(
-            (spd - expected).abs() < 0.01,
-            "swamp speed spd={spd} expected={expected}"
-        );
-    }
-
-    /// Haxe calculateSpeed: Stone Road 1596 (speedMult 1.5) boosts reported speed.
-    #[test]
-    fn player_move_speed_road_floor_boosts_on_stone_road() {
-        let mut db = (*test_content()).clone();
-        let mut road = ObjectDef::empty(1596);
-        road.floor = true;
-        road.speed_mult = 1.5;
-        road.name = "Stone Road".into();
-        db.objects.insert(1596, road);
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "road@x");
-        set_player_position(&mut state, 1, 5, 5);
-        {
-            let mut w = state.world.write().unwrap();
-            w.set_floor(5, 5, 1596);
-            w.set_biome(5, 5, 0); // GREEN
-        }
-        let p = state.players.get(&1).unwrap().clone();
-        let spd = player_move_speed(&state, &p);
-        let expected = WALK_MOVE_SPEED * 1.5;
-        assert!(
-            (spd - expected).abs() < 0.01,
-            "road speed spd={spd} expected={expected}"
-        );
-    }
-
-    /// Ballast from held + backpack slightly reduces reported move speed.
-    #[test]
-    fn player_move_speed_ballast_from_held_and_backpack() {
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "ballast@x");
-        set_player_position(&mut state, 1, 0, 0);
-        let empty = {
-            let p = state.players.get(&1).unwrap().clone();
-            player_move_speed(&state, &p)
-        };
-        assert!((empty - WALK_MOVE_SPEED).abs() < 0.001);
-        {
-            let pl = state.players.get_mut(&1).unwrap();
-            pl.held_id = 99;
-            pl.backpack = vec![1, 2, 3, 4];
-        }
-        let heavy = {
-            let p = state.players.get(&1).unwrap().clone();
-            player_move_speed(&state, &p)
-        };
-        // 5 items â†’ 10% slower
-        let expected = WALK_MOVE_SPEED * ballast_speed_mult(5);
-        assert!((heavy - expected).abs() < 0.001, "heavy={heavy} expected={expected}");
-        assert!(heavy < empty);
-    }
-
-    /// SAY ?DRAIN estimates current food drain/sec factors.
-
-    /// S-MOVE-LIVE-GATES: near account bone grave slows; close angry+weapon enemy slows.
-    #[test]
-    fn player_move_speed_live_gates_grave_and_enemy() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let mut p = Player::new(1, 1, "grave@test");
-        p.x = 10;
-        p.y = 10;
-        state.players.insert(1, p);
-        let base = player_move_speed(&state, state.players.get(&1).unwrap());
-        state.accounts.record_grave("grave@test", 10, 10);
-        {
-            let mut w = state.world.write().unwrap();
-            w.set_object(10, 10, 87); // bone pile
-        }
-        let cursed_spd = player_move_speed(&state, state.players.get(&1).unwrap());
-        assert!(
-            cursed_spd < base * 0.95,
-            "grave mali: base={base} cursed={cursed_spd}"
-        );
-        apply_grave_curse_live_gates(&mut state, &hub, 1);
-        assert!(state.players.get(&1).unwrap().is_cursed);
-
-        let mut enemy = Player::new(2, 2, "foe@test");
-        enemy.x = 11;
-        enemy.y = 10;
-        enemy.held_id = BOW_AND_ARROW_ID;
-        state.players.insert(2, enemy);
-        if let Some(me) = state.players.get_mut(&1) {
-            me.angry_time = -1.0;
-        }
-        let with_enemy = player_move_speed(&state, state.players.get(&1).unwrap());
-        assert!(
-            with_enemy < cursed_spd * 0.95,
-            "enemy mali: cursed={cursed_spd} with_enemy={with_enemy}"
-        );
-    }
-
-    #[test]
-    fn apply_grave_curse_live_gates_clear_hysteresis() {
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        let mut p = Player::new(1, 1, "c@test");
-        p.x = 0;
-        p.y = 0;
-        p.is_cursed = true;
-        state.players.insert(1, p);
-        state.accounts.record_grave("c@test", 200, 0);
-        apply_grave_curse_live_gates(&mut state, &hub, 1);
-        assert!(!state.players.get(&1).unwrap().is_cursed);
-    }
-
-    #[test]
-    fn say_drain_query_estimates_food_drain_factors() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "drain@x");
-        set_player_position(&mut state, 1, 0, 0);
-        state.world.write().unwrap().set_biome(0, 0, 4); // snow
-        {
-            let pl = state.players.get_mut(&1).unwrap();
-            pl.age = 70.0;
-            pl.sleeping = true;
-            pl.hat = 1;
-            pl.chest = 1;
-            pl.shoes = 1;
-        }
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?DRAIN".into(),
-            },
-        );
-        let pl = state.players.get(&1).unwrap();
-        let base = FOOD_USE_PER_SEC
-            * state.environment.day_night_multiplier()
-            * state.apocalypse.food_drain_multiplier();
-        let est = estimate_food_drain(
-            base,
-            biome_food_multiplier(4),
-            state.weather.food_drain_mult(),
-            pl.age,
-            pl.sleeping,
-            pl.sitting,
-            pl.sick,
-            state.combat.bleed_drain(pl.p_id),
-            state.fire.drain_at(pl.x, pl.y),
-            state.snow.food_extra_at(pl.x, pl.y),
-            pl.hat,
-            pl.chest,
-            pl.shoes,
-        );
-        let expected = est.format_query();
-        assert!(expected.starts_with("DRAIN total="), "{expected}");
-        assert!(expected.contains("age=1.50"), "{expected}");
-        assert!(expected.contains("sleep=0.50"), "{expected}");
-        assert!(expected.contains("biome=1.25"), "{expected}");
-        assert!(expected.contains("warm=0.030"), "{expected}");
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected}")) {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected PS with {p_id} {expected}");
-    }
-
-    /// SAY ?CRAFTSTATS reports reverse graph products/edges.
-    #[test]
-    fn say_craftstats_query() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "craft@stats");
-        state.craft_graph.insert(1, 2, 3, 0);
-        state.craft_graph.insert(3, 4, 5, 0);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?CRAFTSTATS".into(),
-            },
-        );
-        let body = state.craft_graph.format_craft_stats_query();
-        assert!(body.contains("products=2") && body.contains("edges=2"), "{body}");
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {body}")) {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected craft stats PS");
-    }
-
-    /// SAY PLAN <id> returns reverse-craft ingredient path; ?TRANS content counts; SEEKING goal label.
-    #[test]
-    fn say_plan_seeking_trans_queries() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "plan@x");
-        // Chain A=1 + B=2 â†’ C=3; C=3 + D=4 â†’ E=5
-        state.craft_graph.insert(1, 2, 3, 0);
-        state.craft_graph.insert(3, 4, 5, 0);
-        // Have A,B,D in inventory so path to E is solvable.
-        {
-            let pl = state.players.get_mut(&1).unwrap();
-            pl.held_id = 1;
-            pl.backpack = vec![2, 4];
-            pl.food = 15.0;
-        }
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PLAN 5".into(),
-            },
-        );
-        let mut plan_line = None;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains(&format!("{p_id}/0 PLAN 5")) {
-                plan_line = Some(s.into_owned());
-            }
-        }
-        let plan = plan_line.expect("PLAN PS reply");
-        assert!(plan.contains("1+2"), "got {plan}");
-        assert!(plan.contains("3+4"), "got {plan}");
-        assert!(!plan.contains("FAIL"), "got {plan}");
-
-        // Already holding product â†’ HAVE
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        state.players.get_mut(&1).unwrap().held_id = 5;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PLAN 5".into(),
-            },
-        );
-        let mut saw_have = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 PLAN 5 HAVE")) {
-                saw_have = true;
-            }
-        }
-        assert!(saw_have, "expected PLAN 5 HAVE");
-
-        // Unreachable product
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "PLAN 99".into(),
-            },
-        );
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 PLAN 99 FAIL")) {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail, "expected PLAN 99 FAIL");
-
-        // ?TRANS from content counts
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?TRANS".into(),
-            },
-        );
-        let expected_trans = SimState::format_trans_query(&state.content);
-        assert_eq!(expected_trans, "TRANS count=1 last_use=1");
-        let mut saw_trans = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 {expected_trans}")) {
-                saw_trans = true;
-            }
-        }
-        assert!(saw_trans, "expected ?TRANS PS");
-
-        // SEEKING â€” fed + holding â†’ IDLE; empty hands + farmer â†’ SEEKOBJECT
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SEEKING".into(),
-            },
-        );
-        let mut saw_idle = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 SEEKING IDLE")) {
-                saw_idle = true;
-            }
-        }
-        assert!(saw_idle, "holding + fed â†’ SEEKING IDLE");
-
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SEEKING FARMER".into(),
-            },
-        );
-        let mut saw_farm = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains(&format!("{p_id}/0 SEEKING SEEKOBJECT {FARMER_TARGET_ID}")) {
-                saw_farm = true;
-            }
-        }
-        assert!(saw_farm, "SEEKING FARMER â†’ SEEKOBJECT profession target");
-    }
-
-    /// SAY RECIPE / NEXTCRAFT use reverse craft graph for held item products.
-    #[test]
-    fn say_recipe_and_nextcraft_queries() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "recipe@x");
-        state.craft_graph.insert(1, 2, 3, 0);
-        state.craft_graph.insert(3, 4, 5, 0);
-        {
-            let pl = state.players.get_mut(&1).unwrap();
-            pl.held_id = 3; // product C
-        }
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "RECIPE".into(),
-            },
-        );
-        let mut saw_recipe = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 RECIPE 3 1+2")) {
-                saw_recipe = true;
-            }
-        }
-        assert!(saw_recipe, "RECIPE held-as-product lists ingredients_for");
-
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "NEXTCRAFT".into(),
-            },
-        );
-        let mut saw_next = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 NEXTCRAFT 3 5")) {
-                saw_next = true;
-            }
-        }
-        assert!(saw_next, "NEXTCRAFT held lists products using held");
-
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "RECIPE 5".into(),
-            },
-        );
-        let mut saw_arg = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains(&format!("{p_id}/0 RECIPE 5 3+4")) {
-                saw_arg = true;
-            }
-        }
-        assert!(saw_arg, "RECIPE <id> overrides held");
-    }
-
-    /// SAY SIT / STAND toggles sitting flag.
-    #[test]
-    fn say_sit_and_stand_toggle_sitting() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "sit@test");
-        assert!(!state.players.get(&1).unwrap().sitting);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SIT".into(),
-            },
-        );
-        assert!(state.players.get(&1).unwrap().sitting);
-        assert!(!state.players.get(&1).unwrap().sleeping);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "STAND".into(),
-            },
-        );
-        assert!(!state.players.get(&1).unwrap().sitting);
-    }
-
-    /// MOVE is rejected while sitting; works again after STAND.
-    #[test]
-    fn move_blocked_while_sitting() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "sitter@test");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 0;
-            p.y = 0;
-        }
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SIT".into(),
-            },
-        );
-        assert!(!apply_move_deltas(&mut state, 1, 0, 0, &[(1, 0)]));
-        assert_eq!(
-            (
-                state.players.get(&1).unwrap().x,
-                state.players.get(&1).unwrap().y
-            ),
-            (0, 0)
-        );
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "STAND".into(),
-            },
-        );
-        assert!(apply_move_deltas(&mut state, 1, 0, 0, &[(1, 0)]));
-        assert_eq!(
-            (
-                state.players.get(&1).unwrap().x,
-                state.players.get(&1).unwrap().y
-            ),
-            (1, 0)
-        );
-    }
-
-    /// While sitting, food drain is reduced by SIT_FOOD_DRAIN_MULT (0.75).
-    #[test]
-    fn sitting_reduces_food_drain() {
-        let hub = OutboundHub::new();
-        let mut standing = SimState::with_default_empty(test_content());
-        let mut sitting = SimState::with_default_empty(test_content());
-        spawn_player(&mut standing, 1, "stand");
-        spawn_player(&mut sitting, 1, "sit");
-        for s in [&mut standing, &mut sitting] {
-            s.environment.temperature = 0.5;
-            s.environment.season_length = 10_000.0;
-            s.environment.day_length = 10_000.0;
-            s.environment.hour_of_day = 12.0;
-        }
-        sitting.players.get_mut(&1).unwrap().sitting = true;
-
-        let food0 = standing.players.get(&1).unwrap().food;
-        assert_eq!(food0, sitting.players.get(&1).unwrap().food);
-
-        tick_vitals(&mut standing, 1.0, &hub);
-        tick_vitals(&mut sitting, 1.0, &hub);
-
-        let stand_lost = food0 - standing.players.get(&1).unwrap().food;
-        let sit_lost = food0 - sitting.players.get(&1).unwrap().food;
-        assert!(
-            (stand_lost - FOOD_USE_PER_SEC).abs() < 1e-4,
-            "standing drain: lost={stand_lost}"
-        );
-        let expected_sit = FOOD_USE_PER_SEC * SIT_FOOD_DRAIN_MULT;
-        assert!(
-            (sit_lost - expected_sit).abs() < 1e-4,
-            "sit drain: lost={sit_lost} expected={expected_sit}"
-        );
-        assert!(sit_lost < stand_lost);
-        assert!(sit_lost > FOOD_USE_PER_SEC * SLEEP_FOOD_DRAIN_MULT);
-    }
-
-    /// Speech volume radii: whisper=1, mumble=4, shout=48.
-    #[test]
-    fn speech_volume_constants() {
-        assert_eq!(WHISPER_CHAT_RANGE, 1);
-        assert_eq!(MUMBLE_CHAT_RANGE, 4);
-        assert_eq!(MUMBLE_RANGE, 4);
-        assert_eq!(SHOUT_CHAT_RANGE, 48);
-        assert_eq!(SHOUT_RANGE, 48);
-        assert_eq!(SpeechVolume::Whisper.range(), 1);
-        assert_eq!(SpeechVolume::Mumble.range(), 4);
-        assert_eq!(SpeechVolume::Shout.range(), 48);
-    }
-
-    // â”€â”€ COUNT / NEAR / DIST / BIOME / FLOOR / FORGETTOOLS / floor DROP â”€â”€
-
-    #[test]
-    fn format_count_query_matches_online() {
-        let mut state = SimState::with_default_empty(test_content());
-        assert_eq!(state.count_online(), 0);
-        assert_eq!(state.format_count_query(), "COUNT 0");
-        spawn_player(&mut state, 1, "a");
-        spawn_player(&mut state, 2, "b");
-        assert_eq!(state.count_online(), 2);
-        assert_eq!(state.format_count_query(), "COUNT 2");
-        state.players.get_mut(&2).unwrap().connected = false;
-        assert_eq!(state.format_count_query(), "COUNT 1");
-        state.players.get_mut(&2).unwrap().connected = true;
-        state.players.get_mut(&2).unwrap().deleted = true;
-        assert_eq!(state.format_count_query(), "COUNT 1");
-    }
-
-    #[test]
-    fn say_count_returns_online_count_via_ps() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "count@x");
-        spawn_player(&mut state, 2, "count2@x");
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "COUNT".into(),
-            },
-        );
-        let ps = rx.try_recv().expect("PS COUNT");
-        let s = String::from_utf8_lossy(&ps);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s.starts_with("PS\n"), "got {s}");
-        assert!(s.contains(&format!("{p_id}/0 COUNT 2")), "got {s}");
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?COUNT".into(),
-            },
-        );
-        let ps2 = rx.try_recv().expect("PS ?COUNT");
-        let s2 = String::from_utf8_lossy(&ps2);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s2.contains("COUNT 2"), "got {s2}");
-    }
-
-    #[test]
-    fn nearby_p_ids_respects_range_and_sorts() {
-        let mut state = SimState::with_default_empty(test_content());
-        let a = spawn_player(&mut state, 1, "near_a");
-        let b = spawn_player(&mut state, 2, "near_b");
-        let c = spawn_player(&mut state, 3, "near_c");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 0;
-            p.y = 0;
-        }
-        {
-            let p = state.players.get_mut(&2).unwrap();
-            p.x = 5;
-            p.y = 0; // within 24
-        }
-        {
-            let p = state.players.get_mut(&3).unwrap();
-            p.x = 100;
-            p.y = 100; // far
-        }
-        let near = state.nearby_p_ids(0, 0, NEARBY_RANGE);
-        assert!(near.contains(&a));
-        assert!(near.contains(&b));
-        assert!(!near.contains(&c));
-        // Sorted ascending.
-        let mut sorted = near.clone();
-        sorted.sort_unstable();
-        assert_eq!(near, sorted);
-        assert_eq!(
-            state.format_near_query_at(0, 0),
-            format!("NEAR {}", near.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(" "))
-        );
-        // Far tile: only c if we query at c.
-        let far = state.nearby_p_ids(100, 100, NEARBY_RANGE);
-        assert_eq!(far, vec![c]);
-        assert_eq!(state.format_near_query_at(50, 50), "NEAR none");
-    }
-
-    #[test]
-    fn say_near_lists_nearby_p_ids() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let a = spawn_player(&mut state, 1, "n1");
-        let b = spawn_player(&mut state, 2, "n2");
-        state.players.get_mut(&1).unwrap().x = 0;
-        state.players.get_mut(&1).unwrap().y = 0;
-        state.players.get_mut(&2).unwrap().x = 1;
-        state.players.get_mut(&2).unwrap().y = 1;
-        let expected = state.format_near_query_at(0, 0);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "NEAR".into(),
-            },
-        );
-        let ps = rx.try_recv().expect("PS NEAR");
-        let s = String::from_utf8_lossy(&ps);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s.contains(&format!("{a}/0 {expected}")), "got {s}");
-        assert!(s.contains(&a.to_string()) && s.contains(&b.to_string()), "got {s}");
-    }
-
-    #[test]
-    fn dist_to_player_chebyshev() {
-        let mut state = SimState::with_default_empty(test_content());
-        let a = spawn_player(&mut state, 1, "d1");
-        let b = spawn_player(&mut state, 2, "d2");
-        state.players.get_mut(&1).unwrap().x = 0;
-        state.players.get_mut(&1).unwrap().y = 0;
-        state.players.get_mut(&2).unwrap().x = 3;
-        state.players.get_mut(&2).unwrap().y = 4;
-        assert_eq!(state.dist_to_player(0, 0, b), Some(4));
-        assert_eq!(state.dist_to_player(0, 0, a), Some(0));
-        assert_eq!(
-            state.format_dist_query_to(0, 0, b),
-            format!("DIST {b} 4")
-        );
-        assert_eq!(
-            state.format_dist_query_to(0, 0, 9999),
-            "DIST 9999 FAIL"
-        );
-        state.players.get_mut(&2).unwrap().connected = false;
-        assert_eq!(state.dist_to_player(0, 0, b), None);
-    }
-
-    #[test]
-    fn say_dist_returns_chebyshev_or_fail() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let a = spawn_player(&mut state, 1, "dist_a");
-        let b = spawn_player(&mut state, 2, "dist_b");
-        state.players.get_mut(&1).unwrap().x = 10;
-        state.players.get_mut(&1).unwrap().y = 10;
-        state.players.get_mut(&2).unwrap().x = 12;
-        state.players.get_mut(&2).unwrap().y = 15; // chebyshev 5
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("DIST {b}"),
-            },
-        );
-        let ps = rx.try_recv().expect("PS DIST");
-        let s = String::from_utf8_lossy(&ps);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s.contains(&format!("{a}/0 DIST {b} 5")), "got {s}");
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "DIST 999".into(),
-            },
-        );
-        let ps2 = rx.try_recv().expect("PS DIST fail");
-        let s2 = String::from_utf8_lossy(&ps2);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s2.contains("DIST 999 FAIL"), "got {s2}");
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "DIST".into(),
-            },
-        );
-        let ps3 = rx.try_recv().expect("PS bare DIST");
-        let s3 = String::from_utf8_lossy(&ps3);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s3.contains("DIST 0 FAIL"), "got {s3}");
-    }
-
-    #[test]
-    fn say_biome_under_feet_with_name() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "biome@x");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 3;
-            p.y = 7;
-        }
-        state.world.write().unwrap().set_biome(3, 7, 5); // desert
-        assert_eq!(biome_name(5), "desert");
-        assert_eq!(format_biome_query(5, "desert"), "BIOME 5 desert");
-        // Optional hex from biome_colors primary desert color.
-        assert_eq!(
-            format_biome_query_with_hex(5, "desert", Some("DBAC4D")),
-            "BIOME 5 desert DBAC4D"
-        );
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "BIOME".into(),
-            },
-        );
-        let ps = rx.try_recv().expect("PS BIOME");
-        let s = String::from_utf8_lossy(&ps);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(
-            s.contains(&format!("{p_id}/0 BIOME 5 desert DBAC4D")),
-            "got {s}"
-        );
-
-        while rx.try_recv().is_ok() {}
-        state.world.write().unwrap().set_biome(3, 7, 21);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?BIOME".into(),
-            },
-        );
-        let ps2 = rx.try_recv().expect("PS ?BIOME");
-        let s2 = String::from_utf8_lossy(&ps2);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s2.contains("BIOME 21 mountain 404040"), "got {s2}");
-    }
-
-    #[test]
-    fn say_floor_under_feet() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "floor@x");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.x = 2;
-            p.y = 2;
-        }
-        assert_eq!(format_floor_query(0), "FLOOR 0");
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "FLOOR".into(),
-            },
-        );
-        let ps = rx.try_recv().expect("PS FLOOR");
-        let s = String::from_utf8_lossy(&ps);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s.contains(&format!("{p_id}/0 FLOOR 0")), "got {s}");
-
-        state.world.write().unwrap().set_floor(2, 2, 1596);
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?FLOOR".into(),
-            },
-        );
-        let ps2 = rx.try_recv().expect("PS ?FLOOR");
-        let s2 = String::from_utf8_lossy(&ps2);
-        while matches!(rx.try_recv(), Ok(ref b) if String::from_utf8_lossy(b).starts_with("FM")) {}
-
-        assert!(s2.contains("FLOOR 1596"), "got {s2}");
-    }
-
-    #[test]
-    fn say_forgettools_clears_learned_and_emits_ts_lr() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "forget@x");
-        {
-            let p = state.players.get_mut(&1).unwrap();
-            p.tools.learn(334);
-            p.tools.learn(12);
-            p.tools.mark_expert(99);
-        }
-        assert_eq!(state.players.get(&1).unwrap().tools.used, 3);
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "FORGETTOOLS".into(),
-            },
-        );
-        let tools = &state.players.get(&1).unwrap().tools;
-        assert_eq!(tools.used, 0);
-        assert!(tools.learned.is_empty());
-        assert!(tools.experts.is_empty());
-
-        let mut saw_ps = false;
-        let mut saw_ts = false;
-        let mut saw_lr = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("FORGETTOOLS OK") {
-                saw_ps = true;
-                assert!(s.contains(&format!("{p_id}/0 FORGETTOOLS OK")), "got {s}");
-                assert!(s.contains("TOOLS 0 1000 learned=0"), "got {s}");
-            }
-            if s.starts_with("TS\n") {
-                saw_ts = true;
-                assert!(s.contains("0 1000"), "got {s}");
-            }
-            if s.starts_with("LR\n") {
-                saw_lr = true;
-            }
-        }
-        assert!(saw_ps, "expected FORGETTOOLS PS");
-        assert!(saw_ts, "expected TS after forget");
-        assert!(saw_lr, "expected empty LR after forget");
-    }
-
-    #[test]
-    fn drop_skips_floor_only_object() {
-        let hub = OutboundHub::new();
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            1596,
-            ObjectDef {
-                id: 1596,
-                description: "Stone Road# groundOnly".into(),
-                name: "Stone Road".into(),
-                containable: false,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: vec![],
-                num_uses: 0,
-                num_slots: 0,
-                floor: true,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        db.objects.insert(
-            33,
-            ObjectDef {
-                id: 33,
-                description: "Gooseberry".into(),
-                name: "Gooseberry".into(),
-                containable: true,
-                permanent: false,
-                blocks_walking: false,
-                food_value: 3,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: vec![],
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(Arc::new(db));
-        spawn_player(&mut state, 1, "floor_drop");
-        set_player_position(&mut state, 1, 4, 5);
-        // Floor-only: skip place, keep held.
-        state.players.get_mut(&1).unwrap().held_id = 1596;
-        apply_drop(&mut state, &hub, 1, 4, 5, None);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 1596);
-        assert_eq!(state.world.read().unwrap().get_object(4, 5), 0);
-        assert_eq!(state.world.read().unwrap().get_floor(4, 5), 0);
-
-        // Non-floor places normally.
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        apply_drop(&mut state, &hub, 1, 4, 5, None);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
-        assert_eq!(state.world.read().unwrap().get_object(4, 5), 33);
-    }
-
-    #[test]
-    fn pure_query_formatters_count_near_dist_biome_floor() {
-        assert_eq!(format_count_query(0), "COUNT 0");
-        assert_eq!(format_count_query(7), "COUNT 7");
-        assert_eq!(format_near_query(&[]), "NEAR none");
-        assert_eq!(format_near_query(&[3, 8]), "NEAR 3 8");
-        assert_eq!(query_chebyshev(1, 1, 4, 5), 4);
-        assert_eq!(format_dist_query(2, Some(0)), "DIST 2 0");
-        assert_eq!(format_dist_query(2, None), "DIST 2 FAIL");
-        assert_eq!(format_biome_query(0, "grassland"), "BIOME 0 grassland");
-        assert_eq!(format_biome_query(42, ""), "BIOME 42");
-        assert_eq!(format_floor_query(1596), "FLOOR 1596");
-        assert_eq!(biome_name(1), "swamp");
-        assert_eq!(biome_name(2), "yellow");
-        assert_eq!(biome_name(3), "gray");
-    }
-
-    #[test]
-    fn help_lists_count_near_dist_biome_floor_forgettools() {
-        let h = SimState::format_help_query();
-        for token in [
-            "COUNT",
-            "NEAR",
-            "DIST",
-            "?BIOME",
-            "?HEX",
-            "?TAGS",
-            "?FLOOR",
-            "FORGETTOOLS",
-            "?TWINS",
-            "?WARM",
-            "?SPEED",
-            "?WEIGHT",
-            "?DRAIN",
-            "?AFK",
-            "HARVEST",
-            "FISH",
-            "MINE",
-            "DIG",
-            "CHOP",
-            "REGEN",
-            "CLEAROBJ",
-            "FILL",
-        ] {
-            assert!(h.contains(token), "HELP missing {token}: {h}");
-        }
-    }
-
-    /// SAY ?TWINS lists stub twin peers (no network).
-    #[test]
-    fn say_twins_lists_peers_or_none() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "twin@x");
-        while rx.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?TWINS".into(),
-            },
-        );
-        let mut saw_none = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("TWINS none") {
-                saw_none = true;
-            }
-        }
-        assert!(saw_none, "empty registry should reply TWINS none");
-
-        state.twins = TwinRegistry::from_endpoints([("127.0.0.1", 8006u16)]);
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "TWINS".into(),
-            },
-        );
-        let mut saw_peer = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("127.0.0.1:8006") {
-                saw_peer = true;
-            }
-        }
-        assert!(saw_peer, "configured peer should appear in ?TWINS");
-    }
-
-    /// FERTILITY-TWINS: male fails BIRTH; female succeeds.
-    #[test]
-    fn birth_requires_female_is_fertile() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "male@x");
-        state.players.get_mut(&1).unwrap().age = 20.0;
-        state.players.get_mut(&1).unwrap().display_object_id = 352;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "BIRTH".into(),
-            },
-        );
-        let mut saw_male = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("BIRTH FAIL MALE") {
-                saw_male = true;
-            }
-        }
-        assert!(saw_male, "male (non-19 po) must fail BIRTH");
-
-        state.players.get_mut(&1).unwrap().display_object_id = 19;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "BIRTH".into(),
-            },
-        );
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("BIRTH") && s.contains("OK") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_ok, "female (po 19) must BIRTH OK");
-    }
-
-    /// FERTILITY-TWINS: TWINJOIN fills party and births twins.
-    #[test]
-    fn twin_join_party_ready_births() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 9, "mom@x");
-        state.players.get_mut(&9).unwrap().age = 25.0;
-        state.players.get_mut(&9).unwrap().display_object_id = 19;
-        spawn_player(&mut state, 1, "t1@x");
-        spawn_player(&mut state, 2, "t2@x");
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "TWINJOIN secretcode 2".into(),
-            },
-        );
-        let mut waiting = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("TWINWAIT have=1/2") {
-                waiting = true;
-            }
-        }
-        assert!(waiting, "first joiner should wait");
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "TWINJOIN secretcode 2".into(),
-            },
-        );
-        let mut ready = false;
-        for rx in [&mut rx1, &mut rx2] {
-            while let Ok(pkt) = rx.try_recv() {
-                let s = String::from_utf8_lossy(&pkt);
-                if s.contains("TWINREADY") || s.contains("TWINBORN") {
-                    ready = true;
-                }
-            }
-        }
-        assert!(ready, "party should ready+born");
-        assert!(state.players.get(&1).unwrap().age < 1.0, "twin1 baby");
-        assert!(state.players.get(&2).unwrap().age < 1.0, "twin2 baby");
-        assert!(state.twin_wait.is_empty());
-    }
-
-    /// FERTILITY-TWINS: pure is_fertile matches Haxe.
-    #[test]
-
-    /// TWIN-PARTY-RESID: murder of one twin wounds siblings with broken heart.
-    #[test]
-    fn twin_heart_link_on_murder_wounds_sibling() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let _rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 9, "mom@x");
-        state.players.get_mut(&9).unwrap().age = 25.0;
-        state.players.get_mut(&9).unwrap().display_object_id = 19;
-        spawn_player(&mut state, 1, "t1@x");
-        spawn_player(&mut state, 2, "t2@x");
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "TWINJOIN heartcode 2".into(),
-            },
-        );
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "TWINJOIN heartcode 2".into(),
-            },
-        );
-        let p1 = state.players.get(&1).unwrap().p_id;
-        let p2 = state.players.get(&2).unwrap().p_id;
-        assert!(state.twin_heart.is_linked(p1), "twin1 linked");
-        assert!(state.twin_heart.is_linked(p2), "twin2 linked");
-        state.players.get_mut(&1).unwrap().deleted = true;
-        state.players.get_mut(&1).unwrap().death_reason =
-            Some(DeathCause::Killed.wire_tag().into());
-        apply_twin_heart_link_on_murder(&mut state, &hub, p1);
-        assert!(!state.twin_heart.is_linked(p1), "deceased unlinked");
-        let w = state.combat.wound_of(p2);
-        assert!(w >= BROKEN_HEART_WOUND_STACKS, "sibling wounded stacks={w}");
-        let _ = rx2.try_recv();
-    }
-
-    /// TWIN-PARTY-RESID: wait queue timeout evicts stale waiters.
-    #[test]
-    fn twin_wait_timeout_evicts() {
-        let mut q = TwinWaitQueue::new();
-        let _ = q.join("late", 2, 1, "a@x", 0.0);
-        assert!(q.is_waiting(1));
-        let gone = q.poll_timeouts(TWIN_WAIT_TIMEOUT_SECS + 1.0, TWIN_WAIT_TIMEOUT_SECS);
-        assert_eq!(gone, vec![1u64]);
-        assert!(!q.is_waiting(1));
-        assert_eq!(format_twin_timeout_ps(), "TWINWAIT FAIL timeout");
-    }
-
-    /// TWIN-PARTY-RESID: murder reason classifier (not legal / suicide).
-    #[test]
-    fn twin_murder_reason_classifier() {
-        assert!(is_murder_death_reason("reason_killed"));
-        assert!(is_murder_death_reason("reason_killed_33"));
-        assert!(!is_murder_death_reason("reason_killed_legal"));
-        assert!(!is_murder_death_reason("reason_suicide"));
-        assert!(!is_murder_death_reason("reason_hunger"));
-    }
-
-    fn is_fertile_haxe_parity_unit() {
-        assert!(is_fertile(false, 20.0, true));
-        assert!(!is_fertile(false, 20.0, false));
-        assert!(!is_fertile(true, 20.0, true));
-        assert!(!is_fertile(false, 13.9, true));
-        assert!(is_fertile(false, 42.0, true));
-        assert!(!is_fertile(false, 42.01, true));
-    }
-
-    #[test]
-    fn object_def_is_floor_flag() {
-        let mut floor = ObjectDef::empty(1);
-        floor.floor = true;
-        assert!(floor.is_floor());
-        let ground = ObjectDef::empty(2);
-        assert!(!ground.is_floor());
-    }
-
-    /// SAY PUSH shoves adjacent non-god target one tile away (or swaps if blocked).
-    #[test]
-    fn say_push_shoves_or_swaps_adjacent() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        let _p1 = spawn_player(&mut state, 1, "pusher@x");
-        let p2 = spawn_player(&mut state, 2, "target@x");
-        // Place adjacent on open ground.
-        state.players.get_mut(&1).unwrap().x = 10;
-        state.players.get_mut(&1).unwrap().y = 10;
-        state.players.get_mut(&2).unwrap().x = 11;
-        state.players.get_mut(&2).unwrap().y = 10;
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("PUSH {p2}"),
-            },
-        );
-        let t = state.players.get(&2).unwrap();
-        // Shoved away: from (11,10) away from (10,10) â†’ (12,10).
-        assert_eq!((t.x, t.y), (12, 10), "target should be shoved one tile away");
-        assert_eq!(
-            (state.players.get(&1).unwrap().x, state.players.get(&1).unwrap().y),
-            (10, 10),
-            "actor stays on shove"
-        );
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("PUSH") && s.contains("OK") && s.contains("shove") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_ok, "expected PUSH OK shove PS");
-
-        // God target cannot be pushed.
-        state.players.get_mut(&2).unwrap().godmode = true;
-        state.players.get_mut(&2).unwrap().x = 11;
-        state.players.get_mut(&2).unwrap().y = 10;
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("PUSH {p2}"),
-            },
-        );
-        assert_eq!(
-            (state.players.get(&2).unwrap().x, state.players.get(&2).unwrap().y),
-            (11, 10),
-            "god target stays put"
-        );
-        let mut saw_god = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("FAIL god") {
-                saw_god = true;
-            }
-        }
-        assert!(saw_god, "expected PUSH FAIL god");
-
-        // Swap path: block shove dest with a third player.
-        state.players.get_mut(&2).unwrap().godmode = false;
-        let p3 = spawn_player(&mut state, 3, "blocker@x");
-        let _ = hub.register(3);
-        state.players.get_mut(&1).unwrap().x = 20;
-        state.players.get_mut(&1).unwrap().y = 20;
-        state.players.get_mut(&2).unwrap().x = 21;
-        state.players.get_mut(&2).unwrap().y = 20;
-        state.players.get_mut(&3).unwrap().x = 22;
-        state.players.get_mut(&3).unwrap().y = 20;
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("PUSH {p2}"),
-            },
-        );
-        // Swap: actor â†” target.
-        assert_eq!(
-            (state.players.get(&1).unwrap().x, state.players.get(&1).unwrap().y),
-            (21, 20)
-        );
-        assert_eq!(
-            (state.players.get(&2).unwrap().x, state.players.get(&2).unwrap().y),
-            (20, 20)
-        );
-        let mut saw_swap = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("swap") {
-                saw_swap = true;
-            }
-        }
-        assert!(saw_swap, "expected PUSH OK swap when dest occupied by {p3}");
-    }
-
-    /// SAY PULL pulls adjacent target one step toward self when dest is free.
-    #[test]
-    fn say_pull_moves_adjacent_toward_self() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let _p1 = spawn_player(&mut state, 1, "puller@x");
-        let p2 = spawn_player(&mut state, 2, "pulled@x");
-        let _ = hub.register(2);
-        state.players.get_mut(&1).unwrap().x = 5;
-        state.players.get_mut(&1).unwrap().y = 5;
-        state.players.get_mut(&2).unwrap().x = 6;
-        state.players.get_mut(&2).unwrap().y = 5;
-        while rx1.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("PULL {p2}"),
-            },
-        );
-        // Adjacent pull lands on actor tile (5,5).
-        assert_eq!(
-            (state.players.get(&2).unwrap().x, state.players.get(&2).unwrap().y),
-            (5, 5)
-        );
-        let mut saw = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("PULL") && s.contains("OK") {
-                saw = true;
-            }
-        }
-        assert!(saw, "expected PULL OK");
-
-        // Far target â†’ range fail.
-        state.players.get_mut(&2).unwrap().x = 20;
-        state.players.get_mut(&2).unwrap().y = 20;
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("PULL {p2}"),
-            },
-        );
-        assert_eq!(
-            (state.players.get(&2).unwrap().x, state.players.get(&2).unwrap().y),
-            (20, 20)
-        );
-        let mut saw_range = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("FAIL range") {
-                saw_range = true;
-            }
-        }
-        assert!(saw_range, "expected PULL FAIL range");
-    }
-
-    /// SAY KISS emits PE cute/love when adjacent; tiny prestige for ally.
-    #[test]
-    fn say_kiss_pe_cute_and_ally_prestige() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p1 = spawn_player(&mut state, 1, "kisser@x");
-        let p2 = spawn_player(&mut state, 2, "kissed@x");
-        let _ = hub.register(2);
-        state.players.get_mut(&1).unwrap().x = 3;
-        state.players.get_mut(&1).unwrap().y = 3;
-        state.players.get_mut(&2).unwrap().x = 4;
-        state.players.get_mut(&2).unwrap().y = 3;
-        // Ensure lineage exists for prestige sync.
-        state.social.ensure_lineage(p1, "Kisser");
-        while rx1.try_recv().is_ok() {}
-
-        // Non-ally kiss: PE cute, no prestige.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("KISS {p2}"),
-            },
-        );
-        let mut saw_pe = false;
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PE\n") && s.contains(&format!("{p1} {CUTE_EMOT_INDEX}")) {
-                saw_pe = true;
-            }
-            if s.contains("KISS") && s.contains("OK cute") && !s.contains("prestige=") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_pe, "expected PE cute emote");
-        assert!(saw_ok, "expected KISS OK cute without prestige");
-        let prest0 = state.player_prestige(p1);
-        assert!(prest0 < KISS_ALLY_PRESTIGE * 0.5 || prest0 == 0.0);
-
-        // Ally kiss: tiny prestige.
-        state.allies.add(p1, p2).unwrap();
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("KISS {p2}"),
-            },
-        );
-        let prest1 = state.player_prestige(p1);
-        assert!(
-            (prest1 - KISS_ALLY_PRESTIGE).abs() < 1e-5,
-            "ally kiss prestige, got {prest1}"
-        );
-        let mut saw_ally = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("prestige=") && s.contains("KISS") {
-                saw_ally = true;
-            }
-        }
-        assert!(saw_ally, "expected ally KISS prestige note");
-    }
-
-    /// SAY THANK <p_id>: prestige +0.05 when adjacent; FAIL range/offline/self.
-    #[test]
-    fn say_thank_adjacent_prestige() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p1 = spawn_player(&mut state, 1, "thanker@x");
-        let p2 = spawn_player(&mut state, 2, "thanked@x");
-        let _ = hub.register(2);
-        state.players.get_mut(&1).unwrap().x = 5;
-        state.players.get_mut(&1).unwrap().y = 5;
-        state.players.get_mut(&2).unwrap().x = 6;
-        state.players.get_mut(&2).unwrap().y = 5;
-        state.social.ensure_lineage(p1, "Thanker");
-        while rx1.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("THANK {p2}"),
-            },
-        );
-        let prest = state.player_prestige(p1);
-        assert!(
-            (prest - THANK_PRESTIGE).abs() < 1e-5,
-            "thank prestige, got {prest}"
-        );
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("THANK") && s.contains("OK") && s.contains("prestige=") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_ok, "expected THANK OK prestige note");
-
-        // Out of range â†’ FAIL range, no extra prestige.
-        state.players.get_mut(&2).unwrap().x = 20;
-        state.players.get_mut(&2).unwrap().y = 20;
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("THANK {p2}"),
-            },
-        );
-        assert!(
-            (state.player_prestige(p1) - THANK_PRESTIGE).abs() < 1e-5,
-            "range fail must not add prestige"
-        );
-        let mut saw_range = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("FAIL range") {
-                saw_range = true;
-            }
-        }
-        assert!(saw_range, "expected THANK FAIL range");
-
-        // Self thank rejected.
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("THANK {p1}"),
-            },
-        );
-        let mut saw_self = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("FAIL self") {
-                saw_self = true;
-            }
-        }
-        assert!(saw_self, "expected THANK FAIL self");
-    }
-
-    /// SAY CURSE <p_id> spends one token and raises target score; second curse fails.
-    #[test]
-    fn say_curse_spends_token() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        let p1 = spawn_player(&mut state, 1, "curser@x");
-        let p2 = spawn_player(&mut state, 2, "cursed@x");
-        assert_eq!(state.curses.tokens(p1), DEFAULT_CURSE_TOKENS);
-        assert_eq!(state.curses.score(p2), 0);
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("CURSE {p2}"),
-            },
-        );
-        assert_eq!(state.curses.tokens(p1), 0, "token spent");
-        assert_eq!(state.curses.score(p2), 1, "target score +1");
-        let mut saw_ok = false;
-        let mut saw_cx = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("CURSE") && s.contains("OK") && s.contains("tokens=0") {
-                saw_ok = true;
-            }
-            if s.starts_with("CX\n") {
-                saw_cx = true;
-            }
-        }
-        assert!(saw_ok, "expected CURSE OK PS");
-        assert!(saw_cx, "expected CX after curse");
-        let mut saw_cs_target = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            if String::from_utf8_lossy(&pkt).starts_with("CS\n") {
-                saw_cs_target = true;
-            }
-        }
-        assert!(saw_cs_target, "target should receive CS");
-
-        // No tokens left â†’ FAIL no_token.
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("CURSE {p2}"),
-            },
-        );
-        assert_eq!(state.curses.score(p2), 1, "score unchanged without token");
-        let mut saw_fail = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("FAIL no_token") {
-                saw_fail = true;
-            }
-        }
-        assert!(saw_fail, "expected CURSE FAIL no_token");
-
-        // Self-curse rejected without spending (re-grant token first).
-        state.curses.add_token(p1);
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("CURSE {p1}"),
-            },
-        );
-        assert_eq!(state.curses.tokens(p1), 1, "self-curse must not spend");
-        let mut saw_self = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("FAIL self") {
-                saw_self = true;
-            }
-        }
-        assert!(saw_self, "expected CURSE FAIL self");
-    }
-
-    /// SAY BLESS <p_id>: clear wounds + tiny prestige when adjacent.
-    #[test]
-    fn say_bless_clears_wound_and_prestige() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p1 = spawn_player(&mut state, 1, "blesser@x");
-        let p2 = spawn_player(&mut state, 2, "blessed@x");
-        let _ = hub.register(2);
-        state.players.get_mut(&1).unwrap().x = 8;
-        state.players.get_mut(&1).unwrap().y = 8;
-        state.players.get_mut(&2).unwrap().x = 9;
-        state.players.get_mut(&2).unwrap().y = 8;
-        state.social.ensure_lineage(p1, "Blesser");
-        state.combat.apply_wound(p2, 2);
-        assert_eq!(state.combat.wound_of(p2), 2);
-        while rx1.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("BLESS {p2}"),
-            },
-        );
-        assert_eq!(state.combat.wound_of(p2), 0, "wounds cleared");
-        let prest = state.player_prestige(p1);
-        assert!(
-            (prest - BLESS_PRESTIGE).abs() < 1e-5,
-            "bless prestige, got {prest}"
-        );
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("BLESS") && s.contains("OK") && s.contains("was=2") && s.contains("prestige=")
-            {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_ok, "expected BLESS OK was=2 prestige note");
-
-        // Out of range: no heal, no extra prestige.
-        state.combat.apply_wound(p2, 1);
-        state.players.get_mut(&2).unwrap().x = 30;
-        state.players.get_mut(&2).unwrap().y = 30;
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("BLESS {p2}"),
-            },
-        );
-        assert_eq!(state.combat.wound_of(p2), 1, "range fail keeps wound");
-        assert!(
-            (state.player_prestige(p1) - BLESS_PRESTIGE).abs() < 1e-5,
-            "range fail must not add prestige"
-        );
-        let mut saw_range = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("FAIL range") {
-                saw_range = true;
-            }
-        }
-        assert!(saw_range, "expected BLESS FAIL range");
-    }
-
-    /// HELP lists THANK / CURSE / BLESS / HUG / SLAP speech acts.
-    #[test]
-    fn say_help_lists_thank_curse_bless() {
-        let help = SimState::format_help_query();
-        assert!(help.contains("THANK"), "HELP should list THANK");
-        assert!(help.contains("CURSE"), "HELP should list CURSE");
-        assert!(help.contains("BLESS"), "HELP should list BLESS");
-        assert!(help.contains("HUG"), "HELP should list HUG");
-        assert!(help.contains("SLAP"), "HELP should list SLAP");
-        assert!(help.contains("MUTE"), "HELP should list MUTE");
-        assert!(help.contains("UNMUTE"), "HELP should list UNMUTE");
-        assert!(help.contains("DEAF"), "HELP should list DEAF");
-        assert!(help.contains("?REP"), "HELP should list ?REP");
-    }
-
-    /// SAY MUTE filters normal chat PS; UNMUTE / MUTE LIST; ?REP after illegal kill.
-    #[test]
-    fn say_mute_filters_chat_and_rep_on_kill() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        let a = spawn_player(&mut state, 1, "speaker@x");
-        let b = spawn_player(&mut state, 2, "listener@x");
-        set_player_position(&mut state, 1, 0, 0);
-        set_player_position(&mut state, 2, 1, 0);
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        // Listener mutes speaker.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: format!("MUTE {a}"),
-            },
-        );
-        let mut saw_mute_ok = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("MUTE") && s.contains("OK") {
-                saw_mute_ok = true;
-            }
-        }
-        assert!(saw_mute_ok, "expected MUTE OK");
-        assert!(!state.mutes.should_deliver(b, a));
-
-        // Normal SAY from A must not reach B.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "hello muted".into(),
-            },
-        );
-        let mut b_heard = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("hello muted") {
-                b_heard = true;
-            }
-        }
-        assert!(!b_heard, "muted listener must not receive normal SAY PS");
-        // Speaker still hears self.
-        let mut a_heard = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("hello muted") {
-                a_heard = true;
-            }
-        }
-        assert!(a_heard, "speaker should still receive own SAY");
-
-        // MUTE LIST
-        while rx2.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "MUTE LIST".into(),
-            },
-        );
-        let mut saw_list = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("MUTE") && s.contains(&a.to_string()) {
-                saw_list = true;
-            }
-        }
-        assert!(saw_list, "expected MUTE LIST with speaker id");
-
-        // UNMUTE restores delivery.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: format!("UNMUTE {a}"),
-            },
-        );
-        assert!(state.mutes.should_deliver(b, a));
-
-        // Illegal kill worsens reputation; ?REP reports it.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("KILL {b}"),
-            },
-        );
-        assert_eq!(state.reputation.get(a), -1.0);
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "?REP".into(),
-            },
-        );
-        let mut saw_rep = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("REP") && s.contains("score=-1.0") {
-                saw_rep = true;
-            }
-        }
-        assert!(saw_rep, "expected PS ?REP with score=-1.0");
-    }
-
-    /// Numeric client_tag triggers version gate soft path; LOGIN still succeeds
-    /// when `client_version_strict` is false.
-    #[test]
-    fn login_version_gate_soft_only() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let _rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        state.version_gate = VersionGatePolicy::strict(437);
-        state.client_version_strict = false;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "v@x".into(),
-                client_tag: "400".into(), // mismatch â†’ soft log, still spawn
-            },
-        );
-        assert!(
-            state.players.contains_key(&1),
-            "soft version mismatch must not block LOGIN"
-        );
-        assert_eq!(state.players.get(&1).unwrap().p_id, 2);
-    }
-
-    /// `client_version_strict` hard-rejects LOGIN on version mismatch (PS + no spawn).
-    #[test]
-    fn login_version_gate_strict_hard_reject() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        state.version_gate = VersionGatePolicy {
-            required: 437,
-            require_exact: true,
-            allow_newer: false,
-            require_client_version: false,
-        };
-        state.client_version_strict = true;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 1,
-                reconnect: false,
-                email: "strict@x".into(),
-                client_tag: "400".into(),
-            },
-        );
-        assert!(
-            !state.players.contains_key(&1),
-            "strict mismatch must not spawn player"
-        );
-        let mut saw_ps = false;
-        let mut saw_rejected = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("VERSION REJECTED") {
-                saw_ps = true;
-                assert!(s.contains("client=400"), "got {s}");
-                assert!(s.contains("required=437"), "got {s}");
-            }
-            if s.starts_with("REJECTED") {
-                saw_rejected = true;
-            }
-        }
-        assert!(saw_ps, "expected PS VERSION REJECTED");
-        assert!(saw_rejected, "expected REJECTED tag");
-
-        // Matching version still logs in under strict.
-        let _rx2 = hub.register(2);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Login {
-                conn_id: 2,
-                reconnect: false,
-                email: "ok@x".into(),
-                client_tag: "437".into(),
-            },
-        );
-        assert!(state.players.contains_key(&2));
-    }
-
-    /// MUTE also blocks WHISPER (unlike DEAF).
-    #[test]
-    fn say_mute_blocks_whisper() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        let a = spawn_player(&mut state, 1, "speaker@x");
-        let b = spawn_player(&mut state, 2, "listener@x");
-        set_player_position(&mut state, 1, 0, 0);
-        set_player_position(&mut state, 2, 1, 0);
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: format!("MUTE {a}"),
-            },
-        );
-        while rx2.try_recv().is_ok() {}
-        assert!(!state.mutes.should_deliver(b, a));
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("WHISPER {b} secret muted"),
-            },
-        );
-        let mut b_heard = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("secret muted") {
-                b_heard = true;
-            }
-        }
-        assert!(!b_heard, "muted listener must not receive WHISPER");
-        assert!(rx1.try_recv().is_err(), "whisperer must not get echo when dropped");
-        let _ = a;
-        let _ = b;
-    }
-
-    /// SAY DEAF toggles Player.deaf; blocks normal chat; WHISPER still delivers.
-    #[test]
-    fn say_deaf_blocks_chat_allows_whisper() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut rx2 = hub.register(2);
-        let mut state = SimState::with_default_empty(test_content());
-        let a = spawn_player(&mut state, 1, "speaker@x");
-        let b = spawn_player(&mut state, 2, "listener@x");
-        set_player_position(&mut state, 1, 0, 0);
-        set_player_position(&mut state, 2, 1, 0);
-        while rx1.try_recv().is_ok() {}
-        while rx2.try_recv().is_ok() {}
-
-        // Listener goes deaf.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "DEAF".into(),
-            },
-        );
-        assert!(state.players.get(&2).unwrap().deaf);
-        let mut saw_on = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("DEAF ON") {
-                saw_on = true;
-            }
-        }
-        assert!(saw_on, "expected DEAF ON");
-
-        // Normal SAY from A must not reach deaf B.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "hello deaf".into(),
-            },
-        );
-        let mut b_heard = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("hello deaf") {
-                b_heard = true;
-            }
-        }
-        assert!(!b_heard, "deaf listener must not receive normal SAY");
-
-        // WHISPER still reaches deaf B.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("WHISPER {b} secret deaf"),
-            },
-        );
-        let mut b_whisper = false;
-        while let Ok(pkt) = rx2.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("secret deaf") {
-                b_whisper = true;
-            }
-        }
-        assert!(b_whisper, "deaf listener must still receive WHISPER");
-
-        // Toggle off.
-        while rx2.try_recv().is_ok() {}
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 2,
-                tag: "SAY".into(),
-                payload: "DEAF".into(),
-            },
-        );
-        assert!(!state.players.get(&2).unwrap().deaf);
-        let _ = a;
-    }
-
-    /// SAY HUG <p_id>: PE love when adjacent; FAIL self/range.
-    #[test]
-    fn say_hug_pe_love_adjacent() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p1 = spawn_player(&mut state, 1, "hugger@x");
-        let p2 = spawn_player(&mut state, 2, "hugged@x");
-        let _ = hub.register(2);
-        state.players.get_mut(&1).unwrap().x = 7;
-        state.players.get_mut(&1).unwrap().y = 7;
-        state.players.get_mut(&2).unwrap().x = 8;
-        state.players.get_mut(&2).unwrap().y = 7;
-        while rx1.try_recv().is_ok() {}
-
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("HUG {p2}"),
-            },
-        );
-        let mut saw_pe = false;
-        let mut saw_ok = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PE\n") && s.contains(&format!("{p1} {LOVE_EMOT_INDEX}")) {
-                saw_pe = true;
-            }
-            if s.contains("HUG") && s.contains("OK love") {
-                saw_ok = true;
-            }
-        }
-        assert!(saw_pe, "expected PE love emote");
-        assert!(saw_ok, "expected HUG OK love");
-
-        // Self hug rejected.
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("HUG {p1}"),
-            },
-        );
-        let mut saw_self = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("FAIL self") {
-                saw_self = true;
-            }
-        }
-        assert!(saw_self, "expected HUG FAIL self");
-
-        // Far â†’ range fail.
-        state.players.get_mut(&2).unwrap().x = 40;
-        state.players.get_mut(&2).unwrap().y = 40;
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("HUG {p2}"),
-            },
-        );
-        let mut saw_range = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("FAIL range") {
-                saw_range = true;
-            }
-        }
-        assert!(saw_range, "expected HUG FAIL range");
-    }
-
-    /// SAY SLAP <p_id>: PE mad; tiny wound if not ally; no wound for ally.
-    #[test]
-    fn say_slap_pe_mad_wound_if_not_ally() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx1 = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        let p1 = spawn_player(&mut state, 1, "slapper@x");
-        let p2 = spawn_player(&mut state, 2, "slapped@x");
-        let _ = hub.register(2);
-        state.players.get_mut(&1).unwrap().x = 0;
-        state.players.get_mut(&1).unwrap().y = 0;
-        state.players.get_mut(&2).unwrap().x = 1;
-        state.players.get_mut(&2).unwrap().y = 0;
-        while rx1.try_recv().is_ok() {}
-
-        // Non-ally: PE mad + wound.
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("SLAP {p2}"),
-            },
-        );
-        assert_eq!(state.combat.wound_of(p2), SLAP_WOUND);
-        let mut saw_pe = false;
-        let mut saw_wound = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PE\n") && s.contains(&format!("{p1} {MAD_EMOT_INDEX}")) {
-                saw_pe = true;
-            }
-            if s.contains("SLAP") && s.contains("OK mad wound=") {
-                saw_wound = true;
-            }
-        }
-        assert!(saw_pe, "expected PE mad");
-        assert!(saw_wound, "expected SLAP OK mad wound");
-
-        // Ally: PE mad, no wound.
-        state.combat.clear_wound(p2);
-        state.allies.add(p1, p2).unwrap();
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("SLAP {p2}"),
-            },
-        );
-        assert_eq!(state.combat.wound_of(p2), 0, "ally slap does not wound");
-        let mut saw_ally = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("SLAP") && s.contains("OK mad") && !s.contains("wound=") {
-                saw_ally = true;
-            }
-        }
-        assert!(saw_ally, "expected ally SLAP OK mad without wound");
-
-        // Self slap rejected.
-        state.sim_time += SAY_RATE_WINDOW_SECS + 1.0;
-        while rx1.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: format!("SLAP {p1}"),
-            },
-        );
-        let mut saw_self = false;
-        while let Ok(pkt) = rx1.try_recv() {
-            if String::from_utf8_lossy(&pkt).contains("FAIL self") {
-                saw_self = true;
-            }
-        }
-        assert!(saw_self, "expected SLAP FAIL self");
-    }
-
-    #[test]
-    fn catch_up_extra_steps_pure() {
-        assert_eq!(catch_up_extra_steps(1, 0, 5), 0);
-        assert_eq!(catch_up_extra_steps(1, 3, 5), 3);
-        // max_extra cap (periods_behind 10, max 5 â†’ 5 extras).
-        assert_eq!(catch_up_extra_steps(1, 10, 5), 5);
-        // Already on tick % 10 == 0 â†’ no extras.
-        assert_eq!(catch_up_extra_steps(10, 5, 5), 0);
-        // Mid-%10: starting at 8, extras stop before/at 10 â†’ only 2 (8â†’9, 9â†’10).
-        assert_eq!(catch_up_extra_steps(8, 5, 5), 2);
-        // max_extra 0 â†’ 0.
-        assert_eq!(catch_up_extra_steps(1, 10, 0), 0);
-    }
-
-    #[test]
-    fn ka_mid_path_leaves_tile_unchanged() {
-        let mut state = SimState::with_default_empty(test_content());
-        state.timed_movement = true;
-        spawn_player(&mut state, 1, "ka@t");
-        set_player_position(&mut state, 1, 5, 5);
-        let hub = OutboundHub::new();
-        apply_move_path_start(&mut state, &hub, 1, 5, 5, &[(1, 0)], Some(3)).unwrap();
-        assert!(!set_player_position_respecting_path(&mut state, 1, 9, 5));
-        assert_eq!(
-            (
-                state.players.get(&1).unwrap().x,
-                state.players.get(&1).unwrap().y
-            ),
-            (5, 5)
-        );
-    }
-
-    /// Haxe `Connection.keepAlive()` is empty â€” KA must never write position.
-    #[test]
-    fn ka_intent_does_not_change_position() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut state = SimState::with_default_empty(test_content());
-        state.timed_movement = true;
-        spawn_player(&mut state, 1, "ka2@t");
-        set_player_position(&mut state, 1, 10, 20);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::KeepAlive {
-                conn_id: 1,
-                x: 99,
-                y: 88,
-            },
-        );
-        let p = state.players.get(&1).unwrap();
-        assert_eq!((p.x, p.y), (10, 20), "KA must not apply coords");
-        // Also while moving.
-        apply_move_path_start(&mut state, &hub, 1, 10, 20, &[(1, 0)], Some(1)).unwrap();
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::KeepAlive {
-                conn_id: 1,
-                x: 0,
-                y: 0,
-            },
-        );
-        let p = state.players.get(&1).unwrap();
-        assert_eq!((p.x, p.y), (10, 20));
-        assert!(p.move_path.is_some(), "KA must not cancel path");
-    }
-
-    /// Parse PU body fields: order is `â€¦ heat seq force x y â€¦` (indices 12/13 after tag line).
-    fn pu_seq_force(pkt: &[u8]) -> Option<(i32, i32)> {
-        let s = String::from_utf8_lossy(pkt);
-        if !s.starts_with("PU\n") {
-            return None;
-        }
-        let line = s.lines().nth(1)?;
-        let f: Vec<&str> = line.split_whitespace().collect();
-        // p_id po_id facing action atx aty held ov ox oy ot heat seq force x y ...
-        if f.len() < 14 {
-            return None;
-        }
-        Some((f[12].parse().ok()?, f[13].parse().ok()?))
-    }
-
-    /// EVE-BANANA: synthetic Eve picks food-plant tile when bananas/berries abundant.
-    #[test]
-    fn synthetic_eve_spawn_prefers_banana_when_abundant() {
-        let mut state = SimState::with_default_empty(test_content());
-        state.spawn_x = 10;
-        state.spawn_y = 10;
-        {
-            let mut w = state.world.write().unwrap();
-            for i in 0..12 {
-                let x = 30 + i;
-                w.set_biome(x, 30, 6); // jungle
-                w.set_object(x, 30, crate::EVE_BANANA_PLANT);
-                w.set_object(i, 2, crate::EVE_BERRY_BUSH);
-            }
-        }
-        let p_id = spawn_player(&mut state, 9_000_001, "eve_banana@ai");
-        let p = state
-            .players
-            .values()
-            .find(|pl| pl.p_id == p_id)
-            .expect("eve");
-        let obj = state.world.read().unwrap().get_object(p.x, p.y);
-        assert!(
-            obj == crate::EVE_BANANA_PLANT
-                || obj == crate::EVE_BERRY_BUSH
-                || (p.x - 10).abs() <= 200,
-            "eve at {},{} obj={obj}",
-            p.x,
-            p.y
-        );
-    }
-
-    /// Human LOGIN must not spawn on mother/NPC tile (bootstrap desync fix).
-    #[test]
-    fn human_login_spawn_near_configured_spawn_not_mother() {
-        let mut state = SimState::with_default_empty(test_content());
-        state.spawn_x = 100;
-        state.spawn_y = 200;
-        {
-            let mut m = Player::new(50, 50, "mom@t");
-            m.x = 499;
-            m.y = 487;
-            m.age = 20.0;
-            m.connected = true;
-            state.players.insert(50, m);
-        }
-        spawn_player(&mut state, 5, "human@test");
-        let p = state.players.get(&5).unwrap();
-        assert_ne!(
-            (p.x, p.y),
-            (499, 487),
-            "human must not use mother/NPC tile"
-        );
-        // Empty test world: find_playable_spawn walks from prefer â€” stay near spawn.
-        assert!(
-            (p.x - 100).abs() <= 200 && (p.y - 200).abs() <= 200,
-            "got {},{}",
-            p.x,
-            p.y
-        );
-    }
-
-    /// Haxe: quadDist <= 5 accepts client start (positionChanged snap).
-    #[test]
-    fn move_path_small_client_jump_accepted() {
-        let mut state = SimState::with_default_empty(test_content());
-        state.timed_movement = true;
-        // Production-like cheby config must not change timed gate (always Haxe 5).
-        state.move_jump_max_chebyshev = 3;
-        spawn_player(&mut state, 1, "jmp@t");
-        set_player_position(&mut state, 1, 5, 5);
-        let hub = OutboundHub::new();
-        // (2,1) â†’ quad = 4+1 = 5 â†’ accept
-        apply_move_path_start(&mut state, &hub, 1, 7, 6, &[(1, 0)], Some(7)).unwrap();
-        let p = state.players.get(&1).unwrap();
-        assert_eq!((p.x, p.y), (7, 6), "server snaps to client start");
-        assert!(p.move_path.is_some());
-        assert_eq!(p.move_path.as_ref().unwrap().start_x, 7);
-        assert_eq!(p.move_path.as_ref().unwrap().start_y, 6);
-        assert_eq!(p.move_path.as_ref().unwrap().seq, 7);
-    }
-
-    /// Haxe: quadDist > 5 â†’ CancleMovement / JumpTooFar (even if cheby config is 3).
-    #[test]
-    fn move_path_large_jump_rejected() {
-        let mut state = SimState::with_default_empty(test_content());
-        state.timed_movement = true;
-        // Production default-ish: cheby=3 must NOT widen timed gate past Haxe 5.
-        state.move_jump_max_chebyshev = 3;
-        spawn_player(&mut state, 1, "far@t");
-        set_player_position(&mut state, 1, 5, 5);
-        let hub = OutboundHub::new();
-        // (3,0) â†’ quad = 9 > 5
-        let err = apply_move_path_start(&mut state, &hub, 1, 8, 5, &[(1, 0)], Some(3))
-            .unwrap_err();
-        assert_eq!(err, MoveReject::JumpTooFar);
-        let p = state.players.get(&1).unwrap();
-        assert_eq!((p.x, p.y), (5, 5), "reject keeps server position");
-        // Intent path: force PU at server with client seq, force=1.
-        let counters = Counters::new();
-        let mut rx = hub.register(1);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Move {
-                conn_id: 1,
-                xs: 8,
-                ys: 5,
-                deltas: vec![(1, 0)],
-                seq: Some(3),
-            },
-        );
-        assert_eq!(
-            (
-                state.players.get(&1).unwrap().x,
-                state.players.get(&1).unwrap().y
-            ),
-            (5, 5)
-        );
-        assert_eq!(state.players.get(&1).unwrap().done_moving_seq, 3);
-        let mut saw_force = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if let Some((seq, force)) = pu_seq_force(&pkt) {
-                if seq == 3 && force == 1 {
-                    saw_force = true;
-                }
-            }
-        }
-        assert!(saw_force, "reject must force PU at server with client seq");
-    }
-
-    /// Path finish PU must carry the MOVE seq (not hardcoded 1).
-    #[test]
-    fn path_finish_pu_uses_done_moving_seq() {
-        let mut state = SimState::with_default_empty(test_content());
-        state.timed_movement = true;
-        spawn_player(&mut state, 1, "fin@t");
-        set_player_position(&mut state, 1, 0, 0);
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        apply_move_path_start(&mut state, &hub, 1, 0, 0, &[(1, 0)], Some(11)).unwrap();
-        // Drain PM
-        while rx.try_recv().is_ok() {}
-        tick_move_paths(&mut state, 1.0, &hub);
-        let p = state.players.get(&1).unwrap();
-        assert!(p.move_path.is_none());
-        assert_eq!(p.done_moving_seq, 11);
-        assert_eq!((p.x, p.y), (1, 0));
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if let Some((seq, force)) = pu_seq_force(&pkt) {
-                if seq == 11 && force == 0 {
-                    saw = true;
-                }
-            }
-        }
-        assert!(saw, "finish PU must include done_moving_seq=11 force=0");
-    }
-
-    /// Mid-path blocked cancel must keep path seq (not saturating_add thrash).
-    #[test]
-    fn tick_cancel_blocked_keeps_path_seq() {
-        use ol_content::ObjectDef;
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            99,
-            ObjectDef {
-                id: 99,
-                description: "Wall".into(),
-                name: "Wall".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: true,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: vec![],
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(std::sync::Arc::new(db));
-        state.timed_movement = true;
-        spawn_player(&mut state, 1, "blk@t");
-        set_player_position(&mut state, 1, 0, 0);
-        // Block the destination of the only step so advance cancels.
-        state.world.write().unwrap().set_object(1, 0, 99);
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        // Build path that already includes the (now blocked) step â€” as if accepted earlier.
-        state.players.get_mut(&1).unwrap().move_path =
-            Some(build_move_path(0, 0, vec![(1, 0)], 10.0, 7, 0, 0));
-        state.players.get_mut(&1).unwrap().moving = true;
-        tick_move_paths(&mut state, 1.0, &hub);
-        let p = state.players.get(&1).unwrap();
-        assert!(p.move_path.is_none());
-        assert_eq!((p.x, p.y), (0, 0), "cancel stays on last good tile");
-        assert_eq!(p.done_moving_seq, 7, "must not double-increment past path.seq");
-        let mut saw = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if let Some((seq, force)) = pu_seq_force(&pkt) {
-                if seq == 7 && force == 1 {
-                    saw = true;
-                }
-            }
-        }
-        assert!(saw, "cancel force PU must use path seq=7 force=1");
-    }
-
-    /// Haxe: blocked client start â†’ CancleMovement without snap.
-    #[test]
-    fn move_path_blocked_start_no_snap() {
-        use ol_content::ObjectDef;
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            99,
-            ObjectDef {
-                id: 99,
-                description: "Wall".into(),
-                name: "Wall".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: true,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: vec![],
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(std::sync::Arc::new(db));
-        state.timed_movement = true;
-        spawn_player(&mut state, 1, "bst@t");
-        set_player_position(&mut state, 1, 5, 5);
-        // Client start one tile east is a wall (within jump), path would be empty after snap.
-        state.world.write().unwrap().set_object(6, 5, 99);
-        let hub = OutboundHub::new();
-        let err = apply_move_path_start(&mut state, &hub, 1, 6, 5, &[(1, 0)], Some(4))
-            .unwrap_err();
-        assert_eq!(err, MoveReject::BlockedStart);
-        let p = state.players.get(&1).unwrap();
-        assert_eq!((p.x, p.y), (5, 5), "must not snap onto blocked start");
-    }
-
-    #[test]
-    fn use_rejected_while_moving_no_world_mutation() {
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "um@t");
-        set_player_position(&mut state, 1, 5, 5);
-        state.world.write().unwrap().set_object(5, 5, 33);
-        state.players.get_mut(&1).unwrap().move_path =
-            Some(build_move_path(5, 5, vec![(1, 0)], 3.75, 1, 0, 0));
-        state.players.get_mut(&1).unwrap().moving = true;
-        let r = apply_use_at(&mut state, 1, 5, 5).unwrap();
-        assert!(!r.applied);
-        assert_eq!(state.world.read().unwrap().get_object(5, 5), 33);
-    }
-
-    #[test]
-    fn drop_rejected_while_moving_force_pu_fm() {
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "dm@t");
-        set_player_position(&mut state, 1, 3, 3);
-        state.players.get_mut(&1).unwrap().held_id = 34;
-        state.players.get_mut(&1).unwrap().move_path =
-            Some(build_move_path(3, 3, vec![(1, 0)], 3.75, 1, 0, 0));
-        state.players.get_mut(&1).unwrap().moving = true;
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        apply_drop(&mut state, &hub, 1, 3, 3, None);
-        assert_eq!(state.players.get(&1).unwrap().held_id, 34);
-        let mut saw_pu = false;
-        let mut saw_fm = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PU\n") {
-                saw_pu = true;
-            }
-            if s.starts_with("FM\n") {
-                saw_fm = true;
-            }
-        }
-        assert!(saw_pu && saw_fm);
-    }
-
-    #[test]
-    fn attach_fitness_mother_lineage_sets_mali() {
-        let mut state = SimState::with_default_empty(test_content());
-        let mid = spawn_player(&mut state, 1, "mom@f");
-        state.players.get_mut(&1).unwrap().age = 25.0;
-        state.players.get_mut(&1).unwrap().food = 20.0;
-        // Insert child without spawn_player fitness path to exercise helper once.
-        let child = {
-            let p_id = player_id_for_conn(2);
-            let mut pl = Player::new(p_id, 2, "kid@f");
-            pl.age = 0.0;
-            let display = pl.display_name();
-            state.players.insert(2, pl);
-            attach_fitness_mother_lineage(&mut state, p_id, &display, mid, 0, 0);
-            p_id
-        };
-        assert_eq!(
-            state.social.lineages.get(&child).unwrap().mother_id,
-            Some(mid)
-        );
-        assert!(
-            (state
-                .fertility
-                .by_mother
-                .get(&mid)
-                .unwrap()
-                .children_birth_mali
-                - 0.1)
-            .abs()
-                < 1e-5
-        );
-    }
-
-    #[test]
-    fn instant_move_client_seq_sets_done_moving_seq() {
-        let mut state = SimState::with_default_empty(test_content());
-        state.timed_movement = false;
-        spawn_player(&mut state, 1, "seqi@t");
-        set_player_position(&mut state, 1, 0, 0);
-        assert!(apply_move_deltas_with_seq(
-            &mut state,
-            1,
-            0,
-            0,
-            &[(1, 0)],
-            Some(5)
-        ));
-        let p = state.players.get(&1).unwrap();
-        assert_eq!(p.done_moving_seq, 5);
-        assert!(p.move_path.is_none());
-        assert_eq!((p.x, p.y), (1, 0));
-    }
-
-    #[test]
-    fn move_path_seq_complete_sets_done_moving_seq() {
-        let mut state = SimState::with_default_empty(test_content());
-        state.timed_movement = true;
-        spawn_player(&mut state, 1, "seq@t");
-        set_player_position(&mut state, 1, 0, 0);
-        let hub = OutboundHub::new();
-        apply_move_path_start(&mut state, &hub, 1, 0, 0, &[(1, 0)], Some(5)).unwrap();
-        tick_move_paths(&mut state, 0.5, &hub);
-        let p = state.players.get(&1).unwrap();
-        assert!(p.move_path.is_none());
-        assert!(!p.moving);
-        assert_eq!(p.done_moving_seq, 5);
-        assert_eq!((p.x, p.y), (1, 0));
-    }
-
-    #[test]
-    fn path_replace_mid_move_clears_residual() {
-        let mut state = SimState::with_default_empty(test_content());
-        state.timed_movement = true;
-        spawn_player(&mut state, 1, "rep@t");
-        set_player_position(&mut state, 1, 0, 0);
-        let hub = OutboundHub::new();
-        apply_move_path_start(
-            &mut state,
-            &hub,
-            1,
-            0,
-            0,
-            &[(1, 0), (1, 0), (1, 0)],
-            Some(1),
-        )
-        .unwrap();
-        tick_move_paths(&mut state, 0.01, &hub);
-        apply_move_path_start(&mut state, &hub, 1, 0, 0, &[(0, 1)], Some(2)).unwrap();
-        let path = state.players.get(&1).unwrap().move_path.as_ref().unwrap();
-        assert_eq!(path.remaining.len(), 1);
-        assert_eq!(path.remaining[0], (0, 1));
-        assert_eq!(path.seq, 2);
-    }
-
-    #[test]
-    fn apply_move_path_trunc_walkability() {
-        use ol_content::ObjectDef;
-        let mut db = ContentDb::default();
-        db.objects.insert(
-            99,
-            ObjectDef {
-                id: 99,
-                description: "Wall".into(),
-                name: "Wall".into(),
-                containable: false,
-                permanent: true,
-                blocks_walking: true,
-                food_value: 0,
-                heat_value: 0.0,
-                map_chance: 0.0,
-                biomes: vec![],
-                num_uses: 0,
-                num_slots: 0,
-                floor: false,
-            dummy_ids: Vec::new(),
-            ..Default::default()
-        },
-        );
-        let mut state = SimState::with_default_empty(std::sync::Arc::new(db));
-        state.timed_movement = true;
-        spawn_player(&mut state, 1, "tr@t");
-        set_player_position(&mut state, 1, 0, 0);
-        state.world.write().unwrap().set_object(2, 0, 99);
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        // Start-relative client path: tile (1,0) ok, tile (2,0) blocked.
-        apply_move_path_start(&mut state, &hub, 1, 0, 0, &[(1, 0), (2, 0)], Some(4))
-            .unwrap();
-        let path = state.players.get(&1).unwrap().move_path.as_ref().unwrap();
-        assert_eq!(path.trunc, 1);
-        assert_eq!(path.remaining.len(), 1);
-        assert_eq!(path.seq, 4);
-        // PM wire body must list trunc=1 (accepted length 1 â†’ totalâ‰ˆ0.27).
-        let mut saw_trunc_pm = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PM\n") && s.contains("0.27 0.27 1") {
-                saw_trunc_pm = true;
-            }
-        }
-        assert!(
-            saw_trunc_pm,
-            "PM body must include trunc=1 (â€¦ 0.27 0.27 1 â€¦)"
-        );
-    }
-
-    #[test]
-    fn use_diagonal_fails_squared_euclidean() {
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "ud@t");
-        set_player_position(&mut state, 1, 0, 0);
-        state.world.write().unwrap().set_object(1, 1, 33);
-        let r = apply_use_at(&mut state, 1, 1, 1).unwrap();
-        assert!(!r.applied);
-        assert_eq!(state.world.read().unwrap().get_object(1, 1), 33);
-    }
-
-    #[test]
-    fn use_while_moving_intent_force_pu_fm_no_eat() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "ui@t");
-        set_player_position(&mut state, 1, 0, 0);
-        state.players.get_mut(&1).unwrap().held_id = 33;
-        state.players.get_mut(&1).unwrap().food = 5.0;
-        state.players.get_mut(&1).unwrap().move_path =
-            Some(build_move_path(0, 0, vec![(1, 0)], 3.75, 9, 0, 0));
-        state.players.get_mut(&1).unwrap().moving = true;
-        let food0 = state.players.get(&1).unwrap().food;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Use {
-                conn_id: 1,
-                x: 0,
-                y: 0,
-                id: None,
-                index: None,
-            },
-        );
-        assert_eq!(state.players.get(&1).unwrap().food, food0);
-        assert!(state.players.get(&1).unwrap().move_path.is_none());
-        let mut saw_pu = false;
-        let mut saw_fm = false;
-        let mut force1 = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PU\n") {
-                saw_pu = true;
-                // force field is 14th data field in full PU â€” look for force=1 pattern
-                // wire: ... seq force x y ...
-                if s.contains(" 1 ") {
-                    force1 = true;
-                }
-            }
-            if s.starts_with("FM\n") {
-                saw_fm = true;
-            }
-        }
-        assert!(saw_pu && saw_fm, "force PU+FM");
-        assert!(force1, "expected force token present");
-    }
-
-    #[test]
-    fn player_snapshot_moving_and_seq() {
-        let mut p = Player::new(1, 1, "s@t");
-        assert!(!p.snapshot().moving);
-        p.move_path = Some(build_move_path(0, 0, vec![(1, 0)], 3.75, 7, 0, 0));
-        p.moving = true;
-        assert!(p.snapshot().moving);
-        p.move_path = None;
-        p.moving = false;
-        p.done_moving_seq = 7;
-        assert!(!p.snapshot().moving);
-        assert_eq!(p.snapshot().done_moving_seq, 7);
-    }
-
-    #[test]
-    fn remv_rejected_while_moving() {
-        let counters = Counters::new();
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "rm@t");
-        set_player_position(&mut state, 1, 0, 0);
-        state.players.get_mut(&1).unwrap().held_id = 0;
-        state.players.get_mut(&1).unwrap().move_path =
-            Some(build_move_path(0, 0, vec![(1, 0)], 3.75, 1, 0, 0));
-        state.players.get_mut(&1).unwrap().moving = true;
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "REMV".into(),
-                payload: "0 0".into(),
-            },
-        );
-        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
-        let mut saw_fm = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if String::from_utf8_lossy(&pkt).starts_with("FM\n") {
-                saw_fm = true;
-            }
-        }
-        assert!(saw_fm, "REMV while moving force FM");
-    }
-
-    #[test]
-    fn send_player_update_and_frame_force_and_seq() {
-        let hub = OutboundHub::new();
-        let mut rx = hub.register(1);
-        let mut state = SimState::with_default_empty(test_content());
-        spawn_player(&mut state, 1, "f@t");
-        set_player_position(&mut state, 1, 2, 2);
-        state.players.get_mut(&1).unwrap().done_moving_seq = 3;
-        state.players.get_mut(&1).unwrap().move_path =
-            Some(build_move_path(2, 2, vec![(1, 0)], 3.75, 9, 0, 0));
-        send_player_update_and_frame(&mut state, &hub, 1);
-        assert!(state.players.get(&1).unwrap().move_path.is_none());
-        assert_eq!(state.players.get(&1).unwrap().done_moving_seq, 9);
-        let mut body = String::new();
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PU\n") {
-                body = s.to_string();
-            }
-        }
-        assert!(!body.is_empty(), "PU sent");
-        // Full PU contains force=1 after seq; path.seq was 9 so done=9, force=1
-        assert!(body.contains(" 9 1 "), "expected seq=9 force=1 in {body}");
-    }
-
-}
-
+#[path = "lib_tests.rs"]
+mod tests;

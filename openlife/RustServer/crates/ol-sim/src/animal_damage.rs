@@ -12,12 +12,127 @@ use crate::animals::{Animal, AnimalKind, AnimalWorld};
 use crate::combat::CombatState;
 use crate::environment::Season;
 
+/// Haxe `ServerSettings.BiomeAnimalHitChance` (default 0 → biome animals almost never hit).
+///
+/// When a biome animal is “not deadly for me”, Haxe skips damage if
+/// `calculateRandomFloat() > BiomeAnimalHitChance`.
+// Haxe: ServerSettings.BiomeAnimalHitChance = 0.0; GlobalPlayerInstance.DoDamage ~4576
+pub const BIOME_ANIMAL_HIT_CHANCE_DEFAULT: f32 = 0.0;
+
+/// True when biome-animal miss gate fires (no damage this strike).
+// Haxe: GlobalPlayerInstance.DoDamage ~4575–4582
+#[inline]
+pub fn biome_animal_damage_misses(
+    is_biome_animal_not_deadly_for_me: bool,
+    rng01: f32,
+    hit_chance: f32,
+) -> bool {
+    if !is_biome_animal_not_deadly_for_me {
+        return false;
+    }
+    rng01 > hit_chance
+}
+
+/// Haxe `Biome.getBiomeAnimals(biomeTag)` — loved-biome animal parent ids.
+// Haxe: Biome.getBiomeAnimals L149–157
+#[inline]
+pub fn biome_animals_for_loved_biome(biome_tag: i32) -> &'static [i32] {
+    match biome_tag {
+        5 => &[764],  // DESERT → Rattle Snake
+        6 => &[2156], // JUNGLE → Mosquito Swarm
+        3 => &[418],  // GREY → Wolf
+        4 => &[1323], // SNOW → Wild Boar
+        _ => &[],
+    }
+}
+
+/// Inputs for Haxe `GlobalPlayerInstance.isAnimalDeadlyForMe`.
+// Haxe: GlobalPlayerInstance.isAnimalDeadlyForMe L6302–6324
+#[derive(Debug, Clone, Copy)]
+pub struct AnimalDeadlyForMeInput {
+    pub deadly_distance: f32,
+    pub damage: f32,
+    /// Haxe `ObjectData.isAnimal()` — mosquito 2156 is false.
+    pub is_animal: bool,
+    /// Haxe `checkIfAnimal` (DoDamage passes `false`).
+    pub check_if_animal: bool,
+    pub animal_hits: f32,
+    pub holding_weapon: bool,
+    pub animal_parent_id: i32,
+    /// Haxe `getBiomeAnimals()` for the player's loved biome.
+    pub loved_biome_animal_ids: &'static [i32],
+    /// `biomeLoveFactor` at the player's tile.
+    pub player_tile_biome_love: f32,
+    /// `biomeLoveFactor` at the animal's tile.
+    pub animal_tile_biome_love: f32,
+}
+
+/// Haxe `isAnimalDeadlyForMe` — true when the animal can hurt this player.
+// Haxe: GlobalPlayerInstance.isAnimalDeadlyForMe L6302–6324
+#[inline]
+pub fn is_animal_deadly_for_me(inp: AnimalDeadlyForMeInput) -> bool {
+    if inp.deadly_distance == 0.0 || inp.damage == 0.0 {
+        return false;
+    }
+    if inp.check_if_animal && !inp.is_animal {
+        return false;
+    }
+    if inp.animal_hits > 0.5 {
+        return true;
+    }
+    if inp.holding_weapon {
+        return true;
+    }
+    if inp.loved_biome_animal_ids.contains(&inp.animal_parent_id) && inp.animal_hits < 0.1 {
+        if inp.player_tile_biome_love > 0.1 || inp.animal_tile_biome_love > 0.1 {
+            return false;
+        }
+    }
+    true
+}
+
+/// Haxe `isAnimalNotDeadlyForMe` — inverse of [`is_animal_deadly_for_me`].
+// Haxe: GlobalPlayerInstance.isAnimalNotDeadlyForMe L6298–6300
+#[inline]
+pub fn is_animal_not_deadly_for_me(inp: AnimalDeadlyForMeInput) -> bool {
+    !is_animal_deadly_for_me(inp)
+}
+
 /// Haxe `ServerSettings.AnimalDamageFactor`.
 pub const ANIMAL_DAMAGE_FACTOR: f32 = 1.5;
 /// Haxe `ServerSettings.AnimalDamageFactorInWinter`.
 pub const ANIMAL_DAMAGE_FACTOR_IN_WINTER: f32 = 2.0;
 /// Haxe `ServerSettings.AnimalDamageFactorIfAttacked` (when `animal.hits > 0`).
 pub const ANIMAL_DAMAGE_FACTOR_IF_ATTACKED: f32 = 1.5;
+
+/// Live animal-branch DoDamage multipliers (`attacker == null`).
+// Haxe: ServerSettings.AnimalDamageFactor / InWinter / IfAttacked
+// SETTINGS-LONG-TAIL
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AnimalDamageFactorKnobs {
+    pub factor: f32,
+    pub winter: f32,
+    pub if_attacked: f32,
+}
+
+impl Default for AnimalDamageFactorKnobs {
+    fn default() -> Self {
+        Self {
+            factor: ANIMAL_DAMAGE_FACTOR,
+            winter: ANIMAL_DAMAGE_FACTOR_IN_WINTER,
+            if_attacked: ANIMAL_DAMAGE_FACTOR_IF_ATTACKED,
+        }
+    }
+}
+
+#[inline]
+fn sanitize_animal_damage_factor(v: f32, default: f32) -> f32 {
+    if v.is_finite() && v >= 0.0 {
+        v
+    } else {
+        default
+    }
+}
 /// Haxe `ServerSettings.AnimalDeadlyDistanceFactor` (patched onto deadly animals).
 pub const ANIMAL_DEADLY_DISTANCE: f32 = 0.5;
 /// Haxe `ObjectData.animalEscapeFactor` default.
@@ -84,6 +199,24 @@ impl AnimalKind {
         }
     }
 
+    /// Live-knob variant: `deadly_distance` = Haxe AnimalDeadlyDistanceFactor for deadly kinds.
+    // Haxe: ServerSettings.AnimalDeadlyDistanceFactor
+    // SETTINGS-LONG-TAIL
+    pub fn combat_profile_ex(self, deadly_distance: f32) -> AnimalCombatProfile {
+        let mut p = self.combat_profile();
+        match self {
+            AnimalKind::Rabbit => p,
+            AnimalKind::Wolf | AnimalKind::Boar | AnimalKind::Mosquito => {
+                p.deadly_distance = if deadly_distance.is_finite() && deadly_distance >= 0.0 {
+                    deadly_distance
+                } else {
+                    ANIMAL_DEADLY_DISTANCE
+                };
+                p
+            }
+        }
+    }
+
     /// True when the animal can hurt players on its move path.
     ///
     /// Mosquito is path-deadly but not Haxe `isDeadlyAnimal` (chase/AI use
@@ -105,12 +238,33 @@ impl AnimalKind {
 /// Haxe animal-branch org damage before roll:
 /// `damage * AnimalDamageFactor [* Winter] [* IfAttacked]`.
 pub fn org_animal_damage(base_damage: f32, season: Season, animal_hits: f32) -> f32 {
-    let mut org = base_damage.max(0.0) * ANIMAL_DAMAGE_FACTOR;
+    org_animal_damage_ex(
+        base_damage,
+        season,
+        animal_hits,
+        AnimalDamageFactorKnobs::default(),
+    )
+}
+
+/// Same as [`org_animal_damage`] with live factor override.
+// Haxe: GlobalPlayerInstance.DoDamage L4590–4593
+// SETTINGS-LONG-TAIL
+pub fn org_animal_damage_ex(
+    base_damage: f32,
+    season: Season,
+    animal_hits: f32,
+    knobs: AnimalDamageFactorKnobs,
+) -> f32 {
+    let factor = sanitize_animal_damage_factor(knobs.factor, ANIMAL_DAMAGE_FACTOR);
+    let winter = sanitize_animal_damage_factor(knobs.winter, ANIMAL_DAMAGE_FACTOR_IN_WINTER);
+    let attacked =
+        sanitize_animal_damage_factor(knobs.if_attacked, ANIMAL_DAMAGE_FACTOR_IF_ATTACKED);
+    let mut org = base_damage.max(0.0) * factor;
     if season == Season::Winter {
-        org *= ANIMAL_DAMAGE_FACTOR_IN_WINTER;
+        org *= winter;
     }
     if animal_hits > 0.0 {
-        org *= ANIMAL_DAMAGE_FACTOR_IF_ATTACKED;
+        org *= attacked;
     }
     org
 }
@@ -226,11 +380,37 @@ pub fn compute_animal_damage_on_player(
     target_food_max: f32,
     rng01: f32,
 ) -> Option<(f32 /*org*/, f32 /*applied*/)> {
+    compute_animal_damage_on_player_ex(
+        kind,
+        animal_hits,
+        season,
+        clothing_insulation,
+        floor_insulation,
+        weapon_protection,
+        target_food_max,
+        rng01,
+        AnimalDamageFactorKnobs::default(),
+    )
+}
+
+/// Same as [`compute_animal_damage_on_player`] with live AnimalDamageFactor knobs.
+// SETTINGS-LONG-TAIL
+pub fn compute_animal_damage_on_player_ex(
+    kind: AnimalKind,
+    animal_hits: f32,
+    season: Season,
+    clothing_insulation: f32,
+    floor_insulation: f32,
+    weapon_protection: f32,
+    target_food_max: f32,
+    rng01: f32,
+    knobs: AnimalDamageFactorKnobs,
+) -> Option<(f32 /*org*/, f32 /*applied*/)> {
     let profile = kind.combat_profile();
     if profile.damage <= 0.0 || profile.deadly_distance <= 0.0 {
         return None;
     }
-    let org = org_animal_damage(profile.damage, season, animal_hits);
+    let org = org_animal_damage_ex(profile.damage, season, animal_hits, knobs);
     let base = roll_damage(org, rng01);
     let raw = CombatState::apply_protection(
         base,
@@ -258,20 +438,46 @@ pub fn resolve_animal_path_damage(
     target_stats: impl Fn(i32) -> (f32, f32, f32, f32),
     rng01: f32,
 ) -> Option<AnimalDamageHit> {
-    let profile = kind.combat_profile();
-    if !kind.is_deadly() {
-        return None;
-    }
-    let target = first_player_on_path(
+    resolve_animal_path_damage_ex(
+        kind,
+        animal_hits,
         from_x,
         from_y,
         to_x,
         to_y,
-        profile.deadly_distance,
+        season,
         players,
-    )?;
+        target_stats,
+        rng01,
+        AnimalDamageFactorKnobs::default(),
+        ANIMAL_DEADLY_DISTANCE,
+    )
+}
+
+/// Same as [`resolve_animal_path_damage`] with live AnimalDamageFactor knobs.
+// SETTINGS-LONG-TAIL
+pub fn resolve_animal_path_damage_ex(
+    kind: AnimalKind,
+    animal_hits: f32,
+    from_x: i32,
+    from_y: i32,
+    to_x: i32,
+    to_y: i32,
+    season: Season,
+    players: &[DamageTarget],
+    target_stats: impl Fn(i32) -> (f32, f32, f32, f32),
+    rng01: f32,
+    knobs: AnimalDamageFactorKnobs,
+    deadly_distance: f32,
+) -> Option<AnimalDamageHit> {
+    let profile = kind.combat_profile_ex(deadly_distance);
+    if profile.damage <= 0.0 || profile.deadly_distance <= 0.0 {
+        return None;
+    }
+    let target =
+        first_player_on_path(from_x, from_y, to_x, to_y, profile.deadly_distance, players)?;
     let (cloth, floor, wprot, food_max) = target_stats(target.p_id);
-    let (org, applied) = compute_animal_damage_on_player(
+    let (org, applied) = compute_animal_damage_on_player_ex(
         kind,
         animal_hits,
         season,
@@ -280,6 +486,7 @@ pub fn resolve_animal_path_damage(
         wprot,
         food_max,
         rng01,
+        knobs,
     )?;
     let rolled = roll_damage(org, rng01);
     Some(AnimalDamageHit {
@@ -311,7 +518,11 @@ pub enum EscapeRoll {
 }
 
 /// Effective escape factor after hits + quiver (Haxe `TryAnimaEscape`).
-pub fn effective_escape_factor(weapon_escape_factor: f32, animal_hits: f32, has_quiver: bool) -> f32 {
+pub fn effective_escape_factor(
+    weapon_escape_factor: f32,
+    animal_hits: f32,
+    has_quiver: bool,
+) -> f32 {
     let mut f = weapon_escape_factor - animal_hits * ESCAPE_HITS_PENALTY;
     if has_quiver {
         f /= 2.0;
@@ -353,12 +564,12 @@ pub fn skip_run_away_for_domestic(is_domestic: bool, holding_weapon: bool) -> bo
 /// Knife 560, War Sword 3047, Bow 152 / 1624, bloody variants 750 / 3048 / 749.
 // Haxe: ServerSettings.PatchObjectData deadlyDistance weapons
 pub const KNOWN_WEAPON_OBJECT_IDS: &[i32] = &[
-    BOW_AND_ARROW_ID, // 152
-    1624,             // Bow and Arrow with Note
-    560,              // Knife
-    3047,             // War Sword
-    750,              // Bloody Knife
-    3048,             // Bloody War Sword
+    BOW_AND_ARROW_ID,  // 152
+    1624,              // Bow and Arrow with Note
+    560,               // Knife
+    3047,              // War Sword
+    750,               // Bloody Knife
+    3048,              // Bloody War Sword
     BLOODY_YEW_BOW_ID, // 749
 ];
 
@@ -545,9 +756,7 @@ pub enum EscapeOutcome {
     /// Domestic + bare hands: no hit register, no damage path change.
     SkippedDomestic,
     /// Roll failed: animal stays (hunt/damage may continue).
-    Stayed {
-        animal_hits_after: f32,
-    },
+    Stayed { animal_hits_after: f32 },
     /// Escape: accelerate flee; optional bow side effects.
     Escaped {
         animal_hits_after: f32,
@@ -589,7 +798,10 @@ pub fn resolve_animal_escape(
 }
 
 /// Apply escape outcome to animal (hits + flee timer). Returns bow effects if any.
-pub fn apply_escape_outcome(animal: &mut Animal, outcome: EscapeOutcome) -> Option<BowEscapeEffects> {
+pub fn apply_escape_outcome(
+    animal: &mut Animal,
+    outcome: EscapeOutcome,
+) -> Option<BowEscapeEffects> {
     match outcome {
         EscapeOutcome::SkippedDomestic => None,
         EscapeOutcome::Stayed { animal_hits_after } => {
@@ -622,6 +834,8 @@ mod tests {
             AnimalKind::Wolf.combat_profile().deadly_distance,
             ANIMAL_DEADLY_DISTANCE
         );
+        assert!((AnimalKind::Wolf.combat_profile_ex(1.5).deadly_distance - 1.5).abs() < 1e-6);
+        assert_eq!(AnimalKind::Rabbit.combat_profile_ex(1.5).deadly_distance, 0.0);
         assert!(!AnimalKind::Wolf.is_domestic());
         // COMBAT-MOSQUITO-KIND
         assert!(AnimalKind::Mosquito.is_deadly());
@@ -632,6 +846,62 @@ mod tests {
         );
         assert!(!AnimalKind::Mosquito.is_deadly_animal());
         assert!(!AnimalKind::Mosquito.is_deadly_for_ai());
+    }
+
+    #[test]
+    fn biome_animal_hit_chance_default_misses() {
+        // Default chance 0.0 → any rng > 0 misses when biome-safe
+        assert!(biome_animal_damage_misses(
+            true,
+            0.01,
+            BIOME_ANIMAL_HIT_CHANCE_DEFAULT
+        ));
+        assert!(!biome_animal_damage_misses(
+            true,
+            0.0,
+            BIOME_ANIMAL_HIT_CHANCE_DEFAULT
+        ));
+        assert!(!biome_animal_damage_misses(
+            false,
+            0.99,
+            BIOME_ANIMAL_HIT_CHANCE_DEFAULT
+        ));
+        assert!(!biome_animal_damage_misses(true, 0.4, 0.5));
+        assert!(biome_animal_damage_misses(true, 0.6, 0.5));
+    }
+
+    #[test]
+    fn biome_animals_and_jungle_mosquito_not_deadly_when_loved() {
+        assert_eq!(biome_animals_for_loved_biome(6), &[2156]);
+        assert_eq!(biome_animals_for_loved_biome(3), &[418]);
+        let profile = AnimalKind::Mosquito.combat_profile();
+        let loved = biome_animals_for_loved_biome(6);
+        // Brown loves jungle → love 1.0 → mosquito not deadly (checkIfAnimal=false).
+        let inp = AnimalDeadlyForMeInput {
+            deadly_distance: profile.deadly_distance,
+            damage: profile.damage,
+            is_animal: false,
+            check_if_animal: false,
+            animal_hits: 0.0,
+            holding_weapon: false,
+            animal_parent_id: 2156,
+            loved_biome_animal_ids: loved,
+            player_tile_biome_love: 1.0,
+            animal_tile_biome_love: 0.0,
+        };
+        assert!(is_animal_not_deadly_for_me(inp));
+        assert!(biome_animal_damage_misses(
+            true,
+            0.5,
+            BIOME_ANIMAL_HIT_CHANCE_DEFAULT
+        ));
+        // Hits / weapon break the escape.
+        let mut hit = inp;
+        hit.animal_hits = 0.6;
+        assert!(is_animal_deadly_for_me(hit));
+        let mut armed = inp;
+        armed.holding_weapon = true;
+        assert!(is_animal_deadly_for_me(armed));
     }
 
     #[test]
@@ -669,6 +939,33 @@ mod tests {
         assert!((winter - spring * ANIMAL_DAMAGE_FACTOR_IN_WINTER).abs() < 1e-5);
         let attacked = org_animal_damage(base, Season::Spring, 1.0);
         assert!((attacked - spring * ANIMAL_DAMAGE_FACTOR_IF_ATTACKED).abs() < 1e-5);
+    }
+
+    #[test]
+    fn org_damage_factors_live_override() {
+        let knobs = AnimalDamageFactorKnobs {
+            factor: 2.0,
+            winter: 3.0,
+            if_attacked: 2.5,
+        };
+        let base = 3.0;
+        let spring = org_animal_damage_ex(base, Season::Spring, 0.0, knobs);
+        assert!((spring - 6.0).abs() < 1e-5);
+        let winter = org_animal_damage_ex(base, Season::Winter, 0.0, knobs);
+        assert!((winter - 18.0).abs() < 1e-5);
+        let attacked = org_animal_damage_ex(base, Season::Spring, 1.0, knobs);
+        assert!((attacked - 15.0).abs() < 1e-5);
+        let nan_fallback = org_animal_damage_ex(
+            1.0,
+            Season::Spring,
+            0.0,
+            AnimalDamageFactorKnobs {
+                factor: f32::NAN,
+                winter: 3.0,
+                if_attacked: 2.5,
+            },
+        );
+        assert!((nan_fallback - ANIMAL_DAMAGE_FACTOR).abs() < 1e-5);
     }
 
     #[test]
@@ -877,15 +1174,7 @@ mod tests {
         assert!(bow_escape_effects(false, 0, 0).is_none());
 
         let out = resolve_animal_escape(
-            false,
-            true,
-            0.7,
-            0.0,
-            true,
-            false,
-            9,
-            8,
-            0.1, // escape
+            false, true, 0.7, 0.0, true, false, 9, 8, 0.1, // escape
         );
         match out {
             EscapeOutcome::Escaped {

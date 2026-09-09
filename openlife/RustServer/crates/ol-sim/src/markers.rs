@@ -2,6 +2,10 @@
 
 use std::collections::HashMap;
 
+/// Haxe `Connection.SendLocationToAllClose` range for custom MARK `LS` fan.
+// Haxe: Connection.SendLocationToAllClose isClose(..., 20)
+pub const LOCATION_SAYS_CLOSE_RANGE: i32 = 20;
+
 #[derive(Debug, Clone)]
 pub struct MapMarker {
     pub x: i32,
@@ -36,7 +40,13 @@ pub struct MarkerState {
 }
 
 impl MarkerState {
-    pub fn set_mother_marker(&mut self, child_p_id: i32, mother_x: i32, mother_y: i32, mother_p_id: i32) {
+    pub fn set_mother_marker(
+        &mut self,
+        child_p_id: i32,
+        mother_x: i32,
+        mother_y: i32,
+        mother_p_id: i32,
+    ) {
         let m = MapMarker {
             x: mother_x,
             y: mother_y,
@@ -48,7 +58,7 @@ impl MarkerState {
     }
 
     /// Custom map pin at `(x, y)` visible to `viewer_p_id` (typically self).
-    /// Label is the user text after `SAY MARK …`.
+    /// Label is the user text after `SAY MARK ...`.
     pub fn add_custom_marker(
         &mut self,
         viewer_p_id: i32,
@@ -65,6 +75,14 @@ impl MarkerState {
             owner_p_id,
         };
         self.markers.entry(viewer_p_id).or_default().push(m);
+    }
+
+    /// LS text after `x y` for a custom MARK (`! label`).
+    ///
+    /// Matches [`Self::wire_lines_for`] and Haxe `LOCATION_SAYS` `x y ! text`.
+    pub fn custom_mark_ls_text(label: &str) -> String {
+        let t = label.replace(['#', '\n', '\r'], " ");
+        format!("! {t}")
     }
 
     /// Haxe LOCATION_SAYS style: `x y ! text`
@@ -106,5 +124,6 @@ mod tests {
         let list = s.markers.get(&7).unwrap();
         assert_eq!(list[0].kind, MarkerKind::Custom);
         assert_eq!(list[0].owner_p_id, 7);
+        assert_eq!(MarkerState::custom_mark_ls_text("camp"), "! camp");
     }
 }

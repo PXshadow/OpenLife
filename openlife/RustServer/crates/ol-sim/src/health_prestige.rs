@@ -5,9 +5,9 @@
 //! - fan to parents / grandparents / children / one sibling / follow leaders
 //!   scaled by clothing prestige factors.
 //!
-//! Clothing factor residual: ObjectData.prestigeFactor defaults to 0.5 per worn
-//! non-zero clothing slot (content has no prestigeFactor field yet). Eve/Adam
-//! (no mother) gets Haxe `/2` then `+0.5`.
+//! Clothing: per-id [`ObjectDef::get_prestige_factor`] (`parts[slot] * prestigeFactor`);
+//! missing content falls back to 0.5 per worn slot. Leader extra is
+//! `extraPrestigeFactor` (crowns). Eve/Adam `/2` then `+0.5`.
 
 /// Default Haxe `ObjectData.prestigeFactor` when content does not override.
 // Haxe: ObjectData.prestigeFactor = 0.5
@@ -23,7 +23,11 @@ pub const PRESTIGE_LEADER_CHAIN_DEPTH: usize = 4;
 /// then adds 0.5.
 // Haxe: GlobalPlayerInstance.calculateClothingPrestigeFactor L4289–4305
 pub fn clothing_prestige_factor(clothing_ids: &[i32], is_eve_or_adam: bool) -> f32 {
-    clothing_prestige_factor_ex(clothing_ids, is_eve_or_adam, DEFAULT_CLOTHING_PRESTIGE_FACTOR)
+    clothing_prestige_factor_ex(
+        clothing_ids,
+        is_eve_or_adam,
+        DEFAULT_CLOTHING_PRESTIGE_FACTOR,
+    )
 }
 
 /// Like [`clothing_prestige_factor`] with explicit per-slot base factor.
@@ -48,6 +52,46 @@ pub fn clothing_prestige_factor_ex(
         factor += 0.5;
     }
     factor
+}
+
+/// Sum Haxe `getPrestigeFactor` per worn id; unknown ids use default 0.5 per slot.
+// Haxe: GlobalPlayerInstance.calculateClothingPrestigeFactor
+pub fn clothing_prestige_factor_from_content(
+    clothing_ids: &[i32],
+    is_eve_or_adam: bool,
+    factor_of: impl Fn(i32) -> Option<f32>,
+) -> f32 {
+    let mut factor = 0.0_f32;
+    for &id in clothing_ids {
+        if id <= 0 {
+            continue;
+        }
+        factor += factor_of(id).unwrap_or(DEFAULT_CLOTHING_PRESTIGE_FACTOR);
+    }
+    if is_eve_or_adam {
+        factor /= 2.0;
+        factor += 0.5;
+    }
+    factor
+}
+
+/// Haxe `calculateClothingPrestigeFactorForLeader` — sum `extraPrestigeFactor`.
+// Haxe: GlobalPlayerInstance.calculateClothingPrestigeFactorForLeader L6111–6116
+pub fn clothing_extra_prestige_factor(
+    clothing_ids: &[i32],
+    extra_of: impl Fn(i32) -> f32,
+) -> f32 {
+    let mut extra = 0.0_f32;
+    for &id in clothing_ids {
+        if id <= 0 {
+            continue;
+        }
+        let e = extra_of(id);
+        if e.is_finite() {
+            extra += e;
+        }
+    }
+    extra
 }
 
 /// Haxe `calculateTotalClothingPrestigeFactor` — average of giver + receiver.
@@ -144,21 +188,22 @@ pub fn prestige_fan_deltas_ex(
     }
     let tmp = count;
 
-    let push_rel = |out: &mut Vec<PrestigeFanDelta>, id: i32, recv_f: f32, div: f32, kind: PrestigeFanKind| {
-        if id <= 0 {
-            return;
-        }
-        let cf = total_clothing_prestige_factor(giver_clothing_factor, recv_f);
-        let d = (tmp * cf) / div;
-        if d.is_finite() && d != 0.0 {
-            out.push(PrestigeFanDelta {
-                p_id: id,
-                prestige: d,
-                coins: 0.0,
-                kind,
-            });
-        }
-    };
+    let push_rel =
+        |out: &mut Vec<PrestigeFanDelta>, id: i32, recv_f: f32, div: f32, kind: PrestigeFanKind| {
+            if id <= 0 {
+                return;
+            }
+            let cf = total_clothing_prestige_factor(giver_clothing_factor, recv_f);
+            let d = (tmp * cf) / div;
+            if d.is_finite() && d != 0.0 {
+                out.push(PrestigeFanDelta {
+                    p_id: id,
+                    prestige: d,
+                    coins: 0.0,
+                    kind,
+                });
+            }
+        };
 
     if let Some((id, f)) = mother {
         push_rel(out, id, f, 4.0, PrestigeFanKind::Parent);
@@ -187,9 +232,8 @@ pub fn prestige_fan_deltas_ex(
 
     // Leaders: tmpCount starts at count/4
     let mut leader_tmp = count / 4.0;
-    for &(lid, cloth_f, extra, same_family, is_cursed, is_exiled) in leaders
-        .iter()
-        .take(PRESTIGE_LEADER_CHAIN_DEPTH)
+    for &(lid, cloth_f, extra, same_family, is_cursed, is_exiled) in
+        leaders.iter().take(PRESTIGE_LEADER_CHAIN_DEPTH)
     {
         if lid <= 0 || is_exiled {
             break;
@@ -220,11 +264,14 @@ pub fn prestige_fan_deltas_ex(
 // Haxe: GlobalPlayerInstance.addHealthAndPrestige L6008
 #[inline]
 pub fn coins_from_prestige_count(count: f32) -> i32 {
-    if count.is_finite() && count > 0.0 {
-        count.floor() as i32
-    } else {
-        0
-    }
+    crate::economy::wallet_floor_f32(count)
+}
+
+/// Haxe `GlobalPlayerInstance.isEveOrAdam` — clothing prestige /2 then +0.5.
+// Haxe: GlobalPlayerInstance.isEveOrAdam L6219–6220
+#[inline]
+pub fn is_eve_or_adam_name(name: &str) -> bool {
+    name == "EVE" || name == "ADAM"
 }
 
 #[cfg(test)]
@@ -285,17 +332,7 @@ mod tests {
     #[test]
     fn child_fan_half() {
         let mut out = Vec::new();
-        prestige_fan_deltas_ex(
-            4.0,
-            None,
-            None,
-            &[],
-            &[(20, 1.0)],
-            None,
-            &[],
-            1.0,
-            &mut out,
-        );
+        prestige_fan_deltas_ex(4.0, None, None, &[], &[(20, 1.0)], None, &[], 1.0, &mut out);
         // count * 1 / 2 = 2
         assert_eq!(out.len(), 1);
         assert!((out[0].prestige - 2.0).abs() < 1e-5);
@@ -349,6 +386,45 @@ mod tests {
         assert_eq!(coins_from_prestige_count(3.7), 3);
         assert_eq!(coins_from_prestige_count(0.0), 0);
         assert_eq!(coins_from_prestige_count(-1.0), 0);
+    }
+
+    #[test]
+    fn eve_or_adam_name_matches_haxe() {
+        assert!(is_eve_or_adam_name("EVE"));
+        assert!(is_eve_or_adam_name("ADAM"));
+        assert!(!is_eve_or_adam_name("Eve"));
+        assert!(!is_eve_or_adam_name("KID"));
+    }
+
+    #[test]
+    fn content_hat_uses_slot_weight_times_prestige_factor() {
+        // h=0.4 * 0.5 = 0.2
+        let f = clothing_prestige_factor_from_content(&[693], false, |id| {
+            if id == 693 {
+                Some(0.4 * 1.5)
+            } else {
+                None
+            }
+        });
+        assert!((f - 0.6).abs() < 1e-5);
+    }
+
+    #[test]
+    fn missing_content_falls_back_to_half_per_slot() {
+        let f = clothing_prestige_factor_from_content(&[100, 200], false, |_| None);
+        assert!((f - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn extra_prestige_sums_crowns() {
+        let e = clothing_extra_prestige_factor(&[693, 0, 694], |id| {
+            if id == 693 || id == 694 {
+                0.2
+            } else {
+                0.0
+            }
+        });
+        assert!((e - 0.4).abs() < 1e-5);
     }
 
     #[test]

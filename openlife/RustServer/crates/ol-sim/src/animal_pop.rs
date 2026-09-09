@@ -17,9 +17,7 @@ pub const CHANCE_FOR_ANIMAL_DYING_FACTOR_IF_IN_LOVED_BIOME: f32 = 0.1;
 
 /// Haxe `ChanceForDomesticAnimalDyingFactor`.
 ///
-/// **Port note:** Haxe multiplies without assignment (`chance * factor;`) so the
-/// factor is a no-op in legacy. We match that bug unless `apply_domestic_factor`
-/// is explicitly true (tests / future fix).
+/// Haxe TimeHelper multiplies without assignment (no-op). Rust applies it.
 pub const CHANCE_FOR_DOMESTIC_ANIMAL_DYING_FACTOR: f32 = 2.0;
 
 /// Haxe `OffspringFactorLowAnimalPopulationBelow` (fraction of original).
@@ -74,14 +72,18 @@ pub fn chance_for_animal_dying(
     }
 }
 
-/// Optional domestic multiply (Haxe bug: expression not assigned — default off).
+/// Multiply dying chance for domestic animals (live factor; Haxe intended `*=`).
 #[inline]
-pub fn apply_domestic_dying_factor(chance: f32, is_domestic: bool, apply_bugfix: bool) -> f32 {
-    if is_domestic && apply_bugfix {
-        chance * CHANCE_FOR_DOMESTIC_ANIMAL_DYING_FACTOR
-    } else {
-        chance
+pub fn apply_domestic_dying_factor(chance: f32, is_domestic: bool, factor: f32) -> f32 {
+    if !is_domestic {
+        return chance;
     }
+    let f = if factor.is_finite() && factor >= 0.0 {
+        factor
+    } else {
+        CHANCE_FOR_DOMESTIC_ANIMAL_DYING_FACTOR
+    };
+    chance * f
 }
 
 /// Rabbit wrong-place doubles dying chance (Haxe `chanceForAnimalDying *= 2`).
@@ -163,11 +165,7 @@ pub fn natural_death_allowed(
 /// - `< 6` same parent within 5 + loves biome → keep alive
 /// - `< 3` always keep alive (lonely domestic-ish)
 #[inline]
-pub fn lonely_death_override(
-    original_pop: i32,
-    close_same_parent: i32,
-    loves_biome: bool,
-) -> bool {
+pub fn lonely_death_override(original_pop: i32, close_same_parent: i32, loves_biome: bool) -> bool {
     if original_pop >= 1 {
         return true; // no override — caller keeps shouldDie
     }
@@ -307,25 +305,34 @@ pub fn compute_offspring_chance(
         current_pop,
         original_pop,
         CHANCE_FOR_OFFSPRING,
+        OFFSPRING_FACTOR_IF_POP_LOW,
+        OFFSPRING_FACTOR_LOW_POP_BELOW,
     )
 }
 
-/// Like [`compute_offspring_chance`] with live `ChanceForOffspring`.
-// Haxe: ServerSettings.ChanceForOffspring (SETTINGS-FIELD-MAP live)
+/// Like [`compute_offspring_chance`] with live `ChanceForOffspring` /
+/// `OffspringFactorIfAnimalPopIsLow` / `OffspringFactorLowAnimalPopulationBelow`.
+// Haxe: ServerSettings.ChanceForOffspring / OffspringFactorIfAnimalPopIsLow / OffspringFactorLowAnimalPopulationBelow
 pub fn compute_offspring_chance_ex(
     is_preferred_biome: bool,
     current_pop: i32,
     original_pop: i32,
     base_chance: f32,
+    offspring_factor_if_pop_low: f32,
+    low_below: f32,
 ) -> f32 {
     let base = chance_for_offspring(is_preferred_biome, base_chance);
-    apply_low_pop_offspring_boost(
-        base,
-        current_pop,
-        original_pop,
-        OFFSPRING_FACTOR_LOW_POP_BELOW,
-        OFFSPRING_FACTOR_IF_POP_LOW,
-    )
+    let boost = if offspring_factor_if_pop_low.is_finite() && offspring_factor_if_pop_low > 0.0 {
+        offspring_factor_if_pop_low
+    } else {
+        OFFSPRING_FACTOR_IF_POP_LOW
+    };
+    let below = if low_below.is_finite() && low_below > 0.0 {
+        low_below
+    } else {
+        OFFSPRING_FACTOR_LOW_POP_BELOW
+    };
+    apply_low_pop_offspring_boost(base, current_pop, original_pop, below, boost)
 }
 
 /// Compose dying chance from biome + rabbit + overpop (defaults; domestic no-op).
@@ -341,26 +348,52 @@ pub fn compute_dying_chance(
         current_pop,
         original_pop,
         CHANCE_FOR_ANIMAL_DYING,
+        CHANCE_FOR_ANIMAL_DYING_FACTOR_IF_IN_LOVED_BIOME,
     )
 }
 
-/// Like [`compute_dying_chance`] with live `ChanceForAnimalDying`.
-// Haxe: ServerSettings.ChanceForAnimalDying (SETTINGS-FIELD-MAP live)
+/// Like [`compute_dying_chance`] with live `ChanceForAnimalDying` /
+/// `ChanceForAnimalDyingFactorIfInLovedBiome`.
+// Haxe: ServerSettings.ChanceForAnimalDying / ChanceForAnimalDyingFactorIfInLovedBiome
 pub fn compute_dying_chance_ex(
     is_preferred_biome: bool,
     rabbit_in_wrong_place: bool,
     current_pop: i32,
     original_pop: i32,
     base_chance: f32,
+    loved_biome_factor: f32,
 ) -> f32 {
-    let mut c = chance_for_animal_dying(
-        is_preferred_biome,
-        base_chance,
-        CHANCE_FOR_ANIMAL_DYING_FACTOR_IF_IN_LOVED_BIOME,
-    );
-    // Domestic factor intentionally not applied (Haxe assignment bug).
+    let loved = if loved_biome_factor.is_finite() && loved_biome_factor >= 0.0 {
+        loved_biome_factor
+    } else {
+        CHANCE_FOR_ANIMAL_DYING_FACTOR_IF_IN_LOVED_BIOME
+    };
+    let mut c = chance_for_animal_dying(is_preferred_biome, base_chance, loved);
     c = apply_rabbit_wrong_place_dying(c, rabbit_in_wrong_place);
     apply_overpop_dying_boost(c, current_pop, original_pop)
+}
+
+/// Like [`compute_dying_chance_ex`] with domestic dying factor applied.
+pub fn compute_dying_chance_ex_domestic(
+    is_preferred_biome: bool,
+    rabbit_in_wrong_place: bool,
+    current_pop: i32,
+    original_pop: i32,
+    base_chance: f32,
+    loved_biome_factor: f32,
+    is_domestic: bool,
+    domestic_factor: f32,
+) -> f32 {
+    let mut c = compute_dying_chance_ex(
+        is_preferred_biome,
+        rabbit_in_wrong_place,
+        current_pop,
+        original_pop,
+        base_chance,
+        loved_biome_factor,
+    );
+    c = apply_domestic_dying_factor(c, is_domestic, domestic_factor);
+    c
 }
 
 /// One-shot resolution for a successful destination pick (before commit move).
@@ -400,11 +433,18 @@ pub fn resolve_pop_on_dest(
         rng_offspring,
         CHANCE_FOR_OFFSPRING,
         CHANCE_FOR_ANIMAL_DYING,
+        CHANCE_FOR_ANIMAL_DYING_FACTOR_IF_IN_LOVED_BIOME,
+        OFFSPRING_FACTOR_IF_POP_LOW,
+        MAX_OFFSPRING_FACTOR,
+        OFFSPRING_FACTOR_LOW_POP_BELOW,
+        false,
+        CHANCE_FOR_DOMESTIC_ANIMAL_DYING_FACTOR,
     )
 }
 
-/// Like [`resolve_pop_on_dest`] with live ChanceForOffspring / ChanceForAnimalDying.
-// Haxe: ServerSettings.ChanceForOffspring / ChanceForAnimalDying
+/// Like [`resolve_pop_on_dest`] with live ChanceForOffspring / ChanceForAnimalDying /
+/// ChanceForAnimalDyingFactorIfInLovedBiome / OffspringFactorIfAnimalPopIsLow / MaxOffspringFactor.
+// Haxe: ServerSettings.ChanceForOffspring / ChanceForAnimalDying / ChanceForAnimalDyingFactorIfInLovedBiome / OffspringFactorIfAnimalPopIsLow / MaxOffspringFactor
 pub fn resolve_pop_on_dest_ex(
     current_pop: i32,
     original_pop: i32,
@@ -419,19 +459,33 @@ pub fn resolve_pop_on_dest_ex(
     rng_offspring: f32,
     chance_for_offspring_base: f32,
     chance_for_animal_dying_base: f32,
+    loved_biome_factor: f32,
+    offspring_factor_if_pop_low: f32,
+    max_offspring_factor: f32,
+    low_below: f32,
+    is_domestic: bool,
+    domestic_dying_factor: f32,
 ) -> PopMoveOutcome {
-    let die_chance = compute_dying_chance_ex(
+    let die_chance = compute_dying_chance_ex_domestic(
         is_preferred_biome,
         rabbit_in_wrong_place,
         current_pop,
         original_pop,
         chance_for_animal_dying_base,
+        loved_biome_factor,
+        is_domestic,
+        domestic_dying_factor,
     );
+    let max_factor = if max_offspring_factor.is_finite() && max_offspring_factor > 0.0 {
+        max_offspring_factor
+    } else {
+        MAX_OFFSPRING_FACTOR
+    };
     let can_above = can_die_pop_fraction(rabbit_in_wrong_place);
     if roll_natural_death(
         current_pop,
         original_pop,
-        MAX_OFFSPRING_FACTOR,
+        max_factor,
         can_above,
         has_contained,
         has_ground_object,
@@ -448,11 +502,13 @@ pub fn resolve_pop_on_dest_ex(
         current_pop,
         original_pop,
         chance_for_offspring_base,
+        offspring_factor_if_pop_low,
+        low_below,
     );
     let spawn = roll_offspring(
         current_pop,
         original_pop,
-        MAX_OFFSPRING_FACTOR,
+        max_factor,
         off_chance,
         rng_offspring,
         has_close_same_for_offspring,
@@ -488,10 +544,10 @@ mod tests {
     }
 
     #[test]
-    fn domestic_factor_default_noop() {
-        let c = apply_domestic_dying_factor(0.01, true, false);
+    fn domestic_factor_applied() {
+        let c = apply_domestic_dying_factor(0.01, false, 2.0);
         assert!((c - 0.01).abs() < 1e-9);
-        let fixed = apply_domestic_dying_factor(0.01, true, true);
+        let fixed = apply_domestic_dying_factor(0.01, true, 2.0);
         assert!((fixed - 0.02).abs() < 1e-9);
     }
 
@@ -580,14 +636,11 @@ mod tests {
     #[test]
     fn resolve_pop_on_dest_die_and_birth() {
         // Force die: high chance, allowed pop
-        let o = resolve_pop_on_dest(
-            20, 10, false, false, false, false, true, 0, false, 0.0, 0.0,
-        );
+        let o = resolve_pop_on_dest(20, 10, false, false, false, false, true, 0, false, 0.0, 0.0);
         // die chance tiny by default — use preferred=false base 5e-5; force via roll helpers above.
         // Explicit Move path with forced high offspring chance via low rng and high chance path:
-        let move_only = resolve_pop_on_dest(
-            1, 100, true, false, false, false, true, 0, false, 0.99, 0.0,
-        );
+        let move_only =
+            resolve_pop_on_dest(1, 100, true, false, false, false, true, 0, false, 0.99, 0.0);
         // die chance loved = 5e-6; rng 0.99 → no die; offspring chance boosted (1 < 20) *10 = 5e-4; rng 0 → birth
         assert_eq!(
             move_only,
@@ -595,9 +648,8 @@ mod tests {
                 spawn_offspring: true
             }
         );
-        let blocked = resolve_pop_on_dest(
-            1, 100, true, false, false, false, true, 0, true, 0.99, 0.0,
-        );
+        let blocked =
+            resolve_pop_on_dest(1, 100, true, false, false, false, true, 0, true, 0.99, 0.0);
         assert_eq!(
             blocked,
             PopMoveOutcome::Move {
@@ -606,9 +658,8 @@ mod tests {
         );
         // Force die with artificial settings via roll_natural_death already tested;
         // use has_ground to force move:
-        let ground = resolve_pop_on_dest(
-            50, 10, false, false, false, true, true, 0, false, 0.0, 0.99,
-        );
+        let ground =
+            resolve_pop_on_dest(50, 10, false, false, false, true, true, 0, false, 0.0, 0.99);
         assert_eq!(
             ground,
             PopMoveOutcome::Move {
@@ -636,5 +687,83 @@ mod tests {
         let expected_die =
             CHANCE_FOR_ANIMAL_DYING * CHANCE_FOR_ANIMAL_DYING_FACTOR_IF_IN_LOVED_BIOME;
         assert!((die - expected_die).abs() < 1e-9);
+        let live = compute_dying_chance_ex(true, false, 5, 5, CHANCE_FOR_ANIMAL_DYING, 0.5);
+        assert!((live - CHANCE_FOR_ANIMAL_DYING * 0.5).abs() < 1e-9);
+        let nan_fallback =
+            compute_dying_chance_ex(true, false, 5, 5, CHANCE_FOR_ANIMAL_DYING, f32::NAN);
+        assert!((nan_fallback - expected_die).abs() < 1e-9);
+        let live_off = compute_offspring_chance_ex(
+            true,
+            1,
+            10,
+            CHANCE_FOR_OFFSPRING,
+            5.0,
+            OFFSPRING_FACTOR_LOW_POP_BELOW,
+        );
+        assert!((live_off - CHANCE_FOR_OFFSPRING * 5.0).abs() < 1e-9);
+        let nan_boost = compute_offspring_chance_ex(
+            true,
+            1,
+            10,
+            CHANCE_FOR_OFFSPRING,
+            f32::NAN,
+            OFFSPRING_FACTOR_LOW_POP_BELOW,
+        );
+        assert!((nan_boost - expected_off).abs() < 1e-9);
+        // MaxOffspringFactor 1 → current==original blocks birth; 2 allows.
+        let cap_block = resolve_pop_on_dest_ex(
+            10,
+            10,
+            true,
+            false,
+            false,
+            false,
+            true,
+            0,
+            false,
+            0.99,
+            0.0,
+            1.0,
+            0.0,
+            0.1,
+            10.0,
+            1.0,
+            OFFSPRING_FACTOR_LOW_POP_BELOW,
+            false,
+            CHANCE_FOR_DOMESTIC_ANIMAL_DYING_FACTOR,
+        );
+        assert_eq!(
+            cap_block,
+            PopMoveOutcome::Move {
+                spawn_offspring: false
+            }
+        );
+        let cap_live = resolve_pop_on_dest_ex(
+            10,
+            10,
+            true,
+            false,
+            false,
+            false,
+            true,
+            0,
+            false,
+            0.99,
+            0.0,
+            1.0,
+            0.0,
+            0.1,
+            10.0,
+            2.0,
+            OFFSPRING_FACTOR_LOW_POP_BELOW,
+            false,
+            CHANCE_FOR_DOMESTIC_ANIMAL_DYING_FACTOR,
+        );
+        assert_eq!(
+            cap_live,
+            PopMoveOutcome::Move {
+                spawn_offspring: true
+            }
+        );
     }
 }

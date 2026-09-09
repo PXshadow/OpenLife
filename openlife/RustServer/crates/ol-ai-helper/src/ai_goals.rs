@@ -29,8 +29,8 @@ pub use priority_ladder::{
     is_hungry_simple, is_moving_to_player_needed, is_superbad_temp, ordered_follow_max_tiles,
     wounded_follow_tiles, pick_goal_from_ladder, pick_goal_from_live_sensors, pick_goal_with_sensors,
     player_quad_dist, resolve_escape_threat, resolve_priority_rung, sensors_from_ext,
-    sensors_from_ext_ex, sensors_from_simple,
-    should_attempt_escape, skip_escape_for_hunt, threat_is_far_for_temp, threat_quad_from_deadly,
+    sensors_from_ext_ex, sensors_from_simple, should_attempt_escape, should_handle_death,
+    skip_escape_for_hunt, threat_is_far_for_temp, threat_quad_from_deadly,
     update_is_hungry, AgeRotatedJobKind, CloseDeadlyPlayer, ClosePlayerTarget, DeadlyPlayerCandidate,
     EscapeContext, EscapeSideEffects, EscapeThreat, HungryEatEffects, LiveSensorBundle,
     LiveSensorExtras, LiveSensorInput, PlayerTargetCandidate, PriorityBand, PriorityRung,
@@ -38,7 +38,8 @@ pub use priority_ladder::{
     DEADLY_PLAYER_SEARCH_DIST, DEADLY_PLAYER_SEARCH_DIST_AI, DEVIL_MASK_ID, ESCAPE_ANGRY_TIME_IGNORE,
     ESCAPE_DID_NOT_REACH_FOOD_MAX, ESCAPE_DIST, ESCAPE_FOOD_CRIT_SKIP, ESCAPE_HUNT_MIN_AGE,
     ESCAPE_PLAYER_DIST_MAX, EXILE_HOME_QUAD_DANGER, GOBLIN_MASK_ID, HUNGRY_ENTER_FLOOR,
-    HUNGRY_ENTER_FRAC, HUNGRY_LEAVE_FRAC, MAX_CHILD_AGE_BREASTFEED, MIN_AGE_TO_EAT,
+    HANDLE_DEATH_AGE_OFFSET, HANDLE_DEATH_MAX_AGE_DEFAULT, HUNGRY_ENTER_FRAC, HUNGRY_LEAVE_FRAC,
+    MAX_CHILD_AGE_BREASTFEED, MIN_AGE_TO_EAT,
     PLAYER_TARGET_SEARCH_DIST, SMITHING_HAMMER_ID,
 };
 

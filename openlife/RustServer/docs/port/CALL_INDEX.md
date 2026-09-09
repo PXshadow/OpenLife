@@ -40,7 +40,8 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 
 | Symbol | File | Role |
 |--------|------|------|
-| `Connection.login` / `loginHelper` | `server/Connection.hx` | account + spawn |
+| `Connection.login` / `loginHelper` | `server/Connection.hx` | account + spawn; **SPAWN-QUEUE-POLICY** |
+| `spawn_queue_decide` / `SpawnQueueBook` | `ol-sim/src/spawn_queue.rs` | MaxPlayers + cull AIs + score/last-life + IP spam (**SPAWN-QUEUE-POLICY**) |
 | `Connection.rlogin` / `rloginHelper` | same | reconnect |
 | `Connection.close` | same | disconnect / AI takeover |
 | `Connection.send` / `sendHelper` | same | ClientTag frames |
@@ -83,10 +84,15 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `GlobalPlayerInstance.makeWeaponBloodyIfNeeded` | same | knife/sword → bloody on deadly animal (ttc=3) |
 | `TimeHelper.DoTimeOnPlayerObjects` held bloody | `server/TimeHelper.hx` | `-1` auto-clean bloody → clean |
 | `TransitionHelper` isNeverDrop / isBloody re-arm | `server/TransitionHelper.hx` | DROP refuse + ttc=3 unstick |
+| `TransitionHelper` isWound / hiddenWound clear | `server/TransitionHelper.hx` | **WOUND-CMD** USE/DROP/SWAP/REMV refuse or clear-then-continue |
+| `TransitionHelper` heldPlayer drop+refuse | `server/TransitionHelper.hx` | **HOLDING-PLAYER-CMD** USE/REMV `dropPlayer` at feet then refuse |
+| `TransitionHelper` Rubber Ball 2170 + Paper 1615 | `server/TransitionHelper.hx` | **CLEAR-WRITING** clear `text`/`hits` on tile helper |
+| `TransitionHelper` heldObject.text PLAYER_SAYS | `server/TransitionHelper.hx` | **READ-WRITING** post-command PS extra `}` port-as-is |
+| `TransitionHelper` USE 292 + 292/1605 cargo refuse | `server/TransitionHelper.hx` | **BASKET-PILE-CMD** live refuse (hidden-container TODO) |
 | Rust `make_weapon_bloody_if_needed` / `bloody_weapon_after_strike` / `try_bloody_weapon_auto_clean` | `ol-sim/weapons.rs` | COMBAT-BLOODY pure |
 | Rust `bloody_weapon_auto_decay_base_ttc` / `never_drop_*` / bow damage 9/12 | same | PatchTransitions 3/2/6 + DROP polish |
 | Rust `apply_bloody_weapon_transform` / `tick_held_bloody_auto_clean` | `ol-sim/lib.rs` | HIT/HUNT/DROP + vitals auto-clean |
-| Rust `held_object_speed_mult` bloody override | `ol-sim/move_speed.rs` | 0.75/0.85/0.6 over content |
+| Rust `held_object_speed_mult` bloody override | `ol-move-rules/speed` + `ol-sim/move_speed.rs` wrapper | 0.75/0.85/0.6 over content |
 | Rust `BowEscapeEffects.time_to_change` | `ol-sim/animal_damage.rs` | TryAnimaEscape ttc=2 |
 | `DoDamage` GetTransition(weapon,0) / doWound / setHeld wound | `server/GlobalPlayerInstance.hx` | WEAPON-WOUND-TRANS |
 | `DoDamage` GetTransition(animal,0) attacker==null residual | same | WEAPON-ANIMAL-ZERO: equip/ground wound + fromObj.id=newActor TTC |
@@ -96,7 +102,7 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | Rust `plan_animal_zero_wound_from_content` / `plan_animal_zero_residual` / `force_no_coins_on_equip` | same | animal+0 plan + residual TTC |
 | Rust `bloody_weapon_from_zero_transition` / `object_wound_factor` / `effective_wound_factor` | same | content newActor + snake shoes |
 | Rust `is_arrow_wound_description` / `is_arrow_wound_object` | `ol-sim/death_polish.rs` | Arrow Wound gate |
-| Rust `apply_weapon_zero_wound_hit` | `ol-sim/lib.rs` | HIT Wound/Kill equip + ground + bloody |
+| Rust `apply_weapon_zero_wound_hit` | `ol-sim/lib.rs` | **PLACE-OBJECT-SPILL** HIT PlaceObject prior held / ground wound + equip |
 | `takeCoins` / `CoinsOnWoundingFactor` / `darkNosaj` | `server/GlobalPlayerInstance.hx` | WALLET-COINS: steal on lethal + first wound equip |
 | Rust `coins_stolen_on_wound` / `take_coins_say_text` | `ol-sim/weapon_wound.rs` | pure amount + `Got N coin(s)!` |
 | Rust `Economy::take_coins_on_wound` | `ol-sim/economy.rs` | wallet gift path (no trade prestige) |
@@ -156,7 +162,7 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | Rust `calculate_new_pos` / `reconcile_mid_path_tile` / `LET_THE_CLIENT_CHEAT_LITTLE_BIT_FACTOR` | `ol-sim/move_path.rs` | **MOVE-MIDPATH** pure + wire on `apply_move_path_start` |
 | `MoveHelper.calculateObjSpeedMult` | same | contained object mult clamp |
 | `GlobalPlayerInstance.hasBothShoes` | `server/GlobalPlayerInstance.hx` | clothingObjects[2] **and** [3] non-zero |
-| Rust `has_both_shoes` / `shoe_pair_ids` | `ol-sim/move_speed.rs` | dual-shoe parity |
+| Rust `has_both_shoes` / `shoe_pair_ids` | `ol-move-rules/speed` (re-export `ol-sim/move_speed`) | dual-shoe parity |
 | Rust `movement_age_allowed` / `still_waiting_for_force` / `jump_quad_with_floor` / `apply_jump_cost` / `springy_door_open_id` / `decay_jumped_tiles` | `ol-sim/move_path.rs` | TIMED-MOVEMENT-DEFAULT pure gates |
 | Rust `apply_move_path_start` / `tick_move_paths` / `open_doors_on_commits` / `send_forced_player_update` | `ol-sim/lib.rs` | path start gates + tick OpenDoors/forceStop/AI force |
 | **JUMP-BW-FULL** `GlobalPlayerInstance.jump` | `server/GlobalPlayerInstance.hx` L5098–5120 | not-held PU+BW+FRAME; held `dropPlayer` |
@@ -190,9 +196,10 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `AiHelper.CalculateDistance` | `auto/AiHelper.hx` | torus half-map wrap squared distance |
 | `ObjectData.useDistance` / `deadlyDistance` / `isAnimal` | `data/object/ObjectData.hx` | content range + moves>0 animal |
 | Rust `in_use_range` / `in_use_range_ex` / `effective_use_distance` / `check_if_not_moving_and_close_enough` | `ol-sim/move_path.rs` | IS-CLOSE / action_range pure |
-| Rust `is_close_use_exact*` / `calculate_exact_quad_distance_f` / `refuse_ranged_kill_too_close` / `refuse_ranged_use_too_close` | `ol-sim/move_live_gates.rs` | exact range + bow min-range pure (kill=player; use=+animal) |
-| Rust `note_too_close_say` / `take_too_close_say` / `take_too_close_message` / `TOO_CLOSE_SAY` / `TOO_CLOSE_MESSAGE` | `ol-sim/move_live_gates.rs` | GPI-TOO-CLOSE pending public say + debug message |
-| Rust `maybe_too_close_say_feedback` | `ol-sim/lib.rs` USE + HIT + SAY KILL | public `send_chat_ps` `TOO CLOSE...` + FRAME |
+| Rust `is_close_use_exact*` / `calculate_exact_quad_distance_f` / `refuse_ranged_kill_too_close` / `refuse_ranged_use_too_close` | `ol-move-rules/close_exact` (re-export `ol-sim/move_live_gates`) | exact range + bow min-range pure (kill=player; use=+animal) |
+| Rust `note_too_close_say` / `take_too_close_say` / `take_too_close_say_for` / `take_too_close_message` / `TOO_CLOSE_SAY` / `TOO_CLOSE_MESSAGE` | `ol-sim/move_live_gates.rs` | GPI-TOO-CLOSE pending public say + debug message (thread-local; `take_for` isolates conn) |
+| Rust `UseResult.ranged_too_close` | `ol-sim/lib.rs` + `use_transition.rs` | authoritative USE bow min-range refuse for live PS (no static race) |
+| Rust `maybe_too_close_say_feedback` / `emit_too_close_ps` | `ol-sim/lib.rs` USE + HIT + SAY KILL | public `send_chat_ps` `TOO CLOSE...` + FRAME |
 | Rust `apply_use_at` / `apply_drop` / REMV range gates | `ol-sim/use_transition.rs` + `lib.rs` | live USE/DROP/REMV action range |
 | Rust `ObjectDef.use_distance` / `deadly_distance` / `moves` / `is_animal` | `ol-content` | content fields + weapon/animal patches |
 | Rust OLC1 v7 `deadly_distance`/`use_distance`/`moves` encode/load | `ol-binary` + `ol-content/binary_cache` | **OLC1-DISTANCES** binary_use_dist |
@@ -237,12 +244,14 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `AiBase.doTimeStuff` / `doTimeStuffHelper` | `auto/AiBase.hx` | **priority ladder** (AI-PRIO) |
 | `AiBase.checkIsHungryAndEat` | same | hungry hysteresis |
 | `AiBase.escape` | same | flee rung |
-| `AiBase.isFeedingChild` / `isFeedingPlayerInNeed` | same | feed band |
+| `AiBase.isFeedingChild` / `isFeedingPlayerInNeed` | same | feed band; assigned FOODSERVER(100) + mid max=1 SMITH<1 (**AI-JOB-FOODSERVER** / **AI-FEED-MID**) |
+| `YOU ARE` / `SMITH!` profession assign | `ai_say_helper.rs` | hearer YOU ARE SMITH + job runtimes (**YOU-ARE-PROF**); speaker YOU ARE is DoNaming |
 | `AiBase.isMovingToPlayer` / `isChildAndHasMother` | same | follow band |
 | `AiBase` profession methods | same | job bodies (AI-JOB-*) |
 | `hasOrBecomeProfession` / `countProfession` | same | profession caps + sticky last |
-| `doBasicFarming` / `doCarrotFarming` / `doBerryFarming` / `doAdvancedFarming` | same | farm jobs |
+| `doBasicFarming` / `doCarrotFarming` / `doBerryFarming` / `doAdvancedFarming` | same | farm jobs; assigned CARROTFARMER(100) + low `doCarrotFarming(1)` (**DO-CARROT-LOW**) |
 | `doPrepareSoil` / `doPrepareRows` / `doComposting` / `doPlant*` / `doHarvest*` / `doWateringOn` | same | farm steps |
+| `AiBase.doWatering` / `doWateringHelper` | same | assigned WATERBRINGER `doWatering(100)` + low `doWatering(1)` closest dry r=30 (**AI-JOB-WATER** / **DO-WATERING-LOW**) |
 | `doBaking` / `doBakingHelper` / `makeRawPies` | same | baker job (AI-JOB-BAKER) |
 | `craftItem` / GetOrCraft | same | crafting |
 | `AiHelper.GetClosest*` / food | `auto/AiHelper.hx` | spatial |
@@ -316,7 +325,7 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `apply_inherit_coins` / `InheritContext` | `ol-sim/src/death_inherit.rs` | past-actions + kids + grave/treasury residual |
 | `choose_new_leader` / `count_leadership_power` | same | Haxe ChooseNewLeader / countLeadershipPower (+ family_prestige) |
 | `apply_inherit_ownership_on_helpers` / `remove_owner_from_helper` / `add_owner_to_helper` | same | InheritOwnership pure |
-| `stamp_grave_soul` / `account_soul_token` | same | grave owners_by_account soul key |
+| `stamp_grave_soul` / `account_id_ensure` / `account_id_for_email` / `account_soul_token` | same | **GRAVE-ACCOUNT-ID** numeric `PlayerAccount.id` on graves; FNV token for legacy OLW |
 | `apply_death_polish` / `place_grave_with_soul` | `ol-sim/src/death_polish.rs` | doDeathHelper orchestration |
 | `select_grave_object_id` / `resolve_place_grave_id` | same | placeGrave 3053/752/87 (+ content fallback) |
 | `is_wound_description` / `is_wound_object` | same | ObjectHelper.isWound |
@@ -388,16 +397,21 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 |--------|------|------|
 | `apply_balance_temperature_area` | `ol-sim/src/map_temp_player.rs` | Haxe `TemperatureHandler.BalanceTemperatureArea` (doLocalHeat=false) |
 | `ensure_tile_temperature` / `get_tile_temperature` | same | init sparse `tile_temps` / read |
-| `player_ambient_from_tile_temps` / `update_player_temperature` | same | radius-5 balance + water half + body heat step |
-| `clothing_factor_from_slots` | same | mild clothing insulation stub |
+| `player_ambient_from_tile_temps` / `update_player_temperature` | same | radius-5 balance + water half + closest-heat + clothing rValue + color/biome-love/held-by + body heat |
+| `temperature_shift_for_color` / `apply_biome_love_temperature` / `apply_stored_water_cool` | `ol-sim/src/map_temp_player.rs` | Haxe color shift, loved-biome boni (cap 0.1), storedWater cool |
+| `consider_warm_place` / `consider_cold_place` / `plan_temp_place_goto` | same | Haxe warmPlace/coldPlace fitness + NPC superbad goto |
+| `ObjectDef.get_insulation` / `get_heat_protection` | `ol-content` | Haxe `ObjectData.parts` h/t/b/p=0.4 s=0.2; backpack heat-protection 0 |
+| `clothing_insulation_sum` / `clothing_heat_protection_sum` / `apply_clothing_to_ambient` / `clothing_body_factor` | `ol-sim/src/map_temp_player.rs` | worn 6-slot matrix + natural heat insulation |
+| `clothing_factor_from_slots` | same | 3-slot presence fallback (not live) |
 | `body_heat_step` / `heat_food_extra` / `clamp_heat` | `ol-sim/src/heat_ideal.rs` | Haxe impact-per-sec body heat + food extra |
-| `Player.heat` / `Player.last_temperature` | `ol-sim/src/player.rs` | body heat 0..1 + ambient sample |
-| `tick_vitals_with_metrics` temperature pass | `ol-sim/src/lib.rs` | live: `update_player_temperature` → `p.heat`/`last_temperature`; food drain + HX |
+| `heat_food_drain_time` / `player_heat_food_drain` | `ol-temperature` + `temperature_handler.rs` | Haxe HEAT foodUsePerSecond + foodDrainTime |
+| `Player.heat` / `Player.last_temperature` / `Player.food_use_per_second` | `ol-sim/src/player.rs` | body heat 0..1 + ambient + GPI foodUsePerSecond |
+| `tick_vitals_with_metrics` temperature pass | `ol-sim/src/lib.rs` | live: `update_player_temperature` → `p.heat`/`last_temperature`/`food_use_per_second`; food drain + HX foodDrainTime |
 | path move + `player_move_speed` heat | `ol-sim/src/lib.rs` | uses `p.heat` (not `temperature_at_biome`) |
 | Rust `resolve_grave_curse` / `has_close_blocking_grave` / `has_close_hostile_with_weapon` | `ol-sim/move_live_gates.rs` | S-MOVE-LIVE-GATES |
 | Rust `live_move_speed_gates` / `apply_grave_curse_live_gates` | `ol-sim/lib.rs` | wire speed + is_cursed on path start/finish/cancel |
-| login bootstrap HX | `SimState` bootstrap packets | `format_heat_change(p.heat, …)` |
-| Tests | `map_temp_player::*` / `heat_ideal::*` / `tick_vitals_map_temp_player_*` / HX + desert/snow/indoor food | pure + live wire |
+| login bootstrap HX | `SimState` bootstrap packets | `format_heat_change(p.heat, foodDrainTime, 0)` |
+| Tests | `heat_food_drain_time_*` / `tick_vitals_emits_hx_heat_every_interval` / `social_bootstrap_hx_includes_food_drain_time` | pure + live HX |
 
 ---
 
@@ -413,6 +427,12 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `age_job_index` / `age_rotated_job_sequence` / `AgeRotatedJobKind` | same | berry/basic/baking/pottery/sheep cycle |
 | `sensors_from_simple` / `sensors_from_ext` / `LiveSensorExtras` | same | sensor fill (simple + live extras) |
 | `fill_live_sensors` / `LiveSensorInput` / `LiveSensorBundle` / `pick_goal_from_live_sensors` | same | **AI-PRIO-LIVE** world→sensor bundle |
+| npc_ai `npc_fill_live_sensor_input` / escape before eat | `ol-server/src/npc_ai.rs` | **AI-PRIO-LIVE** GetCloseDeadlyAnimal (AnimalWorld) + GetCloseDeadlyPlayer snapshots |
+| `closest_heat_object_contribution` / `held_heat_contribution` | `map_temp_player.rs` | Haxe GetClosestHeatObject + held heatValue/20 |
+| `peer_count_by_kind` / `npc_peer_counts_by_kind` / `peer_counts_by_kind_from_state` | `profession_scan.rs` | per-job countProfession on ladder steps (**SMITH-LADDER-PEER-KIND**) |
+| `absorb_npc_ai_sticky_from_views` / foodTarget snapshot | `lib.rs` + `npc_ai.rs` | Player↔NPC food sticky + path-reach preserve |
+| `npc_try_walk_to` + `AnimalPathPlayerCtx` | `npc_ai.rs` + `pathfind.rs` | Goto `isAnimalDeadlyForMe` weapon + loved biome |
+| `PlayerSnapshot.is_hidden_wound` / `lost_combat_prestige` | `player/body.rs` + publish | peer isWounded skip hidden; deadly-player prestige |
 | `get_close_deadly_player` / `DeadlyPlayerCandidate` / `is_deadly_player_candidate` | same | Haxe `GetCloseDeadlyPlayerHelper` pure |
 | `get_close_player_target` / `PlayerTargetCandidate` | same | Haxe `GetClosePlayerTargetHelper` pure |
 | `escape_context_from_threats` / `threat_quad_from_deadly` | same | EscapeContext from live animal/player |
@@ -447,7 +467,16 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `count_corn_seeds_near` / `farm_radius_table` / `soil_units_from_map` | same | countCorn r=20 (held 1115/1120/1247 only); radii; soil units |
 | `try_decide_farm_from_rung` / `farm_action_to_goal` / `farm_job_rung_label` | same | ladder bridge + goal map |
 | `farm_goal_from_map_and_rung` / `farm_goal_from_counts_and_rung` | same | fill→decide→goal composition for live tick |
+| `farm_scan_peer_count` / `farm_peer_lasts_from_state` / `farm_peer_lasts_from_npc_rows` / `ProfessionScanInput.farm_peer_lasts` / `NpcProfessionPeerRow.last_farm` | `profession_scan.rs` | Haxe `countProfession(jobKey)` + live `hasOrBecomeProfession` on farm scan (**AI-JOB-LIVE-IO-RESID**) |
 | selfplay farmer plan | `ol-server/src/selfplay.rs` | uses `pick_farmer_goal` (not map-fill yet) |
+
+## Rust: cleanUp / pileUp / cleanUpBowls (AI-JOB-LIVE-IO-RESID)
+
+| Symbol | File | Role |
+|--------|------|------|
+| `clean_up_action` / `pile_up_action` / `CleanupCounts` | `ol-ai-professions` `cleanup_profession.rs` | Haxe `cleanUp` / `pileUp` first-hit sequence |
+| `clean_up_bowls_action` / `CleanupBowlSnap` / `GOOSEBERRY` / `BOWL_DRY_BEANS` | same | Haxe `cleanUpBowls(253\|1176)` (berry remap + dry-bean pod fill) |
+| `cleanup_counts_from_scan` / baker `DeferCleanup` | `profession_scan.rs` | live scan fill + expand to pottery shortCraft |
 
 ---
 
@@ -464,7 +493,7 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `handle_milk` / `craft_item_max` / `make_or_collect` | same | milk pouch/cream/butter; craftItemMax; kindling collect hysteresis |
 | `note_raw_pie_crafted` / `count_pies` | same | Haxe `countPies` for `extraPies % 4` (mutton/carrot bias) |
 | `plant_carrots_for_baker` / `harvest_wheat_for_baker` / `sheep_herding_for_baker` | same | sequenced mid fallthrough; sheep defers to full `is_sheep_herding` when lambs/calves/milk present |
-| `fill_berry_bowl_if_needed` / `make_seats_and_cleanup` / `make_seats_and_cleanup_ex` | same | berry bowl; seats craft 2828 when BOWLFILLER / force DeferSeatsCleanup |
+| `fill_berry_bowl_if_needed` / `make_seats_and_cleanup` / `make_seats_and_cleanup_ex` / `expand_baker_cleanup_live` | same | berry bowl; seats craft 2828 when BOWLFILLER; DeferSeatsCleanup empty → `clean_up_action` |
 | `bake_counts_from_nearby` / `should_drop_near_oven` / `consider_drop_near_oven` / `drop_near_oven_anchor` | same | mock snapshot + bakery drop staging (home/oven anchor) |
 | `fill_bake_counts_from_map` / `_ex` / `_with_floor` / `BakeMapObj` | same | CountCloseObjects fill: half-open square, pile uses, IsIgnoredFloor |
 | `bake_action_short_craft_apply` / `_ex` / `baker_short_craft_apply` / `baker_short_craft_limits` | same | shortCraftOnTarget USE/drop/seek + maxNewActor + craft_if_needed + hungry ex (AI-JOB-BAKER-LIVE) |
@@ -500,6 +529,26 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `make_fire_food` / `FireFoodAction` / `FireFoodCounts` / `FireFoodProfessionRuntime` | `fire_food_profession.rs` | Haxe makeFireFood pure body (AI-MAKE-STUFF) |
 | `ProfessionScanKind::FireFood` / `fire_food_profession_scan_tick` / `try_decide_fire_food_from_rung` | `profession_scan.rs` + `fire_food_rung.rs` | assigned/last FIREFOODMAKER makeFireFood(100) (AI-FIREFOOD-RUNG) |
 | `is_handling_fire` / `is_handling_fire_fire_fuel_tail` / `HandlingFireAction` / `FireKeeperProfessionRuntime` / `FireFoodDispatchPath` | `handling_fire.rs` | isHandlingFire + Fire82 fuel cascade + late/hungry residual (AI-HANDLING-FIRE) |
+| `FIRE_CRAFT_HOT_COALS_SEARCH_RADIUS` / `apply_fire_craft_search_radius_override` | `handling_fire.rs` | Haxe `itemToCraft.maxSearchRadius=30` around nested makeFireFood(3) (FIRE-CRAFT-R30) |
+| `is_handling_graves` / `HandlingGravesAction` / `GraveKeeperProfessionRuntime` | `handling_graves.rs` | isHandlingGraves + GRAVEKEEPER sticky (AI-JOB-GRAVE) |
+| `ProfessionScanKind::HandlingGraves` / `handling_graves_profession_scan_tick` | `profession_scan.rs` + `handling_graves_live.inc.rs` | assigned/mid/hungry graves scan |
+| `is_self_best_grave_keeper_from_state` / `best_grave_keeper_flag_from_state` | same | Haxe `getBestAiForObjByProfession('GRAVEKEEPER', grave)` |
+| `Player.grave_keeper_profession` / npc `grave_keeper_rt` | `player/body.rs` / `npc_ai.rs` | lastGrave + assigned/last writeback |
+| `should_handle_death` / `plan_handle_death` / `wipe_jobs_assign_grave_keeper` | `priority_ladder.rs` + `handle_death.rs` | handleDeath MaxAge−2 GRAVEKEEPER (AI-HANDLE-DEATH) |
+| `apply_handle_death_tick` / npc before eat | `profession_scan.rs` + `npc_ai.rs` | graves / isMovingToHome(5) / dropHeld(0) |
+| `advance_remove_from_container` / `RemoveFromContainerStaging` | `remove_from_container.rs` | isRemovingFromContainer sticky (AI-REMOVE-CONTAINER) |
+| `apply_player_remove_from_container_tick` / npc REMV | `short_craft_intent.rs` + `npc_ai.rs` | drop/goto/REMV; graves StageRemoveFromContainer |
+| `plan_handle_temperature` / `get_close_biome` | `handle_temperature.rs` | handleTemperature drink/craft/biome (AI-HANDLE-TEMP) |
+| `apply_handle_temperature_tick` / npc 1b | `profession_scan.rs` + `npc_ai.rs` | SELF drink; GetOrCraft 210/382; biome goto; fail-warm fire |
+| `is_hunting` / `try_decide_hunting_from_rung` / `HunterProfessionRuntime` | `hunting.rs` | isHunting + HUNTER sticky (AI-JOB-HUNT) |
+| `ProfessionScanKind::Hunting` / `hunting_profession_scan_tick` | `profession_scan.rs` + `hunting_live.inc.rs` | assigned/last isHunting(100); mid age>14 after handleTemperature |
+| `Player.hunter_profession` / npc `hunter_rt` | `player/body.rs` / `npc_ai.rs` | assigned/last writeback; HandleDeath ladder hunter arg |
+| `is_cutting_wood` / `try_decide_cutting_wood_from_rung` / `LumberjackProfessionRuntime` | `cutting_wood.rs` | isCuttingWood + LUMBERJACK sticky (AI-JOB-LUMBER) |
+| `ProfessionScanKind::CuttingWood` / `cutting_wood_profession_scan_tick` | `profession_scan.rs` + `cutting_wood_live.inc.rs` | assigned/last isCuttingWood(100); low-priority isCuttingWood() |
+| `Player.lumberjack_profession` / npc `lumberjack_rt` | `player/body.rs` / `npc_ai.rs` | assigned/last writeback; firewood then butt log GetCraftAndDrop |
+| `is_collecting` / `try_decide_collecting_from_rung` / `CollectorProfessionRuntime` | `collecting.rs` | isCollecting + COLLECTOR sticky (AI-JOB-COLLECT) |
+| `ProfessionScanKind::Collecting` / `collecting_profession_scan_tick` | `profession_scan.rs` + `collecting_live.inc.rs` | assigned/last isCollecting(100); low-priority isCollecting(1) |
+| `Player.collector_profession` / npc `collector_rt` | `player/body.rs` / `npc_ai.rs` | assigned/last writeback; kindling makeOrCollect then bushes |
 | `ProfessionScanKind::HandlingFire` / `handling_fire_profession_scan_tick` / `expand_handling_fire_do_baking` / `late_make_fire_food_scan_tick` | `profession_scan.rs` + `handling_fire_live.inc.rs` | mid/temp/hungry/FIREKEEPER + DoBaking expand + late makeFireFood(1) |
 | `ProfessionScanInput.is_winter` / plan TEMPERATURE + CONSIDER_MAKE_FOOD | `profession_scan.rs` | Season winter kindling; handleTemperature(2); hungry early isHandlingFire |
 | `fire_food_peers_from_players_ex` / sticky `fire_food_assigned` | `profession_scan.rs` | FIREFOOD peer count + plan_assigned_job |
@@ -567,7 +616,7 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `NpcSmithPeerRow` / `smith_peer_count_from_npc_rows` / `NpcSmithPeerRow::from_snapshot_fields` | same | NPC max-one smith pop without full `Player` (**AI-JOB-SMITH-RESID**) |
 | `peer_home_coords` / `peer_is_wounded_from_held` | same | home fidelity + wound peer gate pure |
 | `SteelChiselFamilyTable` / `from_content` | same | load-time `objectIdArrays[455]` cache (PatchObjectData once) |
-| `PlayerSnapshot.home_x/y` / `is_last_smith` / `is_last_baker` / `is_last_potter` / `is_last_shepherd` / `is_last_farm` / `is_last_fire_food` | `player.rs` | published home + lastProfession sticky for NPC peer count |
+| `PlayerSnapshot.home_x/y` / `is_last_smith` / `is_last_baker` / `is_last_potter` / `is_last_shepherd` / `is_last_farm` / `last_farm` / `is_last_fire_food` | `player.rs` | published home + lastProfession sticky for NPC peer count (`last_farm` serde skip) |
 | `NpcProfessionPeerRow` / `npc_peer_count_for_kind` | `profession_scan.rs` | multi-prof NPC peer roster (smith/baker/pottery/shepherd/farm/fire) |
 | `pick_forge_parent` / `forge_id_priority` | `smith_profession.rs` | Firing 304 → Charcoal 305 → Forge 303 (id list) |
 | `pick_forge_near_home` / `ForgeCandidate` / `chebyshev` | same | spatial GetForge r=20 closest per priority |
@@ -578,10 +627,16 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `is_steel_chisel_family_description` / `collect_steel_chisel_family_ids` / `steel_chisel_family_from_content` / `chisel_family_extras_beyond_static` | same | Haxe `description.contains('Chisel')` content scan |
 | `ProfessionScanInput.chisel_family_extra` | `profession_scan.rs` | live scan tick chisel extras |
 | `plan_critical_craft_steps` CRITICAL_CRAFT tail | same | early sticky + critical shortCraft for all AIs |
-| npc_ai multi-prof peer + home/wound + chisel table | `ol-server/src/npc_ai.rs` | primary-kind `npc_peer_count_for_kind` + snapshot home/last + load-time chisel extras |
+| npc_ai multi-prof peer + home/wound + chisel table | `ol-server/src/npc_ai.rs` | `npc_peer_counts_by_kind` table + snapshot home/last + load-time chisel extras |
 | `SmithAction::DeferPottery` / `ShortCraftOnGround` | `smith_profession.rs` | pottery gate; cool crucible 324 |
 | `smith_action_apply` / `SmithApply` / `SmithApplyInput` | same | live USE/DROP/craft/drop-near-forge intents (AI-JOB-SMITH-LIVE) |
+| `smith_craft_and_drop_dist` / live scan fill | `smith_profession` + `profession_scan` | GetCraftAndDrop CountCloseObjects+pickup (dist 5/10) (**AI-JOB-SMITH-RESID**) |
+| `SimState.steel_chisel_family` / `chisel_family_extra_from_state` | `lib.rs` + `profession_scan` | load-time `objectIdArrays[455]` cache (**SMITH-CHISEL-PLAYER-CACHE**) |
 | `smith_action_short_craft_apply` / `check_hungry_work_cost_by_id` / `check_hungry_work_cost_lookup` / `HungryWorkCostLookup` / `FLOOR_PLACE_ACTOR_IDS` | same | ShortCraft → shared short_craft_apply; food gate + floor 96/470/881 + container drop |
+| `object_hungry_work` / `total_hungry_work_cost` / `content_pair_hungry_work_cost` | `ol-ai-professions` smith | AI-HUNGRY-COST: PatchObjectData id+tag; actor+newTarget+`trans.hungry_work_cost`; ContentDb pair |
+| `scan_held_hungry_work_cost` | `profession_scan.rs` | live `(held_id,-1)` pair; npc `NpcConfig.hungry_work_cost` |
+| `short_craft_pair_hungry_cost` | `profession_scan.rs` | per-target `(actor,target)` when `ProfessionScanInput.content` set; else scan-wide fallback |
+| `apply_default_hungry_work_cost_patches` / `patch_hungry_work_cost_by_target` | `ol-content` hungry_work_cost_patches | PatchTransitions `hungryWorkCost` table + Property Gate 2962 |
 | `craft_and_drop_near_forge_apply` / `short_craft_on_ground_apply` | same | GetCraftAndDropItemsCloseToObj + shortCraftOnGround pure edges |
 
 ---
@@ -612,18 +667,34 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `PlayerCraftAi` / `Player.craft_ai` | `ol-sim/src/craft_ai_sticky.rs` + `player.rs` | sticky itemToCraft + failedCraftings + itemToCraftId + craftingTasks + itemToCraftName (AI-CRAFT-STICKY) |
 | `wipe_on_birth` / `prepare_for_product` / `add_task` / `do_make_craft_command` | same | newBorn clear + interrupt re-queue + MAKE order |
 | `note_successful_use` / `NoteUseOutcome` / `select_sticky_craft_for_tick` | same | countDone after USE; sticky continue vs craftingTasks shift |
+| `select_runtime_sticky_craft_for_tick` / `requeue_runtime_task_on_fail` | same | NPC `CraftAiRuntime` doTimeStuffHelper queue drain (**AI-CRAFT-TASKS-DRAIN**) |
 | `sticky_craft_sensor_flags` / `apply_sticky_flags_to_craft_sensors` | same | CraftQueue ladder sensors from sticky state |
 | `craft_item_with_player_craft_ai` / `expand_craft_item_player_sticky` / `_scan` / `resolve_seek_or_craft_player_sticky` | same | sticky multi-tick craft expand (+ path filters) |
 | `Player::wipe_craft_on_birth` / `craft_ai_begin_tick` | `player.rs` | birth wipe (revive path) + per-tick calledCraftItem guard |
 | `apply_sticky_craft_queue_tick` | `profession_scan.rs` | live CraftQueue → expand sticky + path-reach scan + apply USE/DROP |
-| `FailedCraftings` / `CraftAiRuntime` / `CraftLiveExpandOpts` | same | failedCraftings 15s + sticky multi-tick state |
-| `retarget_water_source` / soil / bowl-fill / forge-bias specials | same | craftItemHelper pure specials |
+| `FailedCraftings` / `CraftAiRuntime` / `CraftLiveExpandOpts` | same | failedCraftings 15s + sticky multi-tick state; opts `water_source_ids` / `bucket_water_source_ids`; **`CraftAiRuntime.crafting_tasks` + `prepare_for_product` / `take_next_crafting_task` / `should_continue_unfinished`** (**AI-CRAFT-MULTI-RESID**) |
+| `init_water_source_ids` / `init_water_source_ids_from_content` / `effective_water_source_ids` / `effective_bucket_water_source_ids` | `craft_and_drop.inc.rs` (via craft_item) | Haxe `ServerSettings.InitWaterSourceIds` (**AI-CRAFT-MULTI-SPECIALS**) |
+| `SimState.water_source_ids` / `bucket_water_source_ids` | `lib.rs` | seeded in `seed_craft_graph_from_content` |
+| `get_craft_and_drop_items_close_to_obj` / `_ex` / `CraftAndDropApply` / `craft_and_drop_to_decision` | `craft_and_drop.inc.rs` | pure GetCraftAndDropItemsCloseToObj; `_ex` scan-filters pickup (count-near unfiltered) |
+| `adze_froe_butt_log_craft_and_drop` / `_ex` / `goose_axe_near_stump_craft_and_drop` / `_ex` / `fire_bow_kindling_craft_and_drop` / `_ex` | same | craftItemHelper GetCraftAndDrop specials + CraftScanFilters |
+| `fill_bucket_if_needed_apply` / `_ex` / `FillBucketApply` / `DEFAULT_BUCKET_WATER_SOURCE_IDS` | same | fillBucketIfNeeded tank/bucket; `_ex` skips blocked GetClosest |
+| `fill_bucket_profession_scan_tick` / `FILL_BUCKET` rung | `profession_scan.rs` | mid WATERBRINGER max=1 live (**FILL-BUCKET**) |
+| `DO_WATERING_LOW` / `watering_max_for_dispatch` | `profession_scan.rs` / `farmer_profession.rs` | low `doWatering(1)` closest dry r=30 (**DO-WATERING-LOW**) |
+| `DO_CARROT_LOW` / `carrot_max_for_dispatch` | `profession_scan.rs` / `farmer_profession.rs` | low `doCarrotFarming(1)` CARROTFARMER max=1 (**DO-CARROT-LOW**) |
+| `FILL_BEAN_BOWL` / `fill_bean_bowl_if_needed` | `profession_scan.rs` / `farmer_profession.rs` | low `fillBeanBowlIfNeeded()` green beans (**FILL-BEAN-BOWL**) |
+| `FILL_BEAN_HELD` / `fill_bean_bowl_held_if_needed` | `profession_scan.rs` / `farmer_profession.rs` | mid `fillBeanBowlIfNeeded(*, true)` onlyFillHeld (**FILL-BEAN-HELD**) |
+| `FILL_BERRY_HELD` / `fill_berry_bowl_held_if_needed` | `profession_scan.rs` / `baker_profession.rs` | mid `fillBerryBowlIfNeeded(true)` held 253 on bush r=20 (**FILL-BERRY-HELD**) |
+| `PULL_CARROT_ROW` / `pull_carrot_row_if_needed` | `profession_scan.rs` / `farmer_profession.rs` | mid `shortCraft(0, 400, 10)` empty-hand USE carrot row r=10 (**PULL-CARROT-ROW**) |
+| `closest_craft_obj_by_ids_filtered` / `closest_forge_craft_filtered` / `second_closest_craft_obj_filtered` / `closest_craft_obj_from_anchor_filtered` | `craft_item.rs` / `craft_and_drop.inc.rs` | GetClosest notReachable/hostile skip (**AI-CRAFT-MULTI-RESID**) |
+| `GotoDropAnchor` / `DropNearAnchor` | `CraftItemDecision` | GetCraftAndDrop goto/drop staging → Goto/DropAt live |
+| `retarget_water_source` / `_ex` / soil / bowl-fill / forge-bias specials | same | craftItemHelper pure specials; `_ex` passes CraftScanFilters (water ids from opts/InitWaterSourceIds) |
 | `craft_item_with_runtime` / `expand_craft_item_live_opts` / `_opts_scan` / `_sticky` / `_sticky_scan` | same + get_or_craft | sticky expand + home/smith/now + scan |
 | `resolve_seek_or_craft_live_ex` | get_or_craft | CraftItem expand with opts + optional runtime |
 | `resolve_seek_or_craft_live_scan` / `resolve_seek_or_craft_live_ex_scan` | same | multi-step + `CraftScanFilters` + is_moving Wait (**AI-CRAFT-NPC-ENQUEUE**) |
 | `npc_enqueue_get_or_craft` / `npc_enqueue_get_or_craft_ex` | same | NPC pure helper: SeekOrCraft/CraftItem → wire USE/DROP (+ sticky runtime); `_ex` takes pile_id_for + full_pile_tiles |
 | `get_pile_obj_id` / `get_pile_obj_id_from_map` / `pile_obj_id_from_content` | `get_or_craft.rs` | Haxe ObjectData.getPileObjId pure + ContentDb wire |
 | `full_pile_tiles_from_scan` | `profession_scan.rs` | ScanTile.is_full_uses → CraftScanFilters.with_full_piles |
+| `nonempty_container_tiles_from_scan` | same | **AI-CONTAINER** skip nonempty (Haxe addObjectsForCrafting) |
 | `get_or_craft_objs_from_scan` | same | ScanTile → GetOrCraftWorldObj (prefers tile.num_slots) |
 | `craft_item_decision_to_live_intent` / `resolve_craft_item_live` / `expand_craft_item_live` | same + get_or_craft | USE/DROP/SeekOrCraft from multi-step |
 | `FORGE_IDS` / smith gate / TIME WaitTime | same | forge 303/304/305 + TIME actor |
@@ -692,7 +763,7 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `NEEDS_NOT_FLOORED_PLACE` / `DONT_DROP_CLOSE_HOME_IDS` / `DONT_DROP_CLOSE_HOME_MIN` | same | Haxe dropHeld empty filters |
 | `has_carrot_seeds_from_scan` / `has_bean_seeds_from_scan` / `count_parent_ids_in_scan` | same | Haxe countSeeds / hasBeanSeeds |
 | `build_intent_ctx` / `build_intent_ctx_ex` / forge·oven | same | ShortCraftIntentCtx from scan + held |
-| `smith_peers_from_players` / `_ex` / `baker_peers_from_players` / `_ex` / `peer_count_for_kind` | same | live roster → countProfession (+wound/follow) |
+| `smith_peers_from_players` / `_ex` / `baker_peers_from_players` / `_ex` / `peer_count_for_kind` / `peer_counts_by_kind_from_state` | same | live roster → countProfession (+wound/follow); player/sim per-kind table |
 | `peer_roster_flags_for_player` / `peer_roster_flags_pure` / `PeerRosterFlags` | same | isWounded + playerToFollow pure |
 | `farm_peers_from_players` / `_ex` / `count_farm_peers_for_job` / `FarmPeerSnapshot` | same | farm countProfession (MaxAge-2/wound/food/follow) |
 | `farm_profession_scan_tick` / `smith_profession_scan_tick` / `baker_profession_scan_tick` | same | decide → shortCraft → live intent |
@@ -707,8 +778,10 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `apply_job_flags_to_live_input` | same | write job flags into `LiveSensorInput` |
 | `age_rotated_to_scan_step` / `plan_assigned_job_steps` / `plan_age_rotated_steps` / `plan_critical_craft_steps` / `plan_profession_ladder_steps` | same | PriorityRung → ProfessionLadderStep[] (Pottery age jobByAge==3) |
 | `ladder_profession_scan_tick` / `apply_profession_ladder_tick` / `apply_profession_scan_from_sensors` | same | ladder→scan→USE/DROP (NPC-CRAFT-LADDER / NPC-SCAN-FULL; pottery_rt) |
+| `has_or_become_tailor` / `clothing_has_tailor_for_player` / `apply_clothing_craft_tick` | `clothing_craft.rs` + `profession_scan.rs` | Haxe `hasOrBecomeProfession('TAILOR')` (**CLOTHING-HAS-TAILOR**) |
+| `plan_assigned_tailor_clothing` / `tailor_profession_scan_tick` / `ProfessionScanKind::Tailor` | same | assigned/last TAILOR high+medium/low(100) (**AI-JOB-TAILOR**) |
 | `ProfessionScanKind` / `ProfessionScanInput` / `ProfessionScanTickResult` / `ProfessionLadderStep` | same | tick I/O types (Farm/Smith/Baker/**Pottery**/Shepherd/**FireFood**) |
-| `BakeAction::DeferPottery` expand | same | baker mid → `pottery_profession_scan_tick` else stage DeferPottery |
+| `BakeAction::DeferPottery` expand | same | baker mid → `pottery_profession_scan_tick` else `SeekOrCraft` CLAY_PLATE (**AI-HUNGRY-EMOTE**) |
 | npc_ai profession scan wire | `ol-server/src/npc_ai.rs` | multi-prof sticky (farmer/smith + age-rotated forager/hunter) → ladder (shepherd_rt+pottery_rt) → NetIntent USE/DROP |
 | npc_ai `NpcProfessionState.path_reach` | same | **PATH-REACH** local notReachable/hostile; filter scan; walk-fail mark_goto |
 | npc_ai `npc_next_step_to` / `npc_mark_goto_path_fail` | same | **AI-ANIMAL-GOTO** animal footprints + dual-pass hostile vs not_reachable |
@@ -719,13 +792,20 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 |--------|------|------|
 | `AiPathReachMaps` / `add_not_reachable` / `add_hostile_path` / `cleanup` / `blocked_coords` / `blocks_target` | `ol-sim/src/ai_path_reach.rs` | Haxe notReachableObjects + objectsWithHostilePath |
 | `add_blocked_by_ai` / `cleanup_blocked_by_ai` / `blocked_coords_from_live` | same | static blockedByAI |
+| `merge_blocked_by_ai_max` / `blocked_by_ai_with_peer_progress` / `BlockedByAiShare` / `mirror_blocked_by_ai_share` / `snapshot_blocked_by_ai_share` | `ol-ai-pathing` / `ol-sim` | **NPC-SCAN-FULL** live blockedByAI share + npc craft_progress merge |
+| `PlayerSnapshot.held_contained` / `held_contains_clay` | `player.rs` | **NPC-SCAN-FULL** held nest cargo + clay-in-basket for npc dropHeld |
+| `PlayerSnapshot.holding_player_id` | `player.rs` | **DROP-HELD-LIVE** Haxe heldPlayer / npc dropPlayer |
+| `PlayerSnapshot.last_farm` | `player.rs` | **NPC-IGNORED-FLOOR** farm lastProfession key for npc peer-cap |
+| `NpcConfig.ignored_floor_ids` | `npc_ai.rs` | live `AiIgnoredFloorIds` into profession scan |
+| `EnvSnapshot::is_winter` | `environment.rs` | npc HandlingFire winter kindling |
 | `DONT_BLOCK_BY_AI` / `BlockTargetClaim` / `try_add_target_blocked_by_ai` / `would_block_target_by_ai` | same | Haxe AddTargetBlockedByAi filters |
 | `block_claim_number_of_uses` | same | instance uses for claims (no ObjectData.num_uses fallback) |
 | `AiAgentBlockSource` / `HumanBlockClaim` / `add_agent_to_blocked_by_ai` / `calculate_blocked_by_ai` / `apply_calculate_blocked_by_ai` | same | pure CalculateBlockedByAi rebuild |
 | `AiStickyBlockTargets` / `StickyBlockBodyRow` / `rebuild_blocked_by_ai_from_sticky` / `should_set_block_target_for_ai` | same | sticky claims + pure live rebuild; player_block → ai_block chain-stop |
-| `rebuild_blocked_by_ai_live` / `note_ai_block_targets_from_live_intent` | `lib.rs` | tick wipe+rebuild (held wound≠hidden gate) + shortCraft note |
+| `rebuild_blocked_by_ai_live` / `note_ai_block_targets_from_live_intent` | `lib.rs` | tick wipe+rebuild (held wound≠hidden gate) + shortCraft note; **NPC-SCAN-FULL** mirrors `blocked_by_ai` into share |
 | `Player.ai_block_targets` | `player.rs` | sticky food/use/drop/block claims |
 | `apply_use_at` player_block | `use_transition.rs` | human / smith hammer 441 `blockTargetForAi` after USE |
+| `note_block_target_for_ai_after_command` | `use_transition.rs` | **AI-BLOCK-CMD** DROP/SWAP/REMV + USE shared helper |
 | `mark_not_reachable_on_player` / `mark_use_path_fail` / `mark_food_path_fail` / `mark_goto_path_fail` | same | USE/food/Goto fail marks (age / 30s / animal) |
 | `mark_use_or_food_path_fail` / `apply_food_action_fail` / `settle_pending_food_use_fail` | same | food 30s vs age-gate; async settle |
 | `pending_food_tile_still_actionable` / `mark_food_pickup_action_fail_on_maps` / `merge_path_reach_maps` | same | container settle gate; DROP/REMV 30s; dual-map merge pure |
@@ -739,6 +819,8 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `consider_animals_for_goto` / `blocked_by_animal_from_dual_pass` / `receding_goto_should_abort` | same | **AI-ANIMAL-GOTO** pure gates (gotoAdv/gotoObj) |
 | `Player.ai_path_reach` | `player.rs` | sticky per-AI maps |
 | `SimState.blocked_by_ai` | `lib.rs` | global AI target claims (rebuild each tick) |
+| `SimState.blocked_by_ai_share` / `SimBootLive.blocked_by_ai_share` / `new_blocked_by_ai_share` | `lib.rs` / `settings_live.rs` / `ol-ai-pathing` | **NPC-SCAN-FULL** outer Arc for npc think thread |
+| `npc_merged_blocked_by_ai` | `ol-server/src/npc_ai.rs` | share snapshot (empty if poisoned) + other-conn `craft_progress` at 5s |
 | tick_vitals PATH-REACH + BLOCKED-BY-AI | `lib.rs` | personal path cleanup + `rebuild_blocked_by_ai_live` |
 | `search_best_food_full` not_reachable / hostile | `search_best_food_live.inc.rs` | live food skip from maps |
 | `apply_profession_scan_tick` / ladder fail USE | `profession_scan.rs` | filter + `mark_path_fail_after_use_live` (food 30s / age) |
@@ -746,7 +828,7 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | NetIntent::Use !applied | `lib.rs` | note sticky + `mark_path_fail_after_use_live` |
 | NetIntent::Drop fail / Raw REMV fail | `lib.rs` | AI food sticky → `mark_path_fail_after_food_pickup_action_live` |
 | `settle_npc_pending_food_action` / `pending_food_container` | `npc_ai.rs` | next-tick settle; container REMV gate; sticky until settle |
-| Tests | `ai_path_reach::*` / `path_reach_*` / `food_action_fail_*` / `mark_use_or_food_*` / `mark_path_fail_after_food_pickup_*` | pure + live food 30s |
+| Tests | `ai_path_reach::*` / `blocked_by_ai_*` / `snapshot_held_*` / `path_reach_*` / `food_action_fail_*` / `mark_use_or_food_*` / `mark_path_fail_after_food_pickup_*` | pure + live food 30s + **NPC-SCAN-FULL** share/nest |
 
 ## Rust: AI-ANIMAL-GOTO / animal_goto_marks
 
@@ -755,6 +837,10 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `is_deadly_animal_for_path` / `animal_moves_covers_tile` | `ol-sim/src/pathfind.rs` | Haxe isAnimalDeadlyForMe simplified + moves footprint |
 | `collect_deadly_animal_blocked_tiles` / `_around` | same | CreateCollisionChunkHelper animal branch |
 | `is_walkable_with_animals` / `next_step_consider_animals` | same | terrain + animal footprints |
+| `create_path` / `create_direct_path` / `path_to_steps` | `ol-ai-pathing/src/pathfinder_new.rs` | Haxe PathfinderNew.CreatePath (**AI-PATHFINDER-NEW**) |
+| `create_path_with_budget` / `PathBudget` | same | **AI-PATHFINDER-TIMEOUT** 100ms + expansion cap |
+| `find_path_new` / `find_path_new_with_budget` / `next_step_new` | `ol-sim/src/pathfind.rs` | world-window wrappers (live `PathBudget::LIVE`) |
+| live `next_step` / `goto_path_outcome` | same | **AI-PATHFINDER-GOTO** PathfinderNew 8-conn; `path_steps` stays A* |
 | `GotoPathOutcome` / `goto_path_outcome` | same | dual-pass Goto animals-on then animals-off |
 | `GOTO_COLLISION_RAD` | same | MapData.RAD (=16) chunk half-width |
 | `npc_next_step_to` / `npc_mark_goto_path_fail` | `ol-server/src/npc_ai.rs` | live profession + food walk dual-pass mark (`did_not_reach_food`) |
@@ -775,7 +861,7 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | Tests | `ai_path_reach::*` plan_goto_obj / sticky_food_resolve | receding abort; fail effects clear |
 | selfplay job sensors | `ol-server/src/selfplay.rs` | `apply_job_flags_to_live_input` from Profession role |
 | `do_pottery_on_fire` / `PotteryOnFireCounts` / `fill_pottery_on_fire_counts_from_map` / `resolve_smith_defer_pottery` | same | prepare fallthrough pottery body (bowl/plate/crock/adobe + L2946 residual) |
-| `smith_action_to_live_intent` DeferPottery expand | `profession_scan.rs` | **AI-POTTER-L2946**: fill pottery from scan map; `smith_action_apply` expands CraftItem/ShortCraft |
+| `smith_action_to_live_intent` DeferPottery expand | `profession_scan.rs` | **AI-POTTER-L2946**: fill pottery from scan map; `smith_action_apply` expands CraftItem/ShortCraft; empty body → `SeekOrCraft` FIRING_KILN |
 | `SmithJobSlot` / `decide_smith_job_for_slot` / `smith_job_slot_priority` | same | early/critical/assigned(100)/mid/low/elder slots |
 | `try_decide_smith_from_rung` / `smith_slot_for_rung` / `smith_job_rung_label` | same | ladder bridge; `EARLY_STICKY_SMITH` → EarlySticky |
 | `smith_goal_from_map_and_rung` / `smith_goal_from_counts_and_rung` / `smith_action_to_goal` | same | fill → decide → Goal compose |
@@ -800,7 +886,7 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `init_object_helpers_after_read` / `apply_helper_postload` | `ol-world/src/postload_owners.rs` | pure InitObjectHelpersAfterRead (+owned gate, grave no-prune, removeOwner) |
 | `apply_init_object_helpers_after_read` | `ol-sim/src/postload_wire.rs` | sim boot: graves + owning + lineage.owns_object |
 | `rebuild_player_owning_from_world` / `rebuild_account_graves_from_world` | same | spawn re-scan / account-only graves refresh |
-| `account_token_index` / `description_is_orig_grave` / `player_status_for_postload` | same | soul-token map + origGrave + Alive/Deleted/Missing/Keep |
+| `account_token_index` / `description_is_orig_grave` / `player_status_for_postload` | same | **GRAVE-ACCOUNT-ID** numeric id + FNV dual map + origGrave + Alive/Deleted/Missing/Keep |
 | `LineageNode.owns_object` | `ol-sim/src/social.rs` | Haxe `Lineage.ownsObject` (session; set by postload) |
 | `container_put` / `container_take` / `container_take_helper` / `*_nested` | `ol-world/src/lib.rs` | runtime nest; take preserves NestedHelper tree |
 | `encode_map_object_string_nested` / `parse_map_object_string` | same | wire `base,c:sub` one level |
@@ -817,15 +903,15 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `empty_hand_container_take_index` / `sremv_resolved_index` | same | DoContainerStuff empty→first; SREMV −1→last |
 | `take_from_clothing_nest_checked` / `refuse_take_permanent_contained` | same | permanent-contained refuse |
 | `put_into_clothing_nest` / `take_from_clothing_nest` | same | DoContainerStuffOnObj on worn clothing |
-| `can_put_into_clothing` / `can_put_into_clothing_sized` | same | nest put gate + **containSize/slotSize** |
+| `can_put_into_clothing` / `can_put_into_clothing_sized` / `can_store_held_in_worn_clothing` | same | nest put gate + **containSize/slotSize** + GPI L3515 clothing-in-clothing |
 | `try_drink_water_pure` / `apply_drink_self` | same | doSelf drink water bowl/pouch before clothing |
 | `apply_switch_cloths` / `apply_switch_cloths_on_other` | same | self equip + UBABY age-gated other cloth |
 | `apply_place_obj_in_clothing` / `apply_sremv_from_clothing*` | same | place/nest + SREMV permanent check + size gate |
-| `apply_self_clothing` / `SelfClothingPath` | same | doSelf: drink → trans → switch → place |
+| `apply_self_clothing` / `apply_self_clothing_after_drink` / `SelfClothingPath` | same | doSelf clothing after drink; live SELF eat is `try_eat_held` |
 | `format_clothing_set` / `format_clothing_helper_string` / `crown_say_line` | same | clothing_set + colon sub-nest + king/mask say |
 | `format_player_update_line_full_clothing` | `ol-protocol` | PU with live clothing_set field |
-| DROP c / SELF / SREMV / UBABY wire | `ol-sim/src/lib.rs` | drop clothingIndex; doSelf; specialRemove; doOnOther cloth |
-| Tests | `clothing_transitions::*` / clothing_cmds | slot matrix, dual shoe, nest, drink, UBABY age, empty-hand first, size gate |
+| DROP c / SELF / SREMV / UBABY wire | `ol-sim/src/lib.rs` | drop clothingIndex; doSelf drink→eat→clothing; specialRemove; **UBABY** doOnOther feed/cloth/heal |
+| Tests | `clothing_transitions::*` / clothing_cmds | slot matrix, dual shoe, nest, drink, UBABY age, empty-hand first, size gate, clothing-in-clothing, DROP c |
 
 ## Rust: containSize / slotSize (CLOTHING-CONTAIN-SIZE)
 
@@ -907,7 +993,8 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `evaluate_lock_use_gate` / `LockUseGate` | same | USE pre-gate bundle (917/1003/904·4058/912·1000) |
 | `description_is_locked` / `is_blank_lock_target` / `is_lock_and_key_held` | same | description `Locked` + object id helpers |
 | `owner_may_open_empty_hand` / `owner_account_of` | same | empty-hand owner open via 917 transition |
-| `note_lock_say` / `take_lock_say` | same | private PS from key/lockpick feedback |
+| `note_lock_say` / `take_lock_say` | same | private PS from key/lockpick / chest-coin feedback |
+| `plan_chest_coin_use` / `ChestCoinAction` | `ol-sim/src/chest_coins.rs` | Haxe chest/pouch store+take (986/989/987/988/209) |
 | `LockState` | same | **session** tile HashSet (SAY LOCK/UNLOCK) — orthogonal to object keys |
 | `Player.exhaustion` | `ol-sim/src/player.rs` | lockpick / jump / combat / heal accumulator |
 | `calculateNotReducedFoodStoreMax` / `calculateFoodStoreMax` | `server/GlobalPlayerInstance.hx` | grown-up base × health × age − hits − exhaustion half-floor |
@@ -915,8 +1002,8 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 | `DoDamage` hits/exhaustion/food_store_max | same | hits+=dmg (real), exhaustion+=dmg always, recompute max; combat death max&lt;0 |
 | `killHelper` CombatExhaustionCostPerAttack | same | attacker exhaustion += 0.1 |
 | `TimeHelper.updateFoodAndDoHealing` | `server/TimeHelper.hx` | bleed→hits + 2×food; exhaustion/hits heal; recompute max; death max&lt;−0.1 |
-| Rust `calculate_food_store_max` / `apply_damage_food_pipe` / `step_healing_food_pipe` | `ol-sim/src/food_store_max.rs` | **EXHAUSTION-WOUND** pure |
-| Rust `CombatState::resolve_hit_full` / `cap_damage_default` | `ol-sim/src/combat.rs` | not-reduced cap + hits/exhaustion death |
+| Rust `calculate_food_store_max` / `apply_damage_food_pipe_ex` / `step_healing_food_pipe` | `ol-sim/src/food_store_max.rs` | **EXHAUSTION-WOUND** + **C-SS-AGE-FOOD-COMBAT** live knobs |
+| Rust `CombatState::resolve_hit_full_ex` / `cap_damage_default` | `ol-sim/src/combat.rs` | live FoodStoreMaxKnobs + not-reduced cap + hits/exhaustion death |
 | Rust HIT / animal path food_max recompute | `ol-sim/src/lib.rs` | wire DoDamage pipes + attacker combat exhaustion |
 | Rust `tick_vitals` heal + food_max death | same | doHealing gates + DeathWithFoodStoreMax |
 | Tests | `food_store_max::*` / `combat::resolve_hit_full_*` / `cap_damage_uses_not_reduced_base` | pure + combat |
@@ -929,8 +1016,12 @@ Paths relative to `C:\OhOl\OpenLife\openlife\` unless noted.
 
 | Symbol | File | Role |
 |--------|------|------|
-| `do_world_long_term_time_stuff` | `RustServer/crates/ol-sim/src/long_term.rs` | DoWorldLongTermTimeStuff (tick-wired) |
-| `floor_decay_chance` / `object_decay_chance` | same | DecayFloor / DecayObject pure chance |
+| `do_world_long_term_time_stuff` / `do_world_long_term_time_stuff_ex` | `RustServer/crates/ol-sim/src/long_term.rs` | DoWorldLongTermTimeStuff (module ready; tick wire residual) |
+| `floor_decay_chance` / `object_decay_chance` | same | DecayFloor / DecayObject pure chance (module const default) |
+| `floor_decay_chance_ex` / `object_decay_chance_ex` / `DecayChanceKnobs` | same | **SETTINGS-LONG-TAIL** live ObjDecayChance / FloorDecayChance / AnimalDecayFactor |
+| `should_try_respawn_object_ex` / `respawn_from_original_roll_ex2` / `respawn_from_original_roll_ex3` / `DecayChanceKnobs.obj_respawn_chance` | same | **SETTINGS-LONG-TAIL** live ObjRespawnChance (Haxe 0.00006; compiled fallback 0.0005) / GrowBackPlantsIncreaseIfLowPopulation / GrowBackOriginalPlantsFactor (Haxe 0.02; compiled fallback 1.0) on RespawnObjects + spring original roll |
+| `seasonal_chances_ex` / `do_world_map_time_stuff_ex` / `GameplayKnobs.spring_wild_food_regrow_chance` / `winter_wild_food_decay_chance` / `hot_season_temperature_factor` / `cold_season_temperature_factor` | `world_time.rs` | **SETTINGS-LONG-TAIL** live Spring/Winter chances + HotSeasonTemperatureFactor (0.75) + **ColdSeasonTemperatureFactor (0.75)** on map-time / player tile init |
+| `decay_factor_for_object` / `apply_animal_decay_factor_patches` | `long_term.rs` / `ol-content` | live AnimalDecayFactor on horse/domestic/wolf ids |
 | `resolve_object_decay_to` / `floor_decay_result` | same | decay products (content + trash 618) |
 
 ## Rust: contained timers (CONTAINED-TIMERS-PERSIST / rearm_after_load)
@@ -969,7 +1060,9 @@ Haxe anchors: `TimeHelper.doTimeForObject`, `ObjectHelper.creationTimeInTicks` /
 | `clear_cursed_graves` / `clear_ovens_index` / `clear_map_index_keep` | `world_time.rs` | TimeHelper.ClearCursedGraves + ovens prune |
 | `maybe_insert_cursed_grave` / `maybe_insert_oven` / `map_linear_index` / `index_positions` | same | DoWorldMapTimeStuff index fill |
 | `WorldMapTimeState.cursed_graves` / `.ovens` | same | Haxe WorldMap.cursedGraves / ovens |
-| `is_oven_map_id` / `CURSED_GRAVE_TIME_HOURS` / `CURSED_GRAVE_SHARP_STONE_EXTRA_SECS` | same | IsOven + CursedGraveTime*3600 (12h) |
+| `is_oven_map_id` / `CURSED_GRAVE_TIME_HOURS` / `CURSED_GRAVE_SHARP_STONE_EXTRA_SECS` | same | IsOven + default CursedGraveTime*3600 (12h) |
+| `container_overflow_delay_ex` / `cursed_grave_sharp_stone_extra_secs` / `place_popped_contained_near` | same | **SETTINGS-LONG-TAIL** live CursedGraveTime overflow delay + pop |
+| `tick_auto_decays` overflow | `ol-sim/src/lib.rs` | Haxe doTimeTransitionHelper L2123–2137 live delay+pop |
 | `should_clear_cursed_graves_ovens` / `CURSED_GRAVES_CLEAR_TICK_MOD` | same | tick%2000 prune cadence |
 | `is_spawning_in` | same | ObjectData.isSpawningIn (biomes + countsOrGrowsAs) |
 | `pick_animal_destination_steered` | same | preferred-biome bias + gotoTarget/gotoLovedBiome best-quad |
@@ -996,16 +1089,68 @@ Haxe anchors: `TimeHelper.doTimeForObject`, `ObjectHelper.creationTimeInTicks` /
 | `DOOR_IDS` / `is_door_id` / `AI_IGNORED_FLOOR_IDS` | same | Haxe DoorIds / AiIgnoredFloorIds tables |
 | `gameplay_defaults::*` | same | Haxe default values for gameplay batch |
 | `apply_live_settings` / `enforce_eternal_winter` | `ol-sim/src/settings_live.rs` | apply onto `SimState` |
-| `GameplayKnobs` / `GameplayKnobs::from_live` | same | FoodUse/Heal/Age/Move/Yum/Offspring/… on SimState |
+| `GameplayKnobs` / `GameplayKnobs::from_live` | same | FoodUse/Heal/Age/Move/Yum/Offspring/StartingEveAge/ScoreFactor/… on SimState |
+| `blend_score_ema` / `AccountBook::change_score` | `ol-sim/src/accounts.rs` | **SETTINGS-LONG-TAIL** Haxe ChangeScore EMA |
+| `GameplayKnobs.starting_eve_age` | same | **SETTINGS-LONG-TAIL** LiveSettings StartingEveAge (14) |
+| `eve_or_adam_birth` / `GameplayKnobs.eve_or_adam_birth_chance` / `spawn_ai_as_eve` | `birth_fitness.rs` + `spawn_player` | **SETTINGS-LONG-TAIL** Haxe EveOrAdamBirthChance (0.025) / SpawnAiAsEve (false) synthetic Eve roll |
+| `GameplayKnobs.obj_decay_chance` / `floor_decay_chance` / `obj_respawn_chance` / `grow_back_original_plants_factor` / `spring_wild_food_regrow_chance` / `winter_wild_food_decay_chance` / `hot_season_temperature_factor` / `cold_season_temperature_factor` / `decay_chance_knobs` | same | **SETTINGS-LONG-TAIL** LiveSettings ObjDecayChance / FloorDecayChance / ObjRespawnChance / GrowBackPlantsIncreaseIfLowPopulation / GrowBackOriginalPlantsFactor / SpringWildFoodRegrowChance / WinterWildFoodDecayChance / HotSeasonTemperatureFactor / ColdSeasonTemperatureFactor |
+| `GameplayKnobs.send_move_every_x_ticks` / `maybe_refresh_close_players` | `ol-sim/src/leader_range.rs` | **SETTINGS-LONG-TAIL** LiveSettings SendMoveEveryXTicks (TimeHelper tick + LOGIN) |
+| `movement_range` / `GameplayKnobs.max_distance_cose_for_movement` | `ol-sim/src/lib.rs` | **SETTINGS-LONG-TAIL** Haxe CoseForMovement (30) PM fan |
+| `ai_say_range` / `live_collect_ai_speech_hearers` | `ol-sim/src/lib.rs` | **SETTINGS-LONG-TAIL** Haxe CloseForSayAi (20) AI hear |
+| `shoes_speed_factor_ex` / `VitalsSpeedLiveKnobs.speed_with_both_shoes` | `ol-move-rules/src/speed.rs` | **SETTINGS-LONG-TAIL** Haxe SpeedWithBothShoes (1.1) |
+| `age_step_from_health_live` / `GameplayKnobs.aging_factor_while_starving` | `ol-sim/src/food_store_max.rs` | **SETTINGS-LONG-TAIL** Haxe AgingFactorWhileStarvingToDeath (0.5) |
+| `GameplayKnobs.grown_up_age` | same | **SETTINGS-LONG-TAIL** Haxe GrownUpAge (14) youth/adult split |
+| `child_food_use_mult` / `GameplayKnobs.food_use_child_faktor` | `ol-sim/src/food_store_max.rs` | **SETTINGS-LONG-TAIL** Haxe FoodUseChildFaktor (1) |
+| `ai_class_food_use_mult` / `GameplayKnobs.ai_food_use_factor_*` | `ol-sim/src/food_store_max.rs` | **SETTINGS-LONG-TAIL** Haxe AIFoodUseFactorSerf/Commoner/Noble (0.8/0.9/1) |
+| `eve_food_use_mult` / `is_eve_or_adam_name` / `GameplayKnobs.eve_food_use_factor` | `ol-sim/src/food_store_max.rs` | **SETTINGS-LONG-TAIL** Haxe EveFoodUseFactor (1) unwounded EVE/ADAM |
+| `eve_damage_mul` / `eve_pair_damage_mul` / `GameplayKnobs.eve_damage_factor` | `ol-sim/src/combat.rs` | **SETTINGS-LONG-TAIL** Haxe EveDamageFactor (1) HIT + animal path |
+| `target_wounded_damage_mul` / `GameplayKnobs.target_wounded_damage_factor` | `ol-sim/src/combat.rs` | **SETTINGS-LONG-TAIL** Haxe TargetWoundedDamageFactor (0.2) HIT + animal path |
+| `male_damage_mul` / `GameplayKnobs.male_damage_factor` | `ol-sim/src/combat.rs` | **SETTINGS-LONG-TAIL** Haxe MaleDamageFactor (1.2) HIT attacker only |
+| `org_animal_damage_ex` / `GameplayKnobs.animal_damage_factor*` | `ol-sim/src/animal_damage.rs` | **SETTINGS-LONG-TAIL** Haxe AnimalDamageFactor/InWinter/IfAttacked animal path |
+| `weapon_damage_mul` / `GameplayKnobs.weapon_damage_factor` | `ol-sim/src/combat.rs` | **SETTINGS-LONG-TAIL** Haxe WeaponDamageFactor (1) HIT attacker != null |
+| `cursed_receive_damage_mul` / `cursed_make_damage_mul` | `ol-sim/src/combat.rs` + HIT | **SETTINGS-LONG-TAIL** Haxe CursedReceive/Make (1.2 / 0.5) HIT org_damage |
+| `grave_curse_live_knobs` / `GameplayKnobs.grave_blocking_distance` | `ol-sim/src/settings_live.rs` + speed/CU gates | **SETTINGS-LONG-TAIL** Haxe GraveBlockingDistance (40) + MaxPlayersBeforeActivatingGraveCurse (0) |
+| `combat_angry_before_attack_ex` / `GameplayKnobs.combat_angry_time_before_attack` | `fever_pe.rs` + spawn | **SETTINGS-LONG-TAIL** Haxe CombatAngryTimeBeforeAttack (5) spawn angryTime + UpdateEmotes soft |
+| `apply_craft_ai_search_knobs` / `CraftLiveExpandOpts.ai_*` | `settings_live.rs` + craft_item / topdown | **SETTINGS-LONG-TAIL** Haxe AiTimeToWaitIfCraftingFailed (15) / AiMaxSearchRadius (60) / Increment (30) / AiIgnoreTimeTransitionsLongerThen (120) |
+| `evaluate_alternative_outcome` / `GameplayKnobs.alternative_outcome_*` | `alt_outcome.rs` + USE | **SETTINGS-LONG-TAIL** Haxe AlternativeOutcomePercentIncreasePerHit (10) / HitsDecreaseOnSucess (5) |
+| `GameplayKnobs.fortification_cost_per_hit` | `settings_live` + USE fortify | **TH-ALT-LIVE-KNOBS** Haxe FortificationCosePerHit (1) |
+| `AnimalMoveChanceKnobs` / `pick_animal_destination_ex` | `animal_move.rs` + tick_animals | **SETTINGS-LONG-TAIL** Haxe ChanceThatAnimalsCanPassBlockingBiome (0.03) / chancePreferredBiome (0.8) |
+| `grave_curse_speed_factor_ex` / `VitalsSpeedLiveKnobs.close_grave_speed_mali` | `ol-move-rules/speed.rs` + calculateSpeed | **SETTINGS-LONG-TAIL** Haxe CloseGraveSpeedMali (0.9) |
+| `VitalsSpeedLiveKnobs.temperature_speed_impact` | same | **SETTINGS-LONG-TAIL** Haxe TemperatureSpeedImpact (1) |
+| `contained_obj_speed_mult_ex` / `VitalsSpeedLiveKnobs.min_speed_reduction_per_contained_obj` | `ol-move-rules/speed.rs` + calculateSpeed | **SETTINGS-LONG-TAIL** Haxe MinSpeedReductionPerContainedObj (0.98) |
+| `evaluate_loved_food_extra_ex` / `GameplayKnobs.loved_food_use_chance` | `loved_food_wire.rs` + USE | **SETTINGS-LONG-TAIL** Haxe LovedFoodUseChance (0.5) |
+| `apply_drink_self_ex` / `apply_self_clothing_ex` / `GameplayKnobs.temperature_reduction_per_drinking` / `max_stored_water` | `clothing_transitions.rs` + SELF | **SETTINGS-LONG-TAIL** Haxe TemperatureReductionPerDrinking (0.5) / MaxStoredWater (1) |
+| `jump_rate_limited_ex` / `decay_jumped_tiles_ex` / `GameplayKnobs.max_jumps_per_ten_sec` | `move_path.rs` + `apply_move_path_start` / `tick_vitals` | **SETTINGS-LONG-TAIL** Haxe MaxJumpsPerTenSec (10) |
+| `body_heat_step_ex` / `update_player_temperature_ex` / `GameplayKnobs.temperature_impact_*` | `heat_ideal.rs` + `map_temp_player.rs` + tick_vitals | **SETTINGS-LONG-TAIL** Haxe TemperatureImpactPerSec (0.03) / IfGood (0.06) / TemperatureInWaterFactor (1.5) |
+| `is_super_hot_for_person_ex` / `is_super_cold_for_person_ex` / `GameplayKnobs.temperature_impact_below` / `color_factor` | `player_soul_wire.rs` + `soul_live.rs` | **SETTINGS-LONG-TAIL** Haxe TemperatureImpactBelow (0.6) / TemperatureImpactColorFactor (0.5) |
+| `feeder_may_eat_or_feed` / `apply_drugs_fever_resistance` / `try_eat_held` | `feed_other_yum.rs` + `food_eating.rs` | **SETTINGS-LONG-TAIL** Haxe AllowEatingOrFeedingIfIll (false) / ResistanceAgainstFeverForEatingMushrooms (0.2) |
+| `GameplayKnobs.combat_exhaustion_cost_per_attack` | HIT / SAY KILL | **SETTINGS-LONG-TAIL** Haxe CombatExhaustionCostPerAttack (0.1) attacker exhaustion |
+| `yellow_fever_food_drain_ex` / `GameplayKnobs.exhaustion_yellow_fever_per_sec` | `food_store_max.rs` + tick_vitals | **SETTINGS-LONG-TAIL** Haxe ExhaustionYellowFeverPerSec (0.1) ×2 food drain |
+| `calculate_health_food_store_max_factor_ex` / `GameplayKnobs.min/max_health_food_store_max_factor` | `food_store_max.rs` + `player_health_food_store_max_factor` | **SETTINGS-LONG-TAIL** Haxe MinHealthFoodStoreMaxFactor (0.8) / MaxHealthFoodStoreMaxFactor (1.2) |
+| `calculate_health_age_factor_ex` / `GameplayKnobs.min/max_health_aging_factor` | `food_store_max.rs` + `player_health_age_factor` | **SETTINGS-LONG-TAIL** Haxe MinHealthAgingFactor (0.5) / MaxHealthAgingFactor (2) |
+| `median_prestige_for_health_ex` / `calculate_health_*_factor_ex` / `FoodStoreMaxKnobs.max_age` / `GameplayKnobs.min_health_per_year` / `max_age` | `food_store_max.rs` + `recompute_median_prestige` / `player_health_*_factor` | **SETTINGS-LONG-TAIL** Haxe MinHealthPerYear (1) / MaxAge (60) |
+| `AnimalKind::combat_profile_ex` / `GameplayKnobs.animal_deadly_distance_factor` | `animal_damage.rs` + HIT `apply_animal_path_damages` | **SETTINGS-LONG-TAIL** Haxe AnimalDeadlyDistanceFactor (0.5) |
+| `can_pickup_player_ages_ex` / `pickup_feed_amounts_ex` / HOLD exhaustion | `feed.rs` + lib HOLD | **SETTINGS-LONG-TAIL** Haxe MaxAgeForAllowingClothAndPrickupFromOthers (10) / PickupExhaustionGain (0.2) / PickupFeedingFoodRestore (1.5) |
+| `try_allow_voluntary_die` / `apply_voluntary_die` | `ol-sim/src/lib.rs` SAY DIE + client DIE | **DIE-SCORE-SKIP** prestige gate, no debit; MaxAgeForAllowingDie (2) / PrestigeCostForDie (0) |
+| `plan_do_naming_iam_ex` / `plan_do_naming_you_are_ex` / `GameplayKnobs.starting_family_name` / `starting_name` | `naming.rs` + `ai_follow_walk_live.inc.rs` | **SETTINGS-LONG-TAIL** Haxe StartingFamilyName (SNOW) / StartingName (SPOON) DoNaming I AM/YOU ARE |
+| `plan_do_naming_iam_ex` / `plan_found_family_ex` / `GameplayKnobs.found_family_needed_prestige` / `found_family_cost` / `found_family_needed_followers` / `found_family_break_alliance_chance` | `naming.rs` + `ai_follow_walk.rs` + `ai_follow_walk_live.inc.rs` | **SETTINGS-LONG-TAIL** Haxe FoundFamilyNeededPrestige (50) / FoundFamilyCost (10) / FoundFamilyNeededFollowers (4) / FoundFamilyBreakAllianceChance (0.5) DoNaming I AM + AI foundFamily I FOLLOW ME |
+| `death_with_food_store_max_live` / `FoodStoreMaxKnobs.starve_reduction` | HIT + calculateFoodStoreMax | **SETTINGS-LONG-TAIL** Haxe DeathWithFoodStoreMax (−0.1) / FoodStoreMaxReductionWhileStarvingToDeath (5) |
 | `haxe_next_season_duration_years` / `haxe_season_hardness` / `haxe_next_season_length_secs` | same | Haxe DoSeason re-seed pure helpers |
 | `reseed_season_length_after_roll` / `is_hard_season` | same | post-roll length from `season_duration_base_secs` |
 | `SimState::season_duration_base_secs` / `SimState::gameplay` | `ol-sim/src/lib.rs` | SeasonDuration base + live gameplay knobs |
 | `step_healing_food_pipe_ex` / `age_step_from_health_ex` / `birth_yum_multiplier_ex` | `food_store_max.rs` | live Healing/Ageing/BirthPrestige |
-| `resolve_pop_on_dest_ex` / `compute_*_chance_ex` | `animal_pop.rs` | live ChanceForOffspring/Dying |
+| `resolve_pop_on_dest_ex` / `compute_*_chance_ex` | `animal_pop.rs` | live ChanceForOffspring/Dying / ChanceForAnimalDyingFactorIfInLovedBiome |
+| `combat_profile_ex` / `GameplayKnobs.animal_deadly_distance_factor` | `animal_damage.rs` + HIT | **SETTINGS-LONG-TAIL** Haxe AnimalDeadlyDistanceFactor (0.5) |
+| `compute_dying_chance_ex` / `GameplayKnobs.chance_for_animal_dying_factor_if_in_loved_biome` | `animal_pop.rs` + animals tick | **SETTINGS-LONG-TAIL** Haxe ChanceForAnimalDyingFactorIfInLovedBiome (0.1) |
+| `compute_offspring_chance_ex` / `GameplayKnobs.offspring_factor_if_animal_pop_is_low` / `max_offspring_factor` | `animal_pop.rs` + `resolve_pop_on_dest_ex` | **SETTINGS-LONG-TAIL** Haxe OffspringFactorIfAnimalPopIsLow (10) / MaxOffspringFactor (1) |
+| `compute_offspring_chance_ex` / `GameplayKnobs.offspring_factor_low_animal_population_below` | `animal_pop.rs` | **SETTINGS-LONG-TAIL** Haxe OffspringFactorLowAnimalPopulationBelow (0.2) |
+| `object_decay_chance_ex2` / `DecayChanceKnobs.obj_decay_factor_for_food` | `long_term.rs` | **SETTINGS-LONG-TAIL** Haxe ObjDecayFactorForFood (2) |
+| `object_decay_chance_ex2` / `DecayChanceKnobs.obj_decay_factor_for_clothing` / `obj_decay_factor_for_walls` | `long_term.rs` | **SETTINGS-LONG-TAIL** Haxe ObjDecayFactorForClothing (2) / ObjDecayFactorForWalls (0.2) |
+| `decay_tech_factor_ex` / `biome_decay_factor_ex` / `DecayChanceKnobs` | `long_term.rs` | **SETTINGS-LONG-TAIL** Haxe ObjDecayFactorPerTechLevel (10) / DecayFactorInDeepWater (5) / InMountain (3) / InWalkableWater (2) / InJungle (2) / InSwamp (2) |
 | `intent_budget_from_live` | `settings_live.rs` | intent drain from live knobs |
 | `SimBootLive` | same | boot package for `run_sim_loop_with_views` |
 | `NpcConfig::from_live` | `ol-server/src/npc_ai.rs` | LiveSettings → NPC knobs each ~200 ms wake |
-| `run_npc_scheduler(live_share, …)` | same | same-wake hot-reload (no 2 s copy task) |
+| `run_npc_scheduler(live_share, …, blocked_by_ai)` | same | same-wake hot-reload + **NPC-SCAN-FULL** live blockedByAI share |
 | build wire | `ol-sim/build_settings_live.rs` | lib.rs + main + npc_ai at cargo build |
 | Tests | `ol-config` `force_reload_reports_all_live_keys_*` / `write_default_load_roundtrip_*` / `field_map::*` / `settings_live::apply_live_settings_gameplay_*` | inventory + live gameplay |
 
@@ -1083,10 +1228,12 @@ Haxe: no server WAR/POSSE disk (`WR`/`PJ` protocol client tags only). Residual: 
 | `resolve_unarmed_ally_hit_gate` / `unarmed_ally_first_hit_messages` | same | kill first-hit warn / second exile pure |
 | `AllyStrengthPlayer` / `UnarmedAllyHitGate` | same | scan snapshot + gate enum |
 | HIT wire allyFactor + anger + unarmed gate | `ol-sim/src/lib.rs` SAY HIT | **source-wired** `org_damage *= ally_factor`; anger on connect; first-hit ALLY_WARN; **exile-aware `is_ally`** for gate/strength/anger |
-| USE pickup gate | `ol-sim/src/use_transition.rs` | threshold default 0 = off; say "Too many hostile people..." |
-| Tests | `combat::ally_*` / `unarmed_ally_*` / `say_hit_ally_*` / multi-hop | pure factor + live HIT |
+| USE/DROP/SWAP/REMV pickup gate | `refuse_ally_pickup_command` | **ALLY-PICKUP-THRESHOLD** + **ALLY-PICKUP-DROP** live `ally_strength_too_low_for_pickup`; say "Too many hostile people..." |
+| USE own-grave gate | `use_transition.rs` `forbid_touch_own_grave` | **GRAVE-TOUCH-PLAYERS** live `max_players_before_forbid_touch_grave`; say "Its my grave..." |
+| DROP/SWAP/REMV own-grave | `lib.rs` `refuse_own_grave_command` | **GRAVE-TOUCH-DROP** + **GRAVE-TOUCH-REMV** |
+| Tests | `use_own_grave_*` / `drop_own_grave_*` / `swap_own_grave_*` / `remv_own_grave_*` | USE/DROP/SWAP/REMV gates |
 
-Residual: `AllyStrenghTooLowForPickup` not yet LiveSettings (const 0; USE path ready when >0). Ally prestige → **PRESTIGE-ALLY-COST**.
+Residual: ally pickup DROP/SWAP/REMV → **ALLY-PICKUP-DROP**. Ally prestige → **PRESTIGE-ALLY-COST**.
 
 ## Rust: ally prestige cost (PRESTIGE-ALLY-COST / ally_prestige_cost)
 
@@ -1237,7 +1384,7 @@ Residual (closed by **C-SS-MIN-AGE-AI**): AI/profession/grave/map_pins → live;
 | `pickup_baby_max_distance` | same | Haxe **1.9** — euclid doBaby/BABY/HOLD |
 | `inherit_coins_factor` | same | Haxe **0.8** — coinsInherited fraction |
 | `min_age_fertile` / `max_age_fertile` | same | Haxe **14** / **42** inclusive mother band |
-| `cursed_receive_damage_mul` / `cursed_make_damage_mul` | `combat.rs` | pure mul from live factor |
+| `cursed_receive_damage_mul` / `cursed_make_damage_mul` | `combat.rs` + HIT | **SETTINGS-LONG-TAIL** live mul on HIT org_damage |
 | `can_pickup_baby_distance_ex` | `feed.rs` | live max distance |
 | `apply_inherit_coins` + `InheritContext.inherit_coins_factor` | `death_inherit.rs` + `death_polish` | live InheritCoinsFactor |
 | `age_fertile_ex` / `is_fertile_ex` / `can_birth_full_ex` / `format_query_sex_ex` | `fertility.rs` | live Min/MaxAgeFertile |
@@ -1262,6 +1409,7 @@ Residual: `age_curves` FERTILE_MIN/MAX ModuleConst; father fitness 55 gate. **C-
 | `bloody_weapon_after_strike_ex` / `from_zero_ex` / `weapon_bloody_time_to_change_ex` | `weapons.rs` / `weapon_wound.rs` | live CD on HIT bloody |
 | `plan_animal_zero_residual_ex` / `from_content_ex` | `weapon_wound.rs` | live CD animal residual TTC |
 | `apply_jump_cost_ex` | `move_path.rs` | live ExhaustionOnJump |
+| `jump_rate_limited_ex` / `decay_jumped_tiles_ex` | `move_path.rs` + MOVE/vitals | live MaxJumpsPerTenSec |
 | `close_enemy_speed_factor_ex` / `ai_class_speed_factor_ex` / `apply_calculate_speed_full_live` | `move_speed.rs` | live close-enemy + AI class |
 | `evaluate_alternative_outcome` / `alt_outcome_gate_applies` / `is_fortified_hits` / `fortification_of` | `ol-sim/src/alt_outcome.rs` | TH-ALT-OUTCOME pure L1260–1306 |
 | `apply_default_alternative_outcome_patches` | `ol-content/alt_outcome_patches.inc.rs` | ServerSettings alt/fort + wall/door push(0) |
@@ -1271,9 +1419,11 @@ Residual: `age_curves` FERTILE_MIN/MAX ModuleConst; father fitness 55 gate. **C-
 | `note_lock_say` / `take_lock_say` | `locks.rs` | `String` payload (dynamic Hits/Fortification) |
 | `resolve_hungry_work_temperature` / `compute_hungry_work_cost` / `evaluate_hungry_work_use` / `plan_hungry_work_use` / `object_hungry_work` | `use_transition.rs` | pure TransitionHelper L1170–1256 |
 | `apply_use_at` hungry-work gate | `use_transition.rs` | live heat/food/exhaustion on USE |
+| `note_hungry_work_emote` / `take_hungry_work_emote` | `use_transition.rs` | PE biomeRelief 19 Allow / homesick 28 refuse |
+| `maybe_hungry_work_emote_feedback` | `lib.rs` | USE PE + FRAME after `apply_use_at` |
 | Tests | `apply_live_settings_gameplay_knobs` + `hungry_work*` + `animal_zero_residual_live_*` + jump/speed pure live | |
 
-Residual: `Transition.hungryWorkCost` / `hungryWorkTemperature` content fields (defaults 0/−1); full PatchTransitions cost table; hungry-work emote/FX sendFoodUpdate.
+Residual: ~~hungry-work emote/FX sendFoodUpdate~~ **AI-HUNGRY-EMOTE DONE** (success FX still `packets_after_use`, no duplicate). `Transition.hungry_work_cost` / `hungry_work_temperature` + PatchTransitions table **DONE**.
 
 ## Rust: C-SS-MIN-AGE-AI / min_age_ai (MinAgeToEat residual live)
 
@@ -1285,6 +1435,7 @@ Residual: `Transition.hungryWorkCost` / `hungryWorkTemperature` content fields (
 | `peer_count_for_kind` / `age_job_pending_ex` / `job_sensor_flags_from_sticky_ex` | `profession_scan.rs` | profession peer + age-job live |
 | `is_child_and_has_mother_ex` / `sensors_from_ext_ex` / `LiveSensorInput.min_age_to_eat` | `priority_ladder.rs` | AI ladder child/food gates |
 | `plan_follow_sticky_clear_ex` / `follow_max_tiles_for_context_ex` / `resolve_auto_follow_acquire_ex` | `ai_follow_walk.rs` + live.inc | AI follow clear/bands/acquire |
+| `plan_ally_up` / `should_skip_ally_up_if_hired` / `tick_ai_ally_up` | same | **AI-ALLY-UP-HIRE** skip hired; SAY `I FOLLOW` most powerful at home |
 | `birth_cross_species_aging_mult_ex` | `food_store_max.rs` | birth aging window live |
 | fever PE `UpdateEmotesInput.min_age_to_eat` | `lib.rs` tick | hunger PE gate live |
 | Tests | `select_grave_live_*` / `is_child_*_ex` / `age_job_pending_ex_*` / sticky clear_ex / birth_cross_ex | |
@@ -1305,7 +1456,7 @@ Residual: GPI clothing MinAge gate stays commented (Haxe).
 | FIELD_MAP NewBornFoodStoreMax / OldAgeFoodStoreMax | `field_map.rs` | **SettingsHome::Live** |
 | Tests | `live_newborn_band_*` / `live_old_age_band_*` / `live_combined_*` / `spawn_baby_food_max_tracks_live_newborn` / apply_live keys | |
 
-Residual: combat `apply_damage_food_pipe` / animal hit path still module-default age bands (adult combat-dominated); Haxe `calculateNotReducedFoodStoreMax` health TODO port-as-is.
+Residual: Haxe `calculateNotReducedFoodStoreMax` health TODO port-as-is. **ANIMAL-DAMAGE-FOOD-PIPE** live (`apply_damage_food_pipe_ex`).
 
 ## Rust: AI-TAKEOVER disconnect_ai (S-CONN / S-SAI)
 
@@ -1376,7 +1527,7 @@ Haxe: `Connection.close` → `new ServerAi` when alive; `isAi` = sock==null; `rl
 | Rust `resolve_eve_pair_partner` / `apply_eve_pair_slot_update` / `LastEveSlot` | same | lastAi/Human Eve pairing |
 | Rust `pick_eve_race_person_object` / `eve_person_color_prefer_original` | same | race object + original biome color |
 | Rust `split_account_graves_for_eve` / `account_has_close_*_grave` | same | bone vs gravestone fitness |
-| Wire | `spawn_player_inner` synthetic Eve + sim boot preferred spawn | EVE-BANANA |
+| Wire | `spawn_player` / revive `age`+`trueAge` from `state.gameplay.starting_eve_age` | EVE-BANANA + **SETTINGS-LONG-TAIL** |
 
 
 ## Rust: Noob→noble spawn weights (NOOB-NOBLE-SPAWN / spawn_weights)
@@ -1422,7 +1573,7 @@ Haxe: `GlobalPlayerInstance` TODO L1276 "spawn noobs more likely to and as noble
 | Symbol | File | Role |
 |--------|------|------|
 | `WorldMap.addFoodStatistic` / `eatenFoodPercentage` | `server/WorldMap.hx` | accumulate + % (**EATEN-FOOD-PCT** live on add in Rust) |
-| `try_horse_eat` world factors + stats + superMeh + yum restore | `use_transition.rs` | Haxe doHorse→doEating L3186–3215 + doIncreaseFoodValue |
+| `try_horse_eat` + `packets_after_use` + `apply_eat_health_prestige` | `use_transition.rs` / `lib.rs` | **HORSE-EAT-EMOTE/FX/PRESTIGE/ILL/REFUSE-SWAP/GAIN-NONE** doEating PE + FX/PU + yum prestige + refuse/zero-fill unapplied USE |
 | `WorldMap.getFoodFactor` / `getStarvingFoodFactor` | same | band + death ratio |
 | Eat fill × factors | `GlobalPlayerInstance.hx` | L3186–3215 |
 | `higherQaulityFood` milk chains | `ServerSettings.hx` L1345–1353 | 1463→4081→3593 / 1481→4082→3596 |
@@ -1450,6 +1601,7 @@ Haxe: `GlobalPlayerInstance` TODO L1276 "spawn noobs more likely to and as noble
 | Rust `FollowHireLiveKnobs` / `from_gameplay` | `ol-sim/do_commands_wire.rs` | **FOLLOW-HIRE-DELAY** live TimeConfirm + HireCost |
 | Rust `NameCandidate.person_color` / `from_player_with_person_color` | `ol-sim/do_commands_wire.rs` | Haxe `getColor` / `ObjectData.person` for hire ×2 |
 | Rust `try_hire` is_friendly + person_color | `ol-sim/do_commands_wire.rs` | Haxe isFriendly (ally+lastAttack) + foreign color cost |
+| `hire_need_coins_say` / `HIRE_TOO_POOR_SAY` / `count_hired` age>55 | `speech.rs` / `social.rs` / `do_commands_wire` | **AI-HIRE-COINS** NEED n coins + YOU ARE TOO POOR + SAD |
 | Rust `tick_pending_new_followers` host-name say | `ol-sim/do_commands_wire.rs` | Haxe TimeHelper confirm uses host `player.name` |
 | Rust `GameplayKnobs.time_confirm_new_follower` / `hire_cost*` | `ol-sim/settings_live.rs` + `ol-config` | LiveSettings hot-reload |
 | Rust `get_top_leader` / `get_top_leader_or_self` | `ol-sim/relations.rs` | exile/deleted/circular→None (Haxe getTopLeader) |
@@ -1495,7 +1647,7 @@ Residual: multi-owner `addOwner`; AiBase MAKE/CRAFT hear path; HOME! firePlace s
 | Rust wire | `lib.rs` login / BIRTH / gestation / apply_say / tick_vitals; `do_commands_wire` follow pin | |
 | Tests | `map_location_pins::*` / `social_map_pins_ally_follower_human` | pure labels + gates + live SAY pins |
 
-Residual: LOCATION_SAYS `markers` (separate); age-10 spoken say/emote pair polish.
+Residual: none on pins. **LOCATION-SAYS-MARKERS DONE**. **AGE-10-FATHER-LIVE DONE** (`tick_vitals` trueAge-10 follow + say + emote).
 
 ## LEADER-RANGE / leader_break (2026-07-26)
 
@@ -1506,7 +1658,7 @@ Residual: LOCATION_SAYS `markers` (separate); age-10 spoken say/emote pair polis
 | `Server` case LEAD | `server/Server.hx` | LEAD tag → sendLeader |
 | `GlobalPlayerInstance` `!L`/`?L`/`!DL` | `server/GlobalPlayerInstance.hx` | Power say + optional map |
 | Rust `decide_player_info_range` / `is_close_pu` / `format_leader_map_location_body` / `is_top_leader_of` | `ol-sim/leadership.rs` | Pure range + map body + chain helper |
-| Rust `nearby_conn_ids_for_player_update` / `apply_leader_query` / `parse_leader_personal_command` | `ol-sim/leader_range.rs` | Live PU fan-out + LEAD/!L |
+| Rust `nearby_conn_ids_for_player_update` / `apply_leader_query` / `parse_leader_personal_command` | `ol-sim/leader_range.rs` | **CONN-PU-LEADER-FAN** forced/action PU + LEAD/!L |
 | Rust `send_forced_player_update` / `send_action_result_pu_and_frame` | `ol-sim/lib.rs` | Use leader-aware fan-out |
 | Rust `format_player_out_of_range` | `ol-protocol` | PO wire |
 | Tests | `leadership::*` / `leader_range::*` / `lead_and_bang_l_send_map_pin` | pure + live |
@@ -1524,12 +1676,12 @@ Residual (closed by **PO-FAR-PLAYERS**): full SendToMeAllClosePlayers PO + torus
 | `TimeHelper` `SendMoveEveryXTicks` | `server/TimeHelper.hx` L132–135 | Periodic refresh `sendMoving=false` |
 | Rust `is_close_pu_wrap` / `decide_player_info_range_wrap` | `ol-sim/leadership.rs` | Torus-aware isClose |
 | Rust `decide_viewer_subject_wrap` / `collect_far_non_leader_p_ids_wrap` | `ol-sim/leader_range.rs` | Pure PO/PU + wrap |
-| Rust `send_to_me_all_close_players` / `_all_viewers` / `should_refresh_close_players` | same | Live wire + LOGIN + tick gate |
+| Rust `send_to_me_all_close_players` / `_all_viewers` / `maybe_refresh_close_players` | same | Live LOGIN + TimeHelper tick gate (LiveSettings) |
 | Rust `format_player_out_of_range` | `ol-protocol` | `PO\np_id …\n#` |
 | Rust `math_wrap::wrap_delta` | `ol-sim/math_wrap.rs` | Shared torus dx/dy |
 | Tests | `leader_range::*` / `leadership::*` / `math_wrap::*` | pure + live torus + send_moving=false |
 
-Residual: product Haxe `MaxDistanceToBeConsideredAsClose` often 2e6 (Rust uses `NEARBY_RANGE`/`broadcast_all`); `SEND_MOVE_EVERY_X_TICKS` const not LiveSettings; NAME body lineage quality.
+Residual: NAME body lineage quality. `SendMoveEveryXTicks` is LiveSettings (`send_move_every_x_ticks`, default `-1`).
 
 ## PO-MAX-DISTANCE / close_say_range (2026-07-29)
 
@@ -1600,13 +1752,15 @@ Residual: Euclidean² vs Chebyshev metric (product-wide); MuteBook/DEAF on `send
 | `pottery/farm/smith/baker DropHeld` | `profession_scan.rs` | smart_drop_held_profession_ex(..., is_moving) |
 | `ladder_profession_scan_tick` Wait terminal | same | hold tick; no makeStuff fallthrough |
 | `npc_ai` Goto / SelfClothing / Wait / force_drop_at_feet | `ol-server/npc_ai.rs` | Move + Raw SELF + prof_wait_busy_moving + smart drop peels |
-| `selfplay` SMART-DROP path | `ol-server/selfplay.rs` | Drop/Use/SELF/Goto/SMART-DROP-WAIT (no feet-drop on Wait) |
+| `selfplay` SMART-DROP path | `ol-server/selfplay.rs` | Drop/Use/SELF/Goto/SMART-DROP-WAIT; quiver + `held_contains_clay` from `PlayerSnapshot` clothing |
 | `closest_free_container` / `closest_with_contains` | `drop_held_ai.rs` | numSlots drop-in; clay basket prefer |
 | `should_drop_on_table` / `is_baked_pie` / `is_small_food_to_store` / `allows_drop_in_container` | `drop_held_ai.rs` | DROP-HELD-TABLE / AiHelper L30–40 + L195 free-container gate |
 | `container_prefer_factor` / `adjust_container_drop_score` / `closest_preferred_container` / `best_empty_or_container_drop` | same | Table 3371 0.25; box 3065 0.25; basket 292 0.5; other 0.8; same-food ×0.5; joint empty score |
 | `quiver_from_clothing_snapshot` / `QuiverClothing::from_clothing_snapshot` / `clothing_ids_snapshot` | same | storeInQuiver clothingObjects scan |
 | `Player::clothing_parent_ids` / `clothing_uses_remaining` / `PlayerSnapshot.clothing` / `clothing_uses` | `player.rs` | 6-slot clothingObjects for quiver sensors |
-| `npc_ai` `DropHeldSensorExtras.quiver` from snapshot | `ol-server/npc_ai.rs` | force_drop_at_feet smart path fills quiver |
+| `npc_ai` `DropHeldSensorExtras.quiver` / `held_contains_clay` from snapshot | `ol-server/npc_ai.rs` | force_drop + food pickup extras; nest clay flag |
+| npc `DropHeldPlayer` `SAY DROPBABY` | `ol-server/npc_ai.rs` | Haxe `dropPlayer` at feet (`food_drop_held_player`) |
+| npc `ProfessionScanInput.is_winter` | `ol-server/npc_ai.rs` | `EnvView` → `EnvSnapshot::is_winter` (poison → false) |
 | `DROP_NEAR_FIRE_IDS` / `DONT_USE_PILE_IDS` / `DONT_USE_DROP_FOR_ITEMS` / `SKEWERED_RABBIT` / `OMELETTE` / `TABLE` / `WOODEN_SLOT_BOX` | same | Haxe id tables |
 | `ScanTile::{num_slots,num_uses,contains_id,contained_count,is_full_uses,has_free_slot}` | `profession_scan.rs` | dropHeld capacity snapshot |
 
@@ -1657,12 +1811,12 @@ Residual: Euclidean² vs Chebyshev metric (product-wide); MuteBook/DEAF on `send
 
 | Haxe | Rust | Notes |
 |------|------|-------|
-| `MaxDistanceToBeConsideredAsCloseForSayAi` | `MAX_DISTANCE_SAY_AI` (20) / `ai_within_say_range` | quad-dist |
+| `MaxDistanceToBeConsideredAsCloseForSayAi` | `ai_say_range` / `live_collect_ai_speech_hearers` (LiveSettings 20) | quad-dist |
 | attention ALL/!!/??/name/closest | `ai_speech_attention` / `collect_ai_speech_hearers` | pure |
 | LLM fallback gate | `plan_speech_llm_start` | human+activated+age>3+!/?/cooldown |
-| immediate oreally/`...`/ally stop | live `fan_out_ai_speech_llm` | free-form SAY path |
+| immediate oreally/`...`/ally stop | live `fan_out_ai_speech_llm` | **AI-LLM-FAN** free-form SAY path |
 | async + chunks | jobs/results + `tick_llm_speech_wire` | PE + chat memory + chunk SAY |
-| Residual | — | live RelationshipView full; **AI-SAY-HELPER DONE**; **AI-FOLLOW-WALK DONE**; chunk log lines; toSoul other; exile-branch TODO |
+| Residual | — | live RelationshipView full; **AI-SAY-HELPER DONE**; **AI-FOLLOW-WALK DONE**; chunk log lines; **SOUL-CHAT-ENTRY skip** (`toSoul.addChatEntry` is Haxe TODO; `fromSoul` live); exile-branch TODO |
 
 ### AI-LLM-APPLY (`parseAiResponse` live → `ai_llm_apply.rs`)
 
@@ -1692,32 +1846,40 @@ Residual: Euclidean² vs Chebyshev metric (product-wide); MuteBook/DEAF on `send
 
 | Haxe | Rust | Notes |
 |------|------|-------|
-| `sayHelper` HOLA/HELLO/HI | `plan_scripted_say_helper` + `fan_out_ai_say_scripted` | weapon/angry gates + cooldown 4s |
+| `sayHelper` HOLA/HELLO/HI | `plan_scripted_say_helper` + `fan_out_ai_say_scripted` | **AI-SAY-HELPER-FAN** live on SAY; weapon/angry gates + cooldown 4s |
 | NAME? / ARE YOU AI / NICE? / JUMP! | same | JUMP live: `apply_player_jump` PU+BW / drop (**JUMP-BW-FULL**) |
 | MOVE! / FOLLOW Goto(speaker+1) | `ally_goto_speaker_xy` + `try_ai_follow_path_to` | **AI-FOLLOW-WALK** pathfind |
 | FOLLOW/COME / STOP FOLLOW / STOP/WAIT | sticky `ai_follow_*` / `ai_ordered_to_drop` | STOP `waiting_time_set=10` assign |
 | DROP / `doDropCommand` | `ordered_to_drop` + `tick_ordered_ai_drop` | deferred next tick (not immediate feet) |
 | GO HOME / `isMovingToHome` | `move_to_home` + `go_home_*` helpers + pathfind | debug GOING/CANNOT when `ai_debug_say` |
 | HOME! / SearchNewHome / GetCloseFire | `home_oven_biome_allowed` + `get_close_fire` + `ai_fire_place_*` | swamp no-floor skip; local r=80 |
+| `resolve_fire_place` / `commit_fire_place` / `write_player_fire_place` | `handling_fire.rs` + profession apply | **FIRE-PLACE-STICKY** GPI firePlace writeback |
+| `is_self_best_fire_keeper_for_obj` / `FireKeeperPeer` | `handling_fire.rs` + scan/npc | **FIRE-BEST-AI** getBestAi FIREKEEPER distance pick |
+| `search_new_home` / `search_new_home_if_needed` / `count_home_population` / `is_still_home_object` | `ol-sim/src/speech.rs` | Haxe SearchNewHome + migrate gate (**AI-HOME-OVEN**) |
+| `tick_search_new_home_if_needed` / `should_assign_new_home` / `home_search_biome` | `ai_follow_walk_live.inc.rs` + `speech.rs` | **AI-HOME-TICK** think tick; originalBiome swamp skip |
+| `plan_found_family` / `tick_found_family` / `get_family_name_from_list` | `ai_follow_walk.rs` + live inc + `naming.rs` | **AI-FOUND-FAMILY** think tick; session `my_eve_id` |
+| `plan_do_naming_iam` / `apply_do_naming_iam_live` / `should_migrate_found_family_follower` | `naming.rs` + live inc | **AI-NAMING-IAM** SAY I AM family + follower eve migrate + NM |
+| `plan_do_naming_you_are` / `plan_do_naming_you_are_ex_gender` / `pick_you_are_target` / `apply_do_naming_you_are_live` | `naming.rs` + live inc | **AI-NAMING-YOU-ARE** held/closest SPOON; live gender lists; happy PE **AI-YOU-ARE-EMOTE** |
+| `apply_do_commands_live_ex` global_ovens | `do_commands_wire.rs` | HOME! uses `WorldMapTimeState.ovens` when filled; originalBiome |
 | MAKE/CRAFT | `resolve_make_item_id` + `craft_ai.do_make_craft_command` | ally gate; non-silent say |
 | PROF?/PROF ON / profession! | `create_profession_text` / `AI_PROFESSIONS` | assigned_profession |
 | checkIfYouAreAllied / checkIfShouldDoCommand | `plan_ally_gate` / `plan_should_do_command` | loud reject + angry PE |
-| Residual | — | ~~full JUMP BW~~ **JUMP-BW-FULL DONE**; `this.time`→waiting floor; global oven list |
+| Residual | — | ~~full JUMP BW~~ **JUMP-BW-FULL DONE**; `this.time`→waiting floor; **AI-SAY-HELPER-FAN DONE**; ~~LLM `fan_out_ai_speech_llm`~~ **AI-LLM-FAN DONE**; ~~lastNames 2-letter map~~ **AI-LASTNAMES DONE**; YOU ARE gender-split **DONE** |
 
 
 ### FEED-OTHER-YUM / feed_full_eat
 | Symbol | Path | Notes |
 |--------|------|-------|
 | `doEating` (feed-other) | `server/GlobalPlayerInstance.hx` L3041–3247 | playerFrom ≠ playerTo |
-| `feed_other_full_eat` | `ol-sim/lib.rs` (inline; `feed_other_yum_live.inc.rs` mirror) | compute_eat + prestige + multi-use + drugs + gates |
+| `try_do_eating` | `ol-sim/food_eating.rs` | **FEED-OTHER-EAT** compute_eat_full × world × starving; SAY FEED/NURSE + UBABY + self-eat |
 | `feed_other_feeder_prestige_delta` | `ol-sim/feed_other_yum.rs` | yum feeder ×0.2 |
-| `feeder_may_eat_or_feed` | `ol-sim/feed_other_yum.rs` | MinAgeToEat + yellow fever |
+| `feeder_may_eat_or_feed` + ill PE | `feed_other_yum.rs` / `food_eating.rs` | MinAge + **EAT-ILL-EMOTE** `I am too ill!` + YELLOWFEVER |
 | `apply_drugs_fever_resistance` | `ol-sim/feed_other_yum.rs` | isDrugs yf count + TTC |
-| `feed_other_eater_post_emote` | `ol-sim/feed_other_yum.rs` | miam/happy/ill/sad |
-| `feed_other_responsible_id` | `ol-sim/feed_other_yum.rs` | self −1 / feeder p_id |
+| `feed_other_eater_post_emote` / `flush_eat_emotes` | `feed_other_yum.rs` + `food_eating.rs` + `lib.rs` | **FEED-OTHER-EMOTE** PE miam/happy/ill/sad + feeder happy; **EAT-REFUSE-EMOTE** refuse ILL/SAD/REFUSEFOOD |
+| `feed_other_responsible_id` / `YumState.responsible_id` | `feed_other_yum.rs` + `yum.rs` + FX/PU | **EAT-RESPONSIBLE-PU** self −1 / feeder p_id |
 | `can_feed_to_me_obj_ex_yum` | `ol-sim/yum.rs` | meh refuse food>2; 837 fever |
 | `eat_actor_after_use` | `ol-sim/multi_use.rs` | FEED multi-use bowl |
-| Tests | `feed_other_*` multi_use / too_young / drugs / 837 / yum fill / meh refuse | live + pure |
+| Tests | `try_do_eating_feed_other_*` fill / yum_bonus / meh refuse / too_young / prestige share | live + pure |
 
 ## LINEAGE-24H / starving_window (2026-07-29)
 
@@ -1734,8 +1896,21 @@ Residual: Euclidean² vs Chebyshev metric (product-wide); MuteBook/DEAF on `send
 | `death_stamps_from_lineage_rows` / `seed_death_stamps_from_lineage_rows` | same | boot rehydrate from lineage deaths |
 | `format_lineage_death_reason_html` / `format_lineage_ages_html` / `format_lineage_statistics_html` | same | pure WebServer death-reason + ages + starving % |
 | `LineageNode.death_sim_time` / `stamp_lineage_death` | `ol-sim/social.rs` | deathTime/reason (ensure node) |
+| `LineageNode.birth_sim_time` / `stamp_birth` / `ensure_lineage_born_at` | `ol-identity` + `ol-sim/social.rs` | **LINEAGE-BIRTH-TIME** Haxe `birthTime` |
+| `LineageNode.last_said` | `ol-identity` + SAY in `ol-sim` | **LINEAGE-LAST-SAID** Haxe `lastSaid` OLN4 |
+| `LineageNode.my_eve_id` | `ol-identity` + spawn/foundFamily | **LINEAGE-EVE-ID** Haxe `myEveId` OLN5 |
+| `LineageNode.reputation` / `stamp_reputation_from_lost_combat` | `ol-identity` + `apply_death_polish` | **LINEAGE-REP-DISK** Haxe `reputation = -lostCombatPrestige` OLN6 |
+| `LineageNode.coins` / `stamp_coins` | `ol-identity` + `apply_death_polish` | **LINEAGE-COINS-DISK** Haxe `coins` death snapshot OLN7 |
+| `LineageNode.family_name` / `stamp_family_name` | `ol-identity` + spawn / I AM | **LINEAGE-FAMILY-NAME** Haxe `myFamilyName` OLN8 |
+| `LineageNode.po_id` / `stamp_po_id` | `ol-identity` + spawn / graves | **LINEAGE-PO-ID** Haxe `po_id` person object OLN9 |
+| `LineageNode.account_id` / `stamp_account_id` / `AccountRecord.id` | `ol-identity` + spawn / child | **LINEAGE-ACCOUNT-ID** Haxe `accountId` OLN10 + OLA2 `PlayerAccount.id` |
+| `LineageNode.my_dynasty_id` / `stamp_dynasty_id` / `change_score_ex` | `ol-identity` + I AM found-new + death | **LINEAGE-DYNASTY** Haxe `myDynastyId` OLN11 + ChangeScore dynasty fold |
+| `LineageNode.follow_player_id` / `stamp_follow_player_id` / `set_follow` | `ol-identity` + `SocialState` | **LINEAGE-FOLLOW-ID** Haxe `followPlayerId` OLN12; load restores following |
+| `LineageNode.killed_by_player_id` / `stamp_killed_by_player_id` | `ol-identity` + death polish | **LINEAGE-KILLED-BY** Haxe `killedByPlayerId` OLN13; last attacker at death |
+| `LineageNode.true_age_at_death` / `stamp_death_ages` | `ol-identity` + death polish | **LINEAGE-TRUE-AGE** Haxe `trueAge` OLN14; `age_at_death` is aging `age`; delete uses trueAge |
+| `lineage_stats_age_years` | `ol-sim/world_food_stats.rs` | `round(yearsSinceBirth - yearsSinceDeath)`; living death=0 → 0 years since death |
 | `SocialState.lineage_stat_rows` / `snapshot_at` / `LineageSnapshot::stat_rows` | same | AllLineages → `LineageStatRow` + web sim_time |
-| OLN2 death fields | `ol-sim/lineage_persist.rs` | persist death_sim_time/reason/age; load v1+v2 |
+| OLN14 trueAge + OLN13 killedByPlayerId + OLN12 followPlayerId + OLN11 myDynastyId + OLN10 accountId + OLN9 po_id + OLN8 familyName + OLN7 coins + OLN6 reputation + OLN5 myEveId + OLN4 lastSaid + OLN3 birth + OLN2 death | `ol-identity/lineage_persist.rs` | persist true_age_at_death + killed_by + follow + dynasty + account_id + po_id + family_name + coins + reputation + my_eve_id + last_said + birth_sim_time + death; load v1–v14 |
 | `GET /stats/lineage` | `ol-web/lib.rs` | Haxe WebServer.generateLineageStatistics HTML |
 | `GET /stats/players` + `/players` | same | Haxe createCurrentlyPlayingStatistics living table |
 
@@ -1758,12 +1933,12 @@ Residual: Euclidean² vs Chebyshev metric (product-wide); MuteBook/DEAF on `send
 |--------|------|------|
 | `addHealthAndPrestige` | `server/GlobalPlayerInstance.hx` L5997 | yum + coins + clothing parent/leader fan |
 | `clothing_prestige_factor` / `prestige_fan_deltas` | `ol-sim/health_prestige.rs` | pure clothing + family/leader shares |
-| `apply_eat_health_prestige` | `ol-sim/lib.rs` | live self + feed-other + darkNosaj gate + coins + fan |
-| self-eat wire | `try_eat_held` | was missing health_delta → now applies fan |
-| Tests | pure clothing/parent/child/leader + `dark_nosaj_blocks_eat_health_prestige` | residual: ObjectData.prestigeFactor map + extraPrestigeFactor crowns |
+| `apply_eat_health_prestige` | `ol-sim/food_eating.rs` | live self + feed-other + darkNosaj gate + coins + family/leader fan |
+| self-eat wire | `try_eat_held` / `try_do_eating` | health_delta → yum/prestige + coins + fan |
+| Tests | pure clothing/parent/child/leader + `try_eat_held_fans_mother_quarter` / `try_eat_held_fans_leader_coins` / `try_eat_held_leader_crown_extra_prestige` | **PRESTIGE-CLOTH-FACTOR DONE**; **HIT-PRESTIGE-COST DONE** (`say_hit_child_debits_prestige_cost_and_gm`) |
 
 ### MOVE-NEST-SPEED
 | `held_nest_speed_product` / `combine_backpack_and_held_nest` | `ol-sim/src/move_speed.rs` (+ `move_nest_speed_inc.rs`) | Haxe held containedObjects +1 nest mult after backpack shoes-√ |
-| `backpack_nest_speed_product` / `resolve_backpack_speed_product` | same | Haxe `getPackpack().containedObjects` (clothing[5]); flat `Player.backpack` fallback when no equipped pack |
+| `backpack_nest_speed_product` / `resolve_backpack_speed_product` | same | Haxe `getPackpack().containedObjects` (clothing[5]); flat `Player.backpack` fallback when no equipped pack; **BACKPACK-NEST-DUAL** STORE/TAKE/switch/place/SREMV dual-write nest↔flat |
 | `VitalsSpeedInput.held_nest_product` | same + live path-start / `player_move_speed` | live nest product from `Player.held_helper`; clothing pack wired into `apply_calculate_speed_full` |
 

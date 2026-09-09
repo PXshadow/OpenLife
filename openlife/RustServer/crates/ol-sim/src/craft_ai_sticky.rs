@@ -15,8 +15,7 @@
 use crate::craft_graph::ReverseCraftGraph;
 use crate::get_or_craft::craft_item::{
     craft_item_with_runtime, CraftAiRuntime, CraftItemDecision, CraftLiveExpandOpts,
-    CraftScanFilters, CraftWorldObj,
-    FailedCraftings, ItemToCraftState,
+    CraftScanFilters, CraftWorldObj, FailedCraftings, ItemToCraftState,
 };
 use crate::get_or_craft::{
     expand_craft_item_live_sticky_scan, resolve_seek_or_craft_live_ex, GetOrCraftWorldObj,
@@ -35,6 +34,12 @@ pub struct PlayerCraftAi {
     pub crafting_tasks: Vec<i32>,
     /// Haxe `itemToCraftName` — human MAKE order name (say Making/Failed/Finished).
     pub item_to_craft_name: Option<String>,
+    /// Haxe `useTarget` / `useActor` / `expectedUseTarget` / `useIsDropInContainer`.
+    // Haxe: AiBase.useHeldObjOnTarget staging (CRAFT-LIVE-IO)
+    pub use_held: Option<crate::short_craft_intent::UseHeldStaging>,
+    /// Haxe `removeFromContainerTarget` / `expectedContainer`.
+    // Haxe: AiBase.isRemovingFromContainer (AI-REMOVE-CONTAINER)
+    pub remove_from_container: Option<crate::RemoveFromContainerStaging>,
 }
 
 impl Default for PlayerCraftAi {
@@ -82,9 +87,13 @@ impl StickyCraftSensorFlags {
 pub enum StickyCraftTickChoice {
     None,
     /// Continue unfinished `itemToCraftId`.
-    Continue { product_id: i32 },
+    Continue {
+        product_id: i32,
+    },
     /// Shifted from `craftingTasks` (re-push on fail via [`PlayerCraftAi::requeue_current_task`]).
-    FromQueue { product_id: i32 },
+    FromQueue {
+        product_id: i32,
+    },
 }
 
 impl StickyCraftTickChoice {
@@ -107,6 +116,8 @@ impl PlayerCraftAi {
             item_to_craft_id: -1,
             crafting_tasks: Vec::new(),
             item_to_craft_name: None,
+            use_held: None,
+            remove_from_container: None,
         }
     }
 
@@ -316,6 +327,32 @@ pub fn select_sticky_craft_for_tick(craft_ai: &mut PlayerCraftAi) -> StickyCraft
         return StickyCraftTickChoice::FromQueue { product_id: id };
     }
     StickyCraftTickChoice::None
+}
+
+/// Begin tick + pick unfinished sticky or next `craftingTasks` on NPC [`CraftAiRuntime`].
+///
+/// Haxe `doTimeStuffHelper` ~667–680: continue `itemToCraft` then `craftingTasks.shift`.
+/// Player path uses [`select_sticky_craft_for_tick`]; NPC `NpcProfessionState.craft_rt` uses this.
+// Haxe: calledCraftItem=false; itemToCraft.countDone; craftingTasks.shift
+pub fn select_runtime_sticky_craft_for_tick(rt: &mut CraftAiRuntime) -> StickyCraftTickChoice {
+    rt.clear_tick_guard();
+    if rt.should_continue_unfinished() {
+        return StickyCraftTickChoice::Continue {
+            product_id: rt.item.product_id,
+        };
+    }
+    if let Some(id) = rt.take_next_crafting_task() {
+        return StickyCraftTickChoice::FromQueue { product_id: id };
+    }
+    StickyCraftTickChoice::None
+}
+
+/// Haxe queue fail: `craftingTasks.push` after unsuccessful `craftItem` from a shifted id.
+// Haxe: AiBase.doTimeStuffHelper ~679
+pub fn requeue_runtime_task_on_fail(rt: &mut CraftAiRuntime, choice: StickyCraftTickChoice) {
+    if let StickyCraftTickChoice::FromQueue { product_id } = choice {
+        rt.add_task(product_id, true);
+    }
 }
 
 /// Merge sticky craft flags into ladder craft-queue / critical-craft sensors.
@@ -631,7 +668,10 @@ mod tests {
         ai.item_to_craft_id = 5;
         ai.runtime.item = ItemToCraftState::new(5);
         let o = ai.note_successful_use(1, 2, 0, 5);
-        assert!(matches!(o, NoteUseOutcome::ProductCountInc { count_done: 1, .. }));
+        assert!(matches!(
+            o,
+            NoteUseOutcome::ProductCountInc { count_done: 1, .. }
+        ));
     }
 
     #[test]
@@ -647,6 +687,44 @@ mod tests {
     }
 
     #[test]
+    fn select_runtime_sticky_prefers_continue_then_queue() {
+        let mut rt = CraftAiRuntime::new();
+        rt.called_craft_item = true;
+        rt.item = ItemToCraftState::new(10);
+        rt.item.count = 2;
+        rt.item.count_done = 0;
+        rt.add_task(20, true);
+        let c = select_runtime_sticky_craft_for_tick(&mut rt);
+        assert_eq!(c, StickyCraftTickChoice::Continue { product_id: 10 });
+        assert!(!rt.called_craft_item);
+        rt.item.count_done = 2;
+        let c2 = select_runtime_sticky_craft_for_tick(&mut rt);
+        assert_eq!(c2, StickyCraftTickChoice::FromQueue { product_id: 20 });
+        assert_eq!(rt.item.product_id, 20);
+        assert!(rt.crafting_tasks.is_empty());
+        assert_eq!(
+            select_runtime_sticky_craft_for_tick(&mut CraftAiRuntime::new()),
+            StickyCraftTickChoice::None
+        );
+    }
+
+    #[test]
+    fn requeue_runtime_from_queue_fail_pushes_end() {
+        let mut rt = CraftAiRuntime::new();
+        rt.add_task(9, true);
+        rt.add_task(11, true);
+        let c = select_runtime_sticky_craft_for_tick(&mut rt);
+        assert_eq!(c, StickyCraftTickChoice::FromQueue { product_id: 9 });
+        requeue_runtime_task_on_fail(&mut rt, c);
+        assert_eq!(rt.crafting_tasks, vec![11, 9]);
+        requeue_runtime_task_on_fail(
+            &mut rt,
+            StickyCraftTickChoice::Continue { product_id: 10 },
+        );
+        assert_eq!(rt.crafting_tasks, vec![11, 9]);
+    }
+
+    #[test]
     fn select_sticky_prefers_continue_then_queue() {
         let mut ai = PlayerCraftAi::new();
         ai.runtime.called_craft_item = true;
@@ -658,7 +736,7 @@ mod tests {
         let c = select_sticky_craft_for_tick(&mut ai);
         assert_eq!(c, StickyCraftTickChoice::Continue { product_id: 10 });
         assert!(!ai.runtime.called_craft_item); // begin_tick cleared guard
-        // Finish sticky
+                                                // Finish sticky
         ai.runtime.item.count_done = 2;
         let c2 = select_sticky_craft_for_tick(&mut ai);
         assert_eq!(c2, StickyCraftTickChoice::FromQueue { product_id: 20 });
@@ -693,8 +771,38 @@ mod tests {
         assert!(f.any_craft_work());
         let mut crit = false;
         let mut q = false;
-        apply_sticky_flags_to_craft_sensors(f.unfinished_sticky, f.has_craft_queue, &mut crit, &mut q);
+        apply_sticky_flags_to_craft_sensors(
+            f.unfinished_sticky,
+            f.has_craft_queue,
+            &mut crit,
+            &mut q,
+        );
         assert!(q);
         assert!(!crit); // smith-only critical not forced
+    }
+
+    /// PlayerCraftAi prepare owns `crafting_tasks`; runtime prepare after reset must not double-queue.
+    // Haxe: addTask once on product switch ~6677
+    #[test]
+    fn player_prepare_then_runtime_scan_no_double_queue() {
+        let g = sample_graph();
+        let mut ai = PlayerCraftAi::new();
+        ai.runtime.item = ItemToCraftState::new(7);
+        ai.runtime.item.count = 2;
+        ai.runtime.item.count_done = 1;
+        ai.item_to_craft_id = 7;
+        let opts = CraftLiveExpandOpts::default();
+        let _ = craft_item_with_player_craft_ai(&[], 11, 0, 0, 0, &opts, &mut ai, &g, None);
+        assert_eq!(
+            ai.crafting_tasks.iter().filter(|&&id| id == 7).count(),
+            1,
+            "interrupted id must appear once on player queue"
+        );
+        assert!(
+            !ai.runtime.crafting_tasks.contains(&7),
+            "runtime queue must not duplicate player interrupt"
+        );
+        assert_eq!(ai.item_to_craft_id, 11);
+        assert_eq!(ai.runtime.item.product_id, 11);
     }
 }

@@ -16,6 +16,7 @@
 //! // Haxe: CalculateBlockedByAi / AddToBlockedByAi / AddTargetBlockedByAi ~222–302
 
 use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, RwLock};
 
 /// Haxe `addNotReachable` / `addNotReachableObject` default time.
 pub const NOT_REACHABLE_DEFAULT_SECS: f32 = 90.0;
@@ -40,9 +41,7 @@ pub const SMITHING_HAMMER_BLOCK_ID: i32 = 441;
 /// Fire 82, Large Fast Fire 83, Hot Coals 85, Large Slow Fire 346, Flash Fire 3029,
 /// Adobe Oven 237, Hot Adobe Oven 250, Adobe Kiln 238, Firing Adobe Kiln 282,
 /// Forge 303, Firing Forge 304, Firing Newcomen Hammer 2238.
-pub const DONT_BLOCK_BY_AI: &[i32] = &[
-    82, 83, 85, 346, 3029, 237, 250, 238, 282, 303, 304, 2238,
-];
+pub const DONT_BLOCK_BY_AI: &[i32] = &[82, 83, 85, 346, 3029, 237, 250, 238, 282, 303, 304, 2238];
 
 /// Live per-AI timed path maps (Haxe `AiBase.notReachableObjects` + `objectsWithHostilePath`).
 // Haxe: AiBase L85–86
@@ -134,8 +133,7 @@ impl AiPathReachMaps {
         y: i32,
         blocked_by_ai: Option<&HashMap<(i32, i32), f32>>,
     ) -> bool {
-        self.is_object_not_reachable(x, y, blocked_by_ai)
-            || self.is_object_with_hostile_path(x, y)
+        self.is_object_not_reachable(x, y, blocked_by_ai) || self.is_object_with_hostile_path(x, y)
     }
 
     /// Haxe `cleanupBlockedObjectsHelper` — decay both maps by `timePassed`.
@@ -208,6 +206,61 @@ pub fn cleanup_blocked_by_ai(map: &mut HashMap<(i32, i32), f32>, dt: f32) {
     decay_timed_map(map, dt);
 }
 
+/// Merge two `blockedByAI` maps, keeping the larger remaining time per tile.
+// Haxe: blockedByAI remaining-time max when overlapping claims
+pub fn merge_blocked_by_ai_max(
+    dest: &mut HashMap<(i32, i32), f32>,
+    src: &HashMap<(i32, i32), f32>,
+) {
+    for (&xy, &t) in src {
+        dest.entry(xy)
+            .and_modify(|e| {
+                if t > *e {
+                    *e = t;
+                }
+            })
+            .or_insert(t);
+    }
+}
+
+/// Clone global `blockedByAI` then overlay in-flight peer craft tiles at default 5s.
+// Haxe: isObjectNotReachable ORs blockedByAI; npc craft_progress is extra in-flight claim
+pub fn blocked_by_ai_with_peer_progress<I>(
+    global: &HashMap<(i32, i32), f32>,
+    peer_xy_iter: I,
+) -> HashMap<(i32, i32), f32>
+where
+    I: IntoIterator<Item = (i32, i32)>,
+{
+    let mut extra = HashMap::new();
+    for (x, y) in peer_xy_iter {
+        extra.insert((x, y), BLOCKED_BY_AI_DEFAULT_SECS);
+    }
+    let mut out = global.clone();
+    merge_blocked_by_ai_max(&mut out, &extra);
+    out
+}
+
+/// Outer NPC-thread share of live `SimState.blocked_by_ai` (NPC-SCAN-FULL).
+// Haxe: AiBase.blockedByAI static map
+pub type BlockedByAiShare = Arc<RwLock<HashMap<(i32, i32), f32>>>;
+
+pub fn new_blocked_by_ai_share() -> BlockedByAiShare {
+    Arc::new(RwLock::new(HashMap::new()))
+}
+
+/// Mirror sim rebuild into the outer share (poison = skip).
+pub fn mirror_blocked_by_ai_share(share: &BlockedByAiShare, src: &HashMap<(i32, i32), f32>) {
+    if let Ok(mut g) = share.write() {
+        *g = src.clone();
+    }
+}
+
+/// Snapshot-read the share; empty map if the lock is poisoned.
+pub fn snapshot_blocked_by_ai_share(share: &BlockedByAiShare) -> HashMap<(i32, i32), f32> {
+    share.read().map(|g| g.clone()).unwrap_or_default()
+}
+
 /// Build blocked coordinate set from live player maps + global blockedByAI.
 // Haxe: isObjectNotReachable || isObjectWithHostilePath
 #[inline]
@@ -270,9 +323,7 @@ pub fn food_action_fail_effects() -> FoodActionFailEffects {
 // Haxe: isPickingupFood fail on foodTarget.tx / foodTarget.ty
 #[inline]
 pub fn is_food_action_fail_at(food_xy: Option<(i32, i32)>, x: i32, y: i32) -> bool {
-    food_xy
-        .map(|(fx, fy)| fx == x && fy == y)
-        .unwrap_or(false)
+    food_xy.map(|(fx, fy)| fx == x && fy == y).unwrap_or(false)
 }
 
 /// Empty-hand USE on edible tile — treat as food-pickup fail when no sticky claim.
@@ -300,10 +351,7 @@ pub fn apply_food_action_fail(
     if e.clear_food_target {
         *sticky_food = None;
         if let Some(t) = action_targets {
-            if t.food_target
-                .map(|c| c.x == x && c.y == y)
-                .unwrap_or(false)
-            {
+            if t.food_target.map(|c| c.x == x && c.y == y).unwrap_or(false) {
                 t.food_target = None;
             }
         }
@@ -372,7 +420,6 @@ pub fn mark_use_or_food_path_fail(
     mark_use_path_fail(maps, x, y, age);
     false
 }
-
 
 /// Whether a pending food USE/DROP/REMV tile still looks actionable for settle.
 ///
@@ -494,7 +541,6 @@ pub fn merge_path_reach_maps(dst: &mut AiPathReachMaps, src: &AiPathReachMaps) {
             .or_insert(t);
     }
 }
-
 
 /// PATH-REACH-MERGE: max-merge both ways so dual ownership matches Haxe single maps.
 ///
@@ -905,10 +951,7 @@ pub struct HumanBlockClaim {
 
 /// Pure Haxe `AddToBlockedByAi` for one agent into `map`.
 // Haxe: AiBase.AddToBlockedByAi ~242–258
-pub fn add_agent_to_blocked_by_ai(
-    map: &mut HashMap<(i32, i32), f32>,
-    agent: &AiAgentBlockSource,
-) {
+pub fn add_agent_to_blocked_by_ai(map: &mut HashMap<(i32, i32), f32>, agent: &AiAgentBlockSource) {
     if agent.deleted {
         return;
     }
@@ -1203,12 +1246,10 @@ pub fn rebuild_blocked_by_ai_from_sticky(
             continue;
         }
         if b.is_ai {
-            agents.push(b.sticky.to_agent_block_source(
-                b.age,
-                b.is_wounded,
-                false,
-                sim_time,
-            ));
+            agents.push(
+                b.sticky
+                    .to_agent_block_source(b.age, b.is_wounded, false, sim_time),
+            );
         } else if let Some(h) = b.sticky.to_human_block_claim(sim_time) {
             humans.push(h);
         }
@@ -1293,6 +1334,60 @@ mod tests {
     }
 
     #[test]
+    fn merge_blocked_by_ai_max_keeps_larger_time() {
+        let mut dest = HashMap::new();
+        dest.insert((1, 1), 3.0);
+        dest.insert((4, 0), 1.0);
+        let mut src = HashMap::new();
+        src.insert((1, 1), 5.0);
+        src.insert((2, 2), 4.0);
+        src.insert((4, 0), 0.5);
+        merge_blocked_by_ai_max(&mut dest, &src);
+        assert!((dest[&(1, 1)] - 5.0).abs() < 0.01);
+        assert!((dest[&(2, 2)] - 4.0).abs() < 0.01);
+        assert!((dest[&(4, 0)] - 1.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn blocked_by_ai_with_peer_progress_inserts_default_and_max() {
+        let mut global = HashMap::new();
+        global.insert((1, 1), 2.0);
+        global.insert((8, 8), 8.0);
+        let out = blocked_by_ai_with_peer_progress(&global, [(1, 1), (5, 5), (8, 8)]);
+        assert!((out[&(1, 1)] - BLOCKED_BY_AI_DEFAULT_SECS).abs() < 0.01);
+        assert!((out[&(5, 5)] - BLOCKED_BY_AI_DEFAULT_SECS).abs() < 0.01);
+        assert!((out[&(8, 8)] - 8.0).abs() < 0.01);
+        assert!((global[&(1, 1)] - 2.0).abs() < 0.01, "clone, do not mutate");
+    }
+
+    #[test]
+    fn blocked_by_ai_share_roundtrip() {
+        let share = new_blocked_by_ai_share();
+        let mut src = HashMap::new();
+        src.insert((3, 4), 5.0);
+        mirror_blocked_by_ai_share(&share, &src);
+        let snap = snapshot_blocked_by_ai_share(&share);
+        assert_eq!(snap.get(&(3, 4)), Some(&5.0));
+    }
+
+    #[test]
+    fn snapshot_blocked_by_ai_share_poisoned_is_empty() {
+        let share = new_blocked_by_ai_share();
+        let mut src = HashMap::new();
+        src.insert((1, 2), 5.0);
+        mirror_blocked_by_ai_share(&share, &src);
+        let share2 = Arc::clone(&share);
+        let join = std::thread::spawn(move || {
+            let _g = share2.write().unwrap();
+            panic!("poison blocked_by_ai share");
+        })
+        .join();
+        assert!(join.is_err());
+        let snap = snapshot_blocked_by_ai_share(&share);
+        assert!(snap.is_empty());
+    }
+
+    #[test]
     fn ttl_boundaries_90_20_5() {
         let mut m = AiPathReachMaps::new();
         m.add_not_reachable(0, 0, NOT_REACHABLE_DEFAULT_SECS);
@@ -1371,7 +1466,13 @@ mod tests {
         let mut targets = AiStickyBlockTargets::default();
         targets.set_food(BlockTargetClaim::simple(1, 1, 31));
         assert!(mark_use_or_food_path_fail(
-            &mut maps, &mut targets, 1, 1, 20.0, 0, 0
+            &mut maps,
+            &mut targets,
+            1,
+            1,
+            20.0,
+            0,
+            0
         ));
         assert!((maps.not_reachable[&(1, 1)] - NOT_REACHABLE_FOOD_SECS).abs() < 0.01);
         assert!(targets.food_target.is_none());
@@ -1401,7 +1502,6 @@ mod tests {
         ));
         assert!((maps4.not_reachable[&(4, 4)] - NOT_REACHABLE_DEFAULT_SECS).abs() < 0.01);
     }
-
 
     #[test]
     fn settle_pending_food_use_fail_marks_30s() {
@@ -1553,7 +1653,6 @@ mod tests {
         preserve_view_path_reach_on_publish(&mut p3, Some(&AiPathReachMaps::new()));
         assert!((p3.not_reachable[&(9, 9)] - 1.0).abs() < 0.01);
     }
-
 
     #[test]
     fn mark_goto_path_fail_animal_vs_block() {
@@ -1859,7 +1958,10 @@ mod tests {
         // age 25s > 20 → age-gated player_block dropped; Haxe myPlayer.block still set
         let a2 = s.to_agent_block_source(20.0, false, false, 35.0);
         assert!(a2.player_block_target.is_none());
-        assert!(a2.ai_block_target.is_some(), "no second age gate on myPlayer.block");
+        assert!(
+            a2.ai_block_target.is_some(),
+            "no second age gate on myPlayer.block"
+        );
         assert!(a2.food_target.is_some());
         // chain-stop: food not both claimed when player_block present
         let map = calculate_blocked_by_ai(&[], &[a2]);
@@ -1979,14 +2081,28 @@ mod tests {
         ));
         // AI with smith hammer
         assert!(should_set_block_target_for_ai(
-            false, SMITHING_HAMMER_BLOCK_ID, 100, false, false, false, 0, false
+            false,
+            SMITHING_HAMMER_BLOCK_ID,
+            100,
+            false,
+            false,
+            false,
+            0,
+            false
         ));
         // permanent blocks human unless hammer
         assert!(!should_set_block_target_for_ai(
             true, 0, 100, true, false, false, 0, false
         ));
         assert!(should_set_block_target_for_ai(
-            true, SMITHING_HAMMER_BLOCK_ID, 100, true, false, false, 0, false
+            true,
+            SMITHING_HAMMER_BLOCK_ID,
+            100,
+            true,
+            false,
+            false,
+            0,
+            false
         ));
         // food / weapon / animal / clothing / parent0
         assert!(!should_set_block_target_for_ai(

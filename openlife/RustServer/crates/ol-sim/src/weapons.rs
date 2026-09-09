@@ -20,6 +20,13 @@
 use crate::animal_damage::{BLOODY_YEW_BOW_ID, BOW_AND_ARROW_ID};
 use crate::combat::KILL_RANGE;
 
+pub use ol_combat_rules::{
+    bloody_weapon_after_strike, bloody_weapon_after_strike_ex, bloody_weapon_auto_decay_base_ttc,
+    bloody_weapon_id_for, weapon_bloody_time_to_change, weapon_bloody_time_to_change_ex,
+    BloodyWeaponTransform, BLOODY_WEAPON_STRIKE_BASE_TTC, WEAPON_COOLDOWN_FACTOR,
+    WEAPON_COOLDOWN_FACTOR_IF_WOUNDING,
+};
+
 /// Bare-hand / default weapon damage (Haxe ~1).
 pub const DEFAULT_WEAPON_DAMAGE: f32 = 1.0;
 
@@ -36,14 +43,8 @@ pub const BLOODY_WAR_SWORD_ID: i32 = 3048;
 /// Bow and Arrow with Note (Haxe deadlyDistance patch).
 pub const BOW_AND_ARROW_WITH_NOTE_ID: i32 = 1624;
 
-/// Haxe `ServerSettings.WeaponCoolDownFactor` (normal bloody cool-down mult).
-pub const WEAPON_COOLDOWN_FACTOR: f32 = 0.5;
-/// Haxe `ServerSettings.WeaponCoolDownFactorIfWounding`.
-pub const WEAPON_COOLDOWN_FACTOR_IF_WOUNDING: f32 = 5.0;
 /// Haxe `makeWeaponBloodyIfNeeded` fixed `heldObject.timeToChange = 3`.
 pub const BLOODY_WEAPON_MAKE_TTC: f32 = 3.0;
-/// Default base seconds for DoDamage time-transition cool-down when content missing.
-pub const BLOODY_WEAPON_STRIKE_BASE_TTC: f32 = 2.0;
 
 // Haxe: ServerSettings.PatchTransitions autoDecaySeconds on (-1, bloody)
 /// Bloody Knife **750** `-1` auto-decay base (`PatchTransitions` = 3).
@@ -65,17 +66,6 @@ pub const BOW_AND_ARROW_DAMAGE: f32 = 9.0;
 /// Haxe patched `damage` for Bow and Arrow with Note **1624**.
 pub const BOW_AND_ARROW_WITH_NOTE_DAMAGE: f32 = 12.0;
 
-/// Outcome of transforming a held weapon into its bloody form.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct BloodyWeaponTransform {
-    /// Clean or already-bloody held id before transform.
-    pub from_held_id: i32,
-    /// Bloody weapon object id to equip.
-    pub new_held_id: i32,
-    /// Haxe `heldObject.timeToChange` after transform.
-    pub time_to_change: f32,
-}
-
 /// True when object id is a patched bloody weapon (`isBloody = true`).
 // Haxe: ObjectData.isBloody / ObjectHelper.isBloody (ServerSettings patch)
 #[inline]
@@ -93,6 +83,26 @@ pub fn is_never_drop_weapon(object_id: i32) -> bool {
     is_bloody_weapon(object_id)
 }
 
+/// Haxe `ObjectHelper.isNeverDrop`: `neverDrop` flag or `+neverDrop` in description.
+/// Bloody weapons are patched neverDrop (750/3048/749).
+// Haxe: ObjectHelper.isNeverDrop L479–482
+pub fn is_never_drop_held(content: &ol_content::ContentDb, held_id: i32) -> bool {
+    if held_id == 0 {
+        return false;
+    }
+    if is_never_drop_weapon(held_id) {
+        return true;
+    }
+    content
+        .get(held_id)
+        .map(|d| {
+            d.description
+                .to_ascii_lowercase()
+                .contains("+neverdrop")
+        })
+        .unwrap_or(false)
+}
+
 /// Haxe `speedMult` patches for bloody weapons (move mali).
 // Haxe: ServerSettings.PatchObjectData speedMult bloody
 pub fn bloody_weapon_speed_mult(object_id: i32) -> Option<f32> {
@@ -100,78 +110,6 @@ pub fn bloody_weapon_speed_mult(object_id: i32) -> Option<f32> {
         BLOODY_KNIFE_ID => Some(0.75),
         BLOODY_WAR_SWORD_ID => Some(0.85),
         BLOODY_YEW_BOW_ID => Some(0.6),
-        _ => None,
-    }
-}
-
-/// Map clean (or already bloody) weapon → bloody id.
-///
-/// - Knife 560 / Bloody Knife 750 → 750  
-/// - War Sword 3047 / Bloody War Sword 3048 → 3048  
-/// - Bow 152 / 1624 / 749 → Bloody Yew Bow 749 (strike / escape family)  
-///
-/// Returns `None` for non-mapped weapons.
-// Haxe: makeWeaponBloodyIfNeeded bloodyWeaponId table (+ bow family for DoDamage/escape)
-pub fn bloody_weapon_id_for(held_id: i32) -> Option<i32> {
-    match held_id {
-        KNIFE_ID | BLOODY_KNIFE_ID => Some(BLOODY_KNIFE_ID),
-        WAR_SWORD_ID | BLOODY_WAR_SWORD_ID => Some(BLOODY_WAR_SWORD_ID),
-        id if id == BOW_AND_ARROW_ID
-            || id == BOW_AND_ARROW_WITH_NOTE_ID
-            || id == BLOODY_YEW_BOW_ID =>
-        {
-            Some(BLOODY_YEW_BOW_ID)
-        }
-        _ => None,
-    }
-}
-
-/// Haxe `DoDamage` cool-down: `timeTransition.calculateTimeToChange() * factor`.
-// Haxe: DoDamage WeaponCoolDownFactor / WeaponCoolDownFactorIfWounding
-#[inline]
-pub fn weapon_bloody_time_to_change(base_ttc: f32, long_wounding: bool) -> f32 {
-    weapon_bloody_time_to_change_ex(
-        base_ttc,
-        long_wounding,
-        WEAPON_COOLDOWN_FACTOR,
-        WEAPON_COOLDOWN_FACTOR_IF_WOUNDING,
-    )
-}
-
-/// Live-knob variant of [`weapon_bloody_time_to_change`].
-// Haxe: ServerSettings.WeaponCoolDownFactor / WeaponCoolDownFactorIfWounding
-// C-SS-MORE-BATCH5
-#[inline]
-pub fn weapon_bloody_time_to_change_ex(
-    base_ttc: f32,
-    long_wounding: bool,
-    normal_factor: f32,
-    wounding_factor: f32,
-) -> f32 {
-    let nf = if normal_factor.is_finite() && normal_factor > 0.0 {
-        normal_factor
-    } else {
-        WEAPON_COOLDOWN_FACTOR
-    };
-    let wf = if wounding_factor.is_finite() && wounding_factor > 0.0 {
-        wounding_factor
-    } else {
-        WEAPON_COOLDOWN_FACTOR_IF_WOUNDING
-    };
-    let factor = if long_wounding { wf } else { nf };
-    (base_ttc.max(0.0) * factor).max(0.0)
-}
-
-/// Base `-1` auto-decay seconds for a bloody weapon id (patched content table).
-///
-/// Haxe `TransitionImporter.GetTransition(-1, bloodyId).calculateTimeToChange()` after
-/// `ServerSettings.PatchTransitions` sets `autoDecaySeconds` 3/2/6 for 750/3048/749.
-// Haxe: ServerSettings.PatchTransitions + DoDamage timeTransition base
-pub fn bloody_weapon_auto_decay_base_ttc(bloody_id: i32) -> Option<f32> {
-    match bloody_id {
-        BLOODY_KNIFE_ID => Some(BLOODY_KNIFE_AUTO_DECAY_TTC),
-        BLOODY_WAR_SWORD_ID => Some(BLOODY_WAR_SWORD_AUTO_DECAY_TTC),
-        id if id == BLOODY_YEW_BOW_ID => Some(BLOODY_YEW_BOW_AUTO_DECAY_TTC),
         _ => None,
     }
 }
@@ -256,45 +194,6 @@ pub fn make_weapon_bloody_if_needed(
         from_held_id: held_id,
         new_held_id: bloody_id,
         time_to_change: BLOODY_WEAPON_MAKE_TTC,
-    })
-}
-
-/// DoDamage-style bloody equip + cool-down using patched `-1` auto-decay bases.
-///
-/// Base TTC = [`bloody_weapon_auto_decay_base_ttc`] (3/2/6 for knife/sword/bow) else
-/// [`BLOODY_WEAPON_STRIKE_BASE_TTC`]. Multiplied by cool-down factors 0.5 / 5.
-/// `long_wounding` = Haxe `longWeaponCoolDown` (first wound / kill).
-// Haxe: DoDamage fromObj.id = trans.newActorID + GetTransition(-1,newActor) * factor
-pub fn bloody_weapon_after_strike(
-    held_id: i32,
-    long_wounding: bool,
-) -> Option<BloodyWeaponTransform> {
-    bloody_weapon_after_strike_ex(
-        held_id,
-        long_wounding,
-        WEAPON_COOLDOWN_FACTOR,
-        WEAPON_COOLDOWN_FACTOR_IF_WOUNDING,
-    )
-}
-
-/// Live-knob variant of [`bloody_weapon_after_strike`].
-// Haxe: DoDamage cool-down × WeaponCoolDownFactor*
-// C-SS-MORE-BATCH5
-pub fn bloody_weapon_after_strike_ex(
-    held_id: i32,
-    long_wounding: bool,
-    normal_factor: f32,
-    wounding_factor: f32,
-) -> Option<BloodyWeaponTransform> {
-    let bloody_id = bloody_weapon_id_for(held_id)?;
-    // Already bloody with same id still re-arms cool-down (Haxe re-sets held + ttc).
-    let base = bloody_weapon_auto_decay_base_ttc(bloody_id)
-        .unwrap_or(BLOODY_WEAPON_STRIKE_BASE_TTC);
-    let ttc = weapon_bloody_time_to_change_ex(base, long_wounding, normal_factor, wounding_factor);
-    Some(BloodyWeaponTransform {
-        from_held_id: held_id,
-        new_held_id: bloody_id,
-        time_to_change: ttc,
     })
 }
 
@@ -468,6 +367,14 @@ mod tests {
         assert!(!is_bloody_weapon(0));
         assert!(is_never_drop_weapon(BLOODY_KNIFE_ID));
         assert!(!is_never_drop_weapon(KNIFE_ID));
+        let mut db = ol_content::ContentDb::default();
+        let mut tagged = ol_content::ObjectDef::default();
+        tagged.id = 42;
+        tagged.description = "Foo +neverDrop".into();
+        db.objects.insert(42, tagged);
+        assert!(is_never_drop_held(&db, 42));
+        assert!(!is_never_drop_held(&db, KNIFE_ID));
+        assert!(is_never_drop_held(&db, BLOODY_KNIFE_ID));
         assert_eq!(bloody_weapon_speed_mult(BLOODY_KNIFE_ID), Some(0.75));
         assert_eq!(bloody_weapon_speed_mult(BLOODY_WAR_SWORD_ID), Some(0.85));
         assert_eq!(bloody_weapon_speed_mult(BLOODY_YEW_BOW_ID), Some(0.6));
@@ -536,14 +443,10 @@ mod tests {
     #[test]
     fn weapon_bloody_time_to_change_ex_live() {
         // C-SS-MORE-BATCH5: live 0.25 / 4.0 → 2*0.25=0.5, 2*4=8
-        assert!(
-            (weapon_bloody_time_to_change_ex(2.0, false, 0.25, 4.0) - 0.5).abs() < 1e-6
-        );
+        assert!((weapon_bloody_time_to_change_ex(2.0, false, 0.25, 4.0) - 0.5).abs() < 1e-6);
         assert!((weapon_bloody_time_to_change_ex(2.0, true, 0.25, 4.0) - 8.0).abs() < 1e-6);
         let xf = bloody_weapon_after_strike_ex(KNIFE_ID, false, 0.25, 4.0).unwrap();
-        assert!(
-            (xf.time_to_change - BLOODY_KNIFE_AUTO_DECAY_TTC * 0.25).abs() < 1e-5
-        );
+        assert!((xf.time_to_change - BLOODY_KNIFE_AUTO_DECAY_TTC * 0.25).abs() < 1e-5);
     }
 
     #[test]

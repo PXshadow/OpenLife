@@ -39,7 +39,7 @@ After a connecting illegal unarmed hit (not legit, target unarmed):
 - Haxe L4525 “count as ally if exile happened not long ago” (open both sides)  
 - Other PrestigeCost* categories (child/elder/relative/woman) still module-const factors (ally is LiveSettings)  
 - `CombatReputationRestorePerYear` still module-const  
-- Full `addHealthAndPrestige` yum_multiplier / family share / darkNosaj early skip (score prestige proxy only)
+- Full eat-path family/leader fan is **HEALTH-PRESTIGE-FAN DONE**; HIT yum debit is **HIT-PRESTIGE-COST DONE** (`addHealthAndPrestige(-prestigeCost, false)` + GM; Devil Mask skip)
 
 ## Verify
 

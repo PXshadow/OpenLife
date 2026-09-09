@@ -83,11 +83,7 @@ pub fn format_leader_query(following: &HashMap<i32, i32>, limit: usize) -> Strin
 }
 
 /// True if `follower_id` currently follows `leader_id` directly (not via chain).
-pub fn is_direct_follower(
-    following: &HashMap<i32, i32>,
-    leader_id: i32,
-    follower_id: i32,
-) -> bool {
+pub fn is_direct_follower(following: &HashMap<i32, i32>, leader_id: i32, follower_id: i32) -> bool {
     following.get(&follower_id) == Some(&leader_id)
 }
 
@@ -166,7 +162,14 @@ pub fn is_close_pu(
     max_distance: i32,
 ) -> bool {
     is_close_pu_wrap(
-        viewer_x, viewer_y, target_x, target_y, max_distance, 0, 0, false,
+        viewer_x,
+        viewer_y,
+        target_x,
+        target_y,
+        max_distance,
+        0,
+        0,
+        false,
     )
 }
 
@@ -321,7 +324,10 @@ pub fn format_no_leader_say() -> &'static str {
 /// Returns `None` when the player does not follow anyone.
 // Haxe: player.followPlayer
 pub fn direct_follow_leader(following: &HashMap<i32, i32>, p_id: i32) -> Option<i32> {
-    following.get(&p_id).copied().filter(|&l| l != p_id && l != 0)
+    following
+        .get(&p_id)
+        .copied()
+        .filter(|&l| l != p_id && l != 0)
 }
 
 #[cfg(test)]
@@ -398,10 +404,7 @@ mod tests {
 
     #[test]
     fn order_obey_disobey_formatters() {
-        assert_eq!(
-            format_order_delivery(7, "MOVE NORTH"),
-            "7 ORDER MOVE NORTH"
-        );
+        assert_eq!(format_order_delivery(7, "MOVE NORTH"), "7 ORDER MOVE NORTH");
         assert_eq!(format_order_result(7, 2, true, ""), "7 ORDER 2 OK");
         assert_eq!(
             format_order_result(7, 2, false, "not_leader"),

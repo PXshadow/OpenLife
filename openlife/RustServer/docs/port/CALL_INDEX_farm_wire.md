@@ -8,6 +8,7 @@
 | `keep_bushes_alive` / `keep_bushes_alive_count` / `KEEP_BUSHES_ALIVE_*` | same | Haxe keepBushesAlive: living bushes &lt;20 → ShortCraft(1137,389) |
 | `do_critical_farm_slice` | same | age-gated bushes + basic + carrot (doCriticalStuff farm slice) |
 | `short_craft_apply` / `ShortCraftApply` / `ShortCraftInput` / `farm_action_short_craft_apply` | same | pure shortCraft edges: USE/drop/seek, snow/ocean, weak skewer, carrot row, maxNewActor |
+| `pull_carrot_row_if_needed` / `PULL_CARROT_ROW_RUNG` | same + `profession_scan.rs` | mid `shortCraft(0, 400, 10)` empty-hand USE r=10 (**PULL-CARROT-ROW**) |
 | `decide_farm_job` / `do_basic_farming` / `do_carrot_farming` / `do_berry_farming` / `do_advanced_farming_step` | same | job sequences → `FarmAction` |
 | `do_plant` / `do_harvest_wheat` / `do_harvest_corn` / `do_watering_on` | same | hysteresis helpers |
 | `do_prepare_soil` / `do_prepare_rows` / `do_composting` | same | soil/rows/compost; rows call keep_bushes_alive when dying present |

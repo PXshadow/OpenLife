@@ -173,6 +173,19 @@ pub const TONGS_FORGE_SHORTCRAFT_RADIUS: i32 = 10;
 pub const CHARCOAL_FORGE_SHORTCRAFT_RADIUS: i32 = 30;
 /// Default drop distance for GetCraftAndDropItemsCloseToObj near forge.
 pub const DROP_NEAR_FORGE_DIST: i32 = 5;
+/// Haxe crucible staging dist (`GetCraftAndDropItemsCloseToObj(forge, 319, 3, 10)`).
+// Haxe: AiBase.prepareSmithingTools ~3737
+pub const CRUCIBLE_DROP_NEAR_FORGE_DIST: i32 = 10;
+
+/// Haxe `GetCraftAndDropItemsCloseToObj` `dist` for smith forge staging.
+// Haxe: prepareSmithingTools flat/stone dist=5 (~3705); crucible 319 dist=10 (~3737)
+pub fn smith_craft_and_drop_dist(object_id: i32) -> i32 {
+    if object_id == UNFORGED_SEALED_CRUCIBLE {
+        CRUCIBLE_DROP_NEAR_FORGE_DIST
+    } else {
+        DROP_NEAR_FORGE_DIST
+    }
+}
 
 /// Haxe count / shortCraft radii used by live `CountCloseObjects` / shortCraft fillers.
 #[allow(dead_code)]
@@ -300,13 +313,21 @@ pub fn peer_home_coords(
     snap_home.unwrap_or((pos_x, pos_y))
 }
 
-/// Haxe `isWounded()` for peer count when only held-object wound flag is known
-/// (snapshot lacks hiddenWound alias â€” treat content wound as wounded).
+/// Haxe `isWounded()` for peer count when only held-object wound flag is known.
+///
+/// Light `hiddenWound` alias is **not** wounded (Haxe `isWounded` skips it).
 // Haxe: GlobalPlayerInstance.isWounded; AiBase.countProfession skips wounded
 // AI-JOB-SMITH-RESID / peer wound fidelity
 #[inline]
 pub fn peer_is_wounded_from_held(held_is_wound_object: bool) -> bool {
-    held_is_wound_object
+    peer_is_wounded_from_held_ex(held_is_wound_object, false)
+}
+
+/// Haxe `isWounded()` — held wound and not hiddenWound alias.
+// Haxe: GlobalPlayerInstance.isWounded = wound held && hiddenWound != held
+#[inline]
+pub fn peer_is_wounded_from_held_ex(held_is_wound_object: bool, is_hidden_wound: bool) -> bool {
+    held_is_wound_object && !is_hidden_wound
 }
 
 /// Haxe `dropNearForgeItemIds` subset used for pipeline seek bias.
@@ -1538,8 +1559,98 @@ impl SmithApply {
 }
 
 /// Haxe floor-place actor ids allowed without a transition (Pine Needles / Boards / Cut Stones).
-// Haxe: AiBase.checkHungryWorkCostById ~1424â€“1425
+// Haxe: AiBase.checkHungryWorkCostById ~1424–1425
 pub const FLOOR_PLACE_ACTOR_IDS: [i32; 3] = [96, 470, 881];
+
+/// Object `hungryWork` from PatchObjectData id table + `+hungryWork` description tag.
+///
+/// No ObjectDef field: description + hardcoded ids. Tools 34/334/502 use
+/// `1 * HungryWorkToolCostFactor` (factor not live; default **0**).
+// Haxe: ServerSettings.PatchObjectData hungryWork; ObjectData.hungryWork
+pub fn object_hungry_work(id: i32, description: &str, hungry_work_cost_knob: f32) -> f32 {
+    let knob = if hungry_work_cost_knob.is_finite() {
+        hungry_work_cost_knob
+    } else {
+        5.0
+    };
+    match id {
+        1845 | 1846 | 1847 => 5.0, // Loose Fence*
+        34 | 334 | 502 => 0.0,     // Sharp Stone / Steel Axe / Shovel (tool factor default 0)
+        3146 | 1853 => knob,       // Chopped Softwood / Cut Stones → HungryWorkCost
+        857 => -2.0,               // Steel Hoe
+        1849 => 5.0,               // Buried Grave with Dug Stone
+        123 => 2.0,                // Harvested Tule
+        231 => 10.0,               // Adobe Oven Base
+        1020 => 2.0,               // Snow Bank
+        138 => 2.0,                // Cut Sapling Skewer
+        3961 => 5.0,               // Iron Vein
+        496 => 4.0,                // Dug Stump
+        1011 => 3.0,               // Buried Grave
+        213 => 3.0,                // Deep Tilled Row
+        1136 => 3.0,               // Shallow Tilled Row
+        511 => 2.0,                // Pond
+        1261 | 141 | 142 | 143 => 2.0, // Goose ponds
+        662 => 1.0,                // Shallow Well
+        663 => 2.0,                // Deep Well
+        _ => {
+            // Haxe: description.indexOf("+hungryWork") → HungryWorkCost
+            if description.contains("+hungryWork") {
+                if hungry_work_cost_knob.is_finite() && hungry_work_cost_knob >= 0.0 {
+                    hungry_work_cost_knob
+                } else {
+                    5.0
+                }
+            } else {
+                0.0
+            }
+        }
+    }
+}
+
+/// Haxe `TransitionData.totalHungryWorkCost`: actor + newTarget + trans field.
+#[inline]
+pub fn total_hungry_work_cost(actor_hw: f32, new_target_hw: f32, trans_hw: f32) -> f32 {
+    actor_hw + new_target_hw + trans_hw
+}
+
+fn object_desc(content: &ol_content::ContentDb, id: i32) -> &str {
+    content.get(id).map(|o| o.description.as_str()).unwrap_or("")
+}
+
+/// Pair cost from content: actor.hungryWork + newTarget.hungryWork + trans.hungryWorkCost.
+///
+/// Find: primary `(actor, target)`, then last-use, then Haxe ground `(actor, -1)`.
+/// No trans: actor cost only (0 extra new_target/trans).
+// Haxe: AiBase.checkHungryWorkCostById GetTransition; TransitionData.totalHungryWorkCost
+pub fn content_pair_hungry_work_cost(
+    content: &ol_content::ContentDb,
+    actor_id: i32,
+    target_id: i32,
+    knob: f32,
+) -> f32 {
+    let actor_base = content.resolve_base_id(actor_id);
+    let actor_hw = object_hungry_work(actor_base, object_desc(content, actor_base), knob);
+
+    let trans = content
+        .find_transition(actor_id, target_id)
+        .or_else(|| content.find_transition_last_use(actor_id, target_id))
+        .or_else(|| {
+            if target_id != -1 {
+                content
+                    .find_transition(actor_id, -1)
+                    .or_else(|| content.find_transition_last_use(actor_id, -1))
+            } else {
+                None
+            }
+        });
+
+    let Some(tr) = trans else {
+        return total_hungry_work_cost(actor_hw, 0.0, 0.0);
+    };
+    let new_tid = content.resolve_base_id(tr.new_target_id);
+    let new_target_hw = object_hungry_work(new_tid, object_desc(content, new_tid), knob);
+    total_hungry_work_cost(actor_hw, new_target_hw, tr.hungry_work_cost)
+}
 
 /// Pure resolution of Haxe `checkHungryWorkCostById` inputs (no ContentDb).
 ///
@@ -2866,6 +2977,8 @@ mod tests {
         // AI-JOB-SMITH-RESID residual close
         assert!(peer_is_wounded_from_held(true));
         assert!(!peer_is_wounded_from_held(false));
+        assert!(!peer_is_wounded_from_held_ex(true, true));
+        assert!(peer_is_wounded_from_held_ex(true, false));
         assert_eq!(peer_home_coords(Some((10, 20)), 99, 99), (10, 20));
         assert_eq!(peer_home_coords(None, 5, 6), (5, 6));
 
@@ -3548,6 +3661,93 @@ mod tests {
                 object_id: FLAT_ROCK
             }
         );
+        assert_eq!(smith_craft_and_drop_dist(FLAT_ROCK), DROP_NEAR_FORGE_DIST);
+        assert_eq!(smith_craft_and_drop_dist(STONE), DROP_NEAR_FORGE_DIST);
+        assert_eq!(
+            smith_craft_and_drop_dist(UNFORGED_SEALED_CRUCIBLE),
+            CRUCIBLE_DROP_NEAR_FORGE_DIST
+        );
+    }
+
+    #[test]
+    fn object_hungry_work_tag_fence_and_tool() {
+        // Haxe: description +hungryWork → HungryWorkCost knob
+        assert!((object_hungry_work(9999, "Thing +hungryWork", 7.0) - 7.0).abs() < 1e-6);
+        assert!((object_hungry_work(1, "Rock", 5.0) - 0.0).abs() < 1e-6);
+        // Loose fence ids hardcoded 5
+        assert!((object_hungry_work(1845, "Loose Fence", 9.0) - 5.0).abs() < 1e-6);
+        assert!((object_hungry_work(1846, "", 9.0) - 5.0).abs() < 1e-6);
+        assert!((object_hungry_work(1847, "", 9.0) - 5.0).abs() < 1e-6);
+        // Tools 34/334/502 × HungryWorkToolCostFactor default 0
+        assert!((object_hungry_work(34, "Sharp Stone", 5.0) - 0.0).abs() < 1e-6);
+        assert!((object_hungry_work(334, "Steel Axe", 5.0) - 0.0).abs() < 1e-6);
+        assert!((object_hungry_work(502, "Shovel", 5.0) - 0.0).abs() < 1e-6);
+        // 3146 / 1853 → knob
+        assert!((object_hungry_work(3146, "Chopped Softwood Tree", 7.0) - 7.0).abs() < 1e-6);
+        assert!((object_hungry_work(1853, "Cut Stones", 4.0) - 4.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn total_hungry_work_cost_sums_actor_new_target_trans() {
+        assert!((total_hungry_work_cost(1.0, 2.0, 3.0) - 6.0).abs() < 1e-6);
+        assert!((total_hungry_work_cost(5.0, 0.0, 0.0) - 5.0).abs() < 1e-6);
+        assert!(!check_hungry_work_cost_by_id(1.0, 2.0)); // food < cost+1
+        assert!(check_hungry_work_cost_by_id(3.0, 2.0)); // food == cost+1 allow
+        assert!(check_hungry_work_cost_by_id(5.0, 0.0));
+    }
+
+    #[test]
+    fn content_pair_hungry_work_cost_new_target_and_no_trans() {
+        use ol_content::{ContentDb, ObjectDef, Transition};
+        let mut db = ContentDb::default();
+        let mut actor = ObjectDef::empty(100);
+        actor.description = "Thing +hungryWork".into();
+        db.objects.insert(100, actor);
+        db.objects.insert(1845, ObjectDef::empty(1845));
+        db.objects.insert(50, ObjectDef::empty(50));
+        db.transitions.insert(
+            (100, 50),
+            Transition {
+                actor_id: 100,
+                target_id: 50,
+                new_actor_id: 0,
+                new_target_id: 1845,
+                ..Default::default()
+            },
+        );
+        // actor tag 7 + new_target fence 5 + trans 0
+        assert!((content_pair_hungry_work_cost(&db, 100, 50, 7.0) - 12.0).abs() < 1e-6);
+        db.transitions.get_mut(&(100, 50)).unwrap().hungry_work_cost = 3.0;
+        assert!((content_pair_hungry_work_cost(&db, 100, 50, 7.0) - 15.0).abs() < 1e-6);
+        db.transitions.get_mut(&(100, 50)).unwrap().hungry_work_cost = 0.0;
+        // no trans: actor only
+        assert!((content_pair_hungry_work_cost(&db, 100, 99, 7.0) - 7.0).abs() < 1e-6);
+        // tool 34 + chopped-softwood new_target 3146
+        db.objects.insert(34, ObjectDef::empty(34));
+        db.objects.insert(3146, ObjectDef::empty(3146));
+        db.transitions.insert(
+            (34, 1),
+            Transition {
+                actor_id: 34,
+                target_id: 1,
+                new_actor_id: 34,
+                new_target_id: 3146,
+                ..Default::default()
+            },
+        );
+        assert!((content_pair_hungry_work_cost(&db, 34, 1, 5.0) - 5.0).abs() < 1e-6);
+        // ground fallback (actor, -1)
+        db.transitions.insert(
+            (100, -1),
+            Transition {
+                actor_id: 100,
+                target_id: -1,
+                new_actor_id: 0,
+                new_target_id: 1845,
+                ..Default::default()
+            },
+        );
+        assert!((content_pair_hungry_work_cost(&db, 100, 1234, 7.0) - 12.0).abs() < 1e-6);
     }
 
     #[test]

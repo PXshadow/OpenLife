@@ -35,10 +35,12 @@ pub fn food_pickup_in_container(index_in_container: i32) -> bool {
     index_in_container >= 0
 }
 
-/// Chebyshev tile distance (npc SeekFood adjacency uses the same metric).
+/// Squared-Euclidean tile distance (Haxe `CalculateQuadDistanceToObject`).
 #[inline]
 pub fn food_pickup_tile_dist(px: i32, py: i32, fx: i32, fy: i32) -> i32 {
-    (px - fx).abs().max((py - fy).abs())
+    let dx = px - fx;
+    let dy = py - fy;
+    dx * dx + dy * dy
 }
 
 // ── Plan enum ───────────────────────────────────────────────────────────────
@@ -299,10 +301,7 @@ mod tests {
     fn inactive_and_already_held() {
         let mut inp = base_inp();
         inp.has_food_target = false;
-        assert_eq!(
-            plan_is_picking_up_food(&inp),
-            IsPickingupFoodPlan::Inactive
-        );
+        assert_eq!(plan_is_picking_up_food(&inp), IsPickingupFoodPlan::Inactive);
         assert!(!is_picking_up_food_busy(IsPickingupFoodPlan::Inactive));
 
         inp.has_food_target = true;
@@ -375,6 +374,20 @@ mod tests {
     #[test]
     fn drop_held_player_at_range() {
         let mut inp = base_inp();
+        inp.holding_player = true;
+        assert_eq!(
+            plan_is_picking_up_food(&inp),
+            IsPickingupFoodPlan::DropHeldPlayer
+        );
+    }
+
+    #[test]
+    fn drop_held_player_after_failed_object_drop() {
+        // After DropHeldBeforeMove fails, drop_held_would_act=false still drops baby.
+        // Haxe: getHeldPlayer / dropPlayer ~8657–8663
+        let mut inp = base_inp();
+        inp.is_holding_object = true;
+        inp.drop_held_would_act = false;
         inp.holding_player = true;
         assert_eq!(
             plan_is_picking_up_food(&inp),

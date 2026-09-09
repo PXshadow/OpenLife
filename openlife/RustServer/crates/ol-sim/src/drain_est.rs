@@ -7,8 +7,8 @@
 
 use crate::environment::clothing_temp_bonus;
 use crate::{
-    OLD_AGE_FOOD_DRAIN_MULT, OLD_AGE_THRESHOLD, SICK_FOOD_DRAIN_MULT, SLEEP_FOOD_DRAIN_MULT,
-    SIT_FOOD_DRAIN_MULT,
+    OLD_AGE_FOOD_DRAIN_MULT, OLD_AGE_THRESHOLD, SICK_FOOD_DRAIN_MULT, SIT_FOOD_DRAIN_MULT,
+    SLEEP_FOOD_DRAIN_MULT,
 };
 
 /// Bundle of drain factors for `?DRAIN` text.
@@ -87,21 +87,9 @@ pub fn estimate_food_drain(
         } else {
             1.0
         },
-        sleep_mult: if sleeping {
-            SLEEP_FOOD_DRAIN_MULT
-        } else {
-            1.0
-        },
-        sick_mult: if sick {
-            SICK_FOOD_DRAIN_MULT
-        } else {
-            1.0
-        },
-        sit_mult: if sitting {
-            SIT_FOOD_DRAIN_MULT
-        } else {
-            1.0
-        },
+        sleep_mult: if sleeping { SLEEP_FOOD_DRAIN_MULT } else { 1.0 },
+        sick_mult: if sick { SICK_FOOD_DRAIN_MULT } else { 1.0 },
+        sit_mult: if sitting { SIT_FOOD_DRAIN_MULT } else { 1.0 },
         bleed,
         fire,
         snow,

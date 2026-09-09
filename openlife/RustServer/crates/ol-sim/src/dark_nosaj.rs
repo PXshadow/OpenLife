@@ -42,7 +42,10 @@ pub fn note_monument_feedback(fb: MonumentFeedback) {
 
 /// Take and clear pending monument feedback.
 pub fn take_monument_feedback() -> Option<MonumentFeedback> {
-    LAST_MONUMENT_FEEDBACK.lock().ok().and_then(|mut g| g.take())
+    LAST_MONUMENT_FEEDBACK
+        .lock()
+        .ok()
+        .and_then(|mut g| g.take())
 }
 
 /// Planned player mutations after monument USE (pure).
@@ -137,11 +140,7 @@ fn plan_dark_nosaj(dark_nosaj: f32, praised_jinbali: bool) -> MonumentUsePlan {
         MonumentUsePlan {
             say: "All hail dark nosaj",
             curse: Some((1, Some(CURSE_DARK_MINION_WORD))),
-            dark_nosaj: if already {
-                dark_nosaj
-            } else {
-                1.0
-            },
+            dark_nosaj: if already { dark_nosaj } else { 1.0 },
             praised_jinbali: false,
             yum_delta: if already { 0.0 } else { -100.0 },
             lost_combat_delta: if already { 0.0 } else { 100.0 },
@@ -206,10 +205,7 @@ mod tests {
         assert_eq!(p.yum_delta, 90.0);
         assert_eq!(p.lost_combat_delta, -90.0);
         assert!(p.lost_combat_floor_zero);
-        assert_eq!(
-            apply_lost_combat_delta(50.0, -90.0, true),
-            0.0
-        );
+        assert_eq!(apply_lost_combat_delta(50.0, -90.0, true), 0.0);
         assert_eq!(apply_lost_combat_delta(120.0, -90.0, true), 30.0);
     }
 
@@ -262,10 +258,7 @@ mod tests {
             format_cursed_message_word(7, 1, Some("DARK_MINION")),
             "CU\n7 1 DARK_MINION\n#"
         );
-        assert_eq!(
-            format_cursed_message_word(7, 0, Some("_")),
-            "CU\n7 0 _\n#"
-        );
+        assert_eq!(format_cursed_message_word(7, 0, Some("_")), "CU\n7 0 _\n#");
         assert_eq!(format_cursed_message_word(7, 1, None), "CU\n7 1\n#");
     }
 

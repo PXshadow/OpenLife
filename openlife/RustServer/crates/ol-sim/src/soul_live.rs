@@ -11,7 +11,7 @@ use crate::{Player, SimState};
 
 use super::{
     get_external_intro, get_soul_text, home_option, is_angry_or_terrified,
-    is_super_cold_for_person, is_super_hot_for_person, parent_display_name, person_looks_female,
+    is_super_cold_for_person_ex, is_super_hot_for_person_ex, parent_display_name,
     sticky_profession_pair, InteractionType,
 };
 
@@ -32,12 +32,7 @@ impl SimState {
     // AI-SOUL-WIRE
     pub fn soul_view_for(&self, p_id: i32) -> Option<super::SoulView> {
         let p = self.player_by_p_id(p_id)?;
-        let (name_obj, desc_obj) = self
-            .content
-            .get(p.display_object_id)
-            .map(|d| (d.name.as_str(), d.description.as_str()))
-            .unwrap_or(("", ""));
-        let is_female = person_looks_female(p.display_object_id, name_obj, desc_obj);
+        let is_female = crate::player_is_female(self, p);
 
         let lineage = self.social.lineages.get(&p_id);
         let mother_display = lineage
@@ -45,18 +40,18 @@ impl SimState {
             .and_then(|mid| self.player_by_p_id(mid))
             .map(|m| parent_display_name(&m.first_name, &m.family_name))
             .or_else(|| {
-                lineage.and_then(|n| n.mother_id).and_then(|mid| {
-                    self.social.lineages.get(&mid).map(|ln| ln.name.clone())
-                })
+                lineage
+                    .and_then(|n| n.mother_id)
+                    .and_then(|mid| self.social.lineages.get(&mid).map(|ln| ln.name.clone()))
             });
         let father_display = lineage
             .and_then(|n| n.father_id)
             .and_then(|fid| self.player_by_p_id(fid))
             .map(|f| parent_display_name(&f.first_name, &f.family_name))
             .or_else(|| {
-                lineage.and_then(|n| n.father_id).and_then(|fid| {
-                    self.social.lineages.get(&fid).map(|ln| ln.name.clone())
-                })
+                lineage
+                    .and_then(|n| n.father_id)
+                    .and_then(|fid| self.social.lineages.get(&fid).map(|ln| ln.name.clone()))
             });
 
         // Haxe: player.partner.name (first name only)
@@ -81,10 +76,7 @@ impl SimState {
         let tile_temperature =
             get_tile_temperature(&self.world_map_time, p.x, p.y).unwrap_or(p.last_temperature);
 
-        let farm_assigned = p
-            .farm_profession
-            .assigned_profession
-            .map(|j| j.as_str());
+        let farm_assigned = p.farm_profession.assigned_profession.map(|j| j.as_str());
         let farm_last = p.farm_profession.last_profession.map(|j| j.as_str());
         let (assigned, last) = sticky_profession_pair(
             p.smith_profession.is_assigned_smith,
@@ -125,8 +117,18 @@ impl SimState {
             food_store_max: p.food_max,
             is_wounded,
             // Haxe isSuperHot/isSuperCold with person-color thresholds
-            is_super_hot: is_super_hot_for_person(p.heat, person_color),
-            is_super_cold: is_super_cold_for_person(p.heat, person_color),
+            is_super_hot: is_super_hot_for_person_ex(
+                p.heat,
+                person_color,
+                self.gameplay.temperature_impact_below,
+                self.gameplay.temperature_impact_color_factor,
+            ),
+            is_super_cold: is_super_cold_for_person_ex(
+                p.heat,
+                person_color,
+                self.gameplay.temperature_impact_below,
+                self.gameplay.temperature_impact_color_factor,
+            ),
             heat: p.heat,
             tile_temperature,
             home: home_option(p.home_x, p.home_y),
@@ -182,14 +184,8 @@ impl SimState {
         let Some(p) = self.player_by_p_id_mut(owner_p_id) else {
             return false;
         };
-        p.soul.add_interaction(
-            other_p_id,
-            other_name,
-            other_family,
-            ty,
-            value,
-            max,
-        );
+        p.soul
+            .add_interaction(other_p_id, other_name, other_family, ty, value, max);
         true
     }
 
@@ -208,14 +204,8 @@ impl SimState {
         let Some(p) = self.player_by_p_id_mut(owner_p_id) else {
             return false;
         };
-        p.soul.add_chat_entry(
-            from_p_id,
-            from_name,
-            from_family,
-            message,
-            reply,
-            max,
-        );
+        p.soul
+            .add_chat_entry(from_p_id, from_name, from_family, message, reply, max);
         true
     }
 }
@@ -342,6 +332,13 @@ mod tests {
         }
         let soul = state.player_soul_text(p_id).unwrap();
         assert!(soul.contains("You are very hot."), "{soul}");
+        state.gameplay.temperature_impact_below = 1.0;
+        state.gameplay.temperature_impact_color_factor = 0.0;
+        let soul2 = state.player_soul_text(p_id).unwrap();
+        assert!(
+            !soul2.contains("You are very hot."),
+            "live below=1.0 tooHot=1.0 should not fire at 0.85: {soul2}"
+        );
     }
 
     #[test]
@@ -349,14 +346,62 @@ mod tests {
         let mut state = SimState::with_default_empty(test_content());
         let p_id = spawn_player(&mut state, 1, "ai@cap");
         state.ai_memory_max_entries = 2;
-        assert!(state.add_player_soul_interaction(p_id, 1, "A", "X", InteractionType::ServedFood, 1.0));
-        assert!(state.add_player_soul_interaction(p_id, 2, "B", "X", InteractionType::ServedFood, 1.0));
-        assert!(state.add_player_soul_interaction(p_id, 3, "C", "X", InteractionType::ServedFood, 1.0));
+        assert!(state.add_player_soul_interaction(
+            p_id,
+            1,
+            "A",
+            "X",
+            InteractionType::ServedFood,
+            1.0
+        ));
+        assert!(state.add_player_soul_interaction(
+            p_id,
+            2,
+            "B",
+            "X",
+            InteractionType::ServedFood,
+            1.0
+        ));
+        assert!(state.add_player_soul_interaction(
+            p_id,
+            3,
+            "C",
+            "X",
+            InteractionType::ServedFood,
+            1.0
+        ));
         let p = state.player_by_p_id(p_id).unwrap();
         assert_eq!(p.soul.memory_len(), 2);
         assert!(p.soul.interaction(1).is_none());
         assert!(p.soul.interaction(2).is_some());
         assert!(p.soul.interaction(3).is_some());
+    }
+
+    #[test]
+    fn apply_live_settings_soul_memory_caps() {
+        let mut state = SimState::with_default_empty(test_content());
+        assert_eq!(
+            state.ai_memory_max_entries,
+            crate::player_soul::AI_MEMORY_MAX_ENTRIES
+        );
+        assert_eq!(
+            state.ai_chat_memory_max_entries,
+            crate::player_soul::AI_CHAT_MEMORY_MAX_ENTRIES
+        );
+        let live = ol_config::ServerConfig {
+            ai_memory_max_entries: 2,
+            ai_chat_memory_max_entries: 1,
+            ..Default::default()
+        }
+        .live_settings();
+        crate::settings_live::apply_live_settings(&mut state, &live);
+        assert_eq!(state.ai_memory_max_entries, 2);
+        assert_eq!(state.ai_chat_memory_max_entries, 1);
+        let p_id = spawn_player(&mut state, 1, "soul@live");
+        assert!(state.add_player_soul_chat_entry(p_id, 2, "A", "X", "hi", "yo"));
+        assert!(state.add_player_soul_chat_entry(p_id, 3, "B", "X", "hey", "ok"));
+        let p = state.player_by_p_id(p_id).unwrap();
+        assert_eq!(p.soul.chat_len(), 1);
     }
 
     #[test]

@@ -46,7 +46,11 @@ impl Default for SetHeldWoundCtx {
 
 /// True when a wound should become `hiddenWound` (light wound).
 /// // Haxe: GlobalPlayerInstance.setHeldObject L3801–3815
-pub fn is_light_wound(is_wound: bool, has_hidden: bool, auto_decay_new_target: Option<i32>) -> bool {
+pub fn is_light_wound(
+    is_wound: bool,
+    has_hidden: bool,
+    auto_decay_new_target: Option<i32>,
+) -> bool {
     is_wound && !has_hidden && auto_decay_new_target == Some(0)
 }
 
@@ -238,14 +242,12 @@ impl PlayerBodyObjects {
 
 /// Write body objects (Haxe WritePlayers subset for ObjectHelpers).
 // Haxe: GlobalPlayerInstance.WritePlayers (held / hiddenWound / fever / clothing)
-pub fn write_player_body_objects(w: &mut impl Write, body: &PlayerBodyObjects) -> Result<(), String> {
+pub fn write_player_body_objects(
+    w: &mut impl Write,
+    body: &PlayerBodyObjects,
+) -> Result<(), String> {
     // held: empty → write id-0 helper (not null); Haxe always writes heldObject
-    write_nested_helper(
-        w,
-        body.held
-            .as_ref()
-            .unwrap_or(&NestedHelper::empty()),
-    )?;
+    write_nested_helper(w, body.held.as_ref().unwrap_or(&NestedHelper::empty()))?;
     write_optional_nested_helper(w, body.hidden_wound.as_ref())?;
     write_optional_nested_helper(w, body.fever.as_ref())?;
     w.write_all(&body.yellowfever_count.to_le_bytes())
@@ -256,9 +258,7 @@ pub fn write_player_body_objects(w: &mut impl Write, body: &PlayerBodyObjects) -
     for i in 0..CLOTHING_SLOT_COUNT {
         write_nested_helper(
             w,
-            body.clothing[i]
-                .as_ref()
-                .unwrap_or(&NestedHelper::empty()),
+            body.clothing[i].as_ref().unwrap_or(&NestedHelper::empty()),
         )?;
     }
     Ok(())
@@ -300,6 +300,8 @@ pub fn read_player_body_objects(r: &mut impl Read) -> Result<PlayerBodyObjects, 
 }
 
 /// Sync flat hat/chest/shoes ids from clothing_helpers[0..3].
+/// Worn backpack nest (slot 5) also copies contained ids into [`Player::backpack`].
+// BACKPACK-NEST-DUAL
 pub fn sync_flat_clothing_ids(player: &mut Player) {
     player.hat = player.clothing_helpers[0]
         .as_ref()
@@ -316,6 +318,7 @@ pub fn sync_flat_clothing_ids(player: &mut Player) {
         .map(|h| h.id)
         .filter(|&id| id > 0)
         .unwrap_or(0);
+    player.sync_flat_backpack_from_nest();
 }
 
 /// Transfer nest when taking a map container item into hands.
@@ -325,7 +328,10 @@ pub fn player_take_container_into_hands(player: &mut Player, taken: NestedHelper
 
 /// Equip held into clothing index (0..5), swap previous into hands.
 // Haxe: doSwitchCloths clothingObjects[slot] swap
-pub fn switch_clothing_index(player: &mut Player, index: usize) -> Result<(i32, i32), &'static str> {
+pub fn switch_clothing_index(
+    player: &mut Player,
+    index: usize,
+) -> Result<(i32, i32), &'static str> {
     if index >= CLOTHING_SLOT_COUNT {
         return Err("BAD");
     }
@@ -347,7 +353,8 @@ pub fn switch_clothing_index(player: &mut Player, index: usize) -> Result<(i32, 
     let held_id = held.id;
     let prev = player.clothing_helpers[index].take();
     let prev_id = prev.as_ref().map(|h| h.id).unwrap_or(0);
-    player.clothing_helpers[index] = Some(held);
+    // BACKPACK-NEST-DUAL: slot 5 syncs nest contained → flat backpack.
+    player.set_clothing_index_helper(index, Some(held));
     match prev {
         Some(p) if !p.is_empty() => player.set_held_helper(p),
         _ => player.clear_held(),
@@ -449,6 +456,7 @@ mod tests {
         assert_eq!(p2.held_uses, 2);
         assert_eq!(p2.chest, 697);
         assert_eq!(p2.clothing_helpers[5].as_ref().unwrap().contained[0].id, 10);
+        assert_eq!(p2.backpack, vec![10]);
     }
 
     #[test]
@@ -567,7 +575,9 @@ mod tests {
 
     #[test]
     fn is_yellow_fever_id() {
-        assert!(is_yellow_fever(Some(&NestedHelper::id_only(YELLOW_FEVER_ID))));
+        assert!(is_yellow_fever(Some(&NestedHelper::id_only(
+            YELLOW_FEVER_ID
+        ))));
         assert!(!is_yellow_fever(Some(&NestedHelper::id_only(1))));
         assert!(!is_yellow_fever(None));
     }

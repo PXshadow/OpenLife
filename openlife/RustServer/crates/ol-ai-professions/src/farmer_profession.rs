@@ -784,6 +784,427 @@ pub fn do_watering_on(
     }
 }
 
+/// Default dry-plant ids for Haxe `ServerSettings.WateringTargetsIds` (farm subset).
+///
+/// Order matches the historical commented list in `doWateringHelper` and the
+/// WaterBringer job body (carrots first).
+// Haxe: AiBase.doWateringHelper ~3558 / commented ~3583–3593
+pub const WATERING_TARGET_DRY_IDS: &[i32] = &[
+    DRY_PLANTED_CARROTS,   // 396
+    DRY_PLANTED_WHEAT,     // 228
+    DRY_PLANTED_CORN,      // 1109
+    DRY_PLANTED_TOMATO,    // 2829
+    DRY_PLANTED_CUCUMBER,  // 4225
+    DRY_DOMESTIC_BUSH,     // 393
+    DRY_PLANTED_GOOSEBERRY,// 216
+    DRY_PLANTED_ONIONS,    // 2851
+    DRY_PLANTED_BEANS,     // 1161
+    DRY_PLANTED_POTATO,    // 1145
+];
+
+/// Dry ids excluding carrots (Haxe `WateringTargetsIdsWithoutCarrots` when carrot stock high).
+// Haxe: AiBase.doWateringHelper ~3567–3569
+pub fn watering_targets_without_carrots() -> impl Iterator<Item = i32> {
+    WATERING_TARGET_DRY_IDS
+        .iter()
+        .copied()
+        .filter(|&id| id != DRY_PLANTED_CARROTS)
+}
+
+/// Haxe `doWatering` / `doWateringHelper` player-relative search distance.
+// Haxe: AiBase.doWatering ~3548 `distance = 30`
+pub const WATERING_SEARCH_DIST: i32 = 30;
+
+/// Assigned/last WATERBRINGER: Haxe `doWatering(100)`.
+// Haxe: AiBase.doTimeStuffHelper ~736
+pub const WATER_BRINGER_ASSIGNED_MAX_PEOPLE: i32 = 100;
+/// Low-priority `doWatering(1)` (after assigned WATERBRINGER / mid farm watering).
+// Haxe: AiBase.doTimeStuffHelper ~779; doCriticalStuff ~6103
+pub const WATER_BRINGER_LOW_MAX_PEOPLE: i32 = 1;
+/// Ladder label for low `doWatering(1)` (not assigned WATERBRINGER).
+// Haxe: doWatering(1) ~779 before jobByAge
+pub const DO_WATERING_LOW_RUNG: &str = "DO_WATERING_LOW";
+
+/// Haxe `doWatering(maxPeople)` peer-cap: assigned/last **100**, else **1**.
+// Haxe: assigned ~736 doWatering(100); low ~779 doWatering(1)
+pub fn watering_max_for_dispatch(is_assigned: bool, rung_label: &str) -> i32 {
+    if is_assigned || rung_label == "ASSIGNED_JOB" {
+        WATER_BRINGER_ASSIGNED_MAX_PEOPLE
+    } else {
+        WATER_BRINGER_LOW_MAX_PEOPLE
+    }
+}
+
+/// Assigned/last CARROTFARMER: Haxe `doCarrotFarming(100)`.
+// Haxe: AiBase.doTimeStuffHelper ~707
+pub const CARROT_FARMER_ASSIGNED_MAX_PEOPLE: i32 = 100;
+/// Low-priority `doCarrotFarming(1)` (after low `doWatering(1)`).
+// Haxe: AiBase.doTimeStuffHelper ~780; doCriticalStuff ~6117
+pub const CARROT_FARMER_LOW_MAX_PEOPLE: i32 = 1;
+/// Ladder label for low `doCarrotFarming(1)` (not assigned CARROTFARMER).
+// Haxe: doCarrotFarming(1) ~780 before jobByAge
+pub const DO_CARROT_LOW_RUNG: &str = "DO_CARROT_LOW";
+
+/// Haxe `doCarrotFarming(maxProfession)` peer-cap: assigned/last **100**, else **1**.
+// Haxe: assigned ~707 doCarrotFarming(100); low ~780 doCarrotFarming(1)
+pub fn carrot_max_for_dispatch(is_assigned: bool, rung_label: &str) -> i32 {
+    if is_assigned || rung_label == "ASSIGNED_JOB" {
+        CARROT_FARMER_ASSIGNED_MAX_PEOPLE
+    } else {
+        CARROT_FARMER_LOW_MAX_PEOPLE
+    }
+}
+
+/// Bowl of Green Beans 1175.
+// Haxe: AiBase.fillBeanBowlIfNeeded beanBowlId green
+pub const BOWL_OF_GREEN_BEANS: i32 = 1175;
+/// Bowl of Dry Beans 1176 (`countCurrentObjects` green-fill gate).
+// Haxe: AiBase.fillBeanBowlIfNeeded countDryBeans [1176, 1172]
+pub const BOWL_OF_DRY_BEANS: i32 = 1176;
+/// Haxe `GetClosestObjectById` default searchDistance for plant/bowl.
+// Haxe: AiHelper.GetClosestObjectById searchDistance = 40
+pub const FILL_BEAN_BOWL_SEARCH_DIST: i32 = 40;
+/// Ladder label for low `fillBeanBowlIfNeeded()` (green beans, after doCarrotFarming(1)).
+// Haxe: AiBase.doTimeStuffHelper ~786
+pub const FILL_BEAN_BOWL_RUNG: &str = "FILL_BEAN_BOWL";
+/// Ladder label for mid `fillBeanBowlIfNeeded(*, true)` onlyFillHeld (before isHandlingFire).
+// Haxe: AiBase.doTimeStuffHelper ~628–629
+pub const FILL_BEAN_HELD_RUNG: &str = "FILL_BEAN_HELD";
+/// Mid `shortCraft(0, 400, 10)` searchDistance (pull carrot row).
+// Haxe: AiBase.doTimeStuffHelper ~609
+pub const PULL_CARROT_ROW_SEARCH_DIST: i32 = 10;
+/// Ladder label for mid `shortCraft(0, 400, 10)` (before fillBerryBowlIfNeeded(true)).
+// Haxe: AiBase.doTimeStuffHelper ~609
+pub const PULL_CARROT_ROW_RUNG: &str = "PULL_CARROT_ROW";
+
+/// Haxe `numberOfUses >= objectData.numUses`. Missing `numUses` (0) is not full.
+fn bean_bowl_is_full(uses: i32, num_uses: i32) -> bool {
+    num_uses > 0 && uses >= num_uses
+}
+
+/// Bowl / plant parent ids for `fillBeanBowlIfNeeded(greenBeans)`.
+// Haxe: AiBase.fillBeanBowlIfNeeded ~4145–4148
+pub fn bean_bowl_ids(green_beans: bool) -> (i32, i32) {
+    if green_beans {
+        (BOWL_OF_GREEN_BEANS, GREEN_BEAN_PLANTS)
+    } else {
+        (BOWL_OF_DRY_BEANS, DRY_BEAN_PLANTS)
+    }
+}
+
+/// Sensors for Haxe `fillBeanBowlIfNeeded`.
+// Haxe: AiBase.fillBeanBowlIfNeeded ~4143
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FillBeanBowlInput {
+    pub held_id: i32,
+    pub held_uses: i32,
+    pub held_num_uses: i32,
+    pub green_beans: bool,
+    pub only_fill_held: bool,
+    pub count_dry_beans: i32,
+    pub plant_xy: Option<(i32, i32)>,
+    pub bowl_xy: Option<(i32, i32)>,
+    pub bowl_uses: i32,
+    pub bowl_num_uses: i32,
+    pub is_best_bowl_filler: bool,
+}
+
+/// Haxe `fillBeanBowlIfNeeded` action.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FillBeanBowlAction {
+    None,
+    /// `useHeldObjOnTarget(closeBeans)`.
+    UseHeldOnPlant { x: i32, y: i32, plant_id: i32 },
+    /// `dropTarget = closeBowl` pickup (empty-hand USE).
+    PickupBowl { x: i32, y: i32, bowl_id: i32 },
+    /// `GetItem(235)` clay bowl (no craft).
+    GetClayBowl,
+}
+
+impl FillBeanBowlAction {
+    pub fn is_some(self) -> bool {
+        !matches!(self, Self::None)
+    }
+}
+
+/// Haxe `fillBeanBowlIfNeeded(greenBeans, onlyFillHeld)`.
+///
+/// Low `fillBeanBowlIfNeeded()` is green + `onlyFillHeld=false`. Mid calls use
+/// `onlyFillHeld=true` (held path only).
+// Haxe: AiBase.fillBeanBowlIfNeeded ~4143
+pub fn fill_bean_bowl_if_needed(inp: &FillBeanBowlInput) -> FillBeanBowlAction {
+    let (bowl_id, plant_id) = bean_bowl_ids(inp.green_beans);
+    if inp.held_id == bowl_id && bean_bowl_is_full(inp.held_uses, inp.held_num_uses) {
+        return FillBeanBowlAction::None;
+    }
+    if inp.green_beans && inp.count_dry_beans < 1 {
+        return FillBeanBowlAction::None;
+    }
+    let Some((px, py)) = inp.plant_xy else {
+        return FillBeanBowlAction::None;
+    };
+    let holding_bowl = inp.held_id == bowl_id;
+    let holding_clay_no_close_bowl = inp.held_id == CLAY_BOWL && inp.bowl_xy.is_none();
+    if holding_bowl || holding_clay_no_close_bowl {
+        return FillBeanBowlAction::UseHeldOnPlant {
+            x: px,
+            y: py,
+            plant_id,
+        };
+    }
+    if inp.only_fill_held {
+        return FillBeanBowlAction::None;
+    }
+    if let Some((bx, by)) = inp.bowl_xy {
+        if bean_bowl_is_full(inp.bowl_uses, inp.bowl_num_uses) {
+            return FillBeanBowlAction::None;
+        }
+        if !inp.is_best_bowl_filler {
+            return FillBeanBowlAction::None;
+        }
+        return FillBeanBowlAction::PickupBowl {
+            x: bx,
+            y: by,
+            bowl_id,
+        };
+    }
+    if !inp.is_best_bowl_filler {
+        return FillBeanBowlAction::None;
+    }
+    FillBeanBowlAction::GetClayBowl
+}
+
+/// Mid `fillBeanBowlIfNeeded(true, true)` then `(false, true)` — held path only.
+// Haxe: AiBase.doTimeStuffHelper ~628–629
+pub fn fill_bean_bowl_held_if_needed(
+    green: &FillBeanBowlInput,
+    dry: &FillBeanBowlInput,
+) -> FillBeanBowlAction {
+    let a = fill_bean_bowl_if_needed(green);
+    if a.is_some() {
+        return a;
+    }
+    fill_bean_bowl_if_needed(dry)
+}
+
+/// Sensors for mid `shortCraft(0, 400, 10)`.
+// Haxe: AiBase.doTimeStuffHelper ~609; shortCraftOnTarget ~2684
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PullCarrotRowInput {
+    pub held_id: i32,
+    pub food_store: f32,
+    pub transition_hungry_cost: f32,
+    pub has_carrot_seeds: bool,
+    /// Closest carrot row 400 `(x, y, numberOfUses)`.
+    pub row: Option<(i32, i32, i32)>,
+}
+
+/// Mid pull-carrot-row action.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PullCarrotRowAction {
+    None,
+    /// Empty hands: `useHeldObjOnTarget` carrot row 400.
+    UseEmptyOnRow { x: i32, y: i32 },
+    /// Holding something: Haxe `actorId == 0` → `dropHeldObject`.
+    DropHeld,
+}
+
+impl PullCarrotRowAction {
+    pub fn is_some(self) -> bool {
+        !matches!(self, Self::None)
+    }
+}
+
+/// Haxe mid `shortCraft(0, 400, 10)` — empty-hand USE on closest carrot row r=10.
+///
+/// No `hasOrBecomeProfession`. Missing row, hungry cost, and carrot-seed guard
+/// (`!hasCarrotSeeds && uses < 4`) are no-ops. Hands full → drop first.
+// Haxe: AiBase.doTimeStuffHelper ~609; shortCraftOnTarget ~2710 / ~2724 / ~2732
+pub fn pull_carrot_row_if_needed(inp: &PullCarrotRowInput) -> PullCarrotRowAction {
+    let Some((x, y, uses)) = inp.row else {
+        return PullCarrotRowAction::None;
+    };
+    let sc = ShortCraftInput {
+        held_id: inp.held_id,
+        actor_id: 0,
+        target_id: CARROT_ROW,
+        target_uses: uses,
+        target_biome: None,
+        has_carrot_seeds: inp.has_carrot_seeds,
+        new_actor_count: 0,
+        max_new_actor: -1,
+        try_weak_skewer_first: false,
+        craft_actor_if_needed: true,
+        food_store: inp.food_store,
+        transition_hungry_cost: inp.transition_hungry_cost,
+    };
+    match short_craft_apply(sc) {
+        ShortCraftApply::UseOnTarget { .. } => PullCarrotRowAction::UseEmptyOnRow { x, y },
+        ShortCraftApply::DropHeld => PullCarrotRowAction::DropHeld,
+        _ => PullCarrotRowAction::None,
+    }
+}
+
+/// Squared Euclidean (Haxe `CalculateQuadDistanceHelper`).
+fn watering_quad_dist(ax: i32, ay: i32, bx: i32, by: i32) -> i64 {
+    let dx = (ax - bx) as i64;
+    let dy = (ay - by) as i64;
+    dx * dx + dy * dy
+}
+
+/// Closest watering-target parent id near the player.
+///
+/// Search box is Chebyshev ≤ `distance` (Haxe for-loop around player). Among
+/// matches, pick smallest squared Euclidean (Haxe quad). Equal quad keeps the
+/// first object (tests use unique distances).
+// Haxe: AiHelper.GetClosestObjectToPositionByIds ~3558
+pub fn closest_watering_parent_id(
+    player_x: i32,
+    player_y: i32,
+    objects: &[FarmMapObj],
+    ids: &[i32],
+    distance: i32,
+) -> Option<i32> {
+    if ids.is_empty() {
+        return None;
+    }
+    let dist = distance.max(0);
+    let mut best: Option<(i64, i32)> = None;
+    for o in objects {
+        if o.parent_id == 0 || !ids.contains(&o.parent_id) {
+            continue;
+        }
+        let cheb = (o.x - player_x).abs().max((o.y - player_y).abs());
+        if cheb > dist {
+            continue;
+        }
+        let q = watering_quad_dist(player_x, player_y, o.x, o.y);
+        match best {
+            None => best = Some((q, o.parent_id)),
+            Some((bq, _)) if q < bq => best = Some((q, o.parent_id)),
+            _ => {}
+        }
+    }
+    best.map(|(_, id)| id)
+}
+
+/// Haxe `doWateringHelper` — first dry target with a watering action (list order).
+///
+/// Mid basic/shepherd `doWatering(3)` keeps this list-order walk. Assigned
+/// WATERBRINGER uses [`do_watering_helper_closest`].
+///
+/// When carrot stock (`CARROT` 402) ≥ 20, skip dry planted carrots (Haxe).
+// Haxe: AiBase.doWateringHelper commented list ~3583; mid farm reuse
+pub fn do_watering_helper(counts: &FarmCounts, task: &mut FarmTaskState) -> FarmAction {
+    let skip_carrots = counts.get(CARROT) >= 20;
+    if skip_carrots {
+        for dry in watering_targets_without_carrots() {
+            let a = do_watering_on(dry, 1, counts.get(dry), default_wet_from_bowl(dry), task);
+            if a.is_some() {
+                return a;
+            }
+        }
+    } else {
+        for &dry in WATERING_TARGET_DRY_IDS {
+            let a = do_watering_on(dry, 1, counts.get(dry), default_wet_from_bowl(dry), task);
+            if a.is_some() {
+                return a;
+            }
+        }
+    }
+    FarmAction::None
+}
+
+/// Haxe `doWatering(maxPeople)` — WaterBringer peer-cap then [`do_watering_helper`].
+// Haxe: AiBase.doWatering ~3548
+pub fn do_watering(
+    runtime: &mut FarmProfessionRuntime,
+    counts: &FarmCounts,
+    task: &mut FarmTaskState,
+    max_people: i32,
+    peer_count_with_last: f32,
+    was_idle: f32,
+) -> FarmAction {
+    if !has_or_become_profession(
+        runtime,
+        FarmProfession::WaterBringer,
+        max_people,
+        peer_count_with_last,
+        was_idle,
+    ) {
+        return FarmAction::None;
+    }
+    do_watering_helper(counts, task)
+}
+
+/// Haxe `doWateringHelper` — closest dry target then `doWateringOn`.
+///
+/// When carrot stock ≥ 20 and the closest target is dry planted carrots, retarget
+/// without carrots. On a found target whose watering step fails, zero WATERBRINGER
+/// weight (Haxe `this.profession['WATERBRINGER']=0`). No target → None, weight unchanged.
+// Haxe: AiBase.doWateringHelper ~3553
+pub fn do_watering_helper_closest(
+    runtime: &mut FarmProfessionRuntime,
+    player_x: i32,
+    player_y: i32,
+    objects: &[FarmMapObj],
+    counts: &FarmCounts,
+    task: &mut FarmTaskState,
+    distance: i32,
+) -> FarmAction {
+    let mut target = closest_watering_parent_id(
+        player_x,
+        player_y,
+        objects,
+        WATERING_TARGET_DRY_IDS,
+        distance,
+    );
+    if target.is_none() {
+        return FarmAction::None;
+    }
+    if target == Some(DRY_PLANTED_CARROTS) && counts.get(CARROT) >= 20 {
+        let skip: Vec<i32> = watering_targets_without_carrots().collect();
+        target = closest_watering_parent_id(player_x, player_y, objects, &skip, distance);
+    }
+    let Some(dry) = target else {
+        return FarmAction::None;
+    };
+    let a = do_watering_on(dry, 1, counts.get(dry), default_wet_from_bowl(dry), task);
+    if a.is_some() {
+        return a;
+    }
+    runtime.weights.insert(FarmProfession::WaterBringer, 0.0);
+    FarmAction::None
+}
+
+/// Assigned WATERBRINGER `doWatering(maxPeople)` with closest-target helper.
+// Haxe: AiBase.doWatering ~3548 then doWateringHelper
+pub fn do_watering_closest(
+    runtime: &mut FarmProfessionRuntime,
+    player_x: i32,
+    player_y: i32,
+    objects: &[FarmMapObj],
+    counts: &FarmCounts,
+    task: &mut FarmTaskState,
+    max_people: i32,
+    peer_count_with_last: f32,
+    was_idle: f32,
+    distance: i32,
+) -> FarmAction {
+    if !has_or_become_profession(
+        runtime,
+        FarmProfession::WaterBringer,
+        max_people,
+        peer_count_with_last,
+        was_idle,
+    ) {
+        return FarmAction::None;
+    }
+    do_watering_helper_closest(
+        runtime, player_x, player_y, objects, counts, task, distance,
+    )
+}
+
 // â”€â”€ Plant hysteresis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Haxe `doPlant(min, max, toPlantId, toCountIds)` â€” shared `CornPlanter` taskState.
@@ -1654,17 +2075,39 @@ pub const BASIC_FARM_DEFAULT_MAX_PROFESSION: i32 = 2;
 /// Assigned BASICFARMER job: Haxe `doBasicFarming(100)`.
 // Haxe: AiBase.doTimeStuffHelper ~710
 pub const BASIC_FARM_ASSIGNED_MAX_PROFESSION: i32 = 100;
+/// Haxe `doWatering(3)` mid basic farming (before wheat 6/12 + sheep).
+// Haxe: AiBase.doBasicFarming ~2395
+pub const BASIC_FARM_MID_WATER_MAX_PEOPLE: i32 = 3;
 
 /// Haxe `doBasicFarming` sequence (first applicable action).
 ///
 /// `max_profession` is the Haxe `maxProfession` peer-cap for `hasOrBecomeProfession`
 /// and late `doAdvancedFarming(maxProfession)` (carried on [`FarmAction::DeferSheepHerding`]).
+///
+/// Mid `doWatering(3)` uses [`do_watering_helper`] only (no WaterBringer peer-cap).
+/// Prefer [`do_basic_farming_ex`] on live scan so peer-cap applies.
 // Haxe: AiBase.doBasicFarming ~2343
 pub fn do_basic_farming(
     counts: &FarmCounts,
     task: &mut FarmTaskState,
     has_profession: bool,
     max_profession: i32,
+) -> FarmAction {
+    do_basic_farming_ex(counts, task, has_profession, max_profession, None)
+}
+
+/// Like [`do_basic_farming`], with optional WaterBringer peer context for mid `doWatering(3)`.
+///
+/// When `watering` is `Some((rt, peer_count, was_idle))`, mid watering uses
+/// [`do_watering`] (`hasOrBecomeProfession('WATERBRINGER', 3)`). When `None`,
+/// mid watering uses [`do_watering_helper`] only (pure probes / legacy callers).
+// Haxe: AiBase.doBasicFarming ~2395 doWatering(3)
+pub fn do_basic_farming_ex(
+    counts: &FarmCounts,
+    task: &mut FarmTaskState,
+    has_profession: bool,
+    max_profession: i32,
+    watering: Option<(&mut FarmProfessionRuntime, f32, f32)>,
 ) -> FarmAction {
     if !has_profession {
         return FarmAction::None;
@@ -1803,7 +2246,22 @@ pub fn do_basic_farming(
     if c.is_some() {
         return c;
     }
-    // doWatering(3) deferred to WATERBRINGER body
+    // Haxe: if (doWatering(3)) return true;
+    // Haxe: AiBase.doBasicFarming ~2395
+    let w = match watering {
+        Some((rt, peer, idle)) => do_watering(
+            rt,
+            counts,
+            task,
+            BASIC_FARM_MID_WATER_MAX_PEOPLE,
+            peer,
+            idle,
+        ),
+        None => do_watering_helper(counts, task),
+    };
+    if w.is_some() {
+        return w;
+    }
     let p = do_plant_wheat(6, 12, counts, task);
     if p.is_some() {
         return p;
@@ -1813,9 +2271,9 @@ pub fn do_basic_farming(
         return p;
     }
     // Haxe: this.profession['BASICFARMER'] = 1; isSheepHerding(1);
-    // then late plants â†’ doAdvancedFarming(maxProfession).
+    // then late plants → doAdvancedFarming(maxProfession).
     // AI-SHEPHERD-MID mid call site; max_profession carried for advanced expand.
-    // Haxe: AiBase.doBasicFarming ~2400â€“2413
+    // Haxe: AiBase.doBasicFarming ~2400–2413
     FarmAction::DeferSheepHerding { max_profession }
 }
 
@@ -1944,21 +2402,9 @@ pub fn decide_farm_job(
             do_advanced_farming_step(plant, counts, task, bowls)
         }
         FarmProfession::WaterBringer => {
-            // Prefer first dry crop with count > 0
-            for dry in [
-                DRY_PLANTED_CARROTS,
-                DRY_PLANTED_WHEAT,
-                DRY_PLANTED_CORN,
-                DRY_PLANTED_GOOSEBERRY,
-                DRY_PLANTED_BEANS,
-                DRY_PLANTED_POTATO,
-            ] {
-                let a = do_watering_on(dry, 1, counts.get(dry), default_wet_from_bowl(dry), task);
-                if a.is_some() {
-                    return a;
-                }
-            }
-            FarmAction::None
+            // List-order fallback (mid farm). Assigned live uses closest helper.
+            // Haxe: assigned WATERBRINGER → doWatering(100) GetClosest r=30
+            do_watering_helper(counts, task)
         }
     }
 }
@@ -2184,6 +2630,369 @@ mod tests {
     }
 
     #[test]
+    fn do_watering_helper_prefers_dry_carrots_then_skips_when_stock_high() {
+        let mut task = FarmTaskState::default();
+        let dry = counts_with(&[(DRY_PLANTED_CARROTS, 2), (DRY_PLANTED_WHEAT, 2)]);
+        assert_eq!(
+            do_watering_helper(&dry, &mut task),
+            FarmAction::CraftItem {
+                object_id: WET_PLANTED_CARROTS
+            }
+        );
+        let mut task2 = FarmTaskState::default();
+        let high_carrot = counts_with(&[
+            (CARROT, 20),
+            (DRY_PLANTED_CARROTS, 5),
+            (DRY_PLANTED_WHEAT, 2),
+        ]);
+        assert_eq!(
+            do_watering_helper(&high_carrot, &mut task2),
+            FarmAction::CraftItem {
+                object_id: WET_PLANTED_WHEAT
+            }
+        );
+    }
+
+    #[test]
+    fn do_watering_respects_waterbringer_peer_cap() {
+        let mut rt = FarmProfessionRuntime::default();
+        let mut task = FarmTaskState::default();
+        let counts = counts_with(&[(DRY_PLANTED_WHEAT, 2)]);
+        assert_eq!(
+            do_watering(&mut rt, &counts, &mut task, 3, 3.0, 0.0),
+            FarmAction::None
+        );
+        assert_ne!(rt.last_profession, Some(FarmProfession::WaterBringer));
+        let mut rt2 = FarmProfessionRuntime::default();
+        let mut task2 = FarmTaskState::default();
+        assert_eq!(
+            do_watering(&mut rt2, &counts, &mut task2, 3, 0.0, 0.0),
+            FarmAction::CraftItem {
+                object_id: WET_PLANTED_WHEAT
+            }
+        );
+        assert_eq!(rt2.last_profession, Some(FarmProfession::WaterBringer));
+    }
+
+    #[test]
+    fn closest_watering_parent_id_prefers_near_wheat_over_far_carrots() {
+        let objs = [
+            FarmMapObj::simple(DRY_PLANTED_CARROTS, 10, 0),
+            FarmMapObj::simple(DRY_PLANTED_WHEAT, 1, 0),
+        ];
+        assert_eq!(
+            closest_watering_parent_id(0, 0, &objs, WATERING_TARGET_DRY_IDS, WATERING_SEARCH_DIST),
+            Some(DRY_PLANTED_WHEAT)
+        );
+        assert_eq!(
+            closest_watering_parent_id(0, 0, &objs, WATERING_TARGET_DRY_IDS, 0),
+            None
+        );
+    }
+
+    #[test]
+    fn do_watering_helper_closest_waters_near_wheat_not_list_order_carrots() {
+        let mut rt = FarmProfessionRuntime::default();
+        let mut task = FarmTaskState::default();
+        let counts = counts_with(&[(DRY_PLANTED_CARROTS, 2), (DRY_PLANTED_WHEAT, 2)]);
+        let objs = [
+            FarmMapObj::simple(DRY_PLANTED_CARROTS, 10, 0),
+            FarmMapObj::simple(DRY_PLANTED_WHEAT, 1, 0),
+        ];
+        assert_eq!(
+            do_watering_helper_closest(
+                &mut rt,
+                0,
+                0,
+                &objs,
+                &counts,
+                &mut task,
+                WATERING_SEARCH_DIST,
+            ),
+            FarmAction::CraftItem {
+                object_id: WET_PLANTED_WHEAT
+            }
+        );
+        assert_ne!(
+            rt.weights.get(&FarmProfession::WaterBringer).copied(),
+            Some(0.0)
+        );
+    }
+
+    #[test]
+    fn do_watering_helper_closest_skips_carrots_when_stock_high() {
+        let mut rt = FarmProfessionRuntime::default();
+        let mut task = FarmTaskState::default();
+        let counts = counts_with(&[
+            (CARROT, 20),
+            (DRY_PLANTED_CARROTS, 5),
+            (DRY_PLANTED_WHEAT, 2),
+        ]);
+        // Closest is carrots; stock ≥20 retargets to wheat.
+        let objs = [
+            FarmMapObj::simple(DRY_PLANTED_CARROTS, 1, 0),
+            FarmMapObj::simple(DRY_PLANTED_WHEAT, 8, 0),
+        ];
+        assert_eq!(
+            do_watering_helper_closest(
+                &mut rt,
+                0,
+                0,
+                &objs,
+                &counts,
+                &mut task,
+                WATERING_SEARCH_DIST,
+            ),
+            FarmAction::CraftItem {
+                object_id: WET_PLANTED_WHEAT
+            }
+        );
+    }
+
+    #[test]
+    fn do_watering_helper_closest_zeros_weight_when_target_watering_fails() {
+        let mut rt = FarmProfessionRuntime::default();
+        rt.weights.insert(FarmProfession::WaterBringer, 1.0);
+        let mut task = FarmTaskState::default();
+        // Closest wheat is on the map, but home counts have none → doWateringOn fails.
+        let counts = FarmCounts::default();
+        let objs = [FarmMapObj::simple(DRY_PLANTED_WHEAT, 2, 0)];
+        assert_eq!(
+            do_watering_helper_closest(
+                &mut rt,
+                0,
+                0,
+                &objs,
+                &counts,
+                &mut task,
+                WATERING_SEARCH_DIST,
+            ),
+            FarmAction::None
+        );
+        assert_eq!(rt.weights.get(&FarmProfession::WaterBringer), Some(&0.0));
+    }
+
+    #[test]
+    fn do_watering_helper_closest_no_target_leaves_weight() {
+        let mut rt = FarmProfessionRuntime::default();
+        rt.weights.insert(FarmProfession::WaterBringer, 1.0);
+        let mut task = FarmTaskState::default();
+        let counts = counts_with(&[(DRY_PLANTED_WHEAT, 2)]);
+        assert_eq!(
+            do_watering_helper_closest(
+                &mut rt,
+                0,
+                0,
+                &[],
+                &counts,
+                &mut task,
+                WATERING_SEARCH_DIST,
+            ),
+            FarmAction::None
+        );
+        assert_eq!(rt.weights.get(&FarmProfession::WaterBringer), Some(&1.0));
+    }
+
+    #[test]
+    fn do_watering_closest_assigned_max_ignores_small_peer_count() {
+        let mut rt = FarmProfessionRuntime::default();
+        let mut task = FarmTaskState::default();
+        let counts = counts_with(&[(DRY_PLANTED_WHEAT, 2)]);
+        let objs = [FarmMapObj::simple(DRY_PLANTED_WHEAT, 1, 0)];
+        assert_eq!(
+            do_watering_closest(
+                &mut rt,
+                0,
+                0,
+                &objs,
+                &counts,
+                &mut task,
+                WATER_BRINGER_ASSIGNED_MAX_PEOPLE,
+                3.0,
+                0.0,
+                WATERING_SEARCH_DIST,
+            ),
+            FarmAction::CraftItem {
+                object_id: WET_PLANTED_WHEAT
+            }
+        );
+        assert_eq!(rt.last_profession, Some(FarmProfession::WaterBringer));
+        // Default max=2 with 3 peers still refuses (mid path).
+        let mut rt2 = FarmProfessionRuntime::default();
+        let mut task2 = FarmTaskState::default();
+        assert_eq!(
+            do_watering_closest(
+                &mut rt2,
+                0,
+                0,
+                &objs,
+                &counts,
+                &mut task2,
+                2,
+                3.0,
+                0.0,
+                WATERING_SEARCH_DIST,
+            ),
+            FarmAction::None
+        );
+        assert_ne!(rt2.last_profession, Some(FarmProfession::WaterBringer));
+    }
+
+    #[test]
+    fn do_watering_closest_low_max_refuses_one_peer() {
+        let mut rt = FarmProfessionRuntime::default();
+        let mut task = FarmTaskState::default();
+        let counts = counts_with(&[(DRY_PLANTED_WHEAT, 2)]);
+        let objs = [FarmMapObj::simple(DRY_PLANTED_WHEAT, 1, 0)];
+        assert_eq!(
+            watering_max_for_dispatch(false, DO_WATERING_LOW_RUNG),
+            WATER_BRINGER_LOW_MAX_PEOPLE
+        );
+        assert_eq!(
+            watering_max_for_dispatch(true, "ASSIGNED_JOB"),
+            WATER_BRINGER_ASSIGNED_MAX_PEOPLE
+        );
+        assert_eq!(
+            do_watering_closest(
+                &mut rt,
+                0,
+                0,
+                &objs,
+                &counts,
+                &mut task,
+                WATER_BRINGER_LOW_MAX_PEOPLE,
+                1.0,
+                0.0,
+                WATERING_SEARCH_DIST,
+            ),
+            FarmAction::None
+        );
+        assert_ne!(rt.last_profession, Some(FarmProfession::WaterBringer));
+        let mut rt2 = FarmProfessionRuntime::default();
+        let mut task2 = FarmTaskState::default();
+        assert_eq!(
+            do_watering_closest(
+                &mut rt2,
+                0,
+                0,
+                &objs,
+                &counts,
+                &mut task2,
+                WATER_BRINGER_LOW_MAX_PEOPLE,
+                0.0,
+                0.0,
+                WATERING_SEARCH_DIST,
+            ),
+            FarmAction::CraftItem {
+                object_id: WET_PLANTED_WHEAT
+            }
+        );
+        assert_eq!(rt2.last_profession, Some(FarmProfession::WaterBringer));
+    }
+
+    #[test]
+    fn do_watering_helper_is_invoked_after_compost_in_basic_farm_order() {
+        // Spot-check: helper returns wet wheat for dry wheat targets.
+        let mut task = FarmTaskState::default();
+        let c = counts_with(&[(DRY_PLANTED_WHEAT, 2)]);
+        assert_eq!(
+            do_watering_helper(&c, &mut task),
+            FarmAction::CraftItem {
+                object_id: WET_PLANTED_WHEAT
+            }
+        );
+        // Full basic body past early plant caps: mid watering before sheep.
+        let mut task2 = FarmTaskState {
+            wheat_harvester: 1.0,
+            corn_planter: 0.0,
+            harvest_corn: 0.0,
+            composting: 0.0,
+            ..Default::default()
+        };
+        let past = counts_with(&[
+            (DRIED_CORN, 5),
+            (THRESHED_WHEAT, 4),
+            (DRY_PLANTED_WHEAT, 2),
+            (WET_PLANTED_WHEAT, 15),
+            (WET_PLANTED_CORN, 10),
+            (TOMATO_PLANT, 5),
+            (WET_PLANTED_BEANS, 4),
+            (WET_PLANTED_CUCUMBER, 4),
+            (WET_PLANTED_PEPPER, 5),
+            (COMPOSTING_PILE, 2),
+            (COMPOSTED_SOIL, 2),
+        ]);
+        assert_eq!(
+            do_basic_farming(&past, &mut task2, true, BASIC_FARM_DEFAULT_MAX_PROFESSION),
+            FarmAction::CraftItem {
+                object_id: WET_PLANTED_WHEAT
+            }
+        );
+    }
+
+    #[test]
+    fn do_basic_farming_ex_mid_watering_peer_cap_falls_through_to_sheep() {
+        // Past early plant caps + dry wheat for mid water; peer-cap full → sheep defer.
+        let mut task = FarmTaskState {
+            composting: 0.0,
+            corn_planter: 0.0,
+            harvest_corn: 0.0,
+            wheat_harvester: 1.0,
+            ..Default::default()
+        };
+        let c = counts_with(&[
+            (DRIED_CORN, 5),
+            (THRESHED_WHEAT, 4),
+            (DRY_PLANTED_WHEAT, 2),
+            (WET_PLANTED_WHEAT, 15),
+            (WET_PLANTED_CORN, 10),
+            (TOMATO_PLANT, 5),
+            (WET_PLANTED_BEANS, 4),
+            (WET_PLANTED_CUCUMBER, 4),
+            (WET_PLANTED_PEPPER, 5),
+            (COMPOSTING_PILE, 2),
+            (COMPOSTED_SOIL, 2),
+        ]);
+        let mut rt = FarmProfessionRuntime::default();
+        assert_eq!(
+            do_basic_farming_ex(
+                &c,
+                &mut task,
+                true,
+                BASIC_FARM_DEFAULT_MAX_PROFESSION,
+                Some((&mut rt, 3.0, 0.0)),
+            ),
+            FarmAction::DeferSheepHerding {
+                max_profession: 2
+            }
+        );
+        assert_ne!(rt.last_profession, Some(FarmProfession::WaterBringer));
+        // Peer room → mid watering succeeds and sticky WaterBringer.
+        let mut task2 = FarmTaskState {
+            composting: 0.0,
+            corn_planter: 0.0,
+            harvest_corn: 0.0,
+            wheat_harvester: 1.0,
+            ..Default::default()
+        };
+        let mut rt2 = FarmProfessionRuntime::default();
+        assert_eq!(
+            do_basic_farming_ex(
+                &c,
+                &mut task2,
+                true,
+                BASIC_FARM_DEFAULT_MAX_PROFESSION,
+                Some((&mut rt2, 0.0, 0.0)),
+            ),
+            FarmAction::CraftItem {
+                object_id: WET_PLANTED_WHEAT
+            }
+        );
+        assert_eq!(rt2.last_profession, Some(FarmProfession::WaterBringer));
+        assert_eq!(BASIC_FARM_MID_WATER_MAX_PEOPLE, 3);
+    }
+
+    #[test]
     fn do_harvest_wheat_chain_224_225_226_stops_at_max() {
         let mut task = FarmTaskState::default();
         // Ripe â†’ craft 224
@@ -2358,16 +3167,19 @@ mod tests {
     }
 
     /// Farm counts past early/mid plant+harvest+compost so doBasicFarming hits mid sheep.
+    ///
+    /// Uses **wet** planted caps (not dry) so mid `doWatering(3)` has no targets and
+    /// falls through to `DeferSheepHerding` (Haxe waters dry before sheep).
     fn counts_past_basic_mid_wave() -> FarmCounts {
         counts_with(&[
             (DRIED_CORN, 5),
             (THRESHED_WHEAT, 4),
-            (DRY_PLANTED_CORN, 10),
-            (DRY_PLANTED_WHEAT, 15),
-            (DRY_PLANTED_TOMATO, 5),
-            (DRY_PLANTED_BEANS, 4),
-            (DRY_PLANTED_CUCUMBER, 4),
-            (DRY_PLANTED_PEPPER, 5),
+            (WET_PLANTED_CORN, 10),
+            (WET_PLANTED_WHEAT, 15),
+            (TOMATO_PLANT, 5),
+            (WET_PLANTED_BEANS, 4),
+            (WET_PLANTED_CUCUMBER, 4),
+            (WET_PLANTED_PEPPER, 5),
             (COMPOSTING_PILE, 2),
             (COMPOSTED_SOIL, 2),
         ])
@@ -2390,7 +3202,7 @@ mod tests {
                 max_profession: 2
             }
         );
-        // Assigned BASICFARMER: doBasicFarming(100) â†’ advanced max 100
+        // Assigned BASICFARMER: doBasicFarming(100) → advanced max 100
         assert_eq!(
             do_basic_farming(&c, &mut task, true, BASIC_FARM_ASSIGNED_MAX_PROFESSION),
             FarmAction::DeferSheepHerding {
@@ -2510,6 +3322,189 @@ mod tests {
             }
         );
         assert_eq!(make_sharpie_food(&FarmCounts::default()), FarmAction::None);
+    }
+
+    #[test]
+    fn do_carrot_farming_low_max_refuses_one_peer() {
+        let mut rt = FarmProfessionRuntime::default();
+        assert!(!has_or_become_profession(
+            &mut rt,
+            FarmProfession::CarrotFarmer,
+            CARROT_FARMER_LOW_MAX_PEOPLE,
+            1.0,
+            0.0,
+        ));
+        assert_ne!(rt.last_profession, Some(FarmProfession::CarrotFarmer));
+        let mut rt2 = FarmProfessionRuntime::default();
+        assert!(has_or_become_profession(
+            &mut rt2,
+            FarmProfession::CarrotFarmer,
+            CARROT_FARMER_LOW_MAX_PEOPLE,
+            0.0,
+            0.0,
+        ));
+        assert_eq!(rt2.last_profession, Some(FarmProfession::CarrotFarmer));
+        let mut task = FarmTaskState::default();
+        let c = counts_with(&[(CARROT_ROW, 1)]);
+        assert_eq!(
+            do_carrot_farming(&c, &mut task, true),
+            FarmAction::ShortCraft {
+                actor: 0,
+                target: CARROT_ROW
+            }
+        );
+    }
+
+    fn fill_bean_green_base() -> FillBeanBowlInput {
+        FillBeanBowlInput {
+            held_id: 0,
+            held_uses: 1,
+            held_num_uses: 5,
+            green_beans: true,
+            only_fill_held: false,
+            count_dry_beans: 1,
+            plant_xy: Some((2, 0)),
+            bowl_xy: None,
+            bowl_uses: 1,
+            bowl_num_uses: 5,
+            is_best_bowl_filler: true,
+        }
+    }
+
+    #[test]
+    fn fill_bean_bowl_if_needed_green_held_and_pickup() {
+        // Haxe fillBeanBowlIfNeeded(): green + plant + dry stock.
+        let mut inp = fill_bean_green_base();
+        inp.held_id = BOWL_OF_GREEN_BEANS;
+        assert_eq!(
+            fill_bean_bowl_if_needed(&inp),
+            FillBeanBowlAction::UseHeldOnPlant {
+                x: 2,
+                y: 0,
+                plant_id: GREEN_BEAN_PLANTS
+            }
+        );
+        inp.held_uses = 5;
+        assert_eq!(fill_bean_bowl_if_needed(&inp), FillBeanBowlAction::None);
+        inp.held_id = 0;
+        inp.held_uses = 1;
+        inp.count_dry_beans = 0;
+        assert_eq!(fill_bean_bowl_if_needed(&inp), FillBeanBowlAction::None);
+        inp.count_dry_beans = 1;
+        inp.plant_xy = None;
+        assert_eq!(fill_bean_bowl_if_needed(&inp), FillBeanBowlAction::None);
+        inp.plant_xy = Some((2, 0));
+        assert_eq!(
+            fill_bean_bowl_if_needed(&inp),
+            FillBeanBowlAction::GetClayBowl
+        );
+        inp.bowl_xy = Some((1, 0));
+        assert_eq!(
+            fill_bean_bowl_if_needed(&inp),
+            FillBeanBowlAction::PickupBowl {
+                x: 1,
+                y: 0,
+                bowl_id: BOWL_OF_GREEN_BEANS
+            }
+        );
+        inp.bowl_uses = 5;
+        assert_eq!(fill_bean_bowl_if_needed(&inp), FillBeanBowlAction::None);
+        inp.bowl_uses = 1;
+        inp.is_best_bowl_filler = false;
+        assert_eq!(fill_bean_bowl_if_needed(&inp), FillBeanBowlAction::None);
+        inp.bowl_xy = None;
+        assert_eq!(fill_bean_bowl_if_needed(&inp), FillBeanBowlAction::None);
+        inp.held_id = CLAY_BOWL;
+        inp.is_best_bowl_filler = true;
+        assert_eq!(
+            fill_bean_bowl_if_needed(&inp),
+            FillBeanBowlAction::UseHeldOnPlant {
+                x: 2,
+                y: 0,
+                plant_id: GREEN_BEAN_PLANTS
+            }
+        );
+        inp.held_id = 0;
+        inp.only_fill_held = true;
+        assert_eq!(fill_bean_bowl_if_needed(&inp), FillBeanBowlAction::None);
+        assert_eq!(FILL_BEAN_BOWL_RUNG, "FILL_BEAN_BOWL");
+        assert_eq!(FILL_BEAN_HELD_RUNG, "FILL_BEAN_HELD");
+        assert_eq!(
+            bean_bowl_ids(true),
+            (BOWL_OF_GREEN_BEANS, GREEN_BEAN_PLANTS)
+        );
+        assert_eq!(bean_bowl_ids(false), (BOWL_OF_DRY_BEANS, DRY_BEAN_PLANTS));
+    }
+
+    #[test]
+    fn fill_bean_bowl_held_if_needed_green_then_dry() {
+        // Haxe fillBeanBowlIfNeeded(true, true) then (false, true): held only.
+        let mut green = fill_bean_green_base();
+        green.only_fill_held = true;
+        green.held_id = BOWL_OF_GREEN_BEANS;
+        let mut dry = fill_bean_green_base();
+        dry.green_beans = false;
+        dry.only_fill_held = true;
+        dry.held_id = BOWL_OF_DRY_BEANS;
+        dry.plant_xy = Some((3, 0));
+        assert_eq!(
+            fill_bean_bowl_held_if_needed(&green, &dry),
+            FillBeanBowlAction::UseHeldOnPlant {
+                x: 2,
+                y: 0,
+                plant_id: GREEN_BEAN_PLANTS
+            }
+        );
+        green.held_id = 0;
+        assert_eq!(
+            fill_bean_bowl_held_if_needed(&green, &dry),
+            FillBeanBowlAction::UseHeldOnPlant {
+                x: 3,
+                y: 0,
+                plant_id: DRY_BEAN_PLANTS
+            }
+        );
+        dry.held_id = 0;
+        dry.bowl_xy = Some((1, 0));
+        assert_eq!(
+            fill_bean_bowl_held_if_needed(&green, &dry),
+            FillBeanBowlAction::None
+        );
+    }
+
+    #[test]
+    fn pull_carrot_row_if_needed_empty_hand_drop_and_seed_guard() {
+        // Haxe shortCraft(0, 400, 10): empty USE; seed guard uses<4; held → drop.
+        let mut inp = PullCarrotRowInput {
+            held_id: 0,
+            food_store: 20.0,
+            transition_hungry_cost: 0.0,
+            has_carrot_seeds: true,
+            row: Some((2, 0, 1)),
+        };
+        assert_eq!(
+            pull_carrot_row_if_needed(&inp),
+            PullCarrotRowAction::UseEmptyOnRow { x: 2, y: 0 }
+        );
+        inp.row = None;
+        assert_eq!(pull_carrot_row_if_needed(&inp), PullCarrotRowAction::None);
+        inp.row = Some((2, 0, 1));
+        inp.has_carrot_seeds = false;
+        assert_eq!(pull_carrot_row_if_needed(&inp), PullCarrotRowAction::None);
+        inp.row = Some((2, 0, 4));
+        assert_eq!(
+            pull_carrot_row_if_needed(&inp),
+            PullCarrotRowAction::UseEmptyOnRow { x: 2, y: 0 }
+        );
+        inp.has_carrot_seeds = true;
+        inp.row = Some((2, 0, 1));
+        inp.held_id = CARROT;
+        assert_eq!(pull_carrot_row_if_needed(&inp), PullCarrotRowAction::DropHeld);
+        inp.food_store = 0.0;
+        inp.transition_hungry_cost = 5.0;
+        assert_eq!(pull_carrot_row_if_needed(&inp), PullCarrotRowAction::None);
+        assert_eq!(PULL_CARROT_ROW_RUNG, "PULL_CARROT_ROW");
+        assert_eq!(PULL_CARROT_ROW_SEARCH_DIST, 10);
     }
 
     #[test]
@@ -2860,7 +3855,17 @@ mod tests {
         );
         assert!(farm_job_rung_label("ASSIGNED_JOB"));
         assert!(farm_job_rung_label("AGE_ROTATED_JOB"));
+        assert!(farm_job_rung_label(DO_WATERING_LOW_RUNG));
+        assert!(farm_job_rung_label(DO_CARROT_LOW_RUNG));
         assert!(!farm_job_rung_label("ESCAPE"));
+        assert_eq!(
+            carrot_max_for_dispatch(false, DO_CARROT_LOW_RUNG),
+            CARROT_FARMER_LOW_MAX_PEOPLE
+        );
+        assert_eq!(
+            carrot_max_for_dispatch(true, "ASSIGNED_JOB"),
+            CARROT_FARMER_ASSIGNED_MAX_PEOPLE
+        );
         assert_eq!(farm_max_people_for_dispatch(true, 2), 100);
         assert_eq!(farm_max_people_for_dispatch(false, 2), 2);
         assert_eq!(

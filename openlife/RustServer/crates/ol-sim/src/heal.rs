@@ -71,7 +71,10 @@ mod tests {
         let mut c = CombatState::default();
         c.apply_wound(1, 1);
         assert_eq!(try_heal(&mut c, 1, false, true), HealResult::Denied);
-        assert_eq!(try_heal(&mut c, 1, false, false), HealResult::Healed { previous: 1 });
+        assert_eq!(
+            try_heal(&mut c, 1, false, false),
+            HealResult::Healed { previous: 1 }
+        );
     }
 
     #[test]

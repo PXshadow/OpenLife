@@ -4,6 +4,7 @@
 //! Haxe `AiBase.isMovingToPlayer` + ordered-follow auto-clear + ally `Goto(speaker)`.
 //! Sticky target is `Player.ai_follow_p_id` (from **AI-LLM-APPLY** / scripted FOLLOW).
 //! When sticky is empty: child-mother `getFollowPlayer` or `AutoFollowPlayer` closest.
+//! **AI-ALLY-UP-HIRE:** Haxe `allyUp` skip when `hiredByPlayer` is set.
 //! Pure decision helpers; live pathfind/start is wired in `lib` + npc.
 
 use crate::ai_goals::priority_ladder::{
@@ -557,6 +558,251 @@ pub fn resolve_auto_follow_acquire_ex(
     )
 }
 
+/// Haxe `allyUp` cadence (`CalculateTimeSinceTicksInSec` < 10).
+// Haxe: AiBase.allyUp timeLastLeaderCheck
+pub const ALLY_UP_COOLDOWN_SECS: f32 = 10.0;
+/// Haxe `player.age < 10`.
+pub const ALLY_UP_MIN_AGE: f32 = 10.0;
+/// Haxe `CalculateDistanceToPlayer` (quad) `> 900`.
+pub const ALLY_UP_MAX_QUAD: i32 = 900;
+
+/// True when Haxe `hiredByPlayer != null` — allyUp must return.
+// Haxe: AiBase.allyUp L8250
+#[inline]
+pub fn should_skip_ally_up_if_hired(hired_boss: i32) -> bool {
+    hired_boss > 0
+}
+
+/// Haxe `countLeadershipPower` (familyPrestige residual 0).
+// Haxe: GPI.countLeadershipPower ~6689
+pub fn leadership_power(prestige: f32, coins: i32, class: i32) -> f32 {
+    let mut power = prestige + coins as f32;
+    // PrestigeClass: Serf=1, Commoner=2, Noble=3 (+ King/Emperor)
+    if class == 3 || class == 6 || class == 7 {
+        power *= 2.0;
+    }
+    if class == 1 {
+        power /= 2.0;
+    }
+    power / 10.0
+}
+
+/// Snapshot of the most powerful player at the same home.
+// Haxe: GPI.GetMostPowerful
+#[derive(Debug, Clone, PartialEq)]
+pub struct AllyUpBest {
+    pub p_id: i32,
+    pub name: String,
+    pub quad_dist: i32,
+    pub pending_new_follower: bool,
+    pub already_ally: bool,
+}
+
+/// Haxe `allyUp` decision: `Some("I FOLLOW Name ")` or None (skip).
+// Haxe: AiBase.allyUp ~8239–8282
+pub fn plan_ally_up(
+    last_leader_check_sim: f32,
+    now_sim: f32,
+    has_home: bool,
+    hired_boss: i32,
+    age: f32,
+    follow_p_id: i32,
+    follow_same_home: bool,
+    follow_close_relative: bool,
+    self_p_id: i32,
+    best: Option<&AllyUpBest>,
+) -> Option<String> {
+    if now_sim - last_leader_check_sim < ALLY_UP_COOLDOWN_SECS && last_leader_check_sim > 0.0 {
+        return None;
+    }
+    if !has_home {
+        return None;
+    }
+    if should_skip_ally_up_if_hired(hired_boss) {
+        return None;
+    }
+    if age < ALLY_UP_MIN_AGE {
+        return None;
+    }
+    if follow_p_id > 0 && follow_same_home {
+        return None;
+    }
+    if follow_p_id > 0 && follow_close_relative {
+        return None;
+    }
+    let best = best?;
+    if best.quad_dist > ALLY_UP_MAX_QUAD {
+        return None;
+    }
+    if best.p_id == self_p_id {
+        return None;
+    }
+    if best.pending_new_follower {
+        return None;
+    }
+    if best.already_ally {
+        return None;
+    }
+    Some(format!("I FOLLOW {} ", best.name))
+}
+
+/// Highest `leadership_power` at `(home_x, home_y)`.
+// Haxe: GetMostPowerful
+pub fn pick_most_powerful_at_home(
+    home_x: i32,
+    home_y: i32,
+    self_p_id: i32,
+    cands: &[(i32, i32, i32, f32, i32, i32, bool)], // p_id, home_x, home_y, prestige, coins, class, deleted
+) -> Option<i32> {
+    let mut best_id = 0i32;
+    let mut best_power = -1.0f32;
+    for &(p_id, hx, hy, prestige, coins, class, deleted) in cands {
+        if deleted || p_id == self_p_id {
+            continue;
+        }
+        if hx != home_x || hy != home_y {
+            continue;
+        }
+        let power = leadership_power(prestige, coins, class);
+        if best_id != 0 && power < best_power {
+            continue;
+        }
+        best_power = power;
+        best_id = p_id;
+    }
+    if best_id == 0 {
+        None
+    } else {
+        Some(best_id)
+    }
+}
+
+/// Haxe `ServerSettings.FoundFamilyNeededPrestige`.
+// Haxe: ServerSettings.FoundFamilyNeededPrestige = 50
+pub const FOUND_FAMILY_NEEDED_PRESTIGE: f32 = 50.0;
+/// Haxe `ServerSettings.FoundFamilyNeededFollowers`.
+pub const FOUND_FAMILY_NEEDED_FOLLOWERS: i32 = 4;
+/// Haxe `ServerSettings.FoundFamilyCost`.
+pub const FOUND_FAMILY_COST: f32 = 10.0;
+/// Haxe `ServerSettings.FoundFamilyBreakAllianceChance`.
+pub const FOUND_FAMILY_BREAK_ALLIANCE_CHANCE: f32 = 0.5;
+/// Haxe `player.say('I FOLLOW ME')` after founding.
+pub const FOUND_FAMILY_FOLLOW_ME_SAY: &str = "I FOLLOW ME";
+
+/// Result of Haxe `AiBase.foundFamily` when all gates pass.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FoundFamilyPlan {
+    pub new_family_name: String,
+    pub iam_say: String,
+    pub follow_me: bool,
+}
+
+/// Haxe `foundFamily` decision (void in Haxe; None = skip).
+// Haxe: AiBase.foundFamily ~8199–8237
+pub fn plan_found_family(
+    _self_p_id: i32,
+    is_family_founder: bool,
+    same_account_as_eve_lineage: bool,
+    follow_p_id: i32,
+    self_color: i32,
+    leader_color: Option<i32>,
+    prestige: f32,
+    same_family_followers: i32,
+    coins: f32,
+    family_name: &str,
+    used_family_names: &[&str],
+    break_roll: f32,
+) -> Option<FoundFamilyPlan> {
+    plan_found_family_ex(
+        _self_p_id,
+        is_family_founder,
+        same_account_as_eve_lineage,
+        follow_p_id,
+        self_color,
+        leader_color,
+        prestige,
+        same_family_followers,
+        coins,
+        family_name,
+        used_family_names,
+        break_roll,
+        FOUND_FAMILY_NEEDED_PRESTIGE,
+        FOUND_FAMILY_COST,
+        FOUND_FAMILY_NEEDED_FOLLOWERS,
+        FOUND_FAMILY_BREAK_ALLIANCE_CHANCE,
+    )
+}
+
+/// Live `FoundFamilyNeededPrestige` / `FoundFamilyCost` (finite `>= 0` else compiled).
+/// Live `FoundFamilyNeededFollowers` (`< 0` else compiled 4) /
+/// `FoundFamilyBreakAllianceChance` (finite `>= 0` else compiled 0.5).
+// Haxe: AiBase.foundFamily ~8199–8237
+pub fn plan_found_family_ex(
+    _self_p_id: i32,
+    is_family_founder: bool,
+    same_account_as_eve_lineage: bool,
+    follow_p_id: i32,
+    self_color: i32,
+    leader_color: Option<i32>,
+    prestige: f32,
+    same_family_followers: i32,
+    coins: f32,
+    family_name: &str,
+    used_family_names: &[&str],
+    break_roll: f32,
+    needed_prestige: f32,
+    found_family_cost: f32,
+    needed_followers: i32,
+    break_alliance_chance: f32,
+) -> Option<FoundFamilyPlan> {
+    if is_family_founder {
+        return None;
+    }
+    if same_account_as_eve_lineage {
+        return None;
+    }
+    if follow_p_id > 0 && leader_color == Some(self_color) {
+        return None;
+    }
+    let needed_prestige = if needed_prestige.is_finite() && needed_prestige >= 0.0 {
+        needed_prestige
+    } else {
+        FOUND_FAMILY_NEEDED_PRESTIGE
+    };
+    if (needed_prestige - prestige).ceil() > 0.0 {
+        return None;
+    }
+    let needed_followers = if needed_followers < 0 {
+        FOUND_FAMILY_NEEDED_FOLLOWERS
+    } else {
+        needed_followers
+    };
+    if needed_followers - same_family_followers > 0 {
+        return None;
+    }
+    let found_family_cost = if found_family_cost.is_finite() && found_family_cost >= 0.0 {
+        found_family_cost
+    } else {
+        FOUND_FAMILY_COST
+    };
+    if (found_family_cost - coins).ceil() > 0.0 {
+        return None;
+    }
+    let new_family_name = crate::naming::get_family_name_from_list(family_name, used_family_names)?;
+    let break_alliance_chance = if break_alliance_chance.is_finite() && break_alliance_chance >= 0.0
+    {
+        break_alliance_chance
+    } else {
+        FOUND_FAMILY_BREAK_ALLIANCE_CHANCE
+    };
+    let follow_me = follow_p_id > 0 && break_roll <= break_alliance_chance;
+    Some(FoundFamilyPlan {
+        iam_say: format!("I AM {new_family_name}"),
+        new_family_name,
+        follow_me,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -588,7 +834,6 @@ mod tests {
         assert_eq!(t3, follow_max_tiles_for_sticky(true));
     }
 
-
     #[test]
     fn ordered_follow_timeout_sets_auto_stop() {
         let sticky = AiFollowSticky {
@@ -616,11 +861,7 @@ mod tests {
         let p2 = plan_follow_sticky_clear(&s, AUTO_STOP_FOLLOW_CLEAR_AGE + 0.1, 400.0);
         assert!(p2.clear_target);
         // timeout + adult age in one plan clears both
-        let p3 = plan_follow_sticky_clear(
-            &sticky,
-            20.0,
-            10.0 + ORDERED_FOLLOW_MAX_SECS + 0.1,
-        );
+        let p3 = plan_follow_sticky_clear(&sticky, 20.0, 10.0 + ORDERED_FOLLOW_MAX_SECS + 0.1);
         assert!(p3.set_auto_stop);
         assert!(p3.clear_target);
     }
@@ -910,9 +1151,7 @@ mod tests {
             },
         ];
         // Adult + AutoFollow on → closest human 11
-        let a = resolve_auto_follow_acquire(
-            0, 15.0, 0, 0, 1, None, false, true, true, &cands,
-        );
+        let a = resolve_auto_follow_acquire(0, 15.0, 0, 0, 1, None, false, true, true, &cands);
         assert_eq!(
             a,
             Some(AutoFollowAcquire {
@@ -921,18 +1160,7 @@ mod tests {
             })
         );
         // Child + mother leadership → mother, no closest needed
-        let a = resolve_auto_follow_acquire(
-            0,
-            1.5,
-            0,
-            0,
-            1,
-            Some(50),
-            false,
-            true,
-            true,
-            &cands,
-        );
+        let a = resolve_auto_follow_acquire(0, 1.5, 0, 0, 1, Some(50), false, true, true, &cands);
         assert_eq!(
             a,
             Some(AutoFollowAcquire {
@@ -954,5 +1182,318 @@ mod tests {
             &cands,
         );
         assert!(a.is_none());
+    }
+
+    #[test]
+    fn ally_up_skips_when_hired() {
+        assert!(should_skip_ally_up_if_hired(7));
+        assert!(!should_skip_ally_up_if_hired(0));
+        let best = AllyUpBest {
+            p_id: 2,
+            name: "BOSS".into(),
+            quad_dist: 4,
+            pending_new_follower: false,
+            already_ally: false,
+        };
+        assert!(plan_ally_up(0.0, 20.0, true, 7, 20.0, 0, false, false, 1, Some(&best)).is_none());
+        assert_eq!(
+            plan_ally_up(0.0, 20.0, true, 0, 20.0, 0, false, false, 1, Some(&best)).as_deref(),
+            Some("I FOLLOW BOSS ")
+        );
+    }
+
+    #[test]
+    fn ally_up_other_gates() {
+        let best = AllyUpBest {
+            p_id: 2,
+            name: "BOSS".into(),
+            quad_dist: 4,
+            pending_new_follower: false,
+            already_ally: false,
+        };
+        assert!(plan_ally_up(15.0, 20.0, true, 0, 20.0, 0, false, false, 1, Some(&best)).is_none()); // cooldown
+        assert!(plan_ally_up(0.0, 20.0, false, 0, 20.0, 0, false, false, 1, Some(&best)).is_none());
+        assert!(plan_ally_up(0.0, 20.0, true, 0, 9.0, 0, false, false, 1, Some(&best)).is_none());
+        assert!(plan_ally_up(0.0, 20.0, true, 0, 20.0, 3, true, false, 1, Some(&best)).is_none());
+        let far = AllyUpBest {
+            quad_dist: 901,
+            ..best.clone()
+        };
+        assert!(plan_ally_up(0.0, 20.0, true, 0, 20.0, 0, false, false, 1, Some(&far)).is_none());
+    }
+
+    #[test]
+    fn pick_most_powerful_prefers_noble_coins() {
+        let cands = [
+            (2, 0, 0, 0.0, 10, 2, false), // commoner 10 coins
+            (3, 0, 0, 0.0, 8, 3, false),  // noble 8 → *2
+            (4, 5, 5, 0.0, 99, 3, false), // other home
+        ];
+        assert_eq!(pick_most_powerful_at_home(0, 0, 1, &cands), Some(3));
+        assert!((leadership_power(0.0, 10, 3) - 2.0).abs() < 1e-5); // 10*2/10
+    }
+
+    fn found_family_ok(
+        follow: i32,
+        color: i32,
+        leader_color: Option<i32>,
+        roll: f32,
+    ) -> Option<FoundFamilyPlan> {
+        plan_found_family(
+            2,
+            false,
+            false,
+            follow,
+            color,
+            leader_color,
+            50.0,
+            4,
+            10.0,
+            "SNOW",
+            &["SNOW"],
+            roll,
+        )
+    }
+
+    #[test]
+    fn plan_found_family_gates_and_success() {
+        assert!(plan_found_family(
+            2,
+            true,
+            false,
+            0,
+            1,
+            None,
+            50.0,
+            4,
+            10.0,
+            "SNOW",
+            &["SNOW"],
+            1.0
+        )
+        .is_none());
+        assert!(plan_found_family(
+            2,
+            false,
+            true,
+            0,
+            1,
+            None,
+            50.0,
+            4,
+            10.0,
+            "SNOW",
+            &["SNOW"],
+            1.0
+        )
+        .is_none());
+        assert!(found_family_ok(7, 1, Some(1), 1.0).is_none());
+        assert!(plan_found_family(
+            2,
+            false,
+            false,
+            0,
+            1,
+            None,
+            49.0,
+            4,
+            10.0,
+            "SNOW",
+            &["SNOW"],
+            1.0
+        )
+        .is_none());
+        assert!(plan_found_family(
+            2,
+            false,
+            false,
+            0,
+            1,
+            None,
+            50.0,
+            3,
+            10.0,
+            "SNOW",
+            &["SNOW"],
+            1.0
+        )
+        .is_none());
+        assert!(plan_found_family(
+            2,
+            false,
+            false,
+            0,
+            1,
+            None,
+            50.0,
+            4,
+            9.0,
+            "SNOW",
+            &["SNOW"],
+            1.0
+        )
+        .is_none());
+        let all: Vec<&str> = crate::naming::FAMILY_NAMES.to_vec();
+        assert!(
+            plan_found_family(2, false, false, 0, 1, None, 50.0, 4, 10.0, "SNOW", &all, 1.0)
+                .is_none(),
+            "GetFamilyNameFromList null"
+        );
+        let p = found_family_ok(0, 1, None, 1.0).expect("gates pass");
+        assert!(p.iam_say.starts_with("I AM "));
+        assert_ne!(p.new_family_name, "SNOW");
+        assert!(!p.follow_me);
+        let p2 = found_family_ok(7, 1, Some(2), 0.0).expect("different color");
+        assert!(p2.follow_me);
+        assert_eq!(p2.iam_say, format!("I AM {}", p2.new_family_name));
+        let p3 = found_family_ok(7, 1, Some(2), 0.6).expect("roll above chance");
+        assert!(!p3.follow_me);
+    }
+
+    #[test]
+    fn plan_found_family_ex_live_prestige_and_cost() {
+        assert!(plan_found_family_ex(
+            2,
+            false,
+            false,
+            0,
+            1,
+            None,
+            50.0,
+            4,
+            10.0,
+            "SNOW",
+            &["SNOW"],
+            1.0,
+            100.0,
+            10.0,
+            FOUND_FAMILY_NEEDED_FOLLOWERS,
+            FOUND_FAMILY_BREAK_ALLIANCE_CHANCE
+        )
+        .is_none());
+        assert!(plan_found_family_ex(
+            2,
+            false,
+            false,
+            0,
+            1,
+            None,
+            50.0,
+            4,
+            10.0,
+            "SNOW",
+            &["SNOW"],
+            1.0,
+            50.0,
+            20.0,
+            FOUND_FAMILY_NEEDED_FOLLOWERS,
+            FOUND_FAMILY_BREAK_ALLIANCE_CHANCE
+        )
+        .is_none());
+        let p = plan_found_family_ex(
+            2,
+            false,
+            false,
+            0,
+            1,
+            None,
+            50.0,
+            4,
+            10.0,
+            "SNOW",
+            &["SNOW"],
+            1.0,
+            50.0,
+            10.0,
+            FOUND_FAMILY_NEEDED_FOLLOWERS,
+            FOUND_FAMILY_BREAK_ALLIANCE_CHANCE,
+        )
+        .expect("compiled success");
+        assert!(p.iam_say.starts_with("I AM "));
+        assert_ne!(p.new_family_name, "SNOW");
+    }
+
+    #[test]
+    fn plan_found_family_ex_live_followers_and_break() {
+        assert!(plan_found_family_ex(
+            2,
+            false,
+            false,
+            0,
+            1,
+            None,
+            50.0,
+            4,
+            10.0,
+            "SNOW",
+            &["SNOW"],
+            1.0,
+            FOUND_FAMILY_NEEDED_PRESTIGE,
+            FOUND_FAMILY_COST,
+            8,
+            FOUND_FAMILY_BREAK_ALLIANCE_CHANCE
+        )
+        .is_none());
+        let no_follow = plan_found_family_ex(
+            2,
+            false,
+            false,
+            7,
+            1,
+            Some(2),
+            50.0,
+            4,
+            10.0,
+            "SNOW",
+            &["SNOW"],
+            0.1,
+            FOUND_FAMILY_NEEDED_PRESTIGE,
+            FOUND_FAMILY_COST,
+            FOUND_FAMILY_NEEDED_FOLLOWERS,
+            0.0,
+        )
+        .expect("chance 0");
+        assert!(!no_follow.follow_me);
+        let yes_follow = plan_found_family_ex(
+            2,
+            false,
+            false,
+            7,
+            1,
+            Some(2),
+            50.0,
+            4,
+            10.0,
+            "SNOW",
+            &["SNOW"],
+            0.1,
+            FOUND_FAMILY_NEEDED_PRESTIGE,
+            FOUND_FAMILY_COST,
+            FOUND_FAMILY_NEEDED_FOLLOWERS,
+            1.0,
+        )
+        .expect("chance 1");
+        assert!(yes_follow.follow_me);
+        let zero_needed = plan_found_family_ex(
+            2,
+            false,
+            false,
+            0,
+            1,
+            None,
+            50.0,
+            0,
+            10.0,
+            "SNOW",
+            &["SNOW"],
+            1.0,
+            FOUND_FAMILY_NEEDED_PRESTIGE,
+            FOUND_FAMILY_COST,
+            0,
+            FOUND_FAMILY_BREAK_ALLIANCE_CHANCE,
+        )
+        .expect("needed_followers=0");
+        assert!(zero_needed.iam_say.starts_with("I AM "));
+        assert!(!zero_needed.follow_me);
     }
 }

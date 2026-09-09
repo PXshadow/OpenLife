@@ -1,7 +1,7 @@
 //! Haxe `ObjectHelper.InitObjectHelpersAfterRead` → sim wire (**NESTED-OLW1-POLISH postload_wire**).
 //!
 //! After OLW + OLA1 load (and when players are present), rewire:
-//! - grave helpers → `AccountRecord.graves` (via `account_soul_token` / `owners_by_account`)
+//! - grave helpers → `AccountRecord.graves` (via numeric `AccountRecord.id` / legacy FNV token)
 //! - owned helpers (`+owned`) → `Player.owning` tile list + prune dead/missing `living_owners`
 //! - deleted owners → Haxe `removeOwner` (strip account tokens too)
 //! - creator lineages → `LineageNode.owns_object = true`
@@ -16,7 +16,7 @@
 //! reload that is not accompanied by a player wipe. When any players are loaded,
 //! missing/deleted ids are pruned exactly like Haxe.
 
-use crate::death_inherit::account_soul_token;
+use crate::death_inherit::{account_id_for_email, account_soul_token};
 use crate::mutation::SpecialKind;
 use crate::SimState;
 use ol_world::{
@@ -25,7 +25,6 @@ use ol_world::{
 };
 use std::collections::HashMap;
 use tracing::info;
-
 
 // CONTAINED-TIMERS-PERSIST pure helpers (NestedHelper slots ↔ runtime map)
 #[path = "contained_timers_persist.rs"]
@@ -81,13 +80,19 @@ pub fn description_is_orig_grave(description: &str) -> bool {
     description.to_ascii_lowercase().contains("origgrave")
 }
 
-/// Build account-soul-token → email keys for grave rewire.
+/// Build account-id / legacy FNV token → email keys for grave rewire.
+///
+/// Numeric [`crate::accounts::AccountRecord::id`] wins; FNV tokens still resolve
+/// graves stamped before OLA2.
 pub fn account_token_index(state: &SimState) -> HashMap<i32, String> {
     let mut map = HashMap::new();
-    for email in state.accounts.by_email.keys() {
+    for (email, rec) in &state.accounts.by_email {
+        if rec.id > 0 {
+            map.insert(rec.id, email.clone());
+        }
         let tok = account_soul_token(email);
         if tok != 0 {
-            map.insert(tok, email.clone());
+            map.entry(tok).or_insert_with(|| email.clone());
         }
     }
     map
@@ -128,18 +133,18 @@ pub fn player_status_for_postload(state: &SimState, p_id: i32) -> LivingOwnerSta
     }
 }
 
-/// Account soul token for a living player id (email → token), if known.
+/// Account owner id for a living player (numeric OLA2 id, else legacy FNV).
 pub fn account_token_for_player(state: &SimState, p_id: i32) -> Option<i32> {
     let email = state
         .players
         .values()
         .find(|p| p.p_id == p_id)
         .map(|p| p.email.as_str())?;
-    let tok = account_soul_token(email);
-    if tok == 0 {
+    let id = account_id_for_email(&state.accounts, email);
+    if id == 0 {
         None
     } else {
-        Some(tok)
+        Some(id)
     }
 }
 
@@ -157,9 +162,7 @@ pub fn apply_grave_account_link(
     if !rec.graves.contains(&tile) {
         rec.graves.push(tile);
     }
-    state
-        .specials
-        .insert(link.tx, link.ty, SpecialKind::Grave);
+    state.specials.insert(link.tx, link.ty, SpecialKind::Grave);
     true
 }
 
@@ -242,12 +245,12 @@ pub fn apply_init_object_helpers_after_read(state: &mut SimState) -> PostloadWir
         .collect();
     let any_players = !status_map.is_empty();
 
-    // p_id → account soul token (for removeOwner on deleted).
+    // p_id → account owner id (for removeOwner on deleted).
     let token_by_pid: HashMap<i32, i32> = state
         .players
         .values()
         .filter_map(|p| {
-            let tok = account_soul_token(&p.email);
+            let tok = account_id_for_email(&state.accounts, &p.email);
             if tok != 0 {
                 Some((p.p_id, tok))
             } else {
@@ -458,28 +461,19 @@ mod tests {
     fn cold_boot_preserves_living_owners_links_graves() {
         let mut state = state_with_grave_content();
         let email = "hero@test.com";
-        state.accounts.ensure(email);
-        let token = account_soul_token(email);
+        let aid = state.accounts.ensure(email).id;
 
         // Owned chest with living owner 7 (no player loaded).
         let mut chest = ComplexObject::new_simple(100);
         chest.owner_id = 7;
         chest.living_owners = vec![7, 8];
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(2, 3, chest);
+        state.world.write().unwrap().set_object_complex(2, 3, chest);
 
-        // Grave stamped with account soul token.
+        // Grave stamped with numeric PlayerAccount.id.
         let mut grave = ComplexObject::new_simple(87);
-        stamp_grave_soul(&mut grave, 42, email);
-        assert!(grave.owners_by_account.contains(&token));
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(5, 6, grave);
+        stamp_grave_soul(&mut grave, 42, aid);
+        assert!(grave.owners_by_account.contains(&aid));
+        state.world.write().unwrap().set_object_complex(5, 6, grave);
 
         let stats = apply_init_object_helpers_after_read(&mut state);
         assert_eq!(stats.helpers_scanned, 2);
@@ -509,28 +503,22 @@ mod tests {
         let mut p2 = Player::new(2, 20, "c@d.e");
         p2.deleted = true;
         state.players.insert(20, p2);
+        let a_id = state.accounts.ensure("a@b.c").id;
+        let c_id = state.accounts.ensure("c@d.e").id;
 
         let mut co = ComplexObject::new_simple(50);
         co.owner_id = 1;
         co.living_owners = vec![1, 2, 9];
-        // Account tokens for owners (soul of each email)
-        co.owners_by_account = vec![
-            account_soul_token("a@b.c"),
-            account_soul_token("c@d.e"),
-        ];
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(1, 1, co);
+        co.owners_by_account = vec![a_id, c_id];
+        state.world.write().unwrap().set_object_complex(1, 1, co);
 
         let stats = apply_init_object_helpers_after_read(&mut state);
         let w = state.world.read().unwrap();
         let h = w.get_helper(1, 1).unwrap();
         assert_eq!(h.living_owners, vec![1]);
         assert_eq!(h.owner_id, 1);
-        // Deleted p_id=2 → removeOwner strips their account token
-        assert_eq!(h.owners_by_account, vec![account_soul_token("a@b.c")]);
+        // Deleted p_id=2 → removeOwner strips their account id
+        assert_eq!(h.owners_by_account, vec![a_id]);
         drop(w);
 
         let p1 = state.players.get(&10).unwrap();
@@ -549,12 +537,9 @@ mod tests {
         let mut grave = ComplexObject::new_simple(87);
         grave.living_owners = vec![1, 99];
         grave.owner_id = 1;
-        stamp_grave_soul(&mut grave, 1, "a@b.c");
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(2, 2, grave);
+        let aid = state.accounts.ensure("a@b.c").id;
+        stamp_grave_soul(&mut grave, 1, aid);
+        state.world.write().unwrap().set_object_complex(2, 2, grave);
 
         let _ = apply_init_object_helpers_after_read(&mut state);
         let w = state.world.read().unwrap();
@@ -572,11 +557,7 @@ mod tests {
         let mut co = ComplexObject::new_simple(33);
         co.owner_id = 1;
         co.living_owners = vec![1, 9];
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(3, 3, co);
+        state.world.write().unwrap().set_object_complex(3, 3, co);
 
         let stats = apply_init_object_helpers_after_read(&mut state);
         let w = state.world.read().unwrap();
@@ -598,11 +579,7 @@ mod tests {
         let mut co = ComplexObject::new_simple(50);
         co.owner_id = 1;
         co.living_owners = vec![1];
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(0, 0, co);
+        state.world.write().unwrap().set_object_complex(0, 0, co);
 
         let stats = apply_init_object_helpers_after_read(&mut state);
         assert!(
@@ -619,11 +596,7 @@ mod tests {
         state.players.insert(30, p);
 
         let co = ComplexObject::with_owner(33, 3);
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(4, 5, co);
+        state.world.write().unwrap().set_object_complex(4, 5, co);
 
         rebuild_player_owning_from_world(&mut state, 3);
         assert_eq!(state.players.get(&30).unwrap().owning, vec![(4, 5)]);
@@ -636,6 +609,8 @@ mod tests {
         let mut state = state_with_grave_content();
         state.accounts = book;
         let idx = account_token_index(&state);
+        let id = state.accounts.get("ada@x.com").unwrap().id;
+        assert_eq!(idx.get(&id).map(|s| s.as_str()), Some("ada@x.com"));
         let tok = account_soul_token("ada@x.com");
         assert_eq!(idx.get(&tok).map(|s| s.as_str()), Some("ada@x.com"));
     }
@@ -644,14 +619,26 @@ mod tests {
     fn rebuild_account_graves_only() {
         let mut state = state_with_grave_content();
         let email = "g@h.i";
-        state.accounts.ensure(email);
+        let aid = state.accounts.ensure(email).id;
         let mut grave = ComplexObject::new_simple(87);
-        stamp_grave_soul(&mut grave, 1, email);
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(8, 9, grave);
+        stamp_grave_soul(&mut grave, 1, aid);
+        state.world.write().unwrap().set_object_complex(8, 9, grave);
+        let n = rebuild_account_graves_from_world(&mut state);
+        assert_eq!(n, 1);
+        assert!(state.accounts.get(email).unwrap().graves.contains(&(8, 9)));
+    }
+
+    /// Pre-OLA2 OLW graves stored FNV email tokens; postload still links them.
+    #[test]
+    fn rebuild_account_graves_legacy_fnv_token() {
+        let mut state = state_with_grave_content();
+        let email = "legacy@grave.com";
+        let _ = state.accounts.ensure(email);
+        let tok = account_soul_token(email);
+        assert!(tok > 0);
+        let mut grave = ComplexObject::new_simple(87);
+        grave.owners_by_account = vec![tok];
+        state.world.write().unwrap().set_object_complex(8, 9, grave);
         let n = rebuild_account_graves_from_world(&mut state);
         assert_eq!(n, 1);
         assert!(state.accounts.get(email).unwrap().graves.contains(&(8, 9)));
@@ -701,6 +688,4 @@ mod tests {
             .expect("re-armed tile");
         assert_eq!(ts, &[(20.0, 40.0)]);
     }
-
-
 }

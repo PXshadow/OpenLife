@@ -14,27 +14,27 @@ pub mod clothing_transitions;
 // Re-export matrix API (root `clothing_transitions` also pub-used from lib).
 #[allow(unused_imports)]
 pub use clothing_transitions::{
-    allow_reset_uses_on_target, apply_drink_self, apply_place_obj_in_clothing, apply_self_clothing,
-    apply_sremv_from_clothing, apply_sremv_from_clothing_with_content, apply_switch_cloths,
-    apply_switch_cloths_on_other, apply_transition_on_clothing, can_put_into_clothing,
+    allow_reset_uses_on_target, apply_drink_self, apply_drink_self_ex, apply_place_obj_in_clothing,
+    apply_self_clothing, apply_self_clothing_after_drink, apply_self_clothing_ex,
+    apply_sremv_from_clothing,
+    apply_sremv_from_clothing_with_content, apply_switch_cloths, apply_switch_cloths_on_other,
+    apply_transition_on_clothing, can_put_into_clothing, can_store_held_in_worn_clothing,
     clothing_slot_from_def, crown_say_line, empty_hand_container_take_index,
-    format_clothing_helper_string, format_clothing_set, get_clothing_slot_index, is_clothing_string,
-    other_player_accepts_cloth, put_into_clothing_nest, refuse_take_permanent_contained,
-    resolve_switch_slot, sremv_resolved_index, switch_clothing_index_full,
-    take_from_clothing_nest, take_from_clothing_nest_checked, try_drink_water_pure,
-    try_transition_on_clothing_pure, try_transition_on_clothing_with_content, ClothingSlotIds,
-    ClothingTransitionIn, ClothingTransitionOut, DrinkWaterIn, DrinkWaterOut, SelfClothingPath,
-    CLOTHING_INDEX_LABELS, EMPTY_BOWL_ID, EMPTY_POUCH_ID, MAX_AGE_CLOTH_OTHERS, MAX_STORED_WATER,
+    format_clothing_helper_string, format_clothing_set, get_clothing_slot_index,
+    is_clothing_string, other_player_accepts_cloth, put_into_clothing_nest,
+    refuse_take_permanent_contained, resolve_switch_slot,
+    sremv_resolved_index, switch_clothing_index_full, take_from_clothing_nest,
+    take_from_clothing_nest_checked, try_drink_water_pure, try_transition_on_clothing_pure,
+    try_transition_on_clothing_with_content, ClothingSlotIds, ClothingTransitionIn,
+    ClothingTransitionOut, DrinkWaterIn, DrinkWaterOut, SelfClothingPath, CLOTHING_INDEX_LABELS,
+    EMPTY_BOWL_ID, EMPTY_POUCH_ID, MAX_AGE_CLOTH_OTHERS, MAX_STORED_WATER,
     TEMP_REDUCTION_PER_DRINK, WATER_BOWL_ID, WATER_POUCH_ID,
 };
 
 use crate::player::{ClothingSlot, Player};
 
 /// Equip held into `slot` (swap previous into hands). Returns equipped id.
-pub fn try_wear_held(
-    player: &mut Player,
-    slot: ClothingSlot,
-) -> Result<i32, &'static str> {
+pub fn try_wear_held(player: &mut Player, slot: ClothingSlot) -> Result<i32, &'static str> {
     player.wear_held(slot).map(|(id, _)| id)
 }
 

@@ -1,4 +1,4 @@
-﻿//! Basic AI NPC scheduler (Haxe `AiBase.RunAi` shape â€” single thread).
+//! Basic AI NPC scheduler (Haxe `AiBase.RunAi` shape â€” single thread).
 //!
 //! Priority: eat if hungry â†’ seek food â†’ **profession ladder scan** (farm/smith/baker/
 //! pottery/shepherd shortCraft USE/DROP) â†’ craft (bottom-up valuation) â†’ explore.
@@ -9,12 +9,13 @@
 use crate::npc_activity::{
     NpcActivityEvent, NpcActivityKind, NpcActivityLog, NpcStuckTracker,
 };
-use ol_config::{gameplay_defaults, LiveSettings};
+use ol_config::{gameplay_defaults, LiveSettings, AI_IGNORED_FLOOR_IDS};
 use ol_content::ContentDb;
 use ol_metrics::{Counters, ScopeTimer};
 use ol_ai::{
-    BestFoodHit, BestFoodQuery, CommandSink, FoodSearch, PlayerWriteInterface,
-    DEFAULT_FOOD_SEARCH_RADIUS,
+    BestFoodHit, BestFoodQuery, CommandSink, DeadlyPlayerCandidate, EscapeThreat, FoodSearch,
+    LiveSensorInput, PlayerWriteInterface, DEFAULT_FOOD_SEARCH_RADIUS, DEADLY_PLAYER_SEARCH_DIST_AI,
+    ESCAPE_DIST, escape_target_xy, fill_live_sensors, get_close_deadly_player,
 };
 use ol_net::NetIntent;
 use ol_main_ai::{plan_hungry_food, ThinkPlan, ThinkSensors};
@@ -22,31 +23,64 @@ use ol_player_helper::{
     pick_best_search_food, to_best_hit, AiFoodSearchFlags, ProcessFoodOpts, SearchFoodCand,
 };
 use ol_sim::{
-    apply_food_goto_fail, apply_path_filters_to_tiles, basic_farmer_weight_from_runtime,
-    collect_deadly_animal_blocked_around, consider_animals_for_goto, evaluate_nearby_crafts,
-    force_drop_at_feet, food_pickup_action_success_reset, full_pile_tiles_from_scan,
+    apply_fire_craft_search_radius_override, apply_food_goto_fail, apply_job_flags_to_live_input,
+    go_home_goal_xy, go_home_move_target, handle_death_after_graves_miss, plan_handle_death,
+    should_handle_death, wipe_jobs_assign_grave_keeper, HandleDeathAction, HANDLE_DEATH_TIME_BUMP,
+    fail_warm_clear_place, get_close_biome, is_super_cold_for_person, is_super_hot_for_person,
+    person_looks_female, plan_handle_temperature, HandleTemperatureAction, HandleTemperatureInput,
+    COOL_BIOMES, GET_CLOSE_BIOME_DIST, HANDLE_TEMP_KINDLING, HANDLE_TEMP_LARGE_FAST_FIRE,
+    HANDLE_TEMP_RELAX_TIME, HANDLE_TEMP_SAY_DRINK, WARM_BIOMES,
+    advance_remove_from_container, stage_remove_item_from_container, RemoveFromContainerAdvance,
+    RemoveFromContainerStaging,
+    apply_path_filters_to_tiles,
+    basic_farmer_weight_from_runtime, blocked_by_ai_with_peer_progress,
+    collect_deadly_animal_blocked_around_for_player,
+    AnimalPathPlayerCtx, BowlFillerPeer, AnimalWorld, DEADLY_ANIMAL_SEARCH_DIST,
+    is_holding_weapon, is_self_best_bowl_filler, is_self_best_fire_keeper_for_obj,
+    is_self_best_grave_keeper_for_obj, FireKeeperPeer, GraveKeeperPeer, pick_grave,
+    consider_animals_for_goto, evaluate_nearby_crafts, force_drop_at_feet,
+    food_pickup_action_success_reset, full_pile_tiles_from_scan, nonempty_container_tiles_from_scan,
     get_or_craft_objs_from_scan, goto_path_outcome, has_bean_seeds_from_scan,
-    has_carrot_seeds_from_scan, is_walkable, is_walkable_with_animals, is_wound_object,
-    ladder_profession_scan_tick, mark_food_path_fail, mark_goto_path_fail, merge_path_reach_maps,
-    next_step, next_step_consider_animals, npc_enqueue_get_or_craft_ex, npc_peer_count_for_kind,
-    path_filters_from_player, peer_home_coords, peer_is_wounded_from_held,
-    pending_food_tile_still_actionable, pile_obj_id_from_content, plan_goto_obj,
-    plan_is_picking_up_food, plan_profession_ladder_steps, quiver_from_clothing_snapshot,
-    resolve_sticky_food, scan_world_radius, self_clothing_raw_payload,
-    settle_pending_food_use_fail, smart_drop_held_from_sensors, AiPathReachMaps,
+    has_carrot_seeds_from_scan, init_water_source_ids_from_content, is_walkable,
+    is_walkable_with_animals, is_wound_object, ladder_profession_scan_tick, mark_food_path_fail,
+    mark_goto_path_fail, merge_path_reach_maps, next_step, next_step_consider_animals_for_player,
+    npc_enqueue_get_or_craft_ex, npc_peer_count_for_kind, npc_peer_counts_by_kind,
+    farm_peer_lasts_from_npc_rows, path_filters_from_player, peer_home_coords,
+    peer_is_wounded_from_held_ex, pending_food_tile_still_actionable, pile_obj_id_from_content,
+    plan_goto_obj, plan_is_picking_up_food, plan_profession_ladder_steps,
+    quiver_from_clothing_snapshot, snapshot_blocked_by_ai_share,
+    commit_fire_place, count_tailor_profession_from_rows, fill_up_quiver_search_radius,
+    has_or_become_tailor, resolve_fire_place,
+    home_cloth_stock_from_world, home_has_loom_from_world, is_fill_up_quiver_plan,
+    plan_clothing_craft_tick, plan_high_priority_clothing, plan_quiver_arrow_precursors,
+    person_color_from_race,
+    quiver_can_add_from_slots, requeue_runtime_task_on_fail,
+    resolve_sticky_food, scan_held_hungry_work_cost, scan_world_radius,
+    select_runtime_sticky_craft_for_tick, self_clothing_raw_payload,
+    settle_pending_food_use_fail, smart_drop_held_from_sensors_ex, AiPathReachMaps,
     BakerProfessionRuntime, BakerTaskState, CraftAiRuntime, CraftLiveExpandOpts, CraftProfession,
-    DropHeldSensorExtras, FarmProfession, FarmProfessionRuntime, FarmTaskState,
-    FireFoodProfessionRuntime, FireKeeperProfessionRuntime, GotoObjPlan, GotoPathOutcome,
+    BlockedByAiShare, DropHeldSensorExtras, EnvView, FarmProfession, FarmProfessionRuntime,
+    FarmTaskState,
+    FireFoodProfessionRuntime, FireKeeperProfessionRuntime, GraveKeeperProfessionRuntime,
+    HunterProfessionRuntime, LumberjackProfessionRuntime, CollectorProfessionRuntime,
+    FoodServerProfessionRuntime,
+    GotoObjPlan, GotoPathOutcome,
     IsPickingupFoodInput, IsPickingupFoodPlan, LastGotoObj, NearbyObj, NpcProfessionPeerRow,
     PlayerSnapshot, PotterProfessionRuntime, PrestigeClass, PriorityRung, ProfessionScanInput,
+    ClothingCraftInput, ClothingCraftPlan, HandlingFireMapObj, HandlingGravesMapObj, ScanTile,
+    StickyCraftTickChoice,
+    GET_CLOSE_FIRE_MAXDIST, HOME_LOOM_RADIUS,
     ProfessionScanKind, ProfessionStickySnapshot, ReverseCraftGraph, ShepherdProfessionRuntime,
     ShortCraftLiveIntent, SmithProfessionRuntime, SteelChiselFamilyTable, StickyFoodTarget,
     BAKER_SCAN_RADIUS, DEFAULT_CRAFT_RADIUS, DEFAULT_PROFESSION_SCAN_RADIUS, DEFAULT_WALK_SPEED,
-    FIRE_FOOD_HOME_RADIUS, GOTO_COLLISION_RAD, HANDLING_FIRE_COUNT_RADIUS, INTERACTION_SEC, MAX_AGE,
+    FIRE, FIRE_FOOD_HOME_RADIUS, GOTO_COLLISION_RAD, GRAVE_SEARCH_RADIUS, HANDLING_FIRE_COUNT_RADIUS,
+    HOT_COALS, HUNTING_SHORTCRAFT_RADIUS, CUTTING_WOOD_SCAN_RADIUS, COLLECTING_SCAN_RADIUS,
+    STARVING_SEARCH_DIST, TAILOR_SCAN_RADIUS,
+    INTERACTION_SEC, MAX_AGE,
     MIN_AGE_TO_EAT, POTTERY_SCAN_RADIUS, SHEPHERD_SHORTCRAFT_RADIUS, SMITH_SCAN_RADIUS,
 };
-use ol_world::World;
-use std::collections::HashMap;
+use ol_world::{World, DESERT, PASSABLE_RIVER};
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -59,6 +93,277 @@ impl CommandSink for NpcWriteTx<'_> {
     fn push(&mut self, intent: NetIntent) -> bool {
         self.0.try_send(intent).is_ok()
     }
+}
+
+/// Haxe `isClose` d=1 (squared Euclidean). Diagonal is not close enough to USE/DROP.
+#[inline]
+fn npc_is_close_action(px: i32, py: i32, tx: i32, ty: i32) -> bool {
+    let dx = px - tx;
+    let dy = py - ty;
+    dx * dx + dy * dy <= 1
+}
+
+fn npc_held_name(content: &ContentDb, held_id: i32) -> String {
+    content
+        .get(held_id)
+        .map(|o| o.name.clone())
+        .unwrap_or_default()
+}
+
+fn npc_holding_weapon(content: &ContentDb, held_id: i32) -> bool {
+    is_holding_weapon(held_id, &npc_held_name(content, held_id))
+}
+
+fn npc_is_wounded(content: &ContentDb, held_id: i32) -> bool {
+    is_wound_object(content, held_id)
+}
+
+/// Haxe CreateCollisionChunk `isAnimalDeadlyForMe` player context.
+// Haxe: AiHelper.CreateCollisionChunkHelper ~1508
+fn npc_animal_path_ctx(content: &ContentDb, p: &PlayerSnapshot) -> AnimalPathPlayerCtx {
+    AnimalPathPlayerCtx {
+        holding_weapon: npc_holding_weapon(content, p.held_id),
+        person_color: content.person_color(p.display_object_id),
+    }
+}
+
+/// Haxe `getBestAiForObjByProfession('BowlFiller', home)` from published views.
+// Haxe: AiBase.makePopcornIfNeeded ~4307
+fn npc_is_best_bowl_filler(
+    self_p: &PlayerSnapshot,
+    player_views: &Arc<RwLock<HashMap<u64, PlayerSnapshot>>>,
+    profession_state: &HashMap<u64, NpcProfessionState>,
+    content: &ContentDb,
+) -> bool {
+    let Ok(views) = player_views.read() else {
+        return true;
+    };
+    let (hx, hy) = peer_home_coords(Some((self_p.home_x, self_p.home_y)), self_p.x, self_p.y);
+    let mut peers = Vec::new();
+    for snap in views.values() {
+        let (ohx, ohy) = peer_home_coords(Some((snap.home_x, snap.home_y)), snap.x, snap.y);
+        let pst = profession_state.get(&snap.conn_id);
+        let has = snap.is_last_baker
+            || pst
+                .map(|s| s.baker_rt.is_last_baker || s.baker_rt.is_assigned_baker)
+                .unwrap_or(false);
+        let dx = (snap.x - hx) as f32;
+        let dy = (snap.y - hy) as f32;
+        peers.push(BowlFillerPeer {
+            p_id: snap.p_id,
+            quad_dist_to_obj: dx * dx + dy * dy,
+            deleted: snap.deleted,
+            age: snap.age,
+            is_wounded: npc_is_wounded(content, snap.held_id),
+            food_store: snap.food,
+            same_home: ohx == hx && ohy == hy,
+            has_bowl_filler: has,
+        });
+    }
+    is_self_best_bowl_filler(self_p.p_id, &peers, MIN_AGE_TO_EAT, MAX_AGE)
+}
+
+/// Haxe `getBestAiForObjByProfession('FIREKEEPER', home|firePlace)` from published views.
+// Haxe: AiBase.isHandlingFire ~1100 / ~1134; profession['FIREKEEPER'] > 0
+fn npc_is_best_fire_keeper(
+    self_p: &PlayerSnapshot,
+    player_views: &Arc<RwLock<HashMap<u64, PlayerSnapshot>>>,
+    profession_state: &HashMap<u64, NpcProfessionState>,
+    content: &ContentDb,
+    obj_x: i32,
+    obj_y: i32,
+) -> bool {
+    let Ok(views) = player_views.read() else {
+        return true;
+    };
+    let (hx, hy) = peer_home_coords(Some((self_p.home_x, self_p.home_y)), self_p.x, self_p.y);
+    let mut peers = Vec::new();
+    for snap in views.values() {
+        let (ohx, ohy) = peer_home_coords(Some((snap.home_x, snap.home_y)), snap.x, snap.y);
+        let pst = profession_state.get(&snap.conn_id);
+        let has = pst
+            .map(|s| s.fire_keeper_rt.weight > 0.0)
+            .unwrap_or(false);
+        let dx = (snap.x - obj_x) as f32;
+        let dy = (snap.y - obj_y) as f32;
+        peers.push(FireKeeperPeer {
+            p_id: snap.p_id,
+            quad_dist_to_obj: dx * dx + dy * dy,
+            deleted: snap.deleted,
+            age: snap.age,
+            is_wounded: npc_is_wounded(content, snap.held_id),
+            food_store: snap.food,
+            same_home: ohx == hx && ohy == hy,
+            has_fire_keeper: has,
+        });
+    }
+    is_self_best_fire_keeper_for_obj(self_p.p_id, &peers, MIN_AGE_TO_EAT, MAX_AGE)
+}
+
+/// Haxe `getBestAiForObjByProfession('GRAVEKEEPER', grave)` from published views.
+// Haxe: AiBase.isHandlingGraves ~1527; profession['GRAVEKEEPER'] > 0
+fn npc_is_best_grave_keeper(
+    self_p: &PlayerSnapshot,
+    player_views: &Arc<RwLock<HashMap<u64, PlayerSnapshot>>>,
+    profession_state: &HashMap<u64, NpcProfessionState>,
+    content: &ContentDb,
+    obj_x: i32,
+    obj_y: i32,
+) -> bool {
+    let Ok(views) = player_views.read() else {
+        return true;
+    };
+    let (hx, hy) = peer_home_coords(Some((self_p.home_x, self_p.home_y)), self_p.x, self_p.y);
+    let mut peers = Vec::new();
+    for snap in views.values() {
+        let (ohx, ohy) = peer_home_coords(Some((snap.home_x, snap.home_y)), snap.x, snap.y);
+        let pst = profession_state.get(&snap.conn_id);
+        let has = pst
+            .map(|s| s.grave_keeper_rt.weight > 0.0)
+            .unwrap_or(false);
+        let dx = (snap.x - obj_x) as f32;
+        let dy = (snap.y - obj_y) as f32;
+        peers.push(GraveKeeperPeer {
+            p_id: snap.p_id,
+            quad_dist_to_obj: dx * dx + dy * dy,
+            deleted: snap.deleted,
+            age: snap.age,
+            is_wounded: npc_is_wounded(content, snap.held_id),
+            food_store: snap.food,
+            same_home: ohx == hx && ohy == hy,
+            has_grave_keeper: has,
+        });
+    }
+    is_self_best_grave_keeper_for_obj(self_p.p_id, &peers, MIN_AGE_TO_EAT)
+}
+
+fn npc_pick_grave_xy(
+    tiles: &[ScanTile],
+    player_x: i32,
+    player_y: i32,
+    last_grave: Option<(i32, i32, i32)>,
+) -> Option<(i32, i32)> {
+    let map: Vec<HandlingGravesMapObj> = tiles
+        .iter()
+        .filter(|t| t.parent_id != 0)
+        .map(|t| HandlingGravesMapObj {
+            parent_id: t.parent_id,
+            x: t.x,
+            y: t.y,
+            floor_id: t.floor_id,
+            contained_count: t.contained_count,
+        })
+        .collect();
+    pick_grave(&map, player_x, player_y, GRAVE_SEARCH_RADIUS, last_grave)
+        .map(|(_, x, y, _, _)| (x, y))
+}
+
+/// Haxe `GetCloseDeadlyPlayerHelper` candidates from published snapshots.
+// Haxe: AiHelper.GetCloseDeadlyPlayerHelper
+fn npc_deadly_player_candidates(
+    self_p: &PlayerSnapshot,
+    views: &HashMap<u64, PlayerSnapshot>,
+    content: &ContentDb,
+) -> Vec<DeadlyPlayerCandidate> {
+    views
+        .values()
+        .filter(|o| o.p_id != self_p.p_id)
+        .map(|o| {
+            let holding = npc_holding_weapon(content, o.held_id);
+            let name = npc_held_name(content, o.held_id);
+            let attacked = self_p.last_attacked_player_id == o.p_id
+                || self_p.last_player_attacked_me_id == o.p_id
+                || o.last_attacked_player_id == self_p.p_id
+                || o.last_player_attacked_me_id == self_p.p_id;
+            DeadlyPlayerCandidate {
+                p_id: o.p_id,
+                x: o.x,
+                y: o.y,
+                deleted: o.deleted,
+                age: o.age,
+                angry_time: o.angry_time,
+                lost_combat_prestige: o.lost_combat_prestige,
+                is_cursed: o.is_cursed,
+                is_ai: o.ai_controlled || o.email.contains("npc"),
+                holding_weapon: holding,
+                held_is_bloody: name.to_ascii_lowercase().contains("bloody"),
+                exiled_by_observer_leaders: false,
+                is_friendly: !attacked,
+            }
+        })
+        .collect()
+}
+
+/// Haxe `doTimeStuffHelper` GetCloseDeadly* + fill_live_sensors.
+// Haxe: AiBase.doTimeStuffHelper L486–492
+fn npc_fill_live_sensor_input(
+    p: &PlayerSnapshot,
+    content: &ContentDb,
+    views: &HashMap<u64, PlayerSnapshot>,
+    animals: Option<&AnimalWorld>,
+    st: &NpcProfessionState,
+    nearby_food: bool,
+) -> LiveSensorInput {
+    let deadly_animal = animals.and_then(|aw| {
+        aw.get_close_deadly_animal(p.x, p.y, DEADLY_ANIMAL_SEARCH_DIST)
+            .map(|d| (d.x, d.y, d.dist_quad))
+    });
+    let cands = npc_deadly_player_candidates(p, views, content);
+    let deadly_player = get_close_deadly_player(
+        p.x,
+        p.y,
+        p.angry_time,
+        p.home_x,
+        p.home_y,
+        DEADLY_PLAYER_SEARCH_DIST_AI,
+        &cands,
+    )
+    .map(|d| (d.x, d.y, d.dist, d.angry_time));
+    let has_mother = p.held_by > 0;
+    let mut input = LiveSensorInput {
+        held_id: p.held_id,
+        food: p.food,
+        food_max: p.food_max,
+        was_hungry: st.was_hungry,
+        age: p.age,
+        heat: p.heat,
+        has_mother,
+        follow_player: has_mother || p.ai_follow_p_id > 0,
+        ordered_follow: p.ai_follow_p_id > 0,
+        deadly_animal,
+        deadly_player,
+        nearby_food,
+        holding_weapon: npc_holding_weapon(content, p.held_id),
+        is_wounded: npc_is_wounded(content, p.held_id) && !p.is_hidden_wound,
+        did_not_reach_food: st.food_goto.did_not_reach_food,
+        held_by_other: p.held_by > 0 && p.age < MIN_AGE_TO_EAT,
+        has_craft_queue: st.craft_rt.should_continue_unfinished()
+            || !st.craft_rt.crafting_tasks.is_empty(),
+        handling_temperature: st.handling_temperature
+            || is_super_hot_for_person(p.heat, content.person_color(p.display_object_id))
+            || is_super_cold_for_person(p.heat, content.person_color(p.display_object_id)),
+        removing_container: st.remove_from_container.is_some(),
+        ..Default::default()
+    };
+    let mut sticky = ProfessionStickySnapshot::from_runtimes_ex(
+        &st.farm_rt,
+        &st.smith_rt,
+        &st.baker_rt,
+        Some(&st.shepherd_rt),
+        Some(&st.pottery_rt),
+        Some(&st.fire_rt),
+        Some(&st.fire_keeper_rt),
+        Some(&st.grave_keeper_rt),
+        Some(&st.hunter_rt),
+        Some(&st.lumberjack_rt),
+        Some(&st.collector_rt),
+        Some(&st.foodserver_rt),
+        p.age,
+    );
+    sticky.tailor_assigned = p.is_assigned_tailor;
+    sticky.tailor_last = p.is_last_tailor || st.last_is_tailor;
+    apply_job_flags_to_live_input(&mut input, &sticky);
+    input
 }
 
 /// Enqueue USE via [`PlayerWriteInterface`] (identical to human client command).
@@ -99,6 +404,424 @@ fn npc_drop_at(
     NpcWriteTx(intent_tx).drop_at(conn_id, x, y, clothing_slot)
 }
 
+/// Haxe `isRemovingFromContainer` one npc think.
+// Haxe: AiBase.isRemovingFromContainer ~9140
+fn npc_run_remove_from_container(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    st: &mut NpcProfessionState,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let staging = st.remove_from_container?;
+    let (world_parent, contained_n) = {
+        let id = world.get_object(staging.tx, staging.ty);
+        let parent = if id != 0 {
+            content.resolve_base_id(id)
+        } else {
+            0
+        };
+        let n = world
+            .get_helper(staging.tx, staging.ty)
+            .map(|h| h.contained.len() as i32)
+            .unwrap_or(0);
+        (parent, n)
+    };
+    let adv = advance_remove_from_container(
+        Some(staging),
+        world_parent,
+        contained_n,
+        p.held_id,
+        p.is_hidden_wound,
+        p.holding_player_id != 0,
+        p.x,
+        p.y,
+        p.moving,
+        true,
+    );
+    match adv {
+        RemoveFromContainerAdvance::Idle | RemoveFromContainerAdvance::Cancel => {
+            st.remove_from_container = None;
+            None
+        }
+        RemoveFromContainerAdvance::GotoFailed { x, y } => {
+            st.remove_from_container = None;
+            st.path_reach.add_not_reachable(x, y, 90.0);
+            None
+        }
+        RemoveFromContainerAdvance::Wait => Some((
+            NpcActivityKind::Think,
+            "remove_wait".into(),
+            200,
+        )),
+        RemoveFromContainerAdvance::DropHeld | RemoveFromContainerAdvance::DropPlayer => {
+            if npc_drop_at(intent_tx, conn_id, p.x, p.y, None) {
+                Some((
+                    NpcActivityKind::Craft,
+                    format!("remove_drop @{},{}", p.x, p.y),
+                    400,
+                ))
+            } else {
+                Some((NpcActivityKind::Think, "remove_drop_busy".into(), 200))
+            }
+        }
+        RemoveFromContainerAdvance::Goto { x, y } => {
+            if npc_try_walk_to(
+                intent_tx,
+                world,
+                content,
+                conn_id,
+                p.x,
+                p.y,
+                x,
+                y,
+                p.food,
+                st.food_goto.did_not_reach_food,
+                st.animal_path,
+            ) {
+                Some((
+                    NpcActivityKind::Craft,
+                    format!("remove_goto @{},{}", x, y),
+                    250,
+                ))
+            } else {
+                st.remove_from_container = None;
+                None
+            }
+        }
+        RemoveFromContainerAdvance::RemvNow { x, y } => {
+            let payload = format!("{x} {y}");
+            if npc_say_raw(intent_tx, conn_id, "REMV", &payload) {
+                st.remove_from_container = None;
+                Some((
+                    NpcActivityKind::Craft,
+                    format!("remove_remv @{},{}", x, y),
+                    500,
+                ))
+            } else {
+                st.remove_from_container = None;
+                st.path_reach.add_not_reachable(x, y, 90.0);
+                Some((NpcActivityKind::Think, "remove_remv_fail".into(), 100))
+            }
+        }
+    }
+}
+
+/// Haxe `handleTemperature` drink / GetOrCraft / biome / fire / arrive.
+// Haxe: AiBase.handleTemperature ~1645 (AI-HANDLE-TEMP)
+fn npc_run_handle_temperature(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    _env_winter: bool,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    st: &mut NpcProfessionState,
+    tick: u64,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let held_id = if p.held_id != 0 {
+        content.resolve_base_id(p.held_id)
+    } else {
+        0
+    };
+    let color = content.person_color(p.display_object_id);
+    let _female = content
+        .get(p.display_object_id)
+        .map(|o| !o.male)
+        .unwrap_or_else(|| person_looks_female(p.display_object_id, "", ""));
+    let fire_id = if st.fire_place_id != 0 {
+        st.fire_place_id
+    } else {
+        p.ai_fire_place_id
+    };
+    let fire_x = if st.fire_place_id != 0 {
+        st.fire_place_x
+    } else {
+        p.ai_fire_place_x
+    };
+    let fire_y = if st.fire_place_id != 0 {
+        st.fire_place_y
+    } else {
+        p.ai_fire_place_y
+    };
+    let fire_parent = if fire_id != 0 {
+        content.resolve_base_id(fire_id)
+    } else {
+        0
+    };
+    let fire_heat_value = if fire_parent != 0 {
+        content.get(fire_parent).map(|o| o.heat_value).unwrap_or(0.0)
+    } else {
+        0.0
+    };
+    let blocked = st.path_reach.blocked_coords(None);
+    let mut cool_tiles = Vec::new();
+    let mut warm_tiles = Vec::new();
+    let start_x = p.x - GET_CLOSE_BIOME_DIST;
+    let end_x = p.x + GET_CLOSE_BIOME_DIST;
+    let start_y = p.y - GET_CLOSE_BIOME_DIST;
+    let end_y = p.y + GET_CLOSE_BIOME_DIST;
+    for ty in start_y..end_y {
+        for tx in start_x..end_x {
+            let b = world.get_biome(tx, ty);
+            if b == 4 || b == PASSABLE_RIVER {
+                cool_tiles.push((tx, ty, b));
+            } else if b == DESERT || b == 6 {
+                warm_tiles.push((tx, ty, b));
+            }
+        }
+    }
+    let close_cool = get_close_biome(
+        p.x,
+        p.y,
+        &COOL_BIOMES,
+        &cool_tiles,
+        |x, y| blocked.contains(&(x, y)),
+        world.width_tiles,
+        world.height_tiles,
+        world.wrap,
+    );
+    let close_warm = get_close_biome(
+        p.x,
+        p.y,
+        &WARM_BIOMES,
+        &warm_tiles,
+        |x, y| blocked.contains(&(x, y)),
+        world.width_tiles,
+        world.height_tiles,
+        world.wrap,
+    );
+    let mut inp = HandleTemperatureInput {
+        heat: p.heat,
+        last_heat: st.last_heat,
+        player_last_temperature: p.last_temperature,
+        is_handling: st.handling_temperature,
+        just_arrived: st.temp_just_arrived,
+        is_super_hot: is_super_hot_for_person(p.heat, color),
+        is_super_cold: is_super_cold_for_person(p.heat, color),
+        winter_female_with_kids: false,
+        held_id,
+        item_to_craft_id: st.craft_rt.item.product_id,
+        fire_x,
+        fire_y,
+        fire_parent,
+        fire_heat_value,
+        has_fire_place: fire_id != 0,
+        close_cool,
+        close_warm,
+        cold_place: p.cold_place,
+        warm_place: p.warm_place,
+        px: p.x,
+        py: p.y,
+        age: p.age,
+        skip_water: false,
+    };
+    let mut plan = plan_handle_temperature(inp);
+    if matches!(plan.action, HandleTemperatureAction::GetOrCraftWater) {
+        let tiles = scan_world_radius(world, Some(content), p.x, p.y, 40);
+        let blocked_set = st.path_reach.blocked_coords(None);
+        let intent = npc_expand_craft_product(
+            &tiles,
+            p.x,
+            p.y,
+            p.held_id,
+            p.moving,
+            p.home_x,
+            p.home_y,
+            content,
+            craft_graph,
+            &mut st.craft_rt,
+            &blocked_set,
+            false,
+            tick,
+            210,
+        );
+        if !matches!(intent, ShortCraftLiveIntent::None) {
+            st.handling_temperature = plan.is_handling;
+            st.temp_just_arrived = plan.just_arrived;
+            st.last_heat = plan.last_heat;
+            let mut kind = NpcActivityKind::Think;
+            let mut detail = String::new();
+            let mut game_ms = 200u32;
+            if npc_commit_craft_live(
+                &intent,
+                intent_tx,
+                world,
+                content,
+                st,
+                conn_id,
+                p.x,
+                p.y,
+                p.food,
+                p.moving,
+                &mut kind,
+                &mut detail,
+                &mut game_ms,
+            ) {
+                return Some((kind, format!("temp_craft_water {detail}"), game_ms));
+            }
+        }
+        inp.skip_water = true;
+        plan = plan_handle_temperature(inp);
+    }
+    st.handling_temperature = plan.is_handling;
+    st.temp_just_arrived = plan.just_arrived;
+    st.last_heat = plan.last_heat;
+    match plan.action {
+        HandleTemperatureAction::Idle => None,
+        HandleTemperatureAction::DrinkSelf => {
+            let payload = self_clothing_raw_payload(-1);
+            if intent_tx
+                .try_send(NetIntent::Raw {
+                    conn_id,
+                    tag: "SELF".into(),
+                    payload,
+                })
+                .is_ok()
+            {
+                let _ = npc_say_raw(intent_tx, conn_id, "SAY", HANDLE_TEMP_SAY_DRINK);
+                Some((NpcActivityKind::Think, "temp_drink".into(), 400))
+            } else {
+                Some((NpcActivityKind::Think, "temp_drink_busy".into(), 200))
+            }
+        }
+        HandleTemperatureAction::CraftLargeFastFire => {
+            let tiles = scan_world_radius(world, Some(content), p.x, p.y, 40);
+            let blocked_set = st.path_reach.blocked_coords(None);
+            let intent = npc_expand_craft_product(
+                &tiles,
+                p.x,
+                p.y,
+                p.held_id,
+                p.moving,
+                p.home_x,
+                p.home_y,
+                content,
+                craft_graph,
+                &mut st.craft_rt,
+                &blocked_set,
+                false,
+                tick,
+                HANDLE_TEMP_LARGE_FAST_FIRE,
+            );
+            let mut kind = NpcActivityKind::Think;
+            let mut detail = String::new();
+            let mut game_ms = 200u32;
+            if npc_commit_craft_live(
+                &intent,
+                intent_tx,
+                world,
+                content,
+                st,
+                conn_id,
+                p.x,
+                p.y,
+                p.food,
+                p.moving,
+                &mut kind,
+                &mut detail,
+                &mut game_ms,
+            ) {
+                Some((kind, format!("temp_craft_83 {detail}"), game_ms))
+            } else {
+                None
+            }
+        }
+        HandleTemperatureAction::GetOrCraftWater => None,
+        HandleTemperatureAction::Relax => Some((
+            NpcActivityKind::Think,
+            "temp_relax".into(),
+            (HANDLE_TEMP_RELAX_TIME * 1000.0) as u32,
+        )),
+        HandleTemperatureAction::Goto { x, y } => {
+            if npc_try_walk_to(
+                intent_tx,
+                world,
+                content,
+                conn_id,
+                p.x,
+                p.y,
+                x,
+                y,
+                p.food,
+                st.food_goto.did_not_reach_food,
+                st.animal_path,
+            ) {
+                Some((
+                    NpcActivityKind::Think,
+                    format!("temp_place @{},{}", x, y),
+                    250,
+                ))
+            } else {
+                None
+            }
+        }
+        HandleTemperatureAction::KindlingOnFire { x, y } => {
+            if held_id == HANDLE_TEMP_KINDLING {
+                if npc_use_at(intent_tx, conn_id, x, y, None, None) {
+                    return Some((
+                        NpcActivityKind::Craft,
+                        format!("temp_kindling @{},{}", x, y),
+                        500,
+                    ));
+                }
+            }
+            let tiles = scan_world_radius(world, Some(content), p.x, p.y, 40);
+            let blocked_set = st.path_reach.blocked_coords(None);
+            let intent = npc_expand_craft_product(
+                &tiles,
+                p.x,
+                p.y,
+                p.held_id,
+                p.moving,
+                p.home_x,
+                p.home_y,
+                content,
+                craft_graph,
+                &mut st.craft_rt,
+                &blocked_set,
+                false,
+                tick,
+                HANDLE_TEMP_KINDLING,
+            );
+            let mut kind = NpcActivityKind::Think;
+            let mut detail = String::new();
+            let mut game_ms = 200u32;
+            if npc_commit_craft_live(
+                &intent,
+                intent_tx,
+                world,
+                content,
+                st,
+                conn_id,
+                p.x,
+                p.y,
+                p.food,
+                p.moving,
+                &mut kind,
+                &mut detail,
+                &mut game_ms,
+            ) {
+                Some((kind, format!("temp_kindling_seek {detail}"), game_ms))
+            } else {
+                let cleared = fail_warm_clear_place(plan);
+                st.handling_temperature = cleared.is_handling;
+                st.temp_just_arrived = cleared.just_arrived;
+                None
+            }
+        }
+        HandleTemperatureAction::HandlingFire => {
+            let _ = (FIRE, HOT_COALS);
+            let cleared = fail_warm_clear_place(plan);
+            st.handling_temperature = cleared.is_handling;
+            st.temp_just_arrived = cleared.just_arrived;
+            None
+        }
+    }
+}
+
 /// Enqueue raw SAY/JUMP/â€¦ via [`PlayerWriteInterface`].
 #[inline]
 fn npc_say_raw(
@@ -128,10 +851,11 @@ fn npc_next_step_to(
     gy: i32,
     food_store: f32,
     did_not_reach_food: f32,
+    animal: Option<AnimalPathPlayerCtx>,
 ) -> Option<(i32, i32)> {
     // Haxe: considerAnimals = checkIfDangerous && didNotReachFood < 5 && food_store > -1
     let consider = consider_animals_for_goto(true, did_not_reach_food, food_store);
-    next_step_consider_animals(world, content, sx, sy, gx, gy, consider)
+    next_step_consider_animals_for_player(world, content, sx, sy, gx, gy, consider, animal)
 }
 
 /// Multi-step relative path toward `(gx,gy)` (animal-aware), capped at `max_steps`.
@@ -146,6 +870,7 @@ fn npc_path_toward(
     food_store: f32,
     did_not_reach_food: f32,
     max_steps: usize,
+    animal: Option<AnimalPathPlayerCtx>,
 ) -> Vec<(i32, i32)> {
     let mut deltas = Vec::new();
     if max_steps == 0 || (sx == gx && sy == gy) {
@@ -166,6 +891,7 @@ fn npc_path_toward(
             gy,
             food_store,
             did_not_reach_food,
+            animal,
         );
         let Some((dx, dy)) = step else {
             break;
@@ -206,6 +932,7 @@ fn npc_try_walk_to(
     gy: i32,
     food_store: f32,
     did_not_reach_food: f32,
+    animal: Option<AnimalPathPlayerCtx>,
 ) -> bool {
     let deltas = npc_path_toward(
         world,
@@ -217,6 +944,7 @@ fn npc_try_walk_to(
         food_store,
         did_not_reach_food,
         NPC_PATH_MAX_STEPS,
+        animal,
     );
     if deltas.is_empty() {
         return false;
@@ -230,6 +958,320 @@ fn npc_try_walk_to(
             seq: None,
         })
         .is_ok()
+}
+
+/// Expand one queued / sticky product via GetOrCraft (Haxe `craftItem` from doTimeStuffHelper).
+// Haxe: AiBase.doTimeStuffHelper ~667–680 craftItem
+fn npc_expand_craft_intent(
+    tiles: &[ScanTile],
+    px: i32,
+    py: i32,
+    held_id: i32,
+    moving: bool,
+    home_x: i32,
+    home_y: i32,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    craft_rt: &mut CraftAiRuntime,
+    blocked: &HashSet<(i32, i32)>,
+    is_smith: bool,
+    tick: u64,
+    intent: ShortCraftLiveIntent,
+) -> ShortCraftLiveIntent {
+    let goc_objs = get_or_craft_objs_from_scan(tiles, None);
+    let full_piles = full_pile_tiles_from_scan(tiles);
+    let nonempty_boxes = nonempty_container_tiles_from_scan(tiles);
+    let (water_ids, bucket_ids) = init_water_source_ids_from_content(content);
+    let opts = CraftLiveExpandOpts {
+        home: Some((home_x, home_y)),
+        is_or_can_smith: is_smith,
+        now_sec: tick as f64 * 0.2,
+        water_source_ids: water_ids,
+        bucket_water_source_ids: bucket_ids,
+        ..Default::default()
+    }
+    .with_content_craft_gates(content);
+    let pile_id_for = |id: i32| {
+        let p = pile_obj_id_from_content(content, id);
+        if p > 0 {
+            p
+        } else {
+            0
+        }
+    };
+    npc_enqueue_get_or_craft_ex(
+        intent,
+        &goc_objs,
+        px,
+        py,
+        held_id,
+        moving,
+        Some((px, py)),
+        Some(craft_graph),
+        &opts,
+        Some(craft_rt),
+        &pile_id_for,
+        Some(blocked),
+        Some(&full_piles),
+        Some(&nonempty_boxes),
+    )
+}
+
+fn npc_expand_craft_product(
+    tiles: &[ScanTile],
+    px: i32,
+    py: i32,
+    held_id: i32,
+    moving: bool,
+    home_x: i32,
+    home_y: i32,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    craft_rt: &mut CraftAiRuntime,
+    blocked: &HashSet<(i32, i32)>,
+    is_smith: bool,
+    tick: u64,
+    product_id: i32,
+) -> ShortCraftLiveIntent {
+    npc_expand_craft_intent(
+        tiles,
+        px,
+        py,
+        held_id,
+        moving,
+        home_x,
+        home_y,
+        content,
+        craft_graph,
+        craft_rt,
+        blocked,
+        is_smith,
+        tick,
+        ShortCraftLiveIntent::CraftItem {
+            object_id: product_id,
+        },
+    )
+}
+
+/// True when expand produced a Haxe `craftItem` success (USE/DROP/MOVE/busy Wait).
+/// Idle `Wait` is not progress — FromQueue callers re-push the task.
+// Haxe: craftItem isMoving return true; else fail → craftingTasks.push
+fn npc_craft_expand_progress(intent: &ShortCraftLiveIntent, moving: bool) -> bool {
+    match intent {
+        ShortCraftLiveIntent::Wait => moving,
+        ShortCraftLiveIntent::UseAt { .. }
+        | ShortCraftLiveIntent::UseOnEmptyGround { .. }
+        | ShortCraftLiveIntent::DropAt { .. }
+        | ShortCraftLiveIntent::Goto { .. }
+        | ShortCraftLiveIntent::PickupNearForge { .. }
+        | ShortCraftLiveIntent::GotoForge { .. } => true,
+        _ => false,
+    }
+}
+
+/// Commit USE/DROP/MOVE/Wait from a craft expand. False → caller may requeue the task.
+fn npc_commit_craft_live(
+    intent: &ShortCraftLiveIntent,
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    px: i32,
+    py: i32,
+    food: f32,
+    moving: bool,
+    kind: &mut NpcActivityKind,
+    detail: &mut String,
+    game_ms: &mut u32,
+) -> bool {
+    let did_not_reach_food = st.food_goto.did_not_reach_food;
+    match *intent {
+        ShortCraftLiveIntent::Wait => {
+            if !moving {
+                return false;
+            }
+            *kind = NpcActivityKind::Craft;
+            *detail = "craft_queue_wait".into();
+            *game_ms = 200;
+            true
+        }
+        ShortCraftLiveIntent::UseAt {
+            x,
+            y,
+            target_id,
+            actor_id,
+        } => {
+            if npc_is_close_action(px, py, x, y) {
+                if npc_use_at(intent_tx, conn_id, x, y, None, None) {
+                    clear_sticky_move(st);
+                    *kind = NpcActivityKind::Craft;
+                    *detail = format!("craft_queue_use @{x},{y}");
+                    *game_ms = 500;
+                    return true;
+                }
+            } else if npc_try_walk_to(
+                intent_tx,
+                world,
+                content,
+                conn_id,
+                px,
+                py,
+                x,
+                y,
+                food,
+                did_not_reach_food,
+                st.animal_path,
+            ) {
+                let expected = if target_id != 0 {
+                    sticky_parent_id(content, target_id)
+                } else {
+                    sticky_parent_id(content, world.get_object(x, y))
+                };
+                set_sticky_move_use(
+                    st,
+                    x,
+                    y,
+                    expected,
+                    actor_id,
+                    true,
+                    format!("use_held @{x},{y}"),
+                );
+                *kind = NpcActivityKind::Craft;
+                *detail = format!("craft_queue_walk_use @{x},{y}");
+                *game_ms = 250;
+                return true;
+            }
+            false
+        }
+        ShortCraftLiveIntent::UseOnEmptyGround { x, y, held: actor_id } => {
+            if npc_is_close_action(px, py, x, y) {
+                if npc_use_at(intent_tx, conn_id, x, y, None, None) {
+                    clear_sticky_move(st);
+                    *kind = NpcActivityKind::Craft;
+                    *detail = format!("craft_queue_use @{x},{y}");
+                    *game_ms = 500;
+                    return true;
+                }
+            } else if npc_try_walk_to(
+                intent_tx,
+                world,
+                content,
+                conn_id,
+                px,
+                py,
+                x,
+                y,
+                food,
+                did_not_reach_food,
+                st.animal_path,
+            ) {
+                let expected = sticky_parent_id(content, world.get_object(x, y));
+                set_sticky_move_use(
+                    st,
+                    x,
+                    y,
+                    expected,
+                    actor_id,
+                    true,
+                    format!("use_held @{x},{y}"),
+                );
+                *kind = NpcActivityKind::Craft;
+                *detail = format!("craft_queue_walk_use @{x},{y}");
+                *game_ms = 250;
+                return true;
+            }
+            false
+        }
+        ShortCraftLiveIntent::DropAt { x, y }
+        | ShortCraftLiveIntent::Goto { x, y }
+        | ShortCraftLiveIntent::PickupNearForge { x, y, .. } => {
+            let is_drop = matches!(
+                intent,
+                ShortCraftLiveIntent::DropAt { .. }
+                    | ShortCraftLiveIntent::PickupNearForge { .. }
+            );
+            if npc_is_close_action(px, py, x, y) && is_drop {
+                if npc_drop_at(intent_tx, conn_id, x, y, None) {
+                    *kind = NpcActivityKind::Craft;
+                    *detail = format!("craft_queue_drop @{x},{y}");
+                    *game_ms = 400;
+                    return true;
+                }
+            } else if !npc_is_close_action(px, py, x, y)
+                && npc_try_walk_to(
+                    intent_tx,
+                    world,
+                    content,
+                    conn_id,
+                    px,
+                    py,
+                    x,
+                    y,
+                    food,
+                    did_not_reach_food,
+                    st.animal_path,
+                )
+            {
+                *kind = NpcActivityKind::Craft;
+                *detail = format!("craft_queue_walk @{x},{y}");
+                *game_ms = 250;
+                return true;
+            }
+            false
+        }
+        ShortCraftLiveIntent::GotoForge {
+            forge_x, forge_y, ..
+        } => {
+            if !npc_is_close_action(px, py, forge_x, forge_y)
+                && npc_try_walk_to(
+                    intent_tx,
+                    world,
+                    content,
+                    conn_id,
+                    px,
+                    py,
+                    forge_x,
+                    forge_y,
+                    food,
+                    did_not_reach_food,
+                    st.animal_path,
+                )
+            {
+                *kind = NpcActivityKind::Craft;
+                *detail = format!("craft_queue_forge @{forge_x},{forge_y}");
+                *game_ms = 250;
+                true
+            } else {
+                false
+            }
+        }
+        ShortCraftLiveIntent::SelfClothing { slot } => {
+            let payload = self_clothing_raw_payload(slot);
+            if intent_tx
+                .try_send(NetIntent::Raw {
+                    conn_id,
+                    tag: "SELF".into(),
+                    payload,
+                })
+                .is_ok()
+            {
+                *kind = NpcActivityKind::Craft;
+                *detail = format!("clothing_self slot={slot}");
+                *game_ms = 400;
+                true
+            } else {
+                false
+            }
+        }
+        ShortCraftLiveIntent::SeekOrCraft { actor, .. } => {
+            *kind = NpcActivityKind::Craft;
+            *detail = format!("clothing_seek {actor}");
+            *game_ms = 200;
+            true
+        }
+        _ => false,
+    }
 }
 
 /// Walk + record sticky goal so mid-path thinks do not replan unless target invalid.
@@ -258,6 +1300,7 @@ fn npc_try_walk_to_sticky(
         gy,
         food_store,
         st.food_goto.did_not_reach_food,
+        st.animal_path,
     );
     if ok {
         set_sticky_move(st, gx, gy, expected_parent_id, label);
@@ -290,6 +1333,24 @@ fn npc_mark_goto_path_fail(
 // PATH-REACH-MERGE / dual_map_merge
 fn pull_player_path_reach(st: &mut NpcProfessionState, snap: &PlayerSnapshot) {
     merge_path_reach_maps(&mut st.path_reach, &snap.ai_path_reach);
+    if snap.ai_did_not_reach_food > st.food_goto.did_not_reach_food {
+        st.food_goto.did_not_reach_food = snap.ai_did_not_reach_food;
+    }
+    if snap.ai_last_goto_obj_id != 0 {
+        st.food_goto.last_goto = Some(LastGotoObj::new(
+            snap.ai_last_goto_obj_x,
+            snap.ai_last_goto_obj_y,
+            snap.ai_last_goto_obj_id,
+        ));
+        st.food_goto.last_goto_dist = snap.ai_last_goto_obj_distance;
+    }
+    if snap.ai_sticky_food_id != 0 {
+        st.food_goto.sticky_food = Some(StickyFoodTarget::new(
+            snap.ai_sticky_food_x,
+            snap.ai_sticky_food_y,
+            snap.ai_sticky_food_id,
+        ));
+    }
 }
 
 /// PATH-REACH-MERGE: push NPC maps into player_views for tick_vitals absorb.
@@ -305,6 +1366,31 @@ fn push_npc_path_reach_to_views(
     if let Ok(mut g) = player_views.write() {
         if let Some(s) = g.get_mut(&conn_id) {
             merge_path_reach_maps(&mut s.ai_path_reach, path_reach);
+        }
+    }
+}
+
+fn push_npc_food_goto_to_views(
+    player_views: &Arc<RwLock<HashMap<u64, PlayerSnapshot>>>,
+    conn_id: u64,
+    food_goto: &NpcFoodGotoState,
+) {
+    if let Ok(mut g) = player_views.write() {
+        if let Some(s) = g.get_mut(&conn_id) {
+            s.ai_did_not_reach_food = food_goto.did_not_reach_food;
+            if let Some(lg) = food_goto.last_goto {
+                s.ai_last_goto_obj_id = lg.parent_id;
+                s.ai_last_goto_obj_x = lg.x;
+                s.ai_last_goto_obj_y = lg.y;
+                s.ai_last_goto_obj_distance = food_goto.last_goto_dist;
+            }
+            if let Some(sf) = food_goto.sticky_food {
+                s.ai_sticky_food_id = sf.parent_id;
+                s.ai_sticky_food_x = sf.x;
+                s.ai_sticky_food_y = sf.y;
+            } else {
+                s.ai_sticky_food_id = 0;
+            }
         }
     }
 }
@@ -350,6 +1436,10 @@ struct NpcStickyMove {
     gy: i32,
     /// World parent id expected at goal; `0` = walk-only (no object check).
     expected_parent_id: i32,
+    /// Haxe `useActor.parentId` when this sticky is a staged use (0 = walk-only).
+    use_actor_parent: i32,
+    /// Haxe `useHeldObjOnTarget` — after walk, issue USE instead of replanning.
+    pending_use: bool,
     /// Short label for activity log.
     label: String,
 }
@@ -367,6 +1457,16 @@ struct NpcProfessionState {
     fire_rt: FireFoodProfessionRuntime,
     /// AI-HANDLING-FIRE: FIREKEEPER sticky (isHandlingFire).
     fire_keeper_rt: FireKeeperProfessionRuntime,
+    /// AI-JOB-GRAVE: GRAVEKEEPER sticky (isHandlingGraves).
+    grave_keeper_rt: GraveKeeperProfessionRuntime,
+    /// AI-JOB-HUNT: HUNTER sticky (isHunting).
+    hunter_rt: HunterProfessionRuntime,
+    /// AI-JOB-LUMBER: LUMBERJACK sticky (isCuttingWood).
+    lumberjack_rt: LumberjackProfessionRuntime,
+    /// AI-JOB-COLLECT: COLLECTOR sticky (isCollecting).
+    collector_rt: CollectorProfessionRuntime,
+    /// AI-JOB-FOODSERVER: FOODSERVER sticky (isFeedingPlayerInNeed).
+    foodserver_rt: FoodServerProfessionRuntime,
     /// PATH-REACH: Haxe AiBase notReachableObjects / objectsWithHostilePath (npc-local).
     // Haxe: AiBase L85â€“86; AiHelper.gotoAdv fail â†’ addNotReachable / addHostilePath
     path_reach: AiPathReachMaps,
@@ -386,6 +1486,23 @@ struct NpcProfessionState {
     class_assigned: bool,
     /// Active MOVE goal â€” validated while `PlayerSnapshot.moving`.
     sticky_move: Option<NpcStickyMove>,
+    /// Previous-tick hungry hysteresis for fill_live_sensors.
+    // Haxe: AiBase.isHungry
+    was_hungry: bool,
+    /// Haxe CreateCollisionChunk player context for Goto animal footprints.
+    animal_path: Option<AnimalPathPlayerCtx>,
+    /// Haxe `lastProfession == 'TAILOR'` (hasOrBecomeProfession clothing).
+    last_is_tailor: bool,
+    /// Haxe `GlobalPlayerInstance.firePlace` sticky (npc-local).
+    fire_place_id: i32,
+    fire_place_x: i32,
+    fire_place_y: i32,
+    /// Haxe `removeFromContainerTarget` (AI-REMOVE-CONTAINER).
+    remove_from_container: Option<RemoveFromContainerStaging>,
+    /// Haxe `AiBase.isHandlingTemperature` / `justArrived` / `lastTemperature`.
+    handling_temperature: bool,
+    temp_just_arrived: bool,
+    last_heat: f32,
 }
 
 impl Default for NpcProfessionState {
@@ -400,6 +1517,11 @@ impl Default for NpcProfessionState {
             pottery_rt: PotterProfessionRuntime::default(),
             fire_rt: FireFoodProfessionRuntime::default(),
             fire_keeper_rt: FireKeeperProfessionRuntime::default(),
+            grave_keeper_rt: GraveKeeperProfessionRuntime::default(),
+            hunter_rt: HunterProfessionRuntime::default(),
+            lumberjack_rt: LumberjackProfessionRuntime::default(),
+            collector_rt: CollectorProfessionRuntime::default(),
+            foodserver_rt: FoodServerProfessionRuntime::default(),
             path_reach: AiPathReachMaps::default(),
             food_goto: NpcFoodGotoState::default(),
             craft_rt: CraftAiRuntime::default(),
@@ -407,6 +1529,16 @@ impl Default for NpcProfessionState {
             prestige_class: PrestigeClass::Commoner,
             class_assigned: false,
             sticky_move: None,
+            was_hungry: false,
+            animal_path: None,
+            last_is_tailor: false,
+            fire_place_id: 0,
+            fire_place_x: 0,
+            fire_place_y: 0,
+            remove_from_container: None,
+            handling_temperature: false,
+            temp_just_arrived: false,
+            last_heat: 0.5,
         }
     }
 }
@@ -430,6 +1562,10 @@ pub struct NpcConfig {
     pub reaction_time_factor_if_angry: f32,
     pub observe_radius: i32,
     pub craft_radius: i32,
+    /// Haxe `ServerSettings.HungryWorkCost` (default 5).
+    pub hungry_work_cost: f32,
+    /// Haxe `ServerSettings.AiIgnoredFloorIds` (Bear Skin Rug 656/888).
+    pub ignored_floor_ids: Vec<i32>,
 }
 
 impl Default for NpcConfig {
@@ -445,6 +1581,8 @@ impl Default for NpcConfig {
             reaction_time_factor_if_angry: gameplay_defaults::AI_REACTION_TIME_FACTOR_IF_ANGRY,
             observe_radius: 16,
             craft_radius: DEFAULT_CRAFT_RADIUS,
+            hungry_work_cost: gameplay_defaults::HUNGRY_WORK_COST,
+            ignored_floor_ids: AI_IGNORED_FLOOR_IDS.to_vec(),
         }
     }
 }
@@ -465,6 +1603,16 @@ impl NpcConfig {
             reaction_time_factor_if_angry: live.ai_reaction_time_factor_if_angry.max(0.05),
             observe_radius: live.ai_observe_radius.max(4),
             craft_radius: live.ai_craft_radius.max(8),
+            hungry_work_cost: if live.hungry_work_cost.is_finite() && live.hungry_work_cost >= 0.0 {
+                live.hungry_work_cost
+            } else {
+                gameplay_defaults::HUNGRY_WORK_COST
+            },
+            ignored_floor_ids: if live.ai_ignored_floor_ids.is_empty() {
+                AI_IGNORED_FLOOR_IDS.to_vec()
+            } else {
+                live.ai_ignored_floor_ids.clone()
+            },
         }
     }
 
@@ -553,10 +1701,24 @@ fn set_sticky_move(
     expected_parent_id: i32,
     label: impl Into<String>,
 ) {
+    set_sticky_move_use(st, gx, gy, expected_parent_id, 0, false, label);
+}
+
+fn set_sticky_move_use(
+    st: &mut NpcProfessionState,
+    gx: i32,
+    gy: i32,
+    expected_parent_id: i32,
+    use_actor_parent: i32,
+    pending_use: bool,
+    label: impl Into<String>,
+) {
     st.sticky_move = Some(NpcStickyMove {
         gx,
         gy,
         expected_parent_id,
+        use_actor_parent,
+        pending_use,
         label: label.into(),
     });
 }
@@ -584,9 +1746,14 @@ fn npc_sticky_for_craft_profession(
             age,
             ..Default::default()
         }),
-        // Forager/Hunter/Generic: age-rotated multi-profession (NPC-SCAN-FULL).
+        CraftProfession::Hunter => Some(ProfessionStickySnapshot {
+            hunter_assigned: true,
+            hunter_last: true,
+            age,
+            ..Default::default()
+        }),
+        // Forager/Generic: age-rotated multi-profession (NPC-SCAN-FULL).
         CraftProfession::Forager
-        | CraftProfession::Hunter
         | CraftProfession::Explorer
         | CraftProfession::Generic => Some(ProfessionStickySnapshot {
             age,
@@ -894,7 +2061,7 @@ fn npc_run_is_picking_up_food(
         p.x,
         p.y,
         p.food,
-        false, // holding_player residual (snapshot lacks holding_player_id)
+        p.holding_player_id != 0,
         drop_would,
     ));
 
@@ -910,8 +2077,9 @@ fn npc_run_is_picking_up_food(
         };
         let mut drop_extras = DropHeldSensorExtras::default();
         drop_extras.quiver = quiver_from_clothing_snapshot(&p.clothing, &p.clothing_uses);
+        drop_extras.held_contains_clay = p.held_contains_clay;
         drop_extras.has_food_target = true;
-        let intent = smart_drop_held_from_sensors(
+        let intent = smart_drop_held_from_sensors_ex(
             p.held_id,
             p.held_uses.max(1),
             p.x,
@@ -924,6 +2092,7 @@ fn npc_run_is_picking_up_food(
             max_distance_to_home,
             &tiles,
             drop_extras,
+            Some(content),
         );
         if let Some(out) = npc_emit_drop_or_walk(
             intent_tx,
@@ -950,7 +2119,7 @@ fn npc_run_is_picking_up_food(
             p.x,
             p.y,
             p.food,
-            false,
+            p.holding_player_id != 0,
             drop_would,
         ));
     }
@@ -1022,6 +2191,7 @@ fn npc_run_is_picking_up_food(
                             food.y,
                             p.food,
                             st.food_goto.did_not_reach_food,
+                            st.animal_path,
                         )
                     };
                     if walked {
@@ -1062,11 +2232,12 @@ fn npc_run_is_picking_up_food(
             }
         }
         IsPickingupFoodPlan::DropHeldPlayer => {
-            // Residual: PlayerSnapshot lacks holding_player_id â€” treat as busy.
+            // Haxe: dropPlayer(myPlayer.x, myPlayer.y) — live PUTDOWN/DROPBABY at feet
+            let sent = npc_say_raw(intent_tx, conn_id, "SAY", "DROPBABY");
             Some((
                 NpcActivityKind::SeekFood,
-                "drop_held_player_residual".into(),
-                100,
+                "food_drop_held_player".into(),
+                if sent { 400 } else { 100 },
             ))
         }
         IsPickingupFoodPlan::DropHeldForPickup => {
@@ -1077,8 +2248,9 @@ fn npc_run_is_picking_up_food(
             };
             let mut drop_extras = DropHeldSensorExtras::default();
             drop_extras.quiver = quiver_from_clothing_snapshot(&p.clothing, &p.clothing_uses);
+            drop_extras.held_contains_clay = p.held_contains_clay;
             drop_extras.has_food_target = true;
-            let intent = smart_drop_held_from_sensors(
+            let intent = smart_drop_held_from_sensors_ex(
                 p.held_id,
                 p.held_uses.max(1),
                 p.x,
@@ -1091,6 +2263,7 @@ fn npc_run_is_picking_up_food(
                 0.0, // Haxe dropHeldObject(0)
                 &tiles,
                 drop_extras,
+                Some(content),
             );
             if let Some(out) = npc_emit_drop_or_walk(
                 intent_tx,
@@ -1219,6 +2392,7 @@ fn npc_emit_drop_or_walk(
                     y,
                     p.food,
                     st.food_goto.did_not_reach_food,
+                    st.animal_path,
                 )
             } {
                 return Some((
@@ -1258,6 +2432,7 @@ fn npc_emit_drop_or_walk(
                     y,
                     p.food,
                     st.food_goto.did_not_reach_food,
+                    st.animal_path,
                 )
             } {
                 return Some((
@@ -1282,6 +2457,7 @@ fn npc_emit_drop_or_walk(
                     y,
                     p.food,
                     st.food_goto.did_not_reach_food,
+                    st.animal_path,
                 )
             } {
                 return Some((
@@ -1319,6 +2495,23 @@ fn npc_emit_drop_or_walk(
     }
 }
 
+
+/// Live `blockedByAI` plus other NPCs' in-flight craft tiles (not yet sticky).
+// Haxe: isObjectNotReachable ORs blockedByAI; craft_progress = extra in-flight claims
+fn npc_merged_blocked_by_ai(
+    share: &BlockedByAiShare,
+    craft_progress: &HashMap<u64, ((i32, i32), i32)>,
+    self_conn: u64,
+) -> HashMap<(i32, i32), f32> {
+    let global = snapshot_blocked_by_ai_share(share);
+    blocked_by_ai_with_peer_progress(
+        &global,
+        craft_progress
+            .iter()
+            .filter(|(cid, _)| **cid != self_conn)
+            .map(|(_, ((tx, ty), _))| (*tx, *ty)),
+    )
+}
 
 fn log_ev(
     log: &NpcActivityLog,
@@ -1362,6 +2555,12 @@ pub async fn run_npc_scheduler(
     activity: Arc<NpcActivityLog>,
     // Reverse craft graph for multi-step GetOrCraft / craftItem expand (AI-CRAFT-NPC-ENQUEUE).
     craft_graph: Arc<ReverseCraftGraph>,
+    // NPC-SCAN-FULL: live SimState.blocked_by_ai mirror (Haxe blockedByAI OR)
+    blocked_by_ai: BlockedByAiShare,
+    // DROP-HELD-LIVE: season for HandlingFire winter kindling (Haxe TimeHelper.Season)
+    env_view: EnvView,
+    // AI-PRIO-LIVE: GetCloseDeadlyAnimal from sim-published AnimalWorld
+    animals: Arc<RwLock<AnimalWorld>>,
 ) {
     let labels = ["npc-forager", "npc-farmer", "npc-hunter"];
     let mut tick: u64 = 0;
@@ -1415,6 +2614,7 @@ pub async fn run_npc_scheduler(
                     reconnect: false,
                     email,
                     client_tag: "client_npc".into(),
+                    client_ip: String::new(),
                 })
                 .await;
             info!(conn_id, "npc: login requested");
@@ -1446,6 +2646,7 @@ pub async fn run_npc_scheduler(
                         reconnect: false,
                         email,
                         client_tag: "client_npc".into(),
+                        client_ip: String::new(),
                     })
                     .await;
                 info!(conn_id, active, "npc: grown population");
@@ -1499,6 +2700,7 @@ pub async fn run_npc_scheduler(
                     let st = profession_state.entry(conn_id).or_default();
                     pull_player_path_reach(st, &p);
                     st.path_reach.cleanup(0.2 * think_period as f32);
+                    st.animal_path = Some(npc_animal_path_ctx(content.as_ref(), &p));
                 }
                 let mut did_food = false;
                 if hungry {
@@ -1545,12 +2747,13 @@ pub async fn run_npc_scheduler(
                             p.food,
                         );
                         if consider {
-                            let ab = collect_deadly_animal_blocked_around(
+                            let ab = collect_deadly_animal_blocked_around_for_player(
                                 &w,
                                 &content,
                                 p.x,
                                 p.y,
                                 GOTO_COLLISION_RAD,
+                                Some(npc_animal_path_ctx(content.as_ref(), &p)),
                             );
                             is_walkable_with_animals(&w, &content, nx, ny, Some(&ab))
                         } else {
@@ -1572,6 +2775,7 @@ pub async fn run_npc_scheduler(
                 // Haxe: AiBase L85â€“86 single maps
                 if let Some(st) = profession_state.get(&conn_id) {
                     push_npc_path_reach_to_views(&player_views, conn_id, &st.path_reach);
+                    push_npc_food_goto_to_views(&player_views, conn_id, &st.food_goto);
                 }
             }
         }
@@ -1634,6 +2838,7 @@ pub async fn run_npc_scheduler(
                         reconnect: false,
                         email,
                         client_tag: "client_npc".into(),
+                        client_ip: String::new(),
                     });
                     if let Some(st) = profession_state.get_mut(&conn_id) {
                         clear_sticky_move(st);
@@ -1682,8 +2887,81 @@ pub async fn run_npc_scheduler(
                     0,
                     format!("sticky_invalid interrupt was={sticky_label}"),
                 );
-            } else if let Some(st) = profession_state.get_mut(&conn_id) {
-                clear_sticky_move(st);
+            } else {
+                // Path finished: Haxe isUsingItem — USE staged target instead of replanning.
+                let pending = profession_state
+                    .get(&conn_id)
+                    .and_then(|st| st.sticky_move.clone());
+                let mut finished_use = false;
+                if let Some(sticky) = pending {
+                    if sticky.pending_use {
+                        let w = world.read().unwrap();
+                        if sticky_move_still_valid(&w, &content, &sticky) {
+                            let held_ok = sticky.use_actor_parent == 0
+                                || sticky_parent_id(&content, p.held_id) == sticky.use_actor_parent;
+                            if held_ok && npc_is_close_action(p.x, p.y, sticky.gx, sticky.gy) {
+                                if npc_use_at(&intent_tx, conn_id, sticky.gx, sticky.gy, None, None)
+                                {
+                                    if let Some(st) = profession_state.get_mut(&conn_id) {
+                                        clear_sticky_move(st);
+                                    }
+                                    log_ev(
+                                        &activity,
+                                        conn_id,
+                                        &p,
+                                        NpcActivityKind::Craft,
+                                        500,
+                                        0,
+                                        format!("use_held_arrive @{},{}", sticky.gx, sticky.gy),
+                                    );
+                                    finished_use = true;
+                                }
+                            } else if held_ok && !npc_is_close_action(p.x, p.y, sticky.gx, sticky.gy) {
+                                let walked = {
+                                    let st = profession_state.entry(conn_id).or_default();
+                                    npc_try_walk_to_sticky(
+                                        &intent_tx,
+                                        &w,
+                                        &content,
+                                        st,
+                                        conn_id,
+                                        p.x,
+                                        p.y,
+                                        sticky.gx,
+                                        sticky.gy,
+                                        p.food,
+                                        sticky.expected_parent_id,
+                                        sticky.label.clone(),
+                                    )
+                                };
+                                if walked {
+                                    if let Some(st) = profession_state.get_mut(&conn_id) {
+                                        if let Some(ref mut sm) = st.sticky_move {
+                                            sm.pending_use = true;
+                                            sm.use_actor_parent = sticky.use_actor_parent;
+                                        }
+                                    }
+                                    log_ev(
+                                        &activity,
+                                        conn_id,
+                                        &p,
+                                        NpcActivityKind::Craft,
+                                        250,
+                                        0,
+                                        format!("use_held_walk @{},{}", sticky.gx, sticky.gy),
+                                    );
+                                    finished_use = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                if finished_use {
+                    continue;
+                }
+                if let Some(st) = profession_state.get_mut(&conn_id) {
+                    clear_sticky_move(st);
+                }
             }
 
             let profession = profession_for_index(i);
@@ -1719,12 +2997,381 @@ pub async fn run_npc_scheduler(
                 let st = profession_state.entry(conn_id).or_default();
                 pull_player_path_reach(st, &p);
                 st.path_reach.cleanup(0.2 * think_period as f32);
+                st.animal_path = Some(npc_animal_path_ctx(content.as_ref(), &p));
             }
 
             let mut acted = false;
             let mut detail = String::new();
             let mut kind = NpcActivityKind::Think;
             let mut game_ms = 200u32;
+
+            // Haxe: getHeldByPlayer() != null → return (carried baby does not think)
+            // Haxe: AiBase.doTimeStuffHelper L472–475
+            if p.held_by > 0 {
+                continue;
+            }
+
+            // --- 0. Escape deadly animal/player (AI-PRIO-LIVE) ---
+            // Haxe: doTimeStuffHelper GetCloseDeadly* + escape before hungry
+            if !acted {
+                let nearby_food = nearby.iter().any(|o| food_at(&content, o.id) > 0);
+                let animals_g = animals.read().ok();
+                let views_g = player_views.read().ok();
+                if let Some(views) = views_g.as_ref() {
+                    let st = profession_state.entry(conn_id).or_default();
+                    let input = npc_fill_live_sensor_input(
+                        &p,
+                        content.as_ref(),
+                        views,
+                        animals_g.as_deref(),
+                        st,
+                        nearby_food,
+                    );
+                    let bundle = fill_live_sensors(&input);
+                    st.was_hungry = bundle.is_hungry;
+                    if bundle.escape_threat != EscapeThreat::None {
+                        let (tx, ty) = match bundle.escape_threat {
+                            EscapeThreat::Animal => input
+                                .deadly_animal
+                                .map(|(x, y, _)| escape_target_xy(p.x, p.y, x, y, ESCAPE_DIST))
+                                .unwrap_or((p.x + ESCAPE_DIST, p.y)),
+                            EscapeThreat::Player => input
+                                .deadly_player
+                                .map(|(x, y, _, _)| {
+                                    escape_target_xy(p.x, p.y, x, y, ESCAPE_DIST)
+                                })
+                                .unwrap_or((p.x + ESCAPE_DIST, p.y)),
+                            EscapeThreat::None => (p.x, p.y),
+                        };
+                        let walked = {
+                            let w = world.read().unwrap();
+                            npc_try_walk_to(
+                                &intent_tx,
+                                &w,
+                                &content,
+                                conn_id,
+                                p.x,
+                                p.y,
+                                tx,
+                                ty,
+                                p.food,
+                                st.food_goto.did_not_reach_food,
+                                st.animal_path,
+                            )
+                        };
+                        if walked {
+                            kind = NpcActivityKind::Combat;
+                            detail = format!("escape_{:?} @{},{}", bundle.escape_threat, tx, ty);
+                            game_ms = 250;
+                            acted = true;
+                        }
+                    }
+                }
+            }
+
+            // --- 0b. handleDeath (age ≥ MaxAge−2) before eat ---
+            // Haxe: deadlyPlayer == null && handleDeath() ~554
+            if !acted {
+                let max_age = live_share
+                    .read()
+                    .map(|g| {
+                        if g.max_age.is_finite() && g.max_age > 2.0 {
+                            g.max_age
+                        } else {
+                            gameplay_defaults::MAX_AGE
+                        }
+                    })
+                    .unwrap_or(gameplay_defaults::MAX_AGE);
+                if should_handle_death(p.age, max_age) {
+                    let deadly_player = {
+                        let views = player_views.read().ok();
+                        views.as_ref().and_then(|vs| {
+                            let cands = npc_deadly_player_candidates(&p, vs, content.as_ref());
+                            get_close_deadly_player(
+                                p.x,
+                                p.y,
+                                p.angry_time,
+                                p.home_x,
+                                p.home_y,
+                                DEADLY_PLAYER_SEARCH_DIST_AI,
+                                &cands,
+                            )
+                        })
+                    };
+                    if deadly_player.is_none() {
+                        let st = profession_state.entry(conn_id).or_default();
+                        wipe_jobs_assign_grave_keeper(
+                            &mut st.farm_rt,
+                            &mut st.smith_rt,
+                            &mut st.baker_rt,
+                            &mut st.shepherd_rt,
+                            &mut st.pottery_rt,
+                            &mut st.fire_rt,
+                            &mut st.fire_keeper_rt,
+                            &mut st.grave_keeper_rt,
+                            &mut st.hunter_rt,
+                            &mut st.lumberjack_rt,
+                            &mut st.collector_rt,
+                            &mut st.foodserver_rt,
+                        );
+                        if st.remove_from_container.is_some() {
+                            let w = world.read().unwrap();
+                            if let Some((k, d, ms)) = npc_run_remove_from_container(
+                                &intent_tx,
+                                &w,
+                                content.as_ref(),
+                                conn_id,
+                                &p,
+                                st,
+                            ) {
+                                kind = k;
+                                detail = format!("handle_death_{d}");
+                                game_ms = ms;
+                                acted = true;
+                            }
+                        }
+                        if acted {
+                            // Haxe handleDeath returns after isRemovingFromContainer
+                        } else {
+                        let (home_x, home_y) =
+                            peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+                        let fire = if st.fire_place_id != 0 {
+                            Some((st.fire_place_x, st.fire_place_y))
+                        } else if p.ai_fire_place_id != 0 {
+                            Some((p.ai_fire_place_x, p.ai_fire_place_y))
+                        } else {
+                            None
+                        };
+                        let (mtx, mty) = go_home_move_target(home_x, home_y, fire);
+                        let home_quad =
+                            (p.x - home_x) * (p.x - home_x) + (p.y - home_y) * (p.y - home_y);
+                        let move_quad =
+                            (p.x - mtx) * (p.x - mtx) + (p.y - mty) * (p.y - mty);
+                        let seed = (p.p_id as u32)
+                            .wrapping_mul(1103515245)
+                            .wrapping_add(p.x as u32);
+                        let rand = (seed as f32) / (u32::MAX as f32);
+                        let plan = plan_handle_death(
+                            p.age,
+                            max_age,
+                            false,
+                            false,
+                            p.moving,
+                            home_quad,
+                            move_quad,
+                            rand,
+                        );
+                        if let Some(say) = plan.say {
+                            let _ = npc_say_raw(&intent_tx, conn_id, "SAY", say);
+                        }
+                        let mut action = plan.action;
+                        if action == HandleDeathAction::Busy {
+                            kind = NpcActivityKind::Think;
+                            detail = "handle_death_busy".into();
+                            game_ms = 200;
+                            acted = true;
+                        } else if action == HandleDeathAction::GravesThenRest {
+                            let tiles = {
+                                let w = world.read().unwrap();
+                                scan_world_radius(
+                                    &w,
+                                    Some(content.as_ref()),
+                                    home_x,
+                                    home_y,
+                                    GRAVE_SEARCH_RADIUS,
+                                )
+                            };
+                            let sticky = ProfessionStickySnapshot::from_runtimes_ex(
+                                &st.farm_rt,
+                                &st.smith_rt,
+                                &st.baker_rt,
+                                Some(&st.shepherd_rt),
+                                Some(&st.pottery_rt),
+                                Some(&st.fire_rt),
+                                Some(&st.fire_keeper_rt),
+                                Some(&st.grave_keeper_rt),
+                                Some(&st.hunter_rt),
+                                Some(&st.lumberjack_rt),
+                                Some(&st.collector_rt),
+                                Some(&st.foodserver_rt),
+                                p.age,
+                            );
+                            let mut inp = ProfessionScanInput::basic(p.x, p.y, p.held_id);
+                            inp.home_x = home_x;
+                            inp.home_y = home_y;
+                            inp.age = p.age;
+                            inp.food_store = p.food;
+                            inp.is_hungry = p.food < 5.0;
+                            inp.is_assigned_job = true;
+                            inp.profession_is_sticky = true;
+                            let result = ladder_profession_scan_tick(
+                                PriorityRung::HandleDeath,
+                                &tiles,
+                                &inp,
+                                &sticky,
+                                &mut st.farm_task,
+                                &mut st.farm_rt,
+                                &mut st.smith_rt,
+                                &mut st.baker_rt,
+                                &mut st.baker_task,
+                                &mut st.shepherd_rt,
+                                &mut st.pottery_rt,
+                                &mut st.fire_rt,
+                                &mut st.fire_keeper_rt,
+                                &mut st.grave_keeper_rt,
+                                &mut st.hunter_rt,
+                                &mut st.lumberjack_rt,
+                                &mut st.collector_rt,
+                                &mut st.foodserver_rt,
+                            );
+                            if result.had_action {
+                                match result.intent {
+                                    ShortCraftLiveIntent::UseAt { x, y, .. } => {
+                                        let dist = (x - p.x).abs().max((y - p.y).abs());
+                                        if dist <= 1 {
+                                            if npc_use_at(&intent_tx, conn_id, x, y, None, None) {
+                                                kind = NpcActivityKind::Craft;
+                                                detail = format!("handle_death_grave_use @{},{}", x, y);
+                                                game_ms = 500;
+                                                acted = true;
+                                            }
+                                        } else {
+                                            let w = world.read().unwrap();
+                                            if npc_try_walk_to(
+                                                &intent_tx,
+                                                &w,
+                                                content.as_ref(),
+                                                conn_id,
+                                                p.x,
+                                                p.y,
+                                                x,
+                                                y,
+                                                p.food,
+                                                st.food_goto.did_not_reach_food,
+                                                st.animal_path,
+                                            ) {
+                                                kind = NpcActivityKind::Craft;
+                                                detail = format!("handle_death_grave_walk @{},{}", x, y);
+                                                game_ms = 250;
+                                                acted = true;
+                                            }
+                                        }
+                                    }
+                                    ShortCraftLiveIntent::DropAt { x, y } => {
+                                        if npc_drop_at(&intent_tx, conn_id, x, y, None) {
+                                            kind = NpcActivityKind::Craft;
+                                            detail = format!("handle_death_grave_drop @{},{}", x, y);
+                                            game_ms = 400;
+                                            acted = true;
+                                        }
+                                    }
+                                    ShortCraftLiveIntent::Goto { x, y } => {
+                                        let (gx, gy) = (x, y);
+                                        let w = world.read().unwrap();
+                                        if npc_try_walk_to(
+                                            &intent_tx,
+                                            &w,
+                                            content.as_ref(),
+                                            conn_id,
+                                            p.x,
+                                            p.y,
+                                            gx,
+                                            gy,
+                                            p.food,
+                                            st.food_goto.did_not_reach_food,
+                                            st.animal_path,
+                                        ) {
+                                            kind = NpcActivityKind::Craft;
+                                            detail = format!("handle_death_grave_seek @{},{}", gx, gy);
+                                            game_ms = 250;
+                                            acted = true;
+                                        }
+                                    }
+                                    ShortCraftLiveIntent::SeekOrCraft { .. }
+                                    | ShortCraftLiveIntent::CraftItem { .. }
+                                    | ShortCraftLiveIntent::Wait => {
+                                        kind = NpcActivityKind::Think;
+                                        detail = "handle_death_grave_seek".into();
+                                        game_ms = 200;
+                                        acted = true;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            if !acted {
+                                action = handle_death_after_graves_miss(move_quad);
+                            }
+                        }
+                        if !acted && action == HandleDeathAction::GoHome {
+                            let (gx, gy) = go_home_goal_xy(mtx, mty, seed);
+                            let w = world.read().unwrap();
+                            if npc_try_walk_to(
+                                &intent_tx,
+                                &w,
+                                content.as_ref(),
+                                conn_id,
+                                p.x,
+                                p.y,
+                                gx,
+                                gy,
+                                p.food,
+                                st.food_goto.did_not_reach_food,
+                                st.animal_path,
+                            ) {
+                                kind = NpcActivityKind::Think;
+                                detail = format!("handle_death_home @{},{}", gx, gy);
+                                game_ms = 250;
+                                acted = true;
+                            }
+                        }
+                        if !acted && action == HandleDeathAction::DropHeld {
+                            st.think_time_sec += HANDLE_DEATH_TIME_BUMP;
+                            if p.held_id != 0 {
+                                if npc_drop_at(&intent_tx, conn_id, p.x, p.y, None) {
+                                    kind = NpcActivityKind::Craft;
+                                    detail = "handle_death_drop".into();
+                                    game_ms = 400;
+                                    acted = true;
+                                }
+                            } else {
+                                kind = NpcActivityKind::Think;
+                                detail = "handle_death_wait".into();
+                                game_ms = 200;
+                                acted = true;
+                            }
+                        }
+                        if !acted && action == HandleDeathAction::GravesThenRest {
+                            kind = NpcActivityKind::Think;
+                            detail = "handle_death_graves_idle".into();
+                            game_ms = 200;
+                            acted = true;
+                        }
+                        } // else not already removing
+                    }
+                }
+            }
+
+            // --- 0c. isRemovingFromContainer (after use/handleDeath, before eat) ---
+            // Haxe: doTimeStuffHelper isUsingItem then isRemovingFromContainer ~573–575
+            if !acted {
+                let st = profession_state.entry(conn_id).or_default();
+                if st.remove_from_container.is_some() {
+                    let w = world.read().unwrap();
+                    if let Some((k, d, ms)) = npc_run_remove_from_container(
+                        &intent_tx,
+                        &w,
+                        content.as_ref(),
+                        conn_id,
+                        &p,
+                        st,
+                    ) {
+                        kind = k;
+                        detail = d;
+                        game_ms = ms;
+                        acted = true;
+                    }
+                }
+            }
 
             // --- 1. Eat held food if hungry ---
             if !acted && hungry && p.held_id != 0 && food_at(&content, p.held_id) > 0 {
@@ -1742,6 +3389,33 @@ pub async fn run_npc_scheduler(
                     kind = NpcActivityKind::Eat;
                     detail = format!("eat_held={}", p.held_id);
                     game_ms = 500;
+                    acted = true;
+                }
+            }
+
+            // --- 1b. handleTemperature drink/craft/biome (Haxe ~1645 / ~653) ---
+            if !acted {
+                let env_winter = env_view
+                    .read()
+                    .ok()
+                    .map(|e| e.is_winter())
+                    .unwrap_or(false);
+                let w = world.read().unwrap();
+                let st = profession_state.entry(conn_id).or_default();
+                if let Some((k, d, ms)) = npc_run_handle_temperature(
+                    &intent_tx,
+                    &w,
+                    content.as_ref(),
+                    craft_graph.as_ref(),
+                    env_winter,
+                    conn_id,
+                    &p,
+                    st,
+                    tick,
+                ) {
+                    kind = k;
+                    detail = d;
+                    game_ms = ms;
                     acted = true;
                 }
             }
@@ -1848,15 +3522,446 @@ pub async fn run_npc_scheduler(
                 }
             }
 
+            // --- 2a2. Sticky craft queue drain (AI-JOB-DEFER) ---
+            // Haxe: doTimeStuffHelper ~667–680 itemToCraft continue then craftingTasks.shift
+            // before clothing / assigned job. Player path: apply_sticky_craft_queue_tick.
+            if !acted && !starving {
+                let has_queue = {
+                    let st = profession_state.entry(conn_id).or_default();
+                    st.craft_rt.should_continue_unfinished()
+                        || !st.craft_rt.crafting_tasks.is_empty()
+                };
+                if has_queue {
+                    let (home_x, home_y) =
+                        peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+                    let scan_r = craft_radius.min(60).max(8);
+                    let peer_blocked_by_ai =
+                        npc_merged_blocked_by_ai(&blocked_by_ai, &craft_progress, conn_id);
+                    let tiles = {
+                        let path_reach = &profession_state
+                            .get(&conn_id)
+                            .expect("npc profession entry")
+                            .path_reach;
+                        let w = world.read().unwrap();
+                        let raw = scan_world_radius(
+                            &w,
+                            Some(content.as_ref()),
+                            p.x,
+                            p.y,
+                            scan_r,
+                        );
+                        let filters = path_filters_from_player(path_reach, &peer_blocked_by_ai);
+                        apply_path_filters_to_tiles(&raw, &filters)
+                    };
+                    let blocked = {
+                        let st = profession_state.entry(conn_id).or_default();
+                        st.path_reach.blocked_coords(Some(&peer_blocked_by_ai))
+                    };
+                    let is_smith = matches!(profession, CraftProfession::Smith);
+                    let st = profession_state.get_mut(&conn_id).expect("npc profession entry");
+                    let mut choice = select_runtime_sticky_craft_for_tick(&mut st.craft_rt);
+                    // Remaining queue after first shift (Haxe for i in 0...length).
+                    let mut extra_left = st.craft_rt.crafting_tasks.len();
+                    while !matches!(choice, StickyCraftTickChoice::None) {
+                        let Some(product_id) = choice.product_id() else {
+                            break;
+                        };
+                        let intent = npc_expand_craft_product(
+                            &tiles,
+                            p.x,
+                            p.y,
+                            p.held_id,
+                            p.moving,
+                            home_x,
+                            home_y,
+                            content.as_ref(),
+                            craft_graph.as_ref(),
+                            &mut st.craft_rt,
+                            &blocked,
+                            is_smith,
+                            tick,
+                            product_id,
+                        );
+                        let committed = if !npc_craft_expand_progress(&intent, p.moving) {
+                            false
+                        } else {
+                            let w = world.read().unwrap();
+                            npc_commit_craft_live(
+                                &intent,
+                                &intent_tx,
+                                &w,
+                                content.as_ref(),
+                                st,
+                                conn_id,
+                                p.x,
+                                p.y,
+                                p.food,
+                                p.moving,
+                                &mut kind,
+                                &mut detail,
+                                &mut game_ms,
+                            )
+                        };
+                        if committed {
+                            acted = true;
+                            break;
+                        }
+                        requeue_runtime_task_on_fail(&mut st.craft_rt, choice);
+                        if extra_left == 0 {
+                            break;
+                        }
+                        extra_left -= 1;
+                        choice = match st.craft_rt.take_next_crafting_task() {
+                            Some(id) => StickyCraftTickChoice::FromQueue { product_id: id },
+                            None => StickyCraftTickChoice::None,
+                        };
+                    }
+                }
+            }
+
+            // --- 2a3. Clothing craft bands (AI-CLOTHING-CRAFT) ---
+            // Haxe: high then medium if age>10 then low if age>30 / assigned TAILOR
+            if !acted && !starving && !hungry {
+                let mut rag = [false; 6];
+                for i in 0..6 {
+                    let id = p.clothing[i];
+                    if id > 0 {
+                        if let Some(d) = content.get(id) {
+                            let n = d.name.to_ascii_uppercase();
+                            let desc = d.description.to_ascii_uppercase();
+                            rag[i] = n.contains("RAG ") || desc.contains("RAG ");
+                        }
+                    }
+                }
+                let color = person_color_from_race(0);
+                let (home_stock, has_loom) = {
+                    let w = world.read().unwrap();
+                    (
+                        home_cloth_stock_from_world(&w, p.home_x, p.home_y, 60),
+                        home_has_loom_from_world(&w, p.home_x, p.home_y, HOME_LOOM_RADIUS),
+                    )
+                };
+                let (home_x, home_y) =
+                    peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+                let npc_last_tailor = p.is_last_tailor
+                    || profession_state
+                        .get(&conn_id)
+                        .map(|s| s.last_is_tailor)
+                        .unwrap_or(false);
+                let tailor_count = {
+                    let views = player_views.read().unwrap();
+                    let rows: Vec<NpcProfessionPeerRow> = views
+                        .values()
+                        .map(|snap| {
+                            let (hx, hy) = peer_home_coords(
+                                Some((snap.home_x, snap.home_y)),
+                                snap.x,
+                                snap.y,
+                            );
+                            let pst = profession_state.get(&snap.conn_id);
+                            NpcProfessionPeerRow {
+                                conn_id: snap.conn_id,
+                                home_x: hx,
+                                home_y: hy,
+                                age: snap.age,
+                                food_store: snap.food,
+                                deleted: snap.deleted,
+                                has_player_to_follow: snap.ai_follow_p_id != 0,
+                                is_wounded: peer_is_wounded_from_held_ex(
+                                    is_wound_object(content.as_ref(), snap.held_id),
+                                    snap.is_hidden_wound,
+                                ),
+                                last_is_tailor: snap.is_last_tailor
+                                    || pst.map(|s| s.last_is_tailor).unwrap_or(false),
+                                ..NpcProfessionPeerRow::default()
+                            }
+                        })
+                        .collect();
+                    count_tailor_profession_from_rows(
+                        &rows,
+                        home_x,
+                        home_y,
+                        MIN_AGE_TO_EAT,
+                        MAX_AGE,
+                    )
+                };
+                let was_idle = if npc_last_tailor
+                    || p.is_last_smith
+                    || p.is_last_baker
+                    || p.is_last_potter
+                    || p.is_last_shepherd
+                    || p.is_last_farm
+                    || p.is_last_fire_food
+                {
+                    0.0
+                } else {
+                    1.0
+                };
+                let assigned_tailor = p.is_assigned_tailor || npc_last_tailor;
+                let has_tailor = has_or_become_tailor(
+                    npc_last_tailor,
+                    1,
+                    tailor_count as f32,
+                    was_idle,
+                ) || (assigned_tailor
+                    && has_or_become_tailor(
+                        npc_last_tailor,
+                        100,
+                        tailor_count as f32,
+                        was_idle,
+                    ));
+                let cinp = ClothingCraftInput {
+                    color,
+                    clothing_ids: &p.clothing,
+                    rag: &rag,
+                    age: p.age,
+                    has_tailor,
+                    bow_old_enough: p.age >= 3.0,
+                    held_id: p.held_id,
+                    quiver_can_add: quiver_can_add_from_slots(&p.clothing, &p.clothing_uses),
+                    home_stock,
+                    // Haxe ObjectData.male from displayed person id (Female001=19).
+                    female: content
+                        .get(p.display_object_id)
+                        .map(|o| !o.male)
+                        .unwrap_or(true),
+                    has_loom,
+                    assigned_tailor,
+                };
+                if let Some(plan) = plan_clothing_craft_tick(&cinp) {
+                    if has_tailor
+                        && plan_high_priority_clothing(&cinp).is_none()
+                        && !is_fill_up_quiver_plan(plan)
+                    {
+                        profession_state
+                            .entry(conn_id)
+                            .or_default()
+                            .last_is_tailor = true;
+                    }
+                    let scan_r = if is_fill_up_quiver_plan(plan) {
+                        fill_up_quiver_search_radius(
+                            p.age,
+                            tailor_count,
+                            npc_last_tailor,
+                        )
+                        .max(8)
+                    } else {
+                        craft_radius.min(60).max(8)
+                    };
+                    let peer_blocked_by_ai =
+                        npc_merged_blocked_by_ai(&blocked_by_ai, &craft_progress, conn_id);
+                    let tiles = {
+                        let path_reach = &profession_state
+                            .get(&conn_id)
+                            .expect("npc profession entry")
+                            .path_reach;
+                        let w = world.read().unwrap();
+                        let raw = scan_world_radius(
+                            &w,
+                            Some(content.as_ref()),
+                            p.x,
+                            p.y,
+                            scan_r,
+                        );
+                        let filters = path_filters_from_player(path_reach, &peer_blocked_by_ai);
+                        apply_path_filters_to_tiles(&raw, &filters)
+                    };
+                    let blocked = {
+                        let st = profession_state.entry(conn_id).or_default();
+                        st.path_reach.blocked_coords(Some(&peer_blocked_by_ai))
+                    };
+                    let is_smith = matches!(profession, CraftProfession::Smith);
+                    let st = profession_state.get_mut(&conn_id).expect("npc profession entry");
+                    let old_max_r = if is_fill_up_quiver_plan(plan) {
+                        let old = st.craft_rt.item.max_search_radius;
+                        st.craft_rt.item.max_search_radius = scan_r;
+                        Some(old)
+                    } else {
+                        None
+                    };
+                    let intent = match plan {
+                        ClothingCraftPlan::SelfClothing { slot } => {
+                            ShortCraftLiveIntent::SelfClothing { slot }
+                        }
+                        ClothingCraftPlan::GetItemThenGetOrCraft {
+                            get_id,
+                            fallback_id,
+                        } => {
+                            if tiles.iter().any(|t| t.parent_id == get_id) {
+                                npc_expand_craft_intent(
+                                    &tiles,
+                                    p.x,
+                                    p.y,
+                                    p.held_id,
+                                    p.moving,
+                                    home_x,
+                                    home_y,
+                                    content.as_ref(),
+                                    craft_graph.as_ref(),
+                                    &mut st.craft_rt,
+                                    &blocked,
+                                    is_smith,
+                                    tick,
+                                    ShortCraftLiveIntent::SeekOrCraft {
+                                        actor: get_id,
+                                        craft_if_needed: false,
+                                    },
+                                )
+                            } else {
+                                npc_expand_craft_product(
+                                    &tiles,
+                                    p.x,
+                                    p.y,
+                                    p.held_id,
+                                    p.moving,
+                                    home_x,
+                                    home_y,
+                                    content.as_ref(),
+                                    craft_graph.as_ref(),
+                                    &mut st.craft_rt,
+                                    &blocked,
+                                    is_smith,
+                                    tick,
+                                    fallback_id,
+                                )
+                            }
+                        }
+                        ClothingCraftPlan::GetOrCraft {
+                            object_id,
+                            craft_if_needed,
+                        } => {
+                            if craft_if_needed {
+                                npc_expand_craft_product(
+                                    &tiles,
+                                    p.x,
+                                    p.y,
+                                    p.held_id,
+                                    p.moving,
+                                    home_x,
+                                    home_y,
+                                    content.as_ref(),
+                                    craft_graph.as_ref(),
+                                    &mut st.craft_rt,
+                                    &blocked,
+                                    is_smith,
+                                    tick,
+                                    object_id,
+                                )
+                            } else {
+                                npc_expand_craft_intent(
+                                    &tiles,
+                                    p.x,
+                                    p.y,
+                                    p.held_id,
+                                    p.moving,
+                                    home_x,
+                                    home_y,
+                                    content.as_ref(),
+                                    craft_graph.as_ref(),
+                                    &mut st.craft_rt,
+                                    &blocked,
+                                    is_smith,
+                                    tick,
+                                    ShortCraftLiveIntent::SeekOrCraft {
+                                        actor: object_id,
+                                        craft_if_needed: false,
+                                    },
+                                )
+                            }
+                        }
+                        ClothingCraftPlan::CraftItem(object_id) => npc_expand_craft_product(
+                            &tiles,
+                            p.x,
+                            p.y,
+                            p.held_id,
+                            p.moving,
+                            home_x,
+                            home_y,
+                            content.as_ref(),
+                            craft_graph.as_ref(),
+                            &mut st.craft_rt,
+                            &blocked,
+                            is_smith,
+                            tick,
+                            object_id,
+                        ),
+                    };
+                    let intent = if matches!(
+                        plan,
+                        ClothingCraftPlan::GetOrCraft {
+                            object_id: 148,
+                            craft_if_needed: true
+                        }
+                    ) && !npc_craft_expand_progress(&intent, p.moving)
+                    {
+                        if let Some(ClothingCraftPlan::CraftItem(id)) =
+                            plan_quiver_arrow_precursors(p.held_id, &home_stock)
+                        {
+                            npc_expand_craft_product(
+                                &tiles,
+                                p.x,
+                                p.y,
+                                p.held_id,
+                                p.moving,
+                                home_x,
+                                home_y,
+                                content.as_ref(),
+                                craft_graph.as_ref(),
+                                &mut st.craft_rt,
+                                &blocked,
+                                is_smith,
+                                tick,
+                                id,
+                            )
+                        } else {
+                            intent
+                        }
+                    } else {
+                        intent
+                    };
+                    let committed = {
+                        let w = world.read().unwrap();
+                        npc_commit_craft_live(
+                            &intent,
+                            &intent_tx,
+                            &w,
+                            content.as_ref(),
+                            st,
+                            conn_id,
+                            p.x,
+                            p.y,
+                            p.food,
+                            p.moving,
+                            &mut kind,
+                            &mut detail,
+                            &mut game_ms,
+                        )
+                    };
+                    if let Some(old) = old_max_r {
+                        st.craft_rt.item.max_search_radius = old;
+                    }
+                    if committed {
+                        acted = true;
+                        detail = format!("clothing_craft {plan:?}");
+                    }
+                }
+            }
+
             // --- 2b. Profession ladder scan (NPC-CRAFT-LADDER) ---
             // Haxe: AssignedJob / AgeRotatedJob â†’ doBasicFarming/doSmithing/doBaking â†’ USE/DROP
             // Escape/food bands already handled above; only when not hungry-starving.
             // AI-FOLLOW-WALK: follow holds tick above when far from sticky target
             if !acted && !starving && !hungry {
-                if let Some(sticky) = npc_sticky_for_craft_profession(profession, p.age) {
+                if let Some(mut sticky) = npc_sticky_for_craft_profession(profession, p.age) {
                     // AI-JOB-SMITH-RESID: true home from PlayerSnapshot (Haxe home.tx/ty)
                     let (home_x, home_y) =
                         peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+                    sticky.tailor_assigned = p.is_assigned_tailor;
+                    sticky.tailor_last = p.is_last_tailor
+                        || profession_state
+                            .get(&conn_id)
+                            .map(|s| s.last_is_tailor)
+                            .unwrap_or(false);
                     let rung = if sticky.has_assigned_job() {
                         PriorityRung::AssignedJob
                     } else {
@@ -1873,6 +3978,12 @@ pub async fn run_npc_scheduler(
                             ProfessionScanKind::Shepherd => SHEPHERD_SHORTCRAFT_RADIUS,
                             ProfessionScanKind::FireFood => FIRE_FOOD_HOME_RADIUS,
                             ProfessionScanKind::HandlingFire => HANDLING_FIRE_COUNT_RADIUS,
+                            ProfessionScanKind::HandlingGraves => GRAVE_SEARCH_RADIUS,
+                            ProfessionScanKind::Hunting => HUNTING_SHORTCRAFT_RADIUS,
+                            ProfessionScanKind::CuttingWood => CUTTING_WOOD_SCAN_RADIUS,
+                            ProfessionScanKind::Collecting => COLLECTING_SCAN_RADIUS,
+                            ProfessionScanKind::FoodServer => STARVING_SEARCH_DIST,
+                            ProfessionScanKind::Tailor => TAILOR_SCAN_RADIUS,
                         })
                         .max()
                         .unwrap_or(DEFAULT_PROFESSION_SCAN_RADIUS)
@@ -1880,10 +3991,10 @@ pub async fn run_npc_scheduler(
                         .max(8);
                     // Ensure sticky entry exists before peer roster (no long-lived mut borrow).
                     profession_state.entry(conn_id).or_default();
-                    // PATH-REACH: filter notReachable / hostile / peer blockedByAI before picks.
+                    // PATH-REACH: filter notReachable / hostile / live blockedByAI before picks.
                     // Haxe: cleanupBlockedObjects + isObjectNotReachable (OR blockedByAI)
-                    // Peer craft targets approximate SimState.blocked_by_ai for the NPC thread
-                    // (no live SimState share); human/sticky rebuild remains on sim tick.
+                    let peer_blocked_by_ai =
+                        npc_merged_blocked_by_ai(&blocked_by_ai, &craft_progress, conn_id);
                     let tiles = {
                         let path_reach = &profession_state
                             .get(&conn_id)
@@ -1892,13 +4003,6 @@ pub async fn run_npc_scheduler(
                         let w = world.read().unwrap();
                         let raw =
                             scan_world_radius(&w, Some(content.as_ref()), home_x, home_y, scan_r);
-                        // Haxe: blockedByAI â€” peer AI craft/use claims
-                        let mut peer_blocked_by_ai: HashMap<(i32, i32), f32> = HashMap::new();
-                        for (cid, ((tx, ty), _)) in craft_progress.iter() {
-                            if *cid != conn_id {
-                                peer_blocked_by_ai.insert((*tx, *ty), 5.0);
-                            }
-                        }
                         let filters =
                             path_filters_from_player(path_reach, &peer_blocked_by_ai);
                         apply_path_filters_to_tiles(&raw, &filters)
@@ -1909,7 +4013,7 @@ pub async fn run_npc_scheduler(
                         .first()
                         .map(|s| s.kind)
                         .unwrap_or(ProfessionScanKind::Farm);
-                    let peer_count = {
+                    let (peer_count, farm_peer_lasts, peer_count_by_kind) = {
                         let views = player_views.read().unwrap();
                         // Union of published views + local profession_state (npc sticky lag).
                         let mut seen: HashMap<u64, ()> = HashMap::new();
@@ -1928,7 +4032,10 @@ pub async fn run_npc_scheduler(
                                 food_store: snap.food,
                                 deleted: snap.deleted,
                                 has_player_to_follow: snap.ai_follow_p_id != 0,
-                                is_wounded: peer_is_wounded_from_held(held_wound),
+                                is_wounded: peer_is_wounded_from_held_ex(
+                                    held_wound,
+                                    snap.is_hidden_wound,
+                                ),
                                 last_is_smith: snap.is_last_smith
                                     || pst.map(|s| s.smith_rt.is_last_smith).unwrap_or(false),
                                 last_is_baker: snap.is_last_baker
@@ -1940,13 +4047,33 @@ pub async fn run_npc_scheduler(
                                         .map(|s| s.shepherd_rt.is_last_shepherd)
                                         .unwrap_or(false),
                                 last_is_farm: snap.is_last_farm
+                                    || snap.last_farm.is_some()
                                     || pst
                                         .map(|s| s.farm_rt.last_profession.is_some())
                                         .unwrap_or(false),
+                                last_farm: pst
+                                    .and_then(|s| s.farm_rt.last_profession)
+                                    .or(snap.last_farm),
                                 last_is_fire_food: snap.is_last_fire_food
                                     || pst
                                         .map(|s| s.fire_rt.is_last_fire_food)
                                         .unwrap_or(false),
+                                last_is_hunter: snap.is_last_hunter
+                                    || pst.map(|s| s.hunter_rt.is_last_hunter).unwrap_or(false),
+                                last_is_lumberjack: snap.is_last_lumberjack
+                                    || pst
+                                        .map(|s| s.lumberjack_rt.is_last_lumberjack)
+                                        .unwrap_or(false),
+                                last_is_collector: snap.is_last_collector
+                                    || pst
+                                        .map(|s| s.collector_rt.is_last_collector)
+                                        .unwrap_or(false),
+                                last_is_foodserver: snap.is_last_foodserver
+                                    || pst
+                                        .map(|s| s.foodserver_rt.is_last_foodserver)
+                                        .unwrap_or(false),
+                                last_is_tailor: snap.is_last_tailor
+                                    || pst.map(|s| s.last_is_tailor).unwrap_or(false),
                             });
                         }
                         // Profession-state-only peers (no published view yet)
@@ -1968,10 +4095,16 @@ pub async fn run_npc_scheduler(
                                 last_is_potter: pst.pottery_rt.is_last_potter,
                                 last_is_shepherd: pst.shepherd_rt.is_last_shepherd,
                                 last_is_farm: pst.farm_rt.last_profession.is_some(),
+                                last_farm: pst.farm_rt.last_profession,
                                 last_is_fire_food: pst.fire_rt.is_last_fire_food,
+                                last_is_hunter: pst.hunter_rt.is_last_hunter,
+                                last_is_lumberjack: pst.lumberjack_rt.is_last_lumberjack,
+                                last_is_collector: pst.collector_rt.is_last_collector,
+                                last_is_foodserver: pst.foodserver_rt.is_last_foodserver,
+                                last_is_tailor: pst.last_is_tailor,
                             });
                         }
-                        npc_peer_count_for_kind(
+                        let peer_count = npc_peer_count_for_kind(
                             primary_kind,
                             &rows,
                             conn_id,
@@ -1979,7 +4112,24 @@ pub async fn run_npc_scheduler(
                             home_y,
                             MIN_AGE_TO_EAT,
                             MAX_AGE,
-                        )
+                        );
+                        let farm_peer_lasts = farm_peer_lasts_from_npc_rows(
+                            &rows,
+                            conn_id,
+                            home_x,
+                            home_y,
+                            MIN_AGE_TO_EAT,
+                            MAX_AGE,
+                        );
+                        let peer_count_by_kind = npc_peer_counts_by_kind(
+                            &rows,
+                            conn_id,
+                            home_x,
+                            home_y,
+                            MIN_AGE_TO_EAT,
+                            MAX_AGE,
+                        );
+                        (peer_count, farm_peer_lasts, peer_count_by_kind)
                     };
                     let basic_farmer_weight = basic_farmer_weight_from_runtime(
                         &profession_state
@@ -1987,6 +4137,65 @@ pub async fn run_npc_scheduler(
                             .expect("npc profession entry")
                             .farm_rt,
                     );
+                    let fire_place_id = profession_state
+                        .get(&conn_id)
+                        .map(|s| s.fire_place_id)
+                        .filter(|&id| id != 0)
+                        .unwrap_or(p.ai_fire_place_id);
+                    let fire_place_x = profession_state
+                        .get(&conn_id)
+                        .map(|s| s.fire_place_x)
+                        .unwrap_or(p.ai_fire_place_x);
+                    let fire_place_y = profession_state
+                        .get(&conn_id)
+                        .map(|s| s.fire_place_y)
+                        .unwrap_or(p.ai_fire_place_y);
+                    let (fire_obj_x, fire_obj_y) = if fire_place_id != 0 {
+                        (fire_place_x, fire_place_y)
+                    } else {
+                        (home_x, home_y)
+                    };
+                    let is_best_fire_keeper_at_home = npc_is_best_fire_keeper(
+                        &p,
+                        &player_views,
+                        &profession_state,
+                        content.as_ref(),
+                        home_x,
+                        home_y,
+                    );
+                    let is_best_fire_keeper_at_fire = npc_is_best_fire_keeper(
+                        &p,
+                        &player_views,
+                        &profession_state,
+                        content.as_ref(),
+                        fire_obj_x,
+                        fire_obj_y,
+                    );
+                    let last_grave = profession_state.get(&conn_id).and_then(|s| {
+                        if s.grave_keeper_rt.last_grave_id != 0 {
+                            Some((
+                                s.grave_keeper_rt.last_grave_id,
+                                s.grave_keeper_rt.last_grave_x,
+                                s.grave_keeper_rt.last_grave_y,
+                            ))
+                        } else {
+                            None
+                        }
+                    });
+                    let is_best_grave_keeper =
+                        if let Some((gx, gy)) = npc_pick_grave_xy(&tiles, p.x, p.y, last_grave)
+                        {
+                            npc_is_best_grave_keeper(
+                                &p,
+                                &player_views,
+                                &profession_state,
+                                content.as_ref(),
+                                gx,
+                                gy,
+                            )
+                        } else {
+                            true
+                        };
                     let inp = ProfessionScanInput {
                         player_x: p.x,
                         player_y: p.y,
@@ -1994,11 +4203,16 @@ pub async fn run_npc_scheduler(
                         home_y,
                         held_id: p.held_id,
                         held_uses: p.held_uses.max(1),
-                        // Snapshot lacks nest; clay bare-held only (AI-POTTER residual).
-                        held_contained: 0,
-                        held_contains_clay: p.held_id == 126,
+                        held_contained: p.held_contained,
+                        held_contains_clay: p.held_contains_clay,
                         food_store: p.food,
-                        transition_hungry_cost: 0.0,
+                        transition_hungry_cost: scan_held_hungry_work_cost(
+                            content.as_ref(),
+                            p.held_id,
+                            cfg.hungry_work_cost,
+                        ),
+                        hungry_work_cost_knob: cfg.hungry_work_cost,
+                        content: Some(content.clone()),
                         has_carrot_seeds: has_carrot_seeds_from_scan(&tiles),
                         has_bean_seeds: has_bean_seeds_from_scan(&tiles),
                         is_hungry: false,
@@ -2007,18 +4221,73 @@ pub async fn run_npc_scheduler(
                         // PATH-REACH: tiles already filtered via path_reach maps
                         target_reachable: true,
                         peer_count,
+                        farm_peer_lasts,
                         was_idle: if sticky.has_sticky_profession() { 0.0 } else { 1.0 },
                         age: p.age,
                         profession_is_sticky: sticky.has_sticky_profession(),
                         is_assigned_job: sticky.has_assigned_job(),
                         // PREFER-SHORT-WAIT (npc usually skips when p.moving; keep field)
                         is_moving: p.moving,
-                        // AI-HANDLING-FIRE: Season==Winter â†’ Fire 82 kindling first (npc residual false)
-                        is_winter: false,
+                        // AI-HANDLING-FIRE: Season==Winter → Fire 82 kindling first
+                        is_winter: env_view
+                            .read()
+                            .map(|g| g.is_winter())
+                            .unwrap_or(false),
                         // Load-time objectIdArrays[455] cache (not re-scanned each tick)
                         chisel_family_extra: chisel_family_extra.clone(),
+                        // Haxe AiIgnoredFloorIds — live table (empty → compiled 656/888)
+                        ignored_floor_ids: cfg.ignored_floor_ids.clone(),
+                        is_best_bowl_filler: npc_is_best_bowl_filler(
+                            &p,
+                            &player_views,
+                            &profession_state,
+                            content.as_ref(),
+                        ),
+                        is_best_fire_keeper_at_home,
+                        is_best_fire_keeper_at_fire,
+                        is_best_grave_keeper,
+                        peer_count_by_kind: Some(peer_count_by_kind),
+                        // Haxe: storeInQuiver clothingObjects (DROP-HELD-QUIVER)
+                        clothing: p.clothing,
+                        clothing_uses: p.clothing_uses,
+                        fire_place_id,
+                        fire_place_x,
+                        fire_place_y,
+                        feeding_cands: Vec::new(),
+                        held_food_value: 0,
+                        feeder_is_fertile: false,
+                        feeder_is_smith: false,
+                        feeder_p_id: p.p_id,
+                        person_color: person_color_from_race(0),
+                        looks_female: content
+                            .get(p.display_object_id)
+                            .map(|o| !o.male)
+                            .unwrap_or(true),
+                        assigned_tailor: p.is_assigned_tailor,
+                        last_is_tailor: p.is_last_tailor
+                            || profession_state
+                                .get(&conn_id)
+                                .map(|s| s.last_is_tailor)
+                                .unwrap_or(false),
+                        bucket_water_source_ids: init_water_source_ids_from_content(
+                            content.as_ref(),
+                        )
+                        .1,
                     };
                     let st = profession_state.get_mut(&conn_id).expect("npc profession entry");
+                    let mut sticky = sticky;
+                    sticky.grave_keeper_assigned = st.grave_keeper_rt.is_assigned_grave_keeper;
+                    sticky.grave_keeper_last = st.grave_keeper_rt.is_last_grave_keeper;
+                    sticky.hunter_assigned = st.hunter_rt.is_assigned_hunter;
+                    sticky.hunter_last = st.hunter_rt.is_last_hunter;
+                    sticky.lumberjack_assigned = st.lumberjack_rt.is_assigned_lumberjack;
+                    sticky.lumberjack_last = st.lumberjack_rt.is_last_lumberjack;
+                    sticky.collector_assigned = st.collector_rt.is_assigned_collector;
+                    sticky.collector_last = st.collector_rt.is_last_collector;
+                    sticky.foodserver_assigned = st.foodserver_rt.is_assigned_foodserver;
+                    sticky.foodserver_last = st.foodserver_rt.is_last_foodserver;
+                    sticky.tailor_assigned = p.is_assigned_tailor;
+                    sticky.tailor_last = st.last_is_tailor || p.is_last_tailor;
                     let result = ladder_profession_scan_tick(
                         rung,
                         &tiles,
@@ -2033,7 +4302,49 @@ pub async fn run_npc_scheduler(
                         &mut st.pottery_rt,
                         &mut st.fire_rt,
                         &mut st.fire_keeper_rt,
+                        &mut st.grave_keeper_rt,
+                        &mut st.hunter_rt,
+                        &mut st.lumberjack_rt,
+                        &mut st.collector_rt,
+                        &mut st.foodserver_rt,
                     );
+                    // FIRE-CRAFT-R30: itemToCraft.maxSearchRadius=30 around makeFireFood(3)
+                    apply_fire_craft_search_radius_override(
+                        &mut st.fire_keeper_rt,
+                        &mut st.craft_rt.item.max_search_radius,
+                    );
+                    if st.fire_keeper_rt.fire_place_touched {
+                        let map: Vec<HandlingFireMapObj> = tiles
+                            .iter()
+                            .filter(|t| t.parent_id != 0)
+                            .map(|t| HandlingFireMapObj {
+                                parent_id: t.parent_id,
+                                x: t.x,
+                                y: t.y,
+                            })
+                            .collect();
+                        let resolved = resolve_fire_place(
+                            &map,
+                            home_x,
+                            home_y,
+                            GET_CLOSE_FIRE_MAXDIST,
+                            None,
+                        );
+                        let (id, x, y) = commit_fire_place(
+                            resolved,
+                            st.fire_keeper_rt.give_up_fire_place,
+                        );
+                        st.fire_place_id = id;
+                        st.fire_place_x = x;
+                        st.fire_place_y = y;
+                        st.fire_keeper_rt.fire_place_touched = false;
+                        st.fire_keeper_rt.give_up_fire_place = false;
+                    }
+                    if result.had_action
+                        && steps.first().map(|s| s.kind) == Some(ProfessionScanKind::Tailor)
+                    {
+                        st.last_is_tailor = true;
+                    }
                     if result.had_action {
                         match result.intent {
                             ShortCraftLiveIntent::UseAt {
@@ -2072,6 +4383,7 @@ pub async fn run_npc_scheduler(
                             y,
                             p.food,
                             st.food_goto.did_not_reach_food,
+                            st.animal_path,
                         )
                     };
                     if walked {
@@ -2131,6 +4443,7 @@ pub async fn run_npc_scheduler(
                     y,
                     p.food,
                     st.food_goto.did_not_reach_food,
+                    st.animal_path,
                 )
             } {
                                         kind = NpcActivityKind::Craft;
@@ -2186,6 +4499,7 @@ pub async fn run_npc_scheduler(
                     y,
                     p.food,
                     st.food_goto.did_not_reach_food,
+                    st.animal_path,
                 )
             } {
                                         kind = NpcActivityKind::Craft;
@@ -2213,6 +4527,38 @@ pub async fn run_npc_scheduler(
                                     );
                                 }
                             }
+                            ShortCraftLiveIntent::StageRemoveFromContainer {
+                                x,
+                                y,
+                                expected_parent,
+                            } => {
+                                st.remove_from_container = stage_remove_item_from_container(
+                                    x,
+                                    y,
+                                    expected_parent,
+                                    true,
+                                    false,
+                                );
+                                kind = NpcActivityKind::Craft;
+                                detail = format!(
+                                    "stage_remove parent={expected_parent} @{},{} rung={}",
+                                    x,
+                                    y,
+                                    rung.as_label()
+                                );
+                                game_ms = 200;
+                                acted = true;
+                            }
+                            ShortCraftLiveIntent::Remv { x, y } => {
+                                let payload = format!("{x} {y}");
+                                if npc_say_raw(&intent_tx, conn_id, "REMV", &payload) {
+                                    st.remove_from_container = None;
+                                    kind = NpcActivityKind::Craft;
+                                    detail = format!("prof_remv @{},{} rung={}", x, y, rung.as_label());
+                                    game_ms = 500;
+                                    acted = true;
+                                }
+                            }
                             ShortCraftLiveIntent::SeekOrCraft { .. }
                             | ShortCraftLiveIntent::SeekGroundActor { .. }
                             | ShortCraftLiveIntent::CraftItem { .. } => {
@@ -2227,26 +4573,32 @@ pub async fn run_npc_scheduler(
                                 let goc_objs = get_or_craft_objs_from_scan(&tiles, None);
                                 // Haxe: ignoreFullPiles + numberOfUses >= numUses
                                 let full_piles = full_pile_tiles_from_scan(&tiles);
+                                // Haxe: addObjectsForCrafting skip nonempty containers
+                                let nonempty_boxes = nonempty_container_tiles_from_scan(&tiles);
                                 // Haxe: isObjectNotReachable ORs blockedByAI
-                                let mut peer_blocked_by_ai: HashMap<(i32, i32), f32> =
-                                    HashMap::new();
-                                for (cid, ((tx, ty), _)) in craft_progress.iter() {
-                                    if *cid != conn_id {
-                                        peer_blocked_by_ai.insert((*tx, *ty), 5.0);
-                                    }
-                                }
+                                let peer_blocked_by_ai = npc_merged_blocked_by_ai(
+                                    &blocked_by_ai,
+                                    &craft_progress,
+                                    conn_id,
+                                );
                                 let blocked =
                                     st.path_reach.blocked_coords(Some(&peer_blocked_by_ai));
                                 let empty_drop = Some((p.x, p.y));
                                 let is_smith = matches!(profession, CraftProfession::Smith);
+                                // Haxe: ObjectData.getPileObjId via self+self transition
+                                let content_ref = content.as_ref();
+                                // Haxe: ServerSettings.WaterSourceIds / BucketWaterSourceIds
+                                let (water_ids, bucket_ids) =
+                                    init_water_source_ids_from_content(content_ref);
                                 let opts = CraftLiveExpandOpts {
                                     home: Some((home_x, home_y)),
                                     is_or_can_smith: is_smith,
                                     now_sec: tick as f64 * 0.2,
-                                    use_default_water_sources: true,
-                                };
-                                // Haxe: ObjectData.getPileObjId via self+self transition
-                                let content_ref = content.as_ref();
+                                    water_source_ids: water_ids,
+                                    bucket_water_source_ids: bucket_ids,
+                                    ..Default::default()
+                                }
+                                .with_content_craft_gates(content_ref);
                                 let pile_id_for = |id: i32| {
                                     let p = pile_obj_id_from_content(content_ref, id);
                                     if p > 0 {
@@ -2269,6 +4621,7 @@ pub async fn run_npc_scheduler(
                                     &pile_id_for,
                                     Some(&blocked),
                                     Some(&full_piles),
+                                    Some(&nonempty_boxes),
                                 );
                                 match resolved {
                                     ShortCraftLiveIntent::Wait => {
@@ -2322,6 +4675,7 @@ pub async fn run_npc_scheduler(
                     y,
                     p.food,
                     st.food_goto.did_not_reach_food,
+                    st.animal_path,
                 )
             } {
                                                 kind = NpcActivityKind::Craft;
@@ -2394,6 +4748,7 @@ pub async fn run_npc_scheduler(
                     y,
                     p.food,
                     st.food_goto.did_not_reach_food,
+                    st.animal_path,
                 )
             } {
                                                     kind = NpcActivityKind::Craft;
@@ -2443,6 +4798,7 @@ pub async fn run_npc_scheduler(
                     forge_y,
                     p.food,
                     st.food_goto.did_not_reach_food,
+                    st.animal_path,
                 )
             } {
                                                     kind = NpcActivityKind::Craft;
@@ -2482,6 +4838,7 @@ pub async fn run_npc_scheduler(
                                             forge_y,
                                             p.food,
                                             st.food_goto.did_not_reach_food,
+                                            st.animal_path,
                                         )
                                     };
                                     if walked {
@@ -2513,6 +4870,7 @@ pub async fn run_npc_scheduler(
                                             y,
                                             p.food,
                                             st.food_goto.did_not_reach_food,
+                                            st.animal_path,
                                         )
                                     };
                                     if walked {
@@ -2574,7 +4932,8 @@ pub async fn run_npc_scheduler(
                 let mut drop_extras = DropHeldSensorExtras::default();
                 drop_extras.quiver =
                     quiver_from_clothing_snapshot(&p.clothing, &p.clothing_uses);
-                let intent = smart_drop_held_from_sensors(
+                drop_extras.held_contains_clay = p.held_contains_clay;
+                let intent = smart_drop_held_from_sensors_ex(
                     p.held_id,
                     p.held_uses.max(1),
                     p.x,
@@ -2587,6 +4946,7 @@ pub async fn run_npc_scheduler(
                     1.0, // drop close to player
                     &tiles,
                     drop_extras,
+                    Some(content.as_ref()),
                 );
                 match intent {
                     ShortCraftLiveIntent::DropAt { x, y } => {
@@ -2614,6 +4974,7 @@ pub async fn run_npc_scheduler(
                                     y,
                                     p.food,
                                     st.food_goto.did_not_reach_food,
+                                    st.animal_path,
                                 )
                             };
                             if walked {
@@ -2817,19 +5178,18 @@ pub async fn run_npc_scheduler(
             }
 
             // --- 4. Feed kids (NURSE/FEED) when holding a baby + food ---
-            // Holding baby is modeled as holding_player_id on sim; snapshot may not expose it.
-            // Use SAY NURSE when holding food and another young player is adjacent.
+            // Haxe: heldPlayer + NURSE/FEED; snapshot holding_player_id or adjacent infant.
             if !acted && p.held_id != 0 && food_at(&content, p.held_id) > 0 {
-                let baby_near = {
+                let baby_near = p.holding_player_id != 0 || {
                     let views = player_views.read().unwrap();
-                    views.values().find(|o| {
+                    views.values().any(|o| {
                         !o.deleted
                             && o.conn_id != conn_id
                             && o.age < 3.0
                             && (o.x - p.x).abs().max((o.y - p.y).abs()) <= 1
-                    }).map(|o| o.p_id)
+                    })
                 };
-                if baby_near.is_some() {
+                if baby_near {
                     if intent_tx
                         .try_send(NetIntent::Raw {
                             conn_id,
@@ -2979,6 +5339,7 @@ pub async fn run_npc_scheduler(
             // PATH-REACH-MERGE: push NPC path maps into player_views for tick_vitals absorb
             if let Some(st) = profession_state.get(&conn_id) {
                 push_npc_path_reach_to_views(&player_views, conn_id, &st.path_reach);
+                push_npc_food_goto_to_views(&player_views, conn_id, &st.food_goto);
             }
             counters.ai_thinks.fetch_add(1, Ordering::Relaxed);
             let dt_ms = 200u64.saturating_mul(active as u64).max(200);
@@ -3006,6 +5367,7 @@ mod tests {
             ai_reaction_time: 0.5,
             ai_reaction_time_serf: 0.7,
             ai_reaction_time_noble: 0.2,
+            ai_ignored_floor_ids: vec![656],
             ..Default::default()
         }
         .live_settings();
@@ -3019,6 +5381,38 @@ mod tests {
         assert!((cfg.reaction_time - 0.5).abs() < f32::EPSILON);
         assert!((cfg.reaction_time_serf - 0.7).abs() < f32::EPSILON);
         assert!((cfg.reaction_time_noble - 0.2).abs() < f32::EPSILON);
+        assert_eq!(cfg.ignored_floor_ids, vec![656]);
+
+        // Empty live table → compiled AiIgnoredFloorIds (Bear Skin Rug 656/888).
+        let mut empty_live = ServerConfig::default().live_settings();
+        empty_live.ai_ignored_floor_ids.clear();
+        let cfg = NpcConfig::from_live(&empty_live);
+        assert_eq!(cfg.ignored_floor_ids, AI_IGNORED_FLOOR_IDS);
+    }
+
+    #[test]
+    fn npc_config_from_live_ignored_floor_ids() {
+        let live = ServerConfig {
+            ai_ignored_floor_ids: vec![656],
+            ..Default::default()
+        }
+        .live_settings();
+        let cfg = NpcConfig::from_live(&live);
+        assert_eq!(cfg.ignored_floor_ids, vec![656]);
+
+        let empty = ServerConfig {
+            ai_ignored_floor_ids: Vec::new(),
+            ..Default::default()
+        }
+        .live_settings();
+        let cfg = NpcConfig::from_live(&empty);
+        assert_eq!(cfg.ignored_floor_ids, AI_IGNORED_FLOOR_IDS);
+
+        // from_live itself, not only ServerConfig.live_settings() fill.
+        let mut live_empty = ServerConfig::default().live_settings();
+        live_empty.ai_ignored_floor_ids.clear();
+        let cfg = NpcConfig::from_live(&live_empty);
+        assert_eq!(cfg.ignored_floor_ids, AI_IGNORED_FLOOR_IDS);
     }
 
     #[test]
@@ -3054,12 +5448,56 @@ mod tests {
     }
 
     #[test]
+    fn npc_merged_blocked_by_ai_uses_share_and_peer_craft() {
+        let share = ol_sim::new_blocked_by_ai_share();
+        {
+            let mut g = share.write().unwrap();
+            g.insert((1, 1), 2.0);
+        }
+        let mut progress = HashMap::new();
+        progress.insert(2, ((1, 1), 3));
+        progress.insert(3, ((5, 5), 1));
+        progress.insert(1, ((9, 9), 1));
+        let merged = npc_merged_blocked_by_ai(&share, &progress, 1);
+        assert!((merged[&(1, 1)] - 5.0).abs() < 0.01);
+        assert!((merged[&(5, 5)] - 5.0).abs() < 0.01);
+        assert!(!merged.contains_key(&(9, 9)));
+    }
+
+    #[test]
+    fn craft_queue_wait_without_progress_is_fail() {
+        // Haxe: isMoving → craftItem true; idle Wait / None → push craftingTasks.
+        assert!(!npc_craft_expand_progress(&ShortCraftLiveIntent::Wait, false));
+        assert!(npc_craft_expand_progress(&ShortCraftLiveIntent::Wait, true));
+        assert!(!npc_craft_expand_progress(&ShortCraftLiveIntent::None, false));
+        assert!(npc_craft_expand_progress(
+            &ShortCraftLiveIntent::UseAt {
+                x: 1,
+                y: 2,
+                target_id: 3,
+                actor_id: 0,
+            },
+            false
+        ));
+        assert!(npc_craft_expand_progress(
+            &ShortCraftLiveIntent::Goto { x: 4, y: 5 },
+            false
+        ));
+        assert!(!npc_craft_expand_progress(
+            &ShortCraftLiveIntent::CraftItem { object_id: 71 },
+            false
+        ));
+    }
+
+    #[test]
     fn sticky_walk_only_always_valid() {
         // expected_parent_id == 0 â†’ pure walk, valid regardless of world contents.
         let sticky = NpcStickyMove {
             gx: 10,
             gy: 10,
             expected_parent_id: 0,
+            use_actor_parent: 0,
+            pending_use: false,
             label: "walk".into(),
         };
         assert_eq!(sticky.expected_parent_id, 0);
@@ -3067,5 +5505,73 @@ mod tests {
         assert!(is_milkweed_family(50));
         assert!(is_milkweed_family(51));
         assert!(!is_milkweed_family(36));
+    }
+
+    #[test]
+    fn live_sensors_escape_wolf_near_npc() {
+        // AI-PRIO-LIVE: GetCloseDeadlyAnimal → fill_live_sensors → EscapeThreat::Animal
+        let mut aw = AnimalWorld::new();
+        aw.spawn(ol_sim::AnimalKind::Wolf, 1, 0);
+        let mut player = ol_sim::Player::new(1, 1, "npc@test");
+        player.x = 0;
+        player.y = 0;
+        player.age = 20.0;
+        player.food = 15.0;
+        player.food_max = 20.0;
+        let snap = player.snapshot();
+        let st = NpcProfessionState::default();
+        let views = HashMap::new();
+        let content = ContentDb::default();
+        let input = npc_fill_live_sensor_input(&snap, &content, &views, Some(&aw), &st, false);
+        assert!(input.deadly_animal.is_some());
+        let bundle = fill_live_sensors(&input);
+        assert_eq!(bundle.escape_threat, EscapeThreat::Animal);
+    }
+
+    #[test]
+    fn deadly_player_candidate_marks_attacker_unfriendly() {
+        let mut self_p = ol_sim::Player::new(1, 1, "npc@test");
+        self_p.p_id = 1;
+        self_p.last_player_attacked_me_id = 2;
+        let mut other = ol_sim::Player::new(2, 2, "human@test");
+        other.p_id = 2;
+        other.x = 1;
+        other.y = 0;
+        other.angry_time = 0.0;
+        other.held_id = 560; // known knife
+        let mut views = HashMap::new();
+        views.insert(2, other.snapshot());
+        let content = ContentDb::default();
+        let cands = npc_deadly_player_candidates(&self_p.snapshot(), &views, &content);
+        assert_eq!(cands.len(), 1);
+        assert!(!cands[0].is_friendly);
+        assert!(cands[0].holding_weapon);
+    }
+
+    #[test]
+    fn hidden_wound_is_not_peer_wounded() {
+        assert!(!peer_is_wounded_from_held_ex(true, true));
+        assert!(peer_is_wounded_from_held_ex(true, false));
+    }
+
+    #[test]
+    fn lost_combat_prestige_makes_deadly_player_candidate() {
+        let mut self_pl = ol_sim::Player::new(1, 1, "npc@test");
+        self_pl.last_attacked_player_id = 2;
+        let self_p = self_pl.snapshot();
+        let mut other = ol_sim::Player::new(2, 2, "human@test");
+        other.p_id = 2;
+        other.x = 1;
+        other.y = 0;
+        let mut snap = other.snapshot();
+        snap.lost_combat_prestige = 6.0;
+        let mut views = HashMap::new();
+        views.insert(2, snap);
+        let content = ContentDb::default();
+        let cands = npc_deadly_player_candidates(&self_p, &views, &content);
+        assert_eq!(cands.len(), 1);
+        assert!(cands[0].lost_combat_prestige > 5.0);
+        assert!(!cands[0].is_friendly);
+        assert!(ol_ai::is_deadly_player_candidate(&cands[0], 10.0, 0, 0));
     }
 }

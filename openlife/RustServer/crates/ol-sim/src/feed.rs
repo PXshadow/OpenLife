@@ -8,7 +8,8 @@
 //!
 //! Range check + food transfer math only — no world I/O.
 
-/// Max Chebyshev distance to feed another player (adjacent or same tile).
+/// Max Haxe `isClose` distance to feed another player (same tile or orthogonal).
+/// Diagonal fails at 1 (`dx²+dy² = 2 ≰ 1`).
 pub const FEED_RANGE: i32 = 1;
 
 /// Haxe `MaxChildAgeForBreastFeeding` — child **older** than this cannot nurse
@@ -100,10 +101,23 @@ pub fn can_pickup_breastfeed_age_ex(baby_age: f32, max_child_age: f32) -> bool {
 // Haxe: doBabyHelper L4956-4964
 #[inline]
 pub fn can_pickup_player_ages(carrier_age: f32, target_age: f32) -> bool {
+    can_pickup_player_ages_ex(carrier_age, target_age, MAX_AGE_FOR_PICKUP_FROM_OTHERS)
+}
+
+/// Live-knob variant of [`can_pickup_player_ages`].
+// Haxe: ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers
+// SETTINGS-LONG-TAIL
+#[inline]
+pub fn can_pickup_player_ages_ex(carrier_age: f32, target_age: f32, max_age: f32) -> bool {
     if !carrier_age.is_finite() || !target_age.is_finite() {
         return false;
     }
-    if target_age >= MAX_AGE_FOR_PICKUP_FROM_OTHERS {
+    let cap = if max_age.is_finite() && max_age > 0.0 {
+        max_age
+    } else {
+        MAX_AGE_FOR_PICKUP_FROM_OTHERS
+    };
+    if target_age >= cap {
         return false;
     }
     carrier_age >= target_age + 1.0
@@ -121,13 +135,7 @@ pub fn can_pickup_baby_distance(ax: f32, ay: f32, bx: f32, by: f32) -> bool {
 // Haxe: ServerSettings.PickupBabyMaxDistance
 // C-SS-MORE-BATCH4
 #[inline]
-pub fn can_pickup_baby_distance_ex(
-    ax: f32,
-    ay: f32,
-    bx: f32,
-    by: f32,
-    max_distance: f32,
-) -> bool {
+pub fn can_pickup_baby_distance_ex(ax: f32, ay: f32, bx: f32, by: f32, max_distance: f32) -> bool {
     if !ax.is_finite() || !ay.is_finite() || !bx.is_finite() || !by.is_finite() {
         return false;
     }
@@ -301,11 +309,22 @@ pub fn nurse_hits_heal(hits: f32, dt: f32) -> f32 {
 /// Returns `(to_baby, from_mother)`. Cap = [`get_max_child_feeding`].
 // Haxe: doBabyHelper L4992-5000
 pub fn pickup_feed_amounts(baby_food: f32, baby_food_max: f32) -> (f32, f32) {
+    pickup_feed_amounts_ex(baby_food, baby_food_max, PICKUP_FEEDING_FOOD_RESTORE)
+}
+
+/// Live-knob variant of [`pickup_feed_amounts`].
+// Haxe: ServerSettings.PickupFeedingFoodRestore
+// SETTINGS-LONG-TAIL
+pub fn pickup_feed_amounts_ex(baby_food: f32, baby_food_max: f32, restore: f32) -> (f32, f32) {
     let cap = get_max_child_feeding(baby_food_max);
     if baby_food >= cap {
         return (0.0, 0.0);
     }
-    let food = PICKUP_FEEDING_FOOD_RESTORE;
+    let food = if restore.is_finite() && restore >= 0.0 {
+        restore
+    } else {
+        PICKUP_FEEDING_FOOD_RESTORE
+    };
     let room = (cap - baby_food).max(0.0);
     let to_baby = food.min(room);
     (to_baby, to_baby * 0.5)
@@ -331,7 +350,7 @@ pub fn should_set_follow_on_hold(
 /// Errors:
 /// - `"not food"` — held is empty or not food
 /// - `"target deleted"` — target is deleted
-/// - `"out of range"` — Chebyshev distance &gt; [`FEED_RANGE`]
+/// - `"out of range"` — Haxe `isCloseToPlayer` (squared Euclidean) vs [`FEED_RANGE`]
 pub fn can_feed(
     feeder_x: i32,
     feeder_y: i32,
@@ -347,8 +366,8 @@ pub fn can_feed(
     if target_deleted {
         return Err("target deleted");
     }
-    let dist = (feeder_x - target_x).abs().max((feeder_y - target_y).abs());
-    if dist > FEED_RANGE {
+    // Haxe: doOnOtherHelper isCloseToPlayer default distance=1
+    if !crate::in_use_range(feeder_x, feeder_y, target_x, target_y, FEED_RANGE) {
         return Err("out of range");
     }
     Ok(())
@@ -359,11 +378,7 @@ pub fn can_feed(
 /// Returns `(new_target_food, leftover)`.
 /// - If the whole held value is consumed (target room ≥ held), leftover is `0.0`.
 /// - If target is already full, leftover equals the full held value (nothing transferred).
-pub fn apply_feed_amounts(
-    held_food_value: f32,
-    target_food: f32,
-    target_max: f32,
-) -> (f32, f32) {
+pub fn apply_feed_amounts(held_food_value: f32, target_food: f32, target_max: f32) -> (f32, f32) {
     if held_food_value <= 0.0 {
         return (target_food.min(target_max), held_food_value.max(0.0));
     }
@@ -501,6 +516,14 @@ mod tests {
     }
 
     #[test]
+    fn live_pickup_age_and_restore_knobs() {
+        assert!(can_pickup_player_ages_ex(20.0, 10.0, 12.0));
+        assert!(!can_pickup_player_ages_ex(20.0, 10.0, 10.0));
+        let (to, _) = pickup_feed_amounts_ex(0.0, 20.0, 2.0);
+        assert!((to - 2.0).abs() < 1e-5);
+    }
+
+    #[test]
     fn can_pickup_baby_distance_euclidean_1_9() {
         // Same tile
         assert!(can_pickup_baby_distance(0.0, 0.0, 0.0, 0.0));
@@ -546,6 +569,12 @@ mod tests {
     }
 
     #[test]
+    fn needs_force_drop_nested_hold_haxe() {
+        assert!(needs_force_drop_nested_hold(7));
+        assert!(!needs_force_drop_nested_hold(0));
+    }
+
+    #[test]
     fn drain_mother_nurse_prefers_yum_bonus() {
         // yum > 0 → full amount from yum (may go negative), food untouched
         let (y, f) = drain_mother_nurse_cost(2.0, 10.0, 0.5);
@@ -581,17 +610,12 @@ mod tests {
     fn can_feed_requires_food_and_range() {
         assert!(can_feed(0, 0, 0, 0, 33, false, true).is_ok());
         assert!(can_feed(0, 0, 1, 0, 33, false, true).is_ok());
-        assert!(can_feed(0, 0, 1, 1, 33, false, true).is_ok());
-        assert_eq!(
-            can_feed(0, 0, 2, 0, 33, false, true),
-            Err("out of range")
-        );
+        // Haxe isClose d=1: diagonal 2 ≰ 1
+        assert_eq!(can_feed(0, 0, 1, 1, 33, false, true), Err("out of range"));
+        assert_eq!(can_feed(0, 0, 2, 0, 33, false, true), Err("out of range"));
         assert_eq!(can_feed(0, 0, 0, 0, 0, false, true), Err("not food"));
         assert_eq!(can_feed(0, 0, 0, 0, 33, false, false), Err("not food"));
-        assert_eq!(
-            can_feed(0, 0, 0, 0, 33, true, true),
-            Err("target deleted")
-        );
+        assert_eq!(can_feed(0, 0, 0, 0, 33, true, true), Err("target deleted"));
     }
 
     #[test]

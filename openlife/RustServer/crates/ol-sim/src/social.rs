@@ -8,8 +8,12 @@
 //!
 //! **LINEAGE-24H:** `death_sim_time` / `death_reason` / `age_at_death` for last-day
 //! starving window. Persisted on OLN2; boot-seeded into `WorldFoodStats` death stamps.
+//! **LINEAGE-BIRTH-TIME:** `birth_sim_time` (Haxe `birthTime`) OLN3; living ages from
+//! `round(yearsSinceBirth - yearsSinceDeath)`.
 
-use crate::prestige::{prestige_class_wire_token, PrestigeClass};
+use crate::prestige::PrestigeClass;
+pub use ol_identity::LineageNode;
+use ol_identity::LINEAGE_STARTING_FAMILY_NAME;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
@@ -43,12 +47,82 @@ pub struct LineageEntryView {
     // Haxe: age at GenerateLineageStatistics
     #[serde(default)]
     pub age_at_death: f32,
+    /// Haxe `Lineage.trueAge` at death (OLN14).
+    #[serde(default)]
+    pub true_age_at_death: f32,
+    /// Haxe `Lineage.birthTime` (sim seconds); `< 0` = unknown.
+    // Haxe: Lineage.birthTime — LINEAGE-BIRTH-TIME
+    #[serde(default = "lineage_birth_unknown_serde")]
+    pub birth_sim_time: f32,
     /// Haxe `Lineage.alive`.
     #[serde(default)]
     pub alive: bool,
+    /// Haxe `Lineage.myEveId` (0 = unset; OLN5).
+    #[serde(default)]
+    pub my_eve_id: i32,
+    /// Haxe `Lineage.lastSaid` (OLN4).
+    #[serde(default)]
+    pub last_said: String,
+    /// Haxe `Lineage.reputation` (OLN6; −lostCombatPrestige at death).
+    #[serde(default)]
+    pub reputation: f32,
+    /// Haxe `Lineage.coins` death snapshot (OLN7; wallet persist is separate).
+    #[serde(default)]
+    pub coins: f32,
+    /// Haxe `Lineage.myFamilyName` (OLN8).
+    #[serde(default)]
+    pub family_name: String,
+    /// Haxe `Lineage.po_id` (OLN9; −1 = unset).
+    #[serde(default = "lineage_po_id_unknown_serde")]
+    pub po_id: i32,
+    /// Haxe `Lineage.accountId` (OLN10; 0 = unset).
+    #[serde(default)]
+    pub account_id: i32,
+    /// Haxe `Lineage.myDynastyId` (OLN11; −1 = unset).
+    #[serde(default = "lineage_dynasty_unknown_serde")]
+    pub my_dynasty_id: i32,
+    /// Haxe `Lineage.followPlayerId` (OLN12; 0 = none).
+    #[serde(default)]
+    pub follow_player_id: i32,
+    /// Haxe `Lineage.killedByPlayerId` (OLN13; 0 = none).
+    #[serde(default)]
+    pub killed_by_player_id: i32,
+    /// Haxe `prestigeFromChildren` (OLN15).
+    #[serde(default)]
+    pub prestige_from_children: f32,
+    /// Haxe `prestigeFromGrandkids` (OLN15; Haxe TODO unsaved).
+    #[serde(default)]
+    pub prestige_from_grandkids: f32,
+    /// Haxe `prestigeFromEating` (OLN15).
+    #[serde(default)]
+    pub prestige_from_eating: f32,
+    /// Haxe `prestigeFromFollowers` (OLN15).
+    #[serde(default)]
+    pub prestige_from_followers: f32,
+    /// Haxe `prestigeFromWealth` (OLN15).
+    #[serde(default)]
+    pub prestige_from_wealth: f32,
+    /// Haxe `prestigeFromParents` (OLN15; Haxe TODO unsaved).
+    #[serde(default)]
+    pub prestige_from_parents: f32,
+    /// Haxe `prestigeFromSiblings` (OLN15; Haxe TODO unsaved).
+    #[serde(default)]
+    pub prestige_from_siblings: f32,
 }
 
-/// Lineage book snapshot (no SQL; mirrors OLN1/OLN2 in-memory state).
+fn lineage_birth_unknown_serde() -> f32 {
+    ol_identity::LINEAGE_BIRTH_UNKNOWN
+}
+
+fn lineage_po_id_unknown_serde() -> i32 {
+    -1
+}
+
+fn lineage_dynasty_unknown_serde() -> i32 {
+    -1
+}
+
+/// Lineage book snapshot (no SQL; mirrors OLN1/OLN2/OLN3 in-memory state).
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct LineageSnapshot {
     pub lineages: Vec<LineageEntryView>,
@@ -61,131 +135,158 @@ pub struct LineageSnapshot {
     pub sim_time: f32,
 }
 
-/// Lightweight lineage node (not full Haxe Lineage.hx).
-#[derive(Debug, Clone)]
-pub struct LineageNode {
-    pub id: i32,
-    pub name: String,
-    pub mother_id: Option<i32>,
-    pub father_id: Option<i32>,
-    pub generation: i32,
-    pub prestige: f32,
-    /// Haxe `lineage.prestigeClass` (kept in sync via [`Self::set_prestige`]).
-    pub prestige_class: PrestigeClass,
-    /// Haxe `Lineage.alive` — current life is active (birth-class samples require this).
-    /// Session field (not OLN1-persisted); false after death, true on spawn/revive.
-    // Haxe: Lineage.alive
-    pub alive: bool,
-    /// Haxe `Lineage.ownsObject` — map object still owned by this lineage (session;
-    /// set by `InitObjectHelpersAfterRead`; not OLN1-persisted).
-    pub owns_object: bool,
-    /// Haxe `Lineage.deathTime` — sim seconds at death; 0 = never died / alive.
-    /// LINEAGE-24H: OLN2-persisted; boot-seeded into starving death stamps.
-    // Haxe: Lineage.deathTime
-    pub death_sim_time: f32,
-    /// Haxe `Lineage.deathReason` wire tag (empty if never died / cleared on new life).
-    /// OLN2-persisted.
-    // Haxe: Lineage.deathReason
-    pub death_reason: String,
-    /// Haxe age at death (for `reason_hunger_kid` remap); OLN2-persisted.
-    // Haxe: Lineage.age at GenerateLineageStatistics
-    pub age_at_death: f32,
+/// Walk `mother_id` to the Eve root (Haxe `lineage.myEveId`).
+pub fn lineage_eve_id(nodes: &HashMap<i32, LineageNode>, mut p_id: i32) -> i32 {
+    for _ in 0..64 {
+        match nodes.get(&p_id).and_then(|n| n.mother_id) {
+            Some(m) if m > 0 && m != p_id => p_id = m,
+            _ => break,
+        }
+    }
+    p_id
 }
 
-impl LineageNode {
-    pub fn eve(id: i32, name: impl Into<String>) -> Self {
-        Self {
-            id,
-            name: name.into(),
-            mother_id: None,
-            father_id: None,
-            generation: 0,
-            prestige: 0.0,
-            prestige_class: PrestigeClass::from_prestige(0.0),
-            alive: true,
-            owns_object: false,
-            death_sim_time: 0.0,
-            death_reason: String::new(),
-            age_at_death: 0.0,
-        }
-    }
+/// Haxe `ServerSettings.AiNameEnding` (NAME `getFullName` suffix).
+// Haxe: ServerSettings.AiNameEnding = 'X'
+pub const AI_NAME_ENDING: &str = "X";
 
-    /// Child born to `mother` (generation + 1, mother_id set).
-    pub fn with_mother(id: i32, name: impl Into<String>, mother: &LineageNode) -> Self {
-        Self {
-            id,
-            name: name.into(),
-            mother_id: Some(mother.id),
-            father_id: None,
-            generation: mother.generation.saturating_add(1),
-            prestige: 0.0,
-            prestige_class: PrestigeClass::from_prestige(0.0),
-            alive: true,
-            owns_object: false,
-            death_sim_time: 0.0,
-            death_reason: String::new(),
-            age_at_death: 0.0,
-        }
-    }
-
-    /// Update prestige and recompute class (Haxe `calculatePrestigeClass` subset).
-    pub fn set_prestige(&mut self, prestige: f32) {
-        self.prestige = prestige.max(0.0);
-        self.prestige_class = PrestigeClass::from_prestige(self.prestige);
-    }
-
-    /// Set living-percentile prestige class without changing prestige float.
-    ///
-    /// Used by [`crate::SimState::refresh_living_prestige_classes`] (score rank path).
-    pub fn set_prestige_class(&mut self, class: PrestigeClass) {
-        self.prestige_class = class;
-    }
-
-    /// Add delta prestige and recompute class.
-    pub fn add_prestige(&mut self, delta: f32) {
-        self.set_prestige(self.prestige + delta);
-    }
-
-    /// Prestige class for this lineage (cached field).
-    pub fn prestige_class(&self) -> PrestigeClass {
-        self.prestige_class
-    }
-
-    /// Stamp death session fields (LINEAGE-24H).
-    // Haxe: Lineage.deathTime / deathReason / age
-    pub fn stamp_death(&mut self, death_sim_time: f32, reason: &str, age_years: f32) {
-        self.alive = false;
-        self.death_sim_time = if death_sim_time.is_finite() {
-            death_sim_time.max(0.0)
+/// Haxe `Lineage.familyName` getter: Eve `myFamilyName`, else this node / fallback.
+// Haxe: Lineage.get_familyName L623–627
+pub fn resolved_family_name(
+    nodes: &HashMap<i32, LineageNode>,
+    p_id: i32,
+    fallback: &str,
+) -> String {
+    let Some(node) = nodes.get(&p_id) else {
+        let t = fallback.trim();
+        return if t.is_empty() {
+            LINEAGE_STARTING_FAMILY_NAME.to_string()
         } else {
-            0.0
+            t.to_string()
         };
-        self.death_reason = reason.trim().to_string();
-        self.age_at_death = if age_years.is_finite() {
-            age_years.max(0.0)
-        } else {
-            0.0
+    };
+    let eve = if node.my_eve_id > 0 {
+        node.my_eve_id
+    } else {
+        lineage_eve_id(nodes, p_id)
+    };
+    let from_eve = nodes
+        .get(&eve)
+        .map(|n| n.family_name.trim())
+        .filter(|s| !s.is_empty());
+    if let Some(s) = from_eve {
+        return s.to_string();
+    }
+    let mine = node.family_name.trim();
+    if !mine.is_empty() {
+        return mine.to_string();
+    }
+    let t = fallback.trim();
+    if t.is_empty() {
+        LINEAGE_STARTING_FAMILY_NAME.to_string()
+    } else {
+        t.to_string()
+    }
+}
+
+/// Haxe `Lineage.getFullName(withUnderscore, ignoreFirstName)`.
+// Haxe: Lineage.getFullName L526–533
+pub fn lineage_get_full_name(
+    family_name: &str,
+    class_name: &str,
+    is_ai: bool,
+    with_underscore: bool,
+    ignore_first_name: bool,
+    first_name: &str,
+) -> String {
+    let ai = if is_ai { AI_NAME_ENDING } else { "" };
+    let full = if ignore_first_name {
+        format!("{family_name}{ai} {class_name}")
+    } else {
+        format!("{first_name} {family_name}{ai} {class_name}")
+    };
+    if with_underscore {
+        full.replace(' ', "_")
+    } else {
+        full
+    }
+}
+
+/// Haxe NAME body: `p_id first getFullName(true, true)`.
+// Haxe: Connection.sendToMePlayerInfo L446–448
+pub fn format_name_lineage_body(
+    p_id: i32,
+    first_name: &str,
+    family_name: &str,
+    class_name: &str,
+    is_ai: bool,
+) -> String {
+    let last = lineage_get_full_name(family_name, class_name, is_ai, true, true, first_name);
+    format!("{p_id} {first_name} {last}")
+}
+
+/// NAME line from live lineage (Eve family + prestige class).
+pub fn format_player_nm_line_ex(
+    lineages: &HashMap<i32, LineageNode>,
+    p_id: i32,
+    first_name: &str,
+    family_fallback: &str,
+    is_ai: bool,
+) -> String {
+    let class = lineages
+        .get(&p_id)
+        .map(|n| n.prestige_class.class_name())
+        .unwrap_or("Commoner");
+    let family = resolved_family_name(lineages, p_id, family_fallback);
+    format_name_lineage_body(p_id, first_name, &family, class, is_ai)
+}
+
+/// Haxe `Lineage.createLineageString` — ancestor ids for LN / GRAVE_OLD.
+///
+/// `with_me=false` omits `p_id` (GO query). Eve-not-reached appends ` eve_id=`.
+// Haxe: Lineage.createLineageString L641–669
+pub fn create_lineage_string(
+    nodes: &HashMap<i32, LineageNode>,
+    p_id: i32,
+    with_me: bool,
+) -> String {
+    let Some(node) = nodes.get(&p_id) else {
+        return String::new();
+    };
+    let eve = if node.my_eve_id > 0 {
+        node.my_eve_id
+    } else {
+        lineage_eve_id(nodes, p_id)
+    };
+    let mut s = if with_me {
+        p_id.to_string()
+    } else {
+        String::new()
+    };
+    if p_id == eve {
+        return s;
+    }
+    let mut cur = node.mother_id.filter(|&m| m > 0);
+    let mut added_eve = false;
+    for _ in 0..10 {
+        let Some(mid) = cur else {
+            break;
         };
+        if !s.is_empty() {
+            s.push(' ');
+        }
+        s.push_str(&mid.to_string());
+        if mid == eve {
+            added_eve = true;
+            break;
+        }
+        cur = nodes.get(&mid).and_then(|n| n.mother_id).filter(|&m| m > 0);
     }
-
-    /// Clear death session fields on new life (spawn / revive).
-    // Haxe: new life clears deathTime until next death
-    pub fn clear_death_for_new_life(&mut self) {
-        self.alive = true;
-        self.death_sim_time = 0.0;
-        self.death_reason.clear();
-        self.age_at_death = 0.0;
+    if !added_eve && eve > 0 {
+        // Haxe always prefixes a space: `+= ' eve_id=$myEveId'`
+        s.push_str(&format!(" eve_id={eve}"));
     }
-
-    /// Haxe-style compact lineage summary for bootstrap (includes class + prestige).
-    pub fn wire_line(&self) -> String {
-        let mother = self.mother_id.unwrap_or(self.id);
-        let class_tok = prestige_class_wire_token(self.prestige);
-        format!(
-            "{} eve={} gen={} name={} {}",
-            self.id, mother, self.generation, self.name, class_tok
-        )
-    }
+    s
 }
 
 #[derive(Debug, Default, Clone)]
@@ -195,19 +296,76 @@ pub struct SocialState {
     pub following: HashMap<i32, i32>,
     /// leader_p_id → set of exiled p_ids
     pub exiles: HashMap<i32, HashSet<i32>>,
+    /// `(exiler, target)` → `sim_time` when the exile was stamped (session; not OLN).
+    /// Missing → not recent (persist restore / tests that insert `exiles` directly).
+    // Haxe: GPI L4525 TODO count as ally if exile happened not long ago (both sides)
+    pub exile_times: HashMap<(i32, i32), f32>,
     /// badge color index per leader (0..7)
     pub leader_colors: HashMap<i32, i32>,
     /// Haxe `hiredByPlayer`: worker_p_id → boss_p_id (0 / missing = none).
     /// Session map (DO-COMMANDS / `I HIRE`); not OLN1-persisted.
     // Haxe: GlobalPlayerInstance.hiredByPlayer
     pub hired_by: HashMap<i32, i32>,
+    /// Sim seconds at last vitals tick — drives Haxe `WriteAllLineages` prune.
+    /// Session-only (not OLN); 0 skips prune so persist tests write the full map.
+    // Haxe: TimeHelper.tick * tickTime at WriteAllLineages
+    pub sim_time: f32,
 }
 
 impl SocialState {
     pub fn ensure_lineage(&mut self, p_id: i32, name: &str) {
-        self.lineages
-            .entry(p_id)
-            .or_insert_with(|| LineageNode::eve(p_id, name.to_string()));
+        let t = self.sim_time;
+        self.ensure_lineage_born_at(p_id, name, t);
+    }
+
+    /// Ensure a lineage node and stamp Haxe `birthTime` when inserting.
+    // Haxe: Lineage.new `birthTime = TimeHelper.tick`
+    pub fn ensure_lineage_born_at(&mut self, p_id: i32, name: &str, birth_sim_time: f32) {
+        self.lineages.entry(p_id).or_insert_with(|| {
+            let mut n = LineageNode::eve(p_id, name.to_string());
+            n.stamp_birth(birth_sim_time);
+            n
+        });
+    }
+
+    /// Haxe `myFamilyName` / `setFamilyName`.
+    // Haxe: Lineage.setFamilyName
+    pub fn stamp_lineage_family_name(&mut self, p_id: i32, family_name: &str) {
+        if let Some(n) = self.lineages.get_mut(&p_id) {
+            n.stamp_family_name(family_name);
+        }
+    }
+
+    /// Haxe `lineage.po_id = player.po_id`.
+    // Haxe: Lineage.new L514 / GPI.setObjectId
+    pub fn stamp_lineage_po_id(&mut self, p_id: i32, po_id: i32) {
+        if let Some(n) = self.lineages.get_mut(&p_id) {
+            n.stamp_po_id(po_id);
+        }
+    }
+
+    /// Haxe `lineage.accountId = player.account.id`.
+    // Haxe: Lineage.new L537
+    pub fn stamp_lineage_account_id(&mut self, p_id: i32, account_id: i32) {
+        if let Some(n) = self.lineages.get_mut(&p_id) {
+            n.stamp_account_id(account_id);
+        }
+    }
+
+    /// Haxe `lineage.myDynastyId` after found-new family.
+    // Haxe: NamingHelper.DoNaming L137–162
+    pub fn stamp_lineage_dynasty_id(&mut self, p_id: i32, dynasty_id: i32) {
+        if let Some(n) = self.lineages.get_mut(&p_id) {
+            n.stamp_dynasty_id(dynasty_id);
+        }
+    }
+
+    /// Haxe `lineage.followPlayerId` (live follow).
+    // Haxe: Lineage.followPlayerId WriteLineages L205
+    pub fn stamp_lineage_follow_player_id(&mut self, p_id: i32, follow_player_id: i32) {
+        if let Some(n) = self.lineages.get_mut(&p_id) {
+            n.stamp_follow_player_id(follow_player_id);
+        }
     }
 
     /// Haxe `lineage.alive` stamp (spawn/revive → true; death → false).
@@ -221,26 +379,34 @@ impl SocialState {
     /// Ensure lineage node exists and mark current life alive (spawn / revive).
     // Haxe: lineage.alive = true on new life
     pub fn ensure_lineage_alive(&mut self, p_id: i32, name: &str) {
-        self.ensure_lineage(p_id, name);
+        self.ensure_lineage_born_at(p_id, name, self.sim_time);
         if let Some(n) = self.lineages.get_mut(&p_id) {
-            n.clear_death_for_new_life();
+            n.begin_new_life(self.sim_time);
         }
     }
 
-    /// Stamp lineage death fields (LINEAGE-24H). Ensures a node exists so death
-    /// is never dropped when birth forgot to register the lineage.
+    /// Stamp lineage death fields (LINEAGE-24H), combat reputation, and coins snapshot.
+    /// Ensures a node exists so death is never dropped when birth forgot the lineage.
     // Haxe: Lineage.deathTime / deathReason / alive=false
+    // Haxe: GPI.doDeathHelper reputation + coins before InheritCoins
     pub fn stamp_lineage_death(
         &mut self,
         p_id: i32,
         death_sim_time: f32,
         reason: &str,
         age_years: f32,
+        true_age_years: f32,
+        lost_combat_prestige: f32,
+        coins: f32,
+        killed_by_player_id: i32,
     ) {
         // Ensure node: Haxe always has lineage on the player; Rust may miss edge paths.
         self.ensure_lineage(p_id, &format!("p{p_id}"));
         if let Some(n) = self.lineages.get_mut(&p_id) {
-            n.stamp_death(death_sim_time, reason, age_years);
+            n.stamp_death_ages(death_sim_time, reason, age_years, true_age_years);
+            n.stamp_reputation_from_lost_combat(lost_combat_prestige);
+            n.stamp_coins(coins);
+            n.stamp_killed_by_player_id(killed_by_player_id);
         }
     }
 
@@ -252,7 +418,8 @@ impl SocialState {
             .lineages
             .values()
             .map(|n| {
-                LineageStatRow::from_death_fields(
+                LineageStatRow::from_life_fields(
+                    n.birth_sim_time,
                     n.death_sim_time,
                     n.death_reason.clone(),
                     n.age_at_death,
@@ -296,6 +463,7 @@ impl SocialState {
     pub fn set_follow(&mut self, follower: i32, leader: i32) -> Result<(), &'static str> {
         if follower == leader {
             self.following.remove(&follower);
+            self.stamp_lineage_follow_player_id(follower, 0);
             return Ok(());
         }
         // Reject obvious cycles: leader already follows follower chain back.
@@ -313,11 +481,13 @@ impl SocialState {
         }
         self.following.insert(follower, leader);
         self.leader_colors.entry(leader).or_insert(0);
+        self.stamp_lineage_follow_player_id(follower, leader);
         Ok(())
     }
 
     pub fn unfollow(&mut self, follower: i32) {
         self.following.remove(&follower);
+        self.stamp_lineage_follow_player_id(follower, 0);
     }
 
     pub fn exile(&mut self, leader: i32, target: i32) {
@@ -325,6 +495,56 @@ impl SocialState {
         // Being exiled ends follow relationship both ways.
         if self.following.get(&target) == Some(&leader) {
             self.following.remove(&target);
+            self.stamp_lineage_follow_player_id(target, 0);
+        }
+        // Recency stamp for HIT/kill is_ally (Haxe L4525). Persist restore uses
+        // sim_time 0 and is treated as not-recent in [`Self::recent_exile_edge`].
+        if leader != 0 && target != 0 {
+            self.exile_times.insert((leader, target), self.sim_time);
+        }
+    }
+
+    /// True when `exiler` stamped an exile of `target` within `window` sim seconds.
+    // Haxe: GPI L4525 TODO
+    pub fn recent_exile_edge(&self, exiler: i32, target: i32, window: f32) -> bool {
+        let Some(&t) = self.exile_times.get(&(exiler, target)) else {
+            return false;
+        };
+        if t <= 0.0 {
+            return false;
+        }
+        let w = if window.is_finite() && window >= 0.0 {
+            window
+        } else {
+            0.0
+        };
+        let dt = self.sim_time - t;
+        dt >= 0.0 && dt <= w
+    }
+
+    /// Recent exile in **either** direction (Haxe "both sides").
+    pub fn recent_exile_between(&self, a: i32, b: i32, window: f32) -> bool {
+        self.recent_exile_edge(a, b, window) || self.recent_exile_edge(b, a, window)
+    }
+
+    /// Rebuild session `following` from OLN `followPlayerId` (Haxe field on lineage).
+    // Haxe: Lineage.followPlayerId ReadLineages L293
+    pub fn restore_following_from_lineages(&mut self) {
+        let mut pairs: Vec<(i32, i32)> = self
+            .lineages
+            .iter()
+            .filter_map(|(&id, n)| {
+                let lead = n.follow_player_id;
+                if lead > 0 && lead != id {
+                    Some((id, lead))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        pairs.sort_unstable();
+        for (follower, leader) in pairs {
+            let _ = self.set_follow(follower, leader);
         }
     }
 
@@ -425,17 +645,21 @@ impl SocialState {
         }
     }
 
-    /// Count living hired workers under `boss` (ages filter optional via maps).
-    // Haxe: processHireCommand HireCostIncreasePerPerson
-    pub fn count_hired(
-        &self,
-        boss: i32,
-        _ages: &HashMap<i32, f32>,
-        deleted: &HashSet<i32>,
-    ) -> i32 {
+    /// Count living hired workers under `boss` (skip deleted and age > 55).
+    // Haxe: countHiredPeople — deleted skip + `age > 55` skip
+    pub fn count_hired(&self, boss: i32, ages: &HashMap<i32, f32>, deleted: &HashSet<i32>) -> i32 {
         self.hired_by
             .iter()
-            .filter(|(&w, &b)| b == boss && !deleted.contains(&w))
+            .filter(|(&w, &b)| {
+                if b != boss || deleted.contains(&w) {
+                    return false;
+                }
+                // Haxe: if (p.age > 55) continue
+                match ages.get(&w) {
+                    Some(&age) if age > 55.0 => false,
+                    _ => true,
+                }
+            })
             .count() as i32
     }
 
@@ -444,7 +668,8 @@ impl SocialState {
         let mut ids: Vec<i32> = self.lineages.keys().copied().collect();
         ids.sort_unstable();
         ids.into_iter()
-            .filter_map(|id| self.lineages.get(&id).map(|n| n.wire_line()))
+            .map(|id| create_lineage_string(&self.lineages, id, true))
+            .filter(|s| !s.is_empty())
             .collect()
     }
 
@@ -503,7 +728,26 @@ impl SocialState {
                     death_sim_time: n.death_sim_time,
                     death_reason: n.death_reason.clone(),
                     age_at_death: n.age_at_death,
+                    true_age_at_death: n.true_age_at_death,
+                    birth_sim_time: n.birth_sim_time,
                     alive: n.alive,
+                    my_eve_id: n.my_eve_id,
+                    last_said: n.last_said.clone(),
+                    reputation: n.reputation,
+                    coins: n.coins,
+                    family_name: n.family_name.clone(),
+                    po_id: n.po_id,
+                    account_id: n.account_id,
+                    my_dynasty_id: n.my_dynasty_id,
+                    follow_player_id: n.follow_player_id,
+                    killed_by_player_id: n.killed_by_player_id,
+                    prestige_from_children: n.prestige_from.children,
+                    prestige_from_grandkids: n.prestige_from.grandkids,
+                    prestige_from_eating: n.prestige_from.eating,
+                    prestige_from_followers: n.prestige_from.followers,
+                    prestige_from_wealth: n.prestige_from.wealth,
+                    prestige_from_parents: n.prestige_from.parents,
+                    prestige_from_siblings: n.prestige_from.siblings,
                 })
             })
             .collect();
@@ -511,7 +755,7 @@ impl SocialState {
         LineageSnapshot {
             lineages,
             count,
-            format: "OLN2".into(),
+            format: "OLN15".into(),
             sim_time: if sim_time.is_finite() {
                 sim_time.max(0.0)
             } else {
@@ -529,7 +773,8 @@ impl LineageSnapshot {
         self.lineages
             .iter()
             .map(|e| {
-                LineageStatRow::from_death_fields(
+                LineageStatRow::from_life_fields(
+                    e.birth_sim_time,
                     e.death_sim_time,
                     e.death_reason.clone(),
                     e.age_at_death,
@@ -569,11 +814,7 @@ pub fn following_badge_color(social: &SocialState, leader: i32) -> i32 {
 
 /// FW line for follower under resolved top leader.
 // Haxe: Connection.SendFollowingToAll
-pub fn format_following_for_player(
-    social: &SocialState,
-    follower: i32,
-    top_leader: i32,
-) -> String {
+pub fn format_following_for_player(social: &SocialState, follower: i32, top_leader: i32) -> String {
     let color = following_badge_color(social, top_leader);
     // Unfollowed self-top uses -1
     if top_leader == follower || top_leader <= 0 {
@@ -610,4 +851,56 @@ pub fn format_follow_pending_global(secs: f32, name: &str, family: &str) -> Stri
         TIME_CONFIRM_NEW_FOLLOWER as i32
     };
     format!("In {s} seconds you follow {name}_{family}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create_lineage_string_eve_and_child() {
+        let mut nodes = HashMap::new();
+        nodes.insert(1, LineageNode::eve(1, "Eve"));
+        let child = LineageNode::with_mother(2, "Kid", nodes.get(&1).unwrap());
+        nodes.insert(2, child);
+        assert_eq!(create_lineage_string(&nodes, 1, false), "");
+        assert_eq!(create_lineage_string(&nodes, 2, false), "1");
+        assert_eq!(create_lineage_string(&nodes, 2, true), "2 1");
+    }
+
+    #[test]
+    fn create_lineage_string_appends_eve_id_when_truncated() {
+        let mut nodes = HashMap::new();
+        nodes.insert(1, LineageNode::eve(1, "Eve"));
+        for id in 2..=12 {
+            let mom = nodes.get(&(id - 1)).unwrap().clone();
+            nodes.insert(id, LineageNode::with_mother(id, "N", &mom));
+        }
+        let s = create_lineage_string(&nodes, 12, true);
+        assert!(
+            s.starts_with("12 11 10 9 8 7 6 5 4 3 2"),
+            "ten mother hops: {s}"
+        );
+        assert!(
+            s.contains("eve_id=1"),
+            "truncated chain must append eve_id=: {s}"
+        );
+        assert!(!s.contains(" 1\n") && !s.ends_with(" 1"));
+    }
+
+    #[test]
+    fn lineage_get_full_name_name_packet_shape() {
+        assert_eq!(
+            lineage_get_full_name("SNOW", "Commoner", false, true, true, "ADA"),
+            "SNOW_Commoner"
+        );
+        assert_eq!(
+            lineage_get_full_name("SNOW", "Commoner", true, true, true, "ADA"),
+            "SNOWX_Commoner"
+        );
+        assert_eq!(
+            format_name_lineage_body(7, "ADA", "SNOW", "Commoner", false),
+            "7 ADA SNOW_Commoner"
+        );
+    }
 }

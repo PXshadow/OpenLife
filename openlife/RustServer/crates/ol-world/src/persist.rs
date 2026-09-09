@@ -859,6 +859,7 @@ mod tests {
     }
 
     /// OLW3: per-slot uses/times/custom + multi-owner + ground_id + multi-level nest.
+    /// NESTED-PERSIST-SER: Haxe ObjectHelper.WriteToFile / ReadFromFile nested tree.
     #[test]
     fn olw3_slot_meta_and_owners_roundtrip() {
         let dir = env::temp_dir().join("ol_world_olw3_meta");

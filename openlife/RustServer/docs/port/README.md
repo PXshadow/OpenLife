@@ -19,14 +19,16 @@
 
 ## Read this first (AI)
 
-1. **[ARCHITECTURE_HAXE.md](ARCHITECTURE_HAXE.md)** — old runtime topology, ownership, locks, call graphs  
-2. **[ARCHITECTURE_RUST.md](ARCHITECTURE_RUST.md)** — new crate layout, tick/net paths, module graph  
-3. **[DEPENDENCY_GRAPHS.md](DEPENDENCY_GRAPHS.md)** — Mermaid graphs (Haxe + Rust + cross-map)  
-4. **[FILE_MATRIX.md](FILE_MATRIX.md)** — every Haxe server file → Rust module(s) + status  
-5. **[TODO_PORT.md](TODO_PORT.md)** — living done / partial / missing checklist  
-6. **[HAXE_OPEN_TODOS.md](HAXE_OPEN_TODOS.md)** — open `TODO`/`FIXME` comments in legacy code  
-7. **[CHUNK_PROTOCOL.md](CHUNK_PROTOCOL.md)** — how to take one chunk end-to-end (mandatory process)  
-8. **[CALL_INDEX.md](CALL_INDEX.md)** — function-level index for AI lookup  
+1. **[PRIORITY.md](PRIORITY.md)** — **what to port next** (highest first)  
+2. **[ARCHITECTURE.md](../ARCHITECTURE.md)** — crate split, **Haxe file → compile unit (§3.1)**, done vs remaining  
+3. **[ARCHITECTURE_HAXE.md](ARCHITECTURE_HAXE.md)** — old runtime topology, ownership, locks, call graphs  
+4. **[ARCHITECTURE_RUST.md](ARCHITECTURE_RUST.md)** — new crate layout, tick/net paths, module graph  
+5. **[DEPENDENCY_GRAPHS.md](DEPENDENCY_GRAPHS.md)** — Mermaid graphs (Haxe + Rust + cross-map)  
+6. **[FILE_MATRIX.md](FILE_MATRIX.md)** — every Haxe server file → Rust module(s) + chunk status (crate names in ARCHITECTURE §3.1)  
+7. **[TODO_PORT.md](TODO_PORT.md)** — living done / partial / missing checklist  
+8. **[HAXE_OPEN_TODOS.md](HAXE_OPEN_TODOS.md)** — open `TODO`/`FIXME` comments in legacy code  
+9. **[CHUNK_PROTOCOL.md](CHUNK_PROTOCOL.md)** — how to take one chunk end-to-end (mandatory process)  
+10. **[CALL_INDEX.md](CALL_INDEX.md)** — function-level index for AI lookup  
 
 Also: [PROGRESS.md](../PROGRESS.md), [BUILD_BACKLOG.md](../BUILD_BACKLOG.md), [architecture/RUST_SERVER_REBUILD_PLAN.md](../architecture/RUST_SERVER_REBUILD_PLAN.md).
 

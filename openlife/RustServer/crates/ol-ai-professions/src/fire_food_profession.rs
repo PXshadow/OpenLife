@@ -13,8 +13,7 @@
 //! No world I/O: callers supply counts / fire flags and apply returned
 //! [`FireFoodAction`]s via craft/shortCraft.
 //!
-//! Residual: full `makePopcornIfNeeded` BowlFiller peer pick (pure stock craft only);
-//! late hungry/isHandlingFire makeFireFood(1/2/3) outside assigned/makeStuff.
+//! Residual: late hungry/isHandlingFire makeFireFood(1/2/3) outside assigned/makeStuff.
 //!
 //! **AI-FIREFOOD-RUNG**: assigned/last FIREFOODMAKER â†’ `makeFireFood(100)` via
 //! `ProfessionScanKind::FireFood` + `try_decide_fire_food_from_rung`.
@@ -291,6 +290,79 @@ pub struct FireFoodCounts {
     /// BowlFiller peer is self (makePopcornIfNeeded best AI gate). Default true for pure unit.
     // Haxe: getBestAiForObjByProfession('BowlFiller') ~4307
     pub is_best_bowl_filler: bool,
+}
+
+/// One AI for Haxe `getBestAiForObjByProfession('BowlFiller', home)`.
+// Haxe: AiBase.getBestAiForObjByProfession ~1311
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BowlFillerPeer {
+    pub p_id: i32,
+    /// Squared Euclidean distance to the home/object used as the search origin.
+    pub quad_dist_to_obj: f32,
+    pub deleted: bool,
+    pub age: f32,
+    pub is_wounded: bool,
+    pub food_store: f32,
+    pub same_home: bool,
+    /// Haxe `profession['BowlFiller'] > 0` (baker last/assigned in live Rust).
+    pub has_bowl_filler: bool,
+}
+
+impl BowlFillerPeer {
+    fn eligible(self, min_age_to_eat: f32, max_age: f32) -> bool {
+        if self.deleted {
+            return false;
+        }
+        if self.age < min_age_to_eat {
+            return false;
+        }
+        if self.age > max_age - 2.0 {
+            return false;
+        }
+        if self.is_wounded {
+            return false;
+        }
+        if self.food_store < 2.0 {
+            return false;
+        }
+        if !self.same_home {
+            return false;
+        }
+        true
+    }
+}
+
+/// Haxe `getBestAiForObjByProfession('BowlFiller')` — true when `self` wins.
+///
+/// Others without BowlFiller profession are skipped. Self without profession is
+/// included with +100 quad. Closest remaining candidate is assigned.
+// Haxe: AiBase.getBestAiForObjByProfession ~1311; makePopcornIfNeeded ~4307
+pub fn is_self_best_bowl_filler(
+    self_p_id: i32,
+    peers: &[BowlFillerPeer],
+    min_age_to_eat: f32,
+    max_age: f32,
+) -> bool {
+    let mut best_id: Option<i32> = None;
+    let mut best_dist = f32::MAX;
+    for p in peers {
+        if !p.eligible(min_age_to_eat, max_age) {
+            continue;
+        }
+        if !p.has_bowl_filler && p.p_id != self_p_id {
+            continue;
+        }
+        let mut dist = p.quad_dist_to_obj;
+        if !p.has_bowl_filler {
+            dist += 100.0;
+        }
+        if best_id.is_some() && dist >= best_dist {
+            continue;
+        }
+        best_dist = dist;
+        best_id = Some(p.p_id);
+    }
+    best_id == Some(self_p_id)
 }
 
 impl FireFoodCounts {
@@ -1021,6 +1093,44 @@ mod tests {
                 object_id: POPPING_CORN
             }
         ));
+        c.set(POPCORN, 0);
+        c.is_best_bowl_filler = false;
+        let skipped = make_fire_food(&c, &mut r, 2, 0.0, 0.0);
+        assert!(!matches!(
+            skipped,
+            FireFoodAction::CraftItem {
+                object_id: POPPING_CORN
+            }
+        ));
+    }
+
+    fn bowl_peer(p_id: i32, dist: f32, has: bool, same_home: bool) -> BowlFillerPeer {
+        BowlFillerPeer {
+            p_id,
+            quad_dist_to_obj: dist,
+            deleted: false,
+            age: 20.0,
+            is_wounded: false,
+            food_store: 10.0,
+            same_home,
+            has_bowl_filler: has,
+        }
+    }
+
+    #[test]
+    fn self_is_best_bowl_filler_when_no_peer_has_profession() {
+        // Haxe: others without BowlFiller skipped; self +100 still only candidate
+        let self_p = bowl_peer(1, 4.0, false, true);
+        let other = bowl_peer(2, 1.0, false, true);
+        assert!(is_self_best_bowl_filler(1, &[self_p, other], 3.0, 60.0));
+    }
+
+    #[test]
+    fn closer_bowl_filler_peer_wins_popcorn_gate() {
+        let self_p = bowl_peer(1, 16.0, false, true);
+        let other = bowl_peer(2, 1.0, true, true);
+        assert!(!is_self_best_bowl_filler(1, &[self_p, other], 3.0, 60.0));
+        assert!(is_self_best_bowl_filler(2, &[self_p, other], 3.0, 60.0));
     }
 
     #[test]

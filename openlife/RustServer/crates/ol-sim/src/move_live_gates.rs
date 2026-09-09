@@ -24,33 +24,7 @@ pub const BLOCKING_GRAVE_FITNESS_CAP: f32 = 10.0;
 
 /// Haxe `AiHelper.CalculateDistance` — squared Euclidean with optional torus wrap.
 // Haxe: AiHelper.CalculateDistance
-pub fn calculate_distance_sq(
-    base_x: i32,
-    base_y: i32,
-    to_x: i32,
-    to_y: i32,
-    map_w: i32,
-    map_h: i32,
-    wrap: bool,
-) -> f64 {
-    let mut diff_x = (to_x - base_x) as f64;
-    let mut diff_y = (to_y - base_y) as f64;
-    if wrap && map_w > 0 && map_h > 0 {
-        let half_w = map_w as f64 / 2.0;
-        let half_h = map_h as f64 / 2.0;
-        if diff_x > half_w {
-            diff_x -= map_w as f64;
-        } else if diff_x < -half_w {
-            diff_x += map_w as f64;
-        }
-        if diff_y > half_h {
-            diff_y -= map_h as f64;
-        } else if diff_y < -half_h {
-            diff_y += map_h as f64;
-        }
-    }
-    diff_x * diff_x + diff_y * diff_y
-}
+pub use ol_move_rules::calculate_distance_sq;
 
 /// Haxe `PlayerAccount.calculateCloseBlockingGraveFitness`.
 ///
@@ -149,13 +123,6 @@ pub fn resolve_grave_curse(
     }
 }
 
-/// Haxe bow/ranged USE: refuse when `deadlyDistance > 1.9` and target animal within 1.5.
-// Haxe: TransitionHelper.use L757-765
-pub const RANGED_DEADLY_DISTANCE_THRESHOLD: f32 = 1.9;
-/// Haxe min exact distance for ranged animal USE (`isCloseUseExact(..., 1.5)`).
-// Haxe: TransitionHelper.use L761
-pub const RANGED_MIN_USE_DISTANCE: f32 = 1.5;
-
 /// Haxe `player.say('Too close...')` → uppercased in `sayHelper` → public PLAYER_SAYS.
 // Haxe: TransitionHelper.use L762; GlobalPlayerInstance.sayHelper text.toUpperCase
 pub const TOO_CLOSE_SAY: &str = "TOO CLOSE...";
@@ -165,35 +132,55 @@ pub const TOO_CLOSE_MESSAGE: &str = "too close";
 
 /// Pending conn_id for ranged USE/KILL too-close public say (GPI-TOO-CLOSE).
 /// `0` = none (conn_ids used by tests/sim start at 1).
+///
+/// **Thread-local** so parallel `cargo test` threads cannot steal each other's
+/// pending flags (global atomics caused flaky `emits_ps_say` under `--test-threads>1`).
 // Haxe: TransitionHelper.use L761-764 / killHelper L4424 player.say('Too close...')
-static LAST_TOO_CLOSE_SAY: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-
-/// Pending conn_id for Haxe `player.message = 'too close'` (debug refuse reason).
-// Haxe: TransitionHelper.use L763 (non-wire)
-static LAST_TOO_CLOSE_MESSAGE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+thread_local! {
+    static LAST_TOO_CLOSE_SAY: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+    /// Pending conn_id for Haxe `player.message = 'too close'` (debug refuse reason).
+    // Haxe: TransitionHelper.use L763 (non-wire)
+    static LAST_TOO_CLOSE_MESSAGE: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+}
 
 /// Record pending too-close SAY (+ debug message) for USE/KILL refuse (live drains to PS).
 // Haxe: TransitionHelper.use L762-763; killHelper L4424
 pub fn note_too_close_say(conn_id: u64) {
-    use std::sync::atomic::Ordering;
     // conn_id 0 is unused; treat as clear only via take/clear helpers.
     let id = if conn_id == 0 { 1 } else { conn_id };
-    LAST_TOO_CLOSE_SAY.store(id, Ordering::SeqCst);
+    LAST_TOO_CLOSE_SAY.with(|c| c.set(id));
     // Haxe: player.message = 'too close' (debug refuse reason; not wire)
-    LAST_TOO_CLOSE_MESSAGE.store(id, Ordering::SeqCst);
+    LAST_TOO_CLOSE_MESSAGE.with(|c| c.set(id));
 }
 
 /// Take and clear pending too-close SAY conn_id (if any).
 ///
 /// Does **not** clear the debug message channel — use [`take_too_close_message`].
 pub fn take_too_close_say() -> Option<u64> {
-    use std::sync::atomic::Ordering;
-    let v = LAST_TOO_CLOSE_SAY.swap(0, Ordering::SeqCst);
-    if v == 0 {
-        None
-    } else {
-        Some(v)
-    }
+    LAST_TOO_CLOSE_SAY.with(|c| {
+        let v = c.replace(0);
+        if v == 0 {
+            None
+        } else {
+            Some(v)
+        }
+    })
+}
+
+/// Take pending too-close SAY only when it matches `conn_id` (live / test isolation).
+///
+/// Leaves a foreign pending note untouched so another actor's refuse is not dropped.
+// Haxe: player.say is always the acting player — match conn before drain.
+pub fn take_too_close_say_for(conn_id: u64) -> bool {
+    let id = if conn_id == 0 { 1 } else { conn_id };
+    LAST_TOO_CLOSE_SAY.with(|c| {
+        if c.get() == id {
+            c.set(0);
+            true
+        } else {
+            false
+        }
+    })
 }
 
 /// Take pending debug refuse reason for too-close (Haxe `player.message`).
@@ -201,179 +188,29 @@ pub fn take_too_close_say() -> Option<u64> {
 /// Returns `(conn_id, TOO_CLOSE_MESSAGE)` when a refuse was noted.
 // Haxe: TransitionHelper.use L763 player.message = 'too close'
 pub fn take_too_close_message() -> Option<(u64, &'static str)> {
-    use std::sync::atomic::Ordering;
-    let v = LAST_TOO_CLOSE_MESSAGE.swap(0, Ordering::SeqCst);
-    if v == 0 {
-        None
-    } else {
-        Some((v, TOO_CLOSE_MESSAGE))
-    }
+    LAST_TOO_CLOSE_MESSAGE.with(|c| {
+        let v = c.replace(0);
+        if v == 0 {
+            None
+        } else {
+            Some((v, TOO_CLOSE_MESSAGE))
+        }
+    })
 }
 
 /// Clear both too-close pending channels (test / refuse abort hygiene).
 pub fn clear_too_close_pending() {
-    use std::sync::atomic::Ordering;
-    LAST_TOO_CLOSE_SAY.store(0, Ordering::SeqCst);
-    LAST_TOO_CLOSE_MESSAGE.store(0, Ordering::SeqCst);
+    LAST_TOO_CLOSE_SAY.with(|c| c.set(0));
+    LAST_TOO_CLOSE_MESSAGE.with(|c| c.set(0));
 }
 
-/// Haxe `MoveHelper.calculateExactQuadDistance` core — squared float distance with optional wrap.
-///
-/// Mirrors `transformFloatX/Y` half-map wrap when `wrap` (absolute exact positions, gx/gy=0).
-// Haxe: MoveHelper.calculateExactQuadDistance + WorldMap.transformFloatX/Y
-#[inline]
-pub fn calculate_exact_quad_distance_f(
-    ax: f64,
-    ay: f64,
-    bx: f64,
-    by: f64,
-    map_w: i32,
-    map_h: i32,
-    wrap: bool,
-) -> f64 {
-    let mut dx = ax - bx;
-    let mut dy = ay - by;
-    if wrap && map_w > 0 && map_h > 0 {
-        let half_w = map_w as f64 / 2.0;
-        let half_h = map_h as f64 / 2.0;
-        if dx > half_w {
-            dx -= map_w as f64;
-        } else if dx < -half_w {
-            dx += map_w as f64;
-        }
-        if dy > half_h {
-            dy -= map_h as f64;
-        } else if dy < -half_h {
-            dy += map_h as f64;
-        }
-    }
-    dx * dx + dy * dy
-}
-
-/// Haxe `isCloseUseExact`: quad distance ≤ max_distance² (integer tile positions).
-// Haxe: MoveHelper.isCloseUseExact
-#[inline]
-pub fn is_close_use_exact(ax: i32, ay: i32, bx: i32, by: i32, max_distance: f32) -> bool {
-    is_close_use_exact_f(ax as f64, ay as f64, bx as f64, by as f64, max_distance)
-}
-
-/// Integer-tile exact range with map wrap.
-// Haxe: MoveHelper.isCloseUseExact + transformFloat
-#[inline]
-pub fn is_close_use_exact_wrap(
-    ax: i32,
-    ay: i32,
-    bx: i32,
-    by: i32,
-    max_distance: f32,
-    map_w: i32,
-    map_h: i32,
-    wrap: bool,
-) -> bool {
-    is_close_use_exact_f_wrap(
-        ax as f64,
-        ay as f64,
-        bx as f64,
-        by as f64,
-        max_distance,
-        map_w,
-        map_h,
-        wrap,
-    )
-}
-
-/// Haxe `isCloseUseExact` with float exact move positions (`exactTx` / `exactTy`).
-// Haxe: MoveHelper.isCloseUseExact / isCloseToPlayerUseExact
-#[inline]
-pub fn is_close_use_exact_f(ax: f64, ay: f64, bx: f64, by: f64, max_distance: f32) -> bool {
-    is_close_use_exact_f_wrap(ax, ay, bx, by, max_distance, 0, 0, false)
-}
-
-/// Float exact range with optional torus wrap (Haxe `calculateExactQuadDistance`).
-// Haxe: MoveHelper.isCloseUseExact / calculateExactQuadDistance
-#[inline]
-pub fn is_close_use_exact_f_wrap(
-    ax: f64,
-    ay: f64,
-    bx: f64,
-    by: f64,
-    max_distance: f32,
-    map_w: i32,
-    map_h: i32,
-    wrap: bool,
-) -> bool {
-    let max_d = if max_distance.is_finite() && max_distance > 0.0 {
-        max_distance
-    } else {
-        1.0
-    };
-    let q = calculate_exact_quad_distance_f(ax, ay, bx, by, map_w, map_h, wrap);
-    q <= (max_d as f64) * (max_d as f64)
-}
-
-/// Haxe killHelper / TransitionHelper ranged min-range: deadly held + exact ≤ 1.5.
-///
-/// Shared core for player-target kill (no animal gate) and animal USE (with animal gate).
-/// When true, caller should refuse and public-say `Too close...`.
-// Haxe: GlobalPlayerInstance.killHelper L4420-4428 (player targets, no animal check)
-#[inline]
-pub fn refuse_ranged_kill_too_close(
-    held_deadly_distance: f32,
-    player_x: f64,
-    player_y: f64,
-    target_x: f64,
-    target_y: f64,
-    map_w: i32,
-    map_h: i32,
-    wrap: bool,
-) -> bool {
-    if !(held_deadly_distance.is_finite()
-        && held_deadly_distance > RANGED_DEADLY_DISTANCE_THRESHOLD)
-    {
-        return false;
-    }
-    is_close_use_exact_f_wrap(
-        player_x,
-        player_y,
-        target_x,
-        target_y,
-        RANGED_MIN_USE_DISTANCE,
-        map_w,
-        map_h,
-        wrap,
-    )
-}
-
-/// Haxe TransitionHelper ranged USE refuse: deadly held + animal target too close.
-///
-/// When true, caller should refuse USE (Haxe: `say('Too close...')`).
-// Haxe: TransitionHelper.use L757-765
-#[inline]
-pub fn refuse_ranged_use_too_close(
-    held_deadly_distance: f32,
-    target_is_animal: bool,
-    player_x: f64,
-    player_y: f64,
-    target_x: f64,
-    target_y: f64,
-    map_w: i32,
-    map_h: i32,
-    wrap: bool,
-) -> bool {
-    if !target_is_animal {
-        return false;
-    }
-    refuse_ranged_kill_too_close(
-        held_deadly_distance,
-        player_x,
-        player_y,
-        target_x,
-        target_y,
-        map_w,
-        map_h,
-        wrap,
-    )
-}
+/// Exact distance + isCloseUseExact + ranged refuse — canonical in `ol-move-rules`.
+pub use ol_move_rules::{
+    calculate_exact_quad_distance_f, is_close_use_exact, is_close_use_exact_f,
+    is_close_use_exact_f_wrap, is_close_use_exact_wrap, kill_in_deadly_range,
+    refuse_ranged_kill_too_close, refuse_ranged_use_too_close, KILL_DEADLY_RANGE_SLACK,
+    RANGED_DEADLY_DISTANCE_THRESHOLD, RANGED_MIN_USE_DISTANCE,
+};
 
 /// Snapshot of another living player for close-hostile weapon scan.
 // Haxe: GlobalPlayerInstance.getClosePlayer hostile+hasWeapon
@@ -534,7 +371,9 @@ pub fn account_blocking_grave_tiles_from_ids(
 #[inline]
 pub fn living_connection_player_count(players: impl Iterator<Item = (bool, bool)>) -> usize {
     // (deleted, connected)
-    players.filter(|(deleted, connected)| !*deleted && *connected).count()
+    players
+        .filter(|(deleted, connected)| !*deleted && *connected)
+        .count()
 }
 
 /// Format CU wire body (Haxe `Connection.SendCurseToAll`).
@@ -649,7 +488,9 @@ mod tests {
             CLOSE_ENEMY_WEAPON_DISTANCE
         ));
         // Far enemy ignored
-        let far = [ClosePlayerCandidate::from_tile(9, 10, 10, false, true, false)];
+        let far = [ClosePlayerCandidate::from_tile(
+            9, 10, 10, false, true, false,
+        )];
         assert!(!has_close_hostile_with_weapon(
             0,
             0,
@@ -783,6 +624,11 @@ mod tests {
         assert!(take_too_close_say().is_none());
         assert!(take_too_close_message().is_none());
         note_too_close_say(42);
+        assert!(!take_too_close_say_for(7), "foreign conn must not drain");
+        assert!(take_too_close_say_for(42), "matching conn drains say");
+        assert!(!take_too_close_say_for(42), "already drained");
+        assert_eq!(take_too_close_message(), Some((42, TOO_CLOSE_MESSAGE)));
+        note_too_close_say(42);
         assert_eq!(take_too_close_say(), Some(42));
         assert_eq!(take_too_close_message(), Some((42, TOO_CLOSE_MESSAGE)));
         assert!(take_too_close_say().is_none());
@@ -811,10 +657,7 @@ mod tests {
     #[test]
     fn live_gates_living_connection_count() {
         let rows = [(false, true), (false, false), (true, true), (false, true)];
-        assert_eq!(
-            living_connection_player_count(rows.into_iter()),
-            2
-        );
+        assert_eq!(living_connection_player_count(rows.into_iter()), 2);
     }
 
     #[test]

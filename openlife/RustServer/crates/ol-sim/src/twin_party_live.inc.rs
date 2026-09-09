@@ -79,13 +79,7 @@ fn process_ready_twin_party(
             if pl.deleted {
                 continue;
             }
-            let po = person_object_id(pl);
-            let (name, desc) = state
-                .content
-                .get(po)
-                .map(|d| (d.name.as_str(), d.description.as_str()))
-                .unwrap_or(("", ""));
-            let female = person_looks_female(po, name, desc);
+            let female = crate::player_is_female(state, pl);
             // C-SS-MORE-BATCH4: live MinAgeFertile / MaxAgeFertile
             if !is_fertile_ex(
                 false,
@@ -177,7 +171,25 @@ fn process_ready_twin_party(
                 .get(&mid)
                 .cloned()
                 .unwrap_or_else(|| LineageNode::eve(mid, mother_name.clone()));
-            let child_node = LineageNode::with_mother(baby_p_id, baby_name, &mother_node);
+            let mut child_node = LineageNode::with_mother(baby_p_id, baby_name, &mother_node);
+            child_node.stamp_birth(state.sim_time);
+            let po = state
+                .players
+                .values()
+                .find(|pl| pl.p_id == baby_p_id)
+                .map(crate::person_object_id)
+                .unwrap_or(-1);
+            child_node.stamp_po_id(po);
+            let child_email = state
+                .players
+                .values()
+                .find(|pl| pl.p_id == baby_p_id)
+                .map(|pl| pl.email.clone())
+                .unwrap_or_default();
+            if !child_email.is_empty() {
+                let aid = state.accounts.ensure(&child_email).id;
+                child_node.stamp_account_id(aid);
+            }
             state.social.lineages.insert(baby_p_id, child_node);
             state.markers.set_mother_marker(baby_p_id, bx, by, mid);
         } else {

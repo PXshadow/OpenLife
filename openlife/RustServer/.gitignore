@@ -33,6 +33,10 @@ combo.txt
 # Local Grok / CLI auth (if accidentally placed under the tree)
 .grok/
 **/.grok/auth.json
+scripts/usage-budget/
+scripts/budget/
+scripts/watchdog-usage-gate.ps1
+docs/port/watchdog.toml
 scripts/usage-budget/data/usage-snapshot.json
 scripts/usage-budget/data/config.local.json
 scripts/budget/usage-snapshot.json
@@ -65,11 +69,12 @@ ops_metrics.journal
 *.pyc
 __pycache__/
 
+# Frozen port-chunk source wirers (on-disk only; cargo must not rewrite sources).
+_wire_archive/
+
 # ── Agent one-shot debris (NOT needed for cargo test / run) ─────────────
-# Keep in git: crates/**/src/**/*.rs, Cargo.toml, and crates/ol-sim/build.rs
-# plus only the build_*.rs modules that `build.rs` actually `mod`s (~27 files).
-# Delete freely: Python/ps1 one-shots, .rs.txt snippets, orphan build_* injectors
-# not listed in build.rs, and build-stamp dotfiles.
+# Keep in git: crates/**/src/**/*.rs and Cargo.toml. No crate build.rs wirers.
+# Archive is `_wire_archive/` (gitignored). Do not re-hook them from cargo.
 **/_patch_*.py
 **/_apply_*.py
 **/_fix_*.py
@@ -116,35 +121,6 @@ crates/**/.*_patched
 **/*_tail_fix.txt
 **/*_extra_patch.txt
 fix_lib_ground.py
-# Orphan build injectors never `mod`d by crates/ol-sim/build.rs (safe to delete)
-crates/ol-sim/build_ai_shepherd_mid.rs
-crates/ol-sim/build_ai_takeover.rs
-crates/ol-sim/build_ally_strength.rs
-crates/ol-sim/build_ally_strength_inc.rs
-crates/ol-sim/build_combat_bloody.rs
-crates/ol-sim/build_combat_bloody_inc.rs
-crates/ol-sim/build_craft_live_tick_shepherd_tail.rs
-crates/ol-sim/build_craving_wire.rs
-crates/ol-sim/build_css_full_table.rs
-crates/ol-sim/build_drop_held_ai.rs
-crates/ol-sim/build_eaten_food_pct.rs
-crates/ol-sim/build_fertility_twins.rs
-crates/ol-sim/build_follow_hire_delay.rs
-crates/ol-sim/build_foodstats_disk.rs
-crates/ol-sim/build_health_age_food.rs
-crates/ol-sim/build_horse_mount_polish.rs
-crates/ol-sim/build_leader_range.rs
-crates/ol-sim/build_map_location_pins.rs
-crates/ol-sim/build_nested_in_nested_timers.rs
-crates/ol-sim/build_noob_noble_spawn.rs
-crates/ol-sim/build_npc_scan_full.rs
-crates/ol-sim/build_place_object.rs
-crates/ol-sim/build_po_far_players.rs
-crates/ol-sim/build_th_multi_polish.rs
-crates/ol-sim/build_war_posse_docs.rs
-crates/ol-sim/build_world_food_factor.rs
-crates/ol-sim/build_world_food_factor_eaten_append.rs
-crates/ol-sim/build_world_polish_check.rs
 
 # ── Docs: keep product/port markdown; ignore agent doc-patch harness ─────
 # Tracked intentionally: docs/**/*.md, docs/**/*.html (port kit, architecture).

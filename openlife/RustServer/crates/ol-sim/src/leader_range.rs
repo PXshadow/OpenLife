@@ -25,12 +25,13 @@ use ol_protocol::{
 };
 use std::collections::HashMap;
 
-/// Conn ids within Chebyshev `range` of `(x,y)`, **plus** any connected player
-/// whose follow-chain top leader is `subject_p_id` (LEADER-RANGE exemption).
+/// Conn ids within Haxe `isClose` of `(x,y)` (`quadDist <= range²`), **plus**
+/// any connected player whose follow-chain top leader is `subject_p_id`.
 ///
-/// Haxe inverted fan-out: when broadcasting subject PU, far followers still need
-/// the leader body so `/LEADER` / map pin does not break the vanilla client.
+/// Inverted fan-out for subject PU: far followers still need the leader body so
+/// `/LEADER` / map pin does not break the vanilla client.
 // Haxe: Connection.sendToMePlayerInfo topLeader exception
+// CONN-PU-LEADER-FAN
 pub fn nearby_conn_ids_for_player_update(
     state: &SimState,
     x: i32,
@@ -234,16 +235,27 @@ pub fn collect_far_non_leader_p_ids_wrap(
     out
 }
 
-/// Haxe `ServerSettings.SendMoveEveryXTicks` product default (`-1` = disabled).
+/// Haxe `ServerSettings.SendMoveEveryXTicks` compiled default (`-1` = disabled).
+/// Live path uses [`crate::settings_live::GameplayKnobs::send_move_every_x_ticks`].
 /// When `> 0`, TimeHelper re-runs `sendToMeAllClosePlayers(false, false)` each N ticks.
-// Haxe: ServerSettings.SendMoveEveryXTicks L261
-pub const SEND_MOVE_EVERY_X_TICKS: i32 = -1;
+// Haxe: ServerSettings.SendMoveEveryXTicks L262
+pub const SEND_MOVE_EVERY_X_TICKS: i32 = ol_config::gameplay_defaults::SEND_MOVE_EVERY_X_TICKS;
 
 /// Whether this tick should run the periodic viewer roster refresh.
 // Haxe: TimeHelper.DoTimeStuff L132-135
 #[inline]
 pub fn should_refresh_close_players(tick: u64, every_x_ticks: i32) -> bool {
     every_x_ticks > 0 && tick % (every_x_ticks as u64) == 0
+}
+
+/// Live TimeHelper gate: if `SendMoveEveryXTicks > 0` and tick hits the period,
+/// re-run `SendToMeAllClosePlayers` for every viewer with `sendMoving=false`.
+// Haxe: TimeHelper.DoTimeStuff L132-135
+// SETTINGS-LONG-TAIL
+pub fn maybe_refresh_close_players(state: &SimState, outbound: &OutboundHub) {
+    if should_refresh_close_players(state.tick, state.gameplay.send_move_every_x_ticks) {
+        send_to_me_all_close_players_all_viewers(state, outbound, false);
+    }
 }
 
 /// Live max-distance for viewer-centric PU/PO gate.
@@ -310,6 +322,7 @@ pub fn send_to_me_all_close_players(
                 p.moving || p.move_path.is_some(),
                 p.first_name.clone(),
                 p.family_name.clone(),
+                p.is_ai_body(),
                 crate::person_object_id(p),
                 p.held_id,
                 p.age,
@@ -330,7 +343,7 @@ pub fn send_to_me_all_close_players(
 
     let mut far_po_ids: Vec<i32> = Vec::new();
 
-    for (p_id, sx, sy, held, moving, first, family, po, held_id, age, seq, clothing, path_opt) in
+    for (p_id, sx, sy, held, moving, first, family, is_ai, po, held_id, age, seq, clothing, path_opt) in
         subjects
     {
         let subject = PlayerInfoSubject {
@@ -420,8 +433,15 @@ pub fn send_to_me_all_close_players(
                         }
                     }
                 }
-                // Haxe always sends NAME after the moving branch (even when PU skipped).
-                let nm_line = format!("{p_id} {first} {family}");
+                // Haxe NAME: p_id first getFullName(true, true)
+                // Haxe: Connection.sendToMePlayerInfo L446-448
+                let nm_line = crate::format_player_nm_line_ex(
+                    &state.social.lineages,
+                    p_id,
+                    &first,
+                    &family,
+                    is_ai,
+                );
                 outbound.send(
                     viewer_conn,
                     format_server_message("NM", &[&nm_line]).into_bytes(),
@@ -575,11 +595,7 @@ pub fn apply_leader_query(
             }
         }
         Err("no_direct_leader") | Err("leader_missing") => {
-            let vid = state
-                .players
-                .get(&conn_id)
-                .map(|p| p.p_id)
-                .unwrap_or(0);
+            let vid = state.players.get(&conn_id).map(|p| p.p_id).unwrap_or(0);
             send_no_leader(outbound, conn_id, vid);
         }
         Err(_) => {}
@@ -798,6 +814,49 @@ mod tests {
         );
     }
 
+    /// CONN-PU-LEADER-FAN: inverted subject PU includes far followers of the subject.
+    #[test]
+    fn nearby_conn_ids_for_player_update_includes_far_follower() {
+        let mut state = SimState::with_default_empty(Arc::new(ContentDb::default()));
+        state.broadcast_all_updates = false;
+        spawn_player(&mut state, 1, "lead@t");
+        spawn_player(&mut state, 2, "fol@t");
+        spawn_player(&mut state, 3, "str@t");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.x = 0;
+            p.y = 0;
+            p.connected = true;
+        }
+        {
+            let p = state.players.get_mut(&2).unwrap();
+            p.x = 100;
+            p.y = 100;
+            p.connected = true;
+        }
+        {
+            let p = state.players.get_mut(&3).unwrap();
+            p.x = 100;
+            p.y = 0;
+            p.connected = true;
+        }
+        let lead = state.players.get(&1).unwrap().p_id;
+        let fol = state.players.get(&2).unwrap().p_id;
+        state.social.following.insert(fol, lead);
+
+        let ids = nearby_conn_ids_for_player_update(&state, 0, 0, lead, 20);
+        assert!(ids.contains(&1), "subject is in own fan");
+        assert!(ids.contains(&2), "far follower of subject");
+        assert!(!ids.contains(&3), "far stranger excluded");
+
+        let near_only = crate::nearby_conn_ids(&state, 0, 0, 20);
+        assert!(near_only.contains(&1));
+        assert!(
+            !near_only.contains(&2),
+            "plain nearby must not include far follower"
+        );
+    }
+
     /// Live wire: far non-leader gets PO; far top leader gets PU (LEADER-RANGE).
     #[test]
     fn send_to_me_all_close_players_po_for_far_non_leaders() {
@@ -848,10 +907,7 @@ mod tests {
                 }
                 // top leader must NOT appear as a PO id token
                 let body = s.trim_start_matches("PO\n").trim_end_matches("\n#");
-                if body
-                    .split_whitespace()
-                    .any(|t| t == lead_pid.to_string())
-                {
+                if body.split_whitespace().any(|t| t == lead_pid.to_string()) {
                     saw_po_leader = true;
                 }
             }
@@ -916,6 +972,60 @@ mod tests {
         assert!(should_refresh_close_players(180, 90));
     }
 
+    /// Live knob: default `-1` never fans; period 2 fires on even ticks (`sendMoving=false`).
+    // Haxe: TimeHelper.DoTimeStuff L132-135
+    #[test]
+    fn maybe_refresh_close_players_uses_live_send_move_every_x_ticks() {
+        let hub = OutboundHub::new();
+        let mut rx1 = hub.register(1);
+        let mut state = SimState::with_default_empty(Arc::new(ContentDb::default()));
+        state.broadcast_all_updates = false;
+        spawn_player(&mut state, 1, "view@t");
+        spawn_player(&mut state, 2, "far@t");
+        {
+            let v = state.players.get_mut(&1).unwrap();
+            v.x = 0;
+            v.y = 0;
+            v.connected = true;
+        }
+        {
+            let f = state.players.get_mut(&2).unwrap();
+            f.x = 256;
+            f.y = 256;
+            f.connected = true;
+        }
+        let far_pid = state.players.get(&2).unwrap().p_id;
+
+        state.tick = 2;
+        state.gameplay.send_move_every_x_ticks = SEND_MOVE_EVERY_X_TICKS;
+        maybe_refresh_close_players(&state, &hub);
+        assert!(
+            rx1.try_recv().is_err(),
+            "default SendMoveEveryXTicks=-1 must not refresh"
+        );
+
+        state.gameplay.send_move_every_x_ticks = 2;
+        state.tick = 1;
+        maybe_refresh_close_players(&state, &hub);
+        assert!(rx1.try_recv().is_err(), "tick 1 of period 2 must skip");
+
+        state.tick = 2;
+        maybe_refresh_close_players(&state, &hub);
+        let mut saw_po_far = false;
+        let mut saw_fm = false;
+        while let Ok(pkt) = rx1.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.starts_with("PO\n") && s.contains(&far_pid.to_string()) {
+                saw_po_far = true;
+            }
+            if s.starts_with("FM\n") {
+                saw_fm = true;
+            }
+        }
+        assert!(saw_po_far, "period hit must PO far non-leader");
+        assert!(saw_fm, "periodic SendToMeAllClosePlayers ends with FRAME");
+    }
+
     /// Live: torus edge subject gets PU not PO when world.wrap.
     #[test]
     fn send_to_me_all_close_players_torus_edge_not_po() {
@@ -948,10 +1058,7 @@ mod tests {
             let s = String::from_utf8_lossy(&pkt);
             if s.starts_with("PO\n") {
                 let body = s.trim_start_matches("PO\n").trim_end_matches("\n#");
-                if body
-                    .split_whitespace()
-                    .any(|t| t == edge_pid.to_string())
-                {
+                if body.split_whitespace().any(|t| t == edge_pid.to_string()) {
                     saw_po_edge = true;
                 }
             }
@@ -1002,5 +1109,42 @@ mod tests {
         }
         assert!(!saw_pu_mover, "moving + !send_moving must skip PU");
         assert!(saw_nm_mover, "NAME still sent for in-range mover");
+    }
+
+    /// NAME-FULL-LINEAGE: SendToMePlayerInfo NM is p_id first getFullName(true,true).
+    #[test]
+    fn send_to_me_all_close_players_nm_full_lineage_name() {
+        let hub = OutboundHub::new();
+        let mut rx1 = hub.register(1);
+        let mut state = SimState::with_default_empty(Arc::new(ContentDb::default()));
+        state.broadcast_all_updates = true;
+        spawn_player(&mut state, 1, "nm@t");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.x = 0;
+            p.y = 0;
+            p.connected = true;
+            p.first_name = "ADA".into();
+            p.family_name = "SNOW".into();
+        }
+        let p_id = state.players.get(&1).unwrap().p_id;
+        state.social.stamp_lineage_family_name(p_id, "SNOW");
+        send_to_me_all_close_players(&state, &hub, 1, true);
+        let want = crate::format_player_nm_line_ex(
+            &state.social.lineages,
+            p_id,
+            "ADA",
+            "SNOW",
+            false,
+        );
+        let mut saw = false;
+        while let Ok(pkt) = rx1.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.starts_with("NM\n") && s.contains(&want) {
+                saw = true;
+            }
+        }
+        assert!(saw, "expected NM {want}");
+        assert!(want.contains("SNOW_"), "underscored family_class in {want}");
     }
 }

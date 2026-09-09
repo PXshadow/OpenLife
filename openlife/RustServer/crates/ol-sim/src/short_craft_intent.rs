@@ -18,7 +18,7 @@ use crate::farmer_profession::{
     short_craft_apply_resolved, ShortCraftApply, ShortCraftInput, BASKET_OF_SOIL, WEAK_SKEWER,
 };
 use crate::smith_profession::{
-    short_craft_on_ground_apply, SmithApply, FLOOR_PLACE_ACTOR_IDS,
+    short_craft_on_ground_apply, SmithApply, FIRING_KILN, FLOOR_PLACE_ACTOR_IDS,
 };
 use crate::{apply_drop, apply_use_at, SimState, UseResult};
 use ol_net::OutboundHub;
@@ -50,22 +50,19 @@ pub enum ShortCraftLiveIntent {
     /// USE held on empty ground (shortCraftOnGround when held == target).
     UseOnEmptyGround { x: i32, y: i32, held: i32 },
     /// Need actor — seek and optionally craft (AI-CRAFT residual).
-    SeekOrCraft {
-        actor: i32,
-        craft_if_needed: bool,
-    },
+    SeekOrCraft { actor: i32, craft_if_needed: bool },
     /// shortCraftOnGround: need to hold ground-use object first.
     SeekGroundActor { target: i32 },
     /// craftItem residual (AI-CRAFT).
     CraftItem { object_id: i32 },
     /// Holding craft-drop object too far from forge → walk to forge.
-    GotoForge { object_id: i32, forge_x: i32, forge_y: i32 },
-    /// Pickup free object near forge then re-enter drop path.
-    PickupNearForge {
+    GotoForge {
         object_id: i32,
-        x: i32,
-        y: i32,
+        forge_x: i32,
+        forge_y: i32,
     },
+    /// Pickup free object near forge then re-enter drop path.
+    PickupNearForge { object_id: i32, x: i32, y: i32 },
     /// Defer pottery (seek kiln).
     DeferPottery,
     /// Hungry work cost refused.
@@ -73,6 +70,17 @@ pub enum ShortCraftLiveIntent {
     /// Hold AI tick while pathing (Haxe isMoving return true / dropHeld BusyMoving).
     // Haxe: dropHeldObject dropOnStart isMoving → return true (PREFER-SHORT-WAIT)
     Wait,
+    /// Stage `removeFromContainerTarget` this tick (Haxe `removeItemFromContainer` returns true).
+    // Haxe: AiBase.removeItemFromContainer ~1455 (AI-REMOVE-CONTAINER)
+    StageRemoveFromContainer { x: i32, y: i32, expected_parent: i32 },
+    /// REMV last contained at tile (Haxe `myPlayer.remove`).
+    Remv { x: i32, y: i32 },
+    /// Haxe `doOnOther` / UBABY feed starving (AI-JOB-FOODSERVER).
+    FeedOther { target_p_id: i32, target_conn: u64 },
+    /// Held not feedable — live SearchBestFood(target, self).
+    SeekFeedFood { target_p_id: i32, target_conn: u64 },
+    /// Haxe `forceStopOnNextTile` while pathing toward feed target.
+    ForceStopWait,
     /// Other refuse / none / abort / unreachable coords.
     None,
 }
@@ -82,7 +90,10 @@ impl ShortCraftLiveIntent {
     pub fn is_wire_action(self) -> bool {
         matches!(
             self,
-            Self::UseAt { .. } | Self::DropAt { .. } | Self::UseOnEmptyGround { .. }
+            Self::UseAt { .. }
+                | Self::DropAt { .. }
+                | Self::UseOnEmptyGround { .. }
+                | Self::Remv { .. }
         )
     }
 
@@ -164,6 +175,282 @@ impl ShortCraftIntentCtx {
             self.empty_near_home_y = Some(y);
         }
         self
+    }
+}
+
+// ── useHeldObjOnTarget staging (CRAFT-LIVE-IO) ───────────────────────────────
+
+/// Haxe milkweed family may change 50→51→52 without cancelling use.
+// Haxe: AiBase.isUsingItem milkweed exception
+#[inline]
+pub fn is_milkweed_use_family(parent_id: i32) -> bool {
+    matches!(parent_id, 50 | 51 | 52)
+}
+
+/// Staged `useHeldObjOnTarget` (Haxe `useTarget` / `useActor` / `expectedUseTarget`).
+// Haxe: AiBase.useHeldObjOnTarget ~1391–1405
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UseHeldStaging {
+    pub tx: i32,
+    pub ty: i32,
+    /// Expected world parent at (`tx`,`ty`).
+    pub expected_target_parent: i32,
+    /// Held parent that must be in-hand (0 = empty-hand use / pickup).
+    pub use_actor_parent: i32,
+    /// Haxe `useIsDropInContainer` (basket fill / store-in-container).
+    pub use_is_drop_in_container: bool,
+}
+
+impl UseHeldStaging {
+    pub fn new(
+        tx: i32,
+        ty: i32,
+        expected_target_parent: i32,
+        use_actor_parent: i32,
+        use_is_drop_in_container: bool,
+    ) -> Self {
+        Self {
+            tx,
+            ty,
+            expected_target_parent,
+            use_actor_parent,
+            use_is_drop_in_container,
+        }
+    }
+}
+
+/// Next step for a staged use (Haxe `isUsingItem`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UseHeldAdvance {
+    /// Adjacent + held matches → `myPlayer.use`.
+    UseNow { x: i32, y: i32 },
+    /// Chebyshev > 1 → `gotoObj`.
+    Goto { x: i32, y: i32 },
+    /// Path in progress (Haxe `isMoving` return true).
+    Wait,
+    /// Expected actor is empty (0) but still holding → drop first.
+    DropHeld,
+    /// Cancel staging (target gone/changed, wrong actor, blocked container).
+    Cancel,
+}
+
+/// Stage a use if reachable + hungry-work / floor / container-drop allow.
+///
+/// `lookup` is Haxe `checkHungryWorkCostById` (None = skip food/transition gate).
+// Haxe: useHeldObjOnTarget + checkHungryWorkCost
+pub fn stage_use_held_on_target(
+    tx: i32,
+    ty: i32,
+    expected_target_parent: i32,
+    held_parent: i32,
+    use_is_drop_in_container: bool,
+    reachable: bool,
+    food_store: f32,
+    lookup: Option<&crate::smith_profession::HungryWorkCostLookup>,
+) -> Option<UseHeldStaging> {
+    if !reachable {
+        return None;
+    }
+    if let Some(lu) = lookup {
+        let mut lu = *lu;
+        lu.use_is_drop_in_container = use_is_drop_in_container;
+        if !crate::smith_profession::check_hungry_work_cost_lookup(held_parent, food_store, &lu) {
+            return None;
+        }
+    }
+    Some(UseHeldStaging::new(
+        tx,
+        ty,
+        expected_target_parent,
+        held_parent,
+        use_is_drop_in_container,
+    ))
+}
+
+/// Advance staged use for this think tick.
+// Haxe: AiBase.isUsingItem ~8896–9038
+pub fn advance_use_held_staging(
+    staging: UseHeldStaging,
+    world_parent: i32,
+    held_parent: i32,
+    player_x: i32,
+    player_y: i32,
+    is_moving: bool,
+    target_contained_n: usize,
+) -> UseHeldAdvance {
+    if world_parent == 0 {
+        return UseHeldAdvance::Cancel;
+    }
+    let expected = staging.expected_target_parent;
+    if world_parent != expected
+        && !(is_milkweed_use_family(world_parent) && is_milkweed_use_family(expected))
+    {
+        return UseHeldAdvance::Cancel;
+    }
+    // Haxe: useIsDropInContainer == false && containedObjects.length > 0 → CancleUse
+    if !staging.use_is_drop_in_container && target_contained_n > 0 {
+        return UseHeldAdvance::Cancel;
+    }
+    if held_parent != staging.use_actor_parent {
+        if staging.use_actor_parent == 0 && held_parent != 0 {
+            return UseHeldAdvance::DropHeld;
+        }
+        return UseHeldAdvance::Cancel;
+    }
+    if is_moving {
+        return UseHeldAdvance::Wait;
+    }
+    // Haxe isUsingItem CalculateQuadDistanceToObject > 1 → goto (isClose d=1)
+    let dx = staging.tx - player_x;
+    let dy = staging.ty - player_y;
+    if dx * dx + dy * dy > 1 {
+        UseHeldAdvance::Goto {
+            x: staging.tx,
+            y: staging.ty,
+        }
+    } else {
+        UseHeldAdvance::UseNow {
+            x: staging.tx,
+            y: staging.ty,
+        }
+    }
+}
+
+/// Read world + player and advance [`Player::craft_ai.use_held`] if staged.
+pub fn advance_player_use_held_staging(
+    state: &crate::SimState,
+    conn_id: u64,
+) -> Option<UseHeldAdvance> {
+    let p = state.players.get(&conn_id)?;
+    let staging = p.craft_ai.use_held?;
+    let held_parent = if p.held_id != 0 {
+        state.content.resolve_base_id(p.held_id)
+    } else {
+        0
+    };
+    let is_moving = p.moving || p.move_path.is_some();
+    let (world_parent, contained_n) = {
+        let w = state.world.read().ok()?;
+        let id = w.get_object(staging.tx, staging.ty);
+        let parent = if id != 0 {
+            state.content.resolve_base_id(id)
+        } else {
+            0
+        };
+        let n = w
+            .get_helper(staging.tx, staging.ty)
+            .map(|h| h.contained.len())
+            .unwrap_or(0);
+        (parent, n)
+    };
+    Some(advance_use_held_staging(
+        staging,
+        world_parent,
+        held_parent,
+        p.x,
+        p.y,
+        is_moving,
+        contained_n,
+    ))
+}
+
+/// Read world + player and advance [`Player::craft_ai.remove_from_container`].
+// Haxe: AiBase.isRemovingFromContainer ~9140
+pub fn advance_player_remove_from_container_staging(
+    state: &crate::SimState,
+    conn_id: u64,
+) -> Option<crate::RemoveFromContainerAdvance> {
+    let p = state.players.get(&conn_id)?;
+    let staging = p.craft_ai.remove_from_container?;
+    let is_moving = p.moving || p.move_path.is_some();
+    let hidden = p.is_holding_hidden_wound();
+    let holding_player = p.holding_player_id != 0;
+    let (world_parent, contained_n) = {
+        let w = state.world.read().ok()?;
+        let id = w.get_object(staging.tx, staging.ty);
+        let parent = if id != 0 {
+            state.content.resolve_base_id(id)
+        } else {
+            0
+        };
+        let n = w
+            .get_helper(staging.tx, staging.ty)
+            .map(|h| h.contained.len() as i32)
+            .unwrap_or(0);
+        (parent, n)
+    };
+    Some(crate::advance_remove_from_container(
+        Some(staging),
+        world_parent,
+        contained_n,
+        p.held_id,
+        hidden,
+        holding_player,
+        p.x,
+        p.y,
+        is_moving,
+        true,
+    ))
+}
+
+/// Apply one `isRemovingFromContainer` tick. `None` if no sticky.
+// Haxe: AiBase.isRemovingFromContainer ~9140
+pub fn apply_player_remove_from_container_tick(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+) -> Option<ShortCraftLiveApplyResult> {
+    let adv = advance_player_remove_from_container_staging(state, conn_id)?;
+    use crate::RemoveFromContainerAdvance;
+    match adv {
+        RemoveFromContainerAdvance::Idle => None,
+        RemoveFromContainerAdvance::Cancel | RemoveFromContainerAdvance::GotoFailed { .. } => {
+            if let Some(p) = state.players.get_mut(&conn_id) {
+                p.craft_ai.remove_from_container = None;
+            }
+            Some(ShortCraftLiveApplyResult::Failed)
+        }
+        RemoveFromContainerAdvance::Wait => {
+            Some(ShortCraftLiveApplyResult::Staging(ShortCraftLiveIntent::Wait))
+        }
+        RemoveFromContainerAdvance::DropHeld | RemoveFromContainerAdvance::DropPlayer => {
+            let (px, py) = state
+                .players
+                .get(&conn_id)
+                .map(|p| (p.x, p.y))
+                .unwrap_or((0, 0));
+            Some(apply_short_craft_live_intent(
+                state,
+                outbound,
+                conn_id,
+                ShortCraftLiveIntent::DropAt { x: px, y: py },
+            ))
+        }
+        RemoveFromContainerAdvance::Goto { x, y } => {
+            Some(ShortCraftLiveApplyResult::Staging(ShortCraftLiveIntent::Goto { x, y }))
+        }
+        RemoveFromContainerAdvance::RemvNow { x, y } => Some(apply_short_craft_live_intent(
+            state,
+            outbound,
+            conn_id,
+            ShortCraftLiveIntent::Remv { x, y },
+        )),
+    }
+}
+
+/// Map an advance into a live intent (Cancel → None).
+pub fn use_held_advance_to_live_intent(adv: UseHeldAdvance) -> ShortCraftLiveIntent {
+    match adv {
+        UseHeldAdvance::UseNow { x, y } => ShortCraftLiveIntent::UseAt {
+            x,
+            y,
+            target_id: 0,
+            actor_id: 0,
+        },
+        UseHeldAdvance::Goto { x, y } => ShortCraftLiveIntent::Goto { x, y },
+        UseHeldAdvance::Wait => ShortCraftLiveIntent::Wait,
+        UseHeldAdvance::DropHeld => ShortCraftLiveIntent::DropAt { x: 0, y: 0 },
+        UseHeldAdvance::Cancel => ShortCraftLiveIntent::None,
     }
 }
 
@@ -276,7 +563,11 @@ pub fn smith_apply_to_live_intent(
             x: ctx.forge_pickup_x,
             y: ctx.forge_pickup_y,
         },
-        SmithApply::DeferPottery => ShortCraftLiveIntent::DeferPottery,
+        // Haxe: smith Goal::SeekObject(FIRING_KILN) when pottery body is empty
+        SmithApply::DeferPottery => ShortCraftLiveIntent::SeekOrCraft {
+            actor: FIRING_KILN,
+            craft_if_needed: false,
+        },
     }
 }
 
@@ -313,6 +604,42 @@ pub fn short_craft_on_ground_to_live_intent(
     smith_apply_to_live_intent(apply, ctx)
 }
 
+/// Haxe `myPlayer.remove` last contained (AI live, no protocol tag).
+// Haxe: AiBase.isRemovingFromContainer myPlayer.remove ~9211
+fn apply_ai_remv_last(
+    state: &mut SimState,
+    conn_id: u64,
+    x: i32,
+    y: i32,
+) -> ShortCraftLiveApplyResult {
+    let Some(p) = state.players.get(&conn_id) else {
+        return ShortCraftLiveApplyResult::Failed;
+    };
+    if p.held_id != 0 && !p.is_holding_hidden_wound() {
+        return ShortCraftLiveApplyResult::Failed;
+    }
+    let taken = {
+        let mut w = match state.world.write() {
+            Ok(g) => g,
+            Err(_) => return ShortCraftLiveApplyResult::Failed,
+        };
+        w.container_take(x, y, None)
+    };
+    if let Some(id) = taken {
+        if let Some(p) = state.players.get_mut(&conn_id) {
+            p.held_id = id;
+            p.craft_ai.remove_from_container = None;
+        }
+        ShortCraftLiveApplyResult::Dropped
+    } else {
+        if let Some(p) = state.players.get_mut(&conn_id) {
+            p.craft_ai.remove_from_container = None;
+            p.ai_path_reach.add_not_reachable(x, y, 90.0);
+        }
+        ShortCraftLiveApplyResult::Failed
+    }
+}
+
 // ── Live apply into sim (USE / DROP) ────────────────────────────────────────
 
 /// Result of applying a wire-capable [`ShortCraftLiveIntent`].
@@ -346,31 +673,132 @@ pub fn apply_short_craft_live_intent(
     // Haxe: AiBase.useTarget / dropTarget / foodTarget while working
     crate::note_ai_block_targets_from_live_intent(state, conn_id, intent);
     let apply_r = match intent {
-        ShortCraftLiveIntent::UseAt { x, y, .. }
-        | ShortCraftLiveIntent::UseOnEmptyGround { x, y, .. } => {
+        ShortCraftLiveIntent::UseAt {
+            x,
+            y,
+            target_id,
+            actor_id,
+        } => {
+            let (px, py, held) = state
+                .players
+                .get(&conn_id)
+                .map(|p| (p.x, p.y, p.held_id))
+                .unwrap_or((x, y, actor_id));
+            let expected = if target_id != 0 {
+                state.content.resolve_base_id(target_id)
+            } else {
+                let id = state.world.read().ok().map(|w| w.get_object(x, y)).unwrap_or(0);
+                if id != 0 {
+                    state.content.resolve_base_id(id)
+                } else {
+                    0
+                }
+            };
+            let actor = if actor_id != 0 { actor_id } else { held };
+            if let Some(p) = state.players.get_mut(&conn_id) {
+                p.craft_ai.use_held = Some(UseHeldStaging::new(x, y, expected, actor, false));
+            }
+            // Haxe isClose d=1 (squared); diagonal is not UseNow
+            if !crate::in_use_range(px, py, x, y, 1) {
+                ShortCraftLiveApplyResult::Staging(ShortCraftLiveIntent::Goto { x, y })
+            } else {
+                match apply_use_at(state, conn_id, x, y) {
+                    Some(r) => {
+                        if let Some(p) = state.players.get_mut(&conn_id) {
+                            p.craft_ai.use_held = None;
+                        }
+                        ShortCraftLiveApplyResult::Used(r)
+                    }
+                    None => ShortCraftLiveApplyResult::Failed,
+                }
+            }
+        }
+        ShortCraftLiveIntent::UseOnEmptyGround { x, y, .. } => {
             match apply_use_at(state, conn_id, x, y) {
                 Some(r) => ShortCraftLiveApplyResult::Used(r),
                 None => ShortCraftLiveApplyResult::Failed,
             }
         }
         ShortCraftLiveIntent::DropAt { x, y } => {
-            let held_before = state
-                .players
-                .get(&conn_id)
-                .map(|p| p.held_id)
-                .unwrap_or(0);
+            let held_before = state.players.get(&conn_id).map(|p| p.held_id).unwrap_or(0);
             apply_drop(state, outbound, conn_id, x, y, None);
-            let held_after = state
-                .players
-                .get(&conn_id)
-                .map(|p| p.held_id)
-                .unwrap_or(0);
+            let held_after = state.players.get(&conn_id).map(|p| p.held_id).unwrap_or(0);
             // AI-FOOD-FAIL-MARK: DROP fail on food sticky → 30s (held unchanged).
             // Haxe: isPickingupFood drop done==false ~8689–8699
             if held_after == held_before {
                 crate::mark_path_fail_after_food_pickup_action_live(state, conn_id, x, y);
             }
             ShortCraftLiveApplyResult::Dropped
+        }
+        ShortCraftLiveIntent::StageRemoveFromContainer {
+            x,
+            y,
+            expected_parent,
+        } => {
+            if let Some(p) = state.players.get_mut(&conn_id) {
+                p.craft_ai.remove_from_container =
+                    crate::stage_remove_item_from_container(x, y, expected_parent, true, false);
+            }
+            ShortCraftLiveApplyResult::Staging(ShortCraftLiveIntent::Wait)
+        }
+        ShortCraftLiveIntent::Remv { x, y } => {
+            apply_ai_remv_last(state, conn_id, x, y)
+        }
+        ShortCraftLiveIntent::FeedOther { target_conn, .. } => {
+            if crate::try_do_eating(state, conn_id, target_conn) {
+                ShortCraftLiveApplyResult::Dropped
+            } else {
+                ShortCraftLiveApplyResult::Failed
+            }
+        }
+        ShortCraftLiveIntent::SeekFeedFood { target_conn, .. } => {
+            let hit = crate::search_best_food_full(
+                state,
+                target_conn,
+                crate::FOODSERVER_FOOD_SEARCH_RADIUS,
+                Some(conn_id),
+                Some(crate::search_best_food::AiFoodSearchFlags::default()),
+                true,
+            );
+            match hit {
+                Some(h) => {
+                    let (px, py) = state
+                        .players
+                        .get(&conn_id)
+                        .map(|p| (p.x, p.y))
+                        .unwrap_or((h.tx, h.ty));
+                    if crate::in_use_range(px, py, h.tx, h.ty, 1) {
+                        apply_short_craft_live_intent(
+                            state,
+                            outbound,
+                            conn_id,
+                            ShortCraftLiveIntent::UseAt {
+                                x: h.tx,
+                                y: h.ty,
+                                target_id: h.food_id,
+                                actor_id: 0,
+                            },
+                        )
+                    } else {
+                        ShortCraftLiveApplyResult::Staging(ShortCraftLiveIntent::Goto {
+                            x: h.tx,
+                            y: h.ty,
+                        })
+                    }
+                }
+                None => {
+                    if let Some(p) = state.players.get_mut(&conn_id) {
+                        p.foodserver_profession.clear_target();
+                    }
+                    ShortCraftLiveApplyResult::Failed
+                }
+            }
+        }
+        ShortCraftLiveIntent::ForceStopWait => {
+            if let Some(p) = state.players.get_mut(&conn_id) {
+                p.force_stop_on_next_tile = true;
+            }
+            ShortCraftLiveApplyResult::Staging(ShortCraftLiveIntent::Wait)
         }
         other => ShortCraftLiveApplyResult::Staging(other),
     };
@@ -417,6 +845,8 @@ pub fn smart_drop_held_profession(
         max_distance_to_home,
         held_contains_clay,
         false,
+        &[0; 6],
+        &[0; 6],
     )
 }
 
@@ -435,10 +865,52 @@ pub fn smart_drop_held_profession_ex(
     max_distance_to_home: f32,
     held_contains_clay: bool,
     is_moving: bool,
+    clothing: &[i32],
+    clothing_uses: &[i32],
+) -> ShortCraftLiveIntent {
+    smart_drop_held_profession_ex_content(
+        tiles,
+        held_id,
+        held_uses,
+        player_x,
+        player_y,
+        home_x,
+        home_y,
+        food_store,
+        allow_all_piles,
+        max_distance_to_home,
+        held_contains_clay,
+        is_moving,
+        clothing,
+        clothing_uses,
+        None,
+    )
+}
+
+/// Profession DropHeld with ContentDb maxNewActor `trans.newActorID` count.
+// Haxe: shortCraftOnTarget GetTransition + CountCloseObjects(newActorID, 30)
+pub fn smart_drop_held_profession_ex_content(
+    tiles: &[profession_scan::ScanTile],
+    held_id: i32,
+    held_uses: i32,
+    player_x: i32,
+    player_y: i32,
+    home_x: i32,
+    home_y: i32,
+    food_store: f32,
+    allow_all_piles: bool,
+    max_distance_to_home: f32,
+    held_contains_clay: bool,
+    is_moving: bool,
+    clothing: &[i32],
+    clothing_uses: &[i32],
+    content: Option<&ol_content::ContentDb>,
 ) -> ShortCraftLiveIntent {
     let mut extras = drop_held_ai::DropHeldSensorExtras::default();
     extras.held_contains_clay = held_contains_clay;
-    drop_held_ai::smart_drop_held_from_sensors(
+    // Haxe: dropHeldObject → storeInQuiver clothingObjects scan (DROP-HELD-QUIVER)
+    extras.quiver = drop_held_ai::quiver_from_clothing_snapshot(clothing, clothing_uses);
+    drop_held_ai::smart_drop_held_from_sensors_ex(
         held_id,
         held_uses,
         player_x,
@@ -451,6 +923,7 @@ pub fn smart_drop_held_profession_ex(
         max_distance_to_home,
         tiles,
         extras,
+        content,
     )
 }
 
@@ -518,18 +991,92 @@ pub mod drop_held_ai;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::baker_profession::{baker_short_craft_apply, HOT_OVEN, RAW_MUTTON};
     use crate::farmer_profession::{
         new_actor_count_with_held, short_craft_apply, short_craft_apply_resolved, BOWL_OF_SOIL,
         DYING_BUSH, SKEWER, WEAK_SKEWER,
     };
     use crate::smith_profession::{
-        check_hungry_work_cost_by_id, check_hungry_work_cost_lookup, craft_and_drop_near_forge_apply,
-        smith_action_apply, HungryWorkCostLookup, SmithAction, SmithApplyInput, FLAT_ROCK,
-        HOT_IRON_BLOOM_FLAT, SMITHING_HAMMER,
+        check_hungry_work_cost_by_id, check_hungry_work_cost_lookup,
+        craft_and_drop_near_forge_apply, smith_action_apply, HungryWorkCostLookup, SmithAction,
+        SmithApplyInput, FLAT_ROCK, HOT_IRON_BLOOM_FLAT, SMITHING_HAMMER,
     };
-    use crate::baker_profession::{
-        baker_short_craft_apply, HOT_OVEN, RAW_MUTTON,
-    };
+
+    #[test]
+    fn use_held_staging_goto_when_far_use_when_close() {
+        let st = UseHeldStaging::new(10, 10, 391, 253, false);
+        assert_eq!(
+            advance_use_held_staging(st, 391, 253, 0, 0, false, 0),
+            UseHeldAdvance::Goto { x: 10, y: 10 }
+        );
+        assert_eq!(
+            advance_use_held_staging(st, 391, 253, 10, 10, false, 0),
+            UseHeldAdvance::UseNow { x: 10, y: 10 }
+        );
+        assert_eq!(
+            advance_use_held_staging(st, 391, 253, 9, 10, false, 0),
+            UseHeldAdvance::UseNow { x: 10, y: 10 }
+        );
+        // Diagonal: Chebyshev 1 would UseNow; Haxe quad 2 > 1 → Goto
+        assert_eq!(
+            advance_use_held_staging(st, 391, 253, 9, 9, false, 0),
+            UseHeldAdvance::Goto { x: 10, y: 10 }
+        );
+        assert_eq!(
+            advance_use_held_staging(st, 391, 253, 10, 10, true, 0),
+            UseHeldAdvance::Wait
+        );
+    }
+
+    #[test]
+    fn use_held_staging_cancels_on_target_change_except_milkweed() {
+        let st = UseHeldStaging::new(3, 4, 50, 0, false);
+        assert_eq!(
+            advance_use_held_staging(st, 51, 0, 3, 4, false, 0),
+            UseHeldAdvance::UseNow { x: 3, y: 4 }
+        );
+        let bush = UseHeldStaging::new(3, 4, 391, 253, false);
+        assert_eq!(
+            advance_use_held_staging(bush, 82, 253, 3, 4, false, 0),
+            UseHeldAdvance::Cancel
+        );
+        assert_eq!(
+            advance_use_held_staging(bush, 0, 253, 3, 4, false, 0),
+            UseHeldAdvance::Cancel
+        );
+    }
+
+    #[test]
+    fn use_held_staging_wrong_actor_and_container() {
+        let st = UseHeldStaging::new(1, 1, 292, 126, false);
+        assert_eq!(
+            advance_use_held_staging(st, 292, 33, 1, 1, false, 0),
+            UseHeldAdvance::Cancel
+        );
+        let empty_actor = UseHeldStaging::new(1, 1, 357, 0, false);
+        assert_eq!(
+            advance_use_held_staging(empty_actor, 357, 33, 1, 1, false, 0),
+            UseHeldAdvance::DropHeld
+        );
+        assert_eq!(
+            advance_use_held_staging(st, 292, 126, 1, 1, false, 2),
+            UseHeldAdvance::Cancel
+        );
+        let drop_in = UseHeldStaging::new(1, 1, 292, 126, true);
+        assert_eq!(
+            advance_use_held_staging(drop_in, 292, 126, 1, 1, false, 2),
+            UseHeldAdvance::UseNow { x: 1, y: 1 }
+        );
+    }
+
+    #[test]
+    fn stage_use_held_respects_hungry_and_reachable() {
+        use crate::smith_profession::HungryWorkCostLookup;
+        let lu = HungryWorkCostLookup::from_transition_cost(2.0);
+        assert!(stage_use_held_on_target(1, 1, 391, 253, false, true, 5.0, Some(&lu)).is_some());
+        assert!(stage_use_held_on_target(1, 1, 391, 253, false, true, 0.5, Some(&lu)).is_none());
+        assert!(stage_use_held_on_target(1, 1, 391, 253, false, false, 5.0, Some(&lu)).is_none());
+    }
 
     #[test]
     fn short_craft_intent_use_soil_on_dying_bush() {
@@ -591,10 +1138,7 @@ mod tests {
             try_weak_skewer_first: true,
             ..ShortCraftInput::basic(WEAK_SKEWER, SKEWER, DYING_BUSH)
         };
-        assert_eq!(
-            short_craft_apply(inp),
-            ShortCraftApply::PreferWeakSkewer
-        );
+        assert_eq!(short_craft_apply(inp), ShortCraftApply::PreferWeakSkewer);
         assert_eq!(
             short_craft_apply_resolved(inp),
             ShortCraftApply::UseOnTarget {
@@ -693,8 +1237,8 @@ mod tests {
             Some((9, 9))
         );
 
-        let ctx = ShortCraftIntentCtx::at_target(0, 0)
-            .with_soil_anchors(Some((8, 8)), Some((2, 2)));
+        let ctx =
+            ShortCraftIntentCtx::at_target(0, 0).with_soil_anchors(Some((8, 8)), Some((2, 2)));
         let mut ctx = ctx;
         ctx.empty_drop_x = 99;
         ctx.empty_drop_y = 99;
@@ -858,6 +1402,8 @@ mod tests {
         assert!(drop_held_live_intent_actionable(ShortCraftLiveIntent::Wait));
         assert!(live_intent_is_wait(ShortCraftLiveIntent::Wait));
         assert!(!ShortCraftLiveIntent::Wait.is_wire_action());
-        assert!(!drop_held_live_intent_actionable(ShortCraftLiveIntent::None));
+        assert!(!drop_held_live_intent_actionable(
+            ShortCraftLiveIntent::None
+        ));
     }
 }

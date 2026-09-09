@@ -19,7 +19,7 @@
 | **`ol-ai-professions`** | Pure profession SMs (smith/farm/baker/potter/shepherd/fire) + `goal_expand` | ~16k |
 | **`ol-main-ai`** | High-level `ThinkPlan` / `plan_hungry_food` over interfaces | ~260 |
 | **`ol-ai`** | **Façade only** — stable `ol_ai::*` re-exports for server/sim | ~100 |
-| **`ol-sim`** | Sole world writer; **adapters** + live sticky; still holds **duplicate** pure AI modules until re-export dedupe finishes | mega |
+| **`ol-sim`** | Sole world writer; **adapters** + live sticky; **thin re-exports** of AI crates (`ai_goals`, `craft_graph`, `*_profession`) — edit the owning crate | mega |
 | **`ol-server`** | NPC schedule, `intent_tx`, thin MainAI apply | — |
 
 ### Graph
@@ -33,7 +33,7 @@ ol-ai-helper      → ol-ai-crafting, ol-ai-pathing, ol-content
 ol-ai-professions → ol-ai-helper, ol-ai-crafting, ol-content
 ol-ai             → api + helper + pathing + crafting + professions  (façade)
 ol-main-ai        → ol-ai-api, ol-ai-helper, ol-player-helper
-ol-sim            → ol-ai, ol-ai-api, ol-player-helper  (+ re-exports pathing/craft pure)
+ol-sim            → ol-ai, ol-ai-api, ol-ai-pathing, ol-ai-crafting, ol-ai-helper, ol-ai-professions, ol-player-helper, ol-move-rules
 ol-server         → ol-sim, ol-ai, ol-main-ai, ol-net, …
 ```
 
@@ -98,7 +98,8 @@ Bridge: `goal_from_rung` / `pick_goal_from_ladder` map rungs → stable `Goal`s 
 | C+ | pathing / professions crates | Done — `ol-ai-pathing`, `ol-ai-professions` |
 | D | `PHASE_D_MAIN_AI.md` | Foundation — `ThinkPlan` / hungry food; ladder still mostly in `npc_ai` |
 | E | (planned) | `ol-ai-llm` — provider + apply-plan → write interface only |
-| F | (planned) | Finish **dedupe**: `ol-sim` pure modules → re-export AI crates; shrink `build.rs` AI patch surface |
+| F | (in progress) | Finish **dedupe**: `ol-sim` pure modules → re-export AI crates; shrink `build.rs` AI patch surface |
+| G | (planned) | Rule crates for non-AI concerns (`ol-move-rules`, …); **sim modules first**: `temperature_handler` / `food_eating` / `player_tick` (do not mix temp with eat or world time) |
 
 ---
 

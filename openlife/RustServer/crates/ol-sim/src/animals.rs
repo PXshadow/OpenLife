@@ -6,7 +6,10 @@
 //! **COMBAT-MOSQUITO-KIND**: `AnimalKind::Mosquito` (2156) map mover with path
 //! damage / fever; not Haxe `isAnimal` / `isDeadlyAnimal` for chase/AI.
 
-use crate::animal_pop::{CHANCE_FOR_ANIMAL_DYING, CHANCE_FOR_OFFSPRING};
+use crate::animal_pop::{
+    CHANCE_FOR_ANIMAL_DYING, CHANCE_FOR_ANIMAL_DYING_FACTOR_IF_IN_LOVED_BIOME, CHANCE_FOR_OFFSPRING,
+    MAX_OFFSPRING_FACTOR, OFFSPRING_FACTOR_IF_POP_LOW, OFFSPRING_FACTOR_LOW_POP_BELOW,
+};
 use rand::Rng;
 use serde::Serialize;
 use std::sync::{Arc, RwLock};
@@ -333,6 +336,11 @@ impl AnimalWorld {
             false, // no natural die / offspring
             CHANCE_FOR_OFFSPRING,
             CHANCE_FOR_ANIMAL_DYING,
+            CHANCE_FOR_ANIMAL_DYING_FACTOR_IF_IN_LOVED_BIOME,
+            OFFSPRING_FACTOR_IF_POP_LOW,
+            MAX_OFFSPRING_FACTOR,
+            OFFSPRING_FACTOR_LOW_POP_BELOW,
+            crate::animal_pop::CHANCE_FOR_DOMESTIC_ANIMAL_DYING_FACTOR,
         );
         tick.moves
     }
@@ -362,13 +370,20 @@ impl AnimalWorld {
             true,
             CHANCE_FOR_OFFSPRING,
             CHANCE_FOR_ANIMAL_DYING,
+            CHANCE_FOR_ANIMAL_DYING_FACTOR_IF_IN_LOVED_BIOME,
+            OFFSPRING_FACTOR_IF_POP_LOW,
+            MAX_OFFSPRING_FACTOR,
+            OFFSPRING_FACTOR_LOW_POP_BELOW,
+            crate::animal_pop::CHANCE_FOR_DOMESTIC_ANIMAL_DYING_FACTOR,
         )
     }
 
     /// Core movement tick; `apply_pop` enables natural die + offspring rolls.
     ///
-    /// `chance_for_offspring` / `chance_for_animal_dying` are Haxe ServerSettings
-    /// bases (live via SimState.gameplay).
+    /// `chance_for_offspring` / `chance_for_animal_dying` /
+    /// `chance_for_animal_dying_factor_if_in_loved_biome` /
+    /// `offspring_factor_if_animal_pop_is_low` / `max_offspring_factor` are Haxe ServerSettings
+    /// (live via SimState.gameplay).
     pub fn tick_movement_with_pop_ex<R, FPick>(
         &mut self,
         rng: &mut R,
@@ -380,6 +395,11 @@ impl AnimalWorld {
         apply_pop: bool,
         chance_for_offspring: f32,
         chance_for_animal_dying: f32,
+        chance_for_animal_dying_factor_if_in_loved_biome: f32,
+        offspring_factor_if_animal_pop_is_low: f32,
+        max_offspring_factor: f32,
+        offspring_factor_low_animal_population_below: f32,
+        domestic_dying_factor: f32,
     ) -> AnimalMovementTick
     where
         R: Rng,
@@ -433,8 +453,7 @@ impl AnimalWorld {
                             .map(|a| (a.kind.object_id(), a.x, a.y))
                             .collect();
                         // Lonely die scan near current tile (Haxe before move).
-                        let close_die =
-                            count_close_same_parent(&peers, i, parent_id, ox, oy, 5);
+                        let close_die = count_close_same_parent(&peers, i, parent_id, ox, oy, 5);
                         // Offspring close check near dest (Haxe after move at dest).
                         let has_close_off = has_close_same_parent(
                             &peers,
@@ -458,6 +477,12 @@ impl AnimalWorld {
                             rng.gen::<f32>(),
                             chance_for_offspring,
                             chance_for_animal_dying,
+                            chance_for_animal_dying_factor_if_in_loved_biome,
+                            offspring_factor_if_animal_pop_is_low,
+                            max_offspring_factor,
+                            offspring_factor_low_animal_population_below,
+                            kind.is_domestic(),
+                            domestic_dying_factor,
                         )
                     } else {
                         PopMoveOutcome::Move {
@@ -627,10 +652,9 @@ impl AnimalWorld {
 
     /// True if any wolf is within Chebyshev `range` of tile `(x, y)`.
     pub fn nearby_threat(&self, x: i32, y: i32, range: i32) -> bool {
-        self.animals.iter().any(|a| {
-            a.kind == AnimalKind::Wolf
-                && (a.x - x).abs().max((a.y - y).abs()) <= range
-        })
+        self.animals
+            .iter()
+            .any(|a| a.kind == AnimalKind::Wolf && (a.x - x).abs().max((a.y - y).abs()) <= range)
     }
 
     /// Haxe `AiHelper.GetCloseDeadlyAnimalHelper` against live animal entities.
@@ -844,7 +868,7 @@ mod tests {
         let a = w.animals.iter_mut().find(|a| a.id == id).unwrap();
         assert_eq!(a.map_object_id(), 1323);
         a.move_timer = 0.05; // would be short post-hit cap without residual
-        // Attacking Wild Boar 1333, residual TTC 5s (long wounding factor)
+                             // Attacking Wild Boar 1333, residual TTC 5s (long wounding factor)
         a.apply_zero_residual(1333, 5.0);
         assert_eq!(a.object_id, 1333);
         assert_eq!(a.map_object_id(), 1333);
@@ -877,6 +901,11 @@ mod tests {
             true,
             0.0,
             0.0,
+            0.0,
+            OFFSPRING_FACTOR_IF_POP_LOW,
+            MAX_OFFSPRING_FACTOR,
+            OFFSPRING_FACTOR_LOW_POP_BELOW,
+            crate::animal_pop::CHANCE_FOR_DOMESTIC_ANIMAL_DYING_FACTOR,
         );
         assert_eq!(tick.deaths.len(), 1);
         assert_eq!(tick.deaths[0].object_id, 1333);
@@ -1003,7 +1032,10 @@ mod tests {
         let mut w = AnimalWorld::new();
         w.spawn(AnimalKind::Wolf, 14, 10);
         w.spawn(AnimalKind::Wolf, 12, 10);
-        assert_eq!(w.nearest_threat_dir(10, 10, ANIMAL_THREAT_RANGE), Some((2, 0)));
+        assert_eq!(
+            w.nearest_threat_dir(10, 10, ANIMAL_THREAT_RANGE),
+            Some((2, 0))
+        );
         assert_eq!(w.nearest_threat_dir(10, 10, 1), None);
         let empty = AnimalWorld::new();
         assert_eq!(empty.nearest_threat_dir(0, 0, 5), None);
@@ -1019,7 +1051,10 @@ mod tests {
         }
         let r = share.read().unwrap();
         assert!(r.nearby_threat(5, 5, ANIMAL_THREAT_RANGE));
-        assert_eq!(r.nearest_threat_dir(3, 5, ANIMAL_THREAT_RANGE), Some((2, 0)));
+        assert_eq!(
+            r.nearest_threat_dir(3, 5, ANIMAL_THREAT_RANGE),
+            Some((2, 0))
+        );
     }
 
     #[test]
@@ -1090,23 +1125,16 @@ mod tests {
             a.move_timer = 0.0;
         }
         let mut rng = StepRng::new(0, 0);
-        let tick = w.tick_movement_with_pop(
-            &mut rng,
-            1.0,
-            40,
-            10,
-            None,
-            |_rng, animals, i| {
-                let a = &animals[i];
-                Some(AnimalDestInfo {
-                    x: a.x,
-                    y: a.y + 1,
-                    is_preferred_biome: false, // raw ChanceForAnimalDying
-                    rabbit_in_wrong_place: false,
-                    loves_current_biome: false,
-                })
-            },
-        );
+        let tick = w.tick_movement_with_pop(&mut rng, 1.0, 40, 10, None, |_rng, animals, i| {
+            let a = &animals[i];
+            Some(AnimalDestInfo {
+                x: a.x,
+                y: a.y + 1,
+                is_preferred_biome: false, // raw ChanceForAnimalDying
+                rabbit_in_wrong_place: false,
+                loves_current_biome: false,
+            })
+        });
         assert!(
             !tick.deaths.is_empty(),
             "expected NaturalPop death with rng=0 overpop gates"
@@ -1158,12 +1186,7 @@ mod tests {
             1,    // current
             100,  // original — under MaxOffspringFactor
             true, // preferred → full offspring chance
-            false,
-            false,
-            false,
-            true,
-            0,
-            false, // no close parent
+            false, false, false, true, 0, false, // no close parent
             1.0,   // rng_die never dies (above chance)
             0.0,   // rng_offspring always succeeds if chance>0
         );

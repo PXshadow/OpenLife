@@ -17,9 +17,9 @@
 //! refs + exile edges; `alias_hidden_wound_to_held` via body `apply_to_player`.
 //! Missing file → empty roster Ok (same pattern as WPS1/OLA1).
 
-use crate::nested_body::{
-    read_player_body_objects, write_player_body_objects, PlayerBodyObjects,
-};
+use crate::combat::CombatState;
+use crate::economy::Economy;
+use crate::nested_body::{read_player_body_objects, write_player_body_objects, PlayerBodyObjects};
 use crate::player::Player;
 use crate::social::SocialState;
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -84,7 +84,7 @@ pub struct PlayerDiskRecord {
     pub food_max: f32,
     pub last_ate_fill_max: i32,
     pub yum_bonus: f32,
-    /// Haxe `yum_multiplier` (not on Rust Player yet — round-trip preserved).
+    /// Haxe `yum_multiplier` — live prestige (`Lineage.prestige` / combat stats).
     pub yum_multiplier: f32,
     pub birth_x: i32,
     pub birth_y: i32,
@@ -247,12 +247,14 @@ impl Default for PlayerDiskRecord {
 }
 
 /// Optional context when capturing a live player into a disk record.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct CapturePlayerCtx {
     pub mother_id: Option<i32>,
     pub father_id: Option<i32>,
     pub follow_id: Option<i32>,
     pub coins: f32,
+    /// Haxe `yum_multiplier` (lineage prestige). Default 1 when unset.
+    pub yum_multiplier: f32,
     pub prestige_from_children: f32,
     pub prestige_from_eating: f32,
     pub prestige_from_followers: f32,
@@ -263,12 +265,41 @@ pub struct CapturePlayerCtx {
     pub last_say_in_sec: f32,
 }
 
+impl Default for CapturePlayerCtx {
+    fn default() -> Self {
+        Self {
+            mother_id: None,
+            father_id: None,
+            follow_id: None,
+            coins: 0.0,
+            yum_multiplier: 1.0,
+            prestige_from_children: 0.0,
+            prestige_from_eating: 0.0,
+            prestige_from_followers: 0.0,
+            prestige_from_wealth: 0.0,
+            exiled_by: Vec::new(),
+            clothing_set: String::new(),
+            move_speed: 0.0,
+            last_say_in_sec: 0.0,
+        }
+    }
+}
+
 impl CapturePlayerCtx {
     pub fn from_social(social: &SocialState, p_id: i32) -> Self {
         let mut ctx = Self::default();
         if let Some(lin) = social.lineages.get(&p_id) {
             ctx.mother_id = lin.mother_id;
             ctx.father_id = lin.father_id;
+            ctx.yum_multiplier = if lin.prestige.is_finite() {
+                lin.prestige
+            } else {
+                1.0
+            };
+            ctx.prestige_from_children = lin.prestige_from.children;
+            ctx.prestige_from_eating = lin.prestige_from.eating;
+            ctx.prestige_from_followers = lin.prestige_from.followers;
+            ctx.prestige_from_wealth = lin.prestige_from.wealth;
         }
         ctx.follow_id = social.following.get(&p_id).copied();
         // Haxe exiledByPlayers: map of exiler p_id → player. Invert SocialState.exiles.
@@ -293,6 +324,14 @@ pub fn capture_player_snapshot(p: &Player, ctx: &CapturePlayerCtx) -> PlayerDisk
     let mut stored_int = Vec::new();
     stored_int.push(("homeTx".into(), p.home_x));
     stored_int.push(("homeTy".into(), p.home_y));
+    if let Some((x, y)) = p.warm_place {
+        stored_int.push(("warmTx".into(), x));
+        stored_int.push(("warmTy".into(), y));
+    }
+    if let Some((x, y)) = p.cold_place {
+        stored_int.push(("coldTx".into(), x));
+        stored_int.push(("coldTy".into(), y));
+    }
 
     let reason = p.death_reason.clone().unwrap_or_default();
     let o_id = if p.held_id != 0 {
@@ -308,7 +347,11 @@ pub fn capture_player_snapshot(p: &Player, ctx: &CapturePlayerCtx) -> PlayerDisk
         food_max: p.food_max,
         last_ate_fill_max: p.yum.last_ate_fill_max,
         yum_bonus: p.yum.yum_bonus,
-        yum_multiplier: 1.0,
+        yum_multiplier: if ctx.yum_multiplier.is_finite() {
+            ctx.yum_multiplier
+        } else {
+            1.0
+        },
         birth_x: p.birth_x,
         birth_y: p.birth_y,
         po_id: p.display_object_id,
@@ -336,7 +379,7 @@ pub fn capture_player_snapshot(p: &Player, ctx: &CapturePlayerCtx) -> PlayerDisk
         clothing_set: ctx.clothing_set.clone(),
         just_ate: if p.yum.just_ate { 1 } else { 0 },
         last_ate_id: p.yum.just_ate_id,
-        responsible_id: -1,
+        responsible_id: p.yum.responsible_id,
         held_yum: false,
         held_learned: false,
         deleted: p.deleted,
@@ -351,12 +394,8 @@ pub fn capture_player_snapshot(p: &Player, ctx: &CapturePlayerCtx) -> PlayerDisk
         } else {
             None
         }),
-        held_by_id: get_player_id_for_write(if p.held_by > 0 {
-            Some(p.held_by)
-        } else {
-            None
-        }),
-        kill_mode: false,
+        held_by_id: get_player_id_for_write(if p.held_by > 0 { Some(p.held_by) } else { None }),
+        kill_mode: p.kill_mode,
         true_age: p.true_age,
         leader_badge: 0,
         currently_craving: p.yum.currently_craving,
@@ -366,7 +405,7 @@ pub fn capture_player_snapshot(p: &Player, ctx: &CapturePlayerCtx) -> PlayerDisk
         wounded_by: 0,
         exhaustion: p.exhaustion,
         children_birth_mali: 0.0,
-        food_use_per_second: 0.0,
+        food_use_per_second: p.food_use_per_second,
         coins: ctx.coins,
         prestige_from_children: ctx.prestige_from_children,
         prestige_from_eating: ctx.prestige_from_eating,
@@ -439,6 +478,7 @@ pub fn apply_player_snapshot(rec: &PlayerDiskRecord, p: &mut Player) {
     p.age_r = rec.age_r;
     p.yum.just_ate = rec.just_ate != 0;
     p.yum.just_ate_id = rec.last_ate_id;
+    p.yum.responsible_id = rec.responsible_id;
     p.deleted = rec.deleted;
     p.death_reason = if rec.reason.is_empty() {
         None
@@ -452,7 +492,9 @@ pub fn apply_player_snapshot(rec: &PlayerDiskRecord, p: &mut Player) {
     p.yum.cravings = rec.cravings.clone();
     p.yum.has_eaten = rec.has_eaten.iter().copied().collect();
     p.exhaustion = rec.exhaustion;
+    p.food_use_per_second = rec.food_use_per_second;
     p.angry_time = rec.angry_time;
+    p.kill_mode = rec.kill_mode;
     p.is_cursed = rec.is_cursed;
     p.jumped_tiles = rec.jumped_tiles;
     p.partner_p_id = rec.partner_p_id;
@@ -463,14 +505,30 @@ pub fn apply_player_snapshot(rec: &PlayerDiskRecord, p: &mut Player) {
     if !rec.family_name.is_empty() {
         p.family_name = rec.family_name.clone();
     }
-    // storedInt home
+    // storedInt home + warm/cold places
+    let mut warm_tx = None;
+    let mut warm_ty = None;
+    let mut cold_tx = None;
+    let mut cold_ty = None;
     for (k, v) in &rec.stored_int {
         match k.as_str() {
             "homeTx" => p.home_x = *v,
             "homeTy" => p.home_y = *v,
+            "warmTx" => warm_tx = Some(*v),
+            "warmTy" => warm_ty = Some(*v),
+            "coldTx" => cold_tx = Some(*v),
+            "coldTy" => cold_ty = Some(*v),
             _ => {}
         }
     }
+    p.warm_place = match (warm_tx, warm_ty) {
+        (Some(x), Some(y)) => Some((x, y)),
+        _ => None,
+    };
+    p.cold_place = match (cold_tx, cold_ty) {
+        (Some(x), Some(y)) => Some((x, y)),
+        _ => None,
+    };
     // Provisional cross-refs as raw ids (0 when null); refined in second pass.
     p.holding_player_id = get_player_from_id(rec.held_player_id).unwrap_or(0);
     p.held_by = get_player_from_id(rec.held_by_id).unwrap_or(0);
@@ -592,13 +650,18 @@ pub fn capture_players_snapshot(
 /// Materialize sticky AI-controlled bodies into `players` (keyed by synthetic conn).
 ///
 /// Clears existing entries that match loaded p_ids first. Runs dual-pass cross-refs
-/// and updates social follow/exile/lineage.alive.
+/// and updates social follow/exile/lineage.alive. Floors Haxe Float `player.coins`
+/// into [`Economy`] wallets (no trade prestige). Restores Haxe `yum_multiplier`
+/// onto lineage + combat prestige.
 // Haxe: GlobalPlayerInstance.ReadPlayers + ServerAi attach
+// WALLET-PERSIST-RESTORE / YUM-MULT-PERSIST
 pub fn apply_players_snapshot(
     snap: &PlayersSnapshot,
     players: &mut HashMap<u64, Player>,
     social: &mut SocialState,
     next_player_id: &mut i32,
+    economy: &mut Economy,
+    combat: &mut CombatState,
 ) -> usize {
     // Drop any prior sticky bodies with same p_id.
     let loaded_ids: HashSet<i32> = snap.records.iter().map(|r| r.p_id).collect();
@@ -615,6 +678,8 @@ pub fn apply_players_snapshot(
         }
         let mut p = Player::new(rec.p_id, conn, &rec.email);
         apply_player_snapshot(rec, &mut p);
+        economy.set_floored_coins(rec.p_id, rec.coins);
+        restore_yum_multiplier(social, combat, rec);
         // Haxe: ServerAi until human logs in
         p.connected = false;
         p.ai_controlled = !p.deleted;
@@ -648,6 +713,45 @@ pub fn apply_players_snapshot(
         }
     }
     by_pid.len()
+}
+
+/// Haxe `ReadPlayers` yum_multiplier → lineage + combat prestige.
+// Haxe: GlobalPlayerInstance.yum_multiplier
+// YUM-MULT-PERSIST
+fn restore_yum_multiplier(social: &mut SocialState, combat: &mut CombatState, rec: &PlayerDiskRecord) {
+    let yum = if rec.yum_multiplier.is_finite() {
+        rec.yum_multiplier
+    } else {
+        1.0
+    };
+    combat.stats_mut(rec.p_id).prestige = yum;
+    let name = if !rec.first_name.is_empty() {
+        rec.first_name.as_str()
+    } else if !rec.email.is_empty() {
+        rec.email.as_str()
+    } else {
+        "p"
+    };
+    social.ensure_lineage(rec.p_id, name);
+    if let Some(n) = social.lineages.get_mut(&rec.p_id) {
+        n.prestige = yum;
+        n.prestige_class = crate::prestige::PrestigeClass::from_prestige(yum.max(0.0));
+        // PLB has Haxe's four saved buckets. Fill lineage zeros (OLN15 already
+        // loaded wins when non-zero). Grandkids/parents/siblings live on OLN15.
+        let pf = &mut n.prestige_from;
+        if pf.children == 0.0 && rec.prestige_from_children.is_finite() {
+            pf.children = rec.prestige_from_children;
+        }
+        if pf.eating == 0.0 && rec.prestige_from_eating.is_finite() {
+            pf.eating = rec.prestige_from_eating;
+        }
+        if pf.followers == 0.0 && rec.prestige_from_followers.is_finite() {
+            pf.followers = rec.prestige_from_followers;
+        }
+        if pf.wealth == 0.0 && rec.prestige_from_wealth.is_finite() {
+            pf.wealth = rec.prestige_from_wealth;
+        }
+    }
 }
 
 // ── Binary I/O ───────────────────────────────────────────────────────────────
@@ -791,8 +895,7 @@ pub fn write_player_record(w: &mut impl Write, rec: &PlayerDiskRecord) -> Result
     w.write_u16::<LittleEndian>(rec.cravings.len() as u16)
         .map_err(|e| e.to_string())?;
     for c in &rec.cravings {
-        w.write_i32::<LittleEndian>(*c)
-            .map_err(|e| e.to_string())?;
+        w.write_i32::<LittleEndian>(*c).map_err(|e| e.to_string())?;
     }
     w.write_f32::<LittleEndian>(rec.hits)
         .map_err(|e| e.to_string())?;
@@ -837,10 +940,8 @@ pub fn write_player_record(w: &mut impl Write, rec: &PlayerDiskRecord) -> Result
     w.write_u16::<LittleEndian>(rec.has_eaten.len() as u16)
         .map_err(|e| e.to_string())?;
     for (k, v) in &rec.has_eaten {
-        w.write_i32::<LittleEndian>(*k)
-            .map_err(|e| e.to_string())?;
-        w.write_f32::<LittleEndian>(*v)
-            .map_err(|e| e.to_string())?;
+        w.write_i32::<LittleEndian>(*k).map_err(|e| e.to_string())?;
+        w.write_f32::<LittleEndian>(*v).map_err(|e| e.to_string())?;
     }
     w.write_u16::<LittleEndian>(rec.exiled_by.len() as u16)
         .map_err(|e| e.to_string())?;
@@ -853,8 +954,7 @@ pub fn write_player_record(w: &mut impl Write, rec: &PlayerDiskRecord) -> Result
     for (k, v) in &rec.stored_int {
         // Haxe writeString("$key\n"); use length-prefixed for robust PLB1.
         write_string(w, k)?;
-        w.write_i32::<LittleEndian>(*v)
-            .map_err(|e| e.to_string())?;
+        w.write_i32::<LittleEndian>(*v).map_err(|e| e.to_string())?;
     }
 
     w.write_i16::<LittleEndian>(RECORD_END_SIGN)
@@ -1144,6 +1244,7 @@ mod tests {
         p.age = 20.0;
         p.true_age = 20.5;
         p.heat = 0.62;
+        p.food_use_per_second = 0.07;
         p.home_x = 50;
         p.home_y = 51;
         p.exhaustion = 1.25;
@@ -1222,10 +1323,14 @@ mod tests {
         assert_eq!(r1.body.held.as_ref().unwrap().contained.len(), 2);
         assert_eq!(r1.body.clothing[5].as_ref().unwrap().id, 198);
         assert!((r1.body.yellowfever_count - 0.25).abs() < 1e-5);
-        assert!(r1.has_eaten.iter().any(|(k, v)| *k == 33 && (*v - 2.0).abs() < 1e-5));
+        assert!(r1
+            .has_eaten
+            .iter()
+            .any(|(k, v)| *k == 33 && (*v - 2.0).abs() < 1e-5));
         assert_eq!(r1.currently_craving, 40);
         assert!(r1.cravings.contains(&40));
         assert!((r1.coins - 12.0).abs() < 1e-5);
+        assert!((r1.food_use_per_second - 0.07).abs() < 1e-5);
         assert_eq!(r2.follow_id, 1);
         assert!(r2.exiled_by.contains(&1));
         assert!(r1.stored_int.iter().any(|(k, v)| k == "homeTx" && *v == 50));
@@ -1287,7 +1392,16 @@ mod tests {
         let mut players = HashMap::new();
         let mut social = SocialState::default();
         let mut next = 2;
-        let n = apply_players_snapshot(&snap, &mut players, &mut social, &mut next);
+        let mut economy = crate::economy::Economy::default();
+        let mut combat = crate::combat::CombatState::default();
+        let n = apply_players_snapshot(
+            &snap,
+            &mut players,
+            &mut social,
+            &mut next,
+            &mut economy,
+            &mut combat,
+        );
         assert_eq!(n, 2);
         assert_eq!(next, 3);
 
@@ -1300,6 +1414,125 @@ mod tests {
         assert_eq!(social.following.get(&2), Some(&1));
         assert!(by_pid[&1].ai_controlled);
         assert!(!by_pid[&1].connected);
+    }
+
+    /// WALLET-PERSIST-RESTORE: PLB Float coins floor into Economy on apply.
+    // Haxe: GlobalPlayerInstance.coins ReadPlayers
+    #[test]
+    fn apply_players_snapshot_restores_floored_coins() {
+        let mut r1 = PlayerDiskRecord::default();
+        r1.p_id = 1;
+        r1.email = "rich@t".into();
+        r1.coins = 12.9;
+        let mut r2 = PlayerDiskRecord::default();
+        r2.p_id = 2;
+        r2.email = "broke@t".into();
+        r2.coins = 0.4;
+        let snap = PlayersSnapshot {
+            next_player_id: 3,
+            records: vec![r1, r2],
+        };
+        let mut players = HashMap::new();
+        let mut social = SocialState::default();
+        let mut next = 2;
+        let mut economy = crate::economy::Economy::default();
+        let mut combat = crate::combat::CombatState::default();
+        apply_players_snapshot(
+            &snap,
+            &mut players,
+            &mut social,
+            &mut next,
+            &mut economy,
+            &mut combat,
+        );
+        assert_eq!(economy.coins_of(1), 12);
+        assert_eq!(economy.coins_of(2), 0);
+        assert_eq!(economy.wallets.get(&1).unwrap().trade_prestige, 0.0);
+    }
+
+    #[test]
+    fn capture_then_apply_roundtrips_wallet_coins() {
+        let p = sample_player(7, "coin@t");
+        let mut players = HashMap::new();
+        players.insert(p.conn_id, p);
+        let social = SocialState::default();
+        let snap = capture_players_snapshot(&players, &social, 8, |_| 41.2, false);
+        assert!((snap.records[0].coins - 41.2).abs() < 1e-5);
+        let mut loaded = HashMap::new();
+        let mut social2 = SocialState::default();
+        let mut next = 2;
+        let mut economy = crate::economy::Economy::default();
+        let mut combat = crate::combat::CombatState::default();
+        apply_players_snapshot(
+            &snap,
+            &mut loaded,
+            &mut social2,
+            &mut next,
+            &mut economy,
+            &mut combat,
+        );
+        assert_eq!(economy.coins_of(7), 41);
+    }
+
+    /// YUM-MULT-PERSIST: PLB yum_multiplier → lineage + combat prestige.
+    // Haxe: GlobalPlayerInstance.yum_multiplier ReadPlayers
+    #[test]
+    fn apply_players_snapshot_restores_yum_multiplier_prestige() {
+        let mut rec = PlayerDiskRecord::default();
+        rec.p_id = 4;
+        rec.email = "yum@t".into();
+        rec.first_name = "Ada".into();
+        rec.yum_multiplier = 17.5;
+        let snap = PlayersSnapshot {
+            next_player_id: 5,
+            records: vec![rec],
+        };
+        let mut players = HashMap::new();
+        let mut social = SocialState::default();
+        let mut next = 2;
+        let mut economy = crate::economy::Economy::default();
+        let mut combat = crate::combat::CombatState::default();
+        apply_players_snapshot(
+            &snap,
+            &mut players,
+            &mut social,
+            &mut next,
+            &mut economy,
+            &mut combat,
+        );
+        assert!((combat.stats.get(&4).unwrap().prestige - 17.5).abs() < 1e-5);
+        let n = social.lineages.get(&4).expect("lineage");
+        assert!((n.prestige - 17.5).abs() < 1e-5);
+        assert_eq!(n.name, "Ada");
+    }
+
+    #[test]
+    fn capture_then_apply_roundtrips_yum_multiplier() {
+        let p = sample_player(8, "yum2@t");
+        let mut players = HashMap::new();
+        players.insert(p.conn_id, p);
+        let mut social = SocialState::default();
+        social.ensure_lineage(8, "Ada");
+        if let Some(n) = social.lineages.get_mut(&8) {
+            n.set_prestige(9.25);
+        }
+        let snap = capture_players_snapshot(&players, &social, 9, |_| 0.0, false);
+        assert!((snap.records[0].yum_multiplier - 9.25).abs() < 1e-5);
+        let mut loaded = HashMap::new();
+        let mut social2 = SocialState::default();
+        let mut next = 2;
+        let mut economy = crate::economy::Economy::default();
+        let mut combat = crate::combat::CombatState::default();
+        apply_players_snapshot(
+            &snap,
+            &mut loaded,
+            &mut social2,
+            &mut next,
+            &mut economy,
+            &mut combat,
+        );
+        assert!((combat.stats.get(&8).unwrap().prestige - 9.25).abs() < 1e-5);
+        assert!((social2.lineages.get(&8).unwrap().prestige - 9.25).abs() < 1e-5);
     }
 
     #[test]

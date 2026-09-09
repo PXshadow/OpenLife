@@ -29,7 +29,7 @@ Regenerate: search `TODO|FIXME` under `openlife/server`, `auto`, `settings`.
 
 - AI hire: dynamic prices; command for needed coins  
 - Natural springs / tar spots respawn exception  
-- Wells / oil decay exception  
+- Wells / oil decay exception — **WELLS-OIL-DECAY DONE** (Haxe description never-decay + `decayFactor<=0` skip)  
 - Boat graphics for cars  
 - Many gameplay systems described as BETA  
 
@@ -40,11 +40,11 @@ Regenerate: search `TODO|FIXME` under `openlife/server`, `auto`, `settings`.
 | Theme | Note |
 |-------|------|
 | Twins | `// TODO twins` on login — **Rust FERTILITY-TWINS** implements protocol wait queue (product vs Haxe TODO) |
-| Full server | limit AIs; score priority; last life length; IP spam block |
+| Full server | limit AIs; score priority; last life length; IP spam block -- **SPAWN-QUEUE-POLICY DONE** |
 | Hold obj | `MakeSureHoldObjId...` race with threads |
 | Leader | vanilla client breaks if LEADER out of range |
-| DIE score | don’t lower score if `/DIE` |
-| VALLEY_SPACING | unclear send |
+| DIE score | don’t lower score if `/DIE` — **DIE-SCORE-SKIP DONE** (gate kept; residual Haxe `food_store -= 100`) |
+| VALLEY_SPACING | Vanilla `VS` (`y_spacing y_offset`). Open Life does **not** send or apply it (Haxe send commented; client no-op). Rust documents this in `ol-protocol` / `map_chunk` — do not port. |
 | ServerAi | call path / access violations |
 
 **Port impact:** spawn queue policy, leader packet range clamp, disconnect scoring.
@@ -57,11 +57,11 @@ Regenerate: search `TODO|FIXME` under `openlife/server`, `auto`, `settings`.
 |-------|----------|
 | Diseases / redpoints | yellowFever, dehydration, spicyFood stubs |
 | Prestige save | grandkids/parents/siblings prestige not saved |
-| Spawn | eve not too far; jungle bananas; deadly animals; noob/noble weights |
-| Transitions | Needle/Thread / Bone Needle bugs; tool use Ball of Thread |
-| Clothing | store clothes in clothes (backpack while wearing) |
-| Death | baby bones in arms; inherit if ally close; coins to kids / grave |
-| Combat | stop move on hit; block non-ally move; bloody weapon; anger timing |
+| Spawn | eve not too far; jungle bananas; deadly animals — **EVE-DEADLY-ANIMALS DONE**; noob/noble weights |
+| Transitions | Needle/Thread / Bone Needle bugs; tool use Ball of Thread — **Rust: port-as-is** (GPI L2885–2886); do not invent a fix |
+| Clothing | store clothes in clothes (backpack while wearing) — **Rust CLOTHING-IN-CLOTHING DONE** (SELF place-before-switch + live DROP c) |
+| Death | baby bones in arms — **BABY-BONES-ARMS DONE**; inherit if ally close; coins to kids / grave |
+| Combat | stop move on hit — **HIT-STOP-MOVE DONE**; block non-ally move — **HIT-BLOCK-NONALLY-MOVE DONE**; bloody weapon; anger timing |
 | Pickup | allow cloth pickup age; knockout |
 | Commands | `!SWITCH` needs client; `!CREATE` |
 | Temperature | closest heat object placement |

@@ -6,8 +6,8 @@
 //! Pure match + plan only. Live fan-out is `fan_out_ai_say_scripted` in `lib.rs`.
 
 use crate::ai_handler::{
-    check_if_you_are_allied_speech, AlliedSpeechOutcome, LLM_NOT_ALLY_SAY, LLM_SPEECH_ANGRY_EMOTE_ID,
-    LLM_SPEECH_COOLDOWN_SECS,
+    check_if_you_are_allied_speech, AlliedSpeechOutcome, LLM_NOT_ALLY_SAY,
+    LLM_SPEECH_ANGRY_EMOTE_ID, LLM_SPEECH_COOLDOWN_SECS,
 };
 
 // ---------------------------------------------------------------------------
@@ -261,14 +261,22 @@ pub fn profession_is_known(prof: &str) -> bool {
     AI_PROFESSIONS.iter().any(|k| *k == prof)
 }
 
+/// Token after hearer `YOU ARE` (strip trailing `!`). Empty → None.
+// Haxe: sayHelper YOU ARE swallow ~4966; profession assign is SMITH! ~4950
+pub fn you_are_profession_rest(upper: &str) -> Option<&str> {
+    let rest = upper.strip_prefix("YOU ARE")?.trim();
+    let rest = rest.trim_end_matches('!').trim();
+    if rest.is_empty() {
+        None
+    } else {
+        Some(rest)
+    }
+}
+
 /// Haxe `isMovingToHome` move target: prefer `firePlace` over `home`.
 // Haxe: AiBase.isMovingToHome L8157
 #[inline]
-pub fn go_home_move_target(
-    home_x: i32,
-    home_y: i32,
-    fire_place: Option<(i32, i32)>,
-) -> (i32, i32) {
+pub fn go_home_move_target(home_x: i32, home_y: i32, fire_place: Option<(i32, i32)>) -> (i32, i32) {
     fire_place.unwrap_or((home_x, home_y))
 }
 
@@ -482,10 +490,7 @@ pub fn plan_scripted_say_helper(ctx: &ScriptedSayCtx) -> ScriptedSayPlan {
     }
 
     // FOLLOW ME! / FOLLOW / COME  (before STOP FOLLOW)
-    if upper.starts_with("FOLLOW ME!")
-        || upper.starts_with("FOLLOW")
-        || upper.starts_with("COME")
-    {
+    if upper.starts_with("FOLLOW ME!") || upper.starts_with("FOLLOW") || upper.starts_with("COME") {
         if let Some(deny) = plan_should_do_command(ctx.should_do_command) {
             return deny;
         }
@@ -630,6 +635,41 @@ pub fn plan_scripted_say_helper(ctx: &ScriptedSayCtx) -> ScriptedSayPlan {
             ..Default::default()
         };
     }
+    // YOU ARE <PROF> — hearer profession assign (not speaker DoNaming first-name).
+    // Haxe: YOU ARE swallow ~4966 is TODO; SMITH! ~4950 is the assign command.
+    if upper.starts_with("YOU ARE") {
+        if let Some(rest) = you_are_profession_rest(&upper) {
+            match normalize_profession_token(rest) {
+                Some(None) => {
+                    if let Some(deny) = plan_should_do_command(ctx.should_do_command) {
+                        return deny;
+                    }
+                    return ScriptedSayPlan {
+                        handled: true,
+                        set_assigned_profession: Some(None),
+                        ..Default::default()
+                    };
+                }
+                Some(Some(p)) if profession_is_known(&p) => {
+                    if let Some(deny) = plan_should_do_command(ctx.should_do_command) {
+                        return deny;
+                    }
+                    return ScriptedSayPlan {
+                        handled: true,
+                        say: Some(p.clone()),
+                        set_assigned_profession: Some(Some(p)),
+                        ..Default::default()
+                    };
+                }
+                _ => {}
+            }
+        }
+        return ScriptedSayPlan {
+            handled: true,
+            ..Default::default()
+        };
+    }
+
     if upper.starts_with("PROFESSION?") || upper.starts_with("PROF?") {
         let t = create_profession_text(
             ctx.assigned_profession.as_deref(),
@@ -690,8 +730,8 @@ pub fn plan_scripted_say_helper(ctx: &ScriptedSayCtx) -> ScriptedSayPlan {
         }
     }
 
-    // F / YOU ARE — Haxe TODO feed; still returns without LLM
-    if upper == "F" || upper.starts_with("YOU ARE") {
+    // F — Haxe TODO feed; still returns without LLM
+    if upper == "F" {
         return ScriptedSayPlan {
             handled: true,
             ..Default::default()
@@ -905,10 +945,7 @@ mod tests {
         assert_eq!(a.set_assigned_profession, Some(Some("SMITH".into())));
         assert_eq!(a.say.as_deref(), Some("SMITH"));
         let f = plan_scripted_say_helper(&base_ctx("FARMER!"));
-        assert_eq!(
-            f.set_assigned_profession,
-            Some(Some("BASICFARMER".into()))
-        );
+        assert_eq!(f.set_assigned_profession, Some(Some("BASICFARMER".into())));
         let n = plan_scripted_say_helper(&base_ctx("NONE!"));
         assert_eq!(n.set_assigned_profession, Some(None));
     }
@@ -924,6 +961,28 @@ mod tests {
         let p = plan_scripted_say_helper(&base_ctx("YOU ARE COOL"));
         assert!(p.handled);
         assert!(p.say.is_none());
+        assert!(p.set_assigned_profession.is_none());
+    }
+
+    #[test]
+    fn you_are_profession_assigns() {
+        // YOU-ARE-PROF: hearer YOU ARE SMITH (not DoNaming first-name)
+        let a = plan_scripted_say_helper(&base_ctx("YOU ARE SMITH"));
+        assert_eq!(a.set_assigned_profession, Some(Some("SMITH".into())));
+        assert_eq!(a.say.as_deref(), Some("SMITH"));
+        let f = plan_scripted_say_helper(&base_ctx("YOU ARE FARMER!"));
+        assert_eq!(f.set_assigned_profession, Some(Some("BASICFARMER".into())));
+        let n = plan_scripted_say_helper(&base_ctx("YOU ARE NONE"));
+        assert_eq!(n.set_assigned_profession, Some(None));
+        let mut c = base_ctx("YOU ARE BAKER");
+        c.should_do_command = false;
+        assert_eq!(
+            plan_scripted_say_helper(&c).say.as_deref(),
+            Some(NOT_FOLLOWER_SAY)
+        );
+        let alice = plan_scripted_say_helper(&base_ctx("YOU ARE ALICE"));
+        assert!(alice.handled);
+        assert!(alice.set_assigned_profession.is_none());
     }
 
     #[test]

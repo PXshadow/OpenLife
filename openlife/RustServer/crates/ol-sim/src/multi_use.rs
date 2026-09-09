@@ -127,7 +127,11 @@ pub fn change_number_of_uses_on_target(
 
     if id_changed && reset_number_of_uses {
         // New pile/bucket (reverse) starts at 1; deposit/full harvest starts at max.
-        let start = if reverse_use_target { 1 } else { num_uses_after };
+        let start = if reverse_use_target {
+            1
+        } else {
+            num_uses_after
+        };
         return TargetUsesOutcome::Uses(start);
     }
 
@@ -212,9 +216,7 @@ pub fn pick_tool_last_use_new_actor(
     normal_on_empty: Option<i32>,
     last_use_on_target: Option<i32>,
 ) -> Option<i32> {
-    last_use_on_empty
-        .or(normal_on_empty)
-        .or(last_use_on_target)
+    last_use_on_empty.or(normal_on_empty).or(last_use_on_target)
 }
 
 /// Outcome of Haxe `DoChangeNumberOfUsesOnActorManual` on the **eat** path
@@ -262,7 +264,11 @@ pub fn eat_actor_after_use(
     if should_skip_use_decrement(use_chance, rng01) {
         return EatActorUsesOutcome::Unchanged {
             held_id,
-            held_uses: if num_uses >= 2 { cur } else { uses_before.max(0) },
+            held_uses: if num_uses >= 2 {
+                cur
+            } else {
+                uses_before.max(0)
+            },
         };
     }
     let next = cur - 1;
@@ -504,64 +510,48 @@ mod tests {
 
     #[test]
     fn pile_starts_at_one_on_reverse_new_id() {
-        let o = change_number_of_uses_on_target(
-            33, 661, 0, 0, 9, true, false, true, true,
-        );
+        let o = change_number_of_uses_on_target(33, 661, 0, 0, 9, true, false, true, true);
         assert_eq!(o, TargetUsesOutcome::Uses(1));
     }
 
     #[test]
     fn pile_increments_same_id_reverse() {
-        let o = change_number_of_uses_on_target(
-            661, 661, 2, 9, 9, true, false, true, true,
-        );
+        let o = change_number_of_uses_on_target(661, 661, 2, 9, 9, true, false, true, true);
         assert_eq!(o, TargetUsesOutcome::Uses(3));
     }
 
     #[test]
     fn pile_does_not_exceed_max_on_reverse() {
-        let o = change_number_of_uses_on_target(
-            661, 661, 9, 9, 9, true, false, true, true,
-        );
+        let o = change_number_of_uses_on_target(661, 661, 9, 9, 9, true, false, true, true);
         // cur=9 > numUses-1=8 → no change
         assert_eq!(o, TargetUsesOutcome::Uses(9));
     }
 
     #[test]
     fn harvest_decrements_then_clears() {
-        let o = change_number_of_uses_on_target(
-            50, 50, 2, 3, 3, false, false, true, true,
-        );
+        let o = change_number_of_uses_on_target(50, 50, 2, 3, 3, false, false, true, true);
         assert_eq!(o, TargetUsesOutcome::Uses(1));
-        let o2 = change_number_of_uses_on_target(
-            50, 50, 1, 3, 3, false, false, true, true,
-        );
+        let o2 = change_number_of_uses_on_target(50, 50, 1, 3, 3, false, false, true, true);
         assert_eq!(o2, TargetUsesOutcome::Cleared);
     }
 
     #[test]
     fn same_num_uses_id_change_preserves_and_decrements() {
         // Mining pit style: id changes, numUses equal → no reset, then -=1
-        let o = change_number_of_uses_on_target(
-            100, 101, 5, 8, 8, false, false, true, true,
-        );
+        let o = change_number_of_uses_on_target(100, 101, 5, 8, 8, false, false, true, true);
         assert_eq!(o, TargetUsesOutcome::Uses(4));
     }
 
     #[test]
     fn no_use_target_keeps_uses() {
-        let o = change_number_of_uses_on_target(
-            661, 661, 4, 9, 9, false, true, true, true,
-        );
+        let o = change_number_of_uses_on_target(661, 661, 4, 9, 9, false, true, true, true);
         assert_eq!(o, TargetUsesOutcome::Uses(4));
     }
 
     #[test]
     fn clothing_suppress_reset_on_id_change() {
         // Haxe: clothing multi-use → resetNumberOfUses=false → preserve + decrement
-        let o = change_number_of_uses_on_target(
-            200, 201, 4, 5, 6, false, false, true, false,
-        );
+        let o = change_number_of_uses_on_target(200, 201, 4, 5, 6, false, false, true, false);
         assert_eq!(o, TargetUsesOutcome::Uses(3));
     }
 
@@ -647,10 +637,7 @@ mod tests {
             pick_tool_last_use_new_actor(None, Some(382), None),
             Some(382)
         );
-        assert_eq!(
-            pick_tool_last_use_new_actor(None, None, Some(99)),
-            Some(99)
-        );
+        assert_eq!(pick_tool_last_use_new_actor(None, None, Some(99)), Some(99));
         assert_eq!(pick_tool_last_use_new_actor(None, None, None), None);
     }
 

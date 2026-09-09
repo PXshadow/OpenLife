@@ -4,6 +4,8 @@
 **Binary:** `ol-server` (`crates/ol-server`)  
 **Design goals:** multi-thread net + single-writer sim, no SQL, fast restart, protocol-compatible OHOL client.
 
+**Living overview (done vs remaining):** [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md)
+
 ---
 
 ## 1. Crate graph
@@ -11,9 +13,10 @@
 ```
 ol-server (bin)
   ├─ ol-sim            simulation + intents + live AI sticky / adapters
+  ├─ ol-move-rules     pure wrap / isClose / calculateSpeed / jump
   ├─ ol-ai             AI façade (re-exports below)
   │    ├─ ol-ai-api         PlayerWrite/Read interfaces, FoodSearch (r=40)
-  │    ├─ ol-ai-pathing     pure path-reach / blockedByAI maps
+  │    ├─ ol-ai-pathing     path-reach / PathfinderNew / blockedByAI
   │    ├─ ol-ai-helper      Goal + priority ladder
   │    ├─ ol-ai-crafting    craft graph / plan / value
   │    └─ ol-ai-professions pure profession SMs
@@ -21,23 +24,29 @@ ol-server (bin)
   ├─ ol-player-helper  shared pure food scoring / eat gates
   ├─ ol-net            TCP, login bootstrap, outbound hub, ticket
   ├─ ol-protocol       parse/format wire tags
-  ├─ ol-world          World grid, generate, OLW1/v2, journal
+  ├─ ol-world          World grid, generate, OLW3 NestedHelper, journal
   ├─ ol-content        objects/transitions/categories load
-  ├─ ol-config         server.toml / env
+  │    └─ ol-binary         OLC1 / OLT1 caches
+  ├─ ol-config         server.toml / LiveSettings / field map
   ├─ ol-web            HTTP viewer + APIs
   ├─ ol-metrics        counters / ops series hooks
   └─ (content/)        OneLifeData7 on disk
 ```
 
+**Haxe file → crate:** [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) §3.1 (canonical). File-level status: [`FILE_MATRIX.md`](FILE_MATRIX.md).
+
 | Crate | Responsibility |
 |-------|----------------|
 | `ol-protocol` | Tag parse, `#` frames, PU/MX/MC/FM/PM formatters |
 | `ol-net` | Accept, per-conn tasks, `OutboundHub`, ticket verify |
-| `ol-content` | Parallel load of object/transition defs |
-| `ol-world` | `World` tiles, biome gen, OLW save/load (v1/v2), journal |
-| `ol-sim` | **Sole world writer**: `SimState`, `apply_intent`, ticks; live AI adapters |
+| `ol-binary` | OLC1/OLT1 encode/parse |
+| `ol-content` | Parallel load of object/transition defs; **`src/patches/`** = Haxe PatchObjectData/PatchTransitions (not LiveSettings) |
+| `ol-world` | `World` tiles, biome gen, OLW3 NestedHelper, journal |
+| `ol-config` | Typed config from `server.toml` + LiveSettings |
+| `ol-sim` | **Sole world writer**: `SimState`, `apply_intent`, ticks; live AI adapters; **thin re-exports** of AI/move-rules |
+| `ol-move-rules` | Pure wrap / distance / isClose / jump / calculateSpeed |
 | `ol-ai-api` | Write/read traits + best-food DTOs (humans and AI share writes via NetIntent) |
-| `ol-ai-pathing` | Pure not-reachable / hostile / blockedByAI timers |
+| `ol-ai-pathing` | Pure not-reachable / hostile / blockedByAI + PathfinderNew |
 | `ol-ai-helper` | Goals + Haxe priority ladder sensors |
 | `ol-ai-crafting` | Reverse craft graph + value scoring |
 | `ol-ai-professions` | Pure profession state machines |
@@ -46,11 +55,30 @@ ol-server (bin)
 | `ol-player-helper` | Shared pure SearchBestFood / yum gates |
 | `ol-server` | Glue: boot, tick loop, self-play, NPC scheduler, config |
 | `ol-web` | `/viewer`, `/api/*`, lineage pages |
-| `ol-config` | Typed config from `server.toml` |
 | `ol-metrics` | Metrics helpers |
 
 **AI split design:** `docs/design/OL_AI_SPLIT.md`
 
+### Concern separation inside `ol-sim` (do not mix)
+
+| Concern | Canonical module | Haxe analogue | Must not mix with |
+|---------|------------------|---------------|-------------------|
+| **Temperature** | `temperature_handler.rs` (re-exports `map_temp_player` + `heat_ideal`) | `TemperatureHandler.hx` + GPI `updateTemperature` | Food eating, world decay |
+| **Food eating** | `food_eating.rs` (`try_eat_held`) | GPI `tryEat` / `doEating` | Temperature, world_time |
+| **Player tick** | `player_tick.rs` (docs) + `tick_vitals` | `TimeHelper.DoTimeStuffForPlayer` | World map-slice ownership |
+| **World tick** | `world_time.rs` / `long_term.rs` | `DoWorldMapTimeStuff` / long-term | try_eat, body heat update |
+
+### Target rule crates
+
+| Crate | Status | Owns |
+|-------|--------|------|
+| **`ol-move-rules`** | **DONE core (2026-08-24)** | Wrap, distance, isClose / checkIfNotMoving, jump plans, **calculateSpeed pure** (`speed` + nest), **isCloseUseExact** (`close_exact`), path step helpers |
+| `ol-transition-rules` | planned | USE/DROP evaluate pure |
+| `ol-combat-rules` | planned | weapons / wounds / fever pure |
+| `ol-food-eating` / `ol-temperature` | modules first in sim | then crate peel |
+| `ol-social-rules` | planned | speech / do_commands pure |
+
+**`ol-sim` stays the sole world writer.** See `docs/BUILD_SPEED.md`.
 ---
 
 ## 2. Runtime topology
@@ -128,7 +156,7 @@ Organized by concern. **Large orchestration stays in `lib.rs`** (`apply_intent`,
 | `move_path.rs` | Timed path + PM + gates | **DONE** (`timed_movement` default on; dual-shoe/age/force/jump/OpenDoors residuals elsewhere) |
 | `pathfind.rs` | Grid pathfinding | PARTIAL |
 | `map_chunk.rs` | MC 32×30 | DONE-ish |
-| `math_wrap.rs` | Torus wrap | DONE pure |
+| `math_wrap.rs` | Torus wrap | **re-export** of `ol-move-rules` |
 | `chunk_tier.rs` | Interest tiers | PARTIAL |
 | `move_notes.rs` | Speed notes | PARTIAL |
 
@@ -136,18 +164,21 @@ Organized by concern. **Large orchestration stays in `lib.rs`** (`apply_intent`,
 
 | Module | Role | Port status |
 |--------|------|-------------|
-| `craft_graph.rs` | Reverse recipe graph | PARTIAL |
-| `craft_plan.rs` / `craft_value.rs` | Plan/value helpers | PARTIAL |
+| `craft_graph.rs` / `craft_value.rs` | Reverse recipe graph | **re-export** of `ol-ai-crafting` (live I/O in sim) |
 | `object_tags.rs` | Description tags | PURE |
 | `tools.rs` / `item_value.rs` | Tools/value | PARTIAL |
 
-### Vitals & life
+### Vitals & life (keep temperature and eating separate)
 
 | Module | Role | Port status |
 |--------|------|-------------|
 | `player.rs` | Player struct | PARTIAL |
 | `age_curves.rs` / `age_stage.rs` | Age curves | PARTIAL |
-| `food_fill.rs` / `yum.rs` / `drain_est.rs` | Food | PARTIAL |
+| **`food_eating.rs`** | **Canonical eat apply** (`try_eat_held`) | DONE core |
+| `food_fill.rs` / `yum.rs` / `drain_est.rs` | Pure fill / yum / drain estimate | PARTIAL |
+| **`temperature_handler.rs`** | **Canonical temp API** | DONE core (MAP-TEMP residual clothing matrix) |
+| `map_temp_player.rs` / `heat_ideal.rs` | Implementation behind temperature_handler | DONE core |
+| `player_tick.rs` | Docs: player vs world tick | DONE (orchestration still in `tick_vitals`) |
 | `fertility.rs` / `gestation_tick.rs` / `feed.rs` | Birth/nurse | PARTIAL |
 | `birth_fitness.rs` | Mother selection | PARTIAL |
 | `death_cause.rs` / `death_inherit.rs` / `death_log.rs` | Death tags + InheritCoins + log | PURE + wired in lib |
@@ -166,7 +197,7 @@ Organized by concern. **Large orchestration stays in `lib.rs`** (`apply_intent`,
 | Module | Role | Port status |
 |--------|------|-------------|
 | `social.rs` / `ally.rs` / `relations.rs` | Follow/exile/family | PARTIAL |
-| `leadership.rs` / `naming.rs` | Leaders/names | PARTIAL |
+| `leadership.rs` / `naming.rs` | Leaders/names | PARTIAL → **AI-LASTNAMES** naming core DONE |
 | `speech.rs` / `mute.rs` / `mumble.rs` | Chat | PARTIAL → mute_delivery DONE |
 | `economy.rs` / `treasury.rs` / `debt_book.rs` / `score.rs` | Economy | PARTIAL |
 | `accounts.rs` / `account_persist.rs` / `lineage_persist.rs` | Persist | PARTIAL |
@@ -185,7 +216,7 @@ Organized by concern. **Large orchestration stays in `lib.rs`** (`apply_intent`,
 
 | Module | Role | Port status |
 |--------|------|-------------|
-| `ai_goals.rs` / `professions.rs` | Goals | PARTIAL (thin vs AiBase) |
+| `ai_goals.rs` / `professions.rs` / `*_profession.rs` | Goals + SMs | **re-export** of `ol-ai-helper` / `ol-ai-professions`; live scan in `profession_scan` |
 | `ol-server` `npc_ai.rs` / `npc_activity.rs` / `selfplay.rs` | Drivers | PARTIAL |
 
 ---

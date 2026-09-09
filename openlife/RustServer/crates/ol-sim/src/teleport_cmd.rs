@@ -44,11 +44,7 @@ pub enum TeleportPick {
     /// Every candidate is in `blockedTeleportLocations` — clear and retry next SAY.
     AllBlocked,
     /// Closest unblocked: linear map index + absolute `(tx, ty)`.
-    Found {
-        index: i32,
-        tx: i32,
-        ty: i32,
-    },
+    Found { index: i32, tx: i32, ty: i32 },
 }
 
 /// Parse `!TCG` / `!CURSEDGRAVE` / `!TV` / `!VILLAGE` from uppercase SAY text.
@@ -84,9 +80,23 @@ pub fn not_found_text(cmd: TeleportBang) -> &'static str {
 /// Haxe `AiHelper.CalculateQuadDistanceToObject` without wrap (local maps).
 #[inline]
 pub fn teleport_quad_distance(px: i32, py: i32, tx: i32, ty: i32) -> f64 {
-    let dx = (tx - px) as f64;
-    let dy = (ty - py) as f64;
-    dx * dx + dy * dy
+    teleport_quad_distance_ex(px, py, tx, ty, 0, 0, false)
+}
+
+/// Torus-aware squared Euclidean (Haxe `transformX/Y` then quad).
+// Haxe: AiHelper.CalculateQuadDistanceToObject L65-69
+// TCG-LIVE-WIRE
+pub fn teleport_quad_distance_ex(
+    px: i32,
+    py: i32,
+    tx: i32,
+    ty: i32,
+    mw: i32,
+    mh: i32,
+    wrap: bool,
+) -> f64 {
+    let (dx, dy) = ol_move_rules::wrap_delta(px, py, tx, ty, mw, mh, wrap);
+    (dx as f64) * (dx as f64) + (dy as f64) * (dy as f64)
 }
 
 /// Pick closest location not in `blocked` (Haxe linear `obj.index()` keys).
@@ -99,6 +109,20 @@ pub fn pick_closest_teleport(
     locations: &[(i32, (i32, i32))],
     blocked: &[i32],
 ) -> TeleportPick {
+    pick_closest_teleport_ex(px, py, locations, blocked, 0, 0, false)
+}
+
+/// Wrap-aware closest pick (live torus worlds).
+// TCG-LIVE-WIRE
+pub fn pick_closest_teleport_ex(
+    px: i32,
+    py: i32,
+    locations: &[(i32, (i32, i32))],
+    blocked: &[i32],
+    mw: i32,
+    mh: i32,
+    wrap: bool,
+) -> TeleportPick {
     if locations.is_empty() {
         return TeleportPick::Empty;
     }
@@ -107,7 +131,7 @@ pub fn pick_closest_teleport(
         if blocked.contains(&index) {
             continue;
         }
-        let dist = teleport_quad_distance(px, py, tx, ty);
+        let dist = teleport_quad_distance_ex(px, py, tx, ty, mw, mh, wrap);
         match best {
             None => best = Some((dist, index, tx, ty)),
             Some((bd, _, _, _)) if dist < bd => best = Some((dist, index, tx, ty)),
@@ -127,8 +151,22 @@ pub fn pick_closest_from_index_map(
     map: &std::collections::HashMap<i32, (i32, i32)>,
     blocked: &[i32],
 ) -> TeleportPick {
+    pick_closest_from_index_map_ex(px, py, map, blocked, 0, 0, false)
+}
+
+/// Wrap-aware HashMap pick.
+// TCG-LIVE-WIRE
+pub fn pick_closest_from_index_map_ex(
+    px: i32,
+    py: i32,
+    map: &std::collections::HashMap<i32, (i32, i32)>,
+    blocked: &[i32],
+    mw: i32,
+    mh: i32,
+    wrap: bool,
+) -> TeleportPick {
     let locs: Vec<(i32, (i32, i32))> = map.iter().map(|(&k, &v)| (k, v)).collect();
-    pick_closest_teleport(px, py, &locs, blocked)
+    pick_closest_teleport_ex(px, py, &locs, blocked, mw, mh, wrap)
 }
 
 /// Record a used location on the blocked list (Haxe push after pick).
@@ -151,6 +189,131 @@ pub fn teleport_location_index(tx: i32, ty: i32, map_width: i32) -> i32 {
     map_linear_index(tx, ty, map_width)
 }
 
+/// True when this player may run `!TCG`/`!TV` (Haxe `canUseServerCommands`).
+///
+/// Godmode stands in when the account flag is unset.
+// Haxe: GlobalPlayerInstance.checkIfNotAllowed
+fn teleport_bang_allowed(state: &crate::SimState, conn_id: u64) -> bool {
+    let Some(p) = state.players.get(&conn_id) else {
+        return false;
+    };
+    if p.godmode {
+        return true;
+    }
+    state
+        .accounts
+        .get(&p.email)
+        .map(|a| a.can_use_server_commands)
+        .unwrap_or(false)
+}
+
+/// Live `!TCG`/`!TV`/`!CURSEDGRAVE`/`!VILLAGE` — consume SAY when recognized.
+///
+/// VOG_UPDATE is parked; still wrap-pick, jump-to-non-blocked, MC, forced PU+FM.
+// Haxe: GlobalPlayerInstance.doServerCommand !TV/!TCG + teleport + doTeleport
+// TCG-LIVE-WIRE
+pub fn try_apply_teleport_bang(
+    state: &mut crate::SimState,
+    outbound: &ol_net::OutboundHub,
+    conn_id: u64,
+    upper: &str,
+) -> bool {
+    let Some(cmd) = parse_teleport_bang(upper) else {
+        return false;
+    };
+    if !teleport_bang_allowed(state, conn_id) {
+        crate::send_ps_reply(outbound, conn_id, TELEPORT_NOT_ALLOWED);
+        return true;
+    }
+    let Some(p) = state.players.get(&conn_id) else {
+        return true;
+    };
+    if p.deleted {
+        return true;
+    }
+    let (px, py) = (p.x, p.y);
+    let blocked = p.blocked_teleport_locations.clone();
+    let (mw, mh, wrap) = match state.world.read() {
+        Ok(w) => (w.width_tiles, w.height_tiles, w.wrap),
+        Err(_) => return true,
+    };
+    let pick = match cmd {
+        TeleportBang::CursedGrave => pick_closest_from_index_map_ex(
+            px,
+            py,
+            &state.world_map_time.cursed_graves,
+            &blocked,
+            mw,
+            mh,
+            wrap,
+        ),
+        TeleportBang::Village => pick_closest_from_index_map_ex(
+            px,
+            py,
+            &state.world_map_time.ovens,
+            &blocked,
+            mw,
+            mh,
+            wrap,
+        ),
+    };
+    match pick {
+        TeleportPick::Empty => {
+            crate::send_ps_reply(outbound, conn_id, not_found_text(cmd));
+        }
+        TeleportPick::AllBlocked => {
+            if let Some(pl) = state.players.get_mut(&conn_id) {
+                clear_blocked_teleport(&mut pl.blocked_teleport_locations);
+            }
+            crate::send_ps_reply(outbound, conn_id, TELEPORT_ALL_TRIED);
+        }
+        TeleportPick::Found { index, tx, ty } => {
+            if let Some(pl) = state.players.get_mut(&conn_id) {
+                push_blocked_teleport(&mut pl.blocked_teleport_locations, index);
+            }
+            apply_do_teleport(state, outbound, conn_id, tx, ty, mw, mh, wrap);
+        }
+    }
+    true
+}
+
+/// Haxe `doTeleport` without VOG_UPDATE (parked).
+// Haxe: GlobalPlayerInstance.doTeleport L5828-5843
+fn apply_do_teleport(
+    state: &mut crate::SimState,
+    outbound: &ol_net::OutboundHub,
+    conn_id: u64,
+    tx: i32,
+    ty: i32,
+    mw: i32,
+    mh: i32,
+    wrap: bool,
+) {
+    let dest = ol_move_rules::wrap_tile(tx, ty, mw, mh, wrap);
+    let dest = {
+        let world = match state.world.read() {
+            Ok(w) => w,
+            Err(_) => return,
+        };
+        let is_blocked = |x: i32, y: i32| {
+            !crate::pathfind::is_walkable(&world, &state.content, x, y)
+        };
+        match crate::jump_bw::plan_jump_to_non_blocked(is_blocked, dest.0, dest.1) {
+            None => dest,
+            Some((0, 0)) => return, // still blocked
+            Some((dx, dy)) => ol_move_rules::wrap_tile(dest.0 + dx, dest.1 + dy, mw, mh, wrap),
+        }
+    };
+    if let Some(pl) = state.players.get_mut(&conn_id) {
+        pl.x = dest.0;
+        pl.y = dest.1;
+    } else {
+        return;
+    }
+    crate::force_send_map_chunk(state, outbound, conn_id);
+    crate::send_forced_player_update(state, outbound, conn_id, None);
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -168,7 +331,7 @@ mod tests {
             Some(TeleportBang::CursedGrave)
         );
         assert_eq!(parse_teleport_bang("!TCG X"), None); // Haxe exact == for !TCG
-        // indexOf CURSEDGRAVE still works with prefix noise
+                                                         // indexOf CURSEDGRAVE still works with prefix noise
         assert_eq!(
             parse_teleport_bang("X!CURSEDGRAVE"),
             Some(TeleportBang::CursedGrave)
@@ -194,10 +357,7 @@ mod tests {
 
     #[test]
     fn pick_empty() {
-        assert_eq!(
-            pick_closest_teleport(0, 0, &[], &[]),
-            TeleportPick::Empty
-        );
+        assert_eq!(pick_closest_teleport(0, 0, &[], &[]), TeleportPick::Empty);
     }
 
     #[test]
@@ -263,5 +423,27 @@ mod tests {
     fn not_found_texts() {
         assert_eq!(not_found_text(TeleportBang::CursedGrave), TCG_NOT_FOUND);
         assert_eq!(not_found_text(TeleportBang::Village), TV_NOT_FOUND);
+    }
+
+    #[test]
+    fn pick_closest_wrap_prefers_torus_edge() {
+        // Plane: 100 is closer than 500. Torus 512: 500 wraps to -12.
+        let locs = vec![(1, (100, 0)), (2, (500, 0))];
+        assert_eq!(
+            pick_closest_teleport_ex(0, 0, &locs, &[], 512, 512, false),
+            TeleportPick::Found {
+                index: 1,
+                tx: 100,
+                ty: 0
+            }
+        );
+        assert_eq!(
+            pick_closest_teleport_ex(0, 0, &locs, &[], 512, 512, true),
+            TeleportPick::Found {
+                index: 2,
+                tx: 500,
+                ty: 0
+            }
+        );
     }
 }

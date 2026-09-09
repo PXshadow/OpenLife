@@ -20,6 +20,13 @@ ol-ai-crafting.workspace = true
 ol-ai-helper.workspace = true
 ol-ai-professions.workspace = true
 ol-player-helper.workspace = true
+ol-move-rules.workspace = true
+ol-transition-rules.workspace = true
+ol-combat-rules.workspace = true
+ol-identity.workspace = true
+ol-social-rules.workspace = true
+ol-food-eating.workspace = true
+ol-temperature.workspace = true
 tracing.workspace = true
 tokio = { version = "1", features = ["sync", "time", "macros", "rt"] }
 flate2 = "1"

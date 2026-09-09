@@ -257,7 +257,7 @@ mod tests {
         assert!((hours_remaining_in_phase(7.0) - 11.0).abs() < 1e-3); // day until 18
         assert!((hours_remaining_in_phase(5.0) - 2.0).abs() < 1e-3); // dawn until 7
         assert!((hours_remaining_in_phase(18.0) - 2.0).abs() < 1e-3); // dusk until 20
-        // night at 22: 2h to midnight + 5h to dawn = 7
+                                                                      // night at 22: 2h to midnight + 5h to dawn = 7
         assert!((hours_remaining_in_phase(22.0) - 7.0).abs() < 1e-3);
         // night at 2: 3h to dawn
         assert!((hours_remaining_in_phase(2.0) - 3.0).abs() < 1e-3);
@@ -286,7 +286,9 @@ mod tests {
     #[test]
     fn environment_parity_sample_hours() {
         // Same brackets as environment::DayPhase::from_hour
-        for h in [0.0_f32, 4.99, 5.0, 6.5, 7.0, 12.0, 17.99, 18.0, 19.5, 20.0, 23.5] {
+        for h in [
+            0.0_f32, 4.99, 5.0, 6.5, 7.0, 12.0, 17.99, 18.0, 19.5, 20.0, 23.5,
+        ] {
             let name = phase_from_hour(h);
             // Just ensure total coverage / no panic
             assert!(!name.as_str().is_empty());

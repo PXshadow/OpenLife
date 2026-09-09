@@ -180,18 +180,12 @@ mod tests {
 
     #[test]
     fn ps_formats() {
-        assert_eq!(
-            format_twin_heart_ps(42),
-            "TWINHEART broken twin=42"
-        );
+        assert_eq!(format_twin_heart_ps(42), "TWINHEART broken twin=42");
         assert_eq!(format_twin_timeout_ps(), "TWINWAIT FAIL timeout");
         assert_eq!(
             format_twin_wait_ps_code(1, 2, "abcdefghij"),
             "TWINWAIT have=1/2 code=abcdefgh"
         );
-        assert_eq!(
-            format_twin_wait_ps_code(1, 2, ""),
-            "TWINWAIT have=1/2"
-        );
+        assert_eq!(format_twin_wait_ps_code(1, 2, ""), "TWINWAIT have=1/2");
     }
 }

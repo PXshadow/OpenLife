@@ -48,10 +48,7 @@ pub fn hunt_nearest(
     let Some(id) = animals.nearest_id(x, y, range) else {
         return HuntResult::Miss;
     };
-    let (ax, ay) = animals
-        .get(id)
-        .map(|a| (a.x, a.y))
-        .unwrap_or((x, y));
+    let (ax, ay) = animals.get(id).map(|a| (a.x, a.y)).unwrap_or((x, y));
     match animals.damage(id, damage) {
         Some((0, kind, true)) => HuntResult::Kill {
             animal_id: id,

@@ -63,13 +63,7 @@ pub fn is_fertile(deleted: bool, age: f32, is_female: bool) -> bool {
 // Haxe: GlobalPlayerInstance.isFertile + ServerSettings.Min/MaxAgeFertile
 // C-SS-MORE-BATCH4
 #[inline]
-pub fn is_fertile_ex(
-    deleted: bool,
-    age: f32,
-    is_female: bool,
-    min_age: f32,
-    max_age: f32,
-) -> bool {
+pub fn is_fertile_ex(deleted: bool, age: f32, is_female: bool, min_age: f32, max_age: f32) -> bool {
     if deleted {
         return false;
     }
@@ -109,12 +103,7 @@ impl FertilityState {
 
     /// Legacy 3-arg gate (age + cooldown only; assumes alive female).
     /// Prefer [`Self::can_birth_full`] (FERTILITY-TWINS).
-    pub fn can_birth(
-        &self,
-        mother_id: i32,
-        age: f32,
-        sim_time: f32,
-    ) -> Result<(), &'static str> {
+    pub fn can_birth(&self, mother_id: i32, age: f32, sim_time: f32) -> Result<(), &'static str> {
         self.can_birth_full(mother_id, age, sim_time, false, true)
     }
 
@@ -181,7 +170,8 @@ impl FertilityState {
         r.births = r.births.saturating_add(1);
         r.gestating_until = None;
         r.next_birth_ready = sim_time + BIRTH_COOLDOWN_SECS;
-        r.children_birth_mali = crate::birth_fitness::next_children_birth_mali(r.children_birth_mali);
+        r.children_birth_mali =
+            crate::birth_fitness::next_children_birth_mali(r.children_birth_mali);
     }
 
     /// Start timed gestation; returns due sim_time.
@@ -330,10 +320,7 @@ mod tests {
     fn can_birth_full_ex_live_age_band() {
         let f = FertilityState::default();
         // Age 45 fails default 14..=42
-        assert_eq!(
-            f.can_birth_full(1, 45.0, 0.0, false, true),
-            Err("AGE")
-        );
+        assert_eq!(f.can_birth_full(1, 45.0, 0.0, false, true), Err("AGE"));
         // Live max 50 allows 45
         assert!(f
             .can_birth_full_ex(1, 45.0, 0.0, false, true, 12.0, 50.0)
@@ -352,15 +339,9 @@ mod tests {
     #[test]
     fn can_birth_male_and_age_gates() {
         let f = FertilityState::default();
-        assert_eq!(
-            f.can_birth_full(1, 20.0, 0.0, false, false),
-            Err("MALE")
-        );
+        assert_eq!(f.can_birth_full(1, 20.0, 0.0, false, false), Err("MALE"));
         assert_eq!(f.can_birth_full(1, 10.0, 0.0, false, true), Err("AGE"));
-        assert_eq!(
-            f.can_birth_full(1, 20.0, 0.0, true, true),
-            Err("DELETED")
-        );
+        assert_eq!(f.can_birth_full(1, 20.0, 0.0, true, true), Err("DELETED"));
         assert!(f.can_birth_full(1, 20.0, 0.0, false, true).is_ok());
         // legacy can_birth assumes female
         assert!(f.can_birth(1, 20.0, 0.0).is_ok());

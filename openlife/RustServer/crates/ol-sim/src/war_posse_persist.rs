@@ -154,7 +154,11 @@ pub fn load_war_posse(path: impl AsRef<Path>) -> Result<WarPosseSnapshot, String
 }
 
 /// Apply snapshot into live sim fields (replaces current maps).
-pub fn apply_war_posse_snapshot(war: &mut WarState, posse: &mut PosseState, snap: &WarPosseSnapshot) {
+pub fn apply_war_posse_snapshot(
+    war: &mut WarState,
+    posse: &mut PosseState,
+    snap: &WarPosseSnapshot,
+) {
     *war = snap.war.clone();
     *posse = snap.posse.clone();
 }

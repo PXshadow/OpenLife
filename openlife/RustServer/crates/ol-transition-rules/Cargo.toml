@@ -1,0 +1,11 @@
+[package]
+name = "ol-transition-rules"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Pure USE/DROP alt-outcome / fortification formulas (no SimState)"
+publish = false
+
+[dependencies]
+ol-content.workspace = true
+ol-world.workspace = true

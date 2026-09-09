@@ -9,9 +9,17 @@
 //! #
 //! <zlib bytes>
 //! ```
+//!
+//! **VALLEY_SPACING (`VS`)** is a vanilla OneLife client tag:
+//! `y_spacing y_offset` measured from the client's birth origin (0,0), used to
+//! draw biome valleys. Open Life does **not** support it. Haxe
+//! `Connection.sendMapChunk` left `send(VALLEY_SPACING, ["40 40"])` commented
+//! (`TODO what is this for?`); the Haxe client handler is also a no-op.
+//! Do not emit `VS` after MAP_CHUNK.
 
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
+use ol_content::map_object_id_string;
 use ol_world::{ObjectId, World};
 use std::io::Write;
 
@@ -73,14 +81,26 @@ pub fn build_chunk_plaintext(
     size_x: i32,
     size_y: i32,
 ) -> String {
+    build_chunk_plaintext_mapped(world, origin_x, origin_y, size_x, size_y, |id| id)
+}
+
+/// Haxe `WorldMap.getChunk(..., patchIds)` — map floor + object ids (not biome).
+pub fn build_chunk_plaintext_mapped(
+    world: &World,
+    origin_x: i32,
+    origin_y: i32,
+    size_x: i32,
+    size_y: i32,
+    map_id: impl Fn(i32) -> i32,
+) -> String {
     let mut parts = Vec::with_capacity((size_x * size_y).max(0) as usize);
     for dy in 0..size_y {
         for dx in 0..size_x {
             let tx = origin_x + dx;
             let ty = origin_y + dy;
             let biome = world.get_biome(tx, ty);
-            let floor = world.get_floor(tx, ty);
-            let obj = world.encode_object_for_map(tx, ty);
+            let floor = map_id(world.get_floor(tx, ty) as i32);
+            let obj = map_object_id_string(&world.encode_object_for_map(tx, ty), &map_id);
             parts.push(format!("{biome}:{floor}:{obj}"));
         }
     }
@@ -107,12 +127,41 @@ pub fn build_map_chunk_packet_ex(
     width: i32,
     height: i32,
 ) -> Vec<u8> {
-    // Haxe sendMapChunk: x -= width/2; y -= height/2
+    build_map_chunk_packet_mapped(
+        world,
+        world_center_x,
+        world_center_y,
+        wire_center_x,
+        wire_center_y,
+        width,
+        height,
+        |id| id,
+    )
+}
+
+/// Like [`build_map_chunk_packet_ex`] with per-id remap (vanilla MC).
+pub fn build_map_chunk_packet_mapped(
+    world: &World,
+    world_center_x: i32,
+    world_center_y: i32,
+    wire_center_x: i32,
+    wire_center_y: i32,
+    width: i32,
+    height: i32,
+    map_id: impl Fn(i32) -> i32,
+) -> Vec<u8> {
     let world_origin_x = world_center_x - width / 2;
     let world_origin_y = world_center_y - height / 2;
     let wire_origin_x = wire_center_x - width / 2;
     let wire_origin_y = wire_center_y - height / 2;
-    let plain = build_chunk_plaintext(world, world_origin_x, world_origin_y, width, height);
+    let plain = build_chunk_plaintext_mapped(
+        world,
+        world_origin_x,
+        world_origin_y,
+        width,
+        height,
+        map_id,
+    );
     let compressed = compress_chunk_plaintext(&plain);
     let header = format_map_chunk_header(
         width,
@@ -203,6 +252,24 @@ mod tests {
     }
 
     #[test]
+    fn plaintext_mapped_patches_floor_and_object_not_biome() {
+        let mut w = World::new(64, 64, false);
+        w.set_biome(0, 0, 2);
+        w.set_floor(0, 0, 150);
+        w.set_object(0, 0, 160);
+        let plain = build_chunk_plaintext_mapped(&w, 0, 0, 1, 1, |id| {
+            if id == 150 {
+                1
+            } else if id == 160 {
+                33
+            } else {
+                id
+            }
+        });
+        assert_eq!(plain, "2:1:33");
+    }
+
+    #[test]
     fn nested_container_cell_uses_colon_subitems_in_chunk_plaintext() {
         use ol_world::ComplexObject;
 
@@ -219,10 +286,7 @@ mod tests {
         let obj_part = cells[0].split(':').nth(2).unwrap_or("");
         // Note: colon also separates biome:floor:obj, so obj may itself contain ':'.
         // Full cell is `biome:floor:obj` — join remainder after first two colons.
-        let rest = cells[0]
-            .splitn(3, ':')
-            .nth(2)
-            .unwrap_or("");
+        let rest = cells[0].splitn(3, ':').nth(2).unwrap_or("");
         assert_eq!(rest, "391,292:100:101", "got cell {plain}");
         assert!(rest.contains(':'), "nested wire uses ':' sub-ids");
         let _ = obj_part;

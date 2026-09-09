@@ -45,11 +45,16 @@ pub use ol_ai_helper::{
     PLAYER_TARGET_SEARCH_DIST, SMITHING_HAMMER_ID, SMITH_IRON_ID, SMITH_TARGET_ID,
 };
 
-// ── Pathing (path-reach / blockedByAI) ──────────────────────────────────────
+// ── Pathing (path-reach / blockedByAI / PathfinderNew) ──────────────────────
 pub use ol_ai_pathing::ai_path_reach;
+pub use ol_ai_pathing::pathfinder_new;
 pub use ol_ai_pathing::{
-    AiPathReachMaps, AiStickyBlockTargets, StickyFoodTarget, BLOCKED_BY_AI_DEFAULT_SECS,
-    HOSTILE_PATH_DEFAULT_SECS, NOT_REACHABLE_DEFAULT_SECS, NOT_REACHABLE_FOOD_SECS,
+    create_path as pathfinder_new_create_path,
+    create_path_with_budget as pathfinder_new_create_path_with_budget,
+    path_to_steps as pathfinder_new_path_to_steps, AiPathReachMaps, AiStickyBlockTargets,
+    PathBudget, StickyFoodTarget, BLOCKED_BY_AI_DEFAULT_SECS, HOSTILE_PATH_DEFAULT_SECS,
+    NOT_REACHABLE_DEFAULT_SECS, NOT_REACHABLE_FOOD_SECS, PATHFINDER_NEW_DEFAULT_RADIUS,
+    PATHFINDER_NEW_TIMEOUT_MS,
 };
 
 // ── Crafting ────────────────────────────────────────────────────────────────
@@ -67,6 +72,7 @@ pub use ol_ai_professions::farmer_profession;
 pub use ol_ai_professions::fire_food_profession;
 pub use ol_ai_professions::fire_food_rung;
 pub use ol_ai_professions::pottery_profession;
+pub use ol_ai_professions::cleanup_profession;
 pub use ol_ai_professions::professions;
 pub use ol_ai_professions::shepherd_profession;
 pub use ol_ai_professions::smith_profession;

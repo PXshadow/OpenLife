@@ -95,10 +95,7 @@ impl CurseState {
     }
 
     pub fn excess(&self, p_id: i32) -> i32 {
-        self.entries
-            .get(&p_id)
-            .map(|e| e.excess())
-            .unwrap_or(0)
+        self.entries.get(&p_id).map(|e| e.excess()).unwrap_or(0)
     }
 
     /// Grant one token (regen path). Returns new token count.

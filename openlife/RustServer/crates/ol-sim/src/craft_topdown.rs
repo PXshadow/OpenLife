@@ -20,8 +20,8 @@ use crate::craft_graph::ReverseCraftGraph;
 
 use super::{
     closest_craft_obj_dual_center, craft_chebyshev, craft_have_set_ex, craft_obj_in_dual_center,
-    CraftTransPair, CraftWorldObj, FERTILE_SOIL, AI_CRAFT_MIN_RADIUS, AI_MAX_SEARCH_INCREMENT,
-    AI_MAX_SEARCH_RADIUS,
+    CraftTransPair, CraftWorldObj, AI_CRAFT_MIN_RADIUS, AI_MAX_SEARCH_INCREMENT,
+    AI_MAX_SEARCH_RADIUS, FERTILE_SOIL,
 };
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -123,18 +123,28 @@ pub fn craft_trans_meta_map_from_content(
 ) -> HashMap<(i32, i32), CraftTransMeta> {
     let mut map = HashMap::new();
     for t in content.transitions.values() {
-        let mut m = CraftTransMeta::pair(
-            t.actor_id,
-            t.target_id,
-            t.new_actor_id,
-            t.new_target_id,
-        )
-        .with_auto_decay(t.auto_decay_seconds)
-        .with_reverse_use_target(t.reverse_use_target)
-        .with_target_min_use_fraction(t.target_min_use_fraction);
+        let mut m = CraftTransMeta::pair(t.actor_id, t.target_id, t.new_actor_id, t.new_target_id)
+            .with_auto_decay(t.auto_decay_seconds)
+            .with_reverse_use_target(t.reverse_use_target)
+            .with_target_min_use_fraction(t.target_min_use_fraction);
         // Primary table only — last-use-only pond keys stay craftable on primary.
-        if content.ai_should_ignore.contains(&(t.actor_id, t.target_id)) {
+        if content
+            .ai_should_ignore
+            .contains(&(t.actor_id, t.target_id))
+        {
             m = m.with_ai_should_ignore(true);
+        }
+        if let Some(&id) = content
+            .ignore_if_max_reached
+            .get(&(t.actor_id, t.target_id))
+        {
+            m = m.with_ignore_if_max(id);
+        }
+        if let Some(&id) = content
+            .ignore_if_min_not_reached
+            .get(&(t.actor_id, t.target_id))
+        {
+            m = m.with_ignore_if_min(id);
         }
         map.insert((t.actor_id, t.target_id), m);
     }
@@ -147,17 +157,18 @@ pub fn craft_trans_meta_map_from_content(
         }
         let last_use_ignore = content.ai_should_ignore.contains(&key)
             || content.ai_should_ignore_last_use.contains(&key);
-        let mut m = CraftTransMeta::pair(
-            t.actor_id,
-            t.target_id,
-            t.new_actor_id,
-            t.new_target_id,
-        )
-        .with_auto_decay(t.auto_decay_seconds)
-        .with_reverse_use_target(t.reverse_use_target)
-        .with_target_min_use_fraction(t.target_min_use_fraction);
+        let mut m = CraftTransMeta::pair(t.actor_id, t.target_id, t.new_actor_id, t.new_target_id)
+            .with_auto_decay(t.auto_decay_seconds)
+            .with_reverse_use_target(t.reverse_use_target)
+            .with_target_min_use_fraction(t.target_min_use_fraction);
         if last_use_ignore {
             m = m.with_ai_should_ignore(true);
+        }
+        if let Some(&id) = content.ignore_if_max_reached.get(&key) {
+            m = m.with_ignore_if_max(id);
+        }
+        if let Some(&id) = content.ignore_if_min_not_reached.get(&key) {
+            m = m.with_ignore_if_min(id);
         }
         map.insert(key, m);
     }
@@ -299,7 +310,18 @@ pub fn auto_decay_time_base_seconds(auto_decay_seconds: f32) -> f32 {
 ///
 /// Haxe multiplies by random ∈ [0.5, 1.5]; we use the deterministic base (mean).
 pub fn time_transition_exceeds_ai_ignore(auto_decay_seconds: f32) -> bool {
-    auto_decay_time_base_seconds(auto_decay_seconds) > AI_IGNORE_TIME_TRANSITIONS_LONGER_THAN
+    time_transition_exceeds_ai_ignore_ex(auto_decay_seconds, AI_IGNORE_TIME_TRANSITIONS_LONGER_THAN)
+}
+
+/// Live-limit variant of [`time_transition_exceeds_ai_ignore`].
+// SETTINGS-LONG-TAIL
+pub fn time_transition_exceeds_ai_ignore_ex(auto_decay_seconds: f32, limit: f32) -> bool {
+    let lim = if limit.is_finite() && limit >= 0.0 {
+        limit
+    } else {
+        AI_IGNORE_TIME_TRANSITIONS_LONGER_THAN
+    };
+    auto_decay_time_base_seconds(auto_decay_seconds) > lim
 }
 
 // ── Hardened-row hoe+soil dynamic ignore ────────────────────────────────────
@@ -319,8 +341,7 @@ pub fn hardened_row_forces_hoe_soil_ignore(
 
 /// Effective `aiShouldIgnore` after hardened-row patch.
 pub fn effective_ai_should_ignore(meta: &CraftTransMeta, exists_hardened_row: bool) -> bool {
-    if hardened_row_forces_hoe_soil_ignore(exists_hardened_row, meta.actor_id, meta.target_id)
-    {
+    if hardened_row_forces_hoe_soil_ignore(exists_hardened_row, meta.actor_id, meta.target_id) {
         return true;
     }
     // When no hardened row, hoe+soil ignore is cleared in Haxe.
@@ -348,6 +369,34 @@ pub fn do_transition_search_skip_reason(
     exists_hardened_row: bool,
     index: Option<&CraftObjectIndex>,
 ) -> Option<TransSkipReason> {
+    do_transition_search_skip_reason_ex(
+        trans,
+        wanted_id,
+        obj_to_craft_id,
+        obj_to_craft_pile_id,
+        last_actor_id,
+        last_target_id,
+        search_radius,
+        exists_hardened_row,
+        index,
+        AI_IGNORE_TIME_TRANSITIONS_LONGER_THAN,
+    )
+}
+
+/// Live-limit variant of [`do_transition_search_skip_reason`].
+// SETTINGS-LONG-TAIL
+pub fn do_transition_search_skip_reason_ex(
+    trans: &CraftTransMeta,
+    wanted_id: i32,
+    obj_to_craft_id: i32,
+    obj_to_craft_pile_id: i32,
+    last_actor_id: i32,
+    last_target_id: i32,
+    search_radius: i32,
+    exists_hardened_row: bool,
+    index: Option<&CraftObjectIndex>,
+    ignore_time_limit: f32,
+) -> Option<TransSkipReason> {
     if trans.actor_id == wanted_id || trans.actor_id == obj_to_craft_id {
         return Some(TransSkipReason::ActorIsWantedOrProduct);
     }
@@ -370,7 +419,7 @@ pub fn do_transition_search_skip_reason(
     if trans.target_id == -1 {
         return Some(TransSkipReason::TargetIsPlayerMinusOne);
     }
-    if time_transition_exceeds_ai_ignore(trans.auto_decay_seconds) {
+    if time_transition_exceeds_ai_ignore_ex(trans.auto_decay_seconds, ignore_time_limit) {
         return Some(TransSkipReason::TimeTransitionTooLong);
     }
 
@@ -434,8 +483,9 @@ pub fn should_skip_transition_top_down(
     search_radius: i32,
     exists_hardened_row: bool,
     index: Option<&CraftObjectIndex>,
+    ignore_time_limit: f32,
 ) -> bool {
-    do_transition_search_skip_reason(
+    do_transition_search_skip_reason_ex(
         trans,
         wanted_id,
         obj_to_craft_id,
@@ -445,6 +495,7 @@ pub fn should_skip_transition_top_down(
         search_radius,
         exists_hardened_row,
         index,
+        ignore_time_limit,
     )
     .is_some()
 }
@@ -588,6 +639,12 @@ pub struct CraftTopDownOpts<'a> {
     /// Haxe `itemToCraft.searchCurrentPosition` — dual home+player scan when true.
     // Haxe: IntemToCraft.searchCurrentPosition (AI-CRAFT-DUAL)
     pub search_current_position: bool,
+    /// Haxe `AiMaxSearchIncrement`.
+    // SETTINGS-LONG-TAIL
+    pub search_increment: i32,
+    /// Haxe `AiIgnoreTimeTransitionsLongerThen`.
+    // SETTINGS-LONG-TAIL
+    pub ignore_time_longer_then: f32,
 }
 
 impl<'a> Default for CraftTopDownOpts<'a> {
@@ -601,6 +658,8 @@ impl<'a> Default for CraftTopDownOpts<'a> {
             index: None,
             meta_by_edge: None,
             search_current_position: true,
+            search_increment: AI_MAX_SEARCH_INCREMENT,
+            ignore_time_longer_then: AI_IGNORE_TIME_TRANSITIONS_LONGER_THAN,
         }
     }
 }
@@ -646,6 +705,28 @@ impl<'a> CraftTopDownOpts<'a> {
         self
     }
 
+    /// Haxe `AiMaxSearchIncrement` live override.
+    // SETTINGS-LONG-TAIL
+    pub fn with_search_increment(mut self, increment: i32) -> Self {
+        self.search_increment = if increment >= 1 {
+            increment
+        } else {
+            AI_MAX_SEARCH_INCREMENT
+        };
+        self
+    }
+
+    /// Haxe `AiIgnoreTimeTransitionsLongerThen` live override.
+    // SETTINGS-LONG-TAIL
+    pub fn with_ignore_time_longer_then(mut self, secs: f32) -> Self {
+        self.ignore_time_longer_then = if secs.is_finite() && secs >= 0.0 {
+            secs
+        } else {
+            AI_IGNORE_TIME_TRANSITIONS_LONGER_THAN
+        };
+        self
+    }
+
     /// Look up meta for an edge, if provided.
     pub fn meta_for(&self, actor_id: i32, target_id: i32) -> Option<&'a CraftTransMeta> {
         self.meta_by_edge
@@ -679,6 +760,7 @@ pub fn should_skip_craft_edge(
         search_radius,
         opts.exists_hardened_row,
         opts.index,
+        opts.ignore_time_longer_then,
     )
 }
 
@@ -726,15 +808,7 @@ fn closest_craft_obj_dual_filtered(
                 continue;
             }
         }
-        if !craft_obj_in_dual_center(
-            o.x,
-            o.y,
-            player_x,
-            player_y,
-            home,
-            radius,
-            search_current,
-        ) {
+        if !craft_obj_in_dual_center(o.x, o.y, player_x, player_y, home, radius, search_current) {
             continue;
         }
         if !craft_obj_passes_scan_filters(o, filters) {
@@ -872,7 +946,11 @@ fn resolve_pair_filtered(
         craft_chebyshev(player_x, player_y, ax, ay)
     };
     let distance = dist_player_actor + craft_chebyshev(ax, ay, tx, ty);
-    let out_actor = if actor_id < 0 { actor_id } else { actor_id.max(0) };
+    let out_actor = if actor_id < 0 {
+        actor_id
+    } else {
+        actor_id.max(0)
+    };
     let out_target = if target_id < 0 {
         target_id
     } else {
@@ -997,17 +1075,22 @@ pub fn search_best_object_for_crafting_topdown(
     } else {
         max_search_radius
     };
+    let increment = if opts.search_increment >= 1 {
+        opts.search_increment
+    } else {
+        AI_MAX_SEARCH_INCREMENT
+    };
 
     let mut opts_local = *opts;
     if !opts_local.exists_hardened_row {
-        opts_local.exists_hardened_row = objs.iter().any(|o| {
-            o.parent_id == HARDENED_ROW && craft_obj_passes_scan_filters(o, &opts.scan)
-        });
+        opts_local.exists_hardened_row = objs
+            .iter()
+            .any(|o| o.parent_id == HARDENED_ROW && craft_obj_passes_scan_filters(o, &opts.scan));
     }
 
     let mut radius = 0;
     while radius < max_r {
-        radius = (radius + AI_MAX_SEARCH_INCREMENT).max(AI_CRAFT_MIN_RADIUS);
+        radius = (radius + increment).max(AI_CRAFT_MIN_RADIUS);
         if radius > max_r {
             radius = max_r;
         }
@@ -1173,8 +1256,7 @@ mod tests {
         );
         idx.set_closest_uses(40, 5, 5);
         assert!(
-            do_transition_search_skip_reason(&m, 3, 3, -1, -1, -1, 15, false, Some(&idx))
-                .is_none()
+            do_transition_search_skip_reason(&m, 3, 3, -1, -1, -1, 15, false, Some(&idx)).is_none()
         );
     }
 
@@ -1272,15 +1354,13 @@ mod tests {
         let blocked: HashSet<(i32, i32)> = [(5, 0), (6, 0)].into_iter().collect();
         let scan = CraftScanFilters::new().with_blocked(&blocked);
         let opts = CraftTopDownOpts::default().with_scan(scan);
-        let pair = search_best_object_for_crafting_topdown(
-            3, &objs, 0, 0, 0, None, 60, &g, None, &opts,
-        );
+        let pair =
+            search_best_object_for_crafting_topdown(3, &objs, 0, 0, 0, None, 60, &g, None, &opts);
         assert!(pair.is_none());
 
         let opts2 = CraftTopDownOpts::default();
-        let pair2 = search_best_object_for_crafting_topdown(
-            3, &objs, 0, 0, 0, None, 60, &g, None, &opts2,
-        );
+        let pair2 =
+            search_best_object_for_crafting_topdown(3, &objs, 0, 0, 0, None, 60, &g, None, &opts2);
         assert!(pair2.is_some());
     }
 
@@ -1320,9 +1400,8 @@ mod tests {
         );
         meta_map.insert((4, 5), CraftTransMeta::pair(4, 5, 3, 0));
         let opts = CraftTopDownOpts::default().with_meta_map(&meta_map);
-        let pair = search_best_object_for_crafting_topdown(
-            3, &objs, 0, 0, 0, None, 60, &g, None, &opts,
-        );
+        let pair =
+            search_best_object_for_crafting_topdown(3, &objs, 0, 0, 0, None, 60, &g, None, &opts);
         assert!(pair.is_some());
         let p = pair.unwrap();
         // First reverse edge ignored; second (4,5) used.
@@ -1356,6 +1435,10 @@ mod tests {
                 switch_number_of_uses: false,
                 target_number_of_uses: -1,
                 is_pickup_or_drop: false,
+                hungry_work_cost: 0.0,
+                hungry_work_temperature: -1.0,
+                coin_cost: 0,
+                is_forbidden: false,
             },
         );
         // Last-use only ignore (Haxe getTransition(..., false, true)).
@@ -1392,6 +1475,10 @@ mod tests {
                 switch_number_of_uses: false,
                 target_number_of_uses: -1,
                 is_pickup_or_drop: false,
+                hungry_work_cost: 0.0,
+                hungry_work_temperature: -1.0,
+                coin_cost: 0,
+                is_forbidden: false,
             },
         );
         db2.ai_should_ignore_last_use.insert((209, 142));
@@ -1413,9 +1500,8 @@ mod tests {
             CraftWorldObj::simple(5, 4, 0),
         ];
         let opts = CraftTopDownOpts::default();
-        let pair = search_best_object_for_crafting_topdown(
-            3, &objs, 0, 0, 0, None, 60, &g, None, &opts,
-        );
+        let pair =
+            search_best_object_for_crafting_topdown(3, &objs, 0, 0, 0, None, 60, &g, None, &opts);
         assert!(pair.is_some());
         let p = pair.unwrap();
         assert_eq!((p.actor_id, p.target_id), (4, 5));
@@ -1444,9 +1530,8 @@ mod tests {
         let opts = CraftTopDownOpts::default()
             .with_meta_map(&meta_map)
             .with_index(&idx);
-        let pair = search_best_object_for_crafting_topdown(
-            3, &objs, 0, 0, 0, None, 60, &g, None, &opts,
-        );
+        let pair =
+            search_best_object_for_crafting_topdown(3, &objs, 0, 0, 0, None, 60, &g, None, &opts);
         assert!(pair.is_none());
     }
 
@@ -1463,9 +1548,8 @@ mod tests {
             CraftWorldObj::simple(2, 4, 0),
         ];
         let opts = CraftTopDownOpts::default().with_hardened_row(true);
-        let pair = search_best_object_for_crafting_topdown(
-            900, &objs, 0, 0, 0, None, 60, &g, None, &opts,
-        );
+        let pair =
+            search_best_object_for_crafting_topdown(900, &objs, 0, 0, 0, None, 60, &g, None, &opts);
         assert!(pair.is_some());
         let p = pair.unwrap();
         assert_ne!((p.actor_id, p.target_id), (STONE_HOE, FERTILE_SOIL));
@@ -1490,9 +1574,8 @@ mod tests {
         let opts = CraftTopDownOpts::default()
             .with_last(7, 8)
             .with_meta_map(&meta_map);
-        let pair = search_best_object_for_crafting_topdown(
-            99, &objs, 0, 0, 0, None, 60, &g, None, &opts,
-        );
+        let pair =
+            search_best_object_for_crafting_topdown(99, &objs, 0, 0, 0, None, 60, &g, None, &opts);
         let p = pair.expect("should pick non-undo edge");
         assert_eq!((p.actor_id, p.target_id), (30, 40));
     }
@@ -1543,5 +1626,7 @@ mod tests {
         assert!(time_transition_exceeds_ai_ignore(-1.0));
         assert!(!time_transition_exceeds_ai_ignore(60.0));
         assert!(time_transition_exceeds_ai_ignore(121.0));
+        assert!(!time_transition_exceeds_ai_ignore_ex(121.0, 200.0));
+        assert!(time_transition_exceeds_ai_ignore_ex(90.0, 80.0));
     }
 }

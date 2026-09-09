@@ -9,15 +9,19 @@ mod wire_out;
 
 pub use tags::{
     format_photo_signature, format_pong, format_vog_update, ClientTag, ServerTag,
-    PHOTO_DENIED_SIGNATURE,
+    PHOTO_DENIED_SIGNATURE, VALLEY_SPACING_TAG, VALLEY_SPACING_UNSUPPORTED,
 };
 pub use wire_out::{
     format_baby_wiggle, format_craving, format_curse_score_change, format_curse_token_change, format_dying,
     format_exile_wire, format_following_wire, format_food_change, format_grave_info,
-    format_grave_place, format_frame, format_healed, format_heat_change, format_held_update,
-    format_learned_tool_report, format_location_says, format_player_out_of_range, format_player_says,
+    format_grave_old, format_grave_old_line, format_grave_place, format_frame, format_healed,
+    format_heat_change, format_held_update,
+    format_learned_tool_report, format_location_says, format_owner_list,
+    format_player_out_of_range, format_player_says,
     format_map_change, format_map_change_moving, format_name_message, format_player_emot,
+    format_player_flip,
     format_player_moves_start, format_tool_slots, format_weather_status,
+    valley_spacing_unsupported,
 };
 
 use thiserror::Error;
@@ -769,6 +773,17 @@ mod tests {
                 assert_eq!(deltas, vec![(1, 0), (0, 1)]);
             }
             _ => panic!("expected Move"),
+        }
+    }
+
+    #[test]
+    fn parse_flip_as_raw() {
+        match parse_client_command("FLIP 3 4").unwrap() {
+            ClientCommand::Raw { tag, payload } => {
+                assert_eq!(tag, ClientTag::Flip);
+                assert_eq!(payload, "3 4");
+            }
+            _ => panic!("expected Raw FLIP"),
         }
     }
 

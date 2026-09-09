@@ -1,4 +1,4 @@
-﻿//! Live SearchBestFood world scan — **single** implementation for players and AI.
+//! Live SearchBestFood world scan — **single** implementation for players and AI.
 //!
 //! - Human / DisplayBestFood / craving: `ai_flags = None`
 //! - AI hungry seek: `ai_flags = Some(AiFoodSearchFlags::…)`
@@ -8,8 +8,8 @@
 
 use crate::search_best_food::{
     container_blocks_remove, is_dangerous_near, pick_best_search_food, to_best_hit_ex,
-    AiFoodSearchFlags, BestFoodHit, ProcessFoodOpts, SearchFoodCand, StockTile,
-    FOOD_DANGER_RADIUS, FOOD_STOCK_COUNT_RADIUS,
+    AiFoodSearchFlags, BestFoodHit, ProcessFoodOpts, SearchFoodCand, StockTile, FOOD_DANGER_RADIUS,
+    FOOD_STOCK_COUNT_RADIUS,
 };
 use crate::SimState;
 /// Haxe `AiHelper.SearchBestFood` â€” full scan (ground + containers + conservation).
@@ -255,13 +255,6 @@ pub fn search_best_food_full(
 
     let (i, score) = pick_best_search_food(&cands, &opts, &stock_tiles)?;
     Some(to_best_hit_ex(
-        &cands[i],
-        &score,
-        px,
-        py,
-        map_w,
-        map_h,
-        wrap,
+        &cands[i], &score, px, py, map_w, map_h, wrap,
     ))
 }
-

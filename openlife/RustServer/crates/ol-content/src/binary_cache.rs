@@ -28,13 +28,8 @@ use tracing::{info, warn};
 
 use crate::{
     apply_animal_moves_from_transitions, apply_default_animal_deadly_distance_patches,
-    apply_default_combat_damage_patches, apply_default_contain_size_patches,
-    apply_default_decay_object_patches, apply_default_ai_should_ignore_patches,
-    apply_default_alternative_outcome_patches, apply_default_horse_transition_patches,
-    apply_default_second_time_outcomes, apply_default_switch_number_of_uses_patches,
-    apply_default_use_chance_patches, apply_default_weapon_range_patches,
-    change_tool_transitions, expand_category_transitions, load_categories_into, ContentDb,
-    ContentError, ObjectDef, Transition,
+    apply_default_weapon_range_patches, change_tool_transitions, expand_category_transitions,
+    load_categories_into, ContentDb, ContentError, ObjectDef, Transition,
 };
 
 /// Shared magics / format caps (server accepts full shared write path v7/v2).
@@ -90,6 +85,8 @@ fn olc1_record_to_object(rec: ol_binary::Olc1Record) -> ObjectDef {
     def.name = rec.name;
     def.description = rec.description;
     def.permanent = rec.flags & OBJ_F_PERMANENT != 0;
+    // Haxe: ObjectData.minPickupAge (OLC1 stores f32; object files are Int)
+    def.min_pickup_age = rec.min_pickup_age as i32;
     def.blocks_walking = rec.flags & OBJ_F_BLOCKS_WALKING != 0;
     def.containable = rec.flags & OBJ_F_CONTAINABLE != 0;
     def.floor = rec.flags & OBJ_F_FLOOR != 0;
@@ -190,6 +187,10 @@ fn olt1_record_to_transition(rec: &ol_binary::Olt1Record) -> Transition {
         switch_number_of_uses: rec.switch_number_of_uses(),
         target_number_of_uses: -1,
         is_pickup_or_drop: false,
+        hungry_work_cost: 0.0,
+        hungry_work_temperature: -1.0,
+        coin_cost: 0,
+        is_forbidden: false,
     }
 }
 
@@ -343,20 +344,8 @@ pub fn finish_cache_boot(db: &mut ContentDb, root: &Path) {
     expand_category_transitions(db);
     // Haxe TransitionImporter.changeToolTransitions (after category expand).
     change_tool_transitions(db);
-    apply_default_second_time_outcomes(db);
-    apply_default_decay_object_patches(db);
-    // CLOTHING-CONTAIN-SIZE: ServerSettings.PatchObjectData containSize / containable.
-    apply_default_contain_size_patches(db);
-    apply_default_use_chance_patches(db);
-    apply_default_switch_number_of_uses_patches(db);
-    apply_default_horse_transition_patches(db);
-    // TH-ALT-OUTCOME: alternativeTransitionOutcome + fortification tables
-    apply_default_alternative_outcome_patches(db);
-    // C-SS-AI-IGNORE: ServerSettings.PatchTransitions aiShouldIgnore
-    apply_default_ai_should_ignore_patches(db);
-    apply_default_weapon_range_patches(db);
-    apply_default_animal_deadly_distance_patches(db);
-    apply_default_combat_damage_patches(db);
+    crate::vanilla_id::stamp_last_open_life_id_from_dummies(db);
+    crate::patches::apply_all_haxe_content_patches(db);
     apply_animal_moves_from_transitions(db);
 }
 
@@ -555,6 +544,7 @@ mod tests {
         load_olc1(&out, &mut db).unwrap();
         let o = db.get(30).unwrap();
         assert!(o.permanent);
+        assert_eq!(o.min_pickup_age, 3);
         assert!((o.map_chance - 1.0).abs() < 1e-5);
         assert_eq!(o.biomes, vec![0, 3]);
         assert!((o.heat_value - 2.0).abs() < 1e-5);
@@ -623,7 +613,7 @@ mod tests {
             slot_size: 1.0,
         };
         let bytes = encode_olc1(437, 0, &[rec, wolf]);
-        assert_eq!(bytes[4..8], 8u32.to_le_bytes()); // write path OLC1 v8
+        assert_eq!(bytes[4..8], OLC1_FORMAT_VERSION.to_le_bytes()); // write path current OLC1
         let mut db = ContentDb::default();
         load_olc1(&bytes, &mut db).unwrap();
         let bow = db.get(152).unwrap();

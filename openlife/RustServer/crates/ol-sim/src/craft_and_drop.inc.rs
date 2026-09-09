@@ -42,6 +42,82 @@ pub const GOOSE_STUMP_SEARCH_R: i32 = 20;
 // Haxe: ServerSettings.BucketWaterSourceIds (transition-derived from Empty Bucket 659)
 pub const DEFAULT_BUCKET_WATER_SOURCE_IDS: [i32; 2] = [663, 662];
 
+/// Bowl of Water — product used to discover [`WaterSourceIds`] (Clay Bowl 235 + target).
+// Haxe: ServerSettings.InitWaterSourceIds Bowl of Water 382 / Clay Bowl 235
+pub const BOWL_OF_WATER: i32 = 382;
+
+/// Transition edge for [`init_water_source_ids`]: `(actor_id, target_id, new_actor_id)`.
+pub type WaterSourceTransEdge = (i32, i32, i32);
+
+/// Pure Haxe `ServerSettings.InitWaterSourceIds` — collect water / bucket water source
+/// target ids from transitions that produce Bowl of Water (382) with Clay Bowl (235)
+/// or Full Bucket of Water (660) with Empty Bucket (659). Skips `targetID < 1` (TIME).
+///
+/// Returns `(WaterSourceIds, BucketWaterSourceIds)` in discovery order (deduped).
+// Haxe: ServerSettings.InitWaterSourceIds ~3999–4028
+pub fn init_water_source_ids(
+    transitions: impl IntoIterator<Item = WaterSourceTransEdge>,
+) -> (Vec<i32>, Vec<i32>) {
+    let mut water: Vec<i32> = Vec::new();
+    let mut bucket: Vec<i32> = Vec::new();
+    for (actor_id, target_id, new_actor_id) in transitions {
+        if target_id < 1 {
+            continue;
+        }
+        // Bowl of Water 382 from Clay Bowl 235 → water source = target
+        if new_actor_id == BOWL_OF_WATER && actor_id == CLAY_BOWL {
+            if !water.contains(&target_id) {
+                water.push(target_id);
+            }
+        }
+        // Full Bucket of Water 660 from Empty Bucket 659 → bucket water source = target
+        if new_actor_id == FULL_BUCKET_WATER && actor_id == EMPTY_BUCKET {
+            if !bucket.contains(&target_id) {
+                bucket.push(target_id);
+            }
+        }
+    }
+    (water, bucket)
+}
+
+/// [`init_water_source_ids`] over ContentDb normal + last-use transition tables.
+// Haxe: TransitionImporter.GetTransitionByNewActor + InitWaterSourceIds
+pub fn init_water_source_ids_from_content(
+    content: &ol_content::ContentDb,
+) -> (Vec<i32>, Vec<i32>) {
+    let edges = content
+        .transitions
+        .values()
+        .map(|t| (t.actor_id, t.target_id, t.new_actor_id))
+        .chain(
+            content
+                .transitions_last_use
+                .values()
+                .map(|t| (t.actor_id, t.target_id, t.new_actor_id)),
+        );
+    init_water_source_ids(edges)
+}
+
+/// Resolve water-source list: non-empty override, else [`DEFAULT_WATER_SOURCE_IDS`].
+#[inline]
+pub fn effective_water_source_ids(override_ids: &[i32]) -> &[i32] {
+    if override_ids.is_empty() {
+        &DEFAULT_WATER_SOURCE_IDS
+    } else {
+        override_ids
+    }
+}
+
+/// Resolve bucket water-source list: non-empty override, else [`DEFAULT_BUCKET_WATER_SOURCE_IDS`].
+#[inline]
+pub fn effective_bucket_water_source_ids(override_ids: &[i32]) -> &[i32] {
+    if override_ids.is_empty() {
+        &DEFAULT_BUCKET_WATER_SOURCE_IDS
+    } else {
+        override_ids
+    }
+}
+
 /// Pure outcome of Haxe `GetCraftAndDropItemsCloseToObj`.
 // Haxe: AiBase.GetCraftAndDropItemsCloseToObj ~893
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,6 +157,28 @@ pub fn closest_craft_obj_from_anchor(
     search_r: i32,
     min_dist: i32,
 ) -> Option<CraftWorldObj> {
+    closest_craft_obj_from_anchor_filtered(
+        objs,
+        parent_id,
+        anchor_x,
+        anchor_y,
+        search_r,
+        min_dist,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// [`closest_craft_obj_from_anchor`] skipping notReachable / hostile tiles.
+// Haxe: GetClosestObjectToTarget(player, ...) isObjectNotReachable
+pub fn closest_craft_obj_from_anchor_filtered(
+    objs: &[CraftWorldObj],
+    parent_id: i32,
+    anchor_x: i32,
+    anchor_y: i32,
+    search_r: i32,
+    min_dist: i32,
+    filters: &CraftScanFilters<'_>,
+) -> Option<CraftWorldObj> {
     if parent_id <= 0 {
         return None;
     }
@@ -89,6 +187,9 @@ pub fn closest_craft_obj_from_anchor(
     let mut best: Option<(i32, CraftWorldObj)> = None;
     for o in objs {
         if o.parent_id != parent_id {
+            continue;
+        }
+        if !craft_obj_passes_scan_filters(o, filters) {
             continue;
         }
         let d = craft_chebyshev(anchor_x, anchor_y, o.x, o.y);
@@ -123,6 +224,37 @@ pub fn get_craft_and_drop_items_close_to_obj(
     player_x: i32,
     player_y: i32,
 ) -> CraftAndDropApply {
+    get_craft_and_drop_items_close_to_obj_ex(
+        objs,
+        target_x,
+        target_y,
+        which_obj_id,
+        max_count,
+        dist,
+        held_id,
+        player_x,
+        player_y,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// [`get_craft_and_drop_items_close_to_obj`] with path-reach scan on pickup closest.
+///
+/// `CountCloseObjects` already-enough band stays unfiltered (Haxe count is not
+/// GetClosest); pickup uses GetClosestObjectToTarget + notReachable skip.
+// Haxe: GetClosestObjectToTarget(player, target, whichObjId, null, 30, dist)
+pub fn get_craft_and_drop_items_close_to_obj_ex(
+    objs: &[CraftWorldObj],
+    target_x: i32,
+    target_y: i32,
+    which_obj_id: i32,
+    max_count: i32,
+    dist: i32,
+    held_id: i32,
+    player_x: i32,
+    player_y: i32,
+    filters: &CraftScanFilters<'_>,
+) -> CraftAndDropApply {
     let max_count = max_count.max(1);
     let dist = dist.max(0);
     let near = count_craft_objs_near(objs, &[which_obj_id], target_x, target_y, dist);
@@ -138,13 +270,14 @@ pub fn get_craft_and_drop_items_close_to_obj(
     }
     // Haxe: GetClosestObjectToTarget(player, target, whichObjId, null, 30, dist)
     // search centered on target; minDistance = dist (outside already-counted band).
-    if let Some(o) = closest_craft_obj_from_anchor(
+    if let Some(o) = closest_craft_obj_from_anchor_filtered(
         objs,
         which_obj_id,
         target_x,
         target_y,
         CRAFT_AND_DROP_SEARCH_R,
         dist,
+        filters,
     ) {
         return CraftAndDropApply::Pickup {
             object_id: which_obj_id,
@@ -203,13 +336,43 @@ pub fn adze_froe_butt_log_craft_and_drop(
     called_craft_item: bool,
     product_id: i32,
 ) -> Option<CraftItemDecision> {
+    adze_froe_butt_log_craft_and_drop_ex(
+        objs,
+        actor_id,
+        target_id,
+        actor_x,
+        actor_y,
+        held_id,
+        player_x,
+        player_y,
+        called_craft_item,
+        product_id,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// [`adze_froe_butt_log_craft_and_drop`] with scan-filtered GetCraftAndDrop pickup.
+// Haxe: GetCraftAndDropItemsCloseToObj + GetClosestObjectToTarget
+pub fn adze_froe_butt_log_craft_and_drop_ex(
+    objs: &[CraftWorldObj],
+    actor_id: i32,
+    target_id: i32,
+    actor_x: i32,
+    actor_y: i32,
+    held_id: i32,
+    player_x: i32,
+    player_y: i32,
+    called_craft_item: bool,
+    product_id: i32,
+    filters: &CraftScanFilters<'_>,
+) -> Option<CraftItemDecision> {
     if called_craft_item {
         return None;
     }
     if target_id != BUTT_LOG || (actor_id != STEEL_ADZE && actor_id != STEEL_FROE) {
         return None;
     }
-    let apply = get_craft_and_drop_items_close_to_obj(
+    let apply = get_craft_and_drop_items_close_to_obj_ex(
         objs,
         actor_x,
         actor_y,
@@ -219,6 +382,7 @@ pub fn adze_froe_butt_log_craft_and_drop(
         held_id,
         player_x,
         player_y,
+        filters,
     );
     craft_and_drop_to_decision(apply, product_id)
 }
@@ -235,15 +399,49 @@ pub fn goose_axe_near_stump_craft_and_drop(
     called_craft_item: bool,
     product_id: i32,
 ) -> Option<CraftItemDecision> {
+    goose_axe_near_stump_craft_and_drop_ex(
+        objs,
+        actor_id,
+        target_id,
+        held_id,
+        player_x,
+        player_y,
+        called_craft_item,
+        product_id,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// [`goose_axe_near_stump_craft_and_drop`] with scan-filtered stump + axe pickup.
+// Haxe: GetClosestObjectToPosition(stump) + GetCraftAndDrop Steel Axe
+pub fn goose_axe_near_stump_craft_and_drop_ex(
+    objs: &[CraftWorldObj],
+    actor_id: i32,
+    target_id: i32,
+    held_id: i32,
+    player_x: i32,
+    player_y: i32,
+    called_craft_item: bool,
+    product_id: i32,
+    filters: &CraftScanFilters<'_>,
+) -> Option<CraftItemDecision> {
     if called_craft_item {
         return None;
     }
     if actor_id != 0 || target_id != DOMESTIC_GOOSE {
         return None;
     }
-    let stump = closest_craft_obj(objs, STUMP, player_x, player_y, GOOSE_STUMP_SEARCH_R, None)?;
+    let stump = closest_craft_obj_filtered(
+        objs,
+        STUMP,
+        player_x,
+        player_y,
+        GOOSE_STUMP_SEARCH_R,
+        None,
+        filters,
+    )?;
     // Haxe: if (closest == null) return false — surface as Failed via special enum
-    let apply = get_craft_and_drop_items_close_to_obj(
+    let apply = get_craft_and_drop_items_close_to_obj_ex(
         objs,
         stump.x,
         stump.y,
@@ -253,6 +451,7 @@ pub fn goose_axe_near_stump_craft_and_drop(
         held_id,
         player_x,
         player_y,
+        filters,
     );
     // No stump already returned None above; if AlreadyEnough continue normal path.
     craft_and_drop_to_decision(apply, product_id)
@@ -272,11 +471,41 @@ pub fn fire_bow_kindling_craft_and_drop(
     called_craft_item: bool,
     product_id: i32,
 ) -> Option<CraftItemDecision> {
+    fire_bow_kindling_craft_and_drop_ex(
+        objs,
+        actor_id,
+        target_id,
+        target_x,
+        target_y,
+        held_id,
+        player_x,
+        player_y,
+        called_craft_item,
+        product_id,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// [`fire_bow_kindling_craft_and_drop`] with scan-filtered kindling/tinder pickup.
+// Haxe: GetCraftAndDropItemsCloseToObj kindling 72 then tinder 61
+pub fn fire_bow_kindling_craft_and_drop_ex(
+    objs: &[CraftWorldObj],
+    actor_id: i32,
+    target_id: i32,
+    target_x: i32,
+    target_y: i32,
+    held_id: i32,
+    player_x: i32,
+    player_y: i32,
+    called_craft_item: bool,
+    product_id: i32,
+    filters: &CraftScanFilters<'_>,
+) -> Option<CraftItemDecision> {
     if called_craft_item || actor_id != FIRE_BOW_DRILL || target_id != LONG_STRAIGHT_SHAFT {
         return None;
     }
     // Kindling first (Haxe: if GetCraftAndDrop(..., 72, 1, 10) return true)
-    let k = get_craft_and_drop_items_close_to_obj(
+    let k = get_craft_and_drop_items_close_to_obj_ex(
         objs,
         target_x,
         target_y,
@@ -286,12 +515,13 @@ pub fn fire_bow_kindling_craft_and_drop(
         held_id,
         player_x,
         player_y,
+        filters,
     );
     if !matches!(k, CraftAndDropApply::AlreadyEnough) {
         return craft_and_drop_to_decision(k, product_id);
     }
     // Then Juniper Tinder
-    let t = get_craft_and_drop_items_close_to_obj(
+    let t = get_craft_and_drop_items_close_to_obj_ex(
         objs,
         target_x,
         target_y,
@@ -301,6 +531,7 @@ pub fn fire_bow_kindling_craft_and_drop(
         held_id,
         player_x,
         player_y,
+        filters,
     );
     if !matches!(t, CraftAndDropApply::AlreadyEnough) {
         return craft_and_drop_to_decision(t, product_id);
@@ -344,25 +575,58 @@ pub fn fill_bucket_if_needed_apply(
     max_r: i32,
     bucket_water_source_ids: &[i32],
 ) -> FillBucketApply {
+    fill_bucket_if_needed_apply_ex(
+        objs,
+        held_id,
+        player_x,
+        player_y,
+        max_r,
+        bucket_water_source_ids,
+        &CraftScanFilters::default(),
+    )
+}
+
+/// [`fill_bucket_if_needed_apply`] skipping notReachable tanks/sources (Haxe GetClosest).
+// Haxe: fillBucketIfNeeded ~3515–3545 GetClosestObject / GetClosestObjectByIds(myPlayer)
+pub fn fill_bucket_if_needed_apply_ex(
+    objs: &[CraftWorldObj],
+    held_id: i32,
+    player_x: i32,
+    player_y: i32,
+    max_r: i32,
+    bucket_water_source_ids: &[i32],
+    filters: &CraftScanFilters<'_>,
+) -> FillBucketApply {
     // Full / partial bucket held → drop
     if held_id == FULL_BUCKET_WATER || held_id == PARTIAL_BUCKET_WATER {
         return FillBucketApply::DropHeldFullBucket;
     }
     // Already have water bucket on ground → false (don't fill more)
-    if closest_craft_obj_by_ids(
+    if closest_craft_obj_by_ids_filtered(
         objs,
         &[FULL_BUCKET_WATER, PARTIAL_BUCKET_WATER],
         player_x,
         player_y,
         max_r,
+        filters,
     )
     .is_some()
     {
         return FillBucketApply::AlreadyHaveWaterBucket;
     }
     // Tank less-full + empty bucket shortCraft
-    if closest_craft_obj(objs, TANK_OF_WATER_LESS_FULL, player_x, player_y, max_r, None).is_some()
-        && closest_craft_obj(objs, EMPTY_BUCKET, player_x, player_y, max_r, None).is_some()
+    if closest_craft_obj_filtered(
+        objs,
+        TANK_OF_WATER_LESS_FULL,
+        player_x,
+        player_y,
+        max_r,
+        None,
+        filters,
+    )
+    .is_some()
+        && closest_craft_obj_filtered(objs, EMPTY_BUCKET, player_x, player_y, max_r, None, filters)
+            .is_some()
     {
         return FillBucketApply::ShortCraft {
             actor_id: TANK_OF_WATER_LESS_FULL,
@@ -370,8 +634,10 @@ pub fn fill_bucket_if_needed_apply(
         };
     }
     // Full tank + empty bucket
-    if closest_craft_obj(objs, TANK_OF_WATER, player_x, player_y, max_r, None).is_some()
-        && closest_craft_obj(objs, EMPTY_BUCKET, player_x, player_y, max_r, None).is_some()
+    if closest_craft_obj_filtered(objs, TANK_OF_WATER, player_x, player_y, max_r, None, filters)
+        .is_some()
+        && closest_craft_obj_filtered(objs, EMPTY_BUCKET, player_x, player_y, max_r, None, filters)
+            .is_some()
     {
         return FillBucketApply::ShortCraft {
             actor_id: TANK_OF_WATER,
@@ -379,9 +645,14 @@ pub fn fill_bucket_if_needed_apply(
         };
     }
     // Bucket water source + empty bucket
-    if let Some(src) =
-        closest_craft_obj_by_ids(objs, bucket_water_source_ids, player_x, player_y, max_r)
-    {
+    if let Some(src) = closest_craft_obj_by_ids_filtered(
+        objs,
+        bucket_water_source_ids,
+        player_x,
+        player_y,
+        max_r,
+        filters,
+    ) {
         return FillBucketApply::ShortCraftOnSource {
             actor_id: EMPTY_BUCKET,
             source_id: src.parent_id,
@@ -395,6 +666,7 @@ pub fn fill_bucket_if_needed_apply(
 #[cfg(test)]
 mod craft_and_drop_tests {
     use super::*;
+    use std::collections::HashSet;
 
     #[test]
     fn craft_and_drop_already_enough() {
@@ -618,6 +890,161 @@ mod craft_and_drop_tests {
                 actor_id: EMPTY_BUCKET,
                 source_id: 663,
                 source_x: 3,
+                source_y: 0
+            }
+        );
+    }
+
+    #[test]
+    fn init_water_source_ids_from_bowl_and_bucket_edges() {
+        // Haxe InitWaterSourceIds: Clay Bowl 235 + well → Bowl of Water 382
+        // Empty Bucket 659 + pond/well → Full Bucket 660; skip TIME target < 1
+        let edges = [
+            (CLAY_BOWL, 663, BOWL_OF_WATER),
+            (CLAY_BOWL, 662, BOWL_OF_WATER),
+            (CLAY_BOWL, -1, BOWL_OF_WATER), // TIME — skip
+            (CLAY_BOWL, 663, BOWL_OF_WATER), // dedupe
+            (99, 100, BOWL_OF_WATER),       // wrong actor — skip
+            (EMPTY_BUCKET, 663, FULL_BUCKET_WATER),
+            (EMPTY_BUCKET, 511, FULL_BUCKET_WATER), // pond-like
+            (EMPTY_BUCKET, 0, FULL_BUCKET_WATER),   // skip
+            (EMPTY_BUCKET, 663, FULL_BUCKET_WATER), // dedupe
+        ];
+        let (water, bucket) = init_water_source_ids(edges);
+        assert_eq!(water, vec![663, 662]);
+        assert_eq!(bucket, vec![663, 511]);
+    }
+
+    #[test]
+    fn init_water_source_ids_from_content_db() {
+        let mut db = ol_content::ContentDb::default();
+        db.transitions.insert(
+            (CLAY_BOWL, 663),
+            ol_content::Transition {
+                actor_id: CLAY_BOWL,
+                target_id: 663,
+                new_actor_id: BOWL_OF_WATER,
+                new_target_id: 0,
+                ..Default::default()
+            },
+        );
+        db.transitions.insert(
+            (EMPTY_BUCKET, 511),
+            ol_content::Transition {
+                actor_id: EMPTY_BUCKET,
+                target_id: 511,
+                new_actor_id: FULL_BUCKET_WATER,
+                new_target_id: 0,
+                ..Default::default()
+            },
+        );
+        let (water, bucket) = init_water_source_ids_from_content(&db);
+        assert_eq!(water, vec![663]);
+        assert_eq!(bucket, vec![511]);
+    }
+
+    #[test]
+    fn fill_bucket_uses_init_derived_bucket_ids() {
+        let edges = [(EMPTY_BUCKET, 511, FULL_BUCKET_WATER)];
+        let (_, bucket_ids) = init_water_source_ids(edges);
+        let objs = vec![CraftWorldObj::simple(511, 2, 0)];
+        assert_eq!(
+            fill_bucket_if_needed_apply(&objs, 0, 0, 0, 30, &bucket_ids),
+            FillBucketApply::ShortCraftOnSource {
+                actor_id: EMPTY_BUCKET,
+                source_id: 511,
+                source_x: 2,
+                source_y: 0
+            }
+        );
+        // Pond 511 not in DEFAULT → NoSource with defaults
+        assert_eq!(
+            fill_bucket_if_needed_apply(&objs, 0, 0, 0, 30, &DEFAULT_BUCKET_WATER_SOURCE_IDS),
+            FillBucketApply::NoSource
+        );
+    }
+
+    #[test]
+    fn retarget_water_uses_init_derived_ids() {
+        let edges = [
+            (CLAY_BOWL, 663, BOWL_OF_WATER),
+            (CLAY_BOWL, 511, BOWL_OF_WATER),
+        ];
+        let (water, _) = init_water_source_ids(edges);
+        let objs = vec![
+            CraftWorldObj::simple(511, 4, 0),
+            CraftWorldObj::simple(663, 20, 0),
+        ];
+        let ret = retarget_water_source(&objs, CLAY_BOWL, 511, 0, 0, 60, &water);
+        assert_eq!(ret.map(|o| (o.parent_id, o.x)), Some((511, 4)));
+    }
+
+    #[test]
+    fn effective_water_falls_back_to_defaults() {
+        assert_eq!(effective_water_source_ids(&[]), &DEFAULT_WATER_SOURCE_IDS[..]);
+        assert_eq!(
+            effective_bucket_water_source_ids(&[]),
+            &DEFAULT_BUCKET_WATER_SOURCE_IDS[..]
+        );
+        let custom = [511i32, 663];
+        assert_eq!(effective_water_source_ids(&custom), &custom[..]);
+    }
+
+    /// Pickup skips a closer blocked whichObj (AI-CRAFT-MULTI-RESID).
+    // Haxe: GetClosestObjectToTarget isObjectNotReachable
+    #[test]
+    fn craft_and_drop_pickup_skips_blocked() {
+        let objs = vec![
+            CraftWorldObj::simple(BUTT_LOG, 8, 0),
+            CraftWorldObj::simple(BUTT_LOG, 12, 0),
+        ];
+        let mut blocked = HashSet::new();
+        blocked.insert((8, 0));
+        let scan = CraftScanFilters::new().with_blocked(&blocked);
+        let a = get_craft_and_drop_items_close_to_obj_ex(
+            &objs, 0, 0, BUTT_LOG, 1, 6, 0, 0, 0, &scan,
+        );
+        assert_eq!(
+            a,
+            CraftAndDropApply::Pickup {
+                object_id: BUTT_LOG,
+                x: 12,
+                y: 0
+            }
+        );
+        // All blocked → craft whichObj.
+        blocked.insert((12, 0));
+        let scan2 = CraftScanFilters::new().with_blocked(&blocked);
+        let b = get_craft_and_drop_items_close_to_obj_ex(
+            &objs, 0, 0, BUTT_LOG, 1, 6, 0, 0, 0, &scan2,
+        );
+        assert_eq!(b, CraftAndDropApply::CraftItem { object_id: BUTT_LOG });
+    }
+
+    #[test]
+    fn fill_bucket_skips_blocked_source() {
+        let objs = vec![
+            CraftWorldObj::simple(663, 2, 0),
+            CraftWorldObj::simple(663, 8, 0),
+        ];
+        let mut blocked = HashSet::new();
+        blocked.insert((2, 0));
+        let scan = CraftScanFilters::new().with_blocked(&blocked);
+        let a = fill_bucket_if_needed_apply_ex(
+            &objs,
+            0,
+            0,
+            0,
+            30,
+            &DEFAULT_BUCKET_WATER_SOURCE_IDS,
+            &scan,
+        );
+        assert_eq!(
+            a,
+            FillBucketApply::ShortCraftOnSource {
+                actor_id: EMPTY_BUCKET,
+                source_id: 663,
+                source_x: 8,
                 source_y: 0
             }
         );

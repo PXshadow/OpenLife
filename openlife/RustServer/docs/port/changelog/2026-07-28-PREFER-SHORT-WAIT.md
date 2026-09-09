@@ -38,8 +38,8 @@
 
 ## Residuals
 
-- maxNewActor count gate on PreferShortCraft still needs transition newActor id from content (stored on decision, not enforced in pure dropHeld)
-- selfplay quiver default-empty (DROP-HELD-LIVE residual; npc force_drop fills)
+- maxNewActor count gate → **SHORTCRAFT-MAX-NEW-ACTOR DONE** (`trans.newActorID` r=30 + held)
+- selfplay quiver default-empty → **DROP-HELD-QUIVER DONE** (profession clothing snapshot)
 
 ## Verify
 

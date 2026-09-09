@@ -17,26 +17,17 @@ pub enum VersionGateResult {
     /// Client may proceed to LOGIN bootstrap.
     Allow,
     /// Client data version does not match the server requirement.
-    RejectVersionMismatch {
-        client: i32,
-        required: i32,
-    },
+    RejectVersionMismatch { client: i32, required: i32 },
     /// Client version was missing / unparsable and policy requires an exact match.
     RejectMissingVersion,
     /// Optional soft path: client is newer than server (stub — currently Allow
     /// when equality not required; reserved for future policy).
-    AllowClientNewer {
-        client: i32,
-        required: i32,
-    },
+    AllowClientNewer { client: i32, required: i32 },
 }
 
 impl VersionGateResult {
     pub fn is_allowed(self) -> bool {
-        matches!(
-            self,
-            Self::Allow | Self::AllowClientNewer { .. }
-        )
+        matches!(self, Self::Allow | Self::AllowClientNewer { .. })
     }
 
     /// Short wire / log reason token.
@@ -159,14 +150,9 @@ pub fn parse_version_token(s: &str) -> Option<i32> {
 }
 
 /// `VERSION required=N client=N|? status=ok|version_mismatch|…` body.
-pub fn format_version_gate_query(
-    policy: &VersionGatePolicy,
-    client: Option<i32>,
-) -> String {
+pub fn format_version_gate_query(policy: &VersionGatePolicy, client: Option<i32>) -> String {
     let result = check_client_version(client, policy);
-    let client_s = client
-        .map(|v| v.to_string())
-        .unwrap_or_else(|| "?".into());
+    let client_s = client.map(|v| v.to_string()).unwrap_or_else(|| "?".into());
     format!(
         "VERSION required={} client={} status={}",
         policy.required,
@@ -181,9 +167,7 @@ pub fn format_version_reject_message(result: VersionGateResult) -> Option<String
         VersionGateResult::RejectVersionMismatch { client, required } => Some(format!(
             "REJECTED version client={client} required={required}"
         )),
-        VersionGateResult::RejectMissingVersion => {
-            Some("REJECTED version missing".into())
-        }
+        VersionGateResult::RejectMissingVersion => Some("REJECTED version missing".into()),
         _ => None,
     }
 }
@@ -196,9 +180,7 @@ pub fn format_version_reject_ps(result: VersionGateResult) -> Option<String> {
         VersionGateResult::RejectVersionMismatch { client, required } => Some(format!(
             "0 VERSION REJECTED client={client} required={required}"
         )),
-        VersionGateResult::RejectMissingVersion => {
-            Some("0 VERSION REJECTED missing".into())
-        }
+        VersionGateResult::RejectMissingVersion => Some("0 VERSION REJECTED missing".into()),
         _ => None,
     }
 }
@@ -258,10 +240,7 @@ mod tests {
             VersionGateResult::RejectMissingVersion
         );
         let soft = VersionGatePolicy::default();
-        assert_eq!(
-            check_client_version(None, &soft),
-            VersionGateResult::Allow
-        );
+        assert_eq!(check_client_version(None, &soft), VersionGateResult::Allow);
         assert!(versions_compatible(None, 437));
     }
 

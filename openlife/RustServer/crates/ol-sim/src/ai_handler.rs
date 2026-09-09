@@ -352,10 +352,7 @@ pub struct PromptParts {
 pub fn build_prompt(parts: &PromptParts) -> String {
     let mut prompt = format!(
         "{}\n{}\n{}\n{}",
-        parts.own_context,
-        parts.other_context,
-        parts.relationship_context,
-        parts.do_command_text
+        parts.own_context, parts.other_context, parts.relationship_context, parts.do_command_text
     );
 
     if !parts.memory_context.is_empty() {
@@ -580,8 +577,7 @@ pub fn log_conversation_to_file(
 ) -> std::io::Result<PathBuf> {
     let path = conversation_log_path(log_base, date_yyyy_mm_dd);
     let path_display = path.to_string_lossy().into_owned();
-    let entry =
-        format_conversation_log_entry(timestamp, &path_display, full_prompt, response);
+    let entry = format_conversation_log_entry(timestamp, &path_display, full_prompt, response);
     append_conversation_log(&path, &entry)?;
     Ok(path)
 }
@@ -695,7 +691,8 @@ pub fn plan_response_chunks(
     max_len: usize,
     wait_per_100: f32,
 ) -> (Vec<String>, Vec<f32>) {
-    let needs_split = response.len() > max_len && contains_any_separator(response, AI_RESPONSE_SEPARATORS);
+    let needs_split =
+        response.len() > max_len && contains_any_separator(response, AI_RESPONSE_SEPARATORS);
     if !needs_split {
         let wait = wait_time_for_chars(response.len(), wait_per_100);
         return (vec![response.to_string()], vec![wait]);
@@ -840,9 +837,7 @@ pub fn api_key_from_env() -> Option<String> {
 
 /// Base URL from env `AI_API_URL` (Haxe default is MiniMax anthropic path — provider chunk).
 pub fn api_url_from_env() -> Option<String> {
-    std::env::var("AI_API_URL")
-        .ok()
-        .filter(|s| !s.is_empty())
+    std::env::var("AI_API_URL").ok().filter(|s| !s.is_empty())
 }
 
 /// Model from env `AI_DEFAULT_MODEL`.
@@ -1127,8 +1122,10 @@ pub fn plan_speech_llm_immediate() -> SpeechLlmImmediatePlan {
 // Haxe: Connection.sendSayToAllClose → AiBase.say / sayHelper / checkIfYouAreAllied
 // ---------------------------------------------------------------------------
 
-/// Haxe `ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi`.
-pub const MAX_DISTANCE_SAY_AI: f32 = 20.0;
+/// Haxe `ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi` compiled default.
+/// Live path uses [`crate::settings_live::GameplayKnobs::max_distance_say_ai`].
+// Haxe: ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi = 20
+pub const MAX_DISTANCE_SAY_AI: f32 = ol_config::gameplay_defaults::MAX_DISTANCE_SAY_AI;
 /// Haxe `Emote.angry` when non-ally loud reject.
 pub const LLM_SPEECH_ANGRY_EMOTE_ID: i32 = 2;
 /// Haxe `myPlayer.say('I AM NOT YOUR ALLY!')`.
@@ -1155,14 +1152,21 @@ pub fn ai_within_say_range(quad_dist: f32, max_dist: f32) -> bool {
 ///
 /// Returns `Some(normalized_text)` when this AI should run `sayHelper`.
 // Haxe: AiBase.sayHelper ALL/!!/??/name / getClosestPlayer
-pub fn ai_speech_attention(text: &str, ai_name: &str, is_closest_to_speaker: bool) -> Option<String> {
+pub fn ai_speech_attention(
+    text: &str,
+    ai_name: &str,
+    is_closest_to_speaker: bool,
+) -> Option<String> {
     let upper = text.to_uppercase();
     let name_u = ai_name.to_uppercase();
     let named = !name_u.is_empty() && upper.contains(name_u.as_str());
     if upper.starts_with("ALL ") || upper.contains("!!") || upper.contains("??") || named {
         // Haxe: text.replace("ALL ", "") — first occurrence only style via strip once.
         let mut out = text.to_string();
-        if let Some(rest) = text.strip_prefix("ALL ").or_else(|| text.strip_prefix("all ")) {
+        if let Some(rest) = text
+            .strip_prefix("ALL ")
+            .or_else(|| text.strip_prefix("all "))
+        {
             out = rest.to_string();
         } else if let Some(idx) = upper.find("ALL ") {
             // mid-string "ALL " unlikely; Haxe replace removes substring
@@ -1186,10 +1190,7 @@ pub fn ai_speech_attention(text: &str, ai_name: &str, is_closest_to_speaker: boo
 pub enum AlliedSpeechOutcome {
     Allowed,
     DeniedSilent,
-    DeniedLoud {
-        say: &'static str,
-        emote_id: i32,
-    },
+    DeniedLoud { say: &'static str, emote_id: i32 },
 }
 
 /// `silent=true` → no say/emote (LLM pre-check); `silent=false` → angry reject line.
@@ -1268,7 +1269,10 @@ pub struct SpeechLlmStartEffects {
 
 /// `None` if gate fails; otherwise immediate plan (ally stop only when friendly).
 // Haxe: AiBase speech fallback ~4973–4990
-pub fn plan_speech_llm_start(gate: &SpeechLlmGate, is_ally_friendly: bool) -> Option<SpeechLlmStartEffects> {
+pub fn plan_speech_llm_start(
+    gate: &SpeechLlmGate,
+    is_ally_friendly: bool,
+) -> Option<SpeechLlmStartEffects> {
     if !should_invoke_llm_for_speech(gate) {
         return None;
     }
@@ -1483,7 +1487,10 @@ pub struct LlmSpeechResult {
 
 /// Map a speech job + provider text into a result for sim apply.
 // Haxe: respondToPlayerAsync Thread → onSuccess / null on fail
-pub fn llm_speech_job_to_result(job: &LlmSpeechJob, raw_response: Option<String>) -> LlmSpeechResult {
+pub fn llm_speech_job_to_result(
+    job: &LlmSpeechJob,
+    raw_response: Option<String>,
+) -> LlmSpeechResult {
     LlmSpeechResult {
         ai_conn_id: job.ai_conn_id,
         ai_p_id: job.ai_p_id,
@@ -1751,14 +1758,8 @@ mod tests {
         assert!(body.contains("reply text"));
         assert!(body.contains("--- RESPONSE ---"));
         // null path
-        let _ = log_conversation_to_file(
-            &base_s,
-            "2026-07-28",
-            "2026-07-28 12:01:00",
-            "P2",
-            None,
-        )
-        .expect("write null");
+        let _ = log_conversation_to_file(&base_s, "2026-07-28", "2026-07-28 12:01:00", "P2", None)
+            .expect("write null");
         let body2 = std::fs::read_to_string(&path).expect("read2");
         assert!(body2.contains("(null - failed or rate limited)"));
         let _ = std::fs::remove_dir_all(&dir);
@@ -1938,9 +1939,7 @@ mod tests {
         assert!(ai_within_say_range(0.0, MAX_DISTANCE_SAY_AI));
         assert!(ai_within_say_range(400.0, MAX_DISTANCE_SAY_AI)); // 20^2
         assert!(!ai_within_say_range(401.0, MAX_DISTANCE_SAY_AI));
-        assert!(
-            (ai_say_quad_distance(0, 0, 3, 4) - 25.0).abs() < 1e-5
-        );
+        assert!((ai_say_quad_distance(0, 0, 3, 4) - 25.0).abs() < 1e-5);
     }
 
     #[test]
@@ -1994,6 +1993,9 @@ mod tests {
         let mut sp = speaker.clone();
         sp.is_ai = true;
         assert!(collect_ai_speech_hearers(&sp, "ALL hi", &others, MAX_DISTANCE_SAY_AI).is_empty());
+        // Live CloseForSayAi shrink: dist 5 is inside 20, outside 4.
+        let h3 = collect_ai_speech_hearers(&speaker, "ALL hi", &others, 4.0);
+        assert!(h3.is_empty(), "live max 4 must drop Euclidean 5");
     }
 
     #[test]
@@ -2016,11 +2018,7 @@ mod tests {
         g.llm_activated = false;
         assert!(plan_speech_llm_start(&g, true).is_none());
 
-        let long = "A".repeat(50)
-            + ". "
-            + &"B".repeat(50)
-            + "! "
-            + &"C".repeat(50);
+        let long = "A".repeat(50) + ". " + &"B".repeat(50) + "! " + &"C".repeat(50);
         let done = plan_speech_llm_complete(
             Some(&format!(r#"{{"text":"{long}","emote":"happy"}}"#)),
             true,
@@ -2053,12 +2051,7 @@ mod tests {
         let g2 = speech_llm_gate_from_runtime(&rt, true, true, 10.0, "hi", 105.0);
         assert!(should_invoke_llm_for_speech(&g2)); // 5s > 4s
 
-        enqueue_llm_say_chunks(
-            &mut rt,
-            &["one".into(), "two".into()],
-            &[1.0, 2.0],
-            200.0,
-        );
+        enqueue_llm_say_chunks(&mut rt, &["one".into(), "two".into()], &[1.0, 2.0], 200.0);
         assert_eq!(poll_ready_llm_say(&mut rt, 200.0).as_deref(), Some("one"));
         assert!(poll_ready_llm_say(&mut rt, 200.5).is_none());
         assert_eq!(poll_ready_llm_say(&mut rt, 201.0).as_deref(), Some("two"));
@@ -2068,12 +2061,7 @@ mod tests {
     #[test]
     fn process_llm_response_long_split_waits() {
         // Long text with separators → multi-chunk + wait_secs_per_chunk
-        let body = format!(
-            "{}! {}? {}",
-            "x".repeat(80),
-            "y".repeat(80),
-            "z".repeat(80)
-        );
+        let body = format!("{}! {}? {}", "x".repeat(80), "y".repeat(80), "z".repeat(80));
         let r = process_llm_response_for_say(
             Some(&body),
             MAX_AI_RESPONSE_PER_SAY_DEFAULT,

@@ -22,8 +22,14 @@ use ol_world::NestedHelper;
 // ---------------------------------------------------------------------------
 
 /// Haxe clothing index labels: 0=hat 1=tunic 2=frontShoe 3=backShoe 4=bottom 5=backpack.
-pub const CLOTHING_INDEX_LABELS: [&str; CLOTHING_SLOT_COUNT] =
-    ["hat", "tunic", "frontShoe", "backShoe", "bottom", "backpack"];
+pub const CLOTHING_INDEX_LABELS: [&str; CLOTHING_SLOT_COUNT] = [
+    "hat",
+    "tunic",
+    "frontShoe",
+    "backShoe",
+    "bottom",
+    "backpack",
+];
 
 /// Haxe `ObjectData.getClothingSlot` — map `clothing` field first char → index, or `None`.
 ///
@@ -95,8 +101,7 @@ pub fn clothing_slot_from_def(name: &str, description: &str, clothing: &str) -> 
     if n.contains("backpack") || n.contains("quiver") || n.contains("pack") {
         return Some(5);
     }
-    if n.contains("skirt") || n.contains("pants") || n.contains("bottom") || n.contains("trouser")
-    {
+    if n.contains("skirt") || n.contains("pants") || n.contains("bottom") || n.contains("trouser") {
         return Some(4);
     }
     if n.contains("chest")
@@ -408,7 +413,24 @@ pub fn try_transition_on_clothing_with_content(
         new_actor_num_uses: new_act.map(|d| d.num_uses).unwrap_or(0),
         new_target_num_uses: new_tgt.map(|d| d.num_uses).unwrap_or(0),
     };
-    try_transition_on_clothing_pure(&inp)
+    let mut out = try_transition_on_clothing_pure(&inp)?;
+    // Haxe DoChangeNumberOfUsesOnActorManual tool last-use when uses hit 0.
+    let same_id = content.resolve_base_id(inp.held_parent_id)
+        == content.resolve_base_id(out.held_id);
+    if out.held_id != 0
+        && out.held_uses == 0
+        && !inp.no_use_actor
+        && !inp.reverse_use_actor
+        && same_id
+    {
+        if let Some(new_id) =
+            crate::use_transition::tool_last_use_new_actor(content, out.held_id, cloth_base)
+        {
+            out.held_id = new_id;
+            out.held_uses = 0;
+        }
+    }
+    Some(out)
 }
 
 // ---------------------------------------------------------------------------
@@ -470,6 +492,86 @@ pub fn can_put_into_clothing_sized(
         return true;
     }
     clothing_contained_len < clothing_num_slots as usize
+}
+
+/// Worn clothing helper at Haxe `clothingObjects` index (flat hat/chest/shoes fallback).
+fn clothing_helper_at(player: &Player, idx: usize) -> Option<NestedHelper> {
+    player.clothing_helpers[idx].clone().or_else(|| {
+        let id = match idx {
+            0 => player.hat,
+            1 => player.chest,
+            2 => player.shoes,
+            _ => 0,
+        };
+        if id > 0 {
+            Some(NestedHelper::id_only(id))
+        } else {
+            None
+        }
+    })
+}
+
+/// Haxe GPI `doSwitchCloths` L3515 TODO: store clothes in clothes (backpack) while wearing.
+///
+/// `doSwitchCloths` redirects SELF's slot to the held object's native slot, so
+/// `SELF x y 5` with a hat **equips** the hat instead of nesting it in a worn
+/// backpack. When the **requested** slot is a worn container that can accept the
+/// held clothing (different native slot), skip switch so `doPlaceObjInClothing` runs.
+///
+/// Containable / containSize gates stay Haxe `DoContainerStuffOnObj` (no bypass).
+pub fn can_store_held_in_worn_clothing(
+    player: &Player,
+    content: &ContentDb,
+    clothing_slot: i32,
+) -> bool {
+    if clothing_slot < 0 || clothing_slot as usize >= CLOTHING_SLOT_COUNT {
+        return false;
+    }
+    if player.held_id <= 0 {
+        return false;
+    }
+    let held_base = content.resolve_base_id(player.held_id);
+    let Some(held_def) = content.get(held_base) else {
+        return false;
+    };
+    let Some(obj_slot) =
+        clothing_slot_from_def(&held_def.name, &held_def.description, &held_def.clothing)
+    else {
+        // Non-clothing already falls through to place after switch fails.
+        return false;
+    };
+    let req = clothing_slot as usize;
+    // Same wearable family → switch/swap, not nest.
+    if obj_slot == req || (obj_slot == 2 && (req == 2 || req == 3)) {
+        return false;
+    }
+    let Some(cloth) = clothing_helper_at(player, req) else {
+        return false;
+    };
+    if cloth.is_empty() {
+        return false;
+    }
+    let cloth_base = content.resolve_base_id(cloth.id);
+    let num_slots = content
+        .get(cloth_base)
+        .map(|d| d.num_slots.max(0))
+        .unwrap_or(0);
+    if num_slots <= 0 {
+        return false;
+    }
+    if crate::object_blocks_remove(content, cloth.id) {
+        return false;
+    }
+    can_put_into_clothing_sized(
+        cloth.id,
+        num_slots,
+        cloth.contained.len(),
+        player.held_id,
+        held_def.containable,
+        false,
+        held_def.contain_size,
+        content.get(cloth_base).map(|d| d.slot_size).unwrap_or(1.0),
+    )
 }
 
 /// Haxe `DoContainerStuffOnObj` empty-hand default: `if (index < 0) index = 0` (first slot).
@@ -671,13 +773,25 @@ pub fn try_drink_water_pure(inp: &DrinkWaterIn) -> Option<DrinkWaterOut> {
 /// Live drink on player (held water → empty vessel + heat/storage).
 // Haxe: GlobalPlayerInstance.drink (doSelf first branch)
 pub fn apply_drink_self(player: &mut Player, content: &ContentDb) -> bool {
+    apply_drink_self_ex(player, content, TEMP_REDUCTION_PER_DRINK, MAX_STORED_WATER)
+}
+
+/// Live-knob drink (Haxe `TemperatureReductionPerDrinking` / `MaxStoredWater`).
+// Haxe: ServerSettings.TemperatureReductionPerDrinking / MaxStoredWater
+// SETTINGS-LONG-TAIL
+pub fn apply_drink_self_ex(
+    player: &mut Player,
+    content: &ContentDb,
+    temp_reduction: f32,
+    max_stored_water: f32,
+) -> bool {
     let held_base = content.resolve_base_id(player.held_id);
     let inp = DrinkWaterIn {
         held_parent_id: held_base,
         heat: player.heat,
         stored_water: player.stored_water,
-        temp_reduction: TEMP_REDUCTION_PER_DRINK,
-        max_stored_water: MAX_STORED_WATER,
+        temp_reduction,
+        max_stored_water,
     };
     let Some(out) = try_drink_water_pure(&inp) else {
         return false;
@@ -812,8 +926,13 @@ pub fn switch_clothing_index_full(
         .unwrap_or_else(|| NestedHelper::with_uses(player.held_id, player.held_uses));
     let held_id = held.id;
     let prev = player.clothing_helpers[index].take();
-    let prev_id = prev.as_ref().map(|h| h.id).filter(|id| *id > 0).unwrap_or(0);
-    player.clothing_helpers[index] = Some(held);
+    let prev_id = prev
+        .as_ref()
+        .map(|h| h.id)
+        .filter(|id| *id > 0)
+        .unwrap_or(0);
+    // BACKPACK-NEST-DUAL: slot 5 syncs nest contained → flat backpack.
+    player.set_clothing_index_helper(index, Some(held));
     match prev {
         Some(p) if !p.is_empty() => player.set_held_helper(p),
         _ => player.clear_held(),
@@ -889,13 +1008,8 @@ pub fn apply_transition_on_clothing(
         }
     }
     if out.clothing_id == 0 {
-        player.clothing_helpers[idx] = None;
-        match idx {
-            0 => player.hat = 0,
-            1 => player.chest = 0,
-            2 => player.shoes = 0,
-            _ => {}
-        }
+        // BACKPACK-NEST-DUAL: slot 5 also clears flat backpack.
+        player.set_clothing_index_helper(idx, None);
     } else {
         player.set_clothing_index_helper(idx, Some(new_cloth));
     }
@@ -945,6 +1059,10 @@ pub fn apply_place_obj_in_clothing(
     if num_slots == 0 {
         return Err("NOT_CONTAINER");
     }
+    // Haxe: DoContainerStuffOnObj — ObjectData.blocksRemove (closed/locked chest).
+    if crate::object_blocks_remove(content, cloth.id) {
+        return Err("BLOCKS_REMOVE");
+    }
 
     // Empty hands: Haxe DoContainerStuffOnObj takes **first** (index 0), not last.
     // // Haxe: TransitionHelper.DoContainerStuffOnObj L609–617
@@ -971,10 +1089,7 @@ pub fn apply_place_obj_in_clothing(
     let held_def = content.get(held_base);
     let held_containable = held_def.map(|d| d.containable).unwrap_or(false);
     let held_contain_size = held_def.map(|d| d.contain_size).unwrap_or(0.0);
-    let clothing_slot_size = content
-        .get(cloth_base)
-        .map(|d| d.slot_size)
-        .unwrap_or(1.0);
+    let clothing_slot_size = content.get(cloth_base).map(|d| d.slot_size).unwrap_or(1.0);
     // Haxe DoContainerStuffOnObj: containSize > slotSize refuse (also on DROP swap).
     if !can_put_into_clothing_sized(
         cloth.id,
@@ -1027,18 +1142,17 @@ pub fn apply_sremv_from_clothing(
             return switch_clothing_index_full(player, idx).map(|(id, _)| id);
         }
         let taken = player.clothing_helpers[idx].take().unwrap();
-        match idx {
-            0 => player.hat = 0,
-            1 => player.chest = 0,
-            2 => player.shoes = 0,
-            _ => {}
-        }
+        // BACKPACK-NEST-DUAL: slot 5 strip clears flat backpack.
+        player.set_clothing_index_helper(idx, None);
         let id = taken.id;
         player.set_held_helper(taken);
         return Ok(id);
     }
     if player.held_id != 0 {
         return Err("HANDS");
+    }
+    if crate::object_blocks_remove_id(cloth.id) {
+        return Err("BLOCKS_REMOVE");
     }
     // SREMV: -1 = top of stack (last). Permanent contained refuse when content known.
     let idx_i = index.unwrap_or(-1);
@@ -1091,7 +1205,7 @@ pub fn apply_sremv_from_clothing_with_content(
     Ok(id)
 }
 
-/// Haxe `doSelf` path: drink → (eat residual) → clothing transition → switch → place.
+/// Haxe `doSelf` path: drink → (eat residual, live SELF) → clothing transition → clothing-in-clothing place → switch → place.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelfClothingPath {
     Drink,
@@ -1107,6 +1221,25 @@ pub fn apply_self_clothing(
     content: &ContentDb,
     clothing_slot: i32,
 ) -> Result<(SelfClothingPath, Option<&'static str>), &'static str> {
+    apply_self_clothing_ex(
+        player,
+        content,
+        clothing_slot,
+        TEMP_REDUCTION_PER_DRINK,
+        MAX_STORED_WATER,
+    )
+}
+
+/// Live-knob `doSelf` clothing branch (drink knobs from LiveSettings).
+// Haxe: GlobalPlayerInstance.doSelf L2718–2742
+// SETTINGS-LONG-TAIL
+pub fn apply_self_clothing_ex(
+    player: &mut Player,
+    content: &ContentDb,
+    clothing_slot: i32,
+    temp_reduction: f32,
+    max_stored_water: f32,
+) -> Result<(SelfClothingPath, Option<&'static str>), &'static str> {
     if player.held_id < 0 {
         return Err("HOLDING_PLAYER");
     }
@@ -1114,8 +1247,22 @@ pub fn apply_self_clothing(
         player.clear_held();
     }
     // drink() first (water bowl/pouch) — before clothing.
-    if apply_drink_self(player, content) {
+    if apply_drink_self_ex(player, content, temp_reduction, max_stored_water) {
         return Ok((SelfClothingPath::Drink, None));
+    }
+    apply_self_clothing_after_drink(player, content, clothing_slot)
+}
+
+/// Haxe `doSelf` clothing after drink (and after optional `doEating` when `clothingSlot < 0`).
+///
+/// Live SELF calls this after `try_eat_held` so eat is not skipped / not before drink.
+pub fn apply_self_clothing_after_drink(
+    player: &mut Player,
+    content: &ContentDb,
+    clothing_slot: i32,
+) -> Result<(SelfClothingPath, Option<&'static str>), &'static str> {
+    if player.held_id < 0 {
+        return Err("HOLDING_PLAYER");
     }
     // tryTranstionOnClothing
     if clothing_slot >= 0 {
@@ -1127,6 +1274,13 @@ pub fn apply_self_clothing(
             };
             return Ok((SelfClothingPath::Transition, say));
         }
+    }
+    // Haxe GPI L3515 TODO: store clothes in clothes like backpack while wearing.
+    // doSwitchCloths would redirect to the held clothing's native slot; try place first.
+    if can_store_held_in_worn_clothing(player, content, clothing_slot)
+        && apply_place_obj_in_clothing(player, content, clothing_slot, false).is_ok()
+    {
+        return Ok((SelfClothingPath::Place, None));
     }
     // doSwitchCloths
     if let Ok((_id, _prev, say)) = apply_switch_cloths(player, content, clothing_slot) {
@@ -1184,7 +1338,13 @@ mod tests {
     use super::*;
     use ol_content::{ObjectDef, Transition};
 
-    fn def_cloth(id: i32, clothing: &str, num_slots: i32, num_uses: i32, containable: bool) -> ObjectDef {
+    fn def_cloth(
+        id: i32,
+        clothing: &str,
+        num_slots: i32,
+        num_uses: i32,
+        containable: bool,
+    ) -> ObjectDef {
         ObjectDef {
             id,
             description: format!("cloth{id}"),
@@ -1210,15 +1370,18 @@ mod tests {
             clothing: clothing.into(),
             counts_or_grows_as: 0,
             crafting_steps: 0,
-        use_distance: 1,
-        deadly_distance: 0.0,
-        moves: 0,
-        damage: 0.0,
-        damage_protection_factor: 1.0,
-        wound_factor: 0.5,
-        male: false,
-        contain_size: 0.0,
-        slot_size: 1.0,
+            use_distance: 1,
+            deadly_distance: 0.0,
+            moves: 0,
+            damage: 0.0,
+            damage_protection_factor: 1.0,
+            wound_factor: 0.5,
+            male: false,
+            contain_size: 0.0,
+            slot_size: 1.0,
+            prestige_factor: 0.5,
+            extra_prestige_factor: 0.0,
+            min_pickup_age: 0,
         }
     }
 
@@ -1297,7 +1460,51 @@ mod tests {
         assert!(try_transition_on_clothing_pure(&inp).is_none());
         inp.new_target_parent_id = 3919;
         inp.new_target_id = 3919;
-        assert!(try_transition_on_clothing_pure(&inp).unwrap().praise_jinbali);
+        assert!(
+            try_transition_on_clothing_pure(&inp)
+                .unwrap()
+                .praise_jinbali
+        );
+    }
+
+    #[test]
+    fn clothing_transition_tool_last_use_when_uses_hit_zero() {
+        let mut db = ContentDb::default();
+        db.objects.insert(
+            10,
+            ObjectDef {
+                id: 10,
+                num_uses: 2,
+                ..ObjectDef::empty(10)
+            },
+        );
+        db.objects.insert(99, ObjectDef::empty(99));
+        db.objects.insert(400, def_cloth(400, "p", 0, 5, false));
+        db.objects.insert(401, def_cloth(401, "p", 0, 5, false));
+        db.transitions.insert(
+            (10, 400),
+            Transition {
+                actor_id: 10,
+                target_id: 400,
+                new_actor_id: 10,
+                new_target_id: 401,
+                ..Transition::default()
+            },
+        );
+        db.transitions_last_use.insert(
+            (10, -1),
+            Transition {
+                actor_id: 10,
+                target_id: -1,
+                new_actor_id: 99,
+                last_use_actor: true,
+                ..Transition::default()
+            },
+        );
+        let out = try_transition_on_clothing_with_content(&db, 10, 1, 400, 5, false).unwrap();
+        assert_eq!(out.held_id, 99, "tool last-use rewrites held when uses hit 0");
+        assert_eq!(out.held_uses, 0);
+        assert_eq!(out.clothing_id, 401);
     }
 
     #[test]
@@ -1412,18 +1619,18 @@ mod tests {
         p.held_helper = Some(NestedHelper::id_only(198));
         apply_switch_cloths(&mut p, &db, 5).unwrap();
         assert!(p.clothing_helpers[5].is_some());
+        assert!(p.backpack.is_empty());
         p.held_id = 33;
         p.held_helper = Some(NestedHelper::id_only(33));
         apply_place_obj_in_clothing(&mut p, &db, 5, false).unwrap();
         assert_eq!(p.held_id, 0);
-        assert_eq!(
-            p.clothing_helpers[5].as_ref().unwrap().contained[0].id,
-            33
-        );
+        assert_eq!(p.clothing_helpers[5].as_ref().unwrap().contained[0].id, 33);
+        assert_eq!(p.backpack, vec![33]);
 
         let taken = apply_sremv_from_clothing(&mut p, 5, Some(-1)).unwrap();
         assert_eq!(taken, 33);
         assert_eq!(p.held_id, 33);
+        assert!(p.backpack.is_empty());
     }
 
     #[test]
@@ -1452,7 +1659,11 @@ mod tests {
                 target_min_use_fraction: 0.0,
                 switch_number_of_uses: false,
                 target_number_of_uses: -1,
-            is_pickup_or_drop: false,
+                is_pickup_or_drop: false,
+                hungry_work_cost: 0.0,
+                hungry_work_temperature: -1.0,
+                coin_cost: 0,
+                is_forbidden: false,
             },
         );
         let mut p = Player::new(1, 1, "q@t");
@@ -1542,6 +1753,21 @@ mod tests {
     }
 
     #[test]
+    fn drink_live_temp_reduction_overrides_default() {
+        let mut db = ContentDb::default();
+        db.objects.insert(382, def_cloth(382, "n", 0, 0, false));
+        db.objects.insert(235, def_cloth(235, "n", 0, 0, false));
+        let mut p = Player::new(1, 1, "d@t");
+        p.held_id = 382;
+        p.held_helper = Some(NestedHelper::id_only(382));
+        p.heat = 0.9;
+        assert!(apply_drink_self_ex(&mut p, &db, 1.0, 2.0));
+        assert!((p.heat - 0.2).abs() < 1e-5);
+        assert!(p.stored_water > 0.5);
+        assert_eq!(p.held_id, 235);
+    }
+
+    #[test]
     fn ubaby_cloth_age_gate() {
         let mut db = ContentDb::default();
         db.objects.insert(693, def_cloth(693, "h", 0, 0, false));
@@ -1575,5 +1801,136 @@ mod tests {
     fn other_player_accepts_cloth_gate() {
         assert!(other_player_accepts_cloth(5.0, 10.0));
         assert!(!other_player_accepts_cloth(11.0, 10.0));
+    }
+
+    /// CLOTHING-IN-CLOTHING: SELF targeting worn backpack stores containable hat
+    /// instead of redirect-equipping (Haxe GPI L3515 TODO).
+    #[test]
+    fn self_stores_hat_in_worn_backpack() {
+        let mut db = ContentDb::default();
+        db.objects.insert(693, def_cloth(693, "h", 0, 0, true));
+        db.objects.insert(198, def_cloth(198, "p", 4, 0, false));
+        let mut p = Player::new(1, 1, "bag@t");
+        p.set_clothing_index_helper(5, Some(NestedHelper::id_only(198)));
+        p.set_held_helper(NestedHelper::id_only(693));
+        assert!(can_store_held_in_worn_clothing(&p, &db, 5));
+        let (path, _) = apply_self_clothing(&mut p, &db, 5).unwrap();
+        assert_eq!(path, SelfClothingPath::Place);
+        assert_eq!(p.held_id, 0);
+        assert_eq!(p.hat, 0, "hat must not equip; stored in backpack");
+        let bag = p.clothing_helpers[5].as_ref().unwrap();
+        assert_eq!(bag.id, 198);
+        assert_eq!(bag.contained[0].id, 693);
+        assert_eq!(p.backpack, vec![693]);
+    }
+
+    #[test]
+    fn self_minus_one_still_equips_hat_while_wearing_backpack() {
+        let mut db = ContentDb::default();
+        db.objects.insert(693, def_cloth(693, "h", 0, 0, true));
+        db.objects.insert(198, def_cloth(198, "p", 4, 0, false));
+        let mut p = Player::new(1, 1, "eq@t");
+        p.set_clothing_index_helper(5, Some(NestedHelper::id_only(198)));
+        p.set_held_helper(NestedHelper::id_only(693));
+        assert!(!can_store_held_in_worn_clothing(&p, &db, -1));
+        let (path, say) = apply_self_clothing(&mut p, &db, -1).unwrap();
+        assert_eq!(path, SelfClothingPath::Switch);
+        assert!(say.unwrap().contains("Carrots"));
+        assert_eq!(p.hat, 693);
+        assert_eq!(p.held_id, 0);
+        assert_eq!(p.clothing_helpers[5].as_ref().unwrap().id, 198);
+    }
+
+    #[test]
+    fn self_same_slot_backpack_still_switches() {
+        let mut db = ContentDb::default();
+        db.objects.insert(198, def_cloth(198, "p", 4, 0, true));
+        db.objects.insert(3050, def_cloth(3050, "p", 4, 0, true));
+        let mut p = Player::new(1, 1, "swap@t");
+        p.set_clothing_index_helper(5, Some(NestedHelper::id_only(198)));
+        p.set_held_helper(NestedHelper::id_only(3050));
+        assert!(!can_store_held_in_worn_clothing(&p, &db, 5));
+        let (path, _) = apply_self_clothing(&mut p, &db, 5).unwrap();
+        assert_eq!(path, SelfClothingPath::Switch);
+        assert_eq!(p.clothing_helpers[5].as_ref().unwrap().id, 3050);
+        assert_eq!(p.held_id, 198);
+    }
+
+    #[test]
+    fn self_full_backpack_falls_back_to_equip() {
+        let mut db = ContentDb::default();
+        db.objects.insert(693, def_cloth(693, "h", 0, 0, true));
+        db.objects.insert(198, def_cloth(198, "p", 4, 0, false));
+        let mut bag = NestedHelper::id_only(198);
+        bag.contained = vec![
+            NestedHelper::id_only(10),
+            NestedHelper::id_only(11),
+            NestedHelper::id_only(12),
+            NestedHelper::id_only(13),
+        ];
+        let mut p = Player::new(1, 1, "full@t");
+        p.set_clothing_index_helper(5, Some(bag));
+        p.set_held_helper(NestedHelper::id_only(693));
+        assert!(!can_store_held_in_worn_clothing(&p, &db, 5));
+        let (path, _) = apply_self_clothing(&mut p, &db, 5).unwrap();
+        assert_eq!(path, SelfClothingPath::Switch);
+        assert_eq!(p.hat, 693);
+        assert_eq!(p.clothing_helpers[5].as_ref().unwrap().contained.len(), 4);
+    }
+
+    #[test]
+    fn self_non_containable_clothing_still_equips() {
+        let mut db = ContentDb::default();
+        db.objects.insert(3391, def_cloth(3391, "t", 0, 0, false));
+        db.objects.insert(198, def_cloth(198, "p", 4, 0, false));
+        let mut p = Player::new(1, 1, "badge@t");
+        p.set_clothing_index_helper(5, Some(NestedHelper::id_only(198)));
+        p.set_held_helper(NestedHelper::id_only(3391));
+        assert!(!can_store_held_in_worn_clothing(&p, &db, 5));
+        let (path, _) = apply_self_clothing(&mut p, &db, 5).unwrap();
+        assert_eq!(path, SelfClothingPath::Switch);
+        assert_eq!(p.chest, 3391);
+        assert!(p.clothing_helpers[5]
+            .as_ref()
+            .unwrap()
+            .contained
+            .is_empty());
+    }
+
+    #[test]
+    fn drop_hat_into_worn_backpack_swaps_or_inserts() {
+        let mut db = ContentDb::default();
+        db.objects.insert(693, def_cloth(693, "h", 0, 0, true));
+        db.objects.insert(198, def_cloth(198, "p", 4, 0, false));
+        let mut p = Player::new(1, 1, "dropc@t");
+        p.set_clothing_index_helper(5, Some(NestedHelper::id_only(198)));
+        p.set_held_helper(NestedHelper::id_only(693));
+        apply_place_obj_in_clothing(&mut p, &db, 5, true).unwrap();
+        assert_eq!(p.held_id, 0);
+        assert_eq!(p.hat, 0);
+        assert_eq!(p.clothing_helpers[5].as_ref().unwrap().contained[0].id, 693);
+        assert_eq!(p.backpack, vec![693]);
+    }
+
+    #[test]
+    fn switch_backpack_with_cargo_syncs_flat() {
+        // BACKPACK-NEST-DUAL: doSwitchCloths slot 5 copies nest contained → flat.
+        let mut db = ContentDb::default();
+        db.objects.insert(198, def_cloth(198, "p", 4, 0, false));
+        db.objects.insert(3050, def_cloth(3050, "p", 4, 0, false));
+        let mut p = Player::new(1, 1, "swpack@t");
+        p.set_held_helper(NestedHelper::from_wire(198, &[10, 20]));
+        let (id, prev) = switch_clothing_index_full(&mut p, 5).unwrap();
+        assert_eq!(id, 198);
+        assert_eq!(prev, 0);
+        assert_eq!(p.backpack, vec![10, 20]);
+        assert_eq!(p.clothing_helpers[5].as_ref().unwrap().contained.len(), 2);
+
+        p.set_held_helper(NestedHelper::id_only(3050));
+        switch_clothing_index_full(&mut p, 5).unwrap();
+        assert_eq!(p.clothing_helpers[5].as_ref().unwrap().id, 3050);
+        assert!(p.backpack.is_empty());
+        assert_eq!(p.held_id, 198);
+        assert_eq!(p.held_helper.as_ref().unwrap().contained[0].id, 10);
     }
 }

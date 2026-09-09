@@ -126,10 +126,7 @@ pub fn is_permanent_object(content: &ContentDb, object_id: i32) -> bool {
     if object_id == 0 {
         return false;
     }
-    content
-        .get(object_id)
-        .map(|d| d.permanent)
-        .unwrap_or(false)
+    content.get(object_id).map(|d| d.permanent).unwrap_or(false)
 }
 
 /// Haxe `containSize > slotSize` size gate (pure).
@@ -143,10 +140,7 @@ pub fn contain_fits_slot(contain_size: f32, slot_size: f32) -> bool {
 /// // Haxe: ObjectData.containSize / slotSize
 #[inline]
 pub fn contain_slot_sizes(content: &ContentDb, item_id: i32, container_id: i32) -> (f32, f32) {
-    let cs = content
-        .get(item_id)
-        .map(|d| d.contain_size)
-        .unwrap_or(0.0);
+    let cs = content.get(item_id).map(|d| d.contain_size).unwrap_or(0.0);
     let ss = content
         .get(container_id)
         .map(|d| d.slot_size)
@@ -200,11 +194,9 @@ pub fn transition_result_fits_container_from_content(
         return true;
     }
     match content.get(new_target_id) {
-        Some(d) => transition_result_fits_container(
-            container_slot_size,
-            d.containable,
-            d.contain_size,
-        ),
+        Some(d) => {
+            transition_result_fits_container(container_slot_size, d.containable, d.contain_size)
+        }
         None => false,
     }
 }
@@ -380,8 +372,7 @@ pub fn try_place_kind(
     if existing_id == 0 {
         return TryPlaceKind::Empty;
     }
-    if place_is_grave
-        && can_be_placed_in_grave(content, existing_id, place_id, place_contained_len)
+    if place_is_grave && can_be_placed_in_grave(content, existing_id, place_id, place_contained_len)
     {
         return TryPlaceKind::GraveSwallow;
     }
@@ -613,8 +604,8 @@ fn try_place_object<R: Rng>(
             })
         }
         TryPlaceKind::GraveSwallow => {
-            let existing = existing_helper
-                .unwrap_or_else(|| ComplexObject::new_simple(existing_id));
+            let existing =
+                existing_helper.unwrap_or_else(|| ComplexObject::new_simple(existing_id));
             // Haxe: containedObjects.push(full ObjectHelper) — preserve nested/state.
             grave_swallow_push(object, &existing);
             write_placed(state, x, y, object);
@@ -628,8 +619,8 @@ fn try_place_object<R: Rng>(
         }
         TryPlaceKind::Replace => {
             // Haxe: setObjectHelper new; return displaced obj for free-tile re-home.
-            let displaced = existing_helper
-                .unwrap_or_else(|| ComplexObject::new_simple(existing_id));
+            let displaced =
+                existing_helper.unwrap_or_else(|| ComplexObject::new_simple(existing_id));
             write_placed(state, x, y, object);
             TryPlaceInternal::NeedRehome {
                 placed: PlaceObjectResult {
@@ -692,8 +683,44 @@ pub fn place_grave_object(
     cy: i32,
     grave: ComplexObject,
 ) -> Option<(i32, i32)> {
-    place_complex_object(state, cx, cy, grave, PlaceObjectOpts::grave_or_held())
-        .map(|r| (r.x, r.y))
+    place_complex_object(state, cx, cy, grave, PlaceObjectOpts::grave_or_held()).map(|r| (r.x, r.y))
+}
+
+/// World-only Haxe `PlaceObject` (default `allowReplace=false`, `considerWalls=false`).
+///
+/// Expanding free-tile search without [`SimState`]. Long-term DecayObject uses this
+/// (TIME-DECAY-PLACE); live overflow uses [`place_object_by_id`].
+// Haxe: WorldMap.PlaceObject(tx, ty, obj) allowReplace=false considerWalls=false
+pub fn place_object_on_world<R: Rng>(
+    world: &mut World,
+    content: &ContentDb,
+    tx: i32,
+    ty: i32,
+    obj_id: i32,
+    rng: &mut R,
+) -> Option<(i32, i32)> {
+    if obj_id <= 0 {
+        return None;
+    }
+    let id = transform_placed_object_id(content, obj_id);
+    let (ox, oy) = world.wrap_tile(tx, ty);
+    if try_place_flat_on_world(world, content, ox, oy, id, false) {
+        return Some((ox, oy));
+    }
+    let mut distance = 1_i32;
+    for i in 1..=PLACE_MAX_ATTEMPTS {
+        let (cx, cy) = place_search_candidate(rng, ox, oy, i, &mut distance);
+        let (x, y) = world.wrap_tile(cx, cy);
+        if !world.wrap {
+            if x < 0 || y < 0 || x >= world.width_tiles || y >= world.height_tiles {
+                continue;
+            }
+        }
+        if try_place_flat_on_world(world, content, x, y, id, false) {
+            return Some((x, y));
+        }
+    }
+    None
 }
 
 /// World-only try for pure tests (biome + tree + empty/replace) without SimState.
@@ -757,6 +784,31 @@ mod tests {
     }
 
     #[test]
+    fn place_object_on_world_searches_past_occupied_origin() {
+        let mut db = ContentDb::default();
+        db.objects.insert(50, def(50, "Item", "x", false, false));
+        let mut world = World::new(16, 16, false);
+        world.set_object(4, 4, 20);
+        for (dx, dy) in [
+            (1, 0),
+            (-1, 0),
+            (0, 1),
+            (0, -1),
+            (1, 1),
+            (-1, -1),
+            (1, -1),
+            (-1, 1),
+        ] {
+            world.set_object(4 + dx, 4 + dy, 20);
+        }
+        let mut rng = StdRng::seed_from_u64(3);
+        let p = place_object_on_world(&mut world, &db, 4, 4, 50, &mut rng).expect("place");
+        assert_ne!(p, (4, 4));
+        let ring = p.0.abs_diff(4) <= 1 && p.1.abs_diff(4) <= 1;
+        assert!(!ring, "must leave occupied 8-neighbor ring");
+        assert_eq!(world.get_object(p.0, p.1), 50);
+    }
+
     fn place_search_distance_grows_slowly() {
         // Haxe: distance = ceil(i / (20 * distance * distance)) — can oscillate
         // (e.g. d=1→2 at i=21, then d=2→1 at i=22). Check formula edges, not mono growth.
@@ -804,12 +856,10 @@ mod tests {
     #[test]
     fn try_place_kind_matrix() {
         let mut db = ContentDb::default();
-        db.objects
-            .insert(1, def(1, "Stone", "rock", false, false));
+        db.objects.insert(1, def(1, "Stone", "rock", false, false));
         db.objects
             .insert(2, def(2, "Wall", "stone wall", true, false));
-        db.objects
-            .insert(33, def(33, "Berry", "food", false, true));
+        db.objects.insert(33, def(33, "Berry", "food", false, true));
         db.objects
             .insert(87, def(87, "Fresh Grave", "+origGrave", true, false));
         db.objects
@@ -871,6 +921,10 @@ mod tests {
                 switch_number_of_uses: false,
                 target_number_of_uses: -1,
                 is_pickup_or_drop: false,
+                hungry_work_cost: 0.0,
+                hungry_work_temperature: -1.0,
+                coin_cost: 0,
+                is_forbidden: false,
             },
         );
         assert_eq!(transform_placed_object_id(&db, 778), 1422);
@@ -880,8 +934,7 @@ mod tests {
     #[test]
     fn try_place_flat_skips_ocean_biome() {
         let mut db = ContentDb::default();
-        db.objects
-            .insert(1, def(1, "Stone", "rock", false, false));
+        db.objects.insert(1, def(1, "Stone", "rock", false, false));
         let mut w = World::new(32, 32, false);
         w.ensure_full_map_chunks();
         w.set_biome(5, 5, OCEAN);
@@ -894,8 +947,7 @@ mod tests {
     #[test]
     fn try_place_flat_skips_behind_tree() {
         let mut db = ContentDb::default();
-        db.objects
-            .insert(1, def(1, "Stone", "rock", false, false));
+        db.objects.insert(1, def(1, "Stone", "rock", false, false));
         db.objects
             .insert(100, def(100, "Maple Tree", "Maple Tree", true, false));
         let mut w = World::new(32, 32, false);
@@ -942,8 +994,7 @@ mod tests {
     #[test]
     fn live_place_skips_snowingrey_until_elsewhere() {
         let mut db = ContentDb::default();
-        db.objects
-            .insert(50, def(50, "Item", "x", false, false));
+        db.objects.insert(50, def(50, "Item", "x", false, false));
         let mut state = SimState::with_default_empty(Arc::new(db));
         {
             let mut w = state.world.write().unwrap();
@@ -979,8 +1030,7 @@ mod tests {
         let mut db = ContentDb::default();
         db.objects
             .insert(87, def(87, "Fresh Grave", "+origGrave", true, false));
-        db.objects
-            .insert(33, def(33, "Berry", "food", false, true));
+        db.objects.insert(33, def(33, "Berry", "food", false, true));
         let mut state = SimState::with_default_empty(Arc::new(db));
         state.world.write().unwrap().set_object(5, 5, 33);
         let mut grave = ComplexObject::new_simple(87);
@@ -1015,8 +1065,8 @@ mod tests {
             .insert(20, def(20, "Stone", "rock", false, false));
         let mut state = SimState::with_default_empty(Arc::new(db));
         state.world.write().unwrap().set_object(1, 1, 10);
-        let res = place_object_by_id(&mut state, 1, 1, 20, PlaceObjectOpts::replace())
-            .expect("replace");
+        let res =
+            place_object_by_id(&mut state, 1, 1, 20, PlaceObjectOpts::replace()).expect("replace");
         assert_eq!((res.x, res.y), (1, 1));
         assert_eq!(res.displaced_id, Some(10));
         assert_eq!(state.world.read().unwrap().get_object(1, 1), 20);
@@ -1024,7 +1074,10 @@ mod tests {
         // Haxe: TryPlaceObject returns displaced; PlaceObject continues free search.
         let rehome = res.displaced_rehome.expect("displaced re-home");
         assert_ne!(rehome, (1, 1));
-        assert_eq!(state.world.read().unwrap().get_object(rehome.0, rehome.1), 10);
+        assert_eq!(
+            state.world.read().unwrap().get_object(rehome.0, rehome.1),
+            10
+        );
     }
 
     #[test]
@@ -1068,9 +1121,15 @@ mod tests {
         assert_eq!(res.displaced_id, Some(10));
         assert_eq!(state.world.read().unwrap().get_object(10, 10), 20);
         let rehome = res.displaced_rehome.expect("stick re-homed outside ring");
-        assert_eq!(state.world.read().unwrap().get_object(rehome.0, rehome.1), 10);
+        assert_eq!(
+            state.world.read().unwrap().get_object(rehome.0, rehome.1),
+            10
+        );
         // Re-home not on a permanent wall tile.
-        assert_ne!(state.world.read().unwrap().get_object(rehome.0, rehome.1), 200);
+        assert_ne!(
+            state.world.read().unwrap().get_object(rehome.0, rehome.1),
+            200
+        );
     }
 
     #[test]
@@ -1081,8 +1140,7 @@ mod tests {
             .insert(87, def(87, "Fresh Grave", "+origGrave", true, false));
         db.objects
             .insert(391, def(391, "Basket", "basket", false, true));
-        db.objects
-            .insert(33, def(33, "Berry", "food", false, true));
+        db.objects.insert(33, def(33, "Berry", "food", false, true));
         db.objects
             .insert(40, def(40, "Carrot", "food", false, true));
         let mut state = SimState::with_default_empty(Arc::new(db));
@@ -1119,11 +1177,7 @@ mod tests {
         assert_eq!(h.base_id, 87);
         assert!(h.contained.contains(&391));
         // Nested basket contents survive on grave.slots[0].contained
-        let slot = h
-            .slots
-            .iter()
-            .find(|s| s.id == 391)
-            .expect("basket slot");
+        let slot = h.slots.iter().find(|s| s.id == 391).expect("basket slot");
         let nest_ids: Vec<i32> = slot.contained.iter().map(|c| c.id).collect();
         assert_eq!(nest_ids, vec![33, 40]);
         // One level of nest under berry (100) preserved in NestedHelper tree.
@@ -1143,8 +1197,7 @@ mod tests {
         let mut gdef = def(87, "Fresh Grave", "+origGrave", true, false);
         gdef.num_slots = 2;
         db.objects.insert(87, gdef);
-        db.objects
-            .insert(33, def(33, "Berry", "food", false, true));
+        db.objects.insert(33, def(33, "Berry", "food", false, true));
         db.objects
             .insert(34, def(34, "Berry2", "food", false, true));
         let mut state = SimState::with_default_empty(Arc::new(db));
@@ -1176,15 +1229,24 @@ mod tests {
         assert!(contain_fits_slot(0.5, 1.0));
         assert!(!contain_fits_slot(2.0, 1.0));
         let mut db = ContentDb::default();
-        db.objects
-            .insert(33, def(33, "Berry", "food", false, true));
+        db.objects.insert(33, def(33, "Berry", "food", false, true));
         db.objects
             .insert(87, def(87, "Fresh Grave", "+origGrave", true, false));
         assert!(can_be_placed_in_grave_sized(
-            &db, 33, 87, 0, Some(1.0), Some(1.0)
+            &db,
+            33,
+            87,
+            0,
+            Some(1.0),
+            Some(1.0)
         ));
         assert!(!can_be_placed_in_grave_sized(
-            &db, 33, 87, 0, Some(2.0), Some(1.0)
+            &db,
+            33,
+            87,
+            0,
+            Some(2.0),
+            Some(1.0)
         ));
         // Full slots
         assert!(!can_be_placed_in_grave(&db, 33, 87, 6));
@@ -1240,6 +1302,8 @@ mod tests {
         assert!(transition_result_fits_container_from_content(&db, 1.0, 10));
         assert!(!transition_result_fits_container_from_content(&db, 1.0, 11));
         assert!(!transition_result_fits_container_from_content(&db, 1.0, 12)); // not containable
-        assert!(!transition_result_fits_container_from_content(&db, 1.0, 999)); // missing
+        assert!(!transition_result_fits_container_from_content(
+            &db, 1.0, 999
+        )); // missing
     }
 }

@@ -58,3 +58,10 @@ _Add a row after each Grok Build work session. Always re-check `/usage` live._
 | 2026-07-21 ~20:08 UTC | 1/7 | ~11.43% soft | live used=**3%** (GrokBuild 3.0) | pure `biome_colors` + `object_tags` + `wire_fields`; workspace test + selfplay10s | ~3% | workspace lib **595 pass** (sim **528**); selfplay10s **boot_ms=16**; all agents moved; PROGRESS updated |
 | 2026-07-21 ~20:20 UTC | 1/7 | ~11.43% soft | live used=**4%** (GrokBuild 4.0) | SAY RECIPE/NEXTCRAFT + craft-plan self-play + workspace lib + selfplay8n | ~4% | workspace lib **613 pass** (sim **545**); selfplay8n **boot_ms=15**; farmer SeekObject(242); craft products=3052 edges=7555 |
 | 2026-07-21 ~20:36 UTC | 1/7 | ~11.43% soft | start used=**4%** → end used=**5%** (GrokBuild 5.0) | pure OHOL helpers ×5 + SAY HEAT/DAY/AGECURVE/WRAP + workspace + selfplay12 | ~1% of allowance | workspace lib **664 pass** (sim **596**); pure module tests 41; selfplay12 **boot_ms=37** all agents moved |
+| 2026-08-24 | — | — | session AI-NAMING-IAM | targeted ol-sim naming tests 12 pass | — | DoNaming I AM family + follower eve migrate |
+| 2026-08-24 | — | — | session AI-NAMING-YOU-ARE | targeted ol-sim naming tests | — | DoNaming YOU ARE first-name held/closest SPOON |
+| 2026-08-30 | — | — | session AI-HUNGRY-COST | ol-ai-professions hungry + ol-sim hungry_work/short_craft | — | pair lookup + live scan/npc held cost |
+| 2026-08-30 | — | — | session AI-JOB-DEFER chunks 1–2 | ol-content/ol-ai-professions/ol-sim hungry filters | — | per-target shortCraft pair + Transition.hungryWorkCost patches |
+| 2026-08-30 | — | — | session AI-CRAFT-TASKS-DRAIN + DeferSeatsCleanup | filtered ol-sim select_runtime/baker_defer + ol-server craft_queue_wait | — | npc craftingTasks drain + seats cleanUp fallthrough |
+| 2026-08-30 | — | — | session AI-HUNGRY-EMOTE | ol-sim hungry_work + smith_defer_pottery + baker_defer | — | hungry-work PE + DeferPottery SeekOrCraft kiln/plate |
+| 2026-08-30 | — | — | session DROP-HELD-LIVE | ol-sim snapshot + ol-server npc/selfplay | — | holding_player_id + DROPBABY + selfplay quiver + npc is_winter |

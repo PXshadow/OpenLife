@@ -1,0 +1,11 @@
+[package]
+name = "ol-food-eating"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Pure food-fill bands + food-store-max (no SimState)"
+publish = false
+
+[dependencies]
+ol-identity.workspace = true
+

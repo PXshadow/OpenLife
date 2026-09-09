@@ -19,6 +19,20 @@ pub struct Economy {
     pub treasury: i32,
 }
 
+/// Haxe `player.coins` is Float; live [`Wallet::coins`] is i32.
+///
+/// Floor non-negative finite remainders. Negative / non-finite → 0.
+// Haxe: Math.floor(player.coins) / player.coins += count
+// WALLET-I32-FLOOR
+#[inline]
+pub fn wallet_floor_f32(coins: f32) -> i32 {
+    if coins.is_finite() && coins > 0.0 {
+        coins.floor() as i32
+    } else {
+        0
+    }
+}
+
 impl Economy {
     pub fn wallet_mut(&mut self, p_id: i32) -> &mut Wallet {
         self.wallets.entry(p_id).or_default()
@@ -96,6 +110,29 @@ impl Economy {
     /// Read wallet coins (0 if missing).
     pub fn coins_of(&self, p_id: i32) -> i32 {
         self.wallets.get(&p_id).map(|w| w.coins).unwrap_or(0)
+    }
+
+    /// Replace wallet coins from a Haxe Float persist field (`player.coins`).
+    ///
+    /// Floor via [`wallet_floor_f32`]; no trade prestige (not PAY/TRADE).
+    // Haxe: GlobalPlayerInstance.coins ReadPlayers
+    // WALLET-PERSIST-RESTORE
+    pub fn set_floored_coins(&mut self, p_id: i32, amount_f: f32) -> i32 {
+        let n = wallet_floor_f32(amount_f);
+        self.wallet_mut(p_id).coins = n;
+        n
+    }
+
+    /// Credit floored Haxe Float coins with **no** trade prestige (`coins += count`).
+    // Haxe: GlobalPlayerInstance.addHealthAndPrestige L6008
+    // WALLET-I32-FLOOR
+    pub fn credit_floored_coins(&mut self, p_id: i32, amount_f: f32) -> i32 {
+        let n = wallet_floor_f32(amount_f);
+        if n > 0 {
+            let w = self.wallet_mut(p_id);
+            w.coins = w.coins.saturating_add(n);
+        }
+        n
     }
 
     /// Haxe `takeCoins`: move coins target → attacker with **no** trade prestige.
@@ -197,6 +234,24 @@ mod tests {
         assert!(!e.donate_to_treasury(1, 999));
     }
 
+    #[test]
+    fn wallet_floor_f32_matches_haxe_math_floor() {
+        assert_eq!(wallet_floor_f32(3.7), 3);
+        assert_eq!(wallet_floor_f32(1.0), 1);
+        assert_eq!(wallet_floor_f32(0.9), 0);
+        assert_eq!(wallet_floor_f32(-2.0), 0);
+        assert_eq!(wallet_floor_f32(f32::NAN), 0);
+        let mut e = Economy::default();
+        assert_eq!(e.credit_floored_coins(1, 2.9), 2);
+        assert_eq!(e.coins_of(1), 2);
+        assert_eq!(e.wallets.get(&1).unwrap().trade_prestige, 0.0);
+        assert_eq!(e.credit_floored_coins(1, -5.0), 0);
+        assert_eq!(e.coins_of(1), 2);
+        assert_eq!(e.set_floored_coins(1, 9.8), 9);
+        assert_eq!(e.coins_of(1), 9);
+        assert_eq!(e.wallets.get(&1).unwrap().trade_prestige, 0.0);
+    }
+
     /// WALLET-COINS: pure amount + wallet gift path (no trade prestige).
     // Haxe: GlobalPlayerInstance.takeCoins
     #[test]
@@ -204,7 +259,7 @@ mod tests {
         let mut e = Economy::default();
         e.wallet_mut(10).coins = 10; // target
         e.wallet_mut(1).coins = 0; // attacker
-        // Mirrors weapon_wound::coins_stolen_on_wound(10, 0.5, false) = 6
+                                   // Mirrors weapon_wound::coins_stolen_on_wound(10, 0.5, false) = 6
         let amount = 6;
         assert!(e.take_coins_on_wound(1, 10, amount));
         assert_eq!(e.coins_of(1), 6);

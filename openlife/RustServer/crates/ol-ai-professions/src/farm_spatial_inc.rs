@@ -350,6 +350,32 @@ pub fn fill_farm_counts_from_map_with_floor(
     home_r: i32,
     origin_floor_id: i32,
 ) -> FarmCounts {
+    fill_farm_counts_from_map_with_floor_ids(
+        home_x,
+        home_y,
+        held_id,
+        objects,
+        home_r,
+        origin_floor_id,
+        &AI_IGNORED_FLOOR_IDS,
+    )
+}
+
+/// Like [`fill_farm_counts_from_map_with_floor`] with a live ignored-floor table.
+pub fn fill_farm_counts_from_map_with_floor_ids(
+    home_x: i32,
+    home_y: i32,
+    held_id: i32,
+    objects: &[FarmMapObj],
+    home_r: i32,
+    origin_floor_id: i32,
+    ignored_floor_ids: &[i32],
+) -> FarmCounts {
+    let ids = if ignored_floor_ids.is_empty() {
+        &AI_IGNORED_FLOOR_IDS[..]
+    } else {
+        ignored_floor_ids
+    };
     let mut counts = FarmCounts {
         held_id,
         ..Default::default()
@@ -362,7 +388,7 @@ pub fn fill_farm_counts_from_map_with_floor(
             origin_floor_id,
             o.is_food,
             o.is_permanent,
-            &AI_IGNORED_FLOOR_IDS,
+            ids,
         ) {
             continue;
         }
@@ -451,6 +477,8 @@ pub fn farm_job_rung_label(rung_label: &str) -> bool {
         "ASSIGNED_JOB"
             | "AGE_ROTATED_JOB"
             | "LOW_PRIORITY_WORK"
+            | "DO_WATERING_LOW"
+            | "DO_CARROT_LOW"
             | "MID_PRIORITY_TASKS"
             | "CRITICAL_MISC"
             | "CRAFT_QUEUE"
@@ -494,11 +522,13 @@ pub fn try_decide_farm_from_rung(
     if !farm_job_rung_label(rung_label) {
         return None;
     }
-    // Haxe: assigned BASICFARMER → doBasicFarming(100); age/mid → doBasicFarming()=2
-    // AI-FARM-STICKY: max carried on DeferSheepHerding → doAdvancedFarming(max)
-    let max_profession = if matches!(job, FarmProfession::BasicFarmer)
-        && rung_label == "ASSIGNED_JOB"
-    {
+    // Haxe: assigned BASICFARMER → doBasicFarming(100); WATERBRINGER → doWatering(100)
+    // Low WATERBRINGER → doWatering(1). AI-FARM-STICKY: max on DeferSheepHerding.
+    let max_profession = if matches!(job, FarmProfession::WaterBringer) {
+        watering_max_for_dispatch(rung_label == "ASSIGNED_JOB", rung_label)
+    } else if matches!(job, FarmProfession::CarrotFarmer) {
+        carrot_max_for_dispatch(rung_label == "ASSIGNED_JOB", rung_label)
+    } else if rung_label == "ASSIGNED_JOB" && matches!(job, FarmProfession::BasicFarmer) {
         crate::farmer_profession::BASIC_FARM_ASSIGNED_MAX_PROFESSION
     } else {
         crate::farmer_profession::BASIC_FARM_DEFAULT_MAX_PROFESSION

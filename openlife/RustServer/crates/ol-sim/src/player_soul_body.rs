@@ -295,7 +295,11 @@ impl PlayerSoul {
     /// Chat dump; optional `speaker_id` filter (product extension of Haxe TODO).
     pub fn get_chat_memory_text_filtered(&self, speaker_id: Option<i32>) -> String {
         let entries: Vec<&ChatEntry> = match speaker_id {
-            Some(id) => self.chat_memory.iter().filter(|e| e.player_id == id).collect(),
+            Some(id) => self
+                .chat_memory
+                .iter()
+                .filter(|e| e.player_id == id)
+                .collect(),
             None => self.chat_memory.iter().collect(),
         };
         if entries.is_empty() {
@@ -441,9 +445,7 @@ impl Default for SoulView {
 pub fn get_temperature_context_text(heat: f32, tile_temperature: f32) -> String {
     let body = get_temperature_label(heat);
     let tile = get_temperature_label(tile_temperature);
-    format!(
-        "The temperature is {body}. The surrounding temperature is {tile}. "
-    )
+    format!("The temperature is {body}. The surrounding temperature is {tile}. ")
 }
 
 /// Cardinal / intercardinal from delta to home (Haxe home direction block).
@@ -583,9 +585,7 @@ pub fn get_status_text(
     let food_percent = (food / max) * 100.0;
     let pct_floor = food_percent.floor() as i32;
     if food_percent < 20.0 {
-        text.push_str(&format!(
-            "You are starving! Food level: {pct_floor}%. "
-        ));
+        text.push_str(&format!("You are starving! Food level: {pct_floor}%. "));
     } else if food_percent < 50.0 {
         text.push_str(&format!("You are hungry. Food level: {pct_floor}%. "));
     }
@@ -980,9 +980,7 @@ mod tests {
         assert!(soul.contains("holding a weapon. Consider this strongly!"));
 
         let intro = get_external_intro(&v);
-        assert!(intro.starts_with(
-            "You are communicating with Ada Stone, a female aged 22 years. "
-        ));
+        assert!(intro.starts_with("You are communicating with Ada Stone, a female aged 22 years. "));
         assert!(intro.contains("They are a noble with prestige 55. "));
         assert!(intro.contains("Their father is Carl Stone. "));
         assert!(intro.contains("They look hungry. "));

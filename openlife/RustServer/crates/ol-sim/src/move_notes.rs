@@ -7,11 +7,8 @@ use crate::snow::{SnowCover, SNOW_MOVE_FACTOR};
 use crate::weather::Weather;
 use crate::{RIDE_MOVE_SPEED, WALK_MOVE_SPEED};
 
-/// Haxe `MoveHelper.calculateSpeed` floor/road/biome + path road scan.
-#[path = "move_speed.rs"]
-mod move_speed;
-
-pub use move_speed::{
+/// Haxe `MoveHelper.calculateSpeed` floor/road/biome + path road scan (via `move_speed`).
+pub use crate::move_speed::{
     adjust_contained_speed_mult, adjust_held_speed_mult, ai_class_speed_factor,
     ai_class_speed_factor_ex, apply_calculate_speed_full, apply_calculate_speed_full_live,
     apply_floor_road_to_speed, apply_held_floor_speed, apply_held_floor_speed_at,
@@ -22,17 +19,17 @@ pub use move_speed::{
     floor_counts_as_road, floor_road_biome_factor, floor_road_factor_at, floor_speed_mult,
     grave_curse_speed_factor, half_penalty_for_strong, has_both_shoes, heat_is_super_cold,
     heat_is_super_hot, held_nest_speed_product, held_object_speed_mult, hitpoints_speed_factor,
-    is_horse_or_car, is_water_biome, object_is_boat, path_length,
-    resolve_backpack_speed_product, scan_path_road_and_biome, shoe_pair_ids,
-    shoes_soften_backpack_product, shoes_speed_factor, soften_contained_speed_on_floor,
-    soften_held_speed_on_floor, temperature_speed_factor, tile_biome_blocks_move,
-    tile_biome_speed, truncate_path_with_road, vitals_speed_product, PathRoadScan,
-    VitalsSpeedInput, VitalsSpeedLiveKnobs, AI_SPEED_FACTOR_COMMONER, AI_SPEED_FACTOR_NOBLE,
-    AI_SPEED_FACTOR_SERF, BOAT_ON_LAND_SPEED_FACTOR, CLOSE_ENEMY_WITH_WEAPON_SPEED_FACTOR,
-    CLOSE_GRAVE_SPEED_MALI, CONTAINED_SPEED_FLOOR, GROWN_UP_FOOD_STORE_MAX, HITPOINTS_SPEED_FACTOR,
-    HORSE_OR_CAR_SPEED_THRESHOLD, INITIAL_PLAYER_MOVE_SPEED, MIN_BIOME_SPEED_FACTOR,
-    MIN_SPEED_REDUCTION_PER_CONTAINED, ROAD_SPEED_THRESHOLD, SPEED_FACTOR,
-    SPEED_WITH_BOTH_SHOES, TEMPERATURE_SPEED_IMPACT, TRUNC_MOVEMENT_SPEED_DIFF,
+    is_horse_or_car, is_water_biome, object_is_boat, path_length, resolve_backpack_speed_product,
+    scan_path_road_and_biome, shoe_pair_ids, shoes_soften_backpack_product, shoes_speed_factor,
+    soften_contained_speed_on_floor, soften_held_speed_on_floor, temperature_speed_factor,
+    tile_biome_blocks_move, tile_biome_speed, truncate_path_with_road, vitals_speed_product,
+    PathRoadScan, VitalsSpeedInput, VitalsSpeedLiveKnobs, AI_SPEED_FACTOR_COMMONER,
+    AI_SPEED_FACTOR_NOBLE, AI_SPEED_FACTOR_SERF, BOAT_ON_LAND_SPEED_FACTOR,
+    CLOSE_ENEMY_WITH_WEAPON_SPEED_FACTOR, CLOSE_GRAVE_SPEED_MALI, CONTAINED_SPEED_FLOOR,
+    GROWN_UP_FOOD_STORE_MAX, HITPOINTS_SPEED_FACTOR, HORSE_OR_CAR_SPEED_THRESHOLD,
+    INITIAL_PLAYER_MOVE_SPEED, MIN_BIOME_SPEED_FACTOR, MIN_SPEED_REDUCTION_PER_CONTAINED,
+    ROAD_SPEED_THRESHOLD, SPEED_FACTOR, SPEED_WITH_BOTH_SHOES, TEMPERATURE_SPEED_IMPACT,
+    TRUNC_MOVEMENT_SPEED_DIFF,
 };
 
 /// Per-item ballast penalty applied to move speed (held + backpack count).

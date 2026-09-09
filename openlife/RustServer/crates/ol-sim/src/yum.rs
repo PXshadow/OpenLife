@@ -11,7 +11,6 @@
 //! Pure classifiers and fill math live here; world scan for `SearchBestFood`
 //! is optional input via candidate lists.
 
-
 // Phase B: pure free functions live in ol-player-helper (shared with AI).
 pub use ol_player_helper::{
     can_eat_obj, can_eat_obj_ex, can_feed_to_me_obj, can_feed_to_me_obj_ex,
@@ -137,10 +136,7 @@ impl YumRestoreKnobs {
     pub fn resolved(self) -> Self {
         Self {
             yum_food_restore: resolve_yum_food_restore(self.yum_food_restore),
-            loved_food_restore: resolve_nonneg_knob(
-                self.loved_food_restore,
-                LOVED_FOOD_RESTORE,
-            ),
+            loved_food_restore: resolve_nonneg_knob(self.loved_food_restore, LOVED_FOOD_RESTORE),
             yum_new_craving_chance: resolve_nonneg_knob(
                 self.yum_new_craving_chance,
                 YUM_NEW_CRAVING_CHANCE,
@@ -252,12 +248,7 @@ pub fn resolve_food_id(object_id: i32, dummy_parent: Option<i32>) -> i32 {
 }
 /// Haxe `isHoldingYum` with live YumBonus.
 // Haxe: GlobalPlayerInstance.isHoldingYum
-pub fn is_holding_yum_ex(
-    held_id: i32,
-    food_value: i32,
-    count_eaten: f32,
-    yum_bonus: f32,
-) -> bool {
+pub fn is_holding_yum_ex(held_id: i32, food_value: i32, count_eaten: f32, yum_bonus: f32) -> bool {
     if held_id <= 0 {
         return false;
     }
@@ -271,12 +262,7 @@ pub fn is_holding_yum(held_id: i32, food_value: i32, count_eaten: f32) -> bool {
 
 /// Haxe `isHoldingMeh` with live YumBonus: foodValue ≥ 1 and `countEaten > YumBonus`.
 // Haxe: GlobalPlayerInstance.isHoldingMeh
-pub fn is_holding_meh_ex(
-    held_id: i32,
-    food_value: i32,
-    count_eaten: f32,
-    yum_bonus: f32,
-) -> bool {
+pub fn is_holding_meh_ex(held_id: i32, food_value: i32, count_eaten: f32, yum_bonus: f32) -> bool {
     if held_id <= 0 {
         return false;
     }
@@ -314,11 +300,7 @@ pub fn hold_food_emote_ex(
 /// Emote name when picking up food (Haxe `setHeldObject` food branch).
 ///
 /// Returns `"JOY"` / `"SAD"` / `"HMPH"` for food; `None` for non-food.
-pub fn hold_food_emote(
-    held_id: i32,
-    food_value: i32,
-    count_eaten: f32,
-) -> Option<&'static str> {
+pub fn hold_food_emote(held_id: i32, food_value: i32, count_eaten: f32) -> Option<&'static str> {
     hold_food_emote_ex(held_id, food_value, count_eaten, YUM_BONUS)
 }
 
@@ -350,11 +332,7 @@ pub struct EatCompute {
 /// Full eat math with live reduction / health knobs.
 // Haxe: GlobalPlayerInstance doEating + ServerSettings.FoodReduction* / HealthLost*
 // C-SS-FULL-TABLE
-pub fn compute_eat_full(
-    base_food_value: i32,
-    count_eaten: f32,
-    knobs: EatLiveKnobs,
-) -> EatCompute {
+pub fn compute_eat_full(base_food_value: i32, count_eaten: f32, knobs: EatLiveKnobs) -> EatCompute {
     let k = knobs.resolved();
     let yb = k.yum_bonus;
     let ff = k.food_factor;
@@ -900,6 +878,10 @@ pub struct YumState {
     pub just_ate: bool,
     /// Food store (ceil) before the last eat — FX `last_ate_fill_max`.
     pub last_ate_fill_max: i32,
+    /// Haxe `responsible_id` on FX / PU (`-1` self-eat, else feeder `p_id`).
+    // Haxe: GlobalPlayerInstance.doEating L3175
+    // EAT-RESPONSIBLE-PU
+    pub responsible_id: i32,
     /// Haxe `currentlyCraving` object id (0 = none).
     pub currently_craving: i32,
     /// Haxe `cravings` — food ids with hasEaten ≤ 0 (known craving pool).
@@ -922,6 +904,7 @@ impl Default for YumState {
             just_ate_id: 0,
             just_ate: false,
             last_ate_fill_max: 0,
+            responsible_id: -1,
             currently_craving: 0,
             cravings: Vec::new(),
             last_craving_index: 0,
@@ -1017,7 +1000,13 @@ impl YumState {
     }
 
     /// Haxe `canEatObj` with this map.
-    pub fn can_eat_obj(&self, food_id: i32, food_value: i32, food_store: f32, food_max: f32) -> bool {
+    pub fn can_eat_obj(
+        &self,
+        food_id: i32,
+        food_value: i32,
+        food_store: f32,
+        food_max: f32,
+    ) -> bool {
         self.can_eat_obj_ex(food_id, food_value, food_store, food_max, YUM_BONUS)
     }
 
@@ -1125,6 +1114,8 @@ impl YumState {
         self.just_ate_id = food_id;
         self.just_ate = true;
         self.last_ate_fill_max = fill_before;
+        // Self-eat default; feed-other overwrites in `try_do_eating`.
+        self.responsible_id = -1;
 
         if computed.has_eaten_delta != 0.0 {
             self.reduce_food_value(food_id, computed.has_eaten_delta);
@@ -1264,6 +1255,7 @@ impl YumState {
         self.just_ate_id = 0;
         self.just_ate = false;
         self.last_ate_fill_max = 0;
+        self.responsible_id = -1;
         self.currently_craving = 0;
         self.cravings.clear();
         self.last_craving_index = 0;
@@ -1472,12 +1464,7 @@ impl YumState {
     }
 
     /// Format displayFood label for a world food object.
-    pub fn display_food_label(
-        &self,
-        food_id: i32,
-        food_value: i32,
-        dist: i32,
-    ) -> String {
+    pub fn display_food_label(&self, food_id: i32, food_value: i32, dist: i32) -> String {
         self.display_food_label_ex(food_id, food_value, dist, YUM_BONUS)
     }
 }
@@ -1720,20 +1707,11 @@ mod tests {
     #[test]
     fn format_display_food_text_ex_u_count_uses_live_band() {
         // yum_bonus=3, fresh → 3 U
-        assert_eq!(
-            format_display_food_text_ex(33, 5, 0.0, 0, 3.0),
-            "YUUUM!"
-        );
+        assert_eq!(format_display_food_text_ex(33, 5, 0.0, 0, 3.0), "YUUUM!");
         // yum_bonus=7, count=0 → clamp U to 5
-        assert_eq!(
-            format_display_food_text_ex(33, 5, 0.0, 0, 7.0),
-            "YUUUUUM!"
-        );
+        assert_eq!(format_display_food_text_ex(33, 5, 0.0, 0, 7.0), "YUUUUUM!");
         // yum_bonus=7, count=4 still yum → 3 U
-        assert_eq!(
-            format_display_food_text_ex(33, 5, 4.0, 0, 7.0),
-            "YUUUM!"
-        );
+        assert_eq!(format_display_food_text_ex(33, 5, 4.0, 0, 7.0), "YUUUM!");
         // count=5 with yum_bonus=3 is meh
         let meh = format_display_food_text_ex(33, 5, 5.0, 0, 3.0);
         assert!(meh.starts_with('M') && meh.ends_with("H!"), "got {meh}");
@@ -1744,7 +1722,7 @@ mod tests {
         let mut y = YumState::default();
         let fill = y.eat_ex(33, 5.0, 5, 7.0, 1.0);
         assert!((fill - 12.0).abs() < 1e-4); // 5+7
-        // remaining wire charge: 7 - 1 = 6
+                                             // remaining wire charge: 7 - 1 = 6
         assert!((y.yum_bonus - 6.0).abs() < 1e-4);
 
         let mut y2 = YumState::default();
@@ -1791,20 +1769,11 @@ mod tests {
     #[test]
     fn display_food_yum_and_meh_text() {
         // fresh: Y + 5 U + M!
-        assert_eq!(
-            format_display_food_text(33, 5, 0.0, 0),
-            "YUUUUUM!"
-        );
+        assert_eq!(format_display_food_text(33, 5, 0.0, 0), "YUUUUUM!");
         // craving match
-        assert_eq!(
-            format_display_food_text(33, 5, 0.0, 33),
-            "YYUUUUUM!"
-        );
+        assert_eq!(format_display_food_text(33, 5, 0.0, 33), "YYUUUUUM!");
         // partial yum count=3 → ceil(5-3)=2 U
-        assert_eq!(
-            format_display_food_text(33, 5, 3.0, 0),
-            "YUUM!"
-        );
+        assert_eq!(format_display_food_text(33, 5, 3.0, 0), "YUUM!");
         // meh count=5: floor(1 + 0/(5/4)) = 1 E
         let meh = format_display_food_text(33, 5, 5.0, 0);
         assert!(meh.starts_with("M") && meh.ends_with("H!"), "got {meh}");
@@ -1889,9 +1858,7 @@ mod tests {
             y.reduce_food_value(33, 1.0);
         }
         assert!(y.is_obj_super_meh(33, 5));
-        assert!(y
-            .try_eat(33, 5.0, 10, 10.0, 20.0)
-            .is_none());
+        assert!(y.try_eat(33, 5.0, 10, 10.0, 20.0).is_none());
         // starving: can_eat allows super meh when store <= 4
         let r = y.try_eat(33, 5.0, 2, 2.0, 20.0);
         assert!(r.is_some());
@@ -2008,16 +1975,7 @@ mod tests {
         y.cravings.push(40);
         let foods = [10, 20, 30, 40, 50];
         let wire = y
-            .do_increase_food_value(
-                40,
-                1.0,
-                false,
-                &[],
-                &foods,
-                None,
-                |_| 0,
-                || 0.99,
-            )
+            .do_increase_food_value(40, 1.0, false, &[], &foods, None, |_| 0, || 0.99)
             .expect("wire");
         assert_eq!(wire.food_id, 40);
         // craving_has = -2, display = -3, bonus = 3
@@ -2055,22 +2013,13 @@ mod tests {
         // Single hasEaten key (= eaten) so random YumFoodRestore never hits banana.
         y.has_eaten.insert(33, 1.0);
         y.has_eaten.insert(2143, 2.0); // banana
-        // Force random key pick to index of 33 regardless of HashMap order.
+                                       // Force random key pick to index of 33 regardless of HashMap order.
         let foods = [33, 2143];
         let loved = loved_food_ids_for_person_color(PERSON_BROWN);
         assert!(loved.contains(&2143));
         let keys_snapshot: Vec<i32> = y.has_eaten.keys().copied().collect();
         let idx_33 = keys_snapshot.iter().position(|&k| k == 33).unwrap() as i32;
-        let _ = y.do_increase_food_value(
-            33,
-            1.0,
-            true,
-            loved,
-            &foods,
-            None,
-            |_| idx_33,
-            || 0.5,
-        );
+        let _ = y.do_increase_food_value(33, 1.0, true, loved, &foods, None, |_| idx_33, || 0.5);
         assert!((y.get_count_eaten(2143) - (2.0 - LOVED_FOOD_RESTORE)).abs() < 1e-4);
     }
 

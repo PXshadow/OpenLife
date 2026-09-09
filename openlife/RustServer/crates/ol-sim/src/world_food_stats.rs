@@ -38,20 +38,20 @@ use crate::search_best_food::{food_factor_for_id, food_factor_for_id_ex, FoodFac
 /// Format: `(food_id, higher_quality_food_id)`.
 // Haxe: ServerSettings higherQaulityFood L1321–1353
 pub const HIGHER_QUALITY_FOOD_EDGES: &[(i32, i32)] = &[
-    (31, 253),     // Gooseberry → Bowl of Gooseberries
-    (253, 272),    // Bowl of Gooseberries → Cooked Berry Pie
-    (4895, 1121),  // Popcorn → Bowl of Popcorn
-    (40, 402),     // Wild Carrot → Carrot
-    (402, 273),    // Carrot → Cooked Carrot Pie
-    (808, 2855),   // Wild Onion → Onion
-    (2855, 2860),  // Onion → Chopped Onion on Plate
-    (2836, 2861),  // Tomato → Chopped Tomato on Plate
-    (570, 803),    // Cooked Mutton → Cooked Mutton Pie
+    (31, 253),    // Gooseberry → Bowl of Gooseberries
+    (253, 272),   // Bowl of Gooseberries → Cooked Berry Pie
+    (4895, 1121), // Popcorn → Bowl of Popcorn
+    (40, 402),    // Wild Carrot → Carrot
+    (402, 273),   // Carrot → Cooked Carrot Pie
+    (808, 2855),  // Wild Onion → Onion
+    (2855, 2860), // Onion → Chopped Onion on Plate
+    (2836, 2861), // Tomato → Chopped Tomato on Plate
+    (570, 803),   // Cooked Mutton → Cooked Mutton Pie
     // Milk chains (ServerSettings L1345–1353)
-    (1463, 4081),  // Bowl of Whole Milk → Whole Milk Pouch
-    (4081, 3593),  // Whole Milk Pouch → Whole Milk Bottle
-    (1481, 4082),  // Bowl of Skim Milk → Skim Milk Pouch
-    (4082, 3596),  // Skim Milk Pouch → Skim Milk Bottle
+    (1463, 4081), // Bowl of Whole Milk → Whole Milk Pouch
+    (4081, 3593), // Whole Milk Pouch → Whole Milk Bottle
+    (1481, 4082), // Bowl of Skim Milk → Skim Milk Pouch
+    (4082, 3596), // Skim Milk Pouch → Skim Milk Bottle
 ];
 
 /// Default FoodStats dump filename under save directory.
@@ -247,6 +247,8 @@ where
 // Haxe: Lineage.GenerateLineageStatistics L347–386
 #[derive(Debug, Clone, PartialEq)]
 pub struct LineageStatRow {
+    /// Haxe `birthTime` (sim seconds); `< 0` = unknown (legacy OLN).
+    pub birth_sim_time: f32,
     /// Haxe `deathTime` (sim seconds); `0` = never died (excluded from last-day/hour).
     pub death_sim_time: f32,
     /// Raw wire reason (`reason_hunger`, `reason_killed_33`, …); empty if none.
@@ -258,14 +260,37 @@ pub struct LineageStatRow {
 }
 
 impl LineageStatRow {
-    /// Build a row from lineage death session fields.
+    /// Build a row from lineage death session fields (birth unknown).
     pub fn from_death_fields(
         death_sim_time: f32,
         death_reason: impl Into<String>,
         age_years: f32,
         generation: i32,
     ) -> Self {
+        Self::from_life_fields(
+            ol_identity::LINEAGE_BIRTH_UNKNOWN,
+            death_sim_time,
+            death_reason,
+            age_years,
+            generation,
+        )
+    }
+
+    /// Build a row including Haxe `birthTime` (LINEAGE-BIRTH-TIME).
+    // Haxe: Lineage.GenerateLineageStatistics yearsSinceBirth − yearsSinceDeath
+    pub fn from_life_fields(
+        birth_sim_time: f32,
+        death_sim_time: f32,
+        death_reason: impl Into<String>,
+        age_years: f32,
+        generation: i32,
+    ) -> Self {
         Self {
+            birth_sim_time: if birth_sim_time.is_finite() {
+                birth_sim_time
+            } else {
+                ol_identity::LINEAGE_BIRTH_UNKNOWN
+            },
             death_sim_time: if death_sim_time.is_finite() {
                 death_sim_time.max(0.0)
             } else {
@@ -338,6 +363,38 @@ pub fn lineage_stats_age_key(age_years: f32) -> i32 {
     }
 }
 
+/// Haxe `round(yearsSinceBirth - yearsSinceDeath)` for the ages histogram.
+///
+/// Living `deathTime == 0` uses `yearsSinceDeath = 0` (same `deathTime > 0` gate as
+/// last-day). Haxe `CalculateTimeSinceTicksInYears(0)` would treat 0 as epoch and
+/// clamp every living age to −1, which defeats `birthTime` stats.
+///
+/// Unknown birth (`< 0`, legacy OLN): dead → stored `age_at_death`; living → −1.
+// Haxe: Lineage.GenerateLineageStatistics L348–350, L374
+pub fn lineage_stats_age_years(
+    birth_sim_time: f32,
+    death_sim_time: f32,
+    now_sim: f32,
+    stored_age_years: f32,
+    has_death: bool,
+) -> f32 {
+    if birth_sim_time.is_finite() && birth_sim_time >= 0.0 {
+        let now = if now_sim.is_finite() { now_sim.max(0.0) } else { 0.0 };
+        let birth = birth_sim_time;
+        let years_birth = years_since_from_secs((now - birth).max(0.0));
+        let years_death = if death_sim_time.is_finite() && death_sim_time > 0.0 {
+            years_since_from_secs((now - death_sim_time).max(0.0))
+        } else {
+            0.0
+        };
+        years_birth - years_death
+    } else if has_death {
+        stored_age_years
+    } else {
+        -1.0
+    }
+}
+
 /// Haxe `GenerateLineageStatistics` pure scan (optional kill-name resolver).
 ///
 /// `name_of(object_id)` supplies `ObjectData.name` for `reason_killed_<id>` keys.
@@ -366,12 +423,13 @@ where
             stats.count_old = stats.count_old.saturating_add(1);
         }
 
-        // Haxe age for never-died often lands at −1 after clamp.
-        let age_key = if row.has_death() {
-            lineage_stats_age_key(row.age_years)
-        } else {
-            -1
-        };
+        let age_key = lineage_stats_age_key(lineage_stats_age_years(
+            row.birth_sim_time,
+            row.death_sim_time,
+            now,
+            row.age_years,
+            row.has_death(),
+        ));
         *stats.ages.entry(age_key).or_insert(0) += 1;
         if is_last_day {
             *stats.ages_last_day.entry(age_key).or_insert(0) += 1;
@@ -405,7 +463,10 @@ where
 
 /// Content-free [`generate_lineage_statistics`] (raw `reason_killed_<id>` keys).
 // Haxe: Lineage.GenerateLineageStatistics without ObjectData resolve
-pub fn generate_lineage_statistics_raw(rows: impl IntoIterator<Item = LineageStatRow>, now_sim: f32) -> LineageStatistics {
+pub fn generate_lineage_statistics_raw(
+    rows: impl IntoIterator<Item = LineageStatRow>,
+    now_sim: f32,
+) -> LineageStatistics {
     generate_lineage_statistics(rows, now_sim, |_| None)
 }
 
@@ -449,10 +510,7 @@ pub fn death_stamps_from_lineage_rows(
 
 /// Count last-day `reason_age` / `reason_hunger` from stamps (starving factor inputs).
 // Haxe: Lineage.reasonKilledLastDay['reason_age'|'reason_hunger']
-pub fn count_last_day_age_hunger(
-    stamps: &[LineageDeathStamp],
-    now_sim: f32,
-) -> (i32, i32) {
+pub fn count_last_day_age_hunger(stamps: &[LineageDeathStamp], now_sim: f32) -> (i32, i32) {
     let mut age = 0_i32;
     let mut hunger = 0_i32;
     for s in stamps {
@@ -521,7 +579,10 @@ pub fn count_reason_killed_last_hour(
 ///
 /// Empty stats → 1.5. Clamped implicitly by formula (~0.5–2 for normal ratios).
 // Haxe: WorldMap.getStarvingFoodFactor
-pub fn starving_food_factor_from_deaths(reason_age_last_day: i32, reason_hunger_last_day: i32) -> f32 {
+pub fn starving_food_factor_from_deaths(
+    reason_age_last_day: i32,
+    reason_hunger_last_day: i32,
+) -> f32 {
     let age = reason_age_last_day.max(0) as f32;
     let hunger = reason_hunger_last_day.max(0) as f32;
     let killed_age = 10.0 + age;
@@ -633,7 +694,11 @@ pub fn format_lineage_statistics_html(stats: &LineageStatistics) -> String {
 /// (Rust [`crate::yum::compute_eat`] multiplies `FOOD_FACTOR`).
 // Haxe: GlobalPlayerInstance eat L3186–3192
 #[inline]
-pub fn apply_world_food_factors(base_fill: f32, food_factor: f32, starving_food_factor: f32) -> f32 {
+pub fn apply_world_food_factors(
+    base_fill: f32,
+    food_factor: f32,
+    starving_food_factor: f32,
+) -> f32 {
     (base_fill * food_factor * starving_food_factor).max(0.0)
 }
 
@@ -761,7 +826,12 @@ impl WorldFoodStats {
     /// `food_id` = parent id; `base_food_value` = content `foodValue`;
     /// `final_food_value` = fill after world factors (what was added to store).
     // Haxe: WorldMap.addFoodStatistic
-    pub fn add_food_statistic(&mut self, food_id: i32, base_food_value: f32, final_food_value: f32) {
+    pub fn add_food_statistic(
+        &mut self,
+        food_id: i32,
+        base_food_value: f32,
+        final_food_value: f32,
+    ) {
         if food_id <= 0 {
             return;
         }
@@ -914,12 +984,7 @@ impl WorldFoodStats {
     /// `death_sim_time` = `SimState.sim_time` at death; `age_years` drives kid remap.
     /// Immediately rebuilds last-day cache so eat-soon-after sees the death.
     // Haxe: Lineage deathTime/deathReason + GenerateLineageStatistics L378–383
-    pub fn note_death_reason_at(
-        &mut self,
-        death_sim_time: f32,
-        reason: &str,
-        age_years: f32,
-    ) {
+    pub fn note_death_reason_at(&mut self, death_sim_time: f32, reason: &str, age_years: f32) {
         let key = normalize_death_reason_for_stats(reason, age_years);
         if key.is_empty() {
             return;
@@ -1512,6 +1577,48 @@ mod tests {
         assert!(html.contains("OLD AGE"), "{html}");
         assert!(html.contains("Arrow"), "{html}");
         assert!(html.contains("Extra food because of Starving"), "{html}");
+        // Living without birthTime still N/A (−1).
+        assert_eq!(stats.ages.get(&-1), Some(&1));
+    }
+
+    /// LINEAGE-BIRTH-TIME: living age = round((now − birth) / 60); dead = (death − birth) / 60.
+    // Haxe: Lineage.GenerateLineageStatistics yearsSinceBirth − yearsSinceDeath
+    #[test]
+    fn generate_lineage_statistics_living_ages_from_birth_time() {
+        let now = 2_000.0;
+        let living = LineageStatRow::from_life_fields(
+            now - 180.0, // 3 years
+            0.0,
+            "",
+            0.0,
+            1,
+        );
+        let dead = LineageStatRow::from_life_fields(
+            100.0,
+            100.0 + 30.0 * SECONDS_PER_YEAR, // 30 years; death 1900 < now
+            "reason_age",
+            99.0, // stored age ignored when birth is known
+            0,
+        );
+        let unknown_living = LineageStatRow::from_death_fields(0.0, "", 0.0, 2);
+        let stats = generate_lineage_statistics_raw(vec![living, dead, unknown_living], now);
+        assert_eq!(stats.ages.get(&3), Some(&1), "living 180s → 3 years");
+        assert_eq!(stats.ages.get(&30), Some(&1), "dead lifespan from birthTime");
+        assert_eq!(stats.ages.get(&-1), Some(&1), "legacy living without birth");
+        assert!(!stats.ages.contains_key(&99));
+    }
+
+    #[test]
+    fn lineage_stats_age_years_living_and_dead() {
+        let now = 600.0;
+        let living = lineage_stats_age_years(120.0, 0.0, now, 0.0, false);
+        assert!((living - 8.0).abs() < 1e-5, " (600-120)/60 = 8: {living}");
+        let dead = lineage_stats_age_years(60.0, 360.0, now, 0.0, true);
+        assert!((dead - 5.0).abs() < 1e-5, " (360-60)/60 = 5: {dead}");
+        let unknown = lineage_stats_age_years(-1.0, 0.0, now, 0.0, false);
+        assert!((unknown + 1.0).abs() < 1e-5);
+        let unknown_dead = lineage_stats_age_years(-1.0, 360.0, now, 42.0, true);
+        assert!((unknown_dead - 42.0).abs() < 1e-5);
     }
 
     #[test]

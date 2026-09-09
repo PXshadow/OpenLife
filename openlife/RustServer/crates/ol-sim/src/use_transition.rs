@@ -10,8 +10,8 @@
 
 // Single crate-level module (lib.rs `mod loved_food_wire`) — do not #[path]-include
 // again or LAST_LOVED_FOOD_EXTRA becomes two statics and PS/PE never sees the flag.
-use crate::death_inherit::account_soul_token;
 use crate::add_owner_to_helper;
+use crate::death_inherit::account_id_for_email;
 use crate::horse_mount::{
     apply_ids_after_nest_swap, basket_refuse_if_changing_held, empty_ground_dismount_transition,
     held_as_nested, horse_eat_plan, is_horse_mount_held, nested_to_complex,
@@ -21,7 +21,7 @@ use crate::locks::{
     evaluate_lock_use_gate, lockpick_coins_to_wallet_i32, note_lock_say, owner_account_of,
     owner_may_open_empty_hand, KEY_OBJ,
 };
-use crate::loved_food_wire::{evaluate_loved_food_extra, note_loved_food_extra, stamp_hits};
+use crate::loved_food_wire::{evaluate_loved_food_extra_ex, note_loved_food_extra, stamp_hits};
 use crate::multi_use::{
     actor_must_be_full_refuse, change_number_of_uses_on_actor, change_number_of_uses_on_target,
     force_target_number_of_uses, pick_tool_last_use_new_actor, prefer_last_use_table,
@@ -33,30 +33,240 @@ use crate::{
     ally_strength_blocks_pickup, calculate_enemy_vs_ally_strength_factor_ex,
     check_if_not_moving_and_close_enough, is_friendly, is_holding_weapon, is_leadership_ally,
     is_moving, note_too_close_say, refuse_ranged_use_too_close, schedule_decay, AllyStrengthPlayer,
-    SimState, UseResult, ALLY_STRENGTH_TOO_LOW_FOR_PICKUP_DEFAULT,
+    SimState, UseResult,
 };
 use ol_content::{ContentDb, Transition};
 use ol_world::{ComplexObject, NestedHelper, World};
+use std::cell::Cell;
 
 // C-SS-MORE-BATCH5 full hungry-work pure pipe lives later in this file (public API).
 // Call sites in apply_use_at use those pub helpers.
 
-/// Haxe person.male==false proxy from display object name / default Female001 (19).
-fn person_looks_female(content: &ContentDb, display_object_id: i32) -> bool {
-    if let Some(d) = content.get(display_object_id) {
-        let n = d.name.to_ascii_lowercase();
-        let desc = d.description.to_ascii_lowercase();
-        if n.contains("female") || desc.contains("female") {
-            return true;
-        }
-        if n.contains("male") || desc.contains("male") {
-            return false;
-        }
+/// Haxe `Emote.biomeRelief` after paying hungry-work cost.
+// Haxe: GlobalPlayerInstance.Emote.biomeRelief = 19
+pub const HUNGRY_WORK_RELIEF_EMOTE: i32 = 19;
+/// Haxe `Emote.homesick` when hungry-work refuse (food / exhaustion).
+// Haxe: GlobalPlayerInstance.Emote.homesick
+pub const HUNGRY_WORK_HOMESICK_EMOTE: i32 = 28;
+
+thread_local! {
+    static LAST_HUNGRY_WORK_EMOTE: Cell<Option<(u64, i32)>> = const { Cell::new(None) };
+    static LAST_HELD_PLAYER_DROP_BABY: Cell<Option<u64>> = const { Cell::new(None) };
+    static SKIP_HELD_WRITING_READ: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Record PE after hungry-work pay / refuse (consumed by USE handler).
+// Haxe: TransitionHelper L1230 / L1241 / L1252 doEmote
+pub fn note_hungry_work_emote(conn_id: u64, index: i32) {
+    LAST_HUNGRY_WORK_EMOTE.with(|c| c.set(Some((conn_id, index))));
+}
+
+/// Take pending hungry-work PE `(conn_id, emot_index)`.
+pub fn take_hungry_work_emote() -> Option<(u64, i32)> {
+    LAST_HUNGRY_WORK_EMOTE.with(|c| c.take())
+}
+
+fn note_held_player_drop_baby(baby_conn: u64) {
+    LAST_HELD_PLAYER_DROP_BABY.with(|c| c.set(Some(baby_conn)));
+}
+
+/// Baby conn dropped at feet by USE `doCommandHelper` (carrier PU is the USE unstick).
+// HOLDING-PLAYER-CMD
+pub fn take_held_player_drop_baby() -> Option<u64> {
+    LAST_HELD_PLAYER_DROP_BABY.with(|c| c.take())
+}
+
+/// Haxe `heldPlayer != null || o_id[0] < 0`: drop at feet then refuse the command.
+///
+/// DROP/SWAP keep click-tile `dropPlayer` (GPI.drop / GPI.swap). USE/REMV use this.
+// Haxe: TransitionHelper.doCommandHelper L115–120
+// HOLDING-PLAYER-CMD
+pub fn drop_holding_player_for_command(state: &mut SimState, conn_id: u64) -> bool {
+    let (px, py) = match state.players.get(&conn_id) {
+        Some(p) if !p.deleted && p.holding_player_id != 0 => (p.x, p.y),
+        _ => return false,
+    };
+    if let Some(baby_conn) = crate::drop_held_player_at(state, conn_id, px, py) {
+        note_held_player_drop_baby(baby_conn);
     }
-    display_object_id == 19
+    note_skip_held_writing_read();
+    true
+}
+
+fn note_skip_held_writing_read() {
+    SKIP_HELD_WRITING_READ.with(|c| c.set(true));
+}
+
+/// True when doCommandHelper returned before the USE/DROP/SWAP/REMV switch.
+// READ-WRITING
+pub fn take_skip_held_writing_read() -> bool {
+    SKIP_HELD_WRITING_READ.with(|c| c.take())
+}
+
+/// Haxe `'${p_id}/$isCursed ${heldObject.text}}'` (extra `}` port-as-is).
+// Haxe: TransitionHelper.doCommandHelper L390–394
+// READ-WRITING
+pub fn format_held_writing_ps_line(p_id: i32, cursed: bool, text: &str) -> String {
+    let curse = if cursed { 1 } else { 0 };
+    format!("{p_id}/{curse} {text}}}")
+}
+
+/// Haxe `blockTargetForAi` after doCommandHelper switch (tile at command xy).
+/// `held_id_for_hammer` is parent held id used for Smithing Hammer 441.
+// Haxe: TransitionHelper.doCommandHelper L396–414
+// AI-BLOCK-CMD / BLOCKED-BY-AI
+pub fn note_block_target_for_ai_after_command(
+    state: &mut SimState,
+    conn_id: u64,
+    tx: i32,
+    ty: i32,
+    held_id_for_hammer: i32,
+) {
+    use crate::ai_path_reach::{
+        block_claim_number_of_uses, should_set_block_target_for_ai, BlockTargetClaim,
+    };
+    use crate::animal_damage::is_weapon_from_deadly_distance;
+    let is_human = match state.players.get(&conn_id) {
+        Some(p) if !p.deleted => p.is_human_body(),
+        _ => return,
+    };
+    let sim_time = state.sim_time;
+    let held_id_for_hammer = state.content.resolve_base_id(held_id_for_hammer);
+    let (parent_id, number_of_uses, is_animal, permanent, food_value, is_clothing, is_weapon) = {
+        let w = match state.world.read() {
+            Ok(w) => w,
+            Err(_) => return,
+        };
+        let tile = w.get_object(tx, ty);
+        let base = if tile != 0 {
+            state.content.resolve_base_id(tile)
+        } else {
+            0
+        };
+        let def = state.content.get(base);
+        let is_animal = def.map(|d| d.is_animal()).unwrap_or(false);
+        let permanent = def.map(|d| d.permanent).unwrap_or(false);
+        let food_value = def.map(|d| d.food_value).unwrap_or(0);
+        let is_clothing = def.map(|d| d.is_clothing()).unwrap_or(false);
+        let deadly = def.map(|d| d.deadly_distance).unwrap_or(0.0);
+        let is_weapon = is_weapon_from_deadly_distance(deadly);
+        let uses = w.get_helper(tx, ty).map(|h| h.uses_remaining).unwrap_or(0);
+        (
+            base,
+            block_claim_number_of_uses(uses),
+            is_animal,
+            permanent,
+            food_value,
+            is_clothing,
+            is_weapon,
+        )
+    };
+    if !should_set_block_target_for_ai(
+        is_human,
+        held_id_for_hammer,
+        parent_id,
+        permanent,
+        is_weapon,
+        is_animal,
+        food_value,
+        is_clothing,
+    ) {
+        return;
+    }
+    let claim = BlockTargetClaim {
+        x: tx,
+        y: ty,
+        parent_id,
+        number_of_uses,
+        is_animal,
+        held_new_target_id: None,
+    };
+    if let Some(p) = state.players.get_mut(&conn_id) {
+        p.ai_block_targets.set_player_block(claim, sim_time);
+    }
+}
+
+/// Haxe `ObjectData.male == false` on the displayed person object.
+// PLAYER-MALE
+fn person_looks_female(content: &ContentDb, display_object_id: i32) -> bool {
+    crate::content_person_is_female(content, display_object_id)
+}
+
+/// Basket (Haxe `heldObject.parentId` 292).
+// Haxe: TransitionHelper.doCommandHelper L123–135
+pub const BASKET_PILE_ID: i32 = 292;
+/// Stack of Baskets.
+pub const STACK_OF_BASKETS_ID: i32 = 1605;
+
+/// Haxe USE 292 + 292/1605 when either side has cargo — refuse (TODO hidden containers).
+// BASKET-PILE-CMD
+pub fn is_basket_pile_refuse(
+    held_parent: i32,
+    target_parent: i32,
+    held_contained: usize,
+    target_contained: usize,
+) -> bool {
+    (held_contained > 0 || target_contained > 0)
+        && held_parent == BASKET_PILE_ID
+        && (target_parent == BASKET_PILE_ID || target_parent == STACK_OF_BASKETS_ID)
+}
+
+/// Rubber Ball (Haxe `heldObject.parentId`).
+// Haxe: TransitionHelper.doCommandHelper L137–142
+pub const RUBBER_BALL_ID: i32 = 2170;
+/// Paper with Charcoal Writing (Haxe `target.parentId`).
+pub const PAPER_WITH_CHARCOAL_WRITING_ID: i32 = 1615;
+
+/// Haxe `heldId == 2170 && target.parentId == 1615`.
+// CLEAR-WRITING
+pub fn is_clear_writing_pair(held_parent: i32, target_parent: i32) -> bool {
+    held_parent == RUBBER_BALL_ID && target_parent == PAPER_WITH_CHARCOAL_WRITING_ID
+}
+
+/// Clear `text` and `hits` on the tile helper (Haxe `target.text = ''; target.hits = 0`).
+// CLEAR-WRITING
+pub fn apply_clear_writing_at(
+    state: &mut SimState,
+    tx: i32,
+    ty: i32,
+    held_id: i32,
+    tile_id: i32,
+) -> bool {
+    let held_parent = state.content.resolve_base_id(held_id);
+    let tile_parent = state.content.resolve_base_id(tile_id);
+    if !is_clear_writing_pair(held_parent, tile_parent) {
+        return false;
+    }
+    let mut w = state.world.write().unwrap();
+    if let Some(h) = w.helpers.get_mut(&(tx, ty)) {
+        h.text.clear();
+        h.hits = 0.0;
+        true
+    } else {
+        false
+    }
 }
 
 /// Stamp `extern_id` onto the tile helper after USE place (Haxe ObjectHelper.externId).
+fn stamp_tile_coins_and_hits(world: &mut World, tx: i32, ty: i32, coins: f32, hits_min: f32) {
+    if let Some(h) = world.helpers.get_mut(&(tx, ty)) {
+        h.coins = coins;
+        if h.hits < hits_min {
+            h.hits = hits_min;
+        }
+        return;
+    }
+    let base = world.get_object(tx, ty);
+    if base != 0 {
+        let mut c = ComplexObject::new_simple(base);
+        c.coins = coins;
+        if c.hits < hits_min {
+            c.hits = hits_min;
+        }
+        world.set_object_complex(tx, ty, c);
+    }
+}
+
 fn stamp_extern_id(world: &mut World, tx: i32, ty: i32, extern_id: i32) {
     if extern_id == 0 {
         return;
@@ -74,6 +284,416 @@ fn stamp_extern_id(world: &mut World, tx: i32, ty: i32, extern_id: i32) {
 }
 
 /// Haxe: TransitionHelper.use → doHorseStuffPossible (eat while mounted).
+/// Haxe `isMyGrave` + `MaxPlayersBeforeForbidTouchGrave` (default 9999 = off).
+// Haxe: TransitionHelper.doCommandHelper L361–369
+// GRAVE-TOUCH-PLAYERS
+pub fn forbid_touch_own_grave(
+    is_own_grave: bool,
+    living_connections: usize,
+    max_players_before_forbid: i32,
+) -> bool {
+    if !is_own_grave {
+        return false;
+    }
+    let cap = if max_players_before_forbid < 0 {
+        0
+    } else {
+        max_players_before_forbid as usize
+    };
+    living_connections >= cap
+}
+
+/// Haxe `heldObject.isNeverDrop()` — refuse USE/DROP/SWAP/REMV (bloody / +neverDrop).
+// Haxe: TransitionHelper.doCommandHelper L311–326; ObjectHelper.isNeverDrop
+// NEVER-DROP-CMD
+pub fn refuse_never_drop_command(state: &SimState, conn_id: u64) -> bool {
+    let Some(p) = state.players.get(&conn_id) else {
+        return false;
+    };
+    if p.deleted {
+        return false;
+    }
+    let skip = crate::weapons::is_never_drop_held(&state.content, p.held_id);
+    if skip {
+        note_skip_held_writing_read();
+    }
+    skip
+}
+
+/// Haxe `heldObject == hiddenWound` → `setHeldObject(null)` then continue the command.
+/// Does not clear [`Player::hidden_wound`].
+// Haxe: TransitionHelper.doCommandHelper L327–331
+// WOUND-CMD
+pub fn clear_hidden_wound_for_command(state: &mut SimState, conn_id: u64) -> bool {
+    let Some(p) = state.players.get_mut(&conn_id) else {
+        return false;
+    };
+    if p.deleted || !p.is_holding_hidden_wound() {
+        return false;
+    }
+    p.clear_held();
+    true
+}
+
+/// Haxe `if (time > 0) player.say('${Math.ceil(time)} seconds...', true)` on visible wound refuse.
+// Haxe: TransitionHelper.doCommandHelper L336–338
+pub fn wound_held_countdown_say(state: &SimState, conn_id: u64) -> Option<String> {
+    let p = state.players.get(&conn_id)?;
+    let h = p.held_helper.as_ref()?;
+    let rem = crate::weapons::never_drop_remaining_secs(
+        h.creation_time,
+        h.time_to_change,
+        state.sim_time,
+    );
+    if rem > 0.0 {
+        Some(format!("{} seconds...", rem.ceil() as i32))
+    } else {
+        None
+    }
+}
+
+/// Haxe `heldObject.isWound()` and not hiddenWound — refuse USE/DROP/SWAP/REMV.
+/// Queues countdown say via [`note_lock_say`] when remaining ttc &gt; 0.
+// Haxe: TransitionHelper.doCommandHelper L327–341; ObjectHelper.isWound
+// WOUND-CMD
+pub fn refuse_wound_command(state: &SimState, conn_id: u64) -> bool {
+    let Some(p) = state.players.get(&conn_id) else {
+        return false;
+    };
+    if p.deleted {
+        return false;
+    }
+    if !crate::is_wound_object(&state.content, p.held_id) || p.is_holding_hidden_wound() {
+        return false;
+    }
+    if let Some(s) = wound_held_countdown_say(state, conn_id) {
+        note_lock_say(conn_id, s);
+    }
+    note_skip_held_writing_read();
+    true
+}
+
+/// Haxe `killMode` on doCommandHelper: clear flag and refuse (try again).
+// Haxe: TransitionHelper.doCommandHelper L343–348
+// KILLMODE-DROP
+pub fn refuse_kill_mode_command(state: &mut SimState, conn_id: u64) -> bool {
+    let Some(p) = state.players.get_mut(&conn_id) else {
+        return false;
+    };
+    if p.deleted || !p.kill_mode {
+        return false;
+    }
+    p.kill_mode = false;
+    note_skip_held_writing_read();
+    true
+}
+
+/// Live `isMyGrave` + population cap for USE/DROP/SWAP/REMV (`doCommandHelper`).
+/// Queues `"Its my grave..."` via [`note_lock_say`] when refusing.
+// Haxe: TransitionHelper.doCommandHelper L361–369
+// GRAVE-TOUCH-PLAYERS / GRAVE-TOUCH-DROP / GRAVE-TOUCH-REMV
+pub fn refuse_own_grave_command(state: &SimState, conn_id: u64, tx: i32, ty: i32) -> bool {
+    let Some(p) = state.players.get(&conn_id) else {
+        return false;
+    };
+    if p.deleted {
+        return false;
+    }
+    let living = state.players.values().filter(|q| !q.deleted).count();
+    let own = state
+        .accounts
+        .get(&p.email)
+        .map(|a| a.graves.contains(&(tx, ty)))
+        .unwrap_or(false);
+    if forbid_touch_own_grave(
+        own,
+        living,
+        state.gameplay.max_players_before_forbid_touch_grave,
+    ) {
+        note_lock_say(conn_id, "Its my grave...");
+        note_skip_held_writing_read();
+        true
+    } else {
+        false
+    }
+}
+
+/// Live `AllyStrenghTooLowForPickup` for USE/DROP/SWAP/REMV (`doCommandHelper`).
+/// Queues `"Too many hostile people..."` via [`note_lock_say`] when refusing.
+/// Threshold ≤ 0 or empty target → allow (Haxe default 0 = off).
+// Haxe: TransitionHelper.doCommandHelper L350–359
+// ALLY-PICKUP-THRESHOLD / ALLY-PICKUP-DROP
+pub fn refuse_ally_pickup_command(state: &SimState, conn_id: u64, tx: i32, ty: i32) -> bool {
+    let Some(p) = state.players.get(&conn_id) else {
+        return false;
+    };
+    if p.deleted {
+        return false;
+    }
+    let threshold = state.gameplay.ally_strength_too_low_for_pickup;
+    let target = state.world.read().unwrap().get_object(tx, ty);
+    if threshold <= 0.0 || target == 0 {
+        return false;
+    }
+    let p_id = p.p_id;
+    let px = p.x;
+    let py = p.y;
+    let (mw, mh, wrap) = {
+        let w = state.world.read().unwrap();
+        (w.width_tiles, w.height_tiles, w.wrap)
+    };
+    let strength_players: Vec<AllyStrengthPlayer> = state
+        .players
+        .values()
+        .map(|op| {
+            let oname = state
+                .content
+                .get(op.held_id)
+                .map(|d| d.name.as_str())
+                .unwrap_or("");
+            let holding = is_holding_weapon(op.held_id, oname);
+            let ally_to_self = is_leadership_ally(&state.social.following, op.p_id, p_id);
+            let friendly_to_self = is_friendly(
+                ally_to_self,
+                op.last_attacked_player_id,
+                op.last_player_attacked_me_id,
+                p_id,
+            );
+            AllyStrengthPlayer {
+                p_id: op.p_id,
+                x: op.x,
+                y: op.y,
+                deleted: op.deleted,
+                food_store_max: op.food_max,
+                holding_weapon: holding,
+                friendly_to_observer: friendly_to_self,
+                friendly_to_target: false,
+                ally_to_observer: ally_to_self,
+            }
+        })
+        .collect();
+    let strength_f = calculate_enemy_vs_ally_strength_factor_ex(
+        px,
+        py,
+        &strength_players,
+        false,
+        mw,
+        mh,
+        wrap,
+        state.gameplay.ally_considered_close,
+    );
+    if ally_strength_blocks_pickup(strength_f, threshold, target) {
+        note_lock_say(conn_id, "Too many hostile people...");
+        note_skip_held_writing_read();
+        true
+    } else {
+        false
+    }
+}
+
+/// Haxe Wild Gooseberry Bush 30 / Domestic Gooseberry Bush 391 — skip multi-use age refuse.
+// Haxe: TransitionHelper.use L725–728
+pub const WILD_GOOSEBERRY_BUSH: i32 = 30;
+/// Haxe Domestic Gooseberry Bush 391.
+pub const DOMESTIC_GOOSEBERRY_BUSH: i32 = 391;
+
+/// Haxe `Math.ceil(minPickupAge - reduce - age)`; refuse when result > 0.
+// Haxe: TransitionHelper.use L740–748 / drop L529–536
+// MIN-PICKUP-AGE
+pub fn pickup_age_years_too_young(min_pickup_age: i32, age: f32, reduce: f32) -> i32 {
+    let pickup_age = min_pickup_age as f32 - reduce;
+    (pickup_age - age).ceil() as i32
+}
+
+/// Haxe `numberOfUses > 1 && age < minPickupAge` except gooseberry bushes.
+// Haxe: TransitionHelper.use L726–734
+pub fn refuse_multi_use_pickup_age(
+    number_of_uses: i32,
+    age: f32,
+    min_pickup_age: i32,
+    parent_id: i32,
+) -> bool {
+    number_of_uses > 1
+        && age < min_pickup_age as f32
+        && parent_id != WILD_GOOSEBERRY_BUSH
+        && parent_id != DOMESTIC_GOOSEBERRY_BUSH
+}
+
+/// Haxe `oldEnoughForTransitions`: minPickupAge ≤ age or description contains BERRY.
+// Haxe: TransitionHelper.use L775–776
+pub fn old_enough_for_transitions(min_pickup_age: i32, age: f32, description: &str) -> bool {
+    min_pickup_age as f32 <= age || description.to_ascii_uppercase().contains("BERRY")
+}
+
+/// Haxe `oldEnoughForPickup`: minPickupAge ≤ age or empty + speedMult ≥ 0.98.
+// Haxe: TransitionHelper.use L777–778
+pub fn old_enough_for_pickup(
+    min_pickup_age: i32,
+    age: f32,
+    contained_len: usize,
+    speed_mult: f32,
+) -> bool {
+    min_pickup_age as f32 <= age || (contained_len < 1 && speed_mult >= 0.98)
+}
+
+fn effective_number_of_uses(uses_remaining: i32, num_uses: i32) -> i32 {
+    if uses_remaining > 0 {
+        uses_remaining
+    } else {
+        num_uses.max(0)
+    }
+}
+
+fn min_pickup_age_of(content: &ContentDb, id: i32) -> i32 {
+    let base = content.resolve_base_id(id);
+    content.get(base).map(|d| d.min_pickup_age).unwrap_or(0)
+}
+
+/// USE: multi-use pickup refuse then ReduceAge say (Haxe `use` before/after isClose).
+/// Returns true if the command should refuse.
+// Haxe: TransitionHelper.use L726–748
+// MIN-PICKUP-AGE
+pub fn refuse_min_pickup_age_use(state: &SimState, conn_id: u64, tx: i32, ty: i32) -> bool {
+    let Some(p) = state.players.get(&conn_id) else {
+        return false;
+    };
+    if p.deleted {
+        return false;
+    }
+    let (target, uses_remaining, _contained) = {
+        let w = state.world.read().unwrap();
+        let t = w.get_object(tx, ty);
+        let h = w.get_helper(tx, ty);
+        let uses = h.map(|h| h.uses_remaining).unwrap_or(0);
+        let n = h.map(|h| h.contained.len()).unwrap_or(0);
+        (t, uses, n)
+    };
+    let parent = state.content.resolve_base_id(target);
+    let min_age = min_pickup_age_of(&state.content, target);
+    let num_uses = state
+        .content
+        .get(parent)
+        .map(|d| d.num_uses)
+        .unwrap_or(0);
+    let uses = effective_number_of_uses(uses_remaining, num_uses);
+    if refuse_multi_use_pickup_age(uses, p.age, min_age, parent) {
+        note_skip_held_writing_read();
+        return true;
+    }
+    let needed = pickup_age_years_too_young(
+        min_age,
+        p.age,
+        state.gameplay.reduce_age_needed_to_pickup_objects,
+    );
+    if needed > 0 {
+        note_lock_say(conn_id, format!("I am {needed} years too young"));
+        note_skip_held_writing_read();
+        true
+    } else {
+        false
+    }
+}
+
+/// DROP: ReduceAge say, then multi-use silent, then contained silent.
+/// Clothing DROP is handled before this (Haxe clothingIndex ≥ 0 returns first).
+/// `Some(text)` refuses (`text` empty = silent). `None` allows.
+// Haxe: TransitionHelper.drop L529–548
+// MIN-PICKUP-AGE
+pub fn refuse_min_pickup_age_drop(
+    state: &SimState,
+    conn_id: u64,
+    tx: i32,
+    ty: i32,
+) -> Option<String> {
+    let p = state.players.get(&conn_id)?;
+    if p.deleted {
+        return None;
+    }
+    let (target, uses_remaining, contained_len) = {
+        let w = state.world.read().unwrap();
+        let t = w.get_object(tx, ty);
+        let h = w.get_helper(tx, ty);
+        let uses = h.map(|h| h.uses_remaining).unwrap_or(0);
+        let n = h.map(|h| h.contained.len()).unwrap_or(0);
+        (t, uses, n)
+    };
+    let parent = state.content.resolve_base_id(target);
+    let min_age = min_pickup_age_of(&state.content, target);
+    let num_uses = state
+        .content
+        .get(parent)
+        .map(|d| d.num_uses)
+        .unwrap_or(0);
+    let uses = effective_number_of_uses(uses_remaining, num_uses);
+    let needed = pickup_age_years_too_young(
+        min_age,
+        p.age,
+        state.gameplay.reduce_age_needed_to_pickup_objects,
+    );
+    if needed > 0 {
+        let say = format!("I am {needed} years too young");
+        note_lock_say(conn_id, say.clone());
+        note_skip_held_writing_read();
+        return Some(say);
+    }
+    if uses > 1 && p.age < min_age as f32 {
+        note_skip_held_writing_read();
+        return Some(String::new());
+    }
+    if contained_len > 0 && min_age as f32 > p.age {
+        note_skip_held_writing_read();
+        Some(String::new())
+    } else {
+        None
+    }
+}
+
+/// REMV: multi-use silent refuse (`removeObj`).
+// Haxe: TransitionHelper.removeObj L1716–1719
+// MIN-PICKUP-AGE
+pub fn refuse_min_pickup_age_remv(state: &SimState, conn_id: u64, tx: i32, ty: i32) -> bool {
+    let Some(p) = state.players.get(&conn_id) else {
+        return false;
+    };
+    if p.deleted {
+        return false;
+    }
+    let (target, uses_remaining) = {
+        let w = state.world.read().unwrap();
+        let t = w.get_object(tx, ty);
+        let uses = w.get_helper(tx, ty).map(|h| h.uses_remaining).unwrap_or(0);
+        (t, uses)
+    };
+    let parent = state.content.resolve_base_id(target);
+    let min_age = min_pickup_age_of(&state.content, target);
+    let num_uses = state
+        .content
+        .get(parent)
+        .map(|d| d.num_uses)
+        .unwrap_or(0);
+    let uses = effective_number_of_uses(uses_remaining, num_uses);
+    if uses > 1 && p.age < min_age as f32 {
+        note_skip_held_writing_read();
+        true
+    } else {
+        false
+    }
+}
+
+/// Horse-eat refuse: keep held horse + tile food (no USE bare swap).
+fn horse_eat_unapplied(actor: i32, target: i32, tx: i32, ty: i32) -> UseResult {
+    UseResult {
+        actor_before: actor,
+        target_before: target,
+        actor_after: actor,
+        target_after: target,
+        applied: false,
+        x: tx,
+        y: ty,
+        ranged_too_close: false,
+    }
+}
+
 fn try_horse_eat(
     state: &mut SimState,
     conn_id: u64,
@@ -85,8 +705,7 @@ fn try_horse_eat(
 ) -> Option<UseResult> {
     let target_num = state.content.get(target).map(|d| d.num_uses).unwrap_or(0);
     let last_use = target_num >= 2 && uses_remaining > 0 && uses_remaining <= 1;
-    let (food_id, via_tr, new_target) =
-        horse_eat_plan(&state.content, actor, target, last_use)?;
+    let (food_id, via_tr, new_target) = horse_eat_plan(&state.content, actor, target, last_use)?;
     let food_value = state
         .content
         .get(food_id)
@@ -94,6 +713,29 @@ fn try_horse_eat(
         .unwrap_or(0);
     if food_value <= 0 {
         return None;
+    }
+    // Haxe doHorse → doEating L3045–3055: MinAgeToEat + yellow-fever refuse (self).
+    // HORSE-EAT-ILL
+    let (age, ill) = match state.players.get(&conn_id) {
+        Some(p) if !p.deleted => (
+            p.age,
+            crate::nested_body::is_yellow_fever(p.fever.as_ref()),
+        ),
+        _ => return None,
+    };
+    if let Err(why) = crate::feed_other_yum::feeder_may_eat_or_feed(
+        age,
+        ill,
+        state.gameplay.min_age_to_eat,
+        state.gameplay.allow_eating_or_feeding_if_ill,
+    ) {
+        if why == "too ill" {
+            crate::food_eating::begin_eat_refuse();
+            crate::food_eating::note_eat_say(conn_id, "I am too ill!");
+            crate::food_eating::queue_named_eat_emote(conn_id, "YELLOWFEVER");
+        }
+        // Haxe doHorseStuffPossible returns false; do not fall through to bare swap.
+        return Some(horse_eat_unapplied(actor, target, tx, ty));
     }
     // Haxe doEating — yum fill × world FoodFactor × starving + yum restore; keep horse held.
     // Haxe: ServerSettings.YumBonus (YUM-LIVE-SETTINGS)
@@ -104,7 +746,6 @@ fn try_horse_eat(
     let world_ff = state.world_food.get_food_factor_ex(food_id, &bands);
     let starve_ff = state.world_food.get_starving_food_factor_at(state.sim_time);
     let eat_knobs = state.gameplay.eat_live_knobs();
-    let yum_b = eat_knobs.yum_bonus;
     let restore = state.gameplay.yum_restore_knobs();
     let red_per = eat_knobs.food_reduction_per_eating;
     // CRAVING-WIRE inputs before mut player borrow (Haxe doIncreaseFoodValue after fill)
@@ -118,11 +759,7 @@ fn try_horse_eat(
     let food_objects = crate::food_objects_list(state);
     let nearby_best = crate::nearby_best_for_craving(state, conn_id);
     // Haxe playerTo prestige for superMeh trade (same as try_eat_held)
-    let eater_p_id = state
-        .players
-        .get(&conn_id)
-        .map(|p| p.p_id)
-        .unwrap_or(0);
+    let eater_p_id = state.players.get(&conn_id).map(|p| p.p_id).unwrap_or(0);
     let prestige_before = state
         .combat
         .stats
@@ -130,16 +767,33 @@ fn try_horse_eat(
         .map(|s| s.prestige)
         .unwrap_or(0.0);
     let mut pending_super_meh: Option<crate::SuperMehTrade> = None;
+    let mut eat_compute: Option<crate::yum::EatCompute> = None;
     let recorded_gain = {
         let p = state.players.get_mut(&conn_id)?;
         let fill_before = p.food.ceil() as i32;
         let count = p.yum.get_count_eaten(food_id);
-        if !crate::can_eat_obj_ex(food_value, count, p.food, p.food_max, yum_b) {
-            return None;
+        // Haxe doEating too-full / superMeh refuse (self) — same PE as try_do_eating.
+        let room = p.food_max - p.food;
+        let need = (food_value as f32 / 4.0).ceil();
+        if !room.is_finite() || room < need {
+            crate::food_eating::begin_eat_refuse();
+            crate::food_eating::queue_named_eat_emote(conn_id, "REFUSEFOOD");
+            // HORSE-EAT-REFUSE-SWAP: do not fall through to bare horse↔food swap.
+            return Some(horse_eat_unapplied(actor, target, tx, ty));
         }
         let computed = crate::compute_eat_full(food_value, count, eat_knobs);
         if crate::refuse_self_eat_super_meh(computed.is_super_meh, p.food) {
-            return None;
+            crate::food_eating::begin_eat_refuse();
+            crate::food_eating::queue_named_eat_emote(conn_id, "ILL");
+            crate::food_eating::note_eat_say(conn_id, "I need better food!");
+            // HORSE-EAT-REFUSE-SWAP
+            return Some(horse_eat_unapplied(actor, target, tx, ty));
+        }
+        // HORSE-EAT-GAIN-NONE: predicted fill after world factors; no yum/age, no bare swap.
+        let predicted = crate::apply_world_food_factors(computed.fill, world_ff, starve_ff)
+            + crate::super_meh_extra_food_value(computed.is_super_meh);
+        if predicted <= 0.0 {
+            return Some(horse_eat_unapplied(actor, target, tx, ty));
         }
         let base_gain = p.yum.eat_full(food_id, food_base, fill_before, eat_knobs);
         // Haxe L3186–3192: FoodFactor (in eat) × getFoodFactor × getStarvingFoodFactor
@@ -156,7 +810,7 @@ fn try_horse_eat(
             pending_super_meh = Some(trade);
         }
         if gain <= 0.0 {
-            return None;
+            return Some(horse_eat_unapplied(actor, target, tx, ty));
         }
         p.food = (p.food + gain).min(p.food_max);
         // Haxe doIncreaseFoodValue after reduce (skip superMeh) — parity with doEating
@@ -167,7 +821,8 @@ fn try_horse_eat(
             } else {
                 red_per
             };
-            let dont_change = crate::dont_change_craving(/*is_self_eat=*/ true, computed.is_yum);
+            let dont_change =
+                crate::dont_change_craving(/*is_self_eat=*/ true, computed.is_yum);
             let _ = p.yum.do_increase_food_value_ex(
                 food_id,
                 amount,
@@ -181,11 +836,28 @@ fn try_horse_eat(
             );
         }
         // Stay mounted — do not clear held horse.
+        eat_compute = Some(computed);
         Some(gain)
     };
+    if let Some(computed) = eat_compute {
+        // Haxe doHorse → doEating L3239–3245 post-eat PE (self).
+        // HORSE-EAT-EMOTE
+        crate::food_eating::queue_do_eating_post_emotes(conn_id, conn_id, computed);
+        // Haxe doEating addHealthAndPrestige (self yum/prestige + coins).
+        // HORSE-EAT-PRESTIGE
+        crate::apply_eat_health_prestige(
+            state,
+            conn_id,
+            conn_id,
+            computed.health_delta,
+            computed.is_yum,
+        );
+    }
     // Haxe: WorldMap.world.addFoodStatistic after fill (doEating L3215)
     if let Some(gain) = recorded_gain {
-        state.world_food.add_food_statistic(food_id, food_base, gain);
+        state
+            .world_food
+            .add_food_statistic(food_id, food_base, gain);
     }
     // Haxe L3199–3206: superMeh prestige / hits (same as try_eat_held)
     if let Some(trade) = pending_super_meh {
@@ -194,11 +866,9 @@ fn try_horse_eat(
             s.prestige = (s.prestige + trade.prestige_delta).max(0.0);
         }
         if trade.needs_food_max_recompute && eater_p_id != 0 {
-            let _ = state.combat.apply_hits(
-                eater_p_id,
-                trade.hits_delta,
-                trade.wounded_by_food_id,
-            );
+            let _ = state
+                .combat
+                .apply_hits(eater_p_id, trade.hits_delta, trade.wounded_by_food_id);
             // Haxe: food_store_max = calculateFoodStoreMax(); death if < 1
             let (age, food, exh, true_age) = state
                 .players
@@ -207,7 +877,9 @@ fn try_horse_eat(
                 .unwrap_or((20.0, 10.0, 0.0, 20.0));
             let health_f = state.player_health_food_store_max_factor(eater_p_id, true_age);
             let hits = state.combat.hits_of(eater_p_id);
-            let new_max = crate::food_store_max_from_parts(age, food, hits, exh, health_f);
+            let knobs = state.gameplay.food_store_max_knobs();
+            let new_max =
+                crate::food_store_max_from_parts_ex(age, food, hits, exh, health_f, knobs);
             if let Some(p) = state.players.get_mut(&conn_id) {
                 p.food_max = new_max;
                 if p.food > p.food_max && p.food_max > 0.0 {
@@ -217,8 +889,7 @@ fn try_horse_eat(
                     // Haxe: doDeath('reason_killed_${woundedBy}')
                     p.deleted = true;
                     crate::ai_takeover::clear_ai_on_death(&mut p.ai_controlled);
-                    p.death_reason =
-                        Some(format!("reason_killed_{}", trade.wounded_by_food_id));
+                    p.death_reason = Some(format!("reason_killed_{}", trade.wounded_by_food_id));
                 }
             }
         }
@@ -260,6 +931,7 @@ fn try_horse_eat(
         applied: true,
         x: tx,
         y: ty,
+        ranged_too_close: false,
     })
 }
 
@@ -452,11 +1124,7 @@ pub fn place_after_use_ex(
 ///
 /// Haxe TODO L1565 EMPTY+Cold Bowl: no extra guard; only map keys decide.
 // Haxe: TransitionHelper.DoChangeNumberOfUsesOnActorManual (~1567–1590)
-pub fn tool_last_use_new_actor(
-    content: &ContentDb,
-    object_id: i32,
-    target_id: i32,
-) -> Option<i32> {
+pub fn tool_last_use_new_actor(content: &ContentDb, object_id: i32, target_id: i32) -> Option<i32> {
     if object_id == 0 {
         return None;
     }
@@ -500,16 +1168,9 @@ fn resolve_actor_after_use(
 
     // Haxe: tool last-use only on same-id deplete path (idHasChanged=false → uses hit 0).
     // When reverse / id change, Manual returns early without tool lookup.
-    let same_id = content.resolve_base_id(actor_before)
-        == content.resolve_base_id(actor_after_tr);
-    if out.held_id != 0
-        && out.held_uses == 0
-        && !no_use_actor
-        && !reverse_use_actor
-        && same_id
-    {
-        if let Some(new_id) = tool_last_use_new_actor(content, out.held_id, target_id_for_last)
-        {
+    let same_id = content.resolve_base_id(actor_before) == content.resolve_base_id(actor_after_tr);
+    if out.held_id != 0 && out.held_uses == 0 && !no_use_actor && !reverse_use_actor && same_id {
+        if let Some(new_id) = tool_last_use_new_actor(content, out.held_id, target_id_for_last) {
             out.held_id = new_id;
             // Haxe keeps numberOfUses at 0 after tool id transform (not full num_uses).
             out.held_uses = 0;
@@ -535,12 +1196,7 @@ fn allow_target_reset(content: &ContentDb, target_id: i32) -> bool {
 
 /// DARK-NOSAJ: Haxe TransitionHelper Tarr/Dark Nosaj monument side-effects on USE.
 // Haxe: TransitionHelper.doCommandHelper L144–185
-fn apply_monument_use_side_effects(
-    state: &mut SimState,
-    conn_id: u64,
-    actor: i32,
-    target: i32,
-) {
+fn apply_monument_use_side_effects(state: &mut SimState, conn_id: u64, actor: i32, target: i32) {
     if target == 0 {
         return;
     }
@@ -625,12 +1281,7 @@ fn apply_monument_use_side_effects(
 }
 
 /// Apply USE at world tile `(tx, ty)` (no container index).
-pub fn apply_use_at(
-    state: &mut SimState,
-    conn_id: u64,
-    tx: i32,
-    ty: i32,
-) -> Option<UseResult> {
+pub fn apply_use_at(state: &mut SimState, conn_id: u64, tx: i32, ty: i32) -> Option<UseResult> {
     apply_use_at_ex(state, conn_id, tx, ty, None)
 }
 
@@ -646,19 +1297,35 @@ pub fn apply_use_at_ex(
     ty: i32,
     container_index: Option<i32>,
 ) -> Option<UseResult> {
+    // Haxe doCommandHelper: holding a player drops at feet and refuses (before neverDrop).
+    // HOLDING-PLAYER-CMD
+    if drop_holding_player_for_command(state, conn_id) {
+        return Some(UseResult {
+            actor_before: 0,
+            target_before: 0,
+            actor_after: 0,
+            target_after: 0,
+            applied: false,
+            x: tx,
+            y: ty,
+            ranged_too_close: false,
+        });
+    }
     let (
-        actor,
-        held_uses,
+        mut actor,
+        mut held_uses,
         display_object_id,
         force_last_use,
-        held_helper_snapshot,
+        mut held_helper_snapshot,
         px,
         py,
         moving,
         player_email,
         p_id,
+        age,
         food_max,
         exhaustion,
+        is_cursed,
     ) = {
         let player = state.players.get(&conn_id)?;
         if player.deleted {
@@ -675,10 +1342,87 @@ pub fn apply_use_at_ex(
             is_moving(player),
             player.email.clone(),
             player.p_id,
+            player.age,
             player.food_max,
             player.exhaustion,
+            player.is_cursed,
         )
     };
+    // Haxe doCommandHelper: USE basket 292 + 292/1605 with cargo — refuse.
+    // BASKET-PILE-CMD
+    {
+        let (tile, tile_contained) = {
+            let w = state.world.read().unwrap();
+            let t = w.get_object(tx, ty);
+            let n = w.get_helper(tx, ty).map(|h| h.contained.len()).unwrap_or(0);
+            (t, n)
+        };
+        let held_contained = held_helper_snapshot
+            .as_ref()
+            .map(|h| h.contained.len())
+            .unwrap_or(0);
+        let held_parent = state.content.resolve_base_id(actor);
+        let tile_parent = state.content.resolve_base_id(tile);
+        if is_basket_pile_refuse(held_parent, tile_parent, held_contained, tile_contained) {
+            note_skip_held_writing_read();
+            return Some(UseResult {
+                actor_before: actor,
+                target_before: tile,
+                actor_after: actor,
+                target_after: tile,
+                applied: false,
+                x: tx,
+                y: ty,
+                ranged_too_close: false,
+            });
+        }
+    }
+    // Haxe TransitionHelper: isNeverDrop before killMode.
+    // NEVER-DROP-CMD
+    if refuse_never_drop_command(state, conn_id) {
+        return Some(UseResult {
+            actor_before: actor,
+            target_before: 0,
+            actor_after: actor,
+            target_after: 0,
+            applied: false,
+            x: tx,
+            y: ty,
+            ranged_too_close: false,
+        });
+    }
+    // Haxe TransitionHelper: isWound — hiddenWound clear then continue; else refuse.
+    // WOUND-CMD
+    if clear_hidden_wound_for_command(state, conn_id) {
+        actor = 0;
+        held_uses = 0;
+        held_helper_snapshot = None;
+    }
+    if refuse_wound_command(state, conn_id) {
+        return Some(UseResult {
+            actor_before: actor,
+            target_before: 0,
+            actor_after: actor,
+            target_after: 0,
+            applied: false,
+            x: tx,
+            y: ty,
+            ranged_too_close: false,
+        });
+    }
+    // Haxe TransitionHelper: killMode deactivates on USE (try again).
+    if refuse_kill_mode_command(state, conn_id) {
+        return Some(UseResult {
+            actor_before: actor,
+            target_before: 0,
+            actor_after: actor,
+            target_after: 0,
+            applied: false,
+            x: tx,
+            y: ty,
+            ranged_too_close: false,
+        });
+    }
     // Haxe: TransitionHelper.checkIfNotMovingAndCloseEnough (moving + held useDistance)
     let held_use_distance = state
         .content
@@ -708,10 +1452,25 @@ pub fn apply_use_at_ex(
             applied: false,
             x: tx,
             y: ty,
+            ranged_too_close: false,
         });
     }
 
-    let (outer_target, target, uses_remaining, mut hits_before, container_slot_size, container_slot_idx) = {
+    // Haxe doCommandHelper: Rubber Ball 2170 + Paper 1615 clears text/hits (before trans).
+    // CLEAR-WRITING
+    {
+        let tile = state.world.read().unwrap().get_object(tx, ty);
+        apply_clear_writing_at(state, tx, ty, actor, tile);
+    }
+
+    let (
+        outer_target,
+        target,
+        uses_remaining,
+        mut hits_before,
+        container_slot_size,
+        container_slot_idx,
+    ) = {
         let w = state.world.read().unwrap();
         let outer = w.get_object(tx, ty);
         let helper = w.get_helper(tx, ty);
@@ -733,6 +1492,7 @@ pub fn apply_use_at_ex(
                     applied: false,
                     x: tx,
                     y: ty,
+                    ranged_too_close: false,
                 });
             }
             let h = helper.expect("contained_len > 0");
@@ -742,16 +1502,28 @@ pub fn apply_use_at_ex(
             } else {
                 0
             };
-            let outer_slot = state
-                .content
-                .get(outer)
-                .map(|d| d.slot_size)
-                .unwrap_or(1.0);
+            let outer_slot = state.content.get(outer).map(|d| d.slot_size).unwrap_or(1.0);
             (outer, slot_id, slot_uses, hits, outer_slot, Some(idx))
         } else {
             (outer, outer, uses, hits, -1.0_f32, None)
         }
     };
+
+    // Haxe: IsDoor(target) && isCursed → say IM CURSED! return false
+    let target_parent = state.content.resolve_base_id(target);
+    if target != 0 && is_cursed && state.gameplay.is_door_id(target_parent) {
+        note_lock_say(conn_id, "IM CURSED!");
+        return Some(UseResult {
+            actor_before: actor,
+            target_before: target,
+            actor_after: actor,
+            target_after: target,
+            applied: false,
+            x: tx,
+            y: ty,
+            ranged_too_close: false,
+        });
+    }
 
     let target_num_uses = state.content.get(target).map(|d| d.num_uses).unwrap_or(0);
     let uses_remaining = if target_num_uses >= 2 && uses_remaining > target_num_uses {
@@ -793,81 +1565,83 @@ pub fn apply_use_at_ex(
             applied: false,
             x: tx,
             y: ty,
+            ranged_too_close: true,
         });
     }
 
     // Haxe: TransitionHelper.doCommandHelper AllyStrenghTooLowForPickup
-    // Default threshold 0 = gate disabled (cheap early exit).
-    // Haxe: ServerSettings.AllyStrenghTooLowForPickup
-    let ally_pickup_threshold = ALLY_STRENGTH_TOO_LOW_FOR_PICKUP_DEFAULT;
-    if ally_pickup_threshold > 0.0 && target != 0 {
-        let (mw, mh, wrap) = {
-            let w = state.world.read().unwrap();
-            (w.width_tiles, w.height_tiles, w.wrap)
-        };
-        let strength_players: Vec<AllyStrengthPlayer> = state
-            .players
-            .values()
-            .map(|op| {
-                let oname = state
-                    .content
-                    .get(op.held_id)
-                    .map(|d| d.name.as_str())
-                    .unwrap_or("");
-                let holding = is_holding_weapon(op.held_id, oname);
-                let ally_to_self =
-                    is_leadership_ally(&state.social.following, op.p_id, p_id);
-                let friendly_to_self = is_friendly(
-                    ally_to_self,
-                    op.last_attacked_player_id,
-                    op.last_player_attacked_me_id,
-                    p_id,
-                );
-                AllyStrengthPlayer {
-                    p_id: op.p_id,
-                    x: op.x,
-                    y: op.y,
-                    deleted: op.deleted,
-                    food_store_max: op.food_max,
-                    holding_weapon: holding,
-                    friendly_to_observer: friendly_to_self,
-                    friendly_to_target: false,
-                    ally_to_observer: ally_to_self,
-                }
-            })
-            .collect();
-        // C-SS-MORE-BATCH3: live AllyConsideredClose
-        let strength_f = calculate_enemy_vs_ally_strength_factor_ex(
-            px,
-            py,
-            &strength_players,
-            false, // Haxe: calculateEnemyVsAllyStrengthFactor() no target
-            mw,
-            mh,
-            wrap,
-            state.gameplay.ally_considered_close,
-        );
-        if ally_strength_blocks_pickup(strength_f, ally_pickup_threshold, target) {
-            // Haxe: player.say('Too many hostile people...', true); return false
-            note_lock_say(conn_id, "Too many hostile people...");
-            return Some(UseResult {
-                actor_before: actor,
-                target_before: target,
-                actor_after: actor,
-                target_after: target,
-                applied: false,
-                x: tx,
-                y: ty,
-            });
-        }
+    // ALLY-PICKUP-THRESHOLD
+    if refuse_ally_pickup_command(state, conn_id, tx, ty) {
+        return Some(UseResult {
+            actor_before: actor,
+            target_before: target,
+            actor_after: actor,
+            target_after: target,
+            applied: false,
+            x: tx,
+            y: ty,
+            ranged_too_close: false,
+        });
     }
+
+    // Haxe: TransitionHelper.doCommandHelper isMyGrave + MaxPlayersBeforeForbidTouchGrave
+    // GRAVE-TOUCH-PLAYERS
+    if refuse_own_grave_command(state, conn_id, tx, ty) {
+        return Some(UseResult {
+            actor_before: actor,
+            target_before: target,
+            actor_after: actor,
+            target_after: target,
+            applied: false,
+            x: tx,
+            y: ty,
+            ranged_too_close: false,
+        });
+    }
+
+    // Haxe: TransitionHelper.use minPickupAge multi-use + ReduceAge (L726–748).
+    // MIN-PICKUP-AGE
+    if refuse_min_pickup_age_use(state, conn_id, tx, ty) {
+        return Some(UseResult {
+            actor_before: actor,
+            target_before: target,
+            actor_after: actor,
+            target_after: target,
+            applied: false,
+            x: tx,
+            y: ty,
+            ranged_too_close: false,
+        });
+    }
+
+    let (old_enough_trans, old_enough_pick) = {
+        // Haxe tileObjectData is the ground helper (dummy parent), not containerIndex.
+        let parent = state.content.resolve_base_id(outer_target);
+        let min_age = min_pickup_age_of(&state.content, outer_target);
+        let (desc, speed) = state
+            .content
+            .get(parent)
+            .map(|d| (d.description.clone(), d.speed_mult))
+            .unwrap_or_else(|| (String::new(), 1.0));
+        let contained_len = {
+            let w = state.world.read().unwrap();
+            w.get_helper(tx, ty)
+                .map(|h| h.contained.len())
+                .unwrap_or(0)
+        };
+        (
+            old_enough_for_transitions(min_age, age, &desc),
+            old_enough_for_pickup(min_age, age, contained_len, speed),
+        )
+    };
 
     // Haxe: TransitionHelper.doCommandHelper Tarr/Dark Nosaj monuments (side-effects).
     // DARK-NOSAJ — runs even when no transition applies (matches Haxe early hook).
     apply_monument_use_side_effects(state, conn_id, actor, target);
 
     // Haxe: TransitionHelper.use → doHorseStuffPossible (eat while mounted).
-    if is_horse_mount_held(actor) && target != 0 {
+    // oldEnoughForTransitions gates horse eat (L792).
+    if old_enough_trans && is_horse_mount_held(actor) && target != 0 {
         if let Some(r) = try_horse_eat(state, conn_id, tx, ty, actor, target, uses_remaining) {
             return Some(r);
         }
@@ -891,22 +1665,47 @@ pub fn apply_use_at_ex(
     );
 
     // Haxe: GetTrans; if null && empty ground, held+-1 dismount (reject newTargetID==0).
-    let mut tr = state
-        .content
-        .find_transition_prefer(actor, target, prefer_last)
-        .cloned()
-        .or_else(|| {
-            if target == 0 {
-                empty_ground_dismount_transition(&state.content, actor).cloned()
-            } else {
-                None
+    // oldEnoughForTransitions false → skip transitions (L792–795).
+    let mut tr = if old_enough_trans {
+        state
+            .content
+            .find_transition_prefer(actor, target, prefer_last)
+            .cloned()
+            .or_else(|| {
+                if target == 0 {
+                    empty_ground_dismount_transition(&state.content, actor).cloned()
+                } else {
+                    None
+                }
+            })
+    } else {
+        None
+    };
+
+    // Haxe: empty-hand door trans even if holding (changeHeldObject = false).
+    let mut door_keep_held = false;
+    if old_enough_trans
+        && tr.is_none()
+        && target != 0
+        && state.gameplay.is_door_id(target_parent)
+    {
+        let wounded = state
+            .players
+            .get(&conn_id)
+            .map(|p| p.is_wounded_held(crate::is_wound_object(&state.content, p.held_id)))
+            .unwrap_or(false);
+        if !wounded {
+            if let Some(door_tr) = state.content.find_transition(0, target_parent).cloned() {
+                tr = Some(door_tr);
+                door_keep_held = true;
             }
-        });
+        }
+    }
 
     // Haxe: property owner open locked without key (empty hand, null transition, 917+target).
     // Haxe: TransitionHelper.doTransitionIfPossibleHelper L1010-1025
     let mut owner_open_say = false;
-    if tr.is_none() && actor == 0 && target != 0 {
+    if old_enough_trans && tr.is_none() && actor == 0 && target != 0 {
         let parent = state.content.resolve_base_id(target);
         if let Some(key_tr) = state.content.find_transition(KEY_OBJ, parent).cloned() {
             let (owners_acc, owner_id) = {
@@ -916,7 +1715,7 @@ pub fn apply_use_at_ex(
                     .unwrap_or_default()
             };
             let owner = owner_account_of(&owners_acc, owner_id);
-            let player_account = account_soul_token(&player_email);
+            let player_account = account_id_for_email(&state.accounts, &player_email);
             if owner_may_open_empty_hand(true, true, true, owner, player_account) {
                 tr = Some(key_tr);
                 owner_open_say = true;
@@ -933,6 +1732,7 @@ pub fn apply_use_at_ex(
             applied: false,
             x: tx,
             y: ty,
+            ranged_too_close: false,
         })
     };
 
@@ -1037,6 +1837,122 @@ pub fn apply_use_at_ex(
     let lock_target_extern = lock_gate.target_extern;
     let lock_held_extern = lock_gate.held_extern;
 
+    // Haxe: TransitionHelper.doCommandHelper chest/pouch coins (L260–306) — side-effect, then USE continues.
+    // TH-CHEST-COINS
+    {
+        let target_coins = tile_helper_snapshot
+            .as_ref()
+            .map(|h| h.coins)
+            .unwrap_or(0.0);
+        let held_coins = held_helper_snapshot
+            .as_ref()
+            .map(|h| h.coins)
+            .unwrap_or(0.0);
+        let player_coins = state.economy.coins_of(p_id) as f32;
+        if let Some(act) = crate::chest_coins::plan_chest_coin_use(
+            actor,
+            target,
+            player_coins,
+            target_coins,
+            held_coins,
+            age,
+            state.gameplay.max_coins_per_chest,
+            state.gameplay.max_coins_per_pouch,
+        ) {
+            let delta = crate::chest_coins::wallet_delta(act);
+            if delta != 0 {
+                let w = state.economy.wallet_mut(p_id);
+                w.coins = w.coins.saturating_add(delta);
+            }
+            match act {
+                crate::chest_coins::ChestCoinAction::StoreInChest { amount } => {
+                    let mut world = state.world.write().unwrap();
+                    stamp_tile_coins_and_hits(
+                        &mut world,
+                        tx,
+                        ty,
+                        target_coins + amount as f32,
+                        1.0,
+                    );
+                }
+                crate::chest_coins::ChestCoinAction::TakeFromChest { .. }
+                | crate::chest_coins::ChestCoinAction::TakeFromPouch { .. } => {
+                    let mut world = state.world.write().unwrap();
+                    stamp_tile_coins_and_hits(&mut world, tx, ty, 0.0, 0.0);
+                }
+                crate::chest_coins::ChestCoinAction::StoreInPouch { amount } => {
+                    if let Some(p) = state.players.get_mut(&conn_id) {
+                        if let Some(h) = p.held_helper.as_mut() {
+                            h.coins += amount as f32;
+                            if h.hits < 1.0 {
+                                h.hits = 1.0;
+                            }
+                        } else if p.held_id == crate::chest_coins::EMPTY_WATER_POUCH {
+                            let mut h = NestedHelper::with_uses(p.held_id, p.held_uses);
+                            h.coins = amount as f32;
+                            h.hits = 1.0;
+                            p.set_held_helper(h);
+                        }
+                    }
+                }
+            }
+            note_lock_say(conn_id, crate::chest_coins::chest_coin_say(act));
+        }
+    }
+
+    // Haxe: TransitionHelper.doCommandHelper fortify (L189–211) — consume held, no transform.
+    // TH-FORTIFY-APPLY
+    {
+        let (fort_id, fort_val) = crate::alt_outcome::fortification_of(&state.content, target);
+        if fort_id > 0 && actor == fort_id && fort_val > 0.0 {
+            // Haxe: ServerSettings.FortificationCosePerHit
+            // TH-ALT-LIVE-KNOBS
+            let cost_per = state.gameplay.fortification_cost_per_hit;
+            let cost = (fort_val * cost_per).floor().max(0.0) as i32;
+            let have = state.economy.coins_of(p_id);
+            if have < cost {
+                note_lock_say(conn_id, format!("Need {} more coins!", cost - have));
+                return refuse(actor, target);
+            }
+            if cost > 0 {
+                state.economy.wallet_mut(p_id).coins -= cost;
+            }
+            let hits_now = tile_helper_snapshot.as_ref().map(|h| h.hits).unwrap_or(0.0) - fort_val;
+            let count_now =
+                tile_helper_snapshot.as_ref().map(|h| h.count_obj).unwrap_or(0.0) + 1.0;
+            {
+                let mut w = state.world.write().unwrap();
+                if let Some(h) = w.helpers.get_mut(&(tx, ty)) {
+                    h.hits = hits_now;
+                    h.count_obj = count_now;
+                } else {
+                    let mut c = ComplexObject::new_simple(target);
+                    c.hits = hits_now;
+                    c.count_obj = count_now;
+                    w.set_object_complex(tx, ty, c);
+                }
+            }
+            if let Some(p) = state.players.get_mut(&conn_id) {
+                p.clear_held();
+            }
+            let shown = -hits_now.ceil() as i32;
+            note_lock_say(
+                conn_id,
+                format!("Cost {cost} coins! NEW Fortification: {shown}"),
+            );
+            return Some(UseResult {
+                actor_before: actor,
+                target_before: target,
+                actor_after: 0,
+                target_after: target,
+                applied: false,
+                x: tx,
+                y: ty,
+                ranged_too_close: false,
+            });
+        }
+    }
+
     let (
         actor_after_tr,
         mut target_after,
@@ -1062,6 +1978,10 @@ pub fn apply_use_at_ex(
         }
 
         let mut tr_work: Transition = tr.clone();
+        // Haxe TransitionHelper L1429: unreleased newTarget or isForbidden
+        if state.content.is_unreleased(tr_work.new_target_id) || tr_work.is_forbidden {
+            return refuse(actor, target);
+        }
         if tr_work.reverse_use_target {
             let new_tgt_uses = state
                 .content
@@ -1174,10 +2094,10 @@ pub fn apply_use_at_ex(
                 w.get_biome(tx, ty)
             };
             // Re-read vitals after lock side-effects.
-            let Some((food_now, food_max_now, exh_now, heat_now)) =
-                state.players.get(&conn_id).map(|p| {
-                    (p.food, p.food_max, p.exhaustion, p.heat)
-                })
+            let Some((food_now, food_max_now, exh_now, heat_now)) = state
+                .players
+                .get(&conn_id)
+                .map(|p| (p.food, p.food_max, p.exhaustion, p.heat))
             else {
                 return refuse(actor, target);
             };
@@ -1201,10 +2121,9 @@ pub fn apply_use_at_ex(
                 &new_tgt_desc,
                 state.gameplay.hungry_work_cost,
             );
-            // Transition cost/temperature not yet on Transition; defaults 0 / -1.
             // Haxe: transition.hungryWorkCost / hungryWorkTemperature
-            let transition_hw_cost = 0.0_f32;
-            let transition_hw_temp = -1.0_f32;
+            let transition_hw_cost = tr_work.hungry_work_cost;
+            let transition_hw_temp = tr_work.hungry_work_temperature;
             let base_cost = compute_hungry_work_cost(
                 actor_hw,
                 new_tgt_hw,
@@ -1224,7 +2143,7 @@ pub fn apply_use_at_ex(
                         .unwrap_or_default()
                 };
                 let owner = owner_account_of(&owners_acc, owner_id);
-                let player_account = account_soul_token(&player_email);
+                let player_account = account_id_for_email(&state.accounts, &player_email);
                 let player_is_owner = owner.map(|o| o == player_account).unwrap_or(true);
                 match adjust_hungry_work_for_ownership(cost, true, player_is_owner) {
                     HungryWorkOwnerAdj::OwnerHalf { cost: c, .. } => cost = c,
@@ -1260,16 +2179,19 @@ pub fn apply_use_at_ex(
                         p.food = food_after;
                         p.exhaustion = exhaustion_after;
                     }
-                    // Haxe: player.doEmote(Emote.biomeRelief); sendFoodUpdate — FX later path
+                    // Haxe: doEmote(biomeRelief); sendFoodUpdate via packets_after_use FX
+                    note_hungry_work_emote(conn_id, HUNGRY_WORK_RELIEF_EMOTE);
                 }
                 HungryWorkGate::RefuseExhaustion { .. } => {
                     // Haxe: player.say('Too exhausted! $excess'); Emote.homesick
                     note_lock_say(conn_id, "Too exhausted!");
+                    note_hungry_work_emote(conn_id, HUNGRY_WORK_HOMESICK_EMOTE);
                     return refuse(actor, target);
                 }
                 HungryWorkGate::RefuseFood { .. } => {
-                    // Haxe: player.say('Need ${missingFood} more food!')
+                    // Haxe: player.say('Need ${missingFood} more food!'); Emote.homesick
                     note_lock_say(conn_id, "Need more food!");
+                    note_hungry_work_emote(conn_id, HUNGRY_WORK_HOMESICK_EMOTE);
                     return refuse(actor, target);
                 }
             }
@@ -1314,7 +2236,7 @@ pub fn apply_use_at_ex(
             let base_cost = compute_hungry_work_cost(
                 actor_hw,
                 new_tgt_hw,
-                0.0, // transition.hungryWorkCost residual
+                tr_work.hungry_work_cost,
                 biome == BIOME_PASSABLE_RIVER,
             );
             let (_cost_for_fort, is_fortified) =
@@ -1329,12 +2251,11 @@ pub fn apply_use_at_ex(
                         .unwrap_or_default()
                 };
                 let owner = owner_account_of(&owners_acc, owner_id);
-                let player_account = account_soul_token(&player_email);
+                let player_account = account_id_for_email(&state.accounts, &player_email);
                 let player_is_owner = owner.map(|o| o == player_account).unwrap_or(true);
                 match adjust_hungry_work_for_ownership(base_cost, true, player_is_owner) {
                     HungryWorkOwnerAdj::OwnerHalf {
-                        allow_for_owner: a,
-                        ..
+                        allow_for_owner: a, ..
                     } => a,
                     _ => false,
                 }
@@ -1351,8 +2272,8 @@ pub fn apply_use_at_ex(
                 count_obj,
                 fort_id,
                 fort_val,
-                crate::alt_outcome::ALTERNATIVE_OUTCOME_PERCENT_INCREASE_PER_HIT,
-                crate::alt_outcome::ALTERNATIVE_OUTCOME_HITS_DECREASE_ON_SUCCESS,
+                state.gameplay.alternative_outcome_percent_increase_per_hit,
+                state.gameplay.alternative_outcome_hits_decrease_on_success,
                 rand::random::<f32>(),
                 rand::random::<f32>(),
             );
@@ -1400,10 +2321,7 @@ pub fn apply_use_at_ex(
                         // Haxe: player.say('Try again! Fortification: ${-Math.round(hits)}', true)
                         note_lock_say(
                             conn_id,
-                            format!(
-                                "Try again! Fortification: {}",
-                                -hits_after.round() as i32
-                            ),
+                            format!("Try again! Fortification: {}", -hits_after.round() as i32),
                         );
                     } else {
                         // Haxe: player.say('Try again! Hits ${Math.round(hits)}', true)
@@ -1421,6 +2339,7 @@ pub fn apply_use_at_ex(
                         applied: true,
                         x: tx,
                         y: ty,
+                        ranged_too_close: false,
                     });
                 }
             }
@@ -1437,13 +2356,17 @@ pub fn apply_use_at_ex(
             tr_work.switch_number_of_uses,
             tr_work.target_number_of_uses,
             tr_work.is_pickup_or_drop,
-            true, // changeHeldObject
+            !door_keep_held, // Haxe changeHeldObject; door empty-hand keeps held
         )
     } else if container_slot_idx.is_some() {
         // USE on container index without a transition: DoContainerStuff is the
         // REMV/put path — not bare ground swap. Refuse here.
         return refuse(actor, target);
     } else if actor == 0 && target != 0 {
+        // Haxe: oldEnoughForPickup && swapHandAndFloorObject (L804)
+        if !old_enough_pick {
+            return refuse(actor, target);
+        }
         let permanent = state
             .content
             .get(target)
@@ -1456,6 +2379,10 @@ pub fn apply_use_at_ex(
             target, 0, false, false, false, false, false, false, -1, false, true,
         )
     } else if actor != 0 && target != 0 {
+        // Haxe: oldEnoughForPickup && doContainerStuff / swap (L804–807)
+        if !old_enough_pick {
+            return refuse(actor, target);
+        }
         let tgt_perm = state
             .content
             .get(target)
@@ -1470,12 +2397,19 @@ pub fn apply_use_at_ex(
             return refuse(actor, target);
         }
         // Bare swap: put-down transform when holding horse-like object.
-        let ground = crate::horse_mount::put_down_ground_id(&state.content, actor)
-            .unwrap_or(actor);
+        let ground = crate::horse_mount::put_down_ground_id(&state.content, actor).unwrap_or(actor);
         (
             target, ground, false, false, false, false, false, false, -1, false, true,
         )
     } else if actor != 0 && target == 0 {
+        // Empty tile: food is eaten on failed USE (Haxe tryEat), not put-down.
+        // DROP places objects; USE-on-empty with food_value>0 refuses so live
+        // `try_eat_held` can run.
+        // Haxe: GlobalPlayerInstance eat on failed self/empty USE
+        let food_value = state.content.get(actor).map(|d| d.food_value).unwrap_or(0);
+        if food_value > 0 {
+            return refuse(actor, target);
+        }
         // Empty tile bare swap / put-down (no transition found).
         let permanent = state
             .content
@@ -1485,8 +2419,7 @@ pub fn apply_use_at_ex(
         if permanent {
             return refuse(actor, target);
         }
-        let ground = crate::horse_mount::put_down_ground_id(&state.content, actor)
-            .unwrap_or(actor);
+        let ground = crate::horse_mount::put_down_ground_id(&state.content, actor).unwrap_or(actor);
         (
             0, ground, false, false, false, false, false, false, -1, false, true,
         )
@@ -1504,21 +2437,24 @@ pub fn apply_use_at_ex(
     }
 
     // Nest swap is ground horse-cart semantics; never when USE on container index.
+    // Haxe: isPickupOrDrop || isHorseDropTrans (held cargo + newActor empties hand).
+    // Also treat non-empty held_helper.contained as cargo even if the flat count was
+    // computed before a sticky helper attach (defensive; keeps hitch_cart cargo).
+    let held_cargo_n = held_helper_snapshot
+        .as_ref()
+        .map(|h| h.contained.len())
+        .unwrap_or(held_contained_count)
+        .max(held_contained_count);
     let nest_swap = container_slot_idx.is_none()
         && from_transition
-        && should_nest_swap_helpers(
-            is_pickup_or_drop,
-            change_held,
-            actor_after_tr,
-            held_contained_count,
-        );
+        && should_nest_swap_helpers(is_pickup_or_drop, change_held, actor_after_tr, held_cargo_n);
 
     // TH-MULTI-POLISH: loved-food bare-hand extra.
     // hits_before may already be reduced by TH-ALT-OUTCOME Proceed (local only; stamp later).
     let mut hits_out = hits_before;
     let mut loved_extra = false;
     if from_transition {
-        let lf = evaluate_loved_food_extra(
+        let lf = evaluate_loved_food_extra_ex(
             &state.content,
             display_object_id,
             actor,
@@ -1527,6 +2463,7 @@ pub fn apply_use_at_ex(
             target_after,
             hits_before,
             rand::random::<f32>(),
+            state.gameplay.loved_food_use_chance,
         );
         if lf.got_extra {
             loved_extra = true;
@@ -1543,11 +2480,7 @@ pub fn apply_use_at_ex(
 
     // Haxe: isPickupOrDrop || isHorseDropTrans → swap tile NestedHelper with held.
     if nest_swap {
-        let tile_n = tile_as_nested(
-            target,
-            uses_remaining,
-            tile_helper_snapshot.as_ref(),
-        );
+        let tile_n = tile_as_nested(target, uses_remaining, tile_helper_snapshot.as_ref());
         let held_n = held_as_nested(actor, effective_held_uses, held_helper_snapshot.as_ref());
         // Swap whole helpers first, then apply transition result ids.
         let (new_held, new_tile) =
@@ -1590,6 +2523,7 @@ pub fn apply_use_at_ex(
             applied: true,
             x: tx,
             y: ty,
+            ranged_too_close: false,
         });
     }
 
@@ -1601,11 +2535,7 @@ pub fn apply_use_at_ex(
         };
         (
             actor_after_tr,
-            if actor_after_tr == 0 {
-                0
-            } else {
-                floor_uses
-            },
+            if actor_after_tr == 0 { 0 } else { floor_uses },
             effective_held_uses,
             true,
         )
@@ -1742,17 +2672,20 @@ pub fn apply_use_at_ex(
             stamp_extern_id(&mut w, tx, ty, lock_target_extern);
             if lock_claim {
                 // Haxe: Lock and Key hits=1 + setNewOwnerAndClearOld
+                let aid = account_id_for_email(&state.accounts, &player_email);
                 let base = w.get_object(tx, ty);
                 if base != 0 {
                     if let Some(h) = w.helpers.get_mut(&(tx, ty)) {
                         h.hits = 1.0;
                         h.extern_id = lock_target_extern;
                         add_owner_to_helper(h, p_id);
+                        crate::death_inherit::add_account_owner_to_helper(h, aid);
                     } else {
                         let mut c = ComplexObject::new_simple(base);
                         c.hits = 1.0;
                         c.extern_id = lock_target_extern;
                         add_owner_to_helper(&mut c, p_id);
+                        crate::death_inherit::add_account_owner_to_helper(&mut c, aid);
                         w.set_object_complex(tx, ty, c);
                     }
                 }
@@ -1797,9 +2730,7 @@ pub fn apply_use_at_ex(
         } else if !from_transition && final_actor != 0 && target != 0 {
             // Swapped to former tile object — keep its nest.
             if let Some(ref th) = tile_helper_snapshot {
-                if th.base_id == final_actor
-                    && (!th.contained.is_empty() || th.is_complex())
-                {
+                if th.base_id == final_actor && (!th.contained.is_empty() || th.is_complex()) {
                     p.set_held_helper(tile_as_nested(final_actor, final_held_uses, Some(th)));
                 } else {
                     p.set_held(final_actor, final_held_uses);
@@ -1839,89 +2770,15 @@ pub fn apply_use_at_ex(
     // Haxe: AiBase use-done ~9075–9089 (held or ground product parent → countDone++)
     if let Some(p) = state.players.get_mut(&conn_id) {
         if p.craft_ai.item_to_craft_id > 0 || p.craft_ai.runtime.item.product_id > 0 {
-            let _ = p.craft_ai.note_successful_use(
-                actor,
-                target,
-                final_actor,
-                live_target,
-            );
+            let _ = p
+                .craft_ai
+                .note_successful_use(actor, target, final_actor, live_target);
         }
     }
 
-    // BLOCKED-BY-AI: human / smith-hammer set blockTargetForAi after USE.
-    // Haxe: TransitionHelper.use ~397–414 (post-transition tile object)
-    {
-        use crate::ai_path_reach::{
-            block_claim_number_of_uses, should_set_block_target_for_ai, BlockTargetClaim,
-        };
-        use crate::animal_damage::is_weapon_from_deadly_distance;
-        let sim_time = state.sim_time;
-        let is_human = state
-            .players
-            .get(&conn_id)
-            .map(|p| p.is_human_body())
-            .unwrap_or(false);
-        let (
-            parent_id,
-            number_of_uses,
-            is_animal,
-            permanent,
-            food_value,
-            is_clothing,
-            is_weapon,
-        ) = {
-            let base = if live_target != 0 {
-                state.content.resolve_base_id(live_target)
-            } else {
-                0
-            };
-            let def = state.content.get(base);
-            let is_animal = def.map(|d| d.is_animal()).unwrap_or(false);
-            let permanent = def.map(|d| d.permanent).unwrap_or(false);
-            let food_value = def.map(|d| d.food_value).unwrap_or(0);
-            let is_clothing = def.map(|d| d.is_clothing()).unwrap_or(false);
-            let deadly = def.map(|d| d.deadly_distance).unwrap_or(0.0);
-            let is_weapon = is_weapon_from_deadly_distance(deadly);
-            let uses = state
-                .world
-                .read()
-                .ok()
-                .and_then(|w| w.get_helper(tx, ty).map(|h| h.uses_remaining))
-                .unwrap_or(0);
-            (
-                base,
-                block_claim_number_of_uses(uses),
-                is_animal,
-                permanent,
-                food_value,
-                is_clothing,
-                is_weapon,
-            )
-        };
-        // Haxe: heldId is pre-transition held (smith hammer check on actor before USE)
-        if should_set_block_target_for_ai(
-            is_human,
-            actor,
-            parent_id,
-            permanent,
-            is_weapon,
-            is_animal,
-            food_value,
-            is_clothing,
-        ) {
-            let claim = BlockTargetClaim {
-                x: tx,
-                y: ty,
-                parent_id,
-                number_of_uses,
-                is_animal,
-                held_new_target_id: None,
-            };
-            if let Some(p) = state.players.get_mut(&conn_id) {
-                p.ai_block_targets.set_player_block(claim, sim_time);
-            }
-        }
-    }
+    // BLOCKED-BY-AI / AI-BLOCK-CMD: human / smith-hammer set blockTargetForAi.
+    // USE keeps pre-transition `actor` for the hammer check (existing live path).
+    note_block_target_for_ai_after_command(state, conn_id, tx, ty, actor);
 
     Some(UseResult {
         actor_before: actor,
@@ -1931,6 +2788,7 @@ pub fn apply_use_at_ex(
         applied: true,
         x: tx,
         y: ty,
+        ranged_too_close: false,
     })
 }
 
@@ -1950,7 +2808,6 @@ pub fn wire_held_id(content: &ContentDb, p: &Player) -> i32 {
     };
     content.wire_id_for_uses(p.held_id, uses)
 }
-
 
 // ── C-SS-MORE-BATCH5: TransitionHelper hungry-work pure pipe ────────────────
 // Haxe: TransitionHelper.doTransitionIfPossible L1170–1256
@@ -2115,29 +2972,25 @@ pub fn evaluate_hungry_work_use(
 /// `default_hungry_work_cost` is live `ServerSettings.HungryWorkCost` (for `+hungryWork`).
 // Haxe: ServerSettings.PatchObjectData hungryWork + description +hungryWork
 // C-SS-MORE-BATCH5
-pub fn object_hungry_work(
-    object_id: i32,
-    description: &str,
-    default_hungry_work_cost: f32,
-) -> f32 {
-    // Explicit PatchObjectData values (subset; transition.hungryWorkCost residual).
+pub fn object_hungry_work(object_id: i32, description: &str, default_hungry_work_cost: f32) -> f32 {
+    // Explicit PatchObjectData values (transition.hungryWorkCost is on Transition).
     let patched = match object_id {
-        857 => -2.0,  // Steel Hoe
-        1849 => 5.0,  // Buried Grave with Dug Stone
-        123 => 2.0,   // Harvested Tule
-        231 => 10.0,  // Adobe Oven Base
-        1020 => 2.0,  // Snow Bank
-        138 => 2.0,   // Cut Sapling Skewer
-        3961 => 5.0,  // Iron Vein
-        496 => 4.0,   // Dug Stump
-        1011 => 3.0,  // Buried Grave
-        213 => 3.0,   // Deep Tilled Row
-        1136 => 3.0,  // Shallow Tilled Row
-        511 => 2.0,   // Pond
+        857 => -2.0,                   // Steel Hoe
+        1849 => 5.0,                   // Buried Grave with Dug Stone
+        123 => 2.0,                    // Harvested Tule
+        231 => 10.0,                   // Adobe Oven Base
+        1020 => 2.0,                   // Snow Bank
+        138 => 2.0,                    // Cut Sapling Skewer
+        3961 => 5.0,                   // Iron Vein
+        496 => 4.0,                    // Dug Stump
+        1011 => 3.0,                   // Buried Grave
+        213 => 3.0,                    // Deep Tilled Row
+        1136 => 3.0,                   // Shallow Tilled Row
+        511 => 2.0,                    // Pond
         1261 | 141 | 142 | 143 => 2.0, // Goose ponds
-        662 => 1.0,   // Shallow Well
-        663 => 2.0,   // Deep Well
-        1845 | 1846 | 1847 => 5.0, // Loose Fence*
+        662 => 1.0,                    // Shallow Well
+        663 => 2.0,                    // Deep Well
+        1845 | 1846 | 1847 => 5.0,     // Loose Fence*
         3146 | 1853 => {
             // Chopped Softwood / similar — Haxe uses HungryWorkCost live
             if default_hungry_work_cost.is_finite() {
@@ -2259,13 +3112,23 @@ mod tests {
             use_distance: 1,
             deadly_distance: 0.0,
             moves: 0,
-        damage: 0.0,
-        damage_protection_factor: 1.0,
-        wound_factor: 0.5,
-        male: false,
-        contain_size: 0.0,
-        slot_size: 1.0,
+            damage: 0.0,
+            damage_protection_factor: 1.0,
+            wound_factor: 0.5,
+            male: false,
+            contain_size: 0.0,
+            slot_size: 1.0,
+            prestige_factor: 0.5,
+            extra_prestige_factor: 0.0,
+            min_pickup_age: 0,
         }
+    }
+
+    fn wound_obj(id: i32) -> ObjectDef {
+        let mut o = def(id, 0, false);
+        o.name = "Deep Wound".into();
+        o.description = "Deep Wound".into();
+        o
     }
 
     fn tr(
@@ -2295,6 +3158,10 @@ mod tests {
             switch_number_of_uses: false,
             target_number_of_uses: -1,
             is_pickup_or_drop: false,
+            hungry_work_cost: 0.0,
+            hungry_work_temperature: -1.0,
+            coin_cost: 0,
+            is_forbidden: false,
         }
     }
 
@@ -2379,6 +3246,10 @@ mod tests {
         state.world.write().unwrap().set_object(1, 0, 418);
         let r = apply_use_at(&mut state, 1, 1, 0).unwrap();
         assert!(!r.applied, "too close to animal with bow");
+        assert!(
+            r.ranged_too_close,
+            "UseResult must flag ranged_too_close for live PS"
+        );
         // GPI-TOO-CLOSE: note public say + debug message for live PS drain
         assert_eq!(
             crate::take_too_close_say(),
@@ -2395,10 +3266,2022 @@ mod tests {
         let r = apply_use_at(&mut state, 1, 3, 0).unwrap();
         assert!(r.applied, "bow at range 3 should hit animal");
         assert!(
+            !r.ranged_too_close,
+            "successful ranged USE must not flag ranged_too_close"
+        );
+        assert!(
             crate::take_too_close_say().is_none(),
             "successful ranged USE must not note Too close"
         );
         assert!(crate::take_too_close_message().is_none());
+    }
+
+    /// ALLY-PICKUP-THRESHOLD: live AllyStrenghTooLowForPickup > 0 refuses USE on non-empty.
+    // Haxe: TransitionHelper.doCommandHelper L350–359
+    #[test]
+    fn use_live_ally_pickup_threshold_refuses_nonempty() {
+        let mut db = ContentDb::default();
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let mut state = state_with(db);
+        state.gameplay.ally_strength_too_low_for_pickup = 3.0;
+        crate::spawn_player(&mut state, 1, "ally_pu@hi");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let _ = crate::locks::take_lock_say();
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied, "live threshold must refuse non-empty USE");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+        assert_eq!(
+            crate::locks::take_lock_say(),
+            Some((1, "Too many hostile people...".into()))
+        );
+    }
+
+    /// MIN-PICKUP-AGE: ReduceAge say on USE when ceil(minPickupAge - reduce - age) > 0.
+    // Haxe: TransitionHelper.use L740–748
+    #[test]
+    fn pickup_age_years_too_young_ceil() {
+        assert_eq!(pickup_age_years_too_young(12, 1.0, 10.0), 1);
+        assert_eq!(pickup_age_years_too_young(12, 2.0, 10.0), 0);
+        assert_eq!(pickup_age_years_too_young(5, 20.0, 10.0), -25);
+        assert!(!old_enough_for_transitions(12, 3.0, "Stone"));
+        assert!(old_enough_for_transitions(12, 12.0, "Stone"));
+        assert!(old_enough_for_transitions(12, 3.0, "Wild Gooseberry Bush"));
+        assert!(old_enough_for_pickup(12, 3.0, 0, 1.0));
+        assert!(!old_enough_for_pickup(12, 3.0, 1, 1.0));
+        assert!(refuse_multi_use_pickup_age(5, 2.0, 3, 100));
+        assert!(!refuse_multi_use_pickup_age(5, 2.0, 3, WILD_GOOSEBERRY_BUSH));
+    }
+
+    /// MIN-PICKUP-AGE: USE ReduceAge say refuses when still too young after reduce.
+    #[test]
+    fn use_min_pickup_age_reduce_says_too_young() {
+        let mut db = ContentDb::default();
+        let mut obj = def(77, 0, false);
+        obj.min_pickup_age = 12;
+        db.objects.insert(77, obj);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "age@use");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.age = 1.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 77);
+        let _ = crate::locks::take_lock_say();
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(
+            crate::locks::take_lock_say(),
+            Some((1, "I am 1 years too young".into()))
+        );
+    }
+
+    /// MIN-PICKUP-AGE: empty-hand pickup allowed via speedMult ≥ 0.98 when below minPickupAge
+    /// but ReduceAge already passed.
+    #[test]
+    fn use_min_pickup_age_speed_mult_allows_pickup() {
+        let mut db = ContentDb::default();
+        let mut obj = def(77, 0, false);
+        obj.min_pickup_age = 12;
+        obj.speed_mult = 1.0;
+        db.objects.insert(77, obj);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "age@pick");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.age = 3.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 77);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied, "speedMult pickup exception");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 77);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
+    }
+
+    /// MIN-PICKUP-AGE: transition skipped when below minPickupAge (not berry).
+    #[test]
+    fn use_min_pickup_age_skips_transition_not_berry() {
+        let mut db = ContentDb::default();
+        db.objects.insert(10, def(10, 0, false));
+        let mut tgt = def(20, 0, true);
+        tgt.min_pickup_age = 12;
+        tgt.description = "Pine Tree".into();
+        db.objects.insert(20, tgt);
+        db.transitions
+            .insert((10, 20), tr(10, 20, 10, 21, false, false));
+        db.objects.insert(21, def(21, 0, true));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "age@tr");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(10, 0);
+            p.age = 3.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 20);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied, "too young for transitions and swap (permanent)");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 10);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 20);
+    }
+
+    /// MIN-PICKUP-AGE: gooseberry multi-use does not early-refuse; BERRY allows transitions.
+    #[test]
+    fn use_gooseberry_berry_allows_transition_when_young() {
+        let mut db = ContentDb::default();
+        db.objects.insert(0, def(0, 0, false));
+        let mut bush = def(WILD_GOOSEBERRY_BUSH, 8, true);
+        bush.min_pickup_age = 3;
+        bush.description = "Wild Gooseberry Bush".into();
+        db.objects.insert(WILD_GOOSEBERRY_BUSH, bush);
+        db.objects.insert(31, def(31, 0, false));
+        db.transitions.insert(
+            (0, WILD_GOOSEBERRY_BUSH),
+            tr(0, WILD_GOOSEBERRY_BUSH, 31, WILD_GOOSEBERRY_BUSH, false, false),
+        );
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "age@berry");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.age = 2.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, WILD_GOOSEBERRY_BUSH);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied, "berry description allows transitions");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 31);
+    }
+
+    /// MIN-PICKUP-AGE: live ReduceAgeNeededToPickupObjects = 0 refuses more ages.
+    #[test]
+    fn use_live_reduce_age_zero_refuses() {
+        let mut db = ContentDb::default();
+        let mut obj = def(77, 0, false);
+        obj.min_pickup_age = 5;
+        db.objects.insert(77, obj);
+        let mut state = state_with(db);
+        state.gameplay.reduce_age_needed_to_pickup_objects = 0.0;
+        crate::spawn_player(&mut state, 1, "age@live");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.age = 3.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 77);
+        let _ = crate::locks::take_lock_say();
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied);
+        assert_eq!(
+            crate::locks::take_lock_say(),
+            Some((1, "I am 2 years too young".into()))
+        );
+    }
+
+    /// MIN-PICKUP-AGE: DROP onto container with cargo refuses when age < minPickupAge.
+    #[test]
+    fn drop_min_pickup_age_container_cargo_refuses() {
+        use ol_net::OutboundHub;
+        use ol_world::ComplexObject;
+
+        let mut db = ContentDb::default();
+        let mut basket = def(292, 0, false);
+        basket.min_pickup_age = 12;
+        basket.num_slots = 4;
+        db.objects.insert(292, basket);
+        let mut held = def(33, 0, false);
+        held.containable = true;
+        db.objects.insert(33, held);
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "age@drop");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+            p.age = 5.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        let mut c = ComplexObject::new_simple(292);
+        c.contained = vec![33];
+        state.world.write().unwrap().set_object_complex(0, 0, c);
+        crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 292);
+    }
+
+    /// MIN-PICKUP-AGE: REMV from multi-use target refuses when age < minPickupAge.
+    #[test]
+    fn remv_min_pickup_age_multi_use_refuses() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+        use ol_world::ComplexObject;
+
+        let mut db = ContentDb::default();
+        let mut table = def(278, 4, false);
+        table.min_pickup_age = 10;
+        table.num_slots = 4;
+        db.objects.insert(278, table);
+        let mut bowl = def(235, 0, false);
+        bowl.containable = true;
+        db.objects.insert(235, bowl);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "age@remv");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.age = 5.0;
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        let mut t = ComplexObject::new_simple(278);
+        t.contained = vec![235];
+        t.uses_remaining = 4;
+        state.world.write().unwrap().set_object_complex(0, 0, t);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "REMV".into(),
+                payload: "0 0".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(
+            state
+                .world
+                .read()
+                .unwrap()
+                .get_helper(0, 0)
+                .map(|h| h.contained.clone())
+                .unwrap_or_default(),
+            vec![235]
+        );
+    }
+
+    /// ALLY-PICKUP-THRESHOLD: default 0 leaves pickup enabled (Haxe gate off).
+    #[test]
+    fn use_default_ally_pickup_threshold_allows_pickup() {
+        let mut db = ContentDb::default();
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let mut state = state_with(db);
+        assert!(
+            state.gameplay.ally_strength_too_low_for_pickup <= 0.0,
+            "Haxe default 0 disables gate"
+        );
+        crate::spawn_player(&mut state, 1, "ally_pu@off");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 31);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
+    }
+
+    /// ALLY-PICKUP-THRESHOLD: empty target still allowed when live threshold is on.
+    #[test]
+    fn use_live_ally_pickup_threshold_allows_empty_target() {
+        let mut db = ContentDb::default();
+        db.objects.insert(33, def(33, 0, false));
+        let mut state = state_with(db);
+        state.gameplay.ally_strength_too_low_for_pickup = 3.0;
+        crate::spawn_player(&mut state, 1, "ally_pu@empty");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 0);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied, "empty tile USE must skip pickup strength gate");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 33);
+    }
+
+    /// ALLY-PICKUP-DROP: DROP onto non-empty tile refuses when live threshold is on.
+    // Haxe: TransitionHelper.doCommandHelper L350–359
+    #[test]
+    fn drop_live_ally_pickup_threshold_refuses_nonempty() {
+        use ol_net::OutboundHub;
+
+        let mut db = ContentDb::default();
+        db.objects.insert(31, def(31, 0, false));
+        db.objects.insert(33, def(33, 0, false));
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        state.gameplay.ally_strength_too_low_for_pickup = 3.0;
+        crate::spawn_player(&mut state, 1, "ally_pu@drop");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let _ = crate::locks::take_lock_say();
+        crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+        assert_eq!(
+            crate::locks::take_lock_say(),
+            Some((1, "Too many hostile people...".into()))
+        );
+    }
+
+    /// ALLY-PICKUP-DROP: DROP onto empty tile allowed when live threshold is on.
+    #[test]
+    fn drop_live_ally_pickup_threshold_allows_empty() {
+        use ol_net::OutboundHub;
+
+        let mut db = ContentDb::default();
+        db.objects.insert(33, def(33, 0, false));
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        state.gameplay.ally_strength_too_low_for_pickup = 3.0;
+        crate::spawn_player(&mut state, 1, "ally_pu@dropempty");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 0);
+        crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 33);
+    }
+
+    /// ALLY-PICKUP-DROP: SWAP onto non-empty tile refuses when live threshold is on.
+    #[test]
+    fn swap_live_ally_pickup_threshold_refuses_nonempty() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(31, def(31, 0, false));
+        db.objects.insert(33, def(33, 0, false));
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = state_with(db);
+        state.gameplay.ally_strength_too_low_for_pickup = 3.0;
+        crate::spawn_player(&mut state, 1, "ally_pu@swap");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let _ = crate::locks::take_lock_say();
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SWAP".into(),
+                payload: "0 0".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+        assert_eq!(
+            crate::locks::take_lock_say(),
+            Some((1, "Too many hostile people...".into()))
+        );
+        let mut saw_say = false;
+        while let Ok(pkt) = rx.try_recv() {
+            if String::from_utf8_lossy(&pkt).contains("Too many hostile people...") {
+                saw_say = true;
+            }
+        }
+        assert!(saw_say, "expected PS on SWAP ally-pickup refuse");
+    }
+
+    /// ALLY-PICKUP-DROP: REMV from non-empty container refuses when live threshold is on.
+    #[test]
+    fn remv_live_ally_pickup_threshold_refuses_nonempty() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+        use ol_world::ComplexObject;
+
+        let mut db = ContentDb::default();
+        let mut basket = def(391, 0, false);
+        basket.num_slots = 4;
+        db.objects.insert(391, basket);
+        let mut berry = def(33, 0, false);
+        berry.containable = true;
+        db.objects.insert(33, berry);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        state.gameplay.ally_strength_too_low_for_pickup = 3.0;
+        crate::spawn_player(&mut state, 1, "ally_pu@remv");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        let mut c = ComplexObject::new_simple(391);
+        c.contained = vec![33];
+        state.world.write().unwrap().set_object_complex(0, 0, c);
+        let _ = crate::locks::take_lock_say();
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "REMV".into(),
+                payload: "0 0 0".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(
+            state
+                .world
+                .read()
+                .unwrap()
+                .get_helper(0, 0)
+                .map(|h| h.contained.clone())
+                .unwrap_or_default(),
+            vec![33]
+        );
+        assert_eq!(
+            crate::locks::take_lock_say(),
+            Some((1, "Too many hostile people...".into()))
+        );
+    }
+
+    /// KILLMODE-DROP: DROP while killMode clears flag and refuses (held kept).
+    // Haxe: TransitionHelper.doCommandHelper L343–348
+    #[test]
+    fn drop_kill_mode_clears_and_refuses() {
+        use ol_net::OutboundHub;
+
+        let mut db = ContentDb::default();
+        db.objects.insert(33, def(33, 0, false));
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "km@drop");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+            p.kill_mode = true;
+            p.x = 0;
+            p.y = 0;
+        }
+        crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
+        assert!(!state.players.get(&1).unwrap().kill_mode);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
+    }
+
+    /// KILLMODE-DROP: SWAP while killMode clears flag and refuses.
+    #[test]
+    fn swap_kill_mode_clears_and_refuses() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(31, def(31, 0, false));
+        db.objects.insert(33, def(33, 0, false));
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "km@swap");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+            p.kill_mode = true;
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SWAP".into(),
+                payload: "0 0".into(),
+            },
+        );
+        assert!(!state.players.get(&1).unwrap().kill_mode);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+    }
+
+    /// NEVER-DROP-CMD: DROP while holding bloody knife keeps the knife.
+    // Haxe: TransitionHelper.doCommandHelper L311–326
+    #[test]
+    fn drop_never_drop_bloody_knife_refuses() {
+        use ol_net::OutboundHub;
+
+        let mut db = ContentDb::default();
+        db.objects.insert(crate::weapons::BLOODY_KNIFE_ID, def(crate::weapons::BLOODY_KNIFE_ID, 0, false));
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "nd@drop");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(crate::weapons::BLOODY_KNIFE_ID, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
+        assert_eq!(
+            state.players.get(&1).unwrap().held_id,
+            crate::weapons::BLOODY_KNIFE_ID
+        );
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
+    }
+
+    /// NEVER-DROP-CMD: SWAP while holding +neverDrop description refuses.
+    #[test]
+    fn swap_never_drop_tag_refuses() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        let mut tagged = def(99, 0, false);
+        tagged.description = "Sticky +neverDrop".into();
+        db.objects.insert(99, tagged);
+        db.objects.insert(31, def(31, 0, false));
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "nd@swap");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(99, 0);
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SWAP".into(),
+                payload: "0 0".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 99);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+    }
+
+    /// WOUND-CMD: DROP while holding a visible wound keeps the wound.
+    // Haxe: TransitionHelper.doCommandHelper L327–341
+    #[test]
+    fn drop_visible_wound_refuses() {
+        use ol_net::OutboundHub;
+
+        let mut db = ContentDb::default();
+        db.objects.insert(797, wound_obj(797));
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "wd@drop");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(797, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 797);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
+    }
+
+    /// WOUND-CMD: SWAP while holding a visible wound refuses.
+    #[test]
+    fn swap_visible_wound_refuses() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(797, wound_obj(797));
+        db.objects.insert(31, def(31, 0, false));
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "wd@swap");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(797, 0);
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SWAP".into(),
+                payload: "0 0".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 797);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+    }
+
+    /// WOUND-CMD: USE with a visible wound does not apply the held+tile trans.
+    #[test]
+    fn use_visible_wound_refuses() {
+        let mut db = ContentDb::default();
+        db.objects.insert(797, wound_obj(797));
+        db.objects.insert(31, def(31, 0, false));
+        db.objects.insert(32, def(32, 0, false));
+        db.transitions
+            .insert((797, 31), tr(797, 31, 797, 32, false, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "wd@use");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(797, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 797);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+    }
+
+    /// WOUND-CMD: remaining ttc &gt; 0 says `N seconds...` on DROP refuse.
+    #[test]
+    fn drop_visible_wound_countdown_say() {
+        use ol_net::OutboundHub;
+
+        let mut db = ContentDb::default();
+        db.objects.insert(797, wound_obj(797));
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        state.sim_time = 3.0;
+        crate::spawn_player(&mut state, 1, "wd@say");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(797, 0);
+            if let Some(h) = p.held_helper.as_mut() {
+                h.creation_time = 0.0;
+                h.time_to_change = 10.0;
+            }
+            p.x = 0;
+            p.y = 0;
+        }
+        let _ = crate::locks::take_lock_say();
+        crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
+        assert_eq!(
+            crate::locks::take_lock_say(),
+            Some((1, "7 seconds...".into()))
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 797);
+    }
+
+    /// WOUND-CMD: hiddenWound alias is cleared then USE continues empty-handed.
+    #[test]
+    fn use_hidden_wound_clears_and_continues() {
+        let mut db = ContentDb::default();
+        db.objects.insert(797, wound_obj(797));
+        db.objects.insert(31, def(31, 0, false));
+        db.objects.insert(32, def(32, 0, false));
+        db.transitions
+            .insert((0, 31), tr(0, 31, 0, 32, false, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "wd@hiduse");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(797, 0);
+            p.hidden_wound = p.held_helper.clone();
+            p.x = 0;
+            p.y = 0;
+            assert!(p.is_holding_hidden_wound());
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied);
+        let p = state.players.get(&1).unwrap();
+        assert_eq!(p.held_id, 0);
+        assert!(p.hidden_wound.is_some());
+        assert!(!p.is_holding_hidden_wound());
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 32);
+    }
+
+    /// WOUND-CMD: hiddenWound alias is cleared then REMV can take cargo.
+    #[test]
+    fn remv_hidden_wound_clears_and_takes() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+        use ol_world::ComplexObject;
+
+        let mut db = ContentDb::default();
+        db.objects.insert(797, wound_obj(797));
+        let mut basket = def(391, 0, false);
+        basket.num_slots = 4;
+        db.objects.insert(391, basket);
+        let mut berry = def(33, 0, false);
+        berry.containable = true;
+        db.objects.insert(33, berry);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "wd@hidremv");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(797, 0);
+            p.hidden_wound = p.held_helper.clone();
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        let mut c = ComplexObject::new_simple(391);
+        c.contained = vec![33];
+        state.world.write().unwrap().set_object_complex(0, 0, c);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "REMV".into(),
+                payload: "0 0 0".into(),
+            },
+        );
+        let p = state.players.get(&1).unwrap();
+        assert_eq!(p.held_id, 33);
+        assert!(p.hidden_wound.is_some());
+        assert!(!p.is_holding_hidden_wound());
+        assert_eq!(
+            state
+                .world
+                .read()
+                .unwrap()
+                .get_helper(0, 0)
+                .map(|h| h.contained.clone())
+                .unwrap_or_default(),
+            Vec::<i32>::new()
+        );
+    }
+
+    /// HOLDING-PLAYER-CMD: USE while holding a player drops at feet and refuses.
+    // Haxe: TransitionHelper.doCommandHelper L115–120
+    #[test]
+    fn use_holding_player_drops_at_feet_and_refuses() {
+        let mut db = ContentDb::default();
+        db.objects.insert(31, def(31, 0, false));
+        db.objects.insert(32, def(32, 0, false));
+        db.transitions
+            .insert((0, 31), tr(0, 31, 0, 32, false, false));
+        let mut state = state_with(db);
+        let mother = crate::spawn_player(&mut state, 1, "hp@use");
+        let baby = crate::spawn_player(&mut state, 2, "hp@usebaby");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.start_holding(baby);
+            p.held_id = 0;
+            p.x = 0;
+            p.y = 0;
+        }
+        {
+            let b = state.players.get_mut(&2).unwrap();
+            b.age = 0.5;
+            b.held_by = mother;
+            b.x = 0;
+            b.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let _ = take_held_player_drop_baby();
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied);
+        assert_eq!(state.players.get(&1).unwrap().holding_player_id, 0);
+        assert_eq!(state.players.get(&2).unwrap().held_by, 0);
+        assert_eq!(
+            (state.players.get(&2).unwrap().x, state.players.get(&2).unwrap().y),
+            (0, 0)
+        );
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+        assert_eq!(take_held_player_drop_baby(), Some(2));
+    }
+
+    /// HOLDING-PLAYER-CMD: USE click is ignored — baby lands on carrier tile.
+    #[test]
+    fn use_holding_player_drops_at_feet_not_click() {
+        let mut db = ContentDb::default();
+        db.objects.insert(31, def(31, 0, false));
+        let mut state = state_with(db);
+        let mother = crate::spawn_player(&mut state, 1, "hp@usefar");
+        let baby = crate::spawn_player(&mut state, 2, "hp@usefarbaby");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.start_holding(baby);
+            p.x = 2;
+            p.y = 2;
+        }
+        {
+            let b = state.players.get_mut(&2).unwrap();
+            b.age = 0.5;
+            b.held_by = mother;
+            b.x = 2;
+            b.y = 2;
+        }
+        let r = apply_use_at(&mut state, 1, 5, 5).unwrap();
+        assert!(!r.applied);
+        assert_eq!(state.players.get(&1).unwrap().holding_player_id, 0);
+        let b = state.players.get(&2).unwrap();
+        assert_eq!((b.x, b.y), (2, 2));
+        let _ = take_held_player_drop_baby();
+    }
+
+    /// HOLDING-PLAYER-CMD: live USE intent drops at feet (no tile trans).
+    #[test]
+    fn use_intent_holding_player_drops_at_feet() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(31, def(31, 0, false));
+        db.objects.insert(32, def(32, 0, false));
+        db.transitions
+            .insert((0, 31), tr(0, 31, 0, 32, false, false));
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        let mother = crate::spawn_player(&mut state, 1, "hp@useint");
+        let baby = crate::spawn_player(&mut state, 2, "hp@useintbaby");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.start_holding(baby);
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        {
+            let b = state.players.get_mut(&2).unwrap();
+            b.age = 0.5;
+            b.held_by = mother;
+            b.x = 0;
+            b.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 0,
+                y: 0,
+                id: None,
+                index: None,
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().holding_player_id, 0);
+        assert_eq!(state.players.get(&2).unwrap().held_by, 0);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+    }
+
+    /// HOLDING-PLAYER-CMD: REMV while holding a player drops at feet; cargo stays.
+    #[test]
+    fn remv_holding_player_drops_at_feet_and_refuses() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+        use ol_world::ComplexObject;
+
+        let mut db = ContentDb::default();
+        let mut basket = def(391, 0, false);
+        basket.num_slots = 4;
+        db.objects.insert(391, basket);
+        let mut berry = def(33, 0, false);
+        berry.containable = true;
+        db.objects.insert(33, berry);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        let mother = crate::spawn_player(&mut state, 1, "hp@remv");
+        let baby = crate::spawn_player(&mut state, 2, "hp@remvbaby");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.start_holding(baby);
+            p.held_id = 0;
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        {
+            let b = state.players.get_mut(&2).unwrap();
+            b.age = 0.5;
+            b.held_by = mother;
+            b.x = 0;
+            b.y = 0;
+        }
+        let mut c = ComplexObject::new_simple(391);
+        c.contained = vec![33];
+        state.world.write().unwrap().set_object_complex(0, 0, c);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "REMV".into(),
+                payload: "0 0 0".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().holding_player_id, 0);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(state.players.get(&2).unwrap().held_by, 0);
+        assert_eq!(
+            (state.players.get(&2).unwrap().x, state.players.get(&2).unwrap().y),
+            (0, 0)
+        );
+        assert_eq!(
+            state
+                .world
+                .read()
+                .unwrap()
+                .get_helper(0, 0)
+                .map(|h| h.contained.clone())
+                .unwrap_or_default(),
+            vec![33]
+        );
+    }
+
+    /// READ-WRITING: Haxe extra `}` on held text PS.
+    // Haxe: TransitionHelper.doCommandHelper L390–394
+    #[test]
+    fn held_writing_ps_line_ports_extra_brace() {
+        assert_eq!(
+            format_held_writing_ps_line(7, false, "hello"),
+            "7/0 hello}"
+        );
+        assert_eq!(
+            format_held_writing_ps_line(7, true, "hello"),
+            "7/1 hello}"
+        );
+    }
+
+    /// READ-WRITING: USE that reaches the switch (range fail) still PS held text.
+    #[test]
+    fn use_far_sends_held_writing_ps() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(1615, def(1615, 0, false));
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = state_with(db);
+        let p_id = crate::spawn_player(&mut state, 1, "rw@use");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(1615, 0);
+            if let Some(h) = p.held_helper.as_mut() {
+                h.text = "hello".into();
+            }
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 5,
+                y: 5,
+                id: None,
+                index: None,
+            },
+        );
+        let mut joined = String::new();
+        while let Ok(pkt) = rx.try_recv() {
+            joined.push_str(&String::from_utf8_lossy(&pkt));
+        }
+        assert!(
+            joined.contains(&format!("{p_id}/0 hello}}")),
+            "got {joined}"
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 1615);
+    }
+
+    /// READ-WRITING: cursed speaker uses /1.
+    #[test]
+    fn use_far_held_writing_ps_cursed() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(1615, def(1615, 0, false));
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = state_with(db);
+        let p_id = crate::spawn_player(&mut state, 1, "rw@curse");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(1615, 0);
+            if let Some(h) = p.held_helper.as_mut() {
+                h.text = "note".into();
+            }
+            p.is_cursed = true;
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 5,
+                y: 5,
+                id: None,
+                index: None,
+            },
+        );
+        let mut joined = String::new();
+        while let Ok(pkt) = rx.try_recv() {
+            joined.push_str(&String::from_utf8_lossy(&pkt));
+        }
+        assert!(
+            joined.contains(&format!("{p_id}/1 note}}")),
+            "got {joined}"
+        );
+    }
+
+    /// READ-WRITING: neverDrop refuse is before the switch — no PS.
+    #[test]
+    fn use_never_drop_skips_held_writing_ps() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects
+            .insert(crate::weapons::BLOODY_KNIFE_ID, def(crate::weapons::BLOODY_KNIFE_ID, 0, false));
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "rw@nd");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(crate::weapons::BLOODY_KNIFE_ID, 0);
+            if let Some(h) = p.held_helper.as_mut() {
+                h.text = "secret".into();
+            }
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 0,
+                y: 0,
+                id: None,
+                index: None,
+            },
+        );
+        let mut joined = String::new();
+        while let Ok(pkt) = rx.try_recv() {
+            joined.push_str(&String::from_utf8_lossy(&pkt));
+        }
+        assert!(
+            !joined.contains("secret}"),
+            "neverDrop must not read writing, got {joined}"
+        );
+    }
+
+    /// READ-WRITING: SWAP picks up tile helper text and PS it.
+    #[test]
+    fn swap_sends_held_writing_ps() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(1615, def(1615, 0, false));
+        db.objects.insert(33, def(33, 0, false));
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = state_with(db);
+        let p_id = crate::spawn_player(&mut state, 1, "rw@swap");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        let mut paper = ComplexObject::new_simple(1615);
+        paper.text = "map".into();
+        state.world.write().unwrap().set_object_complex(0, 0, paper);
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SWAP".into(),
+                payload: "0 0".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 1615);
+        let mut joined = String::new();
+        while let Ok(pkt) = rx.try_recv() {
+            joined.push_str(&String::from_utf8_lossy(&pkt));
+        }
+        assert!(
+            joined.contains(&format!("{p_id}/0 map}}")),
+            "got {joined}"
+        );
+    }
+
+    /// BASKET-PILE-CMD: USE 292 + 292/1605 with cargo is the Haxe refuse.
+    // Haxe: TransitionHelper.doCommandHelper L123–135
+    #[test]
+    fn basket_pile_refuse_pure() {
+        assert!(is_basket_pile_refuse(BASKET_PILE_ID, BASKET_PILE_ID, 1, 0));
+        assert!(is_basket_pile_refuse(BASKET_PILE_ID, STACK_OF_BASKETS_ID, 0, 1));
+        assert!(!is_basket_pile_refuse(BASKET_PILE_ID, BASKET_PILE_ID, 0, 0));
+        assert!(!is_basket_pile_refuse(BASKET_PILE_ID, 31, 1, 0));
+        assert!(!is_basket_pile_refuse(33, BASKET_PILE_ID, 1, 1));
+    }
+
+    /// BASKET-PILE-CMD: USE held 292 with cargo onto 292 does not apply.
+    #[test]
+    fn use_basket_with_cargo_on_basket_refuses() {
+        let mut db = ContentDb::default();
+        db.objects.insert(BASKET_PILE_ID, def(BASKET_PILE_ID, 0, false));
+        db.objects.insert(33, def(33, 0, false));
+        db.transitions.insert(
+            (BASKET_PILE_ID, BASKET_PILE_ID),
+            tr(
+                BASKET_PILE_ID,
+                BASKET_PILE_ID,
+                0,
+                STACK_OF_BASKETS_ID,
+                false,
+                false,
+            ),
+        );
+        db.objects
+            .insert(STACK_OF_BASKETS_ID, def(STACK_OF_BASKETS_ID, 0, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "bp@use");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(BASKET_PILE_ID, 0);
+            if let Some(h) = p.held_helper.as_mut() {
+                h.contained.push(NestedHelper::id_only(33));
+            }
+            p.x = 0;
+            p.y = 0;
+        }
+        state
+            .world
+            .write()
+            .unwrap()
+            .set_object(0, 0, BASKET_PILE_ID);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied);
+        assert_eq!(state.players.get(&1).unwrap().held_id, BASKET_PILE_ID);
+        assert_eq!(
+            state
+                .players
+                .get(&1)
+                .unwrap()
+                .held_helper
+                .as_ref()
+                .map(|h| h.contained.len())
+                .unwrap_or(0),
+            1
+        );
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), BASKET_PILE_ID);
+    }
+
+    /// BASKET-PILE-CMD: empty 292 on empty 292 is not refused.
+    #[test]
+    fn use_empty_basket_on_empty_basket_applies() {
+        let mut db = ContentDb::default();
+        db.objects.insert(BASKET_PILE_ID, def(BASKET_PILE_ID, 0, false));
+        db.objects
+            .insert(STACK_OF_BASKETS_ID, def(STACK_OF_BASKETS_ID, 0, false));
+        db.transitions.insert(
+            (BASKET_PILE_ID, BASKET_PILE_ID),
+            tr(
+                BASKET_PILE_ID,
+                BASKET_PILE_ID,
+                0,
+                STACK_OF_BASKETS_ID,
+                false,
+                false,
+            ),
+        );
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "bp@empty");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(BASKET_PILE_ID, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state
+            .world
+            .write()
+            .unwrap()
+            .set_object(0, 0, BASKET_PILE_ID);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), STACK_OF_BASKETS_ID);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+    }
+
+    /// BASKET-PILE-CMD: empty 292 onto 1605 with cargo refuses.
+    #[test]
+    fn use_empty_basket_on_stack_with_cargo_refuses() {
+        let mut db = ContentDb::default();
+        db.objects.insert(BASKET_PILE_ID, def(BASKET_PILE_ID, 0, false));
+        db.objects
+            .insert(STACK_OF_BASKETS_ID, def(STACK_OF_BASKETS_ID, 0, false));
+        db.objects.insert(33, def(33, 0, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "bp@stack");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(BASKET_PILE_ID, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        let mut stack = ComplexObject::new_simple(STACK_OF_BASKETS_ID);
+        stack.contained = vec![33];
+        state.world.write().unwrap().set_object_complex(0, 0, stack);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied);
+        assert_eq!(state.players.get(&1).unwrap().held_id, BASKET_PILE_ID);
+        assert_eq!(
+            state.world.read().unwrap().get_object(0, 0),
+            STACK_OF_BASKETS_ID
+        );
+    }
+
+    /// AI-BLOCK-CMD: DROP non-food object sets human blockTargetForAi on the tile.
+    // Haxe: TransitionHelper.doCommandHelper L396–414
+    #[test]
+    fn drop_sets_player_block_for_ai() {
+        use ol_net::OutboundHub;
+
+        let mut db = ContentDb::default();
+        db.objects.insert(BASKET_PILE_ID, def(BASKET_PILE_ID, 0, false));
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "ab@drop");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(BASKET_PILE_ID, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
+        let b = state
+            .players
+            .get(&1)
+            .unwrap()
+            .ai_block_targets
+            .player_block
+            .clone()
+            .expect("player_block");
+        assert_eq!((b.x, b.y, b.parent_id), (0, 0, BASKET_PILE_ID));
+    }
+
+    /// AI-BLOCK-CMD: DROP food does not set blockTargetForAi.
+    #[test]
+    fn drop_food_does_not_block_for_ai() {
+        use ol_net::OutboundHub;
+
+        let mut db = ContentDb::default();
+        let mut berry = def(33, 0, false);
+        berry.food_value = 1;
+        db.objects.insert(33, berry);
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "ab@food");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
+        assert!(
+            state
+                .players
+                .get(&1)
+                .unwrap()
+                .ai_block_targets
+                .player_block
+                .is_none()
+        );
+    }
+
+    /// AI-BLOCK-CMD: SWAP puts non-food on the tile and blocks it.
+    #[test]
+    fn swap_sets_player_block_for_ai() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(BASKET_PILE_ID, def(BASKET_PILE_ID, 0, false));
+        db.objects.insert(33, def(33, 0, false));
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "ab@swap");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(BASKET_PILE_ID, 0);
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 33);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SWAP".into(),
+                payload: "0 0".into(),
+            },
+        );
+        let b = state
+            .players
+            .get(&1)
+            .unwrap()
+            .ai_block_targets
+            .player_block
+            .clone()
+            .expect("player_block");
+        assert_eq!((b.x, b.y, b.parent_id), (0, 0, BASKET_PILE_ID));
+    }
+
+    /// AI-BLOCK-CMD: REMV from a permanent container does not block the container.
+    #[test]
+    fn remv_permanent_container_does_not_block_for_ai() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        let mut chest = def(391, 0, true);
+        chest.num_slots = 4;
+        db.objects.insert(391, chest);
+        let mut berry = def(33, 0, false);
+        berry.containable = true;
+        db.objects.insert(33, berry);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "ab@remv");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        let mut c = ComplexObject::new_simple(391);
+        c.contained = vec![33];
+        state.world.write().unwrap().set_object_complex(0, 0, c);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "REMV".into(),
+                payload: "0 0 0".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
+        assert!(
+            state
+                .players
+                .get(&1)
+                .unwrap()
+                .ai_block_targets
+                .player_block
+                .is_none()
+        );
+    }
+
+    /// CLEAR-WRITING: Rubber Ball 2170 + Paper 1615 is the Haxe pair.
+    // Haxe: TransitionHelper.doCommandHelper L137–142
+    #[test]
+    fn clear_writing_pair_matches_haxe_ids() {
+        assert!(is_clear_writing_pair(RUBBER_BALL_ID, PAPER_WITH_CHARCOAL_WRITING_ID));
+        assert!(!is_clear_writing_pair(RUBBER_BALL_ID, 31));
+        assert!(!is_clear_writing_pair(0, PAPER_WITH_CHARCOAL_WRITING_ID));
+    }
+
+    /// CLEAR-WRITING: USE 2170 on 1615 clears helper text/hits even with no trans.
+    #[test]
+    fn use_rubber_ball_clears_paper_text_and_hits() {
+        let mut db = ContentDb::default();
+        db.objects.insert(RUBBER_BALL_ID, def(RUBBER_BALL_ID, 0, false));
+        db.objects
+            .insert(PAPER_WITH_CHARCOAL_WRITING_ID, def(PAPER_WITH_CHARCOAL_WRITING_ID, 0, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "cw@use");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(RUBBER_BALL_ID, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        let mut paper = ComplexObject::new_simple(PAPER_WITH_CHARCOAL_WRITING_ID);
+        paper.text = "hello world".into();
+        paper.hits = 4.0;
+        state.world.write().unwrap().set_object_complex(0, 0, paper);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        // No 2170+1615 trans → bare swap; snapshot is post-clear so paper text/hits stay empty.
+        assert!(r.applied);
+        assert_eq!(
+            state.players.get(&1).unwrap().held_id,
+            PAPER_WITH_CHARCOAL_WRITING_ID
+        );
+        let held = state.players.get(&1).unwrap().held_helper.clone().unwrap();
+        assert_eq!(held.text, "");
+        assert_eq!(held.hits, 0.0);
+    }
+
+    /// CLEAR-WRITING: dummy parent of 2170 still erases 1615.
+    #[test]
+    fn use_rubber_ball_dummy_clears_paper() {
+        let mut db = ContentDb::default();
+        db.objects.insert(RUBBER_BALL_ID, def(RUBBER_BALL_ID, 0, false));
+        db.objects.insert(21701, def(21701, 0, false));
+        db.dummy_parent.insert(21701, RUBBER_BALL_ID);
+        db.objects
+            .insert(PAPER_WITH_CHARCOAL_WRITING_ID, def(PAPER_WITH_CHARCOAL_WRITING_ID, 0, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "cw@dummy");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(21701, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        let mut paper = ComplexObject::new_simple(PAPER_WITH_CHARCOAL_WRITING_ID);
+        paper.text = "notes".into();
+        paper.hits = 1.0;
+        state.world.write().unwrap().set_object_complex(0, 0, paper);
+        let _ = apply_use_at(&mut state, 1, 0, 0);
+        let h = state.world.read().unwrap().get_helper(0, 0).cloned().unwrap();
+        assert_eq!(h.text, "");
+        assert_eq!(h.hits, 0.0);
+    }
+
+    /// CLEAR-WRITING: 2170+1615 trans to 1619 still leaves blank helper (no leftover text).
+    #[test]
+    fn use_rubber_ball_writing_trans_stays_blank() {
+        let mut db = ContentDb::default();
+        db.objects.insert(RUBBER_BALL_ID, def(RUBBER_BALL_ID, 0, false));
+        db.objects
+            .insert(PAPER_WITH_CHARCOAL_WRITING_ID, def(PAPER_WITH_CHARCOAL_WRITING_ID, 0, false));
+        db.objects.insert(1619, def(1619, 0, false));
+        db.transitions.insert(
+            (RUBBER_BALL_ID, PAPER_WITH_CHARCOAL_WRITING_ID),
+            tr(RUBBER_BALL_ID, PAPER_WITH_CHARCOAL_WRITING_ID, RUBBER_BALL_ID, 1619, false, false),
+        );
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "cw@trans");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(RUBBER_BALL_ID, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        let mut paper = ComplexObject::new_simple(PAPER_WITH_CHARCOAL_WRITING_ID);
+        paper.text = "secret".into();
+        paper.hits = 2.0;
+        state.world.write().unwrap().set_object_complex(0, 0, paper);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied);
+        assert_eq!(r.target_after, 1619);
+        let text = state
+            .world
+            .read()
+            .unwrap()
+            .get_helper(0, 0)
+            .map(|h| h.text.clone())
+            .unwrap_or_default();
+        assert_eq!(text, "");
+        let hits = state
+            .world
+            .read()
+            .unwrap()
+            .get_helper(0, 0)
+            .map(|h| h.hits)
+            .unwrap_or(0.0);
+        assert_eq!(hits, 0.0);
+    }
+
+    /// CLEAR-WRITING: DROP 2170 onto 1615 also clears (doCommandHelper all tags).
+    #[test]
+    fn drop_rubber_ball_clears_paper_text() {
+        use ol_net::OutboundHub;
+
+        let mut db = ContentDb::default();
+        db.objects.insert(RUBBER_BALL_ID, def(RUBBER_BALL_ID, 0, false));
+        db.objects
+            .insert(PAPER_WITH_CHARCOAL_WRITING_ID, def(PAPER_WITH_CHARCOAL_WRITING_ID, 0, false));
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "cw@drop");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(RUBBER_BALL_ID, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        let mut paper = ComplexObject::new_simple(PAPER_WITH_CHARCOAL_WRITING_ID);
+        paper.text = "drop-me".into();
+        paper.hits = 3.0;
+        state.world.write().unwrap().set_object_complex(0, 0, paper);
+        crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
+        // DROP may replace the tile with the ball; if helper remains, text/hits are gone.
+        let w = state.world.read().unwrap();
+        if let Some(h) = w.get_helper(0, 0) {
+            if h.base_id == PAPER_WITH_CHARCOAL_WRITING_ID {
+                assert_eq!(h.text, "");
+                assert_eq!(h.hits, 0.0);
+            }
+        }
+    }
+
+    /// KILLMODE-DROP: REMV while killMode clears flag and refuses (cargo stays).
+    #[test]
+    fn remv_kill_mode_clears_and_refuses() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+        use ol_world::ComplexObject;
+
+        let mut db = ContentDb::default();
+        let mut basket = def(391, 0, false);
+        basket.num_slots = 4;
+        db.objects.insert(391, basket);
+        let mut berry = def(33, 0, false);
+        berry.containable = true;
+        db.objects.insert(33, berry);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "km@remv");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.kill_mode = true;
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        let mut c = ComplexObject::new_simple(391);
+        c.contained = vec![33];
+        state.world.write().unwrap().set_object_complex(0, 0, c);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "REMV".into(),
+                payload: "0 0 0".into(),
+            },
+        );
+        assert!(!state.players.get(&1).unwrap().kill_mode);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(
+            state
+                .world
+                .read()
+                .unwrap()
+                .get_helper(0, 0)
+                .map(|h| h.contained.clone())
+                .unwrap_or_default(),
+            vec![33]
+        );
+    }
+
+    /// KILLMODE-DROP: USE while killMode clears flag and refuses.
+    #[test]
+    fn use_kill_mode_clears_and_refuses() {
+        let mut db = ContentDb::default();
+        db.objects.insert(31, def(31, 0, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "km@use");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.kill_mode = true;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied);
+        assert!(!state.players.get(&1).unwrap().kill_mode);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+    }
+
+    /// GRAVE-TOUCH-PLAYERS: isMyGrave + living ≥ cap refuses USE.
+    // Haxe: TransitionHelper.doCommandHelper L361–369
+    #[test]
+    fn forbid_touch_own_grave_pure() {
+        assert!(!forbid_touch_own_grave(false, 100, 1));
+        assert!(!forbid_touch_own_grave(true, 1, 9999));
+        assert!(forbid_touch_own_grave(true, 1, 1));
+        assert!(!forbid_touch_own_grave(true, 1, 2));
+        assert!(forbid_touch_own_grave(true, 2, 2));
+    }
+
+    /// GRAVE-TOUCH-PLAYERS: live USE on own grave says `Its my grave...` when cap hit.
+    #[test]
+    fn use_own_grave_refuses_when_player_cap_hit() {
+        let mut db = ContentDb::default();
+        db.objects.insert(87, def(87, 0, true));
+        let mut state = state_with(db);
+        state.gameplay.max_players_before_forbid_touch_grave = 1;
+        crate::spawn_player(&mut state, 1, "grave@own");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+        }
+        state.accounts.record_grave("grave@own", 0, 0);
+        state.world.write().unwrap().set_object(0, 0, 87);
+        let _ = crate::locks::take_lock_say();
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 87);
+        assert_eq!(
+            crate::locks::take_lock_say(),
+            Some((1, "Its my grave...".into()))
+        );
+    }
+
+    /// GRAVE-TOUCH-PLAYERS: Haxe default 9999 does not refuse a lone player.
+    #[test]
+    fn use_own_grave_allows_when_below_cap() {
+        let mut db = ContentDb::default();
+        db.objects.insert(87, def(87, 0, true));
+        let mut state = state_with(db);
+        assert_eq!(state.gameplay.max_players_before_forbid_touch_grave, 9999);
+        crate::spawn_player(&mut state, 1, "grave@ok");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+        }
+        state.accounts.record_grave("grave@ok", 0, 0);
+        state.world.write().unwrap().set_object(0, 0, 87);
+        let _ = crate::locks::take_lock_say();
+        let _ = apply_use_at(&mut state, 1, 0, 0);
+        assert_ne!(
+            crate::locks::take_lock_say(),
+            Some((1, "Its my grave...".into()))
+        );
+    }
+
+    /// GRAVE-TOUCH-PLAYERS: other player's grave is not blocked by this gate.
+    #[test]
+    fn use_other_grave_not_blocked_by_own_grave_cap() {
+        let mut db = ContentDb::default();
+        db.objects.insert(87, def(87, 0, true));
+        let mut state = state_with(db);
+        state.gameplay.max_players_before_forbid_touch_grave = 1;
+        crate::spawn_player(&mut state, 1, "grave@other");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+        }
+        state.accounts.record_grave("someone@else", 0, 0);
+        state.world.write().unwrap().set_object(0, 0, 87);
+        let _ = crate::locks::take_lock_say();
+        let _ = apply_use_at(&mut state, 1, 0, 0);
+        assert_ne!(
+            crate::locks::take_lock_say(),
+            Some((1, "Its my grave...".into()))
+        );
+    }
+
+    /// GRAVE-TOUCH-DROP: DROP onto own grave refuses when cap hit (held kept).
+    // Haxe: TransitionHelper.doCommandHelper L361–377
+    #[test]
+    fn drop_own_grave_refuses_when_player_cap_hit() {
+        use ol_net::OutboundHub;
+
+        let mut db = ContentDb::default();
+        db.objects.insert(87, def(87, 0, true));
+        db.objects.insert(33, def(33, 0, false));
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        state.gameplay.max_players_before_forbid_touch_grave = 1;
+        crate::spawn_player(&mut state, 1, "grave@drop");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.accounts.record_grave("grave@drop", 0, 0);
+        state.world.write().unwrap().set_object(0, 0, 87);
+        let _ = crate::locks::take_lock_say();
+        crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 87);
+        assert_eq!(
+            crate::locks::take_lock_say(),
+            Some((1, "Its my grave...".into()))
+        );
+    }
+
+    /// GRAVE-TOUCH-DROP: SWAP onto own grave refuses when cap hit.
+    #[test]
+    fn swap_own_grave_refuses_when_player_cap_hit() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(87, def(87, 0, true));
+        db.objects.insert(33, def(33, 0, false));
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = state_with(db);
+        state.gameplay.max_players_before_forbid_touch_grave = 1;
+        crate::spawn_player(&mut state, 1, "grave@swap");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        state.accounts.record_grave("grave@swap", 0, 0);
+        state.world.write().unwrap().set_object(0, 0, 87);
+        let _ = crate::locks::take_lock_say();
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SWAP".into(),
+                payload: "0 0".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 87);
+        assert_eq!(
+            crate::locks::take_lock_say(),
+            Some((1, "Its my grave...".into()))
+        );
+        let mut saw_say = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.contains("Its my grave...") {
+                saw_say = true;
+            }
+        }
+        assert!(saw_say, "expected PS 'Its my grave...' on SWAP refuse");
+    }
+
+    /// GRAVE-TOUCH-DROP: DROP onto own grave allowed when below cap.
+    #[test]
+    fn drop_own_grave_allows_when_below_cap() {
+        use ol_net::OutboundHub;
+
+        let mut db = ContentDb::default();
+        db.objects.insert(87, def(87, 0, true));
+        db.objects.insert(33, def(33, 0, false));
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        assert_eq!(state.gameplay.max_players_before_forbid_touch_grave, 9999);
+        crate::spawn_player(&mut state, 1, "grave@dropok");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.accounts.record_grave("grave@dropok", 0, 0);
+        state.world.write().unwrap().set_object(0, 0, 87);
+        let _ = crate::locks::take_lock_say();
+        crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
+        assert_ne!(
+            crate::locks::take_lock_say(),
+            Some((1, "Its my grave...".into()))
+        );
+    }
+
+    /// GRAVE-TOUCH-REMV: REMV from own grave refuses when cap hit (cargo stays).
+    // Haxe: TransitionHelper.doCommandHelper L361–379
+    #[test]
+    fn remv_own_grave_refuses_when_player_cap_hit() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+        use ol_world::ComplexObject;
+
+        let mut db = ContentDb::default();
+        let mut grave = def(87, 0, true);
+        grave.num_slots = 4;
+        db.objects.insert(87, grave);
+        let mut berry = def(33, 0, false);
+        berry.containable = true;
+        db.objects.insert(33, berry);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = state_with(db);
+        state.gameplay.max_players_before_forbid_touch_grave = 1;
+        crate::spawn_player(&mut state, 1, "grave@remv");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        state.accounts.record_grave("grave@remv", 0, 0);
+        let mut g = ComplexObject::new_simple(87);
+        g.contained = vec![33];
+        state.world.write().unwrap().set_object_complex(0, 0, g);
+        let _ = crate::locks::take_lock_say();
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "REMV".into(),
+                payload: "0 0 0".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(
+            state
+                .world
+                .read()
+                .unwrap()
+                .get_helper(0, 0)
+                .map(|h| h.contained.clone())
+                .unwrap_or_default(),
+            vec![33]
+        );
+        assert_eq!(
+            crate::locks::take_lock_say(),
+            Some((1, "Its my grave...".into()))
+        );
+        let mut saw_say = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.contains("Its my grave...") {
+                saw_say = true;
+            }
+        }
+        assert!(saw_say, "expected PS 'Its my grave...' on REMV refuse");
+    }
+
+    /// GRAVE-TOUCH-REMV: REMV from own grave allowed when below cap.
+    #[test]
+    fn remv_own_grave_allows_when_below_cap() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+        use ol_world::ComplexObject;
+
+        let mut db = ContentDb::default();
+        let mut grave = def(87, 0, true);
+        grave.num_slots = 4;
+        db.objects.insert(87, grave);
+        let mut berry = def(33, 0, false);
+        berry.containable = true;
+        db.objects.insert(33, berry);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        assert_eq!(state.gameplay.max_players_before_forbid_touch_grave, 9999);
+        crate::spawn_player(&mut state, 1, "grave@remvok");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        state.accounts.record_grave("grave@remvok", 0, 0);
+        let mut g = ComplexObject::new_simple(87);
+        g.contained = vec![33];
+        state.world.write().unwrap().set_object_complex(0, 0, g);
+        let _ = crate::locks::take_lock_say();
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "REMV".into(),
+                payload: "0 0 0".into(),
+            },
+        );
+        assert_ne!(
+            crate::locks::take_lock_say(),
+            Some((1, "Its my grave...".into()))
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
     }
 
     /// Live USE refuse path: public PS `TOO CLOSE...` + FRAME (GPI-TOO-CLOSE).
@@ -2532,9 +5415,9 @@ mod tests {
         {
             let p = state.players.get_mut(&1).unwrap();
             p.set_held(1251, 2);
-            // Room for two yum fills (value 5 + YumBonus 5 each).
+            // Room for two yum fills (value 5 + YumBonus 5) × world × starving.
             p.food = 2.0;
-            p.food_max = 40.0;
+            p.food_max = 80.0;
         }
         assert!(crate::try_eat_held(&mut state, 1));
         {
@@ -2726,11 +5609,7 @@ mod tests {
             ol_world::NestedHelper::id_only(33),
             ol_world::NestedHelper::id_only(40),
         ];
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(0, 0, cart);
+        state.world.write().unwrap().set_object_complex(0, 0, cart);
         let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
         assert!(r.applied);
         assert_eq!(r.actor_after, 778);
@@ -2791,17 +5670,12 @@ mod tests {
         }
         let mut cart = ComplexObject::new_simple(1422);
         cart.contained = vec![33, 40];
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(0, 0, cart);
+        state.world.write().unwrap().set_object_complex(0, 0, cart);
         let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
         assert!(!r.applied);
         assert_eq!(state.players.get(&1).unwrap().held_id, 0);
         assert_eq!(state.world.read().unwrap().get_object(0, 0), 1422);
     }
-
 
     /// C-SS-FULL-TABLE: horse mount-eat runs doIncreaseFoodValue (yum restore).
     // Haxe: doHorseStuffPossible → doEating → doIncreaseFoodValue
@@ -2926,11 +5800,17 @@ mod tests {
             .get(&p_id)
             .map(|s| s.prestige)
             .unwrap_or(0.0);
+        let health = crate::compute_eat_full(4, 20.0, state.gameplay.eat_live_knobs()).health_delta;
+        let want = (3.0 - 1.0 + health).max(0.0);
         assert!(
-            (prestige - 2.0).abs() < 1e-4,
-            "prestige should drop by 1 on horse superMeh, got {prestige}"
+            (prestige - want).abs() < 1e-4,
+            "prestige trade −1 then yum health_delta {health}, got {prestige} want {want}"
         );
-        assert_eq!(state.combat.hits_of(p_id), hits_before, "hits path not used");
+        assert_eq!(
+            state.combat.hits_of(p_id),
+            hits_before,
+            "hits path not used"
+        );
         let age = state.players.get(&1).unwrap().age;
         assert!(
             (age - age_before - 0.2).abs() < 1e-4,
@@ -2945,6 +5825,56 @@ mod tests {
                 .unwrap_or(0.0)
                 > 0.0,
             "horse superMeh still records add_food_statistic"
+        );
+    }
+
+    /// SUPERMEH-FOOD-MAX: hits-path recompute uses live NewBornFoodStoreMax.
+    // Haxe: doEating L3203–3206 calculateFoodStoreMax + ServerSettings.NewBornFoodStoreMax
+    #[test]
+    fn horse_eat_super_meh_hits_uses_live_newborn_food_max() {
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut crumb = def(99, 0, false);
+        crumb.food_value = 4;
+        db.objects.insert(99, crumb);
+        let mut state = state_with(db);
+        let live = ol_config::ServerConfig {
+            new_born_food_store_max: 8.0,
+            grown_up_food_store_max: 20.0,
+            ..Default::default()
+        }
+        .live_settings();
+        crate::settings_live::apply_live_settings(&mut state, &live);
+        // Newborn food_max fixture (age 0); skip doEating MinAgeToEat so hits path still runs.
+        state.gameplay.min_age_to_eat = 0.0;
+        let p_id = crate::spawn_player(&mut state, 1, "horse_smeh_hits@test");
+        state.combat.stats_mut(p_id).prestige = 0.0;
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 1.0;
+            p.food_max = 40.0;
+            p.age = 0.0;
+            p.true_age = 0.0;
+            p.exhaustion = 0.0;
+            p.x = 0;
+            p.y = 0;
+            p.yum.has_eaten.insert(99, 20.0);
+        }
+        state.world.write().unwrap().set_object(0, 0, 99);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied, "horse superMeh hits path should apply");
+        assert!(
+            (state.combat.hits_of(p_id) - 1.0).abs() < 1e-4,
+            "hits += 1 on zero-prestige superMeh"
+        );
+        let p = state.players.get(&1).unwrap();
+        assert!(!p.deleted);
+        // live newborn 8 + age/20*(20−8) − 1 hit ≈ 7.6; default newborn ≈ 3.8; grown ≈ 19
+        assert!(
+            p.food_max > 5.0 && p.food_max < 12.0,
+            "live newborn superMeh food_max, got {}",
+            p.food_max
         );
     }
 
@@ -2974,6 +5904,526 @@ mod tests {
         assert_eq!(state.players.get(&1).unwrap().held_id, 770);
         assert!(state.players.get(&1).unwrap().food > food_before);
         assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
+    }
+
+    /// HORSE-EAT-EMOTE: mount-eat yum → HAPPY PE (Haxe doEating L3243).
+    #[test]
+    fn horse_eat_emote_yum_happy() {
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "horse_pe@yum");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 2.0;
+            p.food_max = 80.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let _ = crate::food_eating::take_eat_emotes();
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied);
+        let happy = crate::emotes::emote_by_name("HAPPY").unwrap().index;
+        assert_eq!(
+            crate::food_eating::take_eat_emotes(),
+            vec![(1, happy)]
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 770);
+    }
+
+    /// HORSE-EAT-EMOTE + HORSE-EAT-REFUSE-SWAP: superMeh refuse → ILL + say; keep horse.
+    // Haxe: doEating L3101–3103; doHorseStuffPossible restores held
+    #[test]
+    fn horse_eat_refuse_super_meh_ill() {
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "horse_pe@sm");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 10.0;
+            p.food_max = 80.0;
+            p.x = 0;
+            p.y = 0;
+            p.yum.reduce_food_value(31, 20.0);
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let food_before = state.players.get(&1).unwrap().food;
+        let _ = crate::food_eating::take_eat_emotes();
+        let _ = crate::food_eating::take_eat_says();
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied, "superMeh mount-eat must not apply");
+        let ill = crate::emotes::emote_by_name("ILL").unwrap().index;
+        assert_eq!(crate::food_eating::take_eat_emotes(), vec![(1, ill)]);
+        assert_eq!(
+            crate::food_eating::take_eat_says(),
+            vec![(1, "I need better food!".to_string())]
+        );
+        let p = state.players.get(&1).unwrap();
+        assert_eq!(p.held_id, 770);
+        assert_eq!(p.food, food_before);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+    }
+
+    /// HORSE-EAT-REFUSE-SWAP: too-full mount-eat → REFUSEFOOD; keep horse (no swap).
+    // Haxe: doEating L3070–3074; doHorseStuffPossible restores held
+    #[test]
+    fn horse_eat_refuse_too_full_keeps_horse() {
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "horse_pe@full");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 79.0;
+            p.food_max = 80.0;
+            p.age = 20.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let _ = crate::food_eating::take_eat_emotes();
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied, "too-full mount-eat must not apply");
+        let refuse = crate::emotes::emote_by_name("REFUSEFOOD").unwrap().index;
+        assert_eq!(crate::food_eating::take_eat_emotes(), vec![(1, refuse)]);
+        let p = state.players.get(&1).unwrap();
+        assert_eq!(p.held_id, 770);
+        assert!((p.food - 79.0).abs() < 1e-4);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+    }
+
+    /// HORSE-EAT-GAIN-NONE: zero fill after world factors keeps horse (no yum/age, no swap).
+    #[test]
+    fn horse_eat_zero_gain_keeps_horse() {
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let mut state = state_with(db);
+        state.gameplay.food_factor = 0.0;
+        crate::spawn_player(&mut state, 1, "horse_pe@gain0");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 2.0;
+            p.food_max = 80.0;
+            p.age = 20.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let age_before = state.players.get(&1).unwrap().age;
+        let eaten_before = state.players.get(&1).unwrap().yum.get_count_eaten(31);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied, "zero-gain mount-eat must not apply");
+        let p = state.players.get(&1).unwrap();
+        assert_eq!(p.held_id, 770);
+        assert!((p.food - 2.0).abs() < 1e-4);
+        assert!((p.age - age_before).abs() < 1e-4);
+        assert!(!p.yum.just_ate);
+        assert_eq!(p.yum.get_count_eaten(31), eaten_before);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+    }
+
+    /// HORSE-EAT-GAIN-NONE: live USE zero-fill keeps horse on the wire.
+    #[test]
+    fn horse_eat_use_zero_gain_keeps_horse() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = state_with(db);
+        state.gameplay.food_factor = 0.0;
+        crate::spawn_player(&mut state, 1, "horse_pe@gain0live");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 2.0;
+            p.food_max = 80.0;
+            p.age = 20.0;
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 0,
+                y: 0,
+                id: None,
+                index: None,
+            },
+        );
+        let _ = rx;
+        assert_eq!(state.players.get(&1).unwrap().held_id, 770);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+        assert!(!state.players.get(&1).unwrap().yum.just_ate);
+    }
+
+    /// HORSE-EAT-REFUSE-SWAP: live USE superMeh refuse keeps horse on the wire.
+    #[test]
+    fn horse_eat_use_super_meh_keeps_horse() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = state_with(db);
+        let pid = crate::spawn_player(&mut state, 1, "horse_pe@smswap");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 10.0;
+            p.food_max = 80.0;
+            p.age = 20.0;
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+            p.yum.reduce_food_value(31, 20.0);
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 0,
+                y: 0,
+                id: None,
+                index: None,
+            },
+        );
+        let ill = crate::emotes::emote_by_name("ILL").unwrap().index;
+        let want = format!("\n{pid} {ill}");
+        let mut saw_pe = false;
+        let mut saw_say = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.starts_with("PE\n") && s.contains(&want) {
+                saw_pe = true;
+            }
+            if s.contains("I need better food!") {
+                saw_say = true;
+            }
+        }
+        assert!(saw_pe, "expected PE ILL for horse-eat superMeh refuse {pid}");
+        assert!(saw_say, "expected 'I need better food!' from rider");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 770);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+    }
+
+    /// HORSE-EAT-ILL: mount-eat yellow fever refuse → YELLOWFEVER + say (Haxe L3050–3055).
+    #[test]
+    fn horse_eat_refuse_yellow_fever_ill() {
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "horse_pe@yf");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 2.0;
+            p.food_max = 80.0;
+            p.age = 20.0;
+            p.x = 0;
+            p.y = 0;
+            p.fever = Some(NestedHelper::id_only(crate::nested_body::YELLOW_FEVER_ID));
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let food_before = state.players.get(&1).unwrap().food;
+        let _ = crate::food_eating::take_eat_emotes();
+        let _ = crate::food_eating::take_eat_says();
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied, "ill mount-eat must not apply");
+        let yf = crate::emotes::emote_by_name("YELLOWFEVER").unwrap().index;
+        assert_eq!(crate::food_eating::take_eat_emotes(), vec![(1, yf)]);
+        assert_eq!(
+            crate::food_eating::take_eat_says(),
+            vec![(1, "I am too ill!".to_string())]
+        );
+        let p = state.players.get(&1).unwrap();
+        assert_eq!(p.held_id, 770);
+        assert_eq!(p.food, food_before);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+    }
+
+    /// HORSE-EAT-ILL: AllowEatingOrFeedingIfIll lets fevered rider eat on horse.
+    #[test]
+    fn horse_eat_allow_if_ill_eats() {
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let mut state = state_with(db);
+        state.gameplay.allow_eating_or_feeding_if_ill = true;
+        crate::spawn_player(&mut state, 1, "horse_pe@yfok");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 2.0;
+            p.food_max = 80.0;
+            p.age = 20.0;
+            p.x = 0;
+            p.y = 0;
+            p.fever = Some(NestedHelper::id_only(crate::nested_body::YELLOW_FEVER_ID));
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let food_before = state.players.get(&1).unwrap().food;
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied);
+        let p = state.players.get(&1).unwrap();
+        assert_eq!(p.held_id, 770);
+        assert!(p.food > food_before);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
+    }
+
+    /// HORSE-EAT-ILL: USE mount-eat fans YELLOWFEVER PE + say on the wire.
+    #[test]
+    fn horse_eat_use_emits_yellow_fever_pe() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = state_with(db);
+        let pid = crate::spawn_player(&mut state, 1, "horse_pe@yflive");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 2.0;
+            p.food_max = 80.0;
+            p.age = 20.0;
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+            p.fever = Some(NestedHelper::id_only(crate::nested_body::YELLOW_FEVER_ID));
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 0,
+                y: 0,
+                id: None,
+                index: None,
+            },
+        );
+        let yf = crate::emotes::emote_by_name("YELLOWFEVER").unwrap().index;
+        let want = format!("\n{pid} {yf}");
+        let mut saw_pe = false;
+        let mut saw_say = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.starts_with("PE\n") && s.contains(&want) {
+                saw_pe = true;
+            }
+            if s.contains("I am too ill!") {
+                saw_say = true;
+            }
+        }
+        assert!(saw_pe, "expected PE YELLOWFEVER for horse-eat refuse {pid}");
+        assert!(saw_say, "expected 'I am too ill!' from fevered rider");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 770);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 31);
+    }
+
+    /// HORSE-EAT-EMOTE: USE mount-eat fans HAPPY PE on the wire.
+    #[test]
+    fn horse_eat_use_emits_happy_pe() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = state_with(db);
+        let pid = crate::spawn_player(&mut state, 1, "horse_pe@live");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 2.0;
+            p.food_max = 80.0;
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 0,
+                y: 0,
+                id: None,
+                index: None,
+            },
+        );
+        let happy = crate::emotes::emote_by_name("HAPPY").unwrap().index;
+        let want = format!("\n{pid} {happy}");
+        let mut saw = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.starts_with("PE\n") && s.contains(&want) {
+                saw = true;
+            }
+        }
+        assert!(saw, "expected PE HAPPY for horse-eat {pid}");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 770);
+    }
+
+    /// HORSE-EAT-PRESTIGE: mount-eat yum applies addHealthAndPrestige.
+    // Haxe: doHorseStuffPossible → doEating addHealthAndPrestige
+    #[test]
+    fn horse_eat_applies_yum_prestige() {
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let mut state = state_with(db);
+        let pid = crate::spawn_player(&mut state, 1, "horse_pr@yum");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 2.0;
+            p.food_max = 80.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        let before = state.player_prestige(pid);
+        let delta = crate::compute_eat_full(5, 0.0, state.gameplay.eat_live_knobs()).health_delta;
+        assert!(delta > 0.0);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied);
+        assert!((state.player_prestige(pid) - (before + delta)).abs() < 1e-4);
+        let expected_coins = crate::economy::wallet_floor_f32(delta);
+        assert_eq!(state.economy.coins_of(pid), expected_coins);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 770);
+    }
+
+    /// HORSE-EAT-FX: USE mount-eat sendFoodUpdate FX + PU just_ate (Haxe doEating).
+    #[test]
+    fn horse_eat_use_emits_eat_fx_pu() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(770, def(770, 0, false));
+        let mut berry = def(31, 0, false);
+        berry.food_value = 5;
+        db.objects.insert(31, berry);
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = state_with(db);
+        let pid = crate::spawn_player(&mut state, 1, "horse_fx@live");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(770, 0);
+            p.food = 2.0;
+            p.food_max = 80.0;
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 31);
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 0,
+                y: 0,
+                id: None,
+                index: None,
+            },
+        );
+        let mut saw_fx = false;
+        let mut saw_pu = false;
+        let pu_needle = format!(" 1 31 -1 ");
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.starts_with("FX\n") {
+                let fields: Vec<&str> =
+                    s.lines().nth(1).unwrap_or("").split_whitespace().collect();
+                if fields.len() >= 4 && fields[2] == "31" {
+                    saw_fx = true;
+                }
+            }
+            if s.starts_with("PU\n") && s.contains(&pu_needle) {
+                saw_pu = true;
+            }
+        }
+        assert!(saw_fx, "expected FX last_ate_id=31 for horse-eat {pid}");
+        assert!(saw_pu, "expected PU just_ate last_ate responsible=-1");
+        assert!(!state.players.get(&1).unwrap().yum.just_ate);
+        assert_eq!(state.players.get(&1).unwrap().yum.just_ate_id, 31);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 770);
     }
 
     // Tire cart put-down transform 3158 → 3161 (not 1422)
@@ -3050,11 +6500,7 @@ mod tests {
         }
         let mut chest = ComplexObject::new_simple(988);
         chest.extern_id = 22;
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(0, 0, chest);
+        state.world.write().unwrap().set_object_complex(0, 0, chest);
         let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
         assert!(!r.applied);
         assert_eq!(
@@ -3143,11 +6589,7 @@ mod tests {
         }
         let mut chest = ComplexObject::new_simple(988);
         chest.extern_id = 99; // mismatch → lockpick
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(0, 0, chest);
+        state.world.write().unwrap().set_object_complex(0, 0, chest);
 
         // Force success path by retrying with low RNG is hard; instead assert settings
         // defaults and that refuse/success both deduct correctly via pure try_lockpick.
@@ -3174,6 +6616,69 @@ mod tests {
         let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
         assert!(r.applied);
         assert_eq!(r.target_after, 989);
+    }
+
+    #[test]
+    fn chest_store_coins_empty_hand_open_chest() {
+        let _ = crate::locks::take_lock_say();
+        let mut db = ContentDb::default();
+        db.objects.insert(986, def(986, 0, true));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "u");
+        let p_id = state.players.get(&1).unwrap().p_id;
+        state.economy.add_coins(p_id, 20);
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.held_id = 0;
+            p.age = 14.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 986);
+        let _ = apply_use_at(&mut state, 1, 0, 0);
+        assert_eq!(state.economy.coins_of(p_id), 0);
+        let coins = state
+            .world
+            .read()
+            .unwrap()
+            .get_helper(0, 0)
+            .map(|h| h.coins)
+            .unwrap_or(0.0);
+        assert!((coins - 20.0).abs() < 1e-5, "chest coins {coins}");
+    }
+
+    #[test]
+    fn chest_take_coins_empty_hand_closed_chest() {
+        let _ = crate::locks::take_lock_say();
+        let mut db = ContentDb::default();
+        db.objects.insert(987, def(987, 0, true));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "u");
+        let p_id = state.players.get(&1).unwrap().p_id;
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.held_id = 0;
+            p.age = 14.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        let mut chest = ComplexObject::new_simple(987);
+        chest.coins = 15.0;
+        state.world.write().unwrap().set_object_complex(0, 0, chest);
+        let _ = apply_use_at(&mut state, 1, 0, 0);
+        assert_eq!(
+            state.economy.coins_of(p_id),
+            15,
+            "empty-hand USE on closed chest takes coins"
+        );
+        let coins = state
+            .world
+            .read()
+            .unwrap()
+            .get_helper(0, 0)
+            .map(|h| h.coins)
+            .unwrap_or(0.0);
+        assert!(coins.abs() < 1e-5, "chest emptied, got {coins}");
     }
 
     /// Live success_chance=100 + coin_cost: 1003 mismatch always opens and deducts.
@@ -3223,11 +6728,7 @@ mod tests {
         }
         let mut chest = ComplexObject::new_simple(988);
         chest.extern_id = 99;
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(0, 0, chest);
+        state.world.write().unwrap().set_object_complex(0, 0, chest);
 
         let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
         assert!(r.applied, "100% success must open locked chest");
@@ -3282,11 +6783,7 @@ mod tests {
         }
         let mut chest = ComplexObject::new_simple(988);
         chest.extern_id = 99;
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(0, 0, chest);
+        state.world.write().unwrap().set_object_complex(0, 0, chest);
 
         let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
         assert!(!r.applied);
@@ -3348,11 +6845,7 @@ mod tests {
         }
         let mut chest = ComplexObject::new_simple(988);
         chest.extern_id = 99;
-        state
-            .world
-            .write()
-            .unwrap()
-            .set_object_complex(0, 0, chest);
+        state.world.write().unwrap().set_object_complex(0, 0, chest);
         let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
         assert!(r.applied);
         // pure 5 - 1.5 = 3.5 → wallet floor 3
@@ -3400,19 +6893,33 @@ mod tests {
     #[test]
     fn dark_nosaj_monument_use_sets_and_clears() {
         use crate::dark_nosaj::{
-            take_monument_feedback, DARK_NOSAJ_MONUMENT_ID, TARR_MONUMENT_ID,
-            CURSE_CLEAR_WORD, CURSE_DARK_MINION_WORD,
+            take_monument_feedback, CURSE_CLEAR_WORD, CURSE_DARK_MINION_WORD,
+            DARK_NOSAJ_MONUMENT_ID, TARR_MONUMENT_ID,
         };
         let _ = take_monument_feedback();
         let mut state = state_with(ContentDb::default());
         let p_id = crate::spawn_player(&mut state, 1, "dn@test");
-        let prest_before = state.combat.stats.get(&p_id).map(|s| s.prestige).unwrap_or(0.0);
+        let prest_before = state
+            .combat
+            .stats
+            .get(&p_id)
+            .map(|s| s.prestige)
+            .unwrap_or(0.0);
         apply_monument_use_side_effects(&mut state, 1, 0, DARK_NOSAJ_MONUMENT_ID);
         let pl = state.players.get(&1).unwrap();
-        assert!((pl.dark_nosaj - 1.0).abs() < 1e-5, "dark_nosaj={}", pl.dark_nosaj);
+        assert!(
+            (pl.dark_nosaj - 1.0).abs() < 1e-5,
+            "dark_nosaj={}",
+            pl.dark_nosaj
+        );
         assert!(!pl.praised_jinbali);
         assert!((state.reputation.lost_combat(p_id) - 100.0).abs() < 1e-3);
-        let prest = state.combat.stats.get(&p_id).map(|s| s.prestige).unwrap_or(0.0);
+        let prest = state
+            .combat
+            .stats
+            .get(&p_id)
+            .map(|s| s.prestige)
+            .unwrap_or(0.0);
         // Haxe set path: yum_multiplier −100 (spawn may seed prestige; assert delta)
         assert!(
             (prest - (prest_before - 100.0)).abs() < 1e-2,
@@ -3434,15 +6941,18 @@ mod tests {
     /// DARK-NOSAJ: praise path then dark nosaj punish (+hits).
     #[test]
     fn dark_nosaj_praise_then_punish() {
-        use crate::dark_nosaj::{
-            take_monument_feedback, DARK_NOSAJ_MONUMENT_ID, TARR_MONUMENT_ID,
-        };
+        use crate::dark_nosaj::{take_monument_feedback, DARK_NOSAJ_MONUMENT_ID, TARR_MONUMENT_ID};
         let _ = take_monument_feedback();
         let mut state = state_with(ContentDb::default());
         let p_id = crate::spawn_player(&mut state, 1, "praise@test");
         apply_monument_use_side_effects(&mut state, 1, 0, TARR_MONUMENT_ID);
         assert!(state.players.get(&1).unwrap().praised_jinbali);
-        let prest = state.combat.stats.get(&p_id).map(|s| s.prestige).unwrap_or(0.0);
+        let prest = state
+            .combat
+            .stats
+            .get(&p_id)
+            .map(|s| s.prestige)
+            .unwrap_or(0.0);
         // spawn may seed prestige; require +5 vs pre-praise
         let _ = take_monument_feedback();
         // Reset prestige book for clean assert: re-read after praise only delta 5
@@ -3463,9 +6973,7 @@ mod tests {
     // Haxe: TransitionHelper.doCommandHelper L144–185 (once per USE)
     #[test]
     fn dark_nosaj_apply_use_at_side_effects_once() {
-        use crate::dark_nosaj::{
-            take_monument_feedback, DARK_NOSAJ_MONUMENT_ID, TARR_MONUMENT_ID,
-        };
+        use crate::dark_nosaj::{take_monument_feedback, DARK_NOSAJ_MONUMENT_ID, TARR_MONUMENT_ID};
         let _ = take_monument_feedback();
         let mut state = state_with(ContentDb::default());
         let p_id = crate::spawn_player(&mut state, 1, "once@test");
@@ -3477,9 +6985,19 @@ mod tests {
             .unwrap()
             .set_object(0, 0, DARK_NOSAJ_MONUMENT_ID);
 
-        let prest_before = state.combat.stats.get(&p_id).map(|s| s.prestige).unwrap_or(0.0);
+        let prest_before = state
+            .combat
+            .stats
+            .get(&p_id)
+            .map(|s| s.prestige)
+            .unwrap_or(0.0);
         let _ = apply_use_at(&mut state, 1, 0, 0);
-        let prest_after_set = state.combat.stats.get(&p_id).map(|s| s.prestige).unwrap_or(0.0);
+        let prest_after_set = state
+            .combat
+            .stats
+            .get(&p_id)
+            .map(|s| s.prestige)
+            .unwrap_or(0.0);
         assert!(
             (prest_after_set - (prest_before - 100.0)).abs() < 1e-2,
             "set prestige delta once: before={prest_before} after={prest_after_set}"
@@ -3487,7 +7005,10 @@ mod tests {
         assert!((state.players.get(&1).unwrap().dark_nosaj - 1.0).abs() < 1e-5);
         let fb = take_monument_feedback().expect("one feedback after set");
         assert_eq!(fb.say, "All hail dark nosaj");
-        assert!(take_monument_feedback().is_none(), "exactly one feedback note");
+        assert!(
+            take_monument_feedback().is_none(),
+            "exactly one feedback note"
+        );
 
         // Tarr clear on same player: clear path only — praised_jinbali stays false
         state
@@ -3495,7 +7016,12 @@ mod tests {
             .write()
             .unwrap()
             .set_object(0, 0, TARR_MONUMENT_ID);
-        let prest_pre_clear = state.combat.stats.get(&p_id).map(|s| s.prestige).unwrap_or(0.0);
+        let prest_pre_clear = state
+            .combat
+            .stats
+            .get(&p_id)
+            .map(|s| s.prestige)
+            .unwrap_or(0.0);
         let _ = apply_use_at(&mut state, 1, 0, 0);
         let pl = state.players.get(&1).unwrap();
         assert_eq!(pl.dark_nosaj, 0.0);
@@ -3503,7 +7029,12 @@ mod tests {
             !pl.praised_jinbali,
             "Tarr clear must not re-enter praise on same USE"
         );
-        let prest_after_clear = state.combat.stats.get(&p_id).map(|s| s.prestige).unwrap_or(0.0);
+        let prest_after_clear = state
+            .combat
+            .stats
+            .get(&p_id)
+            .map(|s| s.prestige)
+            .unwrap_or(0.0);
         assert!(
             (prest_after_clear - (prest_pre_clear + 90.0)).abs() < 1e-2,
             "clear prestige +90 once: pre={prest_pre_clear} after={prest_after_clear}"
@@ -3548,12 +7079,8 @@ mod tests {
     #[test]
     fn resolve_hungry_work_temperature_live() {
         // temp < 0 → cost × heat
-        assert!(
-            (resolve_hungry_work_temperature(-1.0, 10.0, 0.002) - 0.02).abs() < 1e-6
-        );
-        assert!(
-            (resolve_hungry_work_temperature(-1.0, 10.0, 0.004) - 0.04).abs() < 1e-6
-        );
+        assert!((resolve_hungry_work_temperature(-1.0, 10.0, 0.002) - 0.02).abs() < 1e-6);
+        assert!((resolve_hungry_work_temperature(-1.0, 10.0, 0.004) - 0.04).abs() < 1e-6);
         // temp >= 0 passthrough
         assert!((resolve_hungry_work_temperature(0.5, 10.0, 0.002) - 0.5).abs() < 1e-6);
         assert!((resolve_hungry_work_temperature(0.0, 10.0, 0.002) - 0.0).abs() < 1e-6);
@@ -3561,6 +7088,25 @@ mod tests {
 
     #[test]
     fn compute_hungry_work_cost_river_and_loose() {
+        let tr = ol_content::Transition {
+            hungry_work_cost: 10.0,
+            hungry_work_temperature: -1.0,
+            coin_cost: 0,
+            is_forbidden: false,
+            ..Default::default()
+        };
+        assert!(
+            (compute_hungry_work_cost(0.0, 0.0, tr.hungry_work_cost, false) - 10.0).abs() < 1e-6
+        );
+        assert!(
+            (resolve_hungry_work_temperature(
+                tr.hungry_work_temperature,
+                tr.hungry_work_cost,
+                0.002
+            ) - 0.02)
+                .abs()
+                < 1e-6
+        );
         assert!((compute_hungry_work_cost(2.0, 3.0, 1.0, false) - 6.0).abs() < 1e-6);
         assert!((compute_hungry_work_cost(2.0, 3.0, 1.0, true) - 5.0).abs() < 1e-6);
         let (c, fort) = apply_loose_fence_hungry_work_waiver(5.0, "Loose Fence", 0.0);
@@ -3645,7 +7191,19 @@ mod tests {
         }
         // Owner half cost
         let (c_own, _, adj_own, _) = plan_hungry_work_use(
-            0.0, 4.0, 0.0, -1.0, 0.002, false, "Gate +owned", 0.0, true, true, 20.0, 20.0, 0.0,
+            0.0,
+            4.0,
+            0.0,
+            -1.0,
+            0.002,
+            false,
+            "Gate +owned",
+            0.0,
+            true,
+            true,
+            20.0,
+            20.0,
+            0.0,
             0.5,
         );
         assert!((c_own - 2.0).abs() < 1e-6);
@@ -3662,6 +7220,7 @@ mod tests {
     // Haxe: TransitionHelper L1247–1251
     #[test]
     fn apply_use_hungry_work_heat_live() {
+        let _ = take_hungry_work_emote();
         let mut db = ContentDb::default();
         // empty hand on Adobe Oven Base 231 → still need a transition
         db.objects.insert(0, def(0, 0, false));
@@ -3702,10 +7261,15 @@ mod tests {
         assert!((p.heat - 0.34).abs() < 1e-5, "heat={}", p.heat);
         assert!((p.food - 15.0).abs() < 1e-5, "food={}", p.food);
         assert!((p.exhaustion - 5.0).abs() < 1e-5, "exh={}", p.exhaustion);
+        assert_eq!(
+            take_hungry_work_emote(),
+            Some((1, HUNGRY_WORK_RELIEF_EMOTE))
+        );
     }
 
     #[test]
     fn apply_use_hungry_work_refuse_food() {
+        let _ = take_hungry_work_emote();
         let mut db = ContentDb::default();
         db.objects.insert(10, def(10, 0, false));
         db.objects.insert(231, {
@@ -3730,6 +7294,40 @@ mod tests {
         let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
         assert!(!r.applied);
         assert_eq!(state.world.read().unwrap().get_object(0, 0), 231);
+        let p = state.players.get(&1).unwrap();
+        assert!((p.food - 1.0).abs() < 1e-5);
+        assert_eq!(
+            take_hungry_work_emote(),
+            Some((1, HUNGRY_WORK_HOMESICK_EMOTE))
+        );
+    }
+
+    /// USE reads `Transition.hungry_work_cost` (PatchTransitions field, not object table).
+    // Haxe: TransitionHelper L1173 transition.hungryWorkCost
+    #[test]
+    fn apply_use_reads_transition_hungry_work_cost() {
+        let mut db = ContentDb::default();
+        db.objects.insert(10, def(10, 0, false));
+        db.objects.insert(20, def(20, 0, true));
+        db.objects.insert(21, def(21, 0, true));
+        let mut t = tr(10, 20, 10, 21, false, false);
+        t.hungry_work_cost = 10.0;
+        db.transitions.insert((10, 20), t);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "trhw@test");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(10, 0);
+            p.food = 1.0;
+            p.food_max = 20.0;
+            p.exhaustion = 0.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 20);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied, "trans hungryWorkCost=10 must refuse low food");
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 20);
         let p = state.players.get(&1).unwrap();
         assert!((p.food - 1.0).abs() < 1e-5);
     }
@@ -3843,7 +7441,6 @@ mod tests {
         ));
     }
 
-
     /// TH-ALT-OUTCOME: low hits → TryAgain keeps target, stamps hits.
     // Haxe: TransitionHelper L1274–1303
     #[test]
@@ -3876,6 +7473,88 @@ mod tests {
             .map(|h| h.hits)
             .unwrap_or(0.0);
         assert!(hits >= 1.0 - 1e-4, "hits stamped, got {hits}");
+    }
+
+    /// Haxe doCommandHelper fortify L189–211: matching held material costs coins, no transform.
+    #[test]
+    fn fortify_apply_consumes_held_and_coins() {
+        let _ = crate::locks::take_lock_say();
+        let mut db = ContentDb::default();
+        db.objects.insert(550, def(550, 0, true));
+        db.objects.insert(67, def(67, 0, false));
+        ol_content::apply_default_alternative_outcome_patches(&mut db);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "u");
+        let p_id = state.players.get(&1).unwrap().p_id;
+        state.economy.add_coins(p_id, 10);
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(67, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 550);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied);
+        assert_eq!(r.actor_after, 0);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(state.economy.coins_of(p_id), 8); // cost floor(2*1)=2
+        let h = state.world.read().unwrap().get_helper(0, 0).cloned().unwrap();
+        assert!((h.hits + 2.0).abs() < 1e-5, "hits -= fortificationValue, got {}", h.hits);
+        assert!((h.count_obj - 1.0).abs() < 1e-5);
+        let say = crate::locks::take_lock_say().expect("fortify say");
+        assert!(say.1.contains("Cost 2 coins"), "got {}", say.1);
+    }
+
+    #[test]
+    fn fortify_apply_refuses_without_coins() {
+        let _ = crate::locks::take_lock_say();
+        let mut db = ContentDb::default();
+        db.objects.insert(550, def(550, 0, true));
+        db.objects.insert(67, def(67, 0, false));
+        ol_content::apply_default_alternative_outcome_patches(&mut db);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "u");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(67, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 550);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 67);
+        let say = crate::locks::take_lock_say().expect("need coins");
+        assert!(say.1.contains("Need"), "got {}", say.1);
+    }
+
+    /// TH-ALT-LIVE-KNOBS: FortificationCosePerHit live cost.
+    #[test]
+    fn fortify_apply_uses_live_cost_per_hit() {
+        let _ = crate::locks::take_lock_say();
+        let mut db = ContentDb::default();
+        db.objects.insert(550, def(550, 0, true));
+        db.objects.insert(67, def(67, 0, false));
+        ol_content::apply_default_alternative_outcome_patches(&mut db);
+        let mut state = state_with(db);
+        state.gameplay.fortification_cost_per_hit = 2.0;
+        crate::spawn_player(&mut state, 1, "u");
+        let p_id = state.players.get(&1).unwrap().p_id;
+        state.economy.add_coins(p_id, 10);
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(67, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 550);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(!r.applied);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(state.economy.coins_of(p_id), 6); // cost floor(2*2)=4
+        let say = crate::locks::take_lock_say().expect("fortify say");
+        assert!(say.1.contains("Cost 4 coins"), "got {}", say.1);
     }
 
     /// TH-ALT-OUTCOME: high hits → Proceed continues transition.
@@ -3916,5 +7595,4 @@ mod tests {
             "hits={hits}"
         );
     }
-
 }

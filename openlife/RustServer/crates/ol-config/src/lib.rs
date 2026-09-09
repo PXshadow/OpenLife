@@ -8,9 +8,9 @@
 mod field_map;
 
 pub use field_map::{
-    find_critical, gameplay_defaults, is_ai_ignored_floor_id, is_door_id, live_critical_names,
-    module_const_critical_names, secret_omit_names, FieldEntry, SettingsHome, AI_IGNORED_FLOOR_IDS,
-    CRITICAL_FIELD_MAP, DOOR_IDS,
+    find_critical, gameplay_defaults, is_ai_ignored_floor_id, is_ai_ignored_floor_id_in, is_door_id,
+    is_door_id_in, live_critical_names, module_const_critical_names, secret_omit_names, FieldEntry,
+    SettingsHome, AI_IGNORED_FLOOR_IDS, CRITICAL_FIELD_MAP, DOOR_IDS,
 };
 
 use serde::{Deserialize, Serialize};
@@ -56,6 +56,12 @@ pub struct ServerConfig {
     /// Default **false** (soft-log only). Normal OHOL tags like `client_official`
     /// are not numeric and are never treated as a version mismatch.
     pub client_version_strict: bool,
+    /// Haxe `lastVanillaID` — highest vanilla object id. `< 1` disables mapping.
+    // Haxe: ServerSettings.lastVanillaID = -1
+    pub last_vanilla_id: i32,
+    /// Haxe `OpenLifeClientName` — LOGIN `client_tag` substring that skips remap.
+    // Haxe: ServerSettings.OpenLifeClientName = "OpenLife"
+    pub open_life_client_name: String,
     pub content_path: PathBuf,
     pub challenge_len: usize,
     pub tick_hz: u32,
@@ -188,6 +194,10 @@ pub struct ServerConfig {
     /// Haxe `ServerSettings.ChanceForAnimalDying` per animal move.
     // Haxe: ServerSettings.ChanceForAnimalDying
     pub chance_for_animal_dying: f32,
+    /// Haxe `ServerSettings.BiomeAnimalHitChance` (DoDamage miss gate).
+    // Haxe: ServerSettings.BiomeAnimalHitChance = 0.0
+    // MOSQUITO-MAPCHANCE
+    pub biome_animal_hit_chance: f32,
     /// Haxe `ServerSettings.HungryWorkCost` base food gate.
     // Haxe: ServerSettings.HungryWorkCost
     pub hungry_work_cost: f32,
@@ -419,6 +429,490 @@ pub struct ServerConfig {
     // Haxe: ServerSettings.AISpeedFactorNoble
     // C-SS-MORE-BATCH5
     pub ai_speed_factor_noble: f32,
+    /// Haxe `StartingEveAge` — Eve/Adam spawn `age` / `trueAge` (years).
+    // Haxe: ServerSettings.StartingEveAge = 14
+    // SETTINGS-LONG-TAIL
+    pub starting_eve_age: f32,
+    /// Haxe `EveOrAdamBirthChance` — synthetic/NPC Eve vs mother spawn roll.
+    // Haxe: ServerSettings.EveOrAdamBirthChance = 0.025
+    // SETTINGS-LONG-TAIL
+    pub eve_or_adam_birth_chance: f32,
+    /// Haxe `SpawnAiAsEve` — AIs/NPCs may take that Eve roll even if a mother exists.
+    // Haxe: ServerSettings.SpawnAiAsEve = false
+    // SETTINGS-LONG-TAIL
+    pub spawn_ai_as_eve: bool,
+    /// Haxe `MaxPlayersBeforeStartingAsChild` — living count allowing AI↔human Eve cross.
+    // Haxe: ServerSettings.MaxPlayersBeforeStartingAsChild = 0
+    // SETTINGS-LONG-TAIL
+    pub max_players_before_starting_as_child: i32,
+    /// Haxe `ObjDecayChance` — long-term object decay roll.
+    // Haxe: ServerSettings.ObjDecayChance = 0.00005
+    // SETTINGS-LONG-TAIL
+    pub obj_decay_chance: f32,
+    /// Haxe `FloorDecayChance` — long-term floor decay roll.
+    // Haxe: ServerSettings.FloorDecayChance = 0.00001
+    // SETTINGS-LONG-TAIL
+    pub floor_decay_chance: f32,
+    /// Haxe `ObjRespawnChance` — RespawnObjects per empty original tile.
+    // Haxe: ServerSettings.ObjRespawnChance = 0.00006
+    // SETTINGS-LONG-TAIL
+    pub obj_respawn_chance: f32,
+    /// Haxe `GrowBackPlantsIncreaseIfLowPopulation` — spring original-plant boost if current < original/2.
+    // Haxe: ServerSettings.GrowBackPlantsIncreaseIfLowPopulation = 2
+    // SETTINGS-LONG-TAIL
+    pub grow_back_plants_increase_if_low_population: f32,
+    /// Haxe `GrowBackOriginalPlantsFactor` — spring original-plant roll multiplier.
+    // Haxe: ServerSettings.GrowBackOriginalPlantsFactor = 0.02
+    // SETTINGS-LONG-TAIL
+    pub grow_back_original_plants_factor: f32,
+    /// Haxe `GrowNewPlantsFromExistingFactor` — offspring per season per living plant.
+    // Haxe: ServerSettings.GrowNewPlantsFromExistingFactor = 0.05
+    // SETTINGS-LONG-TAIL
+    pub grow_new_plants_from_existing_factor: f32,
+    /// Haxe `SpringWildFoodRegrowChance` — per-season spring chance recompute.
+    // Haxe: ServerSettings.SpringWildFoodRegrowChance = 1
+    // SETTINGS-LONG-TAIL
+    pub spring_wild_food_regrow_chance: f32,
+    /// Haxe `WinterWildFoodDecayChance` — per-season winter chance recompute.
+    // Haxe: ServerSettings.WinterWildFoodDecayChance = 1.5
+    // SETTINGS-LONG-TAIL
+    pub winter_wild_food_decay_chance: f32,
+    /// Haxe `HotSeasonTemperatureFactor` — scale positive season impact on tile temp.
+    // Haxe: ServerSettings.HotSeasonTemperatureFactor = 0.75
+    // SETTINGS-LONG-TAIL
+    pub hot_season_temperature_factor: f32,
+    /// Haxe `ColdSeasonTemperatureFactor` — scale negative season impact on tile temp.
+    // Haxe: ServerSettings.ColdSeasonTemperatureFactor = 0.75
+    // SETTINGS-LONG-TAIL
+    pub cold_season_temperature_factor: f32,
+    /// Haxe `CursedGraveTime` — hours extra decay per overflowing sharp stone.
+    // Haxe: ServerSettings.CursedGraveTime = 12
+    // SETTINGS-LONG-TAIL
+    pub cursed_grave_time: f32,
+    /// Haxe `AnimalDecayFactor` — long-term decayFactor for horse-cart / domestic / wolf ids.
+    // Haxe: ServerSettings.AnimalDecayFactor = 0.05
+    // SETTINGS-LONG-TAIL
+    pub animal_decay_factor: f32,
+    /// Haxe `ObjDecayFactorForPermanentObjs`.
+    // Haxe: ServerSettings.ObjDecayFactorForPermanentObjs = 0.2
+    // SETTINGS-LONG-TAIL
+    pub obj_decay_factor_for_permanent: f32,
+    /// Haxe `ObjDecayFactorForFood`.
+    // Haxe: ServerSettings.ObjDecayFactorForFood = 2
+    // SETTINGS-LONG-TAIL
+    pub obj_decay_factor_for_food: f32,
+    /// Haxe `ObjDecayFactorForClothing`.
+    // Haxe: ServerSettings.ObjDecayFactorForClothing = 2
+    // SETTINGS-LONG-TAIL
+    pub obj_decay_factor_for_clothing: f32,
+    /// Haxe `ObjDecayFactorForWalls`.
+    // Haxe: ServerSettings.ObjDecayFactorForWalls = 0.2
+    // SETTINGS-LONG-TAIL
+    pub obj_decay_factor_for_walls: f32,
+    /// Haxe `ObjDecayFactorPerTechLevel`.
+    // Haxe: ServerSettings.ObjDecayFactorPerTechLevel = 10
+    // SETTINGS-LONG-TAIL
+    pub obj_decay_factor_per_tech_level: f32,
+    /// Haxe `DecayFactorInDeepWater`.
+    // Haxe: ServerSettings.DecayFactorInDeepWater = 5
+    // SETTINGS-LONG-TAIL
+    pub decay_factor_in_deep_water: f32,
+    /// Haxe `DecayFactorInMountain`.
+    // Haxe: ServerSettings.DecayFactorInMountain = 3
+    // SETTINGS-LONG-TAIL
+    pub decay_factor_in_mountain: f32,
+    /// Haxe `DecayFactorInWalkableWater`.
+    // Haxe: ServerSettings.DecayFactorInWalkableWater = 2
+    // SETTINGS-LONG-TAIL
+    pub decay_factor_in_walkable_water: f32,
+    /// Haxe `DecayFactorInJungle`.
+    // Haxe: ServerSettings.DecayFactorInJungle = 2
+    // SETTINGS-LONG-TAIL
+    pub decay_factor_in_jungle: f32,
+    /// Haxe `DecayFactorInSwamp`.
+    // Haxe: ServerSettings.DecayFactorInSwamp = 2
+    // SETTINGS-LONG-TAIL
+    pub decay_factor_in_swamp: f32,
+    /// Haxe `ScoreFactor` — EMA weight of this life prestige into account score.
+    // Haxe: ServerSettings.ScoreFactor = 0.2
+    // SETTINGS-LONG-TAIL
+    pub score_factor: f32,
+    /// Haxe `AncestorPrestigeFactor`.
+    // SETTINGS-LONG-TAIL
+    pub ancestor_prestige_factor: f32,
+    /// Haxe `DisplayScoreFactor`.
+    // SETTINGS-LONG-TAIL
+    pub display_score_factor: f32,
+    /// Haxe `DisplayScoreOn` — extra age-58 / last-life prestige GMs.
+    // SETTINGS-KNOB-TAIL
+    pub display_score_on: bool,
+    /// Haxe `MaxCoinsPerChest`.
+    // SETTINGS-KNOB-TAIL
+    pub max_coins_per_chest: i32,
+    /// Haxe `MaxCoinsPerPouch`.
+    // SETTINGS-KNOB-TAIL
+    pub max_coins_per_pouch: i32,
+    /// Haxe `ChanceForFemaleChild`.
+    // SETTINGS-KNOB-TAIL
+    pub chance_for_female_child: f32,
+    /// Haxe `ChanceForOtherChildColor`.
+    // SETTINGS-KNOB-TAIL
+    pub chance_for_other_child_color: f32,
+    /// Haxe `ChanceForOtherChildColorIfCloseToWrongSpecialBiome`.
+    // SETTINGS-KNOB-TAIL
+    pub chance_for_other_child_color_if_close_to_wrong_special_biome: f32,
+    /// Haxe `LittleKidsPerMother`.
+    // SETTINGS-KNOB-TAIL
+    pub little_kids_per_mother: i32,
+    /// Haxe `NewChildExhaustionForMother`.
+    // SETTINGS-KNOB-TAIL
+    pub new_child_exhaustion_for_mother: f32,
+    /// Haxe `AiMotherBirthMaliForHumanChild`.
+    // SETTINGS-KNOB-TAIL
+    pub ai_mother_birth_mali_for_human_child: f32,
+    /// Haxe `HumanMotherBirthMaliForAiChild`.
+    // SETTINGS-KNOB-TAIL
+    pub human_mother_birth_mali_for_ai_child: f32,
+    /// Haxe `SpwanAtLastDead` (typo Spwan).
+    // SETTINGS-KNOB-TAIL
+    pub spawn_at_last_dead: bool,
+    /// Haxe `TemperatureOwnTileRate`.
+    // SETTINGS-KNOB-TAIL
+    pub temperature_own_tile_rate: f32,
+    /// Haxe `TemperatureBalanceRate`.
+    // SETTINGS-KNOB-TAIL
+    pub temperature_balance_rate: f32,
+    /// Haxe `TemperatureLocalHeatFactor`.
+    // SETTINGS-KNOB-TAIL
+    pub temperature_local_heat_factor: f32,
+    /// Haxe `AverageSeasonTemperatureImpact`.
+    // SETTINGS-KNOB-TAIL
+    pub average_season_temperature_impact: f32,
+    /// Haxe `AiTotalScoreFactor`.
+    // SETTINGS-LONG-TAIL
+    pub ai_total_score_factor: f32,
+    /// Haxe `OldGraveDecayMali`.
+    // SETTINGS-LONG-TAIL
+    pub old_grave_decay_mali: f32,
+    /// Haxe `CursedGraveMali`.
+    // SETTINGS-LONG-TAIL
+    pub cursed_grave_mali: f32,
+    /// Haxe `MaxDistanceToBeConsideredAsClose`.
+    pub max_distance_close: i32,
+    /// Haxe `MaxDistanceToBeConsideredAsCloseForMapChanges`.
+    pub max_distance_map_changes: i32,
+    /// Haxe `MaxDistanceToBeConsideredAsCloseForSay`.
+    pub max_distance_say: i32,
+    /// Haxe `SendMoveEveryXTicks` (`-1` = disabled; `> 0` = period).
+    // Haxe: ServerSettings.SendMoveEveryXTicks = -1
+    // SETTINGS-LONG-TAIL
+    pub send_move_every_x_ticks: i32,
+    /// Haxe `MaxDistanceToBeConsideredAsCoseForMovement` (typo Cose) — PM fan radius.
+    // Haxe: ServerSettings.MaxDistanceToBeConsideredAsCoseForMovement = 30
+    // SETTINGS-LONG-TAIL
+    pub max_distance_cose_for_movement: i32,
+    /// Haxe `MaxDistanceToBeConsideredAsCloseForSayAi` — AI sayHelper hear radius.
+    // Haxe: ServerSettings.MaxDistanceToBeConsideredAsCloseForSayAi = 20
+    // SETTINGS-LONG-TAIL
+    pub max_distance_say_ai: f32,
+    /// Haxe `MaxDistanceToAutoExileAttacker` (quad-distance compare).
+    pub max_distance_auto_exile_attacker: i32,
+    /// Haxe `SpeedWithBothShoes`.
+    // Haxe: ServerSettings.SpeedWithBothShoes = 1.1
+    // SETTINGS-LONG-TAIL
+    pub speed_with_both_shoes: f32,
+    /// Haxe `AgingFactorWhileStarvingToDeath`.
+    // Haxe: ServerSettings.AgingFactorWhileStarvingToDeath = 0.5
+    // SETTINGS-LONG-TAIL
+    pub aging_factor_while_starving: f32,
+    /// Haxe `GrownUpAge`.
+    // Haxe: ServerSettings.GrownUpAge = 14
+    // SETTINGS-LONG-TAIL
+    pub grown_up_age: f32,
+    /// Haxe `FoodUseChildFaktor`.
+    // Haxe: ServerSettings.FoodUseChildFaktor = 1
+    // SETTINGS-LONG-TAIL
+    pub food_use_child_faktor: f32,
+    /// Haxe `AIFoodUseFactorSerf`.
+    // Haxe: ServerSettings.AIFoodUseFactorSerf = 0.8
+    // SETTINGS-LONG-TAIL
+    pub ai_food_use_factor_serf: f32,
+    /// Haxe `AIFoodUseFactorCommoner`.
+    // Haxe: ServerSettings.AIFoodUseFactorCommoner = 0.9
+    // SETTINGS-LONG-TAIL
+    pub ai_food_use_factor_commoner: f32,
+    /// Haxe `AIFoodUseFactorNoble` (Noble only; King/Emperor stay 1.0).
+    // Haxe: ServerSettings.AIFoodUseFactorNoble = 1
+    // SETTINGS-LONG-TAIL
+    pub ai_food_use_factor_noble: f32,
+    /// Haxe `EveFoodUseFactor`.
+    // Haxe: ServerSettings.EveFoodUseFactor = 1
+    // SETTINGS-LONG-TAIL
+    pub eve_food_use_factor: f32,
+    /// Haxe `AgingFactorHumanBornToAi`.
+    pub aging_factor_human_born_to_ai: f32,
+    /// Haxe `AgingFactorAiBornToHuman`.
+    pub aging_factor_ai_born_to_human: f32,
+    /// Haxe `EveDamageFactor`.
+    // Haxe: ServerSettings.EveDamageFactor = 1
+    // SETTINGS-LONG-TAIL
+    pub eve_damage_factor: f32,
+    /// Haxe `TargetWoundedDamageFactor`.
+    // Haxe: ServerSettings.TargetWoundedDamageFactor = 0.2
+    // SETTINGS-LONG-TAIL
+    pub target_wounded_damage_factor: f32,
+    /// Haxe `MaleDamageFactor`.
+    // Haxe: ServerSettings.MaleDamageFactor = 1.2
+    // SETTINGS-LONG-TAIL
+    pub male_damage_factor: f32,
+    /// Haxe `AnimalDamageFactor`.
+    // Haxe: ServerSettings.AnimalDamageFactor = 1.5
+    // SETTINGS-LONG-TAIL
+    pub animal_damage_factor: f32,
+    /// Haxe `AnimalDamageFactorInWinter`.
+    // Haxe: ServerSettings.AnimalDamageFactorInWinter = 2
+    // SETTINGS-LONG-TAIL
+    pub animal_damage_factor_in_winter: f32,
+    /// Haxe `AnimalDamageFactorIfAttacked`.
+    // Haxe: ServerSettings.AnimalDamageFactorIfAttacked = 1.5
+    // SETTINGS-LONG-TAIL
+    pub animal_damage_factor_if_attacked: f32,
+    /// Haxe `WeaponDamageFactor`.
+    // Haxe: ServerSettings.WeaponDamageFactor = 1
+    // SETTINGS-LONG-TAIL
+    pub weapon_damage_factor: f32,
+    /// Haxe `GraveBlockingDistance`.
+    // Haxe: ServerSettings.GraveBlockingDistance = 40
+    // SETTINGS-LONG-TAIL
+    pub grave_blocking_distance: f32,
+    /// Haxe `MaxPlayersBeforeActivatingGraveCurse`.
+    // Haxe: ServerSettings.MaxPlayersBeforeActivatingGraveCurse = 0
+    // SETTINGS-LONG-TAIL
+    pub max_players_before_activating_grave_curse: i32,
+    /// Haxe `MaxPlayersBeforeForbidTouchGrave`.
+    // Haxe: ServerSettings.MaxPlayersBeforeForbidTouchGrave = 9999
+    // GRAVE-TOUCH-PLAYERS
+    pub max_players_before_forbid_touch_grave: i32,
+    /// Haxe `CombatAngryTimeBeforeAttack`.
+    // Haxe: ServerSettings.CombatAngryTimeBeforeAttack = 5
+    // SETTINGS-LONG-TAIL
+    pub combat_angry_time_before_attack: f32,
+    /// Haxe `CombatAngryTimeMinimum` (angry recovery floor while killMode).
+    pub combat_angry_time_minimum: f32,
+    /// Haxe `ChanceForDomesticAnimalDyingFactor` (applied; Haxe line was unassigned).
+    pub chance_for_domestic_animal_dying_factor: f32,
+    /// Haxe `DoorIds` live table (empty → compiled default).
+    pub door_ids: Vec<i32>,
+    /// Haxe `AiIgnoredFloorIds` live table (empty → compiled default).
+    pub ai_ignored_floor_ids: Vec<i32>,
+    /// Haxe `Secret` for SAY `!S` (do not log the value).
+    pub secret: String,
+    /// Haxe `AllowDebugCommmands` — gates `DoDebugCommands` including `!S`.
+    pub allow_debug_commands: bool,
+    /// Haxe `AiTimeToWaitIfCraftingFailed`.
+    // Haxe: ServerSettings.AiTimeToWaitIfCraftingFailed = 15
+    // SETTINGS-LONG-TAIL
+    pub ai_time_to_wait_if_crafting_failed: f32,
+    /// Haxe `AiMaxSearchRadius`.
+    // Haxe: ServerSettings.AiMaxSearchRadius = 60
+    // SETTINGS-LONG-TAIL
+    pub ai_max_search_radius: i32,
+    /// Haxe `AiMaxSearchIncrement`.
+    // Haxe: ServerSettings.AiMaxSearchIncrement = 30
+    // SETTINGS-LONG-TAIL
+    pub ai_max_search_increment: i32,
+    /// Haxe `AiIgnoreTimeTransitionsLongerThen`.
+    // Haxe: ServerSettings.AiIgnoreTimeTransitionsLongerThen = 120
+    // SETTINGS-LONG-TAIL
+    pub ai_ignore_time_transitions_longer_then: f32,
+    /// Haxe `AiMemoryMaxEntries` — PlayerSoul interaction FIFO.
+    // Haxe: ServerSettings.AiMemoryMaxEntries = 20
+    // SOUL-LIVE-CAPS
+    pub ai_memory_max_entries: i32,
+    /// Haxe `AiChatMemoryMaxEntries` — PlayerSoul chat FIFO.
+    // Haxe: ServerSettings.AiChatMemoryMaxEntries = 100
+    // SOUL-LIVE-CAPS
+    pub ai_chat_memory_max_entries: i32,
+    /// Haxe `AlternativeOutcomePercentIncreasePerHit`.
+    // Haxe: ServerSettings.AlternativeOutcomePercentIncreasePerHit = 10
+    // SETTINGS-LONG-TAIL
+    pub alternative_outcome_percent_increase_per_hit: f32,
+    /// Haxe `AlternativeOutcomeHitsDecreaseOnSucess`.
+    // Haxe: ServerSettings.AlternativeOutcomeHitsDecreaseOnSucess = 5
+    // SETTINGS-LONG-TAIL
+    pub alternative_outcome_hits_decrease_on_success: f32,
+    /// Haxe `FortificationCosePerHit` (coin cost = floor(fortValue * this)).
+    // Haxe: ServerSettings.FortificationCosePerHit = 1
+    // TH-ALT-LIVE-KNOBS
+    pub fortification_cost_per_hit: f32,
+    /// Haxe `ReduceAgeNeededToPickupObjects`.
+    // Haxe: ServerSettings.ReduceAgeNeededToPickupObjects = 10
+    // MIN-PICKUP-AGE
+    pub reduce_age_needed_to_pickup_objects: f32,
+    /// Haxe `ChanceThatAnimalsCanPassBlockingBiome`.
+    // Haxe: ServerSettings.ChanceThatAnimalsCanPassBlockingBiome = 0.03
+    // SETTINGS-LONG-TAIL
+    pub chance_animals_pass_blocking_biome: f32,
+    /// Haxe `chancePreferredBiome`.
+    // Haxe: ServerSettings.chancePreferredBiome = 0.8
+    // SETTINGS-LONG-TAIL
+    pub chance_preferred_biome: f32,
+    /// Haxe `CloseGraveSpeedMali`.
+    // Haxe: ServerSettings.CloseGraveSpeedMali = 0.9
+    // SETTINGS-LONG-TAIL
+    pub close_grave_speed_mali: f32,
+    /// Haxe `TemperatureSpeedImpact`.
+    // Haxe: ServerSettings.TemperatureSpeedImpact = 1
+    // SETTINGS-LONG-TAIL
+    pub temperature_speed_impact: f32,
+    /// Haxe `MinSpeedReductionPerContainedObj`.
+    // Haxe: ServerSettings.MinSpeedReductionPerContainedObj = 0.98
+    // SETTINGS-LONG-TAIL
+    pub min_speed_reduction_per_contained_obj: f32,
+    /// Haxe `LovedFoodUseChance`.
+    // Haxe: ServerSettings.LovedFoodUseChance = 0.5
+    // SETTINGS-LONG-TAIL
+    pub loved_food_use_chance: f32,
+    /// Haxe `MaxAgeForAllowingClothAndPrickupFromOthers`.
+    // Haxe: ServerSettings.MaxAgeForAllowingClothAndPrickupFromOthers = 10
+    // SETTINGS-LONG-TAIL
+    pub max_age_for_allowing_cloth_and_pickup_from_others: f32,
+    /// Haxe `MaxAgeForAllowingDie` — SAY/client DIE allowed while age <= this.
+    // Haxe: ServerSettings.MaxAgeForAllowingDie = 2
+    // SETTINGS-LONG-TAIL
+    pub max_age_for_allowing_die: f32,
+    /// Haxe `PrestigeCostForDie` — account.score must be >= this to /DIE; not debited.
+    // Haxe: ServerSettings.PrestigeCostForDie = 0
+    // SETTINGS-LONG-TAIL
+    pub prestige_cost_for_die: f32,
+    /// Haxe `StartingFamilyName` — DoNaming I AM found-new-family gate.
+    // Haxe: ServerSettings.StartingFamilyName = "SNOW"
+    // SETTINGS-LONG-TAIL
+    pub starting_family_name: String,
+    /// Haxe `StartingName` — DoNaming YOU ARE only if target first name is this.
+    // Haxe: ServerSettings.StartingName = "SPOON"
+    // SETTINGS-LONG-TAIL
+    pub starting_name: String,
+    /// Haxe `FoundFamilyNeededPrestige` — DoNaming I AM found-new prestige gate.
+    // Haxe: ServerSettings.FoundFamilyNeededPrestige = 50
+    // SETTINGS-LONG-TAIL
+    pub found_family_needed_prestige: f32,
+    /// Haxe `FoundFamilyCost` — coins required and subtracted on found-new family.
+    // Haxe: ServerSettings.FoundFamilyCost = 10
+    // SETTINGS-LONG-TAIL
+    pub found_family_cost: f32,
+    /// Haxe `FoundFamilyNeededFollowers` — DoNaming I AM found-new same-family follower gate.
+    // Haxe: ServerSettings.FoundFamilyNeededFollowers = 4
+    // SETTINGS-LONG-TAIL
+    pub found_family_needed_followers: i32,
+    /// Haxe `FoundFamilyBreakAllianceChance` — AI foundFamily I FOLLOW ME roll.
+    // Haxe: ServerSettings.FoundFamilyBreakAllianceChance = 0.5
+    // SETTINGS-LONG-TAIL
+    pub found_family_break_alliance_chance: f32,
+    /// Haxe `PickupExhaustionGain`.
+    // Haxe: ServerSettings.PickupExhaustionGain = 0.2
+    // SETTINGS-LONG-TAIL
+    pub pickup_exhaustion_gain: f32,
+    /// Haxe `PickupFeedingFoodRestore`.
+    // Haxe: ServerSettings.PickupFeedingFoodRestore = 1.5
+    // SETTINGS-LONG-TAIL
+    pub pickup_feeding_food_restore: f32,
+    /// Haxe `DeathWithFoodStoreMax`.
+    // Haxe: ServerSettings.DeathWithFoodStoreMax = -0.1
+    // SETTINGS-LONG-TAIL
+    pub death_with_food_store_max: f32,
+    /// Haxe `FoodStoreMaxReductionWhileStarvingToDeath`.
+    // Haxe: ServerSettings.FoodStoreMaxReductionWhileStarvingToDeath = 5
+    // SETTINGS-LONG-TAIL
+    pub food_store_max_reduction_while_starving: f32,
+    /// Haxe `TemperatureReductionPerDrinking`.
+    // Haxe: ServerSettings.TemperatureReductionPerDrinking = 0.5
+    // SETTINGS-LONG-TAIL
+    pub temperature_reduction_per_drinking: f32,
+    /// Haxe `MaxStoredWater`.
+    // Haxe: ServerSettings.MaxStoredWater = 1
+    // SETTINGS-LONG-TAIL
+    pub max_stored_water: f32,
+    /// Haxe `MaxJumpsPerTenSec`.
+    // Haxe: ServerSettings.MaxJumpsPerTenSec = 10
+    // SETTINGS-LONG-TAIL
+    pub max_jumps_per_ten_sec: f32,
+    /// Haxe `TemperatureImpactPerSec`.
+    // Haxe: ServerSettings.TemperatureImpactPerSec = 0.03
+    // SETTINGS-LONG-TAIL
+    pub temperature_impact_per_sec: f32,
+    /// Haxe `TemperatureImpactPerSecIfGood`.
+    // Haxe: ServerSettings.TemperatureImpactPerSecIfGood = 0.06
+    // SETTINGS-LONG-TAIL
+    pub temperature_impact_per_sec_if_good: f32,
+    /// Haxe `TemperatureInWaterFactor`.
+    // Haxe: ServerSettings.TemperatureInWaterFactor = 1.5
+    // SETTINGS-LONG-TAIL
+    pub temperature_in_water_factor: f32,
+    /// Haxe `TemperatureImpactBelow`.
+    // Haxe: ServerSettings.TemperatureImpactBelow = 0.6
+    // SETTINGS-LONG-TAIL
+    pub temperature_impact_below: f32,
+    /// Haxe `TemperatureImpactColorFactor`.
+    // Haxe: ServerSettings.TemperatureImpactColorFactor = 0.5
+    // SETTINGS-LONG-TAIL
+    pub temperature_impact_color_factor: f32,
+    /// Haxe `AllowEatingOrFeedingIfIll`.
+    // Haxe: ServerSettings.AllowEatingOrFeedingIfIll = false
+    // SETTINGS-LONG-TAIL
+    pub allow_eating_or_feeding_if_ill: bool,
+    /// Haxe `ResistanceAgainstFeverForEatingMushrooms`.
+    // Haxe: ServerSettings.ResistanceAgainstFeverForEatingMushrooms = 0.2
+    // SETTINGS-LONG-TAIL
+    pub resistance_against_fever_for_eating_mushrooms: f32,
+    /// Haxe `ExhaustionYellowFeverPerSec`.
+    // Haxe: ServerSettings.ExhaustionYellowFeverPerSec = 0.1
+    // SETTINGS-LONG-TAIL
+    pub exhaustion_yellow_fever_per_sec: f32,
+    /// Haxe `MinHealthFoodStoreMaxFactor`.
+    // Haxe: ServerSettings.MinHealthFoodStoreMaxFactor = 0.8
+    // SETTINGS-LONG-TAIL
+    pub min_health_food_store_max_factor: f32,
+    /// Haxe `MaxHealthFoodStoreMaxFactor`.
+    // Haxe: ServerSettings.MaxHealthFoodStoreMaxFactor = 1.2
+    // SETTINGS-LONG-TAIL
+    pub max_health_food_store_max_factor: f32,
+    /// Haxe `MinHealthAgingFactor`.
+    // Haxe: ServerSettings.MinHealthAgingFactor = 0.5
+    // SETTINGS-LONG-TAIL
+    pub min_health_aging_factor: f32,
+    /// Haxe `MaxHealthAgingFactor`.
+    // Haxe: ServerSettings.MaxHealthAgingFactor = 2
+    // SETTINGS-LONG-TAIL
+    pub max_health_aging_factor: f32,
+    /// Haxe `MinHealthPerYear`.
+    // Haxe: ServerSettings.MinHealthPerYear = 1
+    // SETTINGS-LONG-TAIL
+    pub min_health_per_year: f32,
+    /// Haxe `MaxAge`.
+    // Haxe: ServerSettings.MaxAge = 60
+    // SETTINGS-LONG-TAIL
+    pub max_age: f32,
+    /// Haxe `AnimalDeadlyDistanceFactor`.
+    // Haxe: ServerSettings.AnimalDeadlyDistanceFactor = 0.5
+    // SETTINGS-LONG-TAIL
+    pub animal_deadly_distance_factor: f32,
+    /// Haxe `ChanceForAnimalDyingFactorIfInLovedBiome`.
+    // Haxe: ServerSettings.ChanceForAnimalDyingFactorIfInLovedBiome = 0.1
+    // SETTINGS-LONG-TAIL
+    pub chance_for_animal_dying_factor_if_in_loved_biome: f32,
+    /// Haxe `OffspringFactorIfAnimalPopIsLow`.
+    // Haxe: ServerSettings.OffspringFactorIfAnimalPopIsLow = 10
+    // SETTINGS-LONG-TAIL
+    pub offspring_factor_if_animal_pop_is_low: f32,
+    /// Haxe `MaxOffspringFactor`.
+    // Haxe: ServerSettings.MaxOffspringFactor = 1
+    // SETTINGS-LONG-TAIL
+    pub max_offspring_factor: f32,
+    /// Haxe `OffspringFactorLowAnimalPopulationBelow`.
+    // Haxe: ServerSettings.OffspringFactorLowAnimalPopulationBelow = 0.2
+    // SETTINGS-LONG-TAIL
+    pub offspring_factor_low_animal_population_below: f32,
 }
 
 /// One configured twin peer host:port (no last_pong — that lives in the sim stub registry).
@@ -437,6 +931,8 @@ impl Default for ServerConfig {
             max_players: 200,
             required_version: 437,
             client_version_strict: false,
+            last_vanilla_id: gameplay_defaults::LAST_VANILLA_ID,
+            open_life_client_name: gameplay_defaults::OPEN_LIFE_CLIENT_NAME.into(),
             content_path: PathBuf::from("content/OneLifeData7"),
             challenge_len: 48,
             tick_hz: 20,
@@ -490,6 +986,7 @@ impl Default for ServerConfig {
             yum_bonus: gameplay_defaults::YUM_BONUS,
             chance_for_offspring: gameplay_defaults::CHANCE_FOR_OFFSPRING,
             chance_for_animal_dying: gameplay_defaults::CHANCE_FOR_ANIMAL_DYING,
+            biome_animal_hit_chance: gameplay_defaults::BIOME_ANIMAL_HIT_CHANCE,
             hungry_work_cost: gameplay_defaults::HUNGRY_WORK_COST,
             birth_prestige_factor: gameplay_defaults::BIRTH_PRESTIGE_FACTOR,
             ally_strength_too_low_for_pickup: gameplay_defaults::ALLY_STRENGTH_TOO_LOW_FOR_PICKUP,
@@ -573,6 +1070,163 @@ impl Default for ServerConfig {
             ai_speed_factor_serf: gameplay_defaults::AI_SPEED_FACTOR_SERF,
             ai_speed_factor_commoner: gameplay_defaults::AI_SPEED_FACTOR_COMMONER,
             ai_speed_factor_noble: gameplay_defaults::AI_SPEED_FACTOR_NOBLE,
+            // SETTINGS-LONG-TAIL
+            starting_eve_age: gameplay_defaults::STARTING_EVE_AGE,
+            eve_or_adam_birth_chance: gameplay_defaults::EVE_OR_ADAM_BIRTH_CHANCE,
+            spawn_ai_as_eve: gameplay_defaults::SPAWN_AI_AS_EVE,
+            max_players_before_starting_as_child:
+                gameplay_defaults::MAX_PLAYERS_BEFORE_STARTING_AS_CHILD,
+            obj_decay_chance: gameplay_defaults::OBJ_DECAY_CHANCE,
+            floor_decay_chance: gameplay_defaults::FLOOR_DECAY_CHANCE,
+            obj_respawn_chance: gameplay_defaults::OBJ_RESPAWN_CHANCE,
+            grow_back_plants_increase_if_low_population:
+                gameplay_defaults::GROW_BACK_PLANTS_INCREASE_IF_LOW_POPULATION,
+            grow_back_original_plants_factor: gameplay_defaults::GROW_BACK_ORIGINAL_PLANTS_FACTOR,
+            grow_new_plants_from_existing_factor:
+                gameplay_defaults::GROW_NEW_PLANTS_FROM_EXISTING_FACTOR,
+            spring_wild_food_regrow_chance: gameplay_defaults::SPRING_WILD_FOOD_REGROW_CHANCE,
+            winter_wild_food_decay_chance: gameplay_defaults::WINTER_WILD_FOOD_DECAY_CHANCE,
+            hot_season_temperature_factor: gameplay_defaults::HOT_SEASON_TEMPERATURE_FACTOR,
+            cold_season_temperature_factor: gameplay_defaults::COLD_SEASON_TEMPERATURE_FACTOR,
+            cursed_grave_time: gameplay_defaults::CURSED_GRAVE_TIME,
+            animal_decay_factor: gameplay_defaults::ANIMAL_DECAY_FACTOR,
+            obj_decay_factor_for_permanent: gameplay_defaults::OBJ_DECAY_FACTOR_FOR_PERMANENT_OBJS,
+            obj_decay_factor_for_food: gameplay_defaults::OBJ_DECAY_FACTOR_FOR_FOOD,
+            obj_decay_factor_for_clothing: gameplay_defaults::OBJ_DECAY_FACTOR_FOR_CLOTHING,
+            obj_decay_factor_for_walls: gameplay_defaults::OBJ_DECAY_FACTOR_FOR_WALLS,
+            obj_decay_factor_per_tech_level: gameplay_defaults::OBJ_DECAY_FACTOR_PER_TECH_LEVEL,
+            decay_factor_in_deep_water: gameplay_defaults::DECAY_FACTOR_IN_DEEP_WATER,
+            decay_factor_in_mountain: gameplay_defaults::DECAY_FACTOR_IN_MOUNTAIN,
+            decay_factor_in_walkable_water: gameplay_defaults::DECAY_FACTOR_IN_WALKABLE_WATER,
+            decay_factor_in_jungle: gameplay_defaults::DECAY_FACTOR_IN_JUNGLE,
+            decay_factor_in_swamp: gameplay_defaults::DECAY_FACTOR_IN_SWAMP,
+            score_factor: gameplay_defaults::SCORE_FACTOR,
+            ancestor_prestige_factor: gameplay_defaults::ANCESTOR_PRESTIGE_FACTOR,
+            display_score_factor: gameplay_defaults::DISPLAY_SCORE_FACTOR,
+            display_score_on: gameplay_defaults::DISPLAY_SCORE_ON,
+            max_coins_per_chest: gameplay_defaults::MAX_COINS_PER_CHEST,
+            max_coins_per_pouch: gameplay_defaults::MAX_COINS_PER_POUCH,
+            chance_for_female_child: gameplay_defaults::CHANCE_FOR_FEMALE_CHILD,
+            chance_for_other_child_color: gameplay_defaults::CHANCE_FOR_OTHER_CHILD_COLOR,
+            chance_for_other_child_color_if_close_to_wrong_special_biome:
+                gameplay_defaults::CHANCE_FOR_OTHER_CHILD_COLOR_IF_CLOSE_TO_WRONG_SPECIAL_BIOME,
+            little_kids_per_mother: gameplay_defaults::LITTLE_KIDS_PER_MOTHER,
+            new_child_exhaustion_for_mother: gameplay_defaults::NEW_CHILD_EXHAUSTION_FOR_MOTHER,
+            ai_mother_birth_mali_for_human_child:
+                gameplay_defaults::AI_MOTHER_BIRTH_MALI_FOR_HUMAN_CHILD,
+            human_mother_birth_mali_for_ai_child:
+                gameplay_defaults::HUMAN_MOTHER_BIRTH_MALI_FOR_AI_CHILD,
+            spawn_at_last_dead: gameplay_defaults::SPAWN_AT_LAST_DEAD,
+            temperature_own_tile_rate: gameplay_defaults::TEMPERATURE_OWN_TILE_RATE,
+            temperature_balance_rate: gameplay_defaults::TEMPERATURE_BALANCE_RATE,
+            temperature_local_heat_factor: gameplay_defaults::TEMPERATURE_LOCAL_HEAT_FACTOR,
+            average_season_temperature_impact:
+                gameplay_defaults::AVERAGE_SEASON_TEMPERATURE_IMPACT,
+            ai_total_score_factor: gameplay_defaults::AI_TOTAL_SCORE_FACTOR,
+            old_grave_decay_mali: gameplay_defaults::OLD_GRAVE_DECAY_MALI,
+            cursed_grave_mali: gameplay_defaults::CURSED_GRAVE_MALI,
+            max_distance_close: gameplay_defaults::MAX_DISTANCE_CLOSE,
+            max_distance_map_changes: gameplay_defaults::MAX_DISTANCE_MAP_CHANGES,
+            max_distance_say: gameplay_defaults::MAX_DISTANCE_SAY,
+            send_move_every_x_ticks: gameplay_defaults::SEND_MOVE_EVERY_X_TICKS,
+            max_distance_cose_for_movement: gameplay_defaults::MAX_DISTANCE_COSE_FOR_MOVEMENT,
+            max_distance_say_ai: gameplay_defaults::MAX_DISTANCE_SAY_AI,
+            max_distance_auto_exile_attacker: gameplay_defaults::MAX_DISTANCE_AUTO_EXILE_ATTACKER,
+            speed_with_both_shoes: gameplay_defaults::SPEED_WITH_BOTH_SHOES,
+            aging_factor_while_starving: gameplay_defaults::AGING_FACTOR_WHILE_STARVING,
+            grown_up_age: gameplay_defaults::GROWN_UP_AGE,
+            food_use_child_faktor: gameplay_defaults::FOOD_USE_CHILD_FAKTOR,
+            ai_food_use_factor_serf: gameplay_defaults::AI_FOOD_USE_FACTOR_SERF,
+            ai_food_use_factor_commoner: gameplay_defaults::AI_FOOD_USE_FACTOR_COMMONER,
+            ai_food_use_factor_noble: gameplay_defaults::AI_FOOD_USE_FACTOR_NOBLE,
+            eve_food_use_factor: gameplay_defaults::EVE_FOOD_USE_FACTOR,
+            aging_factor_human_born_to_ai: gameplay_defaults::AGING_FACTOR_HUMAN_BORN_TO_AI,
+            aging_factor_ai_born_to_human: gameplay_defaults::AGING_FACTOR_AI_BORN_TO_HUMAN,
+            eve_damage_factor: gameplay_defaults::EVE_DAMAGE_FACTOR,
+            target_wounded_damage_factor: gameplay_defaults::TARGET_WOUNDED_DAMAGE_FACTOR,
+            male_damage_factor: gameplay_defaults::MALE_DAMAGE_FACTOR,
+            animal_damage_factor: gameplay_defaults::ANIMAL_DAMAGE_FACTOR,
+            animal_damage_factor_in_winter: gameplay_defaults::ANIMAL_DAMAGE_FACTOR_IN_WINTER,
+            animal_damage_factor_if_attacked: gameplay_defaults::ANIMAL_DAMAGE_FACTOR_IF_ATTACKED,
+            weapon_damage_factor: gameplay_defaults::WEAPON_DAMAGE_FACTOR,
+            grave_blocking_distance: gameplay_defaults::GRAVE_BLOCKING_DISTANCE,
+            max_players_before_activating_grave_curse:
+                gameplay_defaults::MAX_PLAYERS_BEFORE_ACTIVATING_GRAVE_CURSE,
+            max_players_before_forbid_touch_grave:
+                gameplay_defaults::MAX_PLAYERS_BEFORE_FORBID_TOUCH_GRAVE,
+            combat_angry_time_before_attack: gameplay_defaults::COMBAT_ANGRY_TIME_BEFORE_ATTACK,
+            combat_angry_time_minimum: gameplay_defaults::COMBAT_ANGRY_TIME_MINIMUM,
+            chance_for_domestic_animal_dying_factor:
+                gameplay_defaults::CHANCE_FOR_DOMESTIC_ANIMAL_DYING_FACTOR,
+            door_ids: crate::DOOR_IDS.to_vec(),
+            ai_ignored_floor_ids: crate::AI_IGNORED_FLOOR_IDS.to_vec(),
+            secret: gameplay_defaults::SECRET.to_string(),
+            allow_debug_commands: true,
+            ai_time_to_wait_if_crafting_failed: gameplay_defaults::AI_TIME_TO_WAIT_IF_CRAFTING_FAILED,
+            ai_max_search_radius: gameplay_defaults::AI_MAX_SEARCH_RADIUS,
+            ai_max_search_increment: gameplay_defaults::AI_MAX_SEARCH_INCREMENT,
+            ai_ignore_time_transitions_longer_then:
+                gameplay_defaults::AI_IGNORE_TIME_TRANSITIONS_LONGER_THEN,
+            ai_memory_max_entries: gameplay_defaults::AI_MEMORY_MAX_ENTRIES,
+            ai_chat_memory_max_entries: gameplay_defaults::AI_CHAT_MEMORY_MAX_ENTRIES,
+            alternative_outcome_percent_increase_per_hit:
+                gameplay_defaults::ALTERNATIVE_OUTCOME_PERCENT_INCREASE_PER_HIT,
+            alternative_outcome_hits_decrease_on_success:
+                gameplay_defaults::ALTERNATIVE_OUTCOME_HITS_DECREASE_ON_SUCCESS,
+            fortification_cost_per_hit: gameplay_defaults::FORTIFICATION_COST_PER_HIT,
+            reduce_age_needed_to_pickup_objects:
+                gameplay_defaults::REDUCE_AGE_NEEDED_TO_PICKUP_OBJECTS,
+            chance_animals_pass_blocking_biome:
+                gameplay_defaults::CHANCE_ANIMALS_PASS_BLOCKING_BIOME,
+            chance_preferred_biome: gameplay_defaults::CHANCE_PREFERRED_BIOME,
+            close_grave_speed_mali: gameplay_defaults::CLOSE_GRAVE_SPEED_MALI,
+            temperature_speed_impact: gameplay_defaults::TEMPERATURE_SPEED_IMPACT,
+            min_speed_reduction_per_contained_obj:
+                gameplay_defaults::MIN_SPEED_REDUCTION_PER_CONTAINED_OBJ,
+            loved_food_use_chance: gameplay_defaults::LOVED_FOOD_USE_CHANCE,
+            max_age_for_allowing_cloth_and_pickup_from_others:
+                gameplay_defaults::MAX_AGE_FOR_ALLOWING_CLOTH_AND_PICKUP_FROM_OTHERS,
+            max_age_for_allowing_die: gameplay_defaults::MAX_AGE_FOR_ALLOWING_DIE,
+            prestige_cost_for_die: gameplay_defaults::PRESTIGE_COST_FOR_DIE,
+            starting_family_name: gameplay_defaults::STARTING_FAMILY_NAME.to_string(),
+            starting_name: gameplay_defaults::STARTING_NAME.to_string(),
+            found_family_needed_prestige: gameplay_defaults::FOUND_FAMILY_NEEDED_PRESTIGE,
+            found_family_cost: gameplay_defaults::FOUND_FAMILY_COST,
+            found_family_needed_followers: gameplay_defaults::FOUND_FAMILY_NEEDED_FOLLOWERS,
+            found_family_break_alliance_chance: gameplay_defaults::FOUND_FAMILY_BREAK_ALLIANCE_CHANCE,
+            pickup_exhaustion_gain: gameplay_defaults::PICKUP_EXHAUSTION_GAIN,
+            pickup_feeding_food_restore: gameplay_defaults::PICKUP_FEEDING_FOOD_RESTORE,
+            death_with_food_store_max: gameplay_defaults::DEATH_WITH_FOOD_STORE_MAX,
+            food_store_max_reduction_while_starving:
+                gameplay_defaults::FOOD_STORE_MAX_REDUCTION_WHILE_STARVING,
+            temperature_reduction_per_drinking:
+                gameplay_defaults::TEMPERATURE_REDUCTION_PER_DRINKING,
+            max_stored_water: gameplay_defaults::MAX_STORED_WATER,
+            max_jumps_per_ten_sec: gameplay_defaults::MAX_JUMPS_PER_TEN_SEC,
+            temperature_impact_per_sec: gameplay_defaults::TEMPERATURE_IMPACT_PER_SEC,
+            temperature_impact_per_sec_if_good:
+                gameplay_defaults::TEMPERATURE_IMPACT_PER_SEC_IF_GOOD,
+            temperature_in_water_factor: gameplay_defaults::TEMPERATURE_IN_WATER_FACTOR,
+            temperature_impact_below: gameplay_defaults::TEMPERATURE_IMPACT_BELOW,
+            temperature_impact_color_factor: gameplay_defaults::TEMPERATURE_IMPACT_COLOR_FACTOR,
+            allow_eating_or_feeding_if_ill: gameplay_defaults::ALLOW_EATING_OR_FEEDING_IF_ILL,
+            resistance_against_fever_for_eating_mushrooms:
+                gameplay_defaults::RESISTANCE_AGAINST_FEVER_FOR_EATING_MUSHROOMS,
+            exhaustion_yellow_fever_per_sec: gameplay_defaults::EXHAUSTION_YELLOW_FEVER_PER_SEC,
+            min_health_food_store_max_factor: gameplay_defaults::MIN_HEALTH_FOOD_STORE_MAX_FACTOR,
+            max_health_food_store_max_factor: gameplay_defaults::MAX_HEALTH_FOOD_STORE_MAX_FACTOR,
+            min_health_aging_factor: gameplay_defaults::MIN_HEALTH_AGING_FACTOR,
+            max_health_aging_factor: gameplay_defaults::MAX_HEALTH_AGING_FACTOR,
+            min_health_per_year: gameplay_defaults::MIN_HEALTH_PER_YEAR,
+            max_age: gameplay_defaults::MAX_AGE,
+            animal_deadly_distance_factor: gameplay_defaults::ANIMAL_DEADLY_DISTANCE_FACTOR,
+            chance_for_animal_dying_factor_if_in_loved_biome:
+                gameplay_defaults::CHANCE_FOR_ANIMAL_DYING_FACTOR_IF_IN_LOVED_BIOME,
+            offspring_factor_if_animal_pop_is_low:
+                gameplay_defaults::OFFSPRING_FACTOR_IF_ANIMAL_POP_IS_LOW,
+            max_offspring_factor: gameplay_defaults::MAX_OFFSPRING_FACTOR,
+            offspring_factor_low_animal_population_below:
+                gameplay_defaults::OFFSPRING_FACTOR_LOW_ANIMAL_POPULATION_BELOW,
         }
     }
 }
@@ -593,12 +1247,18 @@ pub struct LiveSettings {
     pub shutdown_countdown_secs: u32,
     pub shutdown_apocalypse_secs: u32,
     pub client_version_strict: bool,
+    /// Haxe `lastVanillaID` (`< 1` = mapping off).
+    pub last_vanilla_id: i32,
+    /// Haxe `OpenLifeClientName`.
+    pub open_life_client_name: String,
     pub eternal_winter: bool,
     /// Sim seconds per season (from `season_duration_years * HAXE_YEAR_SECS`).
     pub season_length_secs: f32,
     pub npc_enabled: bool,
     pub npc_min: u32,
     pub npc_max: u32,
+    /// Haxe `MaxPlayers` — living humans+AIs cap (LOGIN policy).
+    pub max_players: u32,
     pub ai_think_period_ticks: u32,
     /// Haxe `AiReactionTime` (Commoner seconds).
     pub ai_reaction_time: f32,
@@ -632,6 +1292,9 @@ pub struct LiveSettings {
     pub yum_bonus: f32,
     pub chance_for_offspring: f32,
     pub chance_for_animal_dying: f32,
+    /// Haxe `BiomeAnimalHitChance`.
+    // MOSQUITO-MAPCHANCE
+    pub biome_animal_hit_chance: f32,
     pub hungry_work_cost: f32,
     pub birth_prestige_factor: f32,
     pub ally_strength_too_low_for_pickup: f32,
@@ -793,6 +1456,385 @@ pub struct LiveSettings {
     /// Haxe `AISpeedFactorNoble`.
     // C-SS-MORE-BATCH5
     pub ai_speed_factor_noble: f32,
+    /// Haxe `StartingEveAge`.
+    // SETTINGS-LONG-TAIL
+    pub starting_eve_age: f32,
+    /// Haxe `EveOrAdamBirthChance`.
+    // SETTINGS-LONG-TAIL
+    pub eve_or_adam_birth_chance: f32,
+    /// Haxe `SpawnAiAsEve`.
+    // SETTINGS-LONG-TAIL
+    pub spawn_ai_as_eve: bool,
+    /// Haxe `MaxPlayersBeforeStartingAsChild`.
+    // SETTINGS-LONG-TAIL
+    pub max_players_before_starting_as_child: i32,
+    /// Haxe `ObjDecayChance`.
+    // SETTINGS-LONG-TAIL
+    pub obj_decay_chance: f32,
+    /// Haxe `FloorDecayChance`.
+    // SETTINGS-LONG-TAIL
+    pub floor_decay_chance: f32,
+    /// Haxe `ObjRespawnChance`.
+    // SETTINGS-LONG-TAIL
+    pub obj_respawn_chance: f32,
+    /// Haxe `GrowBackPlantsIncreaseIfLowPopulation`.
+    // SETTINGS-LONG-TAIL
+    pub grow_back_plants_increase_if_low_population: f32,
+    /// Haxe `GrowBackOriginalPlantsFactor`.
+    // SETTINGS-LONG-TAIL
+    pub grow_back_original_plants_factor: f32,
+    /// Haxe `GrowNewPlantsFromExistingFactor`.
+    // SETTINGS-LONG-TAIL
+    pub grow_new_plants_from_existing_factor: f32,
+    /// Haxe `SpringWildFoodRegrowChance`.
+    // SETTINGS-LONG-TAIL
+    pub spring_wild_food_regrow_chance: f32,
+    /// Haxe `WinterWildFoodDecayChance`.
+    // SETTINGS-LONG-TAIL
+    pub winter_wild_food_decay_chance: f32,
+    /// Haxe `HotSeasonTemperatureFactor`.
+    // SETTINGS-LONG-TAIL
+    pub hot_season_temperature_factor: f32,
+    /// Haxe `ColdSeasonTemperatureFactor`.
+    // SETTINGS-LONG-TAIL
+    pub cold_season_temperature_factor: f32,
+    /// Haxe `CursedGraveTime`.
+    // SETTINGS-LONG-TAIL
+    pub cursed_grave_time: f32,
+    /// Haxe `AnimalDecayFactor`.
+    // SETTINGS-LONG-TAIL
+    pub animal_decay_factor: f32,
+    /// Haxe `ObjDecayFactorForPermanentObjs`.
+    // SETTINGS-LONG-TAIL
+    pub obj_decay_factor_for_permanent: f32,
+    /// Haxe `ObjDecayFactorForFood`.
+    // SETTINGS-LONG-TAIL
+    pub obj_decay_factor_for_food: f32,
+    /// Haxe `ObjDecayFactorForClothing`.
+    // SETTINGS-LONG-TAIL
+    pub obj_decay_factor_for_clothing: f32,
+    /// Haxe `ObjDecayFactorForWalls`.
+    // SETTINGS-LONG-TAIL
+    pub obj_decay_factor_for_walls: f32,
+    /// Haxe `ObjDecayFactorPerTechLevel`.
+    // SETTINGS-LONG-TAIL
+    pub obj_decay_factor_per_tech_level: f32,
+    /// Haxe `DecayFactorInDeepWater`.
+    // SETTINGS-LONG-TAIL
+    pub decay_factor_in_deep_water: f32,
+    /// Haxe `DecayFactorInMountain`.
+    // SETTINGS-LONG-TAIL
+    pub decay_factor_in_mountain: f32,
+    /// Haxe `DecayFactorInWalkableWater`.
+    // SETTINGS-LONG-TAIL
+    pub decay_factor_in_walkable_water: f32,
+    /// Haxe `DecayFactorInJungle`.
+    // SETTINGS-LONG-TAIL
+    pub decay_factor_in_jungle: f32,
+    /// Haxe `DecayFactorInSwamp`.
+    // SETTINGS-LONG-TAIL
+    pub decay_factor_in_swamp: f32,
+    /// Haxe `ScoreFactor`.
+    // SETTINGS-LONG-TAIL
+    pub score_factor: f32,
+    /// Haxe `AncestorPrestigeFactor`.
+    pub ancestor_prestige_factor: f32,
+    /// Haxe `DisplayScoreFactor`.
+    pub display_score_factor: f32,
+    /// Haxe `DisplayScoreOn`.
+    // SETTINGS-KNOB-TAIL
+    pub display_score_on: bool,
+    /// Haxe `MaxCoinsPerChest`.
+    // SETTINGS-KNOB-TAIL
+    pub max_coins_per_chest: i32,
+    /// Haxe `MaxCoinsPerPouch`.
+    // SETTINGS-KNOB-TAIL
+    pub max_coins_per_pouch: i32,
+    /// Haxe `ChanceForFemaleChild`.
+    // SETTINGS-KNOB-TAIL
+    pub chance_for_female_child: f32,
+    /// Haxe `ChanceForOtherChildColor`.
+    // SETTINGS-KNOB-TAIL
+    pub chance_for_other_child_color: f32,
+    /// Haxe `ChanceForOtherChildColorIfCloseToWrongSpecialBiome`.
+    // SETTINGS-KNOB-TAIL
+    pub chance_for_other_child_color_if_close_to_wrong_special_biome: f32,
+    /// Haxe `LittleKidsPerMother`.
+    // SETTINGS-KNOB-TAIL
+    pub little_kids_per_mother: i32,
+    /// Haxe `NewChildExhaustionForMother`.
+    // SETTINGS-KNOB-TAIL
+    pub new_child_exhaustion_for_mother: f32,
+    /// Haxe `AiMotherBirthMaliForHumanChild`.
+    // SETTINGS-KNOB-TAIL
+    pub ai_mother_birth_mali_for_human_child: f32,
+    /// Haxe `HumanMotherBirthMaliForAiChild`.
+    // SETTINGS-KNOB-TAIL
+    pub human_mother_birth_mali_for_ai_child: f32,
+    /// Haxe `SpwanAtLastDead` (typo Spwan).
+    // SETTINGS-KNOB-TAIL
+    pub spawn_at_last_dead: bool,
+    /// Haxe `TemperatureOwnTileRate`.
+    // SETTINGS-KNOB-TAIL
+    pub temperature_own_tile_rate: f32,
+    /// Haxe `TemperatureBalanceRate`.
+    // SETTINGS-KNOB-TAIL
+    pub temperature_balance_rate: f32,
+    /// Haxe `TemperatureLocalHeatFactor`.
+    // SETTINGS-KNOB-TAIL
+    pub temperature_local_heat_factor: f32,
+    /// Haxe `AverageSeasonTemperatureImpact`.
+    // SETTINGS-KNOB-TAIL
+    pub average_season_temperature_impact: f32,
+    /// Haxe `AiTotalScoreFactor`.
+    pub ai_total_score_factor: f32,
+    /// Haxe `OldGraveDecayMali`.
+    pub old_grave_decay_mali: f32,
+    /// Haxe `CursedGraveMali`.
+    pub cursed_grave_mali: f32,
+    /// Haxe `MaxDistanceToBeConsideredAsClose`.
+    pub max_distance_close: i32,
+    /// Haxe `MaxDistanceToBeConsideredAsCloseForMapChanges`.
+    pub max_distance_map_changes: i32,
+    /// Haxe `MaxDistanceToBeConsideredAsCloseForSay`.
+    pub max_distance_say: i32,
+    /// Haxe `SendMoveEveryXTicks` (`-1` = disabled).
+    // SETTINGS-LONG-TAIL
+    pub send_move_every_x_ticks: i32,
+    /// Haxe `MaxDistanceToBeConsideredAsCoseForMovement` (typo Cose).
+    // SETTINGS-LONG-TAIL
+    pub max_distance_cose_for_movement: i32,
+    /// Haxe `MaxDistanceToBeConsideredAsCloseForSayAi`.
+    // SETTINGS-LONG-TAIL
+    pub max_distance_say_ai: f32,
+    /// Haxe `MaxDistanceToAutoExileAttacker`.
+    pub max_distance_auto_exile_attacker: i32,
+    /// Haxe `SpeedWithBothShoes`.
+    // SETTINGS-LONG-TAIL
+    pub speed_with_both_shoes: f32,
+    /// Haxe `AgingFactorWhileStarvingToDeath`.
+    // SETTINGS-LONG-TAIL
+    pub aging_factor_while_starving: f32,
+    /// Haxe `GrownUpAge`.
+    // SETTINGS-LONG-TAIL
+    pub grown_up_age: f32,
+    /// Haxe `FoodUseChildFaktor`.
+    // SETTINGS-LONG-TAIL
+    pub food_use_child_faktor: f32,
+    /// Haxe `AIFoodUseFactorSerf`.
+    // SETTINGS-LONG-TAIL
+    pub ai_food_use_factor_serf: f32,
+    /// Haxe `AIFoodUseFactorCommoner`.
+    // SETTINGS-LONG-TAIL
+    pub ai_food_use_factor_commoner: f32,
+    /// Haxe `AIFoodUseFactorNoble`.
+    // SETTINGS-LONG-TAIL
+    pub ai_food_use_factor_noble: f32,
+    /// Haxe `EveFoodUseFactor`.
+    // SETTINGS-LONG-TAIL
+    pub eve_food_use_factor: f32,
+    /// Haxe `AgingFactorHumanBornToAi`.
+    pub aging_factor_human_born_to_ai: f32,
+    /// Haxe `AgingFactorAiBornToHuman`.
+    pub aging_factor_ai_born_to_human: f32,
+    /// Haxe `EveDamageFactor`.
+    // SETTINGS-LONG-TAIL
+    pub eve_damage_factor: f32,
+    /// Haxe `TargetWoundedDamageFactor`.
+    // SETTINGS-LONG-TAIL
+    pub target_wounded_damage_factor: f32,
+    /// Haxe `MaleDamageFactor`.
+    // SETTINGS-LONG-TAIL
+    pub male_damage_factor: f32,
+    /// Haxe `AnimalDamageFactor`.
+    // SETTINGS-LONG-TAIL
+    pub animal_damage_factor: f32,
+    /// Haxe `AnimalDamageFactorInWinter`.
+    // SETTINGS-LONG-TAIL
+    pub animal_damage_factor_in_winter: f32,
+    /// Haxe `AnimalDamageFactorIfAttacked`.
+    // SETTINGS-LONG-TAIL
+    pub animal_damage_factor_if_attacked: f32,
+    /// Haxe `WeaponDamageFactor`.
+    // SETTINGS-LONG-TAIL
+    pub weapon_damage_factor: f32,
+    /// Haxe `GraveBlockingDistance`.
+    // SETTINGS-LONG-TAIL
+    pub grave_blocking_distance: f32,
+    /// Haxe `MaxPlayersBeforeActivatingGraveCurse`.
+    // SETTINGS-LONG-TAIL
+    pub max_players_before_activating_grave_curse: i32,
+    /// Haxe `MaxPlayersBeforeForbidTouchGrave`.
+    // GRAVE-TOUCH-PLAYERS
+    pub max_players_before_forbid_touch_grave: i32,
+    /// Haxe `CombatAngryTimeBeforeAttack`.
+    // SETTINGS-LONG-TAIL
+    pub combat_angry_time_before_attack: f32,
+    /// Haxe `CombatAngryTimeMinimum` (angry recovery floor while killMode).
+    pub combat_angry_time_minimum: f32,
+    /// Haxe `ChanceForDomesticAnimalDyingFactor` (applied; Haxe line was unassigned).
+    pub chance_for_domestic_animal_dying_factor: f32,
+    /// Haxe `DoorIds` live table (empty → compiled default).
+    pub door_ids: Vec<i32>,
+    /// Haxe `AiIgnoredFloorIds` live table (empty → compiled default).
+    pub ai_ignored_floor_ids: Vec<i32>,
+    /// Haxe `Secret` for SAY `!S` (do not log the value).
+    pub secret: String,
+    /// Haxe `AllowDebugCommmands` — gates `DoDebugCommands` including `!S`.
+    pub allow_debug_commands: bool,
+    /// Haxe `AiTimeToWaitIfCraftingFailed`.
+    // SETTINGS-LONG-TAIL
+    pub ai_time_to_wait_if_crafting_failed: f32,
+    /// Haxe `AiMaxSearchRadius`.
+    // SETTINGS-LONG-TAIL
+    pub ai_max_search_radius: i32,
+    /// Haxe `AiMaxSearchIncrement`.
+    // SETTINGS-LONG-TAIL
+    pub ai_max_search_increment: i32,
+    /// Haxe `AiIgnoreTimeTransitionsLongerThen`.
+    // SETTINGS-LONG-TAIL
+    pub ai_ignore_time_transitions_longer_then: f32,
+    /// Haxe `AiMemoryMaxEntries`.
+    // SOUL-LIVE-CAPS
+    pub ai_memory_max_entries: i32,
+    /// Haxe `AiChatMemoryMaxEntries`.
+    // SOUL-LIVE-CAPS
+    pub ai_chat_memory_max_entries: i32,
+    /// Haxe `AlternativeOutcomePercentIncreasePerHit`.
+    // SETTINGS-LONG-TAIL
+    pub alternative_outcome_percent_increase_per_hit: f32,
+    /// Haxe `AlternativeOutcomeHitsDecreaseOnSucess`.
+    // SETTINGS-LONG-TAIL
+    pub alternative_outcome_hits_decrease_on_success: f32,
+    /// Haxe `FortificationCosePerHit`.
+    // TH-ALT-LIVE-KNOBS
+    pub fortification_cost_per_hit: f32,
+    /// Haxe `ReduceAgeNeededToPickupObjects`.
+    // MIN-PICKUP-AGE
+    pub reduce_age_needed_to_pickup_objects: f32,
+    /// Haxe `ChanceThatAnimalsCanPassBlockingBiome`.
+    // SETTINGS-LONG-TAIL
+    pub chance_animals_pass_blocking_biome: f32,
+    /// Haxe `chancePreferredBiome`.
+    // SETTINGS-LONG-TAIL
+    pub chance_preferred_biome: f32,
+    /// Haxe `CloseGraveSpeedMali`.
+    // SETTINGS-LONG-TAIL
+    pub close_grave_speed_mali: f32,
+    /// Haxe `TemperatureSpeedImpact`.
+    // SETTINGS-LONG-TAIL
+    pub temperature_speed_impact: f32,
+    /// Haxe `MinSpeedReductionPerContainedObj`.
+    // SETTINGS-LONG-TAIL
+    pub min_speed_reduction_per_contained_obj: f32,
+    /// Haxe `LovedFoodUseChance`.
+    // SETTINGS-LONG-TAIL
+    pub loved_food_use_chance: f32,
+    /// Haxe `MaxAgeForAllowingClothAndPrickupFromOthers`.
+    // SETTINGS-LONG-TAIL
+    pub max_age_for_allowing_cloth_and_pickup_from_others: f32,
+    /// Haxe `MaxAgeForAllowingDie`.
+    // SETTINGS-LONG-TAIL
+    pub max_age_for_allowing_die: f32,
+    /// Haxe `PrestigeCostForDie`.
+    // SETTINGS-LONG-TAIL
+    pub prestige_cost_for_die: f32,
+    /// Haxe `StartingFamilyName`.
+    // SETTINGS-LONG-TAIL
+    pub starting_family_name: String,
+    /// Haxe `StartingName`.
+    // SETTINGS-LONG-TAIL
+    pub starting_name: String,
+    /// Haxe `FoundFamilyNeededPrestige`.
+    // SETTINGS-LONG-TAIL
+    pub found_family_needed_prestige: f32,
+    /// Haxe `FoundFamilyCost`.
+    // SETTINGS-LONG-TAIL
+    pub found_family_cost: f32,
+    /// Haxe `FoundFamilyNeededFollowers`.
+    // SETTINGS-LONG-TAIL
+    pub found_family_needed_followers: i32,
+    /// Haxe `FoundFamilyBreakAllianceChance`.
+    // SETTINGS-LONG-TAIL
+    pub found_family_break_alliance_chance: f32,
+    /// Haxe `PickupExhaustionGain`.
+    // SETTINGS-LONG-TAIL
+    pub pickup_exhaustion_gain: f32,
+    /// Haxe `PickupFeedingFoodRestore`.
+    // SETTINGS-LONG-TAIL
+    pub pickup_feeding_food_restore: f32,
+    /// Haxe `DeathWithFoodStoreMax`.
+    // SETTINGS-LONG-TAIL
+    pub death_with_food_store_max: f32,
+    /// Haxe `FoodStoreMaxReductionWhileStarvingToDeath`.
+    // SETTINGS-LONG-TAIL
+    pub food_store_max_reduction_while_starving: f32,
+    /// Haxe `TemperatureReductionPerDrinking`.
+    // SETTINGS-LONG-TAIL
+    pub temperature_reduction_per_drinking: f32,
+    /// Haxe `MaxStoredWater`.
+    // SETTINGS-LONG-TAIL
+    pub max_stored_water: f32,
+    /// Haxe `MaxJumpsPerTenSec`.
+    // SETTINGS-LONG-TAIL
+    pub max_jumps_per_ten_sec: f32,
+    /// Haxe `TemperatureImpactPerSec`.
+    // SETTINGS-LONG-TAIL
+    pub temperature_impact_per_sec: f32,
+    /// Haxe `TemperatureImpactPerSecIfGood`.
+    // SETTINGS-LONG-TAIL
+    pub temperature_impact_per_sec_if_good: f32,
+    /// Haxe `TemperatureInWaterFactor`.
+    // SETTINGS-LONG-TAIL
+    pub temperature_in_water_factor: f32,
+    /// Haxe `TemperatureImpactBelow`.
+    // SETTINGS-LONG-TAIL
+    pub temperature_impact_below: f32,
+    /// Haxe `TemperatureImpactColorFactor`.
+    // SETTINGS-LONG-TAIL
+    pub temperature_impact_color_factor: f32,
+    /// Haxe `AllowEatingOrFeedingIfIll`.
+    // SETTINGS-LONG-TAIL
+    pub allow_eating_or_feeding_if_ill: bool,
+    /// Haxe `ResistanceAgainstFeverForEatingMushrooms`.
+    // SETTINGS-LONG-TAIL
+    pub resistance_against_fever_for_eating_mushrooms: f32,
+    /// Haxe `ExhaustionYellowFeverPerSec`.
+    // SETTINGS-LONG-TAIL
+    pub exhaustion_yellow_fever_per_sec: f32,
+    /// Haxe `MinHealthFoodStoreMaxFactor`.
+    // SETTINGS-LONG-TAIL
+    pub min_health_food_store_max_factor: f32,
+    /// Haxe `MaxHealthFoodStoreMaxFactor`.
+    // SETTINGS-LONG-TAIL
+    pub max_health_food_store_max_factor: f32,
+    /// Haxe `MinHealthAgingFactor`.
+    // SETTINGS-LONG-TAIL
+    pub min_health_aging_factor: f32,
+    /// Haxe `MaxHealthAgingFactor`.
+    // SETTINGS-LONG-TAIL
+    pub max_health_aging_factor: f32,
+    /// Haxe `MinHealthPerYear`.
+    // SETTINGS-LONG-TAIL
+    pub min_health_per_year: f32,
+    /// Haxe `MaxAge`.
+    // SETTINGS-LONG-TAIL
+    pub max_age: f32,
+    /// Haxe `AnimalDeadlyDistanceFactor`.
+    // SETTINGS-LONG-TAIL
+    pub animal_deadly_distance_factor: f32,
+    /// Haxe `ChanceForAnimalDyingFactorIfInLovedBiome`.
+    // SETTINGS-LONG-TAIL
+    pub chance_for_animal_dying_factor_if_in_loved_biome: f32,
+    /// Haxe `OffspringFactorIfAnimalPopIsLow`.
+    // SETTINGS-LONG-TAIL
+    pub offspring_factor_if_animal_pop_is_low: f32,
+    /// Haxe `MaxOffspringFactor`.
+    // SETTINGS-LONG-TAIL
+    pub max_offspring_factor: f32,
+    /// Haxe `OffspringFactorLowAnimalPopulationBelow`.
+    // SETTINGS-LONG-TAIL
+    pub offspring_factor_low_animal_population_below: f32,
 }
 
 impl ServerConfig {
@@ -947,11 +1989,21 @@ impl ServerConfig {
             shutdown_countdown_secs: self.shutdown_countdown_secs.max(1),
             shutdown_apocalypse_secs: self.shutdown_apocalypse_secs.max(1),
             client_version_strict: self.client_version_strict,
+            last_vanilla_id: self.last_vanilla_id,
+            open_life_client_name: {
+                let n = self.open_life_client_name.trim();
+                if n.is_empty() {
+                    gameplay_defaults::OPEN_LIFE_CLIENT_NAME.to_string()
+                } else {
+                    n.to_string()
+                }
+            },
             eternal_winter: self.eternal_winter,
             season_length_secs: self.season_length_secs(),
             npc_enabled: self.npc_enabled,
             npc_min: self.npc_min,
             npc_max: self.npc_max.max(self.npc_min),
+            max_players: self.max_players.max(1),
             ai_think_period_ticks: self.ai_think_period_ticks.max(1),
             ai_reaction_time: sanitize_positive_or(
                 self.ai_reaction_time,
@@ -1009,6 +2061,10 @@ impl ServerConfig {
             chance_for_animal_dying: sanitize_nonneg_or(
                 self.chance_for_animal_dying,
                 gameplay_defaults::CHANCE_FOR_ANIMAL_DYING,
+            ),
+            biome_animal_hit_chance: sanitize_nonneg_or(
+                self.biome_animal_hit_chance,
+                gameplay_defaults::BIOME_ANIMAL_HIT_CHANCE,
             ),
             hungry_work_cost: sanitize_nonneg_or(
                 self.hungry_work_cost,
@@ -1258,6 +2314,515 @@ impl ServerConfig {
                 self.ai_speed_factor_noble,
                 gameplay_defaults::AI_SPEED_FACTOR_NOBLE,
             ),
+            // SETTINGS-LONG-TAIL
+            starting_eve_age: sanitize_positive_or(
+                self.starting_eve_age,
+                gameplay_defaults::STARTING_EVE_AGE,
+            ),
+            eve_or_adam_birth_chance: sanitize_nonneg_or(
+                self.eve_or_adam_birth_chance,
+                gameplay_defaults::EVE_OR_ADAM_BIRTH_CHANCE,
+            ),
+            spawn_ai_as_eve: self.spawn_ai_as_eve,
+            max_players_before_starting_as_child: self.max_players_before_starting_as_child,
+            obj_decay_chance: sanitize_nonneg_or(
+                self.obj_decay_chance,
+                gameplay_defaults::OBJ_DECAY_CHANCE,
+            ),
+            floor_decay_chance: sanitize_nonneg_or(
+                self.floor_decay_chance,
+                gameplay_defaults::FLOOR_DECAY_CHANCE,
+            ),
+            obj_respawn_chance: sanitize_nonneg_or(
+                self.obj_respawn_chance,
+                gameplay_defaults::OBJ_RESPAWN_CHANCE,
+            ),
+            grow_back_plants_increase_if_low_population: sanitize_positive_or(
+                self.grow_back_plants_increase_if_low_population,
+                gameplay_defaults::GROW_BACK_PLANTS_INCREASE_IF_LOW_POPULATION,
+            ),
+            grow_back_original_plants_factor: sanitize_nonneg_or(
+                self.grow_back_original_plants_factor,
+                gameplay_defaults::GROW_BACK_ORIGINAL_PLANTS_FACTOR,
+            ),
+            grow_new_plants_from_existing_factor: sanitize_nonneg_or(
+                self.grow_new_plants_from_existing_factor,
+                gameplay_defaults::GROW_NEW_PLANTS_FROM_EXISTING_FACTOR,
+            ),
+            spring_wild_food_regrow_chance: sanitize_nonneg_or(
+                self.spring_wild_food_regrow_chance,
+                gameplay_defaults::SPRING_WILD_FOOD_REGROW_CHANCE,
+            ),
+            winter_wild_food_decay_chance: sanitize_nonneg_or(
+                self.winter_wild_food_decay_chance,
+                gameplay_defaults::WINTER_WILD_FOOD_DECAY_CHANCE,
+            ),
+            hot_season_temperature_factor: sanitize_nonneg_or(
+                self.hot_season_temperature_factor,
+                gameplay_defaults::HOT_SEASON_TEMPERATURE_FACTOR,
+            ),
+            cold_season_temperature_factor: sanitize_nonneg_or(
+                self.cold_season_temperature_factor,
+                gameplay_defaults::COLD_SEASON_TEMPERATURE_FACTOR,
+            ),
+            cursed_grave_time: sanitize_nonneg_or(
+                self.cursed_grave_time,
+                gameplay_defaults::CURSED_GRAVE_TIME,
+            ),
+            animal_decay_factor: sanitize_nonneg_or(
+                self.animal_decay_factor,
+                gameplay_defaults::ANIMAL_DECAY_FACTOR,
+            ),
+            obj_decay_factor_for_permanent: sanitize_nonneg_or(
+                self.obj_decay_factor_for_permanent,
+                gameplay_defaults::OBJ_DECAY_FACTOR_FOR_PERMANENT_OBJS,
+            ),
+            obj_decay_factor_for_food: sanitize_positive_or(
+                self.obj_decay_factor_for_food,
+                gameplay_defaults::OBJ_DECAY_FACTOR_FOR_FOOD,
+            ),
+            obj_decay_factor_for_clothing: sanitize_positive_or(
+                self.obj_decay_factor_for_clothing,
+                gameplay_defaults::OBJ_DECAY_FACTOR_FOR_CLOTHING,
+            ),
+            obj_decay_factor_for_walls: sanitize_positive_or(
+                self.obj_decay_factor_for_walls,
+                gameplay_defaults::OBJ_DECAY_FACTOR_FOR_WALLS,
+            ),
+            obj_decay_factor_per_tech_level: sanitize_positive_or(
+                self.obj_decay_factor_per_tech_level,
+                gameplay_defaults::OBJ_DECAY_FACTOR_PER_TECH_LEVEL,
+            ),
+            decay_factor_in_deep_water: sanitize_positive_or(
+                self.decay_factor_in_deep_water,
+                gameplay_defaults::DECAY_FACTOR_IN_DEEP_WATER,
+            ),
+            decay_factor_in_mountain: sanitize_positive_or(
+                self.decay_factor_in_mountain,
+                gameplay_defaults::DECAY_FACTOR_IN_MOUNTAIN,
+            ),
+            decay_factor_in_walkable_water: sanitize_positive_or(
+                self.decay_factor_in_walkable_water,
+                gameplay_defaults::DECAY_FACTOR_IN_WALKABLE_WATER,
+            ),
+            decay_factor_in_jungle: sanitize_positive_or(
+                self.decay_factor_in_jungle,
+                gameplay_defaults::DECAY_FACTOR_IN_JUNGLE,
+            ),
+            decay_factor_in_swamp: sanitize_positive_or(
+                self.decay_factor_in_swamp,
+                gameplay_defaults::DECAY_FACTOR_IN_SWAMP,
+            ),
+            score_factor: sanitize_nonneg_or(
+                self.score_factor,
+                gameplay_defaults::SCORE_FACTOR,
+            ),
+            ancestor_prestige_factor: sanitize_nonneg_or(
+                self.ancestor_prestige_factor,
+                gameplay_defaults::ANCESTOR_PRESTIGE_FACTOR,
+            ),
+            display_score_factor: sanitize_nonneg_or(
+                self.display_score_factor,
+                gameplay_defaults::DISPLAY_SCORE_FACTOR,
+            ),
+            display_score_on: self.display_score_on,
+            max_coins_per_chest: sanitize_i32_nonneg(
+                self.max_coins_per_chest,
+                gameplay_defaults::MAX_COINS_PER_CHEST,
+            ),
+            max_coins_per_pouch: sanitize_i32_nonneg(
+                self.max_coins_per_pouch,
+                gameplay_defaults::MAX_COINS_PER_POUCH,
+            ),
+            chance_for_female_child: sanitize_nonneg_or(
+                self.chance_for_female_child,
+                gameplay_defaults::CHANCE_FOR_FEMALE_CHILD,
+            ),
+            chance_for_other_child_color: sanitize_nonneg_or(
+                self.chance_for_other_child_color,
+                gameplay_defaults::CHANCE_FOR_OTHER_CHILD_COLOR,
+            ),
+            chance_for_other_child_color_if_close_to_wrong_special_biome: sanitize_nonneg_or(
+                self.chance_for_other_child_color_if_close_to_wrong_special_biome,
+                gameplay_defaults::CHANCE_FOR_OTHER_CHILD_COLOR_IF_CLOSE_TO_WRONG_SPECIAL_BIOME,
+            ),
+            little_kids_per_mother: sanitize_i32_nonneg(
+                self.little_kids_per_mother,
+                gameplay_defaults::LITTLE_KIDS_PER_MOTHER,
+            ),
+            new_child_exhaustion_for_mother: sanitize_nonneg_or(
+                self.new_child_exhaustion_for_mother,
+                gameplay_defaults::NEW_CHILD_EXHAUSTION_FOR_MOTHER,
+            ),
+            ai_mother_birth_mali_for_human_child: sanitize_nonneg_or(
+                self.ai_mother_birth_mali_for_human_child,
+                gameplay_defaults::AI_MOTHER_BIRTH_MALI_FOR_HUMAN_CHILD,
+            ),
+            human_mother_birth_mali_for_ai_child: sanitize_nonneg_or(
+                self.human_mother_birth_mali_for_ai_child,
+                gameplay_defaults::HUMAN_MOTHER_BIRTH_MALI_FOR_AI_CHILD,
+            ),
+            spawn_at_last_dead: self.spawn_at_last_dead,
+            temperature_own_tile_rate: sanitize_nonneg_or(
+                self.temperature_own_tile_rate,
+                gameplay_defaults::TEMPERATURE_OWN_TILE_RATE,
+            ),
+            temperature_balance_rate: sanitize_nonneg_or(
+                self.temperature_balance_rate,
+                gameplay_defaults::TEMPERATURE_BALANCE_RATE,
+            ),
+            temperature_local_heat_factor: sanitize_nonneg_or(
+                self.temperature_local_heat_factor,
+                gameplay_defaults::TEMPERATURE_LOCAL_HEAT_FACTOR,
+            ),
+            average_season_temperature_impact: sanitize_nonneg_or(
+                self.average_season_temperature_impact,
+                gameplay_defaults::AVERAGE_SEASON_TEMPERATURE_IMPACT,
+            ),
+            ai_total_score_factor: sanitize_nonneg_or(
+                self.ai_total_score_factor,
+                gameplay_defaults::AI_TOTAL_SCORE_FACTOR,
+            ),
+            old_grave_decay_mali: sanitize_nonneg_or(
+                self.old_grave_decay_mali,
+                gameplay_defaults::OLD_GRAVE_DECAY_MALI,
+            ),
+            cursed_grave_mali: sanitize_nonneg_or(
+                self.cursed_grave_mali,
+                gameplay_defaults::CURSED_GRAVE_MALI,
+            ),
+            max_distance_close: sanitize_i32_nonneg(
+                self.max_distance_close,
+                gameplay_defaults::MAX_DISTANCE_CLOSE,
+            ),
+            max_distance_map_changes: sanitize_i32_nonneg(
+                self.max_distance_map_changes,
+                gameplay_defaults::MAX_DISTANCE_MAP_CHANGES,
+            ),
+            max_distance_say: sanitize_i32_nonneg(
+                self.max_distance_say,
+                gameplay_defaults::MAX_DISTANCE_SAY,
+            ),
+            // Negative disables (Haxe product -1); 0 also off (`> 0` gate).
+            send_move_every_x_ticks: self.send_move_every_x_ticks,
+            max_distance_cose_for_movement: sanitize_i32_nonneg(
+                self.max_distance_cose_for_movement,
+                gameplay_defaults::MAX_DISTANCE_COSE_FOR_MOVEMENT,
+            ),
+            max_distance_say_ai: sanitize_positive_or(
+                self.max_distance_say_ai,
+                gameplay_defaults::MAX_DISTANCE_SAY_AI,
+            ),
+            max_distance_auto_exile_attacker: sanitize_i32_nonneg(
+                self.max_distance_auto_exile_attacker,
+                gameplay_defaults::MAX_DISTANCE_AUTO_EXILE_ATTACKER,
+            ),
+            speed_with_both_shoes: sanitize_positive_or(
+                self.speed_with_both_shoes,
+                gameplay_defaults::SPEED_WITH_BOTH_SHOES,
+            ),
+            aging_factor_while_starving: sanitize_positive_or(
+                self.aging_factor_while_starving,
+                gameplay_defaults::AGING_FACTOR_WHILE_STARVING,
+            ),
+            grown_up_age: sanitize_positive_or(
+                self.grown_up_age,
+                gameplay_defaults::GROWN_UP_AGE,
+            ),
+            food_use_child_faktor: sanitize_nonneg_or(
+                self.food_use_child_faktor,
+                gameplay_defaults::FOOD_USE_CHILD_FAKTOR,
+            ),
+            ai_food_use_factor_serf: sanitize_nonneg_or(
+                self.ai_food_use_factor_serf,
+                gameplay_defaults::AI_FOOD_USE_FACTOR_SERF,
+            ),
+            ai_food_use_factor_commoner: sanitize_nonneg_or(
+                self.ai_food_use_factor_commoner,
+                gameplay_defaults::AI_FOOD_USE_FACTOR_COMMONER,
+            ),
+            ai_food_use_factor_noble: sanitize_nonneg_or(
+                self.ai_food_use_factor_noble,
+                gameplay_defaults::AI_FOOD_USE_FACTOR_NOBLE,
+            ),
+            eve_food_use_factor: sanitize_nonneg_or(
+                self.eve_food_use_factor,
+                gameplay_defaults::EVE_FOOD_USE_FACTOR,
+            ),
+            aging_factor_human_born_to_ai: sanitize_positive_or(
+                self.aging_factor_human_born_to_ai,
+                gameplay_defaults::AGING_FACTOR_HUMAN_BORN_TO_AI,
+            ),
+            aging_factor_ai_born_to_human: sanitize_positive_or(
+                self.aging_factor_ai_born_to_human,
+                gameplay_defaults::AGING_FACTOR_AI_BORN_TO_HUMAN,
+            ),
+            eve_damage_factor: sanitize_nonneg_or(
+                self.eve_damage_factor,
+                gameplay_defaults::EVE_DAMAGE_FACTOR,
+            ),
+            target_wounded_damage_factor: sanitize_nonneg_or(
+                self.target_wounded_damage_factor,
+                gameplay_defaults::TARGET_WOUNDED_DAMAGE_FACTOR,
+            ),
+            male_damage_factor: sanitize_nonneg_or(
+                self.male_damage_factor,
+                gameplay_defaults::MALE_DAMAGE_FACTOR,
+            ),
+            animal_damage_factor: sanitize_nonneg_or(
+                self.animal_damage_factor,
+                gameplay_defaults::ANIMAL_DAMAGE_FACTOR,
+            ),
+            animal_damage_factor_in_winter: sanitize_nonneg_or(
+                self.animal_damage_factor_in_winter,
+                gameplay_defaults::ANIMAL_DAMAGE_FACTOR_IN_WINTER,
+            ),
+            animal_damage_factor_if_attacked: sanitize_nonneg_or(
+                self.animal_damage_factor_if_attacked,
+                gameplay_defaults::ANIMAL_DAMAGE_FACTOR_IF_ATTACKED,
+            ),
+            weapon_damage_factor: sanitize_nonneg_or(
+                self.weapon_damage_factor,
+                gameplay_defaults::WEAPON_DAMAGE_FACTOR,
+            ),
+            grave_blocking_distance: sanitize_nonneg_or(
+                self.grave_blocking_distance,
+                gameplay_defaults::GRAVE_BLOCKING_DISTANCE,
+            ),
+            max_players_before_activating_grave_curse: sanitize_i32_nonneg(
+                self.max_players_before_activating_grave_curse,
+                gameplay_defaults::MAX_PLAYERS_BEFORE_ACTIVATING_GRAVE_CURSE,
+            ),
+            max_players_before_forbid_touch_grave: sanitize_i32_nonneg(
+                self.max_players_before_forbid_touch_grave,
+                gameplay_defaults::MAX_PLAYERS_BEFORE_FORBID_TOUCH_GRAVE,
+            ),
+            combat_angry_time_before_attack: sanitize_nonneg_or(
+                self.combat_angry_time_before_attack,
+                gameplay_defaults::COMBAT_ANGRY_TIME_BEFORE_ATTACK,
+            ),
+            combat_angry_time_minimum: sanitize_finite_or(
+                self.combat_angry_time_minimum,
+                gameplay_defaults::COMBAT_ANGRY_TIME_MINIMUM,
+            ),
+            chance_for_domestic_animal_dying_factor: sanitize_nonneg_or(
+                self.chance_for_domestic_animal_dying_factor,
+                gameplay_defaults::CHANCE_FOR_DOMESTIC_ANIMAL_DYING_FACTOR,
+            ),
+            door_ids: if self.door_ids.is_empty() {
+                crate::DOOR_IDS.to_vec()
+            } else {
+                self.door_ids.clone()
+            },
+            ai_ignored_floor_ids: if self.ai_ignored_floor_ids.is_empty() {
+                crate::AI_IGNORED_FLOOR_IDS.to_vec()
+            } else {
+                self.ai_ignored_floor_ids.clone()
+            },
+            secret: if self.secret.trim().is_empty() {
+                gameplay_defaults::SECRET.to_string()
+            } else {
+                self.secret.clone()
+            },
+            allow_debug_commands: self.allow_debug_commands,
+            ai_time_to_wait_if_crafting_failed: sanitize_nonneg_or(
+                self.ai_time_to_wait_if_crafting_failed,
+                gameplay_defaults::AI_TIME_TO_WAIT_IF_CRAFTING_FAILED,
+            ),
+            ai_max_search_radius: sanitize_i32_positive(
+                self.ai_max_search_radius,
+                gameplay_defaults::AI_MAX_SEARCH_RADIUS,
+            ),
+            ai_max_search_increment: sanitize_i32_positive(
+                self.ai_max_search_increment,
+                gameplay_defaults::AI_MAX_SEARCH_INCREMENT,
+            ),
+            ai_ignore_time_transitions_longer_then: sanitize_nonneg_or(
+                self.ai_ignore_time_transitions_longer_then,
+                gameplay_defaults::AI_IGNORE_TIME_TRANSITIONS_LONGER_THEN,
+            ),
+            ai_memory_max_entries: sanitize_i32_positive(
+                self.ai_memory_max_entries,
+                gameplay_defaults::AI_MEMORY_MAX_ENTRIES,
+            ),
+            ai_chat_memory_max_entries: sanitize_i32_positive(
+                self.ai_chat_memory_max_entries,
+                gameplay_defaults::AI_CHAT_MEMORY_MAX_ENTRIES,
+            ),
+            alternative_outcome_percent_increase_per_hit: sanitize_positive_or(
+                self.alternative_outcome_percent_increase_per_hit,
+                gameplay_defaults::ALTERNATIVE_OUTCOME_PERCENT_INCREASE_PER_HIT,
+            ),
+            alternative_outcome_hits_decrease_on_success: sanitize_nonneg_or(
+                self.alternative_outcome_hits_decrease_on_success,
+                gameplay_defaults::ALTERNATIVE_OUTCOME_HITS_DECREASE_ON_SUCCESS,
+            ),
+            fortification_cost_per_hit: sanitize_nonneg_or(
+                self.fortification_cost_per_hit,
+                gameplay_defaults::FORTIFICATION_COST_PER_HIT,
+            ),
+            reduce_age_needed_to_pickup_objects: sanitize_nonneg_or(
+                self.reduce_age_needed_to_pickup_objects,
+                gameplay_defaults::REDUCE_AGE_NEEDED_TO_PICKUP_OBJECTS,
+            ),
+            chance_animals_pass_blocking_biome: sanitize_nonneg_or(
+                self.chance_animals_pass_blocking_biome,
+                gameplay_defaults::CHANCE_ANIMALS_PASS_BLOCKING_BIOME,
+            ),
+            chance_preferred_biome: sanitize_nonneg_or(
+                self.chance_preferred_biome,
+                gameplay_defaults::CHANCE_PREFERRED_BIOME,
+            ),
+            close_grave_speed_mali: sanitize_nonneg_or(
+                self.close_grave_speed_mali,
+                gameplay_defaults::CLOSE_GRAVE_SPEED_MALI,
+            ),
+            temperature_speed_impact: sanitize_nonneg_or(
+                self.temperature_speed_impact,
+                gameplay_defaults::TEMPERATURE_SPEED_IMPACT,
+            ),
+            min_speed_reduction_per_contained_obj: sanitize_nonneg_or(
+                self.min_speed_reduction_per_contained_obj,
+                gameplay_defaults::MIN_SPEED_REDUCTION_PER_CONTAINED_OBJ,
+            ),
+            loved_food_use_chance: sanitize_nonneg_or(
+                self.loved_food_use_chance,
+                gameplay_defaults::LOVED_FOOD_USE_CHANCE,
+            ),
+            max_age_for_allowing_cloth_and_pickup_from_others: sanitize_nonneg_or(
+                self.max_age_for_allowing_cloth_and_pickup_from_others,
+                gameplay_defaults::MAX_AGE_FOR_ALLOWING_CLOTH_AND_PICKUP_FROM_OTHERS,
+            ),
+            max_age_for_allowing_die: sanitize_nonneg_or(
+                self.max_age_for_allowing_die,
+                gameplay_defaults::MAX_AGE_FOR_ALLOWING_DIE,
+            ),
+            prestige_cost_for_die: sanitize_nonneg_or(
+                self.prestige_cost_for_die,
+                gameplay_defaults::PRESTIGE_COST_FOR_DIE,
+            ),
+            starting_family_name: sanitize_nonempty_trim(
+                &self.starting_family_name,
+                gameplay_defaults::STARTING_FAMILY_NAME,
+            ),
+            starting_name: sanitize_nonempty_trim(
+                &self.starting_name,
+                gameplay_defaults::STARTING_NAME,
+            ),
+            found_family_needed_prestige: sanitize_nonneg_or(
+                self.found_family_needed_prestige,
+                gameplay_defaults::FOUND_FAMILY_NEEDED_PRESTIGE,
+            ),
+            found_family_cost: sanitize_nonneg_or(
+                self.found_family_cost,
+                gameplay_defaults::FOUND_FAMILY_COST,
+            ),
+            found_family_needed_followers: sanitize_i32_nonneg(
+                self.found_family_needed_followers,
+                gameplay_defaults::FOUND_FAMILY_NEEDED_FOLLOWERS,
+            ),
+            found_family_break_alliance_chance: sanitize_nonneg_or(
+                self.found_family_break_alliance_chance,
+                gameplay_defaults::FOUND_FAMILY_BREAK_ALLIANCE_CHANCE,
+            ),
+            pickup_exhaustion_gain: sanitize_nonneg_or(
+                self.pickup_exhaustion_gain,
+                gameplay_defaults::PICKUP_EXHAUSTION_GAIN,
+            ),
+            pickup_feeding_food_restore: sanitize_nonneg_or(
+                self.pickup_feeding_food_restore,
+                gameplay_defaults::PICKUP_FEEDING_FOOD_RESTORE,
+            ),
+            death_with_food_store_max: sanitize_finite_or(
+                self.death_with_food_store_max,
+                gameplay_defaults::DEATH_WITH_FOOD_STORE_MAX,
+            ),
+            food_store_max_reduction_while_starving: sanitize_nonneg_or(
+                self.food_store_max_reduction_while_starving,
+                gameplay_defaults::FOOD_STORE_MAX_REDUCTION_WHILE_STARVING,
+            ),
+            temperature_reduction_per_drinking: sanitize_positive_or(
+                self.temperature_reduction_per_drinking,
+                gameplay_defaults::TEMPERATURE_REDUCTION_PER_DRINKING,
+            ),
+            max_stored_water: sanitize_positive_or(
+                self.max_stored_water,
+                gameplay_defaults::MAX_STORED_WATER,
+            ),
+            max_jumps_per_ten_sec: sanitize_positive_or(
+                self.max_jumps_per_ten_sec,
+                gameplay_defaults::MAX_JUMPS_PER_TEN_SEC,
+            ),
+            temperature_impact_per_sec: sanitize_positive_or(
+                self.temperature_impact_per_sec,
+                gameplay_defaults::TEMPERATURE_IMPACT_PER_SEC,
+            ),
+            temperature_impact_per_sec_if_good: sanitize_positive_or(
+                self.temperature_impact_per_sec_if_good,
+                gameplay_defaults::TEMPERATURE_IMPACT_PER_SEC_IF_GOOD,
+            ),
+            temperature_in_water_factor: sanitize_positive_or(
+                self.temperature_in_water_factor,
+                gameplay_defaults::TEMPERATURE_IN_WATER_FACTOR,
+            ),
+            temperature_impact_below: sanitize_nonneg_or(
+                self.temperature_impact_below,
+                gameplay_defaults::TEMPERATURE_IMPACT_BELOW,
+            ),
+            temperature_impact_color_factor: sanitize_nonneg_or(
+                self.temperature_impact_color_factor,
+                gameplay_defaults::TEMPERATURE_IMPACT_COLOR_FACTOR,
+            ),
+            allow_eating_or_feeding_if_ill: self.allow_eating_or_feeding_if_ill,
+            resistance_against_fever_for_eating_mushrooms: sanitize_nonneg_or(
+                self.resistance_against_fever_for_eating_mushrooms,
+                gameplay_defaults::RESISTANCE_AGAINST_FEVER_FOR_EATING_MUSHROOMS,
+            ),
+            exhaustion_yellow_fever_per_sec: sanitize_nonneg_or(
+                self.exhaustion_yellow_fever_per_sec,
+                gameplay_defaults::EXHAUSTION_YELLOW_FEVER_PER_SEC,
+            ),
+            min_health_food_store_max_factor: sanitize_positive_or(
+                self.min_health_food_store_max_factor,
+                gameplay_defaults::MIN_HEALTH_FOOD_STORE_MAX_FACTOR,
+            ),
+            max_health_food_store_max_factor: sanitize_positive_or(
+                self.max_health_food_store_max_factor,
+                gameplay_defaults::MAX_HEALTH_FOOD_STORE_MAX_FACTOR,
+            ),
+            min_health_aging_factor: sanitize_positive_or(
+                self.min_health_aging_factor,
+                gameplay_defaults::MIN_HEALTH_AGING_FACTOR,
+            ),
+            max_health_aging_factor: sanitize_positive_or(
+                self.max_health_aging_factor,
+                gameplay_defaults::MAX_HEALTH_AGING_FACTOR,
+            ),
+            min_health_per_year: sanitize_positive_or(
+                self.min_health_per_year,
+                gameplay_defaults::MIN_HEALTH_PER_YEAR,
+            ),
+            max_age: sanitize_positive_or(self.max_age, gameplay_defaults::MAX_AGE),
+            animal_deadly_distance_factor: sanitize_nonneg_or(
+                self.animal_deadly_distance_factor,
+                gameplay_defaults::ANIMAL_DEADLY_DISTANCE_FACTOR,
+            ),
+            chance_for_animal_dying_factor_if_in_loved_biome: sanitize_nonneg_or(
+                self.chance_for_animal_dying_factor_if_in_loved_biome,
+                gameplay_defaults::CHANCE_FOR_ANIMAL_DYING_FACTOR_IF_IN_LOVED_BIOME,
+            ),
+            offspring_factor_if_animal_pop_is_low: sanitize_positive_or(
+                self.offspring_factor_if_animal_pop_is_low,
+                gameplay_defaults::OFFSPRING_FACTOR_IF_ANIMAL_POP_IS_LOW,
+            ),
+            max_offspring_factor: sanitize_positive_or(
+                self.max_offspring_factor,
+                gameplay_defaults::MAX_OFFSPRING_FACTOR,
+            ),
+            offspring_factor_low_animal_population_below: sanitize_positive_or(
+                self.offspring_factor_low_animal_population_below,
+                gameplay_defaults::OFFSPRING_FACTOR_LOW_ANIMAL_POPULATION_BELOW,
+            ),
         }
     }
 
@@ -1303,6 +2868,15 @@ impl ServerConfig {
         push("npc_enabled", old.npc_enabled != new.npc_enabled);
         push("npc_min", old.npc_min != new.npc_min);
         push("npc_max", old.npc_max != new.npc_max);
+        push("max_players", old.max_players != new.max_players);
+        push(
+            "last_vanilla_id",
+            old.last_vanilla_id != new.last_vanilla_id,
+        );
+        push(
+            "open_life_client_name",
+            old.open_life_client_name != new.open_life_client_name,
+        );
         push(
             "ai_think_period_ticks",
             old.ai_think_period_ticks != new.ai_think_period_ticks,
@@ -1386,6 +2960,10 @@ impl ServerConfig {
         push(
             "chance_for_animal_dying",
             (old.chance_for_animal_dying - new.chance_for_animal_dying).abs() > 1e-12,
+        );
+        push(
+            "biome_animal_hit_chance",
+            (old.biome_animal_hit_chance - new.biome_animal_hit_chance).abs() > 1e-12,
         );
         push(
             "hungry_work_cost",
@@ -1707,6 +3285,604 @@ impl ServerConfig {
             "ai_speed_factor_noble",
             (old.ai_speed_factor_noble - new.ai_speed_factor_noble).abs() > f32::EPSILON,
         );
+        push(
+            "starting_eve_age",
+            (old.starting_eve_age - new.starting_eve_age).abs() > f32::EPSILON,
+        );
+        push(
+            "eve_or_adam_birth_chance",
+            (old.eve_or_adam_birth_chance - new.eve_or_adam_birth_chance).abs() > 1e-12,
+        );
+        push(
+            "spawn_ai_as_eve",
+            old.spawn_ai_as_eve != new.spawn_ai_as_eve,
+        );
+        push(
+            "max_players_before_starting_as_child",
+            old.max_players_before_starting_as_child != new.max_players_before_starting_as_child,
+        );
+        push(
+            "obj_decay_chance",
+            (old.obj_decay_chance - new.obj_decay_chance).abs() > 1e-12,
+        );
+        push(
+            "floor_decay_chance",
+            (old.floor_decay_chance - new.floor_decay_chance).abs() > 1e-12,
+        );
+        push(
+            "obj_respawn_chance",
+            (old.obj_respawn_chance - new.obj_respawn_chance).abs() > 1e-12,
+        );
+        push(
+            "grow_back_plants_increase_if_low_population",
+            (old.grow_back_plants_increase_if_low_population
+                - new.grow_back_plants_increase_if_low_population)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "grow_back_original_plants_factor",
+            (old.grow_back_original_plants_factor - new.grow_back_original_plants_factor).abs()
+                > 1e-12,
+        );
+        push(
+            "grow_new_plants_from_existing_factor",
+            (old.grow_new_plants_from_existing_factor
+                - new.grow_new_plants_from_existing_factor)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "spring_wild_food_regrow_chance",
+            (old.spring_wild_food_regrow_chance - new.spring_wild_food_regrow_chance).abs()
+                > 1e-12,
+        );
+        push(
+            "winter_wild_food_decay_chance",
+            (old.winter_wild_food_decay_chance - new.winter_wild_food_decay_chance).abs()
+                > 1e-12,
+        );
+        push(
+            "hot_season_temperature_factor",
+            (old.hot_season_temperature_factor - new.hot_season_temperature_factor).abs()
+                > 1e-12,
+        );
+        push(
+            "cold_season_temperature_factor",
+            (old.cold_season_temperature_factor - new.cold_season_temperature_factor).abs()
+                > 1e-12,
+        );
+        push(
+            "cursed_grave_time",
+            (old.cursed_grave_time - new.cursed_grave_time).abs() > f32::EPSILON,
+        );
+        push(
+            "animal_decay_factor",
+            (old.animal_decay_factor - new.animal_decay_factor).abs() > 1e-12,
+        );
+        push(
+            "obj_decay_factor_for_permanent",
+            (old.obj_decay_factor_for_permanent - new.obj_decay_factor_for_permanent).abs()
+                > 1e-12,
+        );
+        push(
+            "obj_decay_factor_for_food",
+            (old.obj_decay_factor_for_food - new.obj_decay_factor_for_food).abs() > 1e-12,
+        );
+        push(
+            "obj_decay_factor_for_clothing",
+            (old.obj_decay_factor_for_clothing - new.obj_decay_factor_for_clothing).abs() > 1e-12,
+        );
+        push(
+            "obj_decay_factor_for_walls",
+            (old.obj_decay_factor_for_walls - new.obj_decay_factor_for_walls).abs() > 1e-12,
+        );
+        push(
+            "obj_decay_factor_per_tech_level",
+            (old.obj_decay_factor_per_tech_level - new.obj_decay_factor_per_tech_level).abs()
+                > 1e-12,
+        );
+        push(
+            "decay_factor_in_deep_water",
+            (old.decay_factor_in_deep_water - new.decay_factor_in_deep_water).abs() > 1e-12,
+        );
+        push(
+            "decay_factor_in_mountain",
+            (old.decay_factor_in_mountain - new.decay_factor_in_mountain).abs() > 1e-12,
+        );
+        push(
+            "decay_factor_in_walkable_water",
+            (old.decay_factor_in_walkable_water - new.decay_factor_in_walkable_water).abs()
+                > 1e-12,
+        );
+        push(
+            "decay_factor_in_jungle",
+            (old.decay_factor_in_jungle - new.decay_factor_in_jungle).abs() > 1e-12,
+        );
+        push(
+            "decay_factor_in_swamp",
+            (old.decay_factor_in_swamp - new.decay_factor_in_swamp).abs() > 1e-12,
+        );
+        push(
+            "score_factor",
+            (old.score_factor - new.score_factor).abs() > 1e-12,
+        );
+        push(
+            "ancestor_prestige_factor",
+            (old.ancestor_prestige_factor - new.ancestor_prestige_factor).abs() > 1e-12,
+        );
+        push(
+            "display_score_factor",
+            (old.display_score_factor - new.display_score_factor).abs() > 1e-12,
+        );
+        push(
+            "display_score_on",
+            old.display_score_on != new.display_score_on,
+        );
+        push(
+            "max_coins_per_chest",
+            old.max_coins_per_chest != new.max_coins_per_chest,
+        );
+        push(
+            "max_coins_per_pouch",
+            old.max_coins_per_pouch != new.max_coins_per_pouch,
+        );
+        push(
+            "chance_for_female_child",
+            (old.chance_for_female_child - new.chance_for_female_child).abs() > 1e-12,
+        );
+        push(
+            "chance_for_other_child_color",
+            (old.chance_for_other_child_color - new.chance_for_other_child_color).abs() > 1e-12,
+        );
+        push(
+            "chance_for_other_child_color_if_close_to_wrong_special_biome",
+            (old.chance_for_other_child_color_if_close_to_wrong_special_biome
+                - new.chance_for_other_child_color_if_close_to_wrong_special_biome)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "little_kids_per_mother",
+            old.little_kids_per_mother != new.little_kids_per_mother,
+        );
+        push(
+            "new_child_exhaustion_for_mother",
+            (old.new_child_exhaustion_for_mother - new.new_child_exhaustion_for_mother).abs()
+                > 1e-12,
+        );
+        push(
+            "ai_mother_birth_mali_for_human_child",
+            (old.ai_mother_birth_mali_for_human_child - new.ai_mother_birth_mali_for_human_child)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "human_mother_birth_mali_for_ai_child",
+            (old.human_mother_birth_mali_for_ai_child - new.human_mother_birth_mali_for_ai_child)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "spawn_at_last_dead",
+            old.spawn_at_last_dead != new.spawn_at_last_dead,
+        );
+        push(
+            "temperature_own_tile_rate",
+            (old.temperature_own_tile_rate - new.temperature_own_tile_rate).abs() > 1e-12,
+        );
+        push(
+            "temperature_balance_rate",
+            (old.temperature_balance_rate - new.temperature_balance_rate).abs() > 1e-12,
+        );
+        push(
+            "temperature_local_heat_factor",
+            (old.temperature_local_heat_factor - new.temperature_local_heat_factor).abs() > 1e-12,
+        );
+        push(
+            "average_season_temperature_impact",
+            (old.average_season_temperature_impact - new.average_season_temperature_impact).abs()
+                > 1e-12,
+        );
+        push(
+            "ai_total_score_factor",
+            (old.ai_total_score_factor - new.ai_total_score_factor).abs() > 1e-12,
+        );
+        push(
+            "old_grave_decay_mali",
+            (old.old_grave_decay_mali - new.old_grave_decay_mali).abs() > 1e-12,
+        );
+        push(
+            "cursed_grave_mali",
+            (old.cursed_grave_mali - new.cursed_grave_mali).abs() > 1e-12,
+        );
+        push(
+            "max_distance_close",
+            old.max_distance_close != new.max_distance_close,
+        );
+        push(
+            "max_distance_map_changes",
+            old.max_distance_map_changes != new.max_distance_map_changes,
+        );
+        push(
+            "max_distance_say",
+            old.max_distance_say != new.max_distance_say,
+        );
+        push(
+            "send_move_every_x_ticks",
+            old.send_move_every_x_ticks != new.send_move_every_x_ticks,
+        );
+        push(
+            "max_distance_cose_for_movement",
+            old.max_distance_cose_for_movement != new.max_distance_cose_for_movement,
+        );
+        push(
+            "max_distance_say_ai",
+            (old.max_distance_say_ai - new.max_distance_say_ai).abs() > 1e-12,
+        );
+        push(
+            "max_distance_auto_exile_attacker",
+            old.max_distance_auto_exile_attacker != new.max_distance_auto_exile_attacker,
+        );
+        push(
+            "speed_with_both_shoes",
+            (old.speed_with_both_shoes - new.speed_with_both_shoes).abs() > 1e-12,
+        );
+        push(
+            "aging_factor_while_starving",
+            (old.aging_factor_while_starving - new.aging_factor_while_starving).abs() > 1e-12,
+        );
+        push(
+            "grown_up_age",
+            (old.grown_up_age - new.grown_up_age).abs() > 1e-12,
+        );
+        push(
+            "food_use_child_faktor",
+            (old.food_use_child_faktor - new.food_use_child_faktor).abs() > 1e-12,
+        );
+        push(
+            "ai_food_use_factor_serf",
+            (old.ai_food_use_factor_serf - new.ai_food_use_factor_serf).abs() > 1e-12,
+        );
+        push(
+            "ai_food_use_factor_commoner",
+            (old.ai_food_use_factor_commoner - new.ai_food_use_factor_commoner).abs() > 1e-12,
+        );
+        push(
+            "ai_food_use_factor_noble",
+            (old.ai_food_use_factor_noble - new.ai_food_use_factor_noble).abs() > 1e-12,
+        );
+        push(
+            "eve_food_use_factor",
+            (old.eve_food_use_factor - new.eve_food_use_factor).abs() > 1e-12,
+        );
+        push(
+            "aging_factor_human_born_to_ai",
+            (old.aging_factor_human_born_to_ai - new.aging_factor_human_born_to_ai).abs()
+                > 1e-12,
+        );
+        push(
+            "aging_factor_ai_born_to_human",
+            (old.aging_factor_ai_born_to_human - new.aging_factor_ai_born_to_human).abs()
+                > 1e-12,
+        );
+        push(
+            "eve_damage_factor",
+            (old.eve_damage_factor - new.eve_damage_factor).abs() > 1e-12,
+        );
+        push(
+            "target_wounded_damage_factor",
+            (old.target_wounded_damage_factor - new.target_wounded_damage_factor).abs() > 1e-12,
+        );
+        push(
+            "male_damage_factor",
+            (old.male_damage_factor - new.male_damage_factor).abs() > 1e-12,
+        );
+        push(
+            "animal_damage_factor",
+            (old.animal_damage_factor - new.animal_damage_factor).abs() > 1e-12,
+        );
+        push(
+            "animal_damage_factor_in_winter",
+            (old.animal_damage_factor_in_winter - new.animal_damage_factor_in_winter).abs()
+                > 1e-12,
+        );
+        push(
+            "animal_damage_factor_if_attacked",
+            (old.animal_damage_factor_if_attacked - new.animal_damage_factor_if_attacked).abs()
+                > 1e-12,
+        );
+        push(
+            "weapon_damage_factor",
+            (old.weapon_damage_factor - new.weapon_damage_factor).abs() > 1e-12,
+        );
+        push(
+            "grave_blocking_distance",
+            (old.grave_blocking_distance - new.grave_blocking_distance).abs() > 1e-12,
+        );
+        push(
+            "max_players_before_activating_grave_curse",
+            old.max_players_before_activating_grave_curse
+                != new.max_players_before_activating_grave_curse,
+        );
+        push(
+            "max_players_before_forbid_touch_grave",
+            old.max_players_before_forbid_touch_grave
+                != new.max_players_before_forbid_touch_grave,
+        );
+        push(
+            "combat_angry_time_before_attack",
+            (old.combat_angry_time_before_attack - new.combat_angry_time_before_attack).abs()
+                > 1e-12,
+        );
+        push(
+            "combat_angry_time_minimum",
+            (old.combat_angry_time_minimum - new.combat_angry_time_minimum).abs() > 1e-12,
+        );
+        push(
+            "chance_for_domestic_animal_dying_factor",
+            (old.chance_for_domestic_animal_dying_factor
+                - new.chance_for_domestic_animal_dying_factor)
+                .abs()
+                > 1e-12,
+        );
+        push("door_ids", old.door_ids != new.door_ids);
+        push(
+            "ai_ignored_floor_ids",
+            old.ai_ignored_floor_ids != new.ai_ignored_floor_ids,
+        );
+        push("secret", old.secret != new.secret);
+        push(
+            "allow_debug_commands",
+            old.allow_debug_commands != new.allow_debug_commands,
+        );
+        push(
+            "ai_time_to_wait_if_crafting_failed",
+            (old.ai_time_to_wait_if_crafting_failed - new.ai_time_to_wait_if_crafting_failed)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "ai_max_search_radius",
+            old.ai_max_search_radius != new.ai_max_search_radius,
+        );
+        push(
+            "ai_max_search_increment",
+            old.ai_max_search_increment != new.ai_max_search_increment,
+        );
+        push(
+            "ai_memory_max_entries",
+            old.ai_memory_max_entries != new.ai_memory_max_entries,
+        );
+        push(
+            "ai_chat_memory_max_entries",
+            old.ai_chat_memory_max_entries != new.ai_chat_memory_max_entries,
+        );
+        push(
+            "ai_ignore_time_transitions_longer_then",
+            (old.ai_ignore_time_transitions_longer_then
+                - new.ai_ignore_time_transitions_longer_then)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "alternative_outcome_percent_increase_per_hit",
+            (old.alternative_outcome_percent_increase_per_hit
+                - new.alternative_outcome_percent_increase_per_hit)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "alternative_outcome_hits_decrease_on_success",
+            (old.alternative_outcome_hits_decrease_on_success
+                - new.alternative_outcome_hits_decrease_on_success)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "fortification_cost_per_hit",
+            (old.fortification_cost_per_hit - new.fortification_cost_per_hit).abs() > 1e-12,
+        );
+        push(
+            "reduce_age_needed_to_pickup_objects",
+            (old.reduce_age_needed_to_pickup_objects - new.reduce_age_needed_to_pickup_objects)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "chance_animals_pass_blocking_biome",
+            (old.chance_animals_pass_blocking_biome - new.chance_animals_pass_blocking_biome)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "chance_preferred_biome",
+            (old.chance_preferred_biome - new.chance_preferred_biome).abs() > 1e-12,
+        );
+        push(
+            "close_grave_speed_mali",
+            (old.close_grave_speed_mali - new.close_grave_speed_mali).abs() > 1e-12,
+        );
+        push(
+            "temperature_speed_impact",
+            (old.temperature_speed_impact - new.temperature_speed_impact).abs() > 1e-12,
+        );
+        push(
+            "min_speed_reduction_per_contained_obj",
+            (old.min_speed_reduction_per_contained_obj
+                - new.min_speed_reduction_per_contained_obj)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "loved_food_use_chance",
+            (old.loved_food_use_chance - new.loved_food_use_chance).abs() > 1e-12,
+        );
+        push(
+            "max_age_for_allowing_cloth_and_pickup_from_others",
+            (old.max_age_for_allowing_cloth_and_pickup_from_others
+                - new.max_age_for_allowing_cloth_and_pickup_from_others)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "max_age_for_allowing_die",
+            (old.max_age_for_allowing_die - new.max_age_for_allowing_die).abs() > 1e-12,
+        );
+        push(
+            "prestige_cost_for_die",
+            (old.prestige_cost_for_die - new.prestige_cost_for_die).abs() > 1e-12,
+        );
+        push(
+            "starting_family_name",
+            old.starting_family_name != new.starting_family_name,
+        );
+        push("starting_name", old.starting_name != new.starting_name);
+        push(
+            "found_family_needed_prestige",
+            (old.found_family_needed_prestige - new.found_family_needed_prestige).abs() > 1e-12,
+        );
+        push(
+            "found_family_cost",
+            (old.found_family_cost - new.found_family_cost).abs() > 1e-12,
+        );
+        push(
+            "found_family_needed_followers",
+            old.found_family_needed_followers != new.found_family_needed_followers,
+        );
+        push(
+            "found_family_break_alliance_chance",
+            (old.found_family_break_alliance_chance - new.found_family_break_alliance_chance)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "pickup_exhaustion_gain",
+            (old.pickup_exhaustion_gain - new.pickup_exhaustion_gain).abs() > 1e-12,
+        );
+        push(
+            "pickup_feeding_food_restore",
+            (old.pickup_feeding_food_restore - new.pickup_feeding_food_restore).abs() > 1e-12,
+        );
+        push(
+            "death_with_food_store_max",
+            (old.death_with_food_store_max - new.death_with_food_store_max).abs() > 1e-12,
+        );
+        push(
+            "food_store_max_reduction_while_starving",
+            (old.food_store_max_reduction_while_starving
+                - new.food_store_max_reduction_while_starving)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "temperature_reduction_per_drinking",
+            (old.temperature_reduction_per_drinking - new.temperature_reduction_per_drinking)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "max_stored_water",
+            (old.max_stored_water - new.max_stored_water).abs() > 1e-12,
+        );
+        push(
+            "max_jumps_per_ten_sec",
+            (old.max_jumps_per_ten_sec - new.max_jumps_per_ten_sec).abs() > 1e-12,
+        );
+        push(
+            "temperature_impact_per_sec",
+            (old.temperature_impact_per_sec - new.temperature_impact_per_sec).abs() > 1e-12,
+        );
+        push(
+            "temperature_impact_per_sec_if_good",
+            (old.temperature_impact_per_sec_if_good - new.temperature_impact_per_sec_if_good)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "temperature_in_water_factor",
+            (old.temperature_in_water_factor - new.temperature_in_water_factor).abs() > 1e-12,
+        );
+        push(
+            "temperature_impact_below",
+            (old.temperature_impact_below - new.temperature_impact_below).abs() > 1e-12,
+        );
+        push(
+            "temperature_impact_color_factor",
+            (old.temperature_impact_color_factor - new.temperature_impact_color_factor).abs()
+                > 1e-12,
+        );
+        push(
+            "allow_eating_or_feeding_if_ill",
+            old.allow_eating_or_feeding_if_ill != new.allow_eating_or_feeding_if_ill,
+        );
+        push(
+            "resistance_against_fever_for_eating_mushrooms",
+            (old.resistance_against_fever_for_eating_mushrooms
+                - new.resistance_against_fever_for_eating_mushrooms)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "exhaustion_yellow_fever_per_sec",
+            (old.exhaustion_yellow_fever_per_sec - new.exhaustion_yellow_fever_per_sec).abs()
+                > 1e-12,
+        );
+        push(
+            "min_health_food_store_max_factor",
+            (old.min_health_food_store_max_factor - new.min_health_food_store_max_factor).abs()
+                > 1e-12,
+        );
+        push(
+            "max_health_food_store_max_factor",
+            (old.max_health_food_store_max_factor - new.max_health_food_store_max_factor).abs()
+                > 1e-12,
+        );
+        push(
+            "min_health_aging_factor",
+            (old.min_health_aging_factor - new.min_health_aging_factor).abs() > 1e-12,
+        );
+        push(
+            "max_health_aging_factor",
+            (old.max_health_aging_factor - new.max_health_aging_factor).abs() > 1e-12,
+        );
+        push(
+            "min_health_per_year",
+            (old.min_health_per_year - new.min_health_per_year).abs() > 1e-12,
+        );
+        push(
+            "max_age",
+            (old.max_age - new.max_age).abs() > 1e-12,
+        );
+        push(
+            "animal_deadly_distance_factor",
+            (old.animal_deadly_distance_factor - new.animal_deadly_distance_factor).abs()
+                > 1e-12,
+        );
+        push(
+            "chance_for_animal_dying_factor_if_in_loved_biome",
+            (old.chance_for_animal_dying_factor_if_in_loved_biome
+                - new.chance_for_animal_dying_factor_if_in_loved_biome)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "offspring_factor_if_animal_pop_is_low",
+            (old.offspring_factor_if_animal_pop_is_low - new.offspring_factor_if_animal_pop_is_low)
+                .abs()
+                > 1e-12,
+        );
+        push(
+            "max_offspring_factor",
+            (old.max_offspring_factor - new.max_offspring_factor).abs() > 1e-12,
+        );
+        push(
+            "offspring_factor_low_animal_population_below",
+            (old.offspring_factor_low_animal_population_below
+                - new.offspring_factor_low_animal_population_below)
+                .abs()
+                > 1e-12,
+        );
         keys
     }
 
@@ -1726,6 +3902,9 @@ impl ServerConfig {
             "npc_enabled",
             "npc_min",
             "npc_max",
+            "max_players",
+            "last_vanilla_id",
+            "open_life_client_name",
             "ai_think_period_ticks",
             "ai_reaction_time",
             "ai_reaction_time_serf",
@@ -1748,6 +3927,7 @@ impl ServerConfig {
             "yum_bonus",
             "chance_for_offspring",
             "chance_for_animal_dying",
+            "biome_animal_hit_chance",
             "hungry_work_cost",
             "birth_prestige_factor",
             "ally_strength_too_low_for_pickup",
@@ -1821,13 +4001,172 @@ impl ServerConfig {
             "ai_speed_factor_serf",
             "ai_speed_factor_commoner",
             "ai_speed_factor_noble",
+            // SETTINGS-LONG-TAIL
+            "starting_eve_age",
+            "eve_or_adam_birth_chance",
+            "spawn_ai_as_eve",
+            "max_players_before_starting_as_child",
+            "obj_decay_chance",
+            "floor_decay_chance",
+            "obj_respawn_chance",
+            "grow_back_plants_increase_if_low_population",
+            "grow_back_original_plants_factor",
+            "grow_new_plants_from_existing_factor",
+            "spring_wild_food_regrow_chance",
+            "winter_wild_food_decay_chance",
+            "hot_season_temperature_factor",
+            "cold_season_temperature_factor",
+            "cursed_grave_time",
+            "animal_decay_factor",
+            "obj_decay_factor_for_permanent",
+            "obj_decay_factor_for_food",
+            "obj_decay_factor_for_clothing",
+            "obj_decay_factor_for_walls",
+            "obj_decay_factor_per_tech_level",
+            "decay_factor_in_deep_water",
+            "decay_factor_in_mountain",
+            "decay_factor_in_walkable_water",
+            "decay_factor_in_jungle",
+            "decay_factor_in_swamp",
+            "score_factor",
+            "ancestor_prestige_factor",
+            "display_score_factor",
+            "display_score_on",
+            "max_coins_per_chest",
+            "max_coins_per_pouch",
+            "chance_for_female_child",
+            "chance_for_other_child_color",
+            "chance_for_other_child_color_if_close_to_wrong_special_biome",
+            "little_kids_per_mother",
+            "new_child_exhaustion_for_mother",
+            "ai_mother_birth_mali_for_human_child",
+            "human_mother_birth_mali_for_ai_child",
+            "spawn_at_last_dead",
+            "temperature_own_tile_rate",
+            "temperature_balance_rate",
+            "temperature_local_heat_factor",
+            "average_season_temperature_impact",
+            "ai_total_score_factor",
+            "old_grave_decay_mali",
+            "cursed_grave_mali",
+            "max_distance_close",
+            "max_distance_map_changes",
+            "max_distance_say",
+            "send_move_every_x_ticks",
+            "max_distance_cose_for_movement",
+            "max_distance_say_ai",
+            "max_distance_auto_exile_attacker",
+            "speed_with_both_shoes",
+            "aging_factor_while_starving",
+            "grown_up_age",
+            "food_use_child_faktor",
+            "ai_food_use_factor_serf",
+            "ai_food_use_factor_commoner",
+            "ai_food_use_factor_noble",
+            "eve_food_use_factor",
+            "aging_factor_human_born_to_ai",
+            "aging_factor_ai_born_to_human",
+            "eve_damage_factor",
+            "target_wounded_damage_factor",
+            "male_damage_factor",
+            "animal_damage_factor",
+            "animal_damage_factor_in_winter",
+            "animal_damage_factor_if_attacked",
+            "weapon_damage_factor",
+            "grave_blocking_distance",
+            "max_players_before_activating_grave_curse",
+            "max_players_before_forbid_touch_grave",
+            "combat_angry_time_before_attack",
+            "combat_angry_time_minimum",
+            "chance_for_domestic_animal_dying_factor",
+            "door_ids",
+            "ai_ignored_floor_ids",
+            "secret",
+            "allow_debug_commands",
+            "ai_time_to_wait_if_crafting_failed",
+            "ai_max_search_radius",
+            "ai_max_search_increment",
+            "ai_ignore_time_transitions_longer_then",
+            "ai_memory_max_entries",
+            "ai_chat_memory_max_entries",
+            "alternative_outcome_percent_increase_per_hit",
+            "alternative_outcome_hits_decrease_on_success",
+            "fortification_cost_per_hit",
+            "reduce_age_needed_to_pickup_objects",
+            "chance_animals_pass_blocking_biome",
+            "chance_preferred_biome",
+            "close_grave_speed_mali",
+            "temperature_speed_impact",
+            "min_speed_reduction_per_contained_obj",
+            "loved_food_use_chance",
+            "max_age_for_allowing_cloth_and_pickup_from_others",
+            "max_age_for_allowing_die",
+            "prestige_cost_for_die",
+            "starting_family_name",
+            "starting_name",
+            "found_family_needed_prestige",
+            "found_family_cost",
+            "found_family_needed_followers",
+            "found_family_break_alliance_chance",
+            "pickup_exhaustion_gain",
+            "pickup_feeding_food_restore",
+            "death_with_food_store_max",
+            "food_store_max_reduction_while_starving",
+            "temperature_reduction_per_drinking",
+            "max_stored_water",
+            "max_jumps_per_ten_sec",
+            "temperature_impact_per_sec",
+            "temperature_impact_per_sec_if_good",
+            "temperature_in_water_factor",
+            "temperature_impact_below",
+            "temperature_impact_color_factor",
+            "allow_eating_or_feeding_if_ill",
+            "resistance_against_fever_for_eating_mushrooms",
+            "exhaustion_yellow_fever_per_sec",
+            "min_health_food_store_max_factor",
+            "max_health_food_store_max_factor",
+            "min_health_aging_factor",
+            "max_health_aging_factor",
+            "min_health_per_year",
+            "max_age",
+            "animal_deadly_distance_factor",
+            "chance_for_animal_dying_factor_if_in_loved_biome",
+            "offspring_factor_if_animal_pop_is_low",
+            "max_offspring_factor",
+            "offspring_factor_low_animal_population_below",
         ]
     }
 }
 
 #[inline]
+fn sanitize_finite_or(v: f32, default: f32) -> f32 {
+    if v.is_finite() {
+        v
+    } else {
+        default
+    }
+}
+
 fn sanitize_nonneg_or(v: f32, default: f32) -> f32 {
     if v.is_finite() && v >= 0.0 {
+        v
+    } else {
+        default
+    }
+}
+
+#[inline]
+fn sanitize_i32_nonneg(v: i32, default: i32) -> i32 {
+    if v >= 0 {
+        v
+    } else {
+        default
+    }
+}
+
+#[inline]
+fn sanitize_i32_positive(v: i32, default: i32) -> i32 {
+    if v >= 1 {
         v
     } else {
         default
@@ -1841,6 +4180,17 @@ fn sanitize_positive_or(v: f32, default: f32) -> f32 {
         v
     } else {
         default
+    }
+}
+
+/// Non-empty trimmed string or compiled default (StartingFamilyName / StartingName).
+#[inline]
+fn sanitize_nonempty_trim(value: &str, default: &str) -> String {
+    let t = value.trim();
+    if t.is_empty() {
+        default.to_string()
+    } else {
+        t.to_string()
     }
 }
 
@@ -2350,12 +4700,19 @@ mod tests {
             shutdown_countdown_secs: 9,
             shutdown_apocalypse_secs: 8,
             client_version_strict: true,
+            last_vanilla_id: 4000,
+            open_life_client_name: "OpenLifeClient".into(),
             eternal_winter: true,
             season_duration_years: 1.0,
             npc_enabled: false,
             npc_min: 1,
             npc_max: 2,
+            max_players: 50,
             ai_think_period_ticks: 3,
+            ai_reaction_time: 0.3,
+            ai_reaction_time_serf: 0.4,
+            ai_reaction_time_noble: 0.1,
+            ai_reaction_time_factor_if_angry: 0.5,
             ai_observe_radius: 8,
             ai_craft_radius: 16,
             settings_hot_reload: true,
@@ -2372,6 +4729,7 @@ mod tests {
             yum_bonus: 8.0,
             chance_for_offspring: 0.001,
             chance_for_animal_dying: 0.002,
+            biome_animal_hit_chance: 0.25,
             hungry_work_cost: 9.0,
             birth_prestige_factor: 0.2,
             ally_strength_too_low_for_pickup: 0.5,
@@ -2443,6 +4801,139 @@ mod tests {
             ai_speed_factor_serf: 0.7,
             ai_speed_factor_commoner: 0.85,
             ai_speed_factor_noble: 1.1,
+            // SETTINGS-LONG-TAIL
+            starting_eve_age: 18.0,
+            eve_or_adam_birth_chance: 0.5,
+            spawn_ai_as_eve: true,
+            max_players_before_starting_as_child: 3,
+            obj_decay_chance: 0.0001,
+            floor_decay_chance: 0.00002,
+            obj_respawn_chance: 0.001,
+            grow_back_plants_increase_if_low_population: 4.0,
+            grow_back_original_plants_factor: 0.04,
+            grow_new_plants_from_existing_factor: 0.1,
+            spring_wild_food_regrow_chance: 2.0,
+            winter_wild_food_decay_chance: 3.0,
+            hot_season_temperature_factor: 1.5,
+            cold_season_temperature_factor: 1.5,
+            cursed_grave_time: 6.0,
+            animal_decay_factor: 0.1,
+            obj_decay_factor_for_permanent: 0.5,
+            obj_decay_factor_for_food: 4.0,
+            obj_decay_factor_for_clothing: 4.0,
+            obj_decay_factor_for_walls: 0.4,
+            obj_decay_factor_per_tech_level: 20.0,
+            decay_factor_in_deep_water: 10.0,
+            decay_factor_in_mountain: 6.0,
+            decay_factor_in_walkable_water: 4.0,
+            decay_factor_in_jungle: 4.0,
+            decay_factor_in_swamp: 4.0,
+            score_factor: 0.5,
+            ancestor_prestige_factor: 0.4,
+            display_score_factor: 2.0,
+            display_score_on: false,
+            max_coins_per_chest: 50,
+            max_coins_per_pouch: 10,
+            chance_for_female_child: 0.4,
+            chance_for_other_child_color: 0.5,
+            chance_for_other_child_color_if_close_to_wrong_special_biome: 0.8,
+            little_kids_per_mother: 1,
+            new_child_exhaustion_for_mother: 2.0,
+            ai_mother_birth_mali_for_human_child: 5.0,
+            human_mother_birth_mali_for_ai_child: 2.0,
+            spawn_at_last_dead: true,
+            temperature_own_tile_rate: 0.1,
+            temperature_balance_rate: 0.5,
+            temperature_local_heat_factor: 0.01,
+            average_season_temperature_impact: 0.4,
+            ai_total_score_factor: 0.5,
+            old_grave_decay_mali: 8.0,
+            cursed_grave_mali: 5.0,
+            max_distance_close: 30,
+            max_distance_map_changes: 12,
+            max_distance_say: 18,
+            send_move_every_x_ticks: 90,
+            max_distance_cose_for_movement: 40,
+            max_distance_say_ai: 12.0,
+            max_distance_auto_exile_attacker: 7,
+            speed_with_both_shoes: 1.4,
+            aging_factor_while_starving: 0.25,
+            grown_up_age: 16.0,
+            food_use_child_faktor: 2.0,
+            ai_food_use_factor_serf: 0.5,
+            ai_food_use_factor_commoner: 0.7,
+            ai_food_use_factor_noble: 1.2,
+            eve_food_use_factor: 0.4,
+            aging_factor_human_born_to_ai: 4.0,
+            aging_factor_ai_born_to_human: 2.0,
+            eve_damage_factor: 0.5,
+            target_wounded_damage_factor: 0.4,
+            male_damage_factor: 1.5,
+            animal_damage_factor: 2.0,
+            animal_damage_factor_in_winter: 3.0,
+            animal_damage_factor_if_attacked: 2.5,
+            weapon_damage_factor: 1.5,
+            grave_blocking_distance: 50.0,
+            max_players_before_activating_grave_curse: 3,
+            max_players_before_forbid_touch_grave: 2,
+            combat_angry_time_before_attack: 8.0,
+            combat_angry_time_minimum: -30.0,
+            chance_for_domestic_animal_dying_factor: 3.0,
+            door_ids: vec![115, 876],
+            ai_ignored_floor_ids: vec![656],
+            secret: "TESTSECRET".into(),
+            allow_debug_commands: false,
+            ai_time_to_wait_if_crafting_failed: 7.0,
+            ai_max_search_radius: 40,
+            ai_max_search_increment: 20,
+            ai_ignore_time_transitions_longer_then: 90.0,
+            ai_memory_max_entries: 3,
+            ai_chat_memory_max_entries: 7,
+            alternative_outcome_percent_increase_per_hit: 20.0,
+            alternative_outcome_hits_decrease_on_success: 3.0,
+            fortification_cost_per_hit: 2.0,
+            reduce_age_needed_to_pickup_objects: 4.0,
+            chance_animals_pass_blocking_biome: 0.1,
+            chance_preferred_biome: 0.5,
+            close_grave_speed_mali: 0.7,
+            temperature_speed_impact: 0.5,
+            min_speed_reduction_per_contained_obj: 0.9,
+            loved_food_use_chance: 0.25,
+            max_age_for_allowing_cloth_and_pickup_from_others: 8.0,
+            max_age_for_allowing_die: 1.0,
+            prestige_cost_for_die: 5.0,
+            starting_family_name: "ICE".into(),
+            starting_name: "FORK".into(),
+            found_family_needed_prestige: 100.0,
+            found_family_cost: 20.0,
+            found_family_needed_followers: 8,
+            found_family_break_alliance_chance: 0.25,
+            pickup_exhaustion_gain: 0.4,
+            pickup_feeding_food_restore: 2.0,
+            death_with_food_store_max: -0.2,
+            food_store_max_reduction_while_starving: 3.0,
+            temperature_reduction_per_drinking: 0.25,
+            max_stored_water: 2.0,
+            max_jumps_per_ten_sec: 4.0,
+            temperature_impact_per_sec: 0.05,
+            temperature_impact_per_sec_if_good: 0.1,
+            temperature_in_water_factor: 2.0,
+            temperature_impact_below: 0.4,
+            temperature_impact_color_factor: 0.25,
+            allow_eating_or_feeding_if_ill: true,
+            resistance_against_fever_for_eating_mushrooms: 0.5,
+            exhaustion_yellow_fever_per_sec: 0.3,
+            min_health_food_store_max_factor: 0.5,
+            max_health_food_store_max_factor: 1.5,
+            min_health_aging_factor: 0.25,
+            max_health_aging_factor: 3.0,
+            min_health_per_year: 2.0,
+            max_age: 50.0,
+            animal_deadly_distance_factor: 1.5,
+            chance_for_animal_dying_factor_if_in_loved_biome: 0.5,
+            offspring_factor_if_animal_pop_is_low: 5.0,
+            max_offspring_factor: 2.0,
+            offspring_factor_low_animal_population_below: 0.05,
             twin_peers: vec![TwinPeerConfig {
                 host: "10.0.0.9".into(),
                 port: 8009,
@@ -2564,6 +5055,149 @@ mod tests {
         assert!((c.ai_speed_factor_serf - 0.8).abs() < f32::EPSILON);
         assert!((c.ai_speed_factor_commoner - 0.9).abs() < f32::EPSILON);
         assert!((c.ai_speed_factor_noble - 1.0).abs() < f32::EPSILON);
+        // SETTINGS-LONG-TAIL Haxe StartingEveAge = 14 / ObjDecay 0.00005 / FloorDecay 0.00001
+        assert!((c.starting_eve_age - 14.0).abs() < f32::EPSILON);
+        assert!((c.eve_or_adam_birth_chance - 0.025).abs() < 1e-12);
+        assert!(!c.spawn_ai_as_eve);
+        assert_eq!(c.max_players_before_starting_as_child, 0);
+        assert!((c.obj_decay_chance - 0.00005).abs() < 1e-12);
+        assert!((c.floor_decay_chance - 0.00001).abs() < 1e-12);
+        assert!((c.obj_respawn_chance - 0.00006).abs() < 1e-12);
+        assert!((c.grow_back_plants_increase_if_low_population - 2.0).abs() < 1e-12);
+        assert!((c.grow_back_original_plants_factor - 0.02).abs() < 1e-12);
+        assert!((c.grow_new_plants_from_existing_factor - 0.05).abs() < 1e-12);
+        assert!((c.spring_wild_food_regrow_chance - 1.0).abs() < 1e-12);
+        assert!((c.winter_wild_food_decay_chance - 1.5).abs() < 1e-12);
+        assert!((c.hot_season_temperature_factor - 0.75).abs() < 1e-12);
+        assert!((c.cold_season_temperature_factor - 0.75).abs() < 1e-12);
+        assert!(c.display_score_on);
+        assert_eq!(c.max_coins_per_chest, 200);
+        assert_eq!(c.max_coins_per_pouch, 50);
+        assert!((c.chance_for_female_child - 0.6).abs() < 1e-12);
+        assert!((c.chance_for_other_child_color - 0.2).abs() < 1e-12);
+        assert!(
+            (c.chance_for_other_child_color_if_close_to_wrong_special_biome - 0.3).abs() < 1e-12
+        );
+        assert_eq!(c.little_kids_per_mother, 3);
+        assert!((c.new_child_exhaustion_for_mother - 0.0).abs() < 1e-12);
+        assert!((c.ai_mother_birth_mali_for_human_child - 3.0).abs() < 1e-12);
+        assert!((c.human_mother_birth_mali_for_ai_child - 1.0).abs() < 1e-12);
+        assert!(!c.spawn_at_last_dead);
+        assert!((c.temperature_own_tile_rate - 0.05).abs() < 1e-12);
+        assert!((c.temperature_balance_rate - 0.9).abs() < 1e-12);
+        assert!((c.temperature_local_heat_factor - 0.005).abs() < 1e-12);
+        assert!((c.average_season_temperature_impact - 0.2).abs() < 1e-12);
+        assert!((c.cursed_grave_time - 12.0).abs() < f32::EPSILON);
+        assert!((c.animal_decay_factor - 0.05).abs() < 1e-12);
+        assert!((c.score_factor - 0.2).abs() < 1e-6);
+        assert_eq!(c.send_move_every_x_ticks, -1);
+        assert_eq!(c.max_distance_cose_for_movement, 30);
+        assert!((c.max_distance_say_ai - 20.0).abs() < 1e-12);
+        assert!((c.speed_with_both_shoes - 1.1).abs() < 1e-12);
+        assert!((c.aging_factor_while_starving - 0.5).abs() < 1e-12);
+        assert!((c.grown_up_age - 14.0).abs() < 1e-12);
+        assert!((c.food_use_child_faktor - 1.0).abs() < 1e-12);
+        assert!((c.ai_food_use_factor_serf - 0.8).abs() < 1e-12);
+        assert!((c.ai_food_use_factor_commoner - 0.9).abs() < 1e-12);
+        assert!((c.ai_food_use_factor_noble - 1.0).abs() < 1e-12);
+        assert!((c.eve_food_use_factor - 1.0).abs() < 1e-12);
+        assert!((c.eve_damage_factor - 1.0).abs() < 1e-12);
+        assert!((c.target_wounded_damage_factor - 0.2).abs() < 1e-12);
+        assert!((c.male_damage_factor - 1.2).abs() < 1e-12);
+        assert!((c.animal_damage_factor - 1.5).abs() < 1e-12);
+        assert!((c.animal_damage_factor_in_winter - 2.0).abs() < 1e-12);
+        assert!((c.animal_damage_factor_if_attacked - 1.5).abs() < 1e-12);
+        assert!((c.weapon_damage_factor - 1.0).abs() < 1e-12);
+        assert!((c.grave_blocking_distance - 40.0).abs() < 1e-12);
+        assert_eq!(c.max_players_before_activating_grave_curse, 0);
+        assert_eq!(c.max_players_before_forbid_touch_grave, 9999);
+        assert!((c.combat_angry_time_before_attack - 5.0).abs() < 1e-12);
+        assert!((c.combat_angry_time_minimum + 60.0).abs() < 1e-12);
+        assert!((c.chance_for_domestic_animal_dying_factor - 2.0).abs() < 1e-12);
+        assert_eq!(c.door_ids, crate::DOOR_IDS);
+        assert_eq!(c.ai_ignored_floor_ids, crate::AI_IGNORED_FLOOR_IDS);
+        assert_eq!(c.secret, "JASON");
+        assert!(c.allow_debug_commands);
+        assert!((c.ai_time_to_wait_if_crafting_failed - 15.0).abs() < 1e-12);
+        assert_eq!(c.ai_memory_max_entries, 20);
+        assert_eq!(c.ai_chat_memory_max_entries, 100);
+        assert_eq!(c.ai_max_search_radius, 60);
+        assert_eq!(c.ai_max_search_increment, 30);
+        assert!((c.ai_ignore_time_transitions_longer_then - 120.0).abs() < 1e-12);
+        assert!((c.alternative_outcome_percent_increase_per_hit - 10.0).abs() < 1e-12);
+        assert!((c.alternative_outcome_hits_decrease_on_success - 5.0).abs() < 1e-12);
+        assert!((c.fortification_cost_per_hit - 1.0).abs() < 1e-12);
+        assert!((c.reduce_age_needed_to_pickup_objects - 10.0).abs() < 1e-12);
+        assert!((c.chance_animals_pass_blocking_biome - 0.03).abs() < 1e-12);
+        assert!((c.chance_preferred_biome - 0.8).abs() < 1e-12);
+        assert!((c.close_grave_speed_mali - 0.9).abs() < 1e-12);
+        assert!((c.temperature_speed_impact - 1.0).abs() < 1e-12);
+        assert!((c.min_speed_reduction_per_contained_obj - 0.98).abs() < 1e-12);
+        assert!((c.loved_food_use_chance - 0.5).abs() < 1e-12);
+        assert!((c.max_age_for_allowing_cloth_and_pickup_from_others - 10.0).abs() < 1e-12);
+        assert!((c.max_age_for_allowing_die - 2.0).abs() < 1e-12);
+        assert!((c.prestige_cost_for_die - 0.0).abs() < 1e-12);
+        assert_eq!(c.starting_family_name, "SNOW");
+        assert_eq!(c.starting_name, "SPOON");
+        assert!((c.found_family_needed_prestige - 50.0).abs() < 1e-12);
+        assert!((c.found_family_cost - 10.0).abs() < 1e-12);
+        assert_eq!(c.found_family_needed_followers, 4);
+        assert!((c.found_family_break_alliance_chance - 0.5).abs() < 1e-12);
+        assert!((c.pickup_exhaustion_gain - 0.2).abs() < 1e-12);
+        assert!((c.pickup_feeding_food_restore - 1.5).abs() < 1e-12);
+        assert!((c.death_with_food_store_max + 0.1).abs() < 1e-12);
+        assert!((c.food_store_max_reduction_while_starving - 5.0).abs() < 1e-12);
+        assert!((c.temperature_reduction_per_drinking - 0.5).abs() < 1e-12);
+        assert!((c.max_stored_water - 1.0).abs() < 1e-12);
+        assert!((c.max_jumps_per_ten_sec - 10.0).abs() < 1e-12);
+        assert!((c.temperature_impact_per_sec - 0.03).abs() < 1e-12);
+        assert!((c.temperature_impact_per_sec_if_good - 0.06).abs() < 1e-12);
+        assert!((c.temperature_in_water_factor - 1.5).abs() < 1e-12);
+        assert!((c.temperature_impact_below - 0.6).abs() < 1e-12);
+        assert!((c.temperature_impact_color_factor - 0.5).abs() < 1e-12);
+        assert!(!c.allow_eating_or_feeding_if_ill);
+        assert!((c.resistance_against_fever_for_eating_mushrooms - 0.2).abs() < 1e-12);
+        assert!((c.exhaustion_yellow_fever_per_sec - 0.1).abs() < 1e-12);
+        assert!((c.min_health_food_store_max_factor - 0.8).abs() < 1e-12);
+        assert!((c.max_health_food_store_max_factor - 1.2).abs() < 1e-12);
+        assert!((c.min_health_aging_factor - 0.5).abs() < 1e-12);
+        assert!((c.max_health_aging_factor - 2.0).abs() < 1e-12);
+        assert!((c.min_health_per_year - 1.0).abs() < 1e-12);
+        assert!((c.max_age - 60.0).abs() < 1e-12);
+        assert!((c.animal_deadly_distance_factor - 0.5).abs() < 1e-12);
+        assert!((c.chance_for_animal_dying_factor_if_in_loved_biome - 0.1).abs() < 1e-12);
+        assert!((c.offspring_factor_if_animal_pop_is_low - 10.0).abs() < 1e-12);
+        assert!((c.max_offspring_factor - 1.0).abs() < 1e-12);
+        assert!((c.offspring_factor_low_animal_population_below - 0.2).abs() < 1e-12);
+        assert!((c.obj_decay_factor_for_food - 2.0).abs() < 1e-12);
+        assert!((c.obj_decay_factor_for_clothing - 2.0).abs() < 1e-12);
+        assert!((c.obj_decay_factor_for_walls - 0.2).abs() < 1e-12);
+        assert!((c.obj_decay_factor_per_tech_level - 10.0).abs() < 1e-12);
+        assert!((c.decay_factor_in_deep_water - 5.0).abs() < 1e-12);
+        assert!((c.decay_factor_in_mountain - 3.0).abs() < 1e-12);
+        assert!((c.decay_factor_in_walkable_water - 2.0).abs() < 1e-12);
+        assert!((c.decay_factor_in_jungle - 2.0).abs() < 1e-12);
+        assert!((c.decay_factor_in_swamp - 2.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn winter_wild_food_decay_chance_and_hot_season_defaults() {
+        let c = ServerConfig::default();
+        assert!((c.winter_wild_food_decay_chance - 1.5).abs() < 1e-12);
+        assert!((c.hot_season_temperature_factor - 0.75).abs() < 1e-12);
+        assert!((c.cold_season_temperature_factor - 0.75).abs() < 1e-12);
+        let live = c.live_settings();
+        assert!((live.winter_wild_food_decay_chance - 1.5).abs() < 1e-12);
+        assert!((live.hot_season_temperature_factor - 0.75).abs() < 1e-12);
+        assert!((live.cold_season_temperature_factor - 0.75).abs() < 1e-12);
+        let mut other = live.clone();
+        other.winter_wild_food_decay_chance = 3.0;
+        other.hot_season_temperature_factor = 1.5;
+        other.cold_season_temperature_factor = 0.5;
+        let keys = ServerConfig::live_diff_keys(&live, &other);
+        assert!(keys.contains(&"winter_wild_food_decay_chance"));
+        assert!(keys.contains(&"hot_season_temperature_factor"));
+        assert!(keys.contains(&"cold_season_temperature_factor"));
     }
 
     #[test]
@@ -2613,6 +5247,111 @@ mod tests {
         assert!(live.contains(&"AISpeedFactorSerf"));
         assert!(live.contains(&"AISpeedFactorCommoner"));
         assert!(live.contains(&"AISpeedFactorNoble"));
+        // SETTINGS-LONG-TAIL
+        assert!(live.contains(&"StartingEveAge"));
+        assert!(live.contains(&"EveOrAdamBirthChance"));
+        assert!(live.contains(&"SpawnAiAsEve"));
+        assert!(live.contains(&"ObjDecayChance"));
+        assert!(live.contains(&"FloorDecayChance"));
+        assert!(live.contains(&"CursedGraveTime"));
+        assert!(live.contains(&"AnimalDecayFactor"));
+        assert!(live.contains(&"ScoreFactor"));
+        assert!(live.contains(&"DisplayScoreFactor"));
+        assert!(live.contains(&"DisplayScoreOn"));
+        assert!(live.contains(&"MaxCoinsPerChest"));
+        assert!(live.contains(&"MaxCoinsPerPouch"));
+        assert!(live.contains(&"ChanceForFemaleChild"));
+        assert!(live.contains(&"ChanceForOtherChildColor"));
+        assert!(live.contains(&"ChanceForOtherChildColorIfCloseToWrongSpecialBiome"));
+        assert!(live.contains(&"LittleKidsPerMother"));
+        assert!(live.contains(&"NewChildExhaustionForMother"));
+        assert!(live.contains(&"AiMotherBirthMaliForHumanChild"));
+        assert!(live.contains(&"HumanMotherBirthMaliForAiChild"));
+        assert!(live.contains(&"SpwanAtLastDead"));
+        assert!(live.contains(&"TemperatureOwnTileRate"));
+        assert!(live.contains(&"TemperatureBalanceRate"));
+        assert!(live.contains(&"TemperatureLocalHeatFactor"));
+        assert!(live.contains(&"AverageSeasonTemperatureImpact"));
+        assert!(live.contains(&"SendMoveEveryXTicks"));
+        assert!(live.contains(&"MaxDistanceToBeConsideredAsCoseForMovement"));
+        assert!(live.contains(&"MaxDistanceToBeConsideredAsCloseForSayAi"));
+        assert!(live.contains(&"AIFoodUseFactorSerf"));
+        assert!(live.contains(&"AIFoodUseFactorCommoner"));
+        assert!(live.contains(&"AIFoodUseFactorNoble"));
+        assert!(live.contains(&"EveFoodUseFactor"));
+        assert!(live.contains(&"EveDamageFactor"));
+        assert!(live.contains(&"TargetWoundedDamageFactor"));
+        assert!(live.contains(&"MaleDamageFactor"));
+        assert!(live.contains(&"AnimalDamageFactor"));
+        assert!(live.contains(&"AnimalDamageFactorInWinter"));
+        assert!(live.contains(&"AnimalDamageFactorIfAttacked"));
+        assert!(live.contains(&"WeaponDamageFactor"));
+        assert!(live.contains(&"GraveBlockingDistance"));
+        assert!(live.contains(&"MaxPlayersBeforeActivatingGraveCurse"));
+        assert!(live.contains(&"MaxPlayersBeforeForbidTouchGrave"));
+        assert!(live.contains(&"CombatAngryTimeBeforeAttack"));
+        assert!(live.contains(&"AiTimeToWaitIfCraftingFailed"));
+        assert!(live.contains(&"AiMemoryMaxEntries"));
+        assert!(live.contains(&"AiChatMemoryMaxEntries"));
+        assert!(live.contains(&"AiMaxSearchRadius"));
+        assert!(live.contains(&"AiMaxSearchIncrement"));
+        assert!(live.contains(&"AiIgnoreTimeTransitionsLongerThen"));
+        assert!(live.contains(&"AlternativeOutcomePercentIncreasePerHit"));
+        assert!(live.contains(&"AlternativeOutcomeHitsDecreaseOnSucess"));
+        assert!(live.contains(&"FortificationCosePerHit"));
+        assert!(live.contains(&"ReduceAgeNeededToPickupObjects"));
+        assert!(live.contains(&"ChanceThatAnimalsCanPassBlockingBiome"));
+        assert!(live.contains(&"chancePreferredBiome"));
+        assert!(live.contains(&"CloseGraveSpeedMali"));
+        assert!(live.contains(&"TemperatureSpeedImpact"));
+        assert!(live.contains(&"MinSpeedReductionPerContainedObj"));
+        assert!(live.contains(&"LovedFoodUseChance"));
+        assert!(live.contains(&"MaxAgeForAllowingClothAndPrickupFromOthers"));
+        assert!(live.contains(&"MaxAgeForAllowingDie"));
+        assert!(live.contains(&"PrestigeCostForDie"));
+        assert!(live.contains(&"StartingFamilyName"));
+        assert!(live.contains(&"StartingName"));
+        assert!(live.contains(&"FoundFamilyNeededPrestige"));
+        assert!(live.contains(&"FoundFamilyCost"));
+        assert!(live.contains(&"FoundFamilyNeededFollowers"));
+        assert!(live.contains(&"FoundFamilyBreakAllianceChance"));
+        assert!(live.contains(&"PickupExhaustionGain"));
+        assert!(live.contains(&"PickupFeedingFoodRestore"));
+        assert!(live.contains(&"DeathWithFoodStoreMax"));
+        assert!(live.contains(&"FoodStoreMaxReductionWhileStarvingToDeath"));
+        assert!(live.contains(&"TemperatureReductionPerDrinking"));
+        assert!(live.contains(&"MaxStoredWater"));
+        assert!(live.contains(&"MaxJumpsPerTenSec"));
+        assert!(live.contains(&"TemperatureImpactPerSec"));
+        assert!(live.contains(&"TemperatureImpactPerSecIfGood"));
+        assert!(live.contains(&"TemperatureInWaterFactor"));
+        assert!(live.contains(&"TemperatureImpactBelow"));
+        assert!(live.contains(&"TemperatureImpactColorFactor"));
+        assert!(live.contains(&"AllowEatingOrFeedingIfIll"));
+        assert!(live.contains(&"ResistanceAgainstFeverForEatingMushrooms"));
+        assert!(live.contains(&"ExhaustionYellowFeverPerSec"));
+        assert!(live.contains(&"MinHealthFoodStoreMaxFactor"));
+        assert!(live.contains(&"MaxHealthFoodStoreMaxFactor"));
+        assert!(live.contains(&"MinHealthAgingFactor"));
+        assert!(live.contains(&"MaxHealthAgingFactor"));
+        assert!(live.contains(&"MinHealthPerYear"));
+        assert!(live.contains(&"MaxAge"));
+        assert!(live.contains(&"AnimalDeadlyDistanceFactor"));
+        assert!(live.contains(&"ChanceForAnimalDyingFactorIfInLovedBiome"));
+        assert!(live.contains(&"OffspringFactorIfAnimalPopIsLow"));
+        assert!(live.contains(&"MaxOffspringFactor"));
+        assert!(live.contains(&"OffspringFactorLowAnimalPopulationBelow"));
+        assert!(live.contains(&"ObjDecayFactorForFood"));
+        assert!(live.contains(&"ObjDecayFactorForClothing"));
+        assert!(live.contains(&"ObjDecayFactorForWalls"));
+        assert!(live.contains(&"ObjDecayFactorPerTechLevel"));
+        assert!(live.contains(&"DecayFactorInDeepWater"));
+        assert!(live.contains(&"DecayFactorInMountain"));
+        assert!(live.contains(&"DecayFactorInWalkableWater"));
+        assert!(live.contains(&"DecayFactorInJungle"));
+        assert!(live.contains(&"DecayFactorInSwamp"));
+        assert!(live.contains(&"ObjRespawnChance"));
+        assert!(live.contains(&"GrowBackPlantsIncreaseIfLowPopulation"));
         let residual = module_const_critical_names();
         assert!(!residual.contains(&"GrownUpFoodStoreMax"));
         assert!(!residual.contains(&"FoodFactor"));
@@ -2625,5 +5364,65 @@ mod tests {
         assert!(!residual.contains(&"WeaponCoolDownFactor"));
         assert!(!residual.contains(&"HungryWorkHeat"));
         assert!(!residual.contains(&"AISpeedFactorSerf"));
+        assert!(!residual.contains(&"StartingEveAge"));
+        assert!(!residual.contains(&"EveOrAdamBirthChance"));
+        assert!(!residual.contains(&"SpawnAiAsEve"));
+        assert!(!residual.contains(&"ObjDecayChance"));
+        assert!(!residual.contains(&"FloorDecayChance"));
+        assert!(!residual.contains(&"CursedGraveTime"));
+        assert!(!residual.contains(&"AnimalDecayFactor"));
+        assert!(!residual.contains(&"ScoreFactor"));
+        assert!(!residual.contains(&"DisplayScoreOn"));
+        assert!(!residual.contains(&"MaxCoinsPerChest"));
+        assert!(!residual.contains(&"ChanceForFemaleChild"));
+        assert!(!residual.contains(&"SpwanAtLastDead"));
+        assert!(!residual.contains(&"TemperatureOwnTileRate"));
+        assert!(!residual.contains(&"AverageSeasonTemperatureImpact"));
+        assert!(!residual.contains(&"SendMoveEveryXTicks"));
+        assert!(!residual.contains(&"MaxDistanceToBeConsideredAsCoseForMovement"));
+        assert!(!residual.contains(&"MaxDistanceToBeConsideredAsCloseForSayAi"));
+        assert!(!residual.contains(&"SpeedWithBothShoes"));
+        assert!(!residual.contains(&"AgingFactorWhileStarvingToDeath"));
+        assert!(!residual.contains(&"GrownUpAge"));
+        assert!(!residual.contains(&"FoodUseChildFaktor"));
+        assert!(!residual.contains(&"AIFoodUseFactorSerf"));
+        assert!(!residual.contains(&"AIFoodUseFactorCommoner"));
+        assert!(!residual.contains(&"AIFoodUseFactorNoble"));
+        assert!(!residual.contains(&"EveFoodUseFactor"));
+        assert!(!residual.contains(&"EveDamageFactor"));
+        assert!(!residual.contains(&"TargetWoundedDamageFactor"));
+        assert!(!residual.contains(&"MaleDamageFactor"));
+        assert!(!residual.contains(&"AnimalDamageFactor"));
+        assert!(!residual.contains(&"AnimalDamageFactorInWinter"));
+        assert!(!residual.contains(&"AnimalDamageFactorIfAttacked"));
+        assert!(!residual.contains(&"WeaponDamageFactor"));
+        assert!(!residual.contains(&"GraveBlockingDistance"));
+        assert!(!residual.contains(&"MaxPlayersBeforeActivatingGraveCurse"));
+        assert!(!residual.contains(&"MaxPlayersBeforeForbidTouchGrave"));
+        assert!(!residual.contains(&"CombatAngryTimeBeforeAttack"));
+        assert!(!residual.contains(&"AiTimeToWaitIfCraftingFailed"));
+        assert!(!residual.contains(&"AiMemoryMaxEntries"));
+        assert!(!residual.contains(&"AiChatMemoryMaxEntries"));
+        assert!(!residual.contains(&"AiMaxSearchRadius"));
+        assert!(!residual.contains(&"AiMaxSearchIncrement"));
+        assert!(!residual.contains(&"AiIgnoreTimeTransitionsLongerThen"));
+        assert!(!residual.contains(&"AlternativeOutcomePercentIncreasePerHit"));
+        assert!(!residual.contains(&"AlternativeOutcomeHitsDecreaseOnSucess"));
+        assert!(!residual.contains(&"FortificationCosePerHit"));
+        assert!(!residual.contains(&"ReduceAgeNeededToPickupObjects"));
+        assert!(!residual.contains(&"ChanceThatAnimalsCanPassBlockingBiome"));
+        assert!(!residual.contains(&"chancePreferredBiome"));
+        assert!(!residual.contains(&"CloseGraveSpeedMali"));
+        assert!(!residual.contains(&"TemperatureSpeedImpact"));
+        assert!(!residual.contains(&"MaxAgeForAllowingDie"));
+        assert!(!residual.contains(&"PrestigeCostForDie"));
+        assert!(!residual.contains(&"StartingFamilyName"));
+        assert!(!residual.contains(&"StartingName"));
+        assert!(!residual.contains(&"FoundFamilyNeededPrestige"));
+        assert!(!residual.contains(&"FoundFamilyCost"));
+        assert!(!residual.contains(&"FoundFamilyNeededFollowers"));
+        assert!(!residual.contains(&"FoundFamilyBreakAllianceChance"));
+        assert!(!residual.contains(&"ObjRespawnChance"));
+        assert!(!residual.contains(&"GrowBackPlantsIncreaseIfLowPopulation"));
     }
 }

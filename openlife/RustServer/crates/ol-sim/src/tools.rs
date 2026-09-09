@@ -68,11 +68,7 @@ impl ToolSlots {
 
     /// Human-readable `?TOOLS` reply body (without player id): wire slots + learned count.
     pub fn query_text(&self) -> String {
-        format!(
-            "TOOLS {} learned={}",
-            self.wire_slots(),
-            self.learned.len()
-        )
+        format!("TOOLS {} learned={}", self.wire_slots(), self.learned.len())
     }
 }
 

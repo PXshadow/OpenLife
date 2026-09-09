@@ -107,6 +107,16 @@ pub struct ObjectDef {
     /// Text key is `slotsSize=`. Default 1.
     /// // Haxe: ObjectData.slotSize
     pub slot_size: f32,
+    /// Haxe `ObjectData.prestigeFactor` — clothing prestige share (default 0.5).
+    /// Runtime PatchObjectData / SetClothingPrestige; not an object-file field.
+    // Haxe: ObjectData.prestigeFactor
+    pub prestige_factor: f32,
+    /// Haxe `ObjectData.extraPrestigeFactor` — leader-only clothing bonus (crowns).
+    // Haxe: ObjectData.extraPrestigeFactor
+    pub extra_prestige_factor: f32,
+    /// Haxe `ObjectData.minPickupAge` — min age to pick up / use (default 0).
+    // Haxe: ObjectData.minPickupAge
+    pub min_pickup_age: i32,
 }
 
 impl Default for ObjectDef {
@@ -151,6 +161,9 @@ impl ObjectDef {
             male: false,
             contain_size: 0.0,
             slot_size: 1.0,
+            prestige_factor: 0.5,
+            extra_prestige_factor: 0.0,
+            min_pickup_age: 0,
         }
     }
 
@@ -211,6 +224,75 @@ impl ObjectDef {
             self.r_value
         }
     }
+
+    /// Haxe `ObjectData.getInsulation` for **worn** clothing (slot weight × rValue).
+    ///
+    /// Non-clothing returns `rValue`. Missing `parts` key returns `rValue` (Haxe `null == 0`).
+    // Haxe: ObjectData.getInsulation
+    pub fn get_insulation(&self) -> f32 {
+        if !self.is_clothing() {
+            return self.r_value;
+        }
+        match clothing_part_weight(&self.clothing) {
+            None => self.r_value,
+            Some(w) if self.r_value > 0.0 => w * self.r_value,
+            Some(w) => w,
+        }
+    }
+
+    /// Haxe `ObjectData.getHeatProtection` — backpack/`p` is 0; else weight × (1 − rValue).
+    ///
+    /// No `isClothing` gate (Haxe). Missing `parts` key returns `rValue`.
+    // Haxe: ObjectData.getHeatProtection
+    pub fn get_heat_protection(&self) -> f32 {
+        let key = clothing_lookup_key(&self.clothing);
+        let first = key.chars().next().unwrap_or('\0');
+        if first == 'p' || first == 'P' {
+            return 0.0;
+        }
+        match clothing_part_weight(&self.clothing) {
+            None => self.r_value,
+            Some(w) if self.r_value > 0.0 => w * (1.0 - self.r_value),
+            Some(w) => w,
+        }
+    }
+
+    /// Haxe `ObjectData.getPrestigeFactor` — `parts[clothing] * prestigeFactor`.
+    ///
+    /// Missing `parts` key → 0 (not clothing / `n`).
+    // Haxe: ObjectData.getPrestigeFactor L1469–1472
+    pub fn get_prestige_factor(&self) -> f32 {
+        match clothing_part_weight(&self.clothing) {
+            None => 0.0,
+            Some(w) => w * self.prestige_factor,
+        }
+    }
+}
+
+/// Haxe `ObjectData.parts` lookup key: trim only when `clothing.length > 1`.
+#[inline]
+pub fn clothing_lookup_key(clothing: &str) -> &str {
+    if clothing.len() > 1 {
+        clothing.trim()
+    } else {
+        clothing
+    }
+}
+
+/// Haxe `ObjectData.parts` slot weights: h/t/b/p = 0.4, s = 0.2.
+///
+/// Exact map-key match after [`clothing_lookup_key`] (not first-char).
+// Haxe: ObjectData.parts = ["h"=>0.4, "t"=>0.4, "b"=>0.4, "s"=>0.2, "p"=>0.4]
+#[inline]
+pub fn clothing_part_weight(clothing: &str) -> Option<f32> {
+    match clothing_lookup_key(clothing) {
+        "h" => Some(0.4),
+        "t" => Some(0.4),
+        "b" => Some(0.4),
+        "s" => Some(0.2),
+        "p" => Some(0.4),
+        _ => None,
+    }
 }
 
 /// One OHOL transition: actor + target → new_actor + new_target.
@@ -242,6 +324,16 @@ pub struct Transition {
     /// Haxe `TransitionData.isPickupOrDrop` — horse cart / grave basket nest swap on USE.
     /// Not in transition files; set by ServerSettings.PatchTransitions.
     pub is_pickup_or_drop: bool,
+    /// Haxe `TransitionData.hungryWorkCost` — PatchTransitions only (file default 0).
+    // Haxe: TransitionData.hungryWorkCost
+    pub hungry_work_cost: f32,
+    /// Haxe `TransitionData.hungryWorkTemperature` — `< 0` → cost × HungryWorkHeat.
+    // Haxe: TransitionData.hungryWorkTemperature
+    pub hungry_work_temperature: f32,
+    /// Haxe `TransitionData.coinCost` (PatchTransitions; file default 0).
+    pub coin_cost: i32,
+    /// Haxe `TransitionData.isForbidden` (PatchTransitions).
+    pub is_forbidden: bool,
 }
 
 impl Default for Transition {
@@ -265,6 +357,10 @@ impl Default for Transition {
             switch_number_of_uses: false,
             target_number_of_uses: -1,
             is_pickup_or_drop: false,
+            hungry_work_cost: 0.0,
+            hungry_work_temperature: -1.0,
+            coin_cost: 0,
+            is_forbidden: false,
         }
     }
 }
@@ -293,6 +389,12 @@ pub struct ContentDb {
     pub second_time_outcomes: HashMap<i32, (i32, f32)>,
     /// Dummy object id → parent base id (Haxe `dummyParent`).
     pub dummy_parent: HashMap<i32, i32>,
+    /// Haxe `Server.VanillaObjIdMap` — OpenLife parent id → vanilla id (`+VanillaId N`).
+    // Haxe: Server.VanillaObjIdMap / ServerSettings.InitVanillaObjectIdMap
+    pub vanilla_obj_id_map: HashMap<i32, i32>,
+    /// Haxe `Server.lastOpenLifeID` — last real object id before dummy allocation.
+    // Haxe: Server.lastOpenLifeID = ObjectBake.nextObjectNumber - 1
+    pub last_open_life_id: i32,
     /// Category parent id → member object ids (non-pattern only for expansion).
     pub categories: HashMap<i32, Vec<i32>>,
     /// Haxe `Category` with `probSet=true` (TransformTarget weighted random outcomes).
@@ -327,6 +429,51 @@ pub struct ContentDb {
     /// Haxe `ObjectData.fortificationValue`.
     /// // TH-ALT-OUTCOME
     pub fortification_value: HashMap<i32, f32>,
+    /// Haxe `ObjectData.allowFloorPlacement` (PatchObjectData; not an object-file field).
+    pub allow_floor_placement: HashSet<i32>,
+    /// Haxe `ObjectData.groundOnly`.
+    pub ground_only: HashSet<i32>,
+    /// Haxe `ObjectData.lastUseObject` (e.g. gooseberry 30↔279).
+    pub last_use_object: HashMap<i32, i32>,
+    /// Haxe `ObjectData.hungryWork` (object-level; `+hungryWork` / id table).
+    pub object_hungry_work: HashMap<i32, f32>,
+    /// Haxe `ObjectData.isBloody`.
+    pub is_bloody: HashSet<i32>,
+    /// Haxe `ObjectData.neverDrop`.
+    pub never_drop: HashSet<i32>,
+    /// Haxe `ObjectData.blocksAnimal`.
+    pub blocks_animal: HashSet<i32>,
+    /// Haxe `ObjectData.alternativeTimeOutcome`.
+    pub alternative_time_outcome: HashMap<i32, i32>,
+    /// Haxe `ObjectData.isBoat` (`+isBoat` / Sports Car / 2396/4655).
+    pub is_boat: HashSet<i32>,
+    /// Haxe `ObjectData.blocksRemove` (locked chests).
+    pub blocks_remove: HashSet<i32>,
+    /// Haxe `TransitionData.isForbidden` keys (actor, target) if not on the Transition row.
+    pub forbidden_transitions: HashSet<(i32, i32)>,
+    /// Haxe `ObjectData.reducesLongingFor` (eat rollup; `-1` absent).
+    pub reduces_longing_for: HashMap<i32, i32>,
+    /// Haxe `ObjectData.higherQaulityFood` (typo kept in Haxe name; `-1` absent).
+    pub higher_quality_food: HashMap<i32, i32>,
+    /// Haxe `ObjectData.prestigeClass` as `PrestigeClass` int (0 = NotSet).
+    pub object_prestige_class: HashMap<i32, u8>,
+    /// Haxe `ObjectData.blocksDomesticAnimal`.
+    pub blocks_domestic_animal: HashSet<i32>,
+    /// Haxe `ServerSettings.objectIdArrays` (key 455 = Steel Chisel family).
+    pub object_id_arrays: HashMap<i32, Vec<i32>>,
+    /// Haxe `ObjectData.unreleased` (Truck Chassis 4647).
+    pub unreleased: HashSet<i32>,
+    /// Haxe `TransitionData.tool` primary edges.
+    pub trans_tool: HashSet<(i32, i32)>,
+    /// Haxe `ObjectData.aiCraftMax`.
+    pub ai_craft_max: HashMap<i32, i32>,
+    /// Haxe `ObjectData.aiCraftMin`.
+    pub ai_craft_min: HashMap<i32, i32>,
+    /// Haxe `TransitionData.ignoreIfMaxIsReachedObjectId` (actor, target).
+    pub ignore_if_max_reached: HashMap<(i32, i32), i32>,
+    /// Haxe `TransitionData.igmoreIfMinIsNotReachedObjectId` (actor, target).
+    pub ignore_if_min_not_reached: HashMap<(i32, i32), i32>,
+
     /// Load timing (ms) — set by [`load_content`].
     pub load_objects_ms: u64,
     pub load_transitions_ms: u64,
@@ -361,6 +508,51 @@ impl ContentDb {
     #[inline]
     pub fn person_color(&self, object_id: i32) -> i32 {
         self.person_race.get(&object_id).copied().unwrap_or(0)
+    }
+
+    /// Haxe `ObjectData.reducesLongingFor` (`-1` if unset).
+    #[inline]
+    pub fn reduces_longing_for_of(&self, id: i32) -> i32 {
+        self.reduces_longing_for.get(&id).copied().unwrap_or(-1)
+    }
+
+    /// Haxe `ObjectData.higherQaulityFood` (`-1` if unset).
+    #[inline]
+    pub fn higher_quality_food_of(&self, id: i32) -> i32 {
+        self.higher_quality_food.get(&id).copied().unwrap_or(-1)
+    }
+
+    /// Haxe `ObjectData.prestigeClass` int (`0` = NotSet).
+    #[inline]
+    pub fn prestige_class_of(&self, id: i32) -> u8 {
+        self.object_prestige_class.get(&id).copied().unwrap_or(0)
+    }
+
+    /// Haxe `ObjectData.blocksDomesticAnimal`.
+    #[inline]
+    pub fn blocks_domestic_animal_of(&self, id: i32) -> bool {
+        self.blocks_domestic_animal.contains(&id)
+    }
+
+    /// Haxe `ServerSettings.objectIdArrays[key]` (empty if unset).
+    #[inline]
+    pub fn object_id_array(&self, key: i32) -> &[i32] {
+        self.object_id_arrays
+            .get(&key)
+            .map(|v| v.as_slice())
+            .unwrap_or(&[])
+    }
+
+    /// Haxe `ObjectData.unreleased`.
+    #[inline]
+    pub fn is_unreleased(&self, id: i32) -> bool {
+        self.unreleased.contains(&id)
+    }
+
+    /// Haxe `TransitionData.tool`.
+    #[inline]
+    pub fn trans_is_tool(&self, actor: i32, target: i32) -> bool {
+        self.trans_tool.contains(&(actor, target))
     }
 
     /// Haxe L1260–1261: transition alt list if non-empty, else new-target object list
@@ -608,6 +800,7 @@ pub fn load_content(root: impl AsRef<Path>) -> Result<ContentDb, ContentError> {
     }
 
     // Haxe ObjectData: allocate dummy ids after max real object id (nextObjectNumber).
+    // lastOpenLifeID is stamped inside assign_multi_use_dummies *before* dummies.
     assign_multi_use_dummies(&mut db, root);
 
     let objects_ms = t0.elapsed().as_millis() as u64;
@@ -631,27 +824,8 @@ pub fn load_content(root: impl AsRef<Path>) -> Result<ContentDb, ContentError> {
     expand_category_transitions(&mut db);
     // Haxe TransitionImporter.changeToolTransitions (after category expand).
     change_tool_transitions(&mut db);
-    // Haxe ServerSettings.PatchObjectData secondTimeOutcome chains.
-    apply_default_second_time_outcomes(&mut db);
-    // Haxe ServerSettings.PatchObjectData decaysToObj / decayFactor / countsOrGrowsAs / rValue.
-    apply_default_decay_object_patches(&mut db);
-    // CLOTHING-CONTAIN-SIZE: ServerSettings.PatchObjectData containSize / containable.
-    apply_default_contain_size_patches(&mut db);
-    // TH-MULTI-POLISH: ServerSettings useChance + switchNumberOfUses patches.
-    apply_default_use_chance_patches(&mut db);
-    apply_default_switch_number_of_uses_patches(&mut db);
-    // TH-HORSE: ServerSettings.PatchTransitions horse cart pickup/drop + tire fixes.
-    apply_default_horse_transition_patches(&mut db);
-    // TH-ALT-OUTCOME: alternativeTransitionOutcome + fortification tables.
-    apply_default_alternative_outcome_patches(&mut db);
-    // C-SS-AI-IGNORE: ServerSettings.PatchTransitions aiShouldIgnore table.
-    apply_default_ai_should_ignore_patches(&mut db);
-    // IS-CLOSE / action_range: weapon useDistance + deadlyDistance + animal moves.
-    apply_default_weapon_range_patches(&mut db);
-    // Haxe PatchObjectData animal deadlyDistance = AnimalDeadlyDistanceFactor (0.5).
-    apply_default_animal_deadly_distance_patches(&mut db);
-    // WEAPON-WOUND-TRANS: damage / woundFactor / protection + wound bleed DPS.
-    apply_default_combat_damage_patches(&mut db);
+    // Haxe ServerSettings.PatchObjectData / PatchTransitions (not LiveSettings).
+    crate::patches::apply_all_haxe_content_patches(&mut db);
     apply_animal_moves_from_transitions(&mut db);
     db.load_transitions_ms = t1.elapsed().as_millis() as u64;
     db.load_total_ms = t0.elapsed().as_millis() as u64;
@@ -682,6 +856,8 @@ fn assign_multi_use_dummies(db: &mut ContentDb, root: &Path) {
     if next <= max_id {
         next = max_id + 1;
     }
+    // Haxe: Server.lastOpenLifeID = ObjectBake.nextObjectNumber - 1 (before dummies)
+    db.last_open_life_id = next - 1;
     let mut multi: Vec<i32> = db
         .objects
         .iter()
@@ -715,6 +891,11 @@ pub(crate) fn load_categories_into(db: &mut ContentDb, dir: &Path) {
     db.prob_sets = probs;
 }
 
-include!("ai_should_ignore_patches.inc.rs");
-include!("alt_outcome_patches.inc.rs");
+mod patches;
+pub use patches::*;
+mod vanilla_id;
+pub use vanilla_id::{
+    init_vanilla_object_id_map, map_id_to_vanilla_id, map_object_id_string,
+    parse_vanilla_id_from_description, stamp_last_open_life_id_from_dummies,
+};
 include!("lib_tail.inc.rs");

@@ -1,0 +1,10 @@
+[package]
+name = "ol-social-rules"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Pure speech range / doCommands helpers (no SimState)"
+publish = false
+
+[dependencies]
+

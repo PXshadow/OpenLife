@@ -816,6 +816,14 @@ name = "ol-binary"
 version = "0.1.0"
 
 [[package]]
+name = "ol-combat-rules"
+version = "0.1.0"
+dependencies = [
+ "ol-content",
+ "ol-world",
+]
+
+[[package]]
 name = "ol-config"
 version = "0.1.0"
 dependencies = [
@@ -836,6 +844,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ol-food-eating"
+version = "0.1.0"
+dependencies = [
+ "ol-identity",
+]
+
+[[package]]
+name = "ol-identity"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "ol-config",
+ "serde",
+ "tracing",
+]
+
+[[package]]
 name = "ol-main-ai"
 version = "0.1.0"
 dependencies = [
@@ -847,6 +872,14 @@ dependencies = [
 [[package]]
 name = "ol-metrics"
 version = "0.1.0"
+
+[[package]]
+name = "ol-move-rules"
+version = "0.1.0"
+dependencies = [
+ "ol-content",
+ "ol-world",
+]
 
 [[package]]
 name = "ol-net"
@@ -913,18 +946,41 @@ dependencies = [
  "ol-ai-helper",
  "ol-ai-pathing",
  "ol-ai-professions",
+ "ol-combat-rules",
  "ol-config",
  "ol-content",
+ "ol-food-eating",
+ "ol-identity",
  "ol-metrics",
+ "ol-move-rules",
  "ol-net",
  "ol-player-helper",
  "ol-protocol",
+ "ol-social-rules",
+ "ol-temperature",
+ "ol-transition-rules",
  "ol-world",
  "rand 0.8.7",
  "serde",
  "serde_json",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "ol-social-rules"
+version = "0.1.0"
+
+[[package]]
+name = "ol-temperature"
+version = "0.1.0"
+
+[[package]]
+name = "ol-transition-rules"
+version = "0.1.0"
+dependencies = [
+ "ol-content",
+ "ol-world",
 ]
 
 [[package]]

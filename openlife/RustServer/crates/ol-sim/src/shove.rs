@@ -2,7 +2,7 @@
 //!
 //! Pure geometry + outcome math — sim applies positions and PE/prestige.
 
-/// Chebyshev range for PUSH / PULL / KISS (strictly adjacent; not same tile).
+/// Haxe `isClose` d=1 for PUSH / PULL / KISS (orthogonal adjacent; not same tile).
 pub const SHOVE_RANGE: i32 = 1;
 
 /// PE emot index for `SAY KISS` (Haxe `Emote.love` = 13 — cute/partner proxy).
@@ -11,7 +11,7 @@ pub const CUTE_EMOT_INDEX: i32 = 13;
 /// Tiny prestige granted to the kisser when target is an ally (either direction).
 pub const KISS_ALLY_PRESTIGE: f32 = 0.01;
 
-/// Prestige granted to speaker on `SAY THANK <p_id>` when target is adjacent (Chebyshev ≤ 1).
+/// Prestige granted to speaker on `SAY THANK <p_id>` when target is adjacent (`isClose` d=1).
 pub const THANK_PRESTIGE: f32 = 0.05;
 
 /// Tiny prestige granted to speaker on `SAY BLESS <p_id>` when target is adjacent.
@@ -26,10 +26,12 @@ pub const MAD_EMOT_INDEX: i32 = 1;
 /// Wound stacks applied by `SAY SLAP` when target is not an ally.
 pub const SLAP_WOUND: u8 = 1;
 
-/// Chebyshev adjacent (excluding same tile).
+/// Haxe `isClose` adjacent (excluding same tile). Diagonal fails at d=1.
 pub fn is_adjacent(ax: i32, ay: i32, bx: i32, by: i32) -> bool {
-    let d = (ax - bx).abs().max((ay - by).abs());
-    d >= 1 && d <= SHOVE_RANGE
+    let dx = ax - bx;
+    let dy = ay - by;
+    let q = dx * dx + dy * dy;
+    q >= 1 && q <= SHOVE_RANGE * SHOVE_RANGE
 }
 
 /// Direction from actor to target as unit step (-1,0,1).
@@ -104,7 +106,7 @@ mod tests {
     #[test]
     fn push_pull_geometry() {
         assert!(is_adjacent(0, 0, 1, 0));
-        assert!(is_adjacent(0, 0, 1, 1));
+        assert!(!is_adjacent(0, 0, 1, 1)); // isClose d=1: diagonal 2 ≰ 1
         assert!(!is_adjacent(0, 0, 0, 0));
         assert!(!is_adjacent(0, 0, 2, 0));
         assert_eq!(push_dest(0, 0, 1, 0), (2, 0));

@@ -1470,6 +1470,23 @@ pub fn wounded_follow_tiles() -> i32 {
     2
 }
 
+/// Haxe `ServerSettings.MaxAge` default for `handleDeath` (not sim vitals 120).
+// Haxe: ServerSettings.MaxAge = 60; AiBase.handleDeath ageToGoHome = MaxAge - 2
+pub const HANDLE_DEATH_MAX_AGE_DEFAULT: f32 = 60.0;
+/// Haxe `ServerSettings.MaxAge - 2`.
+pub const HANDLE_DEATH_AGE_OFFSET: f32 = 2.0;
+
+/// True when Haxe `handleDeath` should run (`age >= MaxAge - 2`).
+// Haxe: AiBase.handleDeath ~1612–1613
+pub fn should_handle_death(age: f32, max_age: f32) -> bool {
+    let cap = if max_age.is_finite() && max_age > HANDLE_DEATH_AGE_OFFSET {
+        max_age
+    } else {
+        HANDLE_DEATH_MAX_AGE_DEFAULT
+    };
+    age >= cap - HANDLE_DEATH_AGE_OFFSET
+}
+
 /// Inputs gathered from world/players for one AI sensor fill (no I/O inside fill).
 // Haxe: AiBase.doTimeStuffHelper deadlyAnimal/deadlyPlayer/heat/mother fill
 #[derive(Debug, Clone, PartialEq)]
@@ -1482,6 +1499,9 @@ pub struct LiveSensorInput {
     /// Haxe `ServerSettings.MinAgeToEat` (years). Default 3; live via GameplayKnobs.
     // Haxe: ServerSettings.MinAgeToEat — C-SS-MIN-AGE-AI
     pub min_age_to_eat: f32,
+    /// Haxe `ServerSettings.MaxAge` for `handleDeath` (default 60).
+    // Haxe: AiBase.handleDeath ageToGoHome = MaxAge - 2
+    pub max_age: f32,
     pub heat: f32,
     pub has_mother: bool,
     /// Active follow target (ordered follow or mother / auto-follow).
@@ -1535,6 +1555,7 @@ impl Default for LiveSensorInput {
             was_hungry: false,
             age: 20.0,
             min_age_to_eat: MIN_AGE_TO_EAT,
+            max_age: HANDLE_DEATH_MAX_AGE_DEFAULT,
             heat: 0.5,
             has_mother: false,
             follow_player: false,
@@ -1681,7 +1702,8 @@ pub fn fill_live_sensors(input: &LiveSensorInput) -> LiveSensorBundle {
         feeding_child: input.feeding_child,
         is_eating: input.is_eating,
         handling_temperature: input.handling_temperature,
-        handling_death: input.handling_death,
+        handling_death: input.handling_death
+            || should_handle_death(input.age, input.max_age),
         ordered_follow: input.ordered_follow,
         ordered_drop: input.ordered_drop,
         held_by_other: input.held_by_other,
@@ -1764,6 +1786,33 @@ mod tests {
         assert_eq!(PriorityRung::AssignedJob.band(), PriorityBand::Job);
         assert_eq!(PriorityRung::OrderedFollow.band(), PriorityBand::Follow);
         assert_eq!(PriorityRung::FollowPlayer.band(), PriorityBand::Follow);
+    }
+
+    #[test]
+    fn handle_death_age_gate_and_rung() {
+        assert!(!should_handle_death(57.9, 60.0));
+        assert!(should_handle_death(58.0, 60.0));
+        assert!(should_handle_death(59.0, 60.0));
+        let s = PrioritySensors {
+            handling_death: true,
+            is_hungry: true,
+            age: 58.0,
+            ..Default::default()
+        };
+        assert_eq!(resolve_priority_rung(&s), PriorityRung::HandleDeath);
+        let mut input = LiveSensorInput {
+            age: 58.0,
+            max_age: 60.0,
+            food: 15.0,
+            food_max: 20.0,
+            ..Default::default()
+        };
+        let bundle = fill_live_sensors(&input);
+        assert!(bundle.sensors.handling_death);
+        assert_eq!(resolve_priority_rung(&bundle.sensors), PriorityRung::HandleDeath);
+        input.age = 20.0;
+        let bundle = fill_live_sensors(&input);
+        assert!(!bundle.sensors.handling_death);
     }
 
     #[test]

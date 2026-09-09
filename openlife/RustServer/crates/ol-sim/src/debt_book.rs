@@ -65,12 +65,7 @@ impl DebtBook {
     ///
     /// Returns the amount actually applied (may be less than requested if debt
     /// is smaller). Zero / bad ids → `Err`. Removes the map entry when cleared.
-    pub fn repay(
-        &mut self,
-        debtor: i32,
-        creditor: i32,
-        amount: i32,
-    ) -> Result<i32, &'static str> {
+    pub fn repay(&mut self, debtor: i32, creditor: i32, amount: i32) -> Result<i32, &'static str> {
         if amount <= 0 {
             return Err("BAD_AMOUNT");
         }
@@ -114,10 +109,7 @@ impl DebtBook {
         if pairs.is_empty() {
             format!("DEBT owe={owe} owed_to_me={owed_to_me}")
         } else {
-            format!(
-                "DEBT owe={owe} owed_to_me={owed_to_me} {}",
-                pairs.join(" ")
-            )
+            format!("DEBT owe={owe} owed_to_me={owed_to_me} {}", pairs.join(" "))
         }
     }
 }

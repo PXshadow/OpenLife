@@ -76,7 +76,7 @@ Server.main
        └─ loop: DoTimeStuff + sleep
 ```
 
-**Rust map:** `ol-server::main` → `world_boot` → content load (`ol-content`) → `ol_world` OLW1 → `ol_sim::SimState` → net accept + tick loop.
+**Rust map:** `ol-server::main` → `world_boot` → content load (`ol-content` / `ol-binary`) → `ol_world` **OLW3** → `ol_sim::SimState` → net accept + tick loop. Haxe file → crate: [`../ARCHITECTURE.md`](../ARCHITECTURE.md) §3.1.
 
 ---
 

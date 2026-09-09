@@ -2,7 +2,8 @@
 
 **Date:** 2026-07-29  
 **Mode:** implement  
-**Status:** **DONE** (USE animal + killHelper player-target bow min-range public say/PS)
+**Status:** **DONE** (USE animal + killHelper player-target bow min-range public say/PS)  
+**Follow-up:** `2026-08-24-GPI-TOO-CLOSE-PS.md` — USE `ranged_too_close` + live HIT/SAY KILL wire stabilize
 
 ## Scope
 

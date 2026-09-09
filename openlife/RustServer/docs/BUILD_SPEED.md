@@ -36,8 +36,8 @@ cargo test -p ol-sim --lib -- <filter>
 
 ## Structural cost (harder fixes)
 
-- `crates/ol-sim/src/lib.rs` is **~0.9–1.5 MB** — dominant compile unit.
-- `ol-sim/build.rs` + many `build_*.rs` re-check/patch sources on rebuilds.
+- `crates/ol-sim/src/lib.rs` is apply/tick (~0.5 MB). Writer tests: **`src/lib_tests.rs`** (`cargo test -p ol-sim --lib`).
+- No crate `build.rs` wirers (archived in `_wire_archive/`).
 - **AI pure policy** already lives in smaller crates (edit without full sim when not shadowed):
   - `ol-ai-pathing` — path-reach maps
   - `ol-ai-helper` — goals + priority ladder
@@ -45,8 +45,16 @@ cargo test -p ol-sim --lib -- <filter>
   - `ol-ai-professions` — profession pure SMs
   - `ol-ai-api` / `ol-player-helper` / `ol-main-ai`
 - **Win condition:** `ol-sim` re-exports pure modules (`pub use ol_ai_pathing::…`) so rustc does not typecheck duplicate multi-kLOC copies on every sim change. Path-reach + craft_graph/value are first re-export targets (`docs/design/OL_AI_SPLIT.md`).
-- Long-term: split remaining mega-sim concerns (`ol-sim-combat`, …) or shrink `lib.rs` via modules without mega-include tests.
-
+- **Clear sim modules (before more crates):** do **not** mix concerns — edit the right file:
+  - Temperature → `temperature_handler.rs` (not food / world_time)
+  - Food eating → `food_eating.rs` (not temperature / world_time)
+  - Player vs world tick → see `player_tick.rs` vs `world_time.rs`
+- **`ol-move-rules`:** wrap / distance / isClose / jump / **speed+nest** / **isCloseUseExact** — edit that crate without full sim when only re-exported.
+  ```powershell
+  cargo test -p ol-move-rules --lib
+  cargo check -p ol-sim   # after changing re-export surface
+  ```
+- Further rule crates: `ol-transition-rules`, `ol-combat-rules` (wound plans), `ol-food-eating` (food-store-max), `ol-temperature`, `ol-social-rules`.
 ## First build after these settings
 
 Expect a **one-time longer** compile while dependency crates rebuild at `opt-level = 2`. Later incremental builds should improve.

@@ -40,20 +40,11 @@ impl ObjectCountsSnapshot {
 
     /// Write `ObjectCounts.txt` (or path) from this snapshot.
     // Haxe: WorldMap.writeToDiskHelper TraceCountObjectsToDisk L797–812
-    pub fn write_object_counts<F>(
-        &self,
-        path: impl AsRef<Path>,
-        desc_of: F,
-    ) -> Result<(), String>
+    pub fn write_object_counts<F>(&self, path: impl AsRef<Path>, desc_of: F) -> Result<(), String>
     where
         F: FnMut(i32) -> String,
     {
-        write_object_counts(
-            &self.current_counts,
-            &self.original_counts,
-            path,
-            desc_of,
-        )
+        write_object_counts(&self.current_counts, &self.original_counts, path, desc_of)
     }
 
     pub fn len_current(&self) -> usize {
@@ -81,17 +72,13 @@ mod tests {
         assert_eq!(snap.original_counts.get(&33), Some(&10));
         assert!(snap.counts_ready);
         assert_eq!(snap.len_current(), 1);
-        let text = format_object_counts_text(
-            &snap.current_counts,
-            &snap.original_counts,
-            |id| {
-                if id == 33 {
-                    "Gooseberry".into()
-                } else {
-                    String::new()
-                }
-            },
-        );
+        let text = format_object_counts_text(&snap.current_counts, &snap.original_counts, |id| {
+            if id == 33 {
+                "Gooseberry".into()
+            } else {
+                String::new()
+            }
+        });
         assert!(
             text.contains("Count object: [33] Gooseberry: 4 original: 10"),
             "text={text}"
@@ -135,15 +122,16 @@ mod tests {
         assert!(after.counts_ready);
         assert_eq!(after.current_counts.get(&391), Some(&1));
         assert_eq!(after.current_counts.get(&33), Some(&1), "nest in dump");
-        let text = format_object_counts_text(
-            &after.current_counts,
-            &after.original_counts,
-            |id| match id {
-                33 => "Berry".into(),
-                391 => "Basket".into(),
-                _ => String::new(),
-            },
-        );
+        let text =
+            format_object_counts_text(
+                &after.current_counts,
+                &after.original_counts,
+                |id| match id {
+                    33 => "Berry".into(),
+                    391 => "Basket".into(),
+                    _ => String::new(),
+                },
+            );
         assert!(text.contains("[391]"), "text={text}");
         assert!(text.contains("[33]"), "text={text}");
     }

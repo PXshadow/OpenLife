@@ -36,11 +36,7 @@ impl ChunkTier {
 }
 
 /// Chebyshev distance from (cx,cy) to nearest player chunk coord.
-pub fn min_chunk_chebyshev(
-    cx: i32,
-    cy: i32,
-    player_chunks: &[(i32, i32)],
-) -> i32 {
+pub fn min_chunk_chebyshev(cx: i32, cy: i32, player_chunks: &[(i32, i32)]) -> i32 {
     player_chunks
         .iter()
         .map(|(px, py)| (cx - px).abs().max((cy - py).abs()))

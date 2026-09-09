@@ -359,6 +359,7 @@ pub fn npc_enqueue_get_or_craft(
         &|_| 0,
         blocked,
         None,
+        None,
     )
 }
 
@@ -368,6 +369,8 @@ pub fn npc_enqueue_get_or_craft(
 /// - `blocked`: notReachable ∪ hostile ∪ blockedByAI tiles
 /// - `full_pile_tiles`: when `Some`, enables `ignoreFullPiles` on multi-step
 ///   craft expand (skips full multi-use tiles in pair search)
+/// - `nonempty_containers`: when `Some`, skip containers with stuff inside
+///   (Haxe addObjectsForCrafting; does **not** search contained — TODO in Haxe)
 // Haxe: GetOrCraftItem pileId + craftItemHelper filters; isObjectNotReachable
 #[inline]
 pub fn npc_enqueue_get_or_craft_ex(
@@ -384,6 +387,7 @@ pub fn npc_enqueue_get_or_craft_ex(
     pile_id_for: &dyn Fn(i32) -> i32,
     blocked: Option<&HashSet<(i32, i32)>>,
     full_pile_tiles: Option<&HashSet<(i32, i32)>>,
+    nonempty_containers: Option<&HashSet<(i32, i32)>>,
 ) -> ShortCraftLiveIntent {
     let mut scan = match blocked {
         Some(b) => CraftScanFilters::new().with_blocked(b),
@@ -392,6 +396,10 @@ pub fn npc_enqueue_get_or_craft_ex(
     if let Some(fp) = full_pile_tiles {
         // Haxe: ignoreFullPiles = true for full multi-use skip on closest search
         scan = scan.with_full_piles(fp);
+    }
+    if let Some(nc) = nonempty_containers {
+        // Haxe: addObjectsForCrafting skip nonempty containers
+        scan = scan.with_nonempty_containers(nc);
     }
     resolve_seek_or_craft_live_ex_scan(
         intent,

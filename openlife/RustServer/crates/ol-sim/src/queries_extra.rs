@@ -193,8 +193,14 @@ mod tests {
             format_biome_query_with_hex(99, "", Some("AABBCC")),
             "BIOME 99 AABBCC"
         );
-        assert_eq!(format_biome_query_with_hex(1, "swamp", None), "BIOME 1 swamp");
-        assert_eq!(format_biome_query_with_hex(1, "swamp", Some("")), "BIOME 1 swamp");
+        assert_eq!(
+            format_biome_query_with_hex(1, "swamp", None),
+            "BIOME 1 swamp"
+        );
+        assert_eq!(
+            format_biome_query_with_hex(1, "swamp", Some("")),
+            "BIOME 1 swamp"
+        );
         assert_eq!(format_floor_query(2), "FLOOR 2");
         assert_eq!(format_floor_query(0), "FLOOR 0");
         assert_eq!(format_wjournal_query(None), "WJOURNAL none");

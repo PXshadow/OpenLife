@@ -19,6 +19,6 @@
 
 ## Residual
 
-- full multi-peer `getBestAiForObjByProfession` distance pick (sticky/weight/peer heuristic live)
-- `Player.fire_place` sticky tile coords (scan recomputes GetCloseFire)
-- Haxe `itemToCraft.maxSearchRadius=30` craft side-effect around nested makeFireFood(3)
+- ~~full multi-peer `getBestAiForObjByProfession` distance pick~~ **FIRE-BEST-AI DONE**
+- `Player.fire_place` sticky tile coords (scan recomputes GetCloseFire) → **FIRE-PLACE-STICKY DONE**
+- ~~Haxe `itemToCraft.maxSearchRadius=30` craft side-effect around nested makeFireFood(3)~~ **FIRE-CRAFT-R30 DONE**

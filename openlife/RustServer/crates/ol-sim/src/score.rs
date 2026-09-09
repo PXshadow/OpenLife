@@ -339,10 +339,7 @@ mod tests {
             2 * SCORE_PER_KILL - SCORE_PER_DEATH + 5
         );
         assert_eq!(compute_score(0, 0, 0, 7), 7);
-        assert_eq!(
-            compute_score(1, 0, 3, 2),
-            SCORE_PER_KILL + 3 + 2
-        );
+        assert_eq!(compute_score(1, 0, 3, 2), SCORE_PER_KILL + 3 + 2);
     }
 
     #[test]

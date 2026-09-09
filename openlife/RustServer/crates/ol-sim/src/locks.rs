@@ -148,11 +148,7 @@ pub fn lockpick_settings_for_player(base: &LockpickSettings, is_female: bool) ->
 // Haxe: TransitionHelper.LockPick player.coins -= coinCost (Float)
 #[inline]
 pub fn lockpick_coins_to_wallet_i32(coins_after: f32) -> i32 {
-    if !coins_after.is_finite() || coins_after <= 0.0 {
-        return 0;
-    }
-    // floor keeps remainder ≤ pure Float; matches chest Math.floor coin store spirit
-    coins_after.floor() as i32
+    crate::economy::wallet_floor_f32(coins_after)
 }
 
 // ---------------------------------------------------------------------------
@@ -221,13 +217,9 @@ pub fn random_key_id(unit_random: f32) -> i32 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyMatchOutcome {
     /// Both zero → assign shared `new_key_id` to held + target.
-    PairBoth {
-        new_key_id: i32,
-    },
+    PairBoth { new_key_id: i32 },
     /// Held non-zero, target zero → copy held onto target.
-    AssignTarget {
-        key_id: i32,
-    },
+    AssignTarget { key_id: i32 },
     /// Already matching (including both already set equal).
     Match,
     /// Mismatch — refuse USE (Haxe says KEY DOES NOT FIT; no lockpick on 917).
@@ -241,11 +233,7 @@ pub enum KeyMatchOutcome {
 // Haxe: TransitionHelper.doCommandHelper L219-239
 pub fn key_match(held_extern: i32, target_extern: i32, new_key_id: i32) -> KeyMatchOutcome {
     if held_extern == 0 && target_extern == 0 {
-        let id = if new_key_id > 0 {
-            new_key_id
-        } else {
-            1
-        };
+        let id = if new_key_id > 0 { new_key_id } else { 1 };
         return KeyMatchOutcome::PairBoth { new_key_id: id };
     }
     if held_extern != 0 && target_extern == 0 {
@@ -277,10 +265,7 @@ pub fn is_lock_and_key_held(held_id: i32) -> bool {
 ///
 /// Returns `(held_extern_out, target_extern_out)`. When held was 0, uses `new_key_id`.
 // Haxe: TransitionHelper.doTransitionIfPossibleHelper L997-1007
-pub fn lock_and_key_pair_extern(
-    held_extern: i32,
-    new_key_id: i32,
-) -> (i32, i32) {
+pub fn lock_and_key_pair_extern(held_extern: i32, new_key_id: i32) -> (i32, i32) {
     let id = if held_extern == 0 {
         if new_key_id > 0 {
             new_key_id

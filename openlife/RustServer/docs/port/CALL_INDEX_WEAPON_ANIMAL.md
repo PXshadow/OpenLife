@@ -27,6 +27,6 @@ Appended from `haxe-port-chunk` (matrix_id WEAPON-ANIMAL-ZERO). Merge into [CALL
 
 ## Residuals (out of core)
 
-- BiomeAnimalHitChance / isAnimalNotDeadlyForMe miss path
+- ~~BiomeAnimalHitChance / isAnimalNotDeadlyForMe miss path~~ → **MOSQUITO-MAPCHANCE DONE**
 - Rattle Snake 764 not in AnimalKind (pure shoes factor only)
-- Ground ComplexObject ttc=2 stamp, mosquito fever, bleed DPS, wallet takeCoins
+- Ground ComplexObject ttc=2 stamp, mosquito fever NestedHelper, bleed DPS, wallet takeCoins; full animal-zero wound equip may need re-audit if lib wire thinned

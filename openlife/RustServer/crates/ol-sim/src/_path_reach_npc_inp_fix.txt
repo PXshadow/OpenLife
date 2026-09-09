@@ -1,5 +1,0 @@
-// snippet: add held_contained to npc ProfessionScanInput after held_uses
-                        held_uses: p.held_uses.max(1),
-                        held_contained: 0,
-                        held_contains_clay: false,
-                        food_store: p.food,

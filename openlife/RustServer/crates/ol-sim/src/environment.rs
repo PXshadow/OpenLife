@@ -38,6 +38,14 @@ impl Default for EnvSnapshot {
     }
 }
 
+impl EnvSnapshot {
+    /// True when live season token is Winter (npc HandlingFire kindling).
+    // Haxe: TimeHelper.Season == Winter
+    pub fn is_winter(&self) -> bool {
+        self.season.eq_ignore_ascii_case("WINTER")
+    }
+}
+
 /// Season cycle matching Open Life season names.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Season {
@@ -273,11 +281,7 @@ impl Environment {
 
     /// Text for `SAY ?TIME` (without leading player id).
     pub fn time_query_text(&self) -> String {
-        format!(
-            "TIME {:.2} {}",
-            self.hour_of_day,
-            self.day_phase().as_str()
-        )
+        format!("TIME {:.2} {}", self.hour_of_day, self.day_phase().as_str())
     }
 
     pub fn snapshot(&self) -> EnvSnapshot {
@@ -329,11 +333,11 @@ pub fn is_swim_biome(biome: u8) -> bool {
 /// Ocean/river use [`OCEAN_RIVER_FOOD_DRAIN_MULT`] (faster hunger while wet).
 pub fn biome_food_multiplier(biome: u8) -> f32 {
     match biome {
-        4 | 21 => 1.25, // snow / snow-in-grey
-        6 | 15 => 0.85, // jungle / border jungle
-        5 => 1.10,      // desert
+        4 | 21 => 1.25,                        // snow / snow-in-grey
+        6 | 15 => 0.85,                        // jungle / border jungle
+        5 => 1.10,                             // desert
         9 | 17 => OCEAN_RIVER_FOOD_DRAIN_MULT, // ocean / river
-        _ => 1.0,       // green and other temperate biomes
+        _ => 1.0,                              // green and other temperate biomes
     }
 }
 
@@ -523,6 +527,19 @@ mod tests {
         assert!((s.hour_of_day - 0.5).abs() < 1e-6);
         assert_eq!(s.day_phase, "NIGHT");
         assert!((s.day_night_multiplier - 1.15).abs() < 1e-6);
+        assert!(!s.is_winter());
+    }
+
+    #[test]
+    fn env_snapshot_is_winter_case_insensitive() {
+        let mut s = EnvSnapshot::default();
+        assert!(!s.is_winter());
+        s.season = "WINTER".into();
+        assert!(s.is_winter());
+        s.season = "winter".into();
+        assert!(s.is_winter());
+        s.season = "SPRING".into();
+        assert!(!s.is_winter());
     }
 
     #[test]

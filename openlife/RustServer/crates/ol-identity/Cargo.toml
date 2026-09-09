@@ -1,0 +1,13 @@
+[package]
+name = "ol-identity"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Account book + OLA1 persist (no SimState / World)"
+publish = false
+
+[dependencies]
+ol-config.workspace = true
+byteorder.workspace = true
+serde.workspace = true
+tracing.workspace = true

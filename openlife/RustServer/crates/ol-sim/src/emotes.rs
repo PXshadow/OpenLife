@@ -267,11 +267,7 @@ pub enum SayEmoteCmd {
     /// Emit PE with this index.
     Pe { index: i32 },
     /// PE point + optional relative target (map hint for speaker).
-    Point {
-        index: i32,
-        dx: i32,
-        dy: i32,
-    },
+    Point { index: i32, dx: i32, dy: i32 },
 }
 
 /// Private speaker confirmation for `SAY POINT dx dy`.
@@ -341,9 +337,7 @@ pub fn parse_say_emote(text: &str) -> Option<SayEmoteCmd> {
                 // Named verbs take no extra args (use EMOTE / POINT / TAUNT forms).
                 return None;
             }
-            Some(SayEmoteCmd::Pe {
-                index: entry.index,
-            })
+            Some(SayEmoteCmd::Pe { index: entry.index })
         }
     }
 }
@@ -387,10 +381,7 @@ mod tests {
                 index: DANCE_EMOT_INDEX
             })
         );
-        assert_eq!(
-            parse_say_emote("YAWN"),
-            Some(SayEmoteCmd::Pe { index: 2 })
-        );
+        assert_eq!(parse_say_emote("YAWN"), Some(SayEmoteCmd::Pe { index: 2 }));
         assert_eq!(
             parse_say_emote("EMOTE 3"),
             Some(SayEmoteCmd::Pe { index: 3 })
@@ -462,10 +453,7 @@ mod tests {
 
     #[test]
     fn point_confirm() {
-        assert_eq!(
-            format_point_confirm(2, -1, 10, 20),
-            "POINT 2 -1 at 12 19"
-        );
+        assert_eq!(format_point_confirm(2, -1, 10, 20), "POINT 2 -1 at 12 19");
     }
 
     #[test]

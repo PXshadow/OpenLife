@@ -371,12 +371,13 @@ impl TwinWaitQueue {
         }
 
         let email = email.into();
-        let entry = self.parties.entry(code.to_string()).or_insert_with(|| {
-            PendingParty {
+        let entry = self
+            .parties
+            .entry(code.to_string())
+            .or_insert_with(|| PendingParty {
                 twin_count,
                 waiters: Vec::new(),
-            }
-        });
+            });
 
         if entry.twin_count != twin_count {
             return TwinJoinOutcome::CountMismatch {
@@ -521,11 +522,7 @@ mod tests {
 
     #[test]
     fn from_endpoints_dedups() {
-        let r = TwinRegistry::from_endpoints([
-            ("h", 1u16),
-            ("h", 1u16),
-            ("h", 2u16),
-        ]);
+        let r = TwinRegistry::from_endpoints([("h", 1u16), ("h", 1u16), ("h", 2u16)]);
         assert_eq!(r.len(), 2);
     }
 
@@ -614,18 +611,9 @@ mod tests {
     #[test]
     fn twin_wait_invalid_and_mismatch() {
         let mut q = TwinWaitQueue::new();
-        assert_eq!(
-            q.join("", 2, 1, "a", 0.0),
-            TwinJoinOutcome::EmptyCode
-        );
-        assert_eq!(
-            q.join("x", 1, 1, "a", 0.0),
-            TwinJoinOutcome::InvalidCount
-        );
-        assert_eq!(
-            q.join("x", 5, 1, "a", 0.0),
-            TwinJoinOutcome::InvalidCount
-        );
+        assert_eq!(q.join("", 2, 1, "a", 0.0), TwinJoinOutcome::EmptyCode);
+        assert_eq!(q.join("x", 1, 1, "a", 0.0), TwinJoinOutcome::InvalidCount);
+        assert_eq!(q.join("x", 5, 1, "a", 0.0), TwinJoinOutcome::InvalidCount);
         let _ = q.join("code", 3, 1, "a", 0.0);
         assert_eq!(
             q.join("code", 2, 2, "b", 0.0),

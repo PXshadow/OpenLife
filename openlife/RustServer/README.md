@@ -18,7 +18,11 @@ This repository is **new and separate** from the Haxe implementation.
 
 Working multiplayer-oriented sim (USE/DROP/MOVE, vitals, social, self-play, web viewer). **Full Haxe parity is not claimed.**
 
-**Systematic port kit** (architecture, dependency graphs, file matrix, TODOs, call index):
+**Architecture (crate split, Haxe vs Rust, done vs remaining):**
+
+→ **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+
+**Systematic port kit** (graphs, file matrix, TODOs, call index):
 
 → **[docs/port/README.md](docs/port/README.md)**
 
@@ -35,19 +39,21 @@ cargo run -p ol-server
 ## Project layout
 
 ```
-OpenLifeReborn/
-  AGENTS.md                 # Grok rules + budget (mandatory)
-  docs/
-    GROK_BUILD.md           # Session playbook, /usage budget
-    USAGE_BUDGET.md         # Spend log
-    architecture/           # Full rebuild plan
-    research/               # Extracted facts from legacy code
+RustServer/
+  docs/ARCHITECTURE.md      # Crate split + Haxe file → compile unit (canonical)
+  docs/port/FILE_MATRIX.md  # File/chunk status
   crates/
-    ol-protocol/            # Wire protocol (pure)
-    ol-metrics/             # Counters / health
-    ol-server/              # Binary
-  content/                  # How to point at game data (not committed)
-  web/static/               # Future site assets
+    ol-protocol/            # Wire tags
+    ol-binary/              # OLC1/OLT1
+    ol-content/             # Objects / transitions
+    ol-world/               # Grid / OLW3
+    ol-config/              # server.toml
+    ol-net/                 # TCP / OutboundHub
+    ol-move-rules/          # Pure speed / isClose / wrap
+    ol-ai-*/ ol-main-ai/    # AI crates (never mutate world)
+    ol-sim/                 # Sole world writer (mega)
+    ol-web/                 # Viewer / stats
+    ol-server/              # Binary glue
 ```
 
 ## Architecture (short)

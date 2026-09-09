@@ -7,6 +7,8 @@
 #![forbid(unsafe_code)]
 
 pub mod baker_profession;
+pub mod cleanup_profession;
+pub mod clothing_craft;
 pub mod farmer_profession;
 pub mod fire_food_profession;
 pub mod fire_food_rung;

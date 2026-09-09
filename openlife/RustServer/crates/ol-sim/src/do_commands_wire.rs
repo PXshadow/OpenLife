@@ -20,9 +20,10 @@ use crate::speech::{
     closest_owned_tile, compute_hire_cost, do_command_broadcasts_chat, find_player_by_name,
     format_exile_say_result, format_follow_say_result, format_give_say_result,
     format_hire_say_result, format_home_bang_result, format_order_global, format_own_this_result,
-    format_redeem_say_result, hire_age_ok, hire_angry_ok, hire_class_ok, is_follow_self_name,
-    is_home_oven_id, parse_do_command, parse_roman_coin_amount, pick_nearest_home_oven, DoCommand,
-    HIRE_COST, HIRE_COST_INCREASE_PER_PERSON, HOME_SEARCH_MAX_QUAD,
+    format_redeem_say_result, hire_age_ok, hire_angry_ok, hire_class_ok, hire_need_coins_say,
+    home_search_oven_tuple, is_follow_self_name, parse_do_command, parse_roman_coin_amount,
+    search_new_home_ex, DoCommand, HIRE_COST, HIRE_COST_INCREASE_PER_PERSON, HIRE_TOO_POOR_SAY,
+    HOME_SEARCH_LOCAL_RADIUS, HOME_SEARCH_MAX_QUAD,
 };
 use crate::Player;
 use ol_world::{ComplexObject, World};
@@ -180,6 +181,85 @@ pub fn apply_do_commands_live(
     candidates: &[NameCandidate],
     knobs: FollowHireLiveKnobs,
 ) -> DoCommandEffects {
+    apply_do_commands_live_ex(
+        upper,
+        speaker,
+        speaker_conn,
+        social,
+        economy,
+        players,
+        world,
+        lost_combat_prestige,
+        candidates,
+        knobs,
+        &[],
+        &HashMap::new(),
+    )
+}
+
+/// Oven list for SearchNewHome: global index, else local r=80. Swamp uses original biome.
+// Haxe: AiHelper.SearchNewHome WorldMap.ovens + getOriginalBiomeId
+pub(crate) fn collect_home_search_ovens(
+    world: &World,
+    global_ovens: &[(i32, i32)],
+    original_biomes: &HashMap<(i32, i32), u8>,
+    origin_x: i32,
+    origin_y: i32,
+) -> Vec<(i32, i32, bool, u8)> {
+    let mut ovens = Vec::new();
+    let mut seen = HashSet::new();
+    let mut push = |x: i32, y: i32| {
+        let (x, y) = world.wrap_tile(x, y);
+        if !seen.insert((x, y)) {
+            return;
+        }
+        let id = world.get_object(x, y);
+        if let Some(t) = home_search_oven_tuple(
+            x,
+            y,
+            id,
+            world.get_floor(x, y) > 0,
+            original_biomes.get(&(x, y)).copied(),
+            world.get_biome(x, y),
+        ) {
+            ovens.push(t);
+        }
+    };
+    if global_ovens.is_empty() {
+        let r = HOME_SEARCH_LOCAL_RADIUS;
+        for y in (origin_y - r)..=(origin_y + r) {
+            for x in (origin_x - r)..=(origin_x + r) {
+                push(x, y);
+            }
+        }
+    } else {
+        for &(x, y) in global_ovens {
+            push(x, y);
+        }
+    }
+    ovens
+}
+
+/// [`apply_do_commands_live`] with Haxe `WorldMap.ovens` tiles for HOME! SearchNewHome.
+///
+/// Empty `global_ovens` falls back to a local r=80 scan (tests / cold boot).
+/// `original_biomes` is Haxe `getOriginalBiomeId` (live biome if missing).
+// Haxe: AiHelper.SearchNewHome uses WorldMap.world.ovens (AI-HOME-OVEN)
+#[allow(clippy::too_many_arguments)]
+pub fn apply_do_commands_live_ex(
+    upper: &str,
+    speaker: &Player,
+    speaker_conn: u64,
+    social: &mut SocialState,
+    economy: &mut Economy,
+    players: &mut HashMap<u64, Player>,
+    world: &Arc<RwLock<World>>,
+    lost_combat_prestige: f32,
+    candidates: &[NameCandidate],
+    knobs: FollowHireLiveKnobs,
+    global_ovens: &[(i32, i32)],
+    original_biomes: &HashMap<(i32, i32), u8>,
+) -> DoCommandEffects {
     let mut fx = DoCommandEffects::default();
     let Some(cmd) = parse_do_command(upper) else {
         return fx;
@@ -193,14 +273,7 @@ pub fn apply_do_commands_live(
         .collect();
 
     let lookup = |name: &str| -> Option<&NameCandidate> {
-        let id = find_player_by_name(
-            speaker.p_id,
-            speaker.x,
-            speaker.y,
-            name,
-            &cand_tuples,
-            6,
-        )?;
+        let id = find_player_by_name(speaker.p_id, speaker.x, speaker.y, name, &cand_tuples, 6)?;
         candidates.iter().find(|c| c.p_id == id)
     };
 
@@ -219,8 +292,7 @@ pub fn apply_do_commands_live(
                     ));
                 } else {
                     social.exile(speaker.p_id, t.p_id);
-                    fx.exile_lines
-                        .push(format_exile_line(t.p_id, speaker.p_id));
+                    fx.exile_lines.push(format_exile_line(t.p_id, speaker.p_id));
                     fx.private_ps.push((
                         speaker_conn,
                         format_exile_say_result(speaker.p_id, &name, true, ""),
@@ -295,14 +367,9 @@ pub fn apply_do_commands_live(
                                 .filter(|c| c.deleted)
                                 .map(|c| c.p_id)
                                 .collect();
-                            let top = get_top_leader(
-                                &social.following,
-                                social,
-                                &deleted,
-                                t.p_id,
-                                None,
-                            )
-                            .unwrap_or(t.p_id);
+                            let top =
+                                get_top_leader(&social.following, social, &deleted, t.p_id, None)
+                                    .unwrap_or(t.p_id);
                             fx.following_lines
                                 .push(format_following_for_player(social, t.p_id, top));
                             fx.fan_following_all = true;
@@ -317,10 +384,8 @@ pub fn apply_do_commands_live(
                                 speaker.p_id,
                                 format!("I hire {} for {} coins!", t.first_name, cost),
                             ));
-                            fx.spoken_says.push((
-                                t.p_id,
-                                format!("{} hired me!", speaker.first_name),
-                            ));
+                            fx.spoken_says
+                                .push((t.p_id, format!("{} hired me!", speaker.first_name)));
                             fx.private_ps.push((
                                 speaker_conn,
                                 format_hire_say_result(
@@ -331,7 +396,20 @@ pub fn apply_do_commands_live(
                                 ),
                             ));
                         }
-                        Err(reason) => fx.private_ps.push((
+                        Err(HireFail::NeedCoins { missing }) => {
+                            // Haxe: NEED n more coins + YOU ARE TOO POOR + sad
+                            fx.spoken_says
+                                .push((speaker.p_id, hire_need_coins_say(missing)));
+                            fx.spoken_says.push((t.p_id, HIRE_TOO_POOR_SAY.to_string()));
+                            if let Some(e) = emote_index("SAD") {
+                                fx.emotes.push((speaker_conn, e));
+                            }
+                            fx.private_ps.push((
+                                speaker_conn,
+                                format_hire_say_result(speaker.p_id, &name, false, "need_coins"),
+                            ));
+                        }
+                        Err(HireFail::Reason(reason)) => fx.private_ps.push((
                             speaker_conn,
                             format_hire_say_result(speaker.p_id, &name, false, reason),
                         )),
@@ -452,19 +530,26 @@ pub fn apply_do_commands_live(
             }
         },
         DoCommand::HomeBang => {
-            let mut ovens: Vec<(i32, i32, bool)> = Vec::new();
-            if let Ok(w) = world.read() {
-                let r = 80i32;
-                for y in (speaker.y - r)..=(speaker.y + r) {
-                    for x in (speaker.x - r)..=(speaker.x + r) {
-                        let id = w.get_object(x, y);
-                        if is_home_oven_id(id) {
-                            ovens.push((x, y, w.get_floor(x, y) > 0));
-                        }
-                    }
-                }
-            }
-            match pick_nearest_home_oven(speaker.x, speaker.y, &ovens, HOME_SEARCH_MAX_QUAD) {
+            let (ovens, map_w, map_h) = if let Ok(w) = world.read() {
+                let ovens =
+                    collect_home_search_ovens(&w, global_ovens, original_biomes, speaker.x, speaker.y);
+                let (mw, mh) = if w.wrap {
+                    (w.width_tiles, w.height_tiles)
+                } else {
+                    (0, 0)
+                };
+                (ovens, mw, mh)
+            } else {
+                (Vec::new(), 0, 0)
+            };
+            match search_new_home_ex(
+                speaker.x,
+                speaker.y,
+                &ovens,
+                HOME_SEARCH_MAX_QUAD,
+                map_w,
+                map_h,
+            ) {
                 None => fx.private_ps.push((
                     speaker_conn,
                     format_home_bang_result(speaker.p_id, 0, 0, false, "no_oven"),
@@ -481,11 +566,7 @@ pub fn apply_do_commands_live(
                                 continue;
                             }
                             if following.get(&other.p_id) == Some(&leader_id)
-                                && player_is_ai(
-                                    other.connected,
-                                    other.ai_controlled,
-                                    &other.email,
-                                )
+                                && player_is_ai(other.connected, other.ai_controlled, &other.email)
                             {
                                 other.home_x = hx;
                                 other.home_y = hy;
@@ -540,8 +621,7 @@ fn process_follow_command(
             speaker_conn,
             format!("{} YOU_FOLLOW_NOW_NO_ONE!", speaker.p_id),
         ));
-        fx.spoken_says
-            .push((speaker.p_id, "I FOLLOW ME!".into()));
+        fx.spoken_says.push((speaker.p_id, "I FOLLOW ME!".into()));
         if let Some(e) = emote_index("HAPPY") {
             fx.emotes.push((speaker_conn, e));
         }
@@ -556,15 +636,8 @@ fn process_follow_command(
         .iter()
         .map(|c| (c.p_id, c.first_name.as_str(), c.x, c.y, c.deleted))
         .collect();
-    let target = find_player_by_name(
-        speaker.p_id,
-        speaker.x,
-        speaker.y,
-        name,
-        &cand_tuples,
-        6,
-    )
-    .and_then(|id| candidates.iter().find(|c| c.p_id == id));
+    let target = find_player_by_name(speaker.p_id, speaker.x, speaker.y, name, &cand_tuples, 6)
+        .and_then(|id| candidates.iter().find(|c| c.p_id == id));
 
     let Some(t) = target else {
         fx.private_ps.push((
@@ -700,12 +773,7 @@ fn process_follow_command(
     // FOLLOWER map pin + YOU_HAVE_A_NEW_FOLLOWER + hubba on top (and direct if mid-chain).
     // Pin target = new follower (requestor) — Haxe literally pins self; sensible UX is follower.
     // Haxe: leader.connection.sendMapLocation / YOU_HAVE_A_NEW_FOLLOWER / doEmote hubba
-    notify_new_follower_request(
-        players,
-        top_leader_id,
-        speaker,
-        fx,
-    );
+    notify_new_follower_request(players, top_leader_id, speaker, fx);
     if t.p_id != top_leader_id {
         notify_new_follower_request(players, t.p_id, speaker, fx);
     }
@@ -751,13 +819,7 @@ fn notify_new_follower_request(
         follower.x,
         follower.y,
     );
-    let body = format_map_location_says_body(
-        "FOLLOWER",
-        "follower",
-        follower.p_id,
-        rel_x,
-        rel_y,
-    );
+    let body = format_map_location_says_body("FOLLOWER", "follower", follower.p_id, rel_x, rel_y);
     fx.private_ps
         .push((host.conn_id, format!("{}/0 {body}", host.p_id)));
     fx.private_ps.push((
@@ -809,11 +871,7 @@ pub fn tick_pending_new_followers(
             pl.new_follower_time = (pl.new_follower_time - dt).max(0.0);
         }
         if pl.new_follower_time <= 0.0 && pl.new_follower_id != 0 {
-            to_confirm.push((
-                pl.p_id,
-                pl.new_follower_id,
-                pl.new_follower_for_id,
-            ));
+            to_confirm.push((pl.p_id, pl.new_follower_id, pl.new_follower_for_id));
         }
     }
 
@@ -846,14 +904,8 @@ pub fn tick_pending_new_followers(
             // Haxe: setFollowPlayer(newFollowerFor) — probes getTopLeader != null
             let ok = try_set_follow_player(social, &deleted, follower_id, follow_for_id);
             if ok {
-                let top = get_top_leader(
-                    &social.following,
-                    social,
-                    &deleted,
-                    follower_id,
-                    None,
-                )
-                .unwrap_or(follower_id);
+                let top = get_top_leader(&social.following, social, &deleted, follower_id, None)
+                    .unwrap_or(follower_id);
                 fx.following_lines
                     .push(format_following_for_player(social, follower_id, top));
                 fx.fan_following_all = true;
@@ -929,6 +981,14 @@ fn clear_pending_follower_slots(
 
 /// Returns `(coin_cost, combat_prestige_regain)` on success.
 // Haxe: GlobalPlayerInstance.processHireCommand
+/// Hire fail — `NeedCoins` carries Haxe `missing` for spoken NEED/TOO POOR.
+// Haxe: processHireCommand missing > 0
+#[derive(Debug, Clone, PartialEq)]
+enum HireFail {
+    NeedCoins { missing: i32 },
+    Reason(&'static str),
+}
+
 fn try_hire(
     speaker: &Player,
     target: &NameCandidate,
@@ -939,37 +999,42 @@ fn try_hire(
     all: &[NameCandidate],
     hire_cost: i32,
     hire_cost_increase: i32,
-) -> Result<(i32, f32), &'static str> {
+) -> Result<(i32, f32), HireFail> {
     if !player_is_ai(target.connected, target.ai_controlled, &target.email) {
-        return Err("human");
+        return Err(HireFail::Reason("human"));
     }
     let prev_boss = social.hired_boss(target.p_id);
     if prev_boss == speaker.p_id {
-        return Err("already_mine");
+        return Err(HireFail::Reason("already_mine"));
     }
     if prev_boss != 0 {
         if all.iter().any(|c| c.p_id == prev_boss && !c.deleted) {
-            return Err("hired_other");
+            return Err(HireFail::Reason("hired_other"));
         }
     }
     if social.following.get(&target.p_id) == Some(&speaker.p_id) {
-        return Err("follows_already");
+        return Err(HireFail::Reason("follows_already"));
     }
     if top_leader(&social.following, target.p_id) == speaker.p_id {
-        return Err("already_follower");
+        return Err(HireFail::Reason("already_follower"));
     }
     // Haxe: processHireCommand getLeaderWhoExiled gate
-    if social.leader_who_exiled(speaker.p_id, target.p_id).is_some() {
-        return Err("exiled");
+    if social
+        .leader_who_exiled(speaker.p_id, target.p_id)
+        .is_some()
+    {
+        return Err(HireFail::Reason("exiled"));
     }
     if !hire_angry_ok(target.angry_time) {
-        return Err("too_angry");
+        return Err(HireFail::Reason("too_angry"));
     }
-    hire_age_ok(target.age)?;
+    if let Err(reason) = hire_age_ok(target.age) {
+        return Err(HireFail::Reason(reason));
+    }
     let hirer_class = social.prestige_class(speaker.p_id).as_i32();
     let target_class = target.prestige_class;
     if !hire_class_ok(hirer_class, target_class) {
-        return Err("class");
+        return Err(HireFail::Reason("class"));
     }
     let ages: HashMap<i32, f32> = all.iter().map(|c| (c.p_id, c.age)).collect();
     let deleted: HashSet<i32> = all.iter().filter(|c| c.deleted).map(|c| c.p_id).collect();
@@ -1006,17 +1071,22 @@ fn try_hire(
     );
     // Haxe: combatPrestigeImppact = ceil(lostCombatPrestige / 10); regain after pay
     let combat_impact = (lost_combat_prestige / 10.0).ceil().max(0.0);
-    if economy.coins_of(speaker.p_id) < cost {
-        return Err("need_coins");
+    let have = economy.coins_of(speaker.p_id);
+    if have < cost {
+        return Err(HireFail::NeedCoins {
+            missing: (cost - have).max(1),
+        });
     }
     // Haxe: setFollowPlayer immediate (not delayed newFollower) + circular probe
     // FOLLOW-HIRE-DELAY: hire still immediate (intentional Haxe parity)
     if !try_set_follow_player(social, &deleted, target.p_id, speaker.p_id) {
-        return Err("circular_follow");
+        return Err(HireFail::Reason("circular_follow"));
     }
     if !economy.gift(speaker.p_id, target.p_id, cost) {
         social.unfollow(target.p_id);
-        return Err("need_coins");
+        return Err(HireFail::NeedCoins {
+            missing: cost.max(1),
+        });
     }
     social.set_hired(target.p_id, speaker.p_id);
     for pl in players.values_mut() {
@@ -1033,6 +1103,7 @@ fn try_hire(
 mod tests {
     use super::*;
     use crate::speech::{do_command_broadcasts_chat, parse_do_command, DoCommand};
+    use std::collections::{HashMap, HashSet};
     use std::sync::{Arc, RwLock};
 
     #[test]
@@ -1045,12 +1116,44 @@ mod tests {
         }));
     }
 
+    #[test]
+    fn collect_home_search_ovens_local_when_global_empty() {
+        // SEARCH-HOME-OVEN: empty WorldMap.ovens → Chebyshev r=80 local scan.
+        let mut w = World::new(200, 200, false);
+        w.set_object(5, 0, 237);
+        w.set_object(90, 0, 237);
+        let orig = HashMap::new();
+        let local = collect_home_search_ovens(&w, &[], &orig, 0, 0);
+        assert!(
+            local.iter().any(|&(x, y, _, _)| x == 5 && y == 0),
+            "local scan must see oven at r=5"
+        );
+        assert!(
+            !local.iter().any(|&(x, y, _, _)| x == 90 && y == 0),
+            "local r=80 must not visit oven at 90"
+        );
+        let global = collect_home_search_ovens(&w, &[(90, 0)], &orig, 0, 0);
+        assert!(
+            global.iter().any(|&(x, y, _, _)| x == 90 && y == 0),
+            "global index must include far oven"
+        );
+        assert!(
+            !global.iter().any(|&(x, y, _, _)| x == 5 && y == 0),
+            "global index is not a local scan"
+        );
+    }
+
     fn cand(p: &Player, class: i32) -> NameCandidate {
         NameCandidate::from_player(p, class)
     }
 
     /// Ensure lineage exists before set_lineage_prestige_class (no-op without node).
-    fn set_class(social: &mut SocialState, p_id: i32, name: &str, class: crate::prestige::PrestigeClass) {
+    fn set_class(
+        social: &mut SocialState,
+        p_id: i32,
+        name: &str,
+        class: crate::prestige::PrestigeClass,
+    ) {
         social.ensure_lineage(p_id, name);
         social.set_lineage_prestige_class(p_id, class);
     }
@@ -1287,8 +1390,18 @@ mod tests {
         worker.ai_controlled = true;
         worker.connected = false;
         worker.email = "npc-w@local".into();
-        set_class(&mut social, 1, "BOSS", crate::prestige::PrestigeClass::Commoner);
-        set_class(&mut social, 2, "WORKER", crate::prestige::PrestigeClass::Commoner);
+        set_class(
+            &mut social,
+            1,
+            "BOSS",
+            crate::prestige::PrestigeClass::Commoner,
+        );
+        set_class(
+            &mut social,
+            2,
+            "WORKER",
+            crate::prestige::PrestigeClass::Commoner,
+        );
         let cands = vec![cand(&boss, 2), cand(&worker, 2)];
         players.insert(1, boss.clone());
         players.insert(2, worker.clone());
@@ -1339,8 +1452,18 @@ mod tests {
         worker.ai_controlled = true;
         worker.connected = false;
         worker.email = "npc-w@local".into();
-        set_class(&mut social, 1, "BOSS", crate::prestige::PrestigeClass::Noble);
-        set_class(&mut social, 2, "WORKER", crate::prestige::PrestigeClass::Serf);
+        set_class(
+            &mut social,
+            1,
+            "BOSS",
+            crate::prestige::PrestigeClass::Noble,
+        );
+        set_class(
+            &mut social,
+            2,
+            "WORKER",
+            crate::prestige::PrestigeClass::Serf,
+        );
         // NameCandidate.prestige_class drives hire cost (Haxe lineage on hiree).
         // Noble=2 / Commoner=1 / Serf=0 — must match set_class above.
         let cands = vec![cand(&boss, 2), cand(&worker, 0)];
@@ -1419,7 +1542,12 @@ mod tests {
         players.insert(99, top);
         let world = Arc::new(RwLock::new(World::new(32, 32, false)));
         set_class(&mut social, 1, "BOSS", crate::prestige::PrestigeClass::Serf);
-        set_class(&mut social, 2, "WORKER", crate::prestige::PrestigeClass::Serf);
+        set_class(
+            &mut social,
+            2,
+            "WORKER",
+            crate::prestige::PrestigeClass::Serf,
+        );
         let knobs = FollowHireLiveKnobs {
             hire_cost: 10,
             hire_cost_increase_per_person: 0,
@@ -1474,7 +1602,12 @@ mod tests {
         players.insert(2, worker);
         let world = Arc::new(RwLock::new(World::new(32, 32, false)));
         set_class(&mut social, 1, "BOSS", crate::prestige::PrestigeClass::Serf);
-        set_class(&mut social, 2, "WORKER", crate::prestige::PrestigeClass::Serf);
+        set_class(
+            &mut social,
+            2,
+            "WORKER",
+            crate::prestige::PrestigeClass::Serf,
+        );
         let knobs = FollowHireLiveKnobs {
             hire_cost: 10,
             hire_cost_increase_per_person: 0,
@@ -1544,8 +1677,18 @@ mod tests {
         worker.ai_controlled = true;
         worker.connected = false;
         worker.email = "npc-w@local".into();
-        set_class(&mut social, 1, "BOSS", crate::prestige::PrestigeClass::Commoner);
-        set_class(&mut social, 2, "WORKER", crate::prestige::PrestigeClass::Commoner);
+        set_class(
+            &mut social,
+            1,
+            "BOSS",
+            crate::prestige::PrestigeClass::Commoner,
+        );
+        set_class(
+            &mut social,
+            2,
+            "WORKER",
+            crate::prestige::PrestigeClass::Commoner,
+        );
         let mut boss_c = cand(&boss, 2);
         boss_c.person_color = 4;
         let mut worker_c = cand(&worker, 2);
@@ -1592,8 +1735,18 @@ mod tests {
         worker.ai_controlled = true;
         worker.connected = false;
         worker.email = "npc-w@local".into();
-        set_class(&mut social, 1, "BOSS", crate::prestige::PrestigeClass::Commoner);
-        set_class(&mut social, 2, "WORKER", crate::prestige::PrestigeClass::Commoner);
+        set_class(
+            &mut social,
+            1,
+            "BOSS",
+            crate::prestige::PrestigeClass::Commoner,
+        );
+        set_class(
+            &mut social,
+            2,
+            "WORKER",
+            crate::prestige::PrestigeClass::Commoner,
+        );
         let cands = vec![cand(&boss, 2), cand(&worker, 2)];
         players.insert(1, boss.clone());
         players.insert(2, worker);
@@ -1619,5 +1772,84 @@ mod tests {
         );
         assert_ne!(social.hired_boss(2), 1);
         assert_eq!(economy.coins_of(1), 100); // no spend on refuse
+    }
+
+    /// Haxe countHiredPeople skips workers older than 55.
+    #[test]
+    fn count_hired_skips_age_over_55() {
+        let mut social = SocialState::default();
+        social.set_hired(2, 1);
+        social.set_hired(3, 1);
+        let mut ages = HashMap::new();
+        ages.insert(2, 40.0);
+        ages.insert(3, 56.0);
+        let deleted = HashSet::new();
+        assert_eq!(social.count_hired(1, &ages, &deleted), 1);
+    }
+
+    /// Poor hirer: NEED n coins + YOU ARE TOO POOR (Haxe processHireCommand).
+    #[test]
+    fn hire_need_coins_spoken_says() {
+        let mut social = SocialState::default();
+        let mut economy = Economy::default();
+        economy.add_coins(1, 3); // Commoner hiree cost 20 default
+        let mut players = HashMap::new();
+        let mut boss = Player::new(1, 1, "boss@x");
+        boss.first_name = "BOSS".into();
+        boss.age = 20.0;
+        let mut worker = Player::new(2, 2, "npc-w@local");
+        worker.first_name = "WORKER".into();
+        worker.x = 1;
+        worker.age = 20.0;
+        worker.ai_controlled = true;
+        worker.connected = false;
+        worker.email = "npc-w@local".into();
+        set_class(
+            &mut social,
+            1,
+            "BOSS",
+            crate::prestige::PrestigeClass::Commoner,
+        );
+        set_class(
+            &mut social,
+            2,
+            "WORKER",
+            crate::prestige::PrestigeClass::Commoner,
+        );
+        let mut boss_c = cand(&boss, 2);
+        boss_c.person_color = 4;
+        let mut worker_c = cand(&worker, 2);
+        worker_c.person_color = 4;
+        let cands = vec![boss_c, worker_c];
+        players.insert(1, boss.clone());
+        players.insert(2, worker);
+        let world = Arc::new(RwLock::new(World::new(32, 32, false)));
+        let fx = apply_do_commands_live(
+            "I HIRE WORKER",
+            &boss,
+            1,
+            &mut social,
+            &mut economy,
+            &mut players,
+            &world,
+            0.0,
+            &cands,
+            FollowHireLiveKnobs::default(),
+        );
+        assert!(
+            fx.spoken_says
+                .iter()
+                .any(|(_, s)| s.contains("NEED") && s.contains("coins")),
+            "spoken={:?}",
+            fx.spoken_says
+        );
+        assert!(
+            fx.spoken_says.iter().any(|(_, s)| s == HIRE_TOO_POOR_SAY),
+            "spoken={:?}",
+            fx.spoken_says
+        );
+        assert!(fx.emotes.iter().any(|(_, i)| *i == 3)); // SAD
+        assert_eq!(social.hired_boss(2), 0);
+        assert_eq!(economy.coins_of(1), 3);
     }
 }

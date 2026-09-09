@@ -24,10 +24,12 @@ use std::collections::HashMap;
 /// Haxe `ServerSettings.WorldTimeParts` — map height is processed in this many Y bands.
 pub const WORLD_TIME_PARTS: i32 = 25;
 
-/// Haxe `ServerSettings.WinterWildFoodDecayChance` (per season).
+/// Haxe `ServerSettings.WinterWildFoodDecayChance` compiled fallback
+/// (live: `GameplayKnobs.winter_wild_food_decay_chance`).
 pub const WINTER_WILD_FOOD_DECAY_CHANCE: f32 = 1.5;
 
-/// Haxe `ServerSettings.SpringWildFoodRegrowChance` (per season).
+/// Haxe `ServerSettings.SpringWildFoodRegrowChance` compiled fallback
+/// (live: `GameplayKnobs.spring_wild_food_regrow_chance`).
 pub const SPRING_WILD_FOOD_REGROW_CHANCE: f32 = 1.0;
 
 /// Haxe `ServerSettings.TemperatureOwnTileRate` (lerp toward biome+season target).
@@ -39,10 +41,12 @@ pub const TEMPERATURE_BALANCE_RATE: f32 = 0.9;
 /// Haxe `ServerSettings.TemperatureLocalHeatFactor` (fire/ice heat on tile).
 pub const TEMPERATURE_LOCAL_HEAT_FACTOR: f32 = 0.005;
 
-/// Haxe `ServerSettings.HotSeasonTemperatureFactor` (scale positive season impact).
+/// Haxe `ServerSettings.HotSeasonTemperatureFactor` compiled fallback
+/// (live: `GameplayKnobs.hot_season_temperature_factor`).
 pub const HOT_SEASON_TEMPERATURE_FACTOR: f32 = 0.75;
 
-/// Haxe `ServerSettings.ColdSeasonTemperatureFactor` (scale negative season impact).
+/// Haxe `ServerSettings.ColdSeasonTemperatureFactor` compiled fallback
+/// (live: `GameplayKnobs.cold_season_temperature_factor`).
 pub const COLD_SEASON_TEMPERATURE_FACTOR: f32 = 0.75;
 
 /// Fleeing rabbit object id (Haxe hide/unhide).
@@ -54,9 +58,20 @@ pub const SHARP_STONE_ID: i32 = 34;
 /// Haxe `ServerSettings.CursedGraveTime` — hours a cursed grave continues per sharp-stone token.
 pub const CURSED_GRAVE_TIME_HOURS: f32 = 12.0;
 
-/// Extra seconds per sharp stone in overflowing container.
+/// Extra seconds per sharp stone in overflowing container (default 12h).
 /// Haxe: `helper.timeToChange += ServerSettings.CursedGraveTime * 60 * 60` (+ 20s base).
 pub const CURSED_GRAVE_SHARP_STONE_EXTRA_SECS: f32 = CURSED_GRAVE_TIME_HOURS * 60.0 * 60.0; // 43200
+
+/// Convert live `CursedGraveTime` hours to extra seconds (Haxe `* 60 * 60`).
+// SETTINGS-LONG-TAIL
+pub fn cursed_grave_sharp_stone_extra_secs(hours: f32) -> f32 {
+    let h = if hours.is_finite() && hours >= 0.0 {
+        hours
+    } else {
+        CURSED_GRAVE_TIME_HOURS
+    };
+    h * 60.0 * 60.0
+}
 
 /// Haxe `tick % 2000 == 0` prune cadence for cursedGraves / ovens maps in DoWorldMapTimeStuff.
 pub const CURSED_GRAVES_CLEAR_TICK_MOD: u64 = 2000;
@@ -116,11 +131,7 @@ pub fn calculate_time_to_change_for_obj(
 
 /// Haxe `ObjectHelper.isTimeToChangeReached` (creation + timeToChange vs sim time).
 #[inline]
-pub fn is_time_to_change_reached(
-    creation_time: f32,
-    time_to_change: f32,
-    sim_time: f32,
-) -> bool {
+pub fn is_time_to_change_reached(creation_time: f32, time_to_change: f32, sim_time: f32) -> bool {
     time_to_change > 0.0 && (sim_time - creation_time) >= time_to_change
 }
 
@@ -206,11 +217,39 @@ pub fn seasonal_chances(
     season_length_secs: f32,
     season_hardness: f32,
 ) -> (f32, f32) {
+    seasonal_chances_ex(
+        time_passed_all_steps,
+        season_length_secs,
+        season_hardness,
+        SPRING_WILD_FOOD_REGROW_CHANCE,
+        WINTER_WILD_FOOD_DECAY_CHANCE,
+    )
+}
+
+/// Same as [`seasonal_chances`] with live `SpringWildFoodRegrowChance`
+/// and `WinterWildFoodDecayChance`.
+pub fn seasonal_chances_ex(
+    time_passed_all_steps: f32,
+    season_length_secs: f32,
+    season_hardness: f32,
+    spring_chance: f32,
+    winter_chance: f32,
+) -> (f32, f32) {
     // Haxe TimeToNextSeasonInYears * 60 — season length in "year-minutes".
     // With short Rust seasons, use season_length as the denominator base.
     let denom = (season_length_secs.max(1.0)) * 1.0;
-    let winter = time_passed_all_steps * WINTER_WILD_FOOD_DECAY_CHANCE / denom * season_hardness;
-    let spring = time_passed_all_steps * SPRING_WILD_FOOD_REGROW_CHANCE / denom * season_hardness;
+    let winter_chance = if winter_chance.is_finite() && winter_chance >= 0.0 {
+        winter_chance
+    } else {
+        WINTER_WILD_FOOD_DECAY_CHANCE
+    };
+    let spring_chance = if spring_chance.is_finite() && spring_chance >= 0.0 {
+        spring_chance
+    } else {
+        SPRING_WILD_FOOD_REGROW_CHANCE
+    };
+    let winter = time_passed_all_steps * winter_chance / denom * season_hardness;
+    let spring = time_passed_all_steps * spring_chance / denom * season_hardness;
     (winter.max(0.0), spring.max(0.0))
 }
 
@@ -221,18 +260,18 @@ pub fn seasonal_chances(
 /// Haxe `Biome.getBiomeTemperature`.
 pub fn biome_base_temperature(biome: u8) -> f32 {
     match biome {
-        0 => 0.45,  // GREEN
-        1 => 0.2,   // SWAMP
-        2 => 0.4,   // YELLOW
-        3 => 0.3,   // GREY
-        4 => 0.0,   // SNOW
-        5 => 1.0,   // DESERT
-        6 => 0.7,   // JUNGLE
-        15 => 0.6,  // BORDER_JUNGLE
-        21 => 0.0,  // SNOWINGREY
-        9 => 0.2,   // OCEAN
-        17 => 0.2,  // RIVER
-        13 => 0.1,  // PASSABLE_RIVER
+        0 => 0.45, // GREEN
+        1 => 0.2,  // SWAMP
+        2 => 0.4,  // YELLOW
+        3 => 0.3,  // GREY
+        4 => 0.0,  // SNOW
+        5 => 1.0,  // DESERT
+        6 => 0.7,  // JUNGLE
+        15 => 0.6, // BORDER_JUNGLE
+        21 => 0.0, // SNOWINGREY
+        9 => 0.2,  // OCEAN
+        17 => 0.2, // RIVER
+        13 => 0.1, // PASSABLE_RIVER
         _ => 0.5,
     }
 }
@@ -246,10 +285,34 @@ pub fn average_biome_temperature(current_biome: u8, original_biome: u8) -> f32 {
 /// Haxe `UpdateTileTemperature` season scaling (Hot/ColdSeasonTemperatureFactor).
 #[inline]
 pub fn apply_season_temperature_factors(season_impact: f32) -> f32 {
+    apply_season_temperature_factors_ex(
+        season_impact,
+        HOT_SEASON_TEMPERATURE_FACTOR,
+        COLD_SEASON_TEMPERATURE_FACTOR,
+    )
+}
+
+/// Same as [`apply_season_temperature_factors`] with live Hot/Cold season factors.
+#[inline]
+pub fn apply_season_temperature_factors_ex(
+    season_impact: f32,
+    hot_factor: f32,
+    cold_factor: f32,
+) -> f32 {
+    let hot = if hot_factor.is_finite() && hot_factor >= 0.0 {
+        hot_factor
+    } else {
+        HOT_SEASON_TEMPERATURE_FACTOR
+    };
+    let cold = if cold_factor.is_finite() && cold_factor >= 0.0 {
+        cold_factor
+    } else {
+        COLD_SEASON_TEMPERATURE_FACTOR
+    };
     if season_impact > 0.0 {
-        season_impact * HOT_SEASON_TEMPERATURE_FACTOR
+        season_impact * hot
     } else if season_impact < 0.0 {
-        season_impact * COLD_SEASON_TEMPERATURE_FACTOR
+        season_impact * cold
     } else {
         0.0
     }
@@ -333,7 +396,20 @@ pub fn object_insulation_from_content(content: &ContentDb, obj_id: i32) -> f32 {
 /// Local heat from object heatValue (Haxe `getLocalHeat`).
 #[inline]
 pub fn local_heat_from_value(heat_value: f32) -> f32 {
-    heat_value * TEMPERATURE_LOCAL_HEAT_FACTOR
+    local_heat_from_value_ex(heat_value, TEMPERATURE_LOCAL_HEAT_FACTOR)
+}
+
+/// Same as [`local_heat_from_value`] with live `TemperatureLocalHeatFactor`.
+// Haxe: ServerSettings.TemperatureLocalHeatFactor
+// SETTINGS-KNOB-TAIL
+#[inline]
+pub fn local_heat_from_value_ex(heat_value: f32, factor: f32) -> f32 {
+    let f = if factor.is_finite() && factor >= 0.0 {
+        factor
+    } else {
+        TEMPERATURE_LOCAL_HEAT_FACTOR
+    };
+    heat_value * f
 }
 
 /// Haxe `TemperatureHandler.initializeTileTemperature` (pure).
@@ -345,8 +421,27 @@ pub fn initialize_tile_temperature(
     season_impact_raw: f32,
     local_heat: f32,
 ) -> f32 {
+    initialize_tile_temperature_ex(
+        biome_current,
+        biome_original,
+        season_impact_raw,
+        local_heat,
+        HOT_SEASON_TEMPERATURE_FACTOR,
+        COLD_SEASON_TEMPERATURE_FACTOR,
+    )
+}
+
+/// Same as [`initialize_tile_temperature`] with live Hot/Cold season factors.
+pub fn initialize_tile_temperature_ex(
+    biome_current: u8,
+    biome_original: u8,
+    season_impact_raw: f32,
+    local_heat: f32,
+    hot_factor: f32,
+    cold_factor: f32,
+) -> f32 {
     let biome_t = average_biome_temperature(biome_current, biome_original);
-    let season = apply_season_temperature_factors(season_impact_raw);
+    let season = apply_season_temperature_factors_ex(season_impact_raw, hot_factor, cold_factor);
     (biome_t + season + local_heat).clamp(0.0, 2.0)
 }
 
@@ -366,20 +461,85 @@ pub fn update_tile_temperature_lerp(
     object_insulation: f32,
     local_heat_for_init: f32,
 ) -> f32 {
+    update_tile_temperature_lerp_ex(
+        current,
+        biome_current,
+        biome_original,
+        season_impact_raw,
+        delta_time,
+        floor_insulation,
+        object_insulation,
+        local_heat_for_init,
+        HOT_SEASON_TEMPERATURE_FACTOR,
+        COLD_SEASON_TEMPERATURE_FACTOR,
+    )
+}
+
+/// Same as [`update_tile_temperature_lerp`] with live Hot/Cold season factors.
+pub fn update_tile_temperature_lerp_ex(
+    current: f32,
+    biome_current: u8,
+    biome_original: u8,
+    season_impact_raw: f32,
+    delta_time: f32,
+    floor_insulation: f32,
+    object_insulation: f32,
+    local_heat_for_init: f32,
+    hot_factor: f32,
+    cold_factor: f32,
+) -> f32 {
+    update_tile_temperature_lerp_rates(
+        current,
+        biome_current,
+        biome_original,
+        season_impact_raw,
+        delta_time,
+        floor_insulation,
+        object_insulation,
+        local_heat_for_init,
+        hot_factor,
+        cold_factor,
+        TEMPERATURE_OWN_TILE_RATE,
+    )
+}
+
+/// Same as [`update_tile_temperature_lerp_ex`] with live `TemperatureOwnTileRate`.
+// Haxe: ServerSettings.TemperatureOwnTileRate
+// SETTINGS-KNOB-TAIL
+pub fn update_tile_temperature_lerp_rates(
+    current: f32,
+    biome_current: u8,
+    biome_original: u8,
+    season_impact_raw: f32,
+    delta_time: f32,
+    floor_insulation: f32,
+    object_insulation: f32,
+    local_heat_for_init: f32,
+    hot_factor: f32,
+    cold_factor: f32,
+    own_tile_rate: f32,
+) -> f32 {
     // Uninitialized: Haxe initializeTileTemperature then return (no balance that tick).
     if current < 0.0 {
-        return initialize_tile_temperature(
+        return initialize_tile_temperature_ex(
             biome_current,
             biome_original,
             season_impact_raw,
             local_heat_for_init,
+            hot_factor,
+            cold_factor,
         );
     }
     let biome_t = average_biome_temperature(biome_current, biome_original);
-    let season = apply_season_temperature_factors(season_impact_raw);
+    let season = apply_season_temperature_factors_ex(season_impact_raw, hot_factor, cold_factor);
     let target = (biome_t + season).clamp(0.0, 5.0);
     let ins = tile_insulation_factor_from_r(floor_insulation, object_insulation);
-    let move_speed = TEMPERATURE_OWN_TILE_RATE * ins;
+    let rate = if own_tile_rate.is_finite() && own_tile_rate >= 0.0 {
+        own_tile_rate
+    } else {
+        TEMPERATURE_OWN_TILE_RATE
+    };
+    let move_speed = rate * ins;
     let move_delta = (move_speed * delta_time).clamp(0.0, 0.9);
     let new_t = current + (target - current) * move_delta;
     new_t.clamp(0.0, 5.0)
@@ -413,6 +573,33 @@ pub fn balance_tile_temperature(
     do_local_heat: bool,
     center_ttc: f32,
 ) -> Option<BalanceTileTempResult> {
+    balance_tile_temperature_ex(
+        current,
+        neighbors,
+        delta_time,
+        local_heat,
+        object_insulation,
+        floor_insulation,
+        do_local_heat,
+        center_ttc,
+        TEMPERATURE_BALANCE_RATE,
+    )
+}
+
+/// Same as [`balance_tile_temperature`] with live `TemperatureBalanceRate`.
+// Haxe: ServerSettings.TemperatureBalanceRate
+// SETTINGS-KNOB-TAIL
+pub fn balance_tile_temperature_ex(
+    current: f32,
+    neighbors: &[(i32, i32, f32, f32)],
+    delta_time: f32,
+    local_heat: f32,
+    object_insulation: f32,
+    floor_insulation: f32,
+    do_local_heat: bool,
+    center_ttc: f32,
+    balance_rate: f32,
+) -> Option<BalanceTileTempResult> {
     if current < 0.0 {
         return None;
     }
@@ -426,10 +613,13 @@ pub fn balance_tile_temperature(
         }
     }
 
-    let move_speed_delta_neighbor = (TEMPERATURE_BALANCE_RATE
-        * delta_time
-        * (1.0 - object_insulation))
-        .clamp(0.0, 0.9);
+    let rate = if balance_rate.is_finite() && balance_rate >= 0.0 {
+        balance_rate
+    } else {
+        TEMPERATURE_BALANCE_RATE
+    };
+    let move_speed_delta_neighbor =
+        (rate * delta_time * (1.0 - object_insulation)).clamp(0.0, 0.9);
 
     let mut heat = if do_local_heat { local_heat } else { 0.0 };
     let mut extend = 0.0_f32;
@@ -520,11 +710,7 @@ pub fn is_water_drift_biome(biome: u8) -> bool {
 }
 
 /// Effective time-passed multiplier for water drift (Haxe DoItemInWaterMovement).
-pub fn water_drift_effective_time(
-    time_passed: f32,
-    speed_mult: f32,
-    biome: u8,
-) -> f32 {
+pub fn water_drift_effective_time(time_passed: f32, speed_mult: f32, biome: u8) -> f32 {
     let mut t = time_passed * speed_mult.powi(3);
     match biome {
         b if b == PASSABLE_RIVER => t *= 0.2,
@@ -664,8 +850,7 @@ pub fn do_time_for_contained(
 
     // Haxe: if (obj.isLastUse()) prefer last-use transition table.
     let mut transition = tr;
-    if prefer_last_use_for_time(uses_before, num_uses)
-        || content.dummy_parent.contains_key(&obj_id)
+    if prefer_last_use_for_time(uses_before, num_uses) || content.dummy_parent.contains_key(&obj_id)
     {
         if let Some(lu) = content.find_transition_last_use(-1, base) {
             transition = lu.clone();
@@ -816,6 +1001,22 @@ pub fn container_overflow_delay(
     new_target_num_slots: i32,
     popped_id: i32,
 ) -> Option<(f32, i32)> {
+    container_overflow_delay_ex(
+        contained_len,
+        new_target_num_slots,
+        popped_id,
+        CURSED_GRAVE_TIME_HOURS,
+    )
+}
+
+/// Overflow delay with live `ServerSettings.CursedGraveTime` (hours).
+// Haxe: doTimeTransitionHelper L2123–2131 `+20` then `CursedGraveTime * 3600` if id 34
+pub fn container_overflow_delay_ex(
+    contained_len: usize,
+    new_target_num_slots: i32,
+    popped_id: i32,
+    cursed_grave_time_hours: f32,
+) -> Option<(f32, i32)> {
     if new_target_num_slots < 0 {
         return None;
     }
@@ -824,9 +1025,41 @@ pub fn container_overflow_delay(
     }
     let mut delay = 20.0_f32;
     if popped_id == SHARP_STONE_ID {
-        delay += CURSED_GRAVE_SHARP_STONE_EXTRA_SECS;
+        delay += cursed_grave_sharp_stone_extra_secs(cursed_grave_time_hours);
     }
     Some((delay, popped_id))
+}
+
+/// World-only 8-neighbor drop (no biome / free-tile search).
+///
+/// Live overflow uses [`crate::place_object::place_object_by_id`] (Haxe `PlaceObject`).
+// Haxe: WorldMap.PlaceObject after overflow pop — live path TIME-OVERFLOW-PLACE
+pub fn place_popped_contained_near(
+    world: &mut ol_world::World,
+    x: i32,
+    y: i32,
+    obj_id: i32,
+) -> Option<(i32, i32)> {
+    if obj_id <= 0 {
+        return None;
+    }
+    for (dx, dy) in [
+        (1, 0),
+        (-1, 0),
+        (0, 1),
+        (0, -1),
+        (1, 1),
+        (-1, -1),
+        (1, -1),
+        (-1, 1),
+    ] {
+        let (tx, ty) = world.wrap_tile(x + dx, y + dy);
+        if world.get_object(tx, ty) == 0 {
+            world.set_object(tx, ty, obj_id);
+            return Some((tx, ty));
+        }
+    }
+    None
 }
 
 // ---------------------------------------------------------------------------
@@ -892,11 +1125,7 @@ pub fn clear_ovens_index(
     tile_obj_id: impl Fn(i32, i32) -> i32,
     width: i32,
 ) -> HashMap<i32, (i32, i32)> {
-    clear_map_index_keep(
-        entries,
-        |tx, ty| is_oven_map_id(tile_obj_id(tx, ty)),
-        width,
-    )
+    clear_map_index_keep(entries, |tx, ty| is_oven_map_id(tile_obj_id(tx, ty)), width)
 }
 
 /// Insert bone-grave tile into cursedGraves if `IsBoneGrave(obj_id)`.
@@ -1070,6 +1299,83 @@ pub fn do_world_map_time_stuff(
     season_hardness: f32,
     rng: &mut impl Rng,
 ) -> Vec<MapTimeChange> {
+    do_world_map_time_stuff_ex(
+        world,
+        content,
+        map_time,
+        season_is_spring,
+        season_is_winter,
+        season_impact,
+        season_length_secs,
+        sim_time,
+        season_hardness,
+        rng,
+        SPRING_WILD_FOOD_REGROW_CHANCE,
+        WINTER_WILD_FOOD_DECAY_CHANCE,
+        HOT_SEASON_TEMPERATURE_FACTOR,
+        COLD_SEASON_TEMPERATURE_FACTOR,
+    )
+}
+
+/// Same as [`do_world_map_time_stuff`] with live spring/winter chances and Hot/Cold season factors.
+pub fn do_world_map_time_stuff_ex(
+    world: &mut World,
+    content: &ContentDb,
+    map_time: &mut WorldMapTimeState,
+    season_is_spring: bool,
+    season_is_winter: bool,
+    season_impact: f32,
+    season_length_secs: f32,
+    sim_time: f32,
+    season_hardness: f32,
+    rng: &mut impl Rng,
+    spring_wild_food_regrow_chance: f32,
+    winter_wild_food_decay_chance: f32,
+    hot_season_temperature_factor: f32,
+    cold_season_temperature_factor: f32,
+) -> Vec<MapTimeChange> {
+    do_world_map_time_stuff_ex2(
+        world,
+        content,
+        map_time,
+        season_is_spring,
+        season_is_winter,
+        season_impact,
+        season_length_secs,
+        sim_time,
+        season_hardness,
+        rng,
+        spring_wild_food_regrow_chance,
+        winter_wild_food_decay_chance,
+        hot_season_temperature_factor,
+        cold_season_temperature_factor,
+        TEMPERATURE_OWN_TILE_RATE,
+        TEMPERATURE_BALANCE_RATE,
+        TEMPERATURE_LOCAL_HEAT_FACTOR,
+    )
+}
+
+/// [`do_world_map_time_stuff_ex`] plus live tile-temp rates (TimeHelper/TemperatureHandler).
+// SETTINGS-KNOB-TAIL
+pub fn do_world_map_time_stuff_ex2(
+    world: &mut World,
+    content: &ContentDb,
+    map_time: &mut WorldMapTimeState,
+    season_is_spring: bool,
+    season_is_winter: bool,
+    season_impact: f32,
+    season_length_secs: f32,
+    sim_time: f32,
+    season_hardness: f32,
+    rng: &mut impl Rng,
+    spring_wild_food_regrow_chance: f32,
+    winter_wild_food_decay_chance: f32,
+    hot_season_temperature_factor: f32,
+    cold_season_temperature_factor: f32,
+    temperature_own_tile_rate: f32,
+    temperature_balance_rate: f32,
+    temperature_local_heat_factor: f32,
+) -> Vec<MapTimeChange> {
     let mut changes = Vec::new();
     let w = world.width_tiles;
     let h = world.height_tiles;
@@ -1093,10 +1399,12 @@ pub fn do_world_map_time_stuff(
         } else {
             map_time.time_passed_all_steps = 1.0;
         }
-        let (winter, spring) = seasonal_chances(
+        let (winter, spring) = seasonal_chances_ex(
             map_time.time_passed_all_steps,
             season_length_secs,
             season_hardness,
+            spring_wild_food_regrow_chance,
+            winter_wild_food_decay_chance,
         );
         map_time.winter_decay_chance = winter;
         map_time.spring_regrow_chance = spring;
@@ -1122,14 +1430,15 @@ pub fn do_world_map_time_stuff(
             let heat_value = content.get(obj_base).map(|d| d.heat_value).unwrap_or(0.0);
             let floor_ins = floor_insulation_from_content(content, floor);
             let obj_ins = object_insulation_from_content(content, obj_id);
-            let local_heat = local_heat_from_value(heat_value);
+            let local_heat =
+                local_heat_from_value_ex(heat_value, temperature_local_heat_factor);
             let orig_biome = map_time
                 .original_biomes
                 .get(&(x, y))
                 .copied()
                 .unwrap_or(biome);
             let cur_temp = map_time.tile_temps.get(&(x, y)).copied().unwrap_or(-1.0);
-            let mut new_temp = update_tile_temperature_lerp(
+            let mut new_temp = update_tile_temperature_lerp_rates(
                 cur_temp,
                 biome,
                 orig_biome,
@@ -1138,6 +1447,9 @@ pub fn do_world_map_time_stuff(
                 floor_ins,
                 obj_ins,
                 local_heat,
+                hot_season_temperature_factor,
+                cold_season_temperature_factor,
+                temperature_own_tile_rate,
             );
             map_time.tile_temps.insert((x, y), new_temp);
 
@@ -1166,7 +1478,7 @@ pub fn do_world_map_time_stuff(
                     .get_helper(x, y)
                     .map(|hh| hh.time_to_change)
                     .unwrap_or(0.0);
-                if let Some(bal) = balance_tile_temperature(
+                if let Some(bal) = balance_tile_temperature_ex(
                     new_temp,
                     &neighbors,
                     time_passed,
@@ -1175,6 +1487,7 @@ pub fn do_world_map_time_stuff(
                     floor_ins,
                     true, // map-slice path (doLocalHeat=true)
                     center_ttc,
+                    temperature_balance_rate,
                 ) {
                     new_temp = bal.center;
                     map_time.tile_temps.insert((x, y), new_temp);
@@ -1223,9 +1536,7 @@ pub fn do_world_map_time_stuff(
             // Second-time outcome (goose pond chain, etc.).
             if let Some(&(out_id, out_secs)) = content.second_time_outcomes.get(&obj_id) {
                 let r: f32 = rng.gen();
-                if let Some(new_id) =
-                    second_time_outcome_roll(out_id, out_secs, time_passed, r)
-                {
+                if let Some(new_id) = second_time_outcome_roll(out_id, out_secs, time_passed, r) {
                     world.set_object(x, y, new_id);
                     changes.push(MapTimeChange {
                         x,
@@ -1243,10 +1554,12 @@ pub fn do_world_map_time_stuff(
             // Haxe: if (objData.dummyParent != null) objData = objData.dummyParent;
             let water_base = content.resolve_base_id(obj_id);
             let speed_mult = content.get(water_base).map(|d| d.speed_mult).unwrap_or(1.0);
-            let permanent = content.get(water_base).map(|d| d.permanent).unwrap_or(false);
+            let permanent = content
+                .get(water_base)
+                .map(|d| d.permanent)
+                .unwrap_or(false);
             let r: f32 = rng.gen();
-            if item_in_water_should_move(permanent, biome, floor, time_passed, speed_mult, r)
-            {
+            if item_in_water_should_move(permanent, biome, floor, time_passed, speed_mult, r) {
                 let dx = rng.gen_range(0..=2) - 1;
                 let dy = rng.gen_range(0..=2) - 1;
                 let (ox, oy) = water_drift_offset(dx, dy);
@@ -1322,11 +1635,7 @@ pub fn do_world_map_time_stuff(
                         ) && uses > 1
                         {
                             let next = uses - 1;
-                            world.set_object_complex(
-                                x,
-                                y,
-                                ComplexObject::with_uses(obj_id, next),
-                            );
+                            world.set_object_complex(x, y, ComplexObject::with_uses(obj_id, next));
                             changes.push(MapTimeChange {
                                 x,
                                 y,
@@ -1346,11 +1655,7 @@ pub fn do_world_map_time_stuff(
                             r,
                         ) {
                             let next = (uses + 1).min(def.num_uses);
-                            world.set_object_complex(
-                                x,
-                                y,
-                                ComplexObject::with_uses(obj_id, next),
-                            );
+                            world.set_object_complex(x, y, ComplexObject::with_uses(obj_id, next));
                             changes.push(MapTimeChange {
                                 x,
                                 y,
@@ -1383,6 +1688,19 @@ pub fn do_world_map_time_stuff(
                         from_x: x,
                         from_y: y,
                     });
+                    continue;
+                }
+            }
+
+            // Haxe WorldMap.deleteObjectHelperIfUseless — keep owned gates / owner lists.
+            // Haxe: TimeHelper L1145 continue when helper dropped
+            if world.get_helper(x, y).is_some() {
+                let desc = content
+                    .get(obj_base)
+                    .map(|d| d.description.clone())
+                    .unwrap_or_default();
+                let num_uses = content.get(obj_base).map(|d| d.num_uses).unwrap_or(1);
+                if world.delete_object_helper_if_useless(x, y, &desc, num_uses) {
                     continue;
                 }
             }
@@ -1462,6 +1780,10 @@ mod tests {
             switch_number_of_uses: false,
             target_number_of_uses: -1,
             is_pickup_or_drop: false,
+            hungry_work_cost: 0.0,
+            hungry_work_temperature: -1.0,
+            coin_cost: 0,
+            is_forbidden: false,
         }
     }
 
@@ -1484,6 +1806,39 @@ mod tests {
             }
         }
         assert!(covered.iter().all(|&c| c));
+    }
+
+    #[test]
+    fn seasonal_chances_compiled_and_ex_spring_doubles() {
+        let (winter, spring) = seasonal_chances(60.0, 60.0, 1.0);
+        assert!((winter - 1.5).abs() < 1e-12);
+        assert!((spring - 1.0).abs() < 1e-12);
+        let (w1, s1) = seasonal_chances_ex(60.0, 60.0, 1.0, 1.0, 1.5);
+        let (w2, s2) = seasonal_chances_ex(60.0, 60.0, 1.0, 2.0, 1.5);
+        assert!((w1 - w2).abs() < 1e-12);
+        assert!((s2 - s1 * 2.0).abs() < 1e-12);
+        assert!((s1 - 1.0).abs() < 1e-12);
+        let (w3, s3) = seasonal_chances_ex(60.0, 60.0, 1.0, 1.0, 3.0);
+        assert!((w3 - 3.0).abs() < 1e-12);
+        assert!((s3 - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn apply_season_temperature_factors_ex_hot_and_cold_live() {
+        assert!((apply_season_temperature_factors(0.4) - 0.3).abs() < 1e-4);
+        assert!(
+            (apply_season_temperature_factors_ex(0.4, 1.5, COLD_SEASON_TEMPERATURE_FACTOR) - 0.6)
+                .abs()
+                < 1e-4
+        );
+        let cold_compiled = apply_season_temperature_factors(-0.4);
+        assert!((cold_compiled + 0.3).abs() < 1e-4);
+        // Live cold 0.5: -0.4 * 0.5 = -0.2
+        let cold_live =
+            apply_season_temperature_factors_ex(-0.4, HOT_SEASON_TEMPERATURE_FACTOR, 0.5);
+        assert!((cold_live + 0.2).abs() < 1e-4);
+        let cold_same = apply_season_temperature_factors_ex(-0.4, 1.5, COLD_SEASON_TEMPERATURE_FACTOR);
+        assert!((cold_compiled - cold_same).abs() < 1e-12);
     }
 
     #[test]
@@ -1517,9 +1872,19 @@ mod tests {
         // Haxe: update_tile_temperature_lerp(current, biome, orig, season, dt, floor_ins, obj_ins, local_heat)
         let t0 = update_tile_temperature_lerp(-1.0, 5, 5, 0.0, 1.0, 0.0, 0.0, 0.0);
         assert!((t0 - 1.0).abs() < 1e-3 || t0 >= 0.0); // init snap
-        // Cold snow target with insulation (floor) moves slower than bare.
+                                                       // Cold snow target with insulation (floor) moves slower than bare.
         let bare = update_tile_temperature_lerp(1.0, 4, 4, 0.0, 10.0, 0.0, 0.0, 0.0);
         let floored = update_tile_temperature_lerp(1.0, 4, 4, 0.0, 10.0, 0.2, 0.0, 0.0);
+        let slow = update_tile_temperature_lerp_rates(
+            1.0, 4, 4, 0.0, 10.0, 0.0, 0.0, 0.0, 0.75, 0.75, 0.01,
+        );
+        let fast = update_tile_temperature_lerp_rates(
+            1.0, 4, 4, 0.0, 10.0, 0.0, 0.0, 0.0, 0.75, 0.75, 0.2,
+        );
+        assert!(
+            fast < slow,
+            "higher TemperatureOwnTileRate cools faster: fast={fast} slow={slow}"
+        );
         // Both cool toward 0; bare should cool more (or equal if clamp).
         assert!(bare <= floored + 1e-4, "bare={bare} floored={floored}");
         assert!(bare < 1.0);
@@ -1530,17 +1895,7 @@ mod tests {
         // Hot center, cold neighbor — heat flows out.
         // neighbors: (dx, dy, temp, neighbor_object_insulation)
         let neighbors = vec![(1, 0, 0.0_f32, 0.0_f32)];
-        let r = balance_tile_temperature(
-            1.0,
-            &neighbors,
-            1.0,
-            0.0,
-            0.0,
-            0.2,
-            true,
-            0.0,
-        )
-        .unwrap();
+        let r = balance_tile_temperature(1.0, &neighbors, 1.0, 0.0, 0.0, 0.2, true, 0.0).unwrap();
         assert!(r.center < 1.0, "center cools: {}", r.center);
         assert_eq!(r.neighbor_updates.len(), 1);
         assert!(
@@ -1621,23 +1976,21 @@ mod tests {
         // doLocalHeat=false: wall neighbor (ins>0) is skipped.
         let neighbors = vec![(1, 0, 0.0_f32, 0.9_f32), (0, 1, 0.0_f32, 0.0_f32)];
         let r = balance_tile_temperature(
-            1.0,
-            &neighbors,
-            1.0,
-            0.0,
-            0.0,
-            0.5, // floor insulation >= 0.1 required
-            false,
-            0.0,
+            1.0, &neighbors, 1.0, 0.0, 0.0, 0.5, // floor insulation >= 0.1 required
+            false, 0.0,
         )
         .unwrap();
         assert_eq!(r.neighbor_updates.len(), 1);
         assert_eq!(r.neighbor_updates[0].0, 0);
         assert_eq!(r.neighbor_updates[0].1, 1);
         // Center is wall → early out.
-        assert!(balance_tile_temperature(1.0, &neighbors, 1.0, 0.0, 0.5, 0.5, false, 0.0).is_none());
+        assert!(
+            balance_tile_temperature(1.0, &neighbors, 1.0, 0.0, 0.5, 0.5, false, 0.0).is_none()
+        );
         // Low floor → early out.
-        assert!(balance_tile_temperature(1.0, &neighbors, 1.0, 0.0, 0.0, 0.05, false, 0.0).is_none());
+        assert!(
+            balance_tile_temperature(1.0, &neighbors, 1.0, 0.0, 0.0, 0.05, false, 0.0).is_none()
+        );
     }
 
     #[test]
@@ -1882,9 +2235,7 @@ mod tests {
                 );
                 // Dest has the floated object.
                 assert!(
-                    changes
-                        .iter()
-                        .any(|c| c.moving && c.new_object_id == 33),
+                    changes.iter().any(|c| c.moving && c.new_object_id == 33),
                     "floater moved"
                 );
                 moved = true;
@@ -1897,10 +2248,7 @@ mod tests {
     #[test]
     fn second_time_outcome_goose_pond_chain() {
         // time_passed large enough always fires at rand=0.
-        assert_eq!(
-            second_time_outcome_roll(142, 30.0, 30.0, 0.0),
-            Some(142)
-        );
+        assert_eq!(second_time_outcome_roll(142, 30.0, 30.0, 0.0), Some(142));
         assert_eq!(second_time_outcome_roll(142, 30.0, 1.0, 0.99), None);
         assert_eq!(second_time_outcome_roll(0, 30.0, 100.0, 0.0), None);
     }
@@ -1910,7 +2258,7 @@ mod tests {
         assert!(!item_in_water_should_move(true, OCEAN, 0, 10.0, 1.0, 0.0));
         assert!(!item_in_water_should_move(false, 0, 0, 10.0, 1.0, 0.0)); // land
         assert!(!item_in_water_should_move(false, OCEAN, 1, 10.0, 1.0, 0.0)); // floor
-        // Ocean * 0.5 * time; rand 0 always moves when time > 0.
+                                                                              // Ocean * 0.5 * time; rand 0 always moves when time > 0.
         assert!(item_in_water_should_move(false, OCEAN, 0, 2.0, 1.0, 0.0));
         assert!(!item_in_water_should_move(false, OCEAN, 0, 0.1, 1.0, 0.9));
     }
@@ -2039,6 +2387,20 @@ mod tests {
         assert!(container_overflow_delay(1, 2, 10).is_none());
         let non_stone = container_overflow_delay(3, 1, 10).unwrap();
         assert!((non_stone.0 - 20.0).abs() < 1e-3);
+        // SETTINGS-LONG-TAIL: live CursedGraveTime hours scale sharp-stone extra
+        let live = container_overflow_delay_ex(3, 1, SHARP_STONE_ID, 1.0).unwrap();
+        assert!((live.0 - (20.0 + 3600.0)).abs() < 1e-3);
+        let off = container_overflow_delay_ex(3, 1, SHARP_STONE_ID, 0.0).unwrap();
+        assert!((off.0 - 20.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn place_popped_contained_near_fills_empty_neighbor() {
+        let mut world = ol_world::World::new(8, 8, false);
+        world.set_object(2, 2, 100);
+        let p = place_popped_contained_near(&mut world, 2, 2, 33).expect("neighbor");
+        assert_ne!(p, (2, 2));
+        assert_eq!(world.get_object(p.0, p.1), 33);
     }
 
     #[test]
@@ -2048,9 +2410,11 @@ mod tests {
         index_insert(&mut idx, 1, 2, 100);
         index_insert(&mut idx, 5, 5, 100);
         index_insert(&mut idx, 9, 0, 100);
-        let tiles: HashMap<(i32, i32), i32> =
-            [((1, 2), 87), ((5, 5), 418), ((9, 0), 357)].into_iter().collect();
-        let cleared = clear_cursed_graves(&idx, |x, y| tiles.get(&(x, y)).copied().unwrap_or(0), 100);
+        let tiles: HashMap<(i32, i32), i32> = [((1, 2), 87), ((5, 5), 418), ((9, 0), 357)]
+            .into_iter()
+            .collect();
+        let cleared =
+            clear_cursed_graves(&idx, |x, y| tiles.get(&(x, y)).copied().unwrap_or(0), 100);
         assert_eq!(cleared.len(), 2);
         assert!(cleared.values().any(|&p| p == (1, 2)));
         assert!(cleared.values().any(|&p| p == (9, 0)));
@@ -2064,18 +2428,19 @@ mod tests {
         index_insert(&mut idx, 1, 0, 50); // Hot 250
         index_insert(&mut idx, 2, 0, 50); // non-oven 314
         index_insert(&mut idx, 3, 0, 50); // Burning 249
-        let tiles: HashMap<(i32, i32), i32> = [
-            ((0, 0), 237),
-            ((1, 0), 250),
-            ((2, 0), 314),
-            ((3, 0), 249),
-        ]
-        .into_iter()
-        .collect();
+        let tiles: HashMap<(i32, i32), i32> =
+            [((0, 0), 237), ((1, 0), 250), ((2, 0), 314), ((3, 0), 249)]
+                .into_iter()
+                .collect();
         let cleared = clear_ovens_index(&idx, |x, y| tiles.get(&(x, y)).copied().unwrap_or(0), 50);
         assert_eq!(cleared.len(), 3);
         assert!(!cleared.values().any(|&p| p == (2, 0)));
-        assert!(is_oven_map_id(237) && is_oven_map_id(247) && is_oven_map_id(249) && is_oven_map_id(250));
+        assert!(
+            is_oven_map_id(237)
+                && is_oven_map_id(247)
+                && is_oven_map_id(249)
+                && is_oven_map_id(250)
+        );
         assert!(!is_oven_map_id(314));
     }
 
@@ -2104,10 +2469,7 @@ mod tests {
             &mut rng,
         );
         assert!(
-            map_time
-                .cursed_graves
-                .values()
-                .any(|&p| p == (2, 0)),
+            map_time.cursed_graves.values().any(|&p| p == (2, 0)),
             "bone grave should be indexed"
         );
         assert!(
@@ -2173,9 +2535,12 @@ mod tests {
         let near = crate::animal_move::collect_bone_graves_near(&world, 0, 0, 80);
         assert!(near.is_empty(), "r=80 scan must miss far graves");
         let global = index_positions(
-            &[(map_linear_index(150, 0, 220), (150, 0)), (map_linear_index(200, 0, 220), (200, 0))]
-                .into_iter()
-                .collect(),
+            &[
+                (map_linear_index(150, 0, 220), (150, 0)),
+                (map_linear_index(200, 0, 220), (200, 0)),
+            ]
+            .into_iter()
+            .collect(),
         );
         assert_eq!(
             crate::animal_move::get_closest_bone_grave(0, 0, &global),
@@ -2208,9 +2573,7 @@ mod tests {
         let mut map_time = WorldMapTimeState::default();
         map_time.time_passed_all_steps = 1.0;
         // Pre-arm timer so first slice transforms (creation in past).
-        map_time
-            .contained_timers
-            .insert((1, 0), vec![(0.0, 1.0)]);
+        map_time.contained_timers.insert((1, 0), vec![(0.0, 1.0)]);
 
         let mut rng = StdRng::seed_from_u64(2);
         let _ = do_world_map_time_stuff(
@@ -2259,9 +2622,8 @@ mod tests {
 
         // Rearm as after OLW load at sim_time 130 (mid-progress).
         let sim_load = 130.0_f32;
-        let map = crate::contained_timers_persist::rebuild_contained_timers_from_world(
-            &world, sim_load,
-        );
+        let map =
+            crate::contained_timers_persist::rebuild_contained_timers_from_world(&world, sim_load);
         assert_eq!(
             map.get(&(1, 0)).unwrap(),
             &[(100.0, 60.0)],
@@ -2368,9 +2730,7 @@ mod tests {
 
         let mut map_time = WorldMapTimeState::default();
         map_time.time_passed_all_steps = 1.0;
-        map_time
-            .contained_timers
-            .insert((1, 0), vec![(0.0, 1.0)]);
+        map_time.contained_timers.insert((1, 0), vec![(0.0, 1.0)]);
 
         let mut rng = StdRng::seed_from_u64(4);
         let _ = do_world_map_time_stuff(
@@ -2437,9 +2797,7 @@ mod tests {
         let mut map_time = WorldMapTimeState::default();
         map_time.time_passed_all_steps = 1.0;
         // First-level outer has no auto-decay; runtime map still needs a slot entry.
-        map_time
-            .contained_timers
-            .insert((1, 0), vec![(0.0, 0.0)]);
+        map_time.contained_timers.insert((1, 0), vec![(0.0, 0.0)]);
 
         let mut rng = StdRng::seed_from_u64(11);
         let changes = do_world_map_time_stuff(
@@ -2507,9 +2865,7 @@ mod tests {
 
         let mut map_time = WorldMapTimeState::default();
         map_time.time_passed_all_steps = 1.0;
-        map_time
-            .contained_timers
-            .insert((1, 0), vec![(100.0, 0.0)]);
+        map_time.contained_timers.insert((1, 0), vec![(100.0, 0.0)]);
 
         let mut rng = StdRng::seed_from_u64(12);
         let changes = do_world_map_time_stuff(
@@ -2596,9 +2952,7 @@ mod tests {
 
         let mut map_time = WorldMapTimeState::default();
         map_time.time_passed_all_steps = 1.0;
-        map_time
-            .contained_timers
-            .insert((1, 0), vec![(0.0, 1.0)]);
+        map_time.contained_timers.insert((1, 0), vec![(0.0, 1.0)]);
 
         let mut rng = StdRng::seed_from_u64(14);
         let _ = do_world_map_time_stuff(
@@ -2669,9 +3023,7 @@ mod tests {
 
         let mut map_time = WorldMapTimeState::default();
         map_time.time_passed_all_steps = 1.0;
-        map_time
-            .contained_timers
-            .insert((1, 0), vec![(0.0, 1.0)]);
+        map_time.contained_timers.insert((1, 0), vec![(0.0, 1.0)]);
 
         let mut rng = StdRng::seed_from_u64(15);
         let changes = do_world_map_time_stuff(
@@ -2713,11 +3065,7 @@ mod tests {
             "do_world_map_time_stuff must call nested_timers::tick_container_helper_timers"
         );
         // Old deferred wording (split so this assert does not contain the needle).
-        let deferred = format!(
-            "{}{}",
-            "Nested-in-nested remains ",
-            "Haxe TODO"
-        );
+        let deferred = format!("{}{}", "Nested-in-nested remains ", "Haxe TODO");
         assert!(
             !body.contains(&deferred),
             "deferred comment must be gone from map-slice"
@@ -2763,8 +3111,7 @@ mod tests {
         h.slots = vec![outer];
         world.set_object_complex(1, 0, h);
 
-        let map =
-            crate::contained_timers_persist::rebuild_contained_timers_from_world(&world, 0.0);
+        let map = crate::contained_timers_persist::rebuild_contained_timers_from_world(&world, 0.0);
         assert_eq!(map.get(&(1, 0)).unwrap().len(), 1);
         // No separate runtime entry for depth≥2.
 

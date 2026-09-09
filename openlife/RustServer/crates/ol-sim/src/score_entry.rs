@@ -113,6 +113,26 @@ pub fn create_score_entry_if_grave(
     creator_name: Option<&str>,
     creator_family: Option<&str>,
 ) -> Option<AccountScoreEntry> {
+    create_score_entry_if_grave_ex(
+        decayed_obj_id,
+        owner_email,
+        creator_p_id,
+        creator_name,
+        creator_family,
+        OLD_GRAVE_DECAY_MALI,
+    )
+}
+
+/// Like [`create_score_entry_if_grave`] with live `OldGraveDecayMali`.
+// Haxe: ScoreEntry.CreateScoreEntryIfGrave `score = -OldGraveDecayMali`
+pub fn create_score_entry_if_grave_ex(
+    decayed_obj_id: i32,
+    owner_email: Option<&str>,
+    creator_p_id: i32,
+    creator_name: Option<&str>,
+    creator_family: Option<&str>,
+    mali: f32,
+) -> Option<AccountScoreEntry> {
     if decayed_obj_id != OLD_GRAVE_OBJECT_ID {
         return None;
     }
@@ -131,7 +151,11 @@ pub fn create_score_entry_if_grave(
         player_id: creator_p_id,
         relative_account_email: String::new(),
         relative_player_id: 0,
-        score: -OLD_GRAVE_DECAY_MALI,
+        score: -if mali.is_finite() && mali >= 0.0 {
+            mali
+        } else {
+            OLD_GRAVE_DECAY_MALI
+        },
         text,
     })
 }
@@ -148,9 +172,37 @@ pub fn create_score_entry_for_cursed_grave(
     creator_name: Option<&str>,
     creator_family: Option<&str>,
 ) {
+    create_score_entry_for_cursed_grave_ex(
+        entries,
+        owner_email,
+        creator_p_id,
+        creator_id,
+        creator_name,
+        creator_family,
+        CURSED_GRAVE_MALI,
+    );
+}
+
+/// Like [`create_score_entry_for_cursed_grave`] with live `CursedGraveMali`.
+// Haxe: ScoreEntry.CreateScoreEntryForCursedGrave `score -= CursedGraveMali`
+// SCORE-MALI
+pub fn create_score_entry_for_cursed_grave_ex(
+    entries: &mut Vec<AccountScoreEntry>,
+    owner_email: &str,
+    creator_p_id: i32,
+    creator_id: i32,
+    creator_name: Option<&str>,
+    creator_family: Option<&str>,
+    mali: f32,
+) {
     if owner_email.is_empty() {
         return;
     }
+    let mali = if mali.is_finite() && mali >= 0.0 {
+        mali
+    } else {
+        CURSED_GRAVE_MALI
+    };
     let email = normalize_email(owner_email);
     let mut found = None;
     if creator_id > 0 {
@@ -162,7 +214,7 @@ pub fn create_score_entry_for_cursed_grave(
         }
     }
     if let Some(i) = found {
-        entries[i].score -= CURSED_GRAVE_MALI;
+        entries[i].score -= mali;
         return;
     }
     let text = match (creator_name, creator_family) {
@@ -183,7 +235,7 @@ pub fn create_score_entry_for_cursed_grave(
         },
         relative_account_email: String::new(),
         relative_player_id: 0,
-        score: -CURSED_GRAVE_MALI,
+        score: -mali,
         text,
     });
 }
@@ -305,10 +357,7 @@ pub fn should_process_score_entry_on_year_cross(prev_age_years: f32, new_age_yea
 ///
 /// `graves` are `(object_id, creator_player_id)` pairs already resolved from world tiles.
 /// // Haxe: Lineage.get_grave + ScoreEntry.CreateScoreEntryForDeadRelative L79
-pub fn creator_grave_is_non_bone(
-    graves: &[(i32, i32)],
-    ancestor_player_id: i32,
-) -> bool {
+pub fn creator_grave_is_non_bone(graves: &[(i32, i32)], ancestor_player_id: i32) -> bool {
     graves.iter().any(|&(obj_id, creator_id)| {
         creator_id == ancestor_player_id && obj_id > 0 && !is_bone_grave(obj_id)
     })
@@ -352,11 +401,7 @@ pub fn process_score_entry(
             score_entry.text
         )
     } else {
-        format!(
-            "You lost {} prestige from {}",
-            -tmp_score,
-            score_entry.text
-        )
+        format!("You lost {} prestige from {}", -tmp_score, score_entry.text)
     };
 
     Some(ProcessScoreResult {
@@ -371,36 +416,14 @@ pub fn format_global_message_text(message: &str) -> String {
     message.trim().to_uppercase().replace(' ', "_")
 }
 
-// ── Account book helpers ────────────────────────────────────────────────────
-
-impl AccountRecord {
-    /// Push a score entry onto this account's queue.
-    pub fn push_score_entry(&mut self, entry: AccountScoreEntry) {
-        self.score_entries.push(entry);
-    }
-}
-
-impl AccountBook {
-    /// Push entry onto the owner account (creates row if needed).
-    pub fn push_score_entry(&mut self, entry: AccountScoreEntry) {
-        let email = entry.account_email.clone();
-        self.ensure(&email).score_entries.push(entry);
-    }
-
-    /// Process one entry for a living player on this email; returns apply result.
-    pub fn process_score_entry_for(
-        &mut self,
-        email: &str,
-        player_prestige: f32,
-    ) -> Option<ProcessScoreResult> {
-        let r = self.ensure(email);
-        process_score_entry(&mut r.score_entries, player_prestige)
-    }
-
-    /// Total queued score entries across all accounts (tests / metrics).
-    pub fn score_entry_count(&self) -> usize {
-        self.by_email.values().map(|r| r.score_entries.len()).sum()
-    }
+/// Process one queued score entry for a living player on this email.
+pub fn process_score_entry_for(
+    book: &mut AccountBook,
+    email: &str,
+    player_prestige: f32,
+) -> Option<ProcessScoreResult> {
+    let r = book.ensure(email);
+    process_score_entry(&mut r.score_entries, player_prestige)
 }
 
 // ── SES1 save / load ────────────────────────────────────────────────────────
@@ -502,10 +525,7 @@ fn write_email_entries(
     Ok(())
 }
 
-fn read_score_entries_into(
-    book: &mut AccountBook,
-    r: &mut impl Read,
-) -> Result<usize, String> {
+fn read_score_entries_into(book: &mut AccountBook, r: &mut impl Read) -> Result<usize, String> {
     let mut magic = [0u8; 4];
     r.read_exact(&mut magic).map_err(|e| e.to_string())?;
     if &magic != SES_MAGIC {
@@ -604,32 +624,33 @@ mod tests {
         let e2 = create_score_entry_if_grave(89, Some("a@b.c"), 0, None, None).unwrap();
         assert!(e2.text.contains("old bones"));
         assert!(create_score_entry_if_grave(89, None, 1, None, None).is_none());
+        let live =
+            create_score_entry_if_grave_ex(89, Some("a@b.c"), 3, Some("Ada"), Some("SNOW"), 8.0)
+                .unwrap();
+        assert!((live.score + 8.0).abs() < 1e-5);
     }
 
     #[test]
     fn cursed_grave_stacks_or_creates() {
         let mut entries = Vec::new();
-        create_score_entry_for_cursed_grave(
-            &mut entries,
-            "x@y.z",
-            3,
-            3,
-            Some("Bob"),
-            Some("FOX"),
-        );
+        create_score_entry_for_cursed_grave(&mut entries, "x@y.z", 3, 3, Some("Bob"), Some("FOX"));
         assert_eq!(entries.len(), 1);
         assert!((entries[0].score + CURSED_GRAVE_MALI).abs() < 1e-5);
         assert!(entries[0].text.contains("cursed"));
-        create_score_entry_for_cursed_grave(
-            &mut entries,
-            "x@y.z",
-            3,
-            3,
-            Some("Bob"),
-            Some("FOX"),
-        );
+        create_score_entry_for_cursed_grave(&mut entries, "x@y.z", 3, 3, Some("Bob"), Some("FOX"));
         assert_eq!(entries.len(), 1);
         assert!((entries[0].score + 2.0 * CURSED_GRAVE_MALI).abs() < 1e-5);
+        let mut live = Vec::new();
+        create_score_entry_for_cursed_grave_ex(
+            &mut live,
+            "x@y.z",
+            9,
+            9,
+            Some("Ada"),
+            Some("SNOW"),
+            5.0,
+        );
+        assert!((live[0].score + 5.0).abs() < 1e-5);
     }
 
     #[test]
@@ -887,7 +908,7 @@ mod tests {
             text: "A B!".into(),
             ..Default::default()
         });
-        let r = book.process_score_entry_for("p@q", 20.0).unwrap();
+        let r = process_score_entry_for(&mut book, "p@q", 20.0).unwrap();
         assert!((r.prestige_delta - 8.0).abs() < 1e-5);
         assert!(book.get("p@q").unwrap().score_entries.is_empty());
     }
@@ -895,7 +916,9 @@ mod tests {
     #[test]
     fn global_message_transform() {
         assert_eq!(
-            format_global_message_text("You gained 12 prestige from your offsprings Kid SNOW! life"),
+            format_global_message_text(
+                "You gained 12 prestige from your offsprings Kid SNOW! life"
+            ),
             "YOU_GAINED_12_PRESTIGE_FROM_YOUR_OFFSPRINGS_KID_SNOW!_LIFE"
         );
     }

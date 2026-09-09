@@ -212,7 +212,7 @@ mod tests {
         let bodies = [
             (10u64, false, false, false, "a@x"),
             (11u64, false, false, true, "a@x"),
-            (12u64, true, false, true, "a@x"), // dead
+            (12u64, true, false, true, "a@x"),  // dead
             (13u64, false, true, false, "a@x"), // still online human — skip
         ];
         assert_eq!(find_reconnect_body_conn_id("A@X", bodies), Some(11));

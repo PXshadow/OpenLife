@@ -50,41 +50,26 @@ mod tests {
     #[test]
     fn unowned_open() {
         let a = AllyState::default();
-        assert_eq!(
-            check_owned_access(1, 0, true, &a, true),
-            Access::Allowed
-        );
+        assert_eq!(check_owned_access(1, 0, true, &a, true), Access::Allowed);
     }
 
     #[test]
     fn owner_passes_lock() {
         let a = AllyState::default();
-        assert_eq!(
-            check_owned_access(7, 7, true, &a, true),
-            Access::Allowed
-        );
+        assert_eq!(check_owned_access(7, 7, true, &a, true), Access::Allowed);
     }
 
     #[test]
     fn stranger_denied_when_locked() {
         let a = AllyState::default();
-        assert_eq!(
-            check_owned_access(1, 2, true, &a, true),
-            Access::Denied
-        );
-        assert_eq!(
-            check_owned_access(1, 2, false, &a, true),
-            Access::Allowed
-        );
+        assert_eq!(check_owned_access(1, 2, true, &a, true), Access::Denied);
+        assert_eq!(check_owned_access(1, 2, false, &a, true), Access::Allowed);
     }
 
     #[test]
     fn ally_passes() {
         let mut a = AllyState::default();
         a.add(1, 2).unwrap();
-        assert_eq!(
-            check_owned_access(1, 2, true, &a, true),
-            Access::Allowed
-        );
+        assert_eq!(check_owned_access(1, 2, true, &a, true), Access::Allowed);
     }
 }

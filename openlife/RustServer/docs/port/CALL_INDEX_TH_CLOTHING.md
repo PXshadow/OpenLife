@@ -8,8 +8,8 @@
 | `try_transition_on_clothing_pure` / `_with_content` | same | tryTranstionOnClothing multi-use |
 | `put_into_clothing_nest` / `take_from_clothing_nest` | same | DoContainerStuffOnObj on worn clothing |
 | `apply_switch_cloths` / `apply_place_obj_in_clothing` / `apply_sremv_from_clothing` | same | live player mutators |
-| `apply_self_clothing` / `SelfClothingPath` | same | doSelf clothing order: trans → switch → place |
+| `apply_self_clothing` / `SelfClothingPath` / `can_store_held_in_worn_clothing` | same | doSelf: trans → clothing-in-clothing place → switch → place |
 | `format_clothing_set` / `crown_say_line` | same | clothing_set string + king/mask say |
-| DROP c / SELF / SREMV wire | `ol-sim/src/lib.rs` (build_clothing_transitions) | TransitionHelper.drop clothingIndex; GPI.self; specialRemove |
+| DROP c / SELF / SREMV / UBABY wire | `ol-sim/src/lib.rs` | drop clothingIndex; doSelf drink→eat→clothing; specialRemove; doOnOther |
 | re-export | `clothing_cmds` | `#[path]` nest + pub use |
-| Tests | `clothing_transitions::*` / clothing_cmds | slot matrix, dual shoe, nest put/take, live switch/place/SELF |
+| Tests | `clothing_transitions::*` / clothing_cmds | slot matrix, dual shoe, nest put/take, live switch/place/SELF, clothing-in-clothing, DROP c |

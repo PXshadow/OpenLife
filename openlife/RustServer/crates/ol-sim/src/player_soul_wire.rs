@@ -27,11 +27,7 @@ pub fn is_angry_or_terrified(angry_time: f32) -> bool {
 ///
 /// When `content_male` is `Some`, use Haxe `ObjectData.male` directly (`!male` ⇒ female).
 // Haxe: GlobalPlayerInstance.isFemale / ObjectData.male
-pub fn person_looks_female(
-    display_object_id: i32,
-    name: &str,
-    description: &str,
-) -> bool {
+pub fn person_looks_female(display_object_id: i32, name: &str, description: &str) -> bool {
     person_is_female(display_object_id, name, description, None)
 }
 
@@ -113,17 +109,14 @@ pub fn haxe_season_text(season_token: &str, hardness: f32) -> String {
 /// SeasonText uses pre-square hardness; operational hardness is squared only when
 /// Winter/Summer and pre > 1.25 (Haxe bumps +0.1 before square when pre > 1.4).
 // Haxe: TimeHelper.DoSeason SeasonHardness + SeasonText
-pub fn haxe_season_roll_text_and_hardness(
-    season_token: &str,
-    unit_random: f32,
-) -> (String, f32) {
+pub fn haxe_season_roll_text_and_hardness(season_token: &str, unit_random: f32) -> (String, f32) {
     let u = if unit_random.is_finite() {
         unit_random.clamp(0.0, 1.0)
     } else {
         0.5
     };
     let mut pre = u + 0.5; // [0.5, 1.5]
-    // SeasonText from pre-square value (before +0.1 / square).
+                           // SeasonText from pre-square value (before +0.1 / square).
     let text = haxe_season_text(season_token, pre);
     let is_ws = matches!(
         season_token.trim().to_ascii_uppercase().as_str(),
@@ -177,7 +170,9 @@ pub fn sticky_profession_pair(
 
 #[inline]
 fn non_empty_owned(s: Option<&str>) -> Option<String> {
-    s.map(str::trim).filter(|t| !t.is_empty()).map(|t| t.to_string())
+    s.map(str::trim)
+        .filter(|t| !t.is_empty())
+        .map(|t| t.to_string())
 }
 
 /// Haxe `GlobalPlayerInstance.isSuperHot` with person-color thresholds.
@@ -186,11 +181,37 @@ fn non_empty_owned(s: Option<&str>) -> Option<String> {
 /// then Black/Brown/White raise the bar (harder to be "super hot").
 // Haxe: GlobalPlayerInstance.isSuperHot
 pub fn is_super_hot_for_person(heat: f32, person_color: i32) -> bool {
+    is_super_hot_for_person_ex(
+        heat,
+        person_color,
+        TEMPERATURE_IMPACT_BELOW,
+        TEMPERATURE_IMPACT_COLOR_FACTOR,
+    )
+}
+
+/// Live-knob `isSuperHot` (Haxe `TemperatureImpactBelow` / `ColorFactor`).
+// Haxe: ServerSettings.TemperatureImpactBelow / TemperatureImpactColorFactor
+// SETTINGS-LONG-TAIL
+pub fn is_super_hot_for_person_ex(
+    heat: f32,
+    person_color: i32,
+    impact_below: f32,
+    color_factor: f32,
+) -> bool {
     if !heat.is_finite() {
         return false;
     }
-    let mut too_hot = 0.5 + 0.5 * TEMPERATURE_IMPACT_BELOW;
-    let factor = TEMPERATURE_IMPACT_COLOR_FACTOR;
+    let below = if impact_below.is_finite() && impact_below >= 0.0 {
+        impact_below
+    } else {
+        TEMPERATURE_IMPACT_BELOW
+    };
+    let mut too_hot = 0.5 + 0.5 * below;
+    let factor = if color_factor.is_finite() && color_factor >= 0.0 {
+        color_factor
+    } else {
+        TEMPERATURE_IMPACT_COLOR_FACTOR
+    };
     match person_color {
         PERSON_COLOR_BLACK => too_hot += 0.2 * factor,
         PERSON_COLOR_BROWN => too_hot += 0.1 * factor,
@@ -206,11 +227,37 @@ pub fn is_super_hot_for_person(heat: f32, person_color: i32) -> bool {
 /// then Ginger/White/Brown lower the bar (harder to be "super cold").
 // Haxe: GlobalPlayerInstance.isSuperCold
 pub fn is_super_cold_for_person(heat: f32, person_color: i32) -> bool {
+    is_super_cold_for_person_ex(
+        heat,
+        person_color,
+        TEMPERATURE_IMPACT_BELOW,
+        TEMPERATURE_IMPACT_COLOR_FACTOR,
+    )
+}
+
+/// Live-knob `isSuperCold` (Haxe `TemperatureImpactBelow` / `ColorFactor`).
+// Haxe: ServerSettings.TemperatureImpactBelow / TemperatureImpactColorFactor
+// SETTINGS-LONG-TAIL
+pub fn is_super_cold_for_person_ex(
+    heat: f32,
+    person_color: i32,
+    impact_below: f32,
+    color_factor: f32,
+) -> bool {
     if !heat.is_finite() {
         return false;
     }
-    let mut too_cold = 0.5 - 0.5 * TEMPERATURE_IMPACT_BELOW;
-    let factor = TEMPERATURE_IMPACT_COLOR_FACTOR;
+    let below = if impact_below.is_finite() && impact_below >= 0.0 {
+        impact_below
+    } else {
+        TEMPERATURE_IMPACT_BELOW
+    };
+    let mut too_cold = 0.5 - 0.5 * below;
+    let factor = if color_factor.is_finite() && color_factor >= 0.0 {
+        color_factor
+    } else {
+        TEMPERATURE_IMPACT_COLOR_FACTOR
+    };
     match person_color {
         PERSON_COLOR_GINGER => too_cold -= 0.2 * factor,
         PERSON_COLOR_WHITE => too_cold -= 0.1 * factor,
@@ -260,6 +307,13 @@ mod tests {
         // Haxe ObjectData.male wins over name heuristic
         assert!(!person_is_female(19, "Female001", "", Some(true)));
         assert!(person_is_female(20, "Male01", "", Some(false)));
+    }
+
+    #[test]
+    fn person_is_female_male_false_is_female_without_heuristic() {
+        // PLAYER-MALE: male=0 is female even with a male-looking name.
+        assert!(person_is_female(20, "Male01", "Male", Some(false)));
+        assert!(!person_is_female(19, "Female001", "Female", Some(true)));
     }
 
     #[test]
@@ -364,6 +418,15 @@ mod tests {
         // Brown hot: 0.8 + 0.05 = 0.85
         assert!(!is_super_hot_for_person(0.85, PERSON_COLOR_BROWN));
         assert!(is_super_hot_for_person(0.86, PERSON_COLOR_BROWN));
+        // Live below=0.2 → tooHot=0.6; color factor 0 skips race offsets.
+        assert!(is_super_hot_for_person_ex(0.61, 0, 0.2, 0.0));
+        assert!(!is_super_hot_for_person_ex(
+            0.61,
+            PERSON_COLOR_BLACK,
+            0.2,
+            1.0
+        ));
+        assert!(is_super_cold_for_person_ex(0.39, 0, 0.2, 0.0));
     }
 
     #[test]

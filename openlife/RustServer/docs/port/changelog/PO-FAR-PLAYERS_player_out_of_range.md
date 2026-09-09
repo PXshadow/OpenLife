@@ -22,7 +22,7 @@
   - live `send_to_me_all_close_players` (reads world wrap dims) / `pu_close_max_distance`
   - **`should_refresh_close_players`** / **`SEND_MOVE_EVERY_X_TICKS=-1`** / **`send_to_me_all_close_players_all_viewers`**
 - `ol-sim/src/math_wrap.rs` — declared module; shared wrap helpers
-- Wire: LOGIN `send_to_me_all_close_players(..., true)`; tick gate when `SEND_MOVE_EVERY_X_TICKS > 0`
+- Wire: LOGIN `send_to_me_all_close_players(..., true)`; tick gate when live `send_move_every_x_ticks > 0`
 - Protocol: `ol-protocol::format_player_out_of_range` (`PO\np_id …\n#`)
 
 ### Tests
@@ -31,5 +31,5 @@
 
 ### Residuals
 - LiveSettings `MaxDistanceToBeConsideredAsClose` product 2e6 (intentional practical cull = `NEARBY_RANGE`)
-- `SEND_MOVE_EVERY_X_TICKS` is a const (not hot-reload LiveSettings); product default stays disabled
+- ~~`SEND_MOVE_EVERY_X_TICKS` is a const~~ **SETTINGS-LONG-TAIL SendMoveEveryXTicks DONE** (LiveSettings, default `-1`)
 - NAME body: Haxe lineage full name vs Rust first+family

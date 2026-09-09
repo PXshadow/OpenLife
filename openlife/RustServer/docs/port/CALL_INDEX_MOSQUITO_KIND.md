@@ -14,5 +14,8 @@
 | Live chase / USE escape | `lib.rs` | `kind.is_deadly_animal()` (mosquito excluded) |
 | Spawn seeds | `lib.rs` `spawn_default_animals` | +2 `AnimalKind::Mosquito` |
 | Re-exports | `lib.rs` `pub use hunt::{jungle_biome_love_…}` | crate-public pure helpers |
+| Pure biome animals / deadly-for-me | `ol-sim/animal_damage.rs` | `biome_animals_for_loved_biome` / `is_animal_*_deadly_for_me` |
+| Live BiomeAnimalHitChance gate | `lib.rs` `apply_animal_path_damages` | miss before path damage roll (default chance 0) |
+| Content mapChance / SWAMP | `ol-content` `apply_default_mosquito_map_chance_patches` | 2156 `*=0.3` + SWAMP + `rebuild_biome_spawn_tables` |
 
-**Residual (deferred):** content `mapChance*=0.3` + SWAMP biomes push for 2156; `BiomeAnimalHitChance` / `isAnimalNotDeadlyForMe` jungle-escape for 2156; Haxe yellowFever emote=7 PE index (FEVER-EMOTE residual).
+**MOSQUITO-MAPCHANCE DONE.** Residual: live fever NestedHelper / yellowFever emote=7 PE (FEVER-EMOTE); animal-zero wound equip path still thin vs full WEAPON-ANIMAL-ZERO.
