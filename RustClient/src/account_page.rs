@@ -1465,9 +1465,8 @@ impl ClientAppState {
             self.account.port,
             &self.account.email,
         );
-        self.settings.focus = crate::settings_page::SettingsFocus::SoundVolume;
-        self.settings.status =
-            "Mouse · Tab=row · [Account settings] · Esc=Back".into();
+        self.settings.open_root_menu();
+        self.settings.status = "Enter=Exit  ·  Esc=Resume".into();
         self.settings.apply_runtime_globals();
         self.screen = ClientScreen::Settings;
         eprintln!(

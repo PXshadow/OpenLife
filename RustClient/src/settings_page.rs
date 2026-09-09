@@ -115,6 +115,8 @@ pub struct SettingsPage {
     pub community_site: String,
     /// Discord invite shown on the Review page.
     pub discord_url: String,
+    /// Root vs audio/display/game/community submenu.
+    pub section: SettingsSection,
 }
 
 pub type ClientSettings = SettingsPage;
@@ -142,10 +144,38 @@ pub enum SettingsFocus {
     /// Re-exec client when graphics/fullscreen differ from process runtime.
     Restart,
     Back,
+    /// Quit the client (Esc opens Settings; this leaves the game).
+    Exit,
+    /// Root → audio submenu.
+    AudioMenu,
+    /// Root → display submenu.
+    DisplayMenu,
+    /// Root → game submenu.
+    GameMenu,
+    /// Root → community submenu.
+    CommunityMenu,
+}
+
+/// Which settings page is showing (root is short; details live in submenus).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum SettingsSection {
+    #[default]
+    Root,
+    Audio,
+    Display,
+    Game,
+    Community,
 }
 
 impl SettingsFocus {
-    const ALL: [SettingsFocus; 17] = [
+    const ALL: [SettingsFocus; 22] = [
+        SettingsFocus::Exit,
+        SettingsFocus::Back,
+        SettingsFocus::AudioMenu,
+        SettingsFocus::DisplayMenu,
+        SettingsFocus::GameMenu,
+        SettingsFocus::AccountSettings,
+        SettingsFocus::CommunityMenu,
         SettingsFocus::SoundVolume,
         SettingsFocus::MusicVolume,
         SettingsFocus::Zoom,
@@ -160,17 +190,56 @@ impl SettingsFocus {
         SettingsFocus::CommunitySite,
         SettingsFocus::DiscordUrl,
         SettingsFocus::OpenReview,
-        SettingsFocus::AccountSettings,
         SettingsFocus::Restart,
-        SettingsFocus::Back,
     ];
-    fn next(self) -> Self {
-        let i = Self::ALL.iter().position(|&f| f == self).unwrap_or(0);
-        Self::ALL[(i + 1) % Self::ALL.len()]
+
+    fn rows_for(section: SettingsSection) -> &'static [SettingsFocus] {
+        match section {
+            SettingsSection::Root => &[
+                SettingsFocus::Exit,
+                SettingsFocus::Back,
+                SettingsFocus::AudioMenu,
+                SettingsFocus::DisplayMenu,
+                SettingsFocus::GameMenu,
+                SettingsFocus::AccountSettings,
+                SettingsFocus::CommunityMenu,
+            ],
+            SettingsSection::Audio => &[
+                SettingsFocus::SoundVolume,
+                SettingsFocus::MusicVolume,
+                SettingsFocus::Audio,
+                SettingsFocus::SoundMute,
+                SettingsFocus::MusicMute,
+                SettingsFocus::Back,
+            ],
+            SettingsSection::Display => &[
+                SettingsFocus::Zoom,
+                SettingsFocus::Brightness,
+                SettingsFocus::Graphics,
+                SettingsFocus::Fullscreen,
+                SettingsFocus::ShowFps,
+                SettingsFocus::Restart,
+                SettingsFocus::Back,
+            ],
+            SettingsSection::Game => &[SettingsFocus::Debug, SettingsFocus::Back],
+            SettingsSection::Community => &[
+                SettingsFocus::CommunitySite,
+                SettingsFocus::DiscordUrl,
+                SettingsFocus::OpenReview,
+                SettingsFocus::Back,
+            ],
+        }
     }
-    fn prev(self) -> Self {
-        let i = Self::ALL.iter().position(|&f| f == self).unwrap_or(0);
-        Self::ALL[(i + Self::ALL.len() - 1) % Self::ALL.len()]
+
+    fn next_in(self, section: SettingsSection) -> Self {
+        let rows = Self::rows_for(section);
+        let i = rows.iter().position(|&f| f == self).unwrap_or(0);
+        rows[(i + 1) % rows.len()]
+    }
+    fn prev_in(self, section: SettingsSection) -> Self {
+        let rows = Self::rows_for(section);
+        let i = rows.iter().position(|&f| f == self).unwrap_or(0);
+        rows[(i + rows.len() - 1) % rows.len()]
     }
 }
 
@@ -224,6 +293,8 @@ pub enum SettingsAction {
     Applied,
     /// User requested process restart (graphics backend change).
     Restart,
+    /// Quit the whole client.
+    Quit,
     /// Fullscreen flag changed — recreate the play window in-process (no exec).
     ApplyFullscreen,
     /// Jump to Account page to edit email / key.
@@ -257,8 +328,9 @@ impl Default for SettingsPage {
             window_w: 960,
             window_h: 540,
             audio_feature: crate::sound_bank::audio_feature_enabled(),
-            focus: SettingsFocus::SoundVolume,
-            status: "Mouse click/drag · Tab=row · Left/Right · Esc=Back".into(),
+            focus: SettingsFocus::Exit,
+            status: "Enter=Exit  ·  Esc=Resume".into(),
+            section: SettingsSection::Root,
             runtime_graphics: GraphicsMode::Gpu,
             runtime_fullscreen: false,
             slider_drag: None,
@@ -321,7 +393,24 @@ impl SettingsPage {
 
     /// Soft-FB layout for mouse hit-testing (matches [`draw_settings_screen`]).
     pub fn layout_hits(&self, fb_w: f32, fb_h: f32) -> Vec<SettingsRowHit> {
-        settings_layout_hits(fb_w, fb_h)
+        settings_layout_hits(fb_w, fb_h, self.section)
+    }
+
+    fn visible_rows(&self) -> &'static [SettingsFocus] {
+        SettingsFocus::rows_for(self.section)
+    }
+
+    /// Open the short root page with Exit focused (Enter quits).
+    pub fn open_root_menu(&mut self) {
+        self.section = SettingsSection::Root;
+        self.focus = SettingsFocus::Exit;
+        self.status = "Enter=Exit  ·  Esc=Resume".into();
+    }
+
+    fn enter_submenu(&mut self, section: SettingsSection) {
+        self.section = section;
+        self.focus = self.visible_rows().first().copied().unwrap_or(SettingsFocus::Back);
+        self.status = "Esc=back to menu".into();
     }
 
     /// Normalized 0..1 for zoom slider fill.
@@ -627,7 +716,14 @@ impl SettingsPage {
                 self.url_backspace();
                 SettingsAction::None
             }
-            SettingsKey::Escape | SettingsKey::Back => SettingsAction::Back,
+            SettingsKey::Escape | SettingsKey::Back => {
+                if self.section != SettingsSection::Root {
+                    self.open_root_menu();
+                    SettingsAction::None
+                } else {
+                    SettingsAction::Back
+                }
+            }
             SettingsKey::ToggleAudio => {
                 self.sound_muted = !self.sound_muted;
                 self.status = if self.sound_muted {
@@ -650,18 +746,18 @@ impl SettingsPage {
             }
             SettingsKey::Tab { shift } => {
                 self.focus = if shift {
-                    self.focus.prev()
+                    self.focus.prev_in(self.section)
                 } else {
-                    self.focus.next()
+                    self.focus.next_in(self.section)
                 };
                 SettingsAction::None
             }
             SettingsKey::Up => {
-                self.focus = self.focus.prev();
+                self.focus = self.focus.prev_in(self.section);
                 SettingsAction::None
             }
             SettingsKey::Down => {
-                self.focus = self.focus.next();
+                self.focus = self.focus.next_in(self.section);
                 SettingsAction::None
             }
             SettingsKey::Left | SettingsKey::Minus => {
@@ -713,7 +809,31 @@ impl SettingsPage {
                     };
                     SettingsAction::Applied
                 }
-                SettingsFocus::Back => SettingsAction::Back,
+                SettingsFocus::Back => {
+                    if self.section != SettingsSection::Root {
+                        self.open_root_menu();
+                        SettingsAction::None
+                    } else {
+                        SettingsAction::Back
+                    }
+                }
+                SettingsFocus::Exit => SettingsAction::Quit,
+                SettingsFocus::AudioMenu => {
+                    self.enter_submenu(SettingsSection::Audio);
+                    SettingsAction::None
+                }
+                SettingsFocus::DisplayMenu => {
+                    self.enter_submenu(SettingsSection::Display);
+                    SettingsAction::None
+                }
+                SettingsFocus::GameMenu => {
+                    self.enter_submenu(SettingsSection::Game);
+                    SettingsAction::None
+                }
+                SettingsFocus::CommunityMenu => {
+                    self.enter_submenu(SettingsSection::Community);
+                    SettingsAction::None
+                }
                 SettingsFocus::Restart => self.try_restart_action(),
                 SettingsFocus::SoundVolume
                 | SettingsFocus::MusicVolume
@@ -925,7 +1045,31 @@ impl SettingsPage {
                 self.status = self.fullscreen_change_status();
                 SettingsAction::Applied
             }
-            SettingsFocus::Back => SettingsAction::Back,
+            SettingsFocus::Back => {
+                if self.section != SettingsSection::Root {
+                    self.open_root_menu();
+                    SettingsAction::None
+                } else {
+                    SettingsAction::Back
+                }
+            }
+            SettingsFocus::Exit => SettingsAction::Quit,
+            SettingsFocus::AudioMenu => {
+                self.enter_submenu(SettingsSection::Audio);
+                SettingsAction::None
+            }
+            SettingsFocus::DisplayMenu => {
+                self.enter_submenu(SettingsSection::Display);
+                SettingsAction::None
+            }
+            SettingsFocus::GameMenu => {
+                self.enter_submenu(SettingsSection::Game);
+                SettingsAction::None
+            }
+            SettingsFocus::CommunityMenu => {
+                self.enter_submenu(SettingsSection::Community);
+                SettingsAction::None
+            }
             SettingsFocus::Restart => self.try_restart_action(),
             SettingsFocus::AccountSettings => {
                 self.status = "Opening Account…".into();
@@ -1108,26 +1252,65 @@ fn draw_settings_slider(fb: &mut Framebuffer, cx: f32, y: f32, t: f32, focused: 
     fb.fill_rect(kx.clamp(x0 - 2, x0 + track_w - 10), y0 - 4, 10, track_h + 8, knob);
 }
 
+fn settings_row_heights(row: SettingsFocus) -> (f32, f32) {
+    let has_slider = matches!(
+        row,
+        SettingsFocus::SoundVolume
+            | SettingsFocus::MusicVolume
+            | SettingsFocus::Zoom
+            | SettingsFocus::Brightness
+    );
+    let is_btn = matches!(
+        row,
+        SettingsFocus::AccountSettings
+            | SettingsFocus::OpenReview
+            | SettingsFocus::Restart
+            | SettingsFocus::Back
+            | SettingsFocus::Exit
+            | SettingsFocus::AudioMenu
+            | SettingsFocus::DisplayMenu
+            | SettingsFocus::GameMenu
+            | SettingsFocus::CommunityMenu
+    );
+    let label_h = if is_btn { 28.0 } else { 20.0 };
+    let slider_h = if has_slider { 16.0 } else { 6.0 };
+    (label_h, slider_h)
+}
+
+fn settings_content_height(section: SettingsSection) -> f32 {
+    let mut h = 84.0; // title + subtitle + divider
+    for &row in SettingsFocus::rows_for(section) {
+        let (lh, sh) = settings_row_heights(row);
+        h += lh + sh;
+    }
+    h + 40.0 // status + hint
+}
+
 /// Shared vertical layout for draw + hit tests (web-card style).
-fn settings_panel_geom(fb_w: f32, fb_h: f32) -> (f32, f32, f32, f32, f32) {
+fn settings_panel_geom(
+    fb_w: f32,
+    fb_h: f32,
+    section: SettingsSection,
+) -> (f32, f32, f32, f32, f32) {
     let panel_w = (fb_w * 0.62).clamp(400.0, 560.0);
-    // Tall enough for volume/zoom/brightness sliders + toggles + account/restart.
-    let panel_h = (fb_h * 0.94).clamp(420.0, 560.0);
+    let panel_h = settings_content_height(section).clamp(220.0, (fb_h * 0.92).max(220.0));
     let panel_x = (fb_w - panel_w) * 0.5;
-    let panel_y = (fb_h - panel_h) * 0.5;
+    let panel_y = ((fb_h - panel_h) * 0.5).max(8.0);
     let cx = fb_w * 0.5;
     (panel_x, panel_y, panel_w, panel_h, cx)
 }
 
 /// Layout used by draw + mouse hit tests (must stay in sync with draw_settings_screen).
-fn settings_layout_hits(fb_w: f32, fb_h: f32) -> Vec<SettingsRowHit> {
-    let (_px, panel_y, _pw, _ph, cx) = settings_panel_geom(fb_w, fb_h);
+fn settings_layout_hits(fb_w: f32, fb_h: f32, section: SettingsSection) -> Vec<SettingsRowHit> {
+    let (_px, panel_y, _pw, _ph, cx) = settings_panel_geom(fb_w, fb_h, section);
     let mut y = panel_y + 52.0; // below title
     y += 22.0; // subtitle
     y += 10.0;
     let row_w = (fb_w * 0.52).clamp(320.0, 480.0);
-    let mut out = Vec::with_capacity(SettingsFocus::ALL.len());
-    for &row in &SettingsFocus::ALL {
+    let rows = SettingsFocus::rows_for(section);
+    let mut out = Vec::with_capacity(rows.len());
+    for &row in rows {
+        let (label_h, slider_h) = settings_row_heights(row);
         let has_slider = matches!(
             row,
             SettingsFocus::SoundVolume
@@ -1135,15 +1318,6 @@ fn settings_layout_hits(fb_w: f32, fb_h: f32) -> Vec<SettingsRowHit> {
                 | SettingsFocus::Zoom
                 | SettingsFocus::Brightness
         );
-        let is_btn = matches!(
-            row,
-            SettingsFocus::AccountSettings
-                | SettingsFocus::OpenReview
-                | SettingsFocus::Restart
-                | SettingsFocus::Back
-        );
-        let label_h = if is_btn { 28.0 } else { 20.0 };
-        let slider_h = if has_slider { 16.0 } else { 6.0 };
         let total_h = label_h + slider_h;
         let row_rect = SettingsHitRect {
             x: cx - row_w * 0.5,
@@ -1185,7 +1359,7 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
     fb.fill_rect(0, 0, w, h, [0, 0, 0, if solid_backdrop { 40 } else { 150 }]);
 
     let (panel_x, panel_y, panel_w, panel_h, cx) =
-        settings_panel_geom(fb.width as f32, fb.height as f32);
+        settings_panel_geom(fb.width as f32, fb.height as f32, page.section);
     let px = panel_x as i32;
     let py = panel_y as i32;
     let pw = panel_w as i32;
@@ -1214,7 +1388,14 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
     let off_col = [220, 120, 110, 255];
     let restart_col = [255, 170, 90, 255];
 
-    draw_ui_text(fb, "Settings", cx, y, title_sz, accent, true);
+    let title = match page.section {
+        SettingsSection::Root => "Settings",
+        SettingsSection::Audio => "Audio",
+        SettingsSection::Display => "Display",
+        SettingsSection::Game => "Game",
+        SettingsSection::Community => "Community",
+    };
+    draw_ui_text(fb, title, cx, y, title_sz, accent, true);
     y += 28.0;
 
     let audio_note = if !page.audio_feature {
@@ -1249,24 +1430,9 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
 
     let row_w = (fb.width as f32 * 0.52).clamp(320.0, 480.0);
 
-    for &row in &SettingsFocus::ALL {
+    for &row in SettingsFocus::rows_for(page.section) {
         let focused = page.focus == row;
-        let is_btn = matches!(
-            row,
-            SettingsFocus::AccountSettings
-                | SettingsFocus::OpenReview
-                | SettingsFocus::Restart
-                | SettingsFocus::Back
-        );
-        let label_h = if is_btn { 28.0 } else { 20.0 };
-        let has_slider = matches!(
-            row,
-            SettingsFocus::SoundVolume
-                | SettingsFocus::MusicVolume
-                | SettingsFocus::Zoom
-                | SettingsFocus::Brightness
-        );
-        let slider_h = if has_slider { 16.0 } else { 6.0 };
+        let (label_h, slider_h) = settings_row_heights(row);
 
         let (left, right): (String, String) = match row {
             SettingsFocus::SoundVolume => (
@@ -1380,7 +1546,19 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
                     "Not needed".to_string()
                 },
             ),
-            SettingsFocus::Back => ("Back".to_string(), "Esc".to_string()),
+            SettingsFocus::Back => (
+                if page.section == SettingsSection::Root {
+                    "Resume".to_string()
+                } else {
+                    "Back".to_string()
+                },
+                "Esc".to_string(),
+            ),
+            SettingsFocus::Exit => ("Exit".to_string(), "Quit game".to_string()),
+            SettingsFocus::AudioMenu => ("Audio".to_string(), "…".to_string()),
+            SettingsFocus::DisplayMenu => ("Display".to_string(), "…".to_string()),
+            SettingsFocus::GameMenu => ("Game".to_string(), "…".to_string()),
+            SettingsFocus::CommunityMenu => ("Community".to_string(), "…".to_string()),
         };
 
         let rx = (cx - row_w * 0.5) as i32;
@@ -1415,6 +1593,18 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
                 row_w as i32,
                 label_h as i32,
                 [40, 44, 54, 160],
+            );
+        } else if matches!(row, SettingsFocus::Exit) {
+            fb.fill_rect(
+                rx,
+                (y - 2.0) as i32,
+                row_w as i32,
+                label_h as i32,
+                if focused {
+                    [140, 42, 42, 240]
+                } else {
+                    [88, 32, 32, 210]
+                },
             );
         } else if matches!(row, SettingsFocus::Restart) && page.needs_restart() {
             fb.fill_rect(
@@ -1673,6 +1863,35 @@ mod tests {
         assert!(music.play_block(1));
         crate::sound_bank::set_sfx_muted(false);
         crate::sound_bank::set_music_muted(false);
+    }
+
+    #[test]
+    fn exit_row_quits() {
+        let mut s = SettingsPage::default();
+        assert_eq!(s.focus, SettingsFocus::Exit);
+        assert_eq!(s.section, SettingsSection::Root);
+        assert_eq!(s.on_key(SettingsKey::Enter), SettingsAction::Quit);
+        let hits = settings_layout_hits(960.0, 540.0, SettingsSection::Root);
+        assert!(
+            hits.iter().any(|h| h.focus == SettingsFocus::Exit),
+            "Exit hit rect must exist"
+        );
+        assert!(hits.iter().any(|h| h.focus == SettingsFocus::Back));
+        let exit = hits
+            .iter()
+            .find(|h| h.focus == SettingsFocus::Exit)
+            .expect("Exit row");
+        assert!(
+            exit.row.y >= 0.0 && exit.row.y + exit.row.h <= 540.0,
+            "Exit must be on the first screen, y={}",
+            exit.row.y
+        );
+        assert_eq!(hits[0].focus, SettingsFocus::Exit);
+        assert!(
+            hits.len() <= 8,
+            "root settings should be a short menu, got {}",
+            hits.len()
+        );
     }
 
     #[test]

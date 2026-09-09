@@ -790,6 +790,8 @@ pub struct SceneRenderer {
     pub apocalypse_in_progress: bool,
     /// C++ `apocalypseDisplayProgress` 0..1 over ~6 seconds.
     pub apocalypse_progress: f32,
+    /// Player id under the cursor — names only when this matches (C++ hover, not always-on).
+    pub hover_player_id: Option<i32>,
 }
 
 impl Default for SceneRenderer {
@@ -806,13 +808,42 @@ impl Default for SceneRenderer {
             sounds: crate::sound_bank::SoundBank::new("."),
             music: crate::music_bank::MusicBank::new("."),
             ground_brightness: 1.0,
-            // Soft-FB default: every other frame (GPU present still looks smooth).
-            ground_overlay_period: 2,
+            // C++ draws the ground overlay every frame. Skipping frames (period>1)
+            // makes the whole ground strobe (bright / dark). Always 1 for play.
+            ground_overlay_period: 1,
             ground_overlay_tick: 0,
             apocalypse_in_progress: false,
             apocalypse_progress: 0.0,
+            hover_player_id: None,
         }
     }
+}
+
+/// C++ ground overlay 2×2 tile index + UV from **world object units**.
+///
+/// Period is `2 * sprite size` (Jason `groundWTile * 2`). Camera-independent:
+/// the same world point always samples the same grain, so the overlay stays
+/// on the biome instead of sliding with the player.
+fn overlay_tile_uv(obj_x: f32, obj_y: f32, tile_w: f32, tile_h: f32) -> (u8, f32, f32) {
+    let tile_w = tile_w.max(1.0);
+    let tile_h = tile_h.max(1.0);
+    let period_w = tile_w * 2.0;
+    let period_h = tile_h * 2.0;
+    let lx = obj_x.rem_euclid(period_w);
+    let ly = obj_y.rem_euclid(period_h);
+    let half_x = if lx < tile_w { 0u8 } else { 1u8 };
+    let half_y = if ly < tile_h { 0u8 } else { 1u8 };
+    let u = if half_x == 0 {
+        lx / tile_w
+    } else {
+        (lx - tile_w) / tile_w
+    };
+    let v = if half_y == 0 {
+        ly / tile_h
+    } else {
+        (ly - tile_h) / tile_h
+    };
+    (half_x + half_y * 2, u.clamp(0.0, 0.999), v.clamp(0.0, 0.999))
 }
 
 impl SceneRenderer {
@@ -1116,12 +1147,9 @@ impl SceneRenderer {
         }
 
         // --- Pass 2b: Jason full-view ground overlay (after floors) ~7629 ---
-        // Soft-FB: optionally skip some frames (period>1) — GPU client draws every frame.
+        // Must run every presented frame. Skipping (period>1) strobes ground brightness.
         self.ground_overlay_tick = self.ground_overlay_tick.wrapping_add(1);
-        let period = self.ground_overlay_period.max(1);
-        if self.ground_overlay_tick % period == 0 {
-            self.draw_ground_screen_overlay(fb);
-        }
+        self.draw_ground_screen_overlay(fb);
 
         // C++ mMapMoveSpeeds step before draw (~13651).
         if dt > 1e-8 {
@@ -1175,14 +1203,14 @@ impl SceneRenderer {
                 // (sort_y same; layer still Player — second pass via drop offset
                 // keeps them visible on top of the adult who dropped them).
                 items.push(YSortItem {
-                    sort_y: o.y,
+                    sort_y: o.draw_sort_y(),
                     layer: DrawLayer::Player,
                     kind: DrawKind::Player { id },
                 });
                 // C++ heldToDrawOnTop: sliding held flies after non-wall props, under walls.
                 if o.held_id > 0 && o.held_pos_override && !o.held_pos_override_almost_over {
                     items.push(YSortItem {
-                        sort_y: o.y,
+                        sort_y: o.draw_sort_y(),
                         layer: DrawLayer::FlyingHeld,
                         kind: DrawKind::FlyingHeld { id },
                     });
@@ -1688,13 +1716,21 @@ impl SceneRenderer {
                                 o.speech_fade,
                                 ink,
                             );
-                        } else if let Some(ref name) = o.name {
-                            // Soft name plate (same chalk/handwriting path as speech).
-                            let speech_sy = person_sy - SPEECH_BASE_Y * scale;
-                            let text_scale = (scale * 0.3).clamp(0.7, 2.0);
-                            self.hud_sprites.draw_speech_bubble(
-                                fb, name, person_sx, speech_sy, text_scale, 0.85,
-                            );
+                        } else if self.hover_player_id == Some(o.id)
+                            && world.our().map(|u| u.id) != Some(o.id)
+                        {
+                            // C++ shows our name as the bottom "YOU" tip, not over the head.
+                            // Other players: name plate only while the pointer is over them.
+                            if let Some(ref name) = o.name {
+                                let n = name.trim();
+                                if !n.is_empty() && n != "~" {
+                                    let speech_sy = person_sy - SPEECH_BASE_Y * scale;
+                                    let text_scale = (scale * 0.32).clamp(0.85, 1.8);
+                                    self.hud_sprites.draw_speech_bubble(
+                                        fb, n, person_sx, speech_sy, text_scale, 1.0,
+                                    );
+                                }
+                            }
                         }
                     }
 
@@ -2179,21 +2215,10 @@ impl SceneRenderer {
             return;
         }
 
-        // Overlay native size is in object units; scale to soft-FB with zoom/CELL_D.
-        let scale = (self.camera.zoom / GRID).max(0.05);
-        let ground_w_tile = (ow as f32 * scale).max(1.0);
-        let ground_h_tile = (oh as f32 * scale).max(1.0);
-        let ground_w = ground_w_tile * 2.0;
-        let ground_h = ground_h_tile * 2.0;
-
-        // Snap grid to camera center (C++ lastScreenViewCenter → screen mid).
-        let cam_sx = fb.width as f32 * 0.5;
-        let cam_sy = fb.height as f32 * 0.5;
-        let ground_center_x = (cam_sx / ground_w).round() * ground_w;
-        let ground_center_y = (cam_sy / ground_h).round() * ground_h;
-        // Origin of the 2×2 tile pack for the snapped cell (top-left of t0/t2).
-        let origin_x = ground_center_x - ground_w_tile;
-        let origin_y = ground_center_y - ground_h_tile;
+        // Overlay TGA pixels = C++ object units (CELL_D=128). UVs from world
+        // object space so the grain stays on the biome, not glued to the camera.
+        let tile_obj_w = (ow as f32).max(1.0);
+        let tile_obj_h = (oh as f32).max(1.0);
 
         const MULT_AMOUNT: f32 = 0.15;
         const ADD_AMOUNT: f32 = 0.25;
@@ -2202,33 +2227,24 @@ impl SceneRenderer {
         let add_a = (ADD_AMOUNT * 255.0).round().clamp(0.0, 255.0) as u32;
         let fb_w = fb.width as i32;
         let fb_h = fb.height as i32;
-        let period_w = ground_w.max(1.0);
-        let period_h = ground_h.max(1.0);
-        let tile_w = ground_w_tile.max(1.0);
-        let tile_h = ground_h_tile.max(1.0);
+        // World-space increment per screen pixel (camera.zoom / GRID).
+        let (wt0x, wt0y) = self.screen_to_world(0.0, 0.0, fb.width, fb.height);
+        let (wt1x, wt1y) = self.screen_to_world(1.0, 1.0, fb.width, fb.height);
+        let d_obj_x = (wt1x - wt0x) * GRID;
+        let d_obj_y = (wt1y - wt0y) * GRID;
+        let origin_obj_x = wt0x * GRID;
+        let origin_obj_y = wt0y * GRID;
 
         // Sample step: film-grain wash is fine at 2×2 on soft-FB (saves ~4× CPU).
         // Combined mult+add in one walk (C++ still two blend modes; same visual).
         let step = 2i32;
         let mut py = 0i32;
         while py < fb_h {
-            let ly = (py as f32 - origin_y).rem_euclid(period_h);
-            let half_y = if ly < tile_h { 0u8 } else { 1u8 };
-            let v_f = if half_y == 0 {
-                ly / tile_h
-            } else {
-                (ly - tile_h) / tile_h
-            };
+            let obj_y = origin_obj_y + py as f32 * d_obj_y;
             let mut px = 0i32;
             while px < fb_w {
-                let lx = (px as f32 - origin_x).rem_euclid(period_w);
-                let half_x = if lx < tile_w { 0u8 } else { 1u8 };
-                let u_f = if half_x == 0 {
-                    lx / tile_w
-                } else {
-                    (lx - tile_w) / tile_w
-                };
-                let t = half_x + half_y * 2;
+                let obj_x = origin_obj_x + px as f32 * d_obj_x;
+                let (t, u_f, v_f) = overlay_tile_uv(obj_x, obj_y, tile_obj_w, tile_obj_h);
                 if let Some((pix, atlas_w, sx, sy, sw, sh)) = snaps[t as usize] {
                     if sw > 0 && sh > 0 {
                         let u = ((u_f.clamp(0.0, 0.999) * sw as f32) as u32).min(sw - 1);
@@ -3161,8 +3177,18 @@ impl SceneRenderer {
                     // before the Y flip — i.e. add ay in object Y, subtract ax in X.
                     let ax = rect.center_anchor_x as f32;
                     let ay = rect.center_anchor_y as f32;
-                    let px = ox[si] - ax;
-                    let py = oy[si] + ay;
+                    // Rotate the center-anchor around the posed attach point so
+                    // limbs swing from the joint (C++ SpriteGL: rotate
+                    // mCenterOffset by +2π·rot, then posX -= ox, posY += oy).
+                    // Unrotated this is still `px = attach.x - ax`, `py = attach.y + ay`.
+                    let mut rot = orot[si] + extra_rot_turns;
+                    // +2π·rot, same as `get_object_center_offset` (CCW of (ax,ay)).
+                    let a = rot * std::f32::consts::TAU;
+                    let (c, s) = (a.cos(), a.sin());
+                    let rox = ax * c - ay * s;
+                    let roy = ax * s + ay * c;
+                    let px = ox[si] - rox;
+                    let py = oy[si] + roy;
 
                     // Screen: flip X when facing left
                     let dx = screen_x + px * scale * if flip { -1.0 } else { 1.0 };
@@ -3171,7 +3197,6 @@ impl SceneRenderer {
                     if rect.no_flip {
                         h_flip = spr.h_flip; // ignore facing flip when NoFlip
                     }
-                    let mut rot = orot[si] + extra_rot_turns;
                     if flip {
                         rot = -rot;
                     }
@@ -4116,6 +4141,32 @@ mod tests {
     }
 
     #[test]
+    fn ground_overlay_uv_is_world_locked() {
+        let tile = 1024.0;
+        let (t0, u0, v0) = overlay_tile_uv(100.0, 250.0, tile, tile);
+        // One full 2×2 period later — same sample.
+        let (t1, u1, v1) = overlay_tile_uv(100.0 + tile * 2.0, 250.0 + tile * 2.0, tile, tile);
+        assert_eq!(t0, t1);
+        assert!((u0 - u1).abs() < 1e-5 && (v0 - v1).abs() < 1e-5);
+        // Camera pan does not change the UV of a fixed world point.
+        let mut scene = SceneRenderer::default();
+        scene.camera.zoom = 64.0;
+        scene.camera.x = 3.0;
+        scene.camera.y = 5.0;
+        let (wx, wy) = scene.screen_to_world(120.0, 90.0, 960, 540);
+        let a = overlay_tile_uv(wx * GRID, wy * GRID, tile, tile);
+        scene.camera.x += 4.25;
+        scene.camera.y -= 2.5;
+        let b = overlay_tile_uv(wx * GRID, wy * GRID, tile, tile);
+        assert_eq!(a, b, "world overlay UV must ignore camera");
+        // A screen pixel's world UV *does* change when the camera moves
+        // (different world under that pixel) — that's the world-lock.
+        let (wx2, wy2) = scene.screen_to_world(120.0, 90.0, 960, 540);
+        let c = overlay_tile_uv(wx2 * GRID, wy2 * GRID, tile, tile);
+        assert_ne!(a, c, "camera pan should reveal a different world sample");
+    }
+
+    #[test]
     fn screen_to_world_inverse() {
         let mut scene = SceneRenderer::default();
         scene.camera.x = 5.5;
@@ -4466,6 +4517,30 @@ mod tests {
         assert!(
             (wrong_hair - head_screen).abs() > 30.0,
             "documenting the old bug: wrong sign separates hair"
+        );
+    }
+
+    /// C++ SpriteGL: rotate (ax,ay) by +2π·rot, then posX -= ox, posY += oy.
+    /// Idle (rot=0) must match the unrotated `attach - (ax, -ay)` placement.
+    #[test]
+    fn rotated_center_anchor_matches_cpp_spritegl() {
+        let ax = 20.0f32;
+        let ay = 0.0f32;
+        let attach_x = 0.0f32;
+        let attach_y = 0.0f32;
+        // rot = 0
+        let (c0, s0) = (1.0f32, 0.0f32);
+        let px0 = attach_x - (ax * c0 - ay * s0);
+        let py0 = attach_y + (ax * s0 + ay * c0);
+        assert!((px0 + 20.0).abs() < 1e-4 && py0.abs() < 1e-4);
+        // rot = 0.25 turns: rotate (20,0) CCW 90° → (0,20); pos = (0, 20)
+        let a = 0.25 * std::f32::consts::TAU;
+        let (c, s) = (a.cos(), a.sin());
+        let px = attach_x - (ax * c - ay * s);
+        let py = attach_y + (ax * s + ay * c);
+        assert!(
+            px.abs() < 1e-3 && (py - 20.0).abs() < 1e-3,
+            "90° CCW of rightward anchor must put bitmap center at (0,20), got ({px},{py})"
         );
     }
 
@@ -5590,6 +5665,96 @@ mod tests {
         // Player should still leave some blue if canopy doesn't fully cover, or 0 if full cover —
         // with equal 40 vs 20 sizes canopy covers center; blue may be 0. Just ensure order via green center.
         let _ = blue;
+    }
+
+    /// Walking uses visual Y for the map row (C++ `lrint(currentPos.y - 0.20)`).
+    /// Sorting on dest `yd` paints the walker over every object they have not
+    /// reached yet — "objects behind the player".
+    #[test]
+    fn moving_player_sorts_with_visual_row_not_dest() {
+        let mut scene = SceneRenderer::default();
+        scene.ground = GroundBank::new();
+        scene.camera.x = 0.5;
+        scene.camera.y = 0.5;
+        scene.camera.zoom = 64.0;
+        let mut map = ClientMap::new();
+        map.set(
+            0,
+            0,
+            crate::client_map::MapTile {
+                biome: 0,
+                floor_id: 0,
+                object_id: 9100,
+                object_raw: "9100".into(),
+            },
+        );
+        let mut content = ClientContent::new();
+        content.objects.insert(
+            9100,
+            ClientObjectDef {
+                id: 9100,
+                draw_behind_player: false,
+                sprites: vec![ObjectSprite {
+                    sprite_id: 911,
+                    r: 1.0,
+                    g: 0.0,
+                    b: 0.0,
+                    parent: -1,
+                    age_start: -1.0,
+                    age_end: -1.0,
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        );
+        content.objects.insert(
+            19,
+            ClientObjectDef {
+                id: 19,
+                person: 1,
+                sprites: vec![ObjectSprite {
+                    sprite_id: 912,
+                    r: 0.0,
+                    g: 0.0,
+                    b: 1.0,
+                    parent: -1,
+                    age_start: -1.0,
+                    age_end: -1.0,
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        );
+        let mut sprites = SpriteBank::with_atlas_size(".", 256);
+        sprites.ensure_rgba(911, &solid_sprite(40, 40, [255, 0, 0, 255]), None);
+        sprites.ensure_rgba(912, &solid_sprite(20, 20, [0, 0, 255, 255]), None);
+        let mut anims = AnimBank::new(".");
+        let mut world = LiveWorld::new();
+        // Dest is south; figure is still standing on the object tile.
+        world.apply_pu(&sample_pu(1, 19, 0, -3, 0));
+        {
+            let o = world.get_mut(1).unwrap();
+            o.moving = true;
+            o.display_x = 0.0;
+            o.display_y = 0.0;
+            assert_eq!(o.draw_sort_y(), 0, "visual row, not dest -3");
+        }
+        let mut fb = Framebuffer::new(128, 128);
+        scene.draw(
+            &mut fb,
+            &mut map,
+            &mut world,
+            &content,
+            &mut sprites,
+            &mut anims,
+            0.0,
+        );
+        let i = ((64u32 * 128 + 64) * 4) as usize;
+        assert_eq!(
+            &fb.pixels[i..i + 3],
+            &[255, 0, 0],
+            "same-row front object must stay over a walker still on that tile"
+        );
     }
 
     /// P3#23: same-row front sub-order — wall over permanent non-wall; frontWall over wall.

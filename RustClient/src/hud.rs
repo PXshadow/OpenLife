@@ -292,6 +292,8 @@ pub struct HudState {
     pub hover_tip: Option<String>,
     /// C++ craving sheet (`setNewCraving`) — `CRAVING: NAME (+N)`.
     pub craving_text: Option<String>,
+    /// Typed SAY draft while the note paper is up (`Some` even if empty = focused).
+    pub say_draft: Option<String>,
 }
 
 impl Default for HudState {
@@ -342,6 +344,7 @@ impl Default for HudState {
             age_years: 20.0,
             hover_tip: None,
             craving_text: None,
+            say_draft: None,
         }
     }
 }
@@ -1139,6 +1142,10 @@ pub struct HudSprites {
     pub chalk_blot: Option<HudStripSprite>,
     /// C++ `handwritingFont` (`font_handwriting_32_32.tga`) — speech / name plates.
     pub handwriting_font: Option<PencilFontAtlas>,
+    /// C++ `homeSlip.tga` / `homeSlip2.tga` paper behind home arrows.
+    pub home_slips: Vec<HudStripSprite>,
+    /// C++ `notePaper.tga` — SAY compose sheet.
+    pub note_paper: Option<HudStripSprite>,
     /// True if at least one real TGA was loaded.
     pub from_disk: bool,
     /// True if pencilFont TGA loaded (play-visible text quality).
@@ -1181,19 +1188,6 @@ impl HudSprites {
         let dash_e = |_| HudStripSprite::solid(10, 4, [35, 35, 35, 100]);
         let bar = |_| HudStripSprite::solid(6, 16, [50, 50, 50, 220]);
         let bar_e = |_| HudStripSprite::solid(6, 16, [40, 40, 40, 100]);
-        let yum = |i: usize| {
-            let g = 140 + (i as u8) * 20;
-            HudStripSprite::solid(64, 32, [90, g, 70, 230])
-        };
-        let hslip = |i: usize| {
-            let cols = [[180, 200, 120, 230], [220, 180, 80, 230], [200, 80, 60, 230]];
-            HudStripSprite::solid(96, 48, cols[i % 3])
-        };
-        let harrow = |i: usize| {
-            let r = 100 + (i as u8 % 4) * 30;
-            HudStripSprite::solid(28, 28, [r, 90, 50, 255])
-        };
-        let harrow_e = |_| HudStripSprite::solid(28, 28, [80, 70, 50, 100]);
         Self {
             hunger_boxes: (0..NUM_HUNGER_BOX_SPRITES).map(box_empty).collect(),
             hunger_fills: (0..NUM_HUNGER_BOX_SPRITES).map(box_fill).collect(),
@@ -1205,16 +1199,18 @@ impl HudSprites {
             hunger_dashes_erased: (0..NUM_HUNGER_DASHES).map(dash_e).collect(),
             hunger_bars: (0..NUM_HUNGER_DASHES).map(bar).collect(),
             hunger_bars_erased: (0..NUM_HUNGER_DASHES).map(bar_e).collect(),
-            gui_panel: Some(HudStripSprite::solid(640, 48, [200, 190, 170, 230])),
-            gui_blood: Some(HudStripSprite::solid(80, 24, [160, 40, 40, 180])),
+            gui_panel: None,
+            gui_blood: None,
             pencil_font: None,
             pencil_font_erased: None,
-            yum_slips: (0..NUM_YUM_SLIPS).map(yum).collect(),
-            hunger_slips: (0..NUM_HUNGER_SLIPS).map(hslip).collect(),
-            home_arrows: (0..NUM_HOME_ARROWS).map(harrow).collect(),
-            home_arrows_erased: (0..NUM_HOME_ARROWS).map(harrow_e).collect(),
-            chalk_blot: Some(HudStripSprite::solid(32, 32, [210, 210, 200, 220])),
+            yum_slips: Vec::new(),
+            hunger_slips: Vec::new(),
+            home_arrows: Vec::new(),
+            home_arrows_erased: Vec::new(),
+            chalk_blot: None,
             handwriting_font: None,
+            home_slips: Vec::new(),
+            note_paper: None,
             from_disk: false,
             pencil_from_disk: false,
             handwriting_from_disk: false,
@@ -1250,18 +1246,40 @@ impl HudSprites {
             .filter(|p| p.exists());
         if let Some(p) = cache {
             if let Ok(mut s) = Self::load_olhu(&p) {
-                if s.pencil_font.is_none() && s.handwriting_font.is_none() {
-                    // Format-1 cache: overlay fonts from TGA and rewrite as v2.
-                    let tga = Self::with_default_roots(content_root);
+                // OLHU stores strip chrome + fonts; panel / slips / chalk / paper stay TGA.
+                let tga = Self::with_default_roots(content_root);
+                if s.gui_panel.is_none() {
+                    s.gui_panel = tga.gui_panel;
+                }
+                if s.gui_blood.is_none() {
+                    s.gui_blood = tga.gui_blood;
+                }
+                if s.yum_slips.is_empty() {
+                    s.yum_slips = tga.yum_slips;
+                }
+                if s.hunger_slips.is_empty() {
+                    s.hunger_slips = tga.hunger_slips;
+                }
+                if s.home_slips.is_empty() {
+                    s.home_slips = tga.home_slips;
+                }
+                if s.note_paper.is_none() {
+                    s.note_paper = tga.note_paper;
+                }
+                if s.pencil_font.is_none() {
                     s.pencil_font = tga.pencil_font;
                     s.pencil_font_erased = tga.pencil_font_erased;
-                    s.handwriting_font = tga.handwriting_font;
                     s.pencil_from_disk = tga.pencil_from_disk;
+                }
+                if s.handwriting_font.is_none() {
+                    s.handwriting_font = tga.handwriting_font;
                     s.handwriting_from_disk = tga.handwriting_from_disk;
-                    if tga.chalk_from_disk {
-                        s.chalk_blot = tga.chalk_blot;
-                        s.chalk_from_disk = true;
-                    }
+                }
+                if !s.chalk_from_disk && tga.chalk_from_disk {
+                    s.chalk_blot = tga.chalk_blot;
+                    s.chalk_from_disk = true;
+                }
+                if s.pencil_font.is_none() && s.handwriting_font.is_none() {
                     let _ = s.write_olhu(&p);
                 }
                 return s;
@@ -1534,13 +1552,17 @@ impl HudSprites {
             }
         }
         let slip_names = ["fullSlip.tga", "hungrySlip.tga", "starvingSlip.tga"];
-        for (i, name) in slip_names.iter().enumerate() {
+        let mut hunger_slips = Vec::with_capacity(NUM_HUNGER_SLIPS);
+        for name in slip_names {
             if let Some(img) = find_graphics_tga(roots, name) {
-                if i < s.hunger_slips.len() {
-                    s.hunger_slips[i] = HudStripSprite::from_rgba(&img);
-                    any = true;
-                }
+                hunger_slips.push(HudStripSprite::from_rgba(&img));
+                any = true;
             }
+        }
+        if hunger_slips.len() == NUM_HUNGER_SLIPS {
+            s.hunger_slips = hunger_slips;
+        } else if !hunger_slips.is_empty() {
+            s.hunger_slips = hunger_slips;
         }
         if let Some(v) = load_strip(roots, "homeArrows.tga", NUM_HOME_ARROWS) {
             s.home_arrows = v;
@@ -1548,6 +1570,20 @@ impl HudSprites {
         }
         if let Some(v) = load_strip(roots, "homeArrowsErased.tga", NUM_HOME_ARROWS) {
             s.home_arrows_erased = v;
+            any = true;
+        }
+        let mut home_slips = Vec::new();
+        for name in ["homeSlip.tga", "homeSlip2.tga"] {
+            if let Some(img) = find_graphics_tga(roots, name) {
+                home_slips.push(HudStripSprite::from_rgba(&img));
+                any = true;
+            }
+        }
+        if !home_slips.is_empty() {
+            s.home_slips = home_slips;
+        }
+        if let Some(img) = find_graphics_tga(roots, "notePaper.tga") {
+            s.note_paper = Some(HudStripSprite::from_rgba(&img));
             any = true;
         }
         // P3#15 L-SAY: chalk blot + handwriting font (graphics/, not OLC1).
@@ -1739,6 +1775,43 @@ fn load_strip(roots: &[PathBuf], name: &str, n: usize) -> Option<Vec<HudStripSpr
 }
 
 // --- draw -------------------------------------------------------------------
+
+/// Rounded paper / chalk capsule (Y-down). Used when `chalkBlot.tga` is missing.
+fn fill_round_rect(fb: &mut Framebuffer, x: f32, y: f32, w: f32, h: f32, rgba: [u8; 4]) {
+    if w < 1.0 || h < 1.0 || rgba[3] == 0 {
+        return;
+    }
+    let x0 = x.round() as i32;
+    let y0 = y.round() as i32;
+    let bw = w.round().max(1.0) as i32;
+    let bh = h.round().max(1.0) as i32;
+    let r = (bh / 2).max(1);
+    let body_w = (bw - 2 * r).max(0);
+    if body_w > 0 {
+        fb.fill_rect(x0 + r, y0, body_w, bh, rgba);
+    }
+    // Circular end-caps.
+    let r2 = r * r;
+    for cap in [x0 + r, x0 + bw - r] {
+        for dy in 0..bh {
+            let oy = dy - r;
+            let span2 = r2 - oy * oy;
+            if span2 < 0 {
+                continue;
+            }
+            // integer sqrt
+            let mut sx = 0i32;
+            while sx * sx <= span2 {
+                sx += 1;
+            }
+            sx -= 1;
+            if sx < 0 {
+                continue;
+            }
+            fb.fill_rect(cap - sx, y0 + dy, sx * 2 + 1, 1, rgba);
+        }
+    }
+}
 
 /// Normal alpha blit (gui panel, blood, pencil glyphs).
 fn blit_centered(fb: &mut Framebuffer, spr: &HudStripSprite, cx: f32, cy: f32, scale: f32) {
@@ -2062,7 +2135,9 @@ pub fn draw_speech_bubble_colored(
     let line_x0 = cx - tw * 0.5;
     let line_y = cy;
 
-    let chalk = sprites.and_then(|sp| sp.chalk_blot.as_ref());
+    let chalk = sprites
+        .filter(|sp| sp.chalk_from_disk)
+        .and_then(|sp| sp.chalk_blot.as_ref());
     if let Some(blot) = chalk {
         // C++: numBlots = lrint(0.25 + length / 20) + 1; stretch along line.
         let num_blots = ((0.25 + len_design / 20.0).round() as i32 + 1).max(1) as usize;
@@ -2088,18 +2163,26 @@ pub fn draw_speech_bubble_colored(
             blit_centered_mode(fb, blot, bx, line_y - dy, blot_scale, false, f);
         }
     } else {
-        // No blot sprite: solid chalk rect + soft border (legacy soft-FB).
-        let pad = 3.0 * s;
-        let bw = (tw + pad * 2.0).ceil() as i32;
-        let bh = (th + pad * 2.0).ceil() as i32;
-        let x0 = (cx - bw as f32 * 0.5).round() as i32;
-        let y0 = (cy - bh as f32 * 0.5).round() as i32;
-        fb.fill_rect(x0, y0, bw, bh, [210, 210, 205, a]);
-        let ba = (f * 200.0) as u8;
-        fb.fill_rect(x0, y0, bw, 1, [120, 120, 110, ba]);
-        fb.fill_rect(x0, y0 + bh - 1, bw, 1, [120, 120, 110, ba]);
-        fb.fill_rect(x0, y0, 1, bh, [120, 120, 110, ba]);
-        fb.fill_rect(x0 + bw - 1, y0, 1, bh, [120, 120, 110, ba]);
+        // Soft chalk pill (C++ tiled chalkBlot stand-in): rounded paper, no 1px box.
+        let pad_x = 10.0 * s;
+        let pad_y = 6.0 * s;
+        let bw = (tw + pad_x * 2.0).ceil().max(22.0);
+        let bh = (th + pad_y * 2.0).ceil().max(16.0);
+        let x0 = cx - bw * 0.5;
+        let y0 = cy - bh * 0.5;
+        let shadow_a = ((f * 55.0) as u8).max(10);
+        fill_round_rect(fb, x0 + 2.0, y0 + 3.0, bw, bh, [36, 28, 20, shadow_a]);
+        let paper_a = ((f * 230.0) as u8).max(50);
+        fill_round_rect(fb, x0, y0, bw, bh, [248, 244, 232, paper_a]);
+        let hi_a = ((f * 80.0) as u8).max(10);
+        fill_round_rect(
+            fb,
+            x0 + 2.0,
+            y0 + 1.0,
+            (bw - 4.0).max(4.0),
+            (bh * 0.35).max(2.0),
+            [255, 252, 246, hi_a],
+        );
     }
 
     // Handwriting: exact RGB. Pencil 5×7: soft-black stand-in when pure black.
@@ -2142,6 +2225,41 @@ impl HudSprites {
     ) {
         draw_speech_bubble_colored(fb, text, cx, cy, scale, fade, text_rgb, Some(self));
     }
+}
+
+/// C++ note paper while `mSayField` is focused (`mNotePaperHideOffset` + 58).
+fn draw_say_note(
+    fb: &mut Framebuffer,
+    draft: &str,
+    sprites: &HudSprites,
+    s: f32,
+    cx: f32,
+    cy: f32,
+) {
+    let paper_x = cx - 282.0 * s;
+    let paper_y = cy + 362.0 * s;
+    if let Some(paper) = &sprites.note_paper {
+        blit_centered(fb, paper, paper_x, paper_y, s);
+    } else {
+        let pw = 360.0 * s;
+        let ph = 140.0 * s;
+        fill_round_rect(
+            fb,
+            paper_x - pw * 0.5,
+            paper_y - ph * 0.5,
+            pw,
+            ph,
+            [248, 244, 232, 235],
+        );
+    }
+    let shown = if draft.is_empty() {
+        "_".to_string()
+    } else {
+        format!("{draft}_")
+    };
+    let tx = paper_x - 160.0 * s;
+    let ty = paper_y - 79.0 * s;
+    sprites.draw_hud_text(fb, &shown, tx, ty, s.max(0.85), [20, 18, 14, 255], false, false);
 }
 
 /// Draw bottom gui panel + hunger capacity boxes + temperature arrow + yum/ate.
@@ -2204,6 +2322,20 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
     {
         let hx = cx + HOME_ARROW_ORIGIN_X * s;
         let hy = cy + HOME_ARROW_ORIGIN_Y_BELOW * s;
+        // C++ slip center is 35 object-px below the arrow (Y-up +35 on arrow).
+        let slip_y = hy + 35.0 * s;
+        if state.home_arrow.is_some() {
+            if let Some(slip) = sprites.home_slips.first() {
+                blit_centered(fb, slip, hx, slip_y, s);
+            }
+        }
+        if state.ancient_home_arrow.is_some() {
+            let ax = cx + (HOME_ARROW_ORIGIN_X + 71.0) * s;
+            if let Some(slip) = sprites.home_slips.get(1).or_else(|| sprites.home_slips.first())
+            {
+                blit_centered_mode(fb, slip, ax, slip_y, s, false, 0.85);
+            }
+        }
         for i in 0..NUM_HOME_ARROWS {
             let fade = state.home_arrow_fades[i];
             if fade > 0.01 && state.home_arrow != Some(i) {
@@ -2245,9 +2377,32 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
         }
     }
 
-    // Gui panel under meter (normal alpha — not multiplicative).
+    // C++ note paper (SAY compose) sits above the gui panel, sliding up from below.
+    if let Some(ref draft) = state.say_draft {
+        draw_say_note(fb, draft, sprites, s, cx, cy);
+    }
+
+    // Light desk under the meters so multiplicative hunger/temp chrome + pencil
+    // ink have contrast (C++ guiPanel is a light paper strip; without it the
+    // white-on-white TGA sprites vanish into the ground overlay).
+    let py = cy + GUI_PANEL_Y_BELOW * s;
+    let panel_h = sprites
+        .gui_panel
+        .as_ref()
+        .map(|p| (p.height as f32 * s).max(48.0 * s))
+        .unwrap_or(80.0 * s);
+    let desk_y = (py - panel_h * 0.5).round() as i32;
+    let desk_h = panel_h.round().max(1.0) as i32;
+    fb.fill_rect(
+        0,
+        desk_y,
+        fb.width as i32,
+        desk_h,
+        [214, 210, 200, 255],
+    );
+
+    // Gui panel over the desk (normal alpha — not multiplicative).
     if let Some(panel) = &sprites.gui_panel {
-        let py = cy + GUI_PANEL_Y_BELOW * s;
         blit_centered(fb, panel, cx, py, s);
     }
 
@@ -2472,6 +2627,28 @@ mod tests {
     }
 
     #[test]
+    fn hud_draws_paper_desk_on_960x540() {
+        let mut hud = HudState::new();
+        hud.apply_fx(&sample_fx(8, 12));
+        let sprites = HudSprites::procedural();
+        let mut fb = Framebuffer::new(960, 540);
+        fb.clear([30, 90, 40, 255]);
+        draw_food_heat_hud(&mut fb, &mut hud, &sprites);
+        let y = 515u32;
+        let mut light = 0usize;
+        for x in 0..960u32 {
+            let i = ((y * 960 + x) * 4) as usize;
+            if fb.pixels[i] > 180 && fb.pixels[i + 1] > 170 && fb.pixels[i + 2] > 160 {
+                light += 1;
+            }
+        }
+        assert!(
+            light > 400,
+            "expected light paper desk under meters, light={light}"
+        );
+    }
+
+    #[test]
     fn golden_layout_1280x720_box0_and_heat05() {
         // C++ offsets at design resolution, scale=1.
         let (bx, by) = hunger_box_screen_pos(0, 1280, 720);
@@ -2693,6 +2870,8 @@ mod tests {
             assert_eq!(sprites.hunger_dashes_erased.len(), NUM_HUNGER_DASHES);
             assert_eq!(sprites.hunger_bars_erased.len(), NUM_HUNGER_DASHES);
             assert!(sprites.gui_blood.is_some());
+            assert!(sprites.gui_panel.is_some(), "guiPanel.tga expected");
+            assert!(sprites.note_paper.is_some(), "notePaper.tga expected");
             // Residual P1#3 assets when game-data tree present.
             let pencil = PathBuf::from(
                 r"C:\OhOl\OpenLife\OneLifeGameSourceData\graphics\font_pencil_32_32.tga",
@@ -2748,8 +2927,10 @@ mod tests {
         let sprites = HudSprites::load_from_roots(&[]);
         assert!(!sprites.from_disk);
         assert!(!sprites.pencil_from_disk);
-        assert_eq!(sprites.yum_slips.len(), NUM_YUM_SLIPS);
-        assert_eq!(sprites.hunger_slips.len(), NUM_HUNGER_SLIPS);
+        // No fake slip/panel rectangles when TGAs are missing.
+        assert!(sprites.yum_slips.is_empty());
+        assert!(sprites.hunger_slips.is_empty());
+        assert!(sprites.gui_panel.is_none());
 
         let mut fb = Framebuffer::new(1280, 720);
         fb.clear([20, 20, 24, 255]);

@@ -271,6 +271,7 @@ fn apply_hover_from_session(
     };
     let (tip, grave) = hover_tip_and_grave(&input);
     scene.hud.hover_tip = tip;
+    scene.hover_player_id = hover_player_id_from_pick(&input, hover);
     grave
 }
 
@@ -294,6 +295,26 @@ fn apply_hover_offline(
     };
     let (tip, _) = hover_tip_and_grave(&input);
     scene.hud.hover_tip = tip;
+    scene.hover_player_id = hover_player_id_from_pick(&input, hover);
+}
+
+/// Overhead name only when the cursor is over that person (not a map object).
+fn hover_player_id_from_pick(input: &HoverTipInput<'_>, hover: HoverPick) -> Option<i32> {
+    if hover.is_clothing() || hover.is_contained() || hover.object_id > 0 {
+        return None;
+    }
+    input.world.iter_living().find_map(|o| {
+        if o.held_by_adult_id >= 0 {
+            return None;
+        }
+        let tx = o.display_x.round() as i32;
+        let ty = o.display_y.round() as i32;
+        if tx == hover.tile.0 && ty == hover.tile.1 {
+            Some(o.id)
+        } else {
+            None
+        }
+    })
 }
 
 /// Safe mouse position in **soft-FB coordinates** (FB_W×FB_H).
@@ -460,58 +481,45 @@ impl PlaySayField {
         }
     }
 
-    fn draw(&self, fb: &mut Framebuffer, fb_w: u32, fb_h: u32) {
-        if !self.focused {
-            return;
-        }
-        let shown = if self.text.is_empty() {
-            "> _".to_string()
+    fn sync_hud(&self, hud: &mut ohol_headless::hud::HudState) {
+        hud.say_draft = if self.focused {
+            Some(self.text.clone())
         } else {
-            format!("> {}_", self.text)
+            None
         };
-        let x = fb_w as f32 * 0.5;
-        let y = fb_h as f32 - 28.0;
-        draw_pencil_string(fb, &shown, x, y, 2.0, [20, 20, 20, 255], true);
     }
 }
 
-fn draw_slash_overlays(fb: &mut Framebuffer, session: &ClientSession, fps: f32) {
+fn draw_slash_overlays(
+    fb: &mut Framebuffer,
+    session: &ClientSession,
+    fps: f32,
+    settings_show_fps: bool,
+) {
     let mut y = 10.0;
-    if session.show_fps_overlay {
-        draw_pencil_string(
-            fb,
-            &format!("{fps:.0} FPS"),
-            12.0,
-            y,
-            2.0,
-            [20, 20, 20, 255],
-            false,
-        );
+    if session.show_fps_overlay || settings_show_fps {
+        draw_shadow_white(fb, &format!("{fps:.0} FPS"), 12.0, y, 2.0);
         y += 16.0;
     }
     if session.show_net_overlay {
-        draw_pencil_string(
+        draw_shadow_white(
             fb,
             &format!("MSG IN {} OUT {}", session.messages_in, session.messages_out),
             12.0,
             y,
             1.5,
-            [20, 20, 20, 255],
-            false,
         );
         y += 14.0;
     }
     if let Some(ms) = session.last_ping_ms {
-        draw_pencil_string(
-            fb,
-            &format!("PING {ms:.0} MS"),
-            12.0,
-            y,
-            1.5,
-            [20, 20, 20, 255],
-            false,
-        );
+        draw_shadow_white(fb, &format!("PING {ms:.0} MS"), 12.0, y, 1.5);
     }
+}
+
+/// C++ `drawFixedShadowStringWhite` — black drop then white face (top-left HUD).
+fn draw_shadow_white(fb: &mut Framebuffer, text: &str, x: f32, y: f32, scale: f32) {
+    draw_pencil_string(fb, text, x, y, scale, [0, 0, 0, 220], false);
+    draw_pencil_string(fb, text, x + 2.0, y + 2.0, scale, [255, 255, 255, 255], false);
 }
 
 fn main() -> anyhow::Result<()> {
@@ -1044,6 +1052,10 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
                 SettingsLoop::OpenReview => {
                     let _ = app.enter_review();
                 }
+                SettingsLoop::Quit => {
+                    eprintln!("settings: Exit");
+                    return Ok(None);
+                }
                 SettingsLoop::Continue => {
                     app.settings.draw(&mut fb, Some(&hud));
                     rgba_to_u32(&fb.pixels, &mut buf);
@@ -1365,6 +1377,8 @@ enum SettingsLoop {
     /// Jump to Account form (from Settings → Account settings row).
     OpenAccount,
     OpenReview,
+    /// Quit the client.
+    Quit,
 }
 
 /// Keyboard for nested Account form (no char queue — caller drains that).
@@ -1495,6 +1509,7 @@ fn handle_settings_input(
                 | SettingsAction::Restart
                 | SettingsAction::ApplyFullscreen
                 | SettingsAction::OpenAccount
+                | SettingsAction::Quit
         )
     {
         action = SettingsAction::None;
@@ -1514,6 +1529,7 @@ fn handle_settings_input(
         SettingsAction::ApplyFullscreen => SettingsLoop::ApplyFullscreen,
         SettingsAction::OpenAccount => SettingsLoop::OpenAccount,
         SettingsAction::OpenReview => SettingsLoop::OpenReview,
+        SettingsAction::Quit => SettingsLoop::Quit,
     }
 }
 
@@ -1545,6 +1561,7 @@ fn run_session_from_boot(
         ohol_headless::render::ZOOM_MAX,
     );
     scene.ground_brightness = app.settings.brightness.clamp(0.0, 1.0);
+    scene.ground_overlay_period = 1;
     let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
     let mut window = Window::new(
         "Open Life Rust Client",
@@ -1673,6 +1690,10 @@ fn run_session_from_boot(
                 }
                 SettingsLoop::OpenReview => {
                     let _ = app.enter_review();
+                }
+                SettingsLoop::Quit => {
+                    eprintln!("settings: Exit");
+                    return Ok(());
                 }
                 SettingsLoop::Continue => {
                     // Live-preview zoom, brightness + SFX/music loudness while adjusting.
@@ -2253,6 +2274,7 @@ fn run_session_from_boot(
         if let Some((gx, gy)) = apply_hover_from_session(&mut scene, &session, hover) {
             let _ = session.request_grave(gx, gy);
         }
+        say.sync_hud(&mut scene.hud);
         let saved_hl = scene.highlight_tile.take();
         scene.draw(
             &mut fb,
@@ -2265,8 +2287,7 @@ fn run_session_from_boot(
         );
         scene.highlight_tile = saved_hl;
         draw_hover_outline(&mut fb, &scene.camera, hover);
-        say.draw(&mut fb, FB_W as u32, FB_H as u32);
-        draw_slash_overlays(&mut fb, &session, fps.fps());
+        draw_slash_overlays(&mut fb, &session, fps.fps(), app.settings.show_fps);
 
         // Debug play-snapshot tools (settings.debug): F9 or SNAP button.
         if app.settings.debug {
@@ -2582,6 +2603,10 @@ fn run_offline_with_banks(
                 }
                 SettingsLoop::OpenReview => {
                     let _ = app.enter_review();
+                }
+                SettingsLoop::Quit => {
+                    eprintln!("settings: Exit");
+                    return Ok(());
                 }
             }
             was_lmb = was_settings_lmb;
@@ -3516,6 +3541,10 @@ fn run_session_gpu(
                         SettingsAction::OpenReview => {
                             let _ = app.enter_review();
                         }
+                        SettingsAction::Quit => {
+                            eprintln!("settings: Exit");
+                            *control_flow = ControlFlow::Exit;
+                        }
                         SettingsAction::Applied | SettingsAction::None => {}
                     }
                     app.apply_settings_to_banks(Some(&mut session.sounds), None);
@@ -3886,6 +3915,7 @@ fn run_session_gpu(
                     {
                         let _ = session.request_grave(gx, gy);
                     }
+                    say.sync_hud(&mut scene.hud);
                     let saved_hl = scene.highlight_tile.take();
                     scene.draw(
                         &mut fb,
@@ -3898,8 +3928,7 @@ fn run_session_gpu(
                     );
                     scene.highlight_tile = saved_hl;
                     draw_hover_outline(&mut fb, &scene.camera, hover);
-                    say.draw(&mut fb, fbw, fbh);
-                    draw_slash_overlays(&mut fb, &session, fps.fps());
+                    draw_slash_overlays(&mut fb, &session, fps.fps(), app.settings.show_fps);
 
                     let rx_ago = session.secs_since_last_rx();
                     let rx_label = if rx_ago < 0.05 {

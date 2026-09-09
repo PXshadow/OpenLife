@@ -1267,6 +1267,19 @@ impl LiveObject {
         )
     }
 
+    /// Map-row used to interleave this person with objects (C++ LivingLifePage ~8412).
+    ///
+    /// While walking, C++ uses `lrint(currentPos.y - 0.20)` — the cell the figure
+    /// is **visually** in — not `yd` dest. Sorting on dest paints the walker on
+    /// top of every object they have not reached yet.
+    pub fn draw_sort_y(&self) -> i32 {
+        if self.moving {
+            (self.display_y - 0.20).round() as i32
+        } else {
+            self.y
+        }
+    }
+
     /// Snap grid + display to a world tile (FORCE / birth / done_moving).
     pub fn set_grid_pos(&mut self, x: i32, y: i32) {
         self.x = x;
@@ -3122,6 +3135,14 @@ mod tests {
         w.apply_pu(&parse_pu_line(&sample_pu_line(1, 0, 0, 0)).unwrap());
         {
             let o = w.get_mut(1).unwrap();
+            o.moving = true;
+            o.display_y = 5.0;
+            o.y = 0;
+            assert_eq!(o.draw_sort_y(), 5, "lrint(5.0 - 0.20) = 5");
+            o.display_y = 5.1;
+            assert_eq!(o.draw_sort_y(), 5);
+            o.moving = false;
+            assert_eq!(o.draw_sort_y(), 0, "idle uses grid y");
             o.moving = true;
             o.sync_anim_packs(&mut bank);
             assert_eq!(o.anim.cur_anim, ANIM_MOVING);
