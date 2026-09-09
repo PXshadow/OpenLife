@@ -701,6 +701,7 @@ fn sample_atlas(
 /// P3#23: front sub-order matches C++ wallLayer / frontWall passes after players.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum DrawLayer {
+    #[allow(dead_code)]
     Floor = 0,
     /// Whole `drawBehindPlayer` objects + `spritesDrawnBehind` layers.
     BehindPlayer = 1,
@@ -742,6 +743,7 @@ struct YSortItem {
 }
 
 enum DrawKind {
+    #[allow(dead_code)]
     Floor { tx: i32, ty: i32, floor_id: i32 },
     MapObject {
         tx: i32,
@@ -1077,7 +1079,11 @@ impl SceneRenderer {
         for ty in y0..=y1 {
             for tx in x0..=x1 {
                 let biome = map.get_or_empty(tx, ty).biome;
-                if !self.ground.has_biome_sheet(biome) {
+                // C++ never paints a solid per-cell plate. Haxe ocean/river
+                // colors under offset square/soft tiles show as a grid of
+                // blue squares. Water/mountain use the unknown sheet instead.
+                let water_or_peak = matches!(biome, 9 | 13 | 15 | 17 | 21);
+                if !water_or_peak && !self.ground.has_biome_sheet(biome) {
                     let (px, py, tw, th) =
                         tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
                     fb.fill_rect(px, py, tw, th, biome_plate_color(biome, false));
@@ -1237,9 +1243,10 @@ impl SceneRenderer {
                 } => {
                     let tile = map.get_or_empty(tx, ty);
                     let mv = map.map_move(tx, ty);
+                    let drop = map.drop_offset(tx, ty);
                     let (sx, sy) = self.world_to_screen(
-                        tx as f32 + 0.5 + mv.offset_x,
-                        ty as f32 + 0.5 + mv.offset_y,
+                        tx as f32 + 0.5 + mv.offset_x + drop.offset_x,
+                        ty as f32 + 0.5 + mv.offset_y + drop.offset_y,
                         fb.width,
                         fb.height,
                     );
@@ -1576,12 +1583,12 @@ impl SceneRenderer {
                                     .unwrap_or((8.0, 12.0));
                                 (px, py, 0.0)
                             };
-                            // Target hold in tile units for handoff slide.
+                            // Tile-space target for pickup slide / drop tracking.
                             let target_tx = base_tx + 0.5 + (hx * flip_s) / GRID;
                             let target_ty = base_ty + 0.5 + hy / GRID;
-                            // P3#22 heldPosOverride slide from map origin into hand.
+                            // C++ slides only while currentSpeed==0 && heldPosOverride.
                             let stationary = !o_moving;
-                            let (draw_tx, draw_ty, _draw_rot) = if let Some(o) = world.get_mut(id) {
+                            let _ = if let Some(o) = world.get_mut(id) {
                                 let frf = (dt * 60.0).clamp(0.0, 4.0).max(0.05);
                                 o.step_held_pos_toward(
                                     target_tx,
@@ -1593,12 +1600,14 @@ impl SceneRenderer {
                             } else {
                                 (target_tx, target_ty, hrot)
                             };
-                            // Still step slide; draw later in FlyingHeld pass if deferred.
+                            // In-hand: glue to the posed hand (C++ holdPos = person + offset).
+                            // World-tile interpolation while walking made the item lag.
                             if !defer_flying_held {
-                                let (hold_sx, hold_sy) =
-                                    self.world_to_screen(draw_tx, draw_ty, fb.width, fb.height);
+                                let hold_sx = sx + hx * scale0 * flip_s;
+                                let hold_sy = sy - hy * scale0;
+                                let held_flip = flip;
                                 if let Some(ref mut hp) = held_pack {
-                                    let _ = self.draw_object_with_pack(
+                                    let _ = self.draw_object_with_pack_ex(
                                         fb,
                                         content,
                                         sprites,
@@ -1607,13 +1616,17 @@ impl SceneRenderer {
                                         age,
                                         hold_sx,
                                         hold_sy,
-                                        false,
+                                        held_flip,
                                         false,
                                         false,
                                         0,
                                         false,
                                         SpriteLayerFilter::All,
                                         false,
+                                        None,
+                                        hrot,
+                                        None,
+                                        None,
                                     );
                                 }
                             }
@@ -4180,6 +4193,51 @@ mod tests {
             assert!((rx - wx).abs() < 1e-3, "wx {wx} -> {rx}");
             assert!((ry - wy).abs() < 1e-3, "wy {wy} -> {ry}");
         }
+    }
+
+    #[test]
+    fn ocean_tiles_do_not_paint_solid_blue_plates() {
+        // Biome 9 (deep water) used to get a Haxe COCEAN fill_rect per cell;
+        // offset square/soft tiles left a grid of blue squares.
+        let mut scene = SceneRenderer::default();
+        scene.ground = GroundBank::new();
+        scene.camera.x = 0.5;
+        scene.camera.y = 0.5;
+        scene.camera.zoom = 16.0;
+        let mut map = ClientMap::new();
+        map.set(
+            0,
+            0,
+            crate::client_map::MapTile {
+                biome: 9,
+                ..Default::default()
+            },
+        );
+        let mut world = LiveWorld::new();
+        let content = ClientContent::new();
+        let mut sprites = SpriteBank::with_atlas_size(".", 64);
+        let mut anims = AnimBank::new(".");
+        let mut fb = Framebuffer::new(64, 64);
+        fb.clear(CLEAR_RGBA);
+        scene.draw(
+            &mut fb,
+            &mut map,
+            &mut world,
+            &content,
+            &mut sprites,
+            &mut anims,
+            0.0,
+        );
+        let ocean = biome_color(9);
+        let i = ((32u32 * 64 + 32) * 4) as usize;
+        let is_ocean_plate = (0..3).all(|c| {
+            (fb.pixels[i + c] as i32 - ocean[c] as i32).abs() <= 8
+        });
+        assert!(
+            !is_ocean_plate,
+            "deep water must not be a solid COCEAN rectangle, got {:?}",
+            &fb.pixels[i..i + 3]
+        );
     }
 
     #[test]

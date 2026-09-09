@@ -27,7 +27,7 @@ use crate::parse::{
 };
 use crate::tags::ServerTag;
 use crate::wire_log::WireLog;
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 
 // ---------------------------------------------------------------------------
@@ -364,6 +364,8 @@ pub struct ClientSession {
     last_rx: Instant,
     /// Idle threshold before auto-KA (default 15s; tests may shorten).
     pub ka_idle: Duration,
+    /// Last transform MX tile per player — pickup-slide origin when PU `o_origin_valid=0`.
+    last_pickup_origin: HashMap<i32, (i32, i32)>,
     /// Optional full TX/RX transcript.
     wire_log: Option<Arc<WireLog>>,
 }
@@ -499,6 +501,7 @@ impl ClientSession {
             last_tx: Instant::now(),
             last_rx: Instant::now(),
             ka_idle: Duration::from_secs(KA_IDLE_SECS),
+            last_pickup_origin: HashMap::new(),
             wire_log,
         };
         // L-EMOT: load emotionWords/emotionObjects from content root (tiny ini).
@@ -834,6 +837,7 @@ impl ClientSession {
         self.apocalypse_in_progress = false;
         self.world = LiveWorld::new();
         self.map = ClientMap::new();
+        self.last_pickup_origin.clear();
         // Keep last_move_sequence semantics of a fresh birth (1) after full reset.
         self.move_state = MoveState::default();
         self.map_global_offset = MapGlobalOffset::ZERO;
@@ -1206,9 +1210,15 @@ impl ClientSession {
                     }
                     // L-SOUND-TRIG: clothing / drop settle / held creation before apply
                     // (need previous LiveObject clothing + held).
+                    let old_held = self.world.get(pu.player_id).map(|o| o.held_id).unwrap_or(0);
+                    let local_target = self
+                        .world
+                        .get(pu.player_id)
+                        .map(|o| (o.action_target_x, o.action_target_y));
                     self.play_pu_sounds(&pu);
                     // L-LIVEOBJ: lasting LiveObject table.
                     self.world.apply_pu(&pu);
+                    self.finish_pickup_slide(&pu, old_held, local_target);
                     // L-SOUND-TRIG: eatingSound when justAte (C++ ~18517)
                     if pu.just_ate && pu.last_ate_id > 0 {
                         if let Some(def) = self.content.get(pu.last_ate_id) {
@@ -1395,6 +1405,9 @@ impl ClientSession {
                 self.play_mx_sounds(&play);
                 // L-HUD: our homeMarker stake → homePosStack (C++ ~17238)
                 self.apply_home_marker_mx(&play);
+                // Pickup origin fallback + drop-from-hand (need old cell before apply).
+                self.note_transform_mx(&play);
+                self.apply_map_drop_slides(&play);
                 self.map.apply_mx_many_with_content(&play, &self.content);
                 Ok(SessionEvent::MapChanges(play))
             }
@@ -2234,6 +2247,84 @@ impl ClientSession {
                 .unwrap_or(false);
             self.world
                 .apply_home_marker_mx(ch.x, ch.y, old_is, new_is, true);
+        }
+    }
+
+    /// Remember transform MX tiles (`p_id < -1`) as pickup-slide origins.
+    fn note_transform_mx(&mut self, changes: &[crate::parse::MapChange]) {
+        for ch in changes {
+            if ch.is_transform() && !ch.is_moving() {
+                self.last_pickup_origin.insert(-ch.player_id, (ch.x, ch.y));
+            }
+        }
+    }
+
+    /// C++ `mMapDropOffsets` on MX (~17455–17573). Adapted for MX-before-PU:
+    /// animate when the responsible player is still holding this object (or
+    /// already empty); skip use-on-bare-ground (`held` is a different tool).
+    fn apply_map_drop_slides(&mut self, changes: &[crate::parse::MapChange]) {
+        for ch in changes {
+            if !crate::client_map::ClientMap::should_start_drop_slide(
+                ch.player_id,
+                ch.object_id,
+                ch.is_moving(),
+                self.map.get(ch.x, ch.y).map(|t| t.object_id).unwrap_or(0),
+                self.world
+                    .get(ch.player_id)
+                    .map(|p| p.on_screen && !p.out_of_range)
+                    .unwrap_or(false),
+                self.world.get(ch.player_id).map(|p| p.held_id).unwrap_or(0),
+            ) {
+                continue;
+            }
+            let Some(p) = self.world.get(ch.player_id) else {
+                continue;
+            };
+            let (hx, hy) = p.held_world_pos();
+            let (ox, oy) = crate::client_map::ClientMap::drop_offset_from_held(ch.x, ch.y, hx, hy);
+            self.map
+                .set_drop_offset(ch.x, ch.y, ox, oy, p.held_object_rot);
+            self.map.tile_flips.insert((ch.x, ch.y), p.holding_flip());
+        }
+    }
+
+    /// Start held-pos slide when PU omitted `o_origin_valid` (Rust server hardcodes 0).
+    fn finish_pickup_slide(
+        &mut self,
+        pu: &crate::parse::PlayerUpdate,
+        old_held: i32,
+        local_target: Option<(i32, i32)>,
+    ) {
+        let mx_origin = self.last_pickup_origin.remove(&pu.player_id);
+        if pu.deleted || pu.held_id <= 0 || old_held != 0 {
+            return;
+        }
+        if pu.held_origin_valid {
+            return;
+        }
+        let on_screen = self
+            .world
+            .get(pu.player_id)
+            .map(|o| o.on_screen)
+            .unwrap_or(false);
+        if !on_screen {
+            return;
+        }
+        let (px, py) = self
+            .world
+            .get(pu.player_id)
+            .map(|o| (o.x, o.y))
+            .unwrap_or((0, 0));
+        let use_local = self.our_id == Some(pu.player_id) && self.player_action_pending;
+        let origin = mx_origin.or_else(|| if use_local { local_target } else { None });
+        let Some((ox, oy)) = origin else {
+            return;
+        };
+        if (ox - px).abs() > 1 || (oy - py).abs() > 1 {
+            return;
+        }
+        if let Some(o) = self.world.get_mut(pu.player_id) {
+            o.begin_held_pos_handoff(ox as f32 + 0.5, oy as f32 + 0.5);
         }
     }
 
@@ -4053,6 +4144,135 @@ mod tests {
         assert!(ping.starts_with("PING 0 0 "));
         assert_eq!(session.send_say("/disconnect").unwrap(), "DISCONNECT");
         assert!(session.force_disconnect);
+        let _ = handle.join();
+    }
+
+    #[test]
+    fn mx_drop_slides_from_player_hand() {
+        let bind = "PU\n\
+7 100 1 0 0 0 33 0 0 0 -1 0.5 1 0 16 15 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n";
+        let mx = "MX\n17 15 0 33 7\n";
+        let empty = "PU\n\
+7 100 1 0 0 0 0 0 0 0 -1 0.5 1 0 16 15 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n";
+        let bodies = vec![
+            framed_text("MC\n32 30 0 0\n0 0\n"),
+            framed_text(bind),
+            framed_text("FM\n"),
+            framed_text(mx),
+            framed_text(empty),
+            framed_text("FM\n"),
+        ];
+        let (port, handle) = login_then_peer(bodies);
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        for _ in 0..12 {
+            match session.poll_event() {
+                Ok(SessionEvent::Frame) => break,
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        assert_eq!(session.world.get(7).unwrap().held_id, 33);
+        for _ in 0..12 {
+            match session.poll_event() {
+                Ok(SessionEvent::Frame) => break,
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        let d = session.map.drop_offset(17, 15);
+        assert!(d.is_sliding(), "drop must slide from hand, not teleport");
+        assert!(
+            (d.offset_x + 1.0).abs() < 0.05,
+            "offset_x={} (player 16.5 → dest 17.5)",
+            d.offset_x
+        );
+        assert!(d.offset_y.abs() < 0.05, "offset_y={}", d.offset_y);
+        let _ = handle.join();
+    }
+
+    #[test]
+    fn mx_use_on_bare_ground_does_not_drop_slide() {
+        let bind = "PU\n\
+7 100 1 0 0 0 33 0 0 0 -1 0.5 1 0 16 15 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n";
+        // Holding 33, result 100 appears on empty ground — not a drop.
+        let mx = "MX\n17 15 0 100 7\n";
+        let bodies = vec![
+            framed_text("MC\n32 30 0 0\n0 0\n"),
+            framed_text(bind),
+            framed_text("FM\n"),
+            framed_text(mx),
+            framed_text("FM\n"),
+        ];
+        let (port, handle) = login_then_peer(bodies);
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        for _ in 0..12 {
+            match session.poll_event() {
+                Ok(SessionEvent::Frame) => break,
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        for _ in 0..12 {
+            match session.poll_event() {
+                Ok(SessionEvent::Frame) => break,
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        assert!(
+            !session.map.drop_offset(17, 15).is_sliding(),
+            "use-on-bare-ground must not fly from the hand"
+        );
+        let _ = handle.join();
+    }
+
+    #[test]
+    fn pickup_slides_from_mx_tile_when_origin_missing() {
+        let bind = "PU\n\
+7 100 1 0 0 0 0 0 0 0 -1 0.5 1 0 16 15 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n";
+        let mx = "MX\n17 15 0 0 -7\n";
+        let held = "PU\n\
+7 100 1 0 0 0 33 0 0 0 -1 0.5 1 0 16 15 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n";
+        let bodies = vec![
+            framed_text("MC\n32 30 0 0\n0 0\n"),
+            framed_text(bind),
+            framed_text("FM\n"),
+            framed_text(mx),
+            framed_text(held),
+            framed_text("FM\n"),
+        ];
+        let (port, handle) = login_then_peer(bodies);
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        for _ in 0..12 {
+            match session.poll_event() {
+                Ok(SessionEvent::Frame) => break,
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        for _ in 0..12 {
+            match session.poll_event() {
+                Ok(SessionEvent::Frame) => break,
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        let o = session.world.get(7).unwrap();
+        assert_eq!(o.held_id, 33);
+        assert!(
+            o.held_pos_override,
+            "pickup must slide from the MX tile when PU origin is 0"
+        );
+        assert!(
+            (o.held_object_pos_x - 17.5).abs() < 1e-3,
+            "held_x={}",
+            o.held_object_pos_x
+        );
+        assert!(
+            (o.held_object_pos_y - 15.5).abs() < 1e-3,
+            "held_y={}",
+            o.held_object_pos_y
+        );
         let _ = handle.join();
     }
 }

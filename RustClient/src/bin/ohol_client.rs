@@ -3151,6 +3151,7 @@ fn draw_offline_demo_panel(
 }
 
 /// Present one soft-FB loading frame (P5#36).
+#[allow(dead_code)]
 fn present_loading(
     window: &mut Window,
     fb: &mut Framebuffer,
@@ -3166,6 +3167,7 @@ fn present_loading(
 /// Load anim / ground / sprites / sounds / music with soft-FB progress.
 ///
 /// When `content_already_loaded`, reports Content stage complete first (session path).
+#[allow(dead_code)]
 fn load_graphics_with_progress(
     root: &std::path::Path,
     content_already_loaded: bool,

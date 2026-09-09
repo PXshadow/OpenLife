@@ -1295,6 +1295,7 @@ fn draw_field_border(fb: &mut Framebuffer, x: f32, y: f32, w: f32, h: f32, focus
     fb.fill_rect(xi + wi - 1, yi, 1, hi, c);
 }
 
+#[allow(dead_code)]
 fn draw_text(
     fb: &mut Framebuffer,
     sprites: Option<&HudSprites>,
@@ -1328,6 +1329,7 @@ fn measure_text(sprites: Option<&HudSprites>, text: &str, scale: f32) -> f32 {
     pencil_string_width(text, scale)
 }
 
+#[allow(dead_code)]
 fn draw_caret(
     fb: &mut Framebuffer,
     sprites: Option<&HudSprites>,

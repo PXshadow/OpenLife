@@ -2382,26 +2382,23 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
         draw_say_note(fb, draft, sprites, s, cx, cy);
     }
 
-    // Light desk under the meters so multiplicative hunger/temp chrome + pencil
-    // ink have contrast (C++ guiPanel is a light paper strip; without it the
-    // white-on-white TGA sprites vanish into the ground overlay).
+    // C++ guiPanel.tga is the only bottom strip. A full-width cream fill sat
+    // over/around it as a fake "desk" — only used when the TGA is missing.
     let py = cy + GUI_PANEL_Y_BELOW * s;
-    let panel_h = sprites
-        .gui_panel
-        .as_ref()
-        .map(|p| (p.height as f32 * s).max(48.0 * s))
-        .unwrap_or(80.0 * s);
-    let desk_y = (py - panel_h * 0.5).round() as i32;
-    let desk_h = panel_h.round().max(1.0) as i32;
-    fb.fill_rect(
-        0,
-        desk_y,
-        fb.width as i32,
-        desk_h,
-        [214, 210, 200, 255],
-    );
+    if sprites.gui_panel.is_none() {
+        let panel_h = 80.0 * s;
+        let desk_y = (py - panel_h * 0.5).round() as i32;
+        let desk_h = panel_h.round().max(1.0) as i32;
+        fb.fill_rect(
+            0,
+            desk_y,
+            fb.width as i32,
+            desk_h,
+            [214, 210, 200, 255],
+        );
+    }
 
-    // Gui panel over the desk (normal alpha — not multiplicative).
+    // Gui panel (normal alpha — not multiplicative).
     if let Some(panel) = &sprites.gui_panel {
         blit_centered(fb, panel, cx, py, s);
     }

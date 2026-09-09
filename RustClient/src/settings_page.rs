@@ -168,31 +168,6 @@ pub enum SettingsSection {
 }
 
 impl SettingsFocus {
-    const ALL: [SettingsFocus; 22] = [
-        SettingsFocus::Exit,
-        SettingsFocus::Back,
-        SettingsFocus::AudioMenu,
-        SettingsFocus::DisplayMenu,
-        SettingsFocus::GameMenu,
-        SettingsFocus::AccountSettings,
-        SettingsFocus::CommunityMenu,
-        SettingsFocus::SoundVolume,
-        SettingsFocus::MusicVolume,
-        SettingsFocus::Zoom,
-        SettingsFocus::Brightness,
-        SettingsFocus::Graphics,
-        SettingsFocus::Audio,
-        SettingsFocus::Fullscreen,
-        SettingsFocus::SoundMute,
-        SettingsFocus::MusicMute,
-        SettingsFocus::ShowFps,
-        SettingsFocus::Debug,
-        SettingsFocus::CommunitySite,
-        SettingsFocus::DiscordUrl,
-        SettingsFocus::OpenReview,
-        SettingsFocus::Restart,
-    ];
-
     fn rows_for(section: SettingsSection) -> &'static [SettingsFocus] {
         match section {
             SettingsSection::Root => &[

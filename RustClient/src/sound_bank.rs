@@ -1781,6 +1781,7 @@ mod device {
         })
     }
 
+    #[allow(dead_code)]
     pub fn play(samples: &[i16], sample_rate: u32, left_gain: f32, right_gain: f32) -> bool {
         play_ex(samples, sample_rate, left_gain, right_gain, false, 0.0)
     }

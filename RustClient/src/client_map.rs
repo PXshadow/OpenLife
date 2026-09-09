@@ -143,6 +143,20 @@ pub struct MapMoveState {
     pub speed: f32,
 }
 
+/// C++ `mMapDropOffsets` / `mMapDropRot` — drop-from-hand slide (tile units).
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct MapDropState {
+    pub offset_x: f32,
+    pub offset_y: f32,
+    pub rot: f32,
+}
+
+impl MapDropState {
+    pub fn is_sliding(&self) -> bool {
+        self.offset_x.abs() > 1e-5 || self.offset_y.abs() > 1e-5 || self.rot.abs() > 1e-5
+    }
+}
+
 impl MapMoveState {
     pub fn is_moving(self) -> bool {
         self.speed > 1e-6
@@ -191,6 +205,8 @@ pub struct ClientMap {
     pub floor_anim_frame_count: HashMap<(i32, i32), f32>,
     /// C++ `mMapMoveOffsets` + `mMapMoveSpeeds` per cell.
     pub move_state: HashMap<(i32, i32), MapMoveState>,
+    /// C++ `mMapDropOffsets` — object flying from a player's hand onto this cell.
+    pub drop_state: HashMap<(i32, i32), MapDropState>,
     /// C++ `mMapTileFlips` — true = face left (draw flipH).
     pub tile_flips: HashMap<(i32, i32), bool>,
     /// C++ `mMapExtraMovingObjects` (+ dest world pos / dest object ids).
@@ -253,6 +269,52 @@ impl ClientMap {
         self.move_state.get(&(x, y)).copied().unwrap_or_default()
     }
 
+    /// Whether this MX should start a drop-from-hand slide (C++ ~17455–17573).
+    ///
+    /// Adapted for MX-before-PU: still animate when `held_id == object_id`.
+    /// Skip use-on-bare-ground (`held` is a different tool on an empty cell).
+    pub fn should_start_drop_slide(
+        player_id: i32,
+        object_id: i32,
+        is_moving: bool,
+        old_object_id: i32,
+        player_on_screen: bool,
+        player_held_id: i32,
+    ) -> bool {
+        if player_id <= 0 || object_id <= 0 || is_moving || !player_on_screen {
+            return false;
+        }
+        if player_held_id > 0 && player_held_id != object_id && old_object_id == 0 {
+            return false;
+        }
+        true
+    }
+
+    /// Tile-space drop offset so the object is drawn at `held_*` (dest is cell center).
+    pub fn drop_offset_from_held(dest_x: i32, dest_y: i32, held_x: f32, held_y: f32) -> (f32, f32) {
+        (held_x - dest_x as f32 - 0.5, held_y - dest_y as f32 - 0.5)
+    }
+
+    /// C++ `mMapDropOffsets[mapI]` — tile-space offset from dest cell center.
+    pub fn set_drop_offset(&mut self, x: i32, y: i32, offset_x: f32, offset_y: f32, rot: f32) {
+        if offset_x.abs() < 1e-5 && offset_y.abs() < 1e-5 && rot.abs() < 1e-5 {
+            self.drop_state.remove(&(x, y));
+            return;
+        }
+        self.drop_state.insert(
+            (x, y),
+            MapDropState {
+                offset_x,
+                offset_y,
+                rot,
+            },
+        );
+    }
+
+    pub fn drop_offset(&self, x: i32, y: i32) -> MapDropState {
+        self.drop_state.get(&(x, y)).copied().unwrap_or_default()
+    }
+
     pub fn tile_flip(&self, x: i32, y: i32) -> bool {
         self.tile_flips.get(&(x, y)).copied().unwrap_or(false)
     }
@@ -309,6 +371,35 @@ impl ClientMap {
             e.offset_x -= e.offset_x * s;
             e.offset_y -= e.offset_y * s;
             i += 1;
+        }
+        // C++ drawMapCell ~4595: drop offset steps 0.0625 * frameRateFactor toward 0.
+        let frf = (dt * 60.0).clamp(0.0, 4.0);
+        let drop_keys: Vec<(i32, i32)> = self.drop_state.keys().copied().collect();
+        for k in drop_keys {
+            let Some(d) = self.drop_state.get(&k).copied() else {
+                continue;
+            };
+            let (nx, ny, landed) =
+                crate::anim_draw::step_held_by_drop_offset(d.offset_x, d.offset_y, frf);
+            let rot_step = 0.03125 * frf;
+            let mut nrot = d.rot;
+            if nrot.abs() < rot_step {
+                nrot = 0.0;
+            } else {
+                nrot -= nrot.signum() * rot_step;
+            }
+            if landed && nrot.abs() < 1e-5 {
+                self.drop_state.remove(&k);
+            } else {
+                self.drop_state.insert(
+                    k,
+                    MapDropState {
+                        offset_x: nx,
+                        offset_y: ny,
+                        rot: nrot,
+                    },
+                );
+            }
         }
     }
 
@@ -661,5 +752,41 @@ mod tests {
         assert_eq!(stack.contained[1].contained.len(), 1);
         assert_eq!(stack.contained[1].contained[0].id, 2);
         assert_eq!(t.contained_ids(), vec![33, 40]);
+    }
+
+    #[test]
+    fn drop_offset_slides_from_hand_to_cell() {
+        let mut m = ClientMap::new();
+        m.set(5, 4, MapTile::parse_cell("0:0:33"));
+        // Player tile center (4.5, 4.5) → dest center (5.5, 4.5).
+        let (ox, oy) = ClientMap::drop_offset_from_held(5, 4, 4.5, 4.5);
+        assert!((ox + 1.0).abs() < 1e-4);
+        assert!(oy.abs() < 1e-4);
+        m.set_drop_offset(5, 4, ox, oy, 0.0);
+        assert!(m.drop_offset(5, 4).is_sliding());
+        for _ in 0..120 {
+            m.step_map_moves(1.0 / 60.0);
+        }
+        assert!(!m.drop_offset(5, 4).is_sliding());
+    }
+
+    #[test]
+    fn drop_slide_skips_use_on_bare_ground() {
+        assert!(ClientMap::should_start_drop_slide(
+            7, 33, false, 0, true, 33
+        ));
+        assert!(ClientMap::should_start_drop_slide(7, 33, false, 0, true, 0));
+        assert!(!ClientMap::should_start_drop_slide(
+            7, 100, false, 0, true, 33
+        ));
+        assert!(!ClientMap::should_start_drop_slide(
+            -7, 33, false, 0, true, 33
+        ));
+        assert!(!ClientMap::should_start_drop_slide(
+            7, 33, true, 0, true, 33
+        ));
+        assert!(!ClientMap::should_start_drop_slide(
+            7, 33, false, 0, false, 33
+        ));
     }
 }
