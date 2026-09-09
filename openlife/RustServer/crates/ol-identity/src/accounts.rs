@@ -13,6 +13,8 @@ pub type AccountView = Arc<RwLock<AccountBookSnapshot>>;
 /// One account row for JSON APIs / web score table.
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct AccountSummary {
+    /// Identity key — never serialized (contact address is the only public email).
+    #[serde(skip_serializing)]
     pub email: String,
     pub lives: u32,
     /// Haxe `PlayerAccount.totalScore` display value (Prestige column).
@@ -198,16 +200,25 @@ impl AccountRecord {
         total.floor() as i32
     }
 
-    /// Chat / web summary line.
+    /// Chat / web summary line. Never includes the account email.
     pub fn summary_line(&self) -> String {
+        let name = if self.last_name.trim().is_empty() {
+            if self.last_p_id != 0 {
+                format!("#{}", self.last_p_id)
+            } else {
+                "—".into()
+            }
+        } else {
+            self.last_name.clone()
+        };
         format!(
-            "ACCOUNT {} lives={} score={} kills={} deaths={} name=\"{}\"",
-            self.email,
+            "ACCOUNT lives={} score={} kills={} deaths={} name=\"{}\" id={}",
             self.lives,
             self.total_score,
             self.total_kills,
             self.total_deaths,
-            self.last_name
+            name,
+            self.id
         )
     }
 }
@@ -326,21 +337,18 @@ pub fn account_email_looks_ai(email: &str) -> bool {
 
 /// Haxe `scoreName` stand-in for web ID column when NamingHelper name tables are absent.
 ///
-/// Prefers last display name; else email local-part (never full email on public table).
+/// Prefers last display name; else `#last_p_id`. Never an email.
 // Haxe: PlayerAccount.scoreName → NamingHelper.GenerateAccountName(id)
 pub fn account_score_display_id(s: &AccountSummary) -> String {
     let name = s.last_name.trim();
     if !name.is_empty() {
         return name.to_string();
     }
-    let email = s.email.trim();
-    if let Some((local, _)) = email.split_once('@') {
-        if !local.is_empty() {
-            return local.to_string();
-        }
+    if s.last_p_id != 0 {
+        return format!("#{}", s.last_p_id);
     }
-    if !email.is_empty() {
-        return email.to_string();
+    if s.is_ai {
+        return "ai".into();
     }
     "—".into()
 }
@@ -614,11 +622,11 @@ impl AccountBook {
         }
     }
 
-    /// `SAY ?ACCOUNT` body without leading p_id.
+    /// `SAY ?ACCOUNT` body without leading p_id. Never includes the email.
     pub fn format_query(&self, email: &str) -> String {
         match self.get(email) {
             Some(r) => r.summary_line(),
-            None => format!("ACCOUNT {} lives=0 score=0", normalize_email(email)),
+            None => "ACCOUNT lives=0 score=0".to_string(),
         }
     }
 
@@ -747,6 +755,24 @@ mod tests {
     fn missing_account_query() {
         let b = AccountBook::default();
         assert!(b.format_query("nobody@x").contains("lives=0"));
+        assert!(!b.format_query("nobody@x").contains('@'));
+    }
+
+    #[test]
+    fn public_account_surfaces_omit_email() {
+        let mut b = AccountBook::default();
+        b.on_spawn("secret@example.com", 7, "Ada");
+        let q = b.format_query("secret@example.com");
+        assert!(q.contains("lives=1"));
+        assert!(!q.contains('@'));
+        assert!(!q.contains("secret"));
+        let snap = b.snapshot();
+        let json = serde_json::to_string(&snap).expect("serialize accounts");
+        assert!(!json.contains("secret@example.com"));
+        assert!(!json.contains("\"email\""));
+        let id = account_score_display_id(&snap.accounts[0]);
+        assert_eq!(id, "Ada");
+        assert!(!id.contains('@'));
     }
 
     #[test]

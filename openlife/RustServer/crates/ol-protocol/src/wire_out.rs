@@ -89,7 +89,7 @@ pub fn valley_spacing_unsupported() -> bool {
 /// login has set waitForFrameMessages (LivingLifePage.cpp). Always pair with FM.
 pub fn format_location_says(x: i32, y: i32, text: &str) -> String {
     if text.is_empty() {
-        // Bare coordinates only — used for 1 Hz pos debug to humans.
+        // Bare coordinates only (no spoken text).
         format!("LS\n{x} {y}\n#")
     } else {
         format_server_message("LS", &[&format!("{x} {y} {text}")])

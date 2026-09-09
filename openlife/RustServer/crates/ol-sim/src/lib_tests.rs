@@ -2122,12 +2122,15 @@
 
         let expected_pe = format_server_message("PE", &[&format!("{p_id}/0 {HUNGER_EMOT_INDEX}")]);
 
-        // Under interval: no PE yet (and total sim time stays under HX interval).
+        // Under interval: no hunger PE yet (FX/HX/FRAME from food drain may still fire).
         tick_vitals(&mut state, 7.0, &hub);
-        assert!(
-            rx.try_recv().is_err(),
-            "no PE before HUNGER_EMOT_INTERVAL_SECS"
-        );
+        let mut saw_early = false;
+        while let Ok(pkt) = rx.try_recv() {
+            if String::from_utf8_lossy(&pkt).as_ref() == expected_pe {
+                saw_early = true;
+            }
+        }
+        assert!(!saw_early, "no PE before HUNGER_EMOT_INTERVAL_SECS");
 
         // Cross interval: PE hunger emote to self (nearby includes self).
         tick_vitals(&mut state, 1.5, &hub);
@@ -2140,10 +2143,13 @@
         assert!(saw_pe, "expected PE hunger packet {expected_pe}");
         // Timer reset; not firing again immediately.
         tick_vitals(&mut state, 1.0, &hub);
-        assert!(
-            rx.try_recv().is_err(),
-            "no second PE before another full interval"
-        );
+        let mut saw_second = false;
+        while let Ok(pkt) = rx.try_recv() {
+            if String::from_utf8_lossy(&pkt).as_ref() == expected_pe {
+                saw_second = true;
+            }
+        }
+        assert!(!saw_second, "no second PE before another full interval");
         // Above threshold: no PE even after a full interval (keep total < HX window).
         {
             let p = state.players.get_mut(&1).unwrap();
@@ -2294,6 +2300,144 @@
         }
         assert!(state.players.get(&1).unwrap().deleted);
         assert!(!saw_starve, "deleted hunger death must not emit PE 31");
+    }
+
+    /// Hunger death must send PU `X X reason_hunger` + FRAME (death screen, not disconnect).
+    #[test]
+    fn tick_vitals_hunger_death_sends_xx_reason_pu() {
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "starve@deathpu");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.age = 20.0;
+            p.true_age = 20.0;
+            p.food = -0.01;
+            p.connected = true;
+        }
+        while rx.try_recv().is_ok() {}
+        tick_vitals(&mut state, 0.01, &hub);
+        assert!(state.players.get(&1).unwrap().deleted);
+        let mut saw_xx = false;
+        let mut saw_reason = false;
+        let mut saw_fm = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.contains("PU\n") && s.contains(" X X ") {
+                saw_xx = true;
+            }
+            if s.contains("reason_hunger") {
+                saw_reason = true;
+            }
+            if s.starts_with("FM\n") {
+                saw_fm = true;
+            }
+        }
+        assert!(saw_xx, "hunger death must send PU with X X");
+        assert!(saw_reason, "hunger death must send reason_hunger");
+        assert!(saw_fm, "hunger death PU must be followed by FRAME");
+    }
+
+    /// Haxe TimeHelper sendFoodUpdate(false) when ceil(food) changes with no player action.
+    #[test]
+    fn tick_vitals_sends_food_fx_when_ceil_changes() {
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "fx@food");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.food = 10.0;
+            p.food_max = 20.0;
+            p.age = 20.0;
+            p.connected = true;
+        }
+        while rx.try_recv().is_ok() {}
+        tick_vitals(&mut state, 20.0, &hub);
+        let mut saw_fx = false;
+        while let Ok(pkt) = rx.try_recv() {
+            if String::from_utf8_lossy(&pkt).starts_with("FX\n") {
+                saw_fx = true;
+            }
+        }
+        assert!(
+            saw_fx,
+            "idle vitals must send FX when ceil(food) drops"
+        );
+        assert!(state.players.get(&1).unwrap().food < 10.0);
+    }
+
+    /// Standing on a blocking tree hops E (Haxe JumpToNonBlocked).
+    #[test]
+    fn tick_vitals_jumps_off_blocking_tree() {
+        let hub = OutboundHub::new();
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "tree@stuck");
+        let (x, y) = {
+            let p = state.players.get(&1).unwrap();
+            (p.x, p.y)
+        };
+        {
+            let mut db = (*state.content).clone();
+            db.objects.insert(
+                99,
+                ObjectDef {
+                    id: 99,
+                    name: "Tree".into(),
+                    description: "Tree".into(),
+                    permanent: true,
+                    blocks_walking: true,
+                    ..ObjectDef::empty(99)
+                },
+            );
+            state.content = std::sync::Arc::new(db);
+        }
+        state.world.write().unwrap().set_object(x, y, 99);
+        tick_vitals(&mut state, 0.05, &hub);
+        let p = state.players.get(&1).unwrap();
+        assert_ne!(
+            (p.x, p.y),
+            (x, y),
+            "blocked standing tile must JumpToNonBlocked"
+        );
+    }
+
+    /// USE held food on a ground item must not eat (Haxe eat is SELF only).
+    #[test]
+    fn use_food_on_ground_item_does_not_eat() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "eat@item");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.held_id = 33;
+            p.food = 5.0;
+            p.food_max = 20.0;
+            p.birth_x = p.x;
+            p.birth_y = p.y;
+        }
+        let (x, y) = {
+            let p = state.players.get(&1).unwrap();
+            (p.x + 1, p.y)
+        };
+        state.world.write().unwrap().set_object(x, y, 33);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 1,
+                y: 0,
+                id: None,
+                index: None,
+            },
+        );
+        let p = state.players.get(&1).unwrap();
+        assert_eq!(p.held_id, 33, "clicking food on an item must not eat");
+        assert!((p.food - 5.0).abs() < 0.01);
     }
 
     /// Snow biome food drain > green at the same extreme base temperature
@@ -2963,6 +3107,79 @@
         assert_eq!(state.world.read().unwrap().get_object(3, 3), 100);
         tick_auto_decays(&mut state, 0.6);
         assert_eq!(state.world.read().unwrap().get_object(3, 3), 101);
+    }
+
+    #[test]
+    fn auto_decay_fleeing_rabbit_moves_to_dest_not_in_place() {
+        // Haxe: -1_3566 move>0 → doAnimalMovement, dest 3568 (not in-place swap).
+        let mut db = ContentDb::default();
+        db.objects.insert(3566, ObjectDef::empty(3566));
+        db.objects.insert(3568, ObjectDef::empty(3568));
+        db.auto_decays.insert(
+            3566,
+            Transition {
+                actor_id: -1,
+                target_id: 3566,
+                new_actor_id: 0,
+                new_target_id: 3568,
+                last_use_actor: false,
+                last_use_target: false,
+                auto_decay_seconds: 1.0,
+                reverse_use_actor: false,
+                reverse_use_target: false,
+                no_use_actor: false,
+                no_use_target: false,
+                move_dist: 3,
+                desired_move_dist: 5,
+                ..Default::default()
+            },
+        );
+        let mut state = SimState::with_default_empty(Arc::new(db));
+        {
+            let mut w = state.world.write().unwrap();
+            for y in 0..16 {
+                for x in 0..16 {
+                    w.set_biome(x, y, 2); // Haxe BiomeTag.YELLOW
+                }
+            }
+            w.set_object(8, 8, 3566);
+        }
+        schedule_decay(&mut state, 8, 8, 3566);
+        tick_auto_decays(&mut state, 1.1);
+        let w = state.world.read().unwrap();
+        let origin = w.get_object(8, 8);
+        assert_ne!(origin, 3566, "fleeing rabbit must leave origin");
+        let mut found_dest = false;
+        for y in 0..16 {
+            for x in 0..16 {
+                if w.get_object(x, y) == 3568 {
+                    found_dest = true;
+                }
+            }
+        }
+        assert!(found_dest, "3566 time-move must place dest 3568");
+    }
+
+    #[test]
+    fn spawn_default_animals_places_rabbit_holes() {
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_default_animals(&mut state);
+        let w = state.world.read().unwrap();
+        let mut holes = 0i32;
+        let mut fleeing = 0i32;
+        for y in 0..w.height_tiles {
+            for x in 0..w.width_tiles {
+                let id = w.get_object(x, y);
+                if id == crate::rabbit::RABBIT_HOLE_HIDING {
+                    holes += 1;
+                }
+                if id == crate::rabbit::FLEEING_RABBIT {
+                    fleeing += 1;
+                }
+            }
+        }
+        assert!(holes >= 3, "expected 161 rabbit holes, got {holes}");
+        assert_eq!(fleeing, 0, "default spawn must not place 3566 over holes");
     }
 
     #[test]
@@ -6908,9 +7125,9 @@
         assert!(saw_fail, "expected WEATHER FAIL bad_kind");
     }
 
-    /// SAY SEED respawns default animals only when the animal world is empty.
+    /// SAY SEED must not inject a fake animal pack (Haxe generateObjects only).
     #[test]
-    fn say_seed_animals_if_empty() {
+    fn say_seed_does_not_inject_animals() {
         let counters = Counters::new();
         let hub = OutboundHub::new();
         let mut rx = hub.register(1);
@@ -6928,40 +7145,18 @@
                 payload: "SEED".into(),
             },
         );
-        assert_eq!(state.animals.animals.len(), 9);
-        let mut saw_ok = false;
+        assert!(
+            state.animals.animals.is_empty(),
+            "SEED must not invent animals"
+        );
+        let mut saw_fail = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.contains("SEED OK") && s.contains("animals=9") {
-                saw_ok = true;
+            if s.contains("SEED FAIL") && s.contains("map_gen_only") {
+                saw_fail = true;
             }
         }
-        assert!(saw_ok, "expected SEED OK animals=9");
-
-        while rx.try_recv().is_ok() {}
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Raw {
-                conn_id: 1,
-                tag: "SAY".into(),
-                payload: "SEED".into(),
-            },
-        );
-        assert_eq!(
-            state.animals.animals.len(),
-            9,
-            "second SEED must not double-spawn"
-        );
-        let mut saw_skip = false;
-        while let Ok(pkt) = rx.try_recv() {
-            let s = String::from_utf8_lossy(&pkt);
-            if s.contains("SEED SKIP") {
-                saw_skip = true;
-            }
-        }
-        assert!(saw_skip, "expected SEED SKIP when animals already present");
+        assert!(saw_fail, "expected SEED FAIL map_gen_only");
     }
 
     #[test]
@@ -8305,7 +8500,7 @@
         assert!(self_shout, "speaker should receive SHOUT PS");
     }
 
-    /// SAY ?HELP / HELP returns short list of supported commands via private PS (no SQL).
+    /// SAY !HELP returns the command list. Bare HELP / ?HELP must not dump it.
     #[test]
     fn say_help_returns_short_command_list() {
         let counters = Counters::new();
@@ -8316,7 +8511,6 @@
 
         let expected = SimState::format_help_query();
         assert!(expected.starts_with("HELP "), "got {expected}");
-        // Spot-check a few well-known commands appear in the short list.
         for cmd in [
             "?WHO", "?WHERE", "?FOOD", "?AGE", "?NAME", "?HELD", "FOLLOW", "SHOUT",
         ] {
@@ -8333,7 +8527,7 @@
             NetIntent::Raw {
                 conn_id: 1,
                 tag: "SAY".into(),
-                payload: "?HELP".into(),
+                payload: "!HELP".into(),
             },
         );
 
@@ -8350,9 +8544,9 @@
                 assert!(s.contains("?WHERE"), "got {s}");
             }
         }
-        assert!(saw, "expected PS ?HELP reply with command list");
+        assert!(saw, "expected PS !HELP reply with command list");
 
-        // Bare HELP also works (private PS only).
+        // Bare HELP is speech, not the command dump.
         while rx.try_recv().is_ok() {}
         apply_intent(
             &mut state,
@@ -8364,18 +8558,35 @@
                 payload: "HELP".into(),
             },
         );
-        let mut saw_bare = false;
+        let mut saw_dump = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 HELP ")) {
-                saw_bare = true;
-                assert!(s.contains("?WHO"), "got {s}");
-                assert!(s.contains("SHOUT"), "got {s}");
+            if s.starts_with("PS\n") && s.contains("?WHO") && s.contains("SHOUT") {
+                saw_dump = true;
             }
         }
-        assert!(saw_bare, "expected PS bare HELP reply");
+        assert!(!saw_dump, "bare HELP must not dump the command list");
 
-        // Pure formatter unit check (no wire).
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "?HELP".into(),
+            },
+        );
+        let mut saw_q = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.starts_with("PS\n") && s.contains("?WHO") && s.contains("SHOUT") {
+                saw_q = true;
+            }
+        }
+        assert!(!saw_q, "?HELP must not dump the command list");
+
         assert_eq!(SimState::format_help_query(), expected);
         assert!(
             !expected.contains(';'),
@@ -19400,6 +19611,8 @@
         let mut state = SimState::with_default_empty(test_content());
         state.spawn_x = 100;
         state.spawn_y = 200;
+        // Force Eve so this LOGIN is not born on the planted mother tile.
+        state.gameplay.eve_or_adam_birth_chance = 1.0;
         {
             let mut m = Player::new(50, 50, "mom@t");
             m.x = 499;
@@ -21261,6 +21474,63 @@
         assert!(!body.is_empty(), "PU sent");
         // Full PU contains force=1 after seq; path.seq was 9 so done=9, force=1
         assert!(body.contains(" 9 1 "), "expected seq=9 force=1 in {body}");
+    }
+
+    /// Worn clothing must appear on live PU (Haxe clothing_set).
+    #[test]
+    fn send_player_update_includes_clothing_set() {
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "hat@pu");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.hat = 199;
+            p.clothing_helpers[0] = Some(ol_world::NestedHelper::id_only(199));
+        }
+        while rx.try_recv().is_ok() {}
+        send_player_update_and_frame(&mut state, &hub, 1);
+        let mut body = String::new();
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.starts_with("PU\n") {
+                body = s.to_string();
+            }
+        }
+        assert!(
+            body.contains("199;"),
+            "PU clothing_set must include hat 199: {body}"
+        );
+    }
+
+    /// Debug MOVE LS coords stay off unless config is on.
+    #[test]
+    fn debug_say_player_position_ls_off_by_default() {
+        let mut state = SimState::with_default_empty(test_content());
+        state.timed_movement = true;
+        spawn_player(&mut state, 1, "ls@off");
+        set_player_position(&mut state, 1, 0, 0);
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        apply_move_path_start(&mut state, &hub, 1, 0, 0, &[(1, 0)], Some(2)).unwrap();
+        let mut saw_ls = false;
+        while let Ok(pkt) = rx.try_recv() {
+            if String::from_utf8_lossy(&pkt).starts_with("LS\n") {
+                saw_ls = true;
+            }
+        }
+        assert!(!saw_ls, "default play must not LS coords on MOVE");
+        state.gameplay.debug_say_player_position = true;
+        while rx.try_recv().is_ok() {}
+        apply_move_path_start(&mut state, &hub, 1, 1, 0, &[(1, 0)], Some(3)).unwrap();
+        let mut saw_on = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.starts_with("LS\n") && s.contains(',') {
+                saw_on = true;
+            }
+        }
+        assert!(saw_on, "debug_say_player_position must LS world coords");
     }
 
     /// CONN-PU-LEADER-FAN: forced PU reaches a far follower of the subject.

@@ -338,7 +338,6 @@ async fn handle_connection(
                                         socket.write_all(rejected.as_bytes()).await?;
                                         warn!(
                                             conn_id,
-                                            email = %email,
                                             "LOGIN rejected (ticket verify failed)"
                                         );
                                         return Ok(());
@@ -346,7 +345,6 @@ async fn handle_connection(
                                 } else {
                                     info!(
                                         conn_id,
-                                        email = %email,
                                         "ticket verify off — accepting LOGIN"
                                     );
                                 }

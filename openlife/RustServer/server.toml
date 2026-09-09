@@ -49,6 +49,9 @@ twin_peers = []
 # Timed jump gate is always Haxe MaxMovementQuadJumpDistanceBeforeForce (quadDist ≤ 5).
 # move_jump_max_chebyshev only affects instant MOVE (timed_movement = false).
 timed_movement = true
+# Haxe DebugSayPlayerPosition: LS "{world_x},{world_y}" at feet on MOVE (debug pathing).
+# Keep false in play; set true to see server tiles without a debugger.
+debug_say_player_position = false
 move_jump_max_chebyshev = 2
 intent_drain_budget = 64
 ops_sample_every_ticks = 100

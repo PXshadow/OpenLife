@@ -1051,6 +1051,11 @@ impl Player {
         format!("{} {}", self.first_name, self.family_name)
     }
 
+    /// Viewer role tag derived from account identity without exposing the email.
+    pub fn public_role(&self) -> String {
+        public_agent_role(&self.email, self.is_ai_body())
+    }
+
     /// Name for SAY / chat bubbles (display + optional title).
     // Haxe: name used in say / PS lines
     pub fn name_for_say(&self) -> String {
@@ -1189,6 +1194,9 @@ impl Player {
             food_max: self.food_max,
             age: self.age,
             email: self.email.clone(),
+            is_ai: self.is_ai_body(),
+            display_name: self.display_name(),
+            role: public_agent_role(&self.email, self.is_ai_body()),
             deleted: self.deleted,
             connected: self.connected,
             ai_controlled: self.ai_controlled,
@@ -1253,6 +1261,22 @@ impl Player {
     }
 }
 
+/// Viewer role tag from identity heuristics. Never returns the email itself.
+pub fn public_agent_role(email: &str, is_ai: bool) -> String {
+    let e = email.to_ascii_lowercase();
+    if e.contains("farmer") {
+        "farmer".into()
+    } else if e.contains("hunter") {
+        "hunter".into()
+    } else if e.contains("selfplay") {
+        "forager".into()
+    } else if is_ai {
+        "ai".into()
+    } else {
+        "player".into()
+    }
+}
+
 /// Read-only view for web viewer / self-play UI (updated by sim after mutations).
 #[derive(Debug, Clone, Serialize)]
 pub struct PlayerSnapshot {
@@ -1275,7 +1299,18 @@ pub struct PlayerSnapshot {
     pub food: f32,
     pub food_max: f32,
     pub age: f32,
+    /// Identity key — never serialized to web/JSON (contact address is the only public email).
+    #[serde(skip_serializing)]
     pub email: String,
+    /// Server-side AI heuristic (permanent AI / takeover). Safe for viewer JSON.
+    #[serde(default)]
+    pub is_ai: bool,
+    /// `"First Family"` display name for viewer / players page.
+    #[serde(default)]
+    pub display_name: String,
+    /// Viewer role tag (`farmer`/`hunter`/`forager`/`ai`/`player`) — never an email.
+    #[serde(default)]
+    pub role: String,
     pub deleted: bool,
     /// Human TCP still attached (false after disconnect / AI takeover).
     #[serde(default = "default_true_snapshot")]
@@ -1463,6 +1498,21 @@ fn default_true_snapshot() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn player_snapshot_json_omits_email() {
+        let p = Player::new(1, 1, "secret@example.com");
+        let snap = p.snapshot();
+        assert_eq!(snap.email, "secret@example.com");
+        let v = serde_json::to_value(&snap).expect("serialize snapshot");
+        assert!(v.get("email").is_none(), "email must not appear in viewer JSON");
+        let s = v.to_string();
+        assert!(!s.contains("secret@example.com"));
+        assert!(!s.contains('@'));
+        assert_eq!(v.get("role").and_then(|x| x.as_str()), Some("player"));
+        assert_eq!(v.get("is_ai").and_then(|x| x.as_bool()), Some(false));
+        assert!(v.get("display_name").is_some());
+    }
 
     #[test]
     fn held_uses_set_and_clear() {

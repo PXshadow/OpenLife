@@ -177,6 +177,15 @@ fn apply_haxe_object_id_remainder(db: &mut ContentDb) {
     }
     set_biomes(db, 1328, &[BIOME_TAG_SWAMP]);
     set_biomes(db, 3566, &[BIOME_TAG_YELLOW]);
+    // 161 Rabbit Hole#hiding must natural-spawn on yellow prairie (mapChance=1 biomes_2).
+    if let Some(d) = db.objects.get_mut(&161) {
+        if d.map_chance <= 0.0 {
+            d.map_chance = 1.0;
+        }
+        if !d.biomes.contains(&BIOME_TAG_YELLOW) {
+            d.biomes.push(BIOME_TAG_YELLOW);
+        }
+    }
     for id in [631, 4762, 632, 635] {
         set_biomes(db, id, &[BIOME_TAG_GREY]);
     }
@@ -480,6 +489,23 @@ mod object_data_remainder_tests {
         assert_eq!(db.get(238).unwrap().decays_to_obj, 4201);
         assert_eq!(db.get(281).unwrap().decays_to_obj, 4201);
         assert_eq!(db.get(237).unwrap().decays_to_obj, 753);
+    }
+
+    #[test]
+    fn rabbit_hole_161_ensured_on_yellow() {
+        let mut db = ContentDb::default();
+        let mut hole = ObjectDef::empty(161);
+        hole.map_chance = 0.0;
+        db.objects.insert(161, hole);
+        apply_haxe_patch_object_data_remainder(&mut db);
+        let d = db.get(161).unwrap();
+        assert!(d.map_chance >= 1.0);
+        assert!(d.biomes.contains(&BIOME_TAG_YELLOW));
+        let table = db.biome_spawn.get(&BIOME_TAG_YELLOW).expect("yellow spawn table");
+        assert!(
+            table.entries.iter().any(|(id, _)| *id == 161),
+            "161 must be in yellow biome_spawn"
+        );
     }
 
     #[test]

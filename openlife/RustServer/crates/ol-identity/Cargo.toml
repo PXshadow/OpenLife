@@ -11,3 +11,6 @@ ol-config.workspace = true
 byteorder.workspace = true
 serde.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+serde_json = "1"

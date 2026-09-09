@@ -6,20 +6,17 @@
 
 Crate split / wirer freeze is **done**. Playable core is **largely done**. Remaining work is Haxe leftovers, not more writer crates.
 
-**Do not:** PHOTO, VOG, multi-server twins, SQL, mutex/debug settings, unused ModuleConst, further AiBase rungs until QUEUE Resume queue is empty.
+**Do not:** PHOTO, VOG, multi-server twins, SQL, mutex/debug settings, unused ModuleConst, **Haxe TODOs that never shipped**.
 
 ---
 
 ## Now (scheduler pick list)
 
-**only** these non-AI leftovers (same table as [`QUEUE.md`](QUEUE.md)). Skip if grep shows live.
+Picker = **working Haxe only** (same as [`QUEUE.md`](QUEUE.md)). Haxe `TODO` comments: [`HAXE_TODOS_OUT_OF_SCOPE.md`](HAXE_TODOS_OUT_OF_SCOPE.md) — **out of scope**.
 
-| # | Id | What |
-|---|-----|------|
+**In flight:** `AI-ATTACK-PLAYER`. Then remaining working-Haxe AI rungs. Non-AI live leftovers: **DISPLAY-STUFF**, **DO-LEADERSHIP-TICK**, **SPAWN-INDEX-SCAN**. **SEASON-REGROW-DECAY** is done.
 
-**Resume table empty.** Next **IDLE-COMPLETE**. Do **not** restart AiBase rungs unless QUEUE says so.
-
-Parked (do not pick): PHOTO, VOG, multi-server twins, SQL, SETTINGS-LONG-TAIL / ModuleConst.
+Parked: PHOTO, VOG, multi-server twins, SQL, SETTINGS-LONG-TAIL / ModuleConst, Haxe-only TODOs.
 
 ---
 

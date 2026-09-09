@@ -1663,6 +1663,11 @@ pub fn farm_profession_scan_tick(
     if rung_label == PULL_CARROT_ROW_RUNG {
         return pull_carrot_row_profession_scan_tick(tiles, inp);
     }
+    // Haxe: doKnifeStuff — no hasOrBecomeProfession (mid held-knife opportunist)
+    // Haxe: AiBase.doKnifeStuff ~876
+    if rung_label == crate::knife_stuff::KNIFE_STUFF_RUNG {
+        return knife_stuff_profession_scan_tick(tiles, inp);
+    }
     let counts = farm_counts_from_scan_floors(
         tiles,
         inp.home_x,
@@ -4982,6 +4987,19 @@ fn pull_carrot_row_ladder_step() -> ProfessionLadderStep {
     }
 }
 
+/// Mid `doKnifeStuff` after `isHandlingFire` (not assigned TAILOR/BAKER).
+// Haxe: AiBase.doTimeStuffHelper ~635; isConsideringMakingFood ~8549
+fn knife_stuff_ladder_step() -> ProfessionLadderStep {
+    ProfessionLadderStep {
+        kind: ProfessionScanKind::Farm,
+        rung_label: crate::knife_stuff::KNIFE_STUFF_RUNG,
+        farm_job: None,
+        farm_has_profession: false,
+        is_assigned_job: false,
+        profession_is_sticky: false,
+    }
+}
+
 /// Mid `fillBeanBowlIfNeeded(*, true)` onlyFillHeld (before isHandlingFire).
 // Haxe: AiBase.doTimeStuffHelper ~628–629
 fn fill_bean_held_ladder_step() -> ProfessionLadderStep {
@@ -5066,6 +5084,8 @@ pub fn plan_profession_ladder_steps(
                     is_assigned_job: sticky.fire_keeper_assigned || sticky.fire_keeper_last,
                     profession_is_sticky: sticky.fire_keeper_assigned || sticky.fire_keeper_last,
                 },
+                // Haxe: doKnifeStuff() after isHandlingFire ~635
+                knife_stuff_ladder_step(),
                 // Haxe: doStuff && age > 14 && isHunting() ~655
                 ProfessionLadderStep {
                     kind: ProfessionScanKind::Hunting,
@@ -5139,6 +5159,8 @@ pub fn plan_profession_ladder_steps(
                 is_assigned_job: sticky.fire_keeper_assigned || sticky.fire_keeper_last,
                 profession_is_sticky: sticky.fire_keeper_assigned || sticky.fire_keeper_last,
             },
+            // Haxe: doKnifeStuff() after isHandlingFire ~8549
+            knife_stuff_ladder_step(),
         ],
         _ => Vec::new(),
     }
@@ -5166,6 +5188,8 @@ include!("fill_bucket_live.inc.rs");
 include!("fill_bean_bowl_live.inc.rs");
 include!("fill_berry_bowl_live.inc.rs");
 include!("pull_carrot_row_live.inc.rs");
+include!("knife_stuff_live.inc.rs");
+include!("attack_player_live.inc.rs");
 
 /// Run planned ladder steps until one yields a non-None intent (prefer wire USE/DROP).
 ///
@@ -5825,42 +5849,81 @@ pub fn apply_profession_scan_from_sensors(
             &state.bucket_water_source_ids,
         )
     };
+    let knife_stuff_pending = {
+        let w = state.world.read().unwrap();
+        let tiles = scan_world_radius(
+            &w,
+            Some(&state.content),
+            p.x,
+            p.y,
+            crate::knife_stuff::KNIFE_STUFF_DIST,
+        );
+        knife_stuff_mid_pending(p.held_id, p.x, p.y, &tiles)
+    };
+    let held_id_for_weapon = p.held_id;
+    let px_for_combat = p.x;
+    let py_for_combat = p.y;
+    let age_for_sensors = p.age;
+    let food_for_sensors = p.food;
+    let food_max_for_sensors = p.food_max;
+    let heat_for_sensors = p.heat;
+    let display_id_for_sensors = p.display_object_id;
+    let using_item_for_sensors = p.craft_ai.use_held.is_some();
+    let removing_for_sensors = p.craft_ai.remove_from_container.is_some();
+    let handling_temp_flag = p.ai_handling_temperature;
+    let held_name_for_weapon = state
+        .content
+        .get(held_id_for_weapon)
+        .map(|d| d.name.clone())
+        .unwrap_or_default();
+    let holding_weapon = crate::is_holding_weapon(held_id_for_weapon, &held_name_for_weapon);
+    let is_wounded = p.is_wounded_held(is_wound_object(&state.content, held_id_for_weapon));
+    let combat_target = combat_player_target_from_state(state, conn_id);
+    let threat_quad_from_target = combat_target.map(|t| {
+        let dx = px_for_combat - t.x;
+        let dy = py_for_combat - t.y;
+        (dx * dx + dy * dy) as f32
+    });
     let extras = LiveSensorExtras {
         has_assigned_job: job.has_assigned_job,
         age_job_pending: job.age_job_pending,
         critical_craft_pending,
         has_craft_queue,
         clothing_craft_pending: plan_clothing_craft_tick(&clothing_inp).is_some(),
-        handling_death: crate::should_handle_death(p.age, state.gameplay.max_age),
-        using_item: p.craft_ai.use_held.is_some(),
-        removing_container: p.craft_ai.remove_from_container.is_some(),
-        heat: Some(p.heat),
-        handling_temperature: p.ai_handling_temperature
+        handling_death: crate::should_handle_death(age_for_sensors, state.gameplay.max_age),
+        using_item: using_item_for_sensors,
+        removing_container: removing_for_sensors,
+        heat: Some(heat_for_sensors),
+        handling_temperature: handling_temp_flag
             || crate::player_soul::is_super_hot_for_person_ex(
-                p.heat,
-                state.content.person_color(p.display_object_id),
+                heat_for_sensors,
+                state.content.person_color(display_id_for_sensors),
                 state.gameplay.temperature_impact_below,
                 state.gameplay.temperature_impact_color_factor,
             )
             || crate::player_soul::is_super_cold_for_person_ex(
-                p.heat,
-                state.content.person_color(p.display_object_id),
+                heat_for_sensors,
+                state.content.person_color(display_id_for_sensors),
                 state.gameplay.temperature_impact_below,
                 state.gameplay.temperature_impact_color_factor,
             ),
         feed_player_need,
         smith_blocks_feed,
-        mid_tasks_pending: fill_bucket_pending,
+        mid_tasks_pending: fill_bucket_pending || knife_stuff_pending,
+        combat_target: combat_target.is_some(),
+        holding_weapon,
+        is_wounded,
+        threat_quad_dist: threat_quad_from_target,
         ..Default::default()
     };
     let sensors = sensors_from_ext_ex(
-        p.held_id,
-        p.food,
+        held_id_for_weapon,
+        food_for_sensors,
         threat_near,
         nearby_food,
-        p.age,
+        age_for_sensors,
         false,
-        p.food_max,
+        food_max_for_sensors,
         false,
         &extras,
         min_age,
@@ -5895,6 +5958,11 @@ pub fn apply_profession_scan_from_sensors(
         }
         PriorityRung::HandleDeath => {
             let r = apply_handle_death_tick(state, outbound, conn_id);
+            (rung, r)
+        }
+        // Haxe: doStuff && attackPlayer(playerTarget) ~591
+        PriorityRung::Combat => {
+            let r = apply_attack_player_tick(state, outbound, conn_id);
             (rung, r)
         }
         PriorityRung::RemoveFromContainer => {
@@ -6551,6 +6619,7 @@ pub fn apply_profession_scan_tick(
         || rung_label == FILL_BEAN_HELD_RUNG
         || rung_label == FILL_BERRY_HELD_RUNG
         || rung_label == PULL_CARROT_ROW_RUNG
+        || rung_label == crate::knife_stuff::KNIFE_STUFF_RUNG
     {
         None
     } else {

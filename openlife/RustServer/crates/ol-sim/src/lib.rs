@@ -26,6 +26,7 @@ mod ai_provider;
 mod ally;
 mod animal_move;
 mod animals;
+mod rabbit;
 mod apocalypse;
 mod biome_colors;
 mod death_cause;
@@ -121,6 +122,9 @@ mod ai_follow_walk;
 mod ai_path_reach;
 mod ai_say_helper;
 mod ai_takeover;
+pub use ai_takeover::{
+    ai_rebirth_wait_secs, AI_REBIRTH_BASE_SECS, TIME_TO_AI_REBIRTH_PER_YEAR,
+};
 mod alt_outcome;
 mod animal_damage;
 mod animal_pop;
@@ -141,6 +145,8 @@ mod food_fill;
 mod food_store_max;
 mod get_or_craft;
 mod handling_fire;
+mod attack_player;
+mod knife_stuff;
 mod handle_death;
 mod handle_temperature;
 mod handling_graves;
@@ -320,6 +326,11 @@ pub use feeding_player::{
     FoodServerProfessionRuntime, StarvingCand, FOODSERVER_ASSIGNED_MAX, FOODSERVER_DEFAULT_MAX,
     FOODSERVER_FOOD_SEARCH_RADIUS, FOODSERVER_PROFESSION_KEY, STARVING_SEARCH_DIST,
 };
+pub use attack_player::{
+    attack_player, deadly_distance_for_held, get_weapon, stand_off_tile, AttackPlayerAction,
+    AttackPlayerClothing, AttackPlayerInput, AttackPlayerTarget, GetWeaponAction,
+    ATTACK_FOOD_STORE_MIN, BOW_AND_ARROW, MIN_AI_AGE_FOR_COMBAT, WEAPON_SEARCH_DIST,
+};
 pub use leadership::direct_follow_leader;
 pub use move_speed::{
     apply_calculate_speed_full, apply_calculate_speed_full_live, contained_obj_speed_mult,
@@ -362,6 +373,10 @@ pub use ai_goals::priority_ladder::{
     LiveSensorExtras, LiveSensorInput, HANDLE_DEATH_AGE_OFFSET, HANDLE_DEATH_MAX_AGE_DEFAULT,
 };
 pub use animals::AnimalMovementTick;
+pub use rabbit::{
+    is_rabbit_cycle_id, is_rabbit_hole_id, rabbit_move_arrival_id, FLEEING_RABBIT,
+    FLEEING_RABBIT_DEST, RABBIT_FAMILY_HOLE, RABBIT_HOLE_HIDING, RABBIT_HOLE_OUT,
+};
 pub use baker_profession::do_baking;
 pub use craft_ai_sticky::apply_sticky_flags_to_craft_sensors;
 pub use death_polish::is_wound_object;
@@ -804,13 +819,15 @@ use ol_protocol::{
     format_food_change, format_frame, format_heat_change, format_learned_tool_report,
     format_location_says, format_map_change, format_map_change_moving, format_photo_signature,
     format_player_emot, format_player_flip, format_player_says, format_player_update_line,
-    format_player_update_line_eat, format_player_update_line_eat_responsible,
-    format_player_update_line_full, format_pong,
+    format_player_update_line_death, format_player_update_line_eat,
+    format_player_update_line_eat_responsible, format_player_update_line_full,
+    format_player_update_line_full_clothing, format_player_update_line_full_clothing_responsible,
+    format_pong,
     format_server_message, format_vog_update, ClientTag, PHOTO_DENIED_SIGNATURE,
 };
 use ol_world::{
-    pick_biome_spawn, place_natural_object, ComplexObject, JournalEntry, NestedHelper, World,
-    WorldJournal,
+    is_biome_blocking, pick_biome_spawn, place_natural_object, ComplexObject, JournalEntry,
+    NestedHelper, World, WorldJournal,
 };
 use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -908,8 +925,6 @@ pub const YAWN_EMOT_INDEX: i32 = 2;
 pub const SLEEP_EMOT_INTERVAL_SECS: f32 = 15.0;
 /// Sim-time seconds between HX (HEAT_CHANGE) emissions to each player.
 pub const HX_EMIT_INTERVAL_SECS: f32 = 10.0;
-/// Debug LOCATION_SAYS interval: server-authority x,y for each human player.
-pub const POS_DEBUG_LS_INTERVAL_SECS: f32 = 1.0;
 pub const DEFAULT_PERSON_OBJECT: i32 = 19;
 
 /// Wire person object id for a player (skin/body).
@@ -1382,8 +1397,6 @@ pub struct SimState {
     pub tick: u64,
     /// Accumulates sim time toward periodic HX (heat) emit to all players.
     pub hx_emit_timer: f32,
-    /// Debug: emit LOCATION_SAYS (LS) with server x,y every second to humans.
-    pub pos_debug_timer: f32,
     /// Monotonic sim time in seconds (advanced by [`tick_vitals`]).
     pub sim_time: f32,
     /// Time dilation: multiplies `dt` inside [`tick_vitals`] (`1.0` = realtime).
@@ -1523,7 +1536,6 @@ impl SimState {
             shutdown: None,
             tick: 0,
             hx_emit_timer: 0.0,
-            pos_debug_timer: 0.0,
             sim_time: 0.0,
             sim_speed: 1.0,
             paused: false,
@@ -1727,9 +1739,9 @@ impl SimState {
         format!("NAME {display_name}")
     }
 
-    /// `SAY ?HELP` / `SAY HELP` chat reply body (without leading player id).
+    /// `SAY !HELP` chat reply body (without leading player id).
     ///
-    /// Short list of supported SAY commands. Pure; no SQL.
+    /// Short list of supported SAY commands. Pure; no SQL. Bare `HELP` is speech.
     pub fn format_help_query() -> String {
         "HELP ?WHO ?WHERE ?FOOD ?AGE ?NAME ?HEART ?STATUS ?FLAGS ?HELD ?TAGS ?INV ?NOTES ?MEMORY ?CLOTHES ?COINS ?TREASURY ?DEBT ?SCORE ?HIGHSCORE ?LEAD ?LEADER ?SEASON ?TEMP ?TIME ?TICK ?YUM ?TOOLS ?LOG ?JOURNAL ?WJOURNAL ?WAR ?POSSE ?CURSE ?PRESTIGE ?REP ?APOC ?CRIME ?WEATHER ?FERTILE ?ACCOUNT ?WOUND ?RANGE ?ALLY ?POLL ?BIOMES ?BIOME ?HEX ?BIOMEFOOD ?WARM ?SPEED ?WEIGHT ?DRAIN ?SWIM ?FLOOR ?CHUNKS ?SPECIAL ?SKILLS ?TIP ?ANIMALS ?FAUNA ?STAGE ?AFK ?CRAFTSTATS ?TRANS ?GEN ?FAMILY ?REL ?TWINS COUNT NEAR DIST FOLLOW EXILE PAY TRADE ACCEPT GIFT LOAN REPAY DONATE TAX POSSE WAR PEACE RAID KILL HIT HUNT HARVEST FISH MINE DIG CHOP FEED NURSE WATER HEAL BANDAGE ALLY POLL VOTE GLOBAL WHISPER MUMBLE MUTE UNMUTE DEAF BIRTH GESTATE HOLD PUTDOWN STORE TAKE DROPALL PUTNEST WEAR STRIP CRAFT SLEEP WAKE SIT STAND SICK CURE RIDE MOUNT DISMOUNT SWIM BUILD CLAIM HOME MARK NOTE REMEMBER FORGET TITLE GOHOME PATH STEPS WALKABLE PLAN RECIPE NEXTCRAFT SEEKING EMOTE YAWN SHOUT WEATHER TIP NEXT RENAME DIE LASTUSE FIRE IGNITE EXTINGUISH LOCK UNLOCK MAPFORCE LOOK FORGETTOOLS BOOST GODMODE SNAP VOGSET REGEN CLEAROBJ FILL CLEAR_YUM PING STARTAPOC ENDAPOC SETSEASON SETHOUR SEED SAVE PAUSE RESUME PUSH PULL KISS THANK CURSE BLESS HUG SLAP".into()
     }
@@ -2659,6 +2671,22 @@ pub fn maybe_too_close_say_feedback(state: &SimState, outbound: &OutboundHub, co
     let _ = take_too_close_message();
 }
 
+/// Drain pending lock/hungry-work `player.say(..., true)` as private PS + FRAME.
+// Haxe: TransitionHelper L1227 / L1238 `player.say(message, true)`
+fn maybe_lock_say_feedback(state: &SimState, outbound: &OutboundHub, conn_id: u64) {
+    let Some((cid, text)) = crate::locks::take_lock_say() else {
+        return;
+    };
+    if cid != conn_id {
+        crate::locks::note_lock_say(cid, text);
+        return;
+    }
+    let Some(p) = state.players.get(&conn_id) else {
+        return;
+    };
+    send_ps_reply(outbound, conn_id, &format!("{} {}", p.p_id, text));
+}
+
 /// Haxe hungry-work `doEmote` after USE pay/refuse (biomeRelief / homesick).
 // Haxe: TransitionHelper L1230 / L1241 / L1252
 fn maybe_hungry_work_emote_feedback(state: &SimState, outbound: &OutboundHub, conn_id: u64) {
@@ -2744,10 +2772,11 @@ pub fn force_send_map_chunk(state: &mut SimState, outbound: &OutboundHub, conn_i
     let patch = crate::vanilla_id::should_patch_conn(state, conn_id);
     let last_v = state.last_vanilla_id;
     let content = std::sync::Arc::clone(&state.content);
+    let dummy_wire = |base: i32, uses: i32| content.wire_id_for_uses(base, uses);
     let mc = {
         let w = state.world.read().unwrap();
         if patch {
-            crate::map_chunk::build_map_chunk_packet_mapped(
+            crate::map_chunk::build_map_chunk_packet_mapped_wired(
                 &w,
                 x,
                 y,
@@ -2756,10 +2785,19 @@ pub fn force_send_map_chunk(state: &mut SimState, outbound: &OutboundHub, conn_i
                 MC_WIDTH,
                 MC_HEIGHT,
                 |id| content.map_id_to_vanilla_id(id, last_v),
+                dummy_wire,
             )
         } else {
-            crate::map_chunk::build_map_chunk_packet_ex(
-                &w, x, y, wire_cx, wire_cy, MC_WIDTH, MC_HEIGHT,
+            crate::map_chunk::build_map_chunk_packet_mapped_wired(
+                &w,
+                x,
+                y,
+                wire_cx,
+                wire_cy,
+                MC_WIDTH,
+                MC_HEIGHT,
+                |id| id,
+                dummy_wire,
             )
         }
     };
@@ -3645,6 +3683,7 @@ fn apply_voluntary_die(
         state.push_event(format_death_event(p_id, DeathCause::Suicide));
         state.afk.remove(p_id);
         state.publish_player_view(conn_id);
+        send_death_player_update(state, outbound, conn_id);
         if emit_die_ok {
             send_ps_reply(outbound, conn_id, &format!("{p_id}/0 DIE OK"));
             info!(conn_id, p_id, "sim: SAY DIE reason_suicide");
@@ -3831,8 +3870,9 @@ fn apply_say_or_remv(
         // Commands (! / ? / known verbs) are NOT rate-limited â€” intermittent
         // "command sometimes works" was SAY RATE blocking before handlers.
         // Rate limit only free-form chat at the bottom of this function.
-        // HELP / ?HELP â€” short list of supported SAY commands (private PS; no SQL).
-        if upper == "HELP" || upper == "?HELP" || upper.starts_with("?HELP") {
+        // !HELP — short list of supported SAY commands (private PS; no SQL).
+        // Bare HELP / ?HELP are normal speech (Haxe has no HELP dump).
+        if upper == "!HELP" {
             let reply = SimState::format_help_query();
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
@@ -5200,6 +5240,7 @@ fn apply_say_or_remv(
                     counters.deaths.fetch_add(1, Ordering::Relaxed);
                     state.push_event(format_death_event_tag(target_id, &death_reason));
                     state.afk.remove(target_id);
+                    send_death_player_update_pid(state, outbound, target_id);
                     let line = format!("{} KILLED {} legal={}", killer_id, target_id, legal);
                     let near = nearby_conn_ids(state, killer_x, killer_y, nearby_range(state));
                     send_nearby_ps_lines(outbound, &near, &line);
@@ -6492,20 +6533,11 @@ fn apply_say_or_remv(
             }
             return;
         }
-        // SEED â€” if animal world empty, respawn default animals (testing; no admin).
+        // SEED used to inject a fake 3-rabbit/2-wolf pack. Haxe has no such spawn —
+        // animals come from generateObjects mapChance. Do not invent them.
         if upper == "SEED" || upper == "SEED ANIMALS" {
-            let before = state.animals.animals.len();
-            spawn_default_animals(state);
-            let after = state.animals.animals.len();
-            let line = if before == 0 && after > 0 {
-                format!("{} SEED OK animals={after}", p.p_id)
-            } else if before > 0 {
-                format!("{} SEED SKIP not_empty animals={before}", p.p_id)
-            } else {
-                format!("{} SEED OK animals=0", p.p_id)
-            };
+            let line = format!("{} SEED FAIL map_gen_only", p.p_id);
             send_ps_reply(outbound, conn_id, &line);
-            info!(conn_id, before, after, "sim: SEED animals");
             return;
         }
         // ?FERTILE / ?BIRTH status (Haxe isFertile: age + female)
@@ -8186,8 +8218,9 @@ pub fn packets_after_use(state: &SimState, conn_id: u64, r: &UseResult) -> Vec<V
     out.push(format_map_change(mx, my, floor, wire_obj, responsible).into_bytes());
     let spd = player_move_speed(state, p);
     // HORSE-EAT-FX: doEating PU carries just_ate / last_ate / responsible_id.
+    let clothing = player_clothing_set(p);
     let pu = if p.yum.just_ate {
-        format_player_update_line_eat_responsible(
+        format_player_update_line_full_clothing_responsible(
             p.p_id,
             person_object_id(p),
             p.held_id,
@@ -8197,20 +8230,20 @@ pub fn packets_after_use(state: &SimState, conn_id: u64, r: &UseResult) -> Vec<V
             spd,
             p.yum.just_ate_flag(),
             p.yum.just_ate_id,
-            p.yum.responsible_id,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -1,
             p.done_moving_seq.max(1),
+            &clothing,
+            p.yum.responsible_id,
         )
     } else {
-        format_player_update_line(
-            p.p_id,
-            person_object_id(p),
-            p.held_id,
-            px,
-            py,
-            p.age,
-            spd,
-            p.done_moving_seq.max(1),
-        )
+        format_live_pu_line(state, p, px, py, 0)
     };
     out.push(format_server_message("PU", &[&pu]).into_bytes());
     out.push(food_change_for_player(state, p).into_bytes());
@@ -8241,17 +8274,7 @@ pub fn packets_after_drop(
     let (px, py) = p.world_to_client(p.x, p.y);
     let mut out = Vec::new();
     out.push(format_map_change(mx, my, floor, wire_obj, p.p_id).into_bytes());
-    let spd = player_move_speed(state, p);
-    let pu = format_player_update_line(
-        p.p_id,
-        person_object_id(p),
-        p.held_id,
-        px,
-        py,
-        p.age,
-        spd,
-        p.done_moving_seq.max(1),
-    );
+    let pu = format_live_pu_line(state, p, px, py, 0);
     out.push(format_server_message("PU", &[&pu]).into_bytes());
     out
 }
@@ -8335,40 +8358,38 @@ fn pick_spawn_person_object(
     )
 }
 
+fn pick_random_spawn_person_object(state: &SimState) -> Option<i32> {
+    let idx = rand::random::<u32>() as usize;
+    crate::eve_spawn::pick_random_person_object(
+        &state.content.person_race,
+        |id| {
+            state
+                .content
+                .get(id)
+                .map(|d| (d.name.clone(), d.description.clone()))
+                .unwrap_or_default()
+        },
+        idx,
+    )
+}
+
 pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
-    // Revive deleted player on re-login (self-play / reconnect).
-    if state.players.contains_key(&conn_id) {
-        let eve_age = state.gameplay.starting_eve_age;
-        let angry0 = state.gameplay.combat_angry_time_before_attack_live();
-        if let Some(p) = state.players.get_mut(&conn_id) {
-            if p.deleted {
-                p.deleted = false;
-                p.connected = true;
-                p.food = START_FOOD;
-                p.food_max = MAX_FOOD;
-                p.held_id = 0;
-                p.death_reason = None;
-                // Haxe: spawnAsEve age = trueAge = ServerSettings.StartingEveAge
-                p.age = eve_age;
-                p.true_age = eve_age;
-                // Haxe: GPI.angryTime = ServerSettings.CombatAngryTimeBeforeAttack
-                p.angry_time = angry0;
-                p.email = email.to_string();
-                p.has_mc = false;
-                if email_is_playtest(email) {
-                    p.first_name = PLAYTEST_FIRST_NAME.into();
-                    p.family_name = playtest_family_name();
-                    p.display_object_id = PLAYTEST_SKIN_OBJECT;
-                }
-                info!(conn_id, p_id = p.p_id, "sim: player revived");
-            }
+    // Living reconnect: keep the same body. Deleted → new life (Haxe CreateNew*Player).
+    if let Some(p) = state.players.get(&conn_id) {
+        if !p.deleted {
+            let p_id = p.p_id;
+            let now = state.sim_time;
+            state.afk.touch(p_id, now);
+            return p_id;
         }
-        let p_id = state.players.get(&conn_id).map(|p| p.p_id).unwrap_or(0);
-        let now = state.sim_time;
-        state.afk.touch(p_id, now);
-        return p_id;
     }
-    let p_id = player_id_for_conn(conn_id);
+    state.players.remove(&conn_id);
+    let mut p_id = player_id_for_conn(conn_id);
+    let id_taken = state.players.values().any(|pl| pl.p_id == p_id)
+        || state.social.lineages.contains_key(&p_id);
+    if id_taken {
+        p_id = state.next_player_id;
+    }
     if p_id >= state.next_player_id {
         state.next_player_id = p_id + 1;
     }
@@ -8389,42 +8410,61 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
         let (first, family) = naming::pick_random_name(&mut rand::thread_rng());
         p.first_name = first;
         p.family_name = family;
-        p.display_object_id = DEFAULT_PERSON_OBJECT;
+        // Haxe GPI.new: po_id = personObjectData[rand] (any race), then Eve/child override.
+        p.display_object_id = pick_random_spawn_person_object(state).unwrap_or(DEFAULT_PERSON_OBJECT);
     }
-    // Adult LOGIN must match net bootstrap PU position (`preferred_spawn` /
-    // `state.spawn_x/y`). Mother-tile spawn is only for `spawn_child` (age 0).
-    // Mismatch caused MOVE jump_too_far â†’ force snap to NPC tiles (see
-    // RustClient SERVER_MOVE_FEEDBACK.md).
+    // Haxe constructor: spawnEve (pair / EveOrAdamBirthChance) else spawnAsChild else Eve.
     let mut mother_link: Option<i32> = None;
     let is_synthetic = conn_id >= 9_000_000; // self-play / NPC reserved bands
-    let (sx, sy) = if is_synthetic {
-        let no_mother = pick_best_mother_p_id(state).is_none();
-        let chance = state.gameplay.eve_or_adam_birth_chance;
-        let spawn_ai = state.gameplay.spawn_ai_as_eve;
-        let is_human = false; // this branch is synthetic NPC/self-play
-        let eve = eve_or_adam_birth(
-            rand::random::<f32>(),
-            chance,
-            spawn_ai,
-            is_human,
-            no_mother,
-        );
-        if eve {
-            eve_spawn_xy(state)
-        } else if let Some(mid) = pick_best_mother_p_id(state) {
+    let is_human = !is_synthetic;
+    let chance = state.gameplay.eve_or_adam_birth_chance;
+    let spawn_ai = state.gameplay.spawn_ai_as_eve;
+    let last_ai_alive = crate::eve_spawn::clear_deleted_last_eve(state.last_ai_eve, |id| {
+        state
+            .players
+            .values()
+            .any(|pl| pl.p_id == id && !pl.deleted)
+    })
+    .is_some();
+    let last_human_alive = crate::eve_spawn::clear_deleted_last_eve(state.last_human_eve, |id| {
+        state
+            .players
+            .values()
+            .any(|pl| pl.p_id == id && !pl.deleted)
+    })
+    .is_some();
+    let pairing_eve = if is_synthetic {
+        last_ai_alive
+    } else {
+        last_human_alive
+    };
+    let roll_eve = eve_or_adam_birth(
+        rand::random::<f32>(),
+        chance,
+        spawn_ai,
+        is_human,
+        false,
+    );
+    // Haxe SpawnAiAsEve=false: AI does not Eve-roll or pair as Eve while a mother exists.
+    let mut spawn_as_eve = if !is_human && !spawn_ai {
+        false
+    } else {
+        pairing_eve || roll_eve
+    };
+    let (sx, sy) = if !spawn_as_eve {
+        if let Some(mid) = pick_best_mother_p_id(state) {
             mother_link = Some(mid);
             if let Some(m) = state.players.values().find(|pl| pl.p_id == mid) {
                 (m.x, m.y)
             } else {
-                let w = state.world.read().unwrap();
-                find_playable_spawn(&w, (state.spawn_x, state.spawn_y))
+                spawn_as_eve = true;
+                eve_spawn_xy(state)
             }
         } else {
-            let w = state.world.read().unwrap();
-            find_playable_spawn(&w, (state.spawn_x, state.spawn_y))
+            spawn_as_eve = true;
+            eve_spawn_xy(state)
         }
     } else {
-        // Human TCP: Eve/wild spawn (food plants unless SpwanAtLastDead).
         eve_spawn_xy(state)
     };
     let mut eve_pair: Option<crate::eve_spawn::EvePairResolve> = None;
@@ -8461,6 +8501,10 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     } else {
         (sx, sy)
     };
+    let (sx, sy) = {
+        let w = state.world.read().unwrap();
+        unstuck_xy(&w, &state.content, sx, sy)
+    };
     p.x = sx;
     p.y = sy;
     // Birth origin = Eve/wild spawn tile (or mother tile for synthetic child-link spawns).
@@ -8484,12 +8528,54 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
         if let Some(id) = pick_spawn_person_object(state, color, female) {
             p.display_object_id = id;
         }
+        let female = state
+            .content
+            .get(p.display_object_id)
+            .map(|d| !d.male)
+            .unwrap_or(female);
+        p.first_name = crate::eve_spawn::eve_adam_first_name(female).into();
+    } else if !email_is_playtest(email) {
+        if let Some(mid) = mother_link {
+            let mother_po = state
+                .players
+                .values()
+                .find(|pl| pl.p_id == mid)
+                .map(person_object_id)
+                .unwrap_or(0);
+            let want_female = crate::eve_spawn::child_is_female(
+                state.gameplay.chance_for_female_child,
+                rand::random::<f32>(),
+            );
+            let mother_color = state.content.person_color(mother_po);
+            let close = {
+                let w = state.world.read().unwrap();
+                eve_person_color_at(&w, sx, sy)
+            };
+            let color = crate::eve_spawn::pick_child_person_color(
+                mother_color,
+                close,
+                state.gameplay.chance_for_other_child_color,
+                state.gameplay.chance_for_other_child_color_if_close_to_wrong_special_biome,
+                rand::random::<f32>(),
+                rand::random::<f32>(),
+            );
+            let race = if color > 0 { color } else { mother_color };
+            if let Some(id) = pick_spawn_person_object(state, race, want_female) {
+                p.display_object_id = id;
+            }
+        }
     }
     p.food = START_FOOD;
     p.food_max = MAX_FOOD;
-    // Haxe: spawnAsEve `age = ServerSettings.StartingEveAge; this.trueAge = ServerSettings.StartingEveAge`
-    p.age = state.gameplay.starting_eve_age;
-    p.true_age = state.gameplay.starting_eve_age;
+    if mother_link.is_some() {
+        // Haxe spawnAsChild: age = trueAge = 0.01
+        p.age = 0.01;
+        p.true_age = 0.01;
+    } else {
+        // Haxe: spawnAsEve `age = ServerSettings.StartingEveAge`
+        p.age = state.gameplay.starting_eve_age;
+        p.true_age = state.gameplay.starting_eve_age;
+    }
     // Haxe: GPI.angryTime = ServerSettings.CombatAngryTimeBeforeAttack
     p.angry_time = state.gameplay.combat_angry_time_before_attack_live();
     {
@@ -8579,21 +8665,7 @@ fn seed_playtest_local_objects(state: &mut SimState, sx: i32, sy: i32) {
             }
         }
     }
-    // One wolf a few tiles away for MX animal-move visibility.
-    let wx = sx + 4;
-    let wy = sy + 1;
-    let (px, py) = find_empty_animal_tile(state, wx, wy);
-    // Avoid duplicating if a wolf already sits on that tile.
-    let already = state.animals.animals.iter().any(|a| a.x == px && a.y == py);
-    if !already {
-        state.animals.spawn(AnimalKind::Wolf, px, py);
-        let oid = AnimalKind::Wolf.object_id();
-        let mut w = state.world.write().unwrap();
-        if w.get_object(px, py) == 0 {
-            w.set_object(px, py, oid);
-        }
-        info!(x = px, y = py, "sim: playtest local wolf + stones seeded");
-    }
+    // Stones only. Animals come from generateObjects mapChance, not a fake pack.
 }
 
 /// Record activity for AFK bookkeeping (MOVE / USE / DROP / SAY / EMOT / JUMPâ€¦).
@@ -8784,6 +8856,36 @@ pub fn set_player_position_respecting_path(
 /// Haxe BAD_BIOMES / impassable mountain wall (`ol_world::biome::SNOWINGREY`).
 const BIOME_MOUNTAIN: u8 = 21;
 
+/// Haxe `PlayerInstance.clothing_set` for live PU lines.
+fn player_clothing_set(p: &Player) -> String {
+    crate::clothing_transitions::format_clothing_set(p)
+}
+
+/// Live PU with worn clothing (Haxe `toData` clothing_set). `force=1` unstick.
+fn format_live_pu_line(state: &SimState, p: &Player, rx: i32, ry: i32, force: i32) -> String {
+    format_player_update_line_full_clothing(
+        p.p_id,
+        person_object_id(p),
+        p.held_id,
+        rx,
+        ry,
+        p.age,
+        player_move_speed(state, p),
+        0,
+        0,
+        force,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -1,
+        p.done_moving_seq.max(1),
+        &player_clothing_set(p),
+    )
+}
+
 /// Force PU+FM unstick (cancel MovePath if any).
 pub fn send_player_update_and_frame(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
     send_forced_player_update(state, outbound, conn_id, None);
@@ -8800,8 +8902,6 @@ pub fn send_action_result_pu_and_frame(state: &mut SimState, outbound: &Outbound
     if p.deleted {
         return;
     }
-    let spd = player_move_speed(state, &p);
-    let seq = p.done_moving_seq.max(1);
     // CONN-PU-LEADER-FAN: far followers of this subject still get the PU body.
     let near = leader_range::nearby_conn_ids_for_player_update(
         state,
@@ -8820,16 +8920,7 @@ pub fn send_action_result_pu_and_frame(state: &mut SimState, outbound: &Outbound
             .get(&cid)
             .map(|v| v.world_to_client(p.x, p.y))
             .unwrap_or((p.x, p.y));
-        let pu = format_player_update_line(
-            p.p_id,
-            person_object_id(&p),
-            p.held_id,
-            rx,
-            ry,
-            p.age,
-            spd,
-            seq,
-        );
+        let pu = format_live_pu_line(state, &p, rx, ry, 0);
         // Urgent so USE is not stuck behind AI PU/MX flood.
         outbound.send_urgent(cid, format_server_message("PU", &[&pu]).into_bytes());
     }
@@ -8869,7 +8960,6 @@ pub fn send_forced_player_update(
     let Some(p) = state.players.get(&conn_id).cloned() else {
         return;
     };
-    let spd = player_move_speed(state, &p);
     // CONN-PU-LEADER-FAN: far followers of this subject still get the PU body.
     let near = leader_range::nearby_conn_ids_for_player_update(
         state,
@@ -8889,30 +8979,65 @@ pub fn send_forced_player_update(
             .get(&cid)
             .map(|v| v.world_to_client(p.x, p.y))
             .unwrap_or((p.x, p.y));
-        let pu = format_player_update_line_full(
-            p.p_id,
-            person_object_id(&p),
-            p.held_id,
-            rx,
-            ry,
-            p.age,
-            spd,
-            0,
-            0,
-            1, // force
-            0, // action
-            0,
-            0,
-            0,
-            0,
-            0,
-            -1,
-            p.done_moving_seq.max(1),
-        );
+        let pu = format_live_pu_line(state, &p, rx, ry, 1);
         outbound.send(cid, format_server_message("PU", &[&pu]).into_bytes());
     }
     // FRAME unsticks the acting client only (Haxe also sends FRAME to that connection).
     outbound.send(conn_id, format_server_message("FM", &[]).into_bytes());
+}
+
+/// Haxe `Connection.SendUpdateToAllClosePlayers` after `doDeath`: PU with `X X`
+/// + `reason_*` and FRAME so the official client shows the death screen.
+///
+/// Recipients are **all connected** players (Haxe skips the distance filter when
+/// `deleted`). The dying connection is always included even if `connected` was
+/// already cleared.
+fn send_death_player_update(state: &SimState, outbound: &OutboundHub, conn_id: u64) {
+    let Some(p) = state.players.get(&conn_id) else {
+        return;
+    };
+    if !p.deleted {
+        return;
+    }
+    let reason = p
+        .death_reason
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .unwrap_or("reason_unknown");
+    let clothing = crate::clothing_transitions::format_clothing_set(p);
+    let spd = player_move_speed(state, p);
+    // Haxe doDeathHelper: `this.age = this.trueAge` so the death screen shows lived years.
+    let age = if p.true_age > 0.0 { p.true_age } else { p.age };
+    let line = format_player_update_line_death(
+        p.p_id,
+        person_object_id(p),
+        p.held_id,
+        age,
+        spd,
+        p.done_moving_seq.max(1),
+        &clothing,
+        reason,
+    );
+    let pkt = format_server_message("PU", &[&line]).into_bytes();
+    let mut recips: Vec<u64> = state
+        .players
+        .iter()
+        .filter(|(_, pl)| pl.connected)
+        .map(|(&c, _)| c)
+        .collect();
+    if !recips.contains(&conn_id) {
+        recips.push(conn_id);
+    }
+    for cid in recips {
+        outbound.send_urgent(cid, pkt.clone());
+        send_frame(outbound, cid);
+    }
+}
+
+fn send_death_player_update_pid(state: &SimState, outbound: &OutboundHub, p_id: i32) {
+    if let Some((&cid, _)) = state.players.iter().find(|(_, pl)| pl.p_id == p_id) {
+        send_death_player_update(state, outbound, cid);
+    }
 }
 
 /// Pure catch-up extras (Haxe TimeHelper option A).
@@ -9975,6 +10100,7 @@ fn apply_hit_on_player(
             counters.deaths.fetch_add(1, Ordering::Relaxed);
             state.push_event(format_death_event_tag(target_id, &death_reason));
             state.afk.remove(target_id);
+            send_death_player_update_pid(state, outbound, target_id);
             apply_bloody_weapon_transform(
                 state,
                 killer_id,
@@ -10516,6 +10642,22 @@ pub fn apply_move_path_start(
         outbound.send_urgent(cid, pm.into_bytes());
         send_frame(outbound, cid);
     }
+    // Haxe MoveHelper: DebugSayPlayerPosition → LS at feet (default off).
+    // Keep the code for movement debug; config `debug_say_player_position`.
+    if state.gameplay.debug_say_player_position {
+        let text = format!("{start_x},{start_y}");
+        for &cid in &recipients {
+            let Some(viewer) = state.players.get(&cid) else {
+                continue;
+            };
+            if viewer.deleted || !viewer.connected {
+                continue;
+            }
+            let (rx, ry) = viewer.world_to_client(start_x, start_y);
+            outbound.send_urgent(cid, format_location_says(rx, ry, &text).into_bytes());
+            send_frame(outbound, cid);
+        }
+    }
     state.publish_player_view(conn_id);
     if conn_id >= 9_000_000 {
         debug!(
@@ -10619,7 +10761,6 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
             maybe_send_map_chunk(state, outbound, conn_id);
             state.publish_player_view(conn_id);
             if let Some(p) = state.players.get(&conn_id).cloned() {
-                let spd = player_move_speed(state, &p);
                 // Must emit the path seq (not hardcoded 1) so client matches MOVE @seq.
                 let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
                 for &cid in &near {
@@ -10628,26 +10769,7 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
                         .get(&cid)
                         .map(|v| v.world_to_client(p.x, p.y))
                         .unwrap_or((p.x, p.y));
-                    let pu = format_player_update_line_full(
-                        p.p_id,
-                        person_object_id(&p),
-                        p.held_id,
-                        rx,
-                        ry,
-                        p.age,
-                        spd,
-                        0,
-                        0,
-                        0, // force=0 natural finish
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        -1,
-                        p.done_moving_seq.max(1),
-                    );
+                    let pu = format_live_pu_line(state, &p, rx, ry, 0);
                     // PU then FM so official clients flush the move-complete update.
                     outbound.send_urgent(cid, format_server_message("PU", &[&pu]).into_bytes());
                     send_frame(outbound, cid);
@@ -10691,6 +10813,51 @@ pub fn cancel_movement(
 #[inline]
 fn biome_blocks_move(biome: u8) -> bool {
     biome == BIOME_MOUNTAIN
+}
+
+/// Haxe `GlobalPlayerInstance.isBlocked`: `blocksWalking` or biome speed < 0.1.
+// Haxe: GlobalPlayerInstance.isBlocked L6199–6212
+fn standing_tile_blocked(world: &World, content: &ContentDb, x: i32, y: i32) -> bool {
+    !is_walkable(world, content, x, y)
+        || is_biome_blocking(world.get_biome(x, y), world.get_floor(x, y) as i32)
+}
+
+/// Haxe `MoveHelper.JumpToNonBlocked` destination (E/S/W/N, else stay).
+fn unstuck_xy(world: &World, content: &ContentDb, x: i32, y: i32) -> (i32, i32) {
+    let is_blocked = |tx: i32, ty: i32| standing_tile_blocked(world, content, tx, ty);
+    match crate::jump_bw::plan_jump_to_non_blocked(is_blocked, x, y) {
+        None => (x, y),
+        Some((dx, dy)) => world.wrap_tile(x + dx, y + dy),
+    }
+}
+
+/// Live `JumpToNonBlocked`: if standing tile blocked, hop E/S/W/N then force PU+MC.
+// Haxe: TimeHelper.UpdatePlayerStats L363; MoveHelper.JumpToNonBlocked L473–519
+fn try_jump_to_non_blocked(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+) {
+    let (x, y) = match state.players.get(&conn_id) {
+        Some(p) if !p.deleted => (p.x, p.y),
+        _ => return,
+    };
+    let dest = {
+        let world = state.world.read().unwrap();
+        if !standing_tile_blocked(&world, &state.content, x, y) {
+            return;
+        }
+        unstuck_xy(&world, &state.content, x, y)
+    };
+    if let Some(p) = state.players.get_mut(&conn_id) {
+        p.x = dest.0;
+        p.y = dest.1;
+        p.move_path = None;
+        p.moving = false;
+    }
+    force_send_map_chunk(state, outbound, conn_id);
+    send_forced_player_update(state, outbound, conn_id, None);
+    arm_human_wait_for_force(state, conn_id);
 }
 
 pub fn apply_move_deltas(
@@ -11053,6 +11220,18 @@ pub fn tick_vitals_with_metrics(
     };
     let dt = dt * speed;
     state.sim_time += dt;
+    // Haxe UpdatePlayerStats: JumpToNonBlocked if standing tile blocked (tree spawn).
+    {
+        let jump_ids: Vec<u64> = state
+            .players
+            .iter()
+            .filter(|(_, p)| !p.deleted)
+            .map(|(&c, _)| c)
+            .collect();
+        for cid in jump_ids {
+            try_jump_to_non_blocked(state, outbound, cid);
+        }
+    }
     // LINEAGE-ARCHIVE: autosave clone of social needs now_sim for WriteAllLineages prune.
     state.social.sim_time = state.sim_time;
     // Snapshot positions for temperature (avoid borrow clash with players mut).
@@ -11333,6 +11512,21 @@ pub fn tick_vitals_with_metrics(
         .map(|(&cid, p)| (cid, state.player_health_age_factor(p.p_id, p.true_age)))
         .collect();
 
+    let food_fx_before: HashMap<u64, (i32, i32, i32)> = state
+        .players
+        .iter()
+        .filter(|(_, p)| !p.deleted)
+        .map(|(&cid, p)| {
+            (
+                cid,
+                (
+                    p.food.ceil() as i32,
+                    p.yum.yum_bonus_ceil(),
+                    p.food_max.ceil() as i32,
+                ),
+            )
+        })
+        .collect();
     let mut dead = Vec::new();
     // trueAge just crossed 10 (Haxe TimeHelper father re-follow).
     let mut age10_father: Vec<u64> = Vec::new();
@@ -11700,6 +11894,30 @@ pub fn tick_vitals_with_metrics(
             }
         }
     }
+    // Haxe TimeHelper: sendFoodUpdate(false)+FRAME when ceil food / yum / max changes.
+    {
+        let mut food_fx: Vec<u64> = Vec::new();
+        for (&cid, p) in &state.players {
+            if p.deleted || !p.connected {
+                continue;
+            }
+            let Some(&(f, y, m)) = food_fx_before.get(&cid) else {
+                continue;
+            };
+            if f != p.food.ceil() as i32
+                || y != p.yum.yum_bonus_ceil()
+                || m != p.food_max.ceil() as i32
+            {
+                food_fx.push(cid);
+            }
+        }
+        for cid in food_fx {
+            if let Some(p) = state.players.get(&cid) {
+                outbound.send_urgent(cid, food_change_for_player(state, p).into_bytes());
+                send_frame(outbound, cid);
+            }
+        }
+    }
     // Haxe TimeHelper: lostCombatPrestige restore after angryTime step.
     for (pid, delta) in combat_restore {
         let before = state
@@ -11797,8 +12015,6 @@ pub fn tick_vitals_with_metrics(
         }
         debug!(n = heat_by_conn.len(), "sim: HX heat to players");
     }
-    // Pos-debug LS is emitted on wall-clock from the async sim loop (not here),
-    // so it is not delayed/batched with vitals fan-out.
     for &cid in &dead {
         let (reason, p_id, death_xy, age, food, email) = {
             let p = state.players.get(&cid);
@@ -11926,6 +12142,7 @@ pub fn tick_vitals_with_metrics(
         // Prefer full wire tag (reason_killed_<id>) over bare DeathCause enum tag.
         state.push_event(format_death_event_tag(p_id, &reason));
         state.afk.remove(p_id);
+        send_death_player_update(state, outbound, cid);
         info!(conn_id = cid, reason = %reason, "player died");
     }
     // Timed gestation: mothers whose due time elapsed auto-spawn via spawn_child.
@@ -12090,25 +12307,46 @@ pub fn tick_world_after_players(
     // place map objects walk with MX old_x old_y speed + clear origin + FM per viewer.
     let moves = tick_animals_dt(state, dt);
     for &(_id, kind, ox, oy, nx, ny) in &moves {
-        let animal_obj = kind.object_id();
+        let dest_biome = state.world.read().unwrap().get_biome(nx, ny);
+        let orig_biome = state
+            .world_map_time
+            .original_biomes
+            .get(&(ox, oy))
+            .copied()
+            .unwrap_or_else(|| state.world.read().unwrap().get_biome(ox, oy));
+        let animal_obj = if kind == AnimalKind::Rabbit {
+            // Haxe: 3566 time-move becomes dest 3568 (or stays 3566 off yellow/green).
+            crate::rabbit::rabbit_move_arrival(
+                crate::rabbit::FLEEING_RABBIT_DEST,
+                dest_biome,
+                orig_biome,
+            )
+            .0
+        } else {
+            kind.object_id()
+        };
         // Speed scales mildly with Chebyshev hop length (Haxe often uses ~1).
         let steps = (nx - ox).abs().max((ny - oy).abs()).max(1) as f32;
         let speed = kind.move_speed() * steps.sqrt().max(1.0);
-        // Update world tiles: move animal object from origin â†’ dest (leave origin empty
+        // Update world tiles: move animal object from origin → dest (leave origin empty
         // if it still held this animal; do not stomp a non-animal already at dest).
+        // Rabbit holes (161/164/173) stay on origin so snares still work.
         {
             let mut w = state.world.write().unwrap();
             let at_old = w.get_object(ox, oy);
             let at_new = w.get_object(nx, ny);
-            if at_new != 0 && at_new != animal_obj {
-                // Dest blocked after path check race â€” skip map write, keep entity moved.
+            if at_new != 0 && at_new != animal_obj && at_new != kind.object_id() {
+                // Dest blocked after path check race — skip map write, keep entity moved.
             } else {
-                if at_old == animal_obj {
+                if (at_old == kind.object_id() || at_old == crate::rabbit::FLEEING_RABBIT)
+                    && !crate::rabbit::rabbit_origin_must_keep(at_old)
+                {
                     w.set_object(ox, oy, 0);
                 }
                 w.set_object(nx, ny, animal_obj);
             }
         }
+        schedule_decay(state, nx, ny, animal_obj);
         let floor_o = state.world.read().unwrap().get_floor(ox, oy) as i32;
         let floor_n = state.world.read().unwrap().get_floor(nx, ny) as i32;
         let leftover_o = state.world.read().unwrap().get_object(ox, oy);
@@ -12243,6 +12481,85 @@ fn tick_shutdown(state: &mut SimState, outbound: &OutboundHub, dt: f32) {
 
 /// Haxe auto-decay: objects with actor&lt;0 transitions transform after delay.
 /// Returns list of `(x, y, new_object_id)` that changed this step (for MX).
+/// Haxe `doTimeTransitionHelper` when `transition.move > 0` → `doAnimalMovement`.
+///
+/// Fleeing rabbit 3566 lands as dest 3568 (or stays 3566 in a non-YELLOW/GREEN biome).
+fn apply_moving_auto_decay(
+    state: &mut SimState,
+    x: i32,
+    y: i32,
+    expect_id: i32,
+    tr: &ol_content::Transition,
+) -> Option<(i32, i32, i32)> {
+    let (ww, wh) = {
+        let w = state.world.read().unwrap();
+        (w.width_tiles, w.height_tiles)
+    };
+    if ww <= 0 || wh <= 0 {
+        return None;
+    }
+    let parent = state.content.resolve_base_id(expect_id);
+    let rabbit = crate::rabbit::rabbit_requires_empty_no_floor(parent);
+    let mut m = tr.move_dist;
+    if m < 3 {
+        m += 1;
+    }
+    if tr.desired_move_dist > 0 {
+        m = m.max(tr.desired_move_dist.min(6));
+    }
+    let knobs = animal_move::AnimalMoveChanceKnobs {
+        pass_blocking_biome: state.gameplay.chance_animals_pass_blocking_biome,
+        preferred_biome: state.gameplay.chance_preferred_biome,
+    };
+    let mut rng = rand::thread_rng();
+    let dest = {
+        let w = state.world.read().unwrap();
+        animal_move::pick_animal_destination_ex(
+            &w,
+            &state.content,
+            &mut rng,
+            x,
+            y,
+            ww,
+            wh,
+            m,
+            rabbit,
+            knobs,
+        )
+    };
+    let (nx, ny) = dest?;
+    if nx == x && ny == y {
+        return None;
+    }
+    let dest_biome = state.world.read().unwrap().get_biome(nx, ny);
+    let orig_biome = state
+        .world_map_time
+        .original_biomes
+        .get(&(x, y))
+        .copied()
+        .unwrap_or_else(|| state.world.read().unwrap().get_biome(x, y));
+    let (place_id, _) =
+        crate::rabbit::rabbit_move_arrival(tr.new_target_id, dest_biome, orig_biome);
+    let dest_floor = state.world.read().unwrap().get_floor(nx, ny) as i32;
+    if state.content.ground_only.contains(&place_id) && dest_floor != 0 {
+        return None;
+    }
+    let leave_id = tr.new_actor_id.max(0);
+    {
+        let mut w = state.world.write().unwrap();
+        if w.get_object(x, y) != expect_id {
+            return None;
+        }
+        let at_new = w.get_object(nx, ny);
+        if at_new != 0 && at_new != place_id && at_new != expect_id {
+            return None;
+        }
+        w.set_object(x, y, leave_id);
+        w.set_object(nx, ny, place_id);
+    }
+    Some((nx, ny, place_id))
+}
+
 pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> Vec<(i32, i32, i32)> {
     let mut changed = Vec::new();
     if state.pending_decays.is_empty() {
@@ -12405,6 +12722,35 @@ pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> Vec<(i32, i32, i32)> {
             }
             continue;
         }
+        // Haxe: if (transition.move > 0) doAnimalMovement (not in-place transform).
+        if tr.move_dist > 0 {
+            match apply_moving_auto_decay(state, x, y, expect_id, &tr) {
+                Some((nx, ny, placed)) => {
+                    state.record_world_change(nx, ny, placed);
+                    schedule_decay(state, nx, ny, placed);
+                    let left = state.world.read().unwrap().get_object(x, y);
+                    if left != expect_id {
+                        schedule_decay(state, x, y, left);
+                        changed.push((x, y, left));
+                    }
+                    changed.push((nx, ny, placed));
+                    debug!(
+                        x,
+                        y,
+                        nx,
+                        ny,
+                        from = expect_id,
+                        to = placed,
+                        "auto-decay animal move"
+                    );
+                }
+                None => {
+                    // Haxe failedMoves path: stay and retry next timer.
+                    schedule_decay(state, x, y, expect_id);
+                }
+            }
+            continue;
+        }
         {
             let mut w = state.world.write().unwrap();
             place_after_use(
@@ -12509,14 +12855,10 @@ pub fn seed_craft_graph_from_content(state: &mut SimState) {
     state.steel_chisel_family = crate::SteelChiselFamilyTable::from_content(&state.content);
 }
 
-/// Spawn rabbits/wolves/boars near play area when the animal world is empty.
+/// Test helper: place a small AnimalWorld pack. **Not** live world gen.
 ///
-/// Also **places content object ids on the world map** so clients see them via
-/// MAP_CHUNK / MX (Haxe animals are map objects, not free-floating entities).
-///
-/// Anchor is map center when the world has dimensions (self-play agents spawn
-/// near center); otherwise configured [`SimState::spawn_x`] / [`SimState::spawn_y`].
-/// Wolves are placed so forager (center) and hunter (~+28 east) can sense them.
+/// Haxe `generateObjects` uses `mapChance` / biome tables (161 rabbit holes on
+/// yellow, wolves, boars, …). Live boot must not call this.
 pub fn spawn_default_animals(state: &mut SimState) {
     if !state.animals.animals.is_empty() {
         return;
@@ -12529,7 +12871,7 @@ pub fn spawn_default_animals(state: &mut SimState) {
             (state.spawn_x, state.spawn_y)
         }
     };
-    // 3 rabbit / 2 wolf / 2 boar â€” cover center forager + east farmer/hunter band (~+18..+28).
+    // 3 rabbit / 2 wolf / 2 boar / 2 mosquito around the anchor.
     let seeds: &[(AnimalKind, i32, i32)] = &[
         (AnimalKind::Rabbit, sx + 3, sy + 2),
         (AnimalKind::Rabbit, sx - 2, sy + 4),
@@ -12542,18 +12884,28 @@ pub fn spawn_default_animals(state: &mut SimState) {
         (AnimalKind::Mosquito, sx + 5, sy + 6),
         (AnimalKind::Mosquito, sx - 4, sy + 8),
     ];
+    let mut placed: Vec<(i32, i32, i32)> = Vec::new();
     for &(kind, x, y) in seeds {
         let (px, py) = find_empty_animal_tile(state, x, y);
         state.animals.spawn(kind, px, py);
-        let oid = kind.object_id();
+        // Haxe generateObjects: rabbits are 161 holes; fleeing 3566 is a time outcome.
+        let oid = if kind == AnimalKind::Rabbit {
+            crate::rabbit::RABBIT_HOLE_HIDING
+        } else {
+            kind.object_id()
+        };
         let mut w = state.world.write().unwrap();
         if w.get_object(px, py) == 0 {
             w.set_object(px, py, oid);
+            placed.push((px, py, oid));
         }
+    }
+    for (x, y, oid) in placed {
+        schedule_decay(state, x, y, oid);
     }
     info!(
         n = state.animals.animals.len(),
-        sx, sy, "sim: default animals spawned on map near play area"
+        sx, sy, "sim: default animals spawned around map center"
     );
 }
 
@@ -12967,6 +13319,7 @@ pub(crate) fn apply_animal_path_damages(
             }
             state.push_event(format_death_event(target_id, DeathCause::Killed));
             state.afk.remove(target_id);
+            send_death_player_update_pid(state, outbound, target_id);
             let line = format!("{target_id} ANIMAL_KILL {} dmg={:.1}", kind.label(), dmg);
             send_nearby_ps_lines(outbound, &near, &line);
             info!(
@@ -13607,10 +13960,10 @@ fn apply_grave_curse_live_gates(state: &mut SimState, outbound: &OutboundHub, co
             let pe = format_player_emot(p_id, CURSE_ENTER_EMOTE_INDEX);
             let near_ids = nearby_conn_ids(state, px, py, nearby_range(state));
             send_nearby(outbound, &near_ids, pe.into_bytes());
-            outbound.send(
-                conn_id,
-                format_player_says(p_id, false, CURSE_ENTER_SAY).into_bytes(),
-            );
+            for &nid in &near_ids {
+                send_frame(outbound, nid);
+            }
+            send_ps_reply(outbound, conn_id, &format!("{p_id}/0 {CURSE_ENTER_SAY}"));
         }
         GraveCurseTransition::Cleared => {
             let cu = format_cursed_message(p_id, 0);
@@ -13618,10 +13971,10 @@ fn apply_grave_curse_live_gates(state: &mut SimState, outbound: &OutboundHub, co
             let pe = format_player_emot(p_id, CURSE_CLEAR_EMOTE_INDEX);
             let near_ids = nearby_conn_ids(state, px, py, nearby_range(state));
             send_nearby(outbound, &near_ids, pe.into_bytes());
-            outbound.send(
-                conn_id,
-                format_player_says(p_id, false, CURSE_CLEAR_SAY).into_bytes(),
-            );
+            for &nid in &near_ids {
+                send_frame(outbound, nid);
+            }
+            send_ps_reply(outbound, conn_id, &format!("{p_id}/0 {CURSE_CLEAR_SAY}"));
         }
         GraveCurseTransition::None => {}
     }
@@ -13724,9 +14077,10 @@ fn send_held_eat_result(state: &mut SimState, outbound: &OutboundHub, conn_id: u
         }
         let spd = player_move_speed(state, p);
         let (px, py) = p.world_to_client(p.x, p.y);
-        let pu = format_player_update_line_eat_responsible(
+        let clothing = player_clothing_set(p);
+        let pu = format_player_update_line_full_clothing_responsible(
             p.p_id,
-            person_object_id(&p),
+            person_object_id(p),
             p.held_id,
             px,
             py,
@@ -13734,8 +14088,17 @@ fn send_held_eat_result(state: &mut SimState, outbound: &OutboundHub, conn_id: u
             spd,
             p.yum.just_ate_flag(),
             p.yum.just_ate_id,
-            p.yum.responsible_id,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -1,
             p.done_moving_seq.max(1),
+            &clothing,
+            p.yum.responsible_id,
         );
         for &cid in &near {
             outbound.send_urgent(cid, format_server_message("PU", &[&pu]).into_bytes());
@@ -13975,8 +14338,7 @@ pub async fn run_sim_loop_with_views(
     arm_decays_for_loaded_world(&mut state);
     // Reverse craft graph from content transitions (capped for boot speed).
     seed_craft_graph_from_content(&mut state);
-    // Seed a few wild animals near play area for AI / viewer if none loaded.
-    spawn_default_animals(&mut state);
+    // Animals are map objects from generateObjects / OLW — do not inject a fake pack.
     // CONFIG-SETTINGS: apply server.toml live knobs at boot (Haxe readFromFile at start).
     // Omitted TOML keys keep compiled defaults — analog of Haxe `**default**` skip.
     if let Some(ref tracker) = hot_reload {
@@ -14025,9 +14387,6 @@ pub async fn run_sim_loop_with_views(
     );
     let mut next_tick_deadline = tokio::time::Instant::now() + period;
     let mut last_skip_log = 0u64;
-    // Wall-clock 1 Hz LS pos-debug (bare x y) â€” independent of sim catch-up.
-    let ls_period = std::time::Duration::from_secs_f32(POS_DEBUG_LS_INTERVAL_SECS);
-    let mut next_ls_at = tokio::time::Instant::now() + ls_period;
     counters.mark_start_now();
     info!(
         tick_hz,
@@ -14083,41 +14442,6 @@ pub async fn run_sim_loop_with_views(
         // Let connection tasks flush SAY/PS replies before more sim work.
         if human_work {
             tokio::task::yield_now().await;
-        }
-
-        // Wall-clock LS every 1s: spoken map location at the player tile.
-        // Client uses birth-relative coords + a text token (Haxe array[2]).
-        // Wire: LS\n{rx} {ry} {x},{y}\n#  â€” only the coordinates (no POS/id fluff).
-        // Catch up only one beat if the sim was busy (no multi-minute backlog flood).
-        let now_ls = tokio::time::Instant::now();
-        if now_ls >= next_ls_at {
-            // If we fell far behind, skip backlog â€” send once and reschedule from now.
-            while next_ls_at + ls_period < now_ls {
-                next_ls_at += ls_period;
-            }
-            next_ls_at = now_ls + ls_period;
-            let targets: Vec<(u64, i32, i32, i32, i32)> = state
-                .players
-                .iter()
-                .filter(|(cid, p)| !p.deleted && p.connected && **cid < 9_000_000)
-                .map(|(&cid, p)| {
-                    let (rx, ry) = p.world_to_client(p.x, p.y);
-                    (cid, rx, ry, p.x, p.y)
-                })
-                .collect();
-            let n = targets.len();
-            for (cid, rx, ry, wx, wy) in targets {
-                // Spoken text = absolute x,y as one token so the bubble is visible.
-                let label = format!("{wx},{wy}");
-                // LS then FM â€” official client will not show LS until FRAME.
-                outbound.send_urgent(cid, format_location_says(rx, ry, &label).into_bytes());
-                // Arc<OutboundHub> in the sim loop â€” borrow for send_frame.
-                send_frame(outbound.as_ref(), cid);
-            }
-            if n > 0 {
-                debug!(n, "sim: LS+FM spoken map pos (rel + x,y) wall clock");
-                tokio::task::yield_now().await;
-            }
         }
 
         let now = tokio::time::Instant::now();
@@ -14410,7 +14734,6 @@ pub fn apply_intent(
                         );
                         warn!(
                             conn_id,
-                            %email,
                             ?other,
                             "sim: spawn queue rejected login"
                         );
@@ -14468,7 +14791,6 @@ pub fn apply_intent(
                 let Some(pl) = state.players.get(&conn_id) else {
                     return;
                 };
-                let spd = player_move_speed(state, pl);
                 let (rx, ry) = pl.world_to_client(pl.x, pl.y);
                 let po = person_object_id(pl);
                 let nm_line = format_player_nm_line_ex(
@@ -14482,26 +14804,7 @@ pub fn apply_intent(
                     conn_id,
                     format_server_message("NM", &[&nm_line]).into_bytes(),
                 );
-                let pu = format_player_update_line_full(
-                    pl.p_id,
-                    po,
-                    pl.held_id,
-                    rx,
-                    ry,
-                    pl.age,
-                    spd,
-                    0,
-                    0,
-                    1, // force so client snaps to server authority
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    -1,
-                    pl.done_moving_seq.max(1),
-                );
+                let pu = format_live_pu_line(state, pl, rx, ry, 1);
                 outbound.send_urgent(conn_id, format_server_message("PU", &[&pu]).into_bytes());
                 outbound.send_urgent(conn_id, format_server_message("FM", &[]).into_bytes());
                 info!(
@@ -14527,7 +14830,6 @@ pub fn apply_intent(
                 conn_id,
                 p_id,
                 reconnect,
-                %email,
                 %client_tag,
                 "sim: player spawned"
             );
@@ -14692,7 +14994,10 @@ pub fn apply_intent(
                     }
                     Some(r) => {
                         let too_close = r.ranged_too_close;
-                        if try_eat_held(state, conn_id) {
+                        // Haxe: eating is doSelf (clothingSlot < 0), not failed USE on a
+                        // ground object. Empty-tile USE still eats held food (live test).
+                        let eat_ok = r.target_before == 0 && !too_close;
+                        if eat_ok && try_eat_held(state, conn_id) {
                             send_held_eat_result(state, outbound, conn_id);
                         } else {
                             debug!(
@@ -14724,6 +15029,7 @@ pub fn apply_intent(
                 // debug message channel + kill-style note_too_close_say callers.
                 // Haxe: TransitionHelper.use L761–764
                 maybe_hungry_work_emote_feedback(state, outbound, conn_id);
+                maybe_lock_say_feedback(state, outbound, conn_id);
                 if use_ranged_too_close {
                     emit_too_close_ps(state, outbound, conn_id);
                     clear_too_close_pending();
@@ -14732,6 +15038,14 @@ pub fn apply_intent(
                 }
                 // READ-WRITING: post-command heldObject.text → PS (skip early refuses).
                 maybe_send_held_writing_ps(state, outbound, conn_id);
+                if state
+                    .players
+                    .get(&conn_id)
+                    .map(|p| p.deleted)
+                    .unwrap_or(false)
+                {
+                    send_death_player_update(state, outbound, conn_id);
+                }
             } // !moving USE
         }
         NetIntent::Drop { conn_id, x, y, c } => {

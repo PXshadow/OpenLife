@@ -76,6 +76,59 @@ pub fn take_held_player_drop_baby() -> Option<u64> {
     LAST_HELD_PLAYER_DROP_BABY.with(|c| c.take())
 }
 
+/// Haxe `TransitionHelper.doContainerStuff(false)`: USE put-in (not DROP swap).
+/// Graves 87/88/752 refuse put-in on USE.
+fn try_use_put_in_container(
+    state: &mut crate::SimState,
+    conn_id: u64,
+    tx: i32,
+    ty: i32,
+    actor: i32,
+    target: i32,
+) -> bool {
+    if actor == 0 || target == 0 {
+        return false;
+    }
+    let parent = state.content.resolve_base_id(target);
+    if parent == 87 || parent == 88 || parent == 752 {
+        return false;
+    }
+    if crate::object_blocks_remove(&state.content, target) {
+        return false;
+    }
+    let (slots, can_put) = {
+        let Some(cdef) = state.content.get(target) else {
+            return false;
+        };
+        let Some(adef) = state.content.get(actor) else {
+            return false;
+        };
+        if cdef.num_slots <= 0 || !adef.containable || !adef.contain_fits_in_container(cdef) {
+            (0usize, false)
+        } else {
+            (cdef.num_slots.max(0) as usize, true)
+        }
+    };
+    if !can_put {
+        return false;
+    }
+    let sim_t = state.sim_time;
+    let put = state
+        .world
+        .write()
+        .unwrap()
+        .container_put_timed(tx, ty, actor, slots, sim_t, 0.0);
+    if !put {
+        return false;
+    }
+    if let Some(p) = state.players.get_mut(&conn_id) {
+        p.clear_held();
+    }
+    state.record_world_change(tx, ty, target);
+    crate::schedule_decay(state, tx, ty, target);
+    true
+}
+
 /// Haxe `heldPlayer != null || o_id[0] < 0`: drop at feet then refuse the command.
 ///
 /// DROP/SWAP keep click-tile `dropPlayer` (GPI.drop / GPI.swap). USE/REMV use this.
@@ -2182,15 +2235,15 @@ pub fn apply_use_at_ex(
                     // Haxe: doEmote(biomeRelief); sendFoodUpdate via packets_after_use FX
                     note_hungry_work_emote(conn_id, HUNGRY_WORK_RELIEF_EMOTE);
                 }
-                HungryWorkGate::RefuseExhaustion { .. } => {
+                HungryWorkGate::RefuseExhaustion { excess } => {
                     // Haxe: player.say('Too exhausted! $excess'); Emote.homesick
-                    note_lock_say(conn_id, "Too exhausted!");
+                    note_lock_say(conn_id, format!("Too exhausted! {excess}"));
                     note_hungry_work_emote(conn_id, HUNGRY_WORK_HOMESICK_EMOTE);
                     return refuse(actor, target);
                 }
-                HungryWorkGate::RefuseFood { .. } => {
+                HungryWorkGate::RefuseFood { missing } => {
                     // Haxe: player.say('Need ${missingFood} more food!'); Emote.homesick
-                    note_lock_say(conn_id, "Need more food!");
+                    note_lock_say(conn_id, format!("Need {missing} more food!"));
                     note_hungry_work_emote(conn_id, HUNGRY_WORK_HOMESICK_EMOTE);
                     return refuse(actor, target);
                 }
@@ -2367,40 +2420,39 @@ pub fn apply_use_at_ex(
         if !old_enough_pick {
             return refuse(actor, target);
         }
+        // Winter dummy ids (TransformToDummy) must use parent for permanent/held.
+        // Haxe: tileObjectData.dummyParent
+        let pickup_id = state.content.resolve_base_id(target);
         let permanent = state
             .content
-            .get(target)
+            .get(pickup_id)
             .map(|d| d.permanent)
             .unwrap_or(false);
         if permanent {
             return refuse(actor, target);
         }
         (
-            target, 0, false, false, false, false, false, false, -1, false, true,
+            pickup_id, 0, false, false, false, false, false, false, -1, false, true,
         )
     } else if actor != 0 && target != 0 {
-        // Haxe: oldEnoughForPickup && doContainerStuff / swap (L804–807)
+        // Haxe L804–807: empty-hand pickup already handled; USE put-in via
+        // doContainerStuff. Holding + occupied tile does **not** swap (DROP does).
         if !old_enough_pick {
             return refuse(actor, target);
         }
-        let tgt_perm = state
-            .content
-            .get(target)
-            .map(|d| d.permanent)
-            .unwrap_or(false);
-        let act_perm = state
-            .content
-            .get(actor)
-            .map(|d| d.permanent)
-            .unwrap_or(false);
-        if tgt_perm || act_perm {
-            return refuse(actor, target);
+        if try_use_put_in_container(state, conn_id, tx, ty, actor, target) {
+            return Some(UseResult {
+                actor_before: actor,
+                target_before: target,
+                actor_after: 0,
+                target_after: target,
+                applied: true,
+                x: tx,
+                y: ty,
+                ranged_too_close: false,
+            });
         }
-        // Bare swap: put-down transform when holding horse-like object.
-        let ground = crate::horse_mount::put_down_ground_id(&state.content, actor).unwrap_or(actor);
-        (
-            target, ground, false, false, false, false, false, false, -1, false, true,
-        )
+        return refuse(actor, target);
     } else if actor != 0 && target == 0 {
         // Empty tile: food is eaten on failed USE (Haxe tryEat), not put-down.
         // DROP places objects; USE-on-empty with food_value>0 refuses so live
@@ -3373,6 +3425,28 @@ mod tests {
         assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
     }
 
+    /// Winter dummy map ids pick up as the parent (Haxe dummyParent).
+    #[test]
+    fn use_empty_hand_picks_up_dummy_as_parent() {
+        let mut db = ContentDb::default();
+        db.objects.insert(225, def(225, 0, false));
+        db.dummy_parent.insert(9001, 225);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "wheat@dummy");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.age = 14.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 9001);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied, "dummy wheat sheaf must pick up");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 225);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 0);
+    }
+
     /// MIN-PICKUP-AGE: transition skipped when below minPickupAge (not berry).
     #[test]
     fn use_min_pickup_age_skips_transition_not_berry() {
@@ -3487,6 +3561,45 @@ mod tests {
         crate::apply_drop(&mut state, &hub, 1, 0, 0, None);
         assert_eq!(state.players.get(&1).unwrap().held_id, 33);
         assert_eq!(state.world.read().unwrap().get_object(0, 0), 292);
+    }
+
+    /// Haxe doContainerStuff(false): USE with held berry on empty basket puts in (no swap).
+    #[test]
+    fn use_holding_on_basket_puts_in_instead_of_swap() {
+        let mut db = ContentDb::default();
+        let mut basket = def(292, 0, false);
+        basket.num_slots = 4;
+        basket.slot_size = 1.0;
+        db.objects.insert(292, basket);
+        let mut berry = def(31, 0, false);
+        berry.containable = true;
+        berry.contain_size = 1.0;
+        db.objects.insert(31, berry);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "basket@use");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(31, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 292);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied, "USE put-in must apply");
+        assert_eq!(r.actor_after, 0);
+        assert_eq!(r.target_after, 292);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 292);
+        assert_eq!(
+            state
+                .world
+                .read()
+                .unwrap()
+                .get_helper(0, 0)
+                .map(|h| h.contained.clone())
+                .unwrap_or_default(),
+            vec![31]
+        );
     }
 
     /// MIN-PICKUP-AGE: REMV from multi-use target refuses when age < minPickupAge.
@@ -4775,15 +4888,12 @@ mod tests {
         paper.hits = 4.0;
         state.world.write().unwrap().set_object_complex(0, 0, paper);
         let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
-        // No 2170+1615 trans → bare swap; snapshot is post-clear so paper text/hits stay empty.
-        assert!(r.applied);
-        assert_eq!(
-            state.players.get(&1).unwrap().held_id,
-            PAPER_WITH_CHARCOAL_WRITING_ID
-        );
-        let held = state.players.get(&1).unwrap().held_helper.clone().unwrap();
-        assert_eq!(held.text, "");
-        assert_eq!(held.hits, 0.0);
+        // Haxe: clear writing is a side effect; no 2170+1615 trans and no container → USE refuses (no swap).
+        assert!(!r.applied);
+        assert_eq!(state.players.get(&1).unwrap().held_id, RUBBER_BALL_ID);
+        let paper = state.world.read().unwrap().get_helper(0, 0).cloned().unwrap();
+        assert_eq!(paper.text, "");
+        assert_eq!(paper.hits, 0.0);
     }
 
     /// CLEAR-WRITING: dummy parent of 2170 still erases 1615.
@@ -6449,9 +6559,9 @@ mod tests {
         assert_eq!(r.target_after, 3161);
     }
 
-    // Plain stone swap still works without horse flags
+    // Haxe USE never swaps two ground items; DROP does. No trans → refuse.
     #[test]
-    fn plain_item_swap_regression() {
+    fn plain_item_use_does_not_swap() {
         let mut db = ContentDb::default();
         db.objects.insert(33, def(33, 0, false));
         db.objects.insert(34, def(34, 0, false));
@@ -6465,9 +6575,9 @@ mod tests {
         }
         state.world.write().unwrap().set_object(0, 0, 34);
         let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
-        assert!(r.applied);
-        assert_eq!(r.actor_after, 34);
-        assert_eq!(r.target_after, 33);
+        assert!(!r.applied);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
+        assert_eq!(state.world.read().unwrap().get_object(0, 0), 34);
     }
 
     // --- TH-LOCK wire: Key 917 / Lock Removal Key 1003 ---

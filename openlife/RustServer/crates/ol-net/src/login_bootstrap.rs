@@ -119,8 +119,10 @@ pub fn build_login_bootstrap(
     out.push(format_server_message("FX", &[&fx]).into_bytes());
     out.push(format_server_message("FM", &[]).into_bytes());
 
-    // Haxe BAD_BIOMES uses real biome ids; 21 = SNOWINGREY mountain wall.
-    let bb = "21 MOUNTAIN\n2 RIVER\n6 OCEAN\n";
+    // Haxe Connection.initConnection BAD_BIOMES: SNOWINGREY 21, RIVER 17, OCEAN 9.
+    // Do **not** send Yellow Prairie (2) or Jungle (6) — official clients treat BB
+    // as path-blocked, which made prairie→jungle unwalkable.
+    let bb = "21 MOUNTAIN\n17 RIVER\n9 OCEAN\n";
     out.push(format_server_message("BB", &[bb]).into_bytes());
 
     out
@@ -147,6 +149,13 @@ mod tests {
         assert!(rest.contains("FX\n"));
         assert!(rest.contains("FM\n"));
         assert!(rest.contains("BB\n"));
+        assert!(rest.contains("21 MOUNTAIN"));
+        assert!(rest.contains("17 RIVER"));
+        assert!(rest.contains("9 OCEAN"));
+        assert!(
+            !rest.contains("6 OCEAN") && !rest.contains("2 RIVER"),
+            "BB must not label jungle (6) as ocean or yellow prairie (2) as river: {rest}"
+        );
         assert_eq!(player_id_for_conn(1), 2);
     }
 }

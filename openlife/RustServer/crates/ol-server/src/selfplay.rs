@@ -1079,7 +1079,7 @@ async fn login_and_spawn(
         .await;
     push_log(
         log,
-        &format!("[{}] agent login {}", agent.label, agent.email),
+        &format!("[{}] agent login", agent.label),
     );
 
     // Pick a green-ish spawn; fall back to random walk from center.

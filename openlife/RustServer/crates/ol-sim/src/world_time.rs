@@ -10,7 +10,9 @@
 //! `isTimeToChangeReached`, `TransitionData.calculateTimeToChange`.
 
 use ol_content::{ContentDb, Transition};
-use ol_world::{ComplexObject, World, OCEAN, PASSABLE_RIVER, RIVER, SNOWINGREY};
+use ol_world::{
+    transform_to_dummy, ComplexObject, World, OCEAN, PASSABLE_RIVER, RIVER, SNOWINGREY,
+};
 
 /// Haxe `BiomeTag.SNOW` (not re-exported from ol_world root).
 const BIOME_SNOW: u8 = 4;
@@ -1181,6 +1183,8 @@ pub fn winter_multiuse_should_decay(
 }
 
 /// Spring multi-use bush: increment uses when roll succeeds.
+///
+/// Haxe also takes this path when `undoLastUseObject != 0` (empty wild bush 279).
 pub fn spring_multiuse_should_regrow(
     spring_regrow_chance: f32,
     spring_regrow_factor: f32,
@@ -1188,11 +1192,83 @@ pub fn spring_multiuse_should_regrow(
     num_uses_max: i32,
     rand01: f32,
 ) -> bool {
-    if spring_regrow_factor <= 0.0 || number_of_uses >= num_uses_max {
+    spring_multiuse_should_regrow_ex(
+        spring_regrow_chance,
+        spring_regrow_factor,
+        number_of_uses,
+        num_uses_max,
+        rand01,
+        false,
+    )
+}
+
+/// [`spring_multiuse_should_regrow`] plus Haxe `undoLastUseObject != 0`.
+pub fn spring_multiuse_should_regrow_ex(
+    spring_regrow_chance: f32,
+    spring_regrow_factor: f32,
+    number_of_uses: i32,
+    num_uses_max: i32,
+    rand01: f32,
+    has_undo_last_use: bool,
+) -> bool {
+    if spring_regrow_factor <= 0.0 {
+        return false;
+    }
+    if number_of_uses >= num_uses_max && !has_undo_last_use {
         return false;
     }
     let factor = (num_uses_max - number_of_uses).max(1) as f32;
     spring_regrow_chance * spring_regrow_factor * factor > rand01
+}
+
+/// Haxe single-use winter decay: `WinterDecayChance * winterDecayFactor >= rand`.
+pub fn winter_single_use_should_decay(
+    winter_decay_chance: f32,
+    winter_decay_factor: f32,
+    rand01: f32,
+) -> bool {
+    winter_decay_factor > 0.0 && winter_decay_chance * winter_decay_factor >= rand01
+}
+
+/// After winter clear, hide the plant for spring if `springRegrowFactor > rand`.
+pub fn winter_should_hide_for_spring(spring_regrow_factor: f32, rand01: f32) -> bool {
+    spring_regrow_factor > rand01
+}
+
+/// Haxe empty wild bush (`undoLastUseObject`): numUses &lt; 2 but paired last-use id.
+pub fn is_undo_last_use_plant(content: &ContentDb, id: i32) -> bool {
+    let base = content.resolve_base_id(id);
+    let num = content.get(base).map(|d| d.num_uses).unwrap_or(1);
+    num < 2 && content.last_use_object.contains_key(&base)
+}
+
+/// Haxe `GrowNewPlantsFromExistingFactor` for hidden-object spring surface.
+pub const HIDDEN_SPRING_REGROW_FACTOR: f32 = 2.0;
+
+/// Apply `TransformToDummy` after a seasonal use change. Returns the stored id.
+fn apply_season_transformed_uses(
+    world: &mut World,
+    content: &ContentDb,
+    x: i32,
+    y: i32,
+    id: i32,
+    uses: i32,
+) -> i32 {
+    let base = content.resolve_base_id(id);
+    let def = content.get(base);
+    let num_uses = def.map(|d| d.num_uses).unwrap_or(1);
+    let dummy_ids: &[i32] = def.map(|d| d.dummy_ids.as_slice()).unwrap_or(&[]);
+    let paired = content.last_use_object.get(&base).copied().unwrap_or(0);
+    let (last_use, undo) = if num_uses > 1 {
+        (paired, 0)
+    } else {
+        (0, paired)
+    };
+    let (new_id, new_uses) = transform_to_dummy(
+        base, uses, num_uses, last_use, undo, false, 0, dummy_ids,
+    );
+    world.set_object_complex(x, y, ComplexObject::with_uses(new_id, new_uses));
+    new_id
 }
 
 /// Hide fleeing rabbit in winter snow that was not originally snow.
@@ -1418,9 +1494,11 @@ pub fn do_world_map_time_stuff_ex2(
 
     for y in start_y..end_y {
         for x in 0..w {
-            // Remember original biome once.
+            // Remember original biome once (not after snow spread — Haxe getOriginalBiomeId).
             let biome = world.get_biome(x, y);
-            map_time.original_biomes.entry((x, y)).or_insert(biome);
+            if biome != BIOME_SNOW && biome != SNOWINGREY {
+                map_time.original_biomes.entry((x, y)).or_insert(biome);
+            }
 
             // Tile temperature: own-tile lerp then neighbor balance (doLocalHeat=true).
             // Haxe: UpdateTileTemperature — average biome, season factors, real rValue.
@@ -1505,7 +1583,7 @@ pub fn do_world_map_time_stuff_ex2(
                 }
             }
 
-            // Spring: unhide rabbits.
+            // Spring: unhide rabbits, then hidden-plant surface (Haxe RespawnOrDecayPlant hidden=true).
             if season_is_spring {
                 let hidden = map_time.hidden_objects.get(&(x, y)).copied().unwrap_or(0);
                 if should_unhide_rabbit_spring(hidden, biome) && obj_id == 0 {
@@ -1520,6 +1598,38 @@ pub fn do_world_map_time_stuff_ex2(
                         from_y: y,
                     });
                     continue;
+                }
+                if hidden != 0
+                    && hidden != FLEEING_RABBIT_ID
+                    && obj_id == 0
+                    && floor == 0
+                {
+                    if let Some(def) = content.get(content.resolve_base_id(hidden)) {
+                        if def.spring_regrow_factor > 0.0 {
+                            let r: f32 = rng.gen();
+                            let chance = map_time.spring_regrow_chance
+                                * def.spring_regrow_factor
+                                * HIDDEN_SPRING_REGROW_FACTOR;
+                            if chance > r {
+                                let spawn = if def.counts_or_grows_as > 0 {
+                                    def.counts_or_grows_as
+                                } else {
+                                    content.resolve_base_id(hidden)
+                                };
+                                world.set_object(x, y, spawn);
+                                map_time.hidden_objects.remove(&(x, y));
+                                changes.push(MapTimeChange {
+                                    x,
+                                    y,
+                                    new_object_id: spawn,
+                                    moving: false,
+                                    from_x: x,
+                                    from_y: y,
+                                });
+                                continue;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1618,55 +1728,94 @@ pub fn do_world_map_time_stuff_ex2(
                 }
             }
 
-            // Seasonal multi-use bush (winter decay / spring regrow) via factors on def.
-            if let Some(def) = content.get(obj_id) {
-                if def.num_uses > 1 {
-                    let uses = world
-                        .get_helper(x, y)
-                        .map(|h| h.uses_remaining)
-                        .unwrap_or(def.num_uses);
-                    if season_is_winter && def.winter_decay_factor > 0.0 {
+            // Haxe RespawnOrDecayPlant on the current object (all seasons; hidden=false).
+            // Winter: multi-use decrement (incl. last use → lastUseObject) or single-use clear+hide.
+            // Spring: multi-use / undoLastUse increment, else offspring is long_term.
+            let mut plant_changed = false;
+            if let Some(def) = content.get(content.resolve_base_id(obj_id)) {
+                let base = content.resolve_base_id(obj_id);
+                let undo_empty = is_undo_last_use_plant(content, base);
+                let uses = world
+                    .get_helper(x, y)
+                    .map(|h| h.uses_remaining)
+                    .unwrap_or(def.num_uses.max(1));
+                if season_is_winter && def.winter_decay_factor > 0.0 {
+                    if def.num_uses > 1 {
                         let r: f32 = rng.gen();
                         if winter_multiuse_should_decay(
                             map_time.winter_decay_chance,
                             def.winter_decay_factor,
                             uses,
                             r,
-                        ) && uses > 1
-                        {
+                        ) {
                             let next = uses - 1;
-                            world.set_object_complex(x, y, ComplexObject::with_uses(obj_id, next));
+                            let new_id = apply_season_transformed_uses(
+                                world, content, x, y, base, next,
+                            );
                             changes.push(MapTimeChange {
                                 x,
                                 y,
-                                new_object_id: obj_id,
+                                new_object_id: new_id,
                                 moving: false,
                                 from_x: x,
                                 from_y: y,
                             });
+                            plant_changed = true;
                         }
-                    } else if season_is_spring && def.spring_regrow_factor > 0.0 {
+                    } else {
                         let r: f32 = rng.gen();
-                        if spring_multiuse_should_regrow(
-                            map_time.spring_regrow_chance,
-                            def.spring_regrow_factor,
-                            uses,
-                            def.num_uses,
+                        if winter_single_use_should_decay(
+                            map_time.winter_decay_chance,
+                            def.winter_decay_factor,
                             r,
                         ) {
-                            let next = (uses + 1).min(def.num_uses);
-                            world.set_object_complex(x, y, ComplexObject::with_uses(obj_id, next));
+                            let hide_r: f32 = rng.gen();
+                            if winter_should_hide_for_spring(def.spring_regrow_factor, hide_r) {
+                                map_time.hidden_objects.insert((x, y), obj_id);
+                            }
+                            world.set_object(x, y, 0);
                             changes.push(MapTimeChange {
                                 x,
                                 y,
-                                new_object_id: obj_id,
+                                new_object_id: 0,
                                 moving: false,
                                 from_x: x,
                                 from_y: y,
                             });
+                            plant_changed = true;
                         }
                     }
+                } else if season_is_spring
+                    && def.spring_regrow_factor > 0.0
+                    && (def.num_uses > 1 || undo_empty)
+                {
+                    let r: f32 = rng.gen();
+                    if spring_multiuse_should_regrow_ex(
+                        map_time.spring_regrow_chance,
+                        def.spring_regrow_factor,
+                        uses,
+                        def.num_uses.max(1),
+                        r,
+                        undo_empty,
+                    ) {
+                        let next = uses + 1;
+                        let new_id = apply_season_transformed_uses(
+                            world, content, x, y, base, next,
+                        );
+                        changes.push(MapTimeChange {
+                            x,
+                            y,
+                            new_object_id: new_id,
+                            moving: false,
+                            from_x: x,
+                            from_y: y,
+                        });
+                        plant_changed = true;
+                    }
                 }
+            }
+            if plant_changed {
+                continue;
             }
 
             // Hide rabbits in winter.
@@ -2327,6 +2476,88 @@ mod tests {
         assert!(!winter_multiuse_should_decay(0.0, 1.0, 3, 0.0));
         assert!(spring_multiuse_should_regrow(1.0, 1.0, 1, 5, 0.5));
         assert!(!spring_multiuse_should_regrow(1.0, 1.0, 5, 5, 0.0));
+        assert!(winter_single_use_should_decay(1.0, 1.0, 0.5));
+        assert!(!winter_single_use_should_decay(0.0, 1.0, 0.1));
+        assert!(winter_should_hide_for_spring(1.0, 0.4));
+        assert!(!winter_should_hide_for_spring(0.0, 0.1));
+        assert!(spring_multiuse_should_regrow_ex(1.0, 6.0, 1, 1, 0.5, true));
+        assert!(!spring_multiuse_should_regrow_ex(1.0, 1.0, 5, 5, 0.0, false));
+    }
+
+    #[test]
+    fn winter_clears_single_use_and_may_hide() {
+        let mut db = ContentDb::default();
+        db.objects.insert(
+            40,
+            ObjectDef {
+                id: 40,
+                num_uses: 1,
+                winter_decay_factor: 2.0,
+                spring_regrow_factor: 1.0,
+                ..ObjectDef::empty(40)
+            },
+        );
+        let mut world = World::new(10, 50, false);
+        world.set_object(1, 0, 40);
+        let mut map_time = WorldMapTimeState::default();
+        map_time.step = 25; // band 0, recompute chances from sim_time
+        let mut rng = StdRng::seed_from_u64(2);
+        let changes = do_world_map_time_stuff(
+            &mut world,
+            &db,
+            &mut map_time,
+            false,
+            true,
+            0.0,
+            60.0,
+            10_000.0,
+            1.0,
+            &mut rng,
+        );
+        assert!(
+            changes.iter().any(|c| c.x == 1 && c.y == 0 && c.new_object_id == 0),
+            "winter should clear wild carrot: {changes:?}"
+        );
+        assert_eq!(world.get_object(1, 0), 0);
+    }
+
+    #[test]
+    fn spring_surfaces_hidden_plant() {
+        let mut db = ContentDb::default();
+        db.objects.insert(
+            40,
+            ObjectDef {
+                id: 40,
+                num_uses: 1,
+                spring_regrow_factor: 1.0,
+                ..ObjectDef::empty(40)
+            },
+        );
+        let mut world = World::new(10, 50, false);
+        let mut map_time = WorldMapTimeState::default();
+        map_time.hidden_objects.insert((1, 0), 40);
+        map_time.step = 25;
+        let mut rng = StdRng::seed_from_u64(3);
+        let changes = do_world_map_time_stuff(
+            &mut world,
+            &db,
+            &mut map_time,
+            true,
+            false,
+            0.0,
+            60.0,
+            10_000.0,
+            1.0,
+            &mut rng,
+        );
+        assert!(
+            changes
+                .iter()
+                .any(|c| c.x == 1 && c.y == 0 && c.new_object_id == 40),
+            "spring should surface hidden plant: {changes:?}"
+        );
+        assert_eq!(world.get_object(1, 0), 40);
+        assert!(!map_time.hidden_objects.contains_key(&(1, 0)));
     }
 
     #[test]

@@ -23,7 +23,11 @@ use ol_player_helper::{
     pick_best_search_food, to_best_hit, AiFoodSearchFlags, ProcessFoodOpts, SearchFoodCand,
 };
 use ol_sim::{
+    ai_rebirth_wait_secs,
     apply_fire_craft_search_radius_override, apply_food_goto_fail, apply_job_flags_to_live_input,
+    attack_player, attack_player_action_to_live_intent, deadly_distance_for_held,
+    AttackPlayerClothing, AttackPlayerInput, AttackPlayerTarget,
+    MIN_AI_AGE_FOR_COMBAT, WEAPON_SEARCH_DIST,
     go_home_goal_xy, go_home_move_target, handle_death_after_graves_miss, plan_handle_death,
     should_handle_death, wipe_jobs_assign_grave_keeper, HandleDeathAction, HANDLE_DEATH_TIME_BUMP,
     fail_warm_clear_place, get_close_biome, is_super_cold_for_person, is_super_hot_for_person,
@@ -343,6 +347,7 @@ fn npc_fill_live_sensor_input(
             || is_super_hot_for_person(p.heat, content.person_color(p.display_object_id))
             || is_super_cold_for_person(p.heat, content.person_color(p.display_object_id)),
         removing_container: st.remove_from_container.is_some(),
+        combat_target: deadly_player.is_some(),
         ..Default::default()
     };
     let mut sticky = ProfessionStickySnapshot::from_runtimes_ex(
@@ -364,6 +369,218 @@ fn npc_fill_live_sensor_input(
     sticky.tailor_last = p.is_last_tailor || st.last_is_tailor;
     apply_job_flags_to_live_input(&mut input, &sticky);
     input
+}
+
+/// Haxe `doStuff && attackPlayer(playerTarget)` — getWeapon / stand-off / KILL.
+// Haxe: AiBase.doTimeStuffHelper ~591
+fn npc_run_attack_player(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    st: &mut NpcProfessionState,
+    views: &HashMap<u64, PlayerSnapshot>,
+    tiles: &[ScanTile],
+) -> Option<(NpcActivityKind, String, u32)> {
+    let cands = npc_deadly_player_candidates(p, views, content);
+    let deadly = get_close_deadly_player(
+        p.x,
+        p.y,
+        p.angry_time,
+        p.home_x,
+        p.home_y,
+        DEADLY_PLAYER_SEARCH_DIST_AI,
+        &cands,
+    );
+    let target = deadly.and_then(|d| {
+        views.values().find(|o| o.p_id == d.p_id && !o.deleted).map(|o| {
+            AttackPlayerTarget {
+                p_id: o.p_id,
+                x: o.x,
+                y: o.y,
+                exact_x: o.x as f64,
+                exact_y: o.y as f64,
+                wounded: npc_is_wounded(content, o.held_id) && !o.is_hidden_wound,
+            }
+        })
+    })?;
+    let nearby: Vec<(i32, i32, i32, bool)> = tiles
+        .iter()
+        .filter(|t| t.parent_id != 0)
+        .map(|t| (t.parent_id, t.x, t.y, t.is_permanent))
+        .collect();
+    let held_name = npc_held_name(content, p.held_id);
+    let parent = content
+        .dummy_parent
+        .get(&p.held_id)
+        .copied()
+        .unwrap_or(p.held_id);
+    let content_dd = content
+        .get(p.held_id)
+        .map(|d| d.deadly_distance)
+        .unwrap_or(0.0);
+    let inp = AttackPlayerInput {
+        target: Some(target),
+        food_store: p.food,
+        self_wounded: npc_is_wounded(content, p.held_id) && !p.is_hidden_wound,
+        age: p.age,
+        min_ai_age_for_combat: MIN_AI_AGE_FOR_COMBAT,
+        holding_weapon: npc_holding_weapon(content, p.held_id),
+        held_id: p.held_id,
+        held_parent_id: parent,
+        is_moving: p.moving,
+        player_x: p.x,
+        player_y: p.y,
+        exact_x: p.x as f64,
+        exact_y: p.y as f64,
+        home_x: if p.home_x != 0 || p.home_y != 0 {
+            p.home_x
+        } else {
+            p.x
+        },
+        home_y: if p.home_x != 0 || p.home_y != 0 {
+            p.home_y
+        } else {
+            p.y
+        },
+        deadly_distance: deadly_distance_for_held(p.held_id, content_dd),
+        clothing: AttackPlayerClothing::from_ids(&p.clothing),
+        weapon_tiles: &nearby,
+        };
+    let _ = held_name;
+    let action = attack_player(&inp);
+    if !action.is_some() {
+        return None;
+    }
+    let intent = attack_player_action_to_live_intent(action, p.held_id);
+    match intent {
+        ShortCraftLiveIntent::Kill {
+            target_p_id,
+            x,
+            y,
+        } => {
+            if npc_say_raw(intent_tx, conn_id, "KILL", &format!("{x} {y} {target_p_id}")) {
+                st.food_goto.did_not_reach_food = 0.0;
+                Some((
+                    NpcActivityKind::Combat,
+                    format!("attack_kill target={target_p_id} @{},{}", x, y),
+                    400,
+                ))
+            } else {
+                None
+            }
+        }
+        ShortCraftLiveIntent::Goto { x, y } => {
+            if npc_try_walk_to(
+                intent_tx,
+                world,
+                content,
+                conn_id,
+                p.x,
+                p.y,
+                x,
+                y,
+                p.food,
+                st.food_goto.did_not_reach_food,
+                st.animal_path,
+            ) {
+                Some((
+                    NpcActivityKind::Combat,
+                    format!("attack_goto @{},{}", x, y),
+                    250,
+                ))
+            } else {
+                None
+            }
+        }
+        ShortCraftLiveIntent::UseAt { x, y, .. } => {
+            if npc_is_close_action(p.x, p.y, x, y) {
+                if npc_use_at(intent_tx, conn_id, x, y, None, None) {
+                    Some((
+                        NpcActivityKind::Combat,
+                        format!("attack_pickup @{},{}", x, y),
+                        400,
+                    ))
+                } else {
+                    None
+                }
+            } else if npc_try_walk_to(
+                intent_tx,
+                world,
+                content,
+                conn_id,
+                p.x,
+                p.y,
+                x,
+                y,
+                p.food,
+                st.food_goto.did_not_reach_food,
+                st.animal_path,
+            ) {
+                Some((
+                    NpcActivityKind::Combat,
+                    format!("attack_walk_weapon @{},{}", x, y),
+                    250,
+                ))
+            } else {
+                None
+            }
+        }
+        ShortCraftLiveIntent::DropAt { x, y } => {
+            let (dx, dy) = if x == 0 && y == 0 { (p.x, p.y) } else { (x, y) };
+            if npc_is_close_action(p.x, p.y, dx, dy) {
+                if npc_drop_at(intent_tx, conn_id, dx, dy, None) {
+                    Some((
+                        NpcActivityKind::Combat,
+                        format!("attack_drop @{},{}", dx, dy),
+                        400,
+                    ))
+                } else {
+                    None
+                }
+            } else if npc_try_walk_to(
+                intent_tx,
+                world,
+                content,
+                conn_id,
+                p.x,
+                p.y,
+                dx,
+                dy,
+                p.food,
+                st.food_goto.did_not_reach_food,
+                st.animal_path,
+            ) {
+                Some((
+                    NpcActivityKind::Combat,
+                    format!("attack_walk_drop @{},{}", dx, dy),
+                    250,
+                ))
+            } else {
+                None
+            }
+        }
+        ShortCraftLiveIntent::SelfClothing { slot } => {
+            let payload = self_clothing_raw_payload(slot);
+            if npc_say_raw(intent_tx, conn_id, "SELF", &payload) {
+                Some((
+                    NpcActivityKind::Combat,
+                    format!("attack_self slot={slot}"),
+                    400,
+                ))
+            } else {
+                None
+            }
+        }
+        ShortCraftLiveIntent::SeekOrCraft { actor, .. } => Some((
+            NpcActivityKind::Combat,
+            format!("attack_get_weapon {actor}"),
+            200,
+        )),
+        ShortCraftLiveIntent::Wait => Some((NpcActivityKind::Combat, "attack_wait".into(), 200)),
+        _ => None,
+    }
 }
 
 /// Enqueue USE via [`PlayerWriteInterface`] (identical to human client command).
@@ -1258,6 +1475,21 @@ fn npc_commit_craft_live(
             {
                 *kind = NpcActivityKind::Craft;
                 *detail = format!("clothing_self slot={slot}");
+                *game_ms = 400;
+                true
+            } else {
+                false
+            }
+        }
+        ShortCraftLiveIntent::Kill {
+            target_p_id,
+            x,
+            y,
+        } => {
+            if npc_say_raw(intent_tx, conn_id, "KILL", &format!("{x} {y} {target_p_id}")) {
+                st.food_goto.did_not_reach_food = 0.0;
+                *kind = NpcActivityKind::Combat;
+                *detail = format!("attack_kill target={target_p_id} @{},{}", x, y);
                 *game_ms = 400;
                 true
             } else {
@@ -2815,10 +3047,11 @@ pub async fn run_npc_scheduler(
 
             let tracker = stuck_map.entry(conn_id).or_default();
 
-            // Death detection.
+            // Death detection. Haxe ServerAi.doRebirth waits before CreateNewAiPlayer.
             if p.deleted {
                 if !tracker.was_deleted {
                     tracker.was_deleted = true;
+                    tracker.rebirth_wait_sec = ai_rebirth_wait_secs(p.age, rand::random::<f32>());
                     log_ev(
                         &activity,
                         conn_id,
@@ -2827,28 +3060,35 @@ pub async fn run_npc_scheduler(
                         0,
                         0,
                         format!(
-                            "age={:.1} food={:.1} reason=deleted_or_starved held={}",
-                            p.age, p.food, p.held_id
+                            "age={:.1} food={:.1} reason=deleted_or_starved held={} wait={:.1}s",
+                            p.age, p.food, p.held_id, tracker.rebirth_wait_sec
                         ),
                     );
-                    // Respawn: request new login same conn (sim may replace body).
-                    let email = format!("npc-re-{}@local", i);
-                    let _ = intent_tx.try_send(NetIntent::Login {
-                        conn_id,
-                        reconnect: false,
-                        email,
-                        client_tag: "client_npc".into(),
-                        client_ip: String::new(),
-                    });
-                    if let Some(st) = profession_state.get_mut(&conn_id) {
-                        clear_sticky_move(st);
-                        st.think_time_sec = 0.0;
-                        st.class_assigned = false;
-                    }
+                    continue;
+                }
+                // Scheduler wake is 200 ms.
+                tracker.rebirth_wait_sec -= 0.2;
+                if tracker.rebirth_wait_sec > 0.0 {
+                    continue;
+                }
+                tracker.rebirth_wait_sec = f32::MAX;
+                let email = format!("npc-re-{}@local", i);
+                let _ = intent_tx.try_send(NetIntent::Login {
+                    conn_id,
+                    reconnect: false,
+                    email,
+                    client_tag: "client_npc".into(),
+                    client_ip: String::new(),
+                });
+                if let Some(st) = profession_state.get_mut(&conn_id) {
+                    clear_sticky_move(st);
+                    st.think_time_sec = 0.0;
+                    st.class_assigned = false;
                 }
                 continue;
             }
             tracker.was_deleted = false;
+            tracker.rebirth_wait_sec = 0.0;
             tracker.note_position(p.x, p.y);
 
             // Haxe: time += reactionTime (class-based Serf/Commoner/Noble)
@@ -3461,6 +3701,53 @@ pub async fn run_npc_scheduler(
                     *n = n.saturating_sub(1);
                     *n > 0
                 });
+            }
+
+            // --- 1c. attackPlayer (AI-ATTACK-PLAYER) ---
+            // Haxe: doStuff && attackPlayer(playerTarget) ~591 after pickup food / temp
+            if !acted {
+                let views_g = player_views.read().ok();
+                let animals_g = animals.read().ok();
+                if let Some(views) = views_g.as_ref() {
+                    let nearby_food = nearby.iter().any(|o| food_at(&content, o.id) > 0);
+                    let st = profession_state.entry(conn_id).or_default();
+                    let input = npc_fill_live_sensor_input(
+                        &p,
+                        content.as_ref(),
+                        views,
+                        animals_g.as_deref(),
+                        st,
+                        nearby_food,
+                    );
+                    let bundle = fill_live_sensors(&input);
+                    if bundle.sensors.do_stuff && bundle.sensors.combat_target {
+                        let tiles = {
+                            let w = world.read().unwrap();
+                            scan_world_radius(
+                                &w,
+                                Some(content.as_ref()),
+                                p.x,
+                                p.y,
+                                WEAPON_SEARCH_DIST,
+                            )
+                        };
+                        if let Some((k, d, ms)) = npc_run_attack_player(
+                            &intent_tx,
+                            &world.read().unwrap(),
+                            content.as_ref(),
+                            conn_id,
+                            &p,
+                            st,
+                            views,
+                            &tiles,
+                        ) {
+                            kind = k;
+                            detail = d;
+                            game_ms = ms;
+                            acted = true;
+                        }
+                    }
+                }
             }
 
             // --- 2a. Continuous follow walk (AI-FOLLOW-WALK) ---
@@ -4884,6 +5171,29 @@ pub async fn run_npc_scheduler(
                                         game_ms = 250;
                                         acted = true;
                                     }
+                                }
+                            }
+                            ShortCraftLiveIntent::Kill {
+                                target_p_id,
+                                x,
+                                y,
+                            } => {
+                                if npc_say_raw(
+                                    &intent_tx,
+                                    conn_id,
+                                    "KILL",
+                                    &format!("{x} {y} {target_p_id}"),
+                                ) {
+                                    st.food_goto.did_not_reach_food = 0.0;
+                                    kind = NpcActivityKind::Combat;
+                                    detail = format!(
+                                        "prof_kill target={target_p_id} @{},{} rung={}",
+                                        x,
+                                        y,
+                                        rung.as_label()
+                                    );
+                                    game_ms = 400;
+                                    acted = true;
                                 }
                             }
                             // Haxe: storeInQuiver â†’ self(0,0,5) (DROP-HELD-LIVE)

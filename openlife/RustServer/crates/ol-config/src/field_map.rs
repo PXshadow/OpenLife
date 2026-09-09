@@ -2038,6 +2038,11 @@ pub const CRITICAL_FIELD_MAP: &[FieldEntry] = &[
         home: SettingsHome::Live,
     },
     FieldEntry {
+        haxe_name: "DebugSayPlayerPosition",
+        rust_path: "server.toml debug_say_player_position / LiveSettings / SimState.gameplay",
+        home: SettingsHome::Live,
+    },
+    FieldEntry {
         haxe_name: "AiApiKey",
         rust_path: "env AI_API_KEY|XAI_API_KEY only (AI-PROVIDER; never server.toml)",
         home: SettingsHome::SecretOmit,

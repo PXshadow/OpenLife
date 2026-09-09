@@ -2640,17 +2640,22 @@ fn plan_temperature_and_consider_make_food_emit_handling_fire() {
     assert_eq!(mid[2].kind, ProfessionScanKind::Farm);
     assert_eq!(mid[2].rung_label, FILL_BEAN_HELD_RUNG);
     assert_eq!(mid[3].kind, ProfessionScanKind::HandlingFire);
-    assert_eq!(mid[4].kind, ProfessionScanKind::Hunting);
-    assert_eq!(mid[5].kind, ProfessionScanKind::HandlingGraves);
-    assert_eq!(mid[6].kind, ProfessionScanKind::Farm);
-    assert_eq!(mid[6].farm_job, Some(FarmProfession::WaterBringer));
-    assert_eq!(mid[6].rung_label, "FILL_BUCKET");
-    assert!(!mid[6].is_assigned_job);
+    assert_eq!(mid[4].kind, ProfessionScanKind::Farm);
+    assert_eq!(mid[4].rung_label, crate::knife_stuff::KNIFE_STUFF_RUNG);
+    assert_eq!(mid[4].farm_job, None);
+    assert!(!mid[4].is_assigned_job);
+    assert_eq!(mid[5].kind, ProfessionScanKind::Hunting);
+    assert_eq!(mid[6].kind, ProfessionScanKind::HandlingGraves);
+    assert_eq!(mid[7].kind, ProfessionScanKind::Farm);
+    assert_eq!(mid[7].farm_job, Some(FarmProfession::WaterBringer));
+    assert_eq!(mid[7].rung_label, "FILL_BUCKET");
+    assert!(!mid[7].is_assigned_job);
 
     let hungry = plan_profession_ladder_steps(PriorityRung::ConsiderMakeFood, &sticky);
-    assert_eq!(hungry.len(), 2);
+    assert_eq!(hungry.len(), 3);
     assert_eq!(hungry[0].kind, ProfessionScanKind::HandlingGraves);
     assert_eq!(hungry[1].kind, ProfessionScanKind::HandlingFire);
+    assert_eq!(hungry[2].rung_label, crate::knife_stuff::KNIFE_STUFF_RUNG);
     assert_eq!(hungry[0].rung_label, "CONSIDER_MAKE_FOOD");
 
     let assigned_fk = ProfessionStickySnapshot {
@@ -4099,6 +4104,113 @@ fn apply_profession_scan_tick_fill_berry_held_uses_held_bowl() {
 }
 
 #[test]
+fn farm_profession_scan_tick_knife_stuff_uses_bread_not_bear() {
+    use crate::knife_stuff::{
+        BAKED_BREAD, DEAD_GRIZZLY_BEAR, DEAD_WOLF, KNIFE, KNIFE_STUFF_RUNG, LEAVENED_DOUGH_PLATE,
+    };
+    let tiles = vec![
+        ScanTile::simple(DEAD_GRIZZLY_BEAR, 1, 0),
+        ScanTile::simple(DEAD_WOLF, 2, 0),
+        ScanTile::simple(LEAVENED_DOUGH_PLATE, 3, 0),
+        ScanTile::simple(BAKED_BREAD, 4, 0),
+    ];
+    let mut inp = ProfessionScanInput::basic(0, 0, KNIFE);
+    inp.is_assigned_job = false;
+    let mut task = FarmTaskState::default();
+    let mut rt = FarmProfessionRuntime::default();
+    let r = farm_profession_scan_tick(
+        &tiles,
+        &inp,
+        None,
+        KNIFE_STUFF_RUNG,
+        &mut task,
+        false,
+        &mut rt,
+    );
+    assert!(
+        matches!(
+            r.intent,
+            ShortCraftLiveIntent::UseAt {
+                x: 4,
+                y: 0,
+                target_id: BAKED_BREAD,
+                actor_id: KNIFE
+            }
+        ),
+        "held knife + bread r=20 should USE bread first {:?}",
+        r.intent
+    );
+    let mut inp_empty = ProfessionScanInput::basic(0, 0, 0);
+    inp_empty.is_assigned_job = false;
+    let mut task_e = FarmTaskState::default();
+    let mut rt_e = FarmProfessionRuntime::default();
+    let re = farm_profession_scan_tick(
+        &tiles,
+        &inp_empty,
+        None,
+        KNIFE_STUFF_RUNG,
+        &mut task_e,
+        false,
+        &mut rt_e,
+    );
+    assert!(
+        !re.had_action,
+        "held not knife must not seek/craft 560 {:?}",
+        re.intent
+    );
+    assert!(!matches!(
+        re.intent,
+        ShortCraftLiveIntent::CraftItem { object_id: KNIFE }
+            | ShortCraftLiveIntent::SeekOrCraft { actor: KNIFE, .. }
+    ));
+}
+
+#[test]
+fn apply_profession_scan_tick_knife_stuff_uses_held_knife_on_bread() {
+    use crate::knife_stuff::{BAKED_BREAD, KNIFE, KNIFE_STUFF_RUNG};
+    use std::sync::Arc;
+    let mut state = crate::SimState::with_default_empty(Arc::new(ol_content::ContentDb::default()));
+    {
+        let mut w = state.world.write().unwrap();
+        w.set_object(2, 0, BAKED_BREAD);
+    }
+    let mut p = crate::Player::new(1, 1, "knife-stuff@t");
+    p.x = 0;
+    p.y = 0;
+    p.home_x = 0;
+    p.home_y = 0;
+    p.age = 20.0;
+    p.food = 10.0;
+    p.set_held(KNIFE, 0);
+    state.players.insert(1, p);
+    let hub = ol_net::OutboundHub::new();
+    let r = apply_profession_scan_tick(
+        &mut state,
+        &hub,
+        1,
+        ProfessionScanKind::Farm,
+        KNIFE_STUFF_RUNG,
+    );
+    assert!(
+        matches!(
+            r,
+            ShortCraftLiveApplyResult::Used(_)
+                | ShortCraftLiveApplyResult::Staging(ShortCraftLiveIntent::UseAt {
+                    x: 2,
+                    y: 0,
+                    target_id: BAKED_BREAD,
+                    actor_id: KNIFE
+                })
+                | ShortCraftLiveApplyResult::Staging(ShortCraftLiveIntent::Goto { x: 2, y: 0 })
+        ),
+        "mid doKnifeStuff should USE/goto baked bread {:?}",
+        r
+    );
+    let p = state.players.get(&1).unwrap();
+    assert_eq!(p.farm_profession.last_profession, None);
+}
+
+#[test]
 fn apply_profession_scan_tick_fill_bucket_drops_held_full() {
     // Haxe fillBucketIfNeeded: held Full Bucket 660 → dropHeldObject(0)
     use std::sync::Arc;
@@ -5183,4 +5295,91 @@ fn farm_profession_scan_tick_room_becomes_and_assigns_last() {
     );
     assert!(r.had_action);
     assert_eq!(rt.last_profession, Some(FarmProfession::BasicFarmer));
+}
+
+#[test]
+fn attack_player_action_maps_kill_and_pickup() {
+    use crate::attack_player::{AttackPlayerAction, GetWeaponAction, KNIFE};
+    assert_eq!(
+        attack_player_action_to_live_intent(
+            AttackPlayerAction::Kill {
+                target_p_id: 7,
+                tx: 4,
+                ty: 5,
+            },
+            KNIFE
+        ),
+        ShortCraftLiveIntent::Kill {
+            target_p_id: 7,
+            x: 4,
+            y: 5
+        }
+    );
+    assert_eq!(
+        attack_player_action_to_live_intent(
+            AttackPlayerAction::GetWeapon(GetWeaponAction::Pickup {
+                x: 2,
+                y: 0,
+                id: KNIFE
+            }),
+            0
+        ),
+        ShortCraftLiveIntent::UseAt {
+            x: 2,
+            y: 0,
+            target_id: KNIFE,
+            actor_id: 0
+        }
+    );
+}
+
+#[test]
+fn apply_profession_scan_from_sensors_attack_player_kills_adjacent() {
+    use crate::attack_player::KNIFE;
+    use ol_content::{ContentDb, ObjectDef};
+    use std::sync::Arc;
+    let mut db = ContentDb::default();
+    db.objects.insert(
+        KNIFE,
+        ObjectDef {
+            id: KNIFE,
+            description: "Knife".into(),
+            name: "Knife".into(),
+            deadly_distance: 1.5,
+            ..ObjectDef::empty(KNIFE)
+        },
+    );
+    let mut state = crate::SimState::with_default_empty(Arc::new(db));
+    let mut a = crate::Player::new(1, 1, "atk@t");
+    a.x = 10;
+    a.y = 10;
+    a.age = 20.0;
+    a.food = 10.0;
+    a.angry_time = 0.0;
+    a.set_held(KNIFE, 0);
+    a.last_attacked_player_id = 2;
+    let mut b = crate::Player::new(2, 2, "tgt@t");
+    b.x = 11;
+    b.y = 10;
+    b.age = 20.0;
+    b.food = 10.0;
+    b.angry_time = 0.0;
+    b.set_held(KNIFE, 0);
+    b.last_player_attacked_me_id = 1;
+    state.players.insert(1, a);
+    state.players.insert(2, b);
+    let hub = ol_net::OutboundHub::new();
+    let (rung, r) = apply_profession_scan_from_sensors(&mut state, &hub, 1, false, false);
+    assert_eq!(rung, PriorityRung::Combat);
+    assert!(
+        matches!(
+            r,
+            ShortCraftLiveApplyResult::Dropped
+                | ShortCraftLiveApplyResult::Staging(ShortCraftLiveIntent::Kill { .. })
+        ),
+        "combat rung should KILL adjacent armed target {:?}",
+        r
+    );
+    let atk = state.players.get(&1).unwrap();
+    assert!(atk.kill_mode || state.combat.wound_of(2) > 0 || state.players.get(&2).map(|p| p.deleted).unwrap_or(false));
 }

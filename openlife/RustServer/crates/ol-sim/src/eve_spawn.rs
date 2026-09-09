@@ -909,6 +909,33 @@ pub fn collect_person_ids_for_race_ex(
     ids
 }
 
+/// All person object ids (Haxe `ObjectData.personObjectData`), skipping Jason.
+// Haxe: ObjectData.CreatePersonArray
+pub fn collect_all_person_ids(
+    person_race: &std::collections::HashMap<i32, i32>,
+    object_name_desc: impl Fn(i32) -> (String, String),
+) -> Vec<i32> {
+    let mut ids: Vec<i32> = person_race
+        .keys()
+        .copied()
+        .filter(|&id| {
+            let (name, desc) = object_name_desc(id);
+            !name.contains("Jason") && !desc.contains("Jason")
+        })
+        .collect();
+    ids.sort_unstable();
+    ids
+}
+
+/// Haxe constructor: `po_id = personObjectData[rand].id` before Eve/child override.
+pub fn pick_random_person_object(
+    person_race: &std::collections::HashMap<i32, i32>,
+    object_name_desc: impl Fn(i32) -> (String, String),
+    rand_index: usize,
+) -> Option<i32> {
+    pick_person_object_from_list(&collect_all_person_ids(person_race, object_name_desc), rand_index)
+}
+
 /// Convenience: pick race person object or `None` if table empty / race 0.
 // Haxe: setObjectId(persons[rand].id)
 pub fn pick_eve_race_person_object(
@@ -1548,6 +1575,10 @@ mod tests {
             pick_eve_race_person_object(&race, name_desc, 0, true, 0),
             None
         );
+        let all = collect_all_person_ids(&race, name_desc);
+        assert_eq!(all, vec![100, 101, 200]);
+        assert_eq!(pick_random_person_object(&race, name_desc, 0), Some(100));
+        assert_eq!(pick_random_person_object(&race, name_desc, 1), Some(101));
         // PLAYER-MALE: ObjectDef.male wins over Female/Male names.
         let males_flag = collect_person_ids_for_race_ex(
             &race,

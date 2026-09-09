@@ -1,0 +1,13 @@
+[package]
+name = "ol-walk"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Shared tile walk-blocking (Haxe WorldMap.isBiomeBlocking / isBlocked)"
+publish = false
+
+# Standalone path crate (client depends on this; not a RustServer workspace member).
+[workspace]
+
+[dependencies]
+# Zero runtime deps — client and server both depend on this crate.

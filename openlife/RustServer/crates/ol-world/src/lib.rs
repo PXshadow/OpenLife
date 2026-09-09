@@ -739,12 +739,13 @@ impl World {
     ) -> String {
         let (tx, ty) = self.wrap_tile(tx, ty);
         if let Some(h) = self.helpers.get(&(tx, ty)) {
+            let dummy = wire_id(h.base_id, h.uses_remaining);
             if !h.contained.is_empty() || !h.nested.is_empty() {
-                return h.to_map_string_id();
+                let mut tmp = h.clone();
+                tmp.base_id = dummy;
+                return tmp.to_map_string_id();
             }
-            let uses = h.uses_remaining;
-            let id = wire_id(h.base_id, uses);
-            return id.to_string();
+            return dummy.to_string();
         }
         let base = self.get_object(tx, ty);
         wire_id(base, 0).to_string()
@@ -1090,6 +1091,21 @@ mod tests {
         assert_eq!(w.encode_object_for_map(1, 1), "391,33,40");
         w.set_object(2, 2, 99);
         assert_eq!(w.encode_object_for_map(2, 2), "99");
+    }
+
+    #[test]
+    fn encode_object_for_map_wired_uses_dummy_id() {
+        let mut w = World::new(64, 64, false);
+        w.set_object_complex(1, 1, ComplexObject::with_uses(227, 2));
+        let s = w.encode_object_for_map_wired(1, 1, |base, uses| {
+            if base == 227 && uses == 2 {
+                9002
+            } else {
+                base
+            }
+        });
+        assert_eq!(s, "9002");
+        assert_eq!(w.encode_object_for_map(1, 1), "227");
     }
 
     #[test]

@@ -1,7 +1,9 @@
 # Open TODOs in legacy Haxe code
 
 These are **comments already in the Haxe tree** (`TODO` / `FIXME`), not the Rust port backlog.  
-When porting a chunk: either implement the *intended* fix, or port *as-is* and note the choice.
+They are **out of scope for the leftover picker** until Haxe actually runs that behavior. List: [`HAXE_TODOS_OUT_OF_SCOPE.md`](HAXE_TODOS_OUT_OF_SCOPE.md).
+
+When porting a **working** Haxe chunk: either implement the *intended* fix, or port *as-is* and note the choice.
 
 **Counts (approx, 2026-07-26)**
 

@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 
 mod map_api;
+mod ops_dashboard;
 
 pub use map_api::{build_overview, build_window, overview_step, MapOverview, MapWindow};
 
@@ -101,6 +102,12 @@ const ALLOWED_IMAGES: &[&str] = &[
     "OLR-world-map.png",
 ];
 
+/// Basename-only allowlist for public client downloads under `/static/downloads/`.
+const ALLOWED_DOWNLOADS: &[&str] = &[
+    "ohol-client-windows-alpha.zip",
+    "README.txt",
+];
+
 pub fn router(state: WebState) -> Router {
     Router::new()
         .route("/", get(index))
@@ -120,6 +127,7 @@ pub fn router(state: WebState) -> Router {
         .route("/lineage/character/{id}", get(character_page_path))
         .route("/api/npc/stats", get(npc_stats_api))
         .route("/static/images/{name}", get(safe_static_image))
+        .route("/static/downloads/{name}", get(safe_static_download))
         .route("/static/faces/{name}", get(safe_face_image))
         .route("/api/world/summary", get(world_summary))
         .route("/api/world/overview", get(world_overview))
@@ -176,6 +184,52 @@ async fn safe_static_image(AxumPath(name): AxumPath<String>) -> Response {
     serve_png_file(&path).await
 }
 
+fn resolve_allowed_download(name: &str) -> Option<PathBuf> {
+    if name.contains("..") || name.contains('/') || name.contains('\\') {
+        return None;
+    }
+    if !ALLOWED_DOWNLOADS.iter().any(|a| *a == name) {
+        return None;
+    }
+    let candidates = [
+        PathBuf::from("web/static/downloads").join(name),
+        PathBuf::from("static/downloads").join(name),
+    ];
+    for p in candidates {
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    None
+}
+
+async fn safe_static_download(AxumPath(name): AxumPath<String>) -> Response {
+    let Some(path) = resolve_allowed_download(&name) else {
+        return (StatusCode::NOT_FOUND, "not found").into_response();
+    };
+    let bytes = match tokio::fs::read(&path).await {
+        Ok(b) => b,
+        Err(_) => return (StatusCode::NOT_FOUND, "not found").into_response(),
+    };
+    let ctype = if name.ends_with(".zip") {
+        "application/zip"
+    } else {
+        "text/plain; charset=utf-8"
+    };
+    (
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, ctype.to_string()),
+            (
+                header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"{name}\""),
+            ),
+        ],
+        bytes,
+    )
+        .into_response()
+}
+
 /// Safe face sprite: only `face_<digits>_<digits>.png` under content faces dirs.
 fn resolve_allowed_face(name: &str) -> Option<PathBuf> {
     if name.contains("..") || name.contains('/') || name.contains('\\') {
@@ -220,7 +274,7 @@ async fn serve_png_file(path: &Path) -> Response {
     }
 }
 
-async fn index() -> Html<&'static str> {
+async fn index() -> Html<String> {
     Html(
         r#"<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/><title>Open Life Reborn</title>
@@ -237,9 +291,14 @@ a{color:#6ec6ff} code{background:#1a222e;padding:.1rem .3rem;border-radius:4px}
 <p>Free multiplayer civilisation / survival on the base of
 <a href="https://onehouronelife.com/">One Hour One Life</a>. Play with any OHOL-compatible client
 (custom server, port <code>8005</code> by default).</p>
+<p>There is also an <strong>early alpha</strong> Windows client written in Rust.
+It is experimental — the <strong>vanilla One Hour One Life client still works</strong>
+on this server and is the supported way to play if the alpha misbehaves.</p>
 <img class="hero" src="/static/images/OHOL-From-Dayemeg.png" alt="Open Life Reborn banner" width="720"/>
 <p class="muted">Local art only (no remote file access). Safe static allowlist under <code>/static/images/</code>.</p>
+<p class="muted">Contact: martin_auer(at).gmx.net · server v%%VERSION%%</p>
 <div class="cards">
+<div class="card"><a href="/static/downloads/ohol-client-windows-alpha.zip"><strong>Early alpha client</strong></a><br/>Windows Rust client v%%VERSION%% (experimental). Vanilla OHOL client still works.</div>
 <div class="card"><a href="/intro"><strong>Intro</strong></a><br/>rules &amp; features</div>
 <div class="card"><a href="/ops"><strong>Ops</strong></a><br/>timings &amp; boot</div>
 <div class="card"><a href="/viewer"><strong>Viewer</strong></a><br/>map + self-play</div>
@@ -255,11 +314,12 @@ a{color:#6ec6ff} code{background:#1a222e;padding:.1rem .3rem;border-radius:4px}
 <li><a href="/api/ops/series">/api/ops/series</a></li>
 <li><a href="/api/selfplay">/api/selfplay</a></li>
 </ul>
-</body></html>"#,
+</body></html>"#
+            .replace("%%VERSION%%", env!("CARGO_PKG_VERSION")),
     )
 }
 
-async fn intro_page() -> Html<&'static str> {
+async fn intro_page() -> Html<String> {
     // r## so HTML anchors like href="#Rules" do not end the raw string.
     Html(
         r##"<!DOCTYPE html>
@@ -277,8 +337,12 @@ td,th{padding:.4rem .6rem;border:1px solid #444}
 <p>Open Life Reborn is a free roleplay multiplayer civilisation building and survival game
 on the base of <a href="https://onehouronelife.com/">One Hour One Life</a>.
 You can play with any One Hour One Life client by entering this host as a custom server
-(default game port <strong>8005</strong>).</p>
+(default game port <strong>8005</strong>).
+An <a href="/static/downloads/ohol-client-windows-alpha.zip">early alpha Windows Rust client</a>
+is available; the vanilla client still works and is recommended if the alpha is rough.</p>
+<p class="muted">Server / alpha client version v%%VERSION%%.</p>
 <p class="muted">Community project. Linked external software is at your own risk.</p>
+<p class="muted">Contact: martin_auer(at).gmx.net</p>
 <p>
 <a href="#Rules">Rules</a> ·
 <a href="#Features">Features</a> ·
@@ -313,7 +377,8 @@ lineage: <a href="/stats/lineage">/stats/lineage</a> ·
 food: <a href="/stats/food">/stats/food</a> ·
 accounts: <a href="/stats/accounts">/stats/accounts</a></p>
 <p class="muted">This page does not expose arbitrary filesystem paths — only allowlisted images under <code>/static/images/</code>.</p>
-</body></html>"##,
+</body></html>"##
+            .replace("%%VERSION%%", env!("CARGO_PKG_VERSION")),
     )
 }
 
@@ -353,112 +418,7 @@ async fn ops_series_api(State(st): State<WebState>) -> Json<serde_json::Value> {
 async fn ops_page(State(st): State<WebState>) -> Html<String> {
     let s = st.counters.snapshot();
     let samples = st.ops_series.read().unwrap().clone();
-    let n = samples.len();
-    let last = samples.last();
-    let tick_us = last.map(|x| x.tick_work_us).unwrap_or(s.tick_work_ema_us as u32);
-    let intent_us = last.map(|x| x.intent_ema_us).unwrap_or(s.intent_ema_us as u32);
-    let lock_us = last.map(|x| x.lock_wait_ema_us).unwrap_or(s.lock_wait_ema_us as u32);
-    // Simple SVG sparklines from last up to 60 samples.
-    let chart = |field: &str, vals: &[u32]| -> String {
-        if vals.is_empty() {
-            return format!("<p class=\"muted\">no {field} samples yet</p>");
-        }
-        let max = vals.iter().copied().max().unwrap_or(1).max(1);
-        let w = 480i32;
-        let h = 80i32;
-        let mut pts = String::new();
-        for (i, v) in vals.iter().enumerate() {
-            let x = if vals.len() > 1 {
-                (i as f32 / (vals.len() - 1) as f32) * (w as f32)
-            } else {
-                0.0
-            };
-            let y = h as f32 - (*v as f32 / max as f32) * (h as f32 - 4.0) - 2.0;
-            pts.push_str(&format!("{x:.1},{y:.1} "));
-        }
-        format!(
-            "<div class=\"chart\"><h3>{field}</h3><svg width=\"{w}\" height=\"{h}\" viewBox=\"0 0 {w} {h}\">\
-             <polyline fill=\"none\" stroke=\"#6ec6ff\" stroke-width=\"2\" points=\"{pts}\"/></svg>\
-             <p class=\"muted\">max={max} n={}</p></div>",
-            vals.len()
-        )
-    };
-    let tick_vals: Vec<u32> = samples.iter().rev().take(60).map(|x| x.tick_work_us).rev().collect();
-    let intent_vals: Vec<u32> = samples.iter().rev().take(60).map(|x| x.intent_ema_us).rev().collect();
-    let skip_vals: Vec<u32> = samples
-        .iter()
-        .rev()
-        .take(60)
-        .map(|x| (x.skip_ticks.min(u32::MAX as u64)) as u32)
-        .rev()
-        .collect();
-    let lock_vals: Vec<u32> = samples.iter().rev().take(60).map(|x| x.lock_wait_ema_us).rev().collect();
-    Html(format!(
-        r#"<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"/><title>Ops — Open Life Reborn</title>
-<meta http-equiv="refresh" content="5"/>
-<style>
-body{{font-family:system-ui,sans-serif;background:#0b0f14;color:#e7eef7;margin:2rem;line-height:1.5}}
-a{{color:#6ec6ff}} .cards{{display:flex;flex-wrap:wrap;gap:1rem}}
-.card{{background:#1a222e;padding:1rem 1.25rem;border-radius:8px;min-width:9rem}}
-.muted{{color:#8b9bb0;font-size:.9rem}} .chart{{margin:1.25rem 0}}
-</style></head><body>
-<p><a href="/">← home</a></p>
-<h1>Ops dashboard</h1>
-<p class="muted">skip_ticks = Haxe catch-up advances (not dropped wakes). Samples in RAM ≈5s; flush ~5min.</p>
-<div class="cards">
-<div class="card"><strong>Start</strong><br/>{start} ms unix</div>
-<div class="card"><strong>Tick</strong><br/>{tick}</div>
-<div class="card"><strong>skip_ticks</strong><br/>{skip}</div>
-<div class="card"><strong>tick work EMA</strong><br/>{tick_us} µs</div>
-<div class="card"><strong>intent EMA</strong><br/>{intent_us} µs</div>
-<div class="card"><strong>tick avg / p90</strong><br/>{tavg} / {tp90} µs</div>
-<div class="card"><strong>tick outliers / normal</strong><br/>{tout} / {tnorm}</div>
-<div class="card"><strong>intent avg / p90</strong><br/>{iavg} / {ip90} µs</div>
-<div class="card"><strong>intent outliers / normal</strong><br/>{iout} / {inorm}</div>
-<div class="card"><strong>human reply avg / p90</strong><br/>{havg} / {hp90} µs<br/><span class="muted">n={hcnt}</span></div>
-<div class="card"><strong>AI intent avg / p90</strong><br/>{aavg} / {ap90} µs<br/><span class="muted">n={acnt}</span></div>
-<div class="card"><strong>lock wait EMA</strong><br/>{lock_us} µs</div>
-<div class="card"><strong>boot total</strong><br/>{boot} ms</div>
-<div class="card"><strong>boot objects/trans/world</strong><br/>{bo}/{bt}/{bw} ms</div>
-<div class="card"><strong>samples</strong><br/>{n}</div>
-<div class="card"><strong>AI thinks</strong><br/>{ai}</div>
-</div>
-<p class="muted">Latency: average + worst ~10% (p90) + outlier vs normal counts. Boot timings recorded once at server start.</p>
-{c1}{c2}{c3}{c4}
-<p class="muted"><a href="/api/ops/series">JSON series</a> · <a href="/api/metrics">/api/metrics</a></p>
-</body></html>"#,
-        start = s.start_unix_ms,
-        tick = s.ticks,
-        skip = s.skip_ticks,
-        tick_us = tick_us,
-        intent_us = intent_us,
-        lock_us = lock_us,
-        tavg = s.tick_work_avg_us,
-        tp90 = s.tick_work_p90_us,
-        tout = s.tick_work_outliers,
-        tnorm = s.tick_work_normal,
-        iavg = s.intent_avg_us,
-        ip90 = s.intent_p90_us,
-        iout = s.intent_outliers,
-        inorm = s.intent_normal,
-        havg = s.human_intent_avg_us,
-        hp90 = s.human_intent_p90_us,
-        hcnt = s.human_intent_count,
-        aavg = s.ai_intent_avg_us,
-        ap90 = s.ai_intent_p90_us,
-        acnt = s.ai_intent_count,
-        boot = s.boot_total_ms,
-        bo = s.boot_objects_ms,
-        bt = s.boot_transitions_ms,
-        bw = s.boot_world_ms,
-        n = n,
-        ai = s.ai_thinks,
-        c1 = chart("tick_work_us", &tick_vals),
-        c2 = chart("intent_ema_us", &intent_vals),
-        c3 = chart("skip_ticks (cumulative)", &skip_vals),
-        c4 = chart("lock_wait_ema_us", &lock_vals),
-    ))
+    Html(ops_dashboard::build_ops_dashboard_html(&s, &samples, st.version))
 }
 
 /// Haxe `WebServer.createCurrentlyPlayingStatistics` living table + counts.
@@ -490,11 +450,8 @@ async fn players_page(State(st): State<WebState>) -> Html<String> {
         if p.food < 1.0 {
             count_starving += 1;
         }
-        // Haxe isHuman vs isAi — AI-controlled / AI email heuristic
-        let is_ai = p.ai_controlled
-            || p.email.ends_with("@ai")
-            || p.email.starts_with("ai_")
-            || p.email.contains("npc");
+        // Haxe isHuman vs isAi — snapshot flag (email never shown).
+        let is_ai = p.is_ai || p.ai_controlled;
         if is_ai {
             count_ai += 1;
         } else {
@@ -528,7 +485,8 @@ async fn players_page(State(st): State<WebState>) -> Html<String> {
             color = color,
         ));
         if is_ai {
-            rows.push_str(&format!("<td>{}</td>", html_escape(&p.email)));
+            let label = if p.role.is_empty() { "ai" } else { p.role.as_str() };
+            rows.push_str(&format!("<td>{}</td>", html_escape(label)));
         }
         rows.push_str("</tr>\n");
     }
@@ -868,7 +826,7 @@ async fn selfplay_status(State(st): State<WebState>) -> Json<serde_json::Value> 
         .read()
         .unwrap()
         .values()
-        .find(|p| p.email.contains("selfplay"))
+        .find(|p| p.role == "forager" || p.role == "farmer" || p.role == "hunter")
         .cloned();
     Json(serde_json::json!({
         "x": snap.as_ref().map(|p| p.x).unwrap_or(x),

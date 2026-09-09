@@ -140,20 +140,35 @@ pub fn can_animal_end_up_here(
     object_id: i32,
     rabbit_empty_only: bool,
 ) -> bool {
-    if rabbit_empty_only && object_id != 0 {
+    can_animal_end_up_here_ex(content, object_id, rabbit_empty_only, 0)
+}
+
+/// Haxe `CanAnimalEndUpHere` with floor (3566 Fleeing Rabbit: empty + no floor).
+pub fn can_animal_end_up_here_ex(
+    content: &ContentDb,
+    object_id: i32,
+    rabbit_empty_only: bool,
+    floor_id: i32,
+) -> bool {
+    if rabbit_empty_only && (object_id != 0 || floor_id != 0) {
         return false;
     }
     if object_id == 0 {
         return true;
     }
+    if content.blocks_animal.contains(&object_id) {
+        return false;
+    }
     let Some(def) = content.get(object_id) else {
         return true;
     };
+    // Haxe `target.canMove()` — don't land on other movers.
+    if def.moves > 0 {
+        return false;
+    }
     if def.blocks_walking {
         return false;
     }
-    // Don't land on other animals (moving objects). Our animal object ids:
-    // checked by caller via empty/non-animal preference; base: no blocksWalking.
     true
 }
 
@@ -502,7 +517,15 @@ pub fn calculate_non_blocked_target_ex<R: Rng>(
             break;
         }
 
-        if can_animal_end_up_here(content, obj, rabbit_empty_only) {
+        let floor = world.get_floor(tmp_x, tmp_y) as i32;
+        let ground = world
+            .get_helper(tmp_x, tmp_y)
+            .map(|h| h.ground_id)
+            .unwrap_or(0);
+        if rabbit_empty_only && ground != 0 {
+            continue;
+        }
+        if can_animal_end_up_here_ex(content, obj, rabbit_empty_only, floor) {
             last_ok = Some((tmp_x, tmp_y));
         }
     }
@@ -619,7 +642,16 @@ pub fn pick_animal_destination_steered<R: Rng>(
         }
 
         let dest_obj = world.get_object(to_x, to_y);
-        if !can_animal_end_up_here(content, dest_obj, rabbit_empty_only) {
+        let dest_floor = world.get_floor(to_x, to_y) as i32;
+        let dest_ground = world
+            .get_helper(to_x, to_y)
+            .map(|h| h.ground_id)
+            .unwrap_or(0);
+        if rabbit_empty_only && dest_ground != 0 {
+            i += 1;
+            continue;
+        }
+        if !can_animal_end_up_here_ex(content, dest_obj, rabbit_empty_only, dest_floor) {
             i += 1;
             continue;
         }
@@ -661,7 +693,13 @@ pub fn pick_animal_destination_steered<R: Rng>(
             i += 1;
             continue;
         }
-        if !can_animal_end_up_here(content, end_obj, rabbit_empty_only) {
+        let end_floor = world.get_floor(px, py) as i32;
+        let end_ground = world.get_helper(px, py).map(|h| h.ground_id).unwrap_or(0);
+        if rabbit_empty_only && end_ground != 0 {
+            i += 1;
+            continue;
+        }
+        if !can_animal_end_up_here_ex(content, end_obj, rabbit_empty_only, end_floor) {
             i += 1;
             continue;
         }
@@ -753,6 +791,15 @@ mod tests {
         let db = content_with_tree();
         assert!(!object_blocks_animal_path(&db, 100));
         assert!(object_blocks_animal_path(&db, 200));
+    }
+
+    #[test]
+    fn fleeing_rabbit_needs_empty_and_no_floor() {
+        let db = ContentDb::default();
+        assert!(can_animal_end_up_here_ex(&db, 0, true, 0));
+        assert!(!can_animal_end_up_here_ex(&db, 30, true, 0));
+        assert!(!can_animal_end_up_here_ex(&db, 0, true, 1596));
+        assert!(can_animal_end_up_here_ex(&db, 0, false, 1596));
     }
 
     #[test]

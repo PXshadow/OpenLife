@@ -32,6 +32,7 @@ craft_graph_seed_cap = 50000
 twin_peers = []
 
 timed_movement = true
+debug_say_player_position = false
 move_jump_max_chebyshev = 2
 intent_drain_budget = 64
 ops_sample_every_ticks = 100

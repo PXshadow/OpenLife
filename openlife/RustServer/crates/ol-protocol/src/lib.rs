@@ -382,6 +382,35 @@ pub fn format_player_update_line_full_clothing_responsible(
     )
 }
 
+/// PU line for a deleted player (Haxe `PlayerInstance.toData` death form).
+///
+/// `x y` is `X X` and `reason_*` is appended after held_yum / held_learned so
+/// official clients show the death screen (`note_our_death_if_any`) instead of
+/// treating a TCP drop as a disconnect.
+// Haxe: PlayerInstance.toData deleted ? 'X X' : '$rx $ry' + trailing reason
+#[allow(clippy::too_many_arguments)]
+pub fn format_player_update_line_death(
+    p_id: i32,
+    po_id: i32,
+    held_id: i32,
+    age: f32,
+    move_speed: f32,
+    seq: i32,
+    clothing_set: &str,
+    reason: &str,
+) -> String {
+    let clothing = if clothing_set.is_empty() {
+        "0;0;0;0;0;0"
+    } else {
+        clothing_set
+    };
+    let reason = reason.trim();
+    let seq = seq.max(1);
+    format!(
+        "{p_id} {po_id} 0 0 0 0 {held_id} 0 0 0 -1 0.50 {seq} 0 X X {age:.2} 60.00 {move_speed:.2} {clothing} 0 0 -1 0 0 {reason}"
+    )
+}
+
 /// Parsed client commands we care about in early phases.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ClientCommand {
@@ -817,5 +846,36 @@ mod tests {
         );
         assert!(s.contains(" 9 1 "));
         assert!(s.contains(" 1;0;0;0;0;0 "));
+    }
+
+    #[test]
+    fn death_pu_uses_xx_and_trailing_reason() {
+        let s = format_player_update_line_death(
+            9,
+            19,
+            0,
+            14.12,
+            3.75,
+            2,
+            "0;0;0;0;0;0",
+            "reason_hunger",
+        );
+        assert!(s.contains(" X X "), "death coords must be X X: {s}");
+        assert!(
+            s.trim_end().ends_with("reason_hunger"),
+            "reason must be last field: {s}"
+        );
+        let killed = format_player_update_line_death(
+            3,
+            50,
+            0,
+            20.0,
+            3.75,
+            1,
+            "",
+            "reason_killed_560",
+        );
+        assert!(killed.contains(" X X "));
+        assert!(killed.trim_end().ends_with("reason_killed_560"));
     }
 }

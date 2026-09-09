@@ -63,6 +63,20 @@ pub fn should_respawn_ai_after_death(account_is_permanent_ai: bool) -> bool {
     account_is_permanent_ai
 }
 
+/// Haxe `ServerSettings.TimeToAiRebirthPerYear` (seconds per unlived year).
+pub const TIME_TO_AI_REBIRTH_PER_YEAR: f32 = 10.0;
+/// Haxe `ServerAi.doRebirth` base wait before the age factor.
+pub const AI_REBIRTH_BASE_SECS: f32 = 10.0;
+
+/// Haxe `ServerAi.doRebirth`: `10 + 2 * max(1, 60-age) * TimeToAiRebirthPerYear * rand`.
+///
+/// `rand01` is `WorldMap.calculateRandomFloat()` in \[0, 1\].
+pub fn ai_rebirth_wait_secs(age: f32, rand01: f32) -> f32 {
+    let agefactor = (60.0 - age).max(1.0);
+    let waiting_time = agefactor * TIME_TO_AI_REBIRTH_PER_YEAR;
+    AI_REBIRTH_BASE_SECS + 2.0 * waiting_time * rand01.clamp(0.0, 1.0)
+}
+
 /// Permanent AI account heuristic (spawned NPCs / selfplay / `ai@` emails).
 ///
 /// Human disconnect takeover keeps the original human email — those are **not**
@@ -153,6 +167,17 @@ pub fn reconnect_position_snap(world_x: i32, world_y: i32) -> (i32, i32, i32, i3
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rebirth_wait_matches_haxe() {
+        // age 60 → agefactor 1 → 10 + 2*10*rand = 10..30
+        assert!((ai_rebirth_wait_secs(60.0, 0.0) - 10.0).abs() < 1e-5);
+        assert!((ai_rebirth_wait_secs(60.0, 1.0) - 30.0).abs() < 1e-5);
+        // age 0 → agefactor 60 → 10 + 2*600*rand = 10..1210
+        assert!((ai_rebirth_wait_secs(0.0, 0.0) - 10.0).abs() < 1e-5);
+        assert!((ai_rebirth_wait_secs(0.0, 1.0) - 1210.0).abs() < 1e-5);
+        assert!((ai_rebirth_wait_secs(70.0, 1.0) - 30.0).abs() < 1e-5);
+    }
 
     #[test]
     fn attach_on_alive_disconnect() {

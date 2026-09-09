@@ -81,6 +81,13 @@ pub enum ShortCraftLiveIntent {
     SeekFeedFood { target_p_id: i32, target_conn: u64 },
     /// Haxe `forceStopOnNextTile` while pathing toward feed target.
     ForceStopWait,
+    /// Haxe `myPlayer.kill(tx-gx, ty-gy, id)` (AI-ATTACK-PLAYER).
+    // Haxe: AiBase.attackPlayer ~5872
+    Kill {
+        target_p_id: i32,
+        x: i32,
+        y: i32,
+    },
     /// Other refuse / none / abort / unreachable coords.
     None,
 }
@@ -941,6 +948,7 @@ pub fn drop_held_live_intent_actionable(intent: ShortCraftLiveIntent) -> bool {
             | ShortCraftLiveIntent::SeekOrCraft { .. }
             // Haxe: isMoving return true — consume tick, do not fall through (PREFER-SHORT-WAIT)
             | ShortCraftLiveIntent::Wait
+            | ShortCraftLiveIntent::Kill { .. }
     )
 }
 

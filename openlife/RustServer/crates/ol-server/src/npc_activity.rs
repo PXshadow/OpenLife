@@ -102,6 +102,8 @@ pub struct NpcStuckTracker {
     /// Recent craft keys "actor+target".
     pub craft_ring: VecDeque<String>,
     pub was_deleted: bool,
+    /// Remaining seconds before Haxe `ServerAi.doRebirth` respawn (0 = ready).
+    pub rebirth_wait_sec: f32,
 }
 
 impl NpcStuckTracker {

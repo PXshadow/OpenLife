@@ -107,6 +107,33 @@ pub fn build_chunk_plaintext_mapped(
     parts.join(" ")
 }
 
+/// Like [`build_chunk_plaintext_mapped`] but multi-use tiles emit Haxe `dummyId()`.
+pub fn build_chunk_plaintext_mapped_wired(
+    world: &World,
+    origin_x: i32,
+    origin_y: i32,
+    size_x: i32,
+    size_y: i32,
+    map_id: impl Fn(i32) -> i32,
+    wire_id: impl Fn(i32, i32) -> i32,
+) -> String {
+    let mut parts = Vec::with_capacity((size_x * size_y).max(0) as usize);
+    for dy in 0..size_y {
+        for dx in 0..size_x {
+            let tx = origin_x + dx;
+            let ty = origin_y + dy;
+            let biome = world.get_biome(tx, ty);
+            let floor = map_id(world.get_floor(tx, ty) as i32);
+            let obj = map_object_id_string(
+                &world.encode_object_for_map_wired(tx, ty, &wire_id),
+                &map_id,
+            );
+            parts.push(format!("{biome}:{floor}:{obj}"));
+        }
+    }
+    parts.join(" ")
+}
+
 /// Compress plaintext chunk with zlib (same family as Haxe `Compress.run`).
 pub fn compress_chunk_plaintext(plain: &str) -> Vec<u8> {
     let mut enc = ZlibEncoder::new(Vec::new(), Compression::default());
@@ -161,6 +188,45 @@ pub fn build_map_chunk_packet_mapped(
         width,
         height,
         map_id,
+    );
+    let compressed = compress_chunk_plaintext(&plain);
+    let header = format_map_chunk_header(
+        width,
+        height,
+        wire_origin_x,
+        wire_origin_y,
+        plain.len(),
+        compressed.len(),
+    );
+    let mut out = header.into_bytes();
+    out.extend_from_slice(&compressed);
+    out
+}
+
+/// Like [`build_map_chunk_packet_mapped`] with Haxe `dummyId()` for multi-use tiles.
+pub fn build_map_chunk_packet_mapped_wired(
+    world: &World,
+    world_center_x: i32,
+    world_center_y: i32,
+    wire_center_x: i32,
+    wire_center_y: i32,
+    width: i32,
+    height: i32,
+    map_id: impl Fn(i32) -> i32,
+    wire_id: impl Fn(i32, i32) -> i32,
+) -> Vec<u8> {
+    let world_origin_x = world_center_x - width / 2;
+    let world_origin_y = world_center_y - height / 2;
+    let wire_origin_x = wire_center_x - width / 2;
+    let wire_origin_y = wire_center_y - height / 2;
+    let plain = build_chunk_plaintext_mapped_wired(
+        world,
+        world_origin_x,
+        world_origin_y,
+        width,
+        height,
+        map_id,
+        wire_id,
     );
     let compressed = compress_chunk_plaintext(&plain);
     let header = format_map_chunk_header(
@@ -247,8 +313,38 @@ mod tests {
         assert_ne!(obj_part, "391", "must not be plain base id only");
         assert!(obj_part.contains(','), "contained wire form uses commas");
         assert_eq!(obj_part, "391,33,40");
-        assert!(plain.contains("0:0:99") || cells[1].ends_with(":99"));
-        assert_eq!(cells[1], "0:0:99");
+    }
+
+    #[test]
+    fn plaintext_wired_emits_dummy_id_for_partial_uses() {
+        use ol_world::ComplexObject;
+
+        let mut w = World::new(64, 64, false);
+        w.set_biome(0, 0, 2);
+        w.set_object_complex(0, 0, ComplexObject::with_uses(227, 2));
+        let plain = build_chunk_plaintext_mapped_wired(
+            &w,
+            0,
+            0,
+            1,
+            1,
+            |id| id,
+            |base, uses| {
+                if base == 227 && uses == 2 {
+                    9002
+                } else {
+                    base
+                }
+            },
+        );
+        assert!(
+            plain.contains("2:0:9002"),
+            "partial pile must send dummy id, got: {plain}"
+        );
+        assert!(
+            !plain.contains("2:0:227"),
+            "must not send full parent id for partial uses: {plain}"
+        );
     }
 
     #[test]

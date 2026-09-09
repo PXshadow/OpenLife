@@ -426,11 +426,10 @@ async function refreshDetail() {
   detail = await j(`/api/world/view?x=${Math.round(cam.x)}&y=${Math.round(cam.y)}&w=${w}&h=${h}`);
 }
 
-function agentRole(email) {
-  const e = (email || '').toLowerCase();
-  if (e.includes('farmer')) return 'farmer';
-  if (e.includes('hunter')) return 'hunter';
-  if (e.includes('selfplay')) return 'forager';
+function agentRole(p) {
+  const r = (p && p.role) || '';
+  if (r) return r;
+  if (p && p.is_ai) return 'ai';
   return 'player';
 }
 
@@ -439,22 +438,25 @@ async function refreshPlayers() {
   players = data.players || [];
   selfplay = await j('/api/selfplay');
   document.getElementById('log').textContent = (selfplay.log||[]).slice(-50).join('\n') || '(waiting…)';
-  const selfplayAgents = players.filter(p => p.email && p.email.includes('selfplay'));
+  const selfplayAgents = players.filter(p => {
+    const r = agentRole(p);
+    return r === 'forager' || r === 'farmer' || r === 'hunter';
+  });
   const agent = selfplayAgents[0] || players[0];
   if (players.length) {
     const rows = players.map(p => {
-      const role = agentRole(p.email);
+      const role = agentRole(p);
+      const name = p.display_name || ('#' + p.p_id);
       const food = (p.food != null) ? p.food.toFixed(1) : '?';
       const foodMax = p.food_max != null ? p.food_max : 20;
       return `<div style="margin:.35rem 0;padding:.3rem 0;border-bottom:1px solid var(--border)">`+
-        `<div><b>${role}</b> p_id ${p.p_id} @ (<b>${p.x}</b>,<b>${p.y}</b>)</div>`+
+        `<div><b>${role}</b> ${name} p_id ${p.p_id} @ (<b>${p.x}</b>,<b>${p.y}</b>)</div>`+
         `<div>held <b>${p.held_id||0}</b> · age ${(p.age||0).toFixed(1)} · food ${food}/${foodMax}</div>`+
-        `<div class="bar"><i style="width:${Math.min(100, 100*(p.food||0)/Math.max(1,foodMax))}%"></i></div>`+
-        `<div style="color:var(--muted);font-size:.72rem">${p.email||''}</div></div>`;
+        `<div class="bar"><i style="width:${Math.min(100, 100*(p.food||0)/Math.max(1,foodMax))}%"></i></div></div>`;
     }).join('');
     const triple = selfplayAgents.length
       ? `<div style="margin-bottom:.4rem;color:var(--muted)">self-play agents: `+
-        selfplayAgents.map(p => `${agentRole(p.email)} (${p.x},${p.y})`).join(' · ')+
+        selfplayAgents.map(p => `${agentRole(p)} (${p.x},${p.y})`).join(' · ')+
         `</div>`
       : (selfplay.x != null
         ? `<div style="margin-bottom:.4rem;color:var(--muted)">selfplay API @ (${selfplay.x},${selfplay.y})</div>`

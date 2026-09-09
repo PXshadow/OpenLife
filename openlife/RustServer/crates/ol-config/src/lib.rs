@@ -709,6 +709,10 @@ pub struct ServerConfig {
     pub secret: String,
     /// Haxe `AllowDebugCommmands` — gates `DoDebugCommands` including `!S`.
     pub allow_debug_commands: bool,
+    /// Haxe `DebugSayPlayerPosition` — LS world coords at feet on MOVE (debug).
+    /// Default **false** so normal play does not show coordinates.
+    // Haxe: ServerSettings.DebugSayPlayerPosition = false
+    pub debug_say_player_position: bool,
     /// Haxe `AiTimeToWaitIfCraftingFailed`.
     // Haxe: ServerSettings.AiTimeToWaitIfCraftingFailed = 15
     // SETTINGS-LONG-TAIL
@@ -1162,6 +1166,7 @@ impl Default for ServerConfig {
             ai_ignored_floor_ids: crate::AI_IGNORED_FLOOR_IDS.to_vec(),
             secret: gameplay_defaults::SECRET.to_string(),
             allow_debug_commands: true,
+            debug_say_player_position: false,
             ai_time_to_wait_if_crafting_failed: gameplay_defaults::AI_TIME_TO_WAIT_IF_CRAFTING_FAILED,
             ai_max_search_radius: gameplay_defaults::AI_MAX_SEARCH_RADIUS,
             ai_max_search_increment: gameplay_defaults::AI_MAX_SEARCH_INCREMENT,
@@ -1682,6 +1687,9 @@ pub struct LiveSettings {
     pub secret: String,
     /// Haxe `AllowDebugCommmands` — gates `DoDebugCommands` including `!S`.
     pub allow_debug_commands: bool,
+    /// Haxe `DebugSayPlayerPosition` — LS world coords at feet on MOVE (debug).
+    // Haxe: ServerSettings.DebugSayPlayerPosition = false
+    pub debug_say_player_position: bool,
     /// Haxe `AiTimeToWaitIfCraftingFailed`.
     // SETTINGS-LONG-TAIL
     pub ai_time_to_wait_if_crafting_failed: f32,
@@ -2625,6 +2633,7 @@ impl ServerConfig {
                 self.secret.clone()
             },
             allow_debug_commands: self.allow_debug_commands,
+            debug_say_player_position: self.debug_say_player_position,
             ai_time_to_wait_if_crafting_failed: sanitize_nonneg_or(
                 self.ai_time_to_wait_if_crafting_failed,
                 gameplay_defaults::AI_TIME_TO_WAIT_IF_CRAFTING_FAILED,
@@ -3637,6 +3646,10 @@ impl ServerConfig {
             old.allow_debug_commands != new.allow_debug_commands,
         );
         push(
+            "debug_say_player_position",
+            old.debug_say_player_position != new.debug_say_player_position,
+        );
+        push(
             "ai_time_to_wait_if_crafting_failed",
             (old.ai_time_to_wait_if_crafting_failed - new.ai_time_to_wait_if_crafting_failed)
                 .abs()
@@ -4083,6 +4096,7 @@ impl ServerConfig {
             "ai_ignored_floor_ids",
             "secret",
             "allow_debug_commands",
+            "debug_say_player_position",
             "ai_time_to_wait_if_crafting_failed",
             "ai_max_search_radius",
             "ai_max_search_increment",
@@ -4883,6 +4897,7 @@ mod tests {
             ai_ignored_floor_ids: vec![656],
             secret: "TESTSECRET".into(),
             allow_debug_commands: false,
+            debug_say_player_position: true,
             ai_time_to_wait_if_crafting_failed: 7.0,
             ai_max_search_radius: 40,
             ai_max_search_increment: 20,
@@ -5118,6 +5133,7 @@ mod tests {
         assert_eq!(c.ai_ignored_floor_ids, crate::AI_IGNORED_FLOOR_IDS);
         assert_eq!(c.secret, "JASON");
         assert!(c.allow_debug_commands);
+        assert!(!c.debug_say_player_position);
         assert!((c.ai_time_to_wait_if_crafting_failed - 15.0).abs() < 1e-12);
         assert_eq!(c.ai_memory_max_entries, 20);
         assert_eq!(c.ai_chat_memory_max_entries, 100);

@@ -536,6 +536,9 @@ pub struct GameplayKnobs {
     pub secret: String,
     /// Haxe `AllowDebugCommmands` — gates `DoDebugCommands` including `!S`.
     pub allow_debug_commands: bool,
+    /// Haxe `DebugSayPlayerPosition` — LS world coords at feet on MOVE (debug).
+    // Haxe: ServerSettings.DebugSayPlayerPosition = false
+    pub debug_say_player_position: bool,
     /// Haxe `AiTimeToWaitIfCraftingFailed`.
     // Haxe: ServerSettings.AiTimeToWaitIfCraftingFailed = 15
     // SETTINGS-LONG-TAIL
@@ -934,6 +937,7 @@ impl Default for GameplayKnobs {
             ai_ignored_floor_ids: ol_config::AI_IGNORED_FLOOR_IDS.to_vec(),
             secret: gameplay_defaults::SECRET.to_string(),
             allow_debug_commands: true,
+            debug_say_player_position: false,
             ai_time_to_wait_if_crafting_failed:
                 gameplay_defaults::AI_TIME_TO_WAIT_IF_CRAFTING_FAILED,
             ai_max_search_radius: gameplay_defaults::AI_MAX_SEARCH_RADIUS,
@@ -1191,6 +1195,7 @@ impl GameplayKnobs {
                 live.secret.clone()
             },
             allow_debug_commands: live.allow_debug_commands,
+            debug_say_player_position: live.debug_say_player_position,
             ai_time_to_wait_if_crafting_failed: live.ai_time_to_wait_if_crafting_failed,
             ai_max_search_radius: live.ai_max_search_radius,
             ai_max_search_increment: live.ai_max_search_increment,
@@ -2550,6 +2555,10 @@ pub fn apply_live_settings(state: &mut SimState, live: &LiveSettings) -> LiveApp
         old.allow_debug_commands != gp.allow_debug_commands,
     );
     push_gp(
+        "debug_say_player_position",
+        old.debug_say_player_position != gp.debug_say_player_position,
+    );
+    push_gp(
         "ai_time_to_wait_if_crafting_failed",
         (old.ai_time_to_wait_if_crafting_failed - gp.ai_time_to_wait_if_crafting_failed).abs()
             > 1e-12,
@@ -3347,6 +3356,7 @@ mod tests {
             ai_ignored_floor_ids: vec![656],
             secret: "TESTSECRET".into(),
             allow_debug_commands: false,
+            debug_say_player_position: true,
             ai_time_to_wait_if_crafting_failed: 7.0,
             ai_max_search_radius: 40,
             ai_max_search_increment: 20,
