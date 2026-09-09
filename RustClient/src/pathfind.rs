@@ -15,12 +15,11 @@
 //! - Wide objects expand blocking via `leftBlockingRadius` / `rightBlockingRadius`.
 //! - Blocked goal cells are never entered (fail → closest reachable).
 //!
-//! **Bad biomes** (C++ `isBadBiome` + ~2481–2504, rideable `ignoreBad`):
-//! - Floor-less cells whose biome is in the BB list are "bad".
-//! - From good terrain, long paths **route around** bad biomes (edge stop).
-//! - Standing on a bad-biome edge with a bad dest allows entry.
-//! - Standing *in* a bad biome allows same-biome walk; other bad biomes blocked.
-//! - Holding a **rideable** sets `ignore_bad` and walks through freely.
+//! **Biome blocking** matches the server (`ol-walk` / Haxe `isBiomeBlocking`):
+//! - Unfloored ocean / river / snowingrey (speed < 0.1) are blocked.
+//! - Jungle, savanna, green, swamp, desert, grey, snow, passable river are walkable.
+//! - Floor (except pine 3290) cancels water/snowingrey blocking; boats walk water.
+//! - Server `BB` names are **hover-only** — they do not extra-block pathing.
 //!
 //! **useWaypoint two-leg** (C++ `pathFind(start,wp,goal)` + `maxWaypointPathLength`):
 //! - [`find_path_via_waypoint_ex`] runs start→waypoint then waypoint→goal on one window.
@@ -114,27 +113,48 @@ impl PathFindResult {
 
 /// Whether a world cell blocks walking for pathfinding.
 ///
-/// C++ `computePathToDest` blockedMap fill (~2472–2478):
-/// - unknown (`mMap == -1` / missing tile) → blocked
-/// - `id == 0` → open
-/// - known `!getObject(id)->blocksWalking` → open (permanent alone does **not** block)
+/// Unknown tiles are blocked. Object + biome/floor use [`ol_walk::tile_is_blocked`]
+/// (same as the server): gates/doors walkable, ocean/river/snowingrey blocked
+/// without a real floor, jungle and other land biomes open.
 pub fn cell_blocks_walking(
     map: &ClientMap,
     content: Option<&ClientContent>,
     x: i32,
     y: i32,
 ) -> bool {
-    match map.get(x, y) {
-        None => true,
-        Some(t) if t.object_id <= 0 => false,
-        Some(t) => {
-            if let Some(c) = content {
-                c.blocks_walking(t.object_id)
-            } else {
-                map.blocks_walk_heuristic(x, y)
-            }
-        }
-    }
+    cell_blocks_walking_ex(map, content, x, y, false)
+}
+
+/// [`cell_blocks_walking`] with a held boat (water tiles stay walkable).
+pub fn cell_blocks_walking_ex(
+    map: &ClientMap,
+    content: Option<&ClientContent>,
+    x: i32,
+    y: i32,
+    holding_boat: bool,
+) -> bool {
+    let Some(t) = map.get(x, y) else {
+        return true;
+    };
+    let (obj_blocks, name): (bool, &str) = if t.object_id <= 0 {
+        (false, "")
+    } else if let Some(c) = content {
+        let n = c
+            .get(t.object_id)
+            .or_else(|| c.get(c.base_object_id(t.object_id)))
+            .map(|d| d.name.as_str())
+            .unwrap_or("");
+        (c.blocks_walking(t.object_id), n)
+    } else {
+        (map.blocks_walk_heuristic(x, y), "")
+    };
+    ol_walk::tile_is_blocked(ol_walk::TileWalkQuery {
+        biome: t.biome,
+        floor_id: t.floor_id,
+        object_blocks_walking: obj_blocks,
+        object_name: name,
+        holding_boat,
+    })
 }
 
 /// Walkable inverse of [`cell_blocks_walking`].
@@ -150,8 +170,10 @@ pub struct PathFindOpts<'a> {
     /// C++ `ignoreBad`: true when holding a rideable — walk through bad biomes.
     pub ignore_bad: bool,
     /// C++ `isAutoClick`: from good terrain, do not treat edge-of-bad as `startBiomeBad`
-    /// (blocks auto-click entry into bad biomes).
+    /// (blocks auto-click entry into bad biomes). Unused for hard server blocks.
     pub auto_click: bool,
+    /// Haxe `heldObject.objectData.isBoat` — water tiles stay walkable.
+    pub holding_boat: bool,
 }
 
 impl Default for PathFindOpts<'static> {
@@ -160,6 +182,7 @@ impl Default for PathFindOpts<'static> {
             bad_biomes: &[],
             ignore_bad: false,
             auto_click: false,
+            holding_boat: false,
         }
     }
 }
@@ -171,6 +194,7 @@ impl PathFindOpts<'_> {
             bad_biomes: &[],
             ignore_bad: true,
             auto_click: false,
+            holding_boat: false,
         }
     }
 
@@ -179,6 +203,7 @@ impl PathFindOpts<'_> {
             bad_biomes,
             ignore_bad: false,
             auto_click: false,
+            holding_boat: false,
         }
     }
 }
@@ -235,7 +260,7 @@ pub fn parse_bad_biome_ids(body: &str) -> Vec<u8> {
 /// Returns `(blocked, half)` where world `(wx,wy)` maps to local
 /// `(wx - start.x + half, wy - start.y + half)`.
 ///
-/// `goal` is used only for bad-biome edge routing (`destBiomeBad`).
+/// `goal` is unused for blocking (kept for call-site compatibility).
 fn build_blocked_window(
     map: &ClientMap,
     content: Option<&ClientContent>,
@@ -245,52 +270,15 @@ fn build_blocked_window(
 ) -> ([bool; WIN_CELLS], i32) {
     let half = PATH_FINDING_D / 2;
     let mut blocked = [true; WIN_CELLS];
+    let _ = (opts.ignore_bad, opts.auto_click, opts.bad_biomes, goal);
 
-    // C++ start/dest bad-biome flags (~2397–2431).
-    let start_point_bad = is_bad_biome_at(map, start.0, start.1, opts.bad_biomes);
-    let start_point_bad_biome: Option<u8> = if start_point_bad {
-        map.get(start.0, start.1).map(|t| t.biome)
-    } else {
-        None
-    };
-    let neigh_bad = [(-1, 0), (1, 0), (0, -1), (0, 1)].iter().any(|&(dx, dy)| {
-        is_bad_biome_at(map, start.0 + dx, start.1 + dy, opts.bad_biomes)
-    });
-    let mut start_biome_bad = start_point_bad || neigh_bad;
-    // C++: auto-click from good tile must not treat edge-of-bad as startBiomeBad.
-    if opts.auto_click && !start_point_bad {
-        start_biome_bad = false;
-    }
-    let dest_biome_bad = is_bad_biome_at(map, goal.0, goal.1, opts.bad_biomes);
-
-    // C++ first pass: per-cell object walkability + bad biome (~2461–2507).
+    // Server-matching object + biome/floor block (BB list is hover-only).
     for ly in 0..PATH_FINDING_D {
         for lx in 0..PATH_FINDING_D {
             let wx = start.0 - half + lx;
             let wy = start.1 - half + ly;
             let i = (ly * PATH_FINDING_D + lx) as usize;
-            blocked[i] = cell_blocks_walking(map, content, wx, wy);
-
-            if opts.ignore_bad || opts.bad_biomes.is_empty() {
-                continue;
-            }
-            let Some(t) = map.get(wx, wy) else {
-                continue;
-            };
-            if !is_bad_biome_tile(t, opts.bad_biomes) {
-                continue;
-            }
-            // Route around bad biomes on long paths (from good / mixed).
-            if (!start_biome_bad || !dest_biome_bad) && !start_point_bad {
-                blocked[i] = true;
-            } else if start_point_bad {
-                // Crossing from one bad biome to another while standing in bad.
-                if let Some(sb) = start_point_bad_biome {
-                    if t.biome != sb {
-                        blocked[i] = true;
-                    }
-                }
-            }
+            blocked[i] = cell_blocks_walking_ex(map, content, wx, wy, opts.holding_boat);
         }
     }
 
@@ -1300,31 +1288,33 @@ mod tests {
     }
 
     #[test]
-    fn from_bad_edge_can_enter_bad_dest() {
-        // Start adjacent to bad (edge) on good tile; dest inside bad → C++ allows entry.
-        // Layout: x0 good, x1 bad, x2 bad. Start (0,0) has bad neighbor → startBiomeBad.
+    fn from_bad_edge_cannot_enter_unfloored_mountain() {
+        // Server blocks unfloored snowingrey/mountain; C++ BB edge-entry is not used.
         let map = synth_biomes(3, 1, 0, 0, |x, _| if x >= 1 { 21 } else { 0 });
         let bad = [21u8];
         let opts = PathFindOpts::with_bad_biomes(&bad);
         let res = find_path_ex(&map, None, (0, 0), (2, 0), DEFAULT_MAX_EXPAND, &opts);
         assert!(
-            res.reached_goal,
-            "from edge of bad into bad dest should succeed: {:?}",
+            !res.reached_goal,
+            "must not enter unfloored mountain: {:?}",
             res
         );
-        assert_eq!(res.end, (2, 0));
     }
 
     #[test]
-    fn standing_in_bad_walks_same_biome() {
-        // Entire row is bad biome 21; start and dest same bad.
+    fn standing_in_unfloored_mountain_cannot_walk() {
         let map = synth_biomes(4, 1, 0, 0, |_, _| 21);
-        let bad = [21u8];
-        let opts = PathFindOpts::with_bad_biomes(&bad);
-        let res = find_path_ex(&map, None, (0, 0), (3, 0), DEFAULT_MAX_EXPAND, &opts);
+        let res = find_path_ex(
+            &map,
+            None,
+            (0, 0),
+            (3, 0),
+            DEFAULT_MAX_EXPAND,
+            &PathFindOpts::default(),
+        );
         assert!(
-            res.reached_goal,
-            "same bad biome walk: {:?}",
+            !res.reached_goal,
+            "unfloored mountain is server-blocked: {:?}",
             res
         );
     }
@@ -1352,14 +1342,50 @@ mod tests {
             bad_biomes: &bad,
             ignore_bad: true,
             auto_click: false,
+            holding_boat: false,
         };
         let res = find_path_ex(&map, None, (0, 0), (4, 0), DEFAULT_MAX_EXPAND, &opts);
         assert!(
-            res.reached_goal,
-            "rideable must cross bad biomes: {:?}",
+            !res.reached_goal,
+            "rideable does not ignore server mountain block: {:?}",
             res
         );
-        assert!(path_visits_biome(&map, (0, 0), &res.deltas, 21));
+    }
+
+    #[test]
+    fn jungle_listed_in_bb_is_still_walkable() {
+        // Live bug: BB listed jungle and the client routed around it.
+        let map = synth_biomes(5, 1, 0, 0, |x, _| if x >= 2 { 6 } else { 2 });
+        let bad = [6u8, 21u8, 9u8];
+        let opts = PathFindOpts::with_bad_biomes(&bad);
+        let res = find_path_ex(&map, None, (0, 0), (4, 0), DEFAULT_MAX_EXPAND, &opts);
+        assert!(
+            res.reached_goal,
+            "jungle must stay walkable even if BB-listed: {:?}",
+            res
+        );
+    }
+
+    #[test]
+    fn ocean_without_floor_is_blocked() {
+        let map = synth_biomes(5, 1, 0, 0, |x, _| if x >= 2 { 9 } else { 0 });
+        let res = find_path_ex(
+            &map,
+            None,
+            (0, 0),
+            (4, 0),
+            DEFAULT_MAX_EXPAND,
+            &PathFindOpts::default(),
+        );
+        assert!(!res.reached_goal, "ocean must block: {:?}", res);
+        let mut boat = PathFindOpts::default();
+        boat.holding_boat = true;
+        let res_b = find_path_ex(&map, None, (0, 0), (4, 0), DEFAULT_MAX_EXPAND, &boat);
+        assert!(
+            res_b.reached_goal,
+            "boat walks ocean: {:?}",
+            res_b
+        );
     }
 
     #[test]
@@ -1403,24 +1429,33 @@ mod tests {
     }
 
     #[test]
-    fn auto_click_from_good_blocks_bad_entry() {
-        // Edge of bad: start (0,0) good, neighbor (1,0) bad; dest (2,0) bad.
-        // Without auto_click, startBiomeBad allows entry; with auto_click, blocked.
-        let map = synth_biomes(3, 1, 0, 0, |x, _| if x >= 1 { 21 } else { 0 });
-        let bad = [21u8];
-        let normal = PathFindOpts::with_bad_biomes(&bad);
-        let auto = PathFindOpts {
-            bad_biomes: &bad,
-            ignore_bad: false,
-            auto_click: true,
-        };
-        let res_n = find_path_ex(&map, None, (0, 0), (2, 0), DEFAULT_MAX_EXPAND, &normal);
-        let res_a = find_path_ex(&map, None, (0, 0), (2, 0), DEFAULT_MAX_EXPAND, &auto);
-        assert!(res_n.reached_goal, "manual from edge enters: {:?}", res_n);
+    fn jungle_from_savanna_is_walkable() {
+        let map = synth_biomes(5, 1, 0, 0, |x, _| if x >= 2 { 6 } else { 2 });
+        let res = find_path_ex(
+            &map,
+            None,
+            (0, 0),
+            (4, 0),
+            DEFAULT_MAX_EXPAND,
+            &PathFindOpts::default(),
+        );
         assert!(
-            !res_a.reached_goal,
-            "auto-click must not enter bad from good edge: {:?}",
-            res_a
+            res.reached_goal,
+            "jungle must be walkable from savanna: {:?}",
+            res
+        );
+    }
+
+    #[test]
+    fn auto_click_from_good_blocks_bad_entry() {
+        // Mountain is server-blocked with or without auto_click.
+        let map = synth_biomes(3, 1, 0, 0, |x, _| if x >= 1 { 21 } else { 0 });
+        let opts = PathFindOpts::default();
+        let res_n = find_path_ex(&map, None, (0, 0), (2, 0), DEFAULT_MAX_EXPAND, &opts);
+        assert!(
+            !res_n.reached_goal,
+            "unfloored mountain is blocked: {:?}",
+            res_n
         );
     }
 

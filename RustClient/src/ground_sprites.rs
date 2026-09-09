@@ -182,13 +182,11 @@ pub fn biome_plate_color(biome: u8, has_sheet: bool) -> [u8; 4] {
 }
 
 /// Draw multiply tint when falling back to the unknown ground sheet.
-/// Open Life specials use Haxe map colors; others use Jason `getXYRandom`.
+///
+/// Do **not** use Haxe map colors (ocean `[0,64,128]` …) — that paints solid
+/// blue/grey squares. C++ multiplies unknown tiles by `getXYRandom` only.
 pub fn unknown_sheet_draw_tint(biome: u8) -> [u8; 4] {
-    if has_table_biome_color(biome) && biome > 6 {
-        biome_color(biome)
-    } else {
-        unknown_biome_draw_color(biome as i32)
-    }
+    unknown_biome_draw_color(biome as i32)
 }
 
 /// Slight per-tile dither so flat biomes still show Haxe-style 4Ãƒâ€”4 variation.
@@ -515,13 +513,7 @@ impl GroundBank {
                 }
             }
         }
-        // No OLG1 yet: allow disk probe when search roots exist.
-        // Empty banks (tests / missing content) must report no sheet so plate colors fill.
-        if !self.index_loaded {
-            return !self.roots.is_empty();
-        }
-        // Index loaded but no entries for this biome Ã¢â€ â€™ no sheet.
-        self.biome_tile_count == 0
+        false
     }
 
     /// True when unknown-biome (`99999`) tiles are available.
@@ -820,15 +812,7 @@ impl GroundBank {
                 break;
             }
         }
-        // Unknown biome sheet
-        if path.is_none() && !self.has_biome_sheet(biome) {
-            for rel in ["ground/ground_U.tga", "graphics/ground_U.tga", "ground_U.tga"] {
-                if let Some(p) = self.resolve_rel(rel) {
-                    path = Some(p);
-                    break;
-                }
-            }
-        }
+        // Never use ground_U as a 4×4 wholeSheet (giant blue/grey squares on water).
         let Some(path) = path else {
             self.missing_whole.insert(key, ());
             return None;

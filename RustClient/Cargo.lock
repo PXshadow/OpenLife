@@ -1457,7 +1457,7 @@ dependencies = [
 
 [[package]]
 name = "ohol-headless"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "cpal",
@@ -1469,6 +1469,7 @@ dependencies = [
  "lewton",
  "minifb",
  "ol-binary",
+ "ol-walk",
  "pixels",
  "sha1",
  "thiserror 2.0.19",
@@ -1477,6 +1478,10 @@ dependencies = [
 
 [[package]]
 name = "ol-binary"
+version = "0.1.0"
+
+[[package]]
+name = "ol-walk"
 version = "0.1.0"
 
 [[package]]

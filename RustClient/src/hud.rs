@@ -2115,16 +2115,17 @@ pub fn draw_speech_bubble_colored(
     if text.is_empty() || fade <= 0.0 {
         return;
     }
-    let s = scale.max(0.5);
+    let s = scale.max(0.15);
     let f = fade.clamp(0.0, 1.0);
     let a = (f * 255.0) as u8;
+    let text = text.to_uppercase();
 
     let hand = sprites.and_then(|sp| sp.handwriting_font.as_ref());
     // Design-space length (scale 1) for blot count; screen length for layout.
     let len_design = if let Some(font) = hand {
-        font.measure(text, 1.0)
+        font.measure(&text, 1.0)
     } else {
-        pencil_string_width(text, 1.0)
+        pencil_string_width(&text, 1.0)
     };
     let tw = len_design * s;
     let th = if let Some(font) = hand {
@@ -2192,9 +2193,9 @@ pub fn draw_speech_bubble_colored(
         [text_rgb[0], text_rgb[1], text_rgb[2], a]
     };
     if let Some(font) = hand {
-        font.draw_string(fb, text, cx, cy, s, ink, true);
+        font.draw_string(fb, &text, cx, cy, s, ink, true);
     } else {
-        draw_pencil_string(fb, text, cx, cy, s, ink, true);
+        draw_pencil_string(fb, &text, cx, cy, s, ink, true);
     }
 }
 
@@ -2227,7 +2228,10 @@ impl HudSprites {
     }
 }
 
-/// C++ note paper while `mSayField` is focused (`mNotePaperHideOffset` + 58).
+/// C++ note paper while `mSayField` is focused.
+///
+/// `mNotePaperHideOffset = (-282, -420)`; shown y = hide + 58 = -362 (Y-up).
+/// Draft ink is `handwritingFont` at `(-160, +79)` from paper center (Y-up).
 fn draw_say_note(
     fb: &mut Framebuffer,
     draft: &str,
@@ -2237,7 +2241,9 @@ fn draw_say_note(
     cy: f32,
 ) {
     let paper_x = cx - 282.0 * s;
-    let paper_y = cy + 362.0 * s;
+    // C++ view-bottom: writing line is ~77 design-px above the bottom.
+    let write_y = (cy + 283.0 * s).min(fb.height as f32 - 18.0 * s).max(18.0 * s);
+    let paper_y = write_y + 79.0 * s;
     if let Some(paper) = &sprites.note_paper {
         blit_centered(fb, paper, paper_x, paper_y, s);
     } else {
@@ -2255,11 +2261,15 @@ fn draw_say_note(
     let shown = if draft.is_empty() {
         "_".to_string()
     } else {
-        format!("{draft}_")
+        format!("{}_", draft.to_uppercase())
     };
     let tx = paper_x - 160.0 * s;
-    let ty = paper_y - 79.0 * s;
-    sprites.draw_hud_text(fb, &shown, tx, ty, s.max(0.85), [20, 18, 14, 255], false, false);
+    let ink = [20u8, 18, 14, 255];
+    if let Some(font) = sprites.handwriting_font.as_ref() {
+        font.draw_string(fb, &shown, tx, write_y, s, ink, false);
+    } else {
+        sprites.draw_hud_text(fb, &shown, tx, write_y, s.max(0.85), ink, false, false);
+    }
 }
 
 /// Draw bottom gui panel + hunger capacity boxes + temperature arrow + yum/ate.
@@ -2270,10 +2280,11 @@ fn draw_say_note(
 /// Mutates `state` for draw-time temp-arrow rotation / OldArrow trail
 /// (C++ does this inside the draw path).
 pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &HudSprites) {
-    if state.hide_gui {
+    let drafting = state.say_draft.is_some();
+    if state.hide_gui && !drafting {
         return;
     }
-    if !state.visible && state.food_capacity <= 0 && state.max_food_capacity <= 0 {
+    if !drafting && !state.visible && state.food_capacity <= 0 && state.max_food_capacity <= 0 {
         return;
     }
     let s = hud_scale(fb.width, fb.height);
@@ -2377,28 +2388,9 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
         }
     }
 
-    // C++ note paper (SAY compose) sits above the gui panel, sliding up from below.
-    if let Some(ref draft) = state.say_draft {
-        draw_say_note(fb, draft, sprites, s, cx, cy);
-    }
-
-    // C++ guiPanel.tga is the only bottom strip. A full-width cream fill sat
-    // over/around it as a fake "desk" — only used when the TGA is missing.
     let py = cy + GUI_PANEL_Y_BELOW * s;
-    if sprites.gui_panel.is_none() {
-        let panel_h = 80.0 * s;
-        let desk_y = (py - panel_h * 0.5).round() as i32;
-        let desk_h = panel_h.round().max(1.0) as i32;
-        fb.fill_rect(
-            0,
-            desk_y,
-            fb.width as i32,
-            desk_h,
-            [214, 210, 200, 255],
-        );
-    }
 
-    // Gui panel (normal alpha — not multiplicative).
+    // Gui panel (C++ guiPanel.tga). No full-width desk bar above it.
     if let Some(panel) = &sprites.gui_panel {
         blit_centered(fb, panel, cx, py, s);
     }
@@ -2574,6 +2566,11 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
             sprites.draw_hud_text(fb, tip, tip_x, tip_y, s, [0, 0, 0, 255], true, false);
         }
     }
+
+    // Note paper last so the gui panel cannot cover the SAY draft.
+    if let Some(ref draft) = state.say_draft {
+        draw_say_note(fb, draft, sprites, s, cx, cy);
+    }
 }
 
 /// Convenience: draw only if state has been fed FX/HX (or forced visible).
@@ -2581,7 +2578,11 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
 /// Takes `&mut HudState` because draw-time temp-arrow trail mutates state
 /// (C++ `mOldArrows` / `mCurrentArrowI` updated in draw).
 pub fn draw_hud_if_visible(fb: &mut Framebuffer, state: &mut HudState, sprites: &HudSprites) {
-    if state.visible || state.food_capacity > 0 || state.max_food_capacity > 0 {
+    if state.visible
+        || state.food_capacity > 0
+        || state.max_food_capacity > 0
+        || state.say_draft.is_some()
+    {
         draw_food_heat_hud(fb, state, sprites);
     }
 }
@@ -2624,7 +2625,25 @@ mod tests {
     }
 
     #[test]
-    fn hud_draws_paper_desk_on_960x540() {
+    fn say_draft_draws_on_top_of_panel() {
+        let mut hud = HudState::new();
+        hud.apply_fx(&sample_fx(8, 12));
+        hud.say_draft = Some("HELLO".into());
+        let sprites = HudSprites::procedural();
+        let mut fb = Framebuffer::new(960, 540);
+        fb.clear([30, 90, 40, 255]);
+        draw_food_heat_hud(&mut fb, &mut hud, &sprites);
+        let mut paper = 0usize;
+        for p in fb.pixels.chunks_exact(4) {
+            if p[0] > 220 && p[1] > 210 && p[2] > 190 {
+                paper += 1;
+            }
+        }
+        assert!(paper > 50, "SAY note paper should be visible, paper={paper}");
+    }
+
+    #[test]
+    fn hud_has_no_full_width_desk_bar() {
         let mut hud = HudState::new();
         hud.apply_fx(&sample_fx(8, 12));
         let sprites = HudSprites::procedural();
@@ -2640,8 +2659,8 @@ mod tests {
             }
         }
         assert!(
-            light > 400,
-            "expected light paper desk under meters, light={light}"
+            light < 200,
+            "full-width paper desk bar must stay gone, light={light}"
         );
     }
 

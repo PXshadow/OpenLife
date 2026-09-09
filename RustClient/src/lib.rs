@@ -48,7 +48,8 @@ pub mod wire_log;
 
 pub use account_page::{
     AccountAction, AccountFocus, AccountKey, AccountPage, ClientAppState, ClientScreen,
-    SecretMode, ServerEndpoint, LOCAL_SERVER_HOST, LOCAL_SERVER_PORT, MAX_RECENT_SERVERS,
+    SecretMode, ServerEndpoint, HAXE_SERVER_HOST, HAXE_SERVER_PORT, LOCAL_SERVER_HOST,
+    LOCAL_SERVER_PORT, MAX_RECENT_SERVERS, RUST_SERVER_HOST, RUST_SERVER_PORT,
 };
 pub use twin_page::{TwinAction, TwinFocus, TwinKey, TwinPage};
 pub use review_page::{
@@ -90,15 +91,16 @@ pub use click_tile::{
     apply_click_gates, can_execute_action_at, click_drop, click_drop_clothing, click_kill,
     click_object,
     click_remv, click_remv_hit, click_remove_clothing, click_self, click_sremv_clothing,
-    click_swap, click_tile, click_tile_mod, click_tile_mod_ex, click_tile_with, click_use,
-    clothing_slot_for_object, hold_walk_or_use_tile, is_grid_adjacent, is_self_tile,
+    click_swap, click_tile, click_tile_mod, click_tile_mod_ex, click_tile_mod_hit, click_tile_with,
+    click_use, clothing_slot_for_object, graphical_wants_self_action, hold_walk_or_use_tile,
+    is_grid_adjacent, is_self_tile,
     maybe_close_hold_throw, nearest_kill_target, our_clothing, path_start_tile, plan_click_tile,
     plan_click_tile_chunks,
     plan_click_tile_chunks_goal, plan_click_tile_chunks_with, plan_stand_for_object,
     plan_stand_for_object_ex, resolve_clothing_equip_slot, resolve_hold_click_dest,
     resolve_use_object_id, select_self_action, select_self_action_ex, select_tile_action,
     slide_blocked_click_dest, stand_allows_access, walk_or_use_tile, walk_or_use_tile_ex,
-    walk_or_use_tile_hold, walk_to as walk_to_tile, ClickTileExt, ClickTileResult,
+    walk_or_use_tile_hold, walk_or_use_tile_hold_hit, walk_to as walk_to_tile, ClickTileExt, ClickTileResult,
     ObjectClickResult, StandAccess, TileClickPlan, WalkOrUseResult, HOLD_SLIDE_LIMIT,
     MIN_MOUSE_DOWN_FRAMES, NO_MOVE_AGE,
 };
@@ -196,7 +198,8 @@ pub use move_state::{
     encode_move, BASE_PATH_SPEED, MAX_PATH_DELTA, MoveError, MoveState, PathDelta,
 };
 pub use pathfind::{
-    cell_blocks_walking, cell_walkable, chunk_deltas_for_move, cumulative_to_steps, find_path,
+    cell_blocks_walking, cell_blocks_walking_ex, cell_walkable, chunk_deltas_for_move,
+    cumulative_to_steps, find_path,
     find_path_deltas, find_path_deltas_ex, find_path_ex, find_path_via_waypoint,
     find_path_via_waypoint_ex, find_path_with_waypoint_ex, is_bad_biome_at, is_bad_biome_tile,
     parse_bad_biome_ids, parse_bad_biomes, path_cell_count, steps_to_cumulative, PathFindOpts,

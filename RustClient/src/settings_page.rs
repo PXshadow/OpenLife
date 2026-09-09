@@ -141,6 +141,8 @@ pub enum SettingsFocus {
     OpenReview,
     /// Open Account page (email / key) for editing credentials.
     AccountSettings,
+    /// Disconnect and return to the login screen.
+    Logout,
     /// Re-exec client when graphics/fullscreen differ from process runtime.
     Restart,
     Back,
@@ -173,6 +175,7 @@ impl SettingsFocus {
             SettingsSection::Root => &[
                 SettingsFocus::Exit,
                 SettingsFocus::Back,
+                SettingsFocus::Logout,
                 SettingsFocus::AudioMenu,
                 SettingsFocus::DisplayMenu,
                 SettingsFocus::GameMenu,
@@ -276,6 +279,8 @@ pub enum SettingsAction {
     OpenAccount,
     /// Open community / review links.
     OpenReview,
+    /// Disconnect and show the login screen.
+    Logout,
 }
 
 /// Slider track width (must match [`draw_settings_slider`]).
@@ -296,7 +301,7 @@ impl Default for SettingsPage {
             brightness: 1.0,
             graphics_mode: GraphicsMode::Gpu,
             audio_enabled: true,
-            fullscreen: false,
+            fullscreen: true,
             host: "127.0.0.1".into(),
             port: 8005,
             email: String::new(),
@@ -307,7 +312,7 @@ impl Default for SettingsPage {
             status: "Enter=Exit  ·  Esc=Resume".into(),
             section: SettingsSection::Root,
             runtime_graphics: GraphicsMode::Gpu,
-            runtime_fullscreen: false,
+            runtime_fullscreen: true,
             slider_drag: None,
             community_site: DEFAULT_COMMUNITY_SITE.into(),
             discord_url: DEFAULT_DISCORD_URL.into(),
@@ -442,6 +447,16 @@ impl SettingsPage {
             }
             if std::env::var_os("OHOL_FULLSCREEN").is_none() {
                 s.fullscreen = file.fullscreen;
+            }
+            // Saved login defaults (host/port/email) beat stale .env OHOL_HOST.
+            if !file.host.is_empty() {
+                s.host = file.host;
+            }
+            if file.port != 0 {
+                s.port = file.port;
+            }
+            if !file.email.is_empty() {
+                s.email = file.email;
             }
         }
         if let Ok(g) = std::env::var("OHOL_GRAPHICS").or_else(|_| std::env::var("OHOL_RENDERER")) {
@@ -601,7 +616,10 @@ impl SettingsPage {
              audio={}\n\
              fullscreen={}\n\
              community_site={}\n\
-             discord_url={}\n",
+             discord_url={}\n\
+             host={}\n\
+             port={}\n\
+             email={}\n",
             self.sound_volume.clamp(0.0, 1.0),
             self.music_volume.clamp(0.0, 1.0),
             if self.sound_muted { "1" } else { "0" },
@@ -615,6 +633,9 @@ impl SettingsPage {
             if self.fullscreen { "1" } else { "0" },
             self.community_site.trim(),
             self.discord_url.trim(),
+            self.host.trim(),
+            self.port,
+            self.email.trim(),
         )
     }
 
@@ -672,6 +693,23 @@ impl SettingsPage {
                 "discord_url" | "discord" => {
                     if !v.is_empty() {
                         s.discord_url = v.to_string();
+                    }
+                }
+                "host" | "server_host" => {
+                    if !v.is_empty() {
+                        s.host = v.to_string();
+                    }
+                }
+                "port" | "server_port" => {
+                    if let Ok(n) = v.parse::<u16>() {
+                        if n != 0 {
+                            s.port = n;
+                        }
+                    }
+                }
+                "email" => {
+                    if !v.is_empty() {
+                        s.email = v.to_string();
                     }
                 }
                 _ => {}
@@ -793,6 +831,7 @@ impl SettingsPage {
                     }
                 }
                 SettingsFocus::Exit => SettingsAction::Quit,
+                SettingsFocus::Logout => SettingsAction::Logout,
                 SettingsFocus::AudioMenu => {
                     self.enter_submenu(SettingsSection::Audio);
                     SettingsAction::None
@@ -1029,6 +1068,7 @@ impl SettingsPage {
                 }
             }
             SettingsFocus::Exit => SettingsAction::Quit,
+            SettingsFocus::Logout => SettingsAction::Logout,
             SettingsFocus::AudioMenu => {
                 self.enter_submenu(SettingsSection::Audio);
                 SettingsAction::None
@@ -1242,6 +1282,7 @@ fn settings_row_heights(row: SettingsFocus) -> (f32, f32) {
             | SettingsFocus::Restart
             | SettingsFocus::Back
             | SettingsFocus::Exit
+            | SettingsFocus::Logout
             | SettingsFocus::AudioMenu
             | SettingsFocus::DisplayMenu
             | SettingsFocus::GameMenu
@@ -1530,6 +1571,7 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
                 "Esc".to_string(),
             ),
             SettingsFocus::Exit => ("Exit".to_string(), "Quit game".to_string()),
+            SettingsFocus::Logout => ("Log out".to_string(), "Return to login".to_string()),
             SettingsFocus::AudioMenu => ("Audio".to_string(), "…".to_string()),
             SettingsFocus::DisplayMenu => ("Display".to_string(), "…".to_string()),
             SettingsFocus::GameMenu => ("Game".to_string(), "…".to_string()),
@@ -1569,7 +1611,7 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
                 label_h as i32,
                 [40, 44, 54, 160],
             );
-        } else if matches!(row, SettingsFocus::Exit) {
+        } else if matches!(row, SettingsFocus::Exit | SettingsFocus::Logout) {
             fb.fill_rect(
                 rx,
                 (y - 2.0) as i32,
@@ -1705,6 +1747,78 @@ pub fn restart_client_process() -> ! {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_settings_focus_has_a_menu_row() {
+        fn listed(f: SettingsFocus) -> bool {
+            [
+                SettingsSection::Root,
+                SettingsSection::Audio,
+                SettingsSection::Display,
+                SettingsSection::Game,
+                SettingsSection::Community,
+            ]
+            .iter()
+            .any(|s| SettingsFocus::rows_for(*s).contains(&f))
+        }
+        // Exhaustive: adding a SettingsFocus variant fails this match until it has a row.
+        fn check(f: SettingsFocus) {
+            match f {
+                SettingsFocus::SoundVolume
+                | SettingsFocus::MusicVolume
+                | SettingsFocus::Zoom
+                | SettingsFocus::Brightness
+                | SettingsFocus::Graphics
+                | SettingsFocus::Audio
+                | SettingsFocus::Fullscreen
+                | SettingsFocus::SoundMute
+                | SettingsFocus::MusicMute
+                | SettingsFocus::ShowFps
+                | SettingsFocus::Debug
+                | SettingsFocus::CommunitySite
+                | SettingsFocus::DiscordUrl
+                | SettingsFocus::OpenReview
+                | SettingsFocus::AccountSettings
+                | SettingsFocus::Logout
+                | SettingsFocus::Restart
+                | SettingsFocus::Back
+                | SettingsFocus::Exit
+                | SettingsFocus::AudioMenu
+                | SettingsFocus::DisplayMenu
+                | SettingsFocus::GameMenu
+                | SettingsFocus::CommunityMenu => {
+                    assert!(listed(f), "{f:?} is not in any settings menu");
+                }
+            }
+        }
+        for f in [
+            SettingsFocus::SoundVolume,
+            SettingsFocus::MusicVolume,
+            SettingsFocus::Zoom,
+            SettingsFocus::Brightness,
+            SettingsFocus::Graphics,
+            SettingsFocus::Audio,
+            SettingsFocus::Fullscreen,
+            SettingsFocus::SoundMute,
+            SettingsFocus::MusicMute,
+            SettingsFocus::ShowFps,
+            SettingsFocus::Debug,
+            SettingsFocus::CommunitySite,
+            SettingsFocus::DiscordUrl,
+            SettingsFocus::OpenReview,
+            SettingsFocus::AccountSettings,
+            SettingsFocus::Logout,
+            SettingsFocus::Restart,
+            SettingsFocus::Back,
+            SettingsFocus::Exit,
+            SettingsFocus::AudioMenu,
+            SettingsFocus::DisplayMenu,
+            SettingsFocus::GameMenu,
+            SettingsFocus::CommunityMenu,
+        ] {
+            check(f);
+        }
+    }
 
     #[test]
     fn from_env_map_host_port_volumes_mutes() {
@@ -1958,6 +2072,9 @@ mod tests {
     #[test]
     fn mouse_toggle_and_slider() {
         let mut s = SettingsPage::default();
+        s.focus = SettingsFocus::AudioMenu;
+        assert_eq!(s.on_key(SettingsKey::Enter), SettingsAction::None);
+        assert_eq!(s.section, SettingsSection::Audio);
         let fb_w = 960.0;
         let fb_h = 540.0;
         let hits = s.layout_hits(fb_w, fb_h);

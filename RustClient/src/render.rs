@@ -31,8 +31,7 @@ use crate::content::{
 };
 use crate::emotion::EmotionBank;
 use crate::ground_sprites::{
-    biome_color, biome_plate_color, unknown_biome_draw_color, unknown_sheet_draw_tint,
-    GroundBank,
+    biome_color, unknown_biome_draw_color, unknown_sheet_draw_tint, GroundBank,
 };
 use crate::hud::{draw_hud_if_visible, draw_speech_bubble, HudState, HudSprites};
 use crate::live_object::{home_dir_index, LiveObject, LiveWorld, SaysPointerMarker};
@@ -118,21 +117,21 @@ pub fn select_packs_for_player(o: &LiveObject) -> PlayerAnimSelection {
 ///
 /// // C++ animationBank: animHeadPos / animBodyPos / foot spritePos + clothingOffset
 #[derive(Debug, Clone, Copy, Default)]
-struct PersonAnchors {
-    head: Option<(f32, f32, f32)>, // x, y, rot turns
-    body: Option<(f32, f32, f32)>,
-    front_foot: Option<(f32, f32, f32)>,
-    back_foot: Option<(f32, f32, f32)>,
+pub(crate) struct PersonAnchors {
+    pub(crate) head: Option<(f32, f32, f32)>, // x, y, rot turns
+    pub(crate) body: Option<(f32, f32, f32)>,
+    pub(crate) front_foot: Option<(f32, f32, f32)>,
+    pub(crate) back_foot: Option<(f32, f32, f32)>,
     /// Head + `mainEyesOffset` (rotated by head rot) for PE `eyeEmot` (P3#19).
-    eyes: Option<(f32, f32, f32)>,
+    pub(crate) eyes: Option<(f32, f32, f32)>,
     /// True when person has eyes for emot placement this age.
-    has_eyes: bool,
+    pub(crate) has_eyes: bool,
 }
 
 /// Jason clothing slot → body-part anchor (animationBank clothing passes).
 ///
 /// Slot: 0=hat, 1=tunic, 2=frontShoe, 3=backShoe, 4=bottom, 5=backpack.
-fn clothing_anchor_for_slot(
+pub(crate) fn clothing_anchor_for_slot(
     anchors: &PersonAnchors,
     slot_i: usize,
 ) -> Option<(f32, f32, f32)> {
@@ -149,7 +148,7 @@ fn clothing_anchor_for_slot(
 ///
 /// // C++ animationBank ~2773–2796 / hat ~3555–3569:
 /// // if flipH: offset.x *= -1; rotate(offset, ±2π·partRot); cPos = flippedPart + offset + inPos
-fn clothing_screen_pos(
+pub(crate) fn clothing_screen_pos(
     person_sx: f32,
     person_sy: f32,
     part: (f32, f32, f32),
@@ -701,8 +700,6 @@ fn sample_atlas(
 /// P3#23: front sub-order matches C++ wallLayer / frontWall passes after players.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum DrawLayer {
-    #[allow(dead_code)]
-    Floor = 0,
     /// Whole `drawBehindPlayer` objects + `spritesDrawnBehind` layers.
     BehindPlayer = 1,
     Player = 2,
@@ -743,8 +740,6 @@ struct YSortItem {
 }
 
 enum DrawKind {
-    #[allow(dead_code)]
-    Floor { tx: i32, ty: i32, floor_id: i32 },
     MapObject {
         tx: i32,
         ty: i32,
@@ -1076,20 +1071,8 @@ impl SceneRenderer {
         let y1 = cy + half_h;
         let x0 = cx - half_w;
         let x1 = cx + half_w;
-        for ty in y0..=y1 {
-            for tx in x0..=x1 {
-                let biome = map.get_or_empty(tx, ty).biome;
-                // C++ never paints a solid per-cell plate. Haxe ocean/river
-                // colors under offset square/soft tiles show as a grid of
-                // blue squares. Water/mountain use the unknown sheet instead.
-                let water_or_peak = matches!(biome, 9 | 13 | 15 | 17 | 21);
-                if !water_or_peak && !self.ground.has_biome_sheet(biome) {
-                    let (px, py, tw, th) =
-                        tile_screen_rect(&self.camera, tx, ty, fb.width, fb.height);
-                    fb.fill_rect(px, py, tw, th, biome_plate_color(biome, false));
-                }
-            }
-        }
+        // Do not underfill missing sheets with solid plates (ocean/river would
+        // show as blue rectangles). `draw_ground_cell` uses square/soft/unknown TGA.
         // C++ mMapCellDrawnFlags — skip cells already covered by wholeSheet.
         let mut ground_drawn: std::collections::HashSet<(i32, i32)> =
             std::collections::HashSet::new();
@@ -1099,10 +1082,10 @@ impl SceneRenderer {
                     continue;
                 }
                 let biome = map.get_or_empty(tx, ty).biome;
-                // wholeSheet when variation corner (setX=setY=0) and region is uniform.
+                // wholeSheet only for biomes that actually have ground_N.tga.
                 let set_x = crate::ground_sprites::ground_tile_mod(tx);
                 let set_y = crate::ground_sprites::ground_tile_mod(ty);
-                if set_x == 0 && set_y == 0 {
+                if set_x == 0 && set_y == 0 && self.ground.has_biome_sheet(biome) {
                     if let Some((gt, tw, th)) = self.ground.ensure_whole_sheet(biome) {
                         if self.biome_region_allows_whole_sheet(map, tx, ty, tw, th, biome) {
                             self.blit_whole_sheet(fb, &gt, tx, ty, tw, th, biome);
@@ -1231,11 +1214,10 @@ impl SceneRenderer {
                 .then_with(|| a.layer.cmp(&b.layer))
         });
 
+        // C++ draws all speech after every person (`speakers` pass ~9024).
+        let mut speaker_bubbles: Vec<(String, f32, f32, f32, [u8; 3])> = Vec::new();
         for item in items {
             match item.kind {
-                DrawKind::Floor { .. } => {
-                    // Floors already drawn before ground overlay.
-                }
                 DrawKind::MapObject {
                     tx,
                     ty,
@@ -1243,10 +1225,9 @@ impl SceneRenderer {
                 } => {
                     let tile = map.get_or_empty(tx, ty);
                     let mv = map.map_move(tx, ty);
-                    let drop = map.drop_offset(tx, ty);
                     let (sx, sy) = self.world_to_screen(
-                        tx as f32 + 0.5 + mv.offset_x + drop.offset_x,
-                        ty as f32 + 0.5 + mv.offset_y + drop.offset_y,
+                        tx as f32 + 0.5 + mv.offset_x,
+                        ty as f32 + 0.5 + mv.offset_y,
                         fb.width,
                         fb.height,
                     );
@@ -1583,12 +1564,12 @@ impl SceneRenderer {
                                     .unwrap_or((8.0, 12.0));
                                 (px, py, 0.0)
                             };
-                            // Tile-space target for pickup slide / drop tracking.
+                            // Target hold in tile units for handoff slide.
                             let target_tx = base_tx + 0.5 + (hx * flip_s) / GRID;
                             let target_ty = base_ty + 0.5 + hy / GRID;
-                            // C++ slides only while currentSpeed==0 && heldPosOverride.
+                            // P3#22 heldPosOverride slide from map origin into hand.
                             let stationary = !o_moving;
-                            let _ = if let Some(o) = world.get_mut(id) {
+                            let (draw_tx, draw_ty, _draw_rot) = if let Some(o) = world.get_mut(id) {
                                 let frf = (dt * 60.0).clamp(0.0, 4.0).max(0.05);
                                 o.step_held_pos_toward(
                                     target_tx,
@@ -1600,14 +1581,12 @@ impl SceneRenderer {
                             } else {
                                 (target_tx, target_ty, hrot)
                             };
-                            // In-hand: glue to the posed hand (C++ holdPos = person + offset).
-                            // World-tile interpolation while walking made the item lag.
+                            // Still step slide; draw later in FlyingHeld pass if deferred.
                             if !defer_flying_held {
-                                let hold_sx = sx + hx * scale0 * flip_s;
-                                let hold_sy = sy - hy * scale0;
-                                let held_flip = flip;
+                                let (hold_sx, hold_sy) =
+                                    self.world_to_screen(draw_tx, draw_ty, fb.width, fb.height);
                                 if let Some(ref mut hp) = held_pack {
-                                    let _ = self.draw_object_with_pack_ex(
+                                    let _ = self.draw_object_with_pack(
                                         fb,
                                         content,
                                         sprites,
@@ -1616,17 +1595,13 @@ impl SceneRenderer {
                                         age,
                                         hold_sx,
                                         hold_sy,
-                                        held_flip,
+                                        false,
                                         false,
                                         false,
                                         0,
                                         false,
                                         SpriteLayerFilter::All,
                                         false,
-                                        None,
-                                        hrot,
-                                        None,
-                                        None,
                                     );
                                 }
                             }
@@ -1717,18 +1692,14 @@ impl SceneRenderer {
                             // Object-space offset → screen (Y-up in object space).
                             let speech_sx = person_sx + head_x * scale * flip_s;
                             let speech_sy = person_sy - (SPEECH_BASE_Y + head_y) * scale;
-                            let text_scale = (scale * 0.35).clamp(0.8, 2.5);
-                            // P3#15 chalk + P3#16 residual: purple/white curse/dying ink.
                             let ink = crate::live_object::speech_text_rgb(o);
-                            self.hud_sprites.draw_speech_bubble_colored(
-                                fb,
-                                speech,
+                            speaker_bubbles.push((
+                                speech.clone(),
                                 speech_sx,
                                 speech_sy,
-                                text_scale,
                                 o.speech_fade,
                                 ink,
-                            );
+                            ));
                         } else if self.hover_player_id == Some(o.id)
                             && world.our().map(|u| u.id) != Some(o.id)
                         {
@@ -1738,7 +1709,7 @@ impl SceneRenderer {
                                 let n = name.trim();
                                 if !n.is_empty() && n != "~" {
                                     let speech_sy = person_sy - SPEECH_BASE_Y * scale;
-                                    let text_scale = (scale * 0.32).clamp(0.85, 1.8);
+                                    let text_scale = scale;
                                     self.hud_sprites.draw_speech_bubble(
                                         fb, n, person_sx, speech_sy, text_scale, 1.0,
                                     );
@@ -1827,10 +1798,20 @@ impl SceneRenderer {
             }
         }
 
+        // L-SAY: after every person, same as C++ `drawChalkBackgroundString`.
+        {
+            let scale = (self.camera.zoom / GRID).max(0.05);
+            for (text, sx, sy, fade, ink) in speaker_bubbles {
+                self.hud_sprites.draw_speech_bubble_colored(
+                    fb, &text, sx, sy, scale, fade, ink,
+                );
+            }
+        }
+
         // L-SAY: location speech at tile centers (C++ locationSpeech, y += 84).
         {
             let scale = (self.camera.zoom / GRID).max(0.05);
-            let text_scale = (scale * 0.35).clamp(0.8, 2.5);
+            let text_scale = scale;
             for ls in &world.location_speech {
                 let (sx, sy) =
                     self.world_to_screen(ls.x as f32 + 0.5, ls.y as f32 + 0.5, fb.width, fb.height);
@@ -2399,8 +2380,12 @@ impl SceneRenderer {
         biome: u8,
     ) {
         let tint = if used_unknown && !self.ground.has_biome_sheet(biome) {
-            // Open Life water/mountain: Haxe map colors; else Jason getXYRandom.
-            Some(unknown_sheet_draw_tint(biome))
+            // Water/mountain: no solid map-color multiply (that was the blue squares).
+            if matches!(biome, 9 | 13 | 15 | 17 | 21) {
+                None
+            } else {
+                Some(unknown_sheet_draw_tint(biome))
+            }
         } else {
             None
         };
@@ -4196,51 +4181,6 @@ mod tests {
     }
 
     #[test]
-    fn ocean_tiles_do_not_paint_solid_blue_plates() {
-        // Biome 9 (deep water) used to get a Haxe COCEAN fill_rect per cell;
-        // offset square/soft tiles left a grid of blue squares.
-        let mut scene = SceneRenderer::default();
-        scene.ground = GroundBank::new();
-        scene.camera.x = 0.5;
-        scene.camera.y = 0.5;
-        scene.camera.zoom = 16.0;
-        let mut map = ClientMap::new();
-        map.set(
-            0,
-            0,
-            crate::client_map::MapTile {
-                biome: 9,
-                ..Default::default()
-            },
-        );
-        let mut world = LiveWorld::new();
-        let content = ClientContent::new();
-        let mut sprites = SpriteBank::with_atlas_size(".", 64);
-        let mut anims = AnimBank::new(".");
-        let mut fb = Framebuffer::new(64, 64);
-        fb.clear(CLEAR_RGBA);
-        scene.draw(
-            &mut fb,
-            &mut map,
-            &mut world,
-            &content,
-            &mut sprites,
-            &mut anims,
-            0.0,
-        );
-        let ocean = biome_color(9);
-        let i = ((32u32 * 64 + 32) * 4) as usize;
-        let is_ocean_plate = (0..3).all(|c| {
-            (fb.pixels[i + c] as i32 - ocean[c] as i32).abs() <= 8
-        });
-        assert!(
-            !is_ocean_plate,
-            "deep water must not be a solid COCEAN rectangle, got {:?}",
-            &fb.pixels[i..i + 3]
-        );
-    }
-
-    #[test]
     fn biome_pixels_match_color() {
         let mut scene = SceneRenderer::default();
         // Force flat path: empty ground roots
@@ -4259,13 +4199,17 @@ mod tests {
         let mut anims = AnimBank::new(".");
         let mut fb = Framebuffer::new(64, 64);
         scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
-        // sample near center — biome 3 plate (no sheet in empty GroundBank)
-        let base = biome_plate_color(3, false);
+        // Empty GroundBank: no solid biome plates (those were the blue rectangles).
+        // Center is clear-color or an unknown-sheet sample — not a cell AABB plate.
+        let plate = crate::ground_sprites::biome_plate_color(3, false);
         let i = ((32u32 * 64 + 32) * 4) as usize;
-        for c in 0..3 {
-            let d = (fb.pixels[i + c] as i32 - base[c] as i32).abs();
-            assert!(d <= 16, "channel {c} delta {d}");
-        }
+        let is_plate = (0..3).all(|c| (fb.pixels[i + c] as i32 - plate[c] as i32).abs() <= 2);
+        let is_clear = (0..3).all(|c| (fb.pixels[i + c] as i32 - CLEAR_RGBA[c] as i32).abs() <= 2);
+        assert!(
+            is_clear || !is_plate,
+            "missing-sheet biome must not be a solid plate; px={:?}",
+            &fb.pixels[i..i + 4]
+        );
     }
 
     #[test]

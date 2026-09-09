@@ -12,7 +12,7 @@
 //!
 //! In-world controls:
 //! - Arrows / WASD pan, +/- zoom, Esc quit
-//! - LMB → `walk_or_use_tile_hold` (first press USE/clothing; hold repath + blocked-tile slide)
+//! - LMB → `walk_or_use_tile_hold_hit` (face eat, clothing at draw pos; hold repath)
 //! - RMB or Q → DROP held / REMV from container under cursor
 //! - Keys **1–6** → clothing slots 0..5 (held→`DROP c`; bare→`SELF c` remove; Shift→`SREMV`)
 //! - Click/hover worn clothing sprites (soft-FB hitMap) → same as keys for that slot
@@ -27,6 +27,8 @@
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::mpsc;
+use std::thread;
 use std::time::{Duration, Instant};
 
 use minifb::{
@@ -42,7 +44,7 @@ use ohol_headless::anim_bank::AnimBank;
 use ohol_headless::client_map::ClientMap;
 use ohol_headless::click_tile::{
     click_drop_clothing, click_kill, click_remove_clothing, click_sremv_clothing,
-    walk_or_use_tile_hold,
+    walk_or_use_tile_hold_hit,
 };
 use ohol_headless::client_screen::{
     death_key_command, draw_death_screen, note_our_death_if_any, rebirth_session_config, DeathKey,
@@ -61,7 +63,7 @@ use ohol_headless::hud::{draw_pencil_string, HudSprites};
 use ohol_headless::live_object::{LiveWorld, CLOTHING_SLOT_NAMES};
 use ohol_headless::load_bench::resolve_content_root;
 use ohol_headless::load_progress::{
-    boot_load_prefer_cache, draw_loading_progress, LoadStage, LoadingState,
+    boot_load_prefer_cache, draw_loading_progress, BootBanks, LoadStage, LoadingState,
 };
 use ohol_headless::music_bank::MusicBank;
 use ohol_headless::parse::{FoodChange, HeatChange, LoginOutcome, MapChunkHeader, parse_pu_line};
@@ -251,6 +253,63 @@ fn new_soft_window(
         }));
     }
     Ok(w)
+}
+
+/// One winit/pixels window for login → loading → play.
+/// Windows cannot create a second `EventLoop` after the first is dropped.
+struct GpuShell {
+    event_loop: winit::event_loop::EventLoop<()>,
+    window: winit::window::Window,
+    pixels: pixels::Pixels,
+}
+
+fn open_gpu_shell(title: &str, fullscreen: bool) -> anyhow::Result<GpuShell> {
+    use pixels::{Pixels, SurfaceTexture};
+    use winit::dpi::LogicalSize;
+    use winit::event_loop::EventLoop;
+    use winit::window::WindowBuilder;
+
+    let event_loop = EventLoop::new();
+    let mut wb = WindowBuilder::new().with_title(title);
+    if fullscreen {
+        wb = wb
+            .with_fullscreen(Some(winit::window::Fullscreen::Borderless(None)))
+            .with_decorations(false);
+    } else {
+        let size = LogicalSize::new(FB_W as f64, FB_H as f64);
+        wb = wb
+            .with_inner_size(size)
+            .with_min_inner_size(size)
+            .with_decorations(true);
+    }
+    let window = wb
+        .build(&event_loop)
+        .map_err(|e| anyhow::anyhow!("gpu window: {e}"))?;
+    if fullscreen {
+        window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
+        window.set_decorations(false);
+    }
+    let win_size = window.inner_size();
+    let surface = SurfaceTexture::new(win_size.width.max(1), win_size.height.max(1), &window);
+    let mut pixels = Pixels::new(FB_W as u32, FB_H as u32, surface)
+        .map_err(|e| anyhow::anyhow!("pixels/wgpu: {e}"))?;
+    pixels.clear_color(pixels::wgpu::Color {
+        r: 14.0 / 255.0,
+        g: 16.0 / 255.0,
+        b: 20.0 / 255.0,
+        a: 1.0,
+    });
+    eprintln!(
+        "gpu shell: fullscreen={} surface={}x{}",
+        fullscreen,
+        win_size.width,
+        win_size.height
+    );
+    Ok(GpuShell {
+        event_loop,
+        window,
+        pixels,
+    })
 }
 
 fn apply_hover_from_session(
@@ -444,7 +503,12 @@ impl PlaySayField {
             return;
         }
         if self.text.len() < 80 {
-            self.text.push(c);
+            // C++ `stringToUpperCase` on the note paper / chalk string.
+            for ch in c.to_uppercase() {
+                if self.text.len() < 80 {
+                    self.text.push(ch);
+                }
+            }
         }
     }
 
@@ -542,8 +606,23 @@ fn main() -> anyhow::Result<()> {
         app.settings.graphics_mode.label()
     );
 
+    let mut skip_auto_connect = false;
+    let mut gpu_shell = match app.settings.graphics_mode {
+        GraphicsMode::Gpu => Some(open_gpu_shell(
+            "Open Life",
+            app.settings.fullscreen,
+        )?),
+        GraphicsMode::Soft => None,
+    };
+    loop {
+    let mut preload = spawn_content_preload();
     let t_account0 = Instant::now();
-    let cfg = match run_account_boot(&mut app)? {
+    let cfg = match run_account_boot(
+        &mut app,
+        skip_auto_connect,
+        &mut preload,
+        gpu_shell.as_mut(),
+    )? {
         Some(cfg) => cfg,
         None => {
             eprintln!("account: quit");
@@ -567,7 +646,7 @@ fn main() -> anyhow::Result<()> {
     // Single init window: load content banks + try server connect + status.
     // Then one main window (live or offline). No second loading flash.
     let t_boot0 = Instant::now();
-    let outcome = run_init_boot(&mut app, &cfg)?;
+    let outcome = run_init_boot(&mut app, &cfg, preload, gpu_shell.as_mut())?;
     let boot_secs = t_boot0.elapsed().as_secs_f64();
 
     match outcome {
@@ -599,7 +678,7 @@ fn main() -> anyhow::Result<()> {
                 t_start.elapsed().as_secs_f64(),
                 true,
             );
-            match app.settings.graphics_mode {
+            let logout = match app.settings.graphics_mode {
                 GraphicsMode::Gpu => {
                     eprintln!(
                         "graphics: GPU present (pixels/wgpu) {}x{}  fullscreen={}",
@@ -607,13 +686,29 @@ fn main() -> anyhow::Result<()> {
                         FB_H,
                         app.settings.fullscreen
                     );
-                    run_session_gpu(session, sprites, anims, music, cfg, app)
+                    run_session_gpu(
+                        session,
+                        sprites,
+                        anims,
+                        music,
+                        cfg,
+                        app,
+                        gpu_shell.as_mut().expect("gpu shell"),
+                    )?
                 }
                 GraphicsMode::Soft => {
                     eprintln!("graphics: Soft minifb present (CPU buffer)");
-                    run_session_from_boot(session, sprites, anims, music, cfg, app)
+                    run_session_from_boot(session, sprites, anims, music, cfg, app)?
                 }
+            };
+            if logout {
+                skip_auto_connect = true;
+                app = ClientAppState::from_env();
+                app.account.read_timeout = Duration::from_millis(30);
+                app.account.write_timeout = Duration::from_secs(5);
+                continue;
             }
+            return Ok(());
         }
         InitOutcome::Offline {
             content,
@@ -637,8 +732,17 @@ fn main() -> anyhow::Result<()> {
             eprintln!(
                 "timing: boot_window={boot_secs:.3}s (single init screen)"
             );
-            run_offline_with_banks(content, sprites, anims, ground, sounds, music)
+            let logout = run_offline_with_banks(content, sprites, anims, ground, sounds, music)?;
+            if logout {
+                skip_auto_connect = true;
+                app = ClientAppState::from_env();
+                app.account.read_timeout = Duration::from_millis(30);
+                app.account.write_timeout = Duration::from_secs(5);
+                continue;
+            }
+            return Ok(());
         }
+    }
     }
 }
 
@@ -697,106 +801,98 @@ fn log_startup_timings(
     }
 }
 
-/// Present a status line on the shared init loading screen (same window as bank load).
-fn present_init_status(
-    window: &mut Window,
-    fb: &mut Framebuffer,
-    buf: &mut [u32],
-    title: &str,
-    detail: &str,
-    fraction: f32,
-) {
-    let mut state = if fraction >= 0.99 {
-        LoadingState::finished()
-    } else {
-        LoadingState::for_stage(LoadStage::Content, fraction.clamp(0.0, 1.0), Some(detail))
-    };
-    state.label = detail.into();
-    if fraction >= 0.99 {
-        state.overall_fraction = 1.0;
-        state.done = true;
-    }
-    draw_loading_progress(fb, &state);
-    // Extra status under bar (connect result).
-    ohol_headless::ui_font::draw_ui_text(
-        fb,
-        title,
-        FB_W as f32 * 0.5,
-        FB_H as f32 * 0.78,
-        16.0,
-        [200, 210, 230, 255],
-        true,
-    );
-    rgba_to_u32(&fb.pixels, buf);
-    window.set_title(&window_title("Starting", detail));
-    let _ = window.update_with_buffer(buf, FB_W, FB_H);
+/// Background content load started on the login screen.
+struct ContentPreload {
+    handle: Option<thread::JoinHandle<Result<BootBanks, String>>>,
+    progress: mpsc::Receiver<LoadingState>,
+    last: Option<LoadingState>,
+    t0: Instant,
+    /// Frozen when the thread first finishes (do not keep counting).
+    finished_secs: Option<f32>,
 }
 
-/// One init window: load banks + try server connect + show connected/offline.
-/// Main play/offline is a separate window after this returns.
-fn run_init_boot(app: &mut ClientAppState, cfg: &SessionConfig) -> anyhow::Result<InitOutcome> {
+fn spawn_content_preload() -> ContentPreload {
+    let (tx, rx) = mpsc::channel::<LoadingState>();
+    let handle = thread::Builder::new()
+        .name("ohol-preload".into())
+        .spawn(move || {
+            let root = resolve_content_root(None)?;
+            boot_load_prefer_cache(&root, Some(&mut |s: &LoadingState| {
+                let _ = tx.send(s.clone());
+            }))
+        })
+        .expect("spawn content preload");
+    eprintln!("boot: content preload started during login");
+    ContentPreload {
+        handle: Some(handle),
+        progress: rx,
+        last: None,
+        t0: Instant::now(),
+        finished_secs: None,
+    }
+}
+
+impl ContentPreload {
+    fn drain_progress(&mut self) -> Option<LoadingState> {
+        while let Ok(s) = self.progress.try_recv() {
+            self.last = Some(s);
+        }
+        self.last.clone()
+    }
+
+    fn is_finished(&self) -> bool {
+        self.handle
+            .as_ref()
+            .map(|h| h.is_finished())
+            .unwrap_or(true)
+    }
+
+    fn join(mut self) -> Result<(BootBanks, f64), String> {
+        let secs = self.t0.elapsed().as_secs_f64();
+        let h = self.handle.take().ok_or_else(|| "preload already joined".to_string())?;
+        let banks = h.join().map_err(|_| "preload thread panicked".to_string())??;
+        Ok((banks, secs))
+    }
+
+    fn status_line(&mut self) -> String {
+        self.drain_progress();
+        if self.is_finished() {
+            let secs = *self
+                .finished_secs
+                .get_or_insert_with(|| self.t0.elapsed().as_secs_f32());
+            format!("Ready · loaded in {secs:.1}s")
+        } else if let Some(s) = &self.last {
+            let pct = (s.overall_fraction * 100.0).round() as i32;
+            if s.label.is_empty() {
+                format!("Loading {}…  {}%", s.stage.name(), pct)
+            } else {
+                format!("{}  {}%", s.label, pct)
+            }
+        } else {
+            "Loading content…".into()
+        }
+    }
+}
+
+/// One init window: finish preload (if needed) + try server connect.
+/// Loading UI is skipped when content already finished during the login wait.
+fn run_init_boot(
+    app: &mut ClientAppState,
+    cfg: &SessionConfig,
+    preload: ContentPreload,
+    gpu: Option<&mut GpuShell>,
+) -> anyhow::Result<InitOutcome> {
     app.screen = ClientScreen::Loading;
     app.loading_msg = "starting…".into();
 
-    let root = resolve_content_root(None).map_err(anyhow::Error::msg)?;
-    let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
-    let mut window = Window::new(
-        &window_title("Starting", "loading…"),
-        FB_W,
-        FB_H,
-        soft_window_opts(),
-    )?;
-    window.set_target_fps(60);
-    let mut buf = vec![0u32; FB_W * FB_H];
-
-    present_init_status(
-        &mut window,
-        &mut fb,
-        &mut buf,
-        "Open Life",
-        "Loading content…",
-        0.02,
-    );
-
-    let t_load0 = Instant::now();
-    let mut present = |state: &LoadingState| {
-        app.loading_msg = state.label.clone();
-        draw_loading_progress(&mut fb, state);
-        rgba_to_u32(&fb.pixels, &mut buf);
-        let pct = (state.overall_fraction * 100.0).round() as i32;
-        let detail = if state.label.is_empty() {
-            state.stage.name().to_string()
-        } else {
-            let d = state.label.as_str();
-            if d.len() > 48 {
-                format!("{}…", &d[..45])
-            } else {
-                d.to_string()
-            }
-        };
-        window.set_title(&window_title("Starting", &format!("{pct}% {detail}")));
-        let _ = window.update_with_buffer(&buf, FB_W, FB_H);
+    let (banks, loading_secs) = if preload.is_finished() {
+        eprintln!("boot: content already loaded during login — skip loading screen");
+        preload.join().map_err(anyhow::Error::msg)?
+    } else if let Some(gpu) = gpu {
+        wait_preload_gpu(app, preload, gpu)?
+    } else {
+        wait_preload_soft(app, preload)?
     };
-
-    let banks = {
-        let mut cb = |s: &LoadingState| present(s);
-        match boot_load_prefer_cache(&root, Some(&mut cb)) {
-            Ok(b) => b,
-            Err(e) => {
-                present_init_status(
-                    &mut window,
-                    &mut fb,
-                    &mut buf,
-                    "Load failed",
-                    &e,
-                    0.0,
-                );
-                std::thread::sleep(Duration::from_millis(800));
-                return Err(anyhow::Error::msg(e));
-            }
-        }
-    };
-    let loading_secs = t_load0.elapsed().as_secs_f64();
     eprintln!(
         "loading: done objects={} transitions={} binary_cache={}",
         banks.content.objects.len(),
@@ -804,18 +900,7 @@ fn run_init_boot(app: &mut ClientAppState, cfg: &SessionConfig) -> anyhow::Resul
         banks.used_binary_cache
     );
 
-    // Same window: connecting…
-    let host_line = format!("Connecting to {}:{}…", cfg.host, cfg.port);
-    present_init_status(
-        &mut window,
-        &mut fb,
-        &mut buf,
-        "Connecting",
-        &host_line,
-        0.92,
-    );
     eprintln!("connect: try {}:{} …", cfg.host, cfg.port);
-
     let t_connect0 = Instant::now();
     let content = banks.content;
     let sprites = banks.sprites;
@@ -829,17 +914,7 @@ fn run_init_boot(app: &mut ClientAppState, cfg: &SessionConfig) -> anyhow::Resul
             let connect_secs = t_connect0.elapsed().as_secs_f64();
             session.sounds = sounds;
             session.skip_emot_ttl_in_step = true;
-            present_init_status(
-                &mut window,
-                &mut fb,
-                &mut buf,
-                "Connected",
-                &format!("Online · {}:{}", cfg.host, cfg.port),
-                1.0,
-            );
-            std::thread::sleep(Duration::from_millis(350));
-            // Drop init window before main play window.
-            drop(window);
+            eprintln!("connect: accepted {}:{}", cfg.host, cfg.port);
             Ok(InitOutcome::Live {
                 session,
                 sprites,
@@ -852,16 +927,7 @@ fn run_init_boot(app: &mut ClientAppState, cfg: &SessionConfig) -> anyhow::Resul
         Ok(session) => {
             let connect_secs = t_connect0.elapsed().as_secs_f64();
             let status = format!("Offline · login {:?}", session.login);
-            present_init_status(
-                &mut window,
-                &mut fb,
-                &mut buf,
-                "Offline",
-                &status,
-                1.0,
-            );
-            std::thread::sleep(Duration::from_millis(500));
-            drop(window);
+            eprintln!("{status}");
             Ok(InitOutcome::Offline {
                 content: session.content,
                 sprites,
@@ -877,19 +943,7 @@ fn run_init_boot(app: &mut ClientAppState, cfg: &SessionConfig) -> anyhow::Resul
         Err(e) => {
             let connect_secs = t_connect0.elapsed().as_secs_f64();
             let status = format!("Offline · connect failed");
-            present_init_status(
-                &mut window,
-                &mut fb,
-                &mut buf,
-                "Offline",
-                &format!("{e}"),
-                1.0,
-            );
             eprintln!("connect failed: {e}");
-            std::thread::sleep(Duration::from_millis(500));
-            drop(window);
-            // Content was moved into connect attempt — reload content only (banks stay warm).
-            // connect_with_content consumes content on all paths; rebuild from root meta.
             let content = ClientContent::load_default_locations().unwrap_or_default();
             Ok(InitOutcome::Offline {
                 content,
@@ -906,22 +960,109 @@ fn run_init_boot(app: &mut ClientAppState, cfg: &SessionConfig) -> anyhow::Resul
     }
 }
 
+fn wait_preload_gpu(
+    app: &mut ClientAppState,
+    mut preload: ContentPreload,
+    gpu: &mut GpuShell,
+) -> anyhow::Result<(BootBanks, f64)> {
+    use winit::event::{Event, WindowEvent};
+    use winit::event_loop::ControlFlow;
+    use winit::platform::run_return::EventLoopExtRunReturn;
+
+    let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
+    gpu.window.set_title("Open Life — Loading");
+    eprintln!("boot: loading screen (same GPU window)");
+    gpu.event_loop.run_return(|event, _, control_flow| {
+        *control_flow = ControlFlow::Poll;
+        match event {
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                ..
+            } => *control_flow = ControlFlow::Exit,
+            Event::WindowEvent {
+                event: WindowEvent::Resized(size),
+                ..
+            } => {
+                if size.width > 0 && size.height > 0 {
+                    let _ = gpu.pixels.resize_surface(size.width, size.height);
+                }
+            }
+            Event::MainEventsCleared => gpu.window.request_redraw(),
+            Event::RedrawRequested(_) => {
+                let _ = preload.drain_progress();
+                if preload.is_finished() {
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
+                let state = preload.last.clone().unwrap_or_else(|| {
+                    LoadingState::for_stage(LoadStage::Content, 0.02, Some("starting"))
+                });
+                app.loading_msg = state.label.clone();
+                draw_loading_progress(&mut fb, &state);
+                let frame = gpu.pixels.frame_mut();
+                let n = frame.len().min(fb.pixels.len());
+                frame[..n].copy_from_slice(&fb.pixels[..n]);
+                if gpu.pixels.render().is_err() {
+                    *control_flow = ControlFlow::Exit;
+                }
+            }
+            _ => {}
+        }
+    });
+    preload.join().map_err(anyhow::Error::msg)
+}
+
+fn wait_preload_soft(
+    app: &mut ClientAppState,
+    mut preload: ContentPreload,
+) -> anyhow::Result<(BootBanks, f64)> {
+    let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
+    let mut window = new_soft_window(
+        "Open Life — Loading",
+        app.settings.fullscreen,
+        true,
+        None,
+    )?;
+    let mut buf = vec![0u32; FB_W * FB_H];
+    eprintln!("boot: loading screen (soft fullscreen={})", app.settings.fullscreen);
+    while window.is_open() && !preload.is_finished() {
+        let _ = preload.drain_progress();
+        let state = preload.last.clone().unwrap_or_else(|| {
+            LoadingState::for_stage(LoadStage::Content, 0.02, Some("starting"))
+        });
+        app.loading_msg = state.label.clone();
+        draw_loading_progress(&mut fb, &state);
+        rgba_to_u32(&fb.pixels, &mut buf);
+        window.set_title(&window_title("Starting", &state.label));
+        window.update_with_buffer(&buf, FB_W, FB_H)?;
+    }
+    drop(window);
+    preload.join().map_err(anyhow::Error::msg)
+}
+
 /// Account form loop. Returns `Some(SessionConfig)` on Connect, `None` on Quit.
-fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionConfig>> {
-    // Default **on** when unset (launcher / .env default). Set OHOL_AUTO_CONNECT=0 to force form.
+///
+/// `skip_auto`: after logout, always show the form even if `OHOL_AUTO_CONNECT=1`.
+fn run_account_boot(
+    app: &mut ClientAppState,
+    skip_auto: bool,
+    preload: &mut ContentPreload,
+    gpu: Option<&mut GpuShell>,
+) -> anyhow::Result<Option<SessionConfig>> {
+    // Default **off** when unset so the login screen is shown. Set OHOL_AUTO_CONNECT=1 to skip.
     // Selftest always shows Account so Settings UI can be verified.
     let selftest_boot = std::env::var_os("OHOL_SETTINGS_SELFTEST").is_some();
-    let auto = !selftest_boot
+    let auto = !skip_auto
+        && !selftest_boot
         && std::env::var("OHOL_AUTO_CONNECT")
             .map(|v| {
                 let t = v.trim();
-                !(t.is_empty()
-                    || t == "0"
-                    || t.eq_ignore_ascii_case("false")
-                    || t.eq_ignore_ascii_case("no")
-                    || t.eq_ignore_ascii_case("off"))
+                t == "1"
+                    || t.eq_ignore_ascii_case("true")
+                    || t.eq_ignore_ascii_case("yes")
+                    || t.eq_ignore_ascii_case("on")
             })
-            .unwrap_or(true);
+            .unwrap_or(false);
     if auto {
         let cfg = app.account.build_session_config();
         if !cfg.email.is_empty()
@@ -939,17 +1080,21 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
     } else if selftest_boot {
         eprintln!("account: selftest — showing Account form (auto-connect skipped)");
     } else {
-        eprintln!("account: OHOL_AUTO_CONNECT=0 — showing Account form");
+        eprintln!("account: showing Account form (set OHOL_AUTO_CONNECT=1 to skip)");
+    }
+
+    if let Some(gpu) = gpu {
+        return run_account_boot_gpu(app, preload, gpu);
     }
 
     let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
-    let mut window = Window::new("Open Life — Account", FB_W, FB_H, soft_window_opts())?;
-    window.set_target_fps(60);
-
     let chars: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
-    window.set_input_callback(Box::new(CharQueue {
-        chars: Rc::clone(&chars),
-    }));
+    let mut window = new_soft_window(
+        "Open Life — Account",
+        app.settings.fullscreen,
+        app.settings.fullscreen,
+        Some(&chars),
+    )?;
 
     let hud = HudSprites::with_default_roots(None);
     let mut buf = vec![0u32; FB_W * FB_H];
@@ -957,10 +1102,13 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
     let mut fps = FpsMeter::new("account");
 
     eprintln!(
-        "account page: mouse select fields | Tab field | Enter Connect | Esc/F3 Settings | F2 key/password | type to edit"
+        "account page: mouse select fields | Tab field | Enter Connect | Esc/F3 Settings | F2 key/password | type to edit | fullscreen={}",
+        app.settings.fullscreen
     );
 
     let mut was_lmb_account = false;
+    let mut account_dirty = true;
+    let mut last_caret_on = true;
     let mut esc_f3 = EscF3Edge::default();
     // Key actions are sampled **after** update_with_buffer (minifb pumps WM_* then).
     // Pending flags apply on the next loop iteration so Esc/F3 always register.
@@ -974,6 +1122,11 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
     while window.is_open() {
         let dt = last.elapsed().as_secs_f32().min(0.05);
         last = Instant::now();
+        let load_line = preload.status_line();
+        if load_line != app.account.boot_load_line {
+            app.account.boot_load_line = load_line;
+            account_dirty = true;
+        }
 
         // Apply key edges detected after last frame's message pump.
         let mut suppress_settings_close = false;
@@ -1055,6 +1208,10 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
                 SettingsLoop::Quit => {
                     eprintln!("settings: Exit");
                     return Ok(None);
+                }
+                SettingsLoop::Logout => {
+                    app.leave_settings();
+                    app.account.status = "Pick a server and Connect.".into();
                 }
                 SettingsLoop::Continue => {
                     app.settings.draw(&mut fb, Some(&hud));
@@ -1229,9 +1386,17 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
         }
 
         app.account.step(dt);
+        let caret_on = app.account.caret_t <= 0.5;
+        if caret_on != last_caret_on {
+            account_dirty = true;
+            last_caret_on = caret_on;
+        }
 
         {
             let mut q = chars.borrow_mut();
+            if !q.is_empty() {
+                account_dirty = true;
+            }
             for u in q.drain(..) {
                 if let Some(c) = char::from_u32(u) {
                     if app.screen.is_settings() {
@@ -1274,9 +1439,24 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
         if window.is_key_pressed(Key::F2, KeyRepeat::No) {
             let _ = app.account.on_key(AccountKey::ToggleSecretMode);
         }
+        if action != AccountAction::None
+            || window.is_key_pressed(Key::Tab, KeyRepeat::No)
+            || window.is_key_pressed(Key::Enter, KeyRepeat::No)
+            || window.is_key_pressed(Key::NumPadEnter, KeyRepeat::No)
+            || window.is_key_pressed(Key::Backspace, KeyRepeat::Yes)
+            || window.is_key_pressed(Key::Delete, KeyRepeat::Yes)
+            || window.is_key_pressed(Key::Left, KeyRepeat::Yes)
+            || window.is_key_pressed(Key::Right, KeyRepeat::Yes)
+            || window.is_key_pressed(Key::Home, KeyRepeat::No)
+            || window.is_key_pressed(Key::End, KeyRepeat::No)
+            || window.is_key_pressed(Key::F2, KeyRepeat::No)
+        {
+            account_dirty = true;
+        }
 
         let lmb = window.get_mouse_down(MouseButton::Left);
         if lmb && !was_lmb_account {
+            account_dirty = true;
             if let Some((mx, my)) = safe_mouse_pos(&window) {
                 let a = app.account.on_pointer_down(
                     mx,
@@ -1317,6 +1497,10 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
                 // Nested form only — boot path should not hit these.
                 app.return_to_settings_from_account();
             }
+            AccountAction::EndpointPicked => {
+                app.persist_login_fields();
+                account_dirty = true;
+            }
             AccountAction::None => {}
         }
 
@@ -1342,13 +1526,18 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
             continue;
         }
 
-        app.account.draw(&mut fb, Some(&hud));
-        rgba_to_u32(&fb.pixels, &mut buf);
-        window.set_title(&window_title(
-            "Account",
-            &format!("{:.0} FPS F3/Esc=Settings", fps.fps()),
-        ));
-        window.update_with_buffer(&buf, FB_W, FB_H)?;
+        if account_dirty {
+            app.account.draw(&mut fb, Some(&hud));
+            rgba_to_u32(&fb.pixels, &mut buf);
+            window.set_title(&window_title(
+                "Account",
+                &format!("{:.0} FPS F3/Esc=Settings", fps.fps()),
+            ));
+            window.update_with_buffer(&buf, FB_W, FB_H)?;
+            account_dirty = false;
+        } else {
+            window.update();
+        }
         fps.on_presented(dt);
 
         // AFTER message pump (+ Win32 async fallback): Esc/F3 open Settings next frame.
@@ -1367,6 +1556,278 @@ fn run_account_boot(app: &mut ClientAppState) -> anyhow::Result<Option<SessionCo
     Ok(None)
 }
 
+/// Login on the shared GPU shell (same fullscreen window as play).
+fn run_account_boot_gpu(
+    app: &mut ClientAppState,
+    preload: &mut ContentPreload,
+    gpu: &mut GpuShell,
+) -> anyhow::Result<Option<SessionConfig>> {
+    use winit::dpi::LogicalSize;
+    use winit::event::{ElementState, Event, MouseButton as WMouse, VirtualKeyCode, WindowEvent};
+    use winit::event_loop::ControlFlow;
+    use winit::platform::run_return::EventLoopExtRunReturn;
+
+    let hud = HudSprites::with_default_roots(None);
+    let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
+    gpu.window.set_title("Open Life — Account");
+    eprintln!(
+        "account page (GPU): fullscreen={} | click a server | Enter=Connect | Esc=Settings",
+        app.settings.fullscreen
+    );
+
+    let mut last = Instant::now();
+    let mut keys_down = std::collections::HashSet::<VirtualKeyCode>::new();
+    let mut keys_pressed = std::collections::HashSet::<VirtualKeyCode>::new();
+    let mut lmb = false;
+    let mut was_lmb = false;
+    let mut cursor = (FB_W as f32 * 0.5, FB_H as f32 * 0.5);
+    let mut typed_chars: Vec<char> = Vec::new();
+    let mut esc_f3 = EscF3Edge::default();
+    let mut result: Option<SessionConfig> = None;
+    let mut quit = false;
+    let fbw = FB_W as u32;
+    let fbh = FB_H as u32;
+
+    gpu.event_loop.run_return(|event, _, control_flow| {
+        *control_flow = ControlFlow::Poll;
+        match event {
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::CloseRequested => {
+                    quit = true;
+                    *control_flow = ControlFlow::Exit;
+                }
+                WindowEvent::Resized(size) => {
+                    if size.width > 0 && size.height > 0 {
+                        let _ = gpu.pixels.resize_surface(size.width, size.height);
+                    }
+                }
+                WindowEvent::KeyboardInput { input, .. } => {
+                    let code = input.virtual_keycode;
+                    if let Some(code) = code {
+                        match input.state {
+                            ElementState::Pressed => {
+                                keys_down.insert(code);
+                                keys_pressed.insert(code);
+                            }
+                            ElementState::Released => {
+                                keys_down.remove(&code);
+                            }
+                        }
+                    }
+                }
+                WindowEvent::CursorMoved { position, .. } => {
+                    let size = gpu.window.inner_size();
+                    if size.width > 0 && size.height > 0 {
+                        cursor.0 = (position.x as f32) * (fbw as f32) / size.width as f32;
+                        cursor.1 = (position.y as f32) * (fbh as f32) / size.height as f32;
+                    }
+                }
+                WindowEvent::MouseInput { state, button, .. } => {
+                    if button == WMouse::Left {
+                        lmb = state == ElementState::Pressed;
+                    }
+                }
+                WindowEvent::ReceivedCharacter(c) => {
+                    if !c.is_control() {
+                        typed_chars.push(c);
+                    }
+                }
+                _ => {}
+            },
+            Event::MainEventsCleared => gpu.window.request_redraw(),
+            Event::RedrawRequested(_) => {
+                let dt = last.elapsed().as_secs_f32().min(0.05);
+                last = Instant::now();
+                let load_line = preload.status_line();
+                if load_line != app.account.boot_load_line {
+                    app.account.boot_load_line = load_line;
+                }
+                let esc_down = keys_down.contains(&VirtualKeyCode::Escape)
+                    || keys_pressed.contains(&VirtualKeyCode::Escape);
+                let f3_down = keys_down.contains(&VirtualKeyCode::F3)
+                    || keys_pressed.contains(&VirtualKeyCode::F3);
+                let esc_edge = esc_f3.edge(esc_down, f3_down);
+                let shift = keys_down.contains(&VirtualKeyCode::LShift)
+                    || keys_down.contains(&VirtualKeyCode::RShift);
+
+                if app.screen.is_settings() {
+                    let mut suppress = false;
+                    if esc_edge {
+                        app.leave_settings();
+                        suppress = true;
+                    }
+                    let mut skey = SettingsKey::Other;
+                    if keys_pressed.contains(&VirtualKeyCode::Tab) {
+                        skey = SettingsKey::Tab { shift };
+                    } else if keys_pressed.contains(&VirtualKeyCode::Up) {
+                        skey = SettingsKey::Up;
+                    } else if keys_pressed.contains(&VirtualKeyCode::Down) {
+                        skey = SettingsKey::Down;
+                    } else if keys_pressed.contains(&VirtualKeyCode::Left) {
+                        skey = SettingsKey::Left;
+                    } else if keys_pressed.contains(&VirtualKeyCode::Right) {
+                        skey = SettingsKey::Right;
+                    } else if keys_pressed.contains(&VirtualKeyCode::Return) {
+                        skey = SettingsKey::Enter;
+                    } else if keys_pressed.contains(&VirtualKeyCode::B) && !suppress {
+                        skey = SettingsKey::Escape;
+                    }
+                    let mut saction = app.settings.on_key(skey);
+                    for c in typed_chars.drain(..) {
+                        let _ = app.settings.on_key(SettingsKey::Char(c));
+                    }
+                    if lmb && !was_lmb {
+                        let a = app
+                            .settings
+                            .on_pointer_down(cursor.0, cursor.1, FB_W as f32, FB_H as f32);
+                        if a != SettingsAction::None {
+                            saction = a;
+                        }
+                    } else if lmb && was_lmb && app.settings.slider_drag.is_some() {
+                        let a = app
+                            .settings
+                            .on_pointer_drag(cursor.0, FB_W as f32, FB_H as f32);
+                        if a != SettingsAction::None {
+                            saction = a;
+                        }
+                    }
+                    if !lmb {
+                        app.settings.on_pointer_up();
+                    }
+                    match saction {
+                        SettingsAction::Back | SettingsAction::Logout => {
+                            app.leave_settings();
+                        }
+                        SettingsAction::Quit => {
+                            quit = true;
+                            *control_flow = ControlFlow::Exit;
+                        }
+                        SettingsAction::Restart => restart_client_process(),
+                        SettingsAction::ApplyFullscreen => {
+                            let _ = app.settings.save_default();
+                            if app.settings.fullscreen {
+                                gpu.window.set_fullscreen(Some(
+                                    winit::window::Fullscreen::Borderless(None),
+                                ));
+                                gpu.window.set_decorations(false);
+                            } else {
+                                gpu.window.set_fullscreen(None);
+                                gpu.window.set_decorations(true);
+                                gpu.window.set_inner_size(LogicalSize::new(FB_W as f64, FB_H as f64));
+                            }
+                            app.settings.runtime_fullscreen = app.settings.fullscreen;
+                        }
+                        SettingsAction::OpenAccount => {
+                            app.enter_account_from_settings();
+                        }
+                        SettingsAction::OpenReview => {
+                            let _ = app.enter_review();
+                        }
+                        _ => {}
+                    }
+                    if app.screen.is_settings() {
+                        app.settings.draw(&mut fb, Some(&hud));
+                    }
+                } else {
+                    if esc_edge {
+                        let _ = app.enter_settings();
+                        esc_f3.mark_opened();
+                    }
+                    app.account.step(dt);
+                    for c in typed_chars.drain(..) {
+                        let _ = app.account.on_key(AccountKey::Char(c));
+                    }
+                    let mut action = AccountAction::None;
+                    if keys_pressed.contains(&VirtualKeyCode::Tab) {
+                        action = app.account.on_key(AccountKey::Tab { shift });
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Return) {
+                        action = app.account.on_key(AccountKey::Enter);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Back) {
+                        let _ = app.account.on_key(AccountKey::Backspace);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Delete) {
+                        let _ = app.account.on_key(AccountKey::Delete);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Left) {
+                        let _ = app.account.on_key(AccountKey::Left);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Right) {
+                        let _ = app.account.on_key(AccountKey::Right);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::Home) {
+                        let _ = app.account.on_key(AccountKey::Home);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::End) {
+                        let _ = app.account.on_key(AccountKey::End);
+                    }
+                    if keys_pressed.contains(&VirtualKeyCode::F2) {
+                        let _ = app.account.on_key(AccountKey::ToggleSecretMode);
+                    }
+                    if lmb && !was_lmb {
+                        let a = app.account.on_pointer_down(
+                            cursor.0,
+                            cursor.1,
+                            FB_W as f32,
+                            FB_H as f32,
+                            Some(&hud),
+                        );
+                        if a != AccountAction::None {
+                            action = a;
+                        }
+                    }
+                    match action {
+                        AccountAction::Quit => {
+                            quit = true;
+                            *control_flow = ControlFlow::Exit;
+                        }
+                        AccountAction::Connect => {
+                            result = Some(app.begin_connect());
+                            *control_flow = ControlFlow::Exit;
+                        }
+                        AccountAction::OpenSettings => {
+                            let _ = app.enter_settings();
+                            esc_f3.mark_opened();
+                        }
+                        AccountAction::OpenTwin => {
+                            let _ = app.enter_twin();
+                        }
+                        AccountAction::OpenReview => {
+                            let _ = app.enter_review();
+                        }
+                        AccountAction::EndpointPicked => {
+                            app.persist_login_fields();
+                        }
+                        _ => {}
+                    }
+                    if app.screen.is_account() {
+                        app.account.draw(&mut fb, Some(&hud));
+                    } else if app.screen.is_twin() {
+                        app.twin.draw(&mut fb, Some(&hud));
+                    } else if app.screen.is_review() {
+                        app.review.draw(&mut fb, Some(&hud));
+                    }
+                }
+                was_lmb = lmb;
+                keys_pressed.clear();
+                let frame = gpu.pixels.frame_mut();
+                let n = frame.len().min(fb.pixels.len());
+                frame[..n].copy_from_slice(&fb.pixels[..n]);
+                if gpu.pixels.render().is_err() {
+                    quit = true;
+                    *control_flow = ControlFlow::Exit;
+                }
+            }
+            _ => {}
+        }
+    });
+    if quit && result.is_none() {
+        return Ok(None);
+    }
+    Ok(result)
+}
+
 /// Outcome of one Settings-page input tick.
 enum SettingsLoop {
     Continue,
@@ -1379,6 +1840,8 @@ enum SettingsLoop {
     OpenReview,
     /// Quit the client.
     Quit,
+    /// Disconnect and return to the login screen.
+    Logout,
 }
 
 /// Keyboard for nested Account form (no char queue — caller drains that).
@@ -1510,6 +1973,7 @@ fn handle_settings_input(
                 | SettingsAction::ApplyFullscreen
                 | SettingsAction::OpenAccount
                 | SettingsAction::Quit
+                | SettingsAction::Logout
         )
     {
         action = SettingsAction::None;
@@ -1530,6 +1994,7 @@ fn handle_settings_input(
         SettingsAction::OpenAccount => SettingsLoop::OpenAccount,
         SettingsAction::OpenReview => SettingsLoop::OpenReview,
         SettingsAction::Quit => SettingsLoop::Quit,
+        SettingsAction::Logout => SettingsLoop::Logout,
     }
 }
 
@@ -1543,7 +2008,7 @@ fn run_session_from_boot(
     music: MusicBank,
     cfg: SessionConfig,
     mut app: ClientAppState,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<bool> {
     let root = session.content.root.clone().unwrap_or_else(|| {
         std::path::PathBuf::from(r"C:\OhOl\OpenLife\openlife\RustServer\content\OneLifeData7")
     });
@@ -1661,7 +2126,16 @@ fn run_session_from_boot(
                     {
                         app.settings.capture_runtime_baseline();
                         drop(window);
-                        return run_session_gpu(session, sprites, anims, scene.music, cfg, app);
+                        let mut shell = open_gpu_shell("Open Life", app.settings.fullscreen)?;
+                        return run_session_gpu(
+                            session,
+                            sprites,
+                            anims,
+                            scene.music,
+                            cfg,
+                            app,
+                            &mut shell,
+                        );
                     }
                     restart_client_process();
                 }
@@ -1693,7 +2167,13 @@ fn run_session_from_boot(
                 }
                 SettingsLoop::Quit => {
                     eprintln!("settings: Exit");
-                    return Ok(());
+                    return Ok(false);
+                }
+                SettingsLoop::Logout => {
+                    eprintln!("settings: Log out");
+                    session.logout_reset();
+                    app.back_to_account("Logged out");
+                    return Ok(true);
                 }
                 SettingsLoop::Continue => {
                     // Live-preview zoom, brightness + SFX/music loudness while adjusting.
@@ -1799,9 +2279,14 @@ fn run_session_from_boot(
                 }
                 AccountAction::Connect => {
                     // Mid-session: save endpoint only (reconnect next boot).
+                    app.persist_login_fields();
                     app.account.remember_current_server();
                     app.return_to_settings_from_account();
                     log_status(&mut last_status, "Account saved (reconnect next boot)");
+                }
+                AccountAction::EndpointPicked => {
+                    app.persist_login_fields();
+                    log_status(&mut last_status, "Server saved as default");
                 }
                 AccountAction::Quit | AccountAction::None => {}
             }
@@ -2157,6 +2642,9 @@ fn run_session_from_boot(
                 let worn = WornClothingPickTarget {
                     tile_x: me.x,
                     tile_y: me.y,
+                    display_x: me.display_x,
+                    display_y: me.display_y,
+                    display_id: if me.display_id > 0 { me.display_id } else { 19 },
                     facing: me.facing,
                     age,
                     clothing: &me.clothing,
@@ -2201,7 +2689,7 @@ fn run_session_from_boot(
                     .unwrap_or(false);
             if lmb && !on_snap_btn {
                 let first = !was_lmb;
-                match walk_or_use_tile_hold(
+                match walk_or_use_tile_hold_hit(
                     &mut session,
                     hover.tile.0,
                     hover.tile.1,
@@ -2209,6 +2697,8 @@ fn run_session_from_boot(
                     mouse_down_frames,
                     clothing_slot,
                     hit_slot,
+                    hover.hit_self,
+                    hover.hit_face,
                 ) {
                     Ok(r) => {
                         if first {
@@ -2365,7 +2855,7 @@ fn run_session_from_boot(
             );
         }
     }
-    Ok(())
+    Ok(false)
 }
 
 /// Offline demo using banks already loaded by the single init window (no second loading screen).
@@ -2376,7 +2866,7 @@ fn run_offline_with_banks(
     ground: ohol_headless::ground_sprites::GroundBank,
     sounds: ohol_headless::sound_bank::SoundBank,
     music: MusicBank,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<bool> {
     eprintln!("offline demo — using boot banks (no second loading screen)");
     let root = content
         .root
@@ -2498,17 +2988,13 @@ fn run_offline_with_banks(
     );
 
     let mut fb = Framebuffer::new(FB_W as u32, FB_H as u32);
-    let mut window = Window::new(
-        &window_title("Offline", "Esc=Settings"),
-        FB_W,
-        FB_H,
-        soft_window_opts(),
-    )?;
-    window.set_target_fps(60);
     let chars: Rc<RefCell<Vec<u32>>> = Rc::new(RefCell::new(Vec::new()));
-    window.set_input_callback(Box::new(CharQueue {
-        chars: Rc::clone(&chars),
-    }));
+    let mut window = new_soft_window(
+        &window_title("Offline", "Esc=Settings"),
+        true,
+        true,
+        Some(&chars),
+    )?;
     let mut buf = vec![0u32; FB_W * FB_H];
 
     let mut app = ClientAppState::from_env();
@@ -2606,7 +3092,11 @@ fn run_offline_with_banks(
                 }
                 SettingsLoop::Quit => {
                     eprintln!("settings: Exit");
-                    return Ok(());
+                    return Ok(false);
+                }
+                SettingsLoop::Logout => {
+                    eprintln!("settings: Log out");
+                    return Ok(true);
                 }
             }
             was_lmb = was_settings_lmb;
@@ -2677,6 +3167,7 @@ fn run_offline_with_banks(
             was_lmb_account = lmb;
             match action {
                 AccountAction::Back | AccountAction::Saved | AccountAction::Connect => {
+                    app.persist_login_fields();
                     app.return_to_settings_from_account();
                     was_lmb_account = false;
                 }
@@ -2688,6 +3179,9 @@ fn run_offline_with_banks(
                 }
                 AccountAction::OpenReview => {
                     let _ = app.enter_review();
+                }
+                AccountAction::EndpointPicked => {
+                    app.persist_login_fields();
                 }
                 AccountAction::Quit | AccountAction::None => {}
             }
@@ -2850,7 +3344,7 @@ fn run_offline_with_banks(
             );
         }
     }
-    Ok(())
+    Ok(false)
 }
 
 fn log_status(last: &mut String, msg: &str) {
@@ -3150,75 +3644,6 @@ fn draw_offline_demo_panel(
     );
 }
 
-/// Present one soft-FB loading frame (P5#36).
-#[allow(dead_code)]
-fn present_loading(
-    window: &mut Window,
-    fb: &mut Framebuffer,
-    buf: &mut [u32],
-    state: &LoadingState,
-) -> anyhow::Result<()> {
-    draw_loading_progress(fb, state);
-    rgba_to_u32(&fb.pixels, buf);
-    window.update_with_buffer(buf, FB_W, FB_H)?;
-    Ok(())
-}
-
-/// Load anim / ground / sprites / sounds / music with soft-FB progress.
-///
-/// When `content_already_loaded`, reports Content stage complete first (session path).
-#[allow(dead_code)]
-fn load_graphics_with_progress(
-    root: &std::path::Path,
-    content_already_loaded: bool,
-    window: &mut Window,
-    fb: &mut Framebuffer,
-    buf: &mut [u32],
-) -> anyhow::Result<(SpriteBank, AnimBank, SceneRenderer)> {
-    use ohol_headless::emotion::EmotionBank;
-    use ohol_headless::ground_sprites::GroundBank;
-    use ohol_headless::sound_bank::SoundBank;
-
-    if content_already_loaded {
-        present_loading(
-            window,
-            fb,
-            buf,
-            &LoadingState::for_stage(LoadStage::Content, 1.0, Some("session")),
-        )?;
-    }
-
-    let (sprites, anims, ground, sounds, music) = {
-        let mut on_progress = |state: &LoadingState| {
-            let _ = present_loading(window, fb, buf, state);
-        };
-
-        let anims = AnimBank::load_prefer_cache_with_progress(root, Some(&mut on_progress));
-
-        let mut ground =
-            GroundBank::load_prefer_cache_with_progress(root, Some(&mut on_progress));
-        let _ = ground.preload_overlays();
-
-        let sprites = SpriteBank::load_prefer_cache_with_progress(root, Some(&mut on_progress));
-
-        let sounds = SoundBank::load_prefer_cache_with_progress(root, Some(&mut on_progress));
-
-        let music = MusicBank::load_prefer_cache_with_progress(root, Some(&mut on_progress));
-
-        (sprites, anims, ground, sounds, music)
-    };
-
-    let mut scene = SceneRenderer::default();
-    scene.ground = ground;
-    scene.hud_sprites = HudSprites::with_default_roots(Some(root));
-    scene.emotions = EmotionBank::load_from_content_root(root);
-    scene.sounds = sounds;
-    scene.music = music;
-
-    present_loading(window, fb, buf, &LoadingState::finished())?;
-    Ok((sprites, anims, scene))
-}
-
 fn rgba_to_u32(rgba: &[u8], out: &mut [u32]) {
     let n = out.len().min(rgba.len() / 4);
     for i in 0..n {
@@ -3249,15 +3674,14 @@ fn run_session_gpu(
     music: MusicBank,
     cfg: SessionConfig,
     mut app: ClientAppState,
-) -> anyhow::Result<()> {
-    use pixels::{Pixels, SurfaceTexture};
+    gpu: &mut GpuShell,
+) -> anyhow::Result<bool> {
     use winit::dpi::LogicalSize;
     use winit::event::{
         ElementState, Event, MouseButton as WMouse, MouseScrollDelta, VirtualKeyCode, WindowEvent,
     };
-    use winit::event_loop::{ControlFlow, EventLoop};
+    use winit::event_loop::ControlFlow;
     use winit::platform::run_return::EventLoopExtRunReturn;
-    use winit::window::WindowBuilder;
 
     let root = session.content.root.clone().unwrap_or_else(|| {
         std::path::PathBuf::from(r"C:\OhOl\OpenLife\openlife\RustServer\content\OneLifeData7")
@@ -3286,42 +3710,12 @@ fn run_session_gpu(
             .music
             .restart_music(me.current_age() as f64, me.age_rate.max(1e-9) as f64, true);
     }
-    let want_fullscreen = app.settings.fullscreen;
-
-    let mut event_loop = EventLoop::new();
-    let window = {
-        // Windowed: original comfortable size (960×540). Fullscreen: borderless monitor.
-        let mut wb = WindowBuilder::new().with_title("Open Life (GPU present)");
-        if want_fullscreen {
-            wb = wb
-                .with_fullscreen(Some(winit::window::Fullscreen::Borderless(None)))
-                .with_decorations(false);
-        } else {
-            let size = LogicalSize::new(FB_W as f64, FB_H as f64);
-            wb = wb
-                .with_inner_size(size)
-                .with_min_inner_size(size)
-                .with_decorations(true);
-        }
-        wb.build(&event_loop)
-            .map_err(|e| anyhow::anyhow!("window: {e}"))?
-    };
-    // Soft-FB stays FB_W×FB_H; pixels buffer matches soft-FB; **wgpu scales**
-    // to the window surface (true GPU present — no CPU stretch every frame).
-    let mut pixels = {
-        let win_size = window.inner_size();
-        let pw = win_size.width.max(1);
-        let ph = win_size.height.max(1);
-        let surface = SurfaceTexture::new(pw, ph, &window);
-        Pixels::new(FB_W as u32, FB_H as u32, surface)
-            .map_err(|e| anyhow::anyhow!("pixels/wgpu: {e}"))?
-    };
-    pixels.clear_color(pixels::wgpu::Color {
-        r: 72.0 / 255.0,
-        g: 96.0 / 255.0,
-        b: 58.0 / 255.0,
-        a: 1.0,
-    });
+    gpu.window.set_title("Open Life (GPU present)");
+    let GpuShell {
+        event_loop,
+        window,
+        pixels,
+    } = gpu;
 
     let mut last = Instant::now();
     let mut pan = (0.0f32, 0.0f32);
@@ -3347,6 +3741,7 @@ fn run_session_gpu(
     let fbh = FB_H as u32;
 
     let mut switch_to_soft = false;
+    let mut logout = false;
     event_loop.run_return(|event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
         match event {
@@ -3547,6 +3942,13 @@ fn run_session_gpu(
                             eprintln!("settings: Exit");
                             *control_flow = ControlFlow::Exit;
                         }
+                        SettingsAction::Logout => {
+                            eprintln!("settings: Log out");
+                            session.logout_reset();
+                            app.back_to_account("Logged out");
+                            logout = true;
+                            *control_flow = ControlFlow::Exit;
+                        }
                         SettingsAction::Applied | SettingsAction::None => {}
                     }
                     app.apply_settings_to_banks(Some(&mut session.sounds), None);
@@ -3619,9 +4021,14 @@ fn run_session_gpu(
                         AccountAction::Back
                         | AccountAction::Saved
                         | AccountAction::Connect => {
+                            app.persist_login_fields();
                             app.return_to_settings_from_account();
                             was_lmb_account = false;
                             last_status = "Account saved".into();
+                        }
+                        AccountAction::EndpointPicked => {
+                            app.persist_login_fields();
+                            last_status = "Server saved as default".into();
                         }
                         AccountAction::OpenSettings => {
                             let _ = app.enter_settings();
@@ -3799,6 +4206,9 @@ fn run_session_gpu(
                         let worn = WornClothingPickTarget {
                             tile_x: me.x,
                             tile_y: me.y,
+                            display_x: me.display_x,
+                            display_y: me.display_y,
+                            display_id: if me.display_id > 0 { me.display_id } else { 19 },
                             facing: me.facing,
                             age,
                             clothing: &me.clothing,
@@ -3834,7 +4244,7 @@ fn run_session_gpu(
                     }
                     if lmb {
                         let first = !was_lmb;
-                        match walk_or_use_tile_hold(
+                        match walk_or_use_tile_hold_hit(
                             &mut session,
                             hover.tile.0,
                             hover.tile.1,
@@ -3842,6 +4252,8 @@ fn run_session_gpu(
                             mouse_down_frames,
                             hover.clothing_slot,
                             hover.contained_slot,
+                            hover.hit_self,
+                            hover.hit_face,
                         ) {
                             Ok(r) if first => {
                                 log_status(
@@ -3977,12 +4389,10 @@ fn run_session_gpu(
             _ => {}
         }
     });
-    drop(pixels);
-    drop(window);
     if switch_to_soft {
         app.settings.capture_runtime_baseline();
         eprintln!("graphics: GPU → Soft in-process");
         return run_session_from_boot(session, sprites, anims, scene.music, cfg, app);
     }
-    Ok(())
+    Ok(logout)
 }

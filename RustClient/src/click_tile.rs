@@ -258,6 +258,46 @@ pub fn walk_or_use_tile_hold(
     Ok(WalkOrUseResult::Ground(r))
 }
 
+/// Graphical LMB: same as [`walk_or_use_tile_hold`] plus sprite-hit eat / clothing.
+///
+/// * **Eat** only when `hit_face` (head / eyes / mouth), not a body click.
+/// * **Clothing** still uses `clothing_slot` 0..5 from worn hitMap at the drawn pose.
+/// * Held clothing on a body/face hit (`hit_self`) still equips.
+/// * First press uses [`click_tile_mod_hit`]; hold is ground MOVE only.
+pub fn walk_or_use_tile_hold_hit(
+    session: &mut ClientSession,
+    tile_x: i32,
+    tile_y: i32,
+    mouse_already_down: bool,
+    mouse_down_frames: i32,
+    clothing_slot: i32,
+    hit_slot: i32,
+    hit_self: bool,
+    hit_face: bool,
+) -> Result<WalkOrUseResult, MoveError> {
+    if !mouse_already_down {
+        return click_tile_mod_hit(
+            session,
+            tile_x,
+            tile_y,
+            false,
+            hit_slot,
+            clothing_slot,
+            hit_self,
+            hit_face,
+        );
+    }
+    walk_or_use_tile_hold(
+        session,
+        tile_x,
+        tile_y,
+        true,
+        mouse_down_frames,
+        clothing_slot,
+        hit_slot,
+    )
+}
+
 /// C++ close-hold throw (~22850–22890): if mouse is **more than 1** and **less than 4**
 /// tiles away on **both** axes (axis-aligned box, not Euclidean), return a dest pushed
 /// `CLOSE_HOLD_THROW_TILES` (Euclidean length 4) along the mouse vector from currentPos.
@@ -1673,6 +1713,29 @@ pub fn click_sremv_clothing(
     click_self(session, clothing_slot, hit_slot, true)
 }
 
+/// Soft-FB person hit: eat on **face** only; clothing on worn slot or body/face.
+///
+/// Headless [`click_tile_mod_ex`] still uses stand-tile equality via
+/// [`self_tile_wants_self_action`].
+pub fn graphical_wants_self_action(
+    content: &ClientContent,
+    held_id: i32,
+    clothing_slot: i32,
+    hit_self: bool,
+    hit_face: bool,
+) -> bool {
+    if (0..=5).contains(&clothing_slot) {
+        return true;
+    }
+    if hit_face && held_id > 0 && content.food_value(held_id) > 0 {
+        return true;
+    }
+    if (hit_self || hit_face) && held_id > 0 && content.food_value(held_id) == 0 {
+        return clothing_slot_for_object(content, held_id).is_some();
+    }
+    false
+}
+
 /// True when self-tile click should take clothing/eat path instead of ground USE/MOVE.
 fn self_tile_wants_self_action(
     content: &ClientContent,
@@ -1743,6 +1806,57 @@ pub fn click_tile_mod_ex(
         return Ok(WalkOrUseResult::Object(r));
     }
 
+    let tile = session
+        .map
+        .get(tile_x, tile_y)
+        .cloned()
+        .unwrap_or_else(MapTile::empty);
+    let plan = select_tile_action(
+        &session.content,
+        tile_x,
+        tile_y,
+        mod_click,
+        held,
+        &tile,
+        hit_slot,
+    );
+    match plan {
+        TileClickPlan::Move => {
+            let r = click_tile(session, tile_x, tile_y)?;
+            Ok(WalkOrUseResult::Ground(r))
+        }
+        TileClickPlan::Act(action) => {
+            let r = click_object(session, action)?;
+            Ok(WalkOrUseResult::Object(r))
+        }
+    }
+}
+
+/// Graphical click: eat on face, clothing on worn sprites / body at **draw** pos.
+///
+/// Does **not** treat “clicked our stand tile” as eat — that was eating on a
+/// body/ground click. Headless still uses [`click_tile_mod_ex`].
+pub fn click_tile_mod_hit(
+    session: &mut ClientSession,
+    tile_x: i32,
+    tile_y: i32,
+    mod_click: bool,
+    hit_slot: i32,
+    clothing_slot: i32,
+    hit_self: bool,
+    hit_face: bool,
+) -> Result<WalkOrUseResult, MoveError> {
+    let held = our_held_id(session);
+    if graphical_wants_self_action(
+        &session.content,
+        held,
+        clothing_slot,
+        hit_self,
+        hit_face,
+    ) {
+        let r = click_self(session, clothing_slot, hit_slot, mod_click)?;
+        return Ok(WalkOrUseResult::Object(r));
+    }
     let tile = session
         .map
         .get(tile_x, tile_y)
@@ -2454,6 +2568,44 @@ mod tests {
                 slot: None,
             })
         );
+    }
+
+    #[test]
+    fn graphical_eat_requires_face_not_body() {
+        let mut c = ClientContent::default();
+        c.objects.insert(
+            100,
+            ClientObjectDef {
+                id: 100,
+                food_value: 3,
+                ..Default::default()
+            },
+        );
+        c.objects.insert(
+            5,
+            ClientObjectDef {
+                id: 5,
+                clothing: 'h',
+                ..Default::default()
+            },
+        );
+        assert!(
+            graphical_wants_self_action(&c, 100, -1, false, true),
+            "food + face → eat"
+        );
+        assert!(
+            !graphical_wants_self_action(&c, 100, -1, true, false),
+            "food + body must not eat"
+        );
+        assert!(
+            !graphical_wants_self_action(&c, 100, -1, false, false),
+            "food + ground tile must not eat"
+        );
+        assert!(
+            graphical_wants_self_action(&c, 5, -1, true, false),
+            "held clothing + body → equip"
+        );
+        assert!(graphical_wants_self_action(&c, 0, 0, false, false));
     }
 
     #[test]
@@ -4728,7 +4880,6 @@ mod tests {
         }
         assert_eq!(session.bad_biomes, vec![21, 9]);
 
-        // Layout: x0 good, x1..x4 bad(21). Start (0,0) has bad neighbor → edge.
         let header = MapChunkHeader {
             size_x: 5,
             size_y: 1,
@@ -4745,51 +4896,27 @@ mod tests {
         session.move_state.y = 0;
         session.our_id = Some(7);
 
-        // Manual click from edge into bad dest succeeds (startBiomeBad).
-        let manual = plan_click_tile_chunks_with(&session, 4, 0, false).unwrap();
-        assert!(
-            manual.0.reached_goal,
-            "manual from edge enters bad: {:?}",
-            manual.0
-        );
-
-        // Hold/auto_click must not enter bad from good edge (C++ isAutoClick).
-        let auto = plan_click_tile_chunks_with(&session, 4, 0, true);
-        match auto {
-            Ok((plan, _, _)) => {
-                assert!(
-                    !plan.reached_goal,
-                    "auto_click must edge-stop: {:?}",
-                    plan
-                );
-            }
-            Err(MoveError::EmptyPath) => {} // blocked entirely is fine
-            Err(e) => panic!("unexpected auto_click err: {e:?}"),
+        let manual = plan_click_tile_chunks_with(&session, 4, 0, false);
+        match manual {
+            Ok((plan, _, _)) => assert!(
+                !plan.reached_goal,
+                "unfloored mountain must not be entered: {:?}",
+                plan
+            ),
+            Err(MoveError::EmptyPath) => {}
+            Err(e) => panic!("unexpected mountain path err: {e:?}"),
         }
 
-        // Rideable ignoreBad: holding a rideable vehicle walks through bad.
-        session.content = content_with(
-            vec![ClientObjectDef {
-                id: 3331,
-                rideable: true,
-                blocks_walking: false,
-                ..Default::default()
-            }],
-            vec![],
-        );
-        session.world.apply_pu(
-            &crate::parse::parse_pu_line(
-                "7 100 1 0 0 0 3331 0 0 0 -1 0.5 0 0 0 0 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1",
-            )
-            .unwrap(),
-        );
-        assert!(session.holding_rideable());
-        assert!(session.path_find_opts().ignore_bad);
-        let ride = plan_click_tile_chunks_with(&session, 4, 0, false).unwrap();
+        // Jungle from savanna is walkable (not server-blocked).
+        session
+            .map
+            .apply_mc_plaintext(&header, "2:0:0 2:0:0 6:0:0 6:0:0 6:0:0")
+            .unwrap();
+        let jungle = plan_click_tile_chunks_with(&session, 4, 0, false).unwrap();
         assert!(
-            ride.0.reached_goal,
-            "rideable must cross bad biomes: {:?}",
-            ride.0
+            jungle.0.reached_goal,
+            "jungle from savanna must path: {:?}",
+            jungle.0
         );
         let _ = handle.join();
     }

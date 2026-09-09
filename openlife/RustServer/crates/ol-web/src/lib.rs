@@ -101,6 +101,11 @@ const ALLOWED_IMAGES: &[&str] = &[
     "OLR-world-map.png",
 ];
 
+const ALLOWED_DOWNLOADS: &[&str] = &[
+    "ohol-client-windows-alpha.zip",
+    "README.txt",
+];
+
 pub fn router(state: WebState) -> Router {
     Router::new()
         .route("/", get(index))
@@ -120,6 +125,7 @@ pub fn router(state: WebState) -> Router {
         .route("/lineage/character/{id}", get(character_page_path))
         .route("/api/npc/stats", get(npc_stats_api))
         .route("/static/images/{name}", get(safe_static_image))
+        .route("/static/downloads/{name}", get(safe_static_download))
         .route("/static/faces/{name}", get(safe_face_image))
         .route("/api/world/summary", get(world_summary))
         .route("/api/world/overview", get(world_overview))
@@ -174,6 +180,52 @@ async fn safe_static_image(AxumPath(name): AxumPath<String>) -> Response {
         return (StatusCode::NOT_FOUND, "not found").into_response();
     };
     serve_png_file(&path).await
+}
+
+fn resolve_allowed_download(name: &str) -> Option<PathBuf> {
+    if name.contains("..") || name.contains('/') || name.contains('\\') {
+        return None;
+    }
+    if !ALLOWED_DOWNLOADS.iter().any(|a| *a == name) {
+        return None;
+    }
+    let candidates = [
+        PathBuf::from("web/static/downloads").join(name),
+        PathBuf::from("static/downloads").join(name),
+    ];
+    for p in candidates {
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    None
+}
+
+async fn safe_static_download(AxumPath(name): AxumPath<String>) -> Response {
+    let Some(path) = resolve_allowed_download(&name) else {
+        return (StatusCode::NOT_FOUND, "not found").into_response();
+    };
+    let bytes = match tokio::fs::read(&path).await {
+        Ok(b) => b,
+        Err(_) => return (StatusCode::NOT_FOUND, "not found").into_response(),
+    };
+    let ctype = if name.ends_with(".zip") {
+        "application/zip"
+    } else {
+        "text/plain; charset=utf-8"
+    };
+    (
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, ctype.to_string()),
+            (
+                header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"{name}\""),
+            ),
+        ],
+        bytes,
+    )
+        .into_response()
 }
 
 /// Safe face sprite: only `face_<digits>_<digits>.png` under content faces dirs.
@@ -237,9 +289,13 @@ a{color:#6ec6ff} code{background:#1a222e;padding:.1rem .3rem;border-radius:4px}
 <p>Free multiplayer civilisation / survival on the base of
 <a href="https://onehouronelife.com/">One Hour One Life</a>. Play with any OHOL-compatible client
 (custom server, port <code>8005</code> by default).</p>
+<p>There is also an <strong>early alpha</strong> Windows client written in Rust.
+It is experimental — the <strong>vanilla One Hour One Life client still works</strong>
+on this server and is the supported way to play if the alpha misbehaves.</p>
 <img class="hero" src="/static/images/OHOL-From-Dayemeg.png" alt="Open Life Reborn banner" width="720"/>
 <p class="muted">Local art only (no remote file access). Safe static allowlist under <code>/static/images/</code>.</p>
 <div class="cards">
+<div class="card"><a href="/static/downloads/ohol-client-windows-alpha.zip"><strong>Early alpha client</strong></a><br/>Windows Rust client (experimental). Vanilla OHOL client still works.</div>
 <div class="card"><a href="/intro"><strong>Intro</strong></a><br/>rules &amp; features</div>
 <div class="card"><a href="/ops"><strong>Ops</strong></a><br/>timings &amp; boot</div>
 <div class="card"><a href="/viewer"><strong>Viewer</strong></a><br/>map + self-play</div>
@@ -277,7 +333,9 @@ td,th{padding:.4rem .6rem;border:1px solid #444}
 <p>Open Life Reborn is a free roleplay multiplayer civilisation building and survival game
 on the base of <a href="https://onehouronelife.com/">One Hour One Life</a>.
 You can play with any One Hour One Life client by entering this host as a custom server
-(default game port <strong>8005</strong>).</p>
+(default game port <strong>8005</strong>).
+An <a href="/static/downloads/ohol-client-windows-alpha.zip">early alpha Windows Rust client</a>
+is available; the vanilla client still works and is recommended if the alpha is rough.</p>
 <p class="muted">Community project. Linked external software is at your own risk.</p>
 <p>
 <a href="#Rules">Rules</a> ·

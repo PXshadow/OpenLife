@@ -1973,22 +1973,31 @@ impl ClientSession {
                 .unwrap_or(false)
     }
 
-    /// Path options for click-to-move (BB list + rideable ignoreBad).
+    fn holding_boat(&self) -> bool {
+        let hid = self.our_held_id();
+        if hid <= 0 {
+            return false;
+        }
+        match self.content.get(hid) {
+            Some(d) => ol_walk::object_is_boat(hid, &d.description, &d.name),
+            None => ol_walk::object_is_boat(hid, "", ""),
+        }
+    }
+
+    /// Path options for click-to-move (server biome block + boat).
     ///
-    /// Manual pointerDown: `auto_click = false` (edge-of-bad may enter a bad dest).
+    /// Manual pointerDown: `auto_click = false`.
     pub fn path_find_opts(&self) -> crate::pathfind::PathFindOpts<'_> {
         self.path_find_opts_with(false)
     }
 
     /// Like [`Self::path_find_opts`] with C++ `isAutoClick` (hold / road auto-walk).
-    ///
-    /// When `auto_click` is true and the player stands on *good* terrain, bad-biome
-    /// cells stay blocked so continuous repath cannot enter bad biomes from an edge.
     pub fn path_find_opts_with(&self, auto_click: bool) -> crate::pathfind::PathFindOpts<'_> {
         crate::pathfind::PathFindOpts {
             bad_biomes: &self.bad_biomes,
             ignore_bad: self.holding_rideable(),
             auto_click,
+            holding_boat: self.holding_boat(),
         }
     }
 

@@ -1574,7 +1574,10 @@ pub fn play_pcm_samples_stereo(
     left_gain: f32,
     right_gain: f32,
 ) -> bool {
-    play_pcm_samples_stereo_ex(samples, sample_rate, left_gain, right_gain, false, 0.0)
+    if samples.is_empty() || sample_rate == 0 {
+        return false;
+    }
+    device::play(samples, sample_rate, left_gain, right_gain)
 }
 
 /// Queue PCM; `music` tags the voice for bed crossfade; `fade_in_sec` ramps in.
@@ -1781,7 +1784,6 @@ mod device {
         })
     }
 
-    #[allow(dead_code)]
     pub fn play(samples: &[i16], sample_rate: u32, left_gain: f32, right_gain: f32) -> bool {
         play_ex(samples, sample_rate, left_gain, right_gain, false, 0.0)
     }

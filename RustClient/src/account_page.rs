@@ -8,7 +8,7 @@
 
 use std::time::Duration;
 
-use crate::hud::{draw_pencil_string, pencil_string_width, HudSprites, PencilFontAtlas};
+use crate::hud::HudSprites;
 use crate::render::Framebuffer;
 use crate::session::SessionConfig;
 
@@ -81,7 +81,14 @@ impl ClientScreen {
 /// Local server always listed first in recent endpoints.
 pub const LOCAL_SERVER_HOST: &str = "127.0.0.1";
 pub const LOCAL_SERVER_PORT: u16 = 8005;
-/// Max recent server slots shown (includes local as first).
+/// Live Open Life Rust game server.
+pub const RUST_SERVER_HOST: &str = "159.195.73.142";
+pub const RUST_SERVER_PORT: u16 = 8005;
+/// Legacy Haxe / community game host (domain).
+pub const HAXE_SERVER_HOST: &str = "openlifereborn.com";
+pub const HAXE_SERVER_PORT: u16 = 8005;
+/// Max recent server slots shown (presets first, then extras). Keep small so
+/// Connect / Settings stay on the 960×540 login panel.
 pub const MAX_RECENT_SERVERS: usize = 5;
 /// Persisted recent host:port list (cwd).
 pub const RECENT_SERVERS_FILE: &str = "ohol_recent_servers.ini";
@@ -91,6 +98,8 @@ pub const RECENT_SERVERS_FILE: &str = "ohol_recent_servers.ini";
 pub struct ServerEndpoint {
     pub host: String,
     pub port: u16,
+    /// Built-in label (`Local` / `Rust` / `Haxe`) or empty for a custom host.
+    pub title: String,
 }
 
 impl ServerEndpoint {
@@ -98,7 +107,37 @@ impl ServerEndpoint {
         Self {
             host: LOCAL_SERVER_HOST.into(),
             port: LOCAL_SERVER_PORT,
+            title: "Local".into(),
         }
+    }
+
+    pub fn rust_live() -> Self {
+        Self {
+            host: RUST_SERVER_HOST.into(),
+            port: RUST_SERVER_PORT,
+            title: "Rust".into(),
+        }
+    }
+
+    pub fn haxe_live() -> Self {
+        Self {
+            host: HAXE_SERVER_HOST.into(),
+            port: HAXE_SERVER_PORT,
+            title: "Haxe".into(),
+        }
+    }
+
+    pub fn custom(host: &str, port: u16) -> Self {
+        Self {
+            host: host.trim().to_string(),
+            port,
+            title: String::new(),
+        }
+    }
+
+    /// Always-listed defaults. Stay selectable even after a new saved default.
+    pub fn presets() -> [Self; 3] {
+        [Self::local(), Self::rust_live(), Self::haxe_live()]
     }
 
     pub fn label(&self) -> String {
@@ -108,6 +147,12 @@ impl ServerEndpoint {
     pub fn is_local(&self) -> bool {
         let h = self.host.trim().to_ascii_lowercase();
         (h == "127.0.0.1" || h == "localhost" || h == "::1") && self.port == LOCAL_SERVER_PORT
+    }
+
+    pub fn is_preset(&self) -> bool {
+        Self::presets()
+            .iter()
+            .any(|p| p.same_as(&self.host, self.port))
     }
 
     pub fn same_as(&self, host: &str, port: u16) -> bool {
@@ -153,6 +198,8 @@ pub enum AccountAction {
     Back,
     /// Nested: saved host/email without full reconnect.
     Saved,
+    /// Server list click — persist host/port as the new default.
+    EndpointPicked,
     /// Open Twin page (C++ TwinPage).
     OpenTwin,
     /// Open community / review links.
@@ -191,6 +238,8 @@ pub struct AccountPage {
     pub recent_servers: Vec<ServerEndpoint>,
     /// True when opened from Settings (Esc/Back returns to Settings, not open Settings).
     pub opened_from_settings: bool,
+    /// Bottom-of-screen preload line (stage / Ready + seconds).
+    pub boot_load_line: String,
 }
 
 impl Default for AccountPage {
@@ -213,8 +262,9 @@ impl Default for AccountPage {
             status: String::new(),
             caret_t: 0.0,
             caret: 0,
-            recent_servers: vec![ServerEndpoint::local()],
+            recent_servers: ServerEndpoint::presets().to_vec(),
             opened_from_settings: false,
+            boot_load_line: String::new(),
         };
         p.load_recent_servers();
         p
@@ -297,36 +347,28 @@ impl AccountPage {
             self.port = ep.port;
             self.port_text = ep.port.to_string();
             self.status = format!("Server → {}:{}", self.host, self.port);
-            // Move selected to “last used” (local always stays first).
-            self.remember_current_server();
         }
     }
 
-    /// Insert/update current host:port in recent list (local always index 0).
+    /// Insert/update current host:port. Presets (Local/Rust/Haxe) always stay listed.
     pub fn remember_current_server(&mut self) {
         self.sync_port_from_text();
-        let current = ServerEndpoint {
-            host: self.host.trim().to_string(),
-            port: self.port,
-        };
+        let current = ServerEndpoint::custom(self.host.trim(), self.port);
         if current.host.is_empty() {
             return;
         }
-        // Drop duplicates of current (except we'll re-insert).
-        self.recent_servers
-            .retain(|e| !e.same_as(&current.host, current.port) && !e.is_local());
-        // Local first
-        let mut out = vec![ServerEndpoint::local()];
-        // If current is not local, it's the most recently used non-local.
-        if !current.is_local() {
+        let extras: Vec<ServerEndpoint> = self
+            .recent_servers
+            .drain(..)
+            .filter(|e| !e.is_preset() && !e.same_as(&current.host, current.port))
+            .collect();
+        let mut out = ServerEndpoint::presets().to_vec();
+        if !out.iter().any(|e| e.same_as(&current.host, current.port)) {
             out.push(current);
         }
-        for e in self.recent_servers.drain(..) {
+        for e in extras {
             if out.len() >= MAX_RECENT_SERVERS {
                 break;
-            }
-            if e.is_local() {
-                continue;
             }
             if out.iter().any(|x| x.same_as(&e.host, e.port)) {
                 continue;
@@ -339,7 +381,7 @@ impl AccountPage {
 
     pub fn load_recent_servers(&mut self) {
         let path = std::path::Path::new(RECENT_SERVERS_FILE);
-        let mut list = vec![ServerEndpoint::local()];
+        let mut list = ServerEndpoint::presets().to_vec();
         if let Ok(text) = std::fs::read_to_string(path) {
             for raw in text.lines() {
                 let line = raw.trim();
@@ -350,7 +392,6 @@ impl AccountPage {
                     (h.trim(), p.trim())
                 } else if let Some((h, p)) = line.split_once('=') {
                     if h.trim().eq_ignore_ascii_case("server") {
-                        // server=host:port
                         if let Some((hh, pp)) = p.trim().split_once(':') {
                             (hh.trim(), pp.trim())
                         } else {
@@ -368,13 +409,7 @@ impl AccountPage {
                 if host.is_empty() || port == 0 {
                     continue;
                 }
-                let ep = ServerEndpoint {
-                    host: host.to_string(),
-                    port,
-                };
-                if ep.is_local() {
-                    continue;
-                }
+                let ep = ServerEndpoint::custom(host, port);
                 if list.iter().any(|x| x.same_as(&ep.host, ep.port)) {
                     continue;
                 }
@@ -705,8 +740,8 @@ impl AccountPage {
     }
 
     /// Soft-FB layout for mouse hit-tests (matches [`Self::draw`]).
-    pub fn layout(fb_w: f32, fb_h: f32) -> AccountLayout {
-        account_layout(fb_w, fb_h)
+    pub fn layout(&self, fb_w: f32, fb_h: f32) -> AccountLayout {
+        account_layout(fb_w, fb_h, self.recent_servers.len())
     }
 
     /// LMB press in soft-FB coords: fields, servers, Connect / Back / Settings.
@@ -718,32 +753,34 @@ impl AccountPage {
         fb_h: f32,
         sprites: Option<&HudSprites>,
     ) -> AccountAction {
-        let layout = Self::layout(fb_w, fb_h);
-        let scale = 0.95f32;
+        let layout = self.layout(fb_w, fb_h);
+        let _ = sprites;
+        // Match [`Self::draw_field`]: ui font 14px, 10px left pad.
+        let field_size = 14.0f32;
+        let pad = 10.0f32;
         if layout.email.contains(mx, my) {
             self.focus = AccountFocus::Email;
-            self.caret = caret_index_at_x(sprites, &self.email, layout.email.x + 8.0, mx, scale);
+            self.caret = caret_index_at_x(&self.email, layout.email.x + pad, mx, field_size);
             self.clamp_caret();
             return AccountAction::None;
         }
         if layout.secret.contains(mx, my) {
             self.focus = AccountFocus::Secret;
             let display = mask_secret(&self.secret, self.secret_mode);
-            self.caret = caret_index_at_x(sprites, &display, layout.secret.x + 8.0, mx, scale)
+            self.caret = caret_index_at_x(&display, layout.secret.x + pad, mx, field_size)
                 .min(self.secret.chars().count());
             self.clamp_caret();
             return AccountAction::None;
         }
         if layout.host.contains(mx, my) {
             self.focus = AccountFocus::Host;
-            self.caret = caret_index_at_x(sprites, &self.host, layout.host.x + 8.0, mx, scale);
+            self.caret = caret_index_at_x(&self.host, layout.host.x + pad, mx, field_size);
             self.clamp_caret();
             return AccountAction::None;
         }
         if layout.port.contains(mx, my) {
             self.focus = AccountFocus::Port;
-            self.caret =
-                caret_index_at_x(sprites, &self.port_text, layout.port.x + 8.0, mx, scale);
+            self.caret = caret_index_at_x(&self.port_text, layout.port.x + pad, mx, field_size);
             self.clamp_caret();
             return AccountAction::None;
         }
@@ -751,7 +788,7 @@ impl AccountPage {
             if r.contains(mx, my) {
                 self.focus = AccountFocus::Recent(i as u8);
                 self.apply_recent(i);
-                return AccountAction::None;
+                return AccountAction::EndpointPicked;
             }
         }
         if layout.twins.contains(mx, my) && !self.opened_from_settings {
@@ -795,7 +832,7 @@ impl AccountPage {
         }
         fb.fill_rect(0, 0, w, h, [0, 0, 0, if solid { 40 } else { 150 }]);
 
-        let layout = account_layout(fb.width as f32, fb.height as f32);
+        let layout = self.layout(fb.width as f32, fb.height as f32);
         let panel = layout.panel;
         let px = panel.x as i32;
         let py = panel.y as i32;
@@ -851,7 +888,7 @@ impl AccountPage {
 
         draw_ui_text(
             fb,
-            "Servers (local first - click to switch)",
+            "Servers (Local / Rust / Haxe stay listed — click to switch)",
             layout.recent_label_x,
             layout.recent_label_y,
             12.0,
@@ -875,8 +912,8 @@ impl AccountPage {
             if active {
                 fb.fill_rect(r.x as i32, r.y as i32, 3, r.h as i32, accent);
             }
-            let tag = if ep.is_local() {
-                format!("Local  {}", ep.label())
+            let tag = if !ep.title.is_empty() {
+                format!("{}  {}", ep.title, ep.label())
             } else {
                 format!("Recent {}", ep.label())
             };
@@ -991,6 +1028,17 @@ impl AccountPage {
             "Tab fields  |  click server  |  Enter=Connect  |  Esc=Settings"
         };
         draw_ui_text(fb, help, cx, panel.y + panel.h - 12.0, 11.0, [110, 120, 140, 255], true);
+        if !self.boot_load_line.is_empty() {
+            draw_ui_text(
+                fb,
+                &self.boot_load_line,
+                cx,
+                fb.height as f32 - 14.0,
+                11.0,
+                [160, 190, 140, 255],
+                true,
+            );
+        }
     }
 
     fn draw_field(
@@ -1111,7 +1159,7 @@ pub struct AccountLayout {
     pub back: Option<AccountHitRect>,
 }
 
-fn account_layout(fb_w: f32, fb_h: f32) -> AccountLayout {
+fn account_layout(fb_w: f32, fb_h: f32, n_servers: usize) -> AccountLayout {
     let panel_w = (fb_w * 0.72).clamp(480.0, 620.0);
     let panel_h = (fb_h * 0.92).clamp(440.0, 520.0);
     let panel_x = ((fb_w - panel_w) * 0.5).round();
@@ -1152,42 +1200,53 @@ fn account_layout(fb_w: f32, fb_h: f32) -> AccountLayout {
     let recent_label_x = field_x;
     let recent_label_y = y;
     y += 16.0;
-    let mut recent = Vec::new();
+    // Pin Connect / Settings / Twins above the status line so they cannot fall
+    // off the 960×540 panel when the server list grows.
+    let btn_w = 120.0f32;
+    let btn_h = 36.0f32;
+    let gap = 12.0f32;
+    let btn_y = panel_y + panel_h - 56.0 - btn_h;
+    let btn_row_w = btn_w * 3.0 + gap * 2.0;
+    let btn_x0 = panel_x + ((panel_w - btn_row_w) * 0.5).round();
     let row_h = 26.0f32;
-    for _ in 0..MAX_RECENT_SERVERS {
+    let row_gap = 4.0f32;
+    let avail = (btn_y - 10.0 - y).max(row_h);
+    let max_fit = ((avail / (row_h + row_gap)).floor() as usize).max(1);
+    let show = n_servers.clamp(1, MAX_RECENT_SERVERS).min(max_fit);
+    let mut recent = Vec::new();
+    for _ in 0..show {
+        if y + row_h > btn_y - 8.0 {
+            break;
+        }
         recent.push(AccountHitRect {
             x: field_x,
             y,
             w: field_w,
             h: row_h,
         });
-        y += row_h + 6.0;
+        y += row_h + row_gap;
     }
-    y += 8.0;
-    let btn_w = 120.0f32;
-    let btn_h = 36.0f32;
-    let gap = 12.0f32;
     let connect = AccountHitRect {
-        x: field_x,
-        y,
+        x: btn_x0,
+        y: btn_y,
         w: btn_w,
         h: btn_h,
     };
     let twins = AccountHitRect {
-        x: field_x + btn_w + gap,
-        y,
+        x: btn_x0 + btn_w + gap,
+        y: btn_y,
         w: btn_w,
         h: btn_h,
     };
     let settings = AccountHitRect {
-        x: field_x + (btn_w + gap) * 2.0,
-        y,
+        x: btn_x0 + (btn_w + gap) * 2.0,
+        y: btn_y,
         w: btn_w,
         h: btn_h,
     };
     let back = Some(AccountHitRect {
-        x: field_x + btn_w + gap,
-        y,
+        x: btn_x0 + btn_w + gap,
+        y: btn_y,
         w: btn_w,
         h: btn_h,
     });
@@ -1213,13 +1272,10 @@ fn account_layout(fb_w: f32, fb_h: f32) -> AccountLayout {
 }
 
 /// Char index under click `mx` for a left-aligned field starting at `field_left`.
-fn caret_index_at_x(
-    sprites: Option<&HudSprites>,
-    text: &str,
-    field_left: f32,
-    mx: f32,
-    scale: f32,
-) -> usize {
+///
+/// Widths use the same UI font as [`AccountPage::draw_field`].
+fn caret_index_at_x(text: &str, field_left: f32, mx: f32, size: f32) -> usize {
+    use crate::ui_font::measure_ui_text;
     if mx <= field_left {
         return 0;
     }
@@ -1230,7 +1286,7 @@ fn caret_index_at_x(
     let mut best = chars.len();
     for i in 0..=chars.len() {
         let prefix: String = chars[..i].iter().collect();
-        let w = measure_text(sprites, &prefix, scale);
+        let w = measure_ui_text(&prefix, size);
         let edge = field_left + w;
         if mx < edge {
             // Pick closer of i-1 and i by midpoint.
@@ -1238,7 +1294,7 @@ fn caret_index_at_x(
                 return 0;
             }
             let prev: String = chars[..i - 1].iter().collect();
-            let w_prev = measure_text(sprites, &prev, scale);
+            let w_prev = measure_ui_text(&prev, size);
             let mid = field_left + (w_prev + w) * 0.5;
             return if mx < mid { i - 1 } else { i };
         }
@@ -1295,63 +1351,6 @@ fn draw_field_border(fb: &mut Framebuffer, x: f32, y: f32, w: f32, h: f32, focus
     fb.fill_rect(xi + wi - 1, yi, 1, hi, c);
 }
 
-#[allow(dead_code)]
-fn draw_text(
-    fb: &mut Framebuffer,
-    sprites: Option<&HudSprites>,
-    text: &str,
-    x: f32,
-    y: f32,
-    scale: f32,
-    rgba: [u8; 4],
-    center: bool,
-) {
-    if text.is_empty() {
-        return;
-    }
-    if let Some(hud) = sprites {
-        if let Some(font) = hud.pencil_font.as_ref() {
-            font.draw_string(fb, text, x, y, scale, rgba, center);
-            return;
-        }
-        hud.draw_hud_text(fb, text, x, y, scale, rgba, center, false);
-        return;
-    }
-    draw_pencil_string(fb, text, x, y, scale, rgba, center);
-}
-
-fn measure_text(sprites: Option<&HudSprites>, text: &str, scale: f32) -> f32 {
-    if let Some(hud) = sprites {
-        if let Some(font) = hud.pencil_font.as_ref() {
-            return font.measure(text, scale);
-        }
-    }
-    pencil_string_width(text, scale)
-}
-
-#[allow(dead_code)]
-fn draw_caret(
-    fb: &mut Framebuffer,
-    sprites: Option<&HudSprites>,
-    text: &str,
-    field_left: f32,
-    mid_y: f32,
-    scale: f32,
-    caret: usize,
-    caret_t: f32,
-) {
-    // Blink ~2 Hz
-    if caret_t > 0.5 {
-        return;
-    }
-    let prefix: String = text.chars().take(caret).collect();
-    let w = measure_text(sprites, &prefix, scale);
-    let cx = (field_left + w).round() as i32;
-    let h = (10.0 * scale).round().max(8.0) as i32;
-    let cy = (mid_y - h as f32 * 0.5).round() as i32;
-    fb.fill_rect(cx, cy, 2, h, [20, 18, 14, 255]);
-}
-
 /// Screen graph helper: Account / Loading / Playing / Death / Settings transitions.
 #[derive(Debug, Clone)]
 pub struct ClientAppState {
@@ -1388,9 +1387,22 @@ impl Default for ClientAppState {
 
 impl ClientAppState {
     pub fn from_env() -> Self {
-        let account = AccountPage::from_env();
+        let mut account = AccountPage::from_env();
         let mut settings = crate::settings_page::SettingsPage::from_env();
+        // settings.ini is the last Connect / server-pick default.
+        if !settings.host.is_empty() {
+            account.host = settings.host.clone();
+        }
+        if settings.port != 0 {
+            account.port = settings.port;
+            account.port_text = settings.port.to_string();
+        }
+        if !settings.email.is_empty() {
+            account.email = settings.email.clone();
+        }
         settings.sync_endpoint_from(&account.host, account.port, &account.email);
+        account.load_recent_servers();
+        account.remember_current_server();
         settings.apply_runtime_globals();
         let mut review = crate::review_page::ReviewPage::default();
         review.sync_from_settings(&settings.community_site, &settings.discord_url);
@@ -1407,8 +1419,19 @@ impl ClientAppState {
         }
     }
 
-    pub fn begin_connect(&mut self) -> SessionConfig {
+    /// Write current host/port/email into settings.ini (new default).
+    pub fn persist_login_fields(&mut self) {
         self.account.sync_port_from_text();
+        self.settings.sync_endpoint_from(
+            &self.account.host,
+            self.account.port,
+            &self.account.email,
+        );
+        let _ = self.settings.save_default();
+    }
+
+    pub fn begin_connect(&mut self) -> SessionConfig {
+        self.persist_login_fields();
         self.account.remember_current_server();
         self.screen = ClientScreen::Loading;
         self.loading_msg = format!(
@@ -1591,15 +1614,6 @@ impl ClientAppState {
     }
 }
 
-
-
-
-
-
-// Silence unused import when PencilFontAtlas is only referenced via HudSprites paths.
-#[allow(dead_code)]
-fn _pencil_font_type_anchor(_: &PencilFontAtlas) {}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1708,11 +1722,55 @@ mod tests {
         page.port_text = "9001".into();
         page.remember_current_server();
         assert!(page.recent_servers[0].is_local());
-        assert_eq!(page.recent_servers[1].host, "play.example.com");
-        assert_eq!(page.recent_servers[1].port, 9001);
-        page.apply_recent(0);
+        assert!(
+            page.recent_servers
+                .iter()
+                .any(|e| e.same_as(RUST_SERVER_HOST, RUST_SERVER_PORT)),
+            "Rust preset must stay listed: {:?}",
+            page.recent_servers
+        );
+        assert!(
+            page.recent_servers
+                .iter()
+                .any(|e| e.same_as(HAXE_SERVER_HOST, HAXE_SERVER_PORT)),
+            "Haxe preset must stay listed: {:?}",
+            page.recent_servers
+        );
+        assert!(
+            page.recent_servers
+                .iter()
+                .any(|e| e.host == "play.example.com" && e.port == 9001),
+            "custom default must be listed: {:?}",
+            page.recent_servers
+        );
+        let a = page.on_pointer_down(
+            page.layout(960.0, 540.0).recent[0].x + 8.0,
+            page.layout(960.0, 540.0).recent[0].y + 8.0,
+            960.0,
+            540.0,
+            None,
+        );
+        assert_eq!(a, AccountAction::EndpointPicked);
         assert_eq!(page.host, LOCAL_SERVER_HOST);
         assert_eq!(page.port, LOCAL_SERVER_PORT);
+    }
+
+    #[test]
+    fn presets_survive_new_saved_default() {
+        let mut page = AccountPage::default();
+        page.host = "custom.example".into();
+        page.port = 8005;
+        page.port_text = "8005".into();
+        page.remember_current_server();
+        let labels: Vec<_> = page
+            .recent_servers
+            .iter()
+            .map(|e| (e.title.as_str(), e.host.as_str(), e.port))
+            .collect();
+        assert!(labels.iter().any(|(t, _, _)| *t == "Local"));
+        assert!(labels.iter().any(|(t, h, _)| *t == "Rust" && *h == RUST_SERVER_HOST));
+        assert!(labels.iter().any(|(t, h, _)| *t == "Haxe" && *h == HAXE_SERVER_HOST));
+        assert!(labels.iter().any(|(_, h, p)| *h == "custom.example" && *p == 8005));
     }
 
     #[test]
@@ -1752,6 +1810,26 @@ mod tests {
         app.back_to_account("login denied");
         assert_eq!(app.screen, ClientScreen::Account);
         assert_eq!(app.account.status, "login denied");
+    }
+
+    #[test]
+    fn login_connect_button_stays_on_panel() {
+        let page = AccountPage::default();
+        let layout = page.layout(960.0, 540.0);
+        let bottom = layout.connect.y + layout.connect.h;
+        assert!(
+            bottom <= layout.panel.y + layout.panel.h - 8.0,
+            "Connect button off panel: btn_bottom={bottom} panel_bottom={}",
+            layout.panel.y + layout.panel.h
+        );
+        assert!(layout.connect.y > layout.port.y + layout.port.h);
+        assert!(!layout.recent.is_empty());
+        let mid = layout.panel.x + layout.panel.w * 0.5;
+        let row_mid = (layout.connect.x + layout.settings.x + layout.settings.w) * 0.5;
+        assert!(
+            (row_mid - mid).abs() < 4.0,
+            "button row not centered: row_mid={row_mid} panel_mid={mid}"
+        );
     }
 
     #[test]
@@ -1823,7 +1901,7 @@ mod tests {
         page.secret = "key123".into();
         let fb_w = 960.0;
         let fb_h = 540.0;
-        let layout = AccountPage::layout(fb_w, fb_h);
+        let layout = page.layout(fb_w, fb_h);
 
         // Click email field → focus Email, caret somewhere in text.
         let a = page.on_pointer_down(

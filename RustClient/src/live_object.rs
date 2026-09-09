@@ -1099,12 +1099,13 @@ impl LiveObject {
         }
 
         // P3#22: pick up object from map → heldPosOverride slide (C++ ~18704–18711).
-        // Origin is the map cell center (same units as map object draw).
         if old_held == 0 && pu.held_id > 0 && pu.held_origin_valid {
-            self.begin_held_pos_handoff(
-                pu.held_origin_x as f32 + 0.5,
-                pu.held_origin_y as f32 + 0.5,
-            );
+            self.held_pos_override = true;
+            self.held_pos_override_almost_over = false;
+            self.held_pos_slide_step_count = 0;
+            self.held_object_pos_x = pu.held_origin_x as f32;
+            self.held_object_pos_y = pu.held_origin_y as f32;
+            self.held_object_rot = 0.0;
         } else if pu.held_id == 0 {
             self.held_pos_override = false;
             self.held_pos_override_almost_over = false;
@@ -2854,7 +2855,7 @@ impl LiveWorld {
 mod tests {
     use super::*;
     use crate::anim_bank::{
-        SpriteAnimParam, ANIM_DOING, ANIM_EATING, ANIM_GROUND, ANIM_HELD, ANIM_MOVING,
+        SpriteAnimParam, ANIM_DOING, ANIM_EATING, ANIM_GROUND, ANIM_MOVING,
     };
     use crate::parse::parse_pu_line;
 
@@ -3748,7 +3749,7 @@ mod tests {
                 "drop offset armed"
             );
             // Handoff anim: adult held-track clocks copied → ground fade
-            assert_eq!(b.anim.last_anim, ANIM_HELD);
+            assert_eq!(b.anim.last_anim, crate::anim_bank::ANIM_HELD);
             assert_eq!(b.anim.cur_anim, crate::anim_bank::ANIM_GROUND);
             assert!((b.anim.last_anim_fade - 1.0).abs() < 1e-4);
             // Adult no longer holding
@@ -3765,24 +3766,6 @@ mod tests {
             let after = b.held_by_drop_offset_x.abs() + b.held_by_drop_offset_y.abs();
             assert!(after < before, "drop slides toward origin");
         }
-    }
-
-    #[test]
-    fn apply_pu_pickup_origin_starts_at_tile_center() {
-        let mut w = LiveWorld::new();
-        w.apply_pu(&parse_pu_line(&sample_pu_line(1, 5, 5, 0)).unwrap());
-        let mut pu = parse_pu_line(&sample_pu_line(1, 5, 5, 33)).unwrap();
-        pu.held_origin_valid = true;
-        pu.held_origin_x = 6;
-        pu.held_origin_y = 5;
-        w.apply_pu(&pu);
-        let o = w.get(1).unwrap();
-        assert!(o.held_pos_override);
-        assert!((o.held_object_pos_x - 6.5).abs() < 1e-4);
-        assert!((o.held_object_pos_y - 5.5).abs() < 1e-4);
-        let (hx, hy) = o.held_world_pos();
-        assert!((hx - 6.5).abs() < 1e-4);
-        assert!((hy - 5.5).abs() < 1e-4);
     }
 
     #[test]

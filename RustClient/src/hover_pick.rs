@@ -13,7 +13,10 @@ use crate::client_map::{parse_object_raw_contained, ClientMap};
 use crate::content::{ClientContent, ClientObjectDef, ObjectSprite};
 use crate::live_object::{ClothingSet, LiveObject, LiveWorld};
 use crate::parse::{Grave, GraveOld, OwnerList};
-use crate::render::{Camera, Framebuffer, SceneRenderer, GRID};
+use crate::render::{
+    clothing_anchor_for_slot, clothing_screen_pos, Camera, Framebuffer, PersonAnchors,
+    SceneRenderer, GRID,
+};
 use crate::sprite_bank::SpriteBank;
 
 /// Result of mouse → object pick under the soft-FB camera.
@@ -36,6 +39,11 @@ pub struct HoverPick {
     /// // C++: `PointerHitRecord.hitSlotIndex` from `getClosestObjectPart`
     /// // Wire: REMV `i` / SREMV `i` / USE-on-contained `i` via [`crate::actions::encode_sremv`].
     pub contained_slot: i32,
+    /// Cursor hit our drawn person (any body-part sprite / clothing already wins).
+    pub hit_self: bool,
+    /// Cursor hit the face (head / eyes / mouth, or a sprite parented to the head).
+    /// Eating uses this, not the whole body or stand tile.
+    pub hit_face: bool,
 }
 
 impl Default for HoverPick {
@@ -46,6 +54,8 @@ impl Default for HoverPick {
             hit_map: false,
             clothing_slot: -1,
             contained_slot: -1,
+            hit_self: false,
+            hit_face: false,
         }
     }
 }
@@ -58,6 +68,8 @@ impl HoverPick {
             hit_map: false,
             clothing_slot: -1,
             contained_slot: -1,
+            hit_self: false,
+            hit_face: false,
         }
     }
 
@@ -187,6 +199,8 @@ pub fn pick_at_screen(
                 hit_map: true,
                 clothing_slot: -1,
                 contained_slot: slot,
+                hit_self: false,
+                hit_face: false,
             };
         }
         if object_hit_map_at(
@@ -198,6 +212,8 @@ pub fn pick_at_screen(
                 hit_map: true,
                 clothing_slot: -1,
                 contained_slot: -1,
+                hit_self: false,
+                hit_face: false,
             };
         }
     }
@@ -213,6 +229,8 @@ pub fn pick_at_screen(
         hit_map: false,
         clothing_slot: -1,
         contained_slot: -1,
+        hit_self: false,
+        hit_face: false,
     }
 }
 
@@ -224,6 +242,11 @@ pub fn pick_at_screen(
 pub struct WornClothingPickTarget<'a> {
     pub tile_x: i32,
     pub tile_y: i32,
+    /// Drawn world pos (C++ `currentPos` / [`LiveObject::display_x`]), not dest tile.
+    pub display_x: f32,
+    pub display_y: f32,
+    /// Person object id used for rest-pose body-part anchors (hat→head, shoes→feet).
+    pub display_id: i32,
     pub facing: i32,
     pub age: f32,
     pub clothing: &'a ClothingSet,
@@ -257,11 +280,20 @@ pub fn pick_worn_clothing_slot(
     let scale = (camera.zoom / GRID).max(0.05);
     let (person_sx, person_sy) = world_to_screen(
         camera,
-        target.tile_x as f32 + 0.5,
-        target.tile_y as f32 + 0.5,
+        target.display_x + 0.5,
+        target.display_y + 0.5,
         fb_w,
         fb_h,
     );
+    let pid = if target.display_id > 0 {
+        target.display_id
+    } else {
+        19
+    };
+    let anchors = content
+        .get(pid)
+        .map(|d| rest_person_anchors(d, target.age))
+        .unwrap_or_default();
 
     for &slot in &CLOTHING_HIT_ORDER {
         let cloth_id = target.clothing.slot_id(slot);
@@ -272,8 +304,8 @@ pub fn pick_worn_clothing_slot(
             .get(cloth_id)
             .map(|d| d.clothing_offset)
             .unwrap_or((0.0, 0.0));
-        let cx = person_sx + ox * scale * if flip { -1.0 } else { 1.0 };
-        let cy = person_sy - oy * scale;
+        let part = clothing_anchor_for_slot(&anchors, slot).unwrap_or((0.0, 0.0, 0.0));
+        let (cx, cy) = clothing_screen_pos(person_sx, person_sy, part, (ox, oy), scale, flip);
 
         // Contained items in worn bag (quiver arrows, backpack contents).
         let contained: Vec<i32> = target
@@ -321,6 +353,143 @@ pub fn pick_worn_clothing_slot(
     None
 }
 
+/// Hit-test our rest-pose person sprites at the **drawn** position.
+///
+/// Returns `(hit_self, hit_face)`. Face = head / eyes / mouth or a sprite whose
+/// parent chain includes the head (hair). Body = torso/limbs.
+fn pick_self_face_or_body(
+    camera: &Camera,
+    content: &ClientContent,
+    sprites: &mut SpriteBank,
+    target: &WornClothingPickTarget<'_>,
+    mx: f32,
+    my: f32,
+    fb_w: u32,
+    fb_h: u32,
+) -> Option<(bool, bool)> {
+    let pid = if target.display_id > 0 {
+        target.display_id
+    } else {
+        19
+    };
+    let Some(def) = content.get(pid) else {
+        return None;
+    };
+    if def.sprites.is_empty() {
+        return None;
+    }
+    let flip = target.facing < 0;
+    let scale = (camera.zoom / GRID).max(0.05);
+    let (screen_x, screen_y) = world_to_screen(
+        camera,
+        target.display_x + 0.5,
+        target.display_y + 0.5,
+        fb_w,
+        fb_h,
+    );
+    let (ox, oy, orot, posed) = rest_sprite_poses_with_age(def, target.age);
+    // Reverse draw order: last sprite is on top (matches soft-FB blit).
+    for si in (0..def.sprites.len()).rev() {
+        let spr = &def.sprites[si];
+        if !posed[si] || !spr.visible_at_age(target.age) || spr.skip_drawing {
+            continue;
+        }
+        let Some(rect) = sprites.ensure(spr.sprite_id) else {
+            continue;
+        };
+        let ax = rect.center_anchor_x as f32;
+        let ay = rect.center_anchor_y as f32;
+        let px = ox[si] - ax;
+        let py = oy[si] + ay;
+        let dx = screen_x + px * scale * if flip { -1.0 } else { 1.0 };
+        let dy = screen_y - py * scale;
+        let mut h_flip = spr.h_flip ^ flip;
+        if rect.no_flip {
+            h_flip = spr.h_flip;
+        }
+        let mut rot = orot[si];
+        if flip {
+            rot = -rot;
+        }
+        if sprite_hit_at_screen(
+            sprites,
+            spr.sprite_id,
+            rect.width,
+            rect.height,
+            dx,
+            dy,
+            scale,
+            h_flip,
+            rot,
+            mx,
+            my,
+        ) {
+            let face = sprite_is_face_or_on_head(def, si);
+            return Some((true, face));
+        }
+    }
+    None
+}
+
+/// Head / eyes / mouth, or any sprite parented (transitively) to the head.
+fn sprite_is_face_or_on_head(def: &ClientObjectDef, sprite_index: usize) -> bool {
+    let n = def.sprites.len();
+    let mut i = sprite_index as i32;
+    let mut guard = 0;
+    while i >= 0 && (i as usize) < n && guard < 32 {
+        let spr = &def.sprites[i as usize];
+        if spr.is_head || spr.is_eyes || spr.is_mouth {
+            return true;
+        }
+        i = spr.parent;
+        guard += 1;
+    }
+    false
+}
+
+/// Rest-pose head/body/feet anchors (no anim sample — hover lite).
+fn rest_person_anchors(def: &ClientObjectDef, age: f32) -> PersonAnchors {
+    let mut anchors = PersonAnchors::default();
+    if def.person == 0 || def.sprites.is_empty() {
+        return anchors;
+    }
+    let (ox, oy, orot, posed) = rest_sprite_poses_with_age(def, age);
+    let hi = def.head_index(age);
+    let bi = def.body_index(age);
+    let ffi = def.front_foot_index(age);
+    let bfi = def.back_foot_index(age);
+    if hi < posed.len() && posed[hi] {
+        anchors.head = Some((ox[hi], oy[hi], orot[hi]));
+    }
+    if bi < posed.len() && posed[bi] {
+        anchors.body = Some((ox[bi], oy[bi], orot[bi]));
+    }
+    if ffi < posed.len() && posed[ffi] {
+        anchors.front_foot = Some((ox[ffi], oy[ffi], orot[ffi]));
+    }
+    if bfi < posed.len() && posed[bfi] {
+        anchors.back_foot = Some((ox[bfi], oy[bfi], orot[bfi]));
+    }
+    if anchors.head.is_none() {
+        anchors.head = anchors.body;
+    }
+    if anchors.body.is_none() {
+        anchors.body = anchors.head;
+    }
+    if anchors.front_foot.is_none() {
+        anchors.front_foot = anchors.body;
+    }
+    if anchors.back_foot.is_none() {
+        anchors.back_foot = anchors.front_foot.or(anchors.body);
+    }
+    anchors.has_eyes = def.has_eyes_for_emot(age);
+    if let Some((hx, hy, hr)) = anchors.head {
+        let (ex, ey) = crate::content::eyes_anchor_from_head(hx, hy, hr, def.main_eyes_offset);
+        anchors.eyes = Some((ex, ey, hr));
+    }
+    anchors
+}
+
 /// Map pick then worn clothing (clothing wins when hitMap confirms a worn sprite).
 ///
 /// Prefer clothing so hat/backpack clicks remove/equip even when a map object
@@ -346,10 +515,33 @@ pub fn pick_at_screen_with_clothing(
                 hit_map: true,
                 clothing_slot: slot,
                 contained_slot: cslot,
+                hit_self: true,
+                hit_face: slot == 0,
             };
         }
     }
-    pick_at_screen(camera, map, content, sprites, sx, sy, fb_w, fb_h)
+    // Map-object sprite hits win over the body so USE/REMV still work when a
+    // person sprite overhangs a nearby tile. Face/body only if no object sprite.
+    let map_pick = pick_at_screen(camera, map, content, sprites, sx, sy, fb_w, fb_h);
+    if map_pick.hit_map && map_pick.object_id > 0 {
+        return map_pick;
+    }
+    if let Some(w) = worn {
+        if let Some((hit_self, hit_face)) =
+            pick_self_face_or_body(camera, content, sprites, w, sx, sy, fb_w, fb_h)
+        {
+            return HoverPick {
+                tile: (w.display_x.round() as i32, w.display_y.round() as i32),
+                object_id: 0,
+                hit_map: true,
+                clothing_slot: -1,
+                contained_slot: -1,
+                hit_self,
+                hit_face,
+            };
+        }
+    }
+    map_pick
 }
 
 /// Convenience: pick + write [`SceneRenderer::highlight_tile`].
@@ -434,6 +626,15 @@ pub fn hover_tip_and_grave(input: &HoverTipInput<'_>) -> (Option<String>, Option
     let pick = input.pick;
     if pick.is_clothing() || pick.is_contained() {
         return (object_tip(input.content, pick.object_id), None);
+    }
+    if pick.hit_self {
+        if let Some(p) = input
+            .our_id
+            .and_then(|id| input.world.get(id))
+            .or_else(|| player_on_tile(input.world, pick.tile))
+        {
+            return (Some(player_tip(input, p)), None);
+        }
     }
     if let Some(name) = hover_biome_name(pick, input.map, input.bad_biome_names) {
         return (Some(name), None);
@@ -898,6 +1099,14 @@ fn sprite_hit_at_screen(
 
 /// Rest poses + Jason parent chain (no anim sample — hover lite).
 fn rest_sprite_poses(def: &ClientObjectDef) -> (Vec<f32>, Vec<f32>, Vec<f32>, Vec<bool>) {
+    rest_sprite_poses_with_age(def, 20.0)
+}
+
+/// Rest poses with C++ age head/body offsets applied before the parent chain.
+fn rest_sprite_poses_with_age(
+    def: &ClientObjectDef,
+    age: f32,
+) -> (Vec<f32>, Vec<f32>, Vec<f32>, Vec<bool>) {
     let n = def.sprites.len();
     let mut ox = vec![0.0f32; n];
     let mut oy = vec![0.0f32; n];
@@ -908,6 +1117,25 @@ fn rest_sprite_poses(def: &ClientObjectDef) -> (Vec<f32>, Vec<f32>, Vec<f32>, Ve
         oy[si] = spr.y;
         orot[si] = spr.rot;
         posed[si] = true;
+    }
+    if def.person != 0 && n > 0 {
+        let hi = def.head_index(age);
+        let bi = def.body_index(age);
+        let fi = def.front_foot_index(age);
+        let head_rest = def.sprite_rest_pos(hi);
+        let body_rest = def.sprite_rest_pos(bi);
+        let foot_rest = def.sprite_rest_pos(fi);
+        if hi < n {
+            let (dx, dy) =
+                crate::content::age_head_offset(age, head_rest, body_rest, foot_rest);
+            ox[hi] += dx;
+            oy[hi] += dy;
+        }
+        if bi < n {
+            let (dx, dy) = crate::content::age_body_offset(age, body_rest.1);
+            ox[bi] += dx;
+            oy[bi] += dy;
+        }
     }
     // Identity deltas → Jason walk-up is a no-op; keep algorithm parity with render.rs.
     apply_jason_parent_chain_hover(&def.sprites, &mut ox, &mut oy, &mut orot);
@@ -1175,6 +1403,8 @@ mod tests {
                 hit_map: true,
                 clothing_slot: -1,
                 contained_slot: -1,
+                hit_self: false,
+                hit_face: false,
             },
         );
         assert!(fb.count_non_color([0, 0, 0, 255]) > 0);
@@ -1216,6 +1446,9 @@ mod tests {
         let target = WornClothingPickTarget {
             tile_x: 0,
             tile_y: 0,
+            display_x: 0.0,
+            display_y: 0.0,
+            display_id: 19,
             facing: 0,
             age: 20.0,
             clothing: &clothing,
@@ -1314,6 +1547,9 @@ mod tests {
         let target = WornClothingPickTarget {
             tile_x: 0,
             tile_y: 0,
+            display_x: 0.0,
+            display_y: 0.0,
+            display_id: 19,
             facing: 0,
             age: 20.0,
             clothing: &clothing,
@@ -1369,6 +1605,9 @@ mod tests {
         let target = WornClothingPickTarget {
             tile_x: 0,
             tile_y: 0,
+            display_x: 0.0,
+            display_y: 0.0,
+            display_id: 19,
             facing: 0,
             age: 20.0,
             clothing: &clothing,
@@ -1449,6 +1688,8 @@ mod tests {
             hit_map: true,
             clothing_slot: 1,
             contained_slot: -1,
+            hit_self: true,
+            hit_face: false,
         };
         assert!(hover_biome_name(clothed, &map, &names).is_none());
     }
@@ -1493,6 +1734,8 @@ mod tests {
                 hit_map: true,
                 clothing_slot: -1,
                 contained_slot: -1,
+                hit_self: false,
+                hit_face: false,
             },
             map: &map,
             content: &content,
@@ -1522,6 +1765,8 @@ mod tests {
                 hit_map: true,
                 clothing_slot: -1,
                 contained_slot: -1,
+                hit_self: false,
+                hit_face: false,
             },
             map: &map,
             content: &content,
@@ -1535,5 +1780,134 @@ mod tests {
         let (tip, grave) = hover_tip_and_grave(&input);
         assert!(tip.is_none());
         assert_eq!(grave, Some((2, 2)));
+    }
+
+    #[test]
+    fn person_face_vs_body_pick() {
+        let cam = Camera {
+            x: 0.5,
+            y: 0.5,
+            zoom: 64.0,
+        };
+        let mut sprites = SpriteBank::with_atlas_size(".", 64);
+        let head_img = solid(16, 16, [255, 220, 180, 255]);
+        let body_img = solid(16, 16, [80, 80, 180, 255]);
+        let href = sprites.ensure_rgba(9401, &head_img, None).unwrap();
+        let bref = sprites.ensure_rgba(9402, &body_img, None).unwrap();
+        let mut content = ClientContent::new();
+        content.objects.insert(
+            19,
+            ClientObjectDef {
+                id: 19,
+                person: 1,
+                sprites: vec![
+                    ObjectSprite {
+                        sprite_id: 9402,
+                        x: bref.center_anchor_x as f32,
+                        y: bref.center_anchor_y as f32 - 20.0,
+                        is_body: true,
+                        age_start: -1.0,
+                        age_end: -1.0,
+                        parent: -1,
+                        ..Default::default()
+                    },
+                    ObjectSprite {
+                        sprite_id: 9401,
+                        x: href.center_anchor_x as f32,
+                        y: href.center_anchor_y as f32 + 24.0,
+                        is_head: true,
+                        age_start: -1.0,
+                        age_end: -1.0,
+                        parent: -1,
+                        ..Default::default()
+                    },
+                ],
+                ..Default::default()
+            },
+        );
+        let clothing = ClothingSet::parse("0;0;0;0;0;0");
+        let target = WornClothingPickTarget {
+            tile_x: 0,
+            tile_y: 0,
+            display_x: 0.0,
+            display_y: 0.0,
+            display_id: 19,
+            facing: 0,
+            age: 20.0,
+            clothing: &clothing,
+        };
+        let scale = (cam.zoom / GRID).max(0.05);
+        let (base_sx, base_sy) = world_to_screen(&cam, 0.5, 0.5, 128, 128);
+        let map = ClientMap::new();
+        let face = pick_at_screen_with_clothing(
+            &cam,
+            &map,
+            &content,
+            &mut sprites,
+            Some(&target),
+            base_sx,
+            base_sy - 24.0 * scale,
+            128,
+            128,
+        );
+        assert!(face.hit_self, "head sprite is self");
+        assert!(face.hit_face, "head sprite is face: {face:?}");
+        let body = pick_at_screen_with_clothing(
+            &cam,
+            &map,
+            &content,
+            &mut sprites,
+            Some(&target),
+            base_sx,
+            base_sy + 20.0 * scale,
+            128,
+            128,
+        );
+        assert!(body.hit_self, "body sprite is self: {body:?}");
+        assert!(!body.hit_face, "body sprite is not face: {body:?}");
+
+        // Object sprite at tile center must win over the person (USE still works).
+        let obj_img = solid(16, 16, [20, 200, 40, 255]);
+        let oref = sprites.ensure_rgba(9501, &obj_img, None).unwrap();
+        content.objects.insert(
+            50,
+            ClientObjectDef {
+                id: 50,
+                name: "berry".into(),
+                sprites: vec![ObjectSprite {
+                    sprite_id: 9501,
+                    x: oref.center_anchor_x as f32,
+                    y: oref.center_anchor_y as f32,
+                    age_start: -1.0,
+                    age_end: -1.0,
+                    parent: -1,
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        );
+        let mut map = ClientMap::new();
+        map.set(
+            0,
+            0,
+            MapTile {
+                object_id: 50,
+                object_raw: "50".into(),
+                ..Default::default()
+            },
+        );
+        let obj = pick_at_screen_with_clothing(
+            &cam,
+            &map,
+            &content,
+            &mut sprites,
+            Some(&target),
+            base_sx,
+            base_sy,
+            128,
+            128,
+        );
+        assert_eq!(obj.object_id, 50, "map object wins over body: {obj:?}");
+        assert!(!obj.hit_self);
     }
 }
