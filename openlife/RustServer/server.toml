@@ -130,6 +130,8 @@ starting_eve_age = 14.0
 eve_or_adam_birth_chance = 0.025
 # Haxe SpawnAiAsEve — AIs/NPCs may take that Eve roll even if a mother exists. Default false.
 spawn_ai_as_eve = false
+# Humans may be born to AI mothers. Default false → human Eve if no human mother.
+allow_humans_born_to_ais = false
 # Haxe ObjDecayChance / FloorDecayChance — long-term decay rolls.
 obj_decay_chance = 0.00005
 floor_decay_chance = 0.00001

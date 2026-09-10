@@ -4,9 +4,9 @@
 //! `GlobalPlayerInstance.updateTemperature`.
 //!
 //! Live wire into vitals:
-//! 1. Ensure player tile has a temperature in `WorldMapTimeState.tile_temps`
+//! 1. Ensure player tile has a temperature in the dense `WorldMapTimeState` grid
 //! 2. Balance Chebyshev area radius 5 (`doLocalHeat=false`) around the player
-//! 3. Sample ambient from tile_temps (water halves)
+//! 3. Sample ambient from that grid (water halves)
 //! 4. Worn clothing rValue insulation / heat-protection matrix
 //! 5. Color shift + biome-love boni + held-by + storedWater cool
 //! 6. Integrate body `heat` toward ambient (Haxe impact-per-sec subset)
@@ -155,7 +155,7 @@ pub fn get_tile_temperature(map_time: &WorldMapTimeState, x: i32, y: i32) -> Opt
     }
 }
 
-/// Ensure sparse `tile_temps[(x,y)]` is initialized (Haxe `initializeTileTemperature` on miss).
+/// Ensure dense tile temperature is initialized (Haxe `initializeTileTemperature` on miss).
 ///
 /// Returns current tile temperature (≥ 0). Records original biome on first touch.
 pub fn ensure_tile_temperature(
@@ -212,7 +212,7 @@ pub fn ensure_tile_temperature_ex(
     t
 }
 
-/// Haxe `TemperatureHandler.BalanceTemperatureArea` on sparse `tile_temps`.
+/// Haxe `TemperatureHandler.BalanceTemperatureArea` on the dense tile-temp grid.
 ///
 /// Player path: `doLocalHeat = false` (floor/wall early-outs, no local heat inject).
 /// Only balances tiles that are already initialized (`temp >= 0`).
@@ -1017,8 +1017,8 @@ mod tests {
         world.set_floor(11, 10, 1);
         let content = ContentDb::default();
         let mut map_time = WorldMapTimeState::default();
-        map_time.tile_temps.insert((10, 10), 1.0);
-        map_time.tile_temps.insert((11, 10), 0.0);
+        map_time.set_temp_at(10, 10, 1.0);
+        map_time.set_temp_at(11, 10, 0.0);
         apply_balance_temperature_area(&world, &content, &mut map_time, 10, 10, 1, 1.0);
         let c = map_time.temp_at(10, 10);
         let n = map_time.temp_at(11, 10);

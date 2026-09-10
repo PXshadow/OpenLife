@@ -41,7 +41,7 @@ pub struct NetConfig {
     pub max_players: u32,
     pub required_version: i32,
     pub challenge_len: usize,
-    /// Live sim world (read lock for MAP_CHUNK at login).
+    /// Shared sim world (MAP_CHUNK is sent by the sim after spawn, not here).
     pub shared_world: Arc<RwLock<World>>,
     pub outbound: Arc<OutboundHub>,
     /// Haxe `VerifyIfOholAccount` — default **true**.
@@ -349,30 +349,11 @@ async fn handle_connection(
                                     );
                                 }
 
-                                let packets = {
-                                    let world = cfg.shared_world.read().unwrap();
-                                    let (sx, sy) = cfg
-                                        .preferred_spawn
-                                        .read()
-                                        .map(|g| *g)
-                                        .unwrap_or((0, 0));
-                                    build_login_bootstrap(
-                                        conn_id,
-                                        sx,
-                                        sy,
-                                        14.0,
-                                        10.0,
-                                        20.0,
-                                        0,
-                                        &*world,
-                                    )
-                                };
-                                for pkt in packets {
-                                    socket.write_all(&pkt).await?;
-                                }
-                                socket.flush().await?;
+                                // Haxe: CreateNewHumanPlayer then initConnection(this.player).
+                                // Do not invent a PU id here (conn+1). Sim spawns, then sends
+                                // ACCEPTED/MC/PU with the real p_id.
                                 logged_in = true;
-                                info!(conn_id, "LOGIN bootstrap from shared sim world");
+                                info!(conn_id, "LOGIN queued for sim spawn (no guessed-id PU)");
 
                                 let intent = NetIntent::Login {
                                     conn_id,

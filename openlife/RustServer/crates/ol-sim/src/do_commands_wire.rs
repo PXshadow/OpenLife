@@ -25,6 +25,7 @@ use crate::speech::{
     search_new_home_ex, DoCommand, HIRE_COST, HIRE_COST_INCREASE_PER_PERSON, HIRE_TOO_POOR_SAY,
     HOME_SEARCH_LOCAL_RADIUS, HOME_SEARCH_MAX_QUAD,
 };
+use crate::world_time::WorldMapTimeState;
 use crate::Player;
 use ol_world::{ComplexObject, World};
 use std::collections::{HashMap, HashSet};
@@ -193,7 +194,7 @@ pub fn apply_do_commands_live(
         candidates,
         knobs,
         &[],
-        &HashMap::new(),
+        None,
     )
 }
 
@@ -246,7 +247,7 @@ where
 /// [`apply_do_commands_live`] with Haxe `WorldMap.ovens` tiles for HOME! SearchNewHome.
 ///
 /// Empty `global_ovens` falls back to a local r=80 scan (tests / cold boot).
-/// `original_biomes` is Haxe `getOriginalBiomeId` (live biome if missing).
+/// `map_time` supplies Haxe `getOriginalBiomeId` (live biome if missing).
 // Haxe: AiHelper.SearchNewHome uses WorldMap.world.ovens (AI-HOME-OVEN)
 #[allow(clippy::too_many_arguments)]
 pub fn apply_do_commands_live_ex(
@@ -261,7 +262,7 @@ pub fn apply_do_commands_live_ex(
     candidates: &[NameCandidate],
     knobs: FollowHireLiveKnobs,
     global_ovens: &[(i32, i32)],
-    original_biomes: &HashMap<(i32, i32), u8>,
+    map_time: Option<&WorldMapTimeState>,
 ) -> DoCommandEffects {
     let mut fx = DoCommandEffects::default();
     let Some(cmd) = parse_do_command(upper) else {
@@ -538,7 +539,7 @@ pub fn apply_do_commands_live_ex(
                     collect_home_search_ovens(
                         &w,
                         global_ovens,
-                        |x, y| original_biomes.get(&(x, y)).copied(),
+                        |x, y| map_time.and_then(|m| m.orig_biome_at(x, y)),
                         speaker.x,
                         speaker.y,
                     );
@@ -1131,8 +1132,7 @@ mod tests {
         let mut w = World::new(200, 200, false);
         w.set_object(5, 0, 237);
         w.set_object(90, 0, 237);
-        let orig: HashMap<(i32, i32), u8> = HashMap::new();
-        let local = collect_home_search_ovens(&w, &[], |x, y| orig.get(&(x, y)).copied(), 0, 0);
+        let local = collect_home_search_ovens(&w, &[], |_, _| None, 0, 0);
         assert!(
             local.iter().any(|&(x, y, _, _)| x == 5 && y == 0),
             "local scan must see oven at r=5"
@@ -1141,7 +1141,7 @@ mod tests {
             !local.iter().any(|&(x, y, _, _)| x == 90 && y == 0),
             "local r=80 must not visit oven at 90"
         );
-        let global = collect_home_search_ovens(&w, &[(90, 0)], |x, y| orig.get(&(x, y)).copied(), 0, 0);
+        let global = collect_home_search_ovens(&w, &[(90, 0)], |_, _| None, 0, 0);
         assert!(
             global.iter().any(|&(x, y, _, _)| x == 90 && y == 0),
             "global index must include far oven"

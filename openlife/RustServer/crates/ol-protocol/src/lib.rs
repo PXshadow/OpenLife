@@ -147,6 +147,16 @@ pub fn format_sn(
 
 /// Minimal PU line matching Haxe `PlayerInstance.toData` field order.
 ///
+/// Haxe `Std.int(x * 100) / 100` for PU `age` / `age_r` / speed / heat.
+// Haxe: PlayerInstance.toData tmpAge / tmpAge_r / tmpMove_speed
+#[inline]
+pub fn haxe_trunc_hundredths(v: f32) -> f32 {
+    if !v.is_finite() {
+        return 0.0;
+    }
+    (v * 100.0).trunc() / 100.0
+}
+
 /// **`done_moving_seq` must be the player's real `done_moving_seqNum`** (not a
 /// hardcoded 1). After MOVE `@N` completes, subsequent USE/DROP PUs must still
 /// carry `N` or clients stay mid-action / ignore interactions.
@@ -244,6 +254,7 @@ pub fn format_player_update_line_eat_responsible(
         done_moving_seq.max(1),
         "0;0;0;0;0;0",
         responsible_id,
+        60.0,
     )
 }
 
@@ -296,6 +307,7 @@ pub fn format_player_update_line_full(
         o_trans,
         seq,
         "0;0;0;0;0;0",
+        60.0,
     )
 }
 
@@ -322,6 +334,7 @@ pub fn format_player_update_line_full_clothing(
     o_trans: i32,
     seq: i32,
     clothing_set: &str,
+    age_r: f32,
 ) -> String {
     format_player_update_line_full_clothing_responsible(
         p_id,
@@ -344,6 +357,7 @@ pub fn format_player_update_line_full_clothing(
         seq,
         clothing_set,
         -1,
+        age_r,
     )
 }
 
@@ -371,14 +385,18 @@ pub fn format_player_update_line_full_clothing_responsible(
     seq: i32,
     clothing_set: &str,
     responsible_id: i32,
+    age_r: f32,
 ) -> String {
     let clothing = if clothing_set.is_empty() {
         "0;0;0;0;0;0"
     } else {
         clothing_set
     };
+    let age_s = haxe_trunc_hundredths(age);
+    let age_r_s = haxe_trunc_hundredths(age_r);
+    let speed_s = haxe_trunc_hundredths(move_speed);
     format!(
-        "{p_id} {po_id} 0 {action} {atx} {aty} {held_id} {o_origin_valid} {ox} {oy} {o_trans} 0.50 {seq} {force} {x} {y} {age:.2} 60.00 {move_speed:.2} {clothing} {just_ate} {last_ate} {responsible_id} 0 0"
+        "{p_id} {po_id} 0 {action} {atx} {aty} {held_id} {o_origin_valid} {ox} {oy} {o_trans} 0.50 {seq} {force} {x} {y} {age_s:.2} {age_r_s:.2} {speed_s:.2} {clothing} {just_ate} {last_ate} {responsible_id} 0 0"
     )
 }
 
@@ -398,6 +416,7 @@ pub fn format_player_update_line_death(
     seq: i32,
     clothing_set: &str,
     reason: &str,
+    age_r: f32,
 ) -> String {
     let clothing = if clothing_set.is_empty() {
         "0;0;0;0;0;0"
@@ -406,8 +425,11 @@ pub fn format_player_update_line_death(
     };
     let reason = reason.trim();
     let seq = seq.max(1);
+    let age_s = haxe_trunc_hundredths(age);
+    let age_r_s = haxe_trunc_hundredths(age_r);
+    let speed_s = haxe_trunc_hundredths(move_speed);
     format!(
-        "{p_id} {po_id} 0 0 0 0 {held_id} 0 0 0 -1 0.50 {seq} 0 X X {age:.2} 60.00 {move_speed:.2} {clothing} 0 0 -1 0 0 {reason}"
+        "{p_id} {po_id} 0 0 0 0 {held_id} 0 0 0 -1 0.50 {seq} 0 X X {age_s:.2} {age_r_s:.2} {speed_s:.2} {clothing} 0 0 -1 0 0 {reason}"
     )
 }
 
@@ -840,9 +862,21 @@ mod tests {
     }
 
     #[test]
+    fn pu_age_and_age_r_use_haxe_hundredths() {
+        assert!((haxe_trunc_hundredths(0.019) - 0.01).abs() < 1e-6);
+        let s = format_player_update_line_full_clothing(
+            7, 19, 0, 1, 2, 0.019, 3.75, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 9, "1;0;0;0;0;0", 20.0,
+        );
+        assert!(
+            s.contains(" 0.01 20.00 "),
+            "toData tmpAge/tmpAge_r: {s}"
+        );
+    }
+
+    #[test]
     fn full_clothing_pu_embeds_set() {
         let s = format_player_update_line_full_clothing(
-            7, 19, 0, 1, 2, 14.0, 3.75, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 9, "1;0;0;0;0;0",
+            7, 19, 0, 1, 2, 14.0, 3.75, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 9, "1;0;0;0;0;0", 60.0,
         );
         assert!(s.contains(" 9 1 "));
         assert!(s.contains(" 1;0;0;0;0;0 "));
@@ -859,6 +893,7 @@ mod tests {
             2,
             "0;0;0;0;0;0",
             "reason_hunger",
+            60.0,
         );
         assert!(s.contains(" X X "), "death coords must be X X: {s}");
         assert!(
@@ -874,6 +909,7 @@ mod tests {
             1,
             "",
             "reason_killed_560",
+            20.0,
         );
         assert!(killed.contains(" X X "));
         assert!(killed.trim_end().ends_with("reason_killed_560"));

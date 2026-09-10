@@ -93,6 +93,13 @@ fn process_ready_twin_party(
             if party.members.iter().any(|m| m.conn_id == cid) {
                 continue;
             }
+            // Same year cooldown as GetFittestMother; this party still stamps once after all twins.
+            if state
+                .fertility
+                .mother_on_birth_cooldown(pl.p_id, state.sim_time)
+            {
+                continue;
+            }
             found = Some((
                 cid,
                 pl.p_id,
@@ -222,9 +229,9 @@ fn process_ready_twin_party(
     }
 
     if let Some((mc, mid, _, _, _, _, _, _, can_hold0)) = mother_info {
-        for _ in 0..party.members.len().max(1) {
-            state.fertility.complete_birth(mid, state.sim_time);
-        }
+        // One cooldown stamp for the whole twin/triplet party.
+        let year = state.gameplay.ageing_seconds_per_year;
+        state.fertility.complete_birth_ex(mid, state.sim_time, year);
         if can_hold0 {
             if let Some((baby_conn, baby_p_id)) = first_baby {
                 let can_hold = state

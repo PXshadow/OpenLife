@@ -2917,6 +2917,7 @@ pub fn adjust_ai_current_max(
 }
 
 /// Haxe spawn gate: `tick % 20 != 0 && count < currentMax && (lastSkiped < Max || count < Min)`.
+/// Empty server still fills AIs (Eve/Adam when no human is left; not a spawn ban).
 // Haxe: AiBase.RunAi L153–155
 pub fn should_spawn_new_ai(
     tick: u64,
@@ -6107,5 +6108,9 @@ mod tests {
         assert!(!should_spawn_new_ai(1, 20, 20, 20, 100, 10));
         assert!(should_spawn_new_ai(1, 21, 25, 20, 5, 10));
         assert!(!should_spawn_new_ai(1, 21, 25, 20, 100, 10));
+        assert!(
+            should_spawn_new_ai(1, 0, 20, 20, 0, 10),
+            "empty server still fills AIs as Eve/Adam"
+        );
     }
 }

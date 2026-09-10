@@ -441,6 +441,8 @@ pub struct ServerConfig {
     // Haxe: ServerSettings.SpawnAiAsEve = false
     // SETTINGS-LONG-TAIL
     pub spawn_ai_as_eve: bool,
+    /// Humans may spawn as children of AI mothers. Default false (Eve if no human mother).
+    pub allow_humans_born_to_ais: bool,
     /// Haxe `MaxPlayersBeforeStartingAsChild` — living count allowing AI↔human Eve cross.
     // Haxe: ServerSettings.MaxPlayersBeforeStartingAsChild = 0
     // SETTINGS-LONG-TAIL
@@ -1078,6 +1080,7 @@ impl Default for ServerConfig {
             starting_eve_age: gameplay_defaults::STARTING_EVE_AGE,
             eve_or_adam_birth_chance: gameplay_defaults::EVE_OR_ADAM_BIRTH_CHANCE,
             spawn_ai_as_eve: gameplay_defaults::SPAWN_AI_AS_EVE,
+            allow_humans_born_to_ais: gameplay_defaults::ALLOW_HUMANS_BORN_TO_AIS,
             max_players_before_starting_as_child:
                 gameplay_defaults::MAX_PLAYERS_BEFORE_STARTING_AS_CHILD,
             obj_decay_chance: gameplay_defaults::OBJ_DECAY_CHANCE,
@@ -1470,6 +1473,8 @@ pub struct LiveSettings {
     /// Haxe `SpawnAiAsEve`.
     // SETTINGS-LONG-TAIL
     pub spawn_ai_as_eve: bool,
+    /// Humans may spawn as children of AI mothers.
+    pub allow_humans_born_to_ais: bool,
     /// Haxe `MaxPlayersBeforeStartingAsChild`.
     // SETTINGS-LONG-TAIL
     pub max_players_before_starting_as_child: i32,
@@ -2332,6 +2337,7 @@ impl ServerConfig {
                 gameplay_defaults::EVE_OR_ADAM_BIRTH_CHANCE,
             ),
             spawn_ai_as_eve: self.spawn_ai_as_eve,
+            allow_humans_born_to_ais: self.allow_humans_born_to_ais,
             max_players_before_starting_as_child: self.max_players_before_starting_as_child,
             obj_decay_chance: sanitize_nonneg_or(
                 self.obj_decay_chance,
@@ -3307,6 +3313,10 @@ impl ServerConfig {
             old.spawn_ai_as_eve != new.spawn_ai_as_eve,
         );
         push(
+            "allow_humans_born_to_ais",
+            old.allow_humans_born_to_ais != new.allow_humans_born_to_ais,
+        );
+        push(
             "max_players_before_starting_as_child",
             old.max_players_before_starting_as_child != new.max_players_before_starting_as_child,
         );
@@ -4018,6 +4028,7 @@ impl ServerConfig {
             "starting_eve_age",
             "eve_or_adam_birth_chance",
             "spawn_ai_as_eve",
+            "allow_humans_born_to_ais",
             "max_players_before_starting_as_child",
             "obj_decay_chance",
             "floor_decay_chance",
@@ -4819,6 +4830,7 @@ mod tests {
             starting_eve_age: 18.0,
             eve_or_adam_birth_chance: 0.5,
             spawn_ai_as_eve: true,
+            allow_humans_born_to_ais: true,
             max_players_before_starting_as_child: 3,
             obj_decay_chance: 0.0001,
             floor_decay_chance: 0.00002,
@@ -5074,6 +5086,7 @@ mod tests {
         assert!((c.starting_eve_age - 14.0).abs() < f32::EPSILON);
         assert!((c.eve_or_adam_birth_chance - 0.025).abs() < 1e-12);
         assert!(!c.spawn_ai_as_eve);
+        assert!(!c.allow_humans_born_to_ais);
         assert_eq!(c.max_players_before_starting_as_child, 0);
         assert!((c.obj_decay_chance - 0.00005).abs() < 1e-12);
         assert!((c.floor_decay_chance - 0.00001).abs() < 1e-12);

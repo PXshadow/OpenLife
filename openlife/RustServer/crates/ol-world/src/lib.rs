@@ -594,8 +594,12 @@ impl Chunk {
 /// In-memory resident set of chunks + sparse complex objects.
 #[derive(Debug, Default, Clone)]
 pub struct World {
+    /// Resident 64×64 chunks (each chunk already holds dense biome/floor/object vecs).
+    /// Not a per-tile HashMap; Haxe used one giant Vector, we stream by chunk.
     chunks: HashMap<ChunkCoord, Chunk>,
-    /// Key: packed tile (tx, ty) → complex state when not a bare int.
+    /// Sparse complex helpers only. Haxe `objectHelpers` is a full-map Vector of
+    /// mostly-null pointers; storing only tiles that actually have uses/contained/owners
+    /// is the same data with far less RAM. Ground ids live in the chunk object vec.
     pub helpers: HashMap<(i32, i32), ComplexObject>,
     pub width_tiles: i32,
     pub height_tiles: i32,

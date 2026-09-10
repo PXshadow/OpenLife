@@ -1294,6 +1294,106 @@ pub fn should_unhide_rabbit_spring(hidden_id: i32, biome: u8) -> bool {
 // Map-slice state + apply (DoWorldMapTimeStuff body)
 // ---------------------------------------------------------------------------
 
+/// Dense row-major `width*height` grid.
+///
+/// Haxe `WorldMap` stores temperatures, original biomes, hidden objects, and
+/// original objects as `Vector` of this length — not a `Map`. A HashMap keyed
+/// by tile was a port leftover and made the Y-band insert every cell.
+#[derive(Debug, Clone)]
+pub struct DenseTileGrid<T: Copy> {
+    w: i32,
+    h: i32,
+    data: Vec<T>,
+    unset: T,
+}
+
+impl<T: Copy + PartialEq> DenseTileGrid<T> {
+    pub fn empty(unset: T) -> Self {
+        Self {
+            w: 0,
+            h: 0,
+            data: Vec::new(),
+            unset,
+        }
+    }
+
+    /// Allocate / grow to `w*h`, copying the overlapping region.
+    pub fn ensure(&mut self, w: i32, h: i32) {
+        if w <= 0 || h <= 0 {
+            return;
+        }
+        let n = (w as usize).saturating_mul(h as usize);
+        if self.w == w && self.h == h && self.data.len() == n {
+            return;
+        }
+        let mut next = vec![self.unset; n];
+        if !self.data.is_empty() && self.w > 0 && self.h > 0 {
+            let copy_w = self.w.min(w).max(0) as usize;
+            let copy_h = self.h.min(h).max(0) as usize;
+            let old_w = self.w as usize;
+            let new_w = w as usize;
+            for y in 0..copy_h {
+                for x in 0..copy_w {
+                    next[y * new_w + x] = self.data[y * old_w + x];
+                }
+            }
+        }
+        self.data = next;
+        self.w = w;
+        self.h = h;
+    }
+
+    #[inline]
+    fn idx(&self, x: i32, y: i32) -> Option<usize> {
+        if self.data.is_empty() || x < 0 || y < 0 || x >= self.w || y >= self.h {
+            None
+        } else {
+            Some((y as usize) * (self.w as usize) + x as usize)
+        }
+    }
+
+    #[inline]
+    pub fn get(&self, x: i32, y: i32) -> T {
+        self.idx(x, y).map(|i| self.data[i]).unwrap_or(self.unset)
+    }
+
+    /// `None` when the cell is still the unset sentinel.
+    #[inline]
+    pub fn get_set(&self, x: i32, y: i32) -> Option<T> {
+        let v = self.get(x, y);
+        if v == self.unset {
+            None
+        } else {
+            Some(v)
+        }
+    }
+
+    pub fn set(&mut self, x: i32, y: i32, v: T) {
+        if x < 0 || y < 0 {
+            return;
+        }
+        if self.idx(x, y).is_none() {
+            self.ensure(self.w.max(x + 1), self.h.max(y + 1));
+        }
+        if let Some(i) = self.idx(x, y) {
+            self.data[i] = v;
+        }
+    }
+
+    /// First write wins (Haxe original-biome / original-object seed).
+    pub fn set_once(&mut self, x: i32, y: i32, v: T) {
+        if self.get(x, y) == self.unset {
+            self.set(x, y, v);
+        }
+    }
+
+    pub fn clear_at(&mut self, x: i32, y: i32) {
+        if let Some(i) = self.idx(x, y) {
+            self.data[i] = self.unset;
+        }
+    }
+}
+
 /// Runtime state for world map time parts (owned by [`crate::SimState`]).
 #[derive(Debug, Clone)]
 pub struct WorldMapTimeState {
@@ -1307,28 +1407,18 @@ pub struct WorldMapTimeState {
     pub winter_decay_chance: f32,
     /// Cached spring regrow chance for current cycle.
     pub spring_regrow_chance: f32,
-    /// Sparse tile temperatures (Haxe WorldMap.tileTemperature); `<0` = unset.
-    /// Hot Y-band path uses [`Self::dense_temps`] once [`Self::ensure_dense`] has run.
-    pub tile_temps: HashMap<(i32, i32), f32>,
-    /// Sparse hidden object layer (Haxe hiddenObjects) — winter hide / regrow.
-    pub hidden_objects: HashMap<(i32, i32), i32>,
-    /// Original biome at first observation (for rabbit hide). Default = current when missing.
-    pub original_biomes: HashMap<(i32, i32), u8>,
-    /// Dense `width*height` temps (`-1` unset). Avoids 250k HashMap inserts per map cycle.
-    dense_temps: Vec<f32>,
-    /// Dense original biomes (`255` = unset).
-    dense_biomes: Vec<u8>,
-    dense_w: i32,
-    dense_h: i32,
-    /// Per-tile contained-item timers (Haxe contained ObjectHelper creation/ttc).
-    /// Parallel to `ComplexObject.contained` when present.
-    /// Runtime map; OLW3 NestedHelper slot times are the disk form — re-arm via
-    /// [`crate::arm_contained_timers_for_loaded_world`] after load; map-slice writes back.
+    /// Haxe `WorldMap.tileTemperatures` (`-1` unset).
+    temps: DenseTileGrid<f32>,
+    /// Haxe `WorldMap.hiddenObjects` (0 = none).
+    hidden: DenseTileGrid<i32>,
+    /// Haxe `WorldMap.originalBiomes` (`255` unset).
+    orig_biomes: DenseTileGrid<u8>,
+    /// Per-tile contained-item timers (Haxe times live on ObjectHelper, not a full-map Vector).
+    /// Sparse: only tiles that actually have nested contained timers.
     pub contained_timers: HashMap<(i32, i32), Vec<(f32, f32)>>,
-    /// Haxe `WorldMap.cursedGraves` — linear index → `(tx, ty)` bone-grave tiles.
-    /// Filled during Y-band scan; pruned every [`CURSED_GRAVES_CLEAR_TICK_MOD`] steps.
+    /// Haxe `WorldMap.cursedGraves` — `Map` of linear index → bone-grave tiles.
     pub cursed_graves: HashMap<i32, (i32, i32)>,
-    /// Haxe `WorldMap.ovens` — linear index → `(tx, ty)` adobe-oven family tiles.
+    /// Haxe `WorldMap.ovens` — `Map` of linear index → adobe-oven family tiles.
     pub ovens: HashMap<i32, (i32, i32)>,
 }
 
@@ -1340,13 +1430,9 @@ impl Default for WorldMapTimeState {
             cycle_started_sim_time: 0.0,
             winter_decay_chance: 0.0,
             spring_regrow_chance: 0.0,
-            tile_temps: HashMap::new(),
-            hidden_objects: HashMap::new(),
-            original_biomes: HashMap::new(),
-            dense_temps: Vec::new(),
-            dense_biomes: Vec::new(),
-            dense_w: 0,
-            dense_h: 0,
+            temps: DenseTileGrid::empty(-1.0),
+            hidden: DenseTileGrid::empty(0),
+            orig_biomes: DenseTileGrid::empty(255),
             contained_timers: HashMap::new(),
             cursed_graves: HashMap::new(),
             ovens: HashMap::new(),
@@ -1355,93 +1441,46 @@ impl Default for WorldMapTimeState {
 }
 
 impl WorldMapTimeState {
-    /// Allocate row-major grids and copy any sparse HashMap seeds (tests / first band).
-    /// Same values as the HashMap path; faster gets/sets on the Y-band.
+    /// Match Haxe `Vector` length `width*height` for temps / hidden / original biomes.
     pub fn ensure_dense(&mut self, w: i32, h: i32) {
-        if w <= 0 || h <= 0 {
-            return;
-        }
-        let n = (w as usize).saturating_mul(h as usize);
-        if self.dense_w == w && self.dense_h == h && self.dense_temps.len() == n {
-            return;
-        }
-        let mut temps = vec![-1.0f32; n];
-        let mut biomes = vec![255u8; n];
-        for (&(x, y), &t) in &self.tile_temps {
-            if x >= 0 && y >= 0 && x < w && y < h {
-                temps[(y as usize) * (w as usize) + x as usize] = t;
-            }
-        }
-        for (&(x, y), &b) in &self.original_biomes {
-            if x >= 0 && y >= 0 && x < w && y < h {
-                biomes[(y as usize) * (w as usize) + x as usize] = b;
-            }
-        }
-        self.dense_temps = temps;
-        self.dense_biomes = biomes;
-        self.dense_w = w;
-        self.dense_h = h;
-    }
-
-    #[inline]
-    fn dense_index(&self, x: i32, y: i32) -> Option<usize> {
-        if self.dense_temps.is_empty() || x < 0 || y < 0 || x >= self.dense_w || y >= self.dense_h {
-            return None;
-        }
-        Some((y as usize) * (self.dense_w as usize) + x as usize)
+        self.temps.ensure(w, h);
+        self.hidden.ensure(w, h);
+        self.orig_biomes.ensure(w, h);
     }
 
     #[inline]
     pub fn temp_at(&self, x: i32, y: i32) -> f32 {
-        if let Some(i) = self.dense_index(x, y) {
-            return self.dense_temps[i];
-        }
-        self.tile_temps.get(&(x, y)).copied().unwrap_or(-1.0)
+        self.temps.get(x, y)
     }
 
     #[inline]
     pub fn set_temp_at(&mut self, x: i32, y: i32, t: f32) {
-        if let Some(i) = self.dense_index(x, y) {
-            self.dense_temps[i] = t;
-            return;
-        }
-        self.tile_temps.insert((x, y), t);
+        self.temps.set(x, y, t);
     }
 
     #[inline]
     pub fn orig_biome_at(&self, x: i32, y: i32) -> Option<u8> {
-        if let Some(i) = self.dense_index(x, y) {
-            let b = self.dense_biomes[i];
-            return if b == 255 { None } else { Some(b) };
-        }
-        self.original_biomes.get(&(x, y)).copied()
+        self.orig_biomes.get_set(x, y)
     }
 
     #[inline]
     pub fn set_orig_biome_once(&mut self, x: i32, y: i32, b: u8) {
-        if let Some(i) = self.dense_index(x, y) {
-            if self.dense_biomes[i] == 255 {
-                self.dense_biomes[i] = b;
-            }
-            return;
-        }
-        self.original_biomes.entry((x, y)).or_insert(b);
+        self.orig_biomes.set_once(x, y, b);
     }
 
-    /// Snapshot for rare command/AI paths that still take a HashMap.
-    pub fn original_biomes_hashmap(&self) -> HashMap<(i32, i32), u8> {
-        if self.dense_biomes.is_empty() {
-            return self.original_biomes.clone();
-        }
-        let mut m = HashMap::with_capacity((self.dense_w * self.dense_h / 4).max(0) as usize);
-        for y in 0..self.dense_h {
-            for x in 0..self.dense_w {
-                if let Some(b) = self.orig_biome_at(x, y) {
-                    m.insert((x, y), b);
-                }
-            }
-        }
-        m
+    #[inline]
+    pub fn hidden_at(&self, x: i32, y: i32) -> i32 {
+        self.hidden.get(x, y)
+    }
+
+    #[inline]
+    pub fn set_hidden(&mut self, x: i32, y: i32, id: i32) {
+        self.hidden.set(x, y, id);
+    }
+
+    #[inline]
+    pub fn clear_hidden(&mut self, x: i32, y: i32) {
+        self.hidden.clear_at(x, y);
     }
 }
 
@@ -1561,7 +1600,7 @@ pub fn do_world_map_time_stuff_ex2(
         map_time.step = map_time.step.wrapping_add(1);
         return changes;
     }
-    // Dense grids: same numbers as the HashMap, without 250k hash inserts per cycle.
+    // Haxe WorldMap Vectors of length width*height.
     map_time.ensure_dense(w, h);
 
     // Haxe: if (tick % 2000 == 0) ClearCursedGraves + ovens prune
@@ -1687,10 +1726,10 @@ pub fn do_world_map_time_stuff_ex2(
 
             // Spring: unhide rabbits, then hidden-plant surface (Haxe RespawnOrDecayPlant hidden=true).
             if season_is_spring {
-                let hidden = map_time.hidden_objects.get(&(x, y)).copied().unwrap_or(0);
+                let hidden = map_time.hidden_at(x, y);
                 if should_unhide_rabbit_spring(hidden, biome) && obj_id == 0 {
                     world.set_object(x, y, FLEEING_RABBIT_ID);
-                    map_time.hidden_objects.remove(&(x, y));
+                    map_time.clear_hidden(x, y);
                     changes.push(MapTimeChange {
                         x,
                         y,
@@ -1719,7 +1758,7 @@ pub fn do_world_map_time_stuff_ex2(
                                     content.resolve_base_id(hidden)
                                 };
                                 world.set_object(x, y, spawn);
-                                map_time.hidden_objects.remove(&(x, y));
+                                map_time.clear_hidden(x, y);
                                 changes.push(MapTimeChange {
                                     x,
                                     y,
@@ -1873,7 +1912,7 @@ pub fn do_world_map_time_stuff_ex2(
                         ) {
                             let hide_r: f32 = rng.gen();
                             if winter_should_hide_for_spring(def.spring_regrow_factor, hide_r) {
-                                map_time.hidden_objects.insert((x, y), obj_id);
+                                map_time.set_hidden(x, y, obj_id);
                             }
                             world.set_object(x, y, 0);
                             changes.push(MapTimeChange {
@@ -1922,15 +1961,11 @@ pub fn do_world_map_time_stuff_ex2(
 
             // Hide rabbits in winter.
             if season_is_winter {
-                let orig = map_time
-                    .original_biomes
-                    .get(&(x, y))
-                    .copied()
-                    .unwrap_or(biome);
-                let hidden = map_time.hidden_objects.get(&(x, y)).copied().unwrap_or(0);
+                let orig = map_time.orig_biome_at(x, y).unwrap_or(biome);
+                let hidden = map_time.hidden_at(x, y);
                 if should_hide_rabbit_winter(obj_id, biome, orig, hidden) {
                     world.set_object(x, y, 0);
-                    map_time.hidden_objects.insert((x, y), FLEEING_RABBIT_ID);
+                    map_time.set_hidden(x, y, FLEEING_RABBIT_ID);
                     changes.push(MapTimeChange {
                         x,
                         y,
@@ -2190,9 +2225,9 @@ mod tests {
     }
 
     #[test]
-    fn dense_temp_grid_matches_hashmap_seed_and_writes() {
+    fn dense_temp_grid_set_and_get() {
         let mut m = WorldMapTimeState::default();
-        m.tile_temps.insert((2, 3), 0.4);
+        m.set_temp_at(2, 3, 0.4);
         m.ensure_dense(8, 8);
         assert!((m.temp_at(2, 3) - 0.4).abs() < 1e-6);
         assert_eq!(m.temp_at(0, 0), -1.0);
@@ -2202,6 +2237,10 @@ mod tests {
         assert_eq!(m.orig_biome_at(1, 1), Some(2));
         m.set_orig_biome_once(1, 1, 5);
         assert_eq!(m.orig_biome_at(1, 1), Some(2), "first write wins");
+        m.set_hidden(4, 4, 40);
+        assert_eq!(m.hidden_at(4, 4), 40);
+        m.clear_hidden(4, 4);
+        assert_eq!(m.hidden_at(4, 4), 0);
     }
 
     #[test]
@@ -2471,10 +2510,10 @@ mod tests {
         let mut map_time = WorldMapTimeState::default();
         map_time.time_passed_all_steps = 100.0;
         // Pre-init temps so balance path is exercised.
-        map_time.tile_temps.insert((2, 0), 0.5);
-        map_time.tile_temps.insert((1, 0), 0.5);
-        map_time.tile_temps.insert((3, 0), 0.5);
-        map_time.tile_temps.insert((2, 1), 0.5);
+        map_time.set_temp_at(2, 0, 0.5);
+        map_time.set_temp_at(1, 0, 0.5);
+        map_time.set_temp_at(3, 0, 0.5);
+        map_time.set_temp_at(2, 1, 0.5);
 
         let mut moved = false;
         for seed in 0..40u64 {
@@ -2652,7 +2691,7 @@ mod tests {
         );
         let mut world = World::new(10, 50, false);
         let mut map_time = WorldMapTimeState::default();
-        map_time.hidden_objects.insert((1, 0), 40);
+        map_time.set_hidden(1, 0, 40);
         map_time.step = 25;
         let mut rng = StdRng::seed_from_u64(3);
         let changes = do_world_map_time_stuff(
@@ -2674,7 +2713,7 @@ mod tests {
             "spring should surface hidden plant: {changes:?}"
         );
         assert_eq!(world.get_object(1, 0), 40);
-        assert!(!map_time.hidden_objects.contains_key(&(1, 0)));
+        assert_eq!(map_time.hidden_at(1, 0), 0);
     }
 
     #[test]
@@ -2720,9 +2759,9 @@ mod tests {
             "second-time outcome should fire"
         );
         assert_eq!(map_time.step, 1);
-        // Only band y in [0, 2) touched for temps.
-        assert!(map_time.tile_temps.contains_key(&(1, 0)));
-        assert!(!map_time.tile_temps.contains_key(&(1, 5)));
+        // Only band y in [0, 2) touched for temps (height 50 / 25 → part 2).
+        assert!(map_time.temp_at(1, 0) >= 0.0);
+        assert!(map_time.temp_at(1, 5) < 0.0);
     }
 
     #[test]

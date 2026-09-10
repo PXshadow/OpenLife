@@ -371,6 +371,8 @@ pub mod gameplay_defaults {
     // Haxe: ServerSettings.SpawnAiAsEve = false
     // SETTINGS-LONG-TAIL
     pub const SPAWN_AI_AS_EVE: bool = false;
+    /// Product setting: humans may be born to AI mothers. Default false.
+    pub const ALLOW_HUMANS_BORN_TO_AIS: bool = false;
     /// Haxe `ObjDecayChance` — long-term object decay roll (per tile in band).
     // Haxe: ServerSettings.ObjDecayChance = 0.00005
     // SETTINGS-LONG-TAIL
@@ -1323,6 +1325,11 @@ pub const CRITICAL_FIELD_MAP: &[FieldEntry] = &[
     FieldEntry {
         haxe_name: "SpawnAiAsEve",
         rust_path: "server.toml spawn_ai_as_eve / LiveSettings / SimState.gameplay",
+        home: SettingsHome::Live,
+    },
+    FieldEntry {
+        haxe_name: "AllowHumansBornToAis",
+        rust_path: "server.toml allow_humans_born_to_ais / LiveSettings / SimState.gameplay",
         home: SettingsHome::Live,
     },
     FieldEntry {

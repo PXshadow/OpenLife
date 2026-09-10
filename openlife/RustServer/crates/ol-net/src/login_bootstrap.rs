@@ -1,4 +1,8 @@
-//! Post-LOGIN packet sequence mirrored from Haxe `Connection.initConnection`.
+//! Packet shapes for Haxe `Connection.initConnection`.
+//!
+//! Haxe creates the player **first**, then sends ACCEPTED/MC/TS/PU with that `p_id`.
+//! The TCP thread must not guess `conn_id+1` and send a ghost PU. Live LOGIN is
+//! queued to the sim; ol-sim `send_haxe_init_connection` sends the real packets.
 //!
 //! Order after ACCEPTED: MC, TOOL_SLOTS (TS), PU, NAME (NM), FX, FRAME (FM), BAD_BIOMES (BB).
 
@@ -12,7 +16,8 @@ pub const DEFAULT_PERSON_OBJECT: i32 = 19;
 /// Default walk move-speed on bootstrap PU / FX (matches `ol_sim::WALK_MOVE_SPEED`).
 pub const DEFAULT_WALK_MOVE_SPEED: f32 = 3.75;
 
-/// Same formula as `ol_sim::player_id_for_conn` so PU id matches sim spawn.
+/// Spawn-id formula (same as `ol_sim::player_id_for_conn`). Not a LOGIN wire id
+/// to send before the sim has created the player.
 pub fn player_id_for_conn(conn_id: u64) -> i32 {
     (conn_id as i32).saturating_add(1).max(2)
 }
@@ -66,12 +71,13 @@ fn build_map_chunk_packet(
     out
 }
 
-/// Full post-ACCEPTED bootstrap as discrete write buffers.
+/// Packet-order helper for tests. Pass the **already spawned** `p_id` — never
+/// derive it from `conn_id` here.
 ///
 /// `spawn_x/y` are **absolute world** tiles (same as sim birth origin). Wire PU/MC
 /// use birth-relative coordinates so the client sees birth as (0,0).
 pub fn build_login_bootstrap(
-    conn_id: u64,
+    p_id: i32,
     spawn_x: i32,
     spawn_y: i32,
     age: f32,
@@ -80,7 +86,6 @@ pub fn build_login_bootstrap(
     held_id: i32,
     world_for_chunk: &World,
 ) -> Vec<Vec<u8>> {
-    let p_id = player_id_for_conn(conn_id);
     let mut out: Vec<Vec<u8>> = Vec::new();
 
     out.push(format_server_message("ACCEPTED", &[]).into_bytes());
@@ -135,7 +140,7 @@ mod tests {
     #[test]
     fn bootstrap_haxe_order_and_accepted_format() {
         let w = World::new(64, 64, false);
-        let chunks = build_login_bootstrap(1, 0, 0, 14.0, 10.0, 20.0, 0, &w);
+        let chunks = build_login_bootstrap(42, 0, 0, 14.0, 10.0, 20.0, 0, &w);
         assert_eq!(String::from_utf8_lossy(&chunks[0]), "ACCEPTED\n#");
         assert!(chunks[1].starts_with(b"MC\n"));
         let mut joined = Vec::new();
@@ -155,6 +160,11 @@ mod tests {
         assert!(
             !rest.contains("6 OCEAN") && !rest.contains("2 RIVER"),
             "BB must not label jungle (6) as ocean or yellow prairie (2) as river: {rest}"
+        );
+        assert!(rest.contains("PU\n"), "{rest}");
+        assert!(
+            rest.contains("42 "),
+            "initConnection PU must use the spawned p_id, not conn+1: {rest}"
         );
         assert_eq!(player_id_for_conn(1), 2);
     }

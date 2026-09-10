@@ -9,6 +9,7 @@
 //! `AlignWall`, `DoRespawnFromOriginal`, `DoSpringStuff`, `DoSeasonalBiomeChanges`
 //! (`SpreadSnow` / `RemoveSnow` / `IsProtected`), `WorldMap.write` ObjectCounts dump.
 
+use crate::world_time::DenseTileGrid;
 use ol_content::ContentDb;
 use ol_world::{ComplexObject, NestedHelper, World, GREEN, OCEAN, PASSABLE_RIVER, RIVER, SNOWINGREY};
 use rand::Rng;
@@ -953,16 +954,16 @@ pub struct LongTermState {
     /// Haxe `LongTimePassedToDoAllTimeSteps` (seconds for last full long-term cycle).
     pub time_passed_all_steps: f32,
     pub cycle_started_sim_time: f32,
-    /// Sparse original object layer (Haxe originalObjects[0]).
-    pub original_objects: HashMap<(i32, i32), i32>,
-    /// Haxe originalObjectsCount.
+    /// Haxe `originalObjects` — dense `Vector` of ground ids (0 empty).
+    pub original_objects: DenseTileGrid<i32>,
+    /// Haxe originalObjectsCount (`Map<Int,Int>` by object id — not tiles).
     pub original_counts: HashMap<i32, i32>,
-    /// Haxe currentObjectsCount.
+    /// Haxe currentObjectsCount (`Map<Int,Int>` by object id — not tiles).
     pub current_counts: HashMap<i32, i32>,
     /// True after first census from world / seed.
     pub counts_ready: bool,
-    /// Local original biome seeds when map-time map not yet filled (non-snow first visit).
-    pub original_biomes: HashMap<(i32, i32), u8>,
+    /// Haxe `originalBiomes` dense Vector (`255` unset).
+    pub original_biomes: DenseTileGrid<u8>,
 }
 
 impl Default for LongTermState {
@@ -971,11 +972,11 @@ impl Default for LongTermState {
             step: 0,
             time_passed_all_steps: 1.0,
             cycle_started_sim_time: 0.0,
-            original_objects: HashMap::new(),
+            original_objects: DenseTileGrid::empty(0),
             original_counts: HashMap::new(),
             current_counts: HashMap::new(),
             counts_ready: false,
-            original_biomes: HashMap::new(),
+            original_biomes: DenseTileGrid::empty(255),
         }
     }
 }
@@ -1131,7 +1132,7 @@ impl LongTermState {
         if obj_id <= 0 {
             return;
         }
-        self.original_objects.entry((x, y)).or_insert(obj_id);
+        self.original_objects.set_once(x, y, obj_id);
     }
 
     /// Seed original + current counts from a resident world snapshot (once).
@@ -1149,6 +1150,8 @@ impl LongTermState {
             self.counts_ready = true;
             return;
         }
+        self.original_objects.ensure(w, h);
+        self.original_biomes.ensure(w, h);
         // Ground census (countsOrGrowsAs); record per-tile originals.
         for y in 0..h {
             for x in 0..w {
@@ -1367,6 +1370,8 @@ pub fn do_world_long_term_time_stuff_ex(
         return changes;
     }
 
+    long_term.original_objects.ensure(w, h);
+    long_term.original_biomes.ensure(w, h);
     long_term.seed_from_world_if_needed(world, content);
 
     // Cycle timing (Haxe worldMapTimeStep % timeParts == 0 on shared step;
@@ -1396,7 +1401,7 @@ pub fn do_world_long_term_time_stuff_ex(
             // Seed original biome when tile is not snow (map-time may already have it).
             let biome_now = world.get_biome(x, y);
             if biome_now != BIOME_SNOW && biome_now != SNOWINGREY {
-                long_term.original_biomes.entry((x, y)).or_insert(biome_now);
+                long_term.original_biomes.set_once(x, y, biome_now);
             }
 
             // Seasonal biome snow spread / restore.
@@ -1410,11 +1415,7 @@ pub fn do_world_long_term_time_stuff_ex(
 
             // Spring empty-tile original respawn (GrowBackOriginalPlants / DoRespawnFromOriginal).
             if obj_id == 0 && floor_id == 0 && season_is_spring {
-                let orig = long_term
-                    .original_objects
-                    .get(&(x, y))
-                    .copied()
-                    .unwrap_or(0);
+                let orig = long_term.original_objects.get(x, y);
                 if orig > 0 {
                     let ca = LongTermState::count_as_of(content, orig);
                     let cur = long_term.current_counts.get(&ca).copied().unwrap_or(0) as f32;
@@ -1450,11 +1451,7 @@ pub fn do_world_long_term_time_stuff_ex(
 
             // Haxe RespawnObjects: rare chance to spawn original near its home tile.
             if season_is_spring {
-                let orig = long_term
-                    .original_objects
-                    .get(&(x, y))
-                    .copied()
-                    .unwrap_or(0);
+                let orig = long_term.original_objects.get(x, y);
                 if orig > 0 {
                     let ca = LongTermState::count_as_of(content, orig);
                     let cur = long_term.current_counts.get(&ca).copied().unwrap_or(0);
@@ -1696,8 +1693,7 @@ fn try_spawn_object_near(
 pub fn resolve_original_biome(long_term: &LongTermState, x: i32, y: i32, fallback: u8) -> u8 {
     long_term
         .original_biomes
-        .get(&(x, y))
-        .copied()
+        .get_set(x, y)
         .unwrap_or(fallback)
 }
 
@@ -1770,11 +1766,7 @@ fn snow_stone_side_effects(
     }
     let from_id = content.resolve_base_id(world.get_object(from_x, from_y));
     let to_id = content.resolve_base_id(world.get_object(to_x, to_y));
-    let original_to = long_term
-        .original_objects
-        .get(&(to_x, to_y))
-        .copied()
-        .unwrap_or(0);
+    let original_to = long_term.original_objects.get(to_x, to_y);
     let original_to = content.resolve_base_id(original_to);
 
     // 133 Flint respawn on empty tile that originally had flint.
@@ -2997,7 +2989,7 @@ mod tests {
         let mut world = World::new(10, 250, false);
         let mut lt = LongTermState::default();
         lt.counts_ready = true;
-        lt.original_objects.insert((2, 0), 50);
+        lt.original_objects.set(2, 0, 50);
         // Band 0 (y=0): step % parts == 0. Provide cycle_started so reset yields huge years.
         lt.step = 0;
         lt.cycle_started_sim_time = 1.0;
@@ -3359,7 +3351,7 @@ mod tests {
         let mut lt = LongTermState::default();
         lt.counts_ready = true;
         lt.time_passed_all_steps = 60.0 * 100.0; // years huge → remove chance ~1
-        lt.original_biomes.insert((1, 0), YELLOW); // original was desert/yellow
+        lt.original_biomes.set(1, 0, YELLOW); // original was desert/yellow
                                                    // Run many seeds until snow melts (RNG-dependent neighbor pick).
         let mut melted = false;
         for seed in 0..40u64 {
@@ -3476,7 +3468,7 @@ mod tests {
         world.set_biome(2, 0, GREEN);
         let mut lt = LongTermState::default();
         lt.counts_ready = true;
-        lt.original_objects.insert((2, 0), 133);
+        lt.original_objects.set(2, 0, 133);
         lt.original_counts.insert(133, 10);
         lt.current_counts.insert(133, 0);
         let mut changes = Vec::new();

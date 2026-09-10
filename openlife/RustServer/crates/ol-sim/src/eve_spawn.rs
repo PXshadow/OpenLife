@@ -630,6 +630,12 @@ pub fn is_human_login_conn(conn_id: u64) -> bool {
     conn_id <= HUMAN_CONN_ID_MAX
 }
 
+/// Empty of living humans: new AIs/NPCs spawn as Eve/Adam, not as babies of leftover AIs.
+#[inline]
+pub fn force_ai_eve_when_no_human(is_synthetic: bool, living_humans: usize) -> bool {
+    is_synthetic && living_humans == 0
+}
+
 /// True when living **humans** allow AI↔human Eve pair cross-spawn.
 // Haxe: GetNumberLifingPlayers() <= MaxPlayersBeforeStartingAsChild
 #[inline]
@@ -657,6 +663,9 @@ mod live_knob_tests {
         // Compiled 0: never mix AI/human Eve (empty-server leftover AI Eve).
         assert!(!allow_human_ai_eve_cross(0));
         assert!(!allow_human_ai_eve_cross(1));
+        assert!(force_ai_eve_when_no_human(true, 0));
+        assert!(!force_ai_eve_when_no_human(true, 1));
+        assert!(!force_ai_eve_when_no_human(false, 0));
         assert!(allow_human_ai_eve_cross_ex(1, 1));
         assert!(allow_human_ai_eve_cross_ex(0, 1));
         assert!(!allow_human_ai_eve_cross_ex(2, 1));
@@ -1170,17 +1179,12 @@ pub fn eve_person_color_with_biome(get_biome: impl Fn(i32, i32) -> u8, x: i32, y
 // Haxe: WorldMap.getOriginalBiomeId fallback getBiomeId
 pub fn eve_person_color_prefer_original(
     world: &World,
-    original_biomes: &std::collections::HashMap<(i32, i32), u8>,
+    orig_biome: impl Fn(i32, i32) -> Option<u8>,
     x: i32,
     y: i32,
 ) -> i32 {
     eve_person_color_with_biome(
-        |tx, ty| {
-            original_biomes
-                .get(&(tx, ty))
-                .copied()
-                .unwrap_or_else(|| world.get_biome(tx, ty))
-        },
+        |tx, ty| orig_biome(tx, ty).unwrap_or_else(|| world.get_biome(tx, ty)),
         x,
         y,
     )
@@ -1628,10 +1632,19 @@ mod tests {
     fn original_biome_person_color() {
         let mut w = World::new(32, 32, false);
         w.set_biome(5, 5, 0); // live grass
-        let mut orig = std::collections::HashMap::new();
-        orig.insert((5, 5), JUNGLE_BIOME);
         assert_eq!(
-            eve_person_color_prefer_original(&w, &orig, 5, 5),
+            eve_person_color_prefer_original(
+                &w,
+                |x, y| {
+                    if x == 5 && y == 5 {
+                        Some(JUNGLE_BIOME)
+                    } else {
+                        None
+                    }
+                },
+                5,
+                5,
+            ),
             PERSON_BROWN
         );
         assert_eq!(eve_person_color_at(&w, 5, 5), 0);

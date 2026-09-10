@@ -273,6 +273,8 @@ pub struct GameplayKnobs {
     // Haxe: ServerSettings.SpawnAiAsEve = false
     // SETTINGS-LONG-TAIL
     pub spawn_ai_as_eve: bool,
+    /// Humans may spawn as children of AI mothers. Default false.
+    pub allow_humans_born_to_ais: bool,
     /// Haxe `MaxPlayersBeforeStartingAsChild` — living count allowing AI↔human Eve cross.
     // Haxe: ServerSettings.MaxPlayersBeforeStartingAsChild = 0
     // SETTINGS-LONG-TAIL
@@ -848,6 +850,7 @@ impl Default for GameplayKnobs {
             starting_eve_age: gameplay_defaults::STARTING_EVE_AGE,
             eve_or_adam_birth_chance: gameplay_defaults::EVE_OR_ADAM_BIRTH_CHANCE,
             spawn_ai_as_eve: gameplay_defaults::SPAWN_AI_AS_EVE,
+            allow_humans_born_to_ais: gameplay_defaults::ALLOW_HUMANS_BORN_TO_AIS,
             max_players_before_starting_as_child:
                 gameplay_defaults::MAX_PLAYERS_BEFORE_STARTING_AS_CHILD,
             obj_decay_chance: gameplay_defaults::OBJ_DECAY_CHANCE,
@@ -1101,6 +1104,7 @@ impl GameplayKnobs {
             starting_eve_age: live.starting_eve_age,
             eve_or_adam_birth_chance: live.eve_or_adam_birth_chance,
             spawn_ai_as_eve: live.spawn_ai_as_eve,
+            allow_humans_born_to_ais: live.allow_humans_born_to_ais,
             max_players_before_starting_as_child: live.max_players_before_starting_as_child,
             obj_decay_chance: live.obj_decay_chance,
             floor_decay_chance: live.floor_decay_chance,
@@ -2237,6 +2241,10 @@ pub fn apply_live_settings(state: &mut SimState, live: &LiveSettings) -> LiveApp
         old.spawn_ai_as_eve != gp.spawn_ai_as_eve,
     );
     push_gp(
+        "allow_humans_born_to_ais",
+        old.allow_humans_born_to_ais != gp.allow_humans_born_to_ais,
+    );
+    push_gp(
         "obj_decay_chance",
         (old.obj_decay_chance - gp.obj_decay_chance).abs() > 1e-12,
     );
@@ -3278,6 +3286,7 @@ mod tests {
             starting_eve_age: 18.0,
             eve_or_adam_birth_chance: 0.5,
             spawn_ai_as_eve: true,
+            allow_humans_born_to_ais: true,
             max_players_before_starting_as_child: 3,
             obj_decay_chance: 0.0001,
             floor_decay_chance: 0.00002,
@@ -3596,6 +3605,8 @@ mod tests {
         assert!((state.gameplay.eve_or_adam_birth_chance - 0.5).abs() < 1e-12);
         assert!(report.keys.contains(&"spawn_ai_as_eve"));
         assert!(state.gameplay.spawn_ai_as_eve);
+        assert!(report.keys.contains(&"allow_humans_born_to_ais"));
+        assert!(state.gameplay.allow_humans_born_to_ais);
         assert!(report.keys.contains(&"max_players_before_starting_as_child"));
         assert_eq!(state.gameplay.max_players_before_starting_as_child, 3);
         assert!(report.keys.contains(&"obj_decay_chance"));
@@ -3961,6 +3972,7 @@ mod tests {
                     | "starting_eve_age"
                     | "eve_or_adam_birth_chance"
                     | "spawn_ai_as_eve"
+                    | "allow_humans_born_to_ais"
                     | "max_players_before_starting_as_child"
                     | "obj_decay_chance"
                     | "floor_decay_chance"

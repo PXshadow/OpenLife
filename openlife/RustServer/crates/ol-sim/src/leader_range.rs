@@ -326,6 +326,7 @@ pub fn send_to_me_all_close_players(
                 crate::person_object_id(p),
                 p.held_id,
                 p.age,
+                p.age_r,
                 p.done_moving_seq,
                 format_clothing_set(p),
                 p.move_path.as_ref().map(|mp| {
@@ -343,7 +344,7 @@ pub fn send_to_me_all_close_players(
 
     let mut far_po_ids: Vec<i32> = Vec::new();
 
-    for (p_id, sx, sy, held, moving, first, family, is_ai, po, held_id, age, seq, clothing, path_opt) in
+    for (p_id, sx, sy, held, moving, first, family, is_ai, po, held_id, age, age_r, seq, clothing, path_opt) in
         subjects
     {
         let subject = PlayerInfoSubject {
@@ -406,6 +407,7 @@ pub fn send_to_me_all_close_players(
                         -1,
                         seq.max(1),
                         &clothing,
+                        age_r,
                     );
                     outbound.send(
                         viewer_conn,

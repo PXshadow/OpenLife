@@ -19,8 +19,9 @@ pub const FERTILE_MIN_AGE: f32 = 14.0;
 /// Father fitness uses a separate 55 gate in [`crate::birth_fitness`].
 pub const FERTILE_MAX_AGE: f32 = 42.0;
 
-/// Sim-seconds of cooldown after a successful BIRTH.
-pub const BIRTH_COOLDOWN_SECS: f32 = 120.0;
+/// Compiled fallback: one in-game year at default `AgeingSecondsPerYear` (60).
+/// Live spawn uses `GameplayKnobs.ageing_seconds_per_year`.
+pub const BIRTH_COOLDOWN_SECS: f32 = 60.0;
 
 /// Optional gestation before baby appears (0 = instant birth as today).
 pub const GESTATION_SECS: f32 = 30.0;
@@ -78,6 +79,8 @@ pub fn is_fertile_ex(deleted: bool, age: f32, is_female: bool, min_age: f32, max
 pub struct FertilityRecord {
     /// Earliest sim_time when next birth is allowed.
     pub next_birth_ready: f32,
+    /// Sim-time of the last completed birth (0 = never). Twins share one stamp.
+    pub last_birth_sim_time: f32,
     /// If Some, baby arrives at this sim_time (gestation in progress).
     pub gestating_until: Option<f32>,
     pub births: u32,
@@ -164,12 +167,31 @@ impl FertilityState {
         Ok(())
     }
 
-    /// Start instant birth path: set cooldown, increment count.
+    /// True when this mother still has a last-birth cooldown (one in-game year).
+    pub fn mother_on_birth_cooldown(&self, mother_id: i32, sim_time: f32) -> bool {
+        self.by_mother
+            .get(&mother_id)
+            .is_some_and(|r| sim_time < r.next_birth_ready)
+    }
+
+    /// Start instant birth path: set last-birth + cooldown, increment count.
     pub fn complete_birth(&mut self, mother_id: i32, sim_time: f32) {
+        self.complete_birth_ex(mother_id, sim_time, BIRTH_COOLDOWN_SECS);
+    }
+
+    /// Same as [`Self::complete_birth`] with a live year length (`ageing_seconds_per_year`).
+    /// Call once per birth event (twins share one stamp).
+    pub fn complete_birth_ex(&mut self, mother_id: i32, sim_time: f32, cooldown_secs: f32) {
         let r = self.record_mut(mother_id);
         r.births = r.births.saturating_add(1);
         r.gestating_until = None;
-        r.next_birth_ready = sim_time + BIRTH_COOLDOWN_SECS;
+        r.last_birth_sim_time = sim_time;
+        let cd = if cooldown_secs.is_finite() && cooldown_secs >= 0.0 {
+            cooldown_secs
+        } else {
+            BIRTH_COOLDOWN_SECS
+        };
+        r.next_birth_ready = sim_time + cd;
         r.children_birth_mali =
             crate::birth_fitness::next_children_birth_mali(r.children_birth_mali);
     }
@@ -190,6 +212,7 @@ impl FertilityState {
                 if sim_time >= t {
                     r.gestating_until = None;
                     r.births = r.births.saturating_add(1);
+                    r.last_birth_sim_time = sim_time;
                     r.next_birth_ready = sim_time + BIRTH_COOLDOWN_SECS;
                     r.children_birth_mali =
                         crate::birth_fitness::next_children_birth_mali(r.children_birth_mali);
@@ -353,7 +376,15 @@ mod tests {
         assert!(f.can_birth(1, 20.0, 0.0).is_ok());
         f.complete_birth(1, 0.0);
         assert_eq!(f.can_birth(1, 20.0, 10.0), Err("COOLDOWN"));
+        assert!(f.mother_on_birth_cooldown(1, 10.0));
+        assert_eq!(f.by_mother.get(&1).unwrap().last_birth_sim_time, 0.0);
         assert!(f.can_birth(1, 20.0, BIRTH_COOLDOWN_SECS + 1.0).is_ok());
+        assert!(!f.mother_on_birth_cooldown(1, BIRTH_COOLDOWN_SECS + 1.0));
+        // Live year length (e.g. ageing_seconds_per_year = 60).
+        let mut f2 = FertilityState::default();
+        f2.complete_birth_ex(2, 5.0, 60.0);
+        assert!(f2.mother_on_birth_cooldown(2, 64.0));
+        assert!(!f2.mother_on_birth_cooldown(2, 66.0));
     }
 
     #[test]

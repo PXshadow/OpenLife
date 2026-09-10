@@ -18,6 +18,7 @@ pub struct FireTile {
 }
 
 /// Active fire map (x,y) → fire.
+/// Sparse on purpose: only tiles that are actually burning (not a Haxe full-map Vector).
 #[derive(Debug, Default, Clone)]
 pub struct FireState {
     pub tiles: HashMap<(i32, i32), FireTile>,

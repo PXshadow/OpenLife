@@ -355,6 +355,72 @@
         assert!(state.players.get(&7).is_some());
     }
 
+    /// Haxe initConnection uses the spawned player id. No guessed conn+1 ghost PU.
+    #[test]
+    fn login_init_connection_pu_matches_spawned_id() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(3);
+        let mut state = SimState::with_default_empty(test_content());
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Login {
+                conn_id: 9_100_000,
+                reconnect: false,
+                email: "npc-occupy@local".into(),
+                client_tag: "client_npc".into(),
+                client_ip: String::new(),
+            },
+        );
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Login {
+                conn_id: 3,
+                reconnect: false,
+                email: "human@login".into(),
+                client_tag: "client_test".into(),
+                client_ip: String::new(),
+            },
+        );
+        let real = state.players.get(&3).expect("human").p_id;
+        let living: std::collections::HashSet<i32> = state
+            .players
+            .values()
+            .filter(|p| !p.deleted)
+            .map(|p| p.p_id)
+            .collect();
+        let mut saw_accepted = false;
+        let mut pu_ids = Vec::new();
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.starts_with("ACCEPTED") {
+                saw_accepted = true;
+            }
+            if let Some(rest) = s.strip_prefix("PU\n") {
+                if let Some(id) = rest
+                    .split_whitespace()
+                    .next()
+                    .and_then(|t| t.parse::<i32>().ok())
+                {
+                    pu_ids.push(id);
+                }
+            }
+        }
+        assert!(saw_accepted, "Haxe initConnection starts with ACCEPTED");
+        assert!(
+            pu_ids.contains(&real),
+            "must PU the spawned body p_id={real}, got {pu_ids:?}"
+        );
+        assert!(
+            pu_ids.iter().all(|id| living.contains(id)),
+            "no ghost PU ids (conn+1 etc.); living={living:?} pu={pu_ids:?}"
+        );
+    }
+
     #[test]
     fn spawn_queue_full_human_culls_ai() {
         let counters = Counters::new();
@@ -921,7 +987,7 @@
     }
 
     /// SETTINGS-LONG-TAIL: default SpawnAiAsEve=false skips the Eve roll for NPCs
-    /// when a fertile mother exists (Haxe `spawnEve` AI gate).
+    /// when a fertile mother exists (Haxe `spawnEve` AI gate) **and a human is online**.
     #[test]
     fn spawn_player_synthetic_eve_or_adam_child_when_mother_present() {
         let mut state = SimState::with_default_empty(test_content());
@@ -936,6 +1002,13 @@
             m.food = 18.0;
             m.food_max = 20.0;
             m.display_object_id = 19;
+        }
+        // A living human is required before AIs may spawn as children (empty server → Eve/Adam).
+        let _human = spawn_player(&mut state, 1, "human@online");
+        {
+            let h = state.players.get_mut(&1).expect("human");
+            h.age = 5.0;
+            h.true_age = 5.0;
         }
         // First AI is an Eve (last_ai_eve). Second AI pairs as Adam (Haxe spawnEve
         // own-pool). Third AI is a child of the fertile Eve.
@@ -1010,6 +1083,7 @@
         let mut state = SimState::with_default_empty(test_content());
         state.gameplay.max_players_before_starting_as_child = 0;
         state.gameplay.spawn_ai_as_eve = true;
+        state.gameplay.allow_humans_born_to_ais = true;
         state.gameplay.eve_or_adam_birth_chance = 0.0;
         let ai_pid = spawn_player(&mut state, 9_100_000, "npc-eve@local");
         {
@@ -1045,6 +1119,124 @@
         assert!(
             human.age < 1.0,
             "human born to AI mother is a baby, not StartingEveAge"
+        );
+    }
+
+    #[test]
+    fn human_login_skips_ai_mother_when_allow_humans_born_to_ais_false() {
+        let mut state = SimState::with_default_empty(test_content());
+        state.gameplay.allow_humans_born_to_ais = false;
+        state.gameplay.eve_or_adam_birth_chance = 0.0;
+        spawn_player(&mut state, 9_100_000, "npc-eve@local");
+        {
+            let m = state.players.get_mut(&9_100_000).expect("ai");
+            m.age = 25.0;
+            m.true_age = 25.0;
+            m.food = 18.0;
+            m.food_max = 20.0;
+            m.display_object_id = 19;
+        }
+        assert_eq!(pick_best_mother_p_id_for(&state, true), None);
+        let human_pid = spawn_player(&mut state, 1, "human@eve");
+        assert!(
+            state
+                .social
+                .lineages
+                .get(&human_pid)
+                .and_then(|n| n.mother_id)
+                .is_none(),
+            "human must Eve, not spawn as AI child"
+        );
+        assert!(state.players.get(&1).unwrap().age >= 1.0);
+    }
+
+    #[test]
+    fn spawn_baby_food_is_half_of_age_based_max() {
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "mom@food");
+        {
+            let m = state.players.get_mut(&1).unwrap();
+            m.age = 25.0;
+            m.display_object_id = 19;
+            m.food = 18.0;
+            m.food_max = 20.0;
+        }
+        let baby = spawn_child(&mut state, 1).expect("baby");
+        let b = state
+            .players
+            .values()
+            .find(|p| p.p_id == baby)
+            .expect("baby body");
+        assert!((b.food_max - 4.0).abs() < 0.2, "newborn max ~4, got {}", b.food_max);
+        assert!((b.food - b.food_max * 0.5).abs() < 1e-4);
+    }
+
+    #[test]
+    fn mother_blocked_one_in_game_year_after_child_except_after_cooldown() {
+        let mut state = SimState::with_default_empty(test_content());
+        state.gameplay.spawn_ai_as_eve = false;
+        state.gameplay.eve_or_adam_birth_chance = 0.0;
+        state.gameplay.ageing_seconds_per_year = 60.0;
+        let mom = spawn_player(&mut state, 1, "mom@year");
+        {
+            let m = state.players.get_mut(&1).expect("mom");
+            m.age = 25.0;
+            m.true_age = 25.0;
+            m.food = 18.0;
+            m.food_max = 20.0;
+            m.display_object_id = 19;
+        }
+        assert_eq!(pick_best_mother_p_id_for(&state, false), Some(mom));
+        let baby = spawn_player(&mut state, 9_100_000, "npc-baby@year");
+        assert_eq!(
+            state
+                .social
+                .lineages
+                .get(&baby)
+                .and_then(|n| n.mother_id),
+            Some(mom)
+        );
+        assert!(
+            state.fertility.mother_on_birth_cooldown(mom, state.sim_time),
+            "last birth stamps a one-year cooldown"
+        );
+        assert_eq!(
+            pick_best_mother_p_id_for(&state, false),
+            None,
+            "same mother cannot take another baby until a year of sim time"
+        );
+        state.sim_time += 60.0;
+        assert_eq!(pick_best_mother_p_id_for(&state, false), Some(mom));
+    }
+
+    /// No human left: further AIs spawn as Eve/Adam, not as babies of leftover AI mothers.
+    #[test]
+    fn ai_eve_or_adam_when_no_human_left_not_baby() {
+        let mut state = SimState::with_default_empty(test_content());
+        state.gameplay.spawn_ai_as_eve = false;
+        state.gameplay.eve_or_adam_birth_chance = 0.0;
+        let eve = spawn_player(&mut state, 9_100_000, "npc-eve@empty");
+        {
+            let m = state.players.get_mut(&9_100_000).expect("eve");
+            m.age = 25.0;
+            m.true_age = 25.0;
+            m.food = 18.0;
+            m.food_max = 20.0;
+            m.display_object_id = 19;
+        }
+        assert_eq!(pick_best_mother_p_id_for(&state, false), Some(eve));
+        let _adam = spawn_player(&mut state, 9_100_001, "npc-adam@empty");
+        let third = spawn_player(&mut state, 9_100_002, "npc-next@empty");
+        let third_pl = state.players.get(&9_100_002).expect("third");
+        assert!(
+            third_pl.age >= 1.0,
+            "empty-server AI must be Eve/Adam, not a baby; age={}",
+            third_pl.age
+        );
+        assert_eq!(
+            state.social.lineages.get(&third).and_then(|n| n.mother_id),
+            None,
+            "no human left → Eve/Adam, not child of leftover AI"
         );
     }
 
@@ -2674,8 +2866,8 @@
         };
         snow.world.write().unwrap().set_biome(sx, sy, 4); // snow
         green.world.write().unwrap().set_biome(gx, gy, 0); // green
-        snow.world_map_time.tile_temps.insert((sx, sy), 0.0);
-        green.world_map_time.tile_temps.insert((gx, gy), 0.0);
+        snow.world_map_time.set_temp_at(sx, sy, 0.0);
+        green.world_map_time.set_temp_at(gx, gy, 0.0);
 
         let food0 = snow.players.get(&1).unwrap().food;
         assert_eq!(food0, green.players.get(&1).unwrap().food);
@@ -2725,8 +2917,8 @@
         };
         desert.world.write().unwrap().set_biome(dx, dy, 5); // desert
         green.world.write().unwrap().set_biome(gx, gy, 0); // green
-        desert.world_map_time.tile_temps.insert((dx, dy), 0.90);
-        green.world_map_time.tile_temps.insert((gx, gy), 0.90);
+        desert.world_map_time.set_temp_at(dx, dy, 0.90);
+        green.world_map_time.set_temp_at(gx, gy, 0.90);
 
         let food0 = desert.players.get(&1).unwrap().food;
         assert_eq!(food0, green.players.get(&1).unwrap().food);
@@ -4723,8 +4915,7 @@
         }
         state
             .world_map_time
-            .original_biomes
-            .insert((11, 10), HOME_SEARCH_SWAMP_BIOME);
+            .set_orig_biome_once(11, 10, HOME_SEARCH_SWAMP_BIOME);
         apply_intent(
             &mut state,
             &counters,
@@ -4838,12 +5029,10 @@
         }
         state
             .world_map_time
-            .original_biomes
-            .insert((4, 0), HOME_SEARCH_SWAMP_BIOME);
+            .set_orig_biome_once(4, 0, HOME_SEARCH_SWAMP_BIOME);
         state
             .world_map_time
-            .original_biomes
-            .insert((8, 3), HOME_SEARCH_SWAMP_BIOME);
+            .set_orig_biome_once(8, 3, HOME_SEARCH_SWAMP_BIOME);
         tick_search_new_home_if_needed(&mut state);
         let p = state.players.get(&1).unwrap();
         assert_eq!((p.home_x, p.home_y), (8, 3));
@@ -10179,8 +10368,13 @@
             .players
             .get(&baby_conn)
             .expect("baby player at mother_conn + BABY_CONN_OFFSET");
-        assert_eq!(baby.age, 0.0, "baby age must be 0");
-        assert_eq!(baby.food, START_FOOD, "baby food must be 10");
+        assert!((baby.age - 0.01).abs() < 1e-6, "Haxe spawnAsChild age 0.01");
+        assert!(
+            (baby.food - baby.food_max * 0.5).abs() < 1e-4,
+            "Haxe food_store = food_store_max / 2, food={} max={}",
+            baby.food,
+            baby.food_max
+        );
         assert_eq!(baby.p_id, before_next);
         assert_eq!(baby.x, 12);
         assert_eq!(baby.y, 34);
@@ -10203,7 +10397,7 @@
         let node2 = state.social.lineages.get(&baby2_id).unwrap();
         assert_eq!(node2.mother_id, Some(mother_p_id));
         let baby2 = state.players.values().find(|p| p.p_id == baby2_id).unwrap();
-        assert_eq!(baby2.age, 0.0);
+        assert!((baby2.age - 0.01).abs() < 1e-6);
     }
 
     /// SAY ?HELD / HELD returns held_id and content object name when known.
@@ -12306,8 +12500,8 @@
             let p = outdoor.players.get(&1).unwrap();
             (p.x, p.y)
         };
-        outdoor.world_map_time.tile_temps.insert((ox, oy), 0.0);
-        indoor.world_map_time.tile_temps.insert((ix, iy), 0.0);
+        outdoor.world_map_time.set_temp_at(ox, oy, 0.0);
+        indoor.world_map_time.set_temp_at(ix, iy, 0.0);
 
         let food0 = outdoor.players.get(&1).unwrap().food;
         assert_eq!(food0, indoor.players.get(&1).unwrap().food);
@@ -16575,6 +16769,108 @@
         assert!(saw_bw, "baby JUMP must emit BW wiggle");
     }
 
+    /// After vitals aging, JUMP PU must carry truncated live age + age_r (not stuck 0.01 / 60).
+    #[test]
+    fn jump_wiggle_pu_sends_live_age_and_age_r() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = SimState::with_default_empty(test_content());
+        let p_id = spawn_player(&mut state, 1, "agejump@x");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.age = 0.01;
+            p.true_age = 0.01;
+            p.age_r = 20.0;
+        }
+        tick_vitals(&mut state, 1.2, &hub);
+        let (live_age, live_r) = {
+            let p = state.players.get(&1).unwrap();
+            (p.age, p.age_r)
+        };
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "JUMP".into(),
+                payload: "0 0".into(),
+            },
+        );
+        let want_age = ol_protocol::haxe_trunc_hundredths(live_age);
+        let want_r = ol_protocol::haxe_trunc_hundredths(live_r);
+        let needle = format!(" {want_age:.2} {want_r:.2} ");
+        let mut saw = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.starts_with("PU\n") && s.contains(&format!("{p_id} ")) && s.contains(&needle) {
+                saw = true;
+            }
+        }
+        assert!(
+            saw,
+            "JUMP PU must send live truncated age/age_r {needle} (not 0.01/60)"
+        );
+        assert!(
+            live_age > 0.01,
+            "vitals must advance display age, got {live_age}"
+        );
+    }
+
+    /// JUMP wiggle PU uses birth-relative coords, not true world tiles (camera yank).
+    #[test]
+    fn jump_wiggle_pu_is_birth_relative_not_world() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = SimState::with_default_empty(test_content());
+        let p_id = spawn_player(&mut state, 1, "wig@rel");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.age = 0.05;
+        }
+        let (wx, wy, rx0, ry0) = {
+            let p = state.players.get(&1).unwrap();
+            let (rx, ry) = p.world_to_client(p.x, p.y);
+            (p.x, p.y, rx, ry)
+        };
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "JUMP".into(),
+                payload: "0 0".into(),
+            },
+        );
+        let mut pu_xy = None;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if let Some(rest) = s.strip_prefix("PU\n") {
+                let f: Vec<&str> = rest.split_whitespace().collect();
+                if f.len() > 15 && f[0] == p_id.to_string() {
+                    pu_xy = Some((
+                        f[14].parse::<i32>().unwrap_or(i32::MIN),
+                        f[15].parse::<i32>().unwrap_or(i32::MIN),
+                    ));
+                }
+            }
+        }
+        let xy = pu_xy.expect("JUMP PU");
+        assert_eq!(xy, (rx0, ry0), "JUMP PU must be birth-relative");
+        if (wx, wy) != (rx0, ry0) {
+            assert_ne!(
+                xy,
+                (wx, wy),
+                "JUMP PU must not leak world ({wx},{wy})"
+            );
+        }
+    }
+
     /// TCG-LIVE-WIRE: !TCG without godmode / canUseServerCommands is consumed as not allowed.
     #[test]
     fn say_tcg_denied_without_godmode() {
@@ -18510,6 +18806,69 @@
         assert!(state.players.get(&1).unwrap().age < 1.0, "twin1 baby");
         assert!(state.players.get(&2).unwrap().age < 1.0, "twin2 baby");
         assert!(state.twin_wait.is_empty());
+    }
+
+    /// Twins share one last-birth stamp; the mother is then blocked for one in-game year.
+    #[test]
+    fn twin_party_one_year_cooldown_stamp() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let _rx1 = hub.register(1);
+        let _rx2 = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        state.gameplay.eve_or_adam_birth_chance = 1.0;
+        state.gameplay.ageing_seconds_per_year = 60.0;
+        let mom = spawn_player(&mut state, 9, "mom@twins");
+        {
+            let m = state.players.get_mut(&9).unwrap();
+            m.age = 25.0;
+            m.true_age = 25.0;
+            m.display_object_id = 19;
+            m.food = 18.0;
+            m.food_max = 20.0;
+        }
+        spawn_player(&mut state, 1, "t1@twins");
+        spawn_player(&mut state, 2, "t2@twins");
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "TWINJOIN yearcode 2".into(),
+            },
+        );
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 2,
+                tag: "SAY".into(),
+                payload: "TWINJOIN yearcode 2".into(),
+            },
+        );
+        assert!(state.players.get(&1).unwrap().age < 1.0, "twin1 baby");
+        assert!(state.players.get(&2).unwrap().age < 1.0, "twin2 baby");
+        let p1 = state.players.get(&1).unwrap().p_id;
+        let p2 = state.players.get(&2).unwrap().p_id;
+        assert_eq!(
+            state.social.lineages.get(&p1).and_then(|n| n.mother_id),
+            Some(mom)
+        );
+        assert_eq!(
+            state.social.lineages.get(&p2).and_then(|n| n.mother_id),
+            Some(mom)
+        );
+        let rec = state.fertility.by_mother.get(&mom).expect("birth stamp");
+        assert_eq!(rec.births, 1, "twins share one complete_birth stamp");
+        assert!(state.fertility.mother_on_birth_cooldown(mom, state.sim_time));
+        assert_eq!(
+            pick_best_mother_p_id_for(&state, false),
+            None,
+            "same mother blocked for one in-game year after the twin event"
+        );
     }
 
     /// FERTILITY-TWINS: pure is_fertile matches Haxe.

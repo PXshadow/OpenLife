@@ -1302,7 +1302,8 @@ pub struct SimState {
     pub prefer_last_use: bool,
     /// Shared snapshots for web viewer (optional).
     pub player_views: Option<PlayerViewMap>,
-    /// Tile auto-decay timers: (x,y) â†’ (expected object id, seconds remaining).
+    /// Tile auto-decay timers: (x,y) → (expected object id, seconds remaining).
+    /// Sparse live timers only (not a full-map grid; Haxe stores ttc on ObjectHelper).
     pub pending_decays: HashMap<(i32, i32), (i32, f32)>,
     pub social: SocialState,
     pub environment: Environment,
@@ -1456,7 +1457,7 @@ pub struct SimState {
     /// AI memory caps.
     pub ai_memory_max_entries: usize,
     pub ai_chat_memory_max_entries: usize,
-    /// Haxe CalculateBlockedByAi sticky map (conn -> blocked positions).
+    /// Haxe `blockedByAI` Map of a few timed tiles (not a full-map Vector).
     pub blocked_by_ai: HashMap<(i32, i32), f32>,
     /// NPC-SCAN-FULL: outer share of `blocked_by_ai` for the NPC think thread.
     pub blocked_by_ai_share: Option<crate::ai_path_reach::BlockedByAiShare>,
@@ -2477,7 +2478,8 @@ fn maybe_send_held_writing_ps(state: &SimState, outbound: &OutboundHub, conn_id:
 /// Haxe `GlobalPlayerInstance.jump` — payload xy is **ignored**.
 ///
 /// Not held → PU + BW (baby) + FRAME. Held → `dropPlayer` at carrier tile
-/// (blocked tile keeps the hold).
+/// (blocked tile keeps the hold). PU x/y are **per-viewer birth-relative**
+/// (never raw world tiles — that yanked the camera off the village).
 // Haxe: GPI.jump L5098–5120; dropPlayerHelper L5041–5085
 fn apply_player_jump(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
     let Some(p) = state.players.get(&conn_id) else {
@@ -2524,59 +2526,76 @@ fn apply_player_jump(state: &mut SimState, outbound: &OutboundHub, conn_id: u64)
                 }
             }
         }
+        // Haxe dropPlayer sends PU for baby + carrier; no BW on jump-out.
+        fan_jump_player_update(state, outbound, conn_id, 1, false);
+        if let Some(mcid) = state
+            .players
+            .values()
+            .find(|pl| pl.p_id == held_by)
+            .map(|pl| pl.conn_id)
+        {
+            fan_jump_player_update(state, outbound, mcid, 1, false);
+        }
+        info!(conn_id, p_id, "sim: JUMP drop-from-arms");
+        state.publish_player_view(conn_id);
+        return;
     }
 
-    if let Some(p) = state.players.get(&conn_id) {
-        let spd = player_move_speed(state, p);
-        let pu = format_player_update_line(
-            p.p_id,
-            person_object_id(p),
-            p.held_id,
-            p.x,
-            p.y,
-            p.age,
-            spd,
-            p.done_moving_seq.max(1),
-        );
-        let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
-        send_nearby(
-            outbound,
-            &near,
-            format_server_message("PU", &[&pu]).into_bytes(),
-        );
-        if baby_age < BABY_AGE_THRESHOLD {
-            send_nearby(outbound, &near, format_baby_wiggle(p.p_id).into_bytes());
-        }
-        for &cid in &near {
-            send_frame(outbound, cid);
-        }
-        info!(conn_id, p_id = p.p_id, "sim: JUMP PU");
-    }
-    if held_by != 0 {
-        if let Some(m) = state.players.values().find(|pl| pl.p_id == held_by) {
-            let spd = player_move_speed(state, m);
-            let pu = format_player_update_line(
-                m.p_id,
-                person_object_id(m),
-                m.held_id,
-                m.x,
-                m.y,
-                m.age,
-                spd,
-                m.done_moving_seq.max(1),
-            );
-            let near = nearby_conn_ids(state, m.x, m.y, nearby_range(state));
-            send_nearby(
-                outbound,
-                &near,
-                format_server_message("PU", &[&pu]).into_bytes(),
-            );
-            for &cid in &near {
-                send_frame(outbound, cid);
-            }
-        }
-    }
+    // Ground wiggle: PU (relative) + BW + FRAME. Haxe sendWiggle on not-held.
+    fan_jump_player_update(
+        state,
+        outbound,
+        conn_id,
+        0,
+        baby_age < BABY_AGE_THRESHOLD,
+    );
+    info!(conn_id, p_id, "sim: JUMP wiggle");
     state.publish_player_view(conn_id);
+}
+
+/// JUMP PU to nearby viewers using **each viewer's** birth origin (Haxe `toData` / transform).
+fn fan_jump_player_update(
+    state: &SimState,
+    outbound: &OutboundHub,
+    subject_conn: u64,
+    force: i32,
+    emit_bw: bool,
+) {
+    let Some(p) = state.players.get(&subject_conn).cloned() else {
+        return;
+    };
+    if p.deleted {
+        return;
+    }
+    let near = leader_range::nearby_conn_ids_for_player_update(
+        state,
+        p.x,
+        p.y,
+        p.p_id,
+        nearby_range(state),
+    );
+    let mut recipients = near;
+    if !recipients.contains(&subject_conn) {
+        recipients.push(subject_conn);
+    }
+    let bw = if emit_bw {
+        Some(format_baby_wiggle(p.p_id).into_bytes())
+    } else {
+        None
+    };
+    for &cid in &recipients {
+        let (rx, ry) = state
+            .players
+            .get(&cid)
+            .map(|v| v.world_to_client(p.x, p.y))
+            .unwrap_or((p.x, p.y));
+        let pu = format_live_pu_line(state, &p, rx, ry, force);
+        outbound.send(cid, format_server_message("PU", &[&pu]).into_bytes());
+        if let Some(ref pkt) = bw {
+            outbound.send(cid, pkt.clone());
+        }
+        send_frame(outbound, cid);
+    }
 }
 
 /// Private/query PS in **protocol form** `p_id/0 text` + FRAME.
@@ -2768,6 +2787,15 @@ pub fn maybe_send_map_chunk(state: &mut SimState, outbound: &OutboundHub, conn_i
 
 /// Always send MAP_CHUNK centered on the player (login / SAY MAPFORCE).
 pub fn force_send_map_chunk(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
+    force_send_map_chunk_ex(state, outbound, conn_id, false);
+}
+
+fn force_send_map_chunk_ex(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+    urgent: bool,
+) {
     let (x, y, wire_cx, wire_cy) = {
         let Some(p) = state.players.get(&conn_id) else {
             return;
@@ -2816,8 +2844,64 @@ pub fn force_send_map_chunk(state: &mut SimState, outbound: &OutboundHub, conn_i
         p.last_mc_y = y;
         p.has_mc = true;
     }
-    outbound.send(conn_id, mc);
+    if urgent {
+        outbound.send_urgent(conn_id, mc);
+    } else {
+        outbound.send(conn_id, mc);
+    }
     debug!(conn_id, x, y, wire_cx, wire_cy, "sim: MC force/refresh");
+}
+
+/// Haxe `Connection.initConnection` after the player already exists.
+///
+/// ACCEPTED / MC / TS / PU / NM / FX / FM / BB use the **spawned** `p_id`.
+/// Never a guessed `conn_id+1` ghost from the TCP thread.
+// Haxe: Connection.initConnection L249–292
+fn send_haxe_init_connection(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
+    outbound.send_urgent(
+        conn_id,
+        format_server_message("ACCEPTED", &[]).into_bytes(),
+    );
+    force_send_map_chunk_ex(state, outbound, conn_id, true);
+    let Some(pl) = state.players.get(&conn_id) else {
+        return;
+    };
+    if pl.deleted {
+        return;
+    }
+    let ts = pl.tools.wire_slots();
+    outbound.send_urgent(conn_id, format_server_message("TS", &[&ts]).into_bytes());
+    let (rx, ry) = pl.world_to_client(pl.x, pl.y);
+    let po = person_object_id(pl);
+    let nm_line = format_player_nm_line_ex(
+        &state.social.lineages,
+        pl.p_id,
+        &pl.first_name,
+        &pl.family_name,
+        pl.is_ai_body(),
+    );
+    let pu = format_live_pu_line(state, pl, rx, ry, 1);
+    let fx = food_change_for_player(state, pl);
+    outbound.send_urgent(conn_id, format_server_message("PU", &[&pu]).into_bytes());
+    outbound.send_urgent(conn_id, format_server_message("NM", &[&nm_line]).into_bytes());
+    outbound.send_urgent(conn_id, fx.into_bytes());
+    outbound.send_urgent(conn_id, format_server_message("FM", &[]).into_bytes());
+    // Haxe BAD_BIOMES: SNOWINGREY 21, RIVER 17, OCEAN 9 (not yellow/jungle).
+    outbound.send_urgent(
+        conn_id,
+        format_server_message("BB", &["21 MOUNTAIN\n17 RIVER\n9 OCEAN\n"]).into_bytes(),
+    );
+    info!(
+        conn_id,
+        p_id = pl.p_id,
+        x = pl.x,
+        y = pl.y,
+        name = %nm_line,
+        skin = po,
+        birth = ?(pl.birth_x, pl.birth_y),
+        rel = ?(rx, ry),
+        "sim: initConnection ACCEPTED+MC+PU (real p_id)"
+    );
 }
 
 /// Recompute hot/warm/cold chunk interest counts into [`SimState`] (vitals tick / ?CHUNKS).
@@ -6657,7 +6741,11 @@ fn apply_say_or_remv(
             }
             match spawn_child(state, conn_id) {
                 Some(baby_p_id) => {
-                    state.fertility.complete_birth(p.p_id, state.sim_time);
+                    state.fertility.complete_birth_ex(
+                        p.p_id,
+                        state.sim_time,
+                        state.gameplay.ageing_seconds_per_year,
+                    );
                     // spawn_child already pushed BIRTH to event_log.
                     // MAP-LOCATION-PINS: single BABY pin to human mother + father
                     // Haxe: GlobalPlayerInstance init L1013â€“1027
@@ -7815,7 +7903,6 @@ fn apply_say_or_remv(
             let knobs = FollowHireLiveKnobs::from_gameplay(&state.gameplay);
             let oven_tiles: Vec<(i32, i32)> =
                 state.world_map_time.ovens.values().copied().collect();
-            let original_biomes = state.world_map_time.original_biomes_hashmap();
             let fx = apply_do_commands_live_ex(
                 &upper,
                 &speaker,
@@ -7828,7 +7915,7 @@ fn apply_say_or_remv(
                 &candidates,
                 knobs,
                 &oven_tiles,
-                &original_biomes,
+                Some(&state.world_map_time),
             );
             if fx.recognized {
                 apply_do_command_effects(state, outbound, conn_id, &fx);
@@ -8254,6 +8341,7 @@ pub fn packets_after_use(state: &SimState, conn_id: u64, r: &UseResult) -> Vec<V
             p.done_moving_seq.max(1),
             &clothing,
             p.yum.responsible_id,
+            p.age_r,
         )
     } else {
         format_live_pu_line_origin(state, p, px, py, 0, ov, ox, oy)
@@ -8386,6 +8474,15 @@ fn pick_random_spawn_person_object(state: &SimState) -> Option<i32> {
     )
 }
 
+/// Haxe GPI init: `food_store_max = calculateFoodStoreMax(); food_store = max/2`.
+fn apply_haxe_birth_food(state: &SimState, p: &mut Player) {
+    let knobs = state.gameplay.food_store_max_knobs();
+    let max = crate::food_store_max_from_parts_ex(p.age, 0.0, 0.0, 0.0, 1.0, knobs);
+    p.food_max = max;
+    p.food = max * 0.5;
+    p.exhaustion = crate::food_store_max::spawn_exhaustion_credit(max);
+}
+
 pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     // Living reconnect: keep the same body. Deleted → new life (Haxe CreateNew*Player).
     if let Some(p) = state.players.get(&conn_id) {
@@ -8461,7 +8558,16 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     // Haxe SpawnAiAsEve=false: AI does not Eve-roll or pair as Eve while a mother exists.
     // Haxe: spawnEve = own-pool last Eve OR ((SpawnAiAsEve || isHuman) && chance roll).
     // Pairing still happens for AI when SpawnAiAsEve is false.
+    let living_humans = state
+        .players
+        .values()
+        .filter(|pl| !pl.deleted && crate::eve_spawn::is_human_login_conn(pl.conn_id))
+        .count();
     let mut spawn_as_eve = pairing_eve || roll_eve;
+    // No human left: AIs still spawn, but as Eve/Adam — not as babies of leftover AI mothers.
+    if crate::eve_spawn::force_ai_eve_when_no_human(is_synthetic, living_humans) {
+        spawn_as_eve = true;
+    }
     let (sx, sy) = if !spawn_as_eve {
         if let Some(mid) = pick_best_mother_p_id_for(state, is_human) {
             mother_link = Some(mid);
@@ -8481,13 +8587,6 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     let mut eve_pair: Option<crate::eve_spawn::EvePairResolve> = None;
     let (sx, sy) = if mother_link.is_none() {
         // Haxe GetNumberLifingPlayers = human connections only (not ServerAi).
-        let living_humans = state
-            .players
-            .values()
-            .filter(|pl| {
-                !pl.deleted && crate::eve_spawn::is_human_login_conn(pl.conn_id)
-            })
-            .count();
         let last_ai = crate::eve_spawn::clear_deleted_last_eve(state.last_ai_eve, |id| {
             state
                 .players
@@ -8583,10 +8682,6 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
             }
         }
     }
-    p.food = START_FOOD;
-    p.food_max = MAX_FOOD;
-    // Haxe GPI init: exhaustion = -food_store_max (starts un-exhausted).
-    p.exhaustion = crate::food_store_max::spawn_exhaustion_credit(p.food_max);
     if mother_link.is_some() {
         // Haxe spawnAsChild: age = trueAge = 0.01
         p.age = 0.01;
@@ -8596,6 +8691,8 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
         p.age = state.gameplay.starting_eve_age;
         p.true_age = state.gameplay.starting_eve_age;
     }
+    // Haxe: food_store_max = calculateFoodStoreMax(); food_store = food_store_max / 2
+    apply_haxe_birth_food(state, &mut p);
     // Haxe: GPI.angryTime = ServerSettings.CombatAngryTimeBeforeAttack
     p.angry_time = state.gameplay.combat_angry_time_before_attack_live();
     {
@@ -8748,10 +8845,9 @@ pub fn spawn_child(state: &mut SimState, mother_conn: u64) -> Option<i32> {
     // Haxe: child inherits mother warmPlace/coldPlace (father fallback unused here).
     baby.warm_place = mother.warm_place;
     baby.cold_place = mother.cold_place;
-    baby.food = START_FOOD;
-    baby.food_max = MAX_FOOD;
-    baby.exhaustion = crate::food_store_max::spawn_exhaustion_credit(baby.food_max);
-    baby.age = 0.0;
+    baby.age = 0.01;
+    baby.true_age = 0.01;
+    apply_haxe_birth_food(state, &mut baby);
     // Haxe: GPI.angryTime = ServerSettings.CombatAngryTimeBeforeAttack
     baby.angry_time = state.gameplay.combat_angry_time_before_attack_live();
     // Haxe spawnAsChild: ChanceForFemaleChild + other-color-than-mom race pick.
@@ -8918,6 +9014,7 @@ fn format_live_pu_line_origin(
         -1,
         p.done_moving_seq.max(1),
         &player_clothing_set(p),
+        p.age_r,
     )
 }
 
@@ -9027,13 +9124,22 @@ pub fn send_forced_player_update(
 /// Recipients are **all connected** players (Haxe skips the distance filter when
 /// `deleted`). The dying connection is always included even if `connected` was
 /// already cleared.
-fn send_death_player_update(state: &SimState, outbound: &OutboundHub, conn_id: u64) {
+fn send_death_player_update(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
+    {
+        let Some(p) = state.players.get_mut(&conn_id) else {
+            return;
+        };
+        if !p.deleted {
+            return;
+        }
+        // Haxe doDeathHelper: `this.age = this.trueAge` for the death screen.
+        if p.true_age > 0.0 {
+            p.age = p.true_age;
+        }
+    }
     let Some(p) = state.players.get(&conn_id) else {
         return;
     };
-    if !p.deleted {
-        return;
-    }
     let reason = p
         .death_reason
         .as_deref()
@@ -9041,17 +9147,16 @@ fn send_death_player_update(state: &SimState, outbound: &OutboundHub, conn_id: u
         .unwrap_or("reason_unknown");
     let clothing = crate::clothing_transitions::format_clothing_set(p);
     let spd = player_move_speed(state, p);
-    // Haxe doDeathHelper: `this.age = this.trueAge` so the death screen shows lived years.
-    let age = if p.true_age > 0.0 { p.true_age } else { p.age };
     let line = format_player_update_line_death(
         p.p_id,
         person_object_id(p),
         p.held_id,
-        age,
+        p.age,
         spd,
         p.done_moving_seq.max(1),
         &clothing,
         reason,
+        p.age_r,
     );
     let pkt = format_server_message("PU", &[&line]).into_bytes();
     let mut recips: Vec<u64> = state
@@ -9069,7 +9174,7 @@ fn send_death_player_update(state: &SimState, outbound: &OutboundHub, conn_id: u
     }
 }
 
-fn send_death_player_update_pid(state: &SimState, outbound: &OutboundHub, p_id: i32) {
+fn send_death_player_update_pid(state: &mut SimState, outbound: &OutboundHub, p_id: i32) {
     if let Some((&cid, _)) = state.players.iter().find(|(_, pl)| pl.p_id == p_id) {
         send_death_player_update(state, outbound, cid);
     }
@@ -9121,6 +9226,19 @@ pub fn pick_best_mother_p_id_for(state: &SimState, child_is_human: bool) -> Opti
     let mut best: Option<(i32, f32)> = None;
     for p in state.players.values() {
         if p.deleted {
+            continue;
+        }
+        // One in-game year after last birth (twins stamp once after the whole party).
+        if state
+            .fertility
+            .mother_on_birth_cooldown(p.p_id, state.sim_time)
+        {
+            continue;
+        }
+        if child_is_human
+            && !state.gameplay.allow_humans_born_to_ais
+            && (p.is_ai_body() || p.conn_id >= 9_000_000)
+        {
             continue;
         }
         let kids = parent_child_kids_for(state, p.p_id);
@@ -9484,9 +9602,10 @@ pub fn attach_fitness_mother_lineage(
     // Haxe spawnAsChild: followPlayer = mother
     let _ = state.social.set_follow(child_p_id, mother_p_id);
     {
-        let r = state.fertility.record_mut(mother_p_id);
-        r.children_birth_mali =
-            crate::birth_fitness::next_children_birth_mali(r.children_birth_mali);
+        let year = state.gameplay.ageing_seconds_per_year;
+        state
+            .fertility
+            .complete_birth_ex(mother_p_id, state.sim_time, year);
     }
     if let Some(gmid) = state
         .social
@@ -11814,13 +11933,13 @@ pub fn tick_vitals_with_metrics(
                         .players
                         .values()
                         .find(|q| q.p_id == m)
-                        .map(|q| q.is_ai_body())
+                        .map(|q| q.is_ai_body() || q.conn_id >= 9_000_000)
                 });
             (
                 cid,
                 crate::food_store_max::birth_cross_species_aging_mult_live(
                     p.age,
-                    !p.is_ai_body(),
+                    p.is_human_body() && p.conn_id < 9_000_000,
                     mother_is_ai,
                     min_age_eat,
                     human_born_ai,
@@ -12181,7 +12300,10 @@ pub fn tick_vitals_with_metrics(
     {
         let mut food_fx: Vec<u64> = Vec::new();
         for (&cid, p) in &state.players {
-            if p.deleted || !p.connected {
+            if p.deleted {
+                continue;
+            }
+            if !p.connected && cid >= 9_000_000 {
                 continue;
             }
             let Some(&(f, y, m)) = food_fx_before.get(&cid) else {
@@ -14390,6 +14512,7 @@ fn send_held_eat_result(state: &mut SimState, outbound: &OutboundHub, conn_id: u
             p.done_moving_seq.max(1),
             &clothing,
             p.yum.responsible_id,
+            p.age_r,
         );
         for &cid in &near {
             outbound.send_urgent(cid, format_server_message("PU", &[&pu]).into_bytes());
@@ -15120,50 +15243,12 @@ pub fn apply_intent(
                 .unwrap_or(0);
             state.scoreboard.ensure_player(p_id, display);
             state.scoreboard.set_coins(p_id, coins);
-            // Send social bootstrap to this connection.
+            // Haxe initConnection: ACCEPTED/MC/TS/PU/NM/FX/FM/BB with the spawned id.
+            send_haxe_init_connection(state, outbound, conn_id);
             for pkt in state.social_bootstrap_packets(p_id) {
                 outbound.send(conn_id, pkt);
             }
-            // Initial curse token count (CX).
             outbound.send(conn_id, state.curses.token_wire(p_id).into_bytes());
-            // MC on login (net bootstrap may also send MC; keep sim has_mc in sync).
-            force_send_map_chunk(state, outbound, conn_id);
-            // Authority sync: net bootstrap may have used preferred_spawn; re-send
-            // PU at true sim tile so client MOVE xs,ys matches (avoids jump_too_far).
-            // Wire coords are birth-relative (0,0 at spawn birth origin).
-            // NM + PU are urgent so the graphical client is not stuck behind AI bulk.
-            {
-                let Some(pl) = state.players.get(&conn_id) else {
-                    return;
-                };
-                let (rx, ry) = pl.world_to_client(pl.x, pl.y);
-                let po = person_object_id(pl);
-                let nm_line = format_player_nm_line_ex(
-                    &state.social.lineages,
-                    pl.p_id,
-                    &pl.first_name,
-                    &pl.family_name,
-                    pl.is_ai_body(),
-                );
-                outbound.send_urgent(
-                    conn_id,
-                    format_server_message("NM", &[&nm_line]).into_bytes(),
-                );
-                let pu = format_live_pu_line(state, pl, rx, ry, 1);
-                outbound.send_urgent(conn_id, format_server_message("PU", &[&pu]).into_bytes());
-                outbound.send_urgent(conn_id, format_server_message("FM", &[]).into_bytes());
-                info!(
-                    conn_id,
-                    p_id,
-                    x = pl.x,
-                    y = pl.y,
-                    name = %nm_line,
-                    skin = po,
-                    birth = ?(pl.birth_x, pl.birth_y),
-                    rel = ?(rx, ry),
-                    "sim: post-login NM+PU+FM (force, urgent)"
-                );
-            }
             // PO-FAR-PLAYERS: Haxe Connection.SendToMeAllClosePlayers(player, true)
             // Haxe: Connection.hx L271
             leader_range::send_to_me_all_close_players(state, outbound, conn_id, true);
