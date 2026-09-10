@@ -211,7 +211,7 @@ fn tick_search_new_home_if_needed(state: &mut SimState) {
         Some(collect_home_search_ovens(
             &w,
             &oven_tiles,
-            &state.world_map_time.original_biomes,
+            |x, y| state.world_map_time.orig_biome_at(x, y),
             0,
             0,
         ))
@@ -242,7 +242,7 @@ fn tick_search_new_home_if_needed(state: &mut SimState) {
                 Ok(w) => collect_home_search_ovens(
                     &w,
                     &[],
-                    &state.world_map_time.original_biomes,
+                    |x, y| state.world_map_time.orig_biome_at(x, y),
                     sx,
                     sy,
                 ),

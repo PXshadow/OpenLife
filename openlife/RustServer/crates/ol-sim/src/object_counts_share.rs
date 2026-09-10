@@ -141,7 +141,12 @@ impl ObjectCountsSnapshot {
     }
 }
 
-/// Last sample at or before `target_ms`. If none, the oldest sample (best available history).
+/// True when this row stored every type (`unique` matches listed ids). Old top-N journal lines fail this.
+pub fn is_complete_object_count_sample(s: &ObjectCountSample) -> bool {
+    s.total > 0 && s.unique > 0 && s.top.len() as u32 == s.unique
+}
+
+/// Last **complete** sample at or before `target_ms`. If none, the oldest complete sample.
 pub fn nearest_sample_at_or_before(
     samples: &[ObjectCountSample],
     target_ms: u64,
@@ -150,17 +155,28 @@ pub fn nearest_sample_at_or_before(
         return None;
     }
     let mut best: Option<&ObjectCountSample> = None;
+    let mut oldest_complete: Option<&ObjectCountSample> = None;
     for s in samples {
+        if !is_complete_object_count_sample(s) {
+            continue;
+        }
+        if oldest_complete.is_none() {
+            oldest_complete = Some(s);
+        }
         if s.wall_unix_ms <= target_ms {
             best = Some(s);
-        } else {
+        } else if best.is_some() {
             break;
         }
     }
-    best.or_else(|| samples.first())
+    best.or(oldest_complete)
 }
 
-/// Percent change from `then` to `now`. Missing baseline of 0 with a positive now is +100%.
+/// Percent change from `then` to `now`.
+///
+/// A missing baseline is **not** a 100% bump — that was a journal artifact
+/// (top-12 rows treated absent ids as zero). Callers pass `None` when the
+/// lookback sample does not list the id.
 pub fn pct_change(now: i64, then: i64) -> f64 {
     if then == 0 {
         if now == 0 {
@@ -173,14 +189,18 @@ pub fn pct_change(now: i64, then: i64) -> f64 {
     }
 }
 
+pub fn pct_change_opt(now: i64, then: Option<i64>) -> Option<f64> {
+    then.map(|t| pct_change(now, t))
+}
+
+/// Count of `id` when the sample listed it. Incomplete top-N rows return None for other ids.
+pub fn sample_count_opt(sample: &ObjectCountSample, id: i32) -> Option<i32> {
+    sample.top.iter().find(|t| t.id == id).map(|t| t.current)
+}
+
 /// Current count of `id` in a sample (0 if that id was not stored).
 pub fn sample_count_of(sample: &ObjectCountSample, id: i32) -> i32 {
-    sample
-        .top
-        .iter()
-        .find(|t| t.id == id)
-        .map(|t| t.current)
-        .unwrap_or(0)
+    sample_count_opt(sample, id).unwrap_or(0)
 }
 
 /// Keep minute resolution for a day, 15-minute after that for a week, hourly for a month.
@@ -275,7 +295,7 @@ pub fn load_object_count_journal(path: &std::path::Path, max_samples: usize) -> 
         let Some(s) = parse_object_count_journal_line(line) else {
             continue;
         };
-        if s.total == 0 && s.unique == 0 {
+        if !is_complete_object_count_sample(&s) {
             continue;
         }
         samples.push(s);
@@ -285,6 +305,21 @@ pub fn load_object_count_journal(path: &std::path::Path, max_samples: usize) -> 
         samples.drain(0..samples.len() - max);
     }
     samples
+}
+
+/// Drop zero and top-N-only journal rows (those made every type look like a 100% bump).
+pub fn rewrite_object_count_journal_complete(path: &Path) -> std::io::Result<usize> {
+    let samples = load_object_count_journal(path, OBJECT_COUNT_SERIES_MAX);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let mut body = String::new();
+    for s in &samples {
+        body.push_str(&format_object_count_journal_line(s));
+        body.push('\n');
+    }
+    std::fs::write(path, body)?;
+    Ok(samples.len())
 }
 
 #[cfg(test)]
@@ -440,11 +475,20 @@ mod tests {
         ));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("object_counts.journal");
-        std::fs::write(&path, "1 0 0\n2 12 2 33 10\n3 0 0\n4 20 3 33 11\n").unwrap();
+        std::fs::write(
+            &path,
+            "1 0 0\n2 12 1 33 10\n3 0 0\n4 20 1 33 11\n5 50 103 161 1 32 2\n",
+        )
+        .unwrap();
         let loaded = load_object_count_journal(&path, 10);
-        assert_eq!(loaded.len(), 2, "zero rows from empty share must not load");
+        assert_eq!(loaded.len(), 2, "zero and top-N-only rows must not load");
         assert_eq!(loaded[0].total, 12);
         assert_eq!(loaded[1].total, 20);
+        let n = rewrite_object_count_journal_complete(&path).unwrap();
+        assert_eq!(n, 2);
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(!text.contains(" 0 0\n"));
+        assert!(!text.contains("50 103"));
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -516,6 +560,30 @@ mod tests {
             .total;
         assert_eq!(then, 10);
         assert!((pct_change(now, then) + 20.0).abs() < 1e-9);
+        // Top-12 row (unique=103, only 1 id listed) must not become a 100% baseline.
+        let mixed = vec![
+            ObjectCountSample {
+                wall_unix_ms: 10,
+                total: 50_000,
+                unique: 103,
+                top: vec![ObjectCountTop {
+                    id: 161,
+                    current: 5000,
+                    original: 5000,
+                    name: "Rabbit Hole".into(),
+                }],
+            },
+            samples[2].clone(),
+        ];
+        assert!(
+            nearest_sample_at_or_before(&mixed, 10).is_some()
+                && is_complete_object_count_sample(nearest_sample_at_or_before(&mixed, 10).unwrap())
+        );
+        assert_eq!(sample_count_opt(&mixed[0], 33), None);
+        assert_eq!(
+            pct_change_opt(8, sample_count_opt(&mixed[0], 33).map(i64::from)),
+            None
+        );
     }
 
     #[test]

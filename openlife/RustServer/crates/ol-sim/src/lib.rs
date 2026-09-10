@@ -199,9 +199,10 @@ pub use health_prestige::{
     prestige_fan_deltas, prestige_fan_deltas_ex, PrestigeFanDelta, PRESTIGE_LEADER_CHAIN_DEPTH,
 };
 pub use object_counts_share::{
-    compact_object_count_series, format_object_count_journal_line, load_object_count_journal,
-    mirror_object_counts_share, nearest_sample_at_or_before, parse_object_count_journal_line,
-    pct_change, sample_count_of, should_record_object_count_sample, ObjectCountSample,
+    compact_object_count_series, format_object_count_journal_line, is_complete_object_count_sample,
+    load_object_count_journal, mirror_object_counts_share, nearest_sample_at_or_before,
+    parse_object_count_journal_line, pct_change, pct_change_opt, rewrite_object_count_journal_complete,
+    sample_count_of, sample_count_opt, should_record_object_count_sample, ObjectCountSample,
     ObjectCountSeries, ObjectCountTop, ObjectCountsShare, ObjectCountsSnapshot, MS_DAY, MS_MONTH,
     MS_WEEK, OBJECT_COUNT_LIST_DEFAULT, OBJECT_COUNT_SAMPLE_INTERVAL_MS, OBJECT_COUNT_SERIES_MAX,
     OBJECT_COUNT_TOP_N,
@@ -7814,7 +7815,7 @@ fn apply_say_or_remv(
             let knobs = FollowHireLiveKnobs::from_gameplay(&state.gameplay);
             let oven_tiles: Vec<(i32, i32)> =
                 state.world_map_time.ovens.values().copied().collect();
-            let original_biomes = state.world_map_time.original_biomes.clone();
+            let original_biomes = state.world_map_time.original_biomes_hashmap();
             let fx = apply_do_commands_live_ex(
                 &upper,
                 &speaker,
@@ -12604,9 +12605,7 @@ pub fn tick_world_after_players(
         let dest_biome = state.world.read().unwrap().get_biome(nx, ny);
         let orig_biome = state
             .world_map_time
-            .original_biomes
-            .get(&(ox, oy))
-            .copied()
+            .orig_biome_at(ox, oy)
             .unwrap_or_else(|| state.world.read().unwrap().get_biome(ox, oy));
         let animal_obj = if kind == AnimalKind::Rabbit {
             // Haxe: 3566 time-move becomes dest 3568 (or stays 3566 off yellow/green).
@@ -12828,9 +12827,7 @@ fn apply_moving_auto_decay(
     let dest_biome = state.world.read().unwrap().get_biome(nx, ny);
     let orig_biome = state
         .world_map_time
-        .original_biomes
-        .get(&(x, y))
-        .copied()
+        .orig_biome_at(x, y)
         .unwrap_or_else(|| state.world.read().unwrap().get_biome(x, y));
     let (place_id, _) =
         crate::rabbit::rabbit_move_arrival(tr.new_target_id, dest_biome, orig_biome);

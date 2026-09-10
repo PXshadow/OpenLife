@@ -265,11 +265,14 @@ fn fan_out_ai_say_scripted(
                 let old_home = (ai.home_x, ai.home_y);
                 let oven_tiles: Vec<(i32, i32)> =
                     state.world_map_time.ovens.values().copied().collect();
-                let orig = state.world_map_time.original_biomes.clone();
                 let (ovens, map_w, map_h) = match state.world.read() {
                     Ok(w) => {
                         let ovens = crate::do_commands_wire::collect_home_search_ovens(
-                            &w, &oven_tiles, &orig, ax, ay,
+                            &w,
+                            &oven_tiles,
+                            |x, y| state.world_map_time.orig_biome_at(x, y),
+                            ax,
+                            ay,
                         );
                         let (mw, mh) = if w.wrap {
                             (w.width_tiles, w.height_tiles)

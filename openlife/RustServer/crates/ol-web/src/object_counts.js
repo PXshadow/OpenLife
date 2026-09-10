@@ -113,14 +113,24 @@
     return ((now - then) / Math.abs(then)) * 100;
   }
 
+  function isComplete(sample) {
+    if (!sample) return false;
+    var rows = sampleObjects(sample);
+    var unique = Number(sample.unique) || 0;
+    return Number(sample.total) > 0 && unique > 0 && rows.length === unique;
+  }
+
   function nearestAtOrBefore(samples, targetMs) {
     if (!samples || !samples.length) return null;
     var best = null;
+    var oldest = null;
     for (var i = 0; i < samples.length; i++) {
+      if (!isComplete(samples[i])) continue;
+      if (!oldest) oldest = samples[i];
       if (Number(samples[i].wall_unix_ms) <= targetMs) best = samples[i];
-      else break;
+      else if (best) break;
     }
-    return best || samples[0];
+    return best || oldest;
   }
 
   function sampleObjects(sample) {
@@ -135,6 +145,15 @@
   }
 
   function countOf(sample, id) {
+    var rows = sampleObjects(sample);
+    for (var i = 0; i < rows.length; i++) {
+      if (Number(rows[i][0]) === id) return Number(rows[i][1]) || 0;
+    }
+    return 0;
+  }
+
+  function countOpt(sample, id) {
+    if (!sample || !isComplete(sample)) return null;
     var rows = sampleObjects(sample);
     for (var i = 0; i < rows.length; i++) {
       if (Number(rows[i][0]) === id) return Number(rows[i][1]) || 0;
@@ -171,19 +190,21 @@
       var id = Number(rows[i][0]);
       var cur = Number(rows[i][1]) || 0;
       var orig = Number(rows[i][2]) || 0;
-      var c24 = s24 ? countOf(s24, id) : cur;
-      var cW = sW ? countOf(sW, id) : cur;
-      var cM = sM ? countOf(sM, id) : cur;
-      var p24 = pctChange(cur, c24);
+      var c24 = s24 ? countOpt(s24, id) : null;
+      var cW = sW ? countOpt(sW, id) : null;
+      var cM = sM ? countOpt(sM, id) : null;
+      var p24 = c24 === null ? null : pctChange(cur, c24);
+      var pW = cW === null ? null : pctChange(cur, cW);
+      var pM = cM === null ? null : pctChange(cur, cM);
       out.push({
         id: id,
         name: nameOf(id, names, last),
         current: cur,
         original: orig,
         pct24: p24,
-        pctWeek: pctChange(cur, cW),
-        pctMonth: pctChange(cur, cM),
-        abs24: Math.abs(p24)
+        pctWeek: pW,
+        pctMonth: pM,
+        abs24: p24 === null ? -1 : Math.abs(p24)
       });
     }
     return out;
@@ -435,6 +456,9 @@
   }
 
   function triangle(p) {
+    if (p === null || typeof p !== "number" || !isFinite(p)) {
+      return '<span class="tri-flat">–</span>';
+    }
     if (p < -0.05) return '<span class="tri-down" title="down last 24h">▼</span>';
     if (p > 0.05) return '<span class="tri-up" title="up last 24h">▲</span>';
     return '<span class="tri-flat">–</span>';

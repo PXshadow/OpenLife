@@ -147,11 +147,12 @@ pub fn held_heat_contribution_ex(held_heat_value: f32, heat_obj_factor: f32) -> 
 /// Read tile temperature without inserting; `None` if unset (`< 0` or missing).
 #[inline]
 pub fn get_tile_temperature(map_time: &WorldMapTimeState, x: i32, y: i32) -> Option<f32> {
-    map_time
-        .tile_temps
-        .get(&(x, y))
-        .copied()
-        .filter(|t| *t >= 0.0)
+    let t = map_time.temp_at(x, y);
+    if t >= 0.0 {
+        Some(t)
+    } else {
+        None
+    }
 }
 
 /// Ensure sparse `tile_temps[(x,y)]` is initialized (Haxe `initializeTileTemperature` on miss).
@@ -188,13 +189,13 @@ pub fn ensure_tile_temperature_ex(
     hot_factor: f32,
     cold_factor: f32,
 ) -> f32 {
-    if let Some(&t) = map_time.tile_temps.get(&(x, y)) {
-        if t >= 0.0 {
-            return t;
-        }
+    let existing = map_time.temp_at(x, y);
+    if existing >= 0.0 {
+        return existing;
     }
     let biome = world.get_biome(x, y);
-    let orig = *map_time.original_biomes.entry((x, y)).or_insert(biome);
+    map_time.set_orig_biome_once(x, y, biome);
+    let orig = map_time.orig_biome_at(x, y).unwrap_or(biome);
     let obj_id = world.get_object(x, y);
     let obj_base = content.resolve_base_id(obj_id);
     let heat_value = content.get(obj_base).map(|d| d.heat_value).unwrap_or(0.0);
@@ -207,7 +208,7 @@ pub fn ensure_tile_temperature_ex(
         hot_factor,
         cold_factor,
     );
-    map_time.tile_temps.insert((x, y), t);
+    map_time.set_temp_at(x, y, t);
     t
 }
 
@@ -226,7 +227,7 @@ pub fn apply_balance_temperature_area(
 ) {
     let coords = balance_temperature_area_coords(cx, cy, d);
     for (x, y) in coords {
-        let current = map_time.tile_temps.get(&(x, y)).copied().unwrap_or(-1.0);
+        let current = map_time.temp_at(x, y);
         if current < 0.0 {
             continue;
         }
@@ -235,7 +236,8 @@ pub fn apply_balance_temperature_area(
         let floor_ins = floor_insulation_from_content(content, floor);
         let obj_ins = object_insulation_from_content(content, obj_id);
 
-        let mut neighbors = Vec::with_capacity(8);
+        let mut nbuf = [(0i32, 0i32, 0f32, 0f32); 8];
+        let mut nlen = 0usize;
         for dy in -1..=1 {
             for dx in -1..=1 {
                 if dx == 0 && dy == 0 {
@@ -243,23 +245,24 @@ pub fn apply_balance_temperature_area(
                 }
                 let nx = x + dx;
                 let ny = y + dy;
-                let nt = map_time.tile_temps.get(&(nx, ny)).copied().unwrap_or(-1.0);
+                let nt = map_time.temp_at(nx, ny);
                 if nt < 0.0 {
                     continue;
                 }
                 let n_obj = world.get_object(nx, ny);
                 let n_ins = object_insulation_from_content(content, n_obj);
-                neighbors.push((dx, dy, nt, n_ins));
+                nbuf[nlen] = (dx, dy, nt, n_ins);
+                nlen += 1;
             }
         }
 
         if let Some(bal) = balance_tile_temperature(
-            current, &neighbors, delta_time, 0.0, obj_ins, floor_ins, false, // player path
+            current, &nbuf[..nlen], delta_time, 0.0, obj_ins, floor_ins, false, // player path
             0.0,
         ) {
-            map_time.tile_temps.insert((x, y), bal.center);
+            map_time.set_temp_at(x, y, bal.center);
             for (dx, dy, nt) in bal.neighbor_updates {
-                map_time.tile_temps.insert((x + dx, y + dy), nt);
+                map_time.set_temp_at(x + dx, y + dy, nt);
             }
         }
     }
@@ -1017,8 +1020,8 @@ mod tests {
         map_time.tile_temps.insert((10, 10), 1.0);
         map_time.tile_temps.insert((11, 10), 0.0);
         apply_balance_temperature_area(&world, &content, &mut map_time, 10, 10, 1, 1.0);
-        let c = map_time.tile_temps.get(&(10, 10)).copied().unwrap();
-        let n = map_time.tile_temps.get(&(11, 10)).copied().unwrap();
+        let c = map_time.temp_at(10, 10);
+        let n = map_time.temp_at(11, 10);
         assert!(c < 1.0, "center cools via balance: {c}");
         assert!(n > 0.0, "neighbor warms: {n}");
     }
@@ -1031,7 +1034,7 @@ mod tests {
         let mut map_time = WorldMapTimeState::default();
         let amb = player_ambient_from_tile_temps(&world, &content, &mut map_time, 3, 3, 0.0, 1.0);
         assert!(amb >= 0.0, "amb={amb}");
-        assert!(map_time.tile_temps.contains_key(&(3, 3)));
+        assert!(get_tile_temperature(&map_time, 3, 3).is_some());
     }
 
     #[test]

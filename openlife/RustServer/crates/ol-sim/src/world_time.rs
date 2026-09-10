@@ -1308,11 +1308,18 @@ pub struct WorldMapTimeState {
     /// Cached spring regrow chance for current cycle.
     pub spring_regrow_chance: f32,
     /// Sparse tile temperatures (Haxe WorldMap.tileTemperature); `<0` = unset.
+    /// Hot Y-band path uses [`Self::dense_temps`] once [`Self::ensure_dense`] has run.
     pub tile_temps: HashMap<(i32, i32), f32>,
     /// Sparse hidden object layer (Haxe hiddenObjects) — winter hide / regrow.
     pub hidden_objects: HashMap<(i32, i32), i32>,
     /// Original biome at first observation (for rabbit hide). Default = current when missing.
     pub original_biomes: HashMap<(i32, i32), u8>,
+    /// Dense `width*height` temps (`-1` unset). Avoids 250k HashMap inserts per map cycle.
+    dense_temps: Vec<f32>,
+    /// Dense original biomes (`255` = unset).
+    dense_biomes: Vec<u8>,
+    dense_w: i32,
+    dense_h: i32,
     /// Per-tile contained-item timers (Haxe contained ObjectHelper creation/ttc).
     /// Parallel to `ComplexObject.contained` when present.
     /// Runtime map; OLW3 NestedHelper slot times are the disk form — re-arm via
@@ -1336,10 +1343,105 @@ impl Default for WorldMapTimeState {
             tile_temps: HashMap::new(),
             hidden_objects: HashMap::new(),
             original_biomes: HashMap::new(),
+            dense_temps: Vec::new(),
+            dense_biomes: Vec::new(),
+            dense_w: 0,
+            dense_h: 0,
             contained_timers: HashMap::new(),
             cursed_graves: HashMap::new(),
             ovens: HashMap::new(),
         }
+    }
+}
+
+impl WorldMapTimeState {
+    /// Allocate row-major grids and copy any sparse HashMap seeds (tests / first band).
+    /// Same values as the HashMap path; faster gets/sets on the Y-band.
+    pub fn ensure_dense(&mut self, w: i32, h: i32) {
+        if w <= 0 || h <= 0 {
+            return;
+        }
+        let n = (w as usize).saturating_mul(h as usize);
+        if self.dense_w == w && self.dense_h == h && self.dense_temps.len() == n {
+            return;
+        }
+        let mut temps = vec![-1.0f32; n];
+        let mut biomes = vec![255u8; n];
+        for (&(x, y), &t) in &self.tile_temps {
+            if x >= 0 && y >= 0 && x < w && y < h {
+                temps[(y as usize) * (w as usize) + x as usize] = t;
+            }
+        }
+        for (&(x, y), &b) in &self.original_biomes {
+            if x >= 0 && y >= 0 && x < w && y < h {
+                biomes[(y as usize) * (w as usize) + x as usize] = b;
+            }
+        }
+        self.dense_temps = temps;
+        self.dense_biomes = biomes;
+        self.dense_w = w;
+        self.dense_h = h;
+    }
+
+    #[inline]
+    fn dense_index(&self, x: i32, y: i32) -> Option<usize> {
+        if self.dense_temps.is_empty() || x < 0 || y < 0 || x >= self.dense_w || y >= self.dense_h {
+            return None;
+        }
+        Some((y as usize) * (self.dense_w as usize) + x as usize)
+    }
+
+    #[inline]
+    pub fn temp_at(&self, x: i32, y: i32) -> f32 {
+        if let Some(i) = self.dense_index(x, y) {
+            return self.dense_temps[i];
+        }
+        self.tile_temps.get(&(x, y)).copied().unwrap_or(-1.0)
+    }
+
+    #[inline]
+    pub fn set_temp_at(&mut self, x: i32, y: i32, t: f32) {
+        if let Some(i) = self.dense_index(x, y) {
+            self.dense_temps[i] = t;
+            return;
+        }
+        self.tile_temps.insert((x, y), t);
+    }
+
+    #[inline]
+    pub fn orig_biome_at(&self, x: i32, y: i32) -> Option<u8> {
+        if let Some(i) = self.dense_index(x, y) {
+            let b = self.dense_biomes[i];
+            return if b == 255 { None } else { Some(b) };
+        }
+        self.original_biomes.get(&(x, y)).copied()
+    }
+
+    #[inline]
+    pub fn set_orig_biome_once(&mut self, x: i32, y: i32, b: u8) {
+        if let Some(i) = self.dense_index(x, y) {
+            if self.dense_biomes[i] == 255 {
+                self.dense_biomes[i] = b;
+            }
+            return;
+        }
+        self.original_biomes.entry((x, y)).or_insert(b);
+    }
+
+    /// Snapshot for rare command/AI paths that still take a HashMap.
+    pub fn original_biomes_hashmap(&self) -> HashMap<(i32, i32), u8> {
+        if self.dense_biomes.is_empty() {
+            return self.original_biomes.clone();
+        }
+        let mut m = HashMap::with_capacity((self.dense_w * self.dense_h / 4).max(0) as usize);
+        for y in 0..self.dense_h {
+            for x in 0..self.dense_w {
+                if let Some(b) = self.orig_biome_at(x, y) {
+                    m.insert((x, y), b);
+                }
+            }
+        }
+        m
     }
 }
 
@@ -1459,6 +1561,8 @@ pub fn do_world_map_time_stuff_ex2(
         map_time.step = map_time.step.wrapping_add(1);
         return changes;
     }
+    // Dense grids: same numbers as the HashMap, without 250k hash inserts per cycle.
+    map_time.ensure_dense(w, h);
 
     // Haxe: if (tick % 2000 == 0) ClearCursedGraves + ovens prune
     if should_clear_cursed_graves_ovens(map_time.step) {
@@ -1497,7 +1601,7 @@ pub fn do_world_map_time_stuff_ex2(
             // Remember original biome once (not after snow spread — Haxe getOriginalBiomeId).
             let biome = world.get_biome(x, y);
             if biome != BIOME_SNOW && biome != SNOWINGREY {
-                map_time.original_biomes.entry((x, y)).or_insert(biome);
+                map_time.set_orig_biome_once(x, y, biome);
             }
 
             // Tile temperature: own-tile lerp then neighbor balance (doLocalHeat=true).
@@ -1510,12 +1614,8 @@ pub fn do_world_map_time_stuff_ex2(
             let obj_ins = object_insulation_from_content(content, obj_id);
             let local_heat =
                 local_heat_from_value_ex(heat_value, temperature_local_heat_factor);
-            let orig_biome = map_time
-                .original_biomes
-                .get(&(x, y))
-                .copied()
-                .unwrap_or(biome);
-            let cur_temp = map_time.tile_temps.get(&(x, y)).copied().unwrap_or(-1.0);
+            let orig_biome = map_time.orig_biome_at(x, y).unwrap_or(biome);
+            let cur_temp = map_time.temp_at(x, y);
             let mut new_temp = update_tile_temperature_lerp_rates(
                 cur_temp,
                 biome,
@@ -1529,11 +1629,12 @@ pub fn do_world_map_time_stuff_ex2(
                 cold_season_temperature_factor,
                 temperature_own_tile_rate,
             );
-            map_time.tile_temps.insert((x, y), new_temp);
+            map_time.set_temp_at(x, y, new_temp);
 
             // Neighbor balance only after tile is initialized (Haxe skips init-return).
             if cur_temp >= 0.0 {
-                let mut neighbors = Vec::with_capacity(8);
+                let mut nbuf = [(0i32, 0i32, 0f32, 0f32); 8];
+                let mut nlen = 0usize;
                 for dy in -1..=1 {
                     for dx in -1..=1 {
                         if dx == 0 && dy == 0 {
@@ -1544,11 +1645,12 @@ pub fn do_world_map_time_stuff_ex2(
                         if nx < 0 || ny < 0 || nx >= w || ny >= h {
                             continue;
                         }
-                        let nt = map_time.tile_temps.get(&(nx, ny)).copied().unwrap_or(-1.0);
+                        let nt = map_time.temp_at(nx, ny);
                         if nt >= 0.0 {
                             let n_obj = world.get_object(nx, ny);
                             let n_ins = object_insulation_from_content(content, n_obj);
-                            neighbors.push((dx, dy, nt, n_ins));
+                            nbuf[nlen] = (dx, dy, nt, n_ins);
+                            nlen += 1;
                         }
                     }
                 }
@@ -1558,7 +1660,7 @@ pub fn do_world_map_time_stuff_ex2(
                     .unwrap_or(0.0);
                 if let Some(bal) = balance_tile_temperature_ex(
                     new_temp,
-                    &neighbors,
+                    &nbuf[..nlen],
                     time_passed,
                     local_heat,
                     obj_ins,
@@ -1568,9 +1670,9 @@ pub fn do_world_map_time_stuff_ex2(
                     temperature_balance_rate,
                 ) {
                     new_temp = bal.center;
-                    map_time.tile_temps.insert((x, y), new_temp);
+                    map_time.set_temp_at(x, y, new_temp);
                     for (dx, dy, nt) in bal.neighbor_updates {
-                        map_time.tile_temps.insert((x + dx, y + dy), nt);
+                        map_time.set_temp_at(x + dx, y + dy, nt);
                     }
                     if bal.extend_time_to_change > 0.0 {
                         if let Some(mut hh) = world.get_helper(x, y).cloned() {
@@ -2085,6 +2187,21 @@ mod tests {
         let hot = update_tile_temperature_lerp(0.5, 0, 0, 0.4, 100.0, 0.0, 0.0, 0.0);
         let cold = update_tile_temperature_lerp(0.5, 0, 0, -0.4, 100.0, 0.0, 0.0, 0.0);
         assert!(hot > cold, "hot={hot} cold={cold}");
+    }
+
+    #[test]
+    fn dense_temp_grid_matches_hashmap_seed_and_writes() {
+        let mut m = WorldMapTimeState::default();
+        m.tile_temps.insert((2, 3), 0.4);
+        m.ensure_dense(8, 8);
+        assert!((m.temp_at(2, 3) - 0.4).abs() < 1e-6);
+        assert_eq!(m.temp_at(0, 0), -1.0);
+        m.set_temp_at(1, 1, 0.9);
+        assert!((m.temp_at(1, 1) - 0.9).abs() < 1e-6);
+        m.set_orig_biome_once(1, 1, 2);
+        assert_eq!(m.orig_biome_at(1, 1), Some(2));
+        m.set_orig_biome_once(1, 1, 5);
+        assert_eq!(m.orig_biome_at(1, 1), Some(2), "first write wins");
     }
 
     #[test]

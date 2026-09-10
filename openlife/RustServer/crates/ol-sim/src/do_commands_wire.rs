@@ -199,13 +199,16 @@ pub fn apply_do_commands_live(
 
 /// Oven list for SearchNewHome: global index, else local r=80. Swamp uses original biome.
 // Haxe: AiHelper.SearchNewHome WorldMap.ovens + getOriginalBiomeId
-pub(crate) fn collect_home_search_ovens(
+pub(crate) fn collect_home_search_ovens<F>(
     world: &World,
     global_ovens: &[(i32, i32)],
-    original_biomes: &HashMap<(i32, i32), u8>,
+    mut original_biome: F,
     origin_x: i32,
     origin_y: i32,
-) -> Vec<(i32, i32, bool, u8)> {
+) -> Vec<(i32, i32, bool, u8)>
+where
+    F: FnMut(i32, i32) -> Option<u8>,
+{
     let mut ovens = Vec::new();
     let mut seen = HashSet::new();
     let mut push = |x: i32, y: i32| {
@@ -219,7 +222,7 @@ pub(crate) fn collect_home_search_ovens(
             y,
             id,
             world.get_floor(x, y) > 0,
-            original_biomes.get(&(x, y)).copied(),
+            original_biome(x, y),
             world.get_biome(x, y),
         ) {
             ovens.push(t);
@@ -532,7 +535,13 @@ pub fn apply_do_commands_live_ex(
         DoCommand::HomeBang => {
             let (ovens, map_w, map_h) = if let Ok(w) = world.read() {
                 let ovens =
-                    collect_home_search_ovens(&w, global_ovens, original_biomes, speaker.x, speaker.y);
+                    collect_home_search_ovens(
+                        &w,
+                        global_ovens,
+                        |x, y| original_biomes.get(&(x, y)).copied(),
+                        speaker.x,
+                        speaker.y,
+                    );
                 let (mw, mh) = if w.wrap {
                     (w.width_tiles, w.height_tiles)
                 } else {
@@ -1122,8 +1131,8 @@ mod tests {
         let mut w = World::new(200, 200, false);
         w.set_object(5, 0, 237);
         w.set_object(90, 0, 237);
-        let orig = HashMap::new();
-        let local = collect_home_search_ovens(&w, &[], &orig, 0, 0);
+        let orig: HashMap<(i32, i32), u8> = HashMap::new();
+        let local = collect_home_search_ovens(&w, &[], |x, y| orig.get(&(x, y)).copied(), 0, 0);
         assert!(
             local.iter().any(|&(x, y, _, _)| x == 5 && y == 0),
             "local scan must see oven at r=5"
@@ -1132,7 +1141,7 @@ mod tests {
             !local.iter().any(|&(x, y, _, _)| x == 90 && y == 0),
             "local r=80 must not visit oven at 90"
         );
-        let global = collect_home_search_ovens(&w, &[(90, 0)], &orig, 0, 0);
+        let global = collect_home_search_ovens(&w, &[(90, 0)], |x, y| orig.get(&(x, y)).copied(), 0, 0);
         assert!(
             global.iter().any(|&(x, y, _, _)| x == 90 && y == 0),
             "global index must include far oven"

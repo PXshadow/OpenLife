@@ -31,7 +31,8 @@ use ol_sim::{
     save_players, save_score_entries, save_war_posse, write_food_statistics, write_object_counts, AccountBook, AnimalSnapshot, AnimalWorld,
     PlayersSnapshot, PrestigeSnapshot, SimBootLive, SocialState, TreasurySnapshot, TwinRegistry,
     WarPosseSnapshot, WeatherSnapshot, ObjectCountsSnapshot, WorldFoodStats,
-    format_object_count_journal_line, load_object_count_journal, should_record_object_count_sample,
+    format_object_count_journal_line, load_object_count_journal,
+    rewrite_object_count_journal_complete, should_record_object_count_sample,
     OBJECT_COUNT_SAMPLE_INTERVAL_MS, OBJECT_COUNT_SERIES_MAX,
 };
 use ol_web::{serve as serve_web, WebState};
@@ -521,6 +522,18 @@ async fn main() {
     let object_count_series: Arc<RwLock<Vec<ol_sim::ObjectCountSample>>> =
         Arc::new(RwLock::new({
             let journal = cfg.save_directory.join("object_counts.journal");
+            match rewrite_object_count_journal_complete(&journal) {
+                Ok(n) => {
+                    if n > 0 {
+                        info!(
+                            n,
+                            path = %journal.display(),
+                            "rewrote object-count journal (dropped zero/top-N rows)"
+                        );
+                    }
+                }
+                Err(e) => warn!(error = %e, "object-count journal rewrite failed"),
+            }
             let loaded = load_object_count_journal(&journal, OBJECT_COUNT_SERIES_MAX);
             if !loaded.is_empty() {
                 info!(
