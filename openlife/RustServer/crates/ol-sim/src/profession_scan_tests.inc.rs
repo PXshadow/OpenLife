@@ -221,7 +221,30 @@ fn scan_world_radius_includes_empty_and_objects() {
         .any(|t| t.parent_id == DYING_BUSH && t.x == 5 && t.y == 5));
     assert!(tiles.iter().any(|t| t.parent_id == 663));
     assert!(tiles.iter().any(|t| t.parent_id == 0));
-    assert!(tiles.len() >= 7 * 7);
+    assert_eq!(tiles.len(), 7 * 7);
+}
+
+#[test]
+fn scan_world_radius_r40_is_fast_square() {
+    let w = mock_world_with(&[(DYING_BUSH, 0, 0)]);
+    let t0 = std::time::Instant::now();
+    let tiles = scan_world_radius(&w, None, 0, 0, 40);
+    let us = t0.elapsed().as_micros();
+    assert_eq!(tiles.len(), 81 * 81);
+    assert!(
+        us < 50_000,
+        "r=40 scan should stay under 50 ms after chunk reuse, was {us} µs"
+    );
+}
+
+#[test]
+fn filter_scan_tiles_in_radius_keeps_inner_square() {
+    let w = mock_world_with(&[(DYING_BUSH, 0, 0)]);
+    let wide = scan_world_radius(&w, None, 0, 0, 4);
+    assert_eq!(wide.len(), 9 * 9);
+    let inner = filter_scan_tiles_in_radius(&wide, 0, 0, 1);
+    assert_eq!(inner.len(), 3 * 3);
+    assert!(inner.iter().any(|t| t.parent_id == DYING_BUSH));
 }
 
 #[test]

@@ -12,7 +12,7 @@ use std::collections::HashMap;
 /// Haxe `ServerSettings.MaxPlayers` default is 100; Rust `server.toml` default 200.
 pub const DEFAULT_MAX_PLAYERS: u32 = 200;
 /// Haxe `MinNumberOfAis` floor while culling for a human login.
-pub const DEFAULT_NPC_MIN: u32 = 3;
+pub const DEFAULT_NPC_MIN: u32 = 20;
 /// Haxe `NewAccountsPerIpPerDay`.
 // Haxe: ServerSettings.NewAccountsPerIpPerDay = 3
 pub const NEW_ACCOUNTS_PER_IP_PER_DAY: u32 = 3;

@@ -586,8 +586,9 @@ pub fn hitpoints_speed_factor(
     } else {
         GROWN_UP_FOOD_STORE_MAX
     };
+    // Haxe uses raw `calculateFoodStoreMax()` (may be negative while starving).
     let curr = if current_food_store_max.is_finite() {
-        current_food_store_max.max(0.0)
+        current_food_store_max
     } else {
         full
     };

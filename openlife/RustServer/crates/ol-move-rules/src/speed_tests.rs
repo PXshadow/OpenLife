@@ -48,6 +48,19 @@ fn hitpoints_speed_factor_defaults() {
 }
 
 #[test]
+fn hitpoints_speed_factor_uses_reduced_and_negative_max() {
+    // Haxe: (curr + (factor-1)*full) / (factor * full) with factor 3, full 20
+    let full = hitpoints_speed_factor(20.0, 20.0, 3.0);
+    let half = hitpoints_speed_factor(10.0, 20.0, 3.0);
+    let neg = hitpoints_speed_factor(-5.0, 20.0, 3.0);
+    assert!((full - 1.0).abs() < 1e-5);
+    assert!((half - 50.0 / 60.0).abs() < 1e-5);
+    assert!((neg - 35.0 / 60.0).abs() < 1e-5);
+    assert!(half < full);
+    assert!(neg < half);
+}
+
+#[test]
 fn vitals_speed_product_shoes_boost() {
     let mut v = VitalsSpeedInput::default();
     v.has_both_shoes = true;

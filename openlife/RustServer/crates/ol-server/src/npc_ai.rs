@@ -37,6 +37,7 @@ use ol_sim::{
     advance_remove_from_container, stage_remove_item_from_container, RemoveFromContainerAdvance,
     RemoveFromContainerStaging,
     apply_path_filters_to_tiles,
+    filter_scan_tiles_in_radius,
     basic_farmer_weight_from_runtime, blocked_by_ai_with_peer_progress,
     collect_deadly_animal_blocked_around_for_player,
     AnimalPathPlayerCtx, BowlFillerPeer, AnimalWorld, DEADLY_ANIMAL_SEARCH_DIST,
@@ -87,7 +88,7 @@ use ol_world::{World, DESERT, PASSABLE_RIVER};
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
 /// Command sink for NPC â†’ same channel as human clients ([`PlayerWriteInterface`]).
@@ -837,7 +838,7 @@ fn npc_run_handle_temperature(
     };
     let mut plan = plan_handle_temperature(inp);
     if matches!(plan.action, HandleTemperatureAction::GetOrCraftWater) {
-        let tiles = scan_world_radius(world, Some(content), p.x, p.y, 40);
+        let tiles = npc_scan_cached(st, world, content, p.x, p.y, 40);
         let blocked_set = st.path_reach.blocked_coords(None);
         let intent = npc_expand_craft_product(
             &tiles,
@@ -905,7 +906,7 @@ fn npc_run_handle_temperature(
             }
         }
         HandleTemperatureAction::CraftLargeFastFire => {
-            let tiles = scan_world_radius(world, Some(content), p.x, p.y, 40);
+            let tiles = npc_scan_cached(st, world, content, p.x, p.y, 40);
             let blocked_set = st.path_reach.blocked_coords(None);
             let intent = npc_expand_craft_product(
                 &tiles,
@@ -985,7 +986,7 @@ fn npc_run_handle_temperature(
                     ));
                 }
             }
-            let tiles = scan_world_radius(world, Some(content), p.x, p.y, 40);
+            let tiles = npc_scan_cached(st, world, content, p.x, p.y, 40);
             let blocked_set = st.path_reach.blocked_coords(None);
             let intent = npc_expand_craft_product(
                 &tiles,
@@ -1735,6 +1736,20 @@ struct NpcProfessionState {
     handling_temperature: bool,
     temp_just_arrived: bool,
     last_heat: f32,
+    /// Reused world scan for this think (same center + radius or inner radius).
+    scan_cache: Option<NpcScanCache>,
+    /// Scan fill time this think (µs), excluding cache hits.
+    scan_us_acc: u64,
+    scan_calls: u32,
+    scan_hits: u32,
+}
+
+#[derive(Debug)]
+struct NpcScanCache {
+    cx: i32,
+    cy: i32,
+    r: i32,
+    tiles: Vec<ScanTile>,
 }
 
 impl Default for NpcProfessionState {
@@ -1771,6 +1786,96 @@ impl Default for NpcProfessionState {
             handling_temperature: false,
             temp_just_arrived: false,
             last_heat: 0.5,
+            scan_cache: None,
+            scan_us_acc: 0,
+            scan_calls: 0,
+            scan_hits: 0,
+        }
+    }
+}
+
+fn npc_scan_try_cache(
+    st: &mut NpcProfessionState,
+    cx: i32,
+    cy: i32,
+    r: i32,
+) -> Option<Vec<ScanTile>> {
+    let c = st.scan_cache.as_ref()?;
+    if c.cx != cx || c.cy != cy {
+        return None;
+    }
+    if c.r == r {
+        st.scan_hits = st.scan_hits.saturating_add(1);
+        return Some(c.tiles.clone());
+    }
+    if c.r > r {
+        st.scan_hits = st.scan_hits.saturating_add(1);
+        return Some(filter_scan_tiles_in_radius(&c.tiles, cx, cy, r));
+    }
+    None
+}
+
+fn npc_scan_fill(
+    st: &mut NpcProfessionState,
+    world: &World,
+    content: &ContentDb,
+    cx: i32,
+    cy: i32,
+    r: i32,
+) -> Vec<ScanTile> {
+    let t0 = Instant::now();
+    let tiles = scan_world_radius(world, Some(content), cx, cy, r);
+    st.scan_us_acc = st.scan_us_acc.saturating_add(t0.elapsed().as_micros() as u64);
+    st.scan_cache = Some(NpcScanCache {
+        cx,
+        cy,
+        r,
+        tiles: tiles.clone(),
+    });
+    tiles
+}
+
+fn npc_scan_cached(
+    st: &mut NpcProfessionState,
+    world: &World,
+    content: &ContentDb,
+    cx: i32,
+    cy: i32,
+    r: i32,
+) -> Vec<ScanTile> {
+    st.scan_calls = st.scan_calls.saturating_add(1);
+    if let Some(hit) = npc_scan_try_cache(st, cx, cy, r) {
+        return hit;
+    }
+    npc_scan_fill(st, world, content, cx, cy, r)
+}
+
+/// Same as [`npc_scan_cached`] but takes the world lock only on a cache miss
+/// so human USE/DROP is not blocked by a reused snapshot.
+fn npc_scan_cached_rw(
+    st: &mut NpcProfessionState,
+    world: &RwLock<World>,
+    content: &ContentDb,
+    cx: i32,
+    cy: i32,
+    r: i32,
+) -> Vec<ScanTile> {
+    st.scan_calls = st.scan_calls.saturating_add(1);
+    if let Some(hit) = npc_scan_try_cache(st, cx, cy, r) {
+        return hit;
+    }
+    match world.try_read() {
+        Ok(w) => npc_scan_fill(st, &w, content, cx, cy, r),
+        Err(_) => {
+            // Don't block the sim: reuse last snapshot or skip. Target
+            // validity is checked again before USE (Haxe expected parent).
+            if let Some(c) = &st.scan_cache {
+                if c.r >= r {
+                    return filter_scan_tiles_in_radius(&c.tiles, c.cx, c.cy, r.min(c.r));
+                }
+                return c.tiles.clone();
+            }
+            Vec::new()
         }
     }
 }
@@ -2302,11 +2407,14 @@ fn npc_run_is_picking_up_food(
         max_distance_to_home,
     } = plan
     {
-        let tiles = {
-            let w = world.read().unwrap();
-            // OL-AI-SPLIT: FoodSearch default radius 30 (was 12)
-            scan_world_radius(&w, Some(content), p.x, p.y, DEFAULT_FOOD_SEARCH_RADIUS)
-        };
+        let tiles = npc_scan_cached_rw(
+            st,
+            world.as_ref(),
+            content,
+            p.x,
+            p.y,
+            DEFAULT_FOOD_SEARCH_RADIUS,
+        );
         let mut drop_extras = DropHeldSensorExtras::default();
         drop_extras.quiver = quiver_from_clothing_snapshot(&p.clothing, &p.clothing_uses);
         drop_extras.held_contains_clay = p.held_contains_clay;
@@ -2473,11 +2581,14 @@ fn npc_run_is_picking_up_food(
             ))
         }
         IsPickingupFoodPlan::DropHeldForPickup => {
-            let tiles = {
-                let w = world.read().unwrap();
-                // OL-AI-SPLIT: FoodSearch default radius 30 (was 12)
-            scan_world_radius(&w, Some(content), p.x, p.y, DEFAULT_FOOD_SEARCH_RADIUS)
-            };
+            let tiles = npc_scan_cached_rw(
+                st,
+                world.as_ref(),
+                content,
+                p.x,
+                p.y,
+                DEFAULT_FOOD_SEARCH_RADIUS,
+            );
             let mut drop_extras = DropHeldSensorExtras::default();
             drop_extras.quiver = quiver_from_clothing_snapshot(&p.clothing, &p.clothing_uses);
             drop_extras.held_contains_clay = p.held_contains_clay;
@@ -2730,6 +2841,13 @@ fn npc_emit_drop_or_walk(
 
 /// Live `blockedByAI` plus other NPCs' in-flight craft tiles (not yet sticky).
 // Haxe: isObjectNotReachable ORs blockedByAI; craft_progress = extra in-flight claims
+/// Haxe `AddObjBlockedByAi` default 5s — reserve a target so other AIs skip it.
+fn npc_claim_tile(share: &BlockedByAiShare, x: i32, y: i32) {
+    if let Ok(mut g) = share.write() {
+        g.insert((x, y), 5.0);
+    }
+}
+
 fn npc_merged_blocked_by_ai(
     share: &BlockedByAiShare,
     craft_progress: &HashMap<u64, ((i32, i32), i32)>,
@@ -2774,6 +2892,61 @@ fn log_ev(
 ///
 /// `live_share` is re-read each wake (~200 ms) so `server.toml` hot-reload
 /// adjusts `npc_enabled` / min / max / observe / craft radius on the same
+/// Haxe `MaxAiSkipedTicksBeforeReducingAIs`.
+pub const MAX_AI_SKIPPED_TICKS_BEFORE_REDUCING: u64 = 10;
+
+/// Haxe `currentMaxAIs` step every 200 ticks from skipped-tick window.
+// Haxe: AiBase.RunAi L172–176
+pub fn adjust_ai_current_max(
+    current_max: u32,
+    min: u32,
+    max: u32,
+    last_skipped_ticks: u64,
+    reduce_threshold: u64,
+) -> u32 {
+    let min = min.max(1);
+    let max = max.max(min);
+    let mut m = current_max.clamp(min, max);
+    if m < max && last_skipped_ticks < reduce_threshold {
+        m += 1;
+    }
+    if m > min && last_skipped_ticks > reduce_threshold {
+        m = m.saturating_sub(1);
+    }
+    m.clamp(min, max)
+}
+
+/// Haxe spawn gate: `tick % 20 != 0 && count < currentMax && (lastSkiped < Max || count < Min)`.
+// Haxe: AiBase.RunAi L153–155
+pub fn should_spawn_new_ai(
+    tick: u64,
+    living: u32,
+    current_max: u32,
+    min: u32,
+    last_skipped_ticks: u64,
+    reduce_threshold: u64,
+) -> bool {
+    if living >= current_max {
+        return false;
+    }
+    if tick % 20 == 0 {
+        return false;
+    }
+    last_skipped_ticks < reduce_threshold || living < min
+}
+
+fn count_living_npcs(player_views: &Arc<RwLock<HashMap<u64, PlayerSnapshot>>>) -> u32 {
+    player_views
+        .read()
+        .ok()
+        .map(|g| {
+            g.values()
+                .filter(|p| p.conn_id >= NPC_CONN_BASE && !p.deleted)
+                .count() as u32
+        })
+        .unwrap_or(0)
+}
+
 /// wake as the sim `live_share` write (CONFIG-SETTINGS; no 2 s lag).
 ///
 /// // Haxe: ServerSettings.NumberOfAis statics update mid-session via readFromFile
@@ -2797,7 +2970,12 @@ pub async fn run_npc_scheduler(
     let labels = ["npc-forager", "npc-farmer", "npc-hunter"];
     let mut tick: u64 = 0;
     let mut active: u32 = 0;
-    let mut target_pop: u32 = 0;
+    // Haxe `currentMaxAIs` starts at MinNumberOfAis; lastSkipedTicks starts at 100
+    // so the first window only fills the min until skip-tick balance runs.
+    let mut current_max_ais: u32 = 0;
+    let mut last_skipped_ticks: u64 = 100;
+    let mut skip_at_window_start: u64 = 0;
+    let mut last_balance_sim_tick: u64 = 0;
     let mut stuck_map: HashMap<u64, NpcStuckTracker> = HashMap::new();
     /// conn â†’ (craft_key, remaining_cooldown_thinks)
     let mut craft_blacklist: HashMap<u64, HashMap<String, u32>> = HashMap::new();
@@ -2815,6 +2993,13 @@ pub async fn run_npc_scheduler(
         tokio::time::sleep(Duration::from_millis(200)).await;
         tick = tick.wrapping_add(1);
         activity.try_flush();
+        // Haxe cleanupBlockedObjects(reactionTime) / blockedByAI time decay.
+        if let Ok(mut g) = blocked_by_ai.write() {
+            g.retain(|_, t| {
+                *t -= 0.2;
+                *t > 0.0
+            });
+        }
 
         // Same-wake as sim hot-reload: LiveSettings â†’ NpcConfig (no outer 2 s copy).
         let cfg = live_share
@@ -2836,8 +3021,52 @@ pub async fn run_npc_scheduler(
         // Scheduler wake dt (matches sleep above). Haxe doTimeStuff(timePassedInSeconds).
         const SCHED_DT_SEC: f32 = 0.2;
 
-        // Floor population (login missing agents up to min).
-        while active < min {
+        if !announced {
+            announced = true;
+            current_max_ais = min;
+            skip_at_window_start = counters.skip_ticks.load(Ordering::Relaxed);
+            info!(
+                min,
+                max, think_period, radius, craft_radius, "npc scheduler started (Haxe min/max + skip-tick balance)"
+            );
+        }
+
+        // Haxe AiBase.RunAi every 200 ticks: grow/shrink currentMaxAIs from skipped ticks.
+        let sim_tick = counters.ticks.load(Ordering::Relaxed);
+        let skips_now = counters.skip_ticks.load(Ordering::Relaxed);
+        if sim_tick >= last_balance_sim_tick.saturating_add(200) {
+            last_skipped_ticks = skips_now.saturating_sub(skip_at_window_start);
+            skip_at_window_start = skips_now;
+            last_balance_sim_tick = sim_tick;
+            let grown = adjust_ai_current_max(
+                current_max_ais,
+                min,
+                max,
+                last_skipped_ticks,
+                MAX_AI_SKIPPED_TICKS_BEFORE_REDUCING,
+            );
+            if grown != current_max_ais {
+                info!(
+                    from = current_max_ais,
+                    to = grown,
+                    last_skipped_ticks,
+                    "npc: Haxe skip-tick currentMaxAIs"
+                );
+            }
+            current_max_ais = grown;
+        }
+
+        let living = count_living_npcs(&player_views);
+        // Haxe: tick % 20 != 0 && aiCount < currentMaxAIs && (lastSkiped < Max || count < Min)
+        if should_spawn_new_ai(
+            tick,
+            living,
+            current_max_ais,
+            min,
+            last_skipped_ticks,
+            MAX_AI_SKIPPED_TICKS_BEFORE_REDUCING,
+        ) && active < max
+        {
             let conn_id = NPC_CONN_BASE + active as u64;
             let email = format!("{}@local", labels[active as usize % labels.len()]);
             let _ = intent_tx
@@ -2849,40 +3078,8 @@ pub async fn run_npc_scheduler(
                     client_ip: String::new(),
                 })
                 .await;
-            info!(conn_id, "npc: login requested");
+            info!(conn_id, living, current_max_ais, "npc: login requested");
             active += 1;
-            target_pop = active;
-        }
-        if !announced {
-            announced = true;
-            info!(
-                min,
-                max, think_period, radius, craft_radius, "npc scheduler started (eat+craft+activity log)"
-            );
-        }
-
-        let intents = counters.intents_applied.load(Ordering::Relaxed);
-        let skips = counters.skip_ticks.load(Ordering::Relaxed);
-        if skips > 0 && tick % 50 == 0 && active > min {
-            active = active.saturating_sub(1).max(min);
-            target_pop = active;
-        } else if tick % 100 == 0 && active < max && intents < 100_000 {
-            if active >= target_pop && active < max {
-                active += 1;
-                target_pop = active;
-                let conn_id = NPC_CONN_BASE + (active - 1) as u64;
-                let email = format!("npc-{active}@local");
-                let _ = intent_tx
-                    .send(NetIntent::Login {
-                        conn_id,
-                        reconnect: false,
-                        email,
-                        client_tag: "client_npc".into(),
-                        client_ip: String::new(),
-                    })
-                    .await;
-                info!(conn_id, active, "npc: grown population");
-            }
         }
 
         // AI-TAKEOVER: drive disconnected human bodies with thin eat/explore AI.
@@ -3037,6 +3234,13 @@ pub async fn run_npc_scheduler(
             }
 
             let timer = ScopeTimer::start();
+            {
+                let st = profession_state.entry(conn_id).or_default();
+                st.scan_cache = None;
+                st.scan_us_acc = 0;
+                st.scan_calls = 0;
+                st.scan_hits = 0;
+            }
             let snap = player_views
                 .read()
                 .ok()
@@ -3072,6 +3276,10 @@ pub async fn run_npc_scheduler(
                     continue;
                 }
                 tracker.rebirth_wait_sec = f32::MAX;
+                // Haxe: `if (this.number > ServerSettings.NumberOfAis) removeAi`
+                if (i as u32) >= max {
+                    continue;
+                }
                 let email = format!("npc-re-{}@local", i);
                 let _ = intent_tx.try_send(NetIntent::Login {
                     conn_id,
@@ -3411,16 +3619,14 @@ pub async fn run_npc_scheduler(
                             game_ms = 200;
                             acted = true;
                         } else if action == HandleDeathAction::GravesThenRest {
-                            let tiles = {
-                                let w = world.read().unwrap();
-                                scan_world_radius(
-                                    &w,
-                                    Some(content.as_ref()),
-                                    home_x,
-                                    home_y,
-                                    GRAVE_SEARCH_RADIUS,
-                                )
-                            };
+                            let tiles = npc_scan_cached_rw(
+                                st,
+                                world.as_ref(),
+                                content.as_ref(),
+                                home_x,
+                                home_y,
+                                GRAVE_SEARCH_RADIUS,
+                            );
                             let sticky = ProfessionStickySnapshot::from_runtimes_ex(
                                 &st.farm_rt,
                                 &st.smith_rt,
@@ -3721,16 +3927,14 @@ pub async fn run_npc_scheduler(
                     );
                     let bundle = fill_live_sensors(&input);
                     if bundle.sensors.do_stuff && bundle.sensors.combat_target {
-                        let tiles = {
-                            let w = world.read().unwrap();
-                            scan_world_radius(
-                                &w,
-                                Some(content.as_ref()),
-                                p.x,
-                                p.y,
-                                WEAPON_SEARCH_DIST,
-                            )
-                        };
+                        let tiles = npc_scan_cached_rw(
+                            st,
+                            world.as_ref(),
+                            content.as_ref(),
+                            p.x,
+                            p.y,
+                            WEAPON_SEARCH_DIST,
+                        );
                         if let Some((k, d, ms)) = npc_run_attack_player(
                             &intent_tx,
                             &world.read().unwrap(),
@@ -3825,19 +4029,17 @@ pub async fn run_npc_scheduler(
                     let peer_blocked_by_ai =
                         npc_merged_blocked_by_ai(&blocked_by_ai, &craft_progress, conn_id);
                     let tiles = {
-                        let path_reach = &profession_state
-                            .get(&conn_id)
-                            .expect("npc profession entry")
-                            .path_reach;
-                        let w = world.read().unwrap();
-                        let raw = scan_world_radius(
-                            &w,
-                            Some(content.as_ref()),
+                        let st = profession_state.get_mut(&conn_id).expect("npc profession entry");
+                        let raw = npc_scan_cached_rw(
+                            st,
+                            world.as_ref(),
+                            content.as_ref(),
                             p.x,
                             p.y,
                             scan_r,
                         );
-                        let filters = path_filters_from_player(path_reach, &peer_blocked_by_ai);
+                        let filters =
+                            path_filters_from_player(&st.path_reach, &peer_blocked_by_ai);
                         apply_path_filters_to_tiles(&raw, &filters)
                     };
                     let blocked = {
@@ -4038,19 +4240,17 @@ pub async fn run_npc_scheduler(
                     let peer_blocked_by_ai =
                         npc_merged_blocked_by_ai(&blocked_by_ai, &craft_progress, conn_id);
                     let tiles = {
-                        let path_reach = &profession_state
-                            .get(&conn_id)
-                            .expect("npc profession entry")
-                            .path_reach;
-                        let w = world.read().unwrap();
-                        let raw = scan_world_radius(
-                            &w,
-                            Some(content.as_ref()),
+                        let st = profession_state.get_mut(&conn_id).expect("npc profession entry");
+                        let raw = npc_scan_cached_rw(
+                            st,
+                            world.as_ref(),
+                            content.as_ref(),
                             p.x,
                             p.y,
                             scan_r,
                         );
-                        let filters = path_filters_from_player(path_reach, &peer_blocked_by_ai);
+                        let filters =
+                            path_filters_from_player(&st.path_reach, &peer_blocked_by_ai);
                         apply_path_filters_to_tiles(&raw, &filters)
                     };
                     let blocked = {
@@ -4283,15 +4483,17 @@ pub async fn run_npc_scheduler(
                     let peer_blocked_by_ai =
                         npc_merged_blocked_by_ai(&blocked_by_ai, &craft_progress, conn_id);
                     let tiles = {
-                        let path_reach = &profession_state
-                            .get(&conn_id)
-                            .expect("npc profession entry")
-                            .path_reach;
-                        let w = world.read().unwrap();
-                        let raw =
-                            scan_world_radius(&w, Some(content.as_ref()), home_x, home_y, scan_r);
+                        let st = profession_state.get_mut(&conn_id).expect("npc profession entry");
+                        let raw = npc_scan_cached_rw(
+                            st,
+                            world.as_ref(),
+                            content.as_ref(),
+                            home_x,
+                            home_y,
+                            scan_r,
+                        );
                         let filters =
-                            path_filters_from_player(path_reach, &peer_blocked_by_ai);
+                            path_filters_from_player(&st.path_reach, &peer_blocked_by_ai);
                         apply_path_filters_to_tiles(&raw, &filters)
                     };
                     // AI-JOB-SMITH-RESID: multi-prof peer pop from snapshots + npc sticky
@@ -5235,8 +5437,8 @@ pub async fn run_npc_scheduler(
             // Haxe: force dropOnStart=false for Banana Peel / Sharp Stone / Flint Chipâ€¦
             if !acted && !starving && p.held_id != 0 && force_drop_at_feet(p.held_id) {
                 let tiles = {
-                    let w = world.read().unwrap();
-                    scan_world_radius(&w, Some(content.as_ref()), p.x, p.y, 8)
+                    let st = profession_state.entry(conn_id).or_default();
+                    npc_scan_cached_rw(st, world.as_ref(), content.as_ref(), p.x, p.y, 8)
                 };
                 // Haxe: storeInQuiver clothingObjects scan (DROP-HELD-TABLE snapshot)
                 let mut drop_extras = DropHeldSensorExtras::default();
@@ -5397,6 +5599,7 @@ pub async fn run_npc_scheduler(
                         if tx == gx && ty == gy {
                             if dist < best_d {
                                 craft_progress.insert(conn_id, ((gx, gy), dist));
+                                npc_claim_tile(&blocked_by_ai, gx, gy);
                                 false
                             } else if dist > best_d + 2 {
                                 true // wandered away
@@ -5406,10 +5609,12 @@ pub async fn run_npc_scheduler(
                             }
                         } else {
                             craft_progress.insert(conn_id, ((gx, gy), dist));
+                            npc_claim_tile(&blocked_by_ai, gx, gy);
                             false
                         }
                     } else {
                         craft_progress.insert(conn_id, ((gx, gy), dist));
+                        npc_claim_tile(&blocked_by_ai, gx, gy);
                         false
                     };
                     // Prefer USE when adjacent even if craft_loop flagged (arrival after walk spam).
@@ -5642,16 +5847,17 @@ pub async fn run_npc_scheduler(
             log_ev(&activity, conn_id, &p, kind, cpu, game_ms, detail);
             debug!(conn_id, ?kind, "npc think");
 
-            counters
-                .ai_cpu_us
-                .fetch_add(cpu as u64, Ordering::Relaxed);
+            let (scan_us, scan_calls, scan_hits) = profession_state
+                .get(&conn_id)
+                .map(|st| (st.scan_us_acc, st.scan_calls as u64, st.scan_hits as u64))
+                .unwrap_or((0, 0, 0));
+            counters.record_ai_think_parts(cpu as u64, scan_us, scan_calls, scan_hits);
 
             // PATH-REACH-MERGE: push NPC path maps into player_views for tick_vitals absorb
             if let Some(st) = profession_state.get(&conn_id) {
                 push_npc_path_reach_to_views(&player_views, conn_id, &st.path_reach);
                 push_npc_food_goto_to_views(&player_views, conn_id, &st.food_goto);
             }
-            counters.ai_thinks.fetch_add(1, Ordering::Relaxed);
             let dt_ms = 200u64.saturating_mul(active as u64).max(200);
             counters
                 .ai_sim_time_ms
@@ -5883,5 +6089,23 @@ mod tests {
         assert!(cands[0].lost_combat_prestige > 5.0);
         assert!(!cands[0].is_friendly);
         assert!(ol_ai::is_deadly_player_candidate(&cands[0], 10.0, 0, 0));
+    }
+
+    #[test]
+    fn haxe_ai_skip_tick_grows_and_shrinks_current_max() {
+        assert_eq!(adjust_ai_current_max(20, 20, 40, 0, 10), 21);
+        assert_eq!(adjust_ai_current_max(40, 20, 40, 0, 10), 40);
+        assert_eq!(adjust_ai_current_max(21, 20, 40, 11, 10), 20);
+        assert_eq!(adjust_ai_current_max(20, 20, 40, 11, 10), 20);
+        assert_eq!(adjust_ai_current_max(25, 20, 40, 10, 10), 25);
+    }
+
+    #[test]
+    fn haxe_ai_spawn_gate_min_and_skip_window() {
+        assert!(should_spawn_new_ai(1, 5, 20, 20, 100, 10));
+        assert!(!should_spawn_new_ai(20, 5, 20, 20, 100, 10));
+        assert!(!should_spawn_new_ai(1, 20, 20, 20, 100, 10));
+        assert!(should_spawn_new_ai(1, 21, 25, 20, 5, 10));
+        assert!(!should_spawn_new_ai(1, 21, 25, 20, 100, 10));
     }
 }

@@ -630,6 +630,13 @@ impl World {
             .or_insert_with(|| Chunk::empty(coord))
     }
 
+    /// Borrow a resident chunk by coord (no load). Used by radius scans to
+    /// reuse one chunk across neighboring tiles instead of hashing every cell.
+    #[inline]
+    pub fn chunk(&self, coord: ChunkCoord) -> Option<&Chunk> {
+        self.chunks.get(&coord)
+    }
+
     pub fn resident_chunk_count(&self) -> usize {
         self.chunks.len()
     }

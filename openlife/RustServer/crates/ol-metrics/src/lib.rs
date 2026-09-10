@@ -29,6 +29,24 @@ pub struct Counters {
     pub ai_sim_time_ms: AtomicU64,
     pub ai_cpu_us: AtomicU64,
     pub ai_thinks: AtomicU64,
+    /// Smoothed NPC think wall time (µs).
+    pub ai_think_ema_us: AtomicU64,
+    /// Last NPC think wall time (µs).
+    pub ai_think_last_us: AtomicU64,
+    /// Cumulative NPC world-scan fill time (µs, cache misses only).
+    pub ai_scan_cpu_us: AtomicU64,
+    /// Smoothed NPC world-scan fill time per think (µs).
+    pub ai_scan_ema_us: AtomicU64,
+    /// Last think's scan fill time (µs).
+    pub ai_scan_last_us: AtomicU64,
+    /// Think time that is not world-scan fill (plan / path / craft).
+    pub ai_other_cpu_us: AtomicU64,
+    pub ai_other_ema_us: AtomicU64,
+    /// Scan helper calls and cache hits since start.
+    pub ai_scan_calls: AtomicU64,
+    pub ai_scan_hits: AtomicU64,
+    /// Cumulative simulation tick work (µs).
+    pub sim_cpu_us: AtomicU64,
     /// Boot phase timings (ms) — set once at server start.
     pub boot_objects_ms: AtomicU64,
     pub boot_transitions_ms: AtomicU64,
@@ -74,6 +92,16 @@ impl Counters {
             ai_sim_time_ms: AtomicU64::new(0),
             ai_cpu_us: AtomicU64::new(0),
             ai_thinks: AtomicU64::new(0),
+            ai_think_ema_us: AtomicU64::new(0),
+            ai_think_last_us: AtomicU64::new(0),
+            ai_scan_cpu_us: AtomicU64::new(0),
+            ai_scan_ema_us: AtomicU64::new(0),
+            ai_scan_last_us: AtomicU64::new(0),
+            ai_other_cpu_us: AtomicU64::new(0),
+            ai_other_ema_us: AtomicU64::new(0),
+            ai_scan_calls: AtomicU64::new(0),
+            ai_scan_hits: AtomicU64::new(0),
+            sim_cpu_us: AtomicU64::new(0),
             boot_objects_ms: AtomicU64::new(0),
             boot_transitions_ms: AtomicU64::new(0),
             boot_world_ms: AtomicU64::new(0),
@@ -138,6 +166,39 @@ impl Counters {
         }
     }
 
+    /// Record one NPC think step (CPU wall time).
+    pub fn record_ai_think(&self, us: u64) {
+        self.record_ai_think_parts(us, 0, 0, 0);
+    }
+
+    fn ema_store(slot: &AtomicU64, us: u64) {
+        let prev = slot.load(Ordering::Relaxed);
+        let next = if prev == 0 {
+            us
+        } else {
+            ((prev as f64) * 0.8 + (us as f64) * 0.2) as u64
+        };
+        slot.store(next, Ordering::Relaxed);
+    }
+
+    /// Record one NPC think plus world-scan fill time and cache stats.
+    pub fn record_ai_think_parts(&self, total_us: u64, scan_us: u64, scan_calls: u64, scan_hits: u64) {
+        self.ai_thinks.fetch_add(1, Ordering::Relaxed);
+        self.ai_cpu_us.fetch_add(total_us, Ordering::Relaxed);
+        self.ai_think_last_us.store(total_us, Ordering::Relaxed);
+        Self::ema_store(&self.ai_think_ema_us, total_us);
+
+        let scan_us = scan_us.min(total_us);
+        let other_us = total_us.saturating_sub(scan_us);
+        self.ai_scan_cpu_us.fetch_add(scan_us, Ordering::Relaxed);
+        self.ai_scan_last_us.store(scan_us, Ordering::Relaxed);
+        Self::ema_store(&self.ai_scan_ema_us, scan_us);
+        self.ai_other_cpu_us.fetch_add(other_us, Ordering::Relaxed);
+        Self::ema_store(&self.ai_other_ema_us, other_us);
+        self.ai_scan_calls.fetch_add(scan_calls, Ordering::Relaxed);
+        self.ai_scan_hits.fetch_add(scan_hits, Ordering::Relaxed);
+    }
+
     /// Record one-shot boot timings (only if total not already set).
     pub fn record_boot(
         &self,
@@ -189,6 +250,16 @@ impl Counters {
             ai_sim_time_ms: self.ai_sim_time_ms.load(Ordering::Relaxed),
             ai_cpu_us: self.ai_cpu_us.load(Ordering::Relaxed),
             ai_thinks: self.ai_thinks.load(Ordering::Relaxed),
+            ai_think_ema_us: self.ai_think_ema_us.load(Ordering::Relaxed),
+            ai_think_last_us: self.ai_think_last_us.load(Ordering::Relaxed),
+            ai_scan_cpu_us: self.ai_scan_cpu_us.load(Ordering::Relaxed),
+            ai_scan_ema_us: self.ai_scan_ema_us.load(Ordering::Relaxed),
+            ai_scan_last_us: self.ai_scan_last_us.load(Ordering::Relaxed),
+            ai_other_cpu_us: self.ai_other_cpu_us.load(Ordering::Relaxed),
+            ai_other_ema_us: self.ai_other_ema_us.load(Ordering::Relaxed),
+            ai_scan_calls: self.ai_scan_calls.load(Ordering::Relaxed),
+            ai_scan_hits: self.ai_scan_hits.load(Ordering::Relaxed),
+            sim_cpu_us: self.sim_cpu_us.load(Ordering::Relaxed),
             boot_objects_ms: self.boot_objects_ms.load(Ordering::Relaxed),
             boot_transitions_ms: self.boot_transitions_ms.load(Ordering::Relaxed),
             boot_world_ms: self.boot_world_ms.load(Ordering::Relaxed),
@@ -231,6 +302,16 @@ pub struct CounterSnapshot {
     pub ai_sim_time_ms: u64,
     pub ai_cpu_us: u64,
     pub ai_thinks: u64,
+    pub ai_think_ema_us: u64,
+    pub ai_think_last_us: u64,
+    pub ai_scan_cpu_us: u64,
+    pub ai_scan_ema_us: u64,
+    pub ai_scan_last_us: u64,
+    pub ai_other_cpu_us: u64,
+    pub ai_other_ema_us: u64,
+    pub ai_scan_calls: u64,
+    pub ai_scan_hits: u64,
+    pub sim_cpu_us: u64,
     pub boot_objects_ms: u64,
     pub boot_transitions_ms: u64,
     pub boot_world_ms: u64,
@@ -372,7 +453,7 @@ impl ScopeTimer {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct OpsSample {
     pub wall_unix_ms: u64,
     pub tick: u64,
@@ -394,6 +475,28 @@ pub struct OpsSample {
     pub intent_normal: u32,
     /// Boot timings only meaningful on first sample after start (else 0).
     pub boot_total_ms: u32,
+    /// Smoothed NPC think wall time (µs).
+    pub ai_think_ema_us: u32,
+    /// Cumulative NPC think count at sample time.
+    pub ai_thinks: u32,
+    /// Cumulative NPC think CPU (µs) at sample time.
+    pub ai_cpu_us: u32,
+    /// Smoothed human intent apply (µs).
+    pub human_intent_avg_us: u32,
+    /// Smoothed NPC intent apply (µs).
+    pub ai_intent_avg_us: u32,
+    /// Smoothed NPC world-scan fill (µs).
+    pub ai_scan_ema_us: u32,
+    /// Cumulative NPC scan fill (µs).
+    pub ai_scan_cpu_us: u32,
+    /// Smoothed think time that is not scan fill (µs).
+    pub ai_other_ema_us: u32,
+    /// Cumulative scan helper calls.
+    pub ai_scan_calls: u32,
+    /// Cumulative scan cache hits.
+    pub ai_scan_hits: u32,
+    /// Cumulative simulation tick work (µs).
+    pub sim_cpu_us: u32,
 }
 
 #[derive(Debug)]
@@ -416,6 +519,9 @@ impl Default for OpsSeries {
     }
 }
 
+/// If ticks are slow, still take an ops sample at least this often so graphs are not empty.
+pub const OPS_SAMPLE_MAX_GAP_MS: u64 = 5_000;
+
 impl OpsSeries {
     pub fn new(sample_every_ticks: u64, flush_interval: Duration, max_samples: usize) -> Self {
         Self {
@@ -429,6 +535,16 @@ impl OpsSeries {
             tick_window: LatencyWindow::new(200),
             intent_window: LatencyWindow::new(200),
             max_samples: max_samples.max(1),
+        }
+    }
+
+    /// Restore journal history so `/ops` graphs are not empty after reboot.
+    pub fn seed_from_history(&mut self, history: impl IntoIterator<Item = OpsSample>) {
+        for s in history {
+            if self.samples.len() >= self.max_samples {
+                self.samples.pop_front();
+            }
+            self.samples.push_back(s);
         }
     }
 
@@ -459,13 +575,21 @@ impl OpsSeries {
             .lock_wait_ema_us
             .store(self.lock_wait_ema.micros(), Ordering::Relaxed);
 
-        if tick == 0 || tick % self.sample_every_ticks != 0 {
+        if tick == 0 {
             return;
         }
         let wall = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_millis() as u64)
             .unwrap_or(0);
+        let due_tick = tick == 1 || tick % self.sample_every_ticks == 0;
+        let due_time = match self.samples.back() {
+            None => true,
+            Some(last) => wall.saturating_sub(last.wall_unix_ms) >= OPS_SAMPLE_MAX_GAP_MS,
+        };
+        if !due_tick && !due_time {
+            return;
+        }
         let snap = counters.snapshot();
         let tw = self.tick_window.stats();
         let iw = self.intent_window.stats();
@@ -511,6 +635,17 @@ impl OpsSeries {
             intent_outliers: iw.outliers,
             intent_normal: iw.normal,
             boot_total_ms: snap.boot_total_ms.min(u32::MAX as u64) as u32,
+            ai_think_ema_us: snap.ai_think_ema_us.min(u32::MAX as u64) as u32,
+            ai_thinks: snap.ai_thinks.min(u32::MAX as u64) as u32,
+            ai_cpu_us: snap.ai_cpu_us.min(u32::MAX as u64) as u32,
+            human_intent_avg_us: snap.human_intent_avg_us.min(u32::MAX as u64) as u32,
+            ai_intent_avg_us: snap.ai_intent_avg_us.min(u32::MAX as u64) as u32,
+            ai_scan_ema_us: snap.ai_scan_ema_us.min(u32::MAX as u64) as u32,
+            ai_scan_cpu_us: snap.ai_scan_cpu_us.min(u32::MAX as u64) as u32,
+            ai_other_ema_us: snap.ai_other_ema_us.min(u32::MAX as u64) as u32,
+            ai_scan_calls: snap.ai_scan_calls.min(u32::MAX as u64) as u32,
+            ai_scan_hits: snap.ai_scan_hits.min(u32::MAX as u64) as u32,
+            sim_cpu_us: snap.sim_cpu_us.min(u32::MAX as u64) as u32,
         };
         if self.samples.len() >= self.max_samples {
             self.samples.pop_front();
@@ -548,7 +683,7 @@ pub const OPS_JOURNAL_MAX_BYTES: u64 = 8 * 1024 * 1024;
 
 pub fn format_ops_journal_line(s: &OpsSample) -> String {
     format!(
-        "{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}",
+        "{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}",
         s.wall_unix_ms,
         s.tick,
         s.skip_ticks,
@@ -565,7 +700,18 @@ pub fn format_ops_journal_line(s: &OpsSample) -> String {
         s.intent_p90_us,
         s.intent_outliers,
         s.intent_normal,
-        s.boot_total_ms
+        s.boot_total_ms,
+        s.ai_think_ema_us,
+        s.ai_thinks,
+        s.ai_cpu_us,
+        s.human_intent_avg_us,
+        s.ai_intent_avg_us,
+        s.ai_scan_ema_us,
+        s.ai_scan_cpu_us,
+        s.ai_other_ema_us,
+        s.ai_scan_calls,
+        s.ai_scan_hits,
+        s.sim_cpu_us
     )
 }
 
@@ -600,6 +746,71 @@ pub fn append_ops_journal(path: &Path, samples: &[OpsSample]) -> std::io::Result
         writeln!(f, "{}", format_ops_journal_line(s))?;
     }
     Ok(())
+}
+
+fn take_u64<'a>(it: &mut impl Iterator<Item = &'a str>) -> Option<u64> {
+    it.next()?.parse().ok()
+}
+
+fn take_u32<'a>(it: &mut impl Iterator<Item = &'a str>) -> Option<u32> {
+    it.next()?.parse().ok()
+}
+
+/// Parse one journal line. Older 17-field lines (pre-AI columns) still load.
+pub fn parse_ops_journal_line(line: &str) -> Option<OpsSample> {
+    let line = line.trim();
+    if line.is_empty() || line.starts_with('#') {
+        return None;
+    }
+    let mut parts = line.split_whitespace();
+    Some(OpsSample {
+        wall_unix_ms: take_u64(&mut parts)?,
+        tick: take_u64(&mut parts)?,
+        skip_ticks: take_u64(&mut parts)?,
+        tick_work_us: take_u32(&mut parts)?,
+        intent_ema_us: take_u32(&mut parts)?,
+        lock_wait_ema_us: take_u32(&mut parts)?,
+        intents: take_u64(&mut parts)?,
+        connections: take_u64(&mut parts)?,
+        tick_avg_us: take_u32(&mut parts)?,
+        tick_p90_us: take_u32(&mut parts)?,
+        tick_outliers: take_u32(&mut parts)?,
+        tick_normal: take_u32(&mut parts)?,
+        intent_avg_us: take_u32(&mut parts)?,
+        intent_p90_us: take_u32(&mut parts)?,
+        intent_outliers: take_u32(&mut parts)?,
+        intent_normal: take_u32(&mut parts)?,
+        boot_total_ms: take_u32(&mut parts)?,
+        ai_think_ema_us: take_u32(&mut parts).unwrap_or(0),
+        ai_thinks: take_u32(&mut parts).unwrap_or(0),
+        ai_cpu_us: take_u32(&mut parts).unwrap_or(0),
+        human_intent_avg_us: take_u32(&mut parts).unwrap_or(0),
+        ai_intent_avg_us: take_u32(&mut parts).unwrap_or(0),
+        ai_scan_ema_us: take_u32(&mut parts).unwrap_or(0),
+        ai_scan_cpu_us: take_u32(&mut parts).unwrap_or(0),
+        ai_other_ema_us: take_u32(&mut parts).unwrap_or(0),
+        ai_scan_calls: take_u32(&mut parts).unwrap_or(0),
+        ai_scan_hits: take_u32(&mut parts).unwrap_or(0),
+        sim_cpu_us: take_u32(&mut parts).unwrap_or(0),
+    })
+}
+
+/// Load the newest `max_samples` journal rows (empty if the file is missing).
+pub fn load_ops_journal(path: &Path, max_samples: usize) -> Vec<OpsSample> {
+    let Ok(text) = std::fs::read_to_string(path) else {
+        return Vec::new();
+    };
+    let mut samples = Vec::new();
+    for line in text.lines() {
+        if let Some(s) = parse_ops_journal_line(line) {
+            samples.push(s);
+        }
+    }
+    let max = max_samples.max(1);
+    if samples.len() > max {
+        samples.drain(0..samples.len() - max);
+    }
+    samples
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -659,6 +870,36 @@ mod tests {
     }
 
     #[test]
+    fn record_ai_think_ema_and_total() {
+        let c = Counters::new();
+        c.record_ai_think(1_000);
+        c.record_ai_think(3_000);
+        let s = c.snapshot();
+        assert_eq!(s.ai_thinks, 2);
+        assert_eq!(s.ai_cpu_us, 4_000);
+        assert_eq!(s.ai_think_last_us, 3_000);
+        assert!(s.ai_think_ema_us >= 1_000 && s.ai_think_ema_us <= 3_000);
+        assert_eq!(s.ai_other_cpu_us, 4_000);
+        assert_eq!(s.ai_scan_cpu_us, 0);
+    }
+
+    #[test]
+    fn record_ai_think_parts_splits_scan_and_other() {
+        let c = Counters::new();
+        c.record_ai_think_parts(5_000, 2_000, 3, 2);
+        let s = c.snapshot();
+        assert_eq!(s.ai_thinks, 1);
+        assert_eq!(s.ai_cpu_us, 5_000);
+        assert_eq!(s.ai_scan_cpu_us, 2_000);
+        assert_eq!(s.ai_other_cpu_us, 3_000);
+        assert_eq!(s.ai_scan_calls, 3);
+        assert_eq!(s.ai_scan_hits, 2);
+        assert_eq!(s.ai_scan_last_us, 2_000);
+        assert_eq!(s.ai_scan_ema_us, 2_000);
+        assert_eq!(s.ai_other_ema_us, 3_000);
+    }
+
+    #[test]
     fn login_death_craft_counters() {
         let c = Counters::new();
         c.logins.fetch_add(2, Ordering::Relaxed);
@@ -711,10 +952,8 @@ mod tests {
             ops.samples.push_back(OpsSample {
                 wall_unix_ms: wall,
                 tick: i,
-                skip_ticks: 0,
                 tick_work_us: 10,
                 intent_ema_us: 5,
-                lock_wait_ema_us: 0,
                 intents: i,
                 connections: 1,
                 tick_avg_us: 10,
@@ -725,7 +964,7 @@ mod tests {
                 intent_p90_us: 6,
                 intent_outliers: 1,
                 intent_normal: 9,
-                boot_total_ms: 0,
+                ..OpsSample::default()
             });
         }
         let delta = ops.samples_since(2000);
@@ -758,9 +997,87 @@ mod tests {
             c.ticks.store(t, Ordering::Relaxed);
             ops.maybe_sample(t, &c);
         }
+        // Tick 1 is always sampled so reboot graphs are not empty; then every 2 ticks.
+        assert_eq!(ops.samples.len(), 3);
+        assert_eq!(ops.samples[0].tick, 1);
+        assert_eq!(ops.samples[1].tick, 2);
+        assert_eq!(ops.samples[2].tick, 4);
+    }
+
+    #[test]
+    fn ops_samples_first_tick_even_when_every_is_large() {
+        let mut ops = OpsSeries::new(100, Duration::from_secs(300), 10);
+        let c = Counters::new();
+        c.ticks.store(1, Ordering::Relaxed);
+        ops.maybe_sample(1, &c);
+        assert_eq!(ops.samples.len(), 1);
+        assert_eq!(ops.samples[0].tick, 1);
+    }
+
+    #[test]
+    fn ops_samples_when_last_is_stale() {
+        let mut ops = OpsSeries::new(100, Duration::from_secs(300), 10);
+        let c = Counters::new();
+        ops.samples.push_back(OpsSample {
+            wall_unix_ms: 1,
+            tick: 1,
+            ..OpsSample::default()
+        });
+        c.ticks.store(2, Ordering::Relaxed);
+        ops.maybe_sample(2, &c);
+        assert_eq!(ops.samples.len(), 2, "stale last sample must force a new point");
+        assert_eq!(ops.samples[1].tick, 2);
+    }
+
+    #[test]
+    fn parse_ops_journal_line_old_and_new() {
+        let old = "1785354537965 100 8 227079 95 0 1 0 22678 7201 10 82 95 95 1 0 224";
+        let s = parse_ops_journal_line(old).expect("old 17-field line");
+        assert_eq!(s.wall_unix_ms, 1785354537965);
+        assert_eq!(s.tick, 100);
+        assert_eq!(s.skip_ticks, 8);
+        assert_eq!(s.tick_work_us, 227079);
+        assert_eq!(s.boot_total_ms, 224);
+        assert_eq!(s.ai_cpu_us, 0);
+        assert_eq!(s.sim_cpu_us, 0);
+        let fresh = sample_zero(50, 7);
+        let line = format_ops_journal_line(&fresh);
+        let round = parse_ops_journal_line(&line).expect("roundtrip");
+        assert_eq!(round.wall_unix_ms, 50);
+        assert_eq!(round.tick, 7);
+        assert_eq!(round.tick_work_us, 10);
+        assert_eq!(round.sim_cpu_us, fresh.sim_cpu_us);
+    }
+
+    #[test]
+    fn load_ops_journal_keeps_newest_cap() {
+        let dir = std::env::temp_dir().join(format!(
+            "ol_ops_load_{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("ops_metrics.journal");
+        let rows = [sample_zero(100, 1), sample_zero(200, 2), sample_zero(300, 3)];
+        append_ops_journal(&path, &rows).unwrap();
+        let loaded = load_ops_journal(&path, 2);
+        assert_eq!(loaded.len(), 2);
+        assert_eq!(loaded[0].tick, 2);
+        assert_eq!(loaded[1].tick, 3);
+        let missing = load_ops_journal(&dir.join("nope.journal"), 10);
+        assert!(missing.is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn seed_from_history_fills_series() {
+        let mut ops = OpsSeries::new(100, Duration::from_secs(300), 10);
+        ops.seed_from_history([sample_zero(1, 9), sample_zero(2, 10)]);
         assert_eq!(ops.samples.len(), 2);
-        assert_eq!(ops.samples[0].tick, 2);
-        assert_eq!(ops.samples[1].tick, 4);
+        assert_eq!(ops.samples[0].tick, 9);
+        assert_eq!(ops.samples[1].tick, 10);
     }
 
     #[test]
@@ -785,10 +1102,8 @@ mod tests {
         OpsSample {
             wall_unix_ms: wall,
             tick,
-            skip_ticks: 0,
             tick_work_us: 10,
             intent_ema_us: 5,
-            lock_wait_ema_us: 0,
             intents: 1,
             connections: 1,
             tick_avg_us: 10,
@@ -799,7 +1114,7 @@ mod tests {
             intent_p90_us: 6,
             intent_outliers: 1,
             intent_normal: 9,
-            boot_total_ms: 0,
+            ..OpsSample::default()
         }
     }
 

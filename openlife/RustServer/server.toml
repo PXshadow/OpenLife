@@ -57,10 +57,10 @@ intent_drain_budget = 64
 ops_sample_every_ticks = 100
 ops_flush_secs = 300
 ops_journal_path = "SaveFiles/ops_metrics.journal"
-# AI NPCs (Haxe NumberOfAis / MinNumberOfAis). Keep max small for local playtest latency.
+# AI NPCs (Haxe NumberOfAis=40 / MinNumberOfAis=20). Skip-tick window grows/shrinks currentMax.
 npc_enabled = true
-npc_min = 3
-npc_max = 3
+npc_min = 20
+npc_max = 40
 # Scheduler wakes every 200ms. Primary AI cadence is class reaction time (Haxe AiBase.time).
 # ai_think_period_ticks remains as a legacy stagger/cleanup scale, not the main gate.
 ai_think_period_ticks = 20

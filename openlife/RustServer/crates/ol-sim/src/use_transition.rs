@@ -865,7 +865,10 @@ fn try_horse_eat(
         if gain <= 0.0 {
             return Some(horse_eat_unapplied(actor, target, tx, ty));
         }
-        p.food = (p.food + gain).min(p.food_max);
+        // Haxe addFood: overflow → yum_bonus extra pips (not discarded).
+        let (nf, nb) = crate::food_store_max::add_food(p.food, p.food_max, gain, p.yum.yum_bonus);
+        p.food = nf;
+        p.yum.yum_bonus = nb;
         // Haxe doIncreaseFoodValue after reduce (skip superMeh) — parity with doEating
         // C-SS-FULL-TABLE: horse path previously skipped yum restore + craving
         if !computed.is_super_meh {

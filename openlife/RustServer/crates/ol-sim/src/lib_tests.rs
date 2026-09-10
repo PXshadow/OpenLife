@@ -508,11 +508,11 @@
         );
         assert_eq!(counters.snapshot().deaths, 1);
 
-        // Hunger death path (vitals metrics): food must go below DEATH_FOOD_THRESHOLD (0).
+        // Hunger death path: Haxe dies when food_store_max < DeathWithFoodStoreMax.
         let counters2 = Counters::new();
         let mut state2 = SimState::with_default_empty(test_content());
         spawn_player(&mut state2, 2, "h@x");
-        state2.players.get_mut(&2).unwrap().food = -0.1;
+        state2.players.get_mut(&2).unwrap().food = -5.0;
         tick_vitals_with_metrics(&mut state2, 0.01, &hub, Some(&counters2));
         assert!(state2.players.get(&2).unwrap().deleted);
         assert_eq!(counters2.snapshot().deaths, 1);
@@ -933,9 +933,14 @@
             let m = state.players.get_mut(&9_000_001).expect("mom");
             m.age = 25.0;
             m.true_age = 25.0;
+            m.food = 18.0;
+            m.food_max = 20.0;
+            m.display_object_id = 19;
         }
-        if pick_best_mother_p_id(&state).is_none() {
-            // Mother pick needs more world than this empty-map fixture.
+        // First AI is an Eve (last_ai_eve). Second AI pairs as Adam (Haxe spawnEve
+        // own-pool). Third AI is a child of the fertile Eve.
+        let _adam = spawn_player(&mut state, 9_000_003, "adam@ai");
+        if pick_best_mother_p_id_for(&state, false).is_none() {
             return;
         }
         let child_p = spawn_player(&mut state, 9_000_002, "kid@ai");
@@ -955,6 +960,105 @@
             .any(|e| e.contains(&format!("SPAWN {child_p} mother={mom_p}"))));
         let node = state.social.lineages.get(&child_p).expect("child lineage");
         assert_eq!(node.mother_id, Some(mom_p));
+    }
+
+    /// Haxe: human Eve pairs with last *human* Eve, never a waiting AI Eve at default 0.
+    // Haxe: spawnAsEve lastAi vs lastHuman; MaxPlayersBeforeStartingAsChild = 0
+    #[test]
+    fn human_login_does_not_eve_pair_with_waiting_ai_eve() {
+        let mut state = SimState::with_default_empty(test_content());
+        state.gameplay.max_players_before_starting_as_child = 0;
+        state.gameplay.spawn_ai_as_eve = true;
+        state.gameplay.eve_or_adam_birth_chance = 1.0;
+        let ai_pid = spawn_player(&mut state, 9_100_000, "npc-eve@local");
+        assert!(
+            state.last_ai_eve.is_some(),
+            "first NPC must be waiting AI Eve"
+        );
+        let human_pid = spawn_player(&mut state, 1, "human@eve");
+        assert_ne!(
+            state.social.following.get(&human_pid).copied(),
+            Some(ai_pid),
+            "human must not follow AI Eve as Adam twin"
+        );
+        assert_ne!(
+            state.social.following.get(&ai_pid).copied(),
+            Some(human_pid)
+        );
+        // Human is their own Eve founder, not the AI's pairmate or baby.
+        assert_eq!(
+            state.last_human_eve.map(|s| s.p_id),
+            Some(human_pid),
+            "human must found their own Eve slot"
+        );
+        assert_ne!(
+            state
+                .social
+                .lineages
+                .get(&human_pid)
+                .and_then(|n| n.mother_id),
+            Some(ai_pid),
+            "human must not spawn as baby of AI Eve"
+        );
+        assert!(state.last_ai_eve.is_some(), "AI Eve slot stays same-kind");
+    }
+
+    /// Haxe spawnAsChild: human may be born to a fertile AI mother (mali 3), but
+    /// is a baby following mother — not an Eve/Adam pairmate.
+    #[test]
+    fn human_login_can_be_child_of_ai_mother_not_eve_pair() {
+        let mut state = SimState::with_default_empty(test_content());
+        state.gameplay.max_players_before_starting_as_child = 0;
+        state.gameplay.spawn_ai_as_eve = true;
+        state.gameplay.eve_or_adam_birth_chance = 0.0;
+        let ai_pid = spawn_player(&mut state, 9_100_000, "npc-eve@local");
+        {
+            let m = state.players.get_mut(&9_100_000).expect("ai");
+            m.age = 25.0;
+            m.true_age = 25.0;
+            m.food = 18.0;
+            m.food_max = 20.0;
+            m.display_object_id = 19;
+        }
+        let mom = pick_best_mother_p_id_for(&state, true);
+        assert_eq!(mom, Some(ai_pid), "fertile AI Eve is a valid human mother");
+        let human_pid = spawn_player(&mut state, 1, "human@eve");
+        assert_eq!(
+            state
+                .social
+                .lineages
+                .get(&human_pid)
+                .and_then(|n| n.mother_id),
+            Some(ai_pid)
+        );
+        assert_eq!(
+            state.social.following.get(&human_pid).copied(),
+            Some(ai_pid),
+            "baby follows mother, not Eve/Adam pair"
+        );
+        assert_ne!(
+            state.last_human_eve.map(|s| s.p_id),
+            Some(human_pid),
+            "child birth must not occupy the human Eve slot"
+        );
+        let human = state.players.get(&1).expect("human");
+        assert!(
+            human.age < 1.0,
+            "human born to AI mother is a baby, not StartingEveAge"
+        );
+    }
+
+    /// Same-kind human Eve/Adam pairing still works (second human joins first).
+    #[test]
+    fn second_human_eve_pairs_with_waiting_human_eve() {
+        let mut state = SimState::with_default_empty(test_content());
+        state.gameplay.max_players_before_starting_as_child = 0;
+        state.gameplay.eve_or_adam_birth_chance = 1.0;
+        let a = spawn_player(&mut state, 1, "eve-a@t");
+        assert!(state.last_human_eve.is_some());
+        let b = spawn_player(&mut state, 2, "eve-b@t");
+        assert_eq!(state.social.following.get(&b).copied(), Some(a));
+        assert!(state.last_human_eve.is_none(), "pair clears last human Eve");
     }
 
     #[test]
@@ -1577,13 +1681,81 @@
         spawn_player(&mut state, 1, "starve");
         {
             let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.age = 20.0;
         }
         tick_vitals(&mut state, 1.0, &hub);
         let p = state.players.get(&1).unwrap();
         assert!(p.deleted);
         assert_eq!(p.death_reason.as_deref(), Some("reason_hunger"));
+    }
+
+    /// Haxe: food < 0 shrinks food_store_max; death only when max < DeathWithFoodStoreMax.
+    #[test]
+    fn tick_vitals_starving_shrinks_food_max_before_death() {
+        let hub = OutboundHub::new();
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "starve@pips");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.age = 30.0;
+            p.true_age = 0.0;
+            p.food = -1.0;
+            p.food_max = 20.0;
+            p.exhaustion = -20.0;
+        }
+        tick_vitals(&mut state, 0.01, &hub);
+        let p = state.players.get(&1).unwrap();
+        assert!(!p.deleted, "must survive while max pips remain");
+        let health_f = state.player_health_food_store_max_factor(p.p_id, p.true_age);
+        let knobs = state.gameplay.food_store_max_knobs();
+        let expected = crate::food_store_max_from_parts_ex(
+            p.age,
+            p.food,
+            state.combat.hits_of(p.p_id),
+            p.exhaustion,
+            health_f,
+            knobs,
+        );
+        assert!(
+            (p.food_max - expected).abs() < 1e-3,
+            "food_max {} vs {}",
+            p.food_max,
+            expected
+        );
+        assert!(
+            p.food_max < 20.0,
+            "negative food must reduce max pips, got {}",
+            p.food_max
+        );
+        assert!(
+            !crate::food_store_max::food_max_is_deadly(p.food_max),
+            "max still above death line"
+        );
+
+        // Deep starve: max pips gone → hunger death.
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.deleted = false;
+            p.death_reason = None;
+            p.food = -5.0;
+            p.exhaustion = -20.0;
+        }
+        tick_vitals(&mut state, 0.01, &hub);
+        let p = state.players.get(&1).unwrap();
+        assert!(p.deleted);
+        assert_eq!(p.death_reason.as_deref(), Some("reason_hunger"));
+    }
+
+    /// Reduced food_store_max (health) slows movement vs full grown-up pips.
+    #[test]
+    fn reduced_food_max_slows_hitpoints_speed() {
+        use crate::move_speed::hitpoints_speed_factor;
+        let full = hitpoints_speed_factor(20.0, 20.0, 3.0);
+        let starved = hitpoints_speed_factor(10.0, 20.0, 3.0);
+        let dying = hitpoints_speed_factor(-5.0, 20.0, 3.0);
+        assert!(starved < full);
+        assert!(dying < starved);
     }
 
     /// Death clears held item and scatters it to a neighbor; body tile stays empty without Grave.
@@ -1596,7 +1768,7 @@
         {
             let p = state.players.get_mut(&1).unwrap();
             p.held_id = 33;
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.age = 20.0;
             p.x = 7;
             p.y = 8;
@@ -1648,7 +1820,7 @@
             p.x = 5;
             p.y = 5;
             p.age = 0.5;
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.held_by = mom;
         }
         tick_vitals(&mut state, 1.0, &hub);
@@ -1680,7 +1852,7 @@
             p.x = 5;
             p.y = 5;
             p.age = 0.5;
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.held_by = 0;
         }
         tick_vitals(&mut state, 1.0, &hub);
@@ -1742,7 +1914,7 @@
         spawn_player(&mut state, 1, "bury@me");
         {
             let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.age = 20.0;
             p.x = 3;
             p.y = 4;
@@ -1981,10 +2153,14 @@
         let hub = OutboundHub::new();
         let mut state = SimState::with_default_empty(test_content());
         spawn_player(&mut state, 1, "almost");
+        // Old-age food-max band uses MaxAge; keep it on the age-death line so
+        // hunger pipes do not fire first (Haxe MaxAge is also the age-death cap).
+        state.gameplay.max_age = MAX_AGE;
         {
             let p = state.players.get_mut(&1).unwrap();
             p.age = MAX_AGE - 0.1;
             p.food = 20.0;
+            p.exhaustion = -20.0;
         }
         tick_vitals(&mut state, 1.0, &hub);
         let p = state.players.get(&1).unwrap();
@@ -2005,9 +2181,15 @@
         state.environment.day_length = 10_000.0;
         state.hx_emit_timer = 0.0;
 
-        // Under interval: no HX yet.
+        // Under interval: no HX yet (FX from food_max recompute may still fire).
         tick_vitals(&mut state, 9.0, &hub);
-        assert!(rx.try_recv().is_err(), "no HX before HX_EMIT_INTERVAL_SECS");
+        let mut saw_early_hx = false;
+        while let Ok(pkt) = rx.try_recv() {
+            if String::from_utf8_lossy(&pkt).starts_with("HX\n") {
+                saw_early_hx = true;
+            }
+        }
+        assert!(!saw_early_hx, "no HX before HX_EMIT_INTERVAL_SECS");
 
         // Cross interval: HX uses body heat + Haxe foodDrainTime from this tick.
         tick_vitals(&mut state, 1.5, &hub);
@@ -2046,8 +2228,14 @@
         );
         // Timer reset; not firing again immediately.
         tick_vitals(&mut state, 1.0, &hub);
+        let mut saw_second_hx = false;
+        while let Ok(pkt) = rx.try_recv() {
+            if String::from_utf8_lossy(&pkt).starts_with("HX\n") {
+                saw_second_hx = true;
+            }
+        }
         assert!(
-            rx.try_recv().is_err(),
+            !saw_second_hx,
             "no second HX before another full interval"
         );
     }
@@ -2070,12 +2258,16 @@
         state.environment.season_length = 10_000.0;
         state.environment.day_length = 10_000.0;
 
-        // Under interval: no emit yet.
+        // Under interval: no BW/DY yet (FX from food_max recompute may still fire).
         tick_vitals(&mut state, 4.0, &hub);
-        assert!(
-            rx.try_recv().is_err(),
-            "no BW/DY before VITALS_EMIT_INTERVAL_SECS"
-        );
+        let mut saw_early = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.as_ref() == format_baby_wiggle(p_id) || s.as_ref() == format_dying(p_id, false) {
+                saw_early = true;
+            }
+        }
+        assert!(!saw_early, "no BW/DY before VITALS_EMIT_INTERVAL_SECS");
 
         // Cross interval: BW + DY should arrive for self (nearby includes self).
         tick_vitals(&mut state, 1.5, &hub);
@@ -2094,8 +2286,15 @@
         assert!(saw_dy, "expected DY packet for starving infant p_id={p_id}");
         // Timer reset; not firing again immediately.
         tick_vitals(&mut state, 1.0, &hub);
+        let mut saw_second = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if s.as_ref() == format_baby_wiggle(p_id) || s.as_ref() == format_dying(p_id, false) {
+                saw_second = true;
+            }
+        }
         assert!(
-            rx.try_recv().is_err(),
+            !saw_second,
             "no second emit before another full interval"
         );
     }
@@ -2274,23 +2473,33 @@
         assert!(p.food >= DEATH_FOOD_THRESHOLD);
     }
 
-    /// FEVER-HUNGER-PE: food<0 deletes; UpdateEmotes skips deleted so no PE 31.
+    /// FEVER-HUNGER-PE: food<0 stays alive (max pips shrink); UpdateEmotes PE 31.
     #[test]
-    fn tick_vitals_food_below_zero_deletes_without_starving_pe() {
+    fn tick_vitals_food_below_zero_shrinks_max_and_emits_starving_pe() {
         use ol_protocol::format_player_emot;
         let hub = OutboundHub::new();
         let mut rx = hub.register(1);
         let mut state = SimState::with_default_empty(test_content());
-        let p_id = spawn_player(&mut state, 1, "starve@death");
+        let p_id = spawn_player(&mut state, 1, "starve@alive");
         {
             let p = state.players.get_mut(&1).unwrap();
-            p.age = 20.0;
-            p.food = -0.01;
+            p.age = 30.0;
+            p.true_age = 0.0;
+            p.food = -1.0;
+            p.food_max = 20.0;
+            p.exhaustion = -20.0;
             p.angry_time = 10.0;
         }
         state.tick = 30;
         while rx.try_recv().is_ok() {}
         tick_vitals(&mut state, 0.01, &hub);
+        let p = state.players.get(&1).unwrap();
+        assert!(!p.deleted, "food -1 must not kill; max pips shrink first");
+        assert!(
+            p.food_max < 20.0,
+            "starving must reduce food_max, got {}",
+            p.food_max
+        );
         let starving = format_player_emot(p_id, crate::fever_pe::EMOTE_STARVING);
         let mut saw_starve = false;
         while let Ok(pkt) = rx.try_recv() {
@@ -2298,8 +2507,7 @@
                 saw_starve = true;
             }
         }
-        assert!(state.players.get(&1).unwrap().deleted);
-        assert!(!saw_starve, "deleted hunger death must not emit PE 31");
+        assert!(saw_starve, "living food<0 must emit starving PE 31");
     }
 
     /// Hunger death must send PU `X X reason_hunger` + FRAME (death screen, not disconnect).
@@ -2313,7 +2521,7 @@
             let p = state.players.get_mut(&1).unwrap();
             p.age = 20.0;
             p.true_age = 20.0;
-            p.food = -0.01;
+            p.food = -5.0;
             p.connected = true;
         }
         while rx.try_recv().is_ok() {}
@@ -5454,10 +5662,11 @@
         assert_eq!(fx_fields[2], "33", "last_ate_id: {fx_s}");
         assert_eq!(fx_fields[3], "5", "last_ate_fill_max: {fx_s}");
         let yum_bonus: i32 = fx_fields[6].parse().expect("yum_bonus int");
-        assert!(
-            yum_bonus >= 1,
-            "yum_bonus after first-of-kind eat should be ≥1: {fx_s}"
-        );
+        // Haxe yum_bonus is stored extra food from addFood overflow (world factor
+        // can push first-eat fill past food_max).
+        assert!(yum_bonus >= 0, "yum_bonus extra food: {fx_s}");
+        let food_store: i32 = fx_fields[0].parse().expect("food_store");
+        assert_eq!(food_store, 20, "eat fill clamps to food_max: {fx_s}");
         let pu = rx.try_recv().expect("PU after eat");
         let pu_s = String::from_utf8_lossy(&pu);
         assert!(pu_s.starts_with("PU\n"), "got {pu_s}");
@@ -6251,7 +6460,7 @@
         state.economy.add_coins(mother, 1);
         {
             let p = state.players.get_mut(&2).unwrap();
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.age = 20.0;
         }
         tick_vitals(&mut state, 1.0, &hub);
@@ -6272,7 +6481,7 @@
         state.economy.add_coins(eve, 7);
         {
             let p = state.players.get_mut(&3).unwrap();
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.age = 20.0;
         }
         tick_vitals(&mut state, 1.0, &hub);
@@ -6305,7 +6514,7 @@
         state.economy.add_coins(mom, 10);
         {
             let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.age = 20.0;
         }
         tick_vitals(&mut state, 1.0, &hub);
@@ -6327,7 +6536,7 @@
         let baby = spawn_player(&mut state, 2, "baby@x");
         {
             let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.age = 20.0;
             p.holding_player_id = baby;
         }
@@ -6365,7 +6574,7 @@
         state.economy.add_coins(leader, 1);
         {
             let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.age = 20.0;
         }
         tick_vitals(&mut state, 1.0, &hub);
@@ -6393,7 +6602,7 @@
         );
         {
             let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.age = 20.0;
             p.x = 0;
             p.y = 0;
@@ -6453,7 +6662,7 @@
         state.economy.add_coins(eve, 12);
         {
             let p = state.players.get_mut(&1).unwrap();
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.age = 20.0;
             p.x = 4;
             p.y = 5;
@@ -6488,7 +6697,7 @@
         state.combat.apply_hits(p_id, 1.0, 752);
         {
             let p = state.players.get_mut(&1).unwrap();
-            p.food = -0.01;
+            p.food = -5.0;
             p.age = 20.0;
         }
         tick_vitals(&mut state, 0.1, &hub);
@@ -10899,7 +11108,7 @@
             p.hat = 40;
             p.chest = 41;
             p.shoes = 42;
-            p.food = 0.05;
+            p.food = -5.0; // Haxe starve death: max pips gone (not food==0)
             p.age = 20.0;
         }
         // Occupy death tile so first scatter prefers neighbors.
@@ -14269,8 +14478,8 @@
             m.food = 10.0;
         }
         state.players.get_mut(&baby_conn).unwrap().held_by = mother;
-        state.players.get_mut(&baby_conn).unwrap().food = 5.0;
-        state.players.get_mut(&baby_conn).unwrap().food_max = 20.0;
+        // Age-1 food_max is ~4.8 (Haxe newborn band); start below cap so nurse can fill.
+        state.players.get_mut(&baby_conn).unwrap().food = 2.0;
         state.players.get_mut(&baby_conn).unwrap().age = 1.0;
         state.combat.apply_hits(baby_id, 1.0, 0);
         let hits_before = state.combat.hits_of(baby_id);
@@ -15508,8 +15717,8 @@
         let mut state = SimState::with_default_empty(test_content());
         let p_id = spawn_player(&mut state, 1, "diecause@x");
         state.players.get_mut(&1).unwrap().food = 0.0;
-        // food == 0 is not < DEATH_FOOD_THRESHOLD (0.0); force slightly negative path:
-        state.players.get_mut(&1).unwrap().food = -0.01;
+        // Haxe starve death: food_store_max below DeathWithFoodStoreMax (not food==0).
+        state.players.get_mut(&1).unwrap().food = -5.0;
         tick_vitals(&mut state, 0.1, &hub);
         assert!(
             state
@@ -20027,7 +20236,7 @@
             pl.age = 0.0;
             let display = pl.display_name();
             state.players.insert(2, pl);
-            attach_fitness_mother_lineage(&mut state, p_id, &display, mid, 0, 0);
+            attach_fitness_mother_lineage(&mut state, p_id, &display, mid, 0, 0, true);
             p_id
         };
         assert_eq!(
@@ -20041,7 +20250,7 @@
                 .get(&mid)
                 .unwrap()
                 .children_birth_mali
-                - 0.1)
+                - 1.0)
                 .abs()
                 < 1e-5
         );

@@ -1106,7 +1106,6 @@ impl YumState {
         knobs: EatLiveKnobs,
     ) -> f32 {
         let k = knobs.resolved();
-        let yb = k.yum_bonus;
         let base_i = base_value.round() as i32;
         let count = self.get_count_eaten(food_id);
         let computed = compute_eat_full(base_i, count, k);
@@ -1126,18 +1125,8 @@ impl YumState {
             self.history.pop_front();
         }
 
-        // Wire yum_bonus field: remaining yum “charge” for this food after the eat.
-        // (Haxe FX yum_bonus uses remaining band relative to live YumBonus setting.)
-        let after = self.get_count_eaten(food_id);
-        if computed.is_yum {
-            self.yum_bonus = (yb - after.max(0.0)).max(0.0);
-        } else {
-            self.yum_bonus = 0.0;
-        }
-        // Small legacy bump so FX ceil stays visible on first yum eats.
-        if computed.is_yum && self.yum_bonus < 0.1 {
-            self.yum_bonus = 0.1;
-        }
+        // Haxe FX `yum_bonus` is stored bonus food from `addFood` overflow, not
+        // remaining yum-band charge. Leave `self.yum_bonus` for the fill apply.
 
         computed.fill
     }
@@ -1627,6 +1616,45 @@ mod tests {
         assert!(e.health_delta > 0.0);
     }
 
+    #[test]
+    fn compute_eat_craving_extra_pips_and_count() {
+        // Haxe: countEaten < 0 → craving; foodBoni = min(-count/2, 20); +1 + boni
+        // count=-4 → boni=2; fill = 5 + 1 + 2 + YumBonus 5 = 13; delta = ceil(2).max(1)=2
+        let e = compute_eat(5, -4.0);
+        assert!(e.is_craving);
+        assert!(e.is_yum);
+        assert!(!e.is_super_meh);
+        assert!((e.fill - 13.0).abs() < 1e-4);
+        assert!((e.has_eaten_delta - 2.0).abs() < 1e-4);
+        assert!((e.health_delta - 2.0).abs() < 1e-4);
+        // foodBoni cap 20; has_eaten_delta cap 10
+        let deep = compute_eat(5, -50.0);
+        assert!(deep.is_craving);
+        // boni=20; fill=5+1+20+5=31; delta=ceil(25)=25 → 10
+        assert!((deep.fill - 31.0).abs() < 1e-4);
+        assert!((deep.has_eaten_delta - 10.0).abs() < 1e-4);
+    }
+
+    #[test]
+    fn eat_full_count_eaten_matches_has_eaten_delta() {
+        let mut y = YumState::default();
+        let fill = y.eat(33, 5.0, 5);
+        assert!((fill - 10.0).abs() < 1e-4);
+        assert!((y.get_count_eaten(33) - 1.0).abs() < 1e-4);
+        assert_eq!(y.just_ate_id, 33);
+        assert_eq!(y.last_ate_fill_max, 5);
+        // second eat still yum (count 1 < 5)
+        let fill2 = y.eat(33, 5.0, 10);
+        assert!((fill2 - 9.0).abs() < 1e-4); // 5+5-1
+        assert!((y.get_count_eaten(33) - 2.0).abs() < 1e-4);
+        // craving: start negative
+        let mut c = YumState::default();
+        c.has_eaten.insert(40, -4.0);
+        let cf = c.eat(40, 5.0, 3);
+        assert!((cf - 13.0).abs() < 1e-4);
+        assert!((c.get_count_eaten(40) - (-2.0)).abs() < 1e-4); // -4 + 2
+    }
+
     /// YUM-LIVE-SETTINGS: live yum_bonus changes first-eat fill and band edges.
     // Haxe: ServerSettings.YumBonus hot-reload
     #[test]
@@ -1722,8 +1750,9 @@ mod tests {
         let mut y = YumState::default();
         let fill = y.eat_ex(33, 5.0, 5, 7.0, 1.0);
         assert!((fill - 12.0).abs() < 1e-4); // 5+7
-                                             // remaining wire charge: 7 - 1 = 6
-        assert!((y.yum_bonus - 6.0).abs() < 1e-4);
+                                             // Haxe yum_bonus is extra food overflow (addFood), not remaining yum band.
+        assert!((y.yum_bonus - 0.0).abs() < 1e-4);
+        assert!((y.get_count_eaten(33) - 1.0).abs() < 1e-4);
 
         let mut y2 = YumState::default();
         // count_eaten=5 is still yum under band 7 → allowed when store ok

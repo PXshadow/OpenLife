@@ -863,7 +863,136 @@ pub fn food_store_max_from_parts_ex(
 // Haxe: TimeHelper.updateFoodAndDoHealing food_store_max < DeathWithFoodStoreMax
 #[inline]
 pub fn food_max_is_deadly(food_store_max: f32) -> bool {
-    food_store_max < DEATH_WITH_FOOD_STORE_MAX
+    food_max_is_deadly_ex(food_store_max, DEATH_WITH_FOOD_STORE_MAX)
+}
+
+/// Live `DeathWithFoodStoreMax` variant of [`food_max_is_deadly`].
+// Haxe: ServerSettings.DeathWithFoodStoreMax
+#[inline]
+pub fn food_max_is_deadly_ex(food_store_max: f32, death_line: f32) -> bool {
+    let line = if death_line.is_finite() {
+        death_line
+    } else {
+        DEATH_WITH_FOOD_STORE_MAX
+    };
+    food_store_max.is_finite() && food_store_max < line
+}
+
+/// Haxe `GlobalPlayerInstance.addFood` — overflow replaces stored bonus food (`yum_bonus`).
+///
+/// When `food + gain` exceeds `food_max`, extra pips go to `yum_bonus` (replaced, not
+/// added) and food is clamped to max. Otherwise `yum_bonus` is unchanged. Food may
+/// be negative (starving) and is not floored at 0.
+// Haxe: GlobalPlayerInstance.addFood L1789–1796
+#[inline]
+pub fn add_food(food: f32, food_max: f32, gain: f32, yum_bonus: f32) -> (f32, f32) {
+    let food = if food.is_finite() { food } else { 0.0 };
+    let gain = if gain.is_finite() { gain } else { 0.0 };
+    let yum = if yum_bonus.is_finite() { yum_bonus } else { 0.0 };
+    let store = food + gain;
+    if food_max.is_finite() && store > food_max {
+        (food_max, store - food_max)
+    } else {
+        (store, yum)
+    }
+}
+
+/// Haxe vitals drain: burn `yum_bonus` first (may go negative), else `food_store`.
+// Haxe: TimeHelper.updateFoodAndDoHealing L943–948
+#[inline]
+pub fn drain_yum_bonus_then_food(yum_bonus: f32, food: f32, decay: f32) -> (f32, f32) {
+    let yum = if yum_bonus.is_finite() { yum_bonus } else { 0.0 };
+    let food = if food.is_finite() { food } else { 0.0 };
+    let decay = if decay.is_finite() { decay } else { 0.0 };
+    if yum > 0.0 {
+        (yum - decay, food)
+    } else {
+        (yum, food - decay)
+    }
+}
+
+/// Haxe starve-to-death yum_multiplier trade: if `food_store < 0` and
+/// `yum_multiplier > 1`, subtract `food_decay` from health and halve decay.
+///
+/// Returns `(yum_multiplier_after, food_decay_after)`.
+// Haxe: TimeHelper.updateFoodAndDoHealing L907–910
+#[inline]
+pub fn starve_burn_yum_multiplier(
+    food_store: f32,
+    yum_multiplier: f32,
+    food_decay: f32,
+) -> (f32, f32) {
+    let yum = if yum_multiplier.is_finite() {
+        yum_multiplier
+    } else {
+        0.0
+    };
+    let decay = if food_decay.is_finite() { food_decay } else { 0.0 };
+    if food_store < 0.0 && yum > 1.0 {
+        (yum - decay, decay / 2.0)
+    } else {
+        (yum, decay)
+    }
+}
+
+/// Result of one Haxe starve-hits + yum-burn + yum_bonus-first drain step.
+// Haxe: TimeHelper.updateFoodAndDoHealing L849–851 + L907–948
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StarveFoodDecayResult {
+    pub yum_bonus: f32,
+    pub food: f32,
+    pub hits: f32,
+    pub yum_multiplier: f32,
+    /// Decay actually subtracted from yum_bonus or food (after optional starve half).
+    pub food_decay_applied: f32,
+}
+
+/// Starve hits (`originalFoodDecay * 0.5` when `food < 0`), optional yum_multiplier
+/// burn, then drain yum_bonus then food. Does **not** recompute food_store_max —
+/// caller uses [`food_store_max_from_parts_ex`] on the returned food/hits.
+// Haxe: TimeHelper.updateFoodAndDoHealing starve hits / yum burn / yum_bonus drain
+pub fn apply_starve_food_decay(
+    food: f32,
+    yum_bonus: f32,
+    hits: f32,
+    yum_multiplier: f32,
+    food_decay: f32,
+    original_food_decay: f32,
+) -> StarveFoodDecayResult {
+    let food_in = if food.is_finite() { food } else { 0.0 };
+    let mut hits_after = if hits.is_finite() { hits.max(0.0) } else { 0.0 };
+    let original = if original_food_decay.is_finite() {
+        original_food_decay.max(0.0)
+    } else {
+        0.0
+    };
+    let mut decay = if food_decay.is_finite() {
+        food_decay.max(0.0)
+    } else {
+        0.0
+    };
+    let mut yum_m = if yum_multiplier.is_finite() {
+        yum_multiplier
+    } else {
+        0.0
+    };
+
+    // Haxe: if (player.food_store < 0) hits += originalFoodDecay * 0.5
+    if food_in < 0.0 {
+        hits_after += original * 0.5;
+        let (ym, d) = starve_burn_yum_multiplier(food_in, yum_m, decay);
+        yum_m = ym;
+        decay = d;
+    }
+
+    let (yb, food_out) = drain_yum_bonus_then_food(yum_bonus, food_in, decay);
+    StarveFoodDecayResult {
+        yum_bonus: yb,
+        food: food_out,
+        hits: hits_after,
+        yum_multiplier: yum_m,
+        food_decay_applied: decay,
+    }
 }
 
 /// Haxe DoDamage combat death: `food_store_max < 0` (stricter than tick threshold −0.1).
@@ -1704,6 +1833,67 @@ mod tests {
     }
 
     #[test]
+    fn starve_then_hits_then_death_line() {
+        // Adult 20, food -2 → 10; plus 10 hits → 0; not yet < -0.1
+        let m = food_store_max_from_parts(30.0, -2.0, 10.0, 0.0, 1.0);
+        assert!((m - 0.0).abs() < 1e-4);
+        assert!(!food_max_is_deadly(m));
+        // food -5 → 20 + 5*(-5) = -5 < -0.1
+        let dead = food_store_max_from_parts(30.0, -5.0, 0.0, 0.0, 1.0);
+        assert!((dead + 5.0).abs() < 1e-4);
+        assert!(food_max_is_deadly(dead));
+    }
+
+    #[test]
+    fn add_food_overflow_replaces_yum_bonus() {
+        // Haxe addFood: overflow replaces yum_bonus
+        let (food, yum) = add_food(18.0, 20.0, 10.0, 1.0);
+        assert!((food - 20.0).abs() < 1e-5);
+        assert!((yum - 8.0).abs() < 1e-5);
+        // no overflow: yum unchanged
+        let (food2, yum2) = add_food(5.0, 20.0, 10.0, 3.0);
+        assert!((food2 - 15.0).abs() < 1e-5);
+        assert!((yum2 - 3.0).abs() < 1e-5);
+        // negative food (starving) recovers without floor
+        let (food3, yum3) = add_food(-2.0, 20.0, 10.0, 0.0);
+        assert!((food3 - 8.0).abs() < 1e-5);
+        assert!((yum3 - 0.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn drain_yum_bonus_before_food_store() {
+        let (yum, food) = drain_yum_bonus_then_food(5.0, 10.0, 1.5);
+        assert!((yum - 3.5).abs() < 1e-5);
+        assert!((food - 10.0).abs() < 1e-5);
+        let (yum2, food2) = drain_yum_bonus_then_food(0.0, 10.0, 1.5);
+        assert!((yum2 - 0.0).abs() < 1e-5);
+        assert!((food2 - 8.5).abs() < 1e-5);
+        // yum_bonus > 0 can go negative; food unchanged
+        let (yum3, food3) = drain_yum_bonus_then_food(0.2, 10.0, 1.0);
+        assert!((yum3 + 0.8).abs() < 1e-5);
+        assert!((food3 - 10.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn starve_hits_and_yum_multiplier_halve_decay() {
+        // food < 0: hits += original * 0.5; yum > 1 burns and halves decay
+        let r = apply_starve_food_decay(-1.0, 0.0, 0.0, 4.0, 2.0, 2.0);
+        assert!((r.hits - 1.0).abs() < 1e-5);
+        assert!((r.yum_multiplier - 2.0).abs() < 1e-5);
+        assert!((r.food_decay_applied - 1.0).abs() < 1e-5);
+        assert!((r.food + 2.0).abs() < 1e-5); // -1 - 1
+        // food >= 0: no hits, no yum burn
+        let r2 = apply_starve_food_decay(5.0, 0.0, 0.0, 4.0, 2.0, 2.0);
+        assert!((r2.hits - 0.0).abs() < 1e-5);
+        assert!((r2.yum_multiplier - 4.0).abs() < 1e-5);
+        assert!((r2.food - 3.0).abs() < 1e-5);
+        // yum_bonus drains first
+        let r3 = apply_starve_food_decay(5.0, 3.0, 0.0, 1.0, 1.0, 1.0);
+        assert!((r3.yum_bonus - 2.0).abs() < 1e-5);
+        assert!((r3.food - 5.0).abs() < 1e-5);
+    }
+
+    #[test]
     fn live_starve_reduction_overrides_module() {
         // food_store -2, starve 3 → max += 3 * -2 = -6 → 14
         let knobs = FoodStoreMaxKnobs {
@@ -2157,6 +2347,8 @@ mod tests {
         assert!(food_max_is_deadly(-0.11));
         assert!(food_max_is_combat_deadly(-0.01));
         assert!(!food_max_is_combat_deadly(0.0));
+        assert!(food_max_is_deadly_ex(-0.15, -0.1));
+        assert!(!food_max_is_deadly_ex(-0.15, -0.2));
     }
 
     // --- HEALTH-AGE-FOOD / health_food_max ---

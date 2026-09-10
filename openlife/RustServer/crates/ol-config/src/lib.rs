@@ -963,7 +963,7 @@ impl Default for ServerConfig {
             ops_flush_secs: 300,
             ops_journal_path: PathBuf::from("SaveFiles/ops_metrics.journal"),
             npc_enabled: true,
-            npc_min: 3,
+            npc_min: 20,
             npc_max: 40,
             ai_think_period_ticks: 10,
             ai_reaction_time: gameplay_defaults::AI_REACTION_TIME,
@@ -4443,7 +4443,7 @@ mod tests {
         assert_eq!(c.move_jump_max_chebyshev, 2);
         assert_eq!(c.intent_drain(), 64);
         assert!(c.npc_enabled);
-        assert_eq!(c.npc_min, 3);
+        assert_eq!(c.npc_min, 20);
         assert_eq!(c.npc_max, 40);
         let on: ServerConfig = toml::from_str("timed_movement = true\nnpc_enabled = true").unwrap();
         assert!(on.timed_movement);

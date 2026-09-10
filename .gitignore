@@ -48,6 +48,8 @@ pages
 dox
 *.n
 *.js
+# Rust server dashboards are compiled in via include_str! — keep those scripts.
+!openlife/RustServer/crates/ol-web/src/*.js
 *.hl
 !server.hl
 /*.hx

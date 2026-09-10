@@ -223,6 +223,106 @@ pub fn build_ops_dashboard_html(
         &s.ai_thinks.to_string(),
         "",
     ));
+    cards.push_str(&card(
+        "AI Think Time",
+        "Time for one NPC brain step, smoothed. This is usually the bulk of server lag.",
+        "aiThinkTime",
+        &format_ops_duration_us(s.ai_think_ema_us),
+        &format!(
+            "<br/><span class=\"muted\" data-field=\"aiThinkLast\">last {}</span>",
+            format_ops_duration_us(s.ai_think_last_us)
+        ),
+    ));
+    cards.push_str(&card(
+        "AI CPU Total",
+        "Sum of NPC think time since start.",
+        "aiCpu",
+        &format_ops_duration_us(s.ai_cpu_us),
+        "",
+    ));
+    let ai_share = if tick_us > 0 {
+        format!(
+            "{:.0}%",
+            (s.ai_think_ema_us as f64 / tick_us.max(1) as f64 * 100.0).min(999.0)
+        )
+    } else {
+        "—".into()
+    };
+    cards.push_str(&card(
+        "AI vs Tick",
+        "NPC think time compared with one simulation tick. Over 100% means AI is slower than the tick budget.",
+        "aiVsTick",
+        &ai_share,
+        "",
+    ));
+    cards.push_str(&card(
+        "AI Scan Time",
+        "Time spent filling the NPC world snapshot (cache misses). This is usually the largest AI cost.",
+        "aiScanTime",
+        &format_ops_duration_us(s.ai_scan_ema_us),
+        &format!(
+            "<br/><span class=\"muted\" data-field=\"aiScanLast\">last {}</span>",
+            format_ops_duration_us(s.ai_scan_last_us)
+        ),
+    ));
+    cards.push_str(&card(
+        "AI Other Time",
+        "NPC think time that is not the world snapshot: profession, food, path, and craft planning.",
+        "aiOtherTime",
+        &format_ops_duration_us(s.ai_other_ema_us),
+        "",
+    ));
+    cards.push_str(&card(
+        "AI Scan CPU Total",
+        "Sum of NPC world-snapshot fill time since start.",
+        "aiScanCpu",
+        &format_ops_duration_us(s.ai_scan_cpu_us),
+        "",
+    ));
+    let scan_share = if s.ai_think_ema_us > 0 {
+        format!(
+            "{:.0}%",
+            (s.ai_scan_ema_us as f64 / s.ai_think_ema_us.max(1) as f64 * 100.0).min(100.0)
+        )
+    } else {
+        "—".into()
+    };
+    cards.push_str(&card(
+        "AI Scan vs Think",
+        "Share of one NPC think spent filling the world snapshot.",
+        "aiScanVsThink",
+        &scan_share,
+        "",
+    ));
+    cards.push_str(&card(
+        "AI Scan Cache",
+        "World-snapshot cache hits versus helper calls this process. Hits skip the world lock and tile fill.",
+        "aiScanCache",
+        &format!("{} / {}", s.ai_scan_hits, s.ai_scan_calls),
+        "",
+    ));
+    cards.push_str(&card(
+        "Sim CPU Total",
+        "Sum of simulation tick work since start (world + intents on the sim thread).",
+        "simCpu",
+        &format_ops_duration_us(s.sim_cpu_us),
+        "",
+    ));
+    let ai_vs_sim = if s.sim_cpu_us > 0 {
+        format!(
+            "{:.0}%",
+            (s.ai_cpu_us as f64 / s.sim_cpu_us.max(1) as f64 * 100.0).min(999.0)
+        )
+    } else {
+        "—".into()
+    };
+    cards.push_str(&card(
+        "AI vs Sim",
+        "NPC think CPU versus simulation tick CPU. This is AI processing power against world sim handling.",
+        "aiVsSim",
+        &ai_vs_sim,
+        "",
+    ));
 
     let metrics = crate::metrics_json_from_snapshot(s, version, serde_json::json!({}));
     let series = crate::ops_series_json(samples);
@@ -272,15 +372,17 @@ a{color:#6ec6ff}
 .chart-wrap .axis-label{fill:#8b9bb0;font-size:11px;font-family:system-ui,sans-serif}
 .chart-wrap .cross{stroke:#e7eef7;stroke-width:1;stroke-dasharray:3 3;opacity:.7}
 .chart-wrap .dot{fill:#6ec6ff;stroke:#0b0f14;stroke-width:1}
+.ai-life{margin:2rem 0;background:#121a24;border:1px solid #1e2a3a;border-radius:8px;padding:1rem}
+.ai-life pre{white-space:pre-wrap;font-family:ui-monospace,Consolas,monospace;font-size:.9rem}
 .hover-tip{
   position:absolute;pointer-events:none;background:#0e1620;color:#e7eef7;
   border:1px solid #2a3a4e;border-radius:6px;padding:.45rem .6rem;font-size:.85rem;
   line-height:1.35;min-width:10rem;box-shadow:0 8px 24px rgba(0,0,0,.45)
 }
 </style></head><body>
-<p><a href="/">← Home</a></p>
+<p><a href="/">← Home</a> · <a href="/object-counts">object counts</a></p>
 <h1>Ops Dashboard</h1>
-<p class="muted">Skip Ticks are catch-up advances when the server lags, not dropped wakes. Samples stay in memory about 5 seconds and flush about every 5 minutes. Graph time range is saved in this browser.</p>
+<p class="muted">Skip Ticks are catch-up advances when the server lags, not dropped wakes. Graph samples stay in memory, restore from the journal on reboot, and flush to disk about every 5 minutes. Graph time range is saved in this browser.</p>
 <div class="cards">
 "##;
 
@@ -294,9 +396,17 @@ const OPS_CHARTS: &str = r##"</div>
 <option value="5m" selected>Last 5 minutes</option>
 <option value="15m">Last 15 minutes</option>
 <option value="1h">Last 1 hour</option>
+<option value="1d">Last day</option>
+<option value="1w">Last week</option>
+<option value="30d">Last month</option>
 </select></label></p>
 <div id="ops-charts"></div>
-<p class="muted"><a href="/api/ops/series">JSON series</a> · <a href="/api/metrics">JSON metrics</a></p>
+<div id="ai-life" class="ai-life">
+<h2>AI life stats</h2>
+<p class="muted">Food eaten, deaths with age, and objects or actions the NPCs created. Refreshed from <a href="/api/npc/stats">/api/npc/stats</a>.</p>
+<pre id="ai-life-md" class="muted">Loading…</pre>
+</div>
+<p class="muted"><a href="/api/ops/series">JSON series</a> · <a href="/api/metrics">JSON metrics</a> · <a href="/object-counts">object counts</a></p>
 "##;
 
 #[cfg(test)]
@@ -348,5 +458,27 @@ mod tests {
         assert!(html.contains("ops-time-range"));
         assert!(html.contains("Time range"));
         assert!(!html.contains("data-scale"));
+        assert!(html.contains("AI Think Time"));
+        assert!(html.contains("AI CPU Total"));
+        assert!(html.contains("AI vs Tick"));
+        assert!(html.contains("AI Scan Time"));
+        assert!(html.contains("AI Other Time"));
+        assert!(html.contains("AI Scan vs Think"));
+        assert!(html.contains("AI Scan Cache"));
+        assert!(html.contains("ai_think_ema_us"));
+        assert!(html.contains("ai_scan_ema_us"));
+        assert!(html.contains("ai_other_ema_us"));
+        assert!(html.contains("Sim CPU Total"));
+        assert!(html.contains("AI vs Sim"));
+        assert!(html.contains("AI life stats"));
+        assert!(html.contains("/object-counts"));
+        assert!(html.contains("id=\"ops-charts\""));
+        assert!(html.contains("No samples yet"));
+        assert!(html.contains("AI vs Sim"));
+        assert!(html.contains("restore from the journal"));
+        assert!(html.contains("Last day"));
+        assert!(html.contains("Last week"));
+        assert!(html.contains("Last month"));
+        assert!(!html.contains("class=\"pt\""));
     }
 }

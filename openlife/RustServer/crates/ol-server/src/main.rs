@@ -31,13 +31,15 @@ use ol_sim::{
     save_players, save_score_entries, save_war_posse, write_food_statistics, write_object_counts, AccountBook, AnimalSnapshot, AnimalWorld,
     PlayersSnapshot, PrestigeSnapshot, SimBootLive, SocialState, TreasurySnapshot, TwinRegistry,
     WarPosseSnapshot, WeatherSnapshot, ObjectCountsSnapshot, WorldFoodStats,
+    format_object_count_journal_line, load_object_count_journal, should_record_object_count_sample,
+    OBJECT_COUNT_SAMPLE_INTERVAL_MS, OBJECT_COUNT_SERIES_MAX,
 };
 use ol_web::{serve as serve_web, WebState};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::{error, info, warn};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
@@ -438,7 +440,17 @@ async fn main() {
     let selfplay_pos = Arc::new(RwLock::new((0i32, 0i32)));
     let player_views = Arc::new(RwLock::new(std::collections::HashMap::new()));
     let ops_series_view: Arc<RwLock<Vec<ol_metrics::OpsSample>>> =
-        Arc::new(RwLock::new(Vec::new()));
+        Arc::new(RwLock::new({
+            let loaded = ol_metrics::load_ops_journal(&cfg.ops_journal_path, 8192);
+            if !loaded.is_empty() {
+                info!(
+                    n = loaded.len(),
+                    path = %cfg.ops_journal_path.display(),
+                    "loaded ops journal samples for /ops graphs"
+                );
+            }
+            loaded
+        }));
     let env_view: ol_sim::EnvView = Arc::new(RwLock::new(ol_sim::EnvSnapshot::default()));
     let weather_view = Arc::new(RwLock::new(WeatherSnapshot::default()));
     // SOCIAL-WAR-PERSIST: WPS1 session war/posse (Haxe had no disk).
@@ -506,6 +518,19 @@ async fn main() {
     let shared_world_food = Arc::new(RwLock::new(WorldFoodStats::new()));
     // OBJECTCOUNTS-LIVE: session object census mirror for ObjectCounts.txt (write-only dump).
     let shared_object_counts = Arc::new(RwLock::new(ObjectCountsSnapshot::new()));
+    let object_count_series: Arc<RwLock<Vec<ol_sim::ObjectCountSample>>> =
+        Arc::new(RwLock::new({
+            let journal = cfg.save_directory.join("object_counts.journal");
+            let loaded = load_object_count_journal(&journal, OBJECT_COUNT_SERIES_MAX);
+            if !loaded.is_empty() {
+                info!(
+                    n = loaded.len(),
+                    path = %journal.display(),
+                    "loaded object-count journal samples"
+                );
+            }
+            loaded
+        }));
     // Seed account web view from boot-loaded book so /api/accounts works before first tick.
     let account_view = Arc::new(RwLock::new(shared_accounts.read().unwrap().snapshot()));
     let prestige_view = Arc::new(RwLock::new(PrestigeSnapshot::default()));
@@ -766,6 +791,61 @@ async fn main() {
         }));
     }
     {
+        // Minute object-census samples for /object-counts (same maps as ObjectCounts.txt).
+        let counts = Arc::clone(&shared_object_counts);
+        let series = Arc::clone(&object_count_series);
+        let content_names = Arc::clone(&content);
+        let journal = cfg.save_directory.join("object_counts.journal");
+        handles.push(tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(1));
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            let mut last_recorded_ms = 0u64;
+            loop {
+                interval.tick().await;
+                let snap = counts.read().map(|g| g.clone()).unwrap_or_default();
+                let now = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .map(|d| d.as_millis() as u64)
+                    .unwrap_or(0);
+                if !should_record_object_count_sample(
+                    snap.counts_ready,
+                    last_recorded_ms,
+                    now,
+                    OBJECT_COUNT_SAMPLE_INTERVAL_MS,
+                ) {
+                    continue;
+                }
+                let sample = snap.minute_sample(now, |id| {
+                    content_names
+                        .get(id)
+                        .map(|d| {
+                            if d.description.is_empty() {
+                                d.name.clone()
+                            } else {
+                                d.description.clone()
+                            }
+                        })
+                        .unwrap_or_default()
+                });
+                last_recorded_ms = now;
+                if let Ok(mut g) = series.write() {
+                    g.push(sample.clone());
+                    ol_sim::compact_object_count_series(&mut g, now);
+                }
+                if let Some(parent) = journal.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&journal)
+                {
+                    let _ = writeln!(f, "{}", format_object_count_journal_line(&sample));
+                }
+            }
+        }));
+    }
+    {
         // NPC knobs from live_share each ~200 ms wake (same-tick as sim hot-reload write).
         // Haxe: NumberOfAis / MinNumberOfAis static Reflect updates mid-session.
         let live_for_npc = Arc::clone(&live_share);
@@ -990,6 +1070,7 @@ async fn main() {
             treasury_view: Arc::clone(&treasury_view),
             ops_series: Arc::clone(&ops_series_view),
             npc_stats: Arc::clone(&npc_stats_view),
+            object_count_series: Arc::clone(&object_count_series),
         };
         handles.push(tokio::spawn(async move {
             if let Err(e) = serve_web(&bind, state).await {

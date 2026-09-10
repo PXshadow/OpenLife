@@ -86,6 +86,10 @@ pub struct MotherView {
     pub is_human: bool,
     /// Input to parent-child fitness.
     pub little_kids_count: u32,
+    /// Haxe `CalculateParentChildFitness` result (added into mother score).
+    pub parent_child_fitness: f32,
+    /// Haxe `considerFamily` → `child.account.familyPrestige[founderId] / 20`.
+    pub consider_family: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -110,10 +114,22 @@ pub struct FatherView {
     pub prestige_class: u8,
     pub prestige_from_eating: f32,
     pub is_human: bool,
-    /// Chebyshev (or world) distance to mother.
+    /// Squared Euclidean distance to mother (Haxe `CalculateQuadDistanceHelper`).
     pub dist_to_mother: f32,
+    /// `p == mother.partner`
     pub is_partner: bool,
+    /// `p.partner == mother`
+    pub mother_is_partner: bool,
     pub little_kids_count: u32,
+    pub is_female: bool,
+    pub is_close_relative: bool,
+    /// Mother already has a different partner.
+    pub mother_has_other_partner: bool,
+    /// `mother.father == p`
+    pub is_mothers_father: bool,
+    pub children_birth_mali: f32,
+    pub family_prestige_for_child: f32,
+    pub consider_family: bool,
 }
 
 /// Mother fitness score (higher = more likely selected). Returns 0 if ineligible.
@@ -154,8 +170,58 @@ pub fn mother_fitness_ex(m: &MotherView, c: &ChildView, min_age: f32, max_age: f
     mother_fitness_with_birth_knobs(m, c, min_age, max_age, &BirthSpawnKnobs::default())
 }
 
+/// Haxe ineligible sentinel (`return -1000`).
+pub const FITNESS_INELIGIBLE: f32 = -1000.0;
+/// Haxe GetFittestMother: `if (tmpFitness < -100) continue`.
+pub const FITNESS_SKIP_BELOW: f32 = -100.0;
+
+#[inline]
+pub fn fitness_is_eligible(fit: f32) -> bool {
+    fit >= FITNESS_SKIP_BELOW
+}
+
+/// One living child of a parent for Haxe `CalculateParentChildFitness`.
+#[derive(Debug, Clone, Copy)]
+pub struct ParentChildKid {
+    pub is_human: bool,
+    pub age: f32,
+}
+
+/// Haxe `CalculateParentChildFitness`.
+// Haxe: GlobalPlayerInstance.CalculateParentChildFitness L1558–1581
+pub fn parent_child_fitness(
+    parent_is_human: bool,
+    child_is_human: bool,
+    kids: &[ParentChildKid],
+    min_age_to_eat: f32,
+    little_kids_per_mother: i32,
+) -> f32 {
+    let mut fitness = 0.0f32;
+    let mut count_little = 0i32;
+    for k in kids {
+        // Mixed incoming vs existing same-kind on opposite-kind parent costs extra.
+        let mut factor = 1i32;
+        if !child_is_human && !k.is_human && parent_is_human {
+            factor = 2;
+        }
+        if child_is_human && k.is_human && !parent_is_human {
+            factor = 2;
+        }
+        fitness -= factor as f32;
+        if k.age > min_age_to_eat {
+            continue;
+        }
+        fitness -= factor as f32;
+        count_little += factor;
+    }
+    if little_kids_per_mother > 0 && count_little >= little_kids_per_mother {
+        return FITNESS_INELIGIBLE;
+    }
+    fitness
+}
+
 /// [`mother_fitness_ex`] plus LittleKidsPerMother reject and AI/human birth mali.
-// Haxe: CalculateParentChildFitness LittleKidsPerMother + CalculateMotherFitness mali
+// Haxe: CalculateMotherFitness (additive) + CalculateParentChildFitness
 // SETTINGS-KNOB-TAIL
 pub fn mother_fitness_with_birth_knobs(
     m: &MotherView,
@@ -164,76 +230,51 @@ pub fn mother_fitness_with_birth_knobs(
     max_age: f32,
     knobs: &BirthSpawnKnobs,
 ) -> f32 {
-    if m.deleted || !m.is_female || !m.is_human {
-        return 0.0;
+    // Haxe hard rejects → -1000
+    if m.deleted || !m.is_female {
+        return FITNESS_INELIGIBLE;
     }
     if !is_mother_age_fertile_ex(m.age, min_age, max_age) {
-        return 0.0;
+        return FITNESS_INELIGIBLE;
     }
-    if m.has_close_blocking_grave {
-        return 0.0;
-    }
-    if knobs.little_kids_per_mother > 0
-        && m.little_kids_count >= knobs.little_kids_per_mother as u32
-    {
-        return 0.0;
-    }
-
-    let mut fit = 1.0f32;
-
-    // Food fullness favors mothers who can nurse.
-    let food_ratio = if m.food_max > 0.0 {
-        (m.food / m.food_max).clamp(0.0, 1.5)
-    } else {
-        0.0
-    };
-    fit *= 0.5 + 0.5 * food_ratio;
-
-    // Heat comfort around 0.5.
-    let heat_err = (m.heat - 0.5).abs();
-    fit *= (1.0 - heat_err).clamp(0.2, 1.0);
-
-    // Exhaustion / wounds.
-    fit *= (1.0 - m.exhaustion.clamp(0.0, 0.9)).max(0.1);
     if m.wounded {
-        fit *= 0.5;
+        return FITNESS_INELIGIBLE;
+    }
+    if m.food < 0.0 {
+        return FITNESS_INELIGIBLE;
+    }
+    let max_exhaustion = if m.is_human == c.is_human { 10.0 } else { 5.0 };
+    if m.exhaustion > max_exhaustion {
+        return FITNESS_INELIGIBLE;
     }
 
-    // Held object slows / blocks.
-    if m.held_id != 0 {
-        fit *= 0.85;
-    }
-    if m.held_speed_mult > 1.1 {
-        fit *= 0.7;
-    }
-
-    // Accumulated birth mali (more children → lower fitness).
-    fit *= (1.0 - m.children_birth_mali.clamp(0.0, 0.9)).max(0.05);
-
-    // Little kids nearby pressure (parent-child).
-    fit *= parent_child_factor(m.little_kids_count);
-
-    // Soft prestige-from-eating / family prestige (Haxe /20 additive → soft mult).
-    fit *= 1.0 + 0.001 * m.prestige_from_eating.max(0.0);
-    fit *= 1.0 + 0.001 * m.family_prestige_for_child.max(0.0);
-
-    // CLASS-BONI: Haxe `tmpFitness += p.calculateClassBoni(child)`
-    // Additive on multiplicative base so same-class (+2) strongly ranks above Noble↔Serf (−3).
+    let mut fit = 0.0f32;
+    fit += m.food / 10.0;
+    fit += m.food_max / 10.0;
     let mother_class = PrestigeClass::from_i32(m.prestige_class as i32);
     let child_class = PrestigeClass::from_i32(c.prestige_class as i32);
     fit += calculate_class_boni(mother_class, child_class);
-
     if m.has_close_nonblocking_grave {
-        fit *= 0.9;
+        fit += 3.0;
+    }
+    fit += m.prestige_from_eating.max(0.0) / 20.0;
+    if m.consider_family {
+        fit += m.family_prestige_for_child.max(0.0) / 20.0;
     }
 
-    // Cross-species soft pen.
-    if !c.is_human {
-        fit *= 0.5;
+    let temperature_mail = ((m.heat - 0.5) * 10.0).powi(2) / 10.0;
+    fit -= temperature_mail;
+    fit -= m.exhaustion / 5.0;
+    fit -= m.children_birth_mali;
+    if m.has_close_blocking_grave {
+        fit -= 10.0;
     }
-
-    // Haxe CalculateMotherFitness: subtract AI/human birth mali.
-    // SETTINGS-KNOB-TAIL
+    if m.held_speed_mult > 1.1 {
+        fit -= 1.0;
+    }
+    if m.held_id != 0 {
+        fit -= 1.0;
+    }
     if m.is_human && !c.is_human {
         let mali = if knobs.human_mother_birth_mali_for_ai_child.is_finite() {
             knobs.human_mother_birth_mali_for_ai_child.max(0.0)
@@ -250,76 +291,110 @@ pub fn mother_fitness_with_birth_knobs(
         };
         fit -= mali;
     }
-
-    fit.max(0.0)
+    fit += m.parent_child_fitness;
+    fit
 }
 
-/// Father fitness; 0 if age > 55 or deleted.
-// Haxe: GlobalPlayerInstance.CalculateFatherFitness + calculateClassBoni(mother)
+/// Father min age — Haxe `MaxAgeForAllowingClothAndPrickupFromOthers` (10).
+pub const FATHER_MIN_AGE: f32 = 10.0;
+/// Haxe `quadDist > 10000` reject (squared tiles).
+pub const FATHER_MAX_QUAD_DIST: f32 = 10_000.0;
+
+/// Father fitness. Ineligible → [`FITNESS_INELIGIBLE`].
+// Haxe: GlobalPlayerInstance.CalculateFatherFitness
 pub fn father_fitness(f: &FatherView, c: &ChildView, mother: &MotherView) -> f32 {
-    if f.deleted || !f.is_human {
-        return 0.0;
+    if f.deleted || f.is_female {
+        return FITNESS_INELIGIBLE;
     }
-    if f.age > FATHER_MAX_AGE || f.age < 14.0 {
-        return 0.0;
+    if f.age < FATHER_MIN_AGE || f.age > FATHER_MAX_AGE {
+        return FITNESS_INELIGIBLE;
     }
-
-    let mut fit = 1.0f32;
-
-    let food_ratio = if f.food_max > 0.0 {
-        (f.food / f.food_max).clamp(0.0, 1.5)
-    } else {
-        0.0
-    };
-    fit *= 0.5 + 0.5 * food_ratio;
-    let heat_err = (f.heat - 0.5).abs();
-    fit *= (1.0 - heat_err).clamp(0.2, 1.0);
-    fit *= (1.0 - f.exhaustion.clamp(0.0, 0.9)).max(0.1);
-    if f.wounded {
-        fit *= 0.5;
+    if f.is_mothers_father {
+        return FITNESS_INELIGIBLE;
     }
-    if f.held_id != 0 {
-        fit *= 0.9;
-    }
-    if f.held_speed_mult > 1.1 {
-        fit *= 0.8;
+    if f.dist_to_mother > FATHER_MAX_QUAD_DIST {
+        return FITNESS_INELIGIBLE;
     }
 
-    // Distance: closer fathers preferred; beyond 40 tiles soft floor.
-    let dist = f.dist_to_mother.max(0.0);
-    fit *= (1.0 / (1.0 + dist / 20.0)).clamp(0.05, 1.0);
-
+    let mut fit = 0.0f32;
     if f.is_partner {
-        fit *= 1.5;
+        fit += 2.0;
     }
-
-    fit *= parent_child_factor(f.little_kids_count);
-    fit *= 1.0 + 0.001 * f.prestige_from_eating.max(0.0);
-
-    // CLASS-BONI: Haxe `tmpFitness += p.calculateClassBoni(mother)`
-    // Father compares himself to mother (not the child).
+    if f.mother_is_partner {
+        fit += 2.0;
+    }
+    fit += f.food_max / 10.0;
     let father_class = PrestigeClass::from_i32(f.prestige_class as i32);
     let mother_class = PrestigeClass::from_i32(mother.prestige_class as i32);
     fit += calculate_class_boni(father_class, mother_class);
-
-    // Child human-ness soft pen (father path does not use class boni on child).
-    let _ = c;
-    if !c.is_human {
-        fit *= 0.5;
+    fit += f.prestige_from_eating.max(0.0) / 20.0;
+    if f.consider_family {
+        fit += f.family_prestige_for_child.max(0.0) / 20.0;
     }
-
-    fit.max(0.0)
+    if f.age < 16.0 {
+        fit -= 2.0;
+    }
+    if f.is_close_relative {
+        fit -= 5.0;
+    }
+    if !f.is_partner && f.mother_has_other_partner {
+        fit -= 2.0;
+    }
+    if f.wounded {
+        fit -= 2.0;
+    }
+    fit -= f.dist_to_mother / 400.0;
+    fit -= f.exhaustion / 5.0;
+    fit -= f.children_birth_mali;
+    if f.is_human && !c.is_human {
+        fit -= 1.0; // HumanMotherBirthMaliForAiChild default; live knobs applied in pick
+    }
+    if !f.is_human && c.is_human {
+        fit -= 3.0;
+    }
+    let _ = mother;
+    fit
 }
 
-fn parent_child_factor(little_kids: u32) -> f32 {
-    // More little kids → lower fitness (care burden).
-    // Haxe CalculateParentChildFitness does not use prestige class.
-    1.0 / (1.0 + 0.15 * little_kids as f32)
+/// Father fitness with live AI/human mali knobs.
+pub fn father_fitness_with_birth_knobs(
+    f: &FatherView,
+    c: &ChildView,
+    mother: &MotherView,
+    knobs: &BirthSpawnKnobs,
+) -> f32 {
+    let mut fit = father_fitness(f, c, mother);
+    if fit <= FITNESS_INELIGIBLE + 0.5 {
+        return fit;
+    }
+    // Re-apply mali from knobs (father_fitness used compiled defaults).
+    if f.is_human && !c.is_human {
+        fit += 1.0;
+        fit -= if knobs.human_mother_birth_mali_for_ai_child.is_finite() {
+            knobs.human_mother_birth_mali_for_ai_child.max(0.0)
+        } else {
+            1.0
+        };
+    }
+    if !f.is_human && c.is_human {
+        fit += 3.0;
+        fit -= if knobs.ai_mother_birth_mali_for_human_child.is_finite() {
+            knobs.ai_mother_birth_mali_for_human_child.max(0.0)
+        } else {
+            3.0
+        };
+    }
+    fit
 }
 
-/// Increment children_birth_mali after a successful birth (Haxe-shaped step).
+/// Haxe `mother.childrenBirthMali += 1` (unbounded).
 pub fn next_children_birth_mali(current: f32) -> f32 {
-    (current + 0.1).min(0.9)
+    current + 1.0
+}
+
+/// Haxe grandmother / father `childrenBirthMali += 0.5`.
+pub fn next_children_birth_mali_half(current: f32) -> f32 {
+    current + 0.5
 }
 
 #[cfg(test)]
@@ -347,6 +422,8 @@ mod tests {
             has_close_blocking_grave: false,
             is_human: true,
             little_kids_count: 0,
+            parent_child_fitness: 0.0,
+            consider_family: false,
         }
     }
 
@@ -363,9 +440,9 @@ mod tests {
         let c = human_child();
         let mut m = healthy_mother();
         m.age = 10.0;
-        assert_eq!(mother_fitness(&m, &c), 0.0);
+        assert_eq!(mother_fitness(&m, &c), FITNESS_INELIGIBLE);
         m.age = 50.0;
-        assert_eq!(mother_fitness(&m, &c), 0.0);
+        assert_eq!(mother_fitness(&m, &c), FITNESS_INELIGIBLE);
         m.age = 42.0;
         assert!(mother_fitness(&m, &c) > 0.0);
     }
@@ -377,10 +454,10 @@ mod tests {
         let c = human_child();
         let mut m = healthy_mother();
         m.age = 50.0;
-        assert_eq!(mother_fitness(&m, &c), 0.0);
+        assert_eq!(mother_fitness(&m, &c), FITNESS_INELIGIBLE);
         assert!(mother_fitness_ex(&m, &c, 12.0, 50.0) > 0.0);
         m.age = 12.0;
-        assert_eq!(mother_fitness(&m, &c), 0.0);
+        assert_eq!(mother_fitness(&m, &c), FITNESS_INELIGIBLE);
         assert!(mother_fitness_ex(&m, &c, 12.0, 50.0) > 0.0);
         assert!(is_mother_age_fertile_ex(45.0, 14.0, 50.0));
         assert!(!is_mother_age_fertile_ex(45.0, 14.0, 42.0));
@@ -394,9 +471,9 @@ mod tests {
         starving.food = 1.0;
         let low = mother_fitness(&starving, &c);
         assert!(healthy > low, "healthy={healthy} low={low}");
-        // food_ratio 0.9 → *0.95; same-class +2 → ~2.95
+        // Haxe: food/10 + food_max/10 + same-class +2 → 1.8 + 2.0 + 2.0 = 5.8
         assert!(
-            (healthy - (0.95 + CLASS_BONI_SAME)).abs() < 0.05,
+            (healthy - (1.8 + 2.0 + CLASS_BONI_SAME)).abs() < 0.05,
             "healthy fitness fixture {healthy}"
         );
     }
@@ -424,10 +501,10 @@ mod tests {
             fit_common > fit_noble,
             "common={fit_common} noble={fit_noble}"
         );
-        // Noble↔Serf still eligible if base mult keeps score > 0 (base ~0.95 − 3 < 0 → 0).
-        assert_eq!(
-            fit_noble, 0.0,
-            "noble-serf mali zeros multiplicative~1 base"
+        // Noble↔Serf −3 on additive base ~3.8 → still eligible (~0.8).
+        assert!(
+            fit_noble > FITNESS_SKIP_BELOW,
+            "noble-serf remains eligible under Haxe additive score {fit_noble}"
         );
         assert!((fit_same - fit_common - CLASS_BONI_SAME).abs() < 0.05);
         let _ = CLASS_BONI_NOBLE_SERF;
@@ -469,16 +546,56 @@ mod tests {
     }
 
     #[test]
+    fn mother_mixed_kind_mali_still_eligible() {
+        let knobs = BirthSpawnKnobs::default();
+        let mut ai_mom = healthy_mother();
+        ai_mom.is_human = false;
+        let human = human_child();
+        let ai_child = ChildView {
+            is_human: false,
+            prestige_class: PrestigeClass::Commoner as u8,
+        };
+        let mixed = mother_fitness_with_birth_knobs(
+            &ai_mom,
+            &human,
+            MOTHER_FERTILE_MIN,
+            MOTHER_FERTILE_MAX,
+            &knobs,
+        );
+        let same = mother_fitness_with_birth_knobs(
+            &ai_mom,
+            &ai_child,
+            MOTHER_FERTILE_MIN,
+            MOTHER_FERTILE_MAX,
+            &knobs,
+        );
+        assert!(fitness_is_eligible(mixed), "AI mother + human child mali=3 still eligible {mixed}");
+        assert!(same > mixed, "same-kind ranks above mixed mali");
+        let human_mom = healthy_mother();
+        let mixed_h = mother_fitness_with_birth_knobs(
+            &human_mom,
+            &ai_child,
+            MOTHER_FERTILE_MIN,
+            MOTHER_FERTILE_MAX,
+            &knobs,
+        );
+        assert!(
+            fitness_is_eligible(mixed_h),
+            "human mother + AI child mali=1 still eligible {mixed_h}"
+        );
+    }
+
+    #[test]
     fn little_kids_per_mother_hard_rejects() {
         let c = human_child();
         let mut m = healthy_mother();
-        m.little_kids_count = 3;
+        m.parent_child_fitness = FITNESS_INELIGIBLE;
         let knobs = BirthSpawnKnobs::default();
-        assert_eq!(
-            mother_fitness_with_birth_knobs(&m, &c, MOTHER_FERTILE_MIN, MOTHER_FERTILE_MAX, &knobs),
-            0.0
+        assert!(
+            mother_fitness_with_birth_knobs(&m, &c, MOTHER_FERTILE_MIN, MOTHER_FERTILE_MAX, &knobs)
+                < FITNESS_SKIP_BELOW
         );
-        m.little_kids_count = 2;
+        m.parent_child_fitness = 0.0;
         assert!(
             mother_fitness_with_birth_knobs(&m, &c, MOTHER_FERTILE_MIN, MOTHER_FERTILE_MAX, &knobs)
                 > 0.0
@@ -490,7 +607,9 @@ mod tests {
         let c = human_child();
         let mut m = healthy_mother();
         m.has_close_blocking_grave = true;
-        assert_eq!(mother_fitness(&m, &c), 0.0);
+        let with_grave = mother_fitness(&m, &c);
+        let without = mother_fitness(&healthy_mother(), &c);
+        assert!((without - with_grave - 10.0).abs() < 1e-4, "blocking grave is −10 mali not a hard reject");
     }
 
     #[test]
@@ -512,7 +631,15 @@ mod tests {
             is_human: true,
             dist_to_mother: 2.0,
             is_partner: true,
+            mother_is_partner: true,
             little_kids_count: 0,
+            is_female: false,
+            is_close_relative: false,
+            mother_has_other_partner: false,
+            is_mothers_father: false,
+            children_birth_mali: 0.0,
+            family_prestige_for_child: 0.0,
+            consider_family: false,
         };
         let far = FatherView {
             dist_to_mother: 80.0,
@@ -524,7 +651,17 @@ mod tests {
             ..near.clone()
         };
         assert!(father_fitness(&near, &c, &mother) > father_fitness(&far, &c, &mother));
-        assert_eq!(father_fitness(&old, &c, &mother), 0.0);
+        assert_eq!(father_fitness(&old, &c, &mother), FITNESS_INELIGIBLE);
+        let ai_dad = FatherView {
+            is_human: false,
+            ..near.clone()
+        };
+        let mixed = father_fitness(&ai_dad, &c, &mother);
+        assert!(
+            fitness_is_eligible(mixed),
+            "AI father + human child is allowed with mali {mixed}"
+        );
+        assert!(father_fitness(&near, &c, &mother) > mixed);
     }
 
     #[test]
@@ -547,7 +684,15 @@ mod tests {
             is_human: true,
             dist_to_mother: 1.0,
             is_partner: false,
+            mother_is_partner: false,
             little_kids_count: 0,
+            is_female: false,
+            is_close_relative: false,
+            mother_has_other_partner: false,
+            is_mothers_father: false,
+            children_birth_mali: 0.0,
+            family_prestige_for_child: 0.0,
+            consider_family: false,
         };
         let serf = FatherView {
             prestige_class: PrestigeClass::Serf as u8,
@@ -588,7 +733,30 @@ mod tests {
 
     #[test]
     fn mali_steps() {
-        assert!((next_children_birth_mali(0.0) - 0.1).abs() < 1e-5);
-        assert!((next_children_birth_mali(0.85) - 0.9).abs() < 1e-5);
+        assert!((next_children_birth_mali(0.0) - 1.0).abs() < 1e-5);
+        assert!((next_children_birth_mali(2.0) - 3.0).abs() < 1e-5);
+        assert!((next_children_birth_mali_half(1.0) - 1.5).abs() < 1e-5);
+    }
+
+    #[test]
+    fn parent_child_mixed_kind_factor() {
+        let kids = [
+            ParentChildKid {
+                is_human: true,
+                age: 1.0,
+            },
+            ParentChildKid {
+                is_human: true,
+                age: 1.0,
+            },
+        ];
+        let fit = parent_child_fitness(false, true, &kids, 3.0, 3);
+        assert_eq!(fit, FITNESS_INELIGIBLE);
+        let one = [ParentChildKid {
+            is_human: true,
+            age: 1.0,
+        }];
+        let ok = parent_child_fitness(false, true, &one, 3.0, 3);
+        assert_eq!(ok, -4.0);
     }
 }

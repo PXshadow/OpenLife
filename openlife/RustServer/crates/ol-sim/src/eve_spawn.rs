@@ -613,24 +613,39 @@ pub struct EvePairResolve {
     pub clear_both_pools: bool,
 }
 
-/// Haxe `MaxPlayersBeforeStartingAsChild` default 0 → cross only when ≤0 living.
+/// Haxe `MaxPlayersBeforeStartingAsChild` compiled default (`0`).
+///
+/// Haxe `GetNumberLifingPlayers` counts **human connections only** (not ServerAi).
+/// With `0`, `living_humans <= 0` would still mix the first human with a waiting
+/// AI Eve. Open Life keeps same-kind Eve/Adam pairs (human↔human, AI↔AI) unless
+/// this knob is set **> 0** to allow mixed pairs when the human population is tiny.
 pub const MAX_PLAYERS_BEFORE_STARTING_AS_CHILD: usize = 0;
 
-/// True when living population allows AI↔human Eve pair cross-spawn.
-// Haxe: GetNumberLifingPlayers() <= MaxPlayersBeforeStartingAsChild
+/// Human TCP / client conn ids are below the self-play / NPC reserved band.
+// Haxe: Connection.sock != null (CountHumans / GetNumberLifingPlayers)
+pub const HUMAN_CONN_ID_MAX: u64 = 8_999_999;
+
 #[inline]
-pub fn allow_human_ai_eve_cross(living_players: usize) -> bool {
-    allow_human_ai_eve_cross_ex(living_players, MAX_PLAYERS_BEFORE_STARTING_AS_CHILD as i32)
+pub fn is_human_login_conn(conn_id: u64) -> bool {
+    conn_id <= HUMAN_CONN_ID_MAX
 }
 
-/// Live-knob variant of [`allow_human_ai_eve_cross`]. Negative max never crosses.
+/// True when living **humans** allow AI↔human Eve pair cross-spawn.
+// Haxe: GetNumberLifingPlayers() <= MaxPlayersBeforeStartingAsChild
+#[inline]
+pub fn allow_human_ai_eve_cross(living_humans: usize) -> bool {
+    allow_human_ai_eve_cross_ex(living_humans, MAX_PLAYERS_BEFORE_STARTING_AS_CHILD as i32)
+}
+
+/// Live-knob variant. `max_players <= 0` never mixes AI/human Eve pairs
+/// (compiled default 0: human Eve↔human Adam, AI Eve↔AI Adam only).
 // Haxe: ServerSettings.MaxPlayersBeforeStartingAsChild
 #[inline]
-pub fn allow_human_ai_eve_cross_ex(living_players: usize, max_players: i32) -> bool {
-    if max_players < 0 {
+pub fn allow_human_ai_eve_cross_ex(living_humans: usize, max_players: i32) -> bool {
+    if max_players <= 0 {
         return false;
     }
-    living_players <= max_players as usize
+    living_humans <= max_players as usize
 }
 
 #[cfg(test)]
@@ -639,11 +654,14 @@ mod live_knob_tests {
 
     #[test]
     fn allow_cross_live_max_players() {
-        assert!(allow_human_ai_eve_cross(0));
+        // Compiled 0: never mix AI/human Eve (empty-server leftover AI Eve).
+        assert!(!allow_human_ai_eve_cross(0));
         assert!(!allow_human_ai_eve_cross(1));
         assert!(allow_human_ai_eve_cross_ex(1, 1));
+        assert!(allow_human_ai_eve_cross_ex(0, 1));
         assert!(!allow_human_ai_eve_cross_ex(2, 1));
         assert!(!allow_human_ai_eve_cross_ex(0, -1));
+        assert!(!allow_human_ai_eve_cross_ex(0, 0));
     }
 }
 

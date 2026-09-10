@@ -1060,7 +1060,15 @@ pub fn count_objects_from_world(
             if id <= 0 {
                 continue;
             }
-            bump_count_map(&mut obj_list, LongTermState::count_as_of(content, id));
+            // Haxe countObjects walks the objects layer only (floors are a separate array).
+            if content.get(id).map(|d| d.floor).unwrap_or(false) {
+                continue;
+            }
+            let counted = LongTermState::count_as_of(content, id);
+            if content.get(counted).map(|d| d.floor).unwrap_or(false) {
+                continue;
+            }
+            bump_count_map(&mut obj_list, counted);
         }
     }
     if include_contained_nest {
@@ -1080,6 +1088,20 @@ pub const OBJECT_COUNTS_RECOMPUTE_TICKS: u64 = 600;
 pub fn should_update_object_counts(tick: u64) -> bool {
     let period = OBJECT_COUNTS_RECOMPUTE_TICKS.max(1);
     (tick.wrapping_add(20)) % period == 0
+}
+
+/// Haxe TimeHelper: `(tick + 20) % TicksBetweenSaving == 0` → `updateObjectCounts`.
+pub fn maybe_update_object_counts(
+    tick: u64,
+    world: &World,
+    content: &ContentDb,
+    long_term: &mut LongTermState,
+) -> bool {
+    if !should_update_object_counts(tick) {
+        return false;
+    }
+    long_term.update_object_counts(world, content);
+    true
 }
 
 impl LongTermState {
@@ -2638,6 +2660,29 @@ mod tests {
     }
 
     #[test]
+    fn count_objects_from_world_skips_floor_layer() {
+        let mut db = ContentDb::default();
+        db.objects.insert(33, ObjectDef::empty(33));
+        db.objects.insert(
+            1596,
+            ObjectDef {
+                floor: true,
+                ..ObjectDef::empty(1596)
+            },
+        );
+        let mut world = World::new(3, 3, false);
+        world.set_object(0, 0, 33);
+        world.set_object(1, 0, 1596);
+        let ground = count_objects_from_world(&world, &db, false);
+        assert_eq!(ground.get(&33), Some(&1));
+        assert!(
+            ground.get(&1596).is_none(),
+            "floors are a separate Haxe array and must not inflate object counts"
+        );
+        assert_eq!(ground.values().copied().sum::<i32>(), 1);
+    }
+
+    #[test]
     fn count_objects_from_world_includes_contained_nest() {
         let mut db = ContentDb::default();
         db.objects.insert(391, ObjectDef::empty(391)); // basket
@@ -2766,6 +2811,20 @@ mod tests {
         assert!(!should_update_object_counts(0));
         assert!(!should_update_object_counts(600));
         assert!(!should_update_object_counts(20));
+    }
+
+    #[test]
+    fn maybe_update_object_counts_runs_only_on_haxe_tick() {
+        let mut db = ContentDb::default();
+        db.objects.insert(33, ObjectDef::empty(33));
+        let mut world = World::new(3, 3, false);
+        world.set_object(0, 0, 33);
+        let mut lt = LongTermState::default();
+        assert!(!maybe_update_object_counts(0, &world, &db, &mut lt));
+        assert!(lt.current_counts.is_empty());
+        assert!(maybe_update_object_counts(580, &world, &db, &mut lt));
+        assert!(lt.counts_ready);
+        assert_eq!(lt.current_counts.get(&33), Some(&1));
     }
 
     #[test]

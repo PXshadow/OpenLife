@@ -5,10 +5,9 @@
 //! 9s `lastTimeEmoteSend` rate limit.
 //!
 //! **FEVER-HUNGER-PE (death-path split):** Haxe starving PE 31 fires while
-//! `food_store < 0` and still alive (Haxe death is `food_store_max <
-//! DeathWithFoodStoreMax`, not food&lt;0). Rust kills at `food < 0`, so PE 31
-//! cannot emit on a living player. Living hunger is the separate product path
-//! PE 1 (`Emote.mad`) when `0 <= food < 3` every 8s — not this ladder.
+//! `food_store < 0` and still alive (death is `food_store_max <
+//! DeathWithFoodStoreMax`, not food&lt;0). Living hunger is the separate product
+//! path PE 1 (`Emote.mad`) when `0 <= food < 3` every 8s — not this ladder.
 //!
 //! Chunk: **FEVER-EMOTE** / `fever_pe`
 

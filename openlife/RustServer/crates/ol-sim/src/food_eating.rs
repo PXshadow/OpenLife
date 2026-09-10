@@ -275,7 +275,10 @@ pub fn try_do_eating(state: &mut SimState, from_conn: u64, to_conn: u64) -> bool
         if computed.is_super_meh {
             pending_super_meh = Some(trade);
         }
-        p.food = (p.food + gain).min(p.food_max);
+        // Haxe addFood: overflow → yum_bonus extra pips (not discarded).
+        let (nf, nb) = crate::food_store_max::add_food(p.food, p.food_max, gain, p.yum.yum_bonus);
+        p.food = nf;
+        p.yum.yum_bonus = nb;
         if !computed.is_super_meh {
             let amount = if computed.has_eaten_delta != 0.0 {
                 computed.has_eaten_delta
@@ -496,7 +499,7 @@ fn credit_prestige_coins(state: &mut SimState, p_id: i32, amount: f32) {
     }
 }
 
-fn add_yum_prestige(state: &mut SimState, p_id: i32, delta: f32) {
+pub(crate) fn add_yum_prestige(state: &mut SimState, p_id: i32, delta: f32) {
     if !delta.is_finite() || delta == 0.0 {
         return;
     }
@@ -1141,6 +1144,75 @@ mod tests {
                 .unwrap_or(0.0)
                 > 0.0,
             "feed-other must add_food_statistic"
+        );
+        assert!((eater.yum.get_count_eaten(31) - 1.0).abs() < 1e-4);
+    }
+
+    /// Haxe addFood: eating past food_store_max stores overflow as yum_bonus extra pips.
+    #[test]
+    fn try_do_eating_overflow_goes_to_yum_bonus() {
+        let mut db = ContentDb::default();
+        db.objects.insert(31, food_def(31, 5));
+        let mut state = SimState::with_default_empty(Arc::new(db));
+        setup_feed_other(&mut state, 31);
+        {
+            let p = state.players.get_mut(&2).unwrap();
+            p.food = 18.0;
+            p.food_max = 20.0;
+            p.yum.yum_bonus = 0.0;
+        }
+        let knobs = state.gameplay.eat_live_knobs();
+        let fill = crate::compute_eat_full(5, 0.0, knobs).fill;
+        let world_ff = state.world_food.get_food_factor(31);
+        let starve_ff = state.world_food.get_starving_food_factor_at(state.sim_time);
+        let want = crate::apply_world_food_factors(fill, world_ff, starve_ff);
+        assert!(try_do_eating(&mut state, 1, 2));
+        let eater = state.players.get(&2).unwrap();
+        let (want_food, want_yum) = crate::food_store_max::add_food(18.0, 20.0, want, 0.0);
+        assert!((eater.food - want_food).abs() < 1e-3, "food {}", eater.food);
+        assert!(
+            (eater.yum.yum_bonus - want_yum).abs() < 1e-3,
+            "yum_bonus {} want {want_yum}",
+            eater.yum.yum_bonus
+        );
+        assert!(
+            want_yum > 0.0,
+            "overflow eat must store extra pips as yum_bonus"
+        );
+        assert!((eater.yum.get_count_eaten(31) - 1.0).abs() < 1e-4);
+    }
+
+    /// Craving (count_eaten < 0) extra fill + hasEaten increment matches compute_eat.
+    #[test]
+    fn try_do_eating_craving_fill_and_count_eaten() {
+        let mut db = ContentDb::default();
+        db.objects.insert(31, food_def(31, 5));
+        let mut state = SimState::with_default_empty(Arc::new(db));
+        setup_feed_other(&mut state, 31);
+        {
+            let p = state.players.get_mut(&2).unwrap();
+            p.food = 2.0;
+            p.food_max = 200.0;
+            p.yum.has_eaten.insert(31, -4.0);
+        }
+        let computed = crate::compute_eat_full(5, -4.0, state.gameplay.eat_live_knobs());
+        assert!(computed.is_craving);
+        let world_ff = state.world_food.get_food_factor(31);
+        let starve_ff = state.world_food.get_starving_food_factor_at(state.sim_time);
+        let want = crate::apply_world_food_factors(computed.fill, world_ff, starve_ff);
+        assert!(try_do_eating(&mut state, 1, 2));
+        let eater = state.players.get(&2).unwrap();
+        assert!(
+            (eater.food - (2.0 + want)).abs() < 1e-3,
+            "craving fill {} want {}",
+            eater.food,
+            2.0 + want
+        );
+        // -4 + has_eaten_delta (2)
+        assert!(
+            (eater.yum.get_count_eaten(31) - (-4.0 + computed.has_eaten_delta)).abs() < 1e-4,
+            "count_eaten {}",
+            eater.yum.get_count_eaten(31)
         );
     }
 

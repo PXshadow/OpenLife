@@ -127,6 +127,8 @@ fn apply_haxe_object_id_remainder(db: &mut ContentDb) {
         (2145, 2142),
         (279, 30),
         (164, 161),
+        (165, 161), // Rabbit Hole peeking2
+        (166, 161), // Rabbit Hole peeking1
         (173, 161),
         (3566, 161),
         (532, 531),

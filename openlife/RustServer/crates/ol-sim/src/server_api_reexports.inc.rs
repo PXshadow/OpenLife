@@ -88,7 +88,9 @@ pub use ai_path_reach::resolve_sticky_food;
 pub use players_persist::save_players;
 pub use score_entry::save_score_entries;
 pub use short_craft_intent::profession_scan::scan_held_hungry_work_cost;
-pub use short_craft_intent::profession_scan::scan_world_radius;
+pub use short_craft_intent::profession_scan::{
+    filter_scan_tiles_in_radius, scan_world_radius,
+};
 pub use short_craft_intent::drop_held_ai::self_clothing_raw_payload;
 pub use shepherd_profession::SHEPHERD_SHORTCRAFT_RADIUS;
 pub use short_craft_intent::drop_held_ai::smart_drop_held_from_sensors;

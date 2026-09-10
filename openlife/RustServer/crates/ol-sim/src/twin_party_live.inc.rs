@@ -150,6 +150,7 @@ fn process_ready_twin_party(
                 pl.true_age = 0.01;
                 pl.food = START_FOOD;
                 pl.food_max = MAX_FOOD;
+                pl.exhaustion = crate::food_store_max::spawn_exhaustion_credit(pl.food_max);
                 pl.display_object_id = twin_po;
                 pl.held_id = 0;
                 pl.held_by = 0;

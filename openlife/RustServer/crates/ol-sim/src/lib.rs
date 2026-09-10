@@ -198,7 +198,14 @@ pub use health_prestige::{
     clothing_prestige_factor_from_content, coins_from_prestige_count, is_eve_or_adam_name,
     prestige_fan_deltas, prestige_fan_deltas_ex, PrestigeFanDelta, PRESTIGE_LEADER_CHAIN_DEPTH,
 };
-pub use object_counts_share::{ObjectCountsShare, ObjectCountsSnapshot};
+pub use object_counts_share::{
+    compact_object_count_series, format_object_count_journal_line, load_object_count_journal,
+    mirror_object_counts_share, nearest_sample_at_or_before, parse_object_count_journal_line,
+    pct_change, sample_count_of, should_record_object_count_sample, ObjectCountSample,
+    ObjectCountSeries, ObjectCountTop, ObjectCountsShare, ObjectCountsSnapshot, MS_DAY, MS_MONTH,
+    MS_WEEK, OBJECT_COUNT_LIST_DEFAULT, OBJECT_COUNT_SAMPLE_INTERVAL_MS, OBJECT_COUNT_SERIES_MAX,
+    OBJECT_COUNT_TOP_N,
+};
 // --- Port residual crate-root reexports (minimal + profession runtimes) ---
 pub use ai_handler::{
     new_llm_speech_io_share, take_completed_llm_results_from_share, LlmSpeechIoShare, LlmSpeechJob,
@@ -873,6 +880,8 @@ pub const DESERT_EXTRA: f32 = 0.02;
 pub const AGE_YEARS_PER_SEC: f32 = 1.0 / 60.0;
 pub const START_FOOD: f32 = 10.0;
 pub const MAX_FOOD: f32 = 20.0;
+/// Food store below this is Haxe starving (`food_store < 0`). Hunger PE 1 uses
+/// this as the living-food floor; death is [`food_store_max::food_max_is_deadly`].
 pub const DEATH_FOOD_THRESHOLD: f32 = 0.0;
 /// Age above which food drain is increased (old age).
 pub const OLD_AGE_THRESHOLD: f32 = 60.0;
@@ -8219,6 +8228,9 @@ pub fn packets_after_use(state: &SimState, conn_id: u64, r: &UseResult) -> Vec<V
     let spd = player_move_speed(state, p);
     // HORSE-EAT-FX: doEating PU carries just_ate / last_ate / responsible_id.
     let clothing = player_clothing_set(p);
+    // Empty-hand pickup: Haxe SetTransitionData(x, y, pickUpObject) → o_origin_valid.
+    let pickup = r.actor_before <= 0 && p.held_id > 0;
+    let (ov, ox, oy) = if pickup { (1, mx, my) } else { (0, 0, 0) };
     let pu = if p.yum.just_ate {
         format_player_update_line_full_clothing_responsible(
             p.p_id,
@@ -8234,16 +8246,16 @@ pub fn packets_after_use(state: &SimState, conn_id: u64, r: &UseResult) -> Vec<V
             0,
             0,
             0,
-            0,
-            0,
-            0,
+            ov,
+            ox,
+            oy,
             -1,
             p.done_moving_seq.max(1),
             &clothing,
             p.yum.responsible_id,
         )
     } else {
-        format_live_pu_line(state, p, px, py, 0)
+        format_live_pu_line_origin(state, p, px, py, 0, ov, ox, oy)
     };
     out.push(format_server_message("PU", &[&pu]).into_bytes());
     out.push(food_change_for_player(state, p).into_bytes());
@@ -8446,13 +8458,11 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
         false,
     );
     // Haxe SpawnAiAsEve=false: AI does not Eve-roll or pair as Eve while a mother exists.
-    let mut spawn_as_eve = if !is_human && !spawn_ai {
-        false
-    } else {
-        pairing_eve || roll_eve
-    };
+    // Haxe: spawnEve = own-pool last Eve OR ((SpawnAiAsEve || isHuman) && chance roll).
+    // Pairing still happens for AI when SpawnAiAsEve is false.
+    let mut spawn_as_eve = pairing_eve || roll_eve;
     let (sx, sy) = if !spawn_as_eve {
-        if let Some(mid) = pick_best_mother_p_id(state) {
+        if let Some(mid) = pick_best_mother_p_id_for(state, is_human) {
             mother_link = Some(mid);
             if let Some(m) = state.players.values().find(|pl| pl.p_id == mid) {
                 (m.x, m.y)
@@ -8469,7 +8479,14 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     };
     let mut eve_pair: Option<crate::eve_spawn::EvePairResolve> = None;
     let (sx, sy) = if mother_link.is_none() {
-        let living = state.players.values().filter(|pl| !pl.deleted).count();
+        // Haxe GetNumberLifingPlayers = human connections only (not ServerAi).
+        let living_humans = state
+            .players
+            .values()
+            .filter(|pl| {
+                !pl.deleted && crate::eve_spawn::is_human_login_conn(pl.conn_id)
+            })
+            .count();
         let last_ai = crate::eve_spawn::clear_deleted_last_eve(state.last_ai_eve, |id| {
             state
                 .players
@@ -8483,7 +8500,7 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
                 .any(|pl| pl.p_id == id && !pl.deleted)
         });
         let allow = crate::eve_spawn::allow_human_ai_eve_cross_ex(
-            living,
+            living_humans,
             state.gameplay.max_players_before_starting_as_child,
         );
         let resolve = crate::eve_spawn::resolve_eve_pair_partner(
@@ -8567,6 +8584,8 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     }
     p.food = START_FOOD;
     p.food_max = MAX_FOOD;
+    // Haxe GPI init: exhaustion = -food_store_max (starts un-exhausted).
+    p.exhaustion = crate::food_store_max::spawn_exhaustion_credit(p.food_max);
     if mother_link.is_some() {
         // Haxe spawnAsChild: age = trueAge = 0.01
         p.age = 0.01;
@@ -8587,7 +8606,7 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     state.accounts.on_spawn(email, p_id, &display);
     state.players.insert(conn_id, p);
     if let Some(mid) = mother_link {
-        attach_fitness_mother_lineage(state, p_id, &display, mid, sx, sy);
+        attach_fitness_mother_lineage(state, p_id, &display, mid, sx, sy, is_human);
     } else {
         // Eve/Adam wild birth: root lineage (Haxe EveOrAdam).
         // Haxe: Lineage.new birthTime = TimeHelper.tick
@@ -8730,6 +8749,7 @@ pub fn spawn_child(state: &mut SimState, mother_conn: u64) -> Option<i32> {
     baby.cold_place = mother.cold_place;
     baby.food = START_FOOD;
     baby.food_max = MAX_FOOD;
+    baby.exhaustion = crate::food_store_max::spawn_exhaustion_credit(baby.food_max);
     baby.age = 0.0;
     // Haxe: GPI.angryTime = ServerSettings.CombatAngryTimeBeforeAttack
     baby.angry_time = state.gameplay.combat_angry_time_before_attack_live();
@@ -8863,6 +8883,20 @@ fn player_clothing_set(p: &Player) -> String {
 
 /// Live PU with worn clothing (Haxe `toData` clothing_set). `force=1` unstick.
 fn format_live_pu_line(state: &SimState, p: &Player, rx: i32, ry: i32, force: i32) -> String {
+    format_live_pu_line_origin(state, p, rx, ry, force, 0, 0, 0)
+}
+
+/// Live PU with optional held-origin (Haxe `SetTransitionData` when `pickUpObject`).
+fn format_live_pu_line_origin(
+    state: &SimState,
+    p: &Player,
+    rx: i32,
+    ry: i32,
+    force: i32,
+    o_origin_valid: i32,
+    ox: i32,
+    oy: i32,
+) -> String {
     format_player_update_line_full_clothing(
         p.p_id,
         person_object_id(p),
@@ -8877,9 +8911,9 @@ fn format_live_pu_line(state: &SimState, p: &Player, rx: i32, ry: i32, force: i3
         0,
         0,
         0,
-        0,
-        0,
-        0,
+        o_origin_valid,
+        ox,
+        oy,
         -1,
         p.done_moving_seq.max(1),
         &player_clothing_set(p),
@@ -9058,27 +9092,18 @@ pub fn catch_up_extra_steps(tick_after_base: u64, periods_behind: u32, max_extra
 }
 
 pub fn pick_best_mother_p_id(state: &SimState) -> Option<i32> {
-    // CLASS-BONI: Haxe child.lineage.prestigeClass (default Commoner when not pre-scored).
-    // // Haxe: Lineage.prestigeClass = Commoner; calculatePrestigeClass at GPI new
+    pick_best_mother_p_id_for(state, true)
+}
+
+/// Haxe `GetFittestMother` — all living players, mixed human/AI with mali, plus father/2.
+// Haxe: GlobalPlayerInstance.GetFittestMother L1438–1467
+pub fn pick_best_mother_p_id_for(state: &SimState, child_is_human: bool) -> Option<i32> {
+    let child_class = PrestigeClass::Commoner as u8;
     let child = ChildView {
-        is_human: true,
-        prestige_class: PrestigeClass::Commoner as u8,
+        is_human: child_is_human,
+        prestige_class: child_class,
     };
     let min_eat = state.gameplay.min_age_to_eat;
-    let kid_rows: Vec<(i32, f32, bool, Option<i32>, Option<i32>)> = state
-        .players
-        .values()
-        .map(|pl| {
-            let lin = state.social.lineages.get(&pl.p_id);
-            (
-                pl.p_id,
-                pl.age,
-                pl.deleted,
-                lin.and_then(|n| n.mother_id),
-                lin.and_then(|n| n.father_id),
-            )
-        })
-        .collect();
     let knobs = BirthSpawnKnobs {
         little_kids_per_mother: state.gameplay.little_kids_per_mother,
         ai_mother_birth_mali_for_human_child: state.gameplay.ai_mother_birth_mali_for_human_child,
@@ -9086,43 +9111,71 @@ pub fn pick_best_mother_p_id(state: &SimState) -> Option<i32> {
     };
     let min_age = state.gameplay.min_age_fertile;
     let max_age = state.gameplay.max_age_fertile;
+    // Haxe: considerFamily = child.isAi() ? rand < 0.5 : rand < 0.8
+    let consider_family = if child_is_human {
+        rand::random::<f32>() < 0.8
+    } else {
+        rand::random::<f32>() < 0.5
+    };
     let mut best: Option<(i32, f32)> = None;
     for p in state.players.values() {
-        if p.deleted
-            || !crate::birth_fitness::is_mother_age_fertile_ex(p.age, min_age, max_age)
-        {
+        if p.deleted {
             continue;
         }
-        let mali = state
-            .fertility
-            .by_mother
+        let kids = parent_child_kids_for(state, p.p_id);
+        let pc = crate::birth_fitness::parent_child_fitness(
+            crate::eve_spawn::is_human_login_conn(p.conn_id),
+            child_is_human,
+            &kids,
+            min_eat,
+            knobs.little_kids_per_mother,
+        );
+        let held_speed = state
+            .content
+            .get(p.held_id)
+            .map(|d| d.speed_mult)
+            .unwrap_or(1.0);
+        let prestige_eat = state
+            .social
+            .lineages
             .get(&p.p_id)
-            .map(|r| r.children_birth_mali)
+            .map(|n| n.prestige_from.eating)
             .unwrap_or(0.0);
-        let little = count_little_kids(p.p_id, min_eat, &kid_rows);
         let m = MotherView {
             deleted: false,
-            is_female: true,
+            is_female: player_is_female(state, p),
             age: p.age,
             food: p.food,
             food_max: p.food_max,
-            exhaustion: 0.0,
-            heat: 0.5,
-            wounded: false,
+            exhaustion: p.exhaustion,
+            heat: p.heat,
+            wounded: p.is_wounded_held(crate::is_wound_object(&state.content, p.held_id)),
             held_id: p.held_id,
-            held_speed_mult: 1.0,
-            children_birth_mali: mali,
-            // CLASS-BONI: live mother lineage class for calculateClassBoni
+            held_speed_mult: held_speed,
+            children_birth_mali: state
+                .fertility
+                .by_mother
+                .get(&p.p_id)
+                .map(|r| r.children_birth_mali)
+                .unwrap_or(0.0),
             prestige_class: state.player_prestige_class(p.p_id).as_i32() as u8,
-            prestige_from_eating: 0.0,
+            prestige_from_eating: prestige_eat,
             family_prestige_for_child: 0.0,
             has_close_nonblocking_grave: false,
             has_close_blocking_grave: false,
-            is_human: true,
-            little_kids_count: little.max(0) as u32,
+            is_human: crate::eve_spawn::is_human_login_conn(p.conn_id),
+            little_kids_count: kids.iter().filter(|k| k.age <= min_eat).count() as u32,
+            parent_child_fitness: pc,
+            consider_family,
         };
-        let fit = mother_fitness_with_birth_knobs(&m, &child, min_age, max_age, &knobs);
-        if fit <= 0.0 {
+        let mut fit = mother_fitness_with_birth_knobs(&m, &child, min_age, max_age, &knobs);
+        if !crate::birth_fitness::fitness_is_eligible(fit) {
+            continue;
+        }
+        let father_fit = pick_best_father_fitness_for(state, p.p_id, child_is_human, consider_family)
+            .unwrap_or(-50.0);
+        fit += father_fit / 2.0;
+        if !crate::birth_fitness::fitness_is_eligible(fit) {
             continue;
         }
         match best {
@@ -9133,68 +9186,135 @@ pub fn pick_best_mother_p_id(state: &SimState) -> Option<i32> {
     best.map(|(id, _)| id)
 }
 
+fn parent_child_kids_for(
+    state: &SimState,
+    parent_p_id: i32,
+) -> Vec<crate::birth_fitness::ParentChildKid> {
+    state
+        .players
+        .values()
+        .filter(|pl| !pl.deleted && pl.p_id != parent_p_id)
+        .filter(|pl| {
+            state
+                .social
+                .lineages
+                .get(&pl.p_id)
+                .map(|n| n.mother_id == Some(parent_p_id) || n.father_id == Some(parent_p_id))
+                .unwrap_or(false)
+        })
+        .map(|pl| crate::birth_fitness::ParentChildKid {
+            is_human: crate::eve_spawn::is_human_login_conn(pl.conn_id),
+            age: pl.age,
+        })
+        .collect()
+}
+
+fn is_close_relative_p_ids(state: &SimState, a: i32, b: i32) -> bool {
+    if a <= 0 || b <= 0 || a == b {
+        return false;
+    }
+    let Some(na) = state.social.lineages.get(&a) else {
+        return false;
+    };
+    let Some(nb) = state.social.lineages.get(&b) else {
+        return false;
+    };
+    if na.mother_id == Some(b) || na.father_id == Some(b) {
+        return true;
+    }
+    if nb.mother_id == Some(a) || nb.father_id == Some(a) {
+        return true;
+    }
+    if na.mother_id.is_some() && na.mother_id == nb.mother_id {
+        return true;
+    }
+    if na.father_id.is_some() && na.father_id == nb.father_id {
+        return true;
+    }
+    if let Some(mid) = nb.mother_id {
+        if state
+            .social
+            .lineages
+            .get(&mid)
+            .and_then(|n| n.mother_id)
+            == Some(a)
+        {
+            return true;
+        }
+    }
+    if let Some(fid) = nb.father_id {
+        if state
+            .social
+            .lineages
+            .get(&fid)
+            .and_then(|n| n.father_id)
+            == Some(a)
+        {
+            return true;
+        }
+    }
+    if let Some(mid) = na.mother_id {
+        if state
+            .social
+            .lineages
+            .get(&mid)
+            .and_then(|n| n.mother_id)
+            == Some(b)
+        {
+            return true;
+        }
+    }
+    if let Some(fid) = na.father_id {
+        if state
+            .social
+            .lineages
+            .get(&fid)
+            .and_then(|n| n.father_id)
+            == Some(b)
+        {
+            return true;
+        }
+    }
+    false
+}
+
 pub fn pick_best_father_p_id(state: &SimState, mother_p_id: i32) -> Option<i32> {
-    let mother = state.players.values().find(|p| p.p_id == mother_p_id)?;
-    // CLASS-BONI: child class for fitness path (father boni uses mother class).
-    let child = ChildView {
-        is_human: true,
-        prestige_class: PrestigeClass::Commoner as u8,
-    };
-    let mother_mali = state
-        .fertility
-        .by_mother
-        .get(&mother_p_id)
-        .map(|r| r.children_birth_mali)
-        .unwrap_or(0.0);
-    let mother_view = MotherView {
-        deleted: mother.deleted,
-        is_female: true,
-        age: mother.age,
-        food: mother.food,
-        food_max: mother.food_max,
-        exhaustion: 0.0,
-        heat: 0.5,
-        wounded: false,
-        held_id: mother.held_id,
-        held_speed_mult: 1.0,
-        children_birth_mali: mother_mali,
-        // CLASS-BONI: father fitness uses calculateClassBoni(father, mother)
-        prestige_class: state.player_prestige_class(mother_p_id).as_i32() as u8,
-        prestige_from_eating: 0.0,
-        family_prestige_for_child: 0.0,
-        has_close_nonblocking_grave: false,
-        has_close_blocking_grave: false,
-        is_human: true,
-        little_kids_count: 0,
-    };
-    let mx = mother.x;
-    let my = mother.y;
+    pick_best_father_p_id_for_child(state, mother_p_id, true, false)
+}
+
+fn pick_best_father_fitness_for(
+    state: &SimState,
+    mother_p_id: i32,
+    child_is_human: bool,
+    consider_family: bool,
+) -> Option<f32> {
+    pick_best_father_p_id_for_child(state, mother_p_id, child_is_human, consider_family)
+        .and_then(|fid| {
+            father_fit_for(state, mother_p_id, fid, child_is_human, consider_family)
+        })
+}
+
+pub fn pick_best_father_p_id_for_child(
+    state: &SimState,
+    mother_p_id: i32,
+    child_is_human: bool,
+    consider_family: bool,
+) -> Option<i32> {
     let mut best: Option<(i32, f32)> = None;
     for pl in state.players.values() {
         if pl.deleted || pl.p_id == mother_p_id {
             continue;
         }
-        let dist = ((pl.x - mx).abs().max((pl.y - my).abs())) as f32;
-        let f = FatherView {
-            deleted: false,
-            age: pl.age,
-            food: pl.food,
-            food_max: pl.food_max,
-            exhaustion: 0.0,
-            heat: 0.5,
-            wounded: false,
-            held_id: pl.held_id,
-            held_speed_mult: 1.0,
-            // CLASS-BONI: live father lineage class
-            prestige_class: state.player_prestige_class(pl.p_id).as_i32() as u8,
-            prestige_from_eating: 0.0,
-            is_human: true,
-            dist_to_mother: dist,
-            is_partner: false,
-            little_kids_count: 0,
+        let Some(fit) = father_fit_for(
+            state,
+            mother_p_id,
+            pl.p_id,
+            child_is_human,
+            consider_family,
+        ) else {
+            continue;
         };
-        let fit = father_fitness(&f, &child, &mother_view);
-        if fit <= 0.0 {
+        if !crate::birth_fitness::fitness_is_eligible(fit) {
             continue;
         }
         match best {
@@ -9205,6 +9325,101 @@ pub fn pick_best_father_p_id(state: &SimState, mother_p_id: i32) -> Option<i32> 
     best.map(|(id, _)| id)
 }
 
+fn father_fit_for(
+    state: &SimState,
+    mother_p_id: i32,
+    father_p_id: i32,
+    child_is_human: bool,
+    consider_family: bool,
+) -> Option<f32> {
+    let mother = state.players.values().find(|p| p.p_id == mother_p_id)?;
+    let pl = state.players.values().find(|p| p.p_id == father_p_id)?;
+    let mother_lin = state.social.lineages.get(&mother_p_id);
+    let mother_father = mother_lin.and_then(|n| n.father_id);
+    let dx = (pl.x - mother.x) as f32;
+    let dy = (pl.y - mother.y) as f32;
+    let quad = dx * dx + dy * dy;
+    let prestige_eat = state
+        .social
+        .lineages
+        .get(&pl.p_id)
+        .map(|n| n.prestige_from.eating)
+        .unwrap_or(0.0);
+    let child = ChildView {
+        is_human: child_is_human,
+        prestige_class: PrestigeClass::Commoner as u8,
+    };
+    let mother_view = MotherView {
+        deleted: mother.deleted,
+        is_female: player_is_female(state, mother),
+        age: mother.age,
+        food: mother.food,
+        food_max: mother.food_max,
+        exhaustion: mother.exhaustion,
+        heat: mother.heat,
+        wounded: mother.is_wounded_held(crate::is_wound_object(&state.content, mother.held_id)),
+        held_id: mother.held_id,
+        held_speed_mult: 1.0,
+        children_birth_mali: state
+            .fertility
+            .by_mother
+            .get(&mother_p_id)
+            .map(|r| r.children_birth_mali)
+            .unwrap_or(0.0),
+        prestige_class: state.player_prestige_class(mother_p_id).as_i32() as u8,
+        prestige_from_eating: 0.0,
+        family_prestige_for_child: 0.0,
+        has_close_nonblocking_grave: false,
+        has_close_blocking_grave: false,
+        is_human: crate::eve_spawn::is_human_login_conn(mother.conn_id),
+        little_kids_count: 0,
+        parent_child_fitness: 0.0,
+        consider_family,
+    };
+    let f = FatherView {
+        deleted: false,
+        age: pl.age,
+        food: pl.food,
+        food_max: pl.food_max,
+        exhaustion: pl.exhaustion,
+        heat: pl.heat,
+        wounded: pl.is_wounded_held(crate::is_wound_object(&state.content, pl.held_id)),
+        held_id: pl.held_id,
+        held_speed_mult: state
+            .content
+            .get(pl.held_id)
+            .map(|d| d.speed_mult)
+            .unwrap_or(1.0),
+        prestige_class: state.player_prestige_class(pl.p_id).as_i32() as u8,
+        prestige_from_eating: prestige_eat,
+        is_human: crate::eve_spawn::is_human_login_conn(pl.conn_id),
+        dist_to_mother: quad,
+        is_partner: mother.partner_p_id == pl.p_id,
+        mother_is_partner: pl.partner_p_id == mother.p_id,
+        little_kids_count: 0,
+        is_female: player_is_female(state, pl),
+        is_close_relative: is_close_relative_p_ids(state, pl.p_id, mother.p_id),
+        mother_has_other_partner: mother.partner_p_id != 0 && mother.partner_p_id != pl.p_id,
+        is_mothers_father: mother_father == Some(pl.p_id),
+        children_birth_mali: state
+            .fertility
+            .by_mother
+            .get(&pl.p_id)
+            .map(|r| r.children_birth_mali)
+            .unwrap_or(0.0),
+        family_prestige_for_child: 0.0,
+        consider_family,
+    };
+    let knobs = BirthSpawnKnobs {
+        little_kids_per_mother: state.gameplay.little_kids_per_mother,
+        ai_mother_birth_mali_for_human_child: state.gameplay.ai_mother_birth_mali_for_human_child,
+        human_mother_birth_mali_for_ai_child: state.gameplay.human_mother_birth_mali_for_ai_child,
+    };
+    Some(crate::birth_fitness::father_fitness_with_birth_knobs(
+        &f, &child, &mother_view, &knobs,
+    ))
+}
+
 pub fn attach_fitness_mother_lineage(
     state: &mut SimState,
     child_p_id: i32,
@@ -9212,6 +9427,7 @@ pub fn attach_fitness_mother_lineage(
     mother_p_id: i32,
     marker_x: i32,
     marker_y: i32,
+    child_is_human: bool,
 ) -> Option<i32> {
     let mother_name = state
         .players
@@ -9256,7 +9472,7 @@ pub fn attach_fitness_mother_lineage(
         let aid = state.accounts.ensure(&child_email).id;
         child_node.stamp_account_id(aid);
     }
-    let father_id = pick_best_father_p_id(state, mother_p_id);
+    let father_id = pick_best_father_p_id_for_child(state, mother_p_id, child_is_human, false);
     if let Some(fid) = father_id {
         child_node.father_id = Some(fid);
     }
@@ -9264,10 +9480,27 @@ pub fn attach_fitness_mother_lineage(
     state
         .markers
         .set_mother_marker(child_p_id, marker_x, marker_y, mother_p_id);
+    // Haxe spawnAsChild: followPlayer = mother
+    let _ = state.social.set_follow(child_p_id, mother_p_id);
     {
         let r = state.fertility.record_mut(mother_p_id);
         r.children_birth_mali =
             crate::birth_fitness::next_children_birth_mali(r.children_birth_mali);
+    }
+    if let Some(gmid) = state
+        .social
+        .lineages
+        .get(&mother_p_id)
+        .and_then(|n| n.mother_id)
+    {
+        let r = state.fertility.record_mut(gmid);
+        r.children_birth_mali =
+            crate::birth_fitness::next_children_birth_mali_half(r.children_birth_mali);
+    }
+    if let Some(fid) = father_id {
+        let r = state.fertility.record_mut(fid);
+        r.children_birth_mali =
+            crate::birth_fitness::next_children_birth_mali_half(r.children_birth_mali);
     }
     state.push_event(format!(
         "SPAWN {child_p_id} mother={mother_p_id} father={} fitness",
@@ -11128,7 +11361,7 @@ pub fn tick_vitals(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
 }
 
 /// Haxe `TimeHelper.UpdateEmotes` live PE ladder (`tick % 30`).
-/// Starving PE 31 needs `food < 0`; living players never reach that (death first).
+/// Starving PE 31 fires while `food < 0` and still alive (death is food_max line).
 /// Living hunger face is PE 1 (`HUNGER_EMOT_*`), not this ladder.
 // Haxe: TimeHelper.DoTimeStuffForPlayer L251 + UpdateEmotes L631
 // FEVER-HUNGER-PE
@@ -11511,6 +11744,20 @@ pub fn tick_vitals_with_metrics(
         .filter(|(_, p)| !p.deleted)
         .map(|(&cid, p)| (cid, state.player_health_age_factor(p.p_id, p.true_age)))
         .collect();
+    let hits_by_pid: HashMap<i32, f32> = state
+        .players
+        .values()
+        .filter(|p| !p.deleted)
+        .map(|p| (p.p_id, state.combat.hits_of(p.p_id)))
+        .collect();
+    let prestige_by_pid: HashMap<i32, f32> = state
+        .players
+        .values()
+        .filter(|p| !p.deleted)
+        .map(|p| (p.p_id, state.player_prestige(p.p_id)))
+        .collect();
+    let food_max_knobs = state.gameplay.food_store_max_knobs();
+    let death_line = state.gameplay.death_with_food_store_max_live();
 
     let food_fx_before: HashMap<u64, (i32, i32, i32)> = state
         .players
@@ -11637,6 +11884,8 @@ pub fn tick_vitals_with_metrics(
     let angry_before = state.gameplay.combat_angry_time_before_attack_live();
     let restore_per_year = state.gameplay.combat_reputation_restore_per_year;
     let mut combat_restore: Vec<(i32, f32)> = Vec::new();
+    let mut hits_updates: Vec<(i32, f32)> = Vec::new();
+    let mut prestige_burns: Vec<(i32, f32)> = Vec::new();
     for (cid, p) in state.players.iter_mut() {
         if p.deleted {
             continue;
@@ -11781,12 +12030,40 @@ pub fn tick_vitals_with_metrics(
             p.heat =
                 (p.heat + crate::food_store_max::yellow_fever_heat_delta(dt, held_by)).min(1.0);
         }
-        p.food -= drain * dt;
+        // Haxe updateFoodAndDoHealing: food may go negative; starve hits shrink
+        // max pips; yum_bonus drains first; death is food_store_max < DeathWithFoodStoreMax.
+        let original_decay = p.food_use_per_second.max(0.0) * dt;
+        let decay = drain * dt;
+        let hits_before = hits_by_pid.get(&p.p_id).copied().unwrap_or(0.0);
+        let yum_m = prestige_by_pid.get(&p.p_id).copied().unwrap_or(0.0);
+        let starve = crate::food_store_max::apply_starve_food_decay(
+            p.food,
+            p.yum.yum_bonus,
+            hits_before,
+            yum_m,
+            decay,
+            original_decay,
+        );
+        p.yum.yum_bonus = starve.yum_bonus;
+        p.food = starve.food;
+        hits_updates.push((p.p_id, starve.hits));
+        let yum_delta = starve.yum_multiplier - yum_m;
+        if yum_delta.abs() > 0.0 {
+            prestige_burns.push((p.p_id, yum_delta));
+        }
+        let health_f = health_food_by_cid.get(cid).copied().unwrap_or(1.0);
+        let new_max = crate::food_store_max_from_parts_ex(
+            p.age,
+            p.food,
+            starve.hits,
+            p.exhaustion,
+            health_f,
+            food_max_knobs,
+        );
+        p.food_max = new_max;
         // Starving infant: accumulate emit timer; fire BW+DY every ~5s sim time.
-        if p.age < BABY_AGE_THRESHOLD
-            && p.food < STARVING_FOOD_THRESHOLD
-            && p.food >= DEATH_FOOD_THRESHOLD
-        {
+        // Still emit while food is negative (alive until max pips are gone).
+        if p.age < BABY_AGE_THRESHOLD && p.food < STARVING_FOOD_THRESHOLD {
             p.vitals_emit_timer += dt;
             if p.vitals_emit_timer >= VITALS_EMIT_INTERVAL_SECS {
                 p.vitals_emit_timer = 0.0;
@@ -11816,11 +12093,10 @@ pub fn tick_vitals_with_metrics(
         } else {
             p.sleep_emot_timer = 0.0;
         }
-        if p.food < DEATH_FOOD_THRESHOLD {
-            p.food = 0.0;
+        if crate::food_store_max::food_max_is_deadly_ex(new_max, death_line) {
             p.deleted = true;
-            // Haxe TimeHelper: woundedBy != 0 â†’ reason_killed_${woundedBy}
-            // GPI-DEATH-POLISH: holding baby â†’ reason_nursing_hunger.
+            // Haxe TimeHelper: woundedBy != 0 → reason_killed_${woundedBy}
+            // GPI-DEATH-POLISH: holding baby → reason_nursing_hunger.
             let wb = wounded_by_pid.get(&p.p_id).copied().unwrap_or(0);
             let nursing = p.holding_player_id != 0;
             p.death_reason = Some(food_death_wire(wb, nursing));
@@ -11830,6 +12106,12 @@ pub fn tick_vitals_with_metrics(
             p.sleep_emot_timer = 0.0;
             dead.push(*cid);
         }
+    }
+    for (pid, hits) in hits_updates {
+        state.combat.stats_mut(pid).hits = hits;
+    }
+    for (pid, delta) in prestige_burns {
+        crate::food_eating::add_yum_prestige(state, pid, delta);
     }
     // Haxe TimeHelper L780-805: trueAge 10 father re-follow + say + emote + pins.
     for cid in age10_father {
@@ -12303,6 +12585,18 @@ pub fn tick_world_after_players(
     }
     // Haxe TimeHelper.DoTimeStuff: DoWorldMapTimeStuff then DoWorldLongTermTimeStuff
     apply_live_world_time_bands(state, outbound);
+    // Haxe TimeHelper: (tick+20)%TicksBetweenSaving → updateObjectCounts
+    {
+        let tick = state.tick;
+        let content = Arc::clone(&state.content);
+        let world = state.world.read().unwrap();
+        crate::long_term::maybe_update_object_counts(
+            tick,
+            &world,
+            &content,
+            &mut state.long_term,
+        );
+    }
     // Timed animal wander (Haxe doAnimalMovement / SendAnimalMoveUpdateToAllClosePlayers):
     // place map objects walk with MX old_x old_y speed + clear origin + FM per viewer.
     let moves = tick_animals_dt(state, dt);
@@ -14237,6 +14531,8 @@ pub async fn run_sim_loop_with_views(
         boot_live.as_ref().and_then(|b| b.war_posse_share.clone());
     let players_share: Option<crate::PlayersShare> =
         boot_live.as_ref().and_then(|b| b.players_share.clone());
+    let object_counts_share: Option<crate::ObjectCountsShare> =
+        boot_live.as_ref().and_then(|b| b.object_counts_share.clone());
     let live_share = boot_live.as_ref().and_then(|b| b.live_share.clone());
     let mut hot_reload = boot_live.as_mut().and_then(|b| b.hot_reload.take());
     let mut state = SimState::new(world, content);
@@ -14336,6 +14632,27 @@ pub async fn run_sim_loop_with_views(
     }
     // Natural spawn / OLW load never went through USE â€” arm decay timers now.
     arm_decays_for_loaded_world(&mut state);
+    // OBJECTCOUNTS-LIVE: Haxe load countObjects + first updateObjectCounts once the map exists.
+    {
+        let world = state.world.read().unwrap();
+        state
+            .long_term
+            .ensure_counts_for_dump(&world, &state.content);
+    }
+    crate::object_counts_share::mirror_object_counts_share(
+        &state.long_term,
+        &object_counts_share,
+    );
+    info!(
+        unique = state.long_term.current_counts.len(),
+        total = state
+            .long_term
+            .current_counts
+            .values()
+            .map(|c| i64::from(*c))
+            .sum::<i64>(),
+        "sim: object census seeded after world load"
+    );
     // Reverse craft graph from content transitions (capped for boot speed).
     seed_craft_graph_from_content(&mut state);
     // Animals are map objects from generateObjects / OLW — do not inject a fake pack.
@@ -14383,8 +14700,13 @@ pub async fn run_sim_loop_with_views(
     let mut ops = ol_metrics::OpsSeries::new(
         ops_sample_every_ticks.max(1),
         Duration::from_secs(ops_flush_secs.max(1)),
-        360,
+        8192,
     );
+    if let Some(ref view) = ops_view {
+        if let Ok(g) = view.read() {
+            ops.seed_from_history(g.iter().copied());
+        }
+    }
     let mut next_tick_deadline = tokio::time::Instant::now() + period;
     let mut last_skip_log = 0u64;
     counters.mark_start_now();
@@ -14412,6 +14734,16 @@ pub async fn run_sim_loop_with_views(
                     }
                     mirror_war_posse_share(&state, &war_posse_share);
                     mirror_players_share(&state, &players_share);
+                    {
+                        let world = state.world.read().unwrap();
+                        state
+                            .long_term
+                            .ensure_counts_for_dump(&world, &state.content);
+                    }
+                    crate::object_counts_share::mirror_object_counts_share(
+                        &state.long_term,
+                        &object_counts_share,
+                    );
                     info!("intent channel closed; sim stopping");
                     return;
                 }
@@ -14496,6 +14828,16 @@ pub async fn run_sim_loop_with_views(
                             }
                             mirror_war_posse_share(&state, &war_posse_share);
                             mirror_players_share(&state, &players_share);
+                            {
+                                let world = state.world.read().unwrap();
+                                state
+                                    .long_term
+                                    .ensure_counts_for_dump(&world, &state.content);
+                            }
+                            crate::object_counts_share::mirror_object_counts_share(
+                                &state.long_term,
+                                &object_counts_share,
+                            );
                             info!("intent channel closed; sim stopping");
                             return;
                         }
@@ -14568,6 +14910,8 @@ pub async fn run_sim_loop_with_views(
         // stay responsive even when this future is polled on a worker thread.
         tokio::task::yield_now().await;
 
+        let tick_us = work.elapsed().as_micros().min(u128::from(u64::MAX)) as u64;
+        counters.sim_cpu_us.fetch_add(tick_us, Ordering::Relaxed);
         ops.on_tick_work(work.elapsed());
         if state.last_lock_wait_us > 0 {
             ops.on_lock_wait(Duration::from_micros(state.last_lock_wait_us as u64));
@@ -14591,6 +14935,10 @@ pub async fn run_sim_loop_with_views(
             }
             mirror_war_posse_share(&state, &war_posse_share);
             mirror_players_share(&state, &players_share);
+            crate::object_counts_share::mirror_object_counts_share(
+                &state.long_term,
+                &object_counts_share,
+            );
         }
 
         if state.tick.saturating_sub(last_skip_log) >= 200 {

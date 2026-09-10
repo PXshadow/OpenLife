@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 
 mod map_api;
+mod object_counts_dashboard;
 mod ops_dashboard;
 
 pub use map_api::{build_overview, build_window, overview_step, MapOverview, MapWindow};
@@ -19,9 +20,9 @@ use ol_metrics::{Counters, OpsSample};
 use ol_sim::{
     count_leadership_power, format_account_statistics_html, format_food_statistics_html,
     format_lineage_statistics_html, generate_lineage_statistics, AccountBookSnapshot, AccountView,
-    AnimalSnapshot, AnimalView, EnvSnapshot, EnvView, LineageSnapshot, LineageView, PlayerSnapshot,
-    PrestigeClass, PrestigeSnapshot, PrestigeView, TreasurySnapshot, TreasuryView, WeatherSnapshot,
-    WeatherView, WorldFoodShare, WorldFoodStats,
+    AnimalSnapshot, AnimalView, EnvSnapshot, EnvView, LineageSnapshot, LineageView, ObjectCountSample,
+    PlayerSnapshot, PrestigeClass, PrestigeSnapshot, PrestigeView, TreasurySnapshot, TreasuryView,
+    WeatherSnapshot, WeatherView, WorldFoodShare, WorldFoodStats,
 };
 use ol_world::World;
 use serde::Deserialize;
@@ -59,6 +60,8 @@ pub struct WebState {
     pub ops_series: Arc<RwLock<Vec<OpsSample>>>,
     /// NPC activity counters (craft/eat/stuck/deaths) updated by server.
     pub npc_stats: Arc<RwLock<serde_json::Value>>,
+    /// Minute object-census samples for `/object-counts`.
+    pub object_count_series: Arc<RwLock<Vec<ObjectCountSample>>>,
 }
 
 impl WebState {
@@ -91,6 +94,7 @@ impl WebState {
             treasury_view: Arc::new(RwLock::new(TreasurySnapshot::default())),
             ops_series: Arc::new(RwLock::new(Vec::new())),
             npc_stats: Arc::new(RwLock::new(serde_json::json!({}))),
+            object_count_series: Arc::new(RwLock::new(Vec::new())),
         }
     }
 }
@@ -116,6 +120,8 @@ pub fn router(state: WebState) -> Router {
         .route("/api/metrics", get(metrics))
         .route("/ops", get(ops_page))
         .route("/api/ops/series", get(ops_series_api))
+        .route("/object-counts", get(object_counts_page))
+        .route("/api/object-counts/series", get(object_counts_series_api))
         .route("/players", get(players_page))
         .route("/stats/players", get(players_page))
         .route("/stats/lineage", get(stats_lineage_page))
@@ -301,6 +307,7 @@ on this server and is the supported way to play if the alpha misbehaves.</p>
 <div class="card"><a href="/static/downloads/ohol-client-windows-alpha.zip"><strong>Early alpha client</strong></a><br/>Windows Rust client v%%VERSION%% (experimental). Vanilla OHOL client still works.</div>
 <div class="card"><a href="/intro"><strong>Intro</strong></a><br/>rules &amp; features</div>
 <div class="card"><a href="/ops"><strong>Ops</strong></a><br/>timings &amp; boot</div>
+<div class="card"><a href="/object-counts"><strong>Object counts</strong></a><br/>world census / minute</div>
 <div class="card"><a href="/viewer"><strong>Viewer</strong></a><br/>map + self-play</div>
 <div class="card"><a href="/stats/players"><strong>Players</strong></a><br/>currently playing</div>
 <div class="card"><a href="/stats/lineage"><strong>Lineage stats</strong></a><br/>death reasons / ages</div>
@@ -312,6 +319,7 @@ on this server and is the supported way to play if the alpha misbehaves.</p>
 <li><a href="/health">/health</a></li>
 <li><a href="/api/metrics">/api/metrics</a> (boot + latency avg/p90/outliers)</li>
 <li><a href="/api/ops/series">/api/ops/series</a></li>
+<li><a href="/object-counts">/object-counts</a></li>
 <li><a href="/api/selfplay">/api/selfplay</a></li>
 </ul>
 </body></html>"#
@@ -419,6 +427,27 @@ async fn ops_page(State(st): State<WebState>) -> Html<String> {
     let s = st.counters.snapshot();
     let samples = st.ops_series.read().unwrap().clone();
     Html(ops_dashboard::build_ops_dashboard_html(&s, &samples, st.version))
+}
+
+async fn object_counts_series_api(State(st): State<WebState>) -> Json<serde_json::Value> {
+    let samples = st
+        .object_count_series
+        .read()
+        .map(|g| g.clone())
+        .unwrap_or_default();
+    Json(object_counts_dashboard::object_counts_series_json(&samples))
+}
+
+async fn object_counts_page(State(st): State<WebState>) -> Html<String> {
+    let samples = st
+        .object_count_series
+        .read()
+        .map(|g| g.clone())
+        .unwrap_or_default();
+    Html(object_counts_dashboard::build_object_counts_html(
+        &samples,
+        st.version,
+    ))
 }
 
 /// Haxe `WebServer.createCurrentlyPlayingStatistics` living table + counts.
@@ -1141,7 +1170,7 @@ pub fn metrics_json_from_snapshot(
     version: &str,
     world: serde_json::Value,
 ) -> serde_json::Value {
-    serde_json::json!({
+    let mut v = serde_json::json!({
         "ticks": s.ticks,
         "intents_applied": s.intents_applied,
         "skip_ticks": s.skip_ticks,
@@ -1159,6 +1188,8 @@ pub fn metrics_json_from_snapshot(
         "ai_sim_time_ms": s.ai_sim_time_ms,
         "ai_cpu_us": s.ai_cpu_us,
         "ai_thinks": s.ai_thinks,
+        "ai_think_ema_us": s.ai_think_ema_us,
+        "ai_think_last_us": s.ai_think_last_us,
         "boot": {
             "objects_ms": s.boot_objects_ms,
             "transitions_ms": s.boot_transitions_ms,
@@ -1185,7 +1216,25 @@ pub fn metrics_json_from_snapshot(
         },
         "version": version,
         "world": world,
-    })
+    });
+    // Extra AI scan/other keys are merged so the json! tree stays under the
+    // serde_json recursion limit (same dashboard cards still read top-level).
+    if let Some(obj) = v.as_object_mut() {
+        obj.insert("ai_scan_cpu_us".into(), serde_json::json!(s.ai_scan_cpu_us));
+        obj.insert("ai_scan_ema_us".into(), serde_json::json!(s.ai_scan_ema_us));
+        obj.insert("ai_scan_last_us".into(), serde_json::json!(s.ai_scan_last_us));
+        obj.insert("ai_other_cpu_us".into(), serde_json::json!(s.ai_other_cpu_us));
+        obj.insert("ai_other_ema_us".into(), serde_json::json!(s.ai_other_ema_us));
+        obj.insert("ai_scan_calls".into(), serde_json::json!(s.ai_scan_calls));
+        obj.insert("ai_scan_hits".into(), serde_json::json!(s.ai_scan_hits));
+        obj.insert("sim_cpu_us".into(), serde_json::json!(s.sim_cpu_us));
+        let sim = s.sim_cpu_us.max(1);
+        obj.insert(
+            "ai_vs_sim_pct".into(),
+            serde_json::json!((s.ai_cpu_us as f64 / sim as f64 * 100.0).min(999.0)),
+        );
+    }
+    v
 }
 
 pub fn ops_series_json(samples: &[ol_metrics::OpsSample]) -> serde_json::Value {
@@ -1210,6 +1259,18 @@ pub fn ops_series_json(samples: &[ol_metrics::OpsSample]) -> serde_json::Value {
                 "intent_outliers": s.intent_outliers,
                 "intent_normal": s.intent_normal,
                 "boot_total_ms": s.boot_total_ms,
+                "ai_think_ema_us": s.ai_think_ema_us,
+                "ai_thinks": s.ai_thinks,
+                "ai_cpu_us": s.ai_cpu_us,
+                "human_intent_avg_us": s.human_intent_avg_us,
+                "ai_intent_avg_us": s.ai_intent_avg_us,
+                "ai_scan_ema_us": s.ai_scan_ema_us,
+                "ai_scan_cpu_us": s.ai_scan_cpu_us,
+                "ai_other_ema_us": s.ai_other_ema_us,
+                "ai_scan_calls": s.ai_scan_calls,
+                "ai_scan_hits": s.ai_scan_hits,
+                "sim_cpu_us": s.sim_cpu_us,
+                "ai_vs_sim_pct": (s.ai_cpu_us as f64 / s.sim_cpu_us.max(1) as f64 * 100.0).min(999.0),
             })
         })
         .collect();
@@ -1236,12 +1297,9 @@ mod metrics_api_tests {
         let samples = vec![ol_metrics::OpsSample {
             wall_unix_ms: 1,
             tick: 2,
-            skip_ticks: 0,
             tick_work_us: 10,
             intent_ema_us: 5,
-            lock_wait_ema_us: 0,
             intents: 1,
-            connections: 0,
             tick_avg_us: 10,
             tick_p90_us: 15,
             tick_outliers: 1,
@@ -1251,12 +1309,28 @@ mod metrics_api_tests {
             intent_outliers: 1,
             intent_normal: 9,
             boot_total_ms: 1200,
+            ..ol_metrics::OpsSample::default()
         }];
         let v = ops_series_json(&samples);
         assert_eq!(v["count"], 1);
         assert_eq!(v["samples"][0]["tick"], 2);
         assert_eq!(v["samples"][0]["tick_p90_us"], 15);
         assert_eq!(v["samples"][0]["boot_total_ms"], 1200);
+        assert!(v["samples"][0].get("ai_scan_ema_us").is_some());
+        assert!(v["samples"][0].get("ai_other_ema_us").is_some());
+        assert!(v["samples"][0].get("ai_scan_hits").is_some());
+        assert!(v["samples"][0].get("ai_vs_sim_pct").is_some());
+    }
+
+    #[test]
+    fn metrics_includes_ai_scan_breakdown() {
+        let c = Counters::new();
+        c.record_ai_think_parts(4_000, 1_500, 2, 1);
+        let v = metrics_json_from_snapshot(&c.snapshot(), "0.1.0", serde_json::json!({}));
+        assert_eq!(v["ai_scan_cpu_us"], 1_500);
+        assert_eq!(v["ai_other_cpu_us"], 2_500);
+        assert_eq!(v["ai_scan_calls"], 2);
+        assert_eq!(v["ai_scan_hits"], 1);
     }
 }
 

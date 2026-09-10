@@ -168,8 +168,16 @@ impl NpcStuckTracker {
     }
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct NpcLifeBook {
+    pub food_eaten: std::collections::HashMap<i32, u32>,
+    pub deaths: Vec<(i32, f32, String)>,
+    pub objects_created: std::collections::HashMap<String, u32>,
+}
+
 pub struct NpcActivityLog {
     events: Mutex<VecDeque<NpcActivityEvent>>,
+    life: Mutex<NpcLifeBook>,
     max_events: usize,
     path: PathBuf,
     last_flush: Mutex<Instant>,
@@ -190,6 +198,7 @@ impl NpcActivityLog {
     pub fn new(path: impl Into<PathBuf>, max_events: usize, flush_secs: u64) -> Self {
         Self {
             events: Mutex::new(VecDeque::with_capacity(max_events.min(4096))),
+            life: Mutex::new(NpcLifeBook::default()),
             max_events: max_events.max(64),
             path: path.into(),
             last_flush: Mutex::new(Instant::now()),
@@ -242,10 +251,19 @@ impl NpcActivityLog {
                 self.craft_attempts.fetch_add(1, Relaxed);
                 self.game_ms_craft
                     .fetch_add(ev.game_ms as u64, Relaxed);
+                let key = ev.detail.split_whitespace().next().unwrap_or("craft").to_string();
+                if let Ok(mut life) = self.life.lock() {
+                    *life.objects_created.entry(key).or_insert(0) += 1;
+                }
             }
             NpcActivityKind::Eat | NpcActivityKind::SeekFood => {
                 self.eat_attempts.fetch_add(1, Relaxed);
                 self.game_ms_eat.fetch_add(ev.game_ms as u64, Relaxed);
+                if ev.held_id > 0 {
+                    if let Ok(mut life) = self.life.lock() {
+                        *life.food_eaten.entry(ev.held_id).or_insert(0) += 1;
+                    }
+                }
             }
             NpcActivityKind::Move | NpcActivityKind::Explore => {
                 self.game_ms_move.fetch_add(ev.game_ms as u64, Relaxed);
@@ -259,6 +277,13 @@ impl NpcActivityLog {
                 self.deaths.fetch_add(1, Relaxed);
                 self.game_ms_other
                     .fetch_add(ev.game_ms as u64, Relaxed);
+                if let Ok(mut life) = self.life.lock() {
+                    life.deaths.push((ev.p_id, ev.age, ev.detail.clone()));
+                    if life.deaths.len() > 80 {
+                        let n = life.deaths.len() - 80;
+                        life.deaths.drain(0..n);
+                    }
+                }
             }
             _ => {
                 self.game_ms_other
@@ -321,6 +346,12 @@ impl NpcActivityLog {
             path = %self.path.display(),
             "npc activity journal flushed"
         );
+        let md_path = self
+            .path
+            .parent()
+            .map(|p| p.join("ai_life_stats.md"))
+            .unwrap_or_else(|| PathBuf::from("ai_life_stats.md"));
+        let _ = std::fs::write(&md_path, self.format_life_markdown());
         Ok(batch.len())
     }
 
@@ -335,6 +366,40 @@ impl NpcActivityLog {
 
     pub fn summary_json(&self) -> serde_json::Value {
         use std::sync::atomic::Ordering::*;
+        let md = self.format_life_markdown();
+        let life = self.life.lock().ok();
+        let food: serde_json::Value = life
+            .as_ref()
+            .map(|l| {
+                serde_json::json!(l
+                    .food_eaten
+                    .iter()
+                    .map(|(id, n)| serde_json::json!({"id": id, "count": n}))
+                    .collect::<Vec<_>>())
+            })
+            .unwrap_or_else(|| serde_json::json!([]));
+        let deaths: serde_json::Value = life
+            .as_ref()
+            .map(|l| {
+                serde_json::json!(l
+                    .deaths
+                    .iter()
+                    .map(|(pid, age, why)| serde_json::json!({
+                        "p_id": pid, "age": age, "reason": why
+                    }))
+                    .collect::<Vec<_>>())
+            })
+            .unwrap_or_else(|| serde_json::json!([]));
+        let objects: serde_json::Value = life
+            .as_ref()
+            .map(|l| {
+                serde_json::json!(l
+                    .objects_created
+                    .iter()
+                    .map(|(k, n)| serde_json::json!({"action": k, "count": n}))
+                    .collect::<Vec<_>>())
+            })
+            .unwrap_or_else(|| serde_json::json!([]));
         serde_json::json!({
             "craft_attempts": self.craft_attempts.load(Relaxed),
             "eat_attempts": self.eat_attempts.load(Relaxed),
@@ -347,7 +412,57 @@ impl NpcActivityLog {
             "game_ms_other": self.game_ms_other.load(Relaxed),
             "buffered": self.events.lock().map(|g| g.len()).unwrap_or(0),
             "path": self.path.display().to_string(),
+            "food_eaten": food,
+            "death_log": deaths,
+            "objects_created": objects,
+            "life_markdown": md,
         })
+    }
+
+    pub fn format_life_markdown(&self) -> String {
+        use std::sync::atomic::Ordering::*;
+        let life = self.life.lock().ok();
+        let mut md = String::from("# AI life stats\n\n");
+        md.push_str(&format!(
+            "- Eat attempts: {}\n- Craft attempts: {}\n- Deaths: {}\n- Stuck events: {}\n\n",
+            self.eat_attempts.load(Relaxed),
+            self.craft_attempts.load(Relaxed),
+            self.deaths.load(Relaxed),
+            self.stuck_events.load(Relaxed),
+        ));
+        md.push_str("## Food eaten (held id → count)\n\n");
+        if let Some(l) = life.as_ref() {
+            if l.food_eaten.is_empty() {
+                md.push_str("_none yet_\n\n");
+            } else {
+                let mut rows: Vec<_> = l.food_eaten.iter().collect();
+                rows.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
+                for (id, n) in rows {
+                    md.push_str(&format!("- object `{id}` × {n}\n"));
+                }
+                md.push('\n');
+            }
+            md.push_str("## Deaths (age, reason)\n\n");
+            if l.deaths.is_empty() {
+                md.push_str("_none yet_\n\n");
+            } else {
+                for (pid, age, why) in &l.deaths {
+                    md.push_str(&format!("- p_id {pid} age {age:.1}: {why}\n"));
+                }
+                md.push('\n');
+            }
+            md.push_str("## Objects / actions created\n\n");
+            if l.objects_created.is_empty() {
+                md.push_str("_none yet_\n");
+            } else {
+                let mut rows: Vec<_> = l.objects_created.iter().collect();
+                rows.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
+                for (k, n) in rows {
+                    md.push_str(&format!("- `{k}` × {n}\n"));
+                }
+            }
+        }
+        md
     }
 }
 
@@ -398,5 +513,63 @@ mod tests {
         let line = ev.to_journal_line();
         assert!(!line.contains('\n'));
         assert!(line.contains("craft"));
+    }
+
+    #[test]
+    fn life_markdown_lists_food_death_and_craft() {
+        let log = NpcActivityLog::new(
+            std::env::temp_dir().join("ol_npc_life_test.journal"),
+            64,
+            30,
+        );
+        log.push(NpcActivityEvent {
+            wall_unix_ms: 1,
+            conn_id: 9_100_000,
+            p_id: 1,
+            kind: NpcActivityKind::Eat,
+            cpu_us: 10,
+            game_ms: 100,
+            age: 20.0,
+            food: 4.0,
+            x: 0,
+            y: 0,
+            held_id: 30,
+            detail: "eat berry".into(),
+        });
+        log.push(NpcActivityEvent {
+            wall_unix_ms: 2,
+            conn_id: 9_100_000,
+            p_id: 1,
+            kind: NpcActivityKind::Craft,
+            cpu_us: 10,
+            game_ms: 100,
+            age: 21.0,
+            food: 8.0,
+            x: 1,
+            y: 1,
+            held_id: 0,
+            detail: "prof_goc_use actor=33".into(),
+        });
+        log.push(NpcActivityEvent {
+            wall_unix_ms: 3,
+            conn_id: 9_100_000,
+            p_id: 1,
+            kind: NpcActivityKind::Death,
+            cpu_us: 1,
+            game_ms: 0,
+            age: 58.2,
+            food: 0.0,
+            x: 2,
+            y: 2,
+            held_id: 0,
+            detail: "reason=deleted_or_starved".into(),
+        });
+        let md = log.format_life_markdown();
+        assert!(md.contains("object `30`"));
+        assert!(md.contains("age 58.2"));
+        assert!(md.contains("prof_goc_use"));
+        let j = log.summary_json();
+        assert_eq!(j["eat_attempts"], 1);
+        assert_eq!(j["deaths"], 1);
     }
 }

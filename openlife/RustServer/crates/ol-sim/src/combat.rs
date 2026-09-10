@@ -218,7 +218,12 @@ pub struct AllyStrengthPlayer {
 // Haxe: p.isHoldingWeapon() ? 2 * p.food_store_max : p.food_store_max
 #[inline]
 pub fn combat_strength(food_store_max: f32, holding_weapon: bool) -> f32 {
-    let s = food_store_max.max(0.0);
+    // Haxe uses raw `food_store_max` (may be negative while starving).
+    let s = if food_store_max.is_finite() {
+        food_store_max
+    } else {
+        0.0
+    };
     if holding_weapon {
         2.0 * s
     } else {
@@ -956,7 +961,9 @@ mod tests {
     fn combat_strength_weapon_doubles() {
         assert!((combat_strength(10.0, false) - 10.0).abs() < 1e-6);
         assert!((combat_strength(10.0, true) - 20.0).abs() < 1e-6);
-        assert!((combat_strength(-5.0, true) - 0.0).abs() < 1e-6);
+        // Haxe uses raw food_store_max (weapon doubles even when negative / starving).
+        assert!((combat_strength(-5.0, true) + 10.0).abs() < 1e-6);
+        assert!((combat_strength(-5.0, false) + 5.0).abs() < 1e-6);
     }
 
     #[test]

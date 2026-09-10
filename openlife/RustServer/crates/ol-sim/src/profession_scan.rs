@@ -33,7 +33,7 @@ use std::sync::Arc;
 
 use ol_content::ContentDb;
 use ol_net::OutboundHub;
-use ol_world::World;
+use ol_world::{ChunkCoord, World};
 
 use crate::baker_profession::{
     bake_action_short_craft_apply_ex, count_baker_peers_filtered, fill_bake_counts_from_map_ex,
@@ -323,20 +323,41 @@ pub fn scan_world_radius(
     let r = r.max(0);
     let side = (2 * r + 1) as usize;
     let mut out = Vec::with_capacity(side.saturating_mul(side).min(4096));
+    // Reuse one chunk across a row of tiles (64-wide) instead of hashing
+    // object + floor + biome per cell. Helpers stay a single lookup.
+    let mut last_coord: Option<ChunkCoord> = None;
+    let mut last_chunk: Option<&ol_world::Chunk> = None;
     for dy in -r..=r {
         for dx in -r..=r {
             let x = cx + dx;
             let y = cy + dy;
-            let raw_id = world.get_object(x, y);
-            let floor_id = world.get_floor(x, y) as i32;
-            let biome = world.get_biome(x, y) as u8;
+            let (tx, ty) = world.wrap_tile(x, y);
+            let coord = ChunkCoord::from_tile(tx, ty);
+            if last_coord != Some(coord) {
+                last_coord = Some(coord);
+                last_chunk = world.chunk(coord);
+            }
+            let (lx, ly) = ChunkCoord::local(tx, ty);
+            let helper = world.helpers.get(&(tx, ty));
+            let raw_id = helper
+                .map(|h| h.base_id)
+                .unwrap_or_else(|| {
+                    last_chunk
+                        .map(|c| c.object_at_local(lx, ly))
+                        .unwrap_or(0)
+                });
+            let floor_id = last_chunk
+                .map(|c| c.floor_at_local(lx, ly) as i32)
+                .unwrap_or(0);
+            let biome = last_chunk
+                .map(|c| c.biome_at_local(lx, ly) as u8)
+                .unwrap_or(0);
             if raw_id == 0 {
                 out.push(ScanTile::empty(x, y, floor_id, biome));
                 continue;
             }
             let parent_id = content.map(|c| c.resolve_base_id(raw_id)).unwrap_or(raw_id);
-            let uses = world
-                .get_helper(x, y)
+            let uses = helper
                 .map(|h| {
                     if h.uses_remaining > 0 {
                         h.uses_remaining
@@ -358,8 +379,7 @@ pub fn scan_world_radius(
                 .unwrap_or((false, false, 0, 0));
             // Haxe: ObjectHelper.contains — any-slot nested parents + count for free slots
             // Store first 8 resolved parent ids (contains_id + contains_extra[7]).
-            let (contains_id, contains_extra, contained_count) = world
-                .get_helper(x, y)
+            let (contains_id, contains_extra, contained_count) = helper
                 .map(|h| {
                     let mut first = 0i32;
                     let mut extra = [0i32; 7];
@@ -407,6 +427,15 @@ pub fn scan_world_radius(
         }
     }
     out
+}
+
+/// Keep tiles whose Chebyshev distance to `(cx, cy)` is ≤ `r`.
+pub fn filter_scan_tiles_in_radius(tiles: &[ScanTile], cx: i32, cy: i32, r: i32) -> Vec<ScanTile> {
+    tiles
+        .iter()
+        .copied()
+        .filter(|t| scan_chebyshev(t.x, t.y, cx, cy) <= r)
+        .collect()
 }
 
 /// Chebyshev distance (shared with smith/baker).
