@@ -109,7 +109,8 @@ pub use client_map::{
     ObjectStackNode,
 };
 pub use client_screen::{
-    death_key_command, draw_death_screen, format_death_reason, note_our_death_if_any,
+    death_key_command, draw_death_screen, extract_reason_tag, format_death_reason,
+    format_death_reason_ex, note_our_death_ex, note_our_death_if_any,
     rebirth_session_config, DeathKey, DeathSummary, ScreenCommand,
 };
 pub use category_bank::{
@@ -166,7 +167,8 @@ pub use ground_sprites::{
 pub use hover_pick::{
     draw_hover_outline, map_stack_index_to_hit_slot, pick_at_screen, pick_at_screen_with_clothing,
     pick_worn_clothing_slot, resolve_hit_slot, update_scene_hover,
-    update_scene_hover_with_clothing, hover_biome_name, hover_tip_and_grave, HoverPick,
+    update_scene_hover_with_clothing, biome_display_name, hover_biome_name, hover_tip_and_grave,
+    HoverPick,
     HoverTipInput, WornClothingPickTarget,
 };
 pub use hud::{
@@ -253,7 +255,8 @@ pub use sprite_bank::{
 };
 pub use tga::{load_tga_bytes, load_tga_path, RgbaImage};
 pub use parse::{
-    message_type, parse_cu_message, parse_fx_message, parse_hx_message, parse_inbound,
+    extract_reason_token, message_type, parse_cu_message, parse_fx_message, parse_hx_message,
+    parse_inbound,
     parse_login_outcome, parse_ls_message, parse_mc_header, parse_ms_message, parse_mx_line,
     parse_mx_message, parse_nm_message, parse_pe_message, parse_pm_line, parse_pm_message,
     parse_ps_line, parse_ps_message, parse_pu_line, parse_pu_message, parse_sn, Craving,

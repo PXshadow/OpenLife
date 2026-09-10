@@ -523,8 +523,11 @@ impl HudState {
             self.hunger_slip_visible = 2; // starving
             if store > 0 {
                 if store > 1 {
-                    // One-shot hunger.aiff (not pulse).
-                    self.hunger_sound_oneshot = true;
+                    // C++ plays hunger.aiff once when FOOD_CHANGE enters this band
+                    // (not every HUD sync of the same FX).
+                    if prev_visible != 2 {
+                        self.hunger_sound_oneshot = true;
+                    }
                     self.pulse_hunger_sound = false;
                 } else {
                     self.pulse_hunger_sound = true;
@@ -1606,6 +1609,45 @@ impl HudSprites {
         s
     }
 
+    /// Pixel width of HUD pencil/5×7 text at `scale`.
+    pub fn measure_hud_text(&self, text: &str, scale: f32, erased: bool) -> f32 {
+        let font = if erased {
+            self.pencil_font_erased
+                .as_ref()
+                .or(self.pencil_font.as_ref())
+        } else {
+            self.pencil_font.as_ref()
+        };
+        if let Some(f) = font {
+            f.measure(text, scale)
+        } else {
+            pencil_string_width(text, scale)
+        }
+    }
+
+    /// Draw a name (hover / last-ate / player) using leftover screen width.
+    ///
+    /// Shrinks slightly if needed, then left-aligns from a start that keeps the
+    /// whole string on-screen instead of clipping the right side.
+    pub fn draw_hud_name(
+        &self,
+        fb: &mut Framebuffer,
+        text: &str,
+        preferred_cx: f32,
+        y: f32,
+        scale: f32,
+        rgba: [u8; 4],
+        erased: bool,
+    ) {
+        if text.is_empty() {
+            return;
+        }
+        let pad = 8.0;
+        let w0 = self.measure_hud_text(text, scale, erased);
+        let (x0, sc) = fit_ui_text(fb.width, preferred_cx, w0, scale, pad);
+        self.draw_hud_text(fb, text, x0, y, sc, rgba, false, erased);
+    }
+
     /// Draw with true pencil TGA when loaded, else 5×7 bitmap stand-in.
     pub fn draw_hud_text(
         &self,
@@ -2019,6 +2061,26 @@ pub fn pencil_string_width(text: &str, scale: f32) -> f32 {
     text.chars().count() as f32 * 6.0 * s
 }
 
+/// Left edge + scale so `text_w` fits in the framebuffer (prefers leftover right side).
+pub fn fit_ui_text(fb_w: u32, preferred_cx: f32, text_w: f32, scale: f32, pad: f32) -> (f32, f32) {
+    let pad = pad.max(0.0);
+    let max_w = (fb_w as f32 - pad * 2.0).max(8.0);
+    let mut sc = scale.max(0.05);
+    let mut w = text_w.max(0.0);
+    if w > max_w && w > 1.0 {
+        sc = (scale * max_w / w).max(0.35);
+        w = max_w;
+    }
+    let mut x0 = preferred_cx - w * 0.5;
+    if x0 < pad {
+        x0 = pad;
+    }
+    if x0 + w > fb_w as f32 - pad {
+        x0 = (fb_w as f32 - pad - w).max(pad);
+    }
+    (x0, sc)
+}
+
 /// Draw left-aligned dark pencil string (C++ `pencilFont` stand-in).
 ///
 /// Used by HUD meters and L-SAY soft-FB speech bubbles.
@@ -2127,13 +2189,15 @@ pub fn draw_speech_bubble_colored(
     } else {
         pencil_string_width(&text, 1.0)
     };
+    let tw0 = len_design * s;
+    let pad = 8.0;
+    let (line_x0, s) = fit_ui_text(fb.width, cx, tw0, s, pad);
     let tw = len_design * s;
     let th = if let Some(font) = hand {
         font.cell_h as f32 * font.base_scale * s
     } else {
         8.0 * s
     };
-    let line_x0 = cx - tw * 0.5;
     let line_y = cy;
 
     let chalk = sprites
@@ -2169,7 +2233,7 @@ pub fn draw_speech_bubble_colored(
         let pad_y = 6.0 * s;
         let bw = (tw + pad_x * 2.0).ceil().max(22.0);
         let bh = (th + pad_y * 2.0).ceil().max(16.0);
-        let x0 = cx - bw * 0.5;
+        let x0 = line_x0 - pad_x;
         let y0 = cy - bh * 0.5;
         let shadow_a = ((f * 55.0) as u8).max(10);
         fill_round_rect(fb, x0 + 2.0, y0 + 3.0, bw, bh, [36, 28, 20, shadow_a]);
@@ -2193,9 +2257,9 @@ pub fn draw_speech_bubble_colored(
         [text_rgb[0], text_rgb[1], text_rgb[2], a]
     };
     if let Some(font) = hand {
-        font.draw_string(fb, &text, cx, cy, s, ink, true);
+        font.draw_string(fb, &text, line_x0, cy, s, ink, false);
     } else {
-        draw_pencil_string(fb, &text, cx, cy, s, ink, true);
+        draw_pencil_string(fb, &text, line_x0, cy, s, ink, false);
     }
 }
 
@@ -2517,23 +2581,22 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
         }
     }
     if let Some(label) = state.current_last_ate_string.clone() {
-        sprites.draw_hud_text(fb, &label, ate_x, ate_y, s, [0, 0, 0, 255], false, false);
+        sprites.draw_hud_name(fb, &label, ate_x, ate_y, s, [0, 0, 0, 255], false);
     } else if state.last_ate_id > 0 {
         let label = format!("#{}", state.last_ate_id);
-        sprites.draw_hud_text(fb, &label, ate_x, ate_y, s, [0, 0, 0, 255], false, false);
+        sprites.draw_hud_name(fb, &label, ate_x, ate_y, s, [0, 0, 0, 255], false);
     }
     // C++ craving sheets (handwriting on hint paper, above chat). Soft-FB: line under last-ate.
     if let Some(ref craving) = state.craving_text {
         if !craving.is_empty() {
             let (cx_c, cy_c) = ate_screen_pos(fb.width, fb.height);
-            sprites.draw_hud_text(
+            sprites.draw_hud_name(
                 fb,
                 craving,
                 cx_c,
                 cy_c - 22.0 * s,
                 (s * 0.85).max(0.7),
                 [20, 20, 18, 255],
-                true,
                 false,
             );
         }
@@ -2563,7 +2626,7 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
         }
     } else if let Some(tip) = state.hover_tip.as_deref() {
         if !tip.is_empty() {
-            sprites.draw_hud_text(fb, tip, tip_x, tip_y, s, [0, 0, 0, 255], true, false);
+            sprites.draw_hud_name(fb, tip, tip_x, tip_y, s, [0, 0, 0, 255], false);
         }
     }
 
@@ -3022,6 +3085,17 @@ mod tests {
         fb.clear([20, 20, 24, 255]);
         draw_food_heat_hud(&mut fb, &mut hud, &sprites);
         assert!(fb.count_non_color([20, 20, 24, 255]) > 0);
+    }
+
+    #[test]
+    fn fit_ui_text_uses_leftover_width() {
+        let (x0, sc) = fit_ui_text(200, 100.0, 80.0, 1.0, 8.0);
+        assert!((x0 - 60.0).abs() < 0.5, "x0={x0}");
+        assert!((sc - 1.0).abs() < 1e-4);
+        let (x_wide, sc_wide) = fit_ui_text(200, 100.0, 400.0, 2.0, 8.0);
+        assert!(x_wide >= 8.0 - 0.1);
+        assert!(sc_wide < 2.0);
+        assert!(x_wide + 184.0 <= 200.0 + 0.5);
     }
 
     #[test]

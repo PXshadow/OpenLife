@@ -686,13 +686,15 @@ impl SoundBank {
         if self.path_missing.contains_key(key) {
             return None;
         }
-        let path = self.root.join(key);
-        let bytes = match fs::read(&path) {
-            Ok(b) => b,
-            Err(_) => {
-                self.path_missing.insert(key.to_string(), ());
-                return None;
+        let mut bytes = fs::read(self.root.join(key)).ok();
+        if bytes.is_none() {
+            if let Some(parent) = self.root.parent() {
+                bytes = fs::read(parent.join(key)).ok();
             }
+        }
+        let Some(bytes) = bytes else {
+            self.path_missing.insert(key.to_string(), ());
+            return None;
         };
         self.aiff_opens = self.aiff_opens.saturating_add(1);
         match read_mono16_aiff(&bytes) {

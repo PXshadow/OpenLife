@@ -1225,9 +1225,10 @@ impl SceneRenderer {
                 } => {
                     let tile = map.get_or_empty(tx, ty);
                     let mv = map.map_move(tx, ty);
+                    let drop = map.drop_offset(tx, ty);
                     let (sx, sy) = self.world_to_screen(
-                        tx as f32 + 0.5 + mv.offset_x,
-                        ty as f32 + 0.5 + mv.offset_y,
+                        tx as f32 + 0.5 + mv.offset_x + drop.offset_x,
+                        ty as f32 + 0.5 + mv.offset_y + drop.offset_y,
                         fb.width,
                         fb.height,
                     );
@@ -1564,10 +1565,15 @@ impl SceneRenderer {
                                     .unwrap_or((8.0, 12.0));
                                 (px, py, 0.0)
                             };
-                            // Target hold in tile units for handoff slide.
+                            // C++ HoldingPos.pos is the *drawn* hand (already flipped).
+                            // Attach in screen space so the item tracks the swinging hand.
+                            let hand_sx = person_sx + hx * scale * flip_s;
+                            let hand_sy = person_sy - hy * scale;
                             let target_tx = base_tx + 0.5 + (hx * flip_s) / GRID;
                             let target_ty = base_ty + 0.5 + hy / GRID;
                             // P3#22 heldPosOverride slide from map origin into hand.
+                            // C++ only slides while currentSpeed == 0; while walking it
+                            // tracks the hand every frame (base point for drop slides).
                             let stationary = !o_moving;
                             let (draw_tx, draw_ty, _draw_rot) = if let Some(o) = world.get_mut(id) {
                                 let frf = (dt * 60.0).clamp(0.0, 4.0).max(0.05);
@@ -1583,8 +1589,16 @@ impl SceneRenderer {
                             };
                             // Still step slide; draw later in FlyingHeld pass if deferred.
                             if !defer_flying_held {
-                                let (hold_sx, hold_sy) =
-                                    self.world_to_screen(draw_tx, draw_ty, fb.width, fb.height);
+                                let (hold_sx, hold_sy) = if stationary
+                                    && world
+                                        .get(id)
+                                        .map(|o| o.held_pos_override && !o.held_pos_override_almost_over)
+                                        .unwrap_or(false)
+                                {
+                                    self.world_to_screen(draw_tx, draw_ty, fb.width, fb.height)
+                                } else {
+                                    (hand_sx, hand_sy)
+                                };
                                 if let Some(ref mut hp) = held_pack {
                                     let _ = self.draw_object_with_pack(
                                         fb,
@@ -1595,7 +1609,7 @@ impl SceneRenderer {
                                         age,
                                         hold_sx,
                                         hold_sy,
-                                        false,
+                                        flip,
                                         false,
                                         false,
                                         0,
@@ -2380,9 +2394,11 @@ impl SceneRenderer {
         biome: u8,
     ) {
         let tint = if used_unknown && !self.ground.has_biome_sheet(biome) {
-            // Water/mountain: no solid map-color multiply (that was the blue squares).
-            if matches!(biome, 9 | 13 | 15 | 17 | 21) {
-                None
+            // Per-cell unknown sheet (never wholeSheet — that was the giant blue
+            // squares). Open Life specials (ocean/river/mountain) use Haxe map
+            // colors as a multiply so the mountain collar stays dark grey.
+            if crate::ground_sprites::has_table_biome_color(biome) {
+                Some(crate::ground_sprites::biome_color(biome))
             } else {
                 Some(unknown_sheet_draw_tint(biome))
             }

@@ -47,7 +47,7 @@ use ohol_headless::click_tile::{
     walk_or_use_tile_hold_hit,
 };
 use ohol_headless::client_screen::{
-    death_key_command, draw_death_screen, note_our_death_if_any, rebirth_session_config, DeathKey,
+    death_key_command, draw_death_screen, note_our_death_ex, rebirth_session_config, DeathKey,
     ScreenCommand,
 };
 use ohol_headless::settings_page::{restart_client_process, SettingsAction, SettingsKey};
@@ -2560,7 +2560,7 @@ fn run_session_from_boot(
         }
         // Fractional path step (C++ per-frame currentPos) — needed for walk anim + smooth motion.
         session.step_move_pos(dt as f64);
-        if note_our_death_if_any(&mut app, session.world.our()) {
+        if note_our_death_ex(&mut app, &session.world, Some(&session.content)) {
             last_status = "died".into();
             eprintln!(
                 "death: {}",
@@ -2751,6 +2751,9 @@ fn run_session_from_boot(
             was_rmb = rmb;
         }
 
+        if let Some(age) = session.world.our().map(|o| o.current_age()) {
+            scene.hud.age_years = age;
+        }
         let dying = session.world.our().map(|p| p.dying).unwrap_or(false);
         scene.sync_hud_ex(
             session.food.as_ref(),
@@ -4184,7 +4187,7 @@ fn run_session_gpu(
                         }
                     }
                     session.step_move_pos(dt as f64);
-                    if note_our_death_if_any(&mut app, session.world.our()) {
+                    if note_our_death_ex(&mut app, &session.world, Some(&session.content)) {
                         last_status = "died".into();
                     }
 
@@ -4315,6 +4318,9 @@ fn run_session_gpu(
                     was_lmb = lmb;
                     was_rmb = rmb;
 
+                    if let Some(age) = session.world.our().map(|o| o.current_age()) {
+                        scene.hud.age_years = age;
+                    }
                     let dying = session.world.our().map(|p| p.dying).unwrap_or(false);
                     scene.sync_hud_ex(
                         session.food.as_ref(),

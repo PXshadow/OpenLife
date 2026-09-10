@@ -186,6 +186,17 @@ pub struct PlayerUpdate {
     pub raw_line: String,
 }
 
+/// The `reason_*` token on a delete PU (Haxe/C++), ignoring age/clothing/etc. after `X X`.
+pub fn extract_reason_token(parts: &[&str]) -> Option<String> {
+    parts
+        .iter()
+        .find(|p| {
+            let t = p.trim();
+            t.starts_with("reason_") || t.starts_with("REASON_")
+        })
+        .map(|s| s.trim().to_string())
+}
+
 /// Parse one data line of a `PU` message into a [`PlayerUpdate`].
 pub fn parse_pu_line(line: &str) -> Option<PlayerUpdate> {
     let parts: Vec<&str> = line.split_whitespace().collect();
@@ -214,13 +225,12 @@ pub fn parse_pu_line(line: &str) -> Option<PlayerUpdate> {
     // Deleted players: x y = X X + reason at tail
     // C++: LivingLifePage PU delete path (`reason_disconnected`, `reason_hunger`, …)
     if parts[14].eq_ignore_ascii_case("X") {
-        // Typical: … force X X reason_hunger
-        // After second X (index 15), remaining tokens form the reason string.
-        let delete_reason = if parts.len() > 16 {
-            Some(parts[16..].join(" "))
-        } else {
-            None
-        };
+        // Short: `… force X X reason_hunger`
+        // Haxe/Rust full line keeps age/speed/clothing/responsible after X X, then `reason_*`.
+        // Only the `reason_*` token is the death cause — not the rest of the PU.
+        let delete_reason = extract_reason_token(&parts);
+        let age: f32 = parts.get(16).and_then(|s| s.parse().ok()).unwrap_or(0.0);
+        let responsible_id: i32 = parts.get(22).and_then(|s| s.parse().ok()).unwrap_or(-1);
         return Some(PlayerUpdate {
             player_id,
             display_id,
@@ -239,13 +249,13 @@ pub fn parse_pu_line(line: &str) -> Option<PlayerUpdate> {
             force: force != 0,
             x: 0,
             y: 0,
-            age: 0.0,
+            age,
             age_rate: 0.0,
             move_speed: 0.0,
             clothing_set: String::new(),
             just_ate: false,
             last_ate_id: 0,
-            responsible_id: -1,
+            responsible_id,
             held_yum: false,
             held_learned: false,
             deleted: true,
@@ -1976,6 +1986,14 @@ mod tests {
         let killed = "3 50 0 0 0 0 0 0 0 0 -1 0 0 0 X X reason_killed_560";
         let pu2 = parse_pu_line(killed).unwrap();
         assert_eq!(pu2.delete_reason.as_deref(), Some("reason_killed_560"));
+
+        // Full Haxe/Rust death line: age/speed/clothing after X X, then reason.
+        let full = "7 19 0 0 0 0 0 0 0 0 -1 0.50 1 0 X X 22.50 60.00 3.75 0;0;0;0;0;0 0 0 12 0 0 reason_hunger";
+        let pu3 = parse_pu_line(full).unwrap();
+        assert!(pu3.deleted);
+        assert_eq!(pu3.delete_reason.as_deref(), Some("reason_hunger"));
+        assert_eq!(pu3.responsible_id, 12);
+        assert!((pu3.age - 22.50).abs() < 0.01);
     }
 
     #[test]

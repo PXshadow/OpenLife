@@ -6,8 +6,9 @@
 //! Headless probes never enter this path.
 
 use crate::account_page::{ClientAppState, ClientScreen};
+use crate::content::ClientContent;
 use crate::hud::draw_pencil_string;
-use crate::live_object::LiveObject;
+use crate::live_object::{LiveObject, LiveWorld};
 use crate::render::Framebuffer;
 use crate::session::SessionConfig;
 
@@ -18,38 +19,64 @@ pub struct DeathSummary {
     pub name: String,
     /// In-game age in years (preserved across delete PU).
     pub age_years: f32,
-    /// Raw server reason (`reason_hunger`, …) when known.
+    /// Raw server reason (`reason_hunger`, …) when known — **tag only**, never a PU line.
     pub reason: Option<String>,
+    /// Killer's display name when a player is responsible.
+    pub killer_name: Option<String>,
+    /// Weapon / sickness object name (`reason_killed_560` → `KNIFE`).
+    pub weapon_name: Option<String>,
 }
 
 impl DeathSummary {
     /// Build from a deleted (or still-living) [`LiveObject`] snapshot.
-    pub fn from_live_object(o: &LiveObject) -> Self {
+    pub fn from_live_object(
+        o: &LiveObject,
+        world: Option<&LiveWorld>,
+        content: Option<&ClientContent>,
+    ) -> Self {
         let name = o
             .name
             .as_ref()
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .unwrap_or_else(|| "Unknown".into());
+        let reason = o
+            .delete_reason
+            .as_deref()
+            .and_then(|r| extract_reason_tag(r).map(|s| s.to_string()));
+        let weapon_name = reason
+            .as_deref()
+            .and_then(|r| death_object_name(r, content));
+        let killer_name = death_killer_name(o, world);
         Self {
             name,
             age_years: o.current_age(),
-            reason: o.delete_reason.clone(),
+            reason,
+            killer_name,
+            weapon_name,
         }
     }
 
     /// Explicit constructor for tests / offline demos.
     pub fn new(name: impl Into<String>, age_years: f32, reason: Option<String>) -> Self {
+        let reason = reason.and_then(|r| extract_reason_tag(&r).map(|s| s.to_string()));
         Self {
             name: name.into(),
             age_years,
             reason,
+            killer_name: None,
+            weapon_name: None,
         }
     }
 
     /// Human-readable reason line (`reason_hunger` → `"hunger"`).
     pub fn reason_display(&self) -> Option<String> {
-        self.reason.as_ref().map(|r| format_death_reason(r))
+        let raw = self.reason.as_deref()?;
+        Some(format_death_reason_ex(
+            raw,
+            self.weapon_name.as_deref(),
+            self.killer_name.as_deref(),
+        ))
     }
 
     /// Multi-line summary for soft-FB / logs.
@@ -113,18 +140,159 @@ pub fn note_our_death_if_any(app: &mut ClientAppState, our: Option<&LiveObject>)
     if !me.deleted {
         return false;
     }
-    app.enter_death(DeathSummary::from_live_object(me));
+    app.enter_death(DeathSummary::from_live_object(me, None, None));
     true
 }
 
-/// Strip `reason_` prefix and replace `_` with spaces for soft-FB text.
-pub fn format_death_reason(raw: &str) -> String {
-    let s = raw.trim();
-    let s = s
+/// If we are Playing and our LiveObject is deleted, transition app → Death.
+///
+/// Pass the live world + content so a player-kill can show the killer's name
+/// and `reason_killed_<id>` can show the weapon instead of the raw PU tail.
+pub fn note_our_death_ex(
+    app: &mut ClientAppState,
+    world: &LiveWorld,
+    content: Option<&ClientContent>,
+) -> bool {
+    if app.screen != ClientScreen::Playing {
+        return false;
+    }
+    let Some(me) = world.our() else {
+        return false;
+    };
+    if !me.deleted {
+        return false;
+    }
+    app.enter_death(DeathSummary::from_live_object(me, Some(world), content));
+    true
+}
+
+/// Pull the `reason_*` tag out of a delete PU tail or a raw reason field.
+pub fn extract_reason_tag(raw: &str) -> Option<&str> {
+    raw.split_whitespace()
+        .find(|p| p.starts_with("reason_") || p.starts_with("REASON_"))
+}
+
+fn death_object_id(tag: &str) -> Option<i32> {
+    let t = tag
         .strip_prefix("reason_")
-        .or_else(|| s.strip_prefix("REASON_"))
-        .unwrap_or(s);
-    s.replace('_', " ")
+        .or_else(|| tag.strip_prefix("REASON_"))
+        .unwrap_or(tag);
+    for prefix in ["killed_legal", "killed_", "succumbed_"] {
+        if prefix == "killed_legal" {
+            continue;
+        }
+        if let Some(rest) = t.strip_prefix(prefix) {
+            if rest == "legal" {
+                return None;
+            }
+            return rest.parse().ok().filter(|&id| id > 0);
+        }
+    }
+    None
+}
+
+fn death_object_name(tag: &str, content: Option<&ClientContent>) -> Option<String> {
+    let id = death_object_id(tag)?;
+    let def = content?.get(id)?;
+    let raw = if !def.description.is_empty() {
+        def.description.as_str()
+    } else {
+        def.name.as_str()
+    };
+    let name = raw
+        .split('#')
+        .next()
+        .unwrap_or(raw)
+        .trim()
+        .to_ascii_uppercase();
+    if name.is_empty() {
+        None
+    } else {
+        Some(name)
+    }
+}
+
+fn death_killer_name(o: &LiveObject, world: Option<&LiveWorld>) -> Option<String> {
+    let tag = o.delete_reason.as_deref().and_then(extract_reason_tag)?;
+    let t = tag
+        .strip_prefix("reason_")
+        .or_else(|| tag.strip_prefix("REASON_"))
+        .unwrap_or(tag)
+        .to_ascii_lowercase();
+    if !t.starts_with("killed") {
+        return None;
+    }
+    let kid = o.responsible_id;
+    if kid <= 0 || kid == o.id {
+        return None;
+    }
+    let other = world?.get(kid)?;
+    let n = other.name.as_deref()?.trim();
+    if n.is_empty() || n == "~" {
+        None
+    } else {
+        Some(n.replace('_', " "))
+    }
+}
+
+/// Strip `reason_` prefix and replace `_` with spaces for soft-FB text.
+///
+/// Also accepts a full delete-PU tail and returns only the cause (never the PU).
+pub fn format_death_reason(raw: &str) -> String {
+    format_death_reason_ex(raw, None, None)
+}
+
+/// Cause line: `hunger` / `old age` / `killed by KNIFE` / `killed by ADA SNOW`.
+pub fn format_death_reason_ex(
+    raw: &str,
+    weapon_name: Option<&str>,
+    killer_name: Option<&str>,
+) -> String {
+    let tag = extract_reason_tag(raw).unwrap_or(raw.trim());
+    let core = tag
+        .strip_prefix("reason_")
+        .or_else(|| tag.strip_prefix("REASON_"))
+        .unwrap_or(tag)
+        .to_ascii_lowercase();
+    let mut line = if core == "age" {
+        "old age".into()
+    } else if core == "hunger" || core == "hunger_kid" {
+        "hunger".into()
+    } else if core == "nursing_hunger" {
+        "nursing hunger".into()
+    } else if core == "disconnected" {
+        "disconnected".into()
+    } else if core == "sid" {
+        "SID".into()
+    } else if core.starts_with("killed") {
+        if let Some(w) = weapon_name.filter(|s| !s.is_empty()) {
+            format!("killed by {w}")
+        } else {
+            "killed".into()
+        }
+    } else if core.starts_with("succumbed") {
+        if let Some(w) = weapon_name.filter(|s| !s.is_empty()) {
+            format!("succumbed to {w}")
+        } else {
+            "succumbed".into()
+        }
+    } else {
+        core.replace('_', " ")
+    };
+    if let Some(k) = killer_name.filter(|s| !s.is_empty()) {
+        let k_up = k.to_ascii_uppercase();
+        if !line.to_ascii_uppercase().contains(&k_up) {
+            if line.to_ascii_lowercase().starts_with("killed") {
+                line = format!("killed by {k}");
+                if let Some(w) = weapon_name.filter(|s| !s.is_empty()) {
+                    line = format!("{line} ({w})");
+                }
+            } else {
+                line = format!("{line} by {k}");
+            }
+        }
+    }
+    line
 }
 
 /// Soft-FB death page: dark fill + pencil summary + rebirth hints.
@@ -306,6 +474,15 @@ mod tests {
         assert_eq!(format_death_reason("reason_hunger"), "hunger");
         assert_eq!(format_death_reason("reason_disconnected"), "disconnected");
         assert_eq!(format_death_reason("old age"), "old age");
+        assert_eq!(
+            format_death_reason("22.50 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 0 reason_hunger"),
+            "hunger"
+        );
+        assert_eq!(format_death_reason("reason_killed_560"), "killed");
+        assert_eq!(
+            format_death_reason_ex("reason_killed_560", Some("KNIFE"), Some("ADA SNOW")),
+            "killed by ADA SNOW (KNIFE)"
+        );
     }
 
     #[test]
