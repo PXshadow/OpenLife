@@ -1380,14 +1380,18 @@ impl SceneRenderer {
                     } else {
                         (sx, sy)
                     };
-                    // C++ ~5483–5507: young baby (< noMoveAge) lies flat as drop settles.
+                    // C++ ~5483–5507: young baby (< noMoveAge) lies flat.
+                    // `heldByDropOffset` is in **tiles**; d > 0.5 keeps them upright
+                    // until the drop lands. Newborns on the ground (offset 0) use 1.0.
                     let mut baby_lie_rot = 0.0f32;
                     if age < crate::click_tile::NO_MOVE_AGE {
-                        let d_obj = (drop_ox * drop_ox + drop_oy * drop_oy).sqrt() * GRID;
-                        let shift_scale = if d_obj > 0.5 {
+                        let d_tiles = (drop_ox * drop_ox + drop_oy * drop_oy).sqrt();
+                        let shift_scale = if d_tiles > 0.5 {
                             0.0
+                        } else if d_tiles <= 1e-6 {
+                            1.0
                         } else {
-                            (0.5 - d_obj) / 0.5
+                            (0.5 - d_tiles) / 0.5
                         };
                         baby_lie_rot = shift_scale * 0.25;
                         person_sx -= shift_scale * crate::anim_draw::BABY_LIE_SHIFT_UNITS * scale;
@@ -3182,6 +3186,14 @@ impl SceneRenderer {
             }
 
             if posed[si] && draw[si] {
+                // C++ hidePersonShadows while a newborn lies on the ground.
+                if def.person != 0 && age < crate::click_tile::NO_MOVE_AGE {
+                    if let Some(meta) = sprites.get_meta(spr.sprite_id) {
+                        if meta.tag.contains("Shadow") {
+                            continue;
+                        }
+                    }
+                }
                 if let Some(rect) = sprites.ensure(spr.sprite_id) {
                     let page = &sprites.pages()[rect.atlas_index];
                     // Center-anchor (C++ setSpriteCenterOffset / Haxe inCenter).
@@ -3191,27 +3203,44 @@ impl SceneRenderer {
                     // before the Y flip — i.e. add ay in object Y, subtract ax in X.
                     let ax = rect.center_anchor_x as f32;
                     let ay = rect.center_anchor_y as f32;
+                    let (px, py, mut rot, already_flipped) = if extra_rot_turns.abs() > 1e-8 {
+                        // C++ drawObjectAnim inRot: flip pose, then
+                        // rot += inRot; spritePos = rotate(spritePos, -2π·inRot).
+                        let mut spx = ox[si];
+                        let spy = oy[si];
+                        let mut r = orot[si];
+                        if flip {
+                            spx = -spx;
+                            r = -r;
+                        }
+                        r += extra_rot_turns;
+                        let a = -extra_rot_turns * std::f32::consts::TAU;
+                        let (c, s) = (a.cos(), a.sin());
+                        let nx = spx * c - spy * s;
+                        let ny = spx * s + spy * c;
+                        (nx, ny, r, true)
+                    } else {
+                        (ox[si], oy[si], orot[si], false)
+                    };
                     // Rotate the center-anchor around the posed attach point so
                     // limbs swing from the joint (C++ SpriteGL: rotate
                     // mCenterOffset by +2π·rot, then posX -= ox, posY += oy).
-                    // Unrotated this is still `px = attach.x - ax`, `py = attach.y + ay`.
-                    let mut rot = orot[si] + extra_rot_turns;
-                    // +2π·rot, same as `get_object_center_offset` (CCW of (ax,ay)).
                     let a = rot * std::f32::consts::TAU;
                     let (c, s) = (a.cos(), a.sin());
                     let rox = ax * c - ay * s;
                     let roy = ax * s + ay * c;
-                    let px = ox[si] - rox;
-                    let py = oy[si] + roy;
+                    let px = px - rox;
+                    let py = py + roy;
 
-                    // Screen: flip X when facing left
-                    let dx = screen_x + px * scale * if flip { -1.0 } else { 1.0 };
+                    // Screen: flip X when facing left (already applied for inRot path).
+                    let flip_s = if already_flipped || !flip { 1.0 } else { -1.0 };
+                    let dx = screen_x + px * scale * flip_s;
                     let dy = screen_y - py * scale;
                     let mut h_flip = spr.h_flip ^ flip;
                     if rect.no_flip {
                         h_flip = spr.h_flip; // ignore facing flip when NoFlip
                     }
-                    if flip {
+                    if flip && !already_flipped {
                         rot = -rot;
                     }
                     let tint = pack.sprite_tint;

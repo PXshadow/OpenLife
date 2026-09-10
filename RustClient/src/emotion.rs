@@ -128,6 +128,8 @@ pub enum SpeechOutbound {
 pub enum SlashCommand {
     /// `/FPS` — toggle on-screen FPS overlay (`showFPS`).
     Fps,
+    /// `/RTT` — toggle server response-time overlay (avg / 5m max).
+    Rtt,
     /// `/NET` — toggle net overlay (`showNet`).
     Net,
     /// `/DIE` — baby suicide; session sends `DIE 0 0#` only if age < 2.
@@ -170,6 +172,7 @@ pub fn parse_slash_command(text: &str) -> Option<SlashCommand> {
     let upper = trimmed.to_ascii_uppercase();
     Some(match upper.as_str() {
         "/FPS" => SlashCommand::Fps,
+        "/RTT" => SlashCommand::Rtt,
         "/NET" => SlashCommand::Net,
         "/DIE" => SlashCommand::Die,
         "/PING" => SlashCommand::Ping,
@@ -415,6 +418,10 @@ mod tests {
         assert_eq!(
             classify_speech_outbound("/fps", &bank),
             SpeechOutbound::Slash(SlashCommand::Fps)
+        );
+        assert_eq!(
+            classify_speech_outbound("/rtt", &bank),
+            SpeechOutbound::Slash(SlashCommand::Rtt)
         );
         assert_eq!(
             classify_speech_outbound("/DIE", &bank),

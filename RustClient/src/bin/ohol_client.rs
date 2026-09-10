@@ -59,7 +59,7 @@ use ohol_headless::hover_pick::{
     draw_hover_outline, hover_tip_and_grave, update_scene_hover, update_scene_hover_with_clothing,
     HoverPick, HoverTipInput, WornClothingPickTarget,
 };
-use ohol_headless::hud::{draw_pencil_string, HudSprites};
+use ohol_headless::hud::{draw_pencil_string, pencil_string_width, HudSprites};
 use ohol_headless::live_object::{LiveWorld, CLOTHING_SLOT_NAMES};
 use ohol_headless::load_bench::resolve_content_root;
 use ohol_headless::load_progress::{
@@ -559,12 +559,23 @@ fn draw_slash_overlays(
     session: &ClientSession,
     fps: f32,
     settings_show_fps: bool,
+    settings_show_rtt: bool,
 ) {
-    let mut y = 10.0;
+    let mut x = 12.0;
+    let y = 10.0;
     if session.show_fps_overlay || settings_show_fps {
-        draw_shadow_white(fb, &format!("{fps:.0} FPS"), 12.0, y, 2.0);
-        y += 16.0;
+        let fps_s = format!("{fps:.0} FPS");
+        draw_shadow_white(fb, &fps_s, x, y, 2.0);
+        x += pencil_string_width(&fps_s, 2.0) + 18.0;
     }
+    if session.show_rtt_overlay || settings_show_rtt {
+        let rtt_s = match session.rtt_stats_5m() {
+            Some((avg, max)) => format!("avg {avg:.0}ms  max {max:.0}ms"),
+            None => "avg --ms  max --ms".into(),
+        };
+        draw_shadow_white(fb, &rtt_s, x, y, 1.5);
+    }
+    let mut y = y + 16.0;
     if session.show_net_overlay {
         draw_shadow_white(
             fb,
@@ -576,7 +587,9 @@ fn draw_slash_overlays(
         y += 14.0;
     }
     if let Some(ms) = session.last_ping_ms {
-        draw_shadow_white(fb, &format!("PING {ms:.0} MS"), 12.0, y, 1.5);
+        if !(session.show_rtt_overlay || settings_show_rtt) {
+            draw_shadow_white(fb, &format!("PING {ms:.0} MS"), 12.0, y, 1.5);
+        }
     }
 }
 
@@ -2542,6 +2555,9 @@ fn run_session_from_boot(
 
         // C++ idle KA (15s) — without this the server may drop the socket after a short idle.
         let _ = session.maybe_send_ka();
+        let _ = session.maybe_auto_ping(
+            session.show_rtt_overlay || app.settings.show_server_rtt,
+        );
         for _ in 0..48 {
             match session.poll_event() {
                 Ok(_) => {}
@@ -2780,7 +2796,13 @@ fn run_session_from_boot(
         );
         scene.highlight_tile = saved_hl;
         draw_hover_outline(&mut fb, &scene.camera, hover);
-        draw_slash_overlays(&mut fb, &session, fps.fps(), app.settings.show_fps);
+        draw_slash_overlays(
+            &mut fb,
+            &session,
+            fps.fps(),
+            app.settings.show_fps,
+            app.settings.show_server_rtt,
+        );
 
         // Debug play-snapshot tools (settings.debug): F9 or SNAP button.
         if app.settings.debug {
@@ -4171,6 +4193,9 @@ fn run_session_gpu(
 
                     // C++ idle KA so the server does not drop a quiet socket.
                     let _ = session.maybe_send_ka();
+                    let _ = session.maybe_auto_ping(
+                        session.show_rtt_overlay || app.settings.show_server_rtt,
+                    );
                     for _ in 0..48 {
                         match session.poll_event() {
                             Ok(_) => {}
@@ -4348,7 +4373,13 @@ fn run_session_gpu(
                     );
                     scene.highlight_tile = saved_hl;
                     draw_hover_outline(&mut fb, &scene.camera, hover);
-                    draw_slash_overlays(&mut fb, &session, fps.fps(), app.settings.show_fps);
+                    draw_slash_overlays(
+                        &mut fb,
+                        &session,
+                        fps.fps(),
+                        app.settings.show_fps,
+                        app.settings.show_server_rtt,
+                    );
 
                     let rx_ago = session.secs_since_last_rx();
                     let rx_label = if rx_ago < 0.05 {

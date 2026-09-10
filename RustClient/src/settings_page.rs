@@ -78,6 +78,8 @@ pub struct SettingsPage {
     pub sound_muted: bool,
     pub music_muted: bool,
     pub show_fps: bool,
+    /// Avg / 5-minute max server RTT next to FPS (default on).
+    pub show_server_rtt: bool,
     /// When true, Playing shows F9/SNAP play-snapshot tools.
     pub debug: bool,
     /// Screen pixels per world tile (camera zoom). Persist + apply on play.
@@ -134,6 +136,7 @@ pub enum SettingsFocus {
     SoundMute,
     MusicMute,
     ShowFps,
+    ShowServerRtt,
     Debug,
     CommunitySite,
     DiscordUrl,
@@ -196,6 +199,7 @@ impl SettingsFocus {
                 SettingsFocus::Graphics,
                 SettingsFocus::Fullscreen,
                 SettingsFocus::ShowFps,
+                SettingsFocus::ShowServerRtt,
                 SettingsFocus::Restart,
                 SettingsFocus::Back,
             ],
@@ -295,6 +299,7 @@ impl Default for SettingsPage {
             sound_muted: false,
             music_muted: false,
             show_fps: true,
+            show_server_rtt: true,
             debug: false,
             zoom: ZOOM_DEFAULT,
             // Original Jason ground overlay brightness.
@@ -424,6 +429,11 @@ impl SettingsPage {
             if std::env::var_os("OHOL_SHOW_FPS").is_none() {
                 s.show_fps = file.show_fps;
             }
+            if std::env::var_os("OHOL_SHOW_RTT").is_none()
+                && std::env::var_os("OHOL_SHOW_SERVER_RTT").is_none()
+            {
+                s.show_server_rtt = file.show_server_rtt;
+            }
             if std::env::var_os("OHOL_DEBUG").is_none() {
                 s.debug = file.debug;
             }
@@ -522,6 +532,9 @@ impl SettingsPage {
         if let Some(v) = get("OHOL_SHOW_FPS") {
             s.show_fps = env_truthy(Some(v.as_str()));
         }
+        if let Some(v) = get("OHOL_SHOW_RTT").or_else(|| get("OHOL_SHOW_SERVER_RTT")) {
+            s.show_server_rtt = env_truthy(Some(v.as_str()));
+        }
         if let Some(v) = get("OHOL_ZOOM") {
             if let Ok(n) = v.trim().parse::<f32>() {
                 s.zoom = n;
@@ -609,6 +622,7 @@ impl SettingsPage {
              sound_muted={}\n\
              music_muted={}\n\
              show_fps={}\n\
+             show_server_rtt={}\n\
              debug={}\n\
              zoom={:.3}\n\
              brightness={:.3}\n\
@@ -625,6 +639,7 @@ impl SettingsPage {
             if self.sound_muted { "1" } else { "0" },
             if self.music_muted { "1" } else { "0" },
             if self.show_fps { "1" } else { "0" },
+            if self.show_server_rtt { "1" } else { "0" },
             if self.debug { "1" } else { "0" },
             self.zoom.clamp(ZOOM_MIN, ZOOM_MAX),
             self.brightness.clamp(0.0, 1.0),
@@ -665,6 +680,9 @@ impl SettingsPage {
                 "sound_muted" | "audio_muted" | "mute" => s.sound_muted = env_truthy(Some(v)),
                 "music_muted" => s.music_muted = env_truthy(Some(v)),
                 "show_fps" | "fps" => s.show_fps = env_truthy(Some(v)),
+                "show_server_rtt" | "show_rtt" | "rtt" => {
+                    s.show_server_rtt = env_truthy(Some(v))
+                }
                 "debug" | "debug_tools" => s.debug = env_truthy(Some(v)),
                 "zoom" | "camera_zoom" | "view_zoom" => {
                     if let Ok(n) = v.parse::<f32>() {
@@ -807,9 +825,18 @@ impl SettingsPage {
                 SettingsFocus::ShowFps => {
                     self.show_fps = !self.show_fps;
                     self.status = if self.show_fps {
-                        "FPS in title: on".into()
+                        "FPS overlay: on".into()
                     } else {
-                        "FPS in title: off".into()
+                        "FPS overlay: off".into()
+                    };
+                    SettingsAction::Applied
+                }
+                SettingsFocus::ShowServerRtt => {
+                    self.show_server_rtt = !self.show_server_rtt;
+                    self.status = if self.show_server_rtt {
+                        "Server time overlay: on".into()
+                    } else {
+                        "Server time overlay: off".into()
                     };
                     SettingsAction::Applied
                 }
@@ -1024,9 +1051,18 @@ impl SettingsPage {
             SettingsFocus::ShowFps => {
                 self.show_fps = !self.show_fps;
                 self.status = if self.show_fps {
-                    "FPS in title: on".into()
+                    "FPS overlay: on".into()
                 } else {
-                    "FPS in title: off".into()
+                    "FPS overlay: off".into()
+                };
+                SettingsAction::Applied
+            }
+            SettingsFocus::ShowServerRtt => {
+                self.show_server_rtt = !self.show_server_rtt;
+                self.status = if self.show_server_rtt {
+                    "Server time overlay: on".into()
+                } else {
+                    "Server time overlay: off".into()
                 };
                 SettingsAction::Applied
             }
@@ -1161,9 +1197,17 @@ impl SettingsPage {
             SettingsFocus::ShowFps if dir != 0 => {
                 self.show_fps = !self.show_fps;
                 self.status = if self.show_fps {
-                    "FPS in title: on".into()
+                    "FPS overlay: on".into()
                 } else {
-                    "FPS in title: off".into()
+                    "FPS overlay: off".into()
+                };
+            }
+            SettingsFocus::ShowServerRtt if dir != 0 => {
+                self.show_server_rtt = !self.show_server_rtt;
+                self.status = if self.show_server_rtt {
+                    "Server time overlay: on".into()
+                } else {
+                    "Server time overlay: off".into()
                 };
             }
             SettingsFocus::Debug if dir != 0 => {
@@ -1523,6 +1567,14 @@ pub fn draw_settings_screen(fb: &mut Framebuffer, page: &SettingsPage, solid_bac
                     "Off".to_string()
                 },
             ),
+            SettingsFocus::ShowServerRtt => (
+                "Server time".to_string(),
+                if page.show_server_rtt {
+                    "On".to_string()
+                } else {
+                    "Off".to_string()
+                },
+            ),
             SettingsFocus::Debug => (
                 "Debug tools".to_string(),
                 if page.debug {
@@ -1774,6 +1826,7 @@ mod tests {
                 | SettingsFocus::SoundMute
                 | SettingsFocus::MusicMute
                 | SettingsFocus::ShowFps
+                | SettingsFocus::ShowServerRtt
                 | SettingsFocus::Debug
                 | SettingsFocus::CommunitySite
                 | SettingsFocus::DiscordUrl
@@ -1802,6 +1855,7 @@ mod tests {
             SettingsFocus::SoundMute,
             SettingsFocus::MusicMute,
             SettingsFocus::ShowFps,
+            SettingsFocus::ShowServerRtt,
             SettingsFocus::Debug,
             SettingsFocus::CommunitySite,
             SettingsFocus::DiscordUrl,
@@ -1880,6 +1934,7 @@ mod tests {
         assert!((p.sound_volume - 0.5).abs() < 0.001);
         assert!((p.music_volume - 0.25).abs() < 0.001);
         assert!(p.sound_muted && !p.music_muted && !p.show_fps);
+        assert!(p.show_server_rtt);
         assert!((p.zoom - 48.0).abs() < 0.001);
         assert!((p.brightness - 0.75).abs() < 0.001);
     }

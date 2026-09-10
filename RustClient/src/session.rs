@@ -67,6 +67,10 @@ fn first_wire_tag(body: &str) -> Option<ServerTag> {
 
 /// C++: `LivingLifePage.cpp` — idle KA when `game_getCurrentTime() - timeLastMessageSent > 15`.
 pub const KA_IDLE_SECS: u64 = 15;
+/// Rolling window for avg/max server RTT overlay.
+pub const RTT_WINDOW_SECS: u64 = 300;
+/// Auto-PING interval while the RTT overlay is on.
+pub const AUTO_PING_SECS: u64 = 2;
 
 #[derive(Debug, Clone)]
 pub struct SessionConfig {
@@ -290,6 +294,11 @@ pub struct ClientSession {
     pub show_net_overlay: bool,
     /// C++ `showPing` — last `/PING` RTT in milliseconds (`None` until PONG).
     pub last_ping_ms: Option<f32>,
+    /// `/RTT` overlay (settings `show_server_rtt` is the usual on/off).
+    pub show_rtt_overlay: bool,
+    /// RTT samples for the last 5 minutes `(when, ms)`.
+    rtt_samples: Vec<(Instant, f32)>,
+    last_auto_ping_at: Option<Instant>,
     /// C++ `forceDisconnect` from `/DISCONNECT`.
     pub force_disconnect: bool,
     /// C++ leftover `/filter` hint string.
@@ -450,6 +459,9 @@ impl ClientSession {
             show_fps_overlay: false,
             show_net_overlay: false,
             last_ping_ms: None,
+            show_rtt_overlay: false,
+            rtt_samples: Vec::new(),
+            last_auto_ping_at: None,
             force_disconnect: false,
             hint_filter: None,
             last_ping_sent: 0,
@@ -817,6 +829,9 @@ impl ClientSession {
         self.show_fps_overlay = false;
         self.show_net_overlay = false;
         self.last_ping_ms = None;
+        self.show_rtt_overlay = false;
+        self.rtt_samples.clear();
+        self.last_auto_ping_at = None;
         self.force_disconnect = false;
         self.hint_filter = None;
         self.last_ping_sent = 0;
@@ -1533,7 +1548,9 @@ impl ClientSession {
             InboundMessage::Pong(id) => {
                 if self.waiting_for_pong {
                     if let Some(t0) = self.ping_sent_at {
-                        self.last_ping_ms = Some(t0.elapsed().as_secs_f32() * 1000.0);
+                        let ms = t0.elapsed().as_secs_f32() * 1000.0;
+                        self.last_ping_ms = Some(ms);
+                        self.push_rtt_sample(ms);
                     }
                     self.waiting_for_pong = false;
                     self.ping_sent_at = None;
@@ -1817,6 +1834,14 @@ impl ClientSession {
                     "FPS OFF".into()
                 })
             }
+            SlashCommand::Rtt => {
+                self.show_rtt_overlay = !self.show_rtt_overlay;
+                Ok(if self.show_rtt_overlay {
+                    "RTT ON".into()
+                } else {
+                    "RTT OFF".into()
+                })
+            }
             SlashCommand::Net => {
                 self.show_net_overlay = !self.show_net_overlay;
                 Ok(if self.show_net_overlay {
@@ -2083,6 +2108,67 @@ impl ClientSession {
 
     pub fn send_ka(&mut self) -> io::Result<()> {
         self.send_raw(&encode_ka(0, 0))
+    }
+
+    fn prune_rtt_samples(&mut self) {
+        let cutoff = Duration::from_secs(RTT_WINDOW_SECS);
+        let now = Instant::now();
+        self.rtt_samples
+            .retain(|(t, _)| now.saturating_duration_since(*t) <= cutoff);
+    }
+
+    fn push_rtt_sample(&mut self, ms: f32) {
+        if !ms.is_finite() || ms < 0.0 {
+            return;
+        }
+        self.rtt_samples.push((Instant::now(), ms));
+        self.prune_rtt_samples();
+    }
+
+    /// Average and max RTT in milliseconds over the last 5 minutes.
+    pub fn rtt_stats_5m(&self) -> Option<(f32, f32)> {
+        if self.rtt_samples.is_empty() {
+            return self.last_ping_ms.map(|ms| (ms, ms));
+        }
+        let cutoff = Duration::from_secs(RTT_WINDOW_SECS);
+        let now = Instant::now();
+        let mut sum = 0.0f32;
+        let mut n = 0u32;
+        let mut max = 0.0f32;
+        for (t, ms) in &self.rtt_samples {
+            if now.saturating_duration_since(*t) > cutoff {
+                continue;
+            }
+            sum += *ms;
+            n += 1;
+            if *ms > max {
+                max = *ms;
+            }
+        }
+        if n == 0 {
+            return self.last_ping_ms.map(|ms| (ms, ms));
+        }
+        Some((sum / n as f32, max))
+    }
+
+    /// Periodic `PING` while the RTT overlay is enabled (settings or `/RTT`).
+    pub fn maybe_auto_ping(&mut self, overlay_on: bool) -> io::Result<Option<String>> {
+        if !overlay_on || self.waiting_for_pong {
+            return Ok(None);
+        }
+        let now = Instant::now();
+        if let Some(t) = self.last_auto_ping_at {
+            if now.duration_since(t) < Duration::from_secs(AUTO_PING_SECS) {
+                return Ok(None);
+            }
+        }
+        self.last_ping_sent += 1;
+        self.waiting_for_pong = true;
+        self.ping_sent_at = Some(now);
+        self.last_auto_ping_at = Some(now);
+        let line = encode_ping(0, 0, self.last_ping_sent);
+        self.send_raw(&line)?;
+        Ok(Some(line))
     }
 
     /// C++ `GRAVE x y#` when hovering an unknown origGrave.
@@ -4147,12 +4233,20 @@ mod tests {
         assert_eq!(session.send_say("/fps").unwrap(), "FPS ON");
         assert!(session.show_fps_overlay);
         assert_eq!(session.send_say("/FPS").unwrap(), "FPS OFF");
+        assert_eq!(session.send_say("/rtt").unwrap(), "RTT ON");
+        assert!(session.show_rtt_overlay);
+        assert_eq!(session.send_say("/RTT").unwrap(), "RTT OFF");
         let die = session.send_say("/die").unwrap();
         assert_eq!(die, "DIE 0 0#");
         let ping = session.send_say("/ping").unwrap();
         assert!(ping.starts_with("PING 0 0 "));
         assert_eq!(session.send_say("/disconnect").unwrap(), "DISCONNECT");
         assert!(session.force_disconnect);
+        session.push_rtt_sample(20.0);
+        session.push_rtt_sample(40.0);
+        let (avg, max) = session.rtt_stats_5m().expect("rtt samples");
+        assert!((avg - 30.0).abs() < 0.01, "avg={avg}");
+        assert!((max - 40.0).abs() < 0.01, "max={max}");
         let _ = handle.join();
     }
 
