@@ -1621,6 +1621,8 @@ pub struct SimBootLive {
     pub world_food_share: Option<WorldFoodShare>,
     /// OBJECTCOUNTS-LIVE: world object census for ObjectCounts.txt autosave dump.
     pub object_counts_share: Option<ObjectCountsShare>,
+    /// Haxe OriginalObjects.bin — frozen generation census path.
+    pub original_census_path: Option<std::path::PathBuf>,
     /// AI-LLM-HTTP-DRAIN: job/result bridge for ol-server `call_ai_async` worker.
     pub llm_speech_share: Option<crate::LlmSpeechIoShare>,
     /// NPC-SCAN-FULL: live `blockedByAI` mirror for the NPC think thread.
@@ -1638,6 +1640,7 @@ impl Default for SimBootLive {
             players_share: None,
             world_food_share: None,
             object_counts_share: None,
+            original_census_path: None,
             llm_speech_share: None,
             blocked_by_ai_share: None,
         }

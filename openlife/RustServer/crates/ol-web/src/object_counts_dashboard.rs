@@ -1,15 +1,29 @@
 //! `/object-counts` page: minute object-census graphs with the same time-range control as `/ops`.
 
 use ol_sim::ObjectCountSample;
+use std::collections::HashMap;
 
-pub fn object_counts_series_json(samples: &[ObjectCountSample]) -> serde_json::Value {
+pub fn object_counts_series_json(
+    samples: &[ObjectCountSample],
+    live_originals: &HashMap<i32, i32>,
+) -> serde_json::Value {
     let mut names = serde_json::Map::new();
+    let mut originals = serde_json::Map::new();
+    let live_has = !live_originals.is_empty();
+    for (&id, &n) in live_originals {
+        if id > 0 {
+            originals.insert(id.to_string(), serde_json::json!(n));
+        }
+    }
     let series: Vec<serde_json::Value> = samples
         .iter()
         .map(|s| {
             for t in &s.top {
                 if !t.name.is_empty() {
                     names.insert(t.id.to_string(), serde_json::Value::String(t.name.clone()));
+                }
+                if !live_has && t.original > 0 {
+                    originals.insert(t.id.to_string(), serde_json::json!(t.original));
                 }
             }
             let objects: Vec<serde_json::Value> = s
@@ -25,14 +39,23 @@ pub fn object_counts_series_json(samples: &[ObjectCountSample]) -> serde_json::V
             })
         })
         .collect();
-    serde_json::json!({ "samples": series, "count": series.len(), "names": names })
+    serde_json::json!({
+        "samples": series,
+        "count": series.len(),
+        "names": names,
+        "originals": originals,
+    })
 }
 
-pub fn build_object_counts_html(samples: &[ObjectCountSample], version: &str) -> String {
+pub fn build_object_counts_html(
+    samples: &[ObjectCountSample],
+    version: &str,
+    live_originals: &HashMap<i32, i32>,
+) -> String {
     let last = samples.last();
     let total = last.map(|s| s.total).unwrap_or(0);
     let unique = last.map(|s| s.unique).unwrap_or(0);
-    let series = object_counts_series_json(samples);
+    let series = object_counts_series_json(samples, live_originals);
     let series_js =
         serde_json::to_string(&series).unwrap_or_else(|_| "{\"samples\":[],\"count\":0,\"names\":{}}".into());
     format!(
@@ -67,7 +90,7 @@ th{{color:#8b9bb0;font-weight:600}}
 .tri-flat{{color:#8b9bb0}}
 </style></head>
 <body>
-<p class="muted"><a href="/">home</a> · <a href="/ops">ops</a> · object counts · v{version}</p>
+<p class="muted"><a href="/">home</a> · <a href="/ops">ops</a> · <a href="/ai-obs">AI obs</a> · object counts · v{version}</p>
 <h1>Object counts</h1>
 <p class="muted">World census sampled once a minute (same maps as ObjectCounts.txt). Time range matches the ops dashboard and is saved in this browser. Graphs default to the 10 types with the largest 24-hour change.</p>
 <div class="cards">
@@ -133,7 +156,7 @@ mod tests {
                 name: "Gooseberry".into(),
             }],
         }];
-        let html = build_object_counts_html(&samples, "0.2.0");
+        let html = build_object_counts_html(&samples, "0.2.0", &std::collections::HashMap::new());
         assert!(html.contains("Object counts"));
         assert!(html.contains("Time range"));
         assert!(html.contains("ops-time-range"));
@@ -144,21 +167,28 @@ mod tests {
         assert!(html.contains("obj-select-all"));
         assert!(html.contains("Biggest 24h % change"));
         assert!(html.contains("/ops"));
+        assert!(html.contains("/ai-obs"));
         assert!(html.contains("id=\"ops-charts\""));
         assert!(html.contains("No samples yet"));
         assert!(html.contains("top-table"));
         assert!(!html.contains("class=\"pt\""));
-        let v = object_counts_series_json(&samples);
+        let v = object_counts_series_json(&samples, &std::collections::HashMap::new());
         assert_eq!(v["count"], 1);
         assert_eq!(v["samples"][0]["total"], 12);
         assert_eq!(v["names"]["33"], "Gooseberry");
         assert_eq!(v["samples"][0]["objects"][0][0], 33);
         assert_eq!(v["samples"][0]["objects"][0][1], 10);
+        assert_eq!(v["originals"]["33"], 8);
+        let mut live = std::collections::HashMap::new();
+        live.insert(33, 40);
+        let v2 = object_counts_series_json(&samples, &live);
+        assert_eq!(v2["originals"]["33"], 40);
+        assert_eq!(v2["originals"].as_object().unwrap().len(), 1);
     }
 
     #[test]
     fn empty_object_counts_page_still_has_chart_host() {
-        let html = build_object_counts_html(&[], "0.2.0");
+        let html = build_object_counts_html(&[], "0.2.0", &std::collections::HashMap::new());
         assert!(html.contains("id=\"ops-charts\""));
         assert!(html.contains("data-field=\"total\">0<"));
         assert!(html.contains("window.OLR_OBJ="));

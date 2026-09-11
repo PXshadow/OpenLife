@@ -256,7 +256,8 @@ function setZoomFromSlider(v) {
 function worldToScreen(tx, ty, b, cssW, cssH) {
   const cellW = cssW / b.tw;
   const cellH = cssH / b.th;
-  return { x: (tx - b.x0) * cellW, y: (ty - b.y0) * cellH, cellW, cellH };
+  // Game +Y is north (top of the OHOL map). Canvas +Y is down — flip Y.
+  return { x: (tx - b.x0) * cellW, y: (b.y0 + b.th - 1 - ty) * cellH, cellW, cellH };
 }
 
 function paintOverviewLayer(g, b, cssW, cssH) {
@@ -275,7 +276,7 @@ function paintOverviewLayer(g, b, cssW, cssH) {
       const idx = sy * overview.sample_w + sx;
       const biome = overview.biomes[idx];
       const px = (wx0 - b.x0) * cellW;
-      const py = (wy0 - b.y0) * cellH;
+      const py = (b.y0 + b.th - wy0 - step) * cellH;
       g.fillStyle = BIOME[biome] || '#203040';
       g.fillRect(px, py, step * cellW + 0.5, step * cellH + 0.5);
       if (overview.object_mask[idx]) {
@@ -301,7 +302,7 @@ function paintDetailLayer(g, b, cssW, cssH) {
     const ty = detail.origin_y + ly;
     if (tx < b.x0 - 1 || ty < b.y0 - 1 || tx > b.x0 + b.tw || ty > b.y0 + b.th) continue;
     const px = (tx - b.x0) * cellW;
-    const py = (ty - b.y0) * cellH;
+    const py = (b.y0 + b.th - 1 - ty) * cellH;
     g.fillStyle = BIOME[detail.biomes[i]] || '#203040';
     g.fillRect(px, py, cellW + 0.5, cellH + 0.5);
     const id = detail.objects[i];
@@ -321,7 +322,7 @@ function paintPlayers(g, b, cssW, cssH) {
   for (const p of players) {
     if (p.deleted) continue;
     const px = (p.x - b.x0) * cellW;
-    const py = (p.y - b.y0) * cellH;
+    const py = (b.y0 + b.th - 1 - p.y) * cellH;
     if (px < -cell || py < -cell || px > cssW || py > cssH) continue;
     drawPlayer(g, px, py, cell, p);
   }
@@ -338,10 +339,10 @@ function paintMinimap() {
     for (let x = 0; x < sw; x++) {
       const i = y * sw + x;
       mctx.fillStyle = BIOME[overview.biomes[i]] || '#203040';
-      mctx.fillRect(x*sx, y*sy, sx+0.5, sy+0.5);
+      mctx.fillRect(x*sx, (sh - 1 - y)*sy, sx+0.5, sy+0.5);
       if (overview.object_mask[i]) {
         mctx.fillStyle = 'rgba(240,230,200,.5)';
-        mctx.fillRect(x*sx + sx*0.25, y*sy + sy*0.25, sx*0.5, sy*0.5);
+        mctx.fillRect(x*sx + sx*0.25, (sh - 1 - y)*sy + sy*0.25, sx*0.5, sy*0.5);
       }
     }
   }
@@ -351,10 +352,16 @@ function paintMinimap() {
   const scaleY = mh / Math.max(1, worldMeta.height);
   mctx.strokeStyle = '#ff4466';
   mctx.lineWidth = 1.5;
-  mctx.strokeRect(b.x0 * scaleX, b.y0 * scaleY, b.tw * scaleX, b.th * scaleY);
+  mctx.strokeRect(
+    b.x0 * scaleX,
+    (worldMeta.height - b.y0 - b.th) * scaleY,
+    b.tw * scaleX,
+    b.th * scaleY
+  );
   for (const p of players) {
+    if (p.deleted) continue;
     mctx.fillStyle = '#ff5a6a';
-    mctx.fillRect(p.x * scaleX - 2, p.y * scaleY - 2, 4, 4);
+    mctx.fillRect(p.x * scaleX - 2, (worldMeta.height - 1 - p.y) * scaleY - 2, 4, 4);
   }
 }
 
@@ -435,7 +442,7 @@ function agentRole(p) {
 
 async function refreshPlayers() {
   const data = await j('/api/players');
-  players = data.players || [];
+  players = (data.players || []).filter(p => !p.deleted);
   selfplay = await j('/api/selfplay');
   document.getElementById('log').textContent = (selfplay.log||[]).slice(-50).join('\n') || '(waiting…)';
   const selfplayAgents = players.filter(p => {
@@ -539,7 +546,7 @@ window.addEventListener('pointermove', (e) => {
     const cellW = cssW / b.tw;
     const cellH = cssH / b.th;
     cam.x = drag.cx - (e.clientX - drag.x) / cellW;
-    cam.y = drag.cy - (e.clientY - drag.y) / cellH;
+    cam.y = drag.cy + (e.clientY - drag.y) / cellH;
     paint();
     return;
   }
@@ -549,7 +556,7 @@ window.addEventListener('pointermove', (e) => {
   const cssW = rect.width, cssH = rect.height;
   const b = cameraBounds();
   const tx = Math.floor(b.x0 + (mx / cssW) * b.tw);
-  const ty = Math.floor(b.y0 + (my / cssH) * b.th);
+  const ty = Math.floor(b.y0 + b.th - (my / cssH) * b.th);
   if (lastHover && lastHover.tx === tx && lastHover.ty === ty) return;
   lastHover = { tx, ty };
   let info = `(${tx}, ${ty})`;
@@ -571,7 +578,7 @@ mini.addEventListener('click', (e) => {
   const u = (e.clientX - r.left) / r.width;
   const v = (e.clientY - r.top) / r.height;
   cam.x = u * worldMeta.width;
-  cam.y = v * worldMeta.height;
+  cam.y = (1 - v) * worldMeta.height;
   cam.whole = false; cam.follow = false;
   document.getElementById('btn-whole').classList.remove('active');
   document.getElementById('btn-follow').classList.remove('active');

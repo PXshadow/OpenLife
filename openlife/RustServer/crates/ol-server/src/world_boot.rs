@@ -3,8 +3,8 @@
 use ol_config::ServerConfig;
 use ol_content::ContentDb;
 use ol_world::{
-    generate_from_png, load_world_file, save_world_file, spawn_natural_objects, GenerateOptions,
-    World,
+    generate_from_png, load_world_file, map_generation_seed, populate_fresh_map, save_world_file,
+    GenerateOptions, World,
 };
 use rand::SeedableRng;
 use tracing::{info, warn};
@@ -43,6 +43,7 @@ pub fn bootstrap_world(cfg: &ServerConfig, content: &ContentDb) -> World {
                     helpers = w.helper_count(),
                     "loaded world from disk"
                 );
+                ensure_generation_census(cfg, content, w.width_tiles, w.height_tiles);
                 return w;
             }
             Err(e) => {
@@ -77,22 +78,16 @@ pub fn bootstrap_world(cfg: &ServerConfig, content: &ContentDb) -> World {
         }
     };
 
-    // Deterministic-ish seed from dimensions so restarts without save are comparable.
-    let seed = (world.width_tiles as u64)
-        .wrapping_mul(1_000_003)
-        .wrapping_add(world.height_tiles as u64);
+    // Haxe: addExtraBiomes → generateObjects → generateExtraStuff, then originalObjects copy.
+    let seed = map_generation_seed(world.width_tiles, world.height_tiles);
     let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
-    let n = spawn_natural_objects(
-        &mut world,
-        content,
-        cfg.natural_object_density,
-        &mut rng,
-    );
+    let n = populate_fresh_map(&mut world, content, cfg.natural_object_density, &mut rng);
     info!(
         objects = n,
         density = cfg.natural_object_density,
         "initial natural objects placed"
     );
+    save_generation_census(cfg, content, &world);
 
     match save_world_file(&world, &save_path) {
         Ok(()) => info!(path = %save_path.display(), "world permanently saved to disk"),
@@ -100,6 +95,62 @@ pub fn bootstrap_world(cfg: &ServerConfig, content: &ContentDb) -> World {
     }
 
     world
+}
+
+/// Rebuild original census from PNG generate when the on-disk file is missing or a live freeze.
+fn ensure_generation_census(cfg: &ServerConfig, content: &ContentDb, width: i32, height: i32) {
+    let path = cfg.original_census_save_path();
+    if ol_sim::original_census_is_generation(&path) {
+        return;
+    }
+    let Some(png) = resolve_map_png(cfg) else {
+        warn!("cannot rebuild original census — map PNG missing");
+        return;
+    };
+    let opts = GenerateOptions {
+        wrap: true,
+        density: cfg.natural_object_density,
+    };
+    let mut scratch = match generate_from_png(&png, &opts) {
+        Ok(w) => w,
+        Err(e) => {
+            warn!(error = %e, "original census PNG generate failed");
+            return;
+        }
+    };
+    if scratch.width_tiles != width || scratch.height_tiles != height {
+        warn!(
+            png_w = scratch.width_tiles,
+            png_h = scratch.height_tiles,
+            live_w = width,
+            live_h = height,
+            "PNG size differs from live world; still using PNG for original census"
+        );
+    }
+    let seed = map_generation_seed(scratch.width_tiles, scratch.height_tiles);
+    let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
+    let n = populate_fresh_map(
+        &mut scratch,
+        content,
+        cfg.natural_object_density,
+        &mut rng,
+    );
+    info!(objects = n, "rebuilt original object census from fresh-map generate");
+    save_generation_census(cfg, content, &scratch);
+}
+
+fn save_generation_census(cfg: &ServerConfig, content: &ContentDb, world: &World) {
+    let path = cfg.original_census_save_path();
+    let mut lt = ol_sim::LongTermState::default();
+    if let Err(e) = ol_sim::capture_and_save_original_census(&mut lt, world, content, &path) {
+        warn!(error = %e, path = %path.display(), "original census save failed");
+    } else {
+        info!(
+            path = %path.display(),
+            originals = lt.original_counts.len(),
+            "froze original object census from fresh map"
+        );
+    }
 }
 
 /// Periodic dirty-world save (best-effort).

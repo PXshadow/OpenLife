@@ -1930,6 +1930,11 @@ impl ServerConfig {
         self.save_directory.join("ObjectCounts.txt")
     }
 
+    /// Frozen generation object census (Haxe `OriginalObjects.bin` / originalObjectsCount).
+    pub fn original_census_save_path(&self) -> PathBuf {
+        self.save_directory.join("original_census_v1.bin")
+    }
+
     /// Self-play agent count clamped to **1..=3**.
     pub fn selfplay_agent_count(&self) -> u8 {
         self.selfplay_agents.clamp(1, 3)

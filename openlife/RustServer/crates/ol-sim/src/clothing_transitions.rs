@@ -85,39 +85,12 @@ pub fn index_to_live_slot(index: usize) -> Option<ClothingSlot> {
     }
 }
 
-/// Preferred slot from content object (clothing field first, then name heuristics).
-pub fn clothing_slot_from_def(name: &str, description: &str, clothing: &str) -> Option<usize> {
-    if let Some(i) = get_clothing_slot_index(clothing) {
-        return Some(i);
-    }
-    // Fallback: name / description heuristics (legacy WEAR path).
-    let n = name.to_ascii_lowercase();
-    if n.contains("hat") || n.contains("crown") || n.contains("mask") {
-        return Some(0);
-    }
-    if n.contains("shoe") || n.contains("boot") {
-        return Some(2);
-    }
-    if n.contains("backpack") || n.contains("quiver") || n.contains("pack") {
-        return Some(5);
-    }
-    if n.contains("skirt") || n.contains("pants") || n.contains("bottom") || n.contains("trouser") {
-        return Some(4);
-    }
-    if n.contains("chest")
-        || n.contains("shirt")
-        || n.contains("tunic")
-        || n.contains("apron")
-        || n.contains("coat")
-    {
-        return Some(1);
-    }
-    let d = description.to_ascii_lowercase();
-    if d.contains("clothing=") {
-        // Unknown clothing= code → chest default (legacy)
-        return Some(1);
-    }
-    None
+/// Preferred slot from content `clothing` field only (Haxe `ObjectData.getClothingSlot`).
+///
+/// Do **not** substring-match names: `"Stone Hatchet"` contains `"hat"` but is not a hat.
+// Haxe: ObjectData.getClothingSlot L1541–1561
+pub fn clothing_slot_from_def(_name: &str, _description: &str, clothing: &str) -> Option<usize> {
+    get_clothing_slot_index(clothing)
 }
 
 // ---------------------------------------------------------------------------
@@ -1336,6 +1309,7 @@ pub fn format_clothing_set(player: &Player) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::player::Player;
     use ol_content::{ObjectDef, Transition};
 
     fn def_cloth(
@@ -1397,6 +1371,33 @@ mod tests {
         assert_eq!(get_clothing_slot_index("H "), Some(0));
         assert!(is_clothing_string("h"));
         assert!(!is_clothing_string("n"));
+        // Haxe getClothingSlot: clothing field only. "Hatchet" is not a hat.
+        assert_eq!(
+            clothing_slot_from_def("Stone Hatchet", "", "n"),
+            None
+        );
+        assert_eq!(clothing_slot_from_def("Wool Hat", "", "h"), Some(0));
+    }
+
+    /// Haxe doSwitchCloths: getClothingSlot < 0 refuses — hatchet cannot go on the body.
+    // Haxe: GlobalPlayerInstance.doSwitchCloths L3504–3506
+    #[test]
+    fn self_cannot_wear_stone_hatchet_on_hat_slot() {
+        let mut db = ContentDb::default();
+        let mut hatchet = ObjectDef::empty(71);
+        hatchet.name = "Stone Hatchet".into();
+        hatchet.description = "Stone Hatchet# +toolChopping".into();
+        hatchet.clothing = "n".into();
+        db.objects.insert(71, hatchet);
+        let mut p = Player::new(1, 1, "h@t");
+        p.set_held(71, 0);
+        let r = apply_self_clothing_after_drink(&mut p, &db, 0);
+        assert!(r.is_err(), "hatchet SELF on hat slot must refuse, got {r:?}");
+        assert_eq!(p.held_id, 71);
+        assert_eq!(p.hat, 0);
+        assert!(p.clothing_helpers[0].is_none());
+        assert!(apply_switch_cloths(&mut p, &db, 0).is_err());
+        assert_eq!(p.hat, 0);
     }
 
     #[test]

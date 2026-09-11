@@ -1317,6 +1317,16 @@ impl<T: Copy + PartialEq> DenseTileGrid<T> {
         }
     }
 
+    #[inline]
+    pub fn width(&self) -> i32 {
+        self.w
+    }
+
+    #[inline]
+    pub fn height(&self) -> i32 {
+        self.h
+    }
+
     /// Allocate / grow to `w*h`, copying the overlapping region.
     pub fn ensure(&mut self, w: i32, h: i32) {
         if w <= 0 || h <= 0 {

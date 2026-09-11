@@ -9190,7 +9190,8 @@
         );
     }
 
-    /// SAY ?AGE / AGE returns age via private PS (no SQL).
+    /// SAY ?AGE uses Haxe `trueAge` (`N YEARS!`), not display body age.
+    // Haxe: GlobalPlayerInstance.sayHelper L1931–1938
     #[test]
     fn say_age_returns_age() {
         let counters = Counters::new();
@@ -9201,11 +9202,12 @@
 
         {
             let p = state.players.get_mut(&1).unwrap();
-            p.age = 27.5;
+            p.age = 14.0;
+            p.true_age = 27.5;
         }
 
         let expected = SimState::format_age_query(27.5);
-        assert_eq!(expected, "AGE 27.50");
+        assert_eq!(expected, "27 YEARS!");
 
         apply_intent(
             &mut state,
@@ -9221,22 +9223,23 @@
         let mut saw = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains("AGE ") {
+            if s.starts_with("PS\n") && s.contains("YEARS!") {
                 saw = true;
                 assert!(
                     s.contains(&format!("{p_id}/0 {expected}")),
-                    "PS should embed age: {s}"
+                    "PS should embed trueAge: {s}"
                 );
-                assert!(s.contains("27.50"), "got {s}");
+                assert!(!s.contains("14 YEARS"), "must not use body age: {s}");
             }
         }
-        assert!(saw, "expected PS ?AGE reply with age");
+        assert!(saw, "expected PS ?AGE reply with trueAge");
 
-        // Bare AGE also works (private PS only).
+        // Bare AGE also private (Rust alias). AGE? is public Haxe.
         while rx.try_recv().is_ok() {}
         {
             let p = state.players.get_mut(&1).unwrap();
-            p.age = 0.0;
+            p.age = 5.0;
+            p.true_age = 0.9;
         }
         apply_intent(
             &mut state,
@@ -9251,16 +9254,14 @@
         let mut saw_bare = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 AGE ")) {
+            if s.starts_with("PS\n") && s.contains(&format!("{p_id}/0 0 YEARS!")) {
                 saw_bare = true;
-                assert!(s.contains("0.00"), "got {s}");
             }
         }
-        assert!(saw_bare, "expected PS bare AGE reply");
+        assert!(saw_bare, "expected PS bare AGE reply with floor(trueAge)");
 
-        // Pure formatter unit check (no wire).
-        assert_eq!(SimState::format_age_query(14.0), "AGE 14.00");
-        assert_eq!(SimState::format_age_query(MAX_AGE), "AGE 120.00");
+        assert_eq!(SimState::format_age_query(14.0), "14 YEARS!");
+        assert_eq!(SimState::format_age_query(MAX_AGE), "120 YEARS!");
     }
 
     /// SAY ?STATUS / STATUS: food age held prestige class wound sleep sick sit.
@@ -21526,6 +21527,141 @@
             state.llm_speech_jobs.is_empty(),
             "scripted STOP must skip LLM"
         );
+    }
+
+    /// Live AI-SAY-HELPER: ally DROP says DROPING then dropHeldObject(0) next vitals tick.
+    // Haxe: AiBase.sayHelper DROP L4879–4883 + doTimeStuffHelper orderedToDrop L481–484
+    #[test]
+    fn fan_out_ai_say_scripted_drop_actually_drops() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let _rx1 = hub.register(1);
+        let mut rx2 = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "human@t");
+        spawn_player(&mut state, 2, "npc-drop@local");
+        set_player_position(&mut state, 1, 0, 0);
+        set_player_position(&mut state, 2, 1, 0);
+        let human_id;
+        {
+            let h = state.players.get_mut(&1).unwrap();
+            h.first_name = "BOB".into();
+            h.age = 20.0;
+            h.connected = true;
+            h.ai_controlled = false;
+            human_id = h.p_id;
+        }
+        {
+            let a = state.players.get_mut(&2).unwrap();
+            a.first_name = "ALICE".into();
+            a.ai_controlled = true;
+            a.connected = false;
+            a.age = 20.0;
+            a.held_id = 33;
+            a.ai_follow_p_id = human_id;
+        }
+        let ai_id = state.players.get(&2).unwrap().p_id;
+        let _ = state.social.set_follow(ai_id, human_id);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "DROP".into(),
+            },
+        );
+        {
+            let ai = state.players.get(&2).unwrap();
+            assert!(ai.ai_ordered_to_drop);
+            assert_eq!(ai.held_id, 33, "Haxe defers drop to next AI/vitals tick");
+        }
+        let mut saw = false;
+        while let Ok(pkt) = rx2.try_recv() {
+            if String::from_utf8_lossy(&pkt).contains("DROPING") {
+                saw = true;
+            }
+        }
+        assert!(saw, "AI must SAY DROPING");
+        tick_vitals(&mut state, 0.05, &hub);
+        let ai = state.players.get(&2).unwrap();
+        assert!(!ai.ai_ordered_to_drop);
+        assert_eq!(ai.held_id, 0, "ordered drop must empty hands");
+        let ground = state.world.read().unwrap().get_object(1, 0);
+        assert_eq!(ground, 33, "item must land at feet");
+    }
+
+    /// Haxe dropHeldObject(0) searches a nearby empty tile when feet are occupied.
+    // Haxe: AiBase.dropHeldObject GetClosestObjectToTarget(player, 0, searchDistance)
+    #[test]
+    fn fan_out_ai_say_scripted_drop_uses_nearby_empty_tile() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let _rx1 = hub.register(1);
+        let mut rx2 = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "human@t");
+        spawn_player(&mut state, 2, "npc-drop-occ@local");
+        set_player_position(&mut state, 1, 0, 0);
+        set_player_position(&mut state, 2, 1, 0);
+        state.world.write().unwrap().set_object(1, 0, 99);
+        let human_id;
+        {
+            let h = state.players.get_mut(&1).unwrap();
+            h.first_name = "BOB".into();
+            h.age = 20.0;
+            h.connected = true;
+            h.ai_controlled = false;
+            human_id = h.p_id;
+        }
+        {
+            let a = state.players.get_mut(&2).unwrap();
+            a.first_name = "ALICE".into();
+            a.ai_controlled = true;
+            a.connected = false;
+            a.age = 20.0;
+            a.held_id = 33;
+            a.ai_follow_p_id = human_id;
+        }
+        let ai_id = state.players.get(&2).unwrap().p_id;
+        let _ = state.social.set_follow(ai_id, human_id);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SAY".into(),
+                payload: "DROP".into(),
+            },
+        );
+        {
+            let ai = state.players.get(&2).unwrap();
+            assert!(ai.ai_ordered_to_drop);
+            assert_eq!(ai.held_id, 33);
+        }
+        let mut saw = false;
+        while let Ok(pkt) = rx2.try_recv() {
+            if String::from_utf8_lossy(&pkt).contains("DROPING") {
+                saw = true;
+            }
+        }
+        assert!(saw, "AI must SAY DROPING");
+        tick_vitals(&mut state, 0.05, &hub);
+        let ai = state.players.get(&2).unwrap();
+        assert!(!ai.ai_ordered_to_drop);
+        assert_eq!(ai.held_id, 0, "ordered drop must empty hands");
+        assert_eq!(
+            state.world.read().unwrap().get_object(1, 0),
+            99,
+            "occupied feet stay occupied"
+        );
+        let neighbors = [(2, 0), (0, 0), (1, 1), (1, -1)];
+        let landed = neighbors
+            .iter()
+            .any(|&(x, y)| state.world.read().unwrap().get_object(x, y) == 33);
+        assert!(landed, "item must land on an in-range empty neighbor");
     }
 
     /// Live AI-LLM-FAN: closest AI hears free-form SAY, oreally + `...`, job queued.

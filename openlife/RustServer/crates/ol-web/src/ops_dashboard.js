@@ -45,27 +45,6 @@
       kind: "count"
     },
     {
-      id: "aiThink",
-      title: "AI Think Time",
-      tip: "Time for one NPC brain step, smoothed. Lower means snappier pickup and less lag.",
-      field: "ai_think_ema_us",
-      kind: "duration"
-    },
-    {
-      id: "aiCpu",
-      title: "AI CPU Total",
-      tip: "Cumulative NPC think time since the process started.",
-      field: "ai_cpu_us",
-      kind: "duration"
-    },
-    {
-      id: "aiThinks",
-      title: "AI Thinks",
-      tip: "How many NPC think steps have run.",
-      field: "ai_thinks",
-      kind: "count"
-    },
-    {
       id: "humanIntent",
       title: "Human Intent Time",
       tip: "Time to apply one human client action (smoothed).",
@@ -73,53 +52,11 @@
       kind: "duration"
     },
     {
-      id: "aiIntent",
-      title: "AI Intent Time",
-      tip: "Time to apply one NPC action on the sim thread (smoothed).",
-      field: "ai_intent_avg_us",
-      kind: "duration"
-    },
-    {
-      id: "aiScan",
-      title: "AI Scan Time",
-      tip: "Time filling the NPC world snapshot (cache misses). This is usually the largest AI cost.",
-      field: "ai_scan_ema_us",
-      kind: "duration"
-    },
-    {
-      id: "aiOther",
-      title: "AI Other Time",
-      tip: "NPC think time that is not the world snapshot: profession, food, path, and craft planning.",
-      field: "ai_other_ema_us",
-      kind: "duration"
-    },
-    {
-      id: "aiScanCpu",
-      title: "AI Scan CPU Total",
-      tip: "Cumulative NPC world-snapshot fill time since the process started.",
-      field: "ai_scan_cpu_us",
-      kind: "duration"
-    },
-    {
-      id: "aiScanHits",
-      title: "AI Scan Cache Hits",
-      tip: "How many world-snapshot helper calls were served from the per-think cache.",
-      field: "ai_scan_hits",
-      kind: "count"
-    },
-    {
       id: "simCpu",
       title: "Sim CPU Total",
       tip: "Cumulative simulation tick work.",
       field: "sim_cpu_us",
       kind: "duration"
-    },
-    {
-      id: "aiVsSim",
-      title: "AI vs Sim",
-      tip: "NPC think CPU versus simulation tick CPU.",
-      field: "ai_vs_sim_pct",
-      kind: "percent"
     }
   ];
 
@@ -327,21 +264,6 @@
       "aiVsSim",
       simUs ? Math.min(999, Math.round((aiCpu / simUs) * 100)) + "%" : "—"
     );
-  }
-
-  function loadAiLife() {
-    var el = document.getElementById("ai-life-md");
-    if (!el) return;
-    fetch("/api/npc/stats")
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (j) {
-        el.textContent = j.life_markdown || JSON.stringify(j, null, 2);
-      })
-      .catch(function () {
-        el.textContent = "AI life stats unavailable.";
-      });
   }
 
   function bindTimeRangeSelect() {
@@ -601,7 +523,6 @@
     renderCards(metrics || {}, samples);
     ensureChartShells();
     drawAll(samples);
-    loadAiLife();
   }
 
   function poll() {

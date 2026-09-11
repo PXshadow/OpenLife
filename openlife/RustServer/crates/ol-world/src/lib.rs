@@ -20,8 +20,10 @@ pub use biome::{
     RIVER, SNOWINGREY,
 };
 pub use generate::{
-    generate_from_png, pick_biome_spawn, place_natural_object, spawn_natural_objects,
-    GenerateOptions,
+    add_extra_biomes, can_object_be_lucky_spot, generate_from_png, generate_lucky_spots,
+    map_generation_seed, pick_biome_spawn, place_natural_object, populate_fresh_map,
+    spawn_natural_objects, GenerateOptions, CANADA_GOOSE_POND, CHANCE_FOR_LUCKY_SPOT,
+    CREATE_GREEN_BIOME_DISTANCE,
 };
 pub use journal::{
     JournalEntry, WorldJournal, DEFAULT_JOURNAL_MAX_BYTES, DEFAULT_JOURNAL_PATH,

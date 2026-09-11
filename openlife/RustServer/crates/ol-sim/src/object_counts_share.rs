@@ -249,12 +249,12 @@ impl ObjectCountSeries {
 pub fn format_object_count_journal_line(s: &ObjectCountSample) -> String {
     let mut line = format!("{} {} {}", s.wall_unix_ms, s.total, s.unique);
     for t in &s.top {
-        line.push_str(&format!(" {} {}", t.id, t.current));
+        line.push_str(&format!(" {}:{}:{}", t.id, t.current, t.original));
     }
     line
 }
 
-/// Parse `{wall} {total} {unique} [id current]*`. Names are filled on live samples only.
+/// Parse `{wall} {total} {unique}` then either `id:current:original` or legacy `id current`.
 pub fn parse_object_count_journal_line(line: &str) -> Option<ObjectCountSample> {
     let line = line.trim();
     if line.is_empty() || line.starts_with('#') {
@@ -265,17 +265,32 @@ pub fn parse_object_count_journal_line(line: &str) -> Option<ObjectCountSample> 
     let total = it.next()?.parse().ok()?;
     let unique = it.next()?.parse().ok()?;
     let mut top = Vec::new();
-    loop {
-        let Some(id_s) = it.next() else {
-            break;
-        };
-        let cur_s = it.next()?;
-        top.push(ObjectCountTop {
-            id: id_s.parse().ok()?,
-            current: cur_s.parse().ok()?,
-            original: 0,
-            name: String::new(),
-        });
+    let rest: Vec<&str> = it.collect();
+    let mut i = 0;
+    while i < rest.len() {
+        if rest[i].contains(':') {
+            let mut parts = rest[i].split(':');
+            let id = parts.next()?.parse().ok()?;
+            let current = parts.next()?.parse().ok()?;
+            let original = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+            top.push(ObjectCountTop {
+                id,
+                current,
+                original,
+                name: String::new(),
+            });
+            i += 1;
+        } else {
+            let id = rest[i].parse().ok()?;
+            let current = rest.get(i + 1)?.parse().ok()?;
+            top.push(ObjectCountTop {
+                id,
+                current,
+                original: 0,
+                name: String::new(),
+            });
+            i += 2;
+        }
     }
     Some(ObjectCountSample {
         wall_unix_ms,
@@ -466,6 +481,11 @@ mod tests {
         assert_eq!(parsed.unique, 2);
         assert_eq!(parsed.top[0].id, 33);
         assert_eq!(parsed.top[0].current, 10);
+        assert_eq!(parsed.top[0].original, 8);
+        let legacy = parse_object_count_journal_line("9 12 2 33 10 40 2").expect("legacy");
+        assert_eq!(legacy.top[0].id, 33);
+        assert_eq!(legacy.top[0].current, 10);
+        assert_eq!(legacy.top[0].original, 0);
         let dir = std::env::temp_dir().join(format!(
             "ol_oc_j_{}",
             std::time::SystemTime::now()

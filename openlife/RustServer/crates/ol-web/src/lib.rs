@@ -2,6 +2,7 @@
 
 #![forbid(unsafe_code)]
 
+mod ai_obs_dashboard;
 mod map_api;
 mod object_counts_dashboard;
 mod ops_dashboard;
@@ -21,7 +22,8 @@ use ol_sim::{
     count_leadership_power, format_account_statistics_html, format_food_statistics_html,
     format_lineage_statistics_html, generate_lineage_statistics, AccountBookSnapshot, AccountView,
     AnimalSnapshot, AnimalView, EnvSnapshot, EnvView, LineageSnapshot, LineageView, ObjectCountSample,
-    PlayerSnapshot, PrestigeClass, PrestigeSnapshot, PrestigeView, TreasurySnapshot, TreasuryView,
+    ObjectCountsShare, PlayerSnapshot, PrestigeClass, PrestigeSnapshot, PrestigeView,
+    TreasurySnapshot, TreasuryView,
     WeatherSnapshot, WeatherView, WorldFoodShare, WorldFoodStats,
 };
 use ol_world::World;
@@ -62,6 +64,8 @@ pub struct WebState {
     pub npc_stats: Arc<RwLock<serde_json::Value>>,
     /// Minute object-census samples for `/object-counts`.
     pub object_count_series: Arc<RwLock<Vec<ObjectCountSample>>>,
+    /// Live original/current census (generation originals for the Original column).
+    pub object_counts_share: ObjectCountsShare,
 }
 
 impl WebState {
@@ -95,6 +99,7 @@ impl WebState {
             ops_series: Arc::new(RwLock::new(Vec::new())),
             npc_stats: Arc::new(RwLock::new(serde_json::json!({}))),
             object_count_series: Arc::new(RwLock::new(Vec::new())),
+            object_counts_share: Arc::new(RwLock::new(ol_sim::ObjectCountsSnapshot::default())),
         }
     }
 }
@@ -120,6 +125,7 @@ pub fn router(state: WebState) -> Router {
         .route("/api/metrics", get(metrics))
         .route("/ops", get(ops_page))
         .route("/api/ops/series", get(ops_series_api))
+        .route("/ai-obs", get(ai_obs_page))
         .route("/object-counts", get(object_counts_page))
         .route("/api/object-counts/series", get(object_counts_series_api))
         .route("/players", get(players_page))
@@ -307,6 +313,7 @@ on this server and is the supported way to play if the alpha misbehaves.</p>
 <div class="card"><a href="/static/downloads/ohol-client-windows-alpha.zip"><strong>Early alpha client</strong></a><br/>Windows Rust client v%%VERSION%% (experimental). Vanilla OHOL client still works.</div>
 <div class="card"><a href="/intro"><strong>Intro</strong></a><br/>rules &amp; features</div>
 <div class="card"><a href="/ops"><strong>Ops</strong></a><br/>timings &amp; boot</div>
+<div class="card"><a href="/ai-obs"><strong>AI obs</strong></a><br/>NPC crafts, babies, deaths</div>
 <div class="card"><a href="/object-counts"><strong>Object counts</strong></a><br/>world census / minute</div>
 <div class="card"><a href="/viewer"><strong>Viewer</strong></a><br/>map + self-play</div>
 <div class="card"><a href="/stats/players"><strong>Players</strong></a><br/>currently playing</div>
@@ -319,6 +326,7 @@ on this server and is the supported way to play if the alpha misbehaves.</p>
 <li><a href="/health">/health</a></li>
 <li><a href="/api/metrics">/api/metrics</a> (boot + latency avg/p90/outliers)</li>
 <li><a href="/api/ops/series">/api/ops/series</a></li>
+<li><a href="/ai-obs">/ai-obs</a></li>
 <li><a href="/object-counts">/object-counts</a></li>
 <li><a href="/api/selfplay">/api/selfplay</a></li>
 </ul>
@@ -340,7 +348,7 @@ td,th{padding:.4rem .6rem;border:1px solid #444}
 .muted{color:#aaa;font-size:.9rem}
 </style></head>
 <body>
-<p><a href="/">← home</a> · <a href="/viewer">viewer</a> · <a href="/ops">ops</a></p>
+<p><a href="/">← home</a> · <a href="/viewer">viewer</a> · <a href="/ops">ops</a> · <a href="/ai-obs">AI obs</a></p>
 <h1>Welcome to Open Life Reborn</h1>
 <p>Open Life Reborn is a free roleplay multiplayer civilisation building and survival game
 on the base of <a href="https://onehouronelife.com/">One Hour One Life</a>.
@@ -376,7 +384,7 @@ is available; the vanilla client still works and is recommended if the alpha is 
 <li>Round map with rivers, bridges, mountains, oceans</li>
 <li>Seasons, temperature, prestige, combat, currency (subset in Rust server)</li>
 <li>Server-side AI NPCs with craft valuation (tools + food priority)</li>
-<li>Live web <a href="/viewer">viewer</a> and <a href="/ops">ops</a> dashboards</li>
+<li>Live web <a href="/viewer">viewer</a>, <a href="/ops">ops</a>, and <a href="/ai-obs">AI obs</a> dashboards</li>
 </ul>
 <h2 id="Statistics">Statistics</h2>
 <p>Live server metrics: <a href="/api/metrics">/api/metrics</a> ·
@@ -429,13 +437,32 @@ async fn ops_page(State(st): State<WebState>) -> Html<String> {
     Html(ops_dashboard::build_ops_dashboard_html(&s, &samples, st.version))
 }
 
+async fn ai_obs_page(State(st): State<WebState>) -> Html<String> {
+    let stats = st
+        .npc_stats
+        .read()
+        .map(|g| g.clone())
+        .unwrap_or_else(|_| serde_json::json!({}));
+    Html(ai_obs_dashboard::build_ai_obs_html(&stats, st.version, st.content.as_ref()))
+}
+
+fn live_original_counts(st: &WebState) -> std::collections::HashMap<i32, i32> {
+    st.object_counts_share
+        .read()
+        .map(|g| g.original_counts.clone())
+        .unwrap_or_default()
+}
+
 async fn object_counts_series_api(State(st): State<WebState>) -> Json<serde_json::Value> {
     let samples = st
         .object_count_series
         .read()
         .map(|g| g.clone())
         .unwrap_or_default();
-    Json(object_counts_dashboard::object_counts_series_json(&samples))
+    Json(object_counts_dashboard::object_counts_series_json(
+        &samples,
+        &live_original_counts(&st),
+    ))
 }
 
 async fn object_counts_page(State(st): State<WebState>) -> Html<String> {
@@ -447,6 +474,7 @@ async fn object_counts_page(State(st): State<WebState>) -> Html<String> {
     Html(object_counts_dashboard::build_object_counts_html(
         &samples,
         st.version,
+        &live_original_counts(&st),
     ))
 }
 
@@ -468,7 +496,7 @@ async fn players_page(State(st): State<WebState>) -> Html<String> {
         .try_read()
         .map(|g| g.clone())
         .unwrap_or_default();
-    let mut list: Vec<_> = views.values().filter(|p| !p.deleted).cloned().collect();
+    let mut list: Vec<_> = living_player_snapshots(&views);
     list.sort_by_key(|p| p.p_id);
 
     let mut count_human = 0usize;
@@ -776,11 +804,19 @@ async fn world_view(
     }))
 }
 
+fn living_player_snapshots(views: &std::collections::HashMap<u64, PlayerSnapshot>) -> Vec<PlayerSnapshot> {
+    let mut players: Vec<PlayerSnapshot> = views
+        .values()
+        .filter(|p| !p.deleted)
+        .cloned()
+        .collect();
+    players.sort_by_key(|p| p.p_id);
+    players
+}
+
 async fn players_api(State(st): State<WebState>) -> Json<serde_json::Value> {
     let views = st.player_views.read().unwrap();
-    let mut players: Vec<PlayerSnapshot> = views.values().cloned().collect();
-    players.sort_by_key(|p| p.p_id);
-    Json(serde_json::json!({ "players": players }))
+    Json(serde_json::json!({ "players": living_player_snapshots(&views) }))
 }
 
 async fn environment_api(State(st): State<WebState>) -> Json<EnvSnapshot> {
@@ -873,11 +909,27 @@ async fn viewer_page() -> Html<&'static str> {
 }
 
 async fn npc_stats_api(State(st): State<WebState>) -> Json<serde_json::Value> {
-    let v = st
+    let mut v = st
         .npc_stats
         .read()
         .map(|g| g.clone())
         .unwrap_or_else(|_| serde_json::json!({}));
+    for key in ["crafted_objects", "food_eaten"] {
+        if let Some(arr) = v.get_mut(key).and_then(|x| x.as_array_mut()) {
+            for row in arr {
+                if let Some(id) = row.get("id").and_then(|x| x.as_i64()) {
+                    let name = st
+                        .content
+                        .get(id as i32)
+                        .map(|d| d.name.clone())
+                        .unwrap_or_default();
+                    if let Some(obj) = row.as_object_mut() {
+                        obj.insert("name".into(), serde_json::Value::String(name));
+                    }
+                }
+            }
+        }
+    }
     Json(v)
 }
 

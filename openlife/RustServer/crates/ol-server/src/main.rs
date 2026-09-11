@@ -664,6 +664,7 @@ async fn main() {
             world_food_share: Some(Arc::clone(&shared_world_food)),
             // OBJECTCOUNTS-LIVE: ObjectCounts.txt autosave mirror
             object_counts_share: Some(Arc::clone(&shared_object_counts)),
+            original_census_path: Some(cfg.original_census_save_path()),
             // AI-LLM-HTTP-DRAIN: speech job/result bridge for call_ai_async worker
             llm_speech_share: Some(Arc::clone(&llm_speech_share)),
             // NPC-SCAN-FULL: live blockedByAI for NPC isObjectNotReachable OR
@@ -797,6 +798,7 @@ async fn main() {
             loop {
                 interval.tick().await;
                 act.try_flush();
+                act.record_obs_sample();
                 if let Ok(mut g) = stats.write() {
                     *g = act.summary_json();
                 }
@@ -1084,6 +1086,7 @@ async fn main() {
             ops_series: Arc::clone(&ops_series_view),
             npc_stats: Arc::clone(&npc_stats_view),
             object_count_series: Arc::clone(&object_count_series),
+            object_counts_share: Arc::clone(&shared_object_counts),
         };
         handles.push(tokio::spawn(async move {
             if let Err(e) = serve_web(&bind, state).await {

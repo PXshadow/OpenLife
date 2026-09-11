@@ -207,6 +207,10 @@ pub use object_counts_share::{
     MS_WEEK, OBJECT_COUNT_LIST_DEFAULT, OBJECT_COUNT_SAMPLE_INTERVAL_MS, OBJECT_COUNT_SERIES_MAX,
     OBJECT_COUNT_TOP_N,
 };
+pub use long_term::{
+    capture_and_save_original_census, load_original_census, original_census_is_generation,
+    save_original_census, LongTermState, DEFAULT_ORIGINAL_CENSUS_FILE,
+};
 // --- Port residual crate-root reexports (minimal + profession runtimes) ---
 pub use ai_handler::{
     new_llm_speech_io_share, take_completed_llm_results_from_share, LlmSpeechIoShare, LlmSpeechJob,
@@ -781,8 +785,8 @@ pub use pathfind::{
     name_is_gate_or_door, next_step, next_step_new, path_steps,
 };
 pub use player::{
-    clothing_slot_for_object, ClothingSlot, Player, PlayerSnapshot, BACKPACK_MAX, NOTES_MAX,
-    NOTE_TEXT_MAX, TITLE_TEXT_MAX,
+    clothing_slot_for_object, clothing_slot_for_object_ex, ClothingSlot, Player, PlayerSnapshot,
+    BACKPACK_MAX, NOTES_MAX, NOTE_TEXT_MAX, TITLE_TEXT_MAX,
 };
 // Phase A/B: ol-ai-api read adapters (PlayerReadInterface / FoodSearch / WorldView)
 pub use ai_adapters::{
@@ -1743,11 +1747,17 @@ impl SimState {
         format!("FOOD {food:.2} {food_max:.2}")
     }
 
-    /// `SAY ?AGE` / `SAY AGE` chat reply body (without leading player id).
+    /// Haxe `?AGE` / `AGE?` reply body (without leading player id).
     ///
-    /// Format: `AGE age` (two decimal places). Pure; no SQL.
-    pub fn format_age_query(age: f32) -> String {
-        format!("AGE {age:.2}")
+    /// Haxe: `Math.floor(this.trueAge) YEARS!` — calendar age, not display body age.
+    // Haxe: GlobalPlayerInstance.sayHelper L1931–1938
+    pub fn format_age_query(true_age: f32) -> String {
+        let years = if true_age.is_finite() {
+            true_age.max(0.0).floor() as i32
+        } else {
+            0
+        };
+        format!("{years} YEARS!")
     }
 
     /// `SAY ?NAME` / `SAY NAME` chat reply body (without leading player id).
@@ -2238,9 +2248,16 @@ impl SimState {
             return;
         };
         let Some(p) = self.players.get(&conn_id) else {
+            if let Ok(mut g) = views.write() {
+                g.remove(&conn_id);
+            }
             return;
         };
         if let Ok(mut g) = views.write() {
+            if p.deleted {
+                g.remove(&conn_id);
+                return;
+            }
             let prev = g.get(&conn_id).cloned();
             g.insert(conn_id, self.snapshot_player_for_views(p, prev.as_ref()));
         }
@@ -2254,7 +2271,9 @@ impl SimState {
             let prev = g.clone();
             g.clear();
             for (cid, p) in &self.players {
-                // Keep deleted snapshots so self-play / viewer can detect death.
+                if p.deleted {
+                    continue;
+                }
                 g.insert(*cid, self.snapshot_player_for_views(p, prev.get(cid)));
             }
         }
@@ -3454,7 +3473,7 @@ pub fn apply_drop(
         );
         state.record_world_change(x, y, held);
         if let Some(p) = state.players.get_mut(&conn_id) {
-            p.held_id = 0;
+            p.clear_held();
         }
         schedule_decay(state, x, y, held);
         state.publish_player_view(conn_id);
@@ -4971,16 +4990,28 @@ fn apply_say_or_remv(
             send_ps_reply(outbound, conn_id, &line);
             return;
         }
-        // AGE / ?AGE â€” private PS: current age years (no SQL).
-        if upper == "AGE" || upper == "?AGE" || upper.starts_with("?AGE") {
-            let age = state
+        // Haxe `?AGE` (toSelf) / `AGE?` (public): floor(trueAge) YEARS!
+        // Haxe: GlobalPlayerInstance.sayHelper L1931–1938
+        if upper == "?AGE" || upper.starts_with("?AGE") || upper == "AGE" {
+            let true_age = state
                 .players
                 .get(&conn_id)
-                .map(|pl| pl.age)
-                .unwrap_or(p.age);
-            let reply = SimState::format_age_query(age);
+                .map(|pl| pl.true_age)
+                .unwrap_or(p.true_age);
+            let reply = SimState::format_age_query(true_age);
             let line = format!("{} {}", p.p_id, reply);
             send_ps_reply(outbound, conn_id, &line);
+            return;
+        }
+        if upper == "AGE?" || upper.starts_with("AGE?") {
+            let true_age = state
+                .players
+                .get(&conn_id)
+                .map(|pl| pl.true_age)
+                .unwrap_or(p.true_age);
+            let reply = SimState::format_age_query(true_age);
+            let near = nearby_conn_ids(state, p.x, p.y, say_close_range(state, p.age));
+            send_chat_ps(state, outbound, conn_id, p.p_id, &reply, &near);
             return;
         }
         // STATUS / ?STATUS â€” private PS: food age held prestige class wound sleep sick sit.
@@ -7091,11 +7122,19 @@ fn apply_say_or_remv(
                 state
                     .content
                     .get(held_id)
-                    .and_then(|def| clothing_slot_for_object(&def.name, &def.description))
+                    .and_then(|def| {
+                        clothing_slot_for_object_ex(&def.name, &def.description, &def.clothing)
+                    })
             } else {
                 None
             };
-            let slot = explicit.or(inferred);
+            // Haxe doSwitchCloths: non-clothing held cannot be forced onto a slot.
+            let slot = match (explicit, inferred) {
+                (Some(want), Some(have)) if want == have => Some(want),
+                (None, Some(have)) => Some(have),
+                (Some(_), None) | (Some(_), Some(_)) => None,
+                (None, None) => None,
+            };
             let Some(slot) = slot else {
                 if let Some(pl) = state.players.get(&conn_id) {
                     let line = if pl.held_id == 0 {
@@ -13036,6 +13075,9 @@ pub fn tick_world_after_players(
     // BLOCKED-BY-AI: wipe+rebuild global blockedByAI from sticky food/use/drop/block.
     // Haxe: AiBase.CalculateBlockedByAi ~222 each AI frame
     rebuild_blocked_by_ai_live(state);
+    // Haxe: orderedToDrop at start of doTimeStuffHelper, before escape/jobs.
+    // Haxe: AiBase.doTimeStuffHelper L481–484
+    tick_ordered_ai_drop(state, outbound);
     // AI-FOLLOW-WALK: continuous isMovingToPlayer walk toward ai_follow_p_id
     // Haxe: AiBase.doTimeStuffHelper isMovingToPlayer after LLM sticky
     tick_ai_follow_walk(state, outbound);
@@ -14386,22 +14428,11 @@ pub fn try_craft(state: &mut SimState, conn_id: u64) -> Option<UseResult> {
         schedule_decay(state, x, y, target_after);
     }
 
-    let equip_slot = if actor_after != 0 {
-        state
-            .content
-            .get(actor_after)
-            .and_then(|def| clothing_slot_for_object(&def.name, &def.description))
-    } else {
-        None
-    };
     if let Some(p) = state.players.get_mut(&conn_id) {
         p.held_id = actor_after;
         p.force_last_use = false;
         if held != 0 {
             p.tools.learn(held);
-        }
-        if let Some(slot) = equip_slot {
-            p.set_clothing(slot, actor_after);
         }
     }
 
@@ -14862,6 +14893,9 @@ pub async fn run_sim_loop_with_views(
         boot_live.as_ref().and_then(|b| b.players_share.clone());
     let object_counts_share: Option<crate::ObjectCountsShare> =
         boot_live.as_ref().and_then(|b| b.object_counts_share.clone());
+    let original_census_path = boot_live
+        .as_ref()
+        .and_then(|b| b.original_census_path.clone());
     let live_share = boot_live.as_ref().and_then(|b| b.live_share.clone());
     let mut hot_reload = boot_live.as_mut().and_then(|b| b.hot_reload.take());
     let mut state = SimState::new(world, content);
@@ -14961,12 +14995,42 @@ pub async fn run_sim_loop_with_views(
     }
     // Natural spawn / OLW load never went through USE â€” arm decay timers now.
     arm_decays_for_loaded_world(&mut state);
-    // OBJECTCOUNTS-LIVE: Haxe load countObjects + first updateObjectCounts once the map exists.
+    // OBJECTCOUNTS-LIVE: Haxe originalObjectsCount from OriginalObjects.bin, then current.
     {
         let world = state.world.read().unwrap();
-        state
-            .long_term
-            .ensure_counts_for_dump(&world, &state.content);
+        if let Some(ref path) = original_census_path {
+            match crate::long_term::load_original_census(&mut state.long_term, path) {
+                Ok(true) => {
+                    state
+                        .long_term
+                        .update_object_counts(&world, &state.content);
+                    info!(
+                        path = %path.display(),
+                        originals = state.long_term.original_counts.len(),
+                        "sim: loaded frozen original object census"
+                    );
+                }
+                Ok(false) => {
+                    warn!(
+                        path = %path.display(),
+                        "sim: no generation original census; current counts only (not frozen from live map)"
+                    );
+                    state
+                        .long_term
+                        .update_object_counts(&world, &state.content);
+                }
+                Err(e) => {
+                    warn!(error = %e, "sim: original census load failed; current counts only");
+                    state
+                        .long_term
+                        .update_object_counts(&world, &state.content);
+                }
+            }
+        } else {
+            state
+                .long_term
+                .update_object_counts(&world, &state.content);
+        }
     }
     crate::object_counts_share::mirror_object_counts_share(
         &state.long_term,

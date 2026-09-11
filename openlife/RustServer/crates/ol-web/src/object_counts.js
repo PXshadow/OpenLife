@@ -179,7 +179,7 @@
     return "object";
   }
 
-  function buildRows(allSamples, last, names) {
+  function buildRows(allSamples, last, names, originals) {
     var latestMs = last ? Number(last.wall_unix_ms) : Date.now();
     var s24 = nearestAtOrBefore(allSamples, latestMs - MS_DAY);
     var sW = nearestAtOrBefore(allSamples, latestMs - MS_WEEK);
@@ -190,6 +190,10 @@
       var id = Number(rows[i][0]);
       var cur = Number(rows[i][1]) || 0;
       var orig = Number(rows[i][2]) || 0;
+      var hasLiveOrig = originals && Object.keys(originals).length > 0;
+      if (hasLiveOrig) {
+        orig = originals[String(id)] != null ? Number(originals[String(id)]) || 0 : 0;
+      }
       var c24 = s24 ? countOpt(s24, id) : null;
       var cW = sW ? countOpt(sW, id) : null;
       var cM = sM ? countOpt(sM, id) : null;
@@ -494,9 +498,10 @@
   function drawAll(payload) {
     var samples = (payload && payload.samples) || [];
     var names = (payload && payload.names) || {};
+    var originals = (payload && payload.originals) || {};
     var shown = filterSamples(samples);
     var last = shown.length ? shown[shown.length - 1] : samples.length ? samples[samples.length - 1] : null;
-    var rows = last ? buildRows(samples, last, names) : [];
+    var rows = last ? buildRows(samples, last, names, originals) : [];
     var sorted = sortRows(rows);
     var graphRows = sorted.slice(0, GRAPH_TOP);
     ensureChartShells(graphRows);

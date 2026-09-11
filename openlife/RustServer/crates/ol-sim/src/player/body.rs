@@ -64,30 +64,34 @@ impl ClothingSlot {
     }
 }
 
-/// Infer clothing slot from object name / description (case-insensitive).
+/// Infer clothing slot from Haxe `clothing` field only (`h`/`t`/`s`).
 ///
-/// - name contains `"hat"` → hat
-/// - name contains `"shoe"` → shoes
-/// - name contains `"chest"`, `"shirt"`, or `"tunic"` → chest
-/// - description contains `clothing=` → treat as wearable; slot from name, else chest
+/// `"Stone Hatchet"` contains `"hat"` but `clothing=n` is **not** wearable.
+/// Name heuristics are not used (Haxe `ObjectData.getClothingSlot`).
+// Haxe: ObjectData.getClothingSlot L1541–1561
 pub fn clothing_slot_for_object(name: &str, description: &str) -> Option<ClothingSlot> {
-    let n = name.to_ascii_lowercase();
-    if n.contains("hat") {
-        return Some(ClothingSlot::Hat);
+    clothing_slot_for_object_ex(name, description, "")
+}
+
+/// Like [`clothing_slot_for_object`] plus explicit `clothing` (`h`/`t`/`s`/`b`/`p`/`n`).
+pub fn clothing_slot_for_object_ex(
+    _name: &str,
+    description: &str,
+    clothing: &str,
+) -> Option<ClothingSlot> {
+    let from_field = clothing.trim().chars().next().map(|ch| ch.to_ascii_lowercase());
+    let from_desc = description
+        .split("clothing=")
+        .nth(1)
+        .and_then(|rest| rest.chars().next())
+        .map(|ch| ch.to_ascii_lowercase());
+    let c = from_field.filter(|ch| *ch != 'n').or(from_desc);
+    match c {
+        Some('h') => Some(ClothingSlot::Hat),
+        Some('t') => Some(ClothingSlot::Chest),
+        Some('s') => Some(ClothingSlot::Shoes),
+        _ => None,
     }
-    if n.contains("shoe") {
-        return Some(ClothingSlot::Shoes);
-    }
-    if n.contains("chest") || n.contains("shirt") || n.contains("tunic") {
-        return Some(ClothingSlot::Chest);
-    }
-    // Content may embed clothing=N; without a full clothing table, mark wearable
-    // and default to chest unless name already matched above.
-    let d = description.to_ascii_lowercase();
-    if d.contains("clothing=") || n.contains("clothing=") {
-        return Some(ClothingSlot::Chest);
-    }
-    None
 }
 
 #[derive(Debug, Clone)]
@@ -2078,6 +2082,25 @@ mod tests {
             .contained
             .is_empty());
         assert!(p.backpack.is_empty());
+    }
+
+    #[test]
+    fn clothing_slot_hatchet_is_not_a_hat() {
+        assert_eq!(clothing_slot_for_object("Stone Hatchet", ""), None);
+        assert_eq!(clothing_slot_for_object("Small Hatchet", ""), None);
+        assert_eq!(clothing_slot_for_object("Wool Hat", ""), None);
+        assert_eq!(
+            clothing_slot_for_object("Wool Hat", "Wool Hat\nclothing=h"),
+            Some(ClothingSlot::Hat)
+        );
+        assert_eq!(
+            clothing_slot_for_object_ex("Stone Hatchet", "", "n"),
+            None
+        );
+        assert_eq!(
+            clothing_slot_for_object_ex("Wool Hat", "", "h"),
+            Some(ClothingSlot::Hat)
+        );
     }
 
     #[test]

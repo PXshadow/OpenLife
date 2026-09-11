@@ -28,7 +28,7 @@ use crate::multi_use::{
     reverse_actor_exceeds_max, reverse_target_exceeds_max, should_skip_use_decrement,
     switch_number_of_uses, target_must_be_full_refuse, TargetUsesOutcome,
 };
-use crate::player::{clothing_slot_for_object, Player};
+use crate::player::Player;
 use crate::{
     ally_strength_blocks_pickup, calculate_enemy_vs_ally_strength_factor_ex,
     check_if_not_moving_and_close_enough, is_friendly, is_holding_weapon, is_leadership_ally,
@@ -2157,7 +2157,8 @@ pub fn apply_use_at_ex(
             else {
                 return refuse(actor, target);
             };
-            let actor_hw = object_hungry_work(
+            let actor_hw = object_hungry_work_for_content(
+                &state.content,
                 actor,
                 state
                     .content
@@ -2172,7 +2173,8 @@ pub fn apply_use_at_ex(
                 .get(tr_work.new_target_id)
                 .map(|d| d.description.clone())
                 .unwrap_or_default();
-            let new_tgt_hw = object_hungry_work(
+            let new_tgt_hw = object_hungry_work_for_content(
+                &state.content,
                 tr_work.new_target_id,
                 &new_tgt_desc,
                 state.gameplay.hungry_work_cost,
@@ -2266,7 +2268,8 @@ pub fn apply_use_at_ex(
                 w.get_helper(tx, ty).map(|h| h.count_obj).unwrap_or(0.0)
             };
             // is_fortified from hungry-work cost vs hits (recompute; matches L1179 + Loose waiver).
-            let actor_hw = object_hungry_work(
+            let actor_hw = object_hungry_work_for_content(
+                &state.content,
                 actor,
                 state
                     .content
@@ -2280,7 +2283,8 @@ pub fn apply_use_at_ex(
                 .get(tr_work.new_target_id)
                 .map(|d| d.description.clone())
                 .unwrap_or_default();
-            let new_tgt_hw = object_hungry_work(
+            let new_tgt_hw = object_hungry_work_for_content(
+                &state.content,
                 tr_work.new_target_id,
                 &new_tgt_desc,
                 state.gameplay.hungry_work_cost,
@@ -2760,14 +2764,6 @@ pub fn apply_use_at_ex(
     state.record_world_change(tx, ty, live_target);
     schedule_decay(state, tx, ty, live_target);
 
-    let equip_slot = if final_actor != 0 {
-        state
-            .content
-            .get(final_actor)
-            .and_then(|def| clothing_slot_for_object(&def.name, &def.description))
-    } else {
-        None
-    };
     if let Some(p) = state.players.get_mut(&conn_id) {
         // Pickup bare swap: preserve tile nest when taking cart without transition flag.
         if !from_transition && final_actor != 0 && actor == 0 {
@@ -2810,9 +2806,6 @@ pub fn apply_use_at_ex(
         }
         if target != 0 {
             p.tools.learn(target);
-        }
-        if let Some(slot) = equip_slot {
-            p.set_clothing(slot, final_actor);
         }
     }
 
@@ -3020,6 +3013,20 @@ pub fn evaluate_hungry_work_use(
         food_after: food_store - half,
         exhaustion_after: exhaustion + half,
     }
+}
+
+/// Haxe `ObjectData.hungryWork`: ContentDb patch map first, then id table / `+hungryWork`.
+pub fn object_hungry_work_for_content(
+    content: &ContentDb,
+    object_id: i32,
+    description: &str,
+    default_hungry_work_cost: f32,
+) -> f32 {
+    let base = content.resolve_base_id(object_id);
+    if let Some(&v) = content.object_hungry_work.get(&base) {
+        return v;
+    }
+    object_hungry_work(base, description, default_hungry_work_cost)
 }
 
 /// Object `hungryWork` from ServerSettings.PatchObjectData + `+hungryWork` tag.
@@ -3243,6 +3250,44 @@ mod tests {
         let p = state.players.get(&1).unwrap();
         assert_eq!(p.held_id, 10);
         assert_eq!(p.held_uses, 2);
+    }
+
+    /// USE must not copy actor into clothing. `"Stone Hatchet"` contains `"hat"`
+    /// but Haxe `getClothingSlot` uses the `clothing` field only (`n` = not wearable).
+    // Haxe: ObjectData.getClothingSlot L1541–1561; GPI.use does not auto-equip
+    #[test]
+    fn use_stone_hatchet_does_not_equip_hat_slot() {
+        let mut db = ContentDb::default();
+        let mut hatchet = def(71, 0, false);
+        hatchet.name = "Stone Hatchet".into();
+        hatchet.description = "Stone Hatchet".into();
+        hatchet.clothing = "n".into();
+        db.objects.insert(71, hatchet);
+        let mut branch = def(64, 0, true);
+        branch.name = "Straight Branch".into();
+        db.objects.insert(64, branch);
+        db.transitions
+            .insert((71, 64), tr(71, 64, 71, 135, false, false));
+        db.objects.insert(135, def(135, 0, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "hatchet@use");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(71, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(1, 0, 64);
+        let r = apply_use_at(&mut state, 1, 1, 0).unwrap();
+        assert!(r.applied, "hatchet+branch USE must apply");
+        assert_eq!(r.actor_after, 71);
+        let p = state.players.get(&1).unwrap();
+        assert_eq!(p.held_id, 71, "hatchet stays in hand");
+        assert_eq!(p.hat, 0, "must not wear hatchet as hat");
+        assert!(
+            p.clothing_helpers[0].is_none(),
+            "hat/wound slot must stay empty"
+        );
     }
 
     /// Haxe checkIfNotMovingAndCloseEnough with bow useDistance=5.
@@ -7378,6 +7423,88 @@ mod tests {
             take_hungry_work_emote(),
             Some((1, HUNGRY_WORK_RELIEF_EMOTE))
         );
+    }
+
+    /// Haxe USE age gates are minPickupAge (too young), not a max of 30.
+    // Haxe: TransitionHelper.use L740–748 / L775–795
+    #[test]
+    fn apply_use_hungry_work_allowed_at_age_35() {
+        let _ = take_hungry_work_emote();
+        let mut db = ContentDb::default();
+        db.objects.insert(10, def(10, 0, false));
+        db.objects.insert(231, {
+            let mut d = def(231, 0, true);
+            d.description = "Adobe Oven Base".into();
+            d.min_pickup_age = 3;
+            d
+        });
+        db.object_hungry_work.insert(231, 10.0);
+        db.transitions
+            .insert((10, 231), tr(10, 231, 10, 231, false, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "hw35@test");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(10, 0);
+            p.age = 35.0;
+            p.true_age = 35.0;
+            p.food = 20.0;
+            p.food_max = 20.0;
+            p.exhaustion = 0.0;
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 231);
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied, "age 35 must still USE hungry-work objects");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 10);
+    }
+
+    /// Haxe has no max-age 30 on hungry work — only minPickupAge (too young) + food/exhaustion.
+    // Haxe: TransitionHelper.use L740–795 / L1211–1256
+    #[test]
+    fn apply_use_hungry_work_allowed_at_age_30_and_55() {
+        for age in [30.0f32, 55.0] {
+            let _ = take_hungry_work_emote();
+            let mut db = ContentDb::default();
+            db.objects.insert(10, def(10, 0, false));
+            db.objects.insert(231, {
+                let mut d = def(231, 0, true);
+                d.description = "Adobe Oven Base".into();
+                d.min_pickup_age = 3;
+                d
+            });
+            db.object_hungry_work.insert(231, 10.0);
+            db.transitions
+                .insert((10, 231), tr(10, 231, 10, 231, false, false));
+            let mut state = state_with(db);
+            crate::spawn_player(&mut state, 1, &format!("hw{age}@test"));
+            {
+                let p = state.players.get_mut(&1).unwrap();
+                p.set_held(10, 0);
+                p.age = age;
+                p.true_age = age;
+                p.food = 20.0;
+                p.food_max = 20.0;
+                p.exhaustion = 0.0;
+                p.x = 0;
+                p.y = 0;
+            }
+            state.world.write().unwrap().set_object(0, 0, 231);
+            let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+            assert!(r.applied, "age {age} must still USE hungry-work objects");
+        }
+    }
+
+    #[test]
+    fn object_hungry_work_for_content_prefers_patch_map() {
+        let mut db = ContentDb::default();
+        db.object_hungry_work.insert(99, 4.5);
+        assert!((object_hungry_work_for_content(&db, 99, "Tree", 5.0) - 4.5).abs() < 1e-6);
+        assert!(
+            (object_hungry_work_for_content(&db, 1, "Thing +hungryWork", 7.0) - 7.0).abs() < 1e-6
+        );
+        assert!((object_hungry_work_for_content(&db, 231, "Adobe Oven Base", 5.0) - 10.0).abs() < 1e-6);
     }
 
     #[test]

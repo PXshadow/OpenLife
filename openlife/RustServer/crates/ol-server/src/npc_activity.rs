@@ -3,7 +3,7 @@
 //! Tracks what NPCs attempt (craft/eat/move/combat), time spent, stuck loops,
 //! death age/reason. No per-event disk I/O.
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -23,6 +23,7 @@ pub enum NpcActivityKind {
     Explore,
     Combat,
     Feed,
+    Baby,
     Stuck,
     StuckCycle,
     Death,
@@ -41,12 +42,280 @@ impl NpcActivityKind {
             Self::Explore => "explore",
             Self::Combat => "combat",
             Self::Feed => "feed",
+            Self::Baby => "baby",
             Self::Stuck => "stuck",
             Self::StuckCycle => "stuck_cycle",
             Self::Death => "death",
             Self::Error => "error",
         }
     }
+}
+
+/// Death-age histogram labels (Haxe years). Last bucket is 60+.
+pub const DEATH_AGE_LABELS: [&str; 10] = [
+    "0-5", "5-10", "10-15", "15-20", "20-25", "25-30", "30-40", "40-50", "50-60", "60+",
+];
+
+/// Stable keys for the AI-obs time-spent graphs (not CPU timings).
+pub const SPEND_KEYS: [&str; 20] = [
+    "walk_target",
+    "walk_use",
+    "walk_baby",
+    "walk_drop",
+    "walk_food",
+    "walk_follow",
+    "walk_home",
+    "escape_animal",
+    "escape_player",
+    "attack_player",
+    "eat",
+    "craft_use",
+    "nurse",
+    "pickup_baby",
+    "drop_baby",
+    "name_baby",
+    "wait_baby",
+    "explore",
+    "stuck",
+    "think",
+];
+
+pub fn spend_label(key: &str) -> &'static str {
+    match key {
+        "walk_target" => "Walking to target",
+        "walk_use" => "Walking to use item",
+        "walk_baby" => "Walking to baby",
+        "walk_drop" => "Walking to drop",
+        "walk_food" => "Walking to food",
+        "walk_follow" => "Following",
+        "walk_home" => "Walking home",
+        "escape_animal" => "Escaping animals",
+        "escape_player" => "Escaping hostile players",
+        "attack_player" => "Attacking hostile players",
+        "eat" => "Eating",
+        "craft_use" => "Using / crafting",
+        "nurse" => "Nursing",
+        "pickup_baby" => "Picking up baby",
+        "drop_baby" => "Dropping baby",
+        "name_baby" => "Naming baby",
+        "wait_baby" => "Baby waiting on mother",
+        "explore" => "Exploring",
+        "stuck" => "Stuck",
+        "think" => "Thinking / other",
+        _ => "Other",
+    }
+}
+
+pub fn death_age_bucket(age: f32) -> usize {
+    if !age.is_finite() || age < 5.0 {
+        0
+    } else if age < 10.0 {
+        1
+    } else if age < 15.0 {
+        2
+    } else if age < 20.0 {
+        3
+    } else if age < 25.0 {
+        4
+    } else if age < 30.0 {
+        5
+    } else if age < 40.0 {
+        6
+    } else if age < 50.0 {
+        7
+    } else if age < 60.0 {
+        8
+    } else {
+        9
+    }
+}
+
+fn parse_i32_after(detail: &str, needle: &str) -> Option<i32> {
+    let i = detail.find(needle)?;
+    let rest = &detail[i + needle.len()..];
+    let mut n = 0i32;
+    let mut any = false;
+    for c in rest.chars() {
+        if let Some(d) = c.to_digit(10) {
+            any = true;
+            n = n.saturating_mul(10).saturating_add(d as i32);
+        } else if any {
+            break;
+        } else if c == '-' {
+            continue;
+        } else {
+            break;
+        }
+    }
+    if any && n > 0 {
+        Some(n)
+    } else {
+        None
+    }
+}
+
+pub fn parse_child_p_id(detail: &str) -> Option<i32> {
+    parse_i32_after(detail, "child=")
+}
+
+/// Food object id for AI-obs ate table: event held_id, else `eat_held=` / `held=` in detail.
+pub fn parse_eat_object_id(held_id: i32, detail: &str) -> i32 {
+    if held_id > 0 {
+        return held_id;
+    }
+    if let Some(n) = parse_i32_after(detail, "eat_held=") {
+        return n;
+    }
+    if detail.contains("eat_refuse") {
+        return 0;
+    }
+    parse_i32_after(detail, "held=").unwrap_or(0)
+}
+
+pub fn parse_crafted_object_ids(detail: &str) -> Vec<i32> {
+    let mut v = Vec::new();
+    if let Some(n) = parse_i32_after(detail, "CraftItem(") {
+        v.push(n);
+    }
+    if let Some(n) = parse_i32_after(detail, "make_sharpie_food ") {
+        v.push(n);
+    }
+    if let Some(n) = parse_i32_after(detail, "prod=") {
+        v.push(n);
+    }
+    if let Some(n) = parse_i32_after(detail, "->") {
+        v.push(n);
+    }
+    if let Some(n) = parse_i32_after(detail, "→") {
+        v.push(n);
+    }
+    let use_like = detail.contains("_use")
+        || detail.contains("arrive")
+        || detail.contains("CraftItem")
+        || detail.contains("make_sharpie");
+    if use_like {
+        if let Some(n) = parse_i32_after(detail, "actor=") {
+            v.push(n);
+        }
+        if let Some(n) = parse_i32_after(detail, "target=") {
+            v.push(n);
+        }
+    }
+    v.sort_unstable();
+    v.dedup();
+    v
+}
+
+pub fn classify_spend(kind: NpcActivityKind, detail: &str) -> &'static str {
+    let d = detail.to_ascii_lowercase();
+    if d.contains("escape_animal") {
+        return "escape_animal";
+    }
+    if d.contains("escape_player") {
+        return "escape_player";
+    }
+    if d.contains("attack_kill") || d.starts_with("hit ") || d.contains("attack_") {
+        return "attack_player";
+    }
+    if d.contains("you_are") {
+        return "name_baby";
+    }
+    if d.contains("pickup child") || d.starts_with("pickup ") {
+        return "pickup_baby";
+    }
+    if d.contains("drop_full")
+        || d.contains("drop_cannot_feed")
+        || d.contains("drop_obj_for_baby")
+        || d.contains("food_drop_held_player")
+        || d.contains("drop_baby")
+    {
+        return "drop_baby";
+    }
+    if d.contains("hold_nurse") {
+        return "nurse";
+    }
+    if d.contains("baby_wait") {
+        return "wait_baby";
+    }
+    if d.contains("goto_feed") || d.contains("baby_follow") || d.contains("interrupt_walk_for_baby")
+    {
+        return "walk_baby";
+    }
+    if d.contains("follow_walk") || d.contains("follow_busy") {
+        return "walk_follow";
+    }
+    if d.contains("handle_death_home") {
+        return "walk_home";
+    }
+    if d.contains("craft_queue_walk_use")
+        || d.contains("use_held_walk")
+        || d.contains("prof_goc_walk_use")
+        || d.contains("walk_use")
+    {
+        return "walk_use";
+    }
+    if d.contains("craft_queue_drop")
+        || d.contains("smart_drop_walk")
+        || d.contains("walk_drop")
+        || d.contains("grave_drop")
+    {
+        return "walk_drop";
+    }
+    if d.contains("walk_food") || d.contains("pickup_busy") || d.contains("food_goto") {
+        return "walk_food";
+    }
+    if d.contains("craft_queue_walk")
+        || d.contains("walk_craft")
+        || d.contains("walk_target")
+        || d.contains("prof_goc_walk")
+        || d.contains("grave_walk")
+        || d.contains("grave_seek")
+    {
+        return "walk_target";
+    }
+    if d.contains("use_held_arrive")
+        || d.contains("craft_queue_use")
+        || d.contains("prof_goc_use")
+        || d.contains("make_sharpie")
+        || d.contains("clothing_self")
+    {
+        return "craft_use";
+    }
+    if d.contains("eat_held") || d.contains("eat_refuse") {
+        return "eat";
+    }
+    if d.contains("explore") {
+        return "explore";
+    }
+    match kind {
+        NpcActivityKind::SeekFood => "walk_food",
+        NpcActivityKind::Eat => "eat",
+        NpcActivityKind::Combat => "attack_player",
+        NpcActivityKind::Baby | NpcActivityKind::Feed => "nurse",
+        NpcActivityKind::Craft | NpcActivityKind::CraftPlan => "craft_use",
+        NpcActivityKind::Explore => "explore",
+        NpcActivityKind::Stuck | NpcActivityKind::StuckCycle => "stuck",
+        NpcActivityKind::Move => "walk_target",
+        _ => "think",
+    }
+}
+
+fn is_baby_named_detail(detail: &str) -> bool {
+    detail.to_ascii_lowercase().contains("you_are")
+}
+
+fn is_baby_pickup_detail(detail: &str) -> bool {
+    let d = detail.to_ascii_lowercase();
+    d.contains("pickup child") || d.starts_with("pickup ")
+}
+
+fn is_baby_drop_detail(detail: &str) -> bool {
+    let d = detail.to_ascii_lowercase();
+    d.contains("drop_full")
+        || d.contains("drop_cannot_feed")
+        || d.contains("drop_obj_for_baby")
+        || d.contains("food_drop_held_player")
+        || d.contains("drop_baby")
 }
 
 #[derive(Debug, Clone)]
@@ -169,10 +438,73 @@ impl NpcStuckTracker {
 }
 
 #[derive(Debug, Default, Clone)]
+pub struct NpcObsSample {
+    pub wall_unix_ms: u64,
+    pub named: u64,
+    pub named_unique: u64,
+    pub pickup: u64,
+    pub pickup_unique: u64,
+    pub drop_baby: u64,
+    pub deaths: u64,
+    pub eat_attempts: u64,
+    pub craft_attempts: u64,
+    pub stuck: u64,
+    pub death_ages: [u32; 10],
+    pub spend_ms: HashMap<String, u64>,
+    pub crafted: Vec<(i32, u32)>,
+    pub actions: Vec<(String, u32)>,
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct NpcLifeBook {
-    pub food_eaten: std::collections::HashMap<i32, u32>,
+    pub food_eaten: HashMap<i32, u32>,
     pub deaths: Vec<(i32, f32, String)>,
-    pub objects_created: std::collections::HashMap<String, u32>,
+    pub objects_created: HashMap<String, u32>,
+    pub crafted_objects: HashMap<i32, u32>,
+    pub baby_named: u64,
+    pub baby_pickup: u64,
+    pub baby_drop: u64,
+    pub named_ids: HashSet<i32>,
+    pub pickup_ids: HashSet<i32>,
+    pub death_ages: [u32; 10],
+    pub spend_ms: HashMap<String, u64>,
+    pub samples: Vec<NpcObsSample>,
+}
+
+const MS_HOUR: u64 = 3_600_000;
+const MS_DAY: u64 = 86_400_000;
+const MS_WEEK: u64 = 7 * MS_DAY;
+const MS_MONTH: u64 = 30 * MS_DAY;
+const NPC_OBS_SERIES_MAX: usize = 4096;
+
+fn compact_obs_samples(samples: &mut Vec<NpcObsSample>, now_ms: u64) {
+    if samples.len() < 3 {
+        return;
+    }
+    let mut keep: Vec<NpcObsSample> = Vec::with_capacity(samples.len());
+    for s in samples.drain(..) {
+        let age = now_ms.saturating_sub(s.wall_unix_ms);
+        let slot = s.wall_unix_ms / 5_000;
+        let keep_it = if age <= MS_HOUR {
+            true
+        } else if age <= MS_DAY {
+            slot % 12 == 0
+        } else if age <= MS_WEEK {
+            slot % 180 == 0
+        } else if age <= MS_MONTH {
+            slot % 720 == 0
+        } else {
+            false
+        };
+        if keep_it {
+            keep.push(s);
+        }
+    }
+    if keep.len() > NPC_OBS_SERIES_MAX {
+        let n = keep.len() - NPC_OBS_SERIES_MAX;
+        keep.drain(0..n);
+    }
+    *samples = keep;
 }
 
 pub struct NpcActivityLog {
@@ -256,12 +588,25 @@ impl NpcActivityLog {
                     *life.objects_created.entry(key).or_insert(0) += 1;
                 }
             }
+            NpcActivityKind::Baby | NpcActivityKind::Feed | NpcActivityKind::Combat => {
+                self.game_ms_other
+                    .fetch_add(ev.game_ms as u64, Relaxed);
+                let prefix = ev.kind.as_str();
+                let rest = ev.detail.split_whitespace().next().unwrap_or(prefix);
+                let key = format!("{prefix}:{rest}");
+                if let Ok(mut life) = self.life.lock() {
+                    *life.objects_created.entry(key).or_insert(0) += 1;
+                }
+            }
             NpcActivityKind::Eat | NpcActivityKind::SeekFood => {
                 self.eat_attempts.fetch_add(1, Relaxed);
                 self.game_ms_eat.fetch_add(ev.game_ms as u64, Relaxed);
-                if ev.held_id > 0 {
-                    if let Ok(mut life) = self.life.lock() {
-                        *life.food_eaten.entry(ev.held_id).or_insert(0) += 1;
+                if ev.kind == NpcActivityKind::Eat {
+                    let food_id = parse_eat_object_id(ev.held_id, &ev.detail);
+                    if food_id > 0 {
+                        if let Ok(mut life) = self.life.lock() {
+                            *life.food_eaten.entry(food_id).or_insert(0) += 1;
+                        }
                     }
                 }
             }
@@ -283,11 +628,39 @@ impl NpcActivityLog {
                         let n = life.deaths.len() - 80;
                         life.deaths.drain(0..n);
                     }
+                    let b = death_age_bucket(ev.age);
+                    life.death_ages[b] = life.death_ages[b].saturating_add(1);
                 }
             }
             _ => {
                 self.game_ms_other
                     .fetch_add(ev.game_ms as u64, Relaxed);
+            }
+        }
+        let spend = classify_spend(ev.kind, &ev.detail);
+        if let Ok(mut life) = self.life.lock() {
+            *life.spend_ms.entry(spend.to_string()).or_insert(0) += ev.game_ms as u64;
+            if is_baby_named_detail(&ev.detail) {
+                life.baby_named = life.baby_named.saturating_add(1);
+                if let Some(id) = parse_child_p_id(&ev.detail) {
+                    life.named_ids.insert(id);
+                } else {
+                    life.named_ids.insert(ev.p_id);
+                }
+            }
+            if is_baby_pickup_detail(&ev.detail) {
+                life.baby_pickup = life.baby_pickup.saturating_add(1);
+                if let Some(id) = parse_child_p_id(&ev.detail) {
+                    life.pickup_ids.insert(id);
+                }
+            }
+            if is_baby_drop_detail(&ev.detail) {
+                life.baby_drop = life.baby_drop.saturating_add(1);
+            }
+            if ev.kind == NpcActivityKind::Craft {
+                for id in parse_crafted_object_ids(&ev.detail) {
+                    *life.crafted_objects.entry(id).or_insert(0) += 1;
+                }
             }
         }
         let mut g = self.events.lock().unwrap();
@@ -364,6 +737,47 @@ impl NpcActivityLog {
         }
     }
 
+    /// Snapshot current totals for AI-obs graphs (called on the stats refresh).
+    pub fn record_obs_sample(&self) {
+        use std::sync::atomic::Ordering::*;
+        let now = Self::wall_ms();
+        let Ok(mut life) = self.life.lock() else {
+            return;
+        };
+        let mut crafted: Vec<(i32, u32)> = life
+            .crafted_objects
+            .iter()
+            .map(|(&id, &n)| (id, n))
+            .collect();
+        crafted.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
+        crafted.truncate(20);
+        let mut actions: Vec<(String, u32)> = life
+            .objects_created
+            .iter()
+            .map(|(k, n)| (k.clone(), *n))
+            .collect();
+        actions.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
+        actions.truncate(20);
+        let sample = NpcObsSample {
+            wall_unix_ms: now,
+            named: life.baby_named,
+            named_unique: life.named_ids.len() as u64,
+            pickup: life.baby_pickup,
+            pickup_unique: life.pickup_ids.len() as u64,
+            drop_baby: life.baby_drop,
+            deaths: self.deaths.load(Relaxed),
+            eat_attempts: self.eat_attempts.load(Relaxed),
+            craft_attempts: self.craft_attempts.load(Relaxed),
+            stuck: self.stuck_events.load(Relaxed),
+            death_ages: life.death_ages,
+            spend_ms: life.spend_ms.clone(),
+            crafted,
+            actions,
+        };
+        life.samples.push(sample);
+        compact_obs_samples(&mut life.samples, now);
+    }
+
     pub fn summary_json(&self) -> serde_json::Value {
         use std::sync::atomic::Ordering::*;
         let md = self.format_life_markdown();
@@ -400,6 +814,80 @@ impl NpcActivityLog {
                     .collect::<Vec<_>>())
             })
             .unwrap_or_else(|| serde_json::json!([]));
+        let crafted: serde_json::Value = life
+            .as_ref()
+            .map(|l| {
+                serde_json::json!(l
+                    .crafted_objects
+                    .iter()
+                    .map(|(id, n)| serde_json::json!({"id": id, "count": n}))
+                    .collect::<Vec<_>>())
+            })
+            .unwrap_or_else(|| serde_json::json!([]));
+        let death_ages: serde_json::Value = life
+            .as_ref()
+            .map(|l| {
+                serde_json::json!(DEATH_AGE_LABELS
+                    .iter()
+                    .enumerate()
+                    .map(|(i, lab)| serde_json::json!({"bucket": lab, "count": l.death_ages[i]}))
+                    .collect::<Vec<_>>())
+            })
+            .unwrap_or_else(|| serde_json::json!([]));
+        let spend: serde_json::Value = life
+            .as_ref()
+            .map(|l| {
+                serde_json::json!(SPEND_KEYS
+                    .iter()
+                    .map(|k| serde_json::json!({
+                        "key": k,
+                        "label": spend_label(k),
+                        "ms": l.spend_ms.get(*k).copied().unwrap_or(0),
+                    }))
+                    .collect::<Vec<_>>())
+            })
+            .unwrap_or_else(|| serde_json::json!([]));
+        let samples: serde_json::Value = life
+            .as_ref()
+            .map(|l| {
+                serde_json::json!(l
+                    .samples
+                    .iter()
+                    .map(|s| {
+                        let spend_obj: serde_json::Map<String, serde_json::Value> = SPEND_KEYS
+                            .iter()
+                            .map(|k| {
+                                (
+                                    (*k).to_string(),
+                                    serde_json::json!(s.spend_ms.get(*k).copied().unwrap_or(0)),
+                                )
+                            })
+                            .collect();
+                        serde_json::json!({
+                            "wall_unix_ms": s.wall_unix_ms,
+                            "named": s.named,
+                            "named_unique": s.named_unique,
+                            "pickup": s.pickup,
+                            "pickup_unique": s.pickup_unique,
+                            "drop_baby": s.drop_baby,
+                            "deaths": s.deaths,
+                            "eat_attempts": s.eat_attempts,
+                            "craft_attempts": s.craft_attempts,
+                            "stuck": s.stuck,
+                            "death_ages": s.death_ages,
+                            "spend_ms": spend_obj,
+                            "crafted": s.crafted.iter().map(|(id, n)| serde_json::json!([id, n])).collect::<Vec<_>>(),
+                            "actions": s.actions.iter().map(|(k, n)| serde_json::json!([k, n])).collect::<Vec<_>>(),
+                        })
+                    })
+                    .collect::<Vec<_>>())
+            })
+            .unwrap_or_else(|| serde_json::json!([]));
+        let named = life.as_ref().map(|l| l.baby_named).unwrap_or(0);
+        let named_unique = life.as_ref().map(|l| l.named_ids.len() as u64).unwrap_or(0);
+        let pickup = life.as_ref().map(|l| l.baby_pickup).unwrap_or(0);
+        let pickup_unique = life.as_ref().map(|l| l.pickup_ids.len() as u64).unwrap_or(0);
+        let drop_baby = life.as_ref().map(|l| l.baby_drop).unwrap_or(0);
         serde_json::json!({
             "craft_attempts": self.craft_attempts.load(Relaxed),
             "eat_attempts": self.eat_attempts.load(Relaxed),
@@ -415,6 +903,15 @@ impl NpcActivityLog {
             "food_eaten": food,
             "death_log": deaths,
             "objects_created": objects,
+            "crafted_objects": crafted,
+            "death_ages": death_ages,
+            "spend_ms": spend,
+            "baby_named": named,
+            "baby_named_unique": named_unique,
+            "baby_pickup": pickup,
+            "baby_pickup_unique": pickup_unique,
+            "baby_drop": drop_baby,
+            "samples": samples,
             "life_markdown": md,
         })
     }
@@ -571,5 +1068,187 @@ mod tests {
         let j = log.summary_json();
         assert_eq!(j["eat_attempts"], 1);
         assert_eq!(j["deaths"], 1);
+    }
+
+    #[test]
+    fn classify_spend_haxe_like_details() {
+        assert_eq!(
+            classify_spend(NpcActivityKind::Combat, "escape_Animal @1,2"),
+            "escape_animal"
+        );
+        assert_eq!(
+            classify_spend(NpcActivityKind::Combat, "escape_Player @1,2"),
+            "escape_player"
+        );
+        assert_eq!(
+            classify_spend(NpcActivityKind::Combat, "attack_kill target=9 @1,2"),
+            "attack_player"
+        );
+        assert_eq!(
+            classify_spend(NpcActivityKind::Baby, "you_are child=12 YOU ARE ALICE"),
+            "name_baby"
+        );
+        assert_eq!(
+            classify_spend(NpcActivityKind::Baby, "pickup child=12 @3,4"),
+            "pickup_baby"
+        );
+        assert_eq!(
+            classify_spend(NpcActivityKind::Baby, "drop_full child=12 food=3.9"),
+            "drop_baby"
+        );
+        assert_eq!(
+            classify_spend(NpcActivityKind::Craft, "craft_queue_walk_use @1,2"),
+            "walk_use"
+        );
+        assert_eq!(
+            classify_spend(NpcActivityKind::Craft, "craft_queue_walk @1,2"),
+            "walk_target"
+        );
+        assert_eq!(
+            classify_spend(NpcActivityKind::SeekFood, "walk_food id=2143 @1,2"),
+            "walk_food"
+        );
+        assert_eq!(
+            classify_spend(NpcActivityKind::Move, "walk_target moving"),
+            "walk_target"
+        );
+        assert_eq!(
+            classify_spend(NpcActivityKind::Move, "walk_use use_held @1,2"),
+            "walk_use"
+        );
+    }
+
+    #[test]
+    fn death_age_buckets_span_child_to_elder() {
+        assert_eq!(death_age_bucket(0.4), 0);
+        assert_eq!(death_age_bucket(7.0), 1);
+        assert_eq!(death_age_bucket(15.2), 3);
+        assert_eq!(death_age_bucket(62.0), 9);
+    }
+
+    #[test]
+    fn parse_crafted_and_baby_ids() {
+        assert_eq!(
+            parse_crafted_object_ids("clothing_craft CraftItem(128)"),
+            vec![128]
+        );
+        assert_eq!(
+            parse_crafted_object_ids("prof_goc_use actor=33 target=36 @1,2"),
+            vec![33, 36]
+        );
+        assert_eq!(
+            parse_crafted_object_ids("use craft 0+30->31/30 score=5.2"),
+            vec![31]
+        );
+        assert_eq!(
+            parse_crafted_object_ids("plan 0+30 score=5.2 time=0.5s prod=31/30 in=0.0"),
+            vec![31]
+        );
+        assert_eq!(parse_child_p_id("pickup child=9100003 @1,2"), Some(9100003));
+    }
+
+    #[test]
+    fn summary_tracks_babies_ages_and_samples() {
+        let log = NpcActivityLog::new(
+            std::env::temp_dir().join("ol_npc_obs_test.journal"),
+            64,
+            30,
+        );
+        log.push(NpcActivityEvent {
+            wall_unix_ms: 1,
+            conn_id: 9_100_000,
+            p_id: 1,
+            kind: NpcActivityKind::Baby,
+            cpu_us: 10,
+            game_ms: 500,
+            age: 20.0,
+            food: 8.0,
+            x: 0,
+            y: 0,
+            held_id: 0,
+            detail: "pickup child=42 @1,2".into(),
+        });
+        log.push(NpcActivityEvent {
+            wall_unix_ms: 2,
+            conn_id: 9_100_000,
+            p_id: 1,
+            kind: NpcActivityKind::Baby,
+            cpu_us: 10,
+            game_ms: 400,
+            age: 20.0,
+            food: 8.0,
+            x: 0,
+            y: 0,
+            held_id: 0,
+            detail: "you_are child=42 YOU ARE ALICE".into(),
+        });
+        log.push(NpcActivityEvent {
+            wall_unix_ms: 3,
+            conn_id: 9_100_001,
+            p_id: 2,
+            kind: NpcActivityKind::Death,
+            cpu_us: 1,
+            game_ms: 0,
+            age: 0.5,
+            food: -1.0,
+            x: 0,
+            y: 0,
+            held_id: 0,
+            detail: "age=0.5 starved".into(),
+        });
+        log.record_obs_sample();
+        let j = log.summary_json();
+        assert_eq!(j["baby_pickup"], 1);
+        assert_eq!(j["baby_named"], 1);
+        assert_eq!(j["baby_named_unique"], 1);
+        assert_eq!(j["deaths"], 1);
+        log.push(NpcActivityEvent {
+            wall_unix_ms: 4,
+            conn_id: 9_100_000,
+            p_id: 1,
+            kind: NpcActivityKind::Craft,
+            cpu_us: 10,
+            game_ms: 250,
+            age: 20.0,
+            food: 8.0,
+            x: 0,
+            y: 0,
+            held_id: 0,
+            detail: "use craft 0+30->31/30 score=5.2".into(),
+        });
+        log.record_obs_sample();
+        let j = log.summary_json();
+        let crafted = j["crafted_objects"].as_array().expect("crafted");
+        assert!(
+            crafted.iter().any(|r| r["id"] == 31 && r["count"] == 1),
+            "crafted_objects should record gooseberry 31 from use-craft product, got {crafted:?}"
+        );
+        log.push(NpcActivityEvent {
+            wall_unix_ms: 5,
+            conn_id: 9_100_000,
+            p_id: 1,
+            kind: NpcActivityKind::Eat,
+            cpu_us: 10,
+            game_ms: 100,
+            age: 20.0,
+            food: 4.0,
+            x: 0,
+            y: 0,
+            held_id: 0,
+            detail: "eat_held=31".into(),
+        });
+        let j = log.summary_json();
+        let food = j["food_eaten"].as_array().expect("food");
+        assert!(
+            food.iter().any(|r| r["id"] == 31),
+            "food_eaten must include eat_held= id when held_id is 0, got {food:?}"
+        );
+        assert_eq!(parse_eat_object_id(0, "eat_held=2143"), 2143);
+        assert_eq!(parse_eat_object_id(30, "eat berry"), 30);
+        let ages = j["death_ages"].as_array().expect("ages");
+        assert_eq!(ages[0]["count"], 1);
+        assert!(j["samples"].as_array().unwrap().len() >= 1);
+        let spend = j["spend_ms"].as_array().expect("spend");
+        assert!(spend.iter().any(|r| r["key"] == "pickup_baby" && r["ms"] == 500));
     }
 }

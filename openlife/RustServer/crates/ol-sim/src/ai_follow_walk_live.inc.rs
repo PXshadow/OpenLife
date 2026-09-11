@@ -4,23 +4,78 @@
 
 /// Process deferred `orderedToDrop` (Haxe AI frame start before escape/jobs).
 // Haxe: AiBase.doTimeStuffHelper orderedToDrop L481–484
+// Haxe: AiBase.dropHeldObject(0) finds a nearby empty tile, not only feet.
 // AI-SAY-HELPER / AI-LLM-APPLY
 fn tick_ordered_ai_drop(state: &mut SimState, outbound: &OutboundHub) {
     // Snapshot then clear flag first (Haxe: orderedToDrop = false; dropHeldObject(0))
-    let jobs: Vec<(u64, i32, i32)> = state
+    let jobs: Vec<(u64, i32, i32, i32)> = state
         .players
         .iter_mut()
         .filter(|(_, p)| !p.deleted && p.ai_ordered_to_drop)
         .map(|(&cid, p)| {
             p.ai_ordered_to_drop = false;
+            // Haxe doDropCommand Goto(self) then dropHeldObject(0) next frame.
+            p.moving = false;
+            p.move_path = None;
+            p.force_stop_on_next_tile = true;
             (cid, p.x, p.y, p.held_id)
         })
         .filter(|(_, _, _, held)| *held != 0)
-        .map(|(cid, x, y, _)| (cid, x, y))
         .collect();
-    for (cid, x, y) in jobs {
-        apply_drop(state, outbound, cid, x, y, None);
+    for (cid, x, y, held) in jobs {
+        let (dx, dy) = ordered_ai_drop_tile(state, x, y, held);
+        apply_drop(state, outbound, cid, dx, dy, None);
+        if let Some(p) = state.players.get_mut(&cid) {
+            if p.held_id == 0 {
+                p.clear_held();
+            }
+        }
     }
+}
+
+/// Empty tile at feet, else nearest in-range empty (Haxe first empty search radius 4).
+// Haxe: AiBase.dropHeldObject GetClosestObjectToTarget(player, 0, searchDistance)
+fn ordered_ai_drop_tile(state: &SimState, px: i32, py: i32, held: i32) -> (i32, i32) {
+    let use_d = state
+        .content
+        .get(held)
+        .map(|d| d.use_distance)
+        .unwrap_or(1);
+    let w = state.world.read().unwrap();
+    let (mw, mh, wrap) = (w.width_tiles, w.height_tiles, w.wrap);
+    if w.get_object(px, py) == 0 {
+        return (px, py);
+    }
+    let mut best: Option<(i32, i32, i32)> = None;
+    for r in 1i32..=4 {
+        for dy in -r..=r {
+            for dx in -r..=r {
+                if dx.abs() != r && dy.abs() != r {
+                    continue;
+                }
+                let x = px + dx;
+                let y = py + dy;
+                if w.get_object(x, y) != 0 {
+                    continue;
+                }
+                if !check_if_not_moving_and_close_enough(
+                    false, px, py, x, y, use_d, mw, mh, wrap,
+                ) {
+                    continue;
+                }
+                let dsq = dx * dx + dy * dy;
+                match best {
+                    None => best = Some((dsq, x, y)),
+                    Some((bd, _, _)) if dsq < bd => best = Some((dsq, x, y)),
+                    _ => {}
+                }
+            }
+        }
+        if best.is_some() {
+            break;
+        }
+    }
+    best.map(|(_, x, y)| (x, y)).unwrap_or((px, py))
 }
 
 /// Pathfind AI toward absolute goal and start timed MOVE path (follow / ally Goto).
@@ -87,9 +142,11 @@ fn try_ai_follow_path_to(
 // Haxe: myPlayer.isAi() / ServerAi body
 fn player_is_ai_follow_body(p: &Player) -> bool {
     p.ai_controlled
+        || p.is_ai_body()
         || email_looks_ai(&p.email)
         || p.email.to_ascii_lowercase().contains("npc")
         || p.email.to_ascii_lowercase().contains("selfplay")
+        || p.email.to_ascii_lowercase().starts_with("baby")
 }
 
 /// Empty-sticky acquire: child-mother `getFollowPlayer` or AutoFollowPlayer closest.

@@ -13,8 +13,10 @@ use crate::world_time::DenseTileGrid;
 use ol_content::ContentDb;
 use ol_world::{ComplexObject, NestedHelper, World, GREEN, OCEAN, PASSABLE_RIVER, RIVER, SNOWINGREY};
 use rand::Rng;
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::collections::HashMap;
-use std::fs;
+use std::fs::{self, File};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::Path;
 
 /// Haxe biome ids not all re-exported from ol_world root.
@@ -1227,6 +1229,150 @@ pub const DEFAULT_OBJECT_COUNTS_FILE: &str = "ObjectCounts.txt";
 // Haxe: WorldMap.write L803 `ObjectCounts${tmpDataNumber}.txt`
 pub fn haxe_object_counts_slot_filename(tmp_data_number: u32) -> String {
     format!("ObjectCounts{tmp_data_number}.txt")
+}
+
+/// Frozen generation census (Haxe `OriginalObjects.bin` + `originalObjectsCount`).
+///
+/// Written once after `generateObjects` / first seed; later boots must **not**
+/// recapture from the live (already-modified) world.
+// Haxe: WorldMap.originalObjects + originalObjectsCount
+pub const DEFAULT_ORIGINAL_CENSUS_FILE: &str = "original_census_v1.bin";
+const ORIGINAL_CENSUS_MAGIC: &[u8; 4] = b"OLOC";
+/// v1 = tiles+counts (may have been frozen from a played world). v2 adds source.
+const ORIGINAL_CENSUS_VERSION: u32 = 2;
+/// Census taken from PNG + extra biomes + spawn + lucky spots (not live tiles).
+pub const ORIGINAL_CENSUS_SOURCE_GENERATION: u8 = 1;
+
+/// Save Haxe original-object snapshot + counts (sparse tiles).
+pub fn save_original_census(lt: &LongTermState, path: impl AsRef<Path>) -> Result<(), String> {
+    let path = path.as_ref();
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let tmp = path.with_extension("bin.tmp");
+    {
+        let f = File::create(&tmp).map_err(|e| e.to_string())?;
+        let mut w = BufWriter::new(f);
+        w.write_all(ORIGINAL_CENSUS_MAGIC)
+            .map_err(|e| e.to_string())?;
+        w.write_u32::<LittleEndian>(ORIGINAL_CENSUS_VERSION)
+            .map_err(|e| e.to_string())?;
+        w.write_u8(ORIGINAL_CENSUS_SOURCE_GENERATION)
+            .map_err(|e| e.to_string())?;
+        let ww = lt.original_objects.width();
+        let hh = lt.original_objects.height();
+        w.write_i32::<LittleEndian>(ww).map_err(|e| e.to_string())?;
+        w.write_i32::<LittleEndian>(hh).map_err(|e| e.to_string())?;
+        let mut tiles: Vec<(i32, i32, i32)> = Vec::new();
+        if ww > 0 && hh > 0 {
+            for y in 0..hh {
+                for x in 0..ww {
+                    let id = lt.original_objects.get(x, y);
+                    if id > 0 {
+                        tiles.push((x, y, id));
+                    }
+                }
+            }
+        }
+        w.write_u32::<LittleEndian>(tiles.len() as u32)
+            .map_err(|e| e.to_string())?;
+        for (x, y, id) in tiles {
+            w.write_i32::<LittleEndian>(x).map_err(|e| e.to_string())?;
+            w.write_i32::<LittleEndian>(y).map_err(|e| e.to_string())?;
+            w.write_i32::<LittleEndian>(id).map_err(|e| e.to_string())?;
+        }
+        w.write_u32::<LittleEndian>(lt.original_counts.len() as u32)
+            .map_err(|e| e.to_string())?;
+        for (&id, &n) in &lt.original_counts {
+            w.write_i32::<LittleEndian>(id).map_err(|e| e.to_string())?;
+            w.write_i32::<LittleEndian>(n).map_err(|e| e.to_string())?;
+        }
+        w.flush().map_err(|e| e.to_string())?;
+    }
+    fs::rename(&tmp, path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Load frozen originals. `None` if the file is missing.
+pub fn load_original_census(
+    lt: &mut LongTermState,
+    path: impl AsRef<Path>,
+) -> Result<bool, String> {
+    let path = path.as_ref();
+    if !path.exists() {
+        return Ok(false);
+    }
+    let f = File::open(path).map_err(|e| e.to_string())?;
+    let mut r = BufReader::new(f);
+    let mut magic = [0u8; 4];
+    r.read_exact(&mut magic).map_err(|e| e.to_string())?;
+    if &magic != ORIGINAL_CENSUS_MAGIC {
+        return Err("original census magic mismatch".into());
+    }
+    let ver = r.read_u32::<LittleEndian>().map_err(|e| e.to_string())?;
+    if ver != 1 && ver != ORIGINAL_CENSUS_VERSION {
+        return Err(format!("original census version {ver}"));
+    }
+    if ver >= 2 {
+        let _source = r.read_u8().map_err(|e| e.to_string())?;
+    }
+    let ww = r.read_i32::<LittleEndian>().map_err(|e| e.to_string())?;
+    let hh = r.read_i32::<LittleEndian>().map_err(|e| e.to_string())?;
+    lt.original_objects.ensure(ww, hh);
+    let n_tiles = r.read_u32::<LittleEndian>().map_err(|e| e.to_string())? as usize;
+    for _ in 0..n_tiles {
+        let x = r.read_i32::<LittleEndian>().map_err(|e| e.to_string())?;
+        let y = r.read_i32::<LittleEndian>().map_err(|e| e.to_string())?;
+        let id = r.read_i32::<LittleEndian>().map_err(|e| e.to_string())?;
+        if id > 0 {
+            lt.original_objects.set(x, y, id);
+        }
+    }
+    let n_counts = r.read_u32::<LittleEndian>().map_err(|e| e.to_string())? as usize;
+    lt.original_counts.clear();
+    for _ in 0..n_counts {
+        let id = r.read_i32::<LittleEndian>().map_err(|e| e.to_string())?;
+        let n = r.read_i32::<LittleEndian>().map_err(|e| e.to_string())?;
+        if id > 0 {
+            lt.original_counts.insert(id, n);
+        }
+    }
+    lt.counts_ready = true;
+    Ok(true)
+}
+
+/// True when `path` is a v2+ census taken from map generate (not a live-world freeze).
+pub fn original_census_is_generation(path: impl AsRef<Path>) -> bool {
+    let path = path.as_ref();
+    let Ok(f) = File::open(path) else {
+        return false;
+    };
+    let mut r = BufReader::new(f);
+    let mut magic = [0u8; 4];
+    if r.read_exact(&mut magic).is_err() || &magic != ORIGINAL_CENSUS_MAGIC {
+        return false;
+    }
+    let Ok(ver) = r.read_u32::<LittleEndian>() else {
+        return false;
+    };
+    if ver < 2 {
+        return false;
+    }
+    matches!(r.read_u8(), Ok(ORIGINAL_CENSUS_SOURCE_GENERATION))
+}
+
+/// Count the live ground map and freeze it as the generation original (once).
+pub fn capture_and_save_original_census(
+    lt: &mut LongTermState,
+    world: &World,
+    content: &ContentDb,
+    path: impl AsRef<Path>,
+) -> Result<(), String> {
+    lt.counts_ready = false;
+    lt.original_counts.clear();
+    lt.original_objects = crate::world_time::DenseTileGrid::empty(0);
+    lt.seed_from_world_if_needed(world, content);
+    save_original_census(lt, path)
 }
 
 /// One Haxe ObjectCounts dump line.
@@ -2734,6 +2880,38 @@ mod tests {
             text.contains("Count object: [33] Gooseberry: 2 original: 2"),
             "text={text}"
         );
+    }
+
+    #[test]
+    fn original_census_survives_world_change() {
+        let mut db = ContentDb::default();
+        db.objects.insert(33, ObjectDef::empty(33));
+        db.objects.insert(40, ObjectDef::empty(40));
+        let mut world = World::new(3, 3, false);
+        world.set_object(0, 0, 33);
+        world.set_object(1, 1, 33);
+        let mut lt = LongTermState::default();
+        lt.seed_from_world_if_needed(&world, &db);
+        let dir = std::env::temp_dir().join(format!(
+            "ol_orig_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(DEFAULT_ORIGINAL_CENSUS_FILE);
+        save_original_census(&lt, &path).unwrap();
+        world.set_object(0, 0, 0);
+        world.set_object(2, 2, 40);
+        let mut loaded = LongTermState::default();
+        assert!(load_original_census(&mut loaded, &path).unwrap());
+        assert!(original_census_is_generation(&path));
+        loaded.update_object_counts(&world, &db);
+        assert_eq!(loaded.original_counts.get(&33), Some(&2));
+        assert_eq!(loaded.current_counts.get(&33), Some(&1));
+        assert_eq!(loaded.current_counts.get(&40), Some(&1));
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]
