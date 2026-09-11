@@ -93,10 +93,10 @@ pub const YUM_SLIP_HIDE_Y_BELOW: f32 = 330.0;
 /// Pop-in show delta (C++ target.y += 36 on Y-up → show is higher = less below).
 pub const YUM_SLIP_SHOW_DY: f32 = 36.0;
 
-/// C++ hunger slip show/hide (Y-up → +y below). Base show y = -250 → 250 below.
+/// C++ hunger slip show/hide (Y-up → +y below).
 pub const HUNGER_SLIP_X: f32 = -558.0;
-/// C++ `mHungerSlipShowOffsets` Y-up −250 / −250 / −280 → below 250 / 250 / 280.
-pub const HUNGER_SLIP_SHOW_Y: [f32; 3] = [250.0, 250.0, 280.0]; // full / hungry / starving
+/// After C++ ctor tweaks: full −232, hungry −280, starving −280.
+pub const HUNGER_SLIP_SHOW_Y: [f32; 3] = [232.0, 280.0, 280.0]; // full / hungry / starving
 /// C++ hide −370 / −370 / −390 → below 370 / 370 / 390.
 pub const HUNGER_SLIP_HIDE_Y: [f32; 3] = [370.0, 370.0, 390.0];
 /// C++ `mHungerSlipWiggleAmp` — full 0, hungry/starving 0.5.
@@ -822,7 +822,11 @@ impl HudState {
         }
     }
 
-    /// True when pointer is over the temp meter strip (C++ ~tipPos + 480..607).
+    /// True when pointer is over the temp meter strip.
+    ///
+    /// C++ `LivingLifePage` ~11015–11024 (Y-up): `mouse.y < tipPos.y + 13` and
+    /// `tipPos.x + 480 .. + 607`. Y-down: everything from 13px above the tip
+    /// line down to the bottom of the view, in that x band.
     pub fn pointer_over_temp_meter(&self, fb_w: u32, fb_h: u32) -> bool {
         if !self.pointer_valid {
             return false;
@@ -833,15 +837,12 @@ impl HudState {
         let tip_y = cy + TIP_ORIGIN_Y_BELOW * s;
         let x0 = cx + 480.0 * s;
         let x1 = cx + 607.0 * s;
-        let y0 = tip_y - 13.0 * s;
-        let y1 = tip_y + 13.0 * s;
         self.pointer_x >= x0
             && self.pointer_x <= x1
-            && self.pointer_y >= y0
-            && self.pointer_y <= y1
+            && self.pointer_y >= tip_y - 13.0 * s
     }
 
-    /// Soft-FB English stand-in for C++ `foodTimeFormatString` / indoor bonus.
+    /// C++ `languages/English.txt`: `SECONDS PER FOOD PIP:  12.3 + 2.1 INDOOR BONUS`.
     pub fn temp_meter_tip_text(&self) -> Option<String> {
         if self.food_time <= 0.0 {
             return None;
@@ -849,11 +850,11 @@ impl HudState {
         let mut main = self.food_time;
         let indoor = if self.indoor_bonus > 0.0 {
             main -= self.indoor_bonus;
-            format!(" (+{:.0}s indoors)", self.indoor_bonus)
+            format!(" + {:.1} INDOOR BONUS", self.indoor_bonus)
         } else {
             String::new()
         };
-        Some(format!("FOOD TIME: {:.0}s{indoor}", main.max(0.0)))
+        Some(format!("SECONDS PER FOOD PIP:  {:.1}{indoor}", main.max(0.0)))
     }
 
     /// Apply HX heat change (values only).
@@ -2427,44 +2428,6 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
     let cx = fb.width as f32 * 0.5;
     let cy = fb.height as f32 * 0.5;
 
-    // --- Hunger slips (full / hungry / starving) under panel — animated ---
-    for si in 0..NUM_HUNGER_SLIPS {
-        if (state.hunger_slip_pos_y[si] - HUNGER_SLIP_HIDE_Y[si]).abs() < 0.5 {
-            continue;
-        }
-        if let Some(spr) = sprites.hunger_slips.get(si) {
-            let sx = cx + HUNGER_SLIP_X * s;
-            let sy = cy + state.hunger_slip_draw_y_below(si) * s;
-            blit_centered(fb, spr, sx, sy, s);
-        }
-    }
-
-    // --- Yum slips (dual flip slots 0..1) ---
-    for yi in 0..2 {
-        if (state.yum_slip_pos_y[yi] - YUM_SLIP_HIDE_Y_BELOW).abs() < 0.5 {
-            continue;
-        }
-        if let Some(spr) = sprites.yum_slips.get(yi).or_else(|| sprites.yum_slips.first()) {
-            let sx = cx + YUM_SLIP_HIDE_X * s;
-            let sy = cy + state.yum_slip_pos_y[yi] * s;
-            blit_centered(fb, spr, sx, sy, s);
-            let n = state.yum_slip_numbers[yi];
-            if n > 0 {
-                let label = format!("{n}x");
-                sprites.draw_hud_text(
-                    fb,
-                    &label,
-                    sx,
-                    sy - 4.0 * s,
-                    s,
-                    [0, 0, 0, 255],
-                    true,
-                    false,
-                );
-            }
-        }
-    }
-
     // --- Home arrows + pencil MAP/LEAD (C++ drawHomeSlip) ---
     {
         let extra_up = home_slip_extra_up(state.home_dist, state.home_temporary);
@@ -2539,6 +2502,43 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
     // Gui panel (C++ guiPanel.tga). No full-width desk bar above it.
     if let Some(panel) = &sprites.gui_panel {
         blit_centered(fb, panel, cx, py, s);
+    }
+
+    // Hunger / yum slips after the panel so FULL/HUNGRY/STARVING stay readable
+    // (panel alpha covers the left if we draw them first).
+    for si in 0..NUM_HUNGER_SLIPS {
+        if (state.hunger_slip_pos_y[si] - HUNGER_SLIP_HIDE_Y[si]).abs() < 0.5 {
+            continue;
+        }
+        if let Some(spr) = sprites.hunger_slips.get(si) {
+            let sx = cx + HUNGER_SLIP_X * s;
+            let sy = cy + state.hunger_slip_draw_y_below(si) * s;
+            blit_centered(fb, spr, sx, sy, s);
+        }
+    }
+    for yi in 0..2 {
+        if (state.yum_slip_pos_y[yi] - YUM_SLIP_HIDE_Y_BELOW).abs() < 0.5 {
+            continue;
+        }
+        if let Some(spr) = sprites.yum_slips.get(yi).or_else(|| sprites.yum_slips.first()) {
+            let sx = cx + YUM_SLIP_HIDE_X * s;
+            let sy = cy + state.yum_slip_pos_y[yi] * s;
+            blit_centered(fb, spr, sx, sy, s);
+            let n = state.yum_slip_numbers[yi];
+            if n > 0 {
+                let label = format!("{n}x");
+                sprites.draw_hud_text(
+                    fb,
+                    &label,
+                    sx,
+                    sy - 11.0 * s,
+                    s,
+                    [0, 0, 0, 255],
+                    true,
+                    false,
+                );
+            }
+        }
     }
 
     // C++: dying && !sick → guiBlood with multiplicative blend under panel offset.
@@ -3141,6 +3141,37 @@ mod tests {
         assert_eq!(hud.yum_slip_number, 3);
         assert!(hud.pointer_over_temp_meter(1280, 720));
         assert!(hud.temp_meter_tip_text().is_some());
+    }
+
+    #[test]
+    fn temp_meter_tip_matches_english_txt() {
+        let mut hud = HudState::new();
+        hud.apply_hx(&HeatChange {
+            heat: 0.46,
+            food_time: 18.57,
+            indoor_bonus: 0.0,
+        });
+        assert_eq!(
+            hud.temp_meter_tip_text().as_deref(),
+            Some("SECONDS PER FOOD PIP:  18.6")
+        );
+        hud.apply_hx(&HeatChange {
+            heat: 0.46,
+            food_time: 18.57,
+            indoor_bonus: 2.1,
+        });
+        assert_eq!(
+            hud.temp_meter_tip_text().as_deref(),
+            Some("SECONDS PER FOOD PIP:  16.5 + 2.1 INDOOR BONUS")
+        );
+        // 960×540: hover anywhere in the C++ x-band below the tip line.
+        let s = hud_scale(960, 540);
+        let cx = 480.0;
+        let cy = 270.0;
+        hud.set_pointer(cx + 546.0 * s, cy + 319.0 * s);
+        assert!(hud.pointer_over_temp_meter(960, 540));
+        hud.set_pointer(cx + 546.0 * s, 530.0);
+        assert!(hud.pointer_over_temp_meter(960, 540));
     }
 
     #[test]

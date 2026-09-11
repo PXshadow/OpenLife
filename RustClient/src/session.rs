@@ -1482,9 +1482,10 @@ impl ClientSession {
                 Ok(SessionEvent::MapChanges(play))
             }
             InboundMessage::FoodChange(f) => {
-                // C++ ~21867: hold FX on feeder's pendingReceivedMessages when they
-                // already have messages queued (mid-walk PU hold). Also keep the
-                // older moving-only defer as a fallback.
+                // Always keep the latest FX for HUD pips. C++ ~21867 holds the
+                // feeder's FX for walk animation; we still apply store/capacity
+                // immediately so the hunger boxes do not freeze.
+                self.food = Some(f.clone());
                 if f.responsible_id > 0 {
                     if let Some(o) = self.world.get_mut(f.responsible_id) {
                         if !o.pending_received_messages.is_empty() {
@@ -1497,7 +1498,6 @@ impl ClientSession {
                         }
                     }
                 }
-                self.food = Some(f.clone());
                 Ok(SessionEvent::FoodChange(f))
             }
             InboundMessage::HeatChange(h) => {

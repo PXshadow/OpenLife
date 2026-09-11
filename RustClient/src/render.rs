@@ -1894,6 +1894,11 @@ impl SceneRenderer {
 
         // --- Pass 3: food / heat HUD over world (C++ LivingLifePage panel + meters) ---
         if self.draw_hud {
+            // Age then recompute FULL/hungry/starving (C++ FX uses computeCurrentAge).
+            if let Some(o) = world.our() {
+                self.hud.age_years = o.current_age();
+            }
+            self.hud.recompute_hunger_slip();
             // Slip slide/wiggle (C++ step ~14550) before blit; hunger.aiff on event.
             let frf = (dt * 60.0).clamp(0.0, 4.0);
             if frf > 1e-6 {
@@ -1905,10 +1910,6 @@ impl SceneRenderer {
                 ) {
                     let _ = self.sounds.play_hunger_sound();
                 }
-            }
-            // Age for hunger-slip thresholds (baby / elder gates).
-            if let Some(o) = world.our() {
-                self.hud.age_years = o.current_age();
             }
             // &mut: C++ updates mOldArrows / mCurrentArrowI inside draw.
             self.hud.resolve_last_ate_name(content);
