@@ -830,8 +830,8 @@ use ol_protocol::{
     format_player_update_line_death, format_player_update_line_eat,
     format_player_update_line_eat_responsible, format_player_update_line_full,
     format_player_update_line_full_clothing, format_player_update_line_full_clothing_responsible,
-    format_pong,
-    format_server_message, format_vog_update, ClientTag, PHOTO_DENIED_SIGNATURE,
+    format_pong, format_server_message, format_vog_update, haxe_to_data_seq, ClientTag,
+    PHOTO_DENIED_SIGNATURE,
 };
 use ol_world::{
     is_biome_blocking, pick_biome_spawn, place_natural_object, ComplexObject, JournalEntry,
@@ -3011,6 +3011,148 @@ pub(crate) fn drop_held_player_at(
     Some(baby_conn)
 }
 
+/// Haxe `tileObjectData.dummyParent` then `permanent == 1`.
+// Haxe: TransitionHelper.swapHandAndFloorObject L674–676
+fn object_is_permanent(content: &ol_content::ContentDb, id: i32) -> bool {
+    if id == 0 {
+        return false;
+    }
+    let base = content.resolve_base_id(id);
+    content.get(base).map(|d| d.permanent).unwrap_or(false)
+}
+
+/// Haxe `DoContainerStuffOnObj(..., isDrop=true)`: pop last contained, insert held at 0.
+// Haxe: TransitionHelper.DoContainerStuffOnObj L643–668
+fn drop_cycle_container(
+    state: &mut SimState,
+    conn_id: u64,
+    x: i32,
+    y: i32,
+    tile: i32,
+    held: i32,
+) -> bool {
+    if held <= 0 || tile == 0 {
+        return false;
+    }
+    let parent = state.content.resolve_base_id(tile);
+    if parent == 0 || object_blocks_remove(&state.content, tile) {
+        return false;
+    }
+    let (slots, can) = {
+        let Some(cdef) = state.content.get(parent) else {
+            return false;
+        };
+        let Some(adef) = state.content.get(state.content.resolve_base_id(held)) else {
+            return false;
+        };
+        if cdef.num_slots <= 0 || !adef.containable || !adef.contain_fits_in_container(cdef) {
+            (0i32, false)
+        } else {
+            (cdef.num_slots, true)
+        }
+    };
+    if !can || slots <= 0 {
+        return false;
+    }
+    let held_helper = state
+        .players
+        .get(&conn_id)
+        .and_then(|p| p.held_helper.clone());
+    let sim_t = state.sim_time;
+    let taken = {
+        let mut world = state.world.write().unwrap();
+        let (tx, ty) = world.wrap_tile(x, y);
+        let base = world.get_object(tx, ty);
+        if base == 0 {
+            return false;
+        }
+        let mut helper = world
+            .helpers
+            .remove(&(tx, ty))
+            .unwrap_or_else(|| ol_world::ComplexObject::new_simple(base));
+        helper.base_id = base;
+        let taken_id = helper.contained.pop().unwrap_or(0);
+        if !helper.nested.is_empty() {
+            let _ = helper.nested.pop();
+        }
+        let taken_slot = if !helper.slots.is_empty() {
+            helper.slots.pop()
+        } else {
+            None
+        };
+        helper.contained.insert(0, held);
+        if !helper.nested.is_empty() {
+            helper.nested.insert(0, Vec::new());
+        }
+        if !helper.slots.is_empty() || held_helper.is_some() {
+            let slot = held_helper.unwrap_or_else(|| NestedHelper::id_only(held));
+            helper.slots.insert(0, slot);
+        }
+        helper.stamp_time(sim_t, 0.0);
+        world.set_object_complex(tx, ty, helper);
+        (taken_id, taken_slot)
+    };
+    if let Some(p) = state.players.get_mut(&conn_id) {
+        match taken.1 {
+            Some(h) if taken.0 != 0 => p.set_held_helper(h),
+            _ if taken.0 != 0 => p.set_held(taken.0, 0),
+            _ => p.clear_held(),
+        }
+    }
+    state.record_world_change(x, y, tile);
+    schedule_decay(state, x, y, tile);
+    true
+}
+
+/// Haxe `swapHandAndFloorObject` — swap held with non-permanent tile (put-down transform).
+// Haxe: TransitionHelper.swapHandAndFloorObject L671–704
+fn swap_hand_and_floor_object(
+    state: &mut SimState,
+    conn_id: u64,
+    x: i32,
+    y: i32,
+) -> bool {
+    let (held, owner_id) = match state.players.get(&conn_id) {
+        Some(p) if !p.deleted => (p.held_id.max(0), p.p_id),
+        _ => return false,
+    };
+    let tile = state.world.read().unwrap().get_object(x, y);
+    if object_is_permanent(&state.content, tile) {
+        return false;
+    }
+    if held == 0 && tile == 0 {
+        return false;
+    }
+    let place_id = ol_transition_rules::put_down_ground_id(&state.content, held).unwrap_or(held);
+    let tile_helper = state.world.read().unwrap().get_helper(x, y).cloned();
+    {
+        let mut world = state.world.write().unwrap();
+        if place_id == 0 {
+            world.set_object(x, y, 0);
+        } else {
+            world.set_object_complex(x, y, ComplexObject::with_owner(place_id, owner_id));
+        }
+    }
+    if let Some(pl) = state.players.get_mut(&conn_id) {
+        if tile == 0 {
+            pl.clear_held();
+        } else {
+            pl.held_id = tile;
+            pl.held_helper = tile_helper
+                .map(|h| crate::horse_mount::complex_to_nested(&h))
+                .or_else(|| Some(NestedHelper::id_only(tile)));
+            pl.held_uses = pl.held_helper.as_ref().map(|h| h.uses_remaining).unwrap_or(0);
+        }
+    }
+    if place_id != 0 {
+        schedule_decay(state, x, y, place_id);
+        state.record_world_change(x, y, place_id);
+    } else {
+        state.record_world_change(x, y, 0);
+    }
+    true
+}
+
 /// Haxe `GPI.dropPlayer` / `dropPlayerHelper` — put held player on tile `x,y`.
 ///
 /// Shared by DROP and SWAP (`GPI.drop` / `GPI.swap` when `heldPlayer != null`).
@@ -3190,74 +3332,22 @@ pub fn apply_drop(
     }
     let tile = state.world.read().unwrap().get_object(x, y);
 
-    // Into container if tile is container and held is containable.
+    // Haxe drop(): doContainerStuff(isDrop) then swapHandAndFloorObject. Never USE.
+    // Haxe: TransitionHelper.drop L555–558
     if tile != 0 {
-        let slots = state
-            .content
-            .get(tile)
-            .map(|d| d.num_slots.max(0) as usize)
-            .unwrap_or(0);
-        // Only containable items may enter containers (Haxe containable=1).
-        let held_ok = state
-            .content
-            .get(held)
-            .map(|d| d.containable)
-            .unwrap_or(false);
-        if slots > 0 && held_ok && !object_blocks_remove(&state.content, tile) {
-            // Haxe-style time-in-container: stamp sim_time on put; permanent
-            // containers keep contents across OLW2 saves (nested + creation_time).
-            let sim_t = state.sim_time;
-            // Default: no auto-decay on container itself (time_to_change=0 = permanent hold).
-            // Non-permanent base objects may get a soft decay timer from content later.
-            let base_permanent = state
-                .content
-                .get(tile)
-                .map(|d| d.permanent)
-                .unwrap_or(false);
-            let ttc = if base_permanent { 0.0 } else { 300.0 };
-            let put = state.world.write().unwrap().container_put_timed(
-                x,
-                y,
-                held,
-                slots.max(1),
-                sim_t,
-                ttc,
-            );
-            if put {
-                if let Some(p) = state.players.get_mut(&conn_id) {
-                    p.held_id = 0;
-                }
-                state.publish_player_view(conn_id);
-                info!(conn_id, x, y, held, tile, "sim: DROP into container");
-                send_drop_result(state, outbound, conn_id, x, y, tile);
-                break 'cmd;
-            }
+        if drop_cycle_container(state, conn_id, x, y, tile, held) {
+            state.publish_player_view(conn_id);
+            info!(conn_id, x, y, held, tile, "sim: DROP container cycle");
+            send_drop_result(state, outbound, conn_id, x, y, tile);
+            break 'cmd;
         }
-        // Occupied non-container: try USE-style stack transition (stone on stone â†’ pile).
-        // Haxe often uses USE; clients may also DROP onto a same-type stackable.
-        if let Some(r) = apply_use_at(state, conn_id, x, y) {
-            if r.applied {
-                info!(
-                    conn_id,
-                    x,
-                    y,
-                    held,
-                    tile,
-                    new_target = r.target_after,
-                    "sim: DROP stacked via USE transition"
-                );
-                state.publish_player_view(conn_id);
-                let near = nearby_conn_ids(state, x, y, nearby_range(state));
-                for pkt in packets_after_use(state, conn_id, &r) {
-                    crate::vanilla_id::send_nearby_maybe_mx(
-                        state, outbound, &near, pkt, true,
-                    );
-                }
-                send_frame(outbound, conn_id);
-                break 'cmd;
-            }
+        if swap_hand_and_floor_object(state, conn_id, x, y) {
+            state.publish_player_view(conn_id);
+            let placed = state.world.read().unwrap().get_object(x, y);
+            info!(conn_id, x, y, held, tile, placed, "sim: DROP swap");
+            send_drop_result(state, outbound, conn_id, x, y, placed);
+            break 'cmd;
         }
-        // Still blocked â€” unstick client immediately.
         send_player_update_and_frame(state, outbound, conn_id);
         break 'cmd;
     }
@@ -3338,49 +3428,25 @@ fn apply_swap(state: &mut SimState, outbound: &OutboundHub, conn_id: u64, x: i32
         crate::use_transition::apply_clear_writing_at(state, x, y, held, tile);
     }
     'cmd: {
-    let Some(p) = state.players.get(&conn_id) else {
-        break 'cmd;
+    let (deleted, holding_player) = match state.players.get(&conn_id) {
+        Some(p) => (p.deleted, p.holding_player_id),
+        None => break 'cmd,
     };
-    if p.deleted {
+    if deleted {
         break 'cmd;
     }
-    if p.holding_player_id != 0 {
+    if holding_player != 0 {
         apply_drop_player(state, outbound, conn_id, x, y);
         break 'cmd;
     }
-    let tile = state.world.read().unwrap().get_object(x, y);
-    if tile != 0 {
-        let permanent = state.content.get(tile).map(|d| d.permanent).unwrap_or(false);
-        if permanent {
-            send_player_update_and_frame(state, outbound, conn_id);
-            break 'cmd;
-        }
+    if swap_hand_and_floor_object(state, conn_id, x, y) {
+        let placed = state.world.read().unwrap().get_object(x, y);
+        state.publish_player_view(conn_id);
+        info!(conn_id, x, y, placed, "sim: SWAP");
+        send_drop_result(state, outbound, conn_id, x, y, placed);
+    } else {
+        send_player_update_and_frame(state, outbound, conn_id);
     }
-    let held = p.held_id;
-    let place_id = ol_transition_rules::put_down_ground_id(&state.content, held).unwrap_or(held);
-    let owner_id = p.p_id;
-    let tile_helper = state.world.read().unwrap().get_helper(x, y).cloned();
-    {
-        let mut world = state.world.write().unwrap();
-        world.set_object_complex(x, y, ComplexObject::with_owner(place_id, owner_id));
-    }
-    if let Some(pl) = state.players.get_mut(&conn_id) {
-        pl.held_id = tile;
-        pl.held_helper = if tile == 0 {
-            None
-        } else if let Some(h) = tile_helper {
-            Some(crate::horse_mount::complex_to_nested(&h))
-        } else {
-            Some(NestedHelper::id_only(tile))
-        };
-    }
-    if place_id != 0 {
-        schedule_decay(state, x, y, place_id);
-        state.record_world_change(x, y, place_id);
-    }
-    state.publish_player_view(conn_id);
-    info!(conn_id, x, y, held, tile, place_id, "sim: SWAP");
-    send_drop_result(state, outbound, conn_id, x, y, place_id);
     } // 'cmd
     maybe_send_held_writing_ps(state, outbound, conn_id);
     // AI-BLOCK-CMD: Haxe blockTargetForAi after SWAP switch.
@@ -8984,6 +9050,16 @@ fn format_live_pu_line(state: &SimState, p: &Player, rx: i32, ry: i32, force: i3
 }
 
 /// Live PU with optional held-origin (Haxe `SetTransitionData` when `pickUpObject`).
+/// Haxe `toData` held: `-heldPlayer.p_id` when carrying a player, else object id.
+// Haxe: PlayerInstance.toData heldObject / GPI.SetTransitionData o_id
+fn pu_held_id(p: &Player) -> i32 {
+    if p.holding_player_id != 0 {
+        -p.holding_player_id
+    } else {
+        p.held_id
+    }
+}
+
 fn format_live_pu_line_origin(
     state: &SimState,
     p: &Player,
@@ -8997,7 +9073,7 @@ fn format_live_pu_line_origin(
     format_player_update_line_full_clothing(
         p.p_id,
         person_object_id(p),
-        p.held_id,
+        pu_held_id(p),
         rx,
         ry,
         p.age,
@@ -9012,10 +9088,46 @@ fn format_live_pu_line_origin(
         ox,
         oy,
         -1,
-        p.done_moving_seq.max(1),
+        haxe_to_data_seq(
+            p.held_by != 0,
+            p.moving || p.move_path.is_some(),
+            p.done_moving_seq,
+        ),
         &player_clothing_set(p),
         p.age_r,
     )
+}
+
+/// Haxe `Connection.SendUpdateToAllClosePlayers`: PU + FRAME to every close
+/// connection (including the subject). Wire seq is `toData` (`0` if held/moving).
+// Haxe: Connection.hx L357–379
+fn send_update_to_all_close_players(
+    state: &SimState,
+    outbound: &OutboundHub,
+    subject_conn: u64,
+    force: i32,
+) {
+    let Some(p) = state.players.get(&subject_conn).cloned() else {
+        return;
+    };
+    if p.deleted {
+        return;
+    }
+    let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
+    let mut recipients = near;
+    if !recipients.contains(&subject_conn) {
+        recipients.push(subject_conn);
+    }
+    for &cid in &recipients {
+        let (rx, ry) = state
+            .players
+            .get(&cid)
+            .map(|v| v.world_to_client(p.x, p.y))
+            .unwrap_or((p.x, p.y));
+        let pu = format_live_pu_line(state, &p, rx, ry, force);
+        outbound.send_urgent(cid, format_server_message("PU", &[&pu]).into_bytes());
+        send_frame(outbound, cid);
+    }
 }
 
 /// Force PU+FM unstick (cancel MovePath if any).
@@ -9664,8 +9776,17 @@ fn find_player_at_for_kill(state: &SimState, wx: i32, wy: i32, player_id: i32, s
 }
 
 /// Haxe `GetPlayerAt` returning conn_id (exact `p_id` if `player_id > 0`, else closest ≤ 1.5).
+///
+/// Position search skips `skip_p_id` (the actor) so `BABY x y` without id cannot
+/// pick the clicker standing on the same tile.
 // Haxe: GlobalPlayerInstance.GetPlayerAt L2898–2924
-fn find_player_at_conn(state: &SimState, wx: i32, wy: i32, player_id: i32) -> Option<u64> {
+fn find_player_at_conn(
+    state: &SimState,
+    wx: i32,
+    wy: i32,
+    player_id: i32,
+    skip_p_id: i32,
+) -> Option<u64> {
     if player_id > 0 {
         return state
             .players
@@ -9680,7 +9801,7 @@ fn find_player_at_conn(state: &SimState, wx: i32, wy: i32, player_id: i32) -> Op
     let mut best: Option<u64> = None;
     let mut best_q = 1.5f64 * 1.5;
     for (&cid, p) in &state.players {
-        if p.deleted {
+        if p.deleted || p.p_id == skip_p_id {
             continue;
         }
         let (dx, dy) = ol_move_rules::wrap_delta(wx, wy, p.x, p.y, mw, mh, wrap);
@@ -9861,14 +9982,17 @@ fn apply_baby(
     y: i32,
     player_id: i32,
 ) {
-    let Some(from) = state.players.get(&conn_id) else {
-        return;
+    let (wx, wy, skip) = {
+        let Some(from) = state.players.get(&conn_id) else {
+            return;
+        };
+        if from.deleted {
+            return;
+        }
+        let (wx, wy) = resolve_net_intent_tile(from, x, y);
+        (wx, wy, from.p_id)
     };
-    if from.deleted {
-        return;
-    }
-    let (wx, wy) = resolve_net_intent_tile(from, x, y);
-    let Some(baby_conn) = find_player_at_conn(state, wx, wy, player_id) else {
+    let Some(baby_conn) = find_player_at_conn(state, wx, wy, player_id, skip) else {
         send_player_update_and_frame(state, outbound, conn_id);
         return;
     };
@@ -9897,19 +10021,22 @@ fn apply_ubaby(
     clothing_slot: i32,
     player_id: i32,
 ) {
-    let Some(from) = state.players.get(&conn_id) else {
-        return;
+    let (wx, wy, skip, held_neg) = {
+        let Some(from) = state.players.get(&conn_id) else {
+            return;
+        };
+        if from.deleted {
+            return;
+        }
+        let (wx, wy) = resolve_net_intent_tile(from, x, y);
+        (wx, wy, from.p_id, from.held_id < 0 || from.holding_player_id != 0)
     };
-    if from.deleted {
-        return;
-    }
-    if from.held_id < 0 {
+    if held_neg {
         send_ps_reply(outbound, conn_id, "need to drop held");
         send_player_update_and_frame(state, outbound, conn_id);
         return;
     }
-    let (wx, wy) = resolve_net_intent_tile(from, x, y);
-    let Some(to_conn) = find_player_at_conn(state, wx, wy, player_id) else {
+    let Some(to_conn) = find_player_at_conn(state, wx, wy, player_id, skip) else {
         send_ps_reply(outbound, conn_id, "no one found");
         send_player_update_and_frame(state, outbound, conn_id);
         return;
@@ -10964,6 +11091,10 @@ pub fn apply_move_path_start(
     let total = path.total_sec;
     // PM wire uses start-relative waypoint deltas (client form), not per-step.
     let wire_deltas = steps_to_client_path_deltas(&accepted);
+    // Haxe MoveHelper.moveHelper: newMoves=null; SendUpdate (old seq, force=0);
+    // then newMoves=path; SendMoveUpdate. Start PU must go out *before* isMoving.
+    // Haxe: MoveHelper.hx L658–673
+    send_update_to_all_close_players(state, outbound, conn_id, 0);
     let p_id = {
         let p = state
             .players
@@ -11103,31 +11234,27 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
             continue;
         }
         if result.finished {
-            // Haxe updateMovement: done_moving_seqNum = newMoveSeqNumber; forced=false; PU.
-            if let Some(p) = state.players.get_mut(&conn_id) {
+            // Haxe updateMovement: newMoves=null; done_moving_seqNum = newMoveSeqNumber;
+            // forced=false (AI forced=true around SendUpdateToAllClosePlayers).
+            // Haxe: MoveHelper.hx L356–385
+            let force = {
+                let Some(p) = state.players.get_mut(&conn_id) else {
+                    continue;
+                };
                 p.x = x;
                 p.y = y;
                 p.move_path = None;
                 p.moving = false;
                 p.done_moving_seq = seq;
-            }
+                if p.is_ai_body() {
+                    1
+                } else {
+                    0
+                }
+            };
             maybe_send_map_chunk(state, outbound, conn_id);
             state.publish_player_view(conn_id);
-            if let Some(p) = state.players.get(&conn_id).cloned() {
-                // Must emit the path seq (not hardcoded 1) so client matches MOVE @seq.
-                let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
-                for &cid in &near {
-                    let (rx, ry) = state
-                        .players
-                        .get(&cid)
-                        .map(|v| v.world_to_client(p.x, p.y))
-                        .unwrap_or((p.x, p.y));
-                    let pu = format_live_pu_line(state, &p, rx, ry, 0);
-                    // PU then FM so official clients flush the move-complete update.
-                    outbound.send_urgent(cid, format_server_message("PU", &[&pu]).into_bytes());
-                    send_frame(outbound, cid);
-                }
-            }
+            send_update_to_all_close_players(state, outbound, conn_id, force);
             continue;
         }
         if let Some(p) = state.players.get_mut(&conn_id) {
@@ -15289,7 +15416,7 @@ pub fn apply_intent(
             if state.timed_movement {
                 match apply_move_path_start(state, outbound, conn_id, xs, ys, &deltas, seq) {
                     Ok(()) => {
-                        // Success: PM only (apply_move_path_start). No force PU snap-back.
+                        // Success: Haxe start PU (old seq, force=0) then PM. No force snap.
                         // NPC band floods INFO at 1+ accepts/sec; keep human clients visible.
                         if conn_id >= 9_000_000 {
                             debug!(
@@ -15328,7 +15455,7 @@ pub fn apply_intent(
             } else if apply_move_deltas_with_seq(state, conn_id, xs, ys, &deltas, seq) {
                 maybe_send_map_chunk(state, outbound, conn_id);
                 state.publish_player_view(conn_id);
-                if let Some(p) = state.players.get(&conn_id).cloned() {
+                if let Some(p) = state.players.get(&conn_id) {
                     info!(
                         conn_id,
                         x = p.x,
@@ -15336,27 +15463,9 @@ pub fn apply_intent(
                         steps = deltas.len(),
                         "sim: MOVE done"
                     );
-                    let spd = player_move_speed(state, &p);
-                    let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
-                    for &cid in &near {
-                        let (rx, ry) = state
-                            .players
-                            .get(&cid)
-                            .map(|v| v.world_to_client(p.x, p.y))
-                            .unwrap_or((p.x, p.y));
-                        let pu = format_player_update_line(
-                            p.p_id,
-                            person_object_id(&p),
-                            p.held_id,
-                            rx,
-                            ry,
-                            p.age,
-                            spd,
-                            p.done_moving_seq.max(1),
-                        );
-                        outbound.send(cid, format_server_message("PU", &[&pu]).into_bytes());
-                    }
                 }
+                // Instant MOVE is already finished: same toData PU as timed finish.
+                send_update_to_all_close_players(state, outbound, conn_id, 0);
             } else {
                 // Blocked path / empty trunc / missing player â€” force unstick.
                 warn!(conn_id, "sim: MOVE rejected â€” force unstick");

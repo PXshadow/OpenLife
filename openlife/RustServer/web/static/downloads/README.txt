@@ -1,4 +1,4 @@
-Open Life Reborn — early alpha Windows client v0.2.0
+Open Life Reborn — early alpha Windows client v0.2.2
 ====================================================
 
 This is an **early alpha** of the new Rust client. It is experimental.

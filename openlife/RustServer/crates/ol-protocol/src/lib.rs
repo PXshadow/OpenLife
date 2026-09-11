@@ -157,6 +157,21 @@ pub fn haxe_trunc_hundredths(v: f32) -> f32 {
     (v * 100.0).trunc() / 100.0
 }
 
+/// Haxe `PlayerInstance.toData` sequence field:
+/// `seqNum = isHeld() || isMoving() ? 0 : done_moving_seqNum`.
+///
+/// No `.max(1)`: protocol `seq == 0` means still moving / held. After MOVE `@N`
+/// completes, the player is not held and not moving, so the wire seq is `N`.
+// Haxe: PlayerInstance.toData L328
+#[inline]
+pub fn haxe_to_data_seq(held: bool, moving: bool, done_moving_seq: i32) -> i32 {
+    if held || moving {
+        0
+    } else {
+        done_moving_seq
+    }
+}
+
 /// **`done_moving_seq` must be the player's real `done_moving_seqNum`** (not a
 /// hardcoded 1). After MOVE `@N` completes, subsequent USE/DROP PUs must still
 /// carry `N` or clients stay mid-action / ignore interactions.
@@ -717,6 +732,16 @@ mod tests {
         let m = parse_message("LOGIN client_official a@b.c hash key 0 0 0").unwrap();
         assert_eq!(m.tag, "LOGIN");
         assert!(m.payload.starts_with("client_official"));
+    }
+
+    /// Haxe `toData`: held or moving → 0, else the raw done_moving_seqNum.
+    #[test]
+    fn haxe_to_data_seq_held_or_moving_is_zero() {
+        assert_eq!(haxe_to_data_seq(false, false, 11), 11);
+        assert_eq!(haxe_to_data_seq(false, false, 0), 0);
+        assert_eq!(haxe_to_data_seq(true, false, 11), 0);
+        assert_eq!(haxe_to_data_seq(false, true, 11), 0);
+        assert_eq!(haxe_to_data_seq(true, true, 11), 0);
     }
 
     #[test]

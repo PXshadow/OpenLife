@@ -17222,6 +17222,155 @@
         assert_eq!(state.world.read().unwrap().get_object(2, 2), 33);
     }
 
+    /// Haxe DROP: occupied non-container → swapHandAndFloorObject, never USE.
+    // Haxe: TransitionHelper.drop L555–558
+    #[test]
+    fn drop_occupied_swaps_not_use_transition() {
+        let hub = OutboundHub::new();
+        let mut db = (*test_content()).clone();
+        db.objects.insert(
+            32,
+            ObjectDef {
+                id: 32,
+                description: "Stone".into(),
+                name: "Stone".into(),
+                containable: true,
+                permanent: false,
+                ..ObjectDef::empty(32)
+            },
+        );
+        // If DROP wrongly ran USE, 33+32 would consume the berry.
+        db.transitions.insert(
+            (33, 32),
+            Transition {
+                actor_id: 33,
+                target_id: 32,
+                new_actor_id: 0,
+                new_target_id: 34,
+                ..Default::default()
+            },
+        );
+        let mut state = SimState::with_default_empty(Arc::new(db));
+        spawn_player(&mut state, 1, "dsw@x");
+        set_player_position(&mut state, 1, 2, 2);
+        state.players.get_mut(&1).unwrap().held_id = 33;
+        state.world.write().unwrap().set_object(2, 2, 32);
+        apply_drop(&mut state, &hub, 1, 2, 2, None);
+        assert_eq!(
+            state.players.get(&1).unwrap().held_id,
+            32,
+            "DROP swaps held with ground"
+        );
+        assert_eq!(
+            state.world.read().unwrap().get_object(2, 2),
+            33,
+            "DROP must not apply USE 33+32 → 34"
+        );
+    }
+
+    /// Dummy animal ids must use parent `permanent=1` (Haxe dummyParent).
+    // Haxe: TransitionHelper L481–485 / swapHandAndFloorObject L674
+    #[test]
+    fn swap_refuses_permanent_animal_dummy() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut db = (*test_content()).clone();
+        db.objects.insert(
+            418,
+            ObjectDef {
+                id: 418,
+                description: "Wolf".into(),
+                name: "Wolf".into(),
+                permanent: true,
+                moves: 1,
+                ..ObjectDef::empty(418)
+            },
+        );
+        db.dummy_parent.insert(41801, 418);
+        let mut state = SimState::with_default_empty(Arc::new(db));
+        spawn_player(&mut state, 1, "wolf@x");
+        set_player_position(&mut state, 1, 3, 3);
+        state.players.get_mut(&1).unwrap().held_id = 33;
+        state.world.write().unwrap().set_object(3, 3, 41801);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SWAP".into(),
+                payload: "3 3".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 33);
+        assert_eq!(state.world.read().unwrap().get_object(3, 3), 41801);
+        apply_drop(&mut state, &hub, 1, 3, 3, None);
+        assert_eq!(
+            state.players.get(&1).unwrap().held_id,
+            33,
+            "DROP must not replace a permanent animal"
+        );
+        assert_eq!(state.world.read().unwrap().get_object(3, 3), 41801);
+    }
+
+    /// Haxe toData: holding a baby wires `held = -baby_p_id`.
+    #[test]
+    fn baby_pickup_pu_held_is_negative_id() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "mom@pu");
+        state.players.get_mut(&1).unwrap().age = 20.0;
+        let baby_id = spawn_child(&mut state, 1).expect("baby");
+        let baby_conn = state
+            .players
+            .iter()
+            .find(|(_, p)| p.p_id == baby_id)
+            .map(|(&c, _)| c)
+            .expect("baby conn");
+        {
+            let m = state.players.get_mut(&1).unwrap();
+            m.release_holding();
+            m.x = 0;
+            m.y = 0;
+        }
+        {
+            let b = state.players.get_mut(&baby_conn).unwrap();
+            b.age = 1.0;
+            b.x = 0;
+            b.y = 0;
+            b.held_by = 0;
+        }
+        while rx.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "BABY".into(),
+                payload: format!("0 0 {baby_id}"),
+            },
+        );
+        let m = state.players.get(&1).unwrap();
+        assert_eq!(m.holding_player_id, baby_id);
+        assert_eq!(m.held_id, -baby_id);
+        let mut saw = false;
+        while let Ok(pkt) = rx.try_recv() {
+            let s = String::from_utf8_lossy(&pkt);
+            if !s.starts_with("PU\n") {
+                continue;
+            }
+            let line = s.lines().nth(1).unwrap_or("");
+            let f: Vec<&str> = line.split_whitespace().collect();
+            if f.len() > 6 && f[0] == m.p_id.to_string() && f[6] == format!("-{}", baby_id) {
+                saw = true;
+            }
+        }
+        assert!(saw, "PU held field must be -baby_p_id");
+    }
+
     /// `SAY MUMBLE <text>` fans out PS at [`MUMBLE_RANGE`] (4), not full nearby.
     #[test]
     fn say_mumble_uses_short_range() {
@@ -20447,6 +20596,95 @@
         assert!(saw, "finish PU must include done_moving_seq=11 force=0");
     }
 
+    /// Haxe MoveHelper.moveHelper: start PU uses the *old* done_moving_seqNum
+    /// (newMoves temporarily null so isMoving is false). New @seq is only written
+    /// on finish.
+    // Haxe: MoveHelper.hx L658–673
+    #[test]
+    fn path_start_pu_keeps_old_done_moving_seq() {
+        let mut state = SimState::with_default_empty(test_content());
+        state.timed_movement = true;
+        spawn_player(&mut state, 1, "stseq@t");
+        set_player_position(&mut state, 1, 0, 0);
+        state.players.get_mut(&1).unwrap().done_moving_seq = 4;
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        apply_move_path_start(&mut state, &hub, 1, 0, 0, &[(1, 0)], Some(11)).unwrap();
+        let mut saw_old = false;
+        let mut saw_new = false;
+        while let Ok(pkt) = rx.try_recv() {
+            if let Some((seq, force)) = pu_seq_force(&pkt) {
+                if seq == 4 && force == 0 {
+                    saw_old = true;
+                }
+                if seq == 11 {
+                    saw_new = true;
+                }
+            }
+        }
+        assert!(saw_old, "start PU must keep previous done_moving_seq=4 force=0");
+        assert!(!saw_new, "start PU must not emit the new MOVE @11 seq");
+        let p = state.players.get(&1).unwrap();
+        assert_eq!(p.done_moving_seq, 4, "seq is stored on the path until finish");
+        assert!(p.moving);
+    }
+
+    /// Haxe updateMovement: AI `forced=true` around SendUpdateToAllClosePlayers.
+    // Haxe: MoveHelper.hx L381–385
+    #[test]
+    fn path_finish_ai_pu_force_one() {
+        let mut state = SimState::with_default_empty(test_content());
+        state.timed_movement = true;
+        spawn_player(&mut state, 1, "npc@finish");
+        set_player_position(&mut state, 1, 0, 0);
+        assert!(
+            state.players.get(&1).unwrap().is_ai_body(),
+            "npc@ email is Haxe isAi"
+        );
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        apply_move_path_start(&mut state, &hub, 1, 0, 0, &[(1, 0)], Some(8)).unwrap();
+        while rx.try_recv().is_ok() {}
+        tick_move_paths(&mut state, 1.0, &hub);
+        let p = state.players.get(&1).unwrap();
+        assert!(p.move_path.is_none());
+        assert_eq!(p.done_moving_seq, 8);
+        let mut saw = false;
+        while let Ok(pkt) = rx.try_recv() {
+            if let Some((seq, force)) = pu_seq_force(&pkt) {
+                if seq == 8 && force == 1 {
+                    saw = true;
+                }
+            }
+        }
+        assert!(saw, "AI finish PU must include done_moving_seq=8 force=1");
+    }
+
+    /// Haxe toData: seq=0 while still moving (held object decay / mid-move PU).
+    // Haxe: PlayerInstance.toData L328
+    #[test]
+    fn live_pu_seq_zero_while_moving() {
+        let mut state = SimState::with_default_empty(test_content());
+        state.timed_movement = true;
+        spawn_player(&mut state, 1, "midpu@t");
+        set_player_position(&mut state, 1, 0, 0);
+        let hub = OutboundHub::new();
+        let mut rx = hub.register(1);
+        apply_move_path_start(&mut state, &hub, 1, 0, 0, &[(1, 0), (1, 0)], Some(6)).unwrap();
+        while rx.try_recv().is_ok() {}
+        assert!(state.players.get(&1).unwrap().moving);
+        send_action_result_pu_and_frame(&mut state, &hub, 1);
+        let mut saw_zero = false;
+        while let Ok(pkt) = rx.try_recv() {
+            if let Some((seq, force)) = pu_seq_force(&pkt) {
+                if seq == 0 && force == 0 {
+                    saw_zero = true;
+                }
+            }
+        }
+        assert!(saw_zero, "mid-move toData PU must send seq=0");
+    }
+
     /// Mid-path blocked cancel must keep path seq (not saturating_add thrash).
     #[test]
     fn tick_cancel_blocked_keeps_path_seq() {
@@ -20713,18 +20951,20 @@
         assert_eq!(path.trunc, 1);
         assert_eq!(path.remaining.len(), 1);
         assert_eq!(path.seq, 4);
-        // PM wire body must list trunc=1 (accepted length 1 â†’ totalâ‰ˆ0.27).
+        // PM: `p_id xs ys total eta trunc dx dy …` — trunc is field 5.
         let mut saw_trunc_pm = false;
         while let Ok(pkt) = rx.try_recv() {
             let s = String::from_utf8_lossy(&pkt);
-            if s.starts_with("PM\n") && s.contains("0.27 0.27 1") {
+            if !s.starts_with("PM\n") {
+                continue;
+            }
+            let line = s.lines().nth(1).unwrap_or("");
+            let f: Vec<&str> = line.split_whitespace().collect();
+            if f.get(5) == Some(&"1") {
                 saw_trunc_pm = true;
             }
         }
-        assert!(
-            saw_trunc_pm,
-            "PM body must include trunc=1 (â€¦ 0.27 0.27 1 â€¦)"
-        );
+        assert!(saw_trunc_pm, "PM body must include trunc=1");
     }
 
     /// Haxe `SendMoveUpdateToAllClosePlayers` uses `MaxDistanceToBeConsideredAsCoseForMovement` (30),

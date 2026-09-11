@@ -330,7 +330,7 @@ pub fn build_ops_dashboard_html(
     let series_js = serde_json::to_string(&series).unwrap_or_else(|_| "{\"samples\":[],\"count\":0}".into());
 
     let mut html = String::with_capacity(24_000 + cards.len() + metrics_js.len() + series_js.len());
-    html.push_str(OPS_HEAD);
+    html.push_str(&OPS_HEAD.replace("%%VERSION%%", version));
     html.push_str(&cards);
     html.push_str(OPS_CHARTS);
     html.push_str("<script>window.OLR_OPS_METRICS=");
@@ -359,6 +359,7 @@ a{color:#6ec6ff}
 }
 .card:hover .tip,.chart-head h3:hover .tip{display:block}
 .muted{color:#8b9bb0;font-size:.9rem}
+h1 .ver{color:#8b9bb0;font-size:.55em;font-weight:600;margin-left:.45rem;vertical-align:middle}
 .chart{margin:1.5rem 0;background:#121a24;border:1px solid #1e2a3a;border-radius:8px;padding:1rem}
 .chart-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.5rem}
 .chart-head h3{margin:0;font-size:1.05rem;position:relative;cursor:help}
@@ -381,7 +382,7 @@ a{color:#6ec6ff}
 }
 </style></head><body>
 <p><a href="/">← Home</a> · <a href="/object-counts">object counts</a></p>
-<h1>Ops Dashboard</h1>
+<h1>Ops Dashboard <span class="ver">v%%VERSION%%</span></h1>
 <p class="muted">Skip Ticks are catch-up advances when the server lags, not dropped wakes. Graph samples stay in memory, restore from the journal on reboot, and flush to disk about every 5 minutes. Graph time range is saved in this browser.</p>
 <div class="cards">
 "##;
@@ -444,6 +445,11 @@ mod tests {
     fn dashboard_labels_have_no_underscores() {
         let s = Counters::new().snapshot();
         let html = build_ops_dashboard_html(&s, &[], "0.1.0");
+        assert!(
+            html.contains("<h1>Ops Dashboard <span class=\"ver\">v0.1.0</span></h1>"),
+            "server version must sit next to the Ops Dashboard headline"
+        );
+        assert!(!html.contains("%%VERSION%%"));
         assert!(html.contains("Skip Ticks"));
         assert!(html.contains("Tick Work"));
         assert!(html.contains("Intent Time"));

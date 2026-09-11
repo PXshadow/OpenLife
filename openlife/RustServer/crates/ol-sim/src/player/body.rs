@@ -589,14 +589,23 @@ impl Player {
     }
 
     /// Begin holding baby `baby_p_id` (caller must also set the baby's `held_by`).
+    ///
+    /// Haxe `o_id = [-heldPlayer.p_id]` so PU `held` is negative (client in-arms).
+    // Haxe: GPI.SetTransitionData / toData heldObject
     pub fn start_holding(&mut self, baby_p_id: i32) {
         self.holding_player_id = baby_p_id;
+        self.held_id = -baby_p_id;
+        self.held_uses = 0;
+        self.held_helper = None;
     }
 
     /// Release held baby; returns baby `p_id` or 0 if none.
     pub fn release_holding(&mut self) -> i32 {
         let id = self.holding_player_id;
         self.holding_player_id = 0;
+        if self.held_id < 0 {
+            self.clear_held();
+        }
         id
     }
 
@@ -1802,6 +1811,7 @@ mod tests {
         assert_eq!(p.snapshot().holding_player_id, 0);
         p.start_holding(42);
         assert_eq!(p.snapshot().holding_player_id, 42);
+        assert_eq!(p.held_id, -42);
         p.holding_player_id = 7;
         assert_eq!(p.snapshot().holding_player_id, 7);
         assert_eq!(p.release_holding(), 7);
