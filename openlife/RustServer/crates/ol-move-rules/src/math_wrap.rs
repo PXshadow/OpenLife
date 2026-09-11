@@ -120,6 +120,50 @@ pub fn step_wrap(
     wrap_tile(x + sx.clamp(-1, 1), y + sy.clamp(-1, 1), width, height, wrap)
 }
 
+/// Haxe `WorldMap.transformX` / `transformY` one axis.
+///
+/// `rel = world - origin` (birth `gx`/`gy`). If the map wraps, snap so `rel`
+/// stays within half a world of the viewer's current **relative** position
+/// (`p.x` / `p.y` in Haxe), then `rel % size` (sign of dividend, like Haxe).
+// Haxe: WorldMap.transformX/Y L1582–1607
+pub fn haxe_transform_axis(
+    world: i32,
+    origin: i32,
+    viewer_rel: i32,
+    size: i32,
+    wrap: bool,
+) -> i32 {
+    let mut x = world - origin;
+    if wrap && size > 0 {
+        let half = size / 2;
+        if x - viewer_rel > half {
+            x -= size;
+        } else if x - viewer_rel < -half {
+            x += size;
+        }
+        x %= size;
+    }
+    x
+}
+
+/// Haxe `transformX` + `transformY` for one viewer.
+pub fn haxe_transform_xy(
+    world_x: i32,
+    world_y: i32,
+    origin_x: i32,
+    origin_y: i32,
+    viewer_rel_x: i32,
+    viewer_rel_y: i32,
+    width: i32,
+    height: i32,
+    wrap: bool,
+) -> (i32, i32) {
+    (
+        haxe_transform_axis(world_x, origin_x, viewer_rel_x, width, wrap),
+        haxe_transform_axis(world_y, origin_y, viewer_rel_y, height, wrap),
+    )
+}
+
 /// `WRAP x y` — wrapped coordinates for a point (query formatter).
 pub fn format_wrap_query(x: i32, y: i32, width: i32, height: i32, wrap: bool) -> String {
     let (wx, wy) = wrap_tile(x, y, width, height, wrap);
@@ -133,6 +177,19 @@ pub fn format_wrap_query(x: i32, y: i32, width: i32, height: i32, wrap: bool) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn haxe_transform_axis_birth_relative_and_wrap() {
+        // Self: world=origin+rel → rel, no wrap needed.
+        assert_eq!(haxe_transform_axis(457, 457, 0, 500, true), 0);
+        assert_eq!(haxe_transform_axis(458, 457, 1, 500, true), 1);
+        // Other viewer born at 0 watching world 457 on a 500-wide torus:
+        // 457 - 0 = 457; 457 - 0 > 250 → 457-500 = -43.
+        assert_eq!(haxe_transform_axis(457, 0, 0, 500, true), -43);
+        // No wrap: plain subtract.
+        assert_eq!(haxe_transform_axis(457, 0, 0, 500, false), 457);
+        assert_eq!(haxe_transform_axis(10, 100, -90, 500, false), -90);
+    }
 
     #[test]
     fn wrap_axis_positive_and_negative() {

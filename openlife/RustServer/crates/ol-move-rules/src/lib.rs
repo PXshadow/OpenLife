@@ -32,8 +32,8 @@ pub use jump_pure::{
     JumpAction, JUMP_EXHAUSTED_SAY, JUMP_TO_NON_BLOCKED_OFFSETS,
 };
 pub use math_wrap::{
-    chebyshev_wrap, euclidean_wrap, format_wrap_query, manhattan_wrap, step_wrap, wrap_axis,
-    wrap_delta, wrap_delta_1d, wrap_tile,
+    chebyshev_wrap, euclidean_wrap, format_wrap_query, haxe_transform_axis, haxe_transform_xy,
+    manhattan_wrap, step_wrap, wrap_axis, wrap_delta, wrap_delta_1d, wrap_tile,
 };
 pub use path_steps::{
     client_path_deltas_to_steps, step_len, steps_to_client_path_deltas, MAX_CLIENT_PATH_STEPS,

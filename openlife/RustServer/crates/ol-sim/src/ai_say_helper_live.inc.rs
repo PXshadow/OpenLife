@@ -375,32 +375,13 @@ fn fan_out_ai_say_scripted(
         info!(p_id, text = %s, "sim: AI-SAY-HELPER scripted SAY");
     }
     for cid in jump_cids {
-        // Haxe: myPlayer.jump() — PU + baby BW (JUMP-BW-FULL)
-        if let Some(p) = state.players.get(&cid) {
-            let spd = player_move_speed(state, p);
-            let pu = format_player_update_line(
-                p.p_id,
-                person_object_id(p),
-                p.held_id,
-                p.x,
-                p.y,
-                p.age,
-                spd,
-                p.done_moving_seq.max(1),
-            );
-            let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
-            send_nearby(
-                outbound,
-                &near,
-                format_server_message("PU", &[&pu]).into_bytes(),
-            );
-            if p.age < BABY_AGE_THRESHOLD {
-                send_nearby(outbound, &near, format_baby_wiggle(p.p_id).into_bytes());
-            }
-            for &nid in &near {
-                send_frame(outbound, nid);
-            }
-        }
+        // Haxe: myPlayer.jump() — per-viewer relative PU + baby BW (JUMP-BW-FULL)
+        let emit_bw = state
+            .players
+            .get(&cid)
+            .map(|p| p.age < BABY_AGE_THRESHOLD)
+            .unwrap_or(false);
+        fan_jump_player_update(state, outbound, cid, 1, emit_bw);
     }
     for (cid, x, y) in drop_feet {
         apply_drop(state, outbound, cid, x, y, None);
