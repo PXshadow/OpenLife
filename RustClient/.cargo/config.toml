@@ -1,0 +1,12 @@
+# Local cargo config for faster Open Life Rust client builds (Windows MSVC).
+# rust-lld links large debug binaries much faster than link.exe.
+
+[build]
+# jobs = 8
+
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld"
+
+[alias]
+ck = "check --bin ohol-client --features gpu"
+th = "test --lib"

@@ -27,7 +27,7 @@
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -44,7 +44,7 @@ use ohol_headless::anim_bank::AnimBank;
 use ohol_headless::client_map::ClientMap;
 use ohol_headless::click_tile::{
     click_drop_clothing, click_kill, click_remove_clothing, click_sremv_clothing,
-    walk_or_use_tile_hold_hit,
+    walk_or_use_tile_hold_hit, WalkOrUseResult,
 };
 use ohol_headless::client_screen::{
     death_key_command, draw_death_screen, note_our_death_ex, rebirth_session_config, DeathKey,
@@ -56,7 +56,7 @@ use ohol_headless::play_snapshot::{
 };
 use ohol_headless::content::ClientContent;
 use ohol_headless::hover_pick::{
-    draw_hover_outline, hover_tip_and_grave, update_scene_hover, update_scene_hover_with_clothing,
+    draw_hover_outline, hover_tip_and_grave, update_scene_hover, update_scene_hover_play,
     HoverPick, HoverTipInput, WornClothingPickTarget,
 };
 use ohol_headless::hud::{draw_pencil_string, pencil_string_width, HudSprites};
@@ -70,6 +70,7 @@ use ohol_headless::parse::{FoodChange, HeatChange, LoginOutcome, MapChunkHeader,
 use ohol_headless::render::{Camera, Framebuffer, SceneRenderer};
 use ohol_headless::rmb_action::{click_rmb_tile_ex, our_held_id};
 use ohol_headless::session::{ClientSession, SessionConfig};
+use ohol_headless::wire_log::WireLog;
 use ohol_headless::sprite_bank::SpriteBank;
 
 const FB_W: usize = 960;
@@ -560,6 +561,7 @@ fn draw_slash_overlays(
     fps: f32,
     settings_show_fps: bool,
     settings_show_rtt: bool,
+    settings_show_ping: bool,
 ) {
     let mut x = 12.0;
     let y = 10.0;
@@ -574,8 +576,16 @@ fn draw_slash_overlays(
             None => "avg --ms  max --ms".into(),
         };
         draw_shadow_white(fb, &rtt_s, x, y, 1.5);
+        x += pencil_string_width(&rtt_s, 1.5) + 18.0;
     }
-    let mut y = y + 16.0;
+    if session.show_ping_overlay || settings_show_ping {
+        let ping_s = match session.last_ping_ms {
+            Some(ms) => format!("ping {ms:.0}ms"),
+            None => "ping --ms".into(),
+        };
+        draw_shadow_white(fb, &ping_s, x, y, 1.5);
+    }
+    let y = y + 16.0;
     if session.show_net_overlay {
         draw_shadow_white(
             fb,
@@ -584,12 +594,6 @@ fn draw_slash_overlays(
             y,
             1.5,
         );
-        y += 14.0;
-    }
-    if let Some(ms) = session.last_ping_ms {
-        if !(session.show_rtt_overlay || settings_show_rtt) {
-            draw_shadow_white(fb, &format!("PING {ms:.0} MS"), 12.0, y, 1.5);
-        }
     }
 }
 
@@ -927,6 +931,7 @@ fn run_init_boot(
             let connect_secs = t_connect0.elapsed().as_secs_f64();
             session.sounds = sounds;
             session.skip_emot_ttl_in_step = true;
+            attach_click_tx_log(&mut session);
             eprintln!("connect: accepted {}:{}", cfg.host, cfg.port);
             Ok(InitOutcome::Live {
                 session,
@@ -2419,6 +2424,7 @@ fn run_session_from_boot(
                                 Some(m.tag.clone())
                             });
                             app.settings.apply_to_banks(Some(&mut new_sess.sounds), None);
+                            attach_click_tx_log(&mut new_sess);
                             session = new_sess;
                             app.enter_playing_from_death();
                             pan = (0.0, 0.0);
@@ -2556,7 +2562,10 @@ fn run_session_from_boot(
         // C++ idle KA (15s) — without this the server may drop the socket after a short idle.
         let _ = session.maybe_send_ka();
         let _ = session.maybe_auto_ping(
-            session.show_rtt_overlay || app.settings.show_server_rtt,
+            session.show_rtt_overlay
+                || app.settings.show_server_rtt
+                || session.show_ping_overlay
+                || app.settings.show_ping,
         );
         for _ in 0..48 {
             match session.poll_event() {
@@ -2653,40 +2662,49 @@ fn run_session_from_boot(
 
         if let Some((mx, my)) = safe_mouse_pos(&window) {
             scene.hud.set_pointer(mx as f32, my as f32);
-            hover = if let Some(me) = session.world.our() {
-                let age = me.current_age();
-                let worn = WornClothingPickTarget {
-                    tile_x: me.x,
-                    tile_y: me.y,
-                    display_x: me.display_x,
-                    display_y: me.display_y,
-                    display_id: if me.display_id > 0 { me.display_id } else { 19 },
-                    facing: me.facing,
-                    age,
-                    clothing: &me.clothing,
-                };
-                update_scene_hover_with_clothing(
-                    &mut scene,
-                    &session.map,
-                    &session.content,
-                    &mut sprites,
-                    Some(&worn),
-                    mx,
-                    my,
-                    FB_W as u32,
-                    FB_H as u32,
-                )
-            } else {
-                update_scene_hover(
-                    &mut scene,
-                    &session.map,
-                    &session.content,
-                    &mut sprites,
-                    mx,
-                    my,
-                    FB_W as u32,
-                    FB_H as u32,
-                )
+            hover = {
+                let world = &session.world;
+                let our_id = session.our_id;
+                if let Some(me) = world.our() {
+                    let age = me.current_age();
+                    let worn = WornClothingPickTarget {
+                        tile_x: me.x,
+                        tile_y: me.y,
+                        display_x: me.display_x,
+                        display_y: me.display_y,
+                        display_id: if me.display_id > 0 { me.display_id } else { 19 },
+                        facing: me.facing,
+                        age,
+                        clothing: &me.clothing,
+                    };
+                    update_scene_hover_play(
+                        &mut scene,
+                        &session.map,
+                        &session.content,
+                        &mut sprites,
+                        Some(&worn),
+                        world,
+                        our_id,
+                        mx,
+                        my,
+                        FB_W as u32,
+                        FB_H as u32,
+                    )
+                } else {
+                    update_scene_hover_play(
+                        &mut scene,
+                        &session.map,
+                        &session.content,
+                        &mut sprites,
+                        None,
+                        world,
+                        our_id,
+                        mx,
+                        my,
+                        FB_W as u32,
+                        FB_H as u32,
+                    )
+                }
             };
 
             if lmb {
@@ -2715,18 +2733,16 @@ fn run_session_from_boot(
                     hit_slot,
                     hover.hit_self,
                     hover.hit_face,
+                    hover.hit_other_id,
                 ) {
                     Ok(r) => {
                         if first {
-                            log_status(
-                                &mut last_status,
-                                &format!("LMB ({},{}) {:?}", hover.tile.0, hover.tile.1, r),
-                            );
+                            log_lmb_click(&session, &hover, Ok(&r));
                         }
                     }
                     Err(e) => {
                         if first {
-                            log_status(&mut last_status, &format!("LMB err {e:?}"));
+                            log_lmb_click(&session, &hover, Err(&e));
                         }
                     }
                 }
@@ -2802,6 +2818,7 @@ fn run_session_from_boot(
             fps.fps(),
             app.settings.show_fps,
             app.settings.show_server_rtt,
+            app.settings.show_ping,
         );
 
         // Debug play-snapshot tools (settings.debug): F9 or SNAP button.
@@ -3375,6 +3392,70 @@ fn run_offline_with_banks(
 fn log_status(last: &mut String, msg: &str) {
     eprintln!("{msg}");
     *last = msg.chars().take(48).collect();
+}
+
+fn attach_click_tx_log(session: &mut ClientSession) {
+    // Fixed play-tree path so a click dump is always findable, even if cwd is the exe dir.
+    let path = std::path::PathBuf::from(r"C:\OhOl\OpenLife\RustClient\logs\click_tx.log");
+    match WireLog::create(&path) {
+        Ok(wl) => {
+            let shown = path.canonicalize().unwrap_or_else(|_| path.clone());
+            eprintln!("click TX log: {}", shown.display());
+            session.set_wire_log(Arc::new(wl));
+            session.log_note("click TX log attached");
+        }
+        Err(e) => eprintln!("click TX log failed: {e}"),
+    }
+}
+
+fn format_lmb_result(r: &WalkOrUseResult) -> String {
+    match r {
+        WalkOrUseResult::Ground(g) => format!("MOVE {} {}", g.goal.0, g.goal.1),
+        WalkOrUseResult::Object(o) => {
+            let st = if o.action_sent { "sent" } else { "queued" };
+            match &o.move_line {
+                Some(mv) => format!("{mv} then {} ({st})", o.action_line),
+                None => format!("{} ({st})", o.action_line),
+            }
+        }
+        WalkOrUseResult::Kill { line, .. } => line.clone(),
+    }
+}
+
+fn log_lmb_click(
+    session: &ClientSession,
+    hover: &HoverPick,
+    result: Result<&WalkOrUseResult, &ohol_headless::MoveError>,
+) {
+    let hover_s = format!(
+        "({},{}) oid={} hit={} self={} face={} other={} cloth={} slot={}",
+        hover.tile.0,
+        hover.tile.1,
+        hover.object_id,
+        hover.hit_map as i32,
+        hover.hit_self as i32,
+        hover.hit_face as i32,
+        hover.hit_other_id,
+        hover.clothing_slot,
+        hover.contained_slot
+    );
+    let outcome = match result {
+        Ok(r) => format_lmb_result(r),
+        Err(e) => format!("err {e:?}"),
+    };
+    let tx = if session.last_tx_line.is_empty() {
+        "(none)"
+    } else {
+        session.last_tx_line.as_str()
+    };
+    let line = format!(
+        "CLICK {hover_s} our={:?} age={:.1} held={} pending={} -> {outcome} TX {tx}",
+        session.our_id,
+        session.our_age().unwrap_or(-1.0),
+        our_held_id(session),
+        session.player_action_pending,
+    );
+    session.log_note(&line);
 }
 
 // ── Offline demo: age slider + person skin picker ────────────────────────────
@@ -4104,6 +4185,7 @@ fn run_session_gpu(
                                     .apply_to_banks(Some(&mut new_sess.sounds), None);
                                 let _ =
                                     new_sess.set_read_timeout(Some(Duration::from_millis(1)));
+                                attach_click_tx_log(&mut new_sess);
                                 session = new_sess;
                                 app.enter_playing_from_death();
                                 pan = (0.0, 0.0);
@@ -4194,7 +4276,10 @@ fn run_session_gpu(
                     // C++ idle KA so the server does not drop a quiet socket.
                     let _ = session.maybe_send_ka();
                     let _ = session.maybe_auto_ping(
-                        session.show_rtt_overlay || app.settings.show_server_rtt,
+                        session.show_rtt_overlay
+                            || app.settings.show_server_rtt
+                            || session.show_ping_overlay
+                            || app.settings.show_ping,
                     );
                     for _ in 0..48 {
                         match session.poll_event() {
@@ -4229,40 +4314,49 @@ fn run_session_gpu(
                         }
                     }
 
-                    hover = if let Some(me) = session.world.our() {
-                        let age = me.current_age();
-                        let worn = WornClothingPickTarget {
-                            tile_x: me.x,
-                            tile_y: me.y,
-                            display_x: me.display_x,
-                            display_y: me.display_y,
-                            display_id: if me.display_id > 0 { me.display_id } else { 19 },
-                            facing: me.facing,
-                            age,
-                            clothing: &me.clothing,
-                        };
-                        update_scene_hover_with_clothing(
-                            &mut scene,
-                            &session.map,
-                            &session.content,
-                            &mut sprites,
-                            Some(&worn),
-                            cursor.0,
-                            cursor.1,
-                            fbw,
-                            fbh,
-                        )
-                    } else {
-                        update_scene_hover(
-                            &mut scene,
-                            &session.map,
-                            &session.content,
-                            &mut sprites,
-                            cursor.0,
-                            cursor.1,
-                            fbw,
-                            fbh,
-                        )
+                    hover = {
+                        let world = &session.world;
+                        let our_id = session.our_id;
+                        if let Some(me) = world.our() {
+                            let age = me.current_age();
+                            let worn = WornClothingPickTarget {
+                                tile_x: me.x,
+                                tile_y: me.y,
+                                display_x: me.display_x,
+                                display_y: me.display_y,
+                                display_id: if me.display_id > 0 { me.display_id } else { 19 },
+                                facing: me.facing,
+                                age,
+                                clothing: &me.clothing,
+                            };
+                            update_scene_hover_play(
+                                &mut scene,
+                                &session.map,
+                                &session.content,
+                                &mut sprites,
+                                Some(&worn),
+                                world,
+                                our_id,
+                                cursor.0,
+                                cursor.1,
+                                fbw,
+                                fbh,
+                            )
+                        } else {
+                            update_scene_hover_play(
+                                &mut scene,
+                                &session.map,
+                                &session.content,
+                                &mut sprites,
+                                None,
+                                world,
+                                our_id,
+                                cursor.0,
+                                cursor.1,
+                                fbw,
+                                fbh,
+                            )
+                        }
                     };
 
                     if lmb {
@@ -4282,18 +4376,13 @@ fn run_session_gpu(
                             hover.contained_slot,
                             hover.hit_self,
                             hover.hit_face,
+                            hover.hit_other_id,
                         ) {
                             Ok(r) if first => {
-                                log_status(
-                                    &mut last_status,
-                                    &format!(
-                                        "LMB ({},{}) {:?}",
-                                        hover.tile.0, hover.tile.1, r
-                                    ),
-                                );
+                                log_lmb_click(&session, &hover, Ok(&r));
                             }
                             Err(e) if first => {
-                                log_status(&mut last_status, &format!("LMB err {e:?}"));
+                                log_lmb_click(&session, &hover, Err(&e));
                             }
                             _ => {}
                         }
@@ -4379,6 +4468,7 @@ fn run_session_gpu(
                         fps.fps(),
                         app.settings.show_fps,
                         app.settings.show_server_rtt,
+                        app.settings.show_ping,
                     );
 
                     let rx_ago = session.secs_since_last_rx();

@@ -44,6 +44,8 @@ pub struct HoverPick {
     /// Cursor hit the face (head / eyes / mouth, or a sprite parented to the head).
     /// Eating uses this, not the whole body or stand tile.
     pub hit_face: bool,
+    /// C++ `PointerHitRecord.hitOtherPersonID` (`0` = none).
+    pub hit_other_id: i32,
 }
 
 impl Default for HoverPick {
@@ -56,6 +58,7 @@ impl Default for HoverPick {
             contained_slot: -1,
             hit_self: false,
             hit_face: false,
+            hit_other_id: 0,
         }
     }
 }
@@ -70,6 +73,7 @@ impl HoverPick {
             contained_slot: -1,
             hit_self: false,
             hit_face: false,
+            hit_other_id: 0,
         }
     }
 
@@ -85,6 +89,11 @@ impl HoverPick {
     /// True when the cursor hit a contained item in a container / clothing bag.
     pub fn is_contained(&self) -> bool {
         self.contained_slot >= 0
+    }
+
+    /// True when the cursor hit another live person (C++ `hitOtherPerson`).
+    pub fn is_other_person(&self) -> bool {
+        self.hit_other_id > 0
     }
 
     /// Wire REMV/SREMV `i` from this soft-FB pick (`-1` when body / top of stack).
@@ -136,7 +145,10 @@ pub fn map_stack_index_to_hit_slot(stack_index: i32, contained_count: usize) -> 
 }
 
 /// Cells around the cursor tile searched for overhanging sprites.
-const HIT_SCAN_RADIUS: i32 = 2;
+///
+/// C++ `checkForPointerHit` scans `clickDest ± 3` so tall canopies (trees ~4 tiles)
+/// still hit. Empty ground under a neighboring sprite walks behind (see pick loop).
+const HIT_SCAN_RADIUS: i32 = 3;
 
 /// Screen pixel → hover object via hitMap (preferred) or map tile object id.
 ///
@@ -175,8 +187,14 @@ pub fn pick_at_screen(
             continue;
         }
         let scale = (camera.zoom / GRID).max(0.05);
-        let (screen_x, screen_y) =
-            world_to_screen(camera, tx as f32 + 0.5, ty as f32 + 0.5, fb_w, fb_h);
+        let drop = map.drop_offset(tx, ty);
+        let (screen_x, screen_y) = world_to_screen(
+            camera,
+            tx as f32 + 0.5 + drop.offset_x,
+            ty as f32 + 0.5 + drop.offset_y,
+            fb_w,
+            fb_h,
+        );
         let contained = tile.contained_ids();
         // Contained first (drawn on top of container body in soft-FB).
         // // C++: getClosestObjectPart → hitSlotIndex on contained stacks
@@ -201,11 +219,23 @@ pub fn pick_at_screen(
                 contained_slot: slot,
                 hit_self: false,
                 hit_face: false,
+                hit_other_id: 0,
             };
         }
         if object_hit_map_at(
-            camera, content, sprites, oid, tx, ty, sx, sy, fb_w, fb_h,
+            camera, map, content, sprites, oid, tx, ty, sx, sy, fb_w, fb_h,
         ) {
+            // Clicked empty ground under a neighboring tall sprite (tree canopy).
+            // Walk onto that cell (behind the tree) instead of USEing the tree.
+            if (tx, ty) != cursor_tile {
+                let cursor_oid = map
+                    .get(cursor_tile.0, cursor_tile.1)
+                    .map(|t| t.object_id)
+                    .unwrap_or(0);
+                if cursor_oid <= 0 {
+                    return HoverPick::empty(cursor_tile);
+                }
+            }
             return HoverPick {
                 tile: (tx, ty),
                 object_id: oid,
@@ -214,6 +244,7 @@ pub fn pick_at_screen(
                 contained_slot: -1,
                 hit_self: false,
                 hit_face: false,
+                hit_other_id: 0,
             };
         }
     }
@@ -231,6 +262,7 @@ pub fn pick_at_screen(
         contained_slot: -1,
         hit_self: false,
         hit_face: false,
+        hit_other_id: 0,
     }
 }
 
@@ -380,13 +412,19 @@ fn pick_self_face_or_body(
     }
     let flip = target.facing < 0;
     let scale = (camera.zoom / GRID).max(0.05);
-    let (screen_x, screen_y) = world_to_screen(
+    let (mut screen_x, screen_y) = world_to_screen(
         camera,
         target.display_x + 0.5,
         target.display_y + 0.5,
         fb_w,
         fb_h,
     );
+    // C++ checkForPointerHit: age < noMoveAge (0.20) lies flat (rotate + 32px shift).
+    let mut lie_rot = 0.0f32;
+    if target.age < 0.20 {
+        screen_x -= crate::anim_draw::BABY_LIE_SHIFT_UNITS * scale;
+        lie_rot = 0.25;
+    }
     let (ox, oy, orot, posed) = rest_sprite_poses_with_age(def, target.age);
     // Reverse draw order: last sprite is on top (matches soft-FB blit).
     for si in (0..def.sprites.len()).rev() {
@@ -407,7 +445,7 @@ fn pick_self_face_or_body(
         if rect.no_flip {
             h_flip = spr.h_flip;
         }
-        let mut rot = orot[si];
+        let mut rot = orot[si] + lie_rot;
         if flip {
             rot = -rot;
         }
@@ -517,19 +555,70 @@ pub fn pick_at_screen_with_clothing(
                 contained_slot: cslot,
                 hit_self: true,
                 hit_face: slot == 0,
+                hit_other_id: 0,
             };
         }
     }
-    // Map-object sprite hits win over the body so USE/REMV still work when a
-    // person sprite overhangs a nearby tile. Face/body only if no object sprite.
+    pick_at_screen_play(
+        camera, map, content, sprites, worn, None, None, sx, sy, fb_w, fb_h,
+    )
+}
+
+/// Like [`pick_at_screen_with_clothing`] plus other-person hit (C++ `hitOtherPerson`).
+///
+/// Order matches LivingLifePage `checkForPointerHit` / `pointerDown`:
+/// 1. Our clothing sprite
+/// 2. Map-object **sprite** hitMap → USE
+/// 3. Other person sprite → BABY / UBABY
+/// 4. Face sprite → eat
+/// 5. Occupancy object on the pointed tile → USE
+/// 6. Body sprite → self/clothing, not eat
+pub fn pick_at_screen_play(
+    camera: &Camera,
+    map: &ClientMap,
+    content: &ClientContent,
+    sprites: &mut SpriteBank,
+    worn: Option<&WornClothingPickTarget<'_>>,
+    world: Option<&LiveWorld>,
+    our_id: Option<i32>,
+    sx: f32,
+    sy: f32,
+    fb_w: u32,
+    fb_h: u32,
+) -> HoverPick {
+    if let Some(w) = worn {
+        if let Some((slot, oid, cslot)) =
+            pick_worn_clothing_slot(camera, content, sprites, w, sx, sy, fb_w, fb_h)
+        {
+            return HoverPick {
+                tile: (w.tile_x, w.tile_y),
+                object_id: oid,
+                hit_map: true,
+                clothing_slot: slot,
+                contained_slot: cslot,
+                hit_self: true,
+                hit_face: slot == 0,
+                hit_other_id: 0,
+            };
+        }
+    }
     let map_pick = pick_at_screen(camera, map, content, sprites, sx, sy, fb_w, fb_h);
     if map_pick.hit_map && map_pick.object_id > 0 {
         return map_pick;
     }
-    if let Some(w) = worn {
-        if let Some((hit_self, hit_face)) =
-            pick_self_face_or_body(camera, content, sprites, w, sx, sy, fb_w, fb_h)
-        {
+    if let Some(world) = world {
+        if let Some(pick) = pick_other_person_at(
+            camera, content, sprites, world, our_id, sx, sy, fb_w, fb_h,
+        ) {
+            return pick;
+        }
+    }
+    let self_hit = worn.and_then(|w| {
+        pick_self_face_or_body(camera, content, sprites, w, sx, sy, fb_w, fb_h)
+            .map(|(hit_self, hit_face)| (w, hit_self, hit_face))
+    });
+    if let Some((w, hit_self, hit_face)) = self_hit {
+        if hit_face {
             return HoverPick {
                 tile: (w.display_x.round() as i32, w.display_y.round() as i32),
                 object_id: 0,
@@ -538,10 +627,97 @@ pub fn pick_at_screen_with_clothing(
                 contained_slot: -1,
                 hit_self,
                 hit_face,
+                hit_other_id: 0,
             };
         }
     }
+    if map_pick.object_id > 0 {
+        return map_pick;
+    }
+    if let Some((w, hit_self, hit_face)) = self_hit {
+        return HoverPick {
+            tile: (w.display_x.round() as i32, w.display_y.round() as i32),
+            object_id: 0,
+            hit_map: true,
+            clothing_slot: -1,
+            contained_slot: -1,
+            hit_self,
+            hit_face,
+            hit_other_id: 0,
+        };
+    }
     map_pick
+}
+
+/// Hit-test other living players (not us, not held). Topmost display_y wins.
+fn pick_other_person_at(
+    camera: &Camera,
+    content: &ClientContent,
+    sprites: &mut SpriteBank,
+    world: &LiveWorld,
+    our_id: Option<i32>,
+    sx: f32,
+    sy: f32,
+    fb_w: u32,
+    fb_h: u32,
+) -> Option<HoverPick> {
+    let mut people: Vec<&LiveObject> = world
+        .iter_living()
+        .filter(|o| {
+            Some(o.id) != our_id
+                && o.held_by_adult_id == -1
+                && !o.out_of_range
+                && !o.deleted
+        })
+        .collect();
+    people.sort_by(|a, b| {
+        b.display_y
+            .partial_cmp(&a.display_y)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    for o in people {
+        let age = o.current_age();
+        let target = WornClothingPickTarget {
+            tile_x: o.display_x.round() as i32,
+            tile_y: o.display_y.round() as i32,
+            display_x: o.display_x,
+            display_y: o.display_y,
+            display_id: if o.display_id > 0 { o.display_id } else { 19 },
+            facing: o.facing,
+            age,
+            clothing: &o.clothing,
+        };
+        let tile = (target.tile_x, target.tile_y);
+        if let Some((slot, oid, cslot)) =
+            pick_worn_clothing_slot(camera, content, sprites, &target, sx, sy, fb_w, fb_h)
+        {
+            return Some(HoverPick {
+                tile,
+                object_id: oid,
+                hit_map: true,
+                clothing_slot: slot,
+                contained_slot: cslot,
+                hit_self: false,
+                hit_face: slot == 0,
+                hit_other_id: o.id,
+            });
+        }
+        if let Some((_, hit_face)) =
+            pick_self_face_or_body(camera, content, sprites, &target, sx, sy, fb_w, fb_h)
+        {
+            return Some(HoverPick {
+                tile,
+                object_id: 0,
+                hit_map: true,
+                clothing_slot: -1,
+                contained_slot: -1,
+                hit_self: false,
+                hit_face,
+                hit_other_id: o.id,
+            });
+        }
+    }
+    None
 }
 
 /// Convenience: pick + write [`SceneRenderer::highlight_tile`].
@@ -576,6 +752,37 @@ pub fn update_scene_hover_with_clothing(
         content,
         sprites,
         worn,
+        sx,
+        sy,
+        fb_w,
+        fb_h,
+    );
+    scene.highlight_tile = Some(pick.tile);
+    pick
+}
+
+/// Play hover: clothing + map objects + other people + self (C++ pointer hit).
+pub fn update_scene_hover_play(
+    scene: &mut SceneRenderer,
+    map: &ClientMap,
+    content: &ClientContent,
+    sprites: &mut SpriteBank,
+    worn: Option<&WornClothingPickTarget<'_>>,
+    world: &LiveWorld,
+    our_id: Option<i32>,
+    sx: f32,
+    sy: f32,
+    fb_w: u32,
+    fb_h: u32,
+) -> HoverPick {
+    let pick = pick_at_screen_play(
+        &scene.camera,
+        map,
+        content,
+        sprites,
+        worn,
+        Some(world),
+        our_id,
         sx,
         sy,
         fb_w,
@@ -620,7 +827,12 @@ pub fn hover_biome_name(
     map: &ClientMap,
     bad_biome_names: &[(u8, String)],
 ) -> Option<String> {
-    if pick.is_clothing() || pick.is_contained() || pick.hit_self || pick.object_id != 0 {
+    if pick.is_clothing()
+        || pick.is_contained()
+        || pick.hit_self
+        || pick.is_other_person()
+        || pick.object_id != 0
+    {
         return None;
     }
     let tile = map.get(pick.tile.0, pick.tile.1)?;
@@ -654,6 +866,11 @@ pub fn hover_tip_and_grave(input: &HoverTipInput<'_>) -> (Option<String>, Option
     let pick = input.pick;
     if pick.is_clothing() || pick.is_contained() {
         return (object_tip(input.content, pick.object_id).and_then(hover_upper), None);
+    }
+    if pick.hit_other_id > 0 {
+        if let Some(p) = input.world.get(pick.hit_other_id) {
+            return (hover_upper(player_tip(input, p)), None);
+        }
     }
     if pick.hit_self {
         if let Some(p) = input
@@ -953,6 +1170,7 @@ fn pick_contained_slot_at(
 /// True if any sprite of `object_id` at tile `(tx,ty)` hits the screen pixel.
 fn object_hit_map_at(
     camera: &Camera,
+    map: &ClientMap,
     content: &ClientContent,
     sprites: &mut SpriteBank,
     object_id: i32,
@@ -964,8 +1182,14 @@ fn object_hit_map_at(
     fb_h: u32,
 ) -> bool {
     let scale = (camera.zoom / GRID).max(0.05);
-    let (screen_x, screen_y) =
-        world_to_screen(camera, tx as f32 + 0.5, ty as f32 + 0.5, fb_w, fb_h);
+    let drop = map.drop_offset(tx, ty);
+    let (screen_x, screen_y) = world_to_screen(
+        camera,
+        tx as f32 + 0.5 + drop.offset_x,
+        ty as f32 + 0.5 + drop.offset_y,
+        fb_w,
+        fb_h,
+    );
     // map objects use adult-ish age ranges in draw path
     object_sprites_hit_at(
         content, sprites, object_id, 20.0, screen_x, screen_y, false, scale, false, mx, my,
@@ -1435,6 +1659,7 @@ mod tests {
                 contained_slot: -1,
                 hit_self: false,
                 hit_face: false,
+                hit_other_id: 0,
             },
         );
         assert!(fb.count_non_color([0, 0, 0, 255]) > 0);
@@ -1724,6 +1949,7 @@ mod tests {
             contained_slot: -1,
             hit_self: false,
             hit_face: false,
+            hit_other_id: 0,
         };
         assert!(
             hover_biome_name(occupied, &map, &names).is_none(),
@@ -1737,6 +1963,7 @@ mod tests {
             contained_slot: -1,
             hit_self: true,
             hit_face: false,
+            hit_other_id: 0,
         };
         assert!(hover_biome_name(clothed, &map, &names).is_none());
     }
@@ -1783,6 +2010,7 @@ mod tests {
                 contained_slot: -1,
                 hit_self: false,
                 hit_face: false,
+                hit_other_id: 0,
             },
             map: &map,
             content: &content,
@@ -1814,6 +2042,7 @@ mod tests {
                 contained_slot: -1,
                 hit_self: false,
                 hit_face: false,
+                hit_other_id: 0,
             },
             map: &map,
             content: &content,
@@ -1886,6 +2115,7 @@ mod tests {
                 contained_slot: -1,
                 hit_self: false,
                 hit_face: false,
+                hit_other_id: 0,
             },
             map: &map,
             content: &content,
@@ -2027,5 +2257,107 @@ mod tests {
         );
         assert_eq!(obj.object_id, 50, "map object wins over body: {obj:?}");
         assert!(!obj.hit_self);
+
+        // Occupancy-only (no sprite hitMap): body overhang must not steal the plant.
+        content.objects.insert(
+            51,
+            ClientObjectDef {
+                id: 51,
+                name: "Wild Onion".into(),
+                sprites: Vec::new(),
+                ..Default::default()
+            },
+        );
+        map.set(
+            0,
+            0,
+            MapTile {
+                object_id: 51,
+                object_raw: "51".into(),
+                ..Default::default()
+            },
+        );
+        let occ = pick_at_screen_with_clothing(
+            &cam,
+            &map,
+            &content,
+            &mut sprites,
+            Some(&target),
+            base_sx,
+            base_sy + 20.0 * scale,
+            128,
+            128,
+        );
+        assert_eq!(
+            occ.object_id, 51,
+            "tile object must win over body when hitMap misses: {occ:?}"
+        );
+        assert!(!occ.hit_self);
+
+        // C++ `if (p.hitSelf)` eats even when destID != 0 (standing on the plant).
+        let face_on_plant = pick_at_screen_with_clothing(
+            &cam,
+            &map,
+            &content,
+            &mut sprites,
+            Some(&target),
+            base_sx,
+            base_sy - 24.0 * scale,
+            128,
+            128,
+        );
+        assert!(
+            face_on_plant.hit_face,
+            "face click must eat while standing on an object: {face_on_plant:?}"
+        );
+        assert_eq!(face_on_plant.object_id, 0);
+    }
+
+    #[test]
+    fn empty_tile_under_tall_overhang_walks_behind() {
+        // Tree at (0,0); click empty (0,1) whose pixels are covered by the tree.
+        // Must target the empty cell (walk behind) not USE the tree.
+        let cam = Camera {
+            x: 0.5,
+            y: 0.5,
+            zoom: 32.0,
+        };
+        let mut sprites = SpriteBank::with_atlas_size(".", 256);
+        let img = solid(80, 80, [20, 180, 40, 255]);
+        let _ = sprites.ensure_rgba(9601, &img, None).unwrap();
+        let mut content = ClientContent::new();
+        content.objects.insert(
+            88,
+            ClientObjectDef {
+                id: 88,
+                name: "tree".into(),
+                sprites: vec![ObjectSprite {
+                    sprite_id: 9601,
+                    x: 0.0,
+                    y: 64.0,
+                    age_start: -1.0,
+                    age_end: -1.0,
+                    parent: -1,
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        );
+        let mut map = ClientMap::new();
+        map.set(
+            0,
+            0,
+            MapTile {
+                object_id: 88,
+                object_raw: "88".into(),
+                ..Default::default()
+            },
+        );
+        map.set(0, 1, MapTile { object_id: 0, ..Default::default() });
+        let (sx, sy) = world_to_screen(&cam, 0.5, 1.5, 128, 128);
+        let pick = pick_at_screen(&cam, &map, &content, &mut sprites, sx, sy, 128, 128);
+        assert_eq!(pick.tile, (0, 1), "walk dest is the empty cell {pick:?}");
+        assert_eq!(pick.object_id, 0, "must not USE the tree from behind {pick:?}");
+        assert!(!pick.hit_map);
     }
 }

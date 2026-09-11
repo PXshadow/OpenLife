@@ -1135,6 +1135,54 @@ mod tests {
     }
 
     #[test]
+    fn path_to_tile_behind_blocking_tree() {
+        // Rubber Tree blocks its own cell only. Standing behind it is the
+        // north tile — path around, never onto the trunk.
+        let mut content = ClientContent::default();
+        let txt = "id=2135\nRubber Tree\npermanent=1\nblocksWalking=1\n";
+        content
+            .objects
+            .insert(2135, parse_object_txt(2135, txt).unwrap());
+        let mut map = ClientMap::new();
+        fill_open_rect(&mut map, -1, -1, 3, 3);
+        map.set(
+            0,
+            0,
+            MapTile {
+                object_id: 2135,
+                object_raw: "2135".into(),
+                ..MapTile::empty()
+            },
+        );
+        assert!(cell_blocks_walking(&map, Some(&content), 0, 0));
+        assert!(
+            !cell_blocks_walking(&map, Some(&content), 0, 1),
+            "tile north of the tree must be walkable"
+        );
+        let res = find_path(
+            &map,
+            Some(&content),
+            (0, -1),
+            (0, 1),
+            DEFAULT_MAX_EXPAND,
+        );
+        assert!(
+            res.reached_goal,
+            "must path around the tree to stand behind it; end={:?}",
+            res.end
+        );
+        assert_eq!(res.end, (0, 1));
+        // Deltas are cumulative from start (0,-1). Tree cell (0,0) → (0, 1).
+        for &(dx, dy) in &res.deltas {
+            assert_ne!(
+                (dx, dy),
+                (0, 1),
+                "path must not step onto the blocked tree tile"
+            );
+        }
+    }
+
+    #[test]
     fn wide_object_expands_blocking() {
         let mut content = ClientContent::default();
         let txt = "id=70\nTruck\npermanent=1\nblocksWalking=1\n\

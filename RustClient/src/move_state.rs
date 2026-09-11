@@ -123,6 +123,10 @@ pub struct MoveState {
     pub move_dir_y: f64,
     /// C++ `numFramesOnCurrentStep`.
     pub frames_on_step: u32,
+    /// Last our-PU landed on dest `(x,y)` with `done_moving > 0` while we were
+    /// still interpolating. Local arrival then ends `in_motion` so queued USE
+    /// can flush without a seq match.
+    pub server_confirms_dest: bool,
 }
 
 impl Default for MoveState {
@@ -154,6 +158,7 @@ impl Default for MoveState {
             move_dir_x: 1.0,
             move_dir_y: 0.0,
             frames_on_step: 0,
+            server_confirms_dest: false,
         }
     }
 }
@@ -329,6 +334,7 @@ impl MoveState {
             self.current_pos_x = path[n - 1].0 as f64;
             self.current_pos_y = path[n - 1].1 as f64;
             self.path_dist_traveled = self.path_total_length;
+            self.maybe_end_motion_if_server_ready();
             return;
         }
         let speed = self.path_speed * wall_dt;
@@ -403,6 +409,18 @@ impl MoveState {
             self.current_pos_y,
         )
         .clamp(0.0, self.path_total_length.max(0.0));
+        self.maybe_end_motion_if_server_ready();
+    }
+
+    /// If the server already posted us at dest and local interp has landed, drop
+    /// `in_motion` so queued USE can flush (seq-mismatch workaround).
+    fn maybe_end_motion_if_server_ready(&mut self) {
+        if self.in_motion && self.server_confirms_dest && self.at_path_dest() {
+            self.in_motion = false;
+            self.dest_truncated = false;
+            self.server_confirms_dest = false;
+            self.path_speed = 0.0;
+        }
     }
 
     /// Integer hint from fractional currentPos (`lrint` of each axis).
@@ -422,7 +440,19 @@ impl MoveState {
         if total_sec <= 0.0 || deltas.is_empty() {
             return;
         }
-        // Rebuild absolute path from PM if we have no local path, or PM origin matches.
+        let end = Self::path_end(xs, ys, deltas);
+        // C++ ~20139: only replace OUR path when truncated. A late PM for an
+        // earlier MOVE would rebuild path_to_dest from that origin and snap
+        // currentPos back — "walked to the click, then teleported".
+        if !self.path_to_dest.is_empty() {
+            let our_start = self.path_to_dest[0];
+            let our_end = *self.path_to_dest.last().unwrap();
+            if (xs, ys) != our_start || end != our_end {
+                // Stale PM for a previous MOVE. Do not treat path-end as arrival:
+                // PM is sent when the server *accepts* the path, not when it finishes.
+                return;
+            }
+        }
         let mut path = Vec::with_capacity(deltas.len() + 1);
         path.push((xs, ys));
         for &(dx, dy) in deltas {
@@ -432,27 +462,19 @@ impl MoveState {
         if len <= 0.0 {
             return;
         }
-        // If we already have a matching path in flight, keep traveled progress by
-        // projecting current_pos onto the new/same path distance.
-        let keep_progress = self.in_motion && !self.path_to_dest.is_empty();
-        let prev_pos = (self.current_pos_x, self.current_pos_y);
-        self.path_to_dest = path;
-        self.path_total_length = len;
-        if keep_progress {
-            let path_max = self.path_total_length.max(0.0);
-            self.path_dist_traveled =
-                distance_along_path_nearest(&self.path_to_dest, prev_pos.0, prev_pos.1)
-                    .clamp(0.0, path_max);
-            let (px, py) =
-                Self::position_along_path(&self.path_to_dest, self.path_dist_traveled);
-            self.current_pos_x = px;
-            self.current_pos_y = py;
-        } else if self.in_motion {
-            self.path_dist_traveled = 0.0;
-            self.current_pos_x = xs as f64;
-            self.current_pos_y = ys as f64;
-            self.current_path_step = 0;
-            self.frames_on_step = 0;
+        if self.path_to_dest.is_empty() {
+            self.path_to_dest = path;
+            self.path_total_length = len;
+            if self.in_motion {
+                self.path_dist_traveled = 0.0;
+                self.current_pos_x = xs as f64;
+                self.current_pos_y = ys as f64;
+                self.current_path_step = 0;
+                self.frames_on_step = 0;
+            }
+        } else {
+            // Matching in-flight path: refine speed only, keep currentPos.
+            self.path_total_length = len;
         }
         let mut acc = 0.0;
         let mut step_i = 0usize;
@@ -472,6 +494,8 @@ impl MoveState {
         let turns = Self::count_remaining_turns(&self.path_to_dest, self.current_path_step);
         let eta = (total_sec as f64 + 0.08 * turns as f64).max(0.1);
         self.path_speed = len / eta;
+        // PM is path-accept (Haxe start PM), not arrival. Jason ends in_motion
+        // only on PU `done_moving_seq == lastMoveSequenceNumber`.
     }
 
     /// Encode and apply a MOVE: increments seq, sets in_motion, validates deltas.
@@ -534,6 +558,7 @@ impl MoveState {
         )?;
         self.last_move_sequence_number += 1;
         self.in_motion = true;
+        self.server_confirms_dest = false;
         // Fresh client path is not truncated until the server says so.
         self.dest_truncated = false;
         // C++ pathToDest absolute cells in **storage** frame (start + each cumulative end).
@@ -553,12 +578,45 @@ impl MoveState {
         Ok(line)
     }
 
-    /// Whether USE/DROP/REMV may be issued (not mid-move, not waiting on FORCE).
+    /// True when fractional `currentPos` has reached the last cell of `path_to_dest`.
+    ///
+    /// C++ `currentSpeed == 0` after the last path step (~23070). `in_motion` may
+    /// still be true until a matching done_moving PU.
+    pub fn at_path_dest(&self) -> bool {
+        let Some(&(lx, ly)) = self.path_to_dest.last() else {
+            return false;
+        };
+        if self.path_to_dest.len() < 2 {
+            return false;
+        }
+        let dx = self.current_pos_x - lx as f64;
+        let dy = self.current_pos_y - ly as f64;
+        dx * dx + dy * dy <= 1e-8
+    }
+
+    /// Visual walk (C++ `currentSpeed != 0`): interpolating along a live path.
+    ///
+    /// Idle pose uses this, **not** [`Self::in_motion`]. After the client reaches
+    /// the dest locally, Jason switches to ground even while waiting on done_moving.
+    pub fn is_display_moving(&self) -> bool {
+        self.in_motion && self.path_to_dest.len() >= 2 && !self.at_path_dest()
+    }
+
+    /// Whether USE/DROP/REMV may go on the wire now.
+    ///
+    /// C++ sends only when `!inMotion` (done_moving acked). Sending at local
+    /// arrival while `in_motion` is still true made the server ignore USE and
+    /// stuck `playerActionPending` forever.
+    pub fn can_send_action_now(&self) -> bool {
+        !self.awaiting_force_ack && !self.in_motion
+    }
+
+    /// Whether USE/DROP/REMV may be issued (not interpolating, not waiting on FORCE).
     pub fn can_send_object_action(&self) -> Result<(), MoveError> {
         if self.awaiting_force_ack {
             return Err(MoveError::AwaitingForceAck);
         }
-        if self.in_motion {
+        if !self.can_send_action_now() {
             return Err(MoveError::ActionWhileMoving);
         }
         Ok(())
@@ -579,6 +637,13 @@ impl MoveState {
     /// Returns `true` when truncated so the session can clear the pending action.
     pub fn on_own_path_truncated(&mut self, xs: i32, ys: i32, deltas: &[(i32, i32)]) -> bool {
         let (xd, yd) = Self::path_end(xs, ys, deltas);
+        if !self.path_to_dest.is_empty() {
+            let our_start = self.path_to_dest[0];
+            let our_end = *self.path_to_dest.last().unwrap();
+            if (xs, ys) != our_start && (xd, yd) != our_end {
+                return false;
+            }
+        }
         // C++ only replaces OUR path when truncated.
         self.x = xd;
         self.y = yd;
@@ -641,12 +706,37 @@ impl MoveState {
         }
 
         if done_moving_seq_num > 0 {
-            // Official client only clears in_motion when done_moving matches last sent seq.
-            if done_moving_seq_num == self.last_move_sequence_number {
+            let seq_match = done_moving_seq_num == self.last_move_sequence_number;
+            let pos_is_dest = x == self.x && y == self.y;
+            if pos_is_dest {
+                self.server_confirms_dest = true;
+            }
+            let arrived = self.at_path_dest();
+            // C++: `inMotion = false` when seq matches. It does **not** snap
+            // currentPos unless forced. A start-PU can repeat the previous seq
+            // at the *old* tile; treating that as dest yanks the figure back
+            // at the end of the next walk.
+            if seq_match && pos_is_dest {
                 self.in_motion = false;
                 self.x = x;
                 self.y = y;
                 self.dest_truncated = false;
+                self.server_confirms_dest = false;
+                self.path_to_dest.clear();
+                self.snap_current_to(x, y);
+            } else if seq_match && arrived {
+                self.in_motion = false;
+                self.dest_truncated = false;
+                self.server_confirms_dest = false;
+                self.path_to_dest.clear();
+                self.snap_current_to(self.x, self.y);
+            } else if pos_is_dest && arrived {
+                // Open Life leftover seq=1 at dest.
+                self.in_motion = false;
+                self.x = x;
+                self.y = y;
+                self.dest_truncated = false;
+                self.server_confirms_dest = false;
                 self.path_to_dest.clear();
                 self.snap_current_to(x, y);
             }
@@ -680,8 +770,10 @@ impl MoveState {
             }
             return best;
         }
-        // Idle / no path: C++ uses xServer/yServer when pathToDest is NULL.
-        hint.unwrap_or((self.x, self.y))
+        // Idle: C++ `xd,yd` (our dest). A leftover PU at spawn (0,0) must not
+        // become the next MOVE origin after we already finished at dest.
+        let _ = hint;
+        (self.x, self.y)
     }
 
     /// After sending FORCE ack, clear the sync gate.
@@ -1036,6 +1128,61 @@ mod tests {
     }
 
     #[test]
+    fn local_arrival_stops_display_moving_and_allows_action() {
+        let mut st = MoveState::new(0, 0);
+        st.send_move(&[PathDelta { x: 1, y: 0 }]).unwrap();
+        assert!(st.in_motion);
+        assert!(st.is_display_moving());
+        assert!(!st.can_send_action_now());
+        // Far more than 1 tile at BASE_PATH_SPEED (3.75 tiles/s).
+        st.step_current_pos(1.0);
+        assert!(st.in_motion, "in_motion waits on matching done_moving PU");
+        assert!(st.at_path_dest());
+        assert!(!st.is_display_moving(), "walk pose follows currentSpeed==0");
+        assert!(
+            !st.can_send_action_now(),
+            "must not send USE until dest is server-confirmed"
+        );
+        // PM is path-accept, not arrival — still in_motion.
+        st.on_own_pm_timing(0, 0, &[(1, 0)], 0.3);
+        st.step_current_pos(0.05);
+        assert!(st.in_motion, "PM must not clear in_motion");
+        assert!(
+            !st.can_send_action_now(),
+            "USE waits for done_moving PU, not PM"
+        );
+        assert!(st.on_player_update(2, false, 1, 0).is_none());
+        assert!(!st.in_motion);
+        assert!(st.can_send_action_now());
+        assert!(st.can_send_object_action().is_ok());
+    }
+
+    #[test]
+    fn dest_pu_wrong_seq_after_arrival_clears_in_motion() {
+        let mut st = MoveState::new(0, 0);
+        st.send_move(&[PathDelta { x: 1, y: 0 }]).unwrap();
+        st.step_current_pos(1.0);
+        assert!(st.in_motion);
+        assert!(st.at_path_dest());
+        // Server finished at dest but still advertises seq=1 (birth).
+        assert!(st.on_player_update(1, false, 1, 0).is_none());
+        assert!(!st.in_motion);
+        assert!(st.can_send_action_now());
+    }
+
+    #[test]
+    fn in_motion_without_path_does_not_flush() {
+        let mut st = MoveState::new(0, 0);
+        st.in_motion = true;
+        assert!(!st.is_display_moving());
+        assert!(!st.can_send_action_now());
+        assert_eq!(
+            st.can_send_object_action(),
+            Err(MoveError::ActionWhileMoving)
+        );
+    }
+
+    #[test]
     fn fractional_current_pos_advances_along_path() {
         let mut st = MoveState::new(0, 0);
         st.send_move(&[
@@ -1079,10 +1226,42 @@ mod tests {
     }
 
     #[test]
-    fn idle_closest_path_spot_uses_hint_or_dest() {
+    fn idle_closest_path_spot_uses_dest_not_stale_pu() {
         let st = MoveState::new(5, 7);
-        assert_eq!(st.closest_path_spot(Some((5, 7))), (5, 7));
         assert_eq!(st.closest_path_spot(None), (5, 7));
+        // Leftover PU at spawn must not win over dest.
+        assert_eq!(st.closest_path_spot(Some((0, 0))), (5, 7));
+    }
+
+    #[test]
+    fn seq_match_at_old_tile_does_not_yank_back() {
+        // Walk 1 to (2,0) seq=2; walk 2 to (4,0) seq=3; local arrival at (4,0);
+        // a PU with done=3 (or leftover) at the *old* tile must not snap back.
+        let mut st = MoveState::new(0, 0);
+        st.send_move(&[PathDelta { x: 2, y: 0 }]).unwrap();
+        st.on_player_update(2, false, 2, 0);
+        assert!(!st.in_motion);
+        st.send_move(&[PathDelta { x: 2, y: 0 }]).unwrap();
+        assert_eq!((st.x, st.y), (4, 0));
+        st.current_pos_x = 4.0;
+        st.current_pos_y = 0.0;
+        st.path_dist_traveled = 2.0;
+        // Start-PU / stale finish at previous dest (2,0) with matching-looking seq.
+        assert!(st.on_player_update(3, false, 2, 0).is_none());
+        assert_eq!(
+            (st.x, st.y),
+            (4, 0),
+            "must stay at second MOVE dest, not yank to previous tile"
+        );
+        assert_eq!((st.current_pos_x, st.current_pos_y), (4.0, 0.0));
+        assert!(!st.in_motion);
+        // True finish PU at dest still snaps here.
+        st.in_motion = true;
+        st.x = 4;
+        st.y = 0;
+        st.on_player_update(3, false, 4, 0);
+        assert_eq!((st.x, st.y), (4, 0));
+        assert!(!st.in_motion);
     }
 
     #[test]
@@ -1095,6 +1274,57 @@ mod tests {
         assert!(!st.in_motion);
         assert_eq!((st.current_pos_x, st.current_pos_y), (2.0, 0.0));
         assert_eq!(st.path_speed, 0.0);
+    }
+
+    #[test]
+    fn stale_trunc_pm_does_not_replace_new_path() {
+        let mut st = MoveState::new(0, 0);
+        st.send_move(&[PathDelta { x: 3, y: 0 }]).unwrap();
+        st.x = 2;
+        st.y = 0;
+        st.send_move_repath(&[PathDelta { x: 0, y: 2 }]).unwrap();
+        assert_eq!((st.x, st.y), (2, 2));
+        assert!(!st.on_own_path_truncated(0, 0, &[(1, 0)]));
+        assert_eq!((st.x, st.y), (2, 2), "stale trunc must not rewrite dest");
+        assert!(!st.dest_truncated);
+    }
+
+    #[test]
+    fn stale_pm_does_not_snap_current_pos_back() {
+        let mut st = MoveState::new(0, 0);
+        st.send_move(&[PathDelta { x: 2, y: 0 }]).unwrap();
+        st.step_current_pos(0.4);
+        let mid = st.current_pos_x;
+        assert!(mid > 0.5, "walked along the new path, pos={mid}");
+        // Late PM for a previous MOVE (origin 0,0 dest 0,-1) must not rewind us.
+        st.on_own_pm_timing(0, 0, &[(0, -1)], 0.3);
+        assert!(
+            (st.current_pos_x - mid).abs() < 1e-6,
+            "stale PM teleported {mid} -> {}",
+            st.current_pos_x
+        );
+        assert_eq!(st.path_to_dest.last().copied(), Some((2, 0)));
+    }
+
+    #[test]
+    fn matching_pm_refines_speed_without_origin_snap() {
+        let mut st = MoveState::new(0, 0);
+        st.send_move(&[PathDelta { x: 1, y: 0 }, PathDelta { x: 2, y: 0 }])
+            .unwrap();
+        st.step_current_pos(0.3);
+        let mid = st.current_pos_x;
+        assert!(mid > 0.5, "walked before PM, pos={mid}");
+        st.on_own_pm_timing(0, 0, &[(1, 0), (2, 0)], 1.0);
+        assert!(
+            (st.current_pos_x - mid).abs() < 1e-6,
+            "matching PM must keep currentPos, {mid} -> {}",
+            st.current_pos_x
+        );
+        assert!(
+            (st.path_speed - 2.0).abs() < 0.2,
+            "speed from PM total_sec, got {}",
+            st.path_speed
+        );
     }
 
     #[test]

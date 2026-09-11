@@ -104,9 +104,18 @@ pub const HUNGER_SLIP_WIGGLE_AMP: [f32; 3] = [0.0, 0.5, 0.5];
 /// C++ `mHungerSlipWiggleSpeed`.
 pub const HUNGER_SLIP_WIGGLE_SPEED: f32 = 0.05;
 
-/// C++ home arrow strip drawn on home slip near bottom-center.
+/// C++ home slip 0 hide `(-41, -360)` Y-up; shown = hide + `mHomeSlipShowDelta` 68 → −292.
 pub const HOME_ARROW_ORIGIN_X: f32 = -41.0;
+/// Shown slip center below view center (C++ −292 Y-up). Arrow is 35 above this.
 pub const HOME_ARROW_ORIGIN_Y_BELOW: f32 = 292.0;
+/// C++ `arrowPos.y += 35` (Y-up) from slip center.
+pub const HOME_ARROW_ON_SLIP_UP: f32 = 35.0;
+/// C++ `distPos` / `mapHintPos` `arrowPos.y -= 47`.
+pub const HOME_HINT_BELOW_ARROW: f32 = 47.0;
+/// Extra slip raise (Y-up += 20) when `homeDist > 1000` and/or temporary MAP/LEAD text.
+pub const HOME_SLIP_TEXT_EXTRA_UP: f32 = 20.0;
+/// C++ homeSlip2 x: `30 - (-41)`.
+pub const HOME_SLIP2_DX: f32 = 71.0;
 
 /// Result of [`HudState::step_slips`] — hunger.aiff trigger (C++ draw peak / FX).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -134,6 +143,57 @@ pub fn hud_scale(fb_w: u32, fb_h: u32) -> f32 {
     let sx = fb_w as f32 / HUD_DESIGN_W;
     let sy = fb_h as f32 / HUD_DESIGN_H;
     sx.min(sy).max(0.05)
+}
+
+/// Extra Y-up raise of the home slip (C++ `mHomeSlipPosTargetOffset.y += 20`).
+pub fn home_slip_extra_up(home_dist: f32, temporary: bool) -> f32 {
+    let mut e = 0.0;
+    if home_dist > 1000.0 {
+        e += HOME_SLIP_TEXT_EXTRA_UP;
+    }
+    if temporary {
+        e += HOME_SLIP_TEXT_EXTRA_UP;
+    }
+    e
+}
+
+/// C++ `drawHomeSlip` thousands/millions pencil string when `homeDist > 1000`.
+pub fn format_home_dist(dist: f32) -> Option<String> {
+    if dist <= 1000.0 {
+        return None;
+    }
+    let thousands = dist / 1000.0;
+    if thousands < 1000.0 {
+        if thousands < 10.0 {
+            Some(format!("{thousands:.1}K"))
+        } else {
+            Some(format!("{thousands:.0}K"))
+        }
+    } else {
+        let millions = dist / 1_000_000.0;
+        if millions < 1000.0 {
+            if millions < 10.0 {
+                Some(format!("{millions:.1}M"))
+            } else {
+                Some(format!("{millions:.0}M"))
+            }
+        } else {
+            let billions = dist / 1_000_000_000.0;
+            Some(format!("{billions:.1}G"))
+        }
+    }
+}
+
+/// Screen Y of the home-slip paper center (Y-down).
+pub fn home_slip_screen_y(fb_w: u32, fb_h: u32, extra_up: f32) -> f32 {
+    let s = hud_scale(fb_w, fb_h);
+    let cy = fb_h as f32 * 0.5;
+    cy + (HOME_ARROW_ORIGIN_Y_BELOW - extra_up) * s
+}
+
+/// Screen Y of the solid home arrow (Y-down). C++ slip + 35 Y-up.
+pub fn home_arrow_screen_y(fb_w: u32, fb_h: u32, extra_up: f32) -> f32 {
+    home_slip_screen_y(fb_w, fb_h, extra_up) - HOME_ARROW_ON_SLIP_UP * hud_scale(fb_w, fb_h)
 }
 
 /// Screen-pixel position for hunger box slot `i` (0-based), Y grows down.
@@ -279,6 +339,13 @@ pub struct HudState {
     ///
     /// // C++ `drawHomeSlip` tempPersonKey / "map" string beside arrow strip.
     pub map_pointer_label: Option<String>,
+    /// Tile distance to the active home (C++ `homeDist`); used to raise the slip
+    /// and print `1.2K` when `> 1000`.
+    pub home_dist: f32,
+    /// C++ `temporary` — MAP/LEAD/… pencil word and extra slip raise.
+    pub home_temporary: bool,
+    /// C++ homeSlip2 handwriting (`BELL`).
+    pub ancient_home_label: Option<String>,
     /// C++ `hideGuiPanel` / `hideGameUI`.
     pub hide_gui: bool,
     /// Screen-space pointer for temp-meter hover tip (design-independent pixels).
@@ -337,6 +404,9 @@ impl Default for HudState {
             ancient_home_arrow: None,
             home_arrow_fades: [0.0; NUM_HOME_ARROWS],
             map_pointer_label: None,
+            home_dist: 0.0,
+            home_temporary: false,
+            ancient_home_label: None,
             hide_gui: false,
             pointer_x: 0.0,
             pointer_y: 0.0,
@@ -978,8 +1048,10 @@ impl PencilFontAtlas {
             for y in 0..cell_h {
                 for x in 0..cell_w {
                     let src = img.pixel(x0 + x, y0 + y);
-                    // C++ Font: red channel → alpha, RGB = white.
-                    let a = src[0];
+                    // C++ Font uses red-as-alpha on white-on-black. After BGR TGA
+                    // load, ink often sits in R *or* B (A unused=0). Take any channel
+                    // so handwriting letters are not dropped.
+                    let a = src[0].max(src[1]).max(src[2]).max(src[3]);
                     let di = ((y * cell_w + x) * 4) as usize;
                     pixels[di] = 255;
                     pixels[di + 1] = 255;
@@ -2393,61 +2465,71 @@ pub fn draw_food_heat_hud(fb: &mut Framebuffer, state: &mut HudState, sprites: &
         }
     }
 
-    // --- Home arrows + P3#17 map-pointer label (C++ drawHomeSlip) ---
+    // --- Home arrows + pencil MAP/LEAD (C++ drawHomeSlip) ---
     {
+        let extra_up = home_slip_extra_up(state.home_dist, state.home_temporary);
+        let slip_below = HOME_ARROW_ORIGIN_Y_BELOW - extra_up;
         let hx = cx + HOME_ARROW_ORIGIN_X * s;
-        let hy = cy + HOME_ARROW_ORIGIN_Y_BELOW * s;
-        // C++ slip center is 35 object-px below the arrow (Y-up +35 on arrow).
-        let slip_y = hy + 35.0 * s;
+        let slip_y = cy + slip_below * s;
+        // C++ arrowPos = slipPos; arrowPos.y += 35 (Y-up) → toward top of screen.
+        let arrow_y = slip_y - HOME_ARROW_ON_SLIP_UP * s;
+        let hint_y = arrow_y + HOME_HINT_BELOW_ARROW * s;
         if state.home_arrow.is_some() {
             if let Some(slip) = sprites.home_slips.first() {
                 blit_centered(fb, slip, hx, slip_y, s);
             }
         }
+        let a2x = cx + (HOME_ARROW_ORIGIN_X + HOME_SLIP2_DX) * s;
         if state.ancient_home_arrow.is_some() {
-            let ax = cx + (HOME_ARROW_ORIGIN_X + 71.0) * s;
             if let Some(slip) = sprites.home_slips.get(1).or_else(|| sprites.home_slips.first())
             {
-                blit_centered_mode(fb, slip, ax, slip_y, s, false, 0.85);
+                blit_centered_mode(fb, slip, a2x, slip_y, s, false, 0.85);
             }
         }
         for i in 0..NUM_HOME_ARROWS {
             let fade = state.home_arrow_fades[i];
             if fade > 0.01 && state.home_arrow != Some(i) {
                 if let Some(spr) = sprites.home_arrows_erased.get(i) {
-                    blit_centered_mode(fb, spr, hx, hy, s, false, fade.clamp(0.0, 1.0));
+                    // C++ `toggleMultiplicativeBlend` + erased sprites.
+                    blit_centered_mode(fb, spr, hx, arrow_y, s, true, fade.clamp(0.0, 1.0));
                 }
             }
         }
         if let Some(dir) = state.home_arrow {
             let di = dir % NUM_HOME_ARROWS;
             if let Some(spr) = sprites.home_arrows.get(di) {
-                blit_centered(fb, spr, hx, hy, s);
+                blit_centered_mult(fb, spr, hx, arrow_y, s);
             }
         }
-        // C++ homeSlip2 (j=1): ancient homeland, offset +71 design-x (30−(-41)).
         if let Some(dir) = state.ancient_home_arrow {
-            let ax = cx + (HOME_ARROW_ORIGIN_X + 71.0) * s;
-            let ay = hy;
             let di = dir % NUM_HOME_ARROWS;
             if let Some(spr) = sprites.home_arrows.get(di) {
-                blit_centered_mode(fb, spr, ax, ay, s, false, 0.85);
+                blit_centered_mult(fb, spr, a2x, arrow_y, s);
             }
         }
-        // Pencil label under arrow strip (`MAP` / `BABY` / `LEAD` / …).
+        // C++ pencilFont at mapHintPos (arrow − 47 Y-up), black, alignCenter.
         if let Some(ref lab) = state.map_pointer_label {
             if !lab.is_empty() {
-                let label_scale = (s * 0.9).max(0.7);
-                sprites.draw_hud_text(
-                    fb,
-                    lab,
-                    hx,
-                    hy + 22.0 * s,
-                    label_scale,
-                    [20, 20, 18, 255],
-                    true,
-                    false,
-                );
+                sprites.draw_hud_text(fb, lab, hx, hint_y, s, [0, 0, 0, 255], true, false);
+            }
+        }
+        if let Some(dist_s) = format_home_dist(state.home_dist) {
+            let dist_y = if state.home_temporary {
+                hint_y + HOME_SLIP_TEXT_EXTRA_UP * s
+            } else {
+                hint_y
+            };
+            sprites.draw_hud_text(fb, &dist_s, hx, dist_y, s, [0, 0, 0, 255], true, false);
+        }
+        if let Some(ref lab) = state.ancient_home_label {
+            if !lab.is_empty() {
+                // C++ handwritingFont at distPos + 20 Y-up.
+                let bell_y = hint_y - HOME_SLIP_TEXT_EXTRA_UP * s;
+                if let Some(font) = sprites.handwriting_font.as_ref() {
+                    font.draw_string(fb, lab, a2x, bell_y, s, [0, 0, 0, 255], true);
+                } else {
+                    sprites.draw_hud_text(fb, lab, a2x, bell_y, s, [0, 0, 0, 255], true, false);
+                }
             }
         }
     }
@@ -2665,6 +2747,43 @@ mod tests {
             yum_bonus: 2,
             yum_multiplier: 1,
         }
+    }
+
+    #[test]
+    fn home_arrow_sits_above_gui_panel() {
+        // Soft-FB 960×540: s=0.75. Arrow must be above the panel, not half off the bottom.
+        let extra = home_slip_extra_up(0.0, false);
+        let arrow_y = home_arrow_screen_y(960, 540, extra);
+        let slip_y = home_slip_screen_y(960, 540, extra);
+        let s = hud_scale(960, 540);
+        let cy = 270.0;
+        let panel_y = cy + GUI_PANEL_Y_BELOW * s;
+        assert!(arrow_y < panel_y, "arrow {arrow_y} must sit above panel {panel_y}");
+        assert!(
+            arrow_y < 540.0 - 16.0,
+            "arrow {arrow_y} must not be clipped at the bottom"
+        );
+        assert!(
+            slip_y > arrow_y,
+            "slip paper is below the arrow (Y-down), slip={slip_y} arrow={arrow_y}"
+        );
+        // C++: arrow is 35 design-px above slip center.
+        assert!((slip_y - arrow_y - HOME_ARROW_ON_SLIP_UP * s).abs() < 0.01);
+        let extra_map = home_slip_extra_up(0.0, true);
+        let arrow_map = home_arrow_screen_y(960, 540, extra_map);
+        assert!(
+            arrow_map < arrow_y,
+            "MAP/LEAD slip raises 20 design-px so the arrow stays visible"
+        );
+    }
+
+    #[test]
+    fn format_home_dist_matches_cpp() {
+        assert!(format_home_dist(5.0).is_none());
+        assert!(format_home_dist(1000.0).is_none());
+        assert_eq!(format_home_dist(1200.0).as_deref(), Some("1.2K"));
+        assert_eq!(format_home_dist(12_000.0).as_deref(), Some("12K"));
+        assert_eq!(format_home_dist(1_200_000.0).as_deref(), Some("1.2M"));
     }
 
     #[test]
@@ -3292,6 +3411,61 @@ mod tests {
         fb.clear([255, 255, 255, 255]);
         font.draw_string(&mut fb, "A", 32.0, 32.0, 1.0, [0, 0, 0, 255], true);
         assert!(fb.count_non_color([255, 255, 255, 255]) > 0);
+    }
+
+    #[test]
+    fn font_atlas_uses_blue_channel_ink() {
+        // Real handwriting TGA after BGR load often has ink in B, R=0, A=0.
+        let w = 16u32 * 8;
+        let h = 16u32 * 8;
+        let cell = 8u32;
+        let mut pixels = vec![0u8; (w * h * 4) as usize];
+        let ci = b'H' as u32;
+        let col = ci % 16;
+        let row = ci / 16;
+        for y in 0..cell {
+            for x in 2..6 {
+                let px = col * cell + x;
+                let py = row * cell + y;
+                let i = ((py * w + px) * 4) as usize;
+                pixels[i] = 0;
+                pixels[i + 1] = 0;
+                pixels[i + 2] = 255;
+                pixels[i + 3] = 0;
+            }
+        }
+        let img = RgbaImage {
+            width: w,
+            height: h,
+            pixels,
+        };
+        let font = PencilFontAtlas::from_rgba(&img).expect("atlas");
+        let mut fb = Framebuffer::new(64, 64);
+        fb.clear([255, 255, 255, 255]);
+        font.draw_string(&mut fb, "H", 32.0, 32.0, 2.0, [0, 0, 0, 255], true);
+        assert!(
+            fb.count_non_color([255, 255, 255, 255]) > 8,
+            "blue-channel handwriting ink must paint letters"
+        );
+    }
+
+    #[test]
+    fn real_handwriting_font_paints_letters() {
+        let path = PathBuf::from(
+            r"C:\OhOl\OpenLife\OneLifeGameSourceData\graphics\font_handwriting_32_32.tga",
+        );
+        if !path.is_file() {
+            return;
+        }
+        let img = crate::tga::load_tga_path(&path).expect("load handwriting tga");
+        let font = PencilFontAtlas::from_rgba(&img).expect("atlas");
+        let mut fb = Framebuffer::new(256, 64);
+        fb.clear([248, 244, 232, 255]);
+        font.draw_string(&mut fb, "HELLO", 8.0, 32.0, 1.0, [0, 0, 0, 255], false);
+        assert!(
+            fb.count_non_color([248, 244, 232, 255]) > 40,
+            "HELLO must be visible on chalk paper"
+        );
     }
 
     #[test]

@@ -48,4 +48,30 @@ lewton = "0.10"
 ## Settings / Account UI text (system Segoe UI / Arial). Soft-FB raster only.
 fontdue = "0.9"
 
+# --- Build speed (dev / day-to-day) -------------------------------------------
+# Same idea as the Rust server workspace: local crates stay opt-level 0 for
+# fast recompile; deps compile once at opt-level 2. Line-tables-only debug
+# links much faster than full debuginfo. Behavior of the game is unchanged.
+[profile.dev]
+incremental = true
+debug = "line-tables-only"
+codegen-units = 256
+
+[profile.dev.package."*"]
+opt-level = 2
+debug = false
+
+[profile.dev.build-override]
+opt-level = 2
+debug = false
+
+[profile.test]
+incremental = true
+debug = "line-tables-only"
+codegen-units = 256
+
+[profile.test.package."*"]
+opt-level = 2
+debug = false
+
 [dev-dependencies]

@@ -33,44 +33,13 @@ use crate::emotion::EmotionBank;
 use crate::ground_sprites::{
     biome_color, unknown_biome_draw_color, unknown_sheet_draw_tint, GroundBank,
 };
-use crate::hud::{draw_hud_if_visible, draw_speech_bubble, HudState, HudSprites};
-use crate::live_object::{home_dir_index, LiveObject, LiveWorld, SaysPointerMarker};
+use crate::hud::{draw_hud_if_visible, HudState, HudSprites};
+use crate::live_object::{home_dir_index, LiveObject, LiveWorld};
 use crate::parse::{FoodChange, HeatChange};
 use crate::sprite_bank::SpriteBank;
 
 /// C++ `getSpeechOffset` base Y in object units (above feet) before head add.
 const SPEECH_BASE_Y: f32 = 84.0;
-
-/// Soft-FB map-spot pin: diagonal X + small diamond (P3#17 pure `*map`).
-///
-/// // C++ uses home-slip arrow; we mark the world tile directly.
-pub fn draw_map_spot_marker(
-    fb: &mut Framebuffer,
-    cx: f32,
-    cy: f32,
-    radius: i32,
-    rgba: [u8; 4],
-) {
-    let r = radius.max(3);
-    let cx_i = cx.round() as i32;
-    let cy_i = cy.round() as i32;
-    // X arms
-    for i in -r..=r {
-        fb.put(cx_i + i, cy_i + i, rgba);
-        fb.put(cx_i + i, cy_i - i, rgba);
-        // thicken
-        fb.put(cx_i + i + 1, cy_i + i, rgba);
-        fb.put(cx_i + i + 1, cy_i - i, rgba);
-    }
-    // center diamond
-    let d = (r / 2).max(2);
-    for dy in -d..=d {
-        let w = d - dy.abs();
-        for dx in -w..=w {
-            fb.put(cx_i + dx, cy_i + dy, rgba);
-        }
-    }
-}
 
 /// Resolved person/held/clothing anim types for one player draw.
 ///
@@ -126,6 +95,9 @@ pub(crate) struct PersonAnchors {
     pub(crate) eyes: Option<(f32, f32, f32)>,
     /// True when person has eyes for emot placement this age.
     pub(crate) has_eyes: bool,
+    /// Anchors already include flip + `inRot` (newborn lie). Screen math must
+    /// not flip X again.
+    pub(crate) pre_flipped: bool,
 }
 
 /// Jason clothing slot → body-part anchor (animationBank clothing passes).
@@ -142,6 +114,41 @@ pub(crate) fn clothing_anchor_for_slot(
         3 => anchors.back_foot.or(anchors.body), // back shoe
         _ => anchors.body.or(anchors.head),
     }
+}
+
+/// C++ `drawObjectAnim` `inRot`: flip pose, then `rot += inRot` and
+/// `spritePos = rotate(spritePos, -2π·inRot)`. Returns true when applied.
+fn apply_draw_object_in_rot(
+    ox: &mut [f32],
+    oy: &mut [f32],
+    orot: &mut [f32],
+    posed: &[bool],
+    extra_rot_turns: f32,
+    flip: bool,
+) -> bool {
+    if extra_rot_turns.abs() <= 1e-8 {
+        return false;
+    }
+    let a = -extra_rot_turns * std::f32::consts::TAU;
+    let (c, s) = (a.cos(), a.sin());
+    let n = ox.len().min(oy.len()).min(orot.len()).min(posed.len());
+    for i in 0..n {
+        if !posed[i] {
+            continue;
+        }
+        let mut spx = ox[i];
+        let spy = oy[i];
+        let mut r = orot[i];
+        if flip {
+            spx = -spx;
+            r = -r;
+        }
+        r += extra_rot_turns;
+        ox[i] = spx * c - spy * s;
+        oy[i] = spx * s + spy * c;
+        orot[i] = r;
+    }
+    true
 }
 
 /// Screen position for worn clothing: animated body-part + **rotated** clothingOffset.
@@ -328,6 +335,17 @@ impl Framebuffer {
         for px in self.pixels.chunks_exact_mut(4) {
             px.copy_from_slice(&rgba);
         }
+    }
+
+    /// Binary PPM (P6) for boot screenshots / AI inspection.
+    pub fn write_ppm(&self, path: &std::path::Path) -> std::io::Result<()> {
+        use std::io::Write;
+        let mut f = std::fs::File::create(path)?;
+        write!(f, "P6\n{} {}\n255\n", self.width, self.height)?;
+        for px in self.pixels.chunks_exact(4) {
+            f.write_all(&[px[0], px[1], px[2]])?;
+        }
+        Ok(())
     }
 
     /// Count non-clear (non-matching) opaque-ish pixels — scene snapshot tests.
@@ -700,7 +718,10 @@ fn sample_atlas(
 /// P3#23: front sub-order matches C++ wallLayer / frontWall passes after players.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum DrawLayer {
-    /// Whole `drawBehindPlayer` objects + `spritesDrawnBehind` layers.
+    /// C++ screen-wide first pass: `anySpritesBehindPlayer` behind layers only
+    /// (trunks under every player, all rows).
+    SpritesBehind = 0,
+    /// Whole `drawBehindPlayer` objects (per-row, under same-row players).
     BehindPlayer = 1,
     Player = 2,
     /// Permanent non-wall front objects (over players).
@@ -1062,9 +1083,6 @@ impl SceneRenderer {
         self.time += dt;
         fb.clear(CLEAR_RGBA);
 
-        // Approximate tile size for non-ground markers (highlight thickness).
-        let tile_px = self.camera.zoom.max(4.0).round() as i32;
-
         // --- Pass 1: ground biomes (C++ LivingLifePage ~7151–7390) ---
         // Spec: docs/port/GROUND_DRAW_CPP.md — wholeSheet + soft/square, no cell underfill.
         let y0 = cy - half_h;
@@ -1206,11 +1224,13 @@ impl SceneRenderer {
                 }
             }
         }
-        // C++ LivingLifePage ~8215/8261: `for (y = yEnd; y >= yStart; y--)` — high Y first.
-        // Then within a row, layer order (BehindPlayer < Player < Front*).
+        // C++: (1) all rows `spritesDrawnBehind` (2) per row north→south
+        // drawBehindPlayer → players → front objects.
+        // Pass 0 = screen-wide trunks; pass 1 = per-row behind/player/front.
         items.sort_by(|a, b| {
-            b.sort_y
-                .cmp(&a.sort_y)
+            draw_pass(a.layer)
+                .cmp(&draw_pass(b.layer))
+                .then_with(|| b.sort_y.cmp(&a.sort_y))
                 .then_with(|| a.layer.cmp(&b.layer))
         });
 
@@ -1277,8 +1297,9 @@ impl SceneRenderer {
                     let sx = sx0 + wox * scale0;
                     let sy = sy0 - woy * scale0;
                     let display = if o.display_id > 0 { o.display_id } else { 19 };
-                    // C++ computeCurrentAge: base + ageRate × (now − lastAgeSetTime)
-                    let age = o.current_age();
+                    // C++ computeCurrentAge for sprites (cry override); NoOverride for lie.
+                    let clock_age = o.current_age();
+                    let age = o.display_age();
                     // C++ holdingFlip: true = face left (draw flipH).
                     let flip = o.holding_flip();
                     let holding = o.held_id != 0;
@@ -1291,7 +1312,8 @@ impl SceneRenderer {
                         && o.held_pos_override
                         && !o.held_pos_override_almost_over;
                     // P3#22: capture before later mut borrows of world.
-                    let o_moving = o.moving || o.anim.cur_anim == crate::anim_bank::ANIM_MOVING;
+                    // C++ heldPosOverride tracks the hand while currentSpeed == 0.
+                    let o_moving = o.moving;
                     // Adult held-anim pack clocks for baby draw (C++ curHeldAnim).
                     let o_held_pack_for_baby = if held_id < 0 {
                         Some(o.anim.held_pack(if o.display_id > 0 {
@@ -1307,7 +1329,11 @@ impl SceneRenderer {
                     // Order: backShoe, bottom, tunic, backpack, frontShoe, hat (C++ clothing).
                     const CLOTHING_DRAW_ORDER: [usize; 6] = [3, 4, 1, 5, 2, 0];
                     let has_tunic = o.clothing.slot_id(1) > 0;
-                    let badge_draw: Option<(i32, [f32; 3])> = if o.has_badge && has_tunic {
+                    // C++ still badges a lying newborn; the FullX + missing-sprite
+                    // square sat on the unrotated chest. Skip while they lie.
+                    let badge_draw: Option<(i32, [f32; 3])> = if age < 1.0 {
+                        None
+                    } else if o.has_badge && has_tunic {
                         let bid = content.badge_object_id(
                             o.leadership_level,
                             o.is_dubious,
@@ -1384,7 +1410,7 @@ impl SceneRenderer {
                     // `heldByDropOffset` is in **tiles**; d > 0.5 keeps them upright
                     // until the drop lands. Newborns on the ground (offset 0) use 1.0.
                     let mut baby_lie_rot = 0.0f32;
-                    if age < crate::click_tile::NO_MOVE_AGE {
+                    if clock_age < crate::click_tile::NO_MOVE_AGE {
                         let d_tiles = (drop_ox * drop_ox + drop_oy * drop_oy).sqrt();
                         let shift_scale = if d_tiles > 0.5 {
                             0.0
@@ -1456,6 +1482,7 @@ impl SceneRenderer {
                     };
                     // L-EMOT: headEmot on top (after hat) — skip when +hideRider.
                     if !hide_rider {
+                        let emot_flip = if person_anchors.pre_flipped { false } else { flip };
                         self.draw_emotion_layers(
                             fb,
                             content,
@@ -1466,7 +1493,7 @@ impl SceneRenderer {
                             &person_anchors,
                             person_sx,
                             person_sy,
-                            flip,
+                            emot_flip,
                             EmotDrawPhase::HeadTop,
                         );
                     }
@@ -1840,81 +1867,8 @@ impl SceneRenderer {
             }
         }
 
-        // P3#17: PS `*map` spot pins + `*label` markers at target/map positions.
-        {
-            let scale = (self.camera.zoom / GRID).max(0.05);
-            let text_scale = (scale * 0.32).clamp(0.7, 2.2);
-            let tile_r = (tile_px / 2).max(4);
-            // Collect draw info without holding world borrow across mut gets.
-            let markers: Vec<SaysPointerMarker> = world.says_pointers.clone();
-            for m in &markers {
-                let fade = m.fade.clamp(0.0, 1.0);
-                if fade <= 0.0 {
-                    continue;
-                }
-                let mut rgba = m.color_rgba();
-                rgba[3] = (rgba[3] as f32 * fade) as u8;
-
-                // Map-spot pin at tile center (X / diamond).
-                if let Some((mx, my)) = m.map_tile() {
-                    let (sx, sy) = self.world_to_screen(
-                        mx as f32 + 0.5,
-                        my as f32 + 0.5,
-                        fb.width,
-                        fb.height,
-                    );
-                    draw_map_spot_marker(fb, sx, sy, tile_r, rgba);
-                }
-
-                // Label marker: prefer live target player position; else map tile.
-                if let Some(ref lab) = m.target_label {
-                    let label = lab.short_name();
-                    let (tx, ty) = if let Some(tid) = m.target_player_id {
-                        if tid > 0 {
-                            if let Some(t) = world.get(tid) {
-                                if !t.deleted {
-                                    (t.x as f32 + 0.5, t.y as f32 + 0.5)
-                                } else if let Some((mx, my)) = m.map_tile() {
-                                    (mx as f32 + 0.5, my as f32 + 0.5)
-                                } else {
-                                    continue;
-                                }
-                            } else if let Some((mx, my)) = m.map_tile() {
-                                (mx as f32 + 0.5, my as f32 + 0.5)
-                            } else {
-                                continue;
-                            }
-                        } else if let Some((mx, my)) = m.map_tile() {
-                            // prop / id 0
-                            (mx as f32 + 0.5, my as f32 + 0.5)
-                        } else {
-                            continue;
-                        }
-                    } else if let Some((mx, my)) = m.map_tile() {
-                        (mx as f32 + 0.5, my as f32 + 0.5)
-                    } else {
-                        continue;
-                    };
-                    let (sx, sy) = self.world_to_screen(tx, ty, fb.width, fb.height);
-                    let label_sy = sy - SPEECH_BASE_Y * scale * 0.55;
-                    // Small chalk-ish label (distinct from full speech bubble).
-                    draw_speech_bubble(fb, label, sx, label_sy, text_scale, fade);
-                    // Accent bar under label in marker color.
-                    let bar_w = (label.len() as i32 * 4).max(8);
-                    let bar_y = (label_sy + 6.0 * text_scale) as i32;
-                    fb.fill_rect(
-                        sx as i32 - bar_w / 2,
-                        bar_y,
-                        bar_w,
-                        2,
-                        rgba,
-                    );
-                }
-            }
-
-        }
-
-        // HUD home-arrow + pencil key from homePosStack (permanent + temp PS).
+        // C++ `*map` / temp home: HUD home-slip arrows only (`drawHomeSlip`).
+        // Do not stamp world X/diamond/labels — Jason never draws those on the map.
         self.sync_home_hud(world);
 
         // Hover / mouse-over cell highlight
@@ -2068,35 +2022,53 @@ impl SceneRenderer {
     ///
     /// Falls back to raw `says_pointers` when stack empty but markers remain.
     fn sync_home_hud(&mut self, world: &LiveWorld) {
+        // C++ `getHomeDir` uses `currentPos` (fractional).
         let (fx, fy) = world
             .our()
-            .map(|o| (o.x as f32, o.y as f32))
+            .map(|o| (o.display_x, o.display_y))
             .unwrap_or((self.camera.x, self.camera.y));
         if !world.home_stack.is_empty() {
-            let (dir, label) = world.home_stack.home_dir_and_label(fx, fy);
-            self.hud.map_pointer_label = label;
-            self.hud.set_home_arrow(dir);
-            let (anc, _) = world.home_stack.ancient_dir_and_label(fx, fy);
-            self.hud.ancient_home_arrow = anc;
+            let info = world.home_stack.home_dir_info(fx, fy);
+            self.hud.map_pointer_label = info.label;
+            self.hud.home_dist = info.dist;
+            self.hud.home_temporary = info.temporary;
+            self.hud.set_home_arrow(info.dir);
+            let anc = world.home_stack.ancient_dir_info(fx, fy);
+            self.hud.ancient_home_arrow = anc.dir;
+            self.hud.ancient_home_label = anc.label;
             return;
         }
-        // Fallback: live says_pointers only (P3#17 soft-FB).
         let primary = world.says_pointers.iter().find(|m| m.fade > 0.01);
         let Some(m) = primary else {
             self.hud.map_pointer_label = None;
+            self.hud.home_dist = 0.0;
+            self.hud.home_temporary = false;
             self.hud.set_home_arrow(None);
             self.hud.ancient_home_arrow = None;
+            self.hud.ancient_home_label = None;
             return;
         };
-        let label = m
-            .label_text()
-            .unwrap_or_else(|| "MAP".to_string());
-        self.hud.map_pointer_label = Some(label);
         self.hud.ancient_home_arrow = None;
+        self.hud.ancient_home_label = None;
         if let Some((tx, ty)) = m.map_tile() {
-            let dir = home_dir_index(fx, fy, tx as f32, ty as f32);
-            self.hud.set_home_arrow(dir);
+            let dx = tx as f32 - fx;
+            let dy = ty as f32 - fy;
+            let dist = (dx * dx + dy * dy).sqrt();
+            self.hud.home_dist = dist;
+            self.hud.home_temporary = true;
+            if dist < 5.0 {
+                self.hud.map_pointer_label = None;
+                self.hud.set_home_arrow(None);
+            } else {
+                let raw = m.label_text().unwrap_or_else(|| "map".to_string());
+                let label = crate::live_object::home_slip_pencil_word(Some(raw.to_ascii_lowercase().as_str()));
+                self.hud.map_pointer_label = Some(label);
+                self.hud.set_home_arrow(home_dir_index(fx, fy, tx as f32, ty as f32));
+            }
         } else {
+            self.hud.map_pointer_label = None;
+            self.hud.home_dist = 0.0;
+            self.hud.home_temporary = false;
             self.hud.set_home_arrow(None);
         }
     }
@@ -2731,23 +2703,11 @@ impl SceneRenderer {
         let mut holding_out = HoldingPos::default();
         let mut anchors = PersonAnchors::default();
         let Some(def) = content.get(object_id) else {
-            fb.fill_rect(
-                screen_x as i32 - 3,
-                screen_y as i32 - 3,
-                6,
-                6,
-                [160, 160, 160, 255],
-            );
+            // Missing def: skip. A grey placeholder square was drawing over
+            // newborns in the first seconds before person content bound.
             return (holding_out, anchors);
         };
         if def.sprites.is_empty() {
-            fb.fill_rect(
-                screen_x as i32 - 4,
-                screen_y as i32 - 4,
-                8,
-                8,
-                [200, 80, 80, 255],
-            );
             return (holding_out, anchors);
         }
 
@@ -2947,6 +2907,14 @@ impl SceneRenderer {
         // re-parent. Age-invisible layers still contribute deltas as parents.
         apply_jason_parent_chain(&def.sprites, &mut ox, &mut oy, &mut orot);
 
+        // C++ drawObjectAnim `inRot`: flip pose, then rot += inRot and
+        // spritePos = rotate(spritePos, −2π·inRot). Apply **before** capturing
+        // HoldingPos / clothing / badge anchors so a lying newborn's X badge
+        // and clothes rotate with the body (not a square+cross overlay).
+        let in_rot_applied =
+            apply_draw_object_in_rot(&mut ox, &mut oy, &mut orot, &posed, extra_rot_turns, flip);
+        let attach_flip = if in_rot_applied { false } else { flip };
+
         // HoldingPos from hand (hideClosestArm==0) or body (≠0) — C++ drawObjectAnim
         // Rideable: hideAllLimbs true but hideClosestArm still 0 → hand attach is returned,
         // but LivingLifePage / SceneRenderer place vehicle at person pos and interleave
@@ -3013,6 +2981,7 @@ impl SceneRenderer {
             // P3#19: eyes anchor = posed head + rotated mainEyesOffset
             // // C++: cPos = animHeadPos + rotate(mainEyesOffset, -2π·headRot)
             anchors.has_eyes = def.has_eyes_for_emot(age);
+            anchors.pre_flipped = in_rot_applied;
             if let Some((hx, hy, hr)) = anchors.head {
                 let (ex, ey) = crate::content::eyes_anchor_from_head(
                     hx,
@@ -3050,7 +3019,7 @@ impl SceneRenderer {
                         screen_x,
                         screen_y,
                         scale,
-                        flip,
+                        attach_flip,
                         age,
                     );
                 }
@@ -3080,7 +3049,7 @@ impl SceneRenderer {
                     screen_x,
                     screen_y,
                     scale,
-                    flip,
+                    attach_flip,
                     age,
                 );
             }
@@ -3109,7 +3078,7 @@ impl SceneRenderer {
                 anchors,
                 screen_x,
                 screen_y,
-                flip,
+                attach_flip,
                 EmotDrawPhase::Body,
             );
         };
@@ -3135,7 +3104,7 @@ impl SceneRenderer {
                 anchors,
                 screen_x,
                 screen_y,
-                flip,
+                attach_flip,
                 phase,
             );
         };
@@ -3155,7 +3124,7 @@ impl SceneRenderer {
                 .map(|d| d.clothing_offset)
                 .unwrap_or((0.0, 0.0));
             let part = clothing_anchor_for_slot(anchors, 1).unwrap_or((0.0, 0.0, 0.0));
-            let (cx, cy) = clothing_screen_pos(screen_x, screen_y, part, (ox, oy), scale, flip);
+            let (cx, cy) = clothing_screen_pos(screen_x, screen_y, part, (ox, oy), scale, attach_flip);
             let mut pack = clothing_pack_from_person(person_pack, bid);
             pack.sprite_tint = tint;
             let _ = self.draw_object_with_pack(
@@ -3167,7 +3136,7 @@ impl SceneRenderer {
                 age,
                 cx,
                 cy,
-                flip,
+                attach_flip,
                 false,
                 true,
                 0,
@@ -3186,15 +3155,28 @@ impl SceneRenderer {
             }
 
             if posed[si] && draw[si] {
-                // C++ hidePersonShadows while a newborn lies on the ground.
-                if def.person != 0 && age < crate::click_tile::NO_MOVE_AGE {
-                    if let Some(meta) = sprites.get_meta(spr.sprite_id) {
-                        if meta.tag.contains("Shadow") {
-                            continue;
-                        }
+                let Some(rect) = sprites.ensure(spr.sprite_id) else {
+                    continue;
+                };
+                let tag = sprites
+                    .get_meta(spr.sprite_id)
+                    .map(|m| m.tag.as_str())
+                    .unwrap_or("");
+                let tag_lc = tag.to_ascii_lowercase();
+                // C++ hidePersonShadows: skip tag containing "Shadow" only.
+                // Baby legs/feet are multiplicative (`BabyLegLeft` / `BabyLegRight`)
+                // and must still draw — skipping all `mult=1` hid newborn feet.
+                // C++ hidePersonShadows while lying (NoOverride < noMoveAge).
+                if def.person != 0 && extra_rot_turns.abs() > 1e-4 {
+                    if tag_lc.contains("shadow") {
+                        continue;
                     }
                 }
-                if let Some(rect) = sprites.ensure(spr.sprite_id) {
+                // Mosquito Swarm (and similar) embed a HeadWhite dummy as a 64×64
+                // round blob in the middle of the flies. Skip Head* on non-persons.
+                if def.person == 0 && tag_lc.starts_with("head") {
+                    continue;
+                }
                     let page = &sprites.pages()[rect.atlas_index];
                     // Center-anchor (C++ setSpriteCenterOffset / Haxe inCenter).
                     // Object space is Y-up; screen is Y-down. Haxe does:
@@ -3203,25 +3185,9 @@ impl SceneRenderer {
                     // before the Y flip — i.e. add ay in object Y, subtract ax in X.
                     let ax = rect.center_anchor_x as f32;
                     let ay = rect.center_anchor_y as f32;
-                    let (px, py, mut rot, already_flipped) = if extra_rot_turns.abs() > 1e-8 {
-                        // C++ drawObjectAnim inRot: flip pose, then
-                        // rot += inRot; spritePos = rotate(spritePos, -2π·inRot).
-                        let mut spx = ox[si];
-                        let spy = oy[si];
-                        let mut r = orot[si];
-                        if flip {
-                            spx = -spx;
-                            r = -r;
-                        }
-                        r += extra_rot_turns;
-                        let a = -extra_rot_turns * std::f32::consts::TAU;
-                        let (c, s) = (a.cos(), a.sin());
-                        let nx = spx * c - spy * s;
-                        let ny = spx * s + spy * c;
-                        (nx, ny, r, true)
-                    } else {
-                        (ox[si], oy[si], orot[si], false)
-                    };
+                    // inRot already baked into ox/oy/orot (and flip) when applied.
+                    let (px, py, mut rot, already_flipped) =
+                        (ox[si], oy[si], orot[si], in_rot_applied);
                     // Rotate the center-anchor around the posed attach point so
                     // limbs swing from the joint (C++ SpriteGL: rotate
                     // mCenterOffset by +2π·rot, then posX -= ox, posY += oy).
@@ -3260,7 +3226,6 @@ impl SceneRenderer {
                         rect.multiplicative_blend,
                         ofade[si],
                     );
-                }
             }
 
             if def.person != 0 && eyes_idx == Some(si) {
@@ -3297,7 +3262,7 @@ impl SceneRenderer {
                         screen_x,
                         screen_y,
                         scale,
-                        flip,
+                        attach_flip,
                         age,
                     );
                 }
@@ -3468,7 +3433,8 @@ impl SceneRenderer {
             return;
         }
         let scale = (self.camera.zoom / GRID).max(0.05);
-        let flip_s = if flip { -1.0 } else { 1.0 };
+        let draw_flip = if anchors.pre_flipped { false } else { flip };
+        let flip_s = if draw_flip { -1.0 } else { 1.0 };
 
         let to_screen = |ox: f32, oy: f32| -> (f32, f32) {
             (screen_x + ox * scale * flip_s, screen_y - oy * scale)
@@ -3493,7 +3459,7 @@ impl SceneRenderer {
                                 20.0,
                                 sx,
                                 sy,
-                                flip,
+                                draw_flip,
                                 false,
                                 true,
                                 0,
@@ -3518,7 +3484,7 @@ impl SceneRenderer {
                             20.0,
                             esx,
                             esy,
-                            flip,
+                            draw_flip,
                             false,
                             true,
                             0,
@@ -3549,7 +3515,7 @@ impl SceneRenderer {
                             20.0,
                             head_sx,
                             head_sy,
-                            flip,
+                            draw_flip,
                             false,
                             true,
                             0,
@@ -3574,7 +3540,7 @@ impl SceneRenderer {
                                 20.0,
                                 sx,
                                 sy,
-                                flip,
+                                draw_flip,
                                 false,
                                 true,
                                 0,
@@ -3601,6 +3567,14 @@ enum EmotDrawPhase {
     Face,
     /// After hat (headEmot).
     HeadTop,
+}
+
+/// 0 = C++ screen-wide behind-sprite pass; 1 = per-row behind/player/front.
+fn draw_pass(layer: DrawLayer) -> u8 {
+    match layer {
+        DrawLayer::SpritesBehind => 0,
+        _ => 1,
+    }
 }
 
 /// C++ LivingLifePage front-object sub-order within a row (after players):
@@ -3670,10 +3644,10 @@ fn push_map_object_draw_items(
             },
         });
     } else if any_behind {
-        // Tall non-behind objects: trunk under players, canopy over.
+        // Tall non-behind objects: trunk in screen-wide under-pass, canopy over.
         items.push(YSortItem {
             sort_y: ty,
-            layer: DrawLayer::BehindPlayer,
+            layer: DrawLayer::SpritesBehind,
             kind: DrawKind::MapObject {
                 tx,
                 ty,
@@ -4170,6 +4144,21 @@ mod tests {
         // Bottom of north tile (5,9) == top of (5,8) (screen y grows down)
         assert_eq!(y0_north + h_north, y0_a, "vertical abut");
         assert!(w_a >= 1 && h_a >= 1 && w_b >= 1 && h_north >= 1);
+    }
+
+    #[test]
+    fn in_rot_rotates_pose_quarter_turn() {
+        let mut ox = [32.0f32];
+        let mut oy = [0.0f32];
+        let mut orot = [0.0f32];
+        let posed = [true];
+        assert!(apply_draw_object_in_rot(
+            &mut ox, &mut oy, &mut orot, &posed, 0.25, false
+        ));
+        // θ = −π/2: (32, 0) → (0, −32); rot += 0.25
+        assert!((ox[0]).abs() < 1e-4, "ox={}", ox[0]);
+        assert!((oy[0] + 32.0).abs() < 1e-4, "oy={}", oy[0]);
+        assert!((orot[0] - 0.25).abs() < 1e-4);
     }
 
     #[test]
@@ -5712,6 +5701,158 @@ mod tests {
         // Player should still leave some blue if canopy doesn't fully cover, or 0 if full cover —
         // with equal 40 vs 20 sizes canopy covers center; blue may be 0. Just ensure order via green center.
         let _ = blue;
+    }
+
+    #[test]
+    fn player_north_of_front_object_is_occluded() {
+        // Player at y=1, bush at y=0 (south = in front). High-Y first then front
+        // layer: the bush must cover the player where sprites overlap.
+        let mut scene = SceneRenderer::default();
+        scene.ground = GroundBank::new();
+        scene.camera.x = 0.5;
+        scene.camera.y = 0.5;
+        scene.camera.zoom = 32.0;
+        let mut map = ClientMap::new();
+        map.set(
+            0,
+            0,
+            crate::client_map::MapTile {
+                biome: 0,
+                floor_id: 0,
+                object_id: 9200,
+                object_raw: "9200".into(),
+            },
+        );
+        let mut content = ClientContent::new();
+        content.objects.insert(
+            9200,
+            ClientObjectDef {
+                id: 9200,
+                permanent: true,
+                draw_behind_player: false,
+                sprites: vec![ObjectSprite {
+                    sprite_id: 921,
+                    r: 1.0,
+                    g: 1.0,
+                    b: 1.0,
+                    parent: -1,
+                    age_start: -1.0,
+                    age_end: -1.0,
+                    y: 120.0, // extend north onto the player tile (scale 0.25)
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        );
+        content.objects.insert(
+            19,
+            ClientObjectDef {
+                id: 19,
+                person: 1,
+                sprites: vec![ObjectSprite {
+                    sprite_id: 922,
+                    r: 1.0,
+                    g: 1.0,
+                    b: 1.0,
+                    parent: -1,
+                    age_start: -1.0,
+                    age_end: -1.0,
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        );
+        let mut sprites = SpriteBank::with_atlas_size(".", 256);
+        sprites.ensure_rgba(921, &solid_sprite(200, 200, [255, 0, 0, 255]), None);
+        sprites.ensure_rgba(922, &solid_sprite(24, 24, [0, 0, 255, 255]), None);
+        let mut anims = AnimBank::new(".");
+        let mut world = LiveWorld::new();
+        world.apply_pu(&sample_pu(1, 19, 0, 1, 0));
+        let mut fb = Framebuffer::new(128, 128);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        // Player tile center: world (0.5, 1.5) → screen (64, 32) at this camera.
+        let i = ((32u32 * 128 + 64) * 4) as usize;
+        assert_eq!(
+            &fb.pixels[i..i + 3],
+            &[255, 0, 0],
+            "bush south of player must paint over them (player is behind it)"
+        );
+    }
+
+    #[test]
+    fn player_south_of_front_object_stays_in_front() {
+        // Player at y=0, bush at y=1 (north = behind the player). High-Y first
+        // draws the bush, then the player — the figure must stay on top.
+        let mut scene = SceneRenderer::default();
+        scene.ground = GroundBank::new();
+        scene.camera.x = 0.5;
+        scene.camera.y = 0.5;
+        scene.camera.zoom = 32.0;
+        let mut map = ClientMap::new();
+        map.set(
+            0,
+            1,
+            crate::client_map::MapTile {
+                biome: 0,
+                floor_id: 0,
+                object_id: 9201,
+                object_raw: "9201".into(),
+            },
+        );
+        let mut content = ClientContent::new();
+        content.objects.insert(
+            9201,
+            ClientObjectDef {
+                id: 9201,
+                permanent: true,
+                draw_behind_player: false,
+                sprites: vec![ObjectSprite {
+                    sprite_id: 923,
+                    r: 1.0,
+                    g: 1.0,
+                    b: 1.0,
+                    parent: -1,
+                    age_start: -1.0,
+                    age_end: -1.0,
+                    y: -120.0, // extend south onto the player tile
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        );
+        content.objects.insert(
+            19,
+            ClientObjectDef {
+                id: 19,
+                person: 1,
+                sprites: vec![ObjectSprite {
+                    sprite_id: 924,
+                    r: 1.0,
+                    g: 1.0,
+                    b: 1.0,
+                    parent: -1,
+                    age_start: -1.0,
+                    age_end: -1.0,
+                    ..Default::default()
+                }],
+                ..Default::default()
+            },
+        );
+        let mut sprites = SpriteBank::with_atlas_size(".", 256);
+        sprites.ensure_rgba(923, &solid_sprite(200, 200, [255, 0, 0, 255]), None);
+        sprites.ensure_rgba(924, &solid_sprite(24, 24, [0, 0, 255, 255]), None);
+        let mut anims = AnimBank::new(".");
+        let mut world = LiveWorld::new();
+        world.apply_pu(&sample_pu(1, 19, 0, 0, 0));
+        let mut fb = Framebuffer::new(128, 128);
+        scene.draw(&mut fb, &mut map, &mut world, &content, &mut sprites, &mut anims, 0.0);
+        // Player tile center: world (0.5, 0.5) → screen (64, 64) at this camera.
+        let i = ((64u32 * 128 + 64) * 4) as usize;
+        assert_eq!(
+            &fb.pixels[i..i + 3],
+            &[0, 0, 255],
+            "bush north of player must stay behind them (player is in front)"
+        );
     }
 
     /// Walking uses visual Y for the map row (C++ `lrint(currentPos.y - 0.20)`).
@@ -7314,10 +7455,10 @@ mod tests {
         );
     }
 
-    /// P3#17: map-spot + label markers paint soft-FB pixels.
+    /// C++ `*map` feeds HUD home arrows only — no world X/diamond/label stamp.
     #[test]
-    fn scene_draw_map_pointer_markers_paint() {
-        use crate::parse::{parse_ps_line, PlayerSays, SaysMapPointer, SaysTargetLabel};
+    fn scene_map_pointer_uses_hud_arrows_not_world_pin() {
+        use crate::parse::{PlayerSays, SaysMapPointer};
 
         let mut scene = SceneRenderer::default();
         scene.ground = GroundBank::new();
@@ -7333,17 +7474,14 @@ mod tests {
 
         let mut world0 = LiveWorld::new();
         world0.apply_pu(&sample_pu(1, 19, 0, 0, 0));
-        world0.apply_pu(&sample_pu(2, 19, 1, 0, 0));
 
         let mut world1 = LiveWorld::new();
         world1.apply_pu(&sample_pu(1, 19, 0, 0, 0));
-        world1.apply_pu(&sample_pu(2, 19, 1, 0, 0));
-        // Map spot at (0,0) under camera.
         world1.apply_says(&[PlayerSays {
             player_id: 1,
             is_curse: false,
-            text: ":SPECIAL SPOT *map 0 0 30".into(),
-            spoken: ":SPECIAL SPOT".into(),
+            text: "*map 0 0 30".into(),
+            spoken: String::new(),
             map: Some(SaysMapPointer {
                 x: 0,
                 y: 0,
@@ -7352,8 +7490,7 @@ mod tests {
             target_label: None,
             target_player_id: None,
         }]);
-        assert_eq!(world1.says_pointers.len(), 1);
-        assert_eq!(world1.get(1).unwrap().current_speech.as_deref(), Some(":SPECIAL SPOT"));
+        assert!(!world1.home_stack.is_empty());
 
         let mut fb0 = Framebuffer::new(160, 160);
         scene.draw(
@@ -7375,54 +7512,18 @@ mod tests {
             &mut anims,
             0.0,
         );
-        assert_ne!(
-            fb0.pixels, fb1.pixels,
-            "map-spot marker must change soft-FB pixels"
-        );
-
-        // Label at target player 2.
-        let mut world2 = LiveWorld::new();
-        world2.apply_pu(&sample_pu(1, 19, 0, 0, 0));
-        world2.apply_pu(&sample_pu(2, 19, 0, 0, 0));
-        let vis = parse_ps_line("1/0 NEW *visitor 2 *map 0 0").unwrap();
-        world2.apply_says(&[vis]);
         assert_eq!(
-            world2.says_pointers[0].target_label,
-            Some(SaysTargetLabel::Visitor)
-        );
-        let mut fb2 = Framebuffer::new(160, 160);
-        scene.draw(
-            &mut fb2,
-            &mut map,
-            &mut world2,
-            &content,
-            &mut sprites,
-            &mut anims,
-            0.0,
-        );
-        assert_ne!(
-            fb0.pixels, fb2.pixels,
-            "label marker must change soft-FB pixels"
+            fb0.pixels, fb1.pixels,
+            "*map must not stamp a world marker"
         );
 
-        // Unit draw helper alone paints.
-        let mut fb3 = Framebuffer::new(40, 40);
-        draw_map_spot_marker(&mut fb3, 20.0, 20.0, 6, [80, 220, 255, 255]);
-        let painted = fb3
-            .pixels
-            .chunks_exact(4)
-            .filter(|p| p[0] > 0 || p[1] > 0 || p[2] > 0)
-            .count();
-        assert!(painted > 10, "draw_map_spot_marker painted {painted}");
-
-        // HUD home-arrow + MAP label sync from markers.
         world1.our_id = Some(1);
         scene.draw_hud = true;
         scene.hud.visible = true;
         scene.hud.food_capacity = 1;
-        let mut fb4 = Framebuffer::new(160, 160);
+        // Standing on the map tile: C++ tooClose, no slip/arrow.
         scene.draw(
-            &mut fb4,
+            &mut fb1,
             &mut map,
             &mut world1,
             &content,
@@ -7430,19 +7531,18 @@ mod tests {
             &mut anims,
             0.0,
         );
-        assert_eq!(
-            scene.hud.map_pointer_label.as_deref(),
-            Some("MAP"),
-            "pure map spot sets MAP label"
+        assert!(
+            scene.hud.home_arrow.is_none(),
+            "C++ hides home slip when dist < 5"
         );
-        // Marker at (0,0), our player also at (0,0) → no direction (too close / zero).
-        // Move our player so arrow has a direction.
         if let Some(o) = world1.get_mut(1) {
             o.x = 0;
             o.y = -5;
+            o.display_x = 0.0;
+            o.display_y = -5.0;
         }
         scene.draw(
-            &mut fb4,
+            &mut fb1,
             &mut map,
             &mut world1,
             &content,
@@ -7450,7 +7550,8 @@ mod tests {
             &mut anims,
             0.0,
         );
-        assert_eq!(scene.hud.home_arrow, Some(0), "north to map spot");
+        assert_eq!(scene.hud.home_arrow, Some(0), "north HUD arrow to map spot");
+        assert_eq!(scene.hud.map_pointer_label.as_deref(), Some("MAP"));
     }
 
     /// Full live PU line (see `parse.rs` tests).

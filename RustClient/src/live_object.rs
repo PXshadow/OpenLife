@@ -96,8 +96,8 @@ pub fn says_pointer_ttl_sec(ps: &PlayerSays) -> f32 {
 
 /// C++ `getHomeDir` — compass index 0=N … 7=NW toward `(to_x,to_y)` from player.
 ///
-/// Returns `None` when distance is zero (undefined angle). Dist `< 5` still
-/// yields a direction (C++ `tooClose` only affects label, not index).
+/// Returns `None` when distance is zero (undefined angle). HUD hides the whole
+/// home slip when dist `< 5` (`tooClose`); see [`HomePosStack::home_dir_and_label`].
 #[inline]
 pub fn home_dir_index(from_x: f32, from_y: f32, to_x: f32, to_y: f32) -> Option<usize> {
     let dx = to_x - from_x;
@@ -188,6 +188,42 @@ impl HomePos {
             person_id: -1,
             temp_person_key: None,
             temporary_expire_eta: 0.0,
+        }
+    }
+}
+
+/// C++ `languages/English.txt` pencil words on the home slip (`translate(tempPersonKey)`).
+pub fn home_slip_pencil_word(key: Option<&str>) -> String {
+    match key {
+        None | Some("map") => "MAP".into(),
+        Some("baby") => "BABY".into(),
+        Some("lead") => "LEAD".into(),
+        Some("supp") => "SUPP".into(),
+        Some("expt") => "EXPT".into(),
+        Some("owner") => "OWN".into(),
+        Some("visitor") => "VSTR".into(),
+        Some("property") => "PROP".into(),
+        Some("mother") => "MOTHER".into(),
+        Some(k) => k.to_ascii_uppercase(),
+    }
+}
+
+/// Resolved home-slip compass + pencil/handwriting copy (C++ `getHomeDir` + `drawHomeSlip`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct HomeDirDraw {
+    pub dir: Option<usize>,
+    pub label: Option<String>,
+    pub dist: f32,
+    pub temporary: bool,
+}
+
+impl Default for HomeDirDraw {
+    fn default() -> Self {
+        Self {
+            dir: None,
+            label: None,
+            dist: 0.0,
+            temporary: false,
         }
     }
 }
@@ -335,7 +371,8 @@ impl HomePosStack {
         from_x: f32,
         from_y: f32,
     ) -> (Option<usize>, Option<String>) {
-        Self::dir_label_for(self.active_home(), from_x, from_y)
+        let i = self.home_dir_info(from_x, from_y);
+        (i.dir, i.label)
     }
 
     /// Ancient homeland compass (C++ `getHomeDir(..., j=1)` / homeSlip2).
@@ -344,40 +381,62 @@ impl HomePosStack {
         from_x: f32,
         from_y: f32,
     ) -> (Option<usize>, Option<String>) {
-        Self::dir_label_for(self.ancient_pos(), from_x, from_y)
+        let i = self.ancient_dir_info(from_x, from_y);
+        (i.dir, i.label)
     }
 
-    fn dir_label_for(
+    /// Full slip draw info for HUD (dir, MAP/LEAD/… word, dist, temporary).
+    pub fn home_dir_info(&self, from_x: f32, from_y: f32) -> HomeDirDraw {
+        Self::dir_draw_for(self.active_home(), from_x, from_y, false)
+    }
+
+    /// Ancient homeland slip (handwriting `BELL` on homeSlip2).
+    pub fn ancient_dir_info(&self, from_x: f32, from_y: f32) -> HomeDirDraw {
+        Self::dir_draw_for(self.ancient_pos(), from_x, from_y, true)
+    }
+
+    fn dir_draw_for(
         p: Option<&HomePos>,
         from_x: f32,
         from_y: f32,
-    ) -> (Option<usize>, Option<String>) {
+        ancient_slip: bool,
+    ) -> HomeDirDraw {
         let Some(p) = p else {
-            return (None, None);
+            return HomeDirDraw::default();
         };
+        let dx = p.x as f32 - from_x;
+        let dy = p.y as f32 - from_y;
+        let dist = (dx * dx + dy * dy).sqrt();
+        // C++ `tooClose`: dist < 5 hides the home slip (and thus the arrows).
+        if dist < 5.0 {
+            return HomeDirDraw {
+                dir: None,
+                label: None,
+                dist,
+                temporary: p.temporary,
+            };
+        }
         let dir = home_dir_index(from_x, from_y, p.x as f32, p.y as f32);
-        let label = if p.temporary {
-            if p.temp_person {
-                p.temp_person_key
-                    .as_ref()
-                    .map(|k| k.to_ascii_uppercase())
-                    .or_else(|| Some("MAP".to_string()))
-            } else {
-                Some("MAP".to_string())
-            }
-        } else if p.ancient {
-            Some("OLD".to_string())
+        let label = if ancient_slip || p.ancient {
+            // C++ `drawHomeSlip` index 1: handwritingFont `bell` / `hell` / `rocket`.
+            Some("BELL".to_string())
+        } else if p.temporary {
+            Some(home_slip_pencil_word(p.temp_person_key.as_deref()))
         } else {
             None
         };
-        (dir, label)
+        HomeDirDraw {
+            dir,
+            label,
+            dist,
+            temporary: p.temporary,
+        }
     }
 }
 
-/// Active soft-FB map/label pointer from PS `*map` / `*label` (P3#17).
+/// Parsed PS `*map` / `*label` (feeds [`HomePosStack`] for HUD arrows).
 ///
-/// // C++: temp `HomePos` + overhead label; we draw world markers instead of
-/// // home-slip arrows only.
+/// // C++: `addTempHomeLocation` + `drawHomeSlip` arrows. No world stamp.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SaysPointerMarker {
     pub speaker_id: i32,
@@ -645,6 +704,11 @@ pub struct LiveObject {
     pub age_rate: f32,
     /// Wall clock when `age`/`age_rate` were last set from PU (C++ `lastAgeSetTime`).
     pub last_age_set: std::time::Instant,
+    /// C++ `tempAgeOverrideSet` — unheld baby < 1 cries (display age 0) for 5s on speech.
+    /// JUMP / lie-down use [`Self::current_age`] (NoOverride), not this.
+    pub temp_age_override_set: bool,
+    pub temp_age_override: f32,
+    pub temp_age_override_set_time: std::time::Instant,
     pub move_speed: f32,
     pub clothing: ClothingSet,
     pub just_ate: bool,
@@ -849,6 +913,9 @@ impl LiveObject {
             age: pu.age,
             age_rate: pu.age_rate,
             last_age_set: std::time::Instant::now(),
+            temp_age_override_set: false,
+            temp_age_override: 0.0,
+            temp_age_override_set_time: std::time::Instant::now(),
             // Wire facing is override 1/-1/0; map to holdingFlip immediately.
             // (from_pu sets facing from pu below; re-apply override semantics)
             move_speed: pu.move_speed,
@@ -946,6 +1013,11 @@ impl LiveObject {
             return;
         }
         let old_held = self.held_id;
+        // Clock age before this PU (C++ computeCurrentAgeNoOverride).
+        let clock_age = self.current_age();
+        let temp_age_override_set = self.temp_age_override_set;
+        let temp_age_override = self.temp_age_override;
+        let temp_age_override_set_time = self.temp_age_override_set_time;
         // C++: facingOverride==0 keeps existing holdingFlip (unless held-origin dir).
         let keep_flip = pu.facing == 0;
         let prev_flip = self.holding_flip();
@@ -1010,6 +1082,15 @@ impl LiveObject {
         let kill_mode = self.kill_mode;
         let kill_with_id = self.kill_with_id;
         *self = Self::from_pu(pu);
+        // Open Life JUMP/wiggle PU repeats a stale `age` (often 0.01). C++ Jason
+        // servers send the current age; applying a rewind pins noMoveAge forever.
+        if pu.age + 0.001 < clock_age {
+            self.age = clock_age;
+            self.last_age_set = std::time::Instant::now();
+        }
+        self.temp_age_override_set = temp_age_override_set;
+        self.temp_age_override = temp_age_override;
+        self.temp_age_override_set_time = temp_age_override_set_time;
         if keep_flip {
             self.set_holding_flip(prev_flip);
         }
@@ -1486,11 +1567,26 @@ impl LiveObject {
 
     /// C++ `computeCurrentAgeNoOverride`: base age + ageRate × elapsed since PU.
     ///
+    /// JUMP / lie-down (`noMoveAge`) use this, not the 5s cry override.
+    ///
     /// // LivingLifePage.cpp ~1498–1505
     #[inline]
     pub fn current_age(&self) -> f32 {
         let elapsed = self.last_age_set.elapsed().as_secs_f32();
         self.age + self.age_rate * elapsed
+    }
+
+    /// C++ `computeCurrentAge` — sprite draw, including 5s cry override.
+    ///
+    /// // LivingLifePage.cpp ~1511–1533
+    pub fn display_age(&self) -> f32 {
+        if self.temp_age_override_set {
+            let dt = self.temp_age_override_set_time.elapsed().as_secs_f32();
+            if dt < 5.0 {
+                return self.temp_age_override + self.age_rate * dt;
+            }
+        }
+        self.current_age()
     }
 
     /// C++ `showPlayerLabel` — overhead `+FAMILY+` / `+LEADER+` / … (not SAY).
@@ -1740,6 +1836,13 @@ impl LiveObject {
         self.speech_fade = 1.0;
         self.speech_ttl_remaining = Some(speech_hold_sec(&text));
         self.speech_is_curse_tag = is_tag;
+        // C++ ~20693–20700: unheld baby < 1 reverts to crying age for 5s.
+        // Display only — JUMP / lie-down keep [`Self::current_age`].
+        if self.current_age() < 1.0 && self.held_by_adult_id == -1 {
+            self.temp_age_override_set = true;
+            self.temp_age_override = 0.0;
+            self.temp_age_override_set_time = std::time::Instant::now();
+        }
     }
 
     /// C++ PLAYER_SAYS `*map` suffix: " — N meters away" / "M years ago".
@@ -1937,6 +2040,18 @@ impl LiveWorld {
             self.clear_held_by_adult(pu.player_id, None);
             return false;
         }
+        let ours = self.our_id == Some(pu.player_id);
+        let keep_interp = ours
+            && !pu.force
+            && self
+                .players
+                .get(&pu.player_id)
+                .map(|o| o.moving)
+                .unwrap_or(false);
+        let kept_display = self
+            .players
+            .get(&pu.player_id)
+            .map(|o| (o.display_x, o.display_y));
         let inserted = match self.players.get_mut(&pu.player_id) {
             Some(obj) => {
                 obj.apply_pu(pu);
@@ -1947,6 +2062,14 @@ impl LiveWorld {
                 true
             }
         };
+        // C++ ~19311: our currentPos is only force-snapped. A done_moving PU
+        // with the wrong seq must not yank the sprite back mid-walk.
+        if keep_interp {
+            if let (Some((dx, dy)), Some(o)) = (kept_display, self.players.get_mut(&pu.player_id)) {
+                o.set_display_pos(dx, dy);
+                o.moving = true;
+            }
+        }
         // Sync held-by links from this adult's held_id (baby = -held_id).
         if pu.held_id < 0 {
             let baby_id = -pu.held_id;
@@ -2284,19 +2407,33 @@ impl LiveWorld {
     }
 
     /// Record PM starts; mark moving (position still from last PU until path ends).
+    ///
+    /// C++ `LivingLifePage` ~20139: **do not** replace our untruncated path or
+    /// `currentPos` from PM — we interpolate locally. Applying xs/ys here snaps
+    /// the figure back to the MOVE origin after they have already walked.
     pub fn apply_moves_start(&mut self, moves: &[PlayerMoveStart]) {
         for m in moves {
             if let Some(o) = self.players.get_mut(&m.player_id) {
                 o.moving = true;
                 o.last_move = Some(m.clone());
-                // PM xs/ys are path origin on wire (often absolute or birth-relative).
-                // Display starts at path origin; local player is refined by MoveState.
+                // Face first substantial X step (Jason holdingFlip from move dir).
+                o.apply_facing_from_path_deltas(&m.deltas);
+                if self.our_id == Some(m.player_id) && m.trunc == 0 {
+                    continue;
+                }
+                // PM xs/ys are path origin. Remotes start display there; dest is
+                // last delta. Truncated *our* path keeps display (MoveState).
+                if self.our_id == Some(m.player_id) {
+                    if let Some(&(dx, dy)) = m.deltas.last() {
+                        o.x = m.xs + dx;
+                        o.y = m.ys + dy;
+                    }
+                    continue;
+                }
                 o.x = m.xs;
                 o.y = m.ys;
                 o.display_x = m.xs as f32;
                 o.display_y = m.ys as f32;
-                // Face first substantial X step (Jason holdingFlip from move dir).
-                o.apply_facing_from_path_deltas(&m.deltas);
             }
         }
     }
@@ -2869,6 +3006,32 @@ mod tests {
     }
 
     #[test]
+    fn apply_pu_does_not_rewind_interpolated_age() {
+        let mut w = LiveWorld::new();
+        let pu = parse_pu_line(
+            "7 19 0 0 0 0 0 0 0 0 -1 0.50 1 0 0 0 0.01 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 0",
+        )
+        .unwrap();
+        w.apply_pu(&pu);
+        let o = w.get_mut(7).unwrap();
+        o.age = 0.25;
+        o.age_rate = 0.0;
+        o.last_age_set = std::time::Instant::now();
+        assert!(o.current_age() >= 0.24);
+        let stale = parse_pu_line(
+            "7 19 0 0 0 0 0 0 0 0 -1 0.50 1 0 0 0 0.01 60.00 3.75 0;0;0;0;0;0 0 0 -1 0 0",
+        )
+        .unwrap();
+        w.apply_pu(&stale);
+        let age = w.get(7).unwrap().current_age();
+        assert!(
+            age >= 0.24,
+            "JUMP/wiggle PU must not rewind noMoveAge clock, got {age}"
+        );
+        assert!(age < crate::click_tile::NO_MOVE_AGE + 0.2);
+    }
+
+    #[test]
     fn apply_pu_inserts_and_updates() {
         let mut w = LiveWorld::new();
         let pu = parse_pu_line(&sample_pu_line(7, 10, 20, 33)).unwrap();
@@ -3072,6 +3235,48 @@ mod tests {
         assert_eq!(clothing_char_to_slot('x'), None);
         assert_eq!(CLOTHING_SLOT_NAMES[0], "hat");
         assert_eq!(CLOTHING_SLOT_NAMES[5], "backpack");
+    }
+
+    #[test]
+    fn apply_moves_start_does_not_rewind_our_display() {
+        // C++: untruncated own PM must not snap currentPos back to path origin.
+        let mut w = LiveWorld::new();
+        w.set_our_id(3);
+        w.apply_pu(&parse_pu_line(&sample_pu_line(3, 0, 0, 0)).unwrap());
+        {
+            let o = w.get_mut(3).unwrap();
+            o.x = 2;
+            o.y = 0;
+            o.set_display_pos(1.4, 0.0);
+        }
+        w.apply_moves_start(&[PlayerMoveStart {
+            player_id: 3,
+            xs: 0,
+            ys: 0,
+            total_sec: 1.0,
+            eta_sec: 1.0,
+            trunc: 0,
+            deltas: vec![(2, 0)],
+            raw_line: String::new(),
+        }]);
+        let o = w.get(3).unwrap();
+        assert!(o.moving);
+        assert!(
+            (o.display_x - 1.4).abs() < 1e-4,
+            "own PM must not teleport display to origin, got {}",
+            o.display_x
+        );
+        assert_eq!((o.x, o.y), (2, 0), "dest xd/yd stays at path end");
+    }
+
+    #[test]
+    fn home_slip_pencil_words_match_english_txt() {
+        assert_eq!(home_slip_pencil_word(None), "MAP");
+        assert_eq!(home_slip_pencil_word(Some("lead")), "LEAD");
+        assert_eq!(home_slip_pencil_word(Some("owner")), "OWN");
+        assert_eq!(home_slip_pencil_word(Some("visitor")), "VSTR");
+        assert_eq!(home_slip_pencil_word(Some("mother")), "MOTHER");
+        assert_eq!(home_slip_pencil_word(Some("baby")), "BABY");
     }
 
     #[test]
@@ -3569,6 +3774,18 @@ mod tests {
         // map_age present → age wins (expert bonus not applied on age path).
         let aged = parse_ps_line("1/0 FIND *expert 2 *map 0 0 40").unwrap();
         assert!((says_pointer_ttl_sec(&aged) - 40.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn home_arrow_hidden_when_closer_than_five_tiles() {
+        let mut s = HomePosStack::new();
+        s.add_home(0, 0);
+        let (dir, lab) = s.home_dir_and_label(0.0, 0.0);
+        assert!(dir.is_none() && lab.is_none(), "on the stake: hide slip");
+        let (dir, _) = s.home_dir_and_label(0.0, 4.0);
+        assert!(dir.is_none(), "C++ tooClose dist < 5");
+        let (dir, _) = s.home_dir_and_label(0.0, -5.0);
+        assert_eq!(dir, Some(0), "dist == 5 is shown, north");
     }
 
     #[test]

@@ -43,6 +43,12 @@ fn framed_is_fm(framed: &FramedMessage) -> bool {
     }
 }
 
+/// Open Life leftover `player_id_for_conn(conn_id) = conn_id+1` (tiny).
+/// Live sim ids are `9100…`. Never treat a sim id as this ghost.
+fn is_openlife_bootstrap_id(id: i32) -> bool {
+    id > 0 && id < 1_000_000
+}
+
 /// C++ pass-through while waiting for FM: MAP_CHUNK, PONG, FLIGHT_DEST, PHOTO_SIGNATURE.
 /// These must not be held in `serverFrameMessages` (MC has binary; PONG is RTT; FD must
 /// arrive before the destination MC is applied on the client path).
@@ -278,6 +284,9 @@ pub struct ClientSession {
     pub login: LoginOutcome,
     /// Our player id once known from PU (optional).
     pub our_id: Option<i32>,
+    /// True once we have applied a PU for [`Self::our_id`] after the initial
+    /// bind (prevents bouncing between bootstrap id and sim id).
+    our_id_confirmed: bool,
     /// Map chunk upper-left + size from last MC (used to guess our player near center).
     last_mc: Option<MapChunkHeader>,
     /// Last FX applied (headless HUD/world state).
@@ -296,6 +305,8 @@ pub struct ClientSession {
     pub last_ping_ms: Option<f32>,
     /// `/RTT` overlay (settings `show_server_rtt` is the usual on/off).
     pub show_rtt_overlay: bool,
+    /// `/PING` overlay — last RTT on the top stats line.
+    pub show_ping_overlay: bool,
     /// RTT samples for the last 5 minutes `(when, ms)`.
     rtt_samples: Vec<(Instant, f32)>,
     last_auto_ping_at: Option<Instant>,
@@ -358,6 +369,9 @@ pub struct ClientSession {
     /// C++ `playerActionPending` — true after a USE/DROP/… is **sent** until the next
     /// non-force our-PU while already stationary confirms the action. Blocks clicks.
     pub player_action_pending: bool,
+    /// When [`Self::player_action_pending`] was set. Stale waits are dropped so
+    /// a ignored USE cannot lock the click gate forever.
+    player_action_pending_at: Option<Instant>,
     /// Remaining MOVE chunks after the first ±16 window (C++ multi-hop after done_moving).
     /// // C++: LivingLifePage multi-hop after done_moving / pathFindingD=32
     pub(crate) multi_move_chunks: Vec<Vec<PathDelta>>,
@@ -377,6 +391,10 @@ pub struct ClientSession {
     last_pickup_origin: HashMap<i32, (i32, i32)>,
     /// Optional full TX/RX transcript.
     wire_log: Option<Arc<WireLog>>,
+    /// Last non-KA client→server line (redacted if LOGIN). File log only.
+    pub last_tx_line: String,
+    /// Last ground-baby `JUMP 0 0#` (hold-repeat pointerDown must not flood).
+    last_ground_jump: Option<Instant>,
 }
 
 impl ClientSession {
@@ -452,6 +470,7 @@ impl ClientSession {
             },
             login: LoginOutcome::Rejected,
             our_id: None,
+            our_id_confirmed: false,
             last_mc: None,
             food: None,
             deferred_fx: Vec::new(),
@@ -460,6 +479,7 @@ impl ClientSession {
             show_net_overlay: false,
             last_ping_ms: None,
             show_rtt_overlay: false,
+            show_ping_overlay: false,
             rtt_samples: Vec::new(),
             last_auto_ping_at: None,
             force_disconnect: false,
@@ -506,6 +526,7 @@ impl ClientSession {
             skip_emot_ttl_in_step: false,
             pending_action: None,
             player_action_pending: false,
+            player_action_pending_at: None,
             multi_move_chunks: Vec::new(),
             multi_move_goal: None,
             last_flip_sent: false,
@@ -515,6 +536,8 @@ impl ClientSession {
             ka_idle: Duration::from_secs(KA_IDLE_SECS),
             last_pickup_origin: HashMap::new(),
             wire_log,
+            last_tx_line: String::new(),
+            last_ground_jump: None,
         };
         // L-EMOT: load emotionWords/emotionObjects from content root (tiny ini).
         // L-SOUND-TRIG: OLSN index only (zero AIFF opens at boot).
@@ -611,6 +634,13 @@ impl ClientSession {
 
     pub fn set_wire_log(&mut self, log: Arc<WireLog>) {
         self.wire_log = Some(log);
+    }
+
+    /// Append a note to the wire transcript (click dumps, bind events).
+    pub fn log_note(&self, text: &str) {
+        if let Some(log) = &self.wire_log {
+            log.note(text);
+        }
     }
 
     /// Adjust TCP read timeout (e.g. short polls after login for snapshot tools).
@@ -818,10 +848,12 @@ impl ClientSession {
         self.ready_pending.clear();
         self.pending_action = None;
         self.player_action_pending = false;
+        self.player_action_pending_at = None;
         self.multi_move_chunks.clear();
         self.multi_move_goal = None;
         self.frames = FrameReader::new();
         self.our_id = None;
+        self.our_id_confirmed = false;
         self.last_mc = None;
         self.food = None;
         self.deferred_fx.clear();
@@ -830,6 +862,7 @@ impl ClientSession {
         self.show_net_overlay = false;
         self.last_ping_ms = None;
         self.show_rtt_overlay = false;
+        self.show_ping_overlay = false;
         self.rtt_samples.clear();
         self.last_auto_ping_at = None;
         self.force_disconnect = false;
@@ -853,6 +886,7 @@ impl ClientSession {
         self.world = LiveWorld::new();
         self.map = ClientMap::new();
         self.last_pickup_origin.clear();
+        self.last_ground_jump = None;
         // Keep last_move_sequence semantics of a fresh birth (1) after full reset.
         self.move_state = MoveState::default();
         self.map_global_offset = MapGlobalOffset::ZERO;
@@ -960,7 +994,10 @@ impl ClientSession {
         self.world
             .step_remote_path_display(wall_dt as f32, self.our_id);
         self.maybe_send_flip();
+        self.expire_stale_action_pending();
+        // Flush queued USE only when in_motion actually ends (done_moving / dest PU).
         if was_moving && !self.move_state.in_motion {
+            let _ = self.flush_pending_action();
             let _ = self.maybe_road_auto_walk();
         }
     }
@@ -1067,11 +1104,13 @@ impl ClientSession {
             return;
         };
         let in_motion = self.move_state.in_motion;
+        let display_moving = self.move_state.is_display_moving();
         let (cx, cy) = (
             self.move_state.current_pos_x as f32,
             self.move_state.current_pos_y as f32,
         );
-        let dir_x = if in_motion {
+        let (dx, dy) = (self.move_state.x, self.move_state.y);
+        let dir_x = if display_moving {
             self.move_state_facing_dx()
         } else {
             0.0
@@ -1079,16 +1118,17 @@ impl ClientSession {
         let Some(o) = self.world.get_mut(oid) else {
             return;
         };
+        // Walk anim follows local interpolation (C++ currentSpeed), not in_motion.
+        o.moving = display_moving;
+        o.x = dx;
+        o.y = dy;
         if in_motion {
-            o.moving = true;
             o.set_display_pos(cx, cy);
-            // Face move direction when |Δx| is substantial (Jason ~22789).
-            if dir_x.abs() > 0.5 {
+            if display_moving && dir_x.abs() > 0.5 {
                 o.set_holding_flip(dir_x < 0.0);
             }
-        } else if !o.moving {
-            // Idle: keep display on grid unless remote path still active.
-            o.set_display_pos(o.x as f32, o.y as f32);
+        } else {
+            o.set_display_pos(dx as f32, dy as f32);
         }
     }
 
@@ -1215,7 +1255,8 @@ impl ClientSession {
                     return Ok(SessionEvent::Other(body));
                 }
                 let mut events = Vec::with_capacity(list.len());
-                for pu in list {
+                for mut pu in list {
+                    self.clamp_implausible_our_pu(&mut pu);
                     if self.try_hold_pu(&pu) {
                         continue;
                     }
@@ -1252,8 +1293,6 @@ impl ClientSession {
                     }
                     let mut force_ack_sent = None;
                     if is_ours && !pu.deleted {
-                        // Snapshot before move_state may clear in_motion on done_moving.
-                        let was_in_motion = self.move_state.in_motion;
                         // C++ mid-frame order on our forced-pos PU:
                         // 1) snap + clear nextActionMessageToSend (do NOT flush it)
                         // 2) immediately send FORCE x y#
@@ -1269,7 +1308,7 @@ impl ClientSession {
                             // Also drop multi-MOVE follow-up — C++ path is replaced by FORCE.
                             self.cancel_pending_action();
                             self.clear_multi_move();
-                            self.player_action_pending = false;
+                            self.mark_action_pending(false);
                             if let Some(oid) = self.our_id {
                                 if let Some(o) = self.world.get_mut(oid) {
                                     o.clear_pending_action_flag();
@@ -1283,11 +1322,10 @@ impl ClientSession {
                             force_ack_sent = Some(ack);
                         } else {
                             // C++ ~19348–19357: post-action PU while !inMotion clears
-                            // playerActionPending. done_moving arrives while was_in_motion
-                            // so we do not clear before flush_pending_action below.
-                            if !was_in_motion {
-                                self.player_action_pending = false;
-                                // P3#22: finish action-wiggle cycle (progress may still decay).
+                            // playerActionPending. Check *after* on_player_update so a
+                            // matching done_moving also frees the gate.
+                            if !self.move_state.in_motion {
+                                self.mark_action_pending(false);
                                 if let Some(oid) = self.our_id {
                                     if let Some(o) = self.world.get_mut(oid) {
                                         o.clear_pending_action_flag();
@@ -1305,16 +1343,9 @@ impl ClientSession {
                             // After continue_multi_move arms another hop, in_motion blocks flush.
                             let _ = self.flush_pending_action()?;
                         }
-                        // Jason: walk anim follows client onPath (move_state), not last PU alone.
-                        // Re-assert moving + display after apply_pu may have cleared mid-path.
+                        // Jason: walk anim follows client interpolation (currentSpeed), not
+                        // in_motion / last PU alone. Re-assert display after apply_pu.
                         self.sync_our_live_motion();
-                        if self.move_state.in_motion {
-                            if let Some(oid) = self.our_id {
-                                if let Some(o) = self.world.get_mut(oid) {
-                                    o.moving = true;
-                                }
-                            }
-                        }
                     }
                     // C++ ~19845: baby-held interrupt clears nextAction for ourID.
                     if !pu.deleted && pu.held_id < 0 {
@@ -1322,7 +1353,7 @@ impl ClientSession {
                         if self.our_id == Some(baby_id) {
                             self.cancel_pending_action();
                             self.clear_multi_move();
-                            self.player_action_pending = false;
+                            self.mark_action_pending(false);
                             self.move_state.in_motion = false;
                             self.move_state.dest_truncated = false;
                             self.move_state.path_to_dest.clear();
@@ -1337,7 +1368,7 @@ impl ClientSession {
                         // C++ death path also drops nextActionMessageToSend.
                         self.cancel_pending_action();
                         self.clear_multi_move();
-                        self.player_action_pending = false;
+                        self.mark_action_pending(false);
                     }
                     // L-HUD: flush FX deferred while feeder was mid-walk.
                     if !pu.deleted {
@@ -1385,9 +1416,9 @@ impl ClientSession {
                 if let Some(our) = self.our_id {
                     for m in &v {
                         if m.player_id == our {
-                            if m.trunc != 0 {
-                                self.move_state
-                                    .on_own_path_truncated(m.xs, m.ys, &m.deltas);
+                            if m.trunc != 0
+                                && self.move_state.on_own_path_truncated(m.xs, m.ys, &m.deltas)
+                            {
                                 self.cancel_pending_action();
                                 self.clear_multi_move();
                             }
@@ -1399,6 +1430,9 @@ impl ClientSession {
                             );
                         }
                     }
+                    // C++ keeps our currentPos local; re-assert after PM so a
+                    // remote-style origin snap cannot stick for a frame.
+                    self.sync_our_live_motion();
                 }
                 Ok(SessionEvent::PlayerMovesStart(v))
             }
@@ -1424,6 +1458,27 @@ impl ClientSession {
                 self.note_transform_mx(&play);
                 self.apply_map_drop_slides(&play);
                 self.map.apply_mx_many_with_content(&play, &self.content);
+                // Server often sends MX for our harvest before (or without) the
+                // matching PU. Leaving playerActionPending set locked all further
+                // clicks on `ActionPending` even though the object was already gone.
+                if self.player_action_pending {
+                    let our = self.our_id.unwrap_or(-1);
+                    let (ax, ay) = self
+                        .our_id
+                        .and_then(|id| self.world.get(id))
+                        .map(|o| (o.action_target_x, o.action_target_y))
+                        .unwrap_or((i32::MIN, i32::MIN));
+                    if play.iter().any(|ch| {
+                        (our > 0 && ch.player_id == our) || (ch.x == ax && ch.y == ay)
+                    }) {
+                        self.mark_action_pending(false);
+                        if let Some(oid) = self.our_id {
+                            if let Some(o) = self.world.get_mut(oid) {
+                                o.clear_pending_action_flag();
+                            }
+                        }
+                    }
+                }
                 Ok(SessionEvent::MapChanges(play))
             }
             InboundMessage::FoodChange(f) => {
@@ -1739,6 +1794,11 @@ impl ClientSession {
         if pu.deleted {
             return false;
         }
+        // Never delay our own PU (FORCE / done_moving). Holding it leaves
+        // in_motion stuck so queued USE never goes on the wire.
+        if self.our_id == Some(pu.player_id) {
+            return false;
+        }
         let our = self.our_id;
         let msg = format!("PU\n{}\n#", pu.raw_line);
         let (adult, adult_pending) = self
@@ -1865,13 +1925,17 @@ impl ClientSession {
                 }
             }
             SlashCommand::Ping => {
+                self.show_ping_overlay = !self.show_ping_overlay;
                 self.last_ping_sent += 1;
                 self.waiting_for_pong = true;
                 self.ping_sent_at = Some(Instant::now());
-                self.last_ping_ms = None;
                 let line = encode_ping(0, 0, self.last_ping_sent);
                 self.send_raw(&line)?;
-                Ok(line)
+                Ok(if self.show_ping_overlay {
+                    "PING ON".into()
+                } else {
+                    "PING OFF".into()
+                })
             }
             SlashCommand::Disconnect => {
                 self.force_disconnect = true;
@@ -2026,31 +2090,48 @@ impl ClientSession {
         }
     }
 
-    /// Bind local player once: prefer PU nearest map-chunk center (spawn view).
+    /// Bind local player from the first nearby PU (C++ `ourID` = first PU).
+    ///
+    /// Open Life may emit a leftover bootstrap id (`conn_id+1`, typically < 1e6)
+    /// before the sim global id (`9100…`). Rebind **only** that ghost → sim id
+    /// at spawn. Never steal a sim id because another player (the mother) is
+    /// standing on the same tile as a newborn.
     fn maybe_bind_our_player(&mut self, pu: &PlayerUpdate) {
-        if self.our_id.is_some() || pu.deleted {
+        if pu.deleted {
             return;
         }
-        // If we have MC meta, only bind when this PU is near the chunk center
-        // (first post-login map is centered on the connecting player).
-        if let Some(ref mc) = self.last_mc {
-            let (cx, cy) = mc.center();
-            let dist = (pu.x - cx).abs().max((pu.y - cy).abs());
-            // Allow a few tiles of slack (player may be mid-path).
-            if dist > 8 {
+        let Some(ref mc) = self.last_mc else {
+            return;
+        };
+        let (cx, cy) = mc.center();
+        let dist = (pu.x - cx).abs().max((pu.y - cy).abs());
+        if dist > 8 {
+            return;
+        }
+        if self.our_id == Some(pu.player_id) {
+            self.our_id_confirmed = true;
+            return;
+        }
+        if let Some(cur) = self.our_id {
+            let bootstrap_to_sim =
+                is_openlife_bootstrap_id(cur) && !is_openlife_bootstrap_id(pu.player_id);
+            if !bootstrap_to_sim || dist > 0 {
                 return;
             }
-        } else {
-            // No MC yet: do not guess among multiplayer PUs.
-            return;
+            if let Some(log) = &self.wire_log {
+                log.note(&format!(
+                    "rebind our_id {cur} → {} pos=({},{})",
+                    pu.player_id, pu.x, pu.y
+                ));
+            }
         }
         self.our_id = Some(pu.player_id);
+        self.our_id_confirmed = !is_openlife_bootstrap_id(pu.player_id);
         self.world.set_our_id(pu.player_id);
         self.move_state.x = pu.x;
         self.move_state.y = pu.y;
         self.move_state.current_pos_x = pu.x as f64;
         self.move_state.current_pos_y = pu.y as f64;
-        // Birth seq is 1 until first MOVE; if server reports done_moving use max(1, that).
         if pu.done_moving_seq_num > 0 {
             self.move_state.last_move_sequence_number = pu.done_moving_seq_num;
         }
@@ -2080,6 +2161,18 @@ impl ClientSession {
         self.messages_out = self.messages_out.saturating_add(1);
         if let Some(log) = &self.wire_log {
             log.tx(message);
+        }
+        let trimmed = message.trim();
+        let is_ka = trimmed.starts_with("KA ");
+        if !is_ka {
+            let shown = if crate::secrets::is_login_wire_line(trimmed) {
+                crate::secrets::redact_login_wire(trimmed)
+            } else if trimmed.ends_with('#') {
+                trimmed.to_string()
+            } else {
+                format!("{trimmed}#")
+            };
+            self.last_tx_line = shown;
         }
         write_message(&mut self.stream, message)
     }
@@ -2233,18 +2326,18 @@ impl ClientSession {
 
     /// Send or queue an object action (`nextActionMessageToSend` parity).
     ///
-    /// Always returns the encoded line. When mid-MOVE / awaiting FORCE the line is
-    /// **not** sent yet (queued); otherwise it is written immediately and
-    /// [`Self::player_action_pending`] is set (C++ `playerActionPending`).
+    /// Always returns the encoded line. When `in_motion` / awaiting FORCE the line
+    /// is **not** sent yet (queued); when idle it is written and
+    /// [`Self::player_action_pending`] is set.
     pub fn send_object_action(&mut self, action: ObjectAction) -> io::Result<String> {
         let line = action.encode();
-        if self.move_state.in_motion || self.move_state.awaiting_force_ack {
+        if !self.move_state.can_send_action_now() {
             self.pending_action = Some(action);
             return Ok(line);
         }
         self.send_raw(&line)?;
         // Action on the wire — block further clicks until post-action PU.
-        self.player_action_pending = true;
+        self.mark_action_pending(true);
         // P3#22: start action-wiggle bounce (C++ pendingActionAnimationProgress).
         if let Some(oid) = self.our_id {
             if let Some(o) = self.world.get_mut(oid) {
@@ -2264,7 +2357,7 @@ impl ClientSession {
     /// Headless omits the short pending-action anim delay; adjacency is enforced.
     /// Sets [`Self::player_action_pending`] when the action is written.
     pub fn flush_pending_action(&mut self) -> io::Result<Option<String>> {
-        if self.move_state.in_motion || self.move_state.awaiting_force_ack {
+        if !self.move_state.can_send_action_now() {
             return Ok(None);
         }
         let Some(action) = self.pending_action.as_ref() else {
@@ -2282,7 +2375,7 @@ impl ClientSession {
         self.play_action_sound(&action);
         let line = action.encode();
         self.send_raw(&line)?;
-        self.player_action_pending = true;
+        self.mark_action_pending(true);
         // P3#22: start action wiggle bounce (C++ pendingActionAnimationProgress ~23220).
         if let Some(oid) = self.our_id {
             if let Some(o) = self.world.get_mut(oid) {
@@ -2694,9 +2787,50 @@ impl ClientSession {
         self.pending_action = None;
     }
 
+    fn mark_action_pending(&mut self, pending: bool) {
+        self.player_action_pending = pending;
+        self.player_action_pending_at = if pending {
+            Some(Instant::now())
+        } else {
+            None
+        };
+    }
+
+    /// C++ gives up after ~10s + PONG. We unstick after 2s so a ignored USE
+    /// cannot lock LMB on `ActionPending` forever.
+    #[cfg(test)]
+    pub fn debug_age_action_pending(&mut self, secs: f32) {
+        self.player_action_pending = true;
+        self.player_action_pending_at =
+            Some(Instant::now() - Duration::from_secs_f32(secs.max(0.0)));
+    }
+
+    pub fn expire_stale_action_pending(&mut self) {
+        const STALE_SECS: f32 = 2.0;
+        if !self.player_action_pending {
+            return;
+        }
+        let Some(t) = self.player_action_pending_at else {
+            self.player_action_pending_at = Some(Instant::now());
+            return;
+        };
+        if t.elapsed().as_secs_f32() < STALE_SECS {
+            return;
+        }
+        self.mark_action_pending(false);
+        if let Some(oid) = self.our_id {
+            if let Some(o) = self.world.get_mut(oid) {
+                o.clear_pending_action_flag();
+            }
+        }
+    }
+
     /// `JUMP 0 0#` — baby jump-out / young wiggle (C++ pointerDown gates).
     ///
     /// P3#22: when held, arms a local `babyWiggle` bounce (C++ ~24967–24973).
+    /// Ground wiggle is throttled: LMB hold repeats pointerDown every frame and
+    /// Open Life JUMP echoes a PU that can leak **true** world coords (village
+    /// 0,0 → 377,142) and reset age so the baby never stands.
     pub fn send_jump(&mut self) -> io::Result<String> {
         let held = self.we_are_held_by_adult();
         // C++ limits JUMP frequency by previous wiggle ending when held.
@@ -2709,6 +2843,11 @@ impl ClientSession {
                     }
                 }
             }
+        } else if let Some(t) = self.last_ground_jump {
+            if t.elapsed() < Duration::from_millis(400) {
+                self.play_ground_jump_visual();
+                return Ok(String::new());
+            }
         }
         let line = encode_jump(0, 0);
         self.send_raw(&line)?;
@@ -2718,8 +2857,51 @@ impl ClientSession {
                     o.start_baby_wiggle();
                 }
             }
+        } else {
+            self.last_ground_jump = Some(Instant::now());
         }
         Ok(line)
+    }
+
+    fn play_ground_jump_visual(&mut self) {
+        // C++ ~24985–24989: flip + moving→ground so a throttled click still wiggles.
+        if let Some(oid) = self.our_id {
+            if let Some(o) = self.world.get_mut(oid) {
+                o.facing = if o.facing < 0 { 1 } else { -1 };
+                o.anim.switch_to(crate::anim_bank::ANIM_MOVING, None);
+                o.anim.switch_to(crate::anim_bank::ANIM_GROUND, None);
+            }
+        }
+    }
+
+    /// Open Life JUMP wiggle PU sometimes uses `toData()` true x,y (gx+x) instead
+    /// of client-relative. Drop an instant teleport that would leave the loaded map.
+    fn clamp_implausible_our_pu(&mut self, pu: &mut PlayerUpdate) {
+        if pu.deleted || pu.force {
+            return;
+        }
+        let Some(oid) = self.our_id else {
+            return;
+        };
+        if pu.player_id != oid {
+            return;
+        }
+        let Some(o) = self.world.get(oid) else {
+            return;
+        };
+        let dist = (pu.x - o.x).abs().max((pu.y - o.y).abs());
+        // One MOVE hop is ±16; a 300-tile snap is the JUMP absolute-coord leak.
+        if dist <= crate::move_state::MAX_PATH_DELTA * 2 {
+            return;
+        }
+        if let Some(log) = &self.wire_log {
+            log.note(&format!(
+                "ignore PU teleport {} -> ({},{}) keep ({},{})",
+                pu.player_id, pu.x, pu.y, o.x, o.y
+            ));
+        }
+        pu.x = o.x;
+        pu.y = o.y;
     }
 
     /// `KILL x y [id]#` — SHIFT+modClick deadly intent (C++ ~25550). Immediate send.
@@ -4155,6 +4337,107 @@ mod tests {
     }
 
     #[test]
+    fn bind_keeps_first_sim_pu_not_mother_on_same_tile() {
+        // Live spawn: baby 9100133 first (age 0.01, force), then mother 9100117
+        // on the same tile. C++ ourID stays the first PU.
+        let bodies = vec![
+            framed_text("MC\n32 30 -16 -15\n0 0\n"),
+            framed_text(
+                "PU\n\
+9100133 19 0 0 0 0 0 0 0 0 -1 0.50 1 1 0 0 0.01 60.00 3.68 0;0;0;0;0;0 0 0 -1 0 0\n\
+9100117 19 0 0 0 0 0 0 0 0 -1 0.50 345 0 0 0 14.70 60.00 3.07 0;0;0;0;0;0 0 0 -1 0 0\n",
+            ),
+            framed_text("FM\n"),
+        ];
+        let (port, handle) = login_then_peer(bodies);
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        for _ in 0..16 {
+            match session.poll_event() {
+                Ok(SessionEvent::Frame) => break,
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        assert_eq!(
+            session.our_id,
+            Some(9100133),
+            "must stay the baby, not the mother on the same tile"
+        );
+        let _ = handle.join();
+    }
+
+    #[test]
+    fn bind_rebinds_bootstrap_conn_id_to_sim_id() {
+        let bodies = vec![
+            framed_text("MC\n32 30 -16 -15\n0 0\n"),
+            framed_text(
+                "PU\n\
+21 19 0 0 0 0 0 0 0 0 -1 0.50 1 1 0 0 0.01 60.00 3.68 0;0;0;0;0;0 0 0 -1 0 0\n",
+            ),
+            framed_text("FM\n"),
+            framed_text(
+                "PU\n\
+9100133 19 0 0 0 0 0 0 0 0 -1 0.50 1 1 0 0 0.01 60.00 3.68 0;0;0;0;0;0 0 0 -1 0 0\n",
+            ),
+            framed_text("FM\n"),
+        ];
+        let (port, handle) = login_then_peer(bodies);
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        let mut saw_boot = false;
+        for _ in 0..24 {
+            match session.poll_event() {
+                Ok(SessionEvent::Frame) if session.our_id == Some(9100133) => break,
+                Ok(_) => {
+                    if session.our_id == Some(21) {
+                        saw_boot = true;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+        assert!(
+            saw_boot || session.our_id == Some(9100133),
+            "bootstrap 21 should bind first or already be replaced"
+        );
+        assert_eq!(session.our_id, Some(9100133));
+        let _ = handle.join();
+    }
+
+    #[test]
+    fn jump_wiggle_pu_does_not_teleport_off_village() {
+        // Login PU at 0,0 then JUMP echo with true world x,y (Open Life toData leak).
+        let bodies = vec![
+            framed_text("MC\n32 30 -16 -15\n0 0\n"),
+            framed_text(
+                "PU\n\
+9100135 19 0 0 0 0 0 0 0 0 -1 0.50 1 1 0 0 0.01 60.00 3.68 0;0;0;0;0;0 0 0 -1 0 0\n",
+            ),
+            framed_text("FM\n"),
+            framed_text(
+                "PU\n\
+9100135 19 0 0 0 0 0 0 0 0 -1 0.50 1 0 377 142 0.01 60.00 2.70 0;0;0;0;0;0 0 0 -1 0 0\n",
+            ),
+            framed_text("FM\n"),
+        ];
+        let (port, handle) = login_then_peer(bodies);
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        for _ in 0..24 {
+            match session.poll_event() {
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        assert_eq!(session.our_id, Some(9100135));
+        let me = session.world.get(9100135).expect("baby");
+        assert_eq!(
+            (me.x, me.y),
+            (0, 0),
+            "JUMP echo must not snap us to true world coords"
+        );
+        let _ = handle.join();
+    }
+
+    #[test]
     fn holds_other_player_done_moving_pu_until_path_ends() {
         // Bind us at (16,15); other player 8 starts a walk then a done_moving PU
         // with a new held id must not apply until their local interpolation ends.
@@ -4239,7 +4522,8 @@ mod tests {
         let die = session.send_say("/die").unwrap();
         assert_eq!(die, "DIE 0 0#");
         let ping = session.send_say("/ping").unwrap();
-        assert!(ping.starts_with("PING 0 0 "));
+        assert_eq!(ping, "PING ON");
+        assert!(session.show_ping_overlay);
         assert_eq!(session.send_say("/disconnect").unwrap(), "DISCONNECT");
         assert!(session.force_disconnect);
         session.push_rtt_sample(20.0);

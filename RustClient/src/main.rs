@@ -49,11 +49,14 @@ fn usage() {
   ohol-headless --bench-fps            soft-FB SceneRenderer FPS (real content)
   ohol-headless --bench-present        Soft vs GPU present-path CPU cost (no window)
   ohol-headless --probe-move           login, MOVE, wait for PM/PU
+  ohol-headless --probe-walk-finish    sequential MOVE hops; print arrival PU seq/xy/force
+  ohol-headless --probe-walk-repath    repath mid-walk; print FORCE / stale finish PU / jumps
   ohol-headless --probe-actions        encode/send USE/DROP/REMV/SELF
   ohol-headless --probe-play           MOVE + SAY + USE playtest
   ohol-headless --probe-test           version-name, pickup, MX, !CLOSE
   ohol-headless --snapshot [PATH]      login, wait for our_id, write play snapshot
   ohol-headless --snapshot-self-check  synthetic snapshot roundtrip (no server)
+  ohol-headless --boot-shot [PATH]     login, draw first frame, write PPM/PNG, probe USE
   --src PATH         content root for bake/bench (or OHOL_CONTENT_DIR)
   --out PATH         cache out dir (default: <src>/cache)
   --report PATH      markdown report for --bench-load
@@ -157,6 +160,18 @@ fn main() -> ExitCode {
             }
         };
     }
+    if args.iter().any(|a| a == "--boot-shot") {
+        return match run_boot_shot(&args) {
+            Ok(path) => {
+                println!("boot-shot: OK → {}", path.display());
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("boot-shot FAILED: {e:#}");
+                ExitCode::FAILURE
+            }
+        };
+    }
     if args.iter().any(|a| a == "--snapshot") {
         return match run_snapshot(&args) {
             Ok(path) => {
@@ -165,6 +180,38 @@ fn main() -> ExitCode {
             }
             Err(e) => {
                 eprintln!("snapshot FAILED: {e:#}");
+                ExitCode::FAILURE
+            }
+        };
+    }
+    if args.iter().any(|a| a == "--probe-walk-repath") {
+        return match run_probe_walk_repath(&args) {
+            Ok(true) => {
+                println!("probe-walk-repath: PASS");
+                ExitCode::SUCCESS
+            }
+            Ok(false) => {
+                println!("probe-walk-repath: FAIL (see report)");
+                ExitCode::FAILURE
+            }
+            Err(e) => {
+                eprintln!("probe-walk-repath FAILED: {e:#}");
+                ExitCode::FAILURE
+            }
+        };
+    }
+    if args.iter().any(|a| a == "--probe-walk-finish") {
+        return match run_probe_walk_finish(&args) {
+            Ok(true) => {
+                println!("probe-walk-finish: PASS (server sent matching finish PU)");
+                ExitCode::SUCCESS
+            }
+            Ok(false) => {
+                println!("probe-walk-finish: FAIL (see hop table)");
+                ExitCode::FAILURE
+            }
+            Err(e) => {
+                eprintln!("probe-walk-finish FAILED: {e:#}");
                 ExitCode::FAILURE
             }
         };
@@ -270,6 +317,240 @@ fn run_snapshot_self_check() -> anyhow::Result<PathBuf> {
 }
 
 /// Login to server, wait until our_id, write play snapshot, exit.
+/// Login, draw the first playable frame (~100ms after our_id), dump PPM/PNG,
+/// and probe a nearby object USE so we can see interact + overlay bugs.
+fn run_boot_shot(args: &[String]) -> anyhow::Result<PathBuf> {
+    use ohol_headless::anim_bank::AnimBank;
+    use ohol_headless::click_use;
+    use ohol_headless::ground_sprites::GroundBank;
+    use ohol_headless::hover_pick::pick_at_screen;
+    use ohol_headless::render::{Framebuffer, SceneRenderer};
+    use ohol_headless::sprite_bank::SpriteBank;
+
+    let out = args
+        .windows(2)
+        .find(|w| w[0] == "--boot-shot" && !w[1].starts_with('-'))
+        .map(|w| PathBuf::from(w[1].clone()))
+        .or_else(|| flag_value(args, "--out").map(PathBuf::from))
+        .unwrap_or_else(|| PathBuf::from("boot_shot.ppm"));
+
+    let mut cfg = session_cfg_from_args(args);
+    cfg.read_timeout = Duration::from_secs(12);
+    cfg.write_timeout = Duration::from_secs(10);
+    eprintln!("boot-shot: connect {}:{}", cfg.host, cfg.port);
+    let mut session = connect_and_login(&cfg)?;
+    if !matches!(session.login, LoginOutcome::Accepted) {
+        anyhow::bail!("login not accepted: {:?}", session.login);
+    }
+    let _ = session.set_read_timeout(Some(Duration::from_millis(50)));
+    let deadline = Instant::now() + Duration::from_secs(12);
+    while session.our_id.is_none() && Instant::now() < deadline {
+        match session.poll_event() {
+            Ok(_) => {
+                while session.poll_event().is_ok() {}
+            }
+            Err(e)
+                if e.kind() == std::io::ErrorKind::WouldBlock
+                    || e.kind() == std::io::ErrorKind::TimedOut =>
+            {
+                thread::sleep(Duration::from_millis(10));
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
+    let born = Instant::now();
+    // Drain ~100ms of follow-up MC/PU so the first frame matches "just logged in".
+    let until = born + Duration::from_millis(100);
+    while Instant::now() < until {
+        match session.poll_event() {
+            Ok(_) => {}
+            Err(e)
+                if e.kind() == std::io::ErrorKind::WouldBlock
+                    || e.kind() == std::io::ErrorKind::TimedOut =>
+            {
+                thread::sleep(Duration::from_millis(5));
+            }
+            Err(_) => break,
+        }
+    }
+    let Some(me) = session.world.our() else {
+        anyhow::bail!("no our player after login");
+    };
+    let age = me.current_age();
+    let (px, py) = (me.x, me.y);
+    let display_id = me.display_id;
+    let moving = me.moving;
+    eprintln!(
+        "boot-shot: our_id={} pos=({},{}) display={} age={:.4} moving={} in_motion={} pending={} pointers={} tiles={}",
+        me.id,
+        px,
+        py,
+        display_id,
+        age,
+        moving,
+        session.move_state.in_motion,
+        session.player_action_pending,
+        session.world.says_pointers().len(),
+        session.map.len(),
+    );
+
+    let root = resolve_content_root(flag_value(args, "--src").map(Path::new))
+        .map_err(|e| anyhow::anyhow!(e))?;
+    let mut sprites = SpriteBank::load_prefer_cache(&root);
+    let mut anims = AnimBank::load_prefer_cache(&root);
+    let mut ground = GroundBank::load_prefer_cache(&root);
+    let _ = ground.preload_overlays();
+    if display_id > 0 {
+        sprites.preload([display_id]);
+    }
+
+    // Always dump a lying newborn (age 0.05) so we can see feet / overlays
+    // without depending on this login being a baby spawn.
+    {
+        use ohol_headless::client_map::{ClientMap, MapTile};
+        use ohol_headless::live_object::LiveWorld;
+        use ohol_headless::parse::parse_pu_line;
+        let mut bw = LiveWorld::new();
+        let pu = parse_pu_line(
+            "1 19 0 0 0 0 0 0 0 0 -1 0.5 1 0 0 0 0.05 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 0",
+        );
+        if let Some(pu) = pu {
+            bw.apply_pu(&pu);
+            bw.set_our_id(1);
+            let mut bm = ClientMap::new();
+            for y in -2..=2 {
+                for x in -3..=3 {
+                    bm.set(x, y, MapTile { biome: 0, ..MapTile::empty() });
+                }
+            }
+            let mut sc = SceneRenderer::default();
+            sc.set_content_root(Some(&root));
+            sc.camera.zoom = 64.0;
+            sc.draw_hud = false;
+            sc.highlight_tile = None;
+            let mut fbb = Framebuffer::new(960, 540);
+            sc.draw(&mut fbb, &mut bm, &mut bw, &session.content, &mut sprites, &mut anims, 0.0);
+            let baby_path = out.with_file_name("baby_lie.ppm");
+            let _ = fbb.write_ppm(&baby_path);
+            eprintln!("boot-shot: baby_lie {}", baby_path.display());
+        }
+    }
+
+    let mut scene = SceneRenderer::default();
+    scene.set_content_root(Some(&root));
+    scene.ground = ground;
+    scene.draw_hud = true;
+    scene.camera.x = px as f32;
+    scene.camera.y = py as f32;
+    scene.camera.zoom = 48.0;
+    scene.highlight_tile = None;
+    let mut fb = Framebuffer::new(960, 540);
+    scene.draw(
+        &mut fb,
+        &mut session.map,
+        &mut session.world,
+        &session.content,
+        &mut sprites,
+        &mut anims,
+        0.0,
+    );
+    fb.write_ppm(&out)?;
+    eprintln!("boot-shot: wrote {}", out.display());
+
+    // Nearby objects
+    let mut nearby: Vec<(i32, i32, i32, String)> = Vec::new();
+    for (tx, ty) in session.map.tile_coords() {
+        let t = session.map.get_or_empty(tx, ty);
+        if t.object_id > 0 {
+            let dx = tx - px;
+            let dy = ty - py;
+            if dx.abs() <= 8 && dy.abs() <= 8 {
+                let name = session
+                    .content
+                    .get(t.object_id)
+                    .map(|d| d.name.clone())
+                    .unwrap_or_default();
+                nearby.push((dx.abs() + dy.abs(), tx, ty, format!("{} {}", t.object_id, name)));
+            }
+        }
+    }
+    nearby.sort_by_key(|e| e.0);
+    eprintln!("boot-shot: nearby objects (≤8): {}", nearby.len());
+    for (i, e) in nearby.iter().take(8).enumerate() {
+        eprintln!("  [{}] ({},{}) {}", i, e.1, e.2, e.3);
+    }
+
+    let fbw = 960u32;
+    let fbh = 540u32;
+    let pick = pick_at_screen(
+        &scene.camera,
+        &session.map,
+        &session.content,
+        &mut sprites,
+        fbw as f32 * 0.5,
+        fbh as f32 * 0.5,
+        fbw,
+        fbh,
+    );
+    eprintln!(
+        "boot-shot: center pick tile={:?} oid={} hit_map={} hit_self={}",
+        pick.tile, pick.object_id, pick.hit_map, pick.hit_self
+    );
+
+    if let Some((_, tx, ty, desc)) = nearby.first().cloned() {
+        eprintln!("boot-shot: click_use {tx},{ty} ({desc})");
+        match click_use(&mut session, tx, ty, None, None) {
+            Ok(r) => eprintln!(
+                "boot-shot: USE result sent={} pending={} line={}",
+                r.action_sent, session.player_action_pending, r.action_line
+            ),
+            Err(e) => eprintln!("boot-shot: USE err {e:?}"),
+        }
+        let until2 = Instant::now() + Duration::from_millis(1500);
+        while Instant::now() < until2 {
+            match session.poll_event() {
+                Ok(ev) => eprintln!("boot-shot: ev {ev:?}"),
+                Err(_) => thread::sleep(Duration::from_millis(20)),
+            }
+        }
+        let after = session.map.get(tx, ty).map(|t| t.object_id).unwrap_or(-1);
+        eprintln!(
+            "boot-shot: after USE tile ({tx},{ty}) oid={after} pending={} in_motion={}",
+            session.player_action_pending, session.move_state.in_motion
+        );
+    } else {
+        eprintln!("boot-shot: no nearby object to USE");
+    }
+
+    // Convert PPM → PNG with stdlib python (no extra crates).
+    if let Some(stem) = out.file_stem() {
+        let png = out.with_file_name(format!("{}.png", stem.to_string_lossy()));
+        let py = format!(
+            "import binascii,struct,sys,zlib\n\
+p=sys.argv[1]; o=sys.argv[2]\n\
+b=open(p,'rb').read()\n\
+assert b.startswith(b'P6')\n\
+parts=b.split(b'\\n',3)\n\
+w,h=map(int,parts[2].split())\n\
+raw=parts[3]\n\
+def chunk(tag,data):\n\
+    c=tag+data\n\
+    return struct.pack('>I',len(data))+c+struct.pack('>I',binascii.crc32(c)&0xffffffff)\n\
+rows=b''.join(b'\\x00'+raw[i*w*3:(i+1)*w*3] for i in range(h))\n\
+open(o,'wb').write(b'\\x89PNG\\r\\n\\x1a\\n'+chunk(b'IHDR',struct.pack('>IIBBBBB' ,w,h,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(rows,9))+chunk(b'IEND',b''))\n\
+print('png',o,w,h)"
+        );
+        let status = std::process::Command::new("python")
+            .args(["-c", &py, out.to_str().unwrap_or(""), png.to_str().unwrap_or("")])
+            .status();
+        if status.map(|s| s.success()).unwrap_or(false) {
+            eprintln!("boot-shot: png {}", png.display());
+            return Ok(png);
+        }
+    }
+    Ok(out)
+}
+
 fn run_snapshot(args: &[String]) -> anyhow::Result<PathBuf> {
     let label = flag_value(args, "--snapshot-label").unwrap_or("cli");
     // PATH after --snapshot, or --out, or default.
@@ -1036,28 +1317,76 @@ fn run_probe_move(args: &[String]) -> anyhow::Result<bool> {
     session.move_state.in_motion = false;
     session.move_state.awaiting_force_ack = false;
 
-    let path = [PathDelta { x: 1, y: 0 }];
+    let origin = (
+        session.move_state.x,
+        session.move_state.y,
+        session
+            .world
+            .our()
+            .map(|o| (o.display_x, o.display_y))
+            .unwrap_or((0.0, 0.0)),
+    );
+    let path = [PathDelta { x: 2, y: 0 }];
     let line = session.send_move(&path)?;
-    println!("sent {line}");
+    println!(
+        "sent {line} origin=({},{}) display=({:.2},{:.2})",
+        origin.0, origin.1, origin.2 .0, origin.2 .1
+    );
 
     let mut saw_pm = false;
     let mut saw_pu = false;
+    let mut snapped_back = false;
+    let mut max_display_x = origin.2 .0;
     let wait_secs: u64 = flag_value(args, "--timeout")
         .and_then(|s| s.parse().ok())
         .unwrap_or(12);
     let wait = Instant::now() + Duration::from_secs(wait_secs);
+    let mut last_step = Instant::now();
     while Instant::now() < wait {
         let _ = session.maybe_send_ka();
+        let dt = last_step.elapsed().as_secs_f64().clamp(0.001, 0.1);
+        last_step = Instant::now();
+        session.step_move_pos(dt);
+        if let Some(o) = session.world.our() {
+            if o.display_x > max_display_x {
+                max_display_x = o.display_x;
+            }
+        }
         match session.poll_event() {
             Ok(SessionEvent::PlayerMovesStart(_)) => {
                 saw_pm = true;
-                println!("got PM");
+                session.step_move_pos(0.0);
+                let disp = session
+                    .world
+                    .our()
+                    .map(|o| (o.display_x, o.display_y, o.x, o.y));
+                let cur = (
+                    session.move_state.current_pos_x,
+                    session.move_state.current_pos_y,
+                );
+                println!(
+                    "got PM display={disp:?} current_pos=({:.2},{:.2}) dest=({},{})",
+                    cur.0, cur.1, session.move_state.x, session.move_state.y
+                );
+                if let Some((dx, _, _, _)) = disp {
+                    if max_display_x - origin.2 .0 > 0.4
+                        && (dx - origin.2 .0).abs() < 0.15
+                    {
+                        snapped_back = true;
+                        println!("TELEPORT: display snapped back to MOVE origin after PM");
+                    }
+                }
             }
             Ok(SessionEvent::PlayerUpdate { pu, .. }) if Some(pu.player_id) == session.our_id => {
                 saw_pu = true;
                 println!(
-                    "got PU id={} pos=({},{}) done={} force={}",
-                    pu.player_id, pu.x, pu.y, pu.done_moving_seq_num, pu.force
+                    "got PU id={} pos=({},{}) done={} force={} display={:?}",
+                    pu.player_id,
+                    pu.x,
+                    pu.y,
+                    pu.done_moving_seq_num,
+                    pu.force,
+                    session.world.our().map(|o| (o.display_x, o.display_y))
                 );
                 if pu.done_moving_seq_num > 1 && !pu.force {
                     break;
@@ -1070,8 +1399,419 @@ fn run_probe_move(args: &[String]) -> anyhow::Result<bool> {
             break;
         }
     }
-    println!("probe-move summary: pm={saw_pm} pu={saw_pu}");
-    Ok(saw_pm || saw_pu)
+    println!(
+        "probe-move summary: pm={saw_pm} pu={saw_pu} max_display_x={max_display_x:.2} snapped_back={snapped_back}"
+    );
+    Ok((saw_pm || saw_pu) && !snapped_back)
+}
+
+/// Sequential ground hops. Prints every our-player PM/PU. Verdict is wire-only:
+/// after MOVE `@N` to dest D, Jason requires a PU with `done_moving=N`, `force=0`,
+/// `x,y=D`. Open Life often omits that PU; this probe records what actually arrives.
+fn run_probe_walk_finish(args: &[String]) -> anyhow::Result<bool> {
+    use ohol_headless::click_tile::click_tile;
+
+    let cfg = session_cfg_from_args(args);
+    let log_path = flag_value(args, "--log")
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "logs/wire-probe-walk-finish.log".into());
+    let wire = Arc::new(WireLog::create(&log_path)?);
+    println!("wire log: {}", wire.path().display());
+    println!("host={}:{}", cfg.host, cfg.port);
+
+    let mut session = connect_and_login_logged(&cfg, Arc::clone(&wire))?;
+    println!("login={:?}", session.login);
+    if session.login != LoginOutcome::Accepted {
+        return Ok(false);
+    }
+    session
+        .stream_mut()
+        .set_read_timeout(Some(Duration::from_millis(80)))
+        .ok();
+
+    let boot_until = Instant::now() + Duration::from_secs(6);
+    let mut last = Instant::now();
+    while Instant::now() < boot_until {
+        let dt = last.elapsed().as_secs_f64().clamp(0.001, 0.08);
+        last = Instant::now();
+        session.step_move_pos(dt);
+        let _ = session.maybe_send_ka();
+        match session.poll_event() {
+            Ok(SessionEvent::PlayerUpdate { pu, force_ack_sent })
+                if Some(pu.player_id) == session.our_id =>
+            {
+                println!(
+                    "boot PU pos=({},{}) done={} force={} force_ack={:?}",
+                    pu.x, pu.y, pu.done_moving_seq_num, pu.force, force_ack_sent
+                );
+            }
+            Ok(_) => {}
+            Err(_) => {}
+        }
+        if session.our_id.is_some() && !session.move_state.awaiting_force_ack {
+            // keep looping until boot_until so FORCE + map chunk can land
+        }
+    }
+    if session.our_id.is_none() {
+        println!("no our_id after boot");
+        return Ok(false);
+    }
+    println!(
+        "bound our_id={:?} stand=({},{}) seq={} awaiting_force={}",
+        session.our_id,
+        session.move_state.x,
+        session.move_state.y,
+        session.move_state.last_move_sequence_number,
+        session.move_state.awaiting_force_ack,
+    );
+
+    fn drain_hop(
+        session: &mut ohol_headless::session::ClientSession,
+        expect_seq: i32,
+        expect_dest: (i32, i32),
+        hop_secs: f64,
+    ) -> (Vec<String>, bool, bool) {
+        let mut notes = Vec::new();
+        let mut saw_finish = false;
+        let mut saw_force = false;
+        let until = Instant::now() + Duration::from_secs_f64(hop_secs);
+        let mut last = Instant::now();
+        let mut last_disp = (0.0f32, 0.0f32);
+        if let Some(o) = session.world.our() {
+            last_disp = (o.display_x, o.display_y);
+        }
+        while Instant::now() < until {
+            let dt = last.elapsed().as_secs_f64().clamp(0.001, 0.08);
+            last = Instant::now();
+            session.step_move_pos(dt);
+            let _ = session.maybe_send_ka();
+            match session.poll_event() {
+                Ok(SessionEvent::PlayerMovesStart(v)) => {
+                    for m in v {
+                        if Some(m.player_id) != session.our_id {
+                            continue;
+                        }
+                        let end = ohol_headless::move_state::MoveState::path_end(
+                            m.xs, m.ys, &m.deltas,
+                        );
+                        notes.push(format!(
+                            "PM origin=({},{}) end=({},{}) trunc={} eta={:.2} n_delta={}",
+                            m.xs,
+                            m.ys,
+                            end.0,
+                            end.1,
+                            m.trunc,
+                            m.eta_sec,
+                            m.deltas.len()
+                        ));
+                    }
+                }
+                Ok(SessionEvent::PlayerUpdate { pu, force_ack_sent })
+                    if Some(pu.player_id) == session.our_id =>
+                {
+                    let match_seq = pu.done_moving_seq_num == expect_seq;
+                    let match_xy = (pu.x, pu.y) == expect_dest;
+                    let ok = match_seq && match_xy && !pu.force;
+                    if ok {
+                        saw_finish = true;
+                    }
+                    if pu.force {
+                        saw_force = true;
+                    }
+                    notes.push(format!(
+                        "PU pos=({},{}) done={} force={} ack={:?}  seq_ok={} xy_ok={} FINISH={}",
+                        pu.x,
+                        pu.y,
+                        pu.done_moving_seq_num,
+                        pu.force,
+                        force_ack_sent,
+                        match_seq,
+                        match_xy,
+                        ok
+                    ));
+                    let _ = pu;
+                }
+                Ok(_) => {}
+                Err(_) => {}
+            }
+            if let Some(o) = session.world.our() {
+                let dx = o.display_x - last_disp.0;
+                let dy = o.display_y - last_disp.1;
+                if dx * dx + dy * dy > 1.5 * 1.5 {
+                    notes.push(format!(
+                        "DISPLAY_JUMP ({:.2},{:.2}) -> ({:.2},{:.2}) dest=({},{}) in_motion={}",
+                        last_disp.0,
+                        last_disp.1,
+                        o.display_x,
+                        o.display_y,
+                        session.move_state.x,
+                        session.move_state.y,
+                        session.move_state.in_motion
+                    ));
+                }
+                last_disp = (o.display_x, o.display_y);
+            }
+            if saw_finish && !session.move_state.in_motion {
+                break;
+            }
+        }
+        (notes, saw_finish, saw_force)
+    }
+
+    let offsets = [(2, 0), (0, 2), (-2, 0), (0, -2), (1, 1), (-1, 0), (0, 1)];
+    let hops = 3usize;
+    let mut all_ok = true;
+    let mut any_finish = false;
+    for hop in 1..=hops {
+        if session.move_state.awaiting_force_ack {
+            println!("hop {hop}: still awaiting FORCE — drain 2s");
+            let seq = session.move_state.last_move_sequence_number;
+            let stand = (session.move_state.x, session.move_state.y);
+            let (notes, _, _) = drain_hop(&mut session, seq, stand, 2.0);
+            for n in notes {
+                println!("  {n}");
+            }
+        }
+        let stand = (session.move_state.x, session.move_state.y);
+        let mut sent = None;
+        for &(dx, dy) in &offsets {
+            let goal = (stand.0 + dx, stand.1 + dy);
+            match click_tile(&mut session, goal.0, goal.1) {
+                Ok(r) => {
+                    sent = Some(r);
+                    break;
+                }
+                Err(e) => {
+                    println!("hop {hop}: click {goal:?} from {stand:?} err {e}");
+                }
+            }
+        }
+        let Some(r) = sent else {
+            println!("hop {hop}: no walkable dest from {stand:?}");
+            all_ok = false;
+            break;
+        };
+        let expect_seq = session.move_state.last_move_sequence_number;
+        println!(
+            "---- hop {hop} {}  start={:?} end={:?} expect_seq={} ----",
+            r.move_line, r.start, r.end, expect_seq
+        );
+        let (notes, finish, forced) = drain_hop(&mut session, expect_seq, r.end, 5.0);
+        if notes.is_empty() {
+            println!("  (no our PM/PU during wait)");
+        }
+        for n in &notes {
+            println!("  {n}");
+        }
+        println!(
+            "  after: dest=({},{}) current=({:.2},{:.2}) in_motion={} display={:?}",
+            session.move_state.x,
+            session.move_state.y,
+            session.move_state.current_pos_x,
+            session.move_state.current_pos_y,
+            session.move_state.in_motion,
+            session
+                .world
+                .our()
+                .map(|o| (o.display_x, o.display_y, o.x, o.y))
+        );
+        if finish {
+            any_finish = true;
+            println!("  VERDICT hop {hop}: SERVER sent finish PU done={expect_seq} force=0 xy={:?}", r.end);
+        } else if forced {
+            all_ok = false;
+            println!(
+                "  VERDICT hop {hop}: SERVER sent FORCE (not a normal finish PU)"
+            );
+        } else {
+            all_ok = false;
+            println!(
+                "  VERDICT hop {hop}: NO finish PU with done={expect_seq} force=0 xy={:?}  (Jason requires this on arrival)",
+                r.end
+            );
+        }
+        // Pause so we are idle before next hop (no repath overlap).
+        let _ = drain_hop(&mut session, expect_seq, r.end, 0.4);
+    }
+
+    println!("==== SUMMARY ====");
+    println!(
+        "Jason required on MOVE @N arrival: PU done_moving=N force=0 x,y=dest"
+    );
+    println!("any matching finish PU this run: {any_finish}");
+    println!("all hops matched: {all_ok}");
+    Ok(all_ok && any_finish)
+}
+
+/// Repath mid-walk (the play pattern that jumps the figure back).
+fn run_probe_walk_repath(args: &[String]) -> anyhow::Result<bool> {
+    use ohol_headless::click_tile::click_tile;
+
+    let cfg = session_cfg_from_args(args);
+    let log_path = flag_value(args, "--log")
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "logs/wire-probe-walk-repath.log".into());
+    let wire = Arc::new(WireLog::create(&log_path)?);
+    println!("wire log: {}", wire.path().display());
+    println!("host={}:{}", cfg.host, cfg.port);
+    let mut session = connect_and_login_logged(&cfg, Arc::clone(&wire))?;
+    if session.login != LoginOutcome::Accepted {
+        println!("login={:?}", session.login);
+        return Ok(false);
+    }
+    session
+        .stream_mut()
+        .set_read_timeout(Some(Duration::from_millis(80)))
+        .ok();
+    let boot = Instant::now() + Duration::from_secs(6);
+    let mut last = Instant::now();
+    while Instant::now() < boot {
+        let dt = last.elapsed().as_secs_f64().clamp(0.001, 0.08);
+        last = Instant::now();
+        session.step_move_pos(dt);
+        let _ = session.maybe_send_ka();
+        let _ = session.poll_event();
+    }
+    if session.our_id.is_none() {
+        println!("no our_id");
+        return Ok(false);
+    }
+    let stand = (session.move_state.x, session.move_state.y);
+    println!(
+        "stand={stand:?} seq={}",
+        session.move_state.last_move_sequence_number
+    );
+    let far = (stand.0 + 6, stand.1);
+    let first = click_tile(&mut session, far.0, far.1)?;
+    println!(
+        "MOVE1 {} start={:?} end={:?} seq={}",
+        first.move_line,
+        first.start,
+        first.end,
+        session.move_state.last_move_sequence_number
+    );
+    let seq1 = session.move_state.last_move_sequence_number;
+    // Walk a bit, then repath the other way (play: click a new tile while moving).
+    let mut last = Instant::now();
+    let walk_a_bit = Instant::now() + Duration::from_millis(350);
+    while Instant::now() < walk_a_bit {
+        let dt = last.elapsed().as_secs_f64().clamp(0.001, 0.08);
+        last = Instant::now();
+        session.step_move_pos(dt);
+        let _ = session.poll_event();
+    }
+    println!(
+        "mid-path current=({:.2},{:.2}) dest=({},{})",
+        session.move_state.current_pos_x,
+        session.move_state.current_pos_y,
+        session.move_state.x,
+        session.move_state.y
+    );
+    let other = (stand.0, stand.1 + 4);
+    let second = match click_tile(&mut session, other.0, other.1) {
+        Ok(r) => r,
+        Err(e) => {
+            println!("repath click {other:?} failed: {e}");
+            return Ok(false);
+        }
+    };
+    let seq2 = session.move_state.last_move_sequence_number;
+    println!(
+        "MOVE2 {} start={:?} end={:?} seq={} (prev seq={seq1})",
+        second.move_line, second.start, second.end, seq2
+    );
+    let mut notes = Vec::new();
+    let mut display_jumps = 0u32;
+    let mut last_disp = session
+        .world
+        .our()
+        .map(|o| (o.display_x, o.display_y))
+        .unwrap_or((0.0, 0.0));
+    let until = Instant::now() + Duration::from_secs(6);
+    let mut last = Instant::now();
+    while Instant::now() < until {
+        let dt = last.elapsed().as_secs_f64().clamp(0.001, 0.08);
+        last = Instant::now();
+        session.step_move_pos(dt);
+        let _ = session.maybe_send_ka();
+        match session.poll_event() {
+            Ok(SessionEvent::PlayerMovesStart(v)) => {
+                for m in v {
+                    if Some(m.player_id) != session.our_id {
+                        continue;
+                    }
+                    let end =
+                        ohol_headless::move_state::MoveState::path_end(m.xs, m.ys, &m.deltas);
+                    notes.push(format!(
+                        "PM origin=({},{}) end=({},{}) trunc={}",
+                        m.xs, m.ys, end.0, end.1, m.trunc
+                    ));
+                }
+            }
+            Ok(SessionEvent::PlayerUpdate { pu, force_ack_sent })
+                if Some(pu.player_id) == session.our_id =>
+            {
+                notes.push(format!(
+                    "PU pos=({},{}) done={} force={} ack={:?}  vs_seq1={seq1} vs_seq2={seq2} dest2={:?}",
+                    pu.x,
+                    pu.y,
+                    pu.done_moving_seq_num,
+                    pu.force,
+                    force_ack_sent,
+                    second.end
+                ));
+            }
+            Ok(_) => {}
+            Err(_) => {}
+        }
+        if let Some(o) = session.world.our() {
+            let dx = o.display_x - last_disp.0;
+            let dy = o.display_y - last_disp.1;
+            if dx * dx + dy * dy > 1.5 * 1.5 {
+                display_jumps += 1;
+                notes.push(format!(
+                    "DISPLAY_JUMP ({:.2},{:.2})->({:.2},{:.2}) dest=({},{}) in_motion={}",
+                    last_disp.0,
+                    last_disp.1,
+                    o.display_x,
+                    o.display_y,
+                    session.move_state.x,
+                    session.move_state.y,
+                    session.move_state.in_motion
+                ));
+            }
+            last_disp = (o.display_x, o.display_y);
+        }
+    }
+    for n in &notes {
+        println!("  {n}");
+    }
+    println!(
+        "final dest=({},{}) current=({:.2},{:.2}) in_motion={} jumps={display_jumps}",
+        session.move_state.x,
+        session.move_state.y,
+        session.move_state.current_pos_x,
+        session.move_state.current_pos_y,
+        session.move_state.in_motion
+    );
+    let finish2 = notes.iter().any(|n| {
+        n.contains(&format!("done={seq2}"))
+            && n.contains("force=false")
+            && n.contains(&format!("pos=({},{})", second.end.0, second.end.1))
+    });
+    let stale_finish1 = notes.iter().any(|n| {
+        n.starts_with("PU ")
+            && n.contains(&format!("done={seq1}"))
+            && !n.contains(&format!("done={seq2}"))
+    });
+    let any_force = notes.iter().any(|n| n.contains("force=true"));
+    println!("==== REPATH SUMMARY ====");
+    println!("finish PU for NEW seq {seq2} at {:?}: {finish2}", second.end);
+    println!("stale finish PU for OLD seq {seq1}: {stale_finish1}");
+    println!("any FORCE PU: {any_force}");
+    println!("display jumps >1.5 tiles: {display_jumps}");
+    // Pass only if we did not jump and either got a proper new finish PU or no FORCE.
+    Ok(display_jumps == 0 && !any_force)
 }
 
 fn run_probe_actions(args: &[String]) -> anyhow::Result<bool> {

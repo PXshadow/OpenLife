@@ -165,9 +165,10 @@ pub use ground_sprites::{
     OLG1_MAGIC, UNKNOWN_BIOME_CACHE_ID,
 };
 pub use hover_pick::{
-    draw_hover_outline, map_stack_index_to_hit_slot, pick_at_screen, pick_at_screen_with_clothing,
-    pick_worn_clothing_slot, resolve_hit_slot, update_scene_hover,
-    update_scene_hover_with_clothing, biome_display_name, hover_biome_name, hover_tip_and_grave,
+    draw_hover_outline, map_stack_index_to_hit_slot, pick_at_screen, pick_at_screen_play,
+    pick_at_screen_with_clothing, pick_worn_clothing_slot, resolve_hit_slot, update_scene_hover,
+    update_scene_hover_play, update_scene_hover_with_clothing, biome_display_name, hover_biome_name,
+    hover_tip_and_grave,
     HoverPick,
     HoverTipInput, WornClothingPickTarget,
 };
@@ -187,7 +188,8 @@ pub use event_util::{bootstrap_label, note_map_changes, note_names, player_says_
 pub use frame::{FrameReader, FramedMessage, compress_cm_payload, encode_raw, inflate_cm};
 pub use live_object::{
     clothing_char_to_slot, format_curse_tag, home_dir_index, home_location_key_priority,
-    says_pointer_ttl_sec, speech_hold_sec, speech_text_rgb, ClothingSet, HomePos, HomePosStack,
+    home_slip_pencil_word, says_pointer_ttl_sec, speech_hold_sec, speech_text_rgb, ClothingSet,
+    HomeDirDraw, HomePos, HomePosStack,
     LiveObject, LiveWorld, LocationSpeech, SaysPointerMarker, CLOTHING_SLOT_COUNT,
     CLOTHING_SLOT_NAMES, MAP_SPOT_MARKER_RGBA, MAX_CURSE_TAG_DISPLAY_GAP,
     SAYS_POINTER_DEFAULT_TTL_SEC, SAYS_POINTER_EXPERT_EXTRA_SEC, SPEECH_FADE_STEP,
@@ -209,7 +211,7 @@ pub use pathfind::{
     PATH_FINDING_D,
 };
 pub use render::{
-    biome_color_for, draw_map_spot_marker, map_window_to_fb, select_packs_for_player,
+    biome_color_for, map_window_to_fb, select_packs_for_player,
     stretch_rgba_nearest, tile_screen_rect, Camera, Framebuffer, PlayerAnimSelection,
     SceneRenderer, GRID, ZOOM_DEFAULT, ZOOM_MAX, ZOOM_MIN,
 };

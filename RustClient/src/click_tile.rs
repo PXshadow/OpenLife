@@ -95,6 +95,7 @@ pub const HOLD_SLIDE_LIMIT: i32 = 10;
 /// 4. held by adult → send `JUMP 0 0#` → [`MoveError::JumpSent`]
 /// 5. age < [`NO_MOVE_AGE`] → send `JUMP 0 0#` → [`MoveError::JumpSent`]
 pub fn apply_click_gates(session: &mut ClientSession) -> Result<(), MoveError> {
+    session.expire_stale_action_pending();
     if session.move_state.awaiting_force_ack {
         return Err(MoveError::AwaitingForceAck);
     }
@@ -263,6 +264,7 @@ pub fn walk_or_use_tile_hold(
 /// * **Eat** only when `hit_face` (head / eyes / mouth), not a body click.
 /// * **Clothing** still uses `clothing_slot` 0..5 from worn hitMap at the drawn pose.
 /// * Held clothing on a body/face hit (`hit_self`) still equips.
+/// * Other person (`hit_other_id`) → BABY pickup / UBABY feed (C++ pointerDown).
 /// * First press uses [`click_tile_mod_hit`]; hold is ground MOVE only.
 pub fn walk_or_use_tile_hold_hit(
     session: &mut ClientSession,
@@ -274,6 +276,7 @@ pub fn walk_or_use_tile_hold_hit(
     hit_slot: i32,
     hit_self: bool,
     hit_face: bool,
+    hit_other_id: i32,
 ) -> Result<WalkOrUseResult, MoveError> {
     if !mouse_already_down {
         return click_tile_mod_hit(
@@ -285,6 +288,7 @@ pub fn walk_or_use_tile_hold_hit(
             clothing_slot,
             hit_self,
             hit_face,
+            hit_other_id,
         );
     }
     walk_or_use_tile_hold(
@@ -374,12 +378,9 @@ pub struct ClickTileResult {
 ///
 /// C++ `LivingLifePage.cpp` ~2341–2387:
 /// - mid-move: `lrint(currentPos)` then snap onto `pathToDest` (fractional interp)
-/// - idle: `xServer` / `yServer` (LiveObject PU) or dest `(xd,yd)`
+/// - idle: dest `xd,yd` (not a leftover PU at spawn)
 pub fn path_start_tile(session: &ClientSession) -> (i32, i32) {
-    let hint = session
-        .our_id
-        .and_then(|id| session.world.get(id).map(|o| (o.x, o.y)));
-    session.move_state.closest_path_spot(hint)
+    session.move_state.closest_path_spot(None)
 }
 
 /// Our held object id (0 = empty hands). C++ `LiveObject.holdingID`.
@@ -1521,7 +1522,7 @@ pub fn click_object(
         // If mid-move toward another tile, still only queue (server ignores USE mid-MOVE).
         session.clear_multi_move();
         let action_line = action.encode();
-        let action_sent = !(session.move_state.in_motion || session.move_state.awaiting_force_ack);
+        let action_sent = session.move_state.can_send_action_now();
         if action_sent {
             // send_object_action sets player_action_pending (C++ playerActionPending).
             session
@@ -1650,7 +1651,7 @@ pub fn click_self(
         &worn,
     );
     let action_line = action.encode();
-    let action_sent = !(session.move_state.in_motion || session.move_state.awaiting_force_ack);
+    let action_sent = session.move_state.can_send_action_now();
     if action_sent {
         session
             .send_object_action(action)
@@ -1832,10 +1833,75 @@ pub fn click_tile_mod_ex(
     }
 }
 
+/// C++ `pointerDown` ~25652–26103: click another person on empty dest.
+///
+/// * Empty hands + ourAge>13 + their age<5 → `BABY x y id#`
+/// * Held food or clothing (not deadly) → `UBABY x y c id#`
+/// * Else walk to their tile (`destID == 0`)
+fn click_other_person(
+    session: &mut ClientSession,
+    tile_x: i32,
+    tile_y: i32,
+    hit_other_id: i32,
+    clothing_slot: i32,
+    mod_click: bool,
+) -> Result<WalkOrUseResult, MoveError> {
+    if mod_click {
+        let r = click_tile(session, tile_x, tile_y)?;
+        return Ok(WalkOrUseResult::Ground(r));
+    }
+    let held = our_held_id(session);
+    let other = session.world.get(hit_other_id);
+    let other_age = other.map(|o| o.current_age()).unwrap_or(99.0);
+    let other_free = other.map(|o| o.held_by_adult_id == -1).unwrap_or(false);
+
+    if held > 0 {
+        if let Some(def) = session.content.get(held).or_else(|| {
+            session
+                .content
+                .get(session.content.base_object_id(held))
+        }) {
+            let ubaby = def.deadly_distance <= 0.0
+                && (def.food_value > 0 || def.clothing != 'n');
+            if ubaby && other_free {
+                let r = click_object(
+                    session,
+                    ObjectAction::Ubaby {
+                        x: tile_x,
+                        y: tile_y,
+                        clothing_slot,
+                        player_id: Some(hit_other_id),
+                    },
+                )?;
+                return Ok(WalkOrUseResult::Object(r));
+            }
+        }
+    }
+
+    let our_age = session.our_age().unwrap_or(0.0);
+    if held == 0 && our_age > 13.0 && other_free && other_age < 5.0 {
+        let r = click_object(
+            session,
+            ObjectAction::Baby {
+                x: tile_x,
+                y: tile_y,
+                player_id: Some(hit_other_id),
+            },
+        )?;
+        return Ok(WalkOrUseResult::Object(r));
+    }
+
+    let r = click_tile(session, tile_x, tile_y)?;
+    Ok(WalkOrUseResult::Ground(r))
+}
+
 /// Graphical click: eat on face, clothing on worn sprites / body at **draw** pos.
 ///
 /// Does **not** treat “clicked our stand tile” as eat — that was eating on a
 /// body/ground click. Headless still uses [`click_tile_mod_ex`].
+///
+/// `hit_other_id` > 0 is C++ `hitOtherPerson`: BABY pickup (empty hands, ourAge>13,
+/// their age<5) or UBABY (held food/clothing). destID is treated as 0.
 pub fn click_tile_mod_hit(
     session: &mut ClientSession,
     tile_x: i32,
@@ -1845,7 +1911,18 @@ pub fn click_tile_mod_hit(
     clothing_slot: i32,
     hit_self: bool,
     hit_face: bool,
+    hit_other_id: i32,
 ) -> Result<WalkOrUseResult, MoveError> {
+    if hit_other_id > 0 {
+        return click_other_person(
+            session,
+            tile_x,
+            tile_y,
+            hit_other_id,
+            clothing_slot,
+            mod_click,
+        );
+    }
     let held = our_held_id(session);
     if graphical_wants_self_action(
         &session.content,
@@ -4451,6 +4528,72 @@ mod tests {
     }
 
     #[test]
+    fn gate_too_young_hold_does_not_spam_jump() {
+        let captured = Arc::new(Mutex::new(Vec::new()));
+        let (port, handle) = login_then_peer_capture(vec![], Arc::clone(&captured));
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        session.move_state.x = 5;
+        session.move_state.y = 5;
+        session.our_id = Some(7);
+        session.world.apply_pu(
+            &crate::parse::parse_pu_line(
+                "7 100 1 0 0 0 0 0 0 0 -1 0.5 0 0 5 5 0.10 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1",
+            )
+            .unwrap(),
+        );
+        assert_eq!(
+            apply_click_gates(&mut session).unwrap_err(),
+            MoveError::JumpSent
+        );
+        assert_eq!(
+            apply_click_gates(&mut session).unwrap_err(),
+            MoveError::JumpSent
+        );
+        assert_eq!(
+            apply_click_gates(&mut session).unwrap_err(),
+            MoveError::JumpSent
+        );
+        let _ = handle.join();
+        let tx = captured.lock().unwrap().clone();
+        let jumps: Vec<_> = tx.iter().filter(|m| m.starts_with("JUMP ")).collect();
+        assert_eq!(jumps.len(), 1, "hold-repeat must not flood JUMP: {tx:?}");
+    }
+
+    #[test]
+    fn gate_stale_wiggle_pu_does_not_retrap_after_nomove_age() {
+        let (port, handle) = login_then_peer(vec![]);
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        session.move_state.x = 5;
+        session.move_state.y = 5;
+        session.our_id = Some(7);
+        session.world.apply_pu(
+            &crate::parse::parse_pu_line(
+                "7 100 1 0 0 0 0 0 0 0 -1 0.5 0 0 5 5 0.10 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1",
+            )
+            .unwrap(),
+        );
+        {
+            let o = session.world.get_mut(7).unwrap();
+            o.age = 0.25;
+            o.age_rate = 0.0;
+            o.last_age_set = std::time::Instant::now();
+        }
+        session.world.apply_pu(
+            &crate::parse::parse_pu_line(
+                "7 100 1 0 0 0 0 0 0 0 -1 0.5 0 0 5 5 0.01 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1",
+            )
+            .unwrap(),
+        );
+        assert!(
+            session.our_age().unwrap() >= NO_MOVE_AGE,
+            "clock age {}",
+            session.our_age().unwrap()
+        );
+        assert!(apply_click_gates(&mut session).is_ok());
+        let _ = handle.join();
+    }
+
+    #[test]
     fn gate_held_by_adult_sends_jump() {
         let captured = Arc::new(Mutex::new(Vec::new()));
         let bind_pu = "PU\n\
@@ -4504,6 +4647,96 @@ mod tests {
     }
 
     #[test]
+    fn click_tile_mod_hit_baby_pickup_sends_baby() {
+        let captured = Arc::new(Mutex::new(Vec::new()));
+        let (port, handle) = login_then_peer_capture(vec![], Arc::clone(&captured));
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        session.move_state.x = 5;
+        session.move_state.y = 5;
+        session.our_id = Some(7);
+        session.world.set_our_id(7);
+        seed_open_map(&mut session, 0, 0, 12, 12);
+        session.world.apply_pu(
+            &crate::parse::parse_pu_line(
+                "7 100 1 0 0 0 0 0 0 0 -1 0.5 0 0 5 5 20.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1",
+            )
+            .unwrap(),
+        );
+        session.world.apply_pu(
+            &crate::parse::parse_pu_line(
+                "8 100 1 0 0 0 0 0 0 0 -1 0.5 0 0 6 5 1.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1",
+            )
+            .unwrap(),
+        );
+        match click_tile_mod_hit(&mut session, 6, 5, false, -1, -1, false, false, 8).unwrap()
+        {
+            WalkOrUseResult::Object(r) => {
+                assert_eq!(r.action_line, "BABY 6 5 8#");
+                assert!(r.action_sent || r.moved, "BABY sent or queued after MOVE");
+            }
+            other => panic!("expected BABY, got {other:?}"),
+        }
+        let _ = handle.join();
+        let tx = captured.lock().unwrap().clone();
+        assert!(
+            tx.iter().any(|m| m.contains("BABY 6 5 8")),
+            "BABY on wire: {tx:?}"
+        );
+        assert!(
+            session.last_tx_line.contains("BABY") || tx.iter().any(|m| m.starts_with("MOVE ")),
+            "last_tx_line={} tx={tx:?}",
+            session.last_tx_line
+        );
+    }
+
+    #[test]
+    fn click_tile_mod_hit_ubaby_when_holding_food() {
+        let captured = Arc::new(Mutex::new(Vec::new()));
+        let (port, handle) = login_then_peer_capture(vec![], Arc::clone(&captured));
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        session.move_state.x = 5;
+        session.move_state.y = 5;
+        session.our_id = Some(7);
+        session.world.set_our_id(7);
+        seed_open_map(&mut session, 0, 0, 12, 12);
+        session.content.objects.insert(
+            33,
+            ClientObjectDef {
+                id: 33,
+                food_value: 3,
+                clothing: 'n',
+                deadly_distance: 0.0,
+                ..Default::default()
+            },
+        );
+        session.world.apply_pu(
+            &crate::parse::parse_pu_line(
+                "7 100 1 0 0 0 33 0 0 0 -1 0.5 0 0 5 5 20.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1",
+            )
+            .unwrap(),
+        );
+        session.world.apply_pu(
+            &crate::parse::parse_pu_line(
+                "8 100 1 0 0 0 0 0 0 0 -1 0.5 0 0 6 5 1.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1",
+            )
+            .unwrap(),
+        );
+        match click_tile_mod_hit(&mut session, 6, 5, false, -1, -1, false, false, 8).unwrap()
+        {
+            WalkOrUseResult::Object(r) => {
+                assert_eq!(r.action_line, "UBABY 6 5 -1 8#");
+            }
+            other => panic!("expected UBABY, got {other:?}"),
+        }
+        let _ = handle.join();
+        let tx = captured.lock().unwrap().clone();
+        assert!(
+            tx.iter().any(|m| m.contains("UBABY 6 5 -1 8")),
+            "UBABY on wire: {tx:?}"
+        );
+    }
+
+    #[test]
     fn player_action_pending_set_on_send_cleared_on_stationary_pu() {
         let bind_pu = "PU\n\
 7 100 1 0 0 0 0 0 0 0 -1 0.5 1 0 10 10 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n";
@@ -4546,6 +4779,52 @@ mod tests {
             }
         }
         assert!(!session.player_action_pending);
+        let _ = handle.join();
+    }
+
+    #[test]
+    fn stale_action_pending_expires_so_next_click_works() {
+        let bind_pu = "PU\n\
+7 100 1 0 0 0 0 0 0 0 -1 0.5 1 0 10 10 12.0 60.0 3.75 0;0;0;0;0;0 0 0 -1 0 1\n";
+        let captured = Arc::new(Mutex::new(Vec::new()));
+        let bodies = vec![
+            framed_text("MC\n32 30 0 0\n0 0\n"),
+            framed_text(bind_pu),
+            framed_text("FM\n"),
+        ];
+        let (port, handle) = login_then_peer_capture(bodies, Arc::clone(&captured));
+        let mut session = ClientSession::connect(&test_cfg(port)).unwrap();
+        for _ in 0..16 {
+            match session.poll_event() {
+                Ok(SessionEvent::Frame) => break,
+                Ok(_) => {}
+                Err(_) => break,
+            }
+        }
+        session.move_state.in_motion = false;
+        session.debug_age_action_pending(2.5);
+        assert!(session.player_action_pending);
+        assert!(apply_click_gates(&mut session).is_ok());
+        assert!(!session.player_action_pending);
+        seed_open_map(&mut session, 0, 0, 16, 16);
+        session.map.apply_mx(&crate::parse::MapChange {
+            x: 11,
+            y: 10,
+            floor_id: 0,
+            object_id: 33,
+            object_id_raw: "33".into(),
+            player_id: 0,
+            old_x: None,
+            old_y: None,
+            speed: None,
+            raw_line: String::new(),
+        });
+        match walk_or_use_tile(&mut session, 11, 10).unwrap() {
+            WalkOrUseResult::Object(r) => {
+                assert!(r.action_sent || r.already_adjacent);
+            }
+            other => panic!("expected USE after pending expired, got {other:?}"),
+        }
         let _ = handle.join();
     }
 
