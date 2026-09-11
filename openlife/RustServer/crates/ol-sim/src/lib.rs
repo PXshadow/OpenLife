@@ -15969,11 +15969,24 @@ pub fn apply_intent(
                     .and_then(|s| s.parse::<i32>().ok())
                     .unwrap_or(-1);
                 let index = parts.next().and_then(|s| s.parse::<i32>().ok());
+                // Haxe specialRemoveHelper → doSwitchCloths (needs content so
+                // clothing=n tools like Stone Hatchet cannot wear onto the body).
+                let content = state.content.clone();
                 let ok = state
                     .players
                     .get_mut(&conn_id)
                     .map(|p| {
-                        clothing_cmds::apply_sremv_from_clothing(p, clothing_slot, index).is_ok()
+                        if p.deleted {
+                            false
+                        } else {
+                            clothing_cmds::apply_sremv_from_clothing_with_content(
+                                p,
+                                &content,
+                                clothing_slot,
+                                index,
+                            )
+                            .is_ok()
+                        }
                     })
                     .unwrap_or(false);
                 if ok {

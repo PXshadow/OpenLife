@@ -1110,7 +1110,9 @@ pub fn apply_sremv_from_clothing(
         return Err("EMPTY_CLOTH");
     }
     if cloth.contained.is_empty() {
-        // Haxe: empty nest → doSwitchCloths (strip/swap clothing).
+        // Haxe: empty nest → doSwitchCloths. Without content we cannot
+        // check `clothing=n`, so non-clothing (hatchet) can still swap here.
+        // Live SREMV uses [`apply_sremv_from_clothing_with_content`].
         if player.held_id != 0 {
             return switch_clothing_index_full(player, idx).map(|(id, _)| id);
         }
@@ -1154,13 +1156,21 @@ pub fn apply_sremv_from_clothing_with_content(
         player.clear_held();
     }
     let idx = clothing_slot as usize;
-    let cloth = player.clothing_helpers[idx].clone().ok_or("EMPTY_CLOTH")?;
-    if cloth.is_empty() {
-        return Err("EMPTY_CLOTH");
-    }
-    if cloth.contained.is_empty() {
+    let cloth_opt = player.clothing_helpers[idx].clone();
+    // Haxe specialRemoveHelper: containedObjects.length < 1 → doSwitchCloths
+    // (empty slot or worn clothing with no contained). Non-clothing held
+    // (Stone Hatchet clothing=n) must refuse — not wear onto the body.
+    let nest_empty = cloth_opt
+        .as_ref()
+        .map(|c| c.contained.is_empty())
+        .unwrap_or(true);
+    if nest_empty {
+        if player.held_id != 0 {
+            return apply_switch_cloths(player, content, clothing_slot).map(|(id, _, _)| id);
+        }
         return apply_sremv_from_clothing(player, clothing_slot, index);
     }
+    let cloth = cloth_opt.ok_or("EMPTY_CLOTH")?;
     if player.held_id != 0 {
         return Err("HANDS");
     }
@@ -1398,6 +1408,74 @@ mod tests {
         assert!(p.clothing_helpers[0].is_none());
         assert!(apply_switch_cloths(&mut p, &db, 0).is_err());
         assert_eq!(p.hat, 0);
+    }
+
+    /// Chest/tunic is the body slot. Clicking the body (SELF slot 1 or -1) must not wear a hatchet.
+    #[test]
+    fn self_cannot_wear_stone_hatchet_on_chest_or_body() {
+        let mut db = ContentDb::default();
+        let mut hatchet = ObjectDef::empty(71);
+        hatchet.name = "Stone Hatchet".into();
+        hatchet.description = "Stone Hatchet# +toolChopping".into();
+        hatchet.clothing = "n".into();
+        db.objects.insert(71, hatchet);
+        let mut p = Player::new(1, 1, "body@t");
+        p.set_held(71, 0);
+        assert!(
+            apply_self_clothing_after_drink(&mut p, &db, 1).is_err(),
+            "hatchet SELF on chest/body must refuse"
+        );
+        assert_eq!(p.held_id, 71);
+        assert_eq!(p.chest, 0);
+        assert!(p.clothing_helpers[1].is_none());
+        p.set_held(71, 0);
+        assert!(
+            apply_self_clothing_after_drink(&mut p, &db, -1).is_err(),
+            "hatchet SELF on generic body must refuse"
+        );
+        assert_eq!(p.held_id, 71);
+        assert_eq!(p.hat, 0);
+        assert_eq!(p.chest, 0);
+    }
+
+    /// Haxe specialRemoveHelper empty nest → doSwitchCloths, which refuses clothing=n.
+    #[test]
+    fn sremv_cannot_put_stone_hatchet_on_worn_or_empty_slot() {
+        let mut db = ContentDb::default();
+        let mut hatchet = ObjectDef::empty(71);
+        hatchet.name = "Stone Hatchet".into();
+        hatchet.description = "Stone Hatchet# +toolChopping".into();
+        hatchet.clothing = "n".into();
+        db.objects.insert(71, hatchet);
+        db.objects.insert(693, def_cloth(693, "h", 0, 0, false));
+        let mut p = Player::new(1, 1, "sremv@t");
+        p.set_clothing_index_helper(0, Some(NestedHelper::id_only(693)));
+        p.set_held(71, 0);
+        let r = apply_sremv_from_clothing_with_content(&mut p, &db, 0, Some(-1));
+        assert!(r.is_err(), "hatchet SREMV onto hat must refuse, got {r:?}");
+        assert_eq!(p.held_id, 71);
+        assert_eq!(p.hat, 693);
+        assert_eq!(p.clothing_helpers[0].as_ref().unwrap().id, 693);
+        p.set_clothing_index_helper(1, None);
+        let r = apply_sremv_from_clothing_with_content(&mut p, &db, 1, Some(-1));
+        assert!(r.is_err(), "hatchet SREMV onto empty chest must refuse, got {r:?}");
+        assert_eq!(p.held_id, 71);
+        assert_eq!(p.chest, 0);
+    }
+
+    /// Quiver/hat put-down: SREMV on empty nest still equips real clothing (Haxe doSwitchCloths).
+    #[test]
+    fn sremv_empty_nest_still_equips_real_hat() {
+        let mut db = ContentDb::default();
+        db.objects.insert(693, def_cloth(693, "h", 0, 0, false));
+        db.objects.insert(694, def_cloth(694, "h", 0, 0, false));
+        let mut p = Player::new(1, 1, "quiver@t");
+        p.set_clothing_index_helper(0, Some(NestedHelper::id_only(693)));
+        p.set_held_helper(NestedHelper::id_only(694));
+        let id = apply_sremv_from_clothing_with_content(&mut p, &db, 0, Some(-1)).unwrap();
+        assert_eq!(id, 694);
+        assert_eq!(p.hat, 694);
+        assert_eq!(p.held_id, 693);
     }
 
     #[test]
