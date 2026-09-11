@@ -11192,6 +11192,7 @@
                 num_slots: 0,
                 floor: false,
                 dummy_ids: Vec::new(),
+                clothing: "h".into(),
                 ..Default::default()
             },
         );
@@ -11212,6 +11213,7 @@
                 num_slots: 0,
                 floor: false,
                 dummy_ids: Vec::new(),
+                clothing: "t".into(),
                 ..Default::default()
             },
         );
@@ -11224,7 +11226,7 @@
         }
         while rx.try_recv().is_ok() {}
 
-        // WEAR without slot: infer hat from name.
+        // WEAR without slot: infer hat from clothing=h (not the name).
         apply_intent(
             &mut state,
             &counters,
@@ -11507,7 +11509,9 @@
         assert_eq!(n, BACKPACK_MAX, "full backpack scattered on SAY DIE");
     }
 
-    /// USE whose new_actor name contains "hat" assigns the hat slot.
+    /// Haxe GPI.use does not auto-equip. New-actor clothing stays in hand even when
+    /// `clothing=h` (name substring `"hat"` must not copy the actor onto the hat slot).
+    // Haxe: GlobalPlayerInstance.use; ObjectData.getClothingSlot
     #[test]
     fn use_equips_clothing_like_new_actor() {
         let mut db = ContentDb::default();
@@ -11528,6 +11532,7 @@
                 num_slots: 0,
                 floor: false,
                 dummy_ids: Vec::new(),
+                clothing: "h".into(),
                 ..Default::default()
             },
         );
@@ -11567,8 +11572,8 @@
         assert!(r.applied);
         assert_eq!(r.actor_after, 500);
         let p = state.players.get(&1).unwrap();
-        assert_eq!(p.held_id, 500);
-        assert_eq!(p.hat, 500);
+        assert_eq!(p.held_id, 500, "wool hat stays in hand after USE");
+        assert_eq!(p.hat, 0, "USE must not auto-wear onto hat");
         assert_eq!(p.chest, 0);
         assert_eq!(p.shoes, 0);
     }
