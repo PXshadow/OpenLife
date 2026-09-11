@@ -377,7 +377,7 @@ pub fn send_to_me_all_close_players(
                     let (rx, ry) = state
                         .players
                         .get(&viewer_conn)
-                        .map(|v| v.world_to_client(sx, sy))
+                        .map(|v| crate::viewer_pu_xy(state, v, sx, sy))
                         .unwrap_or((sx, sy));
                     // Speed from live player if still present.
                     let spd = state
@@ -387,6 +387,12 @@ pub fn send_to_me_all_close_players(
                         .map(|pl| crate::player_move_speed(state, pl))
                         .unwrap_or(crate::WALK_MOVE_SPEED);
                     let force = if p_id == viewer_p_id { 1 } else { 0 };
+                    let heat = state
+                        .players
+                        .values()
+                        .find(|pl| pl.p_id == p_id)
+                        .map(|pl| pl.heat)
+                        .unwrap_or(0.50);
                     let pu = format_player_update_line_full_clothing(
                         p_id,
                         po,
@@ -408,6 +414,7 @@ pub fn send_to_me_all_close_players(
                         seq.max(1),
                         &clothing,
                         age_r,
+                        heat,
                     );
                     outbound.send(
                         viewer_conn,
@@ -419,7 +426,7 @@ pub fn send_to_me_all_close_players(
                             let (pm_rx, pm_ry) = state
                                 .players
                                 .get(&viewer_conn)
-                                .map(|v| v.world_to_client(start_x, start_y))
+                                .map(|v| crate::viewer_pu_xy(state, v, start_x, start_y))
                                 .unwrap_or((start_x, start_y));
                             let wire_deltas = steps_to_client_path_deltas(&steps);
                             let pm = format_player_moves_start(

@@ -630,10 +630,14 @@ pub fn is_human_login_conn(conn_id: u64) -> bool {
     conn_id <= HUMAN_CONN_ID_MAX
 }
 
-/// Empty of living humans: new AIs/NPCs spawn as Eve/Adam, not as babies of leftover AIs.
+/// Haxe never forces Eve when humans are absent: after the Eve–Adam pair,
+/// further AIs `spawnAsChild` (`GlobalPlayerInstance.new` L980–994).
+///
+/// Kept as a named helper so the old empty-server Eve-only policy cannot
+/// sneak back in as an implicit branch.
 #[inline]
-pub fn force_ai_eve_when_no_human(is_synthetic: bool, living_humans: usize) -> bool {
-    is_synthetic && living_humans == 0
+pub fn force_ai_eve_when_no_human(_is_synthetic: bool, _living_humans: usize) -> bool {
+    false
 }
 
 /// True when living **humans** allow AI↔human Eve pair cross-spawn.
@@ -663,7 +667,8 @@ mod live_knob_tests {
         // Compiled 0: never mix AI/human Eve (empty-server leftover AI Eve).
         assert!(!allow_human_ai_eve_cross(0));
         assert!(!allow_human_ai_eve_cross(1));
-        assert!(force_ai_eve_when_no_human(true, 0));
+        // Haxe: empty server still spawnAsChild after Eve–Adam pair.
+        assert!(!force_ai_eve_when_no_human(true, 0));
         assert!(!force_ai_eve_when_no_human(true, 1));
         assert!(!force_ai_eve_when_no_human(false, 0));
         assert!(allow_human_ai_eve_cross_ex(1, 1));

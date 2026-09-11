@@ -185,6 +185,7 @@ pub fn format_player_update_line(
     age: f32,
     move_speed: f32,
     done_moving_seq: i32,
+    heat: f32,
 ) -> String {
     format_player_update_line_eat(
         p_id,
@@ -197,6 +198,7 @@ pub fn format_player_update_line(
         0,
         0,
         done_moving_seq,
+        heat,
     )
 }
 
@@ -216,6 +218,7 @@ pub fn format_player_update_line_eat(
     just_ate: i32,
     last_ate: i32,
     done_moving_seq: i32,
+    heat: f32,
 ) -> String {
     format_player_update_line_eat_responsible(
         p_id,
@@ -229,6 +232,7 @@ pub fn format_player_update_line_eat(
         last_ate,
         -1,
         done_moving_seq,
+        heat,
     )
 }
 
@@ -247,6 +251,7 @@ pub fn format_player_update_line_eat_responsible(
     last_ate: i32,
     responsible_id: i32,
     done_moving_seq: i32,
+    heat: f32,
 ) -> String {
     format_player_update_line_full_clothing_responsible(
         p_id,
@@ -270,6 +275,7 @@ pub fn format_player_update_line_eat_responsible(
         "0;0;0;0;0;0",
         responsible_id,
         60.0,
+        heat,
     )
 }
 
@@ -301,6 +307,7 @@ pub fn format_player_update_line_full(
     oy: i32,
     o_trans: i32,
     seq: i32,
+    heat: f32,
 ) -> String {
     format_player_update_line_full_clothing(
         p_id,
@@ -323,6 +330,7 @@ pub fn format_player_update_line_full(
         seq,
         "0;0;0;0;0;0",
         60.0,
+        heat,
     )
 }
 
@@ -350,6 +358,7 @@ pub fn format_player_update_line_full_clothing(
     seq: i32,
     clothing_set: &str,
     age_r: f32,
+    heat: f32,
 ) -> String {
     format_player_update_line_full_clothing_responsible(
         p_id,
@@ -373,6 +382,7 @@ pub fn format_player_update_line_full_clothing(
         clothing_set,
         -1,
         age_r,
+        heat,
     )
 }
 
@@ -401,6 +411,7 @@ pub fn format_player_update_line_full_clothing_responsible(
     clothing_set: &str,
     responsible_id: i32,
     age_r: f32,
+    heat: f32,
 ) -> String {
     let clothing = if clothing_set.is_empty() {
         "0;0;0;0;0;0"
@@ -410,8 +421,9 @@ pub fn format_player_update_line_full_clothing_responsible(
     let age_s = haxe_trunc_hundredths(age);
     let age_r_s = haxe_trunc_hundredths(age_r);
     let speed_s = haxe_trunc_hundredths(move_speed);
+    let heat_s = haxe_trunc_hundredths(heat);
     format!(
-        "{p_id} {po_id} 0 {action} {atx} {aty} {held_id} {o_origin_valid} {ox} {oy} {o_trans} 0.50 {seq} {force} {x} {y} {age_s:.2} {age_r_s:.2} {speed_s:.2} {clothing} {just_ate} {last_ate} {responsible_id} 0 0"
+        "{p_id} {po_id} 0 {action} {atx} {aty} {held_id} {o_origin_valid} {ox} {oy} {o_trans} {heat_s:.2} {seq} {force} {x} {y} {age_s:.2} {age_r_s:.2} {speed_s:.2} {clothing} {just_ate} {last_ate} {responsible_id} 0 0"
     )
 }
 
@@ -432,6 +444,7 @@ pub fn format_player_update_line_death(
     clothing_set: &str,
     reason: &str,
     age_r: f32,
+    heat: f32,
 ) -> String {
     let clothing = if clothing_set.is_empty() {
         "0;0;0;0;0;0"
@@ -443,8 +456,9 @@ pub fn format_player_update_line_death(
     let age_s = haxe_trunc_hundredths(age);
     let age_r_s = haxe_trunc_hundredths(age_r);
     let speed_s = haxe_trunc_hundredths(move_speed);
+    let heat_s = haxe_trunc_hundredths(heat);
     format!(
-        "{p_id} {po_id} 0 0 0 0 {held_id} 0 0 0 -1 0.50 {seq} 0 X X {age_s:.2} {age_r_s:.2} {speed_s:.2} {clothing} 0 0 -1 0 0 {reason}"
+        "{p_id} {po_id} 0 0 0 0 {held_id} 0 0 0 -1 {heat_s:.2} {seq} 0 X X {age_s:.2} {age_r_s:.2} {speed_s:.2} {clothing} 0 0 -1 0 0 {reason}"
     )
 }
 
@@ -890,18 +904,23 @@ mod tests {
     fn pu_age_and_age_r_use_haxe_hundredths() {
         assert!((haxe_trunc_hundredths(0.019) - 0.01).abs() < 1e-6);
         let s = format_player_update_line_full_clothing(
-            7, 19, 0, 1, 2, 0.019, 3.75, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 9, "1;0;0;0;0;0", 20.0,
+            7, 19, 0, 1, 2, 0.019, 3.75, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 9, "1;0;0;0;0;0", 20.0, 0.31,
         );
         assert!(
             s.contains(" 0.01 20.00 "),
             "toData tmpAge/tmpAge_r: {s}"
         );
+        assert!(s.contains(" 0.31 "), "toData tmpHeat: {s}");
+        // Short PU wrappers must carry live heat (Haxe toData tmpHeat), not 0.50.
+        let short = format_player_update_line(7, 19, 0, 1, 2, 14.0, 3.75, 9, 0.31);
+        assert!(short.contains(" 0.31 "), "short PU tmpHeat: {short}");
+        assert!(!short.contains(" 0.50 "), "short PU must not hardcode 0.50: {short}");
     }
 
     #[test]
     fn full_clothing_pu_embeds_set() {
         let s = format_player_update_line_full_clothing(
-            7, 19, 0, 1, 2, 14.0, 3.75, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 9, "1;0;0;0;0;0", 60.0,
+            7, 19, 0, 1, 2, 14.0, 3.75, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, 9, "1;0;0;0;0;0", 60.0, 0.50,
         );
         assert!(s.contains(" 9 1 "));
         assert!(s.contains(" 1;0;0;0;0;0 "));
@@ -919,6 +938,7 @@ mod tests {
             "0;0;0;0;0;0",
             "reason_hunger",
             60.0,
+            0.50,
         );
         assert!(s.contains(" X X "), "death coords must be X X: {s}");
         assert!(
@@ -935,6 +955,7 @@ mod tests {
             "",
             "reason_killed_560",
             20.0,
+            0.50,
         );
         assert!(killed.contains(" X X "));
         assert!(killed.trim_end().ends_with("reason_killed_560"));

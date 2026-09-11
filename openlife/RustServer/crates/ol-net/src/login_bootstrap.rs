@@ -110,6 +110,7 @@ pub fn build_login_bootstrap(
         age,
         DEFAULT_WALK_MOVE_SPEED,
         1, // birth done_moving_seq
+        0.50, // Haxe PlayerInstance.heat default at birth
     );
     out.push(format_server_message("PU", &[&pu]).into_bytes());
     let name_line = format!("{p_id} NEWBORN FAMILY");

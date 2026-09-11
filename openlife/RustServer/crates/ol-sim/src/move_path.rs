@@ -206,6 +206,63 @@ pub fn steps_to_client_path_deltas(steps: &[(i32, i32)]) -> Vec<(i32, i32)> {
     out
 }
 
+/// Jason `server.cpp` ~23640–23832: never teleport to client `xs,ys`.
+/// Keep the client's **dest**; start the path at the server tile.
+///
+/// Open Life Haxe `p.x = x` when `quadDist <= 5` is **not** in Jason's server.
+pub fn rebase_client_deltas_to_server_start(
+    server_x: i32,
+    server_y: i32,
+    client_xs: i32,
+    client_ys: i32,
+    deltas: &[(i32, i32)],
+) -> Vec<(i32, i32)> {
+    let dest = if deltas.is_empty() {
+        (client_xs, client_ys)
+    } else {
+        let &(dx, dy) = deltas.last().unwrap();
+        (client_xs + dx, client_ys + dy)
+    };
+    if dest == (server_x, server_y) {
+        return Vec::new();
+    }
+    if client_xs == server_x && client_ys == server_y {
+        return deltas.to_vec();
+    }
+    let mut tiles = Vec::with_capacity(deltas.len() + 1);
+    tiles.push((client_xs, client_ys));
+    for &(dx, dy) in deltas {
+        tiles.push((client_xs + dx, client_ys + dy));
+    }
+    if let Some(i) = tiles.iter().position(|&t| t == (server_x, server_y)) {
+        return tiles[i + 1..]
+            .iter()
+            .map(|&(x, y)| (x - server_x, y - server_y))
+            .collect();
+    }
+    chebyshev_cumulative_deltas(server_x, server_y, dest.0, dest.1)
+}
+
+fn chebyshev_cumulative_deltas(
+    start_x: i32,
+    start_y: i32,
+    dest_x: i32,
+    dest_y: i32,
+) -> Vec<(i32, i32)> {
+    let mut cx = start_x;
+    let mut cy = start_y;
+    let mut out = Vec::new();
+    while cx != dest_x || cy != dest_y {
+        cx += (dest_x - cx).signum();
+        cy += (dest_y - cy).signum();
+        out.push((cx - start_x, cy - start_y));
+        if out.len() > 64 {
+            break;
+        }
+    }
+    out
+}
+
 /// Walk client path deltas (start-relative waypoints); keep steps while walkable.
 ///
 /// Returns `(accepted_steps, trunc)` where accepted entries are **per-step** deltas
@@ -1144,6 +1201,19 @@ mod tests {
     fn decay_jumped_tiles_ex_uses_live_cap() {
         assert!((decay_jumped_tiles_ex(10.0, 1.0, 5.0) - 9.5).abs() < 1e-5);
         assert!((decay_jumped_tiles_ex(10.0, 1.0, 10.0) - 9.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn rebase_wrong_origin_keeps_dest_from_server_tile() {
+        // Client MOVE 0 0 @4 0 -1 while server is at (0,-2) → dest (0,-1).
+        let d = rebase_client_deltas_to_server_start(0, -2, 0, 0, &[(0, -1)]);
+        assert_eq!(d, vec![(0, 1)], "walk north from (0,-2) to (0,-1), no teleport");
+    }
+
+    #[test]
+    fn rebase_matching_start_keeps_client_deltas() {
+        let d = rebase_client_deltas_to_server_start(2, 0, 2, 0, &[(1, 0), (2, 0)]);
+        assert_eq!(d, vec![(1, 0), (2, 0)]);
     }
 
     #[test]

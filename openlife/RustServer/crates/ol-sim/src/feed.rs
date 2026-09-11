@@ -400,6 +400,110 @@ pub fn name_looks_like_food(name: &str) -> bool {
         || lower.contains("pie")
 }
 
+/// Haxe `GetCloseHungryChild` considerHungry (food below this counts as hungry).
+// Haxe: AiHelper.GetCloseHungryChildHelper considerHungry = 2.5
+pub const HUNGRY_CHILD_CONSIDER: f32 = 2.5;
+/// Default search tiles for `GetCloseHungryChild`.
+pub const HUNGRY_CHILD_SEARCH_DIST: i32 = 40;
+/// Haxe `GetMostDistantOwnChild` min/max search.
+pub const DISTANT_OWN_CHILD_MIN_DIST: i32 = 10;
+pub const DISTANT_OWN_CHILD_SEARCH_DIST: i32 = 50;
+
+/// Nearby infant snapshot for `GetCloseHungryChild` / `GetMostDistantOwnChild`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HungryChildCand {
+    pub conn_id: u64,
+    pub p_id: i32,
+    pub x: i32,
+    pub y: i32,
+    pub age: f32,
+    pub food: f32,
+    pub held_by: i32,
+    /// True when this is the mother's own child (follow/lineage).
+    pub is_own: bool,
+}
+
+/// Haxe `GetCloseHungryChildHelper` — pick the hungriest in-range infant to nurse.
+// Haxe: AiHelper.GetCloseHungryChildHelper L2018–2046
+pub fn pick_close_hungry_child(
+    mother_x: i32,
+    mother_y: i32,
+    cands: &[HungryChildCand],
+    search_dist: i32,
+    max_child_age: f32,
+    min_age_to_eat: f32,
+) -> Option<HungryChildCand> {
+    let max_dist = (search_dist.max(0) * search_dist.max(0)) as f32;
+    let mut best: Option<(f32, HungryChildCand)> = None;
+    for &p in cands {
+        if p.held_by != 0 {
+            continue;
+        }
+        if !p.age.is_finite() || p.age > max_child_age {
+            continue;
+        }
+        let mut hungry = HUNGRY_CHILD_CONSIDER - p.food;
+        if !p.is_own {
+            hungry = hungry / 2.0 - 0.25;
+        }
+        if p.age > min_age_to_eat {
+            hungry -= 0.5;
+        }
+        if hungry < 0.0 {
+            continue;
+        }
+        let dx = (mother_x - p.x) as f32;
+        let dy = (mother_y - p.y) as f32;
+        let dist = dx * dx + dy * dy + 1.0;
+        if dist > max_dist {
+            continue;
+        }
+        let score = hungry.powi(3) / dist;
+        if score < 0.01 {
+            continue;
+        }
+        if best.map(|(s, _)| score <= s).unwrap_or(false) {
+            continue;
+        }
+        best = Some((score, p));
+    }
+    best.map(|(_, p)| p)
+}
+
+/// Haxe `GetMostDistantOwnChildHelper` — own infant farther than minDist (guard).
+// Haxe: AiHelper.GetMostDistantOwnChildHelper L2060–2083
+pub fn pick_most_distant_own_child(
+    mother_x: i32,
+    mother_y: i32,
+    cands: &[HungryChildCand],
+    min_dist: i32,
+    search_dist: i32,
+    min_age_to_eat: f32,
+) -> Option<HungryChildCand> {
+    let max_q = (search_dist.max(0) * search_dist.max(0)) as i32;
+    let min_q = (min_dist.max(0) * min_dist.max(0)) as i32;
+    let mut worst: Option<(i32, HungryChildCand)> = None;
+    for &p in cands {
+        if !p.is_own || p.held_by != 0 {
+            continue;
+        }
+        if !p.age.is_finite() || p.age > min_age_to_eat {
+            continue;
+        }
+        let dx = mother_x - p.x;
+        let dy = mother_y - p.y;
+        let dist = dx * dx + dy * dy;
+        if dist > max_q || dist < min_q {
+            continue;
+        }
+        if worst.map(|(d, _)| dist <= d).unwrap_or(false) {
+            continue;
+        }
+        worst = Some((dist, p));
+    }
+    worst.map(|(_, p)| p)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -444,6 +548,78 @@ mod tests {
         assert!((get_max_child_feeding(20.0) - 20.0).abs() < 1e-5);
         assert!((get_max_child_feeding(2.0) - 4.0).abs() < 1e-5);
         assert!((get_max_child_feeding(4.0) - 4.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn pick_close_hungry_child_prefers_own_and_in_range() {
+        let own = HungryChildCand {
+            conn_id: 2,
+            p_id: 20,
+            x: 3,
+            y: 0,
+            age: 0.4,
+            food: 0.0,
+            held_by: 0,
+            is_own: true,
+        };
+        let other = HungryChildCand {
+            conn_id: 3,
+            p_id: 21,
+            x: 1,
+            y: 0,
+            age: 0.4,
+            food: 0.0,
+            held_by: 0,
+            is_own: false,
+        };
+        let full = HungryChildCand {
+            conn_id: 4,
+            p_id: 22,
+            x: 0,
+            y: 0,
+            age: 0.2,
+            food: 10.0,
+            held_by: 0,
+            is_own: true,
+        };
+        let picked = pick_close_hungry_child(
+            0,
+            0,
+            &[own, other, full],
+            40,
+            MAX_CHILD_AGE_BREAST_FEEDING,
+            3.0,
+        )
+        .expect("hungry child");
+        assert_eq!(picked.p_id, 20, "own child outranks closer stranger");
+        assert!(pick_close_hungry_child(0, 0, &[full], 40, 6.0, 3.0).is_none());
+    }
+
+    #[test]
+    fn pick_most_distant_own_child_skips_held_and_close() {
+        let far = HungryChildCand {
+            conn_id: 2,
+            p_id: 20,
+            x: 20,
+            y: 0,
+            age: 0.5,
+            food: 1.0,
+            held_by: 0,
+            is_own: true,
+        };
+        let close = HungryChildCand {
+            conn_id: 3,
+            p_id: 21,
+            x: 2,
+            y: 0,
+            age: 0.5,
+            food: 1.0,
+            held_by: 0,
+            is_own: true,
+        };
+        let picked = pick_most_distant_own_child(0, 0, &[far, close], 10, 50, 3.0)
+            .expect("far child");
+        assert_eq!(picked.p_id, 20);
     }
 
     #[test]

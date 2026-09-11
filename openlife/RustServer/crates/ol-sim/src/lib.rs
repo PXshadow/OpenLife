@@ -454,7 +454,10 @@ pub use short_craft_intent::short_craft_on_ground_to_live_intent;
 pub use world_time::WorldMapTimeState;
 // Profession pure helpers (crate-root for Player tests + profession_scan tests)
 pub use baker_profession::{assign_baker_from_speech, note_raw_pie_crafted, RAW_PIES};
-pub use farmer_profession::{assign_farm_from_speech, resolve_farm_assigned_job, FarmCounts};
+pub use farmer_profession::{
+    assign_farm_from_speech, make_sharpie_food, resolve_farm_assigned_job, FarmAction, FarmCounts,
+    BURDOCK, SEEDING_WILD_CARROT,
+};
 pub use fire_food_profession::{assign_fire_food_from_speech, FIRE};
 pub use pottery_profession::{assign_potter_from_speech, count_potter_peers_filtered};
 pub use smith_profession::apply_consider_making_food_smith_wipe;
@@ -489,6 +492,7 @@ pub use move_path::{
     advance_path, apply_jump_cost_ex, build_move_path, calculate_length,
     chebyshev as move_chebyshev, client_path_deltas_to_steps, decay_jumped_tiles_ex,
     format_pm_body, in_use_range, in_use_range_ex, is_moving, jump_quad_with_floor,
+    rebase_client_deltas_to_server_start,
     jump_rate_limited_ex, quad_dist as move_quad_dist, received_force_matches, resolve_move_seq,
     round2, still_waiting_for_force,
     steps_to_client_path_deltas, truncate_walkable, MovePath, MoveReject, DEFAULT_MOVE_SPEED,
@@ -702,10 +706,12 @@ pub use feed::{
     can_pickup_player_ages_ex,
     get_max_child_feeding, name_looks_like_food, nurse_hits_heal, pickup_feed_amounts,
     is_droppable_on_baby_pickup, needs_force_drop_nested_hold, pickup_feed_amounts_ex,
-    should_set_follow_on_hold, FEED_RANGE,
-    FOOD_RESTORE_FACTOR_WHILE_FEEDING, MAX_AGE_FOR_PICKUP_FROM_OTHERS,
-    MAX_CHILD_AGE_BREAST_FEEDING, MIN_MAX_CHILD_FEEDING, NURSE_HITS_HEAL_PER_SEC,
-    PICKUP_EXHAUSTION_GAIN, PICKUP_FEEDING_FOOD_RESTORE,
+    pick_close_hungry_child, pick_most_distant_own_child, should_set_follow_on_hold,
+    HungryChildCand, FEED_RANGE, DISTANT_OWN_CHILD_MIN_DIST, DISTANT_OWN_CHILD_SEARCH_DIST,
+    FOOD_RESTORE_FACTOR_WHILE_FEEDING, HUNGRY_CHILD_CONSIDER, HUNGRY_CHILD_SEARCH_DIST,
+    MAX_AGE_FOR_PICKUP_FROM_OTHERS, MAX_CHILD_AGE_BREAST_FEEDING, MIN_MAX_CHILD_FEEDING,
+    NURSE_HITS_HEAL_PER_SEC, PICKUP_BABY_MAX_DISTANCE, PICKUP_EXHAUSTION_GAIN,
+    PICKUP_FEEDING_FOOD_RESTORE,
 };
 pub use feed_other_yum::{feed_other_feeder_prestige_delta, FEED_OTHER_FEEDER_PRESTIGE_SHARE};
 pub use fertility::{
@@ -934,7 +940,8 @@ pub const YAWN_EMOT_INDEX: i32 = 2;
 /// Sim-time seconds between PE sleep/snore emotes while [`Player::sleeping`].
 pub const SLEEP_EMOT_INTERVAL_SECS: f32 = 15.0;
 /// Sim-time seconds between HX (HEAT_CHANGE) emissions to each player.
-pub const HX_EMIT_INTERVAL_SECS: f32 = 10.0;
+/// Haxe `TimeHelper.tick % 20 == 0` at 20 Hz → 1 sim-second.
+pub const HX_EMIT_INTERVAL_SECS: f32 = 1.0;
 pub const DEFAULT_PERSON_OBJECT: i32 = 19;
 
 /// Wire person object id for a player (skin/body).
@@ -2217,6 +2224,7 @@ impl SimState {
         let mut s = p.snapshot();
         if let Some(st) = self.combat.stats.get(&p.p_id) {
             s.lost_combat_prestige = st.lost_combat_prestige;
+            s.hits = st.hits;
         }
         if let Some(old) = prev {
             crate::preserve_view_path_reach_on_publish(&mut s.ai_path_reach, Some(&old.ai_path_reach));
@@ -2384,6 +2392,75 @@ fn send_nearby(outbound: &OutboundHub, conn_ids: &[u64], packet: Vec<u8>) {
     for &cid in conn_ids {
         outbound.send(cid, packet.clone());
     }
+}
+
+/// Haxe `WorldMap.transformX/Y` for one viewer: world tile → birth-relative PU/MX xy.
+// Haxe: WorldMap.transformX/Y L1582–1607
+pub(crate) fn viewer_pu_xy(state: &SimState, viewer: &Player, world_x: i32, world_y: i32) -> (i32, i32) {
+    let (mw, mh, wrap) = match state.world.read() {
+        Ok(w) => (w.width_tiles, w.height_tiles, w.wrap),
+        Err(_) => (0, 0, false),
+    };
+    ol_move_rules::haxe_transform_xy(
+        world_x,
+        world_y,
+        viewer.birth_x,
+        viewer.birth_y,
+        viewer.x - viewer.birth_x,
+        viewer.y - viewer.birth_y,
+        mw,
+        mh,
+        wrap,
+    )
+}
+
+/// Fan a PU so **each** recipient gets the subject's tile relative to **their** birth.
+/// Haxe `toRelativeData(viewer)` / `SendUpdateToAllClosePlayers`.
+fn fan_pu_at_world(
+    state: &SimState,
+    outbound: &OutboundHub,
+    conn_ids: &[u64],
+    world_x: i32,
+    world_y: i32,
+    urgent: bool,
+    mut fmt: impl FnMut(i32, i32) -> String,
+) {
+    for &cid in conn_ids {
+        let Some(v) = state.players.get(&cid) else {
+            continue;
+        };
+        let (rx, ry) = viewer_pu_xy(state, v, world_x, world_y);
+        let line = fmt(rx, ry);
+        let pkt = format_server_message("PU", &[&line]).into_bytes();
+        if urgent {
+            outbound.send_urgent(cid, pkt);
+        } else {
+            outbound.send(cid, pkt);
+        }
+    }
+}
+
+/// Live clothing PU for `subject_conn` to nearby (and self), per-viewer xy.
+fn fan_live_pu(
+    state: &SimState,
+    outbound: &OutboundHub,
+    subject_conn: u64,
+    force: i32,
+    urgent: bool,
+) {
+    let Some(p) = state.players.get(&subject_conn).cloned() else {
+        return;
+    };
+    if p.deleted {
+        return;
+    }
+    let mut recips = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
+    if !recips.contains(&subject_conn) {
+        recips.push(subject_conn);
+    }
+    fan_pu_at_world(state, outbound, &recips, p.x, p.y, urgent, |rx, ry| {
+        format_live_pu_line(state, &p, rx, ry, force)
+    });
 }
 
 /// Official clients (LivingLifePage `waitForFrameMessages`) **hold** PM/PU/PS/LS
@@ -2584,11 +2661,10 @@ fn fan_jump_player_update(
         None
     };
     for &cid in &recipients {
-        let (rx, ry) = state
-            .players
-            .get(&cid)
-            .map(|v| v.world_to_client(p.x, p.y))
-            .unwrap_or((p.x, p.y));
+        let Some(v) = state.players.get(&cid) else {
+            continue;
+        };
+        let (rx, ry) = viewer_pu_xy(state, v, p.x, p.y);
         let pu = format_live_pu_line(state, &p, rx, ry, force);
         outbound.send(cid, format_server_message("PU", &[&pu]).into_bytes());
         if let Some(ref pkt) = bw {
@@ -2871,7 +2947,7 @@ fn send_haxe_init_connection(state: &mut SimState, outbound: &OutboundHub, conn_
     }
     let ts = pl.tools.wire_slots();
     outbound.send_urgent(conn_id, format_server_message("TS", &[&ts]).into_bytes());
-    let (rx, ry) = pl.world_to_client(pl.x, pl.y);
+    let (rx, ry) = viewer_pu_xy(state, pl, pl.x, pl.y);
     let po = person_object_id(pl);
     let nm_line = format_player_nm_line_ex(
         &state.social.lineages,
@@ -3313,8 +3389,25 @@ pub fn apply_drop(
         }
     }
     let held = state.players.get(&conn_id).map(|p| p.held_id).unwrap_or(0);
+    let tile = state.world.read().unwrap().get_object(x, y);
     if held == 0 {
-        // Hidden-wound DROP cleared hands; PU so the client sees empty held.
+        // Haxe drop(): empty hands still swapHandAndFloorObject (pick up ground object).
+        // Hidden-wound DROP with empty tile: just PU empty held.
+        if tile != 0 {
+            if drop_cycle_container(state, conn_id, x, y, tile, 0) {
+                state.publish_player_view(conn_id);
+                info!(conn_id, x, y, tile, "sim: DROP empty-hand container take");
+                send_drop_result(state, outbound, conn_id, x, y, tile);
+                break 'cmd;
+            }
+            if swap_hand_and_floor_object(state, conn_id, x, y) {
+                state.publish_player_view(conn_id);
+                let placed = state.world.read().unwrap().get_object(x, y);
+                info!(conn_id, x, y, tile, placed, "sim: DROP empty-hand pickup");
+                send_drop_result(state, outbound, conn_id, x, y, placed);
+                break 'cmd;
+            }
+        }
         if hidden_wound_cleared {
             send_player_update_and_frame(state, outbound, conn_id);
         }
@@ -3330,7 +3423,6 @@ pub fn apply_drop(
         info!(conn_id, x, y, held, "sim: DROP skipped floor-only object");
         break 'cmd;
     }
-    let tile = state.world.read().unwrap().get_object(x, y);
 
     // Haxe drop(): doContainerStuff(isDrop) then swapHandAndFloorObject. Never USE.
     // Haxe: TransitionHelper.drop L555–558
@@ -3465,10 +3557,7 @@ fn send_drop_result(
     y: i32,
     placed: i32,
 ) {
-    let near = nearby_conn_ids(state, x, y, nearby_range(state));
-    for pkt in packets_after_drop(state, conn_id, x, y, placed) {
-        crate::vanilla_id::send_nearby_maybe_mx(state, outbound, &near, pkt, true);
-    }
+    fan_after_drop(state, outbound, conn_id, x, y, placed, true);
     send_frame(outbound, conn_id);
 }
 
@@ -5482,40 +5571,52 @@ fn apply_say_or_remv(
                             state.publish_player_view(t_conn);
                             let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
                             // PU for actor + target after position change.
-                            if let Some(ap) = state.players.get(&conn_id) {
-                                let spd = player_move_speed(state, ap);
-                                let pu = format_player_update_line(
-                                    actor_id,
-                                    DEFAULT_PERSON_OBJECT,
-                                    actor_held,
+                            if let Some(ap) = state.players.get(&conn_id).cloned() {
+                                let spd = player_move_speed(state, &ap);
+                                fan_pu_at_world(
+                                    state,
+                                    outbound,
+                                    &near,
                                     ap.x,
                                     ap.y,
-                                    actor_age,
-                                    spd,
-                                    ap.done_moving_seq.max(1),
-                                );
-                                send_nearby(
-                                    outbound,
-                                    &near,
-                                    format_server_message("PU", &[&pu]).into_bytes(),
+                                    false,
+                                    |rx, ry| {
+                                        format_player_update_line(
+                                            actor_id,
+                                            DEFAULT_PERSON_OBJECT,
+                                            actor_held,
+                                            rx,
+                                            ry,
+                                            actor_age,
+                                            spd,
+                                            ap.done_moving_seq.max(1),
+                                            ap.heat,
+                                        )
+                                    },
                                 );
                             }
-                            if let Some(tp) = state.players.get(&t_conn) {
-                                let spd = player_move_speed(state, tp);
-                                let pu = format_player_update_line(
-                                    target_id,
-                                    DEFAULT_PERSON_OBJECT,
-                                    t_held,
-                                    tp.x,
-                                    tp.y,
-                                    t_age,
-                                    spd,
-                                    tp.done_moving_seq.max(1),
-                                );
-                                send_nearby(
+                            if let Some(tp) = state.players.get(&t_conn).cloned() {
+                                let spd = player_move_speed(state, &tp);
+                                fan_pu_at_world(
+                                    state,
                                     outbound,
                                     &near,
-                                    format_server_message("PU", &[&pu]).into_bytes(),
+                                    tp.x,
+                                    tp.y,
+                                    false,
+                                    |rx, ry| {
+                                        format_player_update_line(
+                                            target_id,
+                                            DEFAULT_PERSON_OBJECT,
+                                            t_held,
+                                            rx,
+                                            ry,
+                                            t_age,
+                                            spd,
+                                            tp.done_moving_seq.max(1),
+                                            tp.heat,
+                                        )
+                                    },
                                 );
                             }
                             let mode = match outcome {
@@ -5595,22 +5696,28 @@ fn apply_say_or_remv(
                                 }
                                 state.publish_player_view(t_conn);
                                 let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
-                                if let Some(tp) = state.players.get(&t_conn) {
-                                    let spd = player_move_speed(state, tp);
-                                    let pu = format_player_update_line(
-                                        target_id,
-                                        DEFAULT_PERSON_OBJECT,
-                                        t_held,
-                                        tp.x,
-                                        tp.y,
-                                        t_age,
-                                        spd,
-                                        tp.done_moving_seq.max(1),
-                                    );
-                                    send_nearby(
+                                if let Some(tp) = state.players.get(&t_conn).cloned() {
+                                    let spd = player_move_speed(state, &tp);
+                                    fan_pu_at_world(
+                                        state,
                                         outbound,
                                         &near,
-                                        format_server_message("PU", &[&pu]).into_bytes(),
+                                        tp.x,
+                                        tp.y,
+                                        false,
+                                        |rx, ry| {
+                                            format_player_update_line(
+                                                target_id,
+                                                DEFAULT_PERSON_OBJECT,
+                                                t_held,
+                                                rx,
+                                                ry,
+                                                t_age,
+                                                spd,
+                                                tp.done_moving_seq.max(1),
+                                                tp.heat,
+                                            )
+                                        },
                                     );
                                 }
                                 format!("{actor_id} PULL {target_id} OK {wx} {wy}")
@@ -6081,45 +6188,57 @@ fn apply_say_or_remv(
                             let near =
                                 nearby_conn_ids(state, feeder_x, feeder_y, nearby_range(state));
                             // PU for feeder (empty hands) + target food change FX.
-                            if let Some(feeder) = state.players.get(&conn_id) {
-                                let spd = player_move_speed(state, feeder);
-                                let pu = format_player_update_line(
-                                    feeder.p_id,
-                                    DEFAULT_PERSON_OBJECT,
-                                    feeder.held_id,
+                            if let Some(feeder) = state.players.get(&conn_id).cloned() {
+                                let spd = player_move_speed(state, &feeder);
+                                fan_pu_at_world(
+                                    state,
+                                    outbound,
+                                    &near,
                                     feeder.x,
                                     feeder.y,
-                                    feeder.age,
-                                    spd,
-                                    feeder.done_moving_seq.max(1),
-                                );
-                                send_nearby(
-                                    outbound,
-                                    &near,
-                                    format_server_message("PU", &[&pu]).into_bytes(),
+                                    false,
+                                    |rx, ry| {
+                                        format_player_update_line(
+                                            feeder.p_id,
+                                            DEFAULT_PERSON_OBJECT,
+                                            feeder.held_id,
+                                            rx,
+                                            ry,
+                                            feeder.age,
+                                            spd,
+                                            feeder.done_moving_seq.max(1),
+                                            feeder.heat,
+                                        )
+                                    },
                                 );
                             }
-                            if let Some(tp) = state.players.get(&t_conn) {
-                                let fx = food_change_for_player(state, tp);
+                            if let Some(tp) = state.players.get(&t_conn).cloned() {
+                                let fx = food_change_for_player(state, &tp);
                                 send_nearby(outbound, &near, fx.into_bytes());
-                                let spd = player_move_speed(state, tp);
-                                let pu = format_player_update_line_eat_responsible(
-                                    tp.p_id,
-                                    person_object_id(tp),
-                                    tp.held_id,
-                                    tp.x,
-                                    tp.y,
-                                    tp.age,
-                                    spd,
-                                    tp.yum.just_ate_flag(),
-                                    tp.yum.just_ate_id,
-                                    tp.yum.responsible_id,
-                                    tp.done_moving_seq.max(1),
-                                );
-                                send_nearby(
+                                let spd = player_move_speed(state, &tp);
+                                fan_pu_at_world(
+                                    state,
                                     outbound,
                                     &near,
-                                    format_server_message("PU", &[&pu]).into_bytes(),
+                                    tp.x,
+                                    tp.y,
+                                    false,
+                                    |rx, ry| {
+                                        format_player_update_line_eat_responsible(
+                                            tp.p_id,
+                                            person_object_id(&tp),
+                                            tp.held_id,
+                                            rx,
+                                            ry,
+                                            tp.age,
+                                            spd,
+                                            tp.yum.just_ate_flag(),
+                                            tp.yum.just_ate_id,
+                                            tp.yum.responsible_id,
+                                            tp.done_moving_seq.max(1),
+                                            tp.heat,
+                                        )
+                                    },
                                 );
                             }
                             let new_food = state
@@ -6940,35 +7059,15 @@ fn apply_say_or_remv(
             };
             let result = state.players.get_mut(&conn_id).map(|pl| {
                 let r = pl.strip_slot(slot);
-                (pl.p_id, r, pl.held_id, pl.x, pl.y, pl.age)
+                (pl.p_id, r)
             });
-            if let Some((p_id, r, held_id, x, y, age)) = result {
+            if let Some((p_id, r)) = result {
                 match r {
                     Ok(id) => {
                         let line = format!("{p_id}/0 STRIP {} {id} OK", slot.as_str());
                         send_ps_reply(outbound, conn_id, &line);
                         state.publish_player_view(conn_id);
-                        let spd = state
-                            .players
-                            .get(&conn_id)
-                            .map(|pl| player_move_speed(state, pl))
-                            .unwrap_or(WALK_MOVE_SPEED);
-                        let pu = format_player_update_line(
-                            p_id,
-                            DEFAULT_PERSON_OBJECT,
-                            held_id,
-                            x,
-                            y,
-                            age,
-                            spd,
-                            1,
-                        );
-                        let near = nearby_conn_ids(state, x, y, nearby_range(state));
-                        send_nearby(
-                            outbound,
-                            &near,
-                            format_server_message("PU", &[&pu]).into_bytes(),
-                        );
+                        fan_live_pu(state, outbound, conn_id, 0, false);
                         info!(conn_id, slot = slot.as_str(), id, "sim: STRIP clothing");
                     }
                     Err(e) => {
@@ -7010,9 +7109,9 @@ fn apply_say_or_remv(
             };
             let result = state.players.get_mut(&conn_id).map(|pl| {
                 let r = pl.wear_held(slot);
-                (pl.p_id, r, pl.held_id, pl.x, pl.y, pl.age)
+                (pl.p_id, r)
             });
-            if let Some((p_id, r, held_id, x, y, age)) = result {
+            if let Some((p_id, r)) = result {
                 match r {
                     Ok((id, prev)) => {
                         let line = if prev != 0 {
@@ -7022,27 +7121,7 @@ fn apply_say_or_remv(
                         };
                         send_ps_reply(outbound, conn_id, &line);
                         state.publish_player_view(conn_id);
-                        let spd = state
-                            .players
-                            .get(&conn_id)
-                            .map(|pl| player_move_speed(state, pl))
-                            .unwrap_or(WALK_MOVE_SPEED);
-                        let pu = format_player_update_line(
-                            p_id,
-                            DEFAULT_PERSON_OBJECT,
-                            held_id,
-                            x,
-                            y,
-                            age,
-                            spd,
-                            1,
-                        );
-                        let near = nearby_conn_ids(state, x, y, nearby_range(state));
-                        send_nearby(
-                            outbound,
-                            &near,
-                            format_server_message("PU", &[&pu]).into_bytes(),
-                        );
+                        fan_live_pu(state, outbound, conn_id, 0, false);
                         info!(
                             conn_id,
                             slot = slot.as_str(),
@@ -7166,35 +7245,15 @@ fn apply_say_or_remv(
         if upper == "STORE" {
             let result = state.players.get_mut(&conn_id).map(|pl| {
                 let r = pl.store_to_backpack();
-                (pl.p_id, r, pl.held_id, pl.x, pl.y, pl.age)
+                (pl.p_id, r)
             });
-            if let Some((p_id, r, held_id, x, y, age)) = result {
+            if let Some((p_id, r)) = result {
                 match r {
                     Ok(id) => {
                         let line = format!("{p_id}/0 STORE {id} OK");
                         send_ps_reply(outbound, conn_id, &line);
                         state.publish_player_view(conn_id);
-                        let spd = state
-                            .players
-                            .get(&conn_id)
-                            .map(|pl| player_move_speed(state, pl))
-                            .unwrap_or(WALK_MOVE_SPEED);
-                        let pu = format_player_update_line(
-                            p_id,
-                            DEFAULT_PERSON_OBJECT,
-                            held_id,
-                            x,
-                            y,
-                            age,
-                            spd,
-                            1,
-                        );
-                        let near = nearby_conn_ids(state, x, y, nearby_range(state));
-                        send_nearby(
-                            outbound,
-                            &near,
-                            format_server_message("PU", &[&pu]).into_bytes(),
-                        );
+                        fan_live_pu(state, outbound, conn_id, 0, false);
                         info!(conn_id, id, "sim: STORE to backpack");
                     }
                     Err(e) => {
@@ -7220,35 +7279,15 @@ fn apply_say_or_remv(
             };
             let result = state.players.get_mut(&conn_id).map(|pl| {
                 let r = pl.take_from_backpack(i);
-                (pl.p_id, r, pl.held_id, pl.x, pl.y, pl.age)
+                (pl.p_id, r)
             });
-            if let Some((p_id, r, held_id, x, y, age)) = result {
+            if let Some((p_id, r)) = result {
                 match r {
                     Ok(id) => {
                         let line = format!("{p_id}/0 TAKE {i} {id} OK");
                         send_ps_reply(outbound, conn_id, &line);
                         state.publish_player_view(conn_id);
-                        let spd = state
-                            .players
-                            .get(&conn_id)
-                            .map(|pl| player_move_speed(state, pl))
-                            .unwrap_or(WALK_MOVE_SPEED);
-                        let pu = format_player_update_line(
-                            p_id,
-                            DEFAULT_PERSON_OBJECT,
-                            held_id,
-                            x,
-                            y,
-                            age,
-                            spd,
-                            1,
-                        );
-                        let near = nearby_conn_ids(state, x, y, nearby_range(state));
-                        send_nearby(
-                            outbound,
-                            &near,
-                            format_server_message("PU", &[&pu]).into_bytes(),
-                        );
+                        fan_live_pu(state, outbound, conn_id, 0, false);
                         info!(conn_id, i, id, "sim: TAKE from backpack");
                     }
                     Err(e) => {
@@ -7264,8 +7303,8 @@ fn apply_say_or_remv(
             let meta = state
                 .players
                 .get(&conn_id)
-                .map(|pl| (pl.p_id, pl.x, pl.y, pl.age, pl.deleted));
-            let Some((p_id, x, y, age, deleted)) = meta else {
+                .map(|pl| (pl.p_id, pl.deleted));
+            let Some((p_id, deleted)) = meta else {
                 return;
             };
             if deleted {
@@ -7280,24 +7319,7 @@ fn apply_say_or_remv(
             };
             send_ps_reply(outbound, conn_id, &line);
             state.publish_player_view(conn_id);
-            let spd = state
-                .players
-                .get(&conn_id)
-                .map(|pl| player_move_speed(state, pl))
-                .unwrap_or(WALK_MOVE_SPEED);
-            let held_id = state
-                .players
-                .get(&conn_id)
-                .map(|pl| pl.held_id)
-                .unwrap_or(0);
-            let pu =
-                format_player_update_line(p_id, DEFAULT_PERSON_OBJECT, held_id, x, y, age, spd, 1);
-            let near = nearby_conn_ids(state, x, y, nearby_range(state));
-            send_nearby(
-                outbound,
-                &near,
-                format_server_message("PU", &[&pu]).into_bytes(),
-            );
+            fan_live_pu(state, outbound, conn_id, 0, false);
             info!(conn_id, p_id, n, "sim: DROPALL");
             return;
         }
@@ -7381,12 +7403,7 @@ fn apply_say_or_remv(
                 send_ps_reply(outbound, conn_id, &line);
                 state.publish_player_view(conn_id);
                 let tile = state.world.read().unwrap().get_object(x, y);
-                let near = nearby_conn_ids(state, x, y, nearby_range(state));
-                for pkt in packets_after_drop(state, conn_id, x, y, tile) {
-                    crate::vanilla_id::send_nearby_maybe_mx(
-                        state, outbound, &near, pkt, false,
-                    );
-                }
+                fan_after_drop(state, outbound, conn_id, x, y, tile, false);
                 info!(conn_id, x, y, slot, held, "sim: PUTNEST into nested pocket");
             } else {
                 let line = format!("{p_id}/0 PUTNEST {slot} FAIL");
@@ -7404,12 +7421,7 @@ fn apply_say_or_remv(
                     let line = format!("{} CRAFT OK skill_lvl={lvl}", p.p_id);
                     send_ps_reply(outbound, conn_id, &line);
                     state.publish_player_view(conn_id);
-                    let near = nearby_conn_ids(state, r.x, r.y, nearby_range(state));
-                    for pkt in packets_after_use(state, conn_id, &r) {
-                        crate::vanilla_id::send_nearby_maybe_mx(
-                            state, outbound, &near, pkt, false,
-                        );
-                    }
+                    fan_after_use(state, outbound, conn_id, &r, false);
                     info!(
                         conn_id,
                         held = r.actor_before,
@@ -7876,8 +7888,7 @@ fn apply_say_or_remv(
         }
         // GOHOME â€” pathfind one step toward home, or teleport one cardinal step.
         if upper == "GOHOME" {
-            let (sx, sy, hx, hy, p_id, held, age) =
-                (p.x, p.y, p.home_x, p.home_y, p.p_id, p.held_id, p.age);
+            let (sx, sy, hx, hy, p_id) = (p.x, p.y, p.home_x, p.home_y, p.p_id);
             if sx == hx && sy == hy {
                 let line = format!("{p_id}/0 GOHOME {sx} {sy} OK");
                 send_ps_reply(outbound, conn_id, &line);
@@ -7909,23 +7920,7 @@ fn apply_say_or_remv(
                 if let Some(np) = state.players.get(&conn_id) {
                     let line = format!("{} GOHOME {} {}", np.p_id, np.x, np.y);
                     send_ps_reply(outbound, conn_id, &line);
-                    let spd = player_move_speed(state, np);
-                    let pu = format_player_update_line(
-                        p_id,
-                        DEFAULT_PERSON_OBJECT,
-                        held,
-                        np.x,
-                        np.y,
-                        age,
-                        spd,
-                        np.done_moving_seq.max(1),
-                    );
-                    let near = nearby_conn_ids(state, np.x, np.y, nearby_range(state));
-                    send_nearby(
-                        outbound,
-                        &near,
-                        format_server_message("PU", &[&pu]).into_bytes(),
-                    );
+                    fan_live_pu(state, outbound, conn_id, 0, false);
                     info!(
                         conn_id,
                         x = np.x,
@@ -8217,31 +8212,8 @@ fn apply_say_or_remv(
             }
             state.publish_player_view(conn_id);
             info!(conn_id, x, y, id, "sim: REMV from container");
-            let near = nearby_conn_ids(state, x, y, nearby_range(state));
             let tile = state.world.read().unwrap().get_object(x, y);
-            for pkt in packets_after_drop(state, conn_id, x, y, tile) {
-                crate::vanilla_id::send_nearby_maybe_mx(
-                    state, outbound, &near, pkt, false,
-                );
-            }
-            if let Some(p) = state.players.get(&conn_id) {
-                let spd = player_move_speed(state, p);
-                let pu = format_player_update_line(
-                    p.p_id,
-                    person_object_id(&p),
-                    p.held_id,
-                    p.x,
-                    p.y,
-                    p.age,
-                    spd,
-                    p.done_moving_seq.max(1),
-                );
-                send_nearby(
-                    outbound,
-                    &near,
-                    format_server_message("PU", &[&pu]).into_bytes(),
-                );
-            }
+            fan_after_drop(state, outbound, conn_id, x, y, tile, false);
         }
         finish_remv_command_side_effects(state, outbound, conn_id, x, y);
     }
@@ -8373,8 +8345,8 @@ pub fn packets_after_use(state: &SimState, conn_id: u64, r: &UseResult) -> Vec<V
     };
     let floor = state.world.read().unwrap().get_floor(r.x, r.y) as i32;
     let wire_obj = wire_object_at(state, r.x, r.y);
-    let (mx, my) = p.world_to_client(r.x, r.y);
-    let (px, py) = p.world_to_client(p.x, p.y);
+    let (mx, my) = viewer_pu_xy(state, p, r.x, r.y);
+    let (px, py) = viewer_pu_xy(state, p, p.x, p.y);
     let mut out = Vec::new();
     // Transform / pickup / harvest â€” not a drop.
     let responsible = -p.p_id;
@@ -8408,6 +8380,7 @@ pub fn packets_after_use(state: &SimState, conn_id: u64, r: &UseResult) -> Vec<V
             &clothing,
             p.yum.responsible_id,
             p.age_r,
+            p.heat,
         )
     } else {
         format_live_pu_line_origin(state, p, px, py, 0, ov, ox, oy)
@@ -8437,13 +8410,139 @@ pub fn packets_after_drop(
             state.content.wire_id_for_uses(placed, 0)
         }
     };
-    let (mx, my) = p.world_to_client(x, y);
-    let (px, py) = p.world_to_client(p.x, p.y);
+    let (mx, my) = viewer_pu_xy(state, p, x, y);
+    let (px, py) = viewer_pu_xy(state, p, p.x, p.y);
     let mut out = Vec::new();
     out.push(format_map_change(mx, my, floor, wire_obj, p.p_id).into_bytes());
     let pu = format_live_pu_line(state, p, px, py, 0);
     out.push(format_server_message("PU", &[&pu]).into_bytes());
     out
+}
+
+/// Haxe `SendTransitionUpdateToAllClosePlayers`: MX + PU, **per viewer** transformX/Y.
+fn fan_after_use(state: &SimState, outbound: &OutboundHub, conn_id: u64, r: &UseResult, urgent: bool) {
+    let Some(p) = state.players.get(&conn_id).cloned() else {
+        return;
+    };
+    let floor = state.world.read().unwrap().get_floor(r.x, r.y) as i32;
+    let wire_obj = wire_object_at(state, r.x, r.y);
+    let responsible = -p.p_id;
+    let pickup = r.actor_before <= 0 && p.held_id > 0;
+    let mut recips = nearby_conn_ids(state, r.x, r.y, nearby_range(state));
+    if !recips.contains(&conn_id) {
+        recips.push(conn_id);
+    }
+    for &cid in &recips {
+        let Some(v) = state.players.get(&cid) else {
+            continue;
+        };
+        let (mx, my) = viewer_pu_xy(state, v, r.x, r.y);
+        let (px, py) = viewer_pu_xy(state, v, p.x, p.y);
+        let (ov, ox, oy) = if pickup { (1, mx, my) } else { (0, 0, 0) };
+        let mx_s = crate::vanilla_id::format_map_change_for_conn(
+            state,
+            cid,
+            mx,
+            my,
+            floor,
+            wire_obj,
+            responsible,
+        );
+        let pu = if p.yum.just_ate {
+            format_player_update_line_full_clothing_responsible(
+                p.p_id,
+                person_object_id(&p),
+                pu_held_id(&p),
+                px,
+                py,
+                p.age,
+                player_move_speed(state, &p),
+                p.yum.just_ate_flag(),
+                p.yum.just_ate_id,
+                0,
+                0,
+                0,
+                0,
+                ov,
+                ox,
+                oy,
+                -1,
+                haxe_to_data_seq(
+                    p.held_by != 0,
+                    p.moving || p.move_path.is_some(),
+                    p.done_moving_seq,
+                ),
+                &player_clothing_set(&p),
+                p.yum.responsible_id,
+                p.age_r,
+                p.heat,
+            )
+        } else {
+            format_live_pu_line_origin(state, &p, px, py, 0, ov, ox, oy)
+        };
+        let pu_bytes = format_server_message("PU", &[&pu]).into_bytes();
+        let mx_bytes = mx_s.into_bytes();
+        if urgent {
+            outbound.send_urgent(cid, mx_bytes);
+            outbound.send_urgent(cid, pu_bytes);
+        } else {
+            outbound.send(cid, mx_bytes);
+            outbound.send(cid, pu_bytes);
+        }
+        let fx = food_change_for_player(state, &p);
+        if urgent {
+            outbound.send_urgent(cid, fx.into_bytes());
+        } else {
+            outbound.send(cid, fx.into_bytes());
+        }
+    }
+}
+
+fn fan_after_drop(
+    state: &SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+    x: i32,
+    y: i32,
+    placed: i32,
+    urgent: bool,
+) {
+    let Some(p) = state.players.get(&conn_id).cloned() else {
+        return;
+    };
+    let floor = state.world.read().unwrap().get_floor(x, y) as i32;
+    let wire_obj = {
+        let live = wire_object_at(state, x, y);
+        if live != 0 {
+            live
+        } else {
+            state.content.wire_id_for_uses(placed, 0)
+        }
+    };
+    let mut recips = nearby_conn_ids(state, x, y, nearby_range(state));
+    if !recips.contains(&conn_id) {
+        recips.push(conn_id);
+    }
+    for &cid in &recips {
+        let Some(v) = state.players.get(&cid) else {
+            continue;
+        };
+        let (mx, my) = viewer_pu_xy(state, v, x, y);
+        let (px, py) = viewer_pu_xy(state, v, p.x, p.y);
+        let mx_s = crate::vanilla_id::format_map_change_for_conn(
+            state, cid, mx, my, floor, wire_obj, p.p_id,
+        );
+        let pu = format_live_pu_line(state, &p, px, py, 0);
+        let mx_bytes = mx_s.into_bytes();
+        let pu_bytes = format_server_message("PU", &[&pu]).into_bytes();
+        if urgent {
+            outbound.send_urgent(cid, mx_bytes);
+            outbound.send_urgent(cid, pu_bytes);
+        } else {
+            outbound.send(cid, mx_bytes);
+            outbound.send(cid, pu_bytes);
+        }
+    }
 }
 
 pub fn player_id_for_conn(conn_id: u64) -> i32 {
@@ -8549,6 +8648,16 @@ fn apply_haxe_birth_food(state: &SimState, p: &mut Player) {
     p.exhaustion = crate::food_store_max::spawn_exhaustion_credit(max);
 }
 
+/// Haxe `ServerSettings.StartingName` (`SPOON`) until `YOU ARE` DoNaming.
+fn child_starting_first_name(state: &SimState) -> String {
+    let t = state.gameplay.starting_name.trim();
+    if t.is_empty() {
+        crate::naming::STARTING_NAME.to_string()
+    } else {
+        t.to_ascii_uppercase()
+    }
+}
+
 pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     // Living reconnect: keep the same body. Deleted → new life (Haxe CreateNew*Player).
     if let Some(p) = state.players.get(&conn_id) {
@@ -8629,11 +8738,10 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
         .values()
         .filter(|pl| !pl.deleted && crate::eve_spawn::is_human_login_conn(pl.conn_id))
         .count();
+    // Haxe: spawnEve = lastEveOrAdam alive OR ((SpawnAiAsEve || isHuman) && chance).
+    // After the Eve–Adam pair `lastAiEveOrAdam` is cleared, so the third+ AI is
+    // `spawnAsChild` even on an empty (AI-only) server.
     let mut spawn_as_eve = pairing_eve || roll_eve;
-    // No human left: AIs still spawn, but as Eve/Adam — not as babies of leftover AI mothers.
-    if crate::eve_spawn::force_ai_eve_when_no_human(is_synthetic, living_humans) {
-        spawn_as_eve = true;
-    }
     let (sx, sy) = if !spawn_as_eve {
         if let Some(mid) = pick_best_mother_p_id_for(state, is_human) {
             mother_link = Some(mid);
@@ -8746,6 +8854,25 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
             if let Some(id) = pick_spawn_person_object(state, race, want_female) {
                 p.display_object_id = id;
             }
+            // Haxe Lineage.name = StartingName (SPOON) until YOU ARE.
+            p.first_name = child_starting_first_name(state);
+            if let Some(m) = state.players.values().find(|pl| pl.p_id == mid) {
+                if !m.family_name.is_empty() {
+                    p.family_name = m.family_name.clone();
+                }
+                // Haxe spawnAsChild: followPlayer = mother
+                p.ai_follow_p_id = m.p_id;
+                p.home_x = m.home_x;
+                p.home_y = m.home_y;
+                p.warm_place = m.warm_place;
+                p.cold_place = m.cold_place;
+                if m.is_ai_body()
+                    || m.email.to_ascii_lowercase().contains("npc")
+                    || m.email.to_ascii_lowercase().contains("selfplay")
+                {
+                    p.ai_controlled = true;
+                }
+            }
         }
     }
     if mother_link.is_some() {
@@ -8771,6 +8898,8 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     state.players.insert(conn_id, p);
     if let Some(mid) = mother_link {
         attach_fitness_mother_lineage(state, p_id, &display, mid, sx, sy, is_human);
+        // Haxe spawnAsChild: followPlayer = mother; newChild only records the child.
+        // Mother picks up later via isFeedingChild / doBaby (not held at birth).
     } else {
         // Eve/Adam wild birth: root lineage (Haxe EveOrAdam).
         // Haxe: Lineage.new birthTime = TimeHelper.tick
@@ -8893,9 +9022,10 @@ pub fn spawn_child(state: &mut SimState, mother_conn: u64) -> Option<i32> {
         baby_conn = baby_conn.saturating_add(1);
     }
 
-    let (first, family) = naming::pick_random_name(&mut rand::thread_rng());
+    let family = naming::pick_random_name(&mut rand::thread_rng()).1;
     let mut baby = Player::new(baby_p_id, baby_conn, &format!("baby{baby_p_id}@birth"));
-    baby.first_name = first.clone();
+    // Haxe Lineage.name = StartingName (SPOON) until YOU ARE.
+    baby.first_name = child_starting_first_name(state);
     // Family name from mother (Haxe same family lineage).
     baby.family_name = if mother.family_name.is_empty() {
         family
@@ -8913,6 +9043,14 @@ pub fn spawn_child(state: &mut SimState, mother_conn: u64) -> Option<i32> {
     baby.cold_place = mother.cold_place;
     baby.age = 0.01;
     baby.true_age = 0.01;
+    // Haxe spawnAsChild: followPlayer = mother (isChildAndHasMother / GetCloseHungryChild).
+    baby.ai_follow_p_id = mother.p_id;
+    if mother.is_ai_body()
+        || mother.email.to_ascii_lowercase().contains("npc")
+        || mother.email.to_ascii_lowercase().contains("selfplay")
+    {
+        baby.ai_controlled = true;
+    }
     apply_haxe_birth_food(state, &mut baby);
     // Haxe: GPI.angryTime = ServerSettings.CombatAngryTimeBeforeAttack
     baby.angry_time = state.gameplay.combat_angry_time_before_attack_live();
@@ -8969,6 +9107,8 @@ pub fn spawn_child(state: &mut SimState, mother_conn: u64) -> Option<i32> {
     state
         .markers
         .set_mother_marker(baby_p_id, mother.x, mother.y, mother.p_id);
+    // Haxe spawnAsChild: followPlayer = mother (leadership map for acquire + isChildAndHasMother).
+    let _ = state.social.set_follow(baby_p_id, mother.p_id);
 
     // Haxe: newborn often starts held when mother hands free.
     if mother.can_hold_baby() {
@@ -9095,6 +9235,7 @@ fn format_live_pu_line_origin(
         ),
         &player_clothing_set(p),
         p.age_r,
+        p.heat,
     )
 }
 
@@ -9118,14 +9259,10 @@ fn send_update_to_all_close_players(
     if !recipients.contains(&subject_conn) {
         recipients.push(subject_conn);
     }
+    fan_pu_at_world(state, outbound, &recipients, p.x, p.y, true, |rx, ry| {
+        format_live_pu_line(state, &p, rx, ry, force)
+    });
     for &cid in &recipients {
-        let (rx, ry) = state
-            .players
-            .get(&cid)
-            .map(|v| v.world_to_client(p.x, p.y))
-            .unwrap_or((p.x, p.y));
-        let pu = format_live_pu_line(state, &p, rx, ry, force);
-        outbound.send_urgent(cid, format_server_message("PU", &[&pu]).into_bytes());
         send_frame(outbound, cid);
     }
 }
@@ -9158,16 +9295,9 @@ pub fn send_action_result_pu_and_frame(state: &mut SimState, outbound: &Outbound
     if !recipients.contains(&conn_id) {
         recipients.push(conn_id);
     }
-    for &cid in &recipients {
-        let (rx, ry) = state
-            .players
-            .get(&cid)
-            .map(|v| v.world_to_client(p.x, p.y))
-            .unwrap_or((p.x, p.y));
-        let pu = format_live_pu_line(state, &p, rx, ry, 0);
-        // Urgent so USE is not stuck behind AI PU/MX flood.
-        outbound.send_urgent(cid, format_server_message("PU", &[&pu]).into_bytes());
-    }
+    fan_pu_at_world(state, outbound, &recipients, p.x, p.y, true, |rx, ry| {
+        format_live_pu_line(state, &p, rx, ry, 0)
+    });
     outbound.send_urgent(conn_id, format_server_message("FM", &[]).into_bytes());
 }
 
@@ -9216,16 +9346,9 @@ pub fn send_forced_player_update(
     if !recipients.contains(&conn_id) {
         recipients.push(conn_id);
     }
-    // Per-viewer relative coords (birthPos).
-    for &cid in &recipients {
-        let (rx, ry) = state
-            .players
-            .get(&cid)
-            .map(|v| v.world_to_client(p.x, p.y))
-            .unwrap_or((p.x, p.y));
-        let pu = format_live_pu_line(state, &p, rx, ry, 1);
-        outbound.send(cid, format_server_message("PU", &[&pu]).into_bytes());
-    }
+    fan_pu_at_world(state, outbound, &recipients, p.x, p.y, false, |rx, ry| {
+        format_live_pu_line(state, &p, rx, ry, 1)
+    });
     // FRAME unsticks the acting client only (Haxe also sends FRAME to that connection).
     outbound.send(conn_id, format_server_message("FM", &[]).into_bytes());
 }
@@ -9269,6 +9392,7 @@ fn send_death_player_update(state: &mut SimState, outbound: &OutboundHub, conn_i
         &clothing,
         reason,
         p.age_r,
+        p.heat,
     );
     let pkt = format_server_message("PU", &[&line]).into_bytes();
     let mut recips: Vec<u64> = state
@@ -9340,13 +9464,8 @@ pub fn pick_best_mother_p_id_for(state: &SimState, child_is_human: bool) -> Opti
         if p.deleted {
             continue;
         }
-        // One in-game year after last birth (twins stamp once after the whole party).
-        if state
-            .fertility
-            .mother_on_birth_cooldown(p.p_id, state.sim_time)
-        {
-            continue;
-        }
+        // Haxe GetFittestMother: no year cooldown. Hard cap is LittleKidsPerMother
+        // (age ≤ MinAgeToEat) via parent_child_fitness; childrenBirthMali is a soft mali.
         if child_is_human
             && !state.gameplay.allow_humans_born_to_ais
             && (p.is_ai_body() || p.conn_id >= 9_000_000)
@@ -10914,24 +11033,19 @@ pub fn apply_move_path_start(
             p.wait_for_force = false;
         }
     }
-    // Haxe MoveHelper.moveHelper:
-    //   if isBlocked(clientStart) || quadDist > MaxMovementQuadJumpDistanceBeforeForce(5)
-    //     â†’ CancleMovement (no snap).
-    // Else if jump: snap to client start (positionChanged), then accept path.
-    // Mid-path new MOVE replaces the path (Haxe always overwrites newMoves).
-    //
-    // Timed path jump gate is **only** Haxe quadDist â‰¤ 5. `move_jump_max_chebyshev`
-    // applies to instant MOVE only and must not widen this gate.
-    let jump_quad = move_quad_dist(xs, ys, px, py);
-    let max_quad = MAX_MOVE_QUAD_JUMP_BEFORE_FORCE;
-    if jump_quad > max_quad {
-        // Too far: caller force-PU at **server** position (Haxe CancleMovement).
-        return Err(MoveReject::JumpTooFar);
-    }
-    // Haxe checks isBlocked(client xs,ys) before mutating — keep server tile on reject.
+    // Jason server.cpp ~23614–23692: NEVER teleport to client xs,ys.
+    // If claimed start ≠ server tile, treat as interrupt: start at server
+    // (partial-move spot), keep client dest. Open Life Haxe `p.x = x` when
+    // quadDist ≤ 5 is not in the original server.
+    let (start_x, start_y) = {
+        let p = state.players.get(&conn_id).ok_or(MoveReject::NoPlayer)?;
+        let (ex, ey) = p.exact_xy();
+        (ex.round() as i32, ey.round() as i32)
+    };
+    let deltas = rebase_client_deltas_to_server_start(start_x, start_y, xs, ys, deltas);
     let start_floor = {
         let world = state.world.read().unwrap();
-        let (sx, sy) = world.wrap_tile(xs, ys);
+        let (sx, sy) = world.wrap_tile(start_x, start_y);
         if biome_blocks_move(world.get_biome(sx, sy))
             || !is_walkable(&world, &state.content, sx, sy)
         {
@@ -10939,72 +11053,21 @@ pub fn apply_move_path_start(
         }
         world.get_floor(sx, sy)
     };
-    let mut jump_exhausted_say = false;
-    if jump_quad > 0 {
-        // Haxe MoveHelper L606-626: MaxJumpsPerTenSec gate + ExhaustionOnJump.
-        // SETTINGS-LONG-TAIL
-        let (jumped, food_max, exhaustion, is_human, max_jumps, exh_on_jump) = {
-            let p = state.players.get(&conn_id).ok_or(MoveReject::NoPlayer)?;
-            (
-                p.jumped_tiles,
-                p.food_max,
-                p.exhaustion,
-                !p.is_ai_body(),
-                state.gameplay.max_jumps_per_ten_sec,
-                state.gameplay.exhaustion_on_jump,
-            )
-        };
-        if jump_rate_limited_ex(jumped, max_jumps) {
-            return Err(MoveReject::JumpRateLimited);
-        }
-        let effective = jump_quad_with_floor(jump_quad as f64, start_floor as i32);
-        let (new_exh, new_jt, exhausted) = apply_jump_cost_ex(
-            exhaustion,
-            jumped,
-            food_max,
-            effective,
-            is_human,
-            exh_on_jump,
-        );
-        jump_exhausted_say = crate::jump_bw::jump_should_say_exhausted(exhausted);
-        if let Some(p) = state.players.get_mut(&conn_id) {
-            p.exhaustion = new_exh;
-            p.jumped_tiles = new_jt;
-        }
-    }
-    let (start_x, start_y) = if jump_quad == 0 {
-        (px, py)
-    } else {
-        // Accept client position (Haxe positionChanged — no CancleMovement).
-        if let Some(p) = state.players.get_mut(&conn_id) {
-            p.move_path = None;
-            p.moving = false;
-            p.x = xs;
-            p.y = ys;
-        }
-        state.world.write().unwrap().touch_radius(xs, ys, 1);
-        debug!(
-            conn_id,
-            xs, ys, px, py, jump_quad, max_quad, "sim: MOVE accept client jump start"
-        );
-        (xs, ys)
-    };
-    if jump_exhausted_say {
-        send_ps_reply(outbound, conn_id, crate::jump_bw::JUMP_EXHAUSTED_SAY);
-    }
-    // Mid-path replace: clear residual path when start tile already matches.
+    let _ = (px, py, start_floor);
     if let Some(p) = state.players.get_mut(&conn_id) {
         if p.move_path.is_some() {
             p.move_path = None;
             p.moving = false;
         }
+        p.x = start_x;
+        p.y = start_y;
     }
     // Haxe calculateNewMovements: walkability + fullPathHasRoad + off-road biome trunc.
     let (accepted, trunc, full_path_has_road) = {
         let t0 = ol_metrics::ScopeTimer::start();
         let world = state.world.read().unwrap();
         let (walk_acc, walk_trunc) =
-            truncate_walkable(&world, &state.content, start_x, start_y, deltas);
+            truncate_walkable(&world, &state.content, start_x, start_y, &deltas);
         let scan = scan_path_road_and_biome(
             &world,
             &state.content,
@@ -11118,7 +11181,7 @@ pub fn apply_move_path_start(
         let (rx, ry) = state
             .players
             .get(&cid)
-            .map(|v| v.world_to_client(start_x, start_y))
+            .map(|v| viewer_pu_xy(state, v, start_x, start_y))
             .unwrap_or((start_x, start_y));
         let pm =
             ol_protocol::format_player_moves_start(p_id, rx, ry, total, total, trunc, &wire_deltas);
@@ -11137,7 +11200,7 @@ pub fn apply_move_path_start(
             if viewer.deleted || !viewer.connected {
                 continue;
             }
-            let (rx, ry) = viewer.world_to_client(start_x, start_y);
+            let (rx, ry) = viewer_pu_xy(state, viewer, start_x, start_y);
             outbound.send_urgent(cid, format_location_says(rx, ry, &text).into_bytes());
             send_frame(outbound, cid);
         }
@@ -11907,7 +11970,8 @@ pub fn tick_vitals_with_metrics(
     for (cid, heat, ambient, stored, warm, cold, food_use, _food_time) in heat_updates {
         if let Some(p) = state.players.get_mut(&cid) {
             p.heat = heat;
-            p.last_temperature = ambient;
+            // Haxe: lastTemperature = Math.round(ambient * 100) / 100
+            p.last_temperature = crate::map_temp_player::haxe_round_hundredths(ambient);
             p.stored_water = stored;
             p.warm_place = warm;
             p.cold_place = cold;
@@ -12544,6 +12608,7 @@ pub fn tick_vitals_with_metrics(
             let food_time = food_time_by_conn.get(cid).copied().unwrap_or(0.0);
             let pkt = format_heat_change(*heat, food_time, 0.0).into_bytes();
             outbound.send(*cid, pkt);
+            send_frame(outbound, *cid);
         }
         debug!(n = heat_by_conn.len(), "sim: HX heat to players");
     }
@@ -14606,24 +14671,39 @@ fn food_change_for_player(state: &SimState, p: &Player) -> String {
     )
 }
 
+/// Haxe `sendFoodUpdate(false)` — FX + FRAME to the speaker (admin `!F` / `!MEH`).
+// Haxe: GlobalPlayerInstance.sendFoodUpdate L3030–3038; DoDebugCommands !F L5360–5363
+pub(crate) fn send_food_update_now(state: &SimState, outbound: &OutboundHub, conn_id: u64) {
+    let Some(p) = state.players.get(&conn_id) else {
+        return;
+    };
+    outbound.send_urgent(conn_id, food_change_for_player(state, p).into_bytes());
+    send_frame(outbound, conn_id);
+}
+
 /// After `try_eat_held`: FX + eat PU (just_ate) + FM. Haxe `doEating` sendFoodUpdate + PU.
 fn send_held_eat_result(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
     state.publish_player_view(conn_id);
-    if let Some(p) = state.players.get(&conn_id) {
-        let fx = food_change_for_player(state, p);
-        let near = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
-        for &cid in &near {
-            outbound.send_urgent(cid, fx.clone().into_bytes());
-        }
-        let spd = player_move_speed(state, p);
-        let (px, py) = p.world_to_client(p.x, p.y);
-        let clothing = player_clothing_set(p);
-        let pu = format_player_update_line_full_clothing_responsible(
+    let Some(p) = state.players.get(&conn_id).cloned() else {
+        return;
+    };
+    let fx = food_change_for_player(state, &p);
+    let mut recips = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
+    if !recips.contains(&conn_id) {
+        recips.push(conn_id);
+    }
+    for &cid in &recips {
+        outbound.send_urgent(cid, fx.clone().into_bytes());
+    }
+    let spd = player_move_speed(state, &p);
+    let clothing = player_clothing_set(&p);
+    fan_pu_at_world(state, outbound, &recips, p.x, p.y, true, |rx, ry| {
+        format_player_update_line_full_clothing_responsible(
             p.p_id,
-            person_object_id(p),
-            p.held_id,
-            px,
-            py,
+            person_object_id(&p),
+            pu_held_id(&p),
+            rx,
+            ry,
             p.age,
             spd,
             p.yum.just_ate_flag(),
@@ -14636,15 +14716,17 @@ fn send_held_eat_result(state: &mut SimState, outbound: &OutboundHub, conn_id: u
             0,
             0,
             -1,
-            p.done_moving_seq.max(1),
+            haxe_to_data_seq(
+                p.held_by != 0,
+                p.moving || p.move_path.is_some(),
+                p.done_moving_seq,
+            ),
             &clothing,
             p.yum.responsible_id,
             p.age_r,
-        );
-        for &cid in &near {
-            outbound.send_urgent(cid, format_server_message("PU", &[&pu]).into_bytes());
-        }
-    }
+            p.heat,
+        )
+    });
     if let Some(p) = state.players.get_mut(&conn_id) {
         p.yum.clear_just_ate_flag();
     }
@@ -15515,12 +15597,7 @@ pub fn apply_intent(
                         );
                         counters.crafts.fetch_add(1, Ordering::Relaxed);
                         state.publish_player_view(conn_id);
-                        let near = nearby_conn_ids(state, x, y, nearby_range(state));
-                        for pkt in packets_after_use(state, conn_id, &r) {
-                            crate::vanilla_id::send_nearby_maybe_mx(
-                                state, outbound, &near, pkt, true,
-                            );
-                        }
+                        fan_after_use(state, outbound, conn_id, &r, true);
                         // HORSE-EAT-FX: clear just_ate after eat PU fan-out (Haxe post-PU).
                         if let Some(p) = state.players.get_mut(&conn_id) {
                             p.yum.clear_just_ate_flag();

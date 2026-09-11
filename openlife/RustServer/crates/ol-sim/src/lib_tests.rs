@@ -987,7 +987,8 @@
     }
 
     /// SETTINGS-LONG-TAIL: default SpawnAiAsEve=false skips the Eve roll for NPCs
-    /// when a fertile mother exists (Haxe `spawnEve` AI gate) **and a human is online**.
+    /// when a fertile mother exists (Haxe `spawnEve` AI gate). Empty servers
+    /// still `spawnAsChild` after the Eve–Adam pair.
     #[test]
     fn spawn_player_synthetic_eve_or_adam_child_when_mother_present() {
         let mut state = SimState::with_default_empty(test_content());
@@ -1003,7 +1004,6 @@
             m.food_max = 20.0;
             m.display_object_id = 19;
         }
-        // A living human is required before AIs may spawn as children (empty server → Eve/Adam).
         let _human = spawn_player(&mut state, 1, "human@online");
         {
             let h = state.players.get_mut(&1).expect("human");
@@ -1013,9 +1013,10 @@
         // First AI is an Eve (last_ai_eve). Second AI pairs as Adam (Haxe spawnEve
         // own-pool). Third AI is a child of the fertile Eve.
         let _adam = spawn_player(&mut state, 9_000_003, "adam@ai");
-        if pick_best_mother_p_id_for(&state, false).is_none() {
-            return;
-        }
+        assert!(
+            pick_best_mother_p_id_for(&state, false).is_some(),
+            "Eve should still be a valid mother after pairing"
+        );
         let child_p = spawn_player(&mut state, 9_000_002, "kid@ai");
         let mom = state.players.get(&9_000_001).expect("mom");
         let kid = state.players.get(&9_000_002).expect("kid");
@@ -1033,6 +1034,10 @@
             .any(|e| e.contains(&format!("SPAWN {child_p} mother={mom_p}"))));
         let node = state.social.lineages.get(&child_p).expect("child lineage");
         assert_eq!(node.mother_id, Some(mom_p));
+        assert_eq!(kid.first_name, STARTING_NAME);
+        assert_eq!(kid.ai_follow_p_id, mom_p);
+        assert!((kid.age - 0.01).abs() < 1e-4, "child age {}", kid.age);
+        assert_eq!(kid.held_by, 0, "Haxe spawnAsChild does not auto-hold");
     }
 
     /// Haxe: human Eve pairs with last *human* Eve, never a waiting AI Eve at default 0.
@@ -1198,20 +1203,18 @@
         );
         assert!(
             state.fertility.mother_on_birth_cooldown(mom, state.sim_time),
-            "last birth stamps a one-year cooldown"
+            "twins still stamp complete_birth"
         );
         assert_eq!(
             pick_best_mother_p_id_for(&state, false),
-            None,
-            "same mother cannot take another baby until a year of sim time"
+            Some(mom),
+            "Haxe GetFittestMother uses LittleKidsPerMother, not a year cooldown"
         );
-        state.sim_time += 60.0;
-        assert_eq!(pick_best_mother_p_id_for(&state, false), Some(mom));
     }
 
-    /// No human left: further AIs spawn as Eve/Adam, not as babies of leftover AI mothers.
+    /// Haxe: after Eve–Adam pair, further AIs spawnAsChild even with zero humans.
     #[test]
-    fn ai_eve_or_adam_when_no_human_left_not_baby() {
+    fn third_ai_spawns_as_child_after_eve_adam_pair_empty_server() {
         let mut state = SimState::with_default_empty(test_content());
         state.gameplay.spawn_ai_as_eve = false;
         state.gameplay.eve_or_adam_birth_chance = 0.0;
@@ -1226,17 +1229,51 @@
         }
         assert_eq!(pick_best_mother_p_id_for(&state, false), Some(eve));
         let _adam = spawn_player(&mut state, 9_100_001, "npc-adam@empty");
+        {
+            // Pair mate is the opposite sex; test_content has no male person object
+            // so keep Adam out of GetFittestMother (Haxe isFertile requires female).
+            let a = state.players.get_mut(&9_100_001).expect("adam");
+            a.age = 5.0;
+            a.true_age = 5.0;
+        }
         let third = spawn_player(&mut state, 9_100_002, "npc-next@empty");
         let third_pl = state.players.get(&9_100_002).expect("third");
         assert!(
-            third_pl.age >= 1.0,
-            "empty-server AI must be Eve/Adam, not a baby; age={}",
+            (third_pl.age - 0.01).abs() < 1e-4,
+            "third empty-server AI must be a baby; age={}",
             third_pl.age
         );
         assert_eq!(
             state.social.lineages.get(&third).and_then(|n| n.mother_id),
-            None,
-            "no human left → Eve/Adam, not child of leftover AI"
+            Some(eve),
+            "third AI is spawnAsChild of the Eve after the pair"
+        );
+        assert_eq!(third_pl.first_name, STARTING_NAME);
+        assert_eq!(third_pl.ai_follow_p_id, eve);
+        assert_eq!(third_pl.held_by, 0, "Haxe spawnAsChild does not auto-hold");
+        // LittleKidsPerMother=3: two more children, then spawnAsEve.
+        let fourth = spawn_player(&mut state, 9_100_003, "npc-kid2@empty");
+        let fifth = spawn_player(&mut state, 9_100_004, "npc-kid3@empty");
+        assert!((state.players.get(&9_100_003).unwrap().age - 0.01).abs() < 1e-4);
+        assert!((state.players.get(&9_100_004).unwrap().age - 0.01).abs() < 1e-4);
+        assert_eq!(
+            state.social.lineages.get(&fourth).and_then(|n| n.mother_id),
+            Some(eve)
+        );
+        assert_eq!(
+            state.social.lineages.get(&fifth).and_then(|n| n.mother_id),
+            Some(eve)
+        );
+        let sixth = spawn_player(&mut state, 9_100_005, "npc-eve2@empty");
+        let sixth_pl = state.players.get(&9_100_005).expect("sixth");
+        assert!(
+            sixth_pl.age >= 1.0,
+            "4th little kid is blocked (LittleKidsPerMother=3); age={}",
+            sixth_pl.age
+        );
+        assert_eq!(
+            state.social.lineages.get(&sixth).and_then(|n| n.mother_id),
+            None
         );
     }
 
@@ -2361,7 +2398,7 @@
         assert!(p.death_reason.is_none());
     }
 
-    /// Every ~10s sim time, tick_vitals sends HX heat from body heat (tile path).
+    /// Every ~1s sim time (Haxe tick % 20), tick_vitals sends HX from body heat.
     #[test]
     fn tick_vitals_emits_hx_heat_every_interval() {
         let hub = OutboundHub::new();
@@ -2374,7 +2411,7 @@
         state.hx_emit_timer = 0.0;
 
         // Under interval: no HX yet (FX from food_max recompute may still fire).
-        tick_vitals(&mut state, 9.0, &hub);
+        tick_vitals(&mut state, 0.5, &hub);
         let mut saw_early_hx = false;
         while let Ok(pkt) = rx.try_recv() {
             if String::from_utf8_lossy(&pkt).starts_with("HX\n") {
@@ -2384,7 +2421,7 @@
         assert!(!saw_early_hx, "no HX before HX_EMIT_INTERVAL_SECS");
 
         // Cross interval: HX uses body heat + Haxe foodDrainTime from this tick.
-        tick_vitals(&mut state, 1.5, &hub);
+        tick_vitals(&mut state, 0.6, &hub);
         let (expected, food_use, stored_use) = {
             let p = state.players.get(&1).unwrap();
             let expected_heat = p.heat;
@@ -2419,7 +2456,7 @@
             "tick_vitals writes Haxe foodUsePerSecond {food_use}, got {stored_use}"
         );
         // Timer reset; not firing again immediately.
-        tick_vitals(&mut state, 1.0, &hub);
+        tick_vitals(&mut state, 0.4, &hub);
         let mut saw_second_hx = false;
         while let Ok(pkt) = rx.try_recv() {
             if String::from_utf8_lossy(&pkt).starts_with("HX\n") {
@@ -16833,7 +16870,7 @@
         }
         let (wx, wy, rx0, ry0) = {
             let p = state.players.get(&1).unwrap();
-            let (rx, ry) = p.world_to_client(p.x, p.y);
+            let (rx, ry) = viewer_pu_xy(&state, p, p.x, p.y);
             (p.x, p.y, rx, ry)
         };
         while rx.try_recv().is_ok() {}
@@ -17268,6 +17305,29 @@
         );
     }
 
+    /// Haxe empty-hand DROP on ground food = pickup (`swapHandAndFloorObject`).
+    // Haxe: TransitionHelper.drop L555–558
+    #[test]
+    fn drop_empty_hand_picks_up_ground_food() {
+        let hub = OutboundHub::new();
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "pick@x");
+        set_player_position(&mut state, 1, 2, 2);
+        state.players.get_mut(&1).unwrap().held_id = 0;
+        state.world.write().unwrap().set_object(2, 2, 33);
+        apply_drop(&mut state, &hub, 1, 2, 2, None);
+        assert_eq!(
+            state.players.get(&1).unwrap().held_id,
+            33,
+            "empty-hand DROP must pick up ground food"
+        );
+        assert_eq!(
+            state.world.read().unwrap().get_object(2, 2),
+            0,
+            "tile must be empty after pickup"
+        );
+    }
+
     /// Dummy animal ids must use parent `permanent=1` (Haxe dummyParent).
     // Haxe: TransitionHelper L481–485 / swapHandAndFloorObject L674
     #[test]
@@ -17311,6 +17371,183 @@
             "DROP must not replace a permanent animal"
         );
         assert_eq!(state.world.read().unwrap().get_object(3, 3), 41801);
+    }
+
+    /// PU xy is Haxe transformX/Y (birth-relative), not world tiles.
+    #[test]
+    fn pu_fan_uses_viewer_birth_relative_coords() {
+        let hub = OutboundHub::new();
+        let mut rx_a = hub.register(1);
+        let mut rx_b = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "a@pu");
+        spawn_player(&mut state, 2, "b@pu");
+        set_player_position(&mut state, 1, 100, 50);
+        state.players.get_mut(&1).unwrap().set_birth_origin(100, 50);
+        set_player_position(&mut state, 2, 103, 50);
+        state.players.get_mut(&2).unwrap().set_birth_origin(103, 50);
+        while rx_a.try_recv().is_ok() {}
+        while rx_b.try_recv().is_ok() {}
+        send_update_to_all_close_players(&state, &hub, 1, 0);
+        fn pu_xy(pkt: &[u8]) -> Option<(i32, i32)> {
+            let s = String::from_utf8_lossy(pkt);
+            if !s.starts_with("PU\n") {
+                return None;
+            }
+            let f: Vec<&str> = s.lines().nth(1)?.split_whitespace().collect();
+            Some((f.get(14)?.parse().ok()?, f.get(15)?.parse().ok()?))
+        }
+        let mut a_xy = None;
+        while let Ok(pkt) = rx_a.try_recv() {
+            if let Some(xy) = pu_xy(&pkt) {
+                a_xy = Some(xy);
+            }
+        }
+        let mut b_xy = None;
+        while let Ok(pkt) = rx_b.try_recv() {
+            if let Some(xy) = pu_xy(&pkt) {
+                b_xy = Some(xy);
+            }
+        }
+        assert_eq!(a_xy, Some((0, 0)), "actor sees self at birth origin");
+        assert_eq!(
+            b_xy,
+            Some((-3, 0)),
+            "other viewer sees actor relative to their own birth"
+        );
+    }
+
+    /// Haxe `transformX` wrap: world 10 vs viewer birth 500 on 512 torus → 22, not -490.
+    #[test]
+    fn pu_fan_wraps_coords_relative_to_viewer_birth() {
+        let hub = OutboundHub::new();
+        let mut rx_a = hub.register(1);
+        let mut rx_b = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "a@wrap");
+        spawn_player(&mut state, 2, "b@wrap");
+        set_player_position(&mut state, 1, 10, 50);
+        state.players.get_mut(&1).unwrap().set_birth_origin(10, 50);
+        set_player_position(&mut state, 2, 500, 50);
+        state.players.get_mut(&2).unwrap().set_birth_origin(500, 50);
+        let v = state.players.get(&2).unwrap();
+        assert_eq!(
+            viewer_pu_xy(&state, v, 10, 50),
+            (22, 0),
+            "Haxe transformX wrap snap then remainder"
+        );
+        while rx_a.try_recv().is_ok() {}
+        while rx_b.try_recv().is_ok() {}
+        send_update_to_all_close_players(&state, &hub, 1, 0);
+        fn pu_xy(pkt: &[u8]) -> Option<(i32, i32)> {
+            let s = String::from_utf8_lossy(pkt);
+            if !s.starts_with("PU\n") {
+                return None;
+            }
+            let f: Vec<&str> = s.lines().nth(1)?.split_whitespace().collect();
+            Some((f.get(14)?.parse().ok()?, f.get(15)?.parse().ok()?))
+        }
+        let mut a_xy = None;
+        while let Ok(pkt) = rx_a.try_recv() {
+            if let Some(xy) = pu_xy(&pkt) {
+                a_xy = Some(xy);
+            }
+        }
+        let mut b_xy = None;
+        while let Ok(pkt) = rx_b.try_recv() {
+            if let Some(xy) = pu_xy(&pkt) {
+                b_xy = Some(xy);
+            }
+        }
+        assert_eq!(a_xy, Some((0, 0)), "actor self PU is birth-relative");
+        assert_eq!(
+            b_xy,
+            Some((22, 0)),
+            "other viewer PU uses torus transformX, not world-birth=-490"
+        );
+    }
+
+    /// `packets_after_use` PU xy is the actor's birth-relative tile, not world.
+    #[test]
+    fn packets_after_use_pu_is_actor_birth_relative() {
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "u@pu");
+        set_player_position(&mut state, 1, 100, 50);
+        state.players.get_mut(&1).unwrap().set_birth_origin(100, 50);
+        state.world.write().unwrap().set_object(100, 50, 33);
+        let r = apply_use_at(&mut state, 1, 100, 50).expect("use");
+        assert!(r.applied);
+        let pkts = packets_after_use(&state, 1, &r);
+        let mut xy = None;
+        for pkt in &pkts {
+            let s = String::from_utf8_lossy(pkt);
+            if !s.starts_with("PU\n") {
+                continue;
+            }
+            let f: Vec<&str> = s.lines().nth(1).unwrap_or("").split_whitespace().collect();
+            xy = Some((
+                f.get(14).and_then(|t| t.parse().ok()).unwrap_or(i32::MIN),
+                f.get(15).and_then(|t| t.parse().ok()).unwrap_or(i32::MIN),
+            ));
+        }
+        assert_eq!(xy, Some((0, 0)), "actor PU must be relative to birth, not world 100,50");
+    }
+
+    /// USE fan: each viewer gets the actor tile in *their* birth frame (Haxe toRelativeData).
+    #[test]
+    fn fan_after_use_pu_is_per_viewer_birth_relative() {
+        let counters = Counters::new();
+        let hub = OutboundHub::new();
+        let mut rx_a = hub.register(1);
+        let mut rx_b = hub.register(2);
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "a@use");
+        spawn_player(&mut state, 2, "b@use");
+        set_player_position(&mut state, 1, 100, 50);
+        state.players.get_mut(&1).unwrap().set_birth_origin(100, 50);
+        set_player_position(&mut state, 2, 103, 50);
+        state.players.get_mut(&2).unwrap().set_birth_origin(103, 50);
+        state.world.write().unwrap().set_object(100, 50, 33);
+        while rx_a.try_recv().is_ok() {}
+        while rx_b.try_recv().is_ok() {}
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 0,
+                y: 0,
+                id: None,
+                index: None,
+            },
+        );
+        fn pu_xy(pkt: &[u8]) -> Option<(i32, i32)> {
+            let s = String::from_utf8_lossy(pkt);
+            if !s.starts_with("PU\n") {
+                return None;
+            }
+            let f: Vec<&str> = s.lines().nth(1)?.split_whitespace().collect();
+            Some((f.get(14)?.parse().ok()?, f.get(15)?.parse().ok()?))
+        }
+        let mut a_xy = None;
+        while let Ok(pkt) = rx_a.try_recv() {
+            if let Some(xy) = pu_xy(&pkt) {
+                a_xy = Some(xy);
+            }
+        }
+        let mut b_xy = None;
+        while let Ok(pkt) = rx_b.try_recv() {
+            if let Some(xy) = pu_xy(&pkt) {
+                b_xy = Some(xy);
+            }
+        }
+        assert_eq!(a_xy, Some((0, 0)), "actor USE PU is birth-relative");
+        assert_eq!(
+            b_xy,
+            Some((-3, 0)),
+            "other viewer USE PU is relative to their birth"
+        );
     }
 
     /// Haxe toData: holding a baby wires `held = -baby_p_id`.
@@ -20350,23 +20587,49 @@
         );
     }
 
-    /// Haxe: quadDist <= 5 accepts client start (positionChanged snap).
+    /// Successful MOVE to (0,-2); next MOVE claims origin (0,0) dest (0,-1).
+    /// Must stay at (0,-2) and walk north — not teleport to spawn.
     #[test]
-    fn move_path_small_client_jump_accepted() {
+    fn move_does_not_teleport_back_to_claimed_origin() {
         let mut state = SimState::with_default_empty(test_content());
         state.timed_movement = true;
-        // Production-like cheby config must not change timed gate (always Haxe 5).
-        state.move_jump_max_chebyshev = 3;
+        spawn_player(&mut state, 1, "orig@t");
+        set_player_position(&mut state, 1, 10, 10);
+        let hub = OutboundHub::new();
+        // Client claims origin (10,12) dest (10,11) while server is at (10,10).
+        apply_move_path_start(&mut state, &hub, 1, 10, 12, &[(0, -1)], Some(4)).unwrap();
+        let p = state.players.get(&1).unwrap();
+        assert_eq!((p.x, p.y), (10, 10));
+        assert_eq!(p.move_path.as_ref().unwrap().start_x, 10);
+        assert_eq!(p.move_path.as_ref().unwrap().start_y, 10);
+        let dest = {
+            let path = p.move_path.as_ref().unwrap();
+            let mut x = path.start_x;
+            let mut y = path.start_y;
+            for &(dx, dy) in &path.remaining {
+                x += dx;
+                y += dy;
+            }
+            (x, y)
+        };
+        assert_eq!(dest, (10, 11));
+    }
+
+    /// Jason: never snap to client xs,ys. Keep dest; start at server tile.
+    #[test]
+    fn move_path_does_not_snap_to_client_start() {
+        let mut state = SimState::with_default_empty(test_content());
+        state.timed_movement = true;
         spawn_player(&mut state, 1, "jmp@t");
         set_player_position(&mut state, 1, 5, 5);
         let hub = OutboundHub::new();
-        // (2,1) â†’ quad = 4+1 = 5 â†’ accept
+        // Client claims start (7,6) dest (8,6). Server stays at (5,5), walks to (8,6).
         apply_move_path_start(&mut state, &hub, 1, 7, 6, &[(1, 0)], Some(7)).unwrap();
         let p = state.players.get(&1).unwrap();
-        assert_eq!((p.x, p.y), (7, 6), "server snaps to client start");
+        assert_eq!((p.x, p.y), (5, 5), "Jason: never teleport to client start");
         assert!(p.move_path.is_some());
-        assert_eq!(p.move_path.as_ref().unwrap().start_x, 7);
-        assert_eq!(p.move_path.as_ref().unwrap().start_y, 6);
+        assert_eq!(p.move_path.as_ref().unwrap().start_x, 5);
+        assert_eq!(p.move_path.as_ref().unwrap().start_y, 5);
         assert_eq!(p.move_path.as_ref().unwrap().seq, 7);
     }
 
@@ -20424,60 +20687,21 @@
         assert!(state.players.get(&1).unwrap().move_path.is_some());
     }
 
-    /// Haxe: quadDist > 5 â†’ CancleMovement / JumpTooFar (even if cheby config is 3).
+    /// Jason: client start 3 tiles away is not a teleport; path from server to dest.
     #[test]
-    fn move_path_large_jump_rejected() {
+    fn move_path_mismatched_start_keeps_server_tile() {
         let mut state = SimState::with_default_empty(test_content());
         state.timed_movement = true;
-        // Production default-ish: cheby=3 must NOT widen timed gate past Haxe 5.
-        state.move_jump_max_chebyshev = 3;
         spawn_player(&mut state, 1, "far@t");
         set_player_position(&mut state, 1, 5, 5);
         let hub = OutboundHub::new();
-        // (3,0) â†’ quad = 9 > 5
-        let err = apply_move_path_start(&mut state, &hub, 1, 8, 5, &[(1, 0)], Some(3)).unwrap_err();
-        assert_eq!(err, MoveReject::JumpTooFar);
+        apply_move_path_start(&mut state, &hub, 1, 8, 5, &[(1, 0)], Some(3)).unwrap();
         let p = state.players.get(&1).unwrap();
-        assert_eq!((p.x, p.y), (5, 5), "reject keeps server position");
-        // Intent path: force PU at server with client seq, force=1.
-        let counters = Counters::new();
-        let mut rx = hub.register(1);
-        apply_intent(
-            &mut state,
-            &counters,
-            &hub,
-            NetIntent::Move {
-                conn_id: 1,
-                xs: 8,
-                ys: 5,
-                deltas: vec![(1, 0)],
-                seq: Some(3),
-            },
-        );
-        assert_eq!(
-            (
-                state.players.get(&1).unwrap().x,
-                state.players.get(&1).unwrap().y
-            ),
-            (5, 5)
-        );
-        assert_eq!(state.players.get(&1).unwrap().done_moving_seq, 3);
-        let mut saw_force = false;
-        while let Ok(pkt) = rx.try_recv() {
-            if let Some((seq, force)) = pu_seq_force(&pkt) {
-                if seq == 3 && force == 1 {
-                    saw_force = true;
-                }
-            }
-        }
-        assert!(saw_force, "reject must force PU at server with client seq");
-        assert!(
-            state.players.get(&1).unwrap().wait_for_force,
-            "CancleMovement arms waitForForce on humans"
-        );
+        assert_eq!((p.x, p.y), (5, 5), "server tile is path start");
+        assert!(p.move_path.is_some());
     }
 
-    /// After jump-too-far CancleMovement, MOVE is ignored until FORCE at body coords.
+    /// Empty path (dest = server tile) CancleMovement; MOVE ignored until FORCE.
     #[test]
     fn cancle_movement_wait_cleared_by_force() {
         let counters = Counters::new();
@@ -20492,9 +20716,9 @@
             &hub,
             NetIntent::Move {
                 conn_id: 1,
-                xs: 12,
+                xs: 5,
                 ys: 5,
-                deltas: vec![(1, 0)],
+                deltas: vec![(0, 0)],
                 seq: Some(2),
             },
         );

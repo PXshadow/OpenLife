@@ -1091,7 +1091,8 @@ impl Player {
         self.birth_y = world_y;
     }
 
-    /// World → client-relative coords (subtract birth origin).
+    /// World → birth-relative coords (plain subtract, no torus wrap).
+    /// PU/PM player tiles use Haxe `transformX/Y` (`viewer_pu_xy`) instead.
     #[inline]
     pub fn world_to_client(&self, world_x: i32, world_y: i32) -> (i32, i32) {
         (world_x - self.birth_x, world_y - self.birth_y)
@@ -1202,6 +1203,8 @@ impl Player {
             food: self.food,
             food_max: self.food_max,
             age: self.age,
+            hits: 0.0,
+            sick: self.sick,
             email: self.email.clone(),
             is_ai: self.is_ai_body(),
             display_name: self.display_name(),
@@ -1308,6 +1311,12 @@ pub struct PlayerSnapshot {
     pub food: f32,
     pub food_max: f32,
     pub age: f32,
+    /// Haxe `hits` (combat). isFeedingChild drops when fed and hits &lt; 1.
+    #[serde(default)]
+    pub hits: f32,
+    /// Haxe `isIll()` / SAY SICK.
+    #[serde(default)]
+    pub sick: bool,
     /// Identity key — never serialized to web/JSON (contact address is the only public email).
     #[serde(skip_serializing)]
     pub email: String,

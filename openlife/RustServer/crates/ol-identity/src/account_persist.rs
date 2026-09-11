@@ -18,11 +18,19 @@
 //!   last_name: [u8; name_len]  (UTF-8)
 //!   # version >= 2 (LINEAGE-ACCOUNT-ID / Haxe PlayerAccount.id):
 //!   id: i32 LE  (1-based; 0 on v1 load until assign_missing_ids)
+//!   # version >= 3 (extensible extras; old files omit this):
+//!   extra_count: u32 LE
+//!   extras × extra_count:
+//!     key_len: u32 LE + key UTF-8
+//!     val_len: u32 LE + val UTF-8
+//!     (`COMMANDSALLOWED` = `true`/`false` for admin SAY grant)
 //! ```
 //!
 //! Session-only fields (`display_yum`, `coins_inherited`, `graves`) are not on disk.
 
-use crate::{account_email_looks_ai, normalize_email, AccountBook, AccountRecord};
+use crate::{
+    account_email_looks_ai, normalize_email, AccountBook, AccountRecord, EXTRA_COMMANDS_ALLOWED,
+};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::collections::HashMap;
 use std::fs::File;
@@ -35,7 +43,8 @@ use tracing::info;
 ///
 /// v1: lives/score/kills/deaths/last_p_id/coins/email/name.  
 /// v2: + numeric `PlayerAccount.id` (LINEAGE-ACCOUNT-ID).
-pub const ACCOUNT_FORMAT_VERSION: u32 = 2;
+/// v3: + extra string map (`COMMANDSALLOWED`, future keys). Old v1/v2 still load.
+pub const ACCOUNT_FORMAT_VERSION: u32 = 3;
 /// Oldest readable version (v1 without numeric id).
 pub const ACCOUNT_FORMAT_VERSION_MIN: u32 = 1;
 const MAGIC: &[u8; 4] = b"OLA1";
@@ -125,7 +134,67 @@ fn write_record(r: &AccountRecord, w: &mut impl Write) -> Result<(), String> {
     // Haxe: PlayerAccount.WritePlayerAccounts L86
     w.write_i32::<LittleEndian>(r.id)
         .map_err(|e| e.to_string())?;
+    write_extra_map(r, w)?;
     Ok(())
+}
+
+fn write_len_str(w: &mut impl Write, s: &str) -> Result<(), String> {
+    let b = s.as_bytes();
+    if b.len() > 4096 {
+        return Err(format!("account extra string too long ({})", b.len()));
+    }
+    w.write_u32::<LittleEndian>(b.len() as u32)
+        .map_err(|e| e.to_string())?;
+    w.write_all(b).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn read_len_str(r: &mut impl Read) -> Result<String, String> {
+    let n = r.read_u32::<LittleEndian>().map_err(|e| e.to_string())? as usize;
+    if n > 4096 {
+        return Err(format!("account extra string too long ({n})"));
+    }
+    let mut buf = vec![0u8; n];
+    r.read_exact(&mut buf).map_err(|e| e.to_string())?;
+    String::from_utf8(buf).map_err(|e| e.to_string())
+}
+
+/// OLA3 extras: always include `COMMANDSALLOWED` from the live flag, plus any other keys.
+fn write_extra_map(r: &AccountRecord, w: &mut impl Write) -> Result<(), String> {
+    let mut extra = r.extra.clone();
+    extra.insert(
+        EXTRA_COMMANDS_ALLOWED.to_string(),
+        if r.can_use_server_commands {
+            "true"
+        } else {
+            "false"
+        }
+        .to_string(),
+    );
+    let mut keys: Vec<String> = extra.keys().cloned().collect();
+    keys.sort();
+    w.write_u32::<LittleEndian>(keys.len() as u32)
+        .map_err(|e| e.to_string())?;
+    for k in keys {
+        let v = extra.get(&k).map(|s| s.as_str()).unwrap_or("");
+        write_len_str(w, &k)?;
+        write_len_str(w, v)?;
+    }
+    Ok(())
+}
+
+fn read_extra_map(r: &mut impl Read) -> Result<HashMap<String, String>, String> {
+    let n = r.read_u32::<LittleEndian>().map_err(|e| e.to_string())? as usize;
+    if n > 256 {
+        return Err(format!("account extra count too large ({n})"));
+    }
+    let mut extra = HashMap::with_capacity(n);
+    for _ in 0..n {
+        let k = read_len_str(r)?;
+        let v = read_len_str(r)?;
+        extra.insert(k, v);
+    }
+    Ok(extra)
 }
 
 fn read_accounts(r: &mut impl Read) -> Result<AccountBook, String> {
@@ -185,7 +254,12 @@ fn read_record(r: &mut impl Read, version: u32) -> Result<AccountRecord, String>
     } else {
         0
     };
-    Ok(AccountRecord {
+    let extra = if version >= 3 {
+        read_extra_map(r)?
+    } else {
+        HashMap::new()
+    };
+    let mut rec = AccountRecord {
         id,
         email,
         lives,
@@ -213,7 +287,10 @@ fn read_record(r: &mut impl Read, version: u32) -> Result<AccountRecord, String>
         score_entries: Vec::new(),
         can_use_server_commands: false,
         role: 0,
-    })
+        extra,
+    };
+    rec.apply_extra();
+    Ok(rec)
 }
 
 impl AccountBook {
@@ -336,6 +413,57 @@ mod tests {
         assert_eq!(v1_loaded.get("a@a.a").unwrap().id, 1);
         assert_eq!(v1_loaded.get("b@b.b").unwrap().id, 2);
         assert_eq!(v1_loaded.next_id, 3);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn commands_allowed_roundtrip_and_old_v2_loads() {
+        let dir = unique_temp_dir("ola_cmd");
+        let path = dir.join(DEFAULT_ACCOUNT_FILE);
+        let mut book = AccountBook::default();
+        book.ensure("admin@t").set_commands_allowed(true);
+        save_accounts(&book, &path).unwrap();
+        let loaded = load_accounts(&path).unwrap();
+        let r = loaded.get("admin@t").unwrap();
+        assert!(r.can_use_server_commands);
+        assert_eq!(r.role, 10);
+        assert_eq!(
+            r.extra.get(EXTRA_COMMANDS_ALLOWED).map(|s| s.as_str()),
+            Some("true")
+        );
+
+        // Hand-rolled OLA2 (id, no extras): grant is false, then save upgrades to v3.
+        let v2 = dir.join("accounts_v2_legacy.bin");
+        {
+            let mut w = std::fs::File::create(&v2).unwrap();
+            use byteorder::{LittleEndian, WriteBytesExt};
+            use std::io::Write;
+            w.write_all(MAGIC).unwrap();
+            w.write_u32::<LittleEndian>(2).unwrap();
+            w.write_u32::<LittleEndian>(1).unwrap();
+            w.write_u32::<LittleEndian>(0).unwrap();
+            w.write_i32::<LittleEndian>(0).unwrap();
+            w.write_u32::<LittleEndian>(0).unwrap();
+            w.write_u32::<LittleEndian>(0).unwrap();
+            w.write_i32::<LittleEndian>(0).unwrap();
+            w.write_i32::<LittleEndian>(0).unwrap();
+            let eb = b"old@t";
+            w.write_u32::<LittleEndian>(eb.len() as u32).unwrap();
+            w.write_all(eb).unwrap();
+            let nb = b"Old";
+            w.write_u32::<LittleEndian>(nb.len() as u32).unwrap();
+            w.write_all(nb).unwrap();
+            w.write_i32::<LittleEndian>(7).unwrap();
+        }
+        let mut v2_loaded = load_accounts(&v2).unwrap();
+        assert!(!v2_loaded.get("old@t").unwrap().can_use_server_commands);
+        assert_eq!(v2_loaded.get("old@t").unwrap().id, 7);
+        v2_loaded.ensure("old@t").set_commands_allowed(true);
+        let upgraded = dir.join("accounts_v3.bin");
+        save_accounts(&v2_loaded, &upgraded).unwrap();
+        let again = load_accounts(&upgraded).unwrap();
+        assert!(again.get("old@t").unwrap().can_use_server_commands);
+        assert_eq!(again.get("old@t").unwrap().id, 7);
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

@@ -284,12 +284,22 @@ pub fn apply_water_ambient(ambient: f32, biome: u8) -> f32 {
     }
 }
 
+/// Haxe `Math.round(t * 100) / 100` for `lastTemperature` / HX `foodDrainTime`.
+#[inline]
+pub fn haxe_round_hundredths(v: f32) -> f32 {
+    if !v.is_finite() {
+        return 0.0;
+    }
+    (v * 100.0).round() / 100.0
+}
+
 /// Player ambient after local balance (Haxe `updateTemperature` tile read).
 ///
 /// 1. Caps `delta_time` at [`PLAYER_TEMP_TIME_PASSED_CAP`].
 /// 2. Ensures center tile is initialized.
 /// 3. Runs [`apply_balance_temperature_area`] with radius [`PLAYER_BALANCE_TEMP_RADIUS`].
-/// 4. Applies water half-factor.
+/// Water `* 0.5` is applied later in [`update_player_temperature_ex`] (Haxe L6440–6442),
+/// after closest-heat and warm/cold place, before clothing.
 pub fn player_ambient_from_tile_temps(
     world: &World,
     content: &ContentDb,
@@ -344,7 +354,7 @@ pub fn player_ambient_from_tile_temps_ex(
         PLAYER_BALANCE_TEMP_RADIUS,
         dt,
     );
-    let t = ensure_tile_temperature_ex(
+    ensure_tile_temperature_ex(
         world,
         content,
         map_time,
@@ -353,9 +363,7 @@ pub fn player_ambient_from_tile_temps_ex(
         season_impact_raw,
         hot_factor,
         cold_factor,
-    );
-    let biome = world.get_biome(px, py);
-    apply_water_ambient(t, biome)
+    )
 }
 
 /// Haxe `ServerSettings.TemperatureClothingFactor`.
@@ -858,6 +866,7 @@ pub fn update_player_temperature_ex(
     ambient = apply_color_temperature_shift(ambient, extras.person_color);
     ambient += closest_heat_object_contribution(world, content, px, py, current_heat);
     let biome = world.get_biome(px, py);
+    let in_water = is_water_biome_temp(biome);
     let places = {
         let old_warm_temp = extras.warm_place.map(|(x, y)| {
             calculate_place_temperature(
@@ -906,7 +915,9 @@ pub fn update_player_temperature_ex(
             ),
         }
     };
-    let in_water = is_water_biome_temp(biome);
+    // Haxe: water `temperature *= 0.5` after closest-heat / places, before clothing.
+    // Haxe: GlobalPlayerInstance.updateTemperature L6440–6442
+    ambient = apply_water_ambient(ambient, biome);
     let knobs = clothing_knobs.sanitized();
     let insulation = clothing_insulation_sum(content, clothing_ids);
     let heat_prot = clothing_heat_protection_sum(content, clothing_ids);
@@ -1096,6 +1107,52 @@ mod tests {
         let hot = closest_heat_object_contribution(&world, &content, 0, 0, 0.8);
         assert!(hot < cold, "hot={hot} cold={cold}");
         assert!((hot - cold / 2.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn haxe_round_hundredths_matches_math_round() {
+        assert!((haxe_round_hundredths(0.516) - 0.52).abs() < 1e-6);
+        assert!((haxe_round_hundredths(0.514) - 0.51).abs() < 1e-6);
+    }
+
+    /// Haxe L6440–6442: water `* 0.5` after closest-heat, not before.
+    #[test]
+    fn water_halves_ambient_after_closest_heat() {
+        let mut world = World::new(16, 16, false);
+        world.set_biome(0, 0, OCEAN);
+        world.set_biome(1, 0, OCEAN);
+        let mut content = ContentDb::default();
+        let mut fire = ol_content::ObjectDef::default();
+        fire.id = 82;
+        fire.heat_value = 8.0;
+        content.objects.insert(82, fire);
+        world.set_object(1, 0, 82);
+        let mut map_time = WorldMapTimeState::default();
+        let (_, amb) = update_player_temperature(
+            &world,
+            &content,
+            &mut map_time,
+            0,
+            0,
+            0.0,
+            0.0,
+            IDEAL_HEAT,
+            &[],
+            0,
+        );
+        let fire = closest_heat_object_contribution(&world, &content, 0, 0, IDEAL_HEAT);
+        let mut map_tile = WorldMapTimeState::default();
+        let tile = player_ambient_from_tile_temps(&world, &content, &mut map_tile, 0, 0, 0.0, 0.0);
+        let haxe_order = apply_water_ambient(tile + fire, OCEAN);
+        let water_first = apply_water_ambient(tile, OCEAN) + fire;
+        assert!(
+            (amb - haxe_order).abs() < 0.02,
+            "amb={amb} haxe={haxe_order} tile={tile} fire={fire}"
+        );
+        assert!(
+            (amb - water_first).abs() > 0.1,
+            "must not add fire after water-half: amb={amb} water_first={water_first}"
+        );
     }
 
     #[test]

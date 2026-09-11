@@ -119,7 +119,13 @@ pub struct AccountRecord {
     pub can_use_server_commands: bool,
     /// Haxe `PlayerAccount.role` — 10 when admin secret matches, else 0.
     pub role: i32,
+    /// Extensible string extras (OLA3). Unknown keys round-trip.
+    /// `COMMANDSALLOWED` = `true`/`false` (admin SAY grant).
+    pub extra: HashMap<String, String>,
 }
+
+/// Extra-map key for persisted admin SAY grant (Haxe `canUseServerCommands` / role ≥ 10).
+pub const EXTRA_COMMANDS_ALLOWED: &str = "COMMANDSALLOWED";
 
 impl Default for AccountRecord {
     fn default() -> Self {
@@ -144,6 +150,7 @@ impl Default for AccountRecord {
             score_entries: Vec::new(),
             can_use_server_commands: false,
             role: 0,
+            extra: HashMap::new(),
         }
     }
 }
@@ -171,6 +178,34 @@ impl AccountRecord {
     pub fn toggle_display_yum(&mut self) -> bool {
         self.display_yum = !self.display_yum;
         self.display_yum
+    }
+
+    /// Persist admin grant in extras without a dedicated binary field.
+    /// Haxe `canUseServerCommands` + `role` 10/0; extra `COMMANDSALLOWED true|false`.
+    pub fn set_commands_allowed(&mut self, allowed: bool) {
+        self.can_use_server_commands = allowed;
+        self.role = if allowed { 10 } else { 0 };
+        self.extra.insert(
+            EXTRA_COMMANDS_ALLOWED.to_string(),
+            if allowed { "true" } else { "false" }.to_string(),
+        );
+    }
+
+    /// Apply extras loaded from disk (`COMMANDSALLOWED`, optional `ROLE`).
+    pub fn apply_extra(&mut self) {
+        if let Some(v) = self.extra.get(EXTRA_COMMANDS_ALLOWED) {
+            let t = v.eq_ignore_ascii_case("true") || v == "1";
+            self.can_use_server_commands = t;
+            self.role = if t { 10 } else { 0 };
+        }
+        if let Some(v) = self.extra.get("ROLE") {
+            if let Ok(r) = v.parse::<i32>() {
+                self.role = r;
+                if r >= 10 {
+                    self.can_use_server_commands = true;
+                }
+            }
+        }
     }
 
     /// Haxe `PlayerAccount.totalScore` getter: `floor((male+female)/2)`, then AI scale.
