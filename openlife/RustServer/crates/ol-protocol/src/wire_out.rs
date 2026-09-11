@@ -16,9 +16,23 @@ pub fn format_map_change(
     object_id: i32,
     player_id: i32,
 ) -> String {
+    format_map_change_obj(x, y, floor_id, object_id, player_id)
+}
+
+/// MX with container-format `new_id` (`292,31,32` / `391,33:100`).
+///
+/// Haxe `sendMapUpdate` uses `MapData.stringID(obj)` not a bare id.
+// Haxe: Connection.sendMapUpdate L953–958
+pub fn format_map_change_obj(
+    x: i32,
+    y: i32,
+    floor_id: i32,
+    object: impl std::fmt::Display,
+    player_id: i32,
+) -> String {
     format_server_message(
         "MX",
-        &[&format!("{x} {y} {floor_id} {object_id} {player_id}")],
+        &[&format!("{x} {y} {floor_id} {object} {player_id}")],
     )
 }
 

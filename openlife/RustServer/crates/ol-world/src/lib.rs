@@ -164,6 +164,23 @@ impl NestedHelper {
         self.id == 0 || self.id == crate::NESTED_NULL_ID
     }
 
+    /// Haxe `ObjectHelper.toString` / `MapData.stringID` for held PU `o_id`.
+    ///
+    /// Bare `292`; cargo `292,31,32`; one-level nest `292,391:31,32`.
+    // Haxe: ObjectHelper.toString L393–408
+    pub fn to_held_string(&self) -> String {
+        let mut s = self.id.to_string();
+        for item in &self.contained {
+            s.push(',');
+            s.push_str(&item.id.to_string());
+            for sub in &item.contained {
+                s.push(':');
+                s.push_str(&sub.id.to_string());
+            }
+        }
+        s
+    }
+
     /// Stamp creation + optional decay timer (mirror of [`ComplexObject::stamp_time`]).
     pub fn stamp_time(&mut self, sim_time: f32, time_to_change: f32) {
         self.creation_time = sim_time;
@@ -1104,6 +1121,17 @@ mod tests {
         assert_eq!(w.encode_object_for_map(1, 1), "391,33,40");
         w.set_object(2, 2, 99);
         assert_eq!(w.encode_object_for_map(2, 2), "99");
+    }
+
+    #[test]
+    fn nested_helper_to_held_string_matches_haxe_tostring() {
+        let mut h = NestedHelper::id_only(292);
+        assert_eq!(h.to_held_string(), "292");
+        h.contained = vec![
+            NestedHelper::id_only(31),
+            NestedHelper::from_wire(391, &[100, 101]),
+        ];
+        assert_eq!(h.to_held_string(), "292,31,391:100:101");
     }
 
     #[test]

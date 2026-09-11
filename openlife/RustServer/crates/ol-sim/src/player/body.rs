@@ -137,6 +137,9 @@ pub struct Player {
     pub last_mc_y: i32,
     /// Whether any MC was sent for this life.
     pub has_mc: bool,
+    /// Sim-seconds when last MAP_CHUNK was sent (Haxe `timeLastMapChunkSend`).
+    // Haxe: Connection.timeLastMapChunkSend / MaxTimeBetweenMapChunks = 3
+    pub last_mc_sim: f32,
     pub tools: crate::tools::ToolSlots,
     pub yum: crate::yum::YumState,
     /// Display first/last name for NM packet.
@@ -465,6 +468,7 @@ impl Player {
             last_mc_x: 0,
             last_mc_y: 0,
             has_mc: false,
+            last_mc_sim: 0.0,
             tools: crate::tools::ToolSlots::default(),
             yum: crate::yum::YumState::default(),
             first_name: "NEWBORN".into(),

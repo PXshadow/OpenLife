@@ -18,7 +18,7 @@ pub use wire_out::{
     format_heat_change, format_held_update,
     format_learned_tool_report, format_location_says, format_owner_list,
     format_player_out_of_range, format_player_says,
-    format_map_change, format_map_change_moving, format_name_message, format_player_emot,
+    format_map_change, format_map_change_obj, format_map_change_moving, format_name_message, format_player_emot,
     format_player_flip,
     format_player_moves_start, format_tool_slots, format_weather_status,
     valley_spacing_unsupported,
@@ -340,7 +340,7 @@ pub fn format_player_update_line_full(
 pub fn format_player_update_line_full_clothing(
     p_id: i32,
     po_id: i32,
-    held_id: i32,
+    held_id: impl std::fmt::Display,
     x: i32,
     y: i32,
     age: f32,
@@ -392,7 +392,7 @@ pub fn format_player_update_line_full_clothing(
 pub fn format_player_update_line_full_clothing_responsible(
     p_id: i32,
     po_id: i32,
-    held_id: i32,
+    held_id: impl std::fmt::Display,
     x: i32,
     y: i32,
     age: f32,

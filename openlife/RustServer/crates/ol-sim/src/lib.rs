@@ -835,7 +835,7 @@ use ol_metrics::Counters;
 use ol_net::{NetIntent, OutboundHub};
 use ol_protocol::{
     format_food_change, format_frame, format_heat_change, format_learned_tool_report,
-    format_location_says, format_map_change, format_map_change_moving, format_photo_signature,
+    format_location_says, format_map_change, format_map_change_obj, format_map_change_moving, format_photo_signature,
     format_player_emot, format_player_flip, format_player_says, format_player_update_line,
     format_player_update_line_death, format_player_update_line_eat,
     format_player_update_line_eat_responsible, format_player_update_line_full,
@@ -1138,6 +1138,12 @@ pub fn say_close_range(state: &SimState, age: f32) -> i32 {
 
 /// Resend MAP_CHUNK when player moved this many tiles from last MC center (Haxe).
 pub const MC_RESEND_THRESHOLD: i32 = 10;
+/// Haxe `MoveHelper.sendChunkIfNeeded` `isClose(..., 4)` during movement.
+// Haxe: MoveHelper.sendChunkIfNeeded L685
+pub const MC_MOVE_RESEND_TILES: i32 = 4;
+/// Haxe `ServerSettings.MaxTimeBetweenMapChunks` (seconds).
+// Haxe: ServerSettings.MaxTimeBetweenMapChunks = 3
+pub const MAX_TIME_BETWEEN_MAP_CHUNKS: f32 = 3.0;
 pub const MC_WIDTH: i32 = 32;
 pub const MC_HEIGHT: i32 = 30;
 /// Default container slots when content missing.
@@ -2413,6 +2419,39 @@ fn send_nearby(outbound: &OutboundHub, conn_ids: &[u64], packet: Vec<u8>) {
     }
 }
 
+/// Haxe `Connection.SendMapUpdateToAllClosePlayers`.
+///
+/// Per-viewer `transformX/Y`, container `stringID`, `p_id = -1`, then FRAME.
+// Haxe: Connection.SendMapUpdateToAllClosePlayers L645–668
+fn fan_haxe_map_update(
+    state: &SimState,
+    outbound: &OutboundHub,
+    tx: i32,
+    ty: i32,
+    player_id: i32,
+) {
+    let (floor, obj) = {
+        let w = state.world.read().unwrap();
+        (w.get_floor(tx, ty) as i32, w.encode_object_for_map(tx, ty))
+    };
+    let near = nearby_conn_ids(state, tx, ty, mx_range(state));
+    for &cid in &near {
+        let Some(v) = state.players.get(&cid) else {
+            continue;
+        };
+        if v.deleted || !v.connected {
+            continue;
+        }
+        let (rx, ry) = viewer_pu_xy(state, v, tx, ty);
+        let (floor_m, obj_m) = crate::vanilla_id::map_floor_obj_str_for_conn(state, cid, floor, &obj);
+        outbound.send(
+            cid,
+            format_map_change_obj(rx, ry, floor_m, &obj_m, player_id).into_bytes(),
+        );
+        send_frame(outbound, cid);
+    }
+}
+
 /// Haxe `WorldMap.transformX/Y` for one viewer: world tile → birth-relative PU/MX xy.
 // Haxe: WorldMap.transformX/Y L1582–1607
 pub(crate) fn viewer_pu_xy(state: &SimState, viewer: &Player, world_x: i32, world_y: i32) -> (i32, i32) {
@@ -2871,13 +2910,42 @@ pub fn broadcast_global(outbound: &OutboundHub, text: &str) {
 
 /// Haxe `sendMapChunkIfNeeded` / `sendMapChunk` after move.
 pub fn maybe_send_map_chunk(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
+    maybe_send_map_chunk_dist(state, outbound, conn_id, MC_RESEND_THRESHOLD);
+}
+
+fn maybe_send_map_chunk_dist(
+    state: &mut SimState,
+    outbound: &OutboundHub,
+    conn_id: u64,
+    threshold: i32,
+) {
     let Some(p) = state.players.get(&conn_id) else {
         return;
     };
-    if p.deleted || !p.needs_map_chunk(MC_RESEND_THRESHOLD) {
+    if p.deleted || !p.needs_map_chunk(threshold) {
         return;
     }
     force_send_map_chunk(state, outbound, conn_id);
+}
+
+/// Haxe `sendMapChunkIfNeeded` — at least one MC every `MaxTimeBetweenMapChunks`.
+// Haxe: Connection.sendMapChunkIfNeeded L894–898; TimeHelper.DisplayStuff L264
+fn maybe_send_map_chunk_by_time(state: &mut SimState, outbound: &OutboundHub) {
+    let now = state.sim_time;
+    let conns: Vec<u64> = state
+        .players
+        .iter()
+        .filter(|(_, p)| {
+            p.connected
+                && !p.deleted
+                && p.is_human_body()
+                && (now - p.last_mc_sim) >= MAX_TIME_BETWEEN_MAP_CHUNKS
+        })
+        .map(|(c, _)| *c)
+        .collect();
+    for cid in conns {
+        force_send_map_chunk(state, outbound, cid);
+    }
 }
 
 /// Always send MAP_CHUNK centered on the player (login / SAY MAPFORCE).
@@ -2938,6 +3006,7 @@ fn force_send_map_chunk_ex(
         p.last_mc_x = x;
         p.last_mc_y = y;
         p.has_mc = true;
+        p.last_mc_sim = state.sim_time;
     }
     if urgent {
         outbound.send_urgent(conn_id, mc);
@@ -3220,12 +3289,30 @@ fn swap_hand_and_floor_object(
     }
     let place_id = ol_transition_rules::put_down_ground_id(&state.content, held).unwrap_or(held);
     let tile_helper = state.world.read().unwrap().get_helper(x, y).cloned();
+    let held_helper = state
+        .players
+        .get(&conn_id)
+        .and_then(|p| p.held_helper.clone());
+    let sim_t = state.sim_time;
     {
         let mut world = state.world.write().unwrap();
         if place_id == 0 {
             world.set_object(x, y, 0);
         } else {
-            world.set_object_complex(x, y, ComplexObject::with_owner(place_id, owner_id));
+            let mut placed = if let Some(h) = held_helper.as_ref() {
+                let mut n = h.clone();
+                n.id = place_id;
+                crate::horse_mount::nested_to_complex(&n, sim_t)
+            } else {
+                ComplexObject::with_owner(place_id, owner_id)
+            };
+            if placed.owner_id == 0 && owner_id != 0 {
+                placed.owner_id = owner_id;
+                if placed.living_owners.is_empty() {
+                    placed.living_owners = vec![owner_id];
+                }
+            }
+            world.set_object_complex(x, y, placed);
         }
     }
     if let Some(pl) = state.players.get_mut(&conn_id) {
@@ -3466,11 +3553,24 @@ pub fn apply_drop(
     if tile == 0 {
         // Record lineage/player ownership on place (Haxe ObjectHelper.owner).
         let owner_id = state.players.get(&conn_id).map(|p| p.p_id).unwrap_or(0);
-        state.world.write().unwrap().set_object_complex(
-            x,
-            y,
-            ComplexObject::with_owner(held, owner_id),
-        );
+        let held_helper = state
+            .players
+            .get(&conn_id)
+            .and_then(|p| p.held_helper.clone());
+        let sim_t = state.sim_time;
+        let placed = if let Some(h) = held_helper.as_ref().filter(|h| !h.contained.is_empty()) {
+            let mut c = crate::horse_mount::nested_to_complex(h, sim_t);
+            if c.owner_id == 0 && owner_id != 0 {
+                c.owner_id = owner_id;
+                if c.living_owners.is_empty() {
+                    c.living_owners = vec![owner_id];
+                }
+            }
+            c
+        } else {
+            ComplexObject::with_owner(held, owner_id)
+        };
+        state.world.write().unwrap().set_object_complex(x, y, placed);
         state.record_world_change(x, y, held);
         if let Some(p) = state.players.get_mut(&conn_id) {
             p.clear_held();
@@ -8400,7 +8500,7 @@ pub fn packets_after_use(state: &SimState, conn_id: u64, r: &UseResult) -> Vec<V
         format_player_update_line_full_clothing_responsible(
             p.p_id,
             person_object_id(p),
-            p.held_id,
+            pu_held_object_string(state, p),
             px,
             py,
             p.age,
@@ -8491,7 +8591,7 @@ fn fan_after_use(state: &SimState, outbound: &OutboundHub, conn_id: u64, r: &Use
             format_player_update_line_full_clothing_responsible(
                 p.p_id,
                 person_object_id(&p),
-                pu_held_id(&p),
+                pu_held_object_string(state, &p),
                 px,
                 py,
                 p.age,
@@ -9239,6 +9339,25 @@ fn pu_held_id(p: &Player) -> i32 {
     }
 }
 
+/// Haxe `toData` held field: `-heldPlayer` or `MapData.stringID(heldObject.toArray())`.
+// Haxe: PlayerInstance.toData / ObjectHelper.toString
+fn pu_held_object_string(state: &SimState, p: &Player) -> String {
+    if p.holding_player_id != 0 {
+        return format!("-{}", p.holding_player_id);
+    }
+    if p.held_id == 0 {
+        return "0".into();
+    }
+    if let Some(h) = p.held_helper.as_ref() {
+        if !h.contained.is_empty() {
+            let mut wire = h.clone();
+            wire.id = crate::use_transition::wire_held_id(&state.content, p);
+            return wire.to_held_string();
+        }
+    }
+    crate::use_transition::wire_held_id(&state.content, p).to_string()
+}
+
 fn format_live_pu_line_origin(
     state: &SimState,
     p: &Player,
@@ -9252,7 +9371,7 @@ fn format_live_pu_line_origin(
     format_player_update_line_full_clothing(
         p.p_id,
         person_object_id(p),
-        pu_held_id(p),
+        pu_held_object_string(state, p),
         rx,
         ry,
         p.age,
@@ -11287,7 +11406,10 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
         let w = state.world.read().unwrap();
         (w.width_tiles, w.height_tiles, w.wrap)
     };
-    let wrap_fn = |x: i32, y: i32| {
+    // Haxe player.x/y stay continuous; wrap only for tile lookup. rem_euclid of
+    // the standing tile jumps PU by ±map size and the client paints a blank map.
+    // Haxe: MoveHelper.calculateNewMovements + WorldMap.index
+    let wrap_lookup = |x: i32, y: i32| {
         if wrap_world && ww > 0 && hh > 0 {
             (x.rem_euclid(ww), y.rem_euclid(hh))
         } else {
@@ -11296,7 +11418,7 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
     };
     for conn_id in conns {
         let tick = state.tick;
-        let (mut path, mut x, mut y, held_baby, seq) = {
+        let (mut path, mut x, mut y, held_baby, seq, birth_x, birth_y) = {
             let Some(p) = state.players.get_mut(&conn_id) else {
                 continue;
             };
@@ -11304,15 +11426,34 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
                 continue;
             };
             let seq = path.seq;
-            (path, p.x, p.y, p.holding_player_id, seq)
+            (path, p.x, p.y, p.holding_player_id, seq, p.birth_x, p.birth_y)
         };
         let result = {
             let world = state.world.read().unwrap();
             let content = &state.content;
-            advance_path(&mut path, &mut x, &mut y, dt, tick, &wrap_fn, &|nx, ny| {
-                biome_blocks_move(world.get_biome(nx, ny)) || !is_walkable(&world, content, nx, ny)
-            })
+            advance_path(
+                &mut path,
+                &mut x,
+                &mut y,
+                dt,
+                tick,
+                &|a, b| (a, b),
+                &|nx, ny| {
+                    let (wx, wy) = wrap_lookup(nx, ny);
+                    biome_blocks_move(world.get_biome(wx, wy))
+                        || !is_walkable(&world, content, wx, wy)
+                },
+            )
         };
+        let (fx, fy, folded) = if wrap_world {
+            crate::move_path::fold_world_pos_around_world(x, y, birth_x, birth_y, ww, hh)
+        } else {
+            (x, y, false)
+        };
+        if folded {
+            x = fx;
+            y = fy;
+        }
         if !result.commits.is_empty() {
             state.world.write().unwrap().touch_radius(x, y, 1);
             if held_baby != 0 {
@@ -11321,6 +11462,26 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
                     baby.y = y;
                 }
             }
+        }
+        // Haxe MoveHelper: after |p.x| >= width, CancleMovement + sendMapChunk + VOG.
+        // Haxe: MoveHelper.moveHelper L550–586 / CancleMovement L698–724
+        if folded {
+            if let Some(p) = state.players.get_mut(&conn_id) {
+                p.x = x;
+                p.y = y;
+                p.move_path = None;
+                p.moving = false;
+                p.done_moving_seq = seq;
+            }
+            if let Some(p) = state.players.get(&conn_id) {
+                let (vx, vy) = p.world_to_client(x, y);
+                outbound.send_urgent(conn_id, format_vog_update(vx, vy).into_bytes());
+            }
+            force_send_map_chunk_ex(state, outbound, conn_id, true);
+            send_forced_player_update(state, outbound, conn_id, Some(seq));
+            send_frame(outbound, conn_id);
+            state.publish_player_view(conn_id);
+            continue;
         }
         if result.cancelled {
             // Keep path seq explicit â€” do not clear path then call force with None
@@ -11366,7 +11527,7 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
             p.move_path = Some(path);
         }
         if !result.commits.is_empty() {
-            maybe_send_map_chunk(state, outbound, conn_id);
+            maybe_send_map_chunk_dist(state, outbound, conn_id, MC_MOVE_RESEND_TILES);
             state.publish_player_view(conn_id);
         }
     }
@@ -11502,11 +11663,12 @@ pub fn apply_move_deltas_with_seq(
     }
     let (x, y) = {
         let world = state.world.read().unwrap();
-        let (x, y) = world.wrap_tile(x, y);
+        let (wx, wy) = world.wrap_tile(x, y);
         // Block MOVE into bad biomes (21 = mountain). Position unchanged.
-        if biome_blocks_move(world.get_biome(x, y)) {
+        if biome_blocks_move(world.get_biome(wx, wy)) {
             return false;
         }
+        // Keep standing coords continuous (Haxe p.x/p.y). Tile lookup wraps.
         (x, y)
     };
     // Instant MOVE while held as baby â†’ drop out first.
@@ -12806,6 +12968,7 @@ pub fn tick_vitals_with_metrics(
         }
     }
     tick_world_after_players(state, outbound, dt, counters);
+    maybe_send_map_chunk_by_time(state, outbound);
 }
 
 /// Haxe `DoWorldMapTimeStuff` + `DoWorldLongTermTimeStuff` (Y-band per tick) + MX.
@@ -12854,43 +13017,11 @@ fn apply_live_world_time_bands(state: &mut SimState, outbound: &OutboundHub) {
         )
     };
     for ch in &map_changes {
-        let floor = state.world.read().unwrap().get_floor(ch.x, ch.y) as i32;
-        let near = nearby_conn_ids(state, ch.x, ch.y, nearby_range(state));
         if ch.moving {
-            let floor_o = state.world.read().unwrap().get_floor(ch.from_x, ch.from_y) as i32;
-            let leftover = state.world.read().unwrap().get_object(ch.from_x, ch.from_y);
-            crate::vanilla_id::send_nearby_maybe_mx(
-                state,
-                outbound,
-                &near,
-                format_map_change_moving(
-                    ch.x,
-                    ch.y,
-                    floor,
-                    ch.new_object_id,
-                    -1,
-                    ch.from_x,
-                    ch.from_y,
-                    1.0,
-                )
-                .into_bytes(),
-                false,
-            );
-            crate::vanilla_id::send_nearby_maybe_mx(
-                state,
-                outbound,
-                &near,
-                format_map_change(ch.from_x, ch.from_y, floor_o, leftover, -1).into_bytes(),
-                false,
-            );
+            fan_haxe_map_update(state, outbound, ch.from_x, ch.from_y, -1);
+            fan_haxe_map_update(state, outbound, ch.x, ch.y, -1);
         } else {
-            crate::vanilla_id::send_nearby_maybe_mx(
-                state,
-                outbound,
-                &near,
-                format_map_change(ch.x, ch.y, floor, ch.new_object_id, 0).into_bytes(),
-                false,
-            );
+            fan_haxe_map_update(state, outbound, ch.x, ch.y, -1);
         }
     }
 
@@ -12909,14 +13040,7 @@ fn apply_live_world_time_bands(state: &mut SimState, outbound: &OutboundHub) {
         )
     };
     for ch in &lt_changes {
-        let near = nearby_conn_ids(state, ch.x, ch.y, nearby_range(state));
-        crate::vanilla_id::send_nearby_maybe_mx(
-            state,
-            outbound,
-            &near,
-            format_map_change(ch.x, ch.y, ch.floor_id, ch.object_id, 0).into_bytes(),
-            false,
-        );
+        fan_haxe_map_update(state, outbound, ch.x, ch.y, -1);
     }
 }
 
@@ -12931,11 +13055,8 @@ pub fn tick_world_after_players(
     counters: Option<&Counters>,
 ) {
     let decayed = tick_auto_decays(state, dt);
-    for &(x, y, new_id) in &decayed {
-        let floor = state.world.read().unwrap().get_floor(x, y) as i32;
-        let mx = format_map_change(x, y, floor, new_id, 0).into_bytes();
-        let near = nearby_conn_ids(state, x, y, nearby_range(state));
-        crate::vanilla_id::send_nearby_maybe_mx(state, outbound, &near, mx, false);
+    for &(x, y, _new_id) in &decayed {
+        fan_haxe_map_update(state, outbound, x, y, -1);
     }
     // Haxe TimeHelper.DoTimeStuff: DoWorldMapTimeStuff then DoWorldLongTermTimeStuff
     apply_live_world_time_bands(state, outbound);
@@ -14732,7 +14853,7 @@ fn send_held_eat_result(state: &mut SimState, outbound: &OutboundHub, conn_id: u
         format_player_update_line_full_clothing_responsible(
             p.p_id,
             person_object_id(&p),
-            pu_held_id(&p),
+            pu_held_object_string(state, &p),
             rx,
             ry,
             p.age,

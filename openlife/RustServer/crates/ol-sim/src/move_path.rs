@@ -292,11 +292,16 @@ pub fn truncate_walkable(
         if count > MAX_CLIENT_PATH_STEPS {
             break;
         }
-        let (nx, ny) = world.wrap_tile(x + dx, y + dy);
-        if biome_blocks_move_at(world, nx, ny) {
+        // Haxe keeps player.x/y continuous; wrap only for tile lookup (`index`).
+        // rem_euclid of the standing tile jumps PU by ±map size → blank client map.
+        // Haxe: MoveHelper.calculateNewMovements / WorldMap.index
+        let nx = x + dx;
+        let ny = y + dy;
+        let (wx, wy) = world.wrap_tile(nx, ny);
+        if biome_blocks_move_at(world, wx, wy) {
             break;
         }
-        if !is_walkable(world, content, nx, ny) {
+        if !is_walkable(world, content, wx, wy) {
             break;
         }
         accepted.push((dx, dy));
@@ -870,6 +875,28 @@ mod tests {
         assert!(!check_if_not_moving_and_close_enough(
             true, 5, 5, 5, 6, 1, 32, 32, false
         ));
+    }
+
+    #[test]
+    fn truncate_walkable_keeps_unwrapped_standing_coords() {
+        // Crossing x=width-1 must not rem_euclid the player to 0 (Haxe p.x stays 512).
+        let mut world = World::new(16, 16, true);
+        let db = ContentDb::default();
+        for x in 0..16 {
+            for y in 0..16 {
+                world.set_biome(x, y, 0);
+            }
+        }
+        let (acc, trunc) = truncate_walkable(&world, &db, 15, 8, &[(1, 0)]);
+        assert_eq!(trunc, 0);
+        assert_eq!(acc, vec![(1, 0)]);
+        let mut x = 15;
+        let mut y = 8;
+        for (dx, dy) in acc {
+            x += dx;
+            y += dy;
+        }
+        assert_eq!((x, y), (16, 8), "standing tile must not wrap to (0,8)");
     }
 
     #[test]

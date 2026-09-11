@@ -2504,9 +2504,18 @@ pub fn apply_use_at_ex(
         .map(|h| h.contained.len())
         .unwrap_or(held_contained_count)
         .max(held_contained_count);
+    // Haxe swapHandAndFloorObject swaps the full ObjectHelper (cargo included)
+    // for empty-hand pickup / DROP swap — not only horse `isPickupOrDrop` trans.
+    // Haxe: TransitionHelper.use L804; drop L555–558; swapHandAndFloorObject L671
     let nest_swap = container_slot_idx.is_none()
-        && from_transition
-        && should_nest_swap_helpers(is_pickup_or_drop, change_held, actor_after_tr, held_cargo_n);
+        && ((from_transition
+            && should_nest_swap_helpers(
+                is_pickup_or_drop,
+                change_held,
+                actor_after_tr,
+                held_cargo_n,
+            ))
+            || !from_transition);
 
     // TH-MULTI-POLISH: loved-food bare-hand extra.
     // hits_before may already be reduced by TH-ALT-OUTCOME Proceed (local only; stamp later).
@@ -5778,6 +5787,43 @@ mod tests {
         assert_eq!(hh.contained.len(), 2);
         assert_eq!(hh.contained[0].id, 33);
         assert_eq!(hh.contained[1].id, 40);
+    }
+
+    /// Haxe swapHandAndFloorObject: empty-hand USE on a filled basket keeps cargo.
+    // Haxe: TransitionHelper.use L804; swapHandAndFloorObject L671–681
+    #[test]
+    fn basket_pickup_preserves_contained() {
+        let mut db = ContentDb::default();
+        db.objects.insert(292, def_slots(292, 3));
+        db.objects.insert(31, def(31, 0, false));
+        db.objects.insert(32, def(32, 0, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "u");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+        }
+        let mut basket = ComplexObject::new_simple(292);
+        basket.contained = vec![31, 32];
+        basket.slots = vec![
+            ol_world::NestedHelper::id_only(31),
+            ol_world::NestedHelper::id_only(32),
+        ];
+        state.world.write().unwrap().set_object_complex(1, 0, basket);
+        let r = apply_use_at(&mut state, 1, 1, 0).unwrap();
+        assert!(r.applied, "empty-hand USE must pick up basket");
+        assert_eq!(r.actor_after, 292);
+        assert_eq!(r.target_after, 0);
+        let p = state.players.get(&1).unwrap();
+        assert_eq!(p.held_id, 292);
+        let hh = p.held_helper.as_ref().expect("held helper");
+        assert_eq!(hh.contained.len(), 2, "basket cargo must stay in hands");
+        assert_eq!(hh.contained[0].id, 31);
+        assert_eq!(hh.contained[1].id, 32);
+        assert_eq!(hh.to_held_string(), "292,31,32");
+        assert_eq!(state.world.read().unwrap().get_object(1, 0), 0);
     }
 
     // Haxe: isHorseDropTrans — dismount cart with cargo → ground keeps nest

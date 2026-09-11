@@ -10,6 +10,7 @@
 use crate::SimState;
 use ol_net::OutboundHub;
 use ol_protocol::{format_map_change, format_map_change_moving};
+use ol_content::map_object_id_string;
 
 /// Haxe `isOpenLifeClient` — `client_tag.indexOf(OpenLifeClientName) != -1`.
 // Haxe: Connection.login isOpenLifeClient
@@ -128,6 +129,24 @@ pub fn format_map_change_moving_for_conn(
 ) -> String {
     let (floor, obj) = map_floor_obj_for_conn(state, conn_id, floor, obj);
     format_map_change_moving(x, y, floor, obj, player_id, old_x, old_y, speed)
+}
+
+/// Vanilla-remap floor + container-format object string for one connection.
+pub fn map_floor_obj_str_for_conn(
+    state: &SimState,
+    conn_id: u64,
+    floor: i32,
+    obj: &str,
+) -> (i32, String) {
+    if !should_patch_conn(state, conn_id) {
+        return (floor, obj.to_string());
+    }
+    let last_v = state.last_vanilla_id;
+    let floor = map_obj_id_for_conn(state, conn_id, floor);
+    let obj = map_object_id_string(obj, |id| {
+        state.content.map_id_to_vanilla_id(id, last_v)
+    });
+    (floor, obj)
 }
 
 #[cfg(test)]
