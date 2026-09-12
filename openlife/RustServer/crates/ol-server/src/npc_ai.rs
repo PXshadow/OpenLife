@@ -115,6 +115,49 @@ fn npc_is_close_action(px: i32, py: i32, tx: i32, ty: i32) -> bool {
     dx * dx + dy * dy <= 1
 }
 
+/// Arrival action staged on a sticky MOVE (Haxe `useTarget` / `dropTarget`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StickyArrive {
+    /// Pure walk (explore / Goto). Hold the path; no USE/DROP on arrival.
+    None,
+    /// Haxe `useHeldObjOnTarget` / `isUsingItem`.
+    Use,
+    /// Haxe `dropTarget` / `isDropingItem` (includes empty-hand pickup).
+    Drop,
+}
+
+impl StickyArrive {
+    fn from_flags(pending_use: bool, pending_drop: bool) -> Self {
+        if pending_use {
+            Self::Use
+        } else if pending_drop {
+            Self::Drop
+        } else {
+            Self::None
+        }
+    }
+}
+
+/// Haxe `isUsingItem` / `isDropingItem`: while moving with a staged target, keep the
+/// live path. Replanning after each tile sends a new MOVE (truncates remaining steps)
+/// or USE (NetIntent::Use while moving **cancels** the path and does not apply).
+// Haxe: AiBase.isUsingItem `if (myPlayer.isMoving()) return true;` L9013
+// Haxe: AiBase.isDropingItem `if (myPlayer.isMoving()) return true;` L8428
+fn npc_hold_sticky_path_think(
+    moving: bool,
+    moved_one_tile: bool,
+    sticky_valid: bool,
+    sticky_arrive: StickyArrive,
+) -> bool {
+    if !moving {
+        return false;
+    }
+    if sticky_valid && sticky_arrive != StickyArrive::None {
+        return true;
+    }
+    haxe_skip_mid_path_think(moving, moved_one_tile)
+}
+
 fn npc_held_name(content: &ContentDb, held_id: i32) -> String {
     content
         .get(held_id)
@@ -1385,6 +1428,9 @@ fn npc_next_step_to(
 
 /// Multi-step relative path toward `(gx,gy)` (animal-aware), capped at `max_steps`.
 /// Prefer this over a single `npc_next_step_to` so timed movement commits a real path.
+///
+/// `stop_when_close`: Haxe USE/DROP `isClose` — stop on orthogonal adjacency so a
+/// 16-step greedy path does not walk *past* an unwalkable craft tile.
 fn npc_path_toward(
     world: &World,
     content: &ContentDb,
@@ -1396,15 +1442,22 @@ fn npc_path_toward(
     did_not_reach_food: f32,
     max_steps: usize,
     animal: Option<AnimalPathPlayerCtx>,
+    stop_when_close: bool,
 ) -> Vec<(i32, i32)> {
     let mut deltas = Vec::new();
     if max_steps == 0 || (sx == gx && sy == gy) {
+        return deltas;
+    }
+    if stop_when_close && npc_is_close_action(sx, sy, gx, gy) {
         return deltas;
     }
     let mut cx = sx;
     let mut cy = sy;
     for _ in 0..max_steps {
         if cx == gx && cy == gy {
+            break;
+        }
+        if stop_when_close && npc_is_close_action(cx, cy, gx, gy) {
             break;
         }
         let step = npc_next_step_to(
@@ -1424,15 +1477,26 @@ fn npc_path_toward(
         if dx == 0 && dy == 0 {
             break;
         }
+        let nx = cx + dx;
+        let ny = cy + dy;
         deltas.push((dx, dy));
-        cx += dx;
-        cy += dy;
+        cx = nx;
+        cy = ny;
+        if stop_when_close && npc_is_close_action(cx, cy, gx, gy) {
+            break;
+        }
     }
     // Greedy one-tile fallback when A* finds nothing (edge/blocked).
-    if deltas.is_empty() {
+    // Action walks only step orthogonally so the next tile is `isClose`.
+    if deltas.is_empty() && !(stop_when_close && npc_is_close_action(sx, sy, gx, gy)) {
         let sdx = (gx - sx).signum();
         let sdy = (gy - sy).signum();
-        for (dx, dy) in [(sdx, 0), (0, sdy), (sdx, sdy)] {
+        let try_steps: Vec<(i32, i32)> = if stop_when_close {
+            vec![(sdx, 0), (0, sdy)]
+        } else {
+            vec![(sdx, 0), (0, sdy), (sdx, sdy)]
+        };
+        for (dx, dy) in try_steps {
             if dx == 0 && dy == 0 {
                 continue;
             }
@@ -1459,6 +1523,36 @@ fn npc_try_walk_to(
     did_not_reach_food: f32,
     animal: Option<AnimalPathPlayerCtx>,
 ) -> bool {
+    npc_try_walk_to_ex(
+        intent_tx,
+        world,
+        content,
+        conn_id,
+        px,
+        py,
+        gx,
+        gy,
+        food_store,
+        did_not_reach_food,
+        animal,
+        false,
+    )
+}
+
+fn npc_try_walk_to_ex(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    conn_id: u64,
+    px: i32,
+    py: i32,
+    gx: i32,
+    gy: i32,
+    food_store: f32,
+    did_not_reach_food: f32,
+    animal: Option<AnimalPathPlayerCtx>,
+    stop_when_close: bool,
+) -> bool {
     let deltas = npc_path_toward(
         world,
         content,
@@ -1470,6 +1564,7 @@ fn npc_try_walk_to(
         did_not_reach_food,
         NPC_PATH_MAX_STEPS,
         animal,
+        stop_when_close,
     );
     if deltas.is_empty() {
         return false;
@@ -1686,7 +1781,6 @@ fn npc_commit_craft_live(
     detail: &mut String,
     game_ms: &mut u32,
 ) -> bool {
-    let did_not_reach_food = st.food_goto.did_not_reach_food;
     match *intent {
         ShortCraftLiveIntent::Wait => {
             if !moving {
@@ -1703,82 +1797,70 @@ fn npc_commit_craft_live(
             target_id,
             actor_id,
         } => {
-            if npc_is_close_action(px, py, x, y) {
-                if npc_use_at(intent_tx, conn_id, x, y, None, None) {
-                    clear_sticky_move(st);
-                    *kind = NpcActivityKind::Craft;
-                    *detail = format!("craft_queue_use @{x},{y}");
-                    *game_ms = 500;
-                    return true;
-                }
-            } else if npc_try_walk_to(
+            let expected = if target_id != 0 {
+                sticky_parent_id(content, target_id)
+            } else {
+                sticky_parent_id(content, world.get_object(x, y))
+            };
+            if npc_do_arrive_or_walk(
                 intent_tx,
                 world,
                 content,
+                st,
                 conn_id,
                 px,
                 py,
+                food,
+                moving,
                 x,
                 y,
-                food,
-                did_not_reach_food,
-                st.animal_path,
+                expected,
+                actor_id,
+                StickyArrive::Use,
+                format!("use_held @{x},{y}"),
             ) {
-                let expected = if target_id != 0 {
-                    sticky_parent_id(content, target_id)
-                } else {
-                    sticky_parent_id(content, world.get_object(x, y))
-                };
-                set_sticky_move_use(
-                    st,
-                    x,
-                    y,
-                    expected,
-                    actor_id,
-                    true,
-                    format!("use_held @{x},{y}"),
-                );
                 *kind = NpcActivityKind::Craft;
-                *detail = format!("craft_queue_walk_use @{x},{y}");
-                *game_ms = 250;
+                *detail = if npc_is_close_action(px, py, x, y) && !moving {
+                    format!("craft_queue_use @{x},{y}")
+                } else if npc_is_close_action(px, py, x, y) {
+                    format!("craft_queue_wait_use @{x},{y}")
+                } else {
+                    format!("craft_queue_walk_use @{x},{y}")
+                };
+                *game_ms = if npc_is_close_action(px, py, x, y) && !moving {
+                    500
+                } else {
+                    250
+                };
                 return true;
             }
             false
         }
         ShortCraftLiveIntent::UseOnEmptyGround { x, y, held: actor_id } => {
-            if npc_is_close_action(px, py, x, y) {
-                if npc_use_at(intent_tx, conn_id, x, y, None, None) {
-                    clear_sticky_move(st);
-                    *kind = NpcActivityKind::Craft;
-                    *detail = format!("craft_queue_use @{x},{y}");
-                    *game_ms = 500;
-                    return true;
-                }
-            } else if npc_try_walk_to(
+            let expected = sticky_parent_id(content, world.get_object(x, y));
+            if npc_do_arrive_or_walk(
                 intent_tx,
                 world,
                 content,
+                st,
                 conn_id,
                 px,
                 py,
+                food,
+                moving,
                 x,
                 y,
-                food,
-                did_not_reach_food,
-                st.animal_path,
+                expected,
+                actor_id,
+                StickyArrive::Use,
+                format!("use_held @{x},{y}"),
             ) {
-                let expected = sticky_parent_id(content, world.get_object(x, y));
-                set_sticky_move_use(
-                    st,
-                    x,
-                    y,
-                    expected,
-                    actor_id,
-                    true,
-                    format!("use_held @{x},{y}"),
-                );
                 *kind = NpcActivityKind::Craft;
-                *detail = format!("craft_queue_walk_use @{x},{y}");
+                *detail = if npc_is_close_action(px, py, x, y) && !moving {
+                    format!("craft_queue_use @{x},{y}")
+                } else {
+                    format!("craft_queue_walk_use @{x},{y}")
+                };
                 *game_ms = 250;
                 return true;
             }
@@ -1792,31 +1874,49 @@ fn npc_commit_craft_live(
                 ShortCraftLiveIntent::DropAt { .. }
                     | ShortCraftLiveIntent::PickupNearForge { .. }
             );
-            if npc_is_close_action(px, py, x, y) && is_drop {
-                if npc_drop_at(intent_tx, conn_id, x, y, None) {
-                    *kind = NpcActivityKind::Craft;
-                    *detail = format!("craft_queue_drop @{x},{y}");
-                    *game_ms = 400;
-                    return true;
-                }
-            } else if !npc_is_close_action(px, py, x, y)
-                && npc_try_walk_to(
-                    intent_tx,
-                    world,
-                    content,
-                    conn_id,
-                    px,
-                    py,
-                    x,
-                    y,
-                    food,
-                    did_not_reach_food,
-                    st.animal_path,
-                )
-            {
+            if npc_is_close_action(px, py, x, y) && !is_drop {
+                // Goto arrived — hold the tick so the next expand can USE/DROP.
+                // Returning false used to fall through to explore and never craft.
                 *kind = NpcActivityKind::Craft;
-                *detail = format!("craft_queue_walk @{x},{y}");
-                *game_ms = 250;
+                *detail = format!("craft_queue_arrived @{x},{y}");
+                *game_ms = 200;
+                clear_sticky_move(st);
+                return true;
+            }
+            let arrive = if is_drop {
+                StickyArrive::Drop
+            } else {
+                StickyArrive::None
+            };
+            let expected = sticky_parent_id(content, world.get_object(x, y));
+            if npc_do_arrive_or_walk(
+                intent_tx,
+                world,
+                content,
+                st,
+                conn_id,
+                px,
+                py,
+                food,
+                moving,
+                x,
+                y,
+                expected,
+                0,
+                arrive,
+                format!("craft @{x},{y}"),
+            ) {
+                *kind = NpcActivityKind::Craft;
+                *detail = if npc_is_close_action(px, py, x, y) && !moving && is_drop {
+                    format!("craft_queue_drop @{x},{y}")
+                } else {
+                    format!("craft_queue_walk @{x},{y}")
+                };
+                *game_ms = if npc_is_close_action(px, py, x, y) && !moving && is_drop {
+                    400
+                } else {
+                    250
+                };
                 return true;
             }
             false
@@ -1824,21 +1924,30 @@ fn npc_commit_craft_live(
         ShortCraftLiveIntent::GotoForge {
             forge_x, forge_y, ..
         } => {
-            if !npc_is_close_action(px, py, forge_x, forge_y)
-                && npc_try_walk_to(
-                    intent_tx,
-                    world,
-                    content,
-                    conn_id,
-                    px,
-                    py,
-                    forge_x,
-                    forge_y,
-                    food,
-                    did_not_reach_food,
-                    st.animal_path,
-                )
-            {
+            if npc_is_close_action(px, py, forge_x, forge_y) {
+                *kind = NpcActivityKind::Craft;
+                *detail = format!("craft_queue_forge_arrived @{forge_x},{forge_y}");
+                *game_ms = 200;
+                clear_sticky_move(st);
+                return true;
+            }
+            if npc_try_walk_to_arrive(
+                intent_tx,
+                world,
+                content,
+                st,
+                conn_id,
+                px,
+                py,
+                forge_x,
+                forge_y,
+                food,
+                0,
+                0,
+                StickyArrive::None,
+                moving,
+                format!("forge @{forge_x},{forge_y}"),
+            ) {
                 *kind = NpcActivityKind::Craft;
                 *detail = format!("craft_queue_forge @{forge_x},{forge_y}");
                 *game_ms = 250;
@@ -1902,9 +2011,72 @@ fn npc_try_walk_to_sticky(
     gy: i32,
     food_store: f32,
     expected_parent_id: i32,
+    pending_use: bool,
+    moving: bool,
     label: impl Into<String>,
 ) -> bool {
-    let ok = npc_try_walk_to(
+    npc_try_walk_to_arrive(
+        intent_tx,
+        world,
+        content,
+        st,
+        conn_id,
+        px,
+        py,
+        gx,
+        gy,
+        food_store,
+        expected_parent_id,
+        0,
+        if pending_use {
+            StickyArrive::Use
+        } else {
+            StickyArrive::None
+        },
+        moving,
+        label,
+    )
+}
+
+/// Walk toward `(gx,gy)` and stage USE/DROP on arrival.
+///
+/// If already moving to the same tile, do **not** enqueue a replacement MOVE
+/// (Haxe `isMoving()` return — a new MOVE truncates the remaining path).
+fn npc_try_walk_to_arrive(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    px: i32,
+    py: i32,
+    gx: i32,
+    gy: i32,
+    food_store: f32,
+    expected_parent_id: i32,
+    use_actor_parent: i32,
+    arrive: StickyArrive,
+    moving: bool,
+    label: impl Into<String>,
+) -> bool {
+    let label = label.into();
+    if moving {
+        if let Some(s) = st.sticky_move.as_ref() {
+            if s.gx == gx && s.gy == gy {
+                set_sticky_arrive(
+                    st,
+                    gx,
+                    gy,
+                    expected_parent_id,
+                    use_actor_parent,
+                    arrive,
+                    label,
+                );
+                return true;
+            }
+        }
+    }
+    let ok = npc_try_walk_to_ex(
         intent_tx,
         world,
         content,
@@ -1916,11 +2088,86 @@ fn npc_try_walk_to_sticky(
         food_store,
         st.food_goto.did_not_reach_food,
         st.animal_path,
+        arrive != StickyArrive::None,
     );
     if ok {
-        set_sticky_move(st, gx, gy, expected_parent_id, label);
+        set_sticky_arrive(
+            st,
+            gx,
+            gy,
+            expected_parent_id,
+            use_actor_parent,
+            arrive,
+            label,
+        );
     }
     ok
+}
+
+/// Haxe isUsingItem / isDropingItem: USE or DROP when orthogonally close and stopped;
+/// otherwise walk with sticky. USE while moving is refused and **cancels** the path.
+fn npc_do_arrive_or_walk(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    px: i32,
+    py: i32,
+    food: f32,
+    moving: bool,
+    x: i32,
+    y: i32,
+    expected_parent: i32,
+    actor_parent: i32,
+    arrive: StickyArrive,
+    label: impl Into<String>,
+) -> bool {
+    let label = label.into();
+    if npc_is_close_action(px, py, x, y) {
+        if moving {
+            // Haxe: if isMoving() return true — wait to stop, then USE/DROP.
+            set_sticky_arrive(
+                st,
+                x,
+                y,
+                expected_parent,
+                actor_parent,
+                arrive,
+                label,
+            );
+            return true;
+        }
+        let ok = match arrive {
+            StickyArrive::Drop => npc_drop_at(intent_tx, conn_id, x, y, None),
+            StickyArrive::Use => npc_use_at(intent_tx, conn_id, x, y, None, None),
+            StickyArrive::None => {
+                clear_sticky_move(st);
+                return true;
+            }
+        };
+        if ok {
+            clear_sticky_move(st);
+        }
+        return ok;
+    }
+    npc_try_walk_to_arrive(
+        intent_tx,
+        world,
+        content,
+        st,
+        conn_id,
+        px,
+        py,
+        x,
+        y,
+        food,
+        expected_parent,
+        actor_parent,
+        arrive,
+        moving,
+        label,
+    )
 }
 
 /// Dual-pass Goto fail mark: animal-only block â†’ hostile_path 20s; else not_reachable 90s.
@@ -2055,6 +2302,8 @@ struct NpcStickyMove {
     use_actor_parent: i32,
     /// Haxe `useHeldObjOnTarget` — after walk, issue USE instead of replanning.
     pending_use: bool,
+    /// Haxe `dropTarget` / `isDropingItem` — after walk, issue DROP (pickup/swap).
+    pending_drop: bool,
     /// Short label for activity log.
     label: String,
 }
@@ -2432,7 +2681,15 @@ fn set_sticky_move(
     expected_parent_id: i32,
     label: impl Into<String>,
 ) {
-    set_sticky_move_use(st, gx, gy, expected_parent_id, 0, false, label);
+    set_sticky_arrive(
+        st,
+        gx,
+        gy,
+        expected_parent_id,
+        0,
+        StickyArrive::None,
+        label,
+    );
 }
 
 fn set_sticky_move_use(
@@ -2444,12 +2701,37 @@ fn set_sticky_move_use(
     pending_use: bool,
     label: impl Into<String>,
 ) {
+    set_sticky_arrive(
+        st,
+        gx,
+        gy,
+        expected_parent_id,
+        use_actor_parent,
+        if pending_use {
+            StickyArrive::Use
+        } else {
+            StickyArrive::None
+        },
+        label,
+    );
+}
+
+fn set_sticky_arrive(
+    st: &mut NpcProfessionState,
+    gx: i32,
+    gy: i32,
+    expected_parent_id: i32,
+    use_actor_parent: i32,
+    arrive: StickyArrive,
+    label: impl Into<String>,
+) {
     st.sticky_move = Some(NpcStickyMove {
         gx,
         gy,
         expected_parent_id,
         use_actor_parent,
-        pending_use,
+        pending_use: matches!(arrive, StickyArrive::Use),
+        pending_drop: matches!(arrive, StickyArrive::Drop),
         label: label.into(),
     });
 }
@@ -2928,6 +3210,8 @@ fn npc_run_is_picking_up_food(
                                 food.y,
                                 p.food,
                                 food.parent_id,
+                                true,
+                                p.moving,
                                 format!("walk_food id={}", food.parent_id),
                             )
                         };
@@ -2973,6 +3257,8 @@ fn npc_run_is_picking_up_food(
                             food.y,
                             p.food,
                             food.parent_id,
+                            true,
+                            p.moving,
                             format!("walk_food id={}", food.parent_id),
                         )
                     };
@@ -3378,6 +3664,18 @@ pub fn should_spawn_new_ai(
     last_skipped_ticks < reduce_threshold || living < min
 }
 
+/// Haxe `ServerAi.doRebirth`: deleted (or pruned from player_views) and under cap.
+///
+/// Dead NPCs are removed from [`SimState::publish_player_view`], so a missing
+/// view is the death signal — waiting for `p.deleted` never fires.
+// Haxe: AiBase.RunAi L192 `if (ai.player.deleted && aiCountAlive < currentMaxAIs)`
+pub fn npc_slot_should_rebirth(view_alive: bool, living: u32, current_max: u32) -> bool {
+    !view_alive && living < current_max.max(1)
+}
+
+/// Retry delay after a rebirth LOGIN if the view is still empty (not `f32::MAX`).
+pub const NPC_REBIRTH_RETRY_SECS: f32 = 2.0;
+
 fn count_living_npcs(player_views: &Arc<RwLock<HashMap<u64, PlayerSnapshot>>>) -> u32 {
     player_views
         .read()
@@ -3508,7 +3806,7 @@ pub async fn run_npc_scheduler(
             min,
             last_skipped_ticks,
             MAX_AI_SKIPPED_TICKS_BEFORE_REDUCING,
-        ) && active < max
+        ) && active < current_max_ais
         {
             let conn_id = NPC_CONN_BASE + active as u64;
             let email = format!("{}@local", labels[active as usize % labels.len()]);
@@ -3669,6 +3967,79 @@ pub async fn run_npc_scheduler(
                 }
             }
 
+            let snap = player_views
+                .read()
+                .ok()
+                .and_then(|g| g.get(&conn_id).cloned());
+            // Dead NPCs are pruned from player_views; missing == deleted.
+            let alive = snap.as_ref().map(|p| !p.deleted).unwrap_or(false);
+            let tracker = stuck_map.entry(conn_id).or_default();
+            if !alive {
+                // First LOGIN is in-flight: view is empty until sim applies it.
+                if !tracker.ever_alive {
+                    continue;
+                }
+                // Haxe ServerAi.doRebirth — must run even when the view was dropped.
+                if !tracker.was_deleted {
+                    tracker.was_deleted = true;
+                    let age = snap.as_ref().map(|p| p.age).unwrap_or(14.0);
+                    tracker.rebirth_wait_sec =
+                        ai_rebirth_wait_secs(age, rand::random::<f32>());
+                    if let Some(p) = snap.as_ref() {
+                        log_ev(
+                            &activity,
+                            conn_id,
+                            p,
+                            NpcActivityKind::Death,
+                            0,
+                            0,
+                            format!(
+                                "age={:.1} food={:.1} reason=deleted_or_starved held={} wait={:.1}s",
+                                p.age, p.food, p.held_id, tracker.rebirth_wait_sec
+                            ),
+                        );
+                    } else {
+                        info!(
+                            conn_id,
+                            wait = tracker.rebirth_wait_sec,
+                            "npc: slot empty (pruned death), rebirth wait"
+                        );
+                    }
+                    continue;
+                }
+                tracker.rebirth_wait_sec -= SCHED_DT_SEC;
+                if tracker.rebirth_wait_sec > 0.0 {
+                    continue;
+                }
+                if !npc_slot_should_rebirth(false, living, current_max_ais) {
+                    tracker.rebirth_wait_sec = NPC_REBIRTH_RETRY_SECS;
+                    continue;
+                }
+                // Retry soon if LOGIN does not restore a living view (do not use MAX).
+                tracker.rebirth_wait_sec = NPC_REBIRTH_RETRY_SECS;
+                let email = format!("npc-slot-{}@local", i);
+                let _ = intent_tx.try_send(NetIntent::Login {
+                    conn_id,
+                    reconnect: false,
+                    email,
+                    client_tag: "client_npc".into(),
+                    client_ip: String::new(),
+                });
+                info!(conn_id, living, current_max_ais, "npc: rebirth login");
+                if let Some(st) = profession_state.get_mut(&conn_id) {
+                    clear_sticky_move(st);
+                    st.think_time_sec = 0.0;
+                    st.class_assigned = false;
+                    st.last_think_xy = None;
+                }
+                continue;
+            }
+            let p = snap.expect("alive NPC has a view");
+            tracker.was_deleted = false;
+            tracker.ever_alive = true;
+            tracker.rebirth_wait_sec = 0.0;
+            tracker.note_position(p.x, p.y);
+
             // Haxe: AiBase.time -= timePassedInSeconds; if (time > 0) return
             {
                 let st = profession_state.entry(conn_id).or_default();
@@ -3689,64 +4060,6 @@ pub async fn run_npc_scheduler(
                 st.scan_calls = 0;
                 st.scan_hits = 0;
             }
-            let snap = player_views
-                .read()
-                .ok()
-                .and_then(|g| g.get(&conn_id).cloned());
-            let Some(p) = snap else {
-                continue;
-            };
-
-            let tracker = stuck_map.entry(conn_id).or_default();
-
-            // Death detection. Haxe ServerAi.doRebirth waits before CreateNewAiPlayer.
-            if p.deleted {
-                if !tracker.was_deleted {
-                    tracker.was_deleted = true;
-                    tracker.rebirth_wait_sec = ai_rebirth_wait_secs(p.age, rand::random::<f32>());
-                    log_ev(
-                        &activity,
-                        conn_id,
-                        &p,
-                        NpcActivityKind::Death,
-                        0,
-                        0,
-                        format!(
-                            "age={:.1} food={:.1} reason=deleted_or_starved held={} wait={:.1}s",
-                            p.age, p.food, p.held_id, tracker.rebirth_wait_sec
-                        ),
-                    );
-                    continue;
-                }
-                // Scheduler wake is 200 ms.
-                tracker.rebirth_wait_sec -= 0.2;
-                if tracker.rebirth_wait_sec > 0.0 {
-                    continue;
-                }
-                tracker.rebirth_wait_sec = f32::MAX;
-                // Haxe: `if (this.number > ServerSettings.NumberOfAis) removeAi`
-                if (i as u32) >= max {
-                    continue;
-                }
-                let email = format!("npc-re-{}@local", i);
-                let _ = intent_tx.try_send(NetIntent::Login {
-                    conn_id,
-                    reconnect: false,
-                    email,
-                    client_tag: "client_npc".into(),
-                    client_ip: String::new(),
-                });
-                if let Some(st) = profession_state.get_mut(&conn_id) {
-                    clear_sticky_move(st);
-                    st.think_time_sec = 0.0;
-                    st.class_assigned = false;
-                    st.last_think_xy = None;
-                }
-                continue;
-            }
-            tracker.was_deleted = false;
-            tracker.rebirth_wait_sec = 0.0;
-            tracker.note_position(p.x, p.y);
 
             // Haxe: time += reactionTime (class-based Serf/Commoner/Noble)
             {
@@ -3778,19 +4091,20 @@ pub async fn run_npc_scheduler(
                 moved
             };
             if p.moving {
-                let (still_valid, pending_use, sticky_label) = {
+                let (still_valid, pending_use, pending_drop, sticky_label) = {
                     let st = profession_state.entry(conn_id).or_default();
                     match st.sticky_move.clone() {
-                        None => (true, false, String::new()),
+                        None => (true, false, false, String::new()),
                         Some(ref sticky) => {
                             let w = world.read().unwrap();
                             let ok = sticky_move_still_valid(&w, &content, sticky);
-                            (ok, sticky.pending_use, sticky.label.clone())
+                            (ok, sticky.pending_use, sticky.pending_drop, sticky.label.clone())
                         }
                     }
                 };
-                if still_valid && haxe_skip_mid_path_think(true, moved_one_tile) {
-                    let detail = if pending_use {
+                let arrive = StickyArrive::from_flags(pending_use, pending_drop);
+                if npc_hold_sticky_path_think(true, moved_one_tile, still_valid, arrive) {
+                    let detail = if pending_use || pending_drop {
                         format!("walk_use {sticky_label}")
                     } else if sticky_label.is_empty() {
                         "walk_target moving".into()
@@ -3823,24 +4137,46 @@ pub async fn run_npc_scheduler(
                     );
                 }
             } else {
-                // Path finished: Haxe isUsingItem — USE staged target instead of replanning.
+                // Path finished: Haxe isUsingItem / isDropingItem — act instead of replanning.
                 let pending = profession_state
                     .get(&conn_id)
                     .and_then(|st| st.sticky_move.clone());
                 let mut finished_use = false;
                 if let Some(sticky) = pending {
-                    // Haxe isUsingItem: close USE still runs when hungry.
-                    if sticky.pending_use {
+                    let arrive = StickyArrive::from_flags(sticky.pending_use, sticky.pending_drop);
+                    if arrive != StickyArrive::None {
                         let w = world.read().unwrap();
                         if sticky_move_still_valid(&w, &content, &sticky) {
                             let held_ok = sticky.use_actor_parent == 0
-                                || sticky_parent_id(&content, p.held_id) == sticky.use_actor_parent;
+                                || sticky_parent_id(&content, p.held_id) == sticky.use_actor_parent
+                                || arrive == StickyArrive::Drop;
                             if held_ok && npc_is_close_action(p.x, p.y, sticky.gx, sticky.gy) {
-                                if npc_use_at(&intent_tx, conn_id, sticky.gx, sticky.gy, None, None)
-                                {
+                                let applied = match arrive {
+                                    StickyArrive::Drop => npc_drop_at(
+                                        &intent_tx,
+                                        conn_id,
+                                        sticky.gx,
+                                        sticky.gy,
+                                        None,
+                                    ),
+                                    _ => npc_use_at(
+                                        &intent_tx,
+                                        conn_id,
+                                        sticky.gx,
+                                        sticky.gy,
+                                        None,
+                                        None,
+                                    ),
+                                };
+                                if applied {
                                     if let Some(st) = profession_state.get_mut(&conn_id) {
                                         clear_sticky_move(st);
                                     }
+                                    let tag = if arrive == StickyArrive::Drop {
+                                        "drop_held_arrive"
+                                    } else {
+                                        "use_held_arrive"
+                                    };
                                     log_ev(
                                         &activity,
                                         conn_id,
@@ -3848,14 +4184,15 @@ pub async fn run_npc_scheduler(
                                         NpcActivityKind::Craft,
                                         500,
                                         0,
-                                        format!("use_held_arrive @{},{}", sticky.gx, sticky.gy),
+                                        format!("{tag} @{},{}", sticky.gx, sticky.gy),
                                     );
                                     finished_use = true;
                                 }
-                            } else if held_ok && !npc_is_close_action(p.x, p.y, sticky.gx, sticky.gy) {
+                            } else if held_ok && !npc_is_close_action(p.x, p.y, sticky.gx, sticky.gy)
+                            {
                                 let walked = {
                                     let st = profession_state.entry(conn_id).or_default();
-                                    npc_try_walk_to_sticky(
+                                    npc_try_walk_to_arrive(
                                         &intent_tx,
                                         &w,
                                         &content,
@@ -3867,16 +4204,18 @@ pub async fn run_npc_scheduler(
                                         sticky.gy,
                                         p.food,
                                         sticky.expected_parent_id,
+                                        sticky.use_actor_parent,
+                                        arrive,
+                                        false,
                                         sticky.label.clone(),
                                     )
                                 };
                                 if walked {
-                                    if let Some(st) = profession_state.get_mut(&conn_id) {
-                                        if let Some(ref mut sm) = st.sticky_move {
-                                            sm.pending_use = true;
-                                            sm.use_actor_parent = sticky.use_actor_parent;
-                                        }
-                                    }
+                                    let tag = if arrive == StickyArrive::Drop {
+                                        "drop_held_walk"
+                                    } else {
+                                        "use_held_walk"
+                                    };
                                     log_ev(
                                         &activity,
                                         conn_id,
@@ -3884,7 +4223,7 @@ pub async fn run_npc_scheduler(
                                         NpcActivityKind::Craft,
                                         250,
                                         0,
-                                        format!("use_held_walk @{},{}", sticky.gx, sticky.gy),
+                                        format!("{tag} @{},{}", sticky.gx, sticky.gy),
                                     );
                                     finished_use = true;
                                 }
@@ -5460,172 +5799,30 @@ pub async fn run_npc_scheduler(
                     }
                     if result.had_action {
                         match result.intent {
-                            ShortCraftLiveIntent::UseAt {
-                                x,
-                                y,
-                                target_id,
-                                actor_id,
-                            } => {
-                                let dist = (x - p.x).abs().max((y - p.y).abs());
-                                if dist <= 1 {
-                                    if npc_use_at(&intent_tx, conn_id, x, y, None, None)
-                                    {
-                                        kind = NpcActivityKind::Craft;
-                                        detail = format!(
-                                            "prof_use actor={actor_id} target={target_id} @{},{} rung={}",
-                                            x,
-                                            y,
-                                            rung.as_label()
-                                        );
-                                        game_ms = 500;
-                                        acted = true;
-                                    }
-                                } else {
-                                    // Walk toward shortCraft target (same as craft walk).
-                                    // AI-ANIMAL-GOTO: animal footprints + dual-pass fail mark
-                                    let walked = {
-                        let w = world.read().unwrap();
-                        npc_try_walk_to(
-                            &intent_tx,
-                            &w,
-                            &content,
-                            conn_id,
-                            p.x,
-                            p.y,
-                            x,
-                            y,
-                            p.food,
-                            st.food_goto.did_not_reach_food,
-                            st.animal_path,
-                        )
-                    };
-                    if walked {
-                                            kind = NpcActivityKind::Craft;
-                                            detail = format!(
-                                                "prof_walk target={target_id} @{},{} dist={} rung={}",
-                                                x,
-                                                y,
-                                                dist,
-                                                rung.as_label()
-                                            );
-                                            game_ms = 250;
-                                            acted = true;
-                    } else {
-                                        // PATH-REACH / AI-ANIMAL-GOTO: dual-pass hostile vs notReachable
-                                        // Haxe: AiHelper.gotoAdv ~1116â€“1141
-                                        let w = world.read().unwrap();
-                                        npc_mark_goto_path_fail(
-                                            &mut st.path_reach,
-                                            &w,
-                                            &content,
-                                            p.x,
-                                            p.y,
-                                            x,
-                                            y,
-                                            p.food,
-                                            st.food_goto.did_not_reach_food,
-                                        );
-                                    }
-                                }
-                            }
-                            ShortCraftLiveIntent::UseOnEmptyGround { x, y, held } => {
-                                let dist = (x - p.x).abs().max((y - p.y).abs());
-                                if dist <= 1 {
-                                    if npc_use_at(&intent_tx, conn_id, x, y, None, None)
-                                    {
-                                        kind = NpcActivityKind::Craft;
-                                        detail = format!(
-                                            "prof_use_ground held={held} @{},{} rung={}",
-                                            x,
-                                            y,
-                                            rung.as_label()
-                                        );
-                                        game_ms = 500;
-                                        acted = true;
-                                    }
-                                } else if {
-                let w = world.read().unwrap();
-                npc_try_walk_to(
-                    &intent_tx,
-                    &w,
-                    &content,
-                    conn_id,
-                    p.x,
-                    p.y,
-                    x,
-                    y,
-                    p.food,
-                    st.food_goto.did_not_reach_food,
-                    st.animal_path,
-                )
-            } {
-                                        kind = NpcActivityKind::Craft;
-                                        detail = format!(
-                                            "prof_walk_ground @{},{} rung={}",
-                                            x,
-                                            y,
-                                            rung.as_label()
-                                        );
-                                        game_ms = 250;
-                                        acted = true;
-                    } else {
-                                    // PATH-REACH / AI-ANIMAL-GOTO dual-pass
+                            ShortCraftLiveIntent::UseAt { x, y, .. }
+                            | ShortCraftLiveIntent::UseOnEmptyGround { x, y, .. }
+                            | ShortCraftLiveIntent::DropAt { x, y } => {
+                                let committed = {
                                     let w = world.read().unwrap();
-                                    npc_mark_goto_path_fail(
-                                        &mut st.path_reach,
+                                    npc_commit_craft_live(
+                                        &result.intent,
+                                        &intent_tx,
                                         &w,
                                         &content,
+                                        st,
+                                        conn_id,
                                         p.x,
                                         p.y,
-                                        x,
-                                        y,
                                         p.food,
-                                        st.food_goto.did_not_reach_food,
-                                    );
-                                }
-                            }
-                            ShortCraftLiveIntent::DropAt { x, y } => {
-                                let dist = (x - p.x).abs().max((y - p.y).abs());
-                                if dist <= 1 {
-                                    if npc_drop_at(&intent_tx, conn_id, x, y, None)
-                                    {
-                                        kind = NpcActivityKind::Craft;
-                                        detail = format!(
-                                            "prof_drop @{},{} rung={}",
-                                            x,
-                                            y,
-                                            rung.as_label()
-                                        );
-                                        game_ms = 400;
-                                        acted = true;
-                                    }
-                                } else if {
-                let w = world.read().unwrap();
-                npc_try_walk_to(
-                    &intent_tx,
-                    &w,
-                    &content,
-                    conn_id,
-                    p.x,
-                    p.y,
-                    x,
-                    y,
-                    p.food,
-                    st.food_goto.did_not_reach_food,
-                    st.animal_path,
-                )
-            } {
-                                        kind = NpcActivityKind::Craft;
-                                        detail = format!(
-                                            "prof_walk_drop @{},{} rung={}",
-                                            x,
-                                            y,
-                                            rung.as_label()
-                                        );
-                                        game_ms = 250;
-                                        acted = true;
-                    } else {
-                                    // PATH-REACH / AI-ANIMAL-GOTO dual-pass
+                                        p.moving,
+                                        &mut kind,
+                                        &mut detail,
+                                        &mut game_ms,
+                                    )
+                                };
+                                if committed {
+                                    acted = true;
+                                } else {
                                     let w = world.read().unwrap();
                                     npc_mark_goto_path_fail(
                                         &mut st.path_reach,
@@ -5737,70 +5934,51 @@ pub async fn run_npc_scheduler(
                                     Some(&nonempty_boxes),
                                 );
                                 match resolved {
-                                    ShortCraftLiveIntent::Wait => {
-                                        // PREFER-SHORT-WAIT: hold tick while moving
-                                        kind = NpcActivityKind::Craft;
-                                        detail = format!(
-                                            "prof_goc_wait rung={}",
-                                            rung.as_label()
-                                        );
-                                        game_ms = 200;
-                                        acted = true;
-                                    }
-                                    ShortCraftLiveIntent::UseAt { x, y, .. }
-                                    | ShortCraftLiveIntent::UseOnEmptyGround { x, y, .. } => {
-                                        let (log_actor, log_target) = match resolved {
-                                            ShortCraftLiveIntent::UseAt {
-                                                actor_id,
-                                                target_id,
-                                                ..
-                                            } => (actor_id, target_id),
-                                            ShortCraftLiveIntent::UseOnEmptyGround {
-                                                held, ..
-                                            } => (held, 0),
-                                            _ => (0, 0),
-                                        };
-                                        let dist =
-                                            (x - p.x).abs().max((y - p.y).abs());
-                                        if dist <= 1 {
-                                            if npc_use_at(&intent_tx, conn_id, x, y, None, None)
-                                            {
-                                                kind = NpcActivityKind::Craft;
-                                                detail = format!(
-                                                    "prof_goc_use actor={log_actor} target={log_target} @{},{} rung={}",
-                                                    x,
-                                                    y,
-                                                    rung.as_label()
-                                                );
-                                                game_ms = 500;
-                                                acted = true;
+                                    ShortCraftLiveIntent::Wait
+                                    | ShortCraftLiveIntent::UseAt { .. }
+                                    | ShortCraftLiveIntent::UseOnEmptyGround { .. }
+                                    | ShortCraftLiveIntent::DropAt { .. }
+                                    | ShortCraftLiveIntent::Goto { .. }
+                                    | ShortCraftLiveIntent::PickupNearForge { .. }
+                                    | ShortCraftLiveIntent::GotoForge { .. }
+                                    | ShortCraftLiveIntent::SelfClothing { .. }
+                                    | ShortCraftLiveIntent::Kill { .. } => {
+                                        let fail_xy = match resolved {
+                                            ShortCraftLiveIntent::UseAt { x, y, .. }
+                                            | ShortCraftLiveIntent::UseOnEmptyGround { x, y, .. }
+                                            | ShortCraftLiveIntent::DropAt { x, y }
+                                            | ShortCraftLiveIntent::Goto { x, y }
+                                            | ShortCraftLiveIntent::PickupNearForge { x, y, .. } => {
+                                                Some((x, y))
                                             }
-                                        } else if {
-                let w = world.read().unwrap();
-                npc_try_walk_to(
-                    &intent_tx,
-                    &w,
-                    &content,
-                    conn_id,
-                    p.x,
-                    p.y,
-                    x,
-                    y,
-                    p.food,
-                    st.food_goto.did_not_reach_food,
-                    st.animal_path,
-                )
-            } {
-                                                kind = NpcActivityKind::Craft;
-                                                detail = format!(
-                                                    "prof_goc_walk_use @{},{} rung={}",
-                                                    x,
-                                                    y,
-                                                    rung.as_label()
-                                                );
-                                                game_ms = 250;
-                                                acted = true;
-                                        } else {
+                                            ShortCraftLiveIntent::GotoForge {
+                                                forge_x,
+                                                forge_y,
+                                                ..
+                                            } => Some((forge_x, forge_y)),
+                                            _ => None,
+                                        };
+                                        let committed = {
+                                            let w = world.read().unwrap();
+                                            npc_commit_craft_live(
+                                                &resolved,
+                                                &intent_tx,
+                                                &w,
+                                                &content,
+                                                st,
+                                                conn_id,
+                                                p.x,
+                                                p.y,
+                                                p.food,
+                                                p.moving,
+                                                &mut kind,
+                                                &mut detail,
+                                                &mut game_ms,
+                                            )
+                                        };
+                                        if committed {
+                                            acted = true;
+                                        } else if let Some((x, y)) = fail_xy {
                                             let w = world.read().unwrap();
                                             npc_mark_goto_path_fail(
                                                 &mut st.path_reach,
@@ -5815,115 +5993,6 @@ pub async fn run_npc_scheduler(
                                             );
                                         }
                                     }
-                                    ShortCraftLiveIntent::DropAt { x, y }
-                                    | ShortCraftLiveIntent::Goto { x, y }
-                                    | ShortCraftLiveIntent::PickupNearForge {
-                                        x,
-                                        y,
-                                        ..
-                                    } => {
-                                        let dist =
-                                            (x - p.x).abs().max((y - p.y).abs());
-                                        let is_drop = matches!(
-                                            resolved,
-                                            ShortCraftLiveIntent::DropAt { .. }
-                                                | ShortCraftLiveIntent::PickupNearForge {
-                                                    ..
-                                                }
-                                        );
-                                        if dist <= 1 && is_drop {
-                                            // PickupLoose maps to DropAt on object tile
-                                            // (swap/pickup). Empty-hand USE when DropAt
-                                            // is pile residual is rare here â€” Prefer DROP.
-                                            if npc_drop_at(&intent_tx, conn_id, x, y, None)
-                                            {
-                                                kind = NpcActivityKind::Craft;
-                                                detail = format!(
-                                                    "prof_goc_drop @{},{} rung={}",
-                                                    x,
-                                                    y,
-                                                    rung.as_label()
-                                                );
-                                                game_ms = 400;
-                                                acted = true;
-                                            }
-                                        } else if dist > 1 {
-                                            if {
-                let w = world.read().unwrap();
-                npc_try_walk_to(
-                    &intent_tx,
-                    &w,
-                    &content,
-                    conn_id,
-                    p.x,
-                    p.y,
-                    x,
-                    y,
-                    p.food,
-                    st.food_goto.did_not_reach_food,
-                    st.animal_path,
-                )
-            } {
-                                                    kind = NpcActivityKind::Craft;
-                                                    detail = format!(
-                                                        "prof_goc_walk @{},{} rung={}",
-                                                        x,
-                                                        y,
-                                                        rung.as_label()
-                                                    );
-                                                    game_ms = 250;
-                                                    acted = true;
-                                        } else {
-                                                let w = world.read().unwrap();
-                                                npc_mark_goto_path_fail(
-                                                    &mut st.path_reach,
-                                                    &w,
-                                                    &content,
-                                                    p.x,
-                                                    p.y,
-                                                    x,
-                                                    y,
-                                                    p.food,
-                                                    st.food_goto.did_not_reach_food,
-                                                );
-                                            }
-                                        }
-                                    }
-                                    ShortCraftLiveIntent::GotoForge {
-                                        forge_x,
-                                        forge_y,
-                                        ..
-                                    } => {
-                                        let dist = (forge_x - p.x)
-                                            .abs()
-                                            .max((forge_y - p.y).abs());
-                                        if dist > 1 {
-                                            if {
-                let w = world.read().unwrap();
-                npc_try_walk_to(
-                    &intent_tx,
-                    &w,
-                    &content,
-                    conn_id,
-                    p.x,
-                    p.y,
-                    forge_x,
-                    forge_y,
-                    p.food,
-                    st.food_goto.did_not_reach_food,
-                    st.animal_path,
-                )
-            } {
-                                                    kind = NpcActivityKind::Craft;
-                                                    detail = format!(
-                                                        "prof_goc_forge @{},{}",
-                                                        forge_x, forge_y
-                                                    );
-                                                    game_ms = 250;
-                                                    acted = true;
-                                                }
-                                            }
-                                        }
                                     // Residual SeekOrCraft / CraftItem / None â†’ fall through
                                     // to craft_value / explore
                                     _ => {}
@@ -6085,58 +6154,32 @@ pub async fn run_npc_scheduler(
                     Some(content.as_ref()),
                 );
                 match intent {
-                    ShortCraftLiveIntent::DropAt { x, y } => {
-                        let dist = (x - p.x).abs().max((y - p.y).abs());
-                        if dist <= 1 {
-                            if npc_drop_at(&intent_tx, conn_id, x, y, None)
-                            {
-                                kind = NpcActivityKind::Craft;
-                                detail = format!("smart_drop_feet held={} @{},{}", p.held_id, x, y);
-                                game_ms = 400;
-                                acted = true;
-                            }
-                        } else {
-                            let walked = {
-                                let w = world.read().unwrap();
-                                let st = profession_state.entry(conn_id).or_default();
-                                npc_try_walk_to(
-                                    &intent_tx,
-                                    &w,
-                                    &content,
-                                    conn_id,
-                                    p.x,
-                                    p.y,
-                                    x,
-                                    y,
-                                    p.food,
-                                    st.food_goto.did_not_reach_food,
-                                    st.animal_path,
-                                )
-                            };
-                            if walked {
-                                kind = NpcActivityKind::Craft;
-                                detail = format!("smart_drop_walk @{},{}", x, y);
-                                game_ms = 250;
-                                acted = true;
-                            }
-                        }
-                    }
-                    ShortCraftLiveIntent::UseAt { x, y, .. }
-                    | ShortCraftLiveIntent::UseOnEmptyGround { x, y, .. } => {
-                        if npc_use_at(&intent_tx, conn_id, x, y, None, None)
-                        {
-                            kind = NpcActivityKind::Craft;
-                            detail = format!("smart_drop_use held={} @{},{}", p.held_id, x, y);
-                            game_ms = 400;
+                    ShortCraftLiveIntent::DropAt { .. }
+                    | ShortCraftLiveIntent::UseAt { .. }
+                    | ShortCraftLiveIntent::UseOnEmptyGround { .. }
+                    | ShortCraftLiveIntent::Wait => {
+                        let committed = {
+                            let w = world.read().unwrap();
+                            let st = profession_state.entry(conn_id).or_default();
+                            npc_commit_craft_live(
+                                &intent,
+                                &intent_tx,
+                                &w,
+                                &content,
+                                st,
+                                conn_id,
+                                p.x,
+                                p.y,
+                                p.food,
+                                p.moving,
+                                &mut kind,
+                                &mut detail,
+                                &mut game_ms,
+                            )
+                        };
+                        if committed {
                             acted = true;
                         }
-                    }
-                    // Haxe: isMoving return true â€” hold tick (PREFER-SHORT-WAIT)
-                    ShortCraftLiveIntent::Wait => {
-                        kind = NpcActivityKind::Craft;
-                        detail = format!("smart_drop_wait_busy held={}", p.held_id);
-                        game_ms = 200;
-                        acted = true;
                     }
                     _ => {}
                 }
@@ -6242,9 +6285,26 @@ pub async fn run_npc_scheduler(
                         npc_claim_tile(&blocked_by_ai, gx, gy);
                         false
                     };
-                    // Prefer USE when adjacent even if craft_loop flagged (arrival after walk spam).
-                    if dist <= 1 {
-                        if intent_tx
+                    // Prefer USE when orthogonally close (Haxe isClose). Chebyshev dist<=1
+                    // includes diagonal, which USE refuses. USE while moving cancels the path.
+                    if npc_is_close_action(p.x, p.y, best.target_x, best.target_y) {
+                        if p.moving {
+                            kind = NpcActivityKind::Craft;
+                            detail = format!("wait_arrive_craft {key}");
+                            acted = true;
+                            if let Some(st) = profession_state.get_mut(&conn_id) {
+                                let expect = sticky_parent_id(&content, best.target_id);
+                                set_sticky_move_use(
+                                    st,
+                                    best.target_x,
+                                    best.target_y,
+                                    expect,
+                                    0,
+                                    true,
+                                    format!("walk_craft {key}"),
+                                );
+                            }
+                        } else if intent_tx
                             .try_send(NetIntent::Use {
                                 conn_id,
                                 x: best.target_x,
@@ -6304,6 +6364,8 @@ pub async fn run_npc_scheduler(
                                 gy,
                                 p.food,
                                 expect,
+                                true,
+                                p.moving,
                                 format!("walk_craft {key}"),
                             )
                         };
@@ -6373,7 +6435,9 @@ pub async fn run_npc_scheduler(
                         gx,
                         gy,
                         p.food,
-                        0, // pure walk â€” no object invalidation mid-path
+                        0, // pure walk — no object invalidation mid-path
+                        false,
+                        p.moving,
                         format!("explore {gx},{gy}"),
                     )
                 };
@@ -6514,6 +6578,77 @@ mod tests {
     }
 
     #[test]
+    fn sticky_use_holds_path_after_each_tile() {
+        // Haxe isUsingItem: if isMoving() return true — do not replan / USE.
+        assert!(npc_hold_sticky_path_think(
+            true,
+            true,
+            true,
+            StickyArrive::Use
+        ));
+        assert!(npc_hold_sticky_path_think(
+            true,
+            true,
+            true,
+            StickyArrive::Drop
+        ));
+        // Pure walk still replans after a committed tile (Haxe doTimeStuffHelper).
+        assert!(!npc_hold_sticky_path_think(
+            true,
+            true,
+            true,
+            StickyArrive::None
+        ));
+        assert!(npc_hold_sticky_path_think(
+            true,
+            false,
+            true,
+            StickyArrive::None
+        ));
+        assert!(!npc_hold_sticky_path_think(
+            false,
+            true,
+            true,
+            StickyArrive::Use
+        ));
+    }
+
+    #[test]
+    fn npc_is_close_action_is_haxe_quad_not_chebyshev() {
+        // Orthogonal adjacent is close; diagonal (Chebyshev 1, quad 2) is not.
+        assert!(npc_is_close_action(5, 5, 5, 5));
+        assert!(npc_is_close_action(5, 5, 6, 5));
+        assert!(npc_is_close_action(5, 5, 5, 6));
+        assert!(!npc_is_close_action(5, 5, 6, 6));
+        assert!(!npc_is_close_action(5, 5, 7, 5));
+    }
+
+    #[test]
+    fn action_path_stops_when_orthogonally_close() {
+        // Greedy 16-step walks must not continue past an adjacent USE/DROP tile.
+        let w = World::new(32, 32, false);
+        let c = ContentDb::default();
+        let deltas = npc_path_toward(&w, &c, 10, 11, 10, 10, 10.0, 0.0, 16, None, true);
+        assert!(
+            deltas.is_empty(),
+            "already close — no extra steps: {deltas:?}"
+        );
+        let deltas = npc_path_toward(&w, &c, 10, 12, 10, 10, 10.0, 0.0, 16, None, true);
+        if !deltas.is_empty() {
+            let (mut x, mut y) = (10, 12);
+            for (dx, dy) in &deltas {
+                x += *dx;
+                y += *dy;
+            }
+            assert!(
+                npc_is_close_action(x, y, 10, 10),
+                "stop-when-close path must end adjacent, got {x},{y} steps={deltas:?}"
+            );
+            assert!(deltas.len() <= 2, "overshot: {deltas:?}");
+        }
+    }
+
+    #[test]
     fn npc_config_from_live_ignored_floor_ids() {
         let live = ServerConfig {
             ai_ignored_floor_ids: vec![656],
@@ -6621,6 +6756,7 @@ mod tests {
             expected_parent_id: 0,
             use_actor_parent: 0,
             pending_use: false,
+            pending_drop: false,
             label: "walk".into(),
         };
         assert_eq!(sticky.expected_parent_id, 0);
@@ -6718,5 +6854,29 @@ mod tests {
             should_spawn_new_ai(1, 0, 20, 20, 0, 10),
             "empty server still fills AIs as Eve/Adam"
         );
+    }
+
+    #[test]
+    fn pruned_dead_npc_slot_reborns_under_cap() {
+        assert!(
+            npc_slot_should_rebirth(false, 0, 20),
+            "missing view with empty living must rebirth"
+        );
+        assert!(npc_slot_should_rebirth(false, 19, 20));
+        assert!(
+            !npc_slot_should_rebirth(true, 0, 20),
+            "living view is not a rebirth"
+        );
+        assert!(
+            !npc_slot_should_rebirth(false, 20, 20),
+            "at cap Haxe skips doRebirth"
+        );
+    }
+
+    #[test]
+    fn pending_first_login_is_not_a_death() {
+        let t = NpcStuckTracker::default();
+        assert!(!t.ever_alive, "new slot waits for first living view");
+        assert!(!t.was_deleted);
     }
 }

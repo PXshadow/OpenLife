@@ -373,6 +373,9 @@ pub struct NpcStuckTracker {
     pub was_deleted: bool,
     /// Remaining seconds before Haxe `ServerAi.doRebirth` respawn (0 = ready).
     pub rebirth_wait_sec: f32,
+    /// True once this slot has had a living view. Missing view before that is
+    /// a pending first LOGIN, not a death (player_views lag the intent).
+    pub ever_alive: bool,
 }
 
 impl NpcStuckTracker {

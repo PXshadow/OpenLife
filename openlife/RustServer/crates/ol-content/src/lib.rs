@@ -826,6 +826,7 @@ pub fn load_content(root: impl AsRef<Path>) -> Result<ContentDb, ContentError> {
     change_tool_transitions(&mut db);
     // Haxe ServerSettings.PatchObjectData / PatchTransitions (not LiveSettings).
     crate::patches::apply_all_haxe_content_patches(&mut db);
+    apply_haxe_reverse_use_last_and_max(&mut db);
     apply_animal_moves_from_transitions(&mut db);
     db.load_transitions_ms = t1.elapsed().as_millis() as u64;
     db.load_total_ms = t0.elapsed().as_millis() as u64;

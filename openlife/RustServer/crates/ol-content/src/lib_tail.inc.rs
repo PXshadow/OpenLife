@@ -72,6 +72,85 @@ fn target_remains(t: &Transition) -> bool {
     t.target_id >= 0 && t.target_id == t.new_target_id
 }
 
+/// Insert a last-use row; Haxe double-transition (`targetRemains` true + false)
+/// sends the non-remains row to `maxUseTransitions` (well site 33+1096 → 3963).
+// Haxe: TransitionImporter.addTransition ~479–496
+fn insert_last_use_or_max_use(db: &mut ContentDb, t: Transition) -> bool {
+    let key = (t.actor_id, t.target_id);
+    let remains = target_remains(&t);
+    if let Some(existing) = db.transitions_last_use.get(&key).cloned() {
+        let exist_remains = target_remains(&existing);
+        if exist_remains && !remains {
+            db.transitions_max_use.insert(key, t);
+            return true;
+        }
+        if !exist_remains && remains {
+            db.transitions_max_use.insert(key, existing);
+            db.transitions_last_use.insert(key, t);
+            return true;
+        }
+        return false;
+    }
+    db.transitions_last_use.insert(key, t);
+    true
+}
+
+/// Haxe `addTransition`: reverse-use rows are also registered as last-use so
+/// `isLastUse()` (uses ≤ 1) still *adds* to a pile instead of firing `*_LT.txt`.
+// Haxe: TransitionImporter.addTransition ~443–448
+fn haxe_clone_reverse_into_last_use(db: &mut ContentDb, t: &Transition) {
+    if t.last_use_actor || t.last_use_target {
+        return;
+    }
+    if t.reverse_use_actor && t.reverse_use_target {
+        let mut c = t.clone();
+        c.last_use_actor = true;
+        c.last_use_target = true;
+        insert_last_use_or_max_use(db, c);
+    } else if t.reverse_use_actor {
+        let mut c = t.clone();
+        c.last_use_actor = true;
+        insert_last_use_or_max_use(db, c);
+    } else if t.reverse_use_target {
+        let mut c = t.clone();
+        c.last_use_target = true;
+        insert_last_use_or_max_use(db, c);
+    }
+}
+
+/// Repair last-use vs max-use after OLT1 cache / category expand.
+///
+/// Well site: `33_1096.txt` reverse remains (add stone) + `33_1096_LT.txt`
+/// `0+3963` (complete). Haxe puts 3963 in **maxUse** and keeps add-stone as
+/// last-use. A raw LT insert left 3963 in last-use, so uses=1 completed the
+/// site and uses=max refused (no max-use row).
+// Haxe: TransitionImporter.addTransition reverseUse clone + maxUseTransitions
+pub fn apply_haxe_reverse_use_last_and_max(db: &mut ContentDb) {
+    let keys: Vec<(i32, i32)> = db.transitions.keys().copied().collect();
+    for key in keys {
+        let Some(primary) = db.transitions.get(&key).cloned() else {
+            continue;
+        };
+        if !primary.reverse_use_target {
+            continue;
+        }
+        let primary_remains = target_remains(&primary);
+        if primary_remains {
+            if let Some(lu) = db.transitions_last_use.get(&key).cloned() {
+                if !target_remains(&lu) {
+                    db.transitions_last_use.remove(&key);
+                    db.transitions_max_use.entry(key).or_insert(lu);
+                }
+            }
+        }
+        if !db.transitions_last_use.contains_key(&key) {
+            let mut clone = primary;
+            clone.last_use_target = true;
+            db.transitions_last_use.insert(key, clone);
+        }
+    }
+}
+
 /// Set `ObjectData.moves` from auto-decay / time-move transitions (`move_dist > 0`).
 ///
 /// Haxe sets `animal.objectData.moves` during `doAnimalMovement`; stamping from
@@ -205,13 +284,8 @@ fn insert_normal_or_max_use(db: &mut ContentDb, t: Transition) -> bool {
 }
 
 fn insert_expanded(db: &mut ContentDb, t: Transition) -> bool {
-    let key = (t.actor_id, t.target_id);
     if t.last_use_actor || t.last_use_target {
-        if db.transitions_last_use.contains_key(&key) {
-            return false;
-        }
-        db.transitions_last_use.insert(key, t);
-        true
+        insert_last_use_or_max_use(db, t)
     } else {
         insert_normal_or_max_use(db, t)
     }
@@ -256,11 +330,15 @@ fn load_transitions_into(db: &mut ContentDb, dir: &Path) -> Result<(), ContentEr
                         .or_insert_with(|| t.clone());
                 }
                 if t.last_use_actor || t.last_use_target {
-                    db.transitions_last_use
-                        .insert((t.actor_id, t.target_id), t);
-                    loaded_last_use += 1;
-                } else if insert_normal_or_max_use(db, t) {
-                    loaded += 1;
+                    if insert_last_use_or_max_use(db, t) {
+                        loaded_last_use += 1;
+                    }
+                } else {
+                    let for_clone = t.clone();
+                    if insert_normal_or_max_use(db, t) {
+                        haxe_clone_reverse_into_last_use(db, &for_clone);
+                        loaded += 1;
+                    }
                 }
             }
             Err(e) => {
@@ -1242,5 +1320,39 @@ mod tests {
         assert!((ps.weights[0] - 0.8).abs() < 1e-5);
         assert!((ps.weights[1] - 0.2).abs() < 1e-5);
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn well_site_lt_is_max_use_not_last_use() {
+        // Haxe: 33+1096 reverse remains = add stone; 33+1096_LT 0+3963 = maxUse.
+        // A last-use insert of 3963 made uses=1 complete the site.
+        let mut db = ContentDb::default();
+        let add = Transition {
+            actor_id: 33,
+            target_id: 1096,
+            new_actor_id: 0,
+            new_target_id: 1096,
+            reverse_use_target: true,
+            ..Default::default()
+        };
+        db.transitions.insert((33, 1096), add.clone());
+        let complete = Transition {
+            actor_id: 33,
+            target_id: 1096,
+            new_actor_id: 0,
+            new_target_id: 3963,
+            last_use_target: true,
+            ..Default::default()
+        };
+        db.transitions_last_use.insert((33, 1096), complete);
+        apply_haxe_reverse_use_last_and_max(&mut db);
+        assert_eq!(
+            db.find_transition_max_use(33, 1096).map(|t| t.new_target_id),
+            Some(3963)
+        );
+        let lu = db.find_transition_last_use(33, 1096).unwrap();
+        assert_eq!(lu.new_target_id, 1096, "last-use must still add a stone");
+        assert!(lu.reverse_use_target);
+        let _ = add;
     }
 }

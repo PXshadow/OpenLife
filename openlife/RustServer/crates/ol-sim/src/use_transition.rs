@@ -1138,12 +1138,12 @@ fn place_after_use_on_contained(
     }
 
     let num_uses_after = content
-        .get(target_after)
+        .get(content.resolve_base_id(target_after))
         .map(|d| d.num_uses)
         .unwrap_or(0)
         .max(0);
     let num_uses_before = content
-        .get(target_before)
+        .get(content.resolve_base_id(target_before))
         .map(|d| d.num_uses)
         .unwrap_or(0)
         .max(0);
@@ -1164,8 +1164,8 @@ fn place_after_use_on_contained(
         (0, 0)
     } else {
         match change_number_of_uses_on_target(
-            target_before,
-            target_after,
+            content.resolve_base_id(target_before),
+            content.resolve_base_id(target_after),
             uses_before,
             num_uses_before,
             num_uses_after,
@@ -1234,19 +1234,19 @@ pub fn place_after_use_ex(
     }
 
     let num_uses_after = content
-        .get(target_after)
+        .get(content.resolve_base_id(target_after))
         .map(|d| d.num_uses)
         .unwrap_or(0)
         .max(0);
     let num_uses_before = content
-        .get(target_before)
+        .get(content.resolve_base_id(target_before))
         .map(|d| d.num_uses)
         .unwrap_or(0)
         .max(0);
 
     match change_number_of_uses_on_target(
-        target_before,
-        target_after,
+        content.resolve_base_id(target_before),
+        content.resolve_base_id(target_after),
         uses_before,
         num_uses_before,
         num_uses_after,
@@ -1683,7 +1683,12 @@ pub fn apply_use_at_command(
         });
     }
 
-    let target_num_uses = state.content.get(target).map(|d| d.num_uses).unwrap_or(0);
+    // Dummy ids have numUses=1; Haxe uses dummyParent.numUses (well site 1096 = 9).
+    let target_num_uses = state
+        .content
+        .get(target_parent)
+        .map(|d| d.num_uses)
+        .unwrap_or(0);
     let uses_remaining = if target_num_uses >= 2 && uses_remaining > target_num_uses {
         target_num_uses
     } else {
@@ -2263,13 +2268,15 @@ pub fn apply_use_at_command(
         if tr_work.reverse_use_target {
             let new_tgt_uses = state
                 .content
-                .get(tr_work.new_target_id)
+                .get(state.content.resolve_base_id(tr_work.new_target_id))
                 .map(|d| d.num_uses)
                 .unwrap_or(0);
+            // Missing helper: Haxe TransformToDummy starts at 1, not full.
+            // Treating empty well site as full would fire max-use on the first stone.
             let cur_for_max = if uses_remaining > 0 {
                 uses_remaining
-            } else if target_num_uses >= 2 {
-                target_num_uses
+            } else if new_tgt_uses >= 2 {
+                1
             } else {
                 0
             };
@@ -6188,6 +6195,107 @@ mod tests {
         let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
         assert!(r.applied);
         assert_eq!(r.target_after, 3963);
+    }
+
+    #[test]
+    fn well_site_second_stone_increments_not_complete() {
+        // numUses=9; uses=1 isLastUse. Last-use must add (Haxe reverse clone),
+        // not 33_1096_LT 0+3963 (that's max-use when full).
+        let mut db = ContentDb::default();
+        db.objects.insert(33, def(33, 0, false));
+        db.objects.insert(1096, def(1096, 9, true));
+        db.objects.insert(3963, def(3963, 0, true));
+        db.transitions
+            .insert((33, 1096), tr(33, 1096, 0, 1096, false, true));
+        let mut last_add = tr(33, 1096, 0, 1096, false, true);
+        last_add.last_use_target = true;
+        db.transitions_last_use.insert((33, 1096), last_add);
+        db.transitions_max_use
+            .insert((33, 1096), tr(33, 1096, 0, 3963, false, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "u");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+        }
+        state
+            .world
+            .write()
+            .unwrap()
+            .set_object_complex(0, 0, ComplexObject::with_uses(1096, 1));
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied);
+        assert_eq!(r.target_after, 1096);
+        let uses = state
+            .world
+            .read()
+            .unwrap()
+            .get_helper(0, 0)
+            .map(|h| h.uses_remaining)
+            .unwrap_or(0);
+        assert_eq!(uses, 2, "second stone must be uses=2, not 3963");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+    }
+
+    #[test]
+    fn well_site_add_to_eight_makes_nine() {
+        let mut db = ContentDb::default();
+        db.objects.insert(33, def(33, 0, false));
+        db.objects.insert(1096, def(1096, 9, true));
+        db.objects.insert(3963, def(3963, 0, true));
+        db.transitions
+            .insert((33, 1096), tr(33, 1096, 0, 1096, false, true));
+        db.transitions_max_use
+            .insert((33, 1096), tr(33, 1096, 0, 3963, false, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "u");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+        }
+        state
+            .world
+            .write()
+            .unwrap()
+            .set_object_complex(0, 0, ComplexObject::with_uses(1096, 8));
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied);
+        assert_eq!(r.target_after, 1096);
+        let uses = state
+            .world
+            .read()
+            .unwrap()
+            .get_helper(0, 0)
+            .map(|h| h.uses_remaining)
+            .unwrap_or(0);
+        assert_eq!(uses, 9);
+    }
+
+    #[test]
+    fn well_site_add_at_nine_completes() {
+        let mut db = ContentDb::default();
+        db.objects.insert(33, def(33, 0, false));
+        db.objects.insert(1096, def(1096, 9, true));
+        db.objects.insert(3963, def(3963, 0, true));
+        db.transitions
+            .insert((33, 1096), tr(33, 1096, 0, 1096, false, true));
+        db.transitions_max_use
+            .insert((33, 1096), tr(33, 1096, 0, 3963, false, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "u");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(33, 0);
+        }
+        state
+            .world
+            .write()
+            .unwrap()
+            .set_object_complex(0, 0, ComplexObject::with_uses(1096, 9));
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied);
+        assert_eq!(r.target_after, 3963);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
     }
 
     #[test]

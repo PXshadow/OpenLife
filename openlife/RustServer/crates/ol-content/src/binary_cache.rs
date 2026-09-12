@@ -346,6 +346,7 @@ pub fn finish_cache_boot(db: &mut ContentDb, root: &Path) {
     change_tool_transitions(db);
     crate::vanilla_id::stamp_last_open_life_id_from_dummies(db);
     crate::patches::apply_all_haxe_content_patches(db);
+    crate::apply_haxe_reverse_use_last_and_max(db);
     apply_animal_moves_from_transitions(db);
 }
 
