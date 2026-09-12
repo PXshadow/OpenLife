@@ -115,6 +115,30 @@ fn npc_is_close_action(px: i32, py: i32, tx: i32, ty: i32) -> bool {
     dx * dx + dy * dy <= 1
 }
 
+/// Haxe `WorldMap.transformX/Y` — nearest wrapped image of `(gx,gy)` next to the body.
+///
+/// Scan tiles may store `y=2` while the player is at `y=484` on a 500-tall wrap
+/// map; walking that raw goal goes the long way (~482 tiles) and never `isClose`.
+// Haxe: WorldMap.transformX/Y L1582–1602; AiHelper.gotoAdv uses rx,ry
+fn npc_wrap_goal(world: &World, px: i32, py: i32, gx: i32, gy: i32) -> (i32, i32) {
+    if !world.wrap || world.width_tiles <= 0 || world.height_tiles <= 0 {
+        return (gx, gy);
+    }
+    let w = world.width_tiles;
+    let h = world.height_tiles;
+    let shift = |from: i32, to: i32, size: i32| -> i32 {
+        let mut d = to - from;
+        let half = size / 2;
+        if d > half {
+            d -= size;
+        } else if d < -half {
+            d += size;
+        }
+        from + d
+    };
+    (shift(px, gx, w), shift(py, gy, h))
+}
+
 /// Arrival action staged on a sticky MOVE (Haxe `useTarget` / `dropTarget`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StickyArrive {
@@ -1553,6 +1577,7 @@ fn npc_try_walk_to_ex(
     animal: Option<AnimalPathPlayerCtx>,
     stop_when_close: bool,
 ) -> bool {
+    let (gx, gy) = npc_wrap_goal(world, px, py, gx, gy);
     let deltas = npc_path_toward(
         world,
         content,
@@ -2060,6 +2085,7 @@ fn npc_try_walk_to_arrive(
     label: impl Into<String>,
 ) -> bool {
     let label = label.into();
+    let (gx, gy) = npc_wrap_goal(world, px, py, gx, gy);
     if moving {
         if let Some(s) = st.sticky_move.as_ref() {
             if s.gx == gx && s.gy == gy {
@@ -2124,6 +2150,7 @@ fn npc_do_arrive_or_walk(
     label: impl Into<String>,
 ) -> bool {
     let label = label.into();
+    let (x, y) = npc_wrap_goal(world, px, py, x, y);
     if npc_is_close_action(px, py, x, y) {
         if moving {
             // Haxe: if isMoving() return true — wait to stop, then USE/DROP.
@@ -6621,6 +6648,16 @@ mod tests {
         assert!(npc_is_close_action(5, 5, 5, 6));
         assert!(!npc_is_close_action(5, 5, 6, 6));
         assert!(!npc_is_close_action(5, 5, 7, 5));
+    }
+
+    #[test]
+    fn npc_wrap_goal_picks_nearest_torus_image() {
+        let w = World::new(500, 500, true);
+        // Player at y=484, tile stored as y=2 → walk to 502 (18 tiles), not 2 (482).
+        assert_eq!(npc_wrap_goal(&w, 488, 484, 481, 2), (481, 502));
+        assert_eq!(npc_wrap_goal(&w, 488, 484, 481, 502), (481, 502));
+        let plane = World::new(500, 500, false);
+        assert_eq!(npc_wrap_goal(&plane, 488, 484, 481, 2), (481, 2));
     }
 
     #[test]
