@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn ai_obs_page_has_nav_and_graphs() {
-        let html = build_ai_obs_html(&serde_json::json!({}), "0.3.1", &ContentDb::default());
+        let html = build_ai_obs_html(&serde_json::json!({}), "0.3.2", &ContentDb::default());
         assert!(html.contains("AI obs"));
         assert!(html.contains("/ops"));
         assert!(html.contains("ops-time-range"));
@@ -163,7 +163,7 @@ mod tests {
                 "crafted_objects": [{"id": 31, "count": 2}],
                 "food_eaten": [{"id": 31, "count": 1}]
             }),
-            "0.3.1",
+            "0.3.2",
             &ContentDb::default(),
         );
         assert!(named.contains("\"31\""));

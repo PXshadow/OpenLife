@@ -2871,6 +2871,13 @@ fn maybe_hungry_work_emote_feedback(state: &SimState, outbound: &OutboundHub, co
     }
 }
 
+/// MX for extra tiles PlaceObject wrote during USE (Haxe TryAnimaEscape arrow wound).
+fn maybe_extra_use_map_updates(state: &SimState, outbound: &OutboundHub) {
+    for (x, y) in crate::use_transition::take_extra_use_map_updates() {
+        fan_haxe_map_update(state, outbound, x, y, -1);
+    }
+}
+
 /// Normal SAY / SHOUT / MUMBLE PS fan-out: skip muted listeners and DEAF players.
 ///
 /// Whispers use a private path: muted listeners are skipped; DEAF does not block
@@ -3497,10 +3504,20 @@ pub fn apply_drop(
     let held = state.players.get(&conn_id).map(|p| p.held_id).unwrap_or(0);
     let tile = state.world.read().unwrap().get_object(x, y);
     if held == 0 {
-        // Haxe drop(): empty hands still swapHandAndFloorObject (pick up ground object).
+        // Haxe drop(): doContainerStuff(true) empty-hand takes first contained (index 0),
+        // then swapHandAndFloorObject if that fails (pick up the container).
         // Hidden-wound DROP with empty tile: just PU empty held.
         if tile != 0 {
-            if drop_cycle_container(state, conn_id, x, y, tile, 0) {
+            let take_i = crate::clothing_transitions::empty_hand_container_take_index(-1);
+            if crate::use_transition::take_contained_into_hands(
+                state,
+                conn_id,
+                x,
+                y,
+                Some(take_i as usize),
+            )
+            .is_some()
+            {
                 state.publish_player_view(conn_id);
                 info!(conn_id, x, y, tile, "sim: DROP empty-hand container take");
                 send_drop_result(state, outbound, conn_id, x, y, tile);
@@ -8190,10 +8207,15 @@ fn apply_say_or_remv(
         // - i j: pocket-style nested take â€” sub-item j under contained[i]
         //   (j = -1 or omitted sub uses last nested; see container_take_nested)
         let mut parts = payload.split_whitespace();
-        let x: i32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-        let y: i32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+        let raw_x: i32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+        let raw_y: i32 = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
         let slot = parts.next().and_then(|s| s.parse::<i32>().ok());
         let sub_raw = parts.next().and_then(|s| s.parse::<i32>().ok());
+        let (x, y) = state
+            .players
+            .get(&conn_id)
+            .map(|p| resolve_net_intent_tile(p, raw_x, raw_y))
+            .unwrap_or((raw_x, raw_y));
         // Haxe doCommandHelper: holding a player drops at feet and refuses (before neverDrop).
         // HOLDING-PLAYER-CMD
         if let Some((px, py)) = state.players.get(&conn_id).and_then(|p| {
@@ -8327,27 +8349,28 @@ fn apply_say_or_remv(
                 return;
             }
         }
-        let item = {
-            let mut world = state.world.write().unwrap();
-            match (slot, sub_raw) {
-                // Nested pocket take: REMV x y slot sub  (sub < 0 â†’ last)
-                (Some(s), Some(j)) if s >= 0 => {
-                    let sub = if j < 0 { None } else { Some(j as usize) };
-                    world.container_take_nested(x, y, s as usize, sub)
-                }
-                // Top-level: REMV x y [i]  (i < 0 â†’ last)
-                (Some(s), None) => {
-                    let idx = if s < 0 { None } else { Some(s as usize) };
-                    world.container_take(x, y, idx)
-                }
-                (None, _) => world.container_take(x, y, None),
-                // Negative slot with sub: treat as last top-level (ignore sub)
-                (Some(_), Some(_)) => world.container_take(x, y, None),
+        let item = match (slot, sub_raw) {
+            // Nested pocket take: REMV x y slot sub  (sub < 0 → last)
+            (Some(s), Some(j)) if s >= 0 => {
+                let sub = if j < 0 { None } else { Some(j as usize) };
+                let mut world = state.world.write().unwrap();
+                world.container_take_nested(x, y, s as usize, sub)
+            }
+            // Top-level: REMV x y [i]  (i < 0 → last). Full NestedHelper into hands.
+            _ => {
+                let idx = match slot {
+                    Some(s) if s < 0 => None,
+                    Some(s) => Some(s as usize),
+                    None => None,
+                };
+                crate::use_transition::take_contained_into_hands(state, conn_id, x, y, idx)
             }
         };
         if let Some(id) = item {
             if let Some(p) = state.players.get_mut(&conn_id) {
-                p.held_id = id;
+                if p.held_id == 0 {
+                    p.set_held(id, 0);
+                }
             }
             state.publish_player_view(conn_id);
             info!(conn_id, x, y, id, "sim: REMV from container");
@@ -8377,6 +8400,19 @@ pub struct UseResult {
 #[inline]
 pub fn apply_use_at(state: &mut SimState, conn_id: u64, tx: i32, ty: i32) -> Option<UseResult> {
     use_transition::apply_use_at(state, conn_id, tx, ty)
+}
+
+/// USE with optional object `id` and container `i` (wire `USE x y id i`).
+/// No nearby retarget: empty clicked tile is actor+0 (bow 152_0).
+pub fn apply_use_at_command(
+    state: &mut SimState,
+    conn_id: u64,
+    tx: i32,
+    ty: i32,
+    expected_id: Option<i32>,
+    container_index: Option<i32>,
+) -> Option<UseResult> {
+    use_transition::apply_use_at_command(state, conn_id, tx, ty, expected_id, container_index)
 }
 
 /// Place post-USE tile state with Haxe `DoChangeNumberOfUsesOnTarget` semantics.
@@ -12070,6 +12106,7 @@ pub fn tick_vitals_with_metrics(
         f32,
     )> = Vec::new();
     let mut biome_by_cid: HashMap<u64, u8> = HashMap::new();
+    let mut love_by_cid: HashMap<u64, f32> = HashMap::new();
     {
         let world = state.world.read().unwrap();
         let season_impact = state
@@ -12145,6 +12182,7 @@ pub fn tick_vitals_with_metrics(
             heat_by_conn.insert(cid, new_heat);
             food_time_by_conn.insert(cid, food_time);
             biome_by_cid.insert(cid, biome);
+            love_by_cid.insert(cid, love);
             let t = ambient;
             let mult = biome_food_multiplier(biome);
             let indoor = world.get_floor(x, y) != 0;
@@ -12270,6 +12308,13 @@ pub fn tick_vitals_with_metrics(
         .collect();
     let food_max_knobs = state.gameplay.food_store_max_knobs();
     let death_line = state.gameplay.death_with_food_store_max_live();
+    let healing_per_second = state.gameplay.healing_per_second;
+    let exhaustion_healing_factor = state.gameplay.exhaustion_healing_factor;
+    let wound_healing_factor = state.gameplay.wound_healing_factor;
+    let exhaustion_healing_for_male = state.gameplay.exhaustion_healing_for_male_factor;
+    let temp_hits_factor = state.gameplay.temperature_hits_damage_factor;
+    let temp_exh_factor = state.gameplay.temperature_exhaustion_damage_factor;
+    let sim_time_now = state.sim_time;
 
     let food_fx_before: HashMap<u64, (i32, i32, i32)> = state
         .players
@@ -12398,6 +12443,28 @@ pub fn tick_vitals_with_metrics(
     let mut combat_restore: Vec<(i32, f32)> = Vec::new();
     let mut hits_updates: Vec<(i32, f32)> = Vec::new();
     let mut prestige_burns: Vec<(i32, f32)> = Vec::new();
+    let male_by_cid: HashMap<u64, bool> = state
+        .players
+        .iter()
+        .filter(|(_, p)| !p.deleted)
+        .map(|(&cid, p)| (cid, !content_person_is_female(&state.content, person_object_id(p))))
+        .collect();
+    let super_heat_by_cid: HashMap<u64, (bool, bool, f32)> = state
+        .players
+        .iter()
+        .filter(|(_, p)| !p.deleted)
+        .map(|(&cid, p)| {
+            let color = color_by_pid.get(&p.p_id).copied().unwrap_or(0);
+            (
+                cid,
+                (
+                    crate::player_soul::is_super_hot_for_person(p.heat, color),
+                    crate::player_soul::is_super_cold_for_person(p.heat, color),
+                    p.heat,
+                ),
+            )
+        })
+        .collect();
     for (cid, p) in state.players.iter_mut() {
         if p.deleted {
             continue;
@@ -12542,32 +12609,81 @@ pub fn tick_vitals_with_metrics(
             p.heat =
                 (p.heat + crate::food_store_max::yellow_fever_heat_delta(dt, held_by)).min(1.0);
         }
-        // Haxe updateFoodAndDoHealing: food may go negative; starve hits shrink
-        // max pips; yum_bonus drains first; death is food_store_max < DeathWithFoodStoreMax.
+        // Haxe TimeHelper.DoTimeOnPlayerObjects: bloody held -1 trans when ttc elapsed.
+        if let Some(h) = p.held_helper.as_ref() {
+            if let Some(clean) = crate::weapons::try_bloody_weapon_auto_clean(
+                p.held_id,
+                h.creation_time,
+                h.time_to_change,
+                sim_time_now,
+            ) {
+                p.set_held(clean, 0);
+            }
+        }
+        // Haxe updateFoodAndDoHealing: exhaustion/hits heal, then starve yum-burn + drain.
+        // Hungry work only adds exhaustion (does not write food_store_max); missing heal
+        // made iron/clay look like a permanent max-food shrink.
         let original_decay = p.food_use_per_second.max(0.0) * dt;
-        let decay = drain * dt;
+        let mut decay = drain * dt;
         let hits_before = hits_by_pid.get(&p.p_id).copied().unwrap_or(0.0);
         let yum_m = prestige_by_pid.get(&p.p_id).copied().unwrap_or(0.0);
-        let starve = crate::food_store_max::apply_starve_food_decay(
+        let health_f = health_food_by_cid.get(cid).copied().unwrap_or(1.0);
+        let wounded = eve_gate_by_cid.get(cid).map(|(_, w)| *w).unwrap_or(false);
+        let has_yf = crate::nested_body::is_yellow_fever(p.fever.as_ref());
+        let (is_hot, is_cold, heat_now) = super_heat_by_cid
+            .get(cid)
+            .copied()
+            .unwrap_or((false, false, p.heat));
+        let do_healing = crate::food_store_max::can_do_healing(
             p.food,
-            p.yum.yum_bonus,
-            hits_before,
-            yum_m,
-            decay,
-            original_decay,
+            wounded,
+            has_yf,
+            p.angry_time,
+            is_hot || is_cold,
         );
-        p.yum.yum_bonus = starve.yum_bonus;
-        p.food = starve.food;
-        hits_updates.push((p.p_id, starve.hits));
-        let yum_delta = starve.yum_multiplier - yum_m;
+        let is_male = male_by_cid.get(cid).copied().unwrap_or(false);
+        let temp_biome = crate::food_store_max::TempBiomeHealKnobs {
+            is_super_hot: is_hot,
+            is_super_cold: is_cold,
+            heat: heat_now,
+            temperature_hits_damage_factor: temp_hits_factor,
+            temperature_exhaustion_damage_factor: temp_exh_factor,
+            biome_love_factor: love_by_cid.get(cid).copied().unwrap_or(0.0),
+        };
+        let pipe = crate::food_store_max::step_healing_food_pipe_ex(
+            p.age,
+            p.food,
+            hits_before,
+            p.exhaustion,
+            health_f,
+            dt,
+            original_decay,
+            do_healing,
+            is_male,
+            healing_per_second,
+            food_max_knobs,
+            exhaustion_healing_factor,
+            wound_healing_factor,
+            exhaustion_healing_for_male,
+            temp_biome,
+        );
+        p.exhaustion = pipe.exhaustion_after;
+        decay += pipe.extra_food_drain;
+        let (yum_m_after, decay) =
+            crate::food_store_max::starve_burn_yum_multiplier(p.food, yum_m, decay);
+        let (yb, food_out) =
+            crate::food_store_max::drain_yum_bonus_then_food(p.yum.yum_bonus, p.food, decay);
+        p.yum.yum_bonus = yb;
+        p.food = food_out;
+        hits_updates.push((p.p_id, pipe.hits_after));
+        let yum_delta = yum_m_after - yum_m;
         if yum_delta.abs() > 0.0 {
             prestige_burns.push((p.p_id, yum_delta));
         }
-        let health_f = health_food_by_cid.get(cid).copied().unwrap_or(1.0);
         let new_max = crate::food_store_max_from_parts_ex(
             p.age,
             p.food,
-            starve.hits,
+            pipe.hits_after,
             p.exhaustion,
             health_f,
             food_max_knobs,
@@ -13326,6 +13442,64 @@ fn apply_moving_auto_decay(
         w.set_object(nx, ny, place_id);
     }
     Some((nx, ny, place_id))
+}
+
+/// Haxe `TryAnimaEscape`: `timeToChange /= 5` then `doTimeTransition`.
+///
+/// Returns `Some((from_x, from_y, to_x, to_y))` only when the animal **actually
+/// moved**. A successful escape roll that does not move is a **hit** (Haxe
+/// `escaped = tmpTimeToChange != target.timeToChange`).
+// Haxe: TimeHelper.TryAnimaEscape L2653–2659 + doTimeTransition
+pub(crate) fn try_animal_escape_time_transition(
+    state: &mut SimState,
+    x: i32,
+    y: i32,
+) -> Option<(i32, i32, i32, i32)> {
+    let expect_id = state.world.read().unwrap().get_object(x, y);
+    if expect_id == 0 {
+        return None;
+    }
+    let sim_time = state.sim_time;
+    let (helper, reached) = {
+        let mut w = state.world.write().unwrap();
+        let mut h = w
+            .get_helper(x, y)
+            .cloned()
+            .unwrap_or_else(|| ol_world::ComplexObject::new_simple(expect_id));
+        h.time_to_change /= 5.0;
+        // Haxe isTimeToChangeReached: passedTime >= timeToChange (0 duration is due).
+        let passed = (sim_time - h.creation_time).max(0.0);
+        let reached = passed >= h.time_to_change;
+        w.set_object_complex(x, y, h.clone());
+        (h, reached)
+    };
+    if !reached {
+        let rem = helper.time_until_change(sim_time);
+        if rem > 0.0 {
+            state.pending_decays.insert((x, y), (expect_id, rem));
+        }
+        return None;
+    }
+    state.pending_decays.remove(&(x, y));
+    let tr = state.content.auto_decays.get(&expect_id).cloned()?;
+    if tr.move_dist <= 0 {
+        return None;
+    }
+    let (nx, ny, placed) = apply_moving_auto_decay(state, x, y, expect_id, &tr)?;
+    if nx == x && ny == y {
+        return None;
+    }
+    {
+        let mut w = state.world.write().unwrap();
+        let mut h = helper;
+        h.base_id = placed;
+        w.set_object_complex(nx, ny, h);
+    }
+    state.record_world_change(nx, ny, placed);
+    schedule_decay(state, nx, ny, placed);
+    let left = state.world.read().unwrap().get_object(x, y);
+    schedule_decay(state, x, y, left);
+    Some((x, y, nx, ny))
 }
 
 pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> Vec<(i32, i32, i32)> {
@@ -15743,8 +15917,8 @@ pub fn apply_intent(
             conn_id,
             x,
             y,
-            id: _,
-            index: _,
+            id,
+            index,
         } => {
             touch_afk_activity(state, conn_id);
             let (x, y) = state
@@ -15768,7 +15942,7 @@ pub fn apply_intent(
                 // Haxe use() moving refuse is inside the switch — still read held text.
                 maybe_send_held_writing_ps(state, outbound, conn_id);
             } else {
-                let use_ranged_too_close = match apply_use_at(state, conn_id, x, y) {
+                let use_ranged_too_close = match apply_use_at_command(state, conn_id, x, y, id, index) {
                     Some(r) if r.applied => {
                         info!(
                             conn_id,
@@ -15830,6 +16004,7 @@ pub fn apply_intent(
                 // debug message channel + kill-style note_too_close_say callers.
                 // Haxe: TransitionHelper.use L761–764
                 maybe_hungry_work_emote_feedback(state, outbound, conn_id);
+                maybe_extra_use_map_updates(state, outbound);
                 maybe_lock_say_feedback(state, outbound, conn_id);
                 if use_ranged_too_close {
                     emit_too_close_ps(state, outbound, conn_id);

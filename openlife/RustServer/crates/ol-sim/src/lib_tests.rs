@@ -1919,6 +1919,50 @@
         assert_eq!(p.death_reason.as_deref(), Some("reason_hunger"));
     }
 
+    /// Haxe `updateFoodAndDoHealing`: exhaustion heals, so hungry-work max pip
+    /// reduction is temporary (floor at half) not permanent.
+    // Haxe: TimeHelper.updateFoodAndDoHealing doHealing exhaustion
+    #[test]
+    fn tick_vitals_heals_exhaustion_so_hungry_work_max_food_recovers() {
+        let hub = OutboundHub::new();
+        let mut state = SimState::with_default_empty(test_content());
+        spawn_player(&mut state, 1, "exh@heal");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.age = 30.0;
+            p.true_age = 0.0;
+            p.food = 15.0;
+            p.food_max = 10.0;
+            p.exhaustion = 10.0;
+            p.heat = 0.5;
+            p.angry_time = 5.0;
+        }
+        let max_before = {
+            let p = state.players.get(&1).unwrap();
+            crate::food_store_max_from_parts_ex(
+                p.age,
+                p.food,
+                state.combat.hits_of(p.p_id),
+                10.0,
+                1.0,
+                state.gameplay.food_store_max_knobs(),
+            )
+        };
+        tick_vitals(&mut state, 1.0, &hub);
+        let p = state.players.get(&1).unwrap();
+        assert!(
+            p.exhaustion < 10.0,
+            "doHealing must reduce exhaustion, got {}",
+            p.exhaustion
+        );
+        assert!(
+            p.food_max > max_before - 0.01,
+            "food_max must recover as exhaustion heals (before {max_before} after {})",
+            p.food_max
+        );
+        assert!(!p.deleted);
+    }
+
     /// Haxe: food < 0 shrinks food_store_max; death only when max < DeathWithFoodStoreMax.
     #[test]
     fn tick_vitals_starving_shrinks_food_max_before_death() {

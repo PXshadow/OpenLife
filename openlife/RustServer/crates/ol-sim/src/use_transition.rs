@@ -28,6 +28,10 @@ use crate::multi_use::{
     reverse_actor_exceeds_max, reverse_target_exceeds_max, should_skip_use_decrement,
     switch_number_of_uses, target_must_be_full_refuse, TargetUsesOutcome,
 };
+use crate::animal_damage::{
+    clothing_has_quiver_ids, resolve_animal_escape, EscapeOutcome, BOW_AND_ARROW_ID,
+    DEFAULT_ANIMAL_ESCAPE_FACTOR,
+};
 use crate::player::Player;
 use crate::{
     ally_strength_blocks_pickup, calculate_enemy_vs_ally_strength_factor_ex,
@@ -37,7 +41,7 @@ use crate::{
 };
 use ol_content::{ContentDb, Transition};
 use ol_world::{ComplexObject, NestedHelper, World};
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 // C-SS-MORE-BATCH5 full hungry-work pure pipe lives later in this file (public API).
 // Call sites in apply_use_at use those pub helpers.
@@ -53,6 +57,35 @@ thread_local! {
     static LAST_HUNGRY_WORK_EMOTE: Cell<Option<(u64, i32)>> = const { Cell::new(None) };
     static LAST_HELD_PLAYER_DROP_BABY: Cell<Option<u64>> = const { Cell::new(None) };
     static SKIP_HELD_WRITING_READ: Cell<bool> = const { Cell::new(false) };
+    static NEXT_ANIMAL_ESCAPE_RNG: Cell<Option<f32>> = const { Cell::new(None) };
+    static EXTRA_USE_MAP_UPDATES: RefCell<Vec<(i32, i32)>> = const { RefCell::new(Vec::new()) };
+}
+
+/// Test hook: next `TryAnimaEscape` roll (`random > factor` → stay / kill).
+pub fn force_next_animal_escape_rng(v: f32) {
+    NEXT_ANIMAL_ESCAPE_RNG.with(|c| c.set(Some(v)));
+}
+
+fn animal_escape_rng01() -> f32 {
+    NEXT_ANIMAL_ESCAPE_RNG
+        .with(|c| c.take())
+        .unwrap_or_else(rand::random)
+}
+
+fn note_extra_use_map_update(x: i32, y: i32) {
+    EXTRA_USE_MAP_UPDATES.with(|c| c.borrow_mut().push((x, y)));
+}
+
+/// Extra MX tiles from USE side-effects (Haxe `PlaceObject` during `TryAnimaEscape`).
+pub fn take_extra_use_map_updates() -> Vec<(i32, i32)> {
+    EXTRA_USE_MAP_UPDATES.with(|c| std::mem::take(&mut *c.borrow_mut()))
+}
+
+fn object_is_domestic_animal(content: &ContentDb, id: i32) -> bool {
+    content
+        .get(content.resolve_base_id(id))
+        .map(|d| d.is_animal() && d.biomes.first().copied() == Some(0))
+        .unwrap_or(false)
 }
 
 /// Record PE after hungry-work pay / refuse (consumed by USE handler).
@@ -127,6 +160,60 @@ fn try_use_put_in_container(
     state.record_world_change(tx, ty, target);
     crate::schedule_decay(state, tx, ty, target);
     true
+}
+
+/// Take one contained object into empty hands (Haxe `DoContainerStuffOnObj` / `removeObj`).
+///
+/// `slot` `None` = last (REMV `i=-1`); `Some(i)` = that index (USE/DROP empty-hand
+/// default is **0** via [`crate::clothing_transitions::empty_hand_container_take_index`]).
+// Haxe: TransitionHelper.DoContainerStuffOnObj L608–621 / removeObj L1721–1734
+pub fn take_contained_into_hands(
+    state: &mut SimState,
+    conn_id: u64,
+    tx: i32,
+    ty: i32,
+    slot: Option<usize>,
+) -> Option<i32> {
+    let hands = state.players.get(&conn_id).map(|p| p.held_id).unwrap_or(-1);
+    if hands != 0 {
+        return None;
+    }
+    let (tile, peek_id, contained_len) = {
+        let w = state.world.read().unwrap();
+        let t = w.get_object(tx, ty);
+        let h = w.get_helper(tx, ty);
+        let n = h.map(|c| c.contained.len()).unwrap_or(0);
+        let peek = h.and_then(|c| match slot {
+            Some(i) => c.contained.get(i).copied(),
+            None => c.contained.last().copied(),
+        });
+        (t, peek, n)
+    };
+    if tile == 0 || contained_len == 0 {
+        return None;
+    }
+    if crate::object_blocks_remove(&state.content, tile) {
+        return None;
+    }
+    if slot.map(|i| i >= contained_len).unwrap_or(false) {
+        return None;
+    }
+    if peek_id
+        .and_then(|id| state.content.get(id).map(|d| d.permanent))
+        .unwrap_or(false)
+    {
+        return None;
+    }
+    let taken = {
+        let mut w = state.world.write().unwrap();
+        w.container_take_helper(tx, ty, slot)
+    }?;
+    if let Some(p) = state.players.get_mut(&conn_id) {
+        p.set_held_helper(taken.clone());
+    }
+    state.record_world_change(tx, ty, tile);
+    crate::schedule_decay(state, tx, ty, tile);
+    Some(taken.id)
 }
 
 /// Haxe `heldPlayer != null || o_id[0] < 0`: drop at feet then refuse the command.
@@ -1338,7 +1425,7 @@ fn apply_monument_use_side_effects(state: &mut SimState, conn_id: u64, actor: i3
 
 /// Apply USE at world tile `(tx, ty)` (no container index).
 pub fn apply_use_at(state: &mut SimState, conn_id: u64, tx: i32, ty: i32) -> Option<UseResult> {
-    apply_use_at_ex(state, conn_id, tx, ty, None)
+    apply_use_at_command(state, conn_id, tx, ty, None, None)
 }
 
 /// Apply USE at `(tx, ty)` with optional Haxe `containerIndex` (USE x y id i).
@@ -1353,6 +1440,21 @@ pub fn apply_use_at_ex(
     ty: i32,
     container_index: Option<i32>,
 ) -> Option<UseResult> {
+    apply_use_at_command(state, conn_id, tx, ty, None, container_index)
+}
+
+/// Apply USE with optional expected object `id` and container `i` (wire `USE x y id i`).
+/// Clicked tile is used as-is: animal still there → normal trans; empty → actor+0.
+// Haxe: TransitionHelper.use(target, containerIndex) + USE x y id i
+pub fn apply_use_at_command(
+    state: &mut SimState,
+    conn_id: u64,
+    tx: i32,
+    ty: i32,
+    _expected_id: Option<i32>,
+    container_index: Option<i32>,
+) -> Option<UseResult> {
+    // Haxe uses whatever is on the clicked tile (no nearby retarget). Empty → 152+0.
     // Haxe doCommandHelper: holding a player drops at feet and refuses (before neverDrop).
     // HOLDING-PLAYER-CMD
     if drop_holding_player_for_command(state, conn_id) {
@@ -1625,6 +1727,125 @@ pub fn apply_use_at_ex(
         });
     }
 
+    // Haxe: TransitionHelper.use L767–772 TryAnimaEscape then normal 152+animal trans.
+    if held_deadly > 0.0
+        && target_is_animal
+        && !object_is_domestic_animal(&state.content, target)
+    {
+        let using_bow = state.content.resolve_base_id(actor) == BOW_AND_ARROW_ID;
+        let clothing = state
+            .players
+            .get(&conn_id)
+            .map(|p| p.clothing_parent_ids())
+            .unwrap_or([0; 6]);
+        let has_quiver = clothing_has_quiver_ids(&clothing);
+        let outcome = resolve_animal_escape(
+            false,
+            is_holding_weapon(actor, ""),
+            DEFAULT_ANIMAL_ESCAPE_FACTOR,
+            hits_before,
+            using_bow,
+            has_quiver,
+            tx,
+            ty,
+            animal_escape_rng01(),
+        );
+        match outcome {
+            EscapeOutcome::SkippedDomestic => {}
+            EscapeOutcome::Stayed { animal_hits_after } => {
+                hits_before = animal_hits_after;
+                {
+                    let mut w = state.world.write().unwrap();
+                    crate::loved_food_wire::stamp_hits(&mut w, tx, ty, animal_hits_after);
+                }
+                if let Some(a) = state
+                    .animals
+                    .animals
+                    .iter_mut()
+                    .find(|a| a.x == tx && a.y == ty)
+                {
+                    a.hits = animal_hits_after;
+                }
+            }
+            EscapeOutcome::Escaped {
+                animal_hits_after,
+                bow: _,
+            } => {
+                hits_before = animal_hits_after;
+                {
+                    let mut w = state.world.write().unwrap();
+                    crate::loved_food_wire::stamp_hits(&mut w, tx, ty, animal_hits_after);
+                }
+                // Haxe: timeToChange/=5 then doTimeTransition. Only a *successful
+                // move* is a custom miss; otherwise the kill transition proceeds.
+                if let Some((fx, fy, nx, ny)) =
+                    crate::try_animal_escape_time_transition(state, tx, ty)
+                {
+                    if let Some(a) = state
+                        .animals
+                        .animals
+                        .iter_mut()
+                        .find(|a| a.x == tx && a.y == ty)
+                    {
+                        a.hits = animal_hits_after;
+                        a.x = nx;
+                        a.y = ny;
+                    }
+                    note_extra_use_map_update(fx, fy);
+                    note_extra_use_map_update(nx, ny);
+                    let mut held_after = actor;
+                    if using_bow {
+                        if let Some(b) =
+                            crate::animal_damage::bow_escape_effects(true, nx, ny)
+                        {
+                            let sim_time = state.sim_time;
+                            if let Some(p) = state.players.get_mut(&conn_id) {
+                                let mut h = NestedHelper::id_only(b.new_held_id);
+                                h.creation_time = sim_time;
+                                h.time_to_change = b.time_to_change;
+                                p.set_held_helper(h);
+                                held_after = b.new_held_id;
+                            }
+                            if let Some(res) = crate::place_object::place_object_by_id(
+                                state,
+                                b.place_x,
+                                b.place_y,
+                                b.wound_object_id,
+                                crate::place_object::PlaceObjectOpts::replace(),
+                            ) {
+                                note_extra_use_map_update(res.x, res.y);
+                            }
+                        }
+                    }
+                    note_lock_say(
+                        conn_id,
+                        format!("Hits {}", animal_hits_after.round() as i32),
+                    );
+                    let origin_after = state.world.read().unwrap().get_object(tx, ty);
+                    return Some(UseResult {
+                        actor_before: actor,
+                        target_before: target,
+                        actor_after: held_after,
+                        target_after: origin_after,
+                        applied: true,
+                        x: tx,
+                        y: ty,
+                        ranged_too_close: false,
+                    });
+                }
+                // Escape roll succeeded but the animal did not move → hit / kill.
+                if let Some(a) = state
+                    .animals
+                    .animals
+                    .iter_mut()
+                    .find(|a| a.x == tx && a.y == ty)
+                {
+                    a.hits = animal_hits_after;
+                }
+            }
+        }
+    }
+
     // Haxe: TransitionHelper.doCommandHelper AllyStrenghTooLowForPickup
     // ALLY-PICKUP-THRESHOLD
     if refuse_ally_pickup_command(state, conn_id, tx, ty) {
@@ -1722,6 +1943,7 @@ pub fn apply_use_at_ex(
 
     // Haxe: GetTrans; if null && empty ground, held+-1 dismount (reject newTargetID==0).
     // oldEnoughForTransitions false → skip transitions (L792–795).
+    // Missed animal (empty tile) is a normal actor+0 trans (bow 152_0 → Arrow 148).
     let mut tr = if old_enough_trans {
         state
             .content
@@ -2418,10 +2640,34 @@ pub fn apply_use_at_ex(
             tr_work.is_pickup_or_drop,
             !door_keep_held, // Haxe changeHeldObject; door empty-hand keeps held
         )
-    } else if container_slot_idx.is_some() {
-        // USE on container index without a transition: DoContainerStuff is the
-        // REMV/put path — not bare ground swap. Refuse here.
-        return refuse(actor, target);
+    } else if let Some(idx) = container_slot_idx {
+        // USE x y id i with empty hands: take that contained slot (click the item).
+        // Haxe doContainerStuff(false, containerIndex) after failed trans; for
+        // non-permanent baskets Haxe pickups first, but slot-click is take.
+        if actor != 0 {
+            return refuse(actor, target);
+        }
+        if !old_enough_pick {
+            return refuse(actor, target);
+        }
+        if take_contained_into_hands(state, conn_id, tx, ty, Some(idx)).is_some() {
+            let held_now = state
+                .players
+                .get(&conn_id)
+                .map(|p| p.held_id)
+                .unwrap_or(0);
+            return Some(UseResult {
+                actor_before: actor,
+                target_before: outer_target,
+                actor_after: held_now,
+                target_after: outer_target,
+                applied: true,
+                x: tx,
+                y: ty,
+                ranged_too_close: false,
+            });
+        }
+        return refuse(actor, outer_target);
     } else if actor == 0 && target != 0 {
         // Haxe: oldEnoughForPickup && swapHandAndFloorObject (L804)
         if !old_enough_pick {
@@ -2435,6 +2681,37 @@ pub fn apply_use_at_ex(
             .get(pickup_id)
             .map(|d| d.permanent)
             .unwrap_or(false);
+        let num_slots = state
+            .content
+            .get(pickup_id)
+            .map(|d| d.num_slots)
+            .unwrap_or(0);
+        let contained_n = tile_helper_snapshot
+            .as_ref()
+            .map(|h| h.contained.len())
+            .unwrap_or(0);
+        // Permanent container (table): swap fails → doContainerStuff takes first.
+        // Haxe: TransitionHelper.use L804–807
+        if permanent && num_slots > 0 && contained_n > 0 {
+            if take_contained_into_hands(state, conn_id, tx, ty, Some(0)).is_some() {
+                let held_now = state
+                    .players
+                    .get(&conn_id)
+                    .map(|p| p.held_id)
+                    .unwrap_or(0);
+                return Some(UseResult {
+                    actor_before: 0,
+                    target_before: target,
+                    actor_after: held_now,
+                    target_after: target,
+                    applied: true,
+                    x: tx,
+                    y: ty,
+                    ranged_too_close: false,
+                });
+            }
+            return refuse(actor, target);
+        }
         if permanent {
             return refuse(actor, target);
         }
@@ -3372,6 +3649,7 @@ mod tests {
         );
         // at distance 3 should apply and must not re-note too-close
         state.world.write().unwrap().set_object(3, 0, 418);
+        force_next_animal_escape_rng(1.0); // random > 0.7 → stay / kill trans
         let r = apply_use_at(&mut state, 1, 3, 0).unwrap();
         assert!(r.applied, "bow at range 3 should hit animal");
         assert!(
@@ -3383,6 +3661,253 @@ mod tests {
             "successful ranged USE must not note Too close"
         );
         assert!(crate::take_too_close_message().is_none());
+    }
+
+    /// Haxe 152+418 → 151+420 (Yew Bow + Shot Wolf). Not 152+0 Arrow on the tile.
+    // Haxe: TransitionHelper.use deadlyDistance + useDistance; 152_418.txt
+    #[test]
+    fn bow_on_wolf_applies_shot_wolf_not_ground_arrow() {
+        let mut db = ContentDb::default();
+        let mut bow = def(152, 0, false);
+        bow.use_distance = 5;
+        bow.deadly_distance = 4.0;
+        db.objects.insert(152, bow);
+        db.objects.insert(151, def(151, 0, false));
+        let mut wolf = def(418, 0, true);
+        wolf.moves = 2;
+        db.objects.insert(418, wolf);
+        let mut shot = def(420, 0, true);
+        shot.moves = 2;
+        db.objects.insert(420, shot);
+        db.objects.insert(148, def(148, 0, false));
+        db.objects.insert(493, def(493, 0, false));
+        db.transitions
+            .insert((152, 418), tr(152, 418, 151, 420, false, false));
+        db.transitions
+            .insert((152, 0), tr(152, 0, 493, 148, false, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "bow@wolf");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(152, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(3, 0, 418);
+        force_next_animal_escape_rng(1.0);
+        let r = apply_use_at(&mut state, 1, 3, 0).unwrap();
+        assert!(r.applied, "bow+wolf must apply kill transition");
+        assert_eq!(r.actor_after, 151, "held becomes Yew Bow");
+        assert_eq!(r.target_after, 420, "tile becomes Shot Wolf");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 151);
+        assert_eq!(state.world.read().unwrap().get_object(3, 0), 420);
+        assert_ne!(
+            state.world.read().unwrap().get_object(3, 0),
+            148,
+            "must not place Arrow 148 on the wolf"
+        );
+    }
+
+    /// Escape roll without an immediate move is a **hit** (kill trans).
+    // Haxe: TryAnimaEscape escaped=false when doTimeTransition does not move
+    #[test]
+    fn bow_escape_rng_without_move_still_kills() {
+        let mut db = ContentDb::default();
+        let mut bow = def(152, 0, false);
+        bow.use_distance = 5;
+        bow.deadly_distance = 4.0;
+        db.objects.insert(152, bow);
+        db.objects.insert(151, def(151, 0, false));
+        db.objects.insert(749, def(749, 0, false));
+        let mut wolf = def(418, 0, true);
+        wolf.moves = 2;
+        db.objects.insert(418, wolf);
+        let mut shot = def(420, 0, true);
+        shot.moves = 2;
+        db.objects.insert(420, shot);
+        db.transitions
+            .insert((152, 418), tr(152, 418, 151, 420, false, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "bow@escape-hit");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(152, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        state.world.write().unwrap().set_object(3, 0, 418);
+        force_next_animal_escape_rng(0.0);
+        let r = apply_use_at(&mut state, 1, 3, 0).unwrap();
+        assert!(r.applied, "no-move escape roll falls through to kill");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 151);
+        assert_eq!(state.world.read().unwrap().get_object(3, 0), 420);
+        assert_ne!(state.players.get(&1).unwrap().held_id, 749);
+    }
+
+    /// Custom miss: escape roll **and** immediate animal move → 749 + 798, wolf flees.
+    // Haxe: TimeHelper.TryAnimaEscape L2653–2679 doTimeTransition then PlaceObject 798
+    #[test]
+    fn bow_escape_miss_places_arrow_wound_not_shot_wolf() {
+        let mut db = ContentDb::default();
+        let mut bow = def(152, 0, false);
+        bow.use_distance = 5;
+        bow.deadly_distance = 4.0;
+        db.objects.insert(152, bow);
+        db.objects.insert(151, def(151, 0, false));
+        db.objects.insert(749, def(749, 0, false));
+        db.objects.insert(798, def(798, 0, false));
+        let mut wolf = def(418, 0, true);
+        wolf.moves = 2;
+        db.objects.insert(418, wolf);
+        let mut shot = def(420, 0, true);
+        shot.moves = 2;
+        db.objects.insert(420, shot);
+        db.objects.insert(148, def(148, 0, false));
+        db.transitions
+            .insert((152, 418), tr(152, 418, 151, 420, false, false));
+        let mut move_tr = tr(-1, 418, 0, 418, false, false);
+        move_tr.move_dist = 1;
+        move_tr.auto_decay_seconds = 5.0;
+        db.auto_decays.insert(418, move_tr);
+        let mut state = state_with(db);
+        state.sim_time = 1.0;
+        crate::spawn_player(&mut state, 1, "bow@escape");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(152, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        let mut wolf_h = ComplexObject::new_simple(418);
+        wolf_h.stamp_time(0.0, 1.0);
+        state.world.write().unwrap().set_object_complex(3, 0, wolf_h);
+        crate::animal_move::force_next_animal_move_dest(5, 0);
+        force_next_animal_escape_rng(0.0);
+        let r = apply_use_at(&mut state, 1, 3, 0).unwrap();
+        assert!(r.applied);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 749);
+        assert_eq!(
+            state.world.read().unwrap().get_object(3, 0),
+            0,
+            "wolf left the clicked tile"
+        );
+        assert_eq!(
+            state.world.read().unwrap().get_object(5, 0),
+            418,
+            "wolf fled to the time-transition dest"
+        );
+        let mut found_798 = false;
+        for dy in -2..=2 {
+            for dx in -2..=2 {
+                if state.world.read().unwrap().get_object(5 + dx, dy) == 798 {
+                    found_798 = true;
+                }
+            }
+        }
+        assert!(found_798, "escape miss places Arrow Wound 798 near fled wolf");
+        assert_ne!(state.world.read().unwrap().get_object(3, 0), 148);
+        assert_ne!(state.world.read().unwrap().get_object(3, 0), 420);
+        assert_ne!(state.world.read().unwrap().get_object(5, 0), 420);
+    }
+
+    /// Missed animal (empty clicked tile, even with USE id) is 152+0 — no nearby retarget.
+    // Haxe: TransitionHelper uses the clicked tile only; 152_0.txt
+    #[test]
+    fn bow_missed_animal_is_empty_ground_arrow() {
+        let mut db = ContentDb::default();
+        let mut bow = def(152, 0, false);
+        bow.use_distance = 5;
+        bow.deadly_distance = 4.0;
+        db.objects.insert(152, bow);
+        db.objects.insert(151, def(151, 0, false));
+        let mut wolf = def(418, 0, true);
+        wolf.moves = 2;
+        db.objects.insert(418, wolf);
+        db.objects.insert(420, {
+            let mut s = def(420, 0, true);
+            s.moves = 2;
+            s
+        });
+        db.objects.insert(148, def(148, 0, false));
+        db.objects.insert(493, def(493, 0, false));
+        db.transitions
+            .insert((152, 418), tr(152, 418, 151, 420, false, false));
+        db.transitions
+            .insert((152, 0), tr(152, 0, 493, 148, false, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "bow@moved");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(152, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        // Wolf already moved to (3,0); click vacated origin.
+        state.world.write().unwrap().set_object(3, 0, 418);
+        let r = apply_use_at_command(&mut state, 1, 1, 0, Some(418), None).unwrap();
+        assert!(r.applied, "empty tile is 152+0");
+        assert_eq!(state.world.read().unwrap().get_object(1, 0), 148);
+        assert_eq!(state.world.read().unwrap().get_object(3, 0), 418);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 493);
+    }
+
+    /// Empty-ground bow shot (no USE id) places Arrow 148.
+    #[test]
+    fn bow_empty_ground_without_id_places_arrow() {
+        let mut db = ContentDb::default();
+        let mut bow = def(152, 0, false);
+        bow.use_distance = 5;
+        bow.deadly_distance = 4.0;
+        db.objects.insert(152, bow);
+        db.objects.insert(148, def(148, 0, false));
+        db.objects.insert(493, def(493, 0, false));
+        db.transitions
+            .insert((152, 0), tr(152, 0, 493, 148, false, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "bow@ground");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(152, 0);
+            p.x = 0;
+            p.y = 0;
+        }
+        let r = apply_use_at(&mut state, 1, 1, 0).unwrap();
+        assert!(r.applied);
+        assert_eq!(state.world.read().unwrap().get_object(1, 0), 148);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 493);
+    }
+
+    /// Hungry work pays food + exhaustion only — does not write food_store_max.
+    // Haxe: TransitionHelper L1247–1251 addFood / exhaustion; calculateFoodStoreMax later
+    #[test]
+    fn hungry_work_does_not_write_food_max() {
+        let mut db = ContentDb::default();
+        db.objects.insert(502, def(502, 0, false));
+        db.objects.insert(3961, def(3961, 0, true));
+        // New-target 3961 so object hungryWork=5 applies (Haxe newParentTarget.hungryWork).
+        let mut iron_tr = tr(502, 3961, 502, 3961, false, false);
+        iron_tr.hungry_work_cost = 5.0;
+        db.transitions.insert((502, 3961), iron_tr);
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "iron@hw");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.set_held(502, 0);
+            p.x = 0;
+            p.y = 0;
+            p.age = 30.0;
+            p.food = 20.0;
+            p.food_max = 20.0;
+            p.exhaustion = 0.0;
+        }
+        state.world.write().unwrap().set_object(0, 0, 3961);
+        let max_before = state.players.get(&1).unwrap().food_max;
+        let r = apply_use_at(&mut state, 1, 0, 0).unwrap();
+        assert!(r.applied);
+        let p = state.players.get(&1).unwrap();
+        assert_eq!(p.food_max, max_before, "hungry work must not assign food_max");
+        assert!(p.exhaustion > 0.0, "exhaustion from hungry work");
+        assert!(p.food < 20.0, "food spent");
     }
 
     /// ALLY-PICKUP-THRESHOLD: live AllyStrenghTooLowForPickup > 0 refuses USE on non-empty.
@@ -5823,6 +6348,368 @@ mod tests {
         assert_eq!(hh.contained[0].id, 31);
         assert_eq!(hh.contained[1].id, 32);
         assert_eq!(hh.to_held_string(), "292,31,32");
+        assert_eq!(state.world.read().unwrap().get_object(1, 0), 0);
+    }
+
+    /// Empty-hand DROP on a filled basket takes the first contained item (Haxe).
+    // Haxe: TransitionHelper.drop → doContainerStuff(true) L608–621 index 0
+    #[test]
+    fn drop_empty_hand_takes_first_from_basket() {
+        use ol_net::OutboundHub;
+
+        let mut db = ContentDb::default();
+        db.objects.insert(292, def_slots(292, 3));
+        db.objects.insert(31, def(31, 0, false));
+        db.objects.insert(32, def(32, 0, false));
+        let hub = OutboundHub::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "basket@drop");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+        }
+        let mut basket = ComplexObject::new_simple(292);
+        basket.contained = vec![31, 32];
+        basket.slots = vec![
+            ol_world::NestedHelper::id_only(31),
+            ol_world::NestedHelper::id_only(32),
+        ];
+        state.world.write().unwrap().set_object_complex(1, 0, basket);
+        crate::apply_drop(&mut state, &hub, 1, 1, 0, None);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 31);
+        assert_eq!(state.world.read().unwrap().get_object(1, 0), 292);
+        assert_eq!(
+            state
+                .world
+                .read()
+                .unwrap()
+                .get_helper(1, 0)
+                .map(|h| h.contained.clone())
+                .unwrap_or_default(),
+            vec![32]
+        );
+    }
+
+    /// Empty-hand USE with container index takes that slot; basket stays.
+    // Haxe: doContainerStuff(false, containerIndex) / click contained item
+    #[test]
+    fn use_empty_hand_slot_takes_from_basket() {
+        let mut db = ContentDb::default();
+        db.objects.insert(292, def_slots(292, 3));
+        db.objects.insert(31, def(31, 0, false));
+        db.objects.insert(32, def(32, 0, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "basket@slot");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+        }
+        let mut basket = ComplexObject::new_simple(292);
+        basket.contained = vec![31, 32];
+        basket.slots = vec![
+            ol_world::NestedHelper::id_only(31),
+            ol_world::NestedHelper::id_only(32),
+        ];
+        state.world.write().unwrap().set_object_complex(1, 0, basket);
+        let r = apply_use_at_ex(&mut state, 1, 1, 0, Some(1)).unwrap();
+        assert!(r.applied, "slot USE must take contained[1]");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 32);
+        assert_eq!(state.world.read().unwrap().get_object(1, 0), 292);
+        assert_eq!(
+            state
+                .world
+                .read()
+                .unwrap()
+                .get_helper(1, 0)
+                .map(|h| h.contained.clone())
+                .unwrap_or_default(),
+            vec![31]
+        );
+    }
+
+    /// REMV through the client wire path (birth-relative coords + helper into hands).
+    #[test]
+    fn remv_client_wire_takes_from_basket() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(292, def_slots(292, 3));
+        db.objects.insert(31, def(31, 0, false));
+        db.objects.insert(32, def(32, 0, false));
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "basket@remv");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 10;
+            p.y = 10;
+            p.birth_x = 10;
+            p.birth_y = 10;
+        }
+        let mut basket = ComplexObject::new_simple(292);
+        basket.contained = vec![31, 32];
+        basket.slots = vec![
+            ol_world::NestedHelper::id_only(31),
+            ol_world::NestedHelper::id_only(32),
+        ];
+        // World tile (10,10); client sends birth-relative (0,0).
+        state.world.write().unwrap().set_object_complex(10, 10, basket);
+        let hub = OutboundHub::new();
+        let counters = Counters::new();
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "REMV".into(),
+                payload: "0 0 0".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 31);
+        assert_eq!(
+            state
+                .world
+                .read()
+                .unwrap()
+                .get_helper(10, 10)
+                .map(|h| h.contained.clone())
+                .unwrap_or_default(),
+            vec![32]
+        );
+    }
+
+    /// Client `select_tile_action` wires against a real Basket 292 / table.
+    ///
+    /// LMB body = USE pickup; LMB contained / RMB = REMV take; held DROP = put/cycle;
+    /// SWAP = pick up the basket itself.
+    #[test]
+    fn client_wire_basket_container_matrix() {
+        use crate::{apply_intent, Counters};
+        use ol_net::{NetIntent, OutboundHub};
+
+        let mut db = ContentDb::default();
+        db.objects.insert(292, def_slots(292, 5));
+        let mut table = def_slots(125, 3);
+        table.permanent = true;
+        db.objects.insert(125, table);
+        for id in [31, 32, 33] {
+            let mut o = def(id, 0, false);
+            o.containable = true;
+            o.contain_size = 1.0;
+            db.objects.insert(id, o);
+        }
+        let hub = OutboundHub::new();
+        let counters = Counters::new();
+        let mut state = state_with(db);
+        crate::spawn_player(&mut state, 1, "basket@client");
+        {
+            let p = state.players.get_mut(&1).unwrap();
+            p.clear_held();
+            p.x = 0;
+            p.y = 0;
+            p.birth_x = 0;
+            p.birth_y = 0;
+        }
+
+        let put_basket = |state: &mut crate::SimState, x: i32, y: i32, ids: &[i32]| {
+            state.world.write().unwrap().set_object(x, y, 0);
+            let mut basket = ComplexObject::new_simple(292);
+            basket.contained = ids.to_vec();
+            basket.slots = ids
+                .iter()
+                .map(|&id| ol_world::NestedHelper::id_only(id))
+                .collect();
+            state.world.write().unwrap().set_object_complex(x, y, basket);
+        };
+        let contained = |state: &crate::SimState, x: i32, y: i32| {
+            state
+                .world
+                .read()
+                .unwrap()
+                .get_helper(x, y)
+                .map(|h| h.contained.clone())
+                .unwrap_or_default()
+        };
+        let remv = |state: &mut crate::SimState, payload: &str| {
+            apply_intent(
+                state,
+                &counters,
+                &hub,
+                NetIntent::Raw {
+                    conn_id: 1,
+                    tag: "REMV".into(),
+                    payload: payload.into(),
+                },
+            );
+        };
+
+        // Client LMB on contained slot 0 → REMV 1 0 0# takes first; basket stays.
+        put_basket(&mut state, 1, 0, &[31, 32]);
+        remv(&mut state, "1 0 0");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 31, "LMB slot 0 take");
+        assert_eq!(state.world.read().unwrap().get_object(1, 0), 292);
+        assert_eq!(contained(&state, 1, 0), vec![32]);
+
+        // Client RMB top → REMV 1 0 -1# takes last.
+        state.players.get_mut(&1).unwrap().clear_held();
+        put_basket(&mut state, 1, 0, &[31, 32]);
+        remv(&mut state, "1 0 -1");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 32, "RMB top = last");
+        assert_eq!(contained(&state, 1, 0), vec![31]);
+
+        // Empty-hand DROP (Haxe doContainerStuff) takes first.
+        state.players.get_mut(&1).unwrap().clear_held();
+        put_basket(&mut state, 1, 0, &[31, 32]);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Drop {
+                conn_id: 1,
+                x: 1,
+                y: 0,
+                c: Some(-1),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 31, "empty DROP first");
+        assert_eq!(contained(&state, 1, 0), vec![32]);
+
+        // LMB USE on basket body picks up cargo (client "USE 1 0 292#").
+        state.players.get_mut(&1).unwrap().clear_held();
+        put_basket(&mut state, 1, 0, &[31, 32]);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 1,
+                y: 0,
+                id: Some(292),
+                index: None,
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 292);
+        let hh = state
+            .players
+            .get(&1)
+            .unwrap()
+            .held_helper
+            .as_ref()
+            .expect("held basket helper");
+        assert_eq!(hh.contained.iter().map(|c| c.id).collect::<Vec<_>>(), vec![31, 32]);
+        assert_eq!(state.world.read().unwrap().get_object(1, 0), 0);
+
+        // DROP whole basket on adjacent empty keeps cargo.
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Drop {
+                conn_id: 1,
+                x: 0,
+                y: 1,
+                c: Some(-1),
+            },
+        );
+        assert_eq!(state.world.read().unwrap().get_object(0, 1), 292);
+        assert_eq!(contained(&state, 0, 1), vec![31, 32]);
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+
+        // Held + DROP on filled basket cycles last (client RMB/LMB put).
+        put_basket(&mut state, 1, 0, &[31]);
+        state.players.get_mut(&1).unwrap().set_held(33, 0);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Drop {
+                conn_id: 1,
+                x: 1,
+                y: 0,
+                c: Some(-1),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 31, "cycle last out");
+        assert_eq!(contained(&state, 1, 0), vec![33]);
+
+        // Held + USE on empty basket puts in (not swap).
+        put_basket(&mut state, 1, 0, &[]);
+        state.players.get_mut(&1).unwrap().set_held(31, 0);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Use {
+                conn_id: 1,
+                x: 1,
+                y: 0,
+                id: Some(292),
+                index: None,
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 0);
+        assert_eq!(contained(&state, 1, 0), vec![31]);
+
+        // SWAP holding berry with filled basket: pick up basket+cargo.
+        put_basket(&mut state, 1, 0, &[32]);
+        state.players.get_mut(&1).unwrap().set_held(31, 0);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Raw {
+                conn_id: 1,
+                tag: "SWAP".into(),
+                payload: "1 0".into(),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 292);
+        let hh = state
+            .players
+            .get(&1)
+            .unwrap()
+            .held_helper
+            .as_ref()
+            .expect("swapped basket");
+        assert_eq!(hh.contained.iter().map(|c| c.id).collect::<Vec<_>>(), vec![32]);
+        assert_eq!(state.world.read().unwrap().get_object(1, 0), 31);
+
+        // Permanent table: client LMB/RMB REMV takes (top = last).
+        state.players.get_mut(&1).unwrap().clear_held();
+        let mut t = ComplexObject::new_simple(125);
+        t.contained = vec![31, 32];
+        t.slots = vec![
+            ol_world::NestedHelper::id_only(31),
+            ol_world::NestedHelper::id_only(32),
+        ];
+        state.world.write().unwrap().set_object_complex(1, 0, t);
+        remv(&mut state, "1 0 -1");
+        assert_eq!(state.players.get(&1).unwrap().held_id, 32);
+        assert_eq!(state.world.read().unwrap().get_object(1, 0), 125);
+        assert_eq!(contained(&state, 1, 0), vec![31]);
+
+        // Empty basket + empty-hand DROP picks up the basket.
+        state.players.get_mut(&1).unwrap().clear_held();
+        put_basket(&mut state, 1, 0, &[]);
+        apply_intent(
+            &mut state,
+            &counters,
+            &hub,
+            NetIntent::Drop {
+                conn_id: 1,
+                x: 1,
+                y: 0,
+                c: Some(-1),
+            },
+        );
+        assert_eq!(state.players.get(&1).unwrap().held_id, 292);
         assert_eq!(state.world.read().unwrap().get_object(1, 0), 0);
     }
 

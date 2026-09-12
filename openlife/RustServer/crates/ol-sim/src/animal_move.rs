@@ -7,6 +7,20 @@ use crate::environment::Season;
 use ol_content::ContentDb;
 use ol_world::{is_biome_blocking as world_biome_blocking, World, GREEN};
 use rand::Rng;
+use std::cell::Cell;
+
+thread_local! {
+    static NEXT_ANIMAL_MOVE_DEST: Cell<Option<(i32, i32)>> = const { Cell::new(None) };
+}
+
+/// Test hook: next [`pick_animal_destination_steered`] returns this tile.
+pub fn force_next_animal_move_dest(x: i32, y: i32) {
+    NEXT_ANIMAL_MOVE_DEST.with(|c| c.set(Some((x, y))));
+}
+
+fn take_forced_animal_move_dest() -> Option<(i32, i32)> {
+    NEXT_ANIMAL_MOVE_DEST.with(|c| c.take())
+}
 
 // Haxe BiomeTag ids (mirror ol_world::biome; not all re-exported at crate root).
 const YELLOW: u8 = 2;
@@ -609,6 +623,9 @@ pub fn pick_animal_destination_steered<R: Rng>(
     knobs: AnimalMoveChanceKnobs,
 ) -> Option<(i32, i32)> {
     let move_dist = move_dist.clamp(1, 6);
+    if let Some(dest) = take_forced_animal_move_dest() {
+        return Some(dest);
+    }
     let mut max_iterations: i32 = 20;
     let mut best_target: Option<(i32, i32)> = None;
     let mut best_quad_dist = f64::MAX;
