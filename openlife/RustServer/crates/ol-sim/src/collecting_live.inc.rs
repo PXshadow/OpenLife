@@ -66,7 +66,34 @@ pub fn collecting_profession_scan_tick(
             let mut smith_inp = inp.clone();
             smith_inp.is_assigned_job = false;
             smith_inp.profession_is_sticky = false;
-            smith_profession_scan_tick(tiles, &smith_inp, "AGE_ROTATED_JOB", smith_rt)
+            let smith = smith_profession_scan_tick(tiles, &smith_inp, "AGE_ROTATED_JOB", smith_rt);
+            if smith.had_action {
+                return smith;
+            }
+            // Haxe: doSmithing(1) false → continue rabbits / mutton / pork
+            match crate::collecting::collecting_after_smith(&sensors, collector, &objs) {
+                CollectingAction::None | CollectingAction::DeferSmithing => {
+                    ProfessionScanTickResult::none()
+                }
+                CollectingAction::CraftAndDrop { which_id, apply } => {
+                    collecting_craft_drop_to_live(tiles, inp, which_id, apply)
+                }
+                CollectingAction::ShortCraft {
+                    actor,
+                    target,
+                    radius,
+                    max_new_actor,
+                    craft_actor_if_needed,
+                } => collecting_short_craft_to_live(
+                    tiles,
+                    inp,
+                    actor,
+                    target,
+                    radius,
+                    max_new_actor,
+                    craft_actor_if_needed,
+                ),
+            }
         }
     }
 }

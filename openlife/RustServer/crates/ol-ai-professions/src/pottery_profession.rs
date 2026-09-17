@@ -80,6 +80,9 @@ pub const POTTERY_CRAFT_SEARCH_RADIUS: i32 = 30;
 pub const GATHER_CLAY_HOME_QUAD: i32 = 100;
 /// gatherClay far-from-home loose clay scan (quad > 225).
 pub const GATHER_CLAY_FAR_QUAD: i32 = 225;
+/// Haxe gatherClay GetClosestObjectById clay deposit 125 / pit 409 r=80.
+// Haxe: AiBase.gatherClay L2965–2966
+pub const CLAY_SOURCE_SEARCH_RADIUS: i32 = 80;
 /// Max clay units to need in one batch (Haxe neededClay cap 6).
 pub const NEEDED_CLAY_CAP: i32 = 6;
 /// Wet stock threshold before skipping pile-of-clay pull (Haxe < 4).
@@ -89,6 +92,12 @@ pub const GATHER_CLAY_MIN_STOCK: i32 = 4;
 /// Empty basket-with-clay search near home (Haxe GetClosestObjectToPosition r=10).
 // Haxe: AiBase.gatherClay empty basket home r=10 ~L3009
 pub const EMPTY_BASKET_HOME_SEARCH_RADIUS: i32 = 10;
+/// Basket-with-clay search from player (Haxe L3027 r=20, searchContained 126).
+pub const PLAYER_CLAY_BASKET_SEARCH_RADIUS: i32 = 20;
+/// Any-basket search from clay deposit (Haxe L3031 r=5).
+pub const DEPOSIT_BASKET_SEARCH_RADIUS: i32 = 5;
+/// Loose clay pickup from player when far from home (Haxe L3066 r=5).
+pub const LOOSE_CLAY_SEARCH_RADIUS: i32 = 5;
 /// Wet nozzle ground count radius in cleanUp (Haxe CountCloseObjects r=20).
 // Haxe: AiBase.cleanUp Wet Clay Nozzle count r=20 ~L1032
 pub const WET_NOZZLE_CLEANUP_COUNT_RADIUS: i32 = 20;
@@ -294,6 +303,22 @@ pub fn kiln_id_priority_after_fire_check() -> &'static [i32] {
     &[WOOD_FILLED_KILN, ADOBE_KILN]
 }
 
+/// True when helper may keep shaping: firing 282 still counts, else only 281/238.
+/// Sealed 294 / sealed-firing 293 / charcoal-kiln 299 are not shaping kilns
+/// (unseal / basket-empty run first; 294 lookup is commented out).
+// Haxe: doPotteryHelper kiln == null abort after gather ~2856
+pub fn helper_has_shaping_kiln(c: &PotteryCounts) -> bool {
+    if c.firing_kiln || c.kiln_parent_id == Some(FIRING_ADOBE_KILN) {
+        return true;
+    }
+    for &id in kiln_id_priority_after_fire_check() {
+        if c.get(id) > 0 || c.kiln_parent_id == Some(id) {
+            return true;
+        }
+    }
+    false
+}
+
 /// True if `id` is any adobe-kiln family parent used by pottery.
 pub fn is_kiln_id(id: i32) -> bool {
     matches!(
@@ -407,16 +432,22 @@ pub fn is_clay_source_id(id: i32) -> bool {
     matches!(id, CLAY_DEPOSIT | CLAY_PIT)
 }
 
-/// Closest clay deposit **or** pit to the player (Haxe GetClosestObjectByIds family).
+/// Clay deposit **then** pit (Haxe GetClosest 125, else 409).
 ///
-/// Caller passes map objects; pure pick replaces Haxe TODO L2968.
-// Haxe: AiBase.gatherClay ~2968 GetClosestObjectByIds([125, 409])
+/// Executable Haxe prefers any deposit in r=80 over a closer pit.
+/// Commented TODO L2968 closest-of-both is not shipped.
+// Haxe: AiBase.gatherClay L2965–2968
 pub fn pick_closest_clay_source(
     player_x: i32,
     player_y: i32,
     candidates: &[ClaySourceCandidate],
 ) -> Option<ClaySourceCandidate> {
-    pick_closest_clay_source_radius(player_x, player_y, candidates, i32::MAX)
+    pick_closest_clay_source_radius(
+        player_x,
+        player_y,
+        candidates,
+        CLAY_SOURCE_SEARCH_RADIUS,
+    )
 }
 
 pub fn pick_closest_clay_source_radius(
@@ -425,26 +456,32 @@ pub fn pick_closest_clay_source_radius(
     candidates: &[ClaySourceCandidate],
     radius: i32,
 ) -> Option<ClaySourceCandidate> {
-    let mut best: Option<(i32, ClaySourceCandidate)> = None;
-    for &c in candidates {
-        if !is_clay_source_id(c.parent_id) {
-            continue;
-        }
-        let d = potter_chebyshev(player_x, player_y, c.x, c.y);
-        if d > radius {
-            continue;
-        }
-        match best {
-            None => best = Some((d, c)),
-            Some((bd, _)) if d < bd => best = Some((d, c)),
-            // Prefer deposit over pit on equal distance (stable content bias).
-            Some((bd, prev)) if d == bd && c.parent_id == CLAY_DEPOSIT && prev.parent_id == CLAY_PIT => {
-                best = Some((d, c));
+    fn closest_id(
+        player_x: i32,
+        player_y: i32,
+        candidates: &[ClaySourceCandidate],
+        radius: i32,
+        want: i32,
+    ) -> Option<ClaySourceCandidate> {
+        let mut best: Option<(i32, ClaySourceCandidate)> = None;
+        for &c in candidates {
+            if c.parent_id != want {
+                continue;
             }
-            _ => {}
+            let d = potter_chebyshev(player_x, player_y, c.x, c.y);
+            if d > radius {
+                continue;
+            }
+            match best {
+                None => best = Some((d, c)),
+                Some((bd, _)) if d < bd => best = Some((d, c)),
+                _ => {}
+            }
         }
+        best.map(|(_, c)| c)
     }
-    best.map(|(_, c)| c)
+    closest_id(player_x, player_y, candidates, radius, CLAY_DEPOSIT)
+        .or_else(|| closest_id(player_x, player_y, candidates, radius, CLAY_PIT))
 }
 
 /// Build [`GatherClayInput`] deposit fields from closest clay source pick.
@@ -569,43 +606,52 @@ impl PotteryCounts {
         self.get(id) + if self.held_id == id { 1 } else { 0 }
     }
 
-    /// Wet Clay Bowl 233 + Wet Bowl tongs 284.
+    /// Wet Clay Bowl 233 + Wet Bowl tongs 284 (Haxe `countCurrentObjects` includes held).
     pub fn count_wet_bowl(&self) -> i32 {
         self.sum(&[WET_CLAY_BOWL, WET_BOWL_TONGS])
+            + i32::from(self.held_id == WET_CLAY_BOWL || self.held_id == WET_BOWL_TONGS)
     }
 
-    /// Wet Clay Plate 234 + Wet Plate tongs 240.
+    /// Wet Clay Plate 234 + Wet Plate tongs 240 (Haxe `countCurrentObjects` includes held).
     pub fn count_wet_plate(&self) -> i32 {
         self.sum(&[WET_CLAY_PLATE, WET_PLATE_TONGS])
+            + i32::from(self.held_id == WET_CLAY_PLATE || self.held_id == WET_PLATE_TONGS)
     }
 
     /// Wet Clay Crock 1216 + tongs 1218 (+ squash crock 1243 for stock clay sum).
     pub fn count_wet_crock(&self) -> i32 {
         self.sum(&[WET_CLAY_CROCK, WET_CROCK_TONGS, CROCK_WITH_SQUASH])
+            + i32::from(
+                self.held_id == WET_CLAY_CROCK
+                    || self.held_id == WET_CROCK_TONGS
+                    || self.held_id == CROCK_WITH_SQUASH,
+            )
     }
 
     /// Clay 126 + wet bowls + wet plates (Haxe clay stock for gather gate).
-    // Haxe: clay += countWetBowl + countWetPlate
+    // Haxe: clay += countWetBowl + countWetPlate; countCurrentObject includes held
     pub fn count_clay_stock(&self) -> i32 {
-        self.get(CLAY) + self.count_wet_bowl() + self.count_wet_plate()
+        self.get_with_held(CLAY) + self.count_wet_bowl() + self.count_wet_plate()
     }
 
     pub fn count_bowl(&self) -> i32 {
-        self.get(CLAY_BOWL)
+        self.get_with_held(CLAY_BOWL)
     }
 
     pub fn count_plate(&self) -> i32 {
-        self.get(CLAY_PLATE)
+        self.get_with_held(CLAY_PLATE)
     }
 
     pub fn count_crock(&self) -> i32 {
         self.sum(&[CLAY_CROCK, CROCK_WITH_SQUASH])
+            + i32::from(self.held_id == CLAY_CROCK || self.held_id == CROCK_WITH_SQUASH)
     }
 
     /// Wet crock for shaping/firing (excludes squash).
-    // Haxe: countCurrentObjects([1216, 1218]) in doPotteryOnFire
+    // Haxe: countCurrentObjects([1216, 1218]) in doPotteryOnFire includes held
     pub fn count_wet_crock_raw(&self) -> i32 {
         self.sum(&[WET_CLAY_CROCK, WET_CROCK_TONGS])
+            + i32::from(self.held_id == WET_CLAY_CROCK || self.held_id == WET_CROCK_TONGS)
     }
 
     /// Wet Clay Nozzle 285 + Wet Nozzle tongs 295.
@@ -619,11 +665,14 @@ impl PotteryCounts {
     }
 
     pub fn count_charcoal_basket(&self) -> i32 {
-        self.get(BASKET_OF_CHARCOAL)
+        self.get_with_held(BASKET_OF_CHARCOAL)
     }
 
     pub fn count_coal(&self) -> i32 {
         self.sum(&[BIG_CHARCOAL_PILE, HUGE_CHARCOAL_PILE])
+            + i32::from(
+                self.held_id == BIG_CHARCOAL_PILE || self.held_id == HUGE_CHARCOAL_PILE,
+            )
     }
 }
 
@@ -679,18 +728,18 @@ pub fn fill_pottery_counts_from_map(
         let d_home = potter_chebyshev(home_x, home_y, o.x, o.y);
         let d_player = potter_chebyshev(player_x, player_y, o.x, o.y);
         let id = o.parent_id;
+        // countCurrentObject-style stock uses home_r (doPottery maxSearchRadius=30 live).
+        // Kiln parents must be in by_id so shortCraft(0,294) / shortCraft(292,299) see them.
         if d_home <= home_r {
-            if is_kiln_id(id) {
-                // kiln is parent only
-            } else {
-                let n = c.get(id);
-                c.set(id, n + 1);
-            }
-            if id == CLAY {
-                c.count_clay_on_floor += 1;
-            }
+            let n = c.get(id);
+            c.set(id, n + 1);
         }
-        if d_player <= home_r {
+        // Haxe CountCloseObjects clay 126 home r=20 (not the craft-radius wrap).
+        if d_home <= CLAY_FLOOR_COUNT_RADIUS && id == CLAY {
+            c.count_clay_on_floor += 1;
+        }
+        // Haxe doPotteryOnFire CountCloseObjects bowls/crocks from player r=20.
+        if d_player <= KILN_SEARCH_RADIUS {
             if id == CLAY_BOWL {
                 c.count_close_bowl += 1;
             }
@@ -801,8 +850,8 @@ pub fn pottery_on_fire_counts_from_pottery(c: &PotteryCounts) -> PotteryOnFireCo
         } else {
             DEFAULT_MAX_CLAY_CROCKS
         },
-        // On-fire wet crock excludes squash (Haxe countCurrentObjects([1216, 1218])).
-        count_wet_crock: c.sum(&[WET_CLAY_CROCK, WET_CROCK_TONGS]),
+        // On-fire wet crock excludes squash (Haxe countCurrentObjects([1216, 1218]) includes held).
+        count_wet_crock: c.count_wet_crock_raw(),
         count_wet_nozzle: c.count_wet_nozzle(),
         count_nozzle: c.count_nozzle(),
         max_nozzle: if c.max_nozzle > 0 {
@@ -885,6 +934,8 @@ pub struct GatherClayInput {
     /// Full basket only at deposit r=5 (player may be far) â€” still pickup.
     // Haxe: basket from deposit search with containedObjects.length > 2
     pub full_basket_near_deposit: bool,
+    /// Player-local clay-basket contained > 2 (Haxe L3027 then L3035).
+    pub full_basket_near_player: bool,
     /// Full basket (contained > 2) among basket targets.
     pub basket_full: bool,
     /// Loose clay near player when far from home.
@@ -907,6 +958,7 @@ impl Default for GatherClayInput {
             basket_with_clay_near_player: false,
             empty_basket_near_deposit: false,
             full_basket_near_deposit: false,
+            full_basket_near_player: false,
             basket_full: false,
             loose_clay_near_player: false,
         }
@@ -917,15 +969,13 @@ impl Default for GatherClayInput {
 // Haxe: AiBase.gatherClay ~2956â€“3097
 pub fn gather_clay(inp: &GatherClayInput) -> PotteryAction {
     let dist_home = potter_quad_dist(inp.player_x, inp.player_y, inp.home_x, inp.home_y);
-    let _dist_deposit = if inp.has_clay_deposit {
+    let dist_deposit = if inp.has_clay_deposit {
         potter_quad_dist(inp.player_x, inp.player_y, inp.deposit_x, inp.deposit_y)
     } else {
         -1
     };
-    // Haxe uses CalculateQuadDistance but compares to 1 for "adjacent" via helper â€”
-    // live layer uses tile adjacency; pure uses chebyshev â‰¤1 for deposit.
-    let deposit_adj = inp.has_clay_deposit
-        && potter_chebyshev(inp.player_x, inp.player_y, inp.deposit_x, inp.deposit_y) <= 1;
+    // Haxe L2989: CalculateQuadDistanceToObject(deposit) <= 1 (same tile or ortho, not diagonal).
+    let deposit_adj = inp.has_clay_deposit && dist_deposit >= 0 && dist_deposit <= 1;
 
     // Holding Basket 292
     if inp.held_id == BASKET {
@@ -954,7 +1004,7 @@ pub fn gather_clay(inp: &GatherClayInput) -> PotteryAction {
         return PotteryAction::GotoClayDeposit;
     }
 
-    // Close to home: empty basket with clay
+    // Close to home: empty basket with clay (Haxe L3007–3022, even if full)
     if dist_home <= GATHER_CLAY_HOME_QUAD && inp.basket_with_clay_near_home {
         if inp.held_id != 0 {
             // Haxe: dropHeldObject(1, true)
@@ -966,13 +1016,11 @@ pub fn gather_clay(inp: &GatherClayInput) -> PotteryAction {
         return PotteryAction::EmptyBasketAtHome;
     }
 
-    // Full basket near player or deposit â†’ pickup to bring home
-    // Haxe: basket != null && contained > 2 (includes deposit-only full when player far)
-    if inp.basket_full
-        && (inp.basket_with_clay_near_player
-            || inp.empty_basket_near_deposit
-            || inp.basket_with_clay_near_home
-            || inp.full_basket_near_deposit)
+    // Haxe L3027 then L3031: one `basket` — player clay-basket r=20, else deposit any r=5.
+    // Full pickup only if THAT basket has contained > 2 (player clay-basket wins even if not full).
+    // Haxe: AiBase.gatherClay L3035–3043
+    if inp.full_basket_near_player
+        || (inp.full_basket_near_deposit && !inp.basket_with_clay_near_player)
     {
         if inp.held_id != 0 {
             // Haxe: dropHeldObject(1)
@@ -993,10 +1041,10 @@ pub fn gather_clay(inp: &GatherClayInput) -> PotteryAction {
                 max_distance_to_home: 10,
             };
         }
-        // need basket to put clay
+        // Haxe `basket` after player+deposit search (not home)
         let has_basket = inp.basket_with_clay_near_player
             || inp.empty_basket_near_deposit
-            || inp.basket_with_clay_near_home;
+            || inp.full_basket_near_deposit;
         if !has_basket {
             // Haxe: dropHeldObject(10)
             return PotteryAction::DropHeld {
@@ -1016,26 +1064,20 @@ pub fn gather_clay(inp: &GatherClayInput) -> PotteryAction {
         return PotteryAction::None;
     }
 
-    // No basket â†’ GetOrCraft basket 292
+    // No basket â†’ GetOrCraft basket 292 (Haxe L3076–3078; `basket` is player+deposit only)
     let has_any_basket = inp.basket_with_clay_near_player
         || inp.empty_basket_near_deposit
-        || inp.basket_with_clay_near_home
-        || inp.basket_full
         || inp.full_basket_near_deposit;
-    // Haxe: basket null after searches near deposit / player
-    // When holding nothing and no basket nearby â†’ craft basket
     if !has_any_basket {
         return PotteryAction::SeekOrCraft {
             object_id: BASKET,
         };
     }
 
-    // Basket near deposit empty path: Haxe finds empty basket near deposit;
-    // if not holding and not adjacent, goto deposit then dig.
+    // Haxe L3081: dropHeldObject(10) — allowAllPiles default false
     if inp.held_id != 0 {
-        // Haxe: dropHeldObject(10)
         return PotteryAction::DropHeld {
-            allow_piles: true,
+            allow_piles: false,
             max_distance_to_home: 10,
         };
     }
@@ -1140,12 +1182,6 @@ pub fn do_pottery(
         };
     }
 
-    // Need kiln (wood-filled or cold adobe) for rest of pipeline
-    let has_kiln = counts.kiln_parent_id.is_some()
-        || counts.firing_kiln
-        || counts.get(WOOD_FILLED_KILN) > 0
-        || counts.get(ADOBE_KILN) > 0;
-
     let clay_stock = counts.count_clay_stock();
     if runtime.stage < 2.0 && clay_stock < GATHER_CLAY_MIN_STOCK {
         if let Some(g) = gather {
@@ -1161,9 +1197,11 @@ pub fn do_pottery(
         }
     }
 
-    runtime.stage = runtime.stage.max(2.0);
+    // Haxe L2854: this.profession['POTTER'] = 2 (assign, not max — resets 3/10)
+    runtime.stage = 2.0;
 
-    if !has_kiln {
+    // Haxe: GetClosest 281 then 238 (294 commented); firing 282 already bound
+    if !helper_has_shaping_kiln(counts) {
         return PotteryAction::Abort;
     }
 
@@ -1206,10 +1244,9 @@ pub fn do_pottery(
     if runtime.stage < 3.0
         && counts.count_clay_on_floor < needed_clay
         && wet_total < WET_STOCK_PILE_GATE
+        && (counts.get(PILE_OF_CLAY) > 0 || counts.held_id == PILE_OF_CLAY)
     {
-        // shortCraft(0, 3905) Pile of Clay
-        // Always attempt pile pull when gate says so (Haxe shortCraft searches).
-        runtime.stage = runtime.stage.max(2.0);
+        // Haxe L2884–2888: shortCraft(0, 3905) — continue on fail (no pile in range)
         return PotteryAction::ShortCraft {
             actor: 0,
             target: PILE_OF_CLAY,
@@ -1297,6 +1334,7 @@ pub fn potter_job_rung_label(rung_label: &str) -> bool {
             | "LOW_PRIORITY_WORK"
             | "CRITICAL_POTTERY"
             | "HOT_KILN"
+            | "CRITICAL_MISC"
     )
 }
 
@@ -1417,7 +1455,7 @@ pub fn potter_goal_from_map_and_rung(
         held_id,
         0,
         objects,
-        KILN_SEARCH_RADIUS,
+        POTTERY_CRAFT_SEARCH_RADIUS,
         DEFAULT_MAX_CLAY_BOWLS,
         DEFAULT_MAX_CLAY_PLATES,
         DEFAULT_MAX_CLAY_CROCKS,
@@ -1440,6 +1478,11 @@ pub fn potter_radius_table() -> &'static [(i32, &'static str)] {
         (POTTERY_CRAFT_SEARCH_RADIUS, "doPottery maxSearch"),
         (GATHER_CLAY_HOME_QUAD, "gatherClay home quad"),
         (GATHER_CLAY_FAR_QUAD, "gatherClay far quad"),
+        (CLAY_SOURCE_SEARCH_RADIUS, "gatherClay deposit/pit"),
+        (EMPTY_BASKET_HOME_SEARCH_RADIUS, "gatherClay home basket"),
+        (PLAYER_CLAY_BASKET_SEARCH_RADIUS, "gatherClay player basket"),
+        (DEPOSIT_BASKET_SEARCH_RADIUS, "gatherClay deposit basket"),
+        (LOOSE_CLAY_SEARCH_RADIUS, "gatherClay loose clay"),
     ]
 }
 
@@ -1515,6 +1558,48 @@ mod tests {
         assert_eq!(f.parent_id, FIRING_ADOBE_KILN);
         assert!(is_kiln_id(ADOBE_KILN));
         assert!(!is_kiln_id(CLAY_BOWL));
+        // Haxe L2781–2795: 281→238→282→294→293, home r=20
+        assert_eq!(
+            kiln_id_priority(),
+            &[
+                WOOD_FILLED_KILN,
+                ADOBE_KILN,
+                FIRING_ADOBE_KILN,
+                SEALED_ADOBE_KILN,
+                FIRING_KILN_SEALED,
+            ]
+        );
+        assert_eq!(KILN_SEARCH_RADIUS, 20);
+        assert_eq!(POTTERY_CRAFT_SEARCH_RADIUS, 30);
+        // Haxe L2831–2834: after firing kiln check, only 281 then 238 (294 commented)
+        assert_eq!(
+            kiln_id_priority_after_fire_check(),
+            &[WOOD_FILLED_KILN, ADOBE_KILN]
+        );
+        let sealed = [KilnCandidate {
+            parent_id: SEALED_ADOBE_KILN,
+            x: 4,
+            y: 0,
+        }];
+        assert_eq!(
+            pick_kiln_near_home(0, 0, &sealed).unwrap().parent_id,
+            SEALED_ADOBE_KILN
+        );
+        let firing_sealed = [KilnCandidate {
+            parent_id: FIRING_KILN_SEALED,
+            x: 2,
+            y: 0,
+        }];
+        assert_eq!(
+            pick_kiln_near_home(0, 0, &firing_sealed).unwrap().parent_id,
+            FIRING_KILN_SEALED
+        );
+        let too_far = [KilnCandidate {
+            parent_id: WOOD_FILLED_KILN,
+            x: 21,
+            y: 0,
+        }];
+        assert!(pick_kiln_near_home(0, 0, &too_far).is_none());
     }
 
     #[test]
@@ -1656,7 +1741,8 @@ mod tests {
     #[test]
     fn do_pottery_pile_of_clay_when_floor_short() {
         let mut c = counts_basic();
-        c.set(CLAY, 5); // clay stock â‰¥4 so stageâ†’2 without gather
+        c.set(CLAY, 5); // clay stock >=4 so stage->2 without gather
+        c.set(PILE_OF_CLAY, 1);
         c.count_clay_on_floor = 0;
         c.max_bowls = 3;
         c.max_plates = 3;
@@ -1830,6 +1916,9 @@ mod tests {
         assert_eq!(c.count_bowl(), 1);
         assert_eq!(c.count_clay_on_floor, 1);
         assert!(c.kiln_parent_id.is_some());
+        // Kiln parents counted in by_id so unseal / charcoal-kiln shortCraft see them.
+        assert_eq!(c.get(ADOBE_KILN), 1);
+        assert_eq!(c.get(FIRING_ADOBE_KILN), 1);
     }
 
     #[test]
@@ -1910,7 +1999,10 @@ mod tests {
         );
         assert_eq!(
             pottery_action_short_craft_apply(a, 0),
-            SmithApply::SeekOrCraftActor { actor: STONE }
+            SmithApply::SeekOrCraftActor {
+                actor: STONE,
+                craft_if_needed: true,
+            }
         );
     }
 
@@ -1976,7 +2068,7 @@ mod tests {
 
     #[test]
     fn pick_closest_clay_source_deposit_vs_pit() {
-        // Haxe L2968: closest of deposit(125) vs pit(409)
+        // Haxe L2965–2968: GetClosest deposit 125, else pit 409 (not closest-of-both TODO)
         let cands = [
             ClaySourceCandidate {
                 parent_id: CLAY_PIT,
@@ -1990,8 +2082,8 @@ mod tests {
             },
         ];
         let s = pick_closest_clay_source(0, 0, &cands).unwrap();
-        assert_eq!(s.parent_id, CLAY_PIT);
-        assert_eq!((s.x, s.y), (5, 0));
+        assert_eq!(s.parent_id, CLAY_DEPOSIT);
+        assert_eq!((s.x, s.y), (10, 0));
         // Equal distance â†’ prefer deposit
         let tie = [
             ClaySourceCandidate {
@@ -2010,7 +2102,22 @@ mod tests {
         let mut inp = GatherClayInput::default();
         apply_clay_source_to_gather_input(&mut inp, Some(s));
         assert!(inp.has_clay_deposit);
-        assert_eq!((inp.deposit_x, inp.deposit_y), (5, 0));
+        assert_eq!((inp.deposit_x, inp.deposit_y), (10, 0));
+        // No deposit → closest pit
+        let pit_only = [ClaySourceCandidate {
+            parent_id: CLAY_PIT,
+            x: 5,
+            y: 0,
+        }];
+        let pit = pick_closest_clay_source(0, 0, &pit_only).unwrap();
+        assert_eq!(pit.parent_id, CLAY_PIT);
+        assert_eq!(CLAY_SOURCE_SEARCH_RADIUS, 80);
+        let too_far = [ClaySourceCandidate {
+            parent_id: CLAY_DEPOSIT,
+            x: 81,
+            y: 0,
+        }];
+        assert!(pick_closest_clay_source(0, 0, &too_far).is_none());
     }
 
     #[test]
@@ -2237,5 +2344,338 @@ mod tests {
                 target: WET_CLAY_BOWL
             }
         );
+    }
+
+    #[test]
+    fn fill_counts_sealed_and_charcoal_kiln_in_by_id() {
+        let objs = [
+            PotteryMapObj {
+                parent_id: SEALED_ADOBE_KILN,
+                x: 2,
+                y: 0,
+            },
+            PotteryMapObj {
+                parent_id: KILN_WITH_CHARCOAL,
+                x: 3,
+                y: 0,
+            },
+        ];
+        let c = fill_pottery_counts_from_map(
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &objs,
+            POTTERY_CRAFT_SEARCH_RADIUS,
+            DEFAULT_MAX_CLAY_BOWLS,
+            DEFAULT_MAX_CLAY_PLATES,
+            DEFAULT_MAX_CLAY_CROCKS,
+        );
+        assert_eq!(c.get(SEALED_ADOBE_KILN), 1);
+        assert_eq!(c.get(KILN_WITH_CHARCOAL), 1);
+        let mut rt = PotterProfessionRuntime {
+            is_last_potter: true,
+            ..Default::default()
+        };
+        assert_eq!(
+            do_pottery(&c, &mut rt, 1, 0.0, 0.0, None),
+            PotteryAction::ShortCraft {
+                actor: 0,
+                target: SEALED_ADOBE_KILN
+            }
+        );
+    }
+
+    #[test]
+    fn helper_sealed_firing_kiln_alone_aborts_after_gather() {
+        // Haxe L2835–2836 skip 294; 293 is not a shaping kiln in the helper.
+        let mut c = counts_basic();
+        c.kiln_parent_id = Some(FIRING_KILN_SEALED);
+        c.firing_kiln = false;
+        c.set(CLAY, 5);
+        c.count_clay_on_floor = 5;
+        let mut rt = PotterProfessionRuntime {
+            is_last_potter: true,
+            stage: 2.0,
+            ..Default::default()
+        };
+        assert!(!helper_has_shaping_kiln(&c));
+        assert_eq!(
+            do_pottery(&c, &mut rt, 1, 0.0, 0.0, None),
+            PotteryAction::Abort
+        );
+    }
+
+    #[test]
+    fn do_pottery_stage_assign_2_allows_pile_after_sticky_10() {
+        // Haxe L2854 assigns profession=2 (does not keep sticky 10), so pile gate <3 runs.
+        let mut c = counts_basic();
+        c.set(CLAY, 5);
+        c.set(PILE_OF_CLAY, 1);
+        c.count_clay_on_floor = 0;
+        c.max_bowls = 3;
+        c.max_plates = 3;
+        let mut rt = PotterProfessionRuntime {
+            is_last_potter: true,
+            stage: 10.0,
+            ..Default::default()
+        };
+        assert_eq!(
+            do_pottery(&c, &mut rt, 1, 0.0, 0.0, None),
+            PotteryAction::ShortCraft {
+                actor: 0,
+                target: PILE_OF_CLAY
+            }
+        );
+        assert_eq!(rt.stage, 2.0);
+    }
+
+    #[test]
+    fn do_pottery_charcoal_basket_count_includes_held() {
+        let mut c = counts_basic();
+        c.set(BASKET_OF_CHARCOAL, 2);
+        c.held_id = BASKET_OF_CHARCOAL;
+        let mut rt = PotterProfessionRuntime {
+            is_last_potter: true,
+            ..Default::default()
+        };
+        assert_eq!(c.count_charcoal_basket(), 3);
+        assert_eq!(
+            do_pottery(&c, &mut rt, 1, 0.0, 0.0, None),
+            PotteryAction::ShortCraftOnGround {
+                target: BASKET_OF_CHARCOAL
+            }
+        );
+    }
+
+    #[test]
+    fn do_pottery_clay_stock_includes_held() {
+        let mut c = counts_basic();
+        c.set(CLAY, 3);
+        c.set(PILE_OF_CLAY, 1);
+        c.held_id = CLAY;
+        c.count_clay_on_floor = 3;
+        c.max_bowls = 3;
+        c.max_plates = 3;
+        let mut rt = PotterProfessionRuntime {
+            is_last_potter: true,
+            stage: 0.0,
+            ..Default::default()
+        };
+        assert_eq!(c.count_clay_stock(), 4);
+        // clay_stock >= 4 skips gather; floor short → pile
+        assert_eq!(
+            do_pottery(&c, &mut rt, 1, 0.0, 0.0, None),
+            PotteryAction::ShortCraft {
+                actor: 0,
+                target: PILE_OF_CLAY
+            }
+        );
+    }
+
+    #[test]
+    fn fill_clay_floor_stays_r20_when_craft_radius_30() {
+        let objs = [PotteryMapObj {
+            parent_id: CLAY,
+            x: 25,
+            y: 0,
+        }];
+        let c = fill_pottery_counts_from_map(
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            &objs,
+            POTTERY_CRAFT_SEARCH_RADIUS,
+            DEFAULT_MAX_CLAY_BOWLS,
+            DEFAULT_MAX_CLAY_PLATES,
+            DEFAULT_MAX_CLAY_CROCKS,
+        );
+        assert_eq!(c.get(CLAY), 1);
+        assert_eq!(c.count_clay_on_floor, 0);
+    }
+
+    #[test]
+    fn gather_clay_empty_basket_diagonal_is_not_quad_adjacent() {
+        // Haxe L2989: quad dist <= 1 — diagonal (dx=1,dy=1) is 2, so goto not drop(0)
+        let inp = GatherClayInput {
+            player_x: 10,
+            player_y: 0,
+            held_id: BASKET,
+            held_contained: 0,
+            has_clay_deposit: true,
+            deposit_x: 11,
+            deposit_y: 1,
+            ..Default::default()
+        };
+        assert_eq!(gather_clay(&inp), PotteryAction::GotoClayDeposit);
+        let ortho = GatherClayInput {
+            deposit_x: 11,
+            deposit_y: 0,
+            ..inp
+        };
+        assert_eq!(
+            gather_clay(&ortho),
+            PotteryAction::DropHeld {
+                allow_piles: false,
+                max_distance_to_home: 0,
+            }
+        );
+    }
+
+    #[test]
+    fn do_pottery_on_fire_counts_include_held() {
+        let mut c = counts_basic();
+        c.firing_kiln = true;
+        c.max_bowls = 0;
+        c.max_plates = 0;
+        c.max_crock = 0;
+        c.set(BIG_CHARCOAL_PILE, 2);
+        c.held_id = BIG_CHARCOAL_PILE;
+        assert_eq!(c.count_coal(), 3);
+        // coal >= 3 → skip adobe shortCraft(127, 282)
+        assert_eq!(do_pottery_on_fire_action(&c), PotteryAction::None);
+        c.held_id = 0;
+        assert_eq!(
+            do_pottery_on_fire_action(&c),
+            PotteryAction::ShortCraft {
+                actor: ADOBE,
+                target: FIRING_ADOBE_KILN
+            }
+        );
+        c.held_id = WET_CLAY_CROCK;
+        c.max_crock = 2;
+        c.max_bowls = 0;
+        c.set(BIG_CHARCOAL_PILE, 5);
+        assert_eq!(c.count_wet_crock_raw(), 1);
+        assert_eq!(
+            do_pottery_on_fire_action(&c),
+            PotteryAction::CraftItem {
+                object_id: FIRED_CROCK_TONGS
+            }
+        );
+    }
+
+    #[test]
+    fn gather_clay_player_partial_basket_blocks_deposit_full_pickup() {
+        // Haxe L3027 finds player clay-basket first; contained<=2 skips L3035 pickup
+        let inp = GatherClayInput {
+            player_x: 0,
+            player_y: 0,
+            home_x: 0,
+            home_y: 0,
+            has_clay_deposit: true,
+            deposit_x: 50,
+            deposit_y: 0,
+            basket_with_clay_near_player: true,
+            full_basket_near_deposit: true,
+            basket_full: true,
+            ..Default::default()
+        };
+        assert_eq!(gather_clay(&inp), PotteryAction::GotoClayDeposit);
+    }
+
+    #[test]
+    fn gather_clay_far_home_basket_does_not_skip_get_or_craft() {
+        // Haxe skips home search when quad>100; home clay-basket is not `basket`
+        let inp = GatherClayInput {
+            player_x: 20,
+            player_y: 0,
+            home_x: 0,
+            home_y: 0,
+            has_clay_deposit: true,
+            deposit_x: 50,
+            deposit_y: 0,
+            basket_with_clay_near_home: true,
+            basket_full: true,
+            ..Default::default()
+        };
+        assert_eq!(
+            gather_clay(&inp),
+            PotteryAction::SeekOrCraft {
+                object_id: BASKET
+            }
+        );
+    }
+
+    #[test]
+    fn gather_clay_held_clay_far_drops_if_only_home_basket() {
+        let inp = GatherClayInput {
+            player_x: 20,
+            player_y: 0,
+            home_x: 0,
+            home_y: 0,
+            held_id: CLAY,
+            has_clay_deposit: true,
+            deposit_x: 50,
+            deposit_y: 0,
+            basket_with_clay_near_home: true,
+            ..Default::default()
+        };
+        assert_eq!(
+            gather_clay(&inp),
+            PotteryAction::DropHeld {
+                allow_piles: false,
+                max_distance_to_home: 10,
+            }
+        );
+    }
+
+    #[test]
+    fn gather_clay_clear_hands_drop_held_piles_false() {
+        // Haxe L3081 dropHeldObject(10) allowAllPiles default false
+        let inp = GatherClayInput {
+            player_x: 10,
+            player_y: 0,
+            held_id: STONE,
+            has_clay_deposit: true,
+            deposit_x: 50,
+            deposit_y: 0,
+            empty_basket_near_deposit: true,
+            ..Default::default()
+        };
+        assert_eq!(
+            gather_clay(&inp),
+            PotteryAction::DropHeld {
+                allow_piles: false,
+                max_distance_to_home: 10,
+            }
+        );
+    }
+
+    #[test]
+    fn gather_clay_loose_clay_when_far() {
+        let inp = GatherClayInput {
+            player_x: 20,
+            player_y: 0,
+            home_x: 0,
+            home_y: 0,
+            has_clay_deposit: true,
+            deposit_x: 50,
+            deposit_y: 0,
+            loose_clay_near_player: true,
+            ..Default::default()
+        };
+        assert_eq!(gather_clay(&inp), PotteryAction::PickupLooseClay);
+        assert_eq!(LOOSE_CLAY_SEARCH_RADIUS, 5);
+        assert_eq!(PLAYER_CLAY_BASKET_SEARCH_RADIUS, 20);
+        assert_eq!(DEPOSIT_BASKET_SEARCH_RADIUS, 5);
+    }
+
+    #[test]
+    fn gather_clay_player_full_basket_pickup() {
+        let inp = GatherClayInput {
+            full_basket_near_player: true,
+            basket_with_clay_near_player: true,
+            has_clay_deposit: true,
+            deposit_x: 50,
+            deposit_y: 0,
+            ..Default::default()
+        };
+        assert_eq!(gather_clay(&inp), PotteryAction::PickupBasket);
     }
 }

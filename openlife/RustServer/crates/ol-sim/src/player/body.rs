@@ -394,6 +394,9 @@ pub struct Player {
     /// Haxe `AiBase.debugProfession` (PROF ON/OFF).
     // Haxe: AiBase.debugProfession
     pub ai_debug_profession: bool,
+    /// Haxe `AiBase.children` — `newChild` appends baby p_id.
+    // Haxe: AiBase.newChild L9305–9307
+    pub ai_children: Vec<i32>,
     /// Haxe `AiBase.isNiceBaby` (NICE? reply).
     // Haxe: AiBase.isNiceBaby
     pub ai_is_nice_baby: bool,
@@ -429,9 +432,23 @@ pub struct Player {
     pub ai_sticky_food_id: i32,
     pub ai_sticky_food_x: i32,
     pub ai_sticky_food_y: i32,
+    /// Haxe `AiBase.tryMoveNearestTileFirst` — GotoHelper swaps approach i=0/1.
+    // Haxe: AiBase L113
+    pub ai_try_move_nearest_tile_first: bool,
     /// Haxe `AiBase.timeLastLeaderCheck` (allyUp 10s cadence).
     // Haxe: AiBase.allyUp timeLastLeaderCheck (AI-ALLY-UP-HIRE)
     pub ai_last_leader_check_sim: f32,
+    /// Haxe `AiBase.animalTarget` (killAnimal). 0 id = none.
+    // Haxe: AiBase L54 / killAnimal L5878
+    pub ai_animal_target_id: i32,
+    pub ai_animal_target_x: i32,
+    pub ai_animal_target_y: i32,
+    /// Haxe `AiBase.timeLookedForDeadlyAnimalAtHome` (tick units, −1 = never).
+    // Haxe: AiBase L49 / killAnimal L5880
+    pub ai_time_looked_for_deadly_animal_at_home: f32,
+    /// Haxe `AiBase.didNotReachAnimalTarget`.
+    // Haxe: AiBase.attackPlayer L5862 / killAnimal L5947
+    pub ai_did_not_reach_animal_target: i32,
     /// Haxe `blockedTeleportLocations` — linear map indexes already tried by
     /// `!TCG`/`!TV`/`teleport` closest-pick cycle (session-only).
     // Haxe: GlobalPlayerInstance.blockedTeleportLocations
@@ -563,6 +580,7 @@ impl Player {
             // AI-SAY-HELPER: debugSay / debugProfession / isNiceBaby
             ai_debug_say: false,
             ai_debug_profession: false,
+            ai_children: Vec::new(),
             ai_is_nice_baby: true,
             // AI-SAY-HELPER: firePlace sticky (HOME! GetCloseFire)
             ai_fire_place_id: 0,
@@ -580,7 +598,13 @@ impl Player {
             ai_sticky_food_id: 0,
             ai_sticky_food_x: 0,
             ai_sticky_food_y: 0,
+            ai_try_move_nearest_tile_first: true,
             ai_last_leader_check_sim: 0.0,
+            ai_animal_target_id: 0,
+            ai_animal_target_x: 0,
+            ai_animal_target_y: 0,
+            ai_time_looked_for_deadly_animal_at_home: -1.0,
+            ai_did_not_reach_animal_target: 0,
             // CURSED-GRAVE-TELEPORT: blockedTeleportLocations session list
             blocked_teleport_locations: Vec::new(),
         }
@@ -594,6 +618,14 @@ impl Player {
     // Haxe: doBabyHelper L4947-4964
     pub fn can_hold_baby(&self) -> bool {
         crate::feed::can_hold_baby_hands(self.deleted, self.holding_player_id, self.held_id)
+    }
+
+    /// Haxe `AiBase.newChild` — remember this AI's child p_id.
+    // Haxe: AiBase.newChild L9305–9307
+    pub fn new_child(&mut self, child_p_id: i32) {
+        if child_p_id != 0 && !self.ai_children.contains(&child_p_id) {
+            self.ai_children.push(child_p_id);
+        }
     }
 
     /// Begin holding baby `baby_p_id` (caller must also set the baby's `held_by`).
@@ -1187,6 +1219,16 @@ impl Player {
         self.craft_ai.wipe_on_birth();
     }
 
+    /// Haxe `resetTargets` — escape/food/CancleUse/trans* (not drop/remove).
+    // Haxe: AiBase.resetTargets L319–325
+    pub fn reset_ai_targets(&mut self) {
+        self.ai_block_targets.reset_targets();
+        self.craft_ai.reset_targets();
+        self.ai_sticky_food_id = 0;
+        self.ai_sticky_food_x = 0;
+        self.ai_sticky_food_y = 0;
+    }
+
     /// Haxe `calledCraftItem = false` each AI doTime entry.
     // Haxe: AiBase.doTimeStuffHelper calledCraftItem = false
     pub fn craft_ai_begin_tick(&mut self) {
@@ -1247,6 +1289,8 @@ impl Player {
             is_last_farm: self.farm_profession.last_profession.is_some(),
             last_farm: self.farm_profession.last_profession,
             is_last_fire_food: self.fire_food_profession.is_last_fire_food,
+            is_last_fire_keeper: self.fire_keeper_profession.is_last_fire_keeper
+                || self.last_profession.as_deref() == Some("FIREKEEPER"),
             is_last_hunter: self.hunter_profession.is_last_hunter
                 || self.last_profession.as_deref() == Some("HUNTER"),
             is_last_lumberjack: self.lumberjack_profession.is_last_lumberjack
@@ -1257,6 +1301,10 @@ impl Player {
                 || self.last_profession.as_deref() == Some("FOODSERVER"),
             is_last_tailor: self.last_profession.as_deref() == Some("TAILOR"),
             is_assigned_tailor: self.assigned_profession.as_deref() == Some("TAILOR"),
+            ai_is_nice_baby: self.ai_is_nice_baby,
+            birth_x: self.birth_x,
+            birth_y: self.birth_y,
+            ai_debug_say: self.ai_debug_say,
             ai_fire_place_id: self.ai_fire_place_id,
             ai_fire_place_x: self.ai_fire_place_x,
             ai_fire_place_y: self.ai_fire_place_y,
@@ -1274,8 +1322,11 @@ impl Player {
             ai_sticky_food_id: self.ai_sticky_food_id,
             ai_sticky_food_x: self.ai_sticky_food_x,
             ai_sticky_food_y: self.ai_sticky_food_y,
+            ai_try_move_nearest_tile_first: self.ai_try_move_nearest_tile_first,
+            ai_block_targets: self.ai_block_targets.clone(),
             is_hidden_wound: self.is_holding_hidden_wound(),
             hidden_wound_id: self.hidden_wound.as_ref().map(|h| h.id).unwrap_or(0),
+            currently_craving: self.yum.currently_craving,
             lost_combat_prestige: 0.0,
         }
     }
@@ -1304,6 +1355,12 @@ pub struct PlayerSnapshot {
     pub p_id: i32,
     pub x: i32,
     pub y: i32,
+    /// Haxe `gx`/`gy` birth origin for client-relative USE/REMV/DROP.
+    // Haxe: GlobalPlayerInstance.gx/gy; AiBase.isRemovingFromContainer L9211
+    #[serde(default)]
+    pub birth_x: i32,
+    #[serde(default)]
+    pub birth_y: i32,
     pub held_id: i32,
     /// Multi-use count for held (0 = N/A).
     #[serde(default)]
@@ -1424,6 +1481,10 @@ pub struct PlayerSnapshot {
     // Haxe: lastProfession == 'FIREFOODMAKER'
     #[serde(default)]
     pub is_last_fire_food: bool,
+    /// Sticky last profession is FIREKEEPER (isHandlingFire countProfession).
+    // Haxe: lastProfession == 'FIREKEEPER'; AiBase L1133
+    #[serde(default)]
+    pub is_last_fire_keeper: bool,
     /// Sticky last profession is HUNTER (AI-JOB-HUNT).
     // Haxe: lastProfession == 'HUNTER'
     #[serde(default)]
@@ -1447,6 +1508,14 @@ pub struct PlayerSnapshot {
     /// Haxe `assignedProfession == 'TAILOR'` (AI-JOB-TAILOR).
     #[serde(default)]
     pub is_assigned_tailor: bool,
+    /// Haxe `AiBase.isNiceBaby`.
+    // Haxe: AiBase.isNiceBaby L126; doTimeStuffHelper L538
+    #[serde(default)]
+    pub ai_is_nice_baby: bool,
+    /// Haxe `AiBase.debugSay` (`shouldDebugSay` / searchFoodAndEat).
+    // Haxe: AiBase.debugSay L117; searchFoodAndEat L5076
+    #[serde(default)]
+    pub ai_debug_say: bool,
     /// Haxe `GlobalPlayerInstance.firePlace` (FIRE-PLACE-STICKY).
     #[serde(default)]
     pub ai_fire_place_id: i32,
@@ -1482,6 +1551,10 @@ pub struct PlayerSnapshot {
     /// Hidden-wound object id (0 = none).
     #[serde(default)]
     pub hidden_wound_id: i32,
+    /// Haxe `getCraving()` for late craftItem.
+    // Haxe: AiBase.doTimeStuffHelper L820
+    #[serde(default)]
+    pub currently_craving: i32,
     /// Haxe `lostCombatPrestige` — GetCloseDeadlyPlayer danger. Filled at view publish.
     // Haxe: GlobalPlayerInstance.lostCombatPrestige
     #[serde(default)]
@@ -1503,6 +1576,14 @@ pub struct PlayerSnapshot {
     pub ai_sticky_food_x: i32,
     #[serde(default)]
     pub ai_sticky_food_y: i32,
+    /// Haxe `AiBase.tryMoveNearestTileFirst` (GotoHelper approach order).
+    // Haxe: AiBase L113
+    #[serde(default = "default_true_snapshot")]
+    pub ai_try_move_nearest_tile_first: bool,
+    /// Sticky food/use/drop/block claims for `RemoveBlockedByAi` during think.
+    // Haxe: AiBase.RemoveBlockedByAi L260–276
+    #[serde(skip)]
+    pub ai_block_targets: crate::ai_path_reach::AiStickyBlockTargets,
 }
 
 fn default_last_goto_dist() -> f32 {
@@ -1832,6 +1913,14 @@ mod tests {
         p.holding_player_id = 7;
         assert_eq!(p.snapshot().holding_player_id, 7);
         assert_eq!(p.release_holding(), 7);
+        p.new_child(99);
+        p.new_child(99);
+        p.new_child(0);
+        assert_eq!(p.ai_children, vec![99]);
+        p.birth_x = 10;
+        p.birth_y = 20;
+        let s = p.snapshot();
+        assert_eq!((s.birth_x, s.birth_y), (10, 20));
         assert_eq!(p.snapshot().holding_player_id, 0);
     }
 
@@ -1857,6 +1946,9 @@ mod tests {
         assert!(!s.is_hidden_wound);
         assert_eq!(s.hidden_wound_id, 0);
         assert_eq!(s.lost_combat_prestige, 0.0);
+        assert!(!s.ai_debug_say);
+        p.ai_debug_say = true;
+        assert!(p.snapshot().ai_debug_say);
     }
 
     #[test]
@@ -1981,6 +2073,8 @@ mod tests {
         assert_eq!(p.craft_ai.runtime.item.count_done, 1);
         assert_eq!(p.craft_ai.item_to_craft_name.as_deref(), Some("Fire"));
         // Birth wipe
+        p.reset_ai_targets();
+        assert!(p.craft_ai.use_held.is_none());
         p.wipe_craft_on_birth();
         assert_eq!(p.craft_ai.item_to_craft_id, -1);
         assert!(p.craft_ai.crafting_tasks.is_empty());
@@ -2164,6 +2258,7 @@ mod tests {
         assert!(!snap.is_last_farm);
         assert!(snap.last_farm.is_none());
         assert!(!snap.is_last_fire_food);
+        assert!(!snap.is_last_fire_keeper);
     }
 
     #[test]

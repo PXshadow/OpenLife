@@ -81,6 +81,9 @@ pub struct HandleTemperaturePlan {
     pub clear_warm_place: bool,
     pub time_bump: f32,
     pub say: Option<&'static str>,
+    /// Haxe `tryMoveNearestTileFirst`: false when `goodPlace != firePlace` for that goto.
+    // Haxe: AiBase.handleTemperature L1757–1759
+    pub try_move_nearest_tile_first: bool,
 }
 
 impl HandleTemperaturePlan {
@@ -94,6 +97,7 @@ impl HandleTemperaturePlan {
             clear_warm_place: false,
             time_bump: 0.0,
             say: None,
+            try_move_nearest_tile_first: true,
         }
     }
 }
@@ -279,6 +283,7 @@ pub fn plan_handle_temperature(inp: HandleTemperatureInput) -> HandleTemperature
             clear_warm_place: false,
             time_bump: 0.0,
             say: None,
+            try_move_nearest_tile_first: true,
         };
     }
 
@@ -295,6 +300,7 @@ pub fn plan_handle_temperature(inp: HandleTemperatureInput) -> HandleTemperature
                     clear_warm_place: false,
                     time_bump: 0.0,
                     say: Some(HANDLE_TEMP_SAY_DRINK),
+                    try_move_nearest_tile_first: true,
                 };
             }
             return HandleTemperaturePlan {
@@ -306,6 +312,7 @@ pub fn plan_handle_temperature(inp: HandleTemperatureInput) -> HandleTemperature
                 clear_warm_place: false,
                 time_bump: 0.0,
                 say: None,
+                try_move_nearest_tile_first: true,
             };
         }
         good = inp.close_cool.or(inp.cold_place);
@@ -335,6 +342,7 @@ pub fn plan_handle_temperature(inp: HandleTemperatureInput) -> HandleTemperature
                 clear_warm_place: false,
                 time_bump: HANDLE_TEMP_RELAX_TIME,
                 say: None,
+                try_move_nearest_tile_first: true,
             };
         }
         if inp.heat > HANDLE_TEMP_FAIL_COOL_HEAT
@@ -350,6 +358,7 @@ pub fn plan_handle_temperature(inp: HandleTemperatureInput) -> HandleTemperature
                 clear_warm_place: false,
                 time_bump: 0.0,
                 say: None,
+                try_move_nearest_tile_first: true,
             };
         }
         if inp.heat < HANDLE_TEMP_FAIL_WARM_HEAT
@@ -371,6 +380,7 @@ pub fn plan_handle_temperature(inp: HandleTemperatureInput) -> HandleTemperature
                         clear_warm_place: false,
                         time_bump: 0.0,
                         say: None,
+                        try_move_nearest_tile_first: true,
                     };
                 }
                 return HandleTemperaturePlan {
@@ -382,6 +392,7 @@ pub fn plan_handle_temperature(inp: HandleTemperatureInput) -> HandleTemperature
                     clear_warm_place: false,
                     time_bump: 0.0,
                     say: None,
+                    try_move_nearest_tile_first: true,
                 };
             }
             return HandleTemperaturePlan {
@@ -393,6 +404,7 @@ pub fn plan_handle_temperature(inp: HandleTemperatureInput) -> HandleTemperature
                 clear_warm_place: true,
                 time_bump: 0.0,
                 say: None,
+                try_move_nearest_tile_first: true,
             };
         }
         return HandleTemperaturePlan {
@@ -404,6 +416,7 @@ pub fn plan_handle_temperature(inp: HandleTemperatureInput) -> HandleTemperature
             clear_warm_place: false,
             time_bump: HANDLE_TEMP_RELAX_TIME,
             say: None,
+            try_move_nearest_tile_first: true,
         };
     }
 
@@ -416,6 +429,8 @@ pub fn plan_handle_temperature(inp: HandleTemperatureInput) -> HandleTemperature
         clear_warm_place: false,
         time_bump: 0.0,
         say: None,
+        // Haxe: if (goodPlace != firePlace) tryMoveNearestTileFirst = false; goto; restore true
+        try_move_nearest_tile_first: fire_place_xy(&inp) == Some((gx, gy)),
     }
 }
 
@@ -431,6 +446,7 @@ pub fn fail_warm_clear_place(plan: HandleTemperaturePlan) -> HandleTemperaturePl
         clear_warm_place: true,
         time_bump: 0.0,
         say: None,
+        try_move_nearest_tile_first: plan.try_move_nearest_tile_first,
     }
 }
 
@@ -615,5 +631,37 @@ mod tests {
         inp.cold_place = Some((6, 0));
         let p = plan_handle_temperature(inp);
         assert_eq!(p.action, HandleTemperatureAction::Goto { x: 6, y: 0 });
+        assert!(!p.try_move_nearest_tile_first);
+    }
+
+    #[test]
+    fn goto_biome_or_place_walks_direct_tile() {
+        // Haxe L1757: goodPlace != firePlace → tryMoveNearestTileFirst = false
+        let mut inp = HandleTemperatureInput::default();
+        inp.is_super_hot = true;
+        inp.heat = 0.65;
+        inp.close_cool = Some((4, 0));
+        inp.has_fire_place = true;
+        inp.fire_x = 9;
+        inp.fire_y = 9;
+        inp.fire_heat_value = 5.0;
+        let p = plan_handle_temperature(inp);
+        assert_eq!(p.action, HandleTemperatureAction::Goto { x: 4, y: 0 });
+        assert!(!p.try_move_nearest_tile_first);
+    }
+
+    #[test]
+    fn goto_fire_keeps_nearest_tile_first() {
+        let mut inp = HandleTemperatureInput::default();
+        inp.is_super_cold = true;
+        inp.heat = 0.1;
+        inp.has_fire_place = true;
+        inp.fire_x = 2;
+        inp.fire_y = 3;
+        inp.fire_parent = FIRE;
+        inp.fire_heat_value = 5.0;
+        let p = plan_handle_temperature(inp);
+        assert_eq!(p.action, HandleTemperatureAction::Goto { x: 2, y: 3 });
+        assert!(p.try_move_nearest_tile_first);
     }
 }

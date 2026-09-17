@@ -26,6 +26,21 @@ pub const STONE_HATCHET: i32 = 71;
 pub const WEAK_SKEWER: i32 = 852;
 /// Weak Skewer Pile.
 pub const WEAK_SKEWER_PILE: i32 = 4060;
+/// Cut Stones (Haxe BCut Stones).
+// Haxe: AiBase.placeFloorUnder L1069
+pub const CUT_STONES: i32 = 881;
+/// Boards.
+// Haxe: AiBase.placeFloorUnder L1071
+pub const BOARDS: i32 = 470;
+/// Pine Needles.
+// Haxe: AiBase.placeFloorUnder L1073
+pub const PINE_NEEDLES: i32 = 96;
+/// `shortCraft(96, parentId, 40)` search distance.
+// Haxe: AiBase.placeFloorUnder L1074
+pub const PLACE_FLOOR_UNDER_PINE_DISTANCE: i32 = 40;
+/// `doCriticalStuff` `if (cleanUp()) return true`.
+// Haxe: AiBase.doCriticalStuff L6101
+pub const CRITICAL_CLEANUP_RUNG: &str = "CRITICAL_CLEANUP";
 /// Basket of Charcoal.
 pub const BASKET_OF_CHARCOAL: i32 = 298;
 /// Stack of Flat Rocks.
@@ -109,6 +124,9 @@ pub struct CleanupCounts {
     pub count_flat_rock: i32,
     pub count_long_shaft: i32,
     pub count_weak_skewer: i32,
+    /// Same-tick: Haxe `shortCraft(71, 852)` returned false.
+    // Haxe: AiBase.cleanUp L1018
+    pub weak_skewer_hatchet_miss: bool,
     pub count_wet_nozzle: i32,
     pub has_clay_with_nozzle: bool,
     pub count_small_clay: i32,
@@ -141,9 +159,107 @@ pub struct CleanupBowlSnap {
     pub has_clay_bowl: bool,
 }
 
+/// One `placeFloorUnder` shortCraft attempt.
+// Haxe: AiBase.placeFloorUnder L1069–1074
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PlaceFloorUnderStep {
+    pub actor: i32,
+    pub target: i32,
+    /// Haxe `shortCraft` 3rd arg: `false` → craftActorIfNeeded=false (default dist 20); 40 for 96.
+    pub max_distance: i32,
+    pub craft_actor: bool,
+}
+
+impl PlaceFloorUnderStep {
+    pub fn to_pottery_action(self) -> PotteryAction {
+        PotteryAction::ShortCraft {
+            actor: self.actor,
+            target: self.target,
+        }
+    }
+}
+
+/// Haxe `placeFloorUnder(obj)`: null / !allowFloorPlacement / floor>0 → None; else 881 then 470 then 96@40.
+// Haxe: AiBase.placeFloorUnder L1058–1076
+pub fn place_floor_under(
+    obj_is_some: bool,
+    allow_floor_placement: bool,
+    floor_id: i32,
+    parent_id: i32,
+) -> Option<[PlaceFloorUnderStep; 3]> {
+    // Haxe: AiBase L1059 if (obj == null) return false
+    if !obj_is_some {
+        return None;
+    }
+    // Haxe: AiBase L1065 if (objData.allowFloorPlacement == false) return false
+    if !allow_floor_placement {
+        return None;
+    }
+    // Haxe: AiBase L1066–1067 floor = getFloorId; if (floor > 0) return false
+    if floor_id > 0 {
+        return None;
+    }
+    Some([
+        // Haxe: AiBase L1070 shortCraft(881, parentId, false)
+        PlaceFloorUnderStep {
+            actor: CUT_STONES,
+            target: parent_id,
+            max_distance: 20,
+            craft_actor: false,
+        },
+        // Haxe: AiBase L1072 shortCraft(470, parentId, false)
+        PlaceFloorUnderStep {
+            actor: BOARDS,
+            target: parent_id,
+            max_distance: 20,
+            craft_actor: false,
+        },
+        // Haxe: AiBase L1074 shortCraft(96, parentId, 40)
+        PlaceFloorUnderStep {
+            actor: PINE_NEEDLES,
+            target: parent_id,
+            max_distance: PLACE_FLOOR_UNDER_PINE_DISTANCE,
+            craft_actor: true,
+        },
+    ])
+}
+
+/// First `placeFloorUnder` shortCraft (Cut Stones 881 on `parent_id`).
+// Haxe: AiBase.placeFloorUnder L1070
+pub fn place_floor_under_action(
+    obj_is_some: bool,
+    allow_floor_placement: bool,
+    floor_id: i32,
+    parent_id: i32,
+) -> Option<PotteryAction> {
+    place_floor_under(obj_is_some, allow_floor_placement, floor_id, parent_id)
+        .map(|steps| steps[0].to_pottery_action())
+}
+
+/// Next `placeFloorUnder` shortCraft after a failed actor (881 → 470 → 96@40).
+// Haxe: AiBase.placeFloorUnder L1070–1074
+pub fn place_floor_under_next(failed_actor: i32, parent_id: i32) -> Option<PlaceFloorUnderStep> {
+    match failed_actor {
+        CUT_STONES => Some(PlaceFloorUnderStep {
+            actor: BOARDS,
+            target: parent_id,
+            max_distance: 20,
+            craft_actor: false,
+        }),
+        BOARDS => Some(PlaceFloorUnderStep {
+            actor: PINE_NEEDLES,
+            target: parent_id,
+            max_distance: PLACE_FLOOR_UNDER_PINE_DISTANCE,
+            craft_actor: true,
+        }),
+        _ => None,
+    }
+}
+
 /// Haxe `cleanUp()` pure sequence (first hit wins).
 ///
-/// Age `% 3 != 0` skips pileUp only (earlier shortCrafts still run).
+/// Age `% 3 != 0` returns false for pileUp + nozzle + 2110 + clay + bowls
+/// (earlier charcoal/rocks/shaft/skewer shortCrafts still run).
 // Haxe: AiBase.cleanUp ~974–1055
 pub fn clean_up_action(c: &CleanupCounts) -> Option<PotteryAction> {
     // Basket of Charcoal 298 — empty basket
@@ -173,52 +289,62 @@ pub fn clean_up_action(c: &CleanupCounts) -> Option<PotteryAction> {
             target: LONG_STRAIGHT_SHAFT,
         });
     }
-    // Weak Skewer count > 5
+    // Weak Skewer count > 5: hatchet first, then dropHeldObject(0), then pile 4060.
+    // Haxe: AiBase.cleanUp L1014–1022
     if c.count_weak_skewer > 5 {
-        if c.held_id == WEAK_SKEWER {
-            // dropHeldObject — CraftItem 0 staging not available; pile pick
+        if !c.weak_skewer_hatchet_miss {
             return Some(PotteryAction::ShortCraft {
-                actor: 0,
-                target: WEAK_SKEWER_PILE,
+                actor: STONE_HATCHET,
+                target: WEAK_SKEWER,
             });
         }
+        if c.held_id == WEAK_SKEWER {
+            // Haxe: AiBase L1019 return dropHeldObject(0)
+            return Some(PotteryAction::DropHeld {
+                allow_piles: false,
+                max_distance_to_home: 0,
+            });
+        }
+        // Haxe: AiBase L1022 shortCraft(0, 4060, 10)
         return Some(PotteryAction::ShortCraft {
-            actor: STONE_HATCHET,
-            target: WEAK_SKEWER,
+            actor: 0,
+            target: WEAK_SKEWER_PILE,
         });
     }
 
-    // pileUp only when age % 3 == 0 (Haxe integer age)
+    // Haxe: AiBase.cleanUp L1025 if (age % 3 != 0) return false
     let age_i = c.age as i32;
-    if age_i % 3 == 0 {
-        for &(obj, pile, _dist) in CLEANUP_PILE_TARGETS {
-            let (count, has_pile) = match obj {
-                STONE => (c.count_stone, c.has_stone_pile),
-                STRAW_LOOSE => (c.count_straw, c.has_straw_pile),
-                DRIED_EAR_OF_CORN => (c.count_dried_corn, c.has_dried_corn_pile),
-                _ => (0, false),
-            };
-            let pile_id = if has_pile || pile > 0 { pile } else { 0 };
-            // Straw pile id unknown (0): still allow pickup when count>=2 and not holding
-            if pile_id < 1 {
-                let mut n = count;
-                if c.held_id == obj {
-                    n += 1;
-                }
-                if n >= 2 && c.held_id != obj {
-                    return Some(PotteryAction::CraftItem { object_id: obj });
-                }
-                continue;
+    if age_i % 3 != 0 {
+        return None;
+    }
+
+    for &(obj, pile, _dist) in CLEANUP_PILE_TARGETS {
+        let (count, has_pile) = match obj {
+            STONE => (c.count_stone, c.has_stone_pile),
+            STRAW_LOOSE => (c.count_straw, c.has_straw_pile),
+            DRIED_EAR_OF_CORN => (c.count_dried_corn, c.has_dried_corn_pile),
+            _ => (0, false),
+        };
+        let pile_id = if has_pile || pile > 0 { pile } else { 0 };
+        // Straw pile id unknown (0): still allow pickup when count>=2 and not holding
+        if pile_id < 1 {
+            let mut n = count;
+            if c.held_id == obj {
+                n += 1;
             }
-            if let Some(a) = pile_up_action(
-                c.held_id,
-                obj,
-                pile_id,
-                count,
-                c.use_actor_parent_id,
-            ) {
-                return Some(a);
+            if n >= 2 && c.held_id != obj {
+                return Some(PotteryAction::CraftItem { object_id: obj });
             }
+            continue;
+        }
+        if let Some(a) = pile_up_action(
+            c.held_id,
+            obj,
+            pile_id,
+            count,
+            c.use_actor_parent_id,
+        ) {
+            return Some(a);
         }
     }
 
@@ -370,11 +496,21 @@ mod tests {
 
     #[test]
     fn clean_up_wet_nozzle_after_piles() {
-        let c = CleanupCounts {
+        // Haxe: AiBase L1025 age%3!=0 skips nozzle/clay/bowls; L1031–1037 when age%3==0
+        let mut c = CleanupCounts {
             age: 1.0,
             count_wet_nozzle: 2,
+            count_small_clay: 3,
+            bowls_gooseberry: CleanupBowlSnap {
+                count_search: 2,
+                has_closest: true,
+                closest_uses: 1,
+                ..Default::default()
+            },
             ..Default::default()
         };
+        assert_eq!(clean_up_action(&c), None);
+        c.age = 3.0;
         assert_eq!(
             clean_up_action(&c),
             Some(PotteryAction::ShortCraft {
@@ -383,6 +519,79 @@ mod tests {
             })
         );
         let _ = CLAY_WITH_NOZZLE;
+    }
+
+    #[test]
+    fn clean_up_weak_skewer_hatchet_then_drop_then_pile() {
+        // Haxe: AiBase L1014–1022
+        let mut c = CleanupCounts {
+            count_weak_skewer: 6,
+            held_id: WEAK_SKEWER,
+            ..Default::default()
+        };
+        assert_eq!(
+            clean_up_action(&c),
+            Some(PotteryAction::ShortCraft {
+                actor: STONE_HATCHET,
+                target: WEAK_SKEWER
+            })
+        );
+        c.weak_skewer_hatchet_miss = true;
+        assert_eq!(
+            clean_up_action(&c),
+            Some(PotteryAction::DropHeld {
+                allow_piles: false,
+                max_distance_to_home: 0
+            })
+        );
+        c.held_id = 0;
+        c.weak_skewer_hatchet_miss = false;
+        assert_eq!(
+            clean_up_action(&c),
+            Some(PotteryAction::ShortCraft {
+                actor: STONE_HATCHET,
+                target: WEAK_SKEWER
+            })
+        );
+        c.weak_skewer_hatchet_miss = true;
+        assert_eq!(
+            clean_up_action(&c),
+            Some(PotteryAction::ShortCraft {
+                actor: 0,
+                target: WEAK_SKEWER_PILE
+            })
+        );
+    }
+
+    #[test]
+    fn place_floor_under_gates_then_881_470_96_at_40() {
+        // Haxe: AiBase.placeFloorUnder L1058–1076
+        assert!(place_floor_under(false, true, 0, 237).is_none());
+        assert!(place_floor_under(true, false, 0, 237).is_none());
+        assert!(place_floor_under(true, true, 1, 237).is_none());
+        let steps = place_floor_under(true, true, 0, 237).unwrap();
+        assert_eq!(steps[0].actor, CUT_STONES);
+        assert_eq!(steps[0].target, 237);
+        assert!(!steps[0].craft_actor);
+        assert_eq!(steps[1].actor, BOARDS);
+        assert_eq!(steps[1].target, 237);
+        assert!(!steps[1].craft_actor);
+        assert_eq!(steps[2].actor, PINE_NEEDLES);
+        assert_eq!(steps[2].target, 237);
+        assert_eq!(steps[2].max_distance, PLACE_FLOOR_UNDER_PINE_DISTANCE);
+        assert_eq!(
+            place_floor_under_action(true, true, 0, 237),
+            Some(PotteryAction::ShortCraft {
+                actor: CUT_STONES,
+                target: 237
+            })
+        );
+        let boards = place_floor_under_next(CUT_STONES, 237).unwrap();
+        assert_eq!(boards.actor, BOARDS);
+        let pine = place_floor_under_next(BOARDS, 237).unwrap();
+        assert_eq!(pine.actor, PINE_NEEDLES);
+        assert_eq!(pine.max_distance, 40);
+        assert!(place_floor_under_next(PINE_NEEDLES, 237).is_none());
     }
 
     #[test]
@@ -416,6 +625,21 @@ mod tests {
             ..Default::default()
         };
         assert!(clean_up_bowls_action(BOWL_GOOSEBERRIES, &multi).is_none());
+        assert_eq!(CLEANUP_BOWL_RADIUS, 30);
+        // Haxe L4211–4212: gooseberry filledWithID=-1 → shortCraft(0,-1) skipped
+        let extra_clay_berry = CleanupBowlSnap {
+            count_search: 1,
+            has_closest: true,
+            closest_uses: 1,
+            closest_num_uses: 3,
+            count_clay_bowl: 2,
+            has_clay_bowl: true,
+            ..Default::default()
+        };
+        assert!(
+            clean_up_bowls_action(BOWL_GOOSEBERRIES, &extra_clay_berry).is_none(),
+            "gooseberry must not shortCraft(0, -1) when extra clay bowls"
+        );
     }
 
     #[test]
@@ -470,7 +694,7 @@ mod tests {
     #[test]
     fn clean_up_action_bowls_after_clay_merge() {
         let c = CleanupCounts {
-            age: 1.0,
+            age: 3.0,
             bowls_gooseberry: CleanupBowlSnap {
                 count_search: 2,
                 has_closest: true,

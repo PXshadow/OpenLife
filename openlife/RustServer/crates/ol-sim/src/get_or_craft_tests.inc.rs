@@ -926,3 +926,29 @@ fn npc_enqueue_ex_nonempty_container_skipped_in_multi_step() {
         other => panic!("expected wire staging, got {other:?}"),
     }
 }
+
+#[test]
+fn pickup_obj_skips_null_and_permanent() {
+    // Haxe L6138–6140
+    assert!(pickup_obj(None, false).is_none());
+    assert!(pickup_obj(Some((10, 1, 2)), true).is_none());
+    assert_eq!(pickup_obj(Some((10, 1, 2)), false), Some((10, 1, 2)));
+}
+
+#[test]
+fn pickup_item_closest_to_home_r20() {
+    // Haxe L6130–6136 GetClosestObjectToTarget(home, id, 20)
+    let tiles = [(10, 3, 0, false), (10, 8, 0, false), (11, 1, 0, false)];
+    assert_eq!(
+        pickup_item(&tiles, 0, 0, 10),
+        PickupItemAction::StagePickup {
+            x: 3,
+            y: 0,
+            object_id: 10
+        }
+    );
+    let far = [(10, 20, 0, false)];
+    assert_eq!(pickup_item(&far, 0, 0, 10), PickupItemAction::None);
+    let perm = [(10, 2, 0, true)];
+    assert_eq!(pickup_item(&perm, 0, 0, 10), PickupItemAction::ConsumedNoOp);
+}

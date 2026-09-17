@@ -43,6 +43,49 @@ pub fn food_pickup_tile_dist(px: i32, py: i32, fx: i32, fy: i32) -> i32 {
     dx * dx + dy * dy
 }
 
+/// Haxe `isEatable` originalFoodValue: dummyParent first, then foodFromTarget.
+// Haxe: AiHelper.isEatable L605–610
+#[inline]
+pub fn eatable_original_food_value(
+    food_value: i32,
+    dummy_parent_food_value: Option<i32>,
+    food_from_target_food_value: Option<i32>,
+) -> i32 {
+    let after_dummy = dummy_parent_food_value.unwrap_or(food_value);
+    food_from_target_food_value.unwrap_or(after_dummy)
+}
+
+/// Haxe `isEatableCheckAgain`: container slot always true; else re-fetched tile eatable.
+///
+/// Ground: `getObjectHelper(tx,ty)` then `originalFoodValue > 0`. Empty tile (`id==0`) is not.
+// Haxe: AiHelper.isEatableCheckAgain L594–602; isEatable L604–614; AiBase L8618–8621
+#[inline]
+pub fn is_eatable_check_again(
+    index_in_container: i32,
+    tile_id: i32,
+    original_food_value: i32,
+) -> bool {
+    if index_in_container > -1 {
+        return true;
+    }
+    tile_id != 0 && original_food_value > 0
+}
+
+/// Haxe USE/DROP/REMV coords: `foodTarget.tx - gx`, `foodTarget.ty - gy` (birth-relative).
+// Haxe: AiBase.isPickingupFood L8679–8680
+#[inline]
+pub fn food_pickup_command_xy(food_tx: i32, food_ty: i32, gx: i32, gy: i32) -> (i32, i32) {
+    (food_tx - gx, food_ty - gy)
+}
+
+/// Haxe `(isUse || isInContainer) && isHoldingObject` → `dropHeldObject(0); return true`.
+/// The drop result is ignored; the tick is always consumed and sticky is kept.
+// Haxe: AiBase.isPickingupFood L8671–8674
+#[inline]
+pub fn food_pickup_drop_held_for_pickup_consumes_tick() -> bool {
+    true
+}
+
 // ── Plan enum ───────────────────────────────────────────────────────────────
 
 /// Next step of Haxe `isPickingupFood` (caller emits NetIntent / dropHeld).
@@ -463,6 +506,35 @@ mod tests {
     #[test]
     fn success_reset() {
         assert_eq!(food_pickup_action_success_reset(), 0.0);
+    }
+
+    #[test]
+    fn eatable_check_again_container_always_true() {
+        // Haxe: indexInContainer > -1 return true (TODO contained food still eatable)
+        assert!(is_eatable_check_again(0, 0, 0));
+        assert!(is_eatable_check_again(2, 292, 0));
+        assert!(!is_eatable_check_again(-1, 0, 5));
+        assert!(!is_eatable_check_again(-1, 31, 0));
+        assert!(is_eatable_check_again(-1, 31, 5));
+    }
+
+    #[test]
+    fn eatable_original_food_value_dummy_then_from_target() {
+        assert_eq!(eatable_original_food_value(0, Some(5), None), 5);
+        assert_eq!(eatable_original_food_value(3, None, Some(8)), 8);
+        assert_eq!(eatable_original_food_value(0, Some(5), Some(8)), 8);
+        assert_eq!(eatable_original_food_value(4, None, None), 4);
+    }
+
+    #[test]
+    fn food_pickup_command_xy_is_birth_relative() {
+        assert_eq!(food_pickup_command_xy(110, 220, 100, 200), (10, 20));
+        assert_eq!(food_pickup_command_xy(5, 5, 0, 0), (5, 5));
+    }
+
+    #[test]
+    fn drop_held_for_pickup_always_consumes_tick() {
+        assert!(food_pickup_drop_held_for_pickup_consumes_tick());
     }
 
     #[test]

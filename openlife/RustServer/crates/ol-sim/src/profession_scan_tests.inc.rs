@@ -2,12 +2,14 @@
 use super::*;
 use crate::baker_profession::{
     BakeAction, BakerProfessionRuntime, BakerTaskState, BOWL_GOOSEBERRIES, BOWL_TOMATO_SEEDS,
-    CLAY_PLATE, FILL_BERRY_HELD_RUNG, HOT_OVEN, RAW_MUTTON, WILD_BUSH,
+    CLAY_BOWL, CLAY_PLATE, COOKED_TURKEY, FILL_BERRY_HELD_RUNG, GET_CLOSEST_OBJECT_BY_ID_DEFAULT_DIST,
+    HOT_OVEN, RAW_MUTTON, SAUERKRAUT, WILD_BUSH,
 };
 use crate::farmer_profession::{
     basic_farmer_weight_from_runtime, carrot_max_for_dispatch, watering_max_for_dispatch,
     FarmAction, FarmProfession, FarmProfessionRuntime, FarmTaskState, BOWL_OF_GREEN_BEANS,
     BOWL_OF_SOIL, CARROT_ROW, DRY_PLANTED_CARROTS, DRY_PLANTED_WHEAT, DYING_BUSH,
+    COOKED_OMELETTE_RUNG, CRITICAL_STUFF_RUNG, PLACE_FLOOR_UNDER_RUNG,
     DO_CARROT_LOW_RUNG, DO_WATERING_LOW_RUNG, FILL_BEAN_BOWL_RUNG, FILL_BEAN_HELD_RUNG,
     GREEN_BEAN_PLANTS, PULL_CARROT_ROW_RUNG,
     WATER_BRINGER_ASSIGNED_MAX_PEOPLE, WATER_BRINGER_LOW_MAX_PEOPLE, WET_PLANTED_CARROTS,
@@ -299,7 +301,8 @@ fn farm_map_and_soil_on_dying_bush_use_at() {
 }
 
 #[test]
-fn farm_short_craft_missing_target_seeks() {
+fn farm_short_craft_missing_target_returns_false() {
+    // Haxe L2722: shortCraftOnTarget(null) → false (no seek of missing target)
     let tiles = vec![ScanTile::empty(0, 0, 0, 0)];
     let inp = ProfessionScanInput::basic(0, 0, BOWL_OF_SOIL);
     let r = farm_action_to_live_intent(
@@ -311,14 +314,8 @@ fn farm_short_craft_missing_target_seeks() {
         },
         &mut FarmProfessionRuntime::default(),
     );
-    assert!(r.had_action);
-    assert_eq!(
-        r.intent,
-        ShortCraftLiveIntent::SeekOrCraft {
-            actor: DYING_BUSH,
-            craft_if_needed: false,
-        }
-    );
+    assert!(!r.had_action);
+    assert_eq!(r.intent, ShortCraftLiveIntent::None);
 }
 
 #[test]
@@ -427,17 +424,48 @@ fn smith_defer_pottery_live_expands_l2946_crafts() {
 }
 
 #[test]
-fn baker_defer_pottery_empty_seeks_clay_plate() {
+fn baker_defer_pottery_empty_returns_false_like_do_pottery() {
+    // Haxe L3266 `return doPottery(1)`: no kiln → pottery abort → baking returns false
     let tiles = vec![ScanTile::empty(0, 0, 0, 0)];
     let inp = ProfessionScanInput::basic(0, 0, 0);
     let r = bake_action_to_live_intent(&tiles, &inp, BakeAction::DeferPottery);
-    assert!(r.had_action);
-    assert_eq!(
-        r.intent,
-        ShortCraftLiveIntent::SeekOrCraft {
-            actor: CLAY_PLATE,
-            craft_if_needed: false,
-        }
+    assert!(
+        !r.had_action && matches!(r.intent, ShortCraftLiveIntent::None),
+        "empty doPottery(1) must end baking, got {:?}",
+        r
+    );
+}
+
+#[test]
+fn baker_defer_pottery_then_cleanup_hungry_skips_cleanup() {
+    // Haxe L3376 cleanUp skipped when hungry after doPottery(1) false
+    let tiles = vec![
+        ScanTile::simple(GOOSEBERRY, 1, 0),
+        ScanTile::simple(GOOSEBERRY, 2, 0),
+    ];
+    let mut inp = ProfessionScanInput::basic(0, 0, 0);
+    inp.is_hungry = true;
+    inp.age = 21.0;
+    let r = bake_action_to_live_intent(&tiles, &inp, BakeAction::DeferPotteryThenCleanup);
+    assert!(
+        !r.had_action && matches!(r.intent, ShortCraftLiveIntent::None),
+        "hungry late pottery abort must not cleanUp, got {:?}",
+        r
+    );
+}
+
+#[test]
+fn baker_defer_pottery_max_people_one_ignores_baker_assigned() {
+    // Assigned baker must not lift nested pottery to doPottery(100)
+    let tiles = vec![ScanTile::empty(0, 0, 0, 0)];
+    let mut inp = ProfessionScanInput::basic(0, 0, 0);
+    inp.is_assigned_job = true;
+    inp.peer_count = 1.0;
+    let r = bake_action_to_live_intent(&tiles, &inp, BakeAction::DeferPottery);
+    assert!(
+        !r.had_action && matches!(r.intent, ShortCraftLiveIntent::None),
+        "doPottery(1) peer cap must abort, got {:?}",
+        r
     );
 }
 
@@ -562,6 +590,92 @@ fn baker_mutton_max_new_actor_counts_transition_new_actor() {
             actor_id: RAW_MUTTON,
         }
     );
+}
+
+#[test]
+fn baker_sauerkraut_and_cooked_turkey_shortcraft_r20() {
+    // Haxe L3232 shortCraft(0, 2185, 20); L3242 shortCraft(235, 1241, 20, 1)
+    let tiles = vec![
+        ScanTile::simple(SAUERKRAUT, 5, 0),
+        ScanTile::simple(COOKED_TURKEY, 8, 0),
+        ScanTile::simple(SAUERKRAUT, 25, 0), // beyond r=20
+    ];
+    let inp = ProfessionScanInput::basic(0, 0, CLAY_BOWL);
+    let r = bake_action_to_live_intent(
+        &tiles,
+        &inp,
+        BakeAction::ShortCraft {
+            actor: CLAY_BOWL,
+            target: SAUERKRAUT,
+        },
+    );
+    assert_eq!(
+        r.intent,
+        ShortCraftLiveIntent::UseAt {
+            x: 5,
+            y: 0,
+            target_id: SAUERKRAUT,
+            actor_id: CLAY_BOWL,
+        }
+    );
+    let far_only = vec![ScanTile::simple(SAUERKRAUT, 25, 0)];
+    let r_far = bake_action_to_live_intent(
+        &far_only,
+        &inp,
+        BakeAction::ShortCraft {
+            actor: CLAY_BOWL,
+            target: SAUERKRAUT,
+        },
+    );
+    assert!(
+        !matches!(
+            r_far.intent,
+            ShortCraftLiveIntent::UseAt {
+                target_id: SAUERKRAUT,
+                ..
+            }
+        ),
+        "sauerkraut at dist 25 must not match shortCraft r=20, got {:?}",
+        r_far.intent
+    );
+
+    let pickup = bake_action_to_live_intent(
+        &tiles,
+        &ProfessionScanInput::basic(0, 0, 0),
+        BakeAction::ShortCraft {
+            actor: 0,
+            target: COOKED_TURKEY,
+        },
+    );
+    assert_eq!(
+        pickup.intent,
+        ShortCraftLiveIntent::UseAt {
+            x: 8,
+            y: 0,
+            target_id: COOKED_TURKEY,
+            actor_id: 0,
+        }
+    );
+}
+
+#[test]
+fn get_closest_object_by_id_quad_and_empty() {
+    // Haxe L3462–3479: default dist 30; quad dx²+dy² > dist² rejects
+    assert_eq!(GET_CLOSEST_OBJECT_BY_ID_DEFAULT_DIST, 30);
+    let far_diag = vec![ScanTile::simple(CLAY_PLATE, 22, 22)];
+    assert!(
+        get_closest_object_by_id(&far_diag, CLAY_PLATE, 0, 0, 30).is_none(),
+        "22²+22²=968 > 900"
+    );
+    let ok = vec![ScanTile::simple(CLAY_PLATE, 21, 21)];
+    let t = get_closest_object_by_id(&ok, CLAY_PLATE, 0, 0, 30).unwrap();
+    assert_eq!((t.x, t.y), (21, 21));
+    let empties = vec![
+        ScanTile::empty(0, 0, 0, 0),
+        ScanTile::empty(3, 0, 0, 0),
+    ];
+    let e = get_closest_object_by_id(&empties, 0, 0, 0, 30).unwrap();
+    assert_eq!((e.parent_id, e.x, e.y), (0, 3, 0));
 }
 
 #[test]
@@ -768,6 +882,38 @@ fn has_carrot_seeds_from_scan_threshold() {
         ScanTile::simple(DRY_BEAN_PLANTS, 1, 0),
     ];
     assert!(has_bean_seeds_from_scan(&beans));
+    // Haxe: AiBase.hasPepperSeeds L1376–1380 count > 1
+    let pepper_few = vec![ScanTile::simple(HOT_PEPPER, 0, 0)];
+    assert!(!has_pepper_seeds_from_scan(&pepper_few));
+    let pepper_enough = vec![
+        ScanTile::simple(HOT_PEPPER, 0, 0),
+        ScanTile::simple(PEPPER_SEED, 1, 0),
+    ];
+    assert!(has_pepper_seeds_from_scan(&pepper_enough));
+    // Haxe: AiBase.hasOnionSeeds L1383–1386 count > 1
+    let onion_few = vec![ScanTile::simple(WILD_ONION, 0, 0)];
+    assert!(!has_onion_seeds_from_scan(&onion_few));
+    let onion_enough = vec![
+        ScanTile::simple(WILD_ONION_IN_GROUND, 0, 0),
+        ScanTile::simple(ONION, 1, 0),
+        ScanTile::simple(RIPE_ONIONS, 2, 0),
+    ];
+    assert!(has_onion_seeds_from_scan(&onion_enough));
+    // Haxe: AiBase.countSeeds cornCount > 2
+    let corn_few = vec![
+        ScanTile::simple(1115, 0, 0),
+        ScanTile::simple(1247, 1, 0),
+    ];
+    assert!(!has_corn_seeds_from_scan(&corn_few));
+    let corn_enough = vec![
+        ScanTile::simple(1115, 0, 0),
+        ScanTile::simple(1247, 1, 0),
+        ScanTile::simple(4106, 2, 0),
+    ];
+    assert!(has_corn_seeds_from_scan(&corn_enough));
+    let flags = count_seeds_from_scan(&corn_enough);
+    assert!(flags.has_corn_seeds);
+    assert!(!flags.early_return);
 }
 
 #[test]
@@ -781,6 +927,34 @@ fn empty_near_well_places_drop_within_20() {
     assert_eq!(e, (12, 10));
     let d = scan_chebyshev(10, 10, e.0, e.1);
     assert!(d <= 20);
+}
+
+#[test]
+fn get_close_well_prefers_deep_663_radius_40() {
+    // Haxe L2676–2689 wellIs = [663, 662]; default searchDistance 40
+    let tiles = vec![
+        ScanTile::simple(662, 3, 0),
+        ScanTile::simple(663, 3, 0),
+        ScanTile::simple(662, 50, 0),
+    ];
+    let w = get_close_well(&tiles, 0, 0).unwrap();
+    assert_eq!(w.parent_id, 663);
+    assert_eq!(GET_CLOSE_WELL_RADIUS, 40);
+    assert_eq!(WELL_IDS, [663, 662]);
+    // Beyond r=40 is ignored
+    let far_only = vec![ScanTile::simple(662, 50, 0)];
+    assert!(get_close_well(&far_only, 0, 0).is_none());
+}
+
+#[test]
+fn short_craft_on_ground_336_no_well_min_dist_5() {
+    // Haxe L2701–2704: no well → minDist 5 from home, empty r=20
+    let tiles = vec![
+        ScanTile::empty(1, 0, 0, 0),
+        ScanTile::empty(6, 0, 0, 0),
+    ];
+    let e = empty_near_well_ex(&tiles, 0, 0, GET_CLOSE_WELL_RADIUS, BASKET_OF_SOIL).unwrap();
+    assert_eq!(e, (6, 0));
 }
 
 #[test]
@@ -799,7 +973,9 @@ fn baker_defer_cleanup_expands_clean_up_bowls_gooseberry() {
         ScanTile::simple(GOOSEBERRY, 1, 0),
         ScanTile::simple(GOOSEBERRY, 2, 0),
     ];
-    let inp = ProfessionScanInput::basic(0, 0, 0);
+    let mut inp = ProfessionScanInput::basic(0, 0, 0);
+    // Haxe: AiBase.cleanUp L1025 age%3==0 required for bowls
+    inp.age = 21.0;
     let r = bake_action_to_live_intent(&tiles, &inp, BakeAction::DeferCleanup);
     assert!(r.had_action);
     assert!(
@@ -828,7 +1004,9 @@ fn baker_defer_seats_cleanup_falls_through_clean_up_bowls() {
         ScanTile::simple(GOOSEBERRY, 1, 0),
         ScanTile::simple(GOOSEBERRY, 2, 0),
     ];
-    let inp = ProfessionScanInput::basic(0, 0, 0);
+    let mut inp = ProfessionScanInput::basic(0, 0, 0);
+    // Haxe: AiBase.cleanUp L1025 age%3==0 required for bowls
+    inp.age = 21.0;
     let r = bake_action_to_live_intent(&tiles, &inp, BakeAction::DeferSeatsCleanup);
     assert!(r.had_action);
     assert!(
@@ -1266,10 +1444,12 @@ fn plan_profession_ladder_assigned_and_age_rungs() {
             ..Default::default()
         },
     );
-    // AI-JOB-SMITH-RESID: early sticky + CRITICAL_CRAFT shortCraft tails
-    assert_eq!(crit.len(), 2);
+    // AI-JOB-SMITH-RESID: early sticky + CRITICAL_CRAFT + HOT_KILN + omelette
+    assert_eq!(crit.len(), 4);
     assert_eq!(crit[0].rung_label, "EARLY_STICKY_SMITH");
     assert_eq!(crit[1].rung_label, "CRITICAL_CRAFT");
+    assert_eq!(crit[2].rung_label, "HOT_KILN");
+    assert_eq!(crit[3].rung_label, COOKED_OMELETTE_RUNG);
     let crit_open = plan_profession_ladder_steps(
         PriorityRung::CriticalCraft,
         &ProfessionStickySnapshot {
@@ -1277,11 +1457,44 @@ fn plan_profession_ladder_assigned_and_age_rungs() {
             ..Default::default()
         },
     );
-    assert_eq!(crit_open.len(), 1);
+    assert_eq!(crit_open.len(), 3);
     assert_eq!(crit_open[0].rung_label, "CRITICAL_CRAFT");
+    assert_eq!(crit_open[1].rung_label, "HOT_KILN");
+    assert_eq!(crit_open[2].rung_label, COOKED_OMELETTE_RUNG);
 
     let idle = plan_profession_ladder_steps(PriorityRung::Escape, &sticky);
     assert!(idle.is_empty());
+}
+
+#[test]
+fn low_priority_work_tail_after_job_by_age_matches_haxe_l805_l818() {
+    // Haxe: extra isSheepHerding, isCuttingWood, doSmithing, craftLowPriorityClothing, doAdvancedFarming(1)
+    let sticky = ProfessionStickySnapshot {
+        age: 20.0,
+        ..Default::default()
+    };
+    let steps = plan_profession_ladder_steps(PriorityRung::LowPriorityWork, &sticky);
+    let labels: Vec<&str> = steps.iter().map(|s| s.rung_label).collect();
+    assert!(labels.contains(&"SHEEP-WIDE"));
+    assert!(labels.contains(&"LOW_PRIORITY_WORK"));
+    assert!(labels.contains(&"LOW_PRIORITY_CLOTHING"));
+    assert!(labels.contains(&"ADVANCED_FARMING_1"));
+    let sheep_wide = steps
+        .iter()
+        .find(|s| s.rung_label == "SHEEP-WIDE")
+        .expect("SHEEP-WIDE");
+    assert_eq!(sheep_wide.kind, ProfessionScanKind::Shepherd);
+    let smith = steps
+        .iter()
+        .rev()
+        .find(|s| s.kind == ProfessionScanKind::Smith)
+        .expect("open doSmithing");
+    assert_eq!(smith.rung_label, "LOW_PRIORITY_WORK");
+    let farm1 = steps
+        .iter()
+        .find(|s| s.rung_label == "ADVANCED_FARMING_1")
+        .expect("doAdvancedFarming(1)");
+    assert_eq!(farm1.farm_job, Some(FarmProfession::AdvancedFarmer));
 }
 
 #[test]
@@ -1870,6 +2083,32 @@ fn gather_clay_input_kiln_remaps_home_for_basket_radius() {
 }
 
 #[test]
+fn gather_clay_input_firing_kiln_remaps_home_before_wood() {
+    use crate::pottery_profession::{
+        FIRING_ADOBE_KILN, WOOD_FILLED_KILN, BASKET, CLAY, CLAY_DEPOSIT,
+    };
+    // Haxe helper kiln is 282 first, then 281, then 238 — gather remaps home to that kiln
+    let tiles = vec![
+        ScanTile::simple(WOOD_FILLED_KILN, 8, 0),
+        ScanTile::simple(FIRING_ADOBE_KILN, 12, 0),
+        ScanTile::simple(BASKET, 14, 0)
+            .with_contains(CLAY)
+            .with_contained_count(1)
+            .with_num_slots(5),
+        ScanTile::simple(CLAY_DEPOSIT, 30, 0),
+    ];
+    let mut inp = ProfessionScanInput::basic(0, 0, 0);
+    inp.home_x = 0;
+    inp.home_y = 0;
+    let g = gather_clay_input_from_scan(&tiles, &inp, 0);
+    assert_eq!((g.home_x, g.home_y), (12, 0), "firing kiln wins over wood-filled");
+    assert!(
+        g.basket_with_clay_near_home,
+        "basket within r=10 of firing kiln counts near home"
+    );
+}
+
+#[test]
 fn gather_clay_full_basket_near_deposit_only_when_player_far() {
     use crate::pottery_profession::{BASKET, CLAY_DEPOSIT, gather_clay, GatherClayInput};
     // Full basket at deposit, player far, no clay-near-player flags â' still PickupBasket
@@ -2026,6 +2265,50 @@ fn pottery_action_use_on_basket_prefers_deposit_adjacent() {
             assert_eq!((x, y), (11, 0), "prefer deposit-adjacent basket");
         }
         other => panic!("expected UseAt basket, got {other:?}"),
+    }
+}
+
+#[test]
+fn pottery_action_pickup_loose_clay_is_drop_at_r5() {
+    use crate::pottery_profession::{CLAY, PotteryAction};
+    // Haxe L3066–3070: GetClosest clay r=5, dropIsAUse=false dropTarget=clay
+    let tiles = vec![
+        ScanTile::simple(CLAY, 10, 0),
+        ScanTile::simple(CLAY, 4, 0),
+    ];
+    let mut inp = ProfessionScanInput::basic(0, 0, 0);
+    inp.home_x = 0;
+    inp.home_y = 0;
+    let r = pottery_action_to_live_intent(&tiles, &inp, PotteryAction::PickupLooseClay);
+    assert!(r.had_action);
+    match r.intent {
+        ShortCraftLiveIntent::DropAt { x, y } => {
+            assert_eq!((x, y), (4, 0), "loose clay only within r=5");
+        }
+        other => panic!("expected DropAt clay, got {other:?}"),
+    }
+}
+
+#[test]
+fn pottery_action_pickup_basket_uses_deposit_r5_when_player_far() {
+    use crate::pottery_profession::{BASKET, CLAY_DEPOSIT, PotteryAction};
+    let tiles = vec![
+        ScanTile::simple(CLAY_DEPOSIT, 50, 0),
+        ScanTile::simple(BASKET, 51, 0)
+            .with_num_slots(5)
+            .with_contained_count(3),
+    ];
+    let mut inp = ProfessionScanInput::basic(0, 0, 0);
+    inp.home_x = 0;
+    inp.home_y = 0;
+    let r = pottery_action_to_live_intent(&tiles, &inp, PotteryAction::PickupBasket);
+    assert!(r.had_action);
+    match r.intent {
+        ShortCraftLiveIntent::UseAt { x, y, target_id, .. } => {
+            assert_eq!(target_id, BASKET);
+            assert_eq!((x, y), (51, 0), "full basket at deposit r=5");
+        }
+        other => panic!("expected UseAt deposit basket, got {other:?}"),
     }
 }
 
@@ -2667,12 +2950,14 @@ fn plan_temperature_and_consider_make_food_emit_handling_fire() {
     assert_eq!(mid[4].rung_label, crate::knife_stuff::KNIFE_STUFF_RUNG);
     assert_eq!(mid[4].farm_job, None);
     assert!(!mid[4].is_assigned_job);
-    assert_eq!(mid[5].kind, ProfessionScanKind::Hunting);
-    assert_eq!(mid[6].kind, ProfessionScanKind::HandlingGraves);
-    assert_eq!(mid[7].kind, ProfessionScanKind::Farm);
-    assert_eq!(mid[7].farm_job, Some(FarmProfession::WaterBringer));
-    assert_eq!(mid[7].rung_label, "FILL_BUCKET");
-    assert!(!mid[7].is_assigned_job);
+    assert_eq!(mid[5].kind, ProfessionScanKind::Shepherd);
+    assert_eq!(mid[5].rung_label, crate::shepherd_profession::FEED_LAMBS_CALFS_RUNG);
+    assert_eq!(mid[6].kind, ProfessionScanKind::Hunting);
+    assert_eq!(mid[7].kind, ProfessionScanKind::HandlingGraves);
+    assert_eq!(mid[8].kind, ProfessionScanKind::Farm);
+    assert_eq!(mid[8].farm_job, Some(FarmProfession::WaterBringer));
+    assert_eq!(mid[8].rung_label, "FILL_BUCKET");
+    assert!(!mid[8].is_assigned_job);
 
     let hungry = plan_profession_ladder_steps(PriorityRung::ConsiderMakeFood, &sticky);
     assert_eq!(hungry.len(), 3);
@@ -2680,6 +2965,29 @@ fn plan_temperature_and_consider_make_food_emit_handling_fire() {
     assert_eq!(hungry[1].kind, ProfessionScanKind::HandlingFire);
     assert_eq!(hungry[2].rung_label, crate::knife_stuff::KNIFE_STUFF_RUNG);
     assert_eq!(hungry[0].rung_label, "CONSIDER_MAKE_FOOD");
+
+    let misc = plan_profession_ladder_steps(PriorityRung::CriticalMisc, &sticky);
+    assert_eq!(misc[0].rung_label, crate::farmer_profession::PLACE_FLOOR_UNDER_RUNG);
+    assert_eq!(misc[1].rung_label, crate::cleanup_profession::CRITICAL_CLEANUP_RUNG);
+    assert_eq!(misc[2].rung_label, DO_WATERING_LOW_RUNG);
+    assert_eq!(misc[3].rung_label, CRITICAL_STUFF_RUNG);
+    assert_eq!(misc[4].kind, ProfessionScanKind::FireFood);
+    assert_eq!(misc[5].kind, ProfessionScanKind::Baker);
+    assert_eq!(misc[6].kind, ProfessionScanKind::Pottery);
+    assert_eq!(misc[7].rung_label, DO_CARROT_LOW_RUNG);
+
+    let rungs = npc_think_job_rungs(&sticky);
+    assert_eq!(rungs[0], PriorityRung::CriticalCraft);
+    assert_eq!(rungs[1], PriorityRung::MidPriorityTasks);
+    assert_eq!(*rungs.last().unwrap(), PriorityRung::LowPriorityWork);
+    assert!(rungs.contains(&PriorityRung::CriticalMisc));
+    let assigned_sticky = ProfessionStickySnapshot {
+        farm_assigned: Some(FarmProfession::BasicFarmer),
+        age: 20.0,
+        ..Default::default()
+    };
+    let rungs_a = npc_think_job_rungs(&assigned_sticky);
+    assert!(rungs_a.contains(&PriorityRung::AssignedJob));
 
     let assigned_fk = ProfessionStickySnapshot {
         fire_keeper_assigned: true,
@@ -3212,6 +3520,78 @@ fn apply_handle_temperature_tick_idle_when_comfortable() {
     assert!(matches!(r, ShortCraftLiveApplyResult::Failed));
     let p = state.players.get(&1).unwrap();
     assert!(!p.ai_handling_temperature);
+}
+
+#[test]
+fn apply_handle_temperature_tick_first_arrival_relaxes() {
+    use std::sync::Arc;
+    let mut state = crate::SimState::with_default_empty(Arc::new(ol_content::ContentDb::default()));
+    let mut p = crate::Player::new(1, 1, "arrive@t");
+    p.x = 0;
+    p.y = 0;
+    p.heat = 0.65;
+    p.ai_handling_temperature = true;
+    p.ai_temp_just_arrived = false;
+    p.cold_place = Some((0, 0));
+    p.age = 20.0;
+    state.players.insert(1, p);
+    let hub = ol_net::OutboundHub::new();
+    let r = apply_handle_temperature_tick(&mut state, &hub, 1);
+    assert!(
+        matches!(r, ShortCraftLiveApplyResult::Staging(ShortCraftLiveIntent::Wait)),
+        "first arrival time+=3 relax {:?}",
+        r
+    );
+    let p = state.players.get(&1).unwrap();
+    assert!(p.ai_temp_just_arrived);
+    assert!(p.ai_handling_temperature);
+}
+
+#[test]
+fn apply_handle_temperature_tick_fail_cool_clears_cold_place() {
+    // Haxe L1715–1721: arrived, heat still high → coldPlace = null; return false
+    use std::sync::Arc;
+    let mut state = crate::SimState::with_default_empty(Arc::new(ol_content::ContentDb::default()));
+    let mut p = crate::Player::new(1, 1, "failcool@t");
+    p.x = 0;
+    p.y = 0;
+    p.heat = 0.7;
+    p.ai_last_heat = 0.6;
+    p.last_temperature = 0.5;
+    p.ai_handling_temperature = true;
+    p.ai_temp_just_arrived = true;
+    p.cold_place = Some((0, 0));
+    p.age = 20.0;
+    state.players.insert(1, p);
+    let hub = ol_net::OutboundHub::new();
+    let r = apply_handle_temperature_tick(&mut state, &hub, 1);
+    assert!(matches!(r, ShortCraftLiveApplyResult::Failed));
+    let p = state.players.get(&1).unwrap();
+    assert!(p.cold_place.is_none());
+    assert!(p.ai_handling_temperature);
+}
+
+#[test]
+fn apply_handle_temperature_tick_fail_warm_young_clears_warm_place() {
+    // Haxe L1725–1747: fail-warm age≤5 skips kindling/isHandlingFire; warmPlace = null
+    use std::sync::Arc;
+    let mut state = crate::SimState::with_default_empty(Arc::new(ol_content::ContentDb::default()));
+    let mut p = crate::Player::new(1, 1, "failwarm@t");
+    p.x = 0;
+    p.y = 0;
+    p.heat = 0.2;
+    p.ai_last_heat = 0.3;
+    p.last_temperature = 0.4;
+    p.ai_handling_temperature = true;
+    p.ai_temp_just_arrived = true;
+    p.warm_place = Some((0, 0));
+    p.age = 3.0;
+    state.players.insert(1, p);
+    let hub = ol_net::OutboundHub::new();
+    let r = apply_handle_temperature_tick(&mut state, &hub, 1);
+    assert!(matches!(r, ShortCraftLiveApplyResult::Failed));
+    let p = state.players.get(&1).unwrap();
+    assert!(p.warm_place.is_none());
 }
 
 #[test]
@@ -4562,14 +4942,14 @@ fn apply_profession_scan_tick_writes_fire_place_sticky() {
 }
 
 #[test]
-fn apply_profession_scan_tick_clears_fire_place_on_give_up() {
-    // Haxe: isHandlingFire fallthrough firePlace = null
+fn apply_profession_scan_tick_ashes_sticky_still_get_close_fire() {
+    // Haxe: AiBase L1084–1100 GetCloseFire (not sticky ashes) then firePlace write
     use std::sync::Arc;
     let mut state = crate::SimState::with_default_empty(Arc::new(ol_content::ContentDb::default()));
     {
         let mut w = state.world.write().unwrap();
-        w.set_object(10, 10, 86); // Ashes on sticky tile
-        w.set_object(12, 10, crate::FIRE); // would be GetCloseFire if not give-up
+        w.set_object(10, 10, 86); // Ashes on old firePlace tile
+        w.set_object(12, 10, crate::FIRE);
     }
     let mut p = crate::Player::new(1, 1, "p@t");
     p.home_x = 10;
@@ -4593,7 +4973,12 @@ fn apply_profession_scan_tick_clears_fire_place_on_give_up() {
         "MID_PRIORITY_TASKS",
     );
     let p = state.players.get(&1).unwrap();
-    assert_eq!(p.ai_fire_place_id, 0, "give-up should null firePlace");
+    assert_eq!(
+        p.ai_fire_place_id,
+        crate::FIRE,
+        "GetCloseFire should take Fire 82 not sticky ashes"
+    );
+    assert_eq!((p.ai_fire_place_x, p.ai_fire_place_y), (12, 10));
 }
 
 #[test]
@@ -4788,6 +5173,89 @@ fn apply_profession_scan_tick_hot_coals_craft_copies_r30() {
 }
 
 #[test]
+fn handling_fire_scan_fire82_tries_firewood() {
+    // Haxe: AiBase L1195 shortCraftOnTarget(344, firePlace) even when none stocked
+    use crate::FIRE;
+    let tiles = vec![
+        ScanTile::simple(FIRE, 1, 0),
+        ScanTile::empty(0, 0, 0, 0),
+    ];
+    let mut inp = ProfessionScanInput::basic(0, 0, 0);
+    inp.is_winter = false;
+    inp.peer_count = 0.0;
+    let mut fire_keeper = crate::FireKeeperProfessionRuntime {
+        is_last_fire_keeper: true,
+        weight: 1.0,
+        ..Default::default()
+    };
+    let mut fire_rt = crate::FireFoodProfessionRuntime::default();
+    let mut baker_rt = BakerProfessionRuntime::default();
+    let mut baker_task = BakerTaskState::default();
+    let r = handling_fire_profession_scan_tick(
+        &tiles,
+        &inp,
+        "MID_PRIORITY_TASKS",
+        &mut fire_keeper,
+        &mut fire_rt,
+        &mut baker_rt,
+        &mut baker_task,
+    );
+    assert!(r.had_action, "Fire82 should try firewood {:?}", r.intent);
+    assert!(
+        matches!(
+            r.intent,
+            ShortCraftLiveIntent::UseAt { .. }
+                | ShortCraftLiveIntent::SeekOrCraft { .. }
+                | ShortCraftLiveIntent::CraftItem { .. }
+                | ShortCraftLiveIntent::DropAt { .. }
+        ),
+        "unexpected {:?}",
+        r.intent
+    );
+}
+
+#[test]
+fn peer_count_for_kind_handling_fire_is_fire_keeper_not_fire_food() {
+    // Haxe: AiBase L1133 countProfession('FIREKEEPER') vs FIREFOODMAKER
+    use std::sync::Arc;
+    let mut state = crate::SimState::with_default_empty(Arc::new(ol_content::ContentDb::default()));
+    let mut food = crate::Player::new(1, 1, "food@t");
+    food.home_x = 10;
+    food.home_y = 10;
+    food.x = 10;
+    food.y = 10;
+    food.age = 20.0;
+    food.food = 5.0;
+    food.fire_food_profession.is_last_fire_food = true;
+    let mut keep = crate::Player::new(2, 2, "keep@t");
+    keep.home_x = 10;
+    keep.home_y = 10;
+    keep.x = 11;
+    keep.y = 10;
+    keep.age = 20.0;
+    keep.food = 5.0;
+    keep.fire_keeper_profession.is_last_fire_keeper = true;
+    let mut self_p = crate::Player::new(3, 3, "self@t");
+    self_p.home_x = 10;
+    self_p.home_y = 10;
+    self_p.x = 12;
+    self_p.y = 10;
+    self_p.age = 20.0;
+    self_p.food = 5.0;
+    state.players.insert(1, food);
+    state.players.insert(2, keep);
+    state.players.insert(3, self_p);
+    assert_eq!(
+        peer_count_for_kind(ProfessionScanKind::HandlingFire, &state, 3, 10, 10),
+        1.0
+    );
+    assert_eq!(
+        peer_count_for_kind(ProfessionScanKind::FireFood, &state, 3, 10, 10),
+        1.0
+    );
+}
+
+#[test]
 fn ladder_mid_empty_runs_late_make_fire_food() {
     use crate::baker_profession::RAW_MUTTON;
     use crate::HOT_COALS;
@@ -4894,6 +5362,45 @@ fn farm_action_defer_sheep_writes_basic_farmer_weight_sticky() {
 }
 
 #[test]
+fn farm_action_clear_advanced_farmer_weight_sticky() {
+    // Haxe: AiBase.doAdvancedFarming L4070 profession['ADVANCEDFARMER']=0
+    let tiles = vec![ScanTile::empty(0, 0, 0, 0)];
+    let inp = ProfessionScanInput::basic(0, 0, 0);
+    let mut farm_rt = FarmProfessionRuntime::default();
+    farm_rt
+        .weights
+        .insert(FarmProfession::AdvancedFarmer, 1.0);
+    let r = farm_action_to_live_intent(
+        &tiles,
+        &inp,
+        FarmAction::ClearAdvancedFarmerWeight,
+        &mut farm_rt,
+    );
+    assert!(!r.had_action);
+    assert_eq!(
+        farm_rt.weights.get(&FarmProfession::AdvancedFarmer),
+        Some(&0.0)
+    );
+}
+
+#[test]
+fn farm_action_defer_pottery_expands_do_pottery() {
+    // Haxe: doPrepareRows L2214 doPottery(maxProfession)
+    let tiles = vec![ScanTile::empty(0, 0, 0, 0)];
+    let inp = ProfessionScanInput::basic(0, 0, 0);
+    let mut farm_rt = FarmProfessionRuntime::default();
+    let r = farm_action_to_live_intent(
+        &tiles,
+        &inp,
+        FarmAction::DeferPottery {
+            max_profession: 2,
+        },
+        &mut farm_rt,
+    );
+    let _ = r;
+}
+
+#[test]
 fn farm_profession_input_reads_player_basic_farmer_weight() {
     // AI-FARM-STICKY: Player.farm_profession weight read-through (default 1.0)
     use crate::Player;
@@ -4974,6 +5481,7 @@ fn npc_peer_count_for_kind_multi_prof_and_wounded() {
             last_is_farm: false,
             last_farm: None,
             last_is_fire_food: false,
+            last_is_fire_keeper: false,
             last_is_hunter: false,
             last_is_lumberjack: false,
             last_is_collector: false,
@@ -4996,6 +5504,7 @@ fn npc_peer_count_for_kind_multi_prof_and_wounded() {
             last_is_farm: false,
             last_farm: None,
             last_is_fire_food: false,
+            last_is_fire_keeper: false,
             last_is_hunter: false,
             last_is_lumberjack: false,
             last_is_collector: false,
@@ -5018,6 +5527,7 @@ fn npc_peer_count_for_kind_multi_prof_and_wounded() {
             last_is_farm: true,
             last_farm: Some(FarmProfession::BasicFarmer),
             last_is_fire_food: false,
+            last_is_fire_keeper: true,
             last_is_hunter: false,
             last_is_lumberjack: false,
             last_is_collector: false,
@@ -5040,6 +5550,7 @@ fn npc_peer_count_for_kind_multi_prof_and_wounded() {
             last_is_farm: true,
             last_farm: Some(FarmProfession::WaterBringer),
             last_is_fire_food: true,
+            last_is_fire_keeper: false,
             last_is_hunter: false,
             last_is_lumberjack: false,
             last_is_collector: false,
@@ -5062,6 +5573,23 @@ fn npc_peer_count_for_kind_multi_prof_and_wounded() {
     );
     assert_eq!(
         npc_peer_count_for_kind(ProfessionScanKind::Pottery, &rows, 99, 10, 10, 3.0, 60.0),
+        0.0
+    );
+    // Haxe: countProfession('FIREKEEPER') ≠ FIREFOODMAKER (conn 3 last_is_fire_keeper)
+    assert_eq!(
+        npc_peer_count_for_kind(
+            ProfessionScanKind::HandlingFire,
+            &rows,
+            99,
+            10,
+            10,
+            3.0,
+            60.0
+        ),
+        1.0
+    );
+    assert_eq!(
+        npc_peer_count_for_kind(ProfessionScanKind::FireFood, &rows, 99, 10, 10, 3.0, 60.0),
         0.0
     );
     // Includes self-home baker-row marked tailor (conn 3); other-home excluded
@@ -5094,6 +5622,44 @@ fn npc_peer_count_for_kind_multi_prof_and_wounded() {
         inp.peer_count_for_kind(ProfessionScanKind::Smith),
         inp.peer_count
     );
+}
+
+#[test]
+fn count_profession_gravekeeper_skips_max_age_gate() {
+    // Haxe: AiBase.countProfession L1294 age > MaxAge-2 && profession != 'GRAVEKEEPER'
+    assert!(count_profession_applies_max_age_skip("SMITH"));
+    assert!(count_profession_applies_max_age_skip("FIREKEEPER"));
+    assert!(!count_profession_applies_max_age_skip("GRAVEKEEPER"));
+    assert!(!count_profession_applies_max_age_skip("gravekeeper"));
+    let old = NpcProfessionPeerRow {
+        conn_id: 2,
+        home_x: 10,
+        home_y: 10,
+        age: 59.0,
+        food_store: 5.0,
+        ..NpcProfessionPeerRow::default()
+    };
+    assert!(!old.eligible(1, 10, 10, 3.0, 60.0));
+    assert!(old.eligible_ex(1, 10, 10, 3.0, 60.0, true));
+    let follow = NpcProfessionPeerRow {
+        conn_id: 3,
+        home_x: 10,
+        home_y: 10,
+        age: 20.0,
+        food_store: 5.0,
+        has_player_to_follow: true,
+        ..NpcProfessionPeerRow::default()
+    };
+    assert!(!follow.eligible(1, 10, 10, 3.0, 60.0));
+    let hungry = NpcProfessionPeerRow {
+        conn_id: 4,
+        home_x: 10,
+        home_y: 10,
+        age: 20.0,
+        food_store: -0.1,
+        ..NpcProfessionPeerRow::default()
+    };
+    assert!(!hungry.eligible(1, 10, 10, 3.0, 60.0));
 }
 
 #[test]
@@ -5405,4 +5971,107 @@ fn apply_profession_scan_from_sensors_attack_player_kills_adjacent() {
     );
     let atk = state.players.get(&1).unwrap();
     assert!(atk.kill_mode || state.combat.wound_of(2) > 0 || state.players.get(&2).map(|p| p.deleted).unwrap_or(false));
+}
+
+#[test]
+fn kill_animal_prefix_wolf_at_home_becomes_hunter() {
+    // Haxe L5878–5898: passedTime>10, wolf 418 at home r=20, hasOrBecome HUNTER
+    use crate::kill_animal::{KillAnimalPrefixKind, WOLF};
+    use ol_content::{ContentDb, ObjectDef};
+    use std::sync::Arc;
+    let mut db = ContentDb::default();
+    db.objects.insert(WOLF, ObjectDef::empty(WOLF));
+    let mut state = crate::SimState::with_default_empty(Arc::new(db));
+    state.tick = 200;
+    let mut p = crate::Player::new(1, 1, "hunt@t");
+    p.age = 20.0;
+    p.food = 10.0;
+    p.home_x = 10;
+    p.home_y = 10;
+    p.x = 10;
+    p.y = 10;
+    p.ai_time_looked_for_deadly_animal_at_home = -1.0;
+    state.players.insert(1, p);
+    state.world.write().unwrap().set_object(14, 11, WOLF);
+    let kind = apply_kill_animal_prefix_tick(&mut state, 1);
+    assert_eq!(kind, KillAnimalPrefixKind::Continue);
+    let p = state.players.get(&1).unwrap();
+    assert_eq!(p.ai_animal_target_id, WOLF);
+    assert_eq!((p.ai_animal_target_x, p.ai_animal_target_y), (14, 11));
+    assert!(p.hunter_profession.is_last_hunter);
+    assert_eq!(p.last_profession.as_deref(), Some("HUNTER"));
+}
+
+#[test]
+fn kill_animal_body_food_below_zero_fails_tick() {
+    // Haxe L5902: food_store < 0 return false (after prefix Skip/Continue)
+    use crate::kill_animal::WOLF;
+    use ol_content::{ContentDb, ObjectDef};
+    use std::sync::Arc;
+    let mut db = ContentDb::default();
+    db.objects.insert(WOLF, ObjectDef::empty(WOLF));
+    let mut state = crate::SimState::with_default_empty(Arc::new(db));
+    state.tick = 200;
+    let mut p = crate::Player::new(1, 1, "hunt@t");
+    p.age = 20.0;
+    p.food = -0.5;
+    p.home_x = 10;
+    p.home_y = 10;
+    p.x = 10;
+    p.y = 10;
+    p.ai_animal_target_id = WOLF;
+    p.ai_animal_target_x = 12;
+    p.ai_animal_target_y = 10;
+    p.hunter_profession.is_last_hunter = true;
+    state.players.insert(1, p);
+    let hub = ol_net::OutboundHub::new();
+    let r = apply_kill_animal_tick(&mut state, &hub, 1);
+    assert!(
+        matches!(r, ShortCraftLiveApplyResult::Failed),
+        "hungry killAnimal must return false {:?}",
+        r
+    );
+}
+
+#[test]
+fn do_critical_stuff_place_floor_under_home() {
+    // Haxe L6091: placeFloorUnder(home) → shortCraft(881, parent, false)
+    use crate::cleanup_profession::CUT_STONES;
+    use ol_content::{ContentDb, ObjectDef};
+    use std::sync::Arc;
+    let mut db = ContentDb::default();
+    db.allow_floor_placement.insert(237);
+    db.objects.insert(237, ObjectDef::empty(237));
+    db.objects.insert(CUT_STONES, ObjectDef::empty(CUT_STONES));
+    let tiles = vec![ScanTile::simple(237, 0, 0)];
+    let mut inp = ProfessionScanInput::basic(0, 0, 0);
+    inp.content = Some(Arc::new(db));
+    let r = farm_profession_scan_tick(
+        &tiles,
+        &inp,
+        None,
+        PLACE_FLOOR_UNDER_RUNG,
+        &mut FarmTaskState::default(),
+        true,
+        &mut FarmProfessionRuntime::default(),
+    );
+    assert!(r.had_action, "placeFloorUnder home should act {:?}", r.intent);
+}
+
+#[test]
+fn do_critical_stuff_cleanup_empties_charcoal_basket() {
+    // Haxe L6101: if (cleanUp()) return true — Basket of Charcoal 298
+    use crate::cleanup_profession::{CRITICAL_CLEANUP_RUNG, BASKET_OF_CHARCOAL};
+    let tiles = vec![ScanTile::simple(BASKET_OF_CHARCOAL, 2, 0)];
+    let inp = ProfessionScanInput::basic(0, 0, 0);
+    let r = farm_profession_scan_tick(
+        &tiles,
+        &inp,
+        None,
+        CRITICAL_CLEANUP_RUNG,
+        &mut FarmTaskState::default(),
+        true,
+        &mut FarmProfessionRuntime::default(),
+    );
+    assert!(r.had_action, "cleanUp charcoal basket should act {:?}", r.intent);
 }

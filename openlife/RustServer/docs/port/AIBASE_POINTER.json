@@ -1,0 +1,10 @@
+{
+  "file": "openlife/auto/AiBase.hx",
+  "haxe_abs": "C:\\OhOl\\OpenLife\\openlife\\auto\\AiBase.hx",
+  "done_through_line": 9433,
+  "chunk_size": 100,
+  "haxe_total_lines": 9433,
+  "status": "done",
+  "last_hop_agent_id": "",
+  "last_report": "AiBase.hx FINISHED done_through=9433. L9301-9308 empty playerMove/dying stubs (sim-side DY / map); newChild already IN. L9309-9433 commented searchBestTransition + abstract class skip. 5-minute hop scheduler cancelled."
+}

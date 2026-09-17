@@ -270,6 +270,12 @@ pub fn evaluate_nearby_crafts(
             let Some(tr) = content.find_transition(aid, tid) else {
                 continue;
             };
+            // Haxe SearchBestFood / isPickingupFood owns empty-hand plant harvest
+            // (0+bush→berry). craftItem/shortCraft is tools + recipes.
+            // Haxe: TransitionImporter.setParentFoods; AiBase.isPickingupFood
+            if is_empty_hand_food_harvest(content, aid, tid) {
+                continue;
+            };
             let time = craft_time_cost_sec(px, py, (ax, ay), (tx, ty), speed, interaction_sec);
             let cnt_a = if aid == held_id {
                 counts.get(&aid).copied().unwrap_or(0).saturating_add(1)
@@ -361,6 +367,12 @@ pub fn evaluate_nearby_crafts(
 /// Best craft option if any with positive score.
 pub fn best_craft(options: &[CraftOption]) -> Option<&CraftOption> {
     options.iter().find(|o| o.net_score > 0.1)
+}
+
+/// Empty-hand USE on a `foodFromTarget` plant is food pickup, not a craft step.
+// Haxe: setParentFoods actor 0 + target → food; isPickingupFood isUse
+pub fn is_empty_hand_food_harvest(content: &ContentDb, actor_id: i32, target_id: i32) -> bool {
+    actor_id == 0 && content.food_from_target_of(target_id).is_some()
 }
 
 #[cfg(test)]
@@ -495,6 +507,64 @@ mod tests {
         assert_eq!(best.target_id, 36);
         assert_eq!(best.new_target_id, 404);
         assert!(best.net_score > 0.0);
+    }
+
+    #[test]
+    fn empty_hand_food_from_target_is_not_a_craft() {
+        let mut db = db_with_food_and_branch();
+        db.objects.insert(
+            30,
+            ObjectDef {
+                id: 30,
+                name: "Wild Gooseberry Bush".into(),
+                food_value: 0,
+                ..ObjectDef::empty(30)
+            },
+        );
+        db.objects.insert(
+            31,
+            ObjectDef {
+                id: 31,
+                name: "Gooseberry".into(),
+                food_value: 3,
+                ..ObjectDef::empty(31)
+            },
+        );
+        db.transitions.insert(
+            (0, 30),
+            Transition {
+                actor_id: 0,
+                target_id: 30,
+                new_actor_id: 31,
+                new_target_id: 30,
+                ..Transition::default()
+            },
+        );
+        db.food_from_target.insert(30, 31);
+        assert!(is_empty_hand_food_harvest(&db, 0, 30));
+        let nearby = vec![NearbyObj {
+            id: 30,
+            x: 2,
+            y: 0,
+        }];
+        let opts = evaluate_nearby_crafts(
+            &db,
+            0,
+            0,
+            0,
+            &nearby,
+            CraftProfession::Forager,
+            false,
+            0.0,
+            0,
+            3.75,
+            0.5,
+            50,
+        );
+        assert!(
+            !opts.iter().any(|o| o.actor_id == 0 && o.target_id == 30),
+            "0+bush harvest is SearchBestFood not craftItem"
+        );
     }
 
     #[test]

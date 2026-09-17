@@ -19,6 +19,7 @@
 
 ## Read this first (AI)
 
+0. **[AIBASE_MIGRATION.md](AIBASE_MIGRATION.md)** — **line pointer** for `AiBase.hx` (file + done-through line + next chunk). Do not skip ahead.  
 1. **[PRIORITY.md](PRIORITY.md)** — **what to port next** (highest first)  
 2. **[ARCHITECTURE.md](../ARCHITECTURE.md)** — crate split, **Haxe file → compile unit (§3.1)**, done vs remaining  
 3. **[ARCHITECTURE_HAXE.md](ARCHITECTURE_HAXE.md)** — old runtime topology, ownership, locks, call graphs  

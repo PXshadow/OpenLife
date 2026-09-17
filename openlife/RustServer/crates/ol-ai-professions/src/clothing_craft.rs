@@ -38,6 +38,27 @@ pub const SLOT_SHOE: usize = 2;
 pub const SLOT_BOTTOM: usize = 4;
 pub const SLOT_BACK: usize = 5;
 
+/// Haxe `ObjectData.getClothingSlot` from `clothing=` first char.
+///
+/// h→0 hat, t→1 chest, s→2 shoes, b→4 bottom, p→5 backpack; else not clothing.
+// Haxe: ObjectData.getClothingSlot; AiBase.craftClothIfNeeded L4703–4704
+pub fn clothing_slot_from_field(clothing: &str) -> Option<usize> {
+    let c = clothing
+        .trim()
+        .chars()
+        .next()
+        .map(|ch| ch.to_ascii_lowercase())
+        .unwrap_or('n');
+    match c {
+        'h' => Some(SLOT_HEAD),
+        't' => Some(SLOT_CHEST),
+        's' => Some(SLOT_SHOE),
+        'b' => Some(SLOT_BOTTOM),
+        'p' => Some(SLOT_BACK),
+        _ => None,
+    }
+}
+
 /// Known OHOL clothing slots for the Haxe priority lists (file `clothing=`).
 #[inline]
 pub fn default_cloth_slot(id: i32) -> Option<usize> {
@@ -58,6 +79,24 @@ pub fn slot_needs_cloth(clothing_ids: &[i32; 6], rag: &[bool; 6], slot: usize) -
         return false;
     }
     clothing_ids[slot] <= 0 || rag[slot]
+}
+
+/// Haxe `craftClothIfNeeded(clothId)`: `getClothingSlot < 0` refuse; empty or RAG → craft.
+// Haxe: AiBase.craftClothIfNeeded L4701–4716
+pub fn craft_cloth_if_needed(
+    cloth_id: i32,
+    slot: Option<usize>,
+    clothing_ids: &[i32; 6],
+    rag: &[bool; 6],
+) -> Option<i32> {
+    let Some(slot) = slot else {
+        return None;
+    };
+    if slot_needs_cloth(clothing_ids, rag, slot) {
+        Some(cloth_id)
+    } else {
+        None
+    }
 }
 
 /// Empty Arrow Quiver (Haxe 874).
@@ -106,6 +145,10 @@ pub const QUIVER_SEARCH_RADIUS_WIDE: i32 = 60;
 pub const QUIVER_SEARCH_RADIUS_NEAR: i32 = 20;
 /// Haxe `if (myPlayer.age < 20) maxSearchRadius = 20`.
 pub const QUIVER_SEARCH_AGE_CAP: f32 = 20.0;
+
+/// Haxe CountCloseObjects home r=60 for backpack / extra winter clothes.
+// Haxe: AiBase.craftMediumPriorityClothing L4571–4590
+pub const HOME_CLOTH_COUNT_RADIUS: i32 = 60;
 
 /// Near-home stock for extra winter / backpack (Haxe CountCloseObjects r=60).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -184,6 +227,9 @@ pub const TAILOR_ASSIGNED_MAX: i32 = 100;
 pub const TAILOR_DEFAULT_MAX: i32 = 1;
 /// Clothing craft `maxSearchRadius` (Haxe itemToCraft 40–60; quiver wraps separately).
 pub const TAILOR_SCAN_RADIUS: i32 = 40;
+/// Late `craftLowPriorityClothing()` after jobs (not ClothingCraft before jobs).
+// Haxe: AiBase.doTimeStuffHelper L817
+pub const LOW_PRIORITY_CLOTHING_RUNG: &str = "LOW_PRIORITY_CLOTHING";
 
 pub fn parse_tailor_profession_speech(text: &str) -> bool {
     let t = text.trim();
@@ -212,6 +258,12 @@ pub fn plan_assigned_tailor_clothing(inp: &ClothingCraftInput<'_>) -> Option<Clo
     plan_low_priority_clothing(inp)
 }
 
+/// Haxe `age >= ObjectData(152).minPickupAge` for Bow and Arrow.
+// Haxe: AiBase.craftMediumPriorityClothing L4513–4514
+pub fn is_old_enough_for_bow(age: f32, min_pickup_age: f32) -> bool {
+    age >= min_pickup_age
+}
+
 /// Accrue home CountCloseObjects stock used by medium extras / quiver precursors.
 pub fn add_home_cloth_id(s: &mut HomeClothStock, id: i32) {
     match id {
@@ -226,6 +278,38 @@ pub fn add_home_cloth_id(s: &mut HomeClothStock, id: i32) {
         149 => s.headless_arrow += 1,
         _ => {}
     }
+}
+
+/// Fill [`HomeClothStock`] with Haxe CountClose half-open square from home.
+// Haxe: AiBase.craftMediumPriorityClothing L4571 CountCloseObjects r=60
+pub fn fill_home_cloth_stock_from_xy(
+    home_x: i32,
+    home_y: i32,
+    objects: impl IntoIterator<Item = (i32, i32, i32)>,
+    radius: i32,
+) -> HomeClothStock {
+    use crate::farmer_profession::in_count_close_square;
+    let mut s = HomeClothStock::default();
+    for (id, x, y) in objects {
+        if in_count_close_square(home_x, home_y, x, y, radius) {
+            add_home_cloth_id(&mut s, id);
+        }
+    }
+    s
+}
+
+/// Haxe `CountCloseObjects(..., Loom 2682, 30) > 0` (half-open square).
+// Haxe: AiBase.craftLowPriorityClothing L4607
+pub fn home_has_loom_from_xy(
+    home_x: i32,
+    home_y: i32,
+    objects: impl IntoIterator<Item = (i32, i32, i32)>,
+    radius: i32,
+) -> bool {
+    use crate::farmer_profession::in_count_close_square;
+    objects.into_iter().any(|(id, x, y)| {
+        id == LOOM && in_count_close_square(home_x, home_y, x, y, radius)
+    })
 }
 
 /// Haxe `hasOrBecomeProfession('TAILOR', max)`.
@@ -488,9 +572,9 @@ pub fn plan_low_priority_clothing(inp: &ClothingCraftInput<'_>) -> Option<Clothi
     None
 }
 
-/// High band, then medium if `age > 10` or assigned/last TAILOR, then low if
-/// `age > 30` or assigned/last TAILOR.
-// Haxe: doTimeStuffHelper ~684–690, assigned TAILOR ~749–752, age>30 ~817
+/// Early ClothingCraft band: high, then medium if `age > 10` or assigned TAILOR.
+/// Low is **not** here — Haxe `craftLowPriorityClothing` is after jobs (L817).
+// Haxe: doTimeStuffHelper L684–690
 pub fn plan_clothing_craft_tick(inp: &ClothingCraftInput<'_>) -> Option<ClothingCraftPlan> {
     if let Some(id) = plan_high_priority_clothing(inp) {
         return Some(ClothingCraftPlan::CraftItem(id));
@@ -500,10 +584,16 @@ pub fn plan_clothing_craft_tick(inp: &ClothingCraftInput<'_>) -> Option<Clothing
             return Some(m);
         }
     }
-    if inp.age > 30.0 || inp.assigned_tailor {
-        return plan_low_priority_clothing(inp);
-    }
     None
+}
+
+/// Haxe `if (myPlayer.age > 30) craftLowPriorityClothing()` after LowPriorityWork jobs.
+// Haxe: AiBase.doTimeStuffHelper L817
+pub fn plan_late_low_priority_clothing(inp: &ClothingCraftInput<'_>) -> Option<ClothingCraftPlan> {
+    if inp.age <= 30.0 {
+        return None;
+    }
+    plan_low_priority_clothing(inp)
 }
 
 #[cfg(test)]
@@ -840,14 +930,18 @@ mod tests {
         assert_eq!(plan_medium_priority_clothing(&inp), None);
         assert_eq!(plan_clothing_craft_tick(&inp), None);
         inp.assigned_tailor = true;
+        // Assigned TAILOR low is plan_assigned_tailor_clothing, not ClothingCraft early band.
+        assert_eq!(plan_clothing_craft_tick(&inp), None);
         assert_eq!(
-            plan_clothing_craft_tick(&inp),
+            plan_assigned_tailor_clothing(&inp),
             Some(ClothingCraftPlan::CraftItem(INDIGO_LONG_DRESS))
         );
         inp.assigned_tailor = false;
         inp.age = 31.0;
+        // Haxe L817: age>30 low only after jobs, not ClothingCraft before jobs.
+        assert_eq!(plan_clothing_craft_tick(&inp), None);
         assert_eq!(
-            plan_clothing_craft_tick(&inp),
+            plan_late_low_priority_clothing(&inp),
             Some(ClothingCraftPlan::CraftItem(INDIGO_LONG_DRESS))
         );
     }
@@ -981,5 +1075,154 @@ mod tests {
         assert_eq!(person_color_from_race(4), PersonColor::White);
         assert_eq!(person_color_from_race(6), PersonColor::Ginger);
         assert_eq!(person_color_from_race(3), PersonColor::Brown);
+    }
+
+    #[test]
+    fn home_cloth_count_close_half_open_r60_and_bow_age() {
+        // Haxe CountClose [home-r, home+r); tile at +60 excluded
+        assert_eq!(HOME_CLOTH_COUNT_RADIUS, 60);
+        let s = fill_home_cloth_stock_from_xy(
+            0,
+            0,
+            [(BACKPACK, 59, 0), (200, 60, 0), (199, -60, 0)],
+            HOME_CLOTH_COUNT_RADIUS,
+        );
+        assert_eq!(s.backpack, 1);
+        assert_eq!(s.loincloth, 0);
+        assert_eq!(s.fur_hat, 1);
+        assert!(is_old_enough_for_bow(5.0, 5.0));
+        assert!(!is_old_enough_for_bow(4.9, 5.0));
+        // Haxe L4502–4506: reed skirt any color; sheep skin White only
+        let (ids, rag) = empty_slots();
+        let brown = ClothingCraftInput {
+            color: PersonColor::Brown,
+            clothing_ids: &ids,
+            rag: &rag,
+            age: 20.0,
+            has_tailor: false,
+            bow_old_enough: true,
+            held_id: 0,
+            quiver_can_add: false,
+            home_stock: HomeClothStock::default(),
+            female: false,
+            has_loom: false,
+            assigned_tailor: false,
+        };
+        assert_eq!(plan_high_priority_clothing(&brown), Some(128));
+        let mut white = brown;
+        white.color = PersonColor::White;
+        let mut worn = ids;
+        worn[SLOT_BOTTOM] = 200;
+        white.clothing_ids = &worn;
+        assert_eq!(plan_high_priority_clothing(&white), Some(593));
+    }
+
+    #[test]
+    fn medium_tailor_idle_after_home_stock() {
+        // Haxe L4594 profession['TAILOR']=0; return false
+        let mut ids = [0; 6];
+        ids[SLOT_BOTTOM] = 200;
+        ids[SLOT_CHEST] = 585;
+        ids[SLOT_SHOE] = 586;
+        ids[SLOT_HEAD] = 584;
+        let rag = [false; 6];
+        let inp = ClothingCraftInput {
+            color: PersonColor::White,
+            clothing_ids: &ids,
+            rag: &rag,
+            age: 26.0,
+            has_tailor: true,
+            bow_old_enough: false,
+            held_id: 0,
+            quiver_can_add: false,
+            home_stock: HomeClothStock {
+                backpack: 1,
+                loincloth: 1,
+                fur_hat: 1,
+                fur_hat_feather: 1,
+                fur_coat: 1,
+                water_pouch: 1,
+                ..HomeClothStock::default()
+            },
+            female: false,
+            has_loom: false,
+            assigned_tailor: false,
+        };
+        assert_eq!(plan_medium_priority_clothing(&inp), None);
+    }
+
+    #[test]
+    fn low_loom_count_close_r30_half_open_and_male_skips_dresses() {
+        // Haxe L4607 CountClose loom r=30; L4610–4618 female-only dresses
+        assert_eq!(HOME_LOOM_RADIUS, 30);
+        assert!(home_has_loom_from_xy(
+            0,
+            0,
+            [(LOOM, 29, 0)],
+            HOME_LOOM_RADIUS
+        ));
+        assert!(!home_has_loom_from_xy(
+            0,
+            0,
+            [(LOOM, 30, 0)],
+            HOME_LOOM_RADIUS
+        ));
+        let (ids, rag) = empty_slots();
+        let male = ClothingCraftInput {
+            color: PersonColor::Brown,
+            clothing_ids: &ids,
+            rag: &rag,
+            age: 35.0,
+            has_tailor: true,
+            bow_old_enough: true,
+            held_id: 0,
+            quiver_can_add: false,
+            home_stock: HomeClothStock::default(),
+            female: false,
+            has_loom: true,
+            assigned_tailor: false,
+        };
+        assert_eq!(plan_low_priority_clothing(&male), None);
+        let mut white_no_bow = male;
+        white_no_bow.color = PersonColor::White;
+        white_no_bow.bow_old_enough = false;
+        assert_eq!(
+            plan_low_priority_clothing(&white_no_bow),
+            Some(ClothingCraftPlan::CraftItem(RABBIT_FUR_HAT))
+        );
+        assert_eq!(QUIVER_SEARCH_RADIUS_WIDE, 60);
+        assert_eq!(QUIVER_SEARCH_RADIUS_NEAR, 20);
+        assert_eq!(QUIVER_SELF_SLOT, 5);
+    }
+
+    #[test]
+    fn craft_cloth_if_needed_slot_empty_rag_and_refuse() {
+        // Haxe L4703–4708 getClothingSlot < 0; empty id or RAG → craftItem
+        assert_eq!(clothing_slot_from_field("b"), Some(SLOT_BOTTOM));
+        assert_eq!(clothing_slot_from_field("H"), Some(SLOT_HEAD));
+        assert_eq!(clothing_slot_from_field("n"), None);
+        assert_eq!(clothing_slot_from_field(""), None);
+        let ids = [0; 6];
+        let rag = [false; 6];
+        assert_eq!(
+            craft_cloth_if_needed(128, clothing_slot_from_field("b"), &ids, &rag),
+            Some(128)
+        );
+        assert_eq!(
+            craft_cloth_if_needed(128, None, &ids, &rag),
+            None
+        );
+        let mut worn = ids;
+        worn[SLOT_BOTTOM] = 128;
+        assert_eq!(
+            craft_cloth_if_needed(128, Some(SLOT_BOTTOM), &worn, &rag),
+            None
+        );
+        let mut rag_on = rag;
+        rag_on[SLOT_BOTTOM] = true;
+        assert_eq!(
+            craft_cloth_if_needed(128, Some(SLOT_BOTTOM), &worn, &rag_on),
+            Some(128)
+        );
     }
 }

@@ -183,6 +183,98 @@ pub fn can_feed_to_me_obj_ex(
     )
 }
 
+/// Bowl of Gooseberries — skip eating a full bowl when not hungry.
+// Haxe: AiBase.isEating L8804–8805
+pub const BOWL_GOOSEBERRIES_EAT: i32 = 253;
+/// Cooked Goose — keep one near home for knife craft.
+// Haxe: AiBase.isEating L8808–8812
+pub const COOKED_GOOSE_EAT: i32 = 518;
+/// CountClose home r=20 for cooked goose.
+// Haxe: AiBase.isEating L8810
+pub const COOKED_GOOSE_KEEP_RADIUS: i32 = 20;
+/// Wild Onion 808.
+// Haxe: AiBase.isEating L8816
+pub const WILD_ONION_EAT: i32 = 808;
+/// Onion 2855.
+// Haxe: AiBase.isEating L8816
+pub const ONION_EAT: i32 = 2855;
+/// Hot Pepper 2844.
+// Haxe: AiBase.isEating L8822
+pub const HOT_PEPPER_EAT: i32 = 2844;
+/// Haxe `dropHeldObject(10)` after eating a peel leftover.
+// Haxe: AiBase.isEating L8837
+pub const EAT_PEEL_DROP_DIST: f32 = 10.0;
+
+/// Haxe `isEating` conservation skips (full berry bowl / last goose / onion / pepper).
+// Haxe: AiBase.isEating L8804–8822
+#[inline]
+pub fn is_eating_conservation_skip(
+    is_hungry: bool,
+    held_id: i32,
+    held_uses: i32,
+    held_num_uses: i32,
+    cooked_goose_close: i32,
+    has_onion_seeds: bool,
+    has_pepper_seeds: bool,
+) -> bool {
+    if !is_hungry && held_id == BOWL_GOOSEBERRIES_EAT && held_uses >= held_num_uses.max(1) {
+        return true;
+    }
+    if held_id == COOKED_GOOSE_EAT && cooked_goose_close < 1 {
+        return true;
+    }
+    if (held_id == WILD_ONION_EAT || held_id == ONION_EAT) && !has_onion_seeds {
+        return true;
+    }
+    if held_id == HOT_PEPPER_EAT && !has_pepper_seeds {
+        return true;
+    }
+    false
+}
+
+/// After `self()` eat: drop leftover if remaining held `foodValue <= 0` (banana peel).
+// Haxe: AiBase.isEating L8837
+#[inline]
+pub fn is_eating_drop_peel(food_value: i32) -> bool {
+    food_value <= 0
+}
+
+/// Haxe `emptyContainer`: empty cargo → false; else dropHeld(0) or remove first slot.
+// Haxe: AiBase.emptyContainer L8876–8892
+#[inline]
+pub fn empty_container_needs_drop(contained_len: i32, is_holding_object: bool) -> bool {
+    contained_len >= 1 && is_holding_object
+}
+
+/// Haxe `emptyContainer` proceeds to `removeItemFromContainer` when cargo exists and drop missed.
+// Haxe: AiBase.emptyContainer L8891
+#[inline]
+pub fn empty_container_should_remove(contained_len: i32) -> bool {
+    contained_len >= 1
+}
+
+/// Haxe `isEating` enter gates (age, canEat, hungry-or-yum). Body after L8800 is the next hop.
+// Haxe: AiBase.isEating L8796–8798
+#[inline]
+pub fn is_eating_head(
+    age: f32,
+    min_age_to_eat: f32,
+    can_eat: bool,
+    is_hungry: bool,
+    is_holding_yum: bool,
+) -> bool {
+    if age < min_age_to_eat {
+        return false;
+    }
+    if !can_eat {
+        return false;
+    }
+    if !is_hungry && !is_holding_yum {
+        return false;
+    }
+    true
+}
+
 /// Haxe starving cascade multiplier for food scoring.
 // Haxe: processFood starving factor from food store
 pub fn starving_factor(food_store: f32) -> f32 {
@@ -213,5 +305,56 @@ mod tests {
     #[test]
     fn can_eat_refuses_zero_food() {
         assert!(!can_eat_obj(0, 0.0, 5.0, 20.0));
+    }
+
+    #[test]
+    fn is_eating_head_age_caneat_hungry_or_yum() {
+        // Haxe: AiBase.isEating L8796–8798
+        assert!(!is_eating_head(2.0, 3.0, true, true, true));
+        assert!(!is_eating_head(20.0, 3.0, false, true, true));
+        assert!(!is_eating_head(20.0, 3.0, true, false, false));
+        assert!(is_eating_head(20.0, 3.0, true, true, false));
+        assert!(is_eating_head(20.0, 3.0, true, false, true));
+    }
+
+    #[test]
+    fn is_eating_conservation_bowl_goose_onion_pepper() {
+        // Full berry bowl, not hungry
+        assert!(is_eating_conservation_skip(
+            false, BOWL_GOOSEBERRIES_EAT, 5, 5, 2, true, true
+        ));
+        assert!(!is_eating_conservation_skip(
+            true, BOWL_GOOSEBERRIES_EAT, 5, 5, 2, true, true
+        ));
+        // Last cooked goose (none on ground)
+        assert!(is_eating_conservation_skip(
+            true, COOKED_GOOSE_EAT, 1, 1, 0, true, true
+        ));
+        assert!(!is_eating_conservation_skip(
+            true, COOKED_GOOSE_EAT, 1, 1, 1, true, true
+        ));
+        assert!(is_eating_conservation_skip(
+            true, WILD_ONION_EAT, 1, 1, 0, false, true
+        ));
+        assert!(is_eating_conservation_skip(
+            true, ONION_EAT, 1, 1, 0, false, true
+        ));
+        assert!(!is_eating_conservation_skip(
+            true, WILD_ONION_EAT, 1, 1, 0, true, true
+        ));
+        assert!(is_eating_conservation_skip(
+            true, HOT_PEPPER_EAT, 1, 1, 0, true, false
+        ));
+        assert!(!is_eating_conservation_skip(
+            true, HOT_PEPPER_EAT, 1, 1, 0, true, true
+        ));
+        assert!(is_eating_drop_peel(0));
+        assert!(!is_eating_drop_peel(3));
+        assert_eq!(EAT_PEEL_DROP_DIST, 10.0);
+        assert!(empty_container_needs_drop(1, true));
+        assert!(!empty_container_needs_drop(1, false));
+        assert!(!empty_container_needs_drop(0, true));
+        assert!(empty_container_should_remove(2));
+        assert!(!empty_container_should_remove(0));
     }
 }

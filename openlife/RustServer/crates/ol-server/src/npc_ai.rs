@@ -15,61 +15,111 @@ use ol_metrics::{Counters, ScopeTimer};
 use ol_ai::{
     BestFoodHit, BestFoodQuery, CommandSink, DeadlyPlayerCandidate, EscapeThreat, FoodSearch,
     LiveSensorInput, PlayerWriteInterface, DEFAULT_FOOD_SEARCH_RADIUS, DEADLY_PLAYER_SEARCH_DIST_AI,
-    ESCAPE_DIST, escape_target_xy, fill_live_sensors, get_close_deadly_player,
-    update_is_hungry,
+    ESCAPE_ANGRY_TIME_IGNORE, ESCAPE_DIST, ESCAPE_FOOD_CRIT_SKIP, ESCAPE_IS_DANGEROUS_RADIUS,
+    auto_follow_ai_human_early_return, check_is_hungry_and_eat_effects, decay_was_idle, escape_debug_say,
+    escape_maybe_assign_animal_target, escape_side_effects, fill_live_sensors,
+    get_close_deadly_player, handle_temperature_after_pickup, hungry_infant_always_returns,
+    idle_say_line, idle_should_drop_held, pick_escape_tile, search_food_and_eat_debug_say,
+    nice_baby_noble_wants_weapon, should_escape_on_moved_one_tile, should_switch_cloth,
+    should_zero_profession_weight, skip_escape_for_hunt, skip_home_and_jobs_while_moving,
+    switch_cloth_resolve_parent, in_get_close_clothings_square, is_get_close_clothing_object,
+    tick_waiting_time, waiting_time_blocks_think,
+    GET_CLOSE_CLOTHINGS_RADIUS,
+    EscapeRand, KNIFE_ID, WAR_SWORD_ID,
 };
 use ol_net::NetIntent;
 use ol_main_ai::{plan_hungry_food, ThinkPlan, ThinkSensors};
 use ol_player_helper::{
-    pick_best_search_food, to_best_hit, AiFoodSearchFlags, ProcessFoodOpts, SearchFoodCand,
+    can_eat_obj, is_dangerous_near, is_eating_conservation_skip, is_eating_drop_peel,
+    is_eating_head, is_obj_yum, pick_best_search_food, to_best_hit, AiFoodSearchFlags,
+    ProcessFoodOpts, SearchFoodCand, COOKED_GOOSE_EAT, COOKED_GOOSE_KEEP_RADIUS,
+    EAT_PEEL_DROP_DIST,
 };
 use ol_sim::{
     ai_rebirth_wait_secs,
     apply_fire_craft_search_radius_override, apply_food_goto_fail, apply_job_flags_to_live_input,
-    attack_player, attack_player_action_to_live_intent, deadly_distance_for_held,
-    AttackPlayerClothing, AttackPlayerInput, AttackPlayerTarget,
-    MIN_AI_AGE_FOR_COMBAT, WEAPON_SEARCH_DIST,
+    attack_player, attack_player_action_to_live_intent, deadly_distance_for_held, get_weapon,
+    has_weapon_close, is_bloody_weapon, AttackPlayerClothing, AttackPlayerInput,
+    AttackPlayerTarget, GetWeaponAction, BOW_AND_ARROW, HAS_WEAPON_CLOSE_SEARCH,
+    MIN_AI_AGE_FOR_COMBAT, RATTLE_SNAKE, WEAPON_SEARCH_DIST,
+    kill_animal_body, kill_animal_bow_hunt, kill_animal_prefix, wolf_tile_allowed,
+    KillAnimalAction, KillAnimalBodyInput, KillAnimalPrefixInput, KillAnimalPrefixKind,
+    KILL_ANIMAL_GOTO_FAIL_CLEAR, KILL_ANIMAL_SNAKE_RADIUS, KILL_ANIMAL_WOLF_SEARCH,
+    TIME_HELPER_TICK_TIME, TIME_LOOKED_NEVER, WOLF,
     pick_close_hungry_child, pick_most_distant_own_child, HungryChildCand, is_fertile,
     is_eve_or_adam_name, STARTING_NAME, FEMALE_FIRST_NAMES, MALE_FIRST_NAMES,
     get_max_child_feeding, can_pickup_baby_distance,
     MAX_CHILD_AGE_BREAST_FEEDING, HUNGRY_CHILD_SEARCH_DIST, DISTANT_OWN_CHILD_MIN_DIST,
     DISTANT_OWN_CHILD_SEARCH_DIST,
-    go_home_goal_xy, go_home_move_target, handle_death_after_graves_miss, plan_handle_death,
+    go_home_goal_xy, go_home_move_target, should_path_to_home, handle_death_after_graves_miss, plan_handle_death,
     should_handle_death, wipe_jobs_assign_grave_keeper, HandleDeathAction, HANDLE_DEATH_TIME_BUMP,
-    fail_warm_clear_place, get_close_biome, is_super_cold_for_person, is_super_hot_for_person,
-    person_looks_female, plan_handle_temperature, HandleTemperatureAction, HandleTemperatureInput,
+    fail_warm_clear_place, get_close_biome, handling_fire_profession_scan_tick,
+    is_angry_or_terrified, is_super_cold_for_person,
+    is_super_hot_for_person, person_looks_female, plan_handle_temperature,
+    HandleTemperatureAction, HandleTemperatureInput, HandleTemperaturePlan,
     COOL_BIOMES, GET_CLOSE_BIOME_DIST, HANDLE_TEMP_KINDLING, HANDLE_TEMP_LARGE_FAST_FIRE,
     HANDLE_TEMP_RELAX_TIME, HANDLE_TEMP_SAY_DRINK, WARM_BIOMES,
-    advance_remove_from_container, stage_remove_item_from_container, RemoveFromContainerAdvance,
-    RemoveFromContainerStaging,
+    advance_remove_from_container, remove_command_xy, stage_remove_item_from_container,
+    RemoveFromContainerAdvance, RemoveFromContainerStaging, NOT_REACHABLE_DEFAULT_SECS,
     apply_path_filters_to_tiles,
     filter_scan_tiles_in_radius,
     basic_farmer_weight_from_runtime, blocked_by_ai_with_peer_progress,
+    AiAgentBlockSource, BlockTargetClaim, GOTO_APPROACH_RAD, TRY_MOVE_NEAREST_TILE_FIRST_DEFAULT,
+    goto_approach_tweaks, remove_agent_blocked_by_ai,
     collect_deadly_animal_blocked_around_for_player,
     AnimalPathPlayerCtx, BowlFillerPeer, AnimalWorld, DEADLY_ANIMAL_SEARCH_DIST,
     is_holding_weapon, is_self_best_bowl_filler, is_self_best_fire_keeper_for_obj,
     is_self_best_grave_keeper_for_obj, FireKeeperPeer, GraveKeeperPeer, pick_grave,
     consider_animals_for_goto, evaluate_nearby_crafts, force_drop_at_feet,
-    food_pickup_action_success_reset, full_pile_tiles_from_scan, nonempty_container_tiles_from_scan,
+    consider_drop_held_object, eatable_original_food_value, food_pickup_action_success_reset,
+    food_pickup_in_container, fill_bean_bowl_if_needed, fill_berry_bowl_held_if_needed,
+    FillBeanBowlAction, FillBeanBowlInput, FillBerryBowlHeldAction, FillBerryBowlHeldInput,
+    FILL_BEAN_BOWL_SEARCH_DIST, FILL_BERRY_HELD_SEARCH_DIST, BOWL_OF_DRY_BEANS, DRY_BEAN_PLANTS,
+    using_item_preflight, UsingItemPreflight, is_using_item_bow_on_animal,
+    is_using_item_drop_is_a_use_done, is_using_item_goose_stump_speedup,
+    is_using_item_use_fail, note_using_item_craft_progress, USE_BOW_AND_ARROW,
+    note_raw_pie_crafted, kill_animal_needs_stand_off, mark_use_path_fail,
+    is_eatable_check_again, full_pile_tiles_from_scan, nonempty_container_tiles_from_scan,
     get_or_craft_objs_from_scan, goto_path_outcome, has_bean_seeds_from_scan,
-    has_carrot_seeds_from_scan, init_water_source_ids_from_content, is_walkable,
+    has_onion_seeds_from_scan, has_pepper_seeds_from_scan,
+    count_seeds_from_scan, has_carrot_seeds_from_scan, init_water_source_ids_from_content,
+    is_walkable, npc_think_job_rungs,
     is_walkable_with_animals, is_wound_object, ladder_profession_scan_tick, mark_food_path_fail,
     mark_goto_path_fail, merge_path_reach_maps, next_step, next_step_consider_animals_for_player,
     npc_enqueue_get_or_craft_ex, npc_peer_count_for_kind, npc_peer_counts_by_kind,
     farm_peer_lasts_from_npc_rows, path_filters_from_player, peer_home_coords,
     peer_is_wounded_from_held_ex, pending_food_tile_still_actionable, pile_obj_id_from_content,
     plan_goto_obj, plan_is_picking_up_food, plan_profession_ladder_steps,
+    ProfessionScanTickResult,
     quiver_from_clothing_snapshot, snapshot_blocked_by_ai_share,
     commit_fire_place, count_tailor_profession_from_rows, fill_up_quiver_search_radius,
     has_or_become_tailor, resolve_fire_place,
     home_cloth_stock_from_world, home_has_loom_from_world, is_fill_up_quiver_plan,
+    is_old_enough_for_bow, HOME_CLOTH_COUNT_RADIUS,
     plan_clothing_craft_tick, plan_high_priority_clothing, plan_quiver_arrow_precursors,
-    make_sharpie_food, FarmAction, FarmCounts, BURDOCK, SEEDING_WILD_CARROT,
+    make_sharpie_food_from_xy, FarmAction, MAKE_SHARPIE_FOOD_CLOSE_CALL_DISTANCE,
+    do_knife_stuff, KnifeStuffAction,
+    do_baking, do_watering, fill_bake_counts_from_map_ex, fill_farm_counts_from_map_ex,
+    fill_fire_food_counts_from_map, make_fire_food, BakeAction, BakeMapObj, FarmMapObj,
+    FireFoodAction, FireFoodMapObj,
     person_color_from_race,
     quiver_can_add_from_slots, requeue_runtime_task_on_fail,
     resolve_sticky_food, scan_held_hungry_work_cost, scan_world_radius,
     select_runtime_sticky_craft_for_tick, self_clothing_raw_payload,
-    settle_pending_food_use_fail, smart_drop_held_from_sensors_ex, AiPathReachMaps,
+    drop_held_clears_drop_target, drop_target_uses_use_not_drop, is_dropping_drop_distance_after_try,
+    is_dropping_item_goto, is_dropping_item_head, settle_pending_food_use_fail,
+    smart_drop_held_from_sensors_ex, IsDropingItemGoto, IsDropingItemHead,
+    apply_consider_making_food_smith_wipe, consider_making_food_do_stuff,
+    consider_making_food_ear_of_corn_maker, consider_making_food_fire_food_on_extra_rabbit,
+    consider_making_food_fire_food_on_few_rabbit,
+    consider_making_food_raw_rabbit_count, consider_making_food_should_research,
+    consider_making_food_short_crafts, consider_making_food_skip_after_enter_with_home,
+    should_wipe_smith_on_consider_food, time_since_ticks_in_sec,
+    MAKE_SHARPIE_FOOD_FAR_CALL_DISTANCE, TURKEY_SLICE_ON_PLATE,
+    pull_carrot_row_if_needed, PullCarrotRowAction, PullCarrotRowInput,
+    CORN_PLANT, DRIED_CORN, EAR_OF_CORN, PILE_DRIED_CORN, SHUCKED_CORN,
+    SKINNED_RABBIT, SKEWERED_RABBIT,
+    AiPathReachMaps,
     BakerProfessionRuntime, BakerTaskState, CraftAiRuntime, CraftLiveExpandOpts, CraftProfession,
     BlockedByAiShare, DropHeldSensorExtras, EnvView, FarmProfession, FarmProfessionRuntime,
     FarmTaskState,
@@ -85,13 +135,14 @@ use ol_sim::{
     ProfessionScanKind, ProfessionStickySnapshot, ReverseCraftGraph, ShepherdProfessionRuntime,
     ShortCraftLiveIntent, SmithProfessionRuntime, SteelChiselFamilyTable, StickyFoodTarget,
     BAKER_SCAN_RADIUS, DEFAULT_CRAFT_RADIUS, DEFAULT_PROFESSION_SCAN_RADIUS, DEFAULT_WALK_SPEED,
-    FIRE, FIRE_FOOD_HOME_RADIUS, GOTO_COLLISION_RAD, GRAVE_SEARCH_RADIUS, HANDLING_FIRE_COUNT_RADIUS,
-    HOT_COALS, HUNTING_SHORTCRAFT_RADIUS, CUTTING_WOOD_SCAN_RADIUS, COLLECTING_SCAN_RADIUS,
+    FIRE_FOOD_HOME_RADIUS, GOTO_COLLISION_RAD, GRAVE_SEARCH_RADIUS, HANDLING_FIRE_SCAN_RADIUS,
+    HUNTING_SHORTCRAFT_RADIUS, CUTTING_WOOD_SCAN_RADIUS, COLLECTING_SCAN_RADIUS,
     STARVING_SEARCH_DIST, TAILOR_SCAN_RADIUS,
     INTERACTION_SEC, MAX_AGE,
     MIN_AGE_TO_EAT, POTTERY_SCAN_RADIUS, SHEPHERD_SHORTCRAFT_RADIUS, SMITH_SCAN_RADIUS,
 };
-use ol_world::{World, DESERT, PASSABLE_RIVER};
+use ol_world::{is_biome_blocking, World, DESERT, OCEAN, PASSABLE_RIVER, RIVER};
+use rand::Rng;
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, RwLock};
@@ -162,24 +213,329 @@ impl StickyArrive {
     }
 }
 
-/// Haxe `isUsingItem` / `isDropingItem`: while moving with a staged target, keep the
-/// live path. Replanning after each tile sends a new MOVE (truncates remaining steps)
-/// or USE (NetIntent::Use while moving **cancels** the path and does not apply).
-// Haxe: AiBase.isUsingItem `if (myPlayer.isMoving()) return true;` L9013
-// Haxe: AiBase.isDropingItem `if (myPlayer.isMoving()) return true;` L8428
-fn npc_hold_sticky_path_think(
+/// After hunger/escape, Haxe `isUsingItem`/`isDropingItem` return true while
+/// still moving so craft does not send a replacement MOVE or USE (USE cancels path).
+// Haxe: AiBase.isUsingItem L9013; isDropingItem L8428
+fn npc_skip_craft_while_sticky_moving(
     moving: bool,
-    moved_one_tile: bool,
     sticky_valid: bool,
     sticky_arrive: StickyArrive,
 ) -> bool {
-    if !moving {
+    moving && sticky_valid && sticky_arrive != StickyArrive::None
+}
+
+/// Haxe `CalculateQuadDistanceToObject` vs 25 — close use runs before feeding.
+// Haxe: AiBase.doTimeStuffHelper L500–510
+#[inline]
+fn npc_haxe_close_use_prio(px: i32, py: i32, tx: i32, ty: i32) -> bool {
+    let dx = px - tx;
+    let dy = py - ty;
+    dx * dx + dy * dy < 25
+}
+
+#[inline]
+fn npc_holding_player(held_id: i32, holding_player_id: i32) -> bool {
+    holding_player_id != 0 || held_id < 0
+}
+
+/// Haxe `dropHeldObject(0)`: empty tile at feet, else an orthogonal neighbor.
+fn npc_empty_drop_xy(world: &World, px: i32, py: i32) -> (i32, i32) {
+    if world.get_object(px, py) == 0 {
+        return (px, py);
+    }
+    for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+        let x = px + dx;
+        let y = py + dy;
+        if world.get_object(x, y) == 0 {
+            return (x, y);
+        }
+    }
+    (px, py)
+}
+
+/// Haxe `isDropingItem` is always before `isFeedingChild`; close `isUsingItem` (quad < 25) too.
+// Haxe: AiBase.doTimeStuffHelper L497 / L500–510 then L557 isFeedingChild
+fn npc_skip_feed_for_sticky(
+    px: i32,
+    py: i32,
+    gx: i32,
+    gy: i32,
+    sticky_valid: bool,
+    arrive: StickyArrive,
+) -> bool {
+    if !sticky_valid {
         return false;
     }
-    if sticky_valid && sticky_arrive != StickyArrive::None {
-        return true;
+    match arrive {
+        StickyArrive::Drop => true,
+        StickyArrive::Use => npc_haxe_close_use_prio(px, py, gx, gy),
+        StickyArrive::None => false,
     }
-    haxe_skip_mid_path_think(moving, moved_one_tile)
+}
+
+/// Early sticky return: `isDropingItem` always; `isUsingItem` only when quad < 25.
+// Haxe: AiBase.doTimeStuffHelper L497 / L500–510
+fn npc_sticky_early_return(arrive: StickyArrive, px: i32, py: i32, gx: i32, gy: i32) -> bool {
+    match arrive {
+        StickyArrive::Drop => true,
+        StickyArrive::Use => npc_haxe_close_use_prio(px, py, gx, gy),
+        StickyArrive::None => false,
+    }
+}
+
+/// What to do on sticky arrival (Haxe `isUsingItem` / `isDropingItem`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StickyActPlan {
+    /// Path still running — Haxe `if (isMoving()) return true`.
+    WaitUntilStopped,
+    /// Walk toward the tile (`distance > 1` → `gotoObj`).
+    Walk,
+    /// Holding a baby: `dropPlayer(myPlayer.x, myPlayer.y)` then next think USE/DROP.
+    // Haxe: AiBase.isUsingItem L9040–9045; isPickingupFood L8657–8663
+    DropHeldPlayerAtFeet,
+    /// Holding an object while `useActor.id == 0`: drop to empty the hand, then USE.
+    // Haxe: AiBase.isUsingItem L9048–9051
+    DropHeldForEmptyHand,
+    DropTarget,
+    UseTarget,
+}
+
+/// Haxe `isUsingItem` L8910–8998 before goto/use.
+fn npc_using_item_head_live(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    px: i32,
+    py: i32,
+    held_id: i32,
+    held_uses: i32,
+    home_x: i32,
+    home_y: i32,
+    sticky: &NpcStickyMove,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let world_id = world.get_object(sticky.gx, sticky.gy);
+    let world_parent = sticky_parent_id(content, world_id);
+    let contained_n = world
+        .get_helper(sticky.gx, sticky.gy)
+        .map(|h| h.contained.len() as i32)
+        .unwrap_or(0);
+    let consider = consider_drop_held_object(
+        held_id,
+        px,
+        py,
+        home_x,
+        home_y,
+        sticky.gx,
+        sticky.gy,
+    );
+    let num_uses = content
+        .get(content.resolve_base_id(held_id))
+        .map(|d| d.num_uses)
+        .unwrap_or(0);
+    match using_item_preflight(
+        st.use_is_drop_in_container,
+        contained_n,
+        sticky.expected_parent_id,
+        world_parent,
+        content.resolve_base_id(held_id),
+        sticky.use_actor_parent,
+        consider,
+        held_uses,
+        num_uses,
+    ) {
+        UsingItemPreflight::Continue => None,
+        UsingItemPreflight::AbortContainedBusy => {
+            st.path_reach.add_not_reachable(sticky.gx, sticky.gy, 90.0);
+            npc_cancle_use(st);
+            Some((
+                NpcActivityKind::Think,
+                format!("use_contained_abort @{},{}", sticky.gx, sticky.gy),
+                100,
+            ))
+        }
+        UsingItemPreflight::CancelTargetChanged => {
+            npc_cancle_use(st);
+            None
+        }
+        UsingItemPreflight::ConsiderDropHeld => {
+            let (dx, dy) = npc_empty_drop_xy(world, px, py);
+            if npc_drop_at(intent_tx, conn_id, dx, dy, None) {
+                Some((
+                    NpcActivityKind::Craft,
+                    format!("use_consider_drop held={}", held_id),
+                    400,
+                ))
+            } else {
+                Some((NpcActivityKind::Think, "use_consider_drop".into(), 100))
+            }
+        }
+        UsingItemPreflight::CancelWrongActor => {
+            npc_cancle_use(st);
+            let (dx, dy) = npc_empty_drop_xy(world, px, py);
+            let _ = npc_drop_at(intent_tx, conn_id, dx, dy, None);
+            None
+        }
+        UsingItemPreflight::NeedFillBerry => {
+            let bush = npc_closest_parent_cheb(
+                &npc_scan_fill_once(world, content, px, py, FILL_BERRY_HELD_SEARCH_DIST),
+                px,
+                py,
+                30,
+                FILL_BERRY_HELD_SEARCH_DIST,
+            )
+            .or_else(|| {
+                npc_closest_parent_cheb(
+                    &npc_scan_fill_once(world, content, px, py, FILL_BERRY_HELD_SEARCH_DIST),
+                    px,
+                    py,
+                    391,
+                    FILL_BERRY_HELD_SEARCH_DIST,
+                )
+            });
+            let act = fill_berry_bowl_held_if_needed(&FillBerryBowlHeldInput {
+                held_id,
+                held_uses,
+                held_num_uses: num_uses,
+                bush,
+            });
+            match act {
+                FillBerryBowlHeldAction::UseHeldOnBush { x, y, bush_id } => {
+                    if npc_use_at(intent_tx, conn_id, x, y, None, None) {
+                        Some((
+                            NpcActivityKind::Craft,
+                            format!("use_fill_berry {bush_id} @{},{}", x, y),
+                            400,
+                        ))
+                    } else {
+                        None
+                    }
+                }
+                FillBerryBowlHeldAction::None => {
+                    npc_cancle_use(st);
+                    let (dx, dy) = npc_empty_drop_xy(world, px, py);
+                    let _ = npc_drop_at(intent_tx, conn_id, dx, dy, None);
+                    None
+                }
+            }
+        }
+        UsingItemPreflight::NeedFillBean => {
+            let tiles = npc_scan_fill_once(world, content, px, py, FILL_BEAN_BOWL_SEARCH_DIST);
+            let plant = npc_closest_parent_cheb(
+                &tiles,
+                px,
+                py,
+                DRY_BEAN_PLANTS,
+                FILL_BEAN_BOWL_SEARCH_DIST,
+            )
+            .map(|(x, y, _)| (x, y));
+            let bowl = npc_closest_parent_cheb(
+                &tiles,
+                px,
+                py,
+                BOWL_OF_DRY_BEANS,
+                FILL_BEAN_BOWL_SEARCH_DIST,
+            );
+            let act = fill_bean_bowl_if_needed(&FillBeanBowlInput {
+                held_id,
+                held_uses,
+                held_num_uses: num_uses,
+                green_beans: false,
+                only_fill_held: false,
+                count_dry_beans: npc_count_parent_cheb(
+                    &tiles,
+                    px,
+                    py,
+                    BOWL_OF_DRY_BEANS,
+                    FILL_BEAN_BOWL_SEARCH_DIST,
+                ) + npc_count_parent_cheb(
+                    &tiles,
+                    px,
+                    py,
+                    DRY_BEAN_PLANTS,
+                    FILL_BEAN_BOWL_SEARCH_DIST,
+                ),
+                plant_xy: plant,
+                bowl_xy: bowl.map(|(x, y, _)| (x, y)),
+                bowl_uses: 1,
+                bowl_num_uses: 1,
+                is_best_bowl_filler: true,
+            });
+            match act {
+                FillBeanBowlAction::UseHeldOnPlant { x, y, plant_id } => {
+                    if npc_use_at(intent_tx, conn_id, x, y, None, None) {
+                        Some((
+                            NpcActivityKind::Craft,
+                            format!("use_fill_bean {plant_id} @{},{}", x, y),
+                            400,
+                        ))
+                    } else {
+                        npc_cancle_use(st);
+                        let (dx, dy) = npc_empty_drop_xy(world, px, py);
+                        let _ = npc_drop_at(intent_tx, conn_id, dx, dy, None);
+                        Some((NpcActivityKind::Think, "use_fill_bean_fail".into(), 100))
+                    }
+                }
+                FillBeanBowlAction::None
+                | FillBeanBowlAction::PickupBowl { .. }
+                | FillBeanBowlAction::GetClayBowl => {
+                    npc_cancle_use(st);
+                    let (dx, dy) = npc_empty_drop_xy(world, px, py);
+                    let _ = npc_drop_at(intent_tx, conn_id, dx, dy, None);
+                    Some((NpcActivityKind::Think, "use_fill_bean_drop".into(), 100))
+                }
+            }
+        }
+    }
+}
+
+fn npc_scan_fill_once(
+    world: &World,
+    content: &ContentDb,
+    cx: i32,
+    cy: i32,
+    r: i32,
+) -> Vec<ScanTile> {
+    scan_world_radius(world, Some(content), cx, cy, r)
+}
+
+fn npc_plan_sticky_arrive(
+    px: i32,
+    py: i32,
+    gx: i32,
+    gy: i32,
+    moving: bool,
+    holding_player: bool,
+    held_id: i32,
+    use_actor_parent: i32,
+    arrive: StickyArrive,
+) -> StickyActPlan {
+    if arrive == StickyArrive::None {
+        return if moving || npc_is_close_action(px, py, gx, gy) {
+            StickyActPlan::WaitUntilStopped
+        } else {
+            StickyActPlan::Walk
+        };
+    }
+    if npc_is_close_action(px, py, gx, gy) {
+        if moving {
+            return StickyActPlan::WaitUntilStopped;
+        }
+        if holding_player {
+            return StickyActPlan::DropHeldPlayerAtFeet;
+        }
+        // Haxe: isHoldingObject && useActor.id == 0 → dropHeldObject(0)
+        if arrive == StickyArrive::Use && use_actor_parent == 0 && held_id > 0 {
+            return StickyActPlan::DropHeldForEmptyHand;
+        }
+        return match arrive {
+            StickyArrive::Drop => StickyActPlan::DropTarget,
+            StickyArrive::Use => StickyActPlan::UseTarget,
+            StickyArrive::None => StickyActPlan::WaitUntilStopped,
+        };
+    }
+    StickyActPlan::Walk
 }
 
 fn npc_held_name(content: &ContentDb, held_id: i32) -> String {
@@ -331,6 +687,7 @@ fn npc_pick_grave_xy(
             y: t.y,
             floor_id: t.floor_id,
             contained_count: t.contained_count,
+            owner_account: t.owner_account,
         })
         .collect();
     pick_grave(&map, player_x, player_y, GRAVE_SEARCH_RADIUS, last_grave)
@@ -383,6 +740,20 @@ fn npc_fill_live_sensor_input(
     st: &NpcProfessionState,
     nearby_food: bool,
 ) -> LiveSensorInput {
+    npc_fill_live_sensor_input_ex(p, content, views, animals, st, nearby_food, &[])
+}
+
+/// Same as [`npc_fill_live_sensor_input`] with nearby tiles for `hasWeaponClose` ground search.
+// Haxe: AiBase.hasWeaponClose L5716–5742
+fn npc_fill_live_sensor_input_ex(
+    p: &PlayerSnapshot,
+    content: &ContentDb,
+    views: &HashMap<u64, PlayerSnapshot>,
+    animals: Option<&AnimalWorld>,
+    st: &NpcProfessionState,
+    nearby_food: bool,
+    nearby: &[NearbyObj],
+) -> LiveSensorInput {
     let deadly_animal = animals.and_then(|aw| {
         aw.get_close_deadly_animal(p.x, p.y, DEADLY_ANIMAL_SEARCH_DIST)
             .map(|d| (d.x, d.y, d.dist_quad))
@@ -425,6 +796,22 @@ fn npc_fill_live_sensor_input(
         combat_target: deadly_player.is_some(),
         ..Default::default()
     };
+    let weapon_tiles: Vec<(i32, i32, i32, bool)> = nearby
+        .iter()
+        .map(|o| (o.id, o.x, o.y, false))
+        .collect();
+    input.has_weapon_close = has_weapon_close(
+        true,
+        input.is_wounded,
+        p.age,
+        MIN_AI_AGE_FOR_COMBAT,
+        is_bloody_weapon(p.held_id),
+        p.held_id,
+        AttackPlayerClothing::from_ids(&p.clothing),
+        &weapon_tiles,
+        p.x,
+        p.y,
+    );
     let mut sticky = ProfessionStickySnapshot::from_runtimes_ex(
         &st.farm_rt,
         &st.smith_rt,
@@ -446,15 +833,291 @@ fn npc_fill_live_sensor_input(
     input
 }
 
+/// Haxe `WorldMap.calculateRandomFloat` / `calculateRandomInt` for escape jitter.
+struct NpcEscapeRng;
+
+impl EscapeRand for NpcEscapeRng {
+    fn random_float(&mut self) -> f32 {
+        rand::random::<f32>()
+    }
+    fn random_int(&mut self, max_inclusive: i32) -> i32 {
+        if max_inclusive < 0 {
+            return 0;
+        }
+        rand::thread_rng().gen_range(0..=max_inclusive)
+    }
+}
+
+/// Haxe `GlobalPlayerInstance.isBlocked`.
+// Haxe: GlobalPlayerInstance.isBlocked L6201–6212
+fn npc_is_blocked(world: &World, content: &ContentDb, held_id: i32, tx: i32, ty: i32) -> bool {
+    let id = world.get_object(tx, ty);
+    if id != 0 {
+        if let Some(def) = content.get(id) {
+            if def.blocks_walking {
+                return true;
+            }
+        }
+    }
+    let biome = world.get_biome(tx, ty);
+    let held_parent = content
+        .dummy_parent
+        .get(&held_id)
+        .copied()
+        .unwrap_or(held_id);
+    if content.is_boat.contains(&held_id) || content.is_boat.contains(&held_parent) {
+        if matches!(biome, OCEAN | PASSABLE_RIVER | RIVER) {
+            return false;
+        }
+    }
+    is_biome_blocking(biome, world.get_floor(tx, ty) as i32)
+}
+
+/// Haxe `AiHelper.IsDangerous` around an escape candidate (map animals + hostile path).
+// Haxe: AiHelper.IsDangerousHelper L1058–1074; AiBase.escape L6561
+fn npc_escape_tile_is_dangerous(
+    world: &World,
+    content: &ContentDb,
+    animal_tiles: &[(i32, i32)],
+    hostile: &[(i32, i32)],
+    tx: i32,
+    ty: i32,
+) -> bool {
+    if is_dangerous_near(tx, ty, ESCAPE_IS_DANGEROUS_RADIUS, animal_tiles, hostile) {
+        return true;
+    }
+    let r = ESCAPE_IS_DANGEROUS_RADIUS;
+    for y in (ty - r)..(ty + r) {
+        for x in (tx - r)..(tx + r) {
+            let id = world.get_object(x, y);
+            if id == 0 {
+                continue;
+            }
+            if let Some(def) = content.get(id) {
+                if def.is_animal() && def.deadly_distance > 0.0 {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// Haxe `escape(animal, deadlyPlayer)` — L6493–6599 (caller already gated `didNotReachFood < 5`).
+// Haxe: AiBase.doTimeStuff L401–404; doTimeStuffHelper L492; escape L6501–6599
+fn npc_try_escape_now(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &std::sync::RwLock<World>,
+    content: &ContentDb,
+    animals: &std::sync::RwLock<AnimalWorld>,
+    player_views: &std::sync::RwLock<HashMap<u64, PlayerSnapshot>>,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+) -> Option<(NpcActivityKind, String, u32)> {
+    if !ol_ai::should_attempt_escape(st.food_goto.did_not_reach_food) {
+        return None;
+    }
+    let animals_g = animals.read().ok();
+    let views_g = player_views.read().ok()?;
+    let nearby = world
+        .read()
+        .ok()
+        .map(|w| collect_nearby(&w, p.x, p.y, HAS_WEAPON_CLOSE_SEARCH))
+        .unwrap_or_default();
+    let input = npc_fill_live_sensor_input_ex(
+        p,
+        content,
+        &views_g,
+        animals_g.as_deref(),
+        st,
+        false,
+        &nearby,
+    );
+    let bundle = fill_live_sensors(&input);
+    st.was_hungry = bundle.is_hungry;
+
+    let close_animal = animals_g
+        .as_deref()
+        .and_then(|aw| aw.get_close_deadly_animal(p.x, p.y, DEADLY_ANIMAL_SEARCH_DIST));
+    let animal_xy_id = close_animal.map(|d| {
+        let oid = animals_g
+            .as_deref()
+            .and_then(|aw| {
+                aw.animals
+                    .iter()
+                    .find(|a| a.id == d.id)
+                    .map(|a| a.map_object_id())
+            })
+            .unwrap_or_else(|| d.kind.object_id());
+        (d.x, d.y, oid)
+    });
+    let player_active = input
+        .deadly_player
+        .is_some_and(|(_, _, _, angry)| angry <= ESCAPE_ANGRY_TIME_IGNORE);
+    // Haxe: no animal and (null/angry) player → return false *before* animalTarget.
+    if animal_xy_id.is_none() && !player_active {
+        return None;
+    }
+    // Haxe: `food_store < -1` return false before animalTarget.
+    if input.food < ESCAPE_FOOD_CRIT_SKIP {
+        return None;
+    }
+    let killable = animal_xy_id
+        .map(|(_, _, id)| content.find_transition(BOW_AND_ARROW, id).is_some())
+        .unwrap_or(false);
+    // Haxe L6503: assign even when hunt-skip / hasWeaponClose later return false.
+    st.animal_target =
+        escape_maybe_assign_animal_target(st.animal_target, animal_xy_id, killable);
+    if skip_escape_for_hunt(input.holding_weapon, input.is_wounded, input.age) {
+        return None;
+    }
+    if bundle.escape_threat == EscapeThreat::None {
+        return None;
+    }
+
+    let (threat_tx, threat_ty) = match bundle.escape_threat {
+        EscapeThreat::Animal => input
+            .deadly_animal
+            .map(|(x, y, _)| (x, y))
+            .unwrap_or((p.x, p.y)),
+        EscapeThreat::Player => input
+            .deadly_player
+            .map(|(x, y, _, _)| (x, y))
+            .unwrap_or((p.x, p.y)),
+        EscapeThreat::None => (p.x, p.y),
+    };
+    let description = match bundle.escape_threat {
+        EscapeThreat::Player => input
+            .deadly_player
+            .and_then(|(x, y, _, _)| {
+                views_g.values().find(|v| v.x == x && v.y == y).map(|v| {
+                    v.display_name
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or("player")
+                        .to_string()
+                })
+            })
+            .unwrap_or_else(|| "player".into()),
+        EscapeThreat::Animal => animal_xy_id
+            .and_then(|(_, _, id)| {
+                content.get(id).map(|d| {
+                    if !d.description.is_empty() {
+                        d.description.clone()
+                    } else {
+                        d.name.clone()
+                    }
+                })
+            })
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "animal".into()),
+        EscapeThreat::None => "threat".into(),
+    };
+    if let Some(line) = escape_debug_say(
+        p.ai_debug_say,
+        &description,
+        st.food_goto.did_not_reach_food,
+    ) {
+        let _ = npc_say_raw(intent_tx, conn_id, "SAY", &line);
+    }
+
+    let animal_tiles: Vec<(i32, i32)> = animals_g
+        .as_deref()
+        .map(|aw| {
+            aw.animals
+                .iter()
+                .filter(|a| a.kind.is_deadly_for_ai())
+                .map(|a| (a.x, a.y))
+                .collect()
+        })
+        .unwrap_or_default();
+    let hostile: Vec<(i32, i32)> = st.path_reach.hostile_path.keys().copied().collect();
+    let had_use = st.sticky_move.as_ref().is_some_and(|s| s.pending_use);
+    let use_xy = st.sticky_move.as_ref().map(|s| (s.gx, s.gy));
+    let food_xy = st.food_goto.sticky_food.as_ref().map(|f| (f.x, f.y));
+    let prev_escape = st.escape_target;
+    let seq = npc_client_move_seq(p.done_moving_seq);
+    let try_nearest = st.try_move_nearest_tile_first;
+    let did_not_reach_food = st.food_goto.did_not_reach_food;
+    let w = world.read().unwrap();
+    let mut rng = NpcEscapeRng;
+    let pick = pick_escape_tile(
+        p.x,
+        p.y,
+        threat_tx,
+        threat_ty,
+        ESCAPE_DIST,
+        &mut rng,
+        |tx, ty| npc_is_blocked(&w, content, p.held_id, tx, ty),
+        |tx, ty| npc_escape_tile_is_dangerous(&w, content, &animal_tiles, &hostile, tx, ty),
+        |tx, ty| {
+            npc_try_walk_to_ex(
+                intent_tx,
+                &w,
+                content,
+                conn_id,
+                p.x,
+                p.y,
+                tx,
+                ty,
+                p.food,
+                did_not_reach_food,
+                None,
+                false,
+                try_nearest,
+                false,
+                seq,
+            )
+        },
+    );
+    let effects = escape_side_effects(had_use, food_xy.is_some(), prev_escape.is_some());
+    if effects.increment_did_not_reach_food {
+        st.food_goto.did_not_reach_food += 1.0;
+    }
+    if let Some((x, y)) = use_xy {
+        if had_use {
+            st.path_reach.add_object_with_hostile_path(x, y);
+        }
+    }
+    if let Some((x, y)) = food_xy {
+        st.path_reach.add_object_with_hostile_path(x, y);
+    }
+    if let Some((x, y)) = prev_escape {
+        st.path_reach.add_object_with_hostile_path(x, y);
+    }
+    if effects.cancel_use {
+        npc_cancle_use(st);
+    }
+    if effects.clear_food_target {
+        st.food_goto.sticky_food = None;
+    }
+    if effects.clear_craft_trans {
+        st.craft_rt.item.clear_trans();
+    }
+    // Haxe: always `escapeTarget = newEscapetarget`; always `return true`.
+    st.escape_target = Some((pick.tx, pick.ty));
+    Some((
+        NpcActivityKind::Combat,
+        format!(
+            "escape_{:?} @{},{} done={}",
+            bundle.escape_threat, pick.tx, pick.ty, pick.goto_done
+        ),
+        250,
+    ))
+}
+
 /// Haxe `doStuff && attackPlayer(playerTarget)` — getWeapon / stand-off / KILL.
 // Haxe: AiBase.doTimeStuffHelper ~591
 fn npc_run_attack_player(
     intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
     world: &World,
     content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
     conn_id: u64,
     p: &PlayerSnapshot,
     st: &mut NpcProfessionState,
+    tick: u64,
     views: &HashMap<u64, PlayerSnapshot>,
     tiles: &[ScanTile],
 ) -> Option<(NpcActivityKind, String, u32)> {
@@ -547,19 +1210,26 @@ fn npc_run_attack_player(
             }
         }
         ShortCraftLiveIntent::Goto { x, y } => {
-            if npc_try_walk_to(
+            // Haxe gotoObj always called; MOVE only if arrived or stand-off tile changed.
+            if npc_try_walk_to_sticky(
                 intent_tx,
                 world,
                 content,
+                st,
                 conn_id,
                 p.x,
                 p.y,
                 x,
                 y,
                 p.food,
-                st.food_goto.did_not_reach_food,
-                st.animal_path,
+                0,
+                false,
+                p.moving,
+                format!("attack_goto @{},{}", x, y),
+                npc_client_move_seq(p.done_moving_seq),
             ) {
+                // Haxe L5862: if (done) didNotReachAnimalTarget = 0
+                st.did_not_reach_animal_target = 0;
                 Some((
                     NpcActivityKind::Combat,
                     format!("attack_goto @{},{}", x, y),
@@ -592,6 +1262,7 @@ fn npc_run_attack_player(
                 p.food,
                 st.food_goto.did_not_reach_food,
                 st.animal_path,
+                npc_client_move_seq(p.done_moving_seq),
             ) {
                 Some((
                     NpcActivityKind::Combat,
@@ -626,6 +1297,7 @@ fn npc_run_attack_player(
                 p.food,
                 st.food_goto.did_not_reach_food,
                 st.animal_path,
+                npc_client_move_seq(p.done_moving_seq),
             ) {
                 Some((
                     NpcActivityKind::Combat,
@@ -648,11 +1320,22 @@ fn npc_run_attack_player(
                 None
             }
         }
-        ShortCraftLiveIntent::SeekOrCraft { actor, .. } => Some((
-            NpcActivityKind::Combat,
-            format!("attack_get_weapon {actor}"),
-            200,
-        )),
+        ShortCraftLiveIntent::SeekOrCraft { actor, .. } => {
+            // Haxe attackPlayer L5836 getWeapon(false) → GetOrCraftItem(148/152)
+            npc_emit_seek_or_craft(
+                intent_tx,
+                world,
+                content,
+                craft_graph,
+                st,
+                conn_id,
+                p,
+                tick,
+                actor,
+                NpcActivityKind::Combat,
+                "attack_get_weapon",
+            )
+        }
         ShortCraftLiveIntent::Wait => Some((NpcActivityKind::Combat, "attack_wait".into(), 200)),
         _ => None,
     }
@@ -682,6 +1365,16 @@ fn npc_move_path(
     seq: Option<i32>,
 ) -> bool {
     NpcWriteTx(intent_tx).move_path(conn_id, xs, ys, deltas, seq)
+}
+
+/// MOVE `@seq` — same player field humans use. Not an AI-only counter.
+///
+/// Haxe human: `Program.hx` `++player.done_moving_seqNum` on the MOVE line.
+/// Haxe AI: `AiHelper.Goto` L1469 `playerInterface.move(..., ai.seqNum++, data)` —
+/// that seq is the MOVE command seq; `MoveHelper` writes it to `p.done_moving_seqNum`.
+/// Rust NPC is not a second protocol: send `done_moving_seq + 1` like the client.
+fn npc_client_move_seq(done_moving_seq: i32) -> i32 {
+    done_moving_seq.saturating_add(1).max(1)
 }
 
 /// Enqueue DROP via [`PlayerWriteInterface`].
@@ -737,9 +1430,9 @@ fn npc_run_remove_from_container(
             st.remove_from_container = None;
             None
         }
-        RemoveFromContainerAdvance::GotoFailed { x, y } => {
+        RemoveFromContainerAdvance::GotoFailed { x: _, y: _ } => {
+            // Haxe L9191–9195: clear sticky, return false (no notReachable).
             st.remove_from_container = None;
-            st.path_reach.add_not_reachable(x, y, 90.0);
             None
         }
         RemoveFromContainerAdvance::Wait => Some((
@@ -747,16 +1440,27 @@ fn npc_run_remove_from_container(
             "remove_wait".into(),
             200,
         )),
-        RemoveFromContainerAdvance::DropHeld | RemoveFromContainerAdvance::DropPlayer => {
-            if npc_drop_at(intent_tx, conn_id, p.x, p.y, None) {
+        RemoveFromContainerAdvance::DropHeld => {
+            // Haxe L9161: dropHeldObject() default maxDistanceToHome=40.
+            let (dx, dy) = npc_empty_drop_xy(world, p.x, p.y);
+            if npc_drop_at(intent_tx, conn_id, dx, dy, None) {
                 Some((
                     NpcActivityKind::Craft,
-                    format!("remove_drop @{},{}", p.x, p.y),
+                    format!("remove_drop_held @{},{}", dx, dy),
                     400,
                 ))
             } else {
                 Some((NpcActivityKind::Think, "remove_drop_busy".into(), 200))
             }
+        }
+        RemoveFromContainerAdvance::DropPlayer => {
+            // Haxe L9201–9205: dropPlayer(x,y) — PUTDOWN/DROPBABY; always return true.
+            let sent = npc_say_raw(intent_tx, conn_id, "SAY", "DROPBABY");
+            Some((
+                NpcActivityKind::Baby,
+                "remove_drop_player".into(),
+                if sent { 400 } else { 100 },
+            ))
         }
         RemoveFromContainerAdvance::Goto { x, y } => {
             if npc_try_walk_to(
@@ -771,6 +1475,7 @@ fn npc_run_remove_from_container(
                 p.food,
                 st.food_goto.did_not_reach_food,
                 st.animal_path,
+                npc_client_move_seq(p.done_moving_seq),
             ) {
                 Some((
                     NpcActivityKind::Craft,
@@ -783,7 +1488,9 @@ fn npc_run_remove_from_container(
             }
         }
         RemoveFromContainerAdvance::RemvNow { x, y } => {
-            let payload = format!("{x} {y}");
+            // Haxe L9211: remove(tx - gx, ty - gy); fail → addNotReachable; always clear + return true.
+            let (rx, ry) = remove_command_xy(x, y, p.birth_x, p.birth_y);
+            let payload = format!("{rx} {ry}");
             if npc_say_raw(intent_tx, conn_id, "REMV", &payload) {
                 st.remove_from_container = None;
                 Some((
@@ -793,10 +1500,178 @@ fn npc_run_remove_from_container(
                 ))
             } else {
                 st.remove_from_container = None;
-                st.path_reach.add_not_reachable(x, y, 90.0);
+                st.path_reach.add_not_reachable_object(x, y, NOT_REACHABLE_DEFAULT_SECS);
                 Some((NpcActivityKind::Think, "remove_remv_fail".into(), 100))
             }
         }
+    }
+}
+
+fn npc_commit_temp_plan(
+    st: &mut NpcProfessionState,
+    plan: HandleTemperaturePlan,
+    snap_cold: Option<(i32, i32)>,
+    snap_warm: Option<(i32, i32)>,
+) {
+    st.handling_temperature = plan.is_handling;
+    st.temp_just_arrived = plan.just_arrived;
+    st.last_heat = plan.last_heat;
+    if plan.clear_cold_place {
+        st.rejected_cold_place = snap_cold.or(st.rejected_cold_place);
+    }
+    if plan.clear_warm_place {
+        st.rejected_warm_place = snap_warm.or(st.rejected_warm_place);
+    }
+}
+
+/// Nested Haxe `isHandlingFire(2)` on fail-warm (rung label TEMPERATURE).
+// Haxe: AiBase.handleTemperature L1740
+fn npc_temp_try_handling_fire(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    env_winter: bool,
+    fire_id: i32,
+    fire_x: i32,
+    fire_y: i32,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let tiles = npc_scan_cached(st, world, content, p.x, p.y, HANDLING_FIRE_SCAN_RADIUS);
+    let home_x = if p.home_x != 0 || p.home_y != 0 {
+        p.home_x
+    } else {
+        p.x
+    };
+    let home_y = if p.home_x != 0 || p.home_y != 0 {
+        p.home_y
+    } else {
+        p.y
+    };
+    let mut inp = ProfessionScanInput::basic(p.x, p.y, p.held_id);
+    inp.home_x = home_x;
+    inp.home_y = home_y;
+    inp.held_uses = p.held_uses.max(1);
+    inp.food_store = p.food;
+    inp.age = p.age;
+    inp.is_moving = p.moving;
+    inp.is_winter = env_winter;
+    inp.fire_place_id = fire_id;
+    inp.fire_place_x = fire_x;
+    inp.fire_place_y = fire_y;
+    inp.profession_is_sticky =
+        st.fire_keeper_rt.is_last_fire_keeper || st.fire_keeper_rt.is_assigned_fire_keeper;
+    inp.is_assigned_job = st.fire_keeper_rt.is_assigned_fire_keeper;
+    let r = handling_fire_profession_scan_tick(
+        &tiles,
+        &inp,
+        "TEMPERATURE",
+        &mut st.fire_keeper_rt,
+        &mut st.fire_rt,
+        &mut st.baker_rt,
+        &mut st.baker_task,
+    );
+    if !r.had_action {
+        return None;
+    }
+    let mut kind = NpcActivityKind::Think;
+    let mut detail = String::new();
+    let mut game_ms = 200u32;
+    if npc_commit_craft_live(
+        &r.intent,
+        intent_tx,
+        world,
+        content,
+        st,
+        conn_id,
+        p.x,
+        p.y,
+        p.food,
+        p.moving,
+        &mut kind,
+        &mut detail,
+        &mut game_ms,
+        npc_client_move_seq(p.done_moving_seq),
+    ) {
+        Some((kind, format!("temp_handling_fire {detail}"), game_ms))
+    } else {
+        None
+    }
+}
+
+/// Haxe `isHandlingFire()` at doTimeStuffHelper L634 (before makeSharpieFood L656).
+/// No fire → best FIREKEEPER crafts shaft 67 then Fire 82.
+// Haxe: AiBase.isHandlingFire L1079–1111
+fn npc_run_is_handling_fire_mid(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    env_winter: bool,
+    is_best_home: bool,
+    is_best_fire: bool,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let tiles = npc_scan_cached(st, world, content, p.x, p.y, HANDLING_FIRE_SCAN_RADIUS);
+    let home_x = if p.home_x != 0 || p.home_y != 0 {
+        p.home_x
+    } else {
+        p.x
+    };
+    let home_y = if p.home_x != 0 || p.home_y != 0 {
+        p.home_y
+    } else {
+        p.y
+    };
+    let mut inp = ProfessionScanInput::basic(p.x, p.y, p.held_id);
+    inp.home_x = home_x;
+    inp.home_y = home_y;
+    inp.held_uses = p.held_uses.max(1);
+    inp.food_store = p.food;
+    inp.age = p.age;
+    inp.is_moving = p.moving;
+    inp.is_winter = env_winter;
+    inp.is_best_fire_keeper_at_home = is_best_home;
+    inp.is_best_fire_keeper_at_fire = is_best_fire;
+    inp.profession_is_sticky =
+        st.fire_keeper_rt.is_last_fire_keeper || st.fire_keeper_rt.is_assigned_fire_keeper;
+    inp.is_assigned_job = st.fire_keeper_rt.is_assigned_fire_keeper;
+    let r = handling_fire_profession_scan_tick(
+        &tiles,
+        &inp,
+        "MID_PRIORITY_TASKS",
+        &mut st.fire_keeper_rt,
+        &mut st.fire_rt,
+        &mut st.baker_rt,
+        &mut st.baker_task,
+    );
+    if !r.had_action {
+        return None;
+    }
+    let mut kind = NpcActivityKind::Craft;
+    let mut detail = String::new();
+    let mut game_ms = 200u32;
+    if npc_commit_craft_live(
+        &r.intent,
+        intent_tx,
+        world,
+        content,
+        st,
+        conn_id,
+        p.x,
+        p.y,
+        p.food,
+        p.moving,
+        &mut kind,
+        &mut detail,
+        &mut game_ms,
+        npc_client_move_seq(p.done_moving_seq),
+    ) {
+        Some((kind, format!("isHandlingFire {detail}"), game_ms))
+    } else {
+        None
     }
 }
 
@@ -807,7 +1682,7 @@ fn npc_run_handle_temperature(
     world: &World,
     content: &ContentDb,
     craft_graph: &ReverseCraftGraph,
-    _env_winter: bool,
+    env_winter: bool,
     conn_id: u64,
     p: &PlayerSnapshot,
     st: &mut NpcProfessionState,
@@ -903,8 +1778,8 @@ fn npc_run_handle_temperature(
         has_fire_place: fire_id != 0,
         close_cool,
         close_warm,
-        cold_place: p.cold_place,
-        warm_place: p.warm_place,
+        cold_place: p.cold_place.filter(|c| st.rejected_cold_place != Some(*c)),
+        warm_place: p.warm_place.filter(|c| st.rejected_warm_place != Some(*c)),
         px: p.x,
         py: p.y,
         age: p.age,
@@ -951,6 +1826,7 @@ fn npc_run_handle_temperature(
                 &mut kind,
                 &mut detail,
                 &mut game_ms,
+                npc_client_move_seq(p.done_moving_seq),
             ) {
                 return Some((kind, format!("temp_craft_water {detail}"), game_ms));
             }
@@ -958,9 +1834,7 @@ fn npc_run_handle_temperature(
         inp.skip_water = true;
         plan = plan_handle_temperature(inp);
     }
-    st.handling_temperature = plan.is_handling;
-    st.temp_just_arrived = plan.just_arrived;
-    st.last_heat = plan.last_heat;
+    npc_commit_temp_plan(st, plan, p.cold_place, p.warm_place);
     match plan.action {
         HandleTemperatureAction::Idle => None,
         HandleTemperatureAction::DrinkSelf => {
@@ -1015,6 +1889,7 @@ fn npc_run_handle_temperature(
                 &mut kind,
                 &mut detail,
                 &mut game_ms,
+                npc_client_move_seq(p.done_moving_seq),
             ) {
                 Some((kind, format!("temp_craft_83 {detail}"), game_ms))
             } else {
@@ -1028,7 +1903,8 @@ fn npc_run_handle_temperature(
             (HANDLE_TEMP_RELAX_TIME * 1000.0) as u32,
         )),
         HandleTemperatureAction::Goto { x, y } => {
-            if npc_try_walk_to(
+            // Haxe L1757–1759: tryMoveNearestTileFirst = false unless goodPlace is firePlace
+            if npc_try_walk_to_ex(
                 intent_tx,
                 world,
                 content,
@@ -1040,6 +1916,10 @@ fn npc_run_handle_temperature(
                 p.food,
                 st.food_goto.did_not_reach_food,
                 st.animal_path,
+                false,
+                plan.try_move_nearest_tile_first,
+                true,
+                npc_client_move_seq(p.done_moving_seq),
             ) {
                 Some((
                     NpcActivityKind::Think,
@@ -1095,21 +1975,47 @@ fn npc_run_handle_temperature(
                 &mut kind,
                 &mut detail,
                 &mut game_ms,
+                npc_client_move_seq(p.done_moving_seq),
             ) {
                 Some((kind, format!("temp_kindling_seek {detail}"), game_ms))
+            } else if let Some(fire) = npc_temp_try_handling_fire(
+                intent_tx,
+                world,
+                content,
+                st,
+                conn_id,
+                p,
+                env_winter,
+                fire_id,
+                fire_x,
+                fire_y,
+            ) {
+                Some(fire)
             } else {
                 let cleared = fail_warm_clear_place(plan);
-                st.handling_temperature = cleared.is_handling;
-                st.temp_just_arrived = cleared.just_arrived;
+                npc_commit_temp_plan(st, cleared, p.cold_place, p.warm_place);
                 None
             }
         }
         HandleTemperatureAction::HandlingFire => {
-            let _ = (FIRE, HOT_COALS);
-            let cleared = fail_warm_clear_place(plan);
-            st.handling_temperature = cleared.is_handling;
-            st.temp_just_arrived = cleared.just_arrived;
-            None
+            if let Some(fire) = npc_temp_try_handling_fire(
+                intent_tx,
+                world,
+                content,
+                st,
+                conn_id,
+                p,
+                env_winter,
+                fire_id,
+                fire_x,
+                fire_y,
+            ) {
+                Some(fire)
+            } else {
+                let cleared = fail_warm_clear_place(plan);
+                npc_commit_temp_plan(st, cleared, p.cold_place, p.warm_place);
+                None
+            }
         }
     }
 }
@@ -1123,6 +2029,26 @@ fn npc_say_raw(
     payload: &str,
 ) -> bool {
     NpcWriteTx(intent_tx).say_raw(conn_id, tag, payload)
+}
+
+/// Haxe `searchFoodAndEat` shouldDebugSay after `SearchBestFood` (foodTarget was null).
+// Haxe: AiBase.searchFoodAndEat L5076–5078
+fn npc_search_food_and_eat_debug_say(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    content: &ContentDb,
+    conn_id: u64,
+    debug_say: bool,
+    food: Option<&StickyFoodTarget>,
+) {
+    let name_owned = food.map(|f| {
+        content
+            .get(f.parent_id)
+            .map(|d| d.name.clone())
+            .unwrap_or_default()
+    });
+    if let Some(line) = search_food_and_eat_debug_say(debug_say, name_owned.as_deref()) {
+        let _ = npc_say_raw(intent_tx, conn_id, "SAY", &line);
+    }
 }
 
 fn npc_hungry_child_cands(
@@ -1163,7 +2089,10 @@ fn npc_run_is_feeding_child(
     }
     if !fertile || p.food < 1.0 {
         if p.holding_player_id != 0 {
+            // Haxe: dropPlayer then say('I cannot feed you!')
+            // Haxe: AiBase.isFeedingChild L6418–6421
             let _ = npc_say_raw(intent_tx, conn_id, "SAY", "DROPBABY");
+            let _ = npc_say_raw(intent_tx, conn_id, "SAY", "I cannot feed you!");
             return Some((
                 NpcActivityKind::Baby,
                 format!("drop_cannot_feed held={}", p.holding_player_id),
@@ -1279,6 +2208,7 @@ fn npc_run_is_feeding_child(
             p.food,
             st.food_goto.did_not_reach_food,
             st.animal_path,
+            npc_client_move_seq(p.done_moving_seq),
         );
         if walked {
             return Some((
@@ -1310,6 +2240,12 @@ fn npc_run_is_feeding_child(
     None
 }
 
+/// Haxe `age < MinAgeToEat && isHungry` always returns after follow attempt.
+// Haxe: AiBase.doTimeStuffHelper L523–532
+fn npc_hungry_infant_skips_craft(age: f32, hungry: bool, _has_living_mother: bool) -> bool {
+    hungry_infant_always_returns(age, hungry, MIN_AGE_TO_EAT)
+}
+
 /// Haxe `age < MinAgeToEat && isHungry` / `isChildAndHasMother` — stay with mother.
 // Haxe: AiBase.doTimeStuffHelper L523–548; isChildAndHasMother L5651–5654
 fn npc_run_is_child_with_mother(
@@ -1336,11 +2272,67 @@ fn npc_run_is_child_with_mother(
         return None;
     }
     let mother = views.values().find(|o| o.p_id == follow && !o.deleted)?;
-    // Haxe isMovingToPlayer: hungry infant 5 then 3; else ~4.
-    let max_tiles = if p.food < 2.0 { 3 } else { 4 };
+    // Haxe isMovingToPlayer: hungry infant 5 then 3; nice baby 2 else 4.
+    // Haxe: AiBase.doTimeStuffHelper L523–535
+    let max_tiles = if p.age < MIN_AGE_TO_EAT && st.was_hungry {
+        5
+    } else {
+        ol_ai::child_with_mother_follow_tiles(p.ai_is_nice_baby)
+    };
     let dx = mother.x - p.x;
     let dy = mother.y - p.y;
     if dx * dx + dy * dy <= max_tiles * max_tiles {
+        // Haxe L538–546: nice baby Noble GetItem 3047 then 560, then time+=2
+        if nice_baby_noble_wants_weapon(
+            p.ai_is_nice_baby,
+            st.prestige_class.is_noble_or_more(),
+            content.resolve_base_id(p.held_id),
+        ) {
+            let want = [WAR_SWORD_ID, KNIFE_ID];
+            let tiles = npc_scan_cached(st, world, content, p.x, p.y, 40);
+            for id in want {
+                if let Some((x, y)) = closest_parent_in_tiles(&tiles, id, p.x, p.y, 40) {
+                    if npc_is_close_action(p.x, p.y, x, y) {
+                        if npc_use_at(intent_tx, conn_id, x, y, None, None) {
+                            return Some((
+                                NpcActivityKind::Baby,
+                                format!("nice_baby_get {id}"),
+                                400,
+                            ));
+                        }
+                    } else if npc_try_walk_to(
+                        intent_tx,
+                        world,
+                        content,
+                        conn_id,
+                        p.x,
+                        p.y,
+                        x,
+                        y,
+                        p.food,
+                        st.food_goto.did_not_reach_food,
+                        st.animal_path,
+                        npc_client_move_seq(p.done_moving_seq),
+                    ) {
+                        return Some((
+                            NpcActivityKind::Baby,
+                            format!("nice_baby_walk {id}"),
+                            250,
+                        ));
+                    }
+                }
+            }
+            st.think_time_sec += 2.0;
+            return Some((NpcActivityKind::Baby, "nice_baby_wait".into(), 2000));
+        }
+        if p.ai_is_nice_baby {
+            st.think_time_sec += 2.0;
+            return Some((
+                NpcActivityKind::Baby,
+                format!("nice_baby_wait_mother={}", follow),
+                2000,
+            ));
+        }
         return Some((
             NpcActivityKind::Baby,
             format!("baby_wait_mother={}", follow),
@@ -1359,6 +2351,7 @@ fn npc_run_is_child_with_mother(
         p.food,
         st.food_goto.did_not_reach_food,
         st.animal_path,
+        npc_client_move_seq(p.done_moving_seq),
     );
     if walked {
         return Some((
@@ -1413,6 +2406,7 @@ fn npc_run_stay_close_to_child(
         p.food,
         st.food_goto.did_not_reach_food,
         st.animal_path,
+        npc_client_move_seq(p.done_moving_seq),
     );
     if walked {
         Some((
@@ -1444,9 +2438,10 @@ fn npc_next_step_to(
     food_store: f32,
     did_not_reach_food: f32,
     animal: Option<AnimalPathPlayerCtx>,
+    check_if_dangerous: bool,
 ) -> Option<(i32, i32)> {
     // Haxe: considerAnimals = checkIfDangerous && didNotReachFood < 5 && food_store > -1
-    let consider = consider_animals_for_goto(true, did_not_reach_food, food_store);
+    let consider = consider_animals_for_goto(check_if_dangerous, did_not_reach_food, food_store);
     next_step_consider_animals_for_player(world, content, sx, sy, gx, gy, consider, animal)
 }
 
@@ -1468,6 +2463,66 @@ fn npc_path_toward(
     animal: Option<AnimalPathPlayerCtx>,
     stop_when_close: bool,
 ) -> Vec<(i32, i32)> {
+    npc_path_toward_ex(
+        world,
+        content,
+        sx,
+        sy,
+        gx,
+        gy,
+        food_store,
+        did_not_reach_food,
+        max_steps,
+        animal,
+        stop_when_close,
+        TRY_MOVE_NEAREST_TILE_FIRST_DEFAULT,
+        true,
+    )
+}
+
+/// First walkable GotoHelper approach tile (nearest-first by default).
+// Haxe: AiHelper.GotoHelper L1365–1397; AiBase.tryMoveNearestTileFirst L113
+fn npc_remap_goto_goal(
+    world: &World,
+    content: &ContentDb,
+    sx: i32,
+    sy: i32,
+    gx: i32,
+    gy: i32,
+    stop_when_close: bool,
+    try_nearest: bool,
+) -> (i32, i32, bool) {
+    let px = gx - sx;
+    let py = gy - sy;
+    for (tweak_x, tweak_y) in goto_approach_tweaks(px, py, GOTO_APPROACH_RAD, try_nearest) {
+        let dx = gx + tweak_x;
+        let dy = gy + tweak_y;
+        if dx == sx && dy == sy {
+            continue;
+        }
+        if is_walkable(world, content, dx, dy) {
+            // Walk onto the approach tile (Haxe path end is that tile).
+            return (dx, dy, false);
+        }
+    }
+    (gx, gy, stop_when_close)
+}
+
+fn npc_path_toward_ex(
+    world: &World,
+    content: &ContentDb,
+    sx: i32,
+    sy: i32,
+    gx: i32,
+    gy: i32,
+    food_store: f32,
+    did_not_reach_food: f32,
+    max_steps: usize,
+    animal: Option<AnimalPathPlayerCtx>,
+    stop_when_close: bool,
+    try_nearest: bool,
+    check_if_dangerous: bool,
+) -> Vec<(i32, i32)> {
     let mut deltas = Vec::new();
     if max_steps == 0 || (sx == gx && sy == gy) {
         return deltas;
@@ -1475,6 +2530,16 @@ fn npc_path_toward(
     if stop_when_close && npc_is_close_action(sx, sy, gx, gy) {
         return deltas;
     }
+    let (gx, gy, stop_when_close) = npc_remap_goto_goal(
+        world,
+        content,
+        sx,
+        sy,
+        gx,
+        gy,
+        stop_when_close,
+        try_nearest,
+    );
     let mut cx = sx;
     let mut cy = sy;
     for _ in 0..max_steps {
@@ -1494,6 +2559,7 @@ fn npc_path_toward(
             food_store,
             did_not_reach_food,
             animal,
+            check_if_dangerous,
         );
         let Some((dx, dy)) = step else {
             break;
@@ -1546,6 +2612,7 @@ fn npc_try_walk_to(
     food_store: f32,
     did_not_reach_food: f32,
     animal: Option<AnimalPathPlayerCtx>,
+    seq: i32,
 ) -> bool {
     npc_try_walk_to_ex(
         intent_tx,
@@ -1560,6 +2627,9 @@ fn npc_try_walk_to(
         did_not_reach_food,
         animal,
         false,
+        TRY_MOVE_NEAREST_TILE_FIRST_DEFAULT,
+        true,
+        seq,
     )
 }
 
@@ -1576,9 +2646,12 @@ fn npc_try_walk_to_ex(
     did_not_reach_food: f32,
     animal: Option<AnimalPathPlayerCtx>,
     stop_when_close: bool,
+    try_nearest: bool,
+    check_if_dangerous: bool,
+    seq: i32,
 ) -> bool {
     let (gx, gy) = npc_wrap_goal(world, px, py, gx, gy);
-    let deltas = npc_path_toward(
+    let deltas = npc_path_toward_ex(
         world,
         content,
         px,
@@ -1590,19 +2663,13 @@ fn npc_try_walk_to_ex(
         NPC_PATH_MAX_STEPS,
         animal,
         stop_when_close,
+        try_nearest,
+        check_if_dangerous,
     );
     if deltas.is_empty() {
         return false;
     }
-    intent_tx
-        .try_send(NetIntent::Move {
-            conn_id,
-            xs: px,
-            ys: py,
-            deltas,
-            seq: None,
-        })
-        .is_ok()
+    npc_move_path(intent_tx, conn_id, px, py, &deltas, Some(seq))
 }
 
 /// Expand one queued / sticky product via GetOrCraft (Haxe `craftItem` from doTimeStuffHelper).
@@ -1633,6 +2700,7 @@ fn npc_expand_craft_intent(
         now_sec: tick as f64 * 0.2,
         water_source_ids: water_ids,
         bucket_water_source_ids: bucket_ids,
+        is_hidden_wound: false,
         ..Default::default()
     }
     .with_content_craft_gates(content);
@@ -1698,8 +2766,9 @@ fn npc_expand_craft_product(
     )
 }
 
-/// Haxe `isConsideringMakingFood` → `makeSharpieFood` (wild carrot / burdock).
-// Haxe: AiBase.makeSharpieFood L4096–4118
+/// Haxe `isConsideringMakingFood` body L8538–8607 (after home skip / food refresh).
+/// Tail L8603: `countRawRabbit <= 1 && makeFireFood(1)` after baking/watering.
+// Haxe: AiBase.isConsideringMakingFood L8538–8607
 fn npc_run_considering_making_food(
     intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
     world: &RwLock<World>,
@@ -1711,27 +2780,834 @@ fn npc_run_considering_making_food(
     tick: u64,
     is_smith: bool,
 ) -> Option<(NpcActivityKind, String, u32)> {
-    const R: i32 = 40;
-    let tiles = npc_scan_cached_rw(st, world, content, p.x, p.y, R);
-    let mut counts = FarmCounts::default();
-    counts.held_id = p.held_id;
-    let mut n_carrot = 0i32;
-    let mut n_burdock = 0i32;
-    for t in &tiles {
-        if t.parent_id == SEEDING_WILD_CARROT {
-            n_carrot += 1;
-        } else if t.parent_id == BURDOCK {
-            n_burdock += 1;
+    let seq = npc_client_move_seq(p.done_moving_seq);
+    let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+    let tiles = npc_scan_cached_rw(st, world, content, p.x, p.y, 40);
+    if let Some(out) = npc_try_sharpie_food(
+        intent_tx,
+        world,
+        content,
+        craft_graph,
+        st,
+        conn_id,
+        p,
+        tick,
+        is_smith,
+        MAKE_SHARPIE_FOOD_CLOSE_CALL_DISTANCE,
+        &tiles,
+        seq,
+    ) {
+        return Some(out);
+    }
+    // Haxe L8543: after makeSharpieFood(5) miss, still moving → busy
+    if p.moving {
+        return Some((
+            NpcActivityKind::Move,
+            "consider_food_moving".into(),
+            250,
+        ));
+    }
+    let blocked = st.path_reach.blocked_coords(None);
+    if npc_count_parent_cheb(&tiles, hx, hy, TURKEY_SLICE_ON_PLATE, 30)
+        + i32::from(p.held_id == TURKEY_SLICE_ON_PLATE)
+        < 1
+    {
+        if let Some(out) = npc_try_craft_product_commit(
+            intent_tx,
+            world,
+            content,
+            craft_graph,
+            st,
+            conn_id,
+            p,
+            tick,
+            is_smith,
+            TURKEY_SLICE_ON_PLATE,
+            &tiles,
+            &blocked,
+            seq,
+            "consider_food_turkey",
+        ) {
+            return Some(out);
         }
     }
-    counts.set(SEEDING_WILD_CARROT, n_carrot);
-    counts.set(BURDOCK, n_burdock);
-    let FarmAction::CraftItem { object_id } = make_sharpie_food(&counts) else {
+    let row = npc_closest_parent_cheb(&tiles, p.x, p.y, 400, 10);
+    match pull_carrot_row_if_needed(&PullCarrotRowInput {
+        held_id: p.held_id,
+        food_store: p.food,
+        transition_hungry_cost: 0.0,
+        has_carrot_seeds: st.has_carrot_seeds,
+        row: row.map(|(x, y, uses)| (x, y, uses)),
+    }) {
+        PullCarrotRowAction::UseEmptyOnRow { x, y } => {
+            let w = world.read().ok()?;
+            let mut kind = NpcActivityKind::Craft;
+            let mut detail = String::new();
+            let mut game_ms = 200u32;
+            if npc_commit_craft_live(
+                &ShortCraftLiveIntent::UseAt {
+                    x,
+                    y,
+                    target_id: 400,
+                    actor_id: 0,
+                },
+                intent_tx,
+                &w,
+                content,
+                st,
+                conn_id,
+                p.x,
+                p.y,
+                p.food,
+                p.moving,
+                &mut kind,
+                &mut detail,
+                &mut game_ms,
+                seq,
+            ) {
+                return Some((kind, "consider_food_pull_carrot".into(), game_ms));
+            }
+        }
+        PullCarrotRowAction::DropHeld => {
+            let w = world.read().ok()?;
+            let (dx, dy) = npc_empty_drop_xy(&w, p.x, p.y);
+            if npc_drop_at(intent_tx, conn_id, dx, dy, None) {
+                return Some((
+                    NpcActivityKind::Craft,
+                    "consider_food_drop_for_carrot".into(),
+                    400,
+                ));
+            }
+        }
+        PullCarrotRowAction::None => {}
+    }
+    let knife_tiles: Vec<(i32, i32, i32)> = tiles
+        .iter()
+        .map(|t| (t.parent_id, t.x, t.y))
+        .collect();
+    if let KnifeStuffAction::UseOnTarget { x, y, target_id } =
+        do_knife_stuff(p.held_id, &knife_tiles, p.x, p.y)
+    {
+        let w = world.read().ok()?;
+        let mut kind = NpcActivityKind::Craft;
+        let mut detail = String::new();
+        let mut game_ms = 200u32;
+        if npc_commit_craft_live(
+            &ShortCraftLiveIntent::UseAt {
+                x,
+                y,
+                target_id,
+                actor_id: p.held_id,
+            },
+            intent_tx,
+            &w,
+            content,
+            st,
+            conn_id,
+            p.x,
+            p.y,
+            p.food,
+            p.moving,
+            &mut kind,
+            &mut detail,
+            &mut game_ms,
+            seq,
+        ) {
+            return Some((kind, format!("consider_food_knife {target_id}"), game_ms));
+        }
+    }
+    for &(actor, target, dist, _max_new) in consider_making_food_short_crafts() {
+        if actor == 0 {
+            continue; // carrot row already handled
+        }
+        let Some((x, y, _)) = npc_closest_parent_cheb(&tiles, p.x, p.y, target, dist) else {
+            continue;
+        };
+        if p.held_id != actor && p.held_id != 0 {
+            continue;
+        }
+        if p.held_id == actor {
+            let w = world.read().ok()?;
+            let mut kind = NpcActivityKind::Craft;
+            let mut detail = String::new();
+            let mut game_ms = 200u32;
+            if npc_commit_craft_live(
+                &ShortCraftLiveIntent::UseAt {
+                    x,
+                    y,
+                    target_id: target,
+                    actor_id: actor,
+                },
+                intent_tx,
+                &w,
+                content,
+                st,
+                conn_id,
+                p.x,
+                p.y,
+                p.food,
+                p.moving,
+                &mut kind,
+                &mut detail,
+                &mut game_ms,
+                seq,
+            ) {
+                return Some((kind, format!("consider_food_short {actor}+{target}"), game_ms));
+            }
+        } else if let Some(out) = npc_try_craft_product_commit(
+            intent_tx,
+            world,
+            content,
+            craft_graph,
+            st,
+            conn_id,
+            p,
+            tick,
+            is_smith,
+            actor,
+            &tiles,
+            &blocked,
+            seq,
+            "consider_food_short_actor",
+        ) {
+            return Some(out);
+        }
+    }
+    let count_dry = consider_making_food_count_dry_from_tiles(&tiles, hx, hy, p.held_id);
+    let count_corn = npc_count_parent_cheb(&tiles, hx, hy, EAR_OF_CORN, 30)
+        + i32::from(p.held_id == EAR_OF_CORN);
+    let count_shucked = npc_count_parent_cheb(&tiles, hx, hy, SHUCKED_CORN, 30)
+        + i32::from(p.held_id == SHUCKED_CORN);
+    let yum_1114 = content
+        .get(SHUCKED_CORN)
+        .map(|o| o.food_value >= 1)
+        .unwrap_or(false);
+    let corn_plan = consider_making_food_ear_of_corn_maker(
+        yum_1114,
+        count_dry,
+        count_corn,
+        count_shucked,
+        &mut st.farm_task.ear_of_corn_maker,
+    );
+    if corn_plan.pick_ear {
+        if let Some((x, y, _)) = npc_closest_parent_cheb(&tiles, p.x, p.y, CORN_PLANT, 30) {
+            if p.held_id == 0 {
+                let w = world.read().ok()?;
+                let mut kind = NpcActivityKind::Craft;
+                let mut detail = String::new();
+                let mut game_ms = 200u32;
+                if npc_commit_craft_live(
+                    &ShortCraftLiveIntent::UseAt {
+                        x,
+                        y,
+                        target_id: CORN_PLANT,
+                        actor_id: 0,
+                    },
+                    intent_tx,
+                    &w,
+                    content,
+                    st,
+                    conn_id,
+                    p.x,
+                    p.y,
+                    p.food,
+                    p.moving,
+                    &mut kind,
+                    &mut detail,
+                    &mut game_ms,
+                    seq,
+                ) {
+                    return Some((kind, "consider_food_pick_ear".into(), game_ms));
+                }
+            }
+        }
+    }
+    if corn_plan.shuck {
+        if let Some(out) = npc_try_craft_product_commit(
+            intent_tx,
+            world,
+            content,
+            craft_graph,
+            st,
+            conn_id,
+            p,
+            tick,
+            is_smith,
+            SHUCKED_CORN,
+            &tiles,
+            &blocked,
+            seq,
+            "consider_food_shuck",
+        ) {
+            return Some(out);
+        }
+    }
+    if let Some(out) = npc_try_craft_product_commit(
+        intent_tx,
+        world,
+        content,
+        craft_graph,
+        st,
+        conn_id,
+        p,
+        tick,
+        is_smith,
+        SHUCKED_CORN,
+        &tiles,
+        &blocked,
+        seq,
+        "consider_food_1114",
+    ) {
+        return Some(out);
+    }
+    if let Some(out) = npc_try_sharpie_food(
+        intent_tx,
+        world,
+        content,
+        craft_graph,
+        st,
+        conn_id,
+        p,
+        tick,
+        is_smith,
+        MAKE_SHARPIE_FOOD_FAR_CALL_DISTANCE,
+        &tiles,
+        seq,
+    ) {
+        return Some(out);
+    }
+    let raw_rabbit = consider_making_food_raw_rabbit_count(
+        npc_count_parent_cheb(&tiles, hx, hy, SKINNED_RABBIT, 25),
+        p.held_id == SKINNED_RABBIT,
+        npc_count_parent_cheb(&tiles, hx, hy, SKEWERED_RABBIT, 25),
+        p.held_id == SKEWERED_RABBIT,
+    );
+    if consider_making_food_fire_food_on_extra_rabbit(raw_rabbit) {
+        if let Some(out) = npc_try_hungry_make_fire_food(
+            intent_tx,
+            world,
+            content,
+            craft_graph,
+            st,
+            conn_id,
+            p,
+            tick,
+            is_smith,
+            hx,
+            hy,
+            &tiles,
+            &blocked,
+            seq,
+        ) {
+            return Some(out);
+        }
+    }
+    if let Some(out) = npc_try_hungry_do_baking(
+        intent_tx,
+        world,
+        content,
+        craft_graph,
+        st,
+        conn_id,
+        p,
+        tick,
+        is_smith,
+        hx,
+        hy,
+        &tiles,
+        &blocked,
+        seq,
+    ) {
+        return Some(out);
+    }
+    if let Some(out) = npc_try_hungry_do_watering(
+        intent_tx,
+        world,
+        content,
+        craft_graph,
+        st,
+        conn_id,
+        p,
+        tick,
+        is_smith,
+        hx,
+        hy,
+        &tiles,
+        &blocked,
+        seq,
+    ) {
+        return Some(out);
+    }
+    // Haxe L8601–8602 fillUpBerryBowl / cleanUpBowls / fillBeanBowl commented skip
+    // Haxe L8603: countRawRabbit <= 1 && makeFireFood(1)
+    if consider_making_food_fire_food_on_few_rabbit(raw_rabbit) {
+        if let Some(out) = npc_try_hungry_make_fire_food(
+            intent_tx,
+            world,
+            content,
+            craft_graph,
+            st,
+            conn_id,
+            p,
+            tick,
+            is_smith,
+            hx,
+            hy,
+            &tiles,
+            &blocked,
+            seq,
+        ) {
+            return Some(out);
+        }
+    }
+    None
+}
+
+fn npc_try_hungry_make_fire_food(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &RwLock<World>,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    tick: u64,
+    is_smith: bool,
+    hx: i32,
+    hy: i32,
+    tiles: &[ScanTile],
+    blocked: &std::collections::HashSet<(i32, i32)>,
+    seq: i32,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let map: Vec<FireFoodMapObj> = tiles
+        .iter()
+        .filter(|t| t.parent_id != 0)
+        .map(|t| FireFoodMapObj {
+            parent_id: t.parent_id,
+            x: t.x,
+            y: t.y,
+        })
+        .collect();
+    let counts = fill_fire_food_counts_from_map(
+        hx,
+        hy,
+        p.held_id,
+        &map,
+        FIRE_FOOD_HOME_RADIUS,
+        true,
+        st.has_corn_seeds,
+        has_bean_seeds_from_scan(tiles),
+    );
+    let action = make_fire_food(&counts, &mut st.fire_rt, 1, 0.0, st.was_idle);
+    npc_commit_hungry_food_action(
+        intent_tx,
+        world,
+        content,
+        craft_graph,
+        st,
+        conn_id,
+        p,
+        tick,
+        is_smith,
+        tiles,
+        blocked,
+        seq,
+        match action {
+            FireFoodAction::CraftItem { object_id } => HungryFoodAct::Craft(object_id),
+            FireFoodAction::ShortCraft { actor, target } => HungryFoodAct::Pair { actor, target },
+            FireFoodAction::ShortCraftOnGround { target } => HungryFoodAct::OnGround { target },
+            FireFoodAction::None | FireFoodAction::Abort => HungryFoodAct::None,
+        },
+        "consider_food_firefood",
+    )
+}
+
+fn npc_try_hungry_do_baking(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &RwLock<World>,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    tick: u64,
+    is_smith: bool,
+    hx: i32,
+    hy: i32,
+    tiles: &[ScanTile],
+    blocked: &std::collections::HashSet<(i32, i32)>,
+    seq: i32,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let map: Vec<BakeMapObj> = tiles
+        .iter()
+        .filter(|t| t.parent_id != 0)
+        .map(|t| BakeMapObj {
+            parent_id: t.parent_id,
+            x: t.x,
+            y: t.y,
+            uses: t.uses.max(1),
+            floor_id: t.floor_id,
+            is_food: t.is_food,
+            is_permanent: t.is_permanent,
+        })
+        .collect();
+    let origin_floor = tiles
+        .iter()
+        .find(|t| t.x == hx && t.y == hy)
+        .map(|t| t.floor_id)
+        .unwrap_or(0);
+    let counts = fill_bake_counts_from_map_ex(
+        hx,
+        hy,
+        p.held_id,
+        p.held_uses.max(1),
+        &map,
+        30,
+        true,
+        st.has_corn_seeds,
+        has_bean_seeds_from_scan(tiles),
+        origin_floor,
+    );
+    let action = do_baking(
+        &counts,
+        &mut st.baker_rt,
+        &mut st.baker_task,
+        1,
+        0.0,
+        st.was_idle,
+        0,
+    );
+    npc_commit_hungry_food_action(
+        intent_tx,
+        world,
+        content,
+        craft_graph,
+        st,
+        conn_id,
+        p,
+        tick,
+        is_smith,
+        tiles,
+        blocked,
+        seq,
+        match action {
+            BakeAction::CraftItem { object_id } => HungryFoodAct::Craft(object_id),
+            BakeAction::ShortCraft { actor, target } => HungryFoodAct::Pair { actor, target },
+            _ => HungryFoodAct::None,
+        },
+        "consider_food_bake",
+    )
+}
+
+fn npc_try_hungry_do_watering(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &RwLock<World>,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    tick: u64,
+    is_smith: bool,
+    hx: i32,
+    hy: i32,
+    tiles: &[ScanTile],
+    blocked: &std::collections::HashSet<(i32, i32)>,
+    seq: i32,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let map: Vec<FarmMapObj> = tiles
+        .iter()
+        .filter(|t| t.parent_id != 0)
+        .map(|t| FarmMapObj {
+            parent_id: t.parent_id,
+            x: t.x,
+            y: t.y,
+            uses: t.uses.max(1),
+            floor_id: t.floor_id,
+            is_food: t.is_food,
+            is_permanent: t.is_permanent,
+        })
+        .collect();
+    let counts = fill_farm_counts_from_map_ex(
+        hx,
+        hy,
+        p.held_id,
+        &map,
+        30,
+        true,
+        basic_farmer_weight_from_runtime(&st.farm_rt),
+        None,
+    );
+    let action = do_watering(
+        &mut st.farm_rt,
+        &counts,
+        &mut st.farm_task,
+        1,
+        0.0,
+        st.was_idle,
+    );
+    npc_commit_hungry_food_action(
+        intent_tx,
+        world,
+        content,
+        craft_graph,
+        st,
+        conn_id,
+        p,
+        tick,
+        is_smith,
+        tiles,
+        blocked,
+        seq,
+        match action {
+            FarmAction::CraftItem { object_id } => HungryFoodAct::Craft(object_id),
+            FarmAction::ShortCraft { actor, target } => HungryFoodAct::Pair { actor, target },
+            _ => HungryFoodAct::None,
+        },
+        "consider_food_water",
+    )
+}
+
+#[derive(Clone, Copy)]
+enum HungryFoodAct {
+    None,
+    Craft(i32),
+    Pair { actor: i32, target: i32 },
+    OnGround { target: i32 },
+}
+
+fn npc_commit_hungry_food_action(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &RwLock<World>,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    tick: u64,
+    is_smith: bool,
+    tiles: &[ScanTile],
+    blocked: &std::collections::HashSet<(i32, i32)>,
+    seq: i32,
+    act: HungryFoodAct,
+    tag: &str,
+) -> Option<(NpcActivityKind, String, u32)> {
+    match act {
+        HungryFoodAct::None => None,
+        HungryFoodAct::Craft(object_id) => npc_try_craft_product_commit(
+            intent_tx,
+            world,
+            content,
+            craft_graph,
+            st,
+            conn_id,
+            p,
+            tick,
+            is_smith,
+            object_id,
+            tiles,
+            blocked,
+            seq,
+            tag,
+        ),
+        HungryFoodAct::Pair { .. } | HungryFoodAct::OnGround { .. } => {
+            let (actor, target) = match act {
+                HungryFoodAct::Pair { actor, target } => (actor, target),
+                HungryFoodAct::OnGround { target } => (p.held_id.max(0), target),
+                HungryFoodAct::None | HungryFoodAct::Craft(_) => return None,
+            };
+            let Some((x, y, _)) = npc_closest_parent_cheb(tiles, p.x, p.y, target, 30) else {
+                if actor > 0 && p.held_id != actor {
+                    return npc_try_craft_product_commit(
+                        intent_tx,
+                        world,
+                        content,
+                        craft_graph,
+                        st,
+                        conn_id,
+                        p,
+                        tick,
+                        is_smith,
+                        actor,
+                        tiles,
+                        blocked,
+                        seq,
+                        tag,
+                    );
+                }
+                return None;
+            };
+            if p.held_id == actor || (actor == 0 && p.held_id == 0) {
+                let w = world.read().ok()?;
+                let mut kind = NpcActivityKind::Craft;
+                let mut detail = String::new();
+                let mut game_ms = 200u32;
+                if npc_commit_craft_live(
+                    &ShortCraftLiveIntent::UseAt {
+                        x,
+                        y,
+                        target_id: target,
+                        actor_id: actor,
+                    },
+                    intent_tx,
+                    &w,
+                    content,
+                    st,
+                    conn_id,
+                    p.x,
+                    p.y,
+                    p.food,
+                    p.moving,
+                    &mut kind,
+                    &mut detail,
+                    &mut game_ms,
+                    seq,
+                ) {
+                    return Some((kind, format!("{tag} {actor}+{target}"), game_ms));
+                }
+                None
+            } else if actor > 0 {
+                npc_try_craft_product_commit(
+                    intent_tx,
+                    world,
+                    content,
+                    craft_graph,
+                    st,
+                    conn_id,
+                    p,
+                    tick,
+                    is_smith,
+                    actor,
+                    tiles,
+                    blocked,
+                    seq,
+                    tag,
+                )
+            } else {
+                None
+            }
+        }
+    }
+}
+
+fn npc_count_parent_cheb(tiles: &[ScanTile], ox: i32, oy: i32, id: i32, r: i32) -> i32 {
+    tiles
+        .iter()
+        .filter(|t| {
+            t.parent_id == id && (t.x - ox).abs().max((t.y - oy).abs()) <= r
+        })
+        .count() as i32
+}
+
+fn npc_closest_parent_cheb(
+    tiles: &[ScanTile],
+    px: i32,
+    py: i32,
+    id: i32,
+    r: i32,
+) -> Option<(i32, i32, i32)> {
+    let mut best: Option<(i32, i32, i32, i32)> = None;
+    for t in tiles {
+        if t.parent_id != id {
+            continue;
+        }
+        let d = (t.x - px).abs().max((t.y - py).abs());
+        if d > r {
+            continue;
+        }
+        match best {
+            None => best = Some((d, t.y, t.x, t.uses.max(1))),
+            Some((bd, by, bx, _)) => {
+                if d < bd || (d == bd && (t.y < by || (t.y == by && t.x < bx))) {
+                    best = Some((d, t.y, t.x, t.uses.max(1)));
+                }
+            }
+        }
+    }
+    best.map(|(_, y, x, uses)| (x, y, uses))
+}
+
+fn consider_making_food_count_dry_from_tiles(
+    tiles: &[ScanTile],
+    hx: i32,
+    hy: i32,
+    held_id: i32,
+) -> i32 {
+    npc_count_parent_cheb(tiles, hx, hy, DRIED_CORN, 30)
+        + i32::from(held_id == DRIED_CORN)
+        + 2 * (npc_count_parent_cheb(tiles, hx, hy, PILE_DRIED_CORN, 30)
+            + i32::from(held_id == PILE_DRIED_CORN))
+}
+
+fn npc_try_sharpie_food(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &RwLock<World>,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    tick: u64,
+    is_smith: bool,
+    max_d: i32,
+    tiles: &[ScanTile],
+    seq: i32,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let FarmAction::CraftItem { object_id } = make_sharpie_food_from_xy(
+        p.x,
+        p.y,
+        p.held_id,
+        tiles.iter().map(|t| (t.parent_id, t.x, t.y)),
+        max_d,
+    ) else {
         return None;
     };
+    tracing::debug!(
+        conn_id,
+        held = p.held_id,
+        object_id,
+        max_d,
+        x = p.x,
+        y = p.y,
+        "ai_craft: makeSharpieFood want"
+    );
     let blocked = st.path_reach.blocked_coords(None);
+    npc_try_craft_product_commit(
+        intent_tx,
+        world,
+        content,
+        craft_graph,
+        st,
+        conn_id,
+        p,
+        tick,
+        is_smith,
+        object_id,
+        tiles,
+        &blocked,
+        seq,
+        "make_sharpie_food",
+    )
+}
+
+fn npc_try_craft_product_commit(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &RwLock<World>,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    tick: u64,
+    is_smith: bool,
+    object_id: i32,
+    tiles: &[ScanTile],
+    blocked: &std::collections::HashSet<(i32, i32)>,
+    seq: i32,
+    tag: &str,
+) -> Option<(NpcActivityKind, String, u32)> {
     let intent = npc_expand_craft_product(
-        &tiles,
+        tiles,
         p.x,
         p.y,
         p.held_id,
@@ -1741,7 +3617,7 @@ fn npc_run_considering_making_food(
         content,
         craft_graph,
         &mut st.craft_rt,
-        &blocked,
+        blocked,
         is_smith,
         tick,
         object_id,
@@ -1764,9 +3640,10 @@ fn npc_run_considering_making_food(
         &mut kind,
         &mut detail,
         &mut game_ms,
+        seq,
     ) {
         if detail.is_empty() {
-            detail = format!("make_sharpie_food {object_id}");
+            detail = format!("{tag} {object_id}");
         }
         Some((kind, detail, game_ms))
     } else {
@@ -1805,6 +3682,7 @@ fn npc_commit_craft_live(
     kind: &mut NpcActivityKind,
     detail: &mut String,
     game_ms: &mut u32,
+    seq: i32,
 ) -> bool {
     match *intent {
         ShortCraftLiveIntent::Wait => {
@@ -1843,6 +3721,7 @@ fn npc_commit_craft_live(
                 actor_id,
                 StickyArrive::Use,
                 format!("use_held @{x},{y}"),
+                seq,
             ) {
                 *kind = NpcActivityKind::Craft;
                 *detail = if npc_is_close_action(px, py, x, y) && !moving {
@@ -1879,6 +3758,7 @@ fn npc_commit_craft_live(
                 actor_id,
                 StickyArrive::Use,
                 format!("use_held @{x},{y}"),
+                seq,
             ) {
                 *kind = NpcActivityKind::Craft;
                 *detail = if npc_is_close_action(px, py, x, y) && !moving {
@@ -1930,6 +3810,7 @@ fn npc_commit_craft_live(
                 0,
                 arrive,
                 format!("craft @{x},{y}"),
+                seq,
             ) {
                 *kind = NpcActivityKind::Craft;
                 *detail = if npc_is_close_action(px, py, x, y) && !moving && is_drop {
@@ -1972,6 +3853,7 @@ fn npc_commit_craft_live(
                 StickyArrive::None,
                 moving,
                 format!("forge @{forge_x},{forge_y}"),
+                seq,
             ) {
                 *kind = NpcActivityKind::Craft;
                 *detail = format!("craft_queue_forge @{forge_x},{forge_y}");
@@ -2039,6 +3921,7 @@ fn npc_try_walk_to_sticky(
     pending_use: bool,
     moving: bool,
     label: impl Into<String>,
+    seq: i32,
 ) -> bool {
     npc_try_walk_to_arrive(
         intent_tx,
@@ -2060,6 +3943,7 @@ fn npc_try_walk_to_sticky(
         },
         moving,
         label,
+        seq,
     )
 }
 
@@ -2083,23 +3967,24 @@ fn npc_try_walk_to_arrive(
     arrive: StickyArrive,
     moving: bool,
     label: impl Into<String>,
+    seq: i32,
 ) -> bool {
     let label = label.into();
     let (gx, gy) = npc_wrap_goal(world, px, py, gx, gy);
-    if moving {
-        if let Some(s) = st.sticky_move.as_ref() {
-            if s.gx == gx && s.gy == gy {
-                set_sticky_arrive(
-                    st,
-                    gx,
-                    gy,
-                    expected_parent_id,
-                    use_actor_parent,
-                    arrive,
-                    label,
-                );
-                return true;
-            }
+    // Haxe: if (isMoving()) return true — never goto the same dest while newMoves != null.
+    // New dest (follow / danger) may send. Haxe: AiBase.isUsingItem L9013; MoveHelper.isMoveing L65
+    if let Some(s) = st.sticky_move.as_ref() {
+        if !npc_should_send_move(moving, s.gx == gx && s.gy == gy) {
+            set_sticky_arrive(
+                st,
+                gx,
+                gy,
+                expected_parent_id,
+                use_actor_parent,
+                arrive,
+                label,
+            );
+            return true;
         }
     }
     let ok = npc_try_walk_to_ex(
@@ -2115,6 +4000,9 @@ fn npc_try_walk_to_arrive(
         st.food_goto.did_not_reach_food,
         st.animal_path,
         arrive != StickyArrive::None,
+        st.try_move_nearest_tile_first,
+        true,
+        seq,
     );
     if ok {
         set_sticky_arrive(
@@ -2126,8 +4014,33 @@ fn npc_try_walk_to_arrive(
             arrive,
             label,
         );
+        if let Some(s) = st.sticky_move.as_mut() {
+            s.move_from = Some((px, py));
+        }
+        // Haxe move() sets newMoves this tick → isMoving() true immediately.
+        st.move_sent_tick = st.now_tick;
     }
     ok
+}
+
+/// Haxe `isMoving()`: `MoveHelper.newMoves != null`.
+/// Snapshot `moving` is `move_path.is_some()`. Same sim tick as `move()` also
+/// counts — Haxe sets newMoves in `MoveHelper.Move` before the next think.
+// Haxe: MoveHelper.isMoveing L65; GlobalPlayerInstance.isMoving L1632–1634
+fn npc_haxe_is_moving(snapshot_moving: bool, move_sent_sim_tick: u64, sim_tick: u64) -> bool {
+    snapshot_moving || (move_sent_sim_tick > 0 && move_sent_sim_tick == sim_tick)
+}
+
+/// When to enqueue a MOVE (Haxe `gotoObj` / `gotoAdv` / `isUsingItem`).
+///
+/// Send if dest changed (follow / danger). If dest is unchanged, send only when
+/// `!isMoving()`. No wall-clock hold.
+// Haxe: AiBase.isUsingItem L9013 `if (myPlayer.isMoving()) return true;` then goto if dist>1
+fn npc_should_send_move(moving: bool, same_target: bool) -> bool {
+    if !same_target {
+        return true;
+    }
+    !moving
 }
 
 /// Haxe isUsingItem / isDropingItem: USE or DROP when orthogonally close and stopped;
@@ -2148,12 +4061,13 @@ fn npc_do_arrive_or_walk(
     actor_parent: i32,
     arrive: StickyArrive,
     label: impl Into<String>,
+    seq: i32,
 ) -> bool {
     let label = label.into();
     let (x, y) = npc_wrap_goal(world, px, py, x, y);
     if npc_is_close_action(px, py, x, y) {
         if moving {
-            // Haxe: if isMoving() return true — wait to stop, then USE/DROP.
+            // Haxe isUsingItem L9013: if isMoving() return true — wait, then USE/DROP.
             set_sticky_arrive(
                 st,
                 x,
@@ -2166,7 +4080,13 @@ fn npc_do_arrive_or_walk(
             return true;
         }
         let ok = match arrive {
-            StickyArrive::Drop => npc_drop_at(intent_tx, conn_id, x, y, None),
+            StickyArrive::Drop => {
+                if drop_target_uses_use_not_drop(expected_parent) {
+                    npc_use_at(intent_tx, conn_id, x, y, None, None)
+                } else {
+                    npc_drop_at(intent_tx, conn_id, x, y, None)
+                }
+            }
             StickyArrive::Use => npc_use_at(intent_tx, conn_id, x, y, None, None),
             StickyArrive::None => {
                 clear_sticky_move(st);
@@ -2194,7 +4114,481 @@ fn npc_do_arrive_or_walk(
         arrive,
         moving,
         label,
+        seq,
     )
+}
+
+/// Apply Haxe `isUsingItem` / `isDropingItem` for a staged sticky goal.
+/// Holding a player: drop at feet (keep sticky) so the next think can USE/DROP the tile.
+fn npc_apply_sticky_arrive(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    px: i32,
+    py: i32,
+    food: f32,
+    moving: bool,
+    held_id: i32,
+    holding_player_id: i32,
+    sticky: &NpcStickyMove,
+    seq: i32,
+    held_uses: i32,
+    home_x: i32,
+    home_y: i32,
+    age: f32,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let arrive = StickyArrive::from_flags(sticky.pending_use, sticky.pending_drop);
+    if arrive == StickyArrive::None {
+        return None;
+    }
+    if arrive == StickyArrive::Use {
+        if let Some(out) = npc_using_item_head_live(
+            intent_tx,
+            world,
+            content,
+            st,
+            conn_id,
+            px,
+            py,
+            held_id,
+            held_uses,
+            home_x,
+            home_y,
+            sticky,
+        ) {
+            return Some(out);
+        }
+        if !st
+            .sticky_move
+            .as_ref()
+            .is_some_and(|s| s.pending_use)
+        {
+            return None;
+        }
+        if !moving && food >= 0.0 {
+            let world_id = world.get_object(sticky.gx, sticky.gy);
+            let world_parent = sticky_parent_id(content, world_id);
+            let is_animal = content
+                .get(world_parent)
+                .map(|d| d.is_animal())
+                .unwrap_or(false);
+            if is_using_item_bow_on_animal(held_id, is_animal) {
+                let dx = px - sticky.gx;
+                let dy = py - sticky.gy;
+                let quad = dx * dx + dy * dy;
+                let ud = content
+                    .get(USE_BOW_AND_ARROW)
+                    .map(|d| d.use_distance as f32)
+                    .unwrap_or(1.0);
+                if !kill_animal_needs_stand_off(quad, ud)
+                    && npc_use_at(intent_tx, conn_id, sticky.gx, sticky.gy, None, None)
+                {
+                    st.animal_target = Some((sticky.gx, sticky.gy, world_parent));
+                    return Some((
+                        NpcActivityKind::Combat,
+                        format!("use_bow_animal {world_parent} @{},{}", sticky.gx, sticky.gy),
+                        400,
+                    ));
+                }
+            }
+        }
+    }
+    let holding = npc_holding_player(held_id, holding_player_id);
+    let plan = npc_plan_sticky_arrive(
+        px,
+        py,
+        sticky.gx,
+        sticky.gy,
+        moving,
+        holding,
+        held_id,
+        sticky.use_actor_parent,
+        arrive,
+    );
+    match plan {
+        StickyActPlan::WaitUntilStopped => Some((
+            NpcActivityKind::Move,
+            format!("walk_use {}", sticky.label),
+            250,
+        )),
+        StickyActPlan::DropHeldPlayerAtFeet => {
+            if npc_drop_at(intent_tx, conn_id, px, py, None) {
+                Some((
+                    NpcActivityKind::Baby,
+                    format!(
+                        "drop_baby_for_use child={} @{},{}",
+                        holding_player_id, sticky.gx, sticky.gy
+                    ),
+                    400,
+                ))
+            } else {
+                None
+            }
+        }
+        StickyActPlan::DropHeldForEmptyHand => {
+            // Haxe dropHeldObject(0): drop on empty ground next to the player, not SWAP on a full tile.
+            let (dx, dy) = npc_empty_drop_xy(world, px, py);
+            if npc_drop_at(intent_tx, conn_id, dx, dy, None) {
+                Some((
+                    NpcActivityKind::Craft,
+                    format!(
+                        "drop_held_for_empty_use held={} @{},{}",
+                        held_id, sticky.gx, sticky.gy
+                    ),
+                    400,
+                ))
+            } else {
+                None
+            }
+        }
+        StickyActPlan::DropTarget => {
+            // Haxe L8451: Extracted Arrowhead Wound uses `use` not `drop`.
+            if drop_target_uses_use_not_drop(sticky.expected_parent_id) {
+                if npc_use_at(intent_tx, conn_id, sticky.gx, sticky.gy, None, None) {
+                    clear_sticky_move(st);
+                    return Some((
+                        NpcActivityKind::Craft,
+                        format!("drop_wound_use @{},{}", sticky.gx, sticky.gy),
+                        500,
+                    ));
+                }
+                return None;
+            }
+            if npc_drop_at(intent_tx, conn_id, sticky.gx, sticky.gy, None) {
+                clear_sticky_move(st);
+                Some((
+                    NpcActivityKind::Craft,
+                    format!("drop_held_arrive @{},{}", sticky.gx, sticky.gy),
+                    500,
+                ))
+            } else {
+                None
+            }
+        }
+        StickyActPlan::UseTarget => {
+            let held_ok = sticky.use_actor_parent == 0
+                || sticky_parent_id(content, held_id) == sticky.use_actor_parent;
+            if !held_ok {
+                return None;
+            }
+            if npc_use_at(intent_tx, conn_id, sticky.gx, sticky.gy, None, None) {
+                if is_using_item_drop_is_a_use_done(st.drop_is_a_use) {
+                    npc_cancle_use(st);
+                    return Some((
+                        NpcActivityKind::Craft,
+                        format!("drop_as_use @{},{}", sticky.gx, sticky.gy),
+                        500,
+                    ));
+                }
+                let world_id = world.get_object(sticky.gx, sticky.gy);
+                let ground = sticky_parent_id(content, world_id);
+                let actor = sticky_parent_id(content, held_id);
+                let target = sticky.expected_parent_id;
+                let product = st.craft_rt.item.product_id;
+                let _ = note_using_item_craft_progress(
+                    product,
+                    &mut st.craft_rt.item.count_done,
+                    &mut st.craft_rt.item.count_transitions_done,
+                    &mut st.craft_rt.item.last_actor_id,
+                    &mut st.craft_rt.item.last_target_id,
+                    &mut st.craft_rt.item.last_new_actor_id,
+                    &mut st.craft_rt.item.last_new_target_id,
+                    actor,
+                    target,
+                    actor,
+                    ground,
+                );
+                st.craft_rt.item.clear_trans();
+                note_raw_pie_crafted(&mut st.baker_rt, ground);
+                if is_using_item_goose_stump_speedup(ground) {
+                    st.think_time_sec -= 1.0;
+                }
+                clear_sticky_move(st);
+                Some((
+                    NpcActivityKind::Craft,
+                    format!("use_held_arrive @{},{}", sticky.gx, sticky.gy),
+                    500,
+                ))
+            } else {
+                // Haxe L9107–9137: CancleUse, clear trans, Too hot / food / age mark, return true.
+                npc_cancle_use(st);
+                st.craft_rt.item.clear_trans();
+                let fail = is_using_item_use_fail(age, "");
+                if fail.handle_temperature {
+                    st.handling_temperature = true;
+                } else if fail.set_hungry {
+                    st.was_hungry = true;
+                } else {
+                    mark_use_path_fail(&mut st.path_reach, sticky.gx, sticky.gy, age);
+                }
+                Some((
+                    NpcActivityKind::Think,
+                    format!("use_fail_mark @{},{}", sticky.gx, sticky.gy),
+                    100,
+                ))
+            }
+        }
+        StickyActPlan::Walk => {
+            let sent_before = st.move_sent_tick;
+            if npc_try_walk_to_arrive(
+                intent_tx,
+                world,
+                content,
+                st,
+                conn_id,
+                px,
+                py,
+                sticky.gx,
+                sticky.gy,
+                food,
+                sticky.expected_parent_id,
+                sticky.use_actor_parent,
+                arrive,
+                moving,
+                sticky.label.clone(),
+                seq,
+            ) {
+                // In-flight MOVE (Haxe isMoving return) — do not log a new craft walk.
+                if moving || st.move_sent_tick == sent_before {
+                    return Some((
+                        NpcActivityKind::Move,
+                        format!("walk_use {}", sticky.label),
+                        250,
+                    ));
+                }
+                let tag = if arrive == StickyArrive::Drop {
+                    "drop_held_walk"
+                } else {
+                    "use_held_walk"
+                };
+                Some((
+                    NpcActivityKind::Craft,
+                    format!("{tag} @{},{}", sticky.gx, sticky.gy),
+                    250,
+                ))
+            } else {
+                // Haxe L9033–9038: goto fail → CancleUse; return done (false).
+                if arrive == StickyArrive::Use {
+                    npc_cancle_use(st);
+                }
+                None
+            }
+        }
+    }
+}
+
+/// Haxe `isDropingItem` L8351–8463: head gates then follow/stack/goto/use/drop.
+// Haxe: AiBase.isDropingItem L8351–8463
+fn npc_apply_dropping_item(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    px: i32,
+    py: i32,
+    food: f32,
+    moving: bool,
+    held_id: i32,
+    holding_player_id: i32,
+    hungry: bool,
+    has_player_to_follow: bool,
+    sticky: &NpcStickyMove,
+    seq: i32,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let world_p = sticky_parent_id(content, world.get_object(sticky.gx, sticky.gy));
+    let num_slots = content
+        .get(sticky.expected_parent_id)
+        .map(|o| o.num_slots)
+        .unwrap_or(0);
+    let head = is_dropping_item_head(
+        moving,
+        Some((sticky.expected_parent_id, sticky.gx, sticky.gy)),
+        Some(world_p),
+        held_id,
+        num_slots,
+        px,
+        py,
+        &mut st.tried_drop_count,
+    );
+    match head {
+        IsDropingItemHead::Idle | IsDropingItemHead::TargetGone => {
+            clear_sticky_move(st);
+            return None;
+        }
+        IsDropingItemHead::DropHeld { max_distance } => {
+            return npc_drop_held_for_dropping_item(
+                intent_tx,
+                world,
+                st,
+                conn_id,
+                px,
+                py,
+                max_distance,
+            );
+        }
+        IsDropingItemHead::Continue => {}
+    }
+    let max_d = is_dropping_drop_distance_after_try(st.tried_drop_count);
+    let dx = px - sticky.gx;
+    let dy = py - sticky.gy;
+    let dist = (dx * dx + dy * dy) as f32;
+    match is_dropping_item_goto(
+        sticky.expected_parent_id,
+        dist,
+        has_player_to_follow,
+        hungry,
+        max_d,
+        moving,
+    ) {
+        IsDropingItemGoto::DropHeld { max_distance } => npc_drop_held_for_dropping_item(
+            intent_tx,
+            world,
+            st,
+            conn_id,
+            px,
+            py,
+            max_distance,
+        ),
+        IsDropingItemGoto::ConvertToUse => {
+            st.drop_is_a_use = true;
+            set_sticky_arrive(
+                st,
+                sticky.gx,
+                sticky.gy,
+                sticky.expected_parent_id,
+                0,
+                StickyArrive::Use,
+                "drop_as_use_stack",
+            );
+            if npc_haxe_close_use_prio(px, py, sticky.gx, sticky.gy) {
+                let use_sticky = st.sticky_move.clone()?;
+                npc_apply_sticky_arrive(
+                    intent_tx,
+                    world,
+                    content,
+                    st,
+                    conn_id,
+                    px,
+                    py,
+                    food,
+                    moving,
+                    held_id,
+                    holding_player_id,
+                    &use_sticky,
+                    seq,
+                    0,
+                    px,
+                    py,
+                    20.0,
+                )
+            } else {
+                None
+            }
+        }
+        IsDropingItemGoto::Idle => {
+            clear_sticky_move(st);
+            None
+        }
+        IsDropingItemGoto::UseOnTarget => {
+            let mut use_sticky = sticky.clone();
+            use_sticky.pending_use = true;
+            use_sticky.pending_drop = false;
+            use_sticky.use_actor_parent = if held_id > 0 {
+                sticky_parent_id(content, held_id)
+            } else {
+                0
+            };
+            npc_apply_sticky_arrive(
+                intent_tx,
+                world,
+                content,
+                st,
+                conn_id,
+                px,
+                py,
+                food,
+                moving,
+                held_id,
+                holding_player_id,
+                &use_sticky,
+                seq,
+                0,
+                px,
+                py,
+                20.0,
+            )
+        }
+        IsDropingItemGoto::WaitMoving
+        | IsDropingItemGoto::WalkToTarget
+        | IsDropingItemGoto::DropOnTarget => {
+            let applied = npc_apply_sticky_arrive(
+                intent_tx,
+                world,
+                content,
+                st,
+                conn_id,
+                px,
+                py,
+                food,
+                moving,
+                held_id,
+                holding_player_id,
+                sticky,
+                seq,
+                0,
+                px,
+                py,
+                20.0,
+            );
+            if applied.is_none() && matches!(
+                is_dropping_item_goto(
+                    sticky.expected_parent_id,
+                    dist,
+                    has_player_to_follow,
+                    hungry,
+                    max_d,
+                    moving,
+                ),
+                IsDropingItemGoto::WalkToTarget
+            ) {
+                // Haxe L8442–8446: goto fail clears dropTarget but still returns true.
+                clear_sticky_move(st);
+                return Some((
+                    NpcActivityKind::Move,
+                    format!("drop_goto_fail @{},{}", sticky.gx, sticky.gy),
+                    250,
+                ));
+            }
+            applied
+        }
+    }
+}
+
+/// Follow-too-far / container abort: drop held nearby and drop the original dropTarget.
+// Haxe: AiBase.isDropingItem L8401–8407 / L8371 / L8381 `return dropHeldObject(dropDistance)`
+fn npc_drop_held_for_dropping_item(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    px: i32,
+    py: i32,
+    max_distance: i32,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let (dx, dy) = npc_empty_drop_xy(world, px, py);
+    if !npc_drop_at(intent_tx, conn_id, dx, dy, None) {
+        return None;
+    }
+    // Abort the original dropTarget (container / too-far / follow-too-far).
+    clear_sticky_move(st);
+    Some((
+        NpcActivityKind::Craft,
+        format!("droping_drop_held max={max_distance} @{},{}", dx, dy),
+        400,
+    ))
 }
 
 /// Dual-pass Goto fail mark: animal-only block â†’ hostile_path 20s; else not_reachable 90s.
@@ -2298,6 +4692,9 @@ struct NpcFoodGotoState {
     /// Pending was container REMV (basket food_value often 0 on ground id).
     // Haxe: isInContainer remove path ~8684
     pending_food_container: bool,
+    /// Pending was isUse (permanent / foodValue&lt;1). Success does not require holding.
+    // Haxe: AiBase.isPickingupFood L8703–8706 after use() true
+    pending_food_is_use: bool,
 }
 
 impl Default for NpcFoodGotoState {
@@ -2309,6 +4706,7 @@ impl Default for NpcFoodGotoState {
             did_not_reach_food: 0.0,
             pending_food_xy: None,
             pending_food_container: false,
+            pending_food_is_use: false,
         }
     }
 }
@@ -2333,6 +4731,10 @@ struct NpcStickyMove {
     pending_drop: bool,
     /// Short label for activity log.
     label: String,
+    /// Tile a MOVE was already sent from. Resending from the same tile cancels
+    /// the in-flight path (NPC-thread snapshot lags `isMoving()`).
+    // Haxe: AiBase.isUsingItem L9013 `if (isMoving()) return true`
+    move_from: Option<(i32, i32)>,
 }
 
 /// Per-NPC sticky profession task state for ladder scan (Haxe AiBase profession fields).
@@ -2394,6 +4796,12 @@ struct NpcProfessionState {
     handling_temperature: bool,
     temp_just_arrived: bool,
     last_heat: f32,
+    /// Haxe `coldPlace = null` after fail-cool (ignore snapshot until re-seeded).
+    // Haxe: AiBase.handleTemperature L1720
+    rejected_cold_place: Option<(i32, i32)>,
+    /// Haxe `warmPlace = null` after fail-warm.
+    // Haxe: AiBase.handleTemperature L1743
+    rejected_warm_place: Option<(i32, i32)>,
     /// Reused world scan for this think (same center + radius or inner radius).
     scan_cache: Option<NpcScanCache>,
     /// Scan fill time this think (µs), excluding cache hits.
@@ -2402,8 +4810,59 @@ struct NpcProfessionState {
     scan_hits: u32,
     /// Held id we already tried to eat this hunger bout (Haxe refuseFood → drop).
     eat_fail_held: i32,
+    /// After `self()` eat, drop leftover if next tick held `foodValue <= 0`.
+    // Haxe: AiBase.isEating L8837 dropHeldObject(10)
+    eat_pending_peel: bool,
+    /// Haxe `isCaringForFire` — cleared in checkIsHungryAndEat (food has priority).
+    // Haxe: AiBase.checkIsHungryAndEat L8864
+    is_caring_for_fire: bool,
+    /// Haxe `useIsDropInContainer` (put clay in basket). CancleUse clears.
+    // Haxe: AiBase.useIsDropInContainer L71 / isUsingItem L8910
+    use_is_drop_in_container: bool,
+    /// Haxe `dropIsAUse` — successful USE is a pile drop, not craft progress.
+    // Haxe: AiBase.dropIsAUse L70 / isUsingItem L9061
+    drop_is_a_use: bool,
     /// Last tile we thought on. Haxe `movedOneTile` — replan after a tile even if still pathing.
     last_think_xy: Option<(i32, i32)>,
+    /// Haxe `TimeHelper.tick` for this think.
+    now_tick: u64,
+    /// Sim tick when `move()` was sent — that tick `newMoves != null` (isMoving).
+    move_sent_tick: u64,
+    /// Haxe `escapeTarget` (resetTargets clears).
+    // Haxe: AiBase L55 / resetTargets L320
+    escape_target: Option<(i32, i32)>,
+    /// Haxe `tryMoveNearestTileFirst` (GotoHelper i=0/1 swap).
+    // Haxe: AiBase L113
+    try_move_nearest_tile_first: bool,
+    /// Haxe `AiBase.waitingTime` (STOP / speech wait countdown).
+    // Haxe: AiBase L46 / doTimeStuffHelper L514–518
+    waiting_time: f32,
+    /// Haxe `AiBase.wasIdle` (decays by reactionTime/10).
+    // Haxe: AiBase L105 / L424
+    was_idle: f32,
+    /// Haxe `hasCornSeeds` / `hasCarrotSeeds` from `countSeeds`.
+    // Haxe: AiBase.countSeeds L1358–1364
+    has_corn_seeds: bool,
+    has_carrot_seeds: bool,
+    /// Haxe `hasPepperSeeds` / `hasOnionSeeds`.
+    // Haxe: AiBase.hasPepperSeeds L1376–1380; hasOnionSeeds L1383–1386
+    has_pepper_seeds: bool,
+    has_onion_seeds: bool,
+    /// Haxe `myPlayer.lastProfession` key for `cleanUpProfessions`.
+    last_profession_key: Option<String>,
+    /// Haxe `animalTarget` (killAnimal) as `(x, y, id)`.
+    // Haxe: AiBase L54 / killAnimal L5878
+    animal_target: Option<(i32, i32, i32)>,
+    did_not_reach_animal_target: i32,
+    /// Haxe `timeLookedForDeadlyAnimalAtHome` (scheduler tick units, −1 = never).
+    // Haxe: AiBase L49 / killAnimal L5880
+    time_looked_for_deadly_animal_at_home: f32,
+    /// Haxe `triedDropCount` for `isDropingItem` dropDistance 10/0.
+    // Haxe: AiBase.isDropingItem L8361
+    tried_drop_count: i32,
+    /// Haxe `lastCheckedTimes['considerFood']` (sim tick).
+    // Haxe: AiBase.isConsideringMakingFood L8509
+    last_consider_food_tick: f32,
 }
 
 #[derive(Debug)]
@@ -2448,12 +4907,34 @@ impl Default for NpcProfessionState {
             handling_temperature: false,
             temp_just_arrived: false,
             last_heat: 0.5,
+            rejected_cold_place: None,
+            rejected_warm_place: None,
             scan_cache: None,
             scan_us_acc: 0,
             scan_calls: 0,
             scan_hits: 0,
             eat_fail_held: 0,
+            eat_pending_peel: false,
+            is_caring_for_fire: false,
+            use_is_drop_in_container: false,
+            drop_is_a_use: false,
             last_think_xy: None,
+            now_tick: 0,
+            move_sent_tick: 0,
+            escape_target: None,
+            try_move_nearest_tile_first: true,
+            waiting_time: 0.0,
+            was_idle: 0.0,
+            has_corn_seeds: false,
+            has_carrot_seeds: false,
+            has_pepper_seeds: false,
+            has_onion_seeds: false,
+            last_profession_key: None,
+            animal_target: None,
+            did_not_reach_animal_target: 0,
+            time_looked_for_deadly_animal_at_home: TIME_LOOKED_NEVER,
+            tried_drop_count: 0,
+            last_consider_food_tick: 0.0,
         }
     }
 }
@@ -2462,6 +4943,683 @@ impl Default for NpcProfessionState {
 // Haxe: AiBase.doTimeStuffHelper L428 `if (movedOneTileTmp == false && myPlayer.isMoving()) return;`
 fn haxe_skip_mid_path_think(moving: bool, moved_one_tile: bool) -> bool {
     moving && !moved_one_tile
+}
+
+fn npc_prestige_class_u8(class: PrestigeClass) -> u8 {
+    match class {
+        PrestigeClass::Serf => 1,
+        PrestigeClass::Commoner | PrestigeClass::NotSet => 2,
+        PrestigeClass::Noble | PrestigeClass::King | PrestigeClass::Emperor => 3,
+    }
+}
+
+fn npc_last_profession_key(st: &NpcProfessionState, p: &PlayerSnapshot) -> Option<&'static str> {
+    if let Some(ref k) = st.last_profession_key {
+        return match k.as_str() {
+            "SMITH" => Some("SMITH"),
+            "BAKER" => Some("BAKER"),
+            "POTTER" => Some("POTTER"),
+            "SHEPHERD" => Some("SHEPHERD"),
+            "FIREKEEPER" => Some("FIREKEEPER"),
+            "GRAVEKEEPER" => Some("GRAVEKEEPER"),
+            "FOODSERVER" => Some("FOODSERVER"),
+            "Eating" => Some("Eating"),
+            "HUNTER" => Some("HUNTER"),
+            "LUMBERJACK" => Some("LUMBERJACK"),
+            "COLLECTOR" => Some("COLLECTOR"),
+            "TAILOR" => Some("TAILOR"),
+            "FIREFOODMAKER" => Some("FIREFOODMAKER"),
+            "BowlFiller" => Some("BowlFiller"),
+            _ => Some("BASICFARMER"),
+        };
+    }
+    if st.smith_rt.is_last_smith || p.is_last_smith {
+        return Some("SMITH");
+    }
+    if st.baker_rt.is_last_baker || p.is_last_baker {
+        return Some("BAKER");
+    }
+    if st.pottery_rt.is_last_potter || p.is_last_potter {
+        return Some("POTTER");
+    }
+    if st.shepherd_rt.is_last_shepherd || p.is_last_shepherd {
+        return Some("SHEPHERD");
+    }
+    if st.fire_keeper_rt.is_last_fire_keeper {
+        return Some("FIREKEEPER");
+    }
+    if st.grave_keeper_rt.is_last_grave_keeper {
+        return Some("GRAVEKEEPER");
+    }
+    if st.foodserver_rt.is_last_foodserver || p.is_last_foodserver {
+        return Some("FOODSERVER");
+    }
+    if st.hunter_rt.is_last_hunter || p.is_last_hunter {
+        return Some("HUNTER");
+    }
+    if st.lumberjack_rt.is_last_lumberjack || p.is_last_lumberjack {
+        return Some("LUMBERJACK");
+    }
+    if st.collector_rt.is_last_collector || p.is_last_collector {
+        return Some("COLLECTOR");
+    }
+    if st.last_is_tailor || p.is_last_tailor {
+        return Some("TAILOR");
+    }
+    if st.fire_rt.is_last_fire_food || p.is_last_fire_food {
+        return Some("FIREFOODMAKER");
+    }
+    if st.farm_rt.last_profession.is_some() || p.is_last_farm {
+        return Some("BASICFARMER");
+    }
+    None
+}
+
+/// Haxe `cleanUpProfessions` — zero non-last profession stage weights.
+// Haxe: AiBase.cleanUpProfessions L4443–4461
+fn npc_clean_up_professions(st: &mut NpcProfessionState, p: &PlayerSnapshot) {
+    let last = npc_last_profession_key(st, p);
+    if last.is_none() {
+        return;
+    }
+    if should_zero_profession_weight("POTTER", last) {
+        st.pottery_rt.stage = 0.0;
+    }
+    if should_zero_profession_weight("SMITH", last) {
+        // smith stage is in smith_rt; leave last flags
+    }
+}
+
+fn npc_clothing_slot(content: &ContentDb, id: i32) -> Option<i32> {
+    let def = content.get(id)?;
+    let c = def
+        .clothing
+        .trim()
+        .chars()
+        .next()
+        .map(|ch| ch.to_ascii_lowercase())
+        .unwrap_or('n');
+    match c {
+        'h' => Some(0),
+        't' => Some(1),
+        's' => Some(2),
+        'b' => Some(4),
+        'p' => Some(5),
+        _ => None,
+    }
+}
+
+fn npc_should_switch_held_or_obj(
+    content: &ContentDb,
+    obj_id: i32,
+    clothing: [i32; 6],
+    prestige_class: u8,
+) -> bool {
+    let resolved = switch_cloth_resolve_parent(content.resolve_base_id(obj_id));
+    let Some(def) = content.get(resolved) else {
+        return false;
+    };
+    let slot = npc_clothing_slot(content, resolved);
+    let worn_id = slot
+        .and_then(|s| clothing.get(s as usize).copied())
+        .unwrap_or(0);
+    let shoe_other = clothing.get(3).copied().unwrap_or(0);
+    let worn_def = if worn_id != 0 {
+        content.get(content.resolve_base_id(worn_id))
+    } else {
+        None
+    };
+    should_switch_cloth(
+        resolved,
+        def.extra_prestige_factor,
+        def.prestige_factor,
+        &def.name,
+        slot,
+        worn_id,
+        shoe_other,
+        worn_def.map(|d| d.extra_prestige_factor).unwrap_or(0.0),
+        worn_def.map(|d| d.prestige_factor).unwrap_or(0.0),
+        worn_def.map(|d| d.name.as_str()).unwrap_or(""),
+        prestige_class,
+    )
+}
+
+/// Haxe `switchCloths` — SELF when held clothing should replace worn.
+// Haxe: AiBase.switchCloths L8709–8720
+fn npc_run_switch_cloths(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    content: &ContentDb,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    prestige_class: u8,
+) -> Option<(NpcActivityKind, String, u32)> {
+    if p.age < MIN_AGE_TO_EAT {
+        return None;
+    }
+    if p.held_id == 0 {
+        return None;
+    }
+    if !npc_should_switch_held_or_obj(content, p.held_id, p.clothing, prestige_class) {
+        return None;
+    }
+    let payload = self_clothing_raw_payload(-1);
+    if intent_tx
+        .try_send(NetIntent::Raw {
+            conn_id,
+            tag: "SELF".into(),
+            payload,
+        })
+        .is_ok()
+    {
+        Some((NpcActivityKind::Think, format!("switch_cloths held={}", p.held_id), 400))
+    } else {
+        None
+    }
+}
+
+/// Haxe `isPickingupCloths` — drop/use nearby better clothing.
+// Haxe: AiBase.isPickingupCloths L8723–8752
+fn npc_run_is_pickingup_cloths(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    prestige_class: u8,
+) -> Option<(NpcActivityKind, String, u32)> {
+    if p.age < MIN_AGE_TO_EAT {
+        return None;
+    }
+    // Haxe GetCloseClothings default r=8 half-open; skip notReachable/hostile.
+    let tiles = npc_scan_cached(st, world, content, p.x, p.y, GET_CLOSE_CLOTHINGS_RADIUS);
+    let _ = intent_tx;
+    let _ = conn_id;
+    for t in &tiles {
+        if t.parent_id == 0 {
+            continue;
+        }
+        if !in_get_close_clothings_square(
+            p.x,
+            p.y,
+            t.x,
+            t.y,
+            GET_CLOSE_CLOTHINGS_RADIUS,
+        ) {
+            continue;
+        }
+        if st.path_reach.blocks_target(t.x, t.y, None) {
+            continue;
+        }
+        let base = content.resolve_base_id(t.parent_id);
+        let def = content.get(base);
+        let clothing = def.map(|d| d.clothing.as_str()).unwrap_or("n");
+        if !is_get_close_clothing_object(clothing, t.parent_id)
+            && !is_get_close_clothing_object(clothing, base)
+        {
+            continue;
+        }
+        if !npc_should_switch_held_or_obj(content, t.parent_id, p.clothing, prestige_class) {
+            continue;
+        }
+        let permanent = def.map(|d| d.permanent).unwrap_or(false);
+        // Haxe: pile → useActor 0 + useTarget; else dropTarget. No goto here.
+        if permanent {
+            set_sticky_move_use(
+                st,
+                t.x,
+                t.y,
+                t.parent_id,
+                0,
+                true,
+                format!("pickup_cloth_pile {}", t.parent_id),
+            );
+            return Some((
+                NpcActivityKind::Think,
+                format!("pickup_cloth_pile {} @{},{}", t.parent_id, t.x, t.y),
+                100,
+            ));
+        }
+        set_sticky_arrive(
+            st,
+            t.x,
+            t.y,
+            t.parent_id,
+            0,
+            StickyArrive::Drop,
+            format!("pickup_cloth {}", t.parent_id),
+        );
+        return Some((
+            NpcActivityKind::Think,
+            format!("pickup_cloth {} @{},{}", t.parent_id, t.x, t.y),
+            100,
+        ));
+    }
+    None
+}
+
+/// Haxe `countProfession('HUNTER')` excluding self (same-home, age/wound/food/follow).
+// Haxe: AiBase.countProfession L1288–1308
+fn npc_count_hunter_peers(
+    views: &HashMap<u64, PlayerSnapshot>,
+    conn_id: u64,
+    home_x: i32,
+    home_y: i32,
+    content: &ContentDb,
+) -> f32 {
+    views
+        .values()
+        .filter(|o| {
+            if o.conn_id == conn_id || o.deleted || !o.is_last_hunter {
+                return false;
+            }
+            if o.home_x != home_x || o.home_y != home_y {
+                return false;
+            }
+            if o.age < MIN_AGE_TO_EAT || o.age > MAX_AGE - 2.0 {
+                return false;
+            }
+            if o.food < 0.0 {
+                return false;
+            }
+            if o.ai_follow_p_id > 0 {
+                return false;
+            }
+            if npc_is_wounded(content, o.held_id) && !o.is_hidden_wound {
+                return false;
+            }
+            true
+        })
+        .count() as f32
+}
+
+/// Haxe `killAnimal` — wolf-at-home prefix, snake knife shortCraft, else bow hunt.
+// Haxe: AiBase.killAnimal L5878–5964
+/// Haxe `GetOrCraftItem(id)` from `getWeapon` — expand then walk/USE.
+// Haxe: AiBase.getWeapon L5814–5815
+fn npc_emit_seek_or_craft(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    tick: u64,
+    actor: i32,
+    kind_if_ok: NpcActivityKind,
+    label: &str,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let tiles = npc_scan_cached(st, world, content, p.x, p.y, 40);
+    let blocked = st.path_reach.blocked_coords(None);
+    let staging = ShortCraftLiveIntent::SeekOrCraft {
+        actor,
+        craft_if_needed: true,
+    };
+    let resolved = npc_expand_craft_intent(
+        &tiles,
+        p.x,
+        p.y,
+        p.held_id,
+        p.moving,
+        p.home_x,
+        p.home_y,
+        content,
+        craft_graph,
+        &mut st.craft_rt,
+        &blocked,
+        false,
+        tick,
+        staging,
+    );
+    let mut kind = kind_if_ok;
+    let mut detail = format!("{label} {actor}");
+    let mut game_ms = 250;
+    if npc_commit_craft_live(
+        &resolved,
+        intent_tx,
+        world,
+        content,
+        st,
+        conn_id,
+        p.x,
+        p.y,
+        p.food,
+        p.moving,
+        &mut kind,
+        &mut detail,
+        &mut game_ms,
+        npc_client_move_seq(p.done_moving_seq),
+    ) {
+        Some((kind, detail, game_ms))
+    } else {
+        None
+    }
+}
+
+fn npc_run_kill_animal(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    tick: u64,
+    deadly: Option<(i32, i32, i32)>,
+    hunter_peer_count: f32,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let home_x = if p.home_x != 0 || p.home_y != 0 {
+        p.home_x
+    } else {
+        p.x
+    };
+    let home_y = if p.home_x != 0 || p.home_y != 0 {
+        p.home_y
+    } else {
+        p.y
+    };
+    let home_scan = npc_scan_cached(st, world, content, home_x, home_y, KILL_ANIMAL_WOLF_SEARCH);
+    let wolf_tiles: Vec<(i32, i32, i32)> = home_scan
+        .iter()
+        .filter(|t| t.parent_id == WOLF)
+        .filter(|t| wolf_tile_allowed(t.floor_id, t.is_food, t.is_permanent))
+        .map(|t| (t.parent_id, t.x, t.y))
+        .collect();
+    let prefix_target = st.animal_target.map(|(x, y, id)| (id, x, y));
+    let prefix_animal = deadly.map(|(x, y, id)| (id, x, y));
+    let prefix_inp = KillAnimalPrefixInput {
+        animal: prefix_animal,
+        animal_target: prefix_target,
+        time_looked_tick: st.time_looked_for_deadly_animal_at_home,
+        now_tick: st.now_tick as f32,
+        tick_time: TIME_HELPER_TICK_TIME,
+        clothing_ids: &p.clothing,
+        home_tiles: &wolf_tiles,
+        home_x,
+        home_y,
+        hunter_peer_count,
+        was_idle: st.was_idle,
+    };
+    let prefix = kill_animal_prefix(&prefix_inp, &mut st.hunter_rt);
+    st.time_looked_for_deadly_animal_at_home = prefix.time_looked_tick;
+    st.animal_target = prefix.animal_target.map(|(id, x, y)| (x, y, id));
+    if st.hunter_rt.is_last_hunter {
+        st.last_profession_key = Some("HUNTER".into());
+    }
+    if prefix.kind == KillAnimalPrefixKind::Stop {
+        return None;
+    }
+    // Haxe L5902–5964
+    let tiles = npc_scan_cached(st, world, content, p.x, p.y, WEAPON_SEARCH_DIST);
+    let nearby: Vec<(i32, i32, i32, bool)> = tiles
+        .iter()
+        .filter(|t| t.parent_id != 0)
+        .map(|t| (t.parent_id, t.x, t.y, t.is_permanent))
+        .collect();
+    let held_parent = content
+        .dummy_parent
+        .get(&p.held_id)
+        .copied()
+        .unwrap_or(p.held_id);
+    let bow_parent = content
+        .dummy_parent
+        .get(&BOW_AND_ARROW)
+        .copied()
+        .unwrap_or(BOW_AND_ARROW);
+    let bow_min = content
+        .get(BOW_AND_ARROW)
+        .map(|d| d.min_pickup_age as f32)
+        .unwrap_or(0.0);
+    let bow_use = content
+        .get(BOW_AND_ARROW)
+        .map(|d| d.use_distance as f32)
+        .unwrap_or(0.0);
+    let animal = deadly.map(|(x, y, id)| (id, x, y)).or_else(|| {
+        closest_parent_in_tiles(&tiles, RATTLE_SNAKE, p.x, p.y, DEADLY_ANIMAL_SEARCH_DIST)
+            .map(|(x, y)| (RATTLE_SNAKE, x, y))
+    });
+    let animal_target = st.animal_target.map(|(x, y, id)| (id, x, y));
+    let killable = |id: i32| content.find_transition(BOW_AND_ARROW, id).is_some();
+    let weapon = AttackPlayerInput {
+        target: None,
+        food_store: p.food,
+        self_wounded: npc_is_wounded(content, p.held_id) && !p.is_hidden_wound,
+        age: p.age,
+        min_ai_age_for_combat: MIN_AI_AGE_FOR_COMBAT,
+        holding_weapon: npc_holding_weapon(content, p.held_id),
+        held_id: p.held_id,
+        held_parent_id: held_parent,
+        is_moving: p.moving,
+        player_x: p.x,
+        player_y: p.y,
+        exact_x: p.x as f64,
+        exact_y: p.y as f64,
+        home_x: p.home_x,
+        home_y: p.home_y,
+        deadly_distance: 0.0,
+        clothing: AttackPlayerClothing::from_ids(&p.clothing),
+        weapon_tiles: &nearby,
+    };
+    let body_inp = KillAnimalBodyInput {
+        food_store: p.food,
+        age: p.age,
+        bow_min_pickup_age: bow_min,
+        animal,
+        animal_target,
+        animal_killable_by_bow: animal.map(|(id, _, _)| killable(id)).unwrap_or(false),
+        target_killable_by_bow: animal_target
+            .map(|(id, _, _)| killable(id))
+            .unwrap_or(false),
+        player_x: p.x,
+        player_y: p.y,
+        held_parent_id: held_parent,
+        bow_parent_id: bow_parent,
+        bow_use_distance: bow_use,
+        weapon,
+    };
+    let mut result = kill_animal_body(&body_inp);
+    if matches!(result.action, KillAnimalAction::ShortCraftSnake) {
+        if let Some((x, y)) =
+            closest_parent_in_tiles(&tiles, RATTLE_SNAKE, p.x, p.y, KILL_ANIMAL_SNAKE_RADIUS)
+        {
+            if p.held_id == KNIFE_ID {
+                if npc_is_close_action(p.x, p.y, x, y) {
+                    if npc_use_at(intent_tx, conn_id, x, y, None, None) {
+                        return Some((NpcActivityKind::Combat, "kill_snake_knife".into(), 400));
+                    }
+                } else if npc_try_walk_to_sticky(
+                    intent_tx,
+                    world,
+                    content,
+                    st,
+                    conn_id,
+                    p.x,
+                    p.y,
+                    x,
+                    y,
+                    p.food,
+                    RATTLE_SNAKE,
+                    true,
+                    p.moving,
+                    "kill_snake_walk",
+                    npc_client_move_seq(p.done_moving_seq),
+                ) {
+                    return Some((NpcActivityKind::Combat, "kill_snake_walk".into(), 250));
+                }
+            } else {
+                return Some((
+                    NpcActivityKind::Combat,
+                    "kill_snake_seek_knife".into(),
+                    200,
+                ));
+            }
+        }
+        result = kill_animal_bow_hunt(&body_inp);
+    }
+    st.animal_target = result.animal_target.map(|(id, x, y)| (x, y, id));
+    match result.action {
+        KillAnimalAction::None | KillAnimalAction::ShortCraftSnake => None,
+        KillAnimalAction::GetWeapon(gw) => match gw {
+            GetWeaponAction::None => None,
+            GetWeaponAction::Wait => {
+                Some((NpcActivityKind::Combat, "kill_animal_wait_weapon".into(), 200))
+            }
+            GetWeaponAction::GoHome { x, y } => {
+                if npc_try_walk_to_sticky(
+                    intent_tx,
+                    world,
+                    content,
+                    st,
+                    conn_id,
+                    p.x,
+                    p.y,
+                    x,
+                    y,
+                    p.food,
+                    0,
+                    false,
+                    p.moving,
+                    "kill_animal_bloody_home",
+                    npc_client_move_seq(p.done_moving_seq),
+                ) {
+                    Some((NpcActivityKind::Combat, "kill_animal_bloody_home".into(), 250))
+                } else {
+                    None
+                }
+            }
+            GetWeaponAction::SelfClothing { slot } => {
+                let payload = self_clothing_raw_payload(slot);
+                if intent_tx
+                    .try_send(NetIntent::Raw {
+                        conn_id,
+                        tag: "SELF".into(),
+                        payload,
+                    })
+                    .is_ok()
+                {
+                    Some((NpcActivityKind::Combat, "kill_animal_quiver".into(), 400))
+                } else {
+                    None
+                }
+            }
+            GetWeaponAction::DropHeld => {
+                if npc_drop_at(intent_tx, conn_id, p.x, p.y, None) {
+                    Some((NpcActivityKind::Combat, "kill_animal_drop".into(), 400))
+                } else {
+                    None
+                }
+            }
+            GetWeaponAction::Pickup { x, y, id } => {
+                if npc_is_close_action(p.x, p.y, x, y) {
+                    if npc_use_at(intent_tx, conn_id, x, y, None, None) {
+                        Some((
+                            NpcActivityKind::Combat,
+                            format!("kill_animal_pickup {id}"),
+                            400,
+                        ))
+                    } else {
+                        None
+                    }
+                } else if npc_try_walk_to_sticky(
+                    intent_tx,
+                    world,
+                    content,
+                    st,
+                    conn_id,
+                    p.x,
+                    p.y,
+                    x,
+                    y,
+                    p.food,
+                    id,
+                    true,
+                    p.moving,
+                    "kill_animal_walk_weapon",
+                    npc_client_move_seq(p.done_moving_seq),
+                ) {
+                    Some((NpcActivityKind::Combat, "kill_animal_walk_weapon".into(), 250))
+                } else {
+                    None
+                }
+            }
+            GetWeaponAction::SeekOrCraft { actor } => {
+                // Haxe getWeapon: GetOrCraftItem(148) / GetOrCraftItem(152) — not a log-only busy.
+                // Haxe: AiBase.getWeapon L5814–5815
+                npc_emit_seek_or_craft(
+                    intent_tx,
+                    world,
+                    content,
+                    craft_graph,
+                    st,
+                    conn_id,
+                    p,
+                    tick,
+                    actor,
+                    NpcActivityKind::Combat,
+                    "kill_animal_seek_weapon",
+                )
+            }
+        },
+        KillAnimalAction::Goto { x, y } => {
+            if npc_try_walk_to_sticky(
+                intent_tx,
+                world,
+                content,
+                st,
+                conn_id,
+                p.x,
+                p.y,
+                x,
+                y,
+                p.food,
+                0,
+                false,
+                p.moving,
+                "kill_animal_range",
+                npc_client_move_seq(p.done_moving_seq),
+            ) {
+                st.did_not_reach_animal_target = 0;
+                Some((NpcActivityKind::Combat, "kill_animal_range".into(), 250))
+            } else {
+                st.did_not_reach_animal_target += 1;
+                if st.did_not_reach_animal_target >= KILL_ANIMAL_GOTO_FAIL_CLEAR {
+                    st.animal_target = None;
+                }
+                Some((NpcActivityKind::Combat, "kill_animal_range_fail".into(), 200))
+            }
+        }
+        KillAnimalAction::Use { x, y } => {
+            let _ = npc_use_at(intent_tx, conn_id, x, y, None, None);
+            st.food_goto.did_not_reach_food = 0.0;
+            Some((NpcActivityKind::Combat, "kill_animal_use".into(), 400))
+        }
+    }
+}
+
+fn closest_parent_in_tiles(
+    tiles: &[ScanTile],
+    parent: i32,
+    px: i32,
+    py: i32,
+    max_r: i32,
+) -> Option<(i32, i32)> {
+    let mut best: Option<(i32, i32, i32)> = None;
+    for t in tiles {
+        if t.parent_id != parent {
+            continue;
+        }
+        let d = (t.x - px).abs().max((t.y - py).abs());
+        if d > max_r {
+            continue;
+        }
+        match best {
+            None => best = Some((d, t.x, t.y)),
+            Some((bd, _, _)) if d < bd => best = Some((d, t.x, t.y)),
+            _ => {}
+        }
+    }
+    best.map(|(_, x, y)| (x, y))
 }
 
 fn npc_scan_try_cache(
@@ -2752,6 +5910,13 @@ fn set_sticky_arrive(
     arrive: StickyArrive,
     label: impl Into<String>,
 ) {
+    let move_from = st.sticky_move.as_ref().and_then(|s| {
+        if s.gx == gx && s.gy == gy {
+            s.move_from
+        } else {
+            None
+        }
+    });
     st.sticky_move = Some(NpcStickyMove {
         gx,
         gy,
@@ -2760,11 +5925,43 @@ fn set_sticky_arrive(
         pending_use: matches!(arrive, StickyArrive::Use),
         pending_drop: matches!(arrive, StickyArrive::Drop),
         label: label.into(),
+        move_from,
     });
 }
 
 fn clear_sticky_move(st: &mut NpcProfessionState) {
     st.sticky_move = None;
+}
+
+/// Haxe `AiBase.newBorn` — wipe reused NPC sticky state on rebirth.
+// Haxe: AiBase.newBorn L327–346
+fn npc_wipe_on_newborn(st: &mut NpcProfessionState) {
+    *st = NpcProfessionState::default();
+}
+
+/// Haxe `CancleUse` — clear useTarget/useActor/expectedUseTarget; dropIsAUse false.
+/// Does not clear dropTarget.
+// Haxe: AiBase.CancleUse L8868–8874
+fn npc_cancle_use(st: &mut NpcProfessionState) {
+    st.use_is_drop_in_container = false;
+    st.drop_is_a_use = false;
+    let Some(s) = st.sticky_move.as_mut() else {
+        return;
+    };
+    s.pending_use = false;
+    s.use_actor_parent = 0;
+    if !s.pending_drop {
+        st.sticky_move = None;
+    }
+}
+
+/// Haxe `resetTargets`: escape/food/CancleUse/trans* (not drop/remove).
+// Haxe: AiBase.resetTargets L319–325; CancleUse L8868–8873
+fn npc_reset_targets(st: &mut NpcProfessionState) {
+    st.escape_target = None;
+    st.food_goto.sticky_food = None;
+    npc_cancle_use(st);
+    st.craft_rt.item.clear_trans();
 }
 
 /// Sticky snapshot for NPC craft profession roles (multi-profession scan).
@@ -2822,18 +6019,34 @@ fn food_at(content: &ContentDb, id: i32) -> i32 {
     content.get(id).map(|d| d.food_value).unwrap_or(0)
 }
 
+/// Haxe `isEatable` food value: dummyParent then foodFromTarget then own `foodValue`.
+// Haxe: AiHelper.isEatable L605–610; SearchBestFoodHelperNew L918–920
+fn eatable_food_value_of(content: &ContentDb, id: i32) -> i32 {
+    if id == 0 {
+        return 0;
+    }
+    content.search_food_id_and_value(id).1
+}
+
 /// Haxe `canEatObj` without yum tables: foodValue, age, and stomach room.
 // Haxe: GPI.canEatObj L6264–6272
 fn npc_can_eat_held(content: &ContentDb, held_id: i32, food: f32, food_max: f32, age: f32) -> bool {
     if age < MIN_AGE_TO_EAT {
         return false;
     }
-    let fv = food_at(content, held_id);
-    if fv < 1 {
-        return false;
+    let fv = eatable_food_value_of(content, held_id);
+    can_eat_obj(fv, 0.0, food, food_max)
+}
+
+/// Haxe `isEating` → `myPlayer.self()` → `doSelf(..., clothingSlot=-1)` → `doEating`.
+/// Not a ground `USE` (that is refused while moving).
+// Haxe: AiBase.isEating L8829; GlobalPlayerInstance.self/doSelf L2693–2735
+fn npc_eat_self_intent(conn_id: u64) -> NetIntent {
+    NetIntent::Raw {
+        conn_id,
+        tag: "SELF".into(),
+        payload: self_clothing_raw_payload(-1),
     }
-    let need = (fv as f32 / 4.0).ceil();
-    food_max - food >= need
 }
 
 /// NPC-thread [`FoodSearch`]: scores a pre-scanned nearby list with the **same**
@@ -2873,7 +6086,7 @@ impl FoodSearch for NpcNearbyFoodSearch<'_> {
             };
             let uses = if def.num_uses > 0 { def.num_uses } else { 1 };
             stock_tiles.push((o.x, o.y, base, uses));
-            let fv = food_at(self.content, o.id);
+            let (food_id, fv) = self.content.search_food_id_and_value(o.id);
             if fv <= 0 {
                 continue;
             }
@@ -2883,7 +6096,7 @@ impl FoodSearch for NpcNearbyFoodSearch<'_> {
                 .unwrap_or(false);
             cands.push(SearchFoodCand {
                 parent_id: base,
-                food_id: base,
+                food_id,
                 food_value: fv,
                 tx: o.x,
                 ty: o.y,
@@ -2902,15 +6115,18 @@ impl FoodSearch for NpcNearbyFoodSearch<'_> {
             self.food_store_max,
             0,
         );
-        // AI hungry seek: seed/danger gates like SimFoodSearch(ai=true)
-        opts.ai = Some(AiFoodSearchFlags::default());
+        // Haxe: SearchBestFood hasPepperSeeds / hasOnionSeeds / countSeeds on current objects
+        opts.ai = Some(AiFoodSearchFlags::from_parent_ids(
+            stock_tiles.iter().map(|t| t.2),
+        ));
         let (idx, score) = pick_best_search_food(&cands, &opts, &stock_tiles)?;
         let cand = &cands[idx];
         let hit = to_best_hit(cand, &score, self.px, self.py);
         Some(BestFoodHit {
             x: hit.tx,
             y: hit.ty,
-            food_id: hit.food_id,
+            // Haxe foodTarget is the ground/bush object, not foodFromTarget (31).
+            food_id: cand.parent_id,
             score: hit.scored_food_value,
             is_yum: hit.scored_food_value > hit.food_value as f32,
         })
@@ -2959,6 +6175,7 @@ fn settle_npc_pending_food_action(
 ) {
     let pending = st.food_goto.pending_food_xy.take();
     let pending_container = std::mem::take(&mut st.food_goto.pending_food_container);
+    let pending_is_use = std::mem::take(&mut st.food_goto.pending_food_is_use);
     let Some((x, y)) = pending else {
         return;
     };
@@ -2971,9 +6188,9 @@ fn settle_npc_pending_food_action(
         .unwrap_or((0, 0));
     let tile_still_food =
         pending_food_tile_still_actionable(ground_fv, pending_container, tile_id);
-    if p.held_id != 0 {
-        // Async success: picked something up â€” clear sticky + reset didNotReachFood.
-        // Haxe: ~8703â€“8704 (only after done==true; Rust settles next tick)
+    if p.held_id != 0 || pending_is_use {
+        // Haxe L8703–8706: didNotReachFood=0; foodTarget=null; return true.
+        // isUse (bush) succeeds without picking up; do not 30s-mark leftover food.
         st.food_goto.did_not_reach_food = food_pickup_action_success_reset();
         st.food_goto.sticky_food = None;
         st.food_goto.last_goto = None;
@@ -3008,23 +6225,29 @@ fn resolve_npc_food_target(
     path_reach: &AiPathReachMaps,
     food_goto: &mut NpcFoodGotoState,
 ) -> Option<StickyFoodTarget> {
-    // Container sticky: ground tile is basket/etc (food_value often 0) — validate via sticky parent.
-    // Haxe: isEatableCheckAgain; container indexInContainer > -1 still often true (TODO in Haxe)
+    // Container sticky: Haxe isEatableCheckAgain returns true when indexInContainer > -1.
+    // Ground: re-fetch tile + dummyParent foodValue (`isEatable`).
+    // Haxe: AiHelper.isEatableCheckAgain L594–602
     let sticky_tile = food_goto.sticky_food.map(|s| {
-        if s.in_container() {
-            let fv = food_at(content, s.parent_id);
-            (s.parent_id, fv)
+        if food_pickup_in_container(s.index_in_container) {
+            (s.parent_id, eatable_food_value_of(content, s.parent_id))
         } else {
             let id = nearby
                 .iter()
                 .find(|o| o.x == s.x && o.y == s.y)
                 .map(|o| o.id)
                 .unwrap_or(0);
-            let fv = food_at(content, id);
+            let fv = eatable_food_value_of(content, id);
             (id, fv)
         }
     });
     let (sticky_id, sticky_fv) = sticky_tile.unwrap_or((0, 0));
+    if let Some(s) = food_goto.sticky_food {
+        if is_eatable_check_again(s.index_in_container, sticky_id, sticky_fv) {
+            food_goto.sticky_food = Some(s);
+            return Some(s);
+        }
+    }
     // MainAI + shared SearchBestFood pure scoring (same default r=40 as players).
     let search = NpcNearbyFoodSearch {
         content,
@@ -3088,18 +6311,18 @@ fn npc_run_is_picking_up_food(
     nearby: &[NearbyObj],
 ) -> Option<(NpcActivityKind, String, u32)> {
     let (is_perm, fv) = food_meta(content, food.parent_id);
-    // Container sticky: tile still eatable if parent food still has food_value;
-    // ground: tile id food_value > 0.
-    let tile_still = if food.in_container() {
-        fv > 0
+    // Haxe isEatableCheckAgain: container index > -1 always true; else re-fetch + dummyParent.
+    // Haxe: AiBase.isPickingupFood L8618–8621; AiHelper L594–614
+    let tile_still = if food_pickup_in_container(food.index_in_container) {
+        is_eatable_check_again(food.index_in_container, food.parent_id, fv)
     } else {
         let tid = nearby
             .iter()
             .find(|o| o.x == food.x && o.y == food.y)
             .map(|o| o.id)
             .unwrap_or(0);
-        let tfv = food_at(content, tid);
-        tid != 0 && tfv > 0
+        let tfv = eatable_food_value_of(content, tid);
+        is_eatable_check_again(-1, tid, tfv)
     };
     let is_holding = p.held_id > 0;
     // First plan pass assumes dropHeld would act when holding (Haxe dropHeldObject often true).
@@ -3136,6 +6359,13 @@ fn npc_run_is_picking_up_food(
         drop_extras.quiver = quiver_from_clothing_snapshot(&p.clothing, &p.clothing_uses);
         drop_extras.held_contains_clay = p.held_contains_clay;
         drop_extras.has_food_target = true;
+        drop_extras.last_target_id = st.craft_rt.item.last_target_id;
+        drop_extras.last_new_target_id = st.craft_rt.item.last_new_target_id;
+        if drop_held_clears_drop_target(max_distance_to_home) {
+            if let Some(s) = st.sticky_move.as_mut() {
+                s.pending_drop = false;
+            }
+        }
         let intent = smart_drop_held_from_sensors_ex(
             p.held_id,
             p.held_uses.max(1),
@@ -3240,6 +6470,7 @@ fn npc_run_is_picking_up_food(
                                 true,
                                 p.moving,
                                 format!("walk_food id={}", food.parent_id),
+                            npc_client_move_seq(p.done_moving_seq),
                             )
                         };
                         if walked {
@@ -3287,6 +6518,7 @@ fn npc_run_is_picking_up_food(
                             true,
                             p.moving,
                             format!("walk_food id={}", food.parent_id),
+                            npc_client_move_seq(p.done_moving_seq),
                         )
                     };
                     if walked {
@@ -3348,6 +6580,14 @@ fn npc_run_is_picking_up_food(
             drop_extras.quiver = quiver_from_clothing_snapshot(&p.clothing, &p.clothing_uses);
             drop_extras.held_contains_clay = p.held_contains_clay;
             drop_extras.has_food_target = true;
+            drop_extras.last_target_id = st.craft_rt.item.last_target_id;
+            drop_extras.last_new_target_id = st.craft_rt.item.last_new_target_id;
+            // Haxe: maxDistanceToHome < 1 → dropTarget = null
+            if drop_held_clears_drop_target(0.0) {
+                if let Some(s) = st.sticky_move.as_mut() {
+                    s.pending_drop = false;
+                }
+            }
             let intent = smart_drop_held_from_sensors_ex(
                 p.held_id,
                 p.held_uses.max(1),
@@ -3375,12 +6615,10 @@ fn npc_run_is_picking_up_food(
             ) {
                 return Some(out);
             }
-            // Can't drop â€” mark food fail 30s (can't USE/REMV with hands full)
-            mark_food_path_fail(&mut st.path_reach, food.x, food.y);
-            st.food_goto.sticky_food = None;
+            // Haxe L8671–8674: dropHeldObject(0) result ignored; always return true.
             Some((
                 NpcActivityKind::SeekFood,
-                format!("pickup_drop_fail mark30 @{},{}", food.x, food.y),
+                "pickup_drop_held_0".into(),
                 100,
             ))
         }
@@ -3388,8 +6626,11 @@ fn npc_run_is_picking_up_food(
             let payload = format!("{x} {y} {index}");
             // PlayerWriteInterface: same Raw path as human clients
             if npc_say_raw(&intent_tx, conn_id, "REMV", &payload) {
-                // Keep sticky until next-tick settle (Haxe clears only after known done).
-                // Haxe: isPickingupFood ~8694â€“8704
+                // Haxe L8703–8706 after remove() true.
+                st.food_goto.did_not_reach_food = food_pickup_action_success_reset();
+                st.food_goto.sticky_food = None;
+                st.food_goto.last_goto = None;
+                st.food_goto.last_goto_dist = -1.0;
                 st.food_goto.pending_food_xy = Some((x, y));
                 st.food_goto.pending_food_container = true;
                 return Some((
@@ -3410,10 +6651,14 @@ fn npc_run_is_picking_up_food(
         IsPickingupFoodPlan::Use { x, y } => {
             if npc_use_at(&intent_tx, conn_id, x, y, None, None)
             {
-                // Async apply; settle next tick marks 30s if still empty + tile food.
-                // Haxe: isPickingupFood ~8694â€“8704 (no optimistic clear)
+                // Haxe L8703–8706 after use() true: reset didNotReachFood + clear foodTarget.
+                st.food_goto.did_not_reach_food = food_pickup_action_success_reset();
+                st.food_goto.sticky_food = None;
+                st.food_goto.last_goto = None;
+                st.food_goto.last_goto_dist = -1.0;
                 st.food_goto.pending_food_xy = Some((x, y));
                 st.food_goto.pending_food_container = food.in_container();
+                st.food_goto.pending_food_is_use = true;
                 return Some((
                     NpcActivityKind::SeekFood,
                     format!(
@@ -3434,7 +6679,11 @@ fn npc_run_is_picking_up_food(
         IsPickingupFoodPlan::DropOnFood { x, y } => {
             // PlayerWriteInterface: same Drop command as human clients
             if npc_drop_at(&intent_tx, conn_id, x, y, None) {
-                // Keep sticky until settle confirms success/fail.
+                // Haxe L8703–8706 after drop() true.
+                st.food_goto.did_not_reach_food = food_pickup_action_success_reset();
+                st.food_goto.sticky_food = None;
+                st.food_goto.last_goto = None;
+                st.food_goto.last_goto_dist = -1.0;
                 st.food_goto.pending_food_xy = Some((x, y));
                 st.food_goto.pending_food_container = false;
                 return Some((
@@ -3491,6 +6740,7 @@ fn npc_emit_drop_or_walk(
                     p.food,
                     st.food_goto.did_not_reach_food,
                     st.animal_path,
+                    npc_client_move_seq(p.done_moving_seq),
                 )
             } {
                 return Some((
@@ -3531,6 +6781,7 @@ fn npc_emit_drop_or_walk(
                     p.food,
                     st.food_goto.did_not_reach_food,
                     st.animal_path,
+                    npc_client_move_seq(p.done_moving_seq),
                 )
             } {
                 return Some((
@@ -3556,6 +6807,7 @@ fn npc_emit_drop_or_walk(
                     p.food,
                     st.food_goto.did_not_reach_food,
                     st.animal_path,
+                    npc_client_move_seq(p.done_moving_seq),
                 )
             } {
                 return Some((
@@ -3618,6 +6870,69 @@ fn npc_merged_blocked_by_ai(
     )
 }
 
+/// Own food/drop/use/remove/block claims for `RemoveBlockedByAi` during think.
+// Haxe: AiBase.RemoveBlockedByAi L260–267
+fn npc_own_block_source(p: &PlayerSnapshot, st: &NpcProfessionState) -> AiAgentBlockSource {
+    let mut sticky = p.ai_block_targets.clone();
+    if sticky.food_target.is_none() {
+        if let Some(f) = st.food_goto.sticky_food {
+            sticky.set_food(BlockTargetClaim::simple(f.x, f.y, f.parent_id));
+        } else if p.ai_sticky_food_id != 0 {
+            sticky.set_food(BlockTargetClaim::simple(
+                p.ai_sticky_food_x,
+                p.ai_sticky_food_y,
+                p.ai_sticky_food_id,
+            ));
+        }
+    }
+    if sticky.use_target.is_none() {
+        if let Some(s) = st.sticky_move.as_ref() {
+            if s.pending_use {
+                sticky.set_use(BlockTargetClaim::simple(
+                    s.gx,
+                    s.gy,
+                    s.expected_parent_id.max(1),
+                ));
+            }
+        }
+    }
+    if sticky.drop_target.is_none() {
+        if let Some(s) = st.sticky_move.as_ref() {
+            if s.pending_drop {
+                sticky.set_drop(BlockTargetClaim::simple(
+                    s.gx,
+                    s.gy,
+                    s.expected_parent_id.max(1),
+                ));
+            }
+        }
+    }
+    if sticky.remove_from_container_target.is_none() {
+        if let Some(r) = st.remove_from_container.as_ref() {
+            sticky.set_remove_from_container(BlockTargetClaim::simple(
+                r.tx,
+                r.ty,
+                r.expected_parent.max(1),
+            ));
+        }
+    }
+    sticky.to_agent_block_source(p.age, false, false, sticky.player_block_sim_time)
+}
+
+/// Live `blockedByAI` for this AI's think: peers stay, own claims are unclaimed.
+// Haxe: AiBase.RunAi L199 RemoveBlockedByAi then doTimeStuff
+fn npc_blocked_by_ai_for_think(
+    share: &BlockedByAiShare,
+    craft_progress: &HashMap<u64, ((i32, i32), i32)>,
+    self_conn: u64,
+    p: &PlayerSnapshot,
+    st: &NpcProfessionState,
+) -> HashMap<(i32, i32), f32> {
+    let mut merged = npc_merged_blocked_by_ai(share, craft_progress, self_conn);
+    remove_agent_blocked_by_ai(&mut merged, &npc_own_block_source(p, st));
+    merged
+}
+
 fn log_ev(
     log: &NpcActivityLog,
     conn_id: u64,
@@ -3627,6 +6942,23 @@ fn log_ev(
     game_ms: u32,
     detail: impl Into<String>,
 ) {
+    let detail = detail.into();
+    // Haxe DebugAi is off: in-flight MOVE / infant wait flood the log and stall sim ticks.
+    if kind == NpcActivityKind::Move
+        && (detail.starts_with("walk_use") || detail.starts_with("walk_target"))
+    {
+        return;
+    }
+    if kind == NpcActivityKind::Baby
+        && (detail.starts_with("baby_wait") || detail.starts_with("baby_hungry"))
+    {
+        return;
+    }
+    if matches!(kind, NpcActivityKind::Stuck | NpcActivityKind::StuckCycle)
+        && detail.contains("baby_wait")
+    {
+        return;
+    }
     log.push(NpcActivityEvent {
         wall_unix_ms: 0,
         conn_id,
@@ -3639,7 +6971,7 @@ fn log_ev(
         x: p.x,
         y: p.y,
         held_id: p.held_id,
-        detail: detail.into(),
+        detail,
     });
 }
 
@@ -3700,6 +7032,41 @@ pub fn npc_slot_should_rebirth(view_alive: bool, living: u32, current_max: u32) 
     !view_alive && living < current_max.max(1)
 }
 
+/// Haxe `Server.main` loads players (each with `new ServerAi`) **before** `DoTimeLoop`.
+/// Skip Eve LOGIN until the sim has published at least one tick of that roster.
+// Haxe: Server.main L76 `loaded $aiCount Ais` then L81 TimeHelper.DoTimeLoop
+pub fn npc_scheduler_sim_ready(sim_tick: u64) -> bool {
+    sim_tick > 0
+}
+
+/// Slot index for `NPC_CONN_BASE + i` logins (`i` is ServerAi.number, tens).
+/// Loaded PLB1 bodies are `LOADED_PLAYER_CONN_BASE + p_id` (~11e6) and must
+/// not look like a slot — that conn minus `NPC_CONN_BASE` is millions.
+// Haxe: ServerAi.number vs GlobalPlayerInstance.ReadPlayers L573–577
+pub fn npc_slot_index(conn_id: u64) -> Option<u32> {
+    let d = conn_id.checked_sub(NPC_CONN_BASE)?;
+    // NumberOfAis is 40; 10_000 leaves room without matching loaded p_id conns.
+    if d >= 10_000 {
+        return None;
+    }
+    u32::try_from(d).ok()
+}
+
+/// Haxe `Connection.getAis()` living: loaded `ServerAi`, NPC slots, takeover.
+// Haxe: GlobalPlayerInstance.ReadPlayers L577 `connection.serverAi = new ServerAi(obj)`
+pub fn npc_counts_as_living_ai(
+    deleted: bool,
+    ai_controlled: bool,
+    is_ai: bool,
+    conn_id: u64,
+) -> bool {
+    !deleted && (ai_controlled || is_ai || conn_id >= NPC_CONN_BASE)
+}
+
+fn npc_view_is_living_ai(p: &PlayerSnapshot) -> bool {
+    npc_counts_as_living_ai(p.deleted, p.ai_controlled, p.is_ai, p.conn_id)
+}
+
 /// Retry delay after a rebirth LOGIN if the view is still empty (not `f32::MAX`).
 pub const NPC_REBIRTH_RETRY_SECS: f32 = 2.0;
 
@@ -3707,12 +7074,39 @@ fn count_living_npcs(player_views: &Arc<RwLock<HashMap<u64, PlayerSnapshot>>>) -
     player_views
         .read()
         .ok()
+        .map(|g| g.values().filter(|p| npc_view_is_living_ai(p)).count() as u32)
+        .unwrap_or(0)
+}
+
+/// Full `doTimeStuff` conn ids: living ServerAi bodies + in-flight NPC slots +
+/// previously alive slots (death / rebirth). Haxe iterates `Connection.getAis()`.
+// Haxe: AiBase.RunAi L191 `for (ai in Connection.getAis())`
+fn npc_think_conn_ids(
+    player_views: &Arc<RwLock<HashMap<u64, PlayerSnapshot>>>,
+    active: u32,
+    stuck_map: &HashMap<u64, NpcStuckTracker>,
+) -> Vec<u64> {
+    let mut ids: Vec<u64> = player_views
+        .read()
+        .ok()
         .map(|g| {
             g.values()
-                .filter(|p| p.conn_id >= NPC_CONN_BASE && !p.deleted)
-                .count() as u32
+                .filter(|p| npc_view_is_living_ai(p))
+                .map(|p| p.conn_id)
+                .collect()
         })
-        .unwrap_or(0)
+        .unwrap_or_default();
+    for i in 0..active {
+        ids.push(NPC_CONN_BASE + i as u64);
+    }
+    for (&cid, t) in stuck_map {
+        if t.ever_alive {
+            ids.push(cid);
+        }
+    }
+    ids.sort_unstable();
+    ids.dedup();
+    ids
 }
 
 /// wake as the sim `live_share` write (CONFIG-SETTINGS; no 2 s lag).
@@ -3826,14 +7220,18 @@ pub async fn run_npc_scheduler(
 
         let living = count_living_npcs(&player_views);
         // Haxe: tick % 20 != 0 && aiCount < currentMaxAIs && (lastSkiped < Max || count < Min)
-        if should_spawn_new_ai(
-            tick,
-            living,
-            current_max_ais,
-            min,
-            last_skipped_ticks,
-            MAX_AI_SKIPPED_TICKS_BEFORE_REDUCING,
-        ) && active < current_max_ais
+        // Do not LOGIN extra Eves before PLB1 ServerAi bodies are in player_views.
+        // Haxe: Server.main L76 loaded Ais then L81 DoTimeLoop
+        if npc_scheduler_sim_ready(sim_tick)
+            && should_spawn_new_ai(
+                tick,
+                living,
+                current_max_ais,
+                min,
+                last_skipped_ticks,
+                MAX_AI_SKIPPED_TICKS_BEFORE_REDUCING,
+            )
+            && active < current_max_ais
         {
             let conn_id = NPC_CONN_BASE + active as u64;
             let email = format!("{}@local", labels[active as usize % labels.len()]);
@@ -3850,14 +7248,19 @@ pub async fn run_npc_scheduler(
             active += 1;
         }
 
-        // AI-TAKEOVER: drive disconnected human bodies with thin eat/explore AI.
-        // Haxe: ServerAi.doTimeStuff on Connection.ais (human-replacement AIs).
+        // Full think list = Haxe Connection.getAis() (loaded ServerAi + NPC slots).
+        // Thin takeover only for ai_controlled bodies not already on that list.
+        // Haxe: AiBase.RunAi L191 for (ai in Connection.getAis()) doTimeStuff
+        let think_conns = npc_think_conn_ids(&player_views, active, &stuck_map);
+        let think_set: HashSet<u64> = think_conns.iter().copied().collect();
         {
             let takeover: Vec<u64> = {
                 let views = player_views.read().unwrap();
                 let mut ids: Vec<u64> = views
                     .values()
-                    .filter(|o| o.ai_controlled && !o.deleted)
+                    .filter(|o| {
+                        o.ai_controlled && !o.deleted && !think_set.contains(&o.conn_id)
+                    })
                     .map(|o| o.conn_id)
                     .collect();
                 ids.sort_unstable();
@@ -3877,18 +7280,22 @@ pub async fn run_npc_scheduler(
                 }
                 let hungry = {
                     let st = profession_state.entry(conn_id).or_default();
-                    let h = update_is_hungry(st.was_hungry, p.food, p.food_max, p.held_id);
-                    st.was_hungry = h;
-                    h
+                    let e = check_is_hungry_and_eat_effects(
+                        st.was_hungry,
+                        p.food,
+                        p.food_max,
+                        p.held_id,
+                        p.age,
+                        st.food_goto.sticky_food.is_some(),
+                    );
+                    st.was_hungry = e.is_hungry;
+                    if e.clear_caring_for_fire {
+                        st.is_caring_for_fire = false;
+                    }
+                    e.is_hungry
                 };
                 if hungry && p.held_id != 0 && food_at(&content, p.held_id) > 0 {
-                    let _ = intent_tx.try_send(NetIntent::Use {
-                        conn_id,
-                        x: p.x,
-                        y: p.y,
-                        id: None,
-                        index: None,
-                    });
+                    let _ = intent_tx.try_send(npc_eat_self_intent(conn_id));
                     continue;
                 }
                 let nearby = {
@@ -3905,21 +7312,28 @@ pub async fn run_npc_scheduler(
                     st.animal_path = Some(npc_animal_path_ctx(content.as_ref(), &p));
                 }
                 let mut did_food = false;
-                if hungry {
-                    // AI-PICKUP-FOOD: full isPickingupFood SM (same as NPC SeekFood)
-                    // Haxe: isPickingupFood drop held / USE / DROP / REMV
+                {
+                    // Haxe isPickingupFood L8611: sticky foodTarget even if not hungry.
                     let st = profession_state.entry(conn_id).or_default();
                     settle_npc_pending_food_action(&content, &nearby, &p, st);
-                    if let Some(food) = resolve_npc_food_target(
-                        &content,
-                        &nearby,
-                        p.x,
-                        p.y,
-                        p.food,
-                        p.food_max,
-                        &st.path_reach,
-                        &mut st.food_goto,
-                    ) {
+                    let had_food_target = st.food_goto.sticky_food.is_some();
+                    let food = if had_food_target {
+                        st.food_goto.sticky_food
+                    } else if hungry {
+                        resolve_npc_food_target(
+                            &content,
+                            &nearby,
+                            p.x,
+                            p.y,
+                            p.food,
+                            p.food_max,
+                            &st.path_reach,
+                            &mut st.food_goto,
+                        )
+                    } else {
+                        None
+                    };
+                    if let Some(food) = food {
                         let _ = npc_run_is_picking_up_food(
                             &content,
                             &world,
@@ -3968,7 +7382,7 @@ pub async fn run_npc_scheduler(
                             xs: p.x,
                             ys: p.y,
                             deltas: vec![(dx, dy)],
-                            seq: None,
+                            seq: Some(npc_client_move_seq(p.done_moving_seq)),
                         });
                     }
                 }
@@ -3982,14 +7396,16 @@ pub async fn run_npc_scheduler(
             }
         }
 
-        for i in 0..active {
-            let conn_id = NPC_CONN_BASE + i as u64;
+        for (think_idx, conn_id) in think_conns.into_iter().enumerate() {
+            let i = npc_slot_index(conn_id).unwrap_or(think_idx as u32);
             // Ensure prestige class for reaction timing (Forager=Serf, Farmer=Commoner, Hunter=Noble).
             {
                 let st = profession_state.entry(conn_id).or_default();
                 // Re-assert role class if still default Commoner and never assigned.
                 if !st.class_assigned {
-                    st.prestige_class = prestige_class_for_npc_index(i);
+                    if npc_slot_index(conn_id).is_some() {
+                        st.prestige_class = prestige_class_for_npc_index(i);
+                    }
                     st.class_assigned = true;
                 }
             }
@@ -4038,6 +7454,12 @@ pub async fn run_npc_scheduler(
                 if tracker.rebirth_wait_sec > 0.0 {
                     continue;
                 }
+                if npc_slot_index(conn_id).is_none() {
+                    // Loaded ServerAi: Haxe doRebirth on same Connection. Cap refill
+                    // is createNewServerAiWithNewPlayer when living < currentMax.
+                    tracker.ever_alive = false;
+                    continue;
+                }
                 if !npc_slot_should_rebirth(false, living, current_max_ais) {
                     tracker.rebirth_wait_sec = NPC_REBIRTH_RETRY_SECS;
                     continue;
@@ -4054,23 +7476,48 @@ pub async fn run_npc_scheduler(
                 });
                 info!(conn_id, living, current_max_ais, "npc: rebirth login");
                 if let Some(st) = profession_state.get_mut(&conn_id) {
-                    clear_sticky_move(st);
-                    st.think_time_sec = 0.0;
-                    st.class_assigned = false;
-                    st.last_think_xy = None;
+                    // Haxe: ServerAi.doRebirth → ai.newBorn() L327–351
+                    npc_wipe_on_newborn(st);
                 }
                 continue;
             }
-            let p = snap.expect("alive NPC has a view");
+            let mut p = snap.expect("alive NPC has a view");
             tracker.was_deleted = false;
             tracker.ever_alive = true;
             tracker.rebirth_wait_sec = 0.0;
             tracker.note_position(p.x, p.y);
 
-            // Haxe: AiBase.time -= timePassedInSeconds; if (time > 0) return
+            // Haxe: AiBase.doTimeStuff L393–409 — movedOneTile escape BEFORE time>0 wait
+            let moved_one_tile = {
+                let st = profession_state.entry(conn_id).or_default();
+                let moved = st
+                    .last_think_xy
+                    .map(|(x, y)| x != p.x || y != p.y)
+                    .unwrap_or(true);
+                st.last_think_xy = Some((p.x, p.y));
+                moved
+            };
             {
                 let st = profession_state.entry(conn_id).or_default();
                 st.think_time_sec -= SCHED_DT_SEC;
+                if should_escape_on_moved_one_tile(
+                    moved_one_tile,
+                    st.food_goto.did_not_reach_food,
+                ) {
+                    if let Some((k, d, ms)) = npc_try_escape_now(
+                        &intent_tx,
+                        world.as_ref(),
+                        content.as_ref(),
+                        animals.as_ref(),
+                        player_views.as_ref(),
+                        st,
+                        conn_id,
+                        &p,
+                    ) {
+                        log_ev(&activity, conn_id, &p, k, ms, 0, d);
+                        continue;
+                    }
+                }
                 if st.think_time_sec > 1.0 {
                     st.think_time_sec = 1.0;
                 }
@@ -4088,35 +7535,59 @@ pub async fn run_npc_scheduler(
                 st.scan_hits = 0;
             }
 
-            // Haxe: time += reactionTime (class-based Serf/Commoner/Noble)
+            // Haxe: time += reactionTime; isAngryOrTerrified * AiReactionTimeFactorIfAngry
+            // Haxe: AiBase.doTimeStuffHelper L418–424
             {
                 let st = profession_state.entry(conn_id).or_default();
-                let angry = false; // residual: isAngryOrTerrified
-                st.think_time_sec += cfg.reaction_for_class(st.prestige_class, angry);
+                let angry = is_angry_or_terrified(p.angry_time);
+                let reaction = cfg.reaction_for_class(st.prestige_class, angry);
+                st.think_time_sec += reaction;
+                st.was_idle = decay_was_idle(st.was_idle, reaction);
+                // Haxe TimeHelper.tick — same tick as MoveHelper.newMoves.
+                st.now_tick = sim_tick;
+                p.moving = npc_haxe_is_moving(p.moving, st.move_sent_tick, sim_tick);
             }
 
-            // Haxe checkIsHungryAndEat hysteresis: enter at max(3, 30% max), leave at 80%.
-            // Haxe: AiBase.checkIsHungryAndEat L8841–8856
+            // Haxe checkIsHungryAndEat hysteresis + baby F + fire-care wipe.
+            // Haxe: AiBase.checkIsHungryAndEat L8841–8866
             let hungry = {
                 let st = profession_state.entry(conn_id).or_default();
-                let h = update_is_hungry(st.was_hungry, p.food, p.food_max, p.held_id);
-                st.was_hungry = h;
-                h
+                let e = check_is_hungry_and_eat_effects(
+                    st.was_hungry,
+                    p.food,
+                    p.food_max,
+                    p.held_id,
+                    p.age,
+                    st.food_goto.sticky_food.is_some(),
+                );
+                st.was_hungry = e.is_hungry;
+                if e.clear_caring_for_fire {
+                    st.is_caring_for_fire = false;
+                }
+                if p.ai_debug_say && e.is_hungry {
+                    let _ = npc_say_raw(
+                        &intent_tx,
+                        conn_id,
+                        "SAY",
+                        &format!("F {}", p.food.round()),
+                    );
+                }
+                if e.baby_say_f {
+                    let _ = npc_say_raw(&intent_tx, conn_id, "SAY", "F");
+                }
+                e.is_hungry
             };
             let starving = p.food < -1.0;
+            let has_living_mother = p.held_by > 0
+                || (p.ai_follow_p_id > 0
+                    && player_views.read().ok().is_some_and(|g| {
+                        g.values()
+                            .any(|o| o.p_id == p.ai_follow_p_id && !o.deleted)
+                    }));
 
             // Haxe: if (movedOneTileTmp == false && isMoving()) return
             // Replan after each arrived tile (feeding / eat / escape can retarget a long craft walk).
             // Haxe: AiBase.doTimeStuffHelper L428
-            let moved_one_tile = {
-                let st = profession_state.entry(conn_id).or_default();
-                let moved = st
-                    .last_think_xy
-                    .map(|(x, y)| x != p.x || y != p.y)
-                    .unwrap_or(true);
-                st.last_think_xy = Some((p.x, p.y));
-                moved
-            };
             if p.moving {
                 let (still_valid, pending_use, pending_drop, sticky_label) = {
                     let st = profession_state.entry(conn_id).or_default();
@@ -4129,8 +7600,9 @@ pub async fn run_npc_scheduler(
                         }
                     }
                 };
-                let arrive = StickyArrive::from_flags(pending_use, pending_drop);
-                if npc_hold_sticky_path_think(true, moved_one_tile, still_valid, arrive) {
+                // Haxe L428: skip the whole think only mid-tile. After a committed
+                // tile, hunger/escape/baby run (checkIsHungryAndEat before isUsingItem).
+                if haxe_skip_mid_path_think(true, moved_one_tile) {
                     let detail = if pending_use || pending_drop {
                         format!("walk_use {sticky_label}")
                     } else if sticky_label.is_empty() {
@@ -4163,106 +7635,93 @@ pub async fn run_npc_scheduler(
                         format!("sticky_invalid interrupt was={sticky_label}"),
                     );
                 }
+            } else if npc_hungry_infant_skips_craft(p.age, hungry, has_living_mother) {
+                // Haxe L523: hungry infant returns before craftItem — they never
+                // keep a dropTarget/useTarget. Clear leftover craft sticky.
+                if let Some(st) = profession_state.get_mut(&conn_id) {
+                    clear_sticky_move(st);
+                }
             } else {
-                // Path finished: Haxe isUsingItem / isDropingItem — act instead of replanning.
+                // Path finished / between hops.
+                // Haxe: isDropingItem always; close isUsingItem (quad < 25) before feeding.
+                // Far isUsingItem waits until after isFeedingChild / isEating.
+                // Haxe: AiBase.doTimeStuffHelper L497 / L500–510 / L574
                 let pending = profession_state
                     .get(&conn_id)
                     .and_then(|st| st.sticky_move.clone());
-                let mut finished_use = false;
                 if let Some(sticky) = pending {
                     let arrive = StickyArrive::from_flags(sticky.pending_use, sticky.pending_drop);
-                    if arrive != StickyArrive::None {
+                    let valid = {
                         let w = world.read().unwrap();
-                        if sticky_move_still_valid(&w, &content, &sticky) {
-                            let held_ok = sticky.use_actor_parent == 0
-                                || sticky_parent_id(&content, p.held_id) == sticky.use_actor_parent
-                                || arrive == StickyArrive::Drop;
-                            if held_ok && npc_is_close_action(p.x, p.y, sticky.gx, sticky.gy) {
-                                let applied = match arrive {
-                                    StickyArrive::Drop => npc_drop_at(
-                                        &intent_tx,
-                                        conn_id,
-                                        sticky.gx,
-                                        sticky.gy,
-                                        None,
-                                    ),
-                                    _ => npc_use_at(
-                                        &intent_tx,
-                                        conn_id,
-                                        sticky.gx,
-                                        sticky.gy,
-                                        None,
-                                        None,
-                                    ),
-                                };
-                                if applied {
-                                    if let Some(st) = profession_state.get_mut(&conn_id) {
-                                        clear_sticky_move(st);
-                                    }
-                                    let tag = if arrive == StickyArrive::Drop {
-                                        "drop_held_arrive"
-                                    } else {
-                                        "use_held_arrive"
-                                    };
-                                    log_ev(
-                                        &activity,
-                                        conn_id,
-                                        &p,
-                                        NpcActivityKind::Craft,
-                                        500,
-                                        0,
-                                        format!("{tag} @{},{}", sticky.gx, sticky.gy),
-                                    );
-                                    finished_use = true;
-                                }
-                            } else if held_ok && !npc_is_close_action(p.x, p.y, sticky.gx, sticky.gy)
-                            {
-                                let walked = {
-                                    let st = profession_state.entry(conn_id).or_default();
-                                    npc_try_walk_to_arrive(
-                                        &intent_tx,
-                                        &w,
-                                        &content,
-                                        st,
-                                        conn_id,
-                                        p.x,
-                                        p.y,
-                                        sticky.gx,
-                                        sticky.gy,
-                                        p.food,
-                                        sticky.expected_parent_id,
-                                        sticky.use_actor_parent,
-                                        arrive,
-                                        false,
-                                        sticky.label.clone(),
-                                    )
-                                };
-                                if walked {
-                                    let tag = if arrive == StickyArrive::Drop {
-                                        "drop_held_walk"
-                                    } else {
-                                        "use_held_walk"
-                                    };
-                                    log_ev(
-                                        &activity,
-                                        conn_id,
-                                        &p,
-                                        NpcActivityKind::Craft,
-                                        250,
-                                        0,
-                                        format!("{tag} @{},{}", sticky.gx, sticky.gy),
-                                    );
-                                    finished_use = true;
-                                }
-                            }
+                        sticky_move_still_valid(&w, &content, &sticky)
+                    };
+                    if !valid || arrive == StickyArrive::None {
+                        if let Some(st) = profession_state.get_mut(&conn_id) {
+                            clear_sticky_move(st);
+                        }
+                    } else if arrive == StickyArrive::Drop {
+                        // Haxe isDropingItem L8351–8463 (always before feeding).
+                        let applied = {
+                            let w = world.read().unwrap();
+                            let st = profession_state.entry(conn_id).or_default();
+                            npc_apply_dropping_item(
+                                &intent_tx,
+                                &w,
+                                &content,
+                                st,
+                                conn_id,
+                                p.x,
+                                p.y,
+                                p.food,
+                                false,
+                                p.held_id,
+                                p.holding_player_id,
+                                hungry,
+                                p.ai_follow_p_id != 0,
+                                &sticky,
+                                npc_client_move_seq(p.done_moving_seq),
+                            )
+                        };
+                        if let Some((k, d, ms)) = applied {
+                            log_ev(&activity, conn_id, &p, k, ms, 0, d);
+                            continue;
+                        }
+                        // None: ConvertToUse far (keep use sticky) or dropHeld miss (keep drop).
+                    } else if npc_sticky_early_return(arrive, p.x, p.y, sticky.gx, sticky.gy)
+                    {
+                        let applied = {
+                            let w = world.read().unwrap();
+                            let st = profession_state.entry(conn_id).or_default();
+                            npc_apply_sticky_arrive(
+                                &intent_tx,
+                                &w,
+                                &content,
+                                st,
+                                conn_id,
+                                p.x,
+                                p.y,
+                                p.food,
+                                false,
+                                p.held_id,
+                                p.holding_player_id,
+                                &sticky,
+                                npc_client_move_seq(p.done_moving_seq),
+                                p.held_uses,
+                                p.home_x,
+                                p.home_y,
+                                p.age,
+                            )
+                        };
+                        if let Some((k, d, ms)) = applied {
+                            log_ev(&activity, conn_id, &p, k, ms, 0, d);
+                            continue;
+                        }
+                        // Haxe isDropingItem goto fail → dropTarget = null
+                        if let Some(st) = profession_state.get_mut(&conn_id) {
+                            clear_sticky_move(st);
                         }
                     }
-                }
-                if finished_use {
-                    continue;
-                }
-                if let Some(st) = profession_state.get_mut(&conn_id) {
-                    clear_sticky_move(st);
+                    // Far Use: keep sticky; isFeedingChild / isEating run next.
                 }
             }
 
@@ -4305,6 +7764,29 @@ pub async fn run_npc_scheduler(
             let mut kind = NpcActivityKind::Think;
             let mut game_ms = 200u32;
 
+            // Haxe: countSeeds L440 then cleanUpProfessions L454
+            {
+                let st = profession_state.entry(conn_id).or_default();
+                let w = world.read().unwrap();
+                let tiles = npc_scan_cached(st, &w, content.as_ref(), p.x, p.y, 60);
+                let flags = count_seeds_from_scan(&tiles);
+                st.has_corn_seeds = flags.has_corn_seeds;
+                st.has_carrot_seeds = flags.has_carrot_seeds;
+                st.has_pepper_seeds = has_pepper_seeds_from_scan(&tiles);
+                st.has_onion_seeds = has_onion_seeds_from_scan(&tiles);
+                if flags.early_return {
+                    continue;
+                }
+                npc_clean_up_professions(st, &p);
+            }
+            // Haxe: AutoFollowAi && isHuman → time=0.2 isMovingToPlayer(2,false) L460–464
+            if auto_follow_ai_human_early_return(false, !p.is_ai && p.connected && !p.ai_controlled)
+            {
+                let st = profession_state.entry(conn_id).or_default();
+                st.think_time_sec = 0.2;
+                continue;
+            }
+
             // Haxe: getHeldByPlayer() != null → return (carried baby does not think)
             // Haxe: AiBase.doTimeStuffHelper L472–475
             if p.held_by > 0 {
@@ -4312,65 +7794,132 @@ pub async fn run_npc_scheduler(
             }
 
             // --- 0. Escape deadly animal/player (AI-PRIO-LIVE) ---
-            // Haxe: doTimeStuffHelper GetCloseDeadly* + escape before hungry
+            // Haxe: doTimeStuffHelper GetCloseDeadly* + escape before hungry L486–492
             if !acted {
-                let nearby_food = nearby.iter().any(|o| food_at(&content, o.id) > 0);
-                let animals_g = animals.read().ok();
-                let views_g = player_views.read().ok();
-                if let Some(views) = views_g.as_ref() {
-                    let st = profession_state.entry(conn_id).or_default();
-                    let input = npc_fill_live_sensor_input(
-                        &p,
-                        content.as_ref(),
-                        views,
-                        animals_g.as_deref(),
-                        st,
-                        nearby_food,
-                    );
-                    let bundle = fill_live_sensors(&input);
-                    st.was_hungry = bundle.is_hungry;
-                    if bundle.escape_threat != EscapeThreat::None {
-                        let (tx, ty) = match bundle.escape_threat {
-                            EscapeThreat::Animal => input
-                                .deadly_animal
-                                .map(|(x, y, _)| escape_target_xy(p.x, p.y, x, y, ESCAPE_DIST))
-                                .unwrap_or((p.x + ESCAPE_DIST, p.y)),
-                            EscapeThreat::Player => input
-                                .deadly_player
-                                .map(|(x, y, _, _)| {
-                                    escape_target_xy(p.x, p.y, x, y, ESCAPE_DIST)
-                                })
-                                .unwrap_or((p.x + ESCAPE_DIST, p.y)),
-                            EscapeThreat::None => (p.x, p.y),
-                        };
-                        let walked = {
-                            let w = world.read().unwrap();
-                            npc_try_walk_to(
-                                &intent_tx,
-                                &w,
-                                &content,
-                                conn_id,
-                                p.x,
-                                p.y,
-                                tx,
-                                ty,
-                                p.food,
-                                st.food_goto.did_not_reach_food,
-                                st.animal_path,
-                            )
-                        };
-                        if walked {
-                            kind = NpcActivityKind::Combat;
-                            detail = format!("escape_{:?} @{},{}", bundle.escape_threat, tx, ty);
-                            game_ms = 250;
-                            acted = true;
-                        }
-                    }
+                let st = profession_state.entry(conn_id).or_default();
+                if let Some((k, d, ms)) = npc_try_escape_now(
+                    &intent_tx,
+                    world.as_ref(),
+                    content.as_ref(),
+                    animals.as_ref(),
+                    player_views.as_ref(),
+                    st,
+                    conn_id,
+                    &p,
+                ) {
+                    kind = k;
+                    detail = d;
+                    game_ms = ms;
+                    acted = true;
                 }
             }
 
-            // --- 0b. handleDeath (age ≥ MaxAge−2) before eat ---
-            // Haxe: deadlyPlayer == null && handleDeath() ~554
+            // Haxe L514–518: deadlyPlayer==null && waitingTime>1 skip
+            if !acted {
+                let deadly_player = {
+                    let views = player_views.read().ok();
+                    views.as_ref().and_then(|vs| {
+                        let cands = npc_deadly_player_candidates(&p, vs, content.as_ref());
+                        get_close_deadly_player(
+                            p.x,
+                            p.y,
+                            p.angry_time,
+                            p.home_x,
+                            p.home_y,
+                            DEADLY_PLAYER_SEARCH_DIST_AI,
+                            &cands,
+                        )
+                    })
+                };
+                let st = profession_state.entry(conn_id).or_default();
+                if waiting_time_blocks_think(deadly_player.is_some(), st.waiting_time) {
+                    let (add, w) = tick_waiting_time(st.waiting_time);
+                    st.think_time_sec += add;
+                    st.waiting_time = w;
+                    kind = NpcActivityKind::Think;
+                    detail = "waiting_time".into();
+                    game_ms = 1000;
+                    acted = true;
+                }
+            }
+
+            // --- 0d. Hungry infant / isChildAndHasMother stay with mother ---
+            // Haxe: doTimeStuffHelper L523–548 before handleDeath / isEating
+            if !acted {
+                let views_g = player_views.read().ok();
+                if let Some(views) = views_g.as_ref() {
+                    let w = world.read().unwrap();
+                    let st = profession_state.entry(conn_id).or_default();
+                    if let Some((k, d, ms)) = npc_run_is_child_with_mother(
+                        &intent_tx,
+                        &w,
+                        content.as_ref(),
+                        conn_id,
+                        &p,
+                        st,
+                        views,
+                    ) {
+                        kind = k;
+                        detail = d;
+                        game_ms = ms;
+                        acted = true;
+                    }
+                }
+            }
+            // Haxe L523–532: `age < MinAgeToEat && isHungry` always returns
+            if !acted && npc_hungry_infant_skips_craft(p.age, hungry, has_living_mother) {
+                if let Some(st) = profession_state.get_mut(&conn_id) {
+                    clear_sticky_move(st);
+                    st.think_time_sec += 2.5;
+                }
+                kind = NpcActivityKind::Baby;
+                detail = "baby_hungry_stay".into();
+                game_ms = 2500;
+                acted = true;
+            }
+            // Haxe L549–552: isWounded || hasYellowFever → isMovingToPlayer(2); return
+            if !acted {
+                let wounded = npc_is_wounded(content.as_ref(), p.held_id) && !p.is_hidden_wound;
+                if wounded || p.sick {
+                    let views_g = player_views.read().ok();
+                    if let Some(views) = views_g.as_ref() {
+                        let follow = p.ai_follow_p_id;
+                        if follow > 0 {
+                            if let Some(t) = views.values().find(|o| o.p_id == follow && !o.deleted)
+                            {
+                                let max_q = 2 * 2;
+                                let dx = t.x - p.x;
+                                let dy = t.y - p.y;
+                                if dx * dx + dy * dy >= max_q {
+                                    let w = world.read().unwrap();
+                                    let st = profession_state.entry(conn_id).or_default();
+                                    let _ = npc_try_walk_to(
+                                        &intent_tx,
+                                        &w,
+                                        content.as_ref(),
+                                        conn_id,
+                                        p.x,
+                                        p.y,
+                                        t.x,
+                                        t.y,
+                                        p.food,
+                                        st.food_goto.did_not_reach_food,
+                                        st.animal_path,
+                                        npc_client_move_seq(p.done_moving_seq),
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    kind = NpcActivityKind::Think;
+                    detail = "wounded_seek_help".into();
+                    game_ms = 250;
+                    acted = true;
+                }
+            }
+
+            // --- 0b. handleDeath (age ≥ MaxAge−2) after baby/wounded ---
+            // Haxe: deadlyPlayer == null && handleDeath() L554
             if !acted {
                 let max_age = live_share
                     .read()
@@ -4547,6 +8096,7 @@ pub async fn run_npc_scheduler(
                                                 p.food,
                                                 st.food_goto.did_not_reach_food,
                                                 st.animal_path,
+                                                npc_client_move_seq(p.done_moving_seq),
                                             ) {
                                                 kind = NpcActivityKind::Craft;
                                                 detail = format!("handle_death_grave_walk @{},{}", x, y);
@@ -4578,6 +8128,7 @@ pub async fn run_npc_scheduler(
                                             p.food,
                                             st.food_goto.did_not_reach_food,
                                             st.animal_path,
+                                            npc_client_move_seq(p.done_moving_seq),
                                         ) {
                                             kind = NpcActivityKind::Craft;
                                             detail = format!("handle_death_grave_seek @{},{}", gx, gy);
@@ -4615,6 +8166,7 @@ pub async fn run_npc_scheduler(
                                 p.food,
                                 st.food_goto.did_not_reach_food,
                                 st.animal_path,
+                                npc_client_move_seq(p.done_moving_seq),
                             ) {
                                 kind = NpcActivityKind::Think;
                                 detail = format!("handle_death_home @{},{}", gx, gy);
@@ -4649,8 +8201,424 @@ pub async fn run_npc_scheduler(
                 }
             }
 
-            // --- 0c. isRemovingFromContainer (after use/handleDeath, before eat) ---
-            // Haxe: doTimeStuffHelper isUsingItem then isRemovingFromContainer ~573–575
+            // --- 1. isEating (Haxe L8796–8838): head + conservation + self() + peel drop.
+            // USE while moving cancels path so wait to stop.
+            if !acted && !p.moving && p.held_id > 0 {
+                let st = profession_state.entry(conn_id).or_default();
+                if st.eat_pending_peel {
+                    st.eat_pending_peel = false;
+                    let fv = eatable_food_value_of(&content, p.held_id);
+                    if is_eating_drop_peel(fv) {
+                        let tiles = npc_scan_cached_rw(
+                            st,
+                            world.as_ref(),
+                            content.as_ref(),
+                            p.x,
+                            p.y,
+                            DEFAULT_FOOD_SEARCH_RADIUS,
+                        );
+                        let mut drop_extras = DropHeldSensorExtras::default();
+                        drop_extras.quiver =
+                            quiver_from_clothing_snapshot(&p.clothing, &p.clothing_uses);
+                        drop_extras.held_contains_clay = p.held_contains_clay;
+                        let intent = smart_drop_held_from_sensors_ex(
+                            p.held_id,
+                            p.held_uses.max(1),
+                            p.x,
+                            p.y,
+                            p.home_x,
+                            p.home_y,
+                            p.food,
+                            p.moving,
+                            false,
+                            EAT_PEEL_DROP_DIST,
+                            &tiles,
+                            drop_extras,
+                            Some(content.as_ref()),
+                        );
+                        if let Some(out) = npc_emit_drop_or_walk(
+                            &intent_tx,
+                            conn_id,
+                            &p,
+                            st,
+                            &world,
+                            content.as_ref(),
+                            intent,
+                            "eat_peel",
+                        ) {
+                            kind = out.0;
+                            detail = out.1;
+                            game_ms = out.2;
+                            acted = true;
+                        }
+                    }
+                }
+                if !acted {
+                    let fv = eatable_food_value_of(&content, p.held_id);
+                    let can_eat = npc_can_eat_held(
+                        &content,
+                        p.held_id,
+                        p.food,
+                        p.food_max,
+                        p.age,
+                    );
+                    let holding_yum = is_obj_yum(fv, 0.0);
+                    let num_uses = content
+                        .get(content.resolve_base_id(p.held_id))
+                        .map(|d| d.num_uses)
+                        .unwrap_or(1);
+                    let goose_close = {
+                        let w = world.read().unwrap();
+                        let tiles = npc_scan_cached(
+                            st,
+                            &w,
+                            content.as_ref(),
+                            p.home_x,
+                            p.home_y,
+                            COOKED_GOOSE_KEEP_RADIUS,
+                        );
+                        npc_count_parent_cheb(
+                            &tiles,
+                            p.home_x,
+                            p.home_y,
+                            COOKED_GOOSE_EAT,
+                            COOKED_GOOSE_KEEP_RADIUS,
+                        )
+                    };
+                    let skip = is_eating_conservation_skip(
+                        hungry,
+                        p.held_id,
+                        p.held_uses,
+                        num_uses,
+                        goose_close,
+                        st.has_onion_seeds,
+                        st.has_pepper_seeds,
+                    );
+                    if is_eating_head(p.age, MIN_AGE_TO_EAT, can_eat, hungry, holding_yum)
+                        && !skip
+                    {
+                        if st.eat_fail_held == p.held_id {
+                            st.eat_fail_held = 0;
+                        } else if intent_tx.try_send(npc_eat_self_intent(conn_id)).is_ok()
+                        {
+                            st.eat_fail_held = p.held_id;
+                            st.eat_pending_peel = true;
+                            st.food_goto.did_not_reach_food = food_pickup_action_success_reset();
+                            st.food_goto.sticky_food = None;
+                            kind = NpcActivityKind::Eat;
+                            detail = format!("eat_held={}", p.held_id);
+                            game_ms = 500;
+                            acted = true;
+                        }
+                    }
+                }
+            } else if let Some(st) = profession_state.get_mut(&conn_id) {
+                st.eat_fail_held = 0;
+            }
+
+            // --- 1a. isFeedingChild (Haxe after isEating, before pickup food) ---
+            // Haxe: AiBase.isFeedingChild L6412 — BABY pickup + hold while TimeHelper nurses
+            // Skip while isDropingItem / close isUsingItem (those return before feeding).
+            if !acted {
+                let skip_feed = {
+                    let st = profession_state.get(&conn_id);
+                    match st.and_then(|s| s.sticky_move.as_ref()) {
+                        Some(sticky) => {
+                            let arrive =
+                                StickyArrive::from_flags(sticky.pending_use, sticky.pending_drop);
+                            let valid = {
+                                let w = world.read().unwrap();
+                                sticky_move_still_valid(&w, &content, sticky)
+                            };
+                            npc_skip_feed_for_sticky(
+                                p.x, p.y, sticky.gx, sticky.gy, valid, arrive,
+                            )
+                        }
+                        None => false,
+                    }
+                };
+                if !skip_feed {
+                    let views_g = player_views.read().ok();
+                    if let Some(views) = views_g.as_ref() {
+                        let w = world.read().unwrap();
+                        let st = profession_state.entry(conn_id).or_default();
+                        if let Some((k, d, ms)) = npc_run_is_feeding_child(
+                            &intent_tx,
+                            &w,
+                            content.as_ref(),
+                            conn_id,
+                            &p,
+                            st,
+                            views,
+                        ) {
+                            kind = k;
+                            detail = d;
+                            game_ms = ms;
+                            acted = true;
+                        }
+                    }
+                }
+            }
+
+            // --- 1b. switchCloths after isFeedingChild ---
+            // Haxe: AiBase.doTimeStuffHelper L558
+            if !acted {
+                let class_u8 = {
+                    let st = profession_state.entry(conn_id).or_default();
+                    npc_prestige_class_u8(st.prestige_class)
+                };
+                if let Some((k, d, ms)) = npc_run_switch_cloths(
+                    &intent_tx,
+                    content.as_ref(),
+                    conn_id,
+                    &p,
+                    class_u8,
+                ) {
+                    kind = k;
+                    detail = d;
+                    game_ms = ms;
+                    acted = true;
+                }
+            }
+
+            // --- 1c. isConsideringMakingFood (Haxe before isPickingupFood) ---
+            // Age/hungry enter → SMITH wipe + Eating, skip near/starving/too-far-from-home,
+            // then 15s searchFoodAndEat + nested make-food body (sharpie / turkey / corn…).
+            // Haxe: AiBase.isConsideringMakingFood L8466–8598; caller L573 deadlyPlayer==null
+            if !acted && p.age >= MIN_AGE_TO_EAT {
+                let st = profession_state.entry(conn_id).or_default();
+                settle_npc_pending_food_action(&content, &nearby, &p, st);
+                let had_sticky = st.food_goto.sticky_food.is_some();
+                // Haxe L8480: if (!isHungry && foodTarget == null) return false
+                // — do not SearchBestFood when full (that pinned harvest and blocked crafts).
+                let mut food = if hungry {
+                    resolve_npc_food_target(
+                        &content,
+                        &nearby,
+                        p.x,
+                        p.y,
+                        p.food,
+                        p.food_max,
+                        &st.path_reach,
+                        &mut st.food_goto,
+                    )
+                } else if had_sticky {
+                    st.food_goto.sticky_food
+                } else {
+                    tracing::debug!(
+                        conn_id,
+                        p_id = p.p_id,
+                        "ai_craft: skip consider_food not_hungry no_target"
+                    );
+                    None
+                };
+                let has_food = food.is_some();
+                if should_wipe_smith_on_consider_food(
+                    p.age,
+                    hungry,
+                    has_food,
+                    MIN_AGE_TO_EAT,
+                ) {
+                    let last_fs =
+                        npc_last_profession_key(st, &p) == Some("FOODSERVER");
+                    apply_consider_making_food_smith_wipe(
+                        &mut st.smith_rt,
+                        p.age,
+                        hungry,
+                        has_food,
+                        MIN_AGE_TO_EAT,
+                        last_fs,
+                    );
+                    if !last_fs {
+                        st.last_profession_key = Some("Eating".into());
+                    }
+                    let food_tgt = food.as_ref().map(|f| {
+                        let dx = f.x - p.x;
+                        let dy = f.y - p.y;
+                        ((dx * dx + dy * dy) as f32, false, false)
+                    });
+                    let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+                    let home_quad = {
+                        let dx = hx - p.x;
+                        let dy = hy - p.y;
+                        (dx * dx + dy * dy) as f32
+                    };
+                    if !consider_making_food_skip_after_enter_with_home(
+                        food_tgt, p.food, home_quad,
+                    ) {
+                        let passed = time_since_ticks_in_sec(
+                            tick as f32,
+                            st.last_consider_food_tick,
+                            TIME_HELPER_TICK_TIME,
+                        );
+                        if consider_making_food_should_research(passed) {
+                            st.last_consider_food_tick = tick as f32;
+                            food = resolve_npc_food_target(
+                                &content,
+                                &nearby,
+                                p.x,
+                                p.y,
+                                p.food,
+                                p.food_max,
+                                &st.path_reach,
+                                &mut st.food_goto,
+                            );
+                            let _ = food;
+                        }
+                        let sticky_use = st
+                            .sticky_move
+                            .as_ref()
+                            .map(|s| s.pending_use)
+                            .unwrap_or(false);
+                        if sticky_use {
+                            // Haxe L8522 isUsingItem — handled by the far-use block below
+                            // if this body returns None.
+                        } else {
+                            let animal_quad = animals.read().ok().and_then(|aw| {
+                                aw.get_close_deadly_animal(p.x, p.y, DEADLY_ANIMAL_SEARCH_DIST)
+                                    .map(|d| {
+                                        let dx = d.x - p.x;
+                                        let dy = d.y - p.y;
+                                        (dx * dx + dy * dy) as f32
+                                    })
+                            });
+                            let do_stuff = consider_making_food_do_stuff(
+                                p.heat,
+                                None,
+                                animal_quad,
+                                home_quad,
+                            );
+                            if do_stuff {
+                                let views_g = player_views.read().ok();
+                                if let Some(views) = views_g.as_ref() {
+                                    let deadly = animals.read().ok().and_then(|aw| {
+                                        aw.get_close_deadly_animal(
+                                            p.x,
+                                            p.y,
+                                            DEADLY_ANIMAL_SEARCH_DIST,
+                                        )
+                                        .map(|d| (d.x, d.y, d.kind.object_id()))
+                                    });
+                                    let hunter_peers = npc_count_hunter_peers(
+                                        views, conn_id, hx, hy, content.as_ref(),
+                                    );
+                                    let w = world.read().unwrap();
+                                    if let Some((k, d, ms)) = npc_run_kill_animal(
+                                        &intent_tx,
+                                        &w,
+                                        content.as_ref(),
+                                        craft_graph.as_ref(),
+                                        st,
+                                        conn_id,
+                                        &p,
+                                        tick,
+                                        deadly,
+                                        hunter_peers,
+                                    ) {
+                                        kind = k;
+                                        detail = d;
+                                        game_ms = ms;
+                                        acted = true;
+                                    }
+                                }
+                            }
+                            if !acted {
+                                let class_u8 = npc_prestige_class_u8(st.prestige_class);
+                                let w = world.read().unwrap();
+                                if let Some((k, d, ms)) = npc_run_is_pickingup_cloths(
+                                    &intent_tx,
+                                    &w,
+                                    content.as_ref(),
+                                    st,
+                                    conn_id,
+                                    &p,
+                                    class_u8,
+                                ) {
+                                    kind = k;
+                                    detail = d;
+                                    game_ms = ms;
+                                    acted = true;
+                                }
+                            }
+                            if !acted {
+                                let is_smith =
+                                    matches!(profession, CraftProfession::Smith);
+                                if let Some((k, d, ms)) = npc_run_considering_making_food(
+                                    &intent_tx,
+                                    world.as_ref(),
+                                    content.as_ref(),
+                                    craft_graph.as_ref(),
+                                    st,
+                                    conn_id,
+                                    &p,
+                                    tick,
+                                    is_smith,
+                                ) {
+                                    kind = k;
+                                    detail = d;
+                                    game_ms = ms;
+                                    acted = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Haxe later isUsingItem (far use, after feeding / isConsideringMakingFood).
+            // Haxe: AiBase.doTimeStuffHelper L574 before isPickingupFood L576
+            if !acted {
+                let sticky = profession_state
+                    .get(&conn_id)
+                    .and_then(|st| st.sticky_move.clone());
+                if let Some(sticky) = sticky {
+                    let arrive = StickyArrive::from_flags(sticky.pending_use, sticky.pending_drop);
+                    let valid = {
+                        let w = world.read().unwrap();
+                        sticky_move_still_valid(&w, &content, &sticky)
+                    };
+                    if valid && arrive == StickyArrive::Use {
+                        if p.moving {
+                            kind = NpcActivityKind::Move;
+                            detail = format!("walk_use {}", sticky.label);
+                            game_ms = 250;
+                            acted = true;
+                        } else {
+                            let applied = {
+                                let w = world.read().unwrap();
+                                let st = profession_state.entry(conn_id).or_default();
+                                npc_apply_sticky_arrive(
+                                    &intent_tx,
+                                    &w,
+                                    &content,
+                                    st,
+                                    conn_id,
+                                    p.x,
+                                    p.y,
+                                    p.food,
+                                    false,
+                                    p.held_id,
+                                    p.holding_player_id,
+                                    &sticky,
+                                    npc_client_move_seq(p.done_moving_seq),
+                                    p.held_uses,
+                                    p.home_x,
+                                    p.home_y,
+                                    p.age,
+                                )
+                            };
+                            if let Some((k, d, ms)) = applied {
+                                kind = k;
+                                detail = d;
+                                game_ms = ms;
+                                acted = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Haxe L575: isRemovingFromContainer after far isUsingItem, before isPickingupFood
             if !acted {
                 let st = profession_state.entry(conn_id).or_default();
                 if st.remove_from_container.is_some() {
@@ -4671,181 +8639,53 @@ pub async fn run_npc_scheduler(
                 }
             }
 
-            // --- 0d. Hungry infant / isChildAndHasMother stay with mother ---
-            // Haxe: doTimeStuffHelper L523–548 before isEating / isFeedingChild
+            // --- 2. isPickingupFood (Haxe L576 unconditional; L8611 foodTarget==null → false)
+            // Sticky: run SM (isEatableCheckAgain / dropHeld / USE / DROP / REMV).
+            // No sticky + hungry: checkIsHungryAndEat searchFoodAndEat then pickup.
+            // Haxe: AiBase.isPickingupFood L8610–8700
             if !acted {
-                let views_g = player_views.read().ok();
-                if let Some(views) = views_g.as_ref() {
-                    let w = world.read().unwrap();
-                    let st = profession_state.entry(conn_id).or_default();
-                    if let Some((k, d, ms)) = npc_run_is_child_with_mother(
-                        &intent_tx,
-                        &w,
-                        content.as_ref(),
-                        conn_id,
-                        &p,
-                        st,
-                        views,
-                    ) {
-                        kind = k;
-                        detail = d;
-                        game_ms = ms;
-                        acted = true;
-                    }
-                }
-            }
-
-            // --- 1. Eat held food if hungry ---
-            // Haxe isEating: canEatObj (room + not superMeh); else dropHeldObject.
-            if !acted && hungry && p.held_id != 0 && food_at(&content, p.held_id) > 0 {
-                let st = profession_state.entry(conn_id).or_default();
-                let can_eat = npc_can_eat_held(
-                    &content,
-                    p.held_id,
-                    p.food,
-                    p.food_max,
-                    p.age,
-                );
-                // Haxe doEating refuseFood (superMeh + food>4 / no room): drop and seek better.
-                if !can_eat || st.eat_fail_held == p.held_id {
-                    st.eat_fail_held = 0;
-                    if npc_drop_at(&intent_tx, conn_id, p.x, p.y, None) {
-                        kind = NpcActivityKind::Eat;
-                        detail = format!("eat_refuse_drop held={}", p.held_id);
-                        game_ms = 400;
-                        acted = true;
-                    }
-                } else if intent_tx
-                    .try_send(NetIntent::Use {
-                        conn_id,
-                        x: p.x,
-                        y: p.y,
-                        id: None,
-                        index: None,
-                    })
-                    .is_ok()
-                {
-                    st.eat_fail_held = p.held_id;
-                    kind = NpcActivityKind::Eat;
-                    detail = format!("eat_held={}", p.held_id);
-                    game_ms = 500;
-                    acted = true;
-                }
-            } else if let Some(st) = profession_state.get_mut(&conn_id) {
-                st.eat_fail_held = 0;
-            }
-
-            // --- 1a. isFeedingChild (Haxe after isEating, before pickup food) ---
-            // Haxe: AiBase.isFeedingChild L6412 — BABY pickup + hold while TimeHelper nurses
-            if !acted {
-                let views_g = player_views.read().ok();
-                if let Some(views) = views_g.as_ref() {
-                    let w = world.read().unwrap();
-                    let st = profession_state.entry(conn_id).or_default();
-                    if let Some((k, d, ms)) = npc_run_is_feeding_child(
-                        &intent_tx,
-                        &w,
-                        content.as_ref(),
-                        conn_id,
-                        &p,
-                        st,
-                        views,
-                    ) {
-                        kind = k;
-                        detail = d;
-                        game_ms = ms;
-                        acted = true;
-                    }
-                }
-            }
-
-            // --- 1b. handleTemperature drink/craft/biome (Haxe ~1645 / ~653) ---
-            if !acted {
-                let env_winter = env_view
-                    .read()
-                    .ok()
-                    .map(|e| e.is_winter())
-                    .unwrap_or(false);
-                let w = world.read().unwrap();
-                let st = profession_state.entry(conn_id).or_default();
-                if let Some((k, d, ms)) = npc_run_handle_temperature(
-                    &intent_tx,
-                    &w,
-                    content.as_ref(),
-                    craft_graph.as_ref(),
-                    env_winter,
-                    conn_id,
-                    &p,
-                    st,
-                    tick,
-                ) {
-                    kind = k;
-                    detail = d;
-                    game_ms = ms;
-                    acted = true;
-                }
-            }
-
-            // --- 1c. isConsideringMakingFood (Haxe before isPickingupFood) ---
-            // Hungry + no nearby food → makeSharpieFood. Starving with a food
-            // target, or food within ~30 tiles, skip make and pick instead.
-            // Haxe: AiBase.isConsideringMakingFood L8466–8607
-            if !acted && hungry && p.age >= MIN_AGE_TO_EAT {
-                let st = profession_state.entry(conn_id).or_default();
-                settle_npc_pending_food_action(&content, &nearby, &p, st);
-                let food = resolve_npc_food_target(
-                    &content,
-                    &nearby,
-                    p.x,
-                    p.y,
-                    p.food,
-                    p.food_max,
-                    &st.path_reach,
-                    &mut st.food_goto,
-                );
-                let food_near = food.as_ref().map(|f| {
-                    let dx = f.x - p.x;
-                    let dy = f.y - p.y;
-                    dx * dx + dy * dy < 900
-                }).unwrap_or(false);
-                let skip_make = (starving && food.is_some()) || food_near;
-                if !skip_make {
-                    let is_smith = matches!(profession, CraftProfession::Smith);
-                    if let Some((k, d, ms)) = npc_run_considering_making_food(
-                        &intent_tx,
-                        world.as_ref(),
-                        content.as_ref(),
-                        craft_graph.as_ref(),
-                        st,
-                        conn_id,
-                        &p,
-                        tick,
-                        is_smith,
-                    ) {
-                        kind = k;
-                        detail = d;
-                        game_ms = ms;
-                        acted = true;
-                    }
-                }
-            }
-
-            // --- 2. Seek / pick food if hungry (AI-PICKUP-FOOD full isPickingupFood SM) ---
-            // Haxe: AiBase.isPickingupFood drop held / permanent USE / DROP / container REMV
-            if !acted && (hungry || starving) {
                 let st = profession_state.entry(conn_id).or_default();
                 // PATH-REACH-MERGE: maps already pulled at think start
                 settle_npc_pending_food_action(&content, &nearby, &p, st);
-                if let Some(food) = resolve_npc_food_target(
-                    &content,
-                    &nearby,
-                    p.x,
-                    p.y,
-                    p.food,
-                    p.food_max,
-                    &st.path_reach,
-                    &mut st.food_goto,
-                ) {
+                // Haxe checkIsHungryAndEat L8857: search only if hungry && foodTarget==null.
+                // Leftover foodTarget while full would keep isPickingupFood true and
+                // never reach L656 makeSharpieFood / craftItem.
+                let food = if !hungry && !starving {
+                    if st.food_goto.sticky_food.take().is_some() {
+                        tracing::debug!(
+                            conn_id,
+                            p_id = p.p_id,
+                            "ai_craft: clear foodTarget not_hungry (allow makeSharpieFood)"
+                        );
+                    }
+                    None
+                } else {
+                    let had_food_target = st.food_goto.sticky_food.is_some();
+                    if had_food_target {
+                        st.food_goto.sticky_food
+                    } else {
+                        // Haxe checkIsHungryAndEat: foodTarget == null → searchFoodAndEat
+                        let found = resolve_npc_food_target(
+                            &content,
+                            &nearby,
+                            p.x,
+                            p.y,
+                            p.food,
+                            p.food_max,
+                            &st.path_reach,
+                            &mut st.food_goto,
+                        );
+                        npc_search_food_and_eat_debug_say(
+                            &intent_tx,
+                            &content,
+                            conn_id,
+                            p.ai_debug_say,
+                            found.as_ref(),
+                        );
+                        found
+                    }
+                };
+                if let Some(food) = food {
                     if let Some((k, d, ms)) = npc_run_is_picking_up_food(
                         &content,
                         &world,
@@ -4859,7 +8699,26 @@ pub async fn run_npc_scheduler(
                         kind = k;
                         detail = d;
                         game_ms = ms;
-                        // Helper Some â‡’ Haxe isPickingupFood return true (tick consumed)
+                        // Helper Some ⇒ Haxe isPickingupFood return true (tick consumed)
+                        acted = true;
+                    }
+                }
+            }
+
+            // Haxe isUsingItem/isDropingItem after hunger: if still moving, keep path
+            // (do not replan craft / USE). Food may have already retargeted above.
+            if !acted && p.moving {
+                let st = profession_state.entry(conn_id).or_default();
+                if let Some(sticky) = st.sticky_move.clone() {
+                    let arrive = StickyArrive::from_flags(sticky.pending_use, sticky.pending_drop);
+                    let valid = {
+                        let w = world.read().unwrap();
+                        sticky_move_still_valid(&w, &content, &sticky)
+                    };
+                    if npc_skip_craft_while_sticky_moving(true, valid, arrive) {
+                        kind = NpcActivityKind::Move;
+                        detail = format!("walk_use {}", sticky.label);
+                        game_ms = 250;
                         acted = true;
                     }
                 }
@@ -4873,6 +8732,57 @@ pub async fn run_npc_scheduler(
                 });
             }
 
+            // Haxe L586: isHandlingTemperature && dist > 100 after pickup
+            if !acted {
+                let nearby_food = nearby.iter().any(|o| food_at(&content, o.id) > 0);
+                let animals_g = animals.read().ok();
+                let views_g = player_views.read().ok();
+                let threat_quad = if let Some(views) = views_g.as_ref() {
+                    let st = profession_state.entry(conn_id).or_default();
+                    let input = npc_fill_live_sensor_input_ex(
+                        &p,
+                        content.as_ref(),
+                        views,
+                        animals_g.as_deref(),
+                        st,
+                        nearby_food,
+                        &nearby,
+                    );
+                    fill_live_sensors(&input).threat_quad_dist
+                } else {
+                    10000.0
+                };
+                let handling = profession_state
+                    .get(&conn_id)
+                    .map(|s| s.handling_temperature)
+                    .unwrap_or(false);
+                if handle_temperature_after_pickup(handling, threat_quad) {
+                    let env_winter = env_view
+                        .read()
+                        .ok()
+                        .map(|e| e.is_winter())
+                        .unwrap_or(false);
+                    let w = world.read().unwrap();
+                    let st = profession_state.entry(conn_id).or_default();
+                    if let Some((k, d, ms)) = npc_run_handle_temperature(
+                        &intent_tx,
+                        &w,
+                        content.as_ref(),
+                        craft_graph.as_ref(),
+                        env_winter,
+                        conn_id,
+                        &p,
+                        st,
+                        tick,
+                    ) {
+                        kind = k;
+                        detail = d;
+                        game_ms = ms;
+                        acted = true;
+                    }
+                }
+            }
+
             // --- 1c. attackPlayer (AI-ATTACK-PLAYER) ---
             // Haxe: doStuff && attackPlayer(playerTarget) ~591 after pickup food / temp
             if !acted {
@@ -4881,13 +8791,14 @@ pub async fn run_npc_scheduler(
                 if let Some(views) = views_g.as_ref() {
                     let nearby_food = nearby.iter().any(|o| food_at(&content, o.id) > 0);
                     let st = profession_state.entry(conn_id).or_default();
-                    let input = npc_fill_live_sensor_input(
+                    let input = npc_fill_live_sensor_input_ex(
                         &p,
                         content.as_ref(),
                         views,
                         animals_g.as_deref(),
                         st,
                         nearby_food,
+                        &nearby,
                     );
                     let bundle = fill_live_sensors(&input);
                     if bundle.sensors.do_stuff && bundle.sensors.combat_target {
@@ -4903,9 +8814,11 @@ pub async fn run_npc_scheduler(
                             &intent_tx,
                             &world.read().unwrap(),
                             content.as_ref(),
+                            craft_graph.as_ref(),
                             conn_id,
                             &p,
                             st,
+                            tick,
                             views,
                             &tiles,
                         ) {
@@ -4937,6 +8850,67 @@ pub async fn run_npc_scheduler(
                         detail = d;
                         game_ms = ms;
                         acted = true;
+                    }
+                }
+            }
+
+            // --- 1e. killAnimal (Haxe doStuff && killAnimal(deadlyAnimal) L593) ---
+            if !acted {
+                let nearby_food = nearby.iter().any(|o| food_at(&content, o.id) > 0);
+                let animals_g = animals.read().ok();
+                let views_g = player_views.read().ok();
+                if let Some(views) = views_g.as_ref() {
+                    let st = profession_state.entry(conn_id).or_default();
+                    let input = npc_fill_live_sensor_input_ex(
+                        &p,
+                        content.as_ref(),
+                        views,
+                        animals_g.as_deref(),
+                        st,
+                        nearby_food,
+                        &nearby,
+                    );
+                    let bundle = fill_live_sensors(&input);
+                    if bundle.sensors.do_stuff {
+                        let deadly = animals_g.as_ref().and_then(|aw| {
+                            aw.get_close_deadly_animal(p.x, p.y, DEADLY_ANIMAL_SEARCH_DIST)
+                                .map(|d| (d.x, d.y, d.kind.object_id()))
+                        });
+                        let home_x = if p.home_x != 0 || p.home_y != 0 {
+                            p.home_x
+                        } else {
+                            p.x
+                        };
+                        let home_y = if p.home_x != 0 || p.home_y != 0 {
+                            p.home_y
+                        } else {
+                            p.y
+                        };
+                        let hunter_peers = npc_count_hunter_peers(
+                            views,
+                            conn_id,
+                            home_x,
+                            home_y,
+                            content.as_ref(),
+                        );
+                        let w = world.read().unwrap();
+                        if let Some((k, d, ms)) = npc_run_kill_animal(
+                            &intent_tx,
+                            &w,
+                            content.as_ref(),
+                            craft_graph.as_ref(),
+                            st,
+                            conn_id,
+                            &p,
+                            tick,
+                            deadly,
+                            hunter_peers,
+                        ) {
+                            kind = k;
+                            detail = d;
+                            game_ms = ms;
+                            acted = true;
+                        }
                     }
                 }
             }
@@ -4976,7 +8950,7 @@ pub async fn run_npc_scheduler(
                                             xs: p.x,
                                             ys: p.y,
                                             deltas: vec![(sdx, sdy)],
-                                            seq: None,
+                                            seq: Some(npc_client_move_seq(p.done_moving_seq)),
                                         })
                                         .is_ok()
                                     {
@@ -5000,6 +8974,98 @@ pub async fn run_npc_scheduler(
                 }
             }
 
+            // Haxe L599: if (myPlayer.isMoving()) return — skip home/jobs/craft
+            if !acted && skip_home_and_jobs_while_moving(p.moving) {
+                kind = NpcActivityKind::Think;
+                detail = "busy_moving_skip_jobs".into();
+                game_ms = 200;
+                acted = true;
+            }
+
+            // Haxe L634 isHandlingFire() before makeSharpieFood L656 (shaft 67 then Fire 82).
+            // Haxe: AiBase.doTimeStuffHelper L634; isHandlingFire L1079–1111
+            if !acted && p.age >= MIN_AGE_TO_EAT {
+                let env_winter = env_view
+                    .read()
+                    .ok()
+                    .map(|e| e.is_winter())
+                    .unwrap_or(false);
+                let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+                let is_best_home = npc_is_best_fire_keeper(
+                    &p,
+                    &player_views,
+                    &profession_state,
+                    content.as_ref(),
+                    hx,
+                    hy,
+                );
+                let is_best_fire = is_best_home;
+                let w = world.read().unwrap();
+                let st = profession_state.entry(conn_id).or_default();
+                if let Some((k, d, ms)) = npc_run_is_handling_fire_mid(
+                    &intent_tx,
+                    &w,
+                    content.as_ref(),
+                    st,
+                    conn_id,
+                    &p,
+                    env_winter,
+                    is_best_home,
+                    is_best_fire,
+                ) {
+                    tracing::info!(
+                        conn_id,
+                        p_id = p.p_id,
+                        held = p.held_id,
+                        detail = %d,
+                        "ai_craft: isHandlingFire"
+                    );
+                    kind = k;
+                    detail = d;
+                    game_ms = ms;
+                    acted = true;
+                }
+            }
+
+            // Haxe L656: makeSharpieFood(5) after isMoving return (GetOrCraft 34 / craft 39).
+            // Haxe: AiBase.doTimeStuffHelper L656; makeSharpieFood L4096–4118
+            if !acted && p.age >= MIN_AGE_TO_EAT {
+                let is_smith = matches!(profession, CraftProfession::Smith);
+                let tiles = {
+                    let st = profession_state.entry(conn_id).or_default();
+                    npc_scan_cached_rw(st, world.as_ref(), content.as_ref(), p.x, p.y, 40)
+                };
+                let st = profession_state.entry(conn_id).or_default();
+                if let Some((k, d, ms)) = npc_try_sharpie_food(
+                    &intent_tx,
+                    world.as_ref(),
+                    content.as_ref(),
+                    craft_graph.as_ref(),
+                    st,
+                    conn_id,
+                    &p,
+                    tick,
+                    is_smith,
+                    MAKE_SHARPIE_FOOD_CLOSE_CALL_DISTANCE,
+                    &tiles,
+                    npc_client_move_seq(p.done_moving_seq),
+                ) {
+                    tracing::info!(
+                        conn_id,
+                        p_id = p.p_id,
+                        held = p.held_id,
+                        x = p.x,
+                        y = p.y,
+                        detail = %d,
+                        "ai_craft: makeSharpieFood(5)"
+                    );
+                    kind = k;
+                    detail = d;
+                    game_ms = ms;
+                    acted = true;
+                }
+            }
+
             // --- 2a2. Sticky craft queue drain (AI-JOB-DEFER) ---
             // Haxe: doTimeStuffHelper ~667–680 itemToCraft continue then craftingTasks.shift
             // before clothing / assigned job. Player path: apply_sticky_craft_queue_tick.
@@ -5013,8 +9079,16 @@ pub async fn run_npc_scheduler(
                     let (home_x, home_y) =
                         peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
                     let scan_r = craft_radius.min(60).max(8);
-                    let peer_blocked_by_ai =
-                        npc_merged_blocked_by_ai(&blocked_by_ai, &craft_progress, conn_id);
+                    let peer_blocked_by_ai = {
+                        let st = profession_state.entry(conn_id).or_default();
+                        npc_blocked_by_ai_for_think(
+                            &blocked_by_ai,
+                            &craft_progress,
+                            conn_id,
+                            &p,
+                            st,
+                        )
+                    };
                     let tiles = {
                         let st = profession_state.get_mut(&conn_id).expect("npc profession entry");
                         let raw = npc_scan_cached_rw(
@@ -5076,6 +9150,7 @@ pub async fn run_npc_scheduler(
                                 &mut kind,
                                 &mut detail,
                                 &mut game_ms,
+                                npc_client_move_seq(p.done_moving_seq),
                             )
                         };
                         if committed {
@@ -5114,7 +9189,12 @@ pub async fn run_npc_scheduler(
                 let (home_stock, has_loom) = {
                     let w = world.read().unwrap();
                     (
-                        home_cloth_stock_from_world(&w, p.home_x, p.home_y, 60),
+                        home_cloth_stock_from_world(
+                            &w,
+                            p.home_x,
+                            p.home_y,
+                            HOME_CLOTH_COUNT_RADIUS,
+                        ),
                         home_has_loom_from_world(&w, p.home_x, p.home_y, HOME_LOOM_RADIUS),
                     )
                 };
@@ -5193,7 +9273,13 @@ pub async fn run_npc_scheduler(
                     rag: &rag,
                     age: p.age,
                     has_tailor,
-                    bow_old_enough: p.age >= 3.0,
+                    bow_old_enough: is_old_enough_for_bow(
+                        p.age,
+                        content
+                            .get(BOW_AND_ARROW)
+                            .map(|d| d.min_pickup_age as f32)
+                            .unwrap_or(0.0),
+                    ),
                     held_id: p.held_id,
                     quiver_can_add: quiver_can_add_from_slots(&p.clothing, &p.clothing_uses),
                     home_stock,
@@ -5225,8 +9311,16 @@ pub async fn run_npc_scheduler(
                     } else {
                         craft_radius.min(60).max(8)
                     };
-                    let peer_blocked_by_ai =
-                        npc_merged_blocked_by_ai(&blocked_by_ai, &craft_progress, conn_id);
+                    let peer_blocked_by_ai = {
+                        let st = profession_state.entry(conn_id).or_default();
+                        npc_blocked_by_ai_for_think(
+                            &blocked_by_ai,
+                            &craft_progress,
+                            conn_id,
+                            &p,
+                            st,
+                        )
+                    };
                     let tiles = {
                         let st = profession_state.get_mut(&conn_id).expect("npc profession entry");
                         let raw = npc_scan_cached_rw(
@@ -5410,6 +9504,7 @@ pub async fn run_npc_scheduler(
                             &mut kind,
                             &mut detail,
                             &mut game_ms,
+                            npc_client_move_seq(p.done_moving_seq),
                         )
                     };
                     if let Some(old) = old_max_r {
@@ -5439,12 +9534,57 @@ pub async fn run_npc_scheduler(
                             .get(&conn_id)
                             .map(|s| s.last_is_tailor)
                             .unwrap_or(false);
-                    let rung = if sticky.has_assigned_job() {
-                        PriorityRung::AssignedJob
-                    } else {
-                        PriorityRung::AgeRotatedJob
-                    };
-                    let steps = plan_profession_ladder_steps(rung, &sticky);
+                    // Merge live last/assigned from runtimes (Haxe lastProfession || assigned)
+                    {
+                        let st = profession_state.entry(conn_id).or_default();
+                        let live = ProfessionStickySnapshot::from_runtimes_ex(
+                            &st.farm_rt,
+                            &st.smith_rt,
+                            &st.baker_rt,
+                            Some(&st.shepherd_rt),
+                            Some(&st.pottery_rt),
+                            Some(&st.fire_rt),
+                            Some(&st.fire_keeper_rt),
+                            Some(&st.grave_keeper_rt),
+                            Some(&st.hunter_rt),
+                            Some(&st.lumberjack_rt),
+                            Some(&st.collector_rt),
+                            Some(&st.foodserver_rt),
+                            p.age,
+                        );
+                        if sticky.farm_assigned.is_none() {
+                            sticky.farm_assigned = live.farm_assigned;
+                        }
+                        if sticky.farm_last.is_none() {
+                            sticky.farm_last = live.farm_last;
+                        }
+                        sticky.smith_assigned |= live.smith_assigned;
+                        sticky.smith_last |= live.smith_last;
+                        sticky.baker_assigned |= live.baker_assigned;
+                        sticky.baker_last |= live.baker_last;
+                        sticky.pottery_assigned |= live.pottery_assigned;
+                        sticky.pottery_last |= live.pottery_last;
+                        sticky.shepherd_assigned |= live.shepherd_assigned;
+                        sticky.shepherd_last |= live.shepherd_last;
+                        sticky.fire_food_assigned |= live.fire_food_assigned;
+                        sticky.fire_food_last |= live.fire_food_last;
+                        sticky.fire_keeper_assigned |= live.fire_keeper_assigned;
+                        sticky.fire_keeper_last |= live.fire_keeper_last;
+                        sticky.hunter_assigned |= live.hunter_assigned;
+                        sticky.hunter_last |= live.hunter_last;
+                        sticky.lumberjack_assigned |= live.lumberjack_assigned;
+                        sticky.lumberjack_last |= live.lumberjack_last;
+                        sticky.collector_assigned |= live.collector_assigned;
+                        sticky.collector_last |= live.collector_last;
+                        sticky.foodserver_assigned |= live.foodserver_assigned;
+                        sticky.foodserver_last |= live.foodserver_last;
+                    }
+                    let rungs = npc_think_job_rungs(&sticky);
+                    let steps: Vec<_> = rungs
+                        .iter()
+                        .flat_map(|r| plan_profession_ladder_steps(*r, &sticky))
+                        .collect();
+                    let rung = rungs.first().copied().unwrap_or(PriorityRung::AgeRotatedJob);
                     let scan_r = steps
                         .iter()
                         .map(|s| match s.kind {
@@ -5454,7 +9594,7 @@ pub async fn run_npc_scheduler(
                             ProfessionScanKind::Pottery => POTTERY_SCAN_RADIUS,
                             ProfessionScanKind::Shepherd => SHEPHERD_SHORTCRAFT_RADIUS,
                             ProfessionScanKind::FireFood => FIRE_FOOD_HOME_RADIUS,
-                            ProfessionScanKind::HandlingFire => HANDLING_FIRE_COUNT_RADIUS,
+                            ProfessionScanKind::HandlingFire => HANDLING_FIRE_SCAN_RADIUS,
                             ProfessionScanKind::HandlingGraves => GRAVE_SEARCH_RADIUS,
                             ProfessionScanKind::Hunting => HUNTING_SHORTCRAFT_RADIUS,
                             ProfessionScanKind::CuttingWood => CUTTING_WOOD_SCAN_RADIUS,
@@ -5470,8 +9610,17 @@ pub async fn run_npc_scheduler(
                     profession_state.entry(conn_id).or_default();
                     // PATH-REACH: filter notReachable / hostile / live blockedByAI before picks.
                     // Haxe: cleanupBlockedObjects + isObjectNotReachable (OR blockedByAI)
-                    let peer_blocked_by_ai =
-                        npc_merged_blocked_by_ai(&blocked_by_ai, &craft_progress, conn_id);
+                    // Haxe: AiBase.RemoveBlockedByAi L199 before think
+                    let peer_blocked_by_ai = {
+                        let st = profession_state.entry(conn_id).or_default();
+                        npc_blocked_by_ai_for_think(
+                            &blocked_by_ai,
+                            &craft_progress,
+                            conn_id,
+                            &p,
+                            st,
+                        )
+                    };
                     let tiles = {
                         let st = profession_state.get_mut(&conn_id).expect("npc profession entry");
                         let raw = npc_scan_cached_rw(
@@ -5537,6 +9686,10 @@ pub async fn run_npc_scheduler(
                                     || pst
                                         .map(|s| s.fire_rt.is_last_fire_food)
                                         .unwrap_or(false),
+                                last_is_fire_keeper: snap.is_last_fire_keeper
+                                    || pst
+                                        .map(|s| s.fire_keeper_rt.is_last_fire_keeper)
+                                        .unwrap_or(false),
                                 last_is_hunter: snap.is_last_hunter
                                     || pst.map(|s| s.hunter_rt.is_last_hunter).unwrap_or(false),
                                 last_is_lumberjack: snap.is_last_lumberjack
@@ -5576,6 +9729,7 @@ pub async fn run_npc_scheduler(
                                 last_is_farm: pst.farm_rt.last_profession.is_some(),
                                 last_farm: pst.farm_rt.last_profession,
                                 last_is_fire_food: pst.fire_rt.is_last_fire_food,
+                                last_is_fire_keeper: pst.fire_keeper_rt.is_last_fire_keeper,
                                 last_is_hunter: pst.hunter_rt.is_last_hunter,
                                 last_is_lumberjack: pst.lumberjack_rt.is_last_lumberjack,
                                 last_is_collector: pst.collector_rt.is_last_collector,
@@ -5701,7 +9855,10 @@ pub async fn run_npc_scheduler(
                         target_reachable: true,
                         peer_count,
                         farm_peer_lasts,
-                        was_idle: if sticky.has_sticky_profession() { 0.0 } else { 1.0 },
+                        was_idle: profession_state
+                            .get(&conn_id)
+                            .map(|s| s.was_idle)
+                            .unwrap_or(0.0),
                         age: p.age,
                         profession_is_sticky: sticky.has_sticky_profession(),
                         is_assigned_job: sticky.has_assigned_job(),
@@ -5725,6 +9882,7 @@ pub async fn run_npc_scheduler(
                         is_best_fire_keeper_at_home,
                         is_best_fire_keeper_at_fire,
                         is_best_grave_keeper,
+                        self_account_id: 0,
                         peer_count_by_kind: Some(peer_count_by_kind),
                         // Haxe: storeInQuiver clothingObjects (DROP-HELD-QUIVER)
                         clothing: p.clothing,
@@ -5752,6 +9910,7 @@ pub async fn run_npc_scheduler(
                             content.as_ref(),
                         )
                         .1,
+                        currently_craving: p.currently_craving,
                     };
                     let st = profession_state.get_mut(&conn_id).expect("npc profession entry");
                     let mut sticky = sticky;
@@ -5767,26 +9926,77 @@ pub async fn run_npc_scheduler(
                     sticky.foodserver_last = st.foodserver_rt.is_last_foodserver;
                     sticky.tailor_assigned = p.is_assigned_tailor;
                     sticky.tailor_last = st.last_is_tailor || p.is_last_tailor;
-                    let result = ladder_profession_scan_tick(
-                        rung,
-                        &tiles,
-                        &inp,
-                        &sticky,
-                        &mut st.farm_task,
-                        &mut st.farm_rt,
-                        &mut st.smith_rt,
-                        &mut st.baker_rt,
-                        &mut st.baker_task,
-                        &mut st.shepherd_rt,
-                        &mut st.pottery_rt,
-                        &mut st.fire_rt,
-                        &mut st.fire_keeper_rt,
-                        &mut st.grave_keeper_rt,
-                        &mut st.hunter_rt,
-                        &mut st.lumberjack_rt,
-                        &mut st.collector_rt,
-                        &mut st.foodserver_rt,
-                    );
+                    let rungs = npc_think_job_rungs(&sticky);
+                    let mut result = ProfessionScanTickResult::none();
+                    let mut rung = rung;
+                    let class_u8 = npc_prestige_class_u8(st.prestige_class);
+                    for r in rungs {
+                        if r == PriorityRung::MidPriorityTasks {
+                            let w = world.read().unwrap();
+                            if let Some((k, d, ms)) = npc_run_is_pickingup_cloths(
+                                &intent_tx,
+                                &w,
+                                content.as_ref(),
+                                st,
+                                conn_id,
+                                &p,
+                                class_u8,
+                            ) {
+                                kind = k;
+                                detail = d;
+                                game_ms = ms;
+                                acted = true;
+                                break;
+                            }
+                            let env_winter = env_view
+                                .read()
+                                .ok()
+                                .map(|e| e.is_winter())
+                                .unwrap_or(false);
+                            if let Some((k, d, ms)) = npc_run_handle_temperature(
+                                &intent_tx,
+                                &w,
+                                content.as_ref(),
+                                craft_graph.as_ref(),
+                                env_winter,
+                                conn_id,
+                                &p,
+                                st,
+                                tick,
+                            ) {
+                                kind = k;
+                                detail = d;
+                                game_ms = ms;
+                                acted = true;
+                                break;
+                            }
+                        }
+                        let rtick = ladder_profession_scan_tick(
+                            r,
+                            &tiles,
+                            &inp,
+                            &sticky,
+                            &mut st.farm_task,
+                            &mut st.farm_rt,
+                            &mut st.smith_rt,
+                            &mut st.baker_rt,
+                            &mut st.baker_task,
+                            &mut st.shepherd_rt,
+                            &mut st.pottery_rt,
+                            &mut st.fire_rt,
+                            &mut st.fire_keeper_rt,
+                            &mut st.grave_keeper_rt,
+                            &mut st.hunter_rt,
+                            &mut st.lumberjack_rt,
+                            &mut st.collector_rt,
+                            &mut st.foodserver_rt,
+                        );
+                        if rtick.had_action {
+                            result = rtick;
+                            rung = r;
+                            break;
+                        }
+                    }
                     // FIRE-CRAFT-R30: itemToCraft.maxSearchRadius=30 around makeFireFood(3)
                     apply_fire_craft_search_radius_override(
                         &mut st.fire_keeper_rt,
@@ -5845,6 +10055,7 @@ pub async fn run_npc_scheduler(
                                         &mut kind,
                                         &mut detail,
                                         &mut game_ms,
+                                        npc_client_move_seq(p.done_moving_seq),
                                     )
                                 };
                                 if committed {
@@ -5913,10 +10124,13 @@ pub async fn run_npc_scheduler(
                                 // Haxe: addObjectsForCrafting skip nonempty containers
                                 let nonempty_boxes = nonempty_container_tiles_from_scan(&tiles);
                                 // Haxe: isObjectNotReachable ORs blockedByAI
-                                let peer_blocked_by_ai = npc_merged_blocked_by_ai(
+                                // Haxe: AiBase.RemoveBlockedByAi L199 before think
+                                let peer_blocked_by_ai = npc_blocked_by_ai_for_think(
                                     &blocked_by_ai,
                                     &craft_progress,
                                     conn_id,
+                                    &p,
+                                    st,
                                 );
                                 let blocked =
                                     st.path_reach.blocked_coords(Some(&peer_blocked_by_ai));
@@ -5933,6 +10147,7 @@ pub async fn run_npc_scheduler(
                                     now_sec: tick as f64 * 0.2,
                                     water_source_ids: water_ids,
                                     bucket_water_source_ids: bucket_ids,
+                                    is_hidden_wound: p.is_hidden_wound,
                                     ..Default::default()
                                 }
                                 .with_content_craft_gates(content_ref);
@@ -6001,6 +10216,7 @@ pub async fn run_npc_scheduler(
                                                 &mut kind,
                                                 &mut detail,
                                                 &mut game_ms,
+                                                npc_client_move_seq(p.done_moving_seq),
                                             )
                                         };
                                         if committed {
@@ -6048,6 +10264,7 @@ pub async fn run_npc_scheduler(
                                             p.food,
                                             st.food_goto.did_not_reach_food,
                                             st.animal_path,
+                                            npc_client_move_seq(p.done_moving_seq),
                                         )
                                     };
                                     if walked {
@@ -6080,6 +10297,7 @@ pub async fn run_npc_scheduler(
                                             p.food,
                                             st.food_goto.did_not_reach_food,
                                             st.animal_path,
+                                            npc_client_move_seq(p.done_moving_seq),
                                         )
                                     };
                                     if walked {
@@ -6165,6 +10383,11 @@ pub async fn run_npc_scheduler(
                 drop_extras.quiver =
                     quiver_from_clothing_snapshot(&p.clothing, &p.clothing_uses);
                 drop_extras.held_contains_clay = p.held_contains_clay;
+                {
+                    let st = profession_state.entry(conn_id).or_default();
+                    drop_extras.last_target_id = st.craft_rt.item.last_target_id;
+                    drop_extras.last_new_target_id = st.craft_rt.item.last_new_target_id;
+                }
                 let intent = smart_drop_held_from_sensors_ex(
                     p.held_id,
                     p.held_uses.max(1),
@@ -6202,6 +10425,7 @@ pub async fn run_npc_scheduler(
                                 &mut kind,
                                 &mut detail,
                                 &mut game_ms,
+                                npc_client_move_seq(p.done_moving_seq),
                             )
                         };
                         if committed {
@@ -6212,10 +10436,78 @@ pub async fn run_npc_scheduler(
                 }
             }
 
+            // Haxe doTimeStuffHelper L840–873: go home, drop held, idle wait + say.
+            if !acted {
+                let (home_x, home_y) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+                let fire = {
+                    let st = profession_state.get(&conn_id);
+                    st.and_then(|s| {
+                        if s.fire_place_id != 0 {
+                            Some((s.fire_place_x, s.fire_place_y))
+                        } else {
+                            None
+                        }
+                    })
+                };
+                let (tx, ty) = go_home_move_target(home_x, home_y, fire);
+                let dx = p.x - tx;
+                let dy = p.y - ty;
+                let quad = (dx * dx + dy * dy) as f32;
+                if should_path_to_home(quad, 4) {
+                    let (gx, gy) = go_home_goal_xy(tx, ty, (tick as u32) ^ (conn_id as u32));
+                    let walked = {
+                        let w = world.read().unwrap();
+                        let st = profession_state.entry(conn_id).or_default();
+                        npc_try_walk_to(
+                            &intent_tx,
+                            &w,
+                            &content,
+                            conn_id,
+                            p.x,
+                            p.y,
+                            gx,
+                            gy,
+                            p.food,
+                            st.food_goto.did_not_reach_food,
+                            st.animal_path,
+                            npc_client_move_seq(p.done_moving_seq),
+                        )
+                    };
+                    if walked || p.moving {
+                        kind = NpcActivityKind::Move;
+                        detail = format!("idle_home @{gx},{gy}");
+                        game_ms = 250;
+                        acted = true;
+                    }
+                } else if idle_should_drop_held(p.held_id, p.is_hidden_wound) {
+                    if npc_drop_at(&intent_tx, conn_id, p.x, p.y, None) {
+                        kind = NpcActivityKind::Craft;
+                        detail = format!("idle_drop_held={}", p.held_id);
+                        game_ms = 400;
+                        acted = true;
+                    }
+                } else {
+                    let st = profession_state.entry(conn_id).or_default();
+                    st.think_time_sec += 2.5;
+                    st.was_idle += 1.0;
+                    let rand = ((tick.wrapping_mul(1103515245).wrapping_add(conn_id)) % 1000)
+                        as f32
+                        / 1000.0;
+                    if let Some(line) = idle_say_line(p.age, MIN_AGE_TO_EAT, rand) {
+                        let _ = npc_say_raw(&intent_tx, conn_id, "SAY", line);
+                    }
+                    kind = NpcActivityKind::Explore;
+                    detail = "idle_wait".into();
+                    game_ms = 2500;
+                    acted = true;
+                }
+            }
+
             // --- 3. Bottom-up craft valuation (tools/food priority in craft_value) ---
             // Haxe: after isPickingupFood / isConsideringMakingFood; clothing/makeStuff
             // still run when hungry if those returned false (no nearby food).
-            if !acted {
+            // Haxe L523/L667: hungry infants never reach craftItem.
+            if !acted && !npc_hungry_infant_skips_craft(p.age, hungry, has_living_mother) {
                 let max_craft_dist = if hungry {
                     12
                 } else if p.food < p.food_max * 0.6 {
@@ -6277,6 +10569,17 @@ pub async fn run_npc_scheduler(
                             best.input_value
                         ),
                     );
+                    if best.actor_id != 0 {
+                        tracing::info!(
+                            conn_id,
+                            p_id = p.p_id,
+                            held = p.held_id,
+                            actor = best.actor_id,
+                            target = best.target_id,
+                            new_actor = best.new_actor_id,
+                            "ai_craft: eval tool craft"
+                        );
+                    }
 
                     let (gx, gy) = if best.actor_id != 0
                         && best.actor_id != p.held_id
@@ -6326,10 +10629,36 @@ pub async fn run_npc_scheduler(
                                     best.target_x,
                                     best.target_y,
                                     expect,
-                                    0,
+                                    best.actor_id,
                                     true,
                                     format!("walk_craft {key}"),
                                 );
+                            }
+                        } else if npc_holding_player(p.held_id, p.holding_player_id) {
+                            // Haxe isUsingItem L9040: dropPlayer at feet before use.
+                            if npc_drop_at(&intent_tx, conn_id, p.x, p.y, None) {
+                                kind = NpcActivityKind::Baby;
+                                detail = format!(
+                                    "drop_baby_for_use child={} {key}",
+                                    p.holding_player_id
+                                );
+                                game_ms = 400;
+                                acted = true;
+                            }
+                        } else if best.actor_id == 0 && p.held_id > 0 {
+                            // Haxe isUsingItem L9048: dropHeldObject(0) to empty the hand.
+                            let (dx, dy) = {
+                                let w = world.read().unwrap();
+                                npc_empty_drop_xy(&w, p.x, p.y)
+                            };
+                            if npc_drop_at(&intent_tx, conn_id, dx, dy, None) {
+                                kind = NpcActivityKind::Craft;
+                                detail = format!(
+                                    "drop_held_for_empty_use held={} {key}",
+                                    p.held_id
+                                );
+                                game_ms = 400;
+                                acted = true;
                             }
                         } else if intent_tx
                             .try_send(NetIntent::Use {
@@ -6394,6 +10723,7 @@ pub async fn run_npc_scheduler(
                                 true,
                                 p.moving,
                                 format!("walk_craft {key}"),
+                                npc_client_move_seq(p.done_moving_seq),
                             )
                         };
                         if walked {
@@ -6466,6 +10796,7 @@ pub async fn run_npc_scheduler(
                         false,
                         p.moving,
                         format!("explore {gx},{gy}"),
+                        npc_client_move_seq(p.done_moving_seq),
                     )
                 };
                 if walked {
@@ -6525,7 +10856,7 @@ pub async fn run_npc_scheduler(
                         xs: p.x,
                         ys: p.y,
                         deltas: vec![(1, 0), (0, 1)],
-                        seq: None,
+                        seq: Some(npc_client_move_seq(p.done_moving_seq)),
                     });
                 }
                 tracker.same_pos_count = 0;
@@ -6605,39 +10936,230 @@ mod tests {
     }
 
     #[test]
-    fn sticky_use_holds_path_after_each_tile() {
-        // Haxe isUsingItem: if isMoving() return true — do not replan / USE.
-        assert!(npc_hold_sticky_path_think(
-            true,
+    fn sticky_use_skips_craft_while_moving_not_hunger() {
+        // Haxe isUsingItem: if isMoving() return true — after hunger, skip craft only.
+        assert!(npc_skip_craft_while_sticky_moving(
             true,
             true,
             StickyArrive::Use
         ));
-        assert!(npc_hold_sticky_path_think(
-            true,
+        assert!(npc_skip_craft_while_sticky_moving(
             true,
             true,
             StickyArrive::Drop
         ));
-        // Pure walk still replans after a committed tile (Haxe doTimeStuffHelper).
-        assert!(!npc_hold_sticky_path_think(
-            true,
+        assert!(!npc_skip_craft_while_sticky_moving(
             true,
             true,
             StickyArrive::None
         ));
-        assert!(npc_hold_sticky_path_think(
-            true,
+        assert!(!npc_skip_craft_while_sticky_moving(
             false,
-            true,
-            StickyArrive::None
-        ));
-        assert!(!npc_hold_sticky_path_think(
-            false,
-            true,
             true,
             StickyArrive::Use
         ));
+        // Mid-tile still skips the whole think (Haxe L428).
+        assert!(haxe_skip_mid_path_think(true, false));
+        assert!(!haxe_skip_mid_path_think(true, true));
+    }
+
+    #[test]
+    fn close_use_prio_is_haxe_quad_lt_25() {
+        // Haxe L500: distance < 25 (squared Euclidean). 4 tiles orthogonal = 16; 5 = 25 not close.
+        assert!(npc_haxe_close_use_prio(10, 10, 10, 10));
+        assert!(npc_haxe_close_use_prio(10, 10, 14, 10));
+        assert!(!npc_haxe_close_use_prio(10, 10, 15, 10));
+        assert!(npc_haxe_close_use_prio(10, 10, 13, 13)); // 9+9=18
+        assert!(!npc_haxe_close_use_prio(10, 10, 14, 14)); // 16+16=32
+    }
+
+    #[test]
+    fn skip_feed_matches_haxe_drop_and_close_use() {
+        // isDropingItem always before isFeedingChild.
+        assert!(npc_skip_feed_for_sticky(
+            0,
+            0,
+            40,
+            40,
+            true,
+            StickyArrive::Drop
+        ));
+        // Close use (quad 1) skips feed; far use does not.
+        assert!(npc_skip_feed_for_sticky(
+            0,
+            0,
+            1,
+            0,
+            true,
+            StickyArrive::Use
+        ));
+        assert!(!npc_skip_feed_for_sticky(
+            0,
+            0,
+            20,
+            0,
+            true,
+            StickyArrive::Use
+        ));
+        assert!(!npc_skip_feed_for_sticky(
+            0,
+            0,
+            1,
+            0,
+            true,
+            StickyArrive::None
+        ));
+        assert!(!npc_skip_feed_for_sticky(
+            0,
+            0,
+            1,
+            0,
+            false,
+            StickyArrive::Drop
+        ));
+    }
+
+    #[test]
+    fn sticky_arrive_drops_held_player_at_feet_before_use_or_drop() {
+        // Haxe isUsingItem L9040: close + heldPlayer → dropPlayer at feet, not USE/DROP on the tile.
+        assert_eq!(
+            npc_plan_sticky_arrive(5, 5, 5, 6, false, true, 0, 0, StickyArrive::Use),
+            StickyActPlan::DropHeldPlayerAtFeet
+        );
+        assert_eq!(
+            npc_plan_sticky_arrive(5, 5, 5, 6, false, true, 0, 0, StickyArrive::Drop),
+            StickyActPlan::DropHeldPlayerAtFeet
+        );
+        assert_eq!(
+            npc_plan_sticky_arrive(5, 5, 5, 6, false, false, 0, 0, StickyArrive::Use),
+            StickyActPlan::UseTarget
+        );
+        assert_eq!(
+            npc_plan_sticky_arrive(5, 5, 5, 6, false, false, 0, 0, StickyArrive::Drop),
+            StickyActPlan::DropTarget
+        );
+        assert_eq!(
+            npc_plan_sticky_arrive(5, 5, 5, 6, true, true, 0, 0, StickyArrive::Use),
+            StickyActPlan::WaitUntilStopped
+        );
+        assert_eq!(
+            npc_plan_sticky_arrive(5, 5, 20, 20, false, true, 0, 0, StickyArrive::Drop),
+            StickyActPlan::Walk
+        );
+    }
+
+    #[test]
+    fn sticky_use_drops_held_object_when_actor_must_be_empty() {
+        // Haxe isUsingItem L9048: holding banana + useActor 0 → dropHeldObject, not USE.
+        assert_eq!(
+            npc_plan_sticky_arrive(5, 5, 5, 6, false, false, 2143, 0, StickyArrive::Use),
+            StickyActPlan::DropHeldForEmptyHand
+        );
+        // Actor is the held object — USE it.
+        assert_eq!(
+            npc_plan_sticky_arrive(5, 5, 5, 6, false, false, 33, 33, StickyArrive::Use),
+            StickyActPlan::UseTarget
+        );
+        // Empty hand + empty actor — USE.
+        assert_eq!(
+            npc_plan_sticky_arrive(5, 5, 5, 6, false, false, 0, 0, StickyArrive::Use),
+            StickyActPlan::UseTarget
+        );
+    }
+
+    #[test]
+    fn sticky_early_return_drop_always_close_use_only() {
+        assert!(npc_sticky_early_return(StickyArrive::Drop, 0, 0, 50, 50));
+        assert!(npc_sticky_early_return(StickyArrive::Use, 0, 0, 3, 0));
+        assert!(!npc_sticky_early_return(StickyArrive::Use, 0, 0, 20, 0));
+        assert!(!npc_sticky_early_return(StickyArrive::None, 0, 0, 0, 0));
+    }
+
+    #[test]
+    fn last_profession_eating_is_not_farmer() {
+        // Haxe L8485: lastProfession = 'Eating' unless FOODSERVER
+        let mut st = NpcProfessionState::default();
+        st.last_profession_key = Some("Eating".into());
+        let p = ol_sim::Player::new(1, 1, "eat@test").snapshot();
+        assert_eq!(npc_last_profession_key(&st, &p), Some("Eating"));
+        st.last_profession_key = Some("FOODSERVER".into());
+        assert_eq!(npc_last_profession_key(&st, &p), Some("FOODSERVER"));
+    }
+
+    #[test]
+    fn holding_player_from_held_id_or_holding_player_id() {
+        assert!(npc_holding_player(-9103334, 0));
+        assert!(npc_holding_player(0, 9103334));
+        assert!(!npc_holding_player(0, 0));
+        assert!(!npc_holding_player(33, 0));
+    }
+
+    #[test]
+    fn eatable_food_value_uses_dummy_parent() {
+        // Haxe isEatable: dummyParent.foodValue when the tile id is a multi-use dummy.
+        let mut db = ContentDb::default();
+        db.objects.insert(
+            31,
+            ol_content::ObjectDef {
+                id: 31,
+                food_value: 5,
+                ..ol_content::ObjectDef::empty(31)
+            },
+        );
+        db.objects.insert(
+            5001,
+            ol_content::ObjectDef {
+                id: 5001,
+                food_value: 0,
+                ..ol_content::ObjectDef::empty(5001)
+            },
+        );
+        db.dummy_parent.insert(5001, 31);
+        assert_eq!(eatable_food_value_of(&db, 31), 5);
+        assert_eq!(eatable_food_value_of(&db, 5001), 5);
+        assert_eq!(eatable_food_value_of(&db, 0), 0);
+        assert!(is_eatable_check_again(-1, 5001, eatable_food_value_of(&db, 5001)));
+        assert!(is_eatable_check_again(0, 0, 0));
+    }
+
+    #[test]
+    fn hungry_infant_never_reaches_craft_item() {
+        // Haxe MinAgeToEat = 3; hungry infant always returns before craftItem.
+        assert!(npc_hungry_infant_skips_craft(0.0, true, true));
+        assert!(npc_hungry_infant_skips_craft(2.9, true, true));
+        assert!(!npc_hungry_infant_skips_craft(3.0, true, true));
+        assert!(!npc_hungry_infant_skips_craft(14.0, true, true));
+        assert!(!npc_hungry_infant_skips_craft(0.0, false, true));
+        // Haxe L523–532: no mother required — still return after follow + time+=2.5
+        assert!(npc_hungry_infant_skips_craft(0.0, true, false));
+    }
+
+    #[test]
+    fn npc_move_seq_is_player_done_moving_plus_one() {
+        // Same as resolve_move_seq(None): human ++done_moving_seqNum / AI move() seq.
+        assert_eq!(npc_client_move_seq(0), 1);
+        assert_eq!(npc_client_move_seq(1), 2);
+        assert_eq!(npc_client_move_seq(7), 8);
+    }
+
+    #[test]
+    fn send_move_only_if_arrived_or_target_changed() {
+        // Haxe isUsingItem L9013: isMoving → no goto. Same dest, moving → do not send.
+        assert!(!npc_should_send_move(true, true));
+        // Arrived (!isMoving) → send next hop.
+        assert!(npc_should_send_move(false, true));
+        // Dest changed (follow / danger) while moving → send.
+        assert!(npc_should_send_move(true, false));
+        assert!(npc_should_send_move(false, false));
+    }
+
+    #[test]
+    fn is_moving_is_newmoves_or_same_sim_tick_as_move() {
+        // Haxe isMoving: newMoves != null. Snapshot moving, or move() this sim tick.
+        assert!(npc_haxe_is_moving(true, 0, 10));
+        assert!(npc_haxe_is_moving(false, 7, 7));
+        assert!(!npc_haxe_is_moving(false, 7, 8));
+        assert!(!npc_haxe_is_moving(false, 0, 0));
     }
 
     #[test]
@@ -6760,6 +11282,135 @@ mod tests {
     }
 
     #[test]
+    fn remove_blocked_by_ai_during_think_drops_own_food() {
+        // Haxe: AiBase.RemoveBlockedByAi L199 / L260–276
+        let share = ol_sim::new_blocked_by_ai_share();
+        {
+            let mut g = share.write().unwrap();
+            g.insert((4, 5), 5.0);
+            g.insert((1, 1), 5.0);
+        }
+        let mut p = ol_sim::Player::new(1, 1, "npc@test");
+        p.ai_block_targets
+            .set_food(BlockTargetClaim::simple(4, 5, 31));
+        let snap = p.snapshot();
+        let st = NpcProfessionState::default();
+        let merged = npc_blocked_by_ai_for_think(&share, &HashMap::new(), 1, &snap, &st);
+        assert!(!merged.contains_key(&(4, 5)));
+        assert!(merged.contains_key(&(1, 1)));
+    }
+
+    #[test]
+    fn reset_targets_clears_escape_food_use_and_trans() {
+        // Haxe: AiBase.resetTargets L319–325
+        let mut st = NpcProfessionState::default();
+        st.escape_target = Some((9, 9));
+        st.food_goto.sticky_food = Some(StickyFoodTarget::new(4, 5, 31));
+        st.sticky_move = Some(NpcStickyMove {
+            gx: 2,
+            gy: 3,
+            expected_parent_id: 33,
+            use_actor_parent: 33,
+            pending_use: true,
+            pending_drop: false,
+            label: "use".into(),
+            move_from: None,
+        });
+        st.craft_rt.item.trans_actor_id = Some(33);
+        st.craft_rt.item.trans_target_id = Some(32);
+        npc_reset_targets(&mut st);
+        assert!(st.escape_target.is_none());
+        assert!(st.food_goto.sticky_food.is_none());
+        assert!(st.sticky_move.is_none());
+        assert!(st.craft_rt.item.trans_actor_id.is_none());
+        assert!(st.craft_rt.item.trans_target_id.is_none());
+    }
+
+    #[test]
+    fn reset_targets_keeps_pending_drop() {
+        let mut st = NpcProfessionState::default();
+        st.sticky_move = Some(NpcStickyMove {
+            gx: 2,
+            gy: 3,
+            expected_parent_id: 0,
+            use_actor_parent: 0,
+            pending_use: false,
+            pending_drop: true,
+            label: "drop".into(),
+            move_from: None,
+        });
+        npc_reset_targets(&mut st);
+        assert!(st.sticky_move.is_some());
+    }
+
+    #[test]
+    fn cancle_use_clears_use_keeps_drop() {
+        // Haxe: AiBase.CancleUse L8868–8874
+        let mut st = NpcProfessionState::default();
+        st.sticky_move = Some(NpcStickyMove {
+            gx: 1,
+            gy: 2,
+            expected_parent_id: 33,
+            use_actor_parent: 0,
+            pending_use: true,
+            pending_drop: true,
+            label: "use+drop".into(),
+            move_from: None,
+        });
+        npc_cancle_use(&mut st);
+        let s = st.sticky_move.expect("dropTarget remains");
+        assert!(!s.pending_use);
+        assert!(s.pending_drop);
+        st.sticky_move = Some(NpcStickyMove {
+            gx: 1,
+            gy: 2,
+            expected_parent_id: 33,
+            use_actor_parent: 0,
+            pending_use: true,
+            pending_drop: false,
+            label: "use".into(),
+            move_from: None,
+        });
+        npc_cancle_use(&mut st);
+        assert!(st.sticky_move.is_none());
+    }
+
+    #[test]
+    fn newborn_wipes_profession_state() {
+        // Haxe: AiBase.newBorn L327–346
+        let mut st = NpcProfessionState::default();
+        st.path_reach.add_not_reachable(1, 1, 90.0);
+        st.food_goto.did_not_reach_food = 4.0;
+        st.food_goto.sticky_food = Some(StickyFoodTarget::new(1, 2, 31));
+        st.craft_rt.item.trans_actor_id = Some(33);
+        st.was_hungry = true;
+        st.try_move_nearest_tile_first = false;
+        st.escape_target = Some((0, 0));
+        npc_wipe_on_newborn(&mut st);
+        assert!(st.path_reach.is_empty());
+        assert_eq!(st.food_goto.did_not_reach_food, 0.0);
+        assert!(st.food_goto.sticky_food.is_none());
+        assert!(st.craft_rt.item.trans_actor_id.is_none());
+        assert!(!st.was_hungry);
+        assert!(st.try_move_nearest_tile_first);
+        assert!(st.escape_target.is_none());
+    }
+
+    #[test]
+    fn try_move_nearest_tile_first_default_true() {
+        assert!(TRY_MOVE_NEAREST_TILE_FIRST_DEFAULT);
+        assert!(NpcProfessionState::default().try_move_nearest_tile_first);
+        assert_eq!(
+            ol_sim::goto_approach_ii_order(true, false),
+            [1, 0, 2, 3, 4]
+        );
+        assert_eq!(
+            ol_sim::goto_approach_ii_order(false, false),
+            [0, 1, 2, 3, 4]
+        );
+    }
+
+    #[test]
     fn craft_queue_wait_without_progress_is_fail() {
         // Haxe: isMoving → craftItem true; idle Wait / None → push craftingTasks.
         assert!(!npc_craft_expand_progress(&ShortCraftLiveIntent::Wait, false));
@@ -6795,6 +11446,7 @@ mod tests {
             pending_use: false,
             pending_drop: false,
             label: "walk".into(),
+            move_from: None,
         };
         assert_eq!(sticky.expected_parent_id, 0);
         // milkweed family helper
@@ -6894,6 +11546,46 @@ mod tests {
     }
 
     #[test]
+    fn haxe_readplayers_server_ai_counts_before_new_eve_login() {
+        // Haxe Server.main: loaded Ais already in Connection.getAis() before DoTimeLoop.
+        assert!(!npc_scheduler_sim_ready(0));
+        assert!(npc_scheduler_sim_ready(1));
+        let loaded_conn = 2_000_000u64 + 9_103_423;
+        assert!(npc_counts_as_living_ai(false, true, true, loaded_conn));
+        assert!(!npc_counts_as_living_ai(true, true, true, loaded_conn));
+        assert!(npc_counts_as_living_ai(
+            false,
+            false,
+            true,
+            NPC_CONN_BASE
+        ));
+        assert_eq!(npc_slot_index(NPC_CONN_BASE), Some(0));
+        assert_eq!(npc_slot_index(NPC_CONN_BASE + 3), Some(3));
+        assert_eq!(npc_slot_index(loaded_conn), None);
+        // 56 loaded AIs already at/over currentMax → no extra Eve LOGIN.
+        assert!(!should_spawn_new_ai(1, 56, 20, 20, 100, 10));
+    }
+
+    #[test]
+    fn haxe_iseating_sends_self_not_ground_use() {
+        // Haxe isEating L8829 myPlayer.self() → SELF 0 0 -1 (doSelf clothingSlot<0).
+        let intent = npc_eat_self_intent(11_103_636);
+        match intent {
+            NetIntent::Raw {
+                conn_id,
+                tag,
+                payload,
+            } => {
+                assert_eq!(conn_id, 11_103_636);
+                assert_eq!(tag, "SELF");
+                assert_eq!(payload, self_clothing_raw_payload(-1));
+                assert_eq!(payload, "0 0 -1");
+            }
+            other => panic!("eat must be SELF, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn pruned_dead_npc_slot_reborns_under_cap() {
         assert!(
             npc_slot_should_rebirth(false, 0, 20),
@@ -6915,5 +11607,29 @@ mod tests {
         let t = NpcStuckTracker::default();
         assert!(!t.ever_alive, "new slot waits for first living view");
         assert!(!t.was_deleted);
+    }
+
+    #[test]
+    fn aibase_l401_800_control_flow_helpers() {
+        // Haxe: doTimeStuff L397–409 / L523–532 / L514 / L599
+        assert!(should_escape_on_moved_one_tile(true, 0.0));
+        assert!(!should_escape_on_moved_one_tile(false, 0.0));
+        assert!(npc_hungry_infant_skips_craft(2.0, true, false));
+        assert!(!npc_hungry_infant_skips_craft(3.0, true, true));
+        assert!(waiting_time_blocks_think(false, 2.0));
+        assert!(skip_home_and_jobs_while_moving(true));
+        assert!(!skip_home_and_jobs_while_moving(false));
+        assert!(nice_baby_noble_wants_weapon(true, true, 0));
+        let mut st = NpcProfessionState::default();
+        st.was_idle = 1.0;
+        st.was_idle = decay_was_idle(st.was_idle, 0.5);
+        assert!((st.was_idle - 0.95).abs() < 1e-5);
+        let rungs = npc_think_job_rungs(&ProfessionStickySnapshot {
+            age: 20.0,
+            ..Default::default()
+        });
+        assert_eq!(rungs[0], PriorityRung::CriticalCraft);
+        assert_eq!(rungs[1], PriorityRung::MidPriorityTasks);
+        assert!(rungs.contains(&PriorityRung::LowPriorityWork));
     }
 }

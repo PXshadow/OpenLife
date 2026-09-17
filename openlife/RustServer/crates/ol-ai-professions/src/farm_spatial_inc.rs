@@ -33,6 +33,7 @@ pub fn farm_radius_table() -> &'static [(i32, &'static str)] {
         (CORN_SEED_COUNT_RADIUS, "countCorn / dried corn family"),
         (FARM_SHORTCRAFT_RADIUS, "plant/water shortCraft"),
         (FARM_ROW_SHORTCRAFT_RADIUS, "row shortCraft (15)"),
+        (ADVANCED_BOWL_COUNT_RADIUS, "doAdvancedFarming clay bowl r=15"),
     ]
 }
 
@@ -395,6 +396,17 @@ pub fn fill_farm_counts_from_map_with_floor_ids(
         let n = counts.get(o.parent_id) + o.fill_contrib();
         counts.set(o.parent_id, n);
     }
+    // Haxe doAdvancedFarming CountClose clay bowl home r=15 (not the r=30 row-maker count)
+    let mut bowls15 = 0;
+    for o in objects {
+        if o.parent_id != CLAY_BOWL {
+            continue;
+        }
+        if in_count_close_square(home_x, home_y, o.x, o.y, ADVANCED_BOWL_COUNT_RADIUS) {
+            bowls15 += o.fill_contrib();
+        }
+    }
+    counts.bowl_count_home_15 = Some(bowls15);
     counts
 }
 
@@ -457,15 +469,19 @@ pub fn soil_units_from_map(home_x: i32, home_y: i32, objects: &[FarmMapObj]) -> 
 // Haxe: shortCraft/craftItem seek target
 pub fn farm_action_to_goal(action: FarmAction) -> Goal {
     match action {
-        FarmAction::None | FarmAction::Abort | FarmAction::ClearBasicFarmerWeight => {
-            Goal::SeekObject(FARMER_TARGET_ID)
-        }
+        FarmAction::None
+        | FarmAction::Abort
+        | FarmAction::ClearBasicFarmerWeight
+        | FarmAction::ClearAdvancedFarmerWeight
+        | FarmAction::DeferCleanup => Goal::SeekObject(FARMER_TARGET_ID),
         FarmAction::ShortCraft { target, .. } => Goal::SeekObject(target),
         FarmAction::CraftItem { object_id } => Goal::SeekObject(object_id),
         // AI-SHEPHERD-MID: mid basic-farm sheep site → seek domestic sheep
         FarmAction::DeferSheepHerding { .. } => Goal::SeekObject(575),
         // After-sheep advanced farming fallthrough → farmer target
         FarmAction::DeferAdvancedFarming { .. } => Goal::SeekObject(FARMER_TARGET_ID),
+        // Haxe: doPrepareRows L2214 doPottery → clay bowl 235
+        FarmAction::DeferPottery { .. } => Goal::SeekObject(CLAY_BOWL),
     }
 }
 
@@ -528,7 +544,12 @@ pub fn try_decide_farm_from_rung(
         watering_max_for_dispatch(rung_label == "ASSIGNED_JOB", rung_label)
     } else if matches!(job, FarmProfession::CarrotFarmer) {
         carrot_max_for_dispatch(rung_label == "ASSIGNED_JOB", rung_label)
-    } else if rung_label == "ASSIGNED_JOB" && matches!(job, FarmProfession::BasicFarmer) {
+    } else if rung_label == "ASSIGNED_JOB"
+        && matches!(
+            job,
+            FarmProfession::BasicFarmer | FarmProfession::RowMaker
+        )
+    {
         crate::farmer_profession::BASIC_FARM_ASSIGNED_MAX_PROFESSION
     } else {
         crate::farmer_profession::BASIC_FARM_DEFAULT_MAX_PROFESSION

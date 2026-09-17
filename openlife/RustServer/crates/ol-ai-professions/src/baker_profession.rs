@@ -145,8 +145,26 @@ pub const DRY_PLANTED_CARROTS: i32 = 396;
 pub const WET_PLANTED_CARROTS: i32 = 399;
 /// Carrot (pulled).
 pub const CARROT: i32 = 402;
-/// Dry Planted Beans (plant-beans fallthrough craft target).
-pub const DRY_PLANTED_BEANS: i32 = 1177;
+/// Dry Planted Beans (Haxe `doPlantBeans` toPlantId 1161).
+// Haxe: AiBase.doPlantBeans L2502–2505
+pub const DRY_PLANTED_BEANS: i32 = 1161;
+/// Wet Planted Beans.
+pub const WET_PLANTED_BEANS: i32 = 1162;
+/// Green Bean Plants.
+pub const GREEN_BEAN_PLANTS: i32 = 1173;
+/// Dry Bean Plants (hasBeanSeeds + doPlantBeans stages).
+pub const DRY_BEAN_PLANTS: i32 = 1172;
+/// Bowl of Dry Beans (hasBeanSeeds).
+pub const BOWL_DRY_BEANS: i32 = 1176;
+/// Wet Planted Wheat.
+pub const WET_PLANTED_WHEAT: i32 = 229;
+/// Wheat Sprouts.
+pub const WHEAT_SPROUTS: i32 = 230;
+/// Unripe Wheat.
+pub const UNRIPE_WHEAT: i32 = 243;
+/// Threshed Wheat on ground (doHarvestWheat count, not pile 4070).
+// Haxe: AiBase.doHarvestWheat L2453
+pub const THRESHED_WHEAT_GROUND: i32 = 4069;
 /// Domestic Sheep.
 pub const DOMESTIC_SHEEP: i32 = 575;
 /// Domestic Lamb.
@@ -173,8 +191,30 @@ pub const BAKING_SHORTCRAFT_RADIUS: i32 = 30;
 /// Haxe `shortCraftOnTarget(569, hotOven, false, 4)` maxNewActor for raw mutton.
 // Haxe: AiBase.doBakingHelper ~3219
 pub const RAW_MUTTON_HOT_OVEN_MAX_NEW_ACTOR: i32 = 4;
+/// Haxe `doBakingHelper` nested `doPottery(1)` maxPeople.
+// Haxe: AiBase.doBakingHelper L3266
+pub const BAKER_NESTED_POTTERY_MAX_PEOPLE: i32 = 1;
+/// Haxe `shortCraft(..., distance=20)` for post-oven turkey / sauerkraut / knife / dug potatoes.
+// Haxe: AiBase.doBakingHelper L3232–3286 / L3330
+pub const BAKING_HELPER_SHORTCRAFT_DISTANCE: i32 = 20;
+/// Haxe `shortCraft(245, 213, 15, false)` bowl-of-wheat on deep row.
+// Haxe: AiBase.doBakingHelper L3348
+pub const WHEAT_BOWL_SHORTCRAFT_DISTANCE: i32 = 15;
+/// Haxe `makeOrCollect` CountCloseObjects radius from home.
+// Haxe: AiBase.makeOrCollect L6037
+pub const KINDLING_COLLECT_RADIUS: i32 = 15;
+/// Haxe `makeSeatsAndCleanUp` CountCloseObjects tomato seeds r=30 home and player.
+// Haxe: AiBase.makeSeatsAndCleanUp L3501–3503
+pub const TOMATO_SEED_COUNT_RADIUS: i32 = 30;
+/// Haxe `getClosestObjectById` default `distance`.
+// Haxe: AiBase.getClosestObjectById L3462
+pub const GET_CLOSEST_OBJECT_BY_ID_DEFAULT_DIST: i32 = 30;
 /// Default max people for baker profession.
+/// Haxe `doBaking(maxPeople = 1)`.
 pub const BAKER_DEFAULT_MAX_PEOPLE: i32 = 1;
+/// Haxe `doBakingHelper(maxPeople = 2)` default (nested / makeStuff / hot-oven).
+// Haxe: AiBase.doBakingHelper L3129
+pub const BAKER_HELPER_DEFAULT_MAX_PEOPLE: i32 = 2;
 /// Haxe assigned BAKER job uses `doBaking(100)`.
 // Haxe: AiBase assignedProfession BAKER ~722
 pub const BAKER_ASSIGNED_MAX_PEOPLE: i32 = 100;
@@ -494,6 +534,25 @@ impl BakeCounts {
         self.get(id) + if self.held_id == id { 1 } else { 0 }
     }
 
+    /// `countCurrentObjects` — map counts plus held if it matches any id.
+    pub fn sum_with_held(&self, ids: &[i32]) -> i32 {
+        ids.iter().map(|&id| self.get_with_held(id)).sum()
+    }
+}
+
+/// Haxe `countCurrentObject(objId)` — held + craft-cache/home count.
+// Haxe: AiBase.countCurrentObjectHelper L3445–3458
+pub fn count_current_object(counts: &BakeCounts, obj_id: i32) -> i32 {
+    counts.get_with_held(obj_id)
+}
+
+/// Haxe `countCurrentObjects(objIds)`.
+// Haxe: AiBase.countCurrentObjects L3432–3436
+pub fn count_current_objects(counts: &BakeCounts, ids: &[i32]) -> i32 {
+    counts.sum_with_held(ids)
+}
+
+impl BakeCounts {
     pub fn oven_state(&self) -> OvenState {
         OvenState::from_parent(self.oven_parent_id)
     }
@@ -503,7 +562,8 @@ impl BakeCounts {
     }
 
     pub fn has_close_plate(&self) -> bool {
-        self.get(CLAY_PLATE) > 0
+        // Haxe L3193: countCurrentObject(236) includes held
+        self.get_with_held(CLAY_PLATE) > 0
     }
 }
 
@@ -538,6 +598,8 @@ pub enum BakeAction {
     DeferCleanup,
     /// Chain to `doPottery` â€” live tick / AI-JOB-POTTER.
     DeferPottery,
+    /// Haxe L3374–3376 `if (doPottery(1)) return true; if (!hungry && cleanUp())`.
+    DeferPotteryThenCleanup,
     /// No oven / cannot become baker / job refuse.
     Abort,
 }
@@ -558,6 +620,7 @@ impl BakeAction {
                 | Self::DeferSeatsCleanup
                 | Self::DeferCleanup
                 | Self::DeferPottery
+                | Self::DeferPotteryThenCleanup
         )
     }
 
@@ -575,6 +638,7 @@ impl BakeAction {
                 | Self::DeferSeatsCleanup
                 | Self::DeferCleanup
                 | Self::DeferPottery
+                | Self::DeferPotteryThenCleanup
         )
     }
 }
@@ -687,8 +751,28 @@ pub fn baker_short_craft_limits(actor: i32, target: i32) -> (i32, bool) {
     if actor == KNIFE {
         return (-1, false);
     }
-    // Clay bowl + sauerkraut: Haxe shortCraft(235, 1241, 20, 1) â†’ craftActor=true
+    // Bowl of Wheat 245 + Deep Tilled Row 213
+    // Haxe: shortCraft(245, 213, 15, false) L3348
+    if actor == BOWL_OF_WHEAT && target == DEEP_TILLED_ROW {
+        return (-1, false);
+    }
+    // Clay bowl + sauerkraut: Haxe shortCraft(235, 1241, 20, 1) → craftActor=true
     (-1, true)
+}
+
+/// Live shortCraft search radius for a baker pair.
+///
+/// Oven targets use the already-resolved home oven (`GetClosest` r=20). Most
+/// `doBakingHelper` shortCrafts pass `distance=20`; wheat-bowl uses 15.
+// Haxe: shortCraftOnTarget(hotOven) L3206–3226; shortCraft 20 L3232–3330; 15 L3348
+pub fn baker_short_craft_search_radius(actor: i32, target: i32) -> i32 {
+    if is_oven_id(target) {
+        OVEN_SEARCH_RADIUS
+    } else if actor == BOWL_OF_WHEAT && target == DEEP_TILLED_ROW {
+        WHEAT_BOWL_SHORTCRAFT_DISTANCE
+    } else {
+        BAKING_HELPER_SHORTCRAFT_DISTANCE
+    }
 }
 
 /// Map a [`BakeAction::ShortCraft`] through [`short_craft_apply`].
@@ -804,7 +888,7 @@ pub fn baker_max_people_for_dispatch(is_assigned_job: bool, hot_oven_urgent: boo
     if is_assigned_job {
         BAKER_ASSIGNED_MAX_PEOPLE
     } else if hot_oven_urgent {
-        2
+        BAKER_HELPER_DEFAULT_MAX_PEOPLE
     } else {
         BAKER_DEFAULT_MAX_PEOPLE
     }
@@ -926,9 +1010,12 @@ pub fn harvest_wheat_for_baker(
     counts: &BakeCounts,
     task: &mut BakerTaskState,
 ) -> BakeAction {
-    let threshed = counts.get(THRESHED_WHEAT) + counts.get(PILE_THRESHED_WHEAT);
-    let all_harvested = threshed + counts.get(HARVESTED_WHEAT) + counts.get(WHEAT_SHEAF);
-    let planted_ripe = counts.get(RIPE_WHEAT);
+    // Haxe L2453–2461: [226, 4069] then +[224, 225]; ripe 242 — countCurrentObject includes held
+    let threshed = counts.get_with_held(THRESHED_WHEAT) + counts.get_with_held(THRESHED_WHEAT_GROUND);
+    let all_harvested = threshed
+        + counts.get_with_held(HARVESTED_WHEAT)
+        + counts.get_with_held(WHEAT_SHEAF);
+    let planted_ripe = counts.get_with_held(RIPE_WHEAT);
 
     if threshed >= max_harvest {
         task.wheat_harvester = 1.0;
@@ -945,22 +1032,48 @@ pub fn harvest_wheat_for_baker(
             object_id: HARVESTED_WHEAT,
         };
     }
-    if counts.get(HARVESTED_WHEAT) > 0 {
+    if counts.get_with_held(HARVESTED_WHEAT) > 0 {
         return BakeAction::CraftItem {
             object_id: WHEAT_SHEAF,
         };
     }
-    if counts.get(WHEAT_SHEAF) > 0 {
+    if counts.get_with_held(WHEAT_SHEAF) > 0 {
         return BakeAction::CraftItem {
             object_id: THRESHED_WHEAT,
         };
     }
-    // Ripe present but no craft path stocked â†’ live harvest body.
-    if planted_ripe > 0 {
-        return BakeAction::DeferHarvestWheat;
-    }
     task.wheat_harvester = 1.0;
     BakeAction::None
+}
+
+/// Haxe `doPlantWheat` stage: dry 228 + [242, 229, 230, 243], countCurrentObject includes held.
+// Haxe: AiBase.doPlantWheat L2496–2499
+pub fn baker_wheat_plant_stage(counts: &BakeCounts) -> i32 {
+    counts.sum_with_held(&[
+        DRY_PLANTED_WHEAT,
+        RIPE_WHEAT,
+        WET_PLANTED_WHEAT,
+        WHEAT_SPROUTS,
+        UNRIPE_WHEAT,
+    ])
+}
+
+/// Haxe `doPlantBeans` stage: 1161 + [1162, 1173, 1172], includes held.
+// Haxe: AiBase.doPlantBeans L2502–2505
+pub fn baker_bean_plant_stage(counts: &BakeCounts) -> i32 {
+    counts.sum_with_held(&[
+        DRY_PLANTED_BEANS,
+        WET_PLANTED_BEANS,
+        GREEN_BEAN_PLANTS,
+        DRY_BEAN_PLANTS,
+    ])
+}
+
+/// Haxe `hasBeanSeeds`: Bowl of Dry Beans 1176 + Dry Bean Plants 1172, count > 1.
+// Haxe: AiBase.hasBeanSeeds L1370–1373
+pub fn baker_has_bean_seeds(counts: &BakeCounts) -> bool {
+    counts.has_bean_seeds
+        || counts.get_with_held(BOWL_DRY_BEANS) + counts.get_with_held(DRY_BEAN_PLANTS) > 1
 }
 
 /// Sheep-herding steps that baker mid tries (`isSheepHerding(2,5)`).
@@ -1024,12 +1137,26 @@ pub fn fill_berry_bowl_if_needed(counts: &BakeCounts) -> BakeAction {
             target: WILD_BUSH,
         };
     }
-    BakeAction::DeferBerryBowl
+    // Haxe L4235: closeBush==null → false (doBakingHelper fillBerryBowlIfNeeded default)
+    BakeAction::None
 }
 
 /// Mid `fillBerryBowlIfNeeded(true)` searchDistance (onlyFillHeldBowl).
 // Haxe: AiBase.fillBerryBowlIfNeeded distance = 20 ~4226
 pub const FILL_BERRY_HELD_SEARCH_DIST: i32 = 20;
+/// Default `fillBerryBowlIfNeeded()` / `fillBerryBowlIfNeeded(false)` bush search.
+// Haxe: AiBase.fillBerryBowlIfNeeded L4226 onlyFillHeldBowl ? 20 : 30
+pub const FILL_BERRY_DEFAULT_SEARCH_DIST: i32 = 30;
+
+/// Haxe `distance = onlyFillHeldBowl ? 20 : 30`.
+// Haxe: AiBase.fillBerryBowlIfNeeded L4226
+pub fn fill_berry_bowl_search_dist(only_fill_held: bool) -> i32 {
+    if only_fill_held {
+        FILL_BERRY_HELD_SEARCH_DIST
+    } else {
+        FILL_BERRY_DEFAULT_SEARCH_DIST
+    }
+}
 /// Ladder label for mid `fillBerryBowlIfNeeded(true)` onlyFillHeld.
 // Haxe: AiBase.doTimeStuffHelper ~627
 pub const FILL_BERRY_HELD_RUNG: &str = "FILL_BERRY_HELD";
@@ -1090,6 +1217,42 @@ pub fn make_seats_and_cleanup(counts: &BakeCounts) -> BakeAction {
     make_seats_and_cleanup_ex(counts, false, false)
 }
 
+/// Haxe tomato-seed count for seats: home CountClose + player CountClose + held.
+///
+/// `BakeCounts.by_id` is the home (and, when live-bumped, player) square sum;
+/// held is added once via [`BakeCounts::get_with_held`].
+// Haxe: AiBase.makeSeatsAndCleanUp L3501–3503
+pub fn count_tomato_seeds_for_seats(counts: &BakeCounts) -> i32 {
+    counts.get_with_held(BOWL_TOMATO_SEEDS)
+}
+
+/// Add CountCloseObjects(player, 2828, 30) onto fill that already counted home r=30.
+///
+/// Haxe *sums* the two radii (a seed in both squares is counted twice); seats only
+/// tests `> 0`, so extra presence near the player is what matters.
+// Haxe: AiBase.makeSeatsAndCleanUp L3502
+pub fn add_tomato_seeds_near_player(
+    counts: &mut BakeCounts,
+    player_x: i32,
+    player_y: i32,
+    objects: &[BakeMapObj],
+) {
+    let extra: i32 = objects
+        .iter()
+        .filter(|o| o.parent_id == BOWL_TOMATO_SEEDS)
+        .filter(|o| {
+            in_count_close_square(player_x, player_y, o.x, o.y, TOMATO_SEED_COUNT_RADIUS)
+        })
+        .map(|o| o.fill_contrib())
+        .sum();
+    if extra > 0 {
+        counts.set(
+            BOWL_TOMATO_SEEDS,
+            counts.get(BOWL_TOMATO_SEEDS) + extra,
+        );
+    }
+}
+
 /// Extended seats helper.
 ///
 /// `bowl_filler_allowed` mirrors successful `hasOrBecomeProfession('BOWLFILLER')`.
@@ -1102,7 +1265,8 @@ pub fn make_seats_and_cleanup_ex(
     if counts.is_hungry {
         return BakeAction::None;
     }
-    let tomato = counts.get_with_held(BOWL_TOMATO_SEEDS);
+    // Haxe L3501–3506 CountClose home r=30 + player r=30 + held; >0 → return false
+    let tomato = count_tomato_seeds_for_seats(counts);
     if tomato > 0 {
         return BakeAction::None;
     }
@@ -1115,6 +1279,47 @@ pub fn make_seats_and_cleanup_ex(
         return BakeAction::DeferSeatsCleanup;
     }
     BakeAction::None
+}
+
+/// Haxe `hasOrBecomeProfession('BOWLFILLER', maxPeople)`.
+// Haxe: AiBase.makeSeatsAndCleanUp L3508; hasOrBecomeProfession ~4466
+pub fn has_or_become_bowl_filler(
+    is_last_bowl_filler: bool,
+    max_people: i32,
+    peer_count: f32,
+    was_idle: f32,
+) -> bool {
+    if max_people < 0 {
+        return true;
+    }
+    if is_last_bowl_filler {
+        return true;
+    }
+    let cap = max_people as f32 + was_idle.max(0.0);
+    peer_count < cap
+}
+
+/// Full Haxe `makeSeatsAndCleanUp(maxPeople)` after tomato CountClose.
+// Haxe: AiBase.makeSeatsAndCleanUp L3485–3512
+pub fn make_seats_and_cleanup_profession(
+    counts: &BakeCounts,
+    max_people: i32,
+    peer_count: f32,
+    was_idle: f32,
+    is_last_bowl_filler: bool,
+) -> BakeAction {
+    if counts.is_hungry {
+        return BakeAction::None;
+    }
+    if count_tomato_seeds_for_seats(counts) > 0 {
+        return BakeAction::None;
+    }
+    if !has_or_become_bowl_filler(is_last_bowl_filler, max_people, peer_count, was_idle) {
+        return BakeAction::None;
+    }
+    BakeAction::CraftItem {
+        object_id: BOWL_TOMATO_SEEDS,
+    }
 }
 
 // â”€â”€ Dough / bread helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1134,8 +1339,9 @@ pub fn max_dough_in_bowl(has_knife: bool, count_bread_family: i32) -> i32 {
 }
 
 /// Sliced + leavened-on-plate bread stock (Haxe countBread += countSlicedBread).
+// Haxe: countCurrentObject(1468)+countCurrentObject(1471) includes held
 pub fn count_bread_family(counts: &BakeCounts) -> i32 {
-    counts.get(LEAVENED_DOUGH_PLATE) + counts.get(SLICED_BREAD)
+    counts.get_with_held(LEAVENED_DOUGH_PLATE) + counts.get_with_held(SLICED_BREAD)
 }
 
 /// Pre-profession dough handling (runs even before hasOrBecomeProfession).
@@ -1156,7 +1362,7 @@ pub fn pre_profession_dough(counts: &BakeCounts) -> BakeAction {
     }
 
     let count_dough = counts.get_with_held(BOWL_OF_DOUGH);
-    let count_crust = counts.get(RAW_PIE_CRUST);
+    let count_crust = counts.get_with_held(RAW_PIE_CRUST);
     if count_dough > 0 && count_crust < 5 && max_d == 0 {
         return BakeAction::CraftItem {
             object_id: RAW_PIE_CRUST,
@@ -1168,7 +1374,11 @@ pub fn pre_profession_dough(counts: &BakeCounts) -> BakeAction {
 /// Count raw pies + extra raw bake items (for lighting oven).
 // Haxe: countRawPies when hotOven==null && fireOven==null ~3173â€“3187
 pub fn count_raw_stuff_to_bake(counts: &BakeCounts) -> i32 {
-    counts.sum(RAW_PIES) + counts.sum(EXTRA_RAW_BAKE_IDS)
+    RAW_PIES
+        .iter()
+        .chain(EXTRA_RAW_BAKE_IDS.iter())
+        .map(|&id| counts.get_with_held(id))
+        .sum()
 }
 
 /// Haxe `neededRaw = isHungry ? 1 : 4; if no plate â†’ 1`.
@@ -1222,11 +1432,12 @@ pub fn hot_oven_bake(
         // Pure SM only emits when stock/held present to avoid infinite no-ops.
     }
 
-    // Still rotate last_pie like Haxe for empty attempt path.
-    runtime.last_pie = start as i32;
+    // Haxe sets lastPie on every attempt; after a full miss it is the last index visited.
+    // Haxe: for i in 0...pies.length { lastPie = (nextPie+i)%len; shortCraft... }
+    runtime.last_pie = ((start + RAW_PIES.len() - 1) % RAW_PIES.len()) as i32;
 
-    // Raw Bread Loaf if sliced bread low
-    if counts.get(SLICED_BREAD) < 3
+    // Raw Bread Loaf if sliced bread low (countCurrentObject includes held)
+    if counts.get_with_held(SLICED_BREAD) < 3
         && (counts.get(RAW_BREAD_LOAF) > 0 || counts.held_id == RAW_BREAD_LOAF)
     {
         return BakeAction::ShortCraft {
@@ -1277,20 +1488,20 @@ pub fn knife_bread_stage(counts: &BakeCounts, runtime: &BakerProfessionRuntime) 
         return BakeAction::None;
     }
 
-    // Cooked Turkey on Plate
+    // Cooked Turkey on Plate — shortCraft needs a map target
     if counts.get(COOKED_TURKEY_PLATE) > 0 {
         return BakeAction::ShortCraft {
             actor: KNIFE,
             target: COOKED_TURKEY_PLATE,
         };
     }
-    // Chopped Tomato on Plate (craftItemMax)
-    if counts.get(CHOPPED_TOMATO_PLATE) < 1 {
+    // Chopped Tomato on Plate (craftItemMax / countCurrentObject includes held)
+    if counts.get_with_held(CHOPPED_TOMATO_PLATE) < 1 {
         return BakeAction::CraftItem {
             object_id: CHOPPED_TOMATO_PLATE,
         };
     }
-    // Knife + Baked Bread â†’ sliced
+    // Knife + Baked Bread → sliced
     if counts.get(BAKED_BREAD) > 0 {
         return BakeAction::ShortCraft {
             actor: KNIFE,
@@ -1298,7 +1509,8 @@ pub fn knife_bread_stage(counts: &BakeCounts, runtime: &BakerProfessionRuntime) 
         };
     }
 
-    if counts.get(SLICED_BREAD) < 2 {
+    // Haxe countSlicedBread = countCurrentObject(1471) includes held
+    if counts.get_with_held(SLICED_BREAD) < 2 {
         // Knife + Leavened Dough on Clay Plate
         if counts.get(LEAVENED_DOUGH_PLATE) > 0 {
             return BakeAction::ShortCraft {
@@ -1306,7 +1518,7 @@ pub fn knife_bread_stage(counts: &BakeCounts, runtime: &BakerProfessionRuntime) 
                 target: LEAVENED_DOUGH_PLATE,
             };
         }
-        // countBread < 2 â†’ craft leavened dough on plate
+        // countBread < 2 → craft leavened dough on plate
         let bread = count_bread_family(counts);
         if bread < 2 {
             return BakeAction::CraftItem {
@@ -1315,8 +1527,8 @@ pub fn knife_bread_stage(counts: &BakeCounts, runtime: &BakerProfessionRuntime) 
         }
     }
 
-    // Mango Slices
-    if counts.get(MANGO_SLICES) < 1 {
+    // Mango Slices — craftItemMax includes held
+    if counts.get_with_held(MANGO_SLICES) < 1 {
         return BakeAction::CraftItem {
             object_id: MANGO_SLICES,
         };
@@ -1339,7 +1551,7 @@ pub fn make_raw_pies(
     max: i32,
     rng_pie_index: usize,
 ) -> BakeAction {
-    let cooked = counts.sum(COOKED_PIES);
+    let cooked = counts.sum_with_held(COOKED_PIES);
     if cooked >= max {
         task.make_raw_pies = 0.0;
         return BakeAction::None;
@@ -1351,9 +1563,10 @@ pub fn make_raw_pies(
         return BakeAction::None;
     }
 
-    let count_carrot_pies = counts.sum(&[COOKED_CARROT_PIE, RAW_CARROT_PIE]);
-    let count_mutton_pies = counts.sum(&[COOKED_MUTTON_PIE, RAW_MUTTON_PIE]);
-    let count_berry = counts.sum(&[
+    let count_carrot_pies = counts.sum_with_held(&[COOKED_CARROT_PIE, RAW_CARROT_PIE]);
+    let count_mutton_pies = counts.sum_with_held(&[COOKED_MUTTON_PIE, RAW_MUTTON_PIE]);
+    // Haxe L3405 countCurrentObjects([30, 391, 253, 258]) includes held
+    let count_berry = counts.sum_with_held(&[
         WILD_BUSH,
         DOMESTIC_BUSH,
         BOWL_GOOSEBERRIES,
@@ -1382,7 +1595,8 @@ pub fn make_raw_pies(
         if raw == RAW_BERRY_PIE && count_berry < 2 {
             continue;
         }
-        let count = counts.get(raw) + counts.get(cooked_id);
+        // Haxe L3423 countCurrentObjects([pies[index], rawPies[index]]) includes held
+        let count = counts.get_with_held(raw) + counts.get_with_held(cooked_id);
         if count > 1 {
             continue;
         }
@@ -1419,9 +1633,9 @@ pub fn mid_bake_pipeline(
         return carrots;
     }
 
-    // Kindling makeOrCollect(72, 1, 5) when not hungry
+    // Kindling makeOrCollect(72, 1, 5) when not hungry — CountCloseObjects r=15, not held
     if !counts.is_hungry {
-        let kindling = counts.get_with_held(KINDLING);
+        let kindling = counts.get(KINDLING);
         let k = make_or_collect(KINDLING, 1, 5, kindling, &mut task.kindling_collect);
         if k.is_some() {
             return k;
@@ -1430,14 +1644,12 @@ pub fn mid_bake_pipeline(
 
     // doHarvestWheat(1, 4)
     let harvest = harvest_wheat_for_baker(1, 4, counts, task);
-    if harvest.is_some() || harvest.is_defer() {
-        if !matches!(harvest, BakeAction::None) {
-            return harvest;
-        }
+    if harvest.is_some() {
+        return harvest;
     }
 
-    // Potatoes: Raw + Baked < 5 && Dug Potatoes
-    let count_potatos = counts.sum(&[RAW_POTATO, BAKED_POTATO]);
+    // Potatoes: countCurrentObjects([1147, 1148]) includes held
+    let count_potatos = counts.sum_with_held(&[RAW_POTATO, BAKED_POTATO]);
     if count_potatos < 5 && counts.get(DUG_POTATOES) > 0 {
         return BakeAction::ShortCraft {
             actor: 0,
@@ -1445,14 +1657,14 @@ pub fn mid_bake_pipeline(
         };
     }
 
-    let count_mutton_pies = counts.sum(&[COOKED_MUTTON_PIE, RAW_MUTTON_PIE]);
+    let count_mutton_pies = counts.sum_with_held(&[COOKED_MUTTON_PIE, RAW_MUTTON_PIE]);
     if count_mutton_pies < 2 {
         return BakeAction::CraftItem {
             object_id: RAW_MUTTON_PIE,
         };
     }
 
-    let count_mutton = counts.sum(&[COOKED_MUTTON, RAW_MUTTON]);
+    let count_mutton = counts.sum_with_held(&[COOKED_MUTTON, RAW_MUTTON]);
     if count_mutton < 2 {
         return BakeAction::CraftItem {
             object_id: RAW_MUTTON,
@@ -1465,8 +1677,8 @@ pub fn mid_bake_pipeline(
         return sheep;
     }
 
-    // Wheat stock for pie gate
-    let count_wheat = counts.sum(&[
+    // Haxe L3344 countCurrentObjects([242, 228, 226, 297, 4070]) includes held
+    let count_wheat = counts.sum_with_held(&[
         RIPE_WHEAT,
         DRY_PLANTED_WHEAT,
         THRESHED_WHEAT,
@@ -1474,7 +1686,8 @@ pub fn mid_bake_pipeline(
         PILE_THRESHED_WHEAT,
     ]);
 
-    if count_wheat < 10 && counts.held_id == BOWL_OF_WHEAT {
+    // Haxe L3348 shortCraft(245, 213, 15, false)
+    if count_wheat < 10 && counts.held_id == BOWL_OF_WHEAT && counts.get(DEEP_TILLED_ROW) > 0 {
         return BakeAction::ShortCraft {
             actor: BOWL_OF_WHEAT,
             target: DEEP_TILLED_ROW,
@@ -1492,45 +1705,34 @@ pub fn mid_bake_pipeline(
         return pies;
     }
 
-    // doPlantWheat(2, 5) after pies
+    // doPlantWheat(2, 5) / doPlantBeans(2, 4) share Haxe taskState['CornPlanter']
     {
-        let planted = counts.get(DRY_PLANTED_WHEAT);
-        let stage = count_wheat;
-        if stage >= 5 {
+        let wheat_stages = baker_wheat_plant_stage(counts);
+        if wheat_stages >= 5 {
             task.wheat_planter = 0.0;
-        } else if stage <= 2 {
+        } else if wheat_stages < 2 {
             task.wheat_planter = 1.0;
-        }
-        if task.wheat_planter >= 1.0 && planted < 5 {
-            return BakeAction::CraftItem {
-                object_id: DRY_PLANTED_WHEAT,
-            };
         }
         if task.wheat_planter >= 1.0 {
             return BakeAction::DeferPlantWheat;
         }
     }
-
-    // doPlantBeans(2, 4)
     {
-        let beans = counts.get(DRY_PLANTED_BEANS) + counts.get(SOAKING_BEANS);
-        if beans >= 4 {
+        let bean_stages = baker_bean_plant_stage(counts);
+        if bean_stages >= 4 {
+            task.wheat_planter = 0.0;
             task.bean_planter = 0.0;
-        } else if beans <= 2 {
+        } else if bean_stages < 2 {
+            task.wheat_planter = 1.0;
             task.bean_planter = 1.0;
         }
-        if task.bean_planter >= 1.0 {
-            if beans < 4 {
-                return BakeAction::CraftItem {
-                    object_id: DRY_PLANTED_BEANS,
-                };
-            }
+        if task.wheat_planter >= 1.0 {
             return BakeAction::DeferPlantBeans;
         }
     }
 
-    // Soaking beans / stew when seeds available â€” craftItemMax(..., 2)
-    if counts.has_bean_seeds {
+    // Bowl of Soaking Beans 1180 / Raw Stew Pot 1246 — craftItemMax(..., 2)
+    if baker_has_bean_seeds(counts) {
         let beans = craft_item_max(counts, SOAKING_BEANS, 2);
         if beans.is_some() {
             return beans;
@@ -1543,31 +1745,16 @@ pub fn mid_bake_pipeline(
         }
     }
 
-    // End of pure baker pipeline â€” Haxe sets BAKER=0 then berry/pottery/cleanup
+    // End of pure baker pipeline — Haxe sets BAKER=0 then berry/pottery/cleanup
     runtime.stage = 0.0;
 
     let berry = fill_berry_bowl_if_needed(counts);
-    if berry.is_some() || matches!(berry, BakeAction::DeferBerryBowl) {
-        // Only defer berry when holding bowl without bush; skip empty-hands DeferBerryBowl
-        if berry.is_some() {
-            return berry;
-        }
-        if counts.held_id == BOWL_GOOSEBERRIES {
-            return berry;
-        }
+    if berry.is_some() {
+        return berry;
     }
 
-    // doPottery(1)
-    if !counts.has_close_plate() || counts.get(RAW_PIE_CRUST) < 1 {
-        // Late pottery after profession reset â€” always try once when plates thin
-        return BakeAction::DeferPottery;
-    }
-
-    if !counts.is_hungry {
-        return BakeAction::DeferCleanup;
-    }
-
-    BakeAction::None
+    // Haxe L3374–3376: if (doPottery(1)) return true; if (!hungry && cleanUp())
+    BakeAction::DeferPotteryThenCleanup
 }
 
 // â”€â”€ Full doBaking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1668,13 +1855,13 @@ pub fn do_baking(
             target: COOKED_TURKEY,
         };
     }
-    // Bowl of Turkey Broth 2198 â€” craftItemMax (stock-gated pure: turkey family present)
+    // Bowl of Turkey Broth 2198 — craftItemMax (stock-gated pure: turkey family present)
     // Haxe: craftItemMax(2198) ~3235
-    let turkey_family = counts.get(PLUCKED_TURKEY_PLATE)
-        + counts.get(COOKED_TURKEY_PLATE)
-        + counts.get(COOKED_TURKEY)
-        + counts.get(TURKEY_SLICE_PLATE)
-        + counts.get(TURKEY_BROTH);
+    let turkey_family = counts.get_with_held(PLUCKED_TURKEY_PLATE)
+        + counts.get_with_held(COOKED_TURKEY_PLATE)
+        + counts.get_with_held(COOKED_TURKEY)
+        + counts.get_with_held(TURKEY_SLICE_PLATE)
+        + counts.get_with_held(TURKEY_BROTH);
     if turkey_family > 0 {
         let broth = craft_item_max(counts, TURKEY_BROTH, 1);
         if broth.is_some() {
@@ -1706,7 +1893,7 @@ pub fn do_baking(
         // Cold oven present â€” continue prep without baking into oven
     }
 
-    // No close plates + no pie crust â†’ pottery
+    // Haxe L3263 CountCloseObjects(home, 264, 30) — held crust does not count
     if !counts.has_close_plate() && counts.get(RAW_PIE_CRUST) < 1 {
         return BakeAction::DeferPottery;
     }
@@ -1824,7 +2011,9 @@ pub fn bake_action_to_goal(action: BakeAction) -> Goal {
         BakeAction::DeferBerryBowl => Goal::SeekObject(BOWL_GOOSEBERRIES),
         BakeAction::DeferSeatsCleanup => Goal::SeekObject(BOWL_TOMATO_SEEDS),
         BakeAction::DeferCleanup => Goal::SeekObject(BAKER_TARGET_ID),
-        BakeAction::DeferPottery => Goal::SeekObject(CLAY_PLATE),
+        BakeAction::DeferPottery | BakeAction::DeferPotteryThenCleanup => {
+            Goal::SeekObject(CLAY_PLATE)
+        }
         BakeAction::ShortCraft { target, .. } => Goal::SeekObject(target),
         BakeAction::CraftItem { object_id } => Goal::SeekObject(object_id),
     }
@@ -1968,6 +2157,8 @@ pub fn baker_radius_table() -> &'static [(i32, &'static str)] {
     &[
         (OVEN_SEARCH_RADIUS, "oven GetClosestObjectToPosition home"),
         (PIE_CRUST_COUNT_RADIUS, "CountCloseObjects pie crust 264"),
+        (KINDLING_COLLECT_RADIUS, "makeOrCollect kindling CountClose r=15"),
+        (TOMATO_SEED_COUNT_RADIUS, "makeSeats CountClose tomato 2828 r=30"),
         (BAKING_CRAFT_SEARCH_RADIUS, "doBaking itemToCraft.maxSearchRadius wrap"),
     ]
 }
@@ -2101,6 +2292,10 @@ pub fn fill_bake_counts_from_map_ex(
         // Haxe CountCloseObjects: half-open square, not chebyshev â‰¤ r.
         let r = if id == RAW_PIE_CRUST {
             PIE_CRUST_COUNT_RADIUS
+        } else if id == KINDLING {
+            KINDLING_COLLECT_RADIUS
+        } else if id == BOWL_TOMATO_SEEDS {
+            TOMATO_SEED_COUNT_RADIUS
         } else {
             home_r
         };
@@ -2296,6 +2491,18 @@ mod tests {
         );
         assert_eq!(FILL_BERRY_HELD_RUNG, "FILL_BERRY_HELD");
         assert_eq!(FILL_BERRY_HELD_SEARCH_DIST, 20);
+        assert_eq!(FILL_BERRY_DEFAULT_SEARCH_DIST, 30);
+        assert_eq!(fill_berry_bowl_search_dist(true), 20);
+        assert_eq!(fill_berry_bowl_search_dist(false), 30);
+        assert_eq!(BERRY_BUSH_IDS, [WILD_BUSH, DOMESTIC_BUSH]);
+        // Haxe L4245–4246: onlyFillHeld or TODO early return — no BOWLFILLER
+        let mut no_held = inp;
+        no_held.held_id = 0;
+        no_held.bush = Some((1, 0, DOMESTIC_BUSH));
+        assert_eq!(
+            fill_berry_bowl_held_if_needed(&no_held),
+            FillBerryBowlHeldAction::None
+        );
     }
 
     #[test]
@@ -2366,6 +2573,59 @@ mod tests {
     }
 
     #[test]
+    fn do_baking_count_current_object_includes_held() {
+        // Haxe L3133–3193: knife/bread/plates/raw/crust countCurrentObject includes held
+        let mut c = counts_with(&[(RAW_BERRY_PIE, 0)], Some(ADOBE_OVEN), CLAY_PLATE);
+        assert!(c.has_close_plate());
+        // held plate + 1 raw, not hungry → neededRaw=4, skip fire
+        c.set(RAW_BERRY_PIE, 1);
+        c.is_hungry = false;
+        let mut rt = BakerProfessionRuntime {
+            is_last_baker: true,
+            ..Default::default()
+        };
+        let mut task = BakerTaskState::default();
+        let a = do_baking(&c, &mut rt, &mut task, 1, 0.0, 0.0, 0);
+        assert_ne!(
+            a,
+            BakeAction::CraftItem {
+                object_id: BURNING_OVEN
+            },
+            "held plate must not collapse neededRaw to 1"
+        );
+
+        let mut raw_held = counts_with(&[], None, RAW_BERRY_PIE);
+        raw_held.is_hungry = true;
+        assert_eq!(count_raw_stuff_to_bake(&raw_held), 1);
+        let mut rt = BakerProfessionRuntime::default();
+        let mut task = BakerTaskState::default();
+        assert_eq!(
+            do_baking(&raw_held, &mut rt, &mut task, 1, 0.0, 0.0, 0),
+            BakeAction::CraftItem {
+                object_id: BURNING_OVEN
+            }
+        );
+
+        let mut bread = BakeCounts::default();
+        bread.held_id = SLICED_BREAD;
+        bread.set(KNIFE, 1);
+        assert_eq!(count_bread_family(&bread), 1);
+        assert_eq!(max_dough_in_bowl(true, count_bread_family(&bread)), 1);
+        bread.set(LEAVENED_DOUGH_PLATE, 1);
+        assert_eq!(count_bread_family(&bread), 2);
+        assert_eq!(max_dough_in_bowl(true, count_bread_family(&bread)), 0);
+
+        let crust = counts_with(&[(BOWL_OF_DOUGH, 1), (RAW_PIE_CRUST, 4)], None, RAW_PIE_CRUST);
+        assert_eq!(
+            pre_profession_dough(&crust),
+            BakeAction::None,
+            "held crust counts toward <5 gate"
+        );
+        assert_eq!(BAKER_HELPER_DEFAULT_MAX_PEOPLE, 2);
+        assert_eq!(BAKING_CRAFT_SEARCH_RADIUS, 30);
+    }
+
+    #[test]
     fn hot_oven_bakes_rotated_raw_pie() {
         let mut rt = BakerProfessionRuntime {
             is_last_baker: true,
@@ -2423,6 +2683,42 @@ mod tests {
             BakeAction::CraftItem {
                 object_id: LEAVENED_DOUGH_PLATE
             }
+        );
+    }
+
+    #[test]
+    fn knife_bread_craft_item_max_and_sliced_include_held() {
+        // Haxe L3276/L3281/L3295: craftItemMax + countSlicedBread use countCurrentObject
+        let rt = BakerProfessionRuntime {
+            stage: 2.0,
+            is_last_baker: true,
+            ..Default::default()
+        };
+        let mut held_tomato = counts_with(&[(KNIFE, 1), (CLAY_PLATE, 1)], Some(ADOBE_OVEN), CHOPPED_TOMATO_PLATE);
+        held_tomato.set(SLICED_BREAD, 2);
+        held_tomato.set(MANGO_SLICES, 1);
+        assert_eq!(
+            knife_bread_stage(&held_tomato, &rt),
+            BakeAction::None,
+            "held chopped tomato must satisfy craftItemMax"
+        );
+
+        // 1 map sliced + 1 held sliced ≥ 2 → skip knife+leavened even if 1468 is on the map
+        let c = counts_with(
+            &[
+                (KNIFE, 1),
+                (CHOPPED_TOMATO_PLATE, 1),
+                (SLICED_BREAD, 1),
+                (LEAVENED_DOUGH_PLATE, 1),
+                (MANGO_SLICES, 1),
+            ],
+            Some(ADOBE_OVEN),
+            SLICED_BREAD,
+        );
+        assert_eq!(
+            knife_bread_stage(&c, &rt),
+            BakeAction::None,
+            "held sliced bread counts toward countSlicedBread < 2"
         );
     }
 
@@ -2690,6 +2986,62 @@ mod tests {
     }
 
     #[test]
+    fn make_raw_pies_berry_and_pair_counts_include_held() {
+        // Haxe L3405 / L3423 countCurrentObjects includes held
+        let mut rt = BakerProfessionRuntime {
+            count_pies: 1, // %4 != 0 and != 2 → rotation
+            last_pie: 0,   // start at berry pie 265
+            ..Default::default()
+        };
+        let mut task = BakerTaskState {
+            make_raw_pies: 1.0,
+            ..Default::default()
+        };
+        // No bushes on map, held bowl of gooseberries + 1 wild bush = 2 → skip berry pie
+        let mut c = counts_with(
+            &[(WILD_BUSH, 1), (COOKED_BERRY_PIE, 2)],
+            Some(ADOBE_OVEN),
+            BOWL_GOOSEBERRIES,
+        );
+        c.set(COOKED_MUTTON_PIE, 2);
+        c.set(COOKED_CARROT_PIE, 2);
+        let a = make_raw_pies(&c, &mut rt, &mut task, 2, 5, 0);
+        assert_ne!(
+            a,
+            BakeAction::CraftItem {
+                object_id: RAW_BERRY_PIE
+            },
+            "held berries must count toward countBerry < 2 skip"
+        );
+
+        // 1 map cooked + 1 held cooked of same pie → count > 1 skip that slot
+        let mut rt = BakerProfessionRuntime {
+            count_pies: 1,
+            last_pie: 2, // carrot
+            ..Default::default()
+        };
+        let held_cooked = counts_with(
+            &[(COOKED_CARROT_PIE, 1), (COOKED_BERRY_PIE, 2), (COOKED_MUTTON_PIE, 2)],
+            Some(ADOBE_OVEN),
+            COOKED_CARROT_PIE,
+        );
+        assert_ne!(
+            make_raw_pies(&held_cooked, &mut rt, &mut task, 2, 5, 2),
+            BakeAction::CraftItem {
+                object_id: RAW_CARROT_PIE
+            }
+        );
+
+        assert_eq!(count_current_object(&held_cooked, COOKED_CARROT_PIE), 2);
+        assert_eq!(
+            count_current_objects(&held_cooked, &[COOKED_CARROT_PIE, RAW_CARROT_PIE]),
+            2
+        );
+        assert_eq!(GET_CLOSEST_OBJECT_BY_ID_DEFAULT_DIST, 30);
+        assert_eq!(TOMATO_SEED_COUNT_RADIUS, 30);
+    }
+
+    #[test]
     fn bake_counts_from_nearby_picks_hot_oven() {
         let c = bake_counts_from_nearby(
             &[(ADOBE_OVEN, 1), (HOT_OVEN, 1), (RAW_BERRY_PIE, 2), (CLAY_PLATE, 1)],
@@ -2797,7 +3149,10 @@ mod tests {
             })
         );
         assert_eq!(baker_max_people_for_dispatch(true, false), BAKER_ASSIGNED_MAX_PEOPLE);
-        assert_eq!(baker_max_people_for_dispatch(false, true), 2);
+        assert_eq!(
+            baker_max_people_for_dispatch(false, true),
+            BAKER_HELPER_DEFAULT_MAX_PEOPLE
+        );
         assert!(!baker_job_rung_label("ESCAPE"));
     }
 
@@ -3114,6 +3469,267 @@ mod tests {
             baker_short_craft_limits(RAW_MUTTON, HOT_OVEN),
             (RAW_MUTTON_HOT_OVEN_MAX_NEW_ACTOR, false)
         );
+        assert_eq!(
+            baker_short_craft_limits(PLUCKED_TURKEY_PLATE, HOT_OVEN),
+            (-1, true),
+            "Haxe shortCraftOnTarget(2183, hotOven) default craftActor=true"
+        );
+        assert_eq!(baker_short_craft_limits(KNIFE, COOKED_TURKEY_PLATE), (-1, false));
+        assert_eq!(baker_short_craft_limits(CLAY_BOWL, SAUERKRAUT), (-1, true));
+        assert_eq!(
+            baker_short_craft_search_radius(0, HOT_OVEN),
+            OVEN_SEARCH_RADIUS
+        );
+        assert_eq!(
+            baker_short_craft_search_radius(0, COOKED_TURKEY),
+            BAKING_HELPER_SHORTCRAFT_DISTANCE
+        );
+        assert_eq!(
+            baker_short_craft_search_radius(BOWL_OF_WHEAT, DEEP_TILLED_ROW),
+            WHEAT_BOWL_SHORTCRAFT_DISTANCE
+        );
+        assert_eq!(
+            baker_short_craft_limits(BOWL_OF_WHEAT, DEEP_TILLED_ROW),
+            (-1, false)
+        );
+        assert_eq!(BAKER_NESTED_POTTERY_MAX_PEOPLE, 1);
+    }
+
+    #[test]
+    fn hot_oven_post_pie_and_last_pie_wrap() {
+        let mut rt = BakerProfessionRuntime {
+            is_last_baker: true,
+            stage: 2.0,
+            last_pie: 0,
+            ..Default::default()
+        };
+        // No pies → lastPie ends at last visited index (start+len-1)%len = 7
+        let empty = counts_with(&[], Some(HOT_OVEN), 0);
+        assert_eq!(hot_oven_bake(&empty, &mut rt, 0), BakeAction::None);
+        assert_eq!(rt.last_pie, (RAW_PIES.len() - 1) as i32);
+
+        // Sliced bread low + raw loaf
+        let loaf = counts_with(&[(RAW_BREAD_LOAF, 1), (SLICED_BREAD, 2)], Some(HOT_OVEN), 0);
+        assert_eq!(
+            hot_oven_bake(&loaf, &mut rt, 0),
+            BakeAction::ShortCraft {
+                actor: RAW_BREAD_LOAF,
+                target: HOT_OVEN
+            }
+        );
+        // Held sliced bread makes count ≥ 3 → skip loaf, bake beans
+        let mut beans = counts_with(
+            &[(RAW_BREAD_LOAF, 1), (SLICED_BREAD, 2), (SOAKING_BEANS, 1)],
+            Some(HOT_OVEN),
+            SLICED_BREAD,
+        );
+        assert_eq!(
+            hot_oven_bake(&beans, &mut rt, 0),
+            BakeAction::ShortCraft {
+                actor: SOAKING_BEANS,
+                target: HOT_OVEN
+            }
+        );
+        beans.set(SOAKING_BEANS, 0);
+        beans.set(PLUCKED_TURKEY_PLATE, 1);
+        assert_eq!(
+            hot_oven_bake(&beans, &mut rt, 0),
+            BakeAction::ShortCraft {
+                actor: PLUCKED_TURKEY_PLATE,
+                target: HOT_OVEN
+            }
+        );
+    }
+
+    #[test]
+    fn do_baking_l3201_3300_turkey_sauerkraut_pottery_held_crust() {
+        let mut rt = BakerProfessionRuntime {
+            is_last_baker: true,
+            stage: 1.0,
+            ..Default::default()
+        };
+        let mut task = BakerTaskState::default();
+        // Cooked turkey on map → shortCraft(0, 2185) before broth
+        let turkey = counts_with(
+            &[(COOKED_TURKEY, 1), (CLAY_PLATE, 1)],
+            Some(HOT_OVEN),
+            0,
+        );
+        assert_eq!(
+            do_baking(&turkey, &mut rt, &mut task, 1, 0.0, 0.0, 0),
+            BakeAction::ShortCraft {
+                actor: 0,
+                target: COOKED_TURKEY
+            }
+        );
+        // Sauerkraut after milk/turkey gates
+        let kraut = counts_with(&[(SAUERKRAUT, 1), (CLAY_PLATE, 1)], Some(HOT_OVEN), 0);
+        assert_eq!(
+            do_baking(&kraut, &mut rt, &mut task, 1, 0.0, 0.0, 0),
+            BakeAction::ShortCraft {
+                actor: CLAY_BOWL,
+                target: SAUERKRAUT
+            }
+        );
+        // Held pie crust is CountCloseObjects-not-held → still doPottery(1)
+        let held_crust = counts_with(&[], Some(ADOBE_OVEN), RAW_PIE_CRUST);
+        assert_eq!(
+            do_baking(&held_crust, &mut rt, &mut task, 1, 0.0, 0.0, 0),
+            BakeAction::DeferPottery
+        );
+        // Map crust r-count (by_id) blocks pottery
+        let map_crust = counts_with(&[(RAW_PIE_CRUST, 1)], Some(ADOBE_OVEN), 0);
+        assert_ne!(
+            do_baking(&map_crust, &mut rt, &mut task, 1, 0.0, 0.0, 0),
+            BakeAction::DeferPottery
+        );
+        // No hot/burning and no 237/247 → BAKER=0 abort
+        let mut no_oven = BakerProfessionRuntime {
+            is_last_baker: true,
+            ..Default::default()
+        };
+        assert_eq!(
+            do_baking(
+                &counts_with(&[(CLAY_PLATE, 1)], None, 0),
+                &mut no_oven,
+                &mut task,
+                1,
+                0.0,
+                0.0,
+                0
+            ),
+            BakeAction::Abort
+        );
+        assert_eq!(no_oven.stage, 0.0);
+    }
+
+    #[test]
+    fn mid_bake_l3301_3400_held_counts_ids_and_late_pottery() {
+        let mut rt = BakerProfessionRuntime {
+            is_last_baker: true,
+            stage: 2.0,
+            ..Default::default()
+        };
+        let mut task = BakerTaskState::default();
+        // Held raw potato counts toward countPotatos < 5
+        let mut held_spud = counts_with(
+            &[
+                (CLAY_PLATE, 1),
+                (TURKEY_SLICE_PLATE, 1),
+                (CARROT, 12),
+                (KINDLING, 5),
+                (RAW_POTATO, 4),
+                (DUG_POTATOES, 1),
+            ],
+            Some(ADOBE_OVEN),
+            RAW_POTATO,
+        );
+        let a = mid_bake_pipeline(&held_spud, &mut rt, &mut task, 0);
+        assert_ne!(
+            a,
+            BakeAction::ShortCraft {
+                actor: 0,
+                target: DUG_POTATOES
+            },
+            "held potato must count in countCurrentObjects([1147,1148])"
+        );
+
+        // doHarvestWheat threshed is 226+4069 not pile 4070
+        let pile = counts_with(
+            &[(PILE_THRESHED_WHEAT, 4), (RIPE_WHEAT, 1)],
+            Some(ADOBE_OVEN),
+            0,
+        );
+        task.wheat_harvester = 0.0;
+        assert_eq!(
+            harvest_wheat_for_baker(1, 4, &pile, &mut task),
+            BakeAction::CraftItem {
+                object_id: HARVESTED_WHEAT
+            },
+            "pile 4070 must not cap doHarvestWheat"
+        );
+        let ground = counts_with(
+            &[(THRESHED_WHEAT_GROUND, 4), (RIPE_WHEAT, 1)],
+            Some(ADOBE_OVEN),
+            0,
+        );
+        assert_eq!(
+            harvest_wheat_for_baker(1, 4, &ground, &mut task),
+            BakeAction::None
+        );
+        assert!(task.wheat_harvester > 0.0);
+
+        assert_eq!(DRY_PLANTED_BEANS, 1161);
+        assert_eq!(baker_bean_plant_stage(&counts_with(&[(DRY_PLANTED_BEANS, 2)], None, 0)), 2);
+        assert_eq!(
+            baker_wheat_plant_stage(&counts_with(&[(DRY_PLANTED_WHEAT, 1), (WET_PLANTED_WHEAT, 1)], None, 0)),
+            2
+        );
+        let mut bean_held = BakeCounts::default();
+        bean_held.held_id = BOWL_DRY_BEANS;
+        bean_held.set(DRY_BEAN_PLANTS, 1);
+        assert!(baker_has_bean_seeds(&bean_held));
+
+        // Late path: stocked bakery → doPottery(1) then cleanUp, not gated on plates
+        let late = counts_with(
+            &[
+                (CLAY_PLATE, 1),
+                (RAW_PIE_CRUST, 1),
+                (TURKEY_SLICE_PLATE, 1),
+                (CARROT, 12),
+                (KINDLING, 5),
+                (RAW_POTATO, 5),
+                (RAW_MUTTON_PIE, 2),
+                (RAW_MUTTON, 2),
+                (RIPE_WHEAT, 3),
+                (DRY_PLANTED_WHEAT, 3),
+                (THRESHED_WHEAT, 2),
+                (COOKED_BERRY_PIE, 5),
+                (DRY_PLANTED_BEANS, 4),
+            ],
+            Some(ADOBE_OVEN),
+            0,
+        );
+        let mut rt2 = BakerProfessionRuntime {
+            is_last_baker: true,
+            stage: 3.0,
+            ..Default::default()
+        };
+        let mut task2 = BakerTaskState::default();
+        task2.wheat_harvester = 1.0; // already harvested
+        assert_eq!(
+            mid_bake_pipeline(&late, &mut rt2, &mut task2, 0),
+            BakeAction::DeferPotteryThenCleanup
+        );
+        assert_eq!(rt2.stage, 0.0);
+
+        // Bowl of wheat + deep row, craftActor false / r=15
+        held_spud.held_id = BOWL_OF_WHEAT;
+        held_spud.set(DEEP_TILLED_ROW, 1);
+        held_spud.set(RIPE_WHEAT, 1);
+        held_spud.set(THRESHED_WHEAT, 4);
+        held_spud.set(TURKEY_SLICE_PLATE, 1);
+        held_spud.set(CARROT, 12);
+        held_spud.set(KINDLING, 5);
+        held_spud.set(RAW_POTATO, 5);
+        held_spud.set(RAW_MUTTON_PIE, 2);
+        held_spud.set(RAW_MUTTON, 2);
+        let mut rt3 = BakerProfessionRuntime {
+            is_last_baker: true,
+            stage: 3.0,
+            ..Default::default()
+        };
+        let mut task3 = BakerTaskState {
+            wheat_harvester: 1.0,
+            ..Default::default()
+        };
+        assert_eq!(
+            mid_bake_pipeline(&held_spud, &mut rt3, &mut task3, 0),
+            BakeAction::ShortCraft {
+                actor: BOWL_OF_WHEAT,
+                target: DEEP_TILLED_ROW
+            }
+        );
     }
 
     #[test]
@@ -3268,6 +3884,30 @@ mod tests {
             make_seats_and_cleanup_ex(&hungry, true, true),
             BakeAction::None
         );
+        // Player-local tomato seeds (not at home) still skip craft
+        let mut far = BakeCounts {
+            oven_parent_id: Some(ADOBE_OVEN),
+            ..Default::default()
+        };
+        let objs = [BakeMapObj::simple(BOWL_TOMATO_SEEDS, 40, 0)];
+        add_tomato_seeds_near_player(&mut far, 40, 0, &objs);
+        assert!(count_tomato_seeds_for_seats(&far) > 0);
+        assert_eq!(make_seats_and_cleanup_ex(&far, true, true), BakeAction::None);
+
+        // Haxe L3508–3510: BOWLFILLER max=1 then craftItem(2828)
+        let empty = counts_with(&[], Some(ADOBE_OVEN), 0);
+        assert_eq!(
+            make_seats_and_cleanup_profession(&empty, 1, 0.0, 0.0, false),
+            BakeAction::CraftItem {
+                object_id: BOWL_TOMATO_SEEDS
+            }
+        );
+        assert_eq!(
+            make_seats_and_cleanup_profession(&empty, 1, 1.0, 0.0, false),
+            BakeAction::None,
+            "peer cap max=1"
+        );
+        assert!(has_or_become_bowl_filler(true, 1, 99.0, 0.0));
     }
 
     #[test]

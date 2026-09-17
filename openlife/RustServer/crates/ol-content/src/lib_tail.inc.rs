@@ -1285,6 +1285,16 @@ mod tests {
         // Timing fields populated on load.
         assert!(db.load_objects_ms > 0 || db.load_total_ms > 0);
         assert!(db.load_transitions_ms > 0 || db.transition_count == 0);
+        // Haxe setParentFoods: empty-hand harvest (0+bush → berry, 0+banana plant → banana).
+        let berry = db.food_from_target_of(30).expect("wild gooseberry bush foodFromTarget");
+        assert_eq!(berry.0, 31);
+        assert!(berry.1 > 0, "gooseberry foodValue {}", berry.1);
+        assert_eq!(db.search_food_id_and_value(30).0, 31);
+        let banana = db.food_from_target_of(2142).expect("banana plant foodFromTarget");
+        assert_eq!(banana.0, 2143);
+        assert!(banana.1 > 0, "banana foodValue {}", banana.1);
+        assert_eq!(db.search_food_id_and_value(2143).0, 2143);
+        assert!(db.search_food_id_and_value(2143).1 > 0);
     }
 
     #[test]

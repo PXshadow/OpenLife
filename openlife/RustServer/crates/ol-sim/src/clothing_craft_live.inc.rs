@@ -8,9 +8,10 @@ pub fn tailor_profession_scan_tick(
     rung_label: &str,
 ) -> ProfessionScanTickResult {
     use crate::clothing_craft::{
-        add_home_cloth_id, has_or_become_tailor, plan_assigned_tailor_clothing,
-        tailor_max_for_dispatch, ClothingCraftInput, HomeClothStock, LOOM,
+        has_or_become_tailor, plan_assigned_tailor_clothing, plan_late_low_priority_clothing,
+        tailor_max_for_dispatch, ClothingCraftInput, LOW_PRIORITY_CLOTHING_RUNG,
     };
+    let late_low = rung_label == LOW_PRIORITY_CLOTHING_RUNG;
     let assigned = inp.assigned_tailor
         || inp.last_is_tailor
         || inp.is_assigned_job
@@ -36,21 +37,31 @@ pub fn tailor_profession_scan_tick(
             }
         }
     }
-    let mut home_stock = HomeClothStock::default();
-    let mut has_loom = false;
-    for t in tiles {
-        if t.parent_id == LOOM {
-            has_loom = true;
-        }
-        add_home_cloth_id(&mut home_stock, t.parent_id);
-    }
+    let has_loom = home_has_loom_from_xy(
+        inp.home_x,
+        inp.home_y,
+        tiles.iter().map(|t| (t.parent_id, t.x, t.y)),
+        HOME_LOOM_RADIUS,
+    );
+    let home_stock = fill_home_cloth_stock_from_xy(
+        inp.home_x,
+        inp.home_y,
+        tiles.iter().map(|t| (t.parent_id, t.x, t.y)),
+        HOME_CLOTH_COUNT_RADIUS,
+    );
+    let bow_min = inp
+        .content
+        .as_ref()
+        .and_then(|c| c.get(BOW_AND_ARROW))
+        .map(|d| d.min_pickup_age as f32)
+        .unwrap_or(0.0);
     let cinp = ClothingCraftInput {
         color: inp.person_color,
         clothing_ids: &inp.clothing,
         rag: &rag,
         age: inp.age,
         has_tailor,
-        bow_old_enough: inp.age >= 3.0,
+        bow_old_enough: is_old_enough_for_bow(inp.age, bow_min),
         held_id: inp.held_id,
         quiver_can_add: quiver_can_add_from_slots(&inp.clothing, &inp.clothing_uses),
         home_stock,
@@ -58,7 +69,12 @@ pub fn tailor_profession_scan_tick(
         has_loom,
         assigned_tailor: assigned,
     };
-    let Some(plan) = plan_assigned_tailor_clothing(&cinp) else {
+    let plan = if late_low {
+        plan_late_low_priority_clothing(&cinp)
+    } else {
+        plan_assigned_tailor_clothing(&cinp)
+    };
+    let Some(plan) = plan else {
         return ProfessionScanTickResult::none();
     };
     let intent = clothing_plan_to_live_intent(plan, tiles);

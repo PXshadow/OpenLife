@@ -42,6 +42,19 @@ pub const GOOSE_STUMP_SEARCH_R: i32 = 20;
 // Haxe: ServerSettings.BucketWaterSourceIds (transition-derived from Empty Bucket 659)
 pub const DEFAULT_BUCKET_WATER_SOURCE_IDS: [i32; 2] = [663, 662];
 
+/// Haxe `GetClosestObjectToPositionByIds` default `searchDistance` for already-have [660, 1099].
+// Haxe: AiHelper.GetClosestObjectToPositionByIds L332 default 40; fillBucket L3524
+pub const FILL_BUCKET_ALREADY_HAVE_RADIUS: i32 = 40;
+/// Haxe `shortCraft(3168/3167, 659, 20)` tank + empty bucket.
+// Haxe: AiBase.fillBucketIfNeeded L3532–3535
+pub const FILL_BUCKET_TANK_SHORTCRAFT_DIST: i32 = 20;
+/// Haxe `GetClosestObjectToPositionByIds(..., bucketWaterSourceIds, 30)`.
+// Haxe: AiBase.fillBucketIfNeeded L3539
+pub const FILL_BUCKET_SOURCE_RADIUS: i32 = 30;
+/// Haxe `shortCraftOnTarget(659, source, false, 1)` maxNewActor.
+// Haxe: AiBase.fillBucketIfNeeded L3543
+pub const FILL_BUCKET_SOURCE_MAX_NEW_ACTOR: i32 = 1;
+
 /// Bowl of Water — product used to discover [`WaterSourceIds`] (Clay Bowl 235 + target).
 // Haxe: ServerSettings.InitWaterSourceIds Bowl of Water 382 / Clay Bowl 235
 pub const BOWL_OF_WATER: i32 = 382;
@@ -597,62 +610,104 @@ pub fn fill_bucket_if_needed_apply_ex(
     bucket_water_source_ids: &[i32],
     filters: &CraftScanFilters<'_>,
 ) -> FillBucketApply {
-    // Full / partial bucket held → drop
+    // Full / partial bucket held → dropHeldObject(0)
     if held_id == FULL_BUCKET_WATER || held_id == PARTIAL_BUCKET_WATER {
         return FillBucketApply::DropHeldFullBucket;
     }
-    // Already have water bucket on ground → false (don't fill more)
+    // Already have water bucket on ground — GetClosest default r=40
     if closest_craft_obj_by_ids_filtered(
         objs,
         &[FULL_BUCKET_WATER, PARTIAL_BUCKET_WATER],
         player_x,
         player_y,
-        max_r,
+        FILL_BUCKET_ALREADY_HAVE_RADIUS,
         filters,
     )
     .is_some()
     {
         return FillBucketApply::AlreadyHaveWaterBucket;
     }
-    // Tank less-full + empty bucket shortCraft
+    // Tank less-full 3168 then tank 3167 + empty bucket shortCraft r=20
     if closest_craft_obj_filtered(
         objs,
         TANK_OF_WATER_LESS_FULL,
         player_x,
         player_y,
-        max_r,
+        FILL_BUCKET_TANK_SHORTCRAFT_DIST,
         None,
         filters,
     )
     .is_some()
-        && closest_craft_obj_filtered(objs, EMPTY_BUCKET, player_x, player_y, max_r, None, filters)
-            .is_some()
+        && closest_craft_obj_filtered(
+            objs,
+            EMPTY_BUCKET,
+            player_x,
+            player_y,
+            FILL_BUCKET_TANK_SHORTCRAFT_DIST,
+            None,
+            filters,
+        )
+        .is_some()
     {
         return FillBucketApply::ShortCraft {
             actor_id: TANK_OF_WATER_LESS_FULL,
             target_id: EMPTY_BUCKET,
         };
     }
-    // Full tank + empty bucket
-    if closest_craft_obj_filtered(objs, TANK_OF_WATER, player_x, player_y, max_r, None, filters)
+    if closest_craft_obj_filtered(
+        objs,
+        TANK_OF_WATER,
+        player_x,
+        player_y,
+        FILL_BUCKET_TANK_SHORTCRAFT_DIST,
+        None,
+        filters,
+    )
+    .is_some()
+        && closest_craft_obj_filtered(
+            objs,
+            EMPTY_BUCKET,
+            player_x,
+            player_y,
+            FILL_BUCKET_TANK_SHORTCRAFT_DIST,
+            None,
+            filters,
+        )
         .is_some()
-        && closest_craft_obj_filtered(objs, EMPTY_BUCKET, player_x, player_y, max_r, None, filters)
-            .is_some()
     {
         return FillBucketApply::ShortCraft {
             actor_id: TANK_OF_WATER,
             target_id: EMPTY_BUCKET,
         };
     }
-    // Bucket water source + empty bucket
+    // Bucket water source r=30; shortCraftOnTarget(659, source, false, 1)
+    let source_r = if max_r > 0 {
+        max_r
+    } else {
+        FILL_BUCKET_SOURCE_RADIUS
+    };
+    let new_actor = {
+        let mut n = objs
+            .iter()
+            .filter(|o| o.parent_id == FULL_BUCKET_WATER)
+            .filter(|o| craft_chebyshev(player_x, player_y, o.x, o.y) <= 30)
+            .count() as i32;
+        if held_id == FULL_BUCKET_WATER {
+            n += 1;
+        }
+        n
+    };
     if let Some(src) = closest_craft_obj_by_ids_filtered(
         objs,
         bucket_water_source_ids,
         player_x,
         player_y,
-        max_r,
+        source_r,
         filters,
     ) {
+        if new_actor >= FILL_BUCKET_SOURCE_MAX_NEW_ACTOR {
+            return FillBucketApply::AlreadyHaveWaterBucket;
+        }
         return FillBucketApply::ShortCraftOnSource {
             actor_id: EMPTY_BUCKET,
             source_id: src.parent_id,
@@ -892,6 +947,25 @@ mod craft_and_drop_tests {
                 source_x: 3,
                 source_y: 0
             }
+        );
+        assert_eq!(FILL_BUCKET_ALREADY_HAVE_RADIUS, 40);
+        assert_eq!(FILL_BUCKET_TANK_SHORTCRAFT_DIST, 20);
+        assert_eq!(FILL_BUCKET_SOURCE_RADIUS, 30);
+        assert_eq!(FILL_BUCKET_SOURCE_MAX_NEW_ACTOR, 1);
+        // Tank at dist 25 is beyond shortCraft r=20
+        let far_tank = vec![
+            CraftWorldObj::simple(TANK_OF_WATER_LESS_FULL, 25, 0),
+            CraftWorldObj::simple(EMPTY_BUCKET, 1, 0),
+        ];
+        assert_eq!(
+            fill_bucket_if_needed_apply(&far_tank, 0, 0, 0, 30, &DEFAULT_BUCKET_WATER_SOURCE_IDS),
+            FillBucketApply::NoSource
+        );
+        // Full bucket at dist 35 is inside GetClosest default 40
+        let mid_bucket = vec![CraftWorldObj::simple(FULL_BUCKET_WATER, 35, 0)];
+        assert_eq!(
+            fill_bucket_if_needed_apply(&mid_bucket, 0, 0, 0, 30, &DEFAULT_BUCKET_WATER_SOURCE_IDS),
+            FillBucketApply::AlreadyHaveWaterBucket
         );
     }
 

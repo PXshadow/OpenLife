@@ -78,6 +78,52 @@ pub fn feeding_player_profession_scan_tick(
     }
 }
 
+/// Haxe `isStayingCloseToChild` live: fertile mother Goto most-distant own infant.
+// Haxe: AiBase.isStayingCloseToChild L6399–6409
+pub fn apply_stay_close_child_tick(
+    state: &mut crate::SimState,
+    conn_id: u64,
+) -> ShortCraftLiveApplyResult {
+    let Some(p) = state.players.get(&conn_id) else {
+        return ShortCraftLiveApplyResult::Failed;
+    };
+    if !crate::player_is_fertile(state, p) {
+        return ShortCraftLiveApplyResult::Failed;
+    }
+    let mother_id = p.p_id;
+    let mx = p.x;
+    let my = p.y;
+    let min_age = crate::MIN_AGE_TO_EAT;
+    let cands: Vec<crate::HungryChildCand> = state
+        .players
+        .values()
+        .filter(|o| !o.deleted && o.p_id != mother_id)
+        .map(|o| crate::HungryChildCand {
+            conn_id: o.conn_id,
+            p_id: o.p_id,
+            x: o.x,
+            y: o.y,
+            age: o.age,
+            food: o.food,
+            held_by: o.held_by,
+            is_own: o.ai_follow_p_id == mother_id,
+        })
+        .collect();
+    let child = crate::pick_most_distant_own_child(
+        mx,
+        my,
+        &cands,
+        crate::DISTANT_OWN_CHILD_MIN_DIST,
+        crate::DISTANT_OWN_CHILD_SEARCH_DIST,
+        min_age,
+    );
+    let xy = crate::is_staying_close_to_child(true, child.map(|c| (c.x, c.y)));
+    match xy {
+        Some((x, y)) => ShortCraftLiveApplyResult::Staging(ShortCraftLiveIntent::Goto { x, y }),
+        None => ShortCraftLiveApplyResult::Failed,
+    }
+}
+
 /// Fill `GetCloseStarvingPlayer` cands from live players.
 // Haxe: AiHelper.GetCloseStarvingPlayerHelper AllPlayers
 pub fn starving_cands_from_state(
@@ -151,6 +197,16 @@ pub fn starving_cands_from_state(
             angry_time: p.angry_time,
             lost_combat_prestige: lost,
             can_feed_held: can_feed,
+            is_starting_name: {
+                let t = state.gameplay.starting_name.trim();
+                let start = if t.is_empty() {
+                    crate::naming::STARTING_NAME
+                } else {
+                    t
+                };
+                p.first_name.trim().eq_ignore_ascii_case(start)
+            },
+            is_female: crate::player_is_female(state, p),
         });
     }
     out

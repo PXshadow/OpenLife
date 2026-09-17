@@ -64,8 +64,13 @@ pub const GET_CLOSE_FIRE_MAXDIST: i32 = 20;
 // Haxe: AiBase.isHandlingFire ~1104
 pub const SHAFT_HOME_RADIUS: i32 = 20;
 /// Shaft search near player (Haxe 40).
-// Haxe: AiBase.isHandlingFire ~1105
+// Haxe: AiBase.isHandlingFire L1105
 pub const SHAFT_PLAYER_RADIUS: i32 = 40;
+/// Home-centered scan: GetCloseFire r=20 + CountCloseObjects r=30 (fire may sit at r=20).
+/// Also covers shaft GetClosestObjectToPosition player r=40.
+// Haxe: AiBase.isHandlingFire L1104–1105 / L1178–1200
+pub const HANDLING_FIRE_SCAN_RADIUS: i32 =
+    GET_CLOSE_FIRE_MAXDIST + HANDLING_FIRE_COUNT_RADIUS;
 
 /// Default maxProfession for mid-band isHandlingFire().
 // Haxe: isHandlingFire(maxProfession = 1)
@@ -547,8 +552,10 @@ pub fn handling_fire_sensors_from_map(
     )
 }
 
-/// Like [`handling_fire_sensors_from_map`] with sticky `Player.firePlace` tile.
-// Haxe: FIRE-PLACE-STICKY / GetCloseFire then getObjectHelper
+/// Like [`handling_fire_sensors_from_map`]. `sticky_xy` is ignored for firePlace:
+/// Haxe `isHandlingFire` always `GetCloseFire` then `myPlayer.firePlace = firePlace`
+/// before the L1100 null gate (write-back also uses `resolve_fire_place(..., None)`).
+// Haxe: AiBase.isHandlingFire L1084–1085 / L1100
 pub fn handling_fire_sensors_from_map_ex(
     map: &[HandlingFireMapObj],
     held_id: i32,
@@ -565,7 +572,9 @@ pub fn handling_fire_sensors_from_map_ex(
     was_idle: f32,
     sticky_xy: Option<(i32, i32)>,
 ) -> HandlingFireSensors {
-    let close = resolve_fire_place(map, home_x, home_y, GET_CLOSE_FIRE_MAXDIST, sticky_xy);
+    let _ = sticky_xy;
+    // Haxe: AiBase L1084 firePlace = GetCloseFire(myPlayer)
+    let close = get_close_fire(map, home_x, home_y, GET_CLOSE_FIRE_MAXDIST);
     let (fire_place_id, fire_place_x, fire_place_y) = close.unwrap_or((0, home_x, home_y));
     // Haxe: objAtPlace = getObjectHelper(firePlace)
     let obj_at_place_id = if fire_place_id != 0 {
@@ -692,7 +701,7 @@ pub fn is_handling_fire(
     }
 
     // No fire place → best FIREKEEPER crafts Fire (shaft first)
-    // Haxe: ~1100–1111
+    // Haxe: AiBase L1100–1111 getBestAi FIREKEEPER at home; shaft 67 r=20/40 then craftItem(82)
     if sensors.fire_place_id == 0 {
         if sensors.is_best_fire_keeper_at_home {
             fire_keeper.weight = 1.0;
@@ -709,6 +718,7 @@ pub fn is_handling_fire(
         return HandlingFireAction::None;
     }
 
+    // Haxe: AiBase L1114–1115 isObjectNotReachable / isObjectWithHostilePath
     if !sensors.fire_reachable || sensors.fire_hostile_path {
         return HandlingFireAction::None;
     }
@@ -720,13 +730,13 @@ pub fn is_handling_fire(
     };
 
     // Large fires: leave alone
-    // Haxe: ~1122–1130
+    // Haxe: AiBase L1122–1130 objId 83 / 346 / 3029
     if is_large_fire_idle(obj_id) {
         return HandlingFireAction::None;
     }
 
     // Urgent hot coals: hasOrBecome FIREKEEPER(3) → self is always "best"
-    // Haxe: ~1133–1135
+    // Haxe: AiBase L1133–1135 countProfession('FIREKEEPER') not FIREFOODMAKER
     let is_urgent = obj_id == HOT_COALS
         && has_or_become_fire_keeper(
             fire_keeper,
@@ -745,7 +755,7 @@ pub fn is_handling_fire(
     }
 
     // Hot Coals 85
-    // Haxe: ~1147–1166
+    // Haxe: AiBase L1147–1166 makeFireFood(3) r=30 then kindling use / GetOrCraft(72)
     if obj_id == HOT_COALS {
         // Haxe: tmpSearchRadius; itemToCraft.maxSearchRadius=30; makeFireFood(3)
         fire_keeper.craft_search_radius_override = Some(FIRE_CRAFT_HOT_COALS_SEARCH_RADIUS);
@@ -757,7 +767,7 @@ pub fn is_handling_fire(
     }
 
     // Fire 82 fuel ladder
-    // Haxe: ~1170–1206
+    // Haxe: AiBase L1170–1206 winter kindling; skewer>10; weak>5; charcoal>10; firewood 344
     if obj_id == FIRE {
         if sensors.is_winter {
             return HandlingFireAction::ShortCraftOnFire {
@@ -783,16 +793,13 @@ pub fn is_handling_fire(
                 fire_object_id: FIRE,
             };
         }
-        // Firewood 344: Haxe shortCraftOnTarget(344) then same-tick fallthrough
-        // butt log (count>10) / kindling. Pure mirrors success-when-stocked cascade.
-        // Haxe: ~1195–1206
-        if sensors.count_firewood > 0 {
-            return HandlingFireAction::ShortCraftOnFire {
-                actor: FIREWOOD,
-                fire_object_id: FIRE,
-            };
-        }
-        return is_handling_fire_fire_fuel_tail(sensors);
+        // Firewood 344: shortCraftOnTarget(344, firePlace) always (craftActor default true).
+        // Same-tick fallthrough to butt/kindling is live when that shortCraft returns false.
+        // Haxe: AiBase L1195–1206
+        return HandlingFireAction::ShortCraftOnFire {
+            actor: FIREWOOD,
+            fire_object_id: FIRE,
+        };
     }
 
     // Fallthrough: clear caring + null firePlace
@@ -824,7 +831,7 @@ pub fn is_handling_fire_hot_coals_kindling(sensors: &HandlingFireSensors) -> Han
 }
 
 /// Fire 82 fuel tail after firewood shortCraft would fail (butt log / kindling).
-// Haxe: ~1197–1206 after firewood
+// Haxe: AiBase L1197–1206 after firewood; L1202 held 345 bump; L1206 kindling
 pub fn is_handling_fire_fire_fuel_tail(sensors: &HandlingFireSensors) -> HandlingFireAction {
     let obj_id = if sensors.obj_at_place_id != 0 {
         sensors.obj_at_place_id
@@ -847,8 +854,9 @@ pub fn is_handling_fire_fire_fuel_tail(sensors: &HandlingFireSensors) -> Handlin
 }
 
 /// Expand nested MakeFireFood via pure `make_fire_food`; if empty on hot-coals path,
-/// continue with kindling. Fire-82 firewood action with no stock falls to fuel tail.
-// Haxe: makeFireFood then kindling fallthrough on objId==85; firewood→butt→kindling ~1195
+/// continue with kindling. Fire-82 firewood is always shortCraft (GetOrCraft 344);
+/// live maps a failed shortCraft to [`is_handling_fire_fire_fuel_tail`].
+// Haxe: makeFireFood then kindling fallthrough on objId==85; firewood L1195 then butt/kindling
 pub fn expand_handling_fire_action(
     action: HandlingFireAction,
     sensors: &HandlingFireSensors,
@@ -875,14 +883,6 @@ pub fn expand_handling_fire_action(
             }
             // Near coals makeFireFood(2) empty → no further work from that branch
             HandlingFireAction::None
-        }
-        // Defensive: if live/caller still has firewood ShortCraft with empty stock,
-        // re-apply fuel tail (same-tick Haxe fallthrough after shortCraft fail).
-        HandlingFireAction::ShortCraftOnFire {
-            actor,
-            fire_object_id,
-        } if actor == FIREWOOD && fire_object_id == FIRE && sensors.count_firewood == 0 => {
-            is_handling_fire_fire_fuel_tail(sensors)
         }
         other => other,
     }
@@ -1633,6 +1633,72 @@ mod tests {
     }
 
     #[test]
+    fn sensors_from_map_ashes_use_get_close_fire_not_sticky() {
+        // Haxe: AiBase L1084–1100 GetCloseFire then if (firePlace == null)
+        let ashes = HandlingFireMapObj {
+            parent_id: 86, // Ashes
+            x: 0,
+            y: 0,
+        };
+        let fire = HandlingFireMapObj {
+            parent_id: FIRE,
+            x: 5,
+            y: 0,
+        };
+        let with_fire = handling_fire_sensors_from_map(
+            &[ashes, fire],
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            true,
+            false,
+            true,
+            true,
+            0.0,
+            0.0,
+        );
+        assert_eq!(with_fire.fire_place_id, FIRE);
+        assert_eq!((with_fire.fire_place_x, with_fire.fire_place_y), (5, 0));
+        let ashes_only = handling_fire_sensors_from_map(
+            &[ashes],
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            true,
+            false,
+            true,
+            true,
+            0.0,
+            0.0,
+        );
+        assert_eq!(ashes_only.fire_place_id, 0);
+        // Live used to pass sticky ashes; L1100 must still GetCloseFire.
+        let sticky_ashes = handling_fire_sensors_from_map_ex(
+            &[ashes, fire],
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            true,
+            false,
+            true,
+            true,
+            0.0,
+            0.0,
+            Some((0, 0)),
+        );
+        assert_eq!(sticky_ashes.fire_place_id, FIRE);
+    }
+
+    #[test]
     fn best_fire_keeper_gate() {
         assert!(is_self_best_fire_keeper(1.0, true, true));
         assert!(is_self_best_fire_keeper(0.0, true, false));
@@ -1730,7 +1796,7 @@ mod tests {
 
     #[test]
     fn fire_82_fuel_tail_butt_log_then_kindling() {
-        // Haxe: firewood shortCraft fail → butt log when count>10 else kindling
+        // Haxe L1195: shortCraftOnTarget(344) always; L1197–1206 after that fails
         let mut fk = rt();
         let s = HandlingFireSensors {
             fire_place_id: FIRE,
@@ -1743,6 +1809,13 @@ mod tests {
         assert_eq!(
             is_handling_fire(&s, &mut fk, 1),
             HandlingFireAction::ShortCraftOnFire {
+                actor: FIREWOOD,
+                fire_object_id: FIRE
+            }
+        );
+        assert_eq!(
+            is_handling_fire_fire_fuel_tail(&s),
+            HandlingFireAction::ShortCraftOnFire {
                 actor: BUTT_LOG,
                 fire_object_id: FIRE
             }
@@ -1752,13 +1825,12 @@ mod tests {
             ..s.clone()
         };
         assert_eq!(
-            is_handling_fire(&s2, &mut fk, 1),
+            is_handling_fire_fire_fuel_tail(&s2),
             HandlingFireAction::ShortCraftOnFire {
                 actor: KINDLING,
                 fire_object_id: FIRE
             }
         );
-        // Stocked firewood still preferred over fuel tail
         let s3 = HandlingFireSensors {
             count_firewood: 1,
             count_butt_log_and_chopped: 11,
@@ -1771,6 +1843,220 @@ mod tests {
                 fire_object_id: FIRE
             }
         );
+    }
+
+    #[test]
+    fn fire_82_skewer_weak_charcoal_gates() {
+        // Haxe: AiBase L1177–1193 count>10 / >5 / >10 then shortCraftOnTarget
+        let mut fk = rt();
+        let base = HandlingFireSensors {
+            fire_place_id: FIRE,
+            obj_at_place_id: FIRE,
+            is_best_fire_keeper_at_fire: true,
+            ..Default::default()
+        };
+        let s_skewer = HandlingFireSensors {
+            count_skewer: 11,
+            ..base.clone()
+        };
+        assert_eq!(
+            is_handling_fire(&s_skewer, &mut fk, 1),
+            HandlingFireAction::ShortCraftOnFire {
+                actor: SKEWER_FOR_FIRE,
+                fire_object_id: FIRE
+            }
+        );
+        let s_weak = HandlingFireSensors {
+            count_weak_skewer: 6,
+            ..base.clone()
+        };
+        assert_eq!(
+            is_handling_fire(&s_weak, &mut fk, 1),
+            HandlingFireAction::ShortCraftOnFire {
+                actor: WEAK_SKEWER,
+                fire_object_id: FIRE
+            }
+        );
+        let s_coal = HandlingFireSensors {
+            count_charcoal_pile: 11,
+            ..base
+        };
+        assert_eq!(
+            is_handling_fire(&s_coal, &mut fk, 1),
+            HandlingFireAction::ShortCraftOnFire {
+                actor: BASKET_OF_CHARCOAL,
+                fire_object_id: FIRE
+            }
+        );
+    }
+
+    #[test]
+    fn fire_place_not_reachable_or_hostile_returns_none() {
+        // Haxe: AiBase L1114–1115
+        let mut fk = rt();
+        let s = HandlingFireSensors {
+            fire_place_id: FIRE,
+            obj_at_place_id: FIRE,
+            fire_reachable: false,
+            is_best_fire_keeper_at_fire: true,
+            ..Default::default()
+        };
+        assert_eq!(is_handling_fire(&s, &mut fk, 1), HandlingFireAction::None);
+        let s2 = HandlingFireSensors {
+            fire_reachable: true,
+            fire_hostile_path: true,
+            ..s
+        };
+        assert_eq!(is_handling_fire(&s2, &mut fk, 1), HandlingFireAction::None);
+    }
+
+    #[test]
+    fn sensors_shaft_home_20_player_40_and_chopped_tree_count() {
+        // Haxe: AiBase L1104–1105 shaft r=20 home / r=40 player; L1198–1200 345+339 r=30
+        let home_shaft = HandlingFireMapObj {
+            parent_id: LONG_STRAIGHT_SHAFT,
+            x: 20,
+            y: 0,
+        };
+        let far_shaft = HandlingFireMapObj {
+            parent_id: LONG_STRAIGHT_SHAFT,
+            x: 35,
+            y: 0,
+        };
+        let too_far = HandlingFireMapObj {
+            parent_id: LONG_STRAIGHT_SHAFT,
+            x: 41,
+            y: 0,
+        };
+        let fire = HandlingFireMapObj {
+            parent_id: FIRE,
+            x: 0,
+            y: 0,
+        };
+        let log = HandlingFireMapObj {
+            parent_id: BUTT_LOG,
+            x: 2,
+            y: 0,
+        };
+        let chopped = HandlingFireMapObj {
+            parent_id: CHOPPED_TREE,
+            x: 3,
+            y: 0,
+        };
+        let s_home = handling_fire_sensors_from_map(
+            &[fire, home_shaft],
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            true,
+            false,
+            true,
+            true,
+            0.0,
+            0.0,
+        );
+        assert!(s_home.has_shaft_near);
+        let s_player = handling_fire_sensors_from_map(
+            &[fire, far_shaft],
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            true,
+            false,
+            true,
+            true,
+            0.0,
+            0.0,
+        );
+        assert!(s_player.has_shaft_near, "player r=40 should see shaft at 35");
+        let s_miss = handling_fire_sensors_from_map(
+            &[fire, too_far],
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            true,
+            false,
+            true,
+            true,
+            0.0,
+            0.0,
+        );
+        assert!(!s_miss.has_shaft_near);
+        let s_count = handling_fire_sensors_from_map(
+            &[fire, log, chopped],
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            true,
+            false,
+            true,
+            true,
+            0.0,
+            0.0,
+        );
+        assert_eq!(s_count.count_butt_log_and_chopped, 2);
+        assert_eq!(HANDLING_FIRE_SCAN_RADIUS, 50);
+        // Haxe: AiBase L1202 if (heldId == 345) count += 1; chopped 339 has no held bump
+        let ten_logs: Vec<HandlingFireMapObj> = (0..10)
+            .map(|i| HandlingFireMapObj {
+                parent_id: BUTT_LOG,
+                x: i,
+                y: 1,
+            })
+            .collect();
+        let mut with_held = vec![fire];
+        with_held.extend(ten_logs);
+        let s_held = handling_fire_sensors_from_map(
+            &with_held,
+            BUTT_LOG,
+            0,
+            0,
+            0,
+            0,
+            false,
+            true,
+            false,
+            true,
+            true,
+            0.0,
+            0.0,
+        );
+        assert_eq!(s_held.count_butt_log_and_chopped, 11);
+        assert_eq!(
+            is_handling_fire_fire_fuel_tail(&s_held),
+            HandlingFireAction::ShortCraftOnFire {
+                actor: BUTT_LOG,
+                fire_object_id: FIRE
+            }
+        );
+        let s_held_chopped = handling_fire_sensors_from_map(
+            &[fire],
+            CHOPPED_TREE,
+            0,
+            0,
+            0,
+            0,
+            false,
+            true,
+            false,
+            true,
+            true,
+            0.0,
+            0.0,
+        );
+        assert_eq!(s_held_chopped.count_butt_log_and_chopped, 0);
     }
 
     #[test]

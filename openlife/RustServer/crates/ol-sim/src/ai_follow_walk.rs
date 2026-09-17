@@ -310,6 +310,19 @@ pub fn follow_walk_holds_tick(d: FollowWalkDecision) -> bool {
     matches!(d, FollowWalkDecision::WalkTo { .. })
 }
 
+/// Haxe `isMovingToPlayer` still `gotoAdv` while moving; `time += 1`.
+// Haxe: AiBase.isMovingToPlayer L8307–8310
+pub const FOLLOW_WALK_MOVING_WAIT_SEC: f32 = 1.0;
+
+/// Extra think wait when following while already moving.
+pub fn follow_walk_extra_wait_if_moving(is_moving: bool) -> f32 {
+    if is_moving {
+        FOLLOW_WALK_MOVING_WAIT_SEC
+    } else {
+        0.0
+    }
+}
+
 /// Seed from sim time + AI p_id for deterministic stand-off.
 pub fn follow_seed(sim_time: f32, ai_p_id: i32) -> u32 {
     let t = (sim_time * 10.0) as i32;
@@ -931,6 +944,8 @@ mod tests {
             decide_follow_walk(9, None, 0, 0, 5, 0),
             FollowWalkDecision::TargetDeleted
         );
+        assert_eq!(follow_walk_extra_wait_if_moving(true), 1.0);
+        assert_eq!(follow_walk_extra_wait_if_moving(false), 0.0);
     }
 
     #[test]

@@ -826,6 +826,24 @@
         assert!((p.true_age - 18.0).abs() < 1e-6);
     }
 
+    /// Haxe newBorn L348–351: roll after lineage.prestigeClass (not Serf fallback).
+    #[test]
+    fn spawn_player_nice_baby_uses_lineage_prestige_class() {
+        let mut state = SimState::with_default_empty(test_content());
+        let pid = spawn_player(&mut state, 1, "baby@eve");
+        // Empty server: calculatePrestigeClass n<2 → Commoner (not from_prestige(0)=Serf).
+        assert_eq!(state.player_prestige_class(pid), PrestigeClass::Commoner);
+        assert!(!crate::roll_newborn_nice_baby_after_lineage(&state, pid, 0.40));
+        assert!(crate::roll_newborn_nice_baby_after_lineage(&state, pid, 0.41));
+        state
+            .social
+            .set_lineage_prestige_class(pid, PrestigeClass::Noble);
+        assert!(!crate::roll_newborn_nice_baby_after_lineage(&state, pid, 0.80));
+        assert!(crate::roll_newborn_nice_baby_after_lineage(&state, pid, 0.81));
+        let p = state.players.get(&1).expect("spawned");
+        assert!(p.ai_try_move_nearest_tile_first);
+    }
+
     /// LINEAGE-BIRTH-TIME: spawn stamps Haxe `birthTime`; living ages use it.
     // Haxe: Lineage.new birthTime = TimeHelper.tick
     #[test]

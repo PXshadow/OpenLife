@@ -73,6 +73,21 @@ pub const DEAD_GRIZZLY: i32 = 643;
 pub const SKINNED_BEAR: i32 = 657;
 /// Cool Flat Rock 1284.
 pub const COOL_FLAT_ROCK: i32 = 1284;
+/// Firewood.
+// Haxe: AiBase.makeFireWood L4429
+pub const FIREWOOD: i32 = 344;
+/// Stack of Firewood (Haxe searches this if closeWood is null, then discards the result).
+// Haxe: AiBase.makeFireWood L4430
+pub const STACK_OF_FIREWOOD: i32 = 1316;
+/// Kindling Pile (same discarded-search pattern as stack of firewood).
+// Haxe: AiBase.makeFireWood L4435
+pub const KINDLING_PILE: i32 = 1599;
+/// Haxe `GetClosestObjectById` default searchDistance for makeFireWood.
+// Haxe: AiHelper.GetClosestObjectById searchDistance = 40
+pub const MAKE_FIRE_WOOD_SEARCH_DIST: i32 = 40;
+/// Haxe `shortCraft(0, 1284, 20)` searchDistance.
+// Haxe: AiBase.makeFireFood L4373
+pub const COOL_FLAT_ROCK_SHORTCRAFT_DIST: i32 = 20;
 /// Cold Goose Egg 1262.
 pub const COLD_GOOSE_EGG: i32 = 1262;
 /// Omelette 1285.
@@ -84,6 +99,15 @@ pub const COOKED_BEANS: i32 = 1292;
 pub const POPPING_CORN: i32 = 1122;
 /// Popcorn 1121.
 pub const POPCORN: i32 = 1121;
+/// Haxe CountClose popcorn 1121 at home r=40.
+// Haxe: AiBase.makePopcornIfNeeded L4293
+pub const POPCORN_HOME_COUNT_RADIUS: i32 = 40;
+/// Haxe CountClose popcorn 1121 at player r=40 (added to home count; may double).
+// Haxe: AiBase.makePopcornIfNeeded L4294
+pub const POPCORN_PLAYER_COUNT_RADIUS: i32 = 40;
+/// Haxe CountClose popping corn 1122 at player r=30 (not home).
+// Haxe: AiBase.makePopcornIfNeeded L4298
+pub const POPPING_CORN_PLAYER_COUNT_RADIUS: i32 = 30;
 
 /// Home search radius for hot coals / fire (Haxe 30).
 // Haxe: AiBase.makeFireFood GetClosestObjectToHome r=30
@@ -290,6 +314,10 @@ pub struct FireFoodCounts {
     /// BowlFiller peer is self (makePopcornIfNeeded best AI gate). Default true for pure unit.
     // Haxe: getBestAiForObjByProfession('BowlFiller') ~4307
     pub is_best_bowl_filler: bool,
+    /// Precomputed Haxe popcorn stock (home 1121 r=40 + player 1121 r=40 + player 1122 r=30 + held).
+    /// `None` → fall back to `get_with_held(1121)+get_with_held(1122)` for unit tests.
+    // Haxe: AiBase.makePopcornIfNeeded L4292–4299
+    pub popcorn_stock: Option<i32>,
 }
 
 /// One AI for Haxe `getBestAiForObjByProfession('BowlFiller', home)`.
@@ -415,36 +443,52 @@ pub fn needed_raw_fire_food(is_hungry: bool) -> i32 {
     }
 }
 
+/// Haxe `countCurrentObject` — map + held.
+// Haxe: AiBase.countCurrentObjectHelper L3448
+pub fn count_current_object(counts: &FireFoodCounts, id: i32) -> i32 {
+    counts.get_with_held(id)
+}
+
+/// Haxe `countCurrentObjects(ids)` — each id includes held.
+// Haxe: AiBase.countCurrentObjects L3432–3436
+pub fn count_current_objects(counts: &FireFoodCounts, ids: &[i32]) -> i32 {
+    ids.iter().map(|&id| counts.get_with_held(id)).sum()
+}
+
 /// Raw rabbit family 181+185.
 pub fn count_raw_rabbit(counts: &FireFoodCounts) -> i32 {
-    counts.sum(&[SKINNED_RABBIT, SKEWERED_RABBIT])
+    count_current_objects(counts, &[SKINNED_RABBIT, SKEWERED_RABBIT])
 }
 
 /// Raw goose family 514+515+516.
 pub fn count_raw_goose(counts: &FireFoodCounts) -> i32 {
-    counts.sum(&[DEAD_GOOSE, PLUCKED_GOOSE, SKEWERED_GOOSE])
+    count_current_objects(counts, &[DEAD_GOOSE, PLUCKED_GOOSE, SKEWERED_GOOSE])
 }
 
 /// Done goose family 517+518.
 pub fn count_done_goose(counts: &FireFoodCounts) -> i32 {
-    counts.sum(&[COOKED_GOOSE_SKEWERED, COOKED_GOOSE])
+    count_current_objects(counts, &[COOKED_GOOSE_SKEWERED, COOKED_GOOSE])
 }
 
-/// Haxe countOmelette uses `countCurrentObject(236)` (plates) â€” intentional bug port.
-// Haxe: AiBase.makeFireFood ~4378 `countOmelette = countCurrentObject(236)`
+/// Haxe countOmelette uses `countCurrentObject(236)` (plates) — intentional bug port.
+// Haxe: AiBase.makeFireFood L4378 `countOmelette = countCurrentObject(236)`
 pub fn count_omelette_haxe_bug(counts: &FireFoodCounts) -> i32 {
-    counts.get(CLAY_PLATE)
+    count_current_object(counts, CLAY_PLATE)
 }
 
 /// True if pure makePopcornIfNeeded would craft popping corn.
-// Haxe: AiBase.makePopcornIfNeeded ~4281
+///
+/// Stock uses [`FireFoodCounts::popcorn_stock`] when set (home 1121 r=40 + player
+/// 1121 r=40 + player 1122 r=30 + held). Else `get_with_held` 1121+1122.
+/// BowlFiller (`getBestAiForObjByProfession`) + `craftItem(1122)`.
+// Haxe: AiBase.makePopcornIfNeeded L4281–4312
 pub fn make_popcorn_if_needed(counts: &FireFoodCounts) -> FireFoodAction {
     if !counts.has_corn_seeds {
         return FireFoodAction::None;
     }
-    let mut count = counts.get_with_held(POPCORN);
-    count += counts.get_with_held(POPPING_CORN);
-    // Haxe also counts near player tile â€” pure uses home+held only
+    let count = counts.popcorn_stock.unwrap_or_else(|| {
+        counts.get_with_held(POPCORN) + counts.get_with_held(POPPING_CORN)
+    });
     if count > 0 {
         return FireFoodAction::None;
     }
@@ -486,8 +530,10 @@ pub fn make_fire_food(
         };
     }
 
-    let count_done_mutton = counts.get(COOKED_MUTTON);
-    let count_done_rabbit = counts.get(COOKED_RABBIT);
+    // Haxe countCurrentObject(s) include held
+    // Haxe: AiBase.makeFireFood L4328–4336
+    let count_done_mutton = count_current_object(counts, COOKED_MUTTON);
+    let count_done_rabbit = count_current_object(counts, COOKED_RABBIT);
     let count_raw_rabbit = count_raw_rabbit(counts);
     let count_raw_goose = count_raw_goose(counts);
     let count_done_r_goose = count_done_goose(counts);
@@ -579,16 +625,17 @@ pub fn make_fire_food(
         return popcorn;
     }
 
-    // 0 + Cool Flat Rock â†’ ashes
-    if counts.get(COOL_FLAT_ROCK) > 0 {
+    // Haxe: shortCraft(0, 1284, 20)
+    // Haxe: AiBase.makeFireFood L4373
+    if counts.get(COOL_FLAT_ROCK) > 0 || counts.held_id == COOL_FLAT_ROCK {
         return FireFoodAction::ShortCraft {
             actor: 0,
             target: COOL_FLAT_ROCK,
         };
     }
 
-    let count_eggs = counts.get(COLD_GOOSE_EGG);
-    let count_plates = counts.get(CLAY_PLATE);
+    let count_eggs = count_current_object(counts, COLD_GOOSE_EGG);
+    let count_plates = count_current_object(counts, CLAY_PLATE);
     // Haxe bug: countOmelette = countCurrentObject(236) (plates)
     let count_omelette = count_omelette_haxe_bug(counts);
 
@@ -599,9 +646,9 @@ pub fn make_fire_food(
     }
 
     let mut count_raw_fire_food = count_raw_rabbit + count_eggs;
-    count_raw_fire_food += counts.get(RAW_MUTTON);
-    count_raw_fire_food += counts.get(RAW_PORK);
-    count_raw_fire_food += counts.get(RAW_STEW_POT);
+    count_raw_fire_food += count_current_object(counts, RAW_MUTTON);
+    count_raw_fire_food += count_current_object(counts, RAW_PORK);
+    count_raw_fire_food += count_current_object(counts, RAW_STEW_POT);
 
     let needed_raw = needed_raw_fire_food(counts.is_hungry);
     let need_coals = (count_omelette < 1 && count_plates > 0)
@@ -617,9 +664,9 @@ pub fn make_fire_food(
         // Second fire exists â€” continue to stock crafts (coals will appear from fire)
     }
 
-    // Raw Stew Pot craftItemMax when corn seeds
-    // Haxe: ~4404
-    if counts.has_corn_seeds && counts.get(RAW_STEW_POT) < 2 {
+    // Raw Stew Pot craftItemMax(1246, 2) when corn seeds — countCurrentObject includes held
+    // Haxe: AiBase.makeFireFood L4404
+    if counts.has_corn_seeds && count_current_object(counts, RAW_STEW_POT) < 2 {
         return FireFoodAction::CraftItem {
             object_id: RAW_STEW_POT,
         };
@@ -627,7 +674,8 @@ pub fn make_fire_food(
 
     // Raw Mutton if mutton family < 2
     // Haxe: ~4407â€“4408
-    let count_mutton = counts.sum(&[COOKED_MUTTON, RAW_MUTTON]);
+    // Haxe: AiBase.makeFireFood L4407 countCurrentObjects([570, 569])
+    let count_mutton = count_current_objects(counts, &[COOKED_MUTTON, RAW_MUTTON]);
     if count_mutton < 2 {
         return FireFoodAction::CraftItem {
             object_id: RAW_MUTTON,
@@ -636,7 +684,8 @@ pub fn make_fire_food(
 
     // Raw Pork if pork food < 2
     // Haxe: ~4411â€“4412
-    let count_pork_food = counts.sum(&[RAW_PORK, BOWL_CARNITAS]);
+    // Haxe: AiBase.makeFireFood L4411 countCurrentObjects([1342, 1355])
+    let count_pork_food = count_current_objects(counts, &[RAW_PORK, BOWL_CARNITAS]);
     if count_pork_food < 2 {
         return FireFoodAction::CraftItem {
             object_id: RAW_PORK,
@@ -653,8 +702,12 @@ pub fn make_fire_food(
 
     // Soaking beans when bean seeds and bean food < 2
     // Haxe: ~4418â€“4419
-    let count_bean_food = counts.sum(&[SOAKING_BEANS, COOKED_BEANS]);
-    if count_bean_food < 2 && counts.has_bean_seeds {
+    // Haxe: AiBase.makeFireFood L4418–4419 countCurrentObjects + craftItemMax(1180, 2)
+    let count_bean_food = count_current_objects(counts, &[SOAKING_BEANS, COOKED_BEANS]);
+    if count_bean_food < 2
+        && counts.has_bean_seeds
+        && count_current_object(counts, SOAKING_BEANS) < 2
+    {
         return FireFoodAction::CraftItem {
             object_id: SOAKING_BEANS,
         };
@@ -666,7 +719,44 @@ pub fn make_fire_food(
     FireFoodAction::None
 }
 
-/// Map action â†’ self-play goal.
+/// Closest firewood/kindling for [`make_fire_wood`] (`num_uses`, `uses`).
+// Haxe: AiBase.makeFireWood L4429–4438 GetClosestObjectById
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FireWoodSnap {
+    /// Closest Firewood 344 (`objectData.numUses`, `numberOfUses`).
+    pub close_wood: Option<(i32, i32)>,
+    /// Closest Kindling 72.
+    pub close_kindling: Option<(i32, i32)>,
+}
+
+/// Haxe `makeFireWood`: craft 344 if no close firewood or incomplete pile; else kindling 72.
+///
+/// Stack 1316 / pile 1599 searches are unused in Haxe (result discarded). Call site is
+/// commented (`age < 15 && makeFireWood()`).
+// Haxe: AiBase.makeFireWood L4427–4440
+pub fn make_fire_wood(snap: FireWoodSnap) -> FireFoodAction {
+    let do_craft_wood = match snap.close_wood {
+        None => true,
+        Some((num_uses, uses)) => num_uses > 1 && uses < num_uses,
+    };
+    if do_craft_wood {
+        return FireFoodAction::CraftItem {
+            object_id: FIREWOOD,
+        };
+    }
+    let do_craft_kindling = match snap.close_kindling {
+        None => true,
+        Some((num_uses, uses)) => num_uses > 1 && uses < num_uses,
+    };
+    if do_craft_kindling {
+        return FireFoodAction::CraftItem {
+            object_id: KINDLING,
+        };
+    }
+    FireFoodAction::None
+}
+
+/// Map action → self-play goal.
 pub fn fire_food_action_to_goal(action: FireFoodAction) -> Goal {
     match action {
         FireFoodAction::None | FireFoodAction::Abort => Goal::SeekObject(FIRE),
@@ -712,6 +802,71 @@ pub struct FireFoodMapObj {
     pub parent_id: i32,
     pub x: i32,
     pub y: i32,
+}
+
+/// Haxe popcorn stock: CountClose home 1121 r=40 + player 1121 r=40 + held 1121
+/// + CountClose player 1122 r=30 + held 1122. Same 1121 tile in both squares counts twice.
+// Haxe: AiBase.makePopcornIfNeeded L4292–4299
+pub fn popcorn_stock_from_map(
+    home_x: i32,
+    home_y: i32,
+    player_x: i32,
+    player_y: i32,
+    held_id: i32,
+    map: &[FireFoodMapObj],
+) -> i32 {
+    use crate::farmer_profession::in_count_close_square;
+    let mut n = 0;
+    for o in map {
+        if o.parent_id == POPCORN {
+            if in_count_close_square(home_x, home_y, o.x, o.y, POPCORN_HOME_COUNT_RADIUS) {
+                n += 1;
+            }
+            if in_count_close_square(
+                player_x,
+                player_y,
+                o.x,
+                o.y,
+                POPCORN_PLAYER_COUNT_RADIUS,
+            ) {
+                n += 1;
+            }
+        } else if o.parent_id == POPPING_CORN
+            && in_count_close_square(
+                player_x,
+                player_y,
+                o.x,
+                o.y,
+                POPPING_CORN_PLAYER_COUNT_RADIUS,
+            )
+        {
+            n += 1;
+        }
+    }
+    if held_id == POPCORN {
+        n += 1;
+    }
+    if held_id == POPPING_CORN {
+        n += 1;
+    }
+    n
+}
+
+impl FireFoodCounts {
+    /// Fill [`FireFoodCounts::popcorn_stock`] from a map snapshot.
+    // Haxe: AiBase.makePopcornIfNeeded L4292–4299
+    pub fn apply_popcorn_stock_from_map(
+        &mut self,
+        home_x: i32,
+        home_y: i32,
+        player_x: i32,
+        player_y: i32,
+        map: &[FireFoodMapObj],
+    ) {
+        self.popcorn_stock = Some(popcorn_stock_from_map(
+            home_x, home_y, player_x, player_y, self.held_id, map,
+        ));
+    }
 }
 
 /// Exclusive-square home radius fill (same convention as farm/bake).
@@ -881,6 +1036,17 @@ mod tests {
                 target: HOT_COALS
             }
         );
+        // Haxe countCurrentObject(570) includes held — 3 held+map skips cook
+        c.set(COOKED_MUTTON, 2);
+        c.held_id = COOKED_MUTTON;
+        let skip = make_fire_food(&c, &mut r, 2, 0.0, 0.0);
+        assert!(!matches!(
+            skip,
+            FireFoodAction::ShortCraft {
+                actor: RAW_MUTTON,
+                ..
+            }
+        ));
     }
 
     #[test]
@@ -1102,6 +1268,52 @@ mod tests {
                 object_id: POPPING_CORN
             }
         ));
+        assert_eq!(POPCORN_HOME_COUNT_RADIUS, 40);
+        assert_eq!(POPCORN_PLAYER_COUNT_RADIUS, 40);
+        assert_eq!(POPPING_CORN_PLAYER_COUNT_RADIUS, 30);
+        // Home+player same origin double-counts 1121 in both squares
+        let map = [FireFoodMapObj {
+            parent_id: POPCORN,
+            x: 1,
+            y: 0,
+        }];
+        assert_eq!(popcorn_stock_from_map(0, 0, 0, 0, 0, &map), 2);
+        // Player-only popping 1122 r=30; not counted at home-only r=40
+        let popping = [FireFoodMapObj {
+            parent_id: POPPING_CORN,
+            x: 25,
+            y: 0,
+        }];
+        assert_eq!(popcorn_stock_from_map(0, 0, 0, 0, 0, &popping), 1);
+        assert_eq!(
+            popcorn_stock_from_map(100, 100, 0, 0, 0, &popping),
+            1,
+            "1122 is player r=30 only"
+        );
+        let far_popping = [FireFoodMapObj {
+            parent_id: POPPING_CORN,
+            x: 35,
+            y: 0,
+        }];
+        assert_eq!(
+            popcorn_stock_from_map(0, 0, 0, 0, 0, &far_popping),
+            0,
+            "1122 player r=30 half-open excludes x=35"
+        );
+        let mut c2 = counts(&[]);
+        c2.has_corn_seeds = true;
+        c2.is_best_bowl_filler = true;
+        c2.apply_popcorn_stock_from_map(0, 0, 0, 0, &map);
+        assert_eq!(make_popcorn_if_needed(&c2), FireFoodAction::None);
+        c2.popcorn_stock = Some(0);
+        assert_eq!(
+            make_popcorn_if_needed(&c2),
+            FireFoodAction::CraftItem {
+                object_id: POPPING_CORN
+            }
+        );
+        c2.has_corn_seeds = false;
+        assert_eq!(make_popcorn_if_needed(&c2), FireFoodAction::None);
     }
 
     fn bowl_peer(p_id: i32, dist: f32, has: bool, same_home: bool) -> BowlFillerPeer {
@@ -1170,5 +1382,90 @@ mod tests {
     fn omelette_haxe_bug_uses_plates() {
         let c = counts(&[(CLAY_PLATE, 3), (OMELETTE, 99)]);
         assert_eq!(count_omelette_haxe_bug(&c), 3);
+        let mut held = counts(&[(CLAY_PLATE, 3)]);
+        held.held_id = CLAY_PLATE;
+        assert_eq!(count_omelette_haxe_bug(&held), 4);
+        assert_eq!(
+            count_current_objects(&held, &[SKINNED_RABBIT, SKEWERED_RABBIT]),
+            0
+        );
+        let mut raw = counts(&[(SKINNED_RABBIT, 1)]);
+        raw.held_id = SKEWERED_RABBIT;
+        assert_eq!(count_raw_rabbit(&raw), 2);
+        assert_eq!(COOL_FLAT_ROCK_SHORTCRAFT_DIST, 20);
+    }
+
+    #[test]
+    fn fire_food_stock_crafts_count_current_includes_held() {
+        let mut r = rt();
+        r.is_last_fire_food = true;
+        let mut c = counts(&[
+            (COOKED_RABBIT, 5),
+            (COOKED_MUTTON, 1),
+            (RAW_PORK, 2),
+            (PLUCKED_GOOSE, 2),
+            (COOKED_GOOSE, 2),
+            (SOAKING_BEANS, 2),
+        ]);
+        c.has_fire_place = true;
+        c.has_hot_coals = false;
+        c.has_corn_seeds = true;
+        c.popcorn_stock = Some(1);
+        c.is_best_bowl_filler = false;
+        c.held_id = RAW_STEW_POT;
+        c.set(RAW_STEW_POT, 1);
+        // craftItemMax(1246,2): map 1 + held 1 → skip stew; mutton family 1+held stew not mutton
+        assert_eq!(
+            make_fire_food(&c, &mut r, 2, 0.0, 0.0),
+            FireFoodAction::CraftItem {
+                object_id: RAW_MUTTON
+            }
+        );
+        c.held_id = COOKED_MUTTON;
+        c.set(RAW_STEW_POT, 2);
+        // mutton family map 1 + held cooked → 2, skip mutton; pork 2 skip; goose 4 skip
+        assert_eq!(make_fire_food(&c, &mut r, 2, 0.0, 0.0), FireFoodAction::None);
+        assert_eq!(MAKE_FIRE_WOOD_SEARCH_DIST, 40);
+        assert_eq!(STACK_OF_FIREWOOD, 1316);
+        assert_eq!(KINDLING_PILE, 1599);
+    }
+
+    #[test]
+    fn make_fire_wood_crafts_when_missing_or_incomplete_pile() {
+        // Haxe L4427–4440: null → craft 344; complete single-use → try kindling
+        assert_eq!(
+            make_fire_wood(FireWoodSnap {
+                close_wood: None,
+                close_kindling: None,
+            }),
+            FireFoodAction::CraftItem {
+                object_id: FIREWOOD
+            }
+        );
+        assert_eq!(
+            make_fire_wood(FireWoodSnap {
+                close_wood: Some((1, 1)),
+                close_kindling: None,
+            }),
+            FireFoodAction::CraftItem {
+                object_id: KINDLING
+            }
+        );
+        assert_eq!(
+            make_fire_wood(FireWoodSnap {
+                close_wood: Some((3, 1)),
+                close_kindling: Some((1, 1)),
+            }),
+            FireFoodAction::CraftItem {
+                object_id: FIREWOOD
+            }
+        );
+        assert_eq!(
+            make_fire_wood(FireWoodSnap {
+                close_wood: Some((1, 1)),
+                close_kindling: Some((1, 1)),
+            }),
+            FireFoodAction::None
+        );
     }
 }

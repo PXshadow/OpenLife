@@ -163,12 +163,18 @@ pub const FORGE_SEARCH_RADIUS: i32 = 20;
 pub const FLAT_STONE_COUNT_RADIUS: i32 = 10;
 /// Iron / ore count radius near forge (Haxe CountCloseObjects r=20).
 pub const IRON_ORE_COUNT_RADIUS: i32 = 20;
+/// Haxe `craftItem(290, 60)` maxDistance for iron ore in prepareSmithingTools.
+// Haxe: AiBase.prepareSmithingTools L3779
+pub const IRON_ORE_CRAFT_MAX_DISTANCE: i32 = 60;
 /// Steel / crucible count radius (Haxe TODO: use 15; pure SM documents intent).
 pub const STEEL_COUNT_RADIUS: i32 = 15;
 /// Critical shortCraft bloom radius (Haxe shortCraft r=5).
 pub const BLOOM_SHORTCRAFT_RADIUS: i32 = 5;
 /// Crucible tongs â†’ firing forge shortCraft radius (Haxe r=10).
 pub const TONGS_FORGE_SHORTCRAFT_RADIUS: i32 = 10;
+/// Haxe `prepareSmithingTools` pickup / reheat shortCraft distance (20).
+// Haxe: AiBase.prepareSmithingTools L3684–3699
+pub const PREP_TOOLS_SHORTCRAFT_DIST: i32 = 20;
 /// Charcoal basket â†’ forge shortCraft radius (Haxe r=30).
 pub const CHARCOAL_FORGE_SHORTCRAFT_RADIUS: i32 = 30;
 /// Default drop distance for GetCraftAndDropItemsCloseToObj near forge.
@@ -195,8 +201,10 @@ pub fn smith_radius_table() -> &'static [(i32, &'static str)] {
         (FLAT_STONE_COUNT_RADIUS, "flat/stone home"),
         (IRON_ORE_COUNT_RADIUS, "iron/ore forge"),
         (STEEL_COUNT_RADIUS, "steel/crucible"),
+        (IRON_ORE_CRAFT_MAX_DISTANCE, "craftItem iron ore maxDistance"),
         (BLOOM_SHORTCRAFT_RADIUS, "bloom shortCraft"),
-        (TONGS_FORGE_SHORTCRAFT_RADIUS, "tongsâ†’forge"),
+        (TONGS_FORGE_SHORTCRAFT_RADIUS, "tongs→forge"),
+        (PREP_TOOLS_SHORTCRAFT_DIST, "prepareSmithingTools pickup r=20"),
         (CHARCOAL_FORGE_SHORTCRAFT_RADIUS, "charcoalâ†’forge"),
         (DROP_NEAR_FORGE_DIST, "drop near forge"),
     ]
@@ -627,6 +635,22 @@ pub fn chebyshev(ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
     (ax - bx).abs().max((ay - by).abs())
 }
 
+/// Haxe `CountCloseObjects` half-open square (`tx-r .. tx+r`, `ty-r .. ty+r`).
+// Haxe: AiHelper.CountCloseObjectsHelper L637–638
+fn in_count_close_square_smith(tx: i32, ty: i32, ox: i32, oy: i32, radius: i32) -> bool {
+    ox >= tx - radius && ox < tx + radius && oy >= ty - radius && oy < ty + radius
+}
+
+/// Haxe `craftItem(objectId, maxDistance)` override used by prepareSmithingTools.
+// Haxe: AiBase.prepareSmithingTools L3779 craftItem(290, 60)
+pub fn smith_craft_item_max_distance(object_id: i32) -> i32 {
+    if object_id == IRON_ORE {
+        IRON_ORE_CRAFT_MAX_DISTANCE
+    } else {
+        -1
+    }
+}
+
 /// Haxe `GetForge`: priority 304â†’305â†’303, closest within [`FORGE_SEARCH_RADIUS`] of home.
 ///
 /// Among matches of the first priority that has any candidate in range, pick closest.
@@ -716,6 +740,9 @@ pub struct SmithCounts {
     pub held_id: i32,
     /// Closest forge parent id if any (303/304/305); `None` = no forge.
     pub forge_parent_id: Option<i32>,
+    /// Cold Forge 303 present in the scan (Haxe shortCraft target 303, not GetForge).
+    // Haxe: AiBase.doSmithing L3811 shortCraft(298, 303, 30, false)
+    pub has_cold_forge: bool,
     /// Optional extra chisel-family parent ids from content scan (extends [`STEEL_CHISEL_FAMILY`]).
     pub chisel_family_extra: Vec<i32>,
 }
@@ -740,6 +767,16 @@ impl SmithCounts {
     /// Effective count including held object of that id (+1).
     pub fn get_with_held(&self, id: i32) -> i32 {
         self.get(id) + if self.held_id == id { 1 } else { 0 }
+    }
+
+    /// Haxe `countCurrentObjects` — map + held if it matches any id.
+    pub fn sum_with_held(&self, ids: &[i32]) -> i32 {
+        ids.iter().map(|&id| self.get_with_held(id)).sum()
+    }
+
+    /// Haxe `shortCraft(298, 303)` can find a cold forge even if GetForge is 304/305.
+    pub fn charcoal_forge_target(&self) -> bool {
+        self.has_cold_forge || self.forge_parent_id == Some(FORGE)
     }
 
     /// Steel chisel stock: static family + optional content-scan extras + held.
@@ -845,13 +882,18 @@ pub fn fill_smith_counts_from_map_ex(
         let d_forge = chebyshev(fx, fy, o.x, o.y);
         let id = o.parent_id;
         let in_range = if id == FLAT_ROCK || id == STONE {
-            d_home <= FLAT_STONE_COUNT_RADIUS
+            // Haxe CountCloseObjects home r=10 — half-open square
+            in_count_close_square_smith(home_x, home_y, o.x, o.y, FLAT_STONE_COUNT_RADIUS)
         } else if id == IRON_ORE || id == WROUGHT_IRON {
-            d_forge <= IRON_ORE_COUNT_RADIUS
+            // Haxe CountCloseObjects(forge, 314/290, 20)
+            in_count_close_square_smith(fx, fy, o.x, o.y, IRON_ORE_COUNT_RADIUS)
         } else if is_steel_crucible_count_id(id) {
             // Haxe TODO: steel/crucible counts use r=15 from forge (not generic home_r).
             d_forge <= STEEL_COUNT_RADIUS
         } else if is_forge_id(id) {
+            if id == FORGE {
+                counts.has_cold_forge = true;
+            }
             false // forge is parent only
         } else {
             d_home <= home_r
@@ -933,7 +975,7 @@ pub fn critical_smith_shortcrafts(held_id: i32, counts: &SmithCounts) -> SmithAc
         };
     }
     // Charcoal basket into cold forge (start of doSmithing).
-    if held_id == BASKET_OF_CHARCOAL && counts.forge_parent_id == Some(FORGE) {
+    if held_id == BASKET_OF_CHARCOAL && counts.charcoal_forge_target() {
         return SmithAction::ShortCraft {
             actor: BASKET_OF_CHARCOAL,
             target: FORGE,
@@ -991,7 +1033,7 @@ pub fn prepare_smithing_tools(
     if forge_id != FIRING_FORGE
         && held != STONE
         && held != SMITHING_HAMMER
-        && counts.get(FIRING_KILN) > 0
+        && counts.get_with_held(FIRING_KILN) > 0
     {
         return SmithAction::DeferPottery;
     }
@@ -1056,17 +1098,16 @@ pub fn prepare_smithing_tools(
         }
     }
 
-    let count_steel = counts.get(STEEL_INGOT);
+    // Haxe L3717–3721 countCurrentObject includes held
+    let count_steel = counts.get_with_held(STEEL_INGOT);
 
-    // â”€â”€ Iron before steel while stage < 3 (intentional delta; see module docs) â”€â”€
+    // ― Iron before steel while stage < 3 (intentional delta; see module docs) ―
     // Haxe: AiBase.prepareSmithingTools wrought iron block ~3769
     if runtime.stage < 3.0 {
-        let mut iron = counts.get(WROUGHT_IRON);
-        if held == WROUGHT_IRON {
-            iron += 1;
-        }
+        let iron = counts.get_with_held(WROUGHT_IRON);
         if iron < 5 {
             if runtime.stage < 2.0 {
+                // Haxe CountCloseObjects(forge, 290, 20) — not held
                 let ore = counts.get(IRON_ORE);
                 if ore < 5 {
                     return SmithAction::CraftItem {
@@ -1082,13 +1123,13 @@ pub fn prepare_smithing_tools(
         runtime.stage = 3.0;
     }
 
-    let count_crucible = counts.get(UNFORGED_SEALED_CRUCIBLE);
-    let count_forged_crucible = counts.get(FORGED_CRUCIBLE);
+    let count_crucible = counts.get_with_held(UNFORGED_SEALED_CRUCIBLE);
+    let count_forged_crucible = counts.get_with_held(FORGED_CRUCIBLE);
 
     // Steel / crucible path (Haxe when countSteel < 1 || forged crucible present)
     if count_steel < 1 || count_forged_crucible > 0 {
-        // Cool Steel Crucible in Wooden Tongs â€” Haxe shortCraftOnGround(324) ~3725
-        if counts.get(COOL_CRUCIBLE_TONGS) > 0 {
+        // Cool Steel Crucible in Wooden Tongs — Haxe shortCraftOnGround(324) ~3725
+        if counts.get_with_held(COOL_CRUCIBLE_TONGS) > 0 {
             return SmithAction::ShortCraftOnGround {
                 target: COOL_CRUCIBLE_TONGS,
             };
@@ -1126,7 +1167,8 @@ pub fn prepare_smithing_tools(
     }
 
     if runtime.stage < 5.0 {
-        let hammer = counts.get(SMITHING_HAMMER);
+        // Haxe L3796 countCurrentObject(441) includes held
+        let hammer = counts.get_with_held(SMITHING_HAMMER);
         if hammer < 1 {
             return SmithAction::CraftItem {
                 object_id: SMITHING_HAMMER,
@@ -1148,9 +1190,9 @@ pub fn do_smithing_products(
     counts: &SmithCounts,
     runtime: &mut SmithProfessionRuntime,
 ) -> SmithAction {
-    // Steel Mining Pick 684
+    // Steel Mining Pick 684 — countCurrentObject includes held
     if runtime.stage < 6.0 {
-        if counts.get(STEEL_MINING_PICK) < 1 {
+        if counts.get_with_held(STEEL_MINING_PICK) < 1 {
             return SmithAction::CraftItem {
                 object_id: STEEL_MINING_PICK,
             };
@@ -1158,9 +1200,9 @@ pub fn do_smithing_products(
         runtime.stage = 6.0;
     }
 
-    // Shovel 502 (+ dung shovel counts)
+    // Shovel 502 (+ dung shovel 900) — countCurrentObject each includes held
     if runtime.stage < 7.0 {
-        let shovel = counts.get(SHOVEL) + counts.get(SHOVEL_OF_DUNG);
+        let shovel = counts.get_with_held(SHOVEL) + counts.get_with_held(SHOVEL_OF_DUNG);
         if shovel < 1 {
             return SmithAction::CraftItem {
                 object_id: SHOVEL,
@@ -1169,7 +1211,7 @@ pub fn do_smithing_products(
         runtime.stage = 7.0;
     }
 
-    // Steel Hoe 857
+    // Steel Hoe 857 — countCurrentObject + extra held (Haxe L3845; <1 gate same as with_held)
     if runtime.stage < 7.1 {
         let hoe = counts.get_with_held(STEEL_HOE);
         if hoe < 1 {
@@ -1182,7 +1224,7 @@ pub fn do_smithing_products(
 
     // Shears 568
     if runtime.stage < 7.5 {
-        if counts.get(SHEARS) < 1 {
+        if counts.get_with_held(SHEARS) < 1 {
             return SmithAction::CraftItem {
                 object_id: SHEARS,
             };
@@ -1192,7 +1234,7 @@ pub fn do_smithing_products(
 
     // Steel Axe 334
     if runtime.stage < 8.0 {
-        if counts.get(STEEL_AXE) < 1 {
+        if counts.get_with_held(STEEL_AXE) < 1 {
             return SmithAction::CraftItem {
                 object_id: STEEL_AXE,
             };
@@ -1210,11 +1252,11 @@ pub fn do_smithing_products(
         runtime.stage = 9.0;
     }
 
-    let count_file = counts.get(STEEL_FILE);
+    let count_file = counts.get_with_held(STEEL_FILE);
 
-    // Steel File Blank 457 (+ intermediate blanks)
+    // Steel File Blank 457 (+ intermediate blanks) — countCurrentObjects includes held
     if runtime.stage < 10.0 {
-        let blanks = counts.sum(&[
+        let blanks = counts.sum_with_held(&[
             STEEL_FILE_BLANK,
             HOT_STEEL_FILE_BLANK,
             OILED_FILE_BLANK,
@@ -1241,7 +1283,7 @@ pub fn do_smithing_products(
 
     // Steel Blade Blank 459
     if runtime.stage < 12.0 {
-        if counts.get(STEEL_BLADE_BLANK) < 1 {
+        if counts.get_with_held(STEEL_BLADE_BLANK) < 1 {
             return SmithAction::CraftItem {
                 object_id: STEEL_BLADE_BLANK,
             };
@@ -1249,8 +1291,9 @@ pub fn do_smithing_products(
         runtime.stage = 12.0;
     }
 
-    // Knife 560
-    if counts.get(KNIFE) < 1 {
+    // Knife 560 — countCurrentObject includes held
+    // Haxe: AiBase.doSmithing L3901–3904
+    if counts.get_with_held(KNIFE) < 1 {
         return SmithAction::CraftItem {
             object_id: KNIFE,
         };
@@ -1269,8 +1312,8 @@ pub fn do_smithing(
     peer_count_with_last_smith: f32,
     was_idle: f32,
 ) -> SmithAction {
-    // Basket of Charcoal + Forge
-    if counts.held_id == BASKET_OF_CHARCOAL && counts.forge_parent_id == Some(FORGE) {
+    // Basket of Charcoal 298 + Forge 303 (before hasOrBecome; target 303 not GetForge)
+    if counts.held_id == BASKET_OF_CHARCOAL && counts.charcoal_forge_target() {
         return SmithAction::ShortCraft {
             actor: BASKET_OF_CHARCOAL,
             target: FORGE,
@@ -1527,8 +1570,8 @@ pub enum SmithApply {
     UseOnTarget { actor: i32, target: i32 },
     /// actorId == 0 and hands not empty â†’ drop first.
     DropHeld,
-    /// Need actor â€” `GetOrCraftItem` / seek.
-    SeekOrCraftActor { actor: i32 },
+    /// Need actor — `GetOrCraftItem` / seek (`craft_if_needed` = Haxe craftActorIfNeeded).
+    SeekOrCraftActor { actor: i32, craft_if_needed: bool },
     /// Holding ground-use object â†’ use on empty tile (shortCraftOnGround held path).
     UseOnEmptyGround { held: i32 },
     /// Need to hold ground-use object first (`GetItem`).
@@ -1716,16 +1759,147 @@ pub fn check_hungry_work_cost_lookup(
     check_hungry_work_cost_by_id(food_store, lookup.transition_hungry_cost)
 }
 
+/// Build [`HungryWorkCostLookup`] from ContentDb (Haxe GetTransition pair then `(actor,-1)`).
+// Haxe: AiBase.checkHungryWorkCostById L1412–1438
+pub fn hungry_work_cost_lookup_from_content(
+    content: &ol_content::ContentDb,
+    actor_id: i32,
+    target_id: i32,
+    use_is_drop_in_container: bool,
+    knob: f32,
+) -> HungryWorkCostLookup {
+    let actor_base = content.resolve_base_id(actor_id);
+    let target_base = content.resolve_base_id(target_id);
+    let trans = content.find_transition(actor_id, target_id).or_else(|| {
+        if target_id != -1 {
+            content.find_transition(actor_id, -1)
+        } else {
+            None
+        }
+    });
+    let target = content.get(target_base);
+    let held = content.get(actor_base);
+    let target_allow_floor = content.allow_floor_placement.contains(&target_base)
+        || content.allow_floor_placement.contains(&target_id);
+    let target_num_slots = target.map(|o| o.num_slots).unwrap_or(0);
+    let held_containable = held.map(|o| o.containable).unwrap_or(false);
+    if let Some(tr) = trans {
+        let actor_hw = object_hungry_work(actor_base, object_desc(content, actor_base), knob);
+        let new_tid = content.resolve_base_id(tr.new_target_id);
+        let new_target_hw = object_hungry_work(new_tid, object_desc(content, new_tid), knob);
+        HungryWorkCostLookup {
+            transition_found: true,
+            transition_hungry_cost: total_hungry_work_cost(
+                actor_hw,
+                new_target_hw,
+                tr.hungry_work_cost,
+            ),
+            target_allow_floor,
+            target_num_slots,
+            held_containable,
+            use_is_drop_in_container,
+        }
+    } else {
+        HungryWorkCostLookup {
+            transition_found: false,
+            transition_hungry_cost: 0.0,
+            target_allow_floor,
+            target_num_slots,
+            held_containable,
+            use_is_drop_in_container,
+        }
+    }
+}
+
+/// Haxe `checkHungryWorkCostById(actorId, targetId)` including floor/container no-trans.
+// Haxe: AiBase.checkHungryWorkCost L1408; checkHungryWorkCostById L1412–1450
+pub fn check_hungry_work_cost_by_ids(
+    content: &ol_content::ContentDb,
+    actor_id: i32,
+    target_id: i32,
+    food_store: f32,
+    use_is_drop_in_container: bool,
+    knob: f32,
+) -> bool {
+    let lu = hungry_work_cost_lookup_from_content(
+        content,
+        actor_id,
+        target_id,
+        use_is_drop_in_container,
+        knob,
+    );
+    check_hungry_work_cost_lookup(actor_id, food_store, &lu)
+}
+
 /// Haxe `checkHungryWorkCostById` food gate only (transition already known).
 ///
 /// Caller supplies transition `totalHungryWorkCost` (0 = free / unknown allow).
 /// For floor/container when transition missing, use [`check_hungry_work_cost_lookup`].
-// Haxe: AiBase.checkHungryWorkCostById ~1441â€“1450
+// Haxe: AiBase.checkHungryWorkCostById L1441–1450
 pub fn check_hungry_work_cost_by_id(food_store: f32, transition_hungry_cost: f32) -> bool {
     if transition_hungry_cost > 0.0 && food_store < transition_hungry_cost + 1.0 {
         return false;
     }
     true
+}
+
+/// Haxe `shortCraft` craftActorIfNeeded / maxNewActor for smith pairs.
+///
+/// Returns `(max_new_actor, craft_actor_if_needed)`.
+// Haxe: AiBase.prepareSmithingTools L3667–3699
+pub fn smith_short_craft_limits(actor: i32, target: i32) -> (i32, bool) {
+    if target == HOT_IRON_BLOOM_FLAT && (actor == SMITHING_HAMMER || actor == STONE) {
+        return (-1, false);
+    }
+    if actor == UNFORGED_CRUCIBLE_TONGS && target == FIRING_FORGE {
+        return (-1, true);
+    }
+    if actor == BOWL_OF_WATER && target == COLD_IRON_BLOOM_FLAT {
+        return (-1, false);
+    }
+    // Haxe L3811 shortCraft(298, 303, 30, false)
+    if actor == BASKET_OF_CHARCOAL && target == FORGE {
+        return (-1, false);
+    }
+    if actor == 0
+        && matches!(
+            target,
+            WROUGHT_IRON_FLAT
+                | STEEL_INGOT_FLAT
+                | STEEL_FILE_BLANK_FLAT
+                | STEEL_CHISEL_FLAT
+                | STEEL_ADZE_HEAD_FLAT
+        )
+    {
+        return (-1, false);
+    }
+    (-1, true)
+}
+
+/// Live shortCraft search radius for a smith pair (from player).
+// Haxe: prepareSmithingTools shortCraft distance 5 / 10 / 20
+pub fn smith_short_craft_search_radius(actor: i32, target: i32) -> i32 {
+    if target == HOT_IRON_BLOOM_FLAT && (actor == SMITHING_HAMMER || actor == STONE) {
+        BLOOM_SHORTCRAFT_RADIUS
+    } else if actor == UNFORGED_CRUCIBLE_TONGS && target == FIRING_FORGE {
+        TONGS_FORGE_SHORTCRAFT_RADIUS
+    } else if actor == BASKET_OF_CHARCOAL && target == FORGE {
+        CHARCOAL_FORGE_SHORTCRAFT_RADIUS
+    } else if (actor == BOWL_OF_WATER && target == COLD_IRON_BLOOM_FLAT)
+        || (actor == 0
+            && matches!(
+                target,
+                WROUGHT_IRON_FLAT
+                    | STEEL_INGOT_FLAT
+                    | STEEL_FILE_BLANK_FLAT
+                    | STEEL_CHISEL_FLAT
+                    | STEEL_ADZE_HEAD_FLAT
+            ))
+    {
+        PREP_TOOLS_SHORTCRAFT_DIST
+    } else {
+        30
+    }
 }
 
 /// Map a [`SmithAction::ShortCraft`] through shared [`crate::farmer_profession::short_craft_apply`].
@@ -1741,6 +1915,12 @@ pub fn smith_action_short_craft_apply(
 ) -> Option<crate::farmer_profession::ShortCraftApply> {
     match action {
         SmithAction::ShortCraft { actor, target } => {
+            let (default_max, craft_actor) = smith_short_craft_limits(actor, target);
+            let max_new = if max_new_actor >= 0 {
+                max_new_actor
+            } else {
+                default_max
+            };
             Some(crate::farmer_profession::short_craft_apply(
                 crate::farmer_profession::ShortCraftInput {
                     held_id,
@@ -1750,9 +1930,9 @@ pub fn smith_action_short_craft_apply(
                     target_biome: None,
                     has_carrot_seeds: true,
                     new_actor_count,
-                    max_new_actor,
+                    max_new_actor: max_new,
                     try_weak_skewer_first: false,
-                    craft_actor_if_needed: true,
+                    craft_actor_if_needed: craft_actor,
                     food_store: 20.0,
                     transition_hungry_cost: 0.0,
                 },
@@ -1855,6 +2035,7 @@ pub fn smith_action_apply(action: SmithAction, inp: &SmithApplyInput) -> SmithAp
         }
         SmithAction::ShortCraft { actor, target } => {
             // Hungry gate lives in short_craft_apply (Haxe shortCraftOnTarget always-on).
+            let (_, craft_actor) = smith_short_craft_limits(actor, target);
             let sc = crate::farmer_profession::short_craft_apply(
                 crate::farmer_profession::ShortCraftInput {
                     held_id: inp.held_id,
@@ -1866,7 +2047,7 @@ pub fn smith_action_apply(action: SmithAction, inp: &SmithApplyInput) -> SmithAp
                     new_actor_count: inp.new_actor_count,
                     max_new_actor: inp.max_new_actor,
                     try_weak_skewer_first: false,
-                    craft_actor_if_needed: true,
+                    craft_actor_if_needed: craft_actor,
                     food_store: inp.food_store,
                     transition_hungry_cost: inp.short_craft_work_cost,
                 },
@@ -1876,12 +2057,19 @@ pub fn smith_action_apply(action: SmithAction, inp: &SmithApplyInput) -> SmithAp
                     SmithApply::UseOnTarget { actor, target }
                 }
                 crate::farmer_profession::ShortCraftApply::DropHeld => SmithApply::DropHeld,
-                crate::farmer_profession::ShortCraftApply::SeekOrCraftActor { actor, .. } => {
-                    SmithApply::SeekOrCraftActor { actor }
-                }
+                crate::farmer_profession::ShortCraftApply::SeekOrCraftActor {
+                    actor,
+                    craft_if_needed,
+                } => SmithApply::SeekOrCraftActor {
+                    actor,
+                    craft_if_needed,
+                },
                 crate::farmer_profession::ShortCraftApply::PreferWeakSkewer => {
                     // Should not fire for smith (try_weak_skewer_first=false).
-                    SmithApply::SeekOrCraftActor { actor }
+                    SmithApply::SeekOrCraftActor {
+                        actor,
+                        craft_if_needed: craft_actor,
+                    }
                 }
                 crate::farmer_profession::ShortCraftApply::Refuse => SmithApply::Refuse,
                 crate::farmer_profession::ShortCraftApply::RefuseHungry => {
@@ -2526,6 +2714,40 @@ mod tests {
     }
 
     #[test]
+    fn prepare_tools_steel_crucible_hammer_counts_include_held() {
+        // Haxe L3717–3721 / L3796 countCurrentObject includes held
+        let mut rt = SmithProfessionRuntime {
+            stage: 3.0,
+            is_last_smith: true,
+            ..Default::default()
+        };
+        let held_steel = counts_with(&[(FLAT_ROCK, 2), (STONE, 1)], Some(FORGE), STEEL_INGOT);
+        let a = prepare_smithing_tools(&held_steel, &mut rt);
+        assert_ne!(
+            a,
+            SmithAction::CraftItem {
+                object_id: STEEL_INGOT
+            },
+            "held steel ingot satisfies countSteel"
+        );
+        let mut rt = SmithProfessionRuntime {
+            stage: 4.5,
+            is_last_smith: true,
+            ..Default::default()
+        };
+        let held_hammer = counts_with(
+            &[(FLAT_ROCK, 2), (STONE, 1), (STEEL_INGOT, 2)],
+            Some(FORGE),
+            SMITHING_HAMMER,
+        );
+        assert_eq!(
+            prepare_smithing_tools(&held_hammer, &mut rt),
+            SmithAction::None
+        );
+        assert!(rt.stage >= 5.0);
+    }
+
+    #[test]
     fn prepare_tools_hot_bloom_hammer_and_cold_reheat() {
         let mut rt = SmithProfessionRuntime {
             stage: 3.0,
@@ -2655,6 +2877,52 @@ mod tests {
                 want_count: 2
             }
         );
+        // Haxe shortCraft(298, 303) even when GetForge is firing 304
+        let mut rt = SmithProfessionRuntime::default();
+        let mut hot = counts_with(&[], Some(FIRING_FORGE), BASKET_OF_CHARCOAL);
+        hot.has_cold_forge = true;
+        assert_eq!(
+            do_smithing(&hot, &mut rt, 1, 0.0, 0.0),
+            SmithAction::ShortCraft {
+                actor: BASKET_OF_CHARCOAL,
+                target: FORGE
+            }
+        );
+        assert_eq!(
+            smith_short_craft_limits(BASKET_OF_CHARCOAL, FORGE),
+            (-1, false)
+        );
+        assert_eq!(
+            smith_short_craft_search_radius(BASKET_OF_CHARCOAL, FORGE),
+            CHARCOAL_FORGE_SHORTCRAFT_RADIUS
+        );
+    }
+
+    #[test]
+    fn do_smithing_products_count_current_includes_held() {
+        let mut rt = SmithProfessionRuntime {
+            stage: 5.0,
+            is_last_smith: true,
+            ..Default::default()
+        };
+        let held_pick = counts_with(
+            &[
+                (FLAT_ROCK, 2),
+                (STONE, 1),
+                (WROUGHT_IRON, 5),
+                (STEEL_INGOT, 2),
+                (SMITHING_HAMMER, 1),
+            ],
+            Some(FORGE),
+            STEEL_MINING_PICK,
+        );
+        assert_eq!(
+            do_smithing_products(&held_pick, &mut rt),
+            SmithAction::CraftItem {
+                object_id: SHOVEL
+            },
+            "held pick satisfies countCurrentObject(684)"
+        );
     }
 
     #[test]
@@ -2701,6 +2969,24 @@ mod tests {
             do_smithing_products(&c, &mut rt),
             SmithAction::CraftItem { object_id: KNIFE }
         );
+        // Haxe L3901 countCurrentObject(560) includes held
+        let held = counts_with(
+            &[
+                (STEEL_MINING_PICK, 1),
+                (SHOVEL, 1),
+                (STEEL_HOE, 1),
+                (SHEARS, 1),
+                (STEEL_AXE, 1),
+                (STEEL_CHISEL, 1),
+                (STEEL_FILE, 1),
+                (STEEL_BLADE_BLANK, 1),
+            ],
+            Some(FORGE),
+            KNIFE,
+        );
+        rt.stage = 12.0;
+        assert_eq!(do_smithing_products(&held, &mut rt), SmithAction::None);
+        assert_eq!(rt.stage, 0.0);
     }
 
     #[test]
@@ -3180,6 +3466,40 @@ mod tests {
         assert_eq!(c.get(FLAT_ROCK), 2);
         assert_eq!(c.get(IRON_ORE), 1);
         assert_eq!(c.get(HOT_IRON_BLOOM_FLAT), 1);
+        assert!(!c.has_cold_forge);
+        let cold = [
+            MapObj {
+                parent_id: FORGE,
+                x: 2,
+                y: 0,
+            },
+        ];
+        let cc = fill_smith_counts_from_map(0, 0, 0, &cold, 20);
+        assert!(cc.has_cold_forge);
+        assert_eq!(cc.forge_parent_id, Some(FORGE));
+        // CountClose half-open: home r=10 excludes x=10; forge r=20 excludes forge_x+20
+        let edge = [
+            MapObj {
+                parent_id: FIRING_FORGE,
+                x: 5,
+                y: 0,
+            },
+            MapObj {
+                parent_id: FLAT_ROCK,
+                x: 10,
+                y: 0,
+            },
+            MapObj {
+                parent_id: WROUGHT_IRON,
+                x: 25,
+                y: 0,
+            },
+        ];
+        let e = fill_smith_counts_from_map(0, 0, 0, &edge, 20);
+        assert_eq!(e.get(FLAT_ROCK), 0, "square r=10 excludes ox==tx+r");
+        assert_eq!(e.get(WROUGHT_IRON), 0, "square r=20 excludes ox==forge_x+r");
+        assert_eq!(smith_craft_item_max_distance(IRON_ORE), 60);
+        assert_eq!(smith_craft_item_max_distance(WROUGHT_IRON), -1);
     }
 
     #[test]
@@ -3565,7 +3885,7 @@ mod tests {
             smith_action_short_craft_apply(a, 0, 0, -1),
             Some(crate::farmer_profession::ShortCraftApply::SeekOrCraftActor {
                 actor: STONE,
-                craft_if_needed: true,
+                craft_if_needed: false,
             })
         );
         // Charcoal into cold forge held
@@ -3579,6 +3899,26 @@ mod tests {
                 actor: BASKET_OF_CHARCOAL,
                 target: FORGE
             })
+        );
+        assert_eq!(
+            smith_short_craft_limits(SMITHING_HAMMER, HOT_IRON_BLOOM_FLAT),
+            (-1, false)
+        );
+        assert_eq!(
+            smith_short_craft_search_radius(SMITHING_HAMMER, HOT_IRON_BLOOM_FLAT),
+            BLOOM_SHORTCRAFT_RADIUS
+        );
+        assert_eq!(
+            smith_short_craft_search_radius(UNFORGED_CRUCIBLE_TONGS, FIRING_FORGE),
+            TONGS_FORGE_SHORTCRAFT_RADIUS
+        );
+        assert_eq!(
+            smith_short_craft_search_radius(0, STEEL_ADZE_HEAD_FLAT),
+            PREP_TOOLS_SHORTCRAFT_DIST
+        );
+        assert_eq!(
+            smith_short_craft_limits(0, STEEL_FILE_BLANK_FLAT),
+            (-1, false)
         );
         // actor 0 â†’ DropHeld when holding something
         let a = SmithAction::ShortCraft {
@@ -3694,6 +4034,40 @@ mod tests {
         assert!(!check_hungry_work_cost_by_id(1.0, 2.0)); // food < cost+1
         assert!(check_hungry_work_cost_by_id(3.0, 2.0)); // food == cost+1 allow
         assert!(check_hungry_work_cost_by_id(5.0, 0.0));
+    }
+
+    #[test]
+    fn check_hungry_work_cost_by_ids_floor_ground_and_food() {
+        // Haxe: AiBase.checkHungryWorkCostById L1412–1450 pair then (actor,-1); floor 96/470/881
+        use ol_content::{ContentDb, ObjectDef, Transition};
+        let mut db = ContentDb::default();
+        db.objects.insert(96, ObjectDef::empty(96));
+        db.objects.insert(1, ObjectDef::empty(1));
+        db.allow_floor_placement.insert(1);
+        assert!(check_hungry_work_cost_by_ids(&db, 96, 1, 0.0, false, 5.0));
+        assert!(!check_hungry_work_cost_by_ids(&db, 33, 1, 0.0, false, 5.0));
+        let mut held = ObjectDef::empty(33);
+        held.containable = true;
+        db.objects.insert(33, held);
+        let mut box_o = ObjectDef::empty(292);
+        box_o.num_slots = 4;
+        db.objects.insert(292, box_o);
+        assert!(check_hungry_work_cost_by_ids(&db, 33, 292, 0.0, true, 5.0));
+        db.objects.insert(100, ObjectDef::empty(100));
+        db.objects.insert(50, ObjectDef::empty(50));
+        db.transitions.insert(
+            (100, -1),
+            Transition {
+                actor_id: 100,
+                target_id: -1,
+                new_actor_id: 0,
+                new_target_id: 50,
+                hungry_work_cost: 2.0,
+                ..Default::default()
+            },
+        );
+        assert!(!check_hungry_work_cost_by_ids(&db, 100, 99, 1.0, false, 5.0));
+        assert!(check_hungry_work_cost_by_ids(&db, 100, 99, 3.0, false, 5.0));
     }
 
     #[test]

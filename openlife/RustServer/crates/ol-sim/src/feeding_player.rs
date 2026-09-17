@@ -32,6 +32,15 @@ pub const FEED_KEEP_MOVING_QUAD: i32 = 10;
 pub const MIN_QUAD_HUNGRY: f32 = 0.01;
 /// SearchBestFood default radius when held is not feedable.
 pub const FOODSERVER_FOOD_SEARCH_RADIUS: i32 = 40;
+/// `targetPlayer.age > 1.5` for StartingName `You are`.
+// Haxe: AiBase.isFeedingPlayerInNeed L6385
+pub const FEED_NAME_MIN_AGE: f32 = 1.5;
+/// `Math.random() < 0.2` random name vs feeder name.
+// Haxe: AiBase.isFeedingPlayerInNeed L6387
+pub const FEED_NAME_RANDOM_CHANCE: f32 = 0.2;
+/// `this.time += 2` after `doOnOther`.
+// Haxe: AiBase.isFeedingPlayerInNeed L6394
+pub const FEED_WAIT_SECS: f32 = 2.0;
 
 /// Sticky last + assigned + weight + feedingPlayerTarget.
 // Haxe: profession['FOODSERVER'] + feedingPlayerTarget
@@ -145,6 +154,10 @@ pub struct StarvingCand {
     pub lost_combat_prestige: f32,
     /// `target.canFeedToMe(held)` for the feeder's current held object.
     pub can_feed_held: bool,
+    /// First name is `ServerSettings.StartingName` (YOU ARE gate).
+    // Haxe: AiBase.isFeedingPlayerInNeed L6385
+    pub is_starting_name: bool,
+    pub is_female: bool,
 }
 
 impl Default for StarvingCand {
@@ -170,6 +183,8 @@ impl Default for StarvingCand {
             angry_time: COMBAT_ANGRY_TIME_BEFORE_ATTACK,
             lost_combat_prestige: 0.0,
             can_feed_held: true,
+            is_starting_name: false,
+            is_female: false,
         }
     }
 }
@@ -228,6 +243,30 @@ fn player_quad(ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
     let dx = ax - bx;
     let dy = ay - by;
     dx * dx + dy * dy
+}
+
+/// Haxe `You are $newName` when target is StartingName and age > 1.5.
+/// Eve/Adam or 20% roll uses `random_name`; else feeder first name.
+// Haxe: AiBase.isFeedingPlayerInNeed L6385–6389
+pub fn feed_you_are_say(
+    target_is_starting: bool,
+    target_age: f32,
+    feeder_is_eve_or_adam: bool,
+    feeder_first_name: &str,
+    random_name: &str,
+    roll_random: bool,
+) -> Option<String> {
+    if !target_is_starting || !(target_age > FEED_NAME_MIN_AGE) {
+        return None;
+    }
+    let name = if feeder_is_eve_or_adam || roll_random {
+        random_name
+    } else if !feeder_first_name.is_empty() {
+        feeder_first_name
+    } else {
+        random_name
+    };
+    Some(format!("You are {name}"))
 }
 
 fn is_noble_or_more(class: i32) -> bool {
@@ -482,6 +521,24 @@ mod tests {
     }
 
     #[test]
+    fn feed_you_are_starting_name_age_gate() {
+        assert!(feed_you_are_say(false, 20.0, false, "LISA", "ALICE", false).is_none());
+        assert!(feed_you_are_say(true, 1.5, false, "LISA", "ALICE", false).is_none());
+        assert_eq!(
+            feed_you_are_say(true, 1.51, false, "LISA", "ALICE", false).as_deref(),
+            Some("You are LISA")
+        );
+        assert_eq!(
+            feed_you_are_say(true, 20.0, true, "LISA", "ALICE", false).as_deref(),
+            Some("You are ALICE")
+        );
+        assert_eq!(
+            feed_you_are_say(true, 20.0, false, "LISA", "ALICE", true).as_deref(),
+            Some("You are ALICE")
+        );
+    }
+
+    #[test]
     fn age_and_food_gates() {
         let mut rt = FoodServerProfessionRuntime::default();
         let mut s = FeedingPlayerSensors::basic(0, 0, 31, 5);
@@ -496,6 +553,10 @@ mod tests {
             is_feeding_player_in_need(&s, &mut rt, 100, 0.0, 0.0, &[hungry_human_near()]),
             FeedingPlayerAction::None
         );
+        // Haxe L6298: food_store < 2 refuses; 2.0 is allowed
+        s.food = 2.0;
+        let a = is_feeding_player_in_need(&s, &mut rt, 100, 0.0, 0.0, &[hungry_human_near()]);
+        assert!(a.is_some());
     }
 
     #[test]

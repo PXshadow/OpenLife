@@ -22,10 +22,13 @@ pub mod geom;
 // Convenient re-exports for sim / AI call sites
 pub use food_eat_gates::{
     can_eat_obj, can_eat_obj_ex, can_feed_to_me_obj, can_feed_to_me_obj_ex,
-    can_feed_to_me_obj_ex_yum, can_feed_to_me_obj_with_yum, is_obj_meh, is_obj_meh_ex,
-    is_obj_super_meh, is_obj_super_meh_ex, is_obj_yum, is_obj_yum_ex, resolve_yum_bonus,
-    starving_factor, MEH_FEED_REFUSE_FOOD_STORE, PSILOCYBE_MUSHROOM_ID,
-    SUPER_MEH_REFUSE_FOOD_STORE, YUM_BONUS,
+    can_feed_to_me_obj_ex_yum, can_feed_to_me_obj_with_yum, empty_container_needs_drop,
+    empty_container_should_remove, is_eating_conservation_skip, is_eating_drop_peel,
+    is_eating_head, is_obj_meh, is_obj_meh_ex, is_obj_super_meh, is_obj_super_meh_ex,
+    is_obj_yum, is_obj_yum_ex, resolve_yum_bonus, starving_factor,
+    BOWL_GOOSEBERRIES_EAT, COOKED_GOOSE_EAT, COOKED_GOOSE_KEEP_RADIUS, EAT_PEEL_DROP_DIST,
+    HOT_PEPPER_EAT, MEH_FEED_REFUSE_FOOD_STORE, ONION_EAT, PSILOCYBE_MUSHROOM_ID,
+    SUPER_MEH_REFUSE_FOOD_STORE, WILD_ONION_EAT, YUM_BONUS,
 };
 pub use food_search::{
     container_blocks_remove, count_parent_in_radius, count_stock_with_piles, food_factor_for_id,

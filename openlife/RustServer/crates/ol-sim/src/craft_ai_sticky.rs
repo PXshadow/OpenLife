@@ -128,9 +128,10 @@ impl PlayerCraftAi {
         *self = Self::new();
     }
 
-    /// Haxe `resetTargets` — clear sticky trans actor/target only.
-    // Haxe: AiBase.resetTargets → itemToCraft.transActor/transTarget = null
+    /// Haxe `resetTargets` — CancleUse + clear trans actor/target.
+    // Haxe: AiBase.resetTargets L319–325; CancleUse L8868–8873
     pub fn reset_targets(&mut self) {
+        self.use_held = None;
         self.runtime.item.clear_trans();
     }
 
@@ -507,6 +508,24 @@ mod tests {
         g.insert(1, 2, 3, 0);
         g.insert(3, 4, 5, 0);
         g
+    }
+
+    #[test]
+    fn reset_targets_clears_use_held_and_trans() {
+        // Haxe: AiBase.resetTargets L319–325 CancleUse + transActor/transTarget = null
+        let mut ai = PlayerCraftAi::new();
+        ai.use_held = Some(crate::short_craft_intent::UseHeldStaging::new(
+            3, 4, 31, 33, true,
+        ));
+        ai.runtime.item = ItemToCraftState::new(71);
+        ai.runtime.item.trans_actor_id = Some(33);
+        ai.runtime.item.trans_target_id = Some(32);
+        ai.item_to_craft_id = 71;
+        ai.reset_targets();
+        assert!(ai.use_held.is_none());
+        assert!(ai.runtime.item.trans_actor_id.is_none());
+        assert!(ai.runtime.item.trans_target_id.is_none());
+        assert_eq!(ai.item_to_craft_id, 71);
     }
 
     #[test]

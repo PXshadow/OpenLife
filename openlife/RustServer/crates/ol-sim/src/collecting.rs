@@ -315,7 +315,11 @@ pub fn is_collecting(
     }
 
     let bushes = count_ids(objs, &KEEP_BUSHES_ALIVE_IDS, held);
-    if bushes < KEEP_BUSHES_ALIVE_MIN {
+    // Haxe keepBushesAlive: countCurrentObjects < 20 then shortCraft(1137,389,30)
+    // (shortCraft no-ops if no dying target within r=30 of the player).
+    if bushes < KEEP_BUSHES_ALIVE_MIN
+        && count_craft_objs_near(objs, &[COLLECT_DYING_BUSH], px, py, 30) > 0
+    {
         return CollectingAction::ShortCraft {
             actor: COLLECT_BOWL_OF_SOIL,
             target: COLLECT_DYING_BUSH,
@@ -325,9 +329,26 @@ pub fn is_collecting(
         };
     }
 
+    // Haxe: age > 40 && doSmithing(1) — live tries smith, then continues on false.
     if sensors.age > COLLECT_SMITH_MIN_AGE {
         return CollectingAction::DeferSmithing;
     }
+
+    collecting_after_smith(sensors, collector, objs)
+}
+
+/// Haxe `isCollectingHelper` after `keepBushesAlive` / failed `doSmithing(1)`.
+// Haxe: AiBase.isCollectingHelper L6006–6031
+pub fn collecting_after_smith(
+    sensors: &CollectingSensors,
+    collector: &mut CollectorProfessionRuntime,
+    objs: &[CraftWorldObj],
+) -> CollectingAction {
+    let hx = sensors.home_x;
+    let hy = sensors.home_y;
+    let px = sensors.player_x;
+    let py = sensors.player_y;
+    let held = sensors.held_id;
 
     let fur = count_ids(objs, &[RABBIT_FUR], held);
     if fur < RABBIT_FUR_CAP {
@@ -389,8 +410,8 @@ fn collecting_helper_tail(
     let held = sensors.held_id;
 
     // Haxe: shortCraft(569, 250, 10, false, 5) then shortCraft(569, 85, ...)
+    // getClosestObjectById is from the player, not home.
     if count_craft_objs_near(objs, &[COLLECT_HOT_OVEN], px, py, COLLECT_MUTTON_SHORTCRAFT_R) > 0
-        || count_craft_objs_near(objs, &[COLLECT_HOT_OVEN], hx, hy, COLLECT_MUTTON_SHORTCRAFT_R) > 0
     {
         return CollectingAction::ShortCraft {
             actor: RAW_MUTTON,
@@ -401,7 +422,6 @@ fn collecting_helper_tail(
         };
     }
     if count_craft_objs_near(objs, &[COLLECT_HOT_COALS], px, py, COLLECT_MUTTON_SHORTCRAFT_R) > 0
-        || count_craft_objs_near(objs, &[COLLECT_HOT_COALS], hx, hy, COLLECT_MUTTON_SHORTCRAFT_R) > 0
     {
         return CollectingAction::ShortCraft {
             actor: RAW_MUTTON,
@@ -547,9 +567,10 @@ mod tests {
     fn kindling_stocked_then_bushes() {
         let mut rt = CollectorProfessionRuntime::default();
         rt.is_last_collector = true;
-        let objs: Vec<_> = (0..5)
+        let mut objs: Vec<_> = (0..5)
             .map(|i| CraftWorldObj::simple(COLLECT_KINDLING, i, 0))
             .collect();
+        objs.push(CraftWorldObj::simple(COLLECT_DYING_BUSH, 2, 1));
         let a = is_collecting(&home(), &mut rt, 1, 0.0, 0.0, &objs);
         assert_eq!(rt.task_kindling, 0.0);
         assert_eq!(
@@ -560,6 +581,53 @@ mod tests {
                 radius: 30,
                 max_new_actor: -1,
                 craft_actor_if_needed: true,
+            }
+        );
+    }
+
+    #[test]
+    fn low_bushes_without_dying_skips_to_rabbits() {
+        // Haxe shortCraft(1137,389,30) returns false if no dying bush
+        let mut rt = CollectorProfessionRuntime::default();
+        rt.is_last_collector = true;
+        let objs: Vec<_> = (0..5)
+            .map(|i| CraftWorldObj::simple(COLLECT_KINDLING, i, 0))
+            .collect();
+        let a = is_collecting(&home(), &mut rt, 1, 0.0, 0.0, &objs);
+        assert_eq!(
+            a,
+            CollectingAction::CraftAndDrop {
+                which_id: DEAD_RABBIT,
+                apply: CraftAndDropApply::CraftItem {
+                    object_id: DEAD_RABBIT
+                },
+            }
+        );
+    }
+
+    #[test]
+    fn mutton_oven_only_from_player_not_home() {
+        let mut rt = CollectorProfessionRuntime::default();
+        rt.is_last_collector = true;
+        let mut s = home();
+        s.player_x = 0;
+        s.player_y = 0;
+        s.home_x = 40;
+        s.home_y = 0;
+        let mut objs: Vec<_> = (0..5)
+            .map(|i| CraftWorldObj::simple(COLLECT_KINDLING, 40 + i, 0))
+            .collect();
+        objs.extend((0..20).map(|i| CraftWorldObj::simple(DOMESTIC_BUSH, 40 + i, 2)));
+        objs.extend((0..15).map(|i| CraftWorldObj::simple(RABBIT_FUR, 40 + i, 3)));
+        objs.push(CraftWorldObj::simple(COLLECT_HOT_OVEN, 40, 0));
+        let a = is_collecting(&s, &mut rt, 1, 0.0, 0.0, &objs);
+        assert_eq!(
+            a,
+            CollectingAction::CraftAndDrop {
+                which_id: RAW_MUTTON,
+                apply: CraftAndDropApply::CraftItem {
+                    object_id: RAW_MUTTON
+                },
             }
         );
     }
@@ -603,6 +671,27 @@ mod tests {
                 radius: 10,
                 max_new_actor: 5,
                 craft_actor_if_needed: false,
+            }
+        );
+    }
+
+    #[test]
+    fn smith_miss_continues_to_rabbits() {
+        // Haxe: age>40 && doSmithing(1) false → makeOrCollect(180,2,4)
+        let mut rt = CollectorProfessionRuntime::default();
+        rt.is_last_collector = true;
+        let mut objs: Vec<_> = (0..5)
+            .map(|i| CraftWorldObj::simple(COLLECT_KINDLING, i, 0))
+            .collect();
+        objs.extend((0..20).map(|i| CraftWorldObj::simple(DOMESTIC_BUSH, i, 2)));
+        let a = collecting_after_smith(&home(), &mut rt, &objs);
+        assert_eq!(
+            a,
+            CollectingAction::CraftAndDrop {
+                which_id: DEAD_RABBIT,
+                apply: CraftAndDropApply::CraftItem {
+                    object_id: DEAD_RABBIT
+                },
             }
         );
     }

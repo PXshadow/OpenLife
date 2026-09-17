@@ -49,6 +49,7 @@ pub fn cutting_wood_profession_scan_tick(
         CuttingWoodAction::CraftAndDrop { which_id, apply } => {
             cutting_wood_apply_to_live_intent(tiles, inp, which_id, apply)
         }
+        CuttingWoodAction::TryCleanup => expand_cleanup_live(tiles, inp),
     }
 }
 

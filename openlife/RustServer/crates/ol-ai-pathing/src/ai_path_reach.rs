@@ -777,7 +777,7 @@ pub fn apply_food_goto_fail(
     }
     if e.reset_action_targets {
         if let Some(t) = action_targets {
-            t.clear_action_targets();
+            t.reset_targets();
         }
     }
 }
@@ -991,6 +991,119 @@ pub fn add_agent_to_blocked_by_ai(map: &mut HashMap<(i32, i32), f32>, agent: &Ai
     let _ = try_add_target_blocked_by_ai(map, agent.remove_from_container_target.as_ref());
 }
 
+/// Haxe `RemoveTargetBlockedByAi` — drop one claim tile (null is no-op).
+// Haxe: AiBase.RemoveTargetBlockedByAi L270–276
+pub fn remove_target_blocked_by_ai(
+    map: &mut HashMap<(i32, i32), f32>,
+    obj: Option<&BlockTargetClaim>,
+) {
+    let Some(c) = obj else {
+        return;
+    };
+    map.remove(&(c.x, c.y));
+}
+
+/// Haxe `RemoveBlockedByAi` — unclaim this AI's food/drop/use/remove/block tiles
+/// for the duration of its own think (so own targets stay pathable).
+// Haxe: AiBase.RemoveBlockedByAi L260–267
+pub fn remove_agent_blocked_by_ai(map: &mut HashMap<(i32, i32), f32>, agent: &AiAgentBlockSource) {
+    remove_target_blocked_by_ai(map, agent.player_block_target.as_ref());
+    remove_target_blocked_by_ai(map, agent.ai_block_target.as_ref());
+    remove_target_blocked_by_ai(map, agent.food_target.as_ref());
+    remove_target_blocked_by_ai(map, agent.drop_target.as_ref());
+    remove_target_blocked_by_ai(map, agent.use_target.as_ref());
+    remove_target_blocked_by_ai(map, agent.remove_from_container_target.as_ref());
+}
+
+/// Haxe `MapData.RAD` used by `GotoHelper` approach clamps.
+// Haxe: AiBase.RAD L39; MapData.RAD = 32
+pub const GOTO_APPROACH_RAD: i32 = 32;
+
+/// Haxe `AiBase.tryMoveNearestTileFirst` default.
+// Haxe: AiBase L113
+pub const TRY_MOVE_NEAREST_TILE_FIRST_DEFAULT: bool = true;
+
+/// Haxe `GotoHelper` `i → ii` after nearest-tile and Y-axis swaps.
+// Haxe: AiHelper.GotoHelper L1365–1372
+pub fn goto_approach_ii(i: i32, try_move_nearest_tile_first: bool, dist_y_is_bigger: bool) -> i32 {
+    let mut ii = i;
+    if try_move_nearest_tile_first && i == 0 {
+        ii = 1;
+    }
+    if try_move_nearest_tile_first && i == 1 {
+        ii = 0;
+    }
+    // Sequential `if` (not else-if) matches Haxe L1371–1372.
+    if dist_y_is_bigger && ii == 1 {
+        ii = 2;
+    }
+    if dist_y_is_bigger && ii == 2 {
+        ii = 1;
+    }
+    ii
+}
+
+/// Ordered `ii` values for `i in 0...5`.
+// Haxe: AiHelper.GotoHelper L1365–1368
+pub fn goto_approach_ii_order(
+    try_move_nearest_tile_first: bool,
+    dist_y_is_bigger: bool,
+) -> [i32; 5] {
+    let mut out = [0; 5];
+    for i in 0..5 {
+        out[i] = goto_approach_ii(i as i32, try_move_nearest_tile_first, dist_y_is_bigger);
+    }
+    out
+}
+
+/// `(tweakX, tweakY)` for one `ii`, or `None` when Haxe `continue`s (RAD clamp).
+// Haxe: AiHelper.GotoHelper L1374–1391
+pub fn goto_approach_tweak(ii: i32, px: i32, py: i32, rad: i32) -> Option<(i32, i32)> {
+    match ii {
+        0 => Some((0, 0)),
+        1 => Some((if px < 0 { 1 } else { -1 }, 0)),
+        2 => Some((0, if py < 0 { 1 } else { -1 })),
+        3 => {
+            let tweak_x = if px < 0 { -1 } else { 1 };
+            if px + tweak_x > rad - 1 || px + tweak_x < -rad {
+                None
+            } else {
+                Some((tweak_x, 0))
+            }
+        }
+        4 => {
+            let tweak_y = if py < 0 { -1 } else { 1 };
+            if py + tweak_y > rad - 1 || py + tweak_y < -rad {
+                None
+            } else {
+                Some((0, tweak_y))
+            }
+        }
+        _ => None,
+    }
+}
+
+/// Ordered approach offsets from the dest tile (`(0,0)` is the object itself).
+// Haxe: AiHelper.GotoHelper L1365–1391 (`tryMoveNearestTileFirst` swaps i=0/1)
+pub fn goto_approach_tweaks(
+    px: i32,
+    py: i32,
+    rad: i32,
+    try_move_nearest_tile_first: bool,
+) -> Vec<(i32, i32)> {
+    let dist_y_is_bigger = px * px < py * py;
+    let mut out = Vec::with_capacity(5);
+    for i in 0..5 {
+        let ii = goto_approach_ii(i, try_move_nearest_tile_first, dist_y_is_bigger);
+        if let Some(t) = goto_approach_tweak(ii, px, py, rad) {
+            if !out.contains(&t) {
+                out.push(t);
+            }
+        }
+    }
+    out
+}
+
 /// Pure Haxe `CalculateBlockedByAi` — wipe + rebuild from humans + living AIs.
 // Haxe: AiBase.CalculateBlockedByAi ~222–239
 pub fn calculate_blocked_by_ai(
@@ -1065,6 +1178,13 @@ impl AiStickyBlockTargets {
         self.use_target = None;
         self.remove_from_container_target = None;
         self.ai_block_target = None;
+    }
+
+    /// Haxe `resetTargets` + `CancleUse` — food and use only (not drop/remove).
+    // Haxe: AiBase.resetTargets L319–325; CancleUse L8868–8873
+    pub fn reset_targets(&mut self) {
+        self.food_target = None;
+        self.use_target = None;
     }
 
     pub fn clear_all(&mut self) {
@@ -1329,6 +1449,15 @@ mod tests {
         assert!(s.contains(&(2, 0)));
         assert!(s.contains(&(3, 0)));
         assert!(!s.contains(&(4, 0)));
+        // Haxe L9234/9253/9265: time=0 uses defaults 20 / 5 / 90
+        let mut d = AiPathReachMaps::new();
+        d.add_not_reachable(0, 0, 0.0);
+        d.add_hostile_path(1, 0, 0.0);
+        assert!((d.not_reachable[&(0, 0)] - NOT_REACHABLE_DEFAULT_SECS).abs() < 0.01);
+        assert!((d.hostile_path[&(1, 0)] - HOSTILE_PATH_DEFAULT_SECS).abs() < 0.01);
+        let mut g = HashMap::new();
+        add_blocked_by_ai(&mut g, 2, 0, 0.0);
+        assert!((g[&(2, 0)] - BLOCKED_BY_AI_DEFAULT_SECS).abs() < 0.01);
         let s2 = blocked_coords_from_live(&m, &global);
         assert_eq!(s, s2);
     }
@@ -2138,5 +2267,62 @@ mod tests {
         apply_rebuild_blocked_by_ai_from_sticky(&mut dest, 1.0, &bodies);
         assert!(!dest.contains_key(&(99, 99)));
         assert!(dest.contains_key(&(2, 2)));
+    }
+
+    #[test]
+    fn try_move_nearest_tile_first_swaps_i0_i1() {
+        // Haxe: AiHelper.GotoHelper L1367–1368; dest to the east so distY is false
+        assert_eq!(
+            goto_approach_ii_order(true, false),
+            [1, 0, 2, 3, 4]
+        );
+        assert_eq!(
+            goto_approach_ii_order(false, false),
+            [0, 1, 2, 3, 4]
+        );
+        let px = 10;
+        let py = 0;
+        let nearest = goto_approach_tweaks(px, py, GOTO_APPROACH_RAD, true);
+        assert_eq!(nearest.first().copied(), Some((-1, 0)));
+        let haxe_i = goto_approach_tweaks(px, py, GOTO_APPROACH_RAD, false);
+        assert_eq!(haxe_i.first().copied(), Some((0, 0)));
+        assert_eq!(haxe_i.get(1).copied(), Some((-1, 0)));
+    }
+
+    #[test]
+    fn remove_blocked_by_ai_unclaims_own_food_use() {
+        // Haxe: AiBase.RemoveBlockedByAi L260–276
+        let mut map = HashMap::new();
+        let agent = AiAgentBlockSource {
+            age: 20.0,
+            food_target: Some(BlockTargetClaim::simple(4, 5, 31)),
+            use_target: Some(BlockTargetClaim::simple(6, 7, 33)),
+            drop_target: Some(BlockTargetClaim::simple(8, 9, 32)),
+            ..Default::default()
+        };
+        add_blocked_by_ai(&mut map, 4, 5, 5.0);
+        add_blocked_by_ai(&mut map, 6, 7, 5.0);
+        add_blocked_by_ai(&mut map, 8, 9, 5.0);
+        add_blocked_by_ai(&mut map, 1, 1, 5.0);
+        remove_agent_blocked_by_ai(&mut map, &agent);
+        assert!(!map.contains_key(&(4, 5)));
+        assert!(!map.contains_key(&(6, 7)));
+        assert!(!map.contains_key(&(8, 9)));
+        assert!(map.contains_key(&(1, 1)));
+    }
+
+    #[test]
+    fn reset_targets_clears_food_and_use_not_drop() {
+        // Haxe: AiBase.resetTargets L319–325 + CancleUse L8868–8873
+        let mut t = AiStickyBlockTargets::default();
+        t.set_food(BlockTargetClaim::simple(1, 0, 31));
+        t.set_use(BlockTargetClaim::simple(2, 0, 33));
+        t.set_drop(BlockTargetClaim::simple(3, 0, 32));
+        t.set_remove_from_container(BlockTargetClaim::simple(4, 0, 292));
+        t.reset_targets();
+        assert!(t.food_target.is_none());
+        assert!(t.use_target.is_none());
+        assert!(t.drop_target.is_some());
+        assert!(t.remove_from_container_target.is_some());
     }
 }

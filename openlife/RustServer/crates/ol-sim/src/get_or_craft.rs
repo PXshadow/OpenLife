@@ -28,29 +28,59 @@ pub mod craft_item;
 
 pub use craft_item::{
     adze_froe_butt_log_craft_and_drop, adze_froe_butt_log_craft_and_drop_ex, closest_craft_obj,
-    closest_craft_obj_by_ids_filtered, closest_craft_obj_dual_center_filtered,
+    closest_craft_obj_by_ids_filtered, closest_craft_obj_by_ids_quad_filtered,
+    closest_craft_obj_dual_center_filtered,
     closest_craft_obj_filtered, closest_craft_obj_from_anchor,
     closest_craft_obj_from_anchor_filtered, craft_and_drop_to_decision, craft_chebyshev,
     craft_have_set, craft_have_set_ex_filtered, craft_item, craft_item_decision_to_live_intent,
-    craft_item_helper, craft_item_helper_ex, craft_item_max_needed, craft_item_with_runtime,
-    craft_item_with_runtime_scan, craft_quad_dist, craft_world_from_get_or_craft,
+    craft_actor_is_player_debug_say, craft_empty_actor_should_drop_held,
+    craft_goto_actor_debug_say, craft_goto_piled_actor_debug_say, craft_goto_target_debug_say,
+    add_all_objects_for_crafting, add_objects_for_crafting, add_objects_for_crafting_into,
+    craft_add_objects_tile_allowed, craft_bottom_up_process_todo,
+    craft_bottom_up_seed_empty_and_time, craft_bottom_up_todo_from_map,
+    craft_bottom_up_trans_index, craft_object_index_from_trans_map,
+    craft_top_down_exists_hardened_row, craft_top_down_seed,
+    craft_top_down_trans_index, craft_object_is_dangerous,
+    calculate_craft_steps, do_transition_search, do_transition_search_bottom_up,
+    search_best_transition_bottom_up, search_best_transition_top_down,
+    craft_cached_object_list_needs_fill, craft_helper_should_drop_held, craft_in_add_objects_box,
+    craft_init_objects_search_radius, craft_is_ignored_floor, craft_item_fail_say,
+    craft_new_object_list_sentinel,
+    craft_item_helper, craft_item_helper_ex, craft_item_max_needed,
+    craft_time_actor_should_wait, craft_time_actor_wait_add_sec,
+    craft_wait_for_target_debug_say,
+    craft_item_post_forge_gate,
+    craft_item_with_runtime, craft_item_with_runtime_scan, craft_quad_dist,
+    craft_use_target_still_expected, craft_world_from_get_or_craft,
     craft_world_objs_from_ids, effective_bucket_water_source_ids, effective_water_source_ids,
     fill_bucket_if_needed_apply, fill_bucket_if_needed_apply_ex, fire_bow_kindling_craft_and_drop,
     fire_bow_kindling_craft_and_drop_ex, fire_bow_needs_kindling, first_missing_ingredient,
-    get_craft_and_drop_items_close_to_obj, get_craft_and_drop_items_close_to_obj_ex,
+    is_close_to_object, get_craft_and_drop_items_close_to_obj, get_craft_and_drop_items_close_to_obj_ex,
+    get_forge, bowl_beans_fill_debug_say, bowl_gooseberry_fill_debug_say,
     goose_axe_near_stump_craft_and_drop, goose_axe_near_stump_craft_and_drop_ex,
     init_water_source_ids, init_water_source_ids_from_content,
     reanchor_craft_actor_near_target_filtered, resolve_craft_item_live, retarget_water_source,
     retarget_water_source_ex, search_best_object_for_crafting, search_best_object_for_crafting_ex,
     search_best_object_for_crafting_topdown, second_closest_craft_obj,
-    second_closest_craft_obj_filtered, should_skip_transition_top_down, CraftAiRuntime,
+    second_closest_craft_obj_filtered, second_closest_craft_obj_quad_filtered,
+    should_skip_transition_top_down,
+    try_craft_held_trans_actor_use, CraftAiRuntime,
     CraftAndDropApply, CraftItemDecision, CraftItemInput, CraftLiveExpandOpts, CraftObjectIndex,
+    CraftTransForObject,
     CraftScanFilters, CraftTopDownOpts, CraftTransMeta, CraftTransPair, CraftWorldObj,
     FailedCraftings, FillBucketApply, ItemToCraftState, TransSkipReason, ADZE_FROE_LOG_DIST,
     AI_CRAFT_MIN_RADIUS, AI_IGNORE_TIME_TRANSITIONS_LONGER_THAN, AI_MAX_SEARCH_INCREMENT,
     AI_MAX_SEARCH_RADIUS, AI_TIME_TO_WAIT_IF_CRAFTING_FAILED_SEC, BOWL_OF_WATER, BUTT_LOG,
-    CRAFT_DROP_GOTO_QUAD_DIST, DEFAULT_BUCKET_WATER_SOURCE_IDS, DEFAULT_WATER_SOURCE_IDS,
-    DOMESTIC_GOOSE, EMPTY_BUCKET, FORGE_IDS, HARDENED_ROW, KINDLING, STEEL_ADZE, STEEL_AXE,
+    CRAFT_DROP_GOTO_QUAD_DIST, CRAFT_ITEM_MAX_DEFAULT, CRAFT_ITEM_SMITH_MAX,
+    CARROT_ROW, CRAFT_AI_IGNORED_FLOOR_IDS, CRAFT_BIOME_OCEAN, CRAFT_BIOME_SNOW,
+    CRAFT_BOTTOM_UP_TODO_CAP, CRAFT_TOP_DOWN_BEST_DIST_BREAK, CRAFT_TOP_DOWN_TODO_CAP,
+    CRAFT_DANGEROUS_QUAD_MIN, CRAFT_IS_DANGEROUS_RADIUS,
+    CRAFT_START_HOME_DIST,
+    CRAFT_TIME_WAIT_MAX_SEC, DEADLY_SECOND_CLOSE_R,
+    WATER_SOURCE_RETARGET_R,
+    DEFAULT_BUCKET_WATER_SOURCE_IDS, DEFAULT_WATER_SOURCE_IDS, DOMESTIC_GOOSE, EMPTY_BUCKET,
+    FORGE_IDS, FORGE_NEAR_QUAD, GET_CLOSEST_OBJECT_DEFAULT_R, GET_FORGE_SEARCH_R, HARDENED_ROW,
+    KINDLING, STEEL_ADZE, STEEL_AXE,
     STEEL_FROE, STUMP,
 };
 
@@ -66,6 +96,9 @@ pub const GET_OR_CRAFT_TARGET_R: i32 = 10;
 
 /// Default max search (Haxe `maxSearchDistance = 40`).
 pub const GET_OR_CRAFT_DEFAULT_MAX_SEARCH: i32 = 40;
+/// Haxe `PickupItem` `GetClosestObjectToTarget(home, objId, 20)`.
+// Haxe: AiBase.PickupItem L6132
+pub const PICKUP_ITEM_SEARCH: i32 = 20;
 
 // ── World object snapshot ───────────────────────────────────────────────────
 
@@ -501,6 +534,75 @@ pub fn get_or_craft_item_ex(
             y: found.y,
             object_id: found.parent_id,
         }
+    }
+}
+
+/// Haxe `GetClosestObjectToPosition` half-open square `[c-r, c+r)`.
+fn pickup_in_half_open(cx: i32, cy: i32, x: i32, y: i32, r: i32) -> bool {
+    x >= cx - r && x < cx + r && y >= cy - r && y < cy + r
+}
+
+/// Haxe `PickupObj`: null/permanent false; else stage dropTarget + CancleUse.
+// Haxe: AiBase.PickupObj L6138–6143
+pub fn pickup_obj(obj: Option<(i32, i32, i32)>, is_permanent: bool) -> Option<(i32, i32, i32)> {
+    let o = obj?;
+    if is_permanent {
+        return None;
+    }
+    Some(o)
+}
+
+/// Haxe `PickupItem` result. Found object always consumes the tick (`return true`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PickupItemAction {
+    None,
+    /// Non-permanent → `dropTarget` / CancleUse.
+    StagePickup { x: i32, y: i32, object_id: i32 },
+    /// Closest is permanent: `PickupObj` false but `PickupItem` still returns true.
+    ConsumedNoOp,
+}
+
+/// Haxe `PickupItem(objId)`: closest to home r=20, then PickupObj (return ignored).
+// Haxe: AiBase.PickupItem L6130–6136
+pub fn pickup_item(
+    tiles: &[(i32, i32, i32, bool)],
+    home_x: i32,
+    home_y: i32,
+    obj_id: i32,
+) -> PickupItemAction {
+    if obj_id <= 0 {
+        return PickupItemAction::None;
+    }
+    let mut best: Option<(i32, i32, i32, i32, bool)> = None; // quad, y, x, id, perm
+    for &(id, x, y, perm) in tiles {
+        if id != obj_id {
+            continue;
+        }
+        if !pickup_in_half_open(home_x, home_y, x, y, PICKUP_ITEM_SEARCH) {
+            continue;
+        }
+        let dx = x - home_x;
+        let dy = y - home_y;
+        let q = dx * dx + dy * dy;
+        match best {
+            None => best = Some((q, y, x, id, perm)),
+            Some((bq, by, bx, _, _)) => {
+                if q < bq || (q == bq && (y > by || (y == by && x > bx))) {
+                    best = Some((q, y, x, id, perm));
+                }
+            }
+        }
+    }
+    let Some((_, y, x, id, perm)) = best else {
+        return PickupItemAction::None;
+    };
+    match pickup_obj(Some((id, x, y)), perm) {
+        Some((oid, ox, oy)) => PickupItemAction::StagePickup {
+            x: ox,
+            y: oy,
+            object_id: oid,
+        },
+        None => PickupItemAction::ConsumedNoOp,
     }
 }
 

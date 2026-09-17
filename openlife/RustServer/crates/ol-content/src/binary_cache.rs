@@ -348,6 +348,7 @@ pub fn finish_cache_boot(db: &mut ContentDb, root: &Path) {
     crate::patches::apply_all_haxe_content_patches(db);
     crate::apply_haxe_reverse_use_last_and_max(db);
     apply_animal_moves_from_transitions(db);
+    db.set_parent_foods();
 }
 
 fn read_data_version(root: &Path) -> Option<i32> {

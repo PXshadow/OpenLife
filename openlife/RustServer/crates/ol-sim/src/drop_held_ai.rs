@@ -22,7 +22,7 @@ use crate::baker_profession::{
     max_dough_in_bowl, should_drop_near_oven, BOWL_OF_DOUGH, CLAY_PLATE, COOKED_MUTTON,
     COOKED_PIES, DROP_NEAR_OVEN_IDS, RAW_MUTTON,
 };
-use crate::farmer_profession::BOWL_OF_SOIL;
+use crate::farmer_profession::{in_count_close_square, BOWL_OF_SOIL};
 use crate::smith_profession::{is_forge_id, DROP_NEAR_FORGE_IDS};
 
 use super::profession_scan::{
@@ -151,6 +151,11 @@ pub const DROP_NEAR_FIRE_IDS: &[i32] = &[72, 344, 180, 181, 185, 1147, 1148, 516
 // Haxe: dropNearWellItemIds
 pub const DROP_NEAR_WELL_IDS: &[i32] = &[336, 227, 382];
 
+/// Stone / Sharp Stone / Banana Peel / Bowl of Water / Full Water Pouch.
+/// Haxe declares this table; no call sites (dead in `considerDropHeldObject`).
+// Haxe: AiBase.dropAtCurrentPosition L5181
+pub const DROP_AT_CURRENT_POSITION_IDS: &[i32] = &[33, 34, 2144, 382, 210];
+
 /// Never pile these unless `allow_all_piles`.
 // Haxe: dontUsePile (allowAllPiles ? [] : …)
 pub const DONT_USE_PILE_IDS: &[i32] = &[225, 1113, 292, 233, 132, 64, 66];
@@ -162,6 +167,21 @@ pub const DONT_USE_DROP_FOR_ITEMS: &[i32] = &[356, 336, 1137, 186, 283, 241, 324
 /// Default max search while expanding empty/pile rings.
 // Haxe: maxSearchDistance = 40
 pub const DROP_HELD_MAX_SEARCH: i32 = 40;
+
+/// Haxe `UseUpDough` knife `GetClosestObjectToPosition(home, 560, 30)`.
+// Haxe: AiBase.UseUpDough L5246
+pub const USE_UP_DOUGH_KNIFE_HOME_RADIUS: i32 = 30;
+/// Haxe `CountCloseObjects` sliced/leavened bread family from home.
+// Haxe: AiBase.UseUpDough L5250–5254
+pub const USE_UP_DOUGH_BREAD_HOME_RADIUS: i32 = 20;
+/// Haxe `shortCraft(252, 236, 10, false)`.
+// Haxe: AiBase.UseUpDough L5258
+pub const USE_UP_DOUGH_PLATE_RADIUS: i32 = 10;
+
+/// Haxe `AiBase.closeUseQuadDistance` — refuse far piles while a food target is set.
+/// Distinct from doTimeStuffHelper close-use gate `distance < 25` (L505).
+// Haxe: AiBase L33; dropHeldObject L5585–5587
+pub const CLOSE_USE_QUAD_DISTANCE: i32 = 400;
 
 /// Quad distance threshold “close enough” to home/target for dropOnStart walk.
 // Haxe: quadIsCloseEnoughDistanceToTarget = 400
@@ -306,11 +326,188 @@ pub fn should_drop_near_oven_held(held_id: i32) -> bool {
     should_drop_near_oven(held_id) || DROP_NEAR_OVEN_IDS.contains(&held_id)
 }
 
+/// True when held is in Haxe `dropAtCurrentPosition` (table only; unused in Haxe).
+// Haxe: AiBase.dropAtCurrentPosition L5181
+#[inline]
+pub fn should_drop_at_current_position(held_id: i32) -> bool {
+    held_id > 0 && DROP_AT_CURRENT_POSITION_IDS.contains(&held_id)
+}
+
 /// Pile form blocked for this held unless `allow_all_piles`.
 // Haxe: dontUsePile.contains → pileId = 0
 #[inline]
 pub fn pile_blocked(held_id: i32, allow_all_piles: bool) -> bool {
     !allow_all_piles && DONT_USE_PILE_IDS.contains(&held_id)
+}
+
+/// Haxe `pileId == itemToCraft.lastTargetId` → `pileId = -1`.
+// Haxe: AiBase.dropHeldObject L5291
+#[inline]
+pub fn pile_id_after_last_craft_target(pile_id: i32, last_target_id: i32) -> i32 {
+    if pile_id > 0 && pile_id == last_target_id {
+        -1
+    } else {
+        pile_id
+    }
+}
+
+/// Haxe `if (maxDistanceToHome < 1) this.dropTarget = null`.
+// Haxe: AiBase.dropHeldObject L5282
+#[inline]
+pub fn drop_held_clears_drop_target(max_distance_to_home: f32) -> bool {
+    max_distance_to_home < 1.0
+}
+
+/// Haxe `triedDropCount > 5 ? 0 : 10`.
+// Haxe: AiBase.isDropingItem L8361
+pub const IS_DROPPING_NEAR_DIST: i32 = 10;
+/// After this many tries, drop at feet.
+pub const IS_DROPPING_FEET_AFTER_TRIES: i32 = 5;
+/// Held + ground object too far (quad) → `dropHeldObject` first.
+// Haxe: AiBase.isDropingItem L8381
+pub const IS_DROPPING_TOO_FAR_QUAD: i32 = 25;
+
+/// Head of Haxe `isDropingItem` (through container / too-far dropHeld).
+///
+/// Rest is [`is_dropping_item_goto`] (L8401–8463).
+// Haxe: AiBase.isDropingItem L8351–8391
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IsDropingItemHead {
+    Idle,
+    TargetGone,
+    DropHeld { max_distance: i32 },
+    Continue,
+}
+
+/// Haxe `isDropingItem` through L8391: triedDropCount, expected, container, too-far.
+// Haxe: AiBase.isDropingItem L8351–8391
+pub fn is_dropping_item_head(
+    is_moving: bool,
+    drop_target: Option<(i32, i32, i32)>,
+    world_parent_at_target: Option<i32>,
+    held_id: i32,
+    drop_target_num_slots: i32,
+    player_x: i32,
+    player_y: i32,
+    tried_drop_count: &mut i32,
+) -> IsDropingItemHead {
+    if is_moving || drop_target.is_none() {
+        *tried_drop_count = 0;
+    }
+    let Some((tid, tx, ty)) = drop_target else {
+        return IsDropingItemHead::Idle;
+    };
+    let world_p = world_parent_at_target.unwrap_or(-1);
+    if tid != world_p {
+        return IsDropingItemHead::TargetGone;
+    }
+    let max_distance = if *tried_drop_count > IS_DROPPING_FEET_AFTER_TRIES {
+        0
+    } else {
+        IS_DROPPING_NEAR_DIST
+    };
+    *tried_drop_count += 1;
+    if held_id != 0 && drop_target_num_slots > 0 {
+        return IsDropingItemHead::DropHeld { max_distance };
+    }
+    let dist = quad_distance_xy(player_x, player_y, tx, ty);
+    if held_id != 0 && tid != 0 && dist > IS_DROPPING_TOO_FAR_QUAD as f32 {
+        return IsDropingItemHead::DropHeld { max_distance };
+    }
+    IsDropingItemHead::Continue
+}
+
+/// Follow-player drop abort (quad).
+// Haxe: AiBase.isDropingItem L8401
+pub const IS_DROPPING_FOLLOW_TOO_FAR_QUAD: i32 = 400;
+/// Stack of Clay Plates — drop converts to empty-hand USE.
+// Haxe: AiBase.isDropingItem L8411
+pub const STACK_OF_CLAY_PLATES: i32 = 1602;
+/// Stack of Clay Bowls — drop converts to empty-hand USE.
+// Haxe: AiBase.isDropingItem L8411
+pub const STACK_OF_CLAY_BOWLS: i32 = 1603;
+/// Extracted Arrowhead Wound — `use` instead of `drop`.
+// Haxe: AiBase.isDropingItem L8451
+pub const EXTRACTED_ARROWHEAD_WOUND: i32 = 1367;
+/// Haxe `if (distance > 1) gotoObj` (squared Euclidean).
+// Haxe: AiBase.isDropingItem L8430
+pub const IS_DROPPING_GOTO_QUAD: f32 = 1.0;
+
+/// Rest of Haxe `isDropingItem` after container / too-far (L8401–8463).
+// Haxe: AiBase.isDropingItem L8401–8463
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IsDropingItemGoto {
+    /// L8401–8407: following and drop target too far → `dropHeldObject`.
+    DropHeld { max_distance: i32 },
+    /// L8411–8422: clay plate/bowl stack → USE empty actor, `return false`.
+    ConvertToUse,
+    /// L8426: `dropTarget == null`.
+    Idle,
+    /// L8428: `isMoving()` → stay busy.
+    WaitMoving,
+    /// L8430–8446: `distance > 1` → `gotoObj`.
+    WalkToTarget,
+    /// L8451–8454: parent 1367 → `use`.
+    UseOnTarget,
+    /// L8456–8463: `drop` then clear `dropTarget`.
+    DropOnTarget,
+}
+
+#[inline]
+pub fn drop_target_is_clay_stack(parent_id: i32) -> bool {
+    parent_id == STACK_OF_CLAY_PLATES || parent_id == STACK_OF_CLAY_BOWLS
+}
+
+#[inline]
+pub fn drop_target_uses_use_not_drop(parent_id: i32) -> bool {
+    parent_id == EXTRACTED_ARROWHEAD_WOUND
+}
+
+/// Haxe `triedDropCount` after `is_dropping_item_head` increment → `dropDistance`.
+#[inline]
+pub fn is_dropping_drop_distance_after_try(tried_drop_count_after: i32) -> i32 {
+    if tried_drop_count_after > IS_DROPPING_FEET_AFTER_TRIES + 1 {
+        0
+    } else {
+        IS_DROPPING_NEAR_DIST
+    }
+}
+
+/// Haxe `isDropingItem` L8401–8463 (follow abort, clay stacks, goto / use / drop).
+///
+/// `considerDropHeldObject` at L8424 is commented out. `dropTarget == null` (L8426)
+/// is only reachable after that commented call, so live targets fall through.
+// Haxe: AiBase.isDropingItem L8401–8463
+pub fn is_dropping_item_goto(
+    drop_target_id: i32,
+    distance_quad: f32,
+    has_player_to_follow: bool,
+    is_hungry: bool,
+    drop_max_distance: i32,
+    is_moving: bool,
+) -> IsDropingItemGoto {
+    if drop_target_id != 0
+        && distance_quad > IS_DROPPING_FOLLOW_TOO_FAR_QUAD as f32
+        && has_player_to_follow
+        && !is_hungry
+    {
+        return IsDropingItemGoto::DropHeld {
+            max_distance: drop_max_distance,
+        };
+    }
+    if drop_target_is_clay_stack(drop_target_id) {
+        return IsDropingItemGoto::ConvertToUse;
+    }
+    if is_moving {
+        return IsDropingItemGoto::WaitMoving;
+    }
+    if distance_quad > IS_DROPPING_GOTO_QUAD {
+        return IsDropingItemGoto::WalkToTarget;
+    }
+    if drop_target_uses_use_not_drop(drop_target_id) {
+        return IsDropingItemGoto::UseOnTarget;
+    }
+    IsDropingItemGoto::DropOnTarget
 }
 
 /// Held forces USE-as-drop on empty ground (bones basket, soil, tongs…).
@@ -328,6 +525,37 @@ pub fn force_drop_at_feet(held_id: i32) -> bool {
         held_id,
         BANANA_PEEL | SHARP_STONE | FLINT_CHIP | MILKWEED_STALK | FLAT_ROCK_RABBIT_BAIT
     )
+}
+
+/// Haxe `shouldDebugSay` when filling a basket with held clay.
+// Haxe: AiBase.dropHeldObject L5392
+#[inline]
+pub fn drop_clay_in_basket_debug_say(debug_say: bool) -> Option<&'static str> {
+    if debug_say {
+        Some("drop clay in basket")
+    } else {
+        None
+    }
+}
+
+/// Haxe `shouldDebugSay` after `gotoObj` while `dropOnStart`.
+// Haxe: AiBase.dropHeldObject L5548–5553
+pub const DROP_HELD_GOTO_HOME_SAY: &str = "Goto home!";
+/// Path failed; Haxe continues search (does not return).
+// Haxe: AiBase.dropHeldObject L5553
+pub const DROP_HELD_CANNOT_GOTO_HOME_SAY: &str = "Cannot Goto home!";
+
+/// `path_ok` is Haxe `gotoObj` return; live should only emit Goto when true.
+#[inline]
+pub fn drop_held_goto_home_debug_say(debug_say: bool, path_ok: bool) -> Option<&'static str> {
+    if !debug_say {
+        return None;
+    }
+    Some(if path_ok {
+        DROP_HELD_GOTO_HOME_SAY
+    } else {
+        DROP_HELD_CANNOT_GOTO_HOME_SAY
+    })
 }
 
 // ── Table / small-food container prefer (DROP-HELD-TABLE) ────────────────────
@@ -575,6 +803,9 @@ pub fn store_in_quiver(held_id: i32, clothing: QuiverClothing) -> Option<DropHel
     None
 }
 
+/// Haxe `dropNearOven` / `dropNearKiln` / `dropNearForge` / `dropGraveyard` — empty bodies.
+// Haxe: AiBase.dropNearOven L5140–5158 (locals only; dropHeldObject uses id tables)
+
 // ── UseUpDough ──────────────────────────────────────────────────────────────
 
 /// Inputs for dough use-up (Haxe `UseUpDough`).
@@ -606,7 +837,7 @@ pub fn use_up_dough(inp: UseUpDoughInput) -> Option<DropHeldDecision> {
         return Some(DropHeldDecision::PreferShortCraft {
             actor: BOWL_OF_DOUGH,
             target: CLAY_PLATE,
-            max_search: 10,
+            max_search: USE_UP_DOUGH_PLATE_RADIUS,
             craft_actor: false,
             max_new_actor: i32::MAX,
         });
@@ -704,9 +935,12 @@ pub struct DropHeldInput {
     /// Haxe `maxDistanceToHome` (default 40). `< 1` clears dropTarget.
     pub max_distance_to_home: f32,
     pub allow_all_piles: bool,
-    /// `getPileObjId()`; ≤0 = no pile. Caller already cancels when == lastTargetId.
+    /// `getPileObjId()`; ≤0 = no pile.
     pub pile_id: i32,
-    /// Haxe `itemToCraft.lastNewTargetId` — avoid re-piling same form.
+    /// Haxe `itemToCraft.lastTargetId` — `pileId == lastTargetId` → `pileId = -1`.
+    // Haxe: AiBase.dropHeldObject L5291
+    pub last_target_id: i32,
+    /// Haxe `itemToCraft.lastNewTargetId` — skip drop tile with that parent.
     pub last_new_target_id: i32,
     pub player_x: i32,
     pub player_y: i32,
@@ -714,7 +948,8 @@ pub struct DropHeldInput {
     pub is_moving: bool,
     /// When true, food target is active → refuse far piles (closeUseQuadDistance).
     pub has_food_target: bool,
-    /// Close-use quad distance cap when hungry (Haxe closeUseQuadDistance; default 25).
+    /// Close-use quad distance cap when hungry (Haxe `closeUseQuadDistance` = 400).
+    // Haxe: AiBase L33
     pub close_use_quad_distance: i32,
     /// Held basket contains Clay 126 (nested).
     pub held_contains_clay: bool,
@@ -739,13 +974,14 @@ impl DropHeldInput {
             max_distance_to_home: 40.0,
             allow_all_piles: false,
             pile_id: -1,
+            last_target_id: 0,
             last_new_target_id: 0,
             player_x,
             player_y,
             food_store: 20.0,
             is_moving: false,
             has_food_target: false,
-            close_use_quad_distance: 25,
+            close_use_quad_distance: CLOSE_USE_QUAD_DISTANCE,
             held_contains_clay: false,
             quiver: QuiverClothing::default(),
             anchors: DropHeldAnchors::home_only(home_x, home_y),
@@ -781,9 +1017,33 @@ pub fn count_near_with_piles(
     r: i32,
     count_piles: bool,
 ) -> i32 {
-    let mut n = count_near(tiles, cx, cy, parent_id, r);
-    if count_piles && pile_id > 0 {
-        n += count_near(tiles, cx, cy, pile_id, r);
+    count_close_objects(tiles, cx, cy, parent_id, r, count_piles, pile_id)
+}
+
+/// Haxe `AiHelper.CountCloseObjects` — half-open square; piles add `numberOfUses`.
+// Haxe: CountCloseObjectsHelper `ty-radius...ty+radius` exclusive end; pile += uses
+pub fn count_close_objects(
+    tiles: &[ScanTile],
+    tx: i32,
+    ty: i32,
+    obj_id: i32,
+    radius: i32,
+    count_piles: bool,
+    pile_id: i32,
+) -> i32 {
+    if obj_id <= 0 {
+        return 0;
+    }
+    let mut n = 0i32;
+    for t in tiles {
+        if !in_count_close_square(tx, ty, t.x, t.y, radius) {
+            continue;
+        }
+        if t.parent_id == obj_id {
+            n += 1;
+        } else if count_piles && pile_id > 0 && t.parent_id == pile_id {
+            n += t.uses.max(1);
+        }
     }
     n
 }
@@ -1110,8 +1370,14 @@ pub fn drop_held_object_ex(
         return d;
     }
 
-    let plate_available =
-        closest_by_parent_id(tiles, CLAY_PLATE, inp.player_x, inp.player_y, 10).is_some();
+    let plate_available = closest_by_parent_id(
+        tiles,
+        CLAY_PLATE,
+        inp.player_x,
+        inp.player_y,
+        USE_UP_DOUGH_PLATE_RADIUS,
+    )
+    .is_some();
     if let Some(d) = use_up_dough(UseUpDoughInput {
         held_id: held,
         held_uses: inp.held_uses,
@@ -1131,10 +1397,11 @@ pub fn drop_held_object_ex(
     let mut target_y = inp.target_y.unwrap_or(inp.anchors.home_y);
     let mut drop_close_to_player = true;
     let mut min_distance: i32 = 0;
+    let pile_after_last = pile_id_after_last_craft_target(inp.pile_id, inp.last_target_id);
     let mut pile_id = if pile_blocked(held, inp.allow_all_piles) {
         0
     } else {
-        inp.pile_id
+        pile_after_last
     };
 
     if held == BASKET_OF_BONES && inp.max_distance_to_home > 5.0 {
@@ -1150,23 +1417,32 @@ pub fn drop_held_object_ex(
             drop_close_to_player = false;
             target_x = kx;
             target_y = ky;
-            let dist_q = {
-                let dx = inp.player_x - kx;
-                let dy = inp.player_y - ky;
-                dx * dx + dy * dy
-            };
-            if dist_q > 400 {
-                // Haxe: prefer basket containing clay [126], else any basket
-                if let Some(b) =
-                    closest_with_contains(tiles, BASKET, inp.player_x, inp.player_y, 10, CLAY)
-                {
-                    return DropHeldDecision::UseAt {
-                        x: b.x,
-                        y: b.y,
-                        target_id: BASKET,
-                        actor_id: CLAY,
-                    };
-                }
+        }
+        // Haxe: distance is to `target` after optional kiln assign (home if no kiln).
+        let dist_q = {
+            let dx = inp.player_x - target_x;
+            let dy = inp.player_y - target_y;
+            dx * dx + dy * dy
+        };
+        if dist_q > 400 {
+            // Haxe: basket containing clay [126], else any basket r=10 from player
+            if let Some(b) =
+                closest_with_contains(tiles, BASKET, inp.player_x, inp.player_y, 10, CLAY)
+            {
+                return DropHeldDecision::UseAt {
+                    x: b.x,
+                    y: b.y,
+                    target_id: BASKET,
+                    actor_id: CLAY,
+                };
+            }
+            if let Some(b) = closest_by_parent_id(tiles, BASKET, inp.player_x, inp.player_y, 10) {
+                return DropHeldDecision::UseAt {
+                    x: b.x,
+                    y: b.y,
+                    target_id: BASKET,
+                    actor_id: CLAY,
+                };
             }
         }
     }
@@ -1219,11 +1495,20 @@ pub fn drop_held_object_ex(
         drop_close_to_player = false;
         let mut count = 0;
         if held == CLAY_BOWL {
-            count = count_near(tiles, target_x, target_y, CLAY_BOWL, 15);
+            // Haxe: CountCloseObjects home r=15 default countPiles
+            count = count_close_objects(
+                tiles,
+                target_x,
+                target_y,
+                CLAY_BOWL,
+                15,
+                true,
+                inp.pile_id,
+            );
         }
         if count >= 3 {
             if let Some((fx, fy)) = inp.anchors.forge_xy() {
-                let fc = count_near(tiles, fx, fy, CLAY_BOWL, 15);
+                let fc = count_close_objects(tiles, fx, fy, CLAY_BOWL, 15, true, inp.pile_id);
                 if fc < 3 {
                     target_x = fx;
                     target_y = fy;
@@ -1257,7 +1542,8 @@ pub fn drop_held_object_ex(
     }
 
     if held == CLAY_PLATE_ID && inp.max_distance_to_home > 5.0 {
-        let count = count_near(tiles, target_x, target_y, held, 10);
+        // Haxe L5500: CountCloseObjects(target, 236, 10, false)
+        let count = count_close_objects(tiles, target_x, target_y, held, 10, false, 0);
         if count < 5 {
             pile_id = 0;
             if let Some((ex, ey)) =
@@ -1281,7 +1567,8 @@ pub fn drop_held_object_ex(
 
     if should_drop_near_well(held) && inp.max_distance_to_home > 5.0 {
         if let Some((wx, wy)) = inp.anchors.well_xy().or_else(|| {
-            closest_well(tiles, inp.anchors.home_x, inp.anchors.home_y, 30).map(|t| (t.x, t.y))
+            // Haxe getCloseWell: GetClosestObjectToPositionByIds home default r=40
+            closest_well(tiles, inp.anchors.home_x, inp.anchors.home_y, 40).map(|t| (t.x, t.y))
         }) {
             target_x = wx;
             target_y = wy;
@@ -1360,6 +1647,7 @@ pub fn drop_held_object_ex(
 
         if let Some(t) = new_drop {
             if inp.has_food_target {
+                // Haxe: AiBase.dropHeldObject L5585–5587 (closeUseQuadDistance = 400)
                 let dx = inp.player_x - t.x;
                 let dy = inp.player_y - t.y;
                 if dx * dx + dy * dy > inp.close_use_quad_distance {
@@ -1585,8 +1873,13 @@ fn special_held_actions(
     }
 
     if held == BOWL_OF_WHEAT {
-        let count_wheat = count_near(tiles, px, py, RIPE_WHEAT, 20)
-            + count_near(tiles, px, py, DRY_PLANTED_WHEAT, 20);
+        // Haxe: CountCloseObjects 242 r=20 default piles; 228 r=20 countPiles=false
+        let ripe_pile = content
+            .map(|c| crate::get_or_craft::pile_obj_id_from_content(c, RIPE_WHEAT))
+            .filter(|&id| id > 0)
+            .unwrap_or(0);
+        let count_wheat = count_close_objects(tiles, px, py, RIPE_WHEAT, 20, true, ripe_pile)
+            + count_close_objects(tiles, px, py, DRY_PLANTED_WHEAT, 20, false, 0);
         if count_wheat < 10 {
             if let Some(d) = prefer(BOWL_OF_WHEAT, DEEP_TILLED_ROW, 20, false, i32::MAX) {
                 return Some(d);
@@ -1711,7 +2004,7 @@ pub fn consider_drop_held_decision(
     tiles: &[ScanTile],
 ) -> Option<DropHeldDecision> {
     consider_drop_held_decision_ex(
-        held_id, 1, player_x, player_y, home_x, home_y, goto_x, goto_y, tiles, false, 0,
+        held_id, 1, player_x, player_y, home_x, home_y, goto_x, goto_y, tiles, false, 0, false,
     )
 }
 
@@ -1729,6 +2022,7 @@ pub fn consider_drop_held_decision_ex(
     tiles: &[ScanTile],
     has_knife_near: bool,
     count_bread_family: i32,
+    use_target_is_plate: bool,
 ) -> Option<DropHeldDecision> {
     if held_id < 1 {
         return None;
@@ -1740,11 +2034,18 @@ pub fn consider_drop_held_decision_ex(
         return Some(DropHeldDecision::None); // signal: run dropHeldObject
     }
     // Haxe: UseUpDough() ~5203 — before fire/oven/forge interrupt tables
-    let plate_available = closest_by_parent_id(tiles, CLAY_PLATE, player_x, player_y, 10).is_some();
+    let plate_available = closest_by_parent_id(
+        tiles,
+        CLAY_PLATE,
+        player_x,
+        player_y,
+        USE_UP_DOUGH_PLATE_RADIUS,
+    )
+    .is_some();
     if let Some(d) = use_up_dough(UseUpDoughInput {
         held_id,
         held_uses,
-        use_target_is_plate: false,
+        use_target_is_plate,
         has_knife_near,
         count_bread_family,
         plate_available,
@@ -1829,14 +2130,17 @@ pub struct DropHeldSensorExtras {
     pub quiver: QuiverClothing,
     pub held_contains_clay: bool,
     pub pile_id: i32,
+    /// Haxe `itemToCraft.lastTargetId` (pile cancel).
+    // Haxe: AiBase.dropHeldObject L5291
+    pub last_target_id: i32,
     pub last_new_target_id: i32,
     pub has_food_target: bool,
     pub is_wound: bool,
     pub is_hidden_wound: bool,
     pub use_target_is_plate: bool,
-    /// `None` → detect knife 560 near player from scan.
+    /// `None` → knife 560 at home r=30 (Haxe GetClosestObjectToPosition).
     pub has_knife_near: Option<bool>,
-    /// `None` → count bread family (1471/1468/1466) near home from scan.
+    /// `None` → count bread family (1471/1468/1466) near home r=20.
     pub count_bread_family: Option<i32>,
     pub close_use_quad_distance: i32,
     pub target_x: Option<i32>,
@@ -1849,6 +2153,7 @@ impl Default for DropHeldSensorExtras {
             quiver: QuiverClothing::default(),
             held_contains_clay: false,
             pile_id: -1,
+            last_target_id: 0,
             last_new_target_id: 0,
             has_food_target: false,
             is_wound: false,
@@ -1856,7 +2161,7 @@ impl Default for DropHeldSensorExtras {
             use_target_is_plate: false,
             has_knife_near: None,
             count_bread_family: None,
-            close_use_quad_distance: 25,
+            close_use_quad_distance: CLOSE_USE_QUAD_DISTANCE,
             target_x: None,
             target_y: None,
         }
@@ -1871,8 +2176,8 @@ pub fn count_bread_family_near(tiles: &[ScanTile], cx: i32, cy: i32, r: i32) -> 
         + count_near(tiles, cx, cy, BOWL_OF_LEAVENED_DOUGH, r)
 }
 
-/// Knife present within Chebyshev `r` of player.
-// Haxe: has knife near for maxDoughInBowl
+/// Knife present within Chebyshev `r` of `(px, py)` (UseUpDough uses home).
+// Haxe: GetClosestObjectToPosition(home, 560, 30)
 pub fn has_knife_near_scan(tiles: &[ScanTile], px: i32, py: i32, r: i32) -> bool {
     closest_by_parent_id(tiles, KNIFE, px, py, r).is_some()
 }
@@ -1894,12 +2199,12 @@ pub fn drop_held_input_from_sensors(
     extras: DropHeldSensorExtras,
 ) -> DropHeldInput {
     let anchors = fill_anchors_from_scan(DropHeldAnchors::home_only(home_x, home_y), tiles);
-    let has_knife = extras
-        .has_knife_near
-        .unwrap_or_else(|| has_knife_near_scan(tiles, player_x, player_y, 20));
-    let bread = extras
-        .count_bread_family
-        .unwrap_or_else(|| count_bread_family_near(tiles, home_x, home_y, 30));
+    let has_knife = extras.has_knife_near.unwrap_or_else(|| {
+        has_knife_near_scan(tiles, home_x, home_y, USE_UP_DOUGH_KNIFE_HOME_RADIUS)
+    });
+    let bread = extras.count_bread_family.unwrap_or_else(|| {
+        count_bread_family_near(tiles, home_x, home_y, USE_UP_DOUGH_BREAD_HOME_RADIUS)
+    });
     DropHeldInput {
         held_id,
         held_uses: held_uses.max(1),
@@ -1908,6 +2213,7 @@ pub fn drop_held_input_from_sensors(
         max_distance_to_home,
         allow_all_piles,
         pile_id: extras.pile_id,
+        last_target_id: extras.last_target_id,
         last_new_target_id: extras.last_new_target_id,
         player_x,
         player_y,
@@ -2070,6 +2376,15 @@ mod tests {
             })
         );
         assert_eq!(store_in_quiver(YEW_BOW, QuiverClothing::default()), None);
+        // Haxe L5091–5099: Yew Bow 151 uses 874 then 3948; no canAddToQuiver
+        let mut filled = QuiverClothing::from_ids(&[ARROW_QUIVER_ID]);
+        filled.can_add = false;
+        assert_eq!(
+            store_in_quiver(YEW_BOW, filled),
+            Some(DropHeldDecision::SelfClothing {
+                slot: QUIVER_CLOTHING_SLOT
+            })
+        );
     }
 
     #[test]
@@ -2079,6 +2394,35 @@ mod tests {
         assert_eq!(store_in_quiver(ARROW, q), None);
         q.can_add = true;
         assert!(store_in_quiver(ARROW, q).is_some());
+    }
+
+    #[test]
+    fn store_bow_and_arrow_requires_can_add() {
+        // Haxe L5105–5116: held 152 → 874 then 3948 + canAddToQuiver; not 4149/4151
+        let mut empty = QuiverClothing::from_ids(&[EMPTY_ARROW_QUIVER_ID]);
+        empty.can_add = true;
+        assert_eq!(
+            store_in_quiver(BOW_AND_ARROW_ID, empty),
+            Some(DropHeldDecision::SelfClothing {
+                slot: QUIVER_CLOTHING_SLOT
+            })
+        );
+        empty.can_add = false;
+        assert_eq!(store_in_quiver(BOW_AND_ARROW_ID, empty), None);
+        let with_bow = QuiverClothing::from_ids(&[EMPTY_ARROW_QUIVER_WITH_BOW]);
+        assert_eq!(store_in_quiver(BOW_AND_ARROW_ID, with_bow), None);
+        let arrow_q = QuiverClothing::from_ids(&[ARROW_QUIVER_ID]);
+        assert!(store_in_quiver(BOW_AND_ARROW_ID, arrow_q).is_some());
+    }
+
+    #[test]
+    fn store_arrow_on_quiver_with_bow_ids() {
+        // Haxe L5119–5134: Arrow 148 → 874 / 4149 / 3948 / 4151 + canAddToQuiver
+        let q4149 = QuiverClothing::from_ids(&[EMPTY_ARROW_QUIVER_WITH_BOW]);
+        assert!(store_in_quiver(ARROW, q4149).is_some());
+        let q4151 = QuiverClothing::from_ids(&[ARROW_QUIVER_WITH_BOW]);
+        assert!(store_in_quiver(ARROW, q4151).is_some());
+        assert_eq!(store_in_quiver(ARROW, QuiverClothing::default()), None);
     }
 
     #[test]
@@ -2187,6 +2531,37 @@ mod tests {
         assert!(pile_blocked(225, false));
         assert!(!pile_blocked(225, true));
         assert!(!pile_blocked(33, false));
+        // Haxe L5301: Wheat Sheaf / Ear of Corn / Basket / Wet Clay Bowl / Yew / Straight / Curved
+        assert_eq!(DONT_USE_PILE_IDS, &[225, 1113, 292, 233, 132, 64, 66]);
+        for id in DONT_USE_PILE_IDS {
+            assert!(pile_blocked(*id, false));
+            assert!(!pile_blocked(*id, true));
+        }
+    }
+
+    #[test]
+    fn drop_on_start_false_for_peel_chip_list() {
+        // Haxe L5303–5307
+        assert!(force_drop_at_feet(BANANA_PEEL));
+        assert!(force_drop_at_feet(SHARP_STONE));
+        assert!(force_drop_at_feet(FLINT_CHIP));
+        assert!(force_drop_at_feet(MILKWEED_STALK));
+        assert!(force_drop_at_feet(FLAT_ROCK_RABBIT_BAIT));
+        assert!(!force_drop_at_feet(STONE));
+        assert_eq!(drop_clay_in_basket_debug_say(false), None);
+        assert_eq!(
+            drop_clay_in_basket_debug_say(true),
+            Some("drop clay in basket")
+        );
+        assert_eq!(drop_held_goto_home_debug_say(false, true), None);
+        assert_eq!(
+            drop_held_goto_home_debug_say(true, true),
+            Some("Goto home!")
+        );
+        assert_eq!(
+            drop_held_goto_home_debug_say(true, false),
+            Some("Cannot Goto home!")
+        );
     }
 
     #[test]
@@ -2194,6 +2569,30 @@ mod tests {
         assert!(must_use_as_drop(BASKET_OF_BONES));
         assert!(must_use_as_drop(BASKET_OF_SOIL));
         assert!(!must_use_as_drop(STONE));
+        // Haxe L5626: 356, 336, 1137, 186, 283, 241, 324, 323
+        assert_eq!(
+            DONT_USE_DROP_FOR_ITEMS,
+            &[356, 336, 1137, 186, 283, 241, 324, 323]
+        );
+        for id in DONT_USE_DROP_FOR_ITEMS {
+            assert!(must_use_as_drop(*id));
+        }
+    }
+
+    #[test]
+    fn last_new_target_skips_pile_for_empty() {
+        // Haxe L5607–5609: lastNewTargetId == drop tile → empty r=maxSearch
+        let mut tiles = empty_grid(0, 0, 6);
+        tiles.push(ScanTile::simple(33, 2, 0));
+        let mut inp = DropHeldInput::basic(33, 0, 0, 0, 0);
+        inp.pile_id = 33;
+        inp.last_new_target_id = 33;
+        inp.max_distance_to_home = 1.0; // drop close, search around player
+        let d = drop_held_object(inp, &tiles);
+        assert!(
+            matches!(d, DropHeldDecision::DropAt { x, y } if !(x == 2 && y == 0)),
+            "must not pile onto lastNewTarget, got {d:?}"
+        );
     }
 
     #[test]
@@ -2206,10 +2605,315 @@ mod tests {
     }
 
     #[test]
+    fn drop_near_id_tables_match_haxe() {
+        // Haxe: AiBase L5164 / L5173–5175 / L5181 / L5186 / L5189
+        assert_eq!(
+            DROP_NEAR_FIRE_IDS,
+            &[72, 344, 180, 181, 185, 1147, 1148, 516, 540]
+        );
+        assert_eq!(
+            DROP_NEAR_OVEN_IDS,
+            &[
+                235, 1603, 236, 1602, 252, 1470, 1471, 1285, 253, 518, 547, 548, 260, 4057, 502,
+                569, 1354, 245, 258
+            ]
+        );
+        assert_eq!(
+            DROP_NEAR_FORGE_IDS,
+            &[289, 290, 327, 326, 319, 320, 441, 568, 311, 308]
+        );
+        assert_eq!(DROP_NEAR_WELL_IDS, &[336, 227, 382]);
+        assert_eq!(DROP_AT_CURRENT_POSITION_IDS, &[33, 34, 2144, 382, 210]);
+        assert!(should_drop_at_current_position(BANANA_PEEL));
+        assert!(should_drop_at_current_position(SHARP_STONE));
+        assert!(should_drop_at_current_position(210));
+        assert!(!should_drop_at_current_position(1137)); // Bowl of Soil in comment only
+        assert!(!should_drop_at_current_position(0));
+    }
+
+    #[test]
     fn consider_drop_when_carrying_away_from_home() {
         assert!(consider_drop_held_object(72, 100, 100, 0, 0, 120, 120));
         assert!(!consider_drop_held_object(33, 100, 0, 0, 0, 10, 0));
         assert!(consider_drop_held_object(BANANA_PEEL, 50, 50, 0, 0, 60, 60));
+        // Haxe L5198–5200: empty / going home refuse; Sharp Stone always dropHeld
+        assert!(!consider_drop_held_object(34, 0, 0, 0, 0, 0, 0));
+        assert!(!consider_drop_held_object(0, 50, 50, 0, 0, 60, 60));
+        assert!(consider_drop_held_object(SHARP_STONE, 100, 0, 0, 0, 10, 0));
+        // Haxe L5210–5223: fire / oven+pies / forge interrupt dropHeld
+        assert!(consider_drop_held_object(BOWL_OF_DOUGH, 100, 100, 0, 0, 120, 120));
+        assert!(consider_drop_held_object(289, 100, 100, 0, 0, 120, 120));
+        // Haxe L5231: target closer to home than player → keep carrying
+        assert!(!consider_drop_held_object(33, 10, 0, 0, 0, 3, 0));
+        // 25-buffer: quad_target+25 not < quad_home → drop
+        assert!(consider_drop_held_object(33, 6, 0, 0, 0, 5, 0));
+    }
+
+    #[test]
+    fn use_up_dough_matches_haxe_budget() {
+        // Haxe: held != 252; plate skip; knife 0/1; countBread>1 → 0
+        assert_eq!(
+            use_up_dough(UseUpDoughInput {
+                held_id: 33,
+                held_uses: 5,
+                use_target_is_plate: false,
+                has_knife_near: true,
+                count_bread_family: 0,
+                plate_available: true,
+            }),
+            None
+        );
+        let keep_last = use_up_dough(UseUpDoughInput {
+            held_id: BOWL_OF_DOUGH,
+            held_uses: 1,
+            use_target_is_plate: false,
+            has_knife_near: true,
+            count_bread_family: 0,
+            plate_available: true,
+        });
+        assert_eq!(keep_last, None);
+        let no_plate = use_up_dough(UseUpDoughInput {
+            held_id: BOWL_OF_DOUGH,
+            held_uses: 3,
+            use_target_is_plate: false,
+            has_knife_near: false,
+            count_bread_family: 0,
+            plate_available: false,
+        });
+        assert_eq!(no_plate, None);
+        let bread_full = use_up_dough(UseUpDoughInput {
+            held_id: BOWL_OF_DOUGH,
+            held_uses: 1,
+            use_target_is_plate: false,
+            has_knife_near: true,
+            count_bread_family: 2,
+            plate_available: true,
+        });
+        assert!(bread_full.is_some());
+    }
+
+    #[test]
+    fn use_up_dough_sensors_home_radii() {
+        // Knife at player r=20 does not count; knife at home r=30 does.
+        let mut tiles = empty_grid(0, 0, 2);
+        tiles.push(ScanTile::simple(KNIFE, 25, 0));
+        let extras = DropHeldSensorExtras::default();
+        let inp = drop_held_input_from_sensors(
+            BOWL_OF_DOUGH,
+            3,
+            0,
+            0,
+            0,
+            0,
+            20.0,
+            false,
+            false,
+            40.0,
+            &tiles,
+            extras,
+        );
+        assert!(inp.has_knife_near);
+        let mut far = empty_grid(0, 0, 2);
+        far.push(ScanTile::simple(KNIFE, 31, 0));
+        let inp2 = drop_held_input_from_sensors(
+            BOWL_OF_DOUGH,
+            3,
+            0,
+            0,
+            0,
+            0,
+            20.0,
+            false,
+            false,
+            40.0,
+            &far,
+            DropHeldSensorExtras::default(),
+        );
+        assert!(!inp2.has_knife_near);
+        let mut bread = empty_grid(0, 0, 2);
+        bread.push(ScanTile::simple(SLICED_BREAD_ID, 20, 0));
+        bread.push(ScanTile::simple(LEAVENED_DOUGH_PLATE, 0, 0));
+        let inp3 = drop_held_input_from_sensors(
+            BOWL_OF_DOUGH,
+            3,
+            0,
+            0,
+            0,
+            0,
+            20.0,
+            false,
+            false,
+            40.0,
+            &bread,
+            DropHeldSensorExtras::default(),
+        );
+        assert_eq!(inp3.count_bread_family, 2);
+        let mut bread_far = empty_grid(0, 0, 2);
+        bread_far.push(ScanTile::simple(SLICED_BREAD_ID, 21, 0));
+        let inp4 = drop_held_input_from_sensors(
+            BOWL_OF_DOUGH,
+            3,
+            0,
+            0,
+            0,
+            0,
+            20.0,
+            false,
+            false,
+            40.0,
+            &bread_far,
+            DropHeldSensorExtras::default(),
+        );
+        assert_eq!(inp4.count_bread_family, 0);
+    }
+
+    #[test]
+    fn pile_id_cancels_when_matches_last_target() {
+        // Haxe L5291: pileId == lastTargetId → pileId = -1
+        assert_eq!(pile_id_after_last_craft_target(225, 225), -1);
+        assert_eq!(pile_id_after_last_craft_target(225, 1113), 225);
+        assert_eq!(pile_id_after_last_craft_target(-1, 225), -1);
+        assert!(drop_held_clears_drop_target(0.0));
+        assert!(drop_held_clears_drop_target(0.9));
+        assert!(!drop_held_clears_drop_target(1.0));
+        assert!(!drop_held_clears_drop_target(40.0));
+    }
+
+    #[test]
+    fn is_dropping_item_head_gates() {
+        // Haxe L8351–8391
+        let mut tries = 3;
+        assert_eq!(
+            is_dropping_item_head(false, None, None, 33, 0, 0, 0, &mut tries),
+            IsDropingItemHead::Idle
+        );
+        assert_eq!(tries, 0);
+
+        tries = 2;
+        assert_eq!(
+            is_dropping_item_head(true, Some((292, 1, 0)), Some(292), 33, 0, 0, 0, &mut tries),
+            IsDropingItemHead::Continue
+        );
+        assert_eq!(tries, 1); // reset then +1
+
+        tries = 0;
+        assert_eq!(
+            is_dropping_item_head(false, Some((292, 1, 0)), Some(0), 33, 0, 0, 0, &mut tries),
+            IsDropingItemHead::TargetGone
+        );
+        assert_eq!(tries, 0); // gone before increment
+
+        tries = 0;
+        assert_eq!(
+            is_dropping_item_head(false, Some((292, 1, 0)), Some(292), 33, 4, 0, 0, &mut tries),
+            IsDropingItemHead::DropHeld { max_distance: 10 }
+        );
+        assert_eq!(tries, 1);
+
+        tries = 6;
+        assert_eq!(
+            is_dropping_item_head(false, Some((292, 1, 0)), Some(292), 33, 4, 0, 0, &mut tries),
+            IsDropingItemHead::DropHeld { max_distance: 0 }
+        );
+
+        tries = 0;
+        // (6,0) quad 36 > 25, held+ground
+        assert_eq!(
+            is_dropping_item_head(false, Some((34, 6, 0)), Some(34), 33, 0, 0, 0, &mut tries),
+            IsDropingItemHead::DropHeld { max_distance: 10 }
+        );
+        tries = 0;
+        // (4,0) quad 16 <= 25 → continue
+        assert_eq!(
+            is_dropping_item_head(false, Some((34, 4, 0)), Some(34), 33, 0, 0, 0, &mut tries),
+            IsDropingItemHead::Continue
+        );
+        tries = 0;
+        // empty hand never too-far
+        assert_eq!(
+            is_dropping_item_head(false, Some((34, 6, 0)), Some(34), 0, 0, 0, 0, &mut tries),
+            IsDropingItemHead::Continue
+        );
+    }
+
+    #[test]
+    fn is_dropping_item_goto_follow_stack_wound_and_walk() {
+        // Haxe L8401–8463
+        assert_eq!(
+            is_dropping_item_goto(34, 401.0, true, false, 10, false),
+            IsDropingItemGoto::DropHeld { max_distance: 10 }
+        );
+        // hungry still follows the drop (no abort)
+        assert_eq!(
+            is_dropping_item_goto(34, 401.0, true, true, 10, false),
+            IsDropingItemGoto::WalkToTarget
+        );
+        // empty ground (id 0) never follow-abort
+        assert_eq!(
+            is_dropping_item_goto(0, 401.0, true, false, 10, false),
+            IsDropingItemGoto::WalkToTarget
+        );
+        // quad 400 is not > 400
+        assert_eq!(
+            is_dropping_item_goto(34, 400.0, true, false, 10, false),
+            IsDropingItemGoto::WalkToTarget
+        );
+        // clay stacks convert even while moving / far
+        assert_eq!(
+            is_dropping_item_goto(STACK_OF_CLAY_PLATES, 100.0, false, false, 10, true),
+            IsDropingItemGoto::ConvertToUse
+        );
+        assert_eq!(
+            is_dropping_item_goto(STACK_OF_CLAY_BOWLS, 0.0, false, false, 10, false),
+            IsDropingItemGoto::ConvertToUse
+        );
+        assert_eq!(
+            is_dropping_item_goto(34, 4.0, false, false, 10, true),
+            IsDropingItemGoto::WaitMoving
+        );
+        // orthogonal adjacent quad=1 is close (not > 1)
+        assert_eq!(
+            is_dropping_item_goto(34, 1.0, false, false, 10, false),
+            IsDropingItemGoto::DropOnTarget
+        );
+        // diagonal quad=2 → goto
+        assert_eq!(
+            is_dropping_item_goto(34, 2.0, false, false, 10, false),
+            IsDropingItemGoto::WalkToTarget
+        );
+        assert_eq!(
+            is_dropping_item_goto(EXTRACTED_ARROWHEAD_WOUND, 0.0, false, false, 10, false),
+            IsDropingItemGoto::UseOnTarget
+        );
+        assert_eq!(
+            is_dropping_item_goto(0, 0.0, false, false, 10, false),
+            IsDropingItemGoto::DropOnTarget
+        );
+        assert_eq!(is_dropping_drop_distance_after_try(1), 10);
+        assert_eq!(is_dropping_drop_distance_after_try(6), 10);
+        assert_eq!(is_dropping_drop_distance_after_try(7), 0);
+    }
+
+    #[test]
+    fn consider_plate_use_target_skips_use_up_dough() {
+        // Haxe UseUpDough: useTarget.parentId == 236 → false, then oven table drops
+        let mut tiles = empty_grid(0, 0, 8);
+        tiles.push(ScanTile::simple(CLAY_PLATE, 2, 0));
+        let d = consider_drop_held_decision_ex(
+            BOWL_OF_DOUGH,
+            3,
+            0,
+            0,
+            0,
+            0,
+            50,
+            50,
+            &tiles,
+            false,
+            0,
+            true,
+        );
+        assert_eq!(d, Some(DropHeldDecision::None));
     }
 
     #[test]
@@ -2266,6 +2970,30 @@ mod tests {
                 target_id: BOWL_OF_GOOSEBERRIES,
                 actor_id: GOOSEBERRY,
             }
+        );
+    }
+
+    #[test]
+    fn gooseberry_skips_bowl_when_max_dist_low() {
+        // Haxe: 31 && maxDistanceToHome > 5 — near-home gooseberry does not fill
+        let mut tiles = empty_grid(0, 0, 5);
+        tiles.push(
+            ScanTile::simple(BOWL_OF_GOOSEBERRIES, 2, 0)
+                .with_uses(1)
+                .with_num_uses(5),
+        );
+        let mut inp = DropHeldInput::basic(GOOSEBERRY, 0, 0, 0, 0);
+        inp.max_distance_to_home = 1.0;
+        let d = drop_held_object(inp, &tiles);
+        assert!(
+            !matches!(
+                d,
+                DropHeldDecision::UseAt {
+                    target_id: BOWL_OF_GOOSEBERRIES,
+                    ..
+                }
+            ),
+            "got {d:?}"
         );
     }
 
@@ -2406,6 +3134,276 @@ mod tests {
     }
 
     #[test]
+    fn clay_far_from_home_no_kiln_uses_empty_basket() {
+        // Haxe: no kiln → distance is to home; >400 → any basket r=10
+        let mut tiles = empty_grid(0, 0, 6);
+        tiles.push(ScanTile::simple(BASKET, 3, 0).with_num_slots(4));
+        let mut inp = DropHeldInput::basic(CLAY, 0, 0, 30, 0); // home 30,0 → dist_q=900
+        inp.max_distance_to_home = 40.0;
+        let d = drop_held_object(inp, &tiles);
+        assert_eq!(
+            d,
+            DropHeldDecision::UseAt {
+                x: 3,
+                y: 0,
+                target_id: BASKET,
+                actor_id: CLAY,
+            },
+            "got {d:?}"
+        );
+    }
+
+    #[test]
+    fn clay_far_kiln_empty_basket_fallback() {
+        let mut tiles = empty_grid(0, 0, 6);
+        tiles.push(ScanTile::simple(BASKET, 2, 0).with_num_slots(4));
+        let mut inp = DropHeldInput::basic(CLAY, 0, 0, 0, 0);
+        inp.anchors.kiln_x = Some(100);
+        inp.anchors.kiln_y = Some(0);
+        inp.max_distance_to_home = 40.0;
+        let d = drop_held_object(inp, &tiles);
+        assert_eq!(
+            d,
+            DropHeldDecision::UseAt {
+                x: 2,
+                y: 0,
+                target_id: BASKET,
+                actor_id: CLAY,
+            },
+            "got {d:?}"
+        );
+    }
+
+    #[test]
+    fn bones_retarget_graveyard() {
+        let tiles = empty_grid(0, 0, 6);
+        let mut inp = DropHeldInput::basic(BASKET_OF_BONES, 0, 0, 0, 0);
+        inp.anchors.graveyard_x = Some(20);
+        inp.anchors.graveyard_y = Some(0);
+        inp.max_distance_to_home = 40.0;
+        let d = drop_held_object(inp, &tiles);
+        assert!(
+            matches!(
+                d,
+                DropHeldDecision::Goto { x: 20, y: 0 }
+                    | DropHeldDecision::DropAt { .. }
+                    | DropHeldDecision::UseAsDrop { .. }
+            ),
+            "got {d:?}"
+        );
+    }
+
+    #[test]
+    fn mutton_falls_back_to_hot_coals() {
+        let mut tiles = empty_grid(0, 0, 8);
+        tiles.push(ScanTile::simple(HOT_COALS, 4, 0));
+        let d = drop_held_object(DropHeldInput::basic(RAW_MUTTON, 0, 0, 0, 0), &tiles);
+        assert!(
+            matches!(
+                d,
+                DropHeldDecision::PreferShortCraft {
+                    actor: RAW_MUTTON,
+                    target: HOT_COALS,
+                    max_search: 10,
+                    craft_actor: false,
+                    max_new_actor: 4,
+                }
+            ),
+            "got {d:?}"
+        );
+    }
+
+    #[test]
+    fn steel_hoe_uses_craft_actor_false() {
+        let mut tiles = empty_grid(0, 0, 8);
+        tiles.push(ScanTile::simple(SHALLOW_TILLED_ROW, 3, 0));
+        let mut inp = DropHeldInput::basic(STEEL_HOE, 0, 0, 0, 0);
+        inp.food_store = 5.0;
+        inp.max_distance_to_home = 40.0;
+        let d = drop_held_object(inp, &tiles);
+        assert!(
+            matches!(
+                d,
+                DropHeldDecision::PreferShortCraft {
+                    actor: STEEL_HOE,
+                    target: SHALLOW_TILLED_ROW,
+                    max_search: 15,
+                    craft_actor: false,
+                    ..
+                }
+            ),
+            "got {d:?}"
+        );
+        inp.food_store = 2.0;
+        let d2 = drop_held_object(inp, &tiles);
+        assert!(
+            !matches!(
+                d2,
+                DropHeldDecision::PreferShortCraft {
+                    actor: STEEL_HOE,
+                    ..
+                }
+            ),
+            "food_store > 2 required, got {d2:?}"
+        );
+    }
+
+    #[test]
+    fn count_close_objects_half_open_and_pile_uses() {
+        // Haxe CountCloseObjects r=3: [tx-3, tx+3) — tile at +3 excluded
+        let mut tiles = empty_grid(0, 0, 1);
+        tiles.push(ScanTile::simple(STONE, 3, 0));
+        assert_eq!(
+            count_close_objects(&tiles, 0, 0, STONE, 3, false, 0),
+            0
+        );
+        tiles.push(ScanTile::simple(STONE, 2, 0));
+        assert_eq!(
+            count_close_objects(&tiles, 0, 0, STONE, 3, false, 0),
+            1
+        );
+        let mut piled = empty_grid(0, 0, 1);
+        piled.push(ScanTile::simple(4100, 1, 0).with_uses(5));
+        assert_eq!(
+            count_close_objects(&piled, 0, 0, STONE, 3, true, 4100),
+            5
+        );
+    }
+
+    #[test]
+    fn hot_iron_bloom_tongs_on_flat_rock() {
+        // Haxe L5401–5402: shortCraft(308, 291, 10, false)
+        let mut tiles = empty_grid(0, 0, 8);
+        tiles.push(ScanTile::simple(FLAT_ROCK, 4, 0));
+        let d = drop_held_object(
+            DropHeldInput::basic(HOT_IRON_BLOOM_TONGS, 0, 0, 0, 0),
+            &tiles,
+        );
+        assert!(
+            matches!(
+                d,
+                DropHeldDecision::PreferShortCraft {
+                    actor: HOT_IRON_BLOOM_TONGS,
+                    target: FLAT_ROCK,
+                    max_search: 10,
+                    craft_actor: false,
+                    ..
+                }
+            ),
+            "got {d:?}"
+        );
+    }
+
+    #[test]
+    fn stone_at_forge_counts_piles_by_uses() {
+        // 5-use stone pile at forge fills maxItems=1 → do not retarget forge
+        let mut tiles = empty_grid(0, 0, 4);
+        tiles.push(ScanTile::simple(FORGE, 0, 0));
+        tiles.push(ScanTile::simple(9991, 1, 0).with_uses(5));
+        let mut inp = DropHeldInput::basic(STONE, 10, 0, 0, 0);
+        inp.anchors.forge_x = Some(0);
+        inp.anchors.forge_y = Some(0);
+        inp.pile_id = 9991;
+        inp.max_distance_to_home = 40.0;
+        let d = drop_held_object(inp, &tiles);
+        assert!(
+            !matches!(d, DropHeldDecision::Goto { x: 0, y: 0 }),
+            "full pile should not stage more stone at forge, got {d:?}"
+        );
+    }
+
+    #[test]
+    fn bowl_of_wheat_plants_when_count_under_10() {
+        let mut tiles = empty_grid(0, 0, 8);
+        tiles.push(ScanTile::simple(DEEP_TILLED_ROW, 3, 0));
+        tiles.push(ScanTile::simple(RIPE_WHEAT, 1, 0));
+        let d = drop_held_object(DropHeldInput::basic(BOWL_OF_WHEAT, 0, 0, 0, 0), &tiles);
+        assert!(
+            matches!(
+                d,
+                DropHeldDecision::PreferShortCraft {
+                    actor: BOWL_OF_WHEAT,
+                    target: DEEP_TILLED_ROW,
+                    max_search: 20,
+                    craft_actor: false,
+                    ..
+                }
+            ),
+            "got {d:?}"
+        );
+    }
+
+    #[test]
+    fn shovel_of_dung_on_wet_compost() {
+        let mut tiles = empty_grid(0, 0, 8);
+        tiles.push(ScanTile::simple(WET_COMPOST, 5, 0));
+        let mut inp = DropHeldInput::basic(SHOVEL_OF_DUNG, 0, 0, 0, 0);
+        inp.max_distance_to_home = 40.0;
+        let d = drop_held_object(inp, &tiles);
+        assert!(
+            matches!(
+                d,
+                DropHeldDecision::PreferShortCraft {
+                    actor: SHOVEL_OF_DUNG,
+                    target: WET_COMPOST,
+                    max_search: 20,
+                    craft_actor: false,
+                    ..
+                }
+            ),
+            "got {d:?}"
+        );
+        inp.max_distance_to_home = 1.0;
+        let d2 = drop_held_object(inp, &tiles);
+        assert!(
+            !matches!(
+                d2,
+                DropHeldDecision::PreferShortCraft {
+                    actor: SHOVEL_OF_DUNG,
+                    ..
+                }
+            ),
+            "maxDist>5 required, got {d2:?}"
+        );
+    }
+
+    #[test]
+    fn clay_bowl_overflow_stages_at_forge() {
+        let mut tiles = empty_grid(0, 0, 6);
+        for i in 0..3 {
+            tiles.push(ScanTile::simple(CLAY_BOWL, i, 0));
+        }
+        tiles.push(ScanTile::simple(FORGE, 8, 0));
+        let mut inp = DropHeldInput::basic(CLAY_BOWL, 0, 0, 0, 0);
+        inp.anchors.forge_x = Some(8);
+        inp.anchors.forge_y = Some(0);
+        inp.max_distance_to_home = 40.0;
+        let d = drop_held_object(inp, &tiles);
+        assert!(
+            matches!(
+                d,
+                DropHeldDecision::Goto { x: 8, y: 0 }
+                    | DropHeldDecision::DropAt { .. }
+                    | DropHeldDecision::BusyMoving
+            ),
+            "got {d:?}"
+        );
+    }
+
+    #[test]
+    fn shovel_near_home_drops_close() {
+        // Haxe L5482–5485: shovel 502 quadDistance <= 225 → dropCloseToPlayer
+        let tiles = empty_grid(10, 0, 4);
+        let mut inp = DropHeldInput::basic(SHOVEL, 10, 0, 0, 0);
+        inp.max_distance_to_home = 40.0;
+        let d = drop_held_object(inp, &tiles);
+        assert!(
+            matches!(d, DropHeldDecision::DropAt { x, y } if (x - 10).abs() <= 4 && y.abs() <= 4),
+            "got {d:?}"
+        );
+    }
+
+    #[test]
     fn pile_skips_full_num_uses() {
         // Pile at capacity must be skipped (not uses>=10 heuristic).
         let mut tiles = empty_grid(0, 0, 6);
@@ -2517,7 +3515,20 @@ mod tests {
         let mut tiles = empty_grid(0, 0, 8);
         tiles.push(ScanTile::simple(CLAY_PLATE, 2, 0));
         let d =
-            consider_drop_held_decision_ex(BOWL_OF_DOUGH, 3, 0, 0, 0, 0, 50, 50, &tiles, false, 0);
+            consider_drop_held_decision_ex(
+                BOWL_OF_DOUGH,
+                3,
+                0,
+                0,
+                0,
+                0,
+                50,
+                50,
+                &tiles,
+                false,
+                0,
+                false,
+            );
         assert!(
             matches!(
                 d,
@@ -2681,6 +3692,74 @@ mod tests {
             smart_drop_held_to_live_intent(inp, &tiles),
             ShortCraftLiveIntent::Wait
         );
+    }
+
+    #[test]
+    fn clay_plate_under_five_drops_empty_then_switch() {
+        // Haxe L5501–5514: count<5 pileId=0; empty r=5 then switch -10 r=20; dropIsAUse=false
+        let mut tiles = empty_grid(0, 0, 6);
+        tiles.push(ScanTile::simple(CLAY_PLATE_ID, 1, 0));
+        let mut inp = DropHeldInput::basic(CLAY_PLATE_ID, 0, 0, 0, 0);
+        inp.max_distance_to_home = 40.0;
+        let d = drop_held_object(inp, &tiles);
+        assert!(
+            matches!(d, DropHeldDecision::DropAt { x, y } if x.abs() <= 5 && y.abs() <= 5 && !(x == 0 && y == 0)),
+            "got {d:?}"
+        );
+        // No empties in r=5 → switch non-permanent other id r=20
+        let mut only_sw = vec![
+            ScanTile::simple(CLAY_PLATE_ID, 0, 0),
+            ScanTile::simple(33, 8, 0),
+        ];
+        only_sw[1].is_permanent = false;
+        let d2 = drop_held_object(inp, &only_sw);
+        assert_eq!(
+            d2,
+            DropHeldDecision::DropAt { x: 8, y: 0 },
+            "got {d2:?}"
+        );
+    }
+
+    #[test]
+    fn drop_on_start_goto_when_quad_between_400_and_max() {
+        // Haxe L5544: quad > 400 && quad < maxDist² → gotoObj(target)
+        let tiles = empty_grid(0, 0, 2);
+        let mut inp = DropHeldInput::basic(CLAY_BOWL, 21, 0, 0, 0);
+        inp.max_distance_to_home = 40.0;
+        let d = drop_held_object(inp, &tiles);
+        assert_eq!(d, DropHeldDecision::Goto { x: 0, y: 0 }, "got {d:?}");
+        inp.max_distance_to_home = 20.0; // max_q=400; 441 > 400 → dropCloseToPlayer
+        let near_player = empty_grid(21, 0, 2);
+        let d2 = drop_held_object(inp, &near_player);
+        assert!(
+            matches!(d2, DropHeldDecision::DropAt { x, y } if (x - 21).abs() <= 2 && y.abs() <= 2),
+            "too far → drop close, got {d2:?}"
+        );
+    }
+
+    #[test]
+    fn fire_item_clears_drop_close() {
+        // Kindling 72: dropClose=false → dropOnStart can Goto fire
+        let mut tiles = empty_grid(0, 0, 2);
+        tiles.push(ScanTile::simple(85, 5, 0)); // coals as firePlace
+        let mut inp = DropHeldInput::basic(72, 26, 0, 0, 0);
+        inp.anchors.fire_x = Some(5);
+        inp.anchors.fire_y = Some(0);
+        inp.max_distance_to_home = 40.0;
+        let d = drop_held_object(inp, &tiles);
+        assert_eq!(d, DropHeldDecision::Goto { x: 5, y: 0 }, "got {d:?}");
+    }
+
+    #[test]
+    fn well_item_stages_at_well_or_home() {
+        let mut tiles = empty_grid(0, 0, 2);
+        tiles.push(ScanTile::simple(663, 8, 0));
+        let mut inp = DropHeldInput::basic(BASKET_OF_SOIL, 30, 0, 0, 0);
+        inp.anchors.well_x = Some(8);
+        inp.anchors.well_y = Some(0);
+        inp.max_distance_to_home = 40.0;
+        let d = drop_held_object(inp, &tiles);
+        assert_eq!(d, DropHeldDecision::Goto { x: 8, y: 0 }, "got {d:?}");
     }
 
     #[test]
@@ -3016,6 +4095,70 @@ mod tests {
                 }
             ),
             "count trans.newActor (cooked) not actor (raw), got {d4:?}"
+        );
+    }
+
+    #[test]
+    fn close_use_quad_distance_default_is_400_not_25() {
+        // Haxe: AiBase L33 closeUseQuadDistance = 400 (L505 distance<25 is a different gate)
+        assert_eq!(CLOSE_USE_QUAD_DISTANCE, 400);
+        assert_eq!(
+            DropHeldInput::basic(33, 0, 0, 0, 0).close_use_quad_distance,
+            400
+        );
+        assert_eq!(
+            DropHeldSensorExtras::default().close_use_quad_distance,
+            400
+        );
+    }
+
+    #[test]
+    fn hungry_far_pile_refuses_beyond_close_use_quad_distance() {
+        // Only the pile tile — no closer empties. (16,0) quad=256 < 400; (21,0) 441 > 400.
+        let near = vec![ScanTile::simple(33, 16, 0)];
+        let mut inp = DropHeldInput::basic(33, 0, 0, 0, 0);
+        inp.has_food_target = true;
+        inp.pile_id = 33;
+        let d_near = drop_held_object(inp, &near);
+        assert!(
+            matches!(
+                d_near,
+                DropHeldDecision::UseAsDrop {
+                    x: 16,
+                    y: 0,
+                    target_id: 33,
+                    actor_id: 33,
+                }
+            ),
+            "256 < 400 must keep pile, got {d_near:?}"
+        );
+
+        let far = vec![ScanTile::simple(33, 21, 0)];
+        let d_far = drop_held_object(inp, &far);
+        assert!(
+            !matches!(
+                d_far,
+                DropHeldDecision::UseAsDrop {
+                    x: 21,
+                    y: 0,
+                    ..
+                }
+            ),
+            "441 > 400 must refuse far pile, got {d_far:?}"
+        );
+
+        inp.close_use_quad_distance = 25;
+        let d_old = drop_held_object(inp, &near);
+        assert!(
+            !matches!(
+                d_old,
+                DropHeldDecision::UseAsDrop {
+                    x: 16,
+                    y: 0,
+                    ..
+                }
+            ),
+            "legacy 25 would refuse 256, got {d_old:?}"
         );
     }
 }

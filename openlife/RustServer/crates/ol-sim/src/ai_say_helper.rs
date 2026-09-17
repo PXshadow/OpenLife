@@ -70,8 +70,9 @@ pub const AI_PROFESSIONS: &[&str] = &[
     "CARROTFARMER",
     "COLLECTOR",
 ];
-/// Haxe random ARE YOU AI replies (rand 0..8; 7 = silent).
-// Haxe: AiBase.sayHelper ARE YOU AI rand 0..8
+/// Haxe random ARE YOU AI replies (rand 0..=8; 7 and 8 silent).
+/// `WorldMap.randomInt(8)` = `floor(random * 9)` → 0..=8.
+// Haxe: AiBase.sayHelper L4807–4828; WorldMap.randomInt L245
 pub const ARE_YOU_AI_REPLIES: &[&str] = &[
     "Im not a stupid AI!",
     "Im an AI!",
@@ -81,6 +82,12 @@ pub const ARE_YOU_AI_REPLIES: &[&str] = &[
     "Yes, And you?",
     "Why should I?",
 ];
+
+/// Map Haxe `randomInt(8)` to a reply (`None` = silent 7/8).
+// Haxe: AiBase.sayHelper L4807–4828
+pub fn are_you_ai_reply(rand: u8) -> Option<&'static str> {
+    ARE_YOU_AI_REPLIES.get(rand as usize).copied()
+}
 
 // ---------------------------------------------------------------------------
 // Context + plan
@@ -433,9 +440,7 @@ pub fn plan_scripted_say_helper(ctx: &ScriptedSayCtx) -> ScriptedSayPlan {
                 ..Default::default()
             };
         }
-        let reply = ARE_YOU_AI_REPLIES
-            .get(ctx.rand_ai as usize)
-            .map(|s| (*s).to_string());
+        let reply = are_you_ai_reply(ctx.rand_ai).map(|s| s.to_string());
         return ScriptedSayPlan {
             handled: true,
             say: reply,
@@ -838,6 +843,24 @@ mod tests {
         let p = plan_scripted_say_helper(&base_ctx("NAME?"));
         assert_eq!(p.say.as_deref(), Some("ALICE SNOW"));
         assert!(p.mark_reacted);
+        let mut angry = base_ctx("NAME?");
+        angry.ai_angry = true;
+        assert_eq!(
+            plan_scripted_say_helper(&angry).say.as_deref(),
+            Some("GRRR!")
+        );
+        let mut weap = base_ctx("NAME?");
+        weap.speaker_holding_weapon = true;
+        assert_eq!(
+            plan_scripted_say_helper(&weap).say.as_deref(),
+            Some("PUT DOWN YOUR WEAPON FIRST!")
+        );
+        let mut sa = base_ctx("NAME?");
+        sa.speaker_angry = true;
+        assert_eq!(
+            plan_scripted_say_helper(&sa).say.as_deref(),
+            Some("I DONT TRUST YOU!")
+        );
     }
 
     #[test]
@@ -851,6 +874,15 @@ mod tests {
         let p2 = plan_scripted_say_helper(&c);
         assert!(p2.handled);
         assert!(p2.say.is_none());
+        c.rand_ai = 8;
+        assert!(plan_scripted_say_helper(&c).say.is_none());
+        assert_eq!(are_you_ai_reply(0), Some("Im not a stupid AI!"));
+        assert_eq!(are_you_ai_reply(6), Some("Why should I?"));
+        assert_eq!(are_you_ai_reply(8), None);
+        for phrase in ["AI?", "AI", "ARE YOU AN AI"] {
+            let p = plan_scripted_say_helper(&base_ctx(phrase));
+            assert!(p.handled, "{phrase}");
+        }
     }
 
     #[test]
@@ -878,6 +910,17 @@ mod tests {
         assert_eq!(p2.say.as_deref(), Some("IM COMMING"));
         assert!(p2.start_follow);
         assert_eq!(p2.follow_p_id, 7);
+        assert!(p2.goto_speaker_offset);
+        let come = plan_scripted_say_helper(&base_ctx("COME"));
+        assert_eq!(come.say.as_deref(), Some("IM COMMING"));
+        let mut mv = base_ctx("MOVE!");
+        mv.is_friendly = true;
+        let m = plan_scripted_say_helper(&mv);
+        assert_eq!(m.say.as_deref(), Some("YES CAPTAIN"));
+        assert!(m.goto_speaker_offset);
+        assert!(!m.start_follow);
+        let nh = plan_scripted_say_helper(&base_ctx("NHOME!"));
+        assert_eq!(nh.say.as_deref(), Some("Hot Adobe Oven"));
     }
 
     #[test]
@@ -996,6 +1039,51 @@ mod tests {
             create_profession_text(Some("BAKER"), Some("BAKER")),
             "BAKER"
         );
+        assert_eq!(create_profession_text(Some("SMITH"), None), "SMITH");
+        assert_eq!(create_profession_text(None, Some("BAKER")), "BAKER");
+    }
+
+    #[test]
+    fn professions_list_matches_haxe() {
+        // Haxe: AiBase.professions L5039–5058
+        assert_eq!(
+            AI_PROFESSIONS,
+            &[
+                "SOILMAKER",
+                "ROWMAKER",
+                "BASICFARMER",
+                "ADVANCEDFARMER",
+                "SHEPHERD",
+                "BAKER",
+                "POTTER",
+                "FIREKEEPER",
+                "TAILOR",
+                "FIREFOODMAKER",
+                "LUMBERJACK",
+                "WATERBRINGER",
+                "FOODSERVER",
+                "GRAVEKEEPER",
+                "HUNTER",
+                "SMITH",
+                "CARROTFARMER",
+                "COLLECTOR",
+            ]
+        );
+        assert!(profession_is_known("SMITH"));
+        assert!(!profession_is_known("FARMER"));
+    }
+
+    #[test]
+    fn ally_and_follower_gates() {
+        // Haxe: AiBase.checkIfYouAreAllied / checkIfShouldDoCommand L5005–5027
+        assert!(plan_ally_gate(true).is_none());
+        let deny = plan_ally_gate(false).expect("loud reject");
+        assert_eq!(deny.say.as_deref(), Some(LLM_NOT_ALLY_SAY));
+        assert_eq!(deny.emote_id, Some(LLM_SPEECH_ANGRY_EMOTE_ID));
+        assert!(plan_should_do_command(true).is_none());
+        let nf = plan_should_do_command(false).expect("not follower");
+        assert_eq!(nf.say.as_deref(), Some(NOT_FOLLOWER_SAY));
+        assert_eq!(nf.emote_id, Some(LLM_SPEECH_ANGRY_EMOTE_ID));
     }
 
     #[test]

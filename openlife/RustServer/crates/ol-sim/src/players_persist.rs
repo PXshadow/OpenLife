@@ -471,7 +471,11 @@ pub fn apply_player_snapshot(rec: &PlayerDiskRecord, p: &mut Player) {
     };
     p.heat = rec.heat;
     p.done_moving_seq = rec.done_moving_seq;
-    p.wait_for_force = rec.forced;
+    // Haxe WritePlayers L376 `obj.forced` is the PU force *flag*, not
+    // `MoveHelper.waitForForce` (session-only; CancleMovement is isHuman).
+    // Restoring it blocked every AI MOVE after load until deadlock.
+    // Haxe: GlobalPlayerInstance.WritePlayers L376; MoveHelper.waitForForce L39 / L703
+    p.wait_for_force = false;
     p.x = rec.x;
     p.y = rec.y;
     p.age = rec.age;
@@ -1533,6 +1537,22 @@ mod tests {
         );
         assert!((combat.stats.get(&8).unwrap().prestige - 9.25).abs() < 1e-5);
         assert!((social2.lineages.get(&8).unwrap().prestige - 9.25).abs() < 1e-5);
+    }
+
+    #[test]
+    fn haxe_forced_pu_flag_is_not_wait_for_force() {
+        // Haxe WritePlayers L376 `forced` is PU force flag; waitForForce is not on disk.
+        let mut rec = PlayerDiskRecord::default();
+        rec.p_id = 9;
+        rec.forced = true;
+        rec.email = "npc@local".into();
+        let mut p = crate::Player::new(9, 2_000_009, "npc@local");
+        p.wait_for_force = true;
+        apply_player_snapshot(&rec, &mut p);
+        assert!(
+            !p.wait_for_force,
+            "loaded AIs must MOVE; waitForForce is session-only"
+        );
     }
 
     #[test]

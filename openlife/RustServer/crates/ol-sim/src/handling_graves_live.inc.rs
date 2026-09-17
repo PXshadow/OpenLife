@@ -17,6 +17,7 @@ pub fn handling_graves_profession_scan_tick(
             y: t.y,
             floor_id: t.floor_id,
             contained_count: t.contained_count,
+            owner_account: t.owner_account,
         })
         .collect();
     let sticky = if grave_keeper.last_grave_id != 0 {
@@ -41,7 +42,7 @@ pub fn handling_graves_profession_scan_tick(
         inp.target_reachable,
         false,
         inp.is_best_grave_keeper,
-        false,
+        inp.self_account_id,
         sticky,
     );
     let Some(action) = crate::try_decide_handling_graves_from_rung(
@@ -183,6 +184,7 @@ pub fn pick_grave_xy_from_scan(
             y: t.y,
             floor_id: t.floor_id,
             contained_count: t.contained_count,
+            owner_account: t.owner_account,
         })
         .collect();
     crate::handling_graves::pick_grave(

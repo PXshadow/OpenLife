@@ -146,6 +146,7 @@ mod food_store_max;
 mod get_or_craft;
 mod handling_fire;
 mod attack_player;
+mod kill_animal;
 mod knife_stuff;
 mod handle_death;
 mod handle_temperature;
@@ -159,6 +160,7 @@ mod health_prestige;
 mod heat_ideal;
 mod horse_mount;
 mod is_picking_up_food;
+mod is_using_item;
 mod item_value;
 mod jump_bw;
 mod leader_range;
@@ -242,13 +244,14 @@ pub use animal_pop::{
 };
 pub use baker_profession::{BakerProfessionRuntime, BakerTaskState};
 pub use clothing_craft::{
-    add_home_cloth_id, fill_up_quiver_search_radius, has_or_become_tailor, is_fill_up_quiver_plan,
+    add_home_cloth_id, fill_home_cloth_stock_from_xy, fill_up_quiver_search_radius,
+    has_or_become_tailor, home_has_loom_from_xy, is_fill_up_quiver_plan, is_old_enough_for_bow,
     parse_tailor_profession_speech, plan_assigned_tailor_clothing, plan_clothing_craft_tick,
     plan_fill_up_quiver, plan_high_priority_clothing, plan_low_priority_clothing,
     plan_medium_priority_clothing, plan_quiver_arrow_precursors, person_color_from_race,
     tailor_max_for_dispatch, ClothingCraftInput, ClothingCraftPlan, HomeClothStock, PersonColor,
-    HOME_LOOM_RADIUS, LOOM, TAILOR_ASSIGNED_MAX, TAILOR_DEFAULT_MAX, TAILOR_PROFESSION_KEY,
-    TAILOR_SCAN_RADIUS,
+    HOME_CLOTH_COUNT_RADIUS, HOME_LOOM_RADIUS, LOOM, TAILOR_ASSIGNED_MAX,
+    TAILOR_DEFAULT_MAX, TAILOR_PROFESSION_KEY, TAILOR_SCAN_RADIUS,
 };
 pub use farmer_profession::{
     FarmProfessionRuntime, FarmTaskState, BASIC_FARM_ASSIGNED_MAX_PROFESSION,
@@ -301,8 +304,8 @@ pub use handle_temperature::{
     HANDLE_TEMP_SAY_DRINK, WARM_BIOMES,
 };
 pub use remove_from_container::{
-    advance_remove_from_container, is_still_expected_item, stage_remove_item_from_container,
-    RemoveFromContainerAdvance, RemoveFromContainerStaging,
+    advance_remove_from_container, is_still_expected_item, remove_command_xy,
+    stage_remove_item_from_container, RemoveFromContainerAdvance, RemoveFromContainerStaging,
 };
 pub use handling_graves::{
     assign_grave_keeper_from_speech, handling_graves_sensors_from_map,
@@ -326,7 +329,8 @@ pub use cutting_wood::{
 };
 pub use collecting::{
     assign_collector_from_speech, collecting_max_for_dispatch, has_or_become_collector,
-    is_collecting, resolve_collector_assigned_job, try_decide_collecting_from_rung,
+    collecting_after_smith, is_collecting, resolve_collector_assigned_job,
+    try_decide_collecting_from_rung,
     CollectingAction, CollectingSensors, CollectorProfessionRuntime, COLLECTING_ASSIGNED_MAX,
     COLLECTING_DEFAULT_MAX, COLLECTING_SCAN_RADIUS, COLLECTOR_PROFESSION_KEY, COLLECT_KINDLING,
 };
@@ -337,12 +341,24 @@ pub use feeding_player::{
     try_decide_feeding_player_from_rung, FeedingPlayerAction, FeedingPlayerSensors,
     FoodServerProfessionRuntime, StarvingCand, FOODSERVER_ASSIGNED_MAX, FOODSERVER_DEFAULT_MAX,
     FOODSERVER_FOOD_SEARCH_RADIUS, FOODSERVER_PROFESSION_KEY, STARVING_SEARCH_DIST,
+    feed_you_are_say, FEED_NAME_MIN_AGE, FEED_NAME_RANDOM_CHANCE, FEED_WAIT_SECS,
 };
 pub use attack_player::{
-    attack_player, deadly_distance_for_held, get_weapon, stand_off_tile, AttackPlayerAction,
-    AttackPlayerClothing, AttackPlayerInput, AttackPlayerTarget, GetWeaponAction,
-    ATTACK_FOOD_STORE_MIN, BOW_AND_ARROW, MIN_AI_AGE_FOR_COMBAT, WEAPON_SEARCH_DIST,
+    attack_player, deadly_distance_for_held, get_weapon, has_weapon_close, stand_off_tile,
+    AttackPlayerAction, AttackPlayerClothing, AttackPlayerInput, AttackPlayerTarget,
+    GetWeaponAction, ATTACK_FOOD_STORE_MIN, BOW_AND_ARROW, HAS_WEAPON_CLOSE_SEARCH,
+    MIN_AI_AGE_FOR_COMBAT, WEAPON_SEARCH_DIST,
 };
+pub use kill_animal::{
+    closest_wolf_at_home, is_killable_by_bow, kill_animal_body, kill_animal_bow_hunt,
+    kill_animal_has_any_quiver, kill_animal_needs_stand_off, kill_animal_prefix,
+    time_since_ticks_in_sec, wolf_tile_allowed, KillAnimalAction, KillAnimalBodyInput,
+    KillAnimalBodyResult, KillAnimalPrefixInput, KillAnimalPrefixKind, KillAnimalPrefixResult,
+    EMPTY_ARROW_QUIVER, KILL_ANIMAL_FOOD_MIN, KILL_ANIMAL_GOTO_FAIL_CLEAR, KILL_ANIMAL_HOME_LOOK_SEC,
+    KILL_ANIMAL_MAX_QUAD, KILL_ANIMAL_SNAKE_RADIUS, KILL_ANIMAL_WOLF_SEARCH, TIME_HELPER_TICK_TIME,
+    TIME_LOOKED_NEVER, WOLF,
+};
+pub use knife_stuff::{do_knife_stuff, KnifeStuffAction};
 pub use leadership::direct_follow_leader;
 pub use move_speed::{
     apply_calculate_speed_full, apply_calculate_speed_full_live, contained_obj_speed_mult,
@@ -351,7 +367,8 @@ pub use move_speed::{
     VitalsSpeedInput, VitalsSpeedLiveKnobs,
 };
 pub use player_soul::{
-    is_super_cold_for_person, is_super_hot_for_person, person_looks_female, PlayerSoul, SoulView,
+    is_angry_or_terrified, is_super_cold_for_person, is_super_hot_for_person, person_looks_female,
+    PlayerSoul, SoulView,
 };
 pub use player_tick::{HAXE_DO_TIME_STUFF_FOR_PLAYER, HAXE_DO_WORLD_MAP_TIME_STUFF};
 pub use players_persist::PlayersShare;
@@ -373,7 +390,7 @@ pub use craft_ai_sticky::{
 };
 
 pub use accounts::format_account_statistics_html;
-pub use ai_say_helper::{go_home_goal_xy, go_home_move_target};
+pub use ai_say_helper::{go_home_goal_xy, go_home_move_target, should_path_to_home};
 pub use ai_follow_walk::{
     apply_follow_sticky_clear, decide_follow_walk, follow_seed, plan_ally_up,
     plan_follow_sticky_clear_ex, plan_found_family, should_skip_ally_up_if_hired,
@@ -389,7 +406,11 @@ pub use rabbit::{
     is_rabbit_cycle_id, is_rabbit_hole_id, rabbit_move_arrival_id, FLEEING_RABBIT,
     FLEEING_RABBIT_DEST, RABBIT_FAMILY_HOLE, RABBIT_HOLE_HIDING, RABBIT_HOLE_OUT,
 };
-pub use baker_profession::do_baking;
+pub use baker_profession::{
+    do_baking, fill_bake_counts_from_map_ex, BakeAction, BakeMapObj,
+};
+pub use farmer_profession::do_watering;
+pub use farmer_profession::{fill_farm_counts_from_map_ex, FarmMapObj};
 pub use craft_ai_sticky::apply_sticky_flags_to_craft_sensors;
 pub use death_polish::is_wound_object;
 pub use farmer_profession::{
@@ -399,7 +420,8 @@ pub use fertility::is_fertile_ex;
 pub use fire_food_profession::{
     count_fire_food_peers_filtered, fill_fire_food_counts_from_map, is_self_best_bowl_filler,
     make_fire_food, BowlFillerPeer, FireFoodMapObj, FireFoodPeerSnapshot,
-    FIRE_FOOD_ASSIGNED_MAX_PEOPLE, FIRE_FOOD_MAKE_STUFF_MAX_PEOPLE,
+    COOL_FLAT_ROCK, COOL_FLAT_ROCK_SHORTCRAFT_DIST, FIRE_FOOD_ASSIGNED_MAX_PEOPLE,
+    FIRE_FOOD_MAKE_STUFF_MAX_PEOPLE,
 };
 pub use get_or_craft::{
     init_water_source_ids, init_water_source_ids_from_content, CraftLiveExpandOpts,
@@ -412,7 +434,7 @@ pub use reputation::{
     compute_hit_reputation, compute_hit_reputation_with_factors, format_prestige_cost_global_message,
     HitReputationInput, DEVIL_MASK_CLOTHING_ID,
 };
-pub use short_craft_intent::drop_held_ai::{HOT_ADOBE_OVEN, HOT_COALS};
+pub use short_craft_intent::drop_held_ai::{CLOSE_USE_QUAD_DISTANCE, HOT_ADOBE_OVEN, HOT_COALS};
 pub use world_food_stats::{
     apply_world_food_factors, format_food_statistics_html, format_lineage_ages_html,
     format_lineage_death_reason_html, format_lineage_statistics_html, generate_lineage_statistics,
@@ -459,12 +481,25 @@ pub use world_time::WorldMapTimeState;
 // Profession pure helpers (crate-root for Player tests + profession_scan tests)
 pub use baker_profession::{assign_baker_from_speech, note_raw_pie_crafted, RAW_PIES};
 pub use farmer_profession::{
-    assign_farm_from_speech, make_sharpie_food, resolve_farm_assigned_job, FarmAction, FarmCounts,
-    BURDOCK, SEEDING_WILD_CARROT,
+    assign_farm_from_speech, consider_making_food_do_stuff,
+    consider_making_food_ear_of_corn_maker, consider_making_food_fire_food_on_extra_rabbit,
+    consider_making_food_fire_food_on_few_rabbit,
+    consider_making_food_raw_rabbit_count, consider_making_food_scaled_food_quad,
+    consider_making_food_short_crafts, consider_making_food_should_research,
+    consider_making_food_skip_after_enter, consider_making_food_skip_after_enter_with_home,
+    make_sharpie_food, make_sharpie_food_from_xy, pull_carrot_row_if_needed,
+    resolve_farm_assigned_job, FarmAction, FarmCounts, PullCarrotRowAction,
+    PullCarrotRowInput, BURDOCK, CORN_PLANT, DRIED_CORN, EAR_OF_CORN, PILE_DRIED_CORN,
+    SEEDING_WILD_CARROT, SHUCKED_CORN, SKINNED_RABBIT, SKEWERED_RABBIT,
+    CONSIDER_FOOD_RECHECK_SEC, CONSIDER_MAKE_FOOD_NEAR_QUAD,
+    MAKE_SHARPIE_FOOD_CLOSE_CALL_DISTANCE, MAKE_SHARPIE_FOOD_DEFAULT_MAX_DISTANCE,
+    MAKE_SHARPIE_FOOD_FAR_CALL_DISTANCE, TURKEY_SLICE_ON_PLATE,
 };
 pub use fire_food_profession::{assign_fire_food_from_speech, FIRE};
 pub use pottery_profession::{assign_potter_from_speech, count_potter_peers_filtered};
-pub use smith_profession::apply_consider_making_food_smith_wipe;
+pub use smith_profession::{
+    apply_consider_making_food_smith_wipe, should_wipe_smith_on_consider_food,
+};
 // Path-reach helpers not already in server_api_reexports
 pub use ai_path_reach::{
     add_blocked_by_ai, cleanup_blocked_by_ai, mark_use_or_food_path_fail, merge_blocked_by_ai_max,
@@ -674,7 +709,7 @@ pub use version_gate::{
 };
 pub use weapons::{
     bloody_weapon_after_strike, bloody_weapon_id_for, bloody_weapon_speed_mult, format_range_query,
-    held_damage_protection_factor,
+    held_damage_protection_factor, is_bloody_weapon,
     make_weapon_bloody_if_needed, weapon_bloody_time_to_change, weapon_damage, weapon_range,
     BloodyWeaponTransform, BLOODY_KNIFE_ID, BLOODY_WAR_SWORD_ID, BLOODY_WEAPON_MAKE_TTC,
     DEFAULT_WEAPON_DAMAGE, KNIFE_ID, WAR_SWORD_ID, WEAPON_COOLDOWN_FACTOR,
@@ -710,7 +745,8 @@ pub use feed::{
     can_pickup_player_ages_ex,
     get_max_child_feeding, name_looks_like_food, nurse_hits_heal, pickup_feed_amounts,
     is_droppable_on_baby_pickup, needs_force_drop_nested_hold, pickup_feed_amounts_ex,
-    pick_close_hungry_child, pick_most_distant_own_child, should_set_follow_on_hold,
+    is_staying_close_to_child, pick_close_hungry_child, pick_most_distant_own_child,
+    should_set_follow_on_hold,
     HungryChildCand, FEED_RANGE, DISTANT_OWN_CHILD_MIN_DIST, DISTANT_OWN_CHILD_SEARCH_DIST,
     FOOD_RESTORE_FACTOR_WHILE_FEEDING, HUNGRY_CHILD_CONSIDER, HUNGRY_CHILD_SEARCH_DIST,
     MAX_AGE_FOR_PICKUP_FROM_OTHERS, MAX_CHILD_AGE_BREAST_FEEDING, MIN_MAX_CHILD_FEEDING,
@@ -9089,6 +9125,8 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
         state.social.stamp_lineage_family_name(p_id, &fam);
         state.push_event(format!("EVE {p_id}"));
     }
+    // Haxe: GPI.lineage.prestigeClass = calculatePrestigeClass() then AiBase.newBorn L348–351
+    apply_newborn_is_nice_baby_after_lineage(state, conn_id, p_id, email);
     let po = state
         .players
         .get(&conn_id)
@@ -9133,6 +9171,67 @@ pub fn spawn_player(state: &mut SimState, conn_id: u64, email: &str) -> i32 {
     let now = state.sim_time;
     state.afk.touch(p_id, now);
     p_id
+}
+
+/// Living `(lineagePrestige, lineage + 4*family)` pairs for birth class (excludes newborn).
+// Haxe: GlobalPlayerInstance.calculatePrestigeClass / calculateTotalPresige
+fn living_birth_prestige_pairs(state: &SimState, exclude_p_id: i32) -> Vec<(f32, f32)> {
+    state
+        .players
+        .values()
+        .filter(|pl| !pl.deleted && pl.p_id != exclude_p_id)
+        .map(|pl| {
+            let lineage_p = state.player_prestige(pl.p_id);
+            let founder = state
+                .social
+                .lineages
+                .get(&pl.p_id)
+                .map(|n| n.family_eve_id())
+                .unwrap_or(pl.p_id);
+            let family = state.accounts.family_prestige_for(&pl.email, founder);
+            (lineage_p, lineage_p + 4.0 * family)
+        })
+        .collect()
+}
+
+/// Stamp GPI birth prestige class, then roll `isNiceBaby` (Haxe newBorn after lineage attach).
+// Haxe: AiBase.newBorn L348–351; GPI.calculatePrestigeClass L968
+fn apply_newborn_is_nice_baby_after_lineage(
+    state: &mut SimState,
+    conn_id: u64,
+    p_id: i32,
+    email: &str,
+) {
+    let living = living_birth_prestige_pairs(state, p_id);
+    let score = state
+        .accounts
+        .get(email)
+        .map(|r| r.haxe_total_score_ex(state.gameplay.ai_total_score_factor) as f32)
+        .unwrap_or(0.0);
+    let class = crate::prestige::calculate_prestige_class_at_birth(score, &living);
+    state.social.set_lineage_prestige_class(p_id, class);
+    if let Some(p) = state.players.get_mut(&conn_id) {
+        p.ai_is_nice_baby = crate::ai_goals::priority_ladder::roll_is_nice_baby(
+            rand::random(),
+            class.as_i32() as u8,
+        );
+        p.ai_try_move_nearest_tile_first = true;
+        p.ai_debug_say = false;
+        p.ai_debug_profession = false;
+        p.wipe_craft_on_birth();
+        p.ai_block_targets.clear_action_targets();
+        p.ai_did_not_reach_food = 0.0;
+        p.ai_path_reach = crate::ai_path_reach::AiPathReachMaps::default();
+    }
+}
+
+/// Haxe `newBorn` isNiceBaby using already-attached `lineage.prestigeClass`.
+// Haxe: AiBase.newBorn L348–351
+pub fn roll_newborn_nice_baby_after_lineage(state: &SimState, p_id: i32, rand: f32) -> bool {
+    crate::ai_goals::priority_ladder::roll_is_nice_baby(
+        rand,
+        state.player_prestige_class(p_id).as_i32() as u8,
+    )
 }
 
 /// Stones (id 33, permanent=0) + one wolf entity/map object near playtest spawn.
@@ -9290,6 +9389,12 @@ pub fn spawn_child(state: &mut SimState, mother_conn: u64) -> Option<i32> {
         baby.held_by = mother.p_id;
         if let Some(m) = state.players.get_mut(&mother_conn) {
             m.start_holding(baby_p_id);
+        }
+    }
+    // Haxe: mother.connection.serverAi.ai.newChild(this)
+    if mother.is_ai_body() {
+        if let Some(m) = state.players.get_mut(&mother_conn) {
+            m.new_child(baby_p_id);
         }
     }
     // Haxe: mother.exhaustion += NewChildExhaustionForMother
@@ -15378,6 +15483,22 @@ pub async fn run_sim_loop_with_views(
     }
     // Publish immediately so self-play Arc share sees wolves before first vitals tick.
     state.publish_web_snapshots();
+    // Haxe ReadPlayers attaches ServerAi before DoTimeLoop (`loaded $aiCount Ais`).
+    // Publish living bodies so the NPC scheduler counts them and does not LOGIN
+    // extra Eves during the first slow debug tick (counters.ticks already > 0).
+    // Haxe: Server.main L76 then L81; GlobalPlayerInstance.ReadPlayers L577
+    state.publish_all_player_views();
+    let boot_ai = state
+        .player_views
+        .as_ref()
+        .and_then(|v| v.read().ok())
+        .map(|g| g.len())
+        .unwrap_or(0);
+    info!(
+        n = boot_ai,
+        players = state.players.len(),
+        "sim: published loaded player views for ServerAi (Haxe ReadPlayers)"
+    );
 
     let period = Duration::from_secs_f64(1.0 / tick_hz.max(1) as f64);
     let tick_time = period.as_secs_f32();

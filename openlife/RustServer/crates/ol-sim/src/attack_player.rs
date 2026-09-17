@@ -38,6 +38,9 @@ pub const ATTACK_FOOD_STORE_MIN: f32 = -2.0;
 /// `GetClosestObjectToPositionByIds(..., 40)`.
 // Haxe: AiBase.getWeapon ~5810
 pub const WEAPON_SEARCH_DIST: i32 = 40;
+/// Haxe `hasWeaponClose` GetClosestObjectToPosition r=20 for Bow 152 / Arrow 148.
+// Haxe: AiBase.hasWeaponClose L5727 / L5734
+pub const HAS_WEAPON_CLOSE_SEARCH: i32 = 20;
 /// `isMovingToHome(4)` when held is bloody (`getWeapon` hunt path).
 // Haxe: AiBase.getWeapon ~5752
 pub const BLOODY_GO_HOME_TILES: i32 = 4;
@@ -232,43 +235,105 @@ fn quad_i(ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
     dx * dx + dy * dy
 }
 
-fn chebyshev(ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
-    (ax - bx).abs().max((ay - by).abs())
-}
-
 fn should_path_to_home(quad_dist: f32, max_tiles: i32) -> bool {
     let mt = max_tiles.max(0);
     quad_dist >= (mt * mt) as f32
 }
 
-/// Closest non-permanent weapon in the Haxe search box, ranked by integer quad.
-// Haxe: AiHelper.GetClosestObjectToPositionByIds ~5810
+/// Closest weapon in the Haxe half-open square, ranked by integer quad.
+/// Includes permanent tiles so [`PickupObj`] can refuse them and fall through
+/// to GetOrCraft (Haxe does not skip permanent in the search).
+// Haxe: AiHelper.GetClosestObjectToPositionByIds L355–388; PickupObj L6138–6143
 fn closest_weapon(
     tiles: &[WeaponTile],
     ids: &[i32],
     from_x: i32,
     from_y: i32,
     max_r: i32,
-) -> Option<(i32, i32, i32)> {
-    let mut best: Option<(i32, i32, i32, i32)> = None; // quad, y, x, id
+) -> Option<(i32, i32, i32, bool)> {
+    let mut best: Option<(i32, i32, i32, i32, bool)> = None; // quad, y, x, id, permanent
     for &(id, x, y, permanent) in tiles {
-        if permanent || !ids.contains(&id) {
+        if !ids.contains(&id) {
             continue;
         }
-        if chebyshev(from_x, from_y, x, y) > max_r {
+        if !in_has_weapon_search(from_x, from_y, x, y, max_r) {
             continue;
         }
         let q = quad_i(from_x, from_y, x, y);
         match best {
-            None => best = Some((q, y, x, id)),
-            Some((bq, by, bx, _)) => {
-                if q < bq || (q == bq && (y < by || (y == by && x < bx))) {
-                    best = Some((q, y, x, id));
+            None => best = Some((q, y, x, id, permanent)),
+            Some((bq, by, bx, _, _)) => {
+                // Haxe: `if quadDistance > bestDistance continue` — equal replaces
+                // (scan ty then tx ascending → last win = higher y, then higher x).
+                if q < bq || (q == bq && (y > by || (y == by && x > bx))) {
+                    best = Some((q, y, x, id, permanent));
                 }
             }
         }
     }
-    best.map(|(_, y, x, id)| (id, x, y))
+    best.map(|(_, y, x, id, permanent)| (id, x, y, permanent))
+}
+
+/// Haxe `GetClosestObjectToPosition` half-open square `[c-r, c+r)`.
+// Haxe: AiHelper.GetClosestObjectToPositionHelper `base±searchDistance` exclusive end
+fn in_has_weapon_search(px: i32, py: i32, x: i32, y: i32, r: i32) -> bool {
+    x >= px - r && x < px + r && y >= py - r && y < py + r
+}
+
+/// Haxe `AiBase.hasWeaponClose(bow=true)`.
+///
+/// When `bow` is false the bow block is skipped and the function returns false
+/// after wound/age/bloody gates (Haxe has no melee branch).
+// Haxe: AiBase.hasWeaponClose L5716–5742
+pub fn has_weapon_close(
+    bow: bool,
+    wounded: bool,
+    age: f32,
+    min_ai_age_for_combat: f32,
+    held_bloody: bool,
+    held_parent_id: i32,
+    clothing: AttackPlayerClothing,
+    tiles: &[WeaponTile],
+    player_x: i32,
+    player_y: i32,
+) -> bool {
+    if wounded {
+        return false;
+    }
+    let min_age = if min_ai_age_for_combat.is_finite() && min_ai_age_for_combat > 0.0 {
+        min_ai_age_for_combat
+    } else {
+        MIN_AI_AGE_FOR_COMBAT
+    };
+    if age < min_age {
+        return false;
+    }
+    if held_bloody {
+        return false;
+    }
+    if !bow {
+        return false;
+    }
+    if held_parent_id == BOW_AND_ARROW {
+        return true;
+    }
+    let r = HAS_WEAPON_CLOSE_SEARCH;
+    if tiles.iter().any(|&(id, x, y, _)| {
+        id == BOW_AND_ARROW && in_has_weapon_search(player_x, player_y, x, y, r)
+    }) {
+        return true;
+    }
+    if held_parent_id == YEW_BOW && clothing.arrow_quiver {
+        return true;
+    }
+    if held_parent_id == YEW_BOW
+        && tiles.iter().any(|&(id, x, y, _)| {
+            id == ARROW && in_has_weapon_search(player_x, player_y, x, y, r)
+        })
+    {
+        return true;
+    }
+    clothing.quiver_with_bow
 }
 
 /// Haxe `AiBase.getWeapon(onlyBowAndArrow)`.
@@ -322,14 +387,17 @@ pub fn get_weapon(inp: &AttackPlayerInput<'_>, only_bow_and_arrow: bool) -> GetW
             } else {
                 &[KNIFE, WAR_SWORD, BOW_AND_ARROW]
             };
-            if let Some((id, x, y)) = closest_weapon(
+            if let Some((id, x, y, permanent)) = closest_weapon(
                 inp.weapon_tiles,
                 weapons,
                 inp.player_x,
                 inp.player_y,
                 WEAPON_SEARCH_DIST,
             ) {
-                return GetWeaponAction::Pickup { x, y, id };
+                // Haxe PickupObj: permanent → false, then GetOrCraft (do not try next tile)
+                if !permanent {
+                    return GetWeaponAction::Pickup { x, y, id };
+                }
             }
         }
         if inp.is_moving {
@@ -591,6 +659,78 @@ mod tests {
     }
 
     #[test]
+    fn arrow_into_quiver_with_bow_self() {
+        // Haxe L5783–5794: held.id 148 + 4149 then 4151 + canAddToQuiver → self(0,0,5)
+        let tiles = [];
+        let mut inp = base(&tiles);
+        inp.holding_weapon = false;
+        inp.held_id = ARROW;
+        inp.held_parent_id = ARROW;
+        inp.clothing.empty_quiver_with_bow = true;
+        inp.clothing.can_add_to_quiver = true;
+        assert_eq!(
+            get_weapon(&inp, true),
+            GetWeaponAction::SelfClothing {
+                slot: QUIVER_CLOTHING_SLOT
+            }
+        );
+        inp.clothing.can_add_to_quiver = false;
+        assert_ne!(
+            get_weapon(&inp, true),
+            GetWeaponAction::SelfClothing {
+                slot: QUIVER_CLOTHING_SLOT
+            }
+        );
+    }
+
+    #[test]
+    fn has_weapon_close_bow_gates_and_search() {
+        let clothes = AttackPlayerClothing::default();
+        assert!(!has_weapon_close(
+            true, true, 20.0, 8.0, false, BOW_AND_ARROW, clothes, &[], 0, 0
+        ));
+        assert!(!has_weapon_close(
+            true, false, 7.9, 8.0, false, BOW_AND_ARROW, clothes, &[], 0, 0
+        ));
+        assert!(!has_weapon_close(
+            true, false, 20.0, 8.0, true, BOW_AND_ARROW, clothes, &[], 0, 0
+        ));
+        assert!(has_weapon_close(
+            true, false, 20.0, 8.0, false, BOW_AND_ARROW, clothes, &[], 0, 0
+        ));
+        // bow=false: no melee branch
+        assert!(!has_weapon_close(
+            false, false, 20.0, 8.0, false, KNIFE, clothes, &[], 0, 0
+        ));
+        let tiles = [(BOW_AND_ARROW, 19, 0, false)];
+        assert!(has_weapon_close(
+            true, false, 20.0, 8.0, false, 0, clothes, &tiles, 0, 0
+        ));
+        let edge = [(BOW_AND_ARROW, 20, 0, false)]; // half-open: x < 20 excluded
+        assert!(!has_weapon_close(
+            true, false, 20.0, 8.0, false, 0, clothes, &edge, 0, 0
+        ));
+        let yew_q = AttackPlayerClothing {
+            arrow_quiver: true,
+            ..Default::default()
+        };
+        assert!(has_weapon_close(
+            true, false, 20.0, 8.0, false, YEW_BOW, yew_q, &[], 0, 0
+        ));
+        let arrows = [(ARROW, 5, 0, false)];
+        assert!(has_weapon_close(
+            true, false, 20.0, 8.0, false, YEW_BOW, clothes, &arrows, 0, 0
+        ));
+        let qbow = AttackPlayerClothing {
+            quiver_with_bow: true,
+            ..Default::default()
+        };
+        assert!(has_weapon_close(
+            true, false, 20.0, 8.0, false, 0, qbow, &[], 0, 0
+        ));
+    }
+
+    #[test]
     fn yew_bow_arrow_quiver_self() {
         let tiles = [];
         let mut inp = base(&tiles);
@@ -644,5 +784,150 @@ mod tests {
         assert!((deadly_distance_for_held(KNIFE, 0.0) - 1.5).abs() < 1e-6);
         assert!((deadly_distance_for_held(BOW_AND_ARROW, 0.0) - 4.0).abs() < 1e-6);
         assert!((deadly_distance_for_held(KNIFE, 2.0) - 2.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn empty_quiver_with_bow_includes_arrow_in_pickup() {
+        // Haxe L5807–5811: 4149 → weapons [560, 3047, 152, 148]
+        let tiles = [(ARROW, 2, 0, false), (KNIFE, 8, 0, false)];
+        let mut inp = base(&tiles);
+        inp.holding_weapon = false;
+        inp.held_id = 0;
+        inp.held_parent_id = 0;
+        inp.clothing.empty_quiver_with_bow = true;
+        assert_eq!(
+            get_weapon(&inp, false),
+            GetWeaponAction::Pickup {
+                x: 2,
+                y: 0,
+                id: ARROW
+            }
+        );
+    }
+
+    #[test]
+    fn without_4149_pickup_skips_arrow() {
+        // Haxe L5809: no 4149 → [560, 3047, 152] (no 148)
+        let tiles = [(ARROW, 2, 0, false), (KNIFE, 8, 0, false)];
+        let mut inp = base(&tiles);
+        inp.holding_weapon = false;
+        inp.held_id = 0;
+        inp.held_parent_id = 0;
+        assert_eq!(
+            get_weapon(&inp, false),
+            GetWeaponAction::Pickup {
+                x: 8,
+                y: 0,
+                id: KNIFE
+            }
+        );
+    }
+
+    #[test]
+    fn only_bow_skips_ground_weapon_pickup() {
+        // Haxe L5807: onlyBowAndArrow == false is the pickup gate
+        let tiles = [(KNIFE, 2, 0, false)];
+        let mut inp = base(&tiles);
+        inp.holding_weapon = false;
+        inp.held_id = 0;
+        inp.held_parent_id = 0;
+        assert_eq!(
+            get_weapon(&inp, true),
+            GetWeaponAction::SeekOrCraft {
+                actor: BOW_AND_ARROW
+            }
+        );
+    }
+
+    #[test]
+    fn weapon_search_half_open_excludes_r40() {
+        // Haxe GetClosestObjectToPositionByIds r=40: x < player+40
+        let edge = [(KNIFE, 40, 0, false)];
+        let mut inp = base(&edge);
+        inp.holding_weapon = false;
+        inp.held_id = 0;
+        inp.held_parent_id = 0;
+        assert_eq!(
+            get_weapon(&inp, false),
+            GetWeaponAction::SeekOrCraft {
+                actor: BOW_AND_ARROW
+            }
+        );
+        let inside = [(KNIFE, 39, 0, false)];
+        let mut inp = base(&inside);
+        inp.holding_weapon = false;
+        inp.held_id = 0;
+        inp.held_parent_id = 0;
+        assert_eq!(
+            get_weapon(&inp, false),
+            GetWeaponAction::Pickup {
+                x: 39,
+                y: 0,
+                id: KNIFE
+            }
+        );
+    }
+
+    #[test]
+    fn permanent_closest_weapon_falls_through_to_craft() {
+        // Haxe PickupObj permanent → false; do not pick a farther knife
+        let tiles = [(BOW_AND_ARROW, 2, 0, true), (KNIFE, 8, 0, false)];
+        let mut inp = base(&tiles);
+        inp.holding_weapon = false;
+        inp.held_id = 0;
+        inp.held_parent_id = 0;
+        assert_eq!(
+            get_weapon(&inp, false),
+            GetWeaponAction::SeekOrCraft {
+                actor: BOW_AND_ARROW
+            }
+        );
+    }
+
+    #[test]
+    fn food_store_eq_minus_two_still_attacks() {
+        // Haxe L5825: food_store < -2 refuses; -2 is allowed
+        let tiles = [];
+        let mut inp = base(&tiles);
+        inp.food_store = -2.0;
+        inp.target.as_mut().unwrap().x = 1;
+        inp.target.as_mut().unwrap().exact_x = 1.0;
+        assert_eq!(
+            attack_player(&inp),
+            AttackPlayerAction::Kill {
+                target_p_id: 2,
+                tx: 1,
+                ty: 0
+            }
+        );
+    }
+
+    #[test]
+    fn weapon_search_equal_quad_prefers_higher_y() {
+        // Haxe scan ty outer, tx inner; equal quad last-wins
+        let tiles = [(KNIFE, 3, 0, false), (WAR_SWORD, 0, 3, false)];
+        let mut inp = base(&tiles);
+        inp.holding_weapon = false;
+        inp.held_id = 0;
+        inp.held_parent_id = 0;
+        assert_eq!(
+            get_weapon(&inp, false),
+            GetWeaponAction::Pickup {
+                x: 0,
+                y: 3,
+                id: WAR_SWORD
+            }
+        );
+    }
+
+    #[test]
+    fn holding_bow_and_arrow_returns_none() {
+        let tiles = [];
+        let mut inp = base(&tiles);
+        inp.holding_weapon = false;
+        inp.held_id = BOW_AND_ARROW;
+        inp.held_parent_id = BOW_AND_ARROW;
+        assert_eq!(get_weapon(&inp, true), GetWeaponAction::None);
+        assert_eq!(get_weapon(&inp, false), GetWeaponAction::None);
     }
 }

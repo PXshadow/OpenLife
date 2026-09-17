@@ -56,6 +56,9 @@ pub const GRAVE_HOME_CRAFT_QUAD: i32 = 900;
 /// Haxe `GetItem(502, 10, grave)` — shovel search from grave then player.
 // Haxe: isHandlingGraves GetItem(502, 10, grave) ~1600
 pub const GRAVE_SHOVEL_NEAR_RADIUS: i32 = 10;
+/// Haxe `PickupItem(356)`: GetClosestObjectToTarget(home, 356, 20).
+// Haxe: AiBase.PickupItem L6130–6135; isHandlingGraves L1538
+pub const PICKUP_BONES_HOME_RADIUS: i32 = 20;
 
 /// Canonical Haxe profession string.
 pub const GRAVE_KEEPER_PROFESSION_KEY: &str = "GRAVEKEEPER";
@@ -160,6 +163,9 @@ pub struct HandlingGravesMapObj {
     pub y: i32,
     pub floor_id: i32,
     pub contained_count: i32,
+    /// Haxe `ownersByPlayerAccount[0]` (0 = none).
+    // Haxe: ObjectHelper.getOwnerAccount L721–724
+    pub owner_account: i32,
 }
 
 #[inline]
@@ -210,6 +216,15 @@ pub fn pick_grave(
     best.map(|(_, id, x, y, f, c)| (id, x, y, f, c))
 }
 
+/// Haxe `grave.getOwnerAccount().id == myPlayer.account.id` (first account owner only).
+// Haxe: AiBase.isHandlingGraves L1503–1508; ObjectHelper.getOwnerAccount
+pub fn is_own_grave_account(owners_by_account: &[i32], self_account_id: i32) -> bool {
+    match owners_by_account.first() {
+        Some(&a) if a != 0 && a == self_account_id => true,
+        _ => false,
+    }
+}
+
 /// Haxe `GetGraveyard`: Marked 1012 then Buried 1011, home r=25 min 8.
 // Haxe: AiBase.GetGraveyard ~3634
 pub fn get_graveyard(
@@ -224,7 +239,13 @@ pub fn get_graveyard(
                 continue;
             }
             let d = chebyshev(home_x, home_y, o.x, o.y);
-            if d > GRAVEYARD_HOME_RADIUS || d < GRAVEYARD_HOME_MIN {
+            if d > GRAVEYARD_HOME_RADIUS {
+                continue;
+            }
+            // Haxe GetClosest minDistance: quadDistance < min² skip (8²=64)
+            let dx = o.x - home_x;
+            let dy = o.y - home_y;
+            if dx * dx + dy * dy < GRAVEYARD_HOME_MIN * GRAVEYARD_HOME_MIN {
                 continue;
             }
             match best {
@@ -331,15 +352,25 @@ pub fn handling_graves_sensors_from_map(
     grave_reachable: bool,
     grave_hostile_path: bool,
     is_best: bool,
-    is_own_grave: bool,
+    self_account_id: i32,
     sticky: Option<(i32, i32, i32)>,
 ) -> HandlingGravesSensors {
-    let has_basket_of_bones = map.iter().any(|o| o.parent_id == BASKET_OF_BONES);
+    // Haxe: PickupItem(356) GetClosestObjectToTarget(home, 356, 20)
+    let has_basket_of_bones = map.iter().any(|o| {
+        o.parent_id == BASKET_OF_BONES
+            && chebyshev(o.x, o.y, home_x, home_y) <= PICKUP_BONES_HOME_RADIUS
+    });
     let radius = grave_search_radius(false, age);
     let grave = pick_grave(map, player_x, player_y, radius, sticky);
     let yard = get_graveyard(map, home_x, home_y);
     let (grave_id, grave_x, grave_y, grave_floor_id, grave_contained) =
         grave.unwrap_or((0, 0, 0, 0, 0));
+    let grave_owner = map
+        .iter()
+        .find(|o| o.x == grave_x && o.y == grave_y && o.parent_id == grave_id)
+        .map(|o| o.owner_account)
+        .unwrap_or(0);
+    let is_own_grave = grave_owner != 0 && grave_owner == self_account_id;
     let (graveyard_id, graveyard_x, graveyard_y) = yard.unwrap_or((0, 0, 0));
     let has_shovel_near_grave = grave_id != 0
         && map.iter().any(|o| {
@@ -832,6 +863,7 @@ mod tests {
                 y: 0,
                 floor_id: 0,
                 contained_count: 0,
+                owner_account: 0,
             },
             HandlingGravesMapObj {
                 parent_id: GRAVE_88,
@@ -839,6 +871,7 @@ mod tests {
                 y: 0,
                 floor_id: 0,
                 contained_count: 0,
+                owner_account: 0,
             },
         ];
         let g = pick_grave(&map, 0, 0, 30, Some((GRAVE_88, 5, 0))).unwrap();
@@ -846,6 +879,132 @@ mod tests {
         assert_eq!((g.1, g.2), (5, 0));
         let near = pick_grave(&map, 0, 0, 30, None).unwrap();
         assert_eq!(near.0, GRAVE_OLD);
+        // Haxe: AiBase L1487 lastGrave.parentId not in graveIdsToDigIn → search
+        let skip_sticky = pick_grave(&map, 0, 0, 30, Some((MARKED_GRAVE, 5, 0))).unwrap();
+        assert_eq!(skip_sticky.0, GRAVE_OLD);
+    }
+
+    #[test]
+    fn get_graveyard_marked_then_buried_quad_min() {
+        // Haxe L3634–3641: 1012 then 1011, home r=25, minDistance quad ≥ 8²
+        let close = [HandlingGravesMapObj {
+            parent_id: MARKED_GRAVE,
+            x: 5,
+            y: 0,
+            floor_id: 0,
+            contained_count: 0,
+            owner_account: 0,
+        }];
+        assert!(get_graveyard(&close, 0, 0).is_none(), "quad 25 < 64");
+        let diag = [HandlingGravesMapObj {
+            parent_id: MARKED_GRAVE,
+            x: 6,
+            y: 6,
+            floor_id: 0,
+            contained_count: 0,
+            owner_account: 0,
+        }];
+        let g = get_graveyard(&diag, 0, 0).unwrap();
+        assert_eq!(g, (MARKED_GRAVE, 6, 6), "quad 72 ≥ 64 even if cheb 6 < 8");
+        let buried = [HandlingGravesMapObj {
+            parent_id: BURIED_GRAVE,
+            x: 10,
+            y: 0,
+            floor_id: 0,
+            contained_count: 0,
+            owner_account: 0,
+        }];
+        assert_eq!(get_graveyard(&buried, 0, 0), Some((BURIED_GRAVE, 10, 0)));
+        assert_eq!(GRAVEYARD_HOME_RADIUS, 25);
+        assert_eq!(GRAVEYARD_HOME_MIN, 8);
+    }
+
+    #[test]
+    fn unreachable_or_missing_grave_clears_last_grave() {
+        // Haxe: AiBase L1491–1499 lastGrave=null if missing/unreachable; else lastGrave=grave
+        let mut gk = rt();
+        gk.set_last_grave(GRAVE_88, 3, 0);
+        let s = HandlingGravesSensors {
+            grave_id: 0,
+            ..Default::default()
+        };
+        assert_eq!(is_handling_graves(&s, &mut gk, 1), HandlingGravesAction::None);
+        assert_eq!(gk.last_grave_id, 0);
+        gk.set_last_grave(GRAVE_88, 3, 0);
+        let s2 = HandlingGravesSensors {
+            grave_id: GRAVE_88,
+            grave_x: 3,
+            grave_y: 0,
+            grave_reachable: false,
+            ..Default::default()
+        };
+        assert_eq!(is_handling_graves(&s2, &mut gk, 1), HandlingGravesAction::None);
+        assert_eq!(gk.last_grave_id, 0);
+        let s3 = HandlingGravesSensors {
+            grave_id: GRAVE_88,
+            grave_x: 3,
+            grave_y: 0,
+            grave_reachable: true,
+            grave_hostile_path: false,
+            ..Default::default()
+        };
+        let _ = is_handling_graves(&s3, &mut gk, 1);
+        assert_eq!(gk.last_grave_id, GRAVE_88);
+        assert_eq!((gk.last_grave_x, gk.last_grave_y), (3, 0));
+    }
+
+    #[test]
+    fn own_grave_from_first_account_owner() {
+        // Haxe: AiBase L1503–1508 getOwnerAccount()[0] == myPlayer.account.id
+        assert!(is_own_grave_account(&[7, 9], 7));
+        assert!(!is_own_grave_account(&[9, 7], 7));
+        assert!(!is_own_grave_account(&[], 7));
+        assert!(!is_own_grave_account(&[0], 7));
+        let map = [HandlingGravesMapObj {
+            parent_id: GRAVE_88,
+            x: 1,
+            y: 0,
+            floor_id: 0,
+            contained_count: 0,
+            owner_account: 42,
+        }];
+        let s = handling_graves_sensors_from_map(
+            &map, 0, 0, 0, 0, 0, 0, 20.0, false, true, false, true, 42, None,
+        );
+        assert!(s.is_own_grave);
+        let s2 = handling_graves_sensors_from_map(
+            &map, 0, 0, 0, 0, 0, 0, 20.0, false, true, false, true, 1, None,
+        );
+        assert!(!s2.is_own_grave);
+    }
+
+    #[test]
+    fn pickup_bones_only_within_20_of_home() {
+        // Haxe: PickupItem(356) r=20 from home
+        let near = [HandlingGravesMapObj {
+            parent_id: BASKET_OF_BONES,
+            x: 20,
+            y: 0,
+            floor_id: 0,
+            contained_count: 0,
+            owner_account: 0,
+        }];
+        let far = [HandlingGravesMapObj {
+            parent_id: BASKET_OF_BONES,
+            x: 21,
+            y: 0,
+            floor_id: 0,
+            contained_count: 0,
+            owner_account: 0,
+        }];
+        let s_near = handling_graves_sensors_from_map(
+            &near, 0, 0, 0, 0, 0, 0, 20.0, false, true, false, true, 0, None,
+        );
+        let s_far = handling_graves_sensors_from_map(
+            &far, 0, 0, 0, 0, 0, 0, 20.0, false, true, false, true, 0, None,
+        );
+        assert!(s_near.has_basket_of_bones);
+        assert!(!s_far.has_basket_of_bones);
     }
 
     #[test]

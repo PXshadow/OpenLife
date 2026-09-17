@@ -22,11 +22,10 @@ pub fn handling_fire_profession_scan_tick(
         .collect();
     // Haxe: getBestAiForObjByProfession('FIREKEEPER', home|firePlace) distance pick
     // Haxe: TimeHelper.Season == Winter → kindling first on Fire 82
-    let sticky = if inp.fire_place_id != 0 {
-        Some((inp.fire_place_x, inp.fire_place_y))
-    } else {
-        None
-    };
+    // Haxe: AiBase L1084–1085 GetCloseFire then myPlayer.firePlace = firePlace (no sticky)
+    // Haxe: L1133 hasOrBecomeProfession('FIREKEEPER', 3) uses countProfession('FIREKEEPER')
+    let fire_keeper_peers = inp.peer_count_for_kind(ProfessionScanKind::HandlingFire);
+    let fire_food_peers = inp.peer_count_for_kind(ProfessionScanKind::FireFood);
     let sensors = crate::handling_fire_sensors_from_map_ex(
         &map,
         inp.held_id,
@@ -39,9 +38,9 @@ pub fn handling_fire_profession_scan_tick(
         false,
         inp.is_best_fire_keeper_at_home,
         inp.is_best_fire_keeper_at_fire,
-        inp.peer_count,
+        fire_keeper_peers,
         inp.was_idle,
-        sticky,
+        None,
     );
     fire_keeper.fire_place_touched = true;
     let fire_map: Vec<crate::FireFoodMapObj> = tiles
@@ -71,6 +70,13 @@ pub fn handling_fire_profession_scan_tick(
                 | crate::shepherd_profession::BOWL_CORN_COB
         )
     });
+    fire_counts.apply_popcorn_stock_from_map(
+        inp.home_x,
+        inp.home_y,
+        inp.player_x,
+        inp.player_y,
+        &fire_map,
+    );
     fire_counts.is_best_bowl_filler = inp.is_best_bowl_filler;
     let Some(action) = crate::try_decide_handling_fire_from_rung(
         inp.profession_is_sticky,
@@ -80,7 +86,7 @@ pub fn handling_fire_profession_scan_tick(
         fire_keeper,
         &fire_counts,
         fire_food_rt,
-        inp.peer_count,
+        fire_food_peers,
         inp.was_idle,
     ) else {
         return ProfessionScanTickResult::none();
@@ -92,7 +98,21 @@ pub fn handling_fire_profession_scan_tick(
     if let crate::HandlingFireAction::DoBaking { max_people } = action {
         return expand_handling_fire_do_baking(tiles, inp, baker_rt, baker_task, max_people);
     }
-    handling_fire_action_to_live_intent(tiles, inp, action)
+    let result = handling_fire_action_to_live_intent(tiles, inp, action);
+    // Haxe: AiBase L1195–1206 shortCraftOnTarget(344) false → butt log / kindling same tick
+    if !result.had_action {
+        if let crate::HandlingFireAction::ShortCraftOnFire {
+            actor,
+            fire_object_id,
+        } = action
+        {
+            if actor == crate::FIREWOOD && fire_object_id == crate::FIRE {
+                let tail = crate::handling_fire::is_handling_fire_fire_fuel_tail(&sensors);
+                return handling_fire_action_to_live_intent(tiles, inp, tail);
+            }
+        }
+    }
+    result
 }
 
 /// Nested doBaking(max) from isHandlingFire hot-oven gate.
@@ -113,7 +133,7 @@ fn expand_handling_fire_do_baking(
         inp.held_id,
         held_uses,
         &map,
-        OVEN_SEARCH_RADIUS,
+        BAKER_SCAN_RADIUS,
         inp.is_hungry,
         inp.has_carrot_seeds,
         inp.has_bean_seeds,
@@ -244,6 +264,13 @@ pub fn late_make_fire_food_scan_tick(
                 | crate::shepherd_profession::BOWL_CORN_COB
         )
     });
+    counts.apply_popcorn_stock_from_map(
+        inp.home_x,
+        inp.home_y,
+        inp.player_x,
+        inp.player_y,
+        &map,
+    );
     counts.is_best_bowl_filler = inp.is_best_bowl_filler;
     // Haxe: late ~833 / hungry ~8594 / critical ~6107 all use maxPeople=1
     let path = if inp.is_hungry {

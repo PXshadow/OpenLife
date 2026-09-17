@@ -26,9 +26,15 @@ pub fn make_stuff_scan_tick(
         inp.basic_farmer_weight,
         inp.hardened_row_biome,
     );
-    // 1) makeSharpieFood
-    // Haxe: AiBase.makeStuff ~4077
-    let sharpie = make_sharpie_food(&farm_counts);
+    // 1) makeSharpieFood() default maxDistance=40 → getClosestObjectById quad from player
+    // Haxe: AiBase.makeStuff ~4077; makeSharpieFood L4109
+    let sharpie = make_sharpie_food_from_xy(
+        inp.player_x,
+        inp.player_y,
+        inp.held_id,
+        tiles.iter().map(|t| (t.parent_id, t.x, t.y)),
+        MAKE_SHARPIE_FOOD_DEFAULT_MAX_DISTANCE,
+    );
     if sharpie.is_some() {
         return farm_action_to_live_intent(tiles, inp, sharpie, farm_rt);
     }
@@ -44,7 +50,7 @@ pub fn make_stuff_scan_tick(
             inp.held_id,
             held_uses,
             &map,
-            OVEN_SEARCH_RADIUS,
+            BAKER_SCAN_RADIUS,
             inp.is_hungry,
             inp.has_carrot_seeds,
             inp.has_bean_seeds,
@@ -144,6 +150,13 @@ pub fn make_stuff_scan_tick(
             )
         });
         fire_counts.has_corn_seeds = has_corn;
+        fire_counts.apply_popcorn_stock_from_map(
+            inp.home_x,
+            inp.home_y,
+            inp.player_x,
+            inp.player_y,
+            &map,
+        );
         fire_counts.is_best_bowl_filler = inp.is_best_bowl_filler;
         let action = crate::make_fire_food(
             &fire_counts,
@@ -210,12 +223,20 @@ pub fn fire_food_action_to_live_intent(
             }
         }
         FireFoodAction::ShortCraft { actor, target } => {
+            // Haxe shortCraft(0, 1284, 20); other fire-food shortCraft default 20
+            // from player, then home fallback at fire home r=30.
+            // Haxe: AiBase.makeFireFood L4373
+            let search_r = if target == crate::COOL_FLAT_ROCK {
+                crate::COOL_FLAT_ROCK_SHORTCRAFT_DIST
+            } else {
+                crate::FIRE_FOOD_HOME_RADIUS
+            };
             let target_tile = closest_by_parent_id(
                 tiles,
                 target,
                 inp.player_x,
                 inp.player_y,
-                crate::FIRE_FOOD_HOME_RADIUS,
+                search_r,
             )
             .or_else(|| {
                 closest_by_parent_id(

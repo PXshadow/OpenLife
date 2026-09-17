@@ -416,5 +416,14 @@ pub fn apply_attack_player_tick(
         }
         return ShortCraftLiveApplyResult::Dropped;
     }
-    apply_short_craft_live_intent(state, outbound, conn_id, intent)
+    let r = apply_short_craft_live_intent(state, outbound, conn_id, intent);
+    if matches!(action, AttackPlayerAction::Goto { .. })
+        && !matches!(r, ShortCraftLiveApplyResult::Failed)
+    {
+        // Haxe L5862: if (done) didNotReachAnimalTarget = 0
+        if let Some(pl) = state.players.get_mut(&conn_id) {
+            pl.ai_did_not_reach_animal_target = 0;
+        }
+    }
+    r
 }

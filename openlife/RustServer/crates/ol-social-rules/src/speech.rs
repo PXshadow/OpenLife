@@ -1017,6 +1017,19 @@ mod tests {
     }
 
     #[test]
+    fn count_home_population_skips_deleted_old_and_zero_starving_factor() {
+        // Haxe: AiBase.CountPopulation L1271–1276 deleted / age>MaxAge-2; starvingFactor>0
+        let peers = [
+            (1, 1, 20.0, 5.0, true),  // deleted
+            (1, 1, 59.0, 5.0, false), // age > 58
+            (1, 1, 20.0, -1.0, false),
+            (1, 1, 20.0, 5.0, false),
+        ];
+        assert_eq!(count_home_population(1, 1, &peers, 3.0, 58.0, 0.0), 2);
+        assert_eq!(count_home_population(1, 1, &peers, 3.0, 58.0, 2.0), 3);
+    }
+
+    #[test]
     fn search_new_home_wrap_picks_across_edge() {
         // SEARCH-HOME-OVEN: 512-wide wrap, oven at 510 vs player 0 → unwrap quad 260100, wrap quad 4.
         let ovens = [(510, 0, false, 0)];

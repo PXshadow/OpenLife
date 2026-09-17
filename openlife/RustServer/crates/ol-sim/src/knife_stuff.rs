@@ -131,19 +131,41 @@ pub fn do_knife_stuff_ex(
     if held_id != KNIFE {
         return KnifeStuffAction::None;
     }
+    do_knife_stuff_with_costs(held_id, tiles, px, py, food_store, |_| transition_hungry_cost)
+}
+
+/// Same as [`do_knife_stuff_ex`] with a per-target hungry-work cost.
+///
+/// Haxe `shortCraft` is a separate call per target: a non-USE result (hungry-cost
+/// fail, refuse, seek) is `false` and the next id is tried.
+// Haxe: AiBase.doKnifeStuff L882–889
+pub fn do_knife_stuff_with_costs(
+    held_id: i32,
+    tiles: &[KnifeStuffTile],
+    px: i32,
+    py: i32,
+    food_store: f32,
+    cost_for_target: impl Fn(i32) -> f32,
+) -> KnifeStuffAction {
+    if held_id != KNIFE {
+        return KnifeStuffAction::None;
+    }
     for &target_id in &KNIFE_STUFF_TARGETS {
         let Some((x, y)) = closest_target(tiles, target_id, px, py, KNIFE_STUFF_DIST) else {
             continue;
         };
-        return match knife_stuff_short_craft_apply(
+        match knife_stuff_short_craft_apply(
             held_id,
             target_id,
             food_store,
-            transition_hungry_cost,
+            cost_for_target(target_id),
         ) {
-            ShortCraftApply::UseOnTarget { .. } => KnifeStuffAction::UseOnTarget { x, y, target_id },
-            _ => KnifeStuffAction::None,
-        };
+            ShortCraftApply::UseOnTarget { .. } => {
+                return KnifeStuffAction::UseOnTarget { x, y, target_id };
+            }
+            // Haxe: shortCraft false → fall through to 1468 / 422 / 643
+            _ => continue,
+        }
     }
     KnifeStuffAction::None
 }
@@ -231,6 +253,62 @@ mod tests {
         assert_eq!(KNIFE_STUFF_RUNG, "KNIFE_STUFF");
         assert_eq!(KNIFE_STUFF_DIST, 20);
         assert_eq!(KNIFE_STUFF_TARGETS, [1470, 1468, 422, 643]);
+    }
+
+    #[test]
+    fn bread_hungry_cost_fail_falls_through_to_dough() {
+        // Haxe: shortCraft(560, 1470) false still tries 1468 then 422 then 643
+        let tiles = [
+            (BAKED_BREAD, 1, 0),
+            (LEAVENED_DOUGH_PLATE, 2, 0),
+            (DEAD_WOLF, 3, 0),
+            (DEAD_GRIZZLY_BEAR, 4, 0),
+        ];
+        let a = do_knife_stuff_with_costs(KNIFE, &tiles, 0, 0, 5.0, |id| {
+            if id == BAKED_BREAD {
+                10.0
+            } else {
+                0.0
+            }
+        });
+        assert_eq!(
+            a,
+            KnifeStuffAction::UseOnTarget {
+                x: 2,
+                y: 0,
+                target_id: LEAVENED_DOUGH_PLATE
+            }
+        );
+        let wolf = do_knife_stuff_with_costs(KNIFE, &tiles, 0, 0, 5.0, |id| {
+            if id == BAKED_BREAD || id == LEAVENED_DOUGH_PLATE {
+                10.0
+            } else {
+                0.0
+            }
+        });
+        assert_eq!(
+            wolf,
+            KnifeStuffAction::UseOnTarget {
+                x: 3,
+                y: 0,
+                target_id: DEAD_WOLF
+            }
+        );
+        let bear = do_knife_stuff_with_costs(KNIFE, &tiles, 0, 0, 5.0, |id| {
+            if id == DEAD_GRIZZLY_BEAR {
+                0.0
+            } else {
+                10.0
+            }
+        });
+        assert_eq!(
+            bear,
+            KnifeStuffAction::UseOnTarget {
+                x: 4,
+                y: 0,
+                target_id: DEAD_GRIZZLY_BEAR
+            }
+        );
     }
 }
 

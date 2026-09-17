@@ -504,6 +504,19 @@ pub fn pick_most_distant_own_child(
     worst.map(|(_, p)| p)
 }
 
+/// Haxe `isStayingCloseToChild` after fertile gate: goto most-distant own infant.
+/// Always consumes the tick when a child is found (`return true`, not `done`).
+// Haxe: AiBase.isStayingCloseToChild L6399–6409
+pub fn is_staying_close_to_child(
+    fertile: bool,
+    child_xy: Option<(i32, i32)>,
+) -> Option<(i32, i32)> {
+    if !fertile {
+        return None;
+    }
+    child_xy
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -520,6 +533,14 @@ mod tests {
         assert!(can_pickup_breastfeed_age_ex(7.99, 8.0));
         assert!(can_breastfeed_ex(20.0, 10.0, true, 8.0, true, 8.0));
         assert!(!can_breastfeed_ex(20.0, 10.0, true, 8.01, true, 8.0));
+    }
+
+    #[test]
+    fn stay_close_child_fertile_gate() {
+        // Haxe L6400: isFertile false → return false
+        assert!(is_staying_close_to_child(false, Some((4, 0))).is_none());
+        assert_eq!(is_staying_close_to_child(true, Some((4, 0))), Some((4, 0)));
+        assert!(is_staying_close_to_child(true, None).is_none());
     }
 
     #[test]

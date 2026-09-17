@@ -13,7 +13,7 @@ Sources of truth (in order):
 3. Explicit args: `haxe_file` + `chunk` or `matrix_id`
 
 **Size rule:** one function family or ~50–200 lines of Haxe logic.  
-Never start with all of `GlobalPlayerInstance.hx` or `AiBase.hx`.
+**AiBase exception:** walk `AiBase.hx` in **400-line** chunks using the pointer in [AIBASE_MIGRATION.md](AIBASE_MIGRATION.md). Never skip the pointer. Never start with all of `GlobalPlayerInstance.hx` or `AiBase.hx`.
 
 ---
 

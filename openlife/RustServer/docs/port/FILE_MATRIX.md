@@ -47,7 +47,7 @@ Last reviewed: **2026-07-28** (AI-PROVIDER llm_http) (FOODSTATS-DISK foodstats_t
 
 | ID | Haxe file | Rust targets | Status | Notes |
 |----|-----------|--------------|--------|-------|
-| A-BASE | `AiBase.hx` | **`ol-ai-helper`** + **`ol-ai-professions`**; live **`ol-sim`** `profession_scan` / **`ol-server`** `npc_ai` | PARTIAL | Pure SMs in professions crate; live USE/DROP I/O still sim. **NPC-IGNORED-FLOOR** + **AI-JOB-GRAVE** + **AI-HANDLE-DEATH** + **AI-REMOVE-CONTAINER** DONE |
+| A-BASE | `AiBase.hx` | **`ol-ai-helper`** + **`ol-ai-professions`**; live **`ol-sim`** `profession_scan` / **`ol-server`** `npc_ai` | PARTIAL | **Line pointer:** [AIBASE_MIGRATION.md](AIBASE_MIGRATION.md) (chunk walk from L0). Pure SMs in professions crate; live USE/DROP I/O still sim. **NPC-IGNORED-FLOOR** + **AI-JOB-GRAVE** + **AI-HANDLE-DEATH** + **AI-REMOVE-CONTAINER** DONE |
 | A-HELP | `AiHelper.hx` | **`ol-player-helper`** + **`ol-ai-pathing`** + **`ol-ai-crafting`**; live scan in sim | PARTIAL | **SEARCH-BEST-FOOD** + PATH-REACH + PathfinderNew live Goto |
 | A-AI | `Ai.hx` / `AiPx.hx` | thin | PARTIAL | |
 | A-PF | `Pathfinder*.hx` | **`ol-ai-pathing`** `pathfinder_new.rs` | **DONE** (core) | PathfinderNew + 100ms **AI-PATHFINDER-TIMEOUT**; unused full-grid brute / `WriteMapToFile` omitted |

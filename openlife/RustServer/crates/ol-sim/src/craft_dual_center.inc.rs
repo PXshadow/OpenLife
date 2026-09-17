@@ -93,6 +93,9 @@ pub fn craft_have_set_ex_filtered(
         if !craft_obj_passes_scan_filters(o, filters) {
             continue;
         }
+        if !craft_add_objects_tile_allowed(o, &CRAFT_AI_IGNORED_FLOOR_IDS) {
+            continue;
+        }
         if craft_obj_in_dual_center(
             o.x,
             o.y,
@@ -160,6 +163,9 @@ pub fn closest_craft_obj_dual_center_filtered(
             }
         }
         if !craft_obj_passes_scan_filters(o, filters) {
+            continue;
+        }
+        if !craft_add_objects_tile_allowed(o, &CRAFT_AI_IGNORED_FLOOR_IDS) {
             continue;
         }
         if !craft_obj_in_dual_center(
@@ -261,21 +267,22 @@ pub fn reanchor_craft_actor_near_target_filtered(
 
     let mut pile: Option<CraftWorldObj> = None;
     if resolved_pile_id > 0 {
-        pile = closest_craft_obj_filtered(
+        // Haxe: GetClosestObjectToTarget(transTarget, pileId, transTarget, 6) — quad rank
+        pile = closest_craft_obj_by_ids_quad_filtered(
             objs,
-            resolved_pile_id,
+            &[resolved_pile_id],
             target_x,
             target_y,
             ACTOR_NEAR_TARGET_R,
-            Some((actor_x, actor_y)),
+            Some((target_x, target_y)),
             filters,
         )
-        .filter(|p| !(p.x == target_x && p.y == target_y));
+        .filter(|p| !(p.x == actor_x && p.y == actor_y));
 
         if pile.is_none() {
-            pile = closest_craft_obj_filtered(
+            pile = closest_craft_obj_by_ids_quad_filtered(
                 objs,
-                resolved_pile_id,
+                &[resolved_pile_id],
                 player_x,
                 player_y,
                 AI_MAX_SEARCH_RADIUS,
@@ -308,17 +315,17 @@ pub fn reanchor_craft_actor_near_target_filtered(
         }
     }
 
-    // Haxe: actor close to target, r=6 (only when pile preference cleared).
-    if let Some(o) = closest_craft_obj_filtered(
+    // Haxe: GetClosestObjectToTarget(transTarget, actor.parentId, transTarget, 6)
+    if let Some(o) = closest_craft_obj_by_ids_quad_filtered(
         objs,
-        actor_id,
+        &[actor_id],
         target_x,
         target_y,
         ACTOR_NEAR_TARGET_R,
-        Some((actor_x, actor_y)),
+        Some((target_x, target_y)),
         filters,
     ) {
-        if !(o.x == target_x && o.y == target_y) {
+        if !(o.x == actor_x && o.y == actor_y) {
             return CraftActorReanchor {
                 actor_x: o.x,
                 actor_y: o.y,

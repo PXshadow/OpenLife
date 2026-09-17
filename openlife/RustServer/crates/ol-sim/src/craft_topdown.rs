@@ -427,7 +427,8 @@ pub fn do_transition_search_skip_reason_ex(
         if trans.reverse_use_target {
             let nid = trans.new_target_id;
             if let Some(&(num_uses, max_uses)) = idx.closest_uses.get(&nid) {
-                if max_uses > 1 && num_uses >= max_uses {
+                // Haxe: closestObject.numberOfUses >= objData.numUses (no maxUses>1 gate).
+                if max_uses > 0 && num_uses >= max_uses {
                     return Some(TransSkipReason::ReverseUseTargetFull);
                 }
             }
@@ -457,10 +458,12 @@ pub fn do_transition_search_skip_reason_ex(
                 return Some(TransSkipReason::MinCountNotReached);
             }
             let mid = trans.ignore_if_min_is_not_reached_object_id;
-            let count = idx.counts.get(&mid).copied().unwrap_or(0);
-            let min = idx.ai_craft_min.get(&mid).copied().unwrap_or(0);
-            if count <= min {
-                return Some(TransSkipReason::MinCountNotReached);
+            // Haxe: minObj != null && count <= aiCraftMin (missing map entry does not skip).
+            if let Some(&count) = idx.counts.get(&mid) {
+                let min = idx.ai_craft_min.get(&mid).copied().unwrap_or(0);
+                if count <= min {
+                    return Some(TransSkipReason::MinCountNotReached);
+                }
             }
         }
     } else if trans.ignore_if_min_is_not_reached_object_id > 0
@@ -1090,10 +1093,12 @@ pub fn search_best_object_for_crafting_topdown(
 
     let mut radius = 0;
     while radius < max_r {
-        radius = (radius + increment).max(AI_CRAFT_MIN_RADIUS);
+        radius += increment;
         if radius > max_r {
             radius = max_r;
         }
+        // Haxe intitObjectsForCraftigHelper: searchRadius floor 15 (may exceed max).
+        let scan_r = super::craft_init_objects_search_radius(radius);
 
         let mut have = HashSet::new();
         if held_id > 0 {
@@ -1113,7 +1118,7 @@ pub fn search_best_object_for_crafting_topdown(
                 player_x,
                 player_y,
                 home,
-                radius,
+                scan_r,
                 opts_local.search_current_position,
             ) {
                 have.insert(o.parent_id);
@@ -1130,7 +1135,7 @@ pub fn search_best_object_for_crafting_topdown(
                 player_x,
                 player_y,
                 home,
-                radius,
+                scan_r,
                 opts_local.search_current_position,
             );
         }
@@ -1146,7 +1151,7 @@ pub fn search_best_object_for_crafting_topdown(
             player_x,
             player_y,
             home,
-            radius,
+            scan_r,
             graph,
             &have,
             pile_id_for,
@@ -1285,6 +1290,12 @@ mod tests {
         idx.set_count(152, 5);
         assert!(
             do_transition_search_skip_reason(&m2, 3, 3, -1, -1, -1, 15, false, Some(&idx))
+                .is_none()
+        );
+        // Haxe minObj==null: id not in map does not skip.
+        let empty = CraftObjectIndex::new();
+        assert!(
+            do_transition_search_skip_reason(&m2, 3, 3, -1, -1, -1, 15, false, Some(&empty))
                 .is_none()
         );
     }

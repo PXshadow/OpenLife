@@ -16,14 +16,20 @@ pub fn pottery_action_short_craft_apply(
             } else if held_id == actor {
                 SmithApply::UseOnTarget { actor, target }
             } else {
-                SmithApply::SeekOrCraftActor { actor }
+                SmithApply::SeekOrCraftActor {
+                    actor,
+                    craft_if_needed: true,
+                }
             }
         }
         PotteryAction::ShortCraftOnGround { target } => {
             crate::smith_profession::short_craft_on_ground_apply(held_id, target)
         }
         PotteryAction::CraftItem { object_id } => SmithApply::CraftItem { object_id },
-        PotteryAction::SeekOrCraft { object_id } => SmithApply::SeekOrCraftActor { actor: object_id },
+        PotteryAction::SeekOrCraft { object_id } => SmithApply::SeekOrCraftActor {
+            actor: object_id,
+            craft_if_needed: true,
+        },
         PotteryAction::DropHeld { .. } => SmithApply::DropHeld,
         PotteryAction::Abort => SmithApply::Abort,
         _ => SmithApply::None,

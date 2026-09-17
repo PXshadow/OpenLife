@@ -10,6 +10,6 @@ pub mod craft_value;
 
 pub use craft_graph::ReverseCraftGraph;
 pub use craft_value::{
-    CraftOption, CraftProfession, NearbyObj, ABUNDANCE_SOFT_CAP, DEFAULT_CRAFT_RADIUS,
-    DEFAULT_WALK_SPEED, INTERACTION_SEC,
+    is_empty_hand_food_harvest, CraftOption, CraftProfession, NearbyObj, ABUNDANCE_SOFT_CAP,
+    DEFAULT_CRAFT_RADIUS, DEFAULT_WALK_SPEED, INTERACTION_SEC,
 };

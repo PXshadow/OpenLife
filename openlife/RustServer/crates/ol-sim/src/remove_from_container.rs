@@ -119,6 +119,13 @@ pub fn advance_remove_from_container(
     RemoveFromContainerAdvance::RemvNow { x: st.tx, y: st.ty }
 }
 
+/// Haxe `myPlayer.remove(target.tx - gx, target.ty - gy)` (birth-relative REMV).
+// Haxe: AiBase.isRemovingFromContainer L9211
+#[inline]
+pub fn remove_command_xy(target_tx: i32, target_ty: i32, gx: i32, gy: i32) -> (i32, i32) {
+    (target_tx - gx, target_ty - gy)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -210,5 +217,12 @@ mod tests {
             RemoveFromContainerAdvance::Goto { x: 4, y: 0 }
         );
         assert!(RemoveFromContainerAdvance::RemvNow { x: 4, y: 0 }.clears_sticky());
+    }
+
+    #[test]
+    fn remove_command_xy_is_birth_relative() {
+        // Haxe: L9211 target.tx - gx
+        assert_eq!(remove_command_xy(110, 220, 100, 200), (10, 20));
+        assert_eq!(remove_command_xy(5, 5, 0, 0), (5, 5));
     }
 }

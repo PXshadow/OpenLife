@@ -215,15 +215,16 @@ pub fn search_best_food_full(
                     }
                 }
 
-                // foodFromTarget content residual: only def.food_value > 0
-                if def.food_value <= 0 {
+                // Haxe foodFromTarget: empty-hand harvest (bush 30→31, banana plant 2142→2143).
+                // Haxe: SearchBestFoodHelperNew L918–920; setParentFoods L181–192
+                let (food_id, food_value) = state.content.search_food_id_and_value(base);
+                if food_value <= 0 {
                     continue;
                 }
-                let food_id = base;
                 cands.push(SearchFoodCand {
                     parent_id: base,
                     food_id,
-                    food_value: def.food_value,
+                    food_value,
                     tx,
                     ty,
                     count_eaten: count_eaten_fn(food_id),
@@ -244,7 +245,10 @@ pub fn search_best_food_full(
     opts.feed_other = feed_other;
     opts.feeding_tx = feed_tx;
     opts.feeding_ty = feed_ty;
-    opts.ai = ai_flags;
+    // Haxe: SearchBestFood calls hasPepperSeeds/hasOnionSeeds/countSeeds on current objects
+    opts.ai = ai_flags.map(|_| {
+        AiFoodSearchFlags::from_parent_ids(stock_tiles.iter().map(|t| t.2))
+    });
     opts.map_w = map_w;
     opts.map_h = map_h;
     opts.wrap = wrap;

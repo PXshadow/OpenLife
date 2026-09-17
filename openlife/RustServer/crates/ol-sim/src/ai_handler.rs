@@ -1160,22 +1160,11 @@ pub fn ai_speech_attention(
     let upper = text.to_uppercase();
     let name_u = ai_name.to_uppercase();
     let named = !name_u.is_empty() && upper.contains(name_u.as_str());
-    if upper.starts_with("ALL ") || upper.contains("!!") || upper.contains("??") || named {
-        // Haxe: text.replace("ALL ", "") — first occurrence only style via strip once.
-        let mut out = text.to_string();
-        if let Some(rest) = text
-            .strip_prefix("ALL ")
-            .or_else(|| text.strip_prefix("all "))
-        {
-            out = rest.to_string();
-        } else if let Some(idx) = upper.find("ALL ") {
-            // mid-string "ALL " unlikely; Haxe replace removes substring
-            let end = idx + 4;
-            if end <= text.len() {
-                out = format!("{}{}", &text[..idx], &text[end..]);
-            }
-        }
-        return Some(out);
+    // Haxe: startsWith("ALL ") || contains("!!") || contains("??") || contains(name.toUpperCase())
+    // then text.replace("ALL ", "") (all occurrences, case-sensitive).
+    // Haxe: AiBase.sayHelper L4736–4737
+    if text.starts_with("ALL ") || text.contains("!!") || text.contains("??") || named {
+        return Some(text.replace("ALL ", ""));
     }
     if is_closest_to_speaker {
         Some(text.to_string())
@@ -1932,6 +1921,12 @@ mod tests {
         assert!(ai_speech_attention("help!!", "Bob", false).is_some());
         assert!(ai_speech_attention("what??", "Bob", false).is_some());
         assert!(ai_speech_attention("hey BOB there", "Bob", false).is_some());
+        assert_eq!(
+            ai_speech_attention("ALL ALL hello", "Bob", false).as_deref(),
+            Some("hello")
+        );
+        // Haxe startsWith("ALL ") is case-sensitive
+        assert!(ai_speech_attention("all hello", "Bob", false).is_none());
     }
 
     #[test]

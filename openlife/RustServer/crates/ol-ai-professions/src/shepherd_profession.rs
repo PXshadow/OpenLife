@@ -80,6 +80,9 @@ pub const SHEPHERD_DEFAULT_MAX_ANIMAL: i32 = 10;
 pub const SHEPHERD_BAKER_MAX_ANIMAL: i32 = 5;
 /// doFeedLambsAndCalfs hard cap on sheep/cow counts before feed (Haxe `< 10`).
 pub const FEED_LAMBS_CALFS_ANIMAL_CAP: i32 = 10;
+/// Mid `doFeedLambsAndCalfs(1)` ladder label.
+// Haxe: AiBase.doTimeStuffHelper L654
+pub const FEED_LAMBS_CALFS_RUNG: &str = "FEED_LAMBS_CALFS";
 
 /// Canonical Haxe profession string for shepherd.
 pub const SHEPHERD_PROFESSION_KEY: &str = "SHEPHERD";
@@ -304,6 +307,7 @@ impl ShepherdCounts {
             hardened_row_biome: None,
             is_hungry: false,
             basic_farmer_weight: 0.0,
+            bowl_count_home_15: None,
         }
     }
 }
@@ -334,8 +338,13 @@ pub fn shepherd_counts_from_nearby(
 pub enum ShepherdAction {
     /// Nothing to do in this step.
     None,
-    /// Haxe `shortCraft(actor, target)`.
-    ShortCraft { actor: i32, target: i32 },
+    /// Haxe `shortCraft(actor, target, maxSearch)`.
+    ShortCraft {
+        actor: i32,
+        target: i32,
+        /// Haxe third arg; default [`SHEPHERD_SHORTCRAFT_RADIUS`] (30).
+        max_search: i32,
+    },
     /// Haxe `craftItem(objectId)`.
     CraftItem { object_id: i32 },
     /// Cap refuse / no profession.
@@ -345,6 +354,20 @@ pub enum ShepherdAction {
 impl ShepherdAction {
     pub fn is_some(self) -> bool {
         !matches!(self, Self::None | Self::Abort)
+    }
+
+    /// Haxe `shortCraft(actor, target)` with default search 30.
+    pub fn short_craft(actor: i32, target: i32) -> Self {
+        Self::short_craft_r(actor, target, SHEPHERD_SHORTCRAFT_RADIUS)
+    }
+
+    /// Haxe `shortCraft(actor, target, maxSearch)`.
+    pub fn short_craft_r(actor: i32, target: i32, max_search: i32) -> Self {
+        Self::ShortCraft {
+            actor,
+            target,
+            max_search,
+        }
     }
 }
 
@@ -408,9 +431,12 @@ fn farm_to_shepherd(a: FarmAction) -> ShepherdAction {
         FarmAction::None
         | FarmAction::DeferSheepHerding { .. }
         | FarmAction::DeferAdvancedFarming { .. }
-        | FarmAction::ClearBasicFarmerWeight => ShepherdAction::None,
+        | FarmAction::ClearBasicFarmerWeight
+        | FarmAction::ClearAdvancedFarmerWeight
+        | FarmAction::DeferCleanup
+        | FarmAction::DeferPottery { .. } => ShepherdAction::None,
         FarmAction::Abort => ShepherdAction::Abort,
-        FarmAction::ShortCraft { actor, target } => ShepherdAction::ShortCraft { actor, target },
+        FarmAction::ShortCraft { actor, target } => ShepherdAction::short_craft(actor, target),
         FarmAction::CraftItem { object_id } => ShepherdAction::CraftItem { object_id },
     }
 }
@@ -431,17 +457,11 @@ pub fn handle_milk_for_shepherd(counts: &ShepherdCounts) -> ShepherdAction {
     }
     // Skewer 139 + Bowl of Whipped Cream 3374
     if counts.get(WHIPPED_CREAM) > 0 || counts.held_id == WHIPPED_CREAM {
-        return ShepherdAction::ShortCraft {
-            actor: SKEWER,
-            target: WHIPPED_CREAM,
-        };
+        return ShepherdAction::short_craft(SKEWER, WHIPPED_CREAM);
     }
     // Skewer 139 + Bowl of Cream 1464
     if counts.get(BOWL_OF_CREAM) > 0 || counts.held_id == BOWL_OF_CREAM {
-        return ShepherdAction::ShortCraft {
-            actor: SKEWER,
-            target: BOWL_OF_CREAM,
-        };
+        return ShepherdAction::short_craft(SKEWER, BOWL_OF_CREAM);
     }
     // Buttered Bread on Clay Plate 1473
     if counts.get_with_held(BUTTERED_BREAD) < 1 {
@@ -486,16 +506,10 @@ pub fn fill_berry_bowl_for_shepherd(counts: &ShepherdCounts) -> ShepherdAction {
         return ShepherdAction::None;
     }
     if counts.get(DOMESTIC_BUSH) > 0 {
-        return ShepherdAction::ShortCraft {
-            actor: BOWL_GOOSEBERRIES,
-            target: DOMESTIC_BUSH,
-        };
+        return ShepherdAction::short_craft(BOWL_GOOSEBERRIES, DOMESTIC_BUSH);
     }
     if counts.get(WILD_BUSH) > 0 {
-        return ShepherdAction::ShortCraft {
-            actor: BOWL_GOOSEBERRIES,
-            target: WILD_BUSH,
-        };
+        return ShepherdAction::short_craft(BOWL_GOOSEBERRIES, WILD_BUSH);
     }
     ShepherdAction::None
 }
@@ -504,7 +518,7 @@ pub fn fill_berry_bowl_for_shepherd(counts: &ShepherdCounts) -> ShepherdAction {
 
 fn try_short(counts: &ShepherdCounts, actor: i32, target: i32) -> Option<ShepherdAction> {
     if counts.get(target) > 0 {
-        Some(ShepherdAction::ShortCraft { actor, target })
+        Some(ShepherdAction::short_craft(actor, target))
     } else {
         None
     }
@@ -521,6 +535,22 @@ fn try_feed(
     target: i32,
     require_actor: bool,
 ) -> Option<ShepherdAction> {
+    try_feed_r(
+        counts,
+        actor,
+        target,
+        require_actor,
+        SHEPHERD_SHORTCRAFT_RADIUS,
+    )
+}
+
+fn try_feed_r(
+    counts: &ShepherdCounts,
+    actor: i32,
+    target: i32,
+    require_actor: bool,
+    max_search: i32,
+) -> Option<ShepherdAction> {
     if counts.get(target) == 0 {
         return None;
     }
@@ -528,7 +558,7 @@ fn try_feed(
         // Still emit: Haxe shortCraft seeks/crafts actor; pure SM surfaces the pair.
         // Keep emit so live tick can GetOrCraft actor.
     }
-    Some(ShepherdAction::ShortCraft { actor, target })
+    Some(ShepherdAction::short_craft_r(actor, target, max_search))
 }
 
 // â”€â”€ isSheepHerding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -561,7 +591,9 @@ pub fn is_sheep_herding(
         return SheepHerdingResult::abort();
     }
 
-    let sheep = counts.get(DOMESTIC_SHEEP);
+    // Haxe: countCurrentObject(575) includes held
+    // Haxe: AiBase.isSheepHerding L1828; countCurrentObjectHelper L3448
+    let sheep = counts.get_with_held(DOMESTIC_SHEEP);
 
     // Lambs when under max animal
     if sheep < max_animal {
@@ -632,8 +664,9 @@ pub fn is_sheep_herding(
 
     let count_corn_n = count_corn(counts);
 
-    // Cold Goose Egg / Domestic Goose feed when maxAnimal > 5
-    let goose_egg = counts.get(COLD_GOOSE_EGG);
+    // Cold Goose Egg 1262 — countCurrentObject includes held
+    // Haxe: AiBase.isSheepHerding L1882–1887
+    let goose_egg = counts.get_with_held(COLD_GOOSE_EGG);
     if max_animal > 5 && goose_egg < 5 && count_corn_n > 1 {
         if counts.has_corn_seeds {
             if let Some(a) = try_feed(counts, BOWL_CORN_KERNELS, DOMESTIC_GOOSE, false) {
@@ -643,7 +676,7 @@ pub fn is_sheep_herding(
     }
 
     // Domestic Goose count â†’ craft incubator 1263
-    let goose = counts.get(DOMESTIC_GOOSE);
+    let goose = counts.get_with_held(DOMESTIC_GOOSE);
     if max_animal > 5 && goose < 5 {
         return SheepHerdingResult::acted(ShepherdAction::CraftItem {
             object_id: DUNG_GOOSE_EGG_INCUBATOR,
@@ -655,8 +688,9 @@ pub fn is_sheep_herding(
         return SheepHerdingResult::acted(a);
     }
 
-    // Domestic Cow: excess kill commented; else feed when countCorn > 3
-    let cow = counts.get(DOMESTIC_COW);
+    // Domestic Cow 1458: countCurrentObject; count>5 kill is commented Haxe
+    // Haxe: AiBase.isSheepHerding L1897–1907
+    let cow = counts.get_with_held(DOMESTIC_COW);
     if cow <= 5 {
         if count_corn_n > 3 && counts.has_corn_seeds {
             if let Some(a) = try_feed(counts, BOWL_CORN_KERNELS, DOMESTIC_COW, false) {
@@ -705,7 +739,7 @@ pub fn do_feed_lambs_and_calfs(
         return ShepherdAction::Abort;
     }
 
-    // Empty Bucket 659 + Milk Cow 1489
+    // Empty Bucket 659 + Milk Cow 1489 (r=30)
     if let Some(a) = try_short(counts, EMPTY_BUCKET, MILK_COW) {
         return a;
     }
@@ -713,11 +747,11 @@ pub fn do_feed_lambs_and_calfs(
     // Domestic Sheep 575
     let sheep = counts.get(DOMESTIC_SHEEP);
     if sheep < FEED_LAMBS_CALFS_ANIMAL_CAP {
-        // 258 + Hungry Mouflon Lamb 603 (not 604)
+        // 258 + Hungry Mouflon Lamb 603 r=30 (not 604)
         if let Some(a) = try_feed(counts, BOWL_BERRIES_CARROT, HUNGRY_MOUFLON_LAMB, false) {
             return a;
         }
-        // 258 + Mouflon Lamb 542 (same id as Domestic Lamb)
+        // 258 + Mouflon Lamb 542 r=30
         if let Some(a) = try_feed(counts, BOWL_BERRIES_CARROT, DOMESTIC_LAMB, false) {
             return a;
         }
@@ -726,9 +760,17 @@ pub fn do_feed_lambs_and_calfs(
     // Domestic Cow 1458
     let cow = counts.get(DOMESTIC_COW);
     if cow < FEED_LAMBS_CALFS_ANIMAL_CAP && counts.has_corn_seeds {
-        if let Some(a) = try_feed(counts, BOWL_CORN_KERNELS, HUNGRY_DOMESTIC_CALF, false) {
+        // Haxe L5694–5695: Hungry Domestic Calf 1462 r=20 (not default 30)
+        if let Some(a) = try_feed_r(
+            counts,
+            BOWL_CORN_KERNELS,
+            HUNGRY_DOMESTIC_CALF,
+            false,
+            20,
+        ) {
             return a;
         }
+        // Haxe L5697–5698: Domestic Calf 1459 r=30
         if let Some(a) = try_feed(counts, BOWL_CORN_KERNELS, DOMESTIC_CALF, false) {
             return a;
         }
@@ -761,16 +803,10 @@ pub fn sheep_herding_steps_for_baker(
     // Milk path â€” baker still stock-gates in handle_milk; here surface shortCrafts only
     // when whipped/cream present (no craft-from-zero in baker mid).
     if counts.get(WHIPPED_CREAM) > 0 || counts.held_id == WHIPPED_CREAM {
-        return Some(ShepherdAction::ShortCraft {
-            actor: SKEWER,
-            target: WHIPPED_CREAM,
-        });
+        return Some(ShepherdAction::short_craft(SKEWER, WHIPPED_CREAM));
     }
     if counts.get(BOWL_OF_CREAM) > 0 || counts.held_id == BOWL_OF_CREAM {
-        return Some(ShepherdAction::ShortCraft {
-            actor: SKEWER,
-            target: BOWL_OF_CREAM,
-        });
+        return Some(ShepherdAction::short_craft(SKEWER, BOWL_OF_CREAM));
     }
     if counts.has_corn_seeds {
         if let Some(a) = try_feed(counts, BOWL_CORN_KERNELS, HUNGRY_DOMESTIC_CALF, false) {
@@ -819,6 +855,11 @@ pub fn try_decide_shepherd_from_rung(
     max_animal: i32,
 ) -> Option<ShepherdAction> {
     let _ = profession_is_sticky;
+    // Haxe: doFeedLambsAndCalfs(1) mid ladder L654
+    if rung_label == FEED_LAMBS_CALFS_RUNG {
+        let a = do_feed_lambs_and_calfs(runtime, counts, 1, peer_count, was_idle);
+        return if a.is_some() { Some(a) } else { None };
+    }
     let max_people = if is_assigned_job || rung_label == "ASSIGNED_JOB" {
         SHEPHERD_ASSIGNED_MAX_PEOPLE
     } else {
@@ -882,10 +923,7 @@ mod tests {
         assert!(r.haxe_return);
         assert_eq!(
             r.action,
-            ShepherdAction::ShortCraft {
-                actor: BOWL_BERRIES_CARROT,
-                target: HUNGRY_DOMESTIC_LAMB,
-            }
+            ShepherdAction::short_craft(BOWL_BERRIES_CARROT, HUNGRY_DOMESTIC_LAMB)
         );
     }
 
@@ -900,10 +938,24 @@ mod tests {
         let r = is_sheep_herding(&mut rt, &c, &mut task, 1, 10, 0.0, 1.0);
         assert_eq!(
             r.action,
-            ShepherdAction::ShortCraft {
-                actor: BOWL_BERRIES_CARROT,
-                target: DOMESTIC_LAMB,
-            }
+            ShepherdAction::short_craft(BOWL_BERRIES_CARROT, DOMESTIC_LAMB)
+        );
+    }
+
+    #[test]
+    fn handle_milk_whipped_cream_before_plain_cream() {
+        // Haxe: handleMilk L1781–1785 shortCraft(139,3374) then (139,1464)
+        let mut c = counts(&[(MILK_POUCH, 3)]);
+        c.set(WHIPPED_CREAM, 1);
+        c.set(BOWL_OF_CREAM, 1);
+        assert_eq!(
+            handle_milk_for_shepherd(&c),
+            ShepherdAction::short_craft(SKEWER, WHIPPED_CREAM)
+        );
+        c.set(WHIPPED_CREAM, 0);
+        assert_eq!(
+            handle_milk_for_shepherd(&c),
+            ShepherdAction::short_craft(SKEWER, BOWL_OF_CREAM)
         );
     }
 
@@ -937,10 +989,7 @@ mod tests {
         assert!(r.haxe_return);
         assert_eq!(
             r.action,
-            ShepherdAction::ShortCraft {
-                actor: BOWL_CORN_KERNELS,
-                target: HUNGRY_DOMESTIC_CALF,
-            }
+            ShepherdAction::short_craft(BOWL_CORN_KERNELS, HUNGRY_DOMESTIC_CALF)
         );
 
         // milk cow when no calves
@@ -954,10 +1003,7 @@ mod tests {
         let r2 = is_sheep_herding(&mut rt2, &c2, &mut task2, 1, 10, 0.0, 1.0);
         assert_eq!(
             r2.action,
-            ShepherdAction::ShortCraft {
-                actor: EMPTY_BUCKET,
-                target: MILK_COW,
-            }
+            ShepherdAction::short_craft(EMPTY_BUCKET, MILK_COW)
         );
     }
 
@@ -1024,10 +1070,12 @@ mod tests {
                 r3.action,
                 ShepherdAction::ShortCraft {
                     actor: _,
-                    target: DYING_BUSH
+                    target: DYING_BUSH,
+                    ..
                 } | ShepherdAction::ShortCraft {
                     actor: BOWL_BERRIES_CARROT,
-                    target: _
+                    target: _,
+                    ..
                 } | ShepherdAction::CraftItem { .. }
             ),
             "got {:?}",
@@ -1057,10 +1105,7 @@ mod tests {
         let r = is_sheep_herding(&mut rt, &c, &mut task, 1, 10, 0.0, 0.0);
         assert_eq!(
             r.action,
-            ShepherdAction::ShortCraft {
-                actor: BOWL_BERRIES_CARROT,
-                target: SHORN_DOMESTIC_SHEEP,
-            }
+            ShepherdAction::short_craft(BOWL_BERRIES_CARROT, SHORN_DOMESTIC_SHEEP)
         );
 
         let mut c2 = c.clone();
@@ -1068,11 +1113,111 @@ mod tests {
         let r2 = is_sheep_herding(&mut rt, &c2, &mut task, 1, 10, 0.0, 0.0);
         assert_eq!(
             r2.action,
-            ShepherdAction::ShortCraft {
-                actor: BOWL_BERRIES_CARROT,
-                target: DOMESTIC_SHEEP,
-            }
+            ShepherdAction::short_craft(BOWL_BERRIES_CARROT, DOMESTIC_SHEEP)
         );
+    }
+
+    #[test]
+    fn is_sheep_herding_held_sheep_counts_toward_max_animal() {
+        // Haxe L1828 countCurrentObject(575) includes held → skip lambs when at cap
+        let mut rt = ShepherdProfessionRuntime::default();
+        let mut c = counts(&[(HUNGRY_DOMESTIC_LAMB, 1), (DOMESTIC_SHEEP, 9)]);
+        c.held_id = DOMESTIC_SHEEP;
+        c.set(MILK_POUCH, 3);
+        c.set(BUTTERED_BREAD, 1);
+        c.set(BOWL_OF_BUTTER, 1);
+        let mut task = FarmTaskState::default();
+        let r = is_sheep_herding(&mut rt, &c, &mut task, 1, 10, 0.0, 1.0);
+        assert_ne!(
+            r.action,
+            ShepherdAction::short_craft(BOWL_BERRIES_CARROT, HUNGRY_DOMESTIC_LAMB),
+            "held sheep should fill maxAnimal so lambs are skipped, got {:?}",
+            r.action
+        );
+    }
+
+    #[test]
+    fn is_sheep_herding_feeds_goose_when_eggs_low_and_count_corn() {
+        // Haxe L1882–1887: maxAnimal>5, eggs<5, countCorn>1, hasCornSeeds → 1247+1256
+        let mut rt = ShepherdProfessionRuntime {
+            is_last_shepherd: true,
+            ..Default::default()
+        };
+        let mut c = counts(&[
+            (DOMESTIC_SHEEP, 20),
+            (COLD_GOOSE_EGG, 2),
+            (DOMESTIC_GOOSE, 3),
+        ]);
+        c.set(MILK_POUCH, 3);
+        c.set(BUTTERED_BREAD, 1);
+        c.set(BOWL_OF_BUTTER, 1);
+        c.set(COMPOSTING_PILE, 5);
+        use crate::farmer_profession::{CARROT, DRY_PLANTED_CORN, WET_PLANTED_CORN};
+        c.set(CARROT, 20);
+        c.set(DRY_PLANTED_CORN, 10);
+        c.set(WET_PLANTED_CORN, 10);
+        c.set(BOWL_CORN_KERNELS, 3);
+        c.has_corn_seeds = true;
+        let mut task = FarmTaskState {
+            composting: 0.0,
+            carrot_planter: 0.0,
+            corn_planter: 0.0,
+            ..Default::default()
+        };
+        let r = is_sheep_herding(&mut rt, &c, &mut task, 1, 10, 0.0, 0.0);
+        assert_eq!(
+            r.action,
+            ShepherdAction::short_craft(BOWL_CORN_KERNELS, DOMESTIC_GOOSE)
+        );
+    }
+
+    #[test]
+    fn is_sheep_herding_cow_over_5_skips_commented_kill() {
+        // Haxe L1899–1907: count>5 kill is commented — no knife/mango on live cow
+        let mut rt = ShepherdProfessionRuntime {
+            is_last_shepherd: true,
+            ..Default::default()
+        };
+        let mut c = counts(&[
+            (DOMESTIC_SHEEP, 20),
+            (DOMESTIC_GOOSE, 10),
+            (COLD_GOOSE_EGG, 5),
+            (DOMESTIC_COW, 6),
+        ]);
+        c.set(MILK_POUCH, 3);
+        c.set(BUTTERED_BREAD, 1);
+        c.set(BOWL_OF_BUTTER, 1);
+        c.set(COMPOSTING_PILE, 5);
+        use crate::farmer_profession::{CARROT, DRY_PLANTED_CORN, WET_PLANTED_CORN};
+        c.set(CARROT, 20);
+        c.set(DRY_PLANTED_CORN, 10);
+        c.set(WET_PLANTED_CORN, 10);
+        c.set(BOWL_CORN_KERNELS, 4);
+        c.has_corn_seeds = true;
+        let mut task = FarmTaskState {
+            composting: 0.0,
+            carrot_planter: 0.0,
+            corn_planter: 0.0,
+            ..Default::default()
+        };
+        let r = is_sheep_herding(&mut rt, &c, &mut task, 1, 10, 0.0, 0.0);
+        assert!(!matches!(
+            r.action,
+            ShepherdAction::ShortCraft {
+                actor: KNIFE,
+                target: DOMESTIC_COW,
+                ..
+            }
+        ));
+        assert!(!matches!(
+            r.action,
+            ShepherdAction::ShortCraft {
+                actor: BOWL_CORN_KERNELS,
+                target: DOMESTIC_COW,
+                ..
+            }
+        ));
+        assert!(!r.haxe_return);
     }
 
     #[test]
@@ -1132,10 +1277,7 @@ mod tests {
         let r = is_sheep_herding(&mut rt, &c, &mut task, 1, 10, 0.0, 0.0);
         assert_eq!(
             r.action,
-            ShepherdAction::ShortCraft {
-                actor: KNIFE,
-                target: DEAD_COW,
-            }
+            ShepherdAction::short_craft(KNIFE, DEAD_COW)
         );
 
         // cow feed when countCorn > 3 and has seeds
@@ -1150,10 +1292,7 @@ mod tests {
         let r2 = is_sheep_herding(&mut rt, &c2, &mut task, 1, 10, 0.0, 0.0);
         assert_eq!(
             r2.action,
-            ShepherdAction::ShortCraft {
-                actor: BOWL_CORN_KERNELS,
-                target: DOMESTIC_COW,
-            }
+            ShepherdAction::short_craft(BOWL_CORN_KERNELS, DOMESTIC_COW)
         );
     }
 
@@ -1198,10 +1337,7 @@ mod tests {
         let a = do_feed_lambs_and_calfs(&mut rt, &c, 1, 0.0, 1.0);
         assert_eq!(
             a,
-            ShepherdAction::ShortCraft {
-                actor: BOWL_BERRIES_CARROT,
-                target: HUNGRY_MOUFLON_LAMB,
-            }
+            ShepherdAction::short_craft(BOWL_BERRIES_CARROT, HUNGRY_MOUFLON_LAMB)
         );
 
         // sheep >= 10: skip mouflon lamb, still can milk cow first
@@ -1216,10 +1352,7 @@ mod tests {
         let a2 = do_feed_lambs_and_calfs(&mut rt2, &c2, 1, 0.0, 1.0);
         assert_eq!(
             a2,
-            ShepherdAction::ShortCraft {
-                actor: BOWL_CORN_KERNELS,
-                target: HUNGRY_DOMESTIC_CALF,
-            }
+            ShepherdAction::short_craft_r(BOWL_CORN_KERNELS, HUNGRY_DOMESTIC_CALF, 20)
         );
     }
 
@@ -1259,10 +1392,7 @@ mod tests {
         let a = sheep_herding_steps_for_baker(&c, 5).unwrap();
         assert_eq!(
             a,
-            ShepherdAction::ShortCraft {
-                actor: BOWL_BERRIES_CARROT,
-                target: HUNGRY_DOMESTIC_LAMB,
-            }
+            ShepherdAction::short_craft(BOWL_BERRIES_CARROT, HUNGRY_DOMESTIC_LAMB)
         );
     }
 
@@ -1368,10 +1498,7 @@ mod tests {
         assert!(r.haxe_return);
         assert_eq!(
             r.action,
-            ShepherdAction::ShortCraft {
-                actor: BOWL_BERRIES_CARROT,
-                target: HUNGRY_DOMESTIC_LAMB,
-            }
+            ShepherdAction::short_craft(BOWL_BERRIES_CARROT, HUNGRY_DOMESTIC_LAMB)
         );
     }
 

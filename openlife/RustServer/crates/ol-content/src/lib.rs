@@ -473,6 +473,10 @@ pub struct ContentDb {
     pub ignore_if_max_reached: HashMap<(i32, i32), i32>,
     /// Haxe `TransitionData.igmoreIfMinIsNotReachedObjectId` (actor, target).
     pub ignore_if_min_not_reached: HashMap<(i32, i32), i32>,
+    /// Haxe `ObjectData.foodFromTarget` — empty-hand USE on this target yields food.
+    /// Built after transitions (`setParentFoods`): actor 0 + target → newActor with foodValue.
+    // Haxe: TransitionImporter.setParentFoods L181–192
+    pub food_from_target: HashMap<i32, i32>,
 
     /// Load timing (ms) — set by [`load_content`].
     pub load_objects_ms: u64,
@@ -553,6 +557,67 @@ impl ContentDb {
     #[inline]
     pub fn trans_is_tool(&self, actor: i32, target: i32) -> bool {
         self.trans_tool.contains(&(actor, target))
+    }
+
+    /// Haxe `ObjectData.foodFromTarget` for a ground/dummy id (`None` if unset).
+    // Haxe: ObjectData.foodFromTarget; SearchBestFoodHelperNew L918
+    #[inline]
+    pub fn food_from_target_of(&self, id: i32) -> Option<(i32, i32)> {
+        let base = self.resolve_base_id(id);
+        let fid = self
+            .food_from_target
+            .get(&id)
+            .copied()
+            .or_else(|| self.food_from_target.get(&base).copied())?;
+        let fv = self.get(fid).map(|d| d.food_value).unwrap_or(0);
+        if fv > 0 {
+            Some((fid, fv))
+        } else {
+            None
+        }
+    }
+
+    /// Haxe SearchBestFood food id + value: dummyParent, then foodFromTarget, else own.
+    // Haxe: AiHelper.SearchBestFoodHelperNew L894–920
+    #[inline]
+    pub fn search_food_id_and_value(&self, id: i32) -> (i32, i32) {
+        let base = self.resolve_base_id(id);
+        if let Some(pair) = self.food_from_target_of(base) {
+            return pair;
+        }
+        let fv = self.get(base).map(|d| d.food_value).unwrap_or(0);
+        (base, fv)
+    }
+
+    /// Haxe `TransitionImporter.setParentFoods` — empty-hand harvest → foodFromTarget.
+    // Haxe: TransitionImporter.setParentFoods L181–192
+    pub fn set_parent_foods(&mut self) {
+        let mut edges: Vec<(i32, i32)> = Vec::new();
+        let maps = [
+            &self.transitions,
+            &self.transitions_last_use,
+            &self.transitions_max_use,
+        ];
+        for m in maps {
+            for t in m.values() {
+                if t.actor_id == 0 && t.target_id > 0 && t.new_actor_id > 0 {
+                    edges.push((t.target_id, t.new_actor_id));
+                }
+            }
+        }
+        let mut map = HashMap::new();
+        for (target, food) in edges {
+            let fv = self.get(food).map(|d| d.food_value).unwrap_or(0);
+            if fv <= 0 {
+                continue;
+            }
+            map.insert(target, food);
+            let base = self.resolve_base_id(target);
+            if base != target {
+                map.insert(base, food);
+            }
+        }
+        self.food_from_target = map;
     }
 
     /// Haxe L1260–1261: transition alt list if non-empty, else new-target object list
@@ -828,6 +893,8 @@ pub fn load_content(root: impl AsRef<Path>) -> Result<ContentDb, ContentError> {
     crate::patches::apply_all_haxe_content_patches(&mut db);
     apply_haxe_reverse_use_last_and_max(&mut db);
     apply_animal_moves_from_transitions(&mut db);
+    // Haxe TransitionImporter.setParentFoods after transitions imported.
+    db.set_parent_foods();
     db.load_transitions_ms = t1.elapsed().as_millis() as u64;
     db.load_total_ms = t0.elapsed().as_millis() as u64;
 

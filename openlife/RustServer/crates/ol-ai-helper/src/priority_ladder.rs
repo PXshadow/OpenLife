@@ -50,6 +50,21 @@ pub const ESCAPE_HUNT_MIN_AGE: f32 = 8.0;
 pub const ESCAPE_PLAYER_DIST_MAX: f32 = 64.0;
 /// Haxe `escapeDist = 3` tile step away from threat.
 pub const ESCAPE_DIST: i32 = 3;
+/// Haxe `for (ii in 0...5)` outer escape-tile search.
+// Haxe: AiBase.escape L6533
+pub const ESCAPE_RETRY_OUTER: i32 = 5;
+/// Haxe `for (i in 0...5)` inner escape-tile search.
+// Haxe: AiBase.escape L6534
+pub const ESCAPE_RETRY_INNER: i32 = 5;
+/// Haxe `rand < 0.2` forces escape-in-lower.
+// Haxe: AiBase.escape L6540
+pub const ESCAPE_DIR_RAND_LOWER: f32 = 0.2;
+/// Haxe `rand < 0.4` forces escape-in-higher (else keep threat-away).
+// Haxe: AiBase.escape L6541
+pub const ESCAPE_DIR_RAND_UPPER: f32 = 0.4;
+/// Haxe `AiHelper.IsDangerous` default radius.
+// Haxe: AiHelper.IsDangerous L1046; AiBase.escape L6561
+pub const ESCAPE_IS_DANGEROUS_RADIUS: i32 = 4;
 /// Haxe: `dist < 100` (quad) forces `doStuff` even under superbad temp.
 pub const DO_STUFF_THREAT_QUAD_FORCE: f32 = 100.0;
 /// Haxe heat band for superbad temperature: `heat < 0.1 || heat > 0.9`.
@@ -398,6 +413,36 @@ pub fn check_is_hungry_and_eat_effects(
     }
 }
 
+/// Haxe `searchFoodAndEat` debug SAY (`shouldDebugSay`).
+///
+/// `food_name` is `foodTarget.name` after `SearchBestFood`; `None` when no hit.
+/// Global `ServerSettings.DebugAiSay` is not ported — pass the per-AI `debugSay`
+/// flag (same as GO HOME `go_home_debug_say`).
+// Haxe: AiBase.searchFoodAndEat L5076–5078
+/// Haxe `shouldDebugSay` — per-AI `debugSay` or global `ServerSettings.DebugAiSay`.
+// Haxe: AiBase.shouldDebugSay L9284–9286
+#[inline]
+pub fn should_debug_say(debug_say: bool, server_debug_ai_say: bool) -> bool {
+    debug_say || server_debug_ai_say
+}
+
+/// Haxe `shouldDebugProfession` — per-AI `debugProfession` or `ServerSettings.DebugProfession`.
+// Haxe: AiBase.shouldDebugProfession L9288–9290
+#[inline]
+pub fn should_debug_profession(debug_profession: bool, server_debug_profession: bool) -> bool {
+    debug_profession || server_debug_profession
+}
+
+pub fn search_food_and_eat_debug_say(debug_say: bool, food_name: Option<&str>) -> Option<String> {
+    if !debug_say {
+        return None;
+    }
+    Some(match food_name {
+        None => "No food found...".to_string(),
+        Some(n) => format!("new food {n}"),
+    })
+}
+
 /// Haxe `isChildAndHasMother`.
 // Haxe: AiBase.isChildAndHasMother
 pub fn is_child_and_has_mother(age: f32, has_mother: bool) -> bool {
@@ -413,6 +458,18 @@ pub fn is_child_and_has_mother_ex(age: f32, has_mother: bool, min_age_to_eat: f3
         MIN_AGE_TO_EAT
     };
     age < min_age && has_mother
+}
+
+/// Haxe `getFollowPlayer() != null && !isDeleted()`.
+// Haxe: AiBase.isChildAndHasMother L5652–5653
+#[inline]
+pub fn is_child_and_has_mother_from_follow(
+    age: f32,
+    follow_present: bool,
+    follow_deleted: bool,
+    min_age_to_eat: f32,
+) -> bool {
+    is_child_and_has_mother_ex(age, follow_present && !follow_deleted, min_age_to_eat)
 }
 
 // ── Age-rotated jobs ────────────────────────────────────────────────────────
@@ -648,6 +705,188 @@ pub fn escape_side_effects(
         clear_food_target: any,
         clear_craft_trans: any,
         increment_did_not_reach_food: had_food_target,
+    }
+}
+
+/// Haxe `if (animal != null && animal.isKillableByBow()) animalTarget = animal`.
+/// Does not clear a sticky target when the animal is missing or not bow-killable.
+// Haxe: AiBase.escape L6503
+pub fn escape_maybe_assign_animal_target(
+    current: Option<(i32, i32, i32)>,
+    animal: Option<(i32, i32, i32)>,
+    killable_by_bow: bool,
+) -> Option<(i32, i32, i32)> {
+    if animal.is_some() && killable_by_bow {
+        animal
+    } else {
+        current
+    }
+}
+
+/// Haxe `shouldDebugSay` line: `Escape ${description} ${Math.ceil(didNotReachFood)}!`.
+// Haxe: AiBase.escape L6524
+pub fn escape_debug_say(
+    debug_say: bool,
+    description: &str,
+    did_not_reach_food: f32,
+) -> Option<String> {
+    if !debug_say {
+        return None;
+    }
+    Some(format!(
+        "Escape {description} {}!",
+        did_not_reach_food.ceil() as i32
+    ))
+}
+
+/// Haxe `ii > 0` direction roll: `<0.2` lower, `<0.4` higher, else keep original.
+// Haxe: AiBase.escape L6538–6545
+pub fn escape_dir_flip(original_lower: bool, ii: i32, rand: f32) -> bool {
+    if ii <= 0 {
+        return original_lower;
+    }
+    if rand < ESCAPE_DIR_RAND_LOWER {
+        true
+    } else if rand < ESCAPE_DIR_RAND_UPPER {
+        false
+    } else {
+        original_lower
+    }
+}
+
+/// One escape candidate: threat-away base ± `escape_dist`, then signed jitter.
+///
+/// `rand_int_*` are Haxe `calculateRandomInt(1+ii)` (`0..=1+ii`). Floats are
+/// ignored when `ii <= 0` (Haxe only rolls direction after the first outer).
+// Haxe: AiBase.escape L6535–6557
+pub fn escape_candidate_xy(
+    player_tx: i32,
+    player_ty: i32,
+    threat_tx: i32,
+    threat_ty: i32,
+    escape_dist: i32,
+    ii: i32,
+    rand_float_x: f32,
+    rand_float_y: f32,
+    rand_int_x: i32,
+    rand_int_y: i32,
+) -> (i32, i32) {
+    let lower_x = escape_dir_flip(threat_tx > player_tx, ii, rand_float_x);
+    let lower_y = escape_dir_flip(threat_ty > player_ty, ii, rand_float_y);
+    let mut tx = if lower_x {
+        player_tx - escape_dist
+    } else {
+        player_tx + escape_dist
+    };
+    let mut ty = if lower_y {
+        player_ty - escape_dist
+    } else {
+        player_ty + escape_dist
+    };
+    let rx = if lower_x { -rand_int_x } else { rand_int_x };
+    let ry = if lower_y { -rand_int_y } else { rand_int_y };
+    tx += rx;
+    ty += ry;
+    (tx, ty)
+}
+
+/// RNG for Haxe `WorldMap.calculateRandomFloat` / `calculateRandomInt`.
+// Haxe: WorldMap.calculateRandomFloat L251; calculateRandomInt L240 (`0..=max`)
+pub trait EscapeRand {
+    fn random_float(&mut self) -> f32;
+    /// Inclusive `0..=max_inclusive` (Haxe `Math.floor(Math.random() * (x+1))`).
+    fn random_int(&mut self, max_inclusive: i32) -> i32;
+}
+
+/// Last generated tile + whether `gotoObj` succeeded.
+// Haxe: AiBase.escape newEscapetarget / done
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EscapePick {
+    pub tx: i32,
+    pub ty: i32,
+    pub goto_done: bool,
+}
+
+/// Nested 5×5 escape search: skip blocked / (early) dangerous, then `gotoObj`.
+///
+/// `checkIfDangerous` stays true for `ii=0` and `ii=1`, then false (`if (ii > 0)`
+/// after the inner loop). Always returns the last generated tile even if every
+/// `goto` failed — Haxe still sets `escapeTarget` and returns true.
+// Haxe: AiBase.escape L6533–6580
+pub fn pick_escape_tile<R, Bl, Dn, Gt>(
+    player_tx: i32,
+    player_ty: i32,
+    threat_tx: i32,
+    threat_ty: i32,
+    escape_dist: i32,
+    rng: &mut R,
+    is_blocked: Bl,
+    is_dangerous: Dn,
+    mut try_goto: Gt,
+) -> EscapePick
+where
+    R: EscapeRand,
+    Bl: Fn(i32, i32) -> bool,
+    Dn: Fn(i32, i32) -> bool,
+    Gt: FnMut(i32, i32) -> bool,
+{
+    // Haxe `new ObjectHelper(null, 0)` before the loop (tx/ty start 0).
+    let mut last_tx = 0;
+    let mut last_ty = 0;
+    let mut check_if_dangerous = true;
+    let mut done = false;
+    let mut ii = 0i32;
+    while ii < ESCAPE_RETRY_OUTER {
+        let mut i = 0i32;
+        while i < ESCAPE_RETRY_INNER {
+            let (fx, fy) = if ii > 0 {
+                (rng.random_float(), rng.random_float())
+            } else {
+                (0.0, 0.0)
+            };
+            let rx = rng.random_int(1 + ii);
+            let ry = rng.random_int(1 + ii);
+            let (tx, ty) = escape_candidate_xy(
+                player_tx,
+                player_ty,
+                threat_tx,
+                threat_ty,
+                escape_dist,
+                ii,
+                fx,
+                fy,
+                rx,
+                ry,
+            );
+            last_tx = tx;
+            last_ty = ty;
+            if is_blocked(tx, ty) {
+                i += 1;
+                continue;
+            }
+            if check_if_dangerous && is_dangerous(tx, ty) {
+                i += 1;
+                continue;
+            }
+            if try_goto(tx, ty) {
+                done = true;
+                break;
+            }
+            i += 1;
+        }
+        if done {
+            break;
+        }
+        // Haxe: `if (ii > 0) checkIfDangerous = false` after the inner loop.
+        if ii > 0 {
+            check_if_dangerous = false;
+        }
+        ii += 1;
+    }
+    EscapePick {
+        tx: last_tx,
+        ty: last_ty,
+        goto_done: done,
     }
 }
 
@@ -1443,6 +1682,50 @@ pub fn baby_hungry_follow_tiles() -> i32 {
     5
 }
 
+/// Haxe `AiBase.newBorn` isNiceBaby roll (Serf default, then Commoner/Noble overrides).
+// Haxe: AiBase.newBorn L348–351
+/// Haxe craving skip: Gooseberry 31, Popcorn 1121, Sliced Bread 1471 → no craft.
+// Haxe: AiBase.doTimeStuffHelper L822–823
+pub fn craving_item_to_craft(craving_id: i32) -> i32 {
+    if craving_id == 31 || craving_id == 1121 || craving_id == 1471 {
+        -1
+    } else {
+        craving_id
+    }
+}
+
+/// Haxe idle SAY after `MinAgeToEat` (rand 0.05 work / 0.2 nothing).
+// Haxe: AiBase.doTimeStuffHelper L869–873
+pub fn idle_say_line(age: f32, min_age_to_eat: f32, rand: f32) -> Option<&'static str> {
+    if age <= min_age_to_eat {
+        return None;
+    }
+    if rand < 0.05 {
+        Some("say make xxx to give me some work!")
+    } else if rand < 0.2 {
+        Some("nothing to do...")
+    } else {
+        None
+    }
+}
+
+/// Haxe drop held before idle: `heldObject.id != 0 && heldObject != hiddenWound`.
+// Haxe: AiBase.doTimeStuffHelper L843
+pub fn idle_should_drop_held(held_id: i32, is_hidden_wound: bool) -> bool {
+    held_id != 0 && !is_hidden_wound
+}
+
+pub fn roll_is_nice_baby(rand: f32, prestige_class: u8) -> bool {
+    let mut nice = rand > 0.1;
+    if prestige_class == 2 {
+        nice = rand > 0.4;
+    }
+    if prestige_class == 3 {
+        nice = rand > 0.8;
+    }
+    nice
+}
+
 /// Follow radius for child-with-mother (nice baby 2, else 4).
 // Haxe: AiBase.doTimeStuffHelper isChildAndHasMother tiles = isNiceBaby ? 2 : 4
 pub fn child_with_mother_follow_tiles(is_nice_baby: bool) -> i32 {
@@ -1468,6 +1751,228 @@ pub fn ordered_follow_max_tiles(auto_stop_follow: bool) -> i32 {
 // AI-FOLLOW-ACQUIRE / continuous_follow bands
 pub fn wounded_follow_tiles() -> i32 {
     2
+}
+
+/// Haxe `doTimeStuff` L397–405: `movedOneTile` escape runs **before** `time>0` wait.
+// Haxe: AiBase.doTimeStuff L397–409
+pub fn should_escape_on_moved_one_tile(moved_one_tile: bool, did_not_reach_food: f32) -> bool {
+    moved_one_tile && should_attempt_escape(did_not_reach_food)
+}
+
+/// Haxe `if (wasIdle > 0) wasIdle -= reactionTime / 10`.
+// Haxe: AiBase.doTimeStuffHelper L424
+pub fn decay_was_idle(was_idle: f32, reaction_time: f32) -> f32 {
+    if was_idle > 0.0 {
+        (was_idle - reaction_time / 10.0).max(0.0)
+    } else {
+        was_idle
+    }
+}
+
+/// Haxe `deadlyPlayer == null && waitingTime > 1` skip think.
+// Haxe: AiBase.doTimeStuffHelper L514–518
+pub fn waiting_time_blocks_think(deadly_player: bool, waiting_time: f32) -> bool {
+    !deadly_player && waiting_time > 1.0
+}
+
+/// Haxe `time += 1; waitingTime -= 1; if (waitingTime < 0) waitingTime = 0`.
+// Haxe: AiBase.doTimeStuffHelper L515–517
+pub fn tick_waiting_time(waiting_time: f32) -> (f32, f32) {
+    let mut w = waiting_time - 1.0;
+    if w < 0.0 {
+        w = 0.0;
+    }
+    (1.0, w)
+}
+
+/// Haxe `age < MinAgeToEat && isHungry` always returns (mother not required).
+// Haxe: AiBase.doTimeStuffHelper L523–532
+pub fn hungry_infant_always_returns(age: f32, hungry: bool, min_age_to_eat: f32) -> bool {
+    age < min_age_to_eat && hungry
+}
+
+/// War Sword 3047 (nice-baby Noble GetItem).
+// Haxe: AiBase.doTimeStuffHelper L540
+pub const WAR_SWORD_ID: i32 = 3047;
+/// Knife 560 (nice-baby Noble GetItem fallback).
+// Haxe: AiBase.doTimeStuffHelper L540
+pub const KNIFE_ID: i32 = 560;
+
+/// Haxe nice-baby Noble without knife/sword tries GetItem(3047) then GetItem(560).
+// Haxe: AiBase.doTimeStuffHelper L538–544
+pub fn nice_baby_noble_wants_weapon(is_nice_baby: bool, is_noble: bool, held_id: i32) -> bool {
+    is_nice_baby
+        && is_noble
+        && held_id != KNIFE_ID
+        && held_id != WAR_SWORD_ID
+}
+
+/// Haxe `ServerSettings.AutoFollowAi && myPlayer.isHuman()`.
+// Haxe: AiBase.doTimeStuffHelper L460–464
+pub fn auto_follow_ai_human_early_return(auto_follow_ai: bool, is_human: bool) -> bool {
+    auto_follow_ai && is_human
+}
+
+/// Haxe `if (myPlayer.isMoving()) return` after follow — skip home/jobs/craft.
+// Haxe: AiBase.doTimeStuffHelper L599
+pub fn skip_home_and_jobs_while_moving(is_moving: bool) -> bool {
+    is_moving
+}
+
+/// Haxe `hotkiln != null || profession['POTTER'] >= 10` → `doPottery(-2)`.
+// Haxe: AiBase.doTimeStuffHelper L612–615
+pub fn hot_kiln_pottery_gate(hotkiln_within_10: bool, potter_stage: f32) -> bool {
+    hotkiln_within_10 || potter_stage >= 10.0
+}
+
+/// Haxe `isHandlingTemperature && dist > 100` after pickup food.
+// Haxe: AiBase.doTimeStuffHelper L586
+pub fn handle_temperature_after_pickup(is_handling_temperature: bool, threat_quad: f32) -> bool {
+    is_handling_temperature && threat_quad > DO_STUFF_THREAT_QUAD_FORCE
+}
+
+/// Haxe `countSeeds` flags (early return is TODO make seeds → currently false).
+// Haxe: AiBase.countSeeds L1352–1367
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CountSeedsFlags {
+    pub has_corn_seeds: bool,
+    pub has_carrot_seeds: bool,
+    pub early_return: bool,
+}
+
+/// Dried Ear of Corn 1115 / Bowl with Corn Kernels 1247 / dumped 4106 / pile 4107.
+pub const COUNT_SEEDS_CORN_IDS: [i32; 4] = [1115, 1247, 4106, 4107];
+/// Seeding Carrots 401 / Bowl of Carrot Seeds 2745.
+pub const COUNT_SEEDS_CARROT_IDS: [i32; 2] = [401, 2745];
+
+/// Haxe `countSeeds`: cornCount>2, carrotSeedsCount>1; `return false` until make-seeds.
+// Haxe: AiBase.countSeeds L1358–1367
+pub fn count_seeds_from_counts(corn_count: i32, carrot_seeds_count: i32) -> CountSeedsFlags {
+    CountSeedsFlags {
+        has_corn_seeds: corn_count > 2,
+        has_carrot_seeds: carrot_seeds_count > 1,
+        early_return: false,
+    }
+}
+
+const PROFESSION_CLEANUP_KEEPERS: &[&str] =
+    &["FOODSERVER", "BowlFiller", "FIREKEEPER", "GRAVEKEEPER"];
+
+/// Haxe `cleanUpProfessions`: zero weight unless last / keeper / last-is-keeper.
+// Haxe: AiBase.cleanUpProfessions L4443–4461
+pub fn should_zero_profession_weight(key: &str, last_profession: Option<&str>) -> bool {
+    if last_profession.is_none() {
+        return false;
+    }
+    if last_profession == Some(key) {
+        return false;
+    }
+    if PROFESSION_CLEANUP_KEEPERS.iter().any(|k| *k == key) {
+        return false;
+    }
+    if last_profession
+        .map(|last| PROFESSION_CLEANUP_KEEPERS.iter().any(|k| *k == last))
+        .unwrap_or(false)
+    {
+        return false;
+    }
+    true
+}
+
+/// Backpack 198 — `shouldSwitchCloth` never switches onto it.
+// Haxe: AiBase.shouldSwitchCloth L8769–8770
+pub const BACKPACK_CLOTH_ID: i32 = 198;
+/// Pile of Mouflon Hides 3918 → treat as Mouflon Hide 564.
+pub const PILE_MOUFLON_HIDES_ID: i32 = 3918;
+pub const MOUFLON_HIDE_ID: i32 = 564;
+/// Pile of Sheep Skins 3919 → treat as Sheep Skin 593.
+pub const PILE_SHEEP_SKINS_ID: i32 = 3919;
+pub const SHEEP_SKIN_CLOTH_ID: i32 = 593;
+
+/// Haxe `GetCloseClothings` default `searchDistance = 8` (half-open `[p-r, p+r)`).
+// Haxe: AiHelper.GetCloseClothings L541; isPickingupCloths L8726
+pub const GET_CLOSE_CLOTHINGS_RADIUS: i32 = 8;
+/// Pile of Mouflon Hides 3918 / Pile of Sheep Skins 3919.
+// Haxe: AiHelper.clothsWithPilesIds L539
+pub const CLOTHS_WITH_PILES_IDS: [i32; 2] = [PILE_MOUFLON_HIDES_ID, PILE_SHEEP_SKINS_ID];
+
+/// Haxe `GetCloseClothingsHelper` tile filter: clothing char ≠ `n` or hide pile.
+// Haxe: AiHelper.GetCloseClothingsHelper L574
+pub fn is_get_close_clothing_object(clothing: &str, parent_id: i32) -> bool {
+    let first = clothing.chars().next().unwrap_or('n');
+    first != 'n' || CLOTHS_WITH_PILES_IDS.contains(&parent_id)
+}
+
+/// Haxe nested `for ty in py-r...py+r` / `tx in px-r...px+r` (half-open).
+// Haxe: AiHelper.GetCloseClothingsHelper L565–566
+pub fn in_get_close_clothings_square(px: i32, py: i32, tx: i32, ty: i32, radius: i32) -> bool {
+    tx >= px - radius && tx < px + radius && ty >= py - radius && ty < py + radius
+}
+
+/// Resolve pile clothing parent to the wearable id.
+// Haxe: AiBase.shouldSwitchCloth L8757–8760
+pub fn switch_cloth_resolve_parent(parent_id: i32) -> i32 {
+    if parent_id == PILE_MOUFLON_HIDES_ID {
+        MOUFLON_HIDE_ID
+    } else if parent_id == PILE_SHEEP_SKINS_ID {
+        SHEEP_SKIN_CLOTH_ID
+    } else {
+        parent_id
+    }
+}
+
+/// Haxe `shouldSwitchCloth` prestige/slot/rag gates (no world I/O).
+///
+/// `prestige_class`: 1 Serf, 2 Commoner, 3+ Noble. `clothing_slot` 0..5; shoes=2.
+// Haxe: AiBase.shouldSwitchCloth L8755–8789
+pub fn should_switch_cloth(
+    parent_id: i32,
+    extra_prestige_factor: f32,
+    prestige_factor: f32,
+    name: &str,
+    clothing_slot: Option<i32>,
+    worn_id: i32,
+    worn_other_shoe_id: i32,
+    worn_extra_prestige: f32,
+    worn_prestige: f32,
+    worn_name: &str,
+    prestige_class: u8,
+) -> bool {
+    let parent_id = switch_cloth_resolve_parent(parent_id);
+    if extra_prestige_factor > 0.05 && prestige_class == 1 {
+        return false;
+    }
+    if extra_prestige_factor > 0.1 && prestige_class < 3 {
+        return false;
+    }
+    if parent_id == BACKPACK_CLOTH_ID {
+        return false;
+    }
+    let Some(slot) = clothing_slot else {
+        return false;
+    };
+    if slot < 0 {
+        return false;
+    }
+    if worn_id == DEVIL_MASK_ID {
+        return false;
+    }
+    let is_rag = name.to_ascii_uppercase().contains("RAG ");
+    let worn_is_rag = worn_name.to_ascii_uppercase().contains("RAG ");
+    let mut switch_cloths = worn_id == 0;
+    if slot == 2 {
+        switch_cloths = switch_cloths || worn_other_shoe_id == 0;
+    }
+    if !is_rag && worn_is_rag {
+        switch_cloths = true;
+    }
+    if extra_prestige_factor > worn_extra_prestige {
+        switch_cloths = true;
+    }
+    if prestige_factor > worn_prestige {
+        switch_cloths = true;
+    }
+    switch_cloths
 }
 
 /// Haxe `ServerSettings.MaxAge` default for `handleDeath` (not sim vitals 120).
@@ -1774,6 +2279,42 @@ pub fn pick_goal_from_live_sensors(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn craving_skips_gooseberry_popcorn_sliced_bread() {
+        // Haxe L822–823
+        assert_eq!(craving_item_to_craft(0), 0);
+        assert_eq!(craving_item_to_craft(-1), -1);
+        assert_eq!(craving_item_to_craft(31), -1);
+        assert_eq!(craving_item_to_craft(1121), -1);
+        assert_eq!(craving_item_to_craft(1471), -1);
+        assert_eq!(craving_item_to_craft(2143), 2143);
+    }
+
+    #[test]
+    fn idle_say_and_drop_held_match_haxe_l843_l869() {
+        assert!(idle_should_drop_held(33, false));
+        assert!(!idle_should_drop_held(0, false));
+        assert!(!idle_should_drop_held(33, true));
+        assert_eq!(idle_say_line(2.0, 3.0, 0.01), None);
+        assert_eq!(
+            idle_say_line(14.0, 3.0, 0.04),
+            Some("say make xxx to give me some work!")
+        );
+        assert_eq!(idle_say_line(14.0, 3.0, 0.10), Some("nothing to do..."));
+        assert_eq!(idle_say_line(14.0, 3.0, 0.50), None);
+    }
+
+    #[test]
+    fn newborn_nice_baby_roll_matches_haxe_class_thresholds() {
+        // Haxe newBorn L348–351
+        assert!(roll_is_nice_baby(0.11, 1)); // Serf
+        assert!(!roll_is_nice_baby(0.10, 1));
+        assert!(roll_is_nice_baby(0.41, 2)); // Commoner
+        assert!(!roll_is_nice_baby(0.40, 2));
+        assert!(roll_is_nice_baby(0.81, 3)); // Noble
+        assert!(!roll_is_nice_baby(0.80, 3));
+    }
 
     #[test]
     fn rung_labels_stable() {
@@ -2333,6 +2874,175 @@ mod tests {
         let e = escape_side_effects(false, false, false);
         assert!(!e.cancel_use);
         assert!(!e.increment_did_not_reach_food);
+
+        // Haxe: any of use/food/escapeTarget → CancleUse; only food bumps didNotReachFood.
+        let e = escape_side_effects(false, false, true);
+        assert!(e.cancel_use);
+        assert!(e.clear_food_target);
+        assert!(e.clear_craft_trans);
+        assert!(!e.increment_did_not_reach_food);
+    }
+
+    struct ScriptEscapeRng {
+        floats: Vec<f32>,
+        ints: Vec<i32>,
+        fi: usize,
+        ii: usize,
+    }
+
+    impl EscapeRand for ScriptEscapeRng {
+        fn random_float(&mut self) -> f32 {
+            let v = self.floats.get(self.fi).copied().unwrap_or(0.5);
+            self.fi += 1;
+            v
+        }
+        fn random_int(&mut self, max_inclusive: i32) -> i32 {
+            let v = self.ints.get(self.ii).copied().unwrap_or(0);
+            self.ii += 1;
+            v.clamp(0, max_inclusive.max(0))
+        }
+    }
+
+    #[test]
+    fn escape_body_animal_target_debug_say_and_tile_search() {
+        // Haxe L6503: killable-by-bow writes animalTarget; miss keeps sticky.
+        assert_eq!(
+            escape_maybe_assign_animal_target(None, Some((4, 5, 418)), true),
+            Some((4, 5, 418))
+        );
+        assert_eq!(
+            escape_maybe_assign_animal_target(Some((1, 2, 1323)), Some((4, 5, 418)), false),
+            Some((1, 2, 1323))
+        );
+        assert_eq!(
+            escape_maybe_assign_animal_target(Some((1, 2, 1323)), None, true),
+            Some((1, 2, 1323))
+        );
+
+        // Haxe L6524
+        assert_eq!(escape_debug_say(false, "Wolf", 0.0), None);
+        assert_eq!(
+            escape_debug_say(true, "Wolf", 0.0).as_deref(),
+            Some("Escape Wolf 0!")
+        );
+        assert_eq!(
+            escape_debug_say(true, "Eve", 1.2).as_deref(),
+            Some("Escape Eve 2!")
+        );
+
+        // ii=0 keeps original; ii>0 0.2/0.4 flips.
+        assert!(escape_dir_flip(true, 0, 0.0));
+        assert!(escape_dir_flip(false, 1, 0.1));
+        assert!(!escape_dir_flip(true, 1, 0.3));
+        assert!(escape_dir_flip(true, 1, 0.5));
+
+        // Zero jitter matches the pre-rand base tile.
+        assert_eq!(
+            escape_candidate_xy(10, 10, 15, 10, ESCAPE_DIST, 0, 0.0, 0.0, 0, 0),
+            escape_target_xy(10, 10, 15, 10, ESCAPE_DIST)
+        );
+        // lower-x + randX=1 → one more step west.
+        assert_eq!(
+            escape_candidate_xy(10, 10, 15, 10, ESCAPE_DIST, 0, 0.0, 0.0, 1, 0),
+            (6, 13)
+        );
+
+        let mut rng = ScriptEscapeRng {
+            floats: vec![],
+            ints: vec![],
+            fi: 0,
+            ii: 0,
+        };
+        let pick = pick_escape_tile(
+            10,
+            10,
+            15,
+            10,
+            ESCAPE_DIST,
+            &mut rng,
+            |_x, _y| false,
+            |_x, _y| false,
+            |_x, _y| true,
+        );
+        assert!(pick.goto_done);
+        assert_eq!(
+            (pick.tx, pick.ty),
+            escape_target_xy(10, 10, 15, 10, ESCAPE_DIST)
+        );
+
+        // First generated tile blocked; second inner (randX=1) succeeds.
+        let mut rng = ScriptEscapeRng {
+            floats: vec![],
+            ints: vec![0, 0, 1, 0],
+            fi: 0,
+            ii: 0,
+        };
+        let pick = pick_escape_tile(
+            10,
+            10,
+            15,
+            10,
+            ESCAPE_DIST,
+            &mut rng,
+            |x, y| x == 7 && y == 13,
+            |_x, _y| false,
+            |_x, _y| true,
+        );
+        assert!(pick.goto_done);
+        assert_eq!((pick.tx, pick.ty), (6, 13));
+
+        // Dangerous through ii=0 and ii=1; `if (ii > 0)` then clears the check.
+        let mut rng = ScriptEscapeRng {
+            floats: vec![],
+            ints: vec![],
+            fi: 0,
+            ii: 0,
+        };
+        let mut goto_n = 0u32;
+        let pick = pick_escape_tile(
+            10,
+            10,
+            15,
+            10,
+            ESCAPE_DIST,
+            &mut rng,
+            |_x, _y| false,
+            |_x, _y| true,
+            |_x, _y| {
+                goto_n += 1;
+                true
+            },
+        );
+        assert!(pick.goto_done);
+        assert_eq!(goto_n, 1); // first allowed goto is ii=2
+        assert_eq!(
+            (pick.tx, pick.ty),
+            escape_target_xy(10, 10, 15, 10, ESCAPE_DIST)
+        );
+
+        // All blocked: still returns last generated tile, goto_done=false.
+        let mut rng = ScriptEscapeRng {
+            floats: vec![],
+            ints: vec![],
+            fi: 0,
+            ii: 0,
+        };
+        let pick = pick_escape_tile(
+            10,
+            10,
+            15,
+            10,
+            ESCAPE_DIST,
+            &mut rng,
+            |_x, _y| true,
+            |_x, _y| false,
+            |_x, _y| true,
+        );
+        assert!(!pick.goto_done);
+        assert_eq!(
+            (pick.tx, pick.ty),
+            escape_target_xy(10, 10, 15, 10, ESCAPE_DIST)
+        );
     }
 
     #[test]
@@ -2353,6 +3063,27 @@ mod tests {
         assert!(e.clear_caring_for_fire); // always cleared
         assert!(!e.baby_say_f);
         assert!(!e.need_search_food);
+    }
+
+    #[test]
+    fn search_food_and_eat_debug_say_lines() {
+        // Haxe: AiBase.searchFoodAndEat L5076–5078 shouldDebugSay
+        assert!(should_debug_say(true, false));
+        assert!(should_debug_say(false, true));
+        assert!(!should_debug_say(false, false));
+        assert!(should_debug_profession(true, false));
+        assert!(should_debug_profession(false, true));
+        assert!(!should_debug_profession(false, false));
+        assert_eq!(search_food_and_eat_debug_say(false, None), None);
+        assert_eq!(search_food_and_eat_debug_say(false, Some("Gooseberry")), None);
+        assert_eq!(
+            search_food_and_eat_debug_say(true, None).as_deref(),
+            Some("No food found...")
+        );
+        assert_eq!(
+            search_food_and_eat_debug_say(true, Some("Gooseberry")).as_deref(),
+            Some("new food Gooseberry")
+        );
     }
 
     #[test]
@@ -2508,6 +3239,9 @@ mod tests {
         assert!(is_child_and_has_mother_ex(4.0, true, 5.0));
         assert!(!is_child_and_has_mother_ex(4.0, true, 3.0));
         assert!(!is_child_and_has_mother_ex(4.0, false, 5.0));
+        assert!(is_child_and_has_mother_from_follow(2.0, true, false, 3.0));
+        assert!(!is_child_and_has_mother_from_follow(2.0, true, true, 3.0));
+        assert!(!is_child_and_has_mother_from_follow(2.0, false, false, 3.0));
     }
 
     #[test]
@@ -2617,5 +3351,124 @@ mod tests {
             false,
         );
         assert_eq!(resolve_escape_threat(&ctx), EscapeThreat::Player);
+    }
+
+    #[test]
+    fn moved_one_tile_escape_before_time_wait() {
+        // Haxe: AiBase.doTimeStuff L397–409
+        assert!(should_escape_on_moved_one_tile(true, 0.0));
+        assert!(should_escape_on_moved_one_tile(true, 4.9));
+        assert!(!should_escape_on_moved_one_tile(true, 5.0));
+        assert!(!should_escape_on_moved_one_tile(false, 0.0));
+    }
+
+    #[test]
+    fn was_idle_decays_by_reaction_over_ten() {
+        // Haxe: AiBase.doTimeStuffHelper L424
+        assert!((decay_was_idle(1.0, 0.5) - 0.95).abs() < 1e-5);
+        assert_eq!(decay_was_idle(0.0, 0.5), 0.0);
+        assert_eq!(decay_was_idle(0.01, 1.0), 0.0);
+    }
+
+    #[test]
+    fn waiting_time_skip_and_countdown() {
+        // Haxe: AiBase.doTimeStuffHelper L514–518
+        assert!(waiting_time_blocks_think(false, 1.1));
+        assert!(!waiting_time_blocks_think(false, 1.0));
+        assert!(!waiting_time_blocks_think(true, 5.0));
+        let (time_add, w) = tick_waiting_time(2.5);
+        assert!((time_add - 1.0).abs() < 1e-5);
+        assert!((w - 1.5).abs() < 1e-5);
+        let (_, w0) = tick_waiting_time(0.5);
+        assert_eq!(w0, 0.0);
+    }
+
+    #[test]
+    fn hungry_infant_returns_without_mother() {
+        // Haxe: AiBase.doTimeStuffHelper L523–532
+        assert!(hungry_infant_always_returns(2.0, true, 3.0));
+        assert!(!hungry_infant_always_returns(3.0, true, 3.0));
+        assert!(!hungry_infant_always_returns(2.0, false, 3.0));
+    }
+
+    #[test]
+    fn nice_baby_noble_get_item_knife_and_sword() {
+        // Haxe: AiBase.doTimeStuffHelper L538–546
+        assert!(nice_baby_noble_wants_weapon(true, true, 0));
+        assert!(!nice_baby_noble_wants_weapon(true, true, KNIFE_ID));
+        assert!(!nice_baby_noble_wants_weapon(true, true, WAR_SWORD_ID));
+        assert!(!nice_baby_noble_wants_weapon(true, false, 0));
+        assert!(!nice_baby_noble_wants_weapon(false, true, 0));
+    }
+
+    #[test]
+    fn auto_follow_ai_human_and_moving_skip_jobs() {
+        // Haxe: AiBase.doTimeStuffHelper L460–464 / L599
+        assert!(auto_follow_ai_human_early_return(true, true));
+        assert!(!auto_follow_ai_human_early_return(true, false));
+        assert!(!auto_follow_ai_human_early_return(false, true));
+        assert!(skip_home_and_jobs_while_moving(true));
+        assert!(!skip_home_and_jobs_while_moving(false));
+    }
+
+    #[test]
+    fn hot_kiln_and_count_seeds_and_cleanup() {
+        // Haxe: AiBase.doTimeStuffHelper L612–615 / countSeeds L1358–1367 / cleanUp L4443
+        assert!(hot_kiln_pottery_gate(true, 0.0));
+        assert!(hot_kiln_pottery_gate(false, 10.0));
+        assert!(!hot_kiln_pottery_gate(false, 9.0));
+        let s = count_seeds_from_counts(3, 2);
+        assert!(s.has_corn_seeds);
+        assert!(s.has_carrot_seeds);
+        assert!(!s.early_return);
+        let s2 = count_seeds_from_counts(2, 1);
+        assert!(!s2.has_corn_seeds);
+        assert!(!s2.has_carrot_seeds);
+        assert!(should_zero_profession_weight("BAKER", Some("SMITH")));
+        assert!(!should_zero_profession_weight("SMITH", Some("SMITH")));
+        assert!(!should_zero_profession_weight("FIREKEEPER", Some("SMITH")));
+        assert!(!should_zero_profession_weight("BAKER", Some("FIREKEEPER")));
+        assert!(!should_zero_profession_weight("BAKER", None));
+    }
+
+    #[test]
+    fn handle_temp_after_pickup_and_switch_cloth() {
+        // Haxe: AiBase.doTimeStuffHelper L586 / shouldSwitchCloth L8755
+        assert!(handle_temperature_after_pickup(true, 101.0));
+        assert!(!handle_temperature_after_pickup(true, 100.0));
+        assert!(!handle_temperature_after_pickup(false, 1000.0));
+        assert!(should_switch_cloth(
+            128, 0.0, 0.6, "Reed Skirt", Some(4), 0, 0, 0.0, 0.0, "", 2
+        ));
+        assert!(!should_switch_cloth(
+            BACKPACK_CLOTH_ID, 0.0, 1.0, "Backpack", Some(5), 0, 0, 0.0, 0.0, "", 3
+        ));
+        assert!(!should_switch_cloth(
+            128, 0.06, 0.6, "Fancy", Some(4), 0, 0, 0.0, 0.0, "", 1
+        ));
+        assert!(!should_switch_cloth(
+            128, 0.2, 0.6, "Crown", Some(0), 0, 0, 0.0, 0.0, "", 2
+        ));
+        assert!(should_switch_cloth(
+            128, 0.2, 0.6, "Crown", Some(0), 0, 0, 0.0, 0.0, "", 3
+        ));
+        assert!(!should_switch_cloth(
+            128, 0.0, 0.6, "Reed Skirt", Some(0), DEVIL_MASK_ID, 0, 0.0, 0.0, "Devil Mask", 2
+        ));
+        assert!(should_switch_cloth(
+            128, 0.0, 0.6, "Reed Skirt", Some(4), 999, 0, 0.0, 0.1, "RAG Skirt", 2
+        ));
+        assert_eq!(switch_cloth_resolve_parent(PILE_MOUFLON_HIDES_ID), MOUFLON_HIDE_ID);
+        assert_eq!(switch_cloth_resolve_parent(PILE_SHEEP_SKINS_ID), SHEEP_SKIN_CLOTH_ID);
+        // Haxe L8784: slot 2 shoes — empty other shoe also switches
+        assert!(should_switch_cloth(
+            760, 0.0, 0.4, "Shoe", Some(2), 760, 0, 0.0, 0.4, "Shoe", 2
+        ));
+        assert_eq!(GET_CLOSE_CLOTHINGS_RADIUS, 8);
+        assert!(is_get_close_clothing_object("h", 200));
+        assert!(!is_get_close_clothing_object("n", 33));
+        assert!(is_get_close_clothing_object("n", PILE_MOUFLON_HIDES_ID));
+        assert!(in_get_close_clothings_square(10, 10, 2, 10, 8));
+        assert!(!in_get_close_clothings_square(10, 10, 18, 10, 8)); // half-open +r
     }
 }

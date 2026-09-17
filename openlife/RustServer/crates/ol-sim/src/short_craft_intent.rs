@@ -538,9 +538,12 @@ pub fn smith_apply_to_live_intent(
             x: ctx.empty_drop_x,
             y: ctx.empty_drop_y,
         },
-        SmithApply::SeekOrCraftActor { actor } => ShortCraftLiveIntent::SeekOrCraft {
+        SmithApply::SeekOrCraftActor {
             actor,
-            craft_if_needed: true,
+            craft_if_needed,
+        } => ShortCraftLiveIntent::SeekOrCraft {
+            actor,
+            craft_if_needed,
         },
         SmithApply::UseOnEmptyGround { held } => {
             let (x, y) = pick_ground_use_tile(
@@ -752,11 +755,59 @@ pub fn apply_short_craft_live_intent(
             apply_ai_remv_last(state, conn_id, x, y)
         }
         ShortCraftLiveIntent::FeedOther { target_conn, .. } => {
-            if crate::try_do_eating(state, conn_id, target_conn) {
-                ShortCraftLiveApplyResult::Dropped
-            } else {
-                ShortCraftLiveApplyResult::Failed
+            // Haxe L6385–6396: optional You are $name, doOnOther, time += 2, return true
+            let say = {
+                let feeder = state.players.get(&conn_id);
+                let tgt = state.players.get(&target_conn);
+                match (feeder, tgt) {
+                    (Some(f), Some(t)) => {
+                        let start = state.gameplay.starting_name.trim();
+                        let start = if start.is_empty() {
+                            crate::naming::STARTING_NAME
+                        } else {
+                            start
+                        };
+                        let is_start = t.first_name.trim().eq_ignore_ascii_case(start);
+                        let eve = crate::food_store_max::is_eve_or_adam_name(&f.first_name);
+                        let lists = if crate::player_is_female(state, t) {
+                            crate::naming::FEMALE_FIRST_NAMES
+                        } else {
+                            crate::naming::MALE_FIRST_NAMES
+                        };
+                        let rnd = lists
+                            .get((rand::random::<u32>() as usize) % lists.len().max(1))
+                            .copied()
+                            .unwrap_or("ALICE");
+                        let roll = rand::random::<f32>() < crate::FEED_NAME_RANDOM_CHANCE;
+                        crate::feed_you_are_say(
+                            is_start,
+                            t.age,
+                            eve,
+                            &f.first_name,
+                            rnd,
+                            roll,
+                        )
+                    }
+                    _ => None,
+                }
+            };
+            if let Some(text) = say {
+                crate::apply_intent(
+                    state,
+                    &ol_metrics::Counters::new(),
+                    outbound,
+                    ol_net::NetIntent::Raw {
+                        conn_id,
+                        tag: "SAY".into(),
+                        payload: text,
+                    },
+                );
             }
+            let _ = crate::try_do_eating(state, conn_id, target_conn);
+            if let Some(p) = state.players.get_mut(&conn_id) {
+                crate::ai_handler::set_waiting_time_min(&mut p.llm_speech, crate::FEED_WAIT_SECS);
+            }
+            ShortCraftLiveApplyResult::Dropped
         }
         ShortCraftLiveIntent::SeekFeedFood { target_conn, .. } => {
             let hit = crate::search_best_food_full(
@@ -1009,6 +1060,20 @@ mod tests {
         craft_and_drop_near_forge_apply, smith_action_apply, HungryWorkCostLookup, SmithAction,
         SmithApplyInput, FLAT_ROCK, HOT_IRON_BLOOM_FLAT, SMITHING_HAMMER,
     };
+
+    #[test]
+    fn stage_use_held_on_target_null_unreachable_hungry() {
+        // Haxe: AiBase.useHeldObjOnTarget L1391–1396
+        assert!(stage_use_held_on_target(1, 1, 82, 72, false, false, 20.0, None).is_none());
+        let lu = HungryWorkCostLookup::from_transition_cost(5.0);
+        assert!(stage_use_held_on_target(1, 1, 82, 72, false, true, 1.0, Some(&lu)).is_none());
+        let st = stage_use_held_on_target(3, 4, 82, 72, true, true, 20.0, None).unwrap();
+        assert_eq!(st.tx, 3);
+        assert_eq!(st.ty, 4);
+        assert_eq!(st.expected_target_parent, 82);
+        assert_eq!(st.use_actor_parent, 72);
+        assert!(st.use_is_drop_in_container);
+    }
 
     #[test]
     fn use_held_staging_goto_when_far_use_when_close() {

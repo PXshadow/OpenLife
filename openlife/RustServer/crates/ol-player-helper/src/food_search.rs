@@ -111,7 +111,7 @@ impl Default for AiFoodSearchFlags {
 }
 
 impl AiFoodSearchFlags {
-    /// Strict AI with no seeds â€” refuses seed-critical foods.
+    /// Strict AI with no seeds — refuses seed-critical foods.
     pub fn no_seeds() -> Self {
         Self {
             has_carrot_seeds: false,
@@ -120,7 +120,49 @@ impl AiFoodSearchFlags {
             has_corn_seeds: false,
         }
     }
+
+    /// Haxe `countSeeds` / `hasPepperSeeds` / `hasOnionSeeds` from object parent ids.
+    // Haxe: AiBase.countSeeds L1358–1364; hasPepperSeeds L1376–1380; hasOnionSeeds L1383–1386
+    pub fn from_parent_ids<I: IntoIterator<Item = i32>>(ids: I) -> Self {
+        let mut corn = 0i32;
+        let mut carrot = 0i32;
+        let mut pepper = 0i32;
+        let mut onion = 0i32;
+        for id in ids {
+            if COUNT_SEEDS_CORN_IDS.contains(&id) {
+                corn += 1;
+            }
+            if COUNT_SEEDS_CARROT_IDS.contains(&id) {
+                carrot += 1;
+            }
+            if PEPPER_SEED_COUNT_IDS.contains(&id) {
+                pepper += 1;
+            }
+            if ONION_SEED_COUNT_IDS.contains(&id) {
+                onion += 1;
+            }
+        }
+        Self {
+            has_corn_seeds: corn > 2,
+            has_carrot_seeds: carrot > 1,
+            has_pepper_seeds: pepper > 1,
+            has_onion_seeds: onion > 1,
+        }
+    }
 }
+
+/// Dried Ear 1115 / Bowl Kernels 1247 / dumped 4106 / pile 4107.
+// Haxe: AiBase.countSeeds L1357–1360
+pub const COUNT_SEEDS_CORN_IDS: [i32; 4] = [1115, 1247, 4106, 4107];
+/// Seeding Carrots 401 / Bowl of Carrot Seeds 2745.
+// Haxe: AiBase.countSeeds L1362–1364
+pub const COUNT_SEEDS_CARROT_IDS: [i32; 2] = [401, 2745];
+/// Hot Pepper 2844 / Fruiting Pepper Plant 2843 / Pepper Seed 2808.
+// Haxe: AiBase.hasPepperSeeds L1376–1380
+pub const PEPPER_SEED_COUNT_IDS: [i32; 3] = [2844, 2843, 2808];
+/// Wild onion in ground 805 / Wild Onion 808 / Onion 2855 / Dry Planted Onion 2856 / Ripe Onions 2854.
+// Haxe: AiBase.hasOnionSeeds L1383–1386
+pub const ONION_SEED_COUNT_IDS: [i32; 5] = [805, 808, 2855, 2856, 2854];
 
 // â”€â”€ Pure inputs / hits â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -953,6 +995,22 @@ mod tests {
         opts.ai = Some(AiFoodSearchFlags::default());
         let mut counters2 = SearchFoodCounters::new();
         assert!(process_food(&onion, &opts, &mut counters2, &[]).is_some());
+    }
+
+    #[test]
+    fn ai_seed_flags_from_parent_ids_pepper_onion_thresholds() {
+        // Haxe: hasPepperSeeds count>1; hasOnionSeeds count>1; corn>2; carrot>1
+        let none = AiFoodSearchFlags::from_parent_ids([HOT_PEPPER_ID]);
+        assert!(!none.has_pepper_seeds);
+        assert!(!none.has_onion_seeds);
+        let pepper = AiFoodSearchFlags::from_parent_ids([HOT_PEPPER_ID, 2808]);
+        assert!(pepper.has_pepper_seeds);
+        let onion = AiFoodSearchFlags::from_parent_ids([WILD_ONION_ID, 2855]);
+        assert!(onion.has_onion_seeds);
+        let corn = AiFoodSearchFlags::from_parent_ids([1115, 1247, 4106]);
+        assert!(corn.has_corn_seeds);
+        let carrot = AiFoodSearchFlags::from_parent_ids([401, 2745]);
+        assert!(carrot.has_carrot_seeds);
     }
 
     #[test]

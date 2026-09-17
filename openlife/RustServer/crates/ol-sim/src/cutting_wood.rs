@@ -5,7 +5,7 @@
 //! Butt Log 345 near home (count r=15, GetCraftAndDrop max 5 dist 8).
 //! Assigned/last `isCuttingWood(100)`; low-priority `isCuttingWood()`.
 //!
-//! `cleanUp()` after stage 3 is residual (pottery cleanup SM already exists).
+//! After stage 3 Haxe `if (cleanUp()) return true` (same `clean_up_action` SM).
 
 use crate::get_or_craft::{
     get_craft_and_drop_items_close_to_obj, CraftAndDropApply, CraftWorldObj,
@@ -178,6 +178,9 @@ pub enum CuttingWoodAction {
         which_id: i32,
         apply: CraftAndDropApply,
     },
+    /// Haxe `if (cleanUp()) return true` after lumber stage 3.
+    // Haxe: AiBase.isCuttingWood L938
+    TryCleanup,
 }
 
 impl CuttingWoodAction {
@@ -271,8 +274,7 @@ pub fn is_cutting_wood(
         }
     }
     lumber.stage = 3.0;
-    // Haxe: if (cleanUp()) return true — residual (cleanup_profession SM).
-    CuttingWoodAction::None
+    CuttingWoodAction::TryCleanup
 }
 
 /// Max people for isCuttingWood from rung / assigned flag.
@@ -477,7 +479,8 @@ mod tests {
     }
 
     #[test]
-    fn stocked_wood_and_logs_idle() {
+    fn stocked_wood_and_logs_runs_cleanup() {
+        // Haxe L938: after stage 3, if (cleanUp()) return true
         let mut rt = LumberjackProfessionRuntime::default();
         rt.is_last_lumberjack = true;
         let s = fire_home();
@@ -486,7 +489,7 @@ mod tests {
             .collect();
         objs.extend((0..5).map(|i| CraftWorldObj::simple(LUMBER_BUTT_LOG, i, 1)));
         let a = is_cutting_wood(&s, &mut rt, 1, 0.0, 0.0, &objs);
-        assert_eq!(a, CuttingWoodAction::None);
+        assert_eq!(a, CuttingWoodAction::TryCleanup);
         assert_eq!(rt.stage, 3.0);
     }
 
