@@ -5882,10 +5882,28 @@ fn npc_stage_cloth_pickup_at(
     Some((NpcActivityKind::Craft, label, 100))
 }
 
+/// Closest `id` within wrap-aware Chebyshev `max_r` (Haxe GetOrCraftItem
+/// `maxSearchDistance`, default 40, clothing pass 60).
+// Haxe: AiBase.GetOrCraftItem L6150–6198
+fn npc_existing_object_xy_within(
+    world: &World,
+    px: i32,
+    py: i32,
+    id: i32,
+    max_r: i32,
+) -> Option<(i32, i32)> {
+    if id <= 0 || max_r < 0 {
+        return None;
+    }
+    let (x, y) = world.find_closest_object_id(id, px, py)?;
+    if world.chebyshev(px, py, x, y) <= max_r {
+        Some((x, y))
+    } else {
+        None
+    }
+}
+
 /// Existing clothing tile to DROP-pick (Haxe GetOrCraftItem L6196 dropTarget=obj).
-///
-/// Local GetCloseClothings r=8 / home r=60 / GetOrCraft maxSearch 40 miss a skirt
-/// left at an old increment-30 craft site after home moved.
 fn npc_existing_switch_cloth_xy(
     world: &World,
     content: &ContentDb,
@@ -5899,8 +5917,8 @@ fn npc_existing_switch_cloth_xy(
     })
 }
 
-/// Haxe `isPickingupCloths` — drop/use nearby better clothing.
-// Haxe: AiBase.isPickingupCloths L8723–8752
+/// Haxe `isPickingupCloths` — drop/use nearby better clothing (r=8 + home r=60).
+// Haxe: AiBase.isPickingupCloths L8723–8752; AiHelper.GetCloseClothings L541
 fn npc_run_is_pickingup_cloths(
     intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
     world: &World,
@@ -5943,15 +5961,10 @@ fn npc_run_is_pickingup_cloths(
             return Some(hit);
         }
     }
-    // Haxe GetOrCraftItem L6196: if the cloth exists, dropTarget = obj.
-    // Radius scans miss an orphaned 128 after Eve home moves (live 228,275).
-    if let Some((x, y, id)) =
-        npc_existing_switch_cloth_xy(world, content, p.x, p.y, p.clothing, prestige_class)
-    {
-        return npc_stage_cloth_pickup_at(
-            intent_tx, world, content, st, conn_id, p, x, y, id,
-        );
-    }
+    // Haxe isPickingupCloths L8723 only GetCloseClothings r=8. Do not
+    // world-search: live 0.3.21 sent adults to orphaned 128 at 228,275
+    // (cheb 100+) every L652 tick, so craftHighPriorityClothing L684 never
+    // recrafted at home and worn stayed 0.
     None
 }
 
@@ -10984,12 +10997,16 @@ pub async fn run_npc_scheduler(
                                 && !matches!(pickup, ShortCraftLiveIntent::Wait)
                             {
                                 pickup
-                            } else if let Some((x, y)) = world
-                                .read()
-                                .ok()
-                                .and_then(|w| w.find_closest_object_id(object_id, p.x, p.y))
-                            {
-                                // GetOrCraft maxSearchDistance=40 misses orphaned 128.
+                            } else if let Some((x, y)) = world.read().ok().and_then(|w| {
+                                npc_existing_object_xy_within(
+                                    &w,
+                                    p.x,
+                                    p.y,
+                                    object_id,
+                                    NPC_GET_OR_CRAFT_SEARCH_RADIUS,
+                                )
+                            }) {
+                                // Haxe GetOrCraftItem L6196 dropTarget=obj within maxSearch 60.
                                 ShortCraftLiveIntent::DropAt { x, y }
                             } else {
                                 npc_expand_clothing_craft_product(
@@ -13063,7 +13080,9 @@ mod tests {
 
     #[test]
     fn existing_switch_cloth_finds_orphaned_skirt_beyond_home_r60() {
-        // Live 0.3.20: 128 at 228,275, home 433,245, player 448,239. r=8/60 miss.
+        // Live 0.3.20/0.3.21: 128 at 228,275, home 433,245, player 448,239.
+        // Unbounded world-search finds it, but Haxe GetOrCraft maxSearch 60
+        // and isPickingupCloths r=8/home r=60 do not — recraft at home instead.
         let mut db = ContentDb::default();
         let mut skirt = ol_content::ObjectDef::empty(128);
         skirt.id = 128;
@@ -13080,6 +13099,34 @@ mod tests {
         assert_eq!(
             w.find_closest_object_id(128, 448, 239),
             Some((228, 275))
+        );
+        assert!(w.chebyshev(448, 239, 228, 275) > NPC_GET_OR_CRAFT_SEARCH_RADIUS);
+        assert_eq!(
+            npc_existing_object_xy_within(
+                &w,
+                448,
+                239,
+                128,
+                NPC_GET_OR_CRAFT_SEARCH_RADIUS
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn clothing_existing_pickup_uses_get_or_craft_radius_60() {
+        let mut w = World::new(128, 128, false);
+        w.set_object(20, 0, 128);
+        w.set_object(80, 0, 128);
+        assert_eq!(
+            npc_existing_object_xy_within(&w, 0, 0, 128, NPC_GET_OR_CRAFT_SEARCH_RADIUS),
+            Some((20, 0))
+        );
+        w.set_object(20, 0, 0);
+        assert_eq!(
+            npc_existing_object_xy_within(&w, 0, 0, 128, NPC_GET_OR_CRAFT_SEARCH_RADIUS),
+            None,
+            "80 tiles is beyond Haxe clothing maxSearchRadius 60; recraft at home"
         );
     }
 
