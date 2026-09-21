@@ -4187,6 +4187,9 @@ fn npc_commit_craft_live(
                 StickyArrive::None
             };
             let expected = sticky_parent_id(content, world.get_object(x, y));
+            // Haxe GetOrCraftItem L6215 dropTarget = clothing obj; isDropingItem
+            // then pickup_cloth so 128 on the ground is DROPped, not recrafted.
+            let drop_label = npc_drop_arrive_label(content, expected, x, y, is_drop);
             if npc_do_arrive_or_walk(
                 intent_tx,
                 world,
@@ -4202,12 +4205,14 @@ fn npc_commit_craft_live(
                 expected,
                 0,
                 arrive,
-                format!("craft @{x},{y}"),
+                drop_label.clone(),
                 seq,
             ) {
                 *kind = NpcActivityKind::Craft;
                 *detail = if npc_is_close_action(px, py, x, y) && !moving && is_drop {
-                    format!("craft_queue_drop @{x},{y}")
+                    drop_label
+                } else if is_drop && npc_clothing_slot(content, expected).is_some() {
+                    drop_label
                 } else {
                     format!("craft_queue_walk @{x},{y}")
                 };
@@ -5536,6 +5541,11 @@ fn npc_stage_clothing_pickup_if_use_makes_cloth(
         .find_transition(actor_id, target_id)
         .or_else(|| content.find_transition_last_use(actor_id, target_id))
     else {
+        // Already standing on clothing (GetOrCraft / isPickingupCloths re-enter).
+        let base = content.resolve_base_id(target_id);
+        if npc_clothing_slot(content, base).is_some() {
+            npc_stage_clothing_drop_target(content, st, x, y, target_id, base);
+        }
         return;
     };
     // Ground product (newTarget). newActor clothing is held → switchCloths next think.
@@ -5547,16 +5557,30 @@ fn npc_stage_clothing_pickup_if_use_makes_cloth(
     if npc_clothing_slot(content, base).is_none() {
         return;
     }
-    let permanent = content.get(base).map(|d| d.permanent).unwrap_or(false);
+    // Haxe dropTarget is the same tile helper; USE 59+124 then id becomes 128.
+    // Expect the *current* tile (124) so the next think before sim-apply stays
+    // valid; after apply, sticky_move_still_valid keeps clothing on that tile.
+    let tile_expect = content.resolve_base_id(if target_id > 0 { target_id } else { base });
+    npc_stage_clothing_drop_target(content, st, x, y, tile_expect, base);
+}
+
+fn npc_stage_clothing_drop_target(
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    x: i32,
+    y: i32,
+    tile_expect: i32,
+    cloth_base: i32,
+) {
+    let permanent = content
+        .get(content.resolve_base_id(cloth_base))
+        .map(|d| d.permanent)
+        .unwrap_or(false);
     let arrive = if permanent {
         StickyArrive::Use
     } else {
         StickyArrive::Drop
     };
-    // Haxe dropTarget is the same tile helper; USE 59+124 then id becomes 128.
-    // Expect the *current* tile (124) so the next think before sim-apply stays
-    // valid; after apply, sticky_move_still_valid keeps clothing on that tile.
-    let tile_expect = content.resolve_base_id(if target_id > 0 { target_id } else { base });
     set_sticky_arrive(
         st,
         x,
@@ -5564,8 +5588,38 @@ fn npc_stage_clothing_pickup_if_use_makes_cloth(
         tile_expect,
         0,
         arrive,
-        format!("pickup_cloth {base}"),
+        format!("pickup_cloth {cloth_base}"),
     );
+}
+
+/// Haxe GetOrCraftItem L6215 `dropTarget = obj` when the tile is clothing.
+fn npc_drop_arrive_label(
+    content: &ContentDb,
+    expected: i32,
+    x: i32,
+    y: i32,
+    is_drop: bool,
+) -> String {
+    if is_drop && npc_clothing_slot(content, expected).is_some() {
+        format!("pickup_cloth {expected}")
+    } else {
+        format!("craft @{x},{y}")
+    }
+}
+
+/// Haxe GetCloseClothings r=8 around the player, plus home CountClose r=60.
+/// Live 0.3.15 left Reed Skirt 128 at home; r=8 never saw it after hunt walks.
+// Haxe: AiHelper.GetCloseClothings L541; addAllObjectsForCrafting L7240; CountCloseObjects r=60
+fn npc_clothing_pickup_in_range(
+    px: i32,
+    py: i32,
+    home_x: i32,
+    home_y: i32,
+    tx: i32,
+    ty: i32,
+) -> bool {
+    in_get_close_clothings_square(px, py, tx, ty, GET_CLOSE_CLOTHINGS_RADIUS)
+        || in_get_close_clothings_square(home_x, home_y, tx, ty, HOME_CLOTH_COUNT_RADIUS)
 }
 
 fn npc_clothing_slot(content: &ContentDb, id: i32) -> Option<i32> {
@@ -5670,20 +5724,18 @@ fn npc_run_is_pickingup_cloths(
         return None;
     }
     // Haxe GetCloseClothings default r=8 half-open; skip notReachable/hostile.
-    let tiles = npc_scan_cached(st, world, content, p.x, p.y, GET_CLOSE_CLOTHINGS_RADIUS);
+    // Also home r=60 (Haxe addAllObjectsForCrafting L7240 / CountCloseObjects).
+    let mut tiles = npc_scan_cached(st, world, content, p.x, p.y, GET_CLOSE_CLOTHINGS_RADIUS);
+    let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+    let home = scan_world_radius(world, Some(content), hx, hy, HOME_CLOTH_COUNT_RADIUS);
+    tiles = npc_merge_scan_tiles(tiles, home);
     let _ = intent_tx;
     let _ = conn_id;
     for t in &tiles {
         if t.parent_id == 0 {
             continue;
         }
-        if !in_get_close_clothings_square(
-            p.x,
-            p.y,
-            t.x,
-            t.y,
-            GET_CLOSE_CLOTHINGS_RADIUS,
-        ) {
+        if !npc_clothing_pickup_in_range(p.x, p.y, hx, hy, t.x, t.y) {
             continue;
         }
         if st.path_reach.blocks_target(t.x, t.y, None) {
@@ -10734,22 +10786,51 @@ pub async fn run_npc_scheduler(
                                 )
                             }
                         }
-                        ClothingCraftPlan::CraftItem(object_id) => npc_expand_craft_product(
-                            &tiles,
-                            p.x,
-                            p.y,
-                            p.held_id,
-                            p.moving,
-                            home_x,
-                            home_y,
-                            content.as_ref(),
-                            craft_graph.as_ref(),
-                            &mut st.craft_rt,
-                            &blocked,
-                            is_smith,
-                            tick,
-                            object_id,
-                        ),
+                        ClothingCraftPlan::CraftItem(object_id) => {
+                            // Haxe GetOrCraftItem L6196: if the cloth exists, dropTarget = obj.
+                            // craftClothIfNeeded used craftItem and recrafted while 128 sat at home.
+                            let pickup = npc_expand_craft_intent(
+                                &tiles,
+                                p.x,
+                                p.y,
+                                p.held_id,
+                                p.moving,
+                                home_x,
+                                home_y,
+                                content.as_ref(),
+                                craft_graph.as_ref(),
+                                &mut st.craft_rt,
+                                &blocked,
+                                is_smith,
+                                tick,
+                                ShortCraftLiveIntent::SeekOrCraft {
+                                    actor: object_id,
+                                    craft_if_needed: false,
+                                },
+                            );
+                            if npc_craft_expand_progress(&pickup, p.moving)
+                                && !matches!(pickup, ShortCraftLiveIntent::Wait)
+                            {
+                                pickup
+                            } else {
+                                npc_expand_craft_product(
+                                    &tiles,
+                                    p.x,
+                                    p.y,
+                                    p.held_id,
+                                    p.moving,
+                                    home_x,
+                                    home_y,
+                                    content.as_ref(),
+                                    craft_graph.as_ref(),
+                                    &mut st.craft_rt,
+                                    &blocked,
+                                    is_smith,
+                                    tick,
+                                    object_id,
+                                )
+                            }
+                        }
                     };
                     let intent = if matches!(
                         plan,
@@ -12738,5 +12819,46 @@ mod tests {
         };
         assert_eq!(slot('b'), Some(4), "Reed Skirt clothing=b is bottom slot 4");
         assert_eq!(slot('n'), None);
+    }
+
+    #[test]
+    fn clothing_pickup_range_includes_home_r60() {
+        // Live 0.3.15: 128 at home, AIs hunting 20+ tiles away, r=8 miss.
+        // Haxe GetCloseClothings r=8 plus addAllObjectsForCrafting home.
+        // Home far so r=8 is the only hit.
+        assert!(npc_clothing_pickup_in_range(0, 0, 1000, 1000, 5, 0));
+        assert!(!npc_clothing_pickup_in_range(0, 0, 1000, 1000, 8, 0));
+        assert!(npc_clothing_pickup_in_range(100, 100, 0, 0, 20, 0));
+        assert!(npc_clothing_pickup_in_range(100, 100, 0, 0, 0, 0));
+        assert!(!npc_clothing_pickup_in_range(100, 100, 0, 0, 60, 0));
+    }
+
+    #[test]
+    fn drop_arrive_label_pickup_cloth_when_tile_is_skirt() {
+        let mut db = ContentDb::default();
+        let mut skirt = ol_content::ObjectDef::empty(128);
+        skirt.id = 128;
+        skirt.clothing = "b".into();
+        db.objects.insert(128, skirt);
+        db.objects.insert(
+            33,
+            ol_content::ObjectDef {
+                id: 33,
+                clothing: "n".into(),
+                ..ol_content::ObjectDef::empty(33)
+            },
+        );
+        assert_eq!(
+            npc_drop_arrive_label(&db, 128, 4, 5, true),
+            "pickup_cloth 128"
+        );
+        assert_eq!(
+            npc_drop_arrive_label(&db, 33, 4, 5, true),
+            "craft @4,5"
+        );
+        assert_eq!(
+            npc_drop_arrive_label(&db, 128, 4, 5, false),
+            "craft @4,5"
+        );
     }
 }
