@@ -3065,18 +3065,16 @@ fn npc_try_walk_to_ex(
     npc_move_path(intent_tx, conn_id, px, py, &deltas, Some(seq))
 }
 
-/// Haxe `doTimeStuffHelper` L430–433 / L672: `searchCurrentPosition = false`
-/// and `maxSearchRadius = 60` before `craftHighPriorityClothing`.
-///
-/// Live 0.3.19: increment 30 harvested nearby Milkweed 50 while Rope 59 sat at
-/// home Chebyshev 58 with Reed Bundle 124 in range — 128 never spawned.
-// Haxe: AiBase.doTimeStuffHelper L430–433; L672
+/// Haxe `doTimeStuffHelper` L672: `searchCurrentPosition = false`,
+/// `maxSearchRadius = 60` before `craftHighPriorityClothing`.
+/// `searchBestObjectForCrafting` steps `radius += AiMaxSearchIncrement` (30)
+/// and returns on the first radius that finds a transition.
+// Haxe: AiBase.doTimeStuffHelper L672; searchBestObjectForCrafting L7145; ServerSettings.hx L448
 fn npc_prepare_clothing_l672_search(craft_rt: &mut CraftAiRuntime, opts: &mut CraftLiveExpandOpts) {
     craft_rt.item.search_current_position = false;
     craft_rt.item.max_search_radius = NPC_GET_OR_CRAFT_SEARCH_RADIUS;
     opts.ai_max_search_radius = NPC_GET_OR_CRAFT_SEARCH_RADIUS;
-    // First clothing pass is the full L672 radius (not increment 30).
-    opts.ai_max_search_increment = NPC_GET_OR_CRAFT_SEARCH_RADIUS;
+    opts.ai_max_search_increment = 30;
 }
 
 fn npc_craft_live_opts(
@@ -13080,6 +13078,6 @@ mod tests {
         );
         assert_eq!(st.craft_rt.item.max_search_radius, 60);
         assert_eq!(opts.ai_max_search_radius, 60);
-        assert_eq!(opts.ai_max_search_increment, 60);
+        assert_eq!(opts.ai_max_search_increment, 30);
     }
 }
