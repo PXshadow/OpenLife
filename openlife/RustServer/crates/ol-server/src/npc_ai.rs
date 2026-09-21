@@ -6353,9 +6353,19 @@ fn npc_merge_scan_tiles(mut a: Vec<ScanTile>, b: Vec<ScanTile>) -> Vec<ScanTile>
     a
 }
 
+/// True only when the player Chebyshev square *is* the home square.
+/// Covering the home *point* is not enough: Haxe `addAllObjectsForCrafting`
+/// L7240 scans a full `radius` around home, so ingredients just outside the
+/// player square still count (live 0.3.16: Thread 58 at 444,18 with player
+/// 465,64 home 477,29 r=40).
+// Haxe: AiBase.addAllObjectsForCrafting L7240
+fn npc_player_scan_covers_home_square(px: i32, py: i32, home_x: i32, home_y: i32) -> bool {
+    home_x == px && home_y == py
+}
+
 /// Haxe `addAllObjectsForCrafting` always scans home; player scan is extra.
-/// Merge home tiles when the player snapshot does not already cover home.
-// Haxe: AiBase.addAllObjectsForCraftig L7240
+/// Merge a full home square unless the player is standing on home.
+// Haxe: AiBase.addAllObjectsForCrafting L7240
 fn npc_scan_for_craft(
     st: &mut NpcProfessionState,
     world: &World,
@@ -6367,10 +6377,7 @@ fn npc_scan_for_craft(
     r: i32,
 ) -> Vec<ScanTile> {
     let player = npc_scan_cached(st, world, content, px, py, r);
-    if home_x == px && home_y == py {
-        return player;
-    }
-    if (home_x - px).abs() <= r && (home_y - py).abs() <= r {
+    if npc_player_scan_covers_home_square(px, py, home_x, home_y) {
         return player;
     }
     let home = scan_world_radius(world, Some(content), home_x, home_y, r);
@@ -6388,10 +6395,7 @@ fn npc_scan_for_craft_rw(
     r: i32,
 ) -> Vec<ScanTile> {
     let player = npc_scan_cached_rw(st, world, content, px, py, r);
-    if home_x == px && home_y == py {
-        return player;
-    }
-    if (home_x - px).abs() <= r && (home_y - py).abs() <= r {
+    if npc_player_scan_covers_home_square(px, py, home_x, home_y) {
         return player;
     }
     match world.try_read() {
@@ -10655,7 +10659,10 @@ pub async fn run_npc_scheduler(
                         )
                         .max(8)
                     } else {
-                        craft_radius.min(60).max(8)
+                        // Haxe L672 itemToCraft.maxSearchRadius = 60 before
+                        // craftHighPriorityClothing. craft_radius (40) missed
+                        // home-square 58+58 / 124 just outside the player scan.
+                        NPC_GET_OR_CRAFT_SEARCH_RADIUS
                     };
                     let peer_blocked_by_ai = {
                         let st = profession_state.entry(conn_id).or_default();
@@ -12860,5 +12867,31 @@ mod tests {
             npc_drop_arrive_label(&db, 128, 4, 5, false),
             "craft @4,5"
         );
+    }
+
+    #[test]
+    fn craft_scan_merges_home_square_when_home_point_is_inside_player_r() {
+        // Live 0.3.16: player 465,64 home 477,29 r=40. Home *point* is inside
+        // player Chebyshev r, so the old skip dropped the home square.
+        // Thread 444,18 is in home r=40, not player r=40 (Haxe L7240).
+        let mut w = World::new(64, 64, false);
+        let db = ContentDb::default();
+        w.set_object(10, 0, 58);
+        let mut st = NpcProfessionState::default();
+        // player (10,10) home (10,5) r=6: home point in player square (dy=5<=6);
+        // object (10,0) from home dy=5<=6, from player dy=10>6.
+        let tiles = npc_scan_for_craft(&mut st, &w, &db, 10, 10, 10, 5, 6);
+        assert!(
+            tiles.iter().any(|t| t.parent_id == 58 && t.x == 10 && t.y == 0),
+            "Haxe addAllObjectsForCrafting scans the full home square, not just the home tile"
+        );
+        assert!(npc_player_scan_covers_home_square(5, 5, 5, 5));
+        assert!(!npc_player_scan_covers_home_square(10, 10, 10, 5));
+    }
+
+    #[test]
+    fn clothing_high_priority_uses_haxe_max_search_radius_60() {
+        // Haxe: doTimeStuffHelper L672–673 before craftHighPriorityClothing L684.
+        assert_eq!(NPC_GET_OR_CRAFT_SEARCH_RADIUS, 60);
     }
 }
