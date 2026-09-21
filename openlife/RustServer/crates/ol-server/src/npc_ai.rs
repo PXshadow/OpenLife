@@ -4661,11 +4661,12 @@ fn npc_apply_sticky_arrive(
             }
             if npc_drop_at(intent_tx, conn_id, sticky.gx, sticky.gy, None) {
                 clear_sticky_move(st);
-                Some((
-                    NpcActivityKind::Craft,
-                    format!("drop_held_arrive @{},{}", sticky.gx, sticky.gy),
-                    500,
-                ))
+                let detail = if sticky.label.starts_with("pickup_cloth") {
+                    format!("{} @{},{}", sticky.label, sticky.gx, sticky.gy)
+                } else {
+                    format!("drop_held_arrive @{},{}", sticky.gx, sticky.gy)
+                };
+                Some((NpcActivityKind::Craft, detail, 500))
             } else {
                 None
             }
@@ -4810,13 +4811,41 @@ fn npc_apply_dropping_item(
     seq: i32,
 ) -> Option<(NpcActivityKind, String, u32)> {
     let world_p = sticky_parent_id(content, world.get_object(sticky.gx, sticky.gy));
-    let num_slots = content
-        .get(sticky.expected_parent_id)
-        .map(|o| o.num_slots)
-        .unwrap_or(0);
+    let pickup_cloth = sticky.label.starts_with("pickup_cloth");
+    // Haxe isStillExpectedItem uses the live tile parent. 0.3.11 kept the sticky
+    // when 124 became 128, but is_dropping_item_head still TargetGone (124 != 128).
+    let live_parent = match npc_clothing_drop_live_parent(
+        content,
+        sticky.expected_parent_id,
+        world_p,
+        pickup_cloth,
+    ) {
+        ClothingDropLive::WaitForProduct => {
+            st.tried_drop_count += 1;
+            if st.tried_drop_count > 3 {
+                clear_sticky_move(st);
+                return None;
+            }
+            return Some((
+                NpcActivityKind::Think,
+                format!(
+                    "pickup_cloth wait_apply {}",
+                    sticky.expected_parent_id
+                ),
+                100,
+            ));
+        }
+        ClothingDropLive::Parent(live) => live,
+    };
+    if let Some(s) = st.sticky_move.as_mut() {
+        s.expected_parent_id = live_parent;
+    }
+    let mut sticky = sticky.clone();
+    sticky.expected_parent_id = live_parent;
+    let num_slots = content.get(live_parent).map(|o| o.num_slots).unwrap_or(0);
     let head = is_dropping_item_head(
         moving,
-        Some((sticky.expected_parent_id, sticky.gx, sticky.gy)),
+        Some((live_parent, sticky.gx, sticky.gy)),
         Some(world_p),
         held_id,
         num_slots,
@@ -5443,6 +5472,33 @@ fn npc_clean_up_professions(st: &mut NpcProfessionState, p: &PlayerSnapshot) {
     if should_zero_profession_weight("SMITH", last) {
         // smith stage is in smith_rt; leave last flags
     }
+}
+
+/// How `isDropingItem` should treat a clothing-pickup sticky after 59+124→128.
+///
+/// Haxe `dropTarget` is a live ObjectHelper (`isStillExpectedItem` L589 compares
+/// stored parentId to world at tx,ty). Rust snapshots expected=124 so the think
+/// before sim-apply stays valid; once the tile is clothing, use the live parent.
+/// Never DROP on the pre-product tile (that would pick up Reed Bundle 124).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ClothingDropLive {
+    WaitForProduct,
+    Parent(i32),
+}
+
+fn npc_clothing_drop_live_parent(
+    content: &ContentDb,
+    expected: i32,
+    world_p: i32,
+    pickup_cloth: bool,
+) -> ClothingDropLive {
+    if npc_clothing_slot(content, world_p).is_some() {
+        return ClothingDropLive::Parent(world_p);
+    }
+    if pickup_cloth {
+        return ClothingDropLive::WaitForProduct;
+    }
+    ClothingDropLive::Parent(expected)
 }
 
 /// After a USE whose newTarget is clothing (Reed Skirt 128 = Rope 59 + Reed Bundle 124),
@@ -12513,6 +12569,39 @@ mod tests {
             move_from: None,
         };
         assert!(sticky_move_still_valid(&w, &db, &sticky));
+    }
+
+    #[test]
+    fn clothing_drop_live_parent_waits_then_uses_skirt() {
+        // After USE, expected is still 124 until sim apply; then live parent is 128.
+        let mut db = ContentDb::default();
+        db.objects.insert(
+            124,
+            ol_content::ObjectDef {
+                id: 124,
+                clothing: "n".into(),
+                ..ol_content::ObjectDef::empty(124)
+            },
+        );
+        let mut skirt = ol_content::ObjectDef::empty(128);
+        skirt.id = 128;
+        skirt.clothing = "b".into();
+        db.objects.insert(128, skirt);
+        assert_eq!(
+            npc_clothing_drop_live_parent(&db, 124, 124, true),
+            ClothingDropLive::WaitForProduct,
+            "do not DROP on Reed Bundle before 128 exists"
+        );
+        assert_eq!(
+            npc_clothing_drop_live_parent(&db, 124, 128, true),
+            ClothingDropLive::Parent(128),
+            "Haxe live dropTarget parentId follows 128"
+        );
+        assert_eq!(
+            npc_clothing_drop_live_parent(&db, 124, 0, false),
+            ClothingDropLive::Parent(124),
+            "non-clothing drop still uses snapshot expected (head TargetGone if mismatch)"
+        );
     }
 
     #[test]
