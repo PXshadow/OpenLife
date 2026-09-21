@@ -668,6 +668,73 @@ impl World {
         self.helpers.len()
     }
 
+    /// Wrap-aware Chebyshev distance between two tiles.
+    #[inline]
+    pub fn chebyshev(&self, ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
+        let (ax, ay) = self.wrap_tile(ax, ay);
+        let (bx, by) = self.wrap_tile(bx, by);
+        let mut dx = (ax - bx).abs();
+        let mut dy = (ay - by).abs();
+        if self.wrap {
+            if self.width_tiles > 0 {
+                dx = dx.min(self.width_tiles - dx);
+            }
+            if self.height_tiles > 0 {
+                dy = dy.min(self.height_tiles - dy);
+            }
+        }
+        dx.max(dy)
+    }
+
+    /// Closest resident object matching `pred`, ranked by wrap-aware Chebyshev.
+    ///
+    /// Used when a radius scan (GetCloseClothings r=8 / GetOrCraft r=40) misses an
+    /// existing product that still exists on the loaded map.
+    pub fn find_closest_object_pred(
+        &self,
+        px: i32,
+        py: i32,
+        mut pred: impl FnMut(ObjectId) -> bool,
+    ) -> Option<(i32, i32, ObjectId)> {
+        let mut best: Option<(i32, i32, i32, ObjectId)> = None;
+        for (coord, chunk) in &self.chunks {
+            for (i, &id) in chunk.objects.iter().enumerate() {
+                if id <= 0 || !pred(id) {
+                    continue;
+                }
+                let lx = (i as i32) % CHUNK_SIZE;
+                let ly = (i as i32) / CHUNK_SIZE;
+                let x = coord.cx * CHUNK_SIZE + lx;
+                let y = coord.cy * CHUNK_SIZE + ly;
+                let d = self.chebyshev(px, py, x, y);
+                let better = match best {
+                    None => true,
+                    Some((bd, by, bx, _)) => {
+                        d < bd || (d == bd && (y < by || (y == by && x < bx)))
+                    }
+                };
+                if better {
+                    best = Some((d, y, x, id));
+                }
+            }
+        }
+        best.map(|(_, y, x, id)| (x, y, id))
+    }
+
+    /// Closest resident tile with exact object id `id`.
+    pub fn find_closest_object_id(
+        &self,
+        id: ObjectId,
+        px: i32,
+        py: i32,
+    ) -> Option<(i32, i32)> {
+        if id <= 0 {
+            return None;
+        }
+        self.find_closest_object_pred(px, py, |oid| oid == id)
+            .map(|(x, y, _)| (x, y))
+    }
+
     pub fn get_object(&self, tx: i32, ty: i32) -> ObjectId {
         let (tx, ty) = self.wrap_tile(tx, ty);
         if let Some(h) = self.helpers.get(&(tx, ty)) {
@@ -1088,6 +1155,20 @@ impl World {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn find_closest_object_id_picks_far_tile() {
+        // Live 0.3.20: Reed Skirt 128 at 228,275 while Eve home is 433,245 (cheb 205).
+        let mut w = World::new(512, 512, false);
+        w.set_object(228, 275, 128);
+        w.set_object(400, 245, 57);
+        assert_eq!(
+            w.find_closest_object_id(128, 448, 239),
+            Some((228, 275))
+        );
+        assert_eq!(w.find_closest_object_id(59, 448, 239), None);
+        assert!(w.chebyshev(448, 239, 228, 275) > 60);
+    }
 
     #[test]
     fn simple_and_complex_cells() {

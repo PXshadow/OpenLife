@@ -5811,6 +5811,94 @@ fn npc_run_switch_cloths(
     }
 }
 
+fn npc_is_switchable_ground_cloth(
+    content: &ContentDb,
+    obj_id: i32,
+    clothing: [i32; 6],
+    prestige_class: u8,
+) -> bool {
+    if obj_id <= 0 {
+        return false;
+    }
+    let base = content.resolve_base_id(obj_id);
+    let def = content.get(base);
+    let clothing_field = def.map(|d| d.clothing.as_str()).unwrap_or("n");
+    if !is_get_close_clothing_object(clothing_field, obj_id)
+        && !is_get_close_clothing_object(clothing_field, base)
+    {
+        return false;
+    }
+    npc_should_switch_held_or_obj(content, obj_id, clothing, prestige_class)
+}
+
+fn npc_stage_cloth_pickup_at(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    x: i32,
+    y: i32,
+    parent_id: i32,
+) -> Option<(NpcActivityKind, String, u32)> {
+    if st.path_reach.blocks_target(x, y, None) {
+        return None;
+    }
+    let base = content.resolve_base_id(parent_id);
+    let permanent = content.get(base).map(|d| d.permanent).unwrap_or(false);
+    // Haxe: pile → useTarget (isUsingItem next); loose → dropTarget (isDropingItem next).
+    let arrive = if permanent {
+        StickyArrive::Use
+    } else {
+        StickyArrive::Drop
+    };
+    let label = if permanent {
+        format!("pickup_cloth_pile {parent_id}")
+    } else {
+        format!("pickup_cloth {parent_id}")
+    };
+    if npc_do_arrive_or_walk(
+        intent_tx,
+        world,
+        content,
+        st,
+        conn_id,
+        p.x,
+        p.y,
+        p.food,
+        p.moving,
+        x,
+        y,
+        parent_id,
+        0,
+        arrive,
+        label.clone(),
+        npc_client_move_seq(p.done_moving_seq),
+    ) {
+        return Some((NpcActivityKind::Craft, label, 250));
+    }
+    set_sticky_arrive(st, x, y, parent_id, 0, arrive, label.clone());
+    Some((NpcActivityKind::Craft, label, 100))
+}
+
+/// Existing clothing tile to DROP-pick (Haxe GetOrCraftItem L6196 dropTarget=obj).
+///
+/// Local GetCloseClothings r=8 / home r=60 / GetOrCraft maxSearch 40 miss a skirt
+/// left at an old increment-30 craft site after home moved.
+fn npc_existing_switch_cloth_xy(
+    world: &World,
+    content: &ContentDb,
+    px: i32,
+    py: i32,
+    clothing: [i32; 6],
+    prestige_class: u8,
+) -> Option<(i32, i32, i32)> {
+    world.find_closest_object_pred(px, py, |oid| {
+        npc_is_switchable_ground_cloth(content, oid, clothing, prestige_class)
+    })
+}
+
 /// Haxe `isPickingupCloths` — drop/use nearby better clothing.
 // Haxe: AiBase.isPickingupCloths L8723–8752
 fn npc_run_is_pickingup_cloths(
@@ -5831,8 +5919,6 @@ fn npc_run_is_pickingup_cloths(
     let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
     let home = scan_world_radius(world, Some(content), hx, hy, HOME_CLOTH_COUNT_RADIUS);
     tiles = npc_merge_scan_tiles(tiles, home);
-    let _ = intent_tx;
-    let _ = conn_id;
     for t in &tiles {
         if t.parent_id == 0 {
             continue;
@@ -5840,55 +5926,31 @@ fn npc_run_is_pickingup_cloths(
         if !npc_clothing_pickup_in_range(p.x, p.y, hx, hy, t.x, t.y) {
             continue;
         }
-        if st.path_reach.blocks_target(t.x, t.y, None) {
+        if !npc_is_switchable_ground_cloth(content, t.parent_id, p.clothing, prestige_class) {
             continue;
         }
-        let base = content.resolve_base_id(t.parent_id);
-        let def = content.get(base);
-        let clothing = def.map(|d| d.clothing.as_str()).unwrap_or("n");
-        if !is_get_close_clothing_object(clothing, t.parent_id)
-            && !is_get_close_clothing_object(clothing, base)
-        {
-            continue;
-        }
-        if !npc_should_switch_held_or_obj(content, t.parent_id, p.clothing, prestige_class) {
-            continue;
-        }
-        let permanent = def.map(|d| d.permanent).unwrap_or(false);
-        // Haxe: pile → useTarget (isUsingItem next); loose → dropTarget (isDropingItem next).
-        // If already close and stopped, apply this think (same as next-tick isDropingItem).
-        let arrive = if permanent {
-            StickyArrive::Use
-        } else {
-            StickyArrive::Drop
-        };
-        let label = if permanent {
-            format!("pickup_cloth_pile {}", t.parent_id)
-        } else {
-            format!("pickup_cloth {}", t.parent_id)
-        };
-        if npc_do_arrive_or_walk(
+        if let Some(hit) = npc_stage_cloth_pickup_at(
             intent_tx,
             world,
             content,
             st,
             conn_id,
-            p.x,
-            p.y,
-            p.food,
-            p.moving,
+            p,
             t.x,
             t.y,
             t.parent_id,
-            0,
-            arrive,
-            label.clone(),
-            npc_client_move_seq(p.done_moving_seq),
         ) {
-            return Some((NpcActivityKind::Craft, label, 250));
+            return Some(hit);
         }
-        set_sticky_arrive(st, t.x, t.y, t.parent_id, 0, arrive, label.clone());
-        return Some((NpcActivityKind::Craft, label, 100));
+    }
+    // Haxe GetOrCraftItem L6196: if the cloth exists, dropTarget = obj.
+    // Radius scans miss an orphaned 128 after Eve home moves (live 228,275).
+    if let Some((x, y, id)) =
+        npc_existing_switch_cloth_xy(world, content, p.x, p.y, p.clothing, prestige_class)
+    {
+        return npc_stage_cloth_pickup_at(
+            intent_tx, world, content, st, conn_id, p, x, y, id,
+        );
     }
     None
 }
@@ -10922,6 +10984,13 @@ pub async fn run_npc_scheduler(
                                 && !matches!(pickup, ShortCraftLiveIntent::Wait)
                             {
                                 pickup
+                            } else if let Some((x, y)) = world
+                                .read()
+                                .ok()
+                                .and_then(|w| w.find_closest_object_id(object_id, p.x, p.y))
+                            {
+                                // GetOrCraft maxSearchDistance=40 misses orphaned 128.
+                                ShortCraftLiveIntent::DropAt { x, y }
                             } else {
                                 npc_expand_clothing_craft_product(
                                     &tiles,
@@ -12990,6 +13059,28 @@ mod tests {
         );
         assert!(npc_player_scan_covers_home_square(5, 5, 5, 5));
         assert!(!npc_player_scan_covers_home_square(10, 10, 10, 5));
+    }
+
+    #[test]
+    fn existing_switch_cloth_finds_orphaned_skirt_beyond_home_r60() {
+        // Live 0.3.20: 128 at 228,275, home 433,245, player 448,239. r=8/60 miss.
+        let mut db = ContentDb::default();
+        let mut skirt = ol_content::ObjectDef::empty(128);
+        skirt.id = 128;
+        skirt.clothing = "b".into();
+        db.objects.insert(128, skirt);
+        let mut w = World::new(512, 512, false);
+        w.set_object(228, 275, 128);
+        w.set_object(449, 233, 50);
+        let hit = npc_existing_switch_cloth_xy(&w, &db, 448, 239, [0; 6], 0);
+        assert_eq!(hit, Some((228, 275, 128)));
+        assert!(!npc_clothing_pickup_in_range(
+            448, 239, 433, 245, 228, 275
+        ));
+        assert_eq!(
+            w.find_closest_object_id(128, 448, 239),
+            Some((228, 275))
+        );
     }
 
     #[test]
