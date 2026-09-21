@@ -2641,6 +2641,7 @@ fn npc_run_is_feeding_child(
             let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
             if let Some(intent) = npc_reed_skirt_direct(
                 world,
+                content,
                 p.x,
                 p.y,
                 hx,
@@ -3038,7 +3039,10 @@ fn npc_path_toward_ex(
             if dx == 0 && dy == 0 {
                 continue;
             }
-            if is_walkable(world, content, sx + dx, sy + dy) {
+            // Same gate as sim truncate_walkable. A step into snow-grey was
+            // accepted by object walkability, then rejected, and the NPC
+            // retried that MOVE forever (rope 59 left on the far side).
+            if !npc_is_blocked(world, content, 0, sx + dx, sy + dy) {
                 deltas.push((dx, dy));
                 break;
             }
@@ -4584,7 +4588,13 @@ fn npc_try_walk_to_arrive(
     // Haxe: if (isMoving()) return true — never goto the same dest while newMoves != null.
     // New dest (follow / danger) may send. Haxe: AiBase.isUsingItem L9013; MoveHelper.isMoveing L65
     if let Some(s) = st.sticky_move.as_ref() {
-        if !npc_should_send_move(moving, s.gx == gx && s.gy == gy) {
+        let same = s.gx == gx && s.gy == gy;
+        // Sim rejected the last MOVE (EmptyPath / blocked). Resending from this
+        // tile cancels the path, so isDropingItem never reaches DROP L8456.
+        if same && npc_prior_move_never_started(s.move_from, px, py, moving) {
+            return false;
+        }
+        if !npc_should_send_move(moving, same) {
             set_sticky_arrive(
                 st,
                 gx,
@@ -4651,6 +4661,18 @@ fn npc_should_send_move(moving: bool, same_target: bool) -> bool {
         return true;
     }
     !moving
+}
+
+/// Last MOVE toward this goal was sent from the tile the body is still on, and
+/// `isMoving` never became true. Haxe `gotoObj` then returns false.
+// Haxe: AiBase.isDropingItem L8442–8446
+fn npc_prior_move_never_started(
+    move_from: Option<(i32, i32)>,
+    px: i32,
+    py: i32,
+    moving: bool,
+) -> bool {
+    matches!(move_from, Some((fx, fy)) if fx == px && fy == py && !moving)
 }
 
 /// Haxe isUsingItem / isDropingItem: USE or DROP when orthogonally close and stopped;
@@ -5214,6 +5236,10 @@ fn npc_apply_dropping_item(
                 IsDropingItemGoto::WalkToTarget
             ) {
                 // Haxe L8442–8446: goto fail clears dropTarget but still returns true.
+                // Also skip this tile next craft search (addNotReachable 90s) so a
+                // rope behind snow-grey is not chosen again over same-side thread.
+                st.path_reach
+                    .add_not_reachable(sticky.gx, sticky.gy, 90.0);
                 clear_sticky_move(st);
                 return Some((
                     NpcActivityKind::Move,
@@ -6012,9 +6038,97 @@ fn npc_existing_object_xy_within(
     }
 }
 
-/// Closest `id` within `max_r` of the player or home (wrap-aware).
-fn npc_wearable_cloth_xy(
+/// True when a walk can reach `(gx,gy)` without crossing a blocking biome.
+///
+/// Haxe `isBlocked` / `gotoObj`: snow-grey stops the step. A rope whose
+/// Chebyshev distance is inside 60 but whose walk hits that band is not a
+/// drop target — the NPC would stand on the near edge and retry the MOVE.
+fn npc_clothing_goal_reachable(
     world: &World,
+    content: &ContentDb,
+    sx: i32,
+    sy: i32,
+    gx: i32,
+    gy: i32,
+) -> bool {
+    if npc_is_close_action(sx, sy, gx, gy) {
+        return true;
+    }
+    let start_d = world.chebyshev(sx, sy, gx, gy);
+    if start_d > 80 {
+        return false;
+    }
+    use std::cmp::Reverse;
+    use std::collections::{BinaryHeap, HashSet};
+    let mut heap = BinaryHeap::new();
+    let mut seen = HashSet::new();
+    heap.push((Reverse(start_d), sx, sy));
+    seen.insert((sx, sy));
+    let mut best = start_d;
+    let mut since_improve = 0i32;
+    let mut expanded = 0i32;
+    while let Some((Reverse(_d), x, y)) = heap.pop() {
+        if npc_is_close_action(x, y, gx, gy) {
+            return true;
+        }
+        expanded += 1;
+        if expanded > 600 {
+            break;
+        }
+        let mut improved = false;
+        for (dx, dy) in [
+            (1, 0),
+            (-1, 0),
+            (0, 1),
+            (0, -1),
+            (1, 1),
+            (1, -1),
+            (-1, 1),
+            (-1, -1),
+        ] {
+            let nx = x + dx;
+            let ny = y + dy;
+            if !seen.insert((nx, ny)) {
+                continue;
+            }
+            if npc_is_blocked(world, content, 0, nx, ny) {
+                continue;
+            }
+            let nd = world.chebyshev(nx, ny, gx, gy);
+            if nd < best {
+                best = nd;
+                improved = true;
+                since_improve = 0;
+            }
+            if nd <= start_d {
+                heap.push((Reverse(nd), nx, ny));
+            }
+        }
+        if !improved {
+            since_improve += 1;
+        }
+        if since_improve > 250 && best > 1 {
+            return false;
+        }
+    }
+    best <= 1
+}
+
+fn npc_craft_intent_goal(intent: &ShortCraftLiveIntent) -> Option<(i32, i32)> {
+    match *intent {
+        ShortCraftLiveIntent::UseAt { x, y, .. }
+        | ShortCraftLiveIntent::DropAt { x, y }
+        | ShortCraftLiveIntent::Goto { x, y }
+        | ShortCraftLiveIntent::UseOnEmptyGround { x, y, .. }
+        | ShortCraftLiveIntent::PickupNearForge { x, y, .. } => Some((x, y)),
+        _ => None,
+    }
+}
+
+/// Closest `id` inside `max_r` of the player or home that a walk can reach.
+fn npc_approachable_cloth_xy(
+    world: &World,
+    content: &ContentDb,
     px: i32,
     py: i32,
     home_x: i32,
@@ -6022,24 +6136,43 @@ fn npc_wearable_cloth_xy(
     id: i32,
     max_r: i32,
 ) -> Option<(i32, i32)> {
-    let near_player = npc_existing_object_xy_within(world, px, py, id, max_r);
-    let near_home = npc_existing_object_xy_within(world, home_x, home_y, id, max_r);
-    match (near_player, near_home) {
-        (Some(a), Some(b)) => {
-            let da = world.chebyshev(px, py, a.0, a.1);
-            let db = world.chebyshev(px, py, b.0, b.1);
-            Some(if da <= db { a } else { b })
-        }
-        (Some(a), None) => Some(a),
-        (None, Some(b)) => Some(b),
-        (None, None) => None,
+    if id <= 0 || max_r < 0 {
+        return None;
     }
+    let min_x = px.min(home_x) - max_r;
+    let max_x = px.max(home_x) + max_r;
+    let min_y = py.min(home_y) - max_r;
+    let max_y = py.max(home_y) + max_r;
+    let mut cands = Vec::new();
+    for y in min_y..=max_y {
+        for x in min_x..=max_x {
+            if world.get_object(x, y) != id {
+                continue;
+            }
+            let dp = world.chebyshev(px, py, x, y);
+            let dh = world.chebyshev(home_x, home_y, x, y);
+            if dp > max_r && dh > max_r {
+                continue;
+            }
+            cands.push((dp, x, y));
+        }
+    }
+    cands.sort_by_key(|c| c.0);
+    cands.into_iter().find_map(|(_d, x, y)| {
+        if npc_clothing_goal_reachable(world, content, px, py, x, y) {
+            Some((x, y))
+        } else {
+            None
+        }
+    })
 }
 
 /// Rope 59 + Reed Bundle 124 inside `max_r` of the player or home.
 /// Held rope USEs the bundle; otherwise DROP-pick the rope first.
+/// Both tiles must be walkable (Haxe `gotoObj` / `isBlocked`).
 fn npc_reed_skirt_direct(
     world: &World,
+    content: &ContentDb,
     px: i32,
     py: i32,
     home_x: i32,
@@ -6047,8 +6180,8 @@ fn npc_reed_skirt_direct(
     held_base: i32,
     max_r: i32,
 ) -> Option<ShortCraftLiveIntent> {
-    let rope = npc_wearable_cloth_xy(world, px, py, home_x, home_y, 59, max_r)?;
-    let reed = npc_wearable_cloth_xy(world, px, py, home_x, home_y, 124, max_r)?;
+    let rope = npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 59, max_r)?;
+    let reed = npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 124, max_r)?;
     if held_base == 59 {
         Some(ShortCraftLiveIntent::UseAt {
             x: reed.0,
@@ -11125,10 +11258,12 @@ pub async fn run_npc_scheduler(
                         ClothingCraftPlan::CraftItem(object_id) => {
                             // Existing cloth within 60 of the player or home: dropTarget,
                             // then isDropingItem DROP, then switchCloths SELF.
+                            // Skip a tile a walk cannot reach (snow-grey between).
                             // Haxe: GetOrCraftItem L6196; isDropingItem L8456; switchCloths L8709
                             let existing = world.read().ok().and_then(|w| {
-                                npc_wearable_cloth_xy(
+                                npc_approachable_cloth_xy(
                                     &w,
+                                    content.as_ref(),
                                     p.x,
                                     p.y,
                                     home_x,
@@ -11140,36 +11275,65 @@ pub async fn run_npc_scheduler(
                             if let Some((x, y)) = existing {
                                 ShortCraftLiveIntent::DropAt { x, y }
                             } else if object_id == 128 {
-                                if let Some(intent) = world.read().ok().and_then(|w| {
-                                    npc_reed_skirt_direct(
-                                        &w,
-                                        p.x,
-                                        p.y,
-                                        home_x,
-                                        home_y,
-                                        content.resolve_base_id(p.held_id),
-                                        NPC_GET_OR_CRAFT_SEARCH_RADIUS,
-                                    )
-                                }) {
-                                    intent
-                                } else {
-                                    npc_clothing_craft_item_fallback(
-                                        &tiles,
-                                        p.x,
-                                        p.y,
-                                        p.held_id,
-                                        p.moving,
-                                        home_x,
-                                        home_y,
-                                        content.as_ref(),
-                                        craft_graph.as_ref(),
-                                        &mut st.craft_rt,
-                                        &blocked,
-                                        is_smith,
-                                        tick,
-                                        object_id,
-                                    )
+                                let mut local_tiles = tiles.clone();
+                                let mut local_blocked = blocked.clone();
+                                let mut chosen = ShortCraftLiveIntent::None;
+                                for _ in 0..5 {
+                                    chosen = world
+                                        .read()
+                                        .ok()
+                                        .and_then(|w| {
+                                            npc_reed_skirt_direct(
+                                                &w,
+                                                content.as_ref(),
+                                                p.x,
+                                                p.y,
+                                                home_x,
+                                                home_y,
+                                                content.resolve_base_id(p.held_id),
+                                                NPC_GET_OR_CRAFT_SEARCH_RADIUS,
+                                            )
+                                        })
+                                        .unwrap_or_else(|| {
+                                            npc_clothing_craft_item_fallback(
+                                                &local_tiles,
+                                                p.x,
+                                                p.y,
+                                                p.held_id,
+                                                p.moving,
+                                                home_x,
+                                                home_y,
+                                                content.as_ref(),
+                                                craft_graph.as_ref(),
+                                                &mut st.craft_rt,
+                                                &local_blocked,
+                                                is_smith,
+                                                tick,
+                                                object_id,
+                                            )
+                                        });
+                                    let Some((tx, ty)) = npc_craft_intent_goal(&chosen) else {
+                                        break;
+                                    };
+                                    let reachable = world.read().ok().is_some_and(|w| {
+                                        npc_clothing_goal_reachable(
+                                            &w,
+                                            content.as_ref(),
+                                            p.x,
+                                            p.y,
+                                            tx,
+                                            ty,
+                                        )
+                                    });
+                                    if reachable {
+                                        break;
+                                    }
+                                    st.path_reach.add_not_reachable(tx, ty, 90.0);
+                                    local_blocked.insert((tx, ty));
+                                    local_tiles.retain(|t| t.x != tx || t.y != ty);
+                                    chosen = ShortCraftLiveIntent::None;
                                 }
+                                chosen
                             } else {
                                 npc_clothing_craft_item_fallback(
                                     &tiles,
@@ -13149,6 +13313,17 @@ mod tests {
     }
 
     #[test]
+    fn rejected_move_is_goto_fail_not_another_send() {
+        // Live 0.3.28: CraftItem(128) drop_held_walk @462,471 stuck at 466,467
+        // while food fell below 0. Each think resent MOVE; sim never set
+        // isMoving. Haxe L8442 clears dropTarget when gotoObj returns false.
+        assert!(npc_prior_move_never_started(Some((466, 467)), 466, 467, false));
+        assert!(!npc_prior_move_never_started(Some((466, 467)), 466, 467, true));
+        assert!(!npc_prior_move_never_started(Some((467, 466)), 466, 467, false));
+        assert!(!npc_prior_move_never_started(None, 466, 467, false));
+    }
+
+    #[test]
     fn too_far_drop_keeps_clothing_drop_target() {
         // Live 0.3.27: isDropingItem quad>25 called dropHeldObject(10) and Rust
         // cleared the sticky, so DROP L8456 never put 128 in hand and
@@ -13263,7 +13438,8 @@ mod tests {
         w.set_object(10, 0, 59);
         w.set_object(4, 0, 124);
         w.set_object(1, 0, 50);
-        let use_reed = npc_reed_skirt_direct(&w, 0, 0, 0, 0, 59, 60);
+        let db = ContentDb::default();
+        let use_reed = npc_reed_skirt_direct(&w, &db, 0, 0, 0, 0, 59, 60);
         assert!(matches!(
             use_reed,
             Some(ShortCraftLiveIntent::UseAt {
@@ -13273,10 +13449,37 @@ mod tests {
                 ..
             })
         ));
-        let pick_rope = npc_reed_skirt_direct(&w, 0, 0, 0, 0, 0, 60);
+        let pick_rope = npc_reed_skirt_direct(&w, &db, 0, 0, 0, 0, 0, 60);
         assert!(matches!(
             pick_rope,
             Some(ShortCraftLiveIntent::DropAt { x: 10, y: 0 })
+        ));
+    }
+
+    #[test]
+    fn reed_skirt_direct_skips_rope_behind_blocking_biome() {
+        // Live 0.3.28: Chebyshev picked rope 59 across snow-grey. The walk
+        // stopped on the near edge and retried forever, so DROP never put 128
+        // in hand and switchCloths never ran.
+        let mut w = World::new(80, 80, false);
+        let db = ContentDb::default();
+        for x in 0..80 {
+            for y in 12..16 {
+                w.set_biome(x, y, 21);
+            }
+        }
+        w.set_object(10, 20, 59);
+        w.set_object(28, 10, 59);
+        w.set_object(8, 10, 124);
+        assert!(
+            !npc_clothing_goal_reachable(&w, &db, 10, 10, 10, 20),
+            "rope behind snow-grey is not a walk"
+        );
+        assert!(npc_clothing_goal_reachable(&w, &db, 10, 10, 28, 10));
+        let pick = npc_reed_skirt_direct(&w, &db, 10, 10, 10, 10, 0, 60);
+        assert!(matches!(
+            pick,
+            Some(ShortCraftLiveIntent::DropAt { x: 28, y: 10 })
         ));
     }
 

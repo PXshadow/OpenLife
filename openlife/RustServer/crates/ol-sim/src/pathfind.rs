@@ -469,6 +469,11 @@ pub fn is_walkable_with_animals(
     y: i32,
     animal_blocked: Option<&HashSet<(i32, i32)>>,
 ) -> bool {
+    // Haxe `isBlocked`: snow-grey / ocean / river block the step. Sim
+    // `truncate_walkable` drops those steps; pathing must not emit them.
+    if crate::move_path::biome_blocks_move_at(world, x, y) {
+        return false;
+    }
     if !is_walkable(world, content, x, y) {
         return false;
     }
@@ -536,7 +541,10 @@ pub fn goto_path_outcome(
         sy,
         gx,
         gy,
-        &|x, y| is_walkable(world, content, x, y),
+        &|x, y| {
+            !crate::move_path::biome_blocks_move_at(world, x, y)
+                && is_walkable(world, content, x, y)
+        },
         PATHFINDER_NEW_DEFAULT_RADIUS,
     )
     .is_some();
