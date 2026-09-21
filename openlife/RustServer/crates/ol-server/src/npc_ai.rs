@@ -5447,14 +5447,24 @@ fn npc_run_kill_animal(
                 ) {
                     return Some((NpcActivityKind::Combat, "kill_snake_walk".into(), 250));
                 }
-            } else {
-                return Some((
-                    NpcActivityKind::Combat,
-                    "kill_snake_seek_knife".into(),
-                    200,
-                ));
+            } else if let Some(out) = npc_emit_seek_or_craft(
+                intent_tx,
+                world,
+                content,
+                craft_graph,
+                st,
+                conn_id,
+                p,
+                tick,
+                KNIFE_ID,
+                NpcActivityKind::Combat,
+                "kill_snake_get_knife",
+            ) {
+                // Haxe shortCraft(560, 764, 10) → GetOrCraftItem(560)
+                return Some(out);
             }
         }
+        // Haxe shortCraft false → continue bow hunt (wolf / getWeapon 152).
         result = kill_animal_bow_hunt(&body_inp);
     }
     st.animal_target = result.animal_target.map(|(id, x, y)| (x, y, id));
@@ -9185,7 +9195,10 @@ pub async fn run_npc_scheduler(
                         }
                     }
                 }
-                let color = person_color_from_race(0);
+                // Haxe `myPlayer.getColor()` from person object race (not hardcoded 0/Brown).
+                let color = person_color_from_race(
+                    content.person_color(content.resolve_base_id(p.display_object_id)),
+                );
                 let (home_stock, has_loom) = {
                     let w = world.read().unwrap();
                     (
@@ -9514,6 +9527,58 @@ pub async fn run_npc_scheduler(
                         acted = true;
                         if detail.is_empty() || detail == "idle" {
                             detail = format!("clothing_craft {plan:?}");
+                        }
+                        tracing::info!(
+                            conn_id,
+                            p_id = p.p_id,
+                            held = p.held_id,
+                            detail = %detail,
+                            "ai_craft: clothing"
+                        );
+                    } else if matches!(plan, ClothingCraftPlan::CraftItem(200)) {
+                        // Haxe: craftClothIfNeeded(200) false → try Reed Skirt 128 same tick.
+                        let skirt = npc_expand_craft_product(
+                            &tiles,
+                            p.x,
+                            p.y,
+                            p.held_id,
+                            p.moving,
+                            home_x,
+                            home_y,
+                            content.as_ref(),
+                            craft_graph.as_ref(),
+                            &mut st.craft_rt,
+                            &blocked,
+                            is_smith,
+                            tick,
+                            128,
+                        );
+                        let w = world.read().unwrap();
+                        if npc_commit_craft_live(
+                            &skirt,
+                            &intent_tx,
+                            &w,
+                            content.as_ref(),
+                            st,
+                            conn_id,
+                            p.x,
+                            p.y,
+                            p.food,
+                            p.moving,
+                            &mut kind,
+                            &mut detail,
+                            &mut game_ms,
+                            npc_client_move_seq(p.done_moving_seq),
+                        ) {
+                            acted = true;
+                            if detail.is_empty() || detail == "idle" {
+                                detail = "clothing_craft CraftItem(128)".into();
+                            }
+                            tracing::info!(
+                                conn_id,
+                                p_id = p.p_id,
+                                "ai_craft: clothing reed_skirt"
+                            );
                         }
                     }
                 }
@@ -9895,7 +9960,9 @@ pub async fn run_npc_scheduler(
                         feeder_is_fertile: false,
                         feeder_is_smith: false,
                         feeder_p_id: p.p_id,
-                        person_color: person_color_from_race(0),
+                        person_color: person_color_from_race(
+                            content.person_color(content.resolve_base_id(p.display_object_id)),
+                        ),
                         looks_female: content
                             .get(p.display_object_id)
                             .map(|o| !o.male)
