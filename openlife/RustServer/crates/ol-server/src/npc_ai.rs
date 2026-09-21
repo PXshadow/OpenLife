@@ -5479,11 +5479,15 @@ fn npc_stage_clothing_pickup_if_use_makes_cloth(
     } else {
         StickyArrive::Drop
     };
+    // Haxe dropTarget is the same tile helper; USE 59+124 then id becomes 128.
+    // Expect the *current* tile (124) so the next think before sim-apply stays
+    // valid; after apply, sticky_move_still_valid keeps clothing on that tile.
+    let tile_expect = content.resolve_base_id(if target_id > 0 { target_id } else { base });
     set_sticky_arrive(
         st,
         x,
         y,
-        base,
+        tile_expect,
         0,
         arrive,
         format!("pickup_cloth {base}"),
@@ -5968,7 +5972,15 @@ fn npc_run_kill_animal(
         KillAnimalAction::GetWeapon(gw) => match gw {
             GetWeaponAction::None => None,
             GetWeaponAction::Wait => {
-                Some((NpcActivityKind::Combat, "kill_animal_wait_weapon".into(), 200))
+                // Haxe GetOrCraftItem L6152: isMoving → return true (no new goto).
+                // That Wait was consuming the think before isPickingupCloths L652
+                // whenever AnimalWorld wolves kept animalTarget set. Existing MOVE
+                // continues; after stop, SeekOrCraft(152) runs.
+                if p.moving {
+                    None
+                } else {
+                    Some((NpcActivityKind::Combat, "kill_animal_wait_weapon".into(), 200))
+                }
             }
             GetWeaponAction::GoHome { x, y } => {
                 if npc_try_walk_to_sticky(
@@ -12470,6 +12482,37 @@ mod tests {
         assert_eq!(NPC_GET_OR_CRAFT_SEARCH_RADIUS, 60);
         assert_eq!(AI_MAX_SEARCH_RADIUS, 60);
         assert_eq!(GET_CLOSE_CLOTHINGS_RADIUS, 8);
+    }
+
+    #[test]
+    fn clothing_pickup_sticky_stays_when_tile_becomes_skirt() {
+        // Haxe dropTarget is the USE tile: 59+124 then newTarget 128 on the same spot.
+        let mut db = ContentDb::default();
+        db.objects.insert(
+            124,
+            ol_content::ObjectDef {
+                id: 124,
+                clothing: "n".into(),
+                ..ol_content::ObjectDef::empty(124)
+            },
+        );
+        let mut skirt = ol_content::ObjectDef::empty(128);
+        skirt.id = 128;
+        skirt.clothing = "b".into();
+        db.objects.insert(128, skirt);
+        let mut w = World::new(32, 32, false);
+        w.set_object(5, 5, 128);
+        let sticky = NpcStickyMove {
+            gx: 5,
+            gy: 5,
+            expected_parent_id: 124,
+            use_actor_parent: 0,
+            pending_use: false,
+            pending_drop: true,
+            label: "pickup_cloth 128".into(),
+            move_from: None,
+        };
+        assert!(sticky_move_still_valid(&w, &db, &sticky));
     }
 
     #[test]
