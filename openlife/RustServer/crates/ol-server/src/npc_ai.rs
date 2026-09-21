@@ -4976,7 +4976,7 @@ fn npc_apply_dropping_item(
                 moving,
                 held_id,
                 holding_player_id,
-                sticky,
+                &sticky,
                 seq,
                 0,
                 px,
