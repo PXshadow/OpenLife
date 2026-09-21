@@ -3222,6 +3222,64 @@ fn npc_expand_craft_product(
     )
 }
 
+fn npc_clothing_craft_item_fallback(
+    tiles: &[ScanTile],
+    px: i32,
+    py: i32,
+    held_id: i32,
+    moving: bool,
+    home_x: i32,
+    home_y: i32,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    craft_rt: &mut CraftAiRuntime,
+    blocked: &HashSet<(i32, i32)>,
+    is_smith: bool,
+    tick: u64,
+    object_id: i32,
+) -> ShortCraftLiveIntent {
+    let pickup = npc_expand_clothing_craft_intent(
+        tiles,
+        px,
+        py,
+        held_id,
+        moving,
+        home_x,
+        home_y,
+        content,
+        craft_graph,
+        craft_rt,
+        blocked,
+        is_smith,
+        tick,
+        ShortCraftLiveIntent::SeekOrCraft {
+            actor: object_id,
+            craft_if_needed: false,
+        },
+    );
+    if npc_craft_expand_progress(&pickup, moving) && !matches!(pickup, ShortCraftLiveIntent::Wait)
+    {
+        pickup
+    } else {
+        npc_expand_clothing_craft_product(
+            tiles,
+            px,
+            py,
+            held_id,
+            moving,
+            home_x,
+            home_y,
+            content,
+            craft_graph,
+            craft_rt,
+            blocked,
+            is_smith,
+            tick,
+            object_id,
+        )
+    }
+}
+
 fn npc_expand_clothing_craft_product(
     tiles: &[ScanTile],
     px: i32,
@@ -5888,6 +5946,58 @@ fn npc_existing_object_xy_within(
         Some((x, y))
     } else {
         None
+    }
+}
+
+/// Closest `id` within `max_r` of the player or home (wrap-aware).
+fn npc_wearable_cloth_xy(
+    world: &World,
+    px: i32,
+    py: i32,
+    home_x: i32,
+    home_y: i32,
+    id: i32,
+    max_r: i32,
+) -> Option<(i32, i32)> {
+    let near_player = npc_existing_object_xy_within(world, px, py, id, max_r);
+    let near_home = npc_existing_object_xy_within(world, home_x, home_y, id, max_r);
+    match (near_player, near_home) {
+        (Some(a), Some(b)) => {
+            let da = world.chebyshev(px, py, a.0, a.1);
+            let db = world.chebyshev(px, py, b.0, b.1);
+            Some(if da <= db { a } else { b })
+        }
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (None, None) => None,
+    }
+}
+
+/// Rope 59 + Reed Bundle 124 inside `max_r` of the player or home.
+/// Held rope USEs the bundle; otherwise DROP-pick the rope first.
+fn npc_reed_skirt_direct(
+    world: &World,
+    px: i32,
+    py: i32,
+    home_x: i32,
+    home_y: i32,
+    held_base: i32,
+    max_r: i32,
+) -> Option<ShortCraftLiveIntent> {
+    let rope = npc_wearable_cloth_xy(world, px, py, home_x, home_y, 59, max_r)?;
+    let reed = npc_wearable_cloth_xy(world, px, py, home_x, home_y, 124, max_r)?;
+    if held_base == 59 {
+        Some(ShortCraftLiveIntent::UseAt {
+            x: reed.0,
+            y: reed.1,
+            target_id: 124,
+            actor_id: 59,
+        })
+    } else {
+        Some(ShortCraftLiveIntent::DropAt {
+            x: rope.0,
+            y: rope.1,
+        })
     }
 }
 
@@ -10950,45 +11060,55 @@ pub async fn run_npc_scheduler(
                             }
                         }
                         ClothingCraftPlan::CraftItem(object_id) => {
-                            // Haxe GetOrCraftItem L6196: if the cloth exists, dropTarget = obj.
-                            // craftClothIfNeeded used craftItem and recrafted while 128 sat at home.
-                            let pickup = npc_expand_clothing_craft_intent(
-                                &tiles,
-                                p.x,
-                                p.y,
-                                p.held_id,
-                                p.moving,
-                                home_x,
-                                home_y,
-                                content.as_ref(),
-                                craft_graph.as_ref(),
-                                &mut st.craft_rt,
-                                &blocked,
-                                is_smith,
-                                tick,
-                                ShortCraftLiveIntent::SeekOrCraft {
-                                    actor: object_id,
-                                    craft_if_needed: false,
-                                },
-                            );
-                            if npc_craft_expand_progress(&pickup, p.moving)
-                                && !matches!(pickup, ShortCraftLiveIntent::Wait)
-                            {
-                                pickup
-                            } else if let Some((x, y)) = world.read().ok().and_then(|w| {
-                                // Haxe L672 searchCurrentPosition=false: from home, r=60.
-                                npc_existing_object_xy_within(
+                            // Existing cloth within 60 of the player or home: dropTarget,
+                            // then isDropingItem DROP, then switchCloths SELF.
+                            // Haxe: GetOrCraftItem L6196; isDropingItem L8456; switchCloths L8709
+                            let existing = world.read().ok().and_then(|w| {
+                                npc_wearable_cloth_xy(
                                     &w,
+                                    p.x,
+                                    p.y,
                                     home_x,
                                     home_y,
                                     object_id,
                                     NPC_GET_OR_CRAFT_SEARCH_RADIUS,
                                 )
-                            }) {
-                                // Haxe GetOrCraftItem L6196 dropTarget=obj within maxSearch 60.
+                            });
+                            if let Some((x, y)) = existing {
                                 ShortCraftLiveIntent::DropAt { x, y }
+                            } else if object_id == 128 {
+                                if let Some(intent) = world.read().ok().and_then(|w| {
+                                    npc_reed_skirt_direct(
+                                        &w,
+                                        p.x,
+                                        p.y,
+                                        home_x,
+                                        home_y,
+                                        content.resolve_base_id(p.held_id),
+                                        NPC_GET_OR_CRAFT_SEARCH_RADIUS,
+                                    )
+                                }) {
+                                    intent
+                                } else {
+                                    npc_clothing_craft_item_fallback(
+                                        &tiles,
+                                        p.x,
+                                        p.y,
+                                        p.held_id,
+                                        p.moving,
+                                        home_x,
+                                        home_y,
+                                        content.as_ref(),
+                                        craft_graph.as_ref(),
+                                        &mut st.craft_rt,
+                                        &blocked,
+                                        is_smith,
+                                        tick,
+                                        object_id,
+                                    )
+                                }
                             } else {
-                                npc_expand_clothing_craft_product(
+                                npc_clothing_craft_item_fallback(
                                     &tiles,
                                     p.x,
                                     p.y,
