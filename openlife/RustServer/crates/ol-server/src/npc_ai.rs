@@ -4821,13 +4821,15 @@ fn npc_apply_dropping_item(
         pickup_cloth,
     ) {
         ClothingDropLive::WaitForProduct => {
-            st.tried_drop_count += 1;
-            if st.tried_drop_count > 3 {
+            // Haxe triedDropCount only changes dropDistance, never aborts pickup.
+            // Sharing it here cleared the sticky after any prior craft_queue_drop.
+            st.clothing_wait_apply = st.clothing_wait_apply.saturating_add(1);
+            if npc_clothing_wait_apply_give_up(st.clothing_wait_apply) {
                 clear_sticky_move(st);
                 return None;
             }
             return Some((
-                NpcActivityKind::Think,
+                NpcActivityKind::Craft,
                 format!(
                     "pickup_cloth wait_apply {}",
                     sticky.expected_parent_id
@@ -5300,6 +5302,9 @@ struct NpcProfessionState {
     /// Haxe `triedDropCount` for `isDropingItem` dropDistance 10/0.
     // Haxe: AiBase.isDropingItem L8361
     tried_drop_count: i32,
+    /// Thinks spent waiting for 59+124→128 before `isDropingItem` DROP.
+    /// Not `triedDropCount` (that is dropDistance; Haxe never aborts pickup on it).
+    clothing_wait_apply: i32,
     /// Haxe `lastCheckedTimes['considerFood']` (sim tick).
     // Haxe: AiBase.isConsideringMakingFood L8509
     last_consider_food_tick: f32,
@@ -5377,6 +5382,7 @@ impl Default for NpcProfessionState {
             did_not_reach_animal_target: 0,
             time_looked_for_deadly_animal_at_home: TIME_LOOKED_NEVER,
             tried_drop_count: 0,
+            clothing_wait_apply: 0,
             last_consider_food_tick: 0.0,
             last_leader_check_tick: 0.0,
         }
@@ -5495,10 +5501,22 @@ fn npc_clothing_drop_live_parent(
     if npc_clothing_slot(content, world_p).is_some() {
         return ClothingDropLive::Parent(world_p);
     }
-    if pickup_cloth {
+    // Wait only while the USE tile is still the pre-product (Reed Bundle 124).
+    // Empty (0) or a different object is TargetGone — not a wait.
+    if pickup_cloth && expected > 0 && world_p == expected {
         return ClothingDropLive::WaitForProduct;
     }
     ClothingDropLive::Parent(expected)
+}
+
+/// Haxe `triedDropCount` never aborts `isDropingItem`; it only shortens dropDistance.
+/// Rust waits for async 59+124→128. Give up after this many thinks so a failed USE
+/// does not pin the NPC. Independent of `tried_drop_count` (prior craft drops).
+// Haxe: AiBase.isDropingItem L8361
+const CLOTHING_WAIT_APPLY_MAX: i32 = 20;
+
+fn npc_clothing_wait_apply_give_up(wait_ticks: i32) -> bool {
+    wait_ticks > CLOTHING_WAIT_APPLY_MAX
 }
 
 /// After a USE whose newTarget is clothing (Reed Skirt 128 = Rope 59 + Reed Bundle 124),
@@ -5631,7 +5649,7 @@ fn npc_run_switch_cloths(
         })
         .is_ok()
     {
-        Some((NpcActivityKind::Think, format!("switch_cloths held={}", p.held_id), 400))
+        Some((NpcActivityKind::Craft, format!("switch_cloths held={}", p.held_id), 400))
     } else {
         None
     }
@@ -5713,10 +5731,10 @@ fn npc_run_is_pickingup_cloths(
             label.clone(),
             npc_client_move_seq(p.done_moving_seq),
         ) {
-            return Some((NpcActivityKind::Think, label, 250));
+            return Some((NpcActivityKind::Craft, label, 250));
         }
         set_sticky_arrive(st, t.x, t.y, t.parent_id, 0, arrive, label.clone());
-        return Some((NpcActivityKind::Think, label, 100));
+        return Some((NpcActivityKind::Craft, label, 100));
     }
     None
 }
@@ -5834,6 +5852,10 @@ fn npc_emit_seek_or_craft(
         &mut game_ms,
         npc_client_move_seq(p.done_moving_seq),
     ) {
+        // Keep GetOrCraft label as first token so objects_created sees seek_weapon.
+        if !detail.starts_with(label) {
+            detail = format!("{label} {detail}");
+        }
         Some((kind, detail, game_ms))
     } else {
         None
@@ -6484,6 +6506,11 @@ fn set_sticky_arrive(
             None
         }
     });
+    let label = label.into();
+    if label.starts_with("pickup_cloth") {
+        st.clothing_wait_apply = 0;
+        st.tried_drop_count = 0;
+    }
     st.sticky_move = Some(NpcStickyMove {
         gx,
         gy,
@@ -6491,7 +6518,7 @@ fn set_sticky_arrive(
         use_actor_parent,
         pending_use: matches!(arrive, StickyArrive::Use),
         pending_drop: matches!(arrive, StickyArrive::Drop),
-        label: label.into(),
+        label,
         move_from,
     });
 }
@@ -8275,6 +8302,12 @@ pub async fn run_npc_scheduler(
                 let pending = profession_state
                     .get(&conn_id)
                     .and_then(|st| st.sticky_move.clone());
+                if pending.is_none() {
+                    // Haxe L8353: dropTarget == null → triedDropCount = 0
+                    if let Some(st) = profession_state.get_mut(&conn_id) {
+                        st.tried_drop_count = 0;
+                    }
+                }
                 if let Some(sticky) = pending {
                     let arrive = StickyArrive::from_flags(sticky.pending_use, sticky.pending_drop);
                     let valid = {
@@ -8298,7 +8331,7 @@ pub async fn run_npc_scheduler(
                                 p.x,
                                 p.y,
                                 p.food,
-                                false,
+                                p.moving,
                                 p.held_id,
                                 p.holding_player_id,
                                 hungry,
@@ -12602,6 +12635,21 @@ mod tests {
             ClothingDropLive::Parent(124),
             "non-clothing drop still uses snapshot expected (head TargetGone if mismatch)"
         );
+        assert_eq!(
+            npc_clothing_drop_live_parent(&db, 124, 0, true),
+            ClothingDropLive::Parent(124),
+            "empty tile after failed USE is TargetGone, not wait-forever"
+        );
+    }
+
+    #[test]
+    fn clothing_wait_apply_ignores_tried_drop_count() {
+        // Live 0.3.12: craft_queue_drop left triedDropCount > 3, so the first
+        // pickup_cloth wait_apply aborted and never DROPped Reed Skirt 128.
+        assert!(!npc_clothing_wait_apply_give_up(3));
+        assert!(!npc_clothing_wait_apply_give_up(20));
+        assert!(npc_clothing_wait_apply_give_up(21));
+        assert_eq!(CLOTHING_WAIT_APPLY_MAX, 20);
     }
 
     #[test]
