@@ -9037,6 +9037,31 @@ pub async fn run_npc_scheduler(
                 }
             }
 
+            // Haxe L652 isPickingupCloths() before makeSharpieFood L656.
+            // Haxe: AiBase.doTimeStuffHelper L652; isPickingupCloths L8723–8752
+            if !acted && p.age >= MIN_AGE_TO_EAT {
+                let class_u8 = {
+                    let st = profession_state.entry(conn_id).or_default();
+                    npc_prestige_class_u8(st.prestige_class)
+                };
+                let w = world.read().unwrap();
+                let st = profession_state.entry(conn_id).or_default();
+                if let Some((k, d, ms)) = npc_run_is_pickingup_cloths(
+                    &intent_tx,
+                    &w,
+                    content.as_ref(),
+                    st,
+                    conn_id,
+                    &p,
+                    class_u8,
+                ) {
+                    kind = k;
+                    detail = d;
+                    game_ms = ms;
+                    acted = true;
+                }
+            }
+
             // Haxe L656: makeSharpieFood(5) after isMoving return (GetOrCraft 34 / craft 39).
             // Haxe: AiBase.doTimeStuffHelper L656; makeSharpieFood L4096–4118
             if !acted && p.age >= MIN_AGE_TO_EAT {
@@ -9525,9 +9550,7 @@ pub async fn run_npc_scheduler(
                     }
                     if committed {
                         acted = true;
-                        if detail.is_empty() || detail == "idle" {
-                            detail = format!("clothing_craft {plan:?}");
-                        }
+                        detail = format!("clothing_craft {plan:?} {detail}");
                         tracing::info!(
                             conn_id,
                             p_id = p.p_id,
