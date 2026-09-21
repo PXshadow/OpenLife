@@ -297,8 +297,14 @@ impl ReverseCraftGraph {
             if path.is_empty() {
                 return None;
             }
-            // First craft step (leaf→root order): seek first missing positive input.
+            // First craft step (leaf→root). If both sides are present, Haxe
+            // craftItemHelper USEs that pair (59+131 yew bow while wanting 152).
+            // Do not fall through to a sibling missing input (Arrow 148).
+            // Haxe: GetOrCraftItem miss → craftItem(objId) L6198
             if let Some(&(actor, target)) = path.first() {
+                if Self::pair_inputs_ready(actor, target, have, counts) {
+                    return None;
+                }
                 if actor > 0 && Self::have_count(actor, have, counts) < 1 {
                     return Some(actor);
                 }
@@ -787,6 +793,27 @@ mod tests {
             Some((58, 58)),
             "two threads make rope: {path2:?}"
         );
+    }
+
+    #[test]
+    fn bow_ready_rope_and_yew_shaft_does_not_seek_arrow() {
+        // Live 0.3.16: census Rope 59=1, Yew Shaft 131=14, Arrow 148=0.
+        // GetOrCraftItem(152) seek_ingredient fell through to 148 and never
+        // USEd 59+131 → Yew Bow 151 (Haxe craftItemHelper on the ready pair).
+        let mut g = ReverseCraftGraph::new();
+        g.insert(59, 131, 0, 151);
+        g.insert(148, 151, 152, 0);
+        g.insert(134, 149, 0, 148);
+        let have: HashSet<i32> = [0, 59, 131].into_iter().collect();
+        assert_eq!(
+            g.seek_ingredient_for(152, &have),
+            None,
+            "59+131 is ready; CraftItem should USE it, not seek 148"
+        );
+        let path = g
+            .find_path_to_product(152, &have, 6)
+            .expect("path via yew bow");
+        assert_eq!(path.first().copied(), Some((59, 131)), "{path:?}");
     }
 
     #[test]

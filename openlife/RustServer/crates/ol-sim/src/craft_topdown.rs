@@ -1260,6 +1260,38 @@ mod tests {
     }
 
     #[test]
+    fn bow_and_arrow_uses_rope_on_yew_shaft_when_ready() {
+        // Haxe GetOrCraftItem(152) → craftItem → 59+131 Yew Bow, not seek Arrow 148.
+        let mut g = ReverseCraftGraph::new();
+        g.insert(59, 131, 0, 151);
+        g.insert(148, 151, 152, 0);
+        g.insert(134, 149, 0, 148);
+        let objs = vec![
+            CraftWorldObj::simple(59, 1, 0),
+            CraftWorldObj::simple(131, 2, 0),
+            CraftWorldObj::simple(134, 40, 0),
+        ];
+        let pair = search_best_object_for_crafting_topdown(
+            152,
+            &objs,
+            0,
+            0,
+            0,
+            None,
+            60,
+            &g,
+            None,
+            &CraftTopDownOpts::default(),
+        )
+        .expect("pair");
+        assert_eq!(
+            (pair.actor_id, pair.target_id),
+            (59, 131),
+            "USE rope on yew shaft: {pair:?}"
+        );
+    }
+
+    #[test]
     fn holding_stalk_combines_stalks_not_far_threads() {
         // Haxe craftItemHelper L6997: held == transActor → USE secondObject.
         // Four threads exist but player holds 57 with another stalk adjacent.

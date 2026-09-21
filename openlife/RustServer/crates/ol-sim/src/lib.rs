@@ -13863,14 +13863,29 @@ pub fn build_reverse_craft_graph_capped(content: &ContentDb, cap: usize) -> Reve
         if pairs.len() >= cap {
             break;
         }
-        pairs.push((t.actor_id, t.target_id, t.new_actor_id, t.new_target_id));
+        // Dummy use-ids (@ Yew Bow 494) compare as parent (151). Else 148+494
+        // never matches a real Yew Bow 151 on the ground.
+        // Haxe: ObjectHelper.parentId / dummyParent
+        let b = |id: i32| content.resolve_base_id(id);
+        pairs.push((
+            b(t.actor_id),
+            b(t.target_id),
+            b(t.new_actor_id),
+            b(t.new_target_id),
+        ));
     }
     if pairs.len() < cap {
         for t in content.transitions_last_use.values() {
             if pairs.len() >= cap {
                 break;
             }
-            pairs.push((t.actor_id, t.target_id, t.new_actor_id, t.new_target_id));
+            let b = |id: i32| content.resolve_base_id(id);
+            pairs.push((
+                b(t.actor_id),
+                b(t.target_id),
+                b(t.new_actor_id),
+                b(t.new_target_id),
+            ));
         }
     }
     let mut graph = ReverseCraftGraph::new();
