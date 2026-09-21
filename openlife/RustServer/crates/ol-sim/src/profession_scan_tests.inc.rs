@@ -215,6 +215,17 @@ fn smith_short_craft_pair_hungry_cost_refuses_when_target_costly() {
 }
 
 #[test]
+fn probe_craft_at_finds_actor_and_target() {
+    let w = mock_world_with(&[(59, 1, 0), (124, 2, 0)]);
+    let content = ol_content::ContentDb::default();
+    let mut graph = crate::ReverseCraftGraph::new();
+    graph.insert(59, 124, 0, 128);
+    let hit = probe_craft_at(&w, &content, &graph, 0, 0, 128, 30, 0, None);
+    assert!(hit.craftable, "{hit:?}");
+    assert_eq!((hit.actor_id, hit.target_id), (59, 124));
+}
+
+#[test]
 fn scan_world_radius_includes_empty_and_objects() {
     let w = mock_world_with(&[(DYING_BUSH, 5, 5), (663, 8, 5)]);
     let tiles = scan_world_radius(&w, None, 5, 5, 3);

@@ -11,7 +11,7 @@ pub use map_api::{build_overview, build_window, overview_step, MapOverview, MapW
 
 use axum::body::Body;
 use axum::extract::{Path as AxumPath, Query, State};
-use axum::http::{header, StatusCode};
+use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{Html, IntoResponse, Json, Response};
 use axum::routing::get;
 use axum::Router;
@@ -20,11 +20,11 @@ use ol_content::ContentDb;
 use ol_metrics::{Counters, OpsSample};
 use ol_sim::{
     count_leadership_power, format_account_statistics_html, format_food_statistics_html,
-    format_lineage_statistics_html, generate_lineage_statistics, AccountBookSnapshot, AccountView,
-    AnimalSnapshot, AnimalView, EnvSnapshot, EnvView, LineageSnapshot, LineageView, ObjectCountSample,
-    ObjectCountsShare, PlayerSnapshot, PrestigeClass, PrestigeSnapshot, PrestigeView,
-    TreasurySnapshot, TreasuryView,
-    WeatherSnapshot, WeatherView, WorldFoodShare, WorldFoodStats,
+    format_lineage_statistics_html, generate_lineage_statistics, probe_craft_at,
+    AccountBookSnapshot, AccountView, AnimalSnapshot, AnimalView, EnvSnapshot, EnvView,
+    LineageSnapshot, LineageView, ObjectCountSample, ObjectCountsShare, PlayerSnapshot,
+    PrestigeClass, PrestigeSnapshot, PrestigeView, ReverseCraftGraph, TreasurySnapshot,
+    TreasuryView, WeatherSnapshot, WeatherView, WorldFoodShare, WorldFoodStats,
 };
 use ol_world::World;
 use serde::Deserialize;
@@ -66,6 +66,10 @@ pub struct WebState {
     pub object_count_series: Arc<RwLock<Vec<ObjectCountSample>>>,
     /// Live original/current census (generation originals for the Original column).
     pub object_counts_share: ObjectCountsShare,
+    /// `server.toml` secret. Gates `/api/craft/probe`. Never log this.
+    pub craft_secret: String,
+    /// Reverse craft graph shared with NPC GetOrCraft.
+    pub craft_graph: Arc<ReverseCraftGraph>,
 }
 
 impl WebState {
@@ -100,6 +104,8 @@ impl WebState {
             npc_stats: Arc::new(RwLock::new(serde_json::json!({}))),
             object_count_series: Arc::new(RwLock::new(Vec::new())),
             object_counts_share: Arc::new(RwLock::new(ol_sim::ObjectCountsSnapshot::default())),
+            craft_secret: String::new(),
+            craft_graph: Arc::new(ReverseCraftGraph::new()),
         }
     }
 }
@@ -144,6 +150,7 @@ pub fn router(state: WebState) -> Router {
         .route("/api/world/summary", get(world_summary))
         .route("/api/world/overview", get(world_overview))
         .route("/api/world/view", get(world_view))
+        .route("/api/craft/probe", get(craft_probe))
         .route("/api/players", get(players_api))
         .route("/api/selfplay", get(selfplay_status))
         .route("/api/environment", get(environment_api))
@@ -781,6 +788,76 @@ fn default_w() -> i32 {
 }
 fn default_h() -> i32 {
     64
+}
+
+#[derive(Debug, Deserialize)]
+struct CraftProbeQuery {
+    x: i32,
+    y: i32,
+    id: i32,
+    #[serde(default)]
+    radius: Option<i32>,
+    #[serde(default)]
+    held: Option<i32>,
+    #[serde(default)]
+    home_x: Option<i32>,
+    #[serde(default)]
+    home_y: Option<i32>,
+}
+
+fn secret_header_matches(expected: &str, headers: &HeaderMap) -> bool {
+    if expected.is_empty() {
+        return false;
+    }
+    let presented = headers
+        .get("x-openlife-secret")
+        .and_then(|v| v.to_str().ok())
+        .or_else(|| {
+            headers
+                .get(header::AUTHORIZATION)
+                .and_then(|v| v.to_str().ok())
+                .and_then(|s| s.strip_prefix("Bearer ").or_else(|| s.strip_prefix("bearer ")))
+        })
+        .unwrap_or("");
+    if presented.len() != expected.len() {
+        return false;
+    }
+    presented
+        .bytes()
+        .zip(expected.bytes())
+        .fold(0u8, |acc, (a, b)| acc | (a ^ b))
+        == 0
+}
+
+/// Craft debug: is `id` craftable at `x,y`? Returns actor and target.
+/// Auth: header `X-OpenLife-Secret` or `Authorization: Bearer` equal to server.toml `secret`.
+async fn craft_probe(
+    State(st): State<WebState>,
+    headers: HeaderMap,
+    Query(q): Query<CraftProbeQuery>,
+) -> Response {
+    if !secret_header_matches(&st.craft_secret, &headers) {
+        return (StatusCode::UNAUTHORIZED, "unauthorized").into_response();
+    }
+    let radius = q.radius.unwrap_or(60);
+    let held = q.held.unwrap_or(0);
+    let home = match (q.home_x, q.home_y) {
+        (Some(hx), Some(hy)) => Some((hx, hy)),
+        _ => None,
+    };
+    let world = st.world.read().unwrap();
+    let hit = probe_craft_at(
+        &world,
+        st.content.as_ref(),
+        st.craft_graph.as_ref(),
+        q.x,
+        q.y,
+        q.id,
+        radius,
+        held,
+        home,
+    );
+    Json(hit).into_response()
 }
 
 async fn world_view(

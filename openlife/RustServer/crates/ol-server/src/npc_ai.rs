@@ -3065,13 +3065,12 @@ fn npc_try_walk_to_ex(
     npc_move_path(intent_tx, conn_id, px, py, &deltas, Some(seq))
 }
 
-/// Haxe `doTimeStuffHelper` L672: `searchCurrentPosition = false`,
-/// `maxSearchRadius = 60` before `craftHighPriorityClothing`.
-/// `searchBestObjectForCrafting` steps `radius += AiMaxSearchIncrement` (30)
-/// and returns on the first radius that finds a transition.
-// Haxe: AiBase.doTimeStuffHelper L672; searchBestObjectForCrafting L7145; ServerSettings.hx L448
+/// Clothing `craftItem(128)`: home plus the player’s current tile.
+/// `searchBestObjectForCrafting` steps radius by 30 up to 60 and stops
+/// on the first ring that finds a transition.
+// Haxe: IntemToCraft.searchCurrentPosition; searchBestObjectForCrafting L7145
 fn npc_prepare_clothing_l672_search(craft_rt: &mut CraftAiRuntime, opts: &mut CraftLiveExpandOpts) {
-    craft_rt.item.search_current_position = false;
+    craft_rt.item.search_current_position = true;
     craft_rt.item.max_search_radius = NPC_GET_OR_CRAFT_SEARCH_RADIUS;
     opts.ai_max_search_radius = NPC_GET_OR_CRAFT_SEARCH_RADIUS;
     opts.ai_max_search_increment = 30;
@@ -13073,8 +13072,8 @@ mod tests {
         let mut opts = CraftLiveExpandOpts::default();
         npc_prepare_clothing_l672_search(&mut st.craft_rt, &mut opts);
         assert!(
-            !st.craft_rt.item.search_current_position,
-            "Haxe L430/L672 searchCurrentPosition = false"
+            st.craft_rt.item.search_current_position,
+            "searchCurrentPosition includes the player, not only home"
         );
         assert_eq!(st.craft_rt.item.max_search_radius, 60);
         assert_eq!(opts.ai_max_search_radius, 60);

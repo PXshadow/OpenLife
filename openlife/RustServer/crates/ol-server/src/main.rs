@@ -1087,6 +1087,8 @@ async fn main() {
             npc_stats: Arc::clone(&npc_stats_view),
             object_count_series: Arc::clone(&object_count_series),
             object_counts_share: Arc::clone(&shared_object_counts),
+            craft_secret: cfg.secret.clone(),
+            craft_graph: Arc::clone(&craft_graph),
         };
         handles.push(tokio::spawn(async move {
             if let Err(e) = serve_web(&bind, state).await {

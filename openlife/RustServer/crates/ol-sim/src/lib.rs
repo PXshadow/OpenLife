@@ -519,7 +519,7 @@ pub use short_craft_intent::profession_scan::{
     home_has_loom_from_world, potter_peers_from_players,
     pottery_action_to_live_intent, pottery_counts_from_scan, pottery_map_from_scan,
     pottery_profession_scan_tick, quiver_can_add_from_slots, shepherd_action_to_live_intent,
-    shepherd_profession_scan_tick, ScanTile, POTTERY_SCAN_RADIUS,
+    probe_craft_at, shepherd_profession_scan_tick, CraftProbe, ScanTile, POTTERY_SCAN_RADIUS,
 };
 // --- end compile-green reexports ---
 pub use settings_live::SimBootLive;

@@ -351,6 +351,116 @@ impl ScanTile {
 /// anchors. When `content` is `Some`, resolves dummy multi-use ids to parents and
 /// fills food/permanent from object defs; uses come from complex helpers.
 // Haxe: AiHelper.CountCloseObjects / GetClosestObjectById double loop
+/// One craft probe: is `product_id` craftable at `(x, y)`?
+/// Search includes the player tile and `home` (`searchCurrentPosition`).
+/// Radius steps by 30 up to `radius` (Haxe `AiMaxSearchIncrement`).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CraftProbe {
+    pub craftable: bool,
+    pub product_id: i32,
+    pub x: i32,
+    pub y: i32,
+    pub home_x: i32,
+    pub home_y: i32,
+    pub radius: i32,
+    pub held_id: i32,
+    pub search_current_position: bool,
+    pub actor_id: i32,
+    pub actor_x: i32,
+    pub actor_y: i32,
+    pub actor_held: bool,
+    pub target_id: i32,
+    pub target_x: i32,
+    pub target_y: i32,
+    pub distance: i32,
+    pub found_radius: i32,
+}
+
+pub fn probe_craft_at(
+    world: &ol_world::World,
+    content: &ol_content::ContentDb,
+    graph: &crate::ReverseCraftGraph,
+    x: i32,
+    y: i32,
+    product_id: i32,
+    radius: i32,
+    held_id: i32,
+    home: Option<(i32, i32)>,
+) -> CraftProbe {
+    let radius = radius.clamp(1, 200);
+    let (hx, hy) = home.unwrap_or((x, y));
+    let mut tiles = scan_world_radius(world, Some(content), x, y, radius);
+    if hx != x || hy != y {
+        let home_tiles = scan_world_radius(world, Some(content), hx, hy, radius);
+        for t in home_tiles {
+            if !tiles.iter().any(|e| e.x == t.x && e.y == t.y) {
+                tiles.push(t);
+            }
+        }
+    }
+    let objs: Vec<_> = get_or_craft_objs_from_scan(&tiles, None)
+        .into_iter()
+        .map(|o| o.to_craft_world())
+        .collect();
+    let opts = crate::get_or_craft::craft_item::CraftTopDownOpts::default()
+        .with_search_current(true)
+        .with_search_increment(30);
+    let pair = crate::get_or_craft::craft_item::search_best_object_for_crafting_topdown(
+        product_id,
+        &objs,
+        held_id,
+        x,
+        y,
+        Some((hx, hy)),
+        radius,
+        graph,
+        None,
+        &opts,
+    );
+    match pair {
+        Some(p) => CraftProbe {
+            craftable: true,
+            product_id,
+            x,
+            y,
+            home_x: hx,
+            home_y: hy,
+            radius,
+            held_id,
+            search_current_position: true,
+            actor_id: p.actor_id,
+            actor_x: p.actor_x,
+            actor_y: p.actor_y,
+            actor_held: p.actor_held,
+            target_id: p.target_id,
+            target_x: p.target_x,
+            target_y: p.target_y,
+            distance: p.distance,
+            found_radius: p.search_radius,
+        },
+        None => CraftProbe {
+            craftable: false,
+            product_id,
+            x,
+            y,
+            home_x: hx,
+            home_y: hy,
+            radius,
+            held_id,
+            search_current_position: true,
+            actor_id: 0,
+            actor_x: 0,
+            actor_y: 0,
+            actor_held: false,
+            target_id: 0,
+            target_x: 0,
+            target_y: 0,
+            distance: 0,
+            found_radius: 0,
+        },
+    }
+}
+
 pub fn scan_world_radius(
     world: &World,
     content: Option<&ContentDb>,
