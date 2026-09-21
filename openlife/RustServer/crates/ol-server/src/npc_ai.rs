@@ -42,10 +42,11 @@ use ol_sim::{
     has_weapon_close, is_bloody_weapon, AttackPlayerClothing, AttackPlayerInput,
     AttackPlayerTarget, GetWeaponAction, BOW_AND_ARROW, HAS_WEAPON_CLOSE_SEARCH,
     MIN_AI_AGE_FOR_COMBAT, RATTLE_SNAKE, WEAPON_SEARCH_DIST,
-    kill_animal_body, kill_animal_bow_hunt, kill_animal_prefix, wolf_tile_allowed,
+    kill_animal_body, kill_animal_bow_hunt, kill_animal_prefix, wolf_in_home_search,
+    wolf_tile_allowed,
     KillAnimalAction, KillAnimalBodyInput, KillAnimalPrefixInput, KillAnimalPrefixKind,
     KILL_ANIMAL_GOTO_FAIL_CLEAR, KILL_ANIMAL_SNAKE_RADIUS, KILL_ANIMAL_WOLF_SEARCH,
-    TIME_HELPER_TICK_TIME, TIME_LOOKED_NEVER, WOLF,
+    TIME_HELPER_TICK_TIME, TIME_LOOKED_NEVER, WOLF, AnimalKind,
     pick_close_hungry_child, pick_most_distant_own_child, HungryChildCand, is_fertile,
     is_eve_or_adam_name, STARTING_NAME, FEMALE_FIRST_NAMES, MALE_FIRST_NAMES,
     get_max_child_feeding, can_pickup_baby_distance,
@@ -5204,37 +5205,40 @@ fn npc_run_is_pickingup_cloths(
             continue;
         }
         let permanent = def.map(|d| d.permanent).unwrap_or(false);
-        // Haxe: pile → useActor 0 + useTarget; else dropTarget. No goto here.
-        if permanent {
-            set_sticky_move_use(
-                st,
-                t.x,
-                t.y,
-                t.parent_id,
-                0,
-                true,
-                format!("pickup_cloth_pile {}", t.parent_id),
-            );
-            return Some((
-                NpcActivityKind::Think,
-                format!("pickup_cloth_pile {} @{},{}", t.parent_id, t.x, t.y),
-                100,
-            ));
-        }
-        set_sticky_arrive(
+        // Haxe: pile → useTarget (isUsingItem next); loose → dropTarget (isDropingItem next).
+        // If already close and stopped, apply this think (same as next-tick isDropingItem).
+        let arrive = if permanent {
+            StickyArrive::Use
+        } else {
+            StickyArrive::Drop
+        };
+        let label = if permanent {
+            format!("pickup_cloth_pile {}", t.parent_id)
+        } else {
+            format!("pickup_cloth {}", t.parent_id)
+        };
+        if npc_do_arrive_or_walk(
+            intent_tx,
+            world,
+            content,
             st,
+            conn_id,
+            p.x,
+            p.y,
+            p.food,
+            p.moving,
             t.x,
             t.y,
             t.parent_id,
             0,
-            StickyArrive::Drop,
-            format!("pickup_cloth {}", t.parent_id),
-        );
-        return Some((
-            NpcActivityKind::Think,
-            format!("pickup_cloth {} @{},{}", t.parent_id, t.x, t.y),
-            100,
-        ));
+            arrive,
+            label.clone(),
+            npc_client_move_seq(p.done_moving_seq),
+        ) {
+            return Some((NpcActivityKind::Think, label, 250));
+        }
+        set_sticky_arrive(st, t.x, t.y, t.parent_id, 0, arrive, label.clone());
+        return Some((NpcActivityKind::Think, label, 100));
     }
     None
 }
@@ -5349,6 +5353,7 @@ fn npc_run_kill_animal(
     tick: u64,
     deadly: Option<(i32, i32, i32)>,
     hunter_peer_count: f32,
+    animals: Option<&AnimalWorld>,
 ) -> Option<(NpcActivityKind, String, u32)> {
     let home_x = if p.home_x != 0 || p.home_y != 0 {
         p.home_x
@@ -5361,12 +5366,23 @@ fn npc_run_kill_animal(
         p.y
     };
     let home_scan = npc_scan_cached(st, world, content, home_x, home_y, KILL_ANIMAL_WOLF_SEARCH);
-    let wolf_tiles: Vec<(i32, i32, i32)> = home_scan
+    let mut wolf_tiles: Vec<(i32, i32, i32)> = home_scan
         .iter()
         .filter(|t| t.parent_id == WOLF)
         .filter(|t| wolf_tile_allowed(t.floor_id, t.is_food, t.is_permanent))
         .map(|t| (t.parent_id, t.x, t.y))
         .collect();
+    // Haxe wolves are map objects; live movers are AnimalWorld. Same home r=20 square.
+    if let Some(aw) = animals {
+        for a in &aw.animals {
+            if a.kind != AnimalKind::Wolf {
+                continue;
+            }
+            if wolf_in_home_search(home_x, home_y, a.x, a.y) {
+                wolf_tiles.push((WOLF, a.x, a.y));
+            }
+        }
+    }
     let prefix_target = st.animal_target.map(|(x, y, id)| (id, x, y));
     let prefix_animal = deadly.map(|(x, y, id)| (id, x, y));
     let prefix_inp = KillAnimalPrefixInput {
@@ -5597,7 +5613,7 @@ fn npc_run_kill_animal(
             GetWeaponAction::SeekOrCraft { actor } => {
                 // Haxe getWeapon: GetOrCraftItem(148) / GetOrCraftItem(152) — not a log-only busy.
                 // Haxe: AiBase.getWeapon L5814–5815
-                npc_emit_seek_or_craft(
+                let out = npc_emit_seek_or_craft(
                     intent_tx,
                     world,
                     content,
@@ -5609,7 +5625,16 @@ fn npc_run_kill_animal(
                     actor,
                     NpcActivityKind::Combat,
                     "kill_animal_seek_weapon",
-                )
+                );
+                if out.is_none() {
+                    tracing::info!(
+                        conn_id,
+                        actor,
+                        held = p.held_id,
+                        "ai_craft: getWeapon SeekOrCraft miss"
+                    );
+                }
+                out
             }
         },
         KillAnimalAction::Goto { x, y } => {
@@ -8541,8 +8566,9 @@ pub async fn run_npc_scheduler(
                             );
                             if do_stuff {
                                 let views_g = player_views.read().ok();
+                                let animals_g = animals.read().ok();
                                 if let Some(views) = views_g.as_ref() {
-                                    let deadly = animals.read().ok().and_then(|aw| {
+                                    let deadly = animals_g.as_ref().and_then(|aw| {
                                         aw.get_close_deadly_animal(
                                             p.x,
                                             p.y,
@@ -8565,6 +8591,7 @@ pub async fn run_npc_scheduler(
                                         tick,
                                         deadly,
                                         hunter_peers,
+                                        animals_g.as_deref(),
                                     ) {
                                         kind = k;
                                         detail = d;
@@ -8956,6 +8983,7 @@ pub async fn run_npc_scheduler(
                             tick,
                             deadly,
                             hunter_peers,
+                            animals_g.as_deref(),
                         ) {
                             kind = k;
                             detail = d;

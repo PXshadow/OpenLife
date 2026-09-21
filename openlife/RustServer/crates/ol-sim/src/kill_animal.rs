@@ -170,6 +170,13 @@ pub fn closest_wolf_at_home(
     best.map(|(_, y, x, id)| (id, x, y))
 }
 
+/// Haxe wolves are map objects (`GetClosestObjectToPosition` 418). Live movers live
+/// in `AnimalWorld` — include them in the same home r=20 square.
+// Haxe: AiBase.killAnimal L5884 GetClosestObjectToPosition(home, 418, 20)
+pub fn wolf_in_home_search(home_x: i32, home_y: i32, x: i32, y: i32) -> bool {
+    in_wolf_search(home_x, home_y, x, y, KILL_ANIMAL_WOLF_SEARCH)
+}
+
 /// Haxe `killAnimal` L5878–5900.
 // Haxe: AiBase.killAnimal L5878–5900
 pub fn kill_animal_prefix(
