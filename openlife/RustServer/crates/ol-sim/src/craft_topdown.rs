@@ -1326,6 +1326,46 @@ mod tests {
     }
 
     #[test]
+    fn reed_skirt_l672_full_home_radius_uses_rope_not_near_milkweed() {
+        // Live 0.3.19 Long home 37,340: Rope 59 at cheb 58, Reed Bundle 124 at 17,
+        // Milkweed 50 at 5. Increment 30 harvested 50; Haxe L672 maxSearchRadius=60
+        // first clothing pass sees 59+124.
+        let g = reed_skirt_graph();
+        let objs = vec![
+            CraftWorldObj::simple(50, 5, 0),
+            CraftWorldObj::simple(58, 48, 0),
+            CraftWorldObj::simple(58, 49, 0),
+            CraftWorldObj::simple(59, 58, 0),
+            CraftWorldObj::simple(124, 17, 0),
+        ];
+        let home = Some((0, 0));
+        let inc30 = CraftTopDownOpts::default()
+            .with_search_current(false)
+            .with_search_increment(30);
+        let near = search_best_object_for_crafting_topdown(
+            128, &objs, 0, 0, 0, home, 60, &g, None, &inc30,
+        )
+        .expect("pair at increment 30");
+        assert_eq!(
+            (near.actor_id, near.target_id),
+            (0, 50),
+            "increment 30 never reaches rope at 58: {near:?}"
+        );
+        let inc60 = CraftTopDownOpts::default()
+            .with_search_current(false)
+            .with_search_increment(60);
+        let pair = search_best_object_for_crafting_topdown(
+            128, &objs, 0, 0, 0, home, 60, &g, None, &inc60,
+        )
+        .expect("pair");
+        assert_eq!(
+            (pair.actor_id, pair.target_id),
+            (59, 124),
+            "Haxe L672 first pass r=60 USEs rope on reed bundle: {pair:?}"
+        );
+    }
+
+    #[test]
     fn reed_skirt_two_threads_use_thread_on_thread() {
         let g = reed_skirt_graph();
         let objs = vec![

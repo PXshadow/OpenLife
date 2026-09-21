@@ -3065,6 +3065,40 @@ fn npc_try_walk_to_ex(
     npc_move_path(intent_tx, conn_id, px, py, &deltas, Some(seq))
 }
 
+/// Haxe `doTimeStuffHelper` L430–433 / L672: `searchCurrentPosition = false`
+/// and `maxSearchRadius = 60` before `craftHighPriorityClothing`.
+///
+/// Live 0.3.19: increment 30 harvested nearby Milkweed 50 while Rope 59 sat at
+/// home Chebyshev 58 with Reed Bundle 124 in range — 128 never spawned.
+// Haxe: AiBase.doTimeStuffHelper L430–433; L672
+fn npc_prepare_clothing_l672_search(craft_rt: &mut CraftAiRuntime, opts: &mut CraftLiveExpandOpts) {
+    craft_rt.item.search_current_position = false;
+    craft_rt.item.max_search_radius = NPC_GET_OR_CRAFT_SEARCH_RADIUS;
+    opts.ai_max_search_radius = NPC_GET_OR_CRAFT_SEARCH_RADIUS;
+    // First clothing pass is the full L672 radius (not increment 30).
+    opts.ai_max_search_increment = NPC_GET_OR_CRAFT_SEARCH_RADIUS;
+}
+
+fn npc_craft_live_opts(
+    content: &ContentDb,
+    home_x: i32,
+    home_y: i32,
+    is_smith: bool,
+    tick: u64,
+) -> CraftLiveExpandOpts {
+    let (water_ids, bucket_ids) = init_water_source_ids_from_content(content);
+    CraftLiveExpandOpts {
+        home: Some((home_x, home_y)),
+        is_or_can_smith: is_smith,
+        now_sec: tick as f64 * 0.2,
+        water_source_ids: water_ids,
+        bucket_water_source_ids: bucket_ids,
+        is_hidden_wound: false,
+        ..Default::default()
+    }
+    .with_content_craft_gates(content)
+}
+
 /// Expand one queued / sticky product via GetOrCraft (Haxe `craftItem` from doTimeStuffHelper).
 // Haxe: AiBase.doTimeStuffHelper ~667–680 craftItem
 fn npc_expand_craft_intent(
@@ -3083,20 +3117,52 @@ fn npc_expand_craft_intent(
     tick: u64,
     intent: ShortCraftLiveIntent,
 ) -> ShortCraftLiveIntent {
+    let opts = npc_craft_live_opts(content, home_x, home_y, is_smith, tick);
+    npc_expand_craft_intent_opts(
+        tiles, px, py, held_id, moving, content, craft_graph, craft_rt, blocked, opts, intent,
+    )
+}
+
+/// Clothing `craftItem` after Haxe L672 (home-only, first pass r=60).
+fn npc_expand_clothing_craft_intent(
+    tiles: &[ScanTile],
+    px: i32,
+    py: i32,
+    held_id: i32,
+    moving: bool,
+    home_x: i32,
+    home_y: i32,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    craft_rt: &mut CraftAiRuntime,
+    blocked: &HashSet<(i32, i32)>,
+    is_smith: bool,
+    tick: u64,
+    intent: ShortCraftLiveIntent,
+) -> ShortCraftLiveIntent {
+    let mut opts = npc_craft_live_opts(content, home_x, home_y, is_smith, tick);
+    npc_prepare_clothing_l672_search(craft_rt, &mut opts);
+    npc_expand_craft_intent_opts(
+        tiles, px, py, held_id, moving, content, craft_graph, craft_rt, blocked, opts, intent,
+    )
+}
+
+fn npc_expand_craft_intent_opts(
+    tiles: &[ScanTile],
+    px: i32,
+    py: i32,
+    held_id: i32,
+    moving: bool,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    craft_rt: &mut CraftAiRuntime,
+    blocked: &HashSet<(i32, i32)>,
+    opts: CraftLiveExpandOpts,
+    intent: ShortCraftLiveIntent,
+) -> ShortCraftLiveIntent {
     let goc_objs = get_or_craft_objs_from_scan(tiles, None);
     let full_piles = full_pile_tiles_from_scan(tiles);
     let nonempty_boxes = nonempty_container_tiles_from_scan(tiles);
-    let (water_ids, bucket_ids) = init_water_source_ids_from_content(content);
-    let opts = CraftLiveExpandOpts {
-        home: Some((home_x, home_y)),
-        is_or_can_smith: is_smith,
-        now_sec: tick as f64 * 0.2,
-        water_source_ids: water_ids,
-        bucket_water_source_ids: bucket_ids,
-        is_hidden_wound: false,
-        ..Default::default()
-    }
-    .with_content_craft_gates(content);
     let pile_id_for = |id: i32| {
         let p = pile_obj_id_from_content(content, id);
         if p > 0 {
@@ -3140,6 +3206,42 @@ fn npc_expand_craft_product(
     product_id: i32,
 ) -> ShortCraftLiveIntent {
     npc_expand_craft_intent(
+        tiles,
+        px,
+        py,
+        held_id,
+        moving,
+        home_x,
+        home_y,
+        content,
+        craft_graph,
+        craft_rt,
+        blocked,
+        is_smith,
+        tick,
+        ShortCraftLiveIntent::CraftItem {
+            object_id: product_id,
+        },
+    )
+}
+
+fn npc_expand_clothing_craft_product(
+    tiles: &[ScanTile],
+    px: i32,
+    py: i32,
+    held_id: i32,
+    moving: bool,
+    home_x: i32,
+    home_y: i32,
+    content: &ContentDb,
+    craft_graph: &ReverseCraftGraph,
+    craft_rt: &mut CraftAiRuntime,
+    blocked: &HashSet<(i32, i32)>,
+    is_smith: bool,
+    tick: u64,
+    product_id: i32,
+) -> ShortCraftLiveIntent {
+    npc_expand_clothing_craft_intent(
         tiles,
         px,
         py,
@@ -10520,7 +10622,8 @@ pub async fn run_npc_scheduler(
             // --- 2a3. Clothing craft bands (AI-CLOTHING-CRAFT) ---
             // Haxe: high then medium if age>10 then low if age>30 / assigned TAILOR
             // Runs after food pickup/make; hungry with nearby food already `acted`.
-            if !acted {
+            // Haxe switchCloths / isPickingupCloths L8709–8723 skip age < MinAgeToEat.
+            if !acted && p.age >= MIN_AGE_TO_EAT {
                 let mut rag = [false; 6];
                 for i in 0..6 {
                     let id = p.clothing[i];
@@ -10712,7 +10815,7 @@ pub async fn run_npc_scheduler(
                             fallback_id,
                         } => {
                             if tiles.iter().any(|t| t.parent_id == get_id) {
-                                npc_expand_craft_intent(
+                                npc_expand_clothing_craft_intent(
                                     &tiles,
                                     p.x,
                                     p.y,
@@ -10732,7 +10835,7 @@ pub async fn run_npc_scheduler(
                                     },
                                 )
                             } else {
-                                npc_expand_craft_product(
+                                npc_expand_clothing_craft_product(
                                     &tiles,
                                     p.x,
                                     p.y,
@@ -10755,7 +10858,7 @@ pub async fn run_npc_scheduler(
                             craft_if_needed,
                         } => {
                             if craft_if_needed {
-                                npc_expand_craft_product(
+                                npc_expand_clothing_craft_product(
                                     &tiles,
                                     p.x,
                                     p.y,
@@ -10772,7 +10875,7 @@ pub async fn run_npc_scheduler(
                                     object_id,
                                 )
                             } else {
-                                npc_expand_craft_intent(
+                                npc_expand_clothing_craft_intent(
                                     &tiles,
                                     p.x,
                                     p.y,
@@ -10796,7 +10899,7 @@ pub async fn run_npc_scheduler(
                         ClothingCraftPlan::CraftItem(object_id) => {
                             // Haxe GetOrCraftItem L6196: if the cloth exists, dropTarget = obj.
                             // craftClothIfNeeded used craftItem and recrafted while 128 sat at home.
-                            let pickup = npc_expand_craft_intent(
+                            let pickup = npc_expand_clothing_craft_intent(
                                 &tiles,
                                 p.x,
                                 p.y,
@@ -10820,7 +10923,7 @@ pub async fn run_npc_scheduler(
                             {
                                 pickup
                             } else {
-                                npc_expand_craft_product(
+                                npc_expand_clothing_craft_product(
                                     &tiles,
                                     p.x,
                                     p.y,
@@ -10850,7 +10953,7 @@ pub async fn run_npc_scheduler(
                         if let Some(ClothingCraftPlan::CraftItem(id)) =
                             plan_quiver_arrow_precursors(p.held_id, &home_stock)
                         {
-                            npc_expand_craft_product(
+                            npc_expand_clothing_craft_product(
                                 &tiles,
                                 p.x,
                                 p.y,
@@ -10906,7 +11009,7 @@ pub async fn run_npc_scheduler(
                         );
                     } else if matches!(plan, ClothingCraftPlan::CraftItem(200)) {
                         // Haxe: craftClothIfNeeded(200) false → try Reed Skirt 128 same tick.
-                        let skirt = npc_expand_craft_product(
+                        let skirt = npc_expand_clothing_craft_product(
                             &tiles,
                             p.x,
                             p.y,
@@ -12893,5 +12996,15 @@ mod tests {
     fn clothing_high_priority_uses_haxe_max_search_radius_60() {
         // Haxe: doTimeStuffHelper L672–673 before craftHighPriorityClothing L684.
         assert_eq!(NPC_GET_OR_CRAFT_SEARCH_RADIUS, 60);
+        let mut st = NpcProfessionState::default();
+        let mut opts = CraftLiveExpandOpts::default();
+        npc_prepare_clothing_l672_search(&mut st.craft_rt, &mut opts);
+        assert!(
+            !st.craft_rt.item.search_current_position,
+            "Haxe L430/L672 searchCurrentPosition = false"
+        );
+        assert_eq!(st.craft_rt.item.max_search_radius, 60);
+        assert_eq!(opts.ai_max_search_radius, 60);
+        assert_eq!(opts.ai_max_search_increment, 60);
     }
 }
