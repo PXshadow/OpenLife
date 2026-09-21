@@ -84,7 +84,9 @@ use ol_sim::{
     has_onion_seeds_from_scan, has_pepper_seeds_from_scan,
     count_seeds_from_scan, has_carrot_seeds_from_scan, init_water_source_ids_from_content,
     is_walkable, npc_think_job_rungs,
-    is_walkable_with_animals, is_wound_object, ladder_profession_scan_tick, mark_food_path_fail,
+    is_walkable_with_animals, is_wound_object, ladder_profession_scan_tick,
+    hunting_profession_scan_tick, knife_stuff_profession_scan_tick,
+    pull_carrot_row_profession_scan_tick, HUNTING_MID_MIN_AGE, mark_food_path_fail,
     mark_goto_path_fail, merge_path_reach_maps, next_step, next_step_consider_animals_for_player,
     npc_enqueue_get_or_craft_ex, npc_peer_count_for_kind, npc_peer_counts_by_kind,
     farm_peer_lasts_from_npc_rows, path_filters_from_player, peer_home_coords,
@@ -1670,6 +1672,45 @@ fn npc_run_is_handling_fire_mid(
         npc_client_move_seq(p.done_moving_seq),
     ) {
         Some((kind, format!("isHandlingFire {detail}"), game_ms))
+    } else {
+        None
+    }
+}
+
+/// Commit a profession-scan intent (knife / carrot row / mid isHunting).
+fn npc_apply_scan_tick(
+    r: ProfessionScanTickResult,
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+    label: &str,
+) -> Option<(NpcActivityKind, String, u32)> {
+    if !r.had_action {
+        return None;
+    }
+    let mut kind = NpcActivityKind::Craft;
+    let mut detail = String::new();
+    let mut game_ms = 200u32;
+    if npc_commit_craft_live(
+        &r.intent,
+        intent_tx,
+        world,
+        content,
+        st,
+        conn_id,
+        p.x,
+        p.y,
+        p.food,
+        p.moving,
+        &mut kind,
+        &mut detail,
+        &mut game_ms,
+        npc_client_move_seq(p.done_moving_seq),
+    ) {
+        Some((kind, format!("{label} {detail}"), game_ms))
     } else {
         None
     }
@@ -9037,6 +9078,73 @@ pub async fn run_npc_scheduler(
                 }
             }
 
+            // Haxe L635 doKnifeStuff() after isHandlingFire, before pull-carrot / clothes.
+            // Haxe: AiBase.doTimeStuffHelper L635; doKnifeStuff L876
+            if !acted && p.age >= MIN_AGE_TO_EAT {
+                let tiles = {
+                    let st = profession_state.entry(conn_id).or_default();
+                    npc_scan_cached_rw(st, world.as_ref(), content.as_ref(), p.x, p.y, 40)
+                };
+                let mut inp = ProfessionScanInput::basic(p.x, p.y, p.held_id);
+                inp.held_uses = p.held_uses.max(1);
+                inp.food_store = p.food;
+                inp.is_moving = p.moving;
+                inp.target_reachable = true;
+                inp.content = Some(content.clone());
+                let r = knife_stuff_profession_scan_tick(&tiles, &inp);
+                let w = world.read().unwrap();
+                let st = profession_state.entry(conn_id).or_default();
+                if let Some((k, d, ms)) = npc_apply_scan_tick(
+                    r,
+                    &intent_tx,
+                    &w,
+                    content.as_ref(),
+                    st,
+                    conn_id,
+                    &p,
+                    "doKnifeStuff",
+                ) {
+                    kind = k;
+                    detail = d;
+                    game_ms = ms;
+                    acted = true;
+                }
+            }
+
+            // Haxe L651 shortCraft(0, 400, 10) pull carrots before isPickingupCloths.
+            // Haxe: AiBase.doTimeStuffHelper L651
+            if !acted && p.age >= MIN_AGE_TO_EAT {
+                let tiles = {
+                    let st = profession_state.entry(conn_id).or_default();
+                    npc_scan_cached_rw(st, world.as_ref(), content.as_ref(), p.x, p.y, 40)
+                };
+                let mut inp = ProfessionScanInput::basic(p.x, p.y, p.held_id);
+                inp.held_uses = p.held_uses.max(1);
+                inp.food_store = p.food;
+                inp.is_moving = p.moving;
+                inp.has_carrot_seeds = has_carrot_seeds_from_scan(&tiles);
+                inp.target_reachable = true;
+                inp.content = Some(content.clone());
+                let r = pull_carrot_row_profession_scan_tick(&tiles, &inp);
+                let w = world.read().unwrap();
+                let st = profession_state.entry(conn_id).or_default();
+                if let Some((k, d, ms)) = npc_apply_scan_tick(
+                    r,
+                    &intent_tx,
+                    &w,
+                    content.as_ref(),
+                    st,
+                    conn_id,
+                    &p,
+                    "pull_carrot_row",
+                ) {
+                    kind = k;
+                    detail = d;
+                    game_ms = ms;
+                    acted = true;
+                }
+            }
+
             // Haxe L652 isPickingupCloths() before makeSharpieFood L656.
             // Haxe: AiBase.doTimeStuffHelper L652; isPickingupCloths L8723–8752
             if !acted && p.age >= MIN_AGE_TO_EAT {
@@ -9059,6 +9167,105 @@ pub async fn run_npc_scheduler(
                     detail = d;
                     game_ms = ms;
                     acted = true;
+                }
+            }
+
+            // Haxe L653 handleTemperature() after isPickingupCloths, before isHunting.
+            // Haxe: AiBase.doTimeStuffHelper L653
+            if !acted {
+                let env_winter = env_view
+                    .read()
+                    .ok()
+                    .map(|e| e.is_winter())
+                    .unwrap_or(false);
+                let w = world.read().unwrap();
+                let st = profession_state.entry(conn_id).or_default();
+                if let Some((k, d, ms)) = npc_run_handle_temperature(
+                    &intent_tx,
+                    &w,
+                    content.as_ref(),
+                    craft_graph.as_ref(),
+                    env_winter,
+                    conn_id,
+                    &p,
+                    st,
+                    tick,
+                ) {
+                    kind = k;
+                    detail = d;
+                    game_ms = ms;
+                    acted = true;
+                }
+            }
+
+            // Haxe L655: doStuff && age > 14 && isHunting() before makeSharpieFood.
+            // Haxe: AiBase.doTimeStuffHelper L655; isHunting L5967
+            if !acted && p.age > HUNTING_MID_MIN_AGE {
+                let nearby_food = nearby.iter().any(|o| food_at(&content, o.id) > 0);
+                let animals_g = animals.read().ok();
+                let views_g = player_views.read().ok();
+                let do_stuff = if let Some(views) = views_g.as_ref() {
+                    let st = profession_state.entry(conn_id).or_default();
+                    let input = npc_fill_live_sensor_input_ex(
+                        &p,
+                        content.as_ref(),
+                        views,
+                        animals_g.as_deref(),
+                        st,
+                        nearby_food,
+                        &nearby,
+                    );
+                    fill_live_sensors(&input).sensors.do_stuff
+                } else {
+                    true
+                };
+                if do_stuff {
+                    let tiles = {
+                        let st = profession_state.entry(conn_id).or_default();
+                        npc_scan_cached_rw(st, world.as_ref(), content.as_ref(), p.x, p.y, 40)
+                    };
+                    let (home_x, home_y) =
+                        peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+                    let mut inp = ProfessionScanInput::basic(p.x, p.y, p.held_id);
+                    inp.home_x = home_x;
+                    inp.home_y = home_y;
+                    inp.held_uses = p.held_uses.max(1);
+                    inp.food_store = p.food;
+                    inp.age = p.age;
+                    inp.is_moving = p.moving;
+                    inp.target_reachable = true;
+                    inp.content = Some(content.clone());
+                    {
+                        let st = profession_state.entry(conn_id).or_default();
+                        inp.profession_is_sticky =
+                            st.hunter_rt.is_last_hunter || st.hunter_rt.is_assigned_hunter;
+                    }
+                    let r = {
+                        let st = profession_state.entry(conn_id).or_default();
+                        hunting_profession_scan_tick(
+                            &tiles,
+                            &inp,
+                            "MID_PRIORITY_TASKS",
+                            &mut st.hunter_rt,
+                        )
+                    };
+                    let w = world.read().unwrap();
+                    let st = profession_state.entry(conn_id).or_default();
+                    if let Some((k, d, ms)) = npc_apply_scan_tick(
+                        r,
+                        &intent_tx,
+                        &w,
+                        content.as_ref(),
+                        st,
+                        conn_id,
+                        &p,
+                        "isHunting",
+                    ) {
+                        kind = k;
+                        detail = d;
+                        game_ms = ms;
+                        acted = true;
+                    }
                 }
             }
 
