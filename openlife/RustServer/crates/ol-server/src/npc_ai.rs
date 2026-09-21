@@ -2622,7 +2622,51 @@ fn npc_run_is_feeding_child(
         return None;
     }
     if p.held_id != 0 && !p.is_hidden_wound {
-        if npc_drop_at(intent_tx, conn_id, p.x, p.y, None) {
+        let held_base = content.resolve_base_id(p.held_id);
+        // Held rope + reed inside 60: USE the bundle so the next isDropingItem
+        // DROP (L8456) can pick up 128 and switchCloths SELF (L8709) can wear it.
+        // dropHeldObject on the occupied feet tile action-spammed and never landed.
+        if held_base == 59 {
+            let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+            if let Some(intent) = npc_reed_skirt_direct(
+                world,
+                p.x,
+                p.y,
+                hx,
+                hy,
+                held_base,
+                NPC_GET_OR_CRAFT_SEARCH_RADIUS,
+            ) {
+                let mut kind = NpcActivityKind::Craft;
+                let mut detail = String::new();
+                let mut game_ms = 200u32;
+                if npc_commit_craft_live(
+                    &intent,
+                    intent_tx,
+                    world,
+                    content,
+                    st,
+                    conn_id,
+                    p.x,
+                    p.y,
+                    p.food,
+                    p.moving,
+                    &mut kind,
+                    &mut detail,
+                    &mut game_ms,
+                    npc_client_move_seq(p.done_moving_seq),
+                ) {
+                    return Some((
+                        kind,
+                        format!("reed_skirt_before_baby {detail}"),
+                        game_ms,
+                    ));
+                }
+            }
+        }
+        // Haxe dropHeldObject(0): empty tile, not a SWAP on the occupied feet tile.
+        let (dx, dy) = npc_empty_drop_xy(world, p.x, p.y);
+        if npc_drop_at(intent_tx, conn_id, dx, dy, None) {
             return Some((
                 NpcActivityKind::Baby,
                 format!("drop_obj_for_baby held={}", p.held_id),
@@ -13182,6 +13226,30 @@ mod tests {
             None,
             "80 tiles is beyond Haxe clothing maxSearchRadius 60; recraft at home"
         );
+    }
+
+    #[test]
+    fn reed_skirt_direct_uses_bundle_when_holding_rope() {
+        // Held 59 + reed 124 inside 60 → USE, not a closer milkweed step.
+        let mut w = World::new(128, 128, false);
+        w.set_object(10, 0, 59);
+        w.set_object(4, 0, 124);
+        w.set_object(1, 0, 50);
+        let use_reed = npc_reed_skirt_direct(&w, 0, 0, 0, 0, 59, 60);
+        assert!(matches!(
+            use_reed,
+            Some(ShortCraftLiveIntent::UseAt {
+                target_id: 124,
+                x: 4,
+                y: 0,
+                ..
+            })
+        ));
+        let pick_rope = npc_reed_skirt_direct(&w, 0, 0, 0, 0, 0, 60);
+        assert!(matches!(
+            pick_rope,
+            Some(ShortCraftLiveIntent::DropAt { x: 10, y: 0 })
+        ));
     }
 
     #[test]
