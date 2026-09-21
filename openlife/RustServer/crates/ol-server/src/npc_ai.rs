@@ -5709,19 +5709,10 @@ fn npc_drop_arrive_label(
     }
 }
 
-/// Haxe GetCloseClothings r=8 around the player, plus home CountClose r=60.
-/// Live 0.3.15 left Reed Skirt 128 at home; r=8 never saw it after hunt walks.
-// Haxe: AiHelper.GetCloseClothings L541; addAllObjectsForCrafting L7240; CountCloseObjects r=60
-fn npc_clothing_pickup_in_range(
-    px: i32,
-    py: i32,
-    home_x: i32,
-    home_y: i32,
-    tx: i32,
-    ty: i32,
-) -> bool {
+/// Haxe `GetCloseClothings` r=8 around the player (half-open).
+// Haxe: AiHelper.GetCloseClothings L541; isPickingupCloths L8726
+fn npc_clothing_pickup_in_range(px: i32, py: i32, tx: i32, ty: i32) -> bool {
     in_get_close_clothings_square(px, py, tx, ty, GET_CLOSE_CLOTHINGS_RADIUS)
-        || in_get_close_clothings_square(home_x, home_y, tx, ty, HOME_CLOTH_COUNT_RADIUS)
 }
 
 fn npc_clothing_slot(content: &ContentDb, id: i32) -> Option<i32> {
@@ -5931,17 +5922,13 @@ fn npc_run_is_pickingup_cloths(
     if p.age < MIN_AGE_TO_EAT {
         return None;
     }
-    // Haxe GetCloseClothings default r=8 half-open; skip notReachable/hostile.
-    // Also home r=60 (Haxe addAllObjectsForCrafting L7240 / CountCloseObjects).
-    let mut tiles = npc_scan_cached(st, world, content, p.x, p.y, GET_CLOSE_CLOTHINGS_RADIUS);
-    let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
-    let home = scan_world_radius(world, Some(content), hx, hy, HOME_CLOTH_COUNT_RADIUS);
-    tiles = npc_merge_scan_tiles(tiles, home);
+    // Haxe GetCloseClothings default r=8 half-open around the player.
+    let tiles = npc_scan_cached(st, world, content, p.x, p.y, GET_CLOSE_CLOTHINGS_RADIUS);
     for t in &tiles {
         if t.parent_id == 0 {
             continue;
         }
-        if !npc_clothing_pickup_in_range(p.x, p.y, hx, hy, t.x, t.y) {
+        if !npc_clothing_pickup_in_range(p.x, p.y, t.x, t.y) {
             continue;
         }
         if !npc_is_switchable_ground_cloth(content, t.parent_id, p.clothing, prestige_class) {
@@ -6288,15 +6275,9 @@ fn npc_run_kill_animal(
         KillAnimalAction::GetWeapon(gw) => match gw {
             GetWeaponAction::None => None,
             GetWeaponAction::Wait => {
-                // Haxe GetOrCraftItem L6152: isMoving → return true (no new goto).
-                // That Wait was consuming the think before isPickingupCloths L652
-                // whenever AnimalWorld wolves kept animalTarget set. Existing MOVE
-                // continues; after stop, SeekOrCraft(152) runs.
-                if p.moving {
-                    None
-                } else {
-                    Some((NpcActivityKind::Combat, "kill_animal_wait_weapon".into(), 200))
-                }
+                // Haxe GetOrCraftItem L6152: isMoving → return true.
+                // killAnimal then returns true (L593) so later bands do not run.
+                Some((NpcActivityKind::Combat, "kill_animal_wait_weapon".into(), 200))
             }
             GetWeaponAction::GoHome { x, y } => {
                 if npc_try_walk_to_sticky(
@@ -10998,10 +10979,11 @@ pub async fn run_npc_scheduler(
                             {
                                 pickup
                             } else if let Some((x, y)) = world.read().ok().and_then(|w| {
+                                // Haxe L672 searchCurrentPosition=false: from home, r=60.
                                 npc_existing_object_xy_within(
                                     &w,
-                                    p.x,
-                                    p.y,
+                                    home_x,
+                                    home_y,
                                     object_id,
                                     NPC_GET_OR_CRAFT_SEARCH_RADIUS,
                                 )
@@ -11560,48 +11542,7 @@ pub async fn run_npc_scheduler(
                     let rungs = npc_think_job_rungs(&sticky);
                     let mut result = ProfessionScanTickResult::none();
                     let mut rung = rung;
-                    let class_u8 = npc_prestige_class_u8(st.prestige_class);
                     for r in rungs {
-                        if r == PriorityRung::MidPriorityTasks {
-                            let w = world.read().unwrap();
-                            if let Some((k, d, ms)) = npc_run_is_pickingup_cloths(
-                                &intent_tx,
-                                &w,
-                                content.as_ref(),
-                                st,
-                                conn_id,
-                                &p,
-                                class_u8,
-                            ) {
-                                kind = k;
-                                detail = d;
-                                game_ms = ms;
-                                acted = true;
-                                break;
-                            }
-                            let env_winter = env_view
-                                .read()
-                                .ok()
-                                .map(|e| e.is_winter())
-                                .unwrap_or(false);
-                            if let Some((k, d, ms)) = npc_run_handle_temperature(
-                                &intent_tx,
-                                &w,
-                                content.as_ref(),
-                                craft_graph.as_ref(),
-                                env_winter,
-                                conn_id,
-                                &p,
-                                st,
-                                tick,
-                            ) {
-                                kind = k;
-                                detail = d;
-                                game_ms = ms;
-                                acted = true;
-                                break;
-                            }
-                        }
                         let rtick = ladder_profession_scan_tick(
                             r,
                             &tiles,
@@ -13018,15 +12959,13 @@ mod tests {
     }
 
     #[test]
-    fn clothing_pickup_range_includes_home_r60() {
-        // Live 0.3.15: 128 at home, AIs hunting 20+ tiles away, r=8 miss.
-        // Haxe GetCloseClothings r=8 plus addAllObjectsForCrafting home.
-        // Home far so r=8 is the only hit.
-        assert!(npc_clothing_pickup_in_range(0, 0, 1000, 1000, 5, 0));
-        assert!(!npc_clothing_pickup_in_range(0, 0, 1000, 1000, 8, 0));
-        assert!(npc_clothing_pickup_in_range(100, 100, 0, 0, 20, 0));
-        assert!(npc_clothing_pickup_in_range(100, 100, 0, 0, 0, 0));
-        assert!(!npc_clothing_pickup_in_range(100, 100, 0, 0, 60, 0));
+    fn clothing_pickup_range_is_get_close_clothings_r8() {
+        // Haxe isPickingupCloths L8726: GetCloseClothings r=8 around the player.
+        // Home r=60 is craftItem L672, not this band.
+        assert!(npc_clothing_pickup_in_range(0, 0, 5, 0));
+        assert!(!npc_clothing_pickup_in_range(0, 0, 8, 0));
+        assert!(!npc_clothing_pickup_in_range(100, 100, 20, 0));
+        assert!(!npc_clothing_pickup_in_range(100, 100, 0, 0));
     }
 
     #[test]
@@ -13093,9 +13032,7 @@ mod tests {
         w.set_object(449, 233, 50);
         let hit = npc_existing_switch_cloth_xy(&w, &db, 448, 239, [0; 6], 0);
         assert_eq!(hit, Some((228, 275, 128)));
-        assert!(!npc_clothing_pickup_in_range(
-            448, 239, 433, 245, 228, 275
-        ));
+        assert!(!npc_clothing_pickup_in_range(448, 239, 228, 275));
         assert_eq!(
             w.find_closest_object_id(128, 448, 239),
             Some((228, 275))
