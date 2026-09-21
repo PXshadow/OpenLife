@@ -340,6 +340,7 @@ pub use feeding_player::{
     pick_close_starving_player, resolve_foodserver_assigned_job, smith_blocks_mid_feed,
     try_decide_feeding_player_from_rung, FeedingPlayerAction, FeedingPlayerSensors,
     FoodServerProfessionRuntime, StarvingCand, FOODSERVER_ASSIGNED_MAX, FOODSERVER_DEFAULT_MAX,
+    FOODSERVER_MIN_FOOD,
     FOODSERVER_FOOD_SEARCH_RADIUS, FOODSERVER_PROFESSION_KEY, STARVING_SEARCH_DIST,
     feed_you_are_say, FEED_NAME_MIN_AGE, FEED_NAME_RANDOM_CHANCE, FEED_WAIT_SECS,
 };
@@ -395,6 +396,7 @@ pub use ai_say_helper::{go_home_goal_xy, go_home_move_target, should_path_to_hom
 pub use ai_follow_walk::{
     apply_follow_sticky_clear, decide_follow_walk, follow_seed, plan_ally_up,
     plan_follow_sticky_clear_ex, plan_found_family, should_skip_ally_up_if_hired,
+    AllyUpBest,
     truncate_follow_path_steps, FollowWalkDecision, FoundFamilyPlan, FOLLOW_PATH_STEP_CAP,
     FOUND_FAMILY_COST, FOUND_FAMILY_NEEDED_FOLLOWERS, FOUND_FAMILY_NEEDED_PRESTIGE,
 };
@@ -491,7 +493,8 @@ pub use farmer_profession::{
     make_sharpie_food, make_sharpie_food_from_xy, pull_carrot_row_if_needed,
     resolve_farm_assigned_job, FarmAction, FarmCounts, PullCarrotRowAction,
     PullCarrotRowInput, BURDOCK, CORN_PLANT, DRIED_CORN, EAR_OF_CORN, PILE_DRIED_CORN,
-    SEEDING_WILD_CARROT, SHUCKED_CORN, SKINNED_RABBIT, SKEWERED_RABBIT,
+    SEEDING_WILD_CARROT, SHUCKED_CORN, SKINNED_RABBIT, SKEWER, SKEWERED_RABBIT,
+    TOMATO_SPROUT,
     CONSIDER_FOOD_RECHECK_SEC, CONSIDER_MAKE_FOOD_NEAR_QUAD,
     MAKE_SHARPIE_FOOD_CLOSE_CALL_DISTANCE, MAKE_SHARPIE_FOOD_DEFAULT_MAX_DISTANCE,
     MAKE_SHARPIE_FOOD_FAR_CALL_DISTANCE, TURKEY_SLICE_ON_PLATE,

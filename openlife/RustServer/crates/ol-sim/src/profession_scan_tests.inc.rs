@@ -1444,12 +1444,15 @@ fn plan_profession_ladder_assigned_and_age_rungs() {
             ..Default::default()
         },
     );
-    // AI-JOB-SMITH-RESID: early sticky + CRITICAL_CRAFT + HOT_KILN + omelette
-    assert_eq!(crit.len(), 4);
+    // Haxe L609–629: last-SMITH, kiln, bloom, omelette, first carrot, berry/bean held
+    assert_eq!(crit.len(), 7);
     assert_eq!(crit[0].rung_label, "EARLY_STICKY_SMITH");
-    assert_eq!(crit[1].rung_label, "CRITICAL_CRAFT");
-    assert_eq!(crit[2].rung_label, "HOT_KILN");
+    assert_eq!(crit[1].rung_label, "HOT_KILN");
+    assert_eq!(crit[2].rung_label, "CRITICAL_CRAFT");
     assert_eq!(crit[3].rung_label, COOKED_OMELETTE_RUNG);
+    assert_eq!(crit[4].rung_label, PULL_CARROT_ROW_RUNG);
+    assert_eq!(crit[5].rung_label, FILL_BERRY_HELD_RUNG);
+    assert_eq!(crit[6].rung_label, FILL_BEAN_HELD_RUNG);
     let crit_open = plan_profession_ladder_steps(
         PriorityRung::CriticalCraft,
         &ProfessionStickySnapshot {
@@ -1457,9 +1460,9 @@ fn plan_profession_ladder_assigned_and_age_rungs() {
             ..Default::default()
         },
     );
-    assert_eq!(crit_open.len(), 3);
-    assert_eq!(crit_open[0].rung_label, "CRITICAL_CRAFT");
-    assert_eq!(crit_open[1].rung_label, "HOT_KILN");
+    assert_eq!(crit_open.len(), 6);
+    assert_eq!(crit_open[0].rung_label, "HOT_KILN");
+    assert_eq!(crit_open[1].rung_label, "CRITICAL_CRAFT");
     assert_eq!(crit_open[2].rung_label, COOKED_OMELETTE_RUNG);
 
     let idle = plan_profession_ladder_steps(PriorityRung::Escape, &sticky);
@@ -2937,27 +2940,14 @@ fn plan_temperature_and_consider_make_food_emit_handling_fire() {
     );
 
     let mid = plan_profession_ladder_steps(PriorityRung::MidPriorityTasks, &sticky);
-    assert_eq!(mid[0].kind, ProfessionScanKind::Farm);
-    assert_eq!(mid[0].rung_label, PULL_CARROT_ROW_RUNG);
-    assert_eq!(mid[0].farm_job, None);
-    assert!(!mid[0].is_assigned_job);
-    assert_eq!(mid[1].kind, ProfessionScanKind::Farm);
-    assert_eq!(mid[1].rung_label, FILL_BERRY_HELD_RUNG);
+    assert_eq!(mid.len(), 3);
+    assert_eq!(mid[0].kind, ProfessionScanKind::Shepherd);
+    assert_eq!(mid[0].rung_label, crate::shepherd_profession::FEED_LAMBS_CALFS_RUNG);
+    assert_eq!(mid[1].kind, ProfessionScanKind::HandlingGraves);
     assert_eq!(mid[2].kind, ProfessionScanKind::Farm);
-    assert_eq!(mid[2].rung_label, FILL_BEAN_HELD_RUNG);
-    assert_eq!(mid[3].kind, ProfessionScanKind::HandlingFire);
-    assert_eq!(mid[4].kind, ProfessionScanKind::Farm);
-    assert_eq!(mid[4].rung_label, crate::knife_stuff::KNIFE_STUFF_RUNG);
-    assert_eq!(mid[4].farm_job, None);
-    assert!(!mid[4].is_assigned_job);
-    assert_eq!(mid[5].kind, ProfessionScanKind::Shepherd);
-    assert_eq!(mid[5].rung_label, crate::shepherd_profession::FEED_LAMBS_CALFS_RUNG);
-    assert_eq!(mid[6].kind, ProfessionScanKind::Hunting);
-    assert_eq!(mid[7].kind, ProfessionScanKind::HandlingGraves);
-    assert_eq!(mid[8].kind, ProfessionScanKind::Farm);
-    assert_eq!(mid[8].farm_job, Some(FarmProfession::WaterBringer));
-    assert_eq!(mid[8].rung_label, "FILL_BUCKET");
-    assert!(!mid[8].is_assigned_job);
+    assert_eq!(mid[2].farm_job, Some(FarmProfession::WaterBringer));
+    assert_eq!(mid[2].rung_label, "FILL_BUCKET");
+    assert!(!mid[2].is_assigned_job);
 
     let hungry = plan_profession_ladder_steps(PriorityRung::ConsiderMakeFood, &sticky);
     assert_eq!(hungry.len(), 3);
@@ -2977,10 +2967,10 @@ fn plan_temperature_and_consider_make_food_emit_handling_fire() {
     assert_eq!(misc[7].rung_label, DO_CARROT_LOW_RUNG);
 
     let rungs = npc_think_job_rungs(&sticky);
-    assert_eq!(rungs[0], PriorityRung::CriticalCraft);
-    assert_eq!(rungs[1], PriorityRung::MidPriorityTasks);
+    assert_eq!(rungs[0], PriorityRung::CriticalMisc);
     assert_eq!(*rungs.last().unwrap(), PriorityRung::LowPriorityWork);
-    assert!(rungs.contains(&PriorityRung::CriticalMisc));
+    assert!(!rungs.contains(&PriorityRung::CriticalCraft));
+    assert!(!rungs.contains(&PriorityRung::MidPriorityTasks));
     let assigned_sticky = ProfessionStickySnapshot {
         farm_assigned: Some(FarmProfession::BasicFarmer),
         age: 20.0,

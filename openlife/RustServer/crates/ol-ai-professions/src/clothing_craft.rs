@@ -572,14 +572,15 @@ pub fn plan_low_priority_clothing(inp: &ClothingCraftInput<'_>) -> Option<Clothi
     None
 }
 
-/// Early ClothingCraft band: high, then medium if `age > 10` or assigned TAILOR.
+/// Early ClothingCraft band: high, then medium if `age > 10`.
+/// Assigned TAILOR medium/low is the later exclusive job chain, not this band.
 /// Low is **not** here — Haxe `craftLowPriorityClothing` is after jobs (L817).
 // Haxe: doTimeStuffHelper L684–690
 pub fn plan_clothing_craft_tick(inp: &ClothingCraftInput<'_>) -> Option<ClothingCraftPlan> {
     if let Some(id) = plan_high_priority_clothing(inp) {
         return Some(ClothingCraftPlan::CraftItem(id));
     }
-    if inp.age > 10.0 || inp.assigned_tailor {
+    if inp.age > 10.0 {
         if let Some(m) = plan_medium_priority_clothing(inp) {
             return Some(m);
         }
@@ -948,7 +949,7 @@ mod tests {
 
     #[test]
     fn assigned_tailor_runs_medium_under_age_10() {
-        // Haxe assigned TAILOR craftMediumPriorityClothing(100) — no age>10 gate
+        // Haxe L689 early band is age>10 only. Assigned TAILOR medium(100) is L749.
         let mut ids = [0; 6];
         ids[SLOT_BOTTOM] = 128;
         let rag = [false; 6];
@@ -969,10 +970,7 @@ mod tests {
         assert_eq!(plan_high_priority_clothing(&inp), None);
         assert_eq!(plan_clothing_craft_tick(&inp), None);
         inp.assigned_tailor = true;
-        assert_eq!(
-            plan_clothing_craft_tick(&inp),
-            Some(ClothingCraftPlan::CraftItem(EMPTY_WATER_POUCH))
-        );
+        assert_eq!(plan_clothing_craft_tick(&inp), None);
         assert_eq!(
             plan_assigned_tailor_clothing(&inp),
             Some(ClothingCraftPlan::CraftItem(EMPTY_WATER_POUCH))

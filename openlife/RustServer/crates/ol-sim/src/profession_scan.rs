@@ -5554,8 +5554,8 @@ pub fn plan_age_rotated_steps(age: f32) -> Vec<ProfessionLadderStep> {
 // AI-JOB-SMITH-RESID: CriticalCraft tails (CRITICAL_CRAFT slot without profession)
 pub fn plan_critical_craft_steps(sticky: &ProfessionStickySnapshot) -> Vec<ProfessionLadderStep> {
     let mut out = Vec::new();
-    // Haxe: early sticky doSmithing before bloom/tongs shortCrafts
-    if sticky.smith_assigned || sticky.smith_last {
+    // Haxe L609: lastProfession == 'SMITH' && doSmithing() (not assigned)
+    if sticky.smith_last {
         out.push(ProfessionLadderStep {
             kind: ProfessionScanKind::Smith,
             rung_label: "EARLY_STICKY_SMITH",
@@ -5565,16 +5565,8 @@ pub fn plan_critical_craft_steps(sticky: &ProfessionStickySnapshot) -> Vec<Profe
             profession_is_sticky: true,
         });
     }
-    // Haxe: critical smith shortCrafts (441+309 / 33+309 / 320+304) — no profession gate
-    out.push(ProfessionLadderStep {
-        kind: ProfessionScanKind::Smith,
-        rung_label: "CRITICAL_CRAFT",
-        farm_job: None,
-        farm_has_profession: false,
-        is_assigned_job: false,
-        profession_is_sticky: sticky.smith_assigned || sticky.smith_last,
-    });
-    // Haxe: hotkiln 282 r=10 or profession['POTTER']>=10 → doPottery(-2) L612–615
+    // Haxe L612–615: hotkiln 282 r=10 or profession['POTTER']>=10 → doPottery(-2)
+    // before bloom shorts L618–621.
     out.push(ProfessionLadderStep {
         kind: ProfessionScanKind::Pottery,
         rung_label: "HOT_KILN",
@@ -5583,8 +5575,22 @@ pub fn plan_critical_craft_steps(sticky: &ProfessionStickySnapshot) -> Vec<Profe
         is_assigned_job: false,
         profession_is_sticky: sticky.pottery_assigned || sticky.pottery_last,
     });
-    // Haxe: shortCraft(236, 1281) cooked omelette L624
+    // Haxe L618–621: 441+309 / 33+309 / 320+304 — no profession gate
+    out.push(ProfessionLadderStep {
+        kind: ProfessionScanKind::Smith,
+        rung_label: "CRITICAL_CRAFT",
+        farm_job: None,
+        farm_has_profession: false,
+        is_assigned_job: false,
+        profession_is_sticky: sticky.smith_assigned || sticky.smith_last,
+    });
+    // Haxe L624: shortCraft(236, 1281) cooked omelette
     out.push(cooked_omelette_ladder_step());
+    // Haxe L626: first shortCraft(0, 400, 10) before fire
+    out.push(pull_carrot_row_ladder_step());
+    // Haxe L627–629: fillBerryBowlIfNeeded(true) then fillBeanBowlIfNeeded held
+    out.push(fill_berry_held_ladder_step());
+    out.push(fill_bean_held_ladder_step());
     out
 }
 
@@ -5599,7 +5605,7 @@ fn cooked_omelette_ladder_step() -> ProfessionLadderStep {
     }
 }
 
-fn feed_lambs_ladder_step(sticky: &ProfessionStickySnapshot) -> ProfessionLadderStep {
+pub fn feed_lambs_ladder_step(sticky: &ProfessionStickySnapshot) -> ProfessionLadderStep {
     ProfessionLadderStep {
         kind: ProfessionScanKind::Shepherd,
         rung_label: FEED_LAMBS_CALFS_RUNG,
@@ -5856,42 +5862,19 @@ pub fn plan_profession_ladder_steps(
         // Mid job band: shortCraft(0,400,10) ~626; fillBerry/Bean held; isHandlingFire ~634
         // Haxe: AiBase.doTimeStuffHelper L626–660
         PriorityRung::MidPriorityTasks => {
-            let label = "MID_PRIORITY_TASKS";
-            let mut steps = vec![
-                pull_carrot_row_ladder_step(),
-                fill_berry_held_ladder_step(),
-                fill_bean_held_ladder_step(),
-                ProfessionLadderStep {
-                    kind: ProfessionScanKind::HandlingFire,
-                    rung_label: label,
-                    farm_job: None,
-                    farm_has_profession: false,
-                    is_assigned_job: sticky.fire_keeper_assigned || sticky.fire_keeper_last,
-                    profession_is_sticky: sticky.fire_keeper_assigned || sticky.fire_keeper_last,
-                },
-                // Haxe: doKnifeStuff() after isHandlingFire ~635
-                knife_stuff_ladder_step(),
-                // Haxe: doFeedLambsAndCalfs(1) ~654
+            // Dedicated npc_ai mid-band (L634–L659) runs fire/knife/carrot2/clothes/temp/
+            // hunting/sharpie. This rung is the leftover after those: lambs, graves, bucket.
+            // Haxe: AiBase.doTimeStuffHelper L654, L657–L658
+            vec![
                 feed_lambs_ladder_step(sticky),
-                // Haxe: doStuff && age > 14 && isHunting() ~655
-                ProfessionLadderStep {
-                    kind: ProfessionScanKind::Hunting,
-                    rung_label: label,
-                    farm_job: None,
-                    farm_has_profession: false,
-                    is_assigned_job: sticky.hunter_assigned || sticky.hunter_last,
-                    profession_is_sticky: sticky.hunter_assigned || sticky.hunter_last,
-                },
-                // Haxe: mid isHandlingGraves() after isHunting ~657
                 ProfessionLadderStep {
                     kind: ProfessionScanKind::HandlingGraves,
-                    rung_label: label,
+                    rung_label: "MID_PRIORITY_TASKS",
                     farm_job: None,
                     farm_has_profession: false,
                     is_assigned_job: sticky.grave_keeper_assigned || sticky.grave_keeper_last,
                     profession_is_sticky: sticky.grave_keeper_assigned || sticky.grave_keeper_last,
                 },
-                // Haxe: fillBucketIfNeeded() after graves ~658 (WATERBRINGER max=1)
                 ProfessionLadderStep {
                     kind: ProfessionScanKind::Farm,
                     rung_label: "FILL_BUCKET",
@@ -5902,12 +5885,7 @@ pub fn plan_profession_ladder_steps(
                         == Some(FarmProfession::WaterBringer)
                         || sticky.farm_last == Some(FarmProfession::WaterBringer),
                 },
-            ];
-            steps.extend(plan_assigned_job_steps(sticky));
-            if steps.len() == 3 {
-                steps.extend(plan_age_rotated_steps(sticky.age));
-            }
-            steps
+            ]
         }
         // Haxe: handleDeath near-home isHandlingGraves() ~1632
         PriorityRung::HandleDeath => vec![ProfessionLadderStep {
@@ -5953,16 +5931,14 @@ pub fn plan_profession_ladder_steps(
     }
 }
 
-/// NPC think job-band order (Haxe does these sequentially, not first-match).
+/// NPC think job-band after clothing (Haxe L700+).
 ///
-/// CriticalCraft → MidPriorityTasks → AssignedJob (assigned **or** last) →
-/// CriticalMisc (`doCriticalStuff`) → LowPriorityWork (`isCollecting` + watering + jobByAge).
-// Haxe: AiBase.doTimeStuffHelper L609–800
+/// CriticalCraft (L609–629) and the L634–L659 mid-band run as dedicated blocks
+/// in `npc_ai` **before** clothing. This list is assigned jobs, `doCriticalStuff`,
+/// then low work.
+// Haxe: AiBase.doTimeStuffHelper L700–800
 pub fn npc_think_job_rungs(sticky: &ProfessionStickySnapshot) -> Vec<PriorityRung> {
-    let mut out = vec![
-        PriorityRung::CriticalCraft,
-        PriorityRung::MidPriorityTasks,
-    ];
+    let mut out = Vec::new();
     if sticky.has_assigned_job() || sticky.has_sticky_profession() {
         out.push(PriorityRung::AssignedJob);
     }
