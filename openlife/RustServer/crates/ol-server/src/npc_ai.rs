@@ -2597,6 +2597,17 @@ fn npc_run_is_feeding_child(
         child.x as f32,
         child.y as f32,
     );
+    // isFeedingChild returns before switchCloths (Haxe L557 then L558). A skirt
+    // just DROPped into the hand (isDropingItem L8456) would be carried to the
+    // child and then dropHeldObject(0)'d, so SELF (L8709) never sees held 128.
+    // Wear first when the held object is clothing; rope 59 is not clothing and
+    // still falls through to the reed USE below.
+    if p.held_id > 0 && !p.is_hidden_wound {
+        let class_u8 = npc_prestige_class_u8(st.prestige_class);
+        if let Some(out) = npc_run_switch_cloths(intent_tx, content, conn_id, p, class_u8) {
+            return Some(out);
+        }
+    }
     if !close {
         let walked = npc_try_walk_to(
             intent_tx,
@@ -5215,7 +5226,8 @@ fn npc_apply_dropping_item(
     }
 }
 
-/// Follow-too-far / container abort: drop held nearby and drop the original dropTarget.
+/// Follow-too-far / container / too-far: drop the held object nearby.
+/// `dropTarget` stays unless `maxDistance < 1` (Haxe `dropHeldObject` L5281).
 // Haxe: AiBase.isDropingItem L8401–8407 / L8371 / L8381 `return dropHeldObject(dropDistance)`
 fn npc_drop_held_for_dropping_item(
     intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
@@ -5230,11 +5242,18 @@ fn npc_drop_held_for_dropping_item(
     if !npc_drop_at(intent_tx, conn_id, dx, dy, None) {
         return None;
     }
-    // Abort the original dropTarget (container / too-far / follow-too-far).
-    clear_sticky_move(st);
+    // Haxe dropHeldObject L5281 clears dropTarget only when maxDistance < 1
+    // (baby drop, or triedDropCount > 5 → distance 0). Too-far / container /
+    // follow (distance 10) must keep dropTarget so the next think can goto and
+    // DROP (isDropingItem L8456). Clearing here forgot Reed Skirt 128.
+    let keep = !drop_held_clears_drop_target(max_distance as f32);
+    if !keep {
+        clear_sticky_move(st);
+    }
+    let tag = if keep { "keep_target" } else { "cleared" };
     Some((
         NpcActivityKind::Craft,
-        format!("droping_drop_held max={max_distance} @{},{}", dx, dy),
+        format!("droping_drop_held {tag} max={max_distance} @{},{}", dx, dy),
         400,
     ))
 }
@@ -13127,6 +13146,15 @@ mod tests {
         assert!(!npc_clothing_pickup_in_range(0, 0, 8, 0));
         assert!(!npc_clothing_pickup_in_range(100, 100, 20, 0));
         assert!(!npc_clothing_pickup_in_range(100, 100, 0, 0));
+    }
+
+    #[test]
+    fn too_far_drop_keeps_clothing_drop_target() {
+        // Live 0.3.27: isDropingItem quad>25 called dropHeldObject(10) and Rust
+        // cleared the sticky, so DROP L8456 never put 128 in hand and
+        // switchCloths L8709 never ran. Haxe L5281 clears only when max < 1.
+        assert!(!drop_held_clears_drop_target(10.0));
+        assert!(drop_held_clears_drop_target(0.0));
     }
 
     #[test]
