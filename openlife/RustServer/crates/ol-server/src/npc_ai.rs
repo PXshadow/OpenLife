@@ -5791,7 +5791,16 @@ fn npc_emit_seek_or_craft(
     kind_if_ok: NpcActivityKind,
     label: &str,
 ) -> Option<(NpcActivityKind, String, u32)> {
-    let tiles = npc_scan_cached(st, world, content, p.x, p.y, NPC_GET_OR_CRAFT_SEARCH_RADIUS);
+    let tiles = npc_scan_for_craft(
+        st,
+        world,
+        content,
+        p.x,
+        p.y,
+        p.home_x,
+        p.home_y,
+        NPC_GET_OR_CRAFT_SEARCH_RADIUS,
+    );
     let blocked = st.path_reach.blocked_coords(None);
     let staging = ShortCraftLiveIntent::SeekOrCraft {
         actor,
@@ -6280,6 +6289,66 @@ fn npc_scan_cached(
         return hit;
     }
     npc_scan_fill(st, world, content, cx, cy, r)
+}
+
+fn npc_merge_scan_tiles(mut a: Vec<ScanTile>, b: Vec<ScanTile>) -> Vec<ScanTile> {
+    let mut seen: HashSet<(i32, i32)> = a.iter().map(|t| (t.x, t.y)).collect();
+    for t in b {
+        if seen.insert((t.x, t.y)) {
+            a.push(t);
+        }
+    }
+    a
+}
+
+/// Haxe `addAllObjectsForCrafting` always scans home; player scan is extra.
+/// Merge home tiles when the player snapshot does not already cover home.
+// Haxe: AiBase.addAllObjectsForCraftig L7240
+fn npc_scan_for_craft(
+    st: &mut NpcProfessionState,
+    world: &World,
+    content: &ContentDb,
+    px: i32,
+    py: i32,
+    home_x: i32,
+    home_y: i32,
+    r: i32,
+) -> Vec<ScanTile> {
+    let player = npc_scan_cached(st, world, content, px, py, r);
+    if home_x == px && home_y == py {
+        return player;
+    }
+    if (home_x - px).abs() <= r && (home_y - py).abs() <= r {
+        return player;
+    }
+    let home = scan_world_radius(world, Some(content), home_x, home_y, r);
+    npc_merge_scan_tiles(player, home)
+}
+
+fn npc_scan_for_craft_rw(
+    st: &mut NpcProfessionState,
+    world: &RwLock<World>,
+    content: &ContentDb,
+    px: i32,
+    py: i32,
+    home_x: i32,
+    home_y: i32,
+    r: i32,
+) -> Vec<ScanTile> {
+    let player = npc_scan_cached_rw(st, world, content, px, py, r);
+    if home_x == px && home_y == py {
+        return player;
+    }
+    if (home_x - px).abs() <= r && (home_y - py).abs() <= r {
+        return player;
+    }
+    match world.try_read() {
+        Ok(w) => {
+            let home = scan_world_radius(&w, Some(content), home_x, home_y, r);
+            npc_merge_scan_tiles(player, home)
+        }
+        Err(_) => player,
+    }
 }
 
 /// Same as [`npc_scan_cached`] but takes the world lock only on a cache miss
@@ -10311,12 +10380,14 @@ pub async fn run_npc_scheduler(
                     };
                     let tiles = {
                         let st = profession_state.get_mut(&conn_id).expect("npc profession entry");
-                        let raw = npc_scan_cached_rw(
+                        let raw = npc_scan_for_craft_rw(
                             st,
                             world.as_ref(),
                             content.as_ref(),
                             p.x,
                             p.y,
+                            home_x,
+                            home_y,
                             scan_r,
                         );
                         let filters =
@@ -10546,12 +10617,14 @@ pub async fn run_npc_scheduler(
                     };
                     let tiles = {
                         let st = profession_state.get_mut(&conn_id).expect("npc profession entry");
-                        let raw = npc_scan_cached_rw(
+                        let raw = npc_scan_for_craft_rw(
                             st,
                             world.as_ref(),
                             content.as_ref(),
                             p.x,
                             p.y,
+                            home_x,
+                            home_y,
                             scan_r,
                         );
                         let filters =

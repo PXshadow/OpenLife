@@ -111,6 +111,49 @@ pub fn craft_have_set_ex_filtered(
     have
 }
 
+/// Ground+held instance counts under dual-center (same-id 58+58 / 57+57).
+///
+/// Held adds 1. Each matching tile adds 1 (Haxe closest + secondObject).
+// Haxe: addObjectsForCrafting closestObject / secondObject
+pub fn craft_have_counts_ex_filtered(
+    objs: &[CraftWorldObj],
+    held_id: i32,
+    player_x: i32,
+    player_y: i32,
+    home: Option<(i32, i32)>,
+    radius: i32,
+    search_current_position: bool,
+    filters: &CraftScanFilters<'_>,
+) -> HashMap<i32, i32> {
+    let mut counts = HashMap::new();
+    if held_id > 0 {
+        *counts.entry(held_id).or_insert(0) += 1;
+    }
+    for o in objs {
+        if o.parent_id <= 0 {
+            continue;
+        }
+        if !craft_obj_passes_scan_filters(o, filters) {
+            continue;
+        }
+        if !craft_add_objects_tile_allowed(o, &CRAFT_AI_IGNORED_FLOOR_IDS) {
+            continue;
+        }
+        if craft_obj_in_dual_center(
+            o.x,
+            o.y,
+            player_x,
+            player_y,
+            home,
+            radius,
+            search_current_position,
+        ) {
+            *counts.entry(o.parent_id).or_insert(0) += 1;
+        }
+    }
+    counts
+}
+
 /// Closest matching `parent_id` in dual-center radius, ranked by **player** distance.
 // Haxe: addObjectsForCrafting + closestObject by player quad distance
 pub fn closest_craft_obj_dual_center(

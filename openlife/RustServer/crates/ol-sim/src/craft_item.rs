@@ -1823,7 +1823,20 @@ fn find_best_pair_in_radius(
     pile_id_for: Option<&dyn Fn(i32) -> i32>,
 ) -> Option<CraftTransPair> {
     // Path leaf→root: first fully-present step is the multi-step action.
-    if let Some(path) = graph.find_path_to_product(product_id, have, 8) {
+    // Same-id 58+58 needs two instances (Haxe secondObject).
+    let counts = craft_have_counts_ex_filtered(
+        objs,
+        held_id,
+        player_x,
+        player_y,
+        home,
+        radius,
+        true,
+        &CraftScanFilters::default(),
+    );
+    if let Some(path) =
+        graph.find_path_to_product_with_counts(product_id, have, Some(&counts), 8)
+    {
         if path.is_empty() {
             return None;
         }
@@ -2036,6 +2049,16 @@ pub fn first_missing_ingredient(
     have: &HashSet<i32>,
 ) -> Option<i32> {
     graph.seek_ingredient_for(product_id, have)
+}
+
+/// [`first_missing_ingredient`] with same-id instance counts (thread 58+58 rope).
+pub fn first_missing_ingredient_counts(
+    product_id: i32,
+    graph: &ReverseCraftGraph,
+    have: &HashSet<i32>,
+    counts: Option<&HashMap<i32, i32>>,
+) -> Option<i32> {
+    graph.seek_ingredient_for_with_counts(product_id, have, counts)
 }
 
 // ── craftItemMax ────────────────────────────────────────────────────────────
@@ -3429,7 +3452,19 @@ pub fn craft_item_helper_ex(
             state.search_current_position,
             &scan,
         );
-        if let Some(ing) = first_missing_ingredient(product_id, graph, &have) {
+        let counts = craft_have_counts_ex_filtered(
+            objs,
+            inp.held_id,
+            inp.player_x,
+            inp.player_y,
+            home,
+            max_r,
+            state.search_current_position,
+            &scan,
+        );
+        if let Some(ing) =
+            first_missing_ingredient_counts(product_id, graph, &have, Some(&counts))
+        {
             if ing != product_id {
                 return CraftItemDecision::SeekIngredient {
                     ingredient_id: ing,

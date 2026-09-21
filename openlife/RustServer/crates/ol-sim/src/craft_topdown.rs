@@ -19,7 +19,8 @@ use std::collections::{HashMap, HashSet};
 use crate::craft_graph::ReverseCraftGraph;
 
 use super::{
-    closest_craft_obj_dual_center, craft_chebyshev, craft_have_set_ex, craft_obj_in_dual_center,
+    closest_craft_obj_dual_center, craft_chebyshev, craft_have_counts_ex_filtered,
+    craft_have_set_ex, craft_obj_in_dual_center,
     CraftTransPair, CraftWorldObj, AI_CRAFT_MIN_RADIUS, AI_MAX_SEARCH_INCREMENT,
     AI_MAX_SEARCH_RADIUS, FERTILE_SOIL,
 };
@@ -984,10 +985,11 @@ fn find_best_pair_topdown(
     radius: i32,
     graph: &ReverseCraftGraph,
     have: &HashSet<i32>,
+    counts: Option<&HashMap<i32, i32>>,
     pile_id_for: Option<&dyn Fn(i32) -> i32>,
     opts: &CraftTopDownOpts<'_>,
 ) -> Option<CraftTransPair> {
-    if let Some(path) = graph.find_path_to_product(product_id, have, 8) {
+    if let Some(path) = graph.find_path_to_product_with_counts(product_id, have, counts, 8) {
         if path.is_empty() {
             return None;
         }
@@ -1144,6 +1146,17 @@ pub fn search_best_object_for_crafting_topdown(
             return None;
         }
 
+        let counts = craft_have_counts_ex_filtered(
+            objs,
+            held_id,
+            player_x,
+            player_y,
+            home,
+            scan_r,
+            opts_local.search_current_position,
+            &opts_local.scan,
+        );
+
         if let Some(pair) = find_best_pair_topdown(
             product_id,
             objs,
@@ -1154,6 +1167,7 @@ pub fn search_best_object_for_crafting_topdown(
             scan_r,
             graph,
             &have,
+            Some(&counts),
             pile_id_for,
             &opts_local,
         ) {
@@ -1175,6 +1189,70 @@ mod tests {
 
     fn basic_meta(a: i32, t: i32, na: i32, nt: i32) -> CraftTransMeta {
         CraftTransMeta::pair(a, t, na, nt)
+    }
+
+    fn reed_skirt_graph() -> ReverseCraftGraph {
+        let mut g = ReverseCraftGraph::new();
+        g.insert(0, 50, 57, 53);
+        g.insert(57, 57, 0, 58);
+        g.insert(58, 58, 0, 59);
+        g.insert(59, 124, 0, 128);
+        g
+    }
+
+    #[test]
+    fn reed_skirt_one_thread_picks_milkweed() {
+        // Live 0.3.13: one Thread 58 in have-set made 58+58 look ready, so
+        // craftItem(128) never used empty+Milkweed 50 and Rope 59 stayed 0.
+        let g = reed_skirt_graph();
+        let objs = vec![
+            CraftWorldObj::simple(58, 2, 0),
+            CraftWorldObj::simple(50, 4, 0),
+            CraftWorldObj::simple(124, 6, 0),
+        ];
+        let pair = search_best_object_for_crafting_topdown(
+            128,
+            &objs,
+            0,
+            0,
+            0,
+            None,
+            60,
+            &g,
+            None,
+            &CraftTopDownOpts::default(),
+        )
+        .expect("pair");
+        assert_eq!(
+            (pair.actor_id, pair.target_id),
+            (0, 50),
+            "one thread is not rope; harvest milkweed"
+        );
+    }
+
+    #[test]
+    fn reed_skirt_two_threads_use_thread_on_thread() {
+        let g = reed_skirt_graph();
+        let objs = vec![
+            CraftWorldObj::simple(58, 2, 0),
+            CraftWorldObj::simple(58, 3, 0),
+            CraftWorldObj::simple(50, 4, 0),
+            CraftWorldObj::simple(124, 6, 0),
+        ];
+        let pair = search_best_object_for_crafting_topdown(
+            128,
+            &objs,
+            0,
+            0,
+            0,
+            None,
+            60,
+            &g,
+            None,
+            &CraftTopDownOpts::default(),
+        )
+        .expect("pair");
+        assert_eq!((pair.actor_id, pair.target_id), (58, 58));
     }
 
     #[test]

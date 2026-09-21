@@ -119,6 +119,60 @@ impl ReverseCraftGraph {
         }
     }
 
+    /// How many of `id` the planner may spend. Non-positive ids (empty/TIME) are
+    /// always available. A `HashSet` can only prove count 1.
+    // Haxe: TransitionForObject.closestObject + secondObject (same-id 58+58 rope)
+    fn have_count(
+        id: i32,
+        have_set: &HashSet<i32>,
+        counts: Option<&HashMap<i32, i32>>,
+    ) -> i32 {
+        if id <= 0 {
+            return i32::MAX / 4;
+        }
+        if let Some(c) = counts {
+            return c.get(&id).copied().unwrap_or(0);
+        }
+        i32::from(have_set.contains(&id))
+    }
+
+    /// True when both sides of `(actor, target)` are present. Same-id needs two.
+    // Haxe: DoTransitionSearch actor==target → secondObject (AiBase L7935)
+    fn pair_inputs_ready(
+        actor: i32,
+        target: i32,
+        have_set: &HashSet<i32>,
+        counts: Option<&HashMap<i32, i32>>,
+    ) -> bool {
+        if actor == target && actor > 0 {
+            Self::have_count(actor, have_set, counts) >= 2
+        } else {
+            Self::have_count(actor, have_set, counts) >= 1
+                && Self::have_count(target, have_set, counts) >= 1
+        }
+    }
+
+    /// Positive ids still needed before `(actor, target)` can run.
+    fn pair_missing_inputs(
+        actor: i32,
+        target: i32,
+        have_set: &HashSet<i32>,
+        counts: Option<&HashMap<i32, i32>>,
+    ) -> Vec<i32> {
+        if actor == target && actor > 0 {
+            if Self::have_count(actor, have_set, counts) < 2 {
+                vec![actor]
+            } else {
+                Vec::new()
+            }
+        } else {
+            [actor, target]
+                .into_iter()
+                .filter(|&id| id > 0 && Self::have_count(id, have_set, counts) < 1)
+                .collect()
+        }
+    }
+
     /// Seed reverse edges from transition records `(actor, target, new_actor, new_target)`.
     ///
     /// Stops after `max_transitions` inserts (boot speed cap). Returns how many
@@ -151,6 +205,22 @@ impl ReverseCraftGraph {
         have_set: &HashSet<i32>,
         max_depth: usize,
     ) -> Option<Vec<(i32, i32)>> {
+        self.find_path_to_product_with_counts(want, have_set, None, max_depth)
+    }
+
+    /// Like [`Self::find_path_to_product`] with per-id ground+held counts.
+    ///
+    /// Same-id transitions (`58+58` thread→rope, `57+57` stalk→thread) need two
+    /// instances. A `HashSet` cannot prove that; without `counts`, one id in
+    /// `have_set` is treated as count 1 so the planner keeps harvesting.
+    // Haxe: DoTransitionSearch actor==target uses secondObject (AiBase L7935)
+    pub fn find_path_to_product_with_counts(
+        &self,
+        want: i32,
+        have_set: &HashSet<i32>,
+        counts: Option<&HashMap<i32, i32>>,
+        max_depth: usize,
+    ) -> Option<Vec<(i32, i32)>> {
         if have_set.contains(&want) {
             return Some(Vec::new());
         }
@@ -177,10 +247,7 @@ impl ReverseCraftGraph {
                 // Prepend so final order is leaf→root (craft order).
                 next_path.insert(0, (actor, target));
 
-                // Non-positive ids are empty / OHOL category wildcards — not concrete seeks.
-                let actor_ok = actor <= 0 || have_set.contains(&actor);
-                let target_ok = target <= 0 || have_set.contains(&target);
-                if actor_ok && target_ok {
+                if Self::pair_inputs_ready(actor, target, have_set, counts) {
                     return Some(next_path);
                 }
 
@@ -188,12 +255,7 @@ impl ReverseCraftGraph {
                     continue;
                 }
 
-                // Expand missing ingredients as new needs (one branch at a time).
-                // Prefer expanding the first missing ingredient for a simple path.
-                let missing: Vec<i32> = [actor, target]
-                    .into_iter()
-                    .filter(|&id| id > 0 && !have_set.contains(&id))
-                    .collect();
+                let missing = Self::pair_missing_inputs(actor, target, have_set, counts);
                 if missing.is_empty() {
                     return Some(next_path);
                 }
@@ -218,20 +280,34 @@ impl ReverseCraftGraph {
     /// ingredient). Falls back to the first reverse-edge actor/target not already
     /// in `have`. Returns `None` if `want` is already owned or no reverse data.
     pub fn seek_ingredient_for(&self, want: i32, have: &HashSet<i32>) -> Option<i32> {
+        self.seek_ingredient_for_with_counts(want, have, None)
+    }
+
+    /// [`Self::seek_ingredient_for`] with same-id instance counts (rope 58+58).
+    pub fn seek_ingredient_for_with_counts(
+        &self,
+        want: i32,
+        have: &HashSet<i32>,
+        counts: Option<&HashMap<i32, i32>>,
+    ) -> Option<i32> {
         if have.contains(&want) {
             return None;
         }
-        if let Some(path) = self.find_path_to_product(want, have, 6) {
+        if let Some(path) = self.find_path_to_product_with_counts(want, have, counts, 6) {
             if path.is_empty() {
                 return None;
             }
             // First craft step (leaf→root order): seek first missing positive input.
             if let Some(&(actor, target)) = path.first() {
-                if actor > 0 && !have.contains(&actor) {
+                if actor > 0 && Self::have_count(actor, have, counts) < 1 {
                     return Some(actor);
                 }
-                if target > 0 && !have.contains(&target) {
+                if target > 0 && Self::have_count(target, have, counts) < 1 {
                     return Some(target);
+                }
+                // Same-id step with only one instance: harvest another of that id.
+                if actor == target && actor > 0 && Self::have_count(actor, have, counts) < 2 {
+                    return Some(actor);
                 }
             }
         }
@@ -602,5 +678,55 @@ mod tests {
         assert!(g.seek_ingredient_for(3, &have).is_none());
         g.insert(4, 5, 3, 0);
         assert_eq!(g.seek_ingredient_for(3, &have), Some(4));
+    }
+
+    fn reed_skirt_graph() -> ReverseCraftGraph {
+        let mut g = ReverseCraftGraph::new();
+        // Empty + Milkweed 50 → Stalk 57; Stalk+Stalk → Thread 58;
+        // Thread+Thread → Rope 59; Rope + Reed Bundle 124 → Reed Skirt 128.
+        g.insert(0, 50, 57, 53);
+        g.insert(57, 57, 0, 58);
+        g.insert(58, 58, 0, 59);
+        g.insert(59, 124, 0, 128);
+        g
+    }
+
+    #[test]
+    fn same_id_one_thread_does_not_count_as_rope() {
+        // Live 0.3.13: HashSet {58} treated 58+58 as ready, so craftItem(128)
+        // never harvested milkweed and census rope 59 stayed 0.
+        let g = reed_skirt_graph();
+        let have: HashSet<i32> = [0, 50, 58, 124].into_iter().collect();
+        let one: HashMap<i32, i32> = [(50, 4), (58, 1), (124, 2)].into_iter().collect();
+        let path = g
+            .find_path_to_product_with_counts(128, &have, Some(&one), 8)
+            .expect("path via milkweed");
+        assert_eq!(
+            path.first().copied(),
+            Some((0, 50)),
+            "one thread is not 58+58; pick milkweed: {path:?}"
+        );
+
+        let two: HashMap<i32, i32> = [(50, 4), (58, 2), (124, 2)].into_iter().collect();
+        let path2 = g
+            .find_path_to_product_with_counts(128, &have, Some(&two), 8)
+            .expect("path via two threads");
+        assert_eq!(
+            path2.first().copied(),
+            Some((58, 58)),
+            "two threads make rope: {path2:?}"
+        );
+    }
+
+    #[test]
+    fn same_id_have_set_alone_is_count_one() {
+        let g = reed_skirt_graph();
+        let have: HashSet<i32> = [0, 50, 58, 124].into_iter().collect();
+        let path = g.find_path_to_product(128, &have, 8).expect("path");
+        assert_eq!(
+            path.first().copied(),
+            Some((0, 50)),
+            "set membership is not two instances: {path:?}"
+        );
     }
 }
