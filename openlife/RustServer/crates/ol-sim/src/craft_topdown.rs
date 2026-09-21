@@ -989,6 +989,35 @@ fn find_best_pair_topdown(
     pile_id_for: Option<&dyn Fn(i32) -> i32>,
     opts: &CraftTopDownOpts<'_>,
 ) -> Option<CraftTransPair> {
+    // Haxe: held is closestObject; same-id secondObject. Prefer 57+57 while
+    // holding a stalk even if two threads exist (BFS would pick 58+58 first).
+    // Haxe: AiBase.craftItemHelper L6997; DoTransitionSearch L7935
+    if held_id > 0 {
+        if let Some((actor, target)) =
+            graph.held_ready_step(product_id, held_id, have, counts)
+        {
+            if !graph.ai_should_ignore_edge(actor, target) {
+                let meta = opts.meta_for(actor, target);
+                if !should_skip_craft_edge(actor, target, product_id, radius, opts, meta) {
+                    if let Some(pair) = resolve_pair_filtered(
+                        actor,
+                        target,
+                        objs,
+                        held_id,
+                        player_x,
+                        player_y,
+                        home,
+                        radius,
+                        pile_id_for,
+                        &opts.scan,
+                        opts.search_current_position,
+                    ) {
+                        return Some(pair);
+                    }
+                }
+            }
+        }
+    }
     if let Some(path) = graph.find_path_to_product_with_counts(product_id, have, counts, 8) {
         if path.is_empty() {
             return None;
@@ -1227,6 +1256,40 @@ mod tests {
             (pair.actor_id, pair.target_id),
             (0, 50),
             "one thread is not rope; harvest milkweed"
+        );
+    }
+
+    #[test]
+    fn holding_stalk_combines_stalks_not_far_threads() {
+        // Haxe craftItemHelper L6997: held == transActor → USE secondObject.
+        // Four threads exist but player holds 57 with another stalk adjacent.
+        let g = reed_skirt_graph();
+        let objs = vec![
+            CraftWorldObj::simple(57, 1, 0),
+            CraftWorldObj::simple(58, 40, 0),
+            CraftWorldObj::simple(58, 41, 0),
+            CraftWorldObj::simple(58, 42, 0),
+            CraftWorldObj::simple(58, 43, 0),
+            CraftWorldObj::simple(124, 5, 0),
+            CraftWorldObj::simple(50, 8, 0),
+        ];
+        let pair = search_best_object_for_crafting_topdown(
+            128,
+            &objs,
+            57,
+            0,
+            0,
+            None,
+            60,
+            &g,
+            None,
+            &CraftTopDownOpts::default(),
+        )
+        .expect("pair");
+        assert_eq!(
+            (pair.actor_id, pair.target_id, pair.actor_held),
+            (57, 57, true),
+            "use held stalk on nearby stalk: {pair:?}"
         );
     }
 

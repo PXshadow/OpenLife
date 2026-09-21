@@ -1834,6 +1834,25 @@ fn find_best_pair_in_radius(
         true,
         &CraftScanFilters::default(),
     );
+    if held_id > 0 {
+        if let Some((actor, target)) =
+            graph.held_ready_step(product_id, held_id, have, Some(&counts))
+        {
+            if let Some(pair) = resolve_pair(
+                actor,
+                target,
+                objs,
+                held_id,
+                player_x,
+                player_y,
+                home,
+                radius,
+                pile_id_for,
+            ) {
+                return Some(pair);
+            }
+        }
+    }
     if let Some(path) =
         graph.find_path_to_product_with_counts(product_id, have, Some(&counts), 8)
     {

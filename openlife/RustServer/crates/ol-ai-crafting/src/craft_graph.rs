@@ -328,6 +328,77 @@ impl ReverseCraftGraph {
         None
     }
 
+    /// Reverse ingredient ids reachable from `want` (BFS over reverse edges).
+    fn reverse_ingredient_ids(&self, want: i32, max_depth: usize) -> HashSet<i32> {
+        let mut out = HashSet::new();
+        let mut q = VecDeque::from([want]);
+        let mut depth: HashMap<i32, usize> = HashMap::new();
+        depth.insert(want, 0);
+        while let Some(id) = q.pop_front() {
+            let d = *depth.get(&id).unwrap_or(&0);
+            if d >= max_depth {
+                continue;
+            }
+            let Some(pairs) = self.ingredients_for(id) else {
+                continue;
+            };
+            for &(a, t) in pairs {
+                for n in [a, t] {
+                    if n > 0 && out.insert(n) {
+                        depth.insert(n, d + 1);
+                        q.push_back(n);
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    /// Haxe: held is `closestObject` for its id; same-id uses `secondObject`.
+    /// Ready `(actor, target)` that uses `held` and produces something on the
+    /// reverse path to `want` (57+57 thread while `craftItem(128)`, even if
+    /// two threads already exist elsewhere).
+    // Haxe: AiBase.craftItemHelper L6997 held == transActor; DoTransitionSearch L7935
+    pub fn held_ready_step(
+        &self,
+        want: i32,
+        held: i32,
+        have_set: &HashSet<i32>,
+        counts: Option<&HashMap<i32, i32>>,
+    ) -> Option<(i32, i32)> {
+        if held <= 0 || want <= 0 {
+            return None;
+        }
+        let useful = self.reverse_ingredient_ids(want, 8);
+        let mut same_id = None;
+        let mut other = None;
+        for product in self.products_using(held) {
+            if product != want && !useful.contains(&product) {
+                continue;
+            }
+            let Some(pairs) = self.ingredients_for(product) else {
+                continue;
+            };
+            for &(actor, target) in pairs {
+                if self.ai_should_ignore_edge(actor, target) {
+                    continue;
+                }
+                if actor != held && target != held {
+                    continue;
+                }
+                if !Self::pair_inputs_ready(actor, target, have_set, counts) {
+                    continue;
+                }
+                if actor == target {
+                    same_id = Some((actor, target));
+                } else if other.is_none() {
+                    other = Some((actor, target));
+                }
+            }
+        }
+        same_id.or(other)
+    }
+
     /// Product ids that list `ingredient` as actor or target in a reverse edge.
     ///
     /// Used by `SAY NEXTCRAFT` (held as ingredient → products it can help make).
@@ -716,6 +787,24 @@ mod tests {
             Some((58, 58)),
             "two threads make rope: {path2:?}"
         );
+    }
+
+    #[test]
+    fn held_stalk_uses_same_id_even_when_two_threads_exist() {
+        // Live 0.3.14: BFS picked 58+58 because census had 4 threads, so AIs
+        // holding stalk 57 never 57+57. Haxe held == transActor (L6997).
+        let g = reed_skirt_graph();
+        let have: HashSet<i32> = [0, 50, 57, 58, 124].into_iter().collect();
+        let counts: HashMap<i32, i32> = [(50, 4), (57, 2), (58, 4), (124, 2)].into_iter().collect();
+        assert_eq!(
+            g.held_ready_step(128, 57, &have, Some(&counts)),
+            Some((57, 57))
+        );
+        assert_eq!(
+            g.held_ready_step(128, 58, &have, Some(&counts)),
+            Some((58, 58))
+        );
+        assert_eq!(g.held_ready_step(128, 57, &have, None), None);
     }
 
     #[test]
