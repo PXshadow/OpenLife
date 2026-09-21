@@ -148,6 +148,26 @@ fn min_distance_skips_inside_forbidden_radius() {
 }
 
 #[test]
+fn get_or_craft_bow_with_rope_and_shaft_crafts_not_seek_arrow() {
+    // Live 0.3.18: have=None on GetOrCraft(152) → empty have → SeekIngredient 148
+    // while Rope 59 + Yew Shaft 131 sat in the scan. Haxe craftItem USEs 59+131.
+    let mut g = ReverseCraftGraph::new();
+    g.insert(59, 131, 0, 151);
+    g.insert(148, 151, 152, 0);
+    let objs = vec![
+        GetOrCraftWorldObj::simple(59, 1, 0),
+        GetOrCraftWorldObj::simple(131, 2, 0),
+    ];
+    let inp = GetOrCraftInput::get_or_craft(152, 0, 0).with_max_search(60);
+    let r = get_or_craft_item(&objs, &inp, Some(&g), None);
+    assert_eq!(
+        r,
+        GetOrCraftResult::CraftItem { object_id: 152 },
+        "ready 59+131 must CraftItem(152), not seek 148: {r:?}"
+    );
+}
+
+#[test]
 fn craft_true_missing_seek_ingredient_or_craft_item() {
     let objs: Vec<GetOrCraftWorldObj> = vec![];
     let g = sample_graph();

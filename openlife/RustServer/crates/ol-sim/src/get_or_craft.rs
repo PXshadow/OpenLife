@@ -135,6 +135,22 @@ impl GetOrCraftWorldObj {
     }
 }
 
+/// Ground + held ids for reverse-graph `have` (Haxe objects in search radius).
+// Haxe: addAllObjectsForCrafting → transitionsByObjectId.closestObject
+pub fn have_set_from_goc_objs(objs: &[GetOrCraftWorldObj], held_id: i32) -> HashSet<i32> {
+    let mut have = HashSet::new();
+    have.insert(0);
+    if held_id > 0 {
+        have.insert(held_id);
+    }
+    for o in objs {
+        if o.parent_id > 0 {
+            have.insert(o.parent_id);
+        }
+    }
+    have
+}
+
 // ── Input ───────────────────────────────────────────────────────────────────
 
 /// Inputs for pure [`get_or_craft_item`].
@@ -508,7 +524,12 @@ pub fn get_or_craft_item_ex(
         if !inp.craft {
             return GetOrCraftResult::None;
         }
-        return craft_item_fallback(inp.obj_id, graph, have);
+        // Haxe craftItem sees objects already in the search list. Passing
+        // have=None treated the world as empty and sought Arrow 148 while
+        // Rope 59 + Yew Shaft 131 were on the ground.
+        let derived = have_set_from_goc_objs(objs, inp.held_id);
+        let have = have.unwrap_or(&derived);
+        return craft_item_fallback(inp.obj_id, graph, Some(have));
     };
 
     // Empty-hand gate for pile or container (numSlots > 0).

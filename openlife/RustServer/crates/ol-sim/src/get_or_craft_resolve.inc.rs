@@ -135,6 +135,8 @@ pub fn resolve_seek_or_craft_live_ex_scan(
         // Haxe: GetOrCraftItem isMoving return true → hold tick
         return ShortCraftLiveIntent::Wait;
     }
+    let derived_have = have_set_from_goc_objs(objs, held_id);
+    let have = Some(have.unwrap_or(&derived_have));
 
     // Multi-step craftItem expand (AI-CRAFT-MULTI) before shallow GetOrCraft.
     if let ShortCraftLiveIntent::CraftItem { object_id } = intent {
