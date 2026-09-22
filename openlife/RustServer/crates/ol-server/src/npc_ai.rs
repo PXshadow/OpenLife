@@ -254,16 +254,33 @@ fn npc_holding_player(held_id: i32, holding_player_id: i32) -> bool {
     holding_player_id != 0 || held_id < 0
 }
 
-/// Haxe `dropHeldObject(0)`: empty tile at feet, else an orthogonal neighbor.
+/// Haxe `dropHeldObject`: empty ground near the player.
+/// Search grows by 4 up to 40 (`GetClosestObjectToTarget` id 0). A blocked
+/// feet tile used to be returned anyway, so DROP swapped or no-op'd and the
+/// held gooseberry never left the hand.
+// Haxe: AiBase.dropHeldObject L5566–5592
 fn npc_empty_drop_xy(world: &World, px: i32, py: i32) -> (i32, i32) {
-    if world.get_object(px, py) == 0 {
+    fn open_tile(world: &World, x: i32, y: i32) -> bool {
+        if world.get_object(x, y) != 0 {
+            return false;
+        }
+        !is_biome_blocking(world.get_biome(x, y), world.get_floor(x, y) as i32)
+    }
+    if open_tile(world, px, py) {
         return (px, py);
     }
-    for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
-        let x = px + dx;
-        let y = py + dy;
-        if world.get_object(x, y) == 0 {
-            return (x, y);
+    for r in 1i32..=40 {
+        for dy in -r..=r {
+            for dx in -r..=r {
+                if dx.abs().max(dy.abs()) != r {
+                    continue;
+                }
+                let x = px + dx;
+                let y = py + dy;
+                if open_tile(world, x, y) {
+                    return (x, y);
+                }
+            }
         }
     }
     (px, py)
