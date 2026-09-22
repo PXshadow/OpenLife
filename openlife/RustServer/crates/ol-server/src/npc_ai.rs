@@ -300,6 +300,38 @@ fn npc_empty_drop_xy(world: &World, px: i32, py: i32) -> (i32, i32) {
     (px, py)
 }
 
+/// Haxe `craftItemHelper` drops a held berry before `dropTarget =` the rope.
+/// A direct 59+124 / 59+131 DropAt was swapping the food onto the rope, so the
+/// hand stayed full and `switchCloths` never saw 128.
+// Haxe: AiBase.craftItemHelper L7114; considerDropHeldObject L5198; dropHeldObject L5566
+fn npc_drop_held_before_loose_pickup(
+    world: &World,
+    content: &ContentDb,
+    px: i32,
+    py: i32,
+    home_x: i32,
+    home_y: i32,
+    held_id: i32,
+    intent: ShortCraftLiveIntent,
+) -> ShortCraftLiveIntent {
+    let ShortCraftLiveIntent::DropAt { x, y } = intent else {
+        return intent;
+    };
+    let held_base = content.resolve_base_id(held_id);
+    if held_base <= 0 {
+        return intent;
+    }
+    let tile = content.resolve_base_id(world.get_object(x, y));
+    if tile == held_base || npc_clothing_slot(content, tile).is_some() {
+        return intent;
+    }
+    if !consider_drop_held_object(held_base, px, py, home_x, home_y, x, y) {
+        return intent;
+    }
+    let (dx, dy) = npc_empty_drop_xy(world, px, py);
+    ShortCraftLiveIntent::DropAt { x: dx, y: dy }
+}
+
 /// Haxe `isDropingItem` is always before `isFeedingChild`; close `isUsingItem` (quad < 25) too.
 // Haxe: AiBase.doTimeStuffHelper L497 / L500–510 then L557 isFeedingChild
 fn npc_skip_feed_for_sticky(
@@ -6610,7 +6642,7 @@ fn npc_emit_seek_or_craft(
     let blocked = st.path_reach.blocked_coords(None);
     if actor == BOW_AND_ARROW {
         let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
-        if let Some(intent) = npc_yew_bow_direct(
+        if let Some(raw) = npc_yew_bow_direct(
             world,
             content,
             p.x,
@@ -6621,6 +6653,18 @@ fn npc_emit_seek_or_craft(
             NPC_GET_OR_CRAFT_SEARCH_RADIUS,
             &blocked,
         ) {
+            // Haxe L7114: drop held food before dropTarget = rope, else the
+            // berry stays in hand and getWeapon never reaches 59+131.
+            let intent = npc_drop_held_before_loose_pickup(
+                world,
+                content,
+                p.x,
+                p.y,
+                hx,
+                hy,
+                p.held_id,
+                raw,
+            );
             let mut kind = kind_if_ok;
             let mut detail = format!("{label} {actor}");
             let mut game_ms = 250;
@@ -11734,7 +11778,18 @@ pub async fn run_npc_scheduler(
                                     local_tiles.retain(|t| t.x != tx || t.y != ty);
                                     chosen = ShortCraftLiveIntent::None;
                                 }
-                                chosen
+                                // Haxe L7114: food in hand must leave before the rope DROP.
+                                let w = world.read().unwrap();
+                                npc_drop_held_before_loose_pickup(
+                                    &w,
+                                    content.as_ref(),
+                                    p.x,
+                                    p.y,
+                                    home_x,
+                                    home_y,
+                                    p.held_id,
+                                    chosen,
+                                )
                             } else {
                                 npc_clothing_craft_item_fallback(
                                     &world.read().unwrap(),
@@ -13968,6 +14023,37 @@ mod tests {
         assert!(matches!(
             npc_yew_bow_direct(&w, &db, 0, 0, 0, 0, 0, 60, &blocked),
             Some(ShortCraftLiveIntent::DropAt { x: 8, y: 0 })
+        ));
+    }
+
+    #[test]
+    fn held_food_drops_before_rope_pickup() {
+        // Live: clothing_craft DropAt on rope while held stayed 31, so 128
+        // never reached switchCloths. Haxe drops the berry first (L7114).
+        let mut w = World::new(40, 40, false);
+        let db = ContentDb::default();
+        w.set_object(12, 0, 59);
+        w.set_object(6, 0, 124);
+        let pick = npc_reed_skirt_direct(&w, &db, 5, 8, 0, 0, 31, 60, &HashSet::new());
+        let Some(pick) = pick else {
+            panic!("rope+reed in range");
+        };
+        let rewritten = npc_drop_held_before_loose_pickup(&w, &db, 5, 8, 0, 0, 31, pick);
+        assert!(
+            matches!(rewritten, ShortCraftLiveIntent::DropAt { x, y } if (x, y) != (12, 0)),
+            "food must not DROP onto the rope"
+        );
+        // Target much closer to home than the player: keep the actor pickup.
+        w.set_object(12, 0, 0);
+        w.set_object(1, 0, 59);
+        let near_home = npc_reed_skirt_direct(&w, &db, 30, 0, 0, 0, 31, 60, &HashSet::new());
+        let Some(near_home) = near_home else {
+            panic!("near-home rope");
+        };
+        let kept = npc_drop_held_before_loose_pickup(&w, &db, 30, 0, 0, 0, 31, near_home);
+        assert!(matches!(
+            kept,
+            ShortCraftLiveIntent::DropAt { x: 1, y: 0 }
         ));
     }
 
