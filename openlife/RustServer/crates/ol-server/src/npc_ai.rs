@@ -2628,6 +2628,16 @@ fn npc_run_is_feeding_child(
             return Some(out);
         }
     }
+    // Finish 59+124 or 59+131 before walking to the baby. Doing it only when
+    // already close ping-ponged: the USE walked away, the next think goto_feed
+    // walked back, then dropHeldObject(0) put the rope on the ground.
+    // Haxe: isFeedingChild L6476 dropHeldObject(0) only after the child is in reach;
+    // switchCloths L8709 must still see held 128 from isDropingItem L8456.
+    if p.held_id > 0 && !p.is_hidden_wound {
+        if let Some(out) = npc_try_pair_before_baby(intent_tx, world, content, st, conn_id, p) {
+            return Some(out);
+        }
+    }
     if !close {
         let walked = npc_try_walk_to(
             intent_tx,
@@ -2653,57 +2663,27 @@ fn npc_run_is_feeding_child(
         return None;
     }
     if p.held_id != 0 && !p.is_hidden_wound {
-        let held_base = content.resolve_base_id(p.held_id);
-        // Held rope + reed inside 60: USE the bundle so the next isDropingItem
-        // DROP (L8456) can pick up 128 and switchCloths SELF (L8709) can wear it.
-        // dropHeldObject on the occupied feet tile action-spammed and never landed.
-        if held_base == 59 {
-            let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
-            if let Some(intent) = npc_reed_skirt_direct(
-                world,
-                content,
-                p.x,
-                p.y,
-                hx,
-                hy,
-                held_base,
-                NPC_GET_OR_CRAFT_SEARCH_RADIUS,
-            ) {
-                let mut kind = NpcActivityKind::Craft;
-                let mut detail = String::new();
-                let mut game_ms = 200u32;
-                if npc_commit_craft_live(
-                    &intent,
-                    intent_tx,
-                    world,
-                    content,
-                    st,
-                    conn_id,
-                    p.x,
-                    p.y,
-                    p.food,
-                    p.moving,
-                    &mut kind,
-                    &mut detail,
-                    &mut game_ms,
-                    npc_client_move_seq(p.done_moving_seq),
-                ) {
-                    return Some((
-                        kind,
-                        format!("reed_skirt_before_baby {detail}"),
-                        game_ms,
-                    ));
-                }
-            }
-        }
-        // Haxe dropHeldObject(0): empty tile, not a SWAP on the occupied feet tile.
-        let (dx, dy) = npc_empty_drop_xy(world, p.x, p.y);
-        if npc_drop_at(intent_tx, conn_id, dx, dy, None) {
-            return Some((
-                NpcActivityKind::Baby,
-                format!("drop_obj_for_baby held={}", p.held_id),
-                400,
-            ));
+        // Haxe dropHeldObject(0): empty tile, walk there, DROP only when adjacent.
+        if let Some(out) = npc_send_or_walk_empty_drop(
+            intent_tx,
+            world,
+            content,
+            st,
+            conn_id,
+            p.x,
+            p.y,
+            p.food,
+            p.moving,
+            p.held_id,
+            npc_client_move_seq(p.done_moving_seq),
+            false,
+        ) {
+            let detail = if out.1.starts_with("drop_held_clear") {
+                format!("drop_obj_for_baby {}", out.1)
+            } else {
+                format!("drop_obj_for_baby held={}", p.held_id)
+            };
+            return Some((out.0, detail, out.2));
         }
         return None;
     }
@@ -4935,7 +4915,16 @@ fn npc_apply_sticky_arrive(
                 return None;
             }
             if npc_drop_at(intent_tx, conn_id, sticky.gx, sticky.gy, None) {
+                let resume = if sticky.label.starts_with("drop_held_clear") {
+                    st.resume_drop.take()
+                } else {
+                    st.resume_drop = None;
+                    None
+                };
                 clear_sticky_move(st);
+                if let Some(prev) = resume {
+                    st.sticky_move = Some(prev);
+                }
                 let detail = if sticky.label.starts_with("pickup_cloth") {
                     format!("{} @{},{}", sticky.label, sticky.gx, sticky.gy)
                 } else {
@@ -5132,17 +5121,30 @@ fn npc_apply_dropping_item(
     );
     match head {
         IsDropingItemHead::Idle | IsDropingItemHead::TargetGone => {
+            let resume = if sticky.label.starts_with("drop_held_clear") {
+                st.resume_drop.take()
+            } else {
+                None
+            };
             clear_sticky_move(st);
+            if let Some(prev) = resume {
+                st.sticky_move = Some(prev);
+            }
             return None;
         }
         IsDropingItemHead::DropHeld { max_distance } => {
             return npc_drop_held_for_dropping_item(
                 intent_tx,
                 world,
+                content,
                 st,
                 conn_id,
                 px,
                 py,
+                food,
+                moving,
+                held_id,
+                seq,
                 max_distance,
             );
         }
@@ -5163,10 +5165,15 @@ fn npc_apply_dropping_item(
         IsDropingItemGoto::DropHeld { max_distance } => npc_drop_held_for_dropping_item(
             intent_tx,
             world,
+            content,
             st,
             conn_id,
             px,
             py,
+            food,
+            moving,
+            held_id,
+            seq,
             max_distance,
         ),
         IsDropingItemGoto::ConvertToUse => {
@@ -5288,36 +5295,222 @@ fn npc_apply_dropping_item(
     }
 }
 
-/// Follow-too-far / container / too-far: drop the held object nearby.
-/// `dropTarget` stays unless `maxDistance < 1` (Haxe `dropHeldObject` L5281).
-// Haxe: AiBase.isDropingItem L8401–8407 / L8371 / L8381 `return dropHeldObject(dropDistance)`
-fn npc_drop_held_for_dropping_item(
+fn npc_held_drop_is_open(world: &World, x: i32, y: i32) -> bool {
+    world.get_object(x, y) == 0
+        && !is_biome_blocking(world.get_biome(x, y), world.get_floor(x, y) as i32)
+}
+
+/// Held rope or yew shaft plus the other half of a skirt or bow, before a baby drop.
+///
+/// `isFeedingChild` used to `goto` the child while holding rope 59, then
+/// `dropHeldObject(0)` on arrival. The skirt USE never landed, so `switchCloths`
+/// never saw held 128 and `getWeapon` never got a 59+131 USE.
+// Haxe: AiBase.isFeedingChild L6476; getWeapon L5815; switchCloths L8709
+fn npc_try_pair_before_baby(
     intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
     world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    p: &PlayerSnapshot,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let held_base = content.resolve_base_id(p.held_id);
+    if held_base != 59 && held_base != 131 {
+        return None;
+    }
+    let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+    let reed = if held_base == 59 {
+        npc_reed_skirt_direct(
+            world,
+            content,
+            p.x,
+            p.y,
+            hx,
+            hy,
+            held_base,
+            NPC_GET_OR_CRAFT_SEARCH_RADIUS,
+        )
+    } else {
+        None
+    };
+    let intent = reed.or_else(|| {
+        npc_yew_bow_direct(
+            world,
+            content,
+            p.x,
+            p.y,
+            hx,
+            hy,
+            held_base,
+            NPC_GET_OR_CRAFT_SEARCH_RADIUS,
+        )
+    })?;
+    let tag = match intent {
+        ShortCraftLiveIntent::UseAt { target_id: 124, .. } => "reed_skirt_before_baby",
+        ShortCraftLiveIntent::UseAt {
+            target_id: 131,
+            actor_id: 59,
+            ..
+        }
+        | ShortCraftLiveIntent::UseAt {
+            target_id: 59,
+            actor_id: 131,
+            ..
+        } => "yew_bow_before_baby",
+        _ => "pair_before_baby",
+    };
+    let mut kind = NpcActivityKind::Craft;
+    let mut detail = String::new();
+    let mut game_ms = 200u32;
+    if !npc_commit_craft_live(
+        &intent,
+        intent_tx,
+        world,
+        content,
+        st,
+        conn_id,
+        p.x,
+        p.y,
+        p.food,
+        p.moving,
+        &mut kind,
+        &mut detail,
+        &mut game_ms,
+        npc_client_move_seq(p.done_moving_seq),
+    ) {
+        return None;
+    }
+    if let Some(s) = st.sticky_move.as_mut() {
+        if s.pending_use && !s.label.starts_with(tag) {
+            s.label = format!("{tag} {}", s.label);
+        }
+    }
+    Some((kind, format!("{tag} {detail}"), game_ms))
+}
+
+/// Haxe `dropHeldObject` does not drop in place. It aims at an empty tile and
+/// `isDropingItem` DROPs only when stopped and orthogonally adjacent (L8456).
+/// A far tile or the occupied feet tile is rejected or swaps the same berry.
+// Haxe: AiBase.dropHeldObject L5284 / L5566–5592; isDropingItem L8456
+fn npc_send_or_walk_empty_drop(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
     st: &mut NpcProfessionState,
     conn_id: u64,
     px: i32,
     py: i32,
-    max_distance: i32,
+    food: f32,
+    moving: bool,
+    held_id: i32,
+    seq: i32,
+    suspend_craft: bool,
 ) -> Option<(NpcActivityKind, String, u32)> {
-    let (dx, dy) = npc_empty_drop_xy(world, px, py);
-    if !npc_drop_at(intent_tx, conn_id, dx, dy, None) {
+    // Haxe L5284: nothing in hand → false, think continues.
+    if held_id == 0 {
         return None;
     }
-    // Haxe dropHeldObject L5281 clears dropTarget only when maxDistance < 1
-    // (baby drop, or triedDropCount > 5 → distance 0). Too-far / container /
-    // follow (distance 10) must keep dropTarget so the next think can goto and
-    // DROP (isDropingItem L8456). Clearing here forgot Reed Skirt 128.
-    let keep = !drop_held_clears_drop_target(max_distance as f32);
-    if !keep {
-        clear_sticky_move(st);
+    let (dx, dy) = npc_empty_drop_xy(world, px, py);
+    if !npc_held_drop_is_open(world, dx, dy) {
+        return None;
     }
-    let tag = if keep { "keep_target" } else { "cleared" };
+    if !moving && npc_is_close_action(px, py, dx, dy) {
+        if !npc_drop_at(intent_tx, conn_id, dx, dy, None) {
+            return None;
+        }
+        return Some((
+            NpcActivityKind::Craft,
+            format!("droping_drop_held placed @{dx},{dy}"),
+            400,
+        ));
+    }
+    if suspend_craft {
+        let cur_is_clear = st
+            .sticky_move
+            .as_ref()
+            .is_some_and(|s| s.label.starts_with("drop_held_clear"));
+        if !cur_is_clear {
+            if let Some(cur) = st.sticky_move.clone() {
+                st.resume_drop = Some(cur);
+            }
+        }
+    } else {
+        st.resume_drop = None;
+    }
+    set_sticky_arrive(
+        st,
+        dx,
+        dy,
+        0,
+        0,
+        StickyArrive::Drop,
+        "drop_held_clear",
+    );
+    if !moving {
+        let _ = npc_try_walk_to_arrive(
+            intent_tx,
+            world,
+            content,
+            st,
+            conn_id,
+            px,
+            py,
+            dx,
+            dy,
+            food,
+            0,
+            0,
+            StickyArrive::Drop,
+            false,
+            "drop_held_clear",
+            seq,
+        );
+    }
     Some((
         NpcActivityKind::Craft,
-        format!("droping_drop_held {tag} max={max_distance} @{},{}", dx, dy),
-        400,
+        format!("drop_held_clear @{dx},{dy}"),
+        250,
     ))
+}
+
+/// Follow-too-far / container / too-far: drop the held object on empty ground.
+/// The craft pickup stays in `resume_drop` so Reed Skirt 128 is not forgotten.
+// Haxe: AiBase.isDropingItem L8401–8407 / L8371 / L8381 `return dropHeldObject`
+fn npc_drop_held_for_dropping_item(
+    intent_tx: &tokio::sync::mpsc::Sender<NetIntent>,
+    world: &World,
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    conn_id: u64,
+    px: i32,
+    py: i32,
+    food: f32,
+    moving: bool,
+    held_id: i32,
+    seq: i32,
+    max_distance: i32,
+) -> Option<(NpcActivityKind, String, u32)> {
+    let out = npc_send_or_walk_empty_drop(
+        intent_tx,
+        world,
+        content,
+        st,
+        conn_id,
+        px,
+        py,
+        food,
+        moving,
+        held_id,
+        seq,
+        true,
+    )?;
+    if out.1.starts_with("drop_held_clear") {
+        return Some(out);
+    }
+    // Adjacent DROP landed. Keep the rope / skirt goal (clearing it on the
+    // 6th try forgot 128 while the berry was still in the hand).
+    let _ = max_distance;
+    Some(out)
 }
 
 /// Dual-pass Goto fail mark: animal-only block â†’ hostile_path 20s; else not_reachable 90s.
@@ -5508,6 +5701,10 @@ struct NpcProfessionState {
     class_assigned: bool,
     /// Active MOVE goal â€” validated while `PlayerSnapshot.moving`.
     sticky_move: Option<NpcStickyMove>,
+    /// Craft pickup parked while `dropHeldObject` walks to an empty tile.
+    /// Restored after the DROP so a far rope or skirt goal is not forgotten.
+    // Haxe: AiBase.dropHeldObject L5566; isDropingItem L8456
+    resume_drop: Option<NpcStickyMove>,
     /// Previous-tick hungry hysteresis for fill_live_sensors.
     // Haxe: AiBase.isHungry
     was_hungry: bool,
@@ -5632,6 +5829,7 @@ impl Default for NpcProfessionState {
             prestige_class: PrestigeClass::Commoner,
             class_assigned: false,
             sticky_move: None,
+            resume_drop: None,
             was_hungry: false,
             animal_path: None,
             last_is_tailor: false,
@@ -6408,6 +6606,11 @@ fn npc_emit_seek_or_craft(
                 &mut game_ms,
                 npc_client_move_seq(p.done_moving_seq),
             ) {
+                if let Some(s) = st.sticky_move.as_mut() {
+                    if s.pending_use && !s.label.starts_with("yew_bow_before_baby") {
+                        s.label = format!("yew_bow_before_baby {}", s.label);
+                    }
+                }
                 if !detail.starts_with(label) {
                     detail = format!("{label} {detail}");
                 }
@@ -9039,7 +9242,10 @@ pub async fn run_npc_scheduler(
                             game_ms = ms;
                             acted = true;
                         }
-                    } else if npc_sticky_early_return(arrive, p.x, p.y, sticky.gx, sticky.gy) {
+                    } else if sticky.label.starts_with("reed_skirt_before_baby")
+                        || sticky.label.starts_with("yew_bow_before_baby")
+                        || npc_sticky_early_return(arrive, p.x, p.y, sticky.gx, sticky.gy)
+                    {
                         let applied = {
                             let w = world.read().unwrap();
                             let st = profession_state.entry(conn_id).or_default();
@@ -13686,6 +13892,27 @@ mod tests {
         ));
         // Holding the bow must not drop it to fetch another rope.
         assert!(npc_yew_bow_direct(&w, &db, 0, 0, 0, 0, 151, 60).is_none());
+    }
+
+    #[test]
+    fn empty_drop_skips_occupied_feet_and_mountain() {
+        // Live 0.3.30: four neighbors full, DROP swapped the gooseberry on the
+        // feet tile and the rope walk was cleared. Mountain is not a drop tile.
+        let mut w = World::new(20, 20, false);
+        w.set_object(5, 5, 31);
+        w.set_object(4, 5, 31);
+        w.set_object(6, 5, 31);
+        w.set_object(5, 4, 31);
+        w.set_object(5, 6, 31);
+        w.set_biome(4, 4, 21);
+        let (x, y) = npc_empty_drop_xy(&w, 5, 5);
+        assert_ne!((x, y), (5, 5));
+        assert_eq!(w.get_object(x, y), 0);
+        assert!(
+            !is_biome_blocking(w.get_biome(x, y), w.get_floor(x, y) as i32),
+            "drop tile {x},{y} must not be mountain"
+        );
+        assert_ne!((x, y), (4, 4));
     }
 
     #[test]
