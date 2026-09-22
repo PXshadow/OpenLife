@@ -2348,7 +2348,13 @@ fn preserve_food_goto_on_publish(new: &mut PlayerSnapshot, prev: &PlayerSnapshot
         new.ai_last_goto_obj_y = prev.ai_last_goto_obj_y;
         new.ai_last_goto_obj_distance = prev.ai_last_goto_obj_distance;
     }
-    if prev.ai_sticky_food_id != 0 && new.ai_sticky_food_id == 0 {
+    if prev.ai_sticky_food_id == 0 {
+        // An AI clear must survive republish. Player still holds the old id
+        // until absorb, and writing it back replayed food_uneatable forever.
+        new.ai_sticky_food_id = 0;
+        new.ai_sticky_food_x = 0;
+        new.ai_sticky_food_y = 0;
+    } else if new.ai_sticky_food_id == 0 {
         new.ai_sticky_food_id = prev.ai_sticky_food_id;
         new.ai_sticky_food_x = prev.ai_sticky_food_x;
         new.ai_sticky_food_y = prev.ai_sticky_food_y;
@@ -2378,11 +2384,11 @@ fn absorb_npc_ai_sticky_from_views(state: &mut SimState) {
             p.ai_last_goto_obj_y = snap.ai_last_goto_obj_y;
             p.ai_last_goto_obj_distance = snap.ai_last_goto_obj_distance;
         }
-        if snap.ai_sticky_food_id != 0 {
-            p.ai_sticky_food_id = snap.ai_sticky_food_id;
-            p.ai_sticky_food_x = snap.ai_sticky_food_x;
-            p.ai_sticky_food_y = snap.ai_sticky_food_y;
-        }
+        // Copy clears too. Treating 0 as "unset" put the same uneatable berry
+        // back every think, so switchCloths and getWeapon never ran.
+        p.ai_sticky_food_id = snap.ai_sticky_food_id;
+        p.ai_sticky_food_x = snap.ai_sticky_food_x;
+        p.ai_sticky_food_y = snap.ai_sticky_food_y;
     }
 }
 
