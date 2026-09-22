@@ -182,6 +182,20 @@ fn npc_is_close_action(px: i32, py: i32, tx: i32, ty: i32) -> bool {
     dx * dx + dy * dy <= 1
 }
 
+/// Where to stand before a DROP/USE. A diagonal neighbor is chebyshev-1 but
+/// not Haxe `isClose`, so an immediate DROP is rejected and the held rope stays.
+fn npc_action_stand_tile(px: i32, py: i32, tx: i32, ty: i32) -> (i32, i32) {
+    if npc_is_close_action(px, py, tx, ty) {
+        return (tx, ty);
+    }
+    let dx = tx - px;
+    let dy = ty - py;
+    if dx.abs() == 1 && dy.abs() == 1 {
+        return (tx, py);
+    }
+    (tx, ty)
+}
+
 /// Haxe `WorldMap.transformX/Y` — nearest wrapped image of `(gx,gy)` next to the body.
 ///
 /// Scan tiles may store `y=2` while the player is at `y=484` on a 500-tall wrap
@@ -8211,17 +8225,20 @@ fn npc_emit_drop_or_walk(
 ) -> Option<(NpcActivityKind, String, u32)> {
     match intent {
         ShortCraftLiveIntent::DropAt { x, y } => {
-            let dist = (x - p.x).abs().max((y - p.y).abs());
-            if dist <= 1 {
-                if npc_drop_at(&intent_tx, conn_id, x, y, None)
-                {
+            // Haxe isClose is orthogonal only. Chebyshev-1 used to DROP on a
+            // diagonal, the sim rejected it, and rope 59 never left the hand.
+            if !p.moving && npc_is_close_action(p.x, p.y, x, y) {
+                if npc_drop_at(&intent_tx, conn_id, x, y, None) {
                     return Some((
                         NpcActivityKind::SeekFood,
                         format!("{tag}_drop @{},{}", x, y),
                         400,
                     ));
                 }
-            } else if {
+                return None;
+            }
+            let (sx, sy) = npc_action_stand_tile(p.x, p.y, x, y);
+            let walked = {
                 let w = world.read().unwrap();
                 npc_try_walk_to(
                     intent_tx,
@@ -8230,17 +8247,18 @@ fn npc_emit_drop_or_walk(
                     conn_id,
                     p.x,
                     p.y,
-                    x,
-                    y,
+                    sx,
+                    sy,
                     p.food,
                     st.food_goto.did_not_reach_food,
                     st.animal_path,
                     npc_client_move_seq(p.done_moving_seq),
                 )
-            } {
+            };
+            if walked {
                 return Some((
                     NpcActivityKind::SeekFood,
-                    format!("{tag}_walk_drop @{},{}", x, y),
+                    format!("{tag}_walk_drop @{},{}", sx, sy),
                     250,
                 ));
             }
@@ -8252,17 +8270,17 @@ fn npc_emit_drop_or_walk(
             target_id,
             ..
         } => {
-            let dist = (x - p.x).abs().max((y - p.y).abs());
-            if dist <= 1 {
-                if npc_use_at(&intent_tx, conn_id, x, y, None, None)
-                {
+            if !p.moving && npc_is_close_action(p.x, p.y, x, y) {
+                if npc_use_at(&intent_tx, conn_id, x, y, None, None) {
                     return Some((
                         NpcActivityKind::SeekFood,
                         format!("{tag}_use tid={} @{},{}", target_id, x, y),
                         400,
                     ));
                 }
+                return None;
             } else if {
+                let (sx, sy) = npc_action_stand_tile(p.x, p.y, x, y);
                 let w = world.read().unwrap();
                 npc_try_walk_to(
                     intent_tx,
@@ -8271,8 +8289,8 @@ fn npc_emit_drop_or_walk(
                     conn_id,
                     p.x,
                     p.y,
-                    x,
-                    y,
+                    sx,
+                    sy,
                     p.food,
                     st.food_goto.did_not_reach_food,
                     st.animal_path,
@@ -13077,6 +13095,9 @@ mod tests {
         assert!(npc_is_close_action(5, 5, 5, 6));
         assert!(!npc_is_close_action(5, 5, 6, 6));
         assert!(!npc_is_close_action(5, 5, 7, 5));
+        // Live 0.3.32: rope holder at 449,239 DROPped at diagonal 450,238 forever.
+        assert_eq!(npc_action_stand_tile(449, 239, 450, 238), (450, 239));
+        assert_eq!(npc_action_stand_tile(5, 5, 6, 5), (6, 5));
     }
 
     #[test]
