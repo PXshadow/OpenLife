@@ -8222,7 +8222,16 @@ fn npc_emit_drop_or_walk(
         ShortCraftLiveIntent::DropAt { x, y } => {
             // Haxe isClose is orthogonal only. Chebyshev-1 used to DROP on a
             // diagonal, the sim rejected it, and rope 59 never left the hand.
-            if !p.moving && npc_is_close_action(p.x, p.y, x, y) {
+            if npc_is_close_action(p.x, p.y, x, y) {
+                if p.moving {
+                    // Haxe isDropingItem L8428: already in range, wait until stopped.
+                    // Another goto refreshed move_path, so DROP L8456 never ran.
+                    return Some((
+                        NpcActivityKind::SeekFood,
+                        format!("{tag}_wait_drop @{},{}", x, y),
+                        100,
+                    ));
+                }
                 if npc_drop_at(&intent_tx, conn_id, x, y, None) {
                     return Some((
                         NpcActivityKind::SeekFood,
@@ -8265,7 +8274,15 @@ fn npc_emit_drop_or_walk(
             target_id,
             ..
         } => {
-            if !p.moving && npc_is_close_action(p.x, p.y, x, y) {
+            if npc_is_close_action(p.x, p.y, x, y) {
+                if p.moving {
+                    // Haxe isDropingItem L8428 / isUsingItem L9013: wait, do not goto.
+                    return Some((
+                        NpcActivityKind::SeekFood,
+                        format!("{tag}_wait_use @{},{}", x, y),
+                        100,
+                    ));
+                }
                 if npc_use_at(&intent_tx, conn_id, x, y, None, None) {
                     return Some((
                         NpcActivityKind::SeekFood,
