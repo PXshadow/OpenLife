@@ -243,6 +243,12 @@ impl ReverseCraftGraph {
                 if self.ai_should_ignore_edge(actor, target) {
                     continue;
                 }
+                // Tool passthrough is not a recipe: Fine Cutter + Gooseberry
+                // still holds the cutter; Bow + Goose Pond returns the bow.
+                // Haxe: DoTransitionSearch L7810–7811
+                if actor == need || target == need || actor == want || target == want {
+                    continue;
+                }
                 let mut next_path = path.clone();
                 // Prepend so final order is leaf→root (craft order).
                 next_path.insert(0, (actor, target));
@@ -814,6 +820,49 @@ mod tests {
             .find_path_to_product(152, &have, 6)
             .expect("path via yew bow");
         assert_eq!(path.first().copied(), Some((59, 131)), "{path:?}");
+    }
+
+    #[test]
+    fn bow_ignores_tool_passthrough_and_twines_thread() {
+        // Live 0.3.30: 152+goose pond returns Yew Bow, so craftItem(152)
+        // picked Canada Goose Pond with Egg instead of Thread+Thread.
+        let mut g = ReverseCraftGraph::new();
+        g.insert(58, 58, 0, 59);
+        g.insert(59, 131, 0, 151);
+        g.insert(151, 3948, 152, 0);
+        g.insert(152, 141, 151, 420);
+        g.insert(0, 1261, 0, 141);
+        let have: HashSet<i32> = [0, 58, 131, 1261, 141].into_iter().collect();
+        let counts: HashMap<i32, i32> = [(58, 2), (131, 1), (1261, 1), (141, 1)]
+            .into_iter()
+            .collect();
+        let path = g
+            .find_path_to_product_with_counts(152, &have, Some(&counts), 8)
+            .expect("path");
+        assert_eq!(path.first().copied(), Some((58, 58)), "{path:?}");
+    }
+
+    #[test]
+    fn skirt_ignores_cutter_on_berry_and_picks_milkweed() {
+        // Live 0.3.30: 964+31 leaves the Fine Cutter in hand, so craftItem(128)
+        // harvested Gooseberry Bush 30 instead of Milkweed 50.
+        let mut g = ReverseCraftGraph::new();
+        g.insert(59, 124, 0, 128);
+        g.insert(0, 3880, 59, 69);
+        g.insert(964, 70, 0, 3880);
+        g.insert(964, 31, 964, 32);
+        g.insert(0, 30, 31, 30);
+        g.insert(0, 50, 57, 53);
+        g.insert(57, 57, 0, 58);
+        g.insert(58, 58, 0, 59);
+        let have: HashSet<i32> = [0, 30, 50, 70, 124].into_iter().collect();
+        let counts: HashMap<i32, i32> = [(30, 1), (50, 4), (70, 1), (124, 1)]
+            .into_iter()
+            .collect();
+        let path = g
+            .find_path_to_product_with_counts(128, &have, Some(&counts), 8)
+            .expect("path");
+        assert_eq!(path.first().copied(), Some((0, 50)), "{path:?}");
     }
 
     #[test]
