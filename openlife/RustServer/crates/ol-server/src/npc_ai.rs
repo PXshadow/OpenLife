@@ -4620,6 +4620,45 @@ fn npc_try_walk_to_sticky(
     )
 }
 
+/// Haxe `gotoObj` receding abort before a new MOVE.
+///
+/// Same goal, quad distance not improved, and quad > 100 → hostile path and
+/// false (caller clears `dropTarget`). Snapshot lag of ≤0.5 does not abort.
+/// Not called while `isMoving` on that same goal.
+// Haxe: AiHelper.gotoObj L1085–1091; isDropingItem L8428 `if (isMoving()) return`
+fn npc_goto_obj_receding_abort(
+    st: &mut NpcProfessionState,
+    px: i32,
+    py: i32,
+    gx: i32,
+    gy: i32,
+    parent_id: i32,
+) -> bool {
+    let tgt = LastGotoObj::new(gx, gy, parent_id);
+    match plan_goto_obj(
+        st.food_goto.last_goto,
+        st.food_goto.last_goto_dist,
+        tgt,
+        px,
+        py,
+    ) {
+        GotoObjPlan::AbortReceding { dist_quad }
+            if dist_quad > st.food_goto.last_goto_dist + 0.5 =>
+        {
+            st.path_reach.add_object_with_hostile_path(gx, gy);
+            st.food_goto.last_goto = None;
+            st.food_goto.last_goto_dist = -1.0;
+            clear_sticky_move(st);
+            true
+        }
+        GotoObjPlan::AbortReceding { dist_quad } | GotoObjPlan::Proceed { dist_quad } => {
+            st.food_goto.last_goto = Some(tgt);
+            st.food_goto.last_goto_dist = dist_quad;
+            false
+        }
+    }
+}
+
 /// Walk toward `(gx,gy)` and stage USE/DROP on arrival.
 ///
 /// If already moving to the same tile, do **not** enqueue a replacement MOVE
@@ -4665,6 +4704,12 @@ fn npc_try_walk_to_arrive(
             );
             return true;
         }
+    }
+    // Haxe gotoObj: a drop/use walk that is not getting closer (quad > 100)
+    // is a hostile path. Live 0.3.38 kept resending drop_held_walk while the
+    // body stepped away and starved, so switchCloths never ran again.
+    if npc_goto_obj_receding_abort(st, px, py, gx, gy, expected_parent_id) {
+        return false;
     }
     let ok = npc_try_walk_to_ex(
         intent_tx,
@@ -6292,6 +6337,10 @@ fn npc_stage_cloth_pickup_at(
         npc_client_move_seq(p.done_moving_seq),
     ) {
         return Some((NpcActivityKind::Craft, label, 250));
+    }
+    // Receding gotoObj already marked the tile hostile and cleared the sticky.
+    if st.path_reach.blocks_target(x, y, None) {
+        return None;
     }
     set_sticky_arrive(st, x, y, parent_id, 0, arrive, label.clone());
     Some((NpcActivityKind::Craft, label, 100))
@@ -13772,6 +13821,44 @@ mod tests {
         assert!(!npc_clothing_pickup_in_range(0, 0, 8, 0));
         assert!(!npc_clothing_pickup_in_range(100, 100, 20, 0));
         assert!(!npc_clothing_pickup_in_range(100, 100, 0, 0));
+    }
+
+    #[test]
+    fn receding_drop_walk_aborts_like_haxe_goto_obj() {
+        // Live 0.3.38: drop_held_walk @471,127 from ~450,118 stepped west
+        // (farther) for minutes while food fell below 0. Haxe gotoObj L1085
+        // aborts when the same goal's quad distance does not improve and > 100.
+        let mut st = NpcProfessionState::default();
+        assert!(
+            !npc_goto_obj_receding_abort(&mut st, 450, 118, 471, 127, 0),
+            "first visit records lastGotoObj and still walks"
+        );
+        assert!(st.food_goto.last_goto.is_some());
+        st.sticky_move = Some(NpcStickyMove {
+            gx: 471,
+            gy: 127,
+            expected_parent_id: 0,
+            use_actor_parent: 0,
+            pending_use: false,
+            pending_drop: true,
+            label: "drop_held_walk".into(),
+            move_from: Some((450, 118)),
+        });
+        assert!(
+            npc_goto_obj_receding_abort(&mut st, 449, 118, 471, 127, 0),
+            "stepping away from a far drop target is a hostile path"
+        );
+        assert!(st.path_reach.is_object_with_hostile_path(471, 127));
+        assert!(st.sticky_move.is_none());
+        assert!(st.food_goto.last_goto.is_none());
+        let mut closer = NpcProfessionState::default();
+        assert!(!npc_goto_obj_receding_abort(
+            &mut closer, 450, 118, 471, 127, 0
+        ));
+        assert!(
+            !npc_goto_obj_receding_abort(&mut closer, 451, 118, 471, 127, 0),
+            "a step toward the goal is not receding"
+        );
     }
 
     #[test]
