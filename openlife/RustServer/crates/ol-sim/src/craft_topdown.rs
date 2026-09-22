@@ -928,10 +928,12 @@ fn resolve_pair_filtered(
     } else {
         None
     };
+    // Haxe: held == transActor (L6997). Target is closestObject on the ground,
+    // never the stack in hand (that aimed USE/DROP at the player's own tile).
     let (tx, ty, _t_held, _t_pile, _t_pile_id, target_ok) = resolve_side_filtered(
         target_id,
         objs,
-        if actor_held { 0 } else { held_id },
+        0,
         player_x,
         player_y,
         home,
@@ -1018,7 +1020,9 @@ fn find_best_pair_topdown(
             }
         }
     }
-    if let Some(path) = graph.find_path_to_product_with_counts(product_id, have, counts, 8) {
+    if let Some(path) =
+        graph.find_path_to_product_with_counts(product_id, have, counts, 8, held_id)
+    {
         if path.is_empty() {
             return None;
         }

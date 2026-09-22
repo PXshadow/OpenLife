@@ -1854,7 +1854,7 @@ fn find_best_pair_in_radius(
         }
     }
     if let Some(path) =
-        graph.find_path_to_product_with_counts(product_id, have, Some(&counts), 8)
+        graph.find_path_to_product_with_counts(product_id, have, Some(&counts), 8, held_id)
     {
         if path.is_empty() {
             return None;
@@ -1939,11 +1939,11 @@ fn resolve_pair(
     } else {
         None
     };
+    // Haxe: held == transActor (L6997). Target is a ground closestObject.
     let (tx, ty, _t_held, _t_pile, _t_pile_id, target_ok) = resolve_side(
         target_id,
         objs,
-        // Don't count held as target if it's already used as actor.
-        if actor_held { 0 } else { held_id },
+        0,
         player_x,
         player_y,
         home,

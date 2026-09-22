@@ -205,7 +205,7 @@ impl ReverseCraftGraph {
         have_set: &HashSet<i32>,
         max_depth: usize,
     ) -> Option<Vec<(i32, i32)>> {
-        self.find_path_to_product_with_counts(want, have_set, None, max_depth)
+        self.find_path_to_product_with_counts(want, have_set, None, max_depth, 0)
     }
 
     /// Like [`Self::find_path_to_product`] with per-id ground+held counts.
@@ -220,6 +220,7 @@ impl ReverseCraftGraph {
         have_set: &HashSet<i32>,
         counts: Option<&HashMap<i32, i32>>,
         max_depth: usize,
+        held_id: i32,
     ) -> Option<Vec<(i32, i32)>> {
         if have_set.contains(&want) {
             return Some(Vec::new());
@@ -247,6 +248,15 @@ impl ReverseCraftGraph {
                 // still holds the cutter; Bow + Goose Pond returns the bow.
                 // Haxe: DoTransitionSearch L7810–7811
                 if actor == need || target == need || actor == want || target == want {
+                    continue;
+                }
+                // Held is the actor (Haxe L6997), not a ground target. One
+                // gooseberry in hand is not closestObject for target 31.
+                if held_id > 0
+                    && target == held_id
+                    && actor != held_id
+                    && Self::have_count(target, have_set, counts) < 2
+                {
                     continue;
                 }
                 let mut next_path = path.clone();
@@ -299,7 +309,7 @@ impl ReverseCraftGraph {
         if have.contains(&want) {
             return None;
         }
-        if let Some(path) = self.find_path_to_product_with_counts(want, have, counts, 6) {
+        if let Some(path) = self.find_path_to_product_with_counts(want, have, counts, 6, 0) {
             if path.is_empty() {
                 return None;
             }
@@ -396,6 +406,12 @@ impl ReverseCraftGraph {
                     continue;
                 }
                 if actor != held && target != held {
+                    continue;
+                }
+                // Target must be a second, ground instance. The held object
+                // is not closestObject.
+                if target == held && actor != held && Self::have_count(target, have_set, counts) < 2
+                {
                     continue;
                 }
                 if !Self::pair_inputs_ready(actor, target, have_set, counts) {
@@ -782,7 +798,7 @@ mod tests {
         let have: HashSet<i32> = [0, 50, 58, 124].into_iter().collect();
         let one: HashMap<i32, i32> = [(50, 4), (58, 1), (124, 2)].into_iter().collect();
         let path = g
-            .find_path_to_product_with_counts(128, &have, Some(&one), 8)
+            .find_path_to_product_with_counts(128, &have, Some(&one), 8, 0)
             .expect("path via milkweed");
         assert_eq!(
             path.first().copied(),
@@ -792,7 +808,7 @@ mod tests {
 
         let two: HashMap<i32, i32> = [(50, 4), (58, 2), (124, 2)].into_iter().collect();
         let path2 = g
-            .find_path_to_product_with_counts(128, &have, Some(&two), 8)
+            .find_path_to_product_with_counts(128, &have, Some(&two), 8, 0)
             .expect("path via two threads");
         assert_eq!(
             path2.first().copied(),
@@ -837,7 +853,7 @@ mod tests {
             .into_iter()
             .collect();
         let path = g
-            .find_path_to_product_with_counts(152, &have, Some(&counts), 8)
+            .find_path_to_product_with_counts(152, &have, Some(&counts), 8, 0)
             .expect("path");
         assert_eq!(path.first().copied(), Some((58, 58)), "{path:?}");
     }
@@ -860,9 +876,27 @@ mod tests {
             .into_iter()
             .collect();
         let path = g
-            .find_path_to_product_with_counts(128, &have, Some(&counts), 8)
+            .find_path_to_product_with_counts(128, &have, Some(&counts), 8, 0)
             .expect("path");
         assert_eq!(path.first().copied(), Some((0, 50)), "{path:?}");
+    }
+
+    #[test]
+    fn held_gooseberry_is_not_a_ground_bow_target() {
+        // Live: holding Gooseberry 31 made craftItem(152) USE/DROP at the
+        // player's own tile (held counted as closestObject for target 31).
+        let mut g = ReverseCraftGraph::new();
+        g.insert(135, 31, 0, 151);
+        g.insert(34, 135, 0, 131);
+        g.insert(59, 131, 0, 151);
+        g.insert(151, 3948, 152, 0);
+        let have: HashSet<i32> = [0, 31, 34, 135].into_iter().collect();
+        let counts: HashMap<i32, i32> = [(31, 1), (34, 1), (135, 1)].into_iter().collect();
+        let path = g
+            .find_path_to_product_with_counts(152, &have, Some(&counts), 8, 31)
+            .expect("path");
+        assert_ne!(path.first().copied(), Some((135, 31)), "{path:?}");
+        assert_eq!(path.first().copied(), Some((34, 135)), "{path:?}");
     }
 
     #[test]
