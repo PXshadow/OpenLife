@@ -7910,6 +7910,11 @@ fn npc_run_is_picking_up_food(
             None
         }
         IsPickingupFoodPlan::ClearedUneatable => {
+            // Haxe L8618–8621 clears foodTarget and returns true once.
+            // Live 0.3.31 picked the same foodValue-0 bush every think, so
+            // switchCloths and getWeapon never ran. Skip that tile for 30s.
+            st.path_reach
+                .add_not_reachable(food.x, food.y, 30.0);
             st.food_goto.sticky_food = None;
             st.food_goto.last_goto = None;
             st.food_goto.last_goto_dist = -1.0;
