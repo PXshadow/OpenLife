@@ -6054,64 +6054,33 @@ fn npc_clothing_goal_reachable(
     if npc_is_close_action(sx, sy, gx, gy) {
         return true;
     }
+    // Haxe gotoObj: walk while a step is not isBlocked and gets closer.
+    // A flood that gave up after 250 side steps was skipping ropes and
+    // yew shafts that are a normal walk away, so 59+124 and 59+131 never ran.
     let start_d = world.chebyshev(sx, sy, gx, gy);
     if start_d > 80 {
         return false;
     }
-    use std::cmp::Reverse;
-    use std::collections::{BinaryHeap, HashSet};
-    let mut heap = BinaryHeap::new();
-    let mut seen = HashSet::new();
-    heap.push((Reverse(start_d), sx, sy));
-    seen.insert((sx, sy));
-    let mut best = start_d;
-    let mut since_improve = 0i32;
-    let mut expanded = 0i32;
-    while let Some((Reverse(_d), x, y)) = heap.pop() {
-        if npc_is_close_action(x, y, gx, gy) {
+    for (dx, dy) in [
+        (1, 0),
+        (-1, 0),
+        (0, 1),
+        (0, -1),
+        (1, 1),
+        (1, -1),
+        (-1, 1),
+        (-1, -1),
+    ] {
+        let nx = sx + dx;
+        let ny = sy + dy;
+        if npc_is_blocked(world, content, 0, nx, ny) {
+            continue;
+        }
+        if world.chebyshev(nx, ny, gx, gy) < start_d {
             return true;
         }
-        expanded += 1;
-        if expanded > 600 {
-            break;
-        }
-        let mut improved = false;
-        for (dx, dy) in [
-            (1, 0),
-            (-1, 0),
-            (0, 1),
-            (0, -1),
-            (1, 1),
-            (1, -1),
-            (-1, 1),
-            (-1, -1),
-        ] {
-            let nx = x + dx;
-            let ny = y + dy;
-            if !seen.insert((nx, ny)) {
-                continue;
-            }
-            if npc_is_blocked(world, content, 0, nx, ny) {
-                continue;
-            }
-            let nd = world.chebyshev(nx, ny, gx, gy);
-            if nd < best {
-                best = nd;
-                improved = true;
-                since_improve = 0;
-            }
-            if nd <= start_d {
-                heap.push((Reverse(nd), nx, ny));
-            }
-        }
-        if !improved {
-            since_improve += 1;
-        }
-        if since_improve > 250 && best > 1 {
-            return false;
-        }
     }
-    best <= 1
+    false
 }
 
 fn npc_craft_intent_goal(intent: &ShortCraftLiveIntent) -> Option<(i32, i32)> {
@@ -6167,8 +6136,66 @@ fn npc_approachable_cloth_xy(
     })
 }
 
+/// Rope 59 + Yew Shaft 131 inside `max_r`. Held rope USEs the shaft;
+/// otherwise DROP-pick the rope. Haxe `craftItem(152)` when `59_131` is ready
+/// (newTarget Yew Bow 151), before seeking Arrow 148.
+// Haxe: AiBase.craftItemHelper; getWeapon GetOrCraftItem(152) L5815
+fn npc_yew_bow_direct(
+    world: &World,
+    content: &ContentDb,
+    px: i32,
+    py: i32,
+    home_x: i32,
+    home_y: i32,
+    held_base: i32,
+    max_r: i32,
+) -> Option<ShortCraftLiveIntent> {
+    // Holding Yew Bow 151 or Arrow 148: combine those, never drop them for rope.
+    if held_base == 151 {
+        let arrow = npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 148, max_r)?;
+        return Some(ShortCraftLiveIntent::UseAt {
+            x: arrow.0,
+            y: arrow.1,
+            target_id: 148,
+            actor_id: 151,
+        });
+    }
+    if held_base == 148 {
+        let bow = npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 151, max_r)?;
+        return Some(ShortCraftLiveIntent::UseAt {
+            x: bow.0,
+            y: bow.1,
+            target_id: 151,
+            actor_id: 148,
+        });
+    }
+    let rope = npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 59, max_r)?;
+    let shaft = npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 131, max_r)?;
+    if held_base == 59 {
+        Some(ShortCraftLiveIntent::UseAt {
+            x: shaft.0,
+            y: shaft.1,
+            target_id: 131,
+            actor_id: 59,
+        })
+    } else if held_base == 131 {
+        Some(ShortCraftLiveIntent::UseAt {
+            x: rope.0,
+            y: rope.1,
+            target_id: 59,
+            actor_id: 131,
+        })
+    } else {
+        Some(ShortCraftLiveIntent::DropAt {
+            x: rope.0,
+            y: rope.1,
+        })
+    }
+}
+
 /// Rope 59 + Reed Bundle 124 inside `max_r` of the player or home.
-/// Held rope USEs the bundle; otherwise DROP-pick the rope first.
+/// Held rope USEs a walkable bundle. It does not need a second rope on the ground.
+/// Otherwise DROP-pick a walkable rope, and only when a walkable bundle exists too.
 /// Both tiles must be walkable (Haxe `gotoObj` / `isBlocked`).
 fn npc_reed_skirt_direct(
     world: &World,
@@ -6180,21 +6207,23 @@ fn npc_reed_skirt_direct(
     held_base: i32,
     max_r: i32,
 ) -> Option<ShortCraftLiveIntent> {
-    let rope = npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 59, max_r)?;
-    let reed = npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 124, max_r)?;
+    // Live 0.3.29: held 59 made this None (no ground rope). The generic fallback
+    // then DROP-placed 59 on the feet tile and the next think picked it up.
     if held_base == 59 {
-        Some(ShortCraftLiveIntent::UseAt {
+        let reed = npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 124, max_r)?;
+        return Some(ShortCraftLiveIntent::UseAt {
             x: reed.0,
             y: reed.1,
             target_id: 124,
             actor_id: 59,
-        })
-    } else {
-        Some(ShortCraftLiveIntent::DropAt {
-            x: rope.0,
-            y: rope.1,
-        })
+        });
     }
+    let rope = npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 59, max_r)?;
+    let _reed = npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 124, max_r)?;
+    Some(ShortCraftLiveIntent::DropAt {
+        x: rope.0,
+        y: rope.1,
+    })
 }
 
 /// Existing clothing tile to DROP-pick (Haxe GetOrCraftItem L6196 dropTarget=obj).
@@ -6310,6 +6339,46 @@ fn npc_emit_seek_or_craft(
     kind_if_ok: NpcActivityKind,
     label: &str,
 ) -> Option<(NpcActivityKind, String, u32)> {
+    // Haxe craftItem(152): when rope and yew shaft are both inside the 60
+    // search, USE 59+131 (Yew Bow 151) instead of walking a deeper leaf.
+    if actor == BOW_AND_ARROW {
+        let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+        if let Some(intent) = npc_yew_bow_direct(
+            world,
+            content,
+            p.x,
+            p.y,
+            hx,
+            hy,
+            content.resolve_base_id(p.held_id),
+            NPC_GET_OR_CRAFT_SEARCH_RADIUS,
+        ) {
+            let mut kind = kind_if_ok;
+            let mut detail = format!("{label} {actor}");
+            let mut game_ms = 250;
+            if npc_commit_craft_live(
+                &intent,
+                intent_tx,
+                world,
+                content,
+                st,
+                conn_id,
+                p.x,
+                p.y,
+                p.food,
+                p.moving,
+                &mut kind,
+                &mut detail,
+                &mut game_ms,
+                npc_client_move_seq(p.done_moving_seq),
+            ) {
+                if !detail.starts_with(label) {
+                    detail = format!("{label} {detail}");
+                }
+                return Some((kind, detail, game_ms));
+            }
+        }
+    }
     let tiles = npc_scan_for_craft(
         st,
         world,
@@ -10924,6 +10993,26 @@ pub async fn run_npc_scheduler(
                         let Some(product_id) = choice.product_id() else {
                             break;
                         };
+                        // Reed Skirt is the clothing block (reachable reed USE, then
+                        // isDropingItem DROP, switchCloths SELF). Generic continue
+                        // DropAt on the feet tile while holding rope 59 places it;
+                        // the next think picks it up, so 128 never stays in hand.
+                        // Haxe: craftClothIfNeeded L4502; isDropingItem L8456; switchCloths L8709
+                        if product_id == 128 {
+                            if matches!(choice, StickyCraftTickChoice::Continue { .. }) {
+                                st.craft_rt.item.product_id = 0;
+                                st.craft_rt.item.clear_trans();
+                            }
+                            if extra_left == 0 {
+                                break;
+                            }
+                            extra_left -= 1;
+                            choice = match st.craft_rt.take_next_crafting_task() {
+                                Some(id) => StickyCraftTickChoice::FromQueue { product_id: id },
+                                None => StickyCraftTickChoice::None,
+                            };
+                            continue;
+                        }
                         let intent = npc_expand_craft_product(
                             &tiles,
                             p.x,
@@ -11278,6 +11367,7 @@ pub async fn run_npc_scheduler(
                                 let mut local_tiles = tiles.clone();
                                 let mut local_blocked = blocked.clone();
                                 let mut chosen = ShortCraftLiveIntent::None;
+                                let held_rope = content.resolve_base_id(p.held_id) == 59;
                                 for _ in 0..5 {
                                     chosen = world
                                         .read()
@@ -11295,6 +11385,11 @@ pub async fn run_npc_scheduler(
                                             )
                                         })
                                         .unwrap_or_else(|| {
+                                            // Held rope is the actor. Fallback DropAt(feet)
+                                            // places it; the next think picks it up again.
+                                            if held_rope {
+                                                return ShortCraftLiveIntent::None;
+                                            }
                                             npc_clothing_craft_item_fallback(
                                                 &local_tiles,
                                                 p.x,
@@ -13469,18 +13564,78 @@ mod tests {
             }
         }
         w.set_object(10, 20, 59);
-        w.set_object(28, 10, 59);
-        w.set_object(8, 10, 124);
+        w.set_object(28, 11, 59);
+        w.set_object(8, 11, 124);
+        // Standing on the last walkable tile: Haxe isBlocked, no closer step.
         assert!(
-            !npc_clothing_goal_reachable(&w, &db, 10, 10, 10, 20),
-            "rope behind snow-grey is not a walk"
+            !npc_clothing_goal_reachable(&w, &db, 10, 11, 10, 20),
+            "no closer step toward a rope behind the mountain"
         );
-        assert!(npc_clothing_goal_reachable(&w, &db, 10, 10, 28, 10));
-        let pick = npc_reed_skirt_direct(&w, &db, 10, 10, 10, 10, 0, 60);
+        assert!(npc_clothing_goal_reachable(&w, &db, 10, 11, 28, 11));
+        // Open ground still walks toward a rope inside the 60 search.
+        assert!(npc_clothing_goal_reachable(&w, &db, 10, 11, 50, 11));
+        let pick = npc_reed_skirt_direct(&w, &db, 10, 11, 10, 11, 0, 60);
         assert!(matches!(
             pick,
-            Some(ShortCraftLiveIntent::DropAt { x: 28, y: 10 })
+            Some(ShortCraftLiveIntent::DropAt { x: 28, y: 11 })
         ));
+    }
+
+    #[test]
+    fn reed_skirt_direct_uses_held_rope_without_ground_rope() {
+        // Live 0.3.29: rope already in hand, reed on the near side. Requiring a
+        // ground rope returned None and the fallback DROP-placed 59 on the feet.
+        let mut w = World::new(64, 64, false);
+        let db = ContentDb::default();
+        w.set_object(6, 0, 124);
+        let use_reed = npc_reed_skirt_direct(&w, &db, 0, 0, 0, 0, 59, 60);
+        assert!(matches!(
+            use_reed,
+            Some(ShortCraftLiveIntent::UseAt {
+                target_id: 124,
+                actor_id: 59,
+                x: 6,
+                y: 0,
+            })
+        ));
+        for x in 0..64 {
+            for y in 2..6 {
+                w.set_biome(x, y, 21);
+            }
+        }
+        w.set_object(6, 0, 0);
+        w.set_object(6, 20, 124);
+        assert_eq!(
+            npc_reed_skirt_direct(&w, &db, 6, 1, 6, 1, 59, 60),
+            None,
+            "held rope must not walk into snow-grey, and must not drop on the feet"
+        );
+    }
+
+    #[test]
+    fn yew_bow_direct_uses_shaft_when_holding_rope() {
+        // Haxe craftItem(152) with 59 and 131 in range USEs them (newTarget 151).
+        let mut w = World::new(80, 80, false);
+        let db = ContentDb::default();
+        w.set_object(6, 0, 131);
+        w.set_object(12, 0, 59);
+        let use_shaft = npc_yew_bow_direct(&w, &db, 0, 0, 0, 0, 59, 60);
+        assert!(matches!(
+            use_shaft,
+            Some(ShortCraftLiveIntent::UseAt {
+                target_id: 131,
+                x: 6,
+                y: 0,
+                ..
+            })
+        ));
+        let pick_rope = npc_yew_bow_direct(&w, &db, 0, 0, 0, 0, 0, 60);
+        assert!(matches!(
+            pick_rope,
+            Some(ShortCraftLiveIntent::DropAt { x: 12, y: 0 })
+        ));
+        // Holding the bow must not drop it to fetch another rope.
+        assert!(npc_yew_bow_direct(&w, &db, 0, 0, 0, 0, 151, 60).is_none());
     }
 
     #[test]
