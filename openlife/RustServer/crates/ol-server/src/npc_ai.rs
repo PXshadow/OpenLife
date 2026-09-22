@@ -268,20 +268,17 @@ fn npc_holding_player(held_id: i32, holding_player_id: i32) -> bool {
     holding_player_id != 0 || held_id < 0
 }
 
-/// Haxe `dropHeldObject`: empty ground near the player.
-/// Search grows by 4 up to 40 (`GetClosestObjectToTarget` id 0). A blocked
-/// feet tile used to be returned anyway, so DROP swapped or no-op'd and the
-/// held gooseberry never left the hand.
-// Haxe: AiBase.dropHeldObject L5566–5592
+/// Haxe `dropHeldObject`: empty ground near the player, not the tile underfoot.
+/// DROP on the player's own tile is in range but does not clear the hand
+/// (live 0.3.37: held 31 stayed through `craft @` the feet tile).
+/// Search grows by 1 up to 40. A blocked feet tile is not a drop target.
+// Haxe: AiBase.dropHeldObject L5566–5592; isDropingItem L8456
 fn npc_empty_drop_xy(world: &World, px: i32, py: i32) -> (i32, i32) {
     fn open_tile(world: &World, x: i32, y: i32) -> bool {
         if world.get_object(x, y) != 0 {
             return false;
         }
         !is_biome_blocking(world.get_biome(x, y), world.get_floor(x, y) as i32)
-    }
-    if open_tile(world, px, py) {
-        return (px, py);
     }
     for r in 1i32..=40 {
         for dy in -r..=r {
@@ -14040,8 +14037,8 @@ mod tests {
         };
         let rewritten = npc_drop_held_before_loose_pickup(&w, &db, 5, 8, 0, 0, 31, pick);
         assert!(
-            matches!(rewritten, ShortCraftLiveIntent::DropAt { x, y } if (x, y) != (12, 0)),
-            "food must not DROP onto the rope"
+            matches!(rewritten, ShortCraftLiveIntent::DropAt { x, y } if (x, y) != (12, 0) && (x, y) != (5, 8)),
+            "food must leave the hand on a neighbor, not the rope or the feet tile"
         );
         // Target much closer to home than the player: keep the actor pickup.
         w.set_object(12, 0, 0);
@@ -14070,6 +14067,9 @@ mod tests {
         w.set_biome(4, 4, 21);
         let (x, y) = npc_empty_drop_xy(&w, 5, 5);
         assert_ne!((x, y), (5, 5));
+        w.set_object(5, 5, 0);
+        let (x2, y2) = npc_empty_drop_xy(&w, 5, 5);
+        assert_ne!((x2, y2), (5, 5), "open feet tile is still not an in-place drop");
         assert_eq!(w.get_object(x, y), 0);
         assert!(
             !is_biome_blocking(w.get_biome(x, y), w.get_floor(x, y) as i32),
