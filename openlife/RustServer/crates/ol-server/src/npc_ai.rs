@@ -2192,6 +2192,7 @@ fn npc_run_handle_temperature(
         let tiles = npc_scan_cached(st, world, content, p.x, p.y, 40);
         let blocked_set = st.path_reach.blocked_coords(None);
         let intent = npc_expand_craft_product(
+            world,
             &tiles,
             p.x,
             p.y,
@@ -2259,6 +2260,7 @@ fn npc_run_handle_temperature(
             let tiles = npc_scan_cached(st, world, content, p.x, p.y, 40);
             let blocked_set = st.path_reach.blocked_coords(None);
             let intent = npc_expand_craft_product(
+                world,
                 &tiles,
                 p.x,
                 p.y,
@@ -2345,6 +2347,7 @@ fn npc_run_handle_temperature(
             let tiles = npc_scan_cached(st, world, content, p.x, p.y, 40);
             let blocked_set = st.path_reach.blocked_coords(None);
             let intent = npc_expand_craft_product(
+                world,
                 &tiles,
                 p.x,
                 p.y,
@@ -3158,6 +3161,7 @@ fn npc_craft_live_opts(
 /// Expand one queued / sticky product via GetOrCraft (Haxe `craftItem` from doTimeStuffHelper).
 // Haxe: AiBase.doTimeStuffHelper ~667–680 craftItem
 fn npc_expand_craft_intent(
+    world: &World,
     tiles: &[ScanTile],
     px: i32,
     py: i32,
@@ -3175,12 +3179,14 @@ fn npc_expand_craft_intent(
 ) -> ShortCraftLiveIntent {
     let opts = npc_craft_live_opts(content, home_x, home_y, is_smith, tick);
     npc_expand_craft_intent_opts(
-        tiles, px, py, held_id, moving, content, craft_graph, craft_rt, blocked, opts, intent,
+        world, tiles, px, py, held_id, moving, content, craft_graph, craft_rt, blocked, opts,
+        intent,
     )
 }
 
 /// Clothing `craftItem` after Haxe L672 (home-only, first pass r=60).
 fn npc_expand_clothing_craft_intent(
+    world: &World,
     tiles: &[ScanTile],
     px: i32,
     py: i32,
@@ -3199,11 +3205,13 @@ fn npc_expand_clothing_craft_intent(
     let mut opts = npc_craft_live_opts(content, home_x, home_y, is_smith, tick);
     npc_prepare_clothing_l672_search(craft_rt, &mut opts);
     npc_expand_craft_intent_opts(
-        tiles, px, py, held_id, moving, content, craft_graph, craft_rt, blocked, opts, intent,
+        world, tiles, px, py, held_id, moving, content, craft_graph, craft_rt, blocked, opts,
+        intent,
     )
 }
 
 fn npc_expand_craft_intent_opts(
+    world: &World,
     tiles: &[ScanTile],
     px: i32,
     py: i32,
@@ -3227,6 +3235,9 @@ fn npc_expand_craft_intent_opts(
             0
         }
     };
+    // Haxe dropHeldObject(0): empty feet tile, else an orthogonal neighbor.
+    // Dropping on the occupied player tile swaps or no-ops, so held food never leaves the hand.
+    let (dx, dy) = npc_empty_drop_xy(world, px, py);
     npc_enqueue_get_or_craft_ex(
         intent,
         &goc_objs,
@@ -3234,7 +3245,7 @@ fn npc_expand_craft_intent_opts(
         py,
         held_id,
         moving,
-        Some((px, py)),
+        Some((dx, dy)),
         Some(craft_graph),
         &opts,
         Some(craft_rt),
@@ -3246,6 +3257,7 @@ fn npc_expand_craft_intent_opts(
 }
 
 fn npc_expand_craft_product(
+    world: &World,
     tiles: &[ScanTile],
     px: i32,
     py: i32,
@@ -3262,6 +3274,7 @@ fn npc_expand_craft_product(
     product_id: i32,
 ) -> ShortCraftLiveIntent {
     npc_expand_craft_intent(
+        world,
         tiles,
         px,
         py,
@@ -3282,6 +3295,7 @@ fn npc_expand_craft_product(
 }
 
 fn npc_clothing_craft_item_fallback(
+    world: &World,
     tiles: &[ScanTile],
     px: i32,
     py: i32,
@@ -3298,6 +3312,7 @@ fn npc_clothing_craft_item_fallback(
     object_id: i32,
 ) -> ShortCraftLiveIntent {
     let pickup = npc_expand_clothing_craft_intent(
+        world,
         tiles,
         px,
         py,
@@ -3321,6 +3336,7 @@ fn npc_clothing_craft_item_fallback(
         pickup
     } else {
         npc_expand_clothing_craft_product(
+            world,
             tiles,
             px,
             py,
@@ -3340,6 +3356,7 @@ fn npc_clothing_craft_item_fallback(
 }
 
 fn npc_expand_clothing_craft_product(
+    world: &World,
     tiles: &[ScanTile],
     px: i32,
     py: i32,
@@ -3356,6 +3373,7 @@ fn npc_expand_clothing_craft_product(
     product_id: i32,
 ) -> ShortCraftLiveIntent {
     npc_expand_clothing_craft_intent(
+        world,
         tiles,
         px,
         py,
@@ -4216,6 +4234,7 @@ fn npc_try_craft_product_commit(
     tag: &str,
 ) -> Option<(NpcActivityKind, String, u32)> {
     let intent = npc_expand_craft_product(
+        &world.read().unwrap(),
         tiles,
         p.x,
         p.y,
@@ -6395,6 +6414,7 @@ fn npc_emit_seek_or_craft(
         craft_if_needed: true,
     };
     let mut resolved = npc_expand_craft_intent(
+        world,
         &tiles,
         p.x,
         p.y,
@@ -6414,6 +6434,7 @@ fn npc_emit_seek_or_craft(
     // Haxe: AiBase.GetOrCraftItem L6198
     if !p.moving && !npc_craft_expand_progress(&resolved, false) {
         resolved = npc_expand_craft_intent(
+            world,
             &tiles,
             p.x,
             p.y,
@@ -11014,6 +11035,7 @@ pub async fn run_npc_scheduler(
                             continue;
                         }
                         let intent = npc_expand_craft_product(
+                            &world.read().unwrap(),
                             &tiles,
                             p.x,
                             p.y,
@@ -11264,6 +11286,7 @@ pub async fn run_npc_scheduler(
                         } => {
                             if tiles.iter().any(|t| t.parent_id == get_id) {
                                 npc_expand_clothing_craft_intent(
+                                    &world.read().unwrap(),
                                     &tiles,
                                     p.x,
                                     p.y,
@@ -11284,6 +11307,7 @@ pub async fn run_npc_scheduler(
                                 )
                             } else {
                                 npc_expand_clothing_craft_product(
+                                    &world.read().unwrap(),
                                     &tiles,
                                     p.x,
                                     p.y,
@@ -11307,6 +11331,7 @@ pub async fn run_npc_scheduler(
                         } => {
                             if craft_if_needed {
                                 npc_expand_clothing_craft_product(
+                                    &world.read().unwrap(),
                                     &tiles,
                                     p.x,
                                     p.y,
@@ -11324,6 +11349,7 @@ pub async fn run_npc_scheduler(
                                 )
                             } else {
                                 npc_expand_clothing_craft_intent(
+                                    &world.read().unwrap(),
                                     &tiles,
                                     p.x,
                                     p.y,
@@ -11391,6 +11417,7 @@ pub async fn run_npc_scheduler(
                                                 return ShortCraftLiveIntent::None;
                                             }
                                             npc_clothing_craft_item_fallback(
+                                                &world.read().unwrap(),
                                                 &local_tiles,
                                                 p.x,
                                                 p.y,
@@ -11431,6 +11458,7 @@ pub async fn run_npc_scheduler(
                                 chosen
                             } else {
                                 npc_clothing_craft_item_fallback(
+                                    &world.read().unwrap(),
                                     &tiles,
                                     p.x,
                                     p.y,
@@ -11461,6 +11489,7 @@ pub async fn run_npc_scheduler(
                             plan_quiver_arrow_precursors(p.held_id, &home_stock)
                         {
                             npc_expand_clothing_craft_product(
+                                &world.read().unwrap(),
                                 &tiles,
                                 p.x,
                                 p.y,
@@ -11517,6 +11546,7 @@ pub async fn run_npc_scheduler(
                     } else if matches!(plan, ClothingCraftPlan::CraftItem(200)) {
                         // Haxe: craftClothIfNeeded(200) false → try Reed Skirt 128 same tick.
                         let skirt = npc_expand_clothing_craft_product(
+                            &world.read().unwrap(),
                             &tiles,
                             p.x,
                             p.y,
@@ -12145,7 +12175,10 @@ pub async fn run_npc_scheduler(
                                 );
                                 let blocked =
                                     st.path_reach.blocked_coords(Some(&peer_blocked_by_ai));
-                                let empty_drop = Some((p.x, p.y));
+                                let empty_drop = {
+                                    let w = world.read().unwrap();
+                                    Some(npc_empty_drop_xy(&w, p.x, p.y))
+                                };
                                 let is_smith = matches!(profession, CraftProfession::Smith);
                                 // Haxe: ObjectData.getPileObjId via self+self transition
                                 let content_ref = content.as_ref();
