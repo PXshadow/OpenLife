@@ -329,6 +329,44 @@ fn npc_drop_held_before_loose_pickup(
     ShortCraftLiveIntent::DropAt { x: dx, y: dy }
 }
 
+/// Park the rope/reed DROP while food is put on an empty tile.
+///
+/// The hand-clear DROP must be labeled `drop_held_clear` so arrival restores
+/// this sticky. Otherwise the next think picks the berry back up and
+/// `switchCloths` never sees rope or 128.
+// Haxe: craftItemHelper L7114 considerDropHeldObject; isDropingItem L497 before food
+fn npc_park_actor_behind_food_drop(
+    st: &mut NpcProfessionState,
+    content: &ContentDb,
+    world: &World,
+    original: ShortCraftLiveIntent,
+    rewritten: ShortCraftLiveIntent,
+) -> ShortCraftLiveIntent {
+    let (
+        ShortCraftLiveIntent::DropAt { x: ox, y: oy },
+        ShortCraftLiveIntent::DropAt { x, y },
+    ) = (original, rewritten)
+    else {
+        return rewritten;
+    };
+    if ox == x && oy == y {
+        return rewritten;
+    }
+    let expected = sticky_parent_id(content, world.get_object(ox, oy));
+    st.resume_drop = Some(NpcStickyMove {
+        gx: ox,
+        gy: oy,
+        expected_parent_id: expected,
+        use_actor_parent: 0,
+        pending_use: false,
+        pending_drop: true,
+        label: npc_drop_arrive_label(content, expected, ox, oy, true),
+        move_from: None,
+    });
+    st.hand_clear_pending = true;
+    rewritten
+}
+
 /// Haxe `isDropingItem` is always before `isFeedingChild`; close `isUsingItem` (quad < 25) too.
 // Haxe: AiBase.doTimeStuffHelper L497 / L500–510 then L557 isFeedingChild
 fn npc_skip_feed_for_sticky(
@@ -4464,7 +4502,14 @@ fn npc_commit_craft_live(
             let expected = sticky_parent_id(content, world.get_object(x, y));
             // Haxe GetOrCraftItem L6215 dropTarget = clothing obj; isDropingItem
             // then pickup_cloth so 128 on the ground is DROPped, not recrafted.
-            let drop_label = npc_drop_arrive_label(content, expected, x, y, is_drop);
+            // Food-clear drops must keep that label so the parked rope/reed
+            // sticky is restored before isPickingupFood grabs the berry.
+            let drop_label = if is_drop && st.hand_clear_pending {
+                st.hand_clear_pending = false;
+                format!("drop_held_clear @{x},{y}")
+            } else {
+                npc_drop_arrive_label(content, expected, x, y, is_drop)
+            };
             if npc_do_arrive_or_walk(
                 intent_tx,
                 world,
@@ -5877,6 +5922,8 @@ struct NpcProfessionState {
     /// Haxe `triedDropCount` for `isDropingItem` dropDistance 10/0.
     // Haxe: AiBase.isDropingItem L8361
     tried_drop_count: i32,
+    /// This DROP is only to empty the hand; label it `drop_held_clear`.
+    hand_clear_pending: bool,
     /// Thinks spent waiting for 59+124→128 before `isDropingItem` DROP.
     /// Not `triedDropCount` (that is dropDistance; Haxe never aborts pickup on it).
     clothing_wait_apply: i32,
@@ -5958,6 +6005,7 @@ impl Default for NpcProfessionState {
             did_not_reach_animal_target: 0,
             time_looked_for_deadly_animal_at_home: TIME_LOOKED_NEVER,
             tried_drop_count: 0,
+            hand_clear_pending: false,
             clothing_wait_apply: 0,
             last_consider_food_tick: 0.0,
             last_leader_check_tick: 0.0,
@@ -6701,7 +6749,7 @@ fn npc_emit_seek_or_craft(
         ) {
             // Haxe L7114: drop held food before dropTarget = rope, else the
             // berry stays in hand and getWeapon never reaches 59+131.
-            let intent = npc_drop_held_before_loose_pickup(
+            let rewritten = npc_drop_held_before_loose_pickup(
                 world,
                 content,
                 p.x,
@@ -6711,6 +6759,7 @@ fn npc_emit_seek_or_craft(
                 p.held_id,
                 raw,
             );
+            let intent = npc_park_actor_behind_food_drop(st, content, world, raw, rewritten);
             let mut kind = kind_if_ok;
             let mut detail = format!("{label} {actor}");
             let mut game_ms = 250;
@@ -11825,8 +11874,10 @@ pub async fn run_npc_scheduler(
                                     chosen = ShortCraftLiveIntent::None;
                                 }
                                 // Haxe L7114: food in hand must leave before the rope DROP.
+                                // Park the rope so the berry drop does not get picked
+                                // back up before isDropingItem reaches it.
                                 let w = world.read().unwrap();
-                                npc_drop_held_before_loose_pickup(
+                                let rewritten = npc_drop_held_before_loose_pickup(
                                     &w,
                                     content.as_ref(),
                                     p.x,
@@ -11835,6 +11886,13 @@ pub async fn run_npc_scheduler(
                                     home_y,
                                     p.held_id,
                                     chosen,
+                                );
+                                npc_park_actor_behind_food_drop(
+                                    st,
+                                    content.as_ref(),
+                                    &w,
+                                    chosen,
+                                    rewritten,
                                 )
                             } else {
                                 npc_clothing_craft_item_fallback(
@@ -13824,6 +13882,27 @@ mod tests {
     }
 
     #[test]
+    fn food_drop_parks_rope_for_restore() {
+        // Live 0.3.39: clothing_craft dropped berry 31 on an empty tile, then
+        // the next think empty-hand DROPped that same berry back into the hand.
+        // The rope goal must stay parked behind drop_held_clear.
+        let mut w = World::new(40, 40, false);
+        let db = ContentDb::default();
+        w.set_object(12, 0, 59);
+        let original = ShortCraftLiveIntent::DropAt { x: 12, y: 0 };
+        let rewritten = ShortCraftLiveIntent::DropAt { x: 6, y: 1 };
+        let mut st = NpcProfessionState::default();
+        let out = npc_park_actor_behind_food_drop(&mut st, &db, &w, original, rewritten);
+        assert!(matches!(out, ShortCraftLiveIntent::DropAt { x: 6, y: 1 }));
+        assert!(st.hand_clear_pending);
+        let parked = st.resume_drop.as_ref().expect("rope parked");
+        assert_eq!((parked.gx, parked.gy), (12, 0));
+        assert!(parked.pending_drop);
+        assert_eq!(parked.expected_parent_id, 59);
+        let same = npc_park_actor_behind_food_drop(&mut st, &db, &w, original, original);
+        assert!(matches!(same, ShortCraftLiveIntent::DropAt { x: 12, y: 0 }));
+    }
+
     fn receding_drop_walk_aborts_like_haxe_goto_obj() {
         // Live 0.3.38: drop_held_walk @471,127 from ~450,118 stepped west
         // (farther) for minutes while food fell below 0. Haxe gotoObj L1085
