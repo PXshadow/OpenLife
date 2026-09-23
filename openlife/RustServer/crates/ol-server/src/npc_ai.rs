@@ -6587,6 +6587,97 @@ fn npc_approachable_cloth_xy(
     })
 }
 
+/// Held ids on the arrow chain. Not the finished arrow 148 or the bow 151:
+/// those combine in `npc_yew_bow_direct` and must not be dropped for rope.
+fn npc_arrow_material_held(held_base: i32) -> bool {
+    matches!(
+        held_base,
+        34 | 58 | 134 | 135 | 139 | 140 | 144 | 146 | 147 | 149 | 560 | 852 | 2178
+    )
+}
+
+/// Next step of Arrow 148, ignoring any transition that uses the bow.
+///
+/// `CraftItem(152)` while a yew bow is already in range returns flint chip 135
+/// on that bow (`964_151` → shaft-with-rope) or rope 59 + shaft 131. Both
+/// make another bow and never an arrow. Real recipes:
+/// 134+149 → 148, 146+147 → 148, 134+140 → 147, 146+140 → 149,
+/// 964+144 → 146, 34+135 → 134, 58+139 → 140, empty+143 → feather 144.
+// Haxe: AiBase.getWeapon L5814 GetOrCraftItem(152) → craftItem; fillUpQuiver L4690
+fn npc_arrow_chain_direct(
+    world: &World,
+    content: &ContentDb,
+    px: i32,
+    py: i32,
+    home_x: i32,
+    home_y: i32,
+    held_base: i32,
+    max_r: i32,
+    blocked: &HashSet<(i32, i32)>,
+) -> Option<ShortCraftLiveIntent> {
+    let find = |id: i32| {
+        npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, id, max_r, blocked)
+    };
+    let has = |id: i32| held_base == id || find(id).is_some();
+    // Actor in hand USEs the target. Holding the target DROPs onto the actor
+    // (swap, same as reed bundle onto rope). Otherwise DROP-pick the actor.
+    let pair = |actor: i32, target: i32| -> Option<ShortCraftLiveIntent> {
+        if !has(actor) || !has(target) {
+            return None;
+        }
+        if held_base == actor {
+            let (x, y) = find(target)?;
+            return Some(ShortCraftLiveIntent::UseAt {
+                x,
+                y,
+                target_id: target,
+                actor_id: actor,
+            });
+        }
+        let (x, y) = find(actor)?;
+        Some(ShortCraftLiveIntent::DropAt { x, y })
+    };
+    if let Some(step) = pair(134, 149).or_else(|| pair(146, 147)) {
+        return Some(step);
+    }
+    if let Some(step) = pair(134, 140).or_else(|| pair(146, 140)) {
+        return Some(step);
+    }
+    // Fletching 146 needs a feather. Empty hands pluck Canada Goose Pond 143.
+    if !has(146) && !has(144) && !has(2178) {
+        if let Some((x, y)) = find(143) {
+            return Some(ShortCraftLiveIntent::UseAt {
+                x,
+                y,
+                target_id: 143,
+                actor_id: 0,
+            });
+        }
+    }
+    if !has(146) {
+        if has(144) || has(2178) {
+            if let Some(step) = pair(135, 144)
+                .or_else(|| pair(560, 144))
+                .or_else(|| pair(135, 2178))
+                .or_else(|| pair(560, 2178))
+            {
+                return Some(step);
+            }
+        }
+    }
+    if !has(134) {
+        if let Some(step) = pair(34, 135) {
+            return Some(step);
+        }
+    }
+    if !has(140) {
+        if let Some(step) = pair(58, 139).or_else(|| pair(58, 852)) {
+            return Some(step);
+        }
+    }
+    None
+}
+
 /// Rope 59 + Yew Shaft 131 inside `max_r`. Held rope USEs the shaft;
 /// otherwise DROP-pick the rope. Haxe `craftItem(152)` when `59_131` is ready
 /// (newTarget Yew Bow 151), before seeking Arrow 148.
@@ -6887,17 +6978,48 @@ fn npc_emit_seek_or_craft(
     let blocked = st.path_reach.blocked_coords(None);
     if actor == BOW_AND_ARROW {
         let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
-        if let Some(raw) = npc_yew_bow_direct(
-            world,
-            content,
-            p.x,
-            p.y,
-            hx,
-            hy,
-            content.resolve_base_id(p.held_id),
-            NPC_GET_OR_CRAFT_SEARCH_RADIUS,
-            &blocked,
-        ) {
+        let held_base = content.resolve_base_id(p.held_id);
+        let max_r = NPC_GET_OR_CRAFT_SEARCH_RADIUS;
+        let near = |id: i32| {
+            npc_approachable_cloth_xy(world, content, p.x, p.y, hx, hy, id, max_r, &blocked)
+                .is_some()
+        };
+        // A yew bow in range is enough for 152. Do not CraftItem(152): the
+        // reverse graph's ready leaf is flint-on-bow or another rope+shaft.
+        // Haxe: getWeapon L5815 GetOrCraftItem(152); killAnimal L5931
+        let chain_held = npc_arrow_material_held(held_base);
+        let bow_near = held_base == 151 || near(151);
+        let arrow_near = held_base == 148 || near(148);
+        let want_bow_direct = held_base == 148 || (!chain_held && (!bow_near || arrow_near));
+        let mut raw = if want_bow_direct {
+            npc_yew_bow_direct(
+                world,
+                content,
+                p.x,
+                p.y,
+                hx,
+                hy,
+                held_base,
+                max_r,
+                &blocked,
+            )
+        } else {
+            None
+        };
+        if raw.is_none() && held_base != 148 && (bow_near || chain_held) {
+            raw = npc_arrow_chain_direct(
+                world,
+                content,
+                p.x,
+                p.y,
+                hx,
+                hy,
+                held_base,
+                max_r,
+                &blocked,
+            );
+        }
+        if let Some(raw) = raw {
             // Haxe L7114: drop held food before dropTarget = rope, else the
             // berry stays in hand and getWeapon never reaches 59+131.
             let rewritten = npc_drop_held_before_loose_pickup(
@@ -6940,6 +7062,9 @@ fn npc_emit_seek_or_craft(
                 }
                 return Some((kind, detail, game_ms));
             }
+        }
+        if held_base == 148 || bow_near || chain_held {
+            return None;
         }
     }
     let tiles = npc_scan_for_craft(
@@ -14485,6 +14610,41 @@ mod tests {
             npc_yew_bow_direct(&w, &db, 0, 0, 0, 0, 0, 60, &HashSet::new()),
             Some(ShortCraftLiveIntent::DropAt { x: 4, y: 0 })
         ));
+    }
+
+    #[test]
+    fn arrow_chain_uses_arrowhead_on_tied_skewer_not_the_bow() {
+        // Live 0.3.45: bow in range, CraftItem(152) USEd flint chip 135 on the
+        // bow (964+151) or rope+shaft. Arrow 148 is 134+140 → 147, then fletch.
+        let mut w = World::new(80, 80, false);
+        let db = ContentDb::default();
+        w.set_object(4, 0, 151);
+        w.set_object(8, 0, 59);
+        w.set_object(10, 0, 131);
+        w.set_object(6, 1, 134);
+        w.set_object(6, -1, 140);
+        let step = npc_arrow_chain_direct(&w, &db, 0, 0, 0, 0, 151, 60, &HashSet::new());
+        assert!(
+            matches!(step, Some(ShortCraftLiveIntent::DropAt { x: 6, y: 1 })),
+            "holding the bow must pick up the arrowhead, not the bow or the rope: {step:?}"
+        );
+        let use_skewer = npc_arrow_chain_direct(&w, &db, 0, 0, 0, 0, 134, 60, &HashSet::new());
+        assert!(matches!(
+            use_skewer,
+            Some(ShortCraftLiveIntent::UseAt {
+                target_id: 140,
+                actor_id: 134,
+                x: 6,
+                y: -1,
+            })
+        ));
+        w.set_object(3, 3, 147);
+        w.set_object(2, 2, 146);
+        let finish = npc_arrow_chain_direct(&w, &db, 0, 0, 0, 0, 0, 60, &HashSet::new());
+        assert!(
+            matches!(finish, Some(ShortCraftLiveIntent::DropAt { x: 2, y: 2 })),
+            "fletching + featherless arrow finishes 148, and must not target the bow: {finish:?}"
+        );
     }
 
     #[test]
