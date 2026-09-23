@@ -6538,6 +6538,27 @@ fn npc_yew_bow_direct(
     max_r: i32,
     blocked: &HashSet<(i32, i32)>,
 ) -> Option<ShortCraftLiveIntent> {
+    // Held rope or shaft is one half. Do not also require that half on the ground.
+    if held_base == 59 {
+        let shaft =
+            npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 131, max_r, blocked)?;
+        return Some(ShortCraftLiveIntent::UseAt {
+            x: shaft.0,
+            y: shaft.1,
+            target_id: 131,
+            actor_id: 59,
+        });
+    }
+    if held_base == 131 {
+        let rope =
+            npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 59, max_r, blocked)?;
+        return Some(ShortCraftLiveIntent::UseAt {
+            x: rope.0,
+            y: rope.1,
+            target_id: 59,
+            actor_id: 131,
+        });
+    }
     // Holding Yew Bow 151 or Arrow 148: combine those, never drop them for rope.
     if held_base == 151 {
         let arrow =
@@ -6561,28 +6582,12 @@ fn npc_yew_bow_direct(
     }
     let rope =
         npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 59, max_r, blocked)?;
-    let shaft =
+    let _shaft =
         npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 131, max_r, blocked)?;
-    if held_base == 59 {
-        Some(ShortCraftLiveIntent::UseAt {
-            x: shaft.0,
-            y: shaft.1,
-            target_id: 131,
-            actor_id: 59,
-        })
-    } else if held_base == 131 {
-        Some(ShortCraftLiveIntent::UseAt {
-            x: rope.0,
-            y: rope.1,
-            target_id: 59,
-            actor_id: 131,
-        })
-    } else {
-        Some(ShortCraftLiveIntent::DropAt {
-            x: rope.0,
-            y: rope.1,
-        })
-    }
+    Some(ShortCraftLiveIntent::DropAt {
+        x: rope.0,
+        y: rope.1,
+    })
 }
 
 /// Rope 59 + Reed Bundle 124 inside `max_r` of the player or home.
@@ -10538,6 +10543,74 @@ pub async fn run_npc_scheduler(
                 }
             }
 
+            // Haxe isUsingItem L574 before isPickingupFood. A held rope or reed
+            // must reach 59+124 (or 59+131) before food dropHeldObject drops it.
+            if !acted {
+                let held_base = content.resolve_base_id(p.held_id);
+                if held_base == 59 || held_base == 124 || held_base == 131 {
+                    let (hx, hy) = peer_home_coords(Some((p.home_x, p.home_y)), p.x, p.y);
+                    let st = profession_state.entry(conn_id).or_default();
+                    let blocked = st.path_reach.blocked_coords(None);
+                    let intent = {
+                        let w = world.read().unwrap();
+                        npc_reed_skirt_direct(
+                            &w,
+                            content.as_ref(),
+                            p.x,
+                            p.y,
+                            hx,
+                            hy,
+                            held_base,
+                            NPC_GET_OR_CRAFT_SEARCH_RADIUS,
+                            &blocked,
+                        )
+                        .filter(|_| held_base == 59 || held_base == 124)
+                        .or_else(|| {
+                            if held_base == 59 || held_base == 131 {
+                                npc_yew_bow_direct(
+                                    &w,
+                                    content.as_ref(),
+                                    p.x,
+                                    p.y,
+                                    hx,
+                                    hy,
+                                    held_base,
+                                    NPC_GET_OR_CRAFT_SEARCH_RADIUS,
+                                    &blocked,
+                                )
+                            } else {
+                                None
+                            }
+                        })
+                    };
+                    if let Some(intent) = intent {
+                        let committed = {
+                            let w = world.read().unwrap();
+                            npc_commit_craft_live(
+                                &intent,
+                                &intent_tx,
+                                &w,
+                                content.as_ref(),
+                                st,
+                                conn_id,
+                                p.x,
+                                p.y,
+                                p.food,
+                                p.moving,
+                                &mut kind,
+                                &mut detail,
+                                &mut game_ms,
+                                npc_client_move_seq(p.done_moving_seq),
+                            )
+                        };
+                        if committed {
+                            acted = true;
+                            detail = format!("pair_before_food {detail}");
+                        }
+                    }
+                }
+            }
+
             // --- 2. isPickingupFood (Haxe L576 unconditional; L8611 foodTarget==null → false)
             // Sticky: run SM (isEatableCheckAgain / dropHeld / USE / DROP / REMV).
             // No sticky + hungry: checkIsHungryAndEat searchFoodAndEat then pickup.
@@ -14196,6 +14269,19 @@ mod tests {
         assert!(matches!(
             pick_rope,
             Some(ShortCraftLiveIntent::DropAt { x: 12, y: 0 })
+        ));
+        // Live 0.3.41: the only rope was in hand, so the ground-rope check
+        // returned None and food dropHeldObject put the rope back down.
+        w.set_object(12, 0, 0);
+        let held_only = npc_yew_bow_direct(&w, &db, 0, 0, 0, 0, 59, 60, &HashSet::new());
+        assert!(matches!(
+            held_only,
+            Some(ShortCraftLiveIntent::UseAt {
+                target_id: 131,
+                x: 6,
+                y: 0,
+                ..
+            })
         ));
         // Holding the bow must not drop it to fetch another rope.
         assert!(npc_yew_bow_direct(&w, &db, 0, 0, 0, 0, 151, 60, &HashSet::new()).is_none());
