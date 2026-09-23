@@ -504,6 +504,37 @@ pub fn fold_world_pos_around_world(
     (birth_x + nx, birth_y + ny, true)
 }
 
+/// Same torus tile as `server`, written in the numeric space of `near`.
+///
+/// Haxe `p.x` stays continuous across the seam. `rem_euclid` stores the step
+/// from `0` to `-1` as `width-1`. The next map chunk is then centered a full
+/// map away, and the official client stands on the edge of its 64×64 RAM map
+/// (`isBadBiome(-1)` and the floor draw read off the array).
+///
+/// Returns `server` unchanged when the wrapped distance is greater than
+/// `max_chebyshev` (a real teleport, not a representative jump).
+// Haxe: MoveHelper.moveHelper L550–559 (single ±size fold, not rem_euclid)
+pub fn continuous_near(
+    server_x: i32,
+    server_y: i32,
+    near_x: i32,
+    near_y: i32,
+    width: i32,
+    height: i32,
+    max_chebyshev: i32,
+) -> (i32, i32) {
+    if width <= 0 || height <= 0 || max_chebyshev < 0 {
+        return (server_x, server_y);
+    }
+    let (dx, dy) = ol_move_rules::wrap_delta(
+        near_x, near_y, server_x, server_y, width, height, true,
+    );
+    if dx.abs().max(dy.abs()) > max_chebyshev {
+        return (server_x, server_y);
+    }
+    (near_x.saturating_add(dx), near_y.saturating_add(dy))
+}
+
 /// Haxe `ServerSettings.MinMovementAgeInSec` — reject MOVE when `age * 60 <` this.
 // Haxe: ServerSettings.MinMovementAgeInSec / MoveHelper.moveHelper
 pub const MIN_MOVEMENT_AGE_IN_SEC: f32 = 14.0;
@@ -925,6 +956,19 @@ mod tests {
         assert!(!check_if_not_moving_and_close_enough(
             true, 5, 5, 5, 6, 1, 32, 32, false
         ));
+    }
+
+    #[test]
+    fn continuous_near_undoes_a_seam_rem_euclid() {
+        // Width 500. West of 0 is -2. rem_euclid stores that as 498.
+        // The client's last chunk is still at -2. Keep -2.
+        assert_eq!(continuous_near(498, 10, -2, 10, 500, 500, 40), (-2, 10));
+        // Client a couple of tiles further west: same server tile, client's numbers.
+        assert_eq!(continuous_near(498, 10, -4, 10, 500, 500, 15), (-2, 10));
+        // A real short walk stays where it is.
+        assert_eq!(continuous_near(-12, 10, -2, 10, 500, 500, 40), (-12, 10));
+        // A far teleport is not pulled across the torus.
+        assert_eq!(continuous_near(200, 10, -2, 10, 500, 500, 40), (200, 10));
     }
 
     #[test]

@@ -17502,7 +17502,7 @@
         state.players.get_mut(&2).unwrap().set_birth_origin(103, 50);
         while rx_a.try_recv().is_ok() {}
         while rx_b.try_recv().is_ok() {}
-        send_update_to_all_close_players(&state, &hub, 1, 0);
+        send_update_to_all_close_players(&mut state, &hub, 1, 0);
         fn pu_xy(pkt: &[u8]) -> Option<(i32, i32)> {
             let s = String::from_utf8_lossy(pkt);
             if !s.starts_with("PU\n") {
@@ -17552,7 +17552,7 @@
         );
         while rx_a.try_recv().is_ok() {}
         while rx_b.try_recv().is_ok() {}
-        send_update_to_all_close_players(&state, &hub, 1, 0);
+        send_update_to_all_close_players(&mut state, &hub, 1, 0);
         fn pu_xy(pkt: &[u8]) -> Option<(i32, i32)> {
             let s = String::from_utf8_lossy(pkt);
             if !s.starts_with("PU\n") {

@@ -2752,17 +2752,9 @@ fn apply_player_jump(state: &mut SimState, outbound: &OutboundHub, conn_id: u64)
             }
         });
         if let Some((mx, my)) = mother_pos {
-            let (dx, dy, drop_ok) = {
+            let drop_ok = {
                 let world = state.world.read().unwrap();
-                let (wx, wy) = ol_move_rules::wrap_tile(
-                    mx,
-                    my,
-                    world.width_tiles,
-                    world.height_tiles,
-                    world.wrap,
-                );
-                let ok = crate::pathfind::is_walkable(&world, &state.content, wx, wy);
-                (wx, wy, ok)
+                crate::pathfind::is_walkable(&world, &state.content, mx, my)
             };
             if drop_ok {
                 if let Some(mother) = state
@@ -2774,8 +2766,10 @@ fn apply_player_jump(state: &mut SimState, outbound: &OutboundHub, conn_id: u64)
                 }
                 if let Some(pl) = state.players.get_mut(&conn_id) {
                     pl.held_by = 0;
-                    pl.x = dx;
-                    pl.y = dy;
+                    // Mother's stored tile, not rem_euclid. The seam step must
+                    // stay on the same side of 0 the client already has.
+                    pl.x = mx;
+                    pl.y = my;
                     pl.done_moving_seq = pl.done_moving_seq.saturating_add(1);
                 }
             }
@@ -3079,12 +3073,98 @@ pub fn force_send_map_chunk(state: &mut SimState, outbound: &OutboundHub, conn_i
     force_send_map_chunk_ex(state, outbound, conn_id, false);
 }
 
+/// Move `conn` onto the numeric tile nearest `anchor` when it is the same
+/// neighborhood on the torus. Shifts an in-flight path and a held baby by
+/// the same delta so PU / MAP_CHUNK stay in the client's coordinate space.
+fn shift_conn_toward_anchor(
+    state: &mut SimState,
+    conn_id: u64,
+    anchor_x: i32,
+    anchor_y: i32,
+    max_chebyshev: i32,
+) {
+    let (width, height, wrap) = match state.world.read() {
+        Ok(world) if world.wrap => (world.width_tiles, world.height_tiles, true),
+        _ => return,
+    };
+    if !wrap || width <= 0 || height <= 0 {
+        return;
+    }
+    let Some(p) = state.players.get(&conn_id) else {
+        return;
+    };
+    if p.deleted {
+        return;
+    }
+    let (nx, ny) = crate::move_path::continuous_near(
+        p.x,
+        p.y,
+        anchor_x,
+        anchor_y,
+        width,
+        height,
+        max_chebyshev,
+    );
+    let dx = nx - p.x;
+    let dy = ny - p.y;
+    if dx == 0 && dy == 0 {
+        return;
+    }
+    let held = p.holding_player_id;
+    if let Some(p) = state.players.get_mut(&conn_id) {
+        if let Some(path) = p.move_path.as_mut() {
+            path.exact_x += dx as f32;
+            path.exact_y += dy as f32;
+            path.start_x += dx;
+            path.start_y += dy;
+        }
+        p.x = nx;
+        p.y = ny;
+        // A later snap uses last_mc. Leave it on this representative so a
+        // wrapped anchor cannot pull the player back across the seam.
+        if p.has_mc {
+            p.last_mc_x = nx;
+            p.last_mc_y = ny;
+        }
+    }
+    if held != 0 {
+        if let Some(baby) = state
+            .players
+            .values_mut()
+            .find(|pl| pl.p_id == held && !pl.deleted)
+        {
+            baby.x += dx;
+            baby.y += dy;
+            if let Some(path) = baby.move_path.as_mut() {
+                path.exact_x += dx as f32;
+                path.exact_y += dy as f32;
+                path.start_x += dx;
+                path.start_y += dy;
+            }
+        }
+    }
+}
+
+/// Undo a `rem_euclid` jump away from the last map chunk sent to this client.
+fn snap_conn_near_last_chunk(state: &mut SimState, conn_id: u64) {
+    let Some(p) = state.players.get(&conn_id) else {
+        return;
+    };
+    if p.deleted || !p.has_mc {
+        return;
+    }
+    let (ax, ay) = (p.last_mc_x, p.last_mc_y);
+    // 40 covers a few missed chunk refreshes. A real teleport is farther.
+    shift_conn_toward_anchor(state, conn_id, ax, ay, 40);
+}
+
 fn force_send_map_chunk_ex(
     state: &mut SimState,
     outbound: &OutboundHub,
     conn_id: u64,
     urgent: bool,
 ) {
+    snap_conn_near_last_chunk(state, conn_id);
     let (x, y, wire_cx, wire_cy) = {
         let Some(p) = state.players.get(&conn_id) else {
             return;
@@ -5809,10 +5889,7 @@ fn apply_say_or_remv(
                             let actor_age = p.age;
                             // Resolve wrap before mutating players (avoid double-borrow).
                             let shove_xy = match outcome {
-                                PushOutcome::Shove { nx, ny } => {
-                                    let w = state.world.read().unwrap();
-                                    Some(w.wrap_tile(nx, ny))
-                                }
+                                PushOutcome::Shove { nx, ny } => Some((nx, ny)),
                                 PushOutcome::Swap => None,
                             };
                             match outcome {
@@ -5937,29 +6014,25 @@ fn apply_say_or_remv(
                             format!("{actor_id} PULL {target_id} FAIL range")
                         } else {
                             let (dx, dy) = pull_dest(ax, ay, tx, ty);
-                            let (wx, wy) = {
-                                let world = state.world.read().unwrap();
-                                world.wrap_tile(dx, dy)
-                            };
                             let dest_walkable = {
                                 let world = state.world.read().unwrap();
-                                !biome_blocks_move(world.get_biome(wx, wy))
-                                    && is_walkable(&world, &state.content, wx, wy)
+                                !biome_blocks_move(world.get_biome(dx, dy))
+                                    && is_walkable(&world, &state.content, dx, dy)
                             };
                             // Actor tile is allowed; third players block.
                             let third_on_dest = state.players.values().any(|op| {
                                 !op.deleted
                                     && op.p_id != actor_id
                                     && op.p_id != target_id
-                                    && op.x == wx
-                                    && op.y == wy
+                                    && op.x == dx
+                                    && op.y == dy
                             });
-                            if !can_pull_to(ax, ay, wx, wy, dest_walkable, third_on_dest) {
+                            if !can_pull_to(ax, ay, dx, dy, dest_walkable, third_on_dest) {
                                 format!("{actor_id} PULL {target_id} FAIL blocked")
                             } else {
                                 if let Some(tp) = state.players.get_mut(&t_conn) {
-                                    tp.x = wx;
-                                    tp.y = wy;
+                                    tp.x = dx;
+                                    tp.y = dy;
                                 }
                                 state.publish_player_view(t_conn);
                                 let near = nearby_conn_ids(state, ax, ay, nearby_range(state));
@@ -5987,7 +6060,7 @@ fn apply_say_or_remv(
                                         },
                                     );
                                 }
-                                format!("{actor_id} PULL {target_id} OK {wx} {wy}")
+                                format!("{actor_id} PULL {target_id} OK {dx} {dy}")
                             }
                         }
                     }
@@ -9625,11 +9698,12 @@ fn format_live_pu_line_origin(
 /// connection (including the subject). Wire seq is `toData` (`0` if held/moving).
 // Haxe: Connection.hx L357–379
 fn send_update_to_all_close_players(
-    state: &SimState,
+    state: &mut SimState,
     outbound: &OutboundHub,
     subject_conn: u64,
     force: i32,
 ) {
+    snap_conn_near_last_chunk(state, subject_conn);
     let Some(p) = state.players.get(&subject_conn).cloned() else {
         return;
     };
@@ -9659,6 +9733,7 @@ pub fn send_player_update_and_frame(state: &mut SimState, outbound: &OutboundHub
 /// Used after USE/DROP that fail or succeed so the client is not stuck with a
 /// stale mid-action wait and does not desync MOVE sequence numbers.
 pub fn send_action_result_pu_and_frame(state: &mut SimState, outbound: &OutboundHub, conn_id: u64) {
+    snap_conn_near_last_chunk(state, conn_id);
     let Some(p) = state.players.get(&conn_id).cloned() else {
         return;
     };
@@ -9696,6 +9771,7 @@ pub fn send_forced_player_update(
     conn_id: u64,
     done_seq: Option<i32>,
 ) {
+    snap_conn_near_last_chunk(state, conn_id);
     {
         let Some(p) = state.players.get_mut(&conn_id) else {
             return;
@@ -11364,6 +11440,10 @@ pub fn apply_move_path_start(
     deltas: &[(i32, i32)],
     client_seq: Option<i32>,
 ) -> Result<(), MoveReject> {
+    snap_conn_near_last_chunk(state, conn_id);
+    // Client MOVE start is already world space. If the server tile is the
+    // rem_euclid twin (498 vs -2), rebuild the path in the client's numbers.
+    shift_conn_toward_anchor(state, conn_id, xs, ys, 15);
     // Baby MOVE while held â†’ jump out of arms (user: drop if they move out).
     // Haxe prefers JUMP; we also honor MOVE as an explicit leave.
     let held_by = state.players.get(&conn_id).map(|p| p.held_by).unwrap_or(0);
@@ -11646,6 +11726,7 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
         }
     };
     for conn_id in conns {
+        snap_conn_near_last_chunk(state, conn_id);
         let tick = state.tick;
         let (mut path, mut x, mut y, held_baby, seq, birth_x, birth_y) = {
             let Some(p) = state.players.get_mut(&conn_id) else {
@@ -11698,6 +11779,11 @@ pub fn tick_move_paths(state: &mut SimState, dt: f32, outbound: &OutboundHub) {
             if let Some(p) = state.players.get_mut(&conn_id) {
                 p.x = x;
                 p.y = y;
+                // Anchor the chunk on the folded tile before the send, so the
+                // seam snap does not unfold it back across the map.
+                p.last_mc_x = x;
+                p.last_mc_y = y;
+                p.has_mc = true;
                 p.move_path = None;
                 p.moving = false;
                 p.done_moving_seq = seq;
@@ -11799,7 +11885,9 @@ fn unstuck_xy(world: &World, content: &ContentDb, x: i32, y: i32) -> (i32, i32) 
     let is_blocked = |tx: i32, ty: i32| standing_tile_blocked(world, content, tx, ty);
     match crate::jump_bw::plan_jump_to_non_blocked(is_blocked, x, y) {
         None => (x, y),
-        Some((dx, dy)) => world.wrap_tile(x + dx, y + dy),
+        // Keep the step continuous. wrap_tile(-1) is width-1 and the next
+        // map chunk recenters the official client onto the far edge.
+        Some((dx, dy)) => (x + dx, y + dy),
     }
 }
 
