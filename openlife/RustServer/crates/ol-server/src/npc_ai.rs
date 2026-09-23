@@ -6643,39 +6643,58 @@ fn npc_arrow_chain_direct(
     if let Some(step) = pair(134, 140).or_else(|| pair(146, 140)) {
         return Some(step);
     }
+    // Haxe searchBestTransition keeps the closer ready pair. Live 0.3.46
+    // always made the arrowhead first, so a held thread was dropped to walk
+    // ~50 tiles to sharp stone 34 while skewer 139 was next to the bow.
+    let mut best: Option<(i32, ShortCraftLiveIntent)> = None;
+    let mut offer = |step: ShortCraftLiveIntent, other: i32| {
+        let (x, y) = match step {
+            ShortCraftLiveIntent::UseAt { x, y, .. }
+            | ShortCraftLiveIntent::DropAt { x, y } => (x, y),
+            _ => return,
+        };
+        let mut d = world.chebyshev(px, py, x, y);
+        if matches!(step, ShortCraftLiveIntent::DropAt { .. }) {
+            if let Some((tx, ty)) = find(other) {
+                d += world.chebyshev(x, y, tx, ty);
+            }
+        }
+        if best.map(|(bd, _)| d < bd).unwrap_or(true) {
+            best = Some((d, step));
+        }
+    };
     // Fletching 146 needs a feather. Empty hands pluck Canada Goose Pond 143.
     if !has(146) && !has(144) && !has(2178) {
         if let Some((x, y)) = find(143) {
-            return Some(ShortCraftLiveIntent::UseAt {
-                x,
-                y,
-                target_id: 143,
-                actor_id: 0,
-            });
+            offer(
+                ShortCraftLiveIntent::UseAt {
+                    x,
+                    y,
+                    target_id: 143,
+                    actor_id: 0,
+                },
+                0,
+            );
         }
     }
     if !has(146) {
-        if has(144) || has(2178) {
-            if let Some(step) = pair(135, 144)
-                .or_else(|| pair(560, 144))
-                .or_else(|| pair(135, 2178))
-                .or_else(|| pair(560, 2178))
-            {
-                return Some(step);
+        for (actor, target) in [(135, 144), (560, 144), (135, 2178), (560, 2178)] {
+            if let Some(step) = pair(actor, target) {
+                offer(step, target);
             }
         }
     }
     if !has(134) {
         if let Some(step) = pair(34, 135) {
-            return Some(step);
+            offer(step, 135);
         }
     }
     if !has(140) {
         if let Some(step) = pair(58, 139).or_else(|| pair(58, 852)) {
-            return Some(step);
+            offer(step, if find(139).is_some() { 139 } else { 852 });
         }
     }
-    None
+    best.map(|(_, step)| step)
 }
 
 /// Rope 59 + Yew Shaft 131 inside `max_r`. Held rope USEs the shaft;
@@ -14644,6 +14663,36 @@ mod tests {
         assert!(
             matches!(finish, Some(ShortCraftLiveIntent::DropAt { x: 2, y: 2 })),
             "fletching + featherless arrow finishes 148, and must not target the bow: {finish:?}"
+        );
+    }
+
+    #[test]
+    fn arrow_chain_prefers_near_skewer_over_far_arrowhead() {
+        // Live 0.3.46: Hall held thread 58, then walked to sharp stone 266,322
+        // because 34+135 was tried before 58+139. The skewer was the closer pair.
+        let mut w = World::new(80, 80, false);
+        let db = ContentDb::default();
+        w.set_object(3, 0, 139);
+        w.set_object(40, 0, 34);
+        w.set_object(42, 0, 135);
+        let held = npc_arrow_chain_direct(&w, &db, 0, 0, 0, 0, 58, 60, &HashSet::new());
+        assert!(
+            matches!(
+                held,
+                Some(ShortCraftLiveIntent::UseAt {
+                    target_id: 139,
+                    actor_id: 58,
+                    x: 3,
+                    y: 0,
+                })
+            ),
+            "held thread must USE the near skewer, not the far stone: {held:?}"
+        );
+        w.set_object(4, 1, 58);
+        let empty = npc_arrow_chain_direct(&w, &db, 0, 0, 0, 0, 0, 60, &HashSet::new());
+        assert!(
+            matches!(empty, Some(ShortCraftLiveIntent::DropAt { x: 4, y: 1 })),
+            "empty hands pick up the near thread, not the far sharp stone: {empty:?}"
         );
     }
 
