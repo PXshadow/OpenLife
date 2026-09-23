@@ -192,6 +192,56 @@ pub fn client_path_deltas_to_steps(deltas: &[(i32, i32)]) -> Vec<(i32, i32)> {
     steps
 }
 
+/// Drop the longest repeated cell, once, matching the official client.
+///
+/// LivingLifePage `removeDoubleBacksFromPath` deletes that span. A path that
+/// folds back onto itself becomes "Removing loop". If nothing but the start
+/// remains, the client's "Manually forced" branch reads `pathToDest[-1]`.
+// Jason: LivingLifePage.cpp removeDoubleBacksFromPath ~L1439; PM ~L20399
+pub fn strip_revisit_steps(steps: &[(i32, i32)]) -> Vec<(i32, i32)> {
+    if steps.len() < 2 {
+        return steps.to_vec();
+    }
+    let mut abs = Vec::with_capacity(steps.len() + 1);
+    abs.push((0i32, 0i32));
+    let mut x = 0i32;
+    let mut y = 0i32;
+    for &(dx, dy) in steps {
+        x += dx;
+        y += dy;
+        abs.push((x, y));
+    }
+    let mut best_a = 0usize;
+    let mut best_b = 0usize;
+    let mut longest = 0usize;
+    for e in 0..abs.len() {
+        for f in (e + 1)..abs.len() {
+            if abs[e] == abs[f] {
+                let dist = f - e;
+                if dist > longest {
+                    longest = dist;
+                    best_a = e;
+                    best_b = f;
+                }
+            }
+        }
+    }
+    if longest == 0 {
+        return steps.to_vec();
+    }
+    let mut kept = Vec::with_capacity(abs.len() - (best_b - best_a));
+    kept.extend_from_slice(&abs[..=best_a]);
+    kept.extend_from_slice(&abs[best_b + 1..]);
+    let mut out = Vec::with_capacity(kept.len().saturating_sub(1));
+    for w in kept.windows(2) {
+        let (dx, dy) = (w[1].0 - w[0].0, w[1].1 - w[0].1);
+        if dx != 0 || dy != 0 {
+            out.push((dx, dy));
+        }
+    }
+    out
+}
+
 /// Inverse of [`client_path_deltas_to_steps`]: steps → start-relative waypoint deltas
 /// (for PM wire, which mirrors the client format).
 pub fn steps_to_client_path_deltas(steps: &[(i32, i32)]) -> Vec<(i32, i32)> {
@@ -897,6 +947,27 @@ mod tests {
             y += dy;
         }
         assert_eq!((x, y), (16, 8), "standing tile must not wrap to (0,8)");
+    }
+
+    #[test]
+    fn strip_revisit_removes_the_cell_the_client_calls_a_loop() {
+        // PM 9134597 -11 -60 … 1 -1 0 -1 1 -1 1 0
+        // Unit steps (1,-1),(-1,0),(1,0),(0,1) revisit one cell.
+        // Client: "Removing loop with 2 elements".
+        let steps = [(1, -1), (-1, 0), (1, 0), (0, 1)];
+        assert_eq!(strip_revisit_steps(&steps), vec![(1, -1), (0, 1)]);
+        let wire = steps_to_client_path_deltas(&strip_revisit_steps(&steps));
+        let mut seen = std::collections::HashSet::new();
+        let mut x = 0;
+        let mut y = 0;
+        seen.insert((x, y));
+        for (dx, dy) in wire {
+            x = dx;
+            y = dy;
+            assert!(seen.insert((x, y)), "wire waypoint repeated at {x},{y}");
+        }
+        assert_eq!(strip_revisit_steps(&[(1, 0), (1, 0)]), vec![(1, 0), (1, 0)]);
+        assert!(strip_revisit_steps(&[(1, 0), (-1, 0)]).is_empty());
     }
 
     #[test]

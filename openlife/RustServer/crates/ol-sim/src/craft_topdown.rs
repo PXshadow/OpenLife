@@ -1091,6 +1091,42 @@ fn find_best_pair_topdown(
     None
 }
 
+/// Direct inputs of `product` that exist inside the full search count as already
+/// had, even when this ring is smaller. Do not remake a yew bow that is in reach.
+// Haxe: DoTransitionSearch queues only the missing side (AiBase L7945–7957)
+fn merge_ingredients_already_in_reach(
+    product_id: i32,
+    graph: &ReverseCraftGraph,
+    have: &mut HashSet<i32>,
+    counts: &mut HashMap<i32, i32>,
+    have_full: &HashSet<i32>,
+    counts_full: &HashMap<i32, i32>,
+) {
+    let Some(pairs) = graph.ingredients_for(product_id) else {
+        return;
+    };
+    for &(actor, target) in pairs {
+        if graph.ai_should_ignore_edge(actor, target) {
+            continue;
+        }
+        for id in [actor, target] {
+            if id <= 0 {
+                continue;
+            }
+            let n = counts_full.get(&id).copied().unwrap_or(0);
+            if n <= 0 && !have_full.contains(&id) {
+                continue;
+            }
+            let n = n.max(i32::from(have_full.contains(&id)));
+            have.insert(id);
+            let slot = counts.entry(id).or_insert(0);
+            if *slot < n {
+                *slot = n;
+            }
+        }
+    }
+}
+
 /// Filtered `searchBestObjectForCrafting` with DoTransitionSearch + scan gates.
 // Haxe: searchBestObjectForCrafting + searchBestTransitionTopDown + DoTransitionSearch
 pub fn search_best_object_for_crafting_topdown(
@@ -1125,6 +1161,60 @@ pub fn search_best_object_for_crafting_topdown(
             .iter()
             .any(|o| o.parent_id == HARDENED_ROW && craft_obj_passes_scan_filters(o, &opts.scan));
     }
+
+    // Full reach, so a yew bow in the outer ring is not crafted again from
+    // rope and shaft found in the inner ring.
+    let scan_full = super::craft_init_objects_search_radius(max_r);
+    let have_full = if opts_local.scan.blocked.is_none()
+        && opts_local.scan.full_pile_tiles.is_none()
+        && opts_local.scan.nonempty_container_tiles.is_none()
+    {
+        craft_have_set_ex(
+            objs,
+            held_id,
+            player_x,
+            player_y,
+            home,
+            scan_full,
+            opts_local.search_current_position,
+        )
+    } else {
+        let mut full = HashSet::new();
+        if held_id > 0 {
+            full.insert(held_id);
+        }
+        full.insert(0);
+        for o in objs {
+            if o.parent_id <= 0 {
+                continue;
+            }
+            if !craft_obj_passes_scan_filters(o, &opts_local.scan) {
+                continue;
+            }
+            if craft_obj_in_dual_center(
+                o.x,
+                o.y,
+                player_x,
+                player_y,
+                home,
+                scan_full,
+                opts_local.search_current_position,
+            ) {
+                full.insert(o.parent_id);
+            }
+        }
+        full
+    };
+    let counts_full = craft_have_counts_ex_filtered(
+        objs,
+        held_id,
+        player_x,
+        player_y,
+        home,
+        scan_full,
+        opts_local.search_current_position,
+        &opts_local.scan,
+    );
 
     let mut radius = 0;
     while radius < max_r {
@@ -1179,7 +1269,7 @@ pub fn search_best_object_for_crafting_topdown(
             return None;
         }
 
-        let counts = craft_have_counts_ex_filtered(
+        let mut counts = craft_have_counts_ex_filtered(
             objs,
             held_id,
             player_x,
@@ -1188,6 +1278,20 @@ pub fn search_best_object_for_crafting_topdown(
             scan_r,
             opts_local.search_current_position,
             &opts_local.scan,
+        );
+        // A direct ingredient anywhere inside the full search counts as held.
+        // The 30-tile ring was returning rope+shaft for Bow and Arrow while a
+        // Yew Bow sat in the 60-tile ring, and flint-on-bow (135+151) when the
+        // bow was already in the ring. Haxe DoTransitionSearch only expands the
+        // missing side of 148+151 once the bow is in the object list.
+        // Haxe: DoTransitionSearch L7945–7957; getWeapon GetOrCraftItem(152) L5815
+        merge_ingredients_already_in_reach(
+            product_id,
+            graph,
+            &mut have,
+            &mut counts,
+            &have_full,
+            &counts_full,
         );
 
         if let Some(pair) = find_best_pair_topdown(
@@ -1260,6 +1364,67 @@ mod tests {
             (pair.actor_id, pair.target_id),
             (0, 50),
             "one thread is not rope; harvest milkweed"
+        );
+    }
+
+    #[test]
+    fn bow_already_in_reach_crafts_the_arrow_not_another_bow() {
+        // Live probe: CraftItem(152) returned 59+131 or flint 135 on the yew bow
+        // while 151 was inside radius 60. Haxe keeps the bow and makes arrow 148.
+        let mut g = ReverseCraftGraph::new();
+        g.insert(59, 131, 0, 151);
+        g.insert(148, 151, 152, 0);
+        g.insert(134, 140, 0, 147);
+        g.insert(146, 147, 0, 148);
+        g.insert(135, 151, 135, 3879);
+        g.insert(0, 3879, 59, 131);
+        let objs = vec![
+            CraftWorldObj::simple(151, 40, 0),
+            CraftWorldObj::simple(59, 4, 0),
+            CraftWorldObj::simple(131, 6, 0),
+            CraftWorldObj::simple(134, 8, 0),
+            CraftWorldObj::simple(140, 8, 1),
+            CraftWorldObj::simple(135, 3, 1),
+        ];
+        let pair = search_best_object_for_crafting_topdown(
+            152,
+            &objs,
+            0,
+            0,
+            0,
+            None,
+            60,
+            &g,
+            None,
+            &CraftTopDownOpts::default(),
+        )
+        .expect("arrow step");
+        assert_eq!(
+            (pair.actor_id, pair.target_id),
+            (134, 140),
+            "bow in reach → featherless arrow, not another bow or flint on the bow: {pair:?}"
+        );
+        let no_parts = vec![
+            CraftWorldObj::simple(151, 10, 0),
+            CraftWorldObj::simple(59, 4, 0),
+            CraftWorldObj::simple(131, 6, 0),
+            CraftWorldObj::simple(135, 3, 1),
+        ];
+        let again = search_best_object_for_crafting_topdown(
+            152,
+            &no_parts,
+            0,
+            0,
+            0,
+            None,
+            60,
+            &g,
+            None,
+            &CraftTopDownOpts::default(),
+        );
+        assert!(
+            again.is_none(),
+            "do not cut the bow or retie rope when the arrow chain is missing: {again:?}"
         );
     }
 

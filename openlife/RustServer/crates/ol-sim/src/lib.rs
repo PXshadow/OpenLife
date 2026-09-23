@@ -538,7 +538,8 @@ pub use move_path::{
     rebase_client_deltas_to_server_start,
     jump_rate_limited_ex, quad_dist as move_quad_dist, received_force_matches, resolve_move_seq,
     round2, still_waiting_for_force,
-    steps_to_client_path_deltas, truncate_walkable, MovePath, MoveReject, DEFAULT_MOVE_SPEED,
+    steps_to_client_path_deltas, strip_revisit_steps, truncate_walkable, MovePath, MoveReject,
+    DEFAULT_MOVE_SPEED,
     MAX_MOVE_QUAD_JUMP_BEFORE_FORCE,
 };
 // Haxe: GlobalPlayerInstance.spawnAsEve + ClearStartLocations (EVE-BANANA / jungle_spawn)
@@ -2493,6 +2494,78 @@ fn fan_haxe_map_update(
         outbound.send(
             cid,
             format_map_change_obj(rx, ry, floor_m, &obj_m, player_id).into_bytes(),
+        );
+        send_frame(outbound, cid);
+    }
+}
+
+/// One animal step from a time transition (`move > 0`).
+///
+/// Haxe sends the destination as a moving MX, then the origin as a plain MX.
+// Haxe: Connection.SendAnimalMoveUpdateToAllClosePlayers L671–696
+#[derive(Debug, Clone, Copy)]
+pub struct AnimalMoveWire {
+    pub from_x: i32,
+    pub from_y: i32,
+    pub to_x: i32,
+    pub to_y: i32,
+    pub speed: f32,
+}
+
+/// Tiles that changed in place, plus animal walks that need the long MX form.
+pub struct AutoDecayFanout {
+    pub tiles: Vec<(i32, i32, i32)>,
+    pub moves: Vec<AnimalMoveWire>,
+}
+
+/// Haxe `SendAnimalMoveUpdateToAllClosePlayers`.
+///
+/// `x y floor id -1 old_x old_y speed` then the origin clear. A short MX for
+/// the destination is what the official client logs as "New placement" and
+/// treats as a decay, not a walk.
+// Haxe: Connection.hx L694–696; TimeHelper.doAnimalMovement L2583
+fn fan_haxe_animal_move(state: &SimState, outbound: &OutboundHub, mv: &AnimalMoveWire) {
+    let (floor_to, obj_to) = {
+        let w = state.world.read().unwrap();
+        (
+            w.get_floor(mv.to_x, mv.to_y) as i32,
+            w.get_object(mv.to_x, mv.to_y),
+        )
+    };
+    let mut near = nearby_conn_ids(state, mv.to_x, mv.to_y, mx_range(state));
+    for cid in nearby_conn_ids(state, mv.from_x, mv.from_y, mx_range(state)) {
+        if !near.contains(&cid) {
+            near.push(cid);
+        }
+    }
+    for &cid in &near {
+        let Some(v) = state.players.get(&cid) else {
+            continue;
+        };
+        if v.deleted || !v.connected {
+            continue;
+        }
+        let (tx, ty) = viewer_pu_xy(state, v, mv.to_x, mv.to_y);
+        let (fx, fy) = viewer_pu_xy(state, v, mv.from_x, mv.from_y);
+        outbound.send(
+            cid,
+            crate::vanilla_id::format_map_change_moving_for_conn(
+                state, cid, tx, ty, floor_to, obj_to, -1, fx, fy, mv.speed,
+            )
+            .into_bytes(),
+        );
+        let (floor_from, obj_from) = {
+            let w = state.world.read().unwrap();
+            (
+                w.get_floor(mv.from_x, mv.from_y) as i32,
+                w.encode_object_for_map(mv.from_x, mv.from_y),
+            )
+        };
+        let (floor_m, obj_m) =
+            crate::vanilla_id::map_floor_obj_str_for_conn(state, cid, floor_from, &obj_from);
+        outbound.send(
+            cid,
+            format_map_change_obj(fx, fy, floor_m, &obj_m, -1).into_bytes(),
         );
         send_frame(outbound, cid);
     }
@@ -11388,6 +11461,11 @@ pub fn apply_move_path_start(
         state.last_lock_wait_us = t0.elapsed().as_micros().min(u128::from(u32::MAX)) as u32;
         (scan.steps, scan.trunc, scan.full_path_has_road)
     };
+    // Official client deletes a repeated cell ("Removing loop"). A path that
+    // shrinks to one point then crashes in "Manually forced" at pathToDest[-1].
+    // Walk and broadcast the same shortened steps.
+    // Jason: LivingLifePage.cpp removeDoubleBacksFromPath ~L1439
+    let accepted = strip_revisit_steps(&accepted);
     if accepted.is_empty() {
         return Err(MoveReject::EmptyPath);
     }
@@ -13288,7 +13366,10 @@ pub fn tick_world_after_players(
     counters: Option<&Counters>,
 ) {
     let decayed = tick_auto_decays(state, dt);
-    for &(x, y, _new_id) in &decayed {
+    for mv in &decayed.moves {
+        fan_haxe_animal_move(state, outbound, mv);
+    }
+    for &(x, y, _new_id) in &decayed.tiles {
         fan_haxe_map_update(state, outbound, x, y, -1);
     }
     // Haxe TimeHelper.DoTimeStuff: DoWorldMapTimeStuff then DoWorldLongTermTimeStuff
@@ -13483,7 +13564,8 @@ fn tick_shutdown(state: &mut SimState, outbound: &OutboundHub, dt: f32) {
 }
 
 /// Haxe auto-decay: objects with actor&lt;0 transitions transform after delay.
-/// Returns list of `(x, y, new_object_id)` that changed this step (for MX).
+/// In-place changes are `tiles`. Animal walks (`move > 0`) are `moves` and must
+/// go out as the long MX, not two short placements.
 /// Haxe `doTimeTransitionHelper` when `transition.move > 0` → `doAnimalMovement`.
 ///
 /// Fleeing rabbit 3566 lands as dest 3568 (or stays 3566 in a non-YELLOW/GREEN biome).
@@ -13620,10 +13702,11 @@ pub(crate) fn try_animal_escape_time_transition(
     Some((x, y, nx, ny))
 }
 
-pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> Vec<(i32, i32, i32)> {
-    let mut changed = Vec::new();
+pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> AutoDecayFanout {
+    let mut tiles = Vec::new();
+    let mut moves = Vec::new();
     if state.pending_decays.is_empty() {
-        return changed;
+        return AutoDecayFanout { tiles, moves };
     }
     let keys: Vec<(i32, i32)> = state.pending_decays.keys().copied().collect();
     for key in keys {
@@ -13735,7 +13818,7 @@ pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> Vec<(i32, i32, i32)> {
                 popped_id,
                 crate::place_object::PlaceObjectOpts::default(),
             ) {
-                changed.push((res.x, res.y, popped_id));
+                tiles.push((res.x, res.y, popped_id));
             }
             // Haxe TimeHelper: Sharp Stone overflow → CreateScoreEntryForCursedGrave
             // SCORE-MALI
@@ -13792,9 +13875,22 @@ pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> Vec<(i32, i32, i32)> {
                     let left = state.world.read().unwrap().get_object(x, y);
                     if left != expect_id {
                         schedule_decay(state, x, y, left);
-                        changed.push((x, y, left));
                     }
-                    changed.push((nx, ny, placed));
+                    let parent = state.content.resolve_base_id(expect_id);
+                    let speed_mult = state
+                        .content
+                        .objects
+                        .get(&parent)
+                        .map(|d| d.speed_mult)
+                        .unwrap_or(1.0);
+                    let speed = state.gameplay.initial_player_move_speed * speed_mult.max(0.0);
+                    moves.push(AnimalMoveWire {
+                        from_x: x,
+                        from_y: y,
+                        to_x: nx,
+                        to_y: ny,
+                        speed,
+                    });
                     debug!(
                         x,
                         y,
@@ -13829,7 +13925,7 @@ pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> Vec<(i32, i32, i32)> {
         state.record_world_change(x, y, tr.new_target_id);
         // Chain further decays on the new object.
         schedule_decay(state, x, y, tr.new_target_id);
-        changed.push((x, y, tr.new_target_id));
+        tiles.push((x, y, tr.new_target_id));
         debug!(
             x,
             y,
@@ -13838,7 +13934,7 @@ pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> Vec<(i32, i32, i32)> {
             "auto-decay applied"
         );
     }
-    changed
+    AutoDecayFanout { tiles, moves }
 }
 
 pub fn schedule_decay(state: &mut SimState, x: i32, y: i32, obj_id: i32) {
