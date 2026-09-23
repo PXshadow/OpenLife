@@ -170,6 +170,8 @@ pub fn place_grave_with_soul(
     stamp_grave_soul(&mut grave, p_id, aid);
     state.world.write().unwrap().set_object_complex(x, y, grave);
     state.record_world_change(x, y, grave_id);
+    // Haxe doTimeTransition: Fresh Grave 87 → Grave 88 after ~120s.
+    crate::schedule_decay(state, x, y, grave_id);
     state.specials.insert(x, y, SpecialKind::Grave);
     // Haxe: account.graves push (session; rewired by InitObjectHelpersAfterRead)
     state.accounts.record_grave(email, x, y);
@@ -294,6 +296,7 @@ pub fn place_grave_for_conn(state: &mut SimState, conn_id: u64) -> Option<PlaceG
     stamp_grave_soul(&mut grave, p_id, aid);
 
     let (gx, gy) = place_grave_on_map(state, cx, cy, grave)?;
+    crate::schedule_decay(state, gx, gy, grave_id);
     state.specials.insert(gx, gy, SpecialKind::Grave);
     state.accounts.record_grave(&email, gx, gy);
     state.push_event(format_grave_place_log(gx, gy, p_id));

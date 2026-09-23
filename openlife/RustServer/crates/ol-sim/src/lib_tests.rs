@@ -3609,6 +3609,52 @@
     }
 
     #[test]
+    fn schedule_decay_arms_negative_hours_as_one_hour() {
+        // Haxe -1_406.txt: bare Yew Tree autoDecaySeconds -1 → one hour, then Yew Tree#Branch.
+        let mut db = ContentDb::default();
+        db.auto_decays.insert(
+            406,
+            Transition {
+                actor_id: -1,
+                target_id: 406,
+                new_actor_id: 0,
+                new_target_id: 153,
+                auto_decay_seconds: -1.0,
+                ..Default::default()
+            },
+        );
+        let mut state = SimState::with_default_empty(Arc::new(db));
+        state.world.write().unwrap().set_object(2, 2, 406);
+        schedule_decay(&mut state, 2, 2, 406);
+        let rem = state.pending_decays.get(&(2, 2)).map(|(_, s)| *s).unwrap_or(0.0);
+        assert!((rem - 3600.0).abs() < 1.0, "rem={rem}");
+    }
+
+    #[test]
+    fn ground_time_band_arms_fresh_grave_already_on_the_map() {
+        // Haxe DoWorldMapTimeStuff sets timeToChange when a helper has none.
+        // Fresh Grave -1_87.txt is 120 seconds to Grave.
+        let mut db = ContentDb::default();
+        db.auto_decays.insert(
+            87,
+            Transition {
+                actor_id: -1,
+                target_id: 87,
+                new_actor_id: 0,
+                new_target_id: 88,
+                auto_decay_seconds: 120.0,
+                ..Default::default()
+            },
+        );
+        let mut state = SimState::with_default_empty(Arc::new(db));
+        state.world.write().unwrap().set_object(4, 0, 87);
+        state.world_map_time.step = 1;
+        arm_ground_time_transitions(&mut state);
+        let rem = state.pending_decays.get(&(4, 0)).map(|(_, s)| *s).unwrap_or(0.0);
+        assert!((rem - 120.0).abs() < 1.0, "rem={rem}");
+    }
+
+    #[test]
     fn auto_decay_fleeing_rabbit_moves_to_dest_not_in_place() {
         // Haxe: -1_3566 move>0 → doAnimalMovement, dest 3568 (not in-place swap).
         let mut db = ContentDb::default();

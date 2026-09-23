@@ -13247,6 +13247,8 @@ fn apply_live_world_time_bands(state: &mut SimState, outbound: &OutboundHub) {
             local_heat_f,
         )
     };
+    // Haxe L1133–1176: arm timeToChange for graves, bare trees, and other -1 transitions.
+    arm_ground_time_transitions(state);
     for ch in &map_changes {
         if ch.moving {
             fan_haxe_map_update(state, outbound, ch.from_x, ch.from_y, -1);
@@ -13596,7 +13598,8 @@ pub(crate) fn try_animal_escape_time_transition(
         return None;
     }
     state.pending_decays.remove(&(x, y));
-    let tr = state.content.auto_decays.get(&expect_id).cloned()?;
+    let base_id = state.content.resolve_base_id(expect_id);
+    let tr = state.content.auto_decays.get(&base_id).cloned()?;
     if tr.move_dist <= 0 {
         return None;
     }
@@ -13680,7 +13683,8 @@ pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> Vec<(i32, i32, i32)> {
                 state.accounts.push_score_entry(e);
             }
         }
-        let Some(tr) = state.content.auto_decays.get(&expect_id).cloned() else {
+        let base_id = state.content.resolve_base_id(expect_id);
+        let Some(tr) = state.content.auto_decays.get(&base_id).cloned() else {
             continue;
         };
         // Haxe: doTimeTransitionHelper contained overflow — +20s (+ CursedGraveTime if sharp stone), pop, no transform.
@@ -13838,18 +13842,63 @@ pub fn tick_auto_decays(state: &mut SimState, dt: f32) -> Vec<(i32, i32, i32)> {
 }
 
 pub fn schedule_decay(state: &mut SimState, x: i32, y: i32, obj_id: i32) {
-    if obj_id == 0 {
+    if obj_id <= 0 {
         state.pending_decays.remove(&(x, y));
         return;
     }
-    if let Some(tr) = state.content.auto_decays.get(&obj_id) {
-        if tr.auto_decay_seconds > 0.0 {
-            state
-                .pending_decays
-                .insert((x, y), (obj_id, tr.auto_decay_seconds));
-        }
+    // Haxe TransitionData.calculateTimeToChange: negative autoDecaySeconds is hours.
+    // Fresh Grave 87 is +120s. Bare Yew Tree 406 is -1 (one hour) back to Yew Tree#Branch.
+    let base = state.content.resolve_base_id(obj_id);
+    let Some(tr) = state.content.auto_decays.get(&base) else {
+        state.pending_decays.remove(&(x, y));
+        return;
+    };
+    let secs = crate::world_time::calculate_time_to_change(tr.auto_decay_seconds, 0.5);
+    if secs > 0.0 {
+        state.pending_decays.insert((x, y), (obj_id, secs));
     } else {
         state.pending_decays.remove(&(x, y));
+    }
+}
+
+/// Haxe `DoWorldMapTimeStuff`: a tile with a `-1` time transition and no clock
+/// yet gets `timeToChange` armed. Graves and bare trees already on the map
+/// never passed through `schedule_decay`.
+fn arm_ground_time_transitions(state: &mut SimState) {
+    let step_done = state.world_map_time.step.wrapping_sub(1);
+    let (width, height) = {
+        let w = state.world.read().unwrap();
+        (w.width_tiles, w.height_tiles)
+    };
+    let (start_y, end_y) = crate::world_time::world_time_slice_y_range(
+        height,
+        crate::world_time::WORLD_TIME_PARTS,
+        step_done,
+    );
+    let mut todo = Vec::new();
+    {
+        let w = state.world.read().unwrap();
+        for y in start_y..end_y {
+            for x in 0..width {
+                if state.pending_decays.contains_key(&(x, y)) {
+                    continue;
+                }
+                let id = w.get_object(x, y);
+                if id <= 0 {
+                    continue;
+                }
+                let base = state.content.resolve_base_id(id);
+                let Some(tr) = state.content.auto_decays.get(&base) else {
+                    continue;
+                };
+                if tr.auto_decay_seconds != 0.0 {
+                    todo.push((x, y, id));
+                }
+            }
+        }
+    }
+    for (x, y, id) in todo {
+        schedule_decay(state, x, y, id);
     }
 }
 
