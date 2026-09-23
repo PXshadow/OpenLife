@@ -318,6 +318,11 @@ fn npc_drop_held_before_loose_pickup(
     if held_base <= 0 {
         return intent;
     }
+    // Rope and reed are the skirt halves. Empty-dropping them leaves 124 on
+    // the ground and the hand empty, so 59+124 never runs.
+    if held_base == 59 || held_base == 124 {
+        return intent;
+    }
     let tile = content.resolve_base_id(world.get_object(x, y));
     if tile == held_base || npc_clothing_slot(content, tile).is_some() {
         return intent;
@@ -6605,6 +6610,17 @@ fn npc_reed_skirt_direct(
             y: reed.1,
             target_id: 124,
             actor_id: 59,
+        });
+    }
+    // The only bundle is in hand. DROP onto the rope swaps (rope in hand,
+    // bundle on that tile). Requiring a second ground 124 returned None and
+    // the held bundle was empty-dropped. Transition is 59+124, not 124+59.
+    if held_base == 124 {
+        let rope =
+            npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 59, max_r, blocked)?;
+        return Some(ShortCraftLiveIntent::DropAt {
+            x: rope.0,
+            y: rope.1,
         });
     }
     let rope =
@@ -13903,6 +13919,7 @@ mod tests {
         assert!(matches!(same, ShortCraftLiveIntent::DropAt { x: 12, y: 0 }));
     }
 
+    #[test]
     fn receding_drop_walk_aborts_like_haxe_goto_obj() {
         // Live 0.3.38: drop_held_walk @471,127 from ~450,118 stepped west
         // (farther) for minutes while food fell below 0. Haxe gotoObj L1085
@@ -14081,6 +14098,19 @@ mod tests {
         assert!(matches!(
             pick_rope,
             Some(ShortCraftLiveIntent::DropAt { x: 10, y: 0 })
+        ));
+        // Live 0.3.40: held 124 was the only bundle, so the ground-124 check
+        // returned None and the bundle was dropped on an empty tile.
+        w.set_object(4, 0, 0);
+        let held_reed = npc_reed_skirt_direct(&w, &db, 0, 0, 0, 0, 124, 60, &HashSet::new());
+        assert!(matches!(
+            held_reed,
+            Some(ShortCraftLiveIntent::DropAt { x: 10, y: 0 })
+        ));
+        let keep = npc_drop_held_before_loose_pickup(&w, &db, 0, 0, 0, 0, 124, held_reed.unwrap());
+        assert!(matches!(
+            keep,
+            ShortCraftLiveIntent::DropAt { x: 10, y: 0 }
         ));
     }
 
