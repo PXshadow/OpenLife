@@ -6674,6 +6674,52 @@ fn npc_yew_bow_direct(
     })
 }
 
+/// Haxe reed-skirt chain only: milkweed 50/51/52, stalk 57, thread 58, rope 59,
+/// tule 121 + rough cutter 723 → harvested tule 123 → bundle 124 → skirt 128.
+/// Stone 33 / sharp stone 34 / flint 135 are not on this chain. CraftItem(128)
+/// was USEing 33+33 in a loop, so `switchCloths` never saw 128.
+fn npc_reed_skirt_chain_id(id: i32) -> bool {
+    matches!(
+        id,
+        0 | 50 | 51 | 52 | 57 | 58 | 59 | 121 | 123 | 124 | 128 | 723
+    )
+}
+
+/// Off-chain actor, else off-chain ground id, for a CraftItem(128) step.
+fn npc_reed_skirt_off_chain(
+    content: &ContentDb,
+    world: &World,
+    intent: &ShortCraftLiveIntent,
+) -> Option<i32> {
+    let (actor, target, x, y) = match *intent {
+        ShortCraftLiveIntent::UseAt {
+            x,
+            y,
+            target_id,
+            actor_id,
+        } => (actor_id, target_id, x, y),
+        ShortCraftLiveIntent::UseOnEmptyGround { x, y, held } => (held, 0, x, y),
+        ShortCraftLiveIntent::DropAt { x, y } | ShortCraftLiveIntent::Goto { x, y } => {
+            (0, world.get_object(x, y), x, y)
+        }
+        _ => return None,
+    };
+    let actor = content.resolve_base_id(actor);
+    if actor != 0 && !npc_reed_skirt_chain_id(actor) {
+        return Some(actor);
+    }
+    let ground = content.resolve_base_id(if target != 0 {
+        target
+    } else {
+        world.get_object(x, y)
+    });
+    if ground != 0 && !npc_reed_skirt_chain_id(ground) {
+        Some(ground)
+    } else {
+        None
+    }
+}
+
 /// Rope 59 + Reed Bundle 124 inside `max_r` of the player or home.
 /// Held rope USEs a walkable bundle. It does not need a second rope on the ground.
 /// Otherwise DROP-pick a walkable rope, and only when a walkable bundle exists too.
@@ -12028,6 +12074,31 @@ pub async fn run_npc_scheduler(
                                                 object_id,
                                             )
                                         });
+                                    if object_id == 128 {
+                                        let off = world.read().ok().and_then(|w| {
+                                            npc_reed_skirt_off_chain(content.as_ref(), &w, &chosen)
+                                        });
+                                        if let Some(bad) = off {
+                                            // Haxe dropHeldObject L5566: a held stone is not the
+                                            // skirt actor. Empty the hand, then search again.
+                                            st.craft_rt.item.clear_trans();
+                                            if bad == content.resolve_base_id(p.held_id)
+                                                && p.held_id > 0
+                                            {
+                                                let (dx, dy) = world
+                                                    .read()
+                                                    .map(|w| npc_empty_drop_xy(&w, p.x, p.y))
+                                                    .unwrap_or((p.x, p.y.saturating_add(1)));
+                                                chosen = ShortCraftLiveIntent::DropAt { x: dx, y: dy };
+                                                break;
+                                            }
+                                            local_tiles.retain(|t| {
+                                                content.resolve_base_id(t.parent_id) != bad
+                                            });
+                                            chosen = ShortCraftLiveIntent::None;
+                                            continue;
+                                        }
+                                    }
                                     let Some((tx, ty)) = npc_craft_intent_goal(&chosen) else {
                                         break;
                                     };
@@ -13247,6 +13318,11 @@ mod tests {
         assert!(!npc_craft_use_is_bare_swap(&content, 0, 50));
         assert!(npc_ground_matches_use_target(&content, 50, 51));
         assert!(!npc_ground_matches_use_target(&content, 135, 0));
+        assert!(npc_reed_skirt_chain_id(50));
+        assert!(npc_reed_skirt_chain_id(124));
+        assert!(!npc_reed_skirt_chain_id(33));
+        assert!(!npc_reed_skirt_chain_id(34));
+        assert!(!npc_reed_skirt_chain_id(135));
     }
 
     #[test]
