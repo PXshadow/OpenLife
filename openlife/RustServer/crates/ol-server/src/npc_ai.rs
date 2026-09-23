@@ -6644,6 +6644,26 @@ fn npc_yew_bow_direct(
             actor_id: 148,
         });
     }
+    // Haxe GetOrCraftItem(152) picks up a finished bow-and-arrow. A Yew Bow
+    // already on the ground is the actor of 148+151, so pick that up before
+    // making another bow from rope and shaft. The next think, holding 151,
+    // seeks the missing arrow instead of 59+131 again.
+    if let Some(done) =
+        npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 152, max_r, blocked)
+    {
+        return Some(ShortCraftLiveIntent::DropAt {
+            x: done.0,
+            y: done.1,
+        });
+    }
+    if let Some(bow) =
+        npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 151, max_r, blocked)
+    {
+        return Some(ShortCraftLiveIntent::DropAt {
+            x: bow.0,
+            y: bow.1,
+        });
+    }
     let rope =
         npc_approachable_cloth_xy(world, content, px, py, home_x, home_y, 59, max_r, blocked)?;
     let _shaft =
@@ -14382,6 +14402,13 @@ mod tests {
         ));
         // Holding the bow must not drop it to fetch another rope.
         assert!(npc_yew_bow_direct(&w, &db, 0, 0, 0, 0, 151, 60, &HashSet::new()).is_none());
+        // A finished yew bow in range is picked up instead of making another one.
+        w.set_object(12, 0, 59);
+        w.set_object(4, 0, 151);
+        assert!(matches!(
+            npc_yew_bow_direct(&w, &db, 0, 0, 0, 0, 0, 60, &HashSet::new()),
+            Some(ShortCraftLiveIntent::DropAt { x: 4, y: 0 })
+        ));
     }
 
     #[test]
