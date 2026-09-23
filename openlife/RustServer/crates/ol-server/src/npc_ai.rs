@@ -44,7 +44,7 @@ use ol_sim::{
     apply_fire_craft_search_radius_override, apply_food_goto_fail, apply_job_flags_to_live_input,
     attack_player, attack_player_action_to_live_intent, deadly_distance_for_held, get_weapon,
     has_weapon_close, is_bloody_weapon, AttackPlayerClothing, AttackPlayerInput,
-    AttackPlayerTarget, GetWeaponAction, BOW_AND_ARROW, HAS_WEAPON_CLOSE_SEARCH,
+    AttackPlayerTarget, GetWeaponAction, ArmedWolfShotAction, BOW_AND_ARROW, HAS_WEAPON_CLOSE_SEARCH,
     MIN_AI_AGE_FOR_COMBAT, RATTLE_SNAKE, WEAPON_SEARCH_DIST,
     kill_animal_body, kill_animal_bow_hunt, kill_animal_prefix, wolf_in_home_search,
     wolf_tile_allowed,
@@ -83,7 +83,7 @@ use ol_sim::{
     using_item_preflight, UsingItemPreflight, is_using_item_bow_on_animal,
     is_using_item_drop_is_a_use_done, is_using_item_goose_stump_speedup,
     is_using_item_use_fail, note_using_item_craft_progress, USE_BOW_AND_ARROW,
-    note_raw_pie_crafted, kill_animal_needs_stand_off, mark_use_path_fail,
+    note_raw_pie_crafted, armed_wolf_shot, kill_animal_needs_stand_off, mark_use_path_fail,
     is_eatable_check_again, full_pile_tiles_from_scan, nonempty_container_tiles_from_scan,
     get_or_craft_objs_from_scan, goto_path_outcome, has_bean_seeds_from_scan,
     has_onion_seeds_from_scan, has_pepper_seeds_from_scan,
@@ -5988,6 +5988,8 @@ struct NpcProfessionState {
     /// Haxe `timeLookedForDeadlyAnimalAtHome` (scheduler tick units, −1 = never).
     // Haxe: AiBase L49 / killAnimal L5880
     time_looked_for_deadly_animal_at_home: f32,
+    /// Last sim tick we logged `hunt_blocked_hungry` for this body.
+    hunt_hungry_log_tick: u64,
     /// Haxe `triedDropCount` for `isDropingItem` dropDistance 10/0.
     // Haxe: AiBase.isDropingItem L8361
     tried_drop_count: i32,
@@ -6073,6 +6075,7 @@ impl Default for NpcProfessionState {
             animal_target: None,
             did_not_reach_animal_target: 0,
             time_looked_for_deadly_animal_at_home: TIME_LOOKED_NEVER,
+            hunt_hungry_log_tick: 0,
             tried_drop_count: 0,
             hand_clear_pending: false,
             clothing_wait_apply: 0,
@@ -9578,6 +9581,159 @@ pub async fn run_npc_scheduler(
                         g.values()
                             .any(|o| o.p_id == p.ai_follow_p_id && !o.deleted)
                     }));
+
+            // Already holding bow and arrow, wolf inside the hunt gate (quad 400):
+            // shoot or step into range before eating, feeding, or food pickup.
+            // Haxe killAnimal returns at food_store < 0, and isPickingupFood drops the bow.
+            if content.resolve_base_id(p.held_id) == BOW_AND_ARROW {
+                let already_closing = {
+                    let st = profession_state.entry(conn_id).or_default();
+                    p.moving
+                        && !moved_one_tile
+                        && st
+                            .sticky_move
+                            .as_ref()
+                            .is_some_and(|s| s.label.starts_with("kill_animal_armed"))
+                };
+                if !already_closing {
+                    let wolves = {
+                        let st = profession_state.entry(conn_id).or_default();
+                        let tiles = npc_scan_cached_rw(
+                            st,
+                            world.as_ref(),
+                            content.as_ref(),
+                            p.x,
+                            p.y,
+                            21,
+                        );
+                        tiles
+                            .iter()
+                            .filter(|t| t.parent_id == WOLF)
+                            .map(|t| (t.x, t.y))
+                            .collect::<Vec<_>>()
+                    };
+                    let bow_range = content
+                        .get(BOW_AND_ARROW)
+                        .map(|d| d.effective_use_distance() as f32)
+                        .unwrap_or(5.0);
+                    if let Some(shot) = armed_wolf_shot(p.x, p.y, BOW_AND_ARROW, bow_range, &wolves)
+                    {
+                        if let Some(st) = profession_state.get_mut(&conn_id) {
+                            st.sticky_move = None;
+                            st.food_goto.sticky_food = None;
+                            st.animal_target = Some((shot.wolf_x, shot.wolf_y, WOLF));
+                        }
+                        let detail = match shot.action {
+                            ArmedWolfShotAction::Use => {
+                                let _ = npc_use_at(
+                                    &intent_tx,
+                                    conn_id,
+                                    shot.wolf_x,
+                                    shot.wolf_y,
+                                    None,
+                                    None,
+                                );
+                                format!(
+                                    "kill_animal_armed_use food={:.2} quad={} wolf={},{}",
+                                    p.food, shot.quad, shot.wolf_x, shot.wolf_y
+                                )
+                            }
+                            ArmedWolfShotAction::Goto { x, y } => {
+                                let st = profession_state.entry(conn_id).or_default();
+                                let _ = npc_try_walk_to_sticky(
+                                    &intent_tx,
+                                    &world.read().unwrap(),
+                                    content.as_ref(),
+                                    st,
+                                    conn_id,
+                                    p.x,
+                                    p.y,
+                                    x,
+                                    y,
+                                    p.food,
+                                    WOLF,
+                                    false,
+                                    false,
+                                    "kill_animal_armed_range",
+                                    npc_client_move_seq(p.done_moving_seq),
+                                );
+                                format!(
+                                    "kill_animal_armed_range food={:.2} quad={} wolf={},{} step={},{}",
+                                    p.food, shot.quad, shot.wolf_x, shot.wolf_y, x, y
+                                )
+                            }
+                        };
+                        tracing::info!(
+                            conn_id,
+                            food = p.food,
+                            quad = shot.quad,
+                            wolf_x = shot.wolf_x,
+                            wolf_y = shot.wolf_y,
+                            held = p.held_id,
+                            "armed wolf shot ahead of hunger"
+                        );
+                        log_ev(
+                            &activity,
+                            conn_id,
+                            &p,
+                            NpcActivityKind::Combat,
+                            0,
+                            400,
+                            detail,
+                        );
+                        continue;
+                    }
+                }
+            } else if p.food < 0.0 {
+                let note = {
+                    let st = profession_state.entry(conn_id).or_default();
+                    let tiles = npc_scan_cached_rw(
+                        st,
+                        world.as_ref(),
+                        content.as_ref(),
+                        p.x,
+                        p.y,
+                        21,
+                    );
+                    let mut best: Option<(i32, i32, i32)> = None;
+                    for t in tiles.iter().filter(|t| t.parent_id == WOLF) {
+                        let dx = t.x - p.x;
+                        let dy = t.y - p.y;
+                        let quad = dx * dx + dy * dy;
+                        if quad > 400 {
+                            continue;
+                        }
+                        if best.map(|(_, _, bq)| quad < bq).unwrap_or(true) {
+                            best = Some((t.x, t.y, quad));
+                        }
+                    }
+                    if let Some((wx, wy, quad)) = best {
+                        if tick.saturating_sub(st.hunt_hungry_log_tick) >= 200 {
+                            st.hunt_hungry_log_tick = tick;
+                            Some(format!(
+                                "hunt_blocked_hungry food={:.2} held={} quad={} wolf={},{}",
+                                p.food, p.held_id, quad, wx, wy
+                            ))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                };
+                if let Some(detail) = note {
+                    tracing::info!(conn_id, food = p.food, held = p.held_id, "{detail}");
+                    log_ev(
+                        &activity,
+                        conn_id,
+                        &p,
+                        NpcActivityKind::Combat,
+                        0,
+                        0,
+                        detail,
+                    );
+                }
+            }
 
             // Haxe: if (movedOneTileTmp == false && isMoving()) return
             // Replan after each arrived tile (feeding / eat / escape can retarget a long craft walk).

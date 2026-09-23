@@ -351,9 +351,10 @@ pub use attack_player::{
     MIN_AI_AGE_FOR_COMBAT, WEAPON_SEARCH_DIST,
 };
 pub use kill_animal::{
-    closest_wolf_at_home, is_killable_by_bow, kill_animal_body, kill_animal_bow_hunt,
+    armed_wolf_shot, closest_wolf_at_home, is_killable_by_bow, kill_animal_body, kill_animal_bow_hunt,
     kill_animal_has_any_quiver, kill_animal_needs_stand_off, kill_animal_prefix,
-    time_since_ticks_in_sec, wolf_in_home_search, wolf_tile_allowed, KillAnimalAction,
+    time_since_ticks_in_sec, wolf_in_home_search, wolf_tile_allowed, ArmedWolfShot,
+    ArmedWolfShotAction, KillAnimalAction,
     KillAnimalBodyInput,
     KillAnimalBodyResult, KillAnimalPrefixInput, KillAnimalPrefixKind, KillAnimalPrefixResult,
     EMPTY_ARROW_QUIVER, KILL_ANIMAL_FOOD_MIN, KILL_ANIMAL_GOTO_FAIL_CLEAR, KILL_ANIMAL_HOME_LOOK_SEC,

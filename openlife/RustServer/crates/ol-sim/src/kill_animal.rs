@@ -403,6 +403,65 @@ pub fn kill_animal_bow_hunt(inp: &KillAnimalBodyInput<'_>) -> KillAnimalBodyResu
     }
 }
 
+/// Shot or stand-off step when the bow and arrow is already in hand.
+///
+/// Haxe `killAnimal` returns at `food_store < 0` before it can `use`, and
+/// `isPickingupFood` runs first and drops the held bow. A wolf inside the
+/// same quad-400 gate is close enough to shoot anyway.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ArmedWolfShot {
+    pub wolf_x: i32,
+    pub wolf_y: i32,
+    pub quad: i32,
+    pub action: ArmedWolfShotAction,
+}
+
+/// `use` on the wolf, or one stand-off step when the shot is too far or too close.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArmedWolfShotAction {
+    Use,
+    Goto { x: i32, y: i32 },
+}
+
+pub fn armed_wolf_shot(
+    player_x: i32,
+    player_y: i32,
+    held_parent: i32,
+    bow_use_distance: f32,
+    wolves: &[(i32, i32)],
+) -> Option<ArmedWolfShot> {
+    if held_parent != BOW_AND_ARROW {
+        return None;
+    }
+    let mut best: Option<(i32, i32, i32)> = None;
+    for &(wx, wy) in wolves {
+        let quad = kill_animal_quad(player_x, player_y, wx, wy);
+        if quad > KILL_ANIMAL_MAX_QUAD {
+            continue;
+        }
+        if best.map(|(_, _, best_q)| quad < best_q).unwrap_or(true) {
+            best = Some((wx, wy, quad));
+        }
+    }
+    let (wx, wy, quad) = best?;
+    if kill_animal_needs_stand_off(quad, bow_use_distance) {
+        let (x, y) = stand_off_tile(player_x, player_y, wx, wy, bow_use_distance);
+        Some(ArmedWolfShot {
+            wolf_x: wx,
+            wolf_y: wy,
+            quad,
+            action: ArmedWolfShotAction::Goto { x, y },
+        })
+    } else {
+        Some(ArmedWolfShot {
+            wolf_x: wx,
+            wolf_y: wy,
+            quad,
+            action: ArmedWolfShotAction::Use,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -589,6 +648,23 @@ mod tests {
             bow_use_distance: 4.0,
             weapon,
         }
+    }
+
+    #[test]
+    fn armed_shot_ignores_hunger_and_uses_the_close_wolf() {
+        // useDistance 5 → quad <= 25 is a shot. (2,1) is quad 5.
+        let shot = armed_wolf_shot(0, 0, BOW_AND_ARROW, 5.0, &[(2, 1), (10, 10)]).unwrap();
+        assert_eq!(shot.wolf_x, 2);
+        assert_eq!(shot.wolf_y, 1);
+        assert_eq!(shot.quad, 5);
+        assert_eq!(shot.action, ArmedWolfShotAction::Use);
+        // Farther than quad 400 is not "close".
+        assert!(armed_wolf_shot(0, 0, BOW_AND_ARROW, 5.0, &[(21, 0)]).is_none());
+        // Empty hands do not take the shortcut.
+        assert!(armed_wolf_shot(0, 0, 0, 5.0, &[(1, 0)]).is_none());
+        // Inside the hunt gate but outside the shot: step in, do not give up.
+        let step = armed_wolf_shot(0, 0, BOW_AND_ARROW, 5.0, &[(10, 0)]).unwrap();
+        assert!(matches!(step.action, ArmedWolfShotAction::Goto { .. }));
     }
 
     #[test]
