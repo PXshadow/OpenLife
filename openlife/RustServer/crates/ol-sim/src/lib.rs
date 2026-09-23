@@ -3177,6 +3177,9 @@ fn force_send_map_chunk_ex(
         (x, y, wire_cx, wire_cy)
     };
     let patch = crate::vanilla_id::should_patch_conn(state, conn_id);
+    let openlife = state.players.get(&conn_id).is_some_and(|p| {
+        crate::vanilla_id::is_open_life_client(&p.client_tag, &state.open_life_client_name)
+    });
     let last_v = state.last_vanilla_id;
     let content = std::sync::Arc::clone(&state.content);
     let dummy_wire = |base: i32, uses: i32| content.wire_id_for_uses(base, uses);
@@ -3192,6 +3195,20 @@ fn force_send_map_chunk_ex(
                 MC_WIDTH,
                 MC_HEIGHT,
                 |id| content.map_id_to_vanilla_id(id, last_v),
+                dummy_wire,
+            )
+        } else if !openlife {
+            // Original client: a multi-use dummy id is not in its object bank.
+            // getObject(id)->isStatue crashes while applying the new chunk.
+            crate::map_chunk::build_map_chunk_packet_mapped_wired(
+                &w,
+                x,
+                y,
+                wire_cx,
+                wire_cy,
+                MC_WIDTH,
+                MC_HEIGHT,
+                |id| content.resolve_base_id(id),
                 dummy_wire,
             )
         } else {
@@ -6444,9 +6461,10 @@ fn apply_say_or_remv(
                         state.publish_player_view(conn_id);
                         state.publish_player_view(t_conn);
                         let near = nearby_conn_ids(state, feeder_x, feeder_y, nearby_range(state));
-                        if let Some(tp) = state.players.get(&t_conn) {
-                            let fx = food_change_for_player(state, tp);
-                            send_nearby(outbound, &near, fx.into_bytes());
+                        if state.players.contains_key(&t_conn) {
+                            // Haxe playerTo.sendFoodUpdate: only that player's socket.
+                            // The official client writes every FX onto the local player.
+                            send_own_food_fx(state, outbound, t_conn, true);
                         }
                         let new_food = state
                             .players
@@ -6552,9 +6570,9 @@ fn apply_say_or_remv(
                                     },
                                 );
                             }
+                            // Haxe playerTo.sendFoodUpdate — not the nearby crowd.
+                            send_own_food_fx(state, outbound, t_conn, false);
                             if let Some(tp) = state.players.get(&t_conn).cloned() {
-                                let fx = food_change_for_player(state, &tp);
-                                send_nearby(outbound, &near, fx.into_bytes());
                                 let spd = player_move_speed(state, &tp);
                                 fan_pu_at_world(
                                     state,
@@ -8856,13 +8874,10 @@ fn fan_after_use(state: &SimState, outbound: &OutboundHub, conn_id: u64, r: &Use
             outbound.send(cid, mx_bytes);
             outbound.send(cid, pu_bytes);
         }
-        let fx = food_change_for_player(state, &p);
-        if urgent {
-            outbound.send_urgent(cid, fx.into_bytes());
-        } else {
-            outbound.send(cid, fx.into_bytes());
-        }
     }
+    // Haxe GlobalPlayerInstance.sendFoodUpdate: this.connection only.
+    // FX on the official client always overwrites the local food bar and speed.
+    send_own_food_fx(state, outbound, conn_id, urgent);
 }
 
 fn fan_after_drop(
@@ -15360,6 +15375,26 @@ fn food_change_for_player(state: &SimState, p: &Player) -> String {
     )
 }
 
+/// FX to the player it describes, and nobody else.
+///
+/// The official client applies every `FX` to the local player (`ourLiveObject`).
+/// Haxe `sendFoodUpdate` sends it only on that player's connection.
+// Haxe: GlobalPlayerInstance.sendFoodUpdate L3030–3038
+fn send_own_food_fx(state: &SimState, outbound: &OutboundHub, conn_id: u64, urgent: bool) {
+    let Some(p) = state.players.get(&conn_id) else {
+        return;
+    };
+    if p.deleted {
+        return;
+    }
+    let fx = food_change_for_player(state, p).into_bytes();
+    if urgent {
+        outbound.send_urgent(conn_id, fx);
+    } else {
+        outbound.send(conn_id, fx);
+    }
+}
+
 /// Haxe `sendFoodUpdate(false)` — FX + FRAME to the speaker (admin `!F` / `!MEH`).
 // Haxe: GlobalPlayerInstance.sendFoodUpdate L3030–3038; DoDebugCommands !F L5360–5363
 pub(crate) fn send_food_update_now(state: &SimState, outbound: &OutboundHub, conn_id: u64) {
@@ -15376,14 +15411,12 @@ fn send_held_eat_result(state: &mut SimState, outbound: &OutboundHub, conn_id: u
     let Some(p) = state.players.get(&conn_id).cloned() else {
         return;
     };
-    let fx = food_change_for_player(state, &p);
     let mut recips = nearby_conn_ids(state, p.x, p.y, nearby_range(state));
     if !recips.contains(&conn_id) {
         recips.push(conn_id);
     }
-    for &cid in &recips {
-        outbound.send_urgent(cid, fx.clone().into_bytes());
-    }
+    // Haxe playerTo.sendFoodUpdate: only the eater. Neighbors keep their own bar.
+    send_own_food_fx(state, outbound, conn_id, true);
     let spd = player_move_speed(state, &p);
     let clothing = player_clothing_set(&p);
     fan_pu_at_world(state, outbound, &recips, p.x, p.y, true, |rx, ry| {

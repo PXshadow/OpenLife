@@ -33,12 +33,30 @@ pub fn should_patch_conn(state: &SimState, conn_id: u64) -> bool {
     !is_open_life_client(&p.client_tag, &state.open_life_client_name)
 }
 
-/// Haxe `mapIdToVanillaId` for one connection (identity if OpenLife / mapping off).
+/// True when this connection is the original client (not an Open Life client).
+fn vanilla_client(state: &SimState, conn_id: u64) -> bool {
+    match state.players.get(&conn_id) {
+        Some(p) => !is_open_life_client(&p.client_tag, &state.open_life_client_name),
+        // No tag yet: same default as `should_patch_conn` (treat as vanilla).
+        None => true,
+    }
+}
+
+/// Object id safe for this connection's client.
+///
+/// Open Life clients keep raw ids. Vanilla clients use `mapIdToVanillaId` when
+/// `last_vanilla_id` is set. When that cutoff is unset, synthetic multi-use
+/// dummy ids are still collapsed to their parent: the original client crashes
+/// in `getObject(id)->isStatue` while applying a map chunk that contains one.
+// Haxe: Server.mapIdToVanillaId; Connection.sendMapUpdate patchIds
 pub fn map_obj_id_for_conn(state: &SimState, conn_id: u64, id: i32) -> i32 {
-    if !should_patch_conn(state, conn_id) {
+    if !vanilla_client(state, conn_id) {
         return id;
     }
-    state.content.map_id_to_vanilla_id(id, state.last_vanilla_id)
+    if state.last_vanilla_id >= 1 {
+        return state.content.map_id_to_vanilla_id(id, state.last_vanilla_id);
+    }
+    state.content.resolve_base_id(id)
 }
 
 /// Patch floor + object ids for a vanilla viewer.
@@ -87,16 +105,19 @@ pub fn send_nearby_maybe_mx(
     packet: Vec<u8>,
     urgent: bool,
 ) {
-    let mapping_on = state.last_vanilla_id >= 1 && packet.starts_with(b"MX\n");
-    if !mapping_on {
+    if !packet.starts_with(b"MX\n") {
         for &cid in conn_ids {
             send_one(outbound, cid, packet.clone(), urgent);
         }
         return;
     }
     for &cid in conn_ids {
-        let patched = patch_mx_packet(&packet, |id| map_obj_id_for_conn(state, cid, id));
-        send_one(outbound, cid, patched, urgent);
+        let pkt = if vanilla_client(state, cid) {
+            patch_mx_packet(&packet, |id| map_obj_id_for_conn(state, cid, id))
+        } else {
+            packet.clone()
+        };
+        send_one(outbound, cid, pkt, urgent);
     }
 }
 
@@ -199,13 +220,19 @@ mod tests {
     }
 
     #[test]
-    fn mapping_off_is_identity_even_for_vanilla() {
+    fn mapping_off_keeps_real_ids_and_hides_dummies() {
         let mut state = state_with_map();
         state.last_vanilla_id = -1;
+        let mut db = (*state.content).clone();
+        db.dummy_parent.insert(9001, 418);
+        state.content = Arc::new(db);
         let mut p = Player::new(2, 1, "v@t");
         p.client_tag = "client_official".into();
         state.players.insert(1, p);
+        // Real ids still pass through when the vanilla cutoff is unset.
         assert_eq!(map_obj_id_for_conn(&state, 1, 150), 150);
+        // Synthetic multi-use id would null-deref getObject on the original client.
+        assert_eq!(map_obj_id_for_conn(&state, 1, 9001), 418);
     }
 
     #[test]
