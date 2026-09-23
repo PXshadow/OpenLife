@@ -307,8 +307,24 @@ fn kill_animal_quad(ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
 
 /// Haxe `killAnimal` L5902–5964 after the L5878–5900 prefix.
 // Haxe: AiBase.killAnimal L5902–5964
+/// A wolf inside the hunt gate is still hunted while food is only a little
+/// below zero. The live map sits at −0.02 with a wolf on the next tile, and
+/// the Haxe `food_store < 0` return never reaches `getWeapon`. Starving
+/// (`food < -2`, the same floor as `attackPlayer`) still stops to eat.
+pub fn kill_animal_close_enough_to_hunt_hungry(inp: &KillAnimalBodyInput<'_>) -> bool {
+    let close = |pos: Option<(i32, i32, i32)>| match pos {
+        Some((id, x, y)) if id == WOLF || id == RATTLE_SNAKE => {
+            kill_animal_quad(inp.player_x, inp.player_y, x, y) <= KILL_ANIMAL_MAX_QUAD
+        }
+        _ => false,
+    };
+    close(inp.animal) || close(inp.animal_target)
+}
+
 pub fn kill_animal_body(inp: &KillAnimalBodyInput<'_>) -> KillAnimalBodyResult {
-    if inp.food_store < KILL_ANIMAL_FOOD_MIN {
+    let starving = inp.food_store < -2.0;
+    let hungry = inp.food_store < KILL_ANIMAL_FOOD_MIN;
+    if starving || (hungry && !kill_animal_close_enough_to_hunt_hungry(inp)) {
         return KillAnimalBodyResult {
             action: KillAnimalAction::None,
             animal_target: inp.animal_target,
@@ -668,16 +684,22 @@ mod tests {
     }
 
     #[test]
-    fn food_store_below_zero_stops() {
+    fn food_store_below_zero_stops_only_when_the_wolf_is_far() {
         let tiles = [];
         let w = weapon_inp(&tiles);
         let mut inp = body_base(w);
+        // body_base wolf is at (3, 0), quad 9, inside the hunt gate.
         inp.food_store = -0.1;
         let r = kill_animal_body(&inp);
-        assert_eq!(r.action, KillAnimalAction::None);
-        inp.food_store = 0.0;
-        let r = kill_animal_body(&inp);
         assert_ne!(r.action, KillAnimalAction::None);
+        inp.food_store = -3.0;
+        let r = kill_animal_body(&inp);
+        assert_eq!(r.action, KillAnimalAction::None);
+        inp.food_store = -0.1;
+        inp.animal = Some((WOLF, 30, 0));
+        inp.animal_target = Some((WOLF, 30, 0));
+        let r = kill_animal_body(&inp);
+        assert_eq!(r.action, KillAnimalAction::None);
     }
 
     #[test]

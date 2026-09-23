@@ -323,6 +323,11 @@ fn npc_drop_held_before_loose_pickup(
     if held_base == 59 || held_base == 124 {
         return intent;
     }
+    // Bow, yew bow, and arrow are the hunt. Empty-dropping them to pick up
+    // another loose object throws away the weapon the next think needed.
+    if held_base == 151 || held_base == 152 || held_base == 148 {
+        return intent;
+    }
     let tile = content.resolve_base_id(world.get_object(x, y));
     if tile == held_base || npc_clothing_slot(content, tile).is_some() {
         return intent;
@@ -9732,6 +9737,95 @@ pub async fn run_npc_scheduler(
                         0,
                         detail,
                     );
+                }
+            }
+
+            // A wolf inside quad 400: get the bow and shoot before eating, nursing,
+            // or food pickup. Food just under zero was returning from killAnimal
+            // before getWeapon, so held=152 never happened.
+            let hunt_walk = {
+                let st = profession_state.entry(conn_id).or_default();
+                p.moving
+                    && !moved_one_tile
+                    && st
+                        .sticky_move
+                        .as_ref()
+                        .is_some_and(|s| s.label.starts_with("kill_animal"))
+            };
+            if !hunt_walk && p.food > -2.0 && content.resolve_base_id(p.held_id) != BOW_AND_ARROW
+            {
+                let close_wolf = {
+                    let st = profession_state.entry(conn_id).or_default();
+                    let tiles = npc_scan_cached_rw(
+                        st,
+                        world.as_ref(),
+                        content.as_ref(),
+                        p.x,
+                        p.y,
+                        21,
+                    );
+                    tiles.iter().find_map(|t| {
+                        if t.parent_id != WOLF {
+                            return None;
+                        }
+                        let dx = t.x - p.x;
+                        let dy = t.y - p.y;
+                        let quad = dx * dx + dy * dy;
+                        if quad <= 400 {
+                            Some((t.x, t.y, quad))
+                        } else {
+                            None
+                        }
+                    })
+                };
+                if let Some((wx, wy, _quad)) = close_wolf {
+                    let animals_g = animals.read().ok();
+                    let views_g = player_views.read().ok();
+                    if let Some(views) = views_g.as_ref() {
+                        let home_x = if p.home_x != 0 || p.home_y != 0 {
+                            p.home_x
+                        } else {
+                            p.x
+                        };
+                        let home_y = if p.home_x != 0 || p.home_y != 0 {
+                            p.home_y
+                        } else {
+                            p.y
+                        };
+                        let st = profession_state.entry(conn_id).or_default();
+                        let hunter_peers = npc_count_hunter_peers(
+                            views,
+                            conn_id,
+                            home_x,
+                            home_y,
+                            content.as_ref(),
+                        );
+                        let w = world.read().unwrap();
+                        if let Some((k, d, ms)) = npc_run_kill_animal(
+                            &intent_tx,
+                            &w,
+                            content.as_ref(),
+                            craft_graph.as_ref(),
+                            st,
+                            conn_id,
+                            &p,
+                            tick,
+                            Some((wx, wy, WOLF)),
+                            hunter_peers,
+                            animals_g.as_deref(),
+                        ) {
+                            tracing::info!(
+                                conn_id,
+                                food = p.food,
+                                held = p.held_id,
+                                wolf_x = wx,
+                                wolf_y = wy,
+                                "close wolf hunt before hunger"
+                            );
+                            log_ev(&activity, conn_id, &p, k, 0, ms, d);
+                            continue;
+                        }
+                    }
                 }
             }
 

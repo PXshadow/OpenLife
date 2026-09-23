@@ -764,7 +764,7 @@ dependencies = [
 
 [[package]]
 name = "ol-ai"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-ai-api",
  "ol-ai-crafting",
@@ -777,21 +777,21 @@ dependencies = [
 
 [[package]]
 name = "ol-ai-api"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-net",
 ]
 
 [[package]]
 name = "ol-ai-crafting"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-content",
 ]
 
 [[package]]
 name = "ol-ai-helper"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-ai-crafting",
  "ol-ai-pathing",
@@ -800,11 +800,11 @@ dependencies = [
 
 [[package]]
 name = "ol-ai-pathing"
-version = "0.3.55"
+version = "0.3.56"
 
 [[package]]
 name = "ol-ai-professions"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-ai-crafting",
  "ol-ai-helper",
@@ -817,7 +817,7 @@ version = "0.1.0"
 
 [[package]]
 name = "ol-combat-rules"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-content",
  "ol-world",
@@ -825,7 +825,7 @@ dependencies = [
 
 [[package]]
 name = "ol-config"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "serde",
  "thiserror",
@@ -834,7 +834,7 @@ dependencies = [
 
 [[package]]
 name = "ol-content"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-binary",
  "rayon",
@@ -845,14 +845,14 @@ dependencies = [
 
 [[package]]
 name = "ol-food-eating"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-identity",
 ]
 
 [[package]]
 name = "ol-identity"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "byteorder",
  "ol-config",
@@ -863,7 +863,7 @@ dependencies = [
 
 [[package]]
 name = "ol-main-ai"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-ai-api",
  "ol-ai-helper",
@@ -872,11 +872,11 @@ dependencies = [
 
 [[package]]
 name = "ol-metrics"
-version = "0.3.55"
+version = "0.3.56"
 
 [[package]]
 name = "ol-move-rules"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-content",
  "ol-world",
@@ -884,7 +884,7 @@ dependencies = [
 
 [[package]]
 name = "ol-net"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "flate2",
  "ol-metrics",
@@ -899,21 +899,21 @@ dependencies = [
 
 [[package]]
 name = "ol-player-helper"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-ai-api",
 ]
 
 [[package]]
 name = "ol-protocol"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "thiserror",
 ]
 
 [[package]]
 name = "ol-server"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-ai",
  "ol-ai-api",
@@ -937,7 +937,7 @@ dependencies = [
 
 [[package]]
 name = "ol-sim"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "byteorder",
  "flate2",
@@ -970,15 +970,15 @@ dependencies = [
 
 [[package]]
 name = "ol-social-rules"
-version = "0.3.55"
+version = "0.3.56"
 
 [[package]]
 name = "ol-temperature"
-version = "0.3.55"
+version = "0.3.56"
 
 [[package]]
 name = "ol-transition-rules"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "ol-content",
  "ol-world",
@@ -986,7 +986,7 @@ dependencies = [
 
 [[package]]
 name = "ol-web"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "axum",
  "ol-content",
@@ -1002,7 +1002,7 @@ dependencies = [
 
 [[package]]
 name = "ol-world"
-version = "0.3.55"
+version = "0.3.56"
 dependencies = [
  "byteorder",
  "image",
