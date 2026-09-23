@@ -1404,6 +1404,29 @@ mod tests {
             (134, 140),
             "bow in reach → featherless arrow, not another bow or flint on the bow: {pair:?}"
         );
+        // Bow is outside the first 30-tile ring. Rope and shaft are inside it.
+        // The inner ring must not tie another bow.
+        let outer_bow = vec![
+            CraftWorldObj::simple(151, 40, 0),
+            CraftWorldObj::simple(59, 4, 0),
+            CraftWorldObj::simple(131, 6, 0),
+        ];
+        let outer = search_best_object_for_crafting_topdown(
+            152,
+            &outer_bow,
+            0,
+            0,
+            0,
+            None,
+            60,
+            &g,
+            None,
+            &CraftTopDownOpts::default(),
+        );
+        assert!(
+            outer.is_none(),
+            "a yew bow in the outer ring blocks rope+shaft: {outer:?}"
+        );
         let no_parts = vec![
             CraftWorldObj::simple(151, 10, 0),
             CraftWorldObj::simple(59, 4, 0),
