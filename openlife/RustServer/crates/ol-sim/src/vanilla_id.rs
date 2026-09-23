@@ -42,21 +42,17 @@ fn vanilla_client(state: &SimState, conn_id: u64) -> bool {
     }
 }
 
-/// Object id safe for this connection's client.
+/// Haxe `mapIdToVanillaId` for one connection.
 ///
-/// Open Life clients keep raw ids. Vanilla clients use `mapIdToVanillaId` when
-/// `last_vanilla_id` is set. When that cutoff is unset, synthetic multi-use
-/// dummy ids are still collapsed to their parent: the original client crashes
-/// in `getObject(id)->isStatue` while applying a map chunk that contains one.
-// Haxe: Server.mapIdToVanillaId; Connection.sendMapUpdate patchIds
+/// Open Life clients, and everyone when `last_vanilla_id < 1`, keep the id.
+/// That includes multi-use dummy ids. The use count is the dummy id itself
+/// (`ObjectHelper.dummyId`), not the parent.
+// Haxe: Server.mapIdToVanillaId L55–63
 pub fn map_obj_id_for_conn(state: &SimState, conn_id: u64, id: i32) -> i32 {
-    if !vanilla_client(state, conn_id) {
+    if !vanilla_client(state, conn_id) || state.last_vanilla_id < 1 {
         return id;
     }
-    if state.last_vanilla_id >= 1 {
-        return state.content.map_id_to_vanilla_id(id, state.last_vanilla_id);
-    }
-    state.content.resolve_base_id(id)
+    state.content.map_id_to_vanilla_id(id, state.last_vanilla_id)
 }
 
 /// Patch floor + object ids for a vanilla viewer.
@@ -220,7 +216,7 @@ mod tests {
     }
 
     #[test]
-    fn mapping_off_keeps_real_ids_and_hides_dummies() {
+    fn mapping_off_keeps_dummy_ids() {
         let mut state = state_with_map();
         state.last_vanilla_id = -1;
         let mut db = (*state.content).clone();
@@ -229,10 +225,9 @@ mod tests {
         let mut p = Player::new(2, 1, "v@t");
         p.client_tag = "client_official".into();
         state.players.insert(1, p);
-        // Real ids still pass through when the vanilla cutoff is unset.
+        // Haxe lastVanillaID < 1 is identity, dummy id included.
         assert_eq!(map_obj_id_for_conn(&state, 1, 150), 150);
-        // Synthetic multi-use id would null-deref getObject on the original client.
-        assert_eq!(map_obj_id_for_conn(&state, 1, 9001), 418);
+        assert_eq!(map_obj_id_for_conn(&state, 1, 9001), 9001);
     }
 
     #[test]

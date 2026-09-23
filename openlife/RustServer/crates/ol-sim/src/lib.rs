@@ -3177,11 +3177,10 @@ fn force_send_map_chunk_ex(
         (x, y, wire_cx, wire_cy)
     };
     let patch = crate::vanilla_id::should_patch_conn(state, conn_id);
-    let openlife = state.players.get(&conn_id).is_some_and(|p| {
-        crate::vanilla_id::is_open_life_client(&p.client_tag, &state.open_life_client_name)
-    });
     let last_v = state.last_vanilla_id;
     let content = std::sync::Arc::clone(&state.content);
+    // Cell id is ObjectHelper.dummyId(): full uses stay the parent id, fewer
+    // uses are dummyObjects[uses-1].id. Do not rewrite that to the parent.
     let dummy_wire = |base: i32, uses: i32| content.wire_id_for_uses(base, uses);
     let mc = {
         let w = state.world.read().unwrap();
@@ -3195,20 +3194,6 @@ fn force_send_map_chunk_ex(
                 MC_WIDTH,
                 MC_HEIGHT,
                 |id| content.map_id_to_vanilla_id(id, last_v),
-                dummy_wire,
-            )
-        } else if !openlife {
-            // Original client: a multi-use dummy id is not in its object bank.
-            // getObject(id)->isStatue crashes while applying the new chunk.
-            crate::map_chunk::build_map_chunk_packet_mapped_wired(
-                &w,
-                x,
-                y,
-                wire_cx,
-                wire_cy,
-                MC_WIDTH,
-                MC_HEIGHT,
-                |id| content.resolve_base_id(id),
                 dummy_wire,
             )
         } else {
