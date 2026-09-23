@@ -71,7 +71,7 @@ use ol_sim::{
     basic_farmer_weight_from_runtime, blocked_by_ai_with_peer_progress,
     AiAgentBlockSource, BlockTargetClaim, GOTO_APPROACH_RAD, TRY_MOVE_NEAREST_TILE_FIRST_DEFAULT,
     goto_approach_tweaks, remove_agent_blocked_by_ai,
-    collect_deadly_animal_blocked_around_for_player,
+    closest_map_deadly_animal, collect_deadly_animal_blocked_around_for_player,
     AnimalPathPlayerCtx, BowlFillerPeer, AnimalWorld, DEADLY_ANIMAL_SEARCH_DIST,
     is_holding_weapon, is_self_best_bowl_filler, is_self_best_fire_keeper_for_obj,
     is_self_best_grave_keeper_for_obj, FireKeeperPeer, GraveKeeperPeer, pick_grave,
@@ -7180,6 +7180,22 @@ fn npc_run_kill_animal(
     hunter_peer_count: f32,
     animals: Option<&AnimalWorld>,
 ) -> Option<(NpcActivityKind, String, u32)> {
+    // Haxe GetCloseDeadlyAnimal reads map objects. AnimalWorld is often empty,
+    // and a Chebyshev-6 snake must not replace a home wolf.
+    let deadly = deadly.or_else(|| {
+        let ctx = AnimalPathPlayerCtx {
+            holding_weapon: npc_holding_weapon(content, p.held_id),
+            person_color: content.person_color(content.resolve_base_id(p.display_object_id)),
+        };
+        closest_map_deadly_animal(
+            world,
+            content,
+            p.x,
+            p.y,
+            DEADLY_ANIMAL_SEARCH_DIST,
+            Some(ctx),
+        )
+    });
     let home_x = if p.home_x != 0 || p.home_y != 0 {
         p.home_x
     } else {
@@ -7260,10 +7276,7 @@ fn npc_run_kill_animal(
         .get(BOW_AND_ARROW)
         .map(|d| d.use_distance as f32)
         .unwrap_or(0.0);
-    let animal = deadly.map(|(x, y, id)| (id, x, y)).or_else(|| {
-        closest_parent_in_tiles(&tiles, RATTLE_SNAKE, p.x, p.y, DEADLY_ANIMAL_SEARCH_DIST)
-            .map(|(x, y)| (RATTLE_SNAKE, x, y))
-    });
+    let animal = deadly.map(|(x, y, id)| (id, x, y));
     let animal_target = st.animal_target.map(|(x, y, id)| (id, x, y));
     let killable = |id: i32| content.find_transition(BOW_AND_ARROW, id).is_some();
     let weapon = AttackPlayerInput {

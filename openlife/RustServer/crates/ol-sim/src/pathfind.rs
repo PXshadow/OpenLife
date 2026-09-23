@@ -460,6 +460,94 @@ pub fn collect_deadly_animal_blocked_around_for_player(
     )
 }
 
+/// Haxe `GetCloseDeadlyAnimalHelper` on map objects.
+///
+/// Half-open square `[-search, +search)`, then `dist <= moves²`. A snake
+/// inside Chebyshev 6 but outside `moves²` is not deadly. Returns `(x, y, parent)`.
+// Haxe: AiHelper.GetCloseDeadlyAnimalHelper L1739–1776
+pub fn closest_map_deadly_animal(
+    world: &World,
+    content: &ContentDb,
+    px: i32,
+    py: i32,
+    search_distance: i32,
+    player: Option<AnimalPathPlayerCtx>,
+) -> Option<(i32, i32, i32)> {
+    let search = search_distance.max(0);
+    if search == 0 {
+        return None;
+    }
+    let loved_ids: &'static [i32] = if let Some(ctx) = player {
+        if ctx.person_color != 0 {
+            let loved = crate::yum::loved_biome_for_person_color(ctx.person_color).unwrap_or(-1);
+            crate::animal_damage::biome_animals_for_loved_biome(loved)
+        } else {
+            &[]
+        }
+    } else {
+        &[]
+    };
+    let holding_weapon = player.map(|c| c.holding_weapon).unwrap_or(false);
+    let player_love = if let Some(ctx) = player {
+        if ctx.person_color != 0 {
+            let biome = i32::from(world.get_biome(px, py));
+            let floor = i32::from(world.get_floor(px, py));
+            crate::biome_love_factor(biome, floor, ctx.person_color, None, None)
+        } else {
+            0.0
+        }
+    } else {
+        0.0
+    };
+    let mut best_dist = search.saturating_mul(search);
+    let mut best: Option<(i32, i32, i32)> = None;
+    for dy in -search..search {
+        for dx in -search..search {
+            let x = px + dx;
+            let y = py + dy;
+            let raw = world.get_object(x, y);
+            if raw == 0 {
+                continue;
+            }
+            let parent = content.resolve_base_id(raw);
+            let Some(def) = content.get(parent) else {
+                continue;
+            };
+            let animal_love = if let Some(ctx) = player {
+                if ctx.person_color != 0 {
+                    let biome = i32::from(world.get_biome(x, y));
+                    let floor = i32::from(world.get_floor(x, y));
+                    crate::biome_love_factor(biome, floor, ctx.person_color, None, None)
+                } else {
+                    0.0
+                }
+            } else {
+                0.0
+            };
+            if !is_deadly_animal_for_path_for_player(
+                def,
+                holding_weapon,
+                loved_ids,
+                player_love,
+                animal_love,
+            ) {
+                continue;
+            }
+            let dist = dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy));
+            if dist > best_dist {
+                continue;
+            }
+            let moves = def.moves.max(0);
+            if dist > moves.saturating_mul(moves) {
+                continue;
+            }
+            best_dist = dist;
+            best = Some((x, y, parent));
+        }
+    }
+    best
+}
+
 /// Base walkability plus optional deadly-animal footprint set.
 // Haxe: MapCollision from CreateCollisionChunk (terrain + animals)
 pub fn is_walkable_with_animals(
@@ -978,5 +1066,39 @@ mod tests {
             find_path_new_with_budget(0, 0, 4, 0, &walkable, 8, PathBudget::millis(0)).is_none()
         );
         assert!(find_path_new(0, 0, 4, 0, &walkable, 8).is_some());
+    }
+
+    #[test]
+    fn map_deadly_keeps_close_wolf_and_drops_far_snake() {
+        let mut w = World::new(32, 32, false);
+        let mut db = ContentDb::default();
+        db.objects.insert(418, animal_def(418, "Wolf", 2, 1.0, 1.0));
+        db.objects.insert(764, animal_def(764, "Rattle Snake", 2, 1.0, 1.0));
+        // moves² = 4. Orthogonal 2 is in; orthogonal 3 is Chebyshev-close but not deadly.
+        w.set_object(12, 10, 418);
+        w.set_object(13, 10, 764);
+        let hit = closest_map_deadly_animal(&w, &db, 10, 10, 6, None);
+        assert_eq!(hit, Some((12, 10, 418)));
+        w.set_object(12, 10, 0);
+        w.set_object(11, 10, 764);
+        let closer = closest_map_deadly_animal(&w, &db, 10, 10, 6, None);
+        assert_eq!(closer, Some((11, 10, 764)));
+        w.set_object(11, 10, 0);
+        w.set_object(13, 10, 0);
+        let mut wide = animal_def(418, "Wolf", 6, 1.0, 1.0);
+        wide.moves = 6;
+        db.objects.insert(418, wide);
+        w.set_object(10, 16, 418);
+        assert_eq!(
+            closest_map_deadly_animal(&w, &db, 10, 10, 6, None),
+            None,
+            "half-open search excludes +search"
+        );
+        w.set_object(10, 16, 0);
+        w.set_object(10, 4, 418);
+        assert_eq!(
+            closest_map_deadly_animal(&w, &db, 10, 10, 6, None),
+            Some((10, 4, 418))
+        );
     }
 }

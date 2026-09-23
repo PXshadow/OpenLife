@@ -26,6 +26,7 @@ pub use farmer_profession::basic_farmer_weight_from_runtime;
 pub use ai_handler::build_ai_request_body;
 pub use animals::CloseDeadlyAnimal;
 pub use pathfind::AnimalPathPlayerCtx;
+pub use pathfind::closest_map_deadly_animal;
 pub use pathfind::collect_deadly_animal_blocked_around;
 pub use pathfind::collect_deadly_animal_blocked_around_for_player;
 pub use pathfind::is_deadly_animal_for_path_for_player;
