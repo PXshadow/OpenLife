@@ -1127,6 +1127,103 @@ fn merge_ingredients_already_in_reach(
     }
 }
 
+const YEW_BOW_ID: i32 = 151;
+const ARROW_ID: i32 = 148;
+const BOW_AND_ARROW_ID: i32 = 152;
+
+fn craft_id_in_reach(id: i32, have: &HashSet<i32>, counts: &HashMap<i32, i32>) -> bool {
+    id > 0 && (counts.get(&id).copied().unwrap_or(0) > 0 || have.contains(&id))
+}
+
+/// Next Arrow 148 step once a Yew Bow is already inside the full search.
+///
+/// Do not retie rope+shaft and do not put flint, a knife, or a cutter on the
+/// bow. Haxe keeps that bow and expands only the missing arrow.
+// Haxe: DoTransitionSearch L7945–7957; getWeapon GetOrCraftItem(152) L5815
+fn arrow_step_when_yew_bow_in_reach(
+    objs: &[CraftWorldObj],
+    held_id: i32,
+    player_x: i32,
+    player_y: i32,
+    home: Option<(i32, i32)>,
+    radius: i32,
+    have: &HashSet<i32>,
+    counts: &HashMap<i32, i32>,
+    pile_id_for: Option<&dyn Fn(i32) -> i32>,
+    opts: &CraftTopDownOpts<'_>,
+) -> Option<CraftTransPair> {
+    let reach = |id: i32| craft_id_in_reach(id, have, counts);
+    let try_pair = |actor: i32, target: i32| -> Option<CraftTransPair> {
+        if actor > 0 && !reach(actor) {
+            return None;
+        }
+        if target > 0 && !reach(target) {
+            return None;
+        }
+        resolve_pair_filtered(
+            actor,
+            target,
+            objs,
+            held_id,
+            player_x,
+            player_y,
+            home,
+            radius,
+            pile_id_for,
+            &opts.scan,
+            opts.search_current_position,
+        )
+    };
+    if reach(ARROW_ID) {
+        let (actor, target) = if held_id == YEW_BOW_ID {
+            (YEW_BOW_ID, ARROW_ID)
+        } else {
+            (ARROW_ID, YEW_BOW_ID)
+        };
+        if let Some(pair) = try_pair(actor, target) {
+            return Some(pair);
+        }
+    }
+    // Finish the arrow, then the headless / featherless step, before leaves.
+    for (actor, target) in [(134, 149), (146, 147), (134, 140), (146, 140)] {
+        if let Some(pair) = try_pair(actor, target) {
+            return Some(pair);
+        }
+    }
+    let mut best: Option<CraftTransPair> = None;
+    let mut offer = |pair: Option<CraftTransPair>| {
+        if let Some(pair) = pair {
+            if best
+                .as_ref()
+                .map(|had| pair.distance < had.distance)
+                .unwrap_or(true)
+            {
+                best = Some(pair);
+            }
+        }
+    };
+    // Fletching needs a feather. Empty hands pluck Canada Goose Pond 143.
+    if !reach(146) && !reach(144) && !reach(2178) && held_id == 0 {
+        offer(try_pair(0, 143));
+    }
+    if !reach(146) {
+        for (actor, target) in [(135, 144), (560, 144), (135, 2178), (560, 2178)] {
+            offer(try_pair(actor, target));
+        }
+    }
+    if !reach(134) {
+        offer(try_pair(34, 135));
+    }
+    if !reach(140) {
+        if let Some(pair) = try_pair(58, 139) {
+            offer(Some(pair));
+        } else {
+            offer(try_pair(58, 852));
+        }
+    }
+    best
+}
+
 /// Filtered `searchBestObjectForCrafting` with DoTransitionSearch + scan gates.
 // Haxe: searchBestObjectForCrafting + searchBestTransitionTopDown + DoTransitionSearch
 pub fn search_best_object_for_crafting_topdown(
@@ -1215,6 +1312,26 @@ pub fn search_best_object_for_crafting_topdown(
         opts_local.search_current_position,
         &opts_local.scan,
     );
+
+    // A yew bow anywhere in the full search is the kept half of 148+151.
+    // The inner 30-tile ring must not flint that bow or retie rope+shaft,
+    // and must not harvest a closer bush that only feeds another bow.
+    // Haxe: DoTransitionSearch L7945–7957; getWeapon L5815
+    if product_id == BOW_AND_ARROW_ID && craft_id_in_reach(YEW_BOW_ID, &have_full, &counts_full)
+    {
+        return arrow_step_when_yew_bow_in_reach(
+            objs,
+            held_id,
+            player_x,
+            player_y,
+            home,
+            scan_full,
+            &have_full,
+            &counts_full,
+            pile_id_for,
+            &opts_local,
+        );
+    }
 
     let mut radius = 0;
     while radius < max_r {
@@ -1448,6 +1565,71 @@ mod tests {
         assert!(
             again.is_none(),
             "do not cut the bow or retie rope when the arrow chain is missing: {again:?}"
+        );
+    }
+
+    #[test]
+    fn bow_in_reach_does_not_flint_the_bow_or_pick_a_bush() {
+        // Live 0.3.48 probe at a yew bow: actor 135 target 151, or empty hands
+        // on Gooseberry Bush 30, while 134+140 sat inside radius 60.
+        let mut g = ReverseCraftGraph::new();
+        g.insert(59, 131, 0, 151);
+        g.insert(148, 151, 152, 0);
+        g.insert(148, 494, 152, 0);
+        g.insert(135, 151, 135, 3879);
+        g.insert(0, 3879, 59, 131);
+        g.insert(0, 30, 31, 30);
+        g.insert(134, 140, 0, 147);
+        g.insert(146, 147, 0, 148);
+        let objs = vec![
+            CraftWorldObj::simple(151, 2, 0),
+            CraftWorldObj::simple(135, 3, 0),
+            CraftWorldObj::simple(30, 1, 0),
+            CraftWorldObj::simple(59, 4, 0),
+            CraftWorldObj::simple(131, 5, 0),
+            CraftWorldObj::simple(134, 40, 0),
+            CraftWorldObj::simple(140, 40, 1),
+        ];
+        let pair = search_best_object_for_crafting_topdown(
+            152,
+            &objs,
+            0,
+            0,
+            0,
+            None,
+            60,
+            &g,
+            None,
+            &CraftTopDownOpts::default(),
+        )
+        .expect("arrow step");
+        assert_eq!(
+            (pair.actor_id, pair.target_id),
+            (134, 140),
+            "keep the bow; do not flint it or pick the bush: {pair:?}"
+        );
+        let no_arrow = vec![
+            CraftWorldObj::simple(151, 0, 0),
+            CraftWorldObj::simple(135, 1, 0),
+            CraftWorldObj::simple(30, 1, 1),
+            CraftWorldObj::simple(59, 4, 0),
+            CraftWorldObj::simple(131, 5, 0),
+        ];
+        let none = search_best_object_for_crafting_topdown(
+            152,
+            &no_arrow,
+            0,
+            0,
+            0,
+            None,
+            60,
+            &g,
+            None,
+            &CraftTopDownOpts::default(),
+        );
+        assert!(
+            none.is_none(),
+            "no arrow part: do not flint, retie, or pick the bush: {none:?}"
         );
     }
 
