@@ -8011,6 +8011,13 @@ fn npc_can_eat_held(content: &ContentDb, held_id: i32, food: f32, food_max: f32,
     can_eat_obj(fv, 0.0, food, food_max)
 }
 
+/// Pending peel drop only matters while that leftover is still held.
+/// An empty hand already consumed the food. Keeping the flag dropped the
+/// next pickup (live: yew bow 151 after eat 768).
+fn npc_eat_peel_kept(pending: bool, held_id: i32) -> bool {
+    pending && held_id > 0
+}
+
 /// Haxe `isEating` → `myPlayer.self()` → `doSelf(..., clothingSlot=-1)` → `doEating`.
 /// Not a ground `USE` (that is refused while moving).
 // Haxe: AiBase.isEating L8829; GlobalPlayerInstance.self/doSelf L2693–2735
@@ -10393,6 +10400,7 @@ pub async fn run_npc_scheduler(
                 }
             } else if let Some(st) = profession_state.get_mut(&conn_id) {
                 st.eat_fail_held = 0;
+                st.eat_pending_peel = npc_eat_peel_kept(st.eat_pending_peel, p.held_id);
             }
 
             // --- 1a. isFeedingChild (Haxe after isEating, before pickup food) ---
@@ -13411,6 +13419,13 @@ pub async fn run_npc_scheduler(
 mod tests {
     use super::*;
     use ol_config::ServerConfig;
+
+    #[test]
+    fn empty_hand_clears_eat_peel_so_bow_is_not_dropped() {
+        assert!(!npc_eat_peel_kept(true, 0));
+        assert!(!npc_eat_peel_kept(false, 151));
+        assert!(npc_eat_peel_kept(true, 151));
+    }
 
     #[test]
     fn npc_config_from_live_maps_knobs() {
