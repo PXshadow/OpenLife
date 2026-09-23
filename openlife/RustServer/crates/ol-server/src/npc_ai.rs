@@ -4411,6 +4411,10 @@ fn npc_commit_craft_live(
             target_id,
             actor_id,
         } => {
+            let ground_id = world.get_object(x, y);
+            if npc_reject_bare_craft_use(content, st, x, y, actor_id, ground_id, target_id) {
+                return false;
+            }
             let expected = if target_id != 0 {
                 sticky_parent_id(content, target_id)
             } else {
@@ -4707,6 +4711,66 @@ fn npc_goto_obj_receding_abort(
             false
         }
     }
+}
+
+/// Haxe `isUsingItem` L8923: flowering / fruiting milkweed may replace plain milkweed.
+fn npc_ground_matches_use_target(content: &ContentDb, target_id: i32, ground_id: i32) -> bool {
+    if target_id == 0 {
+        return true;
+    }
+    let expect = content.resolve_base_id(target_id);
+    let ground = content.resolve_base_id(ground_id);
+    if expect == ground {
+        return true;
+    }
+    matches!(expect, 50 | 51 | 52) && matches!(ground, 50 | 51 | 52)
+}
+
+/// USE that is not a transition.
+///
+/// Empty-hand on a loose object is Haxe pickup (`TransitionHelper.use` L804).
+/// Holding an object and USEing the tile it just left puts it back down.
+/// That loop (Flint Chip 135) never reaches rope + reed or `switchCloths`.
+/// Haxe `use()` false clears `transActor` / `transTarget` and `addNotReachable`
+/// (isUsingItem L9107–L9133).
+fn npc_craft_use_is_bare_swap(content: &ContentDb, actor_id: i32, ground_id: i32) -> bool {
+    if content
+        .find_transition_prefer(actor_id, ground_id, false)
+        .is_some()
+        || content.find_transition_max_use(actor_id, ground_id).is_some()
+    {
+        return false;
+    }
+    let actor = content.resolve_base_id(actor_id);
+    let ground = content.resolve_base_id(ground_id);
+    if actor == 0 && ground != 0 {
+        let permanent = content.get(ground).map(|d| d.permanent).unwrap_or(false);
+        if !permanent {
+            return false;
+        }
+    }
+    true
+}
+
+/// Reject a craft USE Haxe would fail. True → caller must not send USE.
+fn npc_reject_bare_craft_use(
+    content: &ContentDb,
+    st: &mut NpcProfessionState,
+    x: i32,
+    y: i32,
+    actor_id: i32,
+    ground_id: i32,
+    target_id: i32,
+) -> bool {
+    let bare = npc_craft_use_is_bare_swap(content, actor_id, ground_id);
+    let mismatch = !npc_ground_matches_use_target(content, target_id, ground_id);
+    if !bare && !mismatch {
+        return false;
+    }
+    st.path_reach.add_not_reachable(x, y, 90.0);
+    st.craft_rt.item.clear_trans();
+    clear_sticky_move(st);
+    true
 }
 
 /// Walk toward `(gx,gy)` and stage USE/DROP on arrival.
@@ -6975,10 +7039,13 @@ fn npc_run_kill_animal(
         .get(&BOW_AND_ARROW)
         .copied()
         .unwrap_or(BOW_AND_ARROW);
+    // Haxe objects/152.txt minPickupAge=10. A cache value of 0 let infants
+    // run GetOrCraftItem(152) (kill_animal_seek_weapon at age < 1).
     let bow_min = content
         .get(BOW_AND_ARROW)
         .map(|d| d.min_pickup_age as f32)
-        .unwrap_or(0.0);
+        .filter(|age| *age >= 1.0)
+        .unwrap_or(10.0);
     let bow_use = content
         .get(BOW_AND_ARROW)
         .map(|d| d.use_distance as f32)
@@ -13130,6 +13197,36 @@ mod tests {
         empty_live.ai_ignored_floor_ids.clear();
         let cfg = NpcConfig::from_live(&empty_live);
         assert_eq!(cfg.ignored_floor_ids, AI_IGNORED_FLOOR_IDS);
+    }
+
+    #[test]
+    fn craft_use_rejects_flint_putdown_and_keeps_milkweed() {
+        let mut content = ContentDb::default();
+        let mut loose = ol_content::ObjectDef::empty(135);
+        loose.permanent = false;
+        content.objects.insert(135, loose);
+        let mut weed = ol_content::ObjectDef::empty(50);
+        weed.permanent = true;
+        content.objects.insert(50, weed);
+        let mut tree = ol_content::ObjectDef::empty(49);
+        tree.permanent = true;
+        content.objects.insert(49, tree);
+        let mut trans = ol_content::Transition::default();
+        trans.actor_id = 0;
+        trans.target_id = 50;
+        trans.new_actor_id = 57;
+        content.transitions.insert((0, 50), trans);
+
+        // Held flint on the tile it just left: no 135+0 transition.
+        assert!(npc_craft_use_is_bare_swap(&content, 135, 0));
+        // Empty hand may pick up a loose flint chip (Haxe L804).
+        assert!(!npc_craft_use_is_bare_swap(&content, 0, 135));
+        // Permanent tree with no transition is not a pickup.
+        assert!(npc_craft_use_is_bare_swap(&content, 0, 49));
+        // Milkweed harvest is a real transition.
+        assert!(!npc_craft_use_is_bare_swap(&content, 0, 50));
+        assert!(npc_ground_matches_use_target(&content, 50, 51));
+        assert!(!npc_ground_matches_use_target(&content, 135, 0));
     }
 
     #[test]
